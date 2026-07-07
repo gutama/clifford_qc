@@ -52,7 +52,10 @@ clifford_qc/
   channels.py      # Kraus channels
   matrix.py        # dense matrix bridge for validation/small n
   diagnostics.py   # entropy, negativity, fidelity, trace diagnostics
-  verify.py        # full invariant suite
+  verify.py        # dependency-light smoke suite (pytest is canonical)
+  ir.py            # Pauli-rotor IR: PauliWord/PauliSum/Rotor/Program, gradients
+  qasm3.py         # OpenQASM 3 export pass for IR programs
+  bridges/         # optional: stim, openfermion, pytket, pennylane
 ```
 
 ## Quick start
@@ -65,7 +68,42 @@ print(bell.to_labels())
 print(negativity(bell, {1}))
 ```
 
-Run the verification suite:
+## Pauli-rotor IR and bridges
+
+Circuits are expressed in a small IR (rotors `exp(-iθP/2)` + named
+Cliffords + measurement tasks) that lowers exactly to `MV` and exports to
+the wider ecosystem:
+
+```python
+from clifford_qc import Program, Parameter, PauliSum, adjoint_gradient, to_qasm3
+
+theta = Parameter("theta")
+prog = (Program(2, parameters=[theta])
+        .clifford("H", 0).clifford("CX", 0, 1)
+        .rotor("ZZ", theta)
+        .measure_expectation({"XX": 1.0}))
+
+prog.run([0.4])                 # exact expectation values via MV evolution
+print(to_qasm3(prog))           # OpenQASM 3 export (rz + CX parity ladder)
+obs = PauliSum.from_labels({"XX": 1.0})
+adjoint_gradient(prog, obs, [0.4])  # exact gradients, matches PennyLane
+```
+
+Optional bridges (each an extra: `pip install clifford-qc[bridges]`):
+`bridges.stim_bridge` (Clifford tableau validation at large n),
+`bridges.openfermion_bridge` (`QubitOperator`/`FermionOperator ↔ MV`),
+`bridges.pytket_bridge` (`Rotor → PauliExpBox`, round-trips),
+`bridges.pennylane_bridge` (`Rotor → qml.PauliRot`, gradient comparison).
+See `simple_plan.md` for the roadmap and validation criteria.
+
+## Tests
+
+```bash
+pip install -e .[test]   # add ,bridges for the ecosystem conformance tests
+pytest
+```
+
+Run the quick verification entry point:
 
 ```bash
 PYTHONPATH=. python -m clifford_qc.verify

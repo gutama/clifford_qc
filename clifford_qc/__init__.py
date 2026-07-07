@@ -17,6 +17,12 @@ from .states import (
 from .channels import check_kraus, apply_channel, depolarizing, dephasing, amplitude_damping
 from .matrix import code_to_matrix, to_matrix, from_matrix, density_from_statevector, expm_matrix, exact_ground
 from .diagnostics import negativity, vn_entropy, fidelity_pure, trace_cyclicity_error
+from .ir import (
+    PauliWord, PauliSum, Parameter, ParameterGroup, Rotor, NamedClifford,
+    MeasurementTask, Program, conjugate_pauli_word,
+    expectation_value, parameter_shift_gradient, adjoint_gradient,
+)
+from .qasm3 import to_qasm3
 
 __all__ = [name for name in globals() if not name.startswith("_")]
 __version__ = "0.1.0"
