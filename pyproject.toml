@@ -1,0 +1,19 @@
+[build-system]
+requires = ["setuptools>=61"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "clifford-qc"
+version = "0.1.0"
+description = "Operator-centric quantum computing in Cl(2n,C) using sparse Pauli-word multivectors"
+readme = "README.md"
+requires-python = ">=3.10"
+authors = [{name = "Research prototype"}]
+dependencies = ["numpy"]
+
+[project.optional-dependencies]
+test = ["pytest"]
+
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["clifford_qc*"]
