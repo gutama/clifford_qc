@@ -1,29 +1,114 @@
-# clifford_qc v0.1
+# clifford_qc
 
-`clifford_qc` is a polished operator-centric quantum Clifford engine for
-quantum computing in the complexified Clifford algebra
+`clifford_qc` is an operator-centric quantum computing package built on the
+complexified Clifford algebra
 
 \[
 Cl(2n,\mathbb C) \cong M(2^n,\mathbb C).
 \]
 
-It stores multivectors sparsely in the Pauli-word basis. States, gates,
-observables, channels, Jordan-Wigner Clifford generators, and fermionic Witt
-operators all live in the same algebra.
+The core representation is a sparse multivector/operator (`MV`) in the
+Pauli-word basis. States, gates, observables, channels, Jordan-Wigner
+Clifford generators, and fermionic creation/annihilation operators all live in
+the same algebra, so workflows can move between circuit, operator, density
+matrix, and fermionic views without changing representations.
 
-## Core conventions
+This is not a speedup claim over dense matrices. The goal is structural: one
+small algebraic engine with exact sparse Pauli semantics, dense matrix
+conversion for validation and small systems, and optional bridges to external
+quantum tooling.
 
-- Word code: two bits per qubit, `0=I`, `1=X`, `2=Y`, `3=Z`.
+## Install
+
+```bash
+pip install clifford-qc
+```
+
+For local development:
+
+```bash
+pip install -e .[test]
+pytest
+```
+
+Optional ecosystem bridges are installed independently:
+
+```bash
+pip install -e .[stim]
+pip install -e .[openfermion]
+pip install -e .[pytket]
+pip install -e .[pennylane]
+pip install -e .[test,bridges]
+```
+
+The core package depends only on `numpy`. Bridge modules import their
+third-party dependencies only when those modules are imported.
+
+## Quick Start
+
+```python
+from clifford_qc import *
+
+rho = bell_density()
+
+print(rho.to_labels())
+print("negativity:", negativity(rho, {1}))
+print("probabilities:", computational_probabilities(rho))
+```
+
+Build and evolve states directly:
+
+```python
+from clifford_qc import CNOT, H, X, Z, evolve, expectation, ket_density
+
+rho0 = ket_density(2, "00")
+U = CNOT(2, 0, 1) * H(2, 0)
+rho = evolve(rho0, U)
+
+print(expectation(rho, X(2, 0) * X(2, 1)).real)
+print(expectation(rho, Z(2, 0) * Z(2, 1)).real)
+```
+
+Use the dense matrix bridge when a small-system reference is useful:
+
+```python
+import numpy as np
+from clifford_qc import P, to_matrix
+
+A = P("XI") + 0.25 * P("ZZ")
+assert np.allclose(to_matrix(A * A), to_matrix(A) @ to_matrix(A))
+```
+
+## What Is Included
+
+`clifford_qc` covers:
+
+- sparse Pauli-word operators through `MV`
+- Pauli helpers: `I`, `X`, `Y`, `Z`, `P`, commutators, anticommutators, tensor products
+- Clifford/Jordan-Wigner generators: `gamma`, pseudoscalar, blades, grades
+- fermionic operators: `c_op`, `cdag_op`, `number_op`
+- gates and unitaries: `H`, `S`, `T`, `RX`, `RY`, `RZ`, `rotor`, `CNOT`, `CZ`, `SWAP`, `TOFFOLI`
+- density operators, evolution, measurement, probabilities, partial trace, partial transpose
+- Kraus channels: depolarizing, dephasing, amplitude damping
+- diagnostics: fidelity, entropy, negativity, trace checks
+- dense matrix conversion and exact small-system ground states
+- a Pauli-rotor intermediate representation with exact execution, JSON serialization, gradients, and QASM3 export
+- optional bridges for Stim, OpenFermion, pytket, and PennyLane
+
+## Core Conventions
+
+- Pauli labels are strings over `I`, `X`, `Y`, `Z`.
 - Qubit `0` is the leftmost character in labels such as `"XIZ"`.
-- Matrix backend uses the same ordering, so `to_matrix(P("XIZ"))` equals
+- Word codes use two bits per qubit: `0=I`, `1=X`, `2=Y`, `3=Z`.
+- The matrix backend uses the same ordering, so `to_matrix(P("XIZ"))` equals
   `kron(X, I, Z)`.
-- Trace normalization:
+- Trace normalization is
 
 \[
 \operatorname{Tr}(A)=2^n \langle A\rangle_0.
 \]
 
-- Jordan-Wigner Clifford generators:
+- Jordan-Wigner Clifford generators are
 
 \[
 \gamma_{2j}=Z_0\cdots Z_{j-1}X_j,
@@ -31,7 +116,7 @@ operators all live in the same algebra.
 \gamma_{2j+1}=Z_0\cdots Z_{j-1}Y_j.
 \]
 
-- Rotor convention:
+- Rotor convention is
 
 \[
 R_P(\theta)=\exp(-i\theta P/2)
@@ -39,77 +124,70 @@ R_P(\theta)=\exp(-i\theta P/2)
 \qquad P^2=1.
 \]
 
-## Package layout
+See `CONVENTIONS.md` for the detailed convention notes.
 
-```text
-clifford_qc/
-  multivector.py   # sparse MV, word product, label/word-code utilities
-  pauli.py         # I, X, Y, Z, P, commutators, tensor product
-  clifford.py      # gamma, pseudoscalar, blade masks, grades
-  fermion.py       # c, c†, number operators
-  gates.py         # H/S/T, rotors, CNOT/CZ/SWAP/Toffoli, Trotter/expm
-  states.py        # density operators, evolution, measurement, partial traces
-  channels.py      # Kraus channels
-  matrix.py        # dense matrix bridge for validation/small n
-  diagnostics.py   # entropy, negativity, fidelity, trace diagnostics
-  verify.py        # dependency-light smoke suite (pytest is canonical)
-  ir.py            # Pauli-rotor IR: PauliWord/PauliSum/Rotor/Program, gradients
-  qasm3.py         # OpenQASM 3 export pass for IR programs
-  bridges/         # optional: stim, openfermion, pytket, pennylane
-```
+## Pauli-Rotor IR
 
-## Quick start
-
-```python
-from clifford_qc import *
-
-bell = bell_density()
-print(bell.to_labels())
-print(negativity(bell, {1}))
-```
-
-## Pauli-rotor IR and bridges
-
-Circuits are expressed in a small IR (rotors `exp(-iθP/2)` + named
-Cliffords + measurement tasks) that lowers exactly to `MV` and exports to
-the wider ecosystem:
+The native interchange layer is a small Pauli-rotor IR. It represents programs
+as named Clifford gates, Pauli-word rotors `exp(-i theta P / 2)`, ordered
+parameters, and measurement tasks. Every operation lowers exactly to `MV`.
 
 ```python
 from clifford_qc import Program, Parameter, PauliSum, adjoint_gradient, to_qasm3
 
 theta = Parameter("theta")
-prog = (Program(2, parameters=[theta])
-        .clifford("H", 0).clifford("CX", 0, 1)
-        .rotor("ZZ", theta)
-        .measure_expectation({"XX": 1.0}))
+prog = (
+    Program(2, parameters=[theta])
+    .clifford("H", 0)
+    .clifford("CX", 0, 1)
+    .rotor("ZZ", theta)
+    .measure_expectation({"XX": 1.0})
+    .measure_z(0, 1)
+)
 
-prog.run([0.4])                 # exact expectation values via MV evolution
-print(to_qasm3(prog))           # OpenQASM 3 export (rz + CX parity ladder)
+print(prog.run([0.4]))
+print(to_qasm3(prog, [0.4]))
+
 obs = PauliSum.from_labels({"XX": 1.0})
-adjoint_gradient(prog, obs, [0.4])  # exact gradients, matches PennyLane
+print(adjoint_gradient(prog, obs, [0.4]))
 ```
 
-Optional bridges (each an extra: `pip install clifford-qc[bridges]`):
-`bridges.stim_bridge` (Clifford tableau validation at large n),
-`bridges.openfermion_bridge` (`QubitOperator`/`FermionOperator ↔ MV`),
-`bridges.pytket_bridge` (`Rotor → PauliExpBox`, round-trips),
-`bridges.pennylane_bridge` (`Rotor → qml.PauliRot`, gradient comparison).
-See `simple_plan.md` for the roadmap and validation criteria.
+IR objects include:
 
-## Tests
+| Object | Role |
+|---|---|
+| `PauliWord` | single Pauli word with label/code/support helpers |
+| `PauliSum` | sparse Pauli-word observable type |
+| `Parameter`, `ParameterGroup` | ordered parameter binding and gradient order |
+| `Rotor` | `exp(-i theta P / 2)` for a Pauli word |
+| `NamedClifford` | `X`, `Y`, `Z`, `H`, `S`, `SDG`, `CX`, `CZ`, `SWAP` |
+| `MeasurementTask` | expectation values or computational-basis probabilities |
+| `Program` | operations, measurements, exact execution, JSON serialization |
 
-```bash
-pip install -e .[test]   # add ,bridges for the ecosystem conformance tests
-pytest
-```
+OpenQASM 3 export is an export pass, not the native format. Pauli rotors lower
+to basis changes, a CX parity ladder, `rz(theta)`, and uncompute. Expectation
+measurements are evaluated by `clifford_qc`; only `sample_z` tasks become QASM
+measure statements.
 
-Run the quick verification entry point:
+## Optional Bridges
 
-```bash
-PYTHONPATH=. python -m clifford_qc.verify
-```
+Bridge modules live under `clifford_qc.bridges`:
 
-Run examples:
+- `stim_bridge`: Clifford-only `Program -> stim.Circuit` and tableau-backed
+  Pauli conjugation maps for large-n Clifford validation.
+- `openfermion_bridge`: lossless `QubitOperator <-> MV/PauliSum` conversion
+  and one-way `FermionOperator -> MV` through the package's Jordan-Wigner
+  operators.
+- `pytket_bridge`: `Program -> pytket.Circuit` using `PauliExpBox` for rotors,
+  plus supported round-trips back to the IR.
+- `pennylane_bridge`: `Program -> PennyLane` operations and observables for
+  expectation and gradient comparison.
+
+The QASM3 exporter is part of the core package and needs no extra dependency.
+
+## Examples
+
+Run the included examples from the repository root:
 
 ```bash
 PYTHONPATH=. python examples/bell_chsh.py
@@ -119,9 +197,59 @@ PYTHONPATH=. python examples/noisy_channel.py
 PYTHONPATH=. python examples/tfim_exact.py
 ```
 
-## Scope
+They cover Bell/CHSH diagnostics, a two-qubit Grover step, fermionic CAR
+checks, noisy channels, and a small transverse-field Ising Hamiltonian.
 
-This is not a speedup claim over dense matrices. The goal is structural:
-one algebra for states, gates, observables, channels, fermions, Clifford
-structure, and sparse Pauli-word semantics. Dense matrix conversion is kept as
-a validation and small-system bridge.
+## Tests And Validation
+
+Core tests:
+
+```bash
+pip install -e .[test]
+pytest
+```
+
+Full bridge conformance suite:
+
+```bash
+pip install -e .[test,bridges]
+pytest
+```
+
+Dependency-light smoke check:
+
+```bash
+PYTHONPATH=. python -m clifford_qc.verify
+```
+
+The test suite covers algebraic invariants, property-based checks,
+dense-matrix homomorphism and round-trips, density/channel behavior, IR JSON
+golden vectors, QASM3 lowering semantics, exact gradients, and optional bridge
+conformance where dependencies are installed.
+
+## Package Layout
+
+```text
+clifford_qc/
+  multivector.py   # sparse MV, word product, label/word-code utilities
+  pauli.py         # I, X, Y, Z, P, commutators, tensor product
+  clifford.py      # gamma, pseudoscalar, blade masks, grades
+  fermion.py       # c, cdag, number operators
+  gates.py         # H/S/T, rotors, controlled gates, Trotter/expm helpers
+  states.py        # densities, evolution, measurement, traces
+  channels.py      # Kraus channels
+  matrix.py        # dense matrix bridge for validation/small n
+  diagnostics.py   # entropy, negativity, fidelity, trace diagnostics
+  ir.py            # Pauli-rotor IR, serialization, gradients
+  qasm3.py         # OpenQASM 3 export pass for IR programs
+  verify.py        # dependency-light smoke suite
+  bridges/         # optional Stim/OpenFermion/pytket/PennyLane bridges
+```
+
+## Project Notes
+
+- The project is currently alpha (`0.1.0`).
+- `MIGRATION.md` maps the old single-file API onto this package.
+- `simple_plan.md` records the implemented roadmap and bridge validation
+  criteria.
+- License: Apache-2.0.
