@@ -50,6 +50,27 @@ class TestExpectations:
             observable_to_pennylane(PauliSum.from_labels({"X": 1j}))
 
 
+class TestGlobalPhase:
+    def test_identity_rotor_statevector_matches_mv_exactly(self):
+        # qml.GlobalPhase(phi) applies exp(-i phi), so GlobalPhase(theta/2)
+        # reproduces the identity rotor exp(-i theta/2) including phase.
+        from clifford_qc import to_matrix
+        from clifford_qc.bridges.pennylane_bridge import apply_program
+
+        theta = 0.8
+        prog = Program(1).rotor("I", theta).rotor("Y", 0.3)
+        dev = qml.device("default.qubit", wires=1)
+
+        @qml.qnode(dev)
+        def circuit():
+            apply_program(prog, [])
+            return qml.state()
+
+        psi = np.asarray(circuit())
+        psi_ref = to_matrix(prog.unitary()) @ np.array([1, 0], complex)
+        assert np.allclose(psi, psi_ref, atol=1e-9)  # exact, not just up to phase
+
+
 class TestGradientComparison:
     def test_pennylane_parameter_shift_vs_our_gradients(self):
         prog, obs = ansatz()

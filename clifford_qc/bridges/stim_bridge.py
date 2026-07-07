@@ -73,8 +73,3 @@ class CliffordMap:
                                    ("Z", self.tableau.z_output(j))):
                 out[f"{letter}{j}"] = _stim_to_pauli_word(output, self.n)
         return out
-
-    def preserves_support_size(self, words: list[PauliWord]) -> bool:
-        """True if every input word maps to a single Pauli word (always the
-        case for Cliffords; exposed for large-n benchmark sweeps)."""
-        return all(isinstance(self.conjugate(w)[1], PauliWord) for w in words)

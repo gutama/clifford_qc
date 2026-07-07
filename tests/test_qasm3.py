@@ -70,7 +70,15 @@ class TestEmission:
         prog = Program(1).clifford("H", 0).measure_expectation({"Z": 1.0})
         assert "not representable" in to_qasm3(prog)
 
-    def test_invalid_parameter_name_rejected(self):
-        prog = Program(1, parameters=["bad name"]).rotor("Z", Parameter("bad name"))
+    @pytest.mark.parametrize("name", ["bad name", "2theta", "__reserved", "input", "rz", "q"])
+    def test_invalid_parameter_name_rejected(self, name):
+        prog = Program(1, parameters=[name]).rotor("Z", Parameter(name))
         with pytest.raises(ValueError):
             to_qasm3(prog)
+
+    @pytest.mark.parametrize("name", ["Theta", "_theta", "theta_2", "T"])
+    def test_valid_qasm_identifiers_accepted(self, name):
+        prog = Program(1, parameters=[name]).rotor("Z", Parameter(name))
+        text = to_qasm3(prog)
+        assert f"input float[64] {name};" in text
+        assert f"rz({name}) q[0];" in text

@@ -82,7 +82,8 @@ class TestProgramSemantics:
     def test_auto_registers_parameters(self):
         prog = Program(1).rotor("Y", Parameter("t"))
         assert prog.parameters.names == ("t",)
-        assert abs(prog.run([0.9])[0] - math.cos(0.9)) < 1e-12 if prog.measurements else True
+        prog.measure_expectation({"Z": 1.0})
+        assert abs(prog.run([0.9])[0] - math.cos(0.9)) < 1e-12
 
     def test_run_expectation_and_sampling(self):
         prog = (Program(2).clifford("H", 0).clifford("CX", 0, 1)
@@ -95,6 +96,14 @@ class TestProgramSemantics:
         prog = Program(2).clifford("H", 0).clifford("CX", 0, 1).measure_z(1)
         probs, = prog.run()
         assert abs(probs["0"] - 0.5) < 1e-12 and abs(probs["1"] - 0.5) < 1e-12
+
+    def test_sample_z_rejects_unordered_or_duplicate_qubits(self):
+        # bitstrings list qubits in ascending order, so permutations and
+        # duplicates would be silently ambiguous
+        with pytest.raises(ValueError):
+            Program(3).measure_z(2, 0)
+        with pytest.raises(ValueError):
+            Program(3).measure_z(1, 1)
 
     def test_is_clifford_only(self):
         assert Program(1, [NamedClifford("H", (0,))]).is_clifford_only()

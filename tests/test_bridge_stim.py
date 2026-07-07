@@ -99,7 +99,6 @@ class TestLargeN:
             # a Clifford maps one Pauli word to exactly one Pauli word
             assert isinstance(image, PauliWord) and image.n == n
             assert phase in (1, -1, 1j, -1j)
-        assert cmap.preserves_support_size(words)
 
     def test_group_property_composition(self):
         rng = np.random.default_rng(7)

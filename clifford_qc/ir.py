@@ -282,7 +282,10 @@ class MeasurementTask:
 
     ``kind="expectation"`` carries a Hermitian PauliSum observable;
     ``kind="sample_z"`` requests computational-basis probabilities for the
-    listed qubits (lowered to measure statements in QASM3).
+    listed qubits (lowered to measure statements in QASM3). ``sample_z``
+    qubits must be strictly increasing: result bitstrings list qubits in
+    ascending order, so accepting permutations or duplicates would make
+    them ambiguous.
     """
 
     kind: str
@@ -299,6 +302,9 @@ class MeasurementTask:
             object.__setattr__(self, "qubits", tuple(int(q) for q in self.qubits))
             if not self.qubits:
                 raise ValueError("sample_z task needs at least one qubit")
+            if list(self.qubits) != sorted(set(self.qubits)):
+                raise ValueError(
+                    f"sample_z qubits must be strictly increasing, got {self.qubits}")
         else:
             raise ValueError(f"unknown measurement kind {self.kind!r}")
 

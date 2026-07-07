@@ -19,11 +19,33 @@ from .pauli import I
 from . import gates as _gates
 from .ir import CLIFFORD_GATES, Parameter, PauliWord, Program, Rotor
 
-_IDENT = re.compile(r"^[a-z][A-Za-z0-9_]*$")
+# OpenQASM 3 identifier grammar (ASCII subset); '__' prefixes are reserved.
+_IDENT = re.compile(r"^[A-Za-z_][A-Za-z0-9_]*$")
 
 # IR Clifford name -> stdgates.inc name
 _STD_NAMES = {"X": "x", "Y": "y", "Z": "z", "H": "h", "S": "s", "SDG": "sdg",
               "CX": "cx", "CZ": "cz", "SWAP": "swap"}
+
+# Names that would clash with QASM3 keywords/types, the emitted register
+# names, or gates defined by the included stdgates.inc.
+_RESERVED = {
+    "OPENQASM", "include", "input", "output", "qubit", "bit", "measure",
+    "gate", "reset", "barrier", "if", "else", "for", "while", "return",
+    "def", "defcal", "defcalgrammar", "cal", "const", "let", "gphase",
+    "ctrl", "negctrl", "inv", "pow", "float", "int", "uint", "angle",
+    "bool", "complex", "duration", "stretch", "array", "creg", "qreg",
+    "pi", "tau", "euler", "true", "false", "in", "extern", "box", "delay",
+    "durationof", "sizeof", "end", "U", "q", "c",
+    # stdgates.inc
+    "p", "x", "y", "z", "h", "s", "sdg", "t", "tdg", "sx", "rx", "ry", "rz",
+    "cx", "cy", "cz", "cp", "crx", "cry", "crz", "ch", "swap", "ccx",
+    "cswap", "cu", "id", "u1", "u2", "u3",
+}
+
+
+def _validate_identifier(name: str) -> None:
+    if not _IDENT.match(name) or name.startswith("__") or name in _RESERVED:
+        raise ValueError(f"parameter name {name!r} is not a usable QASM3 identifier")
 
 # Basis change A with A† Z A = P, emitted as (pre-ops, post-ops) per letter.
 # Y uses A = H·S† (as a matrix), i.e. the circuit applies sdg then h.
@@ -103,8 +125,7 @@ def to_qasm3(program: Program, values=None) -> str:
     ``sample_z`` tasks become measure statements; expectation tasks have no
     QASM3 form and are noted in a comment."""
     for name in program.parameters.names:
-        if not _IDENT.match(name):
-            raise ValueError(f"parameter name {name!r} is not a valid QASM3 identifier")
+        _validate_identifier(name)
 
     lines = ["OPENQASM 3.0;", 'include "stdgates.inc";']
     bound = values is not None or not len(program.parameters)
