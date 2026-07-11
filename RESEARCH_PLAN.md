@@ -267,9 +267,17 @@ Phase 0 starting 13 July 2026):
   successive elimination; explicit ambiguity outcomes; cost accounting.
   *Exit:* confidence calibration validated on synthetic Pauli means and
   small TFIM instances.
-- **Phase 3 — scaling & layering**: commutation graph, layer construction,
-  subpool exploration, QWC measurement grouping, TFIM/XXZ/random-Ising
-  sweep, 30–100-seed experiments. *Exit:* Paper A tables and ablations.
+- **Phase 3 — scaling & layering** *(machinery done in this branch)*:
+  commutation graph + layer construction (`algorithms/layering.py`),
+  subpool exploration with dead-subpool redraw, QWC measurement grouping
+  with joint-distribution sampling (`measurement/grouping.py`), a random
+  selection baseline, and the config-driven benchmark matrix
+  (`benchmarks/run_benchmark.py` + `summarize.py`, 30-seed reference
+  results committed under `benchmarks/reference_results/`). Known finding:
+  alpha-layering without operator repeats can stall at symmetric
+  stationary points (pinned by a regression test) — quantify in the
+  ablations. *Remaining:* scale the sweep to n = 6–12 and 100 seeds for
+  the headline tables. *Exit:* Paper A tables and ablations.
 - **Phase 4 — stabilizer initialization**: discrete Clifford-point search,
   stabilizer Hamiltonian approximation, residual ADAPT, large-n
   stabilizer-only benchmarks. *Exit:* Paper B go/no-go decision.
@@ -299,8 +307,8 @@ Ordered backlog (issue → acceptance test):
 | 17 | bench: chemistry baselines | reference energies and mappings recorded |
 | 18 | docs: reproducibility artifact | clean environment reproduces figures |
 
-Items 1–11 and 14 are implemented on this branch; 12–13 and 15–18 are the
-remaining Phase 3–5 work.
+Items 1–14 and 16 are implemented (1–11 and 14 merged in PR #2; 12, 13 and
+16 on this branch); 15 and 17–18 are the remaining Phase 4–5 work.
 
 ## 11. Non-goals
 
