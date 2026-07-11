@@ -11,25 +11,63 @@ from __future__ import annotations
 
 import stim
 
-from ..ir import PauliWord, Program
+from ..ir import PauliWord, Program, Rotor, clifford_angle_index
 
 # IR Clifford name -> stim gate name
 STIM_NAMES = {"X": "X", "Y": "Y", "Z": "Z", "H": "H", "S": "S", "SDG": "S_DAG",
               "CX": "CX", "CZ": "CZ", "SWAP": "SWAP"}
 
+_TARGETS = {"X": stim.target_x, "Y": stim.target_y, "Z": stim.target_z}
 
-def program_to_stim(program: Program) -> stim.Circuit:
-    """Extract the Clifford-only circuit of a program as a stim.Circuit."""
-    if not program.is_clifford_only():
-        raise ValueError("program contains non-Clifford rotors; extract or lower them first")
+
+def _pauli_product_targets(word: PauliWord) -> list:
+    targets = []
+    for j in word.support():
+        if targets:
+            targets.append(stim.target_combiner())
+        targets.append(_TARGETS[word.letter(j)](j))
+    return targets
+
+
+def _append_clifford_rotor(circuit: stim.Circuit, word: PauliWord, k: int) -> None:
+    """Append exp(-i k pi P/4) for k in {0,1,2,3} (up to global phase).
+
+    stim's SPP gate conjugates exactly like exp(-i pi P/4), so k=1 is SPP,
+    k=3 its dagger, and k=2 is the Pauli word itself (exp(-i pi P/2) = -iP).
+    """
+    if k == 0 or not word.support():
+        return
+    if k == 2:
+        for j in word.support():
+            circuit.append(word.letter(j), [j])
+    else:
+        circuit.append("SPP" if k == 1 else "SPP_DAG", _pauli_product_targets(word))
+
+
+def program_to_stim(program: Program, values=None) -> stim.Circuit:
+    """Extract the Clifford circuit of a program as a stim.Circuit.
+
+    NamedClifford gates map to their stim names; rotors are accepted when
+    their (resolved) angle is a multiple of pi/2 and lower to SPP/SPP_DAG
+    or Pauli gates. Any other rotor raises.
+    """
+    bindings = program.parameters.bind(values) if values is not None else None
     circuit = stim.Circuit()
     for op in program.ops:
-        circuit.append(STIM_NAMES[op.name], list(op.qubits))
+        if isinstance(op, Rotor):
+            if not op.is_clifford(bindings):
+                raise ValueError(
+                    f"rotor exp(-i theta {op.word.label}/2) with theta={op.angle!r} "
+                    "is not a Clifford operation; extract or lower it first")
+            k = clifford_angle_index(op.resolved_angle(bindings))
+            _append_clifford_rotor(circuit, op.word, k)
+        else:
+            circuit.append(STIM_NAMES[op.name], list(op.qubits))
     return circuit
 
 
-def clifford_tableau(program: Program) -> stim.Tableau:
-    return program_to_stim(program).to_tableau()
+def clifford_tableau(program: Program, values=None) -> stim.Tableau:
+    return program_to_stim(program, values).to_tableau()
 
 
 def _pauli_word_to_stim(word: PauliWord) -> stim.PauliString:
@@ -57,8 +95,8 @@ class CliffordMap:
         self.tableau = tableau
 
     @staticmethod
-    def from_program(program: Program) -> "CliffordMap":
-        return CliffordMap(program.n, clifford_tableau(program))
+    def from_program(program: Program, values=None) -> "CliffordMap":
+        return CliffordMap(program.n, clifford_tableau(program, values))
 
     def conjugate(self, word: PauliWord) -> tuple[complex, PauliWord]:
         if word.n != self.n:

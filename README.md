@@ -92,8 +92,12 @@ assert np.allclose(to_matrix(A * A), to_matrix(A) @ to_matrix(A))
 - Kraus channels: depolarizing, dephasing, amplitude damping
 - diagnostics: fidelity, entropy, negativity, trace checks
 - dense matrix conversion and exact small-system ground states
-- a Pauli-rotor intermediate representation with exact execution, JSON serialization, gradients, and QASM3 export
+- a Pauli-rotor intermediate representation with exact gate-by-gate execution, versioned JSON serialization, gradients, and QASM3 export
 - optional bridges for Stim, OpenFermion, pytket, and PennyLane
+- a research layer for VQE/ADAPT-VQE: model builders (`models/`), execution
+  backends (`backends/`), a finite-shot measurement/confidence stack
+  (`measurement/`), and packaged algorithms (`algorithms/`) — see
+  `RESEARCH_PLAN.md`
 
 ## Core Conventions
 
@@ -244,6 +248,10 @@ clifford_qc/
   qasm3.py         # OpenQASM 3 export pass for IR programs
   verify.py        # dependency-light smoke suite
   bridges/         # optional Stim/OpenFermion/pytket/PennyLane bridges
+  models/          # TFIM, XXZ, random-Ising benchmark models
+  backends/        # Backend protocol: exact MV, dense reference, finite-shot
+  measurement/     # commutator bank, shared word cache, confidence, allocation
+  algorithms/      # optimizers, pools (odd-Y), fixed-depth VQE, ADAPT-VQE
 ```
 
 ## Project Notes
@@ -252,4 +260,6 @@ clifford_qc/
 - `MIGRATION.md` maps the old single-file API onto this package.
 - `simple_plan.md` records the implemented roadmap and bridge validation
   criteria.
+- `RESEARCH_PLAN.md` is the active research roadmap (confidence-certified,
+  measurement-efficient ADAPT-VQE).
 - License: Apache-2.0.
