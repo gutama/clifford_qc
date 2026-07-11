@@ -63,6 +63,10 @@ class VarianceProportional:
     def __init__(self, round_budget: int, growth: float = 2.0, max_rounds: int = 8):
         if round_budget <= 0:
             raise ValueError("round_budget must be positive")
+        if growth < 1.0:
+            raise ValueError("growth must be >= 1 (budgets must not shrink)")
+        if max_rounds < 1:
+            raise ValueError("max_rounds must be >= 1")
         self.round_budget = round_budget
         self.growth = growth
         self.max_rounds = max_rounds

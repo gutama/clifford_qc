@@ -126,6 +126,15 @@ def test_empirical_bernstein_radius_shrinks_as_sqrt_n():
     assert r10000 < r100 / 5
 
 
+def test_empirical_bernstein_rejects_bad_inputs():
+    with pytest.raises(ValueError, match="delta"):
+        empirical_bernstein_radius(0.25, 100, 0.0)
+    with pytest.raises(ValueError, match="delta"):
+        empirical_bernstein_radius(0.25, 100, 1.0)
+    with pytest.raises(ValueError, match="value_range"):
+        empirical_bernstein_radius(0.25, 100, 0.05, value_range=0.0)
+
+
 def test_simultaneous_coverage_on_synthetic_words():
     """Simultaneous intervals cover all true candidate values at >= 1-delta."""
     rng = np.random.default_rng(0)
@@ -185,6 +194,15 @@ def test_uniform_fixed_is_single_round():
     alloc = UniformFixed(100)
     assert alloc.plan(0, bank, cache, [0, 1])
     assert alloc.plan(1, bank, cache, [0, 1]) == {}
+
+
+def test_variance_proportional_rejects_bad_configuration():
+    with pytest.raises(ValueError, match="round_budget"):
+        VarianceProportional(round_budget=0)
+    with pytest.raises(ValueError, match="growth"):
+        VarianceProportional(round_budget=100, growth=0.5)
+    with pytest.raises(ValueError, match="max_rounds"):
+        VarianceProportional(round_budget=100, max_rounds=0)
 
 
 def test_variance_proportional_bootstraps_unmeasured_words():

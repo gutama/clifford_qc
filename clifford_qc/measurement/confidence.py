@@ -62,6 +62,10 @@ def empirical_bernstein_radius(sample_var: float, N: int, delta: float,
     with observed sample variance v and range R (2 for +/-1 outcomes).
     Maurer & Pontil (2009).
     """
+    if not (0.0 < delta < 1.0):
+        raise ValueError("delta must be in (0, 1)")
+    if value_range <= 0.0:
+        raise ValueError("value_range must be positive")
     if N <= 0:
         return float("inf")
     log_term = math.log(3.0 / delta)

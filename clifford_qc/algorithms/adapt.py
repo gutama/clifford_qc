@@ -232,9 +232,9 @@ def run_adapt(model, pool: Sequence[PoolOperator], *,
             if score < threshold:
                 stopped_reason = "exact gradient below threshold"
                 records.append(SelectionRecord(
-                    step, None, SelectionStatus.BELOW_THRESHOLD, score, None, None,
-                    exact_scores[idx], exact_max, 0, total_shots, 0, total_circuits,
-                    len(candidates)))
+                    step, None, SelectionStatus.BELOW_THRESHOLD, exact_scores[idx],
+                    None, None, exact_scores[idx], exact_max, 0, total_shots, 0,
+                    total_circuits, len(candidates)))
                 break
             status = SelectionStatus.EXACT
             diag = {"estimate": exact_scores[idx], "lower_bound": None,
