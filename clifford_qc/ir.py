@@ -190,6 +190,19 @@ class ParameterGroup:
 Angle = Union[float, Parameter]
 
 
+def clifford_angle_index(theta: float, tol: float = 1e-9) -> int | None:
+    """``k in {0,1,2,3}`` with ``theta = k*pi/2 (mod 2*pi)``, else ``None``.
+
+    Rotors at these angles are Clifford operations: exp(-i k pi P/4) maps
+    every Pauli word to a single Pauli word.
+    """
+    k = theta / (math.pi / 2.0)
+    k_round = round(k)
+    if abs(k - k_round) > tol:
+        return None
+    return k_round % 4
+
+
 # ---------------------------------------------------------------------------
 # Operations
 
@@ -220,6 +233,17 @@ class Rotor:
 
     def to_mv(self, bindings: Mapping[str, float] | None = None) -> MV:
         return _gates.rotor(self.word.to_mv(), self.resolved_angle(bindings))
+
+    def is_clifford(self, bindings: Mapping[str, float] | None = None,
+                    tol: float = 1e-9) -> bool:
+        """True when the (resolved) angle is a multiple of pi/2.
+
+        An unbound parameter angle is not Clifford: it could take any value.
+        """
+        if isinstance(self.angle, Parameter) and (
+                not bindings or self.angle.name not in bindings):
+            return False
+        return clifford_angle_index(self.resolved_angle(bindings), tol) is not None
 
 
 def _cx(n: int, c: int, t: int) -> MV:
@@ -369,8 +393,13 @@ class Program:
 
     # -- semantics -----------------------------------------------------------
 
-    def is_clifford_only(self) -> bool:
-        return all(isinstance(op, NamedClifford) for op in self.ops)
+    def is_clifford_only(self, values=None, tol: float = 1e-9) -> bool:
+        """True when every operation is a Clifford: a NamedClifford gate or a
+        rotor whose (resolved) angle is a multiple of pi/2."""
+        bindings = self.parameters.bind(values) if values is not None else None
+        return all(
+            op.is_clifford(bindings, tol) if isinstance(op, Rotor) else True
+            for op in self.ops)
 
     def op_to_mv(self, op: Operation, bindings: Mapping[str, float] | None = None) -> MV:
         return op.to_mv(bindings) if isinstance(op, Rotor) else op.to_mv(self.n)
@@ -384,9 +413,20 @@ class Program:
         return U
 
     def state(self, values=None, rho0: MV | None = None) -> MV:
+        """Final state under gate-by-gate evolution.
+
+        Applying each operation to the state directly (rather than forming
+        the full program unitary first) keeps the Pauli support of the
+        density multivector as sparse as the circuit allows, which is the
+        execution path research workloads need.
+        """
         if rho0 is None:
             rho0 = ket_density(self.n, "0" * self.n)
-        return evolve(rho0, self.unitary(values))
+        bindings = self.parameters.bind(values) if len(self.parameters) else {}
+        rho = rho0
+        for op in self.ops:
+            rho = evolve(rho, self.op_to_mv(op, bindings))
+        return rho
 
     def run(self, values=None, rho0: MV | None = None) -> list:
         """Evaluate all measurement tasks; returns one result per task."""
@@ -401,6 +441,9 @@ class Program:
         return out
 
     # -- serialization (golden-vector format) ---------------------------------
+
+    SCHEMA = "clifford_qc/program"
+    SCHEMA_VERSION = 1
 
     def to_dict(self) -> dict:
         ops = []
@@ -417,11 +460,19 @@ class Program:
                 meas.append({"type": "expectation", "observable": obs})
             else:
                 meas.append({"type": "sample_z", "qubits": list(task.qubits)})
-        return {"n": self.n, "parameters": list(self.parameters.names),
+        return {"schema": self.SCHEMA, "schema_version": self.SCHEMA_VERSION,
+                "n": self.n, "parameters": list(self.parameters.names),
                 "ops": ops, "measurements": meas}
 
     @staticmethod
     def from_dict(data: Mapping) -> "Program":
+        schema = data.get("schema")
+        if schema is not None and schema != Program.SCHEMA:
+            raise ValueError(f"unknown schema {schema!r}, expected {Program.SCHEMA!r}")
+        version = int(data.get("schema_version", 0))  # headerless dicts are version 0
+        if version > Program.SCHEMA_VERSION:
+            raise ValueError(f"schema version {version} is newer than supported "
+                             f"version {Program.SCHEMA_VERSION}")
         prog = Program(int(data["n"]), parameters=data.get("parameters", ()))
         for op in data["ops"]:
             if op["type"] == "rotor":

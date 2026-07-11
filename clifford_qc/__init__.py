@@ -19,7 +19,7 @@ from .matrix import code_to_matrix, to_matrix, from_matrix, density_from_stateve
 from .diagnostics import negativity, vn_entropy, fidelity_pure, trace_cyclicity_error
 from .ir import (
     PauliWord, PauliSum, Parameter, ParameterGroup, Rotor, NamedClifford,
-    MeasurementTask, Program, conjugate_pauli_word,
+    MeasurementTask, Program, conjugate_pauli_word, clifford_angle_index,
     expectation_value, parameter_shift_gradient, adjoint_gradient,
 )
 from .qasm3 import to_qasm3

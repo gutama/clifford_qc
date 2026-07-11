@@ -1,420 +1,430 @@
 {
- "format": "clifford_qc golden conformance vectors v1",
- "programs": [
-  {
-   "name": "bell",
-   "program": {
-    "n": 2,
-    "parameters": [],
-    "ops": [
-     {
-      "type": "clifford",
-      "name": "H",
-      "qubits": [
-       0
-      ]
-     },
-     {
-      "type": "clifford",
-      "name": "CX",
-      "qubits": [
-       0,
-       1
-      ]
-     }
-    ],
-    "measurements": [
-     {
-      "type": "expectation",
-      "observable": {
-       "XX": [
-        1.0,
-        0.0
-       ]
-      }
-     },
-     {
-      "type": "expectation",
-      "observable": {
-       "YY": [
-        1.0,
-        0.0
-       ]
-      }
-     },
-     {
-      "type": "expectation",
-      "observable": {
-       "ZZ": [
-        1.0,
-        0.0
-       ]
-      }
-     },
-     {
-      "type": "expectation",
-      "observable": {
-       "ZI": [
-        1.0,
-        0.0
-       ]
-      }
-     },
-     {
-      "type": "sample_z",
-      "qubits": [
-       0,
-       1
-      ]
-     }
-    ]
-   },
-   "values": null,
-   "results": [
+  "format": "clifford_qc golden conformance vectors v1",
+  "programs": [
     {
-     "type": "expectation",
-     "value": 0.9999999999999998
+      "name": "bell",
+      "program": {
+        "schema": "clifford_qc/program",
+        "schema_version": 1,
+        "n": 2,
+        "parameters": [],
+        "ops": [
+          {
+            "type": "clifford",
+            "name": "H",
+            "qubits": [
+              0
+            ]
+          },
+          {
+            "type": "clifford",
+            "name": "CX",
+            "qubits": [
+              0,
+              1
+            ]
+          }
+        ],
+        "measurements": [
+          {
+            "type": "expectation",
+            "observable": {
+              "XX": [
+                1.0,
+                0.0
+              ]
+            }
+          },
+          {
+            "type": "expectation",
+            "observable": {
+              "YY": [
+                1.0,
+                0.0
+              ]
+            }
+          },
+          {
+            "type": "expectation",
+            "observable": {
+              "ZZ": [
+                1.0,
+                0.0
+              ]
+            }
+          },
+          {
+            "type": "expectation",
+            "observable": {
+              "ZI": [
+                1.0,
+                0.0
+              ]
+            }
+          },
+          {
+            "type": "sample_z",
+            "qubits": [
+              0,
+              1
+            ]
+          }
+        ]
+      },
+      "values": null,
+      "results": [
+        {
+          "type": "expectation",
+          "value": 0.9999999999999998
+        },
+        {
+          "type": "expectation",
+          "value": -0.9999999999999998
+        },
+        {
+          "type": "expectation",
+          "value": 0.9999999999999998
+        },
+        {
+          "type": "expectation",
+          "value": 0.0
+        },
+        {
+          "type": "sample_z",
+          "probabilities": {
+            "00": 0.4999999999999999,
+            "11": 0.4999999999999999
+          }
+        }
+      ],
+      "qasm3": "OPENQASM 3.0;\ninclude \"stdgates.inc\";\nqubit[2] q;\nbit[2] c;\nh q[0];\ncx q[0], q[1];\n// expectation-value tasks are not representable in QASM3\nc[0] = measure q[0];\nc[1] = measure q[1];\n"
     },
     {
-     "type": "expectation",
-     "value": -0.9999999999999998
+      "name": "ghz3",
+      "program": {
+        "schema": "clifford_qc/program",
+        "schema_version": 1,
+        "n": 3,
+        "parameters": [],
+        "ops": [
+          {
+            "type": "clifford",
+            "name": "H",
+            "qubits": [
+              0
+            ]
+          },
+          {
+            "type": "clifford",
+            "name": "CX",
+            "qubits": [
+              0,
+              1
+            ]
+          },
+          {
+            "type": "clifford",
+            "name": "CX",
+            "qubits": [
+              1,
+              2
+            ]
+          }
+        ],
+        "measurements": [
+          {
+            "type": "expectation",
+            "observable": {
+              "XXX": [
+                1.0,
+                0.0
+              ]
+            }
+          },
+          {
+            "type": "expectation",
+            "observable": {
+              "ZZI": [
+                1.0,
+                0.0
+              ]
+            }
+          },
+          {
+            "type": "expectation",
+            "observable": {
+              "XII": [
+                1.0,
+                0.0
+              ]
+            }
+          },
+          {
+            "type": "sample_z",
+            "qubits": [
+              0,
+              1,
+              2
+            ]
+          }
+        ]
+      },
+      "values": null,
+      "results": [
+        {
+          "type": "expectation",
+          "value": 0.9999999999999999
+        },
+        {
+          "type": "expectation",
+          "value": 0.9999999999999999
+        },
+        {
+          "type": "expectation",
+          "value": 0.0
+        },
+        {
+          "type": "sample_z",
+          "probabilities": {
+            "000": 0.49999999999999994,
+            "111": 0.49999999999999994
+          }
+        }
+      ],
+      "qasm3": "OPENQASM 3.0;\ninclude \"stdgates.inc\";\nqubit[3] q;\nbit[3] c;\nh q[0];\ncx q[0], q[1];\ncx q[1], q[2];\n// expectation-value tasks are not representable in QASM3\nc[0] = measure q[0];\nc[1] = measure q[1];\nc[2] = measure q[2];\n"
     },
     {
-     "type": "expectation",
-     "value": 0.9999999999999998
+      "name": "y_rotation",
+      "program": {
+        "schema": "clifford_qc/program",
+        "schema_version": 1,
+        "n": 1,
+        "parameters": [
+          "theta"
+        ],
+        "ops": [
+          {
+            "type": "rotor",
+            "word": "Y",
+            "angle": {
+              "param": "theta"
+            }
+          }
+        ],
+        "measurements": [
+          {
+            "type": "expectation",
+            "observable": {
+              "Z": [
+                1.0,
+                0.0
+              ]
+            }
+          }
+        ]
+      },
+      "values": [
+        0.9
+      ],
+      "results": [
+        {
+          "type": "expectation",
+          "value": 0.6216099682706644
+        }
+      ],
+      "qasm3": "OPENQASM 3.0;\ninclude \"stdgates.inc\";\nqubit[1] q;\nsdg q[0];\nh q[0];\nrz(0.9) q[0];\nh q[0];\ns q[0];\n// expectation-value tasks are not representable in QASM3\n"
     },
     {
-     "type": "expectation",
-     "value": 0.0
+      "name": "ansatz2",
+      "program": {
+        "schema": "clifford_qc/program",
+        "schema_version": 1,
+        "n": 2,
+        "parameters": [
+          "a",
+          "b"
+        ],
+        "ops": [
+          {
+            "type": "clifford",
+            "name": "H",
+            "qubits": [
+              0
+            ]
+          },
+          {
+            "type": "rotor",
+            "word": "YI",
+            "angle": {
+              "param": "a"
+            }
+          },
+          {
+            "type": "clifford",
+            "name": "CX",
+            "qubits": [
+              0,
+              1
+            ]
+          },
+          {
+            "type": "rotor",
+            "word": "ZZ",
+            "angle": {
+              "param": "b"
+            }
+          },
+          {
+            "type": "clifford",
+            "name": "SDG",
+            "qubits": [
+              1
+            ]
+          },
+          {
+            "type": "rotor",
+            "word": "XY",
+            "angle": 0.25
+          }
+        ],
+        "measurements": [
+          {
+            "type": "expectation",
+            "observable": {
+              "ZI": [
+                1.0,
+                0.0
+              ],
+              "XX": [
+                0.25,
+                0.0
+              ],
+              "IZ": [
+                0.5,
+                0.0
+              ]
+            }
+          }
+        ]
+      },
+      "values": [
+        0.4,
+        1.1
+      ],
+      "results": [
+        {
+          "type": "expectation",
+          "value": -0.5900543135806022
+        }
+      ],
+      "qasm3": "OPENQASM 3.0;\ninclude \"stdgates.inc\";\nqubit[2] q;\nh q[0];\nsdg q[0];\nh q[0];\nrz(0.4) q[0];\nh q[0];\ns q[0];\ncx q[0], q[1];\ncx q[0], q[1];\nrz(1.1) q[1];\ncx q[0], q[1];\nsdg q[1];\nh q[0];\nsdg q[1];\nh q[1];\ncx q[0], q[1];\nrz(0.25) q[1];\ncx q[0], q[1];\nh q[1];\ns q[1];\nh q[0];\n// expectation-value tasks are not representable in QASM3\n"
     },
     {
-     "type": "sample_z",
-     "probabilities": {
-      "00": 0.4999999999999999,
-      "11": 0.4999999999999999
-     }
+      "name": "clifford_scrambler",
+      "program": {
+        "schema": "clifford_qc/program",
+        "schema_version": 1,
+        "n": 3,
+        "parameters": [],
+        "ops": [
+          {
+            "type": "clifford",
+            "name": "H",
+            "qubits": [
+              0
+            ]
+          },
+          {
+            "type": "clifford",
+            "name": "S",
+            "qubits": [
+              1
+            ]
+          },
+          {
+            "type": "clifford",
+            "name": "CX",
+            "qubits": [
+              0,
+              2
+            ]
+          },
+          {
+            "type": "clifford",
+            "name": "SWAP",
+            "qubits": [
+              1,
+              2
+            ]
+          },
+          {
+            "type": "clifford",
+            "name": "SDG",
+            "qubits": [
+              0
+            ]
+          },
+          {
+            "type": "clifford",
+            "name": "CZ",
+            "qubits": [
+              1,
+              2
+            ]
+          },
+          {
+            "type": "clifford",
+            "name": "H",
+            "qubits": [
+              2
+            ]
+          },
+          {
+            "type": "clifford",
+            "name": "CX",
+            "qubits": [
+              2,
+              0
+            ]
+          }
+        ],
+        "measurements": [
+          {
+            "type": "expectation",
+            "observable": {
+              "ZII": [
+                1.0,
+                0.0
+              ]
+            }
+          },
+          {
+            "type": "sample_z",
+            "qubits": [
+              0,
+              1,
+              2
+            ]
+          }
+        ]
+      },
+      "values": null,
+      "results": [
+        {
+          "type": "expectation",
+          "value": 0.0
+        },
+        {
+          "type": "sample_z",
+          "probabilities": {
+            "000": 0.24999999999999997,
+            "011": 0.24999999999999997,
+            "101": 0.24999999999999997,
+            "110": 0.24999999999999997
+          }
+        }
+      ],
+      "qasm3": "OPENQASM 3.0;\ninclude \"stdgates.inc\";\nqubit[3] q;\nbit[3] c;\nh q[0];\ns q[1];\ncx q[0], q[2];\nswap q[1], q[2];\nsdg q[0];\ncz q[1], q[2];\nh q[2];\ncx q[2], q[0];\n// expectation-value tasks are not representable in QASM3\nc[0] = measure q[0];\nc[1] = measure q[1];\nc[2] = measure q[2];\n"
     }
-   ],
-   "qasm3": "OPENQASM 3.0;\ninclude \"stdgates.inc\";\nqubit[2] q;\nbit[2] c;\nh q[0];\ncx q[0], q[1];\n// expectation-value tasks are not representable in QASM3\nc[0] = measure q[0];\nc[1] = measure q[1];\n"
-  },
-  {
-   "name": "ghz3",
-   "program": {
-    "n": 3,
-    "parameters": [],
-    "ops": [
-     {
-      "type": "clifford",
-      "name": "H",
-      "qubits": [
-       0
-      ]
-     },
-     {
-      "type": "clifford",
-      "name": "CX",
-      "qubits": [
-       0,
-       1
-      ]
-     },
-     {
-      "type": "clifford",
-      "name": "CX",
-      "qubits": [
-       1,
-       2
-      ]
-     }
-    ],
-    "measurements": [
-     {
-      "type": "expectation",
-      "observable": {
-       "XXX": [
-        1.0,
-        0.0
-       ]
-      }
-     },
-     {
-      "type": "expectation",
-      "observable": {
-       "ZZI": [
-        1.0,
-        0.0
-       ]
-      }
-     },
-     {
-      "type": "expectation",
-      "observable": {
-       "XII": [
-        1.0,
-        0.0
-       ]
-      }
-     },
-     {
-      "type": "sample_z",
-      "qubits": [
-       0,
-       1,
-       2
-      ]
-     }
-    ]
-   },
-   "values": null,
-   "results": [
-    {
-     "type": "expectation",
-     "value": 0.9999999999999999
-    },
-    {
-     "type": "expectation",
-     "value": 0.9999999999999999
-    },
-    {
-     "type": "expectation",
-     "value": 0.0
-    },
-    {
-     "type": "sample_z",
-     "probabilities": {
-      "000": 0.49999999999999994,
-      "111": 0.49999999999999994
-     }
-    }
-   ],
-   "qasm3": "OPENQASM 3.0;\ninclude \"stdgates.inc\";\nqubit[3] q;\nbit[3] c;\nh q[0];\ncx q[0], q[1];\ncx q[1], q[2];\n// expectation-value tasks are not representable in QASM3\nc[0] = measure q[0];\nc[1] = measure q[1];\nc[2] = measure q[2];\n"
-  },
-  {
-   "name": "y_rotation",
-   "program": {
-    "n": 1,
-    "parameters": [
-     "theta"
-    ],
-    "ops": [
-     {
-      "type": "rotor",
-      "word": "Y",
-      "angle": {
-       "param": "theta"
-      }
-     }
-    ],
-    "measurements": [
-     {
-      "type": "expectation",
-      "observable": {
-       "Z": [
-        1.0,
-        0.0
-       ]
-      }
-     }
-    ]
-   },
-   "values": [
-    0.9
-   ],
-   "results": [
-    {
-     "type": "expectation",
-     "value": 0.6216099682706644
-    }
-   ],
-   "qasm3": "OPENQASM 3.0;\ninclude \"stdgates.inc\";\nqubit[1] q;\nsdg q[0];\nh q[0];\nrz(0.9) q[0];\nh q[0];\ns q[0];\n// expectation-value tasks are not representable in QASM3\n"
-  },
-  {
-   "name": "ansatz2",
-   "program": {
-    "n": 2,
-    "parameters": [
-     "a",
-     "b"
-    ],
-    "ops": [
-     {
-      "type": "clifford",
-      "name": "H",
-      "qubits": [
-       0
-      ]
-     },
-     {
-      "type": "rotor",
-      "word": "YI",
-      "angle": {
-       "param": "a"
-      }
-     },
-     {
-      "type": "clifford",
-      "name": "CX",
-      "qubits": [
-       0,
-       1
-      ]
-     },
-     {
-      "type": "rotor",
-      "word": "ZZ",
-      "angle": {
-       "param": "b"
-      }
-     },
-     {
-      "type": "clifford",
-      "name": "SDG",
-      "qubits": [
-       1
-      ]
-     },
-     {
-      "type": "rotor",
-      "word": "XY",
-      "angle": 0.25
-     }
-    ],
-    "measurements": [
-     {
-      "type": "expectation",
-      "observable": {
-       "ZI": [
-        1.0,
-        0.0
-       ],
-       "XX": [
-        0.25,
-        0.0
-       ],
-       "IZ": [
-        0.5,
-        0.0
-       ]
-      }
-     }
-    ]
-   },
-   "values": [
-    0.4,
-    1.1
-   ],
-   "results": [
-    {
-     "type": "expectation",
-     "value": -0.5900543135806022
-    }
-   ],
-   "qasm3": "OPENQASM 3.0;\ninclude \"stdgates.inc\";\nqubit[2] q;\nh q[0];\nsdg q[0];\nh q[0];\nrz(0.4) q[0];\nh q[0];\ns q[0];\ncx q[0], q[1];\ncx q[0], q[1];\nrz(1.1) q[1];\ncx q[0], q[1];\nsdg q[1];\nh q[0];\nsdg q[1];\nh q[1];\ncx q[0], q[1];\nrz(0.25) q[1];\ncx q[0], q[1];\nh q[1];\ns q[1];\nh q[0];\n// expectation-value tasks are not representable in QASM3\n"
-  },
-  {
-   "name": "clifford_scrambler",
-   "program": {
-    "n": 3,
-    "parameters": [],
-    "ops": [
-     {
-      "type": "clifford",
-      "name": "H",
-      "qubits": [
-       0
-      ]
-     },
-     {
-      "type": "clifford",
-      "name": "S",
-      "qubits": [
-       1
-      ]
-     },
-     {
-      "type": "clifford",
-      "name": "CX",
-      "qubits": [
-       0,
-       2
-      ]
-     },
-     {
-      "type": "clifford",
-      "name": "SWAP",
-      "qubits": [
-       1,
-       2
-      ]
-     },
-     {
-      "type": "clifford",
-      "name": "SDG",
-      "qubits": [
-       0
-      ]
-     },
-     {
-      "type": "clifford",
-      "name": "CZ",
-      "qubits": [
-       1,
-       2
-      ]
-     },
-     {
-      "type": "clifford",
-      "name": "H",
-      "qubits": [
-       2
-      ]
-     },
-     {
-      "type": "clifford",
-      "name": "CX",
-      "qubits": [
-       2,
-       0
-      ]
-     }
-    ],
-    "measurements": [
-     {
-      "type": "expectation",
-      "observable": {
-       "ZII": [
-        1.0,
-        0.0
-       ]
-      }
-     },
-     {
-      "type": "sample_z",
-      "qubits": [
-       0,
-       1,
-       2
-      ]
-     }
-    ]
-   },
-   "values": null,
-   "results": [
-    {
-     "type": "expectation",
-     "value": 0.0
-    },
-    {
-     "type": "sample_z",
-     "probabilities": {
-      "000": 0.24999999999999997,
-      "011": 0.24999999999999997,
-      "101": 0.24999999999999997,
-      "110": 0.24999999999999997
-     }
-    }
-   ],
-   "qasm3": "OPENQASM 3.0;\ninclude \"stdgates.inc\";\nqubit[3] q;\nbit[3] c;\nh q[0];\ns q[1];\ncx q[0], q[2];\nswap q[1], q[2];\nsdg q[0];\ncz q[1], q[2];\nh q[2];\ncx q[2], q[0];\n// expectation-value tasks are not representable in QASM3\nc[0] = measure q[0];\nc[1] = measure q[1];\nc[2] = measure q[2];\n"
-  }
- ]
+  ]
 }
