@@ -25,4 +25,4 @@ from .ir import (
 from .qasm3 import to_qasm3
 
 __all__ = [name for name in globals() if not name.startswith("_")]
-__version__ = "0.1.0"
+__version__ = "0.3.0"

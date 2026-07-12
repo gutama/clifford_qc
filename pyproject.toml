@@ -31,6 +31,7 @@ Issues = "https://github.com/gutama/clifford_qc/issues"
 [project.optional-dependencies]
 test = ["pytest>=7", "hypothesis>=6"]
 research = ["scipy>=1.11"]
+chemistry = ["openfermion>=1.6", "pyscf>=2.4", "openfermionpyscf>=0.5"]
 stim = ["stim>=1.13"]  # >=1.13 for the SPP (sqrt-of-Pauli-product) gate
 openfermion = ["openfermion>=1.6"]
 pytket = ["pytket>=1.30"]
