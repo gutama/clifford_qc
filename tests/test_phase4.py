@@ -115,6 +115,23 @@ def test_stabilizer_approximation_excludes_anticommuting_words():
     assert [w.label for w in approx.excluded] == ["XI"]
 
 
+def test_stabilizer_approximation_reduced_basis_rows_stay_consistent():
+    """Regression (Copilot, PR #5): an independent generator appended after
+    partial reduction must store the *reduced* operator, or later dependent
+    words are multiplied against the wrong Pauli. Z0, Z0Z1, then Z1 forces a
+    reduced row; the implied sign of Z1 = (Z0)(Z0Z1) must be tracked exactly."""
+    inconsistent = stabilizer_hamiltonian_approximation(
+        PauliSum.from_labels({"ZI": -1.0, "ZZ": -0.9, "IZ": 0.8}))
+    assert [w.label for w in inconsistent.excluded] == ["IZ"]
+    assert inconsistent.scaffold_energy == pytest.approx(-1.9)
+
+    consistent = stabilizer_hamiltonian_approximation(
+        PauliSum.from_labels({"ZI": -1.0, "ZZ": -0.9, "IZ": -0.8}))
+    assert not consistent.excluded
+    assert len(consistent.generators) == 2  # IZ is dependent but consistent
+    assert consistent.scaffold_energy == pytest.approx(-2.7)
+
+
 def test_stabilizer_ground_program_realizes_target_signs():
     for model in (tfim(5, 1.0, 0.5), random_ising(5, seed=2)):
         approx = stabilizer_hamiltonian_approximation(model.hamiltonian)

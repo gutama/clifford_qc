@@ -42,5 +42,5 @@ class StimBackend:
 
     def word_expectation(self, program: Program, word: PauliWord, values=None) -> int:
         """<w> on the stabilizer state: exactly -1, 0, or +1."""
-        return self.simulator(program, values).peek_observable_expectation(
-            stim.PauliString(word.label))
+        return int(self.simulator(program, values).peek_observable_expectation(
+            stim.PauliString(word.label)))

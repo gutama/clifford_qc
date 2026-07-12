@@ -151,7 +151,7 @@ def _commutes(n: int, vec_a: int, vec_b: int) -> bool:
     mask = (1 << n) - 1
     ax, az = vec_a & mask, vec_a >> n
     bx, bz = vec_b & mask, vec_b >> n
-    return (bin(ax & bz).count("1") + bin(az & bx).count("1")) % 2 == 0
+    return ((ax & bz).bit_count() + (az & bx).bit_count()) % 2 == 0
 
 
 def stabilizer_hamiltonian_approximation(hamiltonian: PauliSum,
@@ -201,7 +201,10 @@ def stabilizer_hamiltonian_approximation(hamiltonian: PauliSum,
             else:
                 excluded.append(PauliWord(n, code))
         else:
-            basis.append((r, code, 1.0 + 0j, sigma))
+            # store the operator that actually corresponds to the reduced
+            # vector r: the accumulated row product times the new word
+            phase, r_code = word_mul(n, acc_code, code)
+            basis.append((r, r_code, acc_phase * phase, acc_sigma * sigma))
             basis.sort(key=lambda row: row[0] & -row[0])
             generators.append((PauliWord(n, code), sigma))
             selected.append((PauliWord(n, code), sigma))

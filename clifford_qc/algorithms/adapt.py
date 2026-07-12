@@ -76,9 +76,9 @@ class AdaptResult:
     total_shots: int
     total_circuits: int
     support_peak: int
-    optimizer_evaluations: int
     stopped_reason: str
     metadata: dict[str, Any] = field(default_factory=dict)
+    optimizer_evaluations: int = 0
 
 
 class ConfidenceSelector:
