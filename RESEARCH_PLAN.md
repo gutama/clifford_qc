@@ -292,9 +292,30 @@ Phase 0 starting 13 July 2026):
   core — the n = 8–12 headline sweeps need dedicated hardware (configs
   are committed and shardable via `--shard i/k`).
   *Exit:* Paper A tables and ablations.
-- **Phase 4 — stabilizer initialization**: discrete Clifford-point search,
-  stabilizer Hamiltonian approximation, residual ADAPT, large-n
-  stabilizer-only benchmarks. *Exit:* Paper B go/no-go decision.
+- **Phase 4 — stabilizer initialization** *(done in this branch — go/no-go
+  decided)*: `StimBackend` stabilizer expectations; seeded Clifford-point
+  coordinate descent (backlog 15, verified against exhaustive
+  enumeration); sign-consistent stabilizer Hamiltonian approximation with
+  exact phase tracking; scaffold preparation via stim tableau synthesis;
+  residual ADAPT seeding; three-arm experiment on 9 model instances plus
+  an n=24 stabilizer-only demo (`benchmarks/reference_results/
+  stabilizer_seeding.jsonl`).
+
+  **Verdict: NO-GO for a standalone Paper B — stabilizer initialization
+  becomes a negative-result section of Paper A.** Evidence: (a) Variant A
+  is vacuous for this ansatz class — the TFIM HVA's optimal Clifford
+  point *is* the |+…+> reference on every family tested (exhaustively
+  verified at depth ≤ 3); (b) Variant B's scaffold, despite starting up
+  to 2 J per bond lower in energy (−23 vs −12 at n=24, h=0.5), leads
+  residual ADAPT into gradient plateaus: final error 1.8e-2–3.3e-2 vs
+  ≤ 1e-4 for the baseline on h=1.0 TFIM (open and periodic) and 4 of 5
+  disorder realizations, with early stopping on vanishing gradients. The
+  one partial positive: at h=0.5 the scaffold reaches 1e-2 relative
+  error in 6 operators vs the baseline's 8. Interpretation for the
+  paper: symmetry alignment of the reference with the ground sector, not
+  raw scaffold energy, governs the non-Clifford correction cost; the
+  section should present the alignment criterion and the h=0.5
+  early-convergence trade-off. *Exit criterion met.*
 - **Phase 5 — chemistry & manuscript**: PySCF/OpenFermion molecules,
   FAST-inspired baseline, figures/tables, v0.3.0 release, submit Paper A.
 
@@ -321,8 +342,9 @@ Ordered backlog (issue → acceptance test):
 | 17 | bench: chemistry baselines | reference energies and mappings recorded |
 | 18 | docs: reproducibility artifact | clean environment reproduces figures |
 
-Items 1–14 and 16 are implemented (1–11 and 14 merged in PR #2; 12, 13 and
-16 on this branch); 15 and 17–18 are the remaining Phase 4–5 work.
+Items 1–16 are implemented (1–11 and 14 merged in PR #2; 12, 13 and 16 in
+PR #3–4; 15 in this branch); 17–18 (chemistry baselines and the
+reproducibility artifact) are the remaining Phase 5 work.
 
 ## 11. Non-goals
 
