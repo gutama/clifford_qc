@@ -23,12 +23,16 @@ from dataclasses import dataclass, field
 from enum import Enum
 from typing import Any, Sequence
 
+import numpy as np
+
 from ..ir import Parameter, Program, Rotor, adjoint_gradient
 from ..backends.exact_mv import ExactMVBackend
 from ..backends.finite_shot import FiniteShotBackend
 from ..measurement.bank import CommutatorBank
 from ..measurement.cache import WordCache
 from ..measurement.confidence import simultaneous_z_radius
+from ..measurement.grouping import qwc_groups
+from .layering import build_layer
 from .optimize import minimize_energy
 from .pools import PoolOperator
 
@@ -39,6 +43,7 @@ class SelectionStatus(Enum):
     BELOW_THRESHOLD = "below_threshold"
     BUDGET_EXHAUSTED_AMBIGUOUS = "budget_exhausted_ambiguous"
     EXACT = "exact"
+    RANDOM = "random"
 
 
 @dataclass(frozen=True)
@@ -57,6 +62,7 @@ class SelectionRecord:
     circuits_executed: int
     active_candidates: int
     energy: float | None = None
+    layer_labels: tuple[str, ...] = ()
 
 
 @dataclass(frozen=True)
@@ -160,6 +166,27 @@ class ConfidenceSelector:
         return out
 
 
+def _cache_estimates(bank: CommutatorBank, cache: WordCache,
+                     candidates: Sequence[int]) -> dict[int, float]:
+    """Point estimates for candidates whose every word has been measured
+    (candidates eliminated before round 0 completed have no valid estimate)."""
+    out = {}
+    for j in candidates:
+        if all(cache.shots(code) > 0 for code in bank.coeffs[j]):
+            out[j] = bank.estimate(j, cache)[0]
+    return out
+
+
+class RandomSelector:
+    """Uniform-random operator selection: the zero-measurement baseline."""
+
+    def __init__(self, seed: int):
+        self.rng = np.random.default_rng(seed)
+
+    def pick(self, candidates: Sequence[int]) -> int:
+        return int(self.rng.choice(list(candidates)))
+
+
 def _ansatz_program(model, chosen: Sequence[PoolOperator]) -> Program:
     prog = Program(model.n)
     for op in model.reference.ops:
@@ -171,22 +198,37 @@ def _ansatz_program(model, chosen: Sequence[PoolOperator]) -> Program:
 
 def run_adapt(model, pool: Sequence[PoolOperator], *,
               backend: FiniteShotBackend | None = None,
-              selector: ConfidenceSelector | None = None,
+              selector: ConfidenceSelector | RandomSelector | None = None,
               allocator=None,
               max_operators: int = 10, threshold: float = 1e-6,
               allow_repeats: bool = False, accept_ambiguous: bool = True,
               optimizer_method: str = "auto", maxiter: int = 350,
               compute_exact_reference: bool = True,
-              track_exact_scores: bool = True) -> AdaptResult:
-    """ADAPT-VQE. Selection is exact when ``selector`` is None, finite-shot
-    (requiring a sampling ``backend`` and an ``allocator``) otherwise.
+              track_exact_scores: bool = True,
+              grouping: bool = False,
+              subpool_size: int | None = None, subpool_seed: int = 0,
+              layer_alpha: float | None = None) -> AdaptResult:
+    """ADAPT-VQE. Selection is exact when ``selector`` is None, uniform-random
+    with a ``RandomSelector`` (zero-measurement baseline), and finite-shot
+    (requiring a sampling ``backend`` and an ``allocator``) with a
+    ``ConfidenceSelector``.
 
     ``track_exact_scores`` also records the exact gradient of each selection
     for regret/near-optimality analysis (simulator-only diagnostic).
+    ``grouping`` measures qubit-wise-commuting word groups one circuit each.
+    ``subpool_size`` restricts every step's candidates to a seeded random
+    subpool (subpool exploration); exact scores and regret are then relative
+    to the subpool. ``layer_alpha`` appends, after each selection, the
+    mutually commuting candidates scoring at least ``layer_alpha`` times the
+    selected score (layered ADAPT).
     """
-    noisy = selector is not None
+    random_mode = isinstance(selector, RandomSelector)
+    noisy = selector is not None and not random_mode
     if noisy and (backend is None or allocator is None):
         raise ValueError("finite-shot selection needs a sampling backend and an allocator")
+    if subpool_size is not None and subpool_size < 1:
+        raise ValueError("subpool_size must be positive")
+    subpool_rng = np.random.default_rng(subpool_seed)
     exact_backend = backend.inner if isinstance(backend, FiniteShotBackend) else \
         (backend if backend is not None else ExactMVBackend())
 
@@ -215,57 +257,98 @@ def run_adapt(model, pool: Sequence[PoolOperator], *,
         program = _ansatz_program(model, chosen)
         rho = exact_backend.state(program, theta)
         support_peak = max(support_peak, getattr(exact_backend, "support_peak", 0))
-        candidates = [i for i in range(len(pool)) if allow_repeats or i not in used]
-        if not candidates:
+        untried = [i for i in range(len(pool)) if allow_repeats or i not in used]
+        if not untried:
             stopped_reason = "pool exhausted"
             break
 
-        exact_scores = None
-        exact_max = None
-        if track_exact_scores or not noisy:
-            exact_scores = {i: bank.exact_score(i, rho) for i in candidates}
-            exact_max = max(abs(v) for v in exact_scores.values())
+        cache = WordCache(model.n) if noisy else None
+        # A below-threshold subpool triggers a redraw from the untried
+        # remainder (subpool exploration); only a dead remainder stops the run.
+        while True:
+            if subpool_size is not None and len(untried) > subpool_size:
+                candidates = sorted(subpool_rng.choice(untried, size=subpool_size,
+                                                       replace=False).tolist())
+            else:
+                candidates = list(untried)
 
-        if not noisy:
-            idx = max(candidates, key=lambda i: abs(exact_scores[i]))
-            score = abs(exact_scores[idx])
-            if score < threshold:
-                stopped_reason = "exact gradient below threshold"
-                records.append(SelectionRecord(
-                    step, None, SelectionStatus.BELOW_THRESHOLD, exact_scores[idx],
-                    None, None, exact_scores[idx], exact_max, 0, total_shots, 0,
-                    total_circuits, len(candidates)))
-                break
-            status = SelectionStatus.EXACT
-            diag = {"estimate": exact_scores[idx], "lower_bound": None,
-                    "upper_bound": None, "active_candidates": len(candidates)}
+            exact_scores = None
+            exact_max = None
+            if track_exact_scores or not noisy or random_mode:
+                exact_scores = {i: bank.exact_score(i, rho) for i in candidates}
+                exact_max = max(abs(v) for v in exact_scores.values())
+
             shots_added = 0
             words_measured = 0
-        else:
-            cache = WordCache(model.n)
-            sampler = lambda words, plan: backend.sample_words_from_state(rho, words, plan)
-            idx, status, diag = selector.select(bank, cache, sampler, allocator, candidates)
-            shots_added = cache.total_shots
-            words_measured = cache.unique_words()
+            if random_mode:
+                if exact_max < threshold:
+                    idx, status = None, SelectionStatus.BELOW_THRESHOLD
+                    diag = {"active_candidates": len(candidates)}
+                else:
+                    idx = selector.pick(candidates)
+                    status = SelectionStatus.RANDOM
+                    diag = {"active_candidates": len(candidates)}
+            elif not noisy:
+                best = max(candidates, key=lambda i: abs(exact_scores[i]))
+                diag = {"estimate": exact_scores[best],
+                        "exact_gradient": exact_scores[best],
+                        "active_candidates": len(candidates)}
+                if abs(exact_scores[best]) < threshold:
+                    idx, status = None, SelectionStatus.BELOW_THRESHOLD
+                else:
+                    idx, status = best, SelectionStatus.EXACT
+            else:
+                if grouping:
+                    sampler = lambda words, plan: backend.sample_grouped_from_state(
+                        rho, qwc_groups(words), plan)
+                else:
+                    sampler = lambda words, plan: backend.sample_words_from_state(
+                        rho, words, plan)
+                idx, status, diag = selector.select(bank, cache, sampler, allocator,
+                                                    candidates)
+                shots_added = cache.total_shots  # cumulative over this step's redraws
+                words_measured = cache.unique_words()
+
+            if status is SelectionStatus.BELOW_THRESHOLD and subpool_size is not None:
+                remaining = [c for c in untried if c not in candidates]
+                if remaining:
+                    untried = remaining
+                    continue
+            break
+
+        if noisy:
             total_shots += cache.total_shots
             total_circuits += cache.total_circuits
-            if status is SelectionStatus.BELOW_THRESHOLD:
-                stopped_reason = "no candidate above threshold"
-            elif status is SelectionStatus.BUDGET_EXHAUSTED_AMBIGUOUS and not accept_ambiguous:
-                stopped_reason = "selection ambiguous at budget"
-            if idx is None or (status is SelectionStatus.BUDGET_EXHAUSTED_AMBIGUOUS
-                               and not accept_ambiguous):
-                records.append(SelectionRecord(
-                    step, None, status, diag.get("estimate"), diag.get("lower_bound"),
-                    diag.get("upper_bound"),
-                    exact_scores[idx] if (exact_scores and idx is not None) else None,
-                    exact_max, shots_added, total_shots, words_measured,
-                    total_circuits, diag.get("active_candidates", len(candidates))))
-                break
+        if status is SelectionStatus.BELOW_THRESHOLD:
+            stopped_reason = ("exact gradient below threshold" if not noisy
+                              else "no candidate above threshold")
+        elif status is SelectionStatus.BUDGET_EXHAUSTED_AMBIGUOUS and not accept_ambiguous:
+            stopped_reason = "selection ambiguous at budget"
+        if idx is None or (status is SelectionStatus.BUDGET_EXHAUSTED_AMBIGUOUS
+                           and not accept_ambiguous):
+            records.append(SelectionRecord(
+                step, None, status, diag.get("estimate"), diag.get("lower_bound"),
+                diag.get("upper_bound"), diag.get("exact_gradient"), exact_max,
+                shots_added, total_shots, words_measured, total_circuits,
+                diag.get("active_candidates", len(candidates))))
+            break
 
         chosen.append(pool[idx])
         used.add(idx)
         theta = theta + (0.0,)
+        layer_labels: tuple[str, ...] = ()
+        if layer_alpha is not None:
+            if noisy and cache is not None:  # hardware-realistic: measured estimates
+                layer_scores = _cache_estimates(bank, cache, candidates)
+            else:
+                layer_scores = dict(exact_scores or {})
+            if idx in layer_scores and layer_scores[idx] != 0.0:
+                layer = build_layer(pool, layer_scores, idx, candidates, layer_alpha)
+                for j in layer[1:]:
+                    chosen.append(pool[j])
+                    used.add(j)
+                    theta = theta + (0.0,)
+                layer_labels = tuple(pool[j].label for j in layer[1:])
         program = _ansatz_program(model, chosen)
 
         def f_eg(x):
@@ -282,7 +365,8 @@ def run_adapt(model, pool: Sequence[PoolOperator], *,
             diag.get("lower_bound"), diag.get("upper_bound"),
             exact_scores[idx] if exact_scores else None, exact_max,
             shots_added, total_shots, words_measured, total_circuits,
-            diag.get("active_candidates", len(candidates)), energy=energy))
+            diag.get("active_candidates", len(candidates)), energy=energy,
+            layer_labels=layer_labels))
 
     rel = None
     if E0 is not None:

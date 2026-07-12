@@ -1,0 +1,26 @@
+{
+  "seeds": 30,
+  "models": [
+    {"model": {"type": "tfim", "n": 4, "J": 1.0, "h": 1.0},
+     "pool": {"type": "local", "periodic_context": false}},
+    {"model": {"type": "random_ising", "n": 4, "J": 1.0, "h": 1.0},
+     "pool": {"type": "local", "periodic_context": false}}
+  ],
+  "methods": {
+    "exact": {"kind": "exact", "max_operators": 8},
+    "random": {"kind": "random", "max_operators": 8},
+    "doubling": {"kind": "confidence", "max_operators": 8,
+                 "selector": {"delta": 0.05, "near_tol": 0.05},
+                 "allocator": {"type": "uniform_doubling", "base": 256, "max_factor": 64}},
+    "doubling_grouped": {"kind": "confidence", "max_operators": 8, "grouping": true,
+                         "selector": {"delta": 0.05, "near_tol": 0.05},
+                         "allocator": {"type": "uniform_doubling", "base": 256, "max_factor": 64}},
+    "variance_grouped": {"kind": "confidence", "max_operators": 8, "grouping": true,
+                         "selector": {"delta": 0.05, "near_tol": 0.05},
+                         "allocator": {"type": "variance_proportional",
+                                        "round_budget": 4096, "growth": 2.0, "max_rounds": 7}},
+    "layered_exact": {"kind": "exact", "max_operators": 14,
+                      "layer_alpha": 0.5, "allow_repeats": true},
+    "subpool_exact": {"kind": "exact", "max_operators": 10, "subpool_size": 6}
+  }
+}

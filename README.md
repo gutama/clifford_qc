@@ -250,8 +250,10 @@ clifford_qc/
   bridges/         # optional Stim/OpenFermion/pytket/PennyLane bridges
   models/          # TFIM, XXZ, random-Ising benchmark models
   backends/        # Backend protocol: exact MV, dense reference, finite-shot
-  measurement/     # commutator bank, shared word cache, confidence, allocation
+  measurement/     # commutator bank, shared word cache, confidence,
+                   # allocation policies, QWC measurement grouping
   algorithms/      # optimizers, pools (odd-Y), fixed-depth VQE, ADAPT-VQE
+                   # (exact / finite-shot / layered / subpool / random)
 ```
 
 ## Project Notes
