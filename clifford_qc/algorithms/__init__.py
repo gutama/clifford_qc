@@ -11,7 +11,7 @@ from .initialization import (
 )
 from .adapt import (
     SelectionStatus, SelectionRecord, AdaptResult, ConfidenceSelector,
-    RandomSelector, run_adapt,
+    RandomSelector, FastInspiredSelector, run_adapt,
 )
 
 __all__ = [
@@ -23,5 +23,5 @@ __all__ = [
     "bound_hva_program", "clifford_point_search", "seed_model",
     "stabilizer_ground_program", "stabilizer_hamiltonian_approximation",
     "SelectionStatus", "SelectionRecord", "AdaptResult", "ConfidenceSelector",
-    "RandomSelector", "run_adapt",
+    "RandomSelector", "FastInspiredSelector", "run_adapt",
 ]

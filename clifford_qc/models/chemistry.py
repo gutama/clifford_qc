@@ -1,0 +1,131 @@
+"""Molecular models via the OpenFermion bridge (``chemistry`` extra).
+
+``molecule_model`` turns a PySCF-computed molecule (optionally reduced to
+an active space) into the same ``Model`` the spin benchmarks use: the
+Jordan-Wigner qubit Hamiltonian as a ``PauliSum`` and the Hartree-Fock
+determinant as the Clifford reference Program (X gates on the occupied
+spin-orbitals). ``excitation_pool`` provides the qubit-ADAPT candidate
+pool: the individual (odd-Y) Pauli words of the JW-transformed
+spin-conserving single and double excitation generators.
+"""
+
+from __future__ import annotations
+
+from openfermion.chem import MolecularData
+from openfermion.ops import FermionOperator
+from openfermion.transforms import jordan_wigner
+
+from ..ir import Program
+from ..bridges.openfermion_bridge import qubit_operator_to_pauli_sum
+from ..algorithms.pools import PoolOperator, is_odd_y
+from .spin import Model
+
+
+def _hf_reference(n_qubits: int, n_electrons: int) -> Program:
+    prog = Program(n_qubits)
+    for j in range(n_electrons):
+        prog.clifford("X", j)
+    return prog
+
+
+def molecule_model(geometry, basis: str = "sto-3g", multiplicity: int = 1,
+                   charge: int = 0, *, name: str,
+                   occupied_indices=None, active_indices=None,
+                   run_fci: bool = True) -> Model:
+    """Model for a molecule (PySCF SCF + optional FCI, JW mapping).
+
+    ``occupied_indices``/``active_indices`` select an active space in
+    spatial-orbital indices (OpenFermion convention); the frozen-core
+    energy lands in the Hamiltonian's identity term, so ``exact_ground``
+    of the returned Hamiltonian matches the active-space FCI energy.
+    """
+    from openfermionpyscf import run_pyscf
+
+    molecule = run_pyscf(MolecularData(geometry, basis, multiplicity, charge,
+                                       description=name),
+                         run_scf=True, run_fci=run_fci)
+    hamiltonian = molecule.get_molecular_hamiltonian(
+        occupied_indices=occupied_indices, active_indices=active_indices)
+    qubit_op = jordan_wigner(hamiltonian)
+    pauli_sum = qubit_operator_to_pauli_sum(qubit_op)
+    n_qubits = pauli_sum.n
+    n_core = 2 * len(occupied_indices or ())
+    n_active_electrons = molecule.n_electrons - n_core
+    return Model(
+        name=name,
+        n=n_qubits,
+        hamiltonian=pauli_sum,
+        reference=_hf_reference(n_qubits, n_active_electrons),
+        hva_layers=(),
+        metadata={
+            "basis": basis,
+            "n_electrons": int(n_active_electrons),
+            "hf_energy": float(molecule.hf_energy),
+            "fci_energy": float(molecule.fci_energy) if run_fci else None,
+            "frozen_spatial_orbitals": list(occupied_indices or ()),
+            "active_spatial_orbitals": list(active_indices) if active_indices else None,
+        },
+    )
+
+
+def h2(bond_length: float = 0.7414) -> Model:
+    return molecule_model([("H", (0, 0, 0)), ("H", (0, 0, bond_length))],
+                          name=f"h2(r={bond_length})")
+
+
+def h4_chain(spacing: float = 0.9) -> Model:
+    geometry = [("H", (0, 0, i * spacing)) for i in range(4)]
+    return molecule_model(geometry, name=f"h4_chain(r={spacing})")
+
+
+def lih(bond_length: float = 1.5949) -> Model:
+    """LiH with frozen core and the (2e, 2o) active space -> 4 qubits."""
+    return molecule_model([("Li", (0, 0, 0)), ("H", (0, 0, bond_length))],
+                          name=f"lih(r={bond_length})",
+                          occupied_indices=[0], active_indices=[1, 2])
+
+
+def beh2(bond_length: float = 1.3264) -> Model:
+    """Linear BeH2 with frozen core and a (4e, 3o) active space -> 6 qubits."""
+    geometry = [("Be", (0, 0, 0)), ("H", (0, 0, -bond_length)),
+                ("H", (0, 0, bond_length))]
+    return molecule_model(geometry, name=f"beh2(r={bond_length})",
+                          occupied_indices=[0], active_indices=[1, 2, 3])
+
+
+def excitation_pool(n_qubits: int, n_electrons: int) -> list[PoolOperator]:
+    """Qubit-ADAPT pool: odd-Y Pauli words of JW single/double excitations.
+
+    Spin-conserving singles a†_a a_i - h.c. and doubles
+    a†_a a†_b a_j a_i - h.c. over occupied {0..n_e-1} / virtual
+    {n_e..n_q-1} spin-orbitals; each anti-Hermitian generator's JW image
+    splits into odd-Y words that enter the pool individually
+    (deduplicated, ordered by first appearance).
+    """
+    occupied = range(n_electrons)
+    virtual = range(n_electrons, n_qubits)
+    generators = []
+    for i in occupied:
+        for a in virtual:
+            if (a - i) % 2 == 0:  # same spin under interleaved JW ordering
+                generators.append(FermionOperator(((a, 1), (i, 0)))
+                                  - FermionOperator(((i, 1), (a, 0))))
+    for i in occupied:
+        for j in occupied:
+            if j <= i:
+                continue
+            for a in virtual:
+                for b in virtual:
+                    if b <= a:
+                        continue
+                    if (i + j) % 2 == (a + b) % 2:  # conserve total spin z
+                        generators.append(
+                            FermionOperator(((a, 1), (b, 1), (j, 0), (i, 0)))
+                            - FermionOperator(((i, 1), (j, 1), (b, 0), (a, 0))))
+    pool: dict[int, PoolOperator] = {}
+    for gen in generators:
+        image = qubit_operator_to_pauli_sum(jordan_wigner(gen), n_qubits)
+        for word, _ in image.items():
+            if word.code != 0 and is_odd_y(word) and word.code not in pool:
+                pool[word.code] = PoolOperator(word.label, word)
+    return list(pool.values())

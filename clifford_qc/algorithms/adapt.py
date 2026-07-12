@@ -44,6 +44,7 @@ class SelectionStatus(Enum):
     BUDGET_EXHAUSTED_AMBIGUOUS = "budget_exhausted_ambiguous"
     EXACT = "exact"
     RANDOM = "random"
+    FAST_PROXY = "fast_proxy"
 
 
 @dataclass(frozen=True)
@@ -188,6 +189,82 @@ class RandomSelector:
         return int(self.rng.choice(list(candidates)))
 
 
+class FastInspiredSelector:
+    """Determinant-population proxy selection (FAST-VQE-inspired baseline).
+
+    One computational-basis measurement circuit per step: sample N
+    bitstrings of the current state, then score each candidate word P by
+
+        score(P) = sum_b p_hat(b) * |H|(flips(P))
+                 + sum_b sqrt(p_hat(b) * p_hat(b ^ flips(P)))
+
+    where flips(P) are P's X/Y positions and |H|(f) = sum of |c_w| over
+    Hamiltonian words with the same flip pattern. The first term is the
+    population-weighted Hamiltonian connectivity of the determinants a
+    candidate would couple (MP2-flavored; nonzero even at a bare
+    determinant reference), the second rewards candidates linking two
+    already-populated determinants. Everything besides the N samples is
+    classical post-processing of known H coefficients, so the measurement
+    cost is one circuit and N shots per step. Determinant populations —
+    not the commutator gradient — are the signal, which is why this is a
+    chemistry baseline: phases are invisible to the proxy.
+    """
+
+    def __init__(self, shots: int, seed: int):
+        if shots <= 0:
+            raise ValueError("shots must be positive")
+        self.shots = shots
+        self.rng = np.random.default_rng(seed)
+        self._h_by_flips: dict[int, float] | None = None
+
+    @staticmethod
+    def _flip_mask(word) -> int:
+        mask = 0
+        for j in word.support():
+            if word.letter(j) in ("X", "Y"):
+                mask |= 1 << j
+        return mask
+
+    def _hamiltonian_connectivity(self, bank: CommutatorBank, hamiltonian) -> dict[int, float]:
+        if self._h_by_flips is None:
+            by_flips: dict[int, float] = {}
+            for word, coeff in hamiltonian.items():
+                mask = self._flip_mask(word)
+                if mask:
+                    by_flips[mask] = by_flips.get(mask, 0.0) + abs(coeff)
+            self._h_by_flips = by_flips
+        return self._h_by_flips
+
+    def pick(self, rho, pool, candidates: Sequence[int], hamiltonian,
+             bank: CommutatorBank | None = None, tol: float = 1e-12):
+        """(best index or None, its proxy score) from one sampling round."""
+        from ..states import computational_probabilities
+
+        h_conn = self._hamiltonian_connectivity(bank, hamiltonian)
+        outcomes = sorted(computational_probabilities(rho).items())
+        probs = np.clip([p for _, p in outcomes], 0.0, None)
+        counts = self.rng.multinomial(self.shots, probs / probs.sum())
+        p_hat = {bits: c / self.shots for (bits, _), c in zip(outcomes, counts) if c}
+
+        def flipped(bits: str, mask: int) -> str:
+            return "".join(("1" if ch == "0" else "0") if (mask >> j) & 1 else ch
+                           for j, ch in enumerate(bits))
+
+        best, best_score = None, 0.0
+        for j in candidates:
+            mask = self._flip_mask(pool[j].word)
+            if not mask:
+                continue  # Z-only candidates move no populations
+            coupling = h_conn.get(mask, 0.0)
+            score = 0.0
+            for bits, p in p_hat.items():
+                partner = flipped(bits, mask)
+                score += p * coupling + math.sqrt(p * p_hat.get(partner, 0.0))
+            if score > best_score + tol:
+                best, best_score = j, score
+        return best, best_score
+
+
 def _ansatz_program(model, chosen: Sequence[PoolOperator]) -> Program:
     prog = Program(model.n)
     for op in model.reference.ops:
@@ -199,7 +276,7 @@ def _ansatz_program(model, chosen: Sequence[PoolOperator]) -> Program:
 
 def run_adapt(model, pool: Sequence[PoolOperator], *,
               backend: FiniteShotBackend | None = None,
-              selector: ConfidenceSelector | RandomSelector | None = None,
+              selector: "ConfidenceSelector | RandomSelector | FastInspiredSelector | None" = None,
               allocator=None,
               max_operators: int = 10, threshold: float = 1e-6,
               allow_repeats: bool = False, accept_ambiguous: bool = True,
@@ -224,7 +301,8 @@ def run_adapt(model, pool: Sequence[PoolOperator], *,
     selected score (layered ADAPT).
     """
     random_mode = isinstance(selector, RandomSelector)
-    noisy = selector is not None and not random_mode
+    fast_mode = isinstance(selector, FastInspiredSelector)
+    noisy = selector is not None and not random_mode and not fast_mode
     if noisy and (backend is None or allocator is None):
         raise ValueError("finite-shot selection needs a sampling backend and an allocator")
     if subpool_size is not None and subpool_size < 1:
@@ -282,7 +360,19 @@ def run_adapt(model, pool: Sequence[PoolOperator], *,
 
             shots_added = 0
             words_measured = 0
-            if random_mode:
+            if fast_mode:
+                idx, proxy_score = selector.pick(rho, pool, candidates, H, bank)
+                shots_added = selector.shots
+                total_shots += selector.shots
+                total_circuits += 1
+                if idx is None:
+                    status = SelectionStatus.BELOW_THRESHOLD
+                    diag = {"estimate": 0.0, "active_candidates": len(candidates)}
+                else:
+                    status = SelectionStatus.FAST_PROXY
+                    diag = {"estimate": proxy_score,
+                            "active_candidates": len(candidates)}
+            elif random_mode:
                 if exact_max < threshold:
                     idx, status = None, SelectionStatus.BELOW_THRESHOLD
                     diag = {"active_candidates": len(candidates)}
@@ -322,8 +412,12 @@ def run_adapt(model, pool: Sequence[PoolOperator], *,
             total_shots += cache.total_shots
             total_circuits += cache.total_circuits
         if status is SelectionStatus.BELOW_THRESHOLD:
-            stopped_reason = ("exact gradient below threshold" if not noisy
-                              else "no candidate above threshold")
+            if fast_mode:
+                stopped_reason = "proxy score below threshold"
+            elif noisy:
+                stopped_reason = "no candidate above threshold"
+            else:
+                stopped_reason = "exact gradient below threshold"
         elif status is SelectionStatus.BUDGET_EXHAUSTED_AMBIGUOUS and not accept_ambiguous:
             stopped_reason = "selection ambiguous at budget"
         if idx is None or (status is SelectionStatus.BUDGET_EXHAUSTED_AMBIGUOUS
