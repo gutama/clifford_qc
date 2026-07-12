@@ -316,8 +316,32 @@ Phase 0 starting 13 July 2026):
   raw scaffold energy, governs the non-Clifford correction cost; the
   section should present the alignment criterion and the h=0.5
   early-convergence trade-off. *Exit criterion met.*
-- **Phase 5 — chemistry & manuscript**: PySCF/OpenFermion molecules,
-  FAST-inspired baseline, figures/tables, v0.3.0 release, submit Paper A.
+- **Phase 5 — chemistry & manuscript** *(software and data done in this
+  branch; manuscript remains)*: `models/chemistry.py` with PySCF-computed
+  H2, LiH(2e,2o), BeH2(4e,3o) and H4-chain models (HF/FCI cross-checked
+  to machine precision), the JW singles/doubles odd-Y `excitation_pool`,
+  the FAST-inspired determinant-population selector, the 4-arm chemistry
+  benchmark (`benchmarks/reference_results/chemistry.jsonl`), the
+  reproducibility artifact (`REPRODUCING.md`, backlog 18), and the
+  v0.3.0 version bump.
+
+  **Chemistry findings.** H2/LiH/BeH2 at equilibrium are easy: every arm
+  reaches chemical accuracy, and BeH2 separates the costs — exact and
+  FAST need 1 operator (FAST: 4,096 shots), confidence-gated needs 1
+  operator at 1.69M shots (the price of simultaneous certification over
+  the pool), random needs 2–9. **H4 is the discriminating case and the
+  headline chemistry result: the FAST-inspired proxy fails outright**
+  (56.1 mHa final error, identical across seeds — a deterministic
+  selection failure; even random selection gets closer at 10–19 mHa)
+  while exact commutator-gradient selection reaches chemical accuracy at
+  9 operators (0.42 mHa final). Determinant-population proxies are blind
+  to the phase structure that matters for correlated states; gradient
+  selection — which the confidence machinery certifies at finite shots —
+  is not. Position this as the core measurement-vs-proxy trade-off of
+  Paper A: the proxy is 400x cheaper when determinant structure carries
+  the signal, and unboundedly wrong when it does not, whereas
+  confidence-gated gradient selection pays more per step but never
+  silently fails. *Remaining:* figures, manuscript text, submission.
 
 Ordered backlog (issue → acceptance test):
 
@@ -342,9 +366,9 @@ Ordered backlog (issue → acceptance test):
 | 17 | bench: chemistry baselines | reference energies and mappings recorded |
 | 18 | docs: reproducibility artifact | clean environment reproduces figures |
 
-Items 1–16 are implemented (1–11 and 14 merged in PR #2; 12, 13 and 16 in
-PR #3–4; 15 in this branch); 17–18 (chemistry baselines and the
-reproducibility artifact) are the remaining Phase 5 work.
+All 18 backlog items are implemented (1–11 and 14 merged in PR #2; 12, 13
+and 16 in PR #3–4; 15 in PR #5; 17–18 in this branch). The remaining work
+is the Paper A manuscript itself.
 
 ## 11. Non-goals
 
