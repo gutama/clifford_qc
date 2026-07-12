@@ -76,6 +76,7 @@ class AdaptResult:
     total_shots: int
     total_circuits: int
     support_peak: int
+    optimizer_evaluations: int
     stopped_reason: str
     metadata: dict[str, Any] = field(default_factory=dict)
 
@@ -250,6 +251,7 @@ def run_adapt(model, pool: Sequence[PoolOperator], *,
     total_shots = 0
     total_circuits = 0
     support_peak = 0
+    optimizer_evaluations = 0
     energy = exact_backend.expectation(_ansatz_program(model, []), H, ())
     stopped_reason = "operator budget reached"
 
@@ -359,6 +361,7 @@ def run_adapt(model, pool: Sequence[PoolOperator], *,
                               maxiter=maxiter, bound=E0)
         theta = res.x
         energy = res.fun
+        optimizer_evaluations += res.evaluations
         support_peak = max(support_peak, getattr(exact_backend, "support_peak", 0))
         records.append(SelectionRecord(
             step, pool[idx].label, status, diag.get("estimate"),
@@ -375,7 +378,8 @@ def run_adapt(model, pool: Sequence[PoolOperator], *,
         labels=tuple(op.label for op in chosen), parameters=theta, energy=energy,
         exact_ground_energy=E0, relative_error=rel, records=tuple(records),
         total_shots=total_shots, total_circuits=total_circuits,
-        support_peak=support_peak, stopped_reason=stopped_reason,
+        support_peak=support_peak, optimizer_evaluations=optimizer_evaluations,
+        stopped_reason=stopped_reason,
         metadata={"model": model.name, "pool_size": len(pool),
                   "noisy_selection": noisy},
     )
