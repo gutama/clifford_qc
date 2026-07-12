@@ -8,9 +8,11 @@ import pytest
 
 BENCH = Path(__file__).resolve().parent.parent / "benchmarks"
 sys.path.insert(0, str(BENCH))
-
-import run_benchmark  # noqa: E402
-import summarize  # noqa: E402
+try:
+    import run_benchmark  # noqa: E402
+    import summarize  # noqa: E402
+finally:
+    sys.path.remove(str(BENCH))
 
 
 TINY_CONFIG = {
@@ -59,3 +61,15 @@ def test_unknown_method_kind_rejected():
         run_benchmark.build_run_kwargs({"kind": "bogus"}, seed=0)
     with pytest.raises(ValueError, match="unused method keys"):
         run_benchmark.build_run_kwargs({"kind": "exact", "typo_key": 1}, seed=0)
+    with pytest.raises(ValueError, match="need an 'allocator'"):
+        run_benchmark.build_run_kwargs({"kind": "confidence"}, seed=0)
+    with pytest.raises(ValueError, match="unknown allocator type"):
+        run_benchmark.build_run_kwargs(
+            {"kind": "confidence", "allocator": {"type": "bogus"}}, seed=0)
+
+
+def test_summarize_rejects_empty_results(tmp_path):
+    empty = tmp_path / "empty.jsonl"
+    empty.write_text("")
+    with pytest.raises(SystemExit, match="no benchmark rows"):
+        summarize.main([str(empty)])

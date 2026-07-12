@@ -102,8 +102,9 @@ class FiniteShotBackend:
             probs = np.clip([p for _, p in outcomes], 0.0, None)
             probs = probs / probs.sum()
             counts = self.rng.multinomial(N, probs)
+            position = {q: i for i, q in enumerate(keep)}
             for w in group:
-                positions = [keep.index(j) for j in w.support()]
+                positions = [position[j] for j in w.support()]
                 n_plus = sum(int(c) for (bits, _), c in zip(outcomes, counts)
                              if sum(bits[pos] == "1" for pos in positions) % 2 == 0)
                 out_shots[w.code] = out_shots.get(w.code, 0) + N

@@ -61,8 +61,14 @@ def build_run_kwargs(method: dict, seed: int) -> dict:
         kwargs["selector"] = RandomSelector(seed=seed)
     elif kind == "confidence":
         kwargs["selector"] = ConfidenceSelector(**method.pop("selector", {}))
+        if "allocator" not in method:
+            raise ValueError("confidence methods need an 'allocator' entry")
         alloc = dict(method.pop("allocator"))
-        kwargs["allocator"] = ALLOCATORS[alloc.pop("type")](**alloc)
+        alloc_type = alloc.pop("type", None)
+        if alloc_type not in ALLOCATORS:
+            raise ValueError(f"unknown allocator type {alloc_type!r}; "
+                             f"known: {sorted(ALLOCATORS)}")
+        kwargs["allocator"] = ALLOCATORS[alloc_type](**alloc)
         kwargs["backend"] = FiniteShotBackend(seed=seed)
         kwargs.setdefault("subpool_seed", seed)
     else:

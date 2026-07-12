@@ -88,6 +88,8 @@ def main(argv=None) -> None:
     parser.add_argument("--csv", default=None)
     args = parser.parse_args(argv)
     rows = [json.loads(line) for line in Path(args.results).read_text().splitlines() if line]
+    if not rows:
+        raise SystemExit(f"no benchmark rows in {args.results}")
     summary = aggregate(rows)
     print_markdown(summary)
     if args.csv:
