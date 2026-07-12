@@ -276,8 +276,22 @@ Phase 0 starting 13 July 2026):
   results committed under `benchmarks/reference_results/`). Known finding:
   alpha-layering without operator repeats can stall at symmetric
   stationary points (pinned by a regression test) — quantify in the
-  ablations. *Remaining:* scale the sweep to n = 6–12 and 100 seeds for
-  the headline tables. *Exit:* Paper A tables and ablations.
+  ablations. *Scale-up (done):* 100-seed n=4 matrix over TFIM
+  h ∈ {0.5, 1, 1.5}, periodic TFIM, and random-field Ising, plus a
+  20-seed n=6 exploratory matrix (TFIM, random Ising, XXZ) under
+  `benchmarks/reference_results/`. Findings: confidence-gated selection
+  beats random selection by 2–4 orders of magnitude in median energy
+  error at equal operator budget across every family; QWC grouping cuts
+  circuits 3.3–4.0×; at n=6 noisy selection matches exact-selection
+  final error (random Ising: 4.1e-3 vs 4.5e-3, near-optimality 0.96);
+  XXZ with the two-local odd-Y pool hits an ADAPT gradient plateau at
+  ~1e-1 error (exact selection stops at 3 operators with vanishing
+  gradients) — the pool, not the selector, is the bottleneck; needs
+  higher-weight or repeat-enabled pools. Cost data: noisy runs are
+  ~3.5 s at n=4, ~5 min at n=6, and infeasible at n≥8 on a laptop-class
+  core — the n = 8–12 headline sweeps need dedicated hardware (configs
+  are committed and shardable via `--shard i/k`).
+  *Exit:* Paper A tables and ablations.
 - **Phase 4 — stabilizer initialization**: discrete Clifford-point search,
   stabilizer Hamiltonian approximation, residual ADAPT, large-n
   stabilizer-only benchmarks. *Exit:* Paper B go/no-go decision.

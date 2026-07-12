@@ -1,0 +1,24 @@
+{
+  "seeds": 20,
+  "models": [
+    {"model": {"type": "tfim", "n": 6, "J": 1.0, "h": 1.0},
+     "pool": {"type": "local", "periodic_context": false}},
+    {"model": {"type": "random_ising", "n": 6, "J": 1.0, "h": 1.0},
+     "pool": {"type": "local", "periodic_context": false}},
+    {"model": {"type": "xxz", "n": 6, "J": 1.0, "delta": 1.0},
+     "pool": {"type": "odd_y_all_words", "max_weight": 2}}
+  ],
+  "methods": {
+    "exact": {"kind": "exact", "max_operators": 8, "maxiter": 150},
+    "random": {"kind": "random", "max_operators": 8, "maxiter": 150},
+    "doubling_grouped": {"kind": "confidence", "max_operators": 8, "maxiter": 150,
+                         "grouping": true,
+                         "selector": {"delta": 0.05, "near_tol": 0.05},
+                         "allocator": {"type": "uniform_doubling", "base": 256, "max_factor": 64}},
+    "variance_grouped": {"kind": "confidence", "max_operators": 8, "maxiter": 150,
+                         "grouping": true,
+                         "selector": {"delta": 0.05, "near_tol": 0.05},
+                         "allocator": {"type": "variance_proportional",
+                                        "round_budget": 4096, "growth": 2.0, "max_rounds": 7}}
+  }
+}

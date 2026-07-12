@@ -54,7 +54,7 @@ def build_run_kwargs(method: dict, seed: int) -> dict:
     kind = method.pop("kind")
     kwargs = {k: method.pop(k) for k in
               ("grouping", "subpool_size", "layer_alpha", "allow_repeats",
-               "max_operators", "threshold") if k in method}
+               "max_operators", "threshold", "maxiter") if k in method}
     if kind == "exact":
         pass
     elif kind == "random":
@@ -122,31 +122,47 @@ def run_one(model_cfg: dict, pool_cfg: dict, method_name: str, method: dict,
     return row
 
 
+def parse_shard(text: str) -> tuple[int, int]:
+    index, count = (int(x) for x in text.split("/"))
+    if not (count >= 1 and 0 <= index < count):
+        raise ValueError(f"shard must be i/k with 0 <= i < k, got {text!r}")
+    return index, count
+
+
 def main(argv=None) -> None:
     parser = argparse.ArgumentParser()
     parser.add_argument("--config", required=True)
     parser.add_argument("--out", required=True)
     parser.add_argument("--seeds", type=int, default=None,
                         help="override the config's seed count")
+    parser.add_argument("--shard", default="0/1",
+                        help="i/k with 0-indexed i (0 <= i < k): run every "
+                             "k-th job starting at job i, for launching k "
+                             "parallel workers writing separate files "
+                             "(concatenate afterwards)")
     args = parser.parse_args(argv)
     config = json.loads(Path(args.config).read_text())
     n_seeds = args.seeds if args.seeds is not None else config.get("seeds", 30)
+    shard_index, shard_count = parse_shard(args.shard)
+
+    jobs = [(model_entry, method_name, method, seed)
+            for model_entry in config["models"]
+            for method_name, method in config["methods"].items()
+            for seed in range(n_seeds)]
+    jobs = jobs[shard_index::shard_count]
 
     out = Path(args.out)
-    total = len(config["models"]) * len(config["methods"]) * n_seeds
     done = 0
     with out.open("w") as fh:
-        for model_entry in config["models"]:
-            for method_name, method in config["methods"].items():
-                for seed in range(n_seeds):
-                    row = run_one(model_entry["model"], model_entry.get("pool", {}),
-                                  method_name, method, seed)
-                    fh.write(json.dumps(row) + "\n")
-                    fh.flush()
-                    done += 1
-                    print(f"[{done}/{total}] {row['model']} / {method_name} / seed {seed}: "
-                          f"rel={row['relative_error']:.2e} shots={row['total_shots']:,}",
-                          flush=True)
+        for model_entry, method_name, method, seed in jobs:
+            row = run_one(model_entry["model"], model_entry.get("pool", {}),
+                          method_name, method, seed)
+            fh.write(json.dumps(row) + "\n")
+            fh.flush()
+            done += 1
+            print(f"[{done}/{len(jobs)}] {row['model']} / {method_name} / seed {seed}: "
+                  f"rel={row['relative_error']:.2e} shots={row['total_shots']:,}",
+                  flush=True)
     print(f"wrote {done} runs to {out}")
 
 
