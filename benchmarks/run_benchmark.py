@@ -136,9 +136,10 @@ def main(argv=None) -> None:
     parser.add_argument("--seeds", type=int, default=None,
                         help="override the config's seed count")
     parser.add_argument("--shard", default="0/1",
-                        help="i/k: run every k-th job starting at i, for "
-                             "launching k parallel workers writing separate "
-                             "files (concatenate afterwards)")
+                        help="i/k with 0-indexed i (0 <= i < k): run every "
+                             "k-th job starting at job i, for launching k "
+                             "parallel workers writing separate files "
+                             "(concatenate afterwards)")
     args = parser.parse_args(argv)
     config = json.loads(Path(args.config).read_text())
     n_seeds = args.seeds if args.seeds is not None else config.get("seeds", 30)
