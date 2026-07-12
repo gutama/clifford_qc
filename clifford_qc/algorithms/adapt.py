@@ -365,9 +365,14 @@ def run_adapt(model, pool: Sequence[PoolOperator], *,
                 shots_added = selector.shots
                 total_shots += selector.shots
                 total_circuits += 1
-                if idx is None:
+                # Stop on the shared ``threshold`` like every other mode, so
+                # the proxy score gates termination consistently (the selector
+                # only reports ``idx=None`` when nothing moves populations).
+                if idx is None or proxy_score < threshold:
+                    idx = None
                     status = SelectionStatus.BELOW_THRESHOLD
-                    diag = {"estimate": 0.0, "active_candidates": len(candidates)}
+                    diag = {"estimate": proxy_score,
+                            "active_candidates": len(candidates)}
                 else:
                     status = SelectionStatus.FAST_PROXY
                     diag = {"estimate": proxy_score,
