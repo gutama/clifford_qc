@@ -264,4 +264,6 @@ clifford_qc/
   criteria.
 - `RESEARCH_PLAN.md` is the active research roadmap (confidence-certified,
   measurement-efficient ADAPT-VQE).
+- `paper/` holds the Paper A manuscript (REVTeX) with figures regenerated
+  from the committed benchmark data.
 - License: Apache-2.0.
