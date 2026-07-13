@@ -153,14 +153,18 @@ def fig_chemistry():
         g[(r["model"].split("(")[0], r["arm"])].append(r)
     mols = ["h2", "lih", "beh2", "h4_chain"]
     mol_lab = {"h2": "H$_2$", "lih": "LiH", "beh2": "BeH$_2$", "h4_chain": "H$_4$"}
-    arms = ["exact", "fast", "random"]
-    arm_lab = {"exact": "exact gradient", "fast": "FAST-inspired proxy", "random": "random"}
-    fig, ax = plt.subplots(figsize=(5.0, 3.0))
+    arms = ["exact", "confidence", "fast", "random"]
+    arm_lab = {"exact": "exact gradient", "confidence": "certified gradient",
+               "fast": "FAST-inspired proxy", "random": "random"}
+    fig, ax = plt.subplots(figsize=(5.4, 3.0))
     x = range(len(mols))
-    w = 0.26
+    w = 0.2
+    off = (len(arms) - 1) / 2.0  # center the group of bars on each tick
     for i, a in enumerate(arms):
-        vals = [max(med([r["final_error_mha"] for r in g[(m, a)]]), 1e-4) for m in mols]
-        ax.bar([xi + (i - 1) * w for xi in x], vals, w, label=arm_lab[a], color=C[a])
+        # confidence was not run on the n=8 H4 chain; leave its bar absent
+        vals = [max(med([r["final_error_mha"] for r in g[(m, a)]]), 1e-4)
+                if g[(m, a)] else 0.0 for m in mols]
+        ax.bar([xi + (i - off) * w for xi in x], vals, w, label=arm_lab[a], color=C[a])
     ax.set_yscale("log")
     ax.set_ylabel("median final error (mHa)")
     ax.set_xticks(list(x))

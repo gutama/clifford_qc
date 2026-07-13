@@ -183,8 +183,8 @@ TFIM $h{=}1.5$ & random & $5.9\times10^{-3}$ & 0 & ---\\
  & doubling & $1.1\times10^{-5}$ & 293 & 0.95\\
  & variance & $1.1\times10^{-5}$ & 287 & 0.70\\
 \colrule
-TFIM $h{=}1.0$ & random & $1.1\times10^{-1}$ & 0 & ---\\
- (PBC) & doubling & $1.4\times10^{-15}$ & 309 & 0.77\\
+TFIM $h{=}1.0$ (PBC) & random & $1.1\times10^{-1}$ & 0 & ---\\
+ & doubling & $1.4\times10^{-15}$ & 309 & 0.77\\
  & variance & $1.4\times10^{-15}$ & 306 & 0.39\\
 \colrule
 rand. Ising & random & $1.9\times10^{-2}$ & 0 & ---\\
@@ -217,7 +217,7 @@ rand. Ising & random & $1.9\times10^{-2}$ & 0 & ---\\
 \subsection{Molecular systems and the proxy--gradient boundary}
 \label{sec:res-chem}
 
-For fermionic chemistry a determinant-population proxy is a natural competitor: the FAST theory ranks excitations by sampled Slater-determinant populations rather than commutator gradients \cite{majland2023fast}, at one computational-basis circuit per step. We implement a FAST-inspired selector---scoring each candidate by a population-weighted Hamiltonian-connectivity term plus a determinant-pair coupling term---and compare it against exact, certified, and random selection on H$_2$, LiH (2e,\,2o), BeH$_2$ (4e,\,3o), and the H$_4$ chain, using the Jordan--Wigner singles-and-doubles odd-$Y$ pool (Fig.~\ref{fig:chem}, Table~\ref{tab:chem}).
+For fermionic chemistry a determinant-population proxy is a natural competitor: the FAST theory ranks excitations by sampled Slater-determinant populations rather than commutator gradients \cite{majland2023fast}, at one computational-basis circuit per step. We implement a FAST-inspired selector---scoring each candidate by a population-weighted Hamiltonian-connectivity term plus a determinant-pair coupling term---and compare it against exact and random selection on H$_2$, LiH (2e,\,2o), BeH$_2$ (4e,\,3o), and the H$_4$ chain, plus certified gradient selection on the three molecules small enough for it ($n\le6$; the H$_4$ chain uses eight qubits and is beyond the certified arm's protocol budget here), using the Jordan--Wigner singles-and-doubles odd-$Y$ pool (Fig.~\ref{fig:chem}, Table~\ref{tab:chem}).
 
 At equilibrium geometry the small molecules are easy for every arm, and the proxy is dramatically cheaper: on BeH$_2$ the FAST-inspired selector reaches chemical accuracy in one operator using 4096 shots, against $1.69\times10^6$ shots for certified gradient selection---a $\sim\!410\times$ measurement saving---because a single determinant-population circuit suffices when the correlated correction is dominated by one excitation. This is the regime the FAST theory was designed for, and the operator-centric certified selector is not competitive on cost there.
 
@@ -226,7 +226,7 @@ The H$_4$ chain reverses the verdict. The FAST-inspired proxy fails \emph{determ
 \begin{figure}[t]
 \centering
 \includegraphics[width=0.95\columnwidth]{paper_assets/chemistry.pdf}
-\caption{Median final energy error (mHa) by selection arm for four molecules; dashed line marks chemical accuracy. Equilibrium H$_2$/LiH/BeH$_2$ are solved by every arm (bars clamped at the display floor). On the correlated H$_4$ chain the FAST-inspired proxy fails deterministically at $56$~mHa---above random---while exact gradient selection reaches chemical accuracy.}
+\caption{Median final energy error (mHa) by selection arm for four molecules; dashed line marks chemical accuracy. Equilibrium H$_2$/LiH/BeH$_2$ are solved by every arm---exact gradient, certified gradient, FAST-inspired proxy, and random---with bars clamped at the display floor. The certified-gradient arm is absent on the eight-qubit H$_4$ chain (beyond its protocol budget); there the FAST-inspired proxy fails deterministically at $56$~mHa---above random---while exact gradient selection reaches chemical accuracy.}
 \label{fig:chem}
 \end{figure}
 
