@@ -47,6 +47,18 @@ class SelectionStatus(Enum):
     FAST_PROXY = "fast_proxy"
 
 
+# A selection is *certified* only when the best-arm rule strictly resolved it
+# (its lower bound cleared every rival's upper bound) or it was computed from
+# the exact gradient. Near-optimal acceptances and ambiguous-at-budget
+# acceptances are confidence-guided, not certified.
+_CERTIFIED_STATUSES = frozenset(
+    {SelectionStatus.RESOLVED_BEST, SelectionStatus.EXACT})
+
+
+def _is_certified(status: "SelectionStatus") -> bool:
+    return status in _CERTIFIED_STATUSES
+
+
 @dataclass(frozen=True)
 class SelectionRecord:
     step: int
@@ -64,6 +76,7 @@ class SelectionRecord:
     active_candidates: int
     energy: float | None = None
     layer_labels: tuple[str, ...] = ()
+    certified: bool = False
 
 
 @dataclass(frozen=True)
@@ -80,6 +93,7 @@ class AdaptResult:
     stopped_reason: str
     metadata: dict[str, Any] = field(default_factory=dict)
     optimizer_evaluations: int = 0
+    abstentions: int = 0
 
 
 class ConfidenceSelector:
@@ -351,6 +365,7 @@ def run_adapt(model, pool: Sequence[PoolOperator], *,
     total_circuits = 0
     support_peak = 0
     optimizer_evaluations = 0
+    abstentions = 0
     energy = exact_backend.expectation(_ansatz_program(model, []), H, ())
     stopped_reason = "operator budget reached"
 
@@ -452,14 +467,18 @@ def run_adapt(model, pool: Sequence[PoolOperator], *,
             else:
                 stopped_reason = "exact gradient below threshold"
         elif status is SelectionStatus.BUDGET_EXHAUSTED_AMBIGUOUS and not accept_ambiguous:
-            stopped_reason = "selection ambiguous at budget"
-        if idx is None or (status is SelectionStatus.BUDGET_EXHAUSTED_AMBIGUOUS
-                           and not accept_ambiguous):
+            stopped_reason = "selection ambiguous at budget (strict abstention)"
+        strict_abstain = (status is SelectionStatus.BUDGET_EXHAUSTED_AMBIGUOUS
+                          and not accept_ambiguous)
+        if strict_abstain:
+            abstentions += 1
+        if idx is None or strict_abstain:
             records.append(SelectionRecord(
                 step, None, status, diag.get("estimate"), diag.get("lower_bound"),
                 diag.get("upper_bound"), diag.get("exact_gradient"), exact_max,
                 shots_added, total_shots, words_measured, total_circuits,
-                diag.get("active_candidates", len(candidates))))
+                diag.get("active_candidates", len(candidates)),
+                certified=_is_certified(status)))
             break
 
         chosen.append(pool[idx])
@@ -496,17 +515,19 @@ def run_adapt(model, pool: Sequence[PoolOperator], *,
             exact_scores[idx] if exact_scores else None, exact_max,
             shots_added, total_shots, words_measured, total_circuits,
             diag.get("active_candidates", len(candidates)), energy=energy,
-            layer_labels=layer_labels))
+            layer_labels=layer_labels, certified=_is_certified(status)))
 
     rel = None
     if E0 is not None:
         rel = abs(energy - E0) / max(abs(E0), 1e-12)
+    mode = "n/a" if not noisy else ("strict" if not accept_ambiguous else "fallback")
     return AdaptResult(
         labels=tuple(op.label for op in chosen), parameters=theta, energy=energy,
         exact_ground_energy=E0, relative_error=rel, records=tuple(records),
         total_shots=total_shots, total_circuits=total_circuits,
         support_peak=support_peak, optimizer_evaluations=optimizer_evaluations,
-        stopped_reason=stopped_reason,
+        stopped_reason=stopped_reason, abstentions=abstentions,
         metadata={"model": model.name, "pool_size": len(pool),
-                  "noisy_selection": noisy},
+                  "noisy_selection": noisy, "certification_mode": mode,
+                  "bound": getattr(selector, "bound", None)},
     )
