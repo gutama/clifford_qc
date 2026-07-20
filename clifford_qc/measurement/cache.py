@@ -12,8 +12,6 @@ per-word diagonal ignores.
 
 from __future__ import annotations
 
-import math
-
 from .confidence import jeffreys_mean_var
 
 
@@ -126,16 +124,9 @@ class GroupedWordCache:
         g = self._group_of(code)
         return g["N"] if g else 0
 
-    def unique_words(self) -> int:
-        return sum(1 for _ in self._all_measured_positions())
-
-    def _all_measured_positions(self):
-        seen = set()
-        for key in self._groups:
-            for q in key:
-                if q not in seen:
-                    seen.add(q)
-                    yield q
+    def num_groups(self) -> int:
+        """Distinct QWC measurement bases (measurement circuits) accumulated."""
+        return len(self._groups)
 
     # -- per-word marginal (diagonal; used for the threshold gate) ----------
 

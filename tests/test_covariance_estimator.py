@@ -11,7 +11,7 @@ import pytest
 
 from clifford_qc.ir import PauliWord
 from clifford_qc.backends import FiniteShotBackend
-from clifford_qc.backends.protocol import GroupSample, MeasurementBatch
+from clifford_qc.backends.protocol import MeasurementBatch
 from clifford_qc.measurement import (
     CommutatorBank, GroupedWordCache, candidate_radius, empirical_bernstein_radius,
     qwc_groups,
@@ -35,8 +35,9 @@ def test_grouped_estimate_matches_exact_score():
     rho = m.reference.state()
     groups = qwc_groups(bank.words)
     cache = GroupedWordCache(4)
+    backend = FiniteShotBackend(seed=1)
     for _ in range(4):
-        cache.add_batch(FiniteShotBackend(seed=1).sample_grouped_from_state(rho, groups, 20000))
+        cache.add_batch(backend.sample_grouped_from_state(rho, groups, 20000))
     for j in range(len(bank)):
         assert cache.candidate_estimate(bank.coeffs[j]) == pytest.approx(
             bank.exact_score(j, rho), abs=0.05)

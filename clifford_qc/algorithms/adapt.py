@@ -458,7 +458,11 @@ def run_adapt(model, pool: Sequence[PoolOperator], *,
                 idx, status, diag = selector.select(bank, cache, sampler, allocator,
                                                     candidates)
                 shots_added = cache.total_shots  # cumulative over this step's redraws
-                words_measured = cache.unique_words()
+                # distinct Pauli words whose expectation was estimated: the shared
+                # word set. The grouped cache stores joint histograms per QWC basis,
+                # not per word, so count the words directly from the bank.
+                words_measured = (len(bank.words_for(candidates)) if grouping
+                                  else cache.unique_words())
 
             if status is SelectionStatus.BELOW_THRESHOLD and subpool_size is not None:
                 remaining = [c for c in untried if c not in candidates]

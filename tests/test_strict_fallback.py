@@ -5,8 +5,6 @@ a fallback run accepts the empirical leader but marks it not-certified.
 Only strictly resolved (or exact) selections are labelled certified.
 """
 
-import pytest
-
 from clifford_qc.models import tfim
 from clifford_qc.backends import FiniteShotBackend
 from clifford_qc.measurement import UniformDoubling

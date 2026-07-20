@@ -151,17 +151,10 @@ def fig_chemistry():
     g = defaultdict(list)
     for r in rows:
         g[(r["model"].split("(")[0], r["arm"])].append(r)
-    # merge the certified H4 point from the repair experiment, if present
-    try:
-        for r in load("chemistry_repair.jsonl"):
-            if r.get("kind") == "certified_h4":
-                g[("h4_chain", "confidence")].append({"final_error_mha": r["final_error_mha"]})
-    except FileNotFoundError:
-        pass
     mols = ["h2", "lih", "beh2", "h4_chain"]
     mol_lab = {"h2": "H$_2$", "lih": "LiH", "beh2": "BeH$_2$", "h4_chain": "H$_4$"}
     arms = ["exact", "confidence", "fast", "random"]
-    arm_lab = {"exact": "exact gradient", "confidence": "certified gradient",
+    arm_lab = {"exact": "exact gradient", "confidence": "confidence-guided",
                "fast": "FAST-inspired proxy", "random": "random"}
     fig, ax = plt.subplots(figsize=(5.4, 3.0))
     x = range(len(mols))
