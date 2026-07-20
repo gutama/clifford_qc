@@ -84,3 +84,28 @@ and 200 for chemistry, unlimited-default elsewhere). Chemical accuracy is
 1.6e-3 Ha against the active-space FCI energy. Resource metrics follow
 RESEARCH_PLAN.md section 7 (shots, circuits, unique words, operators,
 optimizer evaluations, peak Pauli support).
+
+## Certification revision experiments (PRA revision)
+
+```bash
+# Calibration of the certification guarantee (headline): wrong-selection vs
+# delta, coverage, regret, abstention, cost.
+python benchmarks/run_calibration.py --seeds 200 \
+    --out benchmarks/reference_results/calibration.jsonl
+
+# Strengthened baseline ladder (exact / random / fixed-shot / shared-only /
+# shared-grouped / variance-reuse / strict / fallback) + reuse accounting.
+python benchmarks/run_baselines.py --seeds 15 \
+    --out benchmarks/reference_results/baselines.jsonl
+
+# Repaired chemistry: infinite-shot (N->inf) proxy ranking, H4 geometry
+# sweep, and (compute permitting) certified H4. Requires the chemistry extra.
+python benchmarks/run_chemistry_repair.py \
+    --out benchmarks/reference_results/chemistry_repair.jsonl
+```
+
+The certified finite-shot H4 arm (n=8, 176 candidates) is beyond the
+single-core classical-simulation budget of this reference implementation;
+`run_chemistry_repair.py` emits the infinite-shot ranking and geometry
+sweep regardless, and the certified-H4 trajectory is left to hardware-scale
+study.
