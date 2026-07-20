@@ -1,0 +1,145 @@
+"""Calibration of certified selection (PRA revision headline).
+
+The certification claim is that a *strict* selector -- one that returns a
+resolved operator only when the best-arm rule fires, and abstains otherwise
+-- selects the wrong operator with probability at most ``delta``. This
+experiment measures the empirical wrong-selection probability against the
+nominal ``delta``, together with interval coverage, selection regret, the
+abstention rate, and the measurement cost.
+
+Method. We build selection *instances* with a known unique argmax of
+|g_j|: for a range of random-field Ising and displaced-TFIM Hamiltonians we
+evaluate the exact commutator gradients on a fixed generic state, and keep
+instances whose top gradient is separated from the runner-up by a real gap
+(so "wrong selection" is unambiguous). For each instance, each nominal
+``delta`` on a grid, each confidence ``bound`` (normal / empirical-Bernstein),
+and many measurement seeds, we run one strict selection and record whether
+it resolved, whether the resolved operator was the true argmax, whether it
+abstained, the regret |g*|-|g_selected|, and the shots and circuits used.
+Interval coverage is the fraction of (candidate, run) pairs whose true |g_j|
+lies within the reported bounds at the final round.
+
+Run: python benchmarks/run_calibration.py --out results.jsonl [--seeds 150]
+"""
+
+from __future__ import annotations
+
+import argparse
+import json
+import math
+from statistics import median
+
+import numpy as np
+
+from clifford_qc.models import tfim, random_ising
+from clifford_qc.algorithms import ConfidenceSelector, local_pool
+from clifford_qc.algorithms.adapt import _ansatz_program
+from clifford_qc.backends import FiniteShotBackend
+from clifford_qc.measurement import CommutatorBank, GroupedWordCache, UniformDoubling, qwc_groups
+
+DELTAS = (0.01, 0.05, 0.10, 0.20)
+BOUNDS = ("normal", "eb")
+GAP = 0.03          # minimum |g(1)| - |g(2)| for a well-posed instance
+# A capped budget stresses the strict rule: small-gap instances abstain more
+# as delta shrinks, exposing the abstention/cost cost of tighter certification.
+BASE, MAX_FACTOR = 256, 64
+
+
+def instances(n: int = 3):
+    """(bank, pool, rho, argmax, gaps) for well-posed selection instances."""
+    out = []
+    for seed in range(60):
+        model = random_ising(n, seed=seed)
+        pool = local_pool(n, periodic_context=False)
+        bank = CommutatorBank(model.hamiltonian, [op.word for op in pool])
+        # displace off the symmetric reference to break exact mirror ties
+        prog = _ansatz_program(model, [pool[seed % len(pool)], pool[(seed + 1) % len(pool)]])
+        rho = FiniteShotBackend(seed=100 + seed).state(prog, (0.31, -0.47))
+        scores = sorted(((abs(bank.exact_score(j, rho)), j) for j in range(len(bank))),
+                        reverse=True)
+        if scores[0][0] - scores[1][0] >= GAP:
+            out.append((model.name, bank, pool, rho, scores[0][1]))
+        if len(out) >= 16:
+            break
+    return out
+
+
+def one_selection(bank, rho, delta, bound, seed):
+    """Run one strict selection; return diagnostics."""
+    n = bank.n
+    cache = GroupedWordCache(n)
+    backend = FiniteShotBackend(seed=seed)
+    candidates = list(range(len(bank)))
+    fixed_groups = qwc_groups(bank.words_for(candidates))
+    sampler = lambda words, plan: backend.sample_grouped_from_state(rho, fixed_groups, plan)
+    selector = ConfidenceSelector(delta=delta, threshold=1e-4, bound=bound)
+    allocator = UniformDoubling(base=BASE, max_factor=MAX_FACTOR)
+    idx, status, diag = selector.select(bank, cache, sampler, allocator, candidates)
+    # coverage: does every candidate's interval cover the true |g_j| at the end?
+    bounds = selector._bounds(bank, cache, candidates,
+                              selector._planned_rounds(allocator))
+    covered = 0
+    for j in candidates:
+        _, lo, up = bounds[j]
+        if lo - 1e-9 <= abs(bank.exact_score(j, rho)) <= up + 1e-9:
+            covered += 1
+    return idx, status.value, diag, cache.total_shots, cache.total_circuits, \
+        covered / len(candidates)
+
+
+def main(argv=None) -> None:
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--out", required=True)
+    parser.add_argument("--seeds", type=int, default=150)
+    parser.add_argument("--n", type=int, default=3)
+    args = parser.parse_args(argv)
+
+    insts = instances(args.n)
+    print(f"{len(insts)} well-posed instances (gap >= {GAP})", flush=True)
+    rows = []
+    with open(args.out, "w") as fh:
+        for bound in BOUNDS:
+            for delta in DELTAS:
+                agg = {"resolved": 0, "wrong": 0, "abstained": 0,
+                       "regret": [], "cov": [], "shots": [], "circuits": [], "runs": 0}
+                for name, bank, pool, rho, argmax in insts:
+                    gstar = abs(bank.exact_score(argmax, rho))
+                    for s in range(args.seeds):
+                        idx, status, diag, shots, circ, cov = one_selection(
+                            bank, rho, delta, bound, seed=1000 * s + 7)
+                        agg["runs"] += 1
+                        agg["cov"].append(cov)
+                        agg["shots"].append(shots)
+                        agg["circuits"].append(circ)
+                        if status == "resolved_best":
+                            agg["resolved"] += 1
+                            if idx != argmax:
+                                agg["wrong"] += 1
+                            agg["regret"].append(gstar - abs(bank.exact_score(idx, rho)))
+                        elif status == "budget_exhausted_ambiguous":
+                            agg["abstained"] += 1
+                runs = agg["runs"]
+                row = {
+                    "bound": bound, "delta": delta, "runs": runs,
+                    "wrong_selection_rate": agg["wrong"] / runs,
+                    "wrong_given_resolved": agg["wrong"] / max(agg["resolved"], 1),
+                    "resolved_rate": agg["resolved"] / runs,
+                    "abstention_rate": agg["abstained"] / runs,
+                    "coverage": float(np.mean(agg["cov"])),
+                    "median_regret": median(agg["regret"]) if agg["regret"] else 0.0,
+                    "median_shots": median(agg["shots"]),
+                    "median_circuits": median(agg["circuits"]),
+                }
+                fh.write(json.dumps(row) + "\n")
+                fh.flush()
+                rows.append(row)
+                print(f"bound={bound} delta={delta:.2f}: wrong={row['wrong_selection_rate']:.4f} "
+                      f"(<= delta? {row['wrong_selection_rate'] <= delta}) "
+                      f"resolved={row['resolved_rate']:.2f} abstain={row['abstention_rate']:.2f} "
+                      f"cover={row['coverage']:.3f} regret={row['median_regret']:.2e} "
+                      f"shots={row['median_shots']:.0f}", flush=True)
+    print(f"wrote {args.out}")
+
+
+if __name__ == "__main__":
+    main()

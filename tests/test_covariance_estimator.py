@@ -113,3 +113,22 @@ def test_grouped_cache_requires_grouped_batch():
     plain = MeasurementBatch(n=2, shots={1: 10}, plus_counts={1: 6}, circuits=1)
     with pytest.raises(ValueError, match="grouped batch"):
         cache.add_batch(plain)
+
+
+def test_fast_infinite_shot_uses_exact_populations():
+    """Infinite-shot FAST proxy is deterministic (no sampling) and reports
+    zero shot cost -- it is the N -> infinity population limit."""
+    from clifford_qc.algorithms import FastInspiredSelector, local_pool
+    from clifford_qc.measurement import CommutatorBank
+    m = tfim(3, 1.0, 0.5)
+    pool = local_pool(3, periodic_context=False)
+    bank = CommutatorBank(m.hamiltonian, [op.word for op in pool])
+    rho = m.reference.state()
+    sel = FastInspiredSelector(None, infinite_shot=True)
+    assert sel.shots == 0
+    a = sel.pick(rho, pool, list(range(len(pool))), m.hamiltonian, bank)
+    b = FastInspiredSelector(None, infinite_shot=True).pick(
+        rho, pool, list(range(len(pool))), m.hamiltonian, bank)
+    assert a == b  # deterministic
+    with pytest.raises(ValueError, match="shots must be positive"):
+        FastInspiredSelector(0)

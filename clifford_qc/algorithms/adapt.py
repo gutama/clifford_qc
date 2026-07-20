@@ -245,10 +245,16 @@ class FastInspiredSelector:
     chemistry baseline: phases are invisible to the proxy.
     """
 
-    def __init__(self, shots: int, seed: int):
-        if shots <= 0:
-            raise ValueError("shots must be positive")
-        self.shots = shots
+    def __init__(self, shots: int | None, seed: int = 0, *,
+                 infinite_shot: bool = False):
+        """``infinite_shot=True`` uses the exact computational-basis
+        probabilities in place of sampled populations (the N -> infinity
+        limit), isolating whether a proxy failure is intrinsic to the
+        determinant-population signal or merely shot noise."""
+        if not infinite_shot and (shots is None or shots <= 0):
+            raise ValueError("shots must be positive unless infinite_shot=True")
+        self.shots = 0 if infinite_shot else shots
+        self.infinite_shot = infinite_shot
         self.rng = np.random.default_rng(seed)
         self._h_by_flips: dict[int, float] | None = None
 
@@ -278,8 +284,13 @@ class FastInspiredSelector:
         h_conn = self._hamiltonian_connectivity(bank, hamiltonian)
         outcomes = sorted(computational_probabilities(rho).items())
         probs = np.clip([p for _, p in outcomes], 0.0, None)
-        counts = self.rng.multinomial(self.shots, probs / probs.sum())
-        p_hat = {bits: c / self.shots for (bits, _), c in zip(outcomes, counts) if c}
+        probs = probs / probs.sum()
+        if self.infinite_shot:
+            # exact populations: the N -> infinity determinant-population proxy
+            p_hat = {bits: p for (bits, _), p in zip(outcomes, probs) if p > 0.0}
+        else:
+            counts = self.rng.multinomial(self.shots, probs)
+            p_hat = {bits: c / self.shots for (bits, _), c in zip(outcomes, counts) if c}
 
         def flipped(bits: str, mask: int) -> str:
             return "".join(("1" if ch == "0" else "0") if (mask >> j) & 1 else ch
