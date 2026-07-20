@@ -36,7 +36,8 @@ stim = ["stim>=1.13"]  # >=1.13 for the SPP (sqrt-of-Pauli-product) gate
 openfermion = ["openfermion>=1.6"]
 pytket = ["pytket>=1.30"]
 pennylane = ["pennylane>=0.38"]
-bridges = ["clifford-qc[stim,openfermion,pytket,pennylane]"]
+pyzx = ["pyzx>=0.8", "numpy>=1.24"]
+bridges = ["clifford-qc[stim,openfermion,pytket,pennylane,pyzx]"]
 
 [tool.setuptools.dynamic]
 version = {attr = "clifford_qc.__version__"}

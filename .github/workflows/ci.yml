@@ -26,7 +26,7 @@ jobs:
         run: python -m clifford_qc.verify
 
   bridges:
-    name: bridges (stim, openfermion, pytket, pennylane)
+    name: bridges (stim, openfermion, pytket, pennylane, pyzx)
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
