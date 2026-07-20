@@ -177,9 +177,49 @@ def fig_chemistry():
     plt.close(fig)
 
 
+
+
+def fig_calibration():
+    """Headline: empirical wrong-selection vs delta, plus abstention/cost."""
+    rows = load("calibration.jsonl")
+    by = {}
+    for r in rows:
+        by.setdefault(r["bound"], []).append(r)
+    for b in by:
+        by[b].sort(key=lambda r: r["delta"])
+    fig, axes = plt.subplots(1, 2, figsize=(6.8, 3.0))
+    bcol = {"normal": C["doubling"], "eb": C["variance_grouped"]}
+    blab = {"normal": "normal (Gaussian)", "eb": "empirical-Bernstein"}
+
+    ax = axes[0]
+    dd = [r["delta"] for r in by["normal"]]
+    ax.plot([0, max(dd)], [0, max(dd)], ls="--", lw=0.8, color="k", label=r"$y=\delta$")
+    for b in ("normal", "eb"):
+        ax.plot([r["delta"] for r in by[b]], [r["wrong_selection_rate"] for r in by[b]],
+                "o-", color=bcol[b], label=blab[b], ms=4)
+    ax.set_xlabel(r"nominal error budget $\delta$")
+    ax.set_ylabel("empirical wrong-selection rate")
+    ax.set_title("Certification holds: wrong $\\leq\\delta$", fontsize=8.5)
+    ax.set_ylim(-0.005, max(dd) + 0.02)
+    ax.legend(frameon=False, fontsize=7.5, loc="upper left")
+
+    ax = axes[1]
+    for b in ("normal", "eb"):
+        ax.plot([r["delta"] for r in by[b]], [r["abstention_rate"] for r in by[b]],
+                "o-", color=bcol[b], label=f"{blab[b]}", ms=4)
+    ax.set_xlabel(r"nominal error budget $\delta$")
+    ax.set_ylabel("abstention rate")
+    ax.set_title("Cost of certification: abstention", fontsize=8.5)
+    ax.set_ylim(0, 1.02)
+    ax.legend(frameon=False, fontsize=7.5, loc="center right")
+    fig.savefig(OUT / "calibration.pdf")
+    plt.close(fig)
+
+
 if __name__ == "__main__":
     fig_selection_quality()
     fig_grouping()
     fig_allocation()
     fig_chemistry()
+    fig_calibration()
     print("wrote figures to", OUT)
