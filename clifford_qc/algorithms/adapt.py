@@ -29,8 +29,8 @@ from ..ir import Parameter, Program, Rotor, adjoint_gradient
 from ..backends.exact_mv import ExactMVBackend
 from ..backends.finite_shot import FiniteShotBackend
 from ..measurement.bank import CommutatorBank
-from ..measurement.cache import WordCache
-from ..measurement.confidence import simultaneous_z_radius
+from ..measurement.cache import WordCache, GroupedWordCache
+from ..measurement.confidence import simultaneous_z_radius, candidate_radius
 from ..measurement.grouping import qwc_groups
 from .layering import build_layer
 from .optimize import minimize_energy
@@ -96,14 +96,39 @@ class ConfidenceSelector:
 
     def __init__(self, delta: float = 0.05, threshold: float = 1e-6,
                  method: str = "sidak", eliminate: bool = True,
-                 near_tol: float | None = None):
+                 near_tol: float | None = None, bound: str = "normal"):
         if not (0.0 < delta < 1.0):
             raise ValueError("delta must be in (0, 1)")
+        if bound not in ("normal", "eb"):
+            raise ValueError("bound must be 'normal' or 'eb'")
         self.delta = delta
         self.threshold = threshold
         self.method = method
         self.eliminate = eliminate
         self.near_tol = near_tol
+        self.bound = bound
+
+    def _bounds(self, bank, cache, active, rounds):
+        """Return {j: (estimate, lower, upper)} on |g_j|.
+
+        Uses the covariance-aware, optionally anytime-valid group radius when
+        the cache exposes joint-group statistics (grouped path), and the
+        per-word normal propagation otherwise (ungrouped path)."""
+        m = len(active)
+        grouped = hasattr(cache, "candidate_group_terms")
+        out = {}
+        for j in active:
+            if grouped:
+                est = cache.candidate_estimate(bank.coeffs[j])
+                terms = cache.candidate_group_terms(bank.coeffs[j])
+                r = (float("inf") if terms is None else
+                     candidate_radius(terms, self.delta, m, bound=self.bound,
+                                      method=self.method, rounds=rounds))
+            else:
+                est, var = bank.estimate(j, cache)
+                r = simultaneous_z_radius(var, self.delta / rounds, m, self.method)
+            out[j] = (est, max(0.0, abs(est) - r), abs(est) + r)
+        return out
 
     @staticmethod
     def _planned_rounds(allocator) -> int:
@@ -125,7 +150,7 @@ class ConfidenceSelector:
         active = list(candidates)
         if not active:
             raise ValueError("no candidates to select from")
-        delta_round = self.delta / self._planned_rounds(allocator)
+        rounds = self._planned_rounds(allocator)
         best = None
         bounds: dict[int, tuple[float, float, float]] = {}
         for round_index in range(10 ** 6):
@@ -136,11 +161,7 @@ class ConfidenceSelector:
             words = [w for w in bank.words_for(active) if w.code in plan]
             cache.add_batch(sampler(words, plan))
 
-            bounds = {}
-            for j in active:
-                est, var = bank.estimate(j, cache)
-                r = simultaneous_z_radius(var, delta_round, len(active), self.method)
-                bounds[j] = (est, max(0.0, abs(est) - r), abs(est) + r)
+            bounds = self._bounds(bank, cache, active, rounds)
             best = max(active, key=lambda j: abs(bounds[j][0]))
             best_lower = bounds[best][1]
             rival_upper = max((bounds[j][2] for j in active if j != best), default=0.0)
@@ -342,7 +363,8 @@ def run_adapt(model, pool: Sequence[PoolOperator], *,
             stopped_reason = "pool exhausted"
             break
 
-        cache = WordCache(model.n) if noisy else None
+        cache = (GroupedWordCache(model.n) if (noisy and grouping)
+                 else WordCache(model.n) if noisy else None)
         # A below-threshold subpool triggers a redraw from the untried
         # remainder (subpool exploration); only a dead remainder stops the run.
         while True:
@@ -396,8 +418,14 @@ def run_adapt(model, pool: Sequence[PoolOperator], *,
                     idx, status = best, SelectionStatus.EXACT
             else:
                 if grouping:
+                    # Fix the QWC grouping over the whole candidate word set for
+                    # the step, so the same measurement circuits recur every
+                    # round; this makes each group's samples i.i.d. and its
+                    # cumulative histogram a sufficient statistic, which the
+                    # covariance-aware / anytime-valid variance requires.
+                    fixed_groups = qwc_groups(bank.words_for(candidates))
                     sampler = lambda words, plan: backend.sample_grouped_from_state(
-                        rho, qwc_groups(words), plan)
+                        rho, fixed_groups, plan)
                 else:
                     sampler = lambda words, plan: backend.sample_words_from_state(
                         rho, words, plan)
