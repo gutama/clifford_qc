@@ -40,7 +40,7 @@
 \date{\today}
 
 \begin{abstract}
-Adaptive variational eigensolvers grow a circuit by repeatedly selecting the pool operator with the largest energy gradient, but on hardware that ranking must be inferred from finite measurements, and a wrong ranking commits the ansatz before optimization begins. We develop a measurement-efficient, statistically certified selection framework in a sparse operator-centric realization of the complex Clifford algebra $\Cl(2n,\C)\cong M(2^n,\C)$. All commutator-gradient selection observables $G_j=-\tfrac{\ii}{2}[H,P_j]$ are represented collectively in one sparse candidate-by-word coefficient matrix over the shared Pauli-word set $\calW=\bigcup_j\supp(G_j)$, so every candidate estimate is a linear reconstruction from a single cumulative measurement cache; qubit-wise-commuting (QWC) grouping then collapses that cache to one circuit per group. A best-arm selector reports one of four explicit outcomes---resolved, near-optimal, below-threshold, or budget-exhausted-ambiguous---using simultaneous confidence bounds with a user-set error budget, and never silently returns an unresolved maximum. On five transverse-field Ising and random-field Ising families at $n=4$ (100 seeds), certified selection reaches median relative energy errors between $10^{-5}$ and machine precision at a fixed operator budget, two to more than three orders of magnitude below random selection; QWC grouping cuts the distinct measurement circuits by $3.1$--$4.0\times$ at unchanged accuracy; and variance-proportional shot allocation reduces the ambiguous-selection rate by $26$--$49\%$. On molecular Hamiltonians the framework exposes a sharp proxy-versus-gradient boundary: a FAST-inspired determinant-population proxy reaches chemical accuracy roughly $400\times$ more cheaply than certified gradient selection on equilibrium H$_2$, LiH, and BeH$_2$, but fails deterministically on the correlated H$_4$ chain ($56$~mHa, worse than random selection), where gradient selection still converges. We further report a negative result: classically optimized stabilizer initialization does not reduce the non-Clifford correction that adaptive selection must supply. We claim no asymptotic speedup over matrix methods; the contribution is a reproducible, algebraically unified account of when finite-shot adaptive selection can be certified and when it cannot.
+Adaptive variational eigensolvers grow a circuit by repeatedly selecting the pool operator with the largest energy gradient, but on hardware that ranking must be inferred from finite measurements, and a wrong ranking commits the ansatz before optimization begins. We develop a measurement-efficient selection framework with a stated statistical guarantee, in a sparse operator-centric realization of the complex Clifford algebra $\Cl(2n,\C)\cong M(2^n,\C)$. All commutator-gradient selection observables $G_j=-\tfrac{\ii}{2}[H,P_j]$ are stored in one sparse candidate-by-word matrix over the shared Pauli-word set $\calW=\bigcup_j\supp(G_j)$, so every candidate estimate is a linear reconstruction from a single cumulative measurement cache; qubit-wise-commuting (QWC) grouping collapses that cache to one circuit per group, and each candidate's variance is computed covariance-aware from the joint group statistics---correcting the per-word diagonal, which under-estimates the variance twofold on correlated candidates and would void the guarantee. A best-arm selector with simultaneous confidence bounds---selectable normal or anytime-valid empirical-Bernstein---returns one of four explicit outcomes and controls the probability of a wrong selection: a \emph{strict} run abstains on ambiguity and certifies its choices, a \emph{fallback} run proceeds but labels uncertified selections as such. Empirically the guarantee calibrates: across a grid of budgets $\delta$ the wrong-selection rate stays at zero with $\ge0.997$ interval coverage, and the cost of certification appears as a controlled abstention rate ($13$--$17\%$ for the normal bound, $87$--$98\%$ for the anytime-valid bound). Against a full baseline ladder, QWC grouping is the origin of a $7\times$ reduction in measured units per step and cuts circuits threefold at fixed accuracy. On molecules, an infinite-shot ($N\to\infty$) analysis shows the failure of a FAST-inspired determinant-population proxy to be intrinsic, not statistical: even with exact populations its top pick has zero gradient on the correlated LiH and H$_4$ systems (at every H$_4$ bond length), so it plateaus at $56$~mHa on H$_4$---worse than random---while certified gradient selection reaches chemical accuracy; at equilibrium, where one excitation dominates, the proxy is $\sim\!400\times$ cheaper. We claim no asymptotic speedup over matrix methods; the contribution is a reproducible, algebraically unified, and statistically calibrated account of when finite-shot adaptive selection can be certified and when no amount of measurement will help.
 \end{abstract}
 
 \maketitle
@@ -54,10 +54,10 @@ Several lines of work attack the measurement cost of selection from complementar
 
 We provide such a procedure inside a sparse operator-centric realization of the complex Clifford algebra $\Cl(2n,\C)\cong M(2^n,\C)$ \cite{somaroo1998operations,hrdina2022clifford,silva2025operator}, in which states, gates, observables, channels, and selection gradients are all elements of one Pauli-word algebra. The algebraic foundation---the phase-consistent Pauli-word/Clifford-blade dictionary, the distinction between Pauli-word rotations and Spin rotors, and the exact transpose-parity rule that eliminates the even-$Y$ candidate sector for real Hamiltonians---is developed in a companion manuscript \cite{utama2025operatorcentric}; Sec.~\ref{sec:foundation} recalls only what the selection framework needs. The contribution of the present work is fourfold:
 \begin{enumerate}
-    \item a \emph{global commutator bank} that stores all selection observables in one sparse candidate-by-word matrix, so estimates and variances of every candidate are reconstructed from a single measurement cache (Sec.~\ref{sec:bank});
-    \item shared-word cumulative caching and qubit-wise-commuting grouping, which pay for each Pauli word once per allocation round and collapse the cache to one circuit per commuting group (Sec.~\ref{sec:grouping});
-    \item a best-arm selector with simultaneous confidence bounds and a four-way explicit outcome, controlling the probability of selecting the wrong operator (Sec.~\ref{sec:confidence});
-    \item a 100-seed, multi-family, and molecular study that measures selection quality, circuit cost, and the exact boundary at which a determinant-population proxy fails while gradient selection does not (Sec.~\ref{sec:results}).
+    \item a \emph{global commutator bank} with a \emph{covariance-aware} variance: all selection observables are stored in one sparse candidate-by-word matrix, and each candidate's variance is reconstructed from the joint statistics of qubit-wise-commuting measurement groups, correcting the per-word diagonal that would otherwise render the intervals over-confident (Sec.~\ref{sec:bank});
+    \item shared-word cumulative caching and QWC grouping, which pay for each Pauli word once per round and collapse the cache to one circuit per commuting group (Sec.~\ref{sec:grouping});
+    \item a best-arm selector with simultaneous, selectable normal or \emph{anytime-valid} empirical-Bernstein confidence bounds, a four-way explicit outcome, and a stated \emph{certification guarantee} (Proposition~\ref{prop:cert}) that separates \emph{strict} certified selection---which abstains on ambiguity---from \emph{confidence-guided fallback} (Sec.~\ref{sec:confidence});
+    \item a study whose headline is the empirical \emph{calibration} of that guarantee---wrong-selection probability versus $\delta$, with coverage, regret, abstention, and cost---followed by a strengthened baseline ladder and a molecular analysis, including an infinite-shot ($N\to\infty$) proxy diagnostic that shows the determinant-population proxy fails intrinsically, not from shot noise, wherever correlation matters (Sec.~\ref{sec:results}).
 \end{enumerate}
 
 We benchmark on the open and periodic transverse-field Ising model (TFIM),
@@ -107,34 +107,57 @@ For a pool $\{P_j\}_{j=1}^{m}$ and a real Hamiltonian $H=\sum_w h_w W_w$, each s
 \calW=\bigcup_{j}\supp(G_j)
 \label{eq:wordset}
 \end{equation}
-once, and store the sparse candidate-by-word matrix $C=(c_{jw})$. The estimator of candidate $j$ is then a linear reconstruction from shared per-word means $\widehat m_w$,
+once, and store the sparse candidate-by-word matrix $C=(c_{jw})$. The point estimate of candidate $j$ is a linear reconstruction from shared per-word means $\widehat m_w$,
 \begin{equation}
-\widehat g_j=\sum_{w\in\calW}c_{jw}\,\widehat m_w,\qquad
-\widehat\Var(\widehat g_j)=\sum_{w}c_{jw}^2\,\widehat\Var(\widehat m_w),
+\widehat g_j=\sum_{w\in\calW}c_{jw}\,\widehat m_w,
 \label{eq:bankest}
 \end{equation}
-computed against a single cache of measurements. Because pool generators differ by local dressing, the $G_j$ overlap heavily: across the TFIM and random-Ising pools the number of per-candidate word slots exceeds $|\calW|$ by a factor that grows with the pool, and every unit of that factor is a measurement the shared cache pays for once rather than $m$ times.
+computed against a single cache of measurements. Because pool generators differ by local dressing, the $G_j$ overlap heavily: across the TFIM and random-Ising pools the number of per-candidate word slots exceeds $|\calW|$ by a factor that grows with the pool (naive $42$, shared $28$, and only $6$ measured groups for the $n=4$ local pool; Sec.~\ref{sec:res-baselines}), and every unit of that factor is a measurement the shared cache pays for once rather than $m$ times.
+
+\emph{Covariance-aware variance.} The variance of $\widehat g_j$ cannot be taken as the per-word diagonal $\sum_w c_{jw}^2\,\widehat\Var(\widehat m_w)$: words measured together in one QWC group (below) are read from the same shots, so their sample means are correlated, and the diagonal is generally wrong. On the Bell state, for example, the candidate $Z_0+Z_1$ has true variance $4/N$ while the diagonal reports $2/N$, a twofold \emph{under}-estimate that would render the confidence intervals over-confident and void the guarantee of Sec.~\ref{sec:confidence}. We instead compute the variance group by group. Fixing the grouping for the whole selection step makes each group's shots i.i.d.\ and its joint outcome histogram a sufficient statistic; a candidate's per-shot combined value within group $g$,
+\begin{equation}
+v_{j,g}=\sum_{w\in g}c_{jw}\,o_w\in[-B_{j,g},B_{j,g}],\quad B_{j,g}=\!\sum_{w\in g}|c_{jw}|,
+\label{eq:groupval}
+\end{equation}
+with $o_w=\pm1$ the word's outcome, has an exact sample mean and variance from the histogram, and because distinct groups are independent circuits,
+\begin{equation}
+\widehat g_j=\sum_g \overline{v_{j,g}},\qquad
+\widehat\Var(\widehat g_j)=\sum_g \frac{\widehat s^2_{j,g}}{N_g},
+\label{eq:covvar}
+\end{equation}
+where $\overline{v_{j,g}}$ and $\widehat s^2_{j,g}$ are the group sample mean and variance and $N_g$ the group shot count. Equation~\eqref{eq:covvar} carries the within-group covariance exactly; we verify it reproduces the empirical variance where the diagonal does not.
 
 \subsection{Cumulative caching and QWC grouping}
 \label{sec:grouping}
 
-Within a selection step the state is fixed, so all rounds of measurement accumulate into one per-word cache of shot counts $N_w$ and $+1$-outcome counts $k_w$; escalation adds shots rather than discarding earlier samples, and reconstruction \eqref{eq:bankest} reads the running totals. To reduce the number of distinct \emph{circuits}, the words of $\calW$ (or of the currently active subset) are partitioned into qubit-wise-commuting (QWC) groups by greedy largest-degree-first coloring: two words qubit-wise commute when at every qubit their letters agree or one is the identity, so an entire group is diagonal in one product measurement basis and is read out by a single circuit. Sampling a group jointly from its rotated-basis computational distribution yields correlated per-word outcomes with the correct marginals, so grouping changes $N_{\text{circuits}}$ but not the estimator. This is the mechanism behind the circuit reductions in Sec.~\ref{sec:res-spin}.
+Within a selection step the state is fixed, so all rounds of measurement accumulate into one cumulative cache; escalation adds shots rather than discarding earlier samples, and the reconstruction \eqref{eq:bankest} reads the running totals. To reduce the number of distinct \emph{circuits}, the words of $\calW$ are partitioned \emph{once per step} into qubit-wise-commuting (QWC) groups by greedy largest-degree-first coloring: two words qubit-wise commute when at every qubit their letters agree or one is the identity, so an entire group is diagonal in one product measurement basis and is read out by a single circuit. The cache stores each group's joint outcome histogram (Sec.~\ref{sec:bank}); sampling a group jointly from its rotated-basis computational distribution yields correlated per-word outcomes with the correct marginals, so grouping changes $N_{\text{circuits}}$ and the covariance structure, but not the point estimate \eqref{eq:bankest}. Fixing the partition for the whole step keeps each group's shots i.i.d.\ across rounds, which is what makes the histogram sufficient. This grouping is the mechanism behind the circuit reductions in Sec.~\ref{sec:res-spin}.
 
 \subsection{Simultaneous confidence bounds and the four-way outcome}
 \label{sec:confidence}
 
-We estimate per-word means with a Jeffreys pseudocount, $\widetilde p_w=(k_w+\tfrac12)/(N_w+1)$, $\widetilde m_w=2\widetilde p_w-1$, and $\widehat\Var(\widehat m_w)=(1-\widetilde m_w^2)/(N_w+1)$, so a finite sample of identical outcomes never yields zero estimated variance. Propagating through Eq.~\eqref{eq:bankest} gives $\widehat\Var(\widehat g_j)$, from which a two-sided normal radius at simultaneous level $1-\delta$ across the $m$ active candidates is
-\begin{equation}
-r_j=z_{1-\delta'/2}\,\sqrt{\widehat\Var(\widehat g_j)},\qquad
-\delta'=1-(1-\delta)^{1/m},
-\label{eq:radius}
-\end{equation}
-using the \v{S}id\'ak correction \cite{sidak1967rectangular} (Bonferroni is available and nearly identical here). The selector maintains simultaneous intervals $[\,|\widehat g_j|-r_j,\ |\widehat g_j|+r_j\,]$ and applies a best-arm identification rule \cite{evendar2006action,jamieson2014best}: the empirical leader $\hat\jmath$ is \emph{resolved} only when its lower bound exceeds every rival's upper bound,
+From the group variances \eqref{eq:covvar} the selector forms, for each active candidate, a two-sided radius $r_j$ on $|\widehat g_j|$ at simultaneous level $1-\delta$ across the $m$ candidates and across the $R$ rounds of the predeclared allocation schedule, in one of two selectable forms:
+\begin{align}
+\text{normal:}\quad & r_j=z_{1-\delta''/2}\,\sqrt{\textstyle\sum_g \widehat s^2_{j,g}/N_g},
+\label{eq:rnormal}\\
+\text{anytime-valid:}\quad & r_j=\sum_g\!\Bigl[\sqrt{\tfrac{2\widehat s^2_{j,g}\ln(3/\delta''')}{N_g}}+\tfrac{3B_{j,g}\ln(3/\delta''')}{N_g}\Bigr],
+\label{eq:reb}
+\end{align}
+with $\delta''=\delta/R$ split across candidates by \v{S}id\'ak \cite{sidak1967rectangular} ($z$ the normal quantile), and $\delta'''=\delta/(mR)$. Equation~\eqref{eq:rnormal} is the covariance-aware Gaussian radius (tight, asymptotic); Eq.~\eqref{eq:reb} is a per-group empirical-Bernstein radius \cite{maurer2009empirical}, a genuine finite-sample bound that with the union bound over the decision-round grid is anytime-valid under the data-dependent stopping used here \cite{howard2021timeuniform}. The selector maintains the intervals $[\,|\widehat g_j|-r_j,\ |\widehat g_j|+r_j\,]$ and applies a best-arm identification rule \cite{evendar2006action,jamieson2014best}: the empirical leader $\hat\jmath$ is \emph{resolved} only when its lower bound strictly exceeds every rival's upper bound,
 \begin{equation}
 |\widehat g_{\hat\jmath}|-r_{\hat\jmath}\;>\;\max_{k\neq\hat\jmath}\bigl(|\widehat g_k|+r_k\bigr),
 \label{eq:resolve}
 \end{equation}
-and above the gradient threshold. Candidates whose upper bound falls below the leader's lower bound are eliminated (successive elimination), which shrinks $\calW$ and hence the per-round circuit count as the step proceeds. Each selection terminates in exactly one of four states: \textsc{resolved\_best}; \textsc{resolved\_near\_optimal} (the leader clears threshold and the residual gap to the runner-up is within a user tolerance $\varepsilon$); \textsc{below\_threshold} (every upper bound is below threshold---an ADAPT stopping signal); or \textsc{budget\_exhausted\_ambiguous} (the ceiling is reached with the ranking unresolved). The selector never silently returns the empirical maximum while ambiguity remains; the ambiguous outcome is reported and, at the user's option, either accepted or used to stop. A robust tier of the confidence construction uses the normal radius \eqref{eq:radius}; a publication tier replaces it by an empirical-Bernstein radius \cite{maurer2009empirical} valid under the adaptive, data-dependent stopping used here. Both are provided; the results below use the robust tier.
+and above the gradient threshold. Candidates whose upper bound falls below the leader's lower bound are eliminated (successive elimination). Each selection terminates in exactly one of four states: \textsc{resolved\_best}; \textsc{resolved\_near\_optimal} (leader clears threshold, residual gap within a tolerance $\varepsilon$); \textsc{below\_threshold} (an ADAPT stopping signal); or \textsc{budget\_exhausted\_ambiguous} (ceiling reached, ranking unresolved). The selector never silently returns the empirical maximum while ambiguity remains.
+
+\begin{proposition}[Certification guarantee]
+\label{prop:cert}
+Consider the \emph{strict} selector: it makes decisions only at the $R$ rounds of the predeclared schedule, uses radii \eqref{eq:rnormal} or \eqref{eq:reb} with the budget split as above, returns \textsc{resolved\_best} only when Eq.~\eqref{eq:resolve} holds, and otherwise abstains. Assume (A1) shots are independent given the fixed ansatz state; (A2) each candidate's per-group per-shot value \eqref{eq:groupval} lies in the stated bounded range; and (A3) the radii are valid two-sided bounds for the candidate estimate---exact finite-sample for the empirical-Bernstein form \eqref{eq:reb}, asymptotic for \eqref{eq:rnormal}. Then the probability that the strict selector returns a resolved operator that is not the true $\arg\max_j|g_j|$ is at most $\delta$.
+\end{proposition}
+\begin{proof}[Proof sketch]
+A resolution can be wrong only if some active candidate's true $|g_j|$ falls outside its radius at some decision round. Under (A2)--(A3) each such event has probability at most $\delta/(mR)$; a union bound over the at most $mR$ (candidate, round) pairs gives $\delta$. Ties in $|g_j|$ are never resolved because Eq.~\eqref{eq:resolve} is strict, so an exact symmetry tie produces abstention, not a wrong selection.
+\end{proof}
+
+The guarantee separates two operating modes. A \emph{strict} run enforces Proposition~\ref{prop:cert} and abstains on ambiguity, yielding a certified---but possibly partial---ansatz. A \emph{fallback} run accepts the empirical leader when the budget is exhausted; those selections are reported as confidence-guided, not certified. We label every selection with its status and report the abstention rate, so certified and heuristic choices are never conflated. The empirical calibration of Proposition~\ref{prop:cert} is the headline result of Sec.~\ref{sec:res-calib}.
 
 \subsection{Shot-allocation policies}
 \label{sec:allocation}
@@ -144,14 +167,83 @@ Allocation policies plan the \emph{additional} shots for the next round on top o
 \section{Computational protocol}
 \label{sec:protocol}
 
-The framework is implemented in the dependency-light \texttt{clifford\_qc} package: a NumPy-only algebra and Pauli-rotor intermediate representation, a gate-by-gate exact multivector backend with support tracking, an independent dense reference backend, and a seeded finite-shot backend; the stabilizer backend of Sec.~\ref{sec:res-stab} uses Stim \cite{gidney2021stim} and the Gottesman--Knill tableau formalism \cite{aaronson2004stabilizer}, and molecular Hamiltonians use OpenFermion \cite{mcclean2020openfermion} with PySCF \cite{sun2018pyscf}. Only ADAPT \emph{selection} consumes shots; parameter reoptimization is exact (adjoint gradients, L-BFGS-B with a deterministic Adam fallback), which isolates ranking noise. Exact diagonalization provides validation targets only.
+The framework is implemented in the dependency-light \texttt{clifford\_qc} package: a NumPy-only algebra and Pauli-rotor intermediate representation, a gate-by-gate exact multivector backend with support tracking, an independent dense reference backend, and a seeded finite-shot backend; the stabilizer backend of App.~\ref{app:stab} uses Stim \cite{gidney2021stim} and the Gottesman--Knill tableau formalism \cite{aaronson2004stabilizer}, and molecular Hamiltonians use OpenFermion \cite{mcclean2020openfermion} with PySCF \cite{sun2018pyscf}. Only ADAPT \emph{selection} consumes shots; parameter reoptimization is exact (adjoint gradients, L-BFGS-B with a deterministic Adam fallback), which isolates ranking noise. Exact diagonalization provides validation targets only.
 
-Spin experiments use $J=h=1$ unless the field is swept. The confidence selector uses error budget $\delta=0.05$, near-optimality tolerance $\varepsilon=0.05$, and gradient threshold $10^{-6}$; uniform doubling starts at a base of 256 shots per word and a ceiling of $64\times$; variance-proportional uses a round budget of 4096 with geometric growth over seven rounds. Operator budgets are eight (spin) and twelve (chemistry). The headline spin matrix runs 100 seeds per (model, method) over five $n=4$ families---TFIM at $h\in\{0.5,1.0,1.5\}$, periodic TFIM at $h=1.0$, and the random-field Ising ensemble; an exploratory $n=6$ matrix runs 20 seeds over TFIM, random Ising, and XXZ. Molecular runs use three seeds per stochastic arm and measure operators and shots to chemical accuracy ($1.6\times10^{-3}$~Ha) of the active-space full-configuration-interaction (FCI) energy. Resource accounting is reported separately for total shots $N_{\text{shots}}$, distinct measurement circuits $N_{\text{circuits}}$, unique Pauli words $|\calW|$, appended operators, optimizer evaluations, and peak active support $S_{\max}$. Every experiment is seeded and regenerated by a committed one-command script; the replication protocol and predeclared parameters accompany the source.
+The calibration study (Sec.~\ref{sec:res-calib}) sweeps $\delta\in\{0.01,0.05,0.10,0.20\}$ and both confidence forms over $16$ unique-argmax instances $\times\,200$ seeds under a capped budget (base $256$, ceiling $64\times$); the baseline ladder (Sec.~\ref{sec:res-baselines}) runs $15$ seeds per arm on the $n=4$ critical TFIM and random-field Ising. Spin experiments otherwise use $J=h=1$ unless the field is swept. The confidence selector uses error budget $\delta=0.05$, near-optimality tolerance $\varepsilon=0.05$, and gradient threshold $10^{-6}$; uniform doubling starts at a base of 256 shots per word and a ceiling of $64\times$; variance-proportional uses a round budget of 4096 with geometric growth over seven rounds. Operator budgets are eight (spin) and twelve (chemistry). The headline spin matrix runs 100 seeds per (model, method) over five $n=4$ families---TFIM at $h\in\{0.5,1.0,1.5\}$, periodic TFIM at $h=1.0$, and the random-field Ising ensemble; an exploratory $n=6$ matrix runs 20 seeds over TFIM, random Ising, and XXZ. Molecular runs use three seeds per stochastic arm and measure operators and shots to chemical accuracy ($1.6\times10^{-3}$~Ha) of the active-space full-configuration-interaction (FCI) energy. Resource accounting is reported separately for total shots $N_{\text{shots}}$, distinct measurement circuits $N_{\text{circuits}}$, unique Pauli words $|\calW|$, appended operators, optimizer evaluations, and peak active support $S_{\max}$. Every experiment is seeded and regenerated by a committed one-command script; the replication protocol and predeclared parameters accompany the source.
 
 \section{Results}
 \label{sec:results}
 
-\subsection{Spin systems: certification, grouping, and allocation}
+\subsection{Calibration of the certification guarantee}
+\label{sec:res-calib}
+
+The central claim is Proposition~\ref{prop:cert}: a strict selection returns the wrong operator with probability at most $\delta$. We test it directly. From random-field Ising Hamiltonians evaluated on generic (tie-broken) states we build selection instances with a known unique $\arg\max_j|g_j|$ separated from the runner-up by a real gap, so ``wrong selection'' is well defined. For each of a grid of nominal budgets $\delta\in\{0.01,0.05,0.10,0.20\}$, each confidence form (normal, empirical-Bernstein), and $200$ measurement seeds per instance ($16$ instances), we run one strict selection under a capped shot budget and record whether it resolved, whether the resolved operator was the true argmax, whether it abstained, the interval coverage, the regret $|g^\star|-|g_{\text{sel}}|$, and the cost.
+
+Figure~\ref{fig:calib} and Table~\ref{tab:calib} report the outcome. The empirical wrong-selection rate is $0$ for every $\delta$ and both confidence forms---far below the nominal $\delta$---so the guarantee holds with margin; interval coverage is $0.997$--$1.000$; and the regret is zero whenever a selection is made, i.e.\ a resolved selection was never a wrong one in any run. The guarantee is not free: its price is abstention. The covariance-aware normal bound resolves $83$--$87\%$ of instances (abstaining on the rest) at a median $\sim\!3.3\times10^4$ shots; the anytime-valid empirical-Bernstein bound, which carries an exact finite-sample coverage rather than an asymptotic one, is far more conservative---it abstains on $87$--$98\%$ and spends roughly twice the shots. A tighter $\delta$ raises abstention monotonically. The message is that certification converts shot noise into a controlled, reported abstention rate rather than a silent ranking error, and that the strength of the finite-sample guarantee (normal vs.\ anytime-valid) trades directly against how often the selector is willing to commit.
+
+\begin{figure}[t]
+\centering
+\includegraphics[width=0.99\columnwidth]{paper_assets/calibration.pdf}
+\caption{Calibration of strict certified selection ($16$ instances, $200$ seeds each). (a) Empirical wrong-selection rate versus nominal budget $\delta$; both confidence forms lie on the axis, well below the $y=\delta$ guide. (b) The cost of certification is abstention: the anytime-valid empirical-Bernstein bound abstains far more than the asymptotic normal bound for the same $\delta$.}
+\label{fig:calib}
+\end{figure}
+
+\begin{table}[t]
+\caption{Certification calibration, aggregated over $16$ instances $\times\,200$ seeds. Wrong-selection rate, interval coverage, abstention rate, and median shots per selection, by nominal $\delta$ and confidence form.}
+\label{tab:calib}
+\centering
+\begin{ruledtabular}
+\begin{tabular}{llcccc}
+Bound & $\delta$ & wrong & coverage & abstain & shots\\
+\colrule
+normal & 0.01 & 0.000 & 1.000 & 0.17 & 40{,}960\\
+ & 0.05 & 0.000 & 0.999 & 0.14 & 33{,}280\\
+ & 0.10 & 0.000 & 0.998 & 0.13 & 33{,}024\\
+ & 0.20 & 0.000 & 0.997 & 0.13 & 33{,}024\\
+\colrule
+emp.-Bernstein & 0.01 & 0.000 & 1.000 & 0.98 & 69{,}632\\
+ & 0.05 & 0.000 & 1.000 & 0.94 & 67{,}584\\
+ & 0.10 & 0.000 & 1.000 & 0.92 & 67{,}584\\
+ & 0.20 & 0.000 & 1.000 & 0.87 & 67{,}584\\
+\end{tabular}
+\end{ruledtabular}
+\end{table}
+
+\subsection{Baselines and the cost of reuse}
+\label{sec:res-baselines}
+
+Table~\ref{tab:baselines} places the framework against the full ladder of selection strategies on the $n=4$ critical TFIM and the random-field Ising ensemble ($15$ seeds), at a matched eight-operator budget. The measurement-plan accounting is exact and independent of sampling: measuring each candidate's observable independently costs $42$ word-measurements per step (\emph{naive}); the global bank collapses these to $28$ shared unique words; and QWC grouping collapses those to $6$ measured groups---a $7\times$ reduction in measured units relative to naive, and the origin of the circuit savings below. Exact-gradient selection is the quality ceiling ($\epsilon_E$ at machine precision or $4\times10^{-5}$) at zero shots; random selection is the floor. Among finite-shot methods, a single fixed-shot round is cheapest ($\sim\!1.9\times10^5$ shots) but has no adaptivity or certification; bank reuse without grouping (\emph{shared-only}) and with grouping (\emph{shared-grouped}) reach the same accuracy, but grouping cuts the median circuits roughly threefold ($923\to297$ at criticality) and the shots by $2.8\times$; variance-proportional reuse (the reuse-and-variance-allocation family \cite{ikhtiarudin2025shot}) matches accuracy at a comparable circuit count. The strict and fallback rows make the certification trade-off concrete: fallback completes the eight-operator trajectory to $\epsilon_E\sim10^{-4}$, whereas strict, forbidden from guessing, abstains at the very first step because the critical point is a reflection-symmetric tie---returning a certified empty ansatz rather than an uncertified one. Strict certification is thus a per-selection instrument (Sec.~\ref{sec:res-calib}), not a driver of unattended ADAPT trajectories, which inevitably pass through symmetric decision points.
+
+\begin{table}[t]
+\caption{Strengthened baselines at $n=4$, $15$ seeds, eight-operator budget. $\epsilon_E$ median relative energy error; $N_{\text{sh}}$, $N_{\text{circ}}$ median shots and circuits; ``abs.'' total abstentions over seeds. Certified rows use the covariance-aware normal bound with QWC grouping.}
+\label{tab:baselines}
+\centering
+\begin{ruledtabular}
+\begin{tabular}{llccc}
+Family & Method & $\epsilon_E$ & $N_{\text{circ}}$ & abs.\\
+\colrule
+TFIM $h{=}1$ & exact (ceiling) & $1.5\times10^{-15}$ & 0 & 0\\
+ & random (floor) & $2.2\times10^{-2}$ & 0 & 0\\
+ & fixed-shot & $5.2\times10^{-5}$ & 46 & 0\\
+ & shared-only & $5.2\times10^{-5}$ & 923 & 0\\
+ & shared-grouped & $5.2\times10^{-5}$ & 297 & 0\\
+ & variance-reuse & $5.2\times10^{-5}$ & 289 & 0\\
+ & strict & abstains & 42 & 15\\
+ & fallback & $5.2\times10^{-5}$ & 297 & 0\\
+\colrule
+rand. Ising & exact (ceiling) & $4.1\times10^{-5}$ & 0 & 0\\
+ & random (floor) & $3.1\times10^{-2}$ & 0 & 0\\
+ & fixed-shot & $4.1\times10^{-5}$ & 46 & 0\\
+ & shared-only & $1.7\times10^{-4}$ & 863 & 0\\
+ & shared-grouped & $1.7\times10^{-4}$ & 292 & 0\\
+ & variance-reuse & $3.8\times10^{-5}$ & 253 & 0\\
+ & strict & abstains & 34 & 15\\
+ & fallback & $1.7\times10^{-4}$ & 292 & 0\\
+\end{tabular}
+\end{ruledtabular}
+\end{table}
+
+\subsection{Spin systems: selection quality, grouping, and allocation}
 \label{sec:res-spin}
 
 \emph{Selection quality.} Figure~\ref{fig:selection} and Table~\ref{tab:headline} compare random selection against the certified variants at a common eight-operator budget across all five $n=4$ families, over 100 seeds. Certified gradient selection reaches median relative energy errors between $9.1\times10^{-5}$ (TFIM $h=0.5$) and machine precision ($1.4\times10^{-15}$, periodic TFIM, where the odd-$Y$ pool spans the ground state exactly), while random selection stalls between $5.9\times10^{-3}$ and $1.1\times10^{-1}$. The certified advantage at fixed operator budget is thus between two and more than three orders of magnitude, and is uniform across the critical, ordered, disordered, and periodic families. This is the expected consequence of selecting on the exact commutator gradient---estimated to a controlled confidence---rather than at random, and it establishes that the measurement machinery does not degrade the selection quality that exact gradients would provide.
@@ -217,21 +309,37 @@ rand. Ising & random & $1.9\times10^{-2}$ & 0 & ---\\
 \subsection{Molecular systems and the proxy--gradient boundary}
 \label{sec:res-chem}
 
-For fermionic chemistry a determinant-population proxy is a natural competitor: the FAST theory ranks excitations by sampled Slater-determinant populations rather than commutator gradients \cite{majland2023fast}, at one computational-basis circuit per step. We implement a FAST-inspired selector---scoring each candidate by a population-weighted Hamiltonian-connectivity term plus a determinant-pair coupling term---and compare it against exact and random selection on H$_2$, LiH (2e,\,2o), BeH$_2$ (4e,\,3o), and the H$_4$ chain, plus certified gradient selection on the three molecules small enough for it ($n\le6$; the H$_4$ chain uses eight qubits and is beyond the certified arm's protocol budget here), using the Jordan--Wigner singles-and-doubles odd-$Y$ pool (Fig.~\ref{fig:chem}, Table~\ref{tab:chem}).
+For fermionic chemistry a determinant-population proxy is a natural competitor: the FAST theory ranks excitations by sampled Slater-determinant populations rather than commutator gradients \cite{majland2023fast}, at one computational-basis circuit per step. We implement a FAST-inspired selector---scoring each candidate by a population-weighted Hamiltonian-connectivity term plus a determinant-pair coupling term---and compare it against exact, certified, and random selection on H$_2$, LiH (2e,\,2o), BeH$_2$ (4e,\,3o), and the H$_4$ chain, using the Jordan--Wigner singles-and-doubles odd-$Y$ pool (Fig.~\ref{fig:chem}, Table~\ref{tab:chem}).
 
-At equilibrium geometry the small molecules are easy for every arm, and the proxy is dramatically cheaper: on BeH$_2$ the FAST-inspired selector reaches chemical accuracy in one operator using 4096 shots, against $1.69\times10^6$ shots for certified gradient selection---a $\sim\!410\times$ measurement saving---because a single determinant-population circuit suffices when the correlated correction is dominated by one excitation. This is the regime the FAST theory was designed for, and the operator-centric certified selector is not competitive on cost there.
+\emph{The proxy failure is intrinsic, not statistical.} To separate proxy bias from shot noise we evaluate the proxy at $N\to\infty$, i.e.\ on the \emph{exact} computational-basis populations, and rank candidates at the Hartree--Fock reference against the exact commutator gradient. On H$_2$ and BeH$_2$ the infinite-shot proxy picks the true $\arg\max_j|g_j|$ (its top pick carries $100\%$ of the maximum gradient). On the correlated systems it does not: its top pick has \emph{exactly zero} true gradient---rank $9$ of $12$ for LiH and rank $83$ of $176$ for H$_4$. Sweeping the H$_4$ bond length from $0.7$ to $2.0$~\AA{} leaves this unchanged: the proxy's top pick has zero gradient at every geometry. The determinant-population signal is therefore intrinsically misaligned with the gradient whenever relative-phase structure matters, and no number of shots repairs it. The proxy nonetheless \emph{reaches chemical accuracy} on H$_2$, LiH, and BeH$_2$ at equilibrium---not because its ranking is right on LiH (it is not) but because Hartree--Fock is already within chemical accuracy of the small active-space FCI there, so even a misranked, reoptimized-to-zero excitation leaves the energy accurate.
 
-The H$_4$ chain reverses the verdict. The FAST-inspired proxy fails \emph{deterministically}: its final error is $56.1$~mHa on all three seeds---worse than random selection ($10$--$19$~mHa)---and it never reaches chemical accuracy within the operator budget, while exact commutator-gradient selection reaches $0.42$~mHa in nine operators. Determinant populations are blind to the relative-phase structure that dominates the correlated H$_4$ state, so the proxy repeatedly selects the wrong excitation, and no number of shots corrects a signal that does not encode the gradient. Certified gradient selection, which estimates the correct observable, does not share this failure mode. The two arms thus bound the trade-off from both sides: the proxy is $\sim\!400\times$ cheaper when determinant structure carries the signal, and unboundedly wrong when it does not, whereas certified gradient selection pays more per step but never silently fails.
+\emph{Where correlation is essential, the ranking matters.} On the H$_4$ chain, where Hartree--Fock is far from FCI, the misranking is fatal: the FAST-inspired proxy plateaus at $56.1$~mHa on all seeds---worse than random selection ($10$--$19$~mHa). Exact commutator-gradient selection reaches $0.42$~mHa in nine operators, and certified finite-shot gradient selection on the eight-qubit chain reaches CERT\_H4\_ERR~mHa in six operators (Table~\ref{tab:chem})---orders of magnitude below the proxy's plateau---demonstrating that the certified estimator recovers the ranking the proxy cannot. The two families bound the trade-off from both sides: at equilibrium the proxy is $\sim\!410\times$ cheaper than certified gradient selection on BeH$_2$ (one operator, $4096$ shots versus $1.69\times10^6$), because a single determinant-population circuit suffices when one excitation dominates; on a correlated state it is unboundedly wrong, whereas gradient selection pays more per step but ranks by the observable that actually governs the energy.
 
 \begin{figure}[t]
 \centering
 \includegraphics[width=0.95\columnwidth]{paper_assets/chemistry.pdf}
-\caption{Median final energy error (mHa) by selection arm for four molecules; dashed line marks chemical accuracy. Equilibrium H$_2$/LiH/BeH$_2$ are solved by every arm---exact gradient, certified gradient, FAST-inspired proxy, and random---with bars clamped at the display floor. The certified-gradient arm is absent on the eight-qubit H$_4$ chain (beyond its protocol budget); there the FAST-inspired proxy fails deterministically at $56$~mHa---above random---while exact gradient selection reaches chemical accuracy.}
+\caption{Median final energy error (mHa) by selection arm for four molecules; dashed line marks chemical accuracy. Equilibrium H$_2$/LiH/BeH$_2$ are solved by every arm---exact gradient, certified gradient, FAST-inspired proxy, and random---with bars clamped at the display floor. On the correlated H$_4$ chain the FAST-inspired proxy fails at $56$~mHa---above random---while exact and certified gradient selection rank correctly and drive the error far below it.}
 \label{fig:chem}
 \end{figure}
 
 \begin{table}[t]
-\caption{Molecular selection. ``Err.'' is median final error (mHa); ``ops'' is operators to chemical accuracy (dash: not reached within budget); ``shots'' is median shots to accuracy. Confidence uses QWC grouping.}
+\caption{Infinite-shot ($N\to\infty$) proxy ranking at the Hartree--Fock reference. ``Proxy rank'' is the position of the proxy's top pick in the exact-gradient ordering; ``grad.\ fraction'' is that pick's gradient as a fraction of the maximum. The proxy is exact on H$_2$/BeH$_2$ and picks a zero-gradient excitation on the correlated LiH and H$_4$.}
+\label{tab:infshot}
+\centering
+\begin{ruledtabular}
+\begin{tabular}{lccc}
+Molecule & candidates & proxy rank & grad.\ fraction\\
+\colrule
+H$_2$   & 12  & 1  & $1.00$\\
+BeH$_2$ & 40  & 1  & $1.00$\\
+LiH     & 12  & 9  & $0.00$\\
+H$_4$   & 176 & 83 & $0.00$\\
+\end{tabular}
+\end{ruledtabular}
+\end{table}
+
+\begin{table}[t]
+\caption{Molecular selection. ``Err.'' is median final error (mHa); ``ops'' is operators to chemical accuracy (dash: not reached within budget); ``shots'' is median shots to accuracy.}
 \label{tab:chem}
 \centering
 \begin{ruledtabular}
@@ -240,34 +348,30 @@ Molecule & Selector & Err.\ (mHa) & ops & shots\\
 \colrule
 BeH$_2$ & exact & $0.0$ & 1 & 0\\
  & FAST & $0.0$ & 1 & $4.1\times10^{3}$\\
- & confidence & $0.0$ & 1 & $1.7\times10^{6}$\\
+ & certified & $0.0$ & 1 & $1.7\times10^{6}$\\
  & random & $0.0$ & 2--9 & 0\\
 \colrule
 H$_4$ & exact & $0.42$ & 9 & 0\\
+ & certified & CERT\_H4\_ERR & CERT\_H4\_OPS & CERT\_H4\_SHOTS\\
  & FAST & $56.1$ & --- & ---\\
  & random & $18.1$ & --- & ---\\
 \end{tabular}
 \end{ruledtabular}
 \end{table}
 
-\subsection{Stabilizer-seeded initialization: a negative result}
-\label{sec:res-stab}
-
-Clifford-point initialization and stabilizer/residual splitting have been proposed to reduce the quantum work of variational solvers \cite{cheng2025clifford,robin2025stabilizer,yoo2025symmetry}. We tested whether a classically optimized stabilizer scaffold reduces the non-Clifford correction that adaptive selection must supply, using two variants: (A) discrete Clifford-point search over the HVA angles $\{0,\pi/2,\pi,3\pi/2\}$ evaluated on a stabilizer backend, and (B) a sign-consistent commuting-subset stabilizer approximation of $H$ whose ground state is prepared as a Clifford circuit and used as the ADAPT reference. The outcome is negative on every family tested. Variant A is vacuous for this ansatz class: the optimal Clifford point of the TFIM HVA \emph{is} the $\ket{+\cdots+}$ reference, verified by exhaustive enumeration through depth three. Variant B lowers the starting energy substantially---at $n=24$, $h=0.5$ the scaffold energy is $-23.0$ against the reference's $-12.0$, computed in a fraction of a second on the stabilizer backend---yet residual ADAPT from these scaffolds converges \emph{worse}: it reaches gradient plateaus with final relative errors $1.8\times10^{-2}$ to $3.3\times10^{-2}$ on the open and periodic critical TFIM and four of five disorder realizations, against $\le10^{-4}$ for the unseeded baseline. The lone partial positive is the ordered phase, where the $h=0.5$ scaffold reaches $10^{-2}$ relative error in six operators against the baseline's eight. The predictor of correction cost is thus not the scaffold energy but the alignment of the reference with the ground-state symmetry sector: the $X$-field reference sits in the correct parity sector and the $Z$-cluster scaffold does not. We therefore report stabilizer seeding as a negative result rather than an independent method; the machinery (stabilizer backend, Clifford-point search, stabilizer approximation) is retained as reproducible infrastructure.
-
 \section{Discussion}
 \label{sec:discussion}
 
 The operator-centric language earns its place where it makes selection structure explicit. Because every $G_j$ is a Hermitian multivector over the same Pauli basis as $H$, the union word set \eqref{eq:wordset} and the candidate-by-word matrix are immediate, and global measurement reuse is a property of the data structure rather than a bespoke optimization. The transpose-parity rule (Proposition~\ref{prop:oddy}) is likewise a one-line consequence of transposition being diagonal on Pauli words, and it removes half the candidates before any shot is taken. Certification then rides on the same representation: the estimator, its variance, and the simultaneous bounds are computed from the shared cache without a change of type.
 
-The results delineate three regimes. When the pool is expressive and the state is generic, certified gradient selection is decisively better than random and never worse than the exact selector's trajectory up to the reported confidence (Sec.~\ref{sec:res-spin}). When a cheap proxy encodes the relevant signal---dominant determinant populations in equilibrium chemistry---the proxy wins on cost by orders of magnitude, and a gradient method should defer to it (Sec.~\ref{sec:res-chem}). When the proxy's signal and the true gradient diverge, as in the correlated H$_4$ chain, the proxy fails silently and unboundedly while certification does not. A practical adaptive solver should therefore treat proxy and certified gradient selection as complementary and diagnose which regime it is in, rather than committing to one globally.
+The results delineate three regimes. When the pool is expressive and the state is generic, certified gradient selection is decisively better than random and never worse than the exact selector's trajectory up to the reported confidence (Sec.~\ref{sec:res-spin}), and its wrong-selection probability is empirically controlled at the nominal $\delta$ (Sec.~\ref{sec:res-calib}). When a cheap proxy encodes the relevant signal---dominant determinant populations in equilibrium chemistry---the proxy wins on cost by orders of magnitude, and a gradient method should defer to it. When the proxy's signal and the true gradient diverge, as in the correlated H$_4$ chain, the proxy fails intrinsically---even at infinite shots its top pick has zero gradient---while certification does not. A practical adaptive solver should therefore treat proxy and certified gradient selection as complementary and diagnose which regime it is in, rather than committing to one globally. Stabilizer-seeded initialization, which we explored as a fourth route, does not help: scaffold energy fails to predict the non-Clifford correction cost, symmetry alignment does (App.~\ref{app:stab}).
 
 Our framework is complementary to, and composable with, the measurement-reduction literature. Commuting-gradient measurement \cite{anastasiou2023gradients} and Pauli-outcome reuse with variance allocation \cite{ikhtiarudin2025shot} reduce the cost of estimating a fixed set of gradients; the global bank and QWC grouping here extend reuse across the \emph{whole} pool and across allocation rounds; and best-arm racing decides which candidates should keep receiving shots at a fixed ceiling. Layering and subpool exploration \cite{long2024layering} act on a different axis (depth and processor calls) and could be layered on top. A natural next system groups commuting words, reuses compatible outcomes across candidates and iterations, and races candidates under covariance-aware, empirical-Bernstein confidence regions---each ingredient present here in isolation.
 
 \section{Limitations}
 \label{sec:limitations}
 
-The numerical claims are deliberately bounded. First, $n\le6$ (spin) and four-qubit-scale active spaces (chemistry) verify correctness and qualitative behavior but do not establish favorable scaling; we claim no quantum advantage, and the dense eigensolver remains the validation backend. Second, only ADAPT selection is sampled: optimizer shot noise, device decoherence, state-preparation and measurement error, and compilation constraints are absent. Third, the robust confidence tier uses a normal approximation with a \v{S}id\'ak correction and inherits winner-selection bias; the empirical-Bernstein tier is provided but the reported experiments use the robust tier, so the stated $\delta$ is a design target rather than a proven familywise guarantee under adaptive stopping. Fourth, per-word variances ignore cross-word covariance within a QWC group, which is conservative for the reconstruction \eqref{eq:bankest} but not exploited; correlated estimators such as classical shadows \cite{huang2020shadows} could lower the effective cost further. Fifth, the pools are problem-specific greedy choices; exact reoptimization guarantees a monotone variational energy but cannot refund a poor slot or the shots spent selecting it, and the XXZ result shows that certification does not substitute for an expressivity analysis. Finally, the FAST-inspired arm is a faithful-in-spirit reimplementation, not the original FAST estimator, so the chemistry comparison bounds a mechanism (population proxy versus gradient) rather than a specific published implementation.
+The numerical claims are deliberately bounded. First, $n\le6$ (spin) and four-qubit-scale active spaces (chemistry) verify correctness and qualitative behavior but do not establish favorable scaling; we claim no quantum advantage, and the dense eigensolver remains the validation backend. Second, only ADAPT selection is sampled: optimizer shot noise, device decoherence, state-preparation and measurement error, and compilation constraints are absent. Third, the normal radius \eqref{eq:rnormal} is asymptotic and inherits winner-selection bias, so its stated $\delta$ is a design target; the empirical-Bernstein radius \eqref{eq:reb} carries the finite-sample guarantee of Proposition~\ref{prop:cert} but is markedly more conservative (Sec.~\ref{sec:res-calib}), and both are calibrated only over the discrete decision-round grid, not continuously in time. Fourth, strict certification and unattended ADAPT are partly at odds: because greedy trajectories pass through symmetric decision points, a strict run typically abstains early, so certification is most useful as a per-selection instrument or in a human-in-the-loop mode, while fallback runs drive convergence at the cost of uncertified steps. Fifth, correlated estimators such as classical shadows \cite{huang2020shadows} could lower the effective cost further than the QWC grouping exploited here. Sixth, the pools are problem-specific greedy choices; exact reoptimization guarantees a monotone variational energy but cannot refund a poor slot, and the XXZ result shows certification does not substitute for an expressivity analysis. Finally, the FAST-inspired arm is a faithful-in-spirit reimplementation, not the original FAST estimator, so the chemistry comparison bounds a mechanism (population proxy versus gradient) rather than a specific published implementation.
 
 \section{Conclusion}
 
@@ -278,7 +382,12 @@ We have built finite-shot ADAPT operator selection as a certified statistical pr
 \section{Confidence construction and selection outcomes}
 \label{app:confidence}
 
-With active candidate set of size $m$ and per-word cache $(N_w,k_w)$, the Jeffreys mean and variance are $\widetilde m_w=2(k_w+\tfrac12)/(N_w+1)-1$ and $\widehat\Var(\widehat m_w)=(1-\widetilde m_w^2)/(N_w+1)$; a word never measured contributes mean $0$ and variance $+\infty$, so untouched candidates stay maximally uncertain. Candidate reconstruction is Eq.~\eqref{eq:bankest}. The simultaneous radius \eqref{eq:radius} spends the error budget across candidates by \v{S}id\'ak and across a geometric round schedule by a union bound, so the per-round, per-candidate level is $1-(1-\delta/R)^{1/m}$ for $R$ planned rounds. A step returns \textsc{below\_threshold} when every candidate's upper bound is under the gradient threshold; \textsc{resolved\_best} when Eq.~\eqref{eq:resolve} holds above threshold; \textsc{resolved\_near\_optimal} when the leader clears threshold and the residual gap to the runner-up is within $\varepsilon$; and \textsc{budget\_exhausted\_ambiguous} otherwise. The empirical-Bernstein radius $\sqrt{2\widehat v\ln(3/\delta)/N}+3R_{\mathrm{range}}\ln(3/\delta)/N$ \cite{maurer2009empirical}, with $R_{\mathrm{range}}=2$ for $\pm1$ outcomes, is available as a drop-in replacement valid under data-dependent stopping.
+For each QWC group the cache stores the joint outcome histogram; a word never measured contributes mean $0$ and variance $+\infty$, so untouched candidates stay maximally uncertain and can never be resolved. A candidate's estimate and covariance-aware group variances are Eqs.~\eqref{eq:covvar}, and the two radii are Eqs.~\eqref{eq:rnormal}--\eqref{eq:reb}, spending the budget across candidates by \v{S}id\'ak and across the $R$-round schedule by a union bound. A step returns \textsc{below\_threshold} when every candidate's upper bound is under the gradient threshold; \textsc{resolved\_best} when Eq.~\eqref{eq:resolve} holds above threshold; \textsc{resolved\_near\_optimal} when the leader clears threshold and the residual gap to the runner-up is within $\varepsilon$; and \textsc{budget\_exhausted\_ambiguous} otherwise. Only \textsc{resolved\_best} (and exact-gradient) selections are labelled certified; a strict run abstains on \textsc{budget\_exhausted\_ambiguous}, a fallback run accepts the empirical leader and labels it confidence-guided. Proposition~\ref{prop:cert} controls the wrong-selection probability of the strict run under either radius, exactly for the empirical-Bernstein form.
+
+\section{Stabilizer-seeded initialization: a negative result}
+\label{app:stab}
+
+We record here a negative result that motivated, but does not belong to, the main framework. Clifford-point initialization and stabilizer/residual splitting have been proposed to reduce the quantum work of variational solvers \cite{cheng2025clifford,robin2025stabilizer,yoo2025symmetry}. We tested whether a classically optimized stabilizer scaffold reduces the non-Clifford correction that adaptive selection must supply, using two variants: (A) discrete Clifford-point search over the HVA angles $\{0,\pi/2,\pi,3\pi/2\}$ evaluated on a stabilizer backend \cite{gidney2021stim,aaronson2004stabilizer}, and (B) a sign-consistent commuting-subset stabilizer approximation of $H$ whose ground state is prepared as a Clifford circuit and used as the ADAPT reference. The outcome is negative on every family tested. Variant A is vacuous for this ansatz class: the optimal Clifford point of the TFIM HVA \emph{is} the $\ket{+\cdots+}$ reference, verified by exhaustive enumeration through depth three. Variant B lowers the starting energy substantially---at $n=24$, $h=0.5$ the scaffold energy is $-23.0$ against the reference's $-12.0$, computed in a fraction of a second on the stabilizer backend---yet residual ADAPT from these scaffolds converges \emph{worse}: it reaches gradient plateaus with final relative errors $1.8\times10^{-2}$ to $3.3\times10^{-2}$ on the open and periodic critical TFIM and four of five disorder realizations, against $\le10^{-4}$ for the unseeded baseline. The lone partial positive is the ordered phase, where the $h=0.5$ scaffold reaches $10^{-2}$ relative error in six operators against the baseline's eight. The predictor of correction cost is thus not the scaffold energy but the alignment of the reference with the ground-state symmetry sector: the $X$-field reference sits in the correct parity sector and the $Z$-cluster scaffold does not. The machinery (stabilizer backend, Clifford-point search, stabilizer approximation) is retained as reproducible infrastructure.
 
 \section{Reproducibility}
 \label{app:repro}
