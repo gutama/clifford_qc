@@ -99,6 +99,15 @@ class TestEquivalence:
         prog = Program(2).clifford("CX", 0, 1).clifford("CX", 0, 1)
         assert verify_equivalent(prog, Program(2))
 
+    def test_dense_guard_rejects_large_n(self):
+        # The dense path must refuse an exponential blowup rather than OOM.
+        a = Program(6).clifford("H", 0)
+        b = Program(6).clifford("H", 0)
+        with pytest.raises(ValueError, match="max_qubits"):
+            verify_equivalent(a, b, method="dense", max_qubits=4)
+        # Raising the bound lets the same check run.
+        assert verify_equivalent(a, b, method="dense", max_qubits=6)
+
 
 class TestOptimization:
     def test_optimized_is_equivalent(self):

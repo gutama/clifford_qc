@@ -51,6 +51,13 @@ from ..ir import Program, Rotor
 # rational-multiple-of-pi angle the IR emits for Clifford operations.
 DEFAULT_MAX_DENOMINATOR = 2 ** 24
 
+# Largest qubit count the dense equivalence check will materialize. A dense
+# check builds two 2**n x 2**n complex matrices (16 * 4**n bytes each), so
+# this caps memory: n=12 is ~0.27 GB per matrix, and each further qubit
+# quadruples it. Guards the default method="pyzx" fallback from silently
+# doing exponential work; callers can raise it explicitly.
+DENSE_MAX_QUBITS = 12
+
 # IR named Clifford -> factory(*qubits) producing the pyzx gate.
 _CLIFFORD_TO_PYZX = {
     "H": lambda q: HAD(q),
@@ -181,13 +188,21 @@ def verify_equivalent(program_a: Union[Program, Circuit],
                       program_b: Union[Program, Circuit],
                       values=None, values_b=None,
                       method: str = "pyzx", atol: float = 1e-7,
-                      max_denominator: int = DEFAULT_MAX_DENOMINATOR) -> bool:
+                      max_denominator: int = DEFAULT_MAX_DENOMINATOR,
+                      max_qubits: int = DENSE_MAX_QUBITS) -> bool:
     """True when the two circuits are equal up to a global phase.
 
     ``method="pyzx"`` uses ZX-calculus rewriting (``verify_equality``),
-    falling back to a dense tensor comparison when PyZX cannot decide;
-    ``method="dense"`` compares full unitaries directly (small ``n`` only);
-    ``method="both"`` requires the two independent checks to agree.
+    falling back to a dense tensor comparison only when PyZX cannot decide
+    *and* the qubit count is within ``max_qubits``; ``method="dense"``
+    compares full unitaries directly (small ``n`` only); ``method="both"``
+    requires the two independent checks to agree.
+
+    The dense path materializes two ``2**n x 2**n`` matrices, so it is
+    guarded by ``max_qubits`` (default :data:`DENSE_MAX_QUBITS`): exceeding
+    it raises ``ValueError`` rather than risking an out-of-memory blowup.
+    When ZX rewriting is inconclusive above that bound, the ambiguity is
+    surfaced as a ``ValueError`` instead of a possibly-wrong boolean.
 
     ``Program`` inputs are lowered with ``values`` (and ``values_b`` for the
     second, defaulting to ``values``); ``Circuit`` inputs are used as-is.
@@ -197,11 +212,11 @@ def verify_equivalent(program_a: Union[Program, Circuit],
     if ca.qubits != cb.qubits:
         return False
     if method == "pyzx":
-        return _verify_pyzx(ca, cb, atol)
+        return _verify_pyzx(ca, cb, atol, max_qubits)
     if method == "dense":
-        return _verify_dense(ca, cb, atol)
+        return _verify_dense(ca, cb, atol, max_qubits)
     if method == "both":
-        return _verify_pyzx(ca, cb, atol) and _verify_dense(ca, cb, atol)
+        return _verify_pyzx(ca, cb, atol, max_qubits) and _verify_dense(ca, cb, atol, max_qubits)
     raise ValueError("method must be 'pyzx', 'dense', or 'both'")
 
 
@@ -211,15 +226,28 @@ def _as_circuit(obj, values, max_denominator) -> Circuit:
     return to_pyzx(obj, values, max_denominator)
 
 
-def _verify_pyzx(ca: Circuit, cb: Circuit, atol: float) -> bool:
+def _verify_pyzx(ca: Circuit, cb: Circuit, atol: float, max_qubits: int) -> bool:
     verdict = ca.verify_equality(cb)  # up to global phase; None if undecided
     if verdict is None:
-        return _verify_dense(ca, cb, atol)
+        # verify_equality gives no verdict: full_reduce could not settle it.
+        # A dense check decides it exactly, but only fall back when that is
+        # affordable -- otherwise raise rather than OOM or invent a boolean
+        # (None does not mean "unequal").
+        if ca.qubits > max_qubits:
+            raise ValueError(
+                f"ZX equivalence check was inconclusive and the dense fallback "
+                f"needs 2**{ca.qubits} x 2**{ca.qubits} matrices (> max_qubits="
+                f"{max_qubits}); raise max_qubits to force the dense check.")
+        return _verify_dense(ca, cb, atol, max_qubits)
     return bool(verdict)
 
 
-def _verify_dense(ca: Circuit, cb: Circuit, atol: float) -> bool:
+def _verify_dense(ca: Circuit, cb: Circuit, atol: float, max_qubits: int) -> bool:
     import numpy as np
+    if ca.qubits > max_qubits:
+        raise ValueError(
+            f"dense equivalence check needs 2**{ca.qubits} x 2**{ca.qubits} "
+            f"matrices (> max_qubits={max_qubits}); raise max_qubits to override.")
     U, V = ca.to_matrix(), cb.to_matrix()
     if U.shape != V.shape:
         return False
@@ -294,6 +322,6 @@ def optimize_program(program: Program, values=None,
     extracted = zx.optimize.basic_optimization(extracted).to_basic_gates()
 
     best = extracted if score(extracted) < score(original) else original
-    if verify and not _verify_pyzx(original, best, atol=1e-7):
+    if verify and not _verify_pyzx(original, best, atol=1e-7, max_qubits=DENSE_MAX_QUBITS):
         raise RuntimeError("ZX optimization produced a non-equivalent circuit")
     return from_pyzx(best)
