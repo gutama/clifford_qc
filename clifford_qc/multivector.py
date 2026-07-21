@@ -58,9 +58,12 @@ def code_to_label(n: int, code: int) -> str:
     return "".join(PAULI_LETTERS[(code >> (2 * j)) & 3] for j in range(n))
 
 
-@lru_cache(maxsize=1_000_000)
-def word_mul(n: int, a: int, b: int) -> tuple[complex, int]:
-    """Multiply two encoded Pauli words in the same n-qubit algebra."""
+def _word_mul_ref(n: int, a: int, b: int) -> tuple[complex, int]:
+    """Reference Pauli-word product: per-qubit table lookup, O(n).
+
+    Retained as the correctness oracle for the packed ``word_mul`` below and
+    exercised directly by the cross-validation tests.
+    """
     validate_word_code(n, a)
     validate_word_code(n, b)
     phase, out = 1 + 0j, 0
@@ -71,6 +74,45 @@ def word_mul(n: int, a: int, b: int) -> tuple[complex, int]:
         phase *= ph
         out |= lc << (2 * j)
     return phase, out
+
+
+# i^e for e in {0,1,2,3}: the only phases a Pauli-word product can carry.
+_PHASE4 = (1 + 0j, 1j, -1 + 0j, -1j)
+
+
+@lru_cache(maxsize=None)
+def _lane_mask(n: int) -> int:
+    """Bit 0 of every 2-bit lane set: 0b...010101 over ``n`` lanes."""
+    return (4 ** n - 1) // 3 if n else 0
+
+
+@lru_cache(maxsize=1_000_000)
+def word_mul(n: int, a: int, b: int) -> tuple[complex, int]:
+    """Multiply two encoded Pauli words in the same n-qubit algebra.
+
+    Packed binary-symplectic form. Writing each single-qubit letter as
+    ``i^{xz} X^x Z^z`` (so ``I,X,Y,Z`` stay Hermitian), the product word is
+    the lane-wise XOR ``a ^ b`` and the accumulated phase is ``i^e`` with
+
+        e = (x_a·z_a) + (x_b·z_b) - (x_c·z_c) + 2 (z_a·x_b)   (mod 4),
+
+    each dot product a popcount of an AND over the packed x/z bit planes.
+    This replaces the O(n) per-qubit loop with a handful of bitwise ops and
+    ``int.bit_count()`` calls; ``_word_mul_ref`` is the equivalent reference.
+    """
+    validate_word_code(n, a)
+    validate_word_code(n, b)
+    lo = _lane_mask(n)
+    za = (a >> 1) & lo
+    xa = (a & lo) ^ za
+    zb = (b >> 1) & lo
+    xb = (b & lo) ^ zb
+    c = a ^ b
+    zc = (c >> 1) & lo
+    xc = (c & lo) ^ zc
+    e = ((xa & za).bit_count() + (xb & zb).bit_count()
+         - (xc & zc).bit_count() + 2 * (za & xb).bit_count()) % 4
+    return _PHASE4[e], c
 
 
 class MV:
