@@ -80,10 +80,10 @@ def _word_mul_ref(n: int, a: int, b: int) -> tuple[complex, int]:
 _PHASE4 = (1 + 0j, 1j, -1 + 0j, -1j)
 
 
-@lru_cache(maxsize=None)
+@lru_cache(maxsize=1024)
 def _lane_mask(n: int) -> int:
     """Bit 0 of every 2-bit lane set: 0b...010101 over ``n`` lanes."""
-    return (4 ** n - 1) // 3 if n else 0
+    return ((1 << (2 * n)) - 1) // 3 if n else 0
 
 
 @lru_cache(maxsize=1_000_000)

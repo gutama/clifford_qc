@@ -107,7 +107,7 @@ def test_pauli_anticommute_matches_letter_oracle():
         n = rng.randint(1, 5)
         a = rng.randrange(4 ** n)
         b = rng.randrange(4 ** n)
-        assert _pauli_anticommute(a, b) == _anticommute_via_letters(n, a, b)
+        assert _pauli_anticommute(n, a, b) == _anticommute_via_letters(n, a, b)
 
 
 def test_pauli_anticommute_matches_operator_bracket():
@@ -119,14 +119,14 @@ def test_pauli_anticommute_matches_operator_bracket():
         a, b = rng.randrange(4 ** n), rng.randrange(4 ** n)
         A, B = PauliWord(n, a).to_mv(), PauliWord(n, b).to_mv()
         bracket_zero = (A * B - B * A).is_zero()
-        assert bool(_pauli_anticommute(a, b)) == (not bracket_zero)
+        assert bool(_pauli_anticommute(n, a, b)) == (not bracket_zero)
 
 
 def test_identity_commutes_with_everything():
     for n in range(1, 4):
         for b in range(4 ** n):
-            assert _pauli_anticommute(0, b) == 0
-            assert _pauli_anticommute(b, 0) == 0
+            assert _pauli_anticommute(n, 0, b) == 0
+            assert _pauli_anticommute(n, b, 0) == 0
 
 
 # ---------------------------------------------------------------------------

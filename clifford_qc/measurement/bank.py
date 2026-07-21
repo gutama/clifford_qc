@@ -12,27 +12,25 @@ from __future__ import annotations
 
 from typing import Sequence
 
-from ..multivector import MV, word_mul
+from ..multivector import MV, _lane_mask, word_mul
 from ..states import expectation
 from ..ir import PauliSum, PauliWord
 
 
-def _pauli_anticommute(a: int, b: int) -> int:
+def _pauli_anticommute(n: int, a: int, b: int) -> int:
     """1 if the encoded Pauli words anticommute, 0 if they commute.
 
-    Two Pauli words anticommute iff they differ (both non-identity, distinct
-    letters) on an odd number of qubits. Scanning the packed 2-bit lanes over
-    the occupied prefix is enough — no dependence on the full register width.
+    Parity of the symplectic inner product ``x_a . z_b + z_a . x_b`` over the
+    packed x/z bit planes (same lane-mask convention as ``word_mul``): each
+    dot product a popcount of an AND, so the test is constant-time in the
+    register width rather than a per-qubit scan.
     """
-    parity = 0
-    while a or b:
-        la = a & 3
-        lb = b & 3
-        if la and lb and la != lb:
-            parity ^= 1
-        a >>= 2
-        b >>= 2
-    return parity
+    lo = _lane_mask(n)
+    za = (a >> 1) & lo
+    xa = (a & lo) ^ za
+    zb = (b >> 1) & lo
+    xb = (b & lo) ^ zb
+    return ((xa & zb).bit_count() + (za & xb).bit_count()) & 1
 
 
 class CommutatorBank:
@@ -67,7 +65,7 @@ class CommutatorBank:
             # accumulate G_j = -i sum_{anticommuting k} h_k (W_k . P)
             acc: dict[int, complex] = {}
             for wk, h in h_terms:
-                if not _pauli_anticommute(wk, pc):
+                if not _pauli_anticommute(self.n, wk, pc):
                     continue
                 phase, out = word_mul(self.n, wk, pc)
                 acc[out] = acc.get(out, 0j) + (-1j) * h * phase
