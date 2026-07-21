@@ -12,10 +12,25 @@ from __future__ import annotations
 
 from typing import Sequence
 
-from ..multivector import MV
-from ..pauli import comm
+from ..multivector import MV, _lane_mask, word_mul
 from ..states import expectation
 from ..ir import PauliSum, PauliWord
+
+
+def _pauli_anticommute(n: int, a: int, b: int) -> int:
+    """1 if the encoded Pauli words anticommute, 0 if they commute.
+
+    Parity of the symplectic inner product ``x_a . z_b + z_a . x_b`` over the
+    packed x/z bit planes (same lane-mask convention as ``word_mul``): each
+    dot product a popcount of an AND, so the test is constant-time in the
+    register width rather than a per-qubit scan.
+    """
+    lo = _lane_mask(n)
+    za = (a >> 1) & lo
+    xa = (a & lo) ^ za
+    zb = (b >> 1) & lo
+    xb = (b & lo) ^ zb
+    return ((xa & zb).bit_count() + (za & xb).bit_count()) & 1
 
 
 class CommutatorBank:
@@ -23,6 +38,12 @@ class CommutatorBank:
 
     Coefficients are real: H has real coefficients and P_j is a Pauli word,
     so G_j = -i/2 [H, P_j] is Hermitian with real word coefficients.
+
+    Each row is built directly from the anticommuting terms of H. Since
+    ``[W_k, P] = 0`` when the Hamiltonian word W_k commutes with P and
+    ``2 W_k P`` when it anticommutes, ``G_j = -i sum_{k: {W_k,P}=0} h_k W_k P``
+    — one Pauli-word product per surviving term, rather than forming the two
+    general operator products ``H P`` and ``P H`` and cancelling them.
     """
 
     def __init__(self, hamiltonian: PauliSum, pool_words: Sequence[PauliWord],
@@ -34,14 +55,22 @@ class CommutatorBank:
             w.label for w in pool_words)
         if len(self.labels) != len(pool_words):
             raise ValueError("labels and pool_words length mismatch")
-        H = hamiltonian.to_mv()
+        # H has real coefficients (checked above); keep them as floats.
+        h_terms = [(code, coeff.real) for code, coeff in hamiltonian.terms.items()]
         self.coeffs: list[dict[int, float]] = []
         for P in pool_words:
             if P.n != self.n:
                 raise ValueError("pool word and Hamiltonian qubit counts differ")
-            G = -0.5j * comm(H, P.to_mv())
+            pc = P.code
+            # accumulate G_j = -i sum_{anticommuting k} h_k (W_k . P)
+            acc: dict[int, complex] = {}
+            for wk, h in h_terms:
+                if not _pauli_anticommute(self.n, wk, pc):
+                    continue
+                phase, out = word_mul(self.n, wk, pc)
+                acc[out] = acc.get(out, 0j) + (-1j) * h * phase
             row: dict[int, float] = {}
-            for code, c in G.terms.items():
+            for code, c in acc.items():
                 if abs(c) <= tol:
                     continue
                 if abs(c.imag) > 1e-9 * max(1.0, abs(c.real)):
