@@ -154,14 +154,13 @@ def fig_chemistry():
     mols = ["h2", "lih", "beh2", "h4_chain"]
     mol_lab = {"h2": "H$_2$", "lih": "LiH", "beh2": "BeH$_2$", "h4_chain": "H$_4$"}
     arms = ["exact", "confidence", "fast", "random"]
-    arm_lab = {"exact": "exact gradient", "confidence": "certified gradient",
+    arm_lab = {"exact": "exact gradient", "confidence": "confidence-guided",
                "fast": "FAST-inspired proxy", "random": "random"}
     fig, ax = plt.subplots(figsize=(5.4, 3.0))
     x = range(len(mols))
     w = 0.2
     off = (len(arms) - 1) / 2.0  # center the group of bars on each tick
     for i, a in enumerate(arms):
-        # confidence was not run on the n=8 H4 chain; leave its bar absent
         vals = [max(med([r["final_error_mha"] for r in g[(m, a)]]), 1e-4)
                 if g[(m, a)] else 0.0 for m in mols]
         ax.bar([xi + (i - off) * w for xi in x], vals, w, label=arm_lab[a], color=C[a])
@@ -177,9 +176,49 @@ def fig_chemistry():
     plt.close(fig)
 
 
+
+
+def fig_calibration():
+    """Headline: empirical wrong-selection vs delta, plus abstention/cost."""
+    rows = load("calibration.jsonl")
+    by = {}
+    for r in rows:
+        by.setdefault(r["bound"], []).append(r)
+    for b in by:
+        by[b].sort(key=lambda r: r["delta"])
+    fig, axes = plt.subplots(1, 2, figsize=(6.8, 3.0))
+    bcol = {"normal": C["doubling"], "eb": C["variance_grouped"]}
+    blab = {"normal": "normal (Gaussian)", "eb": "empirical-Bernstein"}
+
+    ax = axes[0]
+    dd = [r["delta"] for r in by["normal"]]
+    ax.plot([0, max(dd)], [0, max(dd)], ls="--", lw=0.8, color="k", label=r"$y=\delta$")
+    for b in ("normal", "eb"):
+        ax.plot([r["delta"] for r in by[b]], [r["wrong_selection_rate"] for r in by[b]],
+                "o-", color=bcol[b], label=blab[b], ms=4)
+    ax.set_xlabel(r"nominal error budget $\delta$")
+    ax.set_ylabel("empirical wrong-selection rate")
+    ax.set_title("Certification holds: wrong $\\leq\\delta$", fontsize=8.5)
+    ax.set_ylim(-0.005, max(dd) + 0.02)
+    ax.legend(frameon=False, fontsize=7.5, loc="upper left")
+
+    ax = axes[1]
+    for b in ("normal", "eb"):
+        ax.plot([r["delta"] for r in by[b]], [r["abstention_rate"] for r in by[b]],
+                "o-", color=bcol[b], label=f"{blab[b]}", ms=4)
+    ax.set_xlabel(r"nominal error budget $\delta$")
+    ax.set_ylabel("abstention rate")
+    ax.set_title("Cost of certification: abstention", fontsize=8.5)
+    ax.set_ylim(0, 1.02)
+    ax.legend(frameon=False, fontsize=7.5, loc="center right")
+    fig.savefig(OUT / "calibration.pdf")
+    plt.close(fig)
+
+
 if __name__ == "__main__":
     fig_selection_quality()
     fig_grouping()
     fig_allocation()
     fig_chemistry()
+    fig_calibration()
     print("wrote figures to", OUT)

@@ -29,8 +29,8 @@ from ..ir import Parameter, Program, Rotor, adjoint_gradient
 from ..backends.exact_mv import ExactMVBackend
 from ..backends.finite_shot import FiniteShotBackend
 from ..measurement.bank import CommutatorBank
-from ..measurement.cache import WordCache
-from ..measurement.confidence import simultaneous_z_radius
+from ..measurement.cache import WordCache, GroupedWordCache
+from ..measurement.confidence import simultaneous_z_radius, candidate_radius
 from ..measurement.grouping import qwc_groups
 from .layering import build_layer
 from .optimize import minimize_energy
@@ -45,6 +45,18 @@ class SelectionStatus(Enum):
     EXACT = "exact"
     RANDOM = "random"
     FAST_PROXY = "fast_proxy"
+
+
+# A selection is *certified* only when the best-arm rule strictly resolved it
+# (its lower bound cleared every rival's upper bound) or it was computed from
+# the exact gradient. Near-optimal acceptances and ambiguous-at-budget
+# acceptances are confidence-guided, not certified.
+_CERTIFIED_STATUSES = frozenset(
+    {SelectionStatus.RESOLVED_BEST, SelectionStatus.EXACT})
+
+
+def _is_certified(status: "SelectionStatus") -> bool:
+    return status in _CERTIFIED_STATUSES
 
 
 @dataclass(frozen=True)
@@ -64,6 +76,7 @@ class SelectionRecord:
     active_candidates: int
     energy: float | None = None
     layer_labels: tuple[str, ...] = ()
+    certified: bool = False
 
 
 @dataclass(frozen=True)
@@ -80,6 +93,7 @@ class AdaptResult:
     stopped_reason: str
     metadata: dict[str, Any] = field(default_factory=dict)
     optimizer_evaluations: int = 0
+    abstentions: int = 0
 
 
 class ConfidenceSelector:
@@ -96,14 +110,39 @@ class ConfidenceSelector:
 
     def __init__(self, delta: float = 0.05, threshold: float = 1e-6,
                  method: str = "sidak", eliminate: bool = True,
-                 near_tol: float | None = None):
+                 near_tol: float | None = None, bound: str = "normal"):
         if not (0.0 < delta < 1.0):
             raise ValueError("delta must be in (0, 1)")
+        if bound not in ("normal", "eb"):
+            raise ValueError("bound must be 'normal' or 'eb'")
         self.delta = delta
         self.threshold = threshold
         self.method = method
         self.eliminate = eliminate
         self.near_tol = near_tol
+        self.bound = bound
+
+    def _bounds(self, bank, cache, active, rounds):
+        """Return {j: (estimate, lower, upper)} on |g_j|.
+
+        Uses the covariance-aware, optionally anytime-valid group radius when
+        the cache exposes joint-group statistics (grouped path), and the
+        per-word normal propagation otherwise (ungrouped path)."""
+        m = len(active)
+        grouped = hasattr(cache, "candidate_group_terms")
+        out = {}
+        for j in active:
+            if grouped:
+                est = cache.candidate_estimate(bank.coeffs[j])
+                terms = cache.candidate_group_terms(bank.coeffs[j])
+                r = (float("inf") if terms is None else
+                     candidate_radius(terms, self.delta, m, bound=self.bound,
+                                      method=self.method, rounds=rounds))
+            else:
+                est, var = bank.estimate(j, cache)
+                r = simultaneous_z_radius(var, self.delta / rounds, m, self.method)
+            out[j] = (est, max(0.0, abs(est) - r), abs(est) + r)
+        return out
 
     @staticmethod
     def _planned_rounds(allocator) -> int:
@@ -125,7 +164,7 @@ class ConfidenceSelector:
         active = list(candidates)
         if not active:
             raise ValueError("no candidates to select from")
-        delta_round = self.delta / self._planned_rounds(allocator)
+        rounds = self._planned_rounds(allocator)
         best = None
         bounds: dict[int, tuple[float, float, float]] = {}
         for round_index in range(10 ** 6):
@@ -136,11 +175,7 @@ class ConfidenceSelector:
             words = [w for w in bank.words_for(active) if w.code in plan]
             cache.add_batch(sampler(words, plan))
 
-            bounds = {}
-            for j in active:
-                est, var = bank.estimate(j, cache)
-                r = simultaneous_z_radius(var, delta_round, len(active), self.method)
-                bounds[j] = (est, max(0.0, abs(est) - r), abs(est) + r)
+            bounds = self._bounds(bank, cache, active, rounds)
             best = max(active, key=lambda j: abs(bounds[j][0]))
             best_lower = bounds[best][1]
             rival_upper = max((bounds[j][2] for j in active if j != best), default=0.0)
@@ -210,10 +245,16 @@ class FastInspiredSelector:
     chemistry baseline: phases are invisible to the proxy.
     """
 
-    def __init__(self, shots: int, seed: int):
-        if shots <= 0:
-            raise ValueError("shots must be positive")
-        self.shots = shots
+    def __init__(self, shots: int | None, seed: int = 0, *,
+                 infinite_shot: bool = False):
+        """``infinite_shot=True`` uses the exact computational-basis
+        probabilities in place of sampled populations (the N -> infinity
+        limit), isolating whether a proxy failure is intrinsic to the
+        determinant-population signal or merely shot noise."""
+        if not infinite_shot and (shots is None or shots <= 0):
+            raise ValueError("shots must be positive unless infinite_shot=True")
+        self.shots = 0 if infinite_shot else shots
+        self.infinite_shot = infinite_shot
         self.rng = np.random.default_rng(seed)
         self._h_by_flips: dict[int, float] | None = None
 
@@ -243,8 +284,13 @@ class FastInspiredSelector:
         h_conn = self._hamiltonian_connectivity(bank, hamiltonian)
         outcomes = sorted(computational_probabilities(rho).items())
         probs = np.clip([p for _, p in outcomes], 0.0, None)
-        counts = self.rng.multinomial(self.shots, probs / probs.sum())
-        p_hat = {bits: c / self.shots for (bits, _), c in zip(outcomes, counts) if c}
+        probs = probs / probs.sum()
+        if self.infinite_shot:
+            # exact populations: the N -> infinity determinant-population proxy
+            p_hat = {bits: p for (bits, _), p in zip(outcomes, probs) if p > 0.0}
+        else:
+            counts = self.rng.multinomial(self.shots, probs)
+            p_hat = {bits: c / self.shots for (bits, _), c in zip(outcomes, counts) if c}
 
         def flipped(bits: str, mask: int) -> str:
             return "".join(("1" if ch == "0" else "0") if (mask >> j) & 1 else ch
@@ -330,6 +376,7 @@ def run_adapt(model, pool: Sequence[PoolOperator], *,
     total_circuits = 0
     support_peak = 0
     optimizer_evaluations = 0
+    abstentions = 0
     energy = exact_backend.expectation(_ansatz_program(model, []), H, ())
     stopped_reason = "operator budget reached"
 
@@ -342,7 +389,8 @@ def run_adapt(model, pool: Sequence[PoolOperator], *,
             stopped_reason = "pool exhausted"
             break
 
-        cache = WordCache(model.n) if noisy else None
+        cache = (GroupedWordCache(model.n) if (noisy and grouping)
+                 else WordCache(model.n) if noisy else None)
         # A below-threshold subpool triggers a redraw from the untried
         # remainder (subpool exploration); only a dead remainder stops the run.
         while True:
@@ -396,15 +444,25 @@ def run_adapt(model, pool: Sequence[PoolOperator], *,
                     idx, status = best, SelectionStatus.EXACT
             else:
                 if grouping:
+                    # Fix the QWC grouping over the whole candidate word set for
+                    # the step, so the same measurement circuits recur every
+                    # round; this makes each group's samples i.i.d. and its
+                    # cumulative histogram a sufficient statistic, which the
+                    # covariance-aware / anytime-valid variance requires.
+                    fixed_groups = qwc_groups(bank.words_for(candidates))
                     sampler = lambda words, plan: backend.sample_grouped_from_state(
-                        rho, qwc_groups(words), plan)
+                        rho, fixed_groups, plan)
                 else:
                     sampler = lambda words, plan: backend.sample_words_from_state(
                         rho, words, plan)
                 idx, status, diag = selector.select(bank, cache, sampler, allocator,
                                                     candidates)
                 shots_added = cache.total_shots  # cumulative over this step's redraws
-                words_measured = cache.unique_words()
+                # distinct Pauli words whose expectation was estimated: the shared
+                # word set. The grouped cache stores joint histograms per QWC basis,
+                # not per word, so count the words directly from the bank.
+                words_measured = (len(bank.words_for(candidates)) if grouping
+                                  else cache.unique_words())
 
             if status is SelectionStatus.BELOW_THRESHOLD and subpool_size is not None:
                 remaining = [c for c in untried if c not in candidates]
@@ -424,14 +482,18 @@ def run_adapt(model, pool: Sequence[PoolOperator], *,
             else:
                 stopped_reason = "exact gradient below threshold"
         elif status is SelectionStatus.BUDGET_EXHAUSTED_AMBIGUOUS and not accept_ambiguous:
-            stopped_reason = "selection ambiguous at budget"
-        if idx is None or (status is SelectionStatus.BUDGET_EXHAUSTED_AMBIGUOUS
-                           and not accept_ambiguous):
+            stopped_reason = "selection ambiguous at budget (strict abstention)"
+        strict_abstain = (status is SelectionStatus.BUDGET_EXHAUSTED_AMBIGUOUS
+                          and not accept_ambiguous)
+        if strict_abstain:
+            abstentions += 1
+        if idx is None or strict_abstain:
             records.append(SelectionRecord(
                 step, None, status, diag.get("estimate"), diag.get("lower_bound"),
                 diag.get("upper_bound"), diag.get("exact_gradient"), exact_max,
                 shots_added, total_shots, words_measured, total_circuits,
-                diag.get("active_candidates", len(candidates))))
+                diag.get("active_candidates", len(candidates)),
+                certified=_is_certified(status)))
             break
 
         chosen.append(pool[idx])
@@ -468,17 +530,19 @@ def run_adapt(model, pool: Sequence[PoolOperator], *,
             exact_scores[idx] if exact_scores else None, exact_max,
             shots_added, total_shots, words_measured, total_circuits,
             diag.get("active_candidates", len(candidates)), energy=energy,
-            layer_labels=layer_labels))
+            layer_labels=layer_labels, certified=_is_certified(status)))
 
     rel = None
     if E0 is not None:
         rel = abs(energy - E0) / max(abs(E0), 1e-12)
+    mode = "n/a" if not noisy else ("strict" if not accept_ambiguous else "fallback")
     return AdaptResult(
         labels=tuple(op.label for op in chosen), parameters=theta, energy=energy,
         exact_ground_energy=E0, relative_error=rel, records=tuple(records),
         total_shots=total_shots, total_circuits=total_circuits,
         support_peak=support_peak, optimizer_evaluations=optimizer_evaluations,
-        stopped_reason=stopped_reason,
+        stopped_reason=stopped_reason, abstentions=abstentions,
         metadata={"model": model.name, "pool_size": len(pool),
-                  "noisy_selection": noisy},
+                  "noisy_selection": noisy, "certification_mode": mode,
+                  "bound": getattr(selector, "bound", None)},
     )

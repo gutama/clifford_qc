@@ -78,8 +78,11 @@ class FiniteShotBackend:
         all_words = [w for group in groups for w in group]
         shot_map = ({w.code: int(shots) for w in all_words} if isinstance(shots, int)
                     else {int(k): int(v) for k, v in shots.items()})
+        from .protocol import GroupSample
+
         out_shots: dict[int, int] = {}
         plus: dict[int, int] = {}
+        group_samples: list = []
         circuits = 0
         for group in groups:
             N = max((shot_map.get(w.code, 0) for w in group), default=0)
@@ -89,8 +92,9 @@ class FiniteShotBackend:
                 continue
             circuits += 1
             # rotate the shared basis onto Z: X -> H, Y -> H*SDG per qubit
+            basis = shared_basis(group)
             rho_rot = rho
-            for j, letter in shared_basis(group).items():
+            for j, letter in basis.items():
                 if letter == "X":
                     rho_rot = evolve(rho_rot, _gates.H(rho.n, j))
                 elif letter == "Y":
@@ -102,11 +106,20 @@ class FiniteShotBackend:
             probs = np.clip([p for _, p in outcomes], 0.0, None)
             probs = probs / probs.sum()
             counts = self.rng.multinomial(N, probs)
+            # project each outcome bitstring onto the group support qubits
             position = {q: i for i, q in enumerate(keep)}
+            hist: dict[str, int] = {}
+            for (bits, _), c in zip(outcomes, counts):
+                if c:
+                    key = "".join(bits[position[q]] for q in keep)
+                    hist[key] = hist.get(key, 0) + int(c)
+            group_samples.append(GroupSample(
+                support=keep, basis=tuple(sorted(basis.items())), hist=hist, shots=N))
             for w in group:
                 positions = [position[j] for j in w.support()]
                 n_plus = sum(int(c) for (bits, _), c in zip(outcomes, counts)
                              if sum(bits[pos] == "1" for pos in positions) % 2 == 0)
                 out_shots[w.code] = out_shots.get(w.code, 0) + N
                 plus[w.code] = plus.get(w.code, 0) + n_plus
-        return MeasurementBatch(n=rho.n, shots=out_shots, plus_counts=plus, circuits=circuits)
+        return MeasurementBatch(n=rho.n, shots=out_shots, plus_counts=plus,
+                                circuits=circuits, groups=tuple(group_samples))

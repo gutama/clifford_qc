@@ -1,13 +1,49 @@
 """Confidence machinery for finite-shot candidate selection.
 
-Tier 1 (robust default): Jeffreys-pseudocount word variances propagated
-through the linear estimator, with a Sidak/Bonferroni simultaneous
-correction across candidates.
+The selection score of candidate ``j`` is the linear functional
+``g_j = sum_w c_jw <W_w>`` of Pauli-word expectations. Words are measured
+in qubit-wise-commuting (QWC) groups; within a group the words are read
+from one joint computational sample, so their outcomes are correlated,
+and across groups the circuits are independent. We therefore estimate the
+variance of ``g_hat_j`` group by group, using the actual per-shot combined
+value of a candidate within a group, which is simultaneously
+covariance-aware (it carries the within-group correlations exactly) and
+compatible with a finite-sample concentration bound.
 
-Tier 2 (publication-grade): per-word empirical-Bernstein radii, valid for
-bounded +/-1 outcomes and safe under adaptive stopping when combined with
-a union bound over rounds (the selector spends delta over a geometric
-round schedule).
+Two radii are provided on ``g_hat_j``:
+
+- ``normal``: a covariance-aware Gaussian radius, fast and tight, valid
+  asymptotically; used with a simultaneous Šidák/Bonferroni correction
+  across candidates.
+- ``eb`` (anytime-valid): an empirical-Bernstein radius on each group's
+  bounded per-shot contribution, summed over groups. Combined with a union
+  bound over candidates and over the finite schedule of decision rounds it
+  yields a genuine finite-sample guarantee (Proposition below), unlike the
+  Gaussian approximation.
+
+Certification guarantee
+-----------------------
+Fix an error budget ``delta`` and a strict selector that (i) makes
+decisions only at the ``R`` rounds of a predeclared allocation schedule,
+(ii) at each round spends ``delta/R`` split across the ``m`` active
+candidates, forming for each candidate a two-sided radius that holds with
+probability at least ``1 - delta/(R m)`` for its (bounded) estimate, and
+(iii) returns ``resolved_best`` only when the empirical leader's lower
+bound strictly exceeds every rival's upper bound. Then, over the whole run,
+
+    Pr(strict selector returns a resolved operator that is not the true
+       argmax of |g_j|)  <=  delta,
+
+under the assumptions: (A1) shots are independent given the fixed ansatz
+state; (A2) each candidate's per-group per-shot contribution lies in a
+known bounded range (it does: it is a signed sum of +/-1 word outcomes);
+(A3) the radii are valid finite-sample bounds for bounded means -- true
+for the empirical-Bernstein radius, and asymptotic for the Gaussian one.
+The proof is a union bound: the resolution rule fails only if some active
+candidate's true |g_j| lies outside its radius at some decision round; each
+such event has probability at most ``delta/(R m)``; there are at most
+``R m`` of them. Ties in |g_j| are never resolved (Eq. resolve is strict),
+so an exact symmetry-tie yields abstention, not a wrong selection.
 """
 
 from __future__ import annotations
@@ -59,8 +95,9 @@ def empirical_bernstein_radius(sample_var: float, N: int, delta: float,
     """Empirical-Bernstein radius for a mean of N bounded observations.
 
     |mean_hat - mean| <= sqrt(2 v ln(3/delta) / N) + 3 R ln(3/delta) / N
-    with observed sample variance v and range R (2 for +/-1 outcomes).
-    Maurer & Pontil (2009).
+    with observed sample variance v and range R. Maurer & Pontil (2009).
+    A true finite-sample two-sided bound for observations in an interval of
+    width ``value_range``.
     """
     if not (0.0 < delta < 1.0):
         raise ValueError("delta must be in (0, 1)")
@@ -71,3 +108,34 @@ def empirical_bernstein_radius(sample_var: float, N: int, delta: float,
     log_term = math.log(3.0 / delta)
     return math.sqrt(2.0 * max(0.0, sample_var) * log_term / N) \
         + 3.0 * value_range * log_term / N
+
+
+def candidate_radius(group_terms, delta: float, m: int, *, bound: str = "normal",
+                     method: str = "sidak", rounds: int = 1) -> float:
+    """Simultaneous two-sided radius on g_hat_j = sum_g mean(v_{j,g}).
+
+    ``group_terms`` is an iterable of ``(N_g, sample_var_g, range_g)`` for
+    the groups in which candidate ``j`` has support: ``N_g`` shots, sample
+    variance and full range of the candidate's per-shot combined value
+    ``v_{j,g}`` within group ``g``. Groups are independent circuits, so the
+    variances add.
+
+    - ``bound='normal'``: covariance-aware Gaussian radius at simultaneous
+      level ``1-delta`` across ``m`` candidates.
+    - ``bound='eb'``: anytime-valid empirical-Bernstein radius. The budget
+      is split across ``m`` candidates and ``rounds`` decision rounds by a
+      union bound, so the guarantee holds uniformly over the schedule.
+    """
+    terms = list(group_terms)
+    if rounds < 1:
+        raise ValueError("rounds must be >= 1")
+    if not terms or any(N <= 0 for N, _, _ in terms):
+        return float("inf")
+    if bound == "normal":
+        var = sum(sv / N for N, sv, _ in terms)
+        return simultaneous_z_radius(var, delta / rounds, m, method)
+    if bound == "eb":
+        per = delta / (m * rounds)
+        return sum(empirical_bernstein_radius(sv, N, per, value_range=max(rng, 1e-12))
+                   for N, sv, rng in terms)
+    raise ValueError("bound must be 'normal' or 'eb'")

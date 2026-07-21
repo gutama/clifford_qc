@@ -38,4 +38,7 @@ regenerate that data from scratch.
 | Fig. 3 (allocation) | `spin_headline_n4.jsonl` |
 | $n=6$ scaling / XXZ plateau | `spin_n6.jsonl` (20 seeds) |
 | Fig. 4, Table II (chemistry) | `chemistry.jsonl` |
-| Stabilizer negative result | `stabilizer_seeding.jsonl` |
+| Stabilizer negative result (appendix) | `stabilizer_seeding.jsonl` |
+| Fig. calibration, Table calib | `calibration.jsonl` |
+| Table baselines | `baselines.jsonl` |
+| Infinite-shot ranking + geometry | `chemistry_repair.jsonl` |
