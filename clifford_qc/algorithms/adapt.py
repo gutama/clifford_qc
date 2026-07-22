@@ -13,7 +13,11 @@ The finite-shot path implements the Paper A machinery end to end:
 
 Only the operator *selection* is noisy; parameter re-optimization stays
 exact (adjoint gradients), isolating ranking noise as in the standalone
-study.
+study. Consequently the reported ``total_shots``/``total_circuits`` account
+for the *selection* measurements only: the energy and its gradient during
+parameter optimization are evaluated exactly and cost no shots here. The
+measurement-efficiency claims are therefore about selection cost under an
+exact optimizer, not an end-to-end hardware shot budget.
 """
 
 from __future__ import annotations
@@ -47,16 +51,46 @@ class SelectionStatus(Enum):
     FAST_PROXY = "fast_proxy"
 
 
-# A selection is *certified* only when the best-arm rule strictly resolved it
-# (its lower bound cleared every rival's upper bound) or it was computed from
-# the exact gradient. Near-optimal acceptances and ambiguous-at-budget
-# acceptances are confidence-guided, not certified.
-_CERTIFIED_STATUSES = frozenset(
+# A selection is strictly *resolved* when the best-arm rule fired (the leader's
+# lower bound cleared every rival's upper bound) or the gradient was exact.
+# Whether that resolution is a genuine finite-sample certificate or only an
+# asymptotic (Gaussian) one depends on the confidence bound in force: the
+# empirical-Bernstein ('eb') bound is finite-sample (finite-schedule) valid,
+# the normal bound is valid only asymptotically. Resolution and certification
+# level are recorded separately so an asymptotic resolution is never reported
+# as a finite-sample certificate. Near-optimal and ambiguous-at-budget
+# acceptances are confidence-guided and are not resolved.
+_RESOLVED_STATUSES = frozenset(
     {SelectionStatus.RESOLVED_BEST, SelectionStatus.EXACT})
 
 
-def _is_certified(status: "SelectionStatus") -> bool:
-    return status in _CERTIFIED_STATUSES
+def _is_resolved(status: "SelectionStatus") -> bool:
+    """True when the selection strictly resolved (best-arm fired) or was exact."""
+    return status in _RESOLVED_STATUSES
+
+
+def _certification_level(status: "SelectionStatus", bound: str | None) -> str:
+    """Certification level of a selection.
+
+    - ``'exact'``        : noiseless exact-gradient selection (certain);
+    - ``'finite_sample'``: strictly resolved under the empirical-Bernstein
+      ('eb') bound -- a genuine finite-sample / finite-schedule guarantee;
+    - ``'asymptotic'``   : strictly resolved under the normal bound -- valid
+      only asymptotically (Gaussian approximation), not a finite-sample
+      certificate;
+    - ``'none'``         : not strictly resolved (near-optimal, ambiguous,
+      below-threshold, random, or proxy selection).
+    """
+    if status is SelectionStatus.EXACT:
+        return "exact"
+    if status is SelectionStatus.RESOLVED_BEST:
+        return "finite_sample" if bound == "eb" else "asymptotic"
+    return "none"
+
+
+def _is_certified(level: str) -> bool:
+    """A genuine (finite-sample or exact) certificate; excludes asymptotic normal."""
+    return level in ("exact", "finite_sample")
 
 
 @dataclass(frozen=True)
@@ -76,6 +110,7 @@ class SelectionRecord:
     active_candidates: int
     energy: float | None = None
     layer_labels: tuple[str, ...] = ()
+    certification: str = "none"
     certified: bool = False
 
 
@@ -125,9 +160,10 @@ class ConfidenceSelector:
     def _bounds(self, bank, cache, active, rounds):
         """Return {j: (estimate, lower, upper)} on |g_j|.
 
-        Uses the covariance-aware, optionally anytime-valid group radius when
-        the cache exposes joint-group statistics (grouped path), and the
-        per-word normal propagation otherwise (ungrouped path)."""
+        Uses the covariance-aware group radius (finite-schedule-valid when the
+        'eb' bound is selected) when the cache exposes joint-group statistics
+        (grouped path), and the per-word normal propagation otherwise
+        (ungrouped path)."""
         m = len(active)
         grouped = hasattr(cache, "candidate_group_terms")
         out = {}
@@ -349,6 +385,7 @@ def run_adapt(model, pool: Sequence[PoolOperator], *,
     random_mode = isinstance(selector, RandomSelector)
     fast_mode = isinstance(selector, FastInspiredSelector)
     noisy = selector is not None and not random_mode and not fast_mode
+    selector_bound = getattr(selector, "bound", None)  # 'normal' | 'eb' | None
     if noisy and (backend is None or allocator is None):
         raise ValueError("finite-shot selection needs a sampling backend and an allocator")
     if subpool_size is not None and subpool_size < 1:
@@ -448,7 +485,7 @@ def run_adapt(model, pool: Sequence[PoolOperator], *,
                     # the step, so the same measurement circuits recur every
                     # round; this makes each group's samples i.i.d. and its
                     # cumulative histogram a sufficient statistic, which the
-                    # covariance-aware / anytime-valid variance requires.
+                    # covariance-aware / finite-schedule-valid variance requires.
                     fixed_groups = qwc_groups(bank.words_for(candidates))
                     sampler = lambda words, plan: backend.sample_grouped_from_state(
                         rho, fixed_groups, plan)
@@ -493,7 +530,8 @@ def run_adapt(model, pool: Sequence[PoolOperator], *,
                 diag.get("upper_bound"), diag.get("exact_gradient"), exact_max,
                 shots_added, total_shots, words_measured, total_circuits,
                 diag.get("active_candidates", len(candidates)),
-                certified=_is_certified(status)))
+                certification=_certification_level(status, selector_bound),
+                certified=_is_certified(_certification_level(status, selector_bound))))
             break
 
         chosen.append(pool[idx])
@@ -530,7 +568,9 @@ def run_adapt(model, pool: Sequence[PoolOperator], *,
             exact_scores[idx] if exact_scores else None, exact_max,
             shots_added, total_shots, words_measured, total_circuits,
             diag.get("active_candidates", len(candidates)), energy=energy,
-            layer_labels=layer_labels, certified=_is_certified(status)))
+            layer_labels=layer_labels,
+            certification=_certification_level(status, selector_bound),
+            certified=_is_certified(_certification_level(status, selector_bound))))
 
     rel = None
     if E0 is not None:
@@ -544,5 +584,6 @@ def run_adapt(model, pool: Sequence[PoolOperator], *,
         stopped_reason=stopped_reason, abstentions=abstentions,
         metadata={"model": model.name, "pool_size": len(pool),
                   "noisy_selection": noisy, "certification_mode": mode,
-                  "bound": getattr(selector, "bound", None)},
+                  "bound": selector_bound,
+                  "shot_accounting": "selection_only_exact_optimizer"},
     )

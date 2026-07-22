@@ -19,6 +19,14 @@ abstained, the regret |g*|-|g_selected|, and the shots and circuits used.
 Interval coverage is the fraction of (candidate, run) pairs whose true |g_j|
 lies within the reported bounds at the final round.
 
+Each measurement seed is derived from *both* the instance index and the
+seed index, so different instances never share an RNG realization; the runs
+are then mutually independent rather than correlated at a fixed seed index
+(an instance-independent seed would couple the instances and inflate the
+effective sample size). Output is one JSON row per (bound, delta, instance)
+with ``scope="instance"`` plus a pooled row with ``scope="pooled"``, so
+calibration can be read per instance and not only in aggregate.
+
 Run: python benchmarks/run_calibration.py --out results.jsonl [--seeds 150]
 """
 
@@ -96,43 +104,65 @@ def main(argv=None) -> None:
 
     insts = instances(args.n)
     print(f"{len(insts)} well-posed instances (gap >= {GAP})", flush=True)
-    rows = []
+
+    def new_agg():
+        return {"resolved": 0, "wrong": 0, "abstained": 0, "regret": [],
+                "cov": [], "shots": [], "circuits": [], "runs": 0}
+
+    def record(agg, idx, status, cov, shots, circ, argmax, gstar, bank, rho):
+        agg["runs"] += 1
+        agg["cov"].append(cov)
+        agg["shots"].append(shots)
+        agg["circuits"].append(circ)
+        if status == "resolved_best":
+            agg["resolved"] += 1
+            if idx != argmax:
+                agg["wrong"] += 1
+            agg["regret"].append(gstar - abs(bank.exact_score(idx, rho)))
+        elif status == "budget_exhausted_ambiguous":
+            agg["abstained"] += 1
+
+    def summarize(agg, **extra):
+        runs = agg["runs"]
+        return {
+            **extra, "runs": runs,
+            "wrong_selection_rate": agg["wrong"] / runs,
+            "wrong_given_resolved": agg["wrong"] / max(agg["resolved"], 1),
+            "resolved_rate": agg["resolved"] / runs,
+            "abstention_rate": agg["abstained"] / runs,
+            "coverage": float(np.mean(agg["cov"])),
+            "median_regret": median(agg["regret"]) if agg["regret"] else 0.0,
+            "median_shots": median(agg["shots"]),
+            "median_circuits": median(agg["circuits"]),
+        }
+
     with open(args.out, "w") as fh:
         for bound in BOUNDS:
             for delta in DELTAS:
-                agg = {"resolved": 0, "wrong": 0, "abstained": 0,
-                       "regret": [], "cov": [], "shots": [], "circuits": [], "runs": 0}
-                for name, bank, pool, rho, argmax in insts:
+                pooled = new_agg()
+                for inst_idx, (name, bank, pool, rho, argmax) in enumerate(insts):
+                    per_inst = new_agg()
                     gstar = abs(bank.exact_score(argmax, rho))
                     for s in range(args.seeds):
+                        # Instance-specific, seed-specific measurement stream:
+                        # distinct instances never share an RNG realization, so
+                        # the runs are mutually independent (not correlated at
+                        # fixed s as an instance-independent seed would make them).
+                        seed = ((inst_idx + 1) * 1_000_003 + s * 1009 + 7) % (2 ** 31)
                         idx, status, diag, shots, circ, cov = one_selection(
-                            bank, rho, delta, bound, seed=1000 * s + 7)
-                        agg["runs"] += 1
-                        agg["cov"].append(cov)
-                        agg["shots"].append(shots)
-                        agg["circuits"].append(circ)
-                        if status == "resolved_best":
-                            agg["resolved"] += 1
-                            if idx != argmax:
-                                agg["wrong"] += 1
-                            agg["regret"].append(gstar - abs(bank.exact_score(idx, rho)))
-                        elif status == "budget_exhausted_ambiguous":
-                            agg["abstained"] += 1
-                runs = agg["runs"]
-                row = {
-                    "bound": bound, "delta": delta, "runs": runs,
-                    "wrong_selection_rate": agg["wrong"] / runs,
-                    "wrong_given_resolved": agg["wrong"] / max(agg["resolved"], 1),
-                    "resolved_rate": agg["resolved"] / runs,
-                    "abstention_rate": agg["abstained"] / runs,
-                    "coverage": float(np.mean(agg["cov"])),
-                    "median_regret": median(agg["regret"]) if agg["regret"] else 0.0,
-                    "median_shots": median(agg["shots"]),
-                    "median_circuits": median(agg["circuits"]),
-                }
+                            bank, rho, delta, bound, seed=seed)
+                        record(per_inst, idx, status, cov, shots, circ,
+                               argmax, gstar, bank, rho)
+                        record(pooled, idx, status, cov, shots, circ,
+                               argmax, gstar, bank, rho)
+                    inst_row = summarize(per_inst, scope="instance", bound=bound,
+                                         delta=delta, instance=name,
+                                         instance_index=inst_idx)
+                    fh.write(json.dumps(inst_row) + "\n")
+                    fh.flush()
+                row = summarize(pooled, scope="pooled", bound=bound, delta=delta)
                 fh.write(json.dumps(row) + "\n")
                 fh.flush()
-                rows.append(row)
                 print(f"bound={bound} delta={delta:.2f}: wrong={row['wrong_selection_rate']:.4f} "
                       f"(<= delta? {row['wrong_selection_rate'] <= delta}) "
                       f"resolved={row['resolved_rate']:.2f} abstain={row['abstention_rate']:.2f} "

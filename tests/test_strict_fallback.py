@@ -2,7 +2,10 @@
 
 A strict run stops (abstains) when a selection is ambiguous at the budget;
 a fallback run accepts the empirical leader but marks it not-certified.
-Only strictly resolved (or exact) selections are labelled certified.
+Strict *resolution* is bound-independent (best-arm fired or exact), but a
+genuine finite-sample *certificate* requires the empirical-Bernstein ('eb')
+bound; the normal bound only resolves asymptotically. These are recorded
+separately (``certification`` level and the derived ``certified`` bool).
 """
 
 from clifford_qc.models import tfim
@@ -11,7 +14,9 @@ from clifford_qc.measurement import UniformDoubling
 from clifford_qc.algorithms import (
     ConfidenceSelector, SelectionStatus, local_pool, run_adapt,
 )
-from clifford_qc.algorithms.adapt import _is_certified
+from clifford_qc.algorithms.adapt import (
+    _certification_level, _is_certified, _is_resolved,
+)
 
 
 def _run(accept, seed=3, budget=64):
@@ -23,43 +28,90 @@ def _run(accept, seed=3, budget=64):
         max_operators=8, grouping=True, accept_ambiguous=accept)
 
 
-def test_certified_only_for_resolved_or_exact():
-    assert _is_certified(SelectionStatus.RESOLVED_BEST)
-    assert _is_certified(SelectionStatus.EXACT)
+def test_resolution_is_bound_independent():
+    assert _is_resolved(SelectionStatus.RESOLVED_BEST)
+    assert _is_resolved(SelectionStatus.EXACT)
     for s in (SelectionStatus.RESOLVED_NEAR_OPTIMAL,
               SelectionStatus.BUDGET_EXHAUSTED_AMBIGUOUS,
               SelectionStatus.BELOW_THRESHOLD, SelectionStatus.RANDOM,
               SelectionStatus.FAST_PROXY):
-        assert not _is_certified(s)
+        assert not _is_resolved(s)
+
+
+def test_certification_level_separates_finite_sample_from_asymptotic():
+    # exact gradient: certain
+    assert _certification_level(SelectionStatus.EXACT, None) == "exact"
+    # resolved under empirical-Bernstein: genuine finite-sample certificate
+    assert _certification_level(SelectionStatus.RESOLVED_BEST, "eb") == "finite_sample"
+    # resolved under the normal bound: asymptotic only, NOT a certificate
+    assert _certification_level(SelectionStatus.RESOLVED_BEST, "normal") == "asymptotic"
+    # unresolved outcomes carry no certification regardless of bound
+    for s in (SelectionStatus.RESOLVED_NEAR_OPTIMAL,
+              SelectionStatus.BUDGET_EXHAUSTED_AMBIGUOUS,
+              SelectionStatus.BELOW_THRESHOLD, SelectionStatus.RANDOM,
+              SelectionStatus.FAST_PROXY):
+        assert _certification_level(s, "eb") == "none"
+
+    assert _is_certified("exact")
+    assert _is_certified("finite_sample")
+    assert not _is_certified("asymptotic")  # the key separation
+    assert not _is_certified("none")
 
 
 def test_strict_abstains_on_ambiguity():
-    strict = _run(accept=False)
+    strict = _run(accept=False)  # default normal bound
     assert strict.metadata["certification_mode"] == "strict"
     assert strict.abstentions >= 1
     assert "abstention" in strict.stopped_reason
-    # a strict run never keeps an uncertified operator
-    assert all(r.certified for r in strict.records if r.selected_label)
+    # a strict run keeps only strictly resolved operators...
+    selected = [r for r in strict.records if r.selected_label]
+    assert all(_is_resolved(r.status) for r in selected)
+    # ...but under the normal bound that resolution is asymptotic, not a
+    # finite-sample certificate.
+    assert all(r.certification == "asymptotic" for r in selected)
+    assert not any(r.certified for r in selected)
 
 
 def test_fallback_proceeds_and_labels_uncertified():
-    fallback = _run(accept=True)
+    fallback = _run(accept=True)  # default normal bound
     assert fallback.metadata["certification_mode"] == "fallback"
     assert fallback.abstentions == 0
     assert len(fallback.labels) > 0
     selected = [r for r in fallback.records if r.selected_label]
-    # certified flag agrees with resolved_best status exactly
+    # a certification level is present exactly for resolved selections
     for r in selected:
-        assert r.certified == (r.status is SelectionStatus.RESOLVED_BEST)
-    # fallback accepts some non-certified (ambiguous) operators here
-    assert any(not r.certified for r in selected)
+        assert (r.certification != "none") == (r.status is SelectionStatus.RESOLVED_BEST)
+    # normal bound never yields a finite-sample certificate
+    assert all(r.certification in ("asymptotic", "none") for r in selected)
+    assert not any(r.certified for r in selected)
+    # fallback accepts some unresolved (ambiguous) operators here
+    assert any(r.certification == "none" for r in selected)
+
+
+def test_eb_bound_never_labels_asymptotic():
+    """Under the empirical-Bernstein bound a selection is either a genuine
+    finite-sample certificate or unresolved -- never the asymptotic level the
+    normal bound produces. (The RESOLVED_BEST+eb -> finite_sample mapping
+    itself is pinned by test_certification_level_*.)"""
+    res = run_adapt(
+        tfim(4, 1.0, 1.0), local_pool(4, periodic_context=False),
+        backend=FiniteShotBackend(seed=3),
+        selector=ConfidenceSelector(delta=0.05, bound="eb"),
+        allocator=UniformDoubling(base=256, max_factor=64),
+        max_operators=8, grouping=True, accept_ambiguous=True)
+    assert res.metadata["bound"] == "eb"
+    for r in res.records:
+        assert r.certification in ("finite_sample", "none")
+        assert r.certified == (r.certification == "finite_sample")
 
 
 def test_exact_adapt_records_are_certified():
     res = run_adapt(tfim(4, 1.0, 1.0), local_pool(4, periodic_context=False),
                     max_operators=6)
     assert res.metadata["certification_mode"] == "n/a"
-    assert all(r.certified for r in res.records if r.selected_label)
+    selected = [r for r in res.records if r.selected_label]
+    assert all(r.certification == "exact" for r in selected)
+    assert all(r.certified for r in selected)
 
 
 def test_bound_recorded_in_metadata():

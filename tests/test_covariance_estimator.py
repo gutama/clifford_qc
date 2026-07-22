@@ -1,4 +1,4 @@
-"""Covariance-aware grouped variance and anytime-valid radii (PRA revision).
+"""Covariance-aware grouped variance and finite-schedule-valid radii (PRA revision).
 
 The old per-word (diagonal) variance ignores within-QWC-group covariance and
 can be wrong in either direction; the grouped cache carries the covariance

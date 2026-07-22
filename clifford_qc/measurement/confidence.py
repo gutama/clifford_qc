@@ -13,13 +13,18 @@ compatible with a finite-sample concentration bound.
 Two radii are provided on ``g_hat_j``:
 
 - ``normal``: a covariance-aware Gaussian radius, fast and tight, valid
-  asymptotically; used with a simultaneous Šidák/Bonferroni correction
-  across candidates.
-- ``eb`` (anytime-valid): an empirical-Bernstein radius on each group's
-  bounded per-shot contribution, summed over groups. Combined with a union
-  bound over candidates and over the finite schedule of decision rounds it
-  yields a genuine finite-sample guarantee (Proposition below), unlike the
-  Gaussian approximation.
+  only *asymptotically*; used with a simultaneous Šidák/Bonferroni
+  correction across candidates. It supports asymptotic resolution, not a
+  finite-sample certificate.
+- ``eb`` (finite-schedule-valid): an empirical-Bernstein radius on each
+  group's bounded per-shot contribution, summed over groups. Each radius is
+  a fixed-``N`` two-sided bound; a union bound over candidates and over the
+  predeclared *finite schedule* of ``R`` decision rounds makes it valid
+  uniformly across that schedule (Proposition below), yielding a genuine
+  finite-sample guarantee unlike the Gaussian approximation. This is
+  finite-schedule-valid, not anytime-valid: it holds over the fixed set of
+  ``R`` rounds, not simultaneously over all sample sizes (which would
+  require a confidence sequence via a supermartingale / Ville's inequality).
 
 Certification guarantee
 -----------------------
@@ -95,9 +100,13 @@ def empirical_bernstein_radius(sample_var: float, N: int, delta: float,
     """Empirical-Bernstein radius for a mean of N bounded observations.
 
     |mean_hat - mean| <= sqrt(2 v ln(3/delta) / N) + 3 R ln(3/delta) / N
-    with observed sample variance v and range R. Maurer & Pontil (2009).
-    A true finite-sample two-sided bound for observations in an interval of
-    width ``value_range``.
+    with observed sample variance v and range R. This is the two-sided
+    empirical-Bernstein bound of Audibert, Munos & Szepesvári (2009,
+    Thm. 1), which holds with probability >= 1 - delta for observations in
+    an interval of width ``value_range`` (their [0,1] statement rescaled by
+    R). It is a true finite-sample bound at fixed N. (The one-sided
+    Maurer & Pontil (2009) bound, with ln(2/delta) and a 7/(3(N-1)) linear
+    term, is a different constant; we use the AMS two-sided form.)
     """
     if not (0.0 < delta < 1.0):
         raise ValueError("delta must be in (0, 1)")
@@ -122,9 +131,10 @@ def candidate_radius(group_terms, delta: float, m: int, *, bound: str = "normal"
 
     - ``bound='normal'``: covariance-aware Gaussian radius at simultaneous
       level ``1-delta`` across ``m`` candidates.
-    - ``bound='eb'``: anytime-valid empirical-Bernstein radius. The budget
-      is split across ``m`` candidates and ``rounds`` decision rounds by a
-      union bound, so the guarantee holds uniformly over the schedule.
+    - ``bound='eb'``: finite-schedule-valid empirical-Bernstein radius. The
+      budget is split across ``m`` candidates and ``rounds`` decision rounds
+      by a union bound, so the guarantee holds uniformly over the predeclared
+      finite schedule of rounds (not over all sample sizes).
     """
     terms = list(group_terms)
     if rounds < 1:
