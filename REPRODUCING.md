@@ -66,6 +66,27 @@ PySCF computes SCF/FCI on the fly (no cached integrals); tiny numerical
 differences in the last decimals of pyscf energies across platforms do not
 change selection decisions at the committed seeds.
 
+The expensive exact-gradient H4 row can be reproduced independently without
+rerunning the complete chemistry matrix:
+
+```bash
+python benchmarks/reproduce_exact_h4.py \
+    --out reproductions/h4_exact.jsonl
+```
+
+To run that row alongside the 200-seed certification calibration, use the
+watcher. It keeps independent logs and outputs, records the environment in a
+manifest, and atomically refreshes `status.json` until it writes a `DONE` or
+`FAILED` marker:
+
+```bash
+python benchmarks/watch_reproduction.py \
+    --run-dir reproductions/h4-certification
+```
+
+Write these long-running reproductions outside `benchmarks/reference_results/`
+unless intentionally regenerating committed artifacts.
+
 ## Demos (not committed as artifacts)
 
 ```bash
