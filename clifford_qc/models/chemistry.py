@@ -93,14 +93,19 @@ def beh2(bond_length: float = 1.3264) -> Model:
                           occupied_indices=[0], active_indices=[1, 2, 3])
 
 
-def excitation_pool(n_qubits: int, n_electrons: int) -> list[PoolOperator]:
-    """Qubit-ADAPT pool: odd-Y Pauli words of JW single/double excitations.
+def _excitation_generators(n_qubits: int, n_electrons: int) -> list[FermionOperator]:
+    """Anti-Hermitian singles/doubles generators that conserve particle
+    number and total spin projection S_z.
 
-    Spin-conserving singles a†_a a_i - h.c. and doubles
-    a†_a a†_b a_j a_i - h.c. over occupied {0..n_e-1} / virtual
-    {n_e..n_q-1} spin-orbitals; each anti-Hermitian generator's JW image
-    splits into odd-Y words that enter the pool individually
-    (deduplicated, ordered by first appearance).
+    Spin-orbitals use OpenFermion's interleaved Jordan-Wigner ordering, so
+    even indices carry spin up and odd indices spin down. A single ``i->a``
+    conserves S_z iff ``i`` and ``a`` share spin, i.e. ``(a - i)`` is even.
+    A double ``{i,j}->{a,b}`` conserves S_z iff the excited and de-excited
+    sets carry the same number of spin-down (odd-index) orbitals, i.e.
+    ``(i%2 + j%2) == (a%2 + b%2)``. Testing only ``(i+j)%2 == (a+b)%2``
+    (the parity of that count difference) is necessary but not sufficient:
+    it admits Delta S_z = +/-2 excitations such as two spin-up into two
+    spin-down, which are not spin-conserving.
     """
     occupied = range(n_electrons)
     virtual = range(n_electrons, n_qubits)
@@ -118,12 +123,25 @@ def excitation_pool(n_qubits: int, n_electrons: int) -> list[PoolOperator]:
                 for b in virtual:
                     if b <= a:
                         continue
-                    if (i + j) % 2 == (a + b) % 2:  # conserve total spin z
+                    if (i % 2 + j % 2) == (a % 2 + b % 2):  # conserve total S_z
                         generators.append(
                             FermionOperator(((a, 1), (b, 1), (j, 0), (i, 0)))
                             - FermionOperator(((i, 1), (j, 1), (b, 0), (a, 0))))
+    return generators
+
+
+def excitation_pool(n_qubits: int, n_electrons: int) -> list[PoolOperator]:
+    """Qubit-ADAPT pool: odd-Y Pauli words of JW single/double excitations.
+
+    Spin-conserving singles a†_a a_i - h.c. and doubles
+    a†_a a†_b a_j a_i - h.c. over occupied {0..n_e-1} / virtual
+    {n_e..n_q-1} spin-orbitals (see ``_excitation_generators`` for the
+    particle- and S_z-conservation conditions); each anti-Hermitian
+    generator's JW image splits into odd-Y words that enter the pool
+    individually (deduplicated, ordered by first appearance).
+    """
     pool: dict[int, PoolOperator] = {}
-    for gen in generators:
+    for gen in _excitation_generators(n_qubits, n_electrons):
         image = qubit_operator_to_pauli_sum(jordan_wigner(gen), n_qubits)
         for word, _ in image.items():
             if word.code != 0 and is_odd_y(word) and word.code not in pool:

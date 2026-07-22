@@ -6,10 +6,14 @@ import pytest
 pytest.importorskip("openfermion")
 pytest.importorskip("openfermionpyscf")
 
+from openfermion import (FermionOperator, commutator, normal_ordered,
+                         number_operator, sz_operator)
+
 from clifford_qc.matrix import exact_ground
 from clifford_qc.backends import ExactMVBackend
 from clifford_qc.algorithms import FastInspiredSelector, is_odd_y, run_adapt
-from clifford_qc.models.chemistry import excitation_pool, h2, lih
+from clifford_qc.models.chemistry import (_excitation_generators,
+                                          excitation_pool, h2, lih)
 
 CHEMICAL_ACCURACY = 1.6e-3  # Hartree
 
@@ -86,3 +90,39 @@ def test_fast_inspired_selector_is_seed_deterministic(h2_model):
 def test_fast_inspired_selector_validates_shots():
     with pytest.raises(ValueError, match="shots"):
         FastInspiredSelector(shots=0, seed=0)
+
+
+@pytest.mark.parametrize("n_qubits, n_electrons", [(4, 2), (6, 4), (8, 4)])
+def test_excitation_generators_conserve_particle_number_and_sz(n_qubits, n_electrons):
+    """Every singles/doubles generator must commute with the number and S_z
+    operators. The earlier ``(i+j)%2 == (a+b)%2`` doubles filter admitted
+    Delta S_z = +/-2 excitations (e.g. two spin-up into two spin-down); this
+    is the physics-level guard against that regression."""
+    zero = FermionOperator()
+    number = number_operator(n_qubits)
+    spin_z = sz_operator(n_qubits // 2)  # interleaved up/down spin-orbitals
+    gens = _excitation_generators(n_qubits, n_electrons)
+    assert gens
+    for gen in gens:
+        assert normal_ordered(commutator(gen, number)) == zero
+        assert normal_ordered(commutator(gen, spin_z)) == zero
+
+
+def test_excitation_pool_word_counts_are_sector_correct():
+    """Lock the spin-sector-correct pool sizes. The buggy doubles filter
+    produced 176 words for H4 (16 extra from two Delta S_z = +/-2
+    generators); the corrected S_z-conserving pool is 160. H2 has no
+    Delta S_z = +/-2 doubles, so its 12-word pool is unchanged."""
+    assert len(excitation_pool(4, 2)) == 12
+    assert len(excitation_pool(8, 4)) == 160
+
+
+def test_no_spin_changing_double_excitation_is_generated():
+    """The specific spurious generator a†_5 a†_7 a_2 a_0 - h.c. (two spin-up
+    occupied into two spin-down virtual) must not appear for H4."""
+    spurious = normal_ordered(
+        FermionOperator(((5, 1), (7, 1), (2, 0), (0, 0)))
+        - FermionOperator(((0, 1), (2, 1), (7, 0), (5, 0))))
+    gens = [normal_ordered(g) for g in _excitation_generators(8, 4)]
+    # neither the generator nor its negation (opposite h.c. sign convention)
+    assert all(g != spurious and g != -spurious for g in gens)

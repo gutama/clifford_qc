@@ -180,7 +180,10 @@ def fig_chemistry():
 
 def fig_calibration():
     """Headline: empirical wrong-selection vs delta, plus abstention/cost."""
-    rows = load("calibration.jsonl")
+    # calibration.jsonl carries per-instance rows (scope="instance") alongside
+    # the pooled summary (scope="pooled"); the figure uses the pooled rows only.
+    rows = [r for r in load("calibration.jsonl")
+            if r.get("scope", "pooled") == "pooled"]
     by = {}
     for r in rows:
         by.setdefault(r["bound"], []).append(r)
