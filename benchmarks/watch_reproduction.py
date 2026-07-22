@@ -16,6 +16,7 @@ import platform
 import subprocess
 import sys
 import time
+from collections import deque
 from pathlib import Path
 
 
@@ -26,10 +27,10 @@ def _atomic_json(path: Path, value) -> None:
 
 
 def _tail(path: Path, lines: int = 12) -> list[str]:
-    if not path.exists():
+    if lines <= 0 or not path.exists():
         return []
     with path.open(errors="replace") as fh:
-        return fh.read().splitlines()[-lines:]
+        return [line.rstrip("\r\n") for line in deque(fh, maxlen=lines)]
 
 
 def _sha256(path: Path) -> str | None:
@@ -40,6 +41,11 @@ def _sha256(path: Path) -> str | None:
         for chunk in iter(lambda: fh.read(1024 * 1024), b""):
             digest.update(chunk)
     return digest.hexdigest()
+
+
+def _finished_sha256(path: Path, returncode: int | None) -> str | None:
+    """Hash an output only after its producer has exited."""
+    return None if returncode is None else _sha256(path)
 
 
 def _row_count(path: Path) -> int:
@@ -184,7 +190,7 @@ def main(argv=None) -> int:
                 "log_tail": _tail(job["log"]),
                 "output": str(job["output"]),
                 "output_rows": _row_count(job["output"]),
-                "output_sha256": _sha256(job["output"]),
+                "output_sha256": _finished_sha256(job["output"], code),
             }
         _atomic_json(run_dir / args.status_file, snapshot)
         if all_done:
