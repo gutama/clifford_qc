@@ -1,0 +1,173 @@
+{
+  "model": "h4_chain(r=0.9)",
+  "n_qubits": 8,
+  "n_electrons": 4,
+  "pool_size": 160,
+  "hf_energy_ha": -2.124259738972779,
+  "active_space_fci_ha": -2.1803166143238575,
+  "final_energy_ha": -2.179923798652955,
+  "final_error_mha": 0.39281567090254654,
+  "ops_to_chemical_accuracy": 9,
+  "n_operators": 12,
+  "labels": [
+    "IIYXXXII",
+    "XZZYXZZX",
+    "IXYIIXXI",
+    "YXIIIIXX",
+    "YYIIYXII",
+    "IIYXIIXX",
+    "YZZYIYXI",
+    "IYXIXZZX",
+    "XZXIYZXI",
+    "IXZYIXZX",
+    "YXIIXXII",
+    "IIXXIIYX"
+  ],
+  "parameters": [
+    0.3167582582159472,
+    0.12610534283368602,
+    0.13052567311729607,
+    0.08541101304140586,
+    0.06285445104430547,
+    0.03906789805989886,
+    -0.08258553858045035,
+    -0.08511756138118202,
+    -0.04130560999486077,
+    0.04998129752732237,
+    0.05990270889382398,
+    -0.03486358570358782
+  ],
+  "optimizer_evaluations": 141,
+  "stopped_reason": "operator budget reached",
+  "trajectory": [
+    {
+      "step": 1,
+      "selected_label": "IIYXXXII",
+      "energy_ha": -2.1452557585978114,
+      "error_mha": 35.060855726046114,
+      "selected_gradient": -0.13746599202202667,
+      "max_gradient": 0.13746599202202667,
+      "active_candidates": 160,
+      "reached_chemical_accuracy": false
+    },
+    {
+      "step": 2,
+      "selected_label": "XZZYXZZX",
+      "energy_ha": -2.1532256015027995,
+      "error_mha": 27.09101282105797,
+      "selected_gradient": -0.11597888829199049,
+      "max_gradient": 0.11597888829199049,
+      "active_candidates": 159,
+      "reached_chemical_accuracy": false
+    },
+    {
+      "step": 3,
+      "selected_label": "IXYIIXXI",
+      "energy_ha": -2.1616446404817973,
+      "error_mha": 18.671973842060208,
+      "selected_gradient": -0.11899888442205173,
+      "max_gradient": 0.11899888442205173,
+      "active_candidates": 158,
+      "reached_chemical_accuracy": false
+    },
+    {
+      "step": 4,
+      "selected_label": "YXIIIIXX",
+      "energy_ha": -2.1665379704578624,
+      "error_mha": 13.778643865995033,
+      "selected_gradient": -0.1124502385798889,
+      "max_gradient": 0.1124502385798889,
+      "active_candidates": 157,
+      "reached_chemical_accuracy": false
+    },
+    {
+      "step": 5,
+      "selected_label": "YYIIYXII",
+      "energy_ha": -2.170592946766792,
+      "error_mha": 9.72366755706533,
+      "selected_gradient": -0.0782162385980995,
+      "max_gradient": 0.0782162385980995,
+      "active_candidates": 156,
+      "reached_chemical_accuracy": false
+    },
+    {
+      "step": 6,
+      "selected_label": "IIYXIIXX",
+      "energy_ha": -2.173525511865512,
+      "error_mha": 6.791102458345577,
+      "selected_gradient": -0.08249489179467427,
+      "max_gradient": 0.08249489179467427,
+      "active_candidates": 155,
+      "reached_chemical_accuracy": false
+    },
+    {
+      "step": 7,
+      "selected_label": "YZZYIYXI",
+      "energy_ha": -2.1756006825784926,
+      "error_mha": 4.7159317453648875,
+      "selected_gradient": 0.05931624796047654,
+      "max_gradient": 0.05931624796047654,
+      "active_candidates": 154,
+      "reached_chemical_accuracy": false
+    },
+    {
+      "step": 8,
+      "selected_label": "IYXIXZZX",
+      "energy_ha": -2.177941449824298,
+      "error_mha": 2.3751644995595456,
+      "selected_gradient": 0.06273798970389874,
+      "max_gradient": 0.06273798970389874,
+      "active_candidates": 153,
+      "reached_chemical_accuracy": false
+    },
+    {
+      "step": 9,
+      "selected_label": "XZXIYZXI",
+      "energy_ha": -2.178819796283995,
+      "error_mha": 1.4968180398624575,
+      "selected_gradient": 0.03769066318933563,
+      "max_gradient": 0.03769066318933563,
+      "active_candidates": 152,
+      "reached_chemical_accuracy": true
+    },
+    {
+      "step": 10,
+      "selected_label": "IXZYIXZX",
+      "energy_ha": -2.1796192895346933,
+      "error_mha": 0.6973247891641776,
+      "selected_gradient": -0.03562636789927463,
+      "max_gradient": 0.03562636789927463,
+      "active_candidates": 151,
+      "reached_chemical_accuracy": true
+    },
+    {
+      "step": 11,
+      "selected_label": "YXIIXXII",
+      "energy_ha": -2.1797998037742183,
+      "error_mha": 0.5168105496391462,
+      "selected_gradient": -0.008686880332595426,
+      "max_gradient": 0.008686880332595426,
+      "active_candidates": 150,
+      "reached_chemical_accuracy": true
+    },
+    {
+      "step": 12,
+      "selected_label": "IIXXIIYX",
+      "energy_ha": -2.179923798652955,
+      "error_mha": 0.39281567090254654,
+      "selected_gradient": 0.007059227054788951,
+      "max_gradient": 0.007059227054788951,
+      "active_candidates": 149,
+      "reached_chemical_accuracy": true
+    }
+  ],
+  "environment": {
+    "python": "3.11.15",
+    "numpy": "2.4.6",
+    "scipy": "1.17.1",
+    "openfermion": "1.8.1",
+    "openfermionpyscf": "0.5",
+    "pyscf": "2.14.0",
+    "clifford-qc": "0.3.0"
+  }
+}
