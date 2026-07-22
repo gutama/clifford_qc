@@ -125,7 +125,7 @@ python benchmarks/run_chemistry_repair.py \
     --out benchmarks/reference_results/chemistry_repair.jsonl
 ```
 
-The certified finite-shot H4 arm (n=8, 176 candidates) is beyond the
+The certified finite-shot H4 arm (n=8, 160 candidates) is beyond the
 single-core classical-simulation budget of this reference implementation;
 `run_chemistry_repair.py` emits the infinite-shot ranking and geometry
 sweep regardless, and the certified-H4 trajectory is left to hardware-scale
