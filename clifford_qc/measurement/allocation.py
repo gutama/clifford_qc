@@ -15,6 +15,8 @@ from typing import Sequence
 class UniformFixed:
     """One round: the same fixed number of shots for every active word."""
 
+    finite_schedule_valid = True
+
     def __init__(self, shots_per_word: int):
         if shots_per_word <= 0:
             raise ValueError("shots_per_word must be positive")
@@ -32,6 +34,8 @@ class UniformDoubling:
     The current algorithm of the standalone noisy-ADAPT study, expressed as
     cumulative targets: each round only adds the difference.
     """
+
+    finite_schedule_valid = True
 
     def __init__(self, base: int, max_factor: int = 64):
         if base <= 0 or max_factor < 1:
@@ -59,6 +63,12 @@ class VarianceProportional:
     Words never measured get one bootstrap shot minimum so the weights are
     defined next round.
     """
+
+    # The next sample counts depend on earlier outcomes.  Fixed-N empirical-
+    # Bernstein bounds over a predeclared grid do not by themselves certify
+    # this policy; it needs a confidence sequence or an explicit union over
+    # all attainable sample sizes.
+    finite_schedule_valid = False
 
     def __init__(self, round_budget: int, growth: float = 2.0, max_rounds: int = 8):
         if round_budget <= 0:

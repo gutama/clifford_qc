@@ -9,8 +9,10 @@ and leaves PySCF's configured memory ceiling unchanged.
 from __future__ import annotations
 
 import argparse
+import importlib.metadata
 import json
 import os
+import platform
 import time
 from pathlib import Path
 
@@ -29,9 +31,26 @@ def _configure_restricted_container() -> None:
         pass
 
 
+def _environment() -> dict:
+    versions = {"python": platform.python_version()}
+    for name in ("numpy", "scipy", "openfermion", "openfermionpyscf",
+                 "pyscf", "clifford-qc"):
+        try:
+            versions[name] = importlib.metadata.version(name)
+        except importlib.metadata.PackageNotFoundError:
+            versions[name] = None
+    versions["thread_limits"] = {
+        key: os.environ.get(key)
+        for key in ("OMP_NUM_THREADS", "MKL_NUM_THREADS", "OPENBLAS_NUM_THREADS")
+    }
+    return versions
+
+
 def main(argv=None) -> None:
     parser = argparse.ArgumentParser()
     parser.add_argument("--out", required=True)
+    parser.add_argument("--trajectory-out",
+                        help="optional pretty-printed full trajectory JSON")
     args = parser.parse_args(argv)
 
     _configure_restricted_container()
@@ -56,6 +75,7 @@ def main(argv=None) -> None:
         flush=True,
     )
     row = run_arm(model, pool, "exact", seed=0, E0=e0)
+    row["environment"] = _environment()
     row["reproduction_started_unix"] = started
     row["reproduction_finished_unix"] = time.time()
 
@@ -64,6 +84,12 @@ def main(argv=None) -> None:
     tmp = out.with_suffix(out.suffix + ".tmp")
     tmp.write_text(json.dumps(row, sort_keys=True) + "\n")
     tmp.replace(out)
+    if args.trajectory_out:
+        trajectory_out = Path(args.trajectory_out)
+        trajectory_out.parent.mkdir(parents=True, exist_ok=True)
+        trajectory_tmp = trajectory_out.with_suffix(trajectory_out.suffix + ".tmp")
+        trajectory_tmp.write_text(json.dumps(row, indent=2, sort_keys=True) + "\n")
+        trajectory_tmp.replace(trajectory_out)
     print(
         f"[done] H4 exact: error={row['final_error_mha']:.6f} mHa, "
         f"ops@accuracy={row['ops_to_accuracy']}, wall={row['wall_seconds']:.1f}s",

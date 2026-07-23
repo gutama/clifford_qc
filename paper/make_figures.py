@@ -66,11 +66,11 @@ def group_headline():
 
 
 def fig_selection_quality():
-    """Median relative energy error: random vs certified variants, per family."""
+    """Median relative energy error: random vs confidence-guided variants."""
     g = group_headline()
     methods = ["random", "doubling_grouped", "variance_grouped"]
-    labels = {"random": "random", "doubling_grouped": "certified (doubling)",
-              "variance_grouped": "certified (variance)"}
+    labels = {"random": "random", "doubling_grouped": "fallback (doubling)",
+              "variance_grouped": "fallback (variance)"}
     fig, ax = plt.subplots(figsize=(5.0, 3.0))
     x = range(len(ORDER))
     w = 0.26
@@ -201,7 +201,8 @@ def fig_calibration():
                 "o-", color=bcol[b], label=blab[b], ms=4)
     ax.set_xlabel(r"nominal error budget $\delta$")
     ax.set_ylabel("empirical wrong-selection rate")
-    ax.set_title("Certification holds: wrong $\\leq\\delta$", fontsize=8.5)
+    ax.set_title("Observed ranking errors", fontsize=8.5)
+    ax.set_xticks(dd)
     ax.set_ylim(-0.005, max(dd) + 0.02)
     ax.legend(frameon=False, fontsize=7.5, loc="upper left")
 
@@ -211,7 +212,8 @@ def fig_calibration():
                 "o-", color=bcol[b], label=f"{blab[b]}", ms=4)
     ax.set_xlabel(r"nominal error budget $\delta$")
     ax.set_ylabel("abstention rate")
-    ax.set_title("Cost of certification: abstention", fontsize=8.5)
+    ax.set_title("Strict selection: abstention", fontsize=8.5)
+    ax.set_xticks(dd)
     ax.set_ylim(0, 1.02)
     ax.legend(frameon=False, fontsize=7.5, loc="center right")
     fig.savefig(OUT / "calibration.pdf")

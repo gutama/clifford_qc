@@ -23,7 +23,9 @@ import json
 import time
 
 from clifford_qc.matrix import exact_ground
-from clifford_qc.backends import FiniteShotBackend
+from clifford_qc.backends import ExactMVBackend, FiniteShotBackend
+from clifford_qc.diagnostics import fermionic_sector_diagnostics
+from clifford_qc.ir import Parameter, Program, Rotor
 from clifford_qc.measurement import UniformDoubling
 from clifford_qc.algorithms import (
     ConfidenceSelector, FastInspiredSelector, RandomSelector, run_adapt,
@@ -46,6 +48,41 @@ def ops_and_shots_to_accuracy(records, E0: float):
     return None, None, None
 
 
+def _final_program(model, pool, labels) -> Program:
+    """Reconstruct the optimized word-level ADAPT program for diagnostics."""
+    by_label = {op.label: op for op in pool}
+    prog = Program(model.n)
+    for op in model.reference.ops:
+        prog.append(op)
+    for k, label in enumerate(labels):
+        prog.append(Rotor(by_label[label].word, Parameter(f"t{k}")))
+    return prog
+
+
+def _trajectory(records, E0: float) -> list[dict]:
+    out = []
+    for rec in records:
+        out.append({
+            "step": rec.step,
+            "selected_label": rec.selected_label,
+            "status": rec.status.value,
+            "certification": rec.certification,
+            "certified": rec.certified,
+            "estimate": rec.estimate,
+            "lower_bound": rec.lower_bound,
+            "upper_bound": rec.upper_bound,
+            "exact_gradient": rec.exact_gradient,
+            "exact_gradient_max": rec.exact_gradient_max,
+            "energy_ha": rec.energy,
+            "error_mha": None if rec.energy is None else abs(rec.energy - E0) * 1000.0,
+            "shots_added": rec.shots_added,
+            "cumulative_shots": rec.cumulative_shots,
+            "circuits_executed": rec.circuits_executed,
+            "active_candidates": rec.active_candidates,
+        })
+    return out
+
+
 def run_arm(model, pool, arm: str, seed: int, E0: float) -> dict:
     kwargs = dict(max_operators=MAX_OPERATORS, threshold=1e-6, maxiter=200)
     if arm == "exact":
@@ -55,7 +92,8 @@ def run_arm(model, pool, arm: str, seed: int, E0: float) -> dict:
     elif arm == "random":
         kwargs["selector"] = RandomSelector(seed=seed)
     elif arm == "confidence":
-        kwargs.update(selector=ConfidenceSelector(delta=0.05, near_tol=0.05),
+        kwargs.update(selector=ConfidenceSelector(delta=0.05, near_tol=0.05,
+                                                   method="sidak"),
                       allocator=UniformDoubling(base=256, max_factor=64),
                       backend=FiniteShotBackend(seed=seed), grouping=True)
     else:
@@ -63,6 +101,10 @@ def run_arm(model, pool, arm: str, seed: int, E0: float) -> dict:
     t0 = time.perf_counter()
     res = run_adapt(model, pool, **kwargs)
     ops_acc, shots_acc, circuits_acc = ops_and_shots_to_accuracy(res.records, E0)
+    final_rho = ExactMVBackend().state(
+        _final_program(model, pool, res.labels), res.parameters)
+    sector = fermionic_sector_diagnostics(
+        final_rho, model.metadata["n_electrons"], target_sz=0.0)
     return {
         "model": model.name, "arm": arm, "seed": seed, "n": model.n,
         "pool_size": len(pool),
@@ -76,6 +118,12 @@ def run_arm(model, pool, arm: str, seed: int, E0: float) -> dict:
         "total_circuits": res.total_circuits,
         "optimizer_evaluations": res.optimizer_evaluations,
         "stopped_reason": res.stopped_reason,
+        "labels": list(res.labels),
+        "parameters": list(res.parameters),
+        "trajectory": _trajectory(res.records, E0),
+        "selection_metadata": res.metadata,
+        "pool_semantics": "individual_pauli_words_from_conserving_generators",
+        **sector,
         "wall_seconds": time.perf_counter() - t0,
     }
 

@@ -13,11 +13,11 @@
     "random": {"kind": "random", "max_operators": 8, "maxiter": 150},
     "doubling_grouped": {"kind": "confidence", "max_operators": 8, "maxiter": 150,
                          "grouping": true,
-                         "selector": {"delta": 0.05, "near_tol": 0.05},
+                         "selector": {"delta": 0.05, "near_tol": 0.05, "method": "sidak"},
                          "allocator": {"type": "uniform_doubling", "base": 256, "max_factor": 64}},
     "variance_grouped": {"kind": "confidence", "max_operators": 8, "maxiter": 150,
                          "grouping": true,
-                         "selector": {"delta": 0.05, "near_tol": 0.05},
+                         "selector": {"delta": 0.05, "near_tol": 0.05, "method": "sidak"},
                          "allocator": {"type": "variance_proportional",
                                         "round_budget": 4096, "growth": 2.0, "max_rounds": 7}}
   }

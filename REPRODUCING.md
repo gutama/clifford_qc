@@ -71,7 +71,8 @@ rerunning the complete chemistry matrix:
 
 ```bash
 python benchmarks/reproduce_exact_h4.py \
-    --out reproductions/h4_exact.jsonl
+    --out reproductions/h4_exact.jsonl \
+    --trajectory-out reproductions/h4_exact_trajectory.json
 ```
 
 To run that row alongside the 200-seed certification calibration, use the
@@ -96,7 +97,12 @@ python benchmarks/demo_shared_word_selection.py --seeds 5
 ## Predeclared experiment parameters
 
 Seeds are `range(n_seeds)` per (model, method); model disorder seeds equal
-the run seed. Selection uses delta = 0.05, near-optimality tolerance 0.05,
+the run seed. Strict certification calibration uses a fixed candidate family,
+Bonferroni allocation across its predeclared decision schedule, and an
+additional group-wise split for empirical-Bernstein bounds. Published
+normal-bound trajectory sweeps retain explicit Sidak intervals as an
+asymptotic heuristic and are never labelled finite-sample certified.
+Selection uses delta = 0.05, near-optimality tolerance 0.05,
 ADAPT gradient threshold 1e-6 (1e-5/1e-6 chemistry), shot escalation
 base 256 doubling to 64x, variance-proportional round budget 4096
 (growth 2, 7 rounds), operator budgets 8 (n=4/6 spin), 12 (chemistry and
@@ -105,6 +111,16 @@ and 200 for chemistry, unlimited-default elsewhere). Chemical accuracy is
 1.6e-3 Ha against the active-space FCI energy. Resource metrics follow
 RESEARCH_PLAN.md section 7 (shots, circuits, unique words, operators,
 optimizer evaluations, peak Pauli support).
+
+Empirical-Bernstein certification also requires fixed cumulative sample
+endpoints: use `UniformFixed` or `UniformDoubling`. Variance-proportional
+allocation chooses future endpoints from observed variances and is therefore
+paired only with the asymptotic normal bound unless a confidence sequence is
+added.
+
+The configured `delta` is a per-selection-call budget. For a strict trajectory
+with at most `K` selections and desired trajectory-wide budget `delta_total`,
+use `delta=delta_total/K` (or a sharper predeclared stepwise allocation).
 
 ## Certification revision experiments (PRA revision)
 
@@ -119,14 +135,21 @@ python benchmarks/run_calibration.py --seeds 200 \
 python benchmarks/run_baselines.py --seeds 15 \
     --out benchmarks/reference_results/baselines.jsonl
 
-# Repaired chemistry: infinite-shot (N->inf) proxy ranking, H4 geometry
-# sweep, and (compute permitting) certified H4. Requires the chemistry extra.
+# Repaired chemistry: infinite-shot (N->inf) proxy ranking and H4 geometry
+# sweep. Requires the chemistry extra.
 python benchmarks/run_chemistry_repair.py \
     --out benchmarks/reference_results/chemistry_repair.jsonl
+
+# Optional strict finite-sample H4: empirical-Bernstein, fixed endpoints,
+# trajectory-wide delta split, and abstention on every unresolved outcome.
+python benchmarks/run_chemistry_repair.py --strict-h4 \
+    --trajectory-delta 0.05 --h4-operators 10 \
+    --out reproductions/chemistry_repair_with_strict_h4.jsonl
 ```
 
-The certified finite-shot H4 arm (n=8, 160 candidates) is beyond the
-single-core classical-simulation budget of this reference implementation;
-`run_chemistry_repair.py` emits the infinite-shot ranking and geometry
-sweep regardless, and the certified-H4 trajectory is left to hardware-scale
-study.
+The strict finite-shot H4 arm (n=8, 160 candidates) is opt-in because it is
+beyond the practical single-core simulation budget of this reference
+implementation. It may legitimately stop at the first ambiguous selection;
+that abstention is the certified result. The default command emits only the
+infinite-shot ranking and geometry sweep and never labels fallback output as
+certified.

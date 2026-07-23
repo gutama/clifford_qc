@@ -108,8 +108,11 @@ def test_excitation_generators_conserve_particle_number_and_sz(n_qubits, n_elect
         assert normal_ordered(commutator(gen, spin_z)) == zero
 
 
-def test_excitation_pool_word_counts_are_sector_correct():
-    """Lock the spin-sector-correct pool sizes. The buggy doubles filter
+def test_excitation_pool_word_counts_follow_correct_generator_filter():
+    """Lock the word counts after correcting the source-generator filter.
+
+    The individual word rotors are not themselves symmetry preserving; the
+    chemistry benchmark reports their sector leakage separately. The buggy doubles filter
     produced 176 words for H4 (16 extra from two Delta S_z = +/-2
     generators); the corrected S_z-conserving pool is 160. H2 has no
     Delta S_z = +/-2 doubles, so its 12-word pool is unchanged."""
@@ -126,3 +129,21 @@ def test_no_spin_changing_double_excitation_is_generated():
     gens = [normal_ordered(g) for g in _excitation_generators(8, 4)]
     # neither the generator nor its negation (opposite h.c. sign convention)
     assert all(g != spurious and g != -spurious for g in gens)
+
+
+def test_strict_h4_selector_uses_finite_sample_trajectory_budget():
+    import importlib.util
+    from pathlib import Path
+
+    path = Path(__file__).parents[1] / "benchmarks" / "run_chemistry_repair.py"
+    spec = importlib.util.spec_from_file_location("run_chemistry_repair", path)
+    module = importlib.util.module_from_spec(spec)
+    assert spec.loader is not None
+    spec.loader.exec_module(module)
+
+    selector, per_call = module.strict_h4_selector(10, 0.05)
+    assert per_call == pytest.approx(0.005)
+    assert selector.delta == pytest.approx(per_call)
+    assert selector.bound == "eb"
+    assert selector.method == "bonferroni"
+    assert selector.near_tol is None

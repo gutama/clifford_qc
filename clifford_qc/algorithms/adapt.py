@@ -1,4 +1,4 @@
-"""ADAPT-VQE with exact or confidence-certified finite-shot selection.
+"""ADAPT-VQE with exact or confidence-controlled finite-shot selection.
 
 The finite-shot path implements the Paper A machinery end to end:
 
@@ -89,8 +89,12 @@ def _certification_level(status: "SelectionStatus", bound: str | None) -> str:
 
 
 def _is_certified(level: str) -> bool:
-    """A genuine (finite-sample or exact) certificate; excludes asymptotic normal."""
-    return level in ("exact", "finite_sample")
+    """True only for a statistical finite-sample certificate.
+
+    Exact gradients are noiseless and recorded as ``certification='exact'``,
+    but they are not statistical confidence certificates.
+    """
+    return level == "finite_sample"
 
 
 @dataclass(frozen=True)
@@ -135,16 +139,18 @@ class ConfidenceSelector:
     """Best-arm selection on |g_j| with simultaneous confidence bounds.
 
     Selects candidate ĵ = argmax |ĝ_j| only once its lower bound clears
-    every rival's upper bound (wrong-selection probability <= delta under
-    the tier-1 normal approximation; the delta budget is split across
-    candidates by Sidak/Bonferroni and across allocation rounds by a union
-    bound). ``eliminate=True`` drops candidates whose upper bound falls
+    every rival's upper bound. The normal path is an asymptotic approximation;
+    the empirical-Bernstein path controls wrong selection at ``delta`` by
+    splitting the budget across rounds, the fixed candidate family declared
+    before measurement, and every QWC
+    group summed into a candidate. Normal intervals use dependence-safe
+    Bonferroni by default. ``eliminate=True`` drops candidates whose upper bound falls
     below the best lower bound (successive elimination), shrinking the
     measured word set in later rounds.
     """
 
     def __init__(self, delta: float = 0.05, threshold: float = 1e-6,
-                 method: str = "sidak", eliminate: bool = True,
+                 method: str = "bonferroni", eliminate: bool = True,
                  near_tol: float | None = None, bound: str = "normal"):
         if not (0.0 < delta < 1.0):
             raise ValueError("delta must be in (0, 1)")
@@ -157,14 +163,21 @@ class ConfidenceSelector:
         self.near_tol = near_tol
         self.bound = bound
 
-    def _bounds(self, bank, cache, active, rounds):
+    def _bounds(self, bank, cache, active, rounds, family_size=None):
         """Return {j: (estimate, lower, upper)} on |g_j|.
 
         Uses the covariance-aware group radius (finite-schedule-valid when the
         'eb' bound is selected) when the cache exposes joint-group statistics
         (grouped path), and the per-word normal propagation otherwise
         (ungrouped path)."""
-        m = len(active)
+        # Keep the simultaneous-testing family fixed at the candidate set
+        # declared before measurement.  The active set is data-dependent;
+        # recycling its smaller size after elimination would require a
+        # separate alpha-recycling proof.  A fixed family size is conservative
+        # and makes the finite-schedule union bound valid under elimination.
+        m = len(active) if family_size is None else int(family_size)
+        if m < len(active):
+            raise ValueError("family_size cannot be smaller than active set")
         grouped = hasattr(cache, "candidate_group_terms")
         out = {}
         for j in active:
@@ -200,6 +213,12 @@ class ConfidenceSelector:
         active = list(candidates)
         if not active:
             raise ValueError("no candidates to select from")
+        if self.bound == "eb" and not getattr(allocator, "finite_schedule_valid", False):
+            raise ValueError(
+                "empirical-Bernstein certification requires a predeclared "
+                "fixed-endpoint allocation schedule; use UniformFixed or "
+                "UniformDoubling, or use bound='normal' for adaptive allocation")
+        family_size = len(active)
         rounds = self._planned_rounds(allocator)
         best = None
         bounds: dict[int, tuple[float, float, float]] = {}
@@ -211,7 +230,7 @@ class ConfidenceSelector:
             words = [w for w in bank.words_for(active) if w.code in plan]
             cache.add_batch(sampler(words, plan))
 
-            bounds = self._bounds(bank, cache, active, rounds)
+            bounds = self._bounds(bank, cache, active, rounds, family_size)
             best = max(active, key=lambda j: abs(bounds[j][0]))
             best_lower = bounds[best][1]
             rival_upper = max((bounds[j][2] for j in active if j != best), default=0.0)
@@ -518,10 +537,17 @@ def run_adapt(model, pool: Sequence[PoolOperator], *,
                 stopped_reason = "no candidate above threshold"
             else:
                 stopped_reason = "exact gradient below threshold"
-        elif status is SelectionStatus.BUDGET_EXHAUSTED_AMBIGUOUS and not accept_ambiguous:
-            stopped_reason = "selection ambiguous at budget (strict abstention)"
-        strict_abstain = (status is SelectionStatus.BUDGET_EXHAUSTED_AMBIGUOUS
-                          and not accept_ambiguous)
+        elif (status in (SelectionStatus.BUDGET_EXHAUSTED_AMBIGUOUS,
+                         SelectionStatus.RESOLVED_NEAR_OPTIMAL)
+              and not accept_ambiguous):
+            stopped_reason = "selection not strictly resolved (strict abstention)"
+        # A near-optimal tolerance is useful in fallback mode, but it does not
+        # prove the exact best arm. Strict mode therefore abstains on it just
+        # as it does on an exhausted ambiguous budget.
+        strict_abstain = (
+            status in (SelectionStatus.BUDGET_EXHAUSTED_AMBIGUOUS,
+                       SelectionStatus.RESOLVED_NEAR_OPTIMAL)
+            and not accept_ambiguous)
         if strict_abstain:
             abstentions += 1
         if idx is None or strict_abstain:
@@ -585,5 +611,13 @@ def run_adapt(model, pool: Sequence[PoolOperator], *,
         metadata={"model": model.name, "pool_size": len(pool),
                   "noisy_selection": noisy, "certification_mode": mode,
                   "bound": selector_bound,
+                  "simultaneous_method": getattr(selector, "method", None),
+                  "confidence_delta_per_selection": (
+                      getattr(selector, "delta", None) if noisy else None),
+                  "certification_scope": (
+                      "per_selection_call" if selector_bound == "eb" else None),
+                  "allocation_finite_schedule_valid": (
+                      getattr(allocator, "finite_schedule_valid", None)
+                      if noisy else None),
                   "shot_accounting": "selection_only_exact_optimizer"},
     )

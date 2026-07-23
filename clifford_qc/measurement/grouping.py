@@ -84,10 +84,13 @@ def _qwc_partition(n: int, codes: tuple[int, ...]) -> tuple[tuple[int, ...], ...
 def qwc_groups(words: Sequence[PauliWord]) -> list[list[PauliWord]]:
     """Greedy largest-degree-first partition of ``words`` into QWC groups.
 
-    Graph coloring on the QWC-incompatibility graph: words are processed in
-    descending conflict degree and placed into the first compatible group.
-    Not optimal (that is NP-hard) but standard and effective. The partition
-    is cached on the exact word set, so repeated candidate sets reuse it.
+    Graph coloring on the finite simple QWC-incompatibility graph (vertices
+    are distinct Pauli words; an edge joins a non-QWC pair): words are
+    processed in descending conflict degree and placed into the first
+    compatible group. The returned group count is therefore a constructive
+    upper bound on the chromatic number, not a proof of the minimum circuit
+    count (exact coloring is NP-hard). The partition is cached on the exact
+    word set, so repeated candidate sets reuse it.
     """
     words = list(words)
     if not words:
