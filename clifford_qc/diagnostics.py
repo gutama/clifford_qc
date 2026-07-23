@@ -52,7 +52,11 @@ def fermionic_sector_diagnostics(rho: MV, n_electrons: int, *,
         raise ValueError("n_electrons must be in [0, n]")
     if abs(2.0 * target_sz - round(2.0 * target_sz)) > 1e-12:
         raise ValueError("target_sz must be an integer or half-integer")
-
+    if rho.n > 20:
+        raise ValueError(
+            "fermionic_sector_diagnostics enumerates 2**n basis states; "
+            "intended for small n (<=20)"
+        )
     # Only I/Z Pauli terms contribute to computational-basis probabilities.
     # Evaluate the diagonal directly instead of constructing 2**n projector
     # multivectors; the latter is needlessly expensive for the 8-qubit H4
