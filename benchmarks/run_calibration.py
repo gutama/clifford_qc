@@ -1,8 +1,9 @@
-"""Calibration of certified selection (PRA revision headline).
+"""Calibration of strict selection (PRA revision headline).
 
-The certification claim is that a *strict* selector -- one that returns a
+The per-call certification claim is that a *strict* selector -- one that returns a
 resolved operator only when the best-arm rule fires, and abstains otherwise
--- selects the wrong operator with probability at most ``delta``. This
+-- selects the wrong operator with probability at most ``delta`` at one
+fixed ansatz state. This
 experiment measures the empirical wrong-selection probability against the
 nominal ``delta``, together with interval coverage, selection regret, the
 abstention rate, and the measurement cost.
@@ -85,7 +86,8 @@ def one_selection(bank, rho, delta, bound, seed):
     idx, status, diag = selector.select(bank, cache, sampler, allocator, candidates)
     # coverage: does every candidate's interval cover the true |g_j| at the end?
     bounds = selector._bounds(bank, cache, candidates,
-                              selector._planned_rounds(allocator))
+                              selector._planned_rounds(allocator),
+                              family_size=len(candidates))
     covered = 0
     for j in candidates:
         _, lo, up = bounds[j]
@@ -126,8 +128,15 @@ def main(argv=None) -> None:
         runs = agg["runs"]
         return {
             **extra, "runs": runs,
+            "simultaneous_method": "bonferroni",
+            "candidate_family": "fixed_pre_measurement",
+            "allocation": "uniform_doubling",
+            "decision_rounds": int(math.log2(MAX_FACTOR)) + 1,
+            "base_shots": BASE,
+            "max_factor": MAX_FACTOR,
             "wrong_selection_rate": agg["wrong"] / runs,
-            "wrong_given_resolved": agg["wrong"] / max(agg["resolved"], 1),
+            "wrong_given_resolved": (agg["wrong"] / agg["resolved"]
+                                     if agg["resolved"] else None),
             "resolved_rate": agg["resolved"] / runs,
             "abstention_rate": agg["abstained"] / runs,
             "coverage": float(np.mean(agg["cov"])),

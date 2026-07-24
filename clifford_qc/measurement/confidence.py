@@ -13,15 +13,18 @@ compatible with a finite-sample concentration bound.
 Two radii are provided on ``g_hat_j``:
 
 - ``normal``: a covariance-aware Gaussian radius, fast and tight, valid
-  only *asymptotically*; used with a simultaneous Šidák/Bonferroni
-  correction across candidates. It supports asymptotic resolution, not a
-  finite-sample certificate.
+  only *asymptotically*; used with a dependence-safe Bonferroni correction
+  across candidates by default. It supports asymptotic resolution, not a
+  finite-sample certificate. Šidák remains available only as an explicit
+  approximation when independence is defensible.
 - ``eb`` (finite-schedule-valid): an empirical-Bernstein radius on each
-  group's bounded per-shot contribution, summed over groups. Each radius is
-  a fixed-``N`` two-sided bound; a union bound over candidates and over the
-  predeclared *finite schedule* of ``R`` decision rounds makes it valid
-  uniformly across that schedule (Proposition below), yielding a genuine
-  finite-sample guarantee unlike the Gaussian approximation. This is
+  group's bounded per-shot contribution, summed over groups. Each group
+  radius is a fixed-``N`` two-sided bound; the error budget is split over
+  decision rounds, the fixed candidate family, and every QWC group touched by that
+  candidate. A union bound over those events makes the summed candidate
+  radius valid uniformly across the predeclared schedule (Proposition
+  below), yielding a genuine finite-sample guarantee unlike the Gaussian
+  approximation. This is
   finite-schedule-valid, not anytime-valid: it holds over the fixed set of
   ``R`` rounds, not simultaneously over all sample sizes (which would
   require a confidence sequence via a supermartingale / Ville's inequality).
@@ -30,11 +33,14 @@ Certification guarantee
 -----------------------
 Fix an error budget ``delta`` and a strict selector that (i) makes
 decisions only at the ``R`` rounds of a predeclared allocation schedule,
-(ii) at each round spends ``delta/R`` split across the ``m`` active
-candidates, forming for each candidate a two-sided radius that holds with
-probability at least ``1 - delta/(R m)`` for its (bounded) estimate, and
+(ii) at each round spends ``delta/R`` split across the fixed family of ``M``
+candidates declared before measurement and, for candidate ``j``, across its
+``q_j`` measured QWC groups,
+forming group radii with failure probability at most
+``delta/(R M q_j)`` whose sum bounds the candidate estimate, and
 (iii) returns ``resolved_best`` only when the empirical leader's lower
-bound strictly exceeds every rival's upper bound. Then, over the whole run,
+bound strictly exceeds every rival's upper bound. Then, over one selector
+call at one fixed ansatz state (including all of its decision rounds),
 
     Pr(strict selector returns a resolved operator that is not the true
        argmax of |g_j|)  <=  delta,
@@ -42,13 +48,23 @@ bound strictly exceeds every rival's upper bound. Then, over the whole run,
 under the assumptions: (A1) shots are independent given the fixed ansatz
 state; (A2) each candidate's per-group per-shot contribution lies in a
 known bounded range (it does: it is a signed sum of +/-1 word outcomes);
-(A3) the radii are valid finite-sample bounds for bounded means -- true
-for the empirical-Bernstein radius, and asymptotic for the Gaussian one.
+(A3) every cumulative sample endpoint used for a decision is fixed before
+the samples are observed; and (A4) the radii are valid finite-sample bounds
+for bounded means -- true for the empirical-Bernstein radius, and asymptotic
+for the Gaussian one.
 The proof is a union bound: the resolution rule fails only if some active
-candidate's true |g_j| lies outside its radius at some decision round; each
-such event has probability at most ``delta/(R m)``; there are at most
-``R m`` of them. Ties in |g_j| are never resolved (Eq. resolve is strict),
+candidate's true |g_j| lies outside its radius at some decision round; that
+can happen only if one of its group means misses. The candidate-group events
+for candidate ``j`` at a round sum to at most ``delta/(R M)``, and the fixed
+candidate-family and round unions sum to ``delta``. The family size is not
+reduced after data-dependent elimination; doing so would need a separate
+alpha-recycling argument. Ties in |g_j| are never resolved (Eq. resolve is strict),
 so an exact symmetry-tie yields abstention, not a wrong selection.
+
+The budget is per selector call, not automatically per multi-step ADAPT
+trajectory. To guarantee a trajectory-level error budget ``delta_total``
+over at most ``K`` selections by a union bound, instantiate the selector
+with ``delta=delta_total/K``.
 """
 
 from __future__ import annotations
@@ -85,7 +101,7 @@ def sidak_per_test_delta(delta: float, m: int, method: str = "sidak") -> float:
 
 
 def simultaneous_z_radius(variance: float, delta: float, m: int,
-                          method: str = "sidak") -> float:
+                          method: str = "bonferroni") -> float:
     """Two-sided normal confidence radius at simultaneous level 1-delta
     across m candidates: z_{1 - delta'/2} * sqrt(variance)."""
     if variance == float("inf"):
@@ -120,7 +136,7 @@ def empirical_bernstein_radius(sample_var: float, N: int, delta: float,
 
 
 def candidate_radius(group_terms, delta: float, m: int, *, bound: str = "normal",
-                     method: str = "sidak", rounds: int = 1) -> float:
+                     method: str = "bonferroni", rounds: int = 1) -> float:
     """Simultaneous two-sided radius on g_hat_j = sum_g mean(v_{j,g}).
 
     ``group_terms`` is an iterable of ``(N_g, sample_var_g, range_g)`` for
@@ -131,10 +147,10 @@ def candidate_radius(group_terms, delta: float, m: int, *, bound: str = "normal"
 
     - ``bound='normal'``: covariance-aware Gaussian radius at simultaneous
       level ``1-delta`` across ``m`` candidates.
-    - ``bound='eb'``: finite-schedule-valid empirical-Bernstein radius. The
-      budget is split across ``m`` candidates and ``rounds`` decision rounds
-      by a union bound, so the guarantee holds uniformly over the predeclared
-      finite schedule of rounds (not over all sample sizes).
+    - ``bound='eb'``: finite-schedule-valid empirical-Bernstein radius. For
+      a candidate touching ``q`` groups, each group receives
+      ``delta/(m * rounds * q)``. The union bound therefore covers every
+      candidate-group event at every predeclared round (not all sample sizes).
     """
     terms = list(group_terms)
     if rounds < 1:
@@ -145,7 +161,11 @@ def candidate_radius(group_terms, delta: float, m: int, *, bound: str = "normal"
         var = sum(sv / N for N, sv, _ in terms)
         return simultaneous_z_radius(var, delta / rounds, m, method)
     if bound == "eb":
-        per = delta / (m * rounds)
+        # The candidate estimate is a sum of group means.  We bound each mean
+        # and sum the radii, so the familywise budget must include the number
+        # of group events being union-bounded.  Omitting this factor gives a
+        # candidate failure budget as large as q times the advertised value.
+        per = delta / (m * rounds * len(terms))
         return sum(empirical_bernstein_radius(sv, N, per, value_range=max(rng, 1e-12))
                    for N, sv, rng in terms)
     raise ValueError("bound must be 'normal' or 'eb'")

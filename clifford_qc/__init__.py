@@ -16,7 +16,10 @@ from .states import (
 )
 from .channels import check_kraus, apply_channel, depolarizing, dephasing, amplitude_damping
 from .matrix import code_to_matrix, to_matrix, from_matrix, density_from_statevector, expm_matrix, exact_ground
-from .diagnostics import negativity, vn_entropy, fidelity_pure, trace_cyclicity_error
+from .diagnostics import (
+    negativity, vn_entropy, fidelity_pure, trace_cyclicity_error,
+    fermionic_sector_diagnostics,
+)
 from .ir import (
     PauliWord, PauliSum, Parameter, ParameterGroup, Rotor, NamedClifford,
     MeasurementTask, Program, conjugate_pauli_word, clifford_angle_index,

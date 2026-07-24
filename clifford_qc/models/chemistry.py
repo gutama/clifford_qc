@@ -5,8 +5,11 @@ an active space) into the same ``Model`` the spin benchmarks use: the
 Jordan-Wigner qubit Hamiltonian as a ``PauliSum`` and the Hartree-Fock
 determinant as the Clifford reference Program (X gates on the occupied
 spin-orbitals). ``excitation_pool`` provides the qubit-ADAPT candidate
-pool: the individual (odd-Y) Pauli words of the JW-transformed
-spin-conserving single and double excitation generators.
+pool: individual odd-Y Pauli words *derived from* JW-transformed,
+particle-number- and S_z-conserving single/double generators.  The source
+generators conserve those symmetries, but their individual Pauli-word
+rotors generally do not; chemistry benchmarks therefore report explicit
+sector leakage rather than calling the qubit pool symmetry preserving.
 """
 
 from __future__ import annotations
@@ -131,14 +134,17 @@ def _excitation_generators(n_qubits: int, n_electrons: int) -> list[FermionOpera
 
 
 def excitation_pool(n_qubits: int, n_electrons: int) -> list[PoolOperator]:
-    """Qubit-ADAPT pool: odd-Y Pauli words of JW single/double excitations.
+    """Qubit-ADAPT pool: odd-Y Pauli words from JW excitations.
 
     Spin-conserving singles a†_a a_i - h.c. and doubles
     a†_a a†_b a_j a_i - h.c. over occupied {0..n_e-1} / virtual
     {n_e..n_q-1} spin-orbitals (see ``_excitation_generators`` for the
     particle- and S_z-conservation conditions); each anti-Hermitian
     generator's JW image splits into odd-Y words that enter the pool
-    individually (deduplicated, ordered by first appearance).
+    individually (deduplicated, ordered by first appearance).  This is the
+    standard word-level qubit-ADAPT construction, not a symmetry-preserving
+    fermionic-excitation ansatz: a single word need not commute with particle
+    number or S_z even though the unsplit source generator does.
     """
     pool: dict[int, PoolOperator] = {}
     for gen in _excitation_generators(n_qubits, n_electrons):

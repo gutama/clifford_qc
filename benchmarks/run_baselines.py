@@ -11,7 +11,8 @@ Compares, on a common set of n=4 selection problems at a matched budget:
 - variance_reuse : bank reuse + grouping + variance-proportional allocation
                    (the reuse-and-variance-allocation family, cf. Ikhtiarudin
                    et al.);
-- strict         : shared_grouped, abstain on ambiguity (certified);
+- strict         : shared_grouped, abstain on ambiguity (normal-bound,
+                   asymptotically resolved rather than finite-sample certified);
 - fallback       : shared_grouped, accept the empirical leader when ambiguous.
 
 It also reports the per-step measurement-plan size for three reuse regimes,
@@ -53,18 +54,24 @@ def plan_sizes(model):
 
 
 def arm_kwargs(arm, seed):
-    conf = dict(selector=ConfidenceSelector(delta=0.05, near_tol=0.05),
+    # Preserve the published normal-bound trajectories explicitly. Sidak is
+    # an asymptotic heuristic here; finite-sample certification uses the
+    # Bonferroni empirical-Bernstein calibration instead.
+    conf = dict(selector=ConfidenceSelector(delta=0.05, near_tol=0.05,
+                                             method="sidak"),
                 backend=FiniteShotBackend(seed=seed), grouping=True)
     if arm == "exact":
         return {}
     if arm == "random":
         return dict(selector=RandomSelector(seed=seed))
     if arm == "fixed_shot":
-        return dict(selector=ConfidenceSelector(delta=0.05, near_tol=0.05),
+        return dict(selector=ConfidenceSelector(delta=0.05, near_tol=0.05,
+                                                method="sidak"),
                     backend=FiniteShotBackend(seed=seed), grouping=True,
                     allocator=UniformFixed(shots_per_word=4096))
     if arm == "shared_only":
-        return dict(selector=ConfidenceSelector(delta=0.05, near_tol=0.05),
+        return dict(selector=ConfidenceSelector(delta=0.05, near_tol=0.05,
+                                                method="sidak"),
                     backend=FiniteShotBackend(seed=seed), grouping=False,
                     allocator=UniformDoubling(base=256, max_factor=64))
     if arm == "shared_grouped":
@@ -115,6 +122,7 @@ def main(argv=None) -> None:
                        "shots_median": median(shots),
                        "circuits_median": median(circ),
                        "abstentions_total": absten, **sizes}
+                row["selection_metadata"] = res.metadata
                 fh.write(json.dumps(row) + "\n"); fh.flush()
                 print(f"{fam:14s} {arm:15s} rel={row['rel_err_median']:.2e} "
                       f"shots={row['shots_median']:.0f} circ={row['circuits_median']:.0f} "

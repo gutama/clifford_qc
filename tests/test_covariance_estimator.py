@@ -87,6 +87,33 @@ def test_candidate_radius_normal_and_eb_shrink_with_shots():
         candidate_radius(terms_small, 0.05, 3, bound="normal", rounds=4)
 
 
+def test_empirical_bernstein_budget_is_split_over_groups():
+    """A summed q-group radius must allocate delta over all q events."""
+    term = (500, 0.4, 2.0)
+    delta, m, rounds, q = 0.05, 7, 4, 3
+    got = candidate_radius([term] * q, delta, m, bound="eb", rounds=rounds)
+    per_group = empirical_bernstein_radius(
+        term[1], term[0], delta / (m * rounds * q), value_range=term[2])
+    assert got == pytest.approx(q * per_group)
+
+    # Omitting q gives a smaller radius but spends q times the advertised
+    # familywise budget for this candidate.
+    old = q * empirical_bernstein_radius(
+        term[1], term[0], delta / (m * rounds), value_range=term[2])
+    assert got > old
+
+
+def test_normal_default_is_dependence_safe_bonferroni():
+    terms = [(1000, 0.5, 2.0)]
+    default = candidate_radius(terms, 0.05, 8, bound="normal", rounds=3)
+    bonf = candidate_radius(
+        terms, 0.05, 8, bound="normal", rounds=3, method="bonferroni")
+    sidak = candidate_radius(
+        terms, 0.05, 8, bound="normal", rounds=3, method="sidak")
+    assert default == pytest.approx(bonf)
+    assert default >= sidak
+
+
 def test_candidate_radius_unmeasured_is_infinite():
     assert candidate_radius([], 0.05, 2, bound="normal") == float("inf")
     assert candidate_radius([(0, 0.1, 2.0)], 0.05, 2, bound="eb", rounds=2) == float("inf")

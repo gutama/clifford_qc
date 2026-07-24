@@ -1,6 +1,6 @@
 """Strict certification vs confidence-guided fallback (PRA revision).
 
-A strict run stops (abstains) when a selection is ambiguous at the budget;
+A strict run stops (abstains) when a selection is not strictly resolved;
 a fallback run accepts the empirical leader but marks it not-certified.
 Strict *resolution* is bound-independent (best-arm fired or exact), but a
 genuine finite-sample *certificate* requires the empirical-Bernstein ('eb')
@@ -10,13 +10,30 @@ separately (``certification`` level and the derived ``certified`` bool).
 
 from clifford_qc.models import tfim
 from clifford_qc.backends import FiniteShotBackend
-from clifford_qc.measurement import UniformDoubling
+from clifford_qc.measurement import UniformDoubling, UniformFixed, VarianceProportional
 from clifford_qc.algorithms import (
     ConfidenceSelector, SelectionStatus, local_pool, run_adapt,
 )
 from clifford_qc.algorithms.adapt import (
     _certification_level, _is_certified, _is_resolved,
 )
+
+
+def test_confidence_bounds_keep_declared_family_after_elimination():
+    """The alpha budget cannot grow merely because selection removed arms."""
+    model = tfim(3, 1.0, 0.7)
+    pool = local_pool(3, periodic_context=False)
+    from clifford_qc.measurement import CommutatorBank, GroupedWordCache
+    bank = CommutatorBank(model.hamiltonian, [op.word for op in pool])
+    cache = GroupedWordCache(model.n)
+    selector = ConfidenceSelector(bound="eb")
+    # The guard pins the fixed-family contract used by select().
+    try:
+        selector._bounds(bank, cache, list(range(3)), rounds=2, family_size=2)
+    except ValueError as exc:
+        assert "family_size" in str(exc)
+    else:  # pragma: no cover
+        raise AssertionError("smaller post-elimination family was accepted")
 
 
 def _run(accept, seed=3, budget=64):
@@ -52,7 +69,7 @@ def test_certification_level_separates_finite_sample_from_asymptotic():
               SelectionStatus.FAST_PROXY):
         assert _certification_level(s, "eb") == "none"
 
-    assert _is_certified("exact")
+    assert not _is_certified("exact")  # exact is distinct, not statistical
     assert _is_certified("finite_sample")
     assert not _is_certified("asymptotic")  # the key separation
     assert not _is_certified("none")
@@ -70,6 +87,19 @@ def test_strict_abstains_on_ambiguity():
     # finite-sample certificate.
     assert all(r.certification == "asymptotic" for r in selected)
     assert not any(r.certified for r in selected)
+
+
+def test_strict_abstains_on_near_optimal_outcome():
+    res = run_adapt(
+        tfim(4, 1.0, 1.0), local_pool(4, periodic_context=False),
+        backend=FiniteShotBackend(seed=3),
+        selector=ConfidenceSelector(delta=0.05, near_tol=1e9),
+        allocator=UniformFixed(shots_per_word=16),
+        max_operators=2, grouping=True, accept_ambiguous=False)
+    assert res.records[-1].status is SelectionStatus.RESOLVED_NEAR_OPTIMAL
+    assert res.records[-1].selected_label is None
+    assert res.abstentions == 1
+    assert "strict abstention" in res.stopped_reason
 
 
 def test_fallback_proceeds_and_labels_uncertified():
@@ -105,13 +135,25 @@ def test_eb_bound_never_labels_asymptotic():
         assert r.certified == (r.certification == "finite_sample")
 
 
-def test_exact_adapt_records_are_certified():
+def test_eb_rejects_outcome_adaptive_sample_counts():
+    """Variance-proportional endpoints need a confidence sequence."""
+    import pytest
+    with pytest.raises(ValueError, match="predeclared fixed-endpoint"):
+        run_adapt(
+            tfim(3, 1.0, 0.7), local_pool(3, periodic_context=False),
+            backend=FiniteShotBackend(seed=1),
+            selector=ConfidenceSelector(delta=0.05, bound="eb"),
+            allocator=VarianceProportional(256, max_rounds=3),
+            max_operators=1, grouping=True, accept_ambiguous=False)
+
+
+def test_exact_adapt_records_are_exact_not_statistically_certified():
     res = run_adapt(tfim(4, 1.0, 1.0), local_pool(4, periodic_context=False),
                     max_operators=6)
     assert res.metadata["certification_mode"] == "n/a"
     selected = [r for r in res.records if r.selected_label]
     assert all(r.certification == "exact" for r in selected)
-    assert all(r.certified for r in selected)
+    assert not any(r.certified for r in selected)
 
 
 def test_bound_recorded_in_metadata():
@@ -122,3 +164,8 @@ def test_bound_recorded_in_metadata():
                       allocator=UniformDoubling(base=128, max_factor=16),
                       max_operators=3, grouping=True)
         assert r.metadata["bound"] == bound
+        assert r.metadata["simultaneous_method"] == "bonferroni"
+        assert r.metadata["confidence_delta_per_selection"] == 0.05
+        assert r.metadata["certification_scope"] == (
+            "per_selection_call" if bound == "eb" else None)
+        assert r.metadata["allocation_finite_schedule_valid"] is True
