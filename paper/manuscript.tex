@@ -390,7 +390,7 @@ Family & Method & $\epsilon_E$ & $N_{\rm shots}$ & $N_{\text{circ}}$ & abs.\\
 \begin{figure}[t]
 \centering
 \includegraphics[width=0.99\columnwidth]{paper_assets/selection_quality.pdf}
-\caption{Median relative energy error at a common eight-operator budget for random selection and two confidence-guided fallback variants (uniform-doubling and variance-proportional allocation, both with QWC grouping), on five $n=4$ families, 100 seeds. The dashed line marks $\epsilon_E=10^{-3}$; the periodic-TFIM fallback trajectories reach machine precision.}
+\caption{Median relative energy error at a common eight-operator budget for random selection and two confidence-guided variants (uniform-doubling and variance-proportional allocation, both with QWC grouping), on five $n=4$ families, 100 seeds. Both finite-shot arms accept the empirical leader on an unresolved comparison and are therefore \emph{confidence-guided}, not certified. The dashed line marks $\epsilon_E=10^{-3}$; bars at $10^{-15}$ are at machine precision (periodic TFIM for both arms, and TFIM $h=0.5$ for variance-proportional allocation).}
 \label{fig:selection}
 \end{figure}
 
@@ -413,7 +413,7 @@ Family & Selector & $\epsilon_E$ & $N_{\rm shots}$ & $N_{\text{circ}}$ & amb.\\
 \begin{figure}[t]
 \centering
 \includegraphics[width=0.85\columnwidth]{paper_assets/grouping.pdf}
-\caption{Median distinct measurement circuits, ungrouped versus QWC-grouped, at fixed accuracy and shot budget ($n=4$, 100 seeds). Annotations give the reduction factor.}
+\caption{Median circuit executions, ungrouped versus QWC-grouped, at unchanged accuracy ($n=4$, 100 seeds, uniform doubling). Annotations give the reduction factor; the corresponding state-preparation reductions are in Table~\ref{tab:grouping}.}
 \label{fig:grouping}
 \end{figure}
 
@@ -437,7 +437,7 @@ Family & circ.\ ung. & circ.\ grp. & factor & shots ung. & shots grp. & factor\\
 \begin{figure}[t]
 \centering
 \includegraphics[width=0.99\columnwidth]{paper_assets/allocation.pdf}
-\caption{Uniform-doubling versus variance-proportional allocation ($n=4$, 100 seeds, both grouped): (left) ambiguous-selection rate; (right) median total shots. Variance-proportional allocation lowers ambiguity at roughly twice the measurement cost.}
+\caption{Uniform-doubling versus variance-proportional allocation ($n=4$, 100 seeds, both grouped): (left) ambiguous-selection rate; (right) median state preparations. Variance-proportional allocation lowers ambiguity by $27$--$48\%$ at $2.2$--$2.7\times$ the measurement cost.}
 \label{fig:allocation}
 \end{figure}
 

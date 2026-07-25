@@ -93,9 +93,10 @@ def fig_selection_quality():
     ax.set_xticklabels([FAM_LABEL[f] for f in ORDER], rotation=25, ha="right")
     ax.axhline(1e-3, ls="--", lw=0.8, color="k", alpha=0.6)
     ax.text(len(ORDER) - 0.5, 1.3e-3, r"$10^{-3}$", fontsize=ANNOT, ha="right", va="bottom")
-    ax.legend(frameon=False, loc="lower left")
-    ax.set_title("Selection quality at a common operator budget (n=4, 100 seeds)",
-                 fontsize=11)
+    # above the axes: the log range spans 14 decades, so any in-axes corner
+    # collides with a bar on some family
+    ax.legend(frameon=False, ncol=3, loc="lower center",
+              bbox_to_anchor=(0.5, 1.0), columnspacing=1.2, handlelength=1.4)
     fig.savefig(OUT / "selection_quality.pdf")
     plt.close(fig)
 
@@ -116,7 +117,6 @@ def fig_grouping():
     ax.set_xticks(list(x))
     ax.set_xticklabels([FAM_LABEL[f] for f in ORDER], rotation=25, ha="right")
     ax.legend(frameon=False)
-    ax.set_title("Qubit-wise-commuting grouping (n=4)", fontsize=11)
     fig.savefig(OUT / "grouping.pdf")
     plt.close(fig)
 
@@ -174,6 +174,12 @@ def fig_chemistry():
         vals = [max(med([r["final_error_mha"] for r in g[(m, a)]]), 1e-4)
                 if g[(m, a)] else 0.0 for m in mols]
         ax.bar([xi + (i - off) * w for xi in x], vals, w, label=arm_lab[a], color=C[a])
+        # an arm that was not run leaves a gap; say so rather than let the gap
+        # read as a zero
+        for xi, m, v in zip(x, mols, vals):
+            if v == 0.0:
+                ax.text(xi + (i - off) * w, 1.3e-4, "not run", fontsize=7.5,
+                        rotation=90, ha="center", va="bottom", color="0.35")
     ax.set_yscale("log")
     ax.set_ylabel("median final error (mHa)")
     ax.set_xticks(list(x))
@@ -181,7 +187,6 @@ def fig_chemistry():
     ax.axhline(1.6, ls="--", lw=0.8, color="k", alpha=0.6)
     ax.text(len(mols) - 0.5, 1.9, "chemical accuracy", fontsize=ANNOT, ha="right", va="bottom")
     ax.legend(frameon=False, loc="upper left")
-    ax.set_title("Molecular selection: proxy vs gradient", fontsize=11)
     fig.savefig(OUT / "chemistry.pdf")
     plt.close(fig)
 
