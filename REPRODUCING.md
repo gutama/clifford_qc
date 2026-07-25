@@ -13,11 +13,14 @@ changes, regenerate every record that depends on it. The manuscript's figures
 and tables are then emitted mechanically from those records:
 
 ```bash
-python paper/make_figures.py    # -> paper/paper_assets/*.pdf
-python paper/make_tables.py     # -> paper/tables/*.tex  (\input by the .tex)
+python paper/make_figures.py     # -> paper/paper_assets/*.pdf
+python paper/make_tables.py      # -> paper/tables/*.tex  (\input by the .tex)
+python paper/check_manuscript.py # balance, refs, bib keys, column counts,
+                                 # and figures older than their source record
 ```
 
-No figure or table value in the manuscript is transcribed by hand.
+No figure or table value in the manuscript is transcribed by hand, and
+`check_manuscript.py` exits nonzero if a figure predates the record it plots.
 
 ## Environment
 
