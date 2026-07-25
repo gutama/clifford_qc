@@ -5,6 +5,20 @@ environment with the commands below. All experiments are seeded; JSONL
 rows should match up to floating-point noise in wall-clock fields, and the
 summary tables should match exactly.
 
+**Records and code move together.** A record produced before a change to the
+estimator, the selector, or the confidence construction is not comparable with
+one produced after, and mixing the two is how stale numbers reach a manuscript.
+When any module under `clifford_qc/measurement/` or `clifford_qc/algorithms/`
+changes, regenerate every record that depends on it. The manuscript's figures
+and tables are then emitted mechanically from those records:
+
+```bash
+python paper/make_figures.py    # -> paper/paper_assets/*.pdf
+python paper/make_tables.py     # -> paper/tables/*.tex  (\input by the .tex)
+```
+
+No figure or table value in the manuscript is transcribed by hand.
+
 ## Environment
 
 ```bash
@@ -155,6 +169,23 @@ python benchmarks/run_certified_trajectories.py \
 # the conditional error. Also reports the exact-argmax wrong rate for contrast.
 python benchmarks/run_calibration_eps_best.py --seeds 60 \
     --out benchmarks/reference_results/calibration_eps_best.jsonl
+
+# Shot-ceiling sweep: separates structural abstention (exact ties, which the
+# exact-best rule can never resolve) from budget-limited abstention (small but
+# nonzero gaps) and from bound conservatism. Sweeps the cumulative ceiling over
+# 64x..16384x on three explicit strata under both resolution rules, and reports
+# resolution rate, wrong rate, median shots at resolution, terminal radius, and
+# the multiplicative tolerance eta_required.
+python benchmarks/run_ceiling_sweep.py --seeds 60 \
+    --out benchmarks/reference_results/ceiling_sweep.jsonl
+
+# Gap-stratified hard instances: where an uncertified fixed-shot selector
+# silently fails. Bins instances by normalized top-two gap and compares
+# fixed-shot / fallback / strict exact-best / strict eps-best on commit rate,
+# wrong rate among committed decisions, eps-violation rate, relative regret,
+# and cost; plus shot-matched ADAPT trajectories.
+python benchmarks/run_hard_instances.py --seeds 60 --traj-seeds 15 \
+    --out benchmarks/reference_results/hard_instances.jsonl
 
 # Optional strict finite-sample H4: empirical-Bernstein, fixed endpoints,
 # trajectory-wide delta split, and abstention on every unresolved outcome.

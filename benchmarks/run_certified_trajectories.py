@@ -33,11 +33,27 @@ TRAJ_DELTA = 0.10
 EPS = 0.30
 
 
-def _step_rows(records):
+def _step_rows(records, eps):
+    """Per-step rows including the *scale* diagnostics for the eps certificate.
+
+    The eps-best guarantee |g_sel| >= max_k |g_k| - eps is absolute, so its
+    practical strength depends on the gradient scale at that step. We therefore
+    record, alongside the raw gradients, the normalized tolerance
+    ``eps_over_gmax`` (eps as a fraction of the largest gradient: <1 means the
+    certificate is tight relative to the step's own scale, >1 means it is
+    nominally weaker than the whole gradient range) and the realized relative
+    shortfall (max|g| - |g_sel|)/max|g|, together with the selected operator's
+    post-hoc exact-gradient rank.
+    """
     rows = []
     for r in records:
         radius = (None if r.lower_bound is None or r.upper_bound is None
                   else (r.upper_bound - r.lower_bound) / 2)
+        gsel = None if r.exact_gradient is None else abs(r.exact_gradient)
+        gmax = r.exact_gradient_max
+        scale = None if not gmax else eps / gmax
+        shortfall = (None if gsel is None or not gmax
+                     else (gmax - gsel) / gmax)
         rows.append({
             "step": r.step,
             "label": r.selected_label,
@@ -45,9 +61,13 @@ def _step_rows(records):
             "resolution": r.resolution,
             "certification": r.certification,
             "certified": r.certified,
-            "grad_selected": (None if r.exact_gradient is None
-                              else abs(r.exact_gradient)),
-            "grad_max": r.exact_gradient_max,
+            "grad_selected": gsel,
+            "grad_max": gmax,
+            "eps_over_gmax": scale,
+            "rel_shortfall": shortfall,
+            "exact_rank": r.exact_rank,
+            "exact_top_gap": r.exact_top_gap,
+            "eta_required": r.eta_required,
             "radius": radius,
             "cumulative_shots": r.cumulative_shots,
             "energy": r.energy,
@@ -65,8 +85,10 @@ def run_traj(name, model, pool, *, eps=EPS, base=1024, max_factor=128,
                     allocator=UniformDoubling(base=base, max_factor=max_factor),
                     max_operators=max_ops, grouping=True, threshold=1e-4,
                     selector=selector, accept_ambiguous=False)
-    steps = _step_rows(res.records)
+    steps = _step_rows(res.records, eps)
     certified_steps = sum(1 for s in steps if s["label"] and s["certified"])
+    appended = [s for s in steps if s["label"]]
+    exact_argmax = sum(1 for s in appended if s["exact_rank"] == 1)
     return {
         "system": name, "n": model.n, "pool_size": len(pool),
         "mode": "strict_eps_best", "bound": "eb", "eps": eps,
@@ -75,6 +97,15 @@ def run_traj(name, model, pool, *, eps=EPS, base=1024, max_factor=128,
         "final_rel_error": abs(res.energy - E0) / max(abs(E0), 1e-12),
         "operators": len(res.labels), "certified_steps": certified_steps,
         "all_appended_certified": certified_steps == len(res.labels) and bool(res.labels),
+        # how many certified picks were in fact the exact argmax, and the
+        # worst-case scale of the eps certificate over the appended steps
+        "appended_exact_argmax": exact_argmax,
+        "max_eps_over_gmax": max((s["eps_over_gmax"] for s in appended
+                                  if s["eps_over_gmax"] is not None), default=None),
+        "max_rel_shortfall": max((s["rel_shortfall"] for s in appended
+                                  if s["rel_shortfall"] is not None), default=None),
+        "max_eta_required": max((s["eta_required"] for s in appended
+                                 if s["eta_required"] is not None), default=None),
         "total_shots": res.total_shots, "abstentions": res.abstentions,
         "stopped_reason": res.stopped_reason, "trajectory": steps,
     }

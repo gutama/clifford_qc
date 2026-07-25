@@ -29,10 +29,16 @@ OUT.mkdir(exist_ok=True)
 C = {"random": "#999999", "doubling": "#4477AA", "doubling_grouped": "#66CCEE",
      "variance_grouped": "#EE6677", "exact": "#228833", "fast": "#CCBB44",
      "confidence": "#4477AA"}
+# Sized for a two-column PRA layout: at ~3.4 in per column the previous 7.5 pt
+# legends and 7 pt annotations rendered below the journal's 6 pt floor after
+# scaling. Base font 11 pt with 9.5 pt legends keeps every label legible.
 plt.rcParams.update({
-    "font.size": 9, "axes.spines.top": False, "axes.spines.right": False,
+    "font.size": 11, "axes.labelsize": 11, "axes.titlesize": 11,
+    "xtick.labelsize": 10, "ytick.labelsize": 10, "legend.fontsize": 9.5,
+    "axes.spines.top": False, "axes.spines.right": False,
     "figure.dpi": 200, "savefig.bbox": "tight", "axes.axisbelow": True,
 })
+ANNOT = 9.0      # in-axes annotation size
 
 
 def load(name):
@@ -69,9 +75,13 @@ def fig_selection_quality():
     """Median relative energy error: random vs confidence-guided variants."""
     g = group_headline()
     methods = ["random", "doubling_grouped", "variance_grouped"]
-    labels = {"random": "random", "doubling_grouped": "fallback (doubling)",
-              "variance_grouped": "fallback (variance)"}
-    fig, ax = plt.subplots(figsize=(5.0, 3.0))
+    # These arms accept the empirical leader when the budget is spent, so they
+    # are *confidence-guided*, never strict-certified. The legend must not say
+    # "certified": that label is reserved for strict empirical-Bernstein
+    # decisions (Table II, Sec. V B).
+    labels = {"random": "random", "doubling_grouped": "confidence-guided (doubling)",
+              "variance_grouped": "confidence-guided (variance)"}
+    fig, ax = plt.subplots(figsize=(5.6, 3.4))
     x = range(len(ORDER))
     w = 0.26
     for i, m in enumerate(methods):
@@ -82,10 +92,10 @@ def fig_selection_quality():
     ax.set_xticks(list(x))
     ax.set_xticklabels([FAM_LABEL[f] for f in ORDER], rotation=25, ha="right")
     ax.axhline(1e-3, ls="--", lw=0.8, color="k", alpha=0.6)
-    ax.text(len(ORDER) - 0.5, 1.3e-3, r"$10^{-3}$", fontsize=7, ha="right", va="bottom")
-    ax.legend(frameon=False, fontsize=7.5, loc="lower left")
+    ax.text(len(ORDER) - 0.5, 1.3e-3, r"$10^{-3}$", fontsize=ANNOT, ha="right", va="bottom")
+    ax.legend(frameon=False, loc="lower left")
     ax.set_title("Selection quality at a common operator budget (n=4, 100 seeds)",
-                 fontsize=8.5)
+                 fontsize=11)
     fig.savefig(OUT / "selection_quality.pdf")
     plt.close(fig)
 
@@ -93,7 +103,7 @@ def fig_selection_quality():
 def fig_grouping():
     """Distinct measurement circuits: ungrouped vs QWC-grouped."""
     g = group_headline()
-    fig, ax = plt.subplots(figsize=(4.6, 3.0))
+    fig, ax = plt.subplots(figsize=(5.2, 3.4))
     x = range(len(ORDER))
     w = 0.38
     ung = [med([r["total_circuits"] for r in g[(f, "doubling")]]) for f in ORDER]
@@ -101,12 +111,12 @@ def fig_grouping():
     ax.bar([xi - w / 2 for xi in x], ung, w, label="ungrouped", color=C["doubling"])
     ax.bar([xi + w / 2 for xi in x], grp, w, label="QWC-grouped", color=C["doubling_grouped"])
     for xi, u, gg in zip(x, ung, grp):
-        ax.text(xi + w / 2, gg, f"{u/gg:.1f}x", fontsize=7, ha="center", va="bottom")
+        ax.text(xi + w / 2, gg, f"{u/gg:.1f}x", fontsize=ANNOT, ha="center", va="bottom")
     ax.set_ylabel("median distinct measurement circuits")
     ax.set_xticks(list(x))
     ax.set_xticklabels([FAM_LABEL[f] for f in ORDER], rotation=25, ha="right")
-    ax.legend(frameon=False, fontsize=7.5)
-    ax.set_title("Qubit-wise-commuting grouping (n=4)", fontsize=8.5)
+    ax.legend(frameon=False)
+    ax.set_title("Qubit-wise-commuting grouping (n=4)", fontsize=11)
     fig.savefig(OUT / "grouping.pdf")
     plt.close(fig)
 
@@ -120,7 +130,7 @@ def fig_allocation():
         steps = sum(r["selection_steps"] for r in rs)
         return amb / steps if steps else 0.0
 
-    fig, axes = plt.subplots(1, 2, figsize=(6.6, 3.0))
+    fig, axes = plt.subplots(1, 2, figsize=(7.4, 3.4))
     x = range(len(ORDER))
     w = 0.38
     for ax, key, ylab, title in [
@@ -138,9 +148,9 @@ def fig_allocation():
         ax.bar([xi + w / 2 for xi in x], vv, w, label="variance-prop.", color=C["variance_grouped"])
         ax.set_ylabel(ylab)
         ax.set_xticks(list(x))
-        ax.set_xticklabels([FAM_LABEL[f] for f in ORDER], rotation=30, ha="right", fontsize=7)
-        ax.set_title(title, fontsize=8.5)
-        ax.legend(frameon=False, fontsize=7.5)
+        ax.set_xticklabels([FAM_LABEL[f] for f in ORDER], rotation=30, ha="right", fontsize=9)
+        ax.set_title(title, fontsize=11)
+        ax.legend(frameon=False)
     fig.savefig(OUT / "allocation.pdf")
     plt.close(fig)
 
@@ -156,7 +166,7 @@ def fig_chemistry():
     arms = ["exact", "confidence", "fast", "random"]
     arm_lab = {"exact": "exact gradient", "confidence": "confidence-guided",
                "fast": "FAST-inspired proxy", "random": "random"}
-    fig, ax = plt.subplots(figsize=(5.4, 3.0))
+    fig, ax = plt.subplots(figsize=(6.0, 3.4))
     x = range(len(mols))
     w = 0.2
     off = (len(arms) - 1) / 2.0  # center the group of bars on each tick
@@ -169,9 +179,9 @@ def fig_chemistry():
     ax.set_xticks(list(x))
     ax.set_xticklabels([mol_lab[m] for m in mols])
     ax.axhline(1.6, ls="--", lw=0.8, color="k", alpha=0.6)
-    ax.text(len(mols) - 0.5, 1.9, "chemical accuracy", fontsize=7, ha="right", va="bottom")
-    ax.legend(frameon=False, fontsize=7.5, loc="upper left")
-    ax.set_title("Molecular selection: proxy vs gradient", fontsize=8.5)
+    ax.text(len(mols) - 0.5, 1.9, "chemical accuracy", fontsize=ANNOT, ha="right", va="bottom")
+    ax.legend(frameon=False, loc="upper left")
+    ax.set_title("Molecular selection: proxy vs gradient", fontsize=11)
     fig.savefig(OUT / "chemistry.pdf")
     plt.close(fig)
 
@@ -189,7 +199,7 @@ def fig_calibration():
         by.setdefault(r["bound"], []).append(r)
     for b in by:
         by[b].sort(key=lambda r: r["delta"])
-    fig, axes = plt.subplots(1, 2, figsize=(6.8, 3.0))
+    fig, axes = plt.subplots(1, 2, figsize=(7.4, 3.4))
     bcol = {"normal": C["doubling"], "eb": C["variance_grouped"]}
     blab = {"normal": "normal (Gaussian)", "eb": "empirical-Bernstein"}
 
@@ -201,10 +211,10 @@ def fig_calibration():
                 "o-", color=bcol[b], label=blab[b], ms=4)
     ax.set_xlabel(r"nominal error budget $\delta$")
     ax.set_ylabel("empirical wrong-selection rate")
-    ax.set_title("Observed ranking errors", fontsize=8.5)
+    ax.set_title("Observed ranking errors", fontsize=11)
     ax.set_xticks(dd)
     ax.set_ylim(-0.005, max(dd) + 0.02)
-    ax.legend(frameon=False, fontsize=7.5, loc="upper left")
+    ax.legend(frameon=False, loc="upper left")
 
     ax = axes[1]
     for b in ("normal", "eb"):
@@ -212,10 +222,10 @@ def fig_calibration():
                 "o-", color=bcol[b], label=f"{blab[b]}", ms=4)
     ax.set_xlabel(r"nominal error budget $\delta$")
     ax.set_ylabel("abstention rate")
-    ax.set_title("Strict selection: abstention", fontsize=8.5)
+    ax.set_title("Strict selection: abstention", fontsize=11)
     ax.set_xticks(dd)
     ax.set_ylim(0, 1.02)
-    ax.legend(frameon=False, fontsize=7.5, loc="center right")
+    ax.legend(frameon=False, loc="center right")
     fig.savefig(OUT / "calibration.pdf")
     plt.close(fig)
 
