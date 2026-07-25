@@ -148,6 +148,14 @@ python benchmarks/run_chemistry_repair.py \
 python benchmarks/run_certified_trajectories.py \
     --out benchmarks/reference_results/certified_trajectories.jsonl
 
+# Recalibration of wrong-selection under the eps-best definition
+# (|g_selected| >= gmax - eps): broad instance set (symmetric/tie references,
+# displaced generic, and exact-ADAPT trajectory states), pooled and stratified
+# by the eps-boundary gap, with a one-sided 95% Clopper-Pearson upper bound on
+# the conditional error. Also reports the exact-argmax wrong rate for contrast.
+python benchmarks/run_calibration_eps_best.py --seeds 60 \
+    --out benchmarks/reference_results/calibration_eps_best.jsonl
+
 # Optional strict finite-sample H4: empirical-Bernstein, fixed endpoints,
 # trajectory-wide delta split, and abstention on every unresolved outcome.
 python benchmarks/run_chemistry_repair.py --strict-h4 \
