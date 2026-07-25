@@ -123,6 +123,50 @@ def _is_certified(level: str) -> bool:
     return level == "finite_sample"
 
 
+def _eta_required(best_lower, rival_upper):
+    """Smallest multiplicative tolerance the current intervals certify.
+
+    The eps-best rule ``L_best >= max_k U_k - eps`` is an *absolute*
+    certificate, so its strength depends on the gradient scale at the step.
+    The same interval event also supports a scale-free (multiplicative)
+    certificate: whenever ``L_best >= (1 - eta) * max_{k != best} U_k``,
+
+        |g_best| >= L_best >= (1 - eta) max_k U_k >= (1 - eta) max_k |g_k|
+
+    on the 1-delta event. This returns the smallest such ``eta``, i.e.
+    ``(U_rival - L_best) / U_rival`` clipped to [0, 1] -- the strongest
+    dimensionless guarantee the measured data supports at this step, directly
+    comparable across Hamiltonians and gradient scales. ``eta = 0`` is an
+    exact-best resolution; ``eta >= 1`` means the data support no nontrivial
+    multiplicative statement.
+    """
+    if rival_upper is None or rival_upper <= 0.0:
+        return 0.0 if best_lower is not None and best_lower > 0.0 else None
+    return float(min(1.0, max(0.0, (rival_upper - best_lower) / rival_upper)))
+
+
+def _rank_and_gap(exact_scores, idx):
+    """Post-hoc strength diagnostics for one selection.
+
+    Returns ``(rank, top_gap)`` where ``rank`` is the 1-based position of
+    candidate ``idx`` in the descending ``|g|`` ordering of the same candidate
+    set (1 = the true argmax; ties share the best rank) and ``top_gap`` is
+    ``|g|_max - |g|_runner-up``, the separation the selector had to resolve.
+    An exact symmetry tie has ``top_gap == 0``. Both are ``None`` when the
+    noiseless scores were not tracked; ``rank`` is ``None`` for an abstention.
+    """
+    if not exact_scores:
+        return None, None
+    mags = sorted((abs(v) for v in exact_scores.values()), reverse=True)
+    top_gap = (mags[0] - mags[1]) if len(mags) > 1 else None
+    if idx is None or idx not in exact_scores:
+        return None, top_gap
+    g = abs(exact_scores[idx])
+    # ties share the best rank: count only strictly larger magnitudes
+    rank = 1 + sum(1 for v in exact_scores.values() if abs(v) > g + 1e-12)
+    return rank, top_gap
+
+
 @dataclass(frozen=True)
 class SelectionRecord:
     step: int
@@ -143,6 +187,16 @@ class SelectionRecord:
     certification: str = "none"
     resolution: str = "none"
     certified: bool = False
+    # Post-hoc diagnostics of *how strong* a resolution was, computed from the
+    # noiseless gradients of the same candidate set. ``exact_rank`` is the
+    # selected candidate's 1-based position in the |g| ordering (1 = argmax);
+    # ``exact_top_gap`` is |g|_max - |g|_runner-up, the gap the selector had to
+    # resolve. Both are None when exact scores were not tracked.
+    exact_rank: int | None = None
+    exact_top_gap: float | None = None
+    # Strongest *multiplicative* certificate the same intervals support:
+    # |g_sel| >= (1 - eta_required) * max_k |g_k| on the 1-delta event.
+    eta_required: float | None = None
 
 
 @dataclass(frozen=True)
@@ -299,7 +353,11 @@ class ConfidenceSelector:
         out = {"active_candidates": len(active)}
         if best is not None and best in bounds:
             est, lo, up = bounds[best]
-            out.update(estimate=est, lower_bound=lo, upper_bound=up)
+            rival_upper = max((bounds[j][2] for j in active if j != best),
+                              default=0.0)
+            out.update(estimate=est, lower_bound=lo, upper_bound=up,
+                       rival_upper=rival_upper,
+                       eta_required=_eta_required(lo, rival_upper))
         return out
 
 
@@ -593,6 +651,8 @@ def run_adapt(model, pool: Sequence[PoolOperator], *,
                           and not accept_ambiguous)
         if strict_abstain:
             abstentions += 1
+        sel_rank, top_gap = _rank_and_gap(exact_scores,
+                                          None if strict_abstain else idx)
         if idx is None or strict_abstain:
             records.append(SelectionRecord(
                 step, None, status, diag.get("estimate"), diag.get("lower_bound"),
@@ -601,7 +661,9 @@ def run_adapt(model, pool: Sequence[PoolOperator], *,
                 diag.get("active_candidates", len(candidates)),
                 certification=_certification_level(status, selector_bound),
                 resolution=_resolution_kind(status),
-                certified=_is_certified(_certification_level(status, selector_bound))))
+                certified=_is_certified(_certification_level(status, selector_bound)),
+                exact_rank=sel_rank, exact_top_gap=top_gap,
+                eta_required=diag.get("eta_required")))
             break
 
         chosen.append(pool[idx])
@@ -641,7 +703,9 @@ def run_adapt(model, pool: Sequence[PoolOperator], *,
             layer_labels=layer_labels,
             certification=_certification_level(status, selector_bound),
             resolution=_resolution_kind(status),
-            certified=_is_certified(_certification_level(status, selector_bound))))
+            certified=_is_certified(_certification_level(status, selector_bound)),
+            exact_rank=sel_rank, exact_top_gap=top_gap,
+            eta_required=diag.get("eta_required")))
 
     rel = None
     if E0 is not None:

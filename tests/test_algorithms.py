@@ -209,3 +209,58 @@ def test_selector_below_threshold_on_zero_gradient_state():
         list(range(len(pool))))
     assert status is SelectionStatus.BELOW_THRESHOLD
     assert idx is None
+
+
+# ---------------------------------------------------------------------------
+# Post-hoc certificate-strength diagnostics
+
+
+def test_rank_and_gap_reports_argmax_and_ties():
+    """rank 1 for a maximizer (ties share it); top_gap is 0 on an exact tie."""
+    from clifford_qc.algorithms.adapt import _rank_and_gap
+
+    scores = {0: 1.0, 1: -1.0, 2: 0.25}          # 0 and 1 tie at the maximum
+    assert _rank_and_gap(scores, 0) == (1, 0.0)
+    assert _rank_and_gap(scores, 1) == (1, 0.0)
+    assert _rank_and_gap(scores, 2) == (3, 0.0)  # two strictly larger
+
+    scores = {0: 0.9, 1: 0.4, 2: -0.1}
+    rank, gap = _rank_and_gap(scores, 1)
+    assert rank == 2 and gap == pytest.approx(0.5)
+    assert _rank_and_gap({}, 0) == (None, None)
+    assert _rank_and_gap(scores, None) == (None, pytest.approx(0.5))
+
+
+def test_eta_required_is_the_tightest_valid_multiplicative_tolerance():
+    """eta_req is the smallest eta with L_best >= (1-eta) * U_rival."""
+    from clifford_qc.algorithms.adapt import _eta_required
+
+    # exact-best resolution: leader's lower bound already clears every rival
+    assert _eta_required(0.8, 0.5) == 0.0
+    # overlapping intervals: L = 0.6, U_rival = 1.0 -> eta = 0.4
+    assert _eta_required(0.6, 1.0) == pytest.approx(0.4)
+    # a zero lower bound supports no nontrivial multiplicative statement
+    assert _eta_required(0.0, 1.0) == 1.0
+    # no rival above zero: nothing to compare against
+    assert _eta_required(0.5, 0.0) == 0.0
+
+
+def test_eps_best_trajectory_records_certificate_strength():
+    """A strict eps-best run records rank, top gap, and eta for every step."""
+    m = tfim(3, 1.0, 1.0)
+    res = run_adapt(m, local_pool(3, periodic_context=False),
+                    backend=FiniteShotBackend(seed=0),
+                    allocator=UniformDoubling(base=256, max_factor=32),
+                    selector=ConfidenceSelector(delta=0.05, bound="eb",
+                                                near_tol=0.3),
+                    max_operators=3, grouping=True, accept_ambiguous=False)
+    appended = [r for r in res.records if r.selected_label]
+    assert appended, "eps-best should resolve the reference-state tie"
+    for r in appended:
+        assert r.status is SelectionStatus.RESOLVED_EPS_BEST
+        assert r.certification == "finite_sample" and r.certified
+        assert r.exact_rank is not None and r.exact_rank >= 1
+        assert r.exact_top_gap is not None and r.exact_top_gap >= 0.0
+        assert r.eta_required is not None and 0.0 <= r.eta_required <= 1.0
+        # the certified pick must actually satisfy the eps guarantee
+        assert abs(r.exact_gradient) >= r.exact_gradient_max - 0.3

@@ -1,0 +1,25 @@
+cff-version: 1.2.0
+message: >-
+  If you use this software or its benchmark records, please cite the software
+  release below. The manuscript's figures and tables regenerate from the tagged
+  tree via paper/make_figures.py and paper/make_tables.py.
+title: "clifford_qc: operator-centric quantum computing and certified ADAPT-VQE operator selection"
+type: software
+authors:
+  - family-names: Utama
+    given-names: Ginanjar
+    email: ginanjar.utama@gmail.com
+    affiliation: "Department of Engineering Physics, Institut Teknologi Bandung"
+  - family-names: Dipojono
+    given-names: Hermawan Kresno
+    email: dipojono@itb.ac.id
+    affiliation: "Department of Engineering Physics, Institut Teknologi Bandung"
+repository-code: "https://github.com/gutama/clifford_qc"
+license: Apache-2.0
+version: v0.3.0-pra-submission
+keywords:
+  - quantum computing
+  - ADAPT-VQE
+  - Clifford algebra
+  - best-arm identification
+  - empirical Bernstein
