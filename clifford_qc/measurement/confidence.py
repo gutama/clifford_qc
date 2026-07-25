@@ -58,8 +58,23 @@ can happen only if one of its group means misses. The candidate-group events
 for candidate ``j`` at a round sum to at most ``delta/(R M)``, and the fixed
 candidate-family and round unions sum to ``delta``. The family size is not
 reduced after data-dependent elimination; doing so would need a separate
-alpha-recycling argument. Ties in |g_j| are never resolved (Eq. resolve is strict),
-so an exact symmetry-tie yields abstention, not a wrong selection.
+alpha-recycling argument.
+
+Exact-best vs eps-best. The strict exact-best rule resolves only when the
+leader's lower bound strictly exceeds every rival's upper bound, so an exact
+symmetry-tie in |g_j| (several operators sharing the top gradient, generic at
+symmetric ansatz states) is never resolved -- it yields abstention, not a
+wrong selection, but it also stalls a strict trajectory at the first
+symmetric state. The eps-best rule instead resolves when the leader's lower
+bound clears every rival's upper bound up to a tolerance ``eps``,
+``L_best >= max_k U_k - eps``. On the same 1-delta interval event this
+certifies ``|g_best| >= max_k |g_k| - eps`` (an (eps, delta)-PAC guarantee):
+the selected operator's gradient is within ``eps`` of the maximum, and an
+exact tie is resolved for any ``eps > 2r``. The eps-best rule uses the same
+intervals, so it consumes no extra budget; it weakens *what* is certified
+(an eps-best operator instead of the exact argmax) while keeping the same
+confidence level, and it is what makes complete finite-sample-certified
+trajectories possible.
 
 The budget is per selector call, not automatically per multi-step ADAPT
 trajectory. To guarantee a trajectory-level error budget ``delta_total``

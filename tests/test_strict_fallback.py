@@ -10,7 +10,7 @@ separately (``certification`` level and the derived ``certified`` bool).
 
 from clifford_qc.models import tfim
 from clifford_qc.backends import FiniteShotBackend
-from clifford_qc.measurement import UniformDoubling, UniformFixed, VarianceProportional
+from clifford_qc.measurement import UniformDoubling, VarianceProportional
 from clifford_qc.algorithms import (
     ConfidenceSelector, SelectionStatus, local_pool, run_adapt,
 )
@@ -45,11 +45,13 @@ def _run(accept, seed=3, budget=64):
         max_operators=8, grouping=True, accept_ambiguous=accept)
 
 
-def test_resolution_is_bound_independent():
+def test_resolution_covers_exact_best_and_eps_best():
+    # both exact-best and eps-best are resolutions (eps-best is what lets a
+    # strict run pass through symmetry-tied states)
     assert _is_resolved(SelectionStatus.RESOLVED_BEST)
+    assert _is_resolved(SelectionStatus.RESOLVED_EPS_BEST)
     assert _is_resolved(SelectionStatus.EXACT)
-    for s in (SelectionStatus.RESOLVED_NEAR_OPTIMAL,
-              SelectionStatus.BUDGET_EXHAUSTED_AMBIGUOUS,
+    for s in (SelectionStatus.BUDGET_EXHAUSTED_AMBIGUOUS,
               SelectionStatus.BELOW_THRESHOLD, SelectionStatus.RANDOM,
               SelectionStatus.FAST_PROXY):
         assert not _is_resolved(s)
@@ -58,13 +60,14 @@ def test_resolution_is_bound_independent():
 def test_certification_level_separates_finite_sample_from_asymptotic():
     # exact gradient: certain
     assert _certification_level(SelectionStatus.EXACT, None) == "exact"
-    # resolved under empirical-Bernstein: genuine finite-sample certificate
+    # resolved (exact-best OR eps-best) under empirical-Bernstein: finite-sample
     assert _certification_level(SelectionStatus.RESOLVED_BEST, "eb") == "finite_sample"
+    assert _certification_level(SelectionStatus.RESOLVED_EPS_BEST, "eb") == "finite_sample"
     # resolved under the normal bound: asymptotic only, NOT a certificate
     assert _certification_level(SelectionStatus.RESOLVED_BEST, "normal") == "asymptotic"
+    assert _certification_level(SelectionStatus.RESOLVED_EPS_BEST, "normal") == "asymptotic"
     # unresolved outcomes carry no certification regardless of bound
-    for s in (SelectionStatus.RESOLVED_NEAR_OPTIMAL,
-              SelectionStatus.BUDGET_EXHAUSTED_AMBIGUOUS,
+    for s in (SelectionStatus.BUDGET_EXHAUSTED_AMBIGUOUS,
               SelectionStatus.BELOW_THRESHOLD, SelectionStatus.RANDOM,
               SelectionStatus.FAST_PROXY):
         assert _certification_level(s, "eb") == "none"
@@ -89,17 +92,24 @@ def test_strict_abstains_on_ambiguity():
     assert not any(r.certified for r in selected)
 
 
-def test_strict_abstains_on_near_optimal_outcome():
+def test_strict_accepts_certified_eps_best():
+    # With the eps-best rule enabled (near_tol), a strict run RESOLVES and
+    # certifies eps-best selections instead of abstaining, so it makes progress
+    # through the symmetry-tied reference state (6-fold gradient tie for TFIM).
     res = run_adapt(
         tfim(4, 1.0, 1.0), local_pool(4, periodic_context=False),
         backend=FiniteShotBackend(seed=3),
-        selector=ConfidenceSelector(delta=0.05, near_tol=1e9),
-        allocator=UniformFixed(shots_per_word=16),
-        max_operators=2, grouping=True, accept_ambiguous=False)
-    assert res.records[-1].status is SelectionStatus.RESOLVED_NEAR_OPTIMAL
-    assert res.records[-1].selected_label is None
-    assert res.abstentions == 1
-    assert "strict abstention" in res.stopped_reason
+        selector=ConfidenceSelector(delta=0.05, near_tol=0.30, bound="eb"),
+        allocator=UniformDoubling(base=512, max_factor=64),
+        max_operators=4, grouping=True, accept_ambiguous=False)
+    selected = [r for r in res.records if r.selected_label]
+    assert selected  # did not stall at operator 1
+    # the first (symmetric) step resolves only via the eps-best rule
+    assert any(r.resolution == "eps_best" for r in selected)
+    for r in selected:
+        assert r.resolution in ("best", "eps_best")
+        assert r.certification == "finite_sample"  # eb bound
+        assert r.certified
 
 
 def test_fallback_proceeds_and_labels_uncertified():
@@ -110,7 +120,7 @@ def test_fallback_proceeds_and_labels_uncertified():
     selected = [r for r in fallback.records if r.selected_label]
     # a certification level is present exactly for resolved selections
     for r in selected:
-        assert (r.certification != "none") == (r.status is SelectionStatus.RESOLVED_BEST)
+        assert (r.certification != "none") == _is_resolved(r.status)
     # normal bound never yields a finite-sample certificate
     assert all(r.certification in ("asymptotic", "none") for r in selected)
     assert not any(r.certified for r in selected)
