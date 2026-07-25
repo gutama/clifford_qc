@@ -140,6 +140,14 @@ python benchmarks/run_baselines.py --seeds 15 \
 python benchmarks/run_chemistry_repair.py \
     --out benchmarks/reference_results/chemistry_repair.jsonl
 
+# Complete certified eps-best trajectories (spin + molecules): every appended
+# operator is finite-sample certified (empirical-Bernstein), with per-step
+# status, resolution kind, gradient, confidence radius, shots, and energy.
+# The eps-best rule resolves the exact symmetry ties that stall a strict
+# exact-best trajectory. Requires the chemistry extra for H2/LiH.
+python benchmarks/run_certified_trajectories.py \
+    --out benchmarks/reference_results/certified_trajectories.jsonl
+
 # Optional strict finite-sample H4: empirical-Bernstein, fixed endpoints,
 # trajectory-wide delta split, and abstention on every unresolved outcome.
 python benchmarks/run_chemistry_repair.py --strict-h4 \

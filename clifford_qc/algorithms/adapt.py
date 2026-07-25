@@ -43,7 +43,7 @@ from .pools import PoolOperator
 
 class SelectionStatus(Enum):
     RESOLVED_BEST = "resolved_best"
-    RESOLVED_NEAR_OPTIMAL = "resolved_near_optimal"
+    RESOLVED_EPS_BEST = "resolved_eps_best"
     BELOW_THRESHOLD = "below_threshold"
     BUDGET_EXHAUSTED_AMBIGUOUS = "budget_exhausted_ambiguous"
     EXACT = "exact"
@@ -51,39 +51,65 @@ class SelectionStatus(Enum):
     FAST_PROXY = "fast_proxy"
 
 
-# A selection is strictly *resolved* when the best-arm rule fired (the leader's
-# lower bound cleared every rival's upper bound) or the gradient was exact.
-# Whether that resolution is a genuine finite-sample certificate or only an
-# asymptotic (Gaussian) one depends on the confidence bound in force: the
-# empirical-Bernstein ('eb') bound is finite-sample (finite-schedule) valid,
-# the normal bound is valid only asymptotically. Resolution and certification
-# level are recorded separately so an asymptotic resolution is never reported
-# as a finite-sample certificate. Near-optimal and ambiguous-at-budget
-# acceptances are confidence-guided and are not resolved.
+# A selection is *resolved* when the best-arm rule fires. There are two
+# resolution kinds:
+#   - exact-best (RESOLVED_BEST): the leader's lower bound strictly exceeds
+#     every rival's upper bound, certifying the empirical leader is the true
+#     argmax of |g_j|;
+#   - eps-best (RESOLVED_EPS_BEST): the leader's lower bound clears every
+#     rival's upper bound up to a declared tolerance eps (``near_tol``),
+#     L_best >= max_k U_k - eps. On the 1-delta event that all intervals hold
+#     this certifies |g_best| >= max_k |g_k| - eps -- the selected operator's
+#     gradient is within eps of optimal. Crucially it *resolves exact
+#     symmetry ties* (gap 0), which the exact-best rule can never resolve at
+#     any shot budget.
+# EXACT is a noiseless exact-gradient selection. Whether a resolution is a
+# genuine finite-sample certificate or only asymptotic depends on the bound:
+# empirical-Bernstein ('eb') is finite-sample (finite-schedule) valid, normal
+# is asymptotic. Resolution *kind* and certification *level* are recorded
+# separately, so an asymptotic resolution is never reported as a finite-sample
+# certificate and an eps-best selection is never reported as the exact argmax.
 _RESOLVED_STATUSES = frozenset(
-    {SelectionStatus.RESOLVED_BEST, SelectionStatus.EXACT})
+    {SelectionStatus.RESOLVED_BEST, SelectionStatus.RESOLVED_EPS_BEST,
+     SelectionStatus.EXACT})
 
 
 def _is_resolved(status: "SelectionStatus") -> bool:
-    """True when the selection strictly resolved (best-arm fired) or was exact."""
+    """True when the selection resolved (exact-best or eps-best) or was exact."""
     return status in _RESOLVED_STATUSES
 
 
-def _certification_level(status: "SelectionStatus", bound: str | None) -> str:
-    """Certification level of a selection.
-
-    - ``'exact'``        : noiseless exact-gradient selection (certain);
-    - ``'finite_sample'``: strictly resolved under the empirical-Bernstein
-      ('eb') bound -- a genuine finite-sample / finite-schedule guarantee;
-    - ``'asymptotic'``   : strictly resolved under the normal bound -- valid
-      only asymptotically (Gaussian approximation), not a finite-sample
-      certificate;
-    - ``'none'``         : not strictly resolved (near-optimal, ambiguous,
-      below-threshold, random, or proxy selection).
-    """
+def _resolution_kind(status: "SelectionStatus") -> str:
+    """What was certified: 'exact', 'best' (argmax), 'eps_best' (within eps),
+    or 'none' (unresolved)."""
     if status is SelectionStatus.EXACT:
         return "exact"
     if status is SelectionStatus.RESOLVED_BEST:
+        return "best"
+    if status is SelectionStatus.RESOLVED_EPS_BEST:
+        return "eps_best"
+    return "none"
+
+
+def _certification_level(status: "SelectionStatus", bound: str | None) -> str:
+    """Statistical certification level of a selection.
+
+    - ``'exact'``        : noiseless exact-gradient selection (certain);
+    - ``'finite_sample'``: resolved (exact-best or eps-best) under the
+      empirical-Bernstein ('eb') bound -- a genuine finite-sample guarantee;
+    - ``'asymptotic'``   : resolved under the normal bound -- valid only
+      asymptotically (Gaussian approximation), not a finite-sample certificate;
+    - ``'none'``         : not resolved (ambiguous, below-threshold, random,
+      or proxy selection).
+
+    Exact-best and eps-best carry the same statistical level -- both rest on
+    the same 1-delta interval event -- and differ only in *what* is certified
+    (the argmax versus an operator within eps of it), which
+    ``_resolution_kind`` records.
+    """
+    if status is SelectionStatus.EXACT:
+        return "exact"
+    if status in (SelectionStatus.RESOLVED_BEST, SelectionStatus.RESOLVED_EPS_BEST):
         return "finite_sample" if bound == "eb" else "asymptotic"
     return "none"
 
@@ -115,6 +141,7 @@ class SelectionRecord:
     energy: float | None = None
     layer_labels: tuple[str, ...] = ()
     certification: str = "none"
+    resolution: str = "none"
     certified: bool = False
 
 
@@ -138,15 +165,31 @@ class AdaptResult:
 class ConfidenceSelector:
     """Best-arm selection on |g_j| with simultaneous confidence bounds.
 
-    Selects candidate ĵ = argmax |ĝ_j| only once its lower bound clears
-    every rival's upper bound. The normal path is an asymptotic approximation;
-    the empirical-Bernstein path controls wrong selection at ``delta`` by
-    splitting the budget across rounds, the fixed candidate family declared
-    before measurement, and every QWC
-    group summed into a candidate. Normal intervals use dependence-safe
-    Bonferroni by default. ``eliminate=True`` drops candidates whose upper bound falls
-    below the best lower bound (successive elimination), shrinking the
-    measured word set in later rounds.
+    Two resolution rules, tried in order:
+
+    - *exact-best*: resolve ĵ = argmax |ĝ_j| once its lower bound strictly
+      exceeds every rival's upper bound, certifying it is the true argmax.
+    - *eps-best* (enabled by ``near_tol=eps``): resolve ĵ once its lower bound
+      clears every rival's upper bound up to ``eps``,
+      ``L_ĵ >= max_k U_k - eps``. On the 1-delta interval event this certifies
+      ``|g_ĵ| >= max_k |g_k| - eps`` -- an (eps, delta)-PAC ε-best guarantee.
+      Unlike the exact-best rule it *resolves exact symmetry ties* (gap 0):
+      when several operators share the top gradient (generic at symmetric
+      ansatz states), any one of them is eps-best for any eps >= 0, so the
+      selector commits instead of abstaining forever. Both rules use the same
+      delta-budget intervals, so eps-best costs no extra budget; it changes
+      *what* is certified (an operator within eps of the best), not the
+      confidence level.
+
+    The normal path is an asymptotic approximation; the empirical-Bernstein
+    path controls the (eps-)best error at ``delta`` by splitting the budget
+    across rounds, the fixed candidate family declared before measurement, and
+    every QWC group summed into a candidate. Normal intervals use
+    dependence-safe Bonferroni by default. ``eliminate=True`` drops candidates
+    whose upper bound falls below the best lower bound (successive
+    elimination); an eliminated candidate had ``U_k < L_best`` and so cannot be
+    the max on the valid-interval event, keeping the eps-best certificate
+    intact.
     """
 
     def __init__(self, delta: float = 0.05, threshold: float = 1e-6,
@@ -239,9 +282,11 @@ class ConfidenceSelector:
                 return None, SelectionStatus.BELOW_THRESHOLD, self._diag(best, bounds, active)
             if best_lower >= self.threshold and best_lower > rival_upper:
                 return best, SelectionStatus.RESOLVED_BEST, self._diag(best, bounds, active)
+            # eps-best: leader clears every rival up to the tolerance eps.
+            # Certifies |g_best| >= max_k |g_k| - eps and resolves exact ties.
             if (self.near_tol is not None and best_lower >= self.threshold
                     and rival_upper - best_lower <= self.near_tol):
-                return best, SelectionStatus.RESOLVED_NEAR_OPTIMAL, self._diag(best, bounds, active)
+                return best, SelectionStatus.RESOLVED_EPS_BEST, self._diag(best, bounds, active)
             if self.eliminate:
                 active = [j for j in active
                           if j == best or bounds[j][2] >= best_lower]
@@ -537,17 +582,15 @@ def run_adapt(model, pool: Sequence[PoolOperator], *,
                 stopped_reason = "no candidate above threshold"
             else:
                 stopped_reason = "exact gradient below threshold"
-        elif (status in (SelectionStatus.BUDGET_EXHAUSTED_AMBIGUOUS,
-                         SelectionStatus.RESOLVED_NEAR_OPTIMAL)
+        elif (status is SelectionStatus.BUDGET_EXHAUSTED_AMBIGUOUS
               and not accept_ambiguous):
-            stopped_reason = "selection not strictly resolved (strict abstention)"
-        # A near-optimal tolerance is useful in fallback mode, but it does not
-        # prove the exact best arm. Strict mode therefore abstains on it just
-        # as it does on an exhausted ambiguous budget.
-        strict_abstain = (
-            status in (SelectionStatus.BUDGET_EXHAUSTED_AMBIGUOUS,
-                       SelectionStatus.RESOLVED_NEAR_OPTIMAL)
-            and not accept_ambiguous)
+            stopped_reason = "selection not resolved at budget (strict abstention)"
+        # Strict mode abstains only on an exhausted ambiguous budget. An
+        # exact-best or eps-best resolution is a certificate, so strict accepts
+        # it; the eps-best rule is what lets a strict run make progress through
+        # symmetric (tied-gradient) states instead of stalling.
+        strict_abstain = (status is SelectionStatus.BUDGET_EXHAUSTED_AMBIGUOUS
+                          and not accept_ambiguous)
         if strict_abstain:
             abstentions += 1
         if idx is None or strict_abstain:
@@ -557,6 +600,7 @@ def run_adapt(model, pool: Sequence[PoolOperator], *,
                 shots_added, total_shots, words_measured, total_circuits,
                 diag.get("active_candidates", len(candidates)),
                 certification=_certification_level(status, selector_bound),
+                resolution=_resolution_kind(status),
                 certified=_is_certified(_certification_level(status, selector_bound))))
             break
 
@@ -596,6 +640,7 @@ def run_adapt(model, pool: Sequence[PoolOperator], *,
             diag.get("active_candidates", len(candidates)), energy=energy,
             layer_labels=layer_labels,
             certification=_certification_level(status, selector_bound),
+            resolution=_resolution_kind(status),
             certified=_is_certified(_certification_level(status, selector_bound))))
 
     rel = None
@@ -611,6 +656,10 @@ def run_adapt(model, pool: Sequence[PoolOperator], *,
         metadata={"model": model.name, "pool_size": len(pool),
                   "noisy_selection": noisy, "certification_mode": mode,
                   "bound": selector_bound,
+                  "eps_best_tol": getattr(selector, "near_tol", None),
+                  "selection_rule": (
+                      "eps_best" if getattr(selector, "near_tol", None) is not None
+                      else "exact_best") if noisy else None,
                   "simultaneous_method": getattr(selector, "method", None),
                   "confidence_delta_per_selection": (
                       getattr(selector, "delta", None) if noisy else None),
