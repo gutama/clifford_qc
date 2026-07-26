@@ -20,6 +20,33 @@ python paper/check_manuscript.py   # balance, refs, bib keys, column counts,
 python benchmarks/check_summaries.py  # *_summary.{csv,md} vs their JSONL
 ```
 
+Building the manuscript itself needs revtex4-2 and the packages the preamble
+loads; on Debian/Ubuntu:
+
+```bash
+sudo apt-get install -y --no-install-recommends \
+    texlive-latex-base texlive-publishers texlive-latex-recommended \
+    texlive-fonts-recommended texlive-science
+
+cd paper
+pdflatex -interaction=nonstopmode -halt-on-error manuscript.tex
+bibtex manuscript
+pdflatex -interaction=nonstopmode -halt-on-error manuscript.tex
+pdflatex -interaction=nonstopmode -halt-on-error manuscript.tex
+```
+
+The build must finish with **zero** overfull boxes and zero undefined
+references or citations:
+
+```bash
+grep -cE 'Overfull \\hbox|LaTeX Warning: (Reference|Citation)' paper/manuscript.log   # -> 0
+```
+
+The `manuscript` CI job runs exactly this sequence plus the three checkers
+above and fails on any drift, so a regenerated benchmark that leaves a stale
+figure or table behind, or an edit that pushes text into the margin, is caught
+before merge rather than at submission.
+
 `check_summaries.py` exists because a regenerated JSONL leaves its
 `summarize.py`-derived CSV and Markdown behind unless they are rebuilt too:
 
@@ -52,19 +79,22 @@ tolerance — the committed artifacts were produced with SciPy's L-BFGS-B).
 python benchmarks/run_benchmark.py --config benchmarks/configs/spin_small.json \
     --out benchmarks/reference_results/spin_small.jsonl
 python benchmarks/summarize.py benchmarks/reference_results/spin_small.jsonl \
-    --csv benchmarks/reference_results/spin_small_summary.csv
+    --csv benchmarks/reference_results/spin_small_summary.csv \
+    > benchmarks/reference_results/spin_small_summary.md
 
 # 100-seed headline matrix (TFIM h-sweep, periodic TFIM, random Ising; n=4)
 python benchmarks/run_benchmark.py --config benchmarks/configs/spin_headline_n4.json \
     --out benchmarks/reference_results/spin_headline_n4.jsonl
 python benchmarks/summarize.py benchmarks/reference_results/spin_headline_n4.jsonl \
-    --csv benchmarks/reference_results/spin_headline_n4_summary.csv
+    --csv benchmarks/reference_results/spin_headline_n4_summary.csv \
+    > benchmarks/reference_results/spin_headline_n4_summary.md
 
 # 20-seed exploratory matrix at n=6 (TFIM, random Ising, XXZ)
 python benchmarks/run_benchmark.py --config benchmarks/configs/spin_n6.json \
     --out benchmarks/reference_results/spin_n6.jsonl
 python benchmarks/summarize.py benchmarks/reference_results/spin_n6.jsonl \
-    --csv benchmarks/reference_results/spin_n6_summary.csv
+    --csv benchmarks/reference_results/spin_n6_summary.csv \
+    > benchmarks/reference_results/spin_n6_summary.md
 ```
 
 Long sweeps shard across k workers: run k processes with

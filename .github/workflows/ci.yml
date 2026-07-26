@@ -37,3 +37,59 @@ jobs:
         run: python -m pip install -e .[test,bridges]
       - name: Run full suite
         run: python -m pytest
+
+  manuscript:
+    name: manuscript (revtex build + artifact consistency)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install (research extras for scipy-backed table stats)
+        run: python -m pip install -e .[test,research] matplotlib
+      - name: Install TeX Live (revtex4-2 + the manuscript's packages)
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y --no-install-recommends \
+            texlive-latex-base texlive-publishers texlive-latex-recommended \
+            texlive-fonts-recommended texlive-science
+      # The committed figures and tables must be reproducible from the
+      # committed records: a regenerated benchmark that leaves a stale asset
+      # behind is the defect class these checks exist to catch.
+      - name: Regenerate figures and tables, then fail on any drift
+        run: |
+          python paper/make_figures.py
+          python paper/make_tables.py
+          git diff --exit-code -- paper/tables
+      - name: Summaries agree with their records
+        run: python benchmarks/check_summaries.py
+      - name: Manuscript structure (refs, bib keys, table columns, float ages)
+        run: python paper/check_manuscript.py
+      - name: Build the manuscript
+        working-directory: paper
+        run: |
+          pdflatex -interaction=nonstopmode -halt-on-error manuscript.tex
+          bibtex manuscript
+          pdflatex -interaction=nonstopmode -halt-on-error manuscript.tex
+          pdflatex -interaction=nonstopmode -halt-on-error manuscript.tex
+      # Overfull boxes are text running into the margin. They cost nothing to
+      # detect and are invisible in review, so the build gates on zero.
+      - name: No overfull boxes, no undefined references or citations
+        working-directory: paper
+        run: |
+          fail=0
+          for pattern in 'Overfull \\hbox' 'LaTeX Warning: Reference' 'LaTeX Warning: Citation'; do
+            n=$(grep -c "$pattern" manuscript.log || true)
+            echo "$pattern: $n"
+            [ "$n" -eq 0 ] || fail=1
+          done
+          if [ "$fail" -ne 0 ]; then
+            echo '--- offending lines ---'
+            grep -nE 'Overfull \\hbox|LaTeX Warning: (Reference|Citation)' manuscript.log || true
+            exit 1
+          fi
+      - uses: actions/upload-artifact@v4
+        with:
+          name: manuscript-pdf
+          path: paper/manuscript.pdf
