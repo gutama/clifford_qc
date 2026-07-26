@@ -305,6 +305,62 @@ def tab_headline():
     write("grouping", group)
 
 
+# -- Table: exploratory n=6 spin trajectories -------------------------------
+
+FAM_N6_LABEL = {
+    "tfim(n=6,J=1.0,h=1.0,obc)": r"TFIM $h{=}1.0$",
+    "random_ising(n=6,obc)": r"rand.\ Ising",
+    "xxz(n=6,J=1.0,delta=1.0,obc)": r"XXZ $\Delta{=}1$",
+}
+N6_METHODS = [
+    ("exact", "exact"),
+    ("random", "random"),
+    ("doubling_grouped", "doubling (grouped)"),
+    ("variance_grouped", "variance (grouped)"),
+]
+
+
+def tab_spin_n6():
+    rows = load("spin_n6.jsonl")
+    if rows is None:
+        return
+    g = defaultdict(list)
+    for r in rows:
+        g[(_fam(r["model"]), r["method"])].append(r)
+
+    def ambig(rs):
+        ambiguous = sum(
+            r["status_counts"].get("budget_exhausted_ambiguous", 0) for r in rs
+        )
+        steps = sum(r["selection_steps"] for r in rs)
+        return ambiguous / steps if steps else 0.0
+
+    out = []
+    for fi, fam in enumerate(FAM_N6_LABEL):
+        if fi:
+            out.append(r"\colrule")
+        for i, (method, label) in enumerate(N6_METHODS):
+            rs = g[(fam, method)]
+            if not rs:
+                continue
+            head = FAM_N6_LABEL[fam] if i == 0 else ""
+            near = st.mean([r["near_optimal_rate"] for r in rs
+                            if r["near_optimal_rate"] is not None])
+            ambiguity = (
+                f"{ambig(rs):.2f}"
+                if method in ("doubling_grouped", "variance_grouped")
+                else "---"
+            )
+            out.append(
+                f"{head} & {label} & "
+                f"{sci(med([r['relative_error'] for r in rs]))} & "
+                f"{thousands(med([r['total_shots'] for r in rs]))} & "
+                f"{thousands(med([r['total_circuits'] for r in rs]))} & "
+                f"{near:.2f} & {ambiguity}\\\\"
+            )
+    write("spin_n6", out)
+
+
 # -- Tables: chemistry -------------------------------------------------------
 
 MOL_LABEL = {"h2": r"H$_2$", "lih": "LiH", "beh2": r"BeH$_2$", "h4_chain": r"H$_4$"}
@@ -355,6 +411,7 @@ def main():
     tab_hard()
     tab_baselines()
     tab_headline()
+    tab_spin_n6()
     tab_chemistry()
     print("wrote table fragments to", OUT)
 
