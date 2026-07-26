@@ -12,5 +12,3 @@
 | xxz(n=6,J=1.0,delta=1.0,obc) | exact | 20 | 9.77e-02 [9.77e-02, 9.77e-02] | 0 | 0 | 3 | 1.00 | 0.00 |
 | xxz(n=6,J=1.0,delta=1.0,obc) | random | 20 | 3.75e-01 [3.21e-01, 4.99e-01] | 0 | 0 | 8 | 0.11 | 0.00 |
 | xxz(n=6,J=1.0,delta=1.0,obc) | variance_grouped | 20 | 9.77e-02 [9.77e-02, 9.77e-02] | 5,891,534 | 946 | 8 | 0.59 | 0.75 |
-
-wrote benchmarks/reference_results/spin_n6_summary.csv

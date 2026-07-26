@@ -13,10 +13,19 @@ changes, regenerate every record that depends on it. The manuscript's figures
 and tables are then emitted mechanically from those records:
 
 ```bash
-python paper/make_figures.py     # -> paper/paper_assets/*.pdf
-python paper/make_tables.py      # -> paper/tables/*.tex  (\input by the .tex)
-python paper/check_manuscript.py # balance, refs, bib keys, column counts,
-                                 # and figures older than their source record
+python paper/make_figures.py       # -> paper/paper_assets/*.pdf
+python paper/make_tables.py        # -> paper/tables/*.tex  (\input by the .tex)
+python paper/check_manuscript.py   # balance, refs, bib keys, column counts,
+                                   # and figures older than their source record
+python benchmarks/check_summaries.py  # *_summary.{csv,md} vs their JSONL
+```
+
+`check_summaries.py` exists because a regenerated JSONL leaves its
+`summarize.py`-derived CSV and Markdown behind unless they are rebuilt too:
+
+```bash
+python benchmarks/summarize.py RECORD.jsonl \
+    --csv RECORD_summary.csv > RECORD_summary.md
 ```
 
 No figure or table value in the manuscript is transcribed by hand, and
