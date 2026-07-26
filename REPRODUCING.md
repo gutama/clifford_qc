@@ -65,7 +65,7 @@ python -m venv .venv && source .venv/bin/activate
 pip install -e .[test,research]      # numpy core + scipy optimizer
 pip install -e .[stim]               # stabilizer backend / Phase 4
 pip install -e .[chemistry]          # openfermion + pyscf / Phase 5
-pytest                               # 230+ tests should pass
+pytest                               # 280 passed, 6 skipped
 ```
 
 The core package imports with numpy alone; without SciPy the optimizer
@@ -158,15 +158,29 @@ Bonferroni allocation across its predeclared decision schedule, and an
 additional group-wise split for empirical-Bernstein bounds. Published
 normal-bound trajectory sweeps retain explicit Sidak intervals as an
 asymptotic heuristic and are never labelled finite-sample certified.
-Selection uses delta = 0.05, near-optimality tolerance 0.05,
-ADAPT gradient threshold 1e-6 (1e-5/1e-6 chemistry), shot escalation
-base 256 doubling to 64x, variance-proportional round budget 4096
-(growth 2, 7 rounds), operator budgets 8 (n=4/6 spin), 12 (chemistry and
-seeding), optimizer L-BFGS-B (gtol 1e-8; maxiter 150 for the n=6 matrix
-and 200 for chemistry, unlimited-default elsewhere). Chemical accuracy is
-1.6e-3 Ha against the active-space FCI energy. Resource metrics follow
-RESEARCH_PLAN.md section 7 (shots, circuits, unique words, operators,
-optimizer evaluations, peak Pauli support).
+The **trajectory sweeps** (`run_benchmark.py`, `run_baselines.py`) use
+delta = 0.05, near-optimality tolerance 0.05, ADAPT gradient threshold 1e-6
+(1e-5/1e-6 chemistry), shot escalation base 256 doubling to 64x,
+variance-proportional round budget 4096 (growth 2, 7 rounds), operator budgets
+8 (n=4/6 spin) and 12 (chemistry and seeding), optimizer L-BFGS-B (gtol 1e-8;
+maxiter 150 for the n=6 matrix and 200 for chemistry, unlimited-default
+elsewhere). Chemical accuracy is 1.6e-3 Ha against the active-space FCI energy.
+Resource metrics follow RESEARCH_PLAN.md section 7 (shots, circuits, unique
+words, operators, optimizer evaluations, peak Pauli support).
+
+The **certification experiments do not share those values** — each predeclares
+its own, and the constants live at the top of its script:
+
+| experiment | delta | eps | base x ceiling |
+|---|---|---|---|
+| `run_calibration.py` | grid 0.01 / 0.05 / 0.10 / 0.20 | — (exact-best) | 256 x 64 |
+| `run_calibration_eps_best.py` | grid 0.05 / 0.10 / 0.20 | grid 0.15 / 0.30 | 512 x 64 |
+| `run_certified_trajectories.py` | 0.10 trajectory-wide, split delta/K | 0.30 | per system |
+| `run_ceiling_sweep.py` | 0.10 | 0.30 | 256 x {64 … 16384} |
+| `run_hard_instances.py` | 0.10 | 0.30 | 256 x 64, and 4096/word fixed |
+
+Quoting the trajectory-sweep delta for a certification result, or vice versa,
+is a reporting error: the manuscript states the applicable value with each.
 
 Empirical-Bernstein certification also requires fixed cumulative sample
 endpoints: use `UniformFixed` or `UniformDoubling`. Variance-proportional
