@@ -15,6 +15,7 @@ import csv
 import json
 import re
 import statistics
+import sys
 from collections import defaultdict
 from pathlib import Path
 
@@ -97,7 +98,11 @@ def main(argv=None) -> None:
             writer = csv.DictWriter(fh, fieldnames=list(summary[0].keys()))
             writer.writeheader()
             writer.writerows(summary)
-        print(f"\nwrote {args.csv}")
+        # stderr, not stdout: stdout is the Markdown table, and callers
+        # redirect it into *_summary.md. Printing the notice there appended a
+        # stray "wrote <path>" line to every committed Markdown summary and
+        # made the artifact depend on the --csv path used to generate it.
+        print(f"wrote {args.csv}", file=sys.stderr)
 
 
 if __name__ == "__main__":

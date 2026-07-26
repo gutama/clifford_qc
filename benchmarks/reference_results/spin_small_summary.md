@@ -14,5 +14,3 @@
 | tfim(n=4,J=1.0,h=1.0,obc) | random | 30 | 2.22e-02 [1.99e-02, 5.76e-02] | 0 | 0 | 8 | 0.25 | 0.00 |
 | tfim(n=4,J=1.0,h=1.0,obc) | subpool_exact | 30 | 3.11e-04 [3.11e-04, 3.11e-04] | 0 | 0 | 5 | 1.00 | 0.00 |
 | tfim(n=4,J=1.0,h=1.0,obc) | variance_grouped | 30 | 5.15e-05 [1.12e-15, 5.15e-05] | 3,824,366 | 272 | 8 | 0.77 | 0.45 |
-
-wrote benchmarks/reference_results/spin_small_summary.csv
