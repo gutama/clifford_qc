@@ -21,6 +21,18 @@
 \newcommand{\sgn}{\operatorname{sgn}}
 \newcommand{\Var}{\operatorname{Var}}
 
+% Float placement: 11 of 13 tables are full-width (table*), which is more
+% double-column float pressure than revtex's defaults accommodate; without
+% this LaTeX reports "float is stuck" and defers tables far from their text.
+\setcounter{topnumber}{3}
+\setcounter{dbltopnumber}{3}
+\setcounter{totalnumber}{5}
+\renewcommand{\topfraction}{0.9}
+\renewcommand{\dbltopfraction}{0.9}
+\renewcommand{\textfraction}{0.07}
+\renewcommand{\floatpagefraction}{0.75}
+\renewcommand{\dblfloatpagefraction}{0.75}
+
 \newtheorem{lemma}{Lemma}
 \newtheorem{proposition}{Proposition}
 \newtheorem{corollary}{Corollary}
@@ -261,7 +273,7 @@ The $\varepsilon$-best rule of Corollary~\ref{cor:epsbest} removes the obstructi
 
 \emph{How strong is $\varepsilon=0.30$?} The $\varepsilon$-best guarantee is absolute, so we report the gradient scale at every certified step (Table~\ref{tab:epsscale}). The tolerance is a modest fraction of the leading gradient early in a trajectory ($\varepsilon/\max_j|g_j|=0.21$--$0.47$ on the first three spin steps) and exceeds it later, once the leading gradient has itself fallen ($2.35$, $2.61$ on TFIM steps four and five; $1.65$ on H$_2$; $23.1$ on LiH, where $\max_j|g_j|=0.013$). At those steps the nominal statement ``within $0.30$ of the best'' is weaker than the whole gradient range and carries little information on its own. The realized selections are nevertheless far better than the nominal certificate: $11$ of the $12$ appended operators are in fact the exact $\arg\max_j|g_j|$ by post-hoc evaluation, and the single exception (random-field Ising, step four) has rank two with a relative shortfall $(\max_j|g_j|-|g_{\rm sel}|)/\max_j|g_j|=0.216$; every other appended step has relative shortfall exactly zero. The scale-free diagnostic of Corollary~\ref{cor:multi} makes the same point without reference to $\varepsilon$: the median multiplicative tolerance the intervals support at these budgets is $\eta_{\rm req}\approx0.15$--$0.23$ (Sec.~\ref{sec:res-ceiling}), i.e.\ a certificate of the form $|g_{\rm sel}|\ge0.77$--$0.85\,\max_k|g_k|$. Reporting $\eta_{\rm req}$ alongside $\varepsilon$ is what makes the certificate comparable across the very different gradient scales of a spin chain and a molecular active space.
 
-\begin{table}
+\begin{table*}[t]
 \caption{Strict $\varepsilon$-best runs under the empirical-Bernstein bound in which every appended operator is finite-sample certified; $\varepsilon=0.30$, trajectory budget $\delta_{\rm tot}=0.10$. ``ops (cert.)'' is the number of appended operators and, in parentheses, how many are certified; ``argmax'' counts how many of those were in fact the exact $\arg\max_j|g_j|$; $\epsilon_E$ is the final relative energy error; $N_{\rm shots}$ counts selection measurements only. Every run terminates by abstaining at the next step (Sec.~\ref{sec:res-certtraj}), so the stopping decision is not itself certified. Spin systems use the local $Y$-centered pool; molecules use the odd-$Y$ singles-and-doubles pool.}
 \label{tab:certtraj}
 \centering
@@ -273,9 +285,9 @@ System & $n$ & pool & ops (cert.) & argmax & $\epsilon_E$ & $N_{\rm shots}$\\
 \input{tables/certified_trajectories}
 \end{tabular}
 \end{ruledtabular}
-\end{table}
+\end{table*}
 
-\begin{table}
+\begin{table*}[t]
 \caption{Scale of the $\varepsilon=0.30$ certificate at every certified step of Table~\ref{tab:certtraj}. $\varepsilon/\max_j|g_j|$ normalizes the tolerance to the step's own gradient scale (values above $1$ mean the nominal certificate is weaker than the full gradient range); ``short.'' is the realized relative shortfall $(\max_j|g_j|-|g_{\rm sel}|)/\max_j|g_j|$, zero when the certified pick happens to be the exact argmax; ``rank'' is the selected operator's post-hoc position in the exact-gradient ordering. Every value is read from the committed per-step record.}
 \label{tab:epsscale}
 \centering
@@ -287,7 +299,7 @@ System & step & $\max_j|g_j|$ & $|g_{\rm sel}|$ & $\varepsilon/\max|g|$ & short.
 \input{tables/eps_scale}
 \end{tabular}
 \end{ruledtabular}
-\end{table}
+\end{table*}
 
 We recalibrate wrong selection under the $\varepsilon$-best definition of correctness, $|g_{\rm sel}|\ge\max_k|g_k|-\varepsilon$, the quantity Corollary~\ref{cor:epsbest} bounds. It differs from the exact-argmax criterion of Sec.~\ref{sec:res-calib}: on a tied instance an $\varepsilon$-best selection is correct even when it is not the unique argmax. Over $32$ instances built for this regime---symmetric (exact-tie) reference states, displaced generic states, and actual exact-ADAPT trajectory states---each with $60$ seeds, across both bounds, $\delta\in\{0.05,0.10,0.20\}$, and $\varepsilon\in\{0.15,0.30\}$, the empirical $\varepsilon$-best violation rate is $0$ in all twelve conditions, with a one-sided $95\%$ Clopper--Pearson upper bound of $1.7$--$2.0\times10^{-3}$ conditional on resolving---below every nominal $\delta$---and it remains $0$ (upper bound $\le1.4\times10^{-2}$) in the ``tight'' stratum where a sub-$\varepsilon$ candidate sits within $0.10$ of the $\varepsilon$-boundary. The $\varepsilon$-best rule resolves $80$--$92\%$ of these instances at $0.995$--$1.000$ coverage, against the $0$--$3.6\%$ the exact-best rule resolves on the harder unique-argmax set. The recalibration is not cosmetic: $20$--$27\%$ of the resolved selections are \emph{not} the exact argmax, so the exact-argmax metric of Sec.~\ref{sec:res-calib} would miscount roughly one resolved selection in four as an error on precisely the tied states the $\varepsilon$-best rule is built for.
 
@@ -298,7 +310,7 @@ Two limitations bound the claim. First, the certificate is genuine but loose: re
 
 Table~\ref{tab:calib} reports $96.4$--$100\%$ abstention for the strict empirical-Bernstein selector, but at one ceiling ($64\times$ the $256$-shot base). That number alone cannot distinguish three causes: an exact tie the exact-best rule can never resolve; a real but small gap that more shots would resolve; and a gap large enough that only the conservatism of the union-bounded radius stands in the way. We separate them by sweeping the cumulative ceiling over $64\times$, $256\times$, $1024\times$, $4096\times$, and $16384\times$ on three explicitly constructed strata---exact ties at symmetric TFIM reference states, unique argmaxes with gap below $0.03$, and unique argmaxes with gap above $0.03$---under both the exact-best and the $\varepsilon$-best rule (Table~\ref{tab:ceiling}).
 
-\begin{table}
+\begin{table*}[t]
 \caption{Shot-ceiling sweep for strict empirical-Bernstein selection ($\delta=0.10$, base $256$ shots, $18$ instances---six per stratum---$\times\,60$ seeds; $\varepsilon=0.30$ for the $\varepsilon$-best rows). ``res.'' is the resolution rate, ``wrong'' the unconditional resolve-and-err rate, ``shots@res'' the median cumulative shots at the resolving round, $r$ the median terminal confidence radius, and $\eta_{\rm req}$ the median multiplicative tolerance of Corollary~\ref{cor:multi} among resolved calls.}
 \label{tab:ceiling}
 \centering
@@ -310,7 +322,7 @@ Rule, stratum & ceil. & res. & wrong & shots@res & $r$ & $\eta_{\rm req}$\\
 \input{tables/ceiling_sweep}
 \end{tabular}
 \end{ruledtabular}
-\end{table}
+\end{table*}
 
 The three causes separate cleanly, and none of them is bound conservatism.
 
@@ -345,7 +357,7 @@ Three of the four strata are uninformative, and that is the point: at $\Delta\ge
 
 That last number also bounds how much the disagreement costs: in a near-tie, picking the runner-up forfeits under $0.2\%$ of the leading gradient, which is why the trajectory-level energies of Table~\ref{tab:hardtraj} barely move. We report that comparison too, and it does not favor the elaborate arms. On $15$ seeds of the $n=4$ random-field Ising family at a matched eight-operator budget, a single fixed-shot round at $4096$ shots per word gives the best median \emph{and} $90$th-percentile relative error ($4.1\times10^{-5}$, $5.0\times10^{-4}$) at the lowest cost ($1.9\times10^5$ state preparations, $46$ circuits); raising it to $65{,}536$ shots per word buys nothing; escalating doubling is a factor of four worse in the median at $3.5\times$ the cost; and the strict $\varepsilon$-best arm stops after five operators because it abstains, ending an order of magnitude above the fixed-shot arm. Selection noise is simply not the accuracy bottleneck for these families at this operator budget---the same conclusion the $n=6$ matrix reaches from the other direction (Sec.~\ref{sec:res-spin})---so the certified machinery buys a statistical guarantee, not a lower energy. What the stratified study establishes is where the guarantee is worth having: wherever near-ties are common, an uncertified selector is wrong roughly a third of the time and cannot tell you so.
 
-\begin{table}[t]
+\begin{table*}[t]
 \caption{Shot-matched ADAPT trajectories on the $n=4$ random-field Ising family ($15$ seeds, eight-operator budget). $\epsilon_E^{50}$ and $\epsilon_E^{90}$ are the median and $90$th-percentile relative energy error, ``ops'' the median appended operators, and ``abs.'' the total abstentions. The fixed-shot arms commit unconditionally; the strict arm stops on its first unresolved selection, which is why it appends fewer operators.}
 \label{tab:hardtraj}
 \centering
@@ -357,7 +369,7 @@ Arm & $\epsilon_E^{50}$ & $\epsilon_E^{90}$ & shots & circ. & ops & abs.\\
 \input{tables/hard_trajectories}
 \end{tabular}
 \end{ruledtabular}
-\end{table}
+\end{table*}
 
 \subsection{Baselines and the cost of reuse}
 \label{sec:res-baselines}
@@ -394,7 +406,7 @@ Family & Method & $\epsilon_E$ & $N_{\rm shots}$ & $N_{\text{circ}}$ & abs.\\
 \label{fig:selection}
 \end{figure}
 
-\begin{table}[t]
+\begin{table*}[t]
 \caption{Headline $n=4$ spin trajectories, 100 seeds, eight-operator budget. $\epsilon_E$ is median relative energy error, $N_{\rm shots}$ median state preparations, $N_{\text{circ}}$ median circuit executions, and amb.\ the fraction of selection steps that exhausted the confidence budget before the leader was accepted. The ungrouped doubling row is included so the grouping comparison is visible; all rows accept the empirical leader on ambiguity and are therefore confidence-guided, not strict-certified.}
 \label{tab:headline}
 \centering
@@ -406,7 +418,7 @@ Family & Selector & $\epsilon_E$ & $N_{\rm shots}$ & $N_{\text{circ}}$ & amb.\\
 \input{tables/headline}
 \end{tabular}
 \end{ruledtabular}
-\end{table}
+\end{table*}
 
 \emph{QWC grouping.} Grouping the shared word set into commuting measurement bases leaves the \emph{estimator} unchanged---the same word means are reconstructed from the same effective word-shots, and the median energy error is identical to the ungrouped arm on four of five families ($5.1\times10^{-5}$ at the critical point in both cases; the disordered ensemble differs by seed noise, $3.9$ versus $3.1\times10^{-5}$)---while cutting both of the physically charged quantities (Fig.~\ref{fig:grouping}, Table~\ref{tab:grouping}). Across the five families the distinct-circuit count falls by $2.8$--$3.6\times$ (e.g.\ $932\to304$ at the open critical point and $1232\to338$ at the periodic point, where more commuting words are available to group) and the state-preparation count by $2.5$--$3.1\times$. Both reductions are below the $4.7\times$ of the deterministic per-round plan (Sec.~\ref{sec:res-baselines}) because the grouped and ungrouped runs escalate through different numbers of rounds and eliminate candidates at different points. In the units of Sec.~\ref{sec:protocol}: grouping leaves word-shots and the estimate unchanged, and reduces state preparations and circuit executions by roughly threefold.
 
@@ -417,7 +429,7 @@ Family & Selector & $\epsilon_E$ & $N_{\rm shots}$ & $N_{\text{circ}}$ & amb.\\
 \label{fig:grouping}
 \end{figure}
 
-\begin{table}[t]
+\begin{table*}[t]
 \caption{QWC grouping at fixed accuracy ($n=4$, 100 seeds, uniform doubling). Circuits are circuit executions and shots are state preparations, both medians; the median relative energy error is identical in the grouped and ungrouped arms of every family, so neither reduction costs accuracy.}
 \label{tab:grouping}
 \centering
@@ -429,7 +441,7 @@ Family & circ.\ ung. & circ.\ grp. & factor & shots ung. & shots grp. & factor\\
 \input{tables/grouping}
 \end{tabular}
 \end{ruledtabular}
-\end{table}
+\end{table*}
 
 
 \emph{Allocation.} Replacing uniform doubling by variance-proportional allocation reduces the fraction of selection steps that end ambiguous by $27$--$48\%$ (e.g.\ $0.80\to0.47$ at the critical point and $0.83\to0.45$ periodic; the smallest gain, $0.99\to0.72$, is in the ordered $h=1.5$ phase where almost every step is contested), while holding or improving the median energy error---on TFIM $h=0.5$ it reaches machine precision where doubling stalls at $9.1\times10^{-5}$ (Fig.~\ref{fig:allocation}). The improvement costs $2.2$--$2.7\times$ the state preparations, because concentrating samples on the contested comparisons resolves more of them before the ceiling but does so by spending more total budget. Variance-proportional allocation is therefore the policy of choice when ambiguity, rather than raw shot count, is the binding constraint---for instance near reflection-symmetric points, where genuinely tied candidates are common (see below). It is, however, adaptive in its sample sizes and so is used only with the asymptotic normal bound: certifying it would require a confidence sequence (Sec.~\ref{sec:limitations}).
@@ -568,9 +580,13 @@ Throughout, $M$ is the candidate family declared before any measurement, $R$ the
 
 \emph{Group-level bound.} Fix $(r,j,g)$. The $N_g^{(r)}$ shots of group $g$ are i.i.d.\ given the fixed ansatz state (A1) because the QWC partition is fixed for the whole selection step, and $v_{j,g}\in[-B_{j,g},B_{j,g}]$ (A2) with range $2B_{j,g}$. The empirical-Bernstein inequality then gives, for any $\delta_{j,g}\in(0,1)$,
 \begin{equation}
-\Pr\Bigl[\bigl|\overline{v_{j,g}}-\mu_{j,g}\bigr|>\rho_{j,g}\Bigr]\le\delta_{j,g},\ \
-\rho_{j,g}=\sqrt{\tfrac{2\widehat s^2_{j,g}\ln(3/\delta_{j,g})}{N_g^{(r)}}}+\tfrac{6B_{j,g}\ln(3/\delta_{j,g})}{N_g^{(r)}} .
+\Pr\Bigl[\bigl|\overline{v_{j,g}}-\mu_{j,g}\bigr|>\rho_{j,g}\Bigr]\le\delta_{j,g},
 \label{eq:ebgroup}
+\end{equation}
+where, writing $L_{j,g}=\ln(3/\delta_{j,g})$,
+\begin{equation}
+\rho_{j,g}=\sqrt{\frac{2\widehat s^2_{j,g}L_{j,g}}{N_g^{(r)}}}+\frac{6B_{j,g}L_{j,g}}{N_g^{(r)}} .
+\label{eq:ebradius}
 \end{equation}
 The $\ln(3/\delta)$ and the factor $3$ multiplying the range in the second term are the two-sided form: the one-sided statement holds at $\ln(3/\delta)$ with a $3\times$range coefficient, and the standard union over the two tails is already absorbed into the constant $3$ inside the logarithm, so Eq.~\eqref{eq:ebgroup} is two-sided at level $\delta_{j,g}$ as written. With range $2B_{j,g}$ the coefficient is $3\cdot 2B_{j,g}=6B_{j,g}$, which is the term appearing in Eq.~\eqref{eq:reb}. (A4) is exactly the statement that Eq.~\eqref{eq:ebgroup} holds at each decision round with the scheduled $N_g^{(r)}$.
 

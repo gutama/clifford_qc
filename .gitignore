@@ -216,3 +216,14 @@ __marimo__/
 
 # Streamlit
 .streamlit/secrets.toml
+
+# LaTeX build products (paper/manuscript.pdf is built by pdflatex; the
+# citable artifact is the tagged source, not a committed binary)
+*.aux
+*.bbl
+*.blg
+*.out
+*.toc
+*.synctex.gz
+*Notes.bib
+paper/manuscript.pdf
