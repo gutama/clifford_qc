@@ -64,6 +64,8 @@ jobs:
           git diff --exit-code -- paper/tables
       - name: Summaries agree with their records
         run: python benchmarks/check_summaries.py
+      - name: REPRODUCING.md agrees with the code
+        run: python benchmarks/check_docs.py
       - name: Manuscript structure (refs, bib keys, table columns, float ages)
         run: python paper/check_manuscript.py
       - name: Build the manuscript

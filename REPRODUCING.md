@@ -18,7 +18,19 @@ python paper/make_tables.py        # -> paper/tables/*.tex  (\input by the .tex)
 python paper/check_manuscript.py   # balance, refs, bib keys, column counts,
                                    # and figures older than their source record
 python benchmarks/check_summaries.py  # *_summary.{csv,md} vs their JSONL
+python benchmarks/check_docs.py       # this file vs the code it describes
 ```
+
+That last one exists because this document drifted three times while the
+numbers themselves stayed correct: the per-matrix `summarize.py` commands
+regenerated only the CSV (which is *how* the Markdown summaries went stale),
+the predeclared-parameter section quoted one global `delta` while five
+certification experiments used their own, and the environment check
+understated the test count. Artifact checkers cannot see prose, so
+`check_docs.py` verifies that every documented command names a real script,
+that every flag it passes is one the script accepts, that the delta/eps table
+matches the constants in each script, and that no benchmark or committed
+record is left undocumented.
 
 Building the manuscript itself needs revtex4-2 and the packages the preamble
 loads; on Debian/Ubuntu:
