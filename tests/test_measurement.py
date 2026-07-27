@@ -14,6 +14,7 @@ from clifford_qc.measurement import (
     jeffreys_mean_var, simultaneous_z_radius, empirical_bernstein_radius,
 )
 from clifford_qc.models import tfim
+from clifford_qc.multivector import MV, word_mul
 from clifford_qc.algorithms import local_pool
 from clifford_qc.pauli import comm
 from clifford_qc.states import expectation
@@ -70,6 +71,42 @@ def test_bank_scores_agree_with_direct_commutators():
     for j, op in enumerate(pool):
         direct = expectation(rho, -0.5j * comm(H, op.word.to_mv())).real
         assert bank.exact_score(j, rho) == pytest.approx(direct, abs=1e-12)
+
+
+def test_single_word_expectation_is_one_state_coefficient():
+    """The premise ``exact_score`` reads coefficients on: ``<W_w> = 2^n rho_w``.
+
+    It holds because every Pauli word is its own inverse *with no phase*, so
+    ``W_w W_v`` contributes to the scalar part only at ``v == w``. Checked
+    exhaustively here rather than assumed: a phase convention change in
+    ``word_mul`` would silently corrupt every exact gradient.
+    """
+    for n in (1, 2, 3):
+        for w in range(4 ** n):
+            assert word_mul(n, w, w) == (1, 0)
+
+    n = 3
+    rng = np.random.default_rng(0)
+    rho = MV(n, {int(c): float(rng.normal())
+                 for c in rng.choice(4 ** n, size=4 ** n // 2, replace=False)})
+    for code in rho.terms:
+        assert expectation(rho, PauliWord(n, code).to_mv()).real == 2 ** n * rho.terms[code]
+
+
+def test_exact_score_matches_general_expectation_bitwise():
+    """Coefficient reading and the general observable product agree exactly.
+
+    ``pytest.approx`` would hide a real regression here: the committed
+    exact-gradient records are reproduced bitwise, so this asserts equality.
+    """
+    m = tfim(4, J=1.3, h=0.7)
+    pool = local_pool(4, periodic_context=False)
+    bank = CommutatorBank(m.hamiltonian, [op.word for op in pool])
+    rho = m.reference.state()
+    for j in range(len(bank)):
+        general = sum(c * expectation(rho, MV(bank.n, {code: 1.0})).real
+                      for code, c in bank.coeffs[j].items())
+        assert bank.exact_score(j, rho) == general
 
 
 def test_bank_estimate_reconstructs_from_exact_cache():

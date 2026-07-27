@@ -13,7 +13,6 @@ from __future__ import annotations
 from typing import Sequence
 
 from ..multivector import MV, _lane_mask, word_mul
-from ..states import expectation
 from ..ir import PauliSum, PauliWord
 
 
@@ -102,6 +101,22 @@ class CommutatorBank:
         return est, var
 
     def exact_score(self, j: int, rho: MV) -> float:
-        """Exact g_j = Tr[rho G_j] (validation and exact-selection mode)."""
-        return sum(c * expectation(rho, MV(self.n, {code: 1.0})).real
-                   for code, c in self.coeffs[j].items())
+        """Exact g_j = Tr[rho G_j] (validation and exact-selection mode).
+
+        A Pauli word is its own inverse, so ``W_v W_w`` is scalar only when
+        ``v == w`` and the expectation of a *single* word collapses to one
+        coefficient of the state:
+
+            <W_w> = Tr(W_w rho) = 2^n rho_w .
+
+        Reading that coefficient is O(1), where routing the same quantity
+        through the general observable expectation costs a full multivector
+        product against every term of ``rho`` -- and did so once per word per
+        candidate, discarding exactly the shared support this bank exists to
+        exploit. The arithmetic is unchanged term by term, so committed
+        exact-gradient records reproduce bitwise.
+        """
+        scale = float(2 ** self.n)
+        terms = rho.terms
+        return sum(c * (scale * terms[code]).real
+                   for code, c in self.coeffs[j].items() if code in terms)

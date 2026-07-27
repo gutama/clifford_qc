@@ -74,11 +74,29 @@ No figure or table value in the manuscript is transcribed by hand, and
 
 ```bash
 python -m venv .venv && source .venv/bin/activate
-pip install -e .[test,research]      # numpy core + scipy optimizer
-pip install -e .[stim]               # stabilizer backend / Phase 4
-pip install -e .[chemistry]          # openfermion + pyscf / Phase 5
-pytest                               # 280 passed, 6 skipped
+pip install -e .[test,research,chemistry]   # numpy + scipy + openfermion/pyscf
+pytest                                      # 459 passed, 6 skipped
 ```
+
+That install is the reference environment for the quoted pair, and it is
+what CI's `manuscript` job builds. The count depends on it: a missing
+optional module makes pytest drop the whole test file at collection, so
+each absent extra moves one file from the passed count to the skipped
+count. The six skips here are the bridge files — `stim` (three of them),
+`pennylane`, `pytket`, and `pyzx`.
+
+Adding the remaining extras therefore *changes both numbers*, which is
+expected rather than a failure:
+
+```bash
+pip install -e .[stim]               # stabilizer backend / Phase 4
+pip install -e .[bridges]            # stim + pytket + pennylane + pyzx + openfermion
+```
+
+`check_docs.py` verifies the documented pair by collection. It reports a
+skip when the installed extras do not match the environment above; pass
+`--require-test-count` to turn that mismatch into a failure, which is how
+CI enforces it in the job that owns the contract.
 
 The core package imports with numpy alone; without SciPy the optimizer
 falls back to pure-Python Adam (numerically equivalent results at looser
@@ -130,9 +148,17 @@ python benchmarks/run_chemistry.py --seeds 3 \
     --out benchmarks/reference_results/chemistry.jsonl
 ```
 
-PySCF computes SCF/FCI on the fly (no cached integrals); tiny numerical
-differences in the last decimals of pyscf energies across platforms do not
-change selection decisions at the committed seeds.
+PySCF computes SCF/FCI on the fly (no cached integrals), so the last
+decimals of its energies differ across platforms. Those differences do not
+move the reported energies, but they used to move the *selection*: the H4
+pool is degenerate by symmetry, and a perturbation of ~1e-11 was enough to
+hand an exactly tied step to a different operator. Two runs at four BLAS
+threads on one machine exchanged nine of twelve labels that way.
+
+The selector now resolves the argmax over a relative tolerance and takes the
+lowest-indexed member of the tied class — the choice exact arithmetic would
+have made — so tied selections no longer depend on reduction order, thread
+count, or BLAS vendor. On well-separated candidates it is plain `max`.
 
 The expensive exact-gradient H4 row can be reproduced independently without
 rerunning the complete chemistry matrix:
@@ -142,6 +168,10 @@ python benchmarks/reproduce_exact_h4.py \
     --out reproductions/h4_exact.jsonl \
     --trajectory-out reproductions/h4_exact_trajectory.json
 ```
+
+`--threads` pins the BLAS thread count before NumPy loads (default 1, which
+is no slower here since the trajectory is dominated by the multivector
+kernel rather than by BLAS).
 
 To run that row alongside the 200-seed certification calibration, use the
 watcher. It keeps independent logs and outputs, records the environment in a

@@ -17,6 +17,43 @@ import time
 from pathlib import Path
 
 
+_THREAD_VARS = ("OMP_NUM_THREADS", "MKL_NUM_THREADS", "OPENBLAS_NUM_THREADS",
+                "NUMEXPR_NUM_THREADS", "VECLIB_MAXIMUM_THREADS")
+
+
+def _pin_threads(threads: int) -> None:
+    """Fix the BLAS thread count before NumPy is imported.
+
+    Multithreaded BLAS reductions sum in completion order, which perturbs the
+    optimizer at the 1e-11 level. That is far below chemical accuracy and does
+    not move the reported energy, but this pool is highly degenerate -- at the
+    H4 reference state only 10 distinct gradient magnitudes span 160
+    candidates, the largest tie group holding 72 -- so an exact tie is decided
+    by whichever member the perturbed state happens to favour.
+
+    Fixing the *count* does not fix the *order*. Two runs of this script at
+    ``--threads 4``, same machine, same versions, same seed, still disagreed
+    on 9 of 12 selected labels; completion order varies run to run whenever
+    more than one thread participates.
+
+    At ``--threads 1`` it does not: two runs agreed on every recorded field
+    bitwise -- labels, parameters, per-step energies. That is why 1 is the
+    default. It costs nothing here (1997 s against 2052 s over the same pair
+    of runs), because this trajectory is dominated by the pure-Python
+    multivector kernel rather than by BLAS, so extra threads were adding
+    coordination overhead to a calculation that could not use them.
+
+    Note that reproducing *this* script bitwise is not the same as matching
+    the committed record, which was produced on four threads and whose labels
+    are therefore one draw among the tied representatives. See Sec. V C.
+
+    Must run before the first NumPy import: the BLAS layer reads these once,
+    at load time, and ignores later changes.
+    """
+    for name in _THREAD_VARS:
+        os.environ[name] = str(threads)
+
+
 def _configure_restricted_container() -> None:
     try:
         import pyscf.lib
@@ -51,8 +88,16 @@ def main(argv=None) -> None:
     parser.add_argument("--out", required=True)
     parser.add_argument("--trajectory-out",
                         help="optional pretty-printed full trajectory JSON")
+    parser.add_argument("--threads", type=int, default=1,
+                        help="BLAS thread count, pinned before NumPy loads "
+                             "(default: 1, which reproduces bitwise and is "
+                             "no slower here). Any count above 1 leaves "
+                             "reduction order free, so tied operators can "
+                             "break differently between runs")
     args = parser.parse_args(argv)
 
+    # Before _configure_restricted_container(), which imports pyscf -> numpy.
+    _pin_threads(args.threads)
     _configure_restricted_container()
 
     # Executed as a file from ``benchmarks/``; import its sibling directly.

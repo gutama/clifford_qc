@@ -15,7 +15,8 @@ This closes that gap. It checks that:
   2. every long flag in those commands is one the script actually accepts;
   3. the predeclared delta/eps table matches the constants in each script;
   4. every ``run_*.py`` benchmark is documented somewhere;
-  5. every committed record is named by the document.
+  5. every committed record is named by the document;
+  6. the quoted ``pytest`` test count matches what the suite collects.
 
 Constants are read with ``ast`` rather than by importing, so a check never
 executes benchmark code.
@@ -27,7 +28,9 @@ Exits nonzero on any drift.
 
 from __future__ import annotations
 
+import argparse
 import ast
+import importlib.util
 import re
 import subprocess
 import sys
@@ -167,13 +170,88 @@ def check_coverage(text: str, problems: list[str]) -> None:
         problems.append(f"committed record {name} is not named in REPRODUCING.md")
 
 
-def main() -> int:
+def skipped_test_files() -> list[tuple[str, str]]:
+    """(file, module) for each test file pytest drops for a missing import.
+
+    Read from the tests rather than hardcoded, so the list cannot go stale.
+    Counted per *file*, not per module -- one absent module can gate several
+    files (``stim`` gates three), and each is a separate skip. A dropped file
+    never reaches the collected count, which is why the two must agree.
+    """
+    out = []
+    for path in sorted((ROOT / "tests").glob("test_*.py")):
+        for mod in re.findall(r"importorskip\(\s*[\"']([\w.]+)[\"']",
+                              path.read_text()):
+            if importlib.util.find_spec(mod) is None:
+                out.append((path.name, mod))
+                break
+    return out
+
+
+def check_test_count(text: str, problems: list[str], skipped: list[str],
+                     required: bool = False) -> None:
+    """The quoted ``pytest`` line must match what the suite actually collects.
+
+    This drifted by 147 tests before anything noticed, because every other
+    check here looks at benchmark scripts and records -- not at the environment
+    section a reader runs first.
+
+    The quoted figure describes one environment, and which optional extras are
+    installed changes it: a missing bridge removes a whole file from the
+    collected count and adds one skip. So the count is only enforced when the
+    number of unimportable optional modules matches the quoted skip count --
+    otherwise this is a different environment than the document describes, and
+    the honest report is a skip. Collection only, so no test is ever executed.
+    """
+    m = re.search(r"^\s*pytest\s+#\s*(\d+) passed, (\d+) skipped", text, re.M)
+    if not m:
+        problems.append("environment section does not quote a pytest count")
+        return
+    want_passed, want_skipped = int(m.group(1)), int(m.group(2))
+
+    absent = skipped_test_files()
+    if len(absent) != want_skipped:
+        detail = ", ".join(f"{f} ({m})" for f, m in absent) or "none"
+        message = (f"document assumes {want_skipped} skipped; here "
+                   f"{len(absent)} test file(s) skipped: {detail}")
+        # Under --require-test-count the caller has promised the documented
+        # environment, so a mismatch is the failure -- otherwise the check
+        # that owns this contract would quietly excuse itself in the very
+        # job meant to enforce it.
+        (problems if required else skipped).append(
+            f"test count {'not enforceable' if required else 'unverified'} "
+            f"({message})")
+        return
+
+    done = subprocess.run([sys.executable, "-m", "pytest", "--collect-only", "-q"],
+                          cwd=ROOT, capture_output=True, text=True)
+    found = re.search(r"^(\d+) tests? collected", done.stdout, re.M)
+    if not found:
+        detail = (done.stderr or done.stdout).strip().splitlines()
+        skipped.append("test count unverified "
+                       f"({detail[-1] if detail else f'exit {done.returncode}'})")
+        return
+    collected = int(found.group(1))
+    if collected != want_passed:
+        problems.append(f"REPRODUCING.md quotes {want_passed} passed, "
+                        f"suite collects {collected}")
+
+
+def main(argv=None) -> int:
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("--require-test-count", action="store_true",
+                        help="fail, rather than skip, when the installed "
+                             "extras do not match the environment "
+                             "REPRODUCING.md quotes its test count for")
+    args = parser.parse_args(argv)
+
     text = DOC.read_text()
     problems: list[str] = []
     skipped: list[str] = []
     check_commands(text, problems, skipped)
     check_parameter_table(text, problems)
     check_coverage(text, problems)
+    check_test_count(text, problems, skipped, required=args.require_test_count)
     for note in skipped:
         print(f"SKIP {note}")
     for p in problems:
