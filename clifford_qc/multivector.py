@@ -115,6 +115,42 @@ def word_mul(n: int, a: int, b: int) -> tuple[complex, int]:
     return _PHASE4[e], c
 
 
+# Reversion sign (-1)^{k(k-1)/2} indexed by k mod 4: +,+,-,-.
+_REV_SIGN = (1, 1, -1, -1)
+
+
+@lru_cache(maxsize=1_000_000)
+def blade_mask(n: int, code: int) -> int:
+    """Generator subset of a Pauli word, as a bitmask over the 2n JW generators.
+
+    Inverse Jordan-Wigner: walking from the high qubit down, a generator on a
+    higher qubit contributes a Z to every lower qubit, so that string is undone
+    before reading each letter's own generator content. The result is the
+    dictionary between Pauli words and Clifford blades -- the mask's popcount
+    is the blade's grade, and blade masks compose by XOR under the geometric
+    product, which is what makes the disjointness test in :meth:`MV.wedge`
+    valid.
+
+    Cached because grade decomposition, reversion, and the wedge all decode
+    the same word repeatedly across candidates that share Pauli support.
+    """
+    validate_word_code(n, code)
+    letters = [(code >> (2 * j)) & 3 for j in range(n)]
+    mask = 0
+    above_generator_count = 0
+    for j in range(n - 1, -1, -1):
+        letter = letters[j]
+        if above_generator_count % 2 == 1:
+            # Undo the Z string contributed by generators on higher qubits.
+            letter = {0: 3, 3: 0, 1: 2, 2: 1}[letter]
+        if letter in (1, 3):
+            mask |= 1 << (2 * j)
+        if letter in (2, 3):
+            mask |= 1 << (2 * j + 1)
+        above_generator_count += 1 if letter in (1, 2) else (2 if letter == 3 else 0)
+    return mask
+
+
 class MV:
     """Sparse multivector/operator in the Pauli-word basis of Cl(2n,C).
 
@@ -283,27 +319,146 @@ class MV:
 
     def blade_mask(self, code: int) -> int:
         """Decode one Pauli word to its Clifford generator subset via inverse JW."""
-        letters = self._letters(code)
-        mask = 0
-        above_generator_count = 0
-        for j in range(self.n - 1, -1, -1):
-            letter = letters[j]
-            if above_generator_count % 2 == 1:
-                # Undo the Z string contributed by generators on higher qubits.
-                letter = {0: 3, 3: 0, 1: 2, 2: 1}[letter]
-            own = {0: 0, 1: 1, 2: 2, 3: 3}[letter]
-            if own in (1, 3):
-                mask |= 1 << (2 * j)
-            if own in (2, 3):
-                mask |= 1 << (2 * j + 1)
-            above_generator_count += 1 if own in (1, 2) else (2 if own == 3 else 0)
-        return mask
+        return blade_mask(self.n, code)
+
+    def blade_grade(self, code: int) -> int:
+        """Clifford grade of one Pauli word (number of JW generators in it)."""
+        return blade_mask(self.n, code).bit_count()
 
     def grade(self, g: int) -> "MV":
-        return MV(self.n, {k: v for k, v in self.terms.items() if self.blade_mask(k).bit_count() == g})
+        return MV(self.n, {k: v for k, v in self.terms.items()
+                           if blade_mask(self.n, k).bit_count() == g})
 
     def grades(self) -> set[int]:
-        return {self.blade_mask(k).bit_count() for k in self.terms}
+        return {blade_mask(self.n, k).bit_count() for k in self.terms}
+
+    # -- exterior algebra ---------------------------------------------------
+
+    def reverse(self) -> "MV":
+        """Clifford reversion ``~A``: reverse the order of factors in every blade.
+
+        Grade-wise this is the sign ``(-1)^{k(k-1)/2}`` (negative for
+        ``k = 2, 3 mod 4``). Distinct from :meth:`dagger`, which is the
+        Hermitian adjoint (coefficient conjugation, Pauli words being
+        Hermitian). The two coincide only on real-coefficient elements of
+        even-reversion grade, so do not substitute one for the other --
+        see :meth:`scalar_product` for the sign trap this creates.
+        """
+        return MV(self.n, {k: _REV_SIGN[blade_mask(self.n, k).bit_count() & 3] * v
+                           for k, v in self.terms.items()})
+
+    __invert__ = reverse
+
+    def wedge(self, other) -> "MV":
+        """Outer (exterior) product ``A ^ B``: the grade-raising part.
+
+        For blades this is the geometric product when their generator sets are
+        disjoint and zero otherwise, because ``e_A e_B = +- e_{A xor B}`` has
+        grade ``|A| + |B|`` exactly when ``A`` and ``B`` do not overlap. That
+        makes the wedge strictly cheaper than the geometric product here: the
+        disjointness test rejects most term pairs before any multiplication.
+
+        Extends bilinearly to general multivectors, so ``A ^ B`` is the sum of
+        ``<A_j B_k>_{j+k}`` over homogeneous parts.
+        """
+        if isinstance(other, Number):
+            return MV(self.n, {k: v * complex(other) for k, v in self.terms.items()})
+        other = self._coerce(other)
+        n = self.n
+        masks_a = {a: blade_mask(n, a) for a in self.terms}
+        masks_b = {b: blade_mask(n, b) for b in other.terms}
+        out: dict[int, complex] = {}
+        for a, ca in self.terms.items():
+            ma = masks_a[a]
+            for b, cb in other.terms.items():
+                if ma & masks_b[b]:
+                    continue  # shared generator: the top grade cancels
+                ph, m = word_mul(n, a, b)
+                out[m] = out.get(m, 0.0) + ca * cb * ph
+        return MV(n, out)
+
+    __xor__ = wedge
+
+    def scalar_product(self, other) -> complex:
+        """GA scalar product ``<A ~B>_0`` -- the k-vector dot product.
+
+        This is the pairing that equals the classical Gram determinant
+        ``det(a_i . b_j)`` on simple k-vectors, and it is **bilinear**, not
+        sesquilinear.
+
+        The sign trap: in the Pauli-word coordinates this class stores,
+
+            <A ~B>_0 = sum_w  a_w b_w (-1)^{k_w(k_w-1)/2},
+            Tr(A' B) / 2^n = sum_w  conj(a_w) b_w,
+
+        so the GA scalar product and the Hilbert-Schmidt pairing
+        (:meth:`hs_product`) differ by the reversion sign on every word of
+        Clifford grade ``2, 3 mod 4`` -- and by conjugation on complex
+        coefficients. Using ``<A B>_0`` (no reversion) in place of ``<A ~B>_0``
+        is the classic error; it flips exactly those grades. Norms are immune
+        to the choice, which is why the mistake survives casual testing.
+        """
+        other = self._coerce(other)
+        n = self.n
+        small, large = ((self.terms, other.terms) if len(self.terms) <= len(other.terms)
+                        else (other.terms, self.terms))
+        total = 0j
+        for code, va in small.items():
+            vb = large.get(code)
+            if vb is None:
+                continue  # W_a W_b is scalar only when the words coincide
+            total += va * vb * _REV_SIGN[blade_mask(n, code).bit_count() & 3]
+        return total
+
+    def hs_product(self, other) -> complex:
+        """Hilbert-Schmidt pairing ``Tr(A' B) / 2^n`` (sesquilinear).
+
+        The physics-side inner product, and the one :meth:`norm_hs` is built
+        from. Contrast :meth:`scalar_product`.
+        """
+        other = self._coerce(other)
+        small, large = ((self.terms, other.terms) if len(self.terms) <= len(other.terms)
+                        else (other.terms, self.terms))
+        conj_first = small is self.terms
+        total = 0j
+        for code, va in small.items():
+            vb = large.get(code)
+            if vb is None:
+                continue
+            total += (va.conjugate() * vb) if conj_first else (vb.conjugate() * va)
+        return total
+
+    def is_blade(self, tol: float = 1e-9) -> bool:
+        """Simplicity test: is this a single blade ``a_1 ^ ... ^ a_k`` rather
+        than a sum of them?
+
+        A sum of blades need not be a blade -- the standard witness lives in
+        this algebra at ``n >= 2``: ``g_0^g_1 + g_2^g_3`` wedges with itself to
+        ``2 g_0^g_1^g_2^g_3 != 0``. The test is ``A ^ A == 0``.
+
+        Exactness of the answer depends on the grade ``k`` (with ``N = 2n``
+        generators):
+
+        - ``k <= 1``, ``k >= N-1``: every such element is simple, so ``True``
+          is exact and the wedge test is skipped (it would wrongly reject
+          grade 0, where ``A ^ A = A^2 != 0``, and is vacuous at grade 1).
+        - ``k == 2``: ``A ^ A == 0`` is necessary *and* sufficient, so the
+          answer is exact.
+        - ``3 <= k <= N-2``: ``A ^ A == 0`` is necessary only. ``False`` is
+          still conclusive; ``True`` means "passes the Plucker-type screen",
+          not "proved simple".
+
+        Inhomogeneous elements are never blades; the zero multivector is.
+        """
+        if self.is_zero(tol):
+            return True
+        gs = self.grades()
+        if len(gs) > 1:
+            return False
+        k = next(iter(gs))
+        if k <= 1 or k >= 2 * self.n - 1:
+            return True
+        return self.wedge(self).norm_hs() < tol
 
     def __repr__(self) -> str:
         return self.pretty()
