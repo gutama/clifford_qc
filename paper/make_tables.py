@@ -364,6 +364,13 @@ def tab_spin_n6():
 # -- Tables: chemistry -------------------------------------------------------
 
 MOL_LABEL = {"h2": r"H$_2$", "lih": "LiH", "beh2": r"BeH$_2$", "h4_chain": r"H$_4$"}
+# Record vocabulary -> prose. Unknown values pass through, so a new pool
+# semantics shows up in the table as its raw tag rather than silently reading
+# as one of the existing ones.
+POOL_SEMANTICS = {
+    "individual_pauli_words_from_conserving_generators":
+        "split words from conserving generators",
+}
 CHEM_ARMS = [("exact", "exact"), ("fast", "FAST"),
              ("confidence", r"conf.-guided"), ("random", "random")]
 
@@ -404,6 +411,52 @@ def tab_chemistry():
     write("chemistry", out)
 
 
+def tab_h4full():
+    """The complete H4 exact-gradient result, from the trajectory record.
+
+    This table was hand-typed until its rerun-agreement rows went stale --
+    the record now reports exact agreement where the table still claimed
+    2.3e-15 Ha and nine alternate tie representatives. Since the manuscript
+    states that every table value is read from a record rather than
+    transcribed, the claim and the table now agree.
+    """
+    path = DATA / "h4_exact_trajectory.json"
+    t = json.loads(path.read_text())
+    c = t.get("reference_comparison") or {}
+    hf, fci = t["hf_energy"], t["active_space_fci"]
+    e = t["final_energy_ha"]
+    corr = 100.0 * (hf - e) / (hf - fci)
+    alt = c.get("alternate_numerical_tie_representatives")
+    n_ops = len(t["labels"])
+    wall = t["wall_seconds"] / 60.0
+    ref_wall = (c.get("reference_wall_seconds") or 0.0) / 60.0
+    out = [
+        rf"active space & ${t['n_electrons']}e,{t['n_electrons']}o$ "
+        rf"(${t['n']}$ qubits)\\",
+        rf"pool size (odd-$Y$ words) & {t['pool_size']}\\",
+        rf"pool semantics & {POOL_SEMANTICS.get(t['pool_semantics'], t['pool_semantics'])}\\",
+        rf"$E_{{\mathrm{{HF}}}}$ (Ha) & ${hf:.12f}$\\",
+        rf"$E_{{\mathrm{{FCI}}}}$ (Ha) & ${fci:.12f}$\\",
+        rf"final variational $E$ (Ha) & ${e:.12f}$\\",
+        rf"final error (mHa) & ${t['final_error_mha']:.6f}$\\",
+        rf"correlation recovered & ${corr:.4f}\%$\\",
+        rf"operators to $1.6$~mHa & {t['ops_to_accuracy']}\\",
+        rf"operators at termination & {n_ops}\\",
+        rf"optimizer evaluations & {t['optimizer_evaluations']}\\",
+        rf"target $(N={t['n_electrons']},S_z=0)$ weight & "
+        rf"${100 * t['target_sector_weight']:.4f}\%$\\",
+        rf"$\operatorname{{Var}}(N)$ & {sci(t['particle_number_variance'], 2)}\\",
+        rf"$\operatorname{{Var}}(S_z)$ & {sci(t['spin_z_variance'], 2)}\\",
+        rf"termination & operator budget reached\\",
+        rf"run / rerun wall & ${wall:.1f}/{ref_wall:.1f}$ min\\",
+        rf"max trajectory-energy difference & "
+        rf"{sci(c.get('max_trajectory_energy_abs_difference'))} Ha\\",
+        rf"alternate tie representatives & "
+        rf"{alt} of {n_ops} labels\\" if alt is not None else "",
+    ]
+    write("h4full", [r for r in out if r])
+
+
 def main():
     tab_calibration()
     tab_certified()
@@ -413,6 +466,7 @@ def main():
     tab_headline()
     tab_spin_n6()
     tab_chemistry()
+    tab_h4full()
     print("wrote table fragments to", OUT)
 
 

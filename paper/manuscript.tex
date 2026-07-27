@@ -517,7 +517,7 @@ Molecule & Selector & Err.\ (mHa) & ops & shots\\
 \end{table}
 
 \begin{table*}[t]
-\caption{Complete deterministic H$_4$ exact-gradient result at $0.9$~\AA{} in STO-3G. Energies include nuclear repulsion. The independent rerun used four numerical threads; wall time is operational rather than a cross-platform performance benchmark.}
+\caption{Complete deterministic H$_4$ exact-gradient result at $0.9$~\AA{} in STO-3G. Energies include nuclear repulsion. The run and its independent rerun are single-threaded and agree to the last bit; wall time is operational rather than a cross-platform performance benchmark.}
 \label{tab:h4full}
 \centering
 \footnotesize
@@ -525,24 +525,7 @@ Molecule & Selector & Err.\ (mHa) & ops & shots\\
 \begin{tabular}{lr}
 Quantity & Result\\
 \colrule
-active space & $4e,4o$ ($8$ qubits)\\
-pool size (odd-$Y$ words) & 160\\
-pool semantics & split words from conserving generators\\
-$E_{\mathrm{HF}}$ (Ha) & $-2.124259738973$\\
-$E_{\mathrm{FCI}}$ (Ha) & $-2.180316614324$\\
-final variational $E$ (Ha) & $-2.179923798653$\\
-final error (mHa) & $0.392816$\\
-correlation recovered & $99.2993\%$\\
-operators to $1.6$~mHa & 9\\
-operators at termination & 12\\
-optimizer evaluations & 141\\
-target $(N=4,S_z=0)$ weight & $99.9798\%$\\
-$\operatorname{Var}(N)$ & $3.96\times10^{-8}$\\
-$\operatorname{Var}(S_z)$ & $8.07\times10^{-4}$\\
-termination & operator budget reached\\
-reference / rerun wall & $33.6/28.9$ min\\
-max trajectory-energy difference & $2.3\times10^{-15}$ Ha\\
-alternate tie representatives & 9 of 12 labels\\
+\input{tables/h4full}
 \end{tabular}
 \end{ruledtabular}
 \end{table*}
