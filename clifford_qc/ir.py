@@ -232,7 +232,9 @@ class Rotor:
         return float(self.angle)
 
     def to_mv(self, bindings: Mapping[str, float] | None = None) -> MV:
-        return _gates.rotor(self.word.to_mv(), self.resolved_angle(bindings))
+        # A PauliWord is an involution by construction, so skip the check.
+        return _gates._rotor_unchecked(self.word.to_mv(),
+                                       self.resolved_angle(bindings))
 
     def is_clifford(self, bindings: Mapping[str, float] | None = None,
                     tol: float = 1e-9) -> bool:

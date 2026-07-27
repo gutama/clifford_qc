@@ -25,7 +25,9 @@ def run_verification() -> None:
         code_to_label,
     )
 
-    print("== clifford_qc v0.1 verification ==\n")
+    from . import __version__
+
+    print(f"== clifford_qc v{__version__} verification ==\n")
 
     n = 3
     rng = np.random.default_rng(7)
