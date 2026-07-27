@@ -80,6 +80,14 @@ pip install -e .[chemistry]          # openfermion + pyscf / Phase 5
 pytest                               # 427 passed, 6 skipped
 ```
 
+The quoted figure is for `[test,research,chemistry]` without the bridge
+extras: a missing optional module makes pytest drop its whole test file
+during collection, so each absent bridge moves one test file from the
+passed count to the skipped count. Installing `[bridges]` raises the
+first number and lowers the second. `check_docs.py` verifies the pair,
+and reports a skip rather than a failure when the extras installed do
+not match the environment described here.
+
 The core package imports with numpy alone; without SciPy the optimizer
 falls back to pure-Python Adam (numerically equivalent results at looser
 tolerance — the committed artifacts were produced with SciPy's L-BFGS-B).
