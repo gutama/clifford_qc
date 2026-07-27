@@ -75,7 +75,7 @@ No figure or table value in the manuscript is transcribed by hand, and
 ```bash
 python -m venv .venv && source .venv/bin/activate
 pip install -e .[test,research,chemistry]   # numpy + scipy + openfermion/pyscf
-pytest                                      # 459 passed, 6 skipped
+pytest                                      # 460 passed, 6 skipped
 ```
 
 That install is the reference environment for the quoted pair, and it is
@@ -166,12 +166,19 @@ rerunning the complete chemistry matrix:
 ```bash
 python benchmarks/reproduce_exact_h4.py \
     --out reproductions/h4_exact.jsonl \
-    --trajectory-out reproductions/h4_exact_trajectory.json
+    --trajectory-out reproductions/h4_exact_trajectory.json \
+    --with-reference
 ```
 
 `--threads` pins the BLAS thread count before NumPy loads (default 1, which
 is no slower here since the trajectory is dominated by the multivector
 kernel rather than by BLAS).
+
+`--with-reference` runs the trajectory a second time in the same process and
+embeds the agreement between the two runs as `reference_comparison`, which is
+what backs the reproducibility statement in the paper. It doubles the wall
+time, and is how the committed
+`benchmarks/reference_results/h4_exact_trajectory.json` was produced.
 
 To run that row alongside the 200-seed certification calibration, use the
 watcher. It keeps independent logs and outputs, records the environment in a

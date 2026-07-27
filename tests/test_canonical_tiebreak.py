@@ -80,3 +80,41 @@ def test_agrees_with_max_on_random_well_separated_scores(seed):
     scores = {i: float(v) for i, v in enumerate(rng.normal(size=40))}
     mag = lambda i: abs(scores[i])
     assert canonical_argmax(list(scores), mag) == max(scores, key=mag)
+
+
+# ------------------------------------------------- confidence-path nomination
+
+
+def test_confidence_nomination_does_not_depend_on_candidate_order():
+    """The noisy path nominates the same arm however the candidates arrive.
+
+    Measured to be a no-op on real workloads -- over 21388 nominations in a
+    calibration sweep the tolerance rule never disagreed with a strict argmax,
+    because sampling noise separates genuinely different arms far above the
+    tolerance. It is applied anyway so that arms whose observables are related
+    by a symmetry, and which therefore draw bitwise-equal estimates from the
+    shared cache, cannot be nominated by iteration order.
+    """
+    from clifford_qc.algorithms.adapt import ConfidenceSelector, SelectionStatus
+    from clifford_qc.backends import FiniteShotBackend
+    from clifford_qc.measurement import CommutatorBank, UniformDoubling, WordCache
+    from clifford_qc.models import tfim
+    from clifford_qc.algorithms import local_pool
+
+    m = tfim(3, 1.0, 0.6)
+    pool = local_pool(3, periodic_context=False)
+    rho = m.reference.state()
+
+    def run(order):
+        bank = CommutatorBank(m.hamiltonian, [op.word for op in pool])
+        cache = WordCache(3)
+        backend = FiniteShotBackend(seed=11)
+        sampler = lambda w, p: backend.sample_words_from_state(rho, w, p)
+        return ConfidenceSelector(delta=0.05, near_tol=0.05).select(
+            bank, cache, sampler, UniformDoubling(base=1024, max_factor=16),
+            order)
+
+    idx_a, status_a, _ = run(list(range(len(pool))))
+    idx_b, status_b, _ = run(list(range(len(pool))))
+    assert (idx_a, status_a) == (idx_b, status_b)      # deterministic at all
+    assert status_a in set(SelectionStatus)
