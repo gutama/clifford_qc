@@ -34,10 +34,18 @@ def _pin_threads(threads: int) -> None:
     Fixing the *count* does not fix the *order*. Two runs of this script at
     ``--threads 4``, same machine, same versions, same seed, still disagreed
     on 9 of 12 selected labels; completion order varies run to run whenever
-    more than one thread participates. Only ``--threads 1`` removes the
-    reduction-order freedom entirely. Treat a higher count as a speed choice,
-    not a reproducibility one, and see Sec. V C of the manuscript: the
-    selected words are tie representatives and are not claimed invariant.
+    more than one thread participates.
+
+    At ``--threads 1`` it does not: two runs agreed on every recorded field
+    bitwise -- labels, parameters, per-step energies. That is why 1 is the
+    default. It costs nothing here (1997 s against 2052 s over the same pair
+    of runs), because this trajectory is dominated by the pure-Python
+    multivector kernel rather than by BLAS, so extra threads were adding
+    coordination overhead to a calculation that could not use them.
+
+    Note that reproducing *this* script bitwise is not the same as matching
+    the committed record, which was produced on four threads and whose labels
+    are therefore one draw among the tied representatives. See Sec. V C.
 
     Must run before the first NumPy import: the BLAS layer reads these once,
     at load time, and ignores later changes.
@@ -80,12 +88,12 @@ def main(argv=None) -> None:
     parser.add_argument("--out", required=True)
     parser.add_argument("--trajectory-out",
                         help="optional pretty-printed full trajectory JSON")
-    parser.add_argument("--threads", type=int, default=4,
+    parser.add_argument("--threads", type=int, default=1,
                         help="BLAS thread count, pinned before NumPy loads "
-                             "(default: 4, matching the committed record). "
-                             "Note that any count above 1 leaves reduction "
-                             "order free, so tied operators can still break "
-                             "differently between runs")
+                             "(default: 1, which reproduces bitwise and is "
+                             "no slower here). Any count above 1 leaves "
+                             "reduction order free, so tied operators can "
+                             "break differently between runs")
     args = parser.parse_args(argv)
 
     # Before _configure_restricted_container(), which imports pyscf -> numpy.
