@@ -17,6 +17,29 @@ import time
 from pathlib import Path
 
 
+_THREAD_VARS = ("OMP_NUM_THREADS", "MKL_NUM_THREADS", "OPENBLAS_NUM_THREADS",
+                "NUMEXPR_NUM_THREADS", "VECLIB_MAXIMUM_THREADS")
+
+
+def _pin_threads(threads: int) -> None:
+    """Fix the BLAS thread count before NumPy is imported.
+
+    Multithreaded BLAS reductions sum in completion order, so an unpinned run
+    perturbs the optimizer at the 1e-11 level. That is far below chemical
+    accuracy and does not move the reported energy, but this pool is highly
+    degenerate -- at the H4 reference state only 10 distinct gradient
+    magnitudes span 160 candidates, the largest tie group holding 72 -- and
+    an exact tie is decided by whichever member the perturbed state happens
+    to favour. The trajectory's *labels* are therefore reproducible only at a
+    fixed thread count, even though its energies are not sensitive to it.
+
+    Must run before the first NumPy import: the BLAS layer reads these once,
+    at load time, and ignores later changes.
+    """
+    for name in _THREAD_VARS:
+        os.environ[name] = str(threads)
+
+
 def _configure_restricted_container() -> None:
     try:
         import pyscf.lib
@@ -51,8 +74,14 @@ def main(argv=None) -> None:
     parser.add_argument("--out", required=True)
     parser.add_argument("--trajectory-out",
                         help="optional pretty-printed full trajectory JSON")
+    parser.add_argument("--threads", type=int, default=4,
+                        help="BLAS thread count, pinned before NumPy loads so "
+                             "that tied operators break the same way each run "
+                             "(default: 4, matching the committed record)")
     args = parser.parse_args(argv)
 
+    # Before _configure_restricted_container(), which imports pyscf -> numpy.
+    _pin_threads(args.threads)
     _configure_restricted_container()
 
     # Executed as a file from ``benchmarks/``; import its sibling directly.
