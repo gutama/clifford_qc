@@ -411,6 +411,32 @@ def tab_chemistry():
     write("chemistry", out)
 
 
+def tab_infshot():
+    """Infinite-shot proxy ranking, from the repair record.
+
+    Hand-typed until this sweep, like the H4 table before it. Its values were
+    still correct, which is the point: the exposure is that nothing would have
+    said otherwise. Note the source is chemistry_repair.jsonl, not
+    chemistry.jsonl -- the ranking is a separate experiment from the arm
+    comparison.
+    """
+    rows = load("chemistry_repair.jsonl") or []
+    by_mol = {r["model"].split("(")[0]: r
+              for r in rows if r["kind"] == "infinite_shot_ranking"}
+    out = []
+    for mol in ("h2", "beh2", "lih", "h4_chain"):
+        r = by_mol.get(mol)
+        if not r:
+            continue
+        frac = r["proxy_top_grad_frac"]
+        # An exact pick is the maximum by construction; printing 1.00 rather
+        # than 1.0000000 keeps the contrast with the ~1e-7 rows readable.
+        fs = "$1.00$" if abs(frac - 1.0) < 5e-3 else sci(frac, 2)
+        out.append(f"{MOL_LABEL[mol]} & {r['candidates']} & "
+                   f"{r['proxy_top_rank_by_gradient']} & {fs}\\\\")
+    write("infshot", out)
+
+
 def tab_h4full():
     """The complete H4 exact-gradient result, from the trajectory record.
 
@@ -466,6 +492,7 @@ def main():
     tab_headline()
     tab_spin_n6()
     tab_chemistry()
+    tab_infshot()
     tab_h4full()
     print("wrote table fragments to", OUT)
 
