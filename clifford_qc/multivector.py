@@ -119,6 +119,16 @@ def word_mul(n: int, a: int, b: int) -> tuple[complex, int]:
 _REV_SIGN = (1, 1, -1, -1)
 
 
+@lru_cache(maxsize=4096)
+def codes_of_grade(n: int, r: int) -> tuple[int, ...]:
+    """Pauli codes whose Clifford blade has grade ``r`` -- the basis r-blades.
+
+    ``C(2n, r)`` of them, by the code/mask bijection. Cached because the
+    simplicity test sweeps a whole grade per call.
+    """
+    return tuple(c for c in range(4 ** n) if blade_mask(n, c).bit_count() == r)
+
+
 @lru_cache(maxsize=1_000_000)
 def blade_mask(n: int, code: int) -> int:
     """Generator subset of a Pauli word, as a bitmask over the 2n JW generators.
@@ -395,8 +405,12 @@ class MV:
         (:meth:`hs_product`) differ by the reversion sign on every word of
         Clifford grade ``2, 3 mod 4`` -- and by conjugation on complex
         coefficients. Using ``<A B>_0`` (no reversion) in place of ``<A ~B>_0``
-        is the classic error; it flips exactly those grades. Norms are immune
-        to the choice, which is why the mistake survives casual testing.
+        is the classic error; it flips exactly those grades.
+
+        Note that squared norms do *not* survive the mistake: at ``k = 2, 3``
+        the reversion sign is ``-1``, so ``<a a>_0`` returns the negative of
+        the Gram determinant -- a negative "squared norm" for a Euclidean
+        blade. Only a test that compares absolute magnitudes hides it.
         """
         other = self._coerce(other)
         n = self.n
@@ -434,19 +448,26 @@ class MV:
 
         A sum of blades need not be a blade -- the standard witness lives in
         this algebra at ``n >= 2``: ``g_0^g_1 + g_2^g_3`` wedges with itself to
-        ``2 g_0^g_1^g_2^g_3 != 0``. The test is ``A ^ A == 0``.
+        ``2 g_0^g_1^g_2^g_3 != 0``.
 
-        Exactness of the answer depends on the grade ``k`` (with ``N = 2n``
-        generators):
+        The decision is the full Plucker condition: a homogeneous ``A`` of
+        grade ``k`` is simple exactly when
 
-        - ``k <= 1``, ``k >= N-1``: every such element is simple, so ``True``
-          is exact and the wedge test is skipped (it would wrongly reject
-          grade 0, where ``A ^ A = A^2 != 0``, and is vacuous at grade 1).
-        - ``k == 2``: ``A ^ A == 0`` is necessary *and* sufficient, so the
-          answer is exact.
-        - ``3 <= k <= N-2``: ``A ^ A == 0`` is necessary only. ``False`` is
-          still conclusive; ``True`` means "passes the Plucker-type screen",
-          not "proved simple".
+            (beta _| A) ^ A == 0   for every basis (k-1)-blade beta,
+
+        i.e. when every vector obtained by contracting ``A`` down one grade
+        lies in ``A``'s own subspace.
+
+        ``A ^ A == 0`` alone will not do, and not only because it is weaker:
+        for *odd* ``k`` it is vacuous. Graded commutativity gives
+        ``A ^ A = (-1)^{k^2} A ^ A``, which for odd ``k`` forces ``A ^ A = 0``
+        with no information about ``A``. Screening on it therefore called
+        every homogeneous odd-grade element a blade -- including
+        ``g_0^g_1^g_2 + g_3^g_4^g_5``, which is not one.
+
+        Grades ``k <= 1`` and ``k >= N-1`` (with ``N = 2n`` generators) are
+        simple for dimensional reasons and answered directly; the wedge test
+        would in fact reject grade 0, where ``A ^ A = A^2 != 0``.
 
         Inhomogeneous elements are never blades; the zero multivector is.
         """
@@ -458,7 +479,14 @@ class MV:
         k = next(iter(gs))
         if k <= 1 or k >= 2 * self.n - 1:
             return True
-        return self.wedge(self).norm_hs() < tol
+        # Any nonzero multiple of the basis blade works: the test is
+        # scale-invariant in beta, so the stored Pauli word (which equals the
+        # blade up to a phase) can stand in for it directly.
+        for code in codes_of_grade(self.n, k - 1):
+            v = (MV(self.n, {code: 1.0}) * self).grade(1)
+            if not v.wedge(self).is_zero(tol):
+                return False
+        return True
 
     def __repr__(self) -> str:
         return self.pretty()

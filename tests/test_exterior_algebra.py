@@ -136,13 +136,30 @@ def test_dropping_reversion_flips_grades_2_and_3_mod_4(k):
 
 
 @pytest.mark.parametrize("k", [1, 2, 3, 4])
-def test_norms_are_convention_immune(k):
-    """``|a|^2 = <a ~a>_0 = det(a_i . a_j)`` regardless of the sign choice --
-    which is why the reversion bug survives testing against norms alone."""
+def test_squared_norm_is_the_gram_determinant(k):
+    """``|a|^2 = <a ~a>_0 = det(a_i . a_j)``, which is positive here."""
     rng = np.random.default_rng(300 + k)
     A = rng.normal(size=(k, N_GEN))
     a = wedge_all([one_vector(row) for row in A])
-    assert a.scalar_product(a).real == pytest.approx(np.linalg.det(A @ A.T), abs=1e-9)
+    det = np.linalg.det(A @ A.T)
+    assert a.scalar_product(a).real == pytest.approx(det, abs=1e-9)
+    assert det > 0                       # Euclidean: independent rows
+
+
+@pytest.mark.parametrize("k", [2, 3])
+def test_dropping_reversion_also_breaks_the_squared_norm(k):
+    """Norms are *not* immune to the reversion convention.
+
+    At ``k = 2, 3`` the sign is ``-1``, so omitting reversion reports a
+    negative squared norm for a Euclidean blade. Only comparing absolute
+    magnitudes would hide the error.
+    """
+    rng = np.random.default_rng(400 + k)
+    A = rng.normal(size=(k, N_GEN))
+    a = wedge_all([one_vector(row) for row in A])
+    det = np.linalg.det(A @ A.T)
+    assert (a * a).scalar_part().real == pytest.approx(-det, abs=1e-9)
+    assert (a * a).scalar_part().real < 0 < det
 
 
 def test_scalar_product_is_bilinear_and_hs_product_is_sesquilinear():
@@ -176,6 +193,32 @@ def test_binet_cauchy_via_lambda_k_dot_product():
 
 
 # --------------------------------------------------------------- simplicity
+
+
+def test_odd_grade_sums_are_rejected():
+    """``A ^ A == 0`` is vacuous at odd grade, so it cannot be the test.
+
+    Graded commutativity gives ``A ^ A = (-1)^{k^2} A ^ A``, forcing
+    ``A ^ A = 0`` for every odd-grade element whether or not it is simple.
+    Screening on it alone accepted every homogeneous odd-grade multivector.
+    """
+    g = [gamma(N_QUBITS, i) for i in range(N_GEN)]
+    witness = (g[0] ^ g[1] ^ g[2]) + (g[3] ^ g[4] ^ g[5])
+    assert witness.grades() == {3}
+    assert witness.wedge(witness).is_zero()        # vacuously, the trap
+    assert not witness.is_blade()                  # but it is not decomposable
+    # Plucker witness: a contraction that escapes the subspace
+    v = (blade_from_mask(N_QUBITS, 0b000011) * witness).grade(1)
+    assert not v.wedge(witness).is_zero()
+
+
+@pytest.mark.parametrize("k", [1, 2, 3, 4, 5, 6])
+def test_every_decomposable_k_vector_is_accepted(k):
+    """The other direction: no genuine blade may be rejected."""
+    rng = np.random.default_rng(500 + k)
+    for _ in range(10):
+        a = wedge_all([one_vector(row) for row in rng.normal(size=(k, N_GEN))])
+        assert a.is_blade()
 
 
 def test_simplicity_screen():
