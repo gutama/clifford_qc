@@ -24,14 +24,20 @@ _THREAD_VARS = ("OMP_NUM_THREADS", "MKL_NUM_THREADS", "OPENBLAS_NUM_THREADS",
 def _pin_threads(threads: int) -> None:
     """Fix the BLAS thread count before NumPy is imported.
 
-    Multithreaded BLAS reductions sum in completion order, so an unpinned run
-    perturbs the optimizer at the 1e-11 level. That is far below chemical
-    accuracy and does not move the reported energy, but this pool is highly
-    degenerate -- at the H4 reference state only 10 distinct gradient
-    magnitudes span 160 candidates, the largest tie group holding 72 -- and
-    an exact tie is decided by whichever member the perturbed state happens
-    to favour. The trajectory's *labels* are therefore reproducible only at a
-    fixed thread count, even though its energies are not sensitive to it.
+    Multithreaded BLAS reductions sum in completion order, which perturbs the
+    optimizer at the 1e-11 level. That is far below chemical accuracy and does
+    not move the reported energy, but this pool is highly degenerate -- at the
+    H4 reference state only 10 distinct gradient magnitudes span 160
+    candidates, the largest tie group holding 72 -- so an exact tie is decided
+    by whichever member the perturbed state happens to favour.
+
+    Fixing the *count* does not fix the *order*. Two runs of this script at
+    ``--threads 4``, same machine, same versions, same seed, still disagreed
+    on 9 of 12 selected labels; completion order varies run to run whenever
+    more than one thread participates. Only ``--threads 1`` removes the
+    reduction-order freedom entirely. Treat a higher count as a speed choice,
+    not a reproducibility one, and see Sec. V C of the manuscript: the
+    selected words are tie representatives and are not claimed invariant.
 
     Must run before the first NumPy import: the BLAS layer reads these once,
     at load time, and ignores later changes.
@@ -75,9 +81,11 @@ def main(argv=None) -> None:
     parser.add_argument("--trajectory-out",
                         help="optional pretty-printed full trajectory JSON")
     parser.add_argument("--threads", type=int, default=4,
-                        help="BLAS thread count, pinned before NumPy loads so "
-                             "that tied operators break the same way each run "
-                             "(default: 4, matching the committed record)")
+                        help="BLAS thread count, pinned before NumPy loads "
+                             "(default: 4, matching the committed record). "
+                             "Note that any count above 1 leaves reduction "
+                             "order free, so tied operators can still break "
+                             "differently between runs")
     args = parser.parse_args(argv)
 
     # Before _configure_restricted_container(), which imports pyscf -> numpy.
