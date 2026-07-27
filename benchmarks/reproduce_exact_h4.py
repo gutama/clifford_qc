@@ -83,11 +83,56 @@ def _environment() -> dict:
     return versions
 
 
+def _compare(row: dict, ref: dict, e0: float) -> dict:
+    """Agreement between two independent runs of the same trajectory.
+
+    Reports the labels separately from the numbers because they fail
+    differently. Under a strict argmax the two runs disagreed on nine of
+    twelve labels while agreeing on the energies to 1e-15, since the pool is
+    degenerate and a 1e-11 perturbation decides a tied step. With the argmax
+    resolved over a tolerance the labels agree too, so
+    ``alternate_numerical_tie_representatives`` should now be zero -- it is
+    kept, rather than dropped as redundant, precisely so that a regression
+    shows up as a nonzero count in the committed record.
+    """
+    ref_energy = e0 + ref["final_error_mha"] / 1000.0
+    traj, ref_traj = row.get("trajectory", []), ref.get("trajectory", [])
+    paired = list(zip(traj, ref_traj))
+
+    def max_abs(key):
+        vals = [abs((a.get(key) or 0.0) - (b.get(key) or 0.0)) for a, b in paired]
+        return max(vals) if vals else 0.0
+
+    labels, ref_labels = row["labels"], ref["labels"]
+    matching = sum(1 for a, b in zip(labels, ref_labels) if a == b)
+    return {
+        "reference_final_energy_ha": ref_energy,
+        "reference_final_error_mha": ref["final_error_mha"],
+        "reference_wall_seconds": ref["wall_seconds"],
+        "final_energy_abs_difference": abs(row["final_energy_ha"] - ref_energy),
+        "max_trajectory_energy_abs_difference": max_abs("energy_ha"),
+        "max_gradient_magnitude_abs_difference": max_abs("exact_gradient_max"),
+        "labels_identical": labels == ref_labels,
+        "labels_matching_by_position": matching,
+        "alternate_numerical_tie_representatives": len(labels) - matching,
+        "operator_count_matches": len(labels) == len(ref_labels),
+        "ops_to_chemical_accuracy_matches":
+            row["ops_to_accuracy"] == ref["ops_to_accuracy"],
+        "optimizer_evaluations_match":
+            row["optimizer_evaluations"] == ref["optimizer_evaluations"],
+    }
+
+
 def main(argv=None) -> None:
     parser = argparse.ArgumentParser()
     parser.add_argument("--out", required=True)
     parser.add_argument("--trajectory-out",
                         help="optional pretty-printed full trajectory JSON")
+    parser.add_argument("--with-reference", action="store_true",
+                        help="run the trajectory a second time in the same "
+                             "process and embed the comparison, which is what "
+                             "backs the reproducibility statement in the paper "
+                             "(doubles the wall time)")
     parser.add_argument("--threads", type=int, default=1,
                         help="BLAS thread count, pinned before NumPy loads "
                              "(default: 1, which reproduces bitwise and is "
@@ -120,9 +165,23 @@ def main(argv=None) -> None:
         flush=True,
     )
     row = run_arm(model, pool, "exact", seed=0, E0=e0)
+    # Derived here rather than left to a reader: the manuscript quotes the
+    # absolute energy, and n_electrons identifies the active space.
+    row["final_energy_ha"] = e0 + row["final_error_mha"] / 1000.0
+    row["n_electrons"] = model.metadata["n_electrons"]
     row["environment"] = _environment()
     row["reproduction_started_unix"] = started
     row["reproduction_finished_unix"] = time.time()
+
+    if args.with_reference:
+        print("[stage] independent reference run for the comparison block",
+              flush=True)
+        ref = run_arm(model, pool, "exact", seed=0, E0=e0)
+        row["reference_comparison"] = _compare(row, ref, e0)
+        c = row["reference_comparison"]
+        print(f"[stage] reference: labels identical={c['labels_identical']}, "
+              f"final energy differs by {c['final_energy_abs_difference']:.3g} Ha",
+              flush=True)
 
     out = Path(args.out)
     out.parent.mkdir(parents=True, exist_ok=True)

@@ -371,7 +371,16 @@ class ConfidenceSelector:
             cache.add_batch(sampler(words, plan))
 
             bounds = self._bounds(bank, cache, active, rounds, family_size)
-            best = max(active, key=lambda j: abs(bounds[j][0]))
+            # Same tolerance rule as the exact path. Two arms whose selection
+            # observables are related by a symmetry share a word support and
+            # coefficient magnitudes, so they draw the *same* estimate from
+            # the shared cache and tie bitwise; nominating by strict argmax
+            # then depends on iteration order. This is close to a no-op --
+            # sampling noise separates genuinely different arms far above the
+            # tolerance -- but it removes the order dependence where it does
+            # occur, and the certificate is checked against whichever arm is
+            # nominated either way.
+            best = canonical_argmax(active, lambda j: abs(bounds[j][0]))
             best_lower = bounds[best][1]
             rival_upper = max((bounds[j][2] for j in active if j != best), default=0.0)
 
