@@ -94,6 +94,38 @@ def main() -> int:
                     problems.append(f"table row has {got} cells, preamble "
                                     f"declares {ncol}: {line[:60]}")
 
+    # 5b. no numeric table body is typed into the manuscript
+    #
+    # Sec. VII states that every table value is read from a committed record.
+    # Two tables were not: the H4 summary, whose rerun-agreement rows silently
+    # contradicted the record shipped beside them, and the infinite-shot
+    # ranking, which happened to still be right. Nothing detected either,
+    # because the artifact checks look at the fragments and the fragments were
+    # not where those numbers lived. A hand-typed *label* column is fine; a
+    # hand-typed number is the thing that goes stale.
+    for m in re.finditer(r"\\begin\{tabular\}\{([^}]*)\}(.*?)\\end\{tabular\}",
+                         s, re.S):
+        inline = re.sub(r"\\input\{[^}]+\}", "", m.group(2))
+        # Only the body. A header may legitimately carry digits -- percentile
+        # superscripts such as \epsilon_E^{50} are labels, not measurements --
+        # and \colrule is what separates the two in a ruledtabular.
+        if r"\colrule" in inline:
+            inline = inline.split(r"\colrule", 1)[1]
+        for line in inline.splitlines():
+            line = line.strip()
+            if not line.endswith(r"\\") or line.startswith("%"):
+                continue
+            cells = line.rstrip("\\").split("&")[1:]      # skip the row label
+            for cell in cells:
+                # strip LaTeX that legitimately carries digits in a header
+                bare = re.sub(r"\\[A-Za-z]+|[{}$\\^_~,]", " ", cell)
+                if re.search(r"\d", bare):
+                    problems.append(
+                        "numeric table cell is typed into the manuscript "
+                        "rather than generated into tables/ "
+                        f"(run paper/make_tables.py): {line[:60]}")
+                    break
+
     # 6. figure assets exist and are not older than the records they plot
     for m in re.finditer(r"\\includegraphics\[[^\]]*\]\{([^}]+)\}", s):
         asset = HERE / m.group(1)
