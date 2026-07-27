@@ -77,7 +77,7 @@ python -m venv .venv && source .venv/bin/activate
 pip install -e .[test,research]      # numpy core + scipy optimizer
 pip install -e .[stim]               # stabilizer backend / Phase 4
 pip install -e .[chemistry]          # openfermion + pyscf / Phase 5
-pytest                               # 280 passed, 6 skipped
+pytest                               # 427 passed, 6 skipped
 ```
 
 The core package imports with numpy alone; without SciPy the optimizer
