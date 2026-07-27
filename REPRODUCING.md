@@ -74,19 +74,29 @@ No figure or table value in the manuscript is transcribed by hand, and
 
 ```bash
 python -m venv .venv && source .venv/bin/activate
-pip install -e .[test,research]      # numpy core + scipy optimizer
-pip install -e .[stim]               # stabilizer backend / Phase 4
-pip install -e .[chemistry]          # openfermion + pyscf / Phase 5
-pytest                               # 438 passed, 6 skipped
+pip install -e .[test,research,chemistry]   # numpy + scipy + openfermion/pyscf
+pytest                                      # 447 passed, 6 skipped
 ```
 
-The quoted figure is for `[test,research,chemistry]` without the bridge
-extras: a missing optional module makes pytest drop its whole test file
-during collection, so each absent bridge moves one test file from the
-passed count to the skipped count. Installing `[bridges]` raises the
-first number and lowers the second. `check_docs.py` verifies the pair,
-and reports a skip rather than a failure when the extras installed do
-not match the environment described here.
+That install is the reference environment for the quoted pair, and it is
+what CI's `manuscript` job builds. The count depends on it: a missing
+optional module makes pytest drop the whole test file at collection, so
+each absent extra moves one file from the passed count to the skipped
+count. The six skips here are the bridge files — `stim` (three of them),
+`pennylane`, `pytket`, and `pyzx`.
+
+Adding the remaining extras therefore *changes both numbers*, which is
+expected rather than a failure:
+
+```bash
+pip install -e .[stim]               # stabilizer backend / Phase 4
+pip install -e .[bridges]            # stim + pytket + pennylane + pyzx + openfermion
+```
+
+`check_docs.py` verifies the documented pair by collection. It reports a
+skip when the installed extras do not match the environment above; pass
+`--require-test-count` to turn that mismatch into a failure, which is how
+CI enforces it in the job that owns the contract.
 
 The core package imports with numpy alone; without SciPy the optimizer
 falls back to pure-Python Adam (numerically equivalent results at looser

@@ -28,6 +28,7 @@ Exits nonzero on any drift.
 
 from __future__ import annotations
 
+import argparse
 import ast
 import importlib.util
 import re
@@ -187,7 +188,8 @@ def skipped_test_files() -> list[tuple[str, str]]:
     return out
 
 
-def check_test_count(text: str, problems: list[str], skipped: list[str]) -> None:
+def check_test_count(text: str, problems: list[str], skipped: list[str],
+                     required: bool = False) -> None:
     """The quoted ``pytest`` line must match what the suite actually collects.
 
     This drifted by 147 tests before anything noticed, because every other
@@ -210,9 +212,15 @@ def check_test_count(text: str, problems: list[str], skipped: list[str]) -> None
     absent = skipped_test_files()
     if len(absent) != want_skipped:
         detail = ", ".join(f"{f} ({m})" for f, m in absent) or "none"
-        skipped.append(
-            f"test count unverified (document assumes {want_skipped} skipped; "
-            f"here {len(absent)} test file(s) skipped: {detail})")
+        message = (f"document assumes {want_skipped} skipped; here "
+                   f"{len(absent)} test file(s) skipped: {detail}")
+        # Under --require-test-count the caller has promised the documented
+        # environment, so a mismatch is the failure -- otherwise the check
+        # that owns this contract would quietly excuse itself in the very
+        # job meant to enforce it.
+        (problems if required else skipped).append(
+            f"test count {'not enforceable' if required else 'unverified'} "
+            f"({message})")
         return
 
     done = subprocess.run([sys.executable, "-m", "pytest", "--collect-only", "-q"],
@@ -229,14 +237,21 @@ def check_test_count(text: str, problems: list[str], skipped: list[str]) -> None
                         f"suite collects {collected}")
 
 
-def main() -> int:
+def main(argv=None) -> int:
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("--require-test-count", action="store_true",
+                        help="fail, rather than skip, when the installed "
+                             "extras do not match the environment "
+                             "REPRODUCING.md quotes its test count for")
+    args = parser.parse_args(argv)
+
     text = DOC.read_text()
     problems: list[str] = []
     skipped: list[str] = []
     check_commands(text, problems, skipped)
     check_parameter_table(text, problems)
     check_coverage(text, problems)
-    check_test_count(text, problems, skipped)
+    check_test_count(text, problems, skipped, required=args.require_test_count)
     for note in skipped:
         print(f"SKIP {note}")
     for p in problems:
