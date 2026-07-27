@@ -145,6 +145,49 @@ def _eta_required(best_lower, rival_upper):
     return float(min(1.0, max(0.0, (rival_upper - best_lower) / rival_upper)))
 
 
+# Ties in |g| are exact symmetries of the Hamiltonian and the pool, not
+# numerical accidents, so the tied groups are large and the gaps between
+# distinct magnitudes are wide. On H4's 160 candidates at the reference state
+# there are twelve exactly-distinct magnitudes: seven selectable ones from
+# 0.137 down to 0.047, separated by at least 8.2e-4, in tie groups of 8 and
+# 16; four near-zero ones around 1e-7; and 72 exact zeros.
+#
+# The tolerance is relative because those two regimes need different absolute
+# widths. Against a selectable leader it is ~1e-10 -- an order of magnitude
+# above the ~1e-11 reduction-order noise and six orders below the 8.2e-4 gap.
+# Against a near-zero leader it shrinks with it, merging the pairs that differ
+# by <1e-16 while still separating the 4.9e-9 gap between the two distinct
+# near-zero magnitudes. Such a step is below any usable threshold and abstains
+# anyway, but the rule should not depend on that.
+TIE_RTOL = 1e-9
+TIE_ATOL = 1e-12
+
+
+def canonical_argmax(candidates, magnitude, rtol=TIE_RTOL, atol=TIE_ATOL):
+    """Argmax that picks the same candidate when the scores are perturbed.
+
+    ``max`` takes whichever candidate is *strictly* largest, so among exactly
+    tied operators a perturbation far below any physical scale decides the
+    step. That is how a four-thread rerun of the H4 trajectory exchanges nine
+    of its twelve operators: multithreaded BLAS reductions sum in completion
+    order, shifting the scores by ~1e-11 and handing each tie to whichever
+    member the shift happened to favour.
+
+    Here the leaders are collected within a tolerance first and the lowest
+    candidate index among them wins. Since the tolerance is far wider than the
+    noise and far narrower than the gap between distinct magnitudes, the tied
+    set is the true symmetry class, and the result no longer depends on the
+    reduction order -- or on the thread count, the BLAS vendor, or the CPU.
+
+    This picks the same member ``max`` would have picked had the arithmetic
+    been exact, so it is not a change of selection rule: on well-separated
+    candidates it is ``max``.
+    """
+    best = max(magnitude(i) for i in candidates)
+    tol = atol + rtol * abs(best)
+    return min(i for i in candidates if magnitude(i) >= best - tol)
+
+
 def _rank_and_gap(exact_scores, idx):
     """Post-hoc strength diagnostics for one selection.
 
@@ -593,7 +636,8 @@ def run_adapt(model, pool: Sequence[PoolOperator], *,
                     status = SelectionStatus.RANDOM
                     diag = {"active_candidates": len(candidates)}
             elif not noisy:
-                best = max(candidates, key=lambda i: abs(exact_scores[i]))
+                best = canonical_argmax(candidates,
+                                        lambda i: abs(exact_scores[i]))
                 diag = {"estimate": exact_scores[best],
                         "exact_gradient": exact_scores[best],
                         "active_candidates": len(candidates)}

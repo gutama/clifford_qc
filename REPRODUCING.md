@@ -75,7 +75,7 @@ No figure or table value in the manuscript is transcribed by hand, and
 ```bash
 python -m venv .venv && source .venv/bin/activate
 pip install -e .[test,research,chemistry]   # numpy + scipy + openfermion/pyscf
-pytest                                      # 447 passed, 6 skipped
+pytest                                      # 459 passed, 6 skipped
 ```
 
 That install is the reference environment for the quoted pair, and it is
@@ -148,9 +148,17 @@ python benchmarks/run_chemistry.py --seeds 3 \
     --out benchmarks/reference_results/chemistry.jsonl
 ```
 
-PySCF computes SCF/FCI on the fly (no cached integrals); tiny numerical
-differences in the last decimals of pyscf energies across platforms do not
-change selection decisions at the committed seeds.
+PySCF computes SCF/FCI on the fly (no cached integrals), so the last
+decimals of its energies differ across platforms. Those differences do not
+move the reported energies, but they used to move the *selection*: the H4
+pool is degenerate by symmetry, and a perturbation of ~1e-11 was enough to
+hand an exactly tied step to a different operator. Two runs at four BLAS
+threads on one machine exchanged nine of twelve labels that way.
+
+The selector now resolves the argmax over a relative tolerance and takes the
+lowest-indexed member of the tied class — the choice exact arithmetic would
+have made — so tied selections no longer depend on reduction order, thread
+count, or BLAS vendor. On well-separated candidates it is plain `max`.
 
 The expensive exact-gradient H4 row can be reproduced independently without
 rerunning the complete chemistry matrix:
@@ -160,6 +168,10 @@ python benchmarks/reproduce_exact_h4.py \
     --out reproductions/h4_exact.jsonl \
     --trajectory-out reproductions/h4_exact_trajectory.json
 ```
+
+`--threads` pins the BLAS thread count before NumPy loads (default 1, which
+is no slower here since the trajectory is dominated by the multivector
+kernel rather than by BLAS).
 
 To run that row alongside the 200-seed certification calibration, use the
 watcher. It keeps independent logs and outputs, records the environment in a
