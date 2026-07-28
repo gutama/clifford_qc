@@ -1,15 +1,19 @@
-"""ACSE Phase-1 premise check on TFIM (n=4).
+"""A-CASE Phase-1 premise check on TFIM (n=4).
 
-Run from the repository root: PYTHONPATH=. python examples/acse_premise_check.py
+Run from the repository root: PYTHONPATH=. python examples/acase_premise_check.py
 
-Validates the standing invariants of ACSE_RESEARCH_PLAN.md before any
+Validates the standing invariants of ACASE_RESEARCH_PLAN.md before any
 subspace/ module exists:
   1. H_ij, S_ij are computable via states.expectation with non-Hermitian O.
-  2. The thresholded generalized eigenproblem obeys E_sub >= E0.
+  2. The normalized, thresholded generalized eigenproblem obeys E_sub >= E0.
   3. Nested basis growth is monotone non-increasing.
   4. The level-0..3 hierarchy converges toward the exact ground energy,
      with heavy linear dependence (few kept modes) motivating adaptive
      selection and conditioning-aware growth.
+
+The overlap matrix is diagonally normalized before thresholding, so which
+directions survive does not depend on generator scaling (the H^k rows have
+much larger norms than the P_j rows).
 """
 import numpy as np
 
@@ -39,7 +43,7 @@ gens += [MV(n, dict(row)) for row in bank.coeffs if row]
 
 
 def ritz(gens, tau=1e-10):
-    """Lowest Ritz value of the thresholded generalized eigenproblem."""
+    """Lowest Ritz value of the normalized, thresholded generalized eigenproblem."""
     m = len(gens)
     S = np.zeros((m, m), complex)
     Hm = np.zeros((m, m), complex)
@@ -49,6 +53,13 @@ def ritz(gens, tau=1e-10):
             Hm[i, j] = expectation(rho, gens[i].dagger() * H * gens[j])
     S = 0.5 * (S + S.conj().T)
     Hm = 0.5 * (Hm + Hm.conj().T)
+    # diagonal normalization: thresholding must not depend on generator scale
+    norms = np.sqrt(np.abs(np.diag(S).real))
+    live = norms > 1e-14
+    d = np.where(live, norms, 1.0)
+    S = (S / d[:, None]) / d[None, :]
+    Hm = (Hm / d[:, None]) / d[None, :]
+    S, Hm = S[np.ix_(live, live)], Hm[np.ix_(live, live)]
     lam, U = np.linalg.eigh(S)
     keep = lam > tau
     X = U[:, keep] / np.sqrt(lam[keep])
