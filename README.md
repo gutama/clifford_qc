@@ -113,6 +113,12 @@ assert np.allclose(to_matrix(A * A), to_matrix(A) @ to_matrix(A))
   without materializing a Ritz state), and finite-shot layers whose intervals
   are labelled `asymptotic`, `heuristic`, or `finite_sample` and never
   conflated; see `ACASE_RESEARCH_PLAN.md`
+- a validation ladder (`benchmarks/run_acase_ladder.py`) running H2 through
+  H2O CAS(8e,6o), Hubbard clusters, and a Kitaev cluster against the reference
+  determinant, sector-exact diagonalization, QSE, fixed Krylov,
+  generator-coordinate subspaces, and ADAPT-VQE — every row carrying the
+  resource metrics, shots, and abstentions beside the energy, and an evidence
+  label saying what kind of number it is
 
 ## Core Conventions
 
@@ -302,9 +308,11 @@ clifford_qc/
 - `RESEARCH_PLAN.md` is the Paper A roadmap (confidence-certified,
   measurement-efficient ADAPT-VQE).
 - `ACASE_RESEARCH_PLAN.md` is the active roadmap (A-CASE: adaptive
-  Clifford-algebra subspace eigensolver); Phases 1-6 ship in `subspace/`,
-  `models/lattice.py`, `models/observables.py`, `sparse.py`, and
-  `backends/sector_statevector.py`.
+  Clifford-algebra subspace eigensolver); Phases 1-7 ship in `subspace/`,
+  `models/lattice.py`, `models/observables.py`, `sparse.py`,
+  `backends/sector_statevector.py`, and the validation ladder
+  (`benchmarks/run_acase_ladder.py`, committed as
+  `benchmarks/reference_results/acase_ladder.jsonl`).
 - `paper/` holds the Paper A manuscript (REVTeX) with figures regenerated
   from the committed benchmark data.
 - License: Apache-2.0.

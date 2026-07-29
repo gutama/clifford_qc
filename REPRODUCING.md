@@ -75,7 +75,7 @@ No figure or table value in the manuscript is transcribed by hand, and
 ```bash
 python -m venv .venv && source .venv/bin/activate
 pip install -e .[test,research,chemistry]   # numpy + scipy + openfermion/pyscf
-pytest                                      # 676 passed, 6 skipped
+pytest                                      # 687 passed, 6 skipped
 ```
 
 That install is the reference environment for the quoted pair, and it is
@@ -192,6 +192,62 @@ python benchmarks/watch_reproduction.py \
 
 Write these long-running reproductions outside `benchmarks/reference_results/`
 unless intentionally regenerating committed artifacts.
+
+## A-CASE validation ladder (Phase 7, `chemistry` extra)
+
+```bash
+python benchmarks/run_acase_ladder.py \
+    --config benchmarks/configs/acase_ladder.json \
+    --out benchmarks/reference_results/acase_ladder.jsonl
+python benchmarks/summarize_ladder.py \
+    benchmarks/reference_results/acase_ladder.jsonl \
+    --csv benchmarks/reference_results/acase_ladder_summary.csv \
+    > benchmarks/reference_results/acase_ladder_summary.md
+```
+
+One row per (rung, method) — not per seed — so this record has its own
+summarizer. `summarize.py` understands the per-seed ADAPT schema and would
+reject the ladder's rows; `check_summaries.py` maps the `acase_ladder` stem
+to `summarize_ladder.py` explicitly rather than sniffing the schema.
+
+`--rungs h2,lih_2e2o` restricts the run to named rungs, which is how to
+regenerate one row of the record without rebuilding all of it. Rerunning a
+subset writes a *partial* record, so the committed file must come from a full
+run.
+
+Three conventions in the record are choices, not defaults, and each is
+recorded in the row that made it:
+
+- **The error column is measured against the reference's own symmetry
+  sector**, not against the global ground state. A-CASE never leaves the
+  sector its reference lives in, and a grand-canonical Hubbard cluster's
+  global minimum sits at a different filling. Each row carries the `sector`
+  it was scored in.
+- **`generator_coordinate` takes an even stride through the candidate
+  family** (`selection: stride`), because the natural prefix is all singles
+  and every single is Brillouin-dead on a Hartree–Fock reference: a prefix of
+  eight reproduces the reference energy to machine precision and would report
+  a non-adaptive subspace as worthless for a reason that is about the
+  ordering. `selection: prefix` reproduces that degenerate arm.
+- **Wide generators fall back to the cyclic contraction.** The
+  element-operator route is what makes `W` and `S_H` observable and it costs
+  `O(|A_i| |H| |A_j|)` per pair; deep Krylov generators on eight qubits carry
+  thousands of words each. Above `max_tracked_support` (512) the row is solved
+  through the cheap route and sets `support_tracked: false` rather than
+  reporting guessed support columns.
+
+Finite-shot rows (`adapt_shot`, `acase_certified`) appear only on the
+four-qubit rungs. The gate is not the shot count but the QWC partition:
+grouping is greedy and quadratic in the word universe — doubling the words
+quadruples the time (0.20 s at 750 words, 0.82 s at 1 500, 3.45 s at 3 000,
+14.8 s at 6 000, on random 8-qubit words) — and the eight-qubit A-CASE element
+universe reaches 13 646 words at `M = 9`, which puts the partition alone near
+100 s *per growth step*. That is a Phase-7 finding about the measurement layer,
+not a budget chosen for convenience.
+
+Costs on one laptop-class core: the four-qubit rungs are seconds each, the
+`h4_*` rungs a few minutes apiece, and `h2o_cas8e6o` (12 qubits) dominates the
+total.
 
 ## Demos (not committed as artifacts)
 

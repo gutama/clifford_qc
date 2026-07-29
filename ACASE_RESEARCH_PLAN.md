@@ -697,13 +697,50 @@ sites sit at `S_z = ±½`). The backend refuses to build an empty sector, which
 surfaced it; sector metadata is now read from the reference determinant's own
 gates, so it cannot disagree with the state it describes.
 
-**Phase 7 — validation ladder and Paper B.**
-H₂ → H₄ → stretched H₂O CAS(4e,4o) → H₂O CAS(8e,6o) → 2×2/2×3 Hubbard →
-one Kitaev cluster with spin correlations. Comparison set: HF, exact
-diagonalization/FCI, plain QSE, fixed Krylov, generator-coordinate-style
-fixed subspaces, ADAPT-VQE (exact and finite-shot), A-CASE (exact and
-finite-shot certified). Report energies **and** the §6 resource metrics,
-shots, circuits, and abstention rates.
+**Phase 7 — done (`benchmarks/run_acase_ladder.py`,
+`benchmarks/summarize_ladder.py`).**
+H₂ → LiH → H₄ (equilibrium and stretched) → stretched H₂O CAS(4e,4o) → H₂O
+CAS(8e,6o) → 2×2/2×3 Hubbard → one Kitaev cluster with link correlations.
+Comparison set as planned: the reference determinant, exact diagonalization,
+plain QSE, fixed Krylov, generator-coordinate-style fixed subspaces,
+ADAPT-VQE (exact and finite-shot), A-CASE (exact and finite-shot certified).
+Every row carries the §6 metrics, shots, circuits, and abstentions beside the
+energy, plus the `evidence` label that says what kind of number it is, and the
+record has its own summarizer because its schema is one run per (rung, method)
+rather than the per-seed ADAPT schema `summarize.py` owns.
+
+Three conventions decide what the table means, and each is recorded in the row
+that made it:
+
+- *The error column is measured against the reference's own symmetry sector.*
+  A-CASE never leaves the sector its reference lives in, and a
+  grand-canonical Hubbard cluster's global minimum sits at a different
+  filling — scoring against the global ground state would charge every method
+  for a particle-number difference none of them can cross.
+- *The generator-coordinate arm takes an even stride through the candidate
+  family, not its prefix.* The excitation family lists singles first and every
+  single is Brillouin-dead on a Hartree–Fock reference, so a prefix of eight
+  reproduces the reference energy to machine precision. That is a fact about
+  the ordering, not about non-adaptive subspaces, and reporting it as the
+  baseline would have flattered A-CASE for the wrong reason. With the stride,
+  the arm clears HF on H₄ (−2.1307 against −2.1243) and is still beaten.
+- *Wide generators fall back to the cyclic contraction.* Above
+  `max_tracked_support` the row is solved through `Tr((HA_j)(ρA_i†))` and marks
+  its support columns `n/t` rather than reporting guessed ones. Deep Krylov
+  generators on eight qubits carry thousands of words each, and the
+  element-operator route that makes `W` and `S_H` observable costs
+  `O(|A_i| |H| |A_j|)` per pair.
+
+*The measurement layer, not the shot budget, is what gates finite-shot rows to
+the four-qubit rungs.* The QWC partition is greedy and quadratic in the word
+universe — doubling the words quadruples the time (0.20 s at 750 random 8-qubit
+words, 0.82 s at 1 500, 3.45 s at 3 000, 14.8 s at 6 000) — and the H₄ element
+universe reaches 13 646 words at `M = 9`. The partition alone would then cost
+about 100 s *per growth step*, before a single shot is spent. Nothing about
+A-CASE requires that: the grouping is a preprocessing step over a word set
+that grows monotonically as the basis grows, so it should be incremental rather
+than recomputed. It is not, and that is the honest reason the certified arm
+stops at `n = 4`.
 
 ## 6. Resource accounting (equal partner to basis size)
 

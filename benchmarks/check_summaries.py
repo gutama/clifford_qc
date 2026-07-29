@@ -1,7 +1,8 @@
 """Verify each committed summary matches the record it summarizes.
 
-``run_benchmark.py`` writes a per-seed JSONL; ``summarize.py`` derives a CSV
-and a Markdown table beside it. Those derived files are easy to forget when a
+``run_benchmark.py`` writes a per-seed JSONL and ``summarize.py`` derives a CSV
+and a Markdown table beside it; ``run_acase_ladder.py`` writes the §7 ladder
+record and ``summarize_ladder.py`` owns that schema. Those derived files are easy to forget when a
 record is regenerated, and a summary that silently disagrees with its own
 JSONL is the same defect class as a manuscript table transcribed by hand.
 
@@ -35,6 +36,12 @@ DATA = ROOT / "benchmarks" / "reference_results"
 CONFIGS = ROOT / "benchmarks" / "configs"
 SUMMARIZE = ROOT / "benchmarks" / "summarize.py"
 
+# Records whose schema a different summarizer owns. Declared, like the required
+# set itself: two record schemas exist (per-seed ADAPT runs and the §7 ladder's
+# one-run-per-method rows), and inferring which script wrote a record from its
+# contents would guess wrong the first time a third schema appears.
+SUMMARIZERS = {"acase_ladder": ROOT / "benchmarks" / "summarize_ladder.py"}
+
 
 def required_stems() -> set[str]:
     """Record stems that must have both summary companions.
@@ -45,18 +52,23 @@ def required_stems() -> set[str]:
     return {p.stem for p in CONFIGS.glob("*.json")}
 
 
-def regenerate(record: Path) -> tuple[str, str, str | None]:
-    """Return the (markdown, csv, error) summarize.py would produce.
+def summarizer_for(record: Path) -> Path:
+    return SUMMARIZERS.get(record.stem, SUMMARIZE)
 
-    ``summarize.py`` only understands the ``run_benchmark.py`` schema, so a
-    summary sitting beside a record written by one of the bespoke scripts
-    makes it exit nonzero. Report that as a finding rather than letting a
-    traceback escape a script whose job is to gate a release.
+
+def regenerate(record: Path) -> tuple[str, str, str | None]:
+    """Return the (markdown, csv, error) this record's summarizer would produce.
+
+    Each summarizer understands one schema, so a summary sitting beside a record
+    written by one of the bespoke scripts makes it exit nonzero. Report that as
+    a finding rather than letting a traceback escape a script whose job is to
+    gate a release.
     """
     csv_tmp = record.with_suffix(".summary-check.csv")
     try:
         done = subprocess.run(
-            [sys.executable, str(SUMMARIZE), str(record), "--csv", str(csv_tmp)],
+            [sys.executable, str(summarizer_for(record)), str(record),
+             "--csv", str(csv_tmp)],
             capture_output=True, text=True)
         if done.returncode != 0:
             detail = (done.stderr or done.stdout).strip().splitlines()
@@ -99,9 +111,10 @@ def main() -> int:
         checked += 1
         md, csv, error = regenerate(record)
         if error:
-            problems.append(f"cannot summarize {rel(record)} ({error}); it has "
-                            "summary companions but is not in the "
-                            "run_benchmark.py schema")
+            problems.append(f"cannot summarize {rel(record)} with "
+                            f"{rel(summarizer_for(record))} ({error}); it has "
+                            "summary companions but does not match that "
+                            "script's schema")
             continue
         for path, want in ((md_path, md), (csv_path, csv)):
             if path.exists() and path.read_text() != want:
@@ -110,7 +123,8 @@ def main() -> int:
     for p in problems:
         print(f"FAIL {p}")
     if problems:
-        print("\nfix with, for each affected record:")
+        print("\nfix with, for each affected record (summarize_ladder.py for the "
+              "ladder record):")
         print("  python benchmarks/summarize.py RECORD.jsonl \\")
         print("      --csv RECORD_summary.csv > RECORD_summary.md")
     else:
