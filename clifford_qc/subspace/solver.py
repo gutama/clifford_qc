@@ -38,8 +38,9 @@ grouping, and every eigenvector's phase is pinned.
 
 from __future__ import annotations
 
+import math
 import time
-from dataclasses import dataclass, field
+from dataclasses import dataclass, field, replace
 from typing import Any, Sequence
 
 import numpy as np
@@ -71,6 +72,11 @@ class SubspaceResult:
     ``overlap_eigenvalues`` are those of the normalized overlap matrix, largest
     first, *before* truncation; ``effective_rank`` and ``condition_number``
     describe what survived it.
+
+    ``bank`` and ``indices`` are set when the solve came from a
+    ``MatrixElementBank`` (Phase 2), and are what the projected-observable
+    methods need. A result from :func:`solve_subspace` has no bank, so it
+    answers energies and coefficients but not observables.
     """
 
     energies: tuple[float, ...]
@@ -80,6 +86,8 @@ class SubspaceResult:
     condition_number: float
     effective_rank: int
     resources: dict[str, Any] = field(default_factory=dict)
+    bank: Any = None
+    indices: tuple[int, ...] = ()
 
     @property
     def ground_energy(self) -> float:
@@ -87,6 +95,40 @@ class SubspaceResult:
 
     def ritz_vector(self, k: int = 0) -> np.ndarray:
         return self.coefficients[:, k]
+
+    def with_bank(self, bank: Any, indices: Sequence[int]) -> "SubspaceResult":
+        return replace(self, bank=bank, indices=tuple(indices))
+
+    def _projected(self, observable) -> tuple[np.ndarray, np.ndarray]:
+        if self.bank is None:
+            raise ValueError(
+                "projected observables need a MatrixElementBank; solve through "
+                "MatrixElementBank.solve() rather than solve_subspace()")
+        return (self.bank.project_observable(observable, self.indices),
+                self.bank.matrices(self.indices)[0])
+
+    def expectation(self, observable, k: int = 0) -> float:
+        """``<Q>_k = (c_k' Q_sub c_k) / (c_k' S c_k)`` for Ritz root ``k`` (§8).
+
+        The Ritz state is never formed: ``Q_sub`` comes from the same element
+        machinery as ``(S, H)``. ``Q`` must be Hermitian, since only then is
+        this an expectation at all -- for a general operator use
+        :meth:`transition` with ``i == j``.
+        """
+        Q = observable if isinstance(observable, MV) else observable.to_mv()
+        if not Q.is_hermitian():
+            raise ValueError("expectation needs a Hermitian observable; "
+                             "use transition(Q, k, k) for a general operator")
+        Q_sub, S = self._projected(observable)
+        c = self.coefficients[:, k]
+        return float((c.conj() @ Q_sub @ c).real / (c.conj() @ S @ c).real)
+
+    def transition(self, observable, i: int, j: int) -> complex:
+        """``<Psi_i|Q|Psi_j>`` between Ritz roots, normalized in the ``S`` metric."""
+        Q_sub, S = self._projected(observable)
+        ci, cj = self.coefficients[:, i], self.coefficients[:, j]
+        norm = math.sqrt((ci.conj() @ S @ ci).real * (cj.conj() @ S @ cj).real)
+        return complex(ci.conj() @ Q_sub @ cj) / norm
 
 
 def _as_mv(operator) -> MV:

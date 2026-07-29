@@ -130,8 +130,8 @@ def run_verification() -> None:
     print("-- A-CASE operator-response subspace --")
     from .matrix import exact_ground
     from .models.spin import tfim
-    from .subspace import (dense_subspace, identity_generator, krylov_response,
-                           solve_subspace)
+    from .subspace import (MatrixElementBank, dense_subspace, identity_generator,
+                           krylov_response, solve_subspace)
 
     A_nh = P("XYI").dagger() * P("IZY")  # non-Hermitian: the pairing's real case
     _check("trace pairing = Tr(AB)/2^n on a non-Hermitian product",
@@ -148,6 +148,12 @@ def run_verification() -> None:
            all(b <= a + 1e-9 for a, b in zip(ritz, ritz[1:])))
     _check("operator route matches the dense basis-state route",
            abs(ritz[-1] - dense_subspace(ref, spin.hamiltonian, gens).ground_energy) < 1e-9)
+    bank = MatrixElementBank(ref, spin.hamiltonian, gens)
+    banked = bank.solve()
+    _check("matrix-element bank reproduces the direct assembly bit for bit",
+           banked.energies == solve_subspace(ref, spin.hamiltonian, gens).energies)
+    _check("projected observable <H> returns the Ritz energy (state never formed)",
+           abs(banked.expectation(spin.hamiltonian) - banked.ground_energy) < 1e-9)
 
     print("\n-- structural report --")
     print(f"  Bell: {bell.nnz()}/16 words | GHZ: {ghz.nnz()}/64 words | Toffoli: {TOFFOLI(3,0,1,2).nnz()}/64 words")

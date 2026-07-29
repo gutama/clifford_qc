@@ -323,13 +323,53 @@ generators yield only 12 independent directions — the near-singular-S regime
 that makes conditioning-aware adaptive selection the load-bearing component
 rather than an optimization.
 
-**Phase 2 — exact `MatrixElementBank` (`subspace/elements.py`).**
-Canonical generator IDs; cached `A_i†A_j` and `A_i†HA_j` with
-Hermitian-pair reuse; global word-union tracking; exact `trace_pairing`
-assembly reproducing Phase 1 bit-for-bit; support/conditioning metrics
-(§6) recorded per build; **projected observable API** (§8):
-`project_observable(Q) → Q_sub`, `result.expectation(Q)`,
-`result.transition(Q, i, j)`. No finite-shot machinery yet.
+**Phase 2 — done (`subspace/elements.py`).** `MatrixElementBank`:
+canonical generator IDs (a repeated operator returns the id it already has;
+a label rebound to a different operator is an error, since labels are what
+records report); cached `A_i†A_j` and `A_i†HA_j` with Hermitian-pair reuse
+(upper triangle only — `S_ji = conj(S_ij)` is a property of the layout);
+global word-union tracking, including new-versus-reused words per accepted
+generator; exact `trace_pairing` assembly reproducing Phase 1 **bit for
+bit** — the product order is deliberately identical, since floating-point
+addition is not associative and a "mathematically equivalent"
+rearrangement would make the two routes' records irreproducible;
+support/conditioning metrics per build, plus cached-operator bytes and an
+opt-in QWC group count (quadratic in `W`, so never a hidden cost). No
+finite-shot machinery: the cached coefficient maps *are* the sufficient
+statistics Phase 4 will reconstruct from measured word means, so that layer
+attaches without disturbing this one.
+
+Pair products are lazy, so a candidate that is never scored costs nothing —
+what Phase 3 needs when it evaluates and rejects.
+
+**Projected observables (§8) ship with it.** `project_observable(Q) → Q_sub`
+through the same element machinery, then `result.expectation(Q, k)` and
+`result.transition(Q, i, j)` contract it with the Ritz coefficients. The
+Ritz state is never formed; the tests check the answers against the dense
+state A-CASE refuses to store. A Hermitian `Q` is mirrored from its upper
+triangle like `(S, H)`; a non-Hermitian one is not (`Q_sub[j,i]` is then an
+independent element), and `expectation` refuses it rather than quietly
+returning the real part. Each observable's word universe, and the words it
+adds beyond what `(S, H)` already require, enter the §6 accounting.
+
+*Measured (the reason the bank comes before adaptive growth).* Solving every
+nested prefix of a basis — the access pattern Phase 3 generates — costs
+`M(M+1)(M+2)/6` pair products when each solve reassembles, and `M(M+1)/2`
+through the bank:
+
+| trajectory | pair products | wall clock |
+|---|---|---|
+| TFIM n=4, M=37, reassembling | 9139 | 0.28 s |
+| TFIM n=4, M=37, banked | 703 | 0.15 s |
+| H₄ r=0.9, M=27, reassembling | 3654 | 13.9 s |
+| H₄ r=0.9, M=27, banked | 378 | 2.3 s |
+
+The gap widens with `M` (the ratio is `(M+2)/3`) and with generator width,
+which is why the TFIM speedup is modest — its solves are dominated by the
+eigendecomposition, not the products — while H₄'s is 6×. The cost side is
+memory, and it is not small: H₄'s 378 cached element operators hold 15847
+distinct words and ~10.6 MB. That figure is the §6 metric to watch as
+Phase 3 grows bases, not a footnote.
 
 **Phase 3 — exact adaptive growth (`subspace/adaptive.py`).**
 Residual-coupling and generalized-2×2 selection on top of the bank;

@@ -1,4 +1,4 @@
-"""A-CASE Phase 1 on the molecular targets: H2, H4 (equilibrium and stretched),
+"""A-CASE on the molecular targets: H2, H4 (equilibrium and stretched),
 LiH(2e,2o).
 
 These are the Phase-1 acceptance targets of ``ACASE_RESEARCH_PLAN.md`` §5. The
@@ -21,8 +21,8 @@ from clifford_qc.matrix import exact_ground
 from clifford_qc.models.chemistry import (excitation_multivectors,
                                           excitation_pool, h2, h4_chain, lih)
 from clifford_qc.pauli import I, Z, comm
-from clifford_qc.subspace import (Generator, dense_basis, identity_generator,
-                                  solve_subspace)
+from clifford_qc.subspace import (Generator, MatrixElementBank, dense_basis,
+                                  identity_generator, solve_subspace)
 
 CHEMICAL_ACCURACY = 1.6e-3  # Hartree
 
@@ -178,6 +178,27 @@ def test_split_words_break_the_symmetry_the_whole_image_keeps(h4_models):
     words = excitation_pool(model.n, model.metadata["n_electrons"])
     leaking = [op for op in words if not comm(op.word.to_mv(), N).is_zero(1e-12)]
     assert leaking, "expected individual pool words to leave the particle-number sector"
+
+
+@pytest.mark.parametrize("name", ["h2", "lih"])
+def test_projected_number_operator_counts_the_electrons(name, h2_model, lih_model):
+    """A physical observable through the §8 route, on a state never formed.
+
+    ``<N>`` is the sharpest available check that the projected-observable API
+    and the subspace agree about which sector the Ritz state occupies: it must
+    return the electron count exactly, not on average.
+    """
+    model = h2_model if name == "h2" else lih_model
+    bank = MatrixElementBank(reference_state(model), model.hamiltonian,
+                             excitation_generators(model))
+    result = bank.solve()
+    N = number_operator(model.n)
+    for k in range(len(result.energies)):
+        assert result.expectation(N, k) == pytest.approx(
+            float(model.metadata["n_electrons"]), abs=1e-9)
+    assert result.expectation(model.hamiltonian) == pytest.approx(
+        result.ground_energy, abs=1e-9)
+    assert bank.resources()["projected_observables"]
 
 
 def test_ritz_state_stays_in_the_reference_sector(h4_models):

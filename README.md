@@ -100,7 +100,9 @@ assert np.allclose(to_matrix(A * A), to_matrix(A) @ to_matrix(A))
   `RESEARCH_PLAN.md`
 - A-CASE (`subspace/`): Rayleigh-Ritz in an operator-generated subspace whose
   basis states `A_i|psi>` are never prepared — every projected matrix element
-  is an expectation on one reference state — see `ACASE_RESEARCH_PLAN.md`
+  is an expectation on one reference state — with a cached matrix-element bank
+  for incremental growth and projected observables (expectations and
+  transitions without materializing a Ritz state); see `ACASE_RESEARCH_PLAN.md`
 
 ## Core Conventions
 
@@ -260,7 +262,8 @@ clifford_qc/
   algorithms/      # optimizers, pools (odd-Y), fixed-depth VQE, ADAPT-VQE
                    # (exact / finite-shot / layered / subpool / random)
   subspace/        # A-CASE: generator families, the normalized/thresholded
-                   # generalized eigenproblem, dense cross-check
+                   # generalized eigenproblem, cached matrix-element bank
+                   # with projected observables, dense cross-check
 ```
 
 ## Project Notes
@@ -272,7 +275,7 @@ clifford_qc/
 - `RESEARCH_PLAN.md` is the Paper A roadmap (confidence-certified,
   measurement-efficient ADAPT-VQE).
 - `ACASE_RESEARCH_PLAN.md` is the active roadmap (A-CASE: adaptive
-  Clifford-algebra subspace eigensolver); Phase 1 ships in `subspace/`.
+  Clifford-algebra subspace eigensolver); Phases 1-2 ship in `subspace/`.
 - `paper/` holds the Paper A manuscript (REVTeX) with figures regenerated
   from the committed benchmark data.
 - License: Apache-2.0.
