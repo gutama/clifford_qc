@@ -120,6 +120,22 @@ class GroupedWordCache:
                 return g
         return None
 
+    def group_key(self, code: int) -> tuple | None:
+        """Basis key of the group this cache reads a word from, or ``None``.
+
+        Several groups can be *able* to read the same word -- any group whose
+        basis agrees with the word's letters on its support does -- so a
+        consumer that buckets coefficients group by group must use this single
+        assignment rather than "every group that matches". Counting a word once
+        per capable group inflates a variance by the number of such groups.
+        """
+        supp = self._word_support(self.n, code)
+        for key, g in self._groups.items():
+            basis = g["basis"]
+            if all(j in basis and basis[j] == self._letter(code, j) for j in supp):
+                return key
+        return None
+
     def shots(self, code: int) -> int:
         g = self._group_of(code)
         return g["N"] if g else 0
@@ -127,6 +143,19 @@ class GroupedWordCache:
     def num_groups(self) -> int:
         """Distinct QWC measurement bases (measurement circuits) accumulated."""
         return len(self._groups)
+
+    def group_states(self) -> tuple[dict, ...]:
+        """Read-only view of the sufficient statistic: one dict per group with
+        ``basis``, ``support``, ``hist`` (copied), and ``shots``.
+
+        This *is* the cache's information content -- everything downstream
+        (estimates, covariance-aware variances, bootstrap resampling) is a
+        function of these histograms, so exposing them avoids each consumer
+        reaching into the private store.
+        """
+        return tuple({"basis": key, "support": g["support"],
+                      "hist": dict(g["hist"]), "shots": g["N"]}
+                     for key, g in self._groups.items())
 
     # -- per-word marginal (diagonal; used for the threshold gate) ----------
 

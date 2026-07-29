@@ -101,9 +101,10 @@ assert np.allclose(to_matrix(A * A), to_matrix(A) @ to_matrix(A))
 - A-CASE (`subspace/`): Rayleigh-Ritz in an operator-generated subspace whose
   basis states `A_i|psi>` are never prepared — every projected matrix element
   is an expectation on one reference state — with a cached matrix-element bank,
-  adaptive basis growth by certified-by-construction generator selection, and
-  projected observables (expectations and transitions without materializing a
-  Ritz state); see `ACASE_RESEARCH_PLAN.md`
+  adaptive basis growth, projected observables (expectations and transitions
+  without materializing a Ritz state), and finite-shot layers whose intervals
+  are labelled `asymptotic`, `heuristic`, or `finite_sample` and never
+  conflated; see `ACASE_RESEARCH_PLAN.md`
 
 ## Core Conventions
 
@@ -207,13 +208,16 @@ PYTHONPATH=. python examples/noisy_channel.py
 PYTHONPATH=. python examples/tfim_exact.py
 PYTHONPATH=. python examples/acase_premise_check.py
 PYTHONPATH=. python examples/acase_adaptive.py
+PYTHONPATH=. python examples/acase_finite_shot.py
 ```
 
 They cover Bell/CHSH diagnostics, a two-qubit Grover step, fermionic CAR
 checks, noisy channels, a small transverse-field Ising Hamiltonian, the
-A-CASE subspace invariants with their resource accounting, and A-CASE
-adaptive growth against the fixed QSE/Krylov/ADAPT-VQE baselines at matched
-operator budget.
+A-CASE subspace invariants with their resource accounting, A-CASE adaptive
+growth against the fixed QSE/Krylov/ADAPT-VQE baselines at matched operator
+budget, and the finite-shot layers (shared grouped measurement, a
+delta-method-versus-Monte-Carlo uncertainty study, and certified growth with
+abstention).
 
 ## Tests And Validation
 
@@ -267,7 +271,9 @@ clifford_qc/
                    # (exact / finite-shot / layered / subpool / random)
   subspace/        # A-CASE: generator families, the normalized/thresholded
                    # generalized eigenproblem, cached matrix-element bank
-                   # with projected observables, adaptive growth, dense
+                   # with projected observables, adaptive growth, finite-shot
+                   # layers (shared grouped measurement, asymptotic Ritz
+                   # uncertainty, sample-split growth certificate), dense
                    # cross-check
 ```
 
@@ -280,7 +286,7 @@ clifford_qc/
 - `RESEARCH_PLAN.md` is the Paper A roadmap (confidence-certified,
   measurement-efficient ADAPT-VQE).
 - `ACASE_RESEARCH_PLAN.md` is the active roadmap (A-CASE: adaptive
-  Clifford-algebra subspace eigensolver); Phases 1-3 ship in `subspace/`.
+  Clifford-algebra subspace eigensolver); Phases 1-4 ship in `subspace/`.
 - `paper/` holds the Paper A manuscript (REVTeX) with figures regenerated
   from the committed benchmark data.
 - License: Apache-2.0.

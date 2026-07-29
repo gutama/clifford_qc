@@ -442,39 +442,116 @@ plan's answer is compound generators and competing-order references (§4.2
 level 4, Phase 5), not more of the same family. Recorded rather than
 smoothed over.
 
-**Phase 4 — finite-shot layers.** Certification here is a **new nonlinear
-statistical problem**: `(H,S)` are estimated, the retained eigenspace is
-data-dependent, the Ritz pair `(c,E)` is data-dependent, and residual
-couplings and 2×2 lowerings are nonlinear functions of correlated
-estimates. The gradient best-arm code assumed linear estimators; it does
-not transfer unchanged. Staged route:
+**Phase 4 — done (`subspace/measured.py`).** Certification here is a **new
+nonlinear statistical problem**: `(H,S)` are estimated, the retained
+eigenspace is data-dependent, the Ritz pair `(c,E)` is data-dependent, and
+residual couplings and 2×2 lowerings are nonlinear functions of correlated
+estimates. The gradient best-arm code assumed linear estimators; it did not
+transfer unchanged. What did transfer is the shape: everything the subspace
+needs is a linear functional of Pauli-word means, and `WordFunctional` is
+that object — the single place shots enter, with `estimate`, `variance`, a
+covariance-vector product, an exact (infinite-shot) evaluation, and
+arithmetic, so a difference of functionals is a functional.
 
-- *4A — shared grouped measurement (exact statistics deferred):* measure
-  the bank's word universe through QWC groups; verify exact adaptive
-  behavior is recovered in the infinite-shot limit; establish support and
-  word-growth scaling.
-- *4B — asymptotic uncertainty:* delta-method Ritz uncertainties from
-  grouped joint histograms; grouped bootstrap cross-check; empirical
-  coverage studies; every interval labeled `asymptotic` or `heuristic` —
-  never `certified`.
-- *4C — finite-sample growth certificate via sample splitting:* a
-  construction batch estimates `(H,S)`, fixes the thresholded subspace,
-  and freezes `(c,E)`; an independent certification batch estimates
-  candidate residual couplings with `(c,E)` treated as constants;
-  simultaneous empirical-Bernstein bounds decide growth or **abstention**.
-  Less measurement-efficient than unrestricted reuse, but it yields a
-  defensible first theorem; confidence-set reuse can follow.
+- *4A — shared grouped measurement.* `SharedMeasurement` measures a
+  subspace's whole word universe through QWC groups and reconstructs every
+  entry from the same shots; the lower triangle stays the conjugate by
+  construction rather than an independent noisy estimate. Its
+  `exact_matrices()` walks the same reconstruction with exact means and
+  reproduces the Phase-2 matrices to 5×10⁻¹³, which is the acceptance
+  criterion for the infinite-shot limit. The identity word is never
+  measured: `⟨I⟩ = 1` is known, and reporting it as measured would inflate
+  the empirical-Bernstein range of every group that reads it.
+- *4B — asymptotic uncertainty.* `ritz_uncertainty` linearizes:
+  `dE = Σ_w q_w dμ_w` with `q` the word coefficients of `B†(H−E)B`,
+  `B = Σ_i c_i A_i` — one *real* functional (that operator is Hermitian), so
+  the Jacobian of the Ritz value with respect to every word mean is a single
+  bank-derived object. `bootstrap_ritz` resamples the grouped histograms and
+  reruns the whole nonlinear pipeline as the cross-check. Both are labelled
+  `asymptotic` / `heuristic`; `Interval.certified` is False for both.
+- *4C — finite-sample growth certificate by sample splitting.*
+  `run_certified_acase` spends a construction batch on `(S,H)`, freezing the
+  thresholded subspace, its Ritz pair, **and the candidate norms**; an
+  independent certification batch bounds each candidate's residual coupling
+  with those held constant. `|r| = √(Re² + Im²)` is not linear, so the
+  interval is a rectangle over the two real functionals with the union bound
+  paid explicitly over `2·(#candidates)` events. Growth happens only when a
+  candidate's lower bound clears the threshold; otherwise the run
+  **abstains** and stops.
 
-**Covariance discipline:** never materialize a dense covariance tensor
-over `(H,S)` entries (`O(M²)` entries, `O(M⁴)` pairs). Keep the grouped
-joint histograms as the sufficient statistic and expose
-covariance-vector / Jacobian-vector products for arbitrary linear
-functionals of word means — a generalization of the candidate-specific
-`GroupedWordCache` API — computing only what Ritz linearization, one
-candidate's residual, pairwise comparisons, and bootstrap draws need.
-The plan keeps its honesty: PSD repair of noisy `S` does not
-automatically preserve the variational upper bound; asymptotic
-uncertainty and finite-sample certification stay separated in the API.
+The norm subtlety is worth stating because it was easy to get wrong: the
+coupling must be normalized by `‖A_a|ψ⟩‖` or the ranking would depend on how
+a candidate happens to be scaled, but dividing by a quantity estimated from
+the *same* batch would make the statistic a ratio of correlated estimates and
+void the certificate. The construction batch is what makes the norm a
+constant.
+
+**Covariance discipline** (honored): no dense covariance over `(H,S)` entries
+is ever formed. The grouped joint histograms stay the sufficient statistic and
+`WordFunctional.covariance` computes one covariance-vector product on demand;
+comparisons need no covariance object at all, since a difference of linear
+functionals is a linear functional. One bug found this way and worth recording:
+several QWC groups can be *able* to read the same word, and attributing it to
+each capable group inflated every variance by that multiplicity — caught only
+by comparing the predicted σ against a Monte-Carlo spread, which is now the
+test.
+
+*Measured (TFIM n=4, 40 measurement seeds, `examples/acase_finite_shot.py`):*
+
+| basis | shots/group | MC std | mean σ̂ | median σ̂ | bias | 95% coverage |
+|---|---|---|---|---|---|---|
+| κ_S = 1 | 2000 | 3.2×10⁻² | 3.7×10⁻² | 3.6×10⁻² | −1.5×10⁻² | 0.95 |
+| κ_S = 1 | 20000 | 1.15×10⁻² | 1.10×10⁻² | 1.10×10⁻² | −4.9×10⁻³ | 0.93 |
+| κ_S ≈ 2×10² | 2000 | 1.85 | 2.34 | 6.6×10⁻³ | −3.0×10⁻¹ | 0.97 |
+| κ_S ≈ 2×10² | 20000 | 1.65×10⁻³ | 1.95×10⁻³ | 1.81×10⁻³ | −1.7×10⁻⁵ | 0.97 |
+
+With a well-conditioned overlap the delta method is accurate (within ~15% of
+the Monte-Carlo spread) and the grouped bootstrap agrees with it to three
+digits (2.49×10⁻² vs 2.51×10⁻² at 4000 shots). Two findings cut the other way
+and are the reason for the labels. First, the measured Ritz value carries a
+**systematic downward bias** that shrinks with shots (−1.5×10⁻² at 2000
+shots/group, −4.9×10⁻³ at 20000 for κ_S = 1): the noisy energy is not an upper
+bound on `E₀`, and at low budgets the bias is a large fraction of the standard
+deviation. Second, at κ_S ≈ 2×10² and 2000 shots/group the error distribution
+is **heavy-tailed** — a handful of runs in forty admit a near-null overlap mode
+and land whole Hartrees away, giving an MC std of 1.85 Ha against a median σ̂ of
+6.6×10⁻³. A mean-and-variance description of the error is inadequate there.
+That is the strongest argument in the code base both for conditioning-aware
+growth and for never calling these intervals certified. The variational-bound
+violation is a test, not a caveat: at 200 shots/group most seeds put `E_sub`
+below `E₀`, by up to 2×10⁻². Quantifying it in terms of τ_S, shot covariance,
+and conditioning remains **Q3**.
+
+*Measured (4C certified growth, δ = 0.05, EB bounds):*
+
+| shots/group | threshold | certified steps | final gap | shots | circuits |
+|---|---|---|---|---|---|
+| 4000 | 0.05 | 3, then abstain | 1.2×10⁻¹ | 2.6×10⁶ | 648 |
+| 40000 | 0.05 | 4, then abstain | 1.4×10⁻² | 3.2×10⁷ | 810 |
+| 40000 | 0.40 | 3, then abstain | 1.1×10⁻¹ | 2.6×10⁷ | 648 |
+
+Every accepted step is `finite_sample`, and every run ends in abstention
+rather than uncertified growth — the behavior the plan asked for, at the cost
+the plan predicted. The cost is the headline: two independent full-universe
+batches per step put certified growth four orders of magnitude above the
+exact-arithmetic path in shots, and the certified trajectories stop at
+gaps (10⁻²) that Phase 3 reaches at 10⁻¹⁰ exactly. Note also what is *not*
+certified: the statement is about the accepted candidate's coupling with the
+frozen Ritz pair, conditional on the construction batch. It is not a claim
+that the candidate is the best available (`resolution` records separately
+whether the leader also cleared every rival's upper bound — at these budgets
+it usually does not), and it is emphatically not a bound on the energy.
+Confidence-set reuse across steps, which would recover much of the shot cost,
+is the obvious next stage and is not attempted here.
+
+Two further gaps are left open on purpose. The certified path ranks candidates
+by **residual coupling**, not by the generalized 2×2 lowering Phase 3 uses:
+the lowering is a nonlinear function of `s_aa`, `h_aa`, and a square root, so
+it admits only a delta-method (asymptotic) treatment, and the certified gate
+has to be the linear statistic. And shot allocation is a predeclared uniform
+budget per group — fixed endpoints are what the empirical-Bernstein validity
+argument needs; policy-driven allocation across groups would need the same
+fixed-schedule discipline the Paper A allocators already carry.
 
 **Phase 5 — materials models and observables.**
 `models/lattice.py`: Hubbard, extended Hubbard, Kanamori, small Anderson

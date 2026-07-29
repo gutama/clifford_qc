@@ -102,6 +102,15 @@ class MatrixElementBank:
     def n(self) -> int:
         return self._rho.n
 
+    @property
+    def reference(self) -> MV:
+        """The single reference state every matrix element is an expectation on."""
+        return self._rho
+
+    @property
+    def hamiltonian(self) -> MV:
+        return self._H
+
     def __len__(self) -> int:
         return len(self._generators)
 

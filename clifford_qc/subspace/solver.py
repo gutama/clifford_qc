@@ -387,6 +387,10 @@ def solve_projected(S: np.ndarray, Hm: np.ndarray, labels: Sequence[str] | None 
     # gap between them is how much of the basis the conditioning rule discards
     # beyond what round-off already destroyed.
     numerical_rank = int((overlap_values > 1e-14 * largest).sum())
+    # Exactly zero for an exact assembly; nonzero once (S, H) are estimated,
+    # where dropping those modes is a PSD repair that does *not* automatically
+    # preserve the variational bound (plan §4, Q3).
+    negative_modes = int((overlap_values < -1e-12 * max(largest, 1.0)).sum())
     out = dict(resources or {})
     out.update({
         "basis_size": m,
@@ -398,6 +402,7 @@ def solve_projected(S: np.ndarray, Hm: np.ndarray, labels: Sequence[str] | None 
         "overlap_threshold": float(cutoff),
         "overlap_eigenvalue_max": largest,
         "overlap_eigenvalue_min": float(overlap_values[0]),
+        "overlap_negative_modes": negative_modes,
     })
     return SubspaceResult(
         energies=tuple(float(e) for e in energies),

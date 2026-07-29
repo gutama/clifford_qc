@@ -130,8 +130,9 @@ def run_verification() -> None:
     print("-- A-CASE operator-response subspace --")
     from .matrix import exact_ground
     from .models.spin import tfim
-    from .subspace import (MatrixElementBank, dense_subspace, identity_generator,
-                           krylov_response, run_acase, solve_subspace)
+    from .subspace import (MatrixElementBank, SharedMeasurement, dense_subspace,
+                           identity_generator, krylov_response, ritz_uncertainty,
+                           run_acase, solve_subspace)
 
     A_nh = P("XYI").dagger() * P("IZY")  # non-Hermitian: the pairing's real case
     _check("trace pairing = Tr(AB)/2^n on a non-Hermitian product",
@@ -160,6 +161,21 @@ def run_verification() -> None:
            grown.energy >= Egs - 1e-9 and grown.energy <= ritz[0] + 1e-9)
     _check("predicted lowering is a lower bound on the actual lowering",
            all(r.actual_lowering >= r.predicted_lowering - 1e-12 for r in grown.records))
+
+    shared = SharedMeasurement(bank)
+    S_limit, H_limit = shared.exact_matrices()
+    S_exact, H_exact = bank.matrices()
+    _check("finite-shot reconstruction reproduces (S,H) in the infinite-shot limit",
+           np.abs(S_limit - S_exact).max() < 1e-9
+           and np.abs(H_limit - H_exact).max() < 1e-9)
+    from .backends.finite_shot import FiniteShotBackend
+    cache = shared.measure(FiniteShotBackend(seed=5), 4000)
+    measured = shared.solve(cache)
+    interval = ritz_uncertainty(shared, cache, measured)
+    _check(f"measured Ritz value carries an asymptotic interval "
+           f"(E = {measured.ground_energy:.4f} +- {interval.upper - interval.estimate:.1e})",
+           interval.evidence == "asymptotic" and not interval.certified
+           and interval.lower <= interval.estimate <= interval.upper)
 
     print("\n-- structural report --")
     print(f"  Bell: {bell.nnz()}/16 words | GHZ: {ghz.nnz()}/64 words | Toffoli: {TOFFOLI(3,0,1,2).nnz()}/64 words")
