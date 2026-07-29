@@ -115,9 +115,27 @@ def _half_filled_reference(n_qubits: int, sites: int, *,
     return program
 
 
+def reference_sector(program: Program) -> tuple[int, float]:
+    """``(N, S_z)`` of the determinant an X-gate reference prepares.
+
+    Read from the gates rather than assumed. An odd-site cluster at half filling
+    has ``S_z = +-1/2``, not 0, and hardcoding zero would advertise an empty
+    sector -- which is exactly what the Phase-6 backend refuses to build, and how
+    this was caught.
+    """
+    occupied = []
+    for operation in program.ops:
+        if getattr(operation, "name", None) != "X":
+            raise ValueError("reference is not an X-gate determinant")
+        occupied.extend(operation.qubits)
+    spin = sum(0.5 if q % 2 == 0 else -0.5 for q in occupied)
+    return len(occupied), float(spin)
+
+
 def _fermionic_metadata(rows: int, cols: int, bonds, n_orbitals: int,
-                        couplings: dict) -> dict:
+                        couplings: dict, reference: Program) -> dict:
     sites = rows * cols
+    electrons, sz = reference_sector(reference)
     return {
         "kind": "fermionic_lattice",
         "sites": sites,
@@ -127,8 +145,8 @@ def _fermionic_metadata(rows: int, cols: int, bonds, n_orbitals: int,
         "spin_orbitals": 2 * sites * n_orbitals,
         "spin_convention": "interleaved",  # 2*(site*n_orbitals+orbital)+spin
         "bonds": [tuple(bond) for bond in bonds],
-        "n_electrons": sites,   # half filling
-        "sz": 0.0,
+        "n_electrons": electrons,
+        "sz": sz,
         **couplings,
     }
 
@@ -170,13 +188,15 @@ def hubbard(shape=4, t: float = 1.0, U: float = 4.0, *, periodic: bool = False,
         diagonal = diagonal + float(U) * (up * down)
         if mu:
             diagonal = diagonal - float(mu) * (up + down)
+    reference = _half_filled_reference(n, sites)
     return Model(
         name=f"hubbard({rows}x{cols},t={t},U={U},{'pbc' if periodic else 'obc'})",
         n=n, hamiltonian=_hermitize(n, hop, diagonal),
-        reference=_half_filled_reference(n, sites), hva_layers=(),
+        reference=reference, hva_layers=(),
         metadata=_fermionic_metadata(rows, cols, bonds, 1,
                                      {"t": float(t), "U": float(U),
-                                      "mu": float(mu), "periodic": bool(periodic)}))
+                                      "mu": float(mu), "periodic": bool(periodic)},
+                                     reference))
 
 
 def extended_hubbard(shape=4, t: float = 1.0, U: float = 4.0, V: float = 1.0, *,
@@ -304,8 +324,7 @@ def kanamori(sites: int = 2, n_orbitals: int = 2, t: float = 1.0, U: float = 4.0
     metadata = _fermionic_metadata(1, sites, bonds, n_orbitals,
                                    {"t": float(t), "U": float(U), "J": float(J),
                                     "u_prime": up_prime, "mu": chemical,
-                                    "periodic": bool(periodic)})
-    metadata["n_electrons"] = sites * n_orbitals
+                                    "periodic": bool(periodic)}, reference)
     return Model(name=f"kanamori(sites={sites},orbitals={n_orbitals},U={U},J={J})",
                  n=n, hamiltonian=hamiltonian, reference=reference,
                  hva_layers=(), metadata=metadata)
@@ -353,15 +372,12 @@ def anderson_impurity(n_bath: int = 2, U: float = 4.0, V: float = 1.0,
         if energies[k] < 0:
             reference.clifford("X", spin_orbital(k + 1, SPIN_UP))
             reference.clifford("X", spin_orbital(k + 1, SPIN_DOWN))
-    occupied = 1 + 2 * sum(1 for e in energies if e < 0)
     metadata = _fermionic_metadata(1, sites, [(0, k + 1) for k in range(n_bath)], 1,
                                    {"U": float(U), "V": float(V),
                                     "bath_energies": energies,
-                                    "impurity_energy": eps_impurity})
+                                    "impurity_energy": eps_impurity}, reference)
     metadata.update({"kind": "anderson_impurity", "impurity_site": 0,
-                     "bath_sites": list(range(1, sites)),
-                     "n_electrons": occupied,
-                     "sz": 0.5 if occupied % 2 else 0.0})
+                     "bath_sites": list(range(1, sites))})
     return Model(name=f"anderson(bath={n_bath},U={U},V={V})", n=n,
                  hamiltonian=_hermitize(n, hop, diagonal), reference=reference,
                  hva_layers=(), metadata=metadata)

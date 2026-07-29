@@ -630,15 +630,72 @@ for a strongly correlated cluster, and compound generators and competing-order
 (stabilizer) references — not more of the same family — are what the plan owes
 these models. `examples/acase_materials.py` prints the whole comparison.
 
-**Phase 6 — `SectorStatevectorBackend` + matrix-free Lanczos.**
-Sector-restricted ideal representation (occupation words of fixed particle
-number / S_z), Pauli-word action as bit-mask gather with phase
-accumulation grouped by X-mask, `scipy.sparse.linalg.LinearOperator` +
-`eigsh` (own Lanczos fallback optional). Exact-reference tier for n beyond
-dense reach and the substrate DMFT-style repeated solves would need.
-*Validate:* matches `exact_ground` for n ≤ 12; sector projector
-idempotence; memory `C(n,k)` not `2^n`. Explicitly after the A-CASE
-prototype: it serves baselines and large-n extension, not the main claim.
+**Phase 6 — done (`backends/sector_statevector.py`).**
+`SectorStatevectorBackend` stores a pure state on the occupation words of one
+`(N, S_z)` sector — `C(n,k)` amplitudes, never `2^n` — and applies a Pauli
+word as a bit-mask gather, `W|b⟩ = i^{n_Y}(−1)^{|z∧b|}|b⊕x⟩`. Words are
+**grouped by X-mask**: every word in a group shares the permutation
+`b → b⊕x`, so the gather is resolved once per group and only the diagonal
+phases differ — and those phases do not depend on the state either, so each
+group collapses to one coefficient vector and a matvec is a few
+gather-multiply-scatter passes. `SectorOperator` exposes that as a
+`LinearOperator` for `eigsh`, with a numpy-only `lanczos_ground` fallback.
+`sector_projector` builds the ideal's projector as an `MV` for the theory-facing
+checks; the backend never forms it.
+
+Three implementation points are load-bearing:
+
+- *Term-wise projection is exact, not approximate.* Individual words of a
+  number-conserving Hamiltonian do **not** conserve `N` — the same leakage the
+  chemistry pool documents — so most words map part of the sector out of it,
+  and the backend drops those components. That is legitimate because `H`
+  commutes with the sector projector: `H|ψ⟩ = P H|ψ⟩ = Σ_w h_w (P W_w|ψ⟩)`, and
+  `P` distributes over the sum. The out-of-sector pieces cancel in the total;
+  projecting each term is the same arithmetic reordered. The test compares the
+  matvec against the Hamiltonian's sparse submatrix on the sector.
+- *No `2^n` index table.* The permutation `b → b⊕x` is resolved by binary
+  search on the sorted sector, not by a lookup array over the full space —
+  which would reintroduce exactly the memory the backend exists to avoid.
+  Basis construction is combinatorial for the same reason (`C(40,2)` states out
+  of `2^40` in milliseconds), in contrast to `sparse.sector_indices`, which
+  enumerates `2^n` because it masks an already-dense matrix.
+- *Lanczos converges on the residual, not the eigenvalue.* Ritz values converge
+  quadratically faster than their vectors, so stopping when the eigenvalue
+  settles returns vectors an order of magnitude short of the advertised
+  tolerance. The criterion is `β_k|s_k[i]|`, with full reorthogonalization
+  (the bare three-term recurrence starts manufacturing duplicate eigenvalues,
+  which on a degenerate spectrum is indistinguishable from real degeneracy).
+
+*Validated:* ground energies match `exact_ground` and
+`sparse_ground_in_sector` on every lattice model for `n ≤ 12`, through both
+`eigsh` and the numpy-only Lanczos; the matvec matches the sparse submatrix;
+`P² = P`, `P† = P`, `tr P = |sector|`, `[H,P] = 0`; the sector basis agrees
+with the independent dense enumeration; expectations of *non*-conserving
+observables agree with the dense restriction (only `P O P` contributes); and
+the `t=0` degenerate spectrum that defeats ARPACK's `which='SA'` is handled by
+both solvers.
+
+*Measured (`examples/acase_sector_backend.py`, half-filled Hubbard chains):*
+
+| sites | n | sector dim | 2^n | ratio | state | sparse nnz it avoids |
+|---|---|---|---|---|---|---|
+| 4 | 8 | 36 | 256 | 7.1× | 0.6 kB | 4 352 |
+| 6 | 12 | 400 | 4 096 | 10.2× | 6 kB | 110 592 |
+| 8 | 16 | 4 900 | 65 536 | 13.4× | 78 kB | 2 424 832 |
+| 10 | 20 | 63 504 | 1 048 576 | 16.5× | 1.0 MB | 49 283 072 |
+| 12 | 24 | 853 776 | 16 777 216 | 19.7× | 13.7 MB | — |
+
+Ground energies: 20 qubits in 1.8 s, 24 qubits in 54 s. The compiled operator
+is 19 X-mask groups from 47 words at `n = 20` (matvec 6.6 ms, 22 MB held)
+against 93 ms recomputing per matvec — the compile-once/solve-many trade a
+DMFT-style outer loop wants, and `precompute=False` is there because at
+`n = 24` the compiled passes want 355 MB against the state's 14 MB.
+
+*A Phase-5 bug this phase caught.* The lattice metadata hardcoded `S_z = 0` at
+half filling, which is wrong for an odd site count (three electrons on three
+sites sit at `S_z = ±½`). The backend refuses to build an empty sector, which
+surfaced it; sector metadata is now read from the reference determinant's own
+gates, so it cannot disagree with the state it describes.
 
 **Phase 7 — validation ladder and Paper B.**
 H₂ → H₄ → stretched H₂O CAS(4e,4o) → H₂O CAS(8e,6o) → 2×2/2×3 Hubbard →

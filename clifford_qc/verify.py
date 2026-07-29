@@ -213,6 +213,38 @@ def run_verification() -> None:
            and cluster_result.expectation(double_occupancy(cluster, 0)) >= 0.0
            and cluster_result.expectation(spin_correlation(cluster, 0, 1)) < 0.0)
 
+    print("-- sector-restricted exact tier --")
+    from .backends.sector_statevector import (SectorStatevectorBackend,
+                                              lanczos_ground, sector_basis,
+                                              sector_projector)
+
+    sector = SectorStatevectorBackend(cluster.n, cluster.metadata["n_electrons"],
+                                      cluster.metadata["sz"])
+    _check(f"sector holds C(n,k) amplitudes, not 2^n "
+           f"({sector.dimension} vs {2 ** cluster.n})",
+           sector.dimension == len(sector_basis(cluster.n, 2, 0.0))
+           and sector.dimension < 2 ** cluster.n)
+    projector = sector_projector(cluster.n, cluster.metadata["n_electrons"],
+                                 cluster.metadata["sz"])
+    _check("sector projector is idempotent and commutes with H",
+           (projector * projector).is_close(projector, 1e-10)
+           and comm(H_cluster, projector).is_zero(1e-10))
+    sector_energy = sector.ground_state(cluster.hamiltonian, k=1,
+                                        method="lanczos")[0][0]
+    _check(f"matrix-free Lanczos matches the dense ground energy "
+           f"({sector_energy:.6f})",
+           abs(sector_energy - E_cluster) < 1e-8)
+    reference_state = sector.state_from_program(cluster.reference)
+    _check("determinant reference maps to one sector amplitude with its energy",
+           int(np.count_nonzero(reference_state)) == 1
+           and abs(sector.expectation(cluster.hamiltonian, reference_state).real
+                   - ExactMVBackend().expectation(cluster.reference,
+                                                  cluster.hamiltonian, ())) < 1e-9)
+    bigger = SectorStatevectorBackend(16, 8, 0.0)
+    _check(f"a 16-qubit sector is 4900 amplitudes, not 65536 "
+           f"({bigger.memory_estimate()['sector_bytes'] // 1024} KiB)",
+           bigger.dimension == 4900)
+
     print("\n-- structural report --")
     print(f"  Bell: {bell.nnz()}/16 words | GHZ: {ghz.nnz()}/64 words | Toffoli: {TOFFOLI(3,0,1,2).nnz()}/64 words")
     print(f"  RZ grades: {sorted(RZ(2,0,0.8).grades())}; CNOT grades: {sorted(CNOT(2,0,1).grades())}")

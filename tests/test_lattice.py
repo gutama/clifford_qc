@@ -35,11 +35,13 @@ from clifford_qc.sparse import (sector_indices, sparse_ground,
 
 FERMIONIC = [
     lambda: hubbard(2),
+    lambda: hubbard(3),      # odd sites: half filling has S_z = +1/2, not 0
     lambda: hubbard(4),
     lambda: hubbard((2, 2)),
     lambda: extended_hubbard(4, V=1.0),
     lambda: kanamori(2, 2),
     lambda: anderson_impurity(2),
+    lambda: anderson_impurity(3),
 ]
 
 
@@ -146,6 +148,11 @@ def test_fermionic_models_are_hermitian_and_conserve_their_symmetries(factory):
 
 @pytest.mark.parametrize("factory", FERMIONIC)
 def test_reference_state_sits_in_the_advertised_sector(factory):
+    """The metadata sector has to be the reference's actual sector.
+
+    An odd-site cluster at half filling sits at ``S_z = +1/2``; advertising 0
+    would name an empty sector, which is how the Phase-6 backend caught this.
+    """
     from clifford_qc.backends import ExactMVBackend
     from clifford_qc.states import expectation
 
@@ -214,6 +221,15 @@ def test_extended_hubbard_adds_a_neighbour_repulsion():
     # V = 0 reproduces the plain model up to the particle-hole constant
     zero = extended_hubbard(4, U=4.0, V=0.0)
     assert zero.hamiltonian.to_mv().is_close(plain.hamiltonian.to_mv(), 1e-10)
+
+
+def test_odd_site_clusters_advertise_a_half_integer_spin():
+    for sites in (3, 5):
+        model = hubbard(sites)
+        assert model.metadata["n_electrons"] == sites
+        assert model.metadata["sz"] == pytest.approx(0.5)
+    for sites in (2, 4):
+        assert hubbard(sites).metadata["sz"] == pytest.approx(0.0)
 
 
 def test_anderson_impurity_structure():

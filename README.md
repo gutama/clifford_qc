@@ -91,9 +91,11 @@ assert np.allclose(to_matrix(A * A), to_matrix(A) @ to_matrix(A))
 - density operators, evolution, measurement, probabilities, partial trace, partial transpose
 - Kraus channels: depolarizing, dephasing, amplitude damping
 - diagnostics: fidelity, entropy, negativity, trace checks
-- dense matrix conversion and exact small-system ground states, plus a sparse
+- dense matrix conversion and exact small-system ground states, a sparse
   reference tier (`sparse.py`) with sector-restricted diagonalization for `n`
-  past dense `eigh`
+  past dense `eigh`, and a sector-restricted statevector backend
+  (`backends/sector_statevector.py`) that stores `C(n,k)` amplitudes and never
+  builds a matrix at all
 - a Pauli-rotor intermediate representation with exact gate-by-gate execution, versioned JSON serialization, gradients, and QASM3 export
 - optional bridges for Stim, OpenFermion, pytket, and PennyLane
 - materials clusters (`models/lattice.py`): Hubbard, extended Hubbard,
@@ -216,6 +218,7 @@ PYTHONPATH=. python examples/acase_premise_check.py
 PYTHONPATH=. python examples/acase_adaptive.py
 PYTHONPATH=. python examples/acase_finite_shot.py
 PYTHONPATH=. python examples/acase_materials.py
+PYTHONPATH=. python examples/acase_sector_backend.py
 ```
 
 They cover Bell/CHSH diagnostics, a two-qubit Grover step, fermionic CAR
@@ -225,7 +228,9 @@ growth against the fixed QSE/Krylov/ADAPT-VQE baselines at matched operator
 budget, and the finite-shot layers (shared grouped measurement, a
 delta-method-versus-Monte-Carlo uncertainty study, and certified growth with
 abstention), and the materials layer (Hubbard and Kitaev clusters, projected
-observables, excited states by state-averaged growth).
+observables, excited states by state-averaged growth), and the
+sector-restricted exact tier (C(n,k) amplitudes instead of 2^n, matrix-free
+Lanczos, 24 qubits without a matrix).
 
 ## Tests And Validation
 
@@ -274,7 +279,8 @@ clifford_qc/
   sparse.py        # sparse Pauli reference tier: eigsh, (N,Sz) sectors
   models/          # TFIM, XXZ, random-Ising; Hubbard/Kanamori/Anderson/
                    # Kitaev clusters; material observables; chemistry+FCIDUMP
-  backends/        # Backend protocol: exact MV, dense reference, finite-shot
+  backends/        # Backend protocol: exact MV, dense reference, finite-shot,
+                   # sector-restricted statevector + matrix-free Lanczos
   measurement/     # commutator bank, shared word cache, confidence,
                    # allocation policies, QWC measurement grouping
   algorithms/      # optimizers, pools (odd-Y), fixed-depth VQE, ADAPT-VQE
@@ -296,8 +302,9 @@ clifford_qc/
 - `RESEARCH_PLAN.md` is the Paper A roadmap (confidence-certified,
   measurement-efficient ADAPT-VQE).
 - `ACASE_RESEARCH_PLAN.md` is the active roadmap (A-CASE: adaptive
-  Clifford-algebra subspace eigensolver); Phases 1-5 ship in `subspace/`,
-  `models/lattice.py`, `models/observables.py`, and `sparse.py`.
+  Clifford-algebra subspace eigensolver); Phases 1-6 ship in `subspace/`,
+  `models/lattice.py`, `models/observables.py`, `sparse.py`, and
+  `backends/sector_statevector.py`.
 - `paper/` holds the Paper A manuscript (REVTeX) with figures regenerated
   from the committed benchmark data.
 - License: Apache-2.0.
