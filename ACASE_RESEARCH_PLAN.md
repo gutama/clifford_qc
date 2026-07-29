@@ -371,13 +371,76 @@ memory, and it is not small: H₄'s 378 cached element operators hold 15847
 distinct words and ~10.6 MB. That figure is the §6 metric to watch as
 Phase 3 grows bases, not a footnote.
 
-**Phase 3 — exact adaptive growth (`subspace/adaptive.py`).**
-Residual-coupling and generalized-2×2 selection on top of the bank;
-symmetry-preserving chemistry generators as default with leakage
-reporting; linear-dependence rejection; `energy_history`; warm start from
-an ADAPT state. *Validate:* adaptive ≤ fixed basis at equal size; matches
-or beats ADAPT-VQE, fixed QSE, and fixed Krylov at matched operator
-budget on H₄ and one spin model.
+**Phase 3 — done (`subspace/adaptive.py`).** `run_acase` grows the basis one
+generator at a time on top of the bank: generalized-2×2 predicted lowering
+(closed form, overlap block carried explicitly), scale-free residual
+coupling, linear-dependence rejection, `energy_history`, per-step
+`GrowthRecord`s carrying conditioning and word costs, an optional cost-aware
+score `ΔE/(1+new words)^γ`, `fermionic_excitation_generators` as the
+chemistry default with `sector_leakage` reported per accepted generator (and
+sector-breaking candidates rejected when `leakage_tol` is set), and
+`adapt_warm_start` for growing around an ADAPT-VQE state.
+
+Three details are load-bearing, and each is pinned by a test that fails
+under the obvious alternative:
+
+- *The overlap block is not optional.* Assume the candidate is orthonormal
+  to the current Ritz vector, and a candidate that **is** that vector times
+  3.5 scores over a Hartree of predicted gain; the generalized 2×2 scores
+  exactly zero.
+- *Rejection is measured against the retained subspace, not the Ritz
+  vector.* A candidate duplicating some other basis direction sits at a
+  perfectly healthy angle to the Ritz vector, passes the weaker test, and
+  makes `S` singular — the thresholded solve then discards it after it has
+  been paid for.
+- *The 2×2 deflation needs a floor.* Below an orthogonal fraction of
+  ~1e-12 the deflated diagonal is a genuine 0/0, and double precision
+  returns noise that is not small: a parallel candidate lands at −6 instead
+  of −4, two Hartree of fabricated lowering. The conditioning floor sits
+  four orders above it, so live scoring never reaches the cliff.
+
+*Validated:* `E_sub ≥ E₀` and monotone `energy_history`; **predicted
+lowering ≤ actual lowering** at every step (`span{Ψ_m, χ}` sits inside
+`span{basis ∪ χ}`, so the 2×2 can only underestimate); adaptive ≤ fixed
+basis at equal size on TFIM, XXZ, and both H₄ legs; deterministic and
+scale-invariant selection; convergence cross-checked against the dense
+`dense_residual_norm` that §4.4 keeps out of the projected API.
+
+*Measured, TFIM n=4 from the model's own reference `|++++⟩` — the state
+ADAPT-VQE also starts from (`examples/acase_adaptive.py`):*
+
+| M | A-CASE | κ_S | fixed Krylov | κ_S | fixed QSE | ADAPT-VQE |
+|---|---|---|---|---|---|---|
+| 3 | 4.1×10⁻⁸ | 3.6×10² | 2.3×10⁻² | 1.8×10² | 7.6×10⁻¹ | 2.7×10⁻¹ |
+| 5 | 4.0×10⁻¹⁰ | 8.8×10² | 1.6×10⁻⁶ | 1.2×10⁴ | 5.2×10⁻¹ | 1.3×10⁻² |
+| 7 | 8.9×10⁻¹⁶ | 9.2×10² | −1.8×10⁻¹⁵ | 1.8×10⁷ | 5.2×10⁻¹ | 7.1×10⁻¹⁵ |
+
+The §5 criterion is met on the spin model: A-CASE matches or beats every
+baseline at matched budget, and where fixed Krylov finally catches up it
+does so at `κ_S = 1.8×10⁷` against A-CASE's `9.2×10²` — five orders of
+conditioning, the currency Q2 and Q3 are denominated in. Warm-starting from
+a 2-operator ADAPT state improves M=5 further, 4.0×10⁻¹⁰ → 2.0×10⁻¹¹.
+
+*Measured, H₄ chain (symmetry-preserving candidates, `leakage_tol=1e-9`;
+every accepted generator leaks < 1e-12 and `κ_S = 1` throughout):*
+
+| M | A-CASE (r=0.9) | fixed prefix | ADAPT-VQE | A-CASE (r=1.8) | ADAPT-VQE |
+|---|---|---|---|---|---|
+| 4 | 1.87×10⁻² | 5.61×10⁻² | 1.87×10⁻² | 8.54×10⁻² | 3.86×10⁻² |
+| 6 | 9.36×10⁻³ | 5.61×10⁻² | 9.72×10⁻³ | 4.09×10⁻² | 2.33×10⁻² |
+| 9 | 3.02×10⁻³ | 5.61×10⁻² | 2.38×10⁻³ | — | — |
+
+Against the fixed prefix the gain is decisive at every size — the natural
+ordering emits singles first, and on a closed-shell determinant those
+contribute almost nothing, so the fixed basis stalls at 5.6×10⁻² while
+adaptive selection takes the doubles that matter. Against ADAPT-VQE the
+honest reading is a draw at equilibrium (ahead at M=6, behind at M=9) and a
+**loss on the stretched geometry**, where ADAPT reaches 3.9×10⁻² against
+A-CASE's 8.5×10⁻² at M=4. A linear span of singles and doubles on an HF
+reference is the wrong object for a strongly multireference state; the
+plan's answer is compound generators and competing-order references (§4.2
+level 4, Phase 5), not more of the same family. Recorded rather than
+smoothed over.
 
 **Phase 4 — finite-shot layers.** Certification here is a **new nonlinear
 statistical problem**: `(H,S)` are estimated, the retained eigenspace is

@@ -134,6 +134,24 @@ def commutator_response(hamiltonian: PauliSum, words: Sequence,
     return out
 
 
+def fermionic_excitation_generators(n_qubits: int, n_electrons: int) -> list[Generator]:
+    """The chemistry default: whole JW images of conserving excitations (§4.2).
+
+    One multivector per particle-number- and S_z-conserving fermionic
+    excitation, *not* split into words. A split word generally leaves the
+    physical sector, and a subspace built from split words can lower its Ritz
+    value by leaking into states with the wrong electron count -- which is why
+    this, rather than :func:`pauli_orbit` over the qubit-ADAPT pool, is what
+    chemistry runs should grow from.
+
+    Needs the ``chemistry`` extra (OpenFermion + PySCF), imported here rather
+    than at module scope so the A-CASE layer stays importable without it.
+    """
+    from ..models.chemistry import excitation_multivectors
+    return [Generator(label, image.to_mv())
+            for label, image in excitation_multivectors(n_qubits, n_electrons)]
+
+
 def krylov_response(hamiltonian, order: int) -> list[Generator]:
     """Level 3: ``H^k|psi>`` for ``k = 1..order``.
 

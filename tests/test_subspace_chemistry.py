@@ -21,17 +21,17 @@ from clifford_qc.matrix import exact_ground
 from clifford_qc.models.chemistry import (excitation_multivectors,
                                           excitation_pool, h2, h4_chain, lih)
 from clifford_qc.pauli import I, Z, comm
-from clifford_qc.subspace import (Generator, MatrixElementBank, dense_basis,
-                                  identity_generator, solve_subspace)
+from clifford_qc.subspace import (MatrixElementBank, dense_basis,
+                                  fermionic_excitation_generators,
+                                  identity_generator, run_acase, solve_subspace)
 
 CHEMICAL_ACCURACY = 1.6e-3  # Hartree
 
 
 def excitation_generators(model):
     """Level 0 + the symmetry-preserving excitation generators of the model."""
-    return [identity_generator(model.n)] + [
-        Generator(label, image.to_mv()) for label, image in
-        excitation_multivectors(model.n, model.metadata["n_electrons"])]
+    return [identity_generator(model.n)] + fermionic_excitation_generators(
+        model.n, model.metadata["n_electrons"])
 
 
 def reference_state(model):
@@ -199,6 +199,48 @@ def test_projected_number_operator_counts_the_electrons(name, h2_model, lih_mode
     assert result.expectation(model.hamiltonian) == pytest.approx(
         result.ground_energy, abs=1e-9)
     assert bank.resources()["projected_observables"]
+
+
+# ---------------------------------------------------------- adaptive growth
+
+
+@pytest.mark.parametrize("index", [0, 1])
+def test_adaptive_growth_beats_the_fixed_excitation_prefix(h4_models, index):
+    """Phase-3 validation on H4: adaptive <= fixed at equal size.
+
+    The fixed prefix is not a straw man, it is the natural ordering -- singles
+    before doubles, as ``_excitation_generators`` emits them. On a closed-shell
+    determinant the singles contribute almost nothing (Brillouin), so the fixed
+    prefix stalls while adaptive selection takes the doubles that matter.
+    """
+    model = h4_models[index]
+    E0, _ = exact_ground(model.hamiltonian.to_mv())
+    candidates = excitation_generators(model)[1:]  # drop the identity: it is the seed
+    rho = reference_state(model)
+    result = run_acase(rho, model.hamiltonian, candidates, max_size=4,
+                       exact_ground_energy=E0, leakage_tol=1e-9)
+    fixed = solve_subspace(rho, model.hamiltonian,
+                           [identity_generator(model.n)] + candidates[:4],
+                           track_support=False)
+    assert result.energy >= E0 - 1e-9
+    assert result.energy <= fixed.ground_energy + 1e-9
+    assert len(result.labels) == 5
+    for record in result.records:
+        assert record.actual_lowering >= record.predicted_lowering - 1e-12
+
+
+def test_every_selected_generator_conserves_the_sector(h4_models):
+    """Leakage reporting (§4.2): the whole-image generators leak nothing, and
+    the run says so for each accepted step."""
+    model, _ = h4_models
+    candidates = excitation_generators(model)[1:]
+    result = run_acase(reference_state(model), model.hamiltonian, candidates,
+                       max_size=3, leakage_tol=1e-9)
+    assert result.records
+    for record in result.records:
+        assert max(record.leakage.values()) < 1e-12
+        assert record.rejected_sector == 0
+        assert record.condition_number == pytest.approx(1.0, abs=1e-9)
 
 
 def test_ritz_state_stays_in_the_reference_sector(h4_models):

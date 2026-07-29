@@ -131,7 +131,7 @@ def run_verification() -> None:
     from .matrix import exact_ground
     from .models.spin import tfim
     from .subspace import (MatrixElementBank, dense_subspace, identity_generator,
-                           krylov_response, solve_subspace)
+                           krylov_response, run_acase, solve_subspace)
 
     A_nh = P("XYI").dagger() * P("IZY")  # non-Hermitian: the pairing's real case
     _check("trace pairing = Tr(AB)/2^n on a non-Hermitian product",
@@ -154,6 +154,12 @@ def run_verification() -> None:
            banked.energies == solve_subspace(ref, spin.hamiltonian, gens).energies)
     _check("projected observable <H> returns the Ritz energy (state never formed)",
            abs(banked.expectation(spin.hamiltonian) - banked.ground_energy) < 1e-9)
+    grown = run_acase(ref, spin.hamiltonian, gens[1:] + krylov_response(spin.hamiltonian, 6),
+                      max_size=4, exact_ground_energy=Egs)
+    _check(f"adaptive growth stays above E_0 and improves ({grown.energy:.6f})",
+           grown.energy >= Egs - 1e-9 and grown.energy <= ritz[0] + 1e-9)
+    _check("predicted lowering is a lower bound on the actual lowering",
+           all(r.actual_lowering >= r.predicted_lowering - 1e-12 for r in grown.records))
 
     print("\n-- structural report --")
     print(f"  Bell: {bell.nnz()}/16 words | GHZ: {ghz.nnz()}/64 words | Toffoli: {TOFFOLI(3,0,1,2).nnz()}/64 words")

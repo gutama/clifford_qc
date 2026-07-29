@@ -100,9 +100,10 @@ assert np.allclose(to_matrix(A * A), to_matrix(A) @ to_matrix(A))
   `RESEARCH_PLAN.md`
 - A-CASE (`subspace/`): Rayleigh-Ritz in an operator-generated subspace whose
   basis states `A_i|psi>` are never prepared — every projected matrix element
-  is an expectation on one reference state — with a cached matrix-element bank
-  for incremental growth and projected observables (expectations and
-  transitions without materializing a Ritz state); see `ACASE_RESEARCH_PLAN.md`
+  is an expectation on one reference state — with a cached matrix-element bank,
+  adaptive basis growth by certified-by-construction generator selection, and
+  projected observables (expectations and transitions without materializing a
+  Ritz state); see `ACASE_RESEARCH_PLAN.md`
 
 ## Core Conventions
 
@@ -205,11 +206,14 @@ PYTHONPATH=. python examples/fermion_car.py
 PYTHONPATH=. python examples/noisy_channel.py
 PYTHONPATH=. python examples/tfim_exact.py
 PYTHONPATH=. python examples/acase_premise_check.py
+PYTHONPATH=. python examples/acase_adaptive.py
 ```
 
 They cover Bell/CHSH diagnostics, a two-qubit Grover step, fermionic CAR
-checks, noisy channels, a small transverse-field Ising Hamiltonian, and the
-A-CASE subspace invariants with their resource accounting.
+checks, noisy channels, a small transverse-field Ising Hamiltonian, the
+A-CASE subspace invariants with their resource accounting, and A-CASE
+adaptive growth against the fixed QSE/Krylov/ADAPT-VQE baselines at matched
+operator budget.
 
 ## Tests And Validation
 
@@ -263,7 +267,8 @@ clifford_qc/
                    # (exact / finite-shot / layered / subpool / random)
   subspace/        # A-CASE: generator families, the normalized/thresholded
                    # generalized eigenproblem, cached matrix-element bank
-                   # with projected observables, dense cross-check
+                   # with projected observables, adaptive growth, dense
+                   # cross-check
 ```
 
 ## Project Notes
@@ -275,7 +280,7 @@ clifford_qc/
 - `RESEARCH_PLAN.md` is the Paper A roadmap (confidence-certified,
   measurement-efficient ADAPT-VQE).
 - `ACASE_RESEARCH_PLAN.md` is the active roadmap (A-CASE: adaptive
-  Clifford-algebra subspace eigensolver); Phases 1-2 ship in `subspace/`.
+  Clifford-algebra subspace eigensolver); Phases 1-3 ship in `subspace/`.
 - `paper/` holds the Paper A manuscript (REVTeX) with figures regenerated
   from the committed benchmark data.
 - License: Apache-2.0.

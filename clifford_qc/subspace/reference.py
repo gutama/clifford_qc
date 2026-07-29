@@ -59,3 +59,22 @@ def dense_subspace(rho: MV, hamiltonian, generators: Sequence, **kwargs) -> Subs
     gens = as_generators(generators)
     S, Hm = dense_projected_matrices(rho, hamiltonian, gens)
     return solve_projected(S, Hm, [g.label for g in gens], **kwargs)
+
+
+def dense_residual_norm(rho: MV, hamiltonian, generators: Sequence,
+                        result: SubspaceResult, k: int = 0) -> float:
+    """True Ritz residual ``||(H - E_k)|Psi_k>||`` by dense reconstruction.
+
+    The plan's §4.4 policy in code: this quantity is *not* available from the
+    projected ``(H, S)`` pair, which is why it lives in the dense
+    validation-only module rather than on ``SubspaceResult``. It needs the
+    second-moment matrix ``<psi|A_i' H^2 A_j|psi>`` (a later bank) or, as here,
+    an explicit state. The *projected* residual is zero by construction for a
+    solved Ritz pair and says nothing about error outside the subspace, so it
+    is never offered under this name.
+    """
+    psi = dense_basis(rho, generators) @ result.ritz_vector(k)
+    psi = psi / np.linalg.norm(psi)
+    H_dense = to_matrix(hamiltonian if isinstance(hamiltonian, MV)
+                        else hamiltonian.to_mv())
+    return float(np.linalg.norm(H_dense @ psi - result.energies[k] * psi))

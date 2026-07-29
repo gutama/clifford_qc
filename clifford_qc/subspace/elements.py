@@ -287,9 +287,27 @@ class MatrixElementBank:
 
     # ------------------------------------------------------------- reporting
 
-    def words(self) -> tuple[PauliWord, ...]:
-        """The global word universe, sorted -- the measurement plan's input."""
-        return tuple(PauliWord(self.n, code) for code in sorted(self._universe))
+    def word_set(self, indices: Sequence[int] | None = None) -> frozenset[int]:
+        """Word codes the cached elements of a generator subset carry.
+
+        The whole cache when ``indices`` is ``None``; otherwise the union over
+        pairs with *both* endpoints in the subset, which is what a measurement
+        plan for that subspace would actually have to cover. Adaptive growth
+        uses the difference against a candidate's row to price it.
+        """
+        if indices is None:
+            return frozenset(self._universe)
+        wanted = set(self._resolve(indices))
+        out: set[int] = set()
+        for (i, j), operator in self._overlap_ops.items():
+            if i in wanted and j in wanted:
+                out.update(operator.terms)
+                out.update(self._element_ops[(i, j)].terms)
+        return frozenset(out)
+
+    def words(self, indices: Sequence[int] | None = None) -> tuple[PauliWord, ...]:
+        """The word universe as sorted ``PauliWord``s -- the measurement plan's input."""
+        return tuple(PauliWord(self.n, code) for code in sorted(self.word_set(indices)))
 
     def qwc_group_count(self) -> int:
         """Circuits one exhaustive measurement of the universe would cost.
@@ -309,15 +327,12 @@ class MatrixElementBank:
                 if key[0] in wanted and key[1] in wanted]
         overlap_ops = [self._overlap_ops[key] for key in keys]
         element_ops = [self._element_ops[key] for key in keys]
-        if len(order) == len(self._generators):
-            universe = len(self._universe)
-        else:
-            # A proper subset owns a smaller universe than the cache does, and
-            # a record that quoted the cache's would overstate the subset's
-            # measurement cost. Recomputed rather than tracked per subset,
-            # since every subset would otherwise need its own running union.
-            universe = len(set().union(*(set(op.terms) for op in
-                                         overlap_ops + element_ops)) if keys else set())
+        # A proper subset owns a smaller universe than the cache does, and a
+        # record that quoted the cache's would overstate the subset's
+        # measurement cost -- which matters most during adaptive growth, where
+        # the cache also holds every rejected candidate's row.
+        universe = (len(self._universe) if len(order) == len(self._generators)
+                    else len(self.word_set(order)))
         cached = (list(self._overlap_ops.values()) + list(self._element_ops.values())
                   + [op for record in self._observables.values()
                      for op in record["operators"].values()])
