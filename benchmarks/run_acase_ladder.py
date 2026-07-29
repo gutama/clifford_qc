@@ -176,6 +176,33 @@ METHOD_KINDS = frozenset({
 })
 
 
+def fixed_slice(family: list, size: int, selection: str) -> list:
+    """``size`` members of a candidate family, chosen without any measurement.
+
+    A fixed subspace is committed to before the first shot, so *which* slice it
+    takes is part of the method rather than an implementation detail. The
+    natural prefix is the wrong one to report for both fixed arms here: the
+    excitation family and the odd-Y word pool both list singles first, and on a
+    Hartree-Fock reference every single excitation is Brillouin-dead
+    (``<HF|H|singles> = 0``). The projected Hamiltonian then block-diagonalizes
+    with the reference decoupled, so a prefix of eight returns ``E_HF`` to
+    machine precision -- for QSE and for generator coordinates alike. That is a
+    fact about the ordering of the family, not about non-adaptive subspaces, and
+    reporting it as the baseline would flatter the adaptive methods for a reason
+    that has nothing to do with adaptivity.
+
+    An even stride is just as blind -- no energy, gradient, or overlap is
+    consulted -- and spans singles and doubles alike. ``prefix`` stays available
+    because the degenerate arm is worth being able to reproduce.
+    """
+    if selection == "prefix":
+        return family[:size]
+    if selection != "stride":
+        raise ValueError(f"unknown fixed-subspace selection {selection!r}; "
+                         "known: prefix, stride")
+    return family[::max(1, len(family) // max(size, 1))][:size]
+
+
 def _subspace_row(result, observables) -> dict:
     resources = result.resources
     row = {
@@ -224,30 +251,17 @@ def run_method(name: str, spec: dict, model, kind: str, context: dict) -> dict:
 
         size = int(spec.pop("size", 8))
         widest = int(spec.pop("max_tracked_support", 512))
-        selection = None
+        selection = str(spec.pop("selection", "stride"))
         if method == "qse":
-            words = [op.word for op in context["pool"][:size]]
+            words = [op.word for op in fixed_slice(context["pool"], size, selection)]
             generators = [identity_generator(model.n)] + pauli_orbit(words)
         elif method == "krylov":
+            selection = None  # the Krylov sequence has no slice to choose
             generators = ([identity_generator(model.n)]
                           + krylov_response(model.hamiltonian, size))
         else:
-            # A generator-coordinate subspace is chosen *before* any measurement,
-            # so which fixed slice of the candidate family it takes is part of the
-            # method. The natural prefix is the wrong one to report: the
-            # excitation family lists singles first, and on a Hartree-Fock
-            # reference every single is Brillouin-dead, so a prefix of eight
-            # reproduces the reference energy to machine precision and says
-            # nothing about non-adaptive subspaces. An even stride is just as
-            # blind and spans singles and doubles alike.
-            candidates = context["candidates"]
-            selection = str(spec.pop("selection", "stride"))
-            if selection == "stride":
-                candidates = candidates[::max(1, len(candidates) // max(size, 1))]
-            elif selection != "prefix":
-                raise ValueError(f"unknown generator-coordinate selection "
-                                 f"{selection!r}; known: prefix, stride")
-            generators = [identity_generator(model.n)] + candidates[:size]
+            generators = ([identity_generator(model.n)]
+                          + fixed_slice(context["candidates"], size, selection))
         # The element-operator route is what makes W and S_H observable, and it
         # costs O(|A_i| |H| |A_j|) per pair. Deep Krylov generators on eight
         # qubits carry thousands of words each (H^4 on H4 already reaches 4224),

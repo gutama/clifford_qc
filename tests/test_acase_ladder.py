@@ -178,12 +178,26 @@ def test_summarizer_rejects_a_foreign_schema(tmp_path):
         summarize_ladder.load(record)
 
 
-def test_generator_coordinate_selection_spans_the_candidate_family():
-    """A fixed subspace is chosen before any measurement, so *which* fixed slice
-    is part of the method. The committed record uses ``stride`` because the
-    natural prefix of an excitation family is all singles -- Brillouin-dead on a
-    Hartree-Fock reference -- and would report the reference energy as a subspace
-    result. Both slices stay available and the row records which one it used.
+def test_fixed_slice_spans_the_family_rather_than_taking_its_head():
+    family = list(range(40))
+    assert run_acase_ladder.fixed_slice(family, 8, "prefix") == list(range(8))
+    assert run_acase_ladder.fixed_slice(family, 8, "stride") == [0, 5, 10, 15,
+                                                                20, 25, 30, 35]
+    # a family smaller than the request is returned whole, not padded or empty
+    assert run_acase_ladder.fixed_slice([1, 2, 3], 8, "stride") == [1, 2, 3]
+    assert run_acase_ladder.fixed_slice([], 8, "stride") == []
+    assert run_acase_ladder.fixed_slice(family, 0, "stride") == []
+    with pytest.raises(ValueError, match="unknown fixed-subspace selection"):
+        run_acase_ladder.fixed_slice(family, 8, "middle")
+
+
+def test_both_fixed_arms_choose_their_slice_and_record_it():
+    """A fixed subspace is committed to before any measurement, so *which* slice
+    it takes is part of the method. The committed record uses ``stride`` for QSE
+    and for generator coordinates alike, because the natural prefix of either
+    family is all singles -- Brillouin-dead on a Hartree-Fock reference, which
+    block-diagonalizes the projected Hamiltonian and returns E_HF exactly. Both
+    slices stay available and each row records which one it used.
     """
     from clifford_qc.backends import ExactMVBackend
 
@@ -191,21 +205,35 @@ def test_generator_coordinate_selection_spans_the_candidate_family():
     context = {"rho": ExactMVBackend().state(model.reference, ()), "observables": {},
                "candidates": run_acase_ladder.build_candidates(model, kind, 3),
                "pool": run_acase_ladder.word_pool(model, kind)}
-    spec = {"kind": "generator_coordinate", "size": 4}
-    prefix = run_acase_ladder.run_method("gc", spec | {"selection": "prefix"},
-                                         model, kind, context)
-    stride = run_acase_ladder.run_method("gc", spec | {"selection": "stride"},
-                                         model, kind, context)
-    assert prefix["selection"] == "prefix" and stride["selection"] == "stride"
-    assert prefix["labels"] != stride["labels"]
-    assert run_acase_ladder.run_method("gc", spec, model, kind,
-                                       context)["labels"] == stride["labels"]
-    # the strided slice reaches deeper into the family than the prefix does
-    order = [candidate.label for candidate in context["candidates"]]
-    assert order.index(stride["labels"][-1]) > order.index(prefix["labels"][-1])
-    with pytest.raises(ValueError, match="unknown generator-coordinate selection"):
-        run_acase_ladder.run_method("gc", spec | {"selection": "middle"},
+    for method, family in (("generator_coordinate", "candidates"), ("qse", "pool")):
+        spec = {"kind": method, "size": 4}
+        assert len(context[family]) > 4  # otherwise the two slices coincide
+        prefix = run_acase_ladder.run_method(method, spec | {"selection": "prefix"},
+                                            model, kind, context)
+        stride = run_acase_ladder.run_method(method, spec | {"selection": "stride"},
+                                            model, kind, context)
+        assert prefix["selection"] == "prefix" and stride["selection"] == "stride"
+        assert prefix["labels"] != stride["labels"], method
+        # stride is the default, so the committed config's choice is not a trap
+        assert run_acase_ladder.run_method(method, spec, model, kind,
+                                          context)["labels"] == stride["labels"]
+    with pytest.raises(ValueError, match="unknown fixed-subspace selection"):
+        run_acase_ladder.run_method("qse", {"kind": "qse", "selection": "middle"},
                                     model, kind, context)
+
+
+def test_the_krylov_arm_has_no_slice_to_choose():
+    """A Krylov sequence is H^k for consecutive k -- striding it would build a
+    different, worse-conditioned space rather than a fairer sample of the same
+    one. The row records ``selection: null`` so the column cannot be misread."""
+    from clifford_qc.backends import ExactMVBackend
+
+    model, kind = run_acase_ladder.build_system({"type": "tfim", "n": 4})
+    context = {"rho": ExactMVBackend().state(model.reference, ()), "observables": {},
+               "candidates": (), "pool": ()}
+    row = run_acase_ladder.run_method("krylov", {"kind": "krylov", "size": 3},
+                                      model, kind, context)
+    assert row["selection"] is None
 
 
 def test_unknown_systems_and_methods_are_rejected():
