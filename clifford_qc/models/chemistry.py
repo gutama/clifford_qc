@@ -133,6 +133,34 @@ def _excitation_generators(n_qubits: int, n_electrons: int) -> list[FermionOpera
     return generators
 
 
+def _excitation_label(generator: FermionOperator) -> str:
+    """``E(a,b<-i,j)`` from the excitation half of an anti-Hermitian generator."""
+    for term, coeff in sorted(generator.terms.items()):
+        if coeff.real > 0:
+            created = ",".join(str(idx) for idx, dag in term if dag)
+            annihilated = ",".join(str(idx) for idx, dag in term if not dag)
+            return f"E({created}<-{annihilated})"
+    raise ValueError("generator has no positive-coefficient excitation term")
+
+
+def excitation_multivectors(n_qubits: int, n_electrons: int) -> list[tuple[str, PauliSum]]:
+    """A-CASE symmetry-preserving generators: whole JW images of excitations.
+
+    The *complete* Jordan-Wigner image of each particle-number- and
+    S_z-conserving generator, kept as one ``PauliSum`` rather than split into
+    words. This is the distinction ``excitation_pool`` cannot make: an
+    individual word of a conserving generator generally does not conserve
+    ``N`` or ``S_z`` (the sector diagnostics in ``diagnostics.py`` exist to
+    report exactly that), so a subspace built from split words can lower its
+    Ritz value by leaking into unphysical sectors. Kept whole, the generator
+    commutes with both symmetries and the subspace stays inside the sector the
+    reference determinant occupies.
+    """
+    return [(_excitation_label(gen),
+             qubit_operator_to_pauli_sum(jordan_wigner(gen), n_qubits))
+            for gen in _excitation_generators(n_qubits, n_electrons)]
+
+
 def excitation_pool(n_qubits: int, n_electrons: int) -> list[PoolOperator]:
     """Qubit-ADAPT pool: odd-Y Pauli words from JW excitations.
 

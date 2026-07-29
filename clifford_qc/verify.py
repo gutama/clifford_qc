@@ -127,6 +127,28 @@ def run_verification() -> None:
     _check("Trotter2(40) error < 2e-3", np.linalg.norm(to_matrix(trotter2_unitary(H_terms, t, 40)) - Uex) < 2e-3)
     _check("Taylor expm and matrix expm agree with exact", np.linalg.norm(to_matrix(expm_taylor((-1j * t) * Hmv)) - Uex) < 1e-9 and np.linalg.norm(to_matrix(expm_matrix((-1j * t) * Hmv)) - Uex) < 1e-9)
 
+    print("-- A-CASE operator-response subspace --")
+    from .matrix import exact_ground
+    from .models.spin import tfim
+    from .subspace import (dense_subspace, identity_generator, krylov_response,
+                           solve_subspace)
+
+    A_nh = P("XYI").dagger() * P("IZY")  # non-Hermitian: the pairing's real case
+    _check("trace pairing = Tr(AB)/2^n on a non-Hermitian product",
+           abs((2 ** 3) * A_nh.trace_pairing(A) - np.trace(to_matrix(A_nh) @ MA)) < 1e-8)
+    spin = tfim(3, J=1.0, h=1.0)
+    ref = ket_density(3, "000")
+    Egs, _ = exact_ground(spin.hamiltonian.to_mv())
+    gens = [identity_generator(3)] + krylov_response(spin.hamiltonian, 4)
+    ritz = [solve_subspace(ref, spin.hamiltonian, gens[:k]).ground_energy
+            for k in range(1, len(gens) + 1)]
+    _check(f"variational bound E_sub >= E_0 (got {ritz[-1]:.6f} vs {Egs:.6f})",
+           all(e >= Egs - 1e-9 for e in ritz))
+    _check("nested growth is monotone non-increasing",
+           all(b <= a + 1e-9 for a, b in zip(ritz, ritz[1:])))
+    _check("operator route matches the dense basis-state route",
+           abs(ritz[-1] - dense_subspace(ref, spin.hamiltonian, gens).ground_energy) < 1e-9)
+
     print("\n-- structural report --")
     print(f"  Bell: {bell.nnz()}/16 words | GHZ: {ghz.nnz()}/64 words | Toffoli: {TOFFOLI(3,0,1,2).nnz()}/64 words")
     print(f"  RZ grades: {sorted(RZ(2,0,0.8).grades())}; CNOT grades: {sorted(CNOT(2,0,1).grades())}")

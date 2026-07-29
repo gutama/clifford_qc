@@ -442,6 +442,46 @@ class MV:
             total += (va.conjugate() * vb) if conj_first else (vb.conjugate() * va)
         return total
 
+    def trace_pairing(self, other) -> complex:
+        """Bilinear trace pairing ``Tr(A B) / 2^n`` -- no conjugation, no reversion.
+
+        The third pairing this class carries, and the one projected matrix
+        elements need. In the Pauli-word coordinates all three collapse to a
+        sum over the shared support and differ only in what they put in front
+        of ``a_w b_w``:
+
+            <A ~B>_0      = sum_w a_w b_w (-1)^{k_w(k_w-1)/2}   (:meth:`scalar_product`)
+            Tr(A' B)/2^n  = sum_w conj(a_w) b_w                 (:meth:`hs_product`)
+            Tr(A B)/2^n   = sum_w a_w b_w                       (this)
+
+        because ``W_v W_w`` is traceless unless ``v == w``, where it is the
+        identity.
+
+        A-CASE assembles ``S_ij = <psi|A_i' A_j|psi>`` and
+        ``H_ij = <psi|A_i' H A_j|psi>`` as ``Tr(O rho)`` with
+        ``O = A_i' A_j`` or ``A_i' H A_j``. Those ``O`` are *not* Hermitian, so
+        their word coefficients are genuinely complex and :meth:`hs_product`
+        would conjugate the wrong factor -- silently, since a Hermitian test
+        case has real coefficients and hides the difference. Reversion would
+        flip the grade-``2, 3 mod 4`` words on top of that. Hence a distinct
+        primitive rather than an overload of either.
+
+        It is also the cheap route to an expectation: ``Tr(O rho)`` reads the
+        shared support of ``O`` and ``rho`` directly, where
+        ``states.expectation`` forms the whole product ``O rho`` to keep one
+        scalar.
+        """
+        other = self._coerce(other)
+        small, large = ((self.terms, other.terms) if len(self.terms) <= len(other.terms)
+                        else (other.terms, self.terms))
+        total = 0j
+        for code, va in small.items():
+            vb = large.get(code)
+            if vb is None:
+                continue  # W_a W_b is traceless unless the words coincide
+            total += va * vb
+        return total
+
     def is_blade(self, tol: float = 1e-9) -> bool:
         """Simplicity test: is this a single blade ``a_1 ^ ... ^ a_k`` rather
         than a sum of them?

@@ -136,7 +136,7 @@ errors:
 |---|---|---|
 | `scalar_product` | `Σ_w a_w b_w (−1)^{k_w(k_w−1)/2}` | bilinear, reversion sign (`⟨A~B⟩₀`) |
 | `hs_product` | `Σ_w conj(a_w) b_w` | sesquilinear (`Tr(A†B)/2^n`) |
-| `trace_pairing` (Phase 1) | `Σ_w a_w b_w` | bilinear, no reversion, no conjugation (`Tr(AB)/2^n`) |
+| `trace_pairing` (Phase 1, shipped) | `Σ_w a_w b_w` | bilinear, no reversion, no conjugation (`Tr(AB)/2^n`) |
 
 Matrix elements need `trace_pairing`: `A_i†HA_j` is non-Hermitian, so its
 word coefficients are complex and `hs_product` would conjugate them
@@ -262,25 +262,66 @@ wedge, k-vector dot, blade tests), O(1) exact gradients, deterministic
 selection, `fermionic_sector_diagnostics`, gate preconditions, generated
 paper tables.
 
-**Phase 1 — exact fixed-basis A-CASE (`subspace/solver.py`).**
-`MV.trace_pairing`; the normalized, thresholded, deterministic GEP of
-§4.1; identity plus explicitly listed generators; `SubspaceResult(
-energies, coefficients, basis_labels, overlap_eigenvalues,
-condition_number, effective_rank, resources)`; dense-matrix GEP
-cross-check.
-*Targets:* H₂, equilibrium and stretched H₄, LiH(2e,2o).
-*Validate:* `E_sub ≥ E₀`; nested monotonicity; FCI reproduction;
-generator-scaling invariance of the retained subspace.
-*Go/no-go:* Level-1+2 bases reach chemical accuracy with basis size ≪
-sector dimension **and** with the §6 resource metrics staying measurably
-below competing fixed QSE/Krylov constructions.
-*Preliminary evidence:* `examples/acase_premise_check.py` runs the full
-premise on TFIM n=4 from the `|0…0⟩` reference with only existing
-machinery: the variational bound and nested monotonicity hold at every
-level, the level-0..3 hierarchy closes the gap from 1.76 to 1.8×10⁻²,
-and 37 generators yield only 12 independent directions — the
-near-singular-S regime that makes conditioning-aware adaptive selection
-the load-bearing component rather than an optimization.
+**Phase 1 — done (`clifford_qc/subspace/`).** `MV.trace_pairing`;
+`solver.py` with the normalized, thresholded, deterministic GEP of §4.1 and
+`SubspaceResult(energies, coefficients, basis_labels, overlap_eigenvalues,
+condition_number, effective_rank, resources)`; `generators.py` for the
+level-0..3 families of §4.2; `reference.py` for the dense-matrix
+cross-check (materialize `|ψ⟩`, materialize every `A_i|ψ⟩`, form the Gram
+and Hamiltonian matrices directly); `models.chemistry.excitation_multivectors`
+for the symmetry-preserving chemistry mode. Two assembly routes, verified
+equal: the element-operator route forms `A_i†A_j` and `A_i†HA_j` (the
+operators Phase 2 caches and Phase 4 must measure, and the only route that
+can report `W` and `S_H`), the cyclic route contracts
+`Tr(A_i†HA_j ρ) = Tr((HA_j)(ρA_i†))` in `2M` products and `M²` sparse
+pairings and is correspondingly blind to those metrics.
+
+*Validated* (`tests/test_subspace.py`, `tests/test_subspace_chemistry.py`,
+and the `A-CASE` section of `clifford_qc.verify`): `E_sub ≥ E₀` and nested
+monotonicity on TFIM, XXZ, and both H₄ legs; exact agreement with the dense
+route; `S = S†` bitwise (structural, from the upper-triangle layout, not a
+numerical symmetrization); FCI reproduction on H₂ and LiH(2e,2o) to 1e-9
+with four generators, and by a ground-state-projector generator on TFIM;
+invariance of the retained subspace, its spectrum, and `κ_S` under random
+complex generator rescaling; deterministic eigenbases inside degenerate
+overlap and Ritz eigenspaces (canonicalized from the spectral projector, so
+independent of the LAPACK basis); Ritz states staying in the reference
+`(N, S_z)` sector.
+
+*Measured* (H₄ chain, sto-3g, 8 qubits; `E₀ = -2.180317` at r=0.9 and
+`-1.924431` at r=1.8; `S_A = max_i |supp(A_i)|`):
+
+| fixed basis | M | rank | ΔE (r=0.9) | ΔE (r=1.8) | κ_S | S_A |
+|---|---|---|---|---|---|---|
+| A-CASE symmetry-preserving level 1 | 27 | 27 | 7.7×10⁻⁴ | 3.5×10⁻² | 1.0 | 8 |
+| word-level QSE, matched budget | 27 | 11 | 4.8×10⁻² | 1.6×10⁻¹ | 8.0 | 1 |
+| word-level QSE, full odd-Y pool | 161 | 27 | 7.7×10⁻⁴ | 3.5×10⁻² | 8.0 | 1 |
+| fixed Krylov `H^k`, k ≤ 6 | 7 | 7 | 1.5×10⁻⁶ | 2.5×10⁻⁴ | 1.0×10⁸ | 4224 |
+| fixed Krylov `H^k`, k ≤ 10 | 11 | 9 | 5.3×10⁻⁹ | 6.4×10⁻⁵ | 3.4×10¹⁰ | 4224 |
+
+*Go/no-go: conditionally met, and not in the way the criterion assumed.*
+The symmetry-preserving level-1 basis reaches chemical accuracy at
+equilibrium with `M = 27` against a 36-state `(N=4, S_z=0)` sector, spans
+the same subspace as the 161-word QSE pool at a sixth the basis size, and
+does so at `κ_S = 1` — but it does **not** beat fixed Krylov on energy per
+basis vector, at either geometry. Krylov wins that column by orders of
+magnitude. What it pays is exactly the §6 currency: generators 500× wider
+(`S_A = 4224` vs 8, so wide that the element-operator route is not
+affordable on H₄ at all, while the A-CASE basis assembles in seconds) and
+`κ_S` of 10⁸–10¹⁰, which is the conditioning regime where noisy PSD repair
+and finite-shot certification (Q2, Q3) are least likely to survive. So the
+compactness claim Q1 is **not** established by fixed bases: it rests on
+adaptive selection, which is Phase 3. Recorded here rather than smoothed
+over — a fixed basis was never the claim, and Krylov's energy advantage at
+catastrophic conditioning is itself the argument for conditioning-aware
+growth.
+
+*TFIM premise check.* `examples/acase_premise_check.py` now runs on the
+shipped solver: the variational bound and nested monotonicity hold at every
+level, the level-0..3 hierarchy closes the gap from 1.76 to 1.8×10⁻², and 37
+generators yield only 12 independent directions — the near-singular-S regime
+that makes conditioning-aware adaptive selection the load-bearing component
+rather than an optimization.
 
 **Phase 2 — exact `MatrixElementBank` (`subspace/elements.py`).**
 Canonical generator IDs; cached `A_i†A_j` and `A_i†HA_j` with

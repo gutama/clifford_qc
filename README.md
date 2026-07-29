@@ -98,6 +98,9 @@ assert np.allclose(to_matrix(A * A), to_matrix(A) @ to_matrix(A))
   backends (`backends/`), a finite-shot measurement/confidence stack
   (`measurement/`), and packaged algorithms (`algorithms/`) — see
   `RESEARCH_PLAN.md`
+- A-CASE (`subspace/`): Rayleigh-Ritz in an operator-generated subspace whose
+  basis states `A_i|psi>` are never prepared — every projected matrix element
+  is an expectation on one reference state — see `ACASE_RESEARCH_PLAN.md`
 
 ## Core Conventions
 
@@ -199,10 +202,12 @@ PYTHONPATH=. python examples/grover_2q.py
 PYTHONPATH=. python examples/fermion_car.py
 PYTHONPATH=. python examples/noisy_channel.py
 PYTHONPATH=. python examples/tfim_exact.py
+PYTHONPATH=. python examples/acase_premise_check.py
 ```
 
 They cover Bell/CHSH diagnostics, a two-qubit Grover step, fermionic CAR
-checks, noisy channels, and a small transverse-field Ising Hamiltonian.
+checks, noisy channels, a small transverse-field Ising Hamiltonian, and the
+A-CASE subspace invariants with their resource accounting.
 
 ## Tests And Validation
 
@@ -254,6 +259,8 @@ clifford_qc/
                    # allocation policies, QWC measurement grouping
   algorithms/      # optimizers, pools (odd-Y), fixed-depth VQE, ADAPT-VQE
                    # (exact / finite-shot / layered / subpool / random)
+  subspace/        # A-CASE: generator families, the normalized/thresholded
+                   # generalized eigenproblem, dense cross-check
 ```
 
 ## Project Notes
@@ -262,8 +269,10 @@ clifford_qc/
 - `MIGRATION.md` maps the old single-file API onto this package.
 - `simple_plan.md` records the implemented roadmap and bridge validation
   criteria.
-- `RESEARCH_PLAN.md` is the active research roadmap (confidence-certified,
+- `RESEARCH_PLAN.md` is the Paper A roadmap (confidence-certified,
   measurement-efficient ADAPT-VQE).
+- `ACASE_RESEARCH_PLAN.md` is the active roadmap (A-CASE: adaptive
+  Clifford-algebra subspace eigensolver); Phase 1 ships in `subspace/`.
 - `paper/` holds the Paper A manuscript (REVTeX) with figures regenerated
   from the committed benchmark data.
 - License: Apache-2.0.

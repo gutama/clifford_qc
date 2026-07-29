@@ -47,6 +47,23 @@ In code:
 A.trace() == (2**A.n) * A.scalar_part()
 ```
 
+## The three pairings
+
+`MV` carries three scalar pairings. They collapse to a sum over the shared
+Pauli-word support and differ only in the factor in front of `a_w b_w`:
+
+| Method | Word coordinates | Character |
+|---|---|---|
+| `scalar_product` | `sum_w a_w b_w (-1)^{k_w(k_w-1)/2}` | bilinear, reversion sign (`<A ~B>_0`) |
+| `hs_product` | `sum_w conj(a_w) b_w` | sesquilinear (`Tr(A' B)/2^n`) |
+| `trace_pairing` | `sum_w a_w b_w` | bilinear, no reversion, no conjugation (`Tr(A B)/2^n`) |
+
+They are not interchangeable, and the difference hides in easy test cases: a
+Hermitian operand has real coefficients, which masks the conjugation, and an
+operand of Clifford grade `0, 1 mod 4` masks the reversion sign. Projected
+subspace matrix elements need `trace_pairing`, because `A' H A` is not
+Hermitian.
+
 ## Jordan-Wigner Clifford generators
 
 \[

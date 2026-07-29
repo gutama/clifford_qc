@@ -2,92 +2,73 @@
 
 Run from the repository root: PYTHONPATH=. python examples/acase_premise_check.py
 
-Validates the standing invariants of ACASE_RESEARCH_PLAN.md before any
-subspace/ module exists:
-  1. H_ij, S_ij are computable via states.expectation with non-Hermitian O.
+Validates the standing invariants of ACASE_RESEARCH_PLAN.md §3 on the shipped
+Phase-1 solver (``clifford_qc.subspace``):
+
+  1. H_ij, S_ij are assembled from the bilinear trace pairing against a single
+     reference state -- no basis state |phi_i> = A_i|psi> is ever prepared.
   2. The normalized, thresholded generalized eigenproblem obeys E_sub >= E0.
   3. Nested basis growth is monotone non-increasing.
-  4. The level-0..3 hierarchy converges toward the exact ground energy,
-     with heavy linear dependence (few kept modes) motivating adaptive
-     selection and conditioning-aware growth.
+  4. The level-0..3 hierarchy converges toward the exact ground energy while
+     the overlap matrix goes badly singular -- 37 generators span only 12
+     independent directions -- which is why conditioning-aware adaptive
+     selection is the load-bearing component rather than an optimization.
 
 The overlap matrix is diagonally normalized before thresholding, so which
 directions survive does not depend on generator scaling (the H^k rows have
 much larger norms than the P_j rows).
+
+The §6 resource columns are the other half of the compactness question: a
+basis is not compact if its projected element operators carry a word universe
+the measurement layer cannot afford.
 """
 import numpy as np
 
-from clifford_qc import MV
-from clifford_qc.states import expectation, ket_density
+from clifford_qc.algorithms.pools import local_pool, odd_y_filter
 from clifford_qc.matrix import exact_ground
 from clifford_qc.models.spin import tfim
-from clifford_qc.measurement.bank import CommutatorBank
-from clifford_qc.algorithms.pools import local_pool, odd_y_filter
+from clifford_qc.states import ket_density
+from clifford_qc.subspace import (identity_generator, krylov_response,
+                                  pauli_orbit, commutator_response,
+                                  solve_subspace)
 
 model = tfim(4, J=1.0, h=1.0)
-H = model.hamiltonian.to_mv()
+H = model.hamiltonian
 n = model.n
-E0, _ = exact_ground(H)
+E0, _ = exact_ground(H.to_mv())
 print(f"exact E0 = {E0:.10f}")
 
 # reference: |0...0> (product state, not the ground state)
 rho = ket_density(n, "0" * n)
+words = [op.word for op in odd_y_filter(local_pool(n))]
 
-pool = odd_y_filter(local_pool(n))
-bank = CommutatorBank(model.hamiltonian, [p.word for p in pool])
+# Level 0 (identity), Level 1 (P_j), Level 2 (G_j = -i/2 [H, P_j]),
+# Level 3 (Krylov H^k) -- the §4.2 hierarchy, stacked.
+gens = ([identity_generator(n)] + pauli_orbit(words)
+        + commutator_response(H, words) + krylov_response(H, 4))
 
-# generators: Level 0 (I), Level 1 (P_j), Level 2 (G_j from the bank rows)
-gens = [MV.scalar(n, 1.0)]
-gens += [MV(n, {p.word.code: 1.0}) for p in pool]
-gens += [MV(n, dict(row)) for row in bank.coeffs if row]
+header = f"{'basis':<26}{'M':>4}{'kept':>6}{'E_sub':>16}{'gap':>10}{'kappa_S':>11}{'W':>7}{'S_H':>6}"
+print(header)
+print("-" * len(header))
 
+previous = None
+levels = [("level0 (I)", 1),
+          ("level0+1 (P_j)", 1 + len(words)),
+          ("level0+1+2 (P_j, G_j)", len(gens) - 4)]
+levels += [(f"+H^{k}", len(gens) - 4 + k) for k in range(1, 5)]
 
-def ritz(gens, tau=1e-10):
-    """Lowest Ritz value of the normalized, thresholded generalized eigenproblem."""
-    m = len(gens)
-    S = np.zeros((m, m), complex)
-    Hm = np.zeros((m, m), complex)
-    for i in range(m):
-        for j in range(m):
-            S[i, j] = expectation(rho, gens[i].dagger() * gens[j])
-            Hm[i, j] = expectation(rho, gens[i].dagger() * H * gens[j])
-    S = 0.5 * (S + S.conj().T)
-    Hm = 0.5 * (Hm + Hm.conj().T)
-    # diagonal normalization: thresholding must not depend on generator scale
-    norms = np.sqrt(np.abs(np.diag(S).real))
-    live = norms > 1e-14
-    d = np.where(live, norms, 1.0)
-    S = (S / d[:, None]) / d[None, :]
-    Hm = (Hm / d[:, None]) / d[None, :]
-    S, Hm = S[np.ix_(live, live)], Hm[np.ix_(live, live)]
-    lam, U = np.linalg.eigh(S)
-    keep = lam > tau
-    X = U[:, keep] / np.sqrt(lam[keep])
-    Ht = X.conj().T @ Hm @ X
-    return float(np.linalg.eigvalsh(Ht)[0]), int(keep.sum())
+for label, size in levels:
+    result = solve_subspace(rho, H, gens[:size])
+    energy = result.ground_energy
+    assert energy >= E0 - 1e-9, f"variational bound violated: {energy} < {E0}"
+    if previous is not None:
+        assert energy <= previous + 1e-9, "nested monotonicity violated"
+    previous = energy
+    resources = result.resources
+    print(f"{label:<26}{size:>4}{result.effective_rank:>6}{energy:>16.10f}"
+          f"{energy - E0:>10.2e}{result.condition_number:>11.3e}"
+          f"{resources['word_universe']:>7}"
+          f"{resources['max_hamiltonian_element_support']:>6}")
 
-
-# nested growth: I -> +P_j -> +G_j
-prev = None
-for k, label in ((1, "level0 (I)"),
-                 (1 + len(pool), "level0+1 (P_j)"),
-                 (len(gens), "level0+1+2 (P_j, G_j)")):
-    E, kept = ritz(gens[:k])
-    assert E >= E0 - 1e-9, f"variational bound violated: {E} < {E0}"
-    if prev is not None:
-        assert E <= prev + 1e-9, "nested monotonicity violated"
-    prev = E
-    print(f"{label:24s} basis={k:3d} kept={kept:3d}  E_sub={E: .10f}  gap={E - E0:.2e}")
-
-# Level 3: Krylov enrichment H^k
-Hk = MV.scalar(n, 1.0)
-for k in range(1, 5):
-    Hk = Hk * H
-    gens.append(Hk.copy())
-    E, kept = ritz(gens)
-    assert E >= E0 - 1e-9 and E <= prev + 1e-9
-    prev = E
-    print(f"+H^{k:<21d} basis={len(gens):3d} kept={kept:3d}  E_sub={E: .10f}  gap={E - E0:.2e}")
-
-print("invariants hold;", "converged to E0" if abs(prev - E0) < 1e-7
-      else f"remaining gap {prev - E0:.2e} (critical-point reference, as expected)")
+print("\ninvariants hold;", "converged to E0" if abs(previous - E0) < 1e-7
+      else f"remaining gap {previous - E0:.2e} (critical-point reference, as expected)")
