@@ -147,3 +147,87 @@ def test_strict_h4_selector_uses_finite_sample_trajectory_budget():
     assert selector.bound == "eb"
     assert selector.method == "bonferroni"
     assert selector.near_tol is None
+
+
+# ------------------------------------------------------ FCIDUMP ingestion (§5)
+
+
+@pytest.fixture(scope="module")
+def h2_fcidump(tmp_path_factory):
+    """An FCIDUMP written by PySCF, as a downfolding step would hand over."""
+    from pyscf import gto, scf
+    from pyscf.tools import fcidump
+
+    mol = gto.M(atom="H 0 0 0; H 0 0 0.7414", basis="sto-3g", verbose=0)
+    mean_field = scf.RHF(mol).run()
+    path = tmp_path_factory.mktemp("fcidump") / "h2.fcidump"
+    fcidump.from_scf(mean_field, str(path))
+    return path
+
+
+@pytest.fixture(scope="module")
+def h4_fcidump(tmp_path_factory):
+    from pyscf import gto, scf
+    from pyscf.tools import fcidump
+
+    mol = gto.M(atom="H 0 0 0; H 0 0 0.9; H 0 0 1.8; H 0 0 2.7",
+                basis="sto-3g", verbose=0)
+    mean_field = scf.RHF(mol).run()
+    path = tmp_path_factory.mktemp("fcidump") / "h4.fcidump"
+    fcidump.from_scf(mean_field, str(path))
+    return path
+
+
+def test_fcidump_reproduces_the_pyscf_path_term_by_term(h2_fcidump, h2_model):
+    """The only check that catches a wrong chemist/physicist reindexing.
+
+    Eight of the 24 possible four-index permutations agree (the permutation
+    symmetry of real two-electron integrals); the rest give a Hamiltonian that
+    looks perfectly reasonable and has the wrong correlation energy. Comparing
+    against the same molecule through ``openfermionpyscf`` is what pins it.
+    """
+    from clifford_qc.models.chemistry import fcidump_model
+
+    ingested = fcidump_model(h2_fcidump, name="h2-fcidump")
+    assert ingested.n == h2_model.n
+    left, right = ingested.hamiltonian.to_labels(), h2_model.hamiltonian.to_labels()
+    for label in set(left) | set(right):
+        assert left.get(label, 0.0) == pytest.approx(right.get(label, 0.0), abs=1e-10)
+    assert exact_ground(ingested.hamiltonian.to_mv())[0] == pytest.approx(
+        h2_model.metadata["fci_energy"], abs=1e-7)
+
+
+def test_fcidump_ingestion_on_a_larger_active_space(h4_fcidump):
+    from clifford_qc.models.chemistry import fcidump_model, h4_chain
+
+    ingested = fcidump_model(h4_fcidump)
+    reference = h4_chain(0.9)
+    left, right = ingested.hamiltonian.to_labels(), reference.hamiltonian.to_labels()
+    assert len(left) == len(right) == 185
+    worst = max(abs(left.get(label, 0.0) - right.get(label, 0.0))
+                for label in set(left) | set(right))
+    assert worst < 1e-10
+
+
+def test_fcidump_model_carries_orbital_and_sector_metadata(h2_fcidump):
+    from clifford_qc.models.chemistry import fcidump_model
+
+    model = fcidump_model(h2_fcidump)
+    metadata = model.metadata
+    assert metadata["source"] == "fcidump"
+    assert metadata["n_spatial_orbitals"] == 2
+    assert metadata["spin_orbitals"] == 4
+    assert metadata["n_electrons"] == 2
+    assert metadata["sz"] == 0.0
+    assert metadata["spin_convention"] == "interleaved"
+    assert metadata["core_energy"] > 0.0  # nuclear repulsion lands in the constant
+    # the reference determinant fills the advertised electron count
+    assert sum(1 for op in model.reference.ops) == 2
+
+
+def test_pyscf_models_carry_the_same_metadata_keys(h2_model, lih_model):
+    for model in (h2_model, lih_model):
+        for key in ("kind", "source", "n_spatial_orbitals", "spin_orbitals",
+                    "spin_convention", "n_electrons", "sz"):
+            assert key in model.metadata
+        assert model.metadata["spin_orbitals"] == model.n

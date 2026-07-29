@@ -23,7 +23,7 @@ import pytest
 from clifford_qc.algorithms.adapt import run_adapt
 from clifford_qc.algorithms.pools import local_pool, odd_y_filter
 from clifford_qc.backends import ExactMVBackend
-from clifford_qc.matrix import exact_ground
+from clifford_qc.matrix import exact_ground, to_matrix
 from clifford_qc.models.spin import tfim, xxz
 from clifford_qc.pauli import P, X, Y, Z
 from clifford_qc.states import ket_density
@@ -374,3 +374,73 @@ def test_run_acase_rejects_an_empty_candidate_pool(case):
     model, rho, _, candidates, _ = case
     with pytest.raises(ValueError, match="no candidate generators"):
         run_acase(rho, model.hamiltonian, [identity_generator(N)], max_size=2)
+
+
+# --------------------------------------------- excited states (Phase 5 §5)
+
+
+def test_state_averaged_growth_tracks_several_roots(case):
+    """Growing against three roots instead of one, with the per-root variational
+    bound as the check: the ``k``-th Ritz value never falls below the ``k``-th
+    exact eigenvalue (Cauchy interlacing on a subspace)."""
+    model, rho, _, candidates, _ = case
+    exact = np.linalg.eigvalsh(to_matrix(model.hamiltonian.to_mv()))[:3]
+    result = run_acase(rho, model.hamiltonian, candidates, max_size=8, roots=3)
+    assert len(result.root_energies) == 3
+    for ritz, reference in zip(result.root_energies, exact):
+        assert ritz >= reference - 1e-9
+    assert result.energy == pytest.approx(float(np.mean(result.root_energies)), abs=1e-12)
+    assert result.resources["roots"] == 3
+    assert result.records[-1].per_root_lowering
+    assert len(result.records[-1].root_energies) == 3
+
+
+def test_state_averaged_objective_is_monotone_once_the_roots_exist(case):
+    """The caveat, tested where it holds: while roots are still appearing the
+    average is taken over fewer of them and can rise."""
+    model, rho, _, candidates, _ = case
+    result = run_acase(rho, model.hamiltonian, candidates, max_size=8, roots=3)
+    settled = [record.energy for record in result.records
+               if len(record.root_energies) == 3]
+    assert len(settled) >= 2
+    assert all(b <= a + 1e-9 for a, b in zip(settled, settled[1:]))
+
+
+def test_block_growth_chases_the_worst_root(case):
+    """``aggregation='max'`` scores on the best single-root gain instead of the
+    average, so it can spend a generator only one root wants."""
+    model, rho, _, candidates, _ = case
+    averaged = run_acase(rho, model.hamiltonian, candidates, max_size=6, roots=3)
+    block = run_acase(rho, model.hamiltonian, candidates, max_size=6, roots=3,
+                      aggregation="max")
+    assert block.resources["aggregation"] == "max"
+    assert len(block.root_energies) == len(averaged.root_energies) == 3
+    exact = np.linalg.eigvalsh(to_matrix(model.hamiltonian.to_mv()))[:3]
+    for ritz, reference in zip(block.root_energies, exact):
+        assert ritz >= reference - 1e-9
+    # the two rules make different choices somewhere in eight steps
+    assert block.labels != averaged.labels or block.energy == pytest.approx(
+        averaged.energy, abs=1e-12)
+
+
+def test_multi_root_scores_report_every_tracked_root(case):
+    model, rho, _, candidates, _ = case
+    bank = MatrixElementBank(rho, model.hamiltonian)
+    basis = bank.extend([identity_generator(N)] + candidates[:3])
+    result = bank.solve(basis)
+    index = bank.add(candidates[4])
+    score = score_candidate(bank, basis, result, index, roots=(0, 1, 2))
+    assert len(score.per_root) == 3
+    assert score.predicted_lowering == pytest.approx(float(np.mean(score.per_root)))
+    peak = score_candidate(bank, basis, result, index, roots=(0, 1, 2),
+                           aggregation="max")
+    assert peak.predicted_lowering == pytest.approx(max(score.per_root))
+
+
+def test_multi_root_arguments_are_validated(case):
+    model, rho, _, candidates, _ = case
+    with pytest.raises(ValueError, match="roots must be at least 1"):
+        run_acase(rho, model.hamiltonian, candidates, max_size=1, roots=0)
+    with pytest.raises(ValueError, match="aggregation must be"):
+        run_acase(rho, model.hamiltonian, candidates, max_size=1,
+                  aggregation="median")

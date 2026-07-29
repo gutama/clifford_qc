@@ -90,7 +90,13 @@ def sector_leakage(generator) -> dict[str, float]:
 
 @dataclass(frozen=True)
 class CandidateScore:
-    """One candidate weighed against the current Ritz pair."""
+    """One candidate weighed against the current Ritz pair (or several of them).
+
+    With more than one root the reported ``residual_coupling`` and
+    ``predicted_lowering`` are the aggregate the selector ranks on, and
+    ``per_root`` keeps the individual lowerings so a record shows which root
+    wanted the generator.
+    """
 
     index: int
     label: str
@@ -101,6 +107,7 @@ class CandidateScore:
     score: float
     rejected: str | None = None
     leakage: dict[str, float] | None = None
+    per_root: tuple[float, ...] = ()
 
     @property
     def accepted(self) -> bool:
@@ -127,6 +134,10 @@ class GrowthRecord:
     new_words: int
     word_universe: int
     leakage: dict[str, float] | None = None
+    # State-averaged / block growth: the tracked roots' energies at this step,
+    # and the per-root predicted lowerings of the accepted generator.
+    root_energies: tuple[float, ...] = ()
+    per_root_lowering: tuple[float, ...] = ()
 
 
 @dataclass(frozen=True)
@@ -144,6 +155,10 @@ class AdaptiveResult:
     exact_ground_energy: float | None = None
     relative_error: float | None = None
     resources: dict[str, Any] = field(default_factory=dict)
+    # ``energy`` and ``energy_history`` track the growth *objective*: the ground
+    # Ritz value for a single root, the average of the tracked roots for a
+    # state-averaged run. ``root_energies`` is the final per-root spectrum.
+    root_energies: tuple[float, ...] = ()
 
     @property
     def basis_size(self) -> int:
@@ -187,13 +202,33 @@ def _two_by_two_lowering(energy: float, s_a: complex, h_a: complex,
     return max(0.0, energy - lowest)
 
 
+def _aggregate(values: Sequence[float], aggregation: str) -> float:
+    """Combine per-root scores into the one number the selector ranks on.
+
+    ``mean`` is state-averaged adaptation: the basis is grown for the average of
+    the tracked roots, which is what an excited-state calculation wants when the
+    roots are to be described together. ``max`` is block adaptation: whichever
+    root gains most decides, which chases the worst-described root instead of
+    the average. Both are in the plan's §5 language, and they differ in kind --
+    an average will never spend a generator on a root that only one state needs.
+    """
+    if not values:
+        return 0.0
+    if aggregation == "mean":
+        return float(sum(values) / len(values))
+    if aggregation == "max":
+        return float(max(values))
+    raise ValueError("aggregation must be 'mean' or 'max'")
+
+
 def score_candidate(bank: MatrixElementBank, basis: Sequence[int],
-                    result: SubspaceResult, candidate: int, *, root: int = 0,
+                    result: SubspaceResult, candidate: int, *,
+                    roots: Sequence[int] = (0,), aggregation: str = "mean",
                     basis_words: frozenset[int] | None = None,
                     min_orthogonality: float = DEFAULT_MIN_ORTHOGONALITY,
                     gamma: float = 0.0, leakage_tol: float | None = None
                     ) -> CandidateScore:
-    """Weigh one candidate against the Ritz pair ``root`` of ``result``.
+    """Weigh one candidate against the Ritz pairs ``roots`` of ``result``.
 
     Builds the candidate's row of the bank -- ``M`` pair products -- which is
     the honest cost of exact selection and precisely what Phase 4 replaces with
@@ -223,19 +258,28 @@ def score_candidate(bank: MatrixElementBank, basis: Sequence[int],
         return CandidateScore(candidate, label, 0.0, 0.0, 0.0, 0, 0.0,
                               rejected="annihilates the reference", leakage=leakage)
 
-    energy = result.energies[root]
+    tracked = tuple(r for r in roots if r < len(result.energies))
+    if not tracked:
+        tracked = (0,)
     column = np.array([bank.entry(i, candidate) for i in basis], dtype=complex)
     s_column, h_column = column[:, 0], column[:, 1]
     # The Ritz vectors are S-orthonormal, so they are an orthonormal basis of
-    # the retained subspace and the projection is a plain sum of squares.
+    # the retained subspace and the projection is a plain sum of squares. It is
+    # the same for every root, which is why the conditioning rejection below is
+    # root-independent.
     projections = result.coefficients.conj().T @ s_column
-    s_a = complex(projections[root])
-    h_a = complex(result.coefficients[:, root].conj() @ h_column)
+    couplings, blocks = [], []
+    for r in tracked:
+        energy_r = result.energies[r]
+        s_a = complex(projections[r])
+        h_a = complex(result.coefficients[:, r].conj() @ h_column)
+        couplings.append(abs(h_a - energy_r * s_a) / math.sqrt(s_aa))
+        blocks.append((energy_r, s_a, h_a))
 
     orthogonal_fraction = max(0.0, 1.0 - float(np.sum(np.abs(projections) ** 2)) / s_aa)
     # Scale-free residual coupling: the overlap of the candidate's orthogonal
     # component with the residual (H - E)|Psi_m>.
-    coupling = abs(h_a - energy * s_a) / math.sqrt(s_aa)
+    coupling = _aggregate(couplings, aggregation)
 
     if basis_words is None:
         basis_words = bank.word_set(basis)
@@ -251,10 +295,12 @@ def score_candidate(bank: MatrixElementBank, basis: Sequence[int],
                               rejected=f"orthogonal fraction {orthogonal_fraction:.2e}",
                               leakage=leakage)
 
-    lowering = _two_by_two_lowering(energy, s_a, h_a, s_aa, h_aa)
+    per_root = tuple(_two_by_two_lowering(energy_r, s_a, h_a, s_aa, h_aa)
+                     for energy_r, s_a, h_a in blocks)
+    lowering = _aggregate(per_root, aggregation)
     score = lowering if gamma == 0.0 else lowering / (1.0 + new_words) ** gamma
     return CandidateScore(candidate, label, coupling, lowering, orthogonal_fraction,
-                          new_words, score, leakage=leakage)
+                          new_words, score, leakage=leakage, per_root=per_root)
 
 
 def select_candidate(scores: Sequence[CandidateScore]) -> CandidateScore | None:
@@ -278,6 +324,7 @@ def run_acase(rho: MV, hamiltonian, candidates: Sequence, *,
               initial: Sequence | None = None,
               bank: MatrixElementBank | None = None,
               max_size: int = 10,
+              roots: int = 1, aggregation: str = "mean",
               min_lowering: float = DEFAULT_MIN_LOWERING,
               min_orthogonality: float = DEFAULT_MIN_ORTHOGONALITY,
               gamma: float = 0.0,
@@ -299,7 +346,25 @@ def run_acase(rho: MV, hamiltonian, candidates: Sequence, *,
     ``lowering / (1 + new_words)^gamma``. The default of 0 selects on predicted
     lowering alone, which is the baseline the cost-aware variants are measured
     against.
+
+    ``roots > 1`` grows the basis against several Ritz roots instead of the
+    lowest alone -- the excited-state route of §5. ``aggregation='mean'`` is
+    state-averaged growth (the objective is the average of the tracked roots)
+    and ``'max'`` is block growth (whichever root gains most decides). The
+    reported ``energy``/``energy_history`` follow that objective.
+
+    One caveat on monotonicity, which is real rather than pedantic. Cauchy
+    interlacing makes each *individual* Ritz value non-increasing under growth,
+    so a fixed-weight average of a fixed set of roots is too. Early steps do not
+    have a fixed set: a two-dimensional subspace has only two roots, so the
+    average is taken over fewer of them and can *rise* as a high new root
+    appears. The objective is therefore monotone only from the step where the
+    effective rank first reaches ``roots``; each record's ``root_energies`` says
+    how many roots that step actually had.
     """
+    if roots < 1:
+        raise ValueError("roots must be at least 1")
+    _aggregate([0.0], aggregation)  # reject an unknown aggregation up front
     started = time.perf_counter()
     if bank is None:
         bank = MatrixElementBank(rho, hamiltonian)
@@ -315,8 +380,16 @@ def run_acase(rho: MV, hamiltonian, candidates: Sequence, *,
         raise ValueError("no candidate generators outside the initial basis")
 
     solver_kwargs = dict(tau_s=tau_s, rel_tau=rel_tau, max_condition=max_condition)
+    tracked = tuple(range(roots))
+
+    def objective(solved: SubspaceResult) -> tuple[float, tuple[float, ...]]:
+        energies = tuple(solved.energies[r] for r in tracked
+                         if r < len(solved.energies))
+        return _aggregate(energies, aggregation), energies
+
     result = bank.solve(basis, **solver_kwargs)
-    history = [result.ground_energy]
+    value, root_energies = objective(result)
+    history = [value]
     records: list[GrowthRecord] = []
     stopped_reason = "basis budget reached"
 
@@ -326,7 +399,8 @@ def run_acase(rho: MV, hamiltonian, candidates: Sequence, *,
             stopped_reason = "candidate pool exhausted"
             break
         basis_words = bank.word_set(basis)
-        scores = [score_candidate(bank, basis, result, i, basis_words=basis_words,
+        scores = [score_candidate(bank, basis, result, i, roots=tracked,
+                                  aggregation=aggregation, basis_words=basis_words,
                                   min_orthogonality=min_orthogonality, gamma=gamma,
                                   leakage_tol=leakage_tol)
                   for i in remaining]
@@ -342,14 +416,15 @@ def run_acase(rho: MV, hamiltonian, candidates: Sequence, *,
             stopped_reason = "predicted lowering below threshold"
             break
 
-        previous = result.ground_energy
+        previous = value
         basis.append(best.index)
         result = bank.solve(basis, **solver_kwargs)
-        history.append(result.ground_energy)
+        value, root_energies = objective(result)
+        history.append(value)
         records.append(GrowthRecord(
-            step=step, selected_label=best.label, energy=result.ground_energy,
+            step=step, selected_label=best.label, energy=value,
             predicted_lowering=best.predicted_lowering,
-            actual_lowering=previous - result.ground_energy,
+            actual_lowering=previous - value,
             residual_coupling=best.residual_coupling,
             orthogonal_fraction=best.orthogonal_fraction,
             basis_size=len(basis), effective_rank=result.effective_rank,
@@ -359,7 +434,8 @@ def run_acase(rho: MV, hamiltonian, candidates: Sequence, *,
             rejected_sector=rejected_sector,
             new_words=best.new_words,
             word_universe=bank.resources(basis)["word_universe"],
-            leakage=best.leakage))
+            leakage=best.leakage, root_energies=root_energies,
+            per_root_lowering=best.per_root))
 
     relative = None
     if exact_ground_energy is not None:
@@ -370,13 +446,16 @@ def run_acase(rho: MV, hamiltonian, candidates: Sequence, *,
         "candidate_pool_size": len(pool),
         "growth_seconds": time.perf_counter() - started,
         "registered_generators": len(bank),
+        "roots": roots,
+        "aggregation": aggregation,
     })
     return AdaptiveResult(
         labels=tuple(bank.generator(i).label for i in basis),
-        energy=result.ground_energy, energy_history=tuple(history),
+        energy=value, energy_history=tuple(history),
         records=tuple(records), result=result, bank=bank, indices=tuple(basis),
         stopped_reason=stopped_reason, exact_ground_energy=exact_ground_energy,
-        relative_error=relative, resources=resources)
+        relative_error=relative, resources=resources,
+        root_energies=root_energies)
 
 
 def adapt_warm_start(model, pool, *, max_operators: int = 4, **kwargs):

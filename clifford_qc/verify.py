@@ -177,6 +177,42 @@ def run_verification() -> None:
            interval.evidence == "asymptotic" and not interval.certified
            and interval.lower <= interval.estimate <= interval.upper)
 
+    print("-- materials layer --")
+    from .fermion import total_number_op, total_sz_op
+    from .models.lattice import hubbard, kitaev_honeycomb
+    from .models.observables import double_occupancy, occupation, spin_correlation
+    from .subspace import determinant_excitations, occupied_spin_orbitals
+
+    cluster = hubbard(2, t=1.0, U=4.0)
+    H_cluster = cluster.hamiltonian.to_mv()
+    _check("Hubbard cluster is Hermitian and conserves N and S_z",
+           H_cluster.is_hermitian(1e-12)
+           and comm(H_cluster, total_number_op(cluster.n)).is_zero(1e-10)
+           and comm(H_cluster, total_sz_op(cluster.n)).is_zero(1e-10))
+    free = hubbard(2, t=1.0, U=0.0)
+    _check("U=0 two-site chain reproduces the free-fermion energy (-2t)",
+           abs(exact_ground(free.hamiltonian.to_mv())[0] - (-2.0)) < 1e-9)
+    honeycomb = kitaev_honeycomb(2, 2)
+    _check("Kitaev cluster is a one-qubit-per-site spin model (8 sites, 8 links)",
+           honeycomb.n == 8 and len(honeycomb.hamiltonian.terms) == 8
+           and len(kitaev_honeycomb(2, 2, periodic=True).hamiltonian.terms) == 12)
+
+    from .backends.exact_mv import ExactMVBackend
+    cluster_rho = ExactMVBackend().state(cluster.reference, ())
+    occupied = occupied_spin_orbitals(cluster)
+    excitations = determinant_excitations(cluster.n, occupied)
+    cluster_bank = MatrixElementBank(cluster_rho, cluster.hamiltonian,
+                                     [identity_generator(cluster.n)] + excitations)
+    cluster_result = cluster_bank.solve()
+    E_cluster, _ = exact_ground(H_cluster)
+    _check(f"A-CASE reaches the two-site cluster ground state "
+           f"({cluster_result.ground_energy:.6f})",
+           abs(cluster_result.ground_energy - E_cluster) < 1e-9)
+    _check("projected observables agree with the operators they came from",
+           abs(cluster_result.expectation(occupation(cluster, 0)) - 1.0) < 1e-9
+           and cluster_result.expectation(double_occupancy(cluster, 0)) >= 0.0
+           and cluster_result.expectation(spin_correlation(cluster, 0, 1)) < 0.0)
+
     print("\n-- structural report --")
     print(f"  Bell: {bell.nnz()}/16 words | GHZ: {ghz.nnz()}/64 words | Toffoli: {TOFFOLI(3,0,1,2).nnz()}/64 words")
     print(f"  RZ grades: {sorted(RZ(2,0,0.8).grades())}; CNOT grades: {sorted(CNOT(2,0,1).grades())}")

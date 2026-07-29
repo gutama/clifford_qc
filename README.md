@@ -91,9 +91,15 @@ assert np.allclose(to_matrix(A * A), to_matrix(A) @ to_matrix(A))
 - density operators, evolution, measurement, probabilities, partial trace, partial transpose
 - Kraus channels: depolarizing, dephasing, amplitude damping
 - diagnostics: fidelity, entropy, negativity, trace checks
-- dense matrix conversion and exact small-system ground states
+- dense matrix conversion and exact small-system ground states, plus a sparse
+  reference tier (`sparse.py`) with sector-restricted diagonalization for `n`
+  past dense `eigh`
 - a Pauli-rotor intermediate representation with exact gate-by-gate execution, versioned JSON serialization, gradients, and QASM3 export
 - optional bridges for Stim, OpenFermion, pytket, and PennyLane
+- materials clusters (`models/lattice.py`): Hubbard, extended Hubbard,
+  Kanamori, Anderson impurity, Kitaev honeycomb — built from the package's own
+  Jordan-Wigner operators — with observables (`models/observables.py`) for
+  occupations, double occupancy, spin correlations, and structure factors
 - a research layer for VQE/ADAPT-VQE: model builders (`models/`), execution
   backends (`backends/`), a finite-shot measurement/confidence stack
   (`measurement/`), and packaged algorithms (`algorithms/`) — see
@@ -209,6 +215,7 @@ PYTHONPATH=. python examples/tfim_exact.py
 PYTHONPATH=. python examples/acase_premise_check.py
 PYTHONPATH=. python examples/acase_adaptive.py
 PYTHONPATH=. python examples/acase_finite_shot.py
+PYTHONPATH=. python examples/acase_materials.py
 ```
 
 They cover Bell/CHSH diagnostics, a two-qubit Grover step, fermionic CAR
@@ -217,7 +224,8 @@ A-CASE subspace invariants with their resource accounting, A-CASE adaptive
 growth against the fixed QSE/Krylov/ADAPT-VQE baselines at matched operator
 budget, and the finite-shot layers (shared grouped measurement, a
 delta-method-versus-Monte-Carlo uncertainty study, and certified growth with
-abstention).
+abstention), and the materials layer (Hubbard and Kitaev clusters, projected
+observables, excited states by state-averaged growth).
 
 ## Tests And Validation
 
@@ -263,7 +271,9 @@ clifford_qc/
   qasm3.py         # OpenQASM 3 export pass for IR programs
   verify.py        # dependency-light smoke suite
   bridges/         # optional Stim/OpenFermion/pytket/PennyLane bridges
-  models/          # TFIM, XXZ, random-Ising benchmark models
+  sparse.py        # sparse Pauli reference tier: eigsh, (N,Sz) sectors
+  models/          # TFIM, XXZ, random-Ising; Hubbard/Kanamori/Anderson/
+                   # Kitaev clusters; material observables; chemistry+FCIDUMP
   backends/        # Backend protocol: exact MV, dense reference, finite-shot
   measurement/     # commutator bank, shared word cache, confidence,
                    # allocation policies, QWC measurement grouping
@@ -286,7 +296,8 @@ clifford_qc/
 - `RESEARCH_PLAN.md` is the Paper A roadmap (confidence-certified,
   measurement-efficient ADAPT-VQE).
 - `ACASE_RESEARCH_PLAN.md` is the active roadmap (A-CASE: adaptive
-  Clifford-algebra subspace eigensolver); Phases 1-4 ship in `subspace/`.
+  Clifford-algebra subspace eigensolver); Phases 1-5 ship in `subspace/`,
+  `models/lattice.py`, `models/observables.py`, and `sparse.py`.
 - `paper/` holds the Paper A manuscript (REVTeX) with figures regenerated
   from the committed benchmark data.
 - License: Apache-2.0.

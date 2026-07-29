@@ -553,16 +553,82 @@ budget per group — fixed endpoints are what the empirical-Bernstein validity
 argument needs; policy-driven allocation across groups would need the same
 fixed-schedule discipline the Paper A allocators already carry.
 
-**Phase 5 — materials models and observables.**
-`models/lattice.py`: Hubbard, extended Hubbard, Kanamori, small Anderson
-impurity, Kitaev honeycomb cluster (native `PauliSum`s; spin models need
-no JW). Observables through the **projected-matrix route** (§8) — the
-Ritz state is never materialized. Excited states via state-averaged or
-block adaptation (grow the basis against several Ritz roots, not only the
-lowest). Ingestion: FCIDUMP and PySCF active-space import via the
-OpenFermion bridge, with orbital/site/sector metadata on `Model`. A
-minimal scipy-sparse `eigsh` reference (~20 lines) lands before the
-larger materials runs, wherever dense `eigh` runs out.
+**Phase 5 — done (`models/lattice.py`, `models/observables.py`,
+`sparse.py`).** `models/lattice.py`: Hubbard, extended Hubbard, Kanamori,
+small Anderson impurity, Kitaev honeycomb cluster. The fermionic models are
+built from the package's *own* Jordan-Wigner operators, so the materials
+layer needs no chemistry extra at all; the Kitaev cluster is a native
+`PauliSum` with one qubit per site and no transformation. Hopping is written
+once and added to its own adjoint, so hermiticity is structural. Every model
+carries site/orbital/bond/sector metadata, which is what lets an observable
+be asked for by site rather than by spin-orbital index.
+
+*Observables through the projected-matrix route* (§8):
+`models/observables.py` supplies occupations, double occupancy, per-site spin
+operators, spin correlations, the antiferromagnetic structure factor, Kitaev
+per-link bond operators, and `S²`. Each is a `PauliSum` handed to
+`result.expectation(Q)`, so no Ritz state is ever formed, and the tests check
+every one against the dense exact state A-CASE refuses to store.
+
+*Excited states*: `run_acase(roots=k, aggregation='mean'|'max')` — state-
+averaged growth (objective = average of the tracked roots) or block growth
+(whichever root gains most decides). Records carry `root_energies` and
+`per_root_lowering`. The per-root variational bound `E_k^sub ≥ E_k` holds by
+Cauchy interlacing and is tested; the *objective* is monotone only from the
+step where the effective rank first reaches `k`, since before that the average
+is taken over fewer roots and can rise as a high new root appears.
+
+*Ingestion*: `models.chemistry.fcidump_model` reads an FCIDUMP — the format a
+downfolding or embedding step actually hands over — through PySCF, expands to
+spin orbitals with OpenFermion's `spinorb_from_spatial`, and returns the same
+`Model`. Both molecular paths now carry `n_spatial_orbitals`, `spin_orbitals`,
+`spin_convention`, `n_electrons`, `sz`, and the core energy. The chemist →
+physicist reindexing is the trap: eight of the 24 four-index permutations
+coincide (the permutation symmetry of real integrals) and the other sixteen
+give a plausible Hamiltonian with the wrong correlation energy, so the test
+compares against the same molecule through `openfermionpyscf` term by term
+(agreement to 6×10⁻¹⁶ on H₄'s 185 terms).
+
+*Sparse reference tier*: `sparse.py` writes each Pauli word as the signed
+permutation matrix it is (`W = i^{n_Y} X^x Z^z`) instead of summing dense
+Kronecker products, giving `eigsh` a Hamiltonian with `≤ (#terms)·2^n`
+nonzeros — a 12-qubit XXZ ground state in 0.1 s. Two findings are baked in:
+
+- **`which='SA'` is not safe here.** On the `t = 0` Hubbard cluster (diagonal,
+  eigenvalues in `{0, U, 2U, …}`, 256-fold zero eigenspace) ARPACK returns `U`,
+  converged and residual-free, for a matrix whose minimum is 0. A residual
+  check cannot catch it — `U` really is an eigenvalue. The fix is in how the
+  problem is posed: solve for the largest-magnitude eigenpair of `H − σI` with
+  `σ = Σ_w|h_w| ≥ ‖H‖`, which costs one diagonal and no factorization.
+- **A grand-canonical cluster does not minimize at the filling its name
+  implies.** With `μ = 0` the 4-site Hubbard chain's global ground state sits
+  in the *two*-electron sector. `hubbard` therefore defaults to `μ = U/2` (and
+  Kanamori to `U/2 + (M−1)U'`, the interaction's linear residue under
+  `n → 1−n`), and `sparse_ground_in_sector` restricts to a `(N, S_z)` block
+  when a specific filling is wanted — which is the honest comparison for
+  A-CASE, since the subspace stays in its reference's sector.
+
+*Measured (`examples/acase_materials.py`).* Analytic limits first, because
+they are what catches a hopping sign or a JW string: the `U = 0` Hubbard chain
+reproduces `2Σ_{ε_k<0} ε_k` to 10⁻⁸ for 2, 4, and 6 sites; the `t = 0` cluster
+gives `−UN/2`; free-fermion double occupancy is exactly 1/4; the singlet
+ground state has `⟨S²⟩ = 0`; and the Kitaev cluster's energy is reproduced by
+its three per-link correlators alone (`⟨XX⟩_x = ⟨YY⟩_y = 0.4527`,
+`⟨ZZ⟩_z = 0.7879`, non-link pairs at `−0.015`) — the spin-liquid signature.
+
+The load-bearing negative result is on the Hubbard clusters. From the Néel
+product reference, the **entire** singles-and-doubles response space saturates
+at a gap of 3.2×10⁻¹ (4-site chain) and 2.6×10⁻¹ (2×2) against the sector
+ground energy at `U = 4`, and adaptive growth reaches that same limit and then
+correctly stops — the space does not contain the state. Adding Krylov
+candidates helps the chain (1.8×10⁻¹ at M=11) and not the 2×2. Observables
+converge in the right direction along the trajectory (double occupancy
+0 → 0.053 against an exact 0.072, `⟨S²⟩` 2.0 → 0.82 against 0) without the
+energy converging. This is the clearest case yet for §4.2 level 4: a
+symmetry-broken product reference plus singles and doubles is the wrong object
+for a strongly correlated cluster, and compound generators and competing-order
+(stabilizer) references — not more of the same family — are what the plan owes
+these models. `examples/acase_materials.py` prints the whole comparison.
 
 **Phase 6 — `SectorStatevectorBackend` + matrix-free Lanczos.**
 Sector-restricted ideal representation (occupation words of fixed particle
