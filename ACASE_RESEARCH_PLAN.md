@@ -75,12 +75,23 @@ the whole output contract while retaining an independent oracle:
 
 | output | A-CASE showcase | independent check |
 |---|---:|---:|
-| ground energy | `-0.828427125 eV` | sector exact, error `< 1e-12 eV` |
-| response basis | `M=4`, rank `4`, `kappa(S)=1` | sector dimension `4` |
-| average double occupancy | `0.073223305` | projected observable |
-| `<S_0.S_1>` | `-0.640165043` | projected observable |
+| ground energy | `-0.828427125 eV` | `(U-sqrt(U^2+16t^2))/2`, and the sector-exact backend |
+| average double occupancy | `0.073223305` | `dE_0/dU / 2` (Hellmann-Feynman) |
+| `<S_0.S_1>` | `-0.640165043` | `-3/4 (1-2d)` |
 | `<S^2>` | `< 1e-12` | singlet invariant |
-| staggered-spin line | `omega=0.828427125 eV`, weight `0.853553391` | Lehmann sum rule |
+| staggered-spin line | `omega=0.828427125 eV` | `0 - E_0` (the `S_z=0` triplet sits at 0) |
+| staggered-spin weight | `0.853553391` | `1-2d`, and the Lehmann sum rule |
+| `chi(0)` | `2.060660172 1/eV` | `2w/omega` |
+| response basis | `M=4`, rank `4`, `kappa(S)=1` | sector dimension `4` |
+
+Every row but the last is checked against arithmetic that shares no code with
+the projected-observable route that produced it, which is what makes it an
+oracle: comparing a projected observable against another projected observable
+would agree with itself under a systematic error. The last row is not a
+compactness result and is not offered as one -- `M = 4` **is** the sector
+dimension, so the response arm is full configuration interaction in that
+sector, chosen deliberately so the Lehmann lines are exact while the adaptive
+arm is scored separately on the energy.
 
 The benchmark is intentionally labelled synthetic: it proves that an effective
 Hamiltonian can cross the software boundary and produce energies, projected

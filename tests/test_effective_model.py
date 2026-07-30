@@ -13,8 +13,8 @@ from clifford_qc.models.effective import (EFFECTIVE_HAMILTONIAN_SCHEMA,
                                           effective_hamiltonian,
                                           load_effective_hamiltonian)
 from clifford_qc.models.lattice import hubbard
-from clifford_qc.models.observables import (magnetization,
-                                            total_spin_squared)
+from clifford_qc.models.observables import (double_occupancy, magnetization,
+                                            spin_correlation, total_spin_squared)
 from clifford_qc.subspace import (MatrixElementBank, broaden_response,
                                   determinant_excitations, identity_generator,
                                   lehmann_spectrum, occupied_spin_orbitals,
@@ -60,6 +60,53 @@ def test_effective_input_rejects_ambiguous_or_inconsistent_records(update, messa
     payload.update(update)
     with pytest.raises((TypeError, ValueError), match=message):
         effective_hamiltonian(payload)
+
+
+def test_dimer_outputs_match_the_closed_form_not_just_themselves():
+    """An oracle the showcase's own machinery cannot supply.
+
+    The sector-exact backend independently checks the *energy*, but the
+    correlations and the response line were only ever compared against the same
+    projected-observable route that produced them -- so a systematic error in
+    ``result.expectation`` would agree with itself and pass. The half-filled
+    two-site Hubbard dimer is solvable in closed form, which makes every
+    published number in the showcase checkable against arithmetic that shares no
+    code with it:
+
+        E0    = (U - sqrt(U^2 + 16 t^2)) / 2
+        d     = dE0/dU / 2                      (per site, Hellmann-Feynman)
+        <S0.S1> = -3/4 (1 - 2d)                 (singlet: <S^2> = 0)
+        gap   = 0 - E0                          (the S_z = 0 triplet sits at 0)
+        w     = 1 - 2d                          (staggered-spin weight = its variance)
+        chi   = 2 w / gap
+    """
+    t, u = 1.0, 4.0
+    root = np.sqrt(u ** 2 + 16.0 * t ** 2)
+    exact_energy = (u - root) / 2.0
+    exact_double = (1.0 - u / root) / 4.0
+    exact_spin_correlation = -0.75 * (1.0 - 2.0 * exact_double)
+    exact_gap = -exact_energy
+    exact_weight = 1.0 - 2.0 * exact_double
+    exact_chi = 2.0 * exact_weight / exact_gap
+
+    model = load_effective_hamiltonian(DATA)
+    rho = ExactMVBackend().state(model.reference, ())
+    candidates = determinant_excitations(model.n, occupied_spin_orbitals(model))
+    result = MatrixElementBank(
+        rho, model.hamiltonian, [identity_generator(model.n), *candidates]).solve()
+
+    assert result.ground_energy == pytest.approx(exact_energy, abs=1e-10)
+    assert result.expectation(double_occupancy(model)) == pytest.approx(
+        exact_double, abs=1e-10)
+    assert result.expectation(spin_correlation(model, 0, 1)) == pytest.approx(
+        exact_spin_correlation, abs=1e-10)
+
+    staggered = magnetization(model, 0) + (-1.0) * magnetization(model, 1)
+    lines = lehmann_spectrum(result, staggered, min_weight=1e-12)
+    assert len(lines) == 1, "the staggered operator reaches only the S_z=0 triplet"
+    assert lines[0].excitation_energy == pytest.approx(exact_gap, abs=1e-10)
+    assert lines[0].weight == pytest.approx(exact_weight, abs=1e-10)
+    assert static_susceptibility(lines) == pytest.approx(exact_chi, abs=1e-10)
 
 
 def test_dimer_is_a_complete_energy_state_correlation_response_showcase():
