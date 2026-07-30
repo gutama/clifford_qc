@@ -1,0 +1,651 @@
+\documentclass[aps,pra,reprint,superscriptaddress,nofootinbib,floatfix]{revtex4-2}
+
+\usepackage{amsmath,amssymb,bm}
+\usepackage{booktabs}
+\usepackage{graphicx}
+\usepackage{microtype}
+\usepackage{xcolor}
+\usepackage[colorlinks=true,linkcolor=blue,citecolor=blue,urlcolor=blue]{hyperref}
+\hypersetup{
+  pdftitle={Adaptive operator-generated subspaces for effective many-body Hamiltonians},
+  pdfauthor={Ginanjar Utama and Hermawan Kresno Dipojono},
+  pdfsubject={A reproducible effective-Hamiltonian to many-body observables workflow}
+}
+
+\newcommand{\Tr}{\operatorname{Tr}}
+\newcommand{\Cl}{\mathrm{Cl}}
+\newcommand{\ii}{\mathrm{i}}
+\newcommand{\ket}[1]{\lvert #1\rangle}
+\newcommand{\bra}[1]{\langle #1\rvert}
+\newcommand{\avg}[1]{\langle #1\rangle}
+\newcommand{\supp}{\operatorname{supp}}
+\newcommand{\rank}{\operatorname{rank}}
+\newcommand{\mHa}{\mathrm{mHa}}
+
+\begin{document}
+
+\title{Adaptive operator-generated subspaces for effective many-body Hamiltonians}
+
+\author{Ginanjar Utama}
+\email{ginanjar.utama@gmail.com}
+\affiliation{Department of Engineering Physics, Institut Teknologi Bandung, Bandung, Indonesia}
+
+\author{Hermawan Kresno Dipojono}
+\email{dipojono@itb.ac.id}
+\affiliation{Department of Engineering Physics, Institut Teknologi Bandung, Bandung, Indonesia}
+
+\date{\today}
+
+\begin{abstract}
+Electronic-structure and embedding calculations naturally terminate in an
+effective many-body Hamiltonian, whereas quantum eigensolver demonstrations
+often begin from a hand-built qubit model and end at a ground-state energy.
+We connect these boundaries with the Adaptive Clifford-Algebra Subspace
+Eigensolver (A-CASE), a single-reference, operator-generated Rayleigh--Ritz
+method.  For generators $A_i$, the overlap, Hamiltonian, and observable
+matrices are reconstructed as expectations of
+$A_i^\dagger A_j$, $A_i^\dagger H A_j$, and
+$A_i^\dagger Q A_j$ on one reference state.  A matrix-element bank reuses the
+global Pauli-word universe, while adaptive growth ranks a candidate by the
+energy lowering of its overlap-aware $2\times2$ generalized eigenproblem and
+rejects sector leakage or near-linear dependence.  A strict, dependency-light
+FCIDUMP adapter supplies a reproducible active-space boundary.  On linear
+H$_4$ in STO-3G with a CAS(4e,4o) FCIDUMP, the mapped $(N=4,S_z=0)$ sector
+energy agrees with an external determinant-FCI result to
+$3.1\times10^{-15}$ Ha.  Eight adaptive additions give a nine-dimensional
+subspace with a $3.019$ mHa error; the complete 27-dimensional
+singles/doubles subspace reaches $0.766$ mHa.  A broader ladder is deliberately
+mixed: fixed Krylov bases are much more accurate on the molecular rungs but
+carry overlap condition numbers of $10^8$--$10^{10}$, A-CASE closes the
+$2\times2$ Hubbard sector only after compound/configuration generators are
+admitted, and the same extension provides no improvement on $2\times3$.
+For response, one qubit-wise-commuting measurement cache reconstructs
+$(S,H,Q)$, and a grouped bootstrap reruns thresholding, diagonalization, root
+matching, spectral weights, susceptibility, and broadening.  The resulting
+percentile bands are explicitly heuristic, pointwise, and conditional on
+replicas that preserve rank and root identity; they are not finite-sample
+confidence certificates.  The work establishes an executable and
+independently checked path from an interchange Hamiltonian to energies,
+correlations, and response.  It does not establish materials accuracy,
+favorable scaling, or a quantum advantage.
+\end{abstract}
+
+\maketitle
+
+\section{Introduction}
+\label{sec:introduction}
+
+The difficult part of a materials calculation is not represented by a single
+algorithm.  Density-functional theory, Wannierization, constrained screening,
+and embedding each remove degrees of freedom or redefine interactions before
+a correlated active-space problem is solved
+\cite{marzari2012wannier,pizzi2020wannier90,aryasetiawan2004crpa,georges1996dmft}.
+The output of that upstream chain is an effective many-body Hamiltonian, not a
+quantum circuit.  Conversely, variational and subspace quantum algorithms are
+often assessed on a qubit Hamiltonian already in memory
+\cite{peruzzo2014vqe,mcclean2017qse,huggins2020nonorthogonal}.  A useful
+downstream solver must therefore make its input contract as explicit as its
+eigensolver: orbital order, electron number, spin sector, energy units,
+one- and two-body conventions, provenance, and the reference determinant all
+belong to the scientific result.
+
+Quantum subspace diagonalization (QSD) is attractive at this boundary because
+it replaces a deep optimized circuit by matrix elements in a small,
+nonorthogonal subspace.  Quantum subspace expansion (QSE), nonorthogonal VQE,
+and quantum Krylov methods instantiate this idea with different basis
+families \cite{mcclean2017qse,huggins2020nonorthogonal,stair2020krylov}.
+Iterative and residual-driven variants aim to improve compactness
+\cite{tkachenko2024davidson,oleary2025partitioned}, while QSCI selects a
+determinant subspace from sampled configurations
+\cite{nakagawa2024adaptqsci}.  Two obstacles recur across these methods.
+First, a compact basis in vector count can still be expensive in measurement
+width.  Second, the generalized eigenproblem
+\begin{equation}
+    H_{\rm sub}c = E S c
+    \label{eq:gep-intro}
+\end{equation}
+can become ill-conditioned, so small measurement errors are amplified
+\cite{epperly2022theory,lee2024sampling,zhang2024measurement}.  Reporting only
+$M$, the number of basis vectors, conceals both costs.
+
+This work studies an adaptive operator-generated construction, A-CASE:
+\emph{Adaptive Clifford-Algebra Subspace Eigensolver}.  The method uses one
+reference density operator $\rho$ and virtual basis vectors
+$A_i\ket{\psi}$; it does not prepare a different quantum state for every
+$i$.  Every matrix element is reduced to Pauli-word expectations on $\rho$,
+and the same cached expectations support energy, projected observables, and
+response.  The complex Clifford algebra
+$\Cl(2n,\mathbb C)\cong M(2^n,\mathbb C)$ supplies the implementation's typed
+operator representation, with Jordan--Wigner strings mapping fermionic modes
+to local qubit Paulis \cite{utama2026operatorcentric}.  This is a
+representation choice, not extra expressivity and not a speedup claim.
+
+The contribution is fourfold.  First, we specify a strict FCIDUMP-to-qubit
+boundary and independently check its integral convention.  Second, we make
+adaptive growth overlap-aware and resource-aware: candidate selection,
+conditioning, symmetry leakage, word-universe growth, and retained rank are
+recorded together.  Third, we connect the same projected space to
+correlations and Lehmann response without materializing the Ritz state.
+Fourth, we propagate finite-shot variability through the \emph{whole}
+nonlinear response pipeline by grouped resampling, while refusing to call the
+result a confidence certificate.
+
+Figure~\ref{fig:pipeline} summarizes the boundary.  A-CASE begins at an
+effective Hamiltonian.  It is not a DFT, Wannier, cRPA, or DMFT implementation,
+and the synthetic dimer below is not represented as the result of any of those
+upstream calculations.
+
+\begin{figure*}[t]
+    \includegraphics[width=\textwidth]{paper_assets/pipeline.pdf}
+    \caption{Computational contract.  The exact route builds one global
+    matrix-element bank and solves an adaptively grown generalized eigenproblem.
+    The finite-shot route measures the union word set in QWC groups and
+    resamples each group's joint histogram through every nonlinear downstream
+    operation.  Upstream electronic-structure and embedding stages are outside
+    the claimed scope.}
+    \label{fig:pipeline}
+\end{figure*}
+
+\section{Operator-generated adaptive subspaces}
+\label{sec:method}
+
+\subsection{Single-reference matrix elements}
+\label{sec:elements}
+
+Let $H=\sum_w h_w P_w$ be an $n$-qubit Hamiltonian and
+$\rho=\ket{\psi}\!\bra{\psi}$ a normalized reference density operator.
+For an ordered generator family $\{A_i\}_{i=0}^{M-1}$ with $A_0=I$, define
+\begin{align}
+    S_{ij} &= \Tr(\rho A_i^\dagger A_j), \label{eq:s}\\
+    H_{ij} &= \Tr(\rho A_i^\dagger H A_j), \label{eq:h}\\
+    Q_{ij} &= \Tr(\rho A_i^\dagger Q A_j). \label{eq:q}
+\end{align}
+The retained Ritz vectors solve Eq.~\eqref{eq:gep-intro} after the overlap
+spectrum is thresholded.  Their observable matrix elements are
+\begin{equation}
+    \avg{Q}_{kl}
+    =\frac{c_k^\dagger Q_{\rm sub}c_l}
+    {\sqrt{(c_k^\dagger S c_k)(c_l^\dagger S c_l)}}.
+    \label{eq:projected-q}
+\end{equation}
+No reconstructed $2^n$-component Ritz state is needed.
+
+Each operator in Eqs.~\eqref{eq:s}--\eqref{eq:q} is expanded in the Hermitian
+Pauli basis.  Although $A_i^\dagger H A_j$ need not be Hermitian, its
+coefficients may be complex while each Pauli expectation is real.  Thus every
+entry is a linear reconstruction from expectations measured on the
+\emph{same} $\rho$; neither an ancilla-based Hadamard test nor a separately
+prepared $A_j\ket{\psi}$ is required.  This observation does not remove the
+cost: it moves the relevant cost boundary to the number and grouping of
+distinct Pauli words.
+
+\subsection{Matrix-element bank and resource boundary}
+\label{sec:bank}
+
+For a basis index set $\mathcal B$, the measurement universe is
+\begin{align}
+ \mathcal W(\mathcal B)
+ &=
+ \bigcup_{i,j\in\mathcal B}\supp(A_i^\dagger A_j)
+ \nonumber\\
+ &\quad\cup
+ \bigcup_{i,j\in\mathcal B}\supp(A_i^\dagger H A_j).
+ \label{eq:word-universe}
+\end{align}
+Its width is $W=|\mathcal W|$.
+The matrix-element bank caches the operator-valued entries, reuses Hermitian
+pairs, and records whether an accepted generator reuses an existing word or
+introduces a new one.  Projected observables extend the same bank by
+$\supp(A_i^\dagger Q A_j)$.  The relevant resource ledger is therefore
+\begin{equation}
+ (M,\;\rank S,\;\kappa_S,\;W,\;S_H,\;S_A,\;\ell_N,\;\ell_{S_z}),
+ \label{eq:ledger}
+\end{equation}
+where $S_H$ is the largest support of a cached Hamiltonian element, $S_A$ the
+largest generator support, and $\ell_N,\ell_{S_z}$ are relative commutator
+norms with particle number and spin projection.  A method is not compact merely
+because $M$ is small.
+
+\subsection{Adaptive growth}
+\label{sec:growth}
+
+Suppose the current normalized Ritz pair is $(E,\ket{\Psi})$ and a candidate
+direction is $\ket{\chi_a}=A_a\ket{\psi}$.  A-CASE evaluates the generalized
+$2\times2$ pencil
+\begin{equation}
+ \begin{pmatrix}E&h_a\\h_a^*&h_{aa}\end{pmatrix}v
+ =\lambda
+ \begin{pmatrix}1&s_a\\s_a^*&s_{aa}\end{pmatrix}v,
+ \label{eq:two-by-two}
+\end{equation}
+with $s_a=\langle\Psi|\chi_a\rangle$,
+$h_a=\langle\Psi|H|\chi_a\rangle$,
+$s_{aa}=\langle\chi_a|\chi_a\rangle$, and
+$h_{aa}=\langle\chi_a|H|\chi_a\rangle$.  The score is the predicted lowering
+$\Delta_a=\max(0,E-\lambda_{\min})$, optionally divided by a penalty for newly
+introduced words.  Keeping the overlap block is essential: replacing it by
+the identity would give a nonzero score to a rescaled duplicate of the
+current Ritz state.
+
+Before scoring, the component outside the retained subspace is measured by
+\begin{equation}
+ \eta_a =
+ 1-\frac{\|{\cal P}_{\mathcal B}\chi_a\|^2}{\|\chi_a\|^2}.
+ \label{eq:orthogonal-fraction}
+\end{equation}
+Candidates below an orthogonality floor, annihilating the reference, or
+exceeding the declared sector-leakage tolerance are rejected.  The accepted
+candidate with the largest deterministic score appends one row and column to
+the cached pencil.  The exact Ritz energy is variational and non-increasing
+under nested growth; that statement does not survive arbitrary finite-shot
+perturbations of $(S,H)$.
+
+The candidate hierarchy used here contains identity, symmetry-preserving
+determinant excitations, commutator-response directions, selected Hamiltonian
+powers, compound products, and explicitly reached competing-order
+configurations.  These are Pauli-sum operators in a Clifford-algebra
+representation; they are not quantum-information Clifford transformations.
+The hierarchy is intentionally heterogeneous because no single family spans
+all of the molecular, Hubbard, and spin-model rungs below.
+
+\section{Interchange boundary and response}
+\label{sec:boundary-response}
+
+\subsection{Restricted FCIDUMP adapter}
+\label{sec:fcidump}
+
+FCIDUMP is a compact interchange record for active-space one- and two-electron
+integrals \cite{knowles1989fcidump}.  For a real restricted record, the parser
+constructs the chemist-notation Hamiltonian directly,
+\begin{align}
+ H={}&E_{\rm core}
+ +\sum_{pq\sigma}h_{pq}a^\dagger_{p\sigma}a_{q\sigma}\nonumber\\
+ &+\frac12\sum_{pqrs}\sum_{\sigma\tau}(pq|rs)
+ a^\dagger_{p\sigma}a^\dagger_{r\tau}a_{s\tau}a_{q\sigma}.
+ \label{eq:fcidump-h}
+\end{align}
+The implementation restores packed integral symmetries, accepts Fortran
+\texttt{D} exponents, validates \texttt{NORB}, \texttt{NELEC},
+\texttt{MS2}, sentinels, duplicates, finiteness, and electron--spin parity,
+then maps an interleaved spin-orbital ordering through Jordan--Wigner.
+Unrestricted \texttt{IUHF=1} records are rejected rather than interpreted by
+guess.  A SHA-256 digest binds every benchmark result to the exact input
+gauge.  An independent OpenFermion reconstruction
+\cite{mcclean2020openfermion} agrees over 185 Pauli terms to a maximum
+coefficient difference of $8.74\times10^{-16}$.
+
+\subsection{Projected Lehmann response}
+\label{sec:response}
+
+For a Hermitian perturbation $Q$, the projected positive-frequency lines are
+\begin{equation}
+ \omega_f=E_f-E_0,\qquad
+ w_f=|\langle\Psi_f|Q|\Psi_0\rangle|^2,
+ \label{eq:lehmann}
+\end{equation}
+and the nondegenerate zero-temperature static susceptibility is
+\begin{equation}
+ \chi(0)=2\sum_{f>0}\frac{w_f}{\omega_f}.
+ \label{eq:chi}
+\end{equation}
+A Lorentzian of width $\eta$ converts the discrete lines into
+\begin{equation}
+ S_\eta(\omega)=\sum_f
+ \frac{w_f\eta}{\pi[(\omega-\omega_f)^2+\eta^2]}.
+ \label{eq:broadening}
+\end{equation}
+These quantities are exact only for the chosen projected subspace.  Response
+completeness is a separate requirement from ground-state accuracy:
+$Q\ket{\Psi_0}$ must be represented by the retained roots
+\cite{colless2018spectra,umeano2025response}.
+
+\subsection{Finite-shot nonlinear uncertainty}
+\label{sec:bootstrap}
+
+One qubit-wise-commuting (QWC) partition
+\cite{verteletskyi2020grouping} is built for the union of the words required
+by $S$, $H$, and $Q_{\rm sub}$.  Each group contributes a joint outcome
+histogram, retaining the covariance between compatible Pauli words read from
+the same shots.  The finite-shot response is not a fixed linear functional:
+\begin{align}
+ \{\text{histograms}\}
+ &\longmapsto(S,H,Q)
+ \longmapsto\text{thresholded GEP}
+ \nonumber\\
+ &\longmapsto(\omega_f,w_f,\chi,S_\eta).
+ \label{eq:nonlinear-map}
+\end{align}
+Linear word-mean intervals cannot be substituted through this map and called
+spectral confidence intervals.
+
+We use a grouped nonparametric bootstrap \cite{efron1979bootstrap}.  Each
+replica draws a multinomial histogram within every fixed QWC group and reruns
+all operations in Eq.~\eqref{eq:nonlinear-map}.  Ordered-root matching is used
+only when the point estimate and the replica have isolated adjacent roots.
+Replicas with a changed retained rank, a root collision, or a solver failure
+are counted and excluded.  Consequently, the percentile intervals are
+\emph{conditional on the surviving replicas}.  That exclusion is not neutral:
+the failed draws are precisely the draws that can widen a spectrum in an
+ill-conditioned regime.  We therefore report the acceptance rate beside every
+interval.
+
+The evidence label is always \texttt{heuristic}; \texttt{certified=False} is
+part of the result contract.  A finite-sample certificate would require a
+confidence set for the correlated matrix pencil and observable together with
+a valid root-identification argument.  Pointwise intervals for
+$S_\eta(\omega)$ are not a simultaneous spectral band.
+
+\section{Benchmark design}
+\label{sec:benchmarks}
+
+\subsection{A closed-form integration oracle}
+\label{sec:dimer}
+
+The smallest end-to-end model is a half-filled two-site Hubbard dimer with
+$t=1$ eV and $U=4$ eV.  A versioned JSON record plays the role of a synthetic
+two-Wannier-site effective Hamiltonian.  Its $(N=2,S_z=0)$ sector has dimension
+four, and the correlated singlet is analytically solvable.  Table~\ref{tab:dimer}
+checks every reported energy, correlation, and response quantity against a
+closed form that shares no projected-observable code.
+
+\begin{table*}[t]
+\caption{Two-site effective-Hamiltonian oracle.  The response basis has
+$M=4$, equal to the sector dimension; it is full configuration interaction in
+that sector and is not a compactness result.}
+\label{tab:dimer}
+\begin{ruledtabular}
+\begin{tabular}{lcc}
+Quantity & A-CASE result & independent check \\
+\colrule
+\input{tables/dimer_results.tex}
+\end{tabular}
+\end{ruledtabular}
+\end{table*}
+
+\subsection{Frozen \texorpdfstring{H$_4$}{H4} active space}
+\label{sec:h4-benchmark}
+
+The interchange benchmark is linear H$_4$ with separations of $0.9$ \AA,
+STO-3G, and CAS(4e,4o): four electrons in four spatial orbitals, mapped to
+eight qubits.  The frozen FCIDUMP was generated with PySCF 2.14
+\cite{sun2018pyscf} using an RHF convergence tolerance of $10^{-12}$.
+The file digest, geometry, basis, software version, RHF energy, and an external
+determinant-FCI energy are committed.  After checkout, parsing, mapping,
+sector diagonalization, and A-CASE require only NumPy.
+
+\begin{table*}[t]
+\caption{Frozen H$_4$ FCIDUMP benchmark.  The adaptive budget is eight
+additions.  ``Complete singles/doubles'' is a fixed determinant-generated
+subspace and is shown as a reproducible accuracy rung, not as adaptive
+selection.}
+\label{tab:h4}
+\begin{ruledtabular}
+\begin{tabular}{lccc}
+Method & Energy (Ha) & Error & $M$ or sector dimension \\
+\colrule
+\input{tables/h4_results.tex}
+\end{tabular}
+\end{ruledtabular}
+\end{table*}
+
+\subsection{Validation ladder and matched baselines}
+\label{sec:ladder}
+
+The broader 72-run committed ladder covers H$_2$, LiH(2e,2o), equilibrium and
+stretched H$_4$, stretched H$_2$O CAS(4e,4o), H$_2$O CAS(8e,6o), open-boundary
+$2\times2$ and $2\times3$ Hubbard clusters, and a $2\times2$ Kitaev cluster.
+The comparison set is the reference determinant, sector-exact diagonalization,
+fixed Pauli QSE, Hamiltonian-power Krylov, a strided generator-coordinate
+basis, exact ADAPT-VQE, and A-CASE.  Default exact subspace arms use
+$M=9$ wherever available.  Level-4 A-CASE is additionally run to $M=26$ on
+the Hubbard clusters.  Chemical accuracy is defined as $1.6$ mHa only on
+molecular rungs; lattice-model errors remain in the Hamiltonian's own units.
+
+The paper uses four evidence labels:
+\begin{itemize}
+ \item \texttt{reference}: sector-exact energy against which errors are formed;
+ \item \texttt{exact}: noiseless arithmetic on a declared subspace;
+ \item \texttt{finite\_sample}: only the stated sample-split growth decision
+ carries a finite-sample bound; the noisy Ritz energy is not certified or
+ variational;
+ \item \texttt{heuristic}: grouped-bootstrap response diagnostics.
+\end{itemize}
+This taxonomy prevents a confidence statement about one selection event from
+silently becoming a confidence statement about the final spectrum.
+
+\section{Results}
+\label{sec:results}
+
+\subsection{The interchange boundary is independently reproducible}
+\label{sec:results-boundary}
+
+The dimer reaches the analytic sector ground energy to
+$6.7\times10^{-16}$ eV, and all six nontrivial observables in
+Table~\ref{tab:dimer} agree to nine printed digits.  This establishes the
+software path from a versioned effective Hamiltonian through energies,
+coefficients, correlations, and response.  It does not establish materials
+accuracy because the input parameters are synthetic.
+
+For H$_4$, Table~\ref{tab:h4} separates three questions.  The mapped sector
+oracle agrees with external determinant FCI to $3.1\times10^{-15}$ Ha, testing
+the FCIDUMP convention and fermion-to-qubit map.  At the predeclared
+nine-vector budget, adaptive A-CASE recovers most but not all of the
+correlation energy and misses chemical accuracy at $3.019$ mHa.  The complete
+27-dimensional singles/doubles subspace reaches $0.766$ mHa.  Because the
+full $(N=4,S_z=0)$ sector has dimension 36, this is a meaningful active-space
+rung, but it remains an eight-qubit calculation and is not evidence of
+favorable scaling.
+
+\subsection{Compactness is a three-way trade}
+\label{sec:results-ladder}
+
+Figure~\ref{fig:ladder} shows the default matched-budget ladder in dimensionless
+relative error.  Table~\ref{tab:ladder} adds the information the color alone
+cannot show: basis size, overlap conditioning, and the measured word universe.
+The results do not support a blanket superiority statement.
+
+\begin{figure*}[t]
+    \includegraphics[width=0.94\textwidth]{paper_assets/validation_ladder.pdf}
+    \caption{Absolute relative energy error for the default matched-budget
+    ladder.  ``n/t'' means that the arm was not run.  The heat map compares
+    energy only; Table~\ref{tab:ladder} supplies the conditioning and
+    measurement-width trade.  The default A-CASE column uses $M=9$, not the
+    larger level-4 Hubbard run.}
+    \label{fig:ladder}
+\end{figure*}
+
+\begin{table*}[t]
+\caption{Selected exact-arithmetic tradeoffs.  Errors are in the indicated
+Hamiltonian unit.  $W$ is the A-CASE union word count; deep Krylov element
+supports were not tractable on the eight-qubit molecular rungs and are not
+guessed.  The comparator is the strongest available matched or nearby-budget
+subspace baseline, not necessarily a method A-CASE beats.}
+\label{tab:ladder}
+\scriptsize
+\begin{ruledtabular}
+\begin{tabular}{lccccccccc}
+System & \multicolumn{4}{c}{A-CASE} & Comparator & \multicolumn{3}{c}{Comparator result} \\
+ & $M$ & $|\Delta E|$ & $\kappa_S$ & $W$ & method & $M$ & $|\Delta E|$ & $\kappa_S$ \\
+\colrule
+\input{tables/ladder_results.tex}
+\end{tabular}
+\end{ruledtabular}
+\end{table*}
+
+On equilibrium H$_4$, A-CASE at $M=9$ improves substantially over the
+same-size fixed QSE and generator-coordinate bases, but exact ADAPT-VQE is
+slightly better and fixed Krylov is better by orders of magnitude.  Krylov's
+overlap condition number is $6.6\times10^{10}$, versus $1$ for A-CASE.  The
+same pattern is sharper for stretched H$_4$ and H$_2$O: Krylov buys energy
+accuracy with near-linear dependence, while A-CASE remains conditioned but
+does not reach chemical accuracy.  This is a trade between energy,
+conditioning, and measurable support, not a win by basis count.
+
+Level-4 configuration generators change the $2\times2$ Hubbard result:
+A-CASE reaches the sector ground state at $M=26$ with
+$\kappa_S=1$.  The same pool adds no selected level-4 direction on
+$2\times3$, leaving a $1.09t$ error at the same $M$.  Thus the $2\times2$
+closure demonstrates that the missing span can be supplied, while the
+$2\times3$ failure demonstrates that the current selection rule cannot
+reliably discover a useful competing-order configuration.  On the Kitaev
+cluster, A-CASE selects six Hamiltonian-power directions and reaches the exact
+energy, but its $\kappa_S=3.8\times10^4$ resembles Krylov because in that case
+it \emph{is} a pruned Krylov construction.
+
+The finite-shot growth rows make the same warning more concrete.  Eight-qubit
+certified-growth attempts spend $1.5\times10^8$ to $4.6\times10^8$ physical
+shots and frequently stop or abstain with inaccurate energies.  A noisy
+thresholded overlap can even yield an energy below the exact reference; this
+does not violate Rayleigh--Ritz because the measured pencil no longer
+represents an exact subspace projection.  Sample-split certification of a
+growth coupling must not be reported as certification of the final energy.
+
+\subsection{Whole-pipeline response uncertainty}
+\label{sec:results-response}
+
+The response example uses the four-qubit dimer, 63 measured words, 25 QWC
+groups, and 8,000 shots per group, for 200,000 physical shots.  All 200
+bootstrap replicas preserve the rank and isolated ordered root in this
+well-conditioned case.  Table~\ref{tab:response} and
+Fig.~\ref{fig:response} compare the exact projected result with the finite-shot
+point estimate and the 95\% percentile interval.
+
+\begin{table*}[t]
+\caption{Finite-shot dimer response.  The interval is a grouped-bootstrap
+percentile diagnostic, not a finite-sample confidence certificate.  Acceptance
+is $200/200$; the interval is conditional on the surviving replicas.}
+\label{tab:response}
+\begin{ruledtabular}
+\begin{tabular}{lccc}
+Quantity & exact & measured & percentile interval \\
+\colrule
+\input{tables/response_results.tex}
+\end{tabular}
+\end{ruledtabular}
+\end{table*}
+
+\begin{figure}[t]
+    \includegraphics[width=\columnwidth]{paper_assets/response_bootstrap.pdf}
+    \caption{Lorentzian-broadened staggered-spin line with
+    $\eta=0.1$ eV.  The band is pointwise across frequency, heuristic, and
+    conditional on replicas that reproduce the pipeline's rank and root
+    identity.}
+    \label{fig:response}
+\end{figure}
+
+The exact values lie inside all three reported intervals in this one run.  That
+observation is a consistency check, not a coverage study.  The 100\%
+acceptance rate also means this example does not probe the conditioning regime
+where rejected replicas would make the conditional interval optimistic.
+Larger systems must report the rank, root-collision, and solver-failure counts
+before the width of a surviving-replica interval is interpreted.
+
+\section{Discussion}
+\label{sec:discussion}
+
+\subsection{What is established}
+\label{sec:established}
+
+Three claims are directly supported.  First, a real active-space interchange
+record can be parsed, mapped, and checked against independent determinant FCI
+without PySCF or OpenFermion at solver runtime.  Second, one reference state
+and one word cache are sufficient to construct the projected energy,
+observables, and response matrices; state-specific circuits and materialized
+Ritz statevectors are not intrinsic to this operator-generated formulation.
+Third, adaptive selection can preserve good overlap conditioning while
+improving materially over fixed local QSE and generator-coordinate bases on
+some rungs.
+
+The results also establish useful negative boundaries.  Fixed Krylov is the
+energy winner on every fermionic rung where it was tractable, despite severe
+conditioning.  The default A-CASE pool does not reach chemical accuracy on
+H$_4$ or H$_2$O at $M=9$.  Compound/configuration generators solve the
+$2\times2$ Hubbard case but do not transfer to $2\times3$.  Finite-shot
+response bands diagnose the implemented nonlinear pipeline but do not carry a
+finite-sample coverage theorem.
+
+\subsection{What remains open}
+\label{sec:open}
+
+The principal algorithmic question is whether candidate families can reduce
+$M$ \emph{and} $W$ while keeping $\kappa_S$ controlled on active spaces beyond
+eight qubits.  A promising direction is block or state-averaged growth against
+several Ritz roots, because a ground-state-selected basis is not automatically
+response-complete.  A second direction is to replace the candidate-by-candidate
+two-dimensional score with a residual block or a preconditioned correction,
+closer to Davidson methods, while preserving the shared-word accounting
+\cite{tkachenko2024davidson}.
+
+Statistically, three layers must remain separate.  Regularizing a measured
+$S$ can stabilize a solve, but does not by itself restore a variational bound.
+A bootstrap can reveal nonlinear spread, but survivor conditioning can hide
+the worst draws.  A genuine response certificate needs simultaneous control
+of a correlated matrix pencil, a root-isolation event, and a nonlinear
+observable map.  Existing QSD perturbation and sampling analyses provide the
+right starting point \cite{epperly2022theory,lee2024sampling}, but the complete
+construction is not supplied here.
+
+Finally, a materials claim requires a real upstream calculation and comparison
+with an accepted correlated solver on the same downfolded Hamiltonian.  The
+current effective-Hamiltonian JSON proves the software boundary, and FCIDUMP
+proves a real interchange boundary.  Neither substitutes for validating the
+downfolding, double-counting correction, interaction model, or observable
+embedding for a material.
+
+\section{Reproducibility and evidence ledger}
+\label{sec:reproducibility}
+
+The implementation, frozen inputs, raw benchmark records, table and figure
+generators, tests, and this manuscript are in the public
+\texttt{clifford\_qc} repository \cite{cliffordqc2026}.  The H$_4$ record
+contains the FCIDUMP SHA-256 digest and independent PySCF version and energies.
+The finite-shot response record contains both random seeds, the shots per
+group, the QWC group count, the requested and accepted replicas, every failure
+category, and the full plotted frequency arrays.
+
+The independent checks are: (i) the dimer closed forms in
+Table~\ref{tab:dimer}; (ii) determinant FCI versus the mapped H$_4$ sector;
+(iii) OpenFermion versus the direct chemist-notation mapping; (iv) exact
+infinite-shot reconstruction through the finite-shot coefficient maps; and
+(v) replica accounting, for which every requested draw must either succeed or
+enter exactly one failure category.  The repository test suite and
+\texttt{python -m clifford\_qc.verify} exercise algebraic, fermionic,
+subspace, effective-model, FCIDUMP, and response invariants.
+
+For clarity, the claim ledger is:
+\begin{itemize}
+ \item \emph{exact arithmetic}: dimer identities, FCIDUMP mapping, sector
+ energies, exact subspace energies, and exact resource counts;
+ \item \emph{finite sample}: only declared sample-split candidate-growth
+ decisions, conditional on their assumptions;
+ \item \emph{heuristic}: bootstrap response intervals;
+ \item \emph{not claimed}: DFT replacement, material prediction, scaling
+ advantage, hardware demonstration, or quantum speedup.
+\end{itemize}
+
+\section{Conclusion}
+\label{sec:conclusion}
+
+A-CASE provides a narrow but complete downstream workflow: an effective
+many-body Hamiltonian enters through a versioned or FCIDUMP boundary; one
+reference state supplies a cached operator-generated subspace; the subspace
+returns energies, correlations, and response; and finite-shot response is
+accompanied by an explicit evidence label and failure accounting.  The
+independent H$_4$ mapping check and closed-form dimer oracle make the workflow
+more than a self-consistency demonstration.
+
+The benchmark outcome is intentionally nonuniform.  A-CASE improves on some
+fixed local subspaces while fixed Krylov remains more accurate but often
+ill-conditioned; a configuration extension closes one Hubbard cluster and
+fails on the next.  This mixed result is the useful one.  It identifies
+conditioning, measurement width, and response completeness as coequal design
+objectives, and it prevents a small basis or a narrow bootstrap band from
+being mistaken for evidence that the full correlated problem has been solved.
+We make no quantum advantage claim.
+
+\begingroup
+\footnotesize
+\bibliography{references}
+\endgroup
+
+\end{document}
