@@ -193,7 +193,7 @@ python benchmarks/watch_reproduction.py \
 Write these long-running reproductions outside `benchmarks/reference_results/`
 unless intentionally regenerating committed artifacts.
 
-## Effective-Hamiltonian end-to-end showcase (numpy + scipy)
+## Effective-Hamiltonian end-to-end showcase (numpy only)
 
 The smallest complete materials-facing path uses the synthetic, canonical
 two-site record in `examples/data/wannier_hubbard_dimer.json`:
