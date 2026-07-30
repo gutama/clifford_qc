@@ -17,12 +17,11 @@ from __future__ import annotations
 import argparse
 from pathlib import Path
 
-from clifford_qc.backends import ExactMVBackend
+from clifford_qc.backends import ExactMVBackend, SectorStatevectorBackend
 from clifford_qc.models.effective import load_effective_hamiltonian
 from clifford_qc.models.observables import (double_occupancy, magnetization,
                                             spin_correlation,
                                             total_spin_squared)
-from clifford_qc.sparse import sparse_ground_in_sector
 from clifford_qc.subspace import (MatrixElementBank, determinant_excitations,
                                   identity_generator, lehmann_spectrum,
                                   occupied_spin_orbitals, run_acase,
@@ -38,8 +37,9 @@ def run(path: Path) -> None:
     rho = ExactMVBackend().state(model.reference, ())
     candidates = determinant_excitations(model.n, occupied, max_rank=2)
 
-    exact_values, _ = sparse_ground_in_sector(
-        model.hamiltonian, n_electrons=n_electrons, sz=sz, k=4)
+    exact_values, _ = SectorStatevectorBackend(
+        model.n, n_electrons=n_electrons, sz=sz).ground_state(
+            model.hamiltonian, k=4, method="dense")
     adaptive = run_acase(
         rho, model.hamiltonian, candidates, max_size=len(candidates),
         leakage_tol=1e-10, exact_ground_energy=float(exact_values[0]))
