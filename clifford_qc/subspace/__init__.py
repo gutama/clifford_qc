@@ -31,6 +31,8 @@ from .reference import (
     dense_basis, dense_projected_matrices, dense_residual_norm, dense_subspace,
     pure_statevector,
 )
+from .response import (ResponseLine, broaden_response, lehmann_spectrum,
+                       static_susceptibility)
 from .solver import (
     DEFAULT_MAX_CONDITION, DEFAULT_NORM_FLOOR, DEFAULT_TAU_S, SubspaceResult,
     canonical_eigh, projected_matrices, solve_projected, solve_subspace,
@@ -51,6 +53,8 @@ __all__ = [
     "occupied_spin_orbitals", "pauli_orbit", "response_hierarchy", "state_sector",
     "dense_basis", "dense_projected_matrices", "dense_residual_norm",
     "dense_subspace", "pure_statevector",
+    "ResponseLine", "broaden_response", "lehmann_spectrum",
+    "static_susceptibility",
     "DEFAULT_MAX_CONDITION", "DEFAULT_NORM_FLOOR", "DEFAULT_TAU_S",
     "SubspaceResult", "canonical_eigh", "projected_matrices",
     "solve_projected", "solve_subspace",
