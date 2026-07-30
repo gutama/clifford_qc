@@ -1,0 +1,21 @@
+{
+  "schema": "clifford_qc.effective_hamiltonian.v1",
+  "name": "two-site Wannier-Hubbard showcase",
+  "energy_unit": "eV",
+  "one_body": [
+    [0.0, -1.0],
+    [-1.0, 0.0]
+  ],
+  "onsite_u": [4.0, 4.0],
+  "chemical_potential": 0.0,
+  "reference_occupied_spin_orbitals": [0, 3],
+  "sector": {
+    "n_electrons": 2,
+    "sz": 0.0
+  },
+  "source": {
+    "one_body": "synthetic two-Wannier-site tight-binding matrix",
+    "interaction": "synthetic onsite embedding parameter",
+    "purpose": "canonical integration benchmark; not a claimed DFT calculation"
+  }
+}
