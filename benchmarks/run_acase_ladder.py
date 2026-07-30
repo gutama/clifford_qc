@@ -87,16 +87,39 @@ def occupied_orbitals(model, kind: str):
     return occupied_spin_orbitals(model) if kind != "spin_lattice" else ()
 
 
-def build_candidates(model, kind: str, krylov_order: int = 6):
-    """A-CASE candidate generators: symmetry-preserving where a symmetry exists."""
-    from clifford_qc.subspace import (commutator_response, determinant_excitations,
-                                      krylov_response, pauli_orbit)
+def build_candidates(model, kind: str, krylov_order: int = 6, *, level4: bool = False):
+    """A-CASE candidate generators: symmetry-preserving where a symmetry exists.
+
+    ``level4`` appends the §4.2 level-4 family: for a fermionic lattice, the
+    competing-order configurations of the cluster and their products with the
+    excitation family. Opt-in, because it is the only quadratic family in the
+    hierarchy and its width is a §6 cost a run should choose deliberately.
+    """
+    from clifford_qc.subspace import (commutator_response, compound_response,
+                                      configuration_generators,
+                                      determinant_excitations, krylov_response,
+                                      pauli_orbit)
 
     if kind == "spin_lattice":
         words = [op.word for op in word_pool(model, kind)]
-        return (pauli_orbit(words) + commutator_response(model.hamiltonian, words)
+        base = (pauli_orbit(words) + commutator_response(model.hamiltonian, words)
                 + krylov_response(model.hamiltonian, krylov_order))
-    return determinant_excitations(model.n, occupied_orbitals(model, kind))
+        if level4:
+            orbit = pauli_orbit(words)
+            base = base + compound_response(orbit, orbit, max_generators=64,
+                                            max_support=64)
+        return base
+
+    base = determinant_excitations(model.n, occupied_orbitals(model, kind))
+    if not level4 or kind != "fermionic_lattice":
+        # Competing orders are a lattice notion: a molecule has no sublattice to
+        # order on, so the molecular rungs stay at levels 0-3.
+        return base
+    from clifford_qc.models.lattice import competing_orders
+
+    configurations = configuration_generators(model, competing_orders(model))
+    return base + configurations + compound_response(configurations, base,
+                                                     max_support=64)
 
 
 def word_pool(model, kind: str):
@@ -309,13 +332,20 @@ def run_method(name: str, spec: dict, model, kind: str, context: dict) -> dict:
 
     if method == "acase_exact":
         tol, leakage_note = leakage_tolerance(spec, kind)
-        result = run_acase(rho, model.hamiltonian, context["candidates"],
+        wants_level4 = bool(spec.pop("level4", False))
+        candidates = (context["candidates_level4"] if wants_level4
+                      else context["candidates"])
+        result = run_acase(rho, model.hamiltonian, candidates,
                            exact_ground_energy=context["reference"],
                            max_size=int(spec.pop("max_size", 8)),
                            roots=int(spec.pop("roots", 1)),
                            leakage_tol=tol)
         row = {"energy": result.energy, "evidence": "exact",
                "leakage_filter": leakage_note,
+               "candidate_family": "levels 0-4" if wants_level4 else "levels 0-3",
+               "candidate_pool_size": len(candidates),
+               "level4_selected": sum(1 for label in result.result.basis_labels
+                                      if "*" in label),
                "stopped_reason": result.stopped_reason,
                "energy_history": list(result.energy_history),
                "root_energies": list(result.root_energies)}
@@ -396,11 +426,16 @@ def run_rung(rung: dict, methods: dict) -> list[dict]:
             name: float((psi.conj() @ (to_sparse(operator) @ psi)).real)
             for name, operator in observables.items()}
 
+    wants_level4 = any(methods[name].get("level4") for name in rung["methods"])
     context = {"rho": rho, "reference": reference, "sector": sector,
                "observables": observables, "exact_observables": exact_observables,
                "pool": word_pool(model, kind),
                "candidates": build_candidates(model, kind,
-                                              rung.get("krylov_order", 6))}
+                                              rung.get("krylov_order", 6)),
+               "candidates_level4": build_candidates(model, kind,
+                                                     rung.get("krylov_order", 6),
+                                                     level4=True)
+               if wants_level4 else None}
 
     rows = []
     for name in rung["methods"]:

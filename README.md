@@ -106,6 +106,10 @@ assert np.allclose(to_matrix(A * A), to_matrix(A) @ to_matrix(A))
   backends (`backends/`), a finite-shot measurement/confidence stack
   (`measurement/`), and packaged algorithms (`algorithms/`) — see
   `RESEARCH_PLAN.md`
+- competing-order configurations and compound generators (`subspace/`, §4.2
+  level 4): a stabilizer configuration enters as the operator `VR†` that
+  carries the reference onto it, so it costs one Pauli word between
+  determinants and no second state is ever prepared
 - A-CASE (`subspace/`): Rayleigh-Ritz in an operator-generated subspace whose
   basis states `A_i|psi>` are never prepared — every projected matrix element
   is an expectation on one reference state — with a cached matrix-element bank,
@@ -308,7 +312,8 @@ clifford_qc/
 - `RESEARCH_PLAN.md` is the Paper A roadmap (confidence-certified,
   measurement-efficient ADAPT-VQE).
 - `ACASE_RESEARCH_PLAN.md` is the active roadmap (A-CASE: adaptive
-  Clifford-algebra subspace eigensolver); Phases 1-7 ship in `subspace/`,
+  Clifford-algebra subspace eigensolver); Phases 1-7 and the §4.2 basis
+  hierarchy through level 4 ship in `subspace/`,
   `models/lattice.py`, `models/observables.py`, `sparse.py`,
   `backends/sector_statevector.py`, and the validation ladder
   (`benchmarks/run_acase_ladder.py`, committed as

@@ -75,7 +75,7 @@ No figure or table value in the manuscript is transcribed by hand, and
 ```bash
 python -m venv .venv && source .venv/bin/activate
 pip install -e .[test,research,chemistry]   # numpy + scipy + openfermion/pyscf
-pytest                                      # 699 passed, 6 skipped
+pytest                                      # 711 passed, 6 skipped
 ```
 
 That install is the reference environment for the quoted pair, and it is
@@ -268,6 +268,16 @@ that plus a cached per-group sampling plan, a warm batch is 0.19 s.
 
 `adapt_shot` still appears only on the four-qubit rungs; its cost is the ADAPT
 pool sweep, not the sampler.
+
+The Hubbard rungs carry a §4.2 **level-4** arm (`acase_level4`) beside a
+matched levels-0-3 arm at the same budget (`acase_exact_m25`), so the
+comparison is like-for-like. Level 4 adds the cluster's competing-order
+configurations and their products with the excitation family; it is opt-in per
+method (`"level4": true`) because it is the only quadratic family in the
+hierarchy. Both arms set `leakage_tol` to null: the operator-level sector
+filter rejects every configuration generator by construction (an `X`-string
+does not commute with `N`), and the right test for a configuration is the
+sector of the state it names, which `subspace.state_sector` reports.
 
 Costs on one laptop-class core: the four-qubit rungs are seconds each, the
 `h4_*` rungs a few minutes apiece, and `h2o_cas8e6o` (12 qubits) dominates the

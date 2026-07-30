@@ -69,6 +69,19 @@
       "threshold": 0.05,
       "leakage_tol": 1e-09,
       "family": "acase"
+    },
+    "acase_level4": {
+      "kind": "acase_exact",
+      "max_size": 25,
+      "level4": true,
+      "leakage_tol": null,
+      "family": "acase"
+    },
+    "acase_exact_m25": {
+      "kind": "acase_exact",
+      "max_size": 25,
+      "leakage_tol": null,
+      "family": "acase"
     }
   },
   "ladder": [
@@ -198,7 +211,9 @@
         "adapt_exact",
         "acase_exact",
         "acase_states",
-        "acase_certified_n8"
+        "acase_certified_n8",
+        "acase_exact_m25",
+        "acase_level4"
       ]
     },
     {
@@ -216,7 +231,9 @@
         "reference_state",
         "qse",
         "generator_coordinate",
-        "acase_exact"
+        "acase_exact",
+        "acase_exact_m25",
+        "acase_level4"
       ]
     },
     {

@@ -443,3 +443,89 @@ def kitaev_honeycomb(rows: int = 2, cols: int = 2, kx: float = 1.0,
                   "rows": rows, "cols": cols, "periodic": bool(periodic),
                   "links": [(kind, i, j) for kind, i, j in links],
                   "couplings": couplings})
+
+
+def bipartition(metadata) -> tuple[tuple[int, ...], tuple[int, ...]]:
+    """Two-colour the bond graph, so "the other sublattice" is well defined.
+
+    Neel order is a statement about sublattices, and on a 2x2 or 2x3 cluster the
+    site numbering is *not* the sublattice: sites 0 and 3 of the 2x2 grid are
+    both corners of the same colour. Colouring the bonds is the only way to get
+    this right for every shape, and it also reports honestly when it cannot --
+    a frustrated (odd-cycle) lattice has no bipartition, and there is no Neel
+    state to name.
+    """
+    sites = int(metadata["sites"])
+    bonds = [tuple(bond) for bond in metadata.get("bonds", ())]
+    neighbours: dict[int, list[int]] = {s: [] for s in range(sites)}
+    for i, j in bonds:
+        neighbours[i].append(j)
+        neighbours[j].append(i)
+    colour: dict[int, int] = {}
+    for start in range(sites):
+        if start in colour:
+            continue
+        colour[start] = 0
+        stack = [start]
+        while stack:
+            site = stack.pop()
+            for other in neighbours[site]:
+                if other not in colour:
+                    colour[other] = 1 - colour[site]
+                    stack.append(other)
+                elif colour[other] == colour[site]:
+                    raise ValueError("lattice is not bipartite: no Neel sublattice")
+    return (tuple(s for s in range(sites) if colour[s] == 0),
+            tuple(s for s in range(sites) if colour[s] == 1))
+
+
+def competing_orders(model) -> dict[str, tuple[int, ...]]:
+    """Occupation patterns of the orders a Hubbard cluster chooses between.
+
+    The §4.2 level-4 "stabilizer configurations for competing orders", as
+    determinants: antiferromagnetic (one electron per site, spins alternating by
+    sublattice), its spin-flipped partner, charge density wave (doublons on one
+    sublattice, holes on the other), and the striped state the site numbering
+    happens to produce. Each is returned as the tuple of filled spin orbitals,
+    so ``subspace.configuration_generator`` can turn it into the single
+    ``X``-string that carries the reference onto it.
+
+    Every pattern is emitted at the reference's own ``(N, S_z)`` -- a
+    configuration in a different sector is not a competing order for this
+    problem, it is a different problem, and the subspace would be carrying a
+    direction its Hamiltonian block cannot connect to. Patterns that cannot be
+    built at that filling are omitted rather than returned at the wrong sector.
+    """
+    metadata = model.metadata
+    if metadata.get("kind") != "fermionic_lattice":
+        raise ValueError("competing orders are defined for fermionic lattices")
+    if int(metadata.get("n_orbitals", 1)) != 1:
+        raise ValueError("competing orders are implemented for single-orbital models")
+    sites = int(metadata["sites"])
+    electrons, sz = int(metadata["n_electrons"]), float(metadata["sz"])
+    try:
+        even, odd = bipartition(metadata)
+    except ValueError:
+        even, odd = tuple(range(0, sites, 2)), tuple(range(1, sites, 2))
+
+    def pattern(up_sites, down_sites, doubled=()):
+        filled = ([spin_orbital(s, SPIN_UP) for s in up_sites]
+                  + [spin_orbital(s, SPIN_DOWN) for s in down_sites]
+                  + [o for s in doubled
+                     for o in (spin_orbital(s, SPIN_UP), spin_orbital(s, SPIN_DOWN))])
+        return tuple(sorted(filled))
+
+    candidates = {
+        "afm": pattern(even, odd),
+        "afm_flipped": pattern(odd, even),
+        "cdw": pattern((), (), doubled=even),
+        "cdw_odd": pattern((), (), doubled=odd),
+        "stripe": pattern(range(0, sites, 2), range(1, sites, 2)),
+    }
+    out = {}
+    for name, filled in candidates.items():
+        n_electrons = len(filled)
+        spin = 0.5 * sum(1 if orbital % 2 == 0 else -1 for orbital in filled)
+        if n_electrons == electrons and abs(spin - sz) < 1e-12:
+            out[name] = filled
+    return out

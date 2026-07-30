@@ -206,9 +206,30 @@ Given reference state ρ (pure), Hamiltonian H, and current generator set
   `CommutatorBank`.
 - Level 3 (Krylov response): `H^k|ψ⟩` as one candidate family among
   others, not the organizing principle.
-- Level 4 (compound / Clifford-group orbits): selected `P_iP_j|ψ⟩`,
-  `P_iG_j|ψ⟩`, stabilizer configurations `V|0…0⟩` for competing orders.
-  Only certified candidates enter; support growth is a tracked resource.
+- Level 4 (compound / Clifford-group orbits) — **done
+  (`subspace/generators.py`, `models/lattice.py`)**: selected `P_iP_j|ψ⟩`,
+  `P_iG_j|ψ⟩` via `compound_response` (deduplicated up to a scalar, since the
+  solver normalizes and `P_jP_i` is `±P_iP_j`; `max_support` and
+  `max_generators` make the width and the pool size declared rather than
+  discovered), and stabilizer configurations `V|0…0⟩` via
+  `configuration_generator`. A configuration enters as the operator that
+  *reaches* it: with `|ψ⟩ = R|0…0⟩` and `|φ⟩ = V|0…0⟩` the generator is
+  `A = VR†`, so `A|ψ⟩ = |φ⟩` exactly and no second state is prepared. Between
+  two determinants that operator is a single `X`-string, so a whole competing
+  order costs `S_A = 1`. `models.lattice.competing_orders` names them for a
+  Hubbard cluster (antiferromagnet on the *bond-coloured* sublattice — site
+  index parity gets the 2×2 grid wrong — its spin-flipped partner, two charge
+  density waves, and the stripe the numbering produces), emitting only
+  configurations at the reference's own `(N, S_z)`.
+
+  *Configurations need a different sector test, and this is the trap.*
+  `sector_leakage` asks whether the **operator** commutes with `N`; an
+  `X`-string does not, so a leakage filter rejects every competing-order
+  configuration — the same failure mode as the Kitaev misconfiguration in
+  Phase 7, in a new place. What matters is the plan's own wording, the sector
+  of the configuration, so `state_sector` reports `⟨N⟩`, `⟨S_z⟩` **and their
+  variances** for `A|ψ⟩` as expectations on the reference (nothing prepared).
+  The competing orders come out sharp: variance `0` to machine precision.
 
 **Chemistry basis modes.** Two distinct modes, with the second as the
 chemistry default:
@@ -630,6 +651,15 @@ for a strongly correlated cluster, and compound generators and competing-order
 (stabilizer) references — not more of the same family — are what the plan owes
 these models. `examples/acase_materials.py` prints the whole comparison.
 
+*That debt is now paid, and it settles the span half of Q4.* Level 4 ships
+(§4.2 above), and on the 2×2 cluster it does exactly what was predicted here:
+levels 0–3 saturate at `−9.8475` against a sector ground energy of `−10.1027`,
+adding the competing-order configurations *by themselves* changes nothing
+(they are determinants `H` does not connect to the reference at first order),
+and adding the compound products `configuration × excitation` reaches
+`−10.102748` — the sector ground state, to `1e-8`. The barrier was the span,
+and it was the one-reference structure of levels 0–3 that imposed it.
+
 **Phase 6 — done (`backends/sector_statevector.py`).**
 `SectorStatevectorBackend` stores a pure state on the occupation words of one
 `(N, S_z)` sector — `C(n,k)` amplitudes, never `2^n` — and applies a Pauli
@@ -866,12 +896,33 @@ What the ladder does and does not support:
   threshold at the reference and it selects *zero* operators: the reference is a
   stationary point, and a first-order selection rule has nothing to see. A-CASE's
   2×2 generalized lowering is not a gradient and does grow there.
-- **Q4: falsified on the Hubbard clusters, as Phase 5 already indicated.** The
-  singles-and-doubles candidate family saturates 0.86 Ha above the 2×2 sector
-  ground energy and 2.2 Ha above the 2×3, and no arm but Krylov comes close.
-  Competing-order stabilizer configurations are what §4 proposed for this regime
-  and they are not in the candidate pool; until they are, the materials-reach
-  question is open rather than answered.
+- **Q4: the span half is answered, the compactness half only on the smaller
+  cluster.** With levels 0–3 the singles-and-doubles family saturates 0.86 Ha
+  above the 2×2 sector ground energy and 2.2 Ha above the 2×3, and no arm but
+  Krylov comes close — the reading Phase 5 recorded. Level 4 removes the span
+  barrier outright: on the 2×2, `{identity, excitations, configurations,
+  configuration × excitation}` contains the sector ground state exactly
+  (`−10.102748`, agreement to `1e-8`), where levels 0–3 stall at `−9.8475`
+  however many directions are added.
+
+  Compactness is the weaker half. Adaptively at `M = 25` against a 36-state
+  sector, level 4 reaches `2.5e-02` where levels 0–3 reach `2.6e-01` — an order
+  of magnitude at `κ_S = 1` and a basis still smaller than the sector. On the
+  2×3 cluster (400-state sector) the greedy selector picks **no** level-4
+  generator within `M = 25` and the run is identical to levels 0–3. So the
+  answer is: the objects Q4 asks about do represent these states, and the
+  selection rule finds them on one cluster and not the other.
+
+- **A limitation of §4.3, exposed by level 4 and worth stating separately.**
+  The generalized 2×2 score cannot see a bare competing-order configuration.
+  Such a determinant has zero overlap with the reference *and* zero Hamiltonian
+  matrix element to it — the Hubbard `H` connects determinants differing by one
+  hop, and these differ by a spin flip on two sites — so the predicted lowering
+  is exactly zero and greedy growth never takes one, however useful it would be
+  in combination. Level 4 earns its place entirely through the compound
+  products, which do couple at first order. A selector that could weigh
+  second-order coupling would change this; the present one cannot, and that is
+  a property of the criterion rather than of the family.
 - **Q2: supported as far as the ladder reaches.** Certified growth now runs at
   eight qubits on five rungs; no run grows on a step the shots do not certify,
   and abstention rather than silent growth is what stops three of them. Coverage

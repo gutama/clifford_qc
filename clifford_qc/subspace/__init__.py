@@ -21,9 +21,11 @@ from .measured import (
     ritz_functional, ritz_uncertainty, run_certified_acase,
 )
 from .generators import (
-    Generator, as_generators, commutator_response, determinant_excitations,
-    fermionic_excitation_generators, identity_generator, krylov_response,
-    occupied_spin_orbitals, pauli_orbit, response_hierarchy,
+    Generator, as_generators, commutator_response, compound_response,
+    configuration_generator, configuration_generators, determinant_excitations,
+    determinant_program, fermionic_excitation_generators, identity_generator,
+    krylov_response, occupied_spin_orbitals, pauli_orbit, response_hierarchy,
+    state_sector,
 )
 from .reference import (
     dense_basis, dense_projected_matrices, dense_residual_norm, dense_subspace,
@@ -43,9 +45,10 @@ __all__ = [
     "coupling_functional", "entry_functionals", "ritz_functional",
     "ritz_uncertainty", "run_certified_acase",
     "Generator", "MatrixElementBank", "as_generators", "commutator_response",
-    "determinant_excitations", "fermionic_excitation_generators",
-    "identity_generator", "krylov_response", "occupied_spin_orbitals",
-    "pauli_orbit", "response_hierarchy",
+    "compound_response", "configuration_generator", "configuration_generators",
+    "determinant_excitations", "determinant_program",
+    "fermionic_excitation_generators", "identity_generator", "krylov_response",
+    "occupied_spin_orbitals", "pauli_orbit", "response_hierarchy", "state_sector",
     "dense_basis", "dense_projected_matrices", "dense_residual_norm",
     "dense_subspace", "pure_statevector",
     "DEFAULT_MAX_CONDITION", "DEFAULT_NORM_FLOOR", "DEFAULT_TAU_S",
