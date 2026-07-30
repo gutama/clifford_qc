@@ -112,9 +112,12 @@ def benchmark_heatmap() -> None:
         rows = list(csv.DictReader(handle))
     by_key = {(r["system"], r["method"]): r for r in rows}
     systems = [
-        ("H$_4$ 0.9 \\AA", "h4_chain(r=0.9)"),
-        ("H$_4$ 1.8 \\AA", "h4_chain(r=1.8)"),
-        ("H$_2$O (4e,4o)", "h2o_4e4o(scale=2.0)"),
+        # Matplotlib is not LaTeX: outside mathtext a "\AA" control sequence is
+        # drawn literally, backslash and all. The unicode glyph is in the
+        # default DejaVu font, so it renders in both text and PDF output.
+        ("H$_4$ 0.9 Å", "h4_chain(r=0.9)"),
+        ("H$_4$ 1.8 Å", "h4_chain(r=1.8)"),
+        ("H$_2$O (4e,4o), $2R_e$", "h2o_4e4o(scale=2.0)"),
         ("H$_2$O (8e,6o)", "h2o_8e6o(scale=1.0)"),
         ("Hubbard $2\\times2$", "hubbard(2x2,t=1.0,U=4.0,obc)"),
         ("Hubbard $2\\times3$", "hubbard(2x3,t=1.0,U=4.0,obc)"),

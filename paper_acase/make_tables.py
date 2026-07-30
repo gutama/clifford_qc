@@ -26,7 +26,21 @@ def _sci(value: float, digits: int = 2) -> str:
         return "0"
     exponent = int(math.floor(math.log10(abs(value))))
     mantissa = value / 10 ** exponent
+    if exponent == 0:
+        return rf"${mantissa:.{digits}f}$"
     return rf"${mantissa:.{digits}f}\times10^{{{exponent}}}$"
+
+
+def _kappa(value: float) -> str:
+    """Overlap condition numbers, in the same notation as the error column.
+
+    ``f"{v:.2g}"`` renders 6.6e+10 as text in a physics table; the errors beside
+    it are typeset. Well-conditioned arms report exactly 1, which should stay a
+    bare 1 rather than becoming $1.0\\times10^{0}$.
+    """
+    if abs(value) < 10.0:
+        return f"{value:.3g}"
+    return _sci(value, 1)
 
 
 def dimer_table() -> None:
@@ -108,10 +122,10 @@ def ladder_table() -> None:
         out.append(
             f"{display} & {a['basis_size']} & "
             f"{_sci(abs(float(a['error'])))} {unit} & "
-            f"{float(a['condition_number']):.2g} & {a['word_universe']} & "
+            f"{_kappa(float(a['condition_number']))} & {a['word_universe']} & "
             f"{labels[comparator_method]} & {b['basis_size']} & "
             f"{_sci(abs(float(b['error'])))} {unit} & "
-            f"{float(b['condition_number']):.2g} \\\\")
+            f"{_kappa(float(b['condition_number']))} \\\\")
     _write("ladder_results.tex", out)
 
 

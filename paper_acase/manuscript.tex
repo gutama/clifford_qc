@@ -396,7 +396,8 @@ stretched H$_4$, stretched H$_2$O CAS(4e,4o), H$_2$O CAS(8e,6o), open-boundary
 $2\times2$ and $2\times3$ Hubbard clusters, and a $2\times2$ Kitaev cluster.
 The comparison set is the reference determinant, sector-exact diagonalization,
 fixed Pauli QSE, Hamiltonian-power Krylov, a strided generator-coordinate
-basis, exact ADAPT-VQE, and A-CASE.  Default exact subspace arms use
+basis, exact ADAPT-VQE \cite{grimsley2019adapt}, and A-CASE.  Default exact
+subspace arms use
 $M=9$ wherever available.  Level-4 A-CASE is additionally run to $M=26$ on
 the Hubbard clusters.  Chemical accuracy is defined as $1.6$ mHa only on
 molecular rungs; lattice-model errors remain in the Hamiltonian's own units.
@@ -463,7 +464,7 @@ subspace baseline, not necessarily a method A-CASE beats.}
 \label{tab:ladder}
 \scriptsize
 \begin{ruledtabular}
-\begin{tabular}{lccccccccc}
+\begin{tabular}{lcccccccc}
 System & \multicolumn{4}{c}{A-CASE} & Comparator & \multicolumn{3}{c}{Comparator result} \\
  & $M$ & $|\Delta E|$ & $\kappa_S$ & $W$ & method & $M$ & $|\Delta E|$ & $\kappa_S$ \\
 \colrule

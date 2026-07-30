@@ -39,7 +39,7 @@ jobs:
         run: python -m pytest
 
   manuscript:
-    name: manuscript (revtex build + artifact consistency)
+    name: manuscripts (revtex builds + artifact consistency)
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -100,3 +100,43 @@ jobs:
         with:
           name: manuscript-pdf
           path: paper/manuscript.pdf
+
+      # paper_acase/ is a second, standalone manuscript with its own generators
+      # and its own committed records. It gets the same gates: without them the
+      # drift protection above would cover only half the repository's papers.
+      - name: A-CASE paper -- regenerate the response record, then fail on drift
+        run: |
+          python paper_acase/run_response_record.py
+          git diff --exit-code -- paper_acase/data
+      - name: A-CASE paper -- regenerate figures and tables, then fail on drift
+        run: |
+          python paper_acase/make_figures.py
+          python paper_acase/make_tables.py
+          git diff --exit-code -- paper_acase/tables
+      - name: A-CASE paper -- structure (refs, bib keys, table columns, float ages)
+        run: python paper_acase/check_manuscript.py
+      - name: A-CASE paper -- build the manuscript
+        working-directory: paper_acase
+        run: |
+          pdflatex -interaction=nonstopmode -halt-on-error manuscript.tex
+          bibtex manuscript
+          pdflatex -interaction=nonstopmode -halt-on-error manuscript.tex
+          pdflatex -interaction=nonstopmode -halt-on-error manuscript.tex
+      - name: A-CASE paper -- no overfull boxes, no undefined references
+        working-directory: paper_acase
+        run: |
+          fail=0
+          for pattern in 'Overfull \\hbox' 'LaTeX Warning: Reference' 'LaTeX Warning: Citation'; do
+            n=$(grep -c "$pattern" manuscript.log || true)
+            echo "$pattern: $n"
+            [ "$n" -eq 0 ] || fail=1
+          done
+          if [ "$fail" -ne 0 ]; then
+            echo '--- offending lines ---'
+            grep -nE 'Overfull \\hbox|LaTeX Warning: (Reference|Citation)' manuscript.log || true
+            exit 1
+          fi
+      - uses: actions/upload-artifact@v4
+        with:
+          name: manuscript-acase-pdf
+          path: paper_acase/manuscript.pdf
