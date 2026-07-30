@@ -1,6 +1,7 @@
 """Phase 5 chemistry layer (backlog 17): molecule models via the OpenFermion
 bridge, the JW excitation pool, and the FAST-inspired baseline."""
 
+import itertools
 import pytest
 
 pytest.importorskip("openfermion")
@@ -147,3 +148,148 @@ def test_strict_h4_selector_uses_finite_sample_trajectory_budget():
     assert selector.bound == "eb"
     assert selector.method == "bonferroni"
     assert selector.near_tol is None
+
+
+# ------------------------------------------------------ FCIDUMP ingestion (§5)
+
+
+@pytest.fixture(scope="module")
+def h2_fcidump(tmp_path_factory):
+    """An FCIDUMP written by PySCF, as a downfolding step would hand over."""
+    from pyscf import gto, scf
+    from pyscf.tools import fcidump
+
+    mol = gto.M(atom="H 0 0 0; H 0 0 0.7414", basis="sto-3g", verbose=0)
+    mean_field = scf.RHF(mol).run()
+    path = tmp_path_factory.mktemp("fcidump") / "h2.fcidump"
+    fcidump.from_scf(mean_field, str(path))
+    return path
+
+
+@pytest.fixture(scope="module")
+def h4_fcidump(tmp_path_factory):
+    from pyscf import gto, scf
+    from pyscf.tools import fcidump
+
+    mol = gto.M(atom="H 0 0 0; H 0 0 0.9; H 0 0 1.8; H 0 0 2.7",
+                basis="sto-3g", verbose=0)
+    mean_field = scf.RHF(mol).run()
+    path = tmp_path_factory.mktemp("fcidump") / "h4.fcidump"
+    fcidump.from_scf(mean_field, str(path))
+    return path
+
+
+def test_fcidump_reproduces_the_pyscf_path_term_by_term(h2_fcidump, h2_model):
+    """The only check that catches a wrong chemist/physicist reindexing.
+
+    Eight of the 24 possible four-index permutations agree (the permutation
+    symmetry of real two-electron integrals); the rest give a Hamiltonian that
+    looks perfectly reasonable and has the wrong correlation energy. Comparing
+    against the same molecule through ``openfermionpyscf`` is what pins it.
+    """
+    from clifford_qc.models.chemistry import fcidump_model
+
+    ingested = fcidump_model(h2_fcidump, name="h2-fcidump")
+    assert ingested.n == h2_model.n
+    left, right = ingested.hamiltonian.to_labels(), h2_model.hamiltonian.to_labels()
+    for label in set(left) | set(right):
+        assert left.get(label, 0.0) == pytest.approx(right.get(label, 0.0), abs=1e-10)
+    assert exact_ground(ingested.hamiltonian.to_mv())[0] == pytest.approx(
+        h2_model.metadata["fci_energy"], abs=1e-7)
+
+
+def _orbital_sign_gauge(labels, flipped_orbitals):
+    """``c_p -> -c_p`` on the given spatial orbitals, applied to a Pauli image.
+
+    The sign of a molecular orbital is not physics: SCF fixes each eigenvector
+    only up to sign. Under Jordan-Wigner, negating mode ``p`` is conjugation by
+    ``Z`` on its two spin-orbital qubits, and ``Z_j W Z_j = -W`` exactly when
+    ``W`` carries an ``X`` or ``Y`` at ``j`` -- so the whole gauge orbit is
+    reachable by flipping signs of coefficients, with no rebuild.
+    """
+    qubits = [q for p in flipped_orbitals for q in (2 * p, 2 * p + 1)]
+    return {label: (-value if sum(1 for q in qubits if label[q] in "XY") % 2 else value)
+            for label, value in labels.items()}
+
+
+def _agreement_up_to_orbital_signs(left, right, n_orbitals):
+    """Worst coefficient gap, minimized over the ``2^n_orbitals`` sign choices."""
+    keys = set(left) | set(right)
+    return min(
+        max(abs(left.get(k, 0.0) - candidate.get(k, 0.0)) for k in keys)
+        for size in range(n_orbitals + 1)
+        for flips in itertools.combinations(range(n_orbitals), size)
+        for candidate in (_orbital_sign_gauge(right, flips),))
+
+
+def test_fcidump_ingestion_on_a_larger_active_space(h4_fcidump):
+    """Term-by-term against an independent PySCF path, quotiented by MO sign.
+
+    Comparing the two constructions coefficient-by-coefficient was flaky about
+    once in a dozen runs, and not by a hair: the gap was either 1e-15 or
+    7.4e-02, with the SCF energy identical to 1e-15 either way. The cause is
+    that the two SCF runs occasionally settle on opposite signs for a molecular
+    orbital, which is a gauge choice with no physical content -- flipping one MO
+    of this H4 chain by hand reproduces the failing signature exactly, term
+    count and all, and leaves the sector spectrum fixed to 1e-14.
+
+    Quotienting by that gauge rather than loosening the tolerance keeps the
+    check strict, and keeps its teeth: of the 24 possible chemist-to-physicist
+    reindexings, 8 agree with the correct one (the permutation symmetry of real
+    two-electron integrals) and the other 16 are still caught here -- no sign
+    pattern rescues a wrong transpose.
+    """
+    from clifford_qc.models.chemistry import fcidump_model, h4_chain
+
+    ingested = fcidump_model(h4_fcidump)
+    reference = h4_chain(0.9)
+    left, right = ingested.hamiltonian.to_labels(), reference.hamiltonian.to_labels()
+    assert len(left) == len(right) == 185
+    assert _agreement_up_to_orbital_signs(left, right, ingested.n // 2) < 1e-10
+
+
+def test_orbital_sign_gauge_is_a_gauge_and_not_a_loophole(h4_fcidump):
+    """The quotient must absorb an MO sign flip and nothing else.
+
+    Without the second half, the first would be satisfiable by any comparison
+    weak enough to pass -- so this pins that a flipped orbital is forgiven while
+    a perturbed coefficient is not.
+    """
+    from clifford_qc.models.chemistry import fcidump_model
+
+    labels = fcidump_model(h4_fcidump).hamiltonian.to_labels()
+    n_orbitals = 4
+    for orbital in range(n_orbitals):
+        flipped = _orbital_sign_gauge(labels, (orbital,))
+        raw = max(abs(labels[k] - flipped[k]) for k in labels)
+        assert raw > 1e-3, "flipping an orbital should visibly move coefficients"
+        assert _agreement_up_to_orbital_signs(labels, flipped, n_orbitals) < 1e-12
+
+    perturbed = dict(labels)
+    worst_label = max(labels, key=lambda k: abs(labels[k]))
+    perturbed[worst_label] += 1e-3
+    assert _agreement_up_to_orbital_signs(labels, perturbed, n_orbitals) >= 1e-4
+
+
+def test_fcidump_model_carries_orbital_and_sector_metadata(h2_fcidump):
+    from clifford_qc.models.chemistry import fcidump_model
+
+    model = fcidump_model(h2_fcidump)
+    metadata = model.metadata
+    assert metadata["source"] == "fcidump"
+    assert metadata["n_spatial_orbitals"] == 2
+    assert metadata["spin_orbitals"] == 4
+    assert metadata["n_electrons"] == 2
+    assert metadata["sz"] == 0.0
+    assert metadata["spin_convention"] == "interleaved"
+    assert metadata["core_energy"] > 0.0  # nuclear repulsion lands in the constant
+    # the reference determinant fills the advertised electron count
+    assert sum(1 for op in model.reference.ops) == 2
+
+
+def test_pyscf_models_carry_the_same_metadata_keys(h2_model, lih_model):
+    for model in (h2_model, lih_model):
+        for key in ("kind", "source", "n_spatial_orbitals", "spin_orbitals",
+                    "spin_convention", "n_electrons", "sz"):
+            assert key in model.metadata
+        assert model.metadata["spin_orbitals"] == model.n

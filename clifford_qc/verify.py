@@ -127,6 +127,137 @@ def run_verification() -> None:
     _check("Trotter2(40) error < 2e-3", np.linalg.norm(to_matrix(trotter2_unitary(H_terms, t, 40)) - Uex) < 2e-3)
     _check("Taylor expm and matrix expm agree with exact", np.linalg.norm(to_matrix(expm_taylor((-1j * t) * Hmv)) - Uex) < 1e-9 and np.linalg.norm(to_matrix(expm_matrix((-1j * t) * Hmv)) - Uex) < 1e-9)
 
+    print("-- A-CASE operator-response subspace --")
+    from .matrix import exact_ground
+    from .models.spin import tfim
+    from .subspace import (MatrixElementBank, SharedMeasurement, dense_subspace,
+                           identity_generator, krylov_response, ritz_uncertainty,
+                           run_acase, solve_subspace)
+
+    A_nh = P("XYI").dagger() * P("IZY")  # non-Hermitian: the pairing's real case
+    _check("trace pairing = Tr(AB)/2^n on a non-Hermitian product",
+           abs((2 ** 3) * A_nh.trace_pairing(A) - np.trace(to_matrix(A_nh) @ MA)) < 1e-8)
+    spin = tfim(3, J=1.0, h=1.0)
+    ref = ket_density(3, "000")
+    Egs, _ = exact_ground(spin.hamiltonian.to_mv())
+    gens = [identity_generator(3)] + krylov_response(spin.hamiltonian, 4)
+    ritz = [solve_subspace(ref, spin.hamiltonian, gens[:k]).ground_energy
+            for k in range(1, len(gens) + 1)]
+    _check(f"variational bound E_sub >= E_0 (got {ritz[-1]:.6f} vs {Egs:.6f})",
+           all(e >= Egs - 1e-9 for e in ritz))
+    _check("nested growth is monotone non-increasing",
+           all(b <= a + 1e-9 for a, b in zip(ritz, ritz[1:])))
+    _check("operator route matches the dense basis-state route",
+           abs(ritz[-1] - dense_subspace(ref, spin.hamiltonian, gens).ground_energy) < 1e-9)
+    bank = MatrixElementBank(ref, spin.hamiltonian, gens)
+    banked = bank.solve()
+    _check("matrix-element bank reproduces the direct assembly bit for bit",
+           banked.energies == solve_subspace(ref, spin.hamiltonian, gens).energies)
+    _check("projected observable <H> returns the Ritz energy (state never formed)",
+           abs(banked.expectation(spin.hamiltonian) - banked.ground_energy) < 1e-9)
+    grown = run_acase(ref, spin.hamiltonian, gens[1:] + krylov_response(spin.hamiltonian, 6),
+                      max_size=4, exact_ground_energy=Egs)
+    _check(f"adaptive growth stays above E_0 and improves ({grown.energy:.6f})",
+           grown.energy >= Egs - 1e-9 and grown.energy <= ritz[0] + 1e-9)
+    _check("predicted lowering is a lower bound on the actual lowering",
+           all(r.actual_lowering >= r.predicted_lowering - 1e-12 for r in grown.records))
+
+    shared = SharedMeasurement(bank)
+    S_limit, H_limit = shared.exact_matrices()
+    S_exact, H_exact = bank.matrices()
+    _check("finite-shot reconstruction reproduces (S,H) in the infinite-shot limit",
+           np.abs(S_limit - S_exact).max() < 1e-9
+           and np.abs(H_limit - H_exact).max() < 1e-9)
+    from .backends.finite_shot import FiniteShotBackend
+    cache = shared.measure(FiniteShotBackend(seed=5), 4000)
+    measured = shared.solve(cache)
+    interval = ritz_uncertainty(shared, cache, measured)
+    _check(f"measured Ritz value carries an asymptotic interval "
+           f"(E = {measured.ground_energy:.4f} +- {interval.upper - interval.estimate:.1e})",
+           interval.evidence == "asymptotic" and not interval.certified
+           and interval.lower <= interval.estimate <= interval.upper)
+
+    print("-- materials layer --")
+    from .fermion import total_number_op, total_sz_op
+    from .models.effective import (EFFECTIVE_HAMILTONIAN_SCHEMA,
+                                   effective_hamiltonian)
+    from .models.lattice import hubbard, kitaev_honeycomb
+    from .models.observables import double_occupancy, occupation, spin_correlation
+    from .subspace import determinant_excitations, occupied_spin_orbitals
+
+    cluster = hubbard(2, t=1.0, U=4.0)
+    H_cluster = cluster.hamiltonian.to_mv()
+    _check("Hubbard cluster is Hermitian and conserves N and S_z",
+           H_cluster.is_hermitian(1e-12)
+           and comm(H_cluster, total_number_op(cluster.n)).is_zero(1e-10)
+           and comm(H_cluster, total_sz_op(cluster.n)).is_zero(1e-10))
+    free = hubbard(2, t=1.0, U=0.0)
+    _check("U=0 two-site chain reproduces the free-fermion energy (-2t)",
+           abs(exact_ground(free.hamiltonian.to_mv())[0] - (-2.0)) < 1e-9)
+    imported = effective_hamiltonian({
+        "schema": EFFECTIVE_HAMILTONIAN_SCHEMA,
+        "one_body": [[0.0, -1.0], [-1.0, 0.0]],
+        "onsite_u": 4.0,
+        "reference_occupied_spin_orbitals": [0, 3],
+        "sector": {"n_electrons": 2, "sz": 0.0},
+    })
+    bare = hubbard(2, t=1.0, U=4.0, mu=0.0)
+    _check("versioned Wannier+U input reproduces the native Hubbard dimer",
+           (imported.hamiltonian.to_mv()
+            - bare.hamiltonian.to_mv()).is_zero(1e-12))
+    honeycomb = kitaev_honeycomb(2, 2)
+    _check("Kitaev cluster is a one-qubit-per-site spin model (8 sites, 8 links)",
+           honeycomb.n == 8 and len(honeycomb.hamiltonian.terms) == 8
+           and len(kitaev_honeycomb(2, 2, periodic=True).hamiltonian.terms) == 12)
+
+    from .backends.exact_mv import ExactMVBackend
+    cluster_rho = ExactMVBackend().state(cluster.reference, ())
+    occupied = occupied_spin_orbitals(cluster)
+    excitations = determinant_excitations(cluster.n, occupied)
+    cluster_bank = MatrixElementBank(cluster_rho, cluster.hamiltonian,
+                                     [identity_generator(cluster.n)] + excitations)
+    cluster_result = cluster_bank.solve()
+    E_cluster, _ = exact_ground(H_cluster)
+    _check(f"A-CASE reaches the two-site cluster ground state "
+           f"({cluster_result.ground_energy:.6f})",
+           abs(cluster_result.ground_energy - E_cluster) < 1e-9)
+    _check("projected observables agree with the operators they came from",
+           abs(cluster_result.expectation(occupation(cluster, 0)) - 1.0) < 1e-9
+           and cluster_result.expectation(double_occupancy(cluster, 0)) >= 0.0
+           and cluster_result.expectation(spin_correlation(cluster, 0, 1)) < 0.0)
+
+    print("-- sector-restricted exact tier --")
+    from .backends.sector_statevector import (SectorStatevectorBackend,
+                                              lanczos_ground, sector_basis,
+                                              sector_projector)
+
+    sector = SectorStatevectorBackend(cluster.n, cluster.metadata["n_electrons"],
+                                      cluster.metadata["sz"])
+    _check(f"sector holds C(n,k) amplitudes, not 2^n "
+           f"({sector.dimension} vs {2 ** cluster.n})",
+           sector.dimension == len(sector_basis(cluster.n, 2, 0.0))
+           and sector.dimension < 2 ** cluster.n)
+    projector = sector_projector(cluster.n, cluster.metadata["n_electrons"],
+                                 cluster.metadata["sz"])
+    _check("sector projector is idempotent and commutes with H",
+           (projector * projector).is_close(projector, 1e-10)
+           and comm(H_cluster, projector).is_zero(1e-10))
+    sector_energy = sector.ground_state(cluster.hamiltonian, k=1,
+                                        method="lanczos")[0][0]
+    _check(f"matrix-free Lanczos matches the dense ground energy "
+           f"({sector_energy:.6f})",
+           abs(sector_energy - E_cluster) < 1e-8)
+    reference_state = sector.state_from_program(cluster.reference)
+    _check("determinant reference maps to one sector amplitude with its energy",
+           int(np.count_nonzero(reference_state)) == 1
+           and abs(sector.expectation(cluster.hamiltonian, reference_state).real
+                   - ExactMVBackend().expectation(cluster.reference,
+                                                  cluster.hamiltonian, ())) < 1e-9)
+    bigger = SectorStatevectorBackend(16, 8, 0.0)
+    _check(f"a 16-qubit sector is 4900 amplitudes, not 65536 "
+           f"({bigger.memory_estimate()['sector_bytes'] // 1024} KiB)",
+           bigger.dimension == 4900)
+
     print("\n-- structural report --")
     print(f"  Bell: {bell.nnz()}/16 words | GHZ: {ghz.nnz()}/64 words | Toffoli: {TOFFOLI(3,0,1,2).nnz()}/64 words")
     print(f"  RZ grades: {sorted(RZ(2,0,0.8).grades())}; CNOT grades: {sorted(CNOT(2,0,1).grades())}")

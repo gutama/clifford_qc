@@ -91,13 +91,69 @@ assert np.allclose(to_matrix(A * A), to_matrix(A) @ to_matrix(A))
 - density operators, evolution, measurement, probabilities, partial trace, partial transpose
 - Kraus channels: depolarizing, dephasing, amplitude damping
 - diagnostics: fidelity, entropy, negativity, trace checks
-- dense matrix conversion and exact small-system ground states
+- dense matrix conversion and exact small-system ground states, a sparse
+  reference tier (`sparse.py`) with sector-restricted diagonalization for `n`
+  past dense `eigh`, and a sector-restricted statevector backend
+  (`backends/sector_statevector.py`) that stores `C(n,k)` amplitudes and never
+  builds a matrix at all
 - a Pauli-rotor intermediate representation with exact gate-by-gate execution, versioned JSON serialization, gradients, and QASM3 export
 - optional bridges for Stim, OpenFermion, pytket, and PennyLane
+- materials clusters (`models/lattice.py`): Hubbard, extended Hubbard,
+  Kanamori, Anderson impurity, Kitaev honeycomb — built from the package's own
+  Jordan-Wigner operators — with observables (`models/observables.py`) for
+  occupations, double occupancy, spin correlations, and structure factors
+- a versioned effective-Hamiltonian boundary (`models/effective.py`) that reads
+  a spin-independent Wannier one-body matrix plus onsite embedding interactions
+  from JSON, validates orbital/spin/sector conventions, and emits the same
+  `Model` used by the native lattice builders
 - a research layer for VQE/ADAPT-VQE: model builders (`models/`), execution
   backends (`backends/`), a finite-shot measurement/confidence stack
   (`measurement/`), and packaged algorithms (`algorithms/`) — see
   `RESEARCH_PLAN.md`
+- competing-order configurations and compound generators (`subspace/`, §4.2
+  level 4): a stabilizer configuration enters as the operator `VR†` that
+  carries the reference onto it, so it costs one Pauli word between
+  determinants and no second state is ever prepared
+- A-CASE (`subspace/`): Rayleigh-Ritz in an operator-generated subspace whose
+  basis states `A_i|psi>` are never prepared — every projected matrix element
+  is an expectation on one reference state — with a cached matrix-element bank,
+  adaptive basis growth, projected observables (expectations and transitions
+  without materializing a Ritz state), and finite-shot layers whose intervals
+  are labelled `asymptotic`, `heuristic`, or `finite_sample` and never
+  conflated; see `ACASE_RESEARCH_PLAN.md`
+- a validation ladder (`benchmarks/run_acase_ladder.py`) running H2 through
+  H2O CAS(8e,6o), Hubbard clusters, and a Kitaev cluster against the reference
+  determinant, sector-exact diagonalization, QSE, fixed Krylov,
+  generator-coordinate subspaces, and ADAPT-VQE — every row carrying the
+  resource metrics, shots, and abstentions beside the energy, and an evidence
+  label saying what kind of number it is
+
+### Smallest end-to-end correlated-materials showcase
+
+The bundled two-site Wannier-Hubbard record is synthetic and canonical, not a
+claimed DFT calculation.  It exercises the real software boundary an upstream
+DFT/Wannier/embedding workflow would use:
+
+```text
+one-body Wannier matrix + onsite U (JSON)
+    -> Jordan-Wigner effective many-body Hamiltonian
+    -> A-CASE
+    -> energy, projected state coefficients, correlations, Lehmann response
+```
+
+Run it from the repository root:
+
+```bash
+python examples/acase_effective_model.py
+```
+
+The four-qubit `N=2, Sz=0` Hubbard dimer is small enough for an independent
+sector-exact oracle but already has a correlated singlet ground state,
+suppressed double occupancy, antiferromagnetic spin correlation, and a
+nontrivial staggered-spin response.  The schema and example record are in
+`examples/data/wannier_hubbard_dimer.json`; complex hopping entries use
+`[real, imag]`. All Hamiltonian values are interpreted in the declared
+`energy_unit`; the loader labels but does not convert units.
 
 ## Core Conventions
 
@@ -199,10 +255,23 @@ PYTHONPATH=. python examples/grover_2q.py
 PYTHONPATH=. python examples/fermion_car.py
 PYTHONPATH=. python examples/noisy_channel.py
 PYTHONPATH=. python examples/tfim_exact.py
+PYTHONPATH=. python examples/acase_premise_check.py
+PYTHONPATH=. python examples/acase_adaptive.py
+PYTHONPATH=. python examples/acase_finite_shot.py
+PYTHONPATH=. python examples/acase_materials.py
+PYTHONPATH=. python examples/acase_sector_backend.py
 ```
 
 They cover Bell/CHSH diagnostics, a two-qubit Grover step, fermionic CAR
-checks, noisy channels, and a small transverse-field Ising Hamiltonian.
+checks, noisy channels, a small transverse-field Ising Hamiltonian, the
+A-CASE subspace invariants with their resource accounting, A-CASE adaptive
+growth against the fixed QSE/Krylov/ADAPT-VQE baselines at matched operator
+budget, and the finite-shot layers (shared grouped measurement, a
+delta-method-versus-Monte-Carlo uncertainty study, and certified growth with
+abstention), and the materials layer (Hubbard and Kitaev clusters, projected
+observables, excited states by state-averaged growth), and the
+sector-restricted exact tier (C(n,k) amplitudes instead of 2^n, matrix-free
+Lanczos, 24 qubits without a matrix).
 
 ## Tests And Validation
 
@@ -248,22 +317,39 @@ clifford_qc/
   qasm3.py         # OpenQASM 3 export pass for IR programs
   verify.py        # dependency-light smoke suite
   bridges/         # optional Stim/OpenFermion/pytket/PennyLane bridges
-  models/          # TFIM, XXZ, random-Ising benchmark models
-  backends/        # Backend protocol: exact MV, dense reference, finite-shot
+  sparse.py        # sparse Pauli reference tier: eigsh, (N,Sz) sectors
+  models/          # TFIM, XXZ, random-Ising; Hubbard/Kanamori/Anderson/
+                   # Kitaev; versioned effective-Hamiltonian ingestion;
+                   # material observables; chemistry+FCIDUMP
+  backends/        # Backend protocol: exact MV, dense reference, finite-shot,
+                   # sector-restricted statevector + matrix-free Lanczos
   measurement/     # commutator bank, shared word cache, confidence,
                    # allocation policies, QWC measurement grouping
   algorithms/      # optimizers, pools (odd-Y), fixed-depth VQE, ADAPT-VQE
                    # (exact / finite-shot / layered / subpool / random)
+  subspace/        # A-CASE: generator families, the normalized/thresholded
+                   # generalized eigenproblem, cached matrix-element bank
+                   # with projected observables, adaptive growth, finite-shot
+                   # layers (shared grouped measurement, asymptotic Ritz
+                   # uncertainty, sample-split growth certificate), Lehmann
+                   # response, dense cross-check
 ```
 
 ## Project Notes
 
-- The project is currently alpha (`0.1.0`).
+- The project is currently alpha (`0.3.0`).
 - `MIGRATION.md` maps the old single-file API onto this package.
 - `simple_plan.md` records the implemented roadmap and bridge validation
   criteria.
-- `RESEARCH_PLAN.md` is the active research roadmap (confidence-certified,
+- `RESEARCH_PLAN.md` is the Paper A roadmap (confidence-certified,
   measurement-efficient ADAPT-VQE).
+- `ACASE_RESEARCH_PLAN.md` is the active roadmap (A-CASE: adaptive
+  Clifford-algebra subspace eigensolver); Phases 1-7 and the §4.2 basis
+  hierarchy through level 4 ship in `subspace/`,
+  `models/lattice.py`, `models/observables.py`, `sparse.py`,
+  `backends/sector_statevector.py`, and the validation ladder
+  (`benchmarks/run_acase_ladder.py`, committed as
+  `benchmarks/reference_results/acase_ladder.jsonl`).
 - `paper/` holds the Paper A manuscript (REVTeX) with figures regenerated
   from the committed benchmark data.
 - License: Apache-2.0.

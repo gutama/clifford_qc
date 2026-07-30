@@ -75,7 +75,7 @@ No figure or table value in the manuscript is transcribed by hand, and
 ```bash
 python -m venv .venv && source .venv/bin/activate
 pip install -e .[test,research,chemistry]   # numpy + scipy + openfermion/pyscf
-pytest                                      # 460 passed, 6 skipped
+pytest                                      # 722 passed, 6 skipped
 ```
 
 That install is the reference environment for the quoted pair, and it is
@@ -192,6 +192,126 @@ python benchmarks/watch_reproduction.py \
 
 Write these long-running reproductions outside `benchmarks/reference_results/`
 unless intentionally regenerating committed artifacts.
+
+## Effective-Hamiltonian end-to-end showcase (numpy only)
+
+The smallest complete materials-facing path uses the synthetic, canonical
+two-site record in `examples/data/wannier_hubbard_dimer.json`:
+
+```bash
+python examples/acase_effective_model.py
+```
+
+This is an integration benchmark, not a DFT result. It validates the boundary
+an upstream Wannier/embedding workflow would use:
+
+```text
+Hermitian one-body matrix + onsite U + explicit reference sector
+    -> Jordan-Wigner Hamiltonian -> A-CASE
+    -> energy + state coefficients + correlations + Lehmann response
+```
+
+Expected invariants (minor last-digit formatting may vary):
+
+- sector exact and adaptive A-CASE energies both `-0.828427125 eV`;
+- absolute energy mismatch below `1e-12 eV`;
+- complete response basis `M=4`, rank `4`, `kappa(S)=1`;
+- singlet diagnostic `<S^2>` below `1e-12`;
+- staggered-spin line at `0.828427125 eV` with weight `0.853553391`.
+
+The program accepts another record as its sole argument. The schema is
+`clifford_qc.effective_hamiltonian.v1`; spin orbitals are interleaved
+(`2*site=up`, `2*site+1=down`), and complex one-body entries are `[real, imag]`.
+
+## A-CASE validation ladder (Phase 7, `chemistry` extra)
+
+```bash
+python benchmarks/run_acase_ladder.py \
+    --config benchmarks/configs/acase_ladder.json \
+    --out benchmarks/reference_results/acase_ladder.jsonl
+python benchmarks/summarize_ladder.py \
+    benchmarks/reference_results/acase_ladder.jsonl \
+    --csv benchmarks/reference_results/acase_ladder_summary.csv \
+    > benchmarks/reference_results/acase_ladder_summary.md
+```
+
+One row per (rung, method) — not per seed — so this record has its own
+summarizer. `summarize.py` understands the per-seed ADAPT schema and would
+reject the ladder's rows; `check_summaries.py` maps the `acase_ladder` stem
+to `summarize_ladder.py` explicitly rather than sniffing the schema.
+
+`--rungs h2,lih_2e2o` restricts the run to named rungs, which is how to
+regenerate one row of the record without rebuilding all of it. Rerunning a
+subset writes a *partial* record, so the committed file must come from a full
+run.
+
+Four conventions in the record are choices, not defaults, and each is
+recorded in the row that made it:
+
+- **The error column is measured against the reference's own symmetry
+  sector**, not against the global ground state. A-CASE never leaves the
+  sector its reference lives in, and a grand-canonical Hubbard cluster's
+  global minimum sits at a different filling. Each row carries the `sector`
+  it was scored in.
+- **Both fixed arms take an even stride through their family**
+  (`selection: stride`, shared by `qse` and `generator_coordinate` through
+  `fixed_slice`), because the natural prefix is all singles and every single is
+  Brillouin-dead on a Hartree–Fock reference: a prefix of eight reproduces the
+  reference energy to machine precision and would report a non-adaptive
+  subspace as worthless for a reason that is about the ordering.
+  `selection: prefix` reproduces that degenerate arm. `krylov` records
+  `selection: null` and keeps its consecutive powers — striding `H^k` builds a
+  different, worse-conditioned space rather than a fairer sample of the same
+  one.
+- **The fermionic sector filter is dropped on models with no fermionic
+  sector.** `sector_leakage` measures `||[A,N]||/||A||` and the same for
+  `S_z`, and it sees a generator alone, so on the Kitaev cluster — one qubit
+  per site, no Jordan–Wigner transformation, no particle number — it rejects
+  every candidate and A-CASE reports a basis of size one at the reference
+  energy. That reads as a method failure and is a configuration error. Rows
+  carry `leakage_filter` saying whether the tolerance was applied or dropped.
+  On the fermionic rungs the excitation candidates conserve both symmetries
+  exactly (leakage `0.0`), so the filter is a no-op there.
+- **Wide generators fall back to the cyclic contraction.** The
+  element-operator route is what makes `W` and `S_H` observable and it costs
+  `O(|A_i| |H| |A_j|)` per pair; deep Krylov generators on eight qubits carry
+  thousands of words each. Above `max_tracked_support` (512) the row is solved
+  through the cheap route and sets `support_tracked: false` rather than
+  reporting guessed support columns.
+
+Certified A-CASE runs on the eight-qubit rungs as `acase_certified_n8`, at
+32 000 shots per group against the four-qubit rungs' 4 000. It needs the larger
+budget: at 4 000 it abstains immediately on H₄, which is a correct certified
+outcome rather than a failure, and the extra shots are nearly free because the
+per-group sampling plan is built once and reused.
+
+Getting there needed a fix in the measurement layer, and the first diagnosis of
+it was wrong. The QWC partition *is* greedy and quadratic, but it is memoized on
+the word set, and the certified loop's universe is the same index set at every
+growth step — so it was computed once, not per step, and it was never the
+binding cost. The binding cost was `computational_probabilities` at 11.4 s per
+eight-qubit readout, called once per group per batch, which made a single batch
+over H₄'s 1 689 groups take hours. A Z-basis readout only sees the diagonal
+Pauli content of the state, and the outcome vector is the Walsh–Hadamard
+transform of those coefficients, so it is `O(2^n n)` rather than `O(4^n)`. With
+that plus a cached per-group sampling plan, a warm batch is 0.19 s.
+
+`adapt_shot` still appears only on the four-qubit rungs; its cost is the ADAPT
+pool sweep, not the sampler.
+
+The Hubbard rungs carry a §4.2 **level-4** arm (`acase_level4`) beside a
+matched levels-0-3 arm at the same budget (`acase_exact_m25`), so the
+comparison is like-for-like. Level 4 adds the cluster's competing-order
+configurations and their products with the excitation family; it is opt-in per
+method (`"level4": true`) because it is the only quadratic family in the
+hierarchy. Both arms set `leakage_tol` to null: the operator-level sector
+filter rejects every configuration generator by construction (an `X`-string
+does not commute with `N`), and the right test for a configuration is the
+sector of the state it names, which `subspace.state_sector` reports.
+
+Costs on one laptop-class core: the four-qubit rungs are seconds each, the
+`h4_*` rungs a few minutes apiece, and `h2o_cas8e6o` (12 qubits) dominates the
+total. The certified eight-qubit rows add roughly three minutes each.
 
 ## Demos (not committed as artifacts)
 
