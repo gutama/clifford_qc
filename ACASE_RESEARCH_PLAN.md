@@ -731,6 +731,34 @@ that made it:
   element-operator route that makes `W` and `S_H` observable costs
   `O(|A_i| |H| |A_j|)` per pair.
 
+*A configuration error the ladder caught, which would have published as a
+method failure.* `sector_leakage` measures `||[A,N]||/||A||` and the same for
+`S_z` — the *fermionic* symmetries — and it takes a generator alone, so it
+cannot know that the Kitaev cluster is one qubit per site with no
+Jordan–Wigner transformation behind it and no particle number to conserve.
+Applied there, the §4.2 sector filter rejected all 72 candidates (the whole
+pool leaks at 0.94 or above) and A-CASE reported a basis of size one sitting at
+the reference energy, `−4.0` against the cluster's `−4.9624`. Read off the
+table that is "A-CASE cannot grow on a frustrated spin cluster." It is nothing
+of the kind: with the filter correctly not applied, A-CASE reaches the exact
+energy to `7e-13` at `M = 6`. The tolerance is now dropped for models with no
+fermionic sector and the row records that it was dropped, so the failure cannot
+recur silently. On the fermionic rungs the excitation candidates conserve both
+symmetries *exactly* (leakage `0.0`), so the filter is a no-op and the
+distinction costs nothing there.
+
+That recovered row is worth reading carefully rather than banking as a win,
+because it is exactly the reading §6 exists to block. A-CASE's selected basis
+is `I, H¹, H², H³, H⁷, H⁸` — six of the nine Krylov powers that were sitting in
+its own candidate pool, with every `pauli_orbit` and `commutator_response`
+candidate passed over. So it did not find a more compact *kind* of basis; it
+pruned the Krylov basis by a third. And the resources do not follow the basis
+size down: the word universe is identical (`W = 140`, `S_H = 76`, the same words
+either way) and the conditioning is marginally *worse* (`κ_S = 3.8e+04` against
+Krylov's `3.3e+04`). Counting basis vectors alone, this is `M = 6` beating
+`M = 9`; counting what §6 asks for, it is the same measurement cost and the same
+ill-conditioning with three fewer coefficients to fit.
+
 *The measurement layer, not the shot budget, is what gates finite-shot rows to
 the four-qubit rungs.* The QWC partition is greedy and quadratic in the word
 universe — doubling the words quadruples the time (0.20 s at 750 random 8-qubit
@@ -741,6 +769,76 @@ A-CASE requires that: the grouping is a preprocessing step over a word set
 that grows monotonically as the basis grows, so it should be incremental rather
 than recomputed. It is not, and that is the honest reason the certified arm
 stops at `n = 4`.
+
+*Measured* (`benchmarks/reference_results/acase_ladder.jsonl`, 63 runs; error in
+Hartree against the reference's own sector, `—` where the config does not run
+that arm on that rung):
+
+| rung | n | reference | QSE | Krylov | gen-coord | ADAPT | A-CASE |
+|---|---|---|---|---|---|---|---|
+| h2 | 4 | +2.1e-02 | −2.7e-15 | −1.8e-15 | −2.4e-15 | −2.0e-15 | −2.4e-15 |
+| lih_2e2o | 4 | +2.6e-04 | +3.0e-14 | +9.8e-12 | +3.1e-14 | +2.8e-14 | +3.1e-14 |
+| h4_equilibrium | 8 | +5.6e-02 | +4.2e-02 | **+1.0e-08** | +5.0e-02 | +2.4e-03 | +3.0e-03 |
+| h4_stretched | 8 | +2.6e-01 | +1.8e-01 | **+1.5e-05** | +1.8e-01 | +7.4e-03 | +3.9e-02 |
+| h2o_cas4e4o_stretched | 8 | +3.2e-01 | +1.7e-01 | **+7.1e-03** | +1.6e-01 | +1.2e-02 | +5.5e-02 |
+| h2o_cas8e6o | 12 | +5.0e-02 | +4.7e-02 | — | +4.2e-02 | — | **+1.4e-02** |
+| hubbard_2x2 | 8 | +2.1e+00 | +1.5e+00 | **+2.6e-03** | +1.9e+00 | +4.0e-01 | +8.6e-01 |
+| hubbard_2x3 | 12 | +3.6e+00 | +3.4e+00 | — | +3.2e+00 | — | **+2.2e+00** |
+| kitaev_2x2 | 8 | +9.6e-01 | +9.6e-01 | −1.1e-14 | — | +9.6e-01 | **+7.4e-13** |
+
+Read with §6 beside it, at the equal budget `M = 9` on the six rungs where both
+non-adaptive and adaptive arms ran:
+
+| rung | gen-coord `W` | A-CASE `W` | gen-coord `κ_S` | Krylov `κ_S` | A-CASE `κ_S` |
+|---|---|---|---|---|---|
+| h4_equilibrium | 13 646 | 7 371 | 1.0 | 6.6e+10 | 1.0 |
+| h4_stretched | 13 646 | 7 715 | 1.0 | 2.6e+10 | 1.0 |
+| h2o_cas4e4o_stretched | 12 734 | 7 783 | 1.0 | 6.0e+07 | 1.0 |
+| h2o_cas8e6o | 232 515 | 143 117 | 1.0 | — | 1.0 |
+| hubbard_2x2 | 6 258 | 5 537 | 1.0 | 9.7e+09 | 1.0 |
+| hubbard_2x3 | 27 870 | 5 358 | 1.0 | — | 1.0 |
+
+What the ladder does and does not support:
+
+- **Q1, against blind selection: supported.** At equal `M = 9` and drawing from
+  the *same* candidate family, adaptive selection beats the strided
+  generator-coordinate subspace on every rung — in error (by 1.5× on the 2×3
+  Hubbard up to 17× on equilibrium H₄) and in word universe simultaneously
+  (7 371 against 13 646 on H₄; 5 358 against 27 870 on the 2×3 Hubbard, a 5.2×
+  saving). That is the comparison Q1 was
+  written for, and the `W` column is what makes it a resource claim rather than
+  a basis-size claim.
+- **Q1, against fixed Krylov: not supported.** Krylov wins the energy on every
+  fermionic rung where it ran, at the same `M` and by up to five orders of
+  magnitude (1.0e-08 against 3.0e-03 on equilibrium H₄). The compactness claim
+  does not survive that comparison and should not be advertised as if it did.
+  Only on the Kitaev cluster do the two agree, both exact.
+  What Krylov pays is conditioning — `κ_S` from 3.3e+04
+  to 6.6e+10, against A-CASE's `1.0` on every fermionic rung, because A-CASE
+  rejects candidates that are not sufficiently independent of the span it
+  already has. At eight qubits its generators are also too wide to bank at all
+  (`n/t` in the record). So the honest summary is a trade, not a win: Krylov
+  buys accuracy with an overlap matrix no finite-shot run could invert, and
+  A-CASE buys a conditioned, measurable subspace at a worse energy.
+- **A-CASE does not beat ADAPT-VQE.** ADAPT is better on stretched H₄
+  (7.4e-03 against 3.9e-02), on stretched water (1.2e-02 against 5.5e-02), and
+  on the 2×2 Hubbard (4.0e-01 against 8.6e-01), and ties at equilibrium H₄.
+  This reproduces the Phase 3 finding rather than overturning it. The one place
+  ADAPT collapses is the Kitaev cluster, where its exact gradient is below
+  threshold at the reference and it selects *zero* operators: the reference is a
+  stationary point, and a first-order selection rule has nothing to see. A-CASE's
+  2×2 generalized lowering is not a gradient and does grow there.
+- **Q4: falsified on the Hubbard clusters, as Phase 5 already indicated.** The
+  singles-and-doubles candidate family saturates 0.86 Ha above the 2×2 sector
+  ground energy and 2.2 Ha above the 2×3, and no arm but Krylov comes close.
+  Competing-order stabilizer configurations are what §4 proposed for this regime
+  and they are not in the candidate pool; until they are, the materials-reach
+  question is open rather than answered.
+- **Q3 has a concrete instance in the record.** The certified H₂ row reports
+  `−1.13821296` against a reference of `−1.13727017` — 0.94 mHa *below* the
+  exact energy. The variational bound does not survive thresholding a noisy
+  overlap matrix, which is why the summarizer refuses to rank on energy without
+  the evidence label.
 
 ## 6. Resource accounting (equal partner to basis size)
 

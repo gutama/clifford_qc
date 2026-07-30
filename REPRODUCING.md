@@ -75,7 +75,7 @@ No figure or table value in the manuscript is transcribed by hand, and
 ```bash
 python -m venv .venv && source .venv/bin/activate
 pip install -e .[test,research,chemistry]   # numpy + scipy + openfermion/pyscf
-pytest                                      # 689 passed, 6 skipped
+pytest                                      # 691 passed, 6 skipped
 ```
 
 That install is the reference environment for the quoted pair, and it is
@@ -215,7 +215,7 @@ regenerate one row of the record without rebuilding all of it. Rerunning a
 subset writes a *partial* record, so the committed file must come from a full
 run.
 
-Three conventions in the record are choices, not defaults, and each is
+Four conventions in the record are choices, not defaults, and each is
 recorded in the row that made it:
 
 - **The error column is measured against the reference's own symmetry
@@ -223,12 +223,25 @@ recorded in the row that made it:
   sector its reference lives in, and a grand-canonical Hubbard cluster's
   global minimum sits at a different filling. Each row carries the `sector`
   it was scored in.
-- **`generator_coordinate` takes an even stride through the candidate
-  family** (`selection: stride`), because the natural prefix is all singles
-  and every single is Brillouin-dead on a Hartree–Fock reference: a prefix of
-  eight reproduces the reference energy to machine precision and would report
-  a non-adaptive subspace as worthless for a reason that is about the
-  ordering. `selection: prefix` reproduces that degenerate arm.
+- **Both fixed arms take an even stride through their family**
+  (`selection: stride`, shared by `qse` and `generator_coordinate` through
+  `fixed_slice`), because the natural prefix is all singles and every single is
+  Brillouin-dead on a Hartree–Fock reference: a prefix of eight reproduces the
+  reference energy to machine precision and would report a non-adaptive
+  subspace as worthless for a reason that is about the ordering.
+  `selection: prefix` reproduces that degenerate arm. `krylov` records
+  `selection: null` and keeps its consecutive powers — striding `H^k` builds a
+  different, worse-conditioned space rather than a fairer sample of the same
+  one.
+- **The fermionic sector filter is dropped on models with no fermionic
+  sector.** `sector_leakage` measures `||[A,N]||/||A||` and the same for
+  `S_z`, and it sees a generator alone, so on the Kitaev cluster — one qubit
+  per site, no Jordan–Wigner transformation, no particle number — it rejects
+  every candidate and A-CASE reports a basis of size one at the reference
+  energy. That reads as a method failure and is a configuration error. Rows
+  carry `leakage_filter` saying whether the tolerance was applied or dropped.
+  On the fermionic rungs the excitation candidates conserve both symmetries
+  exactly (leakage `0.0`), so the filter is a no-op there.
 - **Wide generators fall back to the cyclic contraction.** The
   element-operator route is what makes `W` and `S_H` observable and it costs
   `O(|A_i| |H| |A_j|)` per pair; deep Krylov generators on eight qubits carry

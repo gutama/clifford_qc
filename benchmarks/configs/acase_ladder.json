@@ -1,0 +1,228 @@
+{
+  "methods": {
+    "exact": {
+      "kind": "exact",
+      "family": "reference"
+    },
+    "reference_state": {
+      "kind": "reference_state",
+      "family": "reference"
+    },
+    "qse": {
+      "kind": "qse",
+      "size": 8,
+      "selection": "stride",
+      "family": "fixed"
+    },
+    "krylov": {
+      "kind": "krylov",
+      "size": 8,
+      "family": "fixed"
+    },
+    "generator_coordinate": {
+      "kind": "generator_coordinate",
+      "size": 8,
+      "selection": "stride",
+      "family": "fixed"
+    },
+    "adapt_exact": {
+      "kind": "adapt_exact",
+      "max_operators": 8,
+      "family": "adapt"
+    },
+    "adapt_shot": {
+      "kind": "adapt_shot",
+      "max_operators": 8,
+      "base": 1024,
+      "max_factor": 64,
+      "delta": 0.05,
+      "near_tol": 0.1,
+      "family": "adapt"
+    },
+    "acase_exact": {
+      "kind": "acase_exact",
+      "max_size": 8,
+      "leakage_tol": 1e-09,
+      "family": "acase"
+    },
+    "acase_states": {
+      "kind": "acase_exact",
+      "max_size": 10,
+      "roots": 3,
+      "leakage_tol": 1e-09,
+      "family": "acase"
+    },
+    "acase_certified": {
+      "kind": "acase_certified",
+      "max_size": 4,
+      "construction_shots": 4000,
+      "certification_shots": 4000,
+      "threshold": 0.05,
+      "leakage_tol": 1e-09,
+      "family": "acase"
+    }
+  },
+  "ladder": [
+    {
+      "name": "h2",
+      "rung": 1,
+      "system": {
+        "type": "h2"
+      },
+      "methods": [
+        "exact",
+        "reference_state",
+        "qse",
+        "krylov",
+        "generator_coordinate",
+        "adapt_exact",
+        "adapt_shot",
+        "acase_exact",
+        "acase_certified"
+      ]
+    },
+    {
+      "name": "lih_2e2o",
+      "rung": 1,
+      "system": {
+        "type": "lih"
+      },
+      "methods": [
+        "exact",
+        "reference_state",
+        "qse",
+        "krylov",
+        "generator_coordinate",
+        "adapt_exact",
+        "adapt_shot",
+        "acase_exact",
+        "acase_certified"
+      ]
+    },
+    {
+      "name": "h4_equilibrium",
+      "rung": 2,
+      "system": {
+        "type": "h4",
+        "spacing": 0.9
+      },
+      "methods": [
+        "exact",
+        "reference_state",
+        "qse",
+        "krylov",
+        "generator_coordinate",
+        "adapt_exact",
+        "acase_exact"
+      ]
+    },
+    {
+      "name": "h4_stretched",
+      "rung": 2,
+      "system": {
+        "type": "h4",
+        "spacing": 1.8
+      },
+      "methods": [
+        "exact",
+        "reference_state",
+        "qse",
+        "krylov",
+        "generator_coordinate",
+        "adapt_exact",
+        "acase_exact"
+      ]
+    },
+    {
+      "name": "h2o_cas4e4o_stretched",
+      "rung": 3,
+      "system": {
+        "type": "water",
+        "scale": 2.0,
+        "active": "4e4o"
+      },
+      "methods": [
+        "exact",
+        "reference_state",
+        "qse",
+        "krylov",
+        "generator_coordinate",
+        "adapt_exact",
+        "acase_exact"
+      ]
+    },
+    {
+      "name": "h2o_cas8e6o",
+      "rung": 4,
+      "system": {
+        "type": "water",
+        "scale": 1.0,
+        "active": "8e6o"
+      },
+      "methods": [
+        "exact",
+        "reference_state",
+        "qse",
+        "generator_coordinate",
+        "acase_exact"
+      ]
+    },
+    {
+      "name": "hubbard_2x2",
+      "rung": 5,
+      "system": {
+        "type": "hubbard",
+        "shape": [
+          2,
+          2
+        ]
+      },
+      "methods": [
+        "exact",
+        "reference_state",
+        "qse",
+        "krylov",
+        "generator_coordinate",
+        "adapt_exact",
+        "acase_exact",
+        "acase_states"
+      ]
+    },
+    {
+      "name": "hubbard_2x3",
+      "rung": 5,
+      "system": {
+        "type": "hubbard",
+        "shape": [
+          2,
+          3
+        ]
+      },
+      "methods": [
+        "exact",
+        "reference_state",
+        "qse",
+        "generator_coordinate",
+        "acase_exact"
+      ]
+    },
+    {
+      "name": "kitaev_2x2",
+      "rung": 6,
+      "system": {
+        "type": "kitaev",
+        "rows": 2,
+        "cols": 2
+      },
+      "krylov_order": 8,
+      "methods": [
+        "exact",
+        "reference_state",
+        "qse",
+        "krylov",
+        "adapt_exact",
+        "acase_exact"
+      ]
+    }
+  ]
+}

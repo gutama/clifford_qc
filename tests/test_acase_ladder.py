@@ -158,6 +158,45 @@ def test_summarizer_is_deterministic_and_reports_the_evidence(ladder):
     assert len(csv_path.read_text().splitlines()) == len(rows) + 1
 
 
+def test_the_fermionic_leakage_filter_is_not_applied_to_a_spin_model():
+    """A global method spec carries one ``leakage_tol`` for every rung, and
+    ``sector_leakage`` measures the *fermionic* symmetries. On a spin lattice
+    there is no particle number to conserve, every candidate leaks, and the
+    filter rejects the whole pool -- which reads as A-CASE failing to grow when
+    it is the configuration that is wrong. The tolerance is dropped there, and
+    the row says so rather than staying silent.
+    """
+    spec = {"leakage_tol": 1e-9}
+    assert run_acase_ladder.leakage_tolerance(dict(spec), "molecular") \
+        == (1e-9, "applied at 1e-09")
+    assert run_acase_ladder.leakage_tolerance(dict(spec), "fermionic_lattice")[0] == 1e-9
+    tol, note = run_acase_ladder.leakage_tolerance(dict(spec), "spin_lattice")
+    assert tol is None and "no fermionic sector" in note
+    assert run_acase_ladder.leakage_tolerance({}, "spin_lattice") == (None,
+                                                                     "not requested")
+
+
+def test_a_spin_lattice_rung_still_grows_under_a_requested_leakage_tolerance():
+    """The regression the guard exists for, end to end: with the filter wrongly
+    applied the Kitaev cluster stalls at the reference energy with a basis of
+    one; with the guard it reaches the cluster's exact ground state."""
+    pytest.importorskip("scipy")
+    from clifford_qc.backends import ExactMVBackend
+
+    model, kind = run_acase_ladder.build_system({"type": "kitaev", "rows": 2, "cols": 2})
+    reference, _ = run_acase_ladder.reference_energy(model, kind)
+    context = {"rho": ExactMVBackend().state(model.reference, ()), "observables": {},
+               "reference": reference,
+               "candidates": run_acase_ladder.build_candidates(model, kind, 8),
+               "pool": run_acase_ladder.word_pool(model, kind)}
+    row = run_acase_ladder.run_method(
+        "acase_exact", {"kind": "acase_exact", "max_size": 8, "leakage_tol": 1e-9},
+        model, kind, context)
+    assert "no fermionic sector" in row["leakage_filter"]
+    assert row["energy"] == pytest.approx(reference, abs=1e-8)
+    assert row["basis_size"] > 1
+
+
 def test_untracked_support_is_not_rendered_as_inapplicable():
     """"-" means the column does not apply; a deliberate cyclic-route fallback
     is a different statement and gets its own marker."""

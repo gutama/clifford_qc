@@ -220,6 +220,31 @@ def _subspace_row(result, observables) -> dict:
     return row
 
 
+def leakage_tolerance(spec: dict, kind: str) -> tuple[float | None, str]:
+    """The §4.2 sector tolerance, but only where a fermionic sector exists.
+
+    ``sector_leakage`` measures ``||[A,N]||/||A||`` and the same for ``S_z``.
+    Those are the *fermionic* symmetries, and it takes a generator alone, so it
+    cannot know that a Kitaev cluster is one qubit per site with no
+    Jordan-Wigner transformation behind it and no particle number to conserve.
+    Applied there the filter rejects every candidate -- the whole 72-candidate
+    pool leaks at 0.94 or above -- and A-CASE reports a basis of size one at the
+    reference energy, which reads as a method failure and is a configuration
+    error. On the fermionic rungs the excitation candidates conserve both
+    symmetries exactly (leakage 0.0), so the filter is a no-op and the
+    distinction costs nothing there.
+
+    The tolerance is dropped rather than an error, because a global method spec
+    has to serve every rung; the row records that it was dropped and why.
+    """
+    tol = spec.pop("leakage_tol", None)
+    if tol is None:
+        return None, "not requested"
+    if kind == "spin_lattice":
+        return None, "dropped: no fermionic sector to leak out of"
+    return float(tol), f"applied at {float(tol):g}"
+
+
 def run_method(name: str, spec: dict, model, kind: str, context: dict) -> dict:
     """One (system, method) run, as a record row without the shared fields."""
     from clifford_qc.backends import ExactMVBackend, FiniteShotBackend
@@ -283,12 +308,14 @@ def run_method(name: str, spec: dict, model, kind: str, context: dict) -> dict:
         return row
 
     if method == "acase_exact":
+        tol, leakage_note = leakage_tolerance(spec, kind)
         result = run_acase(rho, model.hamiltonian, context["candidates"],
                            exact_ground_energy=context["reference"],
                            max_size=int(spec.pop("max_size", 8)),
                            roots=int(spec.pop("roots", 1)),
-                           leakage_tol=spec.pop("leakage_tol", None))
+                           leakage_tol=tol)
         row = {"energy": result.energy, "evidence": "exact",
+               "leakage_filter": leakage_note,
                "stopped_reason": result.stopped_reason,
                "energy_history": list(result.energy_history),
                "root_energies": list(result.root_energies)}
@@ -296,6 +323,7 @@ def run_method(name: str, spec: dict, model, kind: str, context: dict) -> dict:
         return row
 
     if method == "acase_certified":
+        tol, leakage_note = leakage_tolerance(spec, kind)
         result = run_certified_acase(
             rho, model.hamiltonian, context["candidates"],
             FiniteShotBackend(seed=seed),
@@ -304,9 +332,10 @@ def run_method(name: str, spec: dict, model, kind: str, context: dict) -> dict:
             certification_shots=int(spec.pop("certification_shots", 4000)),
             delta=float(spec.pop("delta", 0.05)),
             threshold=float(spec.pop("threshold", 0.05)),
-            leakage_tol=spec.pop("leakage_tol", None),
+            leakage_tol=tol,
             exact_ground_energy=context["reference"])
         row = {"energy": result.energy, "evidence": "finite_sample",
+               "leakage_filter": leakage_note,
                "stopped_reason": result.stopped_reason,
                "total_shots": result.total_shots,
                "total_circuits": result.total_circuits,
