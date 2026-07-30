@@ -59,6 +59,34 @@ produces, and returns energies, low-lying spectra, and material observables.
 3. **ADAPT-VQE** (Paper A machinery, complete) — the variational comparison
    point at matched operator budget.
 
+### 1.1 Minimum viable materials-facing showcase — shipped
+
+`models/effective.py` is the narrow boundary the diagram above was missing. It
+reads the versioned schema `clifford_qc.effective_hamiltonian.v1`: a Hermitian,
+spin-independent Wannier one-body matrix, local `U_i`, chemical potential,
+energy-unit label, explicit interleaved spin-orbital reference, and optional
+provenance. It builds the ordinary second-quantized Hamiltonian and maps it
+through the package's existing Jordan-Wigner layer. It does **not** claim to
+run DFT, Wannierization, cRPA, or DMFT.
+
+The canonical integration rung is the two-site Hubbard dimer (`t=1`, `U=4`
+eV, four qubits, sector `N=2, S_z=0`). It is the smallest system that exercises
+the whole output contract while retaining an independent oracle:
+
+| output | A-CASE showcase | independent check |
+|---|---:|---:|
+| ground energy | `-0.828427125 eV` | sector exact, error `< 1e-12 eV` |
+| response basis | `M=4`, rank `4`, `kappa(S)=1` | sector dimension `4` |
+| average double occupancy | `0.073223305` | projected observable |
+| `<S_0.S_1>` | `-0.640165043` | projected observable |
+| `<S^2>` | `< 1e-12` | singlet invariant |
+| staggered-spin line | `omega=0.828427125 eV`, weight `0.853553391` | Lehmann sum rule |
+
+The benchmark is intentionally labelled synthetic: it proves that an effective
+Hamiltonian can cross the software boundary and produce energies, projected
+state coefficients, correlations, and response. It does not establish
+materials accuracy or a quantum advantage.
+
 ## 2. Why A-CASE first (architecture audit)
 
 The PDF ordering ("implement matrix-free Pauli Lanczos first") predates the
