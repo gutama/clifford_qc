@@ -4,7 +4,6 @@ from __future__ import annotations
 
 import csv
 import json
-import math
 import os
 from pathlib import Path
 
@@ -22,6 +21,7 @@ ROOT = HERE.parent
 ASSETS = HERE / "paper_assets"
 LADDER = ROOT / "benchmarks" / "reference_results" / "acase_ladder_summary.csv"
 RESPONSE = HERE / "data" / "response_bootstrap.json"
+RESPONSE_ILL = HERE / "data" / "response_bootstrap_illconditioned.json"
 
 
 def _style() -> None:
@@ -198,12 +198,52 @@ def response_plot() -> None:
     plt.close(fig)
 
 
+def conditioning_plot() -> None:
+    """The same band at two conditionings, on one frequency axis.
+
+    Plotting them together is the point: the widths are what the acceptance
+    rate is a warning about, and side-by-side panels would let a reader compare
+    shapes without comparing scales.
+    """
+    well = json.loads(RESPONSE.read_text())
+    ill = json.loads(RESPONSE_ILL.read_text())
+    fig, ax = plt.subplots(figsize=(4.0, 2.9))
+    # The bands themselves are visually indistinguishable against the peak:
+    # both track the exact line closely on an absolute S(omega) axis, and the
+    # quantity actually under comparison -- how wide the interval is at each
+    # frequency -- is what that plot hides. Plot the width directly.
+    for record, color, label in (
+            (well, "#6a51a3", "determinant"),
+            (ill, "#c1121f", "Hamiltonian powers")):
+        spectrum = record["spectrum"]
+        boot = record["bootstrap"]
+        kappa = record["basis"]["condition_number"]
+        width = (np.asarray(spectrum["upper"])
+                 - np.asarray(spectrum["lower"]))
+        ax.plot(np.asarray(spectrum["frequency_ev"]), width, color=color,
+                linewidth=1.4,
+                label=(rf"$\kappa_S$={kappa:.3g}, "
+                       rf"{boot['replicates_succeeded']}/"
+                       rf"{boot['replicates_requested']} accepted"
+                       "\n" rf"{label}"))
+    ax.set_xlabel(r"frequency $\omega$ (eV)")
+    ax.set_ylabel(r"band width (eV$^{-1}$)")
+    ax.set_xlim(0.35, 1.30)
+    ax.set_yscale("log")
+    ax.legend(frameon=False, loc="lower center", fontsize=6.2)
+    ax.set_title("Pointwise band width versus overlap conditioning")
+    fig.tight_layout(pad=0.4)
+    fig.savefig(ASSETS / "conditioning_bands.pdf", bbox_inches="tight")
+    plt.close(fig)
+
+
 def main() -> None:
     ASSETS.mkdir(parents=True, exist_ok=True)
     _style()
     pipeline()
     benchmark_heatmap()
     response_plot()
+    conditioning_plot()
     print(ASSETS)
 
 

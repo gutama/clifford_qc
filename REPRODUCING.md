@@ -253,6 +253,57 @@ The adapter itself needs no chemistry extra. Full CI additionally compares its
 FCIDUMP orbital signs are a gauge; the committed digest fixes one gauge rather
 than weakening coefficient tolerances.
 
+### Varying the reference state
+
+The adaptive arm above misses chemical accuracy at its declared budget. That
+is a property of the reference, not of the budget:
+
+```bash
+python benchmarks/run_warm_start.py \
+    --out reproductions/warm_start_h4.json
+```
+
+Same FCIDUMP, same candidate pool, same eight additions; only `rho` changes,
+from the Hartree-Fock determinant to an ADAPT-VQE state. Expected results
+(`benchmarks/reference_results/warm_start_h4.json`):
+
+- Hartree-Fock reference: `M=9`, error `3.019 mHa`, `kappa(S)=1`, `W=7371`;
+- 2-operator ADAPT reference: `M=9`, error `0.342 mHa` (chemical accuracy),
+  `kappa(S)=1.02`, `W=7510`;
+- the ADAPT state alone is `27.091 mHa`, an order of magnitude worse than the
+  cold A-CASE result it improves;
+- deeper warm starts are better states and give worse subspaces: `0.612 mHa`
+  at `k=4` and `0.768 mHa` at `k=6`.
+
+This benchmark stays NumPy-only: the ADAPT pool is built from the odd-Y words
+of the determinant excitations rather than through the OpenFermion-backed
+`models.chemistry.excitation_pool`.
+
+### Krylov measurement width
+
+The ladder leaves the Krylov arm's `W` blank because the tracked element route
+is quadratic in the basis and the powers are dense. For `A_k = H^k` with
+Hermitian `H` the union collapses to `H^0 ... H^(2m+1)`, which is linear:
+
+```bash
+python benchmarks/run_krylov_width.py \
+    --out reproductions/krylov_width.json
+```
+
+Expected results (`benchmarks/reference_results/krylov_width.json`), at the
+`1e-8` coefficient threshold the record reports:
+
+- `h2` `W=24` and `lih` `W=64`, reproducing the ladder's own tracked counts;
+- `h4_chain(r=0.9)` `W=4224` against A-CASE's `7371`;
+- `h2o_4e4o(scale=2.0)` `W=8192` against A-CASE's `7783`, the one rung where
+  the operator-generated basis is the narrower of the two;
+- `kitaev` `W=140`, equal to A-CASE, which there is a pruned Krylov basis.
+
+The threshold matters: repeated multiplication accumulates round-off, so the
+raw Krylov count on `h4_chain(r=0.9)` is `8184` rather than `4224`. The A-CASE
+universe is unchanged by any threshold up to `1e-8`.
+`tests/test_krylov_width.py` checks the identity against direct enumeration.
+
 ## Finite-shot nonlinear response uncertainty
 
 ```bash

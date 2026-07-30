@@ -1,0 +1,135 @@
+{
+  "method": "union of supp(H^k), k = 0 .. 2*order+1",
+  "reported_threshold": 1e-08,
+  "rows": [
+    {
+      "basis_size": 9,
+      "hamiltonian_terms": 15,
+      "kind": "molecular",
+      "krylov_order": 8,
+      "n": 4,
+      "rung": "h2",
+      "system": "h2(r=0.7414)",
+      "word_universe": 24,
+      "word_universe_by_threshold": {
+        "0.0": 24,
+        "1e-06": 24,
+        "1e-08": 24,
+        "1e-10": 24,
+        "1e-12": 24,
+        "1e-14": 24
+      }
+    },
+    {
+      "basis_size": 9,
+      "hamiltonian_terms": 27,
+      "kind": "molecular",
+      "krylov_order": 8,
+      "n": 4,
+      "rung": "lih_2e2o",
+      "system": "lih(r=1.5949)",
+      "word_universe": 64,
+      "word_universe_by_threshold": {
+        "0.0": 64,
+        "1e-06": 64,
+        "1e-08": 64,
+        "1e-10": 64,
+        "1e-12": 64,
+        "1e-14": 64
+      }
+    },
+    {
+      "basis_size": 9,
+      "hamiltonian_terms": 185,
+      "kind": "molecular",
+      "krylov_order": 8,
+      "n": 8,
+      "rung": "h4_equilibrium",
+      "system": "h4_chain(r=0.9)",
+      "word_universe": 4224,
+      "word_universe_by_threshold": {
+        "0.0": 8186,
+        "1e-06": 5580,
+        "1e-08": 4224,
+        "1e-10": 4904,
+        "1e-12": 8186,
+        "1e-14": 8186
+      }
+    },
+    {
+      "basis_size": 9,
+      "hamiltonian_terms": 185,
+      "kind": "molecular",
+      "krylov_order": 8,
+      "n": 8,
+      "rung": "h4_stretched",
+      "system": "h4_chain(r=1.8)",
+      "word_universe": 4224,
+      "word_universe_by_threshold": {
+        "0.0": 4224,
+        "1e-06": 6936,
+        "1e-08": 4224,
+        "1e-10": 4224,
+        "1e-12": 4224,
+        "1e-14": 4224
+      }
+    },
+    {
+      "basis_size": 9,
+      "hamiltonian_terms": 185,
+      "kind": "molecular",
+      "krylov_order": 8,
+      "n": 8,
+      "rung": "h2o_cas4e4o_stretched",
+      "system": "h2o_4e4o(scale=2.0)",
+      "word_universe": 8192,
+      "word_universe_by_threshold": {
+        "0.0": 8192,
+        "1e-06": 8192,
+        "1e-08": 8192,
+        "1e-10": 8192,
+        "1e-12": 8192,
+        "1e-14": 8192
+      }
+    },
+    {
+      "basis_size": 9,
+      "hamiltonian_terms": 21,
+      "kind": "fermionic_lattice",
+      "krylov_order": 8,
+      "n": 8,
+      "rung": "hubbard_2x2",
+      "system": "hubbard(2x2,t=1.0,U=4.0,obc)",
+      "word_universe": 3968,
+      "word_universe_by_threshold": {
+        "0.0": 3968,
+        "1e-06": 3968,
+        "1e-08": 3968,
+        "1e-10": 3968,
+        "1e-12": 3968,
+        "1e-14": 3968
+      }
+    },
+    {
+      "basis_size": 9,
+      "hamiltonian_terms": 8,
+      "kind": "spin_lattice",
+      "krylov_order": 8,
+      "n": 8,
+      "rung": "kitaev_2x2",
+      "system": "kitaev(2x2,K=1.0,1.0,1.0,obc)",
+      "word_universe": 140,
+      "word_universe_by_threshold": {
+        "0.0": 140,
+        "1e-06": 140,
+        "1e-08": 140,
+        "1e-10": 140,
+        "1e-12": 140,
+        "1e-14": 140
+      }
+    }
+  ],
+  "schema": "clifford_qc.krylov_width.v1",
+  "skipped": [],
+  "threshold_note": "Counts at the reported threshold. The raw count includes words that exist only as accumulated round-off; the A-CASE universe is unchanged by any threshold up to 1e-8, the Krylov universe is not. Entries below 1e-8 are not reproducible run to run on the chemistry rungs: the SCF settles on orbital coefficients differing in the last bits, and H^17 of a Hamiltonian perturbed at 1e-16 has a different round-off-level support. Observed on h4_chain(r=0.9): 8184 raw on one run, 8180 on the next, 4224 reported on both. benchmarks/check_krylov_width.py therefore gates the reported counts rather than the file bytes."
+}

@@ -104,10 +104,21 @@ jobs:
       # paper_acase/ is a second, standalone manuscript with its own generators
       # and its own committed records. It gets the same gates: without them the
       # drift protection above would cover only half the repository's papers.
-      - name: A-CASE paper -- regenerate the response record, then fail on drift
+      - name: A-CASE paper -- regenerate the response records, then fail on drift
         run: |
           python paper_acase/run_response_record.py
           git diff --exit-code -- paper_acase/data
+      # The warm-start record feeds Table III and is deterministic, so it gets
+      # the same bit-for-bit gate as the response records.
+      - name: A-CASE paper -- regenerate the warm-start record, then fail on drift
+        run: |
+          python benchmarks/run_warm_start.py
+          git diff --exit-code -- benchmarks/reference_results/warm_start_h4.json
+      # The Krylov widths (Table IV) are checked by value rather than by bytes:
+      # the record's raw counts include round-off-level words that two PySCF
+      # runs disagree about. See the script's docstring.
+      - name: A-CASE paper -- Krylov widths agree with their record
+        run: python benchmarks/check_krylov_width.py
       - name: A-CASE paper -- regenerate figures and tables, then fail on drift
         run: |
           python paper_acase/make_figures.py

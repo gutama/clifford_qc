@@ -38,6 +38,10 @@ FIGURE_SOURCES = {
         ROOT / "benchmarks" / "reference_results" / "acase_ladder_summary.csv",
     ),
     "response_bootstrap.pdf": (HERE / "data" / "response_bootstrap.json",),
+    "conditioning_bands.pdf": (
+        HERE / "data" / "response_bootstrap.json",
+        HERE / "data" / "response_bootstrap_illconditioned.json",
+    ),
     # pipeline.pdf is a schematic: it plots no record.
 }
 

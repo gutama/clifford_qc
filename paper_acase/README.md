@@ -13,16 +13,31 @@ software representation.
 
 - `manuscript.tex` — standalone REVTeX 4.2 manuscript.
 - `references.bib` — paper-specific bibliography.
-- `run_response_record.py` — regenerates the frozen grouped-bootstrap response
-  record from the merged implementation.
+- `run_response_record.py` — regenerates both grouped-bootstrap response
+  records from the merged implementation.
 - `data/response_bootstrap.json` — deterministic paper record, including the
   seeds, shot budget, replica accounting, intervals, and plotted spectrum.
+- `data/response_bootstrap_illconditioned.json` — the same run with the
+  determinant generators replaced by Hamiltonian powers. Everything else is
+  held fixed, so the drop in replica acceptance is attributable to the overlap
+  conditioning alone.
 - `make_tables.py` — regenerates all numerical LaTeX table fragments from
   committed benchmark records.
-- `make_figures.py` — regenerates the pipeline, validation-ladder, and response
-  figures.
-- `check_manuscript.py` — checks labels, references, citations, inputs, assets,
-  and evidence-language invariants.
+- `make_figures.py` — regenerates the pipeline, validation-ladder, response,
+  and conditioning figures.
+- `check_manuscript.py` — checks labels, references, citations, inputs, table
+  column counts, hand-typed numeric cells, figure staleness, and
+  evidence-language invariants.
+
+Two records live under `../benchmarks/reference_results/` because they are
+benchmarks rather than paper artifacts:
+
+- `warm_start_h4.json` — A-CASE at the paper's nine-vector budget with the
+  reference state varied from the Hartree-Fock determinant to ADAPT-VQE states
+  (`benchmarks/run_warm_start.py`).
+- `krylov_width.json` — the Krylov arm's measurement width, computed through
+  the `H^k` collapse of the element universe rather than the quadratic route
+  the ladder cannot afford (`benchmarks/run_krylov_width.py`).
 
 ## Reproduce
 
@@ -30,6 +45,8 @@ From the repository root:
 
 ```bash
 python paper_acase/run_response_record.py
+python benchmarks/run_warm_start.py
+python benchmarks/run_krylov_width.py
 python paper_acase/make_tables.py
 python paper_acase/make_figures.py
 python paper_acase/check_manuscript.py
@@ -55,7 +72,9 @@ identity.  They are not finite-sample confidence certificates.
 | Manuscript element | Source |
 |---|---|
 | Fig. 1 | method contract in `clifford_qc/subspace/` and `clifford_qc/models/` |
-| Fig. 2, Table III | `../benchmarks/reference_results/acase_ladder_summary.csv` |
-| Fig. 3, Table IV | `data/response_bootstrap.json` |
+| Fig. 2, Table IV | `../benchmarks/reference_results/acase_ladder_summary.csv` plus `krylov_width.json` for the comparator width column |
+| Fig. 3, Table V | `data/response_bootstrap.json` |
+| Fig. 4, Table VI | `data/response_bootstrap.json` and `data/response_bootstrap_illconditioned.json` |
 | Table I | `../examples/data/wannier_hubbard_dimer.json` and closed-form dimer identities |
 | Table II | `../benchmarks/reference_results/fcidump_h4.json` |
+| Table III | `../benchmarks/reference_results/warm_start_h4.json` |

@@ -1,0 +1,154 @@
+{
+  "chemical_accuracy_hartree": 0.0016,
+  "cold": {
+    "basis_size": 9,
+    "chemical_accuracy": false,
+    "condition_number": 1.0,
+    "effective_rank": 9,
+    "error_hartree": 0.003018781343635979,
+    "error_millihartree": 3.018781343635979,
+    "ground_energy": -2.177297832980223,
+    "labels": [
+      "I",
+      "E(4,5<-2,3)",
+      "E(4,7<-0,3)",
+      "E(5,6<-1,2)",
+      "E(4,5<-0,1)",
+      "E(6,7<-0,1)",
+      "E(6,7<-2,3)",
+      "E(5,6<-0,3)",
+      "E(4,7<-1,2)"
+    ],
+    "reference": "Hartree-Fock determinant",
+    "word_universe": 7371
+  },
+  "evidence": {
+    "energies": "exact",
+    "quantum_advantage_claim": false,
+    "resource_counts": "exact"
+  },
+  "input": {
+    "generator": {
+      "scf_convergence_tolerance": 1e-12,
+      "software": "PySCF",
+      "version": "2.14.0"
+    },
+    "path": "benchmarks/data/h4_sto3g_r0.9.FCIDUMP",
+    "provenance_schema": "clifford_qc.active_space_benchmark.v1",
+    "sha256": "bf32568461477cf1ec8e7c4aaae737b0c6c80bcbd83d51f783ec3a3daed5a922"
+  },
+  "predeclared_additions": 8,
+  "reference_energy": -2.180316614323859,
+  "schema": "clifford_qc.acase_warm_start.v1",
+  "system": {
+    "adapt_pool_size": 160,
+    "candidate_generators": 26,
+    "energy_unit": "hartree",
+    "n_electrons": 4,
+    "n_qubits": 8,
+    "name": "linear H4 STO-3G CAS(4e,4o)",
+    "sector_dimension": 36,
+    "sz": 0.0
+  },
+  "warm": [
+    {
+      "adapt_chemical_accuracy": false,
+      "adapt_energy": -2.153225606225887,
+      "adapt_error_hartree": 0.027091008097971603,
+      "adapt_error_millihartree": 27.091008097971603,
+      "adapt_labels": [
+        "IIYXXXII",
+        "YZZXXZZX"
+      ],
+      "adapt_operators": 2,
+      "basis_size": 9,
+      "chemical_accuracy": true,
+      "condition_number": 1.022125751646508,
+      "effective_rank": 9,
+      "error_hartree": 0.0003423008937817329,
+      "error_millihartree": 0.3423008937817329,
+      "ground_energy": -2.179974313430077,
+      "labels": [
+        "I",
+        "E(5,6<-1,2)",
+        "E(4,5<-0,1)",
+        "E(6,7<-0,1)",
+        "E(6,7<-2,3)",
+        "E(5,6<-0,3)",
+        "E(4,7<-1,2)",
+        "E(5,7<-1,3)",
+        "E(4,6<-0,2)"
+      ],
+      "reference": "ADAPT-VQE state, 2 operators",
+      "word_universe": 7510
+    },
+    {
+      "adapt_chemical_accuracy": false,
+      "adapt_energy": -2.166537974691664,
+      "adapt_error_hartree": 0.013778639632194611,
+      "adapt_error_millihartree": 13.778639632194611,
+      "adapt_labels": [
+        "IIYXXXII",
+        "YZZXXZZX",
+        "IYXIIXXI",
+        "XYIIIIXX"
+      ],
+      "adapt_operators": 4,
+      "basis_size": 9,
+      "chemical_accuracy": true,
+      "condition_number": 1.052495652244482,
+      "effective_rank": 9,
+      "error_hartree": 0.000612443063626511,
+      "error_millihartree": 0.612443063626511,
+      "ground_energy": -2.1797041712602323,
+      "labels": [
+        "I",
+        "E(4,5<-0,1)",
+        "E(6,7<-2,3)",
+        "E(4,7<-1,2)",
+        "E(5,6<-0,3)",
+        "E(4,6<-0,2)",
+        "E(5,7<-1,3)",
+        "E(4,7<-0,3)",
+        "E(5,6<-1,2)"
+      ],
+      "reference": "ADAPT-VQE state, 4 operators",
+      "word_universe": 7519
+    },
+    {
+      "adapt_chemical_accuracy": false,
+      "adapt_energy": -2.173525514313658,
+      "adapt_error_hartree": 0.006791100010200779,
+      "adapt_error_millihartree": 6.791100010200779,
+      "adapt_labels": [
+        "IIYXXXII",
+        "YZZXXZZX",
+        "IYXIIXXI",
+        "XYIIIIXX",
+        "XYIIXXII",
+        "IIXXIIYX"
+      ],
+      "adapt_operators": 6,
+      "basis_size": 9,
+      "chemical_accuracy": true,
+      "condition_number": 1.05814706279901,
+      "effective_rank": 9,
+      "error_hartree": 0.0007683724502496325,
+      "error_millihartree": 0.7683724502496325,
+      "ground_energy": -2.179548241873609,
+      "labels": [
+        "I",
+        "E(4,7<-1,2)",
+        "E(5,6<-0,3)",
+        "E(4,6<-0,2)",
+        "E(5,7<-1,3)",
+        "E(4,5<-2,3)",
+        "E(4,7<-0,3)",
+        "E(5,6<-1,2)",
+        "E(4,5<-0,1)"
+      ],
+      "reference": "ADAPT-VQE state, 6 operators",
+      "word_universe": 7510
+    }
+  ]
+}

@@ -1,4 +1,11 @@
 {
+  "basis": {
+    "condition_number": 1.0166236820151007,
+    "effective_rank": 4,
+    "family": "determinant excitations",
+    "generators": "determinant",
+    "size": 4
+  },
   "bootstrap": {
     "acceptance_rate": 1.0,
     "bootstrap_seed": 17,

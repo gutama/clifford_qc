@@ -12,8 +12,11 @@ ROOT = HERE.parent
 TABLES = HERE / "tables"
 LADDER = ROOT / "benchmarks" / "reference_results" / "acase_ladder_summary.csv"
 H4 = ROOT / "benchmarks" / "reference_results" / "fcidump_h4.json"
+WARM = ROOT / "benchmarks" / "reference_results" / "warm_start_h4.json"
+KRYLOV_WIDTH = ROOT / "benchmarks" / "reference_results" / "krylov_width.json"
 DIMER = ROOT / "examples" / "data" / "wannier_hubbard_dimer.json"
 RESPONSE = HERE / "data" / "response_bootstrap.json"
+RESPONSE_ILL = HERE / "data" / "response_bootstrap_illconditioned.json"
 
 
 def _write(name: str, rows: list[str]) -> None:
@@ -89,6 +92,38 @@ def h4_table() -> None:
     _write("h4_results.tex", rows)
 
 
+def warm_start_table() -> None:
+    """The reference state as the variable, with the budget held fixed.
+
+    Every row is the same nine-vector budget on the same frozen FCIDUMP; only
+    rho changes.  The ADAPT-alone column is what stops the improvement being
+    read as ADAPT having done the work -- a two-operator ADAPT state is an
+    order of magnitude worse on its own than the cold A-CASE it rescues.
+    """
+    record = json.loads(WARM.read_text())
+    cold = record["cold"]
+    rows = [
+        rf"Hartree--Fock determinant & --- & {cold['basis_size']} & "
+        rf"{cold['error_millihartree']:.3f} & "
+        rf"{_kappa(cold['condition_number'])} & {cold['word_universe']} \\",
+    ]
+    for row in record["warm"]:
+        rows.append(
+            rf"ADAPT-VQE state, $k={row['adapt_operators']}$ & "
+            rf"{row['adapt_error_millihartree']:.3f} & {row['basis_size']} & "
+            rf"{row['error_millihartree']:.3f} & "
+            rf"{_kappa(row['condition_number'])} & {row['word_universe']} \\")
+    _write("warm_start_results.tex", rows)
+
+
+def _krylov_widths() -> dict[str, int]:
+    """Krylov W by ladder rung, keyed the way the ladder CSV keys its rows."""
+    if not KRYLOV_WIDTH.exists():
+        return {}
+    record = json.loads(KRYLOV_WIDTH.read_text())
+    return {row["system"]: row["word_universe"] for row in record["rows"]}
+
+
 def _ladder_rows() -> list[dict[str, str]]:
     with LADDER.open(newline="") as handle:
         return list(csv.DictReader(handle))
@@ -116,16 +151,25 @@ def ladder_table() -> None:
         "krylov": "Krylov",
         "generator_coordinate": "gen.-coord.",
     }
+    krylov_width = _krylov_widths()
     for display, system, acase_method, comparator_method, unit in specs:
         a = by_key[(system, acase_method)]
         b = by_key[(system, comparator_method)]
+        # The ladder's tracked route cannot reach the Krylov widths, so they
+        # come from run_krylov_width.py; the generator-coordinate arm tracks
+        # its own and needs no help.
+        if comparator_method == "krylov":
+            width = krylov_width.get(system)
+            comparator_w = "n/a" if width is None else str(width)
+        else:
+            comparator_w = b["word_universe"] or "n/a"
         out.append(
             f"{display} & {a['basis_size']} & "
             f"{_sci(abs(float(a['error'])))} {unit} & "
             f"{_kappa(float(a['condition_number']))} & {a['word_universe']} & "
             f"{labels[comparator_method]} & {b['basis_size']} & "
             f"{_sci(abs(float(b['error'])))} {unit} & "
-            f"{_kappa(float(b['condition_number']))} \\\\")
+            f"{_kappa(float(b['condition_number']))} & {comparator_w} \\\\")
     _write("ladder_results.tex", out)
 
 
@@ -150,11 +194,38 @@ def response_table() -> None:
     _write("response_results.tex", out)
 
 
+def conditioning_table() -> None:
+    """The same pipeline at two conditionings, with the failure counts shown.
+
+    Everything the bootstrap consumes is held fixed across the two rows except
+    the generator family, so the acceptance rate and the interval widths are
+    attributable to kappa_S alone.
+    """
+    rows = []
+    for path in (RESPONSE, RESPONSE_ILL):
+        record = json.loads(path.read_text())
+        basis, boot = record["basis"], record["bootstrap"]
+        chi = record["measured"]["susceptibility_per_ev"]
+        exact_chi = record["exact"]["susceptibility_per_ev"]
+        failures = boot["failures"]
+        width = chi["upper"] - chi["lower"]
+        rows.append(
+            rf"{basis['family']} & {_kappa(basis['condition_number'])} & "
+            rf"{boot['replicates_succeeded']}/{boot['replicates_requested']} & "
+            rf"{failures['rank']} & {failures['root_collision']} & "
+            rf"{failures['solver']} & "
+            rf"{_sci(width)} & "
+            rf"{'yes' if chi['lower'] <= exact_chi <= chi['upper'] else 'no'} \\")
+    _write("conditioning_results.tex", rows)
+
+
 def main() -> None:
     dimer_table()
     h4_table()
+    warm_start_table()
     ladder_table()
     response_table()
+    conditioning_table()
     print(TABLES)
 
 

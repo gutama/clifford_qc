@@ -54,17 +54,27 @@ H$_4$ in STO-3G with a CAS(4e,4o) FCIDUMP, the mapped $(N=4,S_z=0)$ sector
 energy agrees with an external determinant-FCI result to
 $3.1\times10^{-15}$ Ha.  Eight adaptive additions give a nine-dimensional
 subspace with a $3.019$ mHa error; the complete 27-dimensional
-singles/doubles subspace reaches $0.766$ mHa.  A broader ladder is deliberately
-mixed: fixed Krylov bases are much more accurate on the molecular rungs but
-carry overlap condition numbers of $10^8$--$10^{10}$, A-CASE closes the
-$2\times2$ Hubbard sector only after compound/configuration generators are
-admitted, and the same extension provides no improvement on $2\times3$.
+singles/doubles subspace reaches $0.766$ mHa.  Holding that budget fixed and
+replacing the determinant reference by a two-operator ADAPT-VQE state, which
+is itself $27.091$ mHa, moves the nine-vector error to $0.342$ mHa---inside
+chemical accuracy---so the limiting choice is the reference, not the basis
+size.  A broader ladder is deliberately mixed: fixed Krylov bases are much
+more accurate on the molecular rungs and, once their word universe is computed
+through an identity that avoids the quadratic element route, usually narrower
+as well, though they carry overlap condition numbers of $10^8$--$10^{10}$;
+A-CASE closes the $2\times2$ Hubbard sector only after compound/configuration
+generators are admitted, and the same extension provides no improvement on
+$2\times3$.
 For response, one qubit-wise-commuting measurement cache reconstructs
 $(S,H,Q)$, and a grouped bootstrap reruns thresholding, diagonalization, root
 matching, spectral weights, susceptibility, and broadening.  The resulting
 percentile bands are explicitly heuristic, pointwise, and conditional on
 replicas that preserve rank and root identity; they are not finite-sample
-confidence certificates.  The work establishes an executable and
+confidence certificates.  Holding system, observable, words, groups, shots,
+basis size, and seeds fixed and varying only the generator family, acceptance
+falls from $200/200$ at $\kappa_S\approx1$ to $137/200$ at
+$\kappa_S=9.3\times10^{3}$, with every rejection a moved thresholded rank.
+The work establishes an executable and
 independently checked path from an interchange Hamiltonian to energies,
 correlations, and response.  It does not establish materials accuracy,
 favorable scaling, or a quantum advantage.
@@ -205,6 +215,38 @@ where $S_H$ is the largest support of a cached Hamiltonian element, $S_A$ the
 largest generator support, and $\ell_N,\ell_{S_z}$ are relative commutator
 norms with particle number and spin projection.  A method is not compact merely
 because $M$ is small.
+
+\subsection{Pricing the Krylov baseline}
+\label{sec:krylov-width}
+
+A ledger that reports $W$ for one method and leaves it blank for the
+comparator cannot support a claim about measurable support.  The obstruction is
+that building the element operators costs $O(|A_i|\,|H|\,|A_j|)$ per pair, and
+deep Hamiltonian powers carry thousands of words each.  For the Krylov family
+that cost is avoidable.  With $A_0=I$, $A_k=H^k$, and $H$ Hermitian,
+\begin{equation}
+ A_i^\dagger A_j = H^{i+j},\qquad
+ A_i^\dagger H A_j = H^{i+j+1},
+ \label{eq:krylov-collapse}
+\end{equation}
+so the union in Eq.~\eqref{eq:word-universe} reduces from $O(M^2)$ distinct
+element operators to the $2m+2$ powers $H^0,\dots,H^{2m+1}$.  This is linear in
+$M$ and runs in seconds.  On the rungs small enough for the direct enumeration
+to finish, the two agree exactly, including against the ladder's own tracked
+counts of $24$ and $64$ words for H$_2$ and LiH.
+
+One caveat is quantitative rather than structural.  Repeated multiplication
+accumulates round-off, and after seventeen products thousands of words carry
+coefficients near $10^{-11}$ that are absent from the exact operator.  The
+A-CASE universe is insensitive to this---every one of its $7371$ words on
+H$_4$ survives a $10^{-8}$ cut---while the raw Krylov count nearly doubles
+because of it.  The untruncated count is not even reproducible: two runs of
+the same rung differ by a few words, because the upstream self-consistent
+field settles on orbital coefficients differing in the last bits and a
+Hamiltonian perturbed at $10^{-16}$ has a different round-off-level support at
+the seventeenth power.  The count at $10^{-8}$ is identical across those runs.
+We therefore report at a stated threshold, and the committed record carries
+the full sweep.
 
 \subsection{Adaptive growth}
 \label{sec:growth}
@@ -388,6 +430,35 @@ Method & Energy (Ha) & Error & $M$ or sector dimension \\
 \end{ruledtabular}
 \end{table*}
 
+\subsection{The reference state as a variable}
+\label{sec:warm-start}
+
+The adaptive rung above grows its subspace around a single Hartree--Fock
+determinant, so every correlation effect must be paid for out of the eight
+additions.  That is a choice, not a requirement: any state the pipeline can
+prepare may serve as $\rho$.  We therefore repeat the H$_4$ benchmark with the
+budget, candidate pool, and frozen FCIDUMP held fixed and the reference
+replaced by an ADAPT-VQE state \cite{grimsley2019adapt} of $k$ operators,
+obtained from a qubit-ADAPT pool built from the odd-$Y$ words of the same
+determinant excitations.  Table~\ref{tab:warm} reports the ADAPT stage's own
+energy beside the A-CASE result, because the two must not be conflated.
+
+\begin{table*}[t]
+\caption{A-CASE at the same nine-vector budget, varying only the reference
+state $\rho$.  ``ADAPT alone'' is the error of the warm-start state by itself,
+before any subspace is built; it is an order of magnitude worse than the cold
+A-CASE result it improves on.  Errors are in mHa; chemical accuracy is
+$1.6$ mHa.}
+\label{tab:warm}
+\begin{ruledtabular}
+\begin{tabular}{lccccc}
+Reference $\rho$ & ADAPT alone & $M$ & A-CASE error & $\kappa_S$ & $W$ \\
+\colrule
+\input{tables/warm_start_results.tex}
+\end{tabular}
+\end{ruledtabular}
+\end{table*}
+
 \subsection{Validation ladder and matched baselines}
 \label{sec:ladder}
 
@@ -437,6 +508,25 @@ full $(N=4,S_z=0)$ sector has dimension 36, this is a meaningful active-space
 rung, but it remains an eight-qubit calculation and is not evidence of
 favorable scaling.
 
+Table~\ref{tab:warm} shows that the missed accuracy is a property of the
+reference rather than of the budget.  Holding $M=9$, the candidate pool, and
+the input file fixed and replacing the Hartree--Fock determinant by a
+two-operator ADAPT-VQE state moves the error from $3.019$ mHa to $0.342$ mHa,
+inside chemical accuracy and below the 27-dimensional complete
+singles/doubles rung, while $\kappa_S$ stays near unity and $W$ grows by under
+two percent.  The ADAPT state is not doing the work: on its own it is
+$27.091$ mHa, an order of magnitude worse than the cold A-CASE result it
+rescues.  What changes is that the eight additions no longer have to spend
+themselves reaching correlation the reference could have carried.
+
+The effect is not monotonic in ADAPT depth.  Deeper warm starts are better
+states---$13.779$ mHa at $k=4$ and $6.791$ mHa at $k=6$---and yet yield worse
+A-CASE results, $0.612$ and $0.768$ mHa.  A plausible reading is that the
+determinant-excitation pool is matched to a determinant, so a reference further
+from one is less well served by those candidates; we have not tested that, and
+it identifies reference and pool as coupled choices rather than independent
+ones.
+
 \subsection{Compactness is a three-way trade}
 \label{sec:results-ladder}
 
@@ -457,16 +547,18 @@ The results do not support a blanket superiority statement.
 
 \begin{table*}[t]
 \caption{Selected exact-arithmetic tradeoffs.  Errors are in the indicated
-Hamiltonian unit.  $W$ is the A-CASE union word count; deep Krylov element
-supports were not tractable on the eight-qubit molecular rungs and are not
-guessed.  The comparator is the strongest available matched or nearby-budget
-subspace baseline, not necessarily a method A-CASE beats.}
+Hamiltonian unit.  $W$ is the union word count of Eq.~\eqref{eq:word-universe}.
+The Krylov widths are obtained from the identity of
+Sec.~\ref{sec:krylov-width} rather than from the quadratic element route, at a
+$10^{-8}$ coefficient threshold under which the A-CASE counts are unchanged.
+The comparator is the strongest available matched or nearby-budget subspace
+baseline, not necessarily a method A-CASE beats.}
 \label{tab:ladder}
 \scriptsize
 \begin{ruledtabular}
-\begin{tabular}{lcccccccc}
-System & \multicolumn{4}{c}{A-CASE} & Comparator & \multicolumn{3}{c}{Comparator result} \\
- & $M$ & $|\Delta E|$ & $\kappa_S$ & $W$ & method & $M$ & $|\Delta E|$ & $\kappa_S$ \\
+\begin{tabular}{lccccccccc}
+System & \multicolumn{4}{c}{A-CASE} & Comparator & \multicolumn{4}{c}{Comparator result} \\
+ & $M$ & $|\Delta E|$ & $\kappa_S$ & $W$ & method & $M$ & $|\Delta E|$ & $\kappa_S$ & $W$ \\
 \colrule
 \input{tables/ladder_results.tex}
 \end{tabular}
@@ -477,10 +569,32 @@ On equilibrium H$_4$, A-CASE at $M=9$ improves substantially over the
 same-size fixed QSE and generator-coordinate bases, but exact ADAPT-VQE is
 slightly better and fixed Krylov is better by orders of magnitude.  Krylov's
 overlap condition number is $6.6\times10^{10}$, versus $1$ for A-CASE.  The
-same pattern is sharper for stretched H$_4$ and H$_2$O: Krylov buys energy
-accuracy with near-linear dependence, while A-CASE remains conditioned but
-does not reach chemical accuracy.  This is a trade between energy,
-conditioning, and measurable support, not a win by basis count.
+same pattern is sharper for stretched H$_4$ and stretched H$_2$O (4e,4o):
+Krylov buys energy accuracy with near-linear dependence, while A-CASE remains
+conditioned but does not reach chemical accuracy from a determinant reference.
+ADAPT-VQE's margin over A-CASE also widens on those rungs rather than
+staying slight---$7.4$ against $39.2$ mHa on stretched H$_4$, and $11.9$
+against $55.4$ mHa on H$_2$O---so from a determinant reference the $M=9$
+A-CASE arm is the weaker of the two adaptive methods wherever both run on a
+fermionic rung.
+
+With the Krylov widths of Sec.~\ref{sec:krylov-width} in hand, the third leg
+of the trade can finally be read, and it does not favor A-CASE.  On both H$_4$
+rungs the Krylov arm needs $4224$ words against A-CASE's $7371$ and $7715$,
+and on the Hubbard plaquette $3968$ against $15191$; on the Kitaev cluster the
+two coincide at $140$, which they must, since A-CASE there \emph{is} a pruned
+Krylov construction.  The single rung where the operator-generated basis is
+narrower is stretched H$_2$O (4e,4o), at $7783$ against $8192$.  So Krylov is
+more accurate on every one of these rungs and narrower on most of them, and
+$\kappa_S$ is the only ledger column on which A-CASE leads it.  The honest
+statement is that this is a trade between energy accuracy and conditioning,
+with measurable support a third axis on which the operator-generated basis has
+not yet been shown to buy anything, and not a win by basis count.
+
+Against the fixed local bases the width comparison runs the other way, which
+is the comparison the ledger was built to make: on H$_2$O (8e,6o) A-CASE is
+both more accurate than the generator-coordinate arm and narrower, $143117$
+words against $232515$.
 
 Level-4 configuration generators change the $2\times2$ Hubbard result:
 A-CASE reaches the sector ground state at $M=26$ with
@@ -535,11 +649,58 @@ Quantity & exact & measured & percentile interval \\
 \end{figure}
 
 The exact values lie inside all three reported intervals in this one run.  That
-observation is a consistency check, not a coverage study.  The 100\%
-acceptance rate also means this example does not probe the conditioning regime
-where rejected replicas would make the conditional interval optimistic.
-Larger systems must report the rank, root-collision, and solver-failure counts
-before the width of a surviving-replica interval is interpreted.
+observation is a consistency check, not a coverage study.
+
+The $200/200$ acceptance also means that this run alone does not exercise the
+failure accounting of Sec.~\ref{sec:bootstrap}: nothing is rejected, so the
+machinery is described rather than demonstrated.  We therefore repeat it as a
+controlled comparison in which conditioning is the only variable.  The system,
+observable, word set, group count, shot budget, basis size, and both seeds are
+held fixed; the determinant excitations are replaced by the Hamiltonian powers
+$I,H,H^2,H^3$, which span the same four-dimensional sector with an overlap
+condition number four orders larger.  Table~\ref{tab:conditioning} reports both.
+
+\begin{table*}[t]
+\caption{The same bootstrap at two conditionings.  Both rows use the dimer,
+the staggered-spin observable, $M=4$, $63$ words, $25$ QWC groups,
+$8{,}000$ shots per group, and the same seeds; only the generator family
+differs.  Failure columns are the replica counts excluded for a changed
+thresholded rank, a root collision, and a solver failure.  ``Width'' is the
+$\chi(0)$ interval width and ``covers'' records whether the exact projected
+$\chi(0)$ lies inside it.}
+\label{tab:conditioning}
+\begin{ruledtabular}
+\begin{tabular}{lccccccc}
+Generator family & $\kappa_S$ & accepted & rank & root & solver & $\chi(0)$ width & covers \\
+\colrule
+\input{tables/conditioning_results.tex}
+\end{tabular}
+\end{ruledtabular}
+\end{table*}
+
+\begin{figure}[t]
+    \includegraphics[width=\columnwidth]{paper_assets/conditioning_bands.pdf}
+    \caption{Pointwise width of the $95\%$ band across frequency for the two
+    rows of Table~\ref{tab:conditioning}.  The absolute spectra are visually
+    indistinguishable, so the width is plotted directly.  The cusp sits at the
+    line center, where an uncertain gap moves the Lorentzian along the axis
+    without changing its height.}
+    \label{fig:conditioning}
+\end{figure}
+
+The ill-conditioned arm rejects $63$ of $200$ replicas, all of them for a moved
+thresholded rank, and its surviving-replica $\chi(0)$ interval is roughly
+fifteen times wider.  Figure~\ref{fig:conditioning} shows the same separation
+holding across the whole frequency axis rather than at a single summary point.
+Two things follow.  The diagnostic does respond to
+conditioning rather than reporting a comfortable width regardless, which is the
+minimum one should demand of it.  But the reported width is still conditional
+on the $137$ replicas that reproduced the pipeline's rank, and the $63$
+excluded draws are precisely the ones a rank-stable summary cannot represent,
+so even the widened interval is a lower bound on the spread.  This is why the
+acceptance rate belongs beside every interval, and why larger systems must
+report the rank, root-collision, and solver-failure counts before the width of
+a surviving-replica interval is interpreted.
 
 \section{Discussion}
 \label{sec:discussion}
@@ -557,13 +718,26 @@ Third, adaptive selection can preserve good overlap conditioning while
 improving materially over fixed local QSE and generator-coordinate bases on
 some rungs.
 
-The results also establish useful negative boundaries.  Fixed Krylov is the
-energy winner on every fermionic rung where it was tractable, despite severe
-conditioning.  The default A-CASE pool does not reach chemical accuracy on
-H$_4$ or H$_2$O at $M=9$.  Compound/configuration generators solve the
+A fourth claim is supported by Table~\ref{tab:warm}: at a fixed budget the
+reference state, not the basis size, is what stands between this construction
+and chemical accuracy on H$_4$.  That is also the one place where the two
+adaptive methods compose rather than compete, since the ADAPT state is a worse
+answer on its own than the A-CASE run it improves.
+
+The results also establish useful negative boundaries.  At the matched $M=9$
+budget, fixed Krylov is the energy winner on every fermionic rung where it was
+configured, despite severe conditioning; the exception is the $2\times2$
+Hubbard cluster, where level-4 A-CASE at $M=26$ reaches the sector ground state
+that Krylov misses by $2.6\times10^{-3}t$.  Krylov also needs fewer measured
+words than A-CASE on most rungs where both counts are now available---stretched
+H$_2$O (4e,4o) is the lone exception---so conditioning is the only ledger
+column on which A-CASE leads it.  From a
+determinant reference the default A-CASE pool does not reach chemical accuracy
+on H$_4$ or H$_2$O at $M=9$.  Compound/configuration generators solve the
 $2\times2$ Hubbard case but do not transfer to $2\times3$.  Finite-shot
 response bands diagnose the implemented nonlinear pipeline but do not carry a
-finite-sample coverage theorem.
+finite-sample coverage theorem, and Table~\ref{tab:conditioning} shows their
+acceptance rate falling to $137/200$ as soon as the overlap is ill-conditioned.
 
 \subsection{What remains open}
 \label{sec:open}
@@ -599,17 +773,23 @@ embedding for a material.
 The implementation, frozen inputs, raw benchmark records, table and figure
 generators, tests, and this manuscript are in the public
 \texttt{clifford\_qc} repository \cite{cliffordqc2026}.  The H$_4$ record
-contains the FCIDUMP SHA-256 digest and independent PySCF version and energies.
-The finite-shot response record contains both random seeds, the shots per
-group, the QWC group count, the requested and accepted replicas, every failure
-category, and the full plotted frequency arrays.
+contains the FCIDUMP SHA-256 digest and independent PySCF version and energies,
+and the warm-start record repeats them for every reference state in
+Table~\ref{tab:warm} together with the ADAPT operator labels.  Both finite-shot
+response records contain both random seeds, the shots per group, the QWC group
+count, the requested and accepted replicas, every failure category, and the
+full plotted frequency arrays.  The Krylov width record carries the whole
+threshold sweep, not only the value quoted in Table~\ref{tab:ladder}.
 
 The independent checks are: (i) the dimer closed forms in
 Table~\ref{tab:dimer}; (ii) determinant FCI versus the mapped H$_4$ sector;
 (iii) OpenFermion versus the direct chemist-notation mapping; (iv) exact
-infinite-shot reconstruction through the finite-shot coefficient maps; and
+infinite-shot reconstruction through the finite-shot coefficient maps;
 (v) replica accounting, for which every requested draw must either succeed or
-enter exactly one failure category.  The repository test suite and
+enter exactly one failure category; and (vi) the Krylov width identity of
+Eq.~\eqref{eq:krylov-collapse} against direct element enumeration, which also
+reproduces the ladder's own tracked counts on the two rungs where that route
+finishes.  The repository test suite and
 \texttt{python -m clifford\_qc.verify} exercise algebraic, fermionic,
 subspace, effective-model, FCIDUMP, and response invariants.
 

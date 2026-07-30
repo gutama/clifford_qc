@@ -1,9 +1,24 @@
-"""Regenerate the paper's finite-shot nonlinear-response record.
+"""Regenerate the paper's finite-shot nonlinear-response records.
 
-The record is deliberately separate from the figure.  It contains the full
+The records are deliberately separate from the figure.  They contain the full
 replica accounting and the fixed seeds needed to reproduce the reported
 percentile intervals.  The intervals remain heuristic and conditional on
 replicas that preserve the thresholded rank and ordered-root identity.
+
+Two records are written, and the second exists because the first cannot make
+the paper's own point.  The determinant-excitation basis is perfectly
+conditioned, every replica survives, and the failure accounting that Secs.
+III C and V C describe at length never fires -- so the machinery is described
+but not demonstrated.
+
+The ill-conditioned record fixes that as a controlled comparison rather than a
+different experiment.  Same dimer, same staggered-spin observable, same 63
+words, same 25 QWC groups, same 8,000 shots per group, same basis size M=4,
+same seeds.  The single change is the generator family: determinant
+excitations become the Krylov powers ``I, H, H^2, H^3``, which span the same
+sector while carrying an overlap condition number four orders larger.  Any
+difference in the replica accounting is therefore attributable to conditioning
+and to nothing else.
 """
 
 from __future__ import annotations
@@ -22,28 +37,48 @@ from clifford_qc.subspace import (
     bootstrap_response,
     determinant_excitations,
     identity_generator,
+    krylov_response,
     occupied_spin_orbitals,
 )
 from clifford_qc.subspace.response import broaden_response
 
 ROOT = Path(__file__).resolve().parents[1]
 MODEL = ROOT / "examples" / "data" / "wannier_hubbard_dimer.json"
-DEFAULT_OUT = Path(__file__).resolve().parent / "data" / "response_bootstrap.json"
+DATA = Path(__file__).resolve().parent / "data"
+DEFAULT_OUT = DATA / "response_bootstrap.json"
+ILL_CONDITIONED_OUT = DATA / "response_bootstrap_illconditioned.json"
 
 SHOTS_PER_GROUP = 8_000
 BOOTSTRAP_REPLICATES = 200
 MEASUREMENT_SEED = 2026
 BOOTSTRAP_SEED = 17
 BROADENING_EV = 0.1
+# The Krylov order that matches the determinant family's basis size: I, H, H^2,
+# H^3 is M=4, exactly the four vectors the determinant arm uses.
+ILL_CONDITIONED_KRYLOV_ORDER = 3
+# bootstrap_response refuses a run whose acceptance falls below this fraction.
+# The well-conditioned arm accepts every replica; the ill-conditioned arm is
+# the measurement being made, so it must be allowed to report a low rate
+# rather than raise.
+MINIMUM_SUCCESS_FRACTION = 0.01
 
 
-def build_record() -> dict:
+def build_record(*, generators: str = "determinant") -> dict:
     model = load_effective_hamiltonian(MODEL)
     rho = ExactMVBackend().state(model.reference, ())
-    candidates = determinant_excitations(
-        model.n, occupied_spin_orbitals(model))
+    if generators == "determinant":
+        family = determinant_excitations(
+            model.n, occupied_spin_orbitals(model))
+        family_label = "determinant excitations"
+    elif generators == "krylov":
+        family = krylov_response(
+            model.hamiltonian, ILL_CONDITIONED_KRYLOV_ORDER)
+        family_label = (
+            f"Hamiltonian powers to order {ILL_CONDITIONED_KRYLOV_ORDER}")
+    else:
+        raise ValueError(f"unknown generator family {generators!r}")
     bank = MatrixElementBank(
-        rho, model.hamiltonian, [identity_generator(model.n), *candidates])
+        rho, model.hamiltonian, [identity_generator(model.n), *family])
     staggered = magnetization(model, 0) + (-1.0) * magnetization(model, 1)
     measurement = ResponseMeasurement(
         bank, staggered, label="staggered_spin")
@@ -59,6 +94,7 @@ def build_record() -> dict:
         min_weight=1e-3,
         frequencies=frequencies,
         broadening=BROADENING_EV,
+        minimum_success_fraction=MINIMUM_SUCCESS_FRACTION,
     )
     exact = measurement.exact_spectrum(min_weight=1e-12)
     exact_broadened = broaden_response(
@@ -94,6 +130,13 @@ def build_record() -> dict:
     return {
         "schema": "clifford_qc.acase_response_bootstrap.v1",
         "source_main_commit": "4b1c636953e4ebe9aa7541d4260cfe95aa18674e",
+        "basis": {
+            "generators": generators,
+            "family": family_label,
+            "size": len(family) + 1,
+            "condition_number": result.spectrum.result.condition_number,
+            "effective_rank": result.spectrum.result.effective_rank,
+        },
         "system": {
             "name": model.name,
             "n_qubits": model.n,
@@ -150,11 +193,18 @@ def build_record() -> dict:
 def main() -> None:
     parser = argparse.ArgumentParser()
     parser.add_argument("--out", type=Path, default=DEFAULT_OUT)
+    parser.add_argument("--ill-conditioned-out", type=Path,
+                        default=ILL_CONDITIONED_OUT)
     args = parser.parse_args()
-    record = build_record()
-    args.out.parent.mkdir(parents=True, exist_ok=True)
-    args.out.write_text(json.dumps(record, indent=2, sort_keys=True) + "\n")
-    print(args.out)
+    for path, family in ((args.out, "determinant"),
+                         (args.ill_conditioned_out, "krylov")):
+        record = build_record(generators=family)
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_text(json.dumps(record, indent=2, sort_keys=True) + "\n")
+        bootstrap = record["bootstrap"]
+        print(f"{path}  kappa={record['basis']['condition_number']:.4g}  "
+              f"acceptance={bootstrap['replicates_succeeded']}/"
+              f"{bootstrap['replicates_requested']}")
 
 
 if __name__ == "__main__":
