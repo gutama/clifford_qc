@@ -529,6 +529,15 @@ arithmetic, so a difference of functionals is a functional.
   bank-derived object. `bootstrap_ritz` resamples the grouped histograms and
   reruns the whole nonlinear pipeline as the cross-check. Both are labelled
   `asymptotic` / `heuristic`; `Interval.certified` is False for both.
+- *4B-R — nonlinear response uncertainty (`subspace/measured_response.py`).*
+  `ResponseMeasurement` extends the shared universe to a Hermitian projected
+  observable `Q_sub`; `bootstrap_response` resamples the grouped joint
+  histograms and reruns `(S,H,Q_sub)` reconstruction, overlap thresholding,
+  the generalized eigensolve, transition amplitudes, squared weights, gaps,
+  susceptibility, and optional broadening. Root-resolved lines are emitted only
+  for isolated ordered roots; rank changes and root collisions are counted.
+  The result is always `heuristic` and never certified. A finite-sample
+  response certificate remains a separate matrix-pencil confidence-set problem.
 - *4C — finite-sample growth certificate by sample splitting.*
   `run_certified_acase` spends a construction batch on `(S,H)`, freezing the
   thresholded subspace, its Ritz pair, **and the candidate norms**; an
@@ -638,16 +647,27 @@ Cauchy interlacing and is tested; the *objective* is monotone only from the
 step where the effective rank first reaches `k`, since before that the average
 is taken over fewer roots and can rise as a high new root appears.
 
-*Ingestion*: `models.chemistry.fcidump_model` reads an FCIDUMP — the format a
-downfolding or embedding step actually hands over — through PySCF, expands to
-spin orbitals with OpenFermion's `spinorb_from_spatial`, and returns the same
-`Model`. Both molecular paths now carry `n_spatial_orbitals`, `spin_orbitals`,
-`spin_convention`, `n_electrons`, `sz`, and the core energy. The chemist →
-physicist reindexing is the trap: eight of the 24 four-index permutations
-coincide (the permutation symmetry of real integrals) and the other sixteen
-give a plausible Hamiltonian with the wrong correlation energy, so the test
-compares against the same molecule through `openfermionpyscf` term by term
-(agreement to 6×10⁻¹⁶ on H₄'s 185 terms).
+*Ingestion*: `models.fcidump.fcidump_model` reads the restricted real FCIDUMP
+that a downfolding or embedding step actually hands over with NumPy only. The
+parser restores packed one- and two-body symmetries, validates `NORB`, `NELEC`,
+`MS2`, sentinel patterns, duplicates, and finite coefficients, rejects
+unsupported `IUHF=1`, fixes the interleaved-spin reference sector, records the
+source SHA-256, and maps chemist integrals directly with the package's own
+fermion operators. The historical `models.chemistry.fcidump_model` delegates
+to it. The chemist/physicist ordering remains the trap; the chemistry-extra
+test compares all 185 H₄ coefficients against the independent
+OpenFermion/PySCF construction (maximum mismatch `8.7×10⁻¹⁶`).
+
+*Committed active-space rung*: the linear H₄ STO-3G CAS(4e,4o) FCIDUMP is
+frozen with geometry, PySCF 2.14 provenance, SHA-256, RHF energy, and a
+determinant-space FCI oracle. It maps to 8 qubits, 185 Pauli terms, and a
+36-state `(N=4,S_z=0)` sector; the mapped sector energy agrees with external
+FCI to `3.1×10⁻¹⁵ Ha`. At eight adaptive additions A-CASE has `M=9`,
+`W=7,371`, `kappa(S)=1`, and a `3.019 mHa` error. The complete
+singles/doubles coordinate space has `M=27`, `kappa(S)=1`, and a
+`0.766 mHa` error. This is a reproducible chemistry benchmark, not evidence of
+quantum advantage; the adaptive arm does not reach chemical accuracy at the
+declared budget.
 
 *Sparse reference tier*: `sparse.py` writes each Pauli word as the signed
 permutation matrix it is (`W = i^{n_Y} X^x Z^z`) instead of summing dense

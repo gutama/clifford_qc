@@ -246,6 +246,41 @@ class MatrixElementBank:
 
     # --------------------------------------------------- projected observables
 
+    def observable_operator(self, observable, i: int, j: int, *,
+                            label: str | None = None) -> MV:
+        """Return ``A_i' Q A_j`` and register its measurement words.
+
+        This is the operator-valued counterpart of :meth:`project_observable`.
+        Exact observables pair it immediately with ``rho``; finite-shot response
+        reconstruction keeps its coefficient map and estimates the same pairing
+        from the shared word cache.  For Hermitian ``Q`` only the upper triangle
+        is stored and the lower triangle is its adjoint, exactly as for ``S`` and
+        ``H``.
+        """
+        Q = _as_mv(observable)
+        if Q.n != self.n:
+            raise ValueError("observable lives in a different algebra")
+        for index in (i, j):
+            if not 0 <= index < len(self._generators):
+                raise IndexError(f"generator index {index} out of range")
+        key = _identity_key(Q)
+        record = self._observables.setdefault(
+            key, {"label": label or f"Q{len(self._observables)}", "universe": set(),
+                  "acted": {}, "operators": {}, "hermitian": Q.is_hermitian()})
+        if record["hermitian"] and i > j:
+            return self.observable_operator(Q, j, i, label=label).dagger()
+
+        acted, cache = record["acted"], record["operators"]
+        started = time.perf_counter()
+        if j not in acted:
+            acted[j] = Q * self._generators[j].mv
+        if (i, j) not in cache:
+            cache[(i, j)] = self._adjoints[i] * acted[j]
+            record["universe"].update(cache[(i, j)].terms)
+        operator = cache[(i, j)]
+        self._seconds += time.perf_counter() - started
+        return operator
+
     def project_observable(self, observable, indices: Sequence[int] | None = None,
                            *, label: str | None = None) -> np.ndarray:
         """``Q_sub[i, j] = <psi|A_i' Q A_j|psi>`` (§8), through the same pairing.
@@ -266,27 +301,16 @@ class MatrixElementBank:
         if Q.n != self.n:
             raise ValueError("observable lives in a different algebra")
         order = self._resolve(indices)
-        key = _identity_key(Q)
-        record = self._observables.setdefault(
-            key, {"label": label or f"Q{len(self._observables)}", "universe": set(),
-                  "acted": {}, "operators": {}, "hermitian": Q.is_hermitian()})
-        hermitian = record["hermitian"]
-        acted, cache = record["acted"], record["operators"]
+        hermitian = Q.is_hermitian()
 
         m = len(order)
         out = np.zeros((m, m), dtype=complex)
-        started = time.perf_counter()
         for b, j in enumerate(order):
-            if j not in acted:  # Q A_j once per column, as H A_j is
-                acted[j] = Q * self._generators[j].mv
             for a, i in enumerate(order):
                 if hermitian and a > b:
                     continue
-                if (i, j) not in cache:
-                    cache[(i, j)] = self._adjoints[i] * acted[j]
-                    record["universe"].update(cache[(i, j)].terms)
-                out[a, b] = self._scale * cache[(i, j)].trace_pairing(self._rho)
-        self._seconds += time.perf_counter() - started
+                operator = self.observable_operator(Q, i, j, label=label)
+                out[a, b] = self._scale * operator.trace_pairing(self._rho)
         if hermitian:
             for b in range(m):
                 out[b, b] = out[b, b].real

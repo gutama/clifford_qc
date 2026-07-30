@@ -1,0 +1,93 @@
+{
+  "adaptive_acase": {
+    "basis_size": 9,
+    "cached_operator_bytes": 5790192,
+    "chemical_accuracy": false,
+    "condition_number": 1.0,
+    "effective_rank": 9,
+    "energy_history": [
+      -2.1242597389728113,
+      -2.1452557642314436,
+      -2.153371535716196,
+      -2.161585727250366,
+      -2.1667543949941446,
+      -2.170956227857011,
+      -2.173544299986108,
+      -2.1753637154160677,
+      -2.177297832980223
+    ],
+    "error_hartree": 0.003018781343635979,
+    "error_millihartree": 3.018781343635979,
+    "ground_energy": -2.177297832980223,
+    "labels": [
+      "I",
+      "E(4,5<-2,3)",
+      "E(4,7<-0,3)",
+      "E(5,6<-1,2)",
+      "E(4,5<-0,1)",
+      "E(6,7<-0,1)",
+      "E(6,7<-2,3)",
+      "E(5,6<-0,3)",
+      "E(4,7<-1,2)"
+    ],
+    "max_generator_support": 8,
+    "max_hamiltonian_element_support": 3840,
+    "method": "Adaptive Clifford-Algebra Subspace Eigensolver",
+    "predeclared_additions": 8,
+    "word_universe": 7371
+  },
+  "complete_singles_doubles": {
+    "basis_size": 27,
+    "chemical_accuracy": true,
+    "condition_number": 1.0,
+    "effective_rank": 27,
+    "error_hartree": 0.0007658622613107013,
+    "error_millihartree": 0.7658622613107013,
+    "ground_energy": -2.179550752062548,
+    "method": "fixed complete determinant singles/doubles",
+    "support_tracked": false
+  },
+  "evidence": {
+    "adaptive_selection": "exact",
+    "energies": "exact",
+    "quantum_advantage_claim": false,
+    "resource_counts": "exact"
+  },
+  "independent_reference": {
+    "fci_energy": -2.180316614323862,
+    "method": "PySCF determinant-space FCI",
+    "rhf_energy": -2.124259738972812
+  },
+  "input": {
+    "generator": {
+      "scf_convergence_tolerance": 1e-12,
+      "software": "PySCF",
+      "version": "2.14.0"
+    },
+    "path": "benchmarks/data/h4_sto3g_r0.9.FCIDUMP",
+    "provenance_schema": "clifford_qc.active_space_benchmark.v1",
+    "sha256": "bf32568461477cf1ec8e7c4aaae737b0c6c80bcbd83d51f783ec3a3daed5a922"
+  },
+  "mapped_oracle": {
+    "external_fci_error": 3.1086244689504383e-15,
+    "ground_energy": -2.180316614323859,
+    "lowest_four_energies": [
+      -2.180316614323859,
+      -1.8916101236095835,
+      -1.6345324248149187,
+      -1.5909345581762762
+    ],
+    "method": "exact dense solve in the (N=4, Sz=0) sector"
+  },
+  "schema": "clifford_qc.active_space_result.v1",
+  "system": {
+    "candidate_generators": 26,
+    "energy_unit": "hartree",
+    "hamiltonian_terms": 185,
+    "n_electrons": 4,
+    "n_qubits": 8,
+    "name": "linear H4 STO-3G CAS(4e,4o)",
+    "sector_dimension": 36,
+    "sz": 0.0
+  }
+}

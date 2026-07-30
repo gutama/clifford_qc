@@ -11,6 +11,7 @@ from .lattice import (anderson_impurity, extended_hubbard, honeycomb_links,
                       spin_orbital)
 from .effective import (EFFECTIVE_HAMILTONIAN_SCHEMA, effective_hamiltonian,
                         load_effective_hamiltonian)
+from .fcidump import FCIDump, fcidump_model, model_from_fcidump, read_fcidump
 from .observables import (double_occupancy, link_correlations, magnetization,
                           occupation, spin_correlation, spin_operators,
                           structure_factor, total_spin_squared)
@@ -22,6 +23,7 @@ __all__ = [
     "kitaev_honeycomb", "honeycomb_links", "spin_orbital", "reference_sector",
     "EFFECTIVE_HAMILTONIAN_SCHEMA", "effective_hamiltonian",
     "load_effective_hamiltonian",
+    "FCIDump", "fcidump_model", "model_from_fcidump", "read_fcidump",
     "occupation", "double_occupancy", "magnetization", "spin_correlation",
     "spin_operators", "structure_factor", "link_correlations",
     "total_spin_squared",
