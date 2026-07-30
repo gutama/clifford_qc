@@ -179,6 +179,8 @@ def run_verification() -> None:
 
     print("-- materials layer --")
     from .fermion import total_number_op, total_sz_op
+    from .models.effective import (EFFECTIVE_HAMILTONIAN_SCHEMA,
+                                   effective_hamiltonian)
     from .models.lattice import hubbard, kitaev_honeycomb
     from .models.observables import double_occupancy, occupation, spin_correlation
     from .subspace import determinant_excitations, occupied_spin_orbitals
@@ -192,6 +194,17 @@ def run_verification() -> None:
     free = hubbard(2, t=1.0, U=0.0)
     _check("U=0 two-site chain reproduces the free-fermion energy (-2t)",
            abs(exact_ground(free.hamiltonian.to_mv())[0] - (-2.0)) < 1e-9)
+    imported = effective_hamiltonian({
+        "schema": EFFECTIVE_HAMILTONIAN_SCHEMA,
+        "one_body": [[0.0, -1.0], [-1.0, 0.0]],
+        "onsite_u": 4.0,
+        "reference_occupied_spin_orbitals": [0, 3],
+        "sector": {"n_electrons": 2, "sz": 0.0},
+    })
+    bare = hubbard(2, t=1.0, U=4.0, mu=0.0)
+    _check("versioned Wannier+U input reproduces the native Hubbard dimer",
+           (imported.hamiltonian.to_mv()
+            - bare.hamiltonian.to_mv()).is_zero(1e-12))
     honeycomb = kitaev_honeycomb(2, 2)
     _check("Kitaev cluster is a one-qubit-per-site spin model (8 sites, 8 links)",
            honeycomb.n == 8 and len(honeycomb.hamiltonian.terms) == 8
