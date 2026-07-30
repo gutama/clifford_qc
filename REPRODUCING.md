@@ -75,7 +75,7 @@ No figure or table value in the manuscript is transcribed by hand, and
 ```bash
 python -m venv .venv && source .venv/bin/activate
 pip install -e .[test,research,chemistry]   # numpy + scipy + openfermion/pyscf
-pytest                                      # 691 passed, 6 skipped
+pytest                                      # 698 passed, 6 skipped
 ```
 
 That install is the reference environment for the quoted pair, and it is

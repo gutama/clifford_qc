@@ -53,8 +53,62 @@ def purity(rho: MV) -> float:
 
 
 def computational_probabilities(rho: MV) -> dict[str, float]:
-    return {format(k, f"0{rho.n}b"): probability(rho, ket_density(rho.n, format(k, f"0{rho.n}b")))
-            for k in range(2 ** rho.n)}
+    """All ``2^n`` computational-basis probabilities of a density operator.
+
+    A Z-basis readout only sees the *diagonal* Pauli content of ``rho`` -- the
+    words spelled from ``I`` and ``Z`` alone. Writing ``|b><b|`` as
+    ``prod_j (I + s_j Z_j)/2`` and expanding, its only nonzero Pauli
+    coefficients are those diagonal words, each carrying
+    ``(-1)^popcount(z & b) / 2^n``, so
+
+        p(b) = sum_z rho_z (-1)^popcount(z & b),
+
+    which is the Walsh-Hadamard transform of the diagonal coefficients indexed
+    by their qubit mask. That is ``O(2^n n)`` for every outcome at once, against
+    the ``O(4^n)`` word products of building each ``ket_density`` projector and
+    multiplying it out -- one eight-qubit readout was 11 s, which made grouped
+    finite-shot sampling unaffordable past four qubits (every QWC group needs
+    exactly this distribution).
+
+    Same values as the projector route, including its snapping of values within
+    ``1e-12`` of 0 or 1.
+    """
+    import numpy as np
+
+    n = rho.n
+    size = 1 << n
+    diagonal = np.zeros(size)
+    for code, coeff in rho.terms.items():
+        mask = 0
+        for j in range(n):
+            letter = (code >> (2 * j)) & 3
+            if letter == 0:
+                continue
+            if letter != 3:  # an X or Y anywhere: traceless against every |b><b|
+                break
+            mask |= 1 << (n - 1 - j)  # bit order of format(k, "0nb"): qubit 0 first
+        else:
+            diagonal[mask] += coeff.real
+
+    # In-place fast Walsh-Hadamard transform: H[b][m] = (-1)^popcount(b & m).
+    step = 1
+    while step < size:
+        block = diagonal.reshape(-1, 2, step)
+        low = block[:, 0, :].copy()
+        high = block[:, 1, :]
+        block[:, 0, :] = low + high
+        block[:, 1, :] = low - high
+        step *= 2
+
+    out = {}
+    for k in range(size):
+        p = float(diagonal[k])
+        if abs(p) < 1e-12:
+            p = 0.0
+        elif abs(p - 1.0) < 1e-12:
+            p = 1.0
+        out[format(k, f"0{n}b")] = p
+    return out
 
 
 def measure(rho: MV, projectors: list[MV], *, check_projectors: bool = False):

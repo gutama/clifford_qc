@@ -23,12 +23,94 @@ from .exact_mv import ExactMVBackend
 from .protocol import MeasurementBatch
 
 
+class _GroupPlan:
+    """Everything about sampling one QWC group that does not depend on the shots.
+
+    Rotating the state onto the group's shared basis, tracing out the qubits the
+    group does not touch, and reading off the computational distribution are
+    fixed by ``(state, group)`` alone -- and so is *which* outcomes are
+    even-parity for each word in the group. Only the multinomial draw depends on
+    the shot count.
+
+    Recomputing all of it per batch is what confined certified A-CASE growth to
+    four qubits. The certified loop measures the same universe twice per step
+    (construction and certification) over the same never-changing reference, so
+    at ``M = 8`` on eight qubits the same 1689 group rotations were being redone
+    sixteen times at ~60 ms each. Held here instead, a batch is one multinomial
+    draw and two array reductions per group.
+    """
+
+    __slots__ = ("keep", "basis", "bits", "probs", "parity")
+
+    def __init__(self, keep, basis, bits, probs, parity):
+        self.keep = keep
+        self.basis = basis
+        self.bits = bits
+        self.probs = probs
+        self.parity = parity
+
+
 class FiniteShotBackend:
     """Seeded finite-shot sampler over an exact inner backend."""
+
+    # How many distinct states keep their group plans. A-CASE measures one
+    # never-changing reference, so one would do; ADAPT moves the state every
+    # step, and holding a couple avoids thrashing without unbounded growth.
+    _PLAN_STATES = 2
 
     def __init__(self, seed: int, inner: ExactMVBackend | None = None):
         self.rng = np.random.default_rng(seed)
         self.inner = inner if inner is not None else ExactMVBackend()
+        self._plans: dict[object, dict[tuple[int, ...], _GroupPlan]] = {}
+
+    def _group_plans(self, rho: MV) -> dict[tuple[int, ...], _GroupPlan]:
+        """The plan table for ``rho``, keyed by the state's own terms.
+
+        Keyed by value, not by ``id``: an equal state rebuilt from the same
+        program must hit, and a mutated one must miss.
+        """
+        key = tuple(sorted(rho.terms.items()))
+        table = self._plans.get(key)
+        if table is None:
+            if len(self._plans) >= self._PLAN_STATES:
+                self._plans.pop(next(iter(self._plans)))
+            table = self._plans[key] = {}
+        return table
+
+    def _plan(self, rho: MV, group: Sequence[PauliWord],
+              table: dict[tuple[int, ...], _GroupPlan]) -> _GroupPlan:
+        from ..measurement.grouping import shared_basis
+
+        signature = tuple(sorted(w.code for w in group))
+        plan = table.get(signature)
+        if plan is not None:
+            return plan
+
+        # rotate the shared basis onto Z: X -> H, Y -> H*SDG per qubit
+        basis = shared_basis(group)
+        rho_rot = rho
+        for j, letter in basis.items():
+            if letter == "X":
+                rho_rot = evolve(rho_rot, _gates.H(rho.n, j))
+            elif letter == "Y":
+                rho_rot = evolve(rho_rot, _gates.H(rho.n, j) * _gates.S(rho.n, j).dagger())
+        keep = tuple(sorted({j for w in group for j in w.support()}))
+        traced = rho_rot if len(keep) == rho.n else \
+            partial_trace(rho_rot, {j for j in range(rho.n) if j not in keep})
+        outcomes = sorted(computational_probabilities(traced).items())
+        probs = np.clip([p for _, p in outcomes], 0.0, None)
+        probs = probs / probs.sum()
+        position = {q: i for i, q in enumerate(keep)}
+        bits = tuple("".join(row[position[q]] for q in keep) for row, _ in outcomes)
+        parity = {}
+        for w in group:
+            positions = [position[j] for j in w.support()]
+            parity[w.code] = np.fromiter(
+                (sum(row[pos] == "1" for pos in positions) % 2 == 0
+                 for row, _ in outcomes), dtype=bool, count=len(outcomes))
+        plan = _GroupPlan(keep, tuple(sorted(basis.items())), bits, probs, parity)
+        table[signature] = plan
+        return plan
 
     def state(self, program: Program, values=None, initial_state: MV | None = None) -> MV:
         return self.inner.state(program, values, initial_state)
@@ -73,13 +155,12 @@ class FiniteShotBackend:
         so a word requesting fewer shots than a groupmate still receives the
         group maximum — extra outcomes are free on hardware too.
         """
-        from ..measurement.grouping import shared_basis
-
         all_words = [w for group in groups for w in group]
         shot_map = ({w.code: int(shots) for w in all_words} if isinstance(shots, int)
                     else {int(k): int(v) for k, v in shots.items()})
         from .protocol import GroupSample
 
+        table = self._group_plans(rho)
         out_shots: dict[int, int] = {}
         plus: dict[int, int] = {}
         group_samples: list = []
@@ -91,34 +172,18 @@ class FiniteShotBackend:
             if N == 0:
                 continue
             circuits += 1
-            # rotate the shared basis onto Z: X -> H, Y -> H*SDG per qubit
-            basis = shared_basis(group)
-            rho_rot = rho
-            for j, letter in basis.items():
-                if letter == "X":
-                    rho_rot = evolve(rho_rot, _gates.H(rho.n, j))
-                elif letter == "Y":
-                    rho_rot = evolve(rho_rot, _gates.H(rho.n, j) * _gates.S(rho.n, j).dagger())
-            keep = tuple(sorted({j for w in group for j in w.support()}))
-            traced = rho_rot if len(keep) == rho.n else \
-                partial_trace(rho_rot, {j for j in range(rho.n) if j not in keep})
-            outcomes = sorted(computational_probabilities(traced).items())
-            probs = np.clip([p for _, p in outcomes], 0.0, None)
-            probs = probs / probs.sum()
-            counts = self.rng.multinomial(N, probs)
-            # project each outcome bitstring onto the group support qubits
-            position = {q: i for i, q in enumerate(keep)}
+            plan = self._plan(rho, group, table)
+            # One draw per group in group order, as before: the RNG stream a
+            # committed record was produced under is part of the record.
+            counts = self.rng.multinomial(N, plan.probs)
             hist: dict[str, int] = {}
-            for (bits, _), c in zip(outcomes, counts):
+            for key, c in zip(plan.bits, counts):
                 if c:
-                    key = "".join(bits[position[q]] for q in keep)
                     hist[key] = hist.get(key, 0) + int(c)
             group_samples.append(GroupSample(
-                support=keep, basis=tuple(sorted(basis.items())), hist=hist, shots=N))
+                support=plan.keep, basis=plan.basis, hist=hist, shots=N))
             for w in group:
-                positions = [position[j] for j in w.support()]
-                n_plus = sum(int(c) for (bits, _), c in zip(outcomes, counts)
-                             if sum(bits[pos] == "1" for pos in positions) % 2 == 0)
+                n_plus = int(counts[plan.parity[w.code]].sum())
                 out_shots[w.code] = out_shots.get(w.code, 0) + N
                 plus[w.code] = plus.get(w.code, 0) + n_plus
         return MeasurementBatch(n=rho.n, shots=out_shots, plus_counts=plus,
