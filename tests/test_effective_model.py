@@ -8,14 +8,13 @@ from pathlib import Path
 import numpy as np
 import pytest
 
-from clifford_qc.backends import ExactMVBackend
+from clifford_qc.backends import ExactMVBackend, SectorStatevectorBackend
 from clifford_qc.models.effective import (EFFECTIVE_HAMILTONIAN_SCHEMA,
                                           effective_hamiltonian,
                                           load_effective_hamiltonian)
 from clifford_qc.models.lattice import hubbard
 from clifford_qc.models.observables import (magnetization,
                                             total_spin_squared)
-from clifford_qc.sparse import sparse_ground_in_sector
 from clifford_qc.subspace import (MatrixElementBank, broaden_response,
                                   determinant_excitations, identity_generator,
                                   lehmann_spectrum, occupied_spin_orbitals,
@@ -68,8 +67,9 @@ def test_dimer_is_a_complete_energy_state_correlation_response_showcase():
     rho = ExactMVBackend().state(model.reference, ())
     occupied = occupied_spin_orbitals(model)
     candidates = determinant_excitations(model.n, occupied)
-    values, _ = sparse_ground_in_sector(
-        model.hamiltonian, n_electrons=2, sz=0.0, k=4)
+    values, _ = SectorStatevectorBackend(
+        model.n, n_electrons=2, sz=0.0).ground_state(
+            model.hamiltonian, k=4, method="dense")
 
     adaptive = run_acase(
         rho, model.hamiltonian, candidates, max_size=len(candidates),
