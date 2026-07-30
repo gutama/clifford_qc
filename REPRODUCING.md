@@ -249,18 +249,29 @@ recorded in the row that made it:
   through the cheap route and sets `support_tracked: false` rather than
   reporting guessed support columns.
 
-Finite-shot rows (`adapt_shot`, `acase_certified`) appear only on the
-four-qubit rungs. The gate is not the shot count but the QWC partition:
-grouping is greedy and quadratic in the word universe — doubling the words
-quadruples the time (0.20 s at 750 words, 0.82 s at 1 500, 3.45 s at 3 000,
-14.8 s at 6 000, on random 8-qubit words) — and the eight-qubit A-CASE element
-universe reaches 13 646 words at `M = 9`, which puts the partition alone near
-100 s *per growth step*. That is a Phase-7 finding about the measurement layer,
-not a budget chosen for convenience.
+Certified A-CASE runs on the eight-qubit rungs as `acase_certified_n8`, at
+32 000 shots per group against the four-qubit rungs' 4 000. It needs the larger
+budget: at 4 000 it abstains immediately on H₄, which is a correct certified
+outcome rather than a failure, and the extra shots are nearly free because the
+per-group sampling plan is built once and reused.
+
+Getting there needed a fix in the measurement layer, and the first diagnosis of
+it was wrong. The QWC partition *is* greedy and quadratic, but it is memoized on
+the word set, and the certified loop's universe is the same index set at every
+growth step — so it was computed once, not per step, and it was never the
+binding cost. The binding cost was `computational_probabilities` at 11.4 s per
+eight-qubit readout, called once per group per batch, which made a single batch
+over H₄'s 1 689 groups take hours. A Z-basis readout only sees the diagonal
+Pauli content of the state, and the outcome vector is the Walsh–Hadamard
+transform of those coefficients, so it is `O(2^n n)` rather than `O(4^n)`. With
+that plus a cached per-group sampling plan, a warm batch is 0.19 s.
+
+`adapt_shot` still appears only on the four-qubit rungs; its cost is the ADAPT
+pool sweep, not the sampler.
 
 Costs on one laptop-class core: the four-qubit rungs are seconds each, the
 `h4_*` rungs a few minutes apiece, and `h2o_cas8e6o` (12 qubits) dominates the
-total.
+total. The certified eight-qubit rows add roughly three minutes each.
 
 ## Demos (not committed as artifacts)
 

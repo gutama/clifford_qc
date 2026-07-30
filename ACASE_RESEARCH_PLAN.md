@@ -759,18 +759,56 @@ Krylov's `3.3e+04`). Counting basis vectors alone, this is `M = 6` beating
 `M = 9`; counting what §6 asks for, it is the same measurement cost and the same
 ill-conditioning with three fewer coefficients to fit.
 
-*The measurement layer, not the shot budget, is what gates finite-shot rows to
-the four-qubit rungs.* The QWC partition is greedy and quadratic in the word
-universe — doubling the words quadruples the time (0.20 s at 750 random 8-qubit
-words, 0.82 s at 1 500, 3.45 s at 3 000, 14.8 s at 6 000) — and the H₄ element
-universe reaches 13 646 words at `M = 9`. The partition alone would then cost
-about 100 s *per growth step*, before a single shot is spent. Nothing about
-A-CASE requires that: the grouping is a preprocessing step over a word set
-that grows monotonically as the basis grows, so it should be incremental rather
-than recomputed. It is not, and that is the honest reason the certified arm
-stops at `n = 4`.
+*The measurement layer, not the shot budget, was what confined certified growth
+to four qubits — and the first diagnosis of which part was wrong.* The QWC
+partition is greedy and quadratic in the word universe, and that was the
+obvious suspect. But it is memoized on the word set, and the certified loop's
+universe is the same index set at every growth step (the basis gains the index
+the candidate pool loses), so it was computed **once**, not per step. It was
+also never the binding cost. Measured on the H₄ element universe — 15 846
+words, 1 689 groups — the partition was ten seconds of a batch that took hours.
 
-*Measured* (`benchmarks/reference_results/acase_ladder.jsonl`, 63 runs; error in
+The binding cost was `computational_probabilities`: 11.4 s per eight-qubit
+readout, called once per QWC group per batch. A Z-basis readout only sees the
+*diagonal* Pauli content of the state, so with `|b⟩⟨b| = Π_j (I + s_j Z_j)/2`,
+
+    p(b) = Σ_z ρ_z (−1)^popcount(z ∧ b),
+
+the Walsh–Hadamard transform of the diagonal coefficients — `O(2^n n)` for all
+outcomes at once, against `O(4^n)` word products for building each projector and
+multiplying it out. With that, plus holding the shot-independent part of each
+group's sampling plan (basis rotation, partial trace, outcome distribution,
+per-word parity masks) instead of rebuilding it every batch, a warm batch over
+those 1 689 groups is 0.19 s. The partition was separately made
+output-preserving-but-fast (vectorized conflict degrees, and placement against
+each group's merged basis code rather than a per-word incompatibility bitset):
+15 846 words, 77 s → 2.3 s.
+
+The lesson is the one §6 keeps making in a different register: the quantity that
+looked expensive by inspection was not the quantity that was expensive, and only
+measurement distinguished them.
+
+*Certified growth at eight qubits*, now that it runs (`acase_certified_n8`,
+32 000 shots per group, `max_size = 4`):
+
+| rung | M reached | error | shots | outcome |
+|---|---|---|---|---|
+| h4_equilibrium | 2 | +3.66e-02 | 216 M | abstained |
+| h4_stretched | 5 | +4.09e-02 | 461 M | budget reached |
+| h2o_cas4e4o_stretched | 4 | +1.03e-01 | 432 M | abstained |
+| hubbard_2x2 | 5 | +1.28e+00 | 442 M | budget reached |
+| kitaev_2x2 | 2 | +1.20e-01 | 151 M | abstained |
+
+This is the first Q2 evidence above four qubits. Two rungs grow to the full
+budget without a single uncertified step; three stop by abstention rather than
+by growing on a decision the shots do not support, which is the behaviour Q2
+asks for. At 4 000 shots per group — the four-qubit budget — H₄ abstains
+immediately, so the certified arm is *shot-limited* at eight qubits rather than
+structurally blocked. Every certified energy here sits well above chemical
+accuracy, so this establishes that the certificate keeps working at `n = 8`,
+not that certified A-CASE is accurate there.
+
+*Measured* (`benchmarks/reference_results/acase_ladder.jsonl`, 68 runs; error in
 Hartree against the reference's own sector, `—` where the config does not run
 that arm on that rung):
 
@@ -834,6 +872,10 @@ What the ladder does and does not support:
   Competing-order stabilizer configurations are what §4 proposed for this regime
   and they are not in the candidate pool; until they are, the materials-reach
   question is open rather than answered.
+- **Q2: supported as far as the ladder reaches.** Certified growth now runs at
+  eight qubits on five rungs; no run grows on a step the shots do not certify,
+  and abstention rather than silent growth is what stops three of them. Coverage
+  itself is calibrated in the Paper A experiments, not here.
 - **Q3 has a concrete instance in the record.** The certified H₂ row reports
   `−1.13821296` against a reference of `−1.13727017` — 0.94 mHa *below* the
   exact energy. The variational bound does not survive thresholding a noisy
