@@ -102,6 +102,10 @@ assert np.allclose(to_matrix(A * A), to_matrix(A) @ to_matrix(A))
   Kanamori, Anderson impurity, Kitaev honeycomb — built from the package's own
   Jordan-Wigner operators — with observables (`models/observables.py`) for
   occupations, double occupancy, spin correlations, and structure factors
+- a versioned effective-Hamiltonian boundary (`models/effective.py`) that reads
+  a spin-independent Wannier one-body matrix plus onsite embedding interactions
+  from JSON, validates orbital/spin/sector conventions, and emits the same
+  `Model` used by the native lattice builders
 - a research layer for VQE/ADAPT-VQE: model builders (`models/`), execution
   backends (`backends/`), a finite-shot measurement/confidence stack
   (`measurement/`), and packaged algorithms (`algorithms/`) — see
@@ -123,6 +127,33 @@ assert np.allclose(to_matrix(A * A), to_matrix(A) @ to_matrix(A))
   generator-coordinate subspaces, and ADAPT-VQE — every row carrying the
   resource metrics, shots, and abstentions beside the energy, and an evidence
   label saying what kind of number it is
+
+### Smallest end-to-end correlated-materials showcase
+
+The bundled two-site Wannier-Hubbard record is synthetic and canonical, not a
+claimed DFT calculation.  It exercises the real software boundary an upstream
+DFT/Wannier/embedding workflow would use:
+
+```text
+one-body Wannier matrix + onsite U (JSON)
+    -> Jordan-Wigner effective many-body Hamiltonian
+    -> A-CASE
+    -> energy, projected state coefficients, correlations, Lehmann response
+```
+
+Run it from the repository root:
+
+```bash
+python examples/acase_effective_model.py
+```
+
+The four-qubit `N=2, Sz=0` Hubbard dimer is small enough for an independent
+sector-exact oracle but already has a correlated singlet ground state,
+suppressed double occupancy, antiferromagnetic spin correlation, and a
+nontrivial staggered-spin response.  The schema and example record are in
+`examples/data/wannier_hubbard_dimer.json`; complex hopping entries use
+`[real, imag]`. All Hamiltonian values are interpreted in the declared
+`energy_unit`; the loader labels but does not convert units.
 
 ## Core Conventions
 
@@ -288,7 +319,8 @@ clifford_qc/
   bridges/         # optional Stim/OpenFermion/pytket/PennyLane bridges
   sparse.py        # sparse Pauli reference tier: eigsh, (N,Sz) sectors
   models/          # TFIM, XXZ, random-Ising; Hubbard/Kanamori/Anderson/
-                   # Kitaev clusters; material observables; chemistry+FCIDUMP
+                   # Kitaev; versioned effective-Hamiltonian ingestion;
+                   # material observables; chemistry+FCIDUMP
   backends/        # Backend protocol: exact MV, dense reference, finite-shot,
                    # sector-restricted statevector + matrix-free Lanczos
   measurement/     # commutator bank, shared word cache, confidence,
@@ -299,13 +331,13 @@ clifford_qc/
                    # generalized eigenproblem, cached matrix-element bank
                    # with projected observables, adaptive growth, finite-shot
                    # layers (shared grouped measurement, asymptotic Ritz
-                   # uncertainty, sample-split growth certificate), dense
-                   # cross-check
+                   # uncertainty, sample-split growth certificate), Lehmann
+                   # response, dense cross-check
 ```
 
 ## Project Notes
 
-- The project is currently alpha (`0.1.0`).
+- The project is currently alpha (`0.3.0`).
 - `MIGRATION.md` maps the old single-file API onto this package.
 - `simple_plan.md` records the implemented roadmap and bridge validation
   criteria.
