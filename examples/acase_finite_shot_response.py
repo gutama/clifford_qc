@@ -63,7 +63,9 @@ def main() -> None:
           f"certified={uncertainty.certified}")
     print(f"  usable bootstrap replicas="
           f"{uncertainty.replicates_succeeded}/"
-          f"{uncertainty.replicates_requested}")
+          f"{uncertainty.replicates_requested}"
+          f" (acceptance {uncertainty.acceptance_rate:.0%};"
+          f" intervals below are conditional on these)")
     for item in uncertainty.lines:
         gap, weight = item.excitation_energy, item.weight
         print(f"  root {item.line.final_state}:")

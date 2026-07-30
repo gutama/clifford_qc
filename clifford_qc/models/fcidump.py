@@ -275,10 +275,21 @@ def model_from_fcidump(data: FCIDump, *, name: str | None = None,
 
     The two-electron term is assembled directly from
 
-    ``1/2 sum_(pqrs,st) (pq|rs) a†_(p,s) a†_(r,t) a_(s,t) a_(q,s)``.
+    ``1/2 sum_(pqrs) sum_(sigma,tau) (pq|rs)
+      a†_(p,sigma) a†_(r,tau) a_(s,tau) a_(q,sigma)``
 
-    This avoids a hidden chemist-to-physicist transpose and gives the optional
-    OpenFermion/PySCF comparison tests an independent implementation to check.
+    with ``p q r s`` spatial orbitals and ``sigma tau`` spins -- spelled out
+    because this docstring *is* the human-checkable statement of the convention.
+    An earlier version wrote both an orbital index and a spin label as ``s``,
+    which reads as two different operators depending on which one you take
+    ``a_(s,t)`` to mean; the code was right and the formula was not. Getting
+    this exact matters here more than usual: a chemist-to-physicist reindexing
+    error is invisible in the assembled Hamiltonian and shows up only as a wrong
+    correlation energy.
+
+    Assembling in chemist notation avoids that transpose entirely rather than
+    performing it correctly, and gives the optional OpenFermion/PySCF
+    comparison tests an independent implementation to check.
     """
     if integral_tolerance < 0.0 or not math.isfinite(integral_tolerance):
         raise ValueError("integral_tolerance must be non-negative and finite")

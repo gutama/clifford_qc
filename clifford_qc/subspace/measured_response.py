@@ -20,6 +20,14 @@ isolated ordered roots, and replicas whose thresholded rank changes are
 reported and excluded.  The API deliberately has no ``finite_sample`` option;
 adding one requires a confidence set for the full correlated matrix pencil and
 observable, plus a root-identification argument.
+
+One consequence of that exclusion is worth stating rather than leaving to be
+inferred from the failure counts: the intervals are **conditional on the
+surviving replicas**.  Discarding the resamples on which the rank moved or two
+roots collided removes exactly the draws that would have widened the band, so
+the interval is narrowest in the ill-conditioned regime this diagnostic exists
+to expose.  ``BootstrapResponse.acceptance_rate`` reports the conditioning, and
+should be quoted next to any interval taken from it.
 """
 
 from __future__ import annotations
@@ -73,6 +81,16 @@ class BootstrapResponse:
     ``broadened_*`` are populated only when a frequency grid and a broadening
     are supplied together.  All interval arrays are pointwise percentile
     intervals, not a simultaneous band.
+
+    **Every interval here is conditional on the replicas that survived.**
+    Replicas whose thresholded rank moved, whose roots collided, or whose solve
+    failed are excluded, so the reported spread describes the pipeline *given
+    that it behaved.*  That conditioning is not neutral: it narrows the interval
+    exactly where the pipeline is least stable, because the replicas that would
+    have widened it are the ones being dropped.  ``acceptance_rate`` is the
+    number to read beside the interval -- a band from 200/200 replicas and a
+    band from 120/200 are not the same claim, and the second is the one to
+    distrust.
     """
 
     spectrum: MeasuredResponseSpectrum
@@ -94,6 +112,17 @@ class BootstrapResponse:
     def certified(self) -> bool:
         """A grouped bootstrap is a diagnostic, never a certificate."""
         return False
+
+    @property
+    def acceptance_rate(self) -> float:
+        """Fraction of replicas the intervals are conditioned on.
+
+        Below 1.0 the pipeline failed to reproduce itself on some resamples,
+        and the interval is correspondingly optimistic.
+        """
+        if self.replicates_requested <= 0:
+            return 0.0
+        return self.replicates_succeeded / self.replicates_requested
 
 
 def _projected_lines(result: SubspaceResult, observable_matrix: np.ndarray,

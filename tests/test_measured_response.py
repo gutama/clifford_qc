@@ -12,6 +12,7 @@ from clifford_qc.fermion import c_op
 from clifford_qc.models import load_effective_hamiltonian, magnetization
 from clifford_qc.subspace import (
     HEURISTIC,
+    BootstrapResponse,
     MatrixElementBank,
     ResponseMeasurement,
     bootstrap_response,
@@ -117,3 +118,37 @@ def test_response_bootstrap_validates_its_statistical_contract(
     cache = measurement.measure(FiniteShotBackend(seed=3), 100)
     with pytest.raises(ValueError, match=message):
         bootstrap_response(measurement, cache, **kwargs)
+
+
+def test_intervals_report_what_they_are_conditioned_on(dimer_response):
+    """Rejecting replicas is not neutral, so the conditioning must be legible.
+
+    Replicas whose rank moved or whose roots collided are dropped, which removes
+    exactly the draws that would have widened the band -- the interval is
+    therefore narrowest where the pipeline is least stable. The failure counts
+    alone leave that to be inferred; ``acceptance_rate`` states it.
+    """
+    _, _, measurement = dimer_response
+    cache = measurement.measure(FiniteShotBackend(seed=5), 4000)
+    result = bootstrap_response(measurement, cache, replicates=40, seed=3)
+
+    assert result.acceptance_rate == pytest.approx(
+        result.replicates_succeeded / result.replicates_requested)
+    assert 0.0 <= result.acceptance_rate <= 1.0
+    # the accounting closes: every requested replica either succeeded or is
+    # counted under exactly one failure mode
+    assert (result.replicates_succeeded + result.rank_failures
+            + result.root_collision_failures
+            + result.solver_failures) == result.replicates_requested
+    # and the conditioning is stated where a reader meets the interval
+    assert "conditional" in BootstrapResponse.__doc__
+    assert "acceptance_rate" in BootstrapResponse.__doc__
+    assert result.certified is False
+
+
+def test_acceptance_rate_is_defined_when_nothing_was_requested():
+    empty = BootstrapResponse(
+        spectrum=None, lines=(), susceptibility=None, evidence=HEURISTIC,
+        delta=0.05, replicates_requested=0, replicates_succeeded=0,
+        rank_failures=0, root_collision_failures=0, solver_failures=0)
+    assert empty.acceptance_rate == 0.0
