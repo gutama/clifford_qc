@@ -193,6 +193,36 @@ python benchmarks/watch_reproduction.py \
 Write these long-running reproductions outside `benchmarks/reference_results/`
 unless intentionally regenerating committed artifacts.
 
+## Effective-Hamiltonian end-to-end showcase (numpy + scipy)
+
+The smallest complete materials-facing path uses the synthetic, canonical
+two-site record in `examples/data/wannier_hubbard_dimer.json`:
+
+```bash
+python examples/acase_effective_model.py
+```
+
+This is an integration benchmark, not a DFT result. It validates the boundary
+an upstream Wannier/embedding workflow would use:
+
+```text
+Hermitian one-body matrix + onsite U + explicit reference sector
+    -> Jordan-Wigner Hamiltonian -> A-CASE
+    -> energy + state coefficients + correlations + Lehmann response
+```
+
+Expected invariants (minor last-digit formatting may vary):
+
+- sector exact and adaptive A-CASE energies both `-0.828427125 eV`;
+- absolute energy mismatch below `1e-12 eV`;
+- complete response basis `M=4`, rank `4`, `kappa(S)=1`;
+- singlet diagnostic `<S^2>` below `1e-12`;
+- staggered-spin line at `0.828427125 eV` with weight `0.853553391`.
+
+The program accepts another record as its sole argument. The schema is
+`clifford_qc.effective_hamiltonian.v1`; spin orbitals are interleaved
+(`2*site=up`, `2*site+1=down`), and complex one-body entries are `[real, imag]`.
+
 ## A-CASE validation ladder (Phase 7, `chemistry` extra)
 
 ```bash
