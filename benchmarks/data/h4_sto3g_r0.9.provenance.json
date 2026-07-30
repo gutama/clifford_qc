@@ -1,0 +1,33 @@
+{
+  "schema": "clifford_qc.active_space_benchmark.v1",
+  "name": "linear H4 STO-3G CAS(4e,4o)",
+  "geometry_angstrom": [
+    ["H", [0.0, 0.0, 0.0]],
+    ["H", [0.0, 0.0, 0.9]],
+    ["H", [0.0, 0.0, 1.8]],
+    ["H", [0.0, 0.0, 2.7]]
+  ],
+  "basis": "sto-3g",
+  "orbital_method": "RHF",
+  "active_space": {
+    "electrons": 4,
+    "spatial_orbitals": 4,
+    "selection": "all STO-3G molecular orbitals"
+  },
+  "generator": {
+    "software": "PySCF",
+    "version": "2.14.0",
+    "scf_convergence_tolerance": 1e-12
+  },
+  "fcidump_sha256": "bf32568461477cf1ec8e7c4aaae737b0c6c80bcbd83d51f783ec3a3daed5a922",
+  "energy_unit": "hartree",
+  "reference_energies": {
+    "rhf": -2.124259738972812,
+    "fci": -2.180316614323862
+  },
+  "notes": [
+    "The committed FCIDUMP is the immutable benchmark input.",
+    "The reference FCI energy was computed by PySCF's determinant-space FCI solver, independently of clifford_qc's Jordan-Wigner and projected-subspace paths.",
+    "Molecular-orbital signs are gauge choices; the committed file fixes one gauge through its SHA-256 digest."
+  ]
+}

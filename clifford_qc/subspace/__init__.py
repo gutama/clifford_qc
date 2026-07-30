@@ -3,7 +3,8 @@
 Phases 1-4 of ``ACASE_RESEARCH_PLAN.md``: exact fixed-basis solves, a cached
 matrix-element bank with projected observables, adaptive basis growth, and the
 finite-shot layers (shared grouped measurement, asymptotic Ritz uncertainty,
-and a sample-split growth certificate with abstention). The basis states
+whole-pipeline response bootstrap, and a sample-split growth certificate with
+abstention). The basis states
 ``A_i|psi>`` stay virtual throughout -- every projected matrix element is an
 expectation on one reference state, assembled from the bilinear Pauli-word
 trace pairing ``MV.trace_pairing``.
@@ -33,6 +34,10 @@ from .reference import (
 )
 from .response import (ResponseLine, broaden_response, lehmann_spectrum,
                        static_susceptibility)
+from .measured_response import (
+    BootstrapResponse, MeasuredResponseSpectrum, ResponseLineUncertainty,
+    ResponseMeasurement, bootstrap_response,
+)
 from .solver import (
     DEFAULT_MAX_CONDITION, DEFAULT_NORM_FLOOR, DEFAULT_TAU_S, SubspaceResult,
     canonical_eigh, projected_matrices, solve_projected, solve_subspace,
@@ -55,6 +60,8 @@ __all__ = [
     "dense_subspace", "pure_statevector",
     "ResponseLine", "broaden_response", "lehmann_spectrum",
     "static_susceptibility",
+    "BootstrapResponse", "MeasuredResponseSpectrum",
+    "ResponseLineUncertainty", "ResponseMeasurement", "bootstrap_response",
     "DEFAULT_MAX_CONDITION", "DEFAULT_NORM_FLOOR", "DEFAULT_TAU_S",
     "SubspaceResult", "canonical_eigh", "projected_matrices",
     "solve_projected", "solve_subspace",

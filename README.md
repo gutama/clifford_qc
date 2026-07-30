@@ -155,6 +155,44 @@ nontrivial staggered-spin response.  The schema and example record are in
 `[real, imag]`. All Hamiltonian values are interpreted in the declared
 `energy_unit`; the loader labels but does not convert units.
 
+### Real FCIDUMP active-space benchmark
+
+`clifford_qc.models.fcidump_model` is a strict NumPy-only adapter for real,
+restricted FCIDUMP records. It restores packed chemist-notation integrals,
+constructs the interleaved-spin Jordan–Wigner Hamiltonian with the package's
+own fermion operators, validates `NELEC/MS2`, and records the source SHA-256.
+Unrestricted and complex extensions are rejected explicitly.
+
+The committed linear-H4 STO-3G CAS(4e,4o) fixture is independently reproducible:
+
+```bash
+python benchmarks/run_fcidump_h4.py
+```
+
+It maps to 8 qubits, 185 Pauli terms, and a 36-determinant `(N=4, Sz=0)`
+sector. The sector oracle agrees with the external PySCF determinant-space FCI
+energy to `3.1e-15 Ha`. At the predeclared adaptive budget A-CASE uses `M=9`
+and `W=7,371`, with `3.019 mHa` error; the complete singles/doubles coordinate
+space uses `M=27` and reaches `0.766 mHa` error. The latter support is
+deliberately untracked and is not presented as a measurement-resource result.
+
+### Finite-shot response uncertainty
+
+`ResponseMeasurement` measures `S`, `H`, and a Hermitian projected observable
+from one shared QWC cache. `bootstrap_response` resamples the grouped joint
+histograms and reruns overlap thresholding, the generalized eigensolve,
+transition weights, susceptibility, and optional Lorentzian broadening:
+
+```bash
+python examples/acase_finite_shot_response.py
+```
+
+Every resulting interval is labelled `heuristic`; `certified` is always
+`False`. Root-resolved intervals require isolated Ritz roots, rank-changing
+replicas are reported, and broadened-spectrum intervals are pointwise rather
+than simultaneous. This is finite-shot uncertainty, not a finite-sample
+coverage certificate.
+
 ## Core Conventions
 
 - Pauli labels are strings over `I`, `X`, `Y`, `Z`.
@@ -258,6 +296,7 @@ PYTHONPATH=. python examples/tfim_exact.py
 PYTHONPATH=. python examples/acase_premise_check.py
 PYTHONPATH=. python examples/acase_adaptive.py
 PYTHONPATH=. python examples/acase_finite_shot.py
+PYTHONPATH=. python examples/acase_finite_shot_response.py
 PYTHONPATH=. python examples/acase_materials.py
 PYTHONPATH=. python examples/acase_sector_backend.py
 ```
@@ -320,7 +359,7 @@ clifford_qc/
   sparse.py        # sparse Pauli reference tier: eigsh, (N,Sz) sectors
   models/          # TFIM, XXZ, random-Ising; Hubbard/Kanamori/Anderson/
                    # Kitaev; versioned effective-Hamiltonian ingestion;
-                   # material observables; chemistry+FCIDUMP
+                   # material observables; NumPy-only FCIDUMP; chemistry
   backends/        # Backend protocol: exact MV, dense reference, finite-shot,
                    # sector-restricted statevector + matrix-free Lanczos
   measurement/     # commutator bank, shared word cache, confidence,
@@ -331,8 +370,9 @@ clifford_qc/
                    # generalized eigenproblem, cached matrix-element bank
                    # with projected observables, adaptive growth, finite-shot
                    # layers (shared grouped measurement, asymptotic Ritz
-                   # uncertainty, sample-split growth certificate), Lehmann
-                   # response, dense cross-check
+                   # uncertainty, whole-pipeline response bootstrap,
+                   # sample-split growth certificate), Lehmann response,
+                   # dense cross-check
 ```
 
 ## Project Notes

@@ -79,65 +79,19 @@ def molecule_model(geometry, basis: str = "sto-3g", multiplicity: int = 1,
 
 
 def fcidump_model(path, *, name: str | None = None,
-                  n_electrons: int | None = None) -> Model:
-    """Model from an FCIDUMP file -- the interchange format downfolding emits.
+                  n_electrons: int | None = None, ms2: int | None = None,
+                  integral_tolerance: float = 1e-12) -> Model:
+    """Compatibility route to the NumPy-only FCIDUMP interchange adapter.
 
-    The other half of the §5 ingestion story: ``molecule_model`` runs PySCF
-    itself, while an embedding, DMET, or Wannier downfolding step hands over a
-    file. PySCF reads it, the integrals are expanded to spin orbitals by
-    OpenFermion's own ``spinorb_from_spatial``, and the Jordan-Wigner image
-    becomes the same ``PauliSum`` every other model uses.
-
-    Two conventions have to be crossed, and getting either wrong produces a
-    plausible-looking Hamiltonian with the wrong correlation energy. FCIDUMP
-    stores two-electron integrals in *chemist* notation ``(pq|rs)``; OpenFermion
-    wants *physicist* ordering ``<pq|rs>``, which is the ``(0, 2, 3, 1)``
-    reindexing applied below. And the file's ``H2`` is packed by permutation
-    symmetry, so it is restored to a full four-index array first. The test suite
-    checks the result against the same molecule built through
-    ``openfermionpyscf``, term by term, because that is the only way to know the
-    reindexing is right rather than merely self-consistent. (Eight of the 24
-    possible reindexings coincide -- that is the permutation symmetry of real
-    two-electron integrals -- and the other sixteen give a Hamiltonian with the
-    wrong correlation energy.)
+    FCIDUMP no longer needs PySCF or OpenFermion to parse and map a record.
+    This module still provides the historical import path for chemistry-extra
+    users; the implementation lives in :mod:`clifford_qc.models.fcidump` so a
+    downstream DFT or embedding workflow can use it in a core installation.
     """
-    from pyscf import ao2mo
-    from pyscf.tools import fcidump
-    from openfermion.chem.molecular_data import spinorb_from_spatial
-    from openfermion.ops import InteractionOperator
+    from .fcidump import fcidump_model as load
 
-    data = fcidump.read(str(path))
-    n_orbitals = int(data["NORB"])
-    one_body = np.asarray(data["H1"], dtype=float).reshape(n_orbitals, n_orbitals)
-    chemist = ao2mo.restore(1, np.asarray(data["H2"], dtype=float), n_orbitals)
-    # chemist (pq|rs) -> physicist <pq|rs>. Reading numpy's rule carefully
-    # matters here: axis i of the result is axis axes[i] of the input, so
-    # transpose(0, 2, 3, 1) means physicist[p,q,r,s] = chemist[p,s,q,r]. This is
-    # the reindexing openfermionpyscf applies to PySCF's own integrals.
-    physicist = np.asarray(chemist.transpose(0, 2, 3, 1), order="C")
-    core = float(data.get("ECORE", 0.0))
-    electrons = int(data["NELEC"]) if n_electrons is None else int(n_electrons)
-    ms2 = int(data.get("MS2", 0))
-
-    one_spin, two_spin = spinorb_from_spatial(one_body, physicist)
-    interaction = InteractionOperator(core, one_spin, 0.5 * two_spin)
-    pauli_sum = qubit_operator_to_pauli_sum(jordan_wigner(interaction),
-                                           2 * n_orbitals)
-    label = name or f"fcidump({getattr(path, 'name', path)})"
-    return Model(
-        name=label, n=2 * n_orbitals, hamiltonian=pauli_sum,
-        reference=_hf_reference(2 * n_orbitals, electrons), hva_layers=(),
-        metadata={
-            "kind": "molecular",
-            "source": "fcidump",
-            "path": str(path),
-            "n_spatial_orbitals": n_orbitals,
-            "spin_orbitals": 2 * n_orbitals,
-            "spin_convention": "interleaved",
-            "n_electrons": electrons,
-            "sz": 0.5 * ms2,
-            "core_energy": core,
-        })
+    return load(path, name=name, n_electrons=n_electrons, ms2=ms2,
+                integral_tolerance=integral_tolerance)
 
 
 def h2(bond_length: float = 0.7414) -> Model:

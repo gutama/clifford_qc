@@ -75,7 +75,7 @@ No figure or table value in the manuscript is transcribed by hand, and
 ```bash
 python -m venv .venv && source .venv/bin/activate
 pip install -e .[test,research,chemistry]   # numpy + scipy + openfermion/pyscf
-pytest                                      # 722 passed, 6 skipped
+pytest                                      # 740 passed, 6 skipped
 ```
 
 That install is the reference environment for the quoted pair, and it is
@@ -222,6 +222,55 @@ Expected invariants (minor last-digit formatting may vary):
 The program accepts another record as its sole argument. The schema is
 `clifford_qc.effective_hamiltonian.v1`; spin orbitals are interleaved
 (`2*site=up`, `2*site+1=down`), and complex one-body entries are `[real, imag]`.
+
+## FCIDUMP H4 CAS(4e,4o) benchmark (numpy only)
+
+The larger active-space rung starts from the immutable interchange artifact
+`benchmarks/data/h4_sto3g_r0.9.FCIDUMP`, not from an SCF calculation rerun
+during the benchmark:
+
+```bash
+python benchmarks/run_fcidump_h4.py \
+    --out reproductions/fcidump_h4.json
+```
+
+The source digest and generation metadata are in the adjacent provenance JSON.
+The committed reference record is
+`benchmarks/reference_results/fcidump_h4.json`. Expected results:
+
+- 4 electrons in 4 spatial orbitals, 8 qubits, sector dimension 36;
+- 185 mapped Pauli terms;
+- sector exact `E0 = -2.180316614324 Ha`;
+- difference from the external PySCF determinant-space FCI result below
+  `1e-10 Ha`;
+- adaptive A-CASE at 8 additions: `M=9`, `W=7371`,
+  error `3.018781 mHa`;
+- complete singles/doubles coordinate space: `M=27`,
+  error `0.765862 mHa` (chemical accuracy).
+
+The adapter itself needs no chemistry extra. Full CI additionally compares its
+185 Pauli coefficients against the independent OpenFermion/PySCF construction.
+FCIDUMP orbital signs are a gauge; the committed digest fixes one gauge rather
+than weakening coefficient tolerances.
+
+## Finite-shot nonlinear response uncertainty
+
+```bash
+python examples/acase_finite_shot_response.py
+```
+
+The example uses 25 shared QWC groups and 8,000 shots per group. A grouped
+bootstrap resamples their joint histograms and reruns the entire response
+pipeline. With the committed seeds it reports one staggered-spin line near
+`0.829 eV`, weight near `0.854`, and `chi(0)` near `2.060 1/eV`.
+
+The intervals are percentile diagnostics labelled `heuristic`:
+
+- they are not finite-sample certificates;
+- root-resolved output requires isolated ordered Ritz roots;
+- thresholded-rank changes and root collisions are counted as failed replicas;
+- at least 80% of replicas must remain usable by default;
+- broadened-response bands are pointwise, not simultaneous.
 
 ## A-CASE validation ladder (Phase 7, `chemistry` extra)
 
