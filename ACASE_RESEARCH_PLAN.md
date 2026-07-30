@@ -658,7 +658,9 @@ adding the competing-order configurations *by themselves* changes nothing
 (they are determinants `H` does not connect to the reference at first order),
 and adding the compound products `configuration × excitation` reaches
 `−10.102748` — the sector ground state, to `1e-8`. The barrier was the span,
-and it was the one-reference structure of levels 0–3 that imposed it.
+and it was the one-reference structure of levels 0–3 that imposed it. Grown
+adaptively, the committed record reaches the same energy to `1e-14` with
+`M = 26` against a 36-state sector (Q4, below).
 
 **Phase 6 — done (`backends/sector_statevector.py`).**
 `SectorStatevectorBackend` stores a pure state on the occupation words of one
@@ -838,7 +840,7 @@ structurally blocked. Every certified energy here sits well above chemical
 accuracy, so this establishes that the certificate keeps working at `n = 8`,
 not that certified A-CASE is accurate there.
 
-*Measured* (`benchmarks/reference_results/acase_ladder.jsonl`, 68 runs; error in
+*Measured* (`benchmarks/reference_results/acase_ladder.jsonl`, 72 runs; error in
 Hartree against the reference's own sector, `—` where the config does not run
 that arm on that rung):
 
@@ -850,7 +852,8 @@ that arm on that rung):
 | h4_stretched | 8 | +2.6e-01 | +1.8e-01 | **+1.5e-05** | +1.8e-01 | +7.4e-03 | +3.9e-02 |
 | h2o_cas4e4o_stretched | 8 | +3.2e-01 | +1.7e-01 | **+7.1e-03** | +1.6e-01 | +1.2e-02 | +5.5e-02 |
 | h2o_cas8e6o | 12 | +5.0e-02 | +4.7e-02 | — | +4.2e-02 | — | **+1.4e-02** |
-| hubbard_2x2 | 8 | +2.1e+00 | +1.5e+00 | **+2.6e-03** | +1.9e+00 | +4.0e-01 | +8.6e-01 |
+| hubbard_2x2 | 8 | +2.1e+00 | +1.5e+00 | +2.6e-03 | +1.9e+00 | +4.0e-01 | +8.6e-01 |
+| hubbard_2x2 (level 4) | 8 | — | — | — | — | — | **−1.1e-14** |
 | hubbard_2x3 | 12 | +3.6e+00 | +3.4e+00 | — | +3.2e+00 | — | **+2.2e+00** |
 | kitaev_2x2 | 8 | +9.6e-01 | +9.6e-01 | −1.1e-14 | — | +9.6e-01 | **+7.4e-13** |
 
@@ -905,13 +908,31 @@ What the ladder does and does not support:
   (`−10.102748`, agreement to `1e-8`), where levels 0–3 stall at `−9.8475`
   however many directions are added.
 
-  Compactness is the weaker half. Adaptively at `M = 25` against a 36-state
-  sector, level 4 reaches `2.5e-02` where levels 0–3 reach `2.6e-01` — an order
-  of magnitude at `κ_S = 1` and a basis still smaller than the sector. On the
-  2×3 cluster (400-state sector) the greedy selector picks **no** level-4
-  generator within `M = 25` and the run is identical to levels 0–3. So the
-  answer is: the objects Q4 asks about do represent these states, and the
-  selection rule finds them on one cluster and not the other.
+  Compactness holds on the 2×2 and is untested on the 2×3. From the committed
+  record, both arms grown adaptively at the same budget:
+
+  | rung | family | M | error | `κ_S` | `W` | level-4 picked | stop |
+  |---|---|---|---|---|---|---|---|
+  | hubbard_2x2 | levels 0–3 | 23 | +2.55e-01 | 1.00 | 13 665 | 0 | saturated |
+  | hubbard_2x2 | levels 0–4 | 26 | **−1.07e-14** | 1.00 | 15 191 | 5 | budget |
+  | hubbard_2x3 | levels 0–3 | 26 | +1.09e+00 | 1.00 | 85 264 | 0 | budget |
+  | hubbard_2x3 | levels 0–4 | 26 | +1.09e+00 | 1.00 | 85 264 | 0 | budget |
+
+  On the 2×2 that is the sector ground state at machine precision with `M = 26`
+  against a **36**-state sector, at `κ_S = 1` and 11 % more words than the
+  saturated levels-0-3 basis — a compact, well-conditioned, measurable basis
+  rather than a re-derivation of full CI. It is the only arm on that rung to
+  reach chemical accuracy at all; fixed Krylov gets to `+2.6e-03` and misses,
+  at `κ_S = 9.7e+09`. The five generators selected are
+  `afm*E(2<-0)`, `afm*E(1<-3)`, `afm*E(1,2<-0,3)`, `afm_flipped*E(6<-4)` and
+  `afm_flipped*E(5<-7)` — the antiferromagnet and its spin-flipped partner,
+  each dressed by an excitation. The levels-0-3 arm stops on its own at
+  `M = 23` with predicted lowering below threshold: it is not budget-limited,
+  it is out of directions.
+
+  The 2×3 cluster is the honest negative: identical rows, zero level-4
+  generators selected. The compactness half of Q4 is answered on one cluster
+  and open on the other.
 
 - **A limitation of §4.3, exposed by level 4 and worth stating separately.**
   The generalized 2×2 score cannot see a bare competing-order configuration.
