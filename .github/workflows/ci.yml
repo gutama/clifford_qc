@@ -104,12 +104,10 @@ jobs:
       # paper_acase/ is a second, standalone manuscript with its own generators
       # and its own committed records. It gets the same gates: without them the
       # drift protection above would cover only half the repository's papers.
-      - name: A-CASE paper -- regenerate the response records, then fail on drift
-        run: |
-          python paper_acase/run_response_record.py
-          git diff --exit-code -- paper_acase/data
-      # The warm-start record feeds Table III and is deterministic, so it gets
-      # the same bit-for-bit gate as the response records.
+      - name: A-CASE paper -- response records agree with a fresh run
+        run: python paper_acase/check_response_records.py
+      # The warm-start record feeds Table III and pins its BLAS thread count,
+      # so unlike the response eigensolves it is stable under a byte gate.
       - name: A-CASE paper -- regenerate the warm-start record, then fail on drift
         run: |
           python benchmarks/run_warm_start.py
@@ -123,7 +121,7 @@ jobs:
         run: |
           python paper_acase/make_figures.py
           python paper_acase/make_tables.py
-          git diff --exit-code -- paper_acase/tables
+          git diff --exit-code -- paper_acase/paper_assets paper_acase/tables
       - name: A-CASE paper -- structure (refs, bib keys, table columns, float ages)
         run: python paper_acase/check_manuscript.py
       - name: A-CASE paper -- build the manuscript

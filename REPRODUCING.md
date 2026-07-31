@@ -325,6 +325,7 @@ certificate gate.
 
 ```bash
 python examples/acase_finite_shot_response.py
+python paper_acase/check_response_records.py
 ```
 
 The example uses 25 shared QWC groups and 8,000 shots per group. A grouped

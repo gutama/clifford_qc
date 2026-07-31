@@ -15,6 +15,9 @@ software representation.
 - `references.bib` — paper-specific bibliography.
 - `run_response_record.py` — regenerates both grouped-bootstrap response
   records from the merged implementation.
+- `check_response_records.py` — compares a fresh run with the committed
+  records, requiring exact seeds, replica accounting, and metadata while
+  tolerating only last-bit floating-point variation.
 - `data/response_bootstrap.json` — deterministic paper record, including the
   seeds, shot budget, replica accounting, intervals, and plotted spectrum.
 - `data/response_bootstrap_illconditioned.json` — the same run with the
@@ -50,6 +53,7 @@ From the repository root:
 
 ```bash
 python paper_acase/run_response_record.py
+python paper_acase/check_response_records.py
 python benchmarks/run_warm_start.py
 python benchmarks/run_krylov_width.py
 python paper_acase/make_tables.py
