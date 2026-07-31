@@ -527,10 +527,10 @@ Table~\ref{tab:warm} varies $\rho$ at a fixed A-CASE budget, which prices the
 warm start against cold A-CASE but not against the alternatives.  We therefore
 fix one contract and run every arm inside it: the same frozen FCIDUMP and
 digest, the same $(N=4,S_z=0)$ sector, the same Hartree--Fock reference, the
-same eight-addition budget, the same stopping rule---run the budget out, no
-early exit---and exact arithmetic throughout.  The pool is the same operator
-content for every arm: 26 symmetry-preserving determinant excitations, which
-decompose into 160 odd-$Y$ Pauli words.
+same eight-addition budget, and exact arithmetic throughout.  Every arm runs
+its budget out, with no early exit.  The pool is the same operator content for
+every arm: 26 symmetry-preserving determinant excitations, which decompose into
+160 odd-$Y$ Pauli words.
 
 Granularity is the one thing the contract cannot fix.  ADAPT-VQE consumes
 single words; A-CASE's default candidates are whole excitations.  Rather than
