@@ -17,7 +17,8 @@ import time
 from pathlib import Path
 
 # Exact ADAPT optimization contains BLAS reductions.  One thread removes their
-# completion-order freedom and makes the bit-for-bit record gate meaningful.
+# completion-order freedom so operator choices and resource counts reproduce;
+# the record gate separately tolerates last-bit cross-BLAS energy variation.
 _THREADS = os.environ.get("CLIFFORD_QC_BENCHMARK_THREADS", "1")
 for _name in ("OMP_NUM_THREADS", "OPENBLAS_NUM_THREADS", "MKL_NUM_THREADS",
               "NUMEXPR_NUM_THREADS"):

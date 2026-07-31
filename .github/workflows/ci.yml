@@ -106,12 +106,10 @@ jobs:
       # drift protection above would cover only half the repository's papers.
       - name: A-CASE paper -- response records agree with a fresh run
         run: python paper_acase/check_response_records.py
-      # The warm-start record feeds Table III and pins its BLAS thread count,
-      # so unlike the response eigensolves it is stable under a byte gate.
-      - name: A-CASE paper -- regenerate the warm-start record, then fail on drift
-        run: |
-          python benchmarks/run_warm_start.py
-          git diff --exit-code -- benchmarks/reference_results/warm_start_h4.json
+      # The warm-start gate keeps every discrete resource and selection field
+      # exact while tolerating only cross-BLAS last-bit energy variation.
+      - name: A-CASE paper -- warm-start record agrees with a fresh run
+        run: python benchmarks/check_warm_start.py
       # The Krylov widths (Table IV) are checked by value rather than by bytes:
       # the record's raw counts include round-off-level words that two PySCF
       # runs disagree about. See the script's docstring.

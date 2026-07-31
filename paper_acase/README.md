@@ -40,7 +40,9 @@ benchmarks rather than paper artifacts:
   reference state varied from the Hartree-Fock determinant to ADAPT-VQE states
   (`benchmarks/run_warm_start.py`). The v2 record also reports the additional
   ADAPT pool-gradient, optimizer, and state-preparation counts; it does not
-  claim a physical shot estimate for the exact-simulation stage.
+  claim a physical shot estimate for the exact-simulation stage. Its
+  exact-discrete/tolerant-float reproduction gate is
+  `benchmarks/check_warm_start.py`.
 - `krylov_width.json` — the Krylov arm's measurement width, computed through
   the `H^k` collapse of the element universe rather than the quadratic route
   the ladder cannot afford (`benchmarks/run_krylov_width.py`). The v2 record
@@ -55,6 +57,7 @@ From the repository root:
 python paper_acase/run_response_record.py
 python paper_acase/check_response_records.py
 python benchmarks/run_warm_start.py
+python benchmarks/check_warm_start.py
 python benchmarks/run_krylov_width.py
 python paper_acase/make_tables.py
 python paper_acase/make_figures.py

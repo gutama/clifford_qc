@@ -262,6 +262,7 @@ accuracy threshold without increasing that nine-vector subspace:
 ```bash
 python benchmarks/run_warm_start.py \
     --out reproductions/warm_start_h4.json
+python benchmarks/check_warm_start.py
 ```
 
 Same FCIDUMP, same A-CASE candidate pool, and same eight additions; `rho`
