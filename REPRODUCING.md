@@ -5,6 +5,22 @@ environment with the commands below. All experiments are seeded; JSONL
 rows should match up to floating-point noise in wall-clock fields, and the
 summary tables should match exactly.
 
+## Access and review policy
+
+This document is the executable reproducibility contract for a private
+development repository. Private status changes distribution, not the evidence
+standard: frozen inputs, raw records, generators, tests, environment
+requirements, and semantic drift gates remain versioned together.
+
+During framework development, editors and referees can receive an
+access-controlled frozen review snapshot from the authors on request. The
+snapshot must identify its exact source revision and include everything needed
+to run the commands in this document; a moving development branch is not
+itself treated as the review artifact. A tagged archival release with a
+persistent identifier is intended after the operator, measurement, subspace,
+and backend interfaces stabilize. Until that release exists, neither this
+document nor the manuscript claims anonymous public download access.
+
 **Records and code move together.** A record produced before a change to the
 estimator, the selector, or the confidence construction is not comparable with
 one produced after, and mixing the two is how stale numbers reach a manuscript.

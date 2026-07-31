@@ -9,6 +9,21 @@ defines the method, measurement model, benchmark contract, and evidence labels
 again, while citing the operator-centric Clifford-algebra paper for the shared
 software representation.
 
+## Development and review access
+
+The framework and this paper package are currently maintained in a private
+development repository while the operator, measurement, subspace, and backend
+interfaces are stabilized. Reproducibility is preserved through a frozen
+review snapshot rather than through a claim that the moving repository is
+public. Editors and referees can receive that access-controlled snapshot from
+the authors on request; it must identify the exact source revision and include
+the source, frozen inputs, raw records, generators, tests, and environment
+instructions used by the manuscript.
+
+A tagged archival release with a persistent identifier is intended after the
+framework foundation is stable enough for external reuse. Rendered manuscript
+PDFs remain CI/release artifacts and are not committed as source.
+
 ## Files
 
 - `manuscript.tex` — standalone REVTeX 4.2 manuscript.

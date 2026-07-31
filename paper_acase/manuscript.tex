@@ -975,9 +975,20 @@ embedding for a material.
 \label{sec:reproducibility}
 
 The implementation, frozen inputs, raw benchmark records, table and figure
-generators, tests, and this manuscript are in the public
-\texttt{clifford\_qc} repository \cite{cliffordqc2026}.  The H$_4$ record
-contains the FCIDUMP SHA-256 digest and independent PySCF version and energies,
+generators, tests, and this manuscript are maintained together in the
+private development repository \texttt{clifford\_qc} while its operator,
+measurement, subspace, and backend interfaces are being stabilized.  Public
+access to the moving development branch is not claimed.  For independent
+review, the authors will provide editors and referees, on request, an
+access-controlled frozen snapshot that identifies the exact source revision
+and contains the code, data, environment specification, and artifact
+generators used here.  A tagged archival release with a persistent identifier
+is intended once the framework interfaces and evidence contracts are stable.
+Thus private development changes the distribution channel, not the executable
+evidence standard described below.
+
+The H$_4$ record contains the FCIDUMP SHA-256 digest and independent PySCF
+version and energies,
 and the warm-start record repeats them for every reference state in
 Table~\ref{tab:warm} together with the ADAPT operator labels.  Both finite-shot
 response records contain both random seeds, the shots per group, the QWC group
