@@ -14,6 +14,7 @@ LADDER = ROOT / "benchmarks" / "reference_results" / "acase_ladder_summary.csv"
 H4 = ROOT / "benchmarks" / "reference_results" / "fcidump_h4.json"
 WARM = ROOT / "benchmarks" / "reference_results" / "warm_start_h4.json"
 KRYLOV_WIDTH = ROOT / "benchmarks" / "reference_results" / "krylov_width.json"
+MATCHED = ROOT / "benchmarks" / "reference_results" / "matched_h4.json"
 DIMER = ROOT / "examples" / "data" / "wannier_hubbard_dimer.json"
 RESPONSE = HERE / "data" / "response_bootstrap.json"
 RESPONSE_ILL = HERE / "data" / "response_bootstrap_illconditioned.json"
@@ -186,6 +187,48 @@ def response_table() -> None:
     _write("response_results.tex", out)
 
 
+def matched_table() -> None:
+    """Every arm on one H4 contract, priced in four separate currencies.
+
+    The currencies are kept apart rather than summed because they are not
+    interchangeable on hardware: a state preparation and a Pauli word are
+    different machines' bottlenecks. ``---`` marks a column an arm does not
+    have -- a product ansatz has no overlap matrix, and a fixed basis does no
+    selection.
+    """
+    record = json.loads(MATCHED.read_text())
+    # The matched table is where the width comparison is actually made, so the
+    # Krylov arm's width is carried over from the record that can compute it
+    # rather than left blank; the tracked route cannot reach it here.
+    krylov = _krylov_widths().get("h4_chain(r=0.9)")
+    rows = []
+    for row in record["rows"]:
+        size = row["basis_size"]
+        basis = "---" if size is None else str(size)
+        kappa = ("---" if row["condition_number"] is None
+                 else _kappa(row["condition_number"]))
+        selection = row["selection_evaluations"]
+        selection_cell = "---" if not selection else f"{selection:,}"
+        words = row["selection_words"]
+        words_cell = "---" if not words else f"{words:,}"
+        final = row["final_words"]
+        if final is None and row["arm"] == "Krylov" and krylov is not None:
+            final_cell = rf"{krylov:,}\footnotemark[1]"
+        else:
+            final_cell = "n/t" if final is None else f"{final:,}"
+        # Three decimals renders the Krylov arm's 1.05e-5 mHa as a flat zero,
+        # which reads as exactness rather than as a small number.
+        error = row["error_millihartree"]
+        error_cell = (f"{error:.3f}" if abs(error) >= 5e-4
+                      else _sci(error, 2).replace("$", "$"))
+        rows.append(
+            rf"{row['arm']} & {basis} & {error_cell} & "
+            rf"{kappa} & {row['state_preparations']:,} & "
+            rf"{row['ansatz_rotors']} & {selection_cell} & {words_cell} & "
+            rf"{final_cell} \\")
+    _write("matched_results.tex", rows)
+
+
 def conditioning_table() -> None:
     rows = []
     for path in (RESPONSE, RESPONSE_ILL):
@@ -208,6 +251,7 @@ def main() -> None:
     dimer_table()
     h4_table()
     warm_start_table()
+    matched_table()
     ladder_table()
     response_table()
     conditioning_table()

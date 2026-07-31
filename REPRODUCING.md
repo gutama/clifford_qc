@@ -290,6 +290,35 @@ selection-shot count is an exact-simulation label, not an end-to-end hardware
 resource estimate. The hybrid result holds the A-CASE budget fixed; it does
 not claim that the total ADAPT+A-CASE cost equals the cold A-CASE cost.
 
+### Matched-contract cost comparison
+
+Every arm on one H4 contract, with the sector, Hartree-Fock reference, operator
+pool, eight-addition budget, and stopping rule held fixed:
+
+```bash
+python benchmarks/run_matched_h4.py \
+    --out reproductions/matched_h4.json
+```
+
+Costs are reported in four currencies rather than summed, because a state
+preparation and a Pauli word are different machines' bottlenecks. Expected
+results (`benchmarks/reference_results/matched_h4.json`):
+
+- every subspace arm needs 1 state preparation; ADAPT-VQE needs 90, one per
+  selection step and one per optimizer evaluation;
+- ADAPT reads 2424 words to score its pool and 185 for its final energy;
+  A-CASE reads 14401-15783 to score and 2240-7371 for the retained subspace;
+- A-CASE at determinant resolution and at word resolution return the same
+  energy to `4e-16 Ha`, the same `M=9` and `kappa(S)=1`, and the same subspace
+  (all nine principal angles zero) at `W=7371` and `W=2240` respectively;
+- the word pool is rejected outright under the declared leakage tolerance
+  (every odd-Y word has operator leakage `sqrt(2)`), yet with the rule disabled
+  the Ritz vector has sector weight 1 to machine precision.
+
+The selection width is the whole element cache, including rows for candidates
+that were then rejected; it is strictly larger than the retained `W` the
+manuscript's ledger reports.
+
 ### Krylov measurement width
 
 The ladder leaves the Krylov arm's `W` blank because the tracked element route

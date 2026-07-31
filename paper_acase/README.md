@@ -50,6 +50,12 @@ benchmarks rather than paper artifacts:
   the ladder cannot afford (`benchmarks/run_krylov_width.py`). The v2 record
   certifies that the reported coefficient cutoff preserves the unpruned
   pencil's rank, Ritz energy, conditioning, and normalized matrix entries.
+- `matched_h4.json` — every arm on one H4 contract with the sector, reference,
+  pool, budget, and stopping rule held fixed, priced in four separate
+  currencies: state preparations, ansatz rotors, candidate scorings, and
+  measured words with their QWC groups (`benchmarks/run_matched_h4.py`). It
+  carries the two arms that differ only in generator resolution, whose retained
+  subspaces are identical and whose measurement widths are not.
 
 ## Reproduce
 
