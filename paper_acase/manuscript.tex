@@ -1,6 +1,7 @@
 \documentclass[aps,pra,reprint,superscriptaddress,nofootinbib,floatfix]{revtex4-2}
 
 \usepackage{amsmath,amssymb,bm}
+\usepackage{array}
 \usepackage{booktabs}
 \usepackage{graphicx}
 \usepackage{microtype}
@@ -21,6 +22,7 @@
 \newcommand{\supp}{\operatorname{supp}}
 \newcommand{\rank}{\operatorname{rank}}
 \newcommand{\mHa}{\mathrm{mHa}}
+\newcolumntype{T}{>{\raggedright\arraybackslash}p{0.17\textwidth}}
 
 \begin{document}
 
@@ -57,8 +59,10 @@ subspace with a $3.019$ mHa error; the complete 27-dimensional
 singles/doubles subspace reaches $0.766$ mHa.  Holding that budget fixed and
 replacing the determinant reference by a two-operator ADAPT-VQE state, which
 is itself $27.091$ mHa, moves the nine-vector error to $0.342$ mHa---inside
-chemical accuracy---so the limiting choice is the reference, not the basis
-size.  A broader ladder is deliberately mixed: fixed Krylov bases are much
+chemical accuracy.  This is a fixed-A-CASE-budget statement for this H$_4$
+pool, not a matched total-cost claim: the hybrid additionally pays for two
+state-preparation rotors, pool-gradient evaluations, and parameter
+optimization.  A broader ladder is deliberately mixed: fixed Krylov bases are much
 more accurate on the molecular rungs and, once their word universe is computed
 through an identity that avoids the quadratic element route, usually narrower
 as well, though they carry overlap condition numbers of $10^8$--$10^{10}$;
@@ -107,7 +111,15 @@ families \cite{mcclean2017qse,huggins2020nonorthogonal,stair2020krylov}.
 Iterative and residual-driven variants aim to improve compactness
 \cite{tkachenko2024davidson,oleary2025partitioned}, while QSCI selects a
 determinant subspace from sampled configurations
-\cite{nakagawa2024adaptqsci}.  Two obstacles recur across these methods.
+\cite{nakagawa2024adaptqsci}.  IQAE iteratively enlarges a Pauli/Hamiltonian
+moment space \cite{bharti2021iqae}; Q-SENSE exchanges circuit depth for
+seniority-structured matrix elements \cite{patel2026qsense}; and AS-SQD uses a
+finite-shot, perturbative acquisition rule for sampled determinant spaces
+\cite{miura2026assqd}.  Most closely, ADAPT-GCIM selects UCC/Givens generating
+functions adaptively, solves a nonorthogonal generalized eigenproblem, and can
+be composed with ADAPT-VQE \cite{zheng2024adaptgcim}.  Thus neither adaptive
+subspace growth nor replacing variational optimization by a generalized
+eigenproblem is new in this work.  Two obstacles recur across these methods.
 First, a compact basis in vector count can still be expensive in measurement
 width.  Second, the generalized eigenproblem
 \begin{equation}
@@ -139,6 +151,32 @@ correlations and Lehmann response without materializing the Ritz state.
 Fourth, we propagate finite-shot variability through the \emph{whole}
 nonlinear response pipeline by grouped resampling, while refusing to call the
 result a confidence certificate.
+
+Table~\ref{tab:relation} states the methodological boundary against the
+closest approaches.  In particular, A-CASE is distinguished from ADAPT-GCIM
+by its fixed-reference Pauli-expectation bank and its overlap-aware local
+energy-lowering score, not by adaptivity or the generalized eigenproblem.
+The present ladder does not implement ADAPT-GCIM's generating-function
+circuits and therefore makes no numerical superiority claim over that method.
+
+\begin{table*}[t]
+\caption{Relation to the closest adaptive and operator-generated subspace
+methods.  ``Prepared objects'' identifies what must change across basis
+directions; ``selection'' identifies the adaptive acquisition rule.}
+\label{tab:relation}
+\begin{ruledtabular}
+\footnotesize
+\begin{tabular}{TTTTT}
+Method & Basis object & Selection & Prepared objects & Primary distinction here \\
+\colrule
+IQAE \cite{bharti2021iqae} & Hamiltonian/Pauli moments & Iterative moment hierarchy & One reference & No response or word-cost selector \\
+ADAPT-GCIM \cite{zheng2024adaptgcim} & UCC/Givens generating functions & Surrogate-state gradient & Generating-function circuits & Closest adaptive GEP architecture \\
+Q-SENSE \cite{patel2026qsense} & Seniority-transformed states & Symmetry hierarchy & Short unitary circuits & Orthogonality from seniority sectors \\
+AS-SQD \cite{miura2026assqd} & Sampled determinants & Perturbative energy acquisition & Bitstring samples & Finite-shot determinant expansion \\
+A-CASE (this work) & Virtual operators on one reference & Overlap-aware local pencil with word cost & One fixed reference & Shared bank for energy, observables, response \\
+\end{tabular}
+\end{ruledtabular}
+\end{table*}
 
 Figure~\ref{fig:pipeline} summarizes the boundary.  A-CASE begins at an
 effective Hamiltonian.  It is not a DFT, Wannier, cRPA, or DMFT implementation,
@@ -244,9 +282,18 @@ because of it.  The untruncated count is not even reproducible: two runs of
 the same rung differ by a few words, because the upstream self-consistent
 field settles on orbital coefficients differing in the last bits and a
 Hamiltonian perturbed at $10^{-16}$ has a different round-off-level support at
-the seventeenth power.  The count at $10^{-8}$ is identical across those runs.
-We therefore report at a stated threshold, and the committed record carries
-the full sweep.
+the seventeenth power.  A cutoff is an approximation, so it cannot be paired
+with the untruncated Krylov energy without a further check.  Every cutoff in
+the committed sweep is therefore applied independently to the same unpruned
+powers, never fed recursively into the next multiplication; the support sets
+are consequently nested.  At each cutoff we rebuild the complete Hankel
+overlap and Hamiltonian pencils and resolve the GEP.  The reported $10^{-8}$
+count is admitted only when effective rank agrees and the normalized pencil
+entries, ground energy, and condition number meet the declared tolerances.
+On every quoted rung those differences are zero at the stored
+double-precision resolution.  Thus Table~\ref{tab:ladder} pairs the reported
+Krylov energy and conditioning only with a support count certified to describe
+the same numerical pencil.
 
 \subsection{Adaptive growth}
 \label{sec:growth}
@@ -442,17 +489,24 @@ replaced by an ADAPT-VQE state \cite{grimsley2019adapt} of $k$ operators,
 obtained from a qubit-ADAPT pool built from the odd-$Y$ words of the same
 determinant excitations.  Table~\ref{tab:warm} reports the ADAPT stage's own
 energy beside the A-CASE result, because the two must not be conflated.
+It also reports the pool-gradient and optimizer evaluations and the number of
+ADAPT rotors that must be executed before every A-CASE measurement.  These are
+exact-simulation algorithmic counts.  Because selection and optimization are
+noiseless here, assigning them zero shots would be a simulation convention,
+not a physical-cost estimate; no end-to-end hardware shot comparison is made.
 
 \begin{table*}[t]
-\caption{A-CASE at the same nine-vector budget, varying only the reference
-state $\rho$.  ``ADAPT alone'' is the error of the warm-start state by itself,
-before any subspace is built; it is an order of magnitude worse than the cold
-A-CASE result it improves on.  Errors are in mHa; chemical accuracy is
-$1.6$ mHa.}
+\caption{Hybrid resource ledger.  The frozen FCIDUMP, A-CASE candidate pool,
+and nine-vector A-CASE budget are shared, but the ADAPT preparation is
+additional work.  ``Grad.'' is the total number of active-pool gradients
+evaluated; ``opt.'' is the optimizer's joint energy/gradient evaluations;
+``rot.'' is the number of state-preparation rotors.  Both energy-error columns
+are in mHa.  These are exact-simulation counts, not a physical shot estimate.}
 \label{tab:warm}
 \begin{ruledtabular}
-\begin{tabular}{lccccc}
-Reference $\rho$ & ADAPT alone & $M$ & A-CASE error & $\kappa_S$ & $W$ \\
+\footnotesize
+\begin{tabular}{lcccccccc}
+Reference $\rho$ & Grad. & Opt. & Rot. & ADAPT error & $M$ & A-CASE error & $\kappa_S$ & $W$ \\
 \colrule
 \input{tables/warm_start_results.tex}
 \end{tabular}
@@ -508,16 +562,20 @@ full $(N=4,S_z=0)$ sector has dimension 36, this is a meaningful active-space
 rung, but it remains an eight-qubit calculation and is not evidence of
 favorable scaling.
 
-Table~\ref{tab:warm} shows that the missed accuracy is a property of the
-reference rather than of the budget.  Holding $M=9$, the candidate pool, and
-the input file fixed and replacing the Hartree--Fock determinant by a
+Table~\ref{tab:warm} shows that, for this H$_4$ instance and candidate family,
+changing the reference is sufficient to cross chemical accuracy without
+increasing the nine-vector A-CASE budget.  Replacing the Hartree--Fock
+determinant by a
 two-operator ADAPT-VQE state moves the error from $3.019$ mHa to $0.342$ mHa,
 inside chemical accuracy and below the 27-dimensional complete
 singles/doubles rung, while $\kappa_S$ stays near unity and $W$ grows by under
 two percent.  The ADAPT state is not doing the work: on its own it is
 $27.091$ mHa, an order of magnitude worse than the cold A-CASE result it
 rescues.  What changes is that the eight additions no longer have to spend
-themselves reaching correlation the reference could have carried.
+themselves reaching correlation the reference could have carried.  This does
+not make the hybrid free: Table~\ref{tab:warm} exposes the extra gradient,
+optimization, and state-preparation work, and the present exact simulation
+does not convert those counts to hardware shots.
 
 The effect is not monotonic in ADAPT depth.  Deeper warm starts are better
 states---$13.779$ mHa at $k=4$ and $6.791$ mHa at $k=6$---and yet yield worse
@@ -718,11 +776,12 @@ Third, adaptive selection can preserve good overlap conditioning while
 improving materially over fixed local QSE and generator-coordinate bases on
 some rungs.
 
-A fourth claim is supported by Table~\ref{tab:warm}: at a fixed budget the
-reference state, not the basis size, is what stands between this construction
-and chemical accuracy on H$_4$.  That is also the one place where the two
-adaptive methods compose rather than compete, since the ADAPT state is a worse
-answer on its own than the A-CASE run it improves.
+A fourth claim is supported by Table~\ref{tab:warm}: for the frozen H$_4$
+instance, determinant-excitation family, and nine-vector A-CASE budget, a
+two-rotor ADAPT reference is sufficient to cross chemical accuracy.  This is
+also the one place where the two adaptive methods compose rather than compete,
+since the ADAPT state is a worse energy answer on its own than the A-CASE run
+it improves.  It is not a total-resource advantage claim.
 
 The results also establish useful negative boundaries.  At the matched $M=9$
 budget, fixed Krylov is the energy winner on every fermionic rung where it was
@@ -738,6 +797,9 @@ $2\times2$ Hubbard case but do not transfer to $2\times3$.  Finite-shot
 response bands diagnose the implemented nonlinear pipeline but do not carry a
 finite-sample coverage theorem, and Table~\ref{tab:conditioning} shows their
 acceptance rate falling to $137/200$ as soon as the overlap is ill-conditioned.
+The adaptive-GEP architecture itself is not claimed as new: ADAPT-GCIM is the
+closest precedent, and the present numerical ladder does not compare its
+generating-function circuits against the fixed-reference bank used here.
 
 \subsection{What remains open}
 \label{sec:open}
@@ -800,8 +862,9 @@ For clarity, the claim ledger is:
  \item \emph{finite sample}: only declared sample-split candidate-growth
  decisions, conditional on their assumptions;
  \item \emph{heuristic}: bootstrap response intervals;
- \item \emph{not claimed}: DFT replacement, material prediction, scaling
- advantage, hardware demonstration, or quantum speedup.
+ \item \emph{not claimed}: novelty of adaptive GEPs, superiority to
+ ADAPT-GCIM, DFT replacement, material prediction, scaling advantage,
+ hardware demonstration, or quantum speedup.
 \end{itemize}
 
 \section{Conclusion}

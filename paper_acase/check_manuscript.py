@@ -109,7 +109,8 @@ def main() -> int:
 
     for match in re.finditer(
             r"\\begin\{tabular\}\{([^}]*)\}(.*?)\\end\{tabular\}", text, re.S):
-        ncol = len(re.sub(r"[^lcr]", "", match.group(1)))
+        # T is the manuscript's fixed-width, wrapping text column.
+        ncol = len(re.sub(r"[^lcrT]", "", match.group(1)))
         for fragment in _row_sources(match.group(2)):
             for line in fragment.splitlines():
                 line = line.strip()
@@ -161,6 +162,9 @@ def main() -> int:
         "no quantum advantage",
         "not a DFT",
         "Adaptive Clifford-Algebra Subspace Eigensolver",
+        "ADAPT-GCIM",
+        "not a total-resource advantage claim",
+        "support count certified to describe",
     ]
     lowered = text.lower()
     for phrase in required:
@@ -180,4 +184,3 @@ def main() -> int:
 
 if __name__ == "__main__":
     sys.exit(main())
-

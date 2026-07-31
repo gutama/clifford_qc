@@ -18,9 +18,10 @@ software representation.
 - `data/response_bootstrap.json` — deterministic paper record, including the
   seeds, shot budget, replica accounting, intervals, and plotted spectrum.
 - `data/response_bootstrap_illconditioned.json` — the same run with the
-  determinant generators replaced by Hamiltonian powers. Everything else is
-  held fixed, so the drop in replica acceptance is attributable to the overlap
-  conditioning alone.
+  determinant generators replaced by Hamiltonian powers. The system,
+  observable, word set, grouping, shots, basis size, and seeds are held fixed;
+  this isolates the effect of using a differently conditioned representation
+  of the same complete sector.
 - `make_tables.py` — regenerates all numerical LaTeX table fragments from
   committed benchmark records.
 - `make_figures.py` — regenerates the pipeline, validation-ladder, response,
@@ -34,10 +35,14 @@ benchmarks rather than paper artifacts:
 
 - `warm_start_h4.json` — A-CASE at the paper's nine-vector budget with the
   reference state varied from the Hartree-Fock determinant to ADAPT-VQE states
-  (`benchmarks/run_warm_start.py`).
+  (`benchmarks/run_warm_start.py`). The v2 record also reports the additional
+  ADAPT pool-gradient, optimizer, and state-preparation counts; it does not
+  claim a physical shot estimate for the exact-simulation stage.
 - `krylov_width.json` — the Krylov arm's measurement width, computed through
   the `H^k` collapse of the element universe rather than the quadratic route
-  the ladder cannot afford (`benchmarks/run_krylov_width.py`).
+  the ladder cannot afford (`benchmarks/run_krylov_width.py`). The v2 record
+  certifies that the reported coefficient cutoff preserves the unpruned
+  pencil's rank, Ritz energy, conditioning, and normalized matrix entries.
 
 ## Reproduce
 
@@ -71,10 +76,11 @@ identity.  They are not finite-sample confidence certificates.
 
 | Manuscript element | Source |
 |---|---|
-| Fig. 1 | method contract in `clifford_qc/subspace/` and `clifford_qc/models/` |
-| Fig. 2, Table IV | `../benchmarks/reference_results/acase_ladder_summary.csv` plus `krylov_width.json` for the comparator width column |
-| Fig. 3, Table V | `data/response_bootstrap.json` |
-| Fig. 4, Table VI | `data/response_bootstrap.json` and `data/response_bootstrap_illconditioned.json` |
-| Table I | `../examples/data/wannier_hubbard_dimer.json` and closed-form dimer identities |
-| Table II | `../benchmarks/reference_results/fcidump_h4.json` |
-| Table III | `../benchmarks/reference_results/warm_start_h4.json` |
+| Pipeline figure | method contract in `clifford_qc/subspace/` and `clifford_qc/models/` |
+| Method-relation table | primary references in `references.bib`; no numerical claims |
+| Validation-ladder figure and table | `../benchmarks/reference_results/acase_ladder_summary.csv` plus certified `krylov_width.json` for the comparator width column |
+| Response figure and table | `data/response_bootstrap.json` |
+| Conditioning figure and table | `data/response_bootstrap.json` and `data/response_bootstrap_illconditioned.json` |
+| Dimer table | `../examples/data/wannier_hubbard_dimer.json` and closed-form dimer identities |
+| FCIDUMP H4 table | `../benchmarks/reference_results/fcidump_h4.json` |
+| Warm-start resource table | `../benchmarks/reference_results/warm_start_h4.json` |

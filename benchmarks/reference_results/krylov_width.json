@@ -1,4 +1,11 @@
 {
+  "certificate": {
+    "cuts_are_nonrecursive": true,
+    "max_condition_relative_error": 0.05,
+    "max_energy_error": 1e-09,
+    "max_normalized_pencil_error": 1e-10,
+    "same_effective_rank_required": true
+  },
   "method": "union of supp(H^k), k = 0 .. 2*order+1",
   "reported_threshold": 1e-08,
   "rows": [
@@ -8,8 +15,87 @@
       "kind": "molecular",
       "krylov_order": 8,
       "n": 4,
+      "pencil_diagnostics_by_threshold": {
+        "0.0": {
+          "certificate_passed": true,
+          "condition_number": 605.9113867512107,
+          "condition_number_relative_error": 0.0,
+          "effective_rank": 2,
+          "ground_energy": -1.1372701746609017,
+          "ground_energy_absolute_error": 0.0,
+          "hamiltonian_normalized_max_error": 0.0,
+          "overlap_normalized_max_error": 0.0,
+          "rank_matches_unpruned": true,
+          "word_universe": 24
+        },
+        "1e-06": {
+          "certificate_passed": true,
+          "condition_number": 605.9113867512107,
+          "condition_number_relative_error": 0.0,
+          "effective_rank": 2,
+          "ground_energy": -1.1372701746609017,
+          "ground_energy_absolute_error": 0.0,
+          "hamiltonian_normalized_max_error": 0.0,
+          "overlap_normalized_max_error": 0.0,
+          "rank_matches_unpruned": true,
+          "word_universe": 24
+        },
+        "1e-08": {
+          "certificate_passed": true,
+          "condition_number": 605.9113867512107,
+          "condition_number_relative_error": 0.0,
+          "effective_rank": 2,
+          "ground_energy": -1.1372701746609017,
+          "ground_energy_absolute_error": 0.0,
+          "hamiltonian_normalized_max_error": 0.0,
+          "overlap_normalized_max_error": 0.0,
+          "rank_matches_unpruned": true,
+          "word_universe": 24
+        },
+        "1e-10": {
+          "certificate_passed": true,
+          "condition_number": 605.9113867512107,
+          "condition_number_relative_error": 0.0,
+          "effective_rank": 2,
+          "ground_energy": -1.1372701746609017,
+          "ground_energy_absolute_error": 0.0,
+          "hamiltonian_normalized_max_error": 0.0,
+          "overlap_normalized_max_error": 0.0,
+          "rank_matches_unpruned": true,
+          "word_universe": 24
+        },
+        "1e-12": {
+          "certificate_passed": true,
+          "condition_number": 605.9113867512107,
+          "condition_number_relative_error": 0.0,
+          "effective_rank": 2,
+          "ground_energy": -1.1372701746609017,
+          "ground_energy_absolute_error": 0.0,
+          "hamiltonian_normalized_max_error": 0.0,
+          "overlap_normalized_max_error": 0.0,
+          "rank_matches_unpruned": true,
+          "word_universe": 24
+        },
+        "1e-14": {
+          "certificate_passed": true,
+          "condition_number": 605.9113867512107,
+          "condition_number_relative_error": 0.0,
+          "effective_rank": 2,
+          "ground_energy": -1.1372701746609017,
+          "ground_energy_absolute_error": 0.0,
+          "hamiltonian_normalized_max_error": 0.0,
+          "overlap_normalized_max_error": 0.0,
+          "rank_matches_unpruned": true,
+          "word_universe": 24
+        }
+      },
       "rung": "h2",
       "system": "h2(r=0.7414)",
+      "unpruned_pencil": {
+        "condition_number": 605.9113867512107,
+        "effective_rank": 2,
+        "ground_energy": -1.1372701746609017
+      },
       "word_universe": 24,
       "word_universe_by_threshold": {
         "0.0": 24,
@@ -18,7 +104,8 @@
         "1e-10": 24,
         "1e-12": 24,
         "1e-14": 24
-      }
+      },
+      "word_universe_certificate_passed": true
     },
     {
       "basis_size": 9,
@@ -26,8 +113,87 @@
       "kind": "molecular",
       "krylov_order": 8,
       "n": 4,
+      "pencil_diagnostics_by_threshold": {
+        "0.0": {
+          "certificate_passed": true,
+          "condition_number": 445825020.92519873,
+          "condition_number_relative_error": 0.0,
+          "effective_rank": 3,
+          "ground_energy": -7.862288585752288,
+          "ground_energy_absolute_error": 0.0,
+          "hamiltonian_normalized_max_error": 0.0,
+          "overlap_normalized_max_error": 0.0,
+          "rank_matches_unpruned": true,
+          "word_universe": 64
+        },
+        "1e-06": {
+          "certificate_passed": true,
+          "condition_number": 445825020.92519873,
+          "condition_number_relative_error": 0.0,
+          "effective_rank": 3,
+          "ground_energy": -7.862288585752288,
+          "ground_energy_absolute_error": 0.0,
+          "hamiltonian_normalized_max_error": 0.0,
+          "overlap_normalized_max_error": 0.0,
+          "rank_matches_unpruned": true,
+          "word_universe": 64
+        },
+        "1e-08": {
+          "certificate_passed": true,
+          "condition_number": 445825020.92519873,
+          "condition_number_relative_error": 0.0,
+          "effective_rank": 3,
+          "ground_energy": -7.862288585752288,
+          "ground_energy_absolute_error": 0.0,
+          "hamiltonian_normalized_max_error": 0.0,
+          "overlap_normalized_max_error": 0.0,
+          "rank_matches_unpruned": true,
+          "word_universe": 64
+        },
+        "1e-10": {
+          "certificate_passed": true,
+          "condition_number": 445825020.92519873,
+          "condition_number_relative_error": 0.0,
+          "effective_rank": 3,
+          "ground_energy": -7.862288585752288,
+          "ground_energy_absolute_error": 0.0,
+          "hamiltonian_normalized_max_error": 0.0,
+          "overlap_normalized_max_error": 0.0,
+          "rank_matches_unpruned": true,
+          "word_universe": 64
+        },
+        "1e-12": {
+          "certificate_passed": true,
+          "condition_number": 445825020.92519873,
+          "condition_number_relative_error": 0.0,
+          "effective_rank": 3,
+          "ground_energy": -7.862288585752288,
+          "ground_energy_absolute_error": 0.0,
+          "hamiltonian_normalized_max_error": 0.0,
+          "overlap_normalized_max_error": 0.0,
+          "rank_matches_unpruned": true,
+          "word_universe": 64
+        },
+        "1e-14": {
+          "certificate_passed": true,
+          "condition_number": 445825020.92519873,
+          "condition_number_relative_error": 0.0,
+          "effective_rank": 3,
+          "ground_energy": -7.862288585752288,
+          "ground_energy_absolute_error": 0.0,
+          "hamiltonian_normalized_max_error": 0.0,
+          "overlap_normalized_max_error": 0.0,
+          "rank_matches_unpruned": true,
+          "word_universe": 64
+        }
+      },
       "rung": "lih_2e2o",
       "system": "lih(r=1.5949)",
+      "unpruned_pencil": {
+        "condition_number": 445825020.92519873,
+        "effective_rank": 3,
+        "ground_energy": -7.862288585752288
+      },
       "word_universe": 64,
       "word_universe_by_threshold": {
         "0.0": 64,
@@ -36,7 +202,8 @@
         "1e-10": 64,
         "1e-12": 64,
         "1e-14": 64
-      }
+      },
+      "word_universe_certificate_passed": true
     },
     {
       "basis_size": 9,
@@ -44,17 +211,97 @@
       "kind": "molecular",
       "krylov_order": 8,
       "n": 8,
+      "pencil_diagnostics_by_threshold": {
+        "0.0": {
+          "certificate_passed": true,
+          "condition_number": 65672756909.15109,
+          "condition_number_relative_error": 0.0,
+          "effective_rank": 9,
+          "ground_energy": -2.180316603796866,
+          "ground_energy_absolute_error": 0.0,
+          "hamiltonian_normalized_max_error": 0.0,
+          "overlap_normalized_max_error": 0.0,
+          "rank_matches_unpruned": true,
+          "word_universe": 8184
+        },
+        "1e-06": {
+          "certificate_passed": true,
+          "condition_number": 65672756909.15109,
+          "condition_number_relative_error": 0.0,
+          "effective_rank": 9,
+          "ground_energy": -2.180316603796866,
+          "ground_energy_absolute_error": 0.0,
+          "hamiltonian_normalized_max_error": 0.0,
+          "overlap_normalized_max_error": 0.0,
+          "rank_matches_unpruned": true,
+          "word_universe": 4224
+        },
+        "1e-08": {
+          "certificate_passed": true,
+          "condition_number": 65672756909.15109,
+          "condition_number_relative_error": 0.0,
+          "effective_rank": 9,
+          "ground_energy": -2.180316603796866,
+          "ground_energy_absolute_error": 0.0,
+          "hamiltonian_normalized_max_error": 0.0,
+          "overlap_normalized_max_error": 0.0,
+          "rank_matches_unpruned": true,
+          "word_universe": 4224
+        },
+        "1e-10": {
+          "certificate_passed": true,
+          "condition_number": 65672756909.15109,
+          "condition_number_relative_error": 0.0,
+          "effective_rank": 9,
+          "ground_energy": -2.180316603796866,
+          "ground_energy_absolute_error": 0.0,
+          "hamiltonian_normalized_max_error": 0.0,
+          "overlap_normalized_max_error": 0.0,
+          "rank_matches_unpruned": true,
+          "word_universe": 5021
+        },
+        "1e-12": {
+          "certificate_passed": true,
+          "condition_number": 65672756909.15109,
+          "condition_number_relative_error": 0.0,
+          "effective_rank": 9,
+          "ground_energy": -2.180316603796866,
+          "ground_energy_absolute_error": 0.0,
+          "hamiltonian_normalized_max_error": 0.0,
+          "overlap_normalized_max_error": 0.0,
+          "rank_matches_unpruned": true,
+          "word_universe": 8184
+        },
+        "1e-14": {
+          "certificate_passed": true,
+          "condition_number": 65672756909.15109,
+          "condition_number_relative_error": 0.0,
+          "effective_rank": 9,
+          "ground_energy": -2.180316603796866,
+          "ground_energy_absolute_error": 0.0,
+          "hamiltonian_normalized_max_error": 0.0,
+          "overlap_normalized_max_error": 0.0,
+          "rank_matches_unpruned": true,
+          "word_universe": 8184
+        }
+      },
       "rung": "h4_equilibrium",
       "system": "h4_chain(r=0.9)",
+      "unpruned_pencil": {
+        "condition_number": 65672756909.15109,
+        "effective_rank": 9,
+        "ground_energy": -2.180316603796866
+      },
       "word_universe": 4224,
       "word_universe_by_threshold": {
-        "0.0": 8186,
-        "1e-06": 5580,
+        "0.0": 8184,
+        "1e-06": 4224,
         "1e-08": 4224,
-        "1e-10": 4904,
-        "1e-12": 8186,
-        "1e-14": 8186
-      }
+        "1e-10": 5021,
+        "1e-12": 8184,
+        "1e-14": 8184
+      },
+      "word_universe_certificate_passed": true
     },
     {
       "basis_size": 9,
@@ -62,17 +309,97 @@
       "kind": "molecular",
       "krylov_order": 8,
       "n": 8,
+      "pencil_diagnostics_by_threshold": {
+        "0.0": {
+          "certificate_passed": true,
+          "condition_number": 25698320904.267094,
+          "condition_number_relative_error": 0.0,
+          "effective_rank": 7,
+          "ground_energy": -1.924415221138751,
+          "ground_energy_absolute_error": 0.0,
+          "hamiltonian_normalized_max_error": 0.0,
+          "overlap_normalized_max_error": 0.0,
+          "rank_matches_unpruned": true,
+          "word_universe": 4224
+        },
+        "1e-06": {
+          "certificate_passed": true,
+          "condition_number": 25698320904.267094,
+          "condition_number_relative_error": 0.0,
+          "effective_rank": 7,
+          "ground_energy": -1.924415221138751,
+          "ground_energy_absolute_error": 0.0,
+          "hamiltonian_normalized_max_error": 0.0,
+          "overlap_normalized_max_error": 0.0,
+          "rank_matches_unpruned": true,
+          "word_universe": 4224
+        },
+        "1e-08": {
+          "certificate_passed": true,
+          "condition_number": 25698320904.267094,
+          "condition_number_relative_error": 0.0,
+          "effective_rank": 7,
+          "ground_energy": -1.924415221138751,
+          "ground_energy_absolute_error": 0.0,
+          "hamiltonian_normalized_max_error": 0.0,
+          "overlap_normalized_max_error": 0.0,
+          "rank_matches_unpruned": true,
+          "word_universe": 4224
+        },
+        "1e-10": {
+          "certificate_passed": true,
+          "condition_number": 25698320904.267094,
+          "condition_number_relative_error": 0.0,
+          "effective_rank": 7,
+          "ground_energy": -1.924415221138751,
+          "ground_energy_absolute_error": 0.0,
+          "hamiltonian_normalized_max_error": 0.0,
+          "overlap_normalized_max_error": 0.0,
+          "rank_matches_unpruned": true,
+          "word_universe": 4224
+        },
+        "1e-12": {
+          "certificate_passed": true,
+          "condition_number": 25698320904.267094,
+          "condition_number_relative_error": 0.0,
+          "effective_rank": 7,
+          "ground_energy": -1.924415221138751,
+          "ground_energy_absolute_error": 0.0,
+          "hamiltonian_normalized_max_error": 0.0,
+          "overlap_normalized_max_error": 0.0,
+          "rank_matches_unpruned": true,
+          "word_universe": 4224
+        },
+        "1e-14": {
+          "certificate_passed": true,
+          "condition_number": 25698320904.267094,
+          "condition_number_relative_error": 0.0,
+          "effective_rank": 7,
+          "ground_energy": -1.924415221138751,
+          "ground_energy_absolute_error": 0.0,
+          "hamiltonian_normalized_max_error": 0.0,
+          "overlap_normalized_max_error": 0.0,
+          "rank_matches_unpruned": true,
+          "word_universe": 4224
+        }
+      },
       "rung": "h4_stretched",
       "system": "h4_chain(r=1.8)",
+      "unpruned_pencil": {
+        "condition_number": 25698320904.267094,
+        "effective_rank": 7,
+        "ground_energy": -1.924415221138751
+      },
       "word_universe": 4224,
       "word_universe_by_threshold": {
         "0.0": 4224,
-        "1e-06": 6936,
+        "1e-06": 4224,
         "1e-08": 4224,
         "1e-10": 4224,
         "1e-12": 4224,
         "1e-14": 4224
-      }
+      },
+      "word_universe_certificate_passed": true
     },
     {
       "basis_size": 9,
@@ -80,8 +407,87 @@
       "kind": "molecular",
       "krylov_order": 8,
       "n": 8,
+      "pencil_diagnostics_by_threshold": {
+        "0.0": {
+          "certificate_passed": true,
+          "condition_number": 59768516.08487028,
+          "condition_number_relative_error": 0.0,
+          "effective_rank": 3,
+          "ground_energy": -74.75943588091772,
+          "ground_energy_absolute_error": 0.0,
+          "hamiltonian_normalized_max_error": 0.0,
+          "overlap_normalized_max_error": 0.0,
+          "rank_matches_unpruned": true,
+          "word_universe": 8192
+        },
+        "1e-06": {
+          "certificate_passed": true,
+          "condition_number": 59768516.08487028,
+          "condition_number_relative_error": 0.0,
+          "effective_rank": 3,
+          "ground_energy": -74.75943588091772,
+          "ground_energy_absolute_error": 0.0,
+          "hamiltonian_normalized_max_error": 0.0,
+          "overlap_normalized_max_error": 0.0,
+          "rank_matches_unpruned": true,
+          "word_universe": 8192
+        },
+        "1e-08": {
+          "certificate_passed": true,
+          "condition_number": 59768516.08487028,
+          "condition_number_relative_error": 0.0,
+          "effective_rank": 3,
+          "ground_energy": -74.75943588091772,
+          "ground_energy_absolute_error": 0.0,
+          "hamiltonian_normalized_max_error": 0.0,
+          "overlap_normalized_max_error": 0.0,
+          "rank_matches_unpruned": true,
+          "word_universe": 8192
+        },
+        "1e-10": {
+          "certificate_passed": true,
+          "condition_number": 59768516.08487028,
+          "condition_number_relative_error": 0.0,
+          "effective_rank": 3,
+          "ground_energy": -74.75943588091772,
+          "ground_energy_absolute_error": 0.0,
+          "hamiltonian_normalized_max_error": 0.0,
+          "overlap_normalized_max_error": 0.0,
+          "rank_matches_unpruned": true,
+          "word_universe": 8192
+        },
+        "1e-12": {
+          "certificate_passed": true,
+          "condition_number": 59768516.08487028,
+          "condition_number_relative_error": 0.0,
+          "effective_rank": 3,
+          "ground_energy": -74.75943588091772,
+          "ground_energy_absolute_error": 0.0,
+          "hamiltonian_normalized_max_error": 0.0,
+          "overlap_normalized_max_error": 0.0,
+          "rank_matches_unpruned": true,
+          "word_universe": 8192
+        },
+        "1e-14": {
+          "certificate_passed": true,
+          "condition_number": 59768516.08487028,
+          "condition_number_relative_error": 0.0,
+          "effective_rank": 3,
+          "ground_energy": -74.75943588091772,
+          "ground_energy_absolute_error": 0.0,
+          "hamiltonian_normalized_max_error": 0.0,
+          "overlap_normalized_max_error": 0.0,
+          "rank_matches_unpruned": true,
+          "word_universe": 8192
+        }
+      },
       "rung": "h2o_cas4e4o_stretched",
       "system": "h2o_4e4o(scale=2.0)",
+      "unpruned_pencil": {
+        "condition_number": 59768516.08487028,
+        "effective_rank": 3,
+        "ground_energy": -74.75943588091772
+      },
       "word_universe": 8192,
       "word_universe_by_threshold": {
         "0.0": 8192,
@@ -90,7 +496,8 @@
         "1e-10": 8192,
         "1e-12": 8192,
         "1e-14": 8192
-      }
+      },
+      "word_universe_certificate_passed": true
     },
     {
       "basis_size": 9,
@@ -98,8 +505,87 @@
       "kind": "fermionic_lattice",
       "krylov_order": 8,
       "n": 8,
+      "pencil_diagnostics_by_threshold": {
+        "0.0": {
+          "certificate_passed": true,
+          "condition_number": 9658963974.354486,
+          "condition_number_relative_error": 0.0,
+          "effective_rank": 8,
+          "ground_energy": -10.100105016520462,
+          "ground_energy_absolute_error": 0.0,
+          "hamiltonian_normalized_max_error": 0.0,
+          "overlap_normalized_max_error": 0.0,
+          "rank_matches_unpruned": true,
+          "word_universe": 3968
+        },
+        "1e-06": {
+          "certificate_passed": true,
+          "condition_number": 9658963974.354486,
+          "condition_number_relative_error": 0.0,
+          "effective_rank": 8,
+          "ground_energy": -10.100105016520462,
+          "ground_energy_absolute_error": 0.0,
+          "hamiltonian_normalized_max_error": 0.0,
+          "overlap_normalized_max_error": 0.0,
+          "rank_matches_unpruned": true,
+          "word_universe": 3968
+        },
+        "1e-08": {
+          "certificate_passed": true,
+          "condition_number": 9658963974.354486,
+          "condition_number_relative_error": 0.0,
+          "effective_rank": 8,
+          "ground_energy": -10.100105016520462,
+          "ground_energy_absolute_error": 0.0,
+          "hamiltonian_normalized_max_error": 0.0,
+          "overlap_normalized_max_error": 0.0,
+          "rank_matches_unpruned": true,
+          "word_universe": 3968
+        },
+        "1e-10": {
+          "certificate_passed": true,
+          "condition_number": 9658963974.354486,
+          "condition_number_relative_error": 0.0,
+          "effective_rank": 8,
+          "ground_energy": -10.100105016520462,
+          "ground_energy_absolute_error": 0.0,
+          "hamiltonian_normalized_max_error": 0.0,
+          "overlap_normalized_max_error": 0.0,
+          "rank_matches_unpruned": true,
+          "word_universe": 3968
+        },
+        "1e-12": {
+          "certificate_passed": true,
+          "condition_number": 9658963974.354486,
+          "condition_number_relative_error": 0.0,
+          "effective_rank": 8,
+          "ground_energy": -10.100105016520462,
+          "ground_energy_absolute_error": 0.0,
+          "hamiltonian_normalized_max_error": 0.0,
+          "overlap_normalized_max_error": 0.0,
+          "rank_matches_unpruned": true,
+          "word_universe": 3968
+        },
+        "1e-14": {
+          "certificate_passed": true,
+          "condition_number": 9658963974.354486,
+          "condition_number_relative_error": 0.0,
+          "effective_rank": 8,
+          "ground_energy": -10.100105016520462,
+          "ground_energy_absolute_error": 0.0,
+          "hamiltonian_normalized_max_error": 0.0,
+          "overlap_normalized_max_error": 0.0,
+          "rank_matches_unpruned": true,
+          "word_universe": 3968
+        }
+      },
       "rung": "hubbard_2x2",
       "system": "hubbard(2x2,t=1.0,U=4.0,obc)",
+      "unpruned_pencil": {
+        "condition_number": 9658963974.354486,
+        "effective_rank": 8,
+        "ground_energy": -10.100105016520462
+      },
       "word_universe": 3968,
       "word_universe_by_threshold": {
         "0.0": 3968,
@@ -108,7 +594,8 @@
         "1e-10": 3968,
         "1e-12": 3968,
         "1e-14": 3968
-      }
+      },
+      "word_universe_certificate_passed": true
     },
     {
       "basis_size": 9,
@@ -116,8 +603,87 @@
       "kind": "spin_lattice",
       "krylov_order": 8,
       "n": 8,
+      "pencil_diagnostics_by_threshold": {
+        "0.0": {
+          "certificate_passed": true,
+          "condition_number": 33013.13220071673,
+          "condition_number_relative_error": 0.0,
+          "effective_rank": 6,
+          "ground_energy": -4.962388608184192,
+          "ground_energy_absolute_error": 0.0,
+          "hamiltonian_normalized_max_error": 0.0,
+          "overlap_normalized_max_error": 0.0,
+          "rank_matches_unpruned": true,
+          "word_universe": 140
+        },
+        "1e-06": {
+          "certificate_passed": true,
+          "condition_number": 33013.13220071673,
+          "condition_number_relative_error": 0.0,
+          "effective_rank": 6,
+          "ground_energy": -4.962388608184192,
+          "ground_energy_absolute_error": 0.0,
+          "hamiltonian_normalized_max_error": 0.0,
+          "overlap_normalized_max_error": 0.0,
+          "rank_matches_unpruned": true,
+          "word_universe": 140
+        },
+        "1e-08": {
+          "certificate_passed": true,
+          "condition_number": 33013.13220071673,
+          "condition_number_relative_error": 0.0,
+          "effective_rank": 6,
+          "ground_energy": -4.962388608184192,
+          "ground_energy_absolute_error": 0.0,
+          "hamiltonian_normalized_max_error": 0.0,
+          "overlap_normalized_max_error": 0.0,
+          "rank_matches_unpruned": true,
+          "word_universe": 140
+        },
+        "1e-10": {
+          "certificate_passed": true,
+          "condition_number": 33013.13220071673,
+          "condition_number_relative_error": 0.0,
+          "effective_rank": 6,
+          "ground_energy": -4.962388608184192,
+          "ground_energy_absolute_error": 0.0,
+          "hamiltonian_normalized_max_error": 0.0,
+          "overlap_normalized_max_error": 0.0,
+          "rank_matches_unpruned": true,
+          "word_universe": 140
+        },
+        "1e-12": {
+          "certificate_passed": true,
+          "condition_number": 33013.13220071673,
+          "condition_number_relative_error": 0.0,
+          "effective_rank": 6,
+          "ground_energy": -4.962388608184192,
+          "ground_energy_absolute_error": 0.0,
+          "hamiltonian_normalized_max_error": 0.0,
+          "overlap_normalized_max_error": 0.0,
+          "rank_matches_unpruned": true,
+          "word_universe": 140
+        },
+        "1e-14": {
+          "certificate_passed": true,
+          "condition_number": 33013.13220071673,
+          "condition_number_relative_error": 0.0,
+          "effective_rank": 6,
+          "ground_energy": -4.962388608184192,
+          "ground_energy_absolute_error": 0.0,
+          "hamiltonian_normalized_max_error": 0.0,
+          "overlap_normalized_max_error": 0.0,
+          "rank_matches_unpruned": true,
+          "word_universe": 140
+        }
+      },
       "rung": "kitaev_2x2",
       "system": "kitaev(2x2,K=1.0,1.0,1.0,obc)",
+      "unpruned_pencil": {
+        "condition_number": 33013.13220071673,
+        "effective_rank": 6,
+        "ground_energy": -4.962388608184192
+      },
       "word_universe": 140,
       "word_universe_by_threshold": {
         "0.0": 140,
@@ -126,10 +692,11 @@
         "1e-10": 140,
         "1e-12": 140,
         "1e-14": 140
-      }
+      },
+      "word_universe_certificate_passed": true
     }
   ],
-  "schema": "clifford_qc.krylov_width.v1",
+  "schema": "clifford_qc.krylov_width.v2",
   "skipped": [],
-  "threshold_note": "Counts at the reported threshold. The raw count includes words that exist only as accumulated round-off; the A-CASE universe is unchanged by any threshold up to 1e-8, the Krylov universe is not. Entries below 1e-8 are not reproducible run to run on the chemistry rungs: the SCF settles on orbital coefficients differing in the last bits, and H^17 of a Hamiltonian perturbed at 1e-16 has a different round-off-level support. Observed on h4_chain(r=0.9): 8184 raw on one run, 8180 on the next, 4224 reported on both. benchmarks/check_krylov_width.py therefore gates the reported counts rather than the file bytes."
+  "threshold_note": "Every cutoff is applied independently to the same unpruned double-precision powers. The reported count is accepted only if the resulting Hankel overlap and Hamiltonian pencil reproduces the unpruned effective rank, ground energy, conditioning, and normalized matrix entries within the recorded tolerances."
 }

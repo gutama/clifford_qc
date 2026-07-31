@@ -1,12 +1,4 @@
-"""The Krylov word-universe identity, checked against direct enumeration.
-
-``benchmarks/run_krylov_width.py`` fills in the ladder's missing measurement
-width for the Krylov arm by replacing the O(M^2) enumeration of element
-operators with the 2m+2 powers of H. That shortcut is the only reason those
-numbers exist, and a wrong exponent range would silently produce a plausible
-count -- so it is checked here against the bank that the ladder itself uses,
-on cases small enough for the quadratic route to finish.
-"""
+"""Regression tests for the Krylov word-universe identity and certificate."""
 
 from __future__ import annotations
 
@@ -25,11 +17,14 @@ from clifford_qc.subspace import (MatrixElementBank, identity_generator,
                                   krylov_response)
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "benchmarks"))
-from run_krylov_width import krylov_word_universe  # noqa: E402
+from run_krylov_width import (  # noqa: E402
+    REPORTED_THRESHOLD,
+    krylov_word_diagnostics,
+    krylov_word_universe,
+)
 
 
 def _direct_universe(model, order: int) -> int:
-    """|W| the way the ladder computes it: every A_i^dag A_j and A_i^dag H A_j."""
     rho = ExactMVBackend().state(model.reference, ())
     generators = [identity_generator(model.n),
                   *krylov_response(model.hamiltonian, order)]
@@ -56,12 +51,6 @@ def test_identity_matches_direct_enumeration_on_spin_models(model_factory):
 
 
 def test_exponent_range_is_not_off_by_one():
-    """A short range under-counts and a long one over-counts.
-
-    The union runs to H^(2m+1) because the widest element is A_m^dag H A_m.
-    Both neighbours are checked so the test fails if the bound drifts either
-    way rather than only in the direction a typo happens to take.
-    """
     model = hubbard((2, 2), t=1.0, U=4.0, periodic=False)
     H = model.hamiltonian.to_mv()
     correct = _direct_universe(model, 3)
@@ -80,6 +69,18 @@ def test_exponent_range_is_not_off_by_one():
     assert union_to(2 * 3 + 2) >= correct
 
 
+def test_support_sweep_is_nested_and_reported_pencil_is_certified():
+    model = hubbard((2, 2), t=1.0, U=4.0, periodic=False)
+    rho = ExactMVBackend().state(model.reference, ())
+    thresholds = (0.0, 1e-14, 1e-12, 1e-10, 1e-8, 1e-6)
+    diagnostics = krylov_word_diagnostics(
+        model.hamiltonian, rho, 4, thresholds=thresholds)
+    rows = diagnostics["by_threshold"]
+    counts = [rows[repr(tol)]["word_universe"] for tol in thresholds]
+    assert counts == sorted(counts, reverse=True)
+    assert rows[repr(REPORTED_THRESHOLD)]["certificate_passed"]
+
+
 @pytest.fixture()
 def committed_record():
     path = (Path(__file__).resolve().parents[1] / "benchmarks"
@@ -88,7 +89,6 @@ def committed_record():
 
 
 def _gate_with(monkeypatch, fresh) -> int:
-    """Run the CI gate against a supplied 'fresh' record."""
     import check_krylov_width
     import run_krylov_width
 
@@ -100,18 +100,13 @@ def test_gate_accepts_an_unchanged_record(monkeypatch, committed_record):
     assert _gate_with(monkeypatch, copy.deepcopy(committed_record)) == 0
 
 
-def test_gate_tolerates_round_off_churn_in_the_raw_counts(
+def test_gate_tolerates_round_off_churn_in_raw_counts(
         monkeypatch, committed_record):
-    """The reason this gate exists instead of a bit-for-bit diff.
-
-    Two runs disagree about how many round-off-level words H^17 carries, so a
-    byte comparison fails for a reason that means nothing. Only the reported
-    count is a claim, and only it is gated.
-    """
     fresh = copy.deepcopy(committed_record)
     for row in fresh["rows"]:
+        raw = row["pencil_diagnostics_by_threshold"]["0.0"]
+        raw["word_universe"] += 7
         row["word_universe_by_threshold"]["0.0"] += 7
-        row["word_universe_by_threshold"]["1e-12"] -= 3
     assert _gate_with(monkeypatch, fresh) == 0
 
 
@@ -119,26 +114,16 @@ def test_gate_tolerates_round_off_churn_in_the_raw_counts(
     pytest.param(lambda r: r["rows"][0].__setitem__(
         "word_universe", r["rows"][0]["word_universe"] + 1),
         id="reported-width-moved"),
+    pytest.param(lambda r: r["rows"][0].__setitem__(
+        "word_universe_certificate_passed", False),
+        id="certificate-failed"),
     pytest.param(lambda r: r.__setitem__("rows", r["rows"][:-1]),
                  id="rung-disappeared"),
     pytest.param(lambda r: r.__setitem__("reported_threshold", 1e-6),
                  id="threshold-moved"),
 ])
-def test_gate_rejects_a_real_regression(monkeypatch, committed_record, mutate):
+def test_gate_rejects_a_real_regression(
+        monkeypatch, committed_record, mutate):
     fresh = copy.deepcopy(committed_record)
     mutate(fresh)
     assert _gate_with(monkeypatch, fresh) == 1
-
-
-def test_thresholding_never_grows_the_universe():
-    """Pruning can only remove words, and the sweep must be monotone.
-
-    The Krylov count depends on the threshold precisely because round-off
-    inflates it; a sweep that was not monotone would mean the pruning is
-    interacting with the accumulation in a way the record does not describe.
-    """
-    model = hubbard((2, 2), t=1.0, U=4.0, periodic=False)
-    thresholds = (0.0, 1e-14, 1e-12, 1e-10, 1e-8)
-    counts = krylov_word_universe(model.hamiltonian, 4, thresholds=thresholds)
-    values = [counts[repr(tol)] for tol in thresholds]
-    assert values == sorted(values, reverse=True)

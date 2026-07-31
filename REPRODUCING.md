@@ -75,7 +75,7 @@ No figure or table value in the manuscript is transcribed by hand, and
 ```bash
 python -m venv .venv && source .venv/bin/activate
 pip install -e .[test,research,chemistry]   # numpy + scipy + openfermion/pyscf
-pytest                                      # 740 passed, 6 skipped
+pytest                                      # 754 passed, 6 skipped
 ```
 
 That install is the reference environment for the quoted pair, and it is
@@ -255,21 +255,26 @@ than weakening coefficient tolerances.
 
 ### Varying the reference state
 
-The adaptive arm above misses chemical accuracy at its declared budget. That
-is a property of the reference, not of the budget:
+The adaptive arm above misses chemical accuracy at its declared A-CASE budget.
+This experiment asks whether changing the reference is sufficient to cross the
+accuracy threshold without increasing that nine-vector subspace:
 
 ```bash
 python benchmarks/run_warm_start.py \
     --out reproductions/warm_start_h4.json
 ```
 
-Same FCIDUMP, same candidate pool, same eight additions; only `rho` changes,
-from the Hartree-Fock determinant to an ADAPT-VQE state. Expected results
+Same FCIDUMP, same A-CASE candidate pool, and same eight additions; `rho`
+changes from the Hartree-Fock determinant to an ADAPT-VQE state. The ADAPT
+stage is additional work, and the record includes its pool-gradient
+evaluations, optimizer evaluations, and state-preparation rotor count.
+Expected results
 (`benchmarks/reference_results/warm_start_h4.json`):
 
 - Hartree-Fock reference: `M=9`, error `3.019 mHa`, `kappa(S)=1`, `W=7371`;
 - 2-operator ADAPT reference: `M=9`, error `0.342 mHa` (chemical accuracy),
-  `kappa(S)=1.02`, `W=7510`;
+  `kappa(S)=1.02`, `W=7510`, 319 active-pool gradient evaluations,
+  15 optimizer evaluations, and 2 state-preparation rotors;
 - the ADAPT state alone is `27.091 mHa`, an order of magnitude worse than the
   cold A-CASE result it improves;
 - deeper warm starts are better states and give worse subspaces: `0.612 mHa`
@@ -278,6 +283,11 @@ from the Hartree-Fock determinant to an ADAPT-VQE state. Expected results
 This benchmark stays NumPy-only: the ADAPT pool is built from the odd-Y words
 of the determinant excitations rather than through the OpenFermion-backed
 `models.chemistry.excitation_pool`.
+
+Selection and optimization are exact in this record. Therefore its zero
+selection-shot count is an exact-simulation label, not an end-to-end hardware
+resource estimate. The hybrid result holds the A-CASE budget fixed; it does
+not claim that the total ADAPT+A-CASE cost equals the cold A-CASE cost.
 
 ### Krylov measurement width
 
@@ -300,9 +310,16 @@ Expected results (`benchmarks/reference_results/krylov_width.json`), at the
 - `kitaev` `W=140`, equal to A-CASE, which there is a pruned Krylov basis.
 
 The threshold matters: repeated multiplication accumulates round-off, so the
-raw Krylov count on `h4_chain(r=0.9)` is `8184` rather than `4224`. The A-CASE
-universe is unchanged by any threshold up to `1e-8`.
-`tests/test_krylov_width.py` checks the identity against direct enumeration.
+raw Krylov count on `h4_chain(r=0.9)` fluctuates near `8184` rather than
+`4224`. Every threshold is applied independently to the same unpruned powers;
+thresholded powers are never multiplied recursively, so the support sweep is
+nested. The script then rebuilds the full overlap and Hamiltonian pencils at
+each cutoff. A count is reportable only when effective rank matches and the
+normalized pencil entries, Ritz energy, and condition number reproduce the
+unpruned construction within the tolerances stored in the v2 record. At
+`1e-8` all quoted rungs pass and the stored numerical differences are zero.
+`tests/test_krylov_width.py` checks the collapse identity, nested sweep, and
+certificate gate.
 
 ## Finite-shot nonlinear response uncertainty
 

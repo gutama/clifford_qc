@@ -23,11 +23,13 @@
     "word_universe": 7371
   },
   "evidence": {
-    "energies": "exact",
+    "energies": "exact statevector simulation",
+    "physical_shot_budget": "not estimated",
     "quantum_advantage_claim": false,
-    "resource_counts": "exact"
+    "resource_counts": "exact algorithmic counts"
   },
   "input": {
+    "blas_threads": 1,
     "generator": {
       "scf_convergence_tolerance": 1e-12,
       "software": "PySCF",
@@ -39,7 +41,8 @@
   },
   "predeclared_additions": 8,
   "reference_energy": -2.180316614323859,
-  "schema": "clifford_qc.acase_warm_start.v1",
+  "resource_boundary": "A-CASE M and W are held fixed/comparable across rows. The ADAPT rotors, gradient evaluations, and optimizer evaluations are additional hybrid costs. Exact simulation assigns no physical shot count to those evaluations.",
+  "schema": "clifford_qc.acase_warm_start.v2",
   "system": {
     "adapt_pool_size": 160,
     "candidate_generators": 26,
@@ -56,11 +59,18 @@
       "adapt_energy": -2.153225606225887,
       "adapt_error_hartree": 0.027091008097971603,
       "adapt_error_millihartree": 27.091008097971603,
+      "adapt_gradient_evaluations": 319,
       "adapt_labels": [
         "IIYXXXII",
         "YZZXXZZX"
       ],
       "adapt_operators": 2,
+      "adapt_optimizer_evaluations": 15,
+      "adapt_selection_circuits": 0,
+      "adapt_selection_mode": "exact statevector",
+      "adapt_selection_shots": 0,
+      "adapt_state_preparation_operators": 2,
+      "adapt_support_peak": 576,
       "basis_size": 9,
       "chemical_accuracy": true,
       "condition_number": 1.022125751646508,
@@ -87,6 +97,7 @@
       "adapt_energy": -2.166537974691664,
       "adapt_error_hartree": 0.013778639632194611,
       "adapt_error_millihartree": 13.778639632194611,
+      "adapt_gradient_evaluations": 634,
       "adapt_labels": [
         "IIYXXXII",
         "YZZXXZZX",
@@ -94,13 +105,19 @@
         "XYIIIIXX"
       ],
       "adapt_operators": 4,
+      "adapt_optimizer_evaluations": 36,
+      "adapt_selection_circuits": 0,
+      "adapt_selection_mode": "exact statevector",
+      "adapt_selection_shots": 0,
+      "adapt_state_preparation_operators": 4,
+      "adapt_support_peak": 1056,
       "basis_size": 9,
       "chemical_accuracy": true,
       "condition_number": 1.052495652244482,
       "effective_rank": 9,
-      "error_hartree": 0.000612443063626511,
-      "error_millihartree": 0.612443063626511,
-      "ground_energy": -2.1797041712602323,
+      "error_hartree": 0.0006124430636282874,
+      "error_millihartree": 0.6124430636282874,
+      "ground_energy": -2.1797041712602305,
       "labels": [
         "I",
         "E(4,5<-0,1)",
@@ -120,6 +137,7 @@
       "adapt_energy": -2.173525514313658,
       "adapt_error_hartree": 0.006791100010200779,
       "adapt_error_millihartree": 6.791100010200779,
+      "adapt_gradient_evaluations": 945,
       "adapt_labels": [
         "IIYXXXII",
         "YZZXXZZX",
@@ -129,13 +147,19 @@
         "IIXXIIYX"
       ],
       "adapt_operators": 6,
+      "adapt_optimizer_evaluations": 57,
+      "adapt_selection_circuits": 0,
+      "adapt_selection_mode": "exact statevector",
+      "adapt_selection_shots": 0,
+      "adapt_state_preparation_operators": 6,
+      "adapt_support_peak": 1888,
       "basis_size": 9,
       "chemical_accuracy": true,
       "condition_number": 1.05814706279901,
       "effective_rank": 9,
-      "error_hartree": 0.0007683724502496325,
-      "error_millihartree": 0.7683724502496325,
-      "ground_energy": -2.179548241873609,
+      "error_hartree": 0.0007683724502509648,
+      "error_millihartree": 0.7683724502509648,
+      "ground_energy": -2.179548241873608,
       "labels": [
         "I",
         "E(4,7<-1,2)",

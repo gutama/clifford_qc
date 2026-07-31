@@ -1,38 +1,27 @@
-"""A-CASE grown around an ADAPT-VQE reference instead of a bare determinant.
+"""A-CASE grown around an exact-simulation ADAPT-VQE reference.
 
-``clifford_qc.subspace.adapt_warm_start`` has been in the package since the
-subspace work landed, with a test and an example, and no benchmark.  It is the
-one place where the two methods compose rather than compete: ADAPT-VQE produces
-an optimized state, A-CASE takes that state as its single reference rho, and the
-subspace is grown around something that already carries correlation.
-
-That gap mattered, because the H4 rung's headline negative result -- adaptive
-A-CASE misses chemical accuracy at the predeclared nine-vector budget -- has an
-obvious candidate explanation the paper never tested: the reference is a single
-determinant, so every correlation effect has to be paid for out of the eight
-adaptive additions.
-
-The arms are matched on the quantity the paper's ledger is about.  Every row
-uses the same nine-vector budget, the same candidate pool, and the same frozen
-FCIDUMP; only rho changes.  The ADAPT stage's own energy is reported beside the
-A-CASE result so the improvement cannot be mistaken for ADAPT having done the
-work: a two-operator ADAPT state is far *worse* than cold A-CASE on its own.
-
-ADAPT's operator pool is built here from the odd-Y words of the determinant
-excitations rather than through ``models.chemistry.excitation_pool``, which
-imports OpenFermion.  That keeps the rung's NumPy-only property, which the
-manuscript claims for exactly this benchmark.
-
-    python benchmarks/run_warm_start.py
-    python benchmarks/run_warm_start.py --out result.json
+Every arm uses the same frozen FCIDUMP, A-CASE candidate family, and
+nine-vector A-CASE budget.  The ADAPT stage is additional work, so the record
+reports its selected rotors, pool-gradient evaluations, optimizer evaluations,
+and state-preparation operator count.  Selection and optimization are exact in
+this benchmark; the zero shot/circuit fields are therefore simulation labels,
+not an end-to-end hardware-cost claim.
 """
 
 from __future__ import annotations
 
 import argparse
 import json
+import os
 import time
 from pathlib import Path
+
+# Exact ADAPT optimization contains BLAS reductions.  One thread removes their
+# completion-order freedom and makes the bit-for-bit record gate meaningful.
+_THREADS = os.environ.get("CLIFFORD_QC_BENCHMARK_THREADS", "1")
+for _name in ("OMP_NUM_THREADS", "OPENBLAS_NUM_THREADS", "MKL_NUM_THREADS",
+              "NUMEXPR_NUM_THREADS"):
+    os.environ[_name] = _THREADS
 
 from clifford_qc.algorithms.pools import PoolOperator, is_odd_y
 from clifford_qc.backends import ExactMVBackend, SectorStatevectorBackend
@@ -50,17 +39,13 @@ DEFAULT_OUT = ROOT / "reference_results" / "warm_start_h4.json"
 FCIDUMP = ROOT / "data" / "h4_sto3g_r0.9.FCIDUMP"
 PROVENANCE = ROOT / "data" / "h4_sto3g_r0.9.provenance.json"
 
-ADAPTIVE_ADDITIONS = 8          # the paper's predeclared budget, unchanged
-WARM_OPERATORS = (2, 4, 6)      # ADAPT depth used only to prepare rho
+ADAPTIVE_ADDITIONS = 8
+WARM_OPERATORS = (2, 4, 6)
 CHEMICAL_ACCURACY_HARTREE = 1.6e-3
 
 
 def word_pool(model, candidates) -> list[PoolOperator]:
-    """Qubit-ADAPT pool: the odd-Y words of the determinant excitations.
-
-    The same construction ``run_acase_ladder.word_pool`` uses for its fermionic
-    lattice rungs, inlined so this benchmark does not need chemistry extras.
-    """
+    """Qubit-ADAPT pool: unique odd-Y words of determinant excitations."""
     pool: dict[int, PoolOperator] = {}
     for generator in candidates:
         for code in sorted(generator.mv.terms):
@@ -111,9 +96,6 @@ def build_record() -> dict:
         exact_ground_energy=exact_energy)
     cold_row = _row(cold, exact_energy)
     cold_row["reference"] = "Hartree-Fock determinant"
-    # Wall-clock timings stay on stdout and out of the record: CI gates this
-    # file bit-for-bit, and a duration is the one field guaranteed to differ
-    # between two correct runs.
     print(f"cold: {cold_row['error_millihartree']:.6f} mHa "
           f"M={cold_row['basis_size']} W={cold_row['word_universe']} "
           f"[{time.perf_counter() - started:.1f}s]", flush=True)
@@ -122,7 +104,8 @@ def build_record() -> dict:
     for operators in WARM_OPERATORS:
         started = time.perf_counter()
         rho, adapt = adapt_warm_start(
-            model, pool, max_operators=operators, compute_exact_reference=False)
+            model, pool, max_operators=operators,
+            compute_exact_reference=False)
         warm = run_acase(
             rho, model.hamiltonian, candidates,
             max_size=ADAPTIVE_ADDITIONS, leakage_tol=1e-10,
@@ -136,21 +119,30 @@ def build_record() -> dict:
             "adapt_energy": adapt.energy,
             "adapt_error_hartree": adapt_error,
             "adapt_error_millihartree": adapt_error * 1e3,
-            "adapt_chemical_accuracy": bool(
-                abs(adapt_error) < CHEMICAL_ACCURACY_HARTREE),
+            "adapt_chemical_accuracy":
+                bool(abs(adapt_error) < CHEMICAL_ACCURACY_HARTREE),
+            "adapt_selection_mode": "exact statevector",
+            "adapt_selection_shots": adapt.total_shots,
+            "adapt_selection_circuits": adapt.total_circuits,
+            "adapt_gradient_evaluations":
+                sum(record.active_candidates for record in adapt.records),
+            "adapt_optimizer_evaluations": adapt.optimizer_evaluations,
+            "adapt_support_peak": adapt.support_peak,
+            "adapt_state_preparation_operators": len(adapt.labels),
         })
         warm_rows.append(row)
         print(f"warm k={operators}: {row['error_millihartree']:.6f} mHa "
               f"M={row['basis_size']} kappa={row['condition_number']:.4g} "
-              f"W={row['word_universe']} (ADAPT alone "
-              f"{row['adapt_error_millihartree']:.6f} mHa) "
+              f"W={row['word_universe']} grad={row['adapt_gradient_evaluations']} "
+              f"opt={row['adapt_optimizer_evaluations']} "
               f"[{time.perf_counter() - started:.1f}s]", flush=True)
 
     return {
-        "schema": "clifford_qc.acase_warm_start.v1",
+        "schema": "clifford_qc.acase_warm_start.v2",
         "evidence": {
-            "energies": "exact",
-            "resource_counts": "exact",
+            "energies": "exact statevector simulation",
+            "resource_counts": "exact algorithmic counts",
+            "physical_shot_budget": "not estimated",
             "quantum_advantage_claim": False,
         },
         "input": {
@@ -158,6 +150,7 @@ def build_record() -> dict:
             "sha256": model.metadata["source_sha256"],
             "provenance_schema": provenance["schema"],
             "generator": provenance["generator"],
+            "blas_threads": int(_THREADS),
         },
         "system": {
             "name": model.name,
@@ -172,6 +165,11 @@ def build_record() -> dict:
         "reference_energy": exact_energy,
         "predeclared_additions": ADAPTIVE_ADDITIONS,
         "chemical_accuracy_hartree": CHEMICAL_ACCURACY_HARTREE,
+        "resource_boundary": (
+            "A-CASE M and W are held fixed/comparable across rows. The ADAPT "
+            "rotors, gradient evaluations, and optimizer evaluations are "
+            "additional hybrid costs. Exact simulation assigns no physical "
+            "shot count to those evaluations."),
         "cold": cold_row,
         "warm": warm_rows,
     }

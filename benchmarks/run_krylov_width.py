@@ -1,33 +1,21 @@
-"""Measure the Krylov arm's word universe W, the ladder's one missing column.
+"""Measure and certify the Krylov arm's Pauli-word universe.
 
-The ladder reports W for every A-CASE arm and leaves it blank for Krylov.  That
-is not a policy choice: the tracked element-operator route costs
-``O(|A_i| |H| |A_j|)`` per pair, and deep Krylov generators carry thousands of
-words each, so ``run_acase_ladder.py`` falls back to the untracked contraction
-and records the support columns as unavailable.  The consequence is that the
-paper's three-way trade -- energy against conditioning against measurable
-support -- had no width data for the arm that wins on energy.
-
-The quadratic route is avoidable.  For the Krylov family ``A_0 = I`` and
-``A_k = H^k`` with Hermitian ``H``,
+For ``A_k = H^k`` with Hermitian ``H``,
 
     A_i^dag A_j   = H^(i+j),
     A_i^dag H A_j = H^(i+j+1),
 
-so the union in the manuscript's Eq. (9) collapses from ``O(M^2)`` distinct
-element operators to the ``2m+2`` powers ``H^0 ... H^(2m+1)``.  That is linear
-in the basis size and runs in seconds where the pair enumeration does not
-finish.  ``tests/test_krylov_width.py`` checks the identity against direct
-enumeration on cases small enough for both.
+so the matrix-element word universe is the union of the ``2m+2`` powers
+``H^0, ..., H^(2m+1)``.  This avoids the quadratic element-operator route.
 
-Round-off matters here in a way it does not for A-CASE.  ``MV.__mul__`` keeps
-every product term, and seventeen successive multiplications leave thousands of
-words carrying coefficients at the 1e-11 level -- words that exist in the
-floating-point object and not in the operator.  The A-CASE universe is
-insensitive to this (every one of its 7371 words on H4 survives a 1e-8 cut);
-the Krylov universe is not.  Reporting the raw count would therefore overstate
-the baseline's width, so the record carries a threshold sweep and the paper
-quotes a stated cut rather than the raw number.
+Floating-point multiplication leaves round-off-level Pauli coefficients in
+high powers.  A coefficient threshold is therefore an approximation, not an
+exact support identity.  This script never feeds a thresholded power into the
+next multiplication: every cutoff is applied to the same unpruned powers, so
+the support sweep is nested.  More importantly, it rebuilds the full Hankel
+overlap and Hamiltonian pencils from the thresholded moments and records the
+resulting matrix, energy, rank, and conditioning errors.  A word count is
+reportable only when the predeclared cutoff passes that certificate.
 
     python benchmarks/run_krylov_width.py
     python benchmarks/run_krylov_width.py --out result.json
@@ -41,54 +29,143 @@ import sys
 import time
 from pathlib import Path
 
+import numpy as np
+
+from clifford_qc.backends import ExactMVBackend
 from clifford_qc.multivector import MV
+from clifford_qc.subspace.solver import solve_projected
 
 ROOT = Path(__file__).resolve().parent
 sys.path.insert(0, str(ROOT))
 DEFAULT_OUT = ROOT / "reference_results" / "krylov_width.json"
 CONFIG = ROOT / "configs" / "acase_ladder.json"
 
-# the ladder's default Krylov arm is size=8, i.e. I, H, ..., H^8 -> M=9
 KRYLOV_ORDER = 8
 THRESHOLDS = (0.0, 1e-14, 1e-12, 1e-10, 1e-8, 1e-6)
-# the cut the manuscript quotes: the largest threshold under which the A-CASE
-# universe is unchanged, so it cannot flatter A-CASE
 REPORTED_THRESHOLD = 1e-8
+
+# A reported resource count must describe a pencil numerically equivalent to
+# the unpruned double-precision construction.  These are validation tolerances,
+# not claims about physical or chemical accuracy.
+MAX_NORMALIZED_PENCIL_ERROR = 1e-10
+MAX_ENERGY_ERROR = 1e-9
+MAX_CONDITION_RELATIVE_ERROR = 5e-2
+
+
+def _unpruned_powers(hamiltonian, order: int) -> list[MV]:
+    """Return H^0 ... H^(2*order+1), without recursive thresholding."""
+    H = hamiltonian if isinstance(hamiltonian, MV) else hamiltonian.to_mv()
+    powers = [MV.scalar(H.n, 1.0)]
+    for _ in range(1, 2 * order + 2):
+        powers.append(powers[-1] * H)
+    return powers
+
+
+def _truncate(power: MV, tol: float) -> MV:
+    if tol <= 0.0:
+        return power
+    return MV(power.n, {
+        code: value for code, value in power.terms.items()
+        if abs(value) > tol
+    })
+
+
+def _pencil(powers: list[MV], rho: MV, order: int,
+            tol: float) -> tuple[np.ndarray, np.ndarray]:
+    """Build the Krylov Hankel pencil from consistently truncated moments."""
+    scale = float(2 ** rho.n)
+    moments = [
+        float((scale * _truncate(power, tol).trace_pairing(rho)).real)
+        for power in powers
+    ]
+    size = order + 1
+    overlap = np.empty((size, size), dtype=float)
+    projected_h = np.empty((size, size), dtype=float)
+    for i in range(size):
+        for j in range(size):
+            overlap[i, j] = moments[i + j]
+            projected_h[i, j] = moments[i + j + 1]
+    return overlap, projected_h
+
+
+def _normalized_matrix_error(approx: np.ndarray, exact: np.ndarray) -> float:
+    scale = max(float(np.max(np.abs(exact))), 1.0)
+    return float(np.max(np.abs(approx - exact)) / scale)
+
+
+def krylov_word_diagnostics(hamiltonian, rho: MV, order: int,
+                            thresholds=THRESHOLDS) -> dict:
+    """Support and pencil errors for cuts applied to one unpruned power chain."""
+    powers = _unpruned_powers(hamiltonian, order)
+    exact_s, exact_h = _pencil(powers, rho, order, 0.0)
+    exact_result = solve_projected(exact_s, exact_h)
+
+    by_threshold: dict[str, dict] = {}
+    previous_words: int | None = None
+    for tol in thresholds:
+        truncated = [_truncate(power, tol) for power in powers]
+        words = len(set().union(*(set(power.terms) for power in truncated)))
+        if previous_words is not None and words > previous_words:
+            raise RuntimeError(
+                f"non-nested support sweep: threshold {tol:g} has {words} "
+                f"words after {previous_words}")
+        previous_words = words
+
+        overlap, projected_h = _pencil(powers, rho, order, tol)
+        result = solve_projected(overlap, projected_h)
+        condition_scale = max(abs(exact_result.condition_number), 1.0)
+        row = {
+            "word_universe": words,
+            "overlap_normalized_max_error":
+                _normalized_matrix_error(overlap, exact_s),
+            "hamiltonian_normalized_max_error":
+                _normalized_matrix_error(projected_h, exact_h),
+            "ground_energy": result.ground_energy,
+            "ground_energy_absolute_error":
+                abs(result.ground_energy - exact_result.ground_energy),
+            "condition_number": result.condition_number,
+            "condition_number_relative_error":
+                abs(result.condition_number - exact_result.condition_number)
+                / condition_scale,
+            "effective_rank": result.effective_rank,
+            "rank_matches_unpruned":
+                result.effective_rank == exact_result.effective_rank,
+        }
+        row["certificate_passed"] = bool(
+            row["overlap_normalized_max_error"]
+            <= MAX_NORMALIZED_PENCIL_ERROR
+            and row["hamiltonian_normalized_max_error"]
+            <= MAX_NORMALIZED_PENCIL_ERROR
+            and row["ground_energy_absolute_error"] <= MAX_ENERGY_ERROR
+            and row["condition_number_relative_error"]
+            <= MAX_CONDITION_RELATIVE_ERROR
+            and row["rank_matches_unpruned"]
+        )
+        by_threshold[repr(tol)] = row
+
+    return {
+        "unpruned": {
+            "ground_energy": exact_result.ground_energy,
+            "condition_number": exact_result.condition_number,
+            "effective_rank": exact_result.effective_rank,
+        },
+        "by_threshold": by_threshold,
+    }
 
 
 def krylov_word_universe(hamiltonian, order: int,
                          thresholds=THRESHOLDS) -> dict[str, int]:
-    """|union_k supp(H^k)| for k = 0 .. 2*order+1, at each threshold.
-
-    Pruning is applied to each power before it is accumulated *and* before it
-    is multiplied again, so a coefficient that only exists as round-off cannot
-    seed further round-off in the next power.
-    """
-    H = hamiltonian if isinstance(hamiltonian, MV) else hamiltonian.to_mv()
-    out: dict[str, int] = {}
-    for tol in thresholds:
-        words: set[int] = set()
-        power = MV.scalar(H.n, 1.0)
-        words |= set(power.terms)
-        for _ in range(1, 2 * order + 2):
-            power = power * H
-            if tol > 0.0:
-                power = MV(H.n, {code: value for code, value in power.terms.items()
-                                 if abs(value) > tol})
-            words |= set(power.terms)
-        out[repr(tol)] = len(words)
-    return out
+    """Compatibility helper used by the direct-enumeration tests."""
+    powers = _unpruned_powers(hamiltonian, order)
+    return {
+        repr(tol): len(set().union(*(
+            set(_truncate(power, tol).terms) for power in powers)))
+        for tol in thresholds
+    }
 
 
 def systems():
-    """Every ladder rung whose Krylov arm was actually run, built the same way.
-
-    The rungs come from the ladder's own config through the ladder's own
-    ``build_system``, so the Hamiltonian whose width is measured here is the
-    one the CSV row was produced from rather than a lookalike rebuilt from
-    remembered parameters.  Rungs needing chemistry extras are skipped with a
-    note when those extras are absent; the committed record carries them.
-    """
+    """Every validation-ladder rung whose Krylov arm was configured."""
     import run_acase_ladder as ladder
 
     config = json.loads(CONFIG.read_text(encoding="utf-8"))
@@ -98,7 +175,7 @@ def systems():
             continue
         try:
             model, kind = ladder.build_system(rung["system"])
-        except ImportError as exc:  # chemistry extras absent
+        except ImportError as exc:
             yield rung["name"], kind_of(rung), None, order, str(exc)
             continue
         yield rung["name"], kind, model, order, None
@@ -117,7 +194,14 @@ def build_record() -> dict:
             print(f"{name}: SKIPPED ({error})", flush=True)
             continue
         started = time.perf_counter()
-        counts = krylov_word_universe(model.hamiltonian, order)
+        rho = ExactMVBackend().state(model.reference, ())
+        diagnostics = krylov_word_diagnostics(
+            model.hamiltonian, rho, order)
+        reported = diagnostics["by_threshold"][repr(REPORTED_THRESHOLD)]
+        if not reported["certificate_passed"]:
+            raise RuntimeError(
+                f"{model.name}: the {REPORTED_THRESHOLD:g} Krylov width "
+                "does not reproduce the unpruned pencil")
         rows.append({
             "system": model.name,
             "rung": name,
@@ -126,29 +210,38 @@ def build_record() -> dict:
             "hamiltonian_terms": len(model.hamiltonian.terms),
             "krylov_order": order,
             "basis_size": order + 1,
-            "word_universe_by_threshold": counts,
-            "word_universe": counts[repr(REPORTED_THRESHOLD)],
+            "word_universe_by_threshold": {
+                key: value["word_universe"]
+                for key, value in diagnostics["by_threshold"].items()
+            },
+            "pencil_diagnostics_by_threshold":
+                diagnostics["by_threshold"],
+            "unpruned_pencil": diagnostics["unpruned"],
+            "word_universe": reported["word_universe"],
+            "word_universe_certificate_passed": True,
         })
-        # Timing stays on stdout: CI gates this file bit-for-bit and a
-        # duration is the one field two correct runs will disagree on.
-        print(f"{model.name}: W={rows[-1]['word_universe']} "
-              f"(raw {counts[repr(0.0)]}) "
+        raw = diagnostics["by_threshold"][repr(0.0)]["word_universe"]
+        print(f"{model.name}: W={reported['word_universe']} "
+              f"(raw {raw}, dE={reported['ground_energy_absolute_error']:.2e}) "
               f"[{time.perf_counter() - started:.1f}s]", flush=True)
     return {
-        "schema": "clifford_qc.krylov_width.v1",
+        "schema": "clifford_qc.krylov_width.v2",
         "method": "union of supp(H^k), k = 0 .. 2*order+1",
         "reported_threshold": REPORTED_THRESHOLD,
+        "certificate": {
+            "cuts_are_nonrecursive": True,
+            "max_normalized_pencil_error": MAX_NORMALIZED_PENCIL_ERROR,
+            "max_energy_error": MAX_ENERGY_ERROR,
+            "max_condition_relative_error":
+                MAX_CONDITION_RELATIVE_ERROR,
+            "same_effective_rank_required": True,
+        },
         "threshold_note": (
-            "Counts at the reported threshold. The raw count includes words "
-            "that exist only as accumulated round-off; the A-CASE universe is "
-            "unchanged by any threshold up to 1e-8, the Krylov universe is not. "
-            "Entries below 1e-8 are not reproducible run to run on the "
-            "chemistry rungs: the SCF settles on orbital coefficients differing "
-            "in the last bits, and H^17 of a Hamiltonian perturbed at 1e-16 has "
-            "a different round-off-level support. Observed on h4_chain(r=0.9): "
-            "8184 raw on one run, 8180 on the next, 4224 reported on both. "
-            "benchmarks/check_krylov_width.py therefore gates the reported "
-            "counts rather than the file bytes."),
+            "Every cutoff is applied independently to the same unpruned "
+            "double-precision powers. The reported count is accepted only if "
+            "the resulting Hankel overlap and Hamiltonian pencil reproduces "
+            "the unpruned effective rank, ground energy, conditioning, and "
+            "normalized matrix entries within the recorded tolerances."),
         "rows": rows,
         "skipped": skipped,
     }

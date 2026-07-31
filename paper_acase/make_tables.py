@@ -35,12 +35,6 @@ def _sci(value: float, digits: int = 2) -> str:
 
 
 def _kappa(value: float) -> str:
-    """Overlap condition numbers, in the same notation as the error column.
-
-    ``f"{v:.2g}"`` renders 6.6e+10 as text in a physics table; the errors beside
-    it are typeset. Well-conditioned arms report exactly 1, which should stay a
-    bare 1 rather than becoming $1.0\\times10^{0}$.
-    """
     if abs(value) < 10.0:
         return f"{value:.3g}"
     return _sci(value, 1)
@@ -93,23 +87,20 @@ def h4_table() -> None:
 
 
 def warm_start_table() -> None:
-    """The reference state as the variable, with the budget held fixed.
-
-    Every row is the same nine-vector budget on the same frozen FCIDUMP; only
-    rho changes.  The ADAPT-alone column is what stops the improvement being
-    read as ADAPT having done the work -- a two-operator ADAPT state is an
-    order of magnitude worse on its own than the cold A-CASE it rescues.
-    """
+    """Hybrid accuracy plus the exact-simulation resource ledger."""
     record = json.loads(WARM.read_text())
     cold = record["cold"]
     rows = [
-        rf"Hartree--Fock determinant & --- & {cold['basis_size']} & "
-        rf"{cold['error_millihartree']:.3f} & "
+        rf"Hartree--Fock determinant & 0 & 0 & 0 & --- & "
+        rf"{cold['basis_size']} & {cold['error_millihartree']:.3f} & "
         rf"{_kappa(cold['condition_number'])} & {cold['word_universe']} \\",
     ]
     for row in record["warm"]:
         rows.append(
             rf"ADAPT-VQE state, $k={row['adapt_operators']}$ & "
+            rf"{row['adapt_gradient_evaluations']} & "
+            rf"{row['adapt_optimizer_evaluations']} & "
+            rf"{row['adapt_state_preparation_operators']} & "
             rf"{row['adapt_error_millihartree']:.3f} & {row['basis_size']} & "
             rf"{row['error_millihartree']:.3f} & "
             rf"{_kappa(row['condition_number'])} & {row['word_universe']} \\")
@@ -117,11 +108,15 @@ def warm_start_table() -> None:
 
 
 def _krylov_widths() -> dict[str, int]:
-    """Krylov W by ladder rung, keyed the way the ladder CSV keys its rows."""
     if not KRYLOV_WIDTH.exists():
         return {}
     record = json.loads(KRYLOV_WIDTH.read_text())
-    return {row["system"]: row["word_universe"] for row in record["rows"]}
+    widths = {}
+    for row in record["rows"]:
+        if not row.get("word_universe_certificate_passed", False):
+            raise ValueError(f"uncertified Krylov width for {row['system']}")
+        widths[row["system"]] = row["word_universe"]
+    return widths
 
 
 def _ladder_rows() -> list[dict[str, str]]:
@@ -155,9 +150,6 @@ def ladder_table() -> None:
     for display, system, acase_method, comparator_method, unit in specs:
         a = by_key[(system, acase_method)]
         b = by_key[(system, comparator_method)]
-        # The ladder's tracked route cannot reach the Krylov widths, so they
-        # come from run_krylov_width.py; the generator-coordinate arm tracks
-        # its own and needs no help.
         if comparator_method == "krylov":
             width = krylov_width.get(system)
             comparator_w = "n/a" if width is None else str(width)
@@ -195,12 +187,6 @@ def response_table() -> None:
 
 
 def conditioning_table() -> None:
-    """The same pipeline at two conditionings, with the failure counts shown.
-
-    Everything the bootstrap consumes is held fixed across the two rows except
-    the generator family, so the acceptance rate and the interval widths are
-    attributable to kappa_S alone.
-    """
     rows = []
     for path in (RESPONSE, RESPONSE_ILL):
         record = json.loads(path.read_text())
@@ -213,8 +199,7 @@ def conditioning_table() -> None:
             rf"{basis['family']} & {_kappa(basis['condition_number'])} & "
             rf"{boot['replicates_succeeded']}/{boot['replicates_requested']} & "
             rf"{failures['rank']} & {failures['root_collision']} & "
-            rf"{failures['solver']} & "
-            rf"{_sci(width)} & "
+            rf"{failures['solver']} & {_sci(width)} & "
             rf"{'yes' if chi['lower'] <= exact_chi <= chi['upper'] else 'no'} \\")
     _write("conditioning_results.tex", rows)
 
@@ -231,4 +216,3 @@ def main() -> None:
 
 if __name__ == "__main__":
     main()
-
