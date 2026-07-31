@@ -75,7 +75,7 @@ No figure or table value in the manuscript is transcribed by hand, and
 ```bash
 python -m venv .venv && source .venv/bin/activate
 pip install -e .[test,research,chemistry]   # numpy + scipy + openfermion/pyscf
-pytest                                      # 740 passed, 6 skipped
+pytest                                      # 754 passed, 6 skipped
 ```
 
 That install is the reference environment for the quoted pair, and it is
@@ -253,10 +253,80 @@ The adapter itself needs no chemistry extra. Full CI additionally compares its
 FCIDUMP orbital signs are a gauge; the committed digest fixes one gauge rather
 than weakening coefficient tolerances.
 
+### Varying the reference state
+
+The adaptive arm above misses chemical accuracy at its declared A-CASE budget.
+This experiment asks whether changing the reference is sufficient to cross the
+accuracy threshold without increasing that nine-vector subspace:
+
+```bash
+python benchmarks/run_warm_start.py \
+    --out reproductions/warm_start_h4.json
+python benchmarks/check_warm_start.py
+```
+
+Same FCIDUMP, same A-CASE candidate pool, and same eight additions; `rho`
+changes from the Hartree-Fock determinant to an ADAPT-VQE state. The ADAPT
+stage is additional work, and the record includes its pool-gradient
+evaluations, optimizer evaluations, and state-preparation rotor count.
+Expected results
+(`benchmarks/reference_results/warm_start_h4.json`):
+
+- Hartree-Fock reference: `M=9`, error `3.019 mHa`, `kappa(S)=1`, `W=7371`;
+- 2-operator ADAPT reference: `M=9`, error `0.342 mHa` (chemical accuracy),
+  `kappa(S)=1.02`, `W=7510`, 319 active-pool gradient evaluations,
+  15 optimizer evaluations, and 2 state-preparation rotors;
+- the ADAPT state alone is `27.091 mHa`, an order of magnitude worse than the
+  cold A-CASE result it improves;
+- deeper warm starts are better states and give worse subspaces: `0.612 mHa`
+  at `k=4` and `0.768 mHa` at `k=6`.
+
+This benchmark stays NumPy-only: the ADAPT pool is built from the odd-Y words
+of the determinant excitations rather than through the OpenFermion-backed
+`models.chemistry.excitation_pool`.
+
+Selection and optimization are exact in this record. Therefore its zero
+selection-shot count is an exact-simulation label, not an end-to-end hardware
+resource estimate. The hybrid result holds the A-CASE budget fixed; it does
+not claim that the total ADAPT+A-CASE cost equals the cold A-CASE cost.
+
+### Krylov measurement width
+
+The ladder leaves the Krylov arm's `W` blank because the tracked element route
+is quadratic in the basis and the powers are dense. For `A_k = H^k` with
+Hermitian `H` the union collapses to `H^0 ... H^(2m+1)`, which is linear:
+
+```bash
+python benchmarks/run_krylov_width.py \
+    --out reproductions/krylov_width.json
+```
+
+Expected results (`benchmarks/reference_results/krylov_width.json`), at the
+`1e-8` coefficient threshold the record reports:
+
+- `h2` `W=24` and `lih` `W=64`, reproducing the ladder's own tracked counts;
+- `h4_chain(r=0.9)` `W=4224` against A-CASE's `7371`;
+- `h2o_4e4o(scale=2.0)` `W=8192` against A-CASE's `7783`, the one rung where
+  the operator-generated basis is the narrower of the two;
+- `kitaev` `W=140`, equal to A-CASE, which there is a pruned Krylov basis.
+
+The threshold matters: repeated multiplication accumulates round-off, so the
+raw Krylov count on `h4_chain(r=0.9)` fluctuates near `8184` rather than
+`4224`. Every threshold is applied independently to the same unpruned powers;
+thresholded powers are never multiplied recursively, so the support sweep is
+nested. The script then rebuilds the full overlap and Hamiltonian pencils at
+each cutoff. A count is reportable only when effective rank matches and the
+normalized pencil entries, Ritz energy, and condition number reproduce the
+unpruned construction within the tolerances stored in the v2 record. At
+`1e-8` all quoted rungs pass and the stored numerical differences are zero.
+`tests/test_krylov_width.py` checks the collapse identity, nested sweep, and
+certificate gate.
+
 ## Finite-shot nonlinear response uncertainty
 
 ```bash
 python examples/acase_finite_shot_response.py
+python paper_acase/check_response_records.py
 ```
 
 The example uses 25 shared QWC groups and 8,000 shots per group. A grouped

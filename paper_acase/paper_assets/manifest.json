@@ -1,0 +1,28 @@
+{
+  "figures": {
+    "conditioning_bands.pdf": {
+      "sources": {
+        "paper_acase/data/response_bootstrap.json": "4083ccc05f9ca5dbdfbeac51eed36c1811ca7317586df4f60e0b8bb7adfabc58",
+        "paper_acase/data/response_bootstrap_illconditioned.json": "89e97efc6d3e0efbdf951ffdf44b788a152c36249170c1b447482d6988d4fd53"
+      }
+    },
+    "pipeline.pdf": {
+      "sources": {}
+    },
+    "response_bootstrap.pdf": {
+      "sources": {
+        "paper_acase/data/response_bootstrap.json": "4083ccc05f9ca5dbdfbeac51eed36c1811ca7317586df4f60e0b8bb7adfabc58"
+      }
+    },
+    "validation_ladder.pdf": {
+      "sources": {
+        "benchmarks/reference_results/acase_ladder_summary.csv": "03ac038ad71a3259d2b80aa4a8efd6312c3b5eec46a841929ad7d584e6e86602"
+      }
+    }
+  },
+  "generator": {
+    "path": "paper_acase/make_figures.py",
+    "sha256": "729b5616c5964d198628fb91b189b7e095ead925ca0de3a23eef1bb4da96bcc3"
+  },
+  "schema": "clifford_qc.acase_figure_manifest.v1"
+}
