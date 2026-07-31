@@ -28,7 +28,9 @@ software representation.
 - `make_tables.py` — regenerates all numerical LaTeX table fragments from
   committed benchmark records.
 - `make_figures.py` — regenerates the pipeline, validation-ladder, response,
-  and conditioning figures.
+  and conditioning figures. `paper_assets/manifest.json` binds each figure to
+  the exact generator and input digests without requiring cross-platform PDF
+  byte identity.
 - `check_manuscript.py` — checks labels, references, citations, inputs, table
   column counts, hand-typed numeric cells, figure staleness, and
   evidence-language invariants.

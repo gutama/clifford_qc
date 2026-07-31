@@ -22,6 +22,8 @@ Exits nonzero on any failure so it can gate a release.
 from __future__ import annotations
 
 import collections
+import hashlib
+import json
 import re
 import sys
 from pathlib import Path
@@ -30,6 +32,7 @@ HERE = Path(__file__).resolve().parent
 ROOT = HERE.parent
 TEX = HERE / "manuscript.tex"
 BIB = HERE / "references.bib"
+FIGURE_MANIFEST = HERE / "paper_assets" / "manifest.json"
 
 # which committed record each figure is plotted from; kept in step with
 # make_figures.py so a regenerated record forces a regenerated figure
@@ -64,6 +67,10 @@ def _row_sources(body: str):
             target = target.with_suffix(".tex")
         if target.exists():
             yield target.read_text()
+
+
+def _sha256(path: Path) -> str:
+    return hashlib.sha256(path.read_bytes()).hexdigest()
 
 
 def main() -> int:
@@ -154,6 +161,35 @@ def main() -> int:
             if record.exists() and asset.stat().st_mtime < record.stat().st_mtime:
                 problems.append(
                     f"{asset.name} is older than {record.name} "
+                    "(run paper_acase/make_figures.py)")
+
+    if not FIGURE_MANIFEST.exists():
+        problems.append("missing figure manifest "
+                        "(run paper_acase/make_figures.py)")
+    else:
+        manifest = json.loads(FIGURE_MANIFEST.read_text(encoding="utf-8"))
+        expected_generator = _sha256(HERE / "make_figures.py")
+        if manifest.get("generator", {}).get("sha256") != expected_generator:
+            problems.append("figure manifest has a stale generator digest "
+                            "(run paper_acase/make_figures.py)")
+        expected_sources = {
+            "pipeline.pdf": (),
+            "validation_ladder.pdf": FIGURE_SOURCES["validation_ladder.pdf"],
+            "response_bootstrap.pdf": FIGURE_SOURCES["response_bootstrap.pdf"],
+            "conditioning_bands.pdf": FIGURE_SOURCES["conditioning_bands.pdf"],
+        }
+        figures = manifest.get("figures", {})
+        if set(figures) != set(expected_sources):
+            problems.append("figure manifest names do not match the manuscript")
+        for name, paths in expected_sources.items():
+            recorded = figures.get(name, {}).get("sources", {})
+            expected = {
+                str(path.resolve().relative_to(ROOT)): _sha256(path)
+                for path in paths
+            }
+            if recorded != expected:
+                problems.append(
+                    f"{name} manifest has stale source digests "
                     "(run paper_acase/make_figures.py)")
 
     required = [

@@ -119,7 +119,11 @@ jobs:
         run: |
           python paper_acase/make_figures.py
           python paper_acase/make_tables.py
-          git diff --exit-code -- paper_acase/paper_assets paper_acase/tables
+          # Matplotlib PDF streams vary across font/compression builds. The
+          # manifest binds every figure to the exact generator and input
+          # digests; tables remain directly byte reproducible.
+          git diff --exit-code -- \
+            paper_acase/paper_assets/manifest.json paper_acase/tables
       - name: A-CASE paper -- structure (refs, bib keys, table columns, float ages)
         run: python paper_acase/check_manuscript.py
       - name: A-CASE paper -- build the manuscript

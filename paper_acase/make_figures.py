@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import csv
+import hashlib
 import json
 import os
 from pathlib import Path
@@ -44,6 +45,45 @@ def _save(fig, name: str) -> None:
         ASSETS / name,
         bbox_inches="tight",
         metadata=PDF_METADATA,
+    )
+
+
+def _sha256(path: Path) -> str:
+    return hashlib.sha256(path.read_bytes()).hexdigest()
+
+
+def _write_manifest() -> None:
+    """Bind each figure to its exact generator and numerical source files.
+
+    PDF streams can differ across Matplotlib, font, and compression builds even
+    when they render the same paths.  The manifest is the portable drift gate:
+    it changes whenever the generator or an input record changes.
+    """
+    sources = {
+        "pipeline.pdf": (),
+        "validation_ladder.pdf": (LADDER,),
+        "response_bootstrap.pdf": (RESPONSE,),
+        "conditioning_bands.pdf": (RESPONSE, RESPONSE_ILL),
+    }
+    manifest = {
+        "schema": "clifford_qc.acase_figure_manifest.v1",
+        "generator": {
+            "path": str(Path(__file__).resolve().relative_to(ROOT)),
+            "sha256": _sha256(Path(__file__).resolve()),
+        },
+        "figures": {
+            name: {
+                "sources": {
+                    str(path.resolve().relative_to(ROOT)): _sha256(path)
+                    for path in paths
+                },
+            }
+            for name, paths in sources.items()
+        },
+    }
+    (ASSETS / "manifest.json").write_text(
+        json.dumps(manifest, indent=2, sort_keys=True) + "\n",
+        encoding="utf-8",
     )
 
 
@@ -254,6 +294,7 @@ def main() -> None:
     benchmark_heatmap()
     response_plot()
     conditioning_plot()
+    _write_manifest()
     print(ASSETS)
 
 
