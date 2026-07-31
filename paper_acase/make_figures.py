@@ -22,6 +22,7 @@ ASSETS = HERE / "paper_assets"
 LADDER = ROOT / "benchmarks" / "reference_results" / "acase_ladder_summary.csv"
 RESPONSE = HERE / "data" / "response_bootstrap.json"
 RESPONSE_ILL = HERE / "data" / "response_bootstrap_illconditioned.json"
+PDF_METADATA = {"CreationDate": None, "ModDate": None}
 
 
 def _style() -> None:
@@ -35,6 +36,15 @@ def _style() -> None:
         "pdf.fonttype": 42,
         "ps.fonttype": 42,
     })
+
+
+def _save(fig, name: str) -> None:
+    """Write a byte-reproducible vector figure for the artifact drift gate."""
+    fig.savefig(
+        ASSETS / name,
+        bbox_inches="tight",
+        metadata=PDF_METADATA,
+    )
 
 
 def pipeline() -> None:
@@ -103,7 +113,7 @@ def pipeline() -> None:
             "effective many-body Hamiltonian",
             ha="center", va="center", fontweight="bold")
     fig.tight_layout(pad=0.2)
-    fig.savefig(ASSETS / "pipeline.pdf", bbox_inches="tight")
+    _save(fig, "pipeline.pdf")
     plt.close(fig)
 
 
@@ -163,7 +173,7 @@ def benchmark_heatmap() -> None:
     ax.set_title("Matched-budget validation ladder (default A-CASE uses $M=9$)")
     ax.tick_params(length=0)
     fig.tight_layout(pad=0.4)
-    fig.savefig(ASSETS / "validation_ladder.pdf", bbox_inches="tight")
+    _save(fig, "validation_ladder.pdf")
     plt.close(fig)
 
 
@@ -194,7 +204,7 @@ def response_plot() -> None:
         "heuristic; conditional on surviving replicas",
         transform=ax.transAxes, fontsize=6.8, color="#54278f")
     fig.tight_layout(pad=0.4)
-    fig.savefig(ASSETS / "response_bootstrap.pdf", bbox_inches="tight")
+    _save(fig, "response_bootstrap.pdf")
     plt.close(fig)
 
 
@@ -233,7 +243,7 @@ def conditioning_plot() -> None:
     ax.legend(frameon=False, loc="lower center", fontsize=6.2)
     ax.set_title("Pointwise band width versus overlap conditioning")
     fig.tight_layout(pad=0.4)
-    fig.savefig(ASSETS / "conditioning_bands.pdf", bbox_inches="tight")
+    _save(fig, "conditioning_bands.pdf")
     plt.close(fig)
 
 

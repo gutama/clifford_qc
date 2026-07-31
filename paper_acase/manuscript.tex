@@ -76,7 +76,7 @@ percentile bands are explicitly heuristic, pointwise, and conditional on
 replicas that preserve rank and root identity; they are not finite-sample
 confidence certificates.  Holding system, observable, words, groups, shots,
 basis size, and seeds fixed and varying only the generator family, acceptance
-falls from $200/200$ at $\kappa_S\approx1$ to $137/200$ at
+falls from $200/200$ at $\kappa_S\approx1$ to $139/200$ at
 $\kappa_S=9.3\times10^{3}$, with every rejection a moved thresholded rank.
 The work establishes an executable and
 independently checked path from an interchange Hamiltonian to energies,
@@ -746,16 +746,16 @@ Generator family & $\kappa_S$ & accepted & rank & root & solver & $\chi(0)$ widt
     \label{fig:conditioning}
 \end{figure}
 
-The ill-conditioned arm rejects $63$ of $200$ replicas, all of them for a moved
+The ill-conditioned arm rejects $61$ of $200$ replicas, all of them for a moved
 thresholded rank, and its surviving-replica $\chi(0)$ interval is roughly
 fifteen times wider.  Figure~\ref{fig:conditioning} shows the same separation
 holding across the whole frequency axis rather than at a single summary point.
 Two things follow.  The diagnostic does respond to
 conditioning rather than reporting a comfortable width regardless, which is the
 minimum one should demand of it.  But the reported width is still conditional
-on the $137$ replicas that reproduced the pipeline's rank, and the $63$
+on the $139$ replicas that reproduced the pipeline's rank; the $61$
 excluded draws are precisely the ones a rank-stable summary cannot represent,
-so even the widened interval is a lower bound on the spread.  This is why the
+and the conditional interval does not bound what they would contribute.  This is why the
 acceptance rate belongs beside every interval, and why larger systems must
 report the rank, root-collision, and solver-failure counts before the width of
 a surviving-replica interval is interpreted.
@@ -796,7 +796,7 @@ on H$_4$ or H$_2$O at $M=9$.  Compound/configuration generators solve the
 $2\times2$ Hubbard case but do not transfer to $2\times3$.  Finite-shot
 response bands diagnose the implemented nonlinear pipeline but do not carry a
 finite-sample coverage theorem, and Table~\ref{tab:conditioning} shows their
-acceptance rate falling to $137/200$ as soon as the overlap is ill-conditioned.
+acceptance rate falling to $139/200$ as soon as the overlap is ill-conditioned.
 The adaptive-GEP architecture itself is not claimed as new: ADAPT-GCIM is the
 closest precedent, and the present numerical ladder does not compare its
 generating-function circuits against the fixed-reference bank used here.
