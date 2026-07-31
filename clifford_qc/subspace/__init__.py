@@ -14,6 +14,9 @@ from .adaptive import (
     AdaptiveResult, CandidateScore, GrowthRecord, adapt_warm_start, run_acase,
     score_candidate, sector_leakage, select_candidate,
 )
+from .adapt_gcim import (
+    AdaptGCIMIteration, AdaptGCIMResult, adapt_gcim_gradient, run_adapt_gcim,
+)
 from .elements import MatrixElementBank
 from .measured import (
     ASYMPTOTIC, EXACT, FINITE_SAMPLE, HEURISTIC, CertifiedGrowthRecord,
@@ -46,6 +49,8 @@ from .solver import (
 __all__ = [
     "AdaptiveResult", "CandidateScore", "GrowthRecord", "adapt_warm_start",
     "run_acase", "score_candidate", "sector_leakage", "select_candidate",
+    "AdaptGCIMIteration", "AdaptGCIMResult", "adapt_gcim_gradient",
+    "run_adapt_gcim",
     "ASYMPTOTIC", "EXACT", "FINITE_SAMPLE", "HEURISTIC",
     "CertifiedGrowthRecord", "CertifiedResult", "CouplingBound", "Interval",
     "SharedMeasurement", "WordFunctional", "bootstrap_ritz", "certify_couplings",

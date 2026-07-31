@@ -202,13 +202,17 @@ def main() -> int:
         "ADAPT-GCIM",
         "not a total-resource advantage claim",
         "support count certified to describe",
+        "private development repository",
+        "editors and referees",
+        "tagged archival release",
     ]
     lowered = text.lower()
     for phrase in required:
         if phrase.lower() not in lowered:
             problems.append(f"missing evidence/scope phrase: {phrase}")
     forbidden = ["certified response interval", "quantum speedup is",
-                 "outperforms krylov"]
+                 "outperforms krylov", "cliffordqc2026",
+                 "in the public\n\\texttt{clifford\\_qc} repository"]
     for phrase in forbidden:
         if phrase in lowered:
             problems.append(f"forbidden overclaim phrase: {phrase}")

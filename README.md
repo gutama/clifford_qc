@@ -18,17 +18,35 @@ small algebraic engine with exact sparse Pauli semantics, dense matrix
 conversion for validation and small systems, and optional bridges to external
 quantum tooling.
 
+## Development access status
+
+`clifford_qc` is currently a private, pre-release research framework. The
+operator IR, measurement contracts, subspace APIs, and backend boundaries are
+still being consolidated into a stable foundation, so no public package or
+public-repository availability is claimed at this stage. Collaborators and
+scientific reviewers should work from an explicitly identified frozen source
+snapshot rather than assume that the moving development branch is an archival
+release.
+
+The benchmark inputs, raw records, generators, semantic drift gates, and tests
+remain versioned together. A tagged archival release with a persistent
+identifier is intended once the framework interfaces and evidence contracts
+are stable enough for external reuse.
+
 ## Install
 
-```bash
-pip install clifford-qc
-```
-
-For local development:
+For collaborators with access to a checked-out development snapshot:
 
 ```bash
 pip install -e .[test]
 pytest
+```
+
+Install optional research and chemistry dependencies only when reproducing the
+corresponding paper artifacts:
+
+```bash
+pip install -e .[test,research,chemistry]
 ```
 
 Optional ecosystem bridges are installed independently:

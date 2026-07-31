@@ -9,6 +9,21 @@ defines the method, measurement model, benchmark contract, and evidence labels
 again, while citing the operator-centric Clifford-algebra paper for the shared
 software representation.
 
+## Development and review access
+
+The framework and this paper package are currently maintained in a private
+development repository while the operator, measurement, subspace, and backend
+interfaces are stabilized. Reproducibility is preserved through a frozen
+review snapshot rather than through a claim that the moving repository is
+public. Editors and referees can receive that access-controlled snapshot from
+the authors on request; it must identify the exact source revision and include
+the source, frozen inputs, raw records, generators, tests, and environment
+instructions used by the manuscript.
+
+A tagged archival release with a persistent identifier is intended after the
+framework foundation is stable enough for external reuse. Rendered manuscript
+PDFs remain CI/release artifacts and are not committed as source.
+
 ## Files
 
 - `manuscript.tex` — standalone REVTeX 4.2 manuscript.
@@ -50,6 +65,15 @@ benchmarks rather than paper artifacts:
   the ladder cannot afford (`benchmarks/run_krylov_width.py`). The v2 record
   certifies that the reported coefficient cutoff preserves the unpruned
   pencil's rank, Ritz energy, conditioning, and normalized matrix entries.
+- `matched_h4.json` — every arm on one H4 contract with the sector, reference,
+  pool, budget, and stopping rule held fixed
+  (`benchmarks/run_matched_h4.py`). It includes exact ADAPT-GCIM at the
+  near-size match (`k=4`, `M=8`) and iteration match (`k=8`, `M=16`), with
+  the published fixed `theta=pi/4`, cumulative-surrogate selector, and
+  `M=2k` basis rule. Its off-diagonal Hamiltonian/overlap pair counts remain
+  separate from A-CASE's single-reference word universe. The record also
+  carries the two A-CASE arms that differ only in generator resolution, whose
+  retained subspaces are identical and whose measurement widths are not.
 
 ## Reproduce
 
@@ -61,6 +85,8 @@ python paper_acase/check_response_records.py
 python benchmarks/run_warm_start.py
 python benchmarks/check_warm_start.py
 python benchmarks/run_krylov_width.py
+python benchmarks/run_matched_h4.py
+python benchmarks/check_matched_h4.py
 python paper_acase/make_tables.py
 python paper_acase/make_figures.py
 python paper_acase/check_manuscript.py
@@ -93,3 +119,4 @@ identity.  They are not finite-sample confidence certificates.
 | Dimer table | `../examples/data/wannier_hubbard_dimer.json` and closed-form dimer identities |
 | FCIDUMP H4 table | `../benchmarks/reference_results/fcidump_h4.json` |
 | Warm-start resource table | `../benchmarks/reference_results/warm_start_h4.json` |
+| Matched A-CASE/ADAPT-VQE/ADAPT-GCIM table | `../benchmarks/reference_results/matched_h4.json` |
