@@ -180,6 +180,36 @@ def test_gate_tolerates_the_cross_blas_drift_that_failed_ci(
     assert _gate_with(monkeypatch, fresh) == 0
 
 
+def test_gate_scales_condition_tolerance_to_the_condition_number(
+        monkeypatch, committed_record):
+    """kappa is only accurate to kappa*eps, and the gate asks for exactly that.
+
+    CI failed on a 4e-10 relative wobble in the Krylov arm's kappa_S of 6.6e10,
+    whose own accuracy bound is 1.5e-5. A flat tolerance either accepts that
+    drift and goes blind on the well-conditioned arms, or holds those tight and
+    fails on noise. Both directions are pinned here.
+    """
+    rows = committed_record["rows"]
+    large = next(i for i, r in enumerate(rows)
+                 if (r.get("condition_number") or 0) > 1e6)
+    small = next(i for i, r in enumerate(rows)
+                 if 1.0 < (r.get("condition_number") or 0) < 10.0)
+
+    tolerated = copy.deepcopy(committed_record)
+    tolerated["rows"][large]["condition_number"] *= 1 + 4e-10
+    assert _gate_with(monkeypatch, tolerated) == 0, "kappa*eps drift rejected"
+
+    rejected = copy.deepcopy(committed_record)
+    rejected["rows"][large]["condition_number"] *= 1 + 1e-4
+    assert _gate_with(monkeypatch, rejected) == 1, "real kappa change accepted"
+
+    # the loosening must not leak onto arms whose kappa is well determined
+    tight = copy.deepcopy(committed_record)
+    tight["rows"][small]["condition_number"] *= 1 + 1e-6
+    assert _gate_with(monkeypatch, tight) == 1, (
+        "a well-conditioned arm inherited the large-kappa tolerance")
+
+
 @pytest.mark.parametrize("mutate", [
     pytest.param(lambda r: r["rows"][3].__setitem__("state_preparations", 91),
                  id="preparation-count"),
