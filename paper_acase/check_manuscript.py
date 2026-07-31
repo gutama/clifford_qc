@@ -69,8 +69,9 @@ def _row_sources(body: str):
             yield target.read_text()
 
 
-def _sha256(path: Path) -> str:
-    return hashlib.sha256(path.read_bytes()).hexdigest()
+def _source_digest(path: Path) -> str:
+    text = path.read_text(encoding="utf-8").replace("\r\n", "\n")
+    return hashlib.sha256(text.encode("utf-8")).hexdigest()
 
 
 def main() -> int:
@@ -168,7 +169,7 @@ def main() -> int:
                         "(run paper_acase/make_figures.py)")
     else:
         manifest = json.loads(FIGURE_MANIFEST.read_text(encoding="utf-8"))
-        expected_generator = _sha256(HERE / "make_figures.py")
+        expected_generator = _source_digest(HERE / "make_figures.py")
         if manifest.get("generator", {}).get("sha256") != expected_generator:
             problems.append("figure manifest has a stale generator digest "
                             "(run paper_acase/make_figures.py)")
@@ -184,7 +185,7 @@ def main() -> int:
         for name, paths in expected_sources.items():
             recorded = figures.get(name, {}).get("sources", {})
             expected = {
-                str(path.resolve().relative_to(ROOT)): _sha256(path)
+                str(path.resolve().relative_to(ROOT)): _source_digest(path)
                 for path in paths
             }
             if recorded != expected:

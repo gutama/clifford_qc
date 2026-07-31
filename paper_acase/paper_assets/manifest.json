@@ -16,13 +16,13 @@
     },
     "validation_ladder.pdf": {
       "sources": {
-        "benchmarks/reference_results/acase_ladder_summary.csv": "1b235f86b5fe8ff7900a81e1545a0142a31d07d57ec895e8fd25d627d8a0290c"
+        "benchmarks/reference_results/acase_ladder_summary.csv": "03ac038ad71a3259d2b80aa4a8efd6312c3b5eec46a841929ad7d584e6e86602"
       }
     }
   },
   "generator": {
     "path": "paper_acase/make_figures.py",
-    "sha256": "616c82f7a5f2cde2d34a0ecae0ee598b5b7d6b1fc75b45d3af77d8f1961fe35a"
+    "sha256": "729b5616c5964d198628fb91b189b7e095ead925ca0de3a23eef1bb4da96bcc3"
   },
   "schema": "clifford_qc.acase_figure_manifest.v1"
 }

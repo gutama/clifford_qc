@@ -48,8 +48,10 @@ def _save(fig, name: str) -> None:
     )
 
 
-def _sha256(path: Path) -> str:
-    return hashlib.sha256(path.read_bytes()).hexdigest()
+def _source_digest(path: Path) -> str:
+    """SHA-256 of UTF-8 source with repository-neutral line endings."""
+    text = path.read_text(encoding="utf-8").replace("\r\n", "\n")
+    return hashlib.sha256(text.encode("utf-8")).hexdigest()
 
 
 def _write_manifest() -> None:
@@ -69,12 +71,12 @@ def _write_manifest() -> None:
         "schema": "clifford_qc.acase_figure_manifest.v1",
         "generator": {
             "path": str(Path(__file__).resolve().relative_to(ROOT)),
-            "sha256": _sha256(Path(__file__).resolve()),
+            "sha256": _source_digest(Path(__file__).resolve()),
         },
         "figures": {
             name: {
                 "sources": {
-                    str(path.resolve().relative_to(ROOT)): _sha256(path)
+                    str(path.resolve().relative_to(ROOT)): _source_digest(path)
                     for path in paths
                 },
             }
