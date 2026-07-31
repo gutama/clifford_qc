@@ -194,7 +194,9 @@ def matched_table() -> None:
     interchangeable on hardware: a state preparation and a Pauli word are
     different machines' bottlenecks. ``---`` marks a column an arm does not
     have -- a product ansatz has no overlap matrix, and a fixed basis does no
-    selection.
+    selection. ADAPT-GCIM's final object is instead counted as unique
+    Hamiltonian/overlap state pairs, because it has no single-reference word
+    universe.
     """
     record = json.loads(MATCHED.read_text())
     # The matched table is where the width comparison is actually made, so the
@@ -216,6 +218,10 @@ def matched_table() -> None:
             final_cell = rf"{krylov:,}\footnotemark[1]"
         else:
             final_cell = "n/t" if final is None else f"{final:,}"
+        h_pairs = row.get("hamiltonian_matrix_pairs")
+        s_pairs = row.get("overlap_offdiagonal_pairs")
+        pair_cell = ("---" if h_pairs is None
+                     else f"{h_pairs:,}/{s_pairs:,}")
         # Three decimals renders the Krylov arm's 1.05e-5 mHa as a flat zero,
         # which reads as exactness rather than as a small number.
         error = row["error_millihartree"]
@@ -225,7 +231,7 @@ def matched_table() -> None:
             rf"{row['arm']} & {basis} & {error_cell} & "
             rf"{kappa} & {row['state_preparations']:,} & "
             rf"{row['ansatz_rotors']} & {selection_cell} & {words_cell} & "
-            rf"{final_cell} \\")
+            rf"{final_cell} & {pair_cell} \\")
     _write("matched_results.tex", rows)
 
 

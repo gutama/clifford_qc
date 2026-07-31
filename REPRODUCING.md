@@ -75,7 +75,7 @@ No figure or table value in the manuscript is transcribed by hand, and
 ```bash
 python -m venv .venv && source .venv/bin/activate
 pip install -e .[test,research,chemistry]   # numpy + scipy + openfermion/pyscf
-pytest                                      # 767 passed, 6 skipped
+pytest                                      # 773 passed, 6 skipped
 ```
 
 That install is the reference environment for the quoted pair, and it is
@@ -290,7 +290,7 @@ selection-shot count is an exact-simulation label, not an end-to-end hardware
 resource estimate. The hybrid result holds the A-CASE budget fixed; it does
 not claim that the total ADAPT+A-CASE cost equals the cold A-CASE cost.
 
-### Matched-contract cost comparison
+### Matched-contract cost comparison, including exact ADAPT-GCIM
 
 Every arm on one H4 contract, with the sector, Hartree-Fock reference, operator
 pool, eight-addition budget, and stopping rule held fixed:
@@ -307,12 +307,24 @@ while the ADAPT and warm-started arms carry a parameter optimization whose last
 bits depend on the runner's BLAS. A byte comparison of this record fails CI on
 a `sector_weight` of `1.0` serialized as `0.9999999999999999`.
 
-Costs are reported in four currencies rather than summed, because a state
-preparation and a Pauli word are different machines' bottlenecks. Expected
-results (`benchmarks/reference_results/matched_h4.json`):
+Costs are reported as separate currencies rather than summed, because a state
+preparation, a Pauli word, and an off-diagonal state-pair measurement are
+different machines' bottlenecks. Expected results
+(`benchmarks/reference_results/matched_h4.json`):
 
-- every subspace arm needs 1 state preparation; ADAPT-VQE needs 90, one per
-  selection step and one per optimizer evaluation;
+- fixed-reference subspace arms need 1 state preparation; exact ADAPT-GCIM
+  needs 8 distinct generating-function states at `k=4` and 16 at `k=8`;
+  ADAPT-VQE needs 90, one per selection step and optimizer evaluation;
+- ADAPT-GCIM uses the published cumulative-surrogate gradient, fixed
+  `theta=pi/4`, no parameter optimization, and `M=2k`. The near-size arm
+  (`k=4`, `M=8`) has `13.364 mHa` error, effective rank 6, and
+  `kappa(S)=32.9`; the iteration-matched arm (`k=8`, `M=16`) has
+  `10.674 mHa` error, rank 12, and `kappa(S)=1.09e3`. Both use the published
+  exact overlap cutoff `1e-13` without A-CASE's additional condition cap;
+- those ADAPT-GCIM pencils require 36 Hamiltonian/28 off-diagonal overlap
+  pairs and 136/120 pairs, respectively. They are transition measurements
+  between separately prepared states, so the record deliberately does not
+  mislabel them as A-CASE's single-reference final `W`;
 - ADAPT reads 2424 words to score its pool and 185 for its final energy;
   A-CASE reads 14401-15783 to score and 2240-7371 for the retained subspace;
 - A-CASE at determinant resolution and at word resolution return the same
@@ -325,6 +337,11 @@ results (`benchmarks/reference_results/matched_h4.json`):
 The selection width is the whole element cache, including rows for candidates
 that were then rejected; it is strictly larger than the retained `W` the
 manuscript's ledger reports.
+
+This is an exact implementation of the published ADAPT-GCIM algorithm on the
+matched local 26-excitation pool. It is not a reproduction of the original
+paper's molecular curves, generalized pool, transpilation, or hardware shot
+model.
 
 ### Krylov measurement width
 

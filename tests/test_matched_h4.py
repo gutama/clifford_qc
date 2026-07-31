@@ -210,16 +210,62 @@ def test_gate_scales_condition_tolerance_to_the_condition_number(
         "a well-conditioned arm inherited the large-kappa tolerance")
 
 
+def _row(record, arm):
+    return next(row for row in record["rows"] if row["arm"] == arm)
+
+
+def test_adapt_gcim_rows_encode_both_exact_matching_rules(committed_record):
+    """The published M=2k basis rule makes one row insufficient.
+
+    Four iterations are the nearest basis-size comparison to A-CASE's M=9;
+    eight iterations are the selection-iteration comparison.  Transition
+    matrix-element pairs are kept separate from the single-reference W.
+    """
+    near = _row(committed_record, "ADAPT-GCIM (4 iter., M=8)")
+    equal_iterations = _row(
+        committed_record, "ADAPT-GCIM (8 iter., M=16)")
+    for row, iterations in ((near, 4), (equal_iterations, 8)):
+        size = row["basis_size"]
+        assert size == 2 * iterations
+        assert row["iterations"] == iterations
+        assert row["theta"] == pytest.approx(np.pi / 4.0)
+        assert row["overlap_threshold"] == pytest.approx(1e-13)
+        assert row["condition_cap"] is None
+        assert len(row["selected_labels"]) == iterations
+        assert len(set(row["selected_labels"])) == iterations
+        assert len(row["trajectory"]) == iterations
+        assert [step["basis_size"] for step in row["trajectory"]] == [
+            2 * k for k in range(1, iterations + 1)]
+        assert row["trajectory"][-1]["ground_energy"] == pytest.approx(
+            row["ground_energy"])
+        assert row["optimizer_evaluations"] == 0
+        assert row["state_preparations"] == size
+        assert row["hamiltonian_matrix_pairs"] == size * (size + 1) // 2
+        assert row["overlap_offdiagonal_pairs"] == size * (size - 1) // 2
+        assert row["final_words"] is None
+        assert row["measurement_model"].startswith("off-diagonal H and S")
+
+
 @pytest.mark.parametrize("mutate", [
-    pytest.param(lambda r: r["rows"][3].__setitem__("state_preparations", 91),
+    pytest.param(
+        lambda r: _row(r, "ADAPT-VQE").__setitem__(
+            "state_preparations", 91),
                  id="preparation-count"),
-    pytest.param(lambda r: r["rows"][6].__setitem__("final_words", 2241),
+    pytest.param(
+        lambda r: _row(r, "A-CASE (word)").__setitem__(
+            "final_words", 2241),
                  id="word-universe"),
-    pytest.param(lambda r: r["rows"][4]["labels"].__setitem__(1, "BOGUS"),
+    pytest.param(
+        lambda r: _row(r, "A-CASE (determinant)")["labels"].__setitem__(
+            1, "BOGUS"),
                  id="selected-label"),
-    pytest.param(lambda r: r["rows"][4].__setitem__("error_hartree", 3.1e-3),
+    pytest.param(
+        lambda r: _row(r, "A-CASE (determinant)").__setitem__(
+            "error_hartree", 3.1e-3),
                  id="energy-beyond-tolerance"),
-    pytest.param(lambda r: r["rows"][6].__setitem__("effective_rank", 8),
+    pytest.param(
+        lambda r: _row(r, "A-CASE (word)").__setitem__(
+            "effective_rank", 8),
                  id="effective-rank"),
 ])
 def test_gate_rejects_a_real_regression(monkeypatch, committed_record, mutate):

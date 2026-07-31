@@ -14,7 +14,9 @@ Held fixed across every arm:
 * the operator pool -- the 26 symmetry-preserving determinant excitations, and
   the 160 odd-Y Pauli words those excitations decompose into;
 * the budget: eight additions, i.e. ``M=9`` for subspace arms and eight rotors
-  for ADAPT-VQE;
+  for ADAPT-VQE. ADAPT-GCIM adds two states per iteration, so it is reported at
+  four iterations (``M=8``, nearest size match) and eight iterations
+  (``M=16``, iteration match);
 * the convergence rule: run the budget out, no early stop, exact arithmetic.
 
 The one thing that cannot be held fixed is *granularity*.  ADAPT-VQE consumes
@@ -26,14 +28,21 @@ column in the table.
 Costs are reported in four currencies rather than collapsed into a score,
 because they are not interchangeable on hardware:
 
-* ``state_preparations``   -- distinct states the arm must prepare. Subspace
-  arms need one; ADAPT needs a fresh state per selection step and per optimizer
-  evaluation. This is the asymmetry the operator route exists to exploit, and
-  collapsing it into a single number would hide it.
-* ``ansatz_rotors``        -- rotors in the final prepared state, a depth proxy.
+* ``state_preparations``   -- distinct states the arm must prepare.
+  Fixed-reference operator subspaces need one; ADAPT-GCIM needs its ``M``
+  generating-function states; ADAPT-VQE needs a fresh state per selection step
+  and optimizer evaluation.
+* ``ansatz_rotors``        -- rotors in the deepest prepared state, a depth
+  proxy. ADAPT-GCIM also records the sum over all distinct basis circuits.
 * ``selection_evaluations`` -- candidate scorings summed over steps.
 * ``selection_words`` / ``final_words`` -- distinct Pauli words, with their QWC
   group counts, for scoring candidates and for the final object.
+
+ADAPT-GCIM has a genuinely different final measurement primitive: off-diagonal
+transition matrix elements between separately prepared generating-function
+states.  Its ``final_words`` is therefore not forced into A-CASE's
+single-reference word universe.  The record reports the unique upper-triangle
+Hamiltonian pairs and off-diagonal overlap pairs separately.
 
 ``sector_weight`` is reported for every subspace arm because one arm earns it:
 the word-granularity pool has generators whose *operator* leakage out of
@@ -72,6 +81,7 @@ from clifford_qc.subspace import (
     krylov_response,
     occupied_spin_orbitals,
     pauli_orbit,
+    run_adapt_gcim,
     run_acase,
     solve_subspace,
 )
@@ -127,6 +137,22 @@ def selection_width(model, pool) -> tuple[int, int]:
     return len(words), _groups(model.n, words)
 
 
+def _state_sector_weight(model, psi) -> float:
+    """Weight of a normalized dense state inside the declared sector."""
+    norm = np.linalg.norm(psi)
+    if norm <= 0.0:
+        return float("nan")
+    probability = np.abs(psi / norm) ** 2
+    index = np.arange(2 ** model.n)
+    electrons = np.array([bin(i).count("1") for i in index])
+    spin = np.array([
+        sum(0.5 if (i >> q) & 1 else 0.0 for q in range(0, model.n, 2))
+        - sum(0.5 if (i >> q) & 1 else 0.0 for q in range(1, model.n, 2))
+        for i in index])
+    keep = (electrons == model.metadata["n_electrons"]) & (np.abs(spin) < 1e-12)
+    return float(probability[keep].sum())
+
+
 def sector_weight(model, rho, result, generators) -> float:
     """Weight of the Ritz vector inside ``(N=4, S_z=0)``.
 
@@ -144,18 +170,7 @@ def sector_weight(model, rho, result, generators) -> float:
         retained = [by_label[label] for label in result.basis_labels]
     basis = dense_basis(rho, retained)
     psi = basis @ np.asarray(result.coefficients)[:, 0]
-    norm = np.linalg.norm(psi)
-    if norm <= 0.0:
-        return float("nan")
-    probability = np.abs(psi / norm) ** 2
-    index = np.arange(2 ** model.n)
-    electrons = np.array([bin(i).count("1") for i in index])
-    spin = np.array([
-        sum(0.5 if (i >> q) & 1 else 0.0 for q in range(0, model.n, 2))
-        - sum(0.5 if (i >> q) & 1 else 0.0 for q in range(1, model.n, 2))
-        for i in index])
-    keep = (electrons == model.metadata["n_electrons"]) & (np.abs(spin) < 1e-12)
-    return float(probability[keep].sum())
+    return _state_sector_weight(model, psi)
 
 
 def _subspace_row(name, pool_kind, result, exact_energy, *,
@@ -211,6 +226,16 @@ def build_record() -> dict:
     pool = word_pool(model, determinants)
     words = pauli_orbit([op.word for op in pool])
     sel_words, sel_groups = selection_width(model, pool)
+    # The determinant-resolution commutator union is the same physical
+    # gradient observable as the decomposed word pool, but keeping this direct
+    # construction makes the ADAPT-GCIM resource row independent of that fact.
+    H_mv = model.hamiltonian.to_mv()
+    gcim_selection_codes: set[int] = set()
+    for generator in determinants:
+        commutator = H_mv * generator.mv - generator.mv * H_mv
+        gcim_selection_codes.update(commutator.terms)
+    gcim_sel_words = len(gcim_selection_codes)
+    gcim_sel_groups = _groups(model.n, gcim_selection_codes)
     hamiltonian_groups = _groups(model.n, model.hamiltonian.terms)
 
     identity = identity_generator(model.n)
@@ -285,6 +310,86 @@ def build_record() -> dict:
         print(f"  {name}: {time.perf_counter() - started:.1f}s", flush=True)
         rows.append(row)
 
+    # --- exact published ADAPT-GCIM rule on the matched local pool --------
+    def adapt_gcim(name, iterations, notes):
+        started = time.perf_counter()
+        gcim = run_adapt_gcim(
+            rho, model.hamiltonian, determinants,
+            max_iterations=iterations)
+        result = gcim.result
+        energy = result.ground_energy
+        error = energy - exact_energy
+        ritz_state = gcim.basis @ np.asarray(result.coefficients)[:, 0]
+        rows.append({
+            "arm": name,
+            "pool": "determinant excitations",
+            "basis_size": len(result.basis_labels),
+            "labels": list(result.basis_labels),
+            "selected_labels": list(gcim.selected_labels),
+            "trajectory": [{
+                "iteration": record.iteration,
+                "selected_index": record.selected_index,
+                "selected_label": record.selected_label,
+                "gradient": record.gradient,
+                "active_candidates": record.active_candidates,
+                "basis_size": record.basis_size,
+                "basis_rotor_depths": list(record.basis_rotor_depths),
+                "ground_energy": record.ground_energy,
+                "effective_rank": record.effective_rank,
+                "condition_number": record.condition_number,
+            } for record in gcim.records],
+            "iterations": iterations,
+            "theta": gcim.theta,
+            "overlap_threshold": result.resources["overlap_threshold"],
+            "condition_cap": None,
+            "ground_energy": energy,
+            "error_hartree": error,
+            "error_millihartree": error * 1e3,
+            "chemical_accuracy": bool(
+                abs(error) < CHEMICAL_ACCURACY_HARTREE),
+            "condition_number": result.condition_number,
+            "effective_rank": result.effective_rank,
+            "sector_weight": _state_sector_weight(model, ritz_state),
+            # Distinct generating-function state circuits. The cumulative
+            # surrogate states used for selection are already members of this
+            # final set, so they are not double-counted.
+            "state_preparations": len(result.basis_labels),
+            # The deepest basis circuit; total rotor applications across all
+            # distinct basis circuits is reported in its own field below.
+            "ansatz_rotors": max(gcim.basis_rotor_depths),
+            "basis_state_rotor_applications": sum(
+                gcim.basis_rotor_depths),
+            "optimizer_evaluations": 0,
+            "selection_evaluations": sum(
+                record.active_candidates for record in gcim.records),
+            "selection_words": gcim_sel_words,
+            "selection_qwc_groups": gcim_sel_groups,
+            # No single-reference W exists for transition measurements between
+            # different prepared states.
+            "final_words": None,
+            "final_qwc_groups": None,
+            "hamiltonian_matrix_pairs": (
+                len(result.basis_labels) *
+                (len(result.basis_labels) + 1) // 2),
+            "overlap_offdiagonal_pairs": (
+                len(result.basis_labels) *
+                (len(result.basis_labels) - 1) // 2),
+            "measurement_model": (
+                "off-diagonal H and S transition matrix elements between "
+                "separately prepared generating-function states"),
+            "notes": notes,
+        })
+        print(f"  {name}: {time.perf_counter() - started:.1f}s", flush=True)
+
+    adapt_gcim(
+        "ADAPT-GCIM (4 iter., M=8)", 4,
+        "published fixed theta=pi/4 rule; nearest basis-size match to M=9; "
+        "same local determinant-excitation pool")
+    adapt_gcim(
+        "ADAPT-GCIM (8 iter., M=16)", 8,
+        "published fixed theta=pi/4 rule; iteration-matched to the "
+        "eight-addition contract; same local determinant-excitation pool")
+
     # --- ADAPT-VQE on the word pool ---------------------------------------
     started = time.perf_counter()
     adapt = run_adapt(model, pool, max_operators=BUDGET,
@@ -349,7 +454,7 @@ def build_record() -> dict:
                  "its rotors, optimizer evaluations, and pool scorings"))
 
     return {
-        "schema": "clifford_qc.matched_h4.v1",
+        "schema": "clifford_qc.matched_h4.v2",
         "evidence": {
             "energies": "exact",
             "resource_counts": "exact",
@@ -362,12 +467,19 @@ def build_record() -> dict:
                        "sz": model.metadata["sz"], "dimension": 36},
             "reference_state": "Hartree-Fock determinant",
             "budget": BUDGET,
+            "adapt_gcim_basis_rule": (
+                "M=2k: k=4 gives the nearest size match M=8; k=8 gives "
+                "the iteration match M=16"),
             "convergence": "fixed budget, no early stop, exact arithmetic",
             "pool_determinant_excitations": len(determinants),
             "pool_odd_y_words": len(pool),
-            "unmatched": ("generator granularity: ADAPT consumes single Pauli "
-                          "words, A-CASE's default candidates are whole "
-                          "determinant excitations. Both are run."),
+            "unmatched": (
+                "generator granularity: ADAPT-VQE consumes single Pauli "
+                "words, while A-CASE's default and ADAPT-GCIM candidates are "
+                "whole determinant excitations. ADAPT-GCIM also measures "
+                "off-diagonal transition elements rather than one fixed-"
+                "reference word bank; both costs are reported without an "
+                "assumed exchange rate."),
         },
         "reference_energy": exact_energy,
         "hamiltonian_words": len(model.hamiltonian.terms),
@@ -384,7 +496,15 @@ def build_record() -> dict:
             "state_preparations": (
                 "distinct states prepared. Circuit executions are this "
                 "times the QWC group count times shots per group; the "
-                "shot factor is outside this exact-arithmetic record"),
+                "shot factor is outside this exact-arithmetic record. For "
+                "ADAPT-GCIM this is the number of distinct generating-"
+                "function basis circuits; its cumulative selector states are "
+                "already members of that set."),
+            "adapt_gcim_matrix_pairs": (
+                "unique upper-triangle Hamiltonian pairs and off-diagonal "
+                "overlap pairs. These transition measurements are not a "
+                "single-reference Pauli-word universe and are therefore not "
+                "reported as final_words."),
         },
         "chemical_accuracy_hartree": CHEMICAL_ACCURACY_HARTREE,
         "rows": rows,
