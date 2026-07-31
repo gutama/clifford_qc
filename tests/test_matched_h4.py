@@ -17,6 +17,8 @@ change of tolerances and fail on a change of meaning.
 
 from __future__ import annotations
 
+import copy
+import json
 import sys
 from pathlib import Path
 
@@ -133,3 +135,64 @@ def test_leakage_rejection_discards_the_whole_word_pool(plaquette):
     result = run_acase(rho, model.hamiltonian, words, max_size=6,
                        leakage_tol=1e-10)
     assert len(result.result.basis_labels) == 1
+
+
+@pytest.fixture()
+def committed_record():
+    path = (Path(__file__).resolve().parents[1] / "benchmarks"
+            / "reference_results" / "matched_h4.json")
+    return json.loads(path.read_text(encoding="utf-8"))
+
+
+def _gate_with(monkeypatch, fresh) -> int:
+    """Run the CI gate against a supplied 'fresh' record.
+
+    ``check_matched_h4`` binds ``build_record`` at import, so the name to
+    replace is the checker's, not the generator module's.
+    """
+    import check_matched_h4
+
+    monkeypatch.setattr(check_matched_h4, "build_record", lambda: fresh)
+    return check_matched_h4.main()
+
+
+def test_gate_accepts_an_unchanged_record(monkeypatch, committed_record):
+    assert _gate_with(monkeypatch, copy.deepcopy(committed_record)) == 0
+
+
+def test_gate_tolerates_the_cross_blas_drift_that_failed_ci(
+        monkeypatch, committed_record):
+    """The reason this gate replaced a byte diff.
+
+    These are the exact perturbations the CI runner produced: a sector weight
+    of 1.0 serialized as 0.9999999999999999 and energies moved by ~9e-16 Ha,
+    with every count identical. A byte comparison called that a regression.
+    """
+    fresh = copy.deepcopy(committed_record)
+    for row in fresh["rows"]:
+        if row.get("sector_weight") == 1.0:
+            row["sector_weight"] = 0.9999999999999999
+        if isinstance(row.get("error_hartree"), float):
+            row["error_hartree"] += 8.9e-16
+            row["error_millihartree"] += 8.9e-13
+        if isinstance(row.get("prelude"), dict):
+            row["prelude"]["error_millihartree"] += 8.9e-13
+    assert _gate_with(monkeypatch, fresh) == 0
+
+
+@pytest.mark.parametrize("mutate", [
+    pytest.param(lambda r: r["rows"][3].__setitem__("state_preparations", 91),
+                 id="preparation-count"),
+    pytest.param(lambda r: r["rows"][6].__setitem__("final_words", 2241),
+                 id="word-universe"),
+    pytest.param(lambda r: r["rows"][4]["labels"].__setitem__(1, "BOGUS"),
+                 id="selected-label"),
+    pytest.param(lambda r: r["rows"][4].__setitem__("error_hartree", 3.1e-3),
+                 id="energy-beyond-tolerance"),
+    pytest.param(lambda r: r["rows"][6].__setitem__("effective_rank", 8),
+                 id="effective-rank"),
+])
+def test_gate_rejects_a_real_regression(monkeypatch, committed_record, mutate):
+    fresh = copy.deepcopy(committed_record)
+    mutate(fresh)
+    assert _gate_with(monkeypatch, fresh) == 1

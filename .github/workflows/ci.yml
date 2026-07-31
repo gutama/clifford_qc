@@ -115,12 +115,12 @@ jobs:
       # runs disagree about. See the script's docstring.
       - name: A-CASE paper -- Krylov widths agree with their record
         run: python benchmarks/check_krylov_width.py
-      # The matched contract (Table V) is exact arithmetic throughout and every
-      # column is a count, so it is byte reproducible.
+      # The matched contract (Table V) gets the same exact-discrete,
+      # tolerant-float gate as the warm-start record: its counts reproduce
+      # exactly, its energies carry the optimizer's last bits and so depend on
+      # the runner's BLAS.
       - name: A-CASE paper -- matched-contract record agrees with a fresh run
-        run: |
-          python benchmarks/run_matched_h4.py
-          git diff --exit-code -- benchmarks/reference_results/matched_h4.json
+        run: python benchmarks/check_matched_h4.py
       - name: A-CASE paper -- regenerate figures and tables, then fail on drift
         run: |
           python paper_acase/make_figures.py

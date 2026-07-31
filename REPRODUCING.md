@@ -75,7 +75,7 @@ No figure or table value in the manuscript is transcribed by hand, and
 ```bash
 python -m venv .venv && source .venv/bin/activate
 pip install -e .[test,research,chemistry]   # numpy + scipy + openfermion/pyscf
-pytest                                      # 759 passed, 6 skipped
+pytest                                      # 766 passed, 6 skipped
 ```
 
 That install is the reference environment for the quoted pair, and it is
@@ -298,7 +298,14 @@ pool, eight-addition budget, and stopping rule held fixed:
 ```bash
 python benchmarks/run_matched_h4.py \
     --out reproductions/matched_h4.json
+python benchmarks/check_matched_h4.py
 ```
+
+The checker uses the same exact-discrete/tolerant-float comparison as
+`check_warm_start.py`, and for the same reason: every count reproduces exactly,
+while the ADAPT and warm-started arms carry a parameter optimization whose last
+bits depend on the runner's BLAS. A byte comparison of this record fails CI on
+a `sector_weight` of `1.0` serialized as `0.9999999999999999`.
 
 Costs are reported in four currencies rather than summed, because a state
 preparation and a Pauli word are different machines' bottlenecks. Expected
