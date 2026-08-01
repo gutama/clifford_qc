@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import argparse
 import json
 import time
 from pathlib import Path
@@ -51,7 +52,7 @@ MOLECULES = {
 }
 
 
-def run_pipeline() -> None:
+def run_pipeline(max_candidates: int | None = 25, max_subspace: int = 15) -> None:
     out_dir = Path("molecular_results")
     out_dir.mkdir(exist_ok=True)
 
@@ -66,7 +67,13 @@ def run_pipeline() -> None:
         print(f"\n---> Processing {spec['name']} ({key.upper()})...")
 
         # 1. PySCF RHF calculation
-        mol = gto.M(atom=spec["atom"], basis=spec["basis"], charge=spec["charge"], spin=spec["spin"], verbose=0)
+        mol = gto.M(
+            atom=spec["atom"],
+            basis=spec["basis"],
+            charge=spec["charge"],
+            spin=spec["spin"],
+            verbose=0,
+        )
         mf = scf.RHF(mol).run()
         e_rhf = float(mf.e_tot)
         print(f"  PySCF RHF Energy: {e_rhf:+.9f} Ha")
@@ -85,10 +92,15 @@ def run_pipeline() -> None:
         sz = model.metadata["sz"]
         occupied = occupied_spin_orbitals(model)
         rho0 = ExactMVBackend().state(model.reference, ())
-        candidates = determinant_excitations(model.n, occupied, max_rank=2)[:25]
+        all_candidates = determinant_excitations(model.n, occupied, max_rank=2)
+        candidates = (
+            all_candidates[:max_candidates]
+            if max_candidates and max_candidates > 0
+            else all_candidates
+        )
 
         print(f"  Qubits: {model.n}, Electrons: {n_electrons}, Sz: {sz:+g}")
-        print(f"  Candidate SD Excitations: {len(candidates)}")
+        print(f"  Candidate SD Excitations: {len(candidates)} (total available: {len(all_candidates)})")
 
         # 4. Sector-Exact FCI Reference via SectorStatevectorBackend
         exact_energies, _ = SectorStatevectorBackend(
@@ -97,12 +109,12 @@ def run_pipeline() -> None:
         e_exact = float(exact_energies[0])
         print(f"  Exact Sector FCI E0: {e_exact:+.9f} Ha")
 
-        # 5. Adaptive A-CASE Subspace Eigensolver (Top 5 additions)
+        # 5. Adaptive A-CASE Subspace Eigensolver
         adaptive = run_acase(
             rho0,
             model.hamiltonian,
             candidates,
-            max_size=min(5, len(candidates)),
+            max_size=min(max_subspace, len(candidates)),
             leakage_tol=1e-10,
             exact_ground_energy=e_exact,
         )
@@ -181,5 +193,25 @@ def run_pipeline() -> None:
     print("==================================================================")
 
 
+def main() -> None:
+    parser = argparse.ArgumentParser(description="Run molecular benchmark pipeline")
+    parser.add_argument(
+        "--max-candidates",
+        type=int,
+        default=25,
+        help="Max candidate excitations to evaluate (0 for full candidate pool)",
+    )
+    parser.add_argument(
+        "--max-subspace",
+        type=int,
+        default=15,
+        help="Max adaptive subspace basis size M",
+    )
+    args = parser.parse_args()
+    run_pipeline(
+        max_candidates=args.max_candidates, max_subspace=args.max_subspace
+    )
+
+
 if __name__ == "__main__":
-    run_pipeline()
+    main()

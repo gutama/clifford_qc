@@ -62,7 +62,7 @@ This plan establishes an end-to-end electronic structure and operator-subspace s
    - Dump restricted FCIDUMP files into `molecular_results/`.
 
 3. **`clifford_qc` A-CASE Execution:**
-   - Ingest each FCIDUMP with `load_fcidump_model`.
+   - Ingest each FCIDUMP with `fcidump_model`.
    - Perform exact sector diagonalization to establish benchmark ground energy $E_0^{\text{exact}}$.
    - Execute adaptive A-CASE (`run_acase`) using determinant excitation generators (SD pool).
    - Evaluate matrix element bank (`MatrixElementBank`), projected observables ($\langle d \rangle$, $\langle S_0 \cdot S_1 \rangle$, $\langle S^2 \rangle$), and Lehmann response spectrum.

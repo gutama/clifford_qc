@@ -9,7 +9,7 @@ This report documents the end-to-end simulation of four benchmark molecules (**L
 The pipeline executed the complete electronic structure chain:
 $$\text{PySCF (RHF / STO-3G)} \longrightarrow \text{FCIDUMP Records} \longrightarrow \text{Jordan-Wigner Mapping} \longrightarrow \text{Sector FCI Reference \& A-CASE Subspace}$$
 
-All results, FCIDUMP files, raw outputs, and JSON records are archived in [`molecular_results/`](file:///home/ginanjar/repositories/clifford_qc/molecular_results).
+All results, FCIDUMP files, raw outputs, and JSON records are archived in [`molecular_results/`](molecular_results/).
 
 ### Summary Table of Results
 
@@ -94,9 +94,9 @@ All results, FCIDUMP files, raw outputs, and JSON records are archived in [`mole
 
 ## 5. Artifact Directory Inventory
 
-All generated artifacts are stored in [`molecular_results/`](file:///home/ginanjar/repositories/clifford_qc/molecular_results):
-- [`lih.fcidump`](file:///home/ginanjar/repositories/clifford_qc/molecular_results/lih.fcidump), [`lih_results.json`](file:///home/ginanjar/repositories/clifford_qc/molecular_results/lih_results.json)
-- [`beh2.fcidump`](file:///home/ginanjar/repositories/clifford_qc/molecular_results/beh2.fcidump), [`beh2_results.json`](file:///home/ginanjar/repositories/clifford_qc/molecular_results/beh2_results.json)
-- [`hf.fcidump`](file:///home/ginanjar/repositories/clifford_qc/molecular_results/hf.fcidump), [`hf_results.json`](file:///home/ginanjar/repositories/clifford_qc/molecular_results/hf_results.json)
-- [`h2o.fcidump`](file:///home/ginanjar/repositories/clifford_qc/molecular_results/h2o.fcidump), [`h2o_results.json`](file:///home/ginanjar/repositories/clifford_qc/molecular_results/h2o_results.json)
-- Master Summary: [`results_summary.json`](file:///home/ginanjar/repositories/clifford_qc/molecular_results/results_summary.json)
+All generated artifacts are stored in [`molecular_results/`](molecular_results/):
+- [`lih.fcidump`](molecular_results/lih.fcidump), [`lih_results.json`](molecular_results/lih_results.json)
+- [`beh2.fcidump`](molecular_results/beh2.fcidump), [`beh2_results.json`](molecular_results/beh2_results.json)
+- [`hf.fcidump`](molecular_results/hf.fcidump), [`hf_results.json`](molecular_results/hf_results.json)
+- [`h2o.fcidump`](molecular_results/h2o.fcidump), [`h2o_results.json`](molecular_results/h2o_results.json)
+- Master Summary: [`results_summary.json`](molecular_results/results_summary.json)
