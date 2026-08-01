@@ -452,6 +452,11 @@ clifford_qc/
   `backends/sector_statevector.py`, and the validation ladder
   (`benchmarks/run_acase_ladder.py`, committed as
   `benchmarks/reference_results/acase_ladder.jsonl`).
+- `LITERATURE_ROADMAP.md` is the Phase 8-14 roadmap derived from the 2023-2026
+  QSCI/SQD, adaptive-selection, measurement, and embedding literature. It
+  records the missing QSCI/SQD arm as the load-bearing gap, the hybrid
+  (sampled determinants dressed by operator-response generators) as the
+  contribution it unblocks, and the comparisons this project expects to lose.
 - `paper/` holds the Paper A manuscript (REVTeX) with figures regenerated
   from the committed benchmark data.
 - License: Apache-2.0.
