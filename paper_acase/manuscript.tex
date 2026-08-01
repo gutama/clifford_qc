@@ -1,7 +1,6 @@
 \documentclass[aps,pra,reprint,superscriptaddress,nofootinbib,floatfix]{revtex4-2}
 
 \usepackage{amsmath,amssymb,bm}
-\usepackage{array}
 \usepackage{booktabs}
 \usepackage{graphicx}
 \usepackage{microtype}
@@ -22,7 +21,6 @@
 \newcommand{\supp}{\operatorname{supp}}
 \newcommand{\rank}{\operatorname{rank}}
 \newcommand{\mHa}{\mathrm{mHa}}
-\newcolumntype{T}{>{\raggedright\arraybackslash}p{0.17\textwidth}}
 % REVTeX's text bullet can fall back to a bitmap Type 3 font in minimal TeX
 % installations.  Use the embedded Type 1 Computer Modern math glyph instead.
 \renewcommand{\labelitemi}{\(\bullet\)}
@@ -186,7 +184,7 @@ directions; ``selection'' identifies the adaptive acquisition rule.}
 \label{tab:relation}
 \begin{ruledtabular}
 \footnotesize
-\begin{tabular}{TTTTT}
+\begin{tabular}{@{}p{0.17\textwidth}p{0.17\textwidth}p{0.17\textwidth}p{0.17\textwidth}p{0.17\textwidth}@{}}
 Method & Basis object & Selection & Prepared objects & Primary distinction here \\
 \colrule
 IQAE \cite{bharti2021iqae} & Hamiltonian/Pauli moments & Iterative moment hierarchy & One reference & No response or word-cost selector \\
