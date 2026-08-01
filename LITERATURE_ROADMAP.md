@@ -34,6 +34,7 @@ ordering.
 | 12 | 2409.11210 | MORE-ADAPT-VQE | A capability we already ship and have never benchmarked. |
 | 13 | 2311.01393 | FLDC barren plateaus | Positioning only. Build nothing. |
 | 14 | 2607.20585 | ML-compact QSCI subspaces | Sets the compactness bar QSCI arms are now judged against. |
+| 15 | 2607.16869 | Correlation rank, Clifford-accessible measurement | **Prices Phase 12, and hands us a testable invariant.** |
 
 ### 0.1 Citation hygiene, checked rather than assumed
 
@@ -54,6 +55,13 @@ Three of the fourteen are 2026 preprints, and they do not all survive contact:
   against DMET-SQD failing at 20 % — is a *compactness* number of exactly the
   kind §6 of the A-CASE plan exists to interrogate. Reproduce the comparison
   structure, not the number.
+
+- **2607.16869** (18 July 2026, unrefereed, too new to have citations) is in the
+  same age class, but it differs from the other two in a way that matters: its
+  central structural claim is a *theorem we can test ourselves* on Hamiltonians
+  this package builds (§12A). Verify the parity ceiling before citing the shot
+  numbers, and cite the two independently — a reproduced invariant and an
+  unreproduced benchmark are not the same kind of evidence.
 
 Paper 3 is published (*npj Quantum Information* **11**, 86 (2025)) and is the
 strongest authority in the ADAPT cluster.
@@ -326,26 +334,87 @@ matched `M = 9` reaches within one order of magnitude of fixed Krylov's energy
 `H^k` family, in which case the conditioning is intrinsic to spanning that
 space and the trade is real.
 
-### Phase 12 — general-commuting measurement groups (paper 9)
+### Phase 12 — Clifford-accessible measurement (papers 9, 15)
 
 `measurement/grouping.py` currently partitions into qubit-wise commuting groups
-only. Fully-commuting groups are larger, and diagonalizing one requires a
-Clifford circuit — which this package can build natively from `bridges/stim_bridge`
-tableau conjugation and `backends/stabilizer`.
+only. Fully-commuting (FC) groups are larger, and diagonalizing one requires a
+Clifford circuit — which this package can build natively from
+`bridges/stim_bridge` tableau conjugation and `backends/stabilizer`.
 
-The target is concrete and already measured: `h2o_cas8e6o` at `M = 9` carries
-`W = 143 117` words, and the H₄ element universe partitions into 1 689 QWC
-groups. Certified growth costs 216–461 M shots at eight qubits because every
-group is an independent readout. Fewer, larger groups reduce that linearly.
+Paper 15 arrived after this roadmap was first written and changes three things
+about the phase: it prices it, it corrects the metric I had chosen, and it
+supplies an invariant we can check without trusting any of its numbers.
 
-*Go/no-go:* group count on the committed H₄ element universe drops by ≥ 3×
-against the QWC partition, reconstruction of `(S, H)` from the general-commuting
-cache reproduces `exact_matrices()` to the same `5e-13` acceptance criterion
-already used for the QWC route, and — the trap — the variance accounting stays
-correct. Phase 4 found that attributing a word to every *capable* group inflated
-every variance by that multiplicity, caught only by comparing predicted σ against
-a Monte-Carlo spread. Fully-commuting groups make more words multiply-capable,
-so that test is the gate, not a formality.
+**12A — the parity ceiling, as a standing invariant (do this first).**
+Paper 15 proves `r_X ≤ 2(N−1)` for spin-conserving Jordan–Wigner molecular
+Hamiltonians, for *any* Pauli subset, tight even within commuting subsets,
+where `r_X` is the GF(2) rank of the words' X-masks. That is a theorem about
+exactly this package's setting: JW throughout, sector-restricted,
+spin-conserving.
+
+It is also nearly built. `sparse.py::word_masks` already returns `x_mask` as a
+named, tested function, and `backends/sector_statevector.py::SectorOperator`
+already **groups the Hamiltonian's words by X-mask** and reports
+`self.groups = len(groups)` as a live metric — the backend does it to resolve
+the permutation `b → b⊕x` once per group and make the matvec cheap. The paper's
+routing diagnostic and the backend's compilation strategy are the same object
+seen from two sides: one bounds how many measurement contexts you need, the
+other exploits the same structure to avoid a `2^n` lookup table. Computing
+`r_X` is a GF(2) rank over masks we already extract.
+
+So the ceiling becomes a *checkable structural invariant* on every fermionic
+model the package builds, in the register §3 of the A-CASE plan prefers —
+enforced structurally, not to a numerical tolerance. If any spin-conserving JW
+Hamiltonian we construct violates `r_X ≤ 2(N−1)`, either the theorem is wrong
+or our construction is, and both are worth knowing. Run it across the FCIDUMP
+rungs, the lattice models, and the effective-Hamiltonian ingestion path.
+
+This is also the honest way to cite a two-week-old preprint: reproduce the part
+that is a theorem, and treat the benchmark numbers separately.
+
+**12B — QWC → QWC+FC, priced.**
+My original go/no-go asked for a ≥ 3× drop in *group count*. That is the wrong
+metric and paper 15 is careful about precisely this: it reports a **31–70 %
+reduction in certified leading shot cost** on four 29–35 qubit f-element
+Hamiltonians, and labels it "a QWC-versus-QWC+FC result rather than a
+Gaussian-versus-Clifford pricing" — i.e. the gain is attributed to the setting
+enlargement, not smuggled in from a different baseline. Group count and shot
+cost are not the same quantity, because merging words into larger groups
+changes the variance allocation across them as well as the number of readouts.
+
+Restate the gate in the currency that matters: **certified leading shot cost,
+QWC against QWC+FC, same allocator, same δ, same word universe.** The
+comparable target here is the committed H₄ element universe (15 846 words,
+1 689 QWC groups) and the `h2o_cas8e6o` universe (`W = 143 117` at `M = 9`).
+Our ladder tops out at 12 qubits against their 29–35, so a 31–70 % band is a
+reference point and not a prediction — say which it is when reporting.
+
+*Go/no-go:* certified shot cost falls materially at fixed δ; reconstruction of
+`(S, H)` from the FC cache reproduces `exact_matrices()` to the same `5e-13`
+criterion already used for the QWC route; and — the trap — variance accounting
+stays correct. Phase 4 found that attributing a word to every *capable* group
+inflated every variance by that multiplicity, caught only by comparing
+predicted σ against a Monte-Carlo spread. FC groups make more words
+multiply-capable, so that test is the gate, not a formality.
+
+**12C — what the separation theorem does and does not say.**
+Paper 15's Bell-diagonal Heisenberg-type witness has correlation rank three: it
+needs at least three orbital-rotation contexts, while one explicit physical
+Clifford circuit measures its commuting Pauli representatives. Orbital
+rotations are therefore *provably* insufficient, and Clifford contexts strictly
+beat them. That is an argument for this package's identity rather than a
+feature request — a `Cl(2n,ℂ)`-native engine with a Stim bridge and a
+stabilizer backend should own Clifford-accessible measurement.
+
+Two precision points, because both are easy to get wrong in a positioning
+paragraph. First, the paper is explicit that **X-rank is a routing diagnostic
+and the strict separation is carried by the correlation-rank theorem** — do not
+present `r_X` as the source of the separation. Second, the correlation-rank
+result is proved in the fixed `(1,1)` sector of two spatial orbitals per spin,
+with the best `K`-context approximation exactly the Eckart–Young singular-value
+tail; it is a sharp small-system statement, not a general-molecule bound, and
+citing it as the latter would be the same overreach §6 of the A-CASE plan keeps
+catching in resource claims.
 
 ### Phase 13 — pool and mapping breadth (papers 3, 11)
 
@@ -429,7 +498,23 @@ Independent of any code, four statements in the drafts need to change.
    explicit wrong-selection probability and an ambiguity outcome — which is
    what the code actually implements and what `RESEARCH_PLAN.md` §4 already
    describes.
-4. **Paper 13 is a positioning asset, not a task.** FLDC establishes absence of
+4. **The A-CASE manuscript's ancilla-free claim is correct as written and needs
+   a citation, not a correction.** `paper_acase/manuscript.tex` already says
+   that reconstructing every entry from expectations on the same `ρ` — with
+   "neither an ancilla-based Hadamard test nor a separately prepared
+   `A_j|ψ⟩`" — "does not remove the cost: it moves the relevant cost boundary
+   to the number and grouping of distinct Pauli words." Paper 15 is the work
+   that makes that boundary quantitative, and belongs on that sentence.
+
+   It also pins a claim we should never drift into making. Paper 15 notes that
+   controlled-Pauli insertions in Hadamard tests **are Clifford**, so the
+   ancilla-based route is not paying a T-count penalty; its own zero-`T`
+   statements "concern measurement circuitry only, while shot counts and state
+   preparation retain their full costs." A-CASE's ancilla-free property must
+   therefore be argued in ancilla, connectivity and depth terms. The draft has
+   never claimed a T-count advantage; this is to keep a later one from
+   acquiring it.
+5. **Paper 13 is a positioning asset, not a task.** FLDC establishes absence of
    barren plateaus for finite-local-depth circuits on local Hamiltonians.
    A-CASE has no trainability problem to begin with: the subspace solve is a
    generalized eigenproblem, not a circuit optimization, so barren plateaus are
@@ -459,11 +544,18 @@ Continuing the numbering from `ACASE_RESEARCH_PLAN.md` §7.
 - **Q8 (unitary Krylov).** Does a real-time family recover fixed Krylov's
   accuracy at a condition number a finite-shot run could survive?
   *Falsifier:* `κ_S` tracks the `H^k` family within an order of magnitude.
-- **Q9 (grouping).** Does Clifford-diagonalized general-commuting grouping cut
-  the certified-growth shot cost by the factor its group-count reduction
-  predicts, with variance accounting intact?
-  *Falsifier:* group count falls but measured variance inflates, i.e. the
-  multiply-capable-word bug of Phase 4 in a harder form.
+- **Q9 (grouping).** Does Clifford-diagonalized fully-commuting grouping cut the
+  **certified leading shot cost** — not the group count — at fixed δ, allocator
+  and word universe, with variance accounting intact?
+  *Falsifier:* group count falls while measured variance inflates, i.e. the
+  multiply-capable-word bug of Phase 4 in a harder form. *Reference point, not
+  a prediction:* 31–70 % (paper 15, at 29–35 qubits against our 12).
+- **Q10 (parity ceiling).** Does `r_X ≤ 2(N−1)` hold across every
+  spin-conserving Jordan–Wigner Hamiltonian this package constructs — FCIDUMP
+  active spaces, lattice models, and the effective-Hamiltonian ingestion path?
+  *Falsifier:* any violation, which convicts either the theorem or our
+  construction. This is the one question here that costs almost nothing to
+  answer and is worth answering first.
 
 ---
 
@@ -471,7 +563,8 @@ Continuing the numbering from `ACASE_RESEARCH_PLAN.md` §7.
 
 No claim to: originating QSCI, SQD, configuration recovery, overlap-based
 adaptive selection, folded-spectrum methods, real-time quantum Krylov,
-general-commuting measurement grouping, coupled exchange operators, or DMET.
+fully-commuting or Clifford-accessible measurement grouping, the correlation-rank
+and parity-ceiling results of paper 15, coupled exchange operators, or DMET.
 Every one of those is prior art and is cited as such. The contributions on
 offer are narrower and are stated as such above: the hybrid of a sampled
 determinant span with operator-response dressing (§9), an overlap criterion
