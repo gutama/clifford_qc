@@ -23,6 +23,9 @@
 \newcommand{\rank}{\operatorname{rank}}
 \newcommand{\mHa}{\mathrm{mHa}}
 \newcolumntype{T}{>{\raggedright\arraybackslash}p{0.17\textwidth}}
+% REVTeX's text bullet can fall back to a bitmap Type 3 font in minimal TeX
+% installations.  Use the embedded Type 1 Computer Modern math glyph instead.
+\renewcommand{\labelitemi}{\(\bullet\)}
 
 \begin{document}
 
@@ -36,7 +39,7 @@
 \email{dipojono@itb.ac.id}
 \affiliation{Department of Engineering Physics, Institut Teknologi Bandung, Bandung, Indonesia}
 
-\date{\today}
+\date{August 1, 2026}
 
 \begin{abstract}
 Electronic-structure and embedding calculations naturally terminate in an
