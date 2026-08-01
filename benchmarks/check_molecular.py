@@ -1,0 +1,232 @@
+"""Verify the molecular records are internally consistent and honestly labelled.
+
+``run_molecular_pipeline.py`` writes one JSON per molecule plus a master
+summary, and ``molecular_simulation_report.{md,tex}`` is derived from them. A
+hand-edit to that record reached a submission-adjacent report and none of the
+existing gates saw it: ``check_summaries.py`` covers ``benchmarks/reference_results``
+and ``check_docs.py`` covers ``REPRODUCING.md``, so ``molecular_results/`` had
+no checker at all.
+
+The specific failure is worth naming, because every check below is derived from
+it. Three fields were updated in place -- ``e_acase_adaptive``,
+``error_adaptive_mha`` and ``subspace_size_m`` -- and their consistency
+partners were not. The result claimed effective rank 11 inside a
+6-dimensional subspace, an H2O energy that implied 1.27 mHa beside a reported
+1.45 mHa, and a wavefunction whose leading amplitude could not have lowered the
+reference energy by anything like the amount claimed. Each is arithmetic, not
+physics, and each is catchable without rerunning anything.
+
+Checks, per molecule:
+
+  1. ``effective_rank <= subspace_size_m`` -- an M-dimensional subspace cannot
+     have effective rank above M;
+  2. ``error_*_mha`` agrees with ``1000 * (E - e_exact_fci)`` for every arm;
+  3. every accuracy flag agrees with the error it describes;
+  4. any run reporting chemical accuracy says which arm reached it and whether
+     an oracle stop was used to get there;
+  5. a ``sd_spans_full_sector`` row is flagged, so "exact to machine precision"
+     is never read as accuracy when it is arithmetic;
+  6. the Ritz vector is normalized and its leading amplitude is consistent with
+     the correlation energy claimed (the Cauchy-Schwarz check below);
+  7. ``hamiltonian_pauli_terms`` and ``element_word_universe`` are both present
+     and are not confused for one another -- the first is the distinct-word
+     count of H, the second the union over element operators, and reporting one
+     under the other's name inflated the resource column by ~100x;
+  8. the per-molecule JSON matches the master summary entry.
+
+    python benchmarks/check_molecular.py
+
+Exits nonzero on any inconsistency, naming the field and the arithmetic.
+"""
+
+from __future__ import annotations
+
+import json
+import math
+import sys
+from pathlib import Path
+
+ROOT = Path(__file__).resolve().parent.parent
+RESULTS = ROOT / "molecular_results"
+SUMMARY = RESULTS / "results_summary.json"
+
+CHEMICAL_ACCURACY_MHA = 1.5936
+
+# Energy/error agreement tolerance. The fields are written from the same float
+# in one process, so anything above rounding is a transcription, not drift.
+ERROR_TOL_MHA = 1e-3
+
+
+def _fail(errors: list[str], molecule: str, message: str) -> None:
+    errors.append(f"{molecule}: {message}")
+
+
+def check_record(key: str, record: dict, errors: list[str]) -> None:
+    m = record.get("subspace_size_m")
+    rank = record.get("effective_rank")
+    if m is None or rank is None:
+        _fail(errors, key, "missing subspace_size_m or effective_rank")
+    elif rank > m:
+        _fail(errors, key,
+              f"effective_rank {rank} exceeds basis size M={m}; an "
+              f"M-dimensional subspace cannot have rank above M, so at least "
+              f"one of the two fields is stale")
+
+    exact = record.get("e_exact_fci")
+    if exact is None:
+        _fail(errors, key, "missing e_exact_fci")
+        return
+
+    # 2 + 3: every arm's error and accuracy flag must follow from its energy.
+    arms = [
+        ("adaptive", "e_acase_adaptive", "error_adaptive_mha",
+         "adaptive_chemical_accuracy"),
+        ("sd", "e_sd_complete", "error_sd_mha", "sd_chemical_accuracy"),
+        ("cisd", "e_cisd", "error_cisd_mha", None),
+        ("ccsd", "e_ccsd", "error_ccsd_mha", None),
+    ]
+    for arm, e_field, err_field, flag_field in arms:
+        energy = record.get(e_field)
+        reported = record.get(err_field)
+        if energy is None or reported is None:
+            _fail(errors, key, f"missing {e_field} or {err_field}")
+            continue
+        computed = (energy - exact) * 1000.0
+        if abs(computed - reported) > ERROR_TOL_MHA:
+            _fail(errors, key,
+                  f"{err_field} = {reported:.4f} mHa but {e_field} implies "
+                  f"{computed:.4f} mHa (difference {computed - reported:+.4f}); "
+                  f"the energy and its error come from different runs")
+        if flag_field is not None:
+            flag = record.get(flag_field)
+            expected = abs(computed) <= CHEMICAL_ACCURACY_MHA
+            if flag is not None and bool(flag) != expected:
+                _fail(errors, key,
+                      f"{flag_field} = {flag} but |error| = {abs(computed):.4f} "
+                      f"mHa against a {CHEMICAL_ACCURACY_MHA} mHa threshold")
+
+    # 4: a chemical-accuracy claim has to say how it was reached.
+    if record.get("adaptive_chemical_accuracy"):
+        if "adaptive_oracle_stop_used" not in record:
+            _fail(errors, key,
+                  "claims adaptive chemical accuracy without recording "
+                  "adaptive_oracle_stop_used; a stop fed the exact energy "
+                  "answers a different question than an unaided run")
+        if not record.get("adaptive_stop_reason"):
+            _fail(errors, key,
+                  "claims adaptive chemical accuracy without an "
+                  "adaptive_stop_reason")
+
+    # 5: exactness that is arithmetic must be labelled as such.
+    sd_size = record.get("complete_sd_basis_size")
+    sector = record.get("sector_dimension")
+    if sd_size is not None and sector is not None:
+        spans = sd_size >= sector
+        if bool(record.get("sd_spans_full_sector")) != spans:
+            _fail(errors, key,
+                  f"sd_spans_full_sector = {record.get('sd_spans_full_sector')} "
+                  f"but SD basis {sd_size} against sector dimension {sector} "
+                  f"says {spans}")
+
+    # 6: the wavefunction has to be able to produce the energy.
+    #
+    # For a normalized Ritz vector the correlation weight outside the reference
+    # is 1 - |c_0|^2. A state that is the reference to within 1e-6 in weight
+    # cannot carry tens of mHa of correlation energy, and that mismatch is
+    # exactly what a stale observables block looks like. This is a coarse
+    # necessary condition, not the full Cauchy-Schwarz bound: it needs no
+    # Hamiltonian, so it runs from the record alone.
+    coeffs = record.get("ground_state_coefficients") or {}
+    if coeffs:
+        amps = [complex(v["real"], v["imag"]) for v in coeffs.values()]
+        norm = math.sqrt(sum(abs(a) ** 2 for a in amps))
+        leading = max(abs(a) for a in amps)
+        if norm > 0:
+            outside = max(0.0, 1.0 - (leading / norm) ** 2)
+            e_rhf = record.get("e_rhf")
+            e_ad = record.get("e_acase_adaptive")
+            if e_rhf is not None and e_ad is not None:
+                recovered_mha = abs(e_ad - e_rhf) * 1000.0
+                # 1 mHa of correlation needs weight somewhere off the
+                # reference; the constant is deliberately loose so only a
+                # gross inconsistency trips it.
+                if recovered_mha > 1.0 and outside < 1e-4:
+                    _fail(errors, key,
+                          f"Ritz vector is the reference to weight "
+                          f"{outside:.2e} outside it, but the adaptive energy "
+                          f"sits {recovered_mha:.2f} mHa below RHF; the "
+                          f"wavefunction cannot have produced that energy")
+
+    # 6b: a correlated state must show double occupancy below the closed-shell
+    # value. Equality to many digits is the signature of an uncorrelated state.
+    d = record.get("double_occupancy")
+    d_hf = record.get("double_occupancy_uncorrelated")
+    if d is not None and d_hf is not None:
+        e_rhf = record.get("e_rhf")
+        e_ad = record.get("e_acase_adaptive")
+        if e_rhf is not None and e_ad is not None:
+            if abs(e_ad - e_rhf) * 1000.0 > 1.0 and abs(d - d_hf) < 1e-7:
+                _fail(errors, key,
+                      f"double_occupancy {d:.9f} equals the uncorrelated value "
+                      f"{d_hf:.9f} to 1e-7 while the energy claims correlation; "
+                      f"the observables block is from a different run")
+
+    # 7: the two word counts are distinct quantities and both must be present.
+    for field in ("hamiltonian_pauli_terms", "element_word_universe"):
+        if field not in record:
+            _fail(errors, key, f"missing {field}")
+    ham = record.get("hamiltonian_pauli_terms")
+    universe = record.get("element_word_universe")
+    if ham is not None and universe is not None and ham > universe:
+        _fail(errors, key,
+              f"hamiltonian_pauli_terms {ham} exceeds element_word_universe "
+              f"{universe}; the element universe is a union over A_i'HA_j and "
+              f"contains supp(H), so this says the two are swapped")
+
+
+def main() -> int:
+    if not SUMMARY.exists():
+        print(f"missing {SUMMARY.relative_to(ROOT)}; run "
+              f"`python run_molecular_pipeline.py`", file=sys.stderr)
+        return 1
+
+    summary = json.loads(SUMMARY.read_text())
+    errors: list[str] = []
+
+    for key, record in summary.items():
+        check_record(key, record, errors)
+
+        # 8: the per-molecule file and the summary entry are the same record.
+        per_file = RESULTS / f"{key}_results.json"
+        if not per_file.exists():
+            _fail(errors, key, f"missing {per_file.name}")
+            continue
+        per = json.loads(per_file.read_text())
+        differing = sorted(
+            k for k in set(per) | set(record)
+            # timings are wall-clock and legitimately differ between the two
+            # writes only if the record was regenerated piecemeal, which is
+            # itself the drift being checked -- so they are compared too.
+            if per.get(k) != record.get(k)
+        )
+        if differing:
+            _fail(errors, key,
+                  f"{per_file.name} disagrees with the summary entry on: "
+                  f"{', '.join(differing)}")
+
+    if errors:
+        print("molecular record inconsistencies:\n", file=sys.stderr)
+        for error in errors:
+            print(f"  - {error}", file=sys.stderr)
+        print(f"\n{len(errors)} problem(s). Regenerate with "
+              f"`python run_molecular_pipeline.py` rather than editing the "
+              f"JSON: the fields are consistency partners and updating one by "
+              f"hand is what these checks exist to catch.", file=sys.stderr)
+        return 1
+
+    print(f"molecular records consistent ({len(summary)} molecules)")
+    return 0
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())
