@@ -56,6 +56,7 @@ pip install -e .[stim]
 pip install -e .[openfermion]
 pip install -e .[pytket]
 pip install -e .[pennylane]
+pip install -e .[pyzx]
 pip install -e .[test,bridges]
 ```
 
@@ -115,7 +116,7 @@ assert np.allclose(to_matrix(A * A), to_matrix(A) @ to_matrix(A))
   (`backends/sector_statevector.py`) that stores `C(n,k)` amplitudes and never
   builds a matrix at all
 - a Pauli-rotor intermediate representation with exact gate-by-gate execution, versioned JSON serialization, gradients, and QASM3 export
-- optional bridges for Stim, OpenFermion, pytket, and PennyLane
+- optional bridges for Stim, OpenFermion, pytket, PennyLane, and PyZX
 - materials clusters (`models/lattice.py`): Hubbard, extended Hubbard,
   Kanamori, Anderson impurity, Kitaev honeycomb — built from the package's own
   Jordan-Wigner operators — with observables (`models/observables.py`) for
@@ -211,6 +212,46 @@ replicas are reported, and broadened-spectrum intervals are pointwise rather
 than simultaneous. This is finite-shot uncertainty, not a finite-sample
 coverage certificate.
 
+## System Architecture & Methodological Framework
+
+```text
+               +-------------------------------------------------------+
+               | DFT / Wannier Downfolding / Chemistry FCIDUMP Records |
+               +-------------------------------------------------------+
+                                           |
+                                           v
+               +-------------------------------------------------------+
+               |  clifford_qc.models (Effective, FCIDUMP, Lattice)     |
+               +-------------------------------------------------------+
+                                           |
+                   +-----------------------+-----------------------+
+                   |                                               |
+                   v                                               v
++------------------------------------+           +------------------------------------+
+|               A-CASE               |           |             ADAPT-VQE              |
+| Rayleigh-Ritz in operator-response |           | Confidence-certified, measurement- |
+| subspace (No state preparation)    |           | efficient selection (Odd-Y pool)   |
++------------------------------------+           +------------------------------------+
+                   |                                               |
+                   +-----------------------+-----------------------+
+                                           |
+                                           v
+               +-------------------------------------------------------+
+               | Sector Statevector / Scipy-Sparse Oracles & Validation |
+               +-------------------------------------------------------+
+```
+
+`clifford_qc` is structured around five core engineering and theoretical pillars:
+
+1. **Unified Multivector Representation (`MV`):** States ($\rho$), unitary gates ($U$), observables ($O$), Kraus channels, Jordan-Wigner Clifford generators ($\gamma_j$), and CAR creation/annihilation operators ($c_j, c_j^\dagger$) all exist as sparse multivectors in $Cl(2n, \mathbb{C}) \cong M(2^n, \mathbb{C})$. Qubit Pauli letters are packed into 2 bits per qubit ($0=I, 1=X, 2=Y, 3=Z$), enabling fast binary-symplectic multiplication via bitwise `XOR`, `AND`, and `popcount` (mod 4).
+2. **Three Exact Scalar Pairings:**
+   - `scalar_product`: Bilinear inner product with reversion sign $\langle A \widetilde{B}\rangle_0$.
+   - `hs_product`: Hilbert-Schmidt sesquilinear inner product $\frac{1}{2^n}\operatorname{Tr}(A^\dagger B)$.
+   - `trace_pairing`: Bilinear trace pairing $\frac{1}{2^n}\operatorname{Tr}(A B)$ without conjugation or reversion (used for non-Hermitian operator subspace matrices like $A^\dagger H A$).
+3. **A-CASE Subspace Eigensolver:** Operates via Rayleigh-Ritz projection in an adaptively grown operator-response subspace basis $\{A_i |\psi_0\rangle\}$. Matrix elements $H_{ij} = \langle \psi_0| A_i^\dagger H A_j |\psi_0\rangle$ and overlaps $S_{ij} = \langle \psi_0| A_i^\dagger A_j |\psi_0\rangle$ are calculated as expectation values on a single reference state $|\psi_0\rangle$ without ever preparing basis states $A_i|\psi_0\rangle$ on hardware.
+4. **Statistically Certified ADAPT-VQE:** Evaluates candidate selection gradients $G_j = \operatorname{Tr}\left[\rho \cdot \left(-\frac{i}{2}\right)[H, P_j]\right]$ using odd-Y algebraic pool reduction for antiunitary-real Hamiltonians, shared QWC measurement caches, and Šidák/Bonferroni confidence bounds.
+5. **Sector-Restricted Statevector & Matrix-Free Tier:** `backends/sector_statevector.py` tracks statevector amplitudes directly in $C(n,k)$ particle/spin symmetry sectors without building dense $2^n \times 2^n$ matrices or full statevectors.
+
 ## Core Conventions
 
 - Pauli labels are strings over `I`, `X`, `Y`, `Z`.
@@ -298,6 +339,8 @@ Bridge modules live under `clifford_qc.bridges`:
   plus supported round-trips back to the IR.
 - `pennylane_bridge`: `Program -> PennyLane` operations and observables for
   expectation and gradient comparison.
+- `pyzx_bridge`: `Program <-> ZX-calculus` circuits for phase-gadget optimization,
+  diagram simplification, and global-phase invariant verification.
 
 The QASM3 exporter is part of the core package and needs no extra dependency.
 
@@ -311,6 +354,7 @@ PYTHONPATH=. python examples/grover_2q.py
 PYTHONPATH=. python examples/fermion_car.py
 PYTHONPATH=. python examples/noisy_channel.py
 PYTHONPATH=. python examples/tfim_exact.py
+PYTHONPATH=. python examples/acase_effective_model.py
 PYTHONPATH=. python examples/acase_premise_check.py
 PYTHONPATH=. python examples/acase_adaptive.py
 PYTHONPATH=. python examples/acase_finite_shot.py
@@ -373,7 +417,7 @@ clifford_qc/
   ir.py            # Pauli-rotor IR, serialization, gradients
   qasm3.py         # OpenQASM 3 export pass for IR programs
   verify.py        # dependency-light smoke suite
-  bridges/         # optional Stim/OpenFermion/pytket/PennyLane bridges
+  bridges/         # optional Stim/OpenFermion/pytket/PennyLane/PyZX bridges
   sparse.py        # sparse Pauli reference tier: eigsh, (N,Sz) sectors
   models/          # TFIM, XXZ, random-Ising; Hubbard/Kanamori/Anderson/
                    # Kitaev; versioned effective-Hamiltonian ingestion;
