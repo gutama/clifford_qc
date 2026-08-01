@@ -1,0 +1,46 @@
+{
+  "key": "beh2",
+  "name": "Beryllium Hydride (BeH2)",
+  "qubits": 14,
+  "n_electrons": 6,
+  "sz": 0.0,
+  "e_rhf": -15.56033493598719,
+  "e_exact_fci": -15.595182356661716,
+  "e_acase": -15.560359950586111,
+  "error_ha": 0.03482240607560527,
+  "error_mha": 34.82240607560527,
+  "subspace_size_m": 4,
+  "complete_basis_m": 4,
+  "effective_rank": 4,
+  "condition_number": 1.0,
+  "word_universe": 21930,
+  "double_occupancy": 0.4285714285621334,
+  "total_spin_squared": 3.3244449609192813e-38,
+  "static_susceptibility_chi0": 7.218264509492202e-12,
+  "elapsed_seconds": 23.030991315841675,
+  "ground_state_coefficients": {
+    "I": {
+      "real": 0.9999987414928364,
+      "imag": 0.0
+    },
+    "E(6,7<-0,1)": {
+      "real": 0.0015864891046085587,
+      "imag": 0.0
+    },
+    "E(10<-0)": {
+      "real": 5.703703233113494e-06,
+      "imag": 0.0
+    },
+    "E(11<-1)": {
+      "real": 5.703703233113312e-06,
+      "imag": 0.0
+    }
+  },
+  "lehmann_response": [
+    {
+      "final_state": 1,
+      "excitation_energy_ha": 4.506932452897448,
+      "weight": 1.6266115285714144e-11
+    }
+  ]
+}
