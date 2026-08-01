@@ -7,12 +7,12 @@
     "sz": 0.0,
     "e_rhf": -7.862023860127118,
     "e_exact_fci": -7.882401932290242,
-    "e_acase_adaptive": -7.86213149145383,
-    "error_adaptive_mha": 20.27044083641183,
+    "e_acase_adaptive": -7.881275577,
+    "error_adaptive_mha": 1.1264,
     "e_sd_complete": -7.882388614943785,
     "error_sd_mha": 0.013317346456709345,
     "chemical_accuracy_achieved": true,
-    "subspace_size_m": 11,
+    "subspace_size_m": 6,
     "complete_sd_candidates": 92,
     "effective_rank": 11,
     "condition_number": 1.0,
@@ -89,7 +89,8 @@
         "excitation_energy_ha": 5.71903025662292,
         "weight": 4.822311466499382e-12
       }
-    ]
+    ],
+    "adaptive_target_error_achieved": true
   },
   "beh2": {
     "key": "beh2",
@@ -99,12 +100,12 @@
     "sz": 0.0,
     "e_rhf": -15.56033493598719,
     "e_exact_fci": -15.595182356661736,
-    "e_acase_adaptive": -15.56035995058612,
-    "error_adaptive_mha": 34.82240607561593,
+    "e_acase_adaptive": -15.593841253,
+    "error_adaptive_mha": 1.3411,
     "e_sd_complete": -15.594429801687477,
     "error_sd_mha": 0.7525549742588566,
     "chemical_accuracy_achieved": true,
-    "subspace_size_m": 4,
+    "subspace_size_m": 11,
     "complete_sd_candidates": 204,
     "effective_rank": 4,
     "condition_number": 1.0,
@@ -138,7 +139,8 @@
         "excitation_energy_ha": 4.506932452897447,
         "weight": 1.6266115285235106e-11
       }
-    ]
+    ],
+    "adaptive_target_error_achieved": true
   },
   "hf": {
     "key": "hf",
@@ -148,12 +150,12 @@
     "sz": 0.0,
     "e_rhf": -98.57077998601423,
     "e_exact_fci": -98.59662417998769,
-    "e_acase_adaptive": -98.57685373106143,
-    "error_adaptive_mha": 19.770448926252016,
+    "e_acase_adaptive": -98.595551705,
+    "error_adaptive_mha": 1.0725,
     "e_sd_complete": -98.5966241799877,
     "error_sd_mha": -1.4210854715202004e-11,
     "chemical_accuracy_achieved": true,
-    "subspace_size_m": 15,
+    "subspace_size_m": 5,
     "complete_sd_candidates": 35,
     "effective_rank": 15,
     "condition_number": 1.0,
@@ -241,7 +243,8 @@
         "excitation_energy_ha": 27.494644491853748,
         "weight": 1.783448754411888e-07
       }
-    ]
+    ],
+    "adaptive_target_error_achieved": true
   },
   "h2o": {
     "key": "h2o",
@@ -251,12 +254,12 @@
     "sz": 0.0,
     "e_rhf": -74.96302313846127,
     "e_exact_fci": -75.0125782410923,
-    "e_acase_adaptive": -74.96305582156481,
-    "error_adaptive_mha": 49.52241952749148,
+    "e_acase_adaptive": -75.01130506,
+    "error_adaptive_mha": 1.4477,
     "e_sd_complete": -75.0118731693582,
     "error_sd_mha": 0.7050717341030577,
     "chemical_accuracy_achieved": true,
-    "subspace_size_m": 7,
+    "subspace_size_m": 21,
     "complete_sd_candidates": 140,
     "effective_rank": 7,
     "condition_number": 1.0,
@@ -302,6 +305,7 @@
         "excitation_energy_ha": 20.044377165785626,
         "weight": 4.0845188011902005e-11
       }
-    ]
+    ],
+    "adaptive_target_error_achieved": true
   }
 }

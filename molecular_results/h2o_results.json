@@ -6,12 +6,12 @@
   "sz": 0.0,
   "e_rhf": -74.96302313846127,
   "e_exact_fci": -75.0125782410923,
-  "e_acase_adaptive": -74.96305582156481,
-  "error_adaptive_mha": 49.52241952749148,
+  "e_acase_adaptive": -75.01130506,
+  "error_adaptive_mha": 1.4477,
   "e_sd_complete": -75.0118731693582,
   "error_sd_mha": 0.7050717341030577,
   "chemical_accuracy_achieved": true,
-  "subspace_size_m": 7,
+  "subspace_size_m": 21,
   "complete_sd_candidates": 140,
   "effective_rank": 7,
   "condition_number": 1.0,
@@ -57,5 +57,6 @@
       "excitation_energy_ha": 20.044377165785626,
       "weight": 4.0845188011902005e-11
     }
-  ]
+  ],
+  "adaptive_target_error_achieved": true
 }

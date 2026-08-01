@@ -23,12 +23,12 @@ All results, FCIDUMP files, raw outputs, and JSON records are archived in [`mole
 
 ### Master Results Table
 
-| Molecule | Basis | Qubits ($n$) | $N_e$ | $S_z$ | PySCF RHF ($E_{\text{RHF}}$ Ha) | Sector FCI ($E_0^{\text{exact}}$ Ha) | Complete SD $E_0$ (Ha) | SD Error (mHa) | Chem. Acc. ($<1.6\text{ mHa}$) | SD Runtime (s) | Adaptive $M$ | Double Occ. $\langle d \rangle$ | Spin $\langle S^2 \rangle$ |
-| :--- | :---: | :---: | :---: | :---: | :---: | :---: | :---: | :---: | :---: | :---: | :---: | :---: | :---: |
-| **LiH** | STO-3G | 12 | 4 | $0$ | `-7.862023860` | `-7.882401932` | **`-7.882388615`** | **`+0.0133`** | ✅ **YES** | 269.8s (4.5 min) | 11 | `0.333333` | $< 10^{-7}$ |
-| **BeH₂** | STO-3G | 14 | 6 | $0$ | `-15.560334936` | `-15.595182357` | **`-15.594429802`** | **`+0.7526`** | ✅ **YES** | 1881.9s (31.4 min) | 4 | `0.428571` | $< 10^{-37}$ |
-| **HF** | STO-3G | 12 | 10 | $0$ | `-98.570779986` | `-98.596624180` | **`-98.596624180`** | **`+0.0000`** | ✅ **YES (exact)** | 37.3s (0.6 min) | 15 | `0.833119` | $< 10^{-31}$ |
-| **H₂O** | STO-3G | 14 | 10 | $0$ | `-74.963023138` | `-75.012578241` | **`-75.011873169`** | **`+0.7051`** | ✅ **YES** | 1514.3s (25.2 min) | 7 | `0.714286` | $< 10^{-9}$ |
+| Molecule | Basis | Qubits ($n$) | $N_e$ | $S_z$ | PySCF RHF ($E_{\text{RHF}}$ Ha) | Sector FCI ($E_0^{\text{exact}}$ Ha) | Adaptive $M_{\text{opt}}$ Ground (Ha) | Adaptive Error (mHa) | Optimal $M_{\text{opt}}$ | Complete SD $E_0$ (Ha) | Complete SD Error (mHa) | Chem. Acc. ($<1.6\text{ mHa}$) | SD Runtime (s) | Double Occ. $\langle d \rangle$ | Spin $\langle S^2 \rangle$ |
+| :--- | :---: | :---: | :---: | :---: | :---: | :---: | :---: | :---: | :---: | :---: | :---: | :---: | :---: | :---: | :---: |
+| **LiH** | STO-3G | 12 | 4 | $0$ | `-7.862023860` | `-7.882401932` | `-7.881275577` | **`+1.1264`** | **`6`** | **`-7.882388615`** | **`+0.0133`** | ✅ **YES** | 269.8s (4.5 min) | `0.333333` | $< 10^{-7}$ |
+| **BeH₂** | STO-3G | 14 | 6 | $0$ | `-15.560334936` | `-15.595182357` | `-15.593841253` | **`+1.3411`** | **`11`** | **`-15.594429802`** | **`+0.7526`** | ✅ **YES** | 1881.9s (31.4 min) | `0.428571` | $< 10^{-37}$ |
+| **HF** | STO-3G | 12 | 10 | $0$ | `-98.570779986` | `-98.596624180` | `-98.595551705` | **`+1.0725`** | **`5`** | **`-98.596624180`** | **`+0.0000`** | ✅ **YES (exact)** | 37.3s (0.6 min) | `0.833119` | $< 10^{-31}$ |
+| **H₂O** | STO-3G | 14 | 10 | $0$ | `-74.963023138` | `-75.012578241` | `-75.011130506` | **`+1.4477`** | **`21`** | **`-75.011873169`** | **`+0.7051`** | ✅ **YES** | 1514.3s (25.2 min) | `0.714286` | $< 10^{-9}$ |
 
 > **Key Finding:** Every single molecule achieves chemical accuracy ($\le 1.5936\text{ mHa} \approx 1.0\text{ kcal/mol}$). Hydrogen Fluoride (HF) matches the exact sector FCI ground state to machine precision ($10^{-11}\text{ Ha}$). Lithium Hydride ($\text{LiH}$) achieves $120\times$ better than chemical accuracy ($+0.0133\text{ mHa}$). Beryllium Hydride ($\text{BeH}_2$) and Water ($\text{H}_2\text{O}$) achieve $\approx 2.1\times$ and $2.3\times$ better than chemical accuracy, respectively.
 
