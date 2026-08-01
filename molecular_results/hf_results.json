@@ -4,101 +4,58 @@
   "qubits": 12,
   "n_electrons": 10,
   "sz": 0.0,
-  "e_rhf": -98.57077998601423,
-  "e_exact_fci": -98.59662417998769,
-  "e_acase_adaptive": -98.595551705,
-  "error_adaptive_mha": 1.0725,
-  "e_sd_complete": -98.5966241799877,
-  "error_sd_mha": -1.4210854715202004e-11,
-  "chemical_accuracy_achieved": true,
+  "sector_dimension": 36,
+  "e_rhf": -98.5707799860142,
+  "e_cisd": -98.59662417998659,
+  "e_ccsd": -98.59662415054984,
+  "e_exact_fci": -98.59662417998744,
+  "error_cisd_mha": 8.526512829121202e-10,
+  "error_ccsd_mha": 2.9437600801429653e-05,
+  "e_acase_adaptive": -98.59555170529195,
+  "error_adaptive_mha": 1.072474695490655,
+  "e_sd_complete": -98.59662417998743,
+  "error_sd_mha": 1.4210854715202004e-11,
+  "adaptive_chemical_accuracy": true,
+  "sd_chemical_accuracy": true,
+  "sd_spans_full_sector": true,
+  "adaptive_stop_reason": "target error reached (1.0725 mHa <= 1.5936 mHa)",
+  "adaptive_oracle_stop_used": true,
+  "adaptive_target_error_mha": 1.5936,
   "subspace_size_m": 5,
   "complete_sd_candidates": 35,
-  "effective_rank": 15,
+  "complete_sd_basis_size": 36,
+  "effective_rank": 5,
   "condition_number": 1.0,
-  "word_universe": 75950,
-  "double_occupancy": 0.8331192127648057,
-  "total_spin_squared": 1.1502660673890924e-31,
-  "static_susceptibility_chi0": 1.411766193564968e-08,
-  "elapsed_seconds": 62.63370990753174,
-  "sd_subspace_seconds": 37.29113984107971,
+  "hamiltonian_pauli_terms": 631,
+  "element_word_universe": 21156,
+  "double_occupancy": 0.8330345913870522,
+  "double_occupancy_uncorrelated": 0.8333333333333334,
+  "total_spin_squared": 1.880550220072612e-31,
+  "static_susceptibility_chi0": 0.0,
+  "response_diagnostic": "no significant weight: the S_z operator couples the singlet reference to triplet states that the singlet-preserving excitation basis does not span, so chi0 is a basis artifact rather than a physical response",
+  "elapsed_seconds": 79.65564823150635,
+  "sd_subspace_seconds": 54.151700496673584,
   "ground_state_coefficients": {
     "I": {
-      "real": 0.9988455925687272,
+      "real": 0.9928770886886497,
       "imag": 0.0
     },
-    "E(10,11<-2,3)": {
-      "real": 0.03197719388436501,
+    "E(10,11<-4,5)": {
+      "real": 0.10814998661322141,
       "imag": 0.0
     },
     "E(10,11<-2,5)": {
-      "real": 0.02490020667831777,
+      "real": 0.02993703122962218,
+      "imag": 0.0
+    },
+    "E(10,11<-2,3)": {
+      "real": 0.026574714956594678,
       "imag": 0.0
     },
     "E(10,11<-3,4)": {
-      "real": -0.024900206678317976,
-      "imag": 0.0
-    },
-    "E(10<-2)": {
-      "real": 0.004228122685536942,
-      "imag": 0.0
-    },
-    "E(11<-3)": {
-      "real": 0.0042281226855367645,
-      "imag": 0.0
-    },
-    "E(10,11<-0,1)": {
-      "real": 0.00046676133686173946,
-      "imag": 0.0
-    },
-    "E(10,11<-0,3)": {
-      "real": 0.0005518474263199926,
-      "imag": 0.0
-    },
-    "E(10,11<-1,2)": {
-      "real": -0.0005518474263199935,
-      "imag": 0.0
-    },
-    "E(10<-4)": {
-      "real": -0.002019230884560466,
-      "imag": 0.0
-    },
-    "E(11<-5)": {
-      "real": -0.0020192308845602617,
-      "imag": 0.0
-    },
-    "E(10,11<-0,5)": {
-      "real": -0.00028730175029364016,
-      "imag": 0.0
-    },
-    "E(10,11<-1,4)": {
-      "real": 0.00028730175029364016,
-      "imag": 0.0
-    },
-    "E(10<-0)": {
-      "real": -4.502486862463571e-06,
-      "imag": 0.0
-    },
-    "E(11<-1)": {
-      "real": -4.5024868624629065e-06,
+      "real": -0.029937031229622612,
       "imag": 0.0
     }
   },
-  "lehmann_response": [
-    {
-      "final_state": 8,
-      "excitation_energy_ha": 25.51236038141441,
-      "weight": 6.519712337159796e-10
-    },
-    {
-      "final_state": 10,
-      "excitation_energy_ha": 26.615359709655337,
-      "weight": 1.4551799760619598e-08
-    },
-    {
-      "final_state": 12,
-      "excitation_energy_ha": 27.494644491853748,
-      "weight": 1.783448754411888e-07
-    }
-  ],
-  "adaptive_target_error_achieved": true
+  "lehmann_response": []
 }

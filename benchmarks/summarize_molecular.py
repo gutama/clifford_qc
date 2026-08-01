@@ -154,11 +154,18 @@ def render_markdown(summary: dict) -> str:
         for r in rows:
             add(f"- {_md_name(r['key'])}: {r['stop']}")
         add("")
-    if any(r["sd_full"] for r in rows):
-        add("† The complete SD basis already spans the entire sector for these "
-            "molecules, so agreement with sector-exact diagonalization there is "
-            "arithmetic rather than accuracy — there is nothing left to miss. "
-            "CCSD is exact on the same rows for the same reason.")
+    full = [r for r in rows if r["sd_full"]]
+    if full:
+        names = ", ".join(_md_name(r["key"]) for r in full)
+        add(f"† The complete SD basis already spans the entire sector for "
+            f"{names} ({full[0]['sd_m']} vectors against a "
+            f"{full[0]['sector']}-state sector), so agreement with sector-exact "
+            f"diagonalization "
+            f"there is arithmetic rather than accuracy — there is nothing left "
+            f"to miss. CCSD is converged to the same energy on that row by the "
+            f"same combinatorial fact: with only two holes, singles and doubles "
+            f"exhaust the excitation manifold, so CCSD is exact for the system "
+            f"rather than accurate on it.")
         add("")
     add("**The complete SD subspace reproduces CISD**, as it must: a linear span "
         "of the identity and all single and double excitations on a Hartree–Fock "
