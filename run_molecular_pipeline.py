@@ -121,10 +121,20 @@ def run_pipeline(max_candidates: int | None = 25, max_subspace: int = 15) -> Non
         e_acase = float(adaptive.result.ground_energy)
         err_ha = e_acase - e_exact
         err_mha = err_ha * 1000.0
-        print(f"  Adaptive A-CASE E0: {e_acase:+.9f} Ha (Error: {err_mha:+.4f} mHa)")
-        print(f"  Selected Subspace Basis Size M: {len(adaptive.labels)}")
+        print(f"  Adaptive A-CASE E0: {e_acase:+.9f} Ha (Error: {err_mha:+.4f} mHa, M={len(adaptive.labels)})")
 
-        # 6. Response Analysis & Observables on Adaptive Subspace Result
+        # 6. Complete SD Coordinate Subspace Eigensolver (Chemical Accuracy Check)
+        sd_spectrum = solve_subspace(
+            rho0, model.hamiltonian, [identity_generator(model.n), *all_candidates]
+        )
+        e_sd = float(sd_spectrum.ground_energy)
+        err_sd_ha = e_sd - e_exact
+        err_sd_mha = err_sd_ha * 1000.0
+        chem_acc = err_sd_mha <= 1.5936
+        print(f"  Complete SD Subspace E0: {e_sd:+.9f} Ha (Error: {err_sd_mha:+.4f} mHa, M={len(all_candidates)+1})")
+        print(f"  Chemical Accuracy (< 1.6 mHa): {'ACHIEVED [YES]' if chem_acc else 'NO'}")
+
+        # 7. Response Analysis & Observables (on adaptive result)
         spectrum = adaptive.result
 
         double_occ = float(spectrum.expectation(double_occupancy(model)))
@@ -161,11 +171,13 @@ def run_pipeline(max_candidates: int | None = 25, max_subspace: int = 15) -> Non
             "sz": sz,
             "e_rhf": e_rhf,
             "e_exact_fci": e_exact,
-            "e_acase": e_acase,
-            "error_ha": err_ha,
-            "error_mha": err_mha,
+            "e_acase_adaptive": e_acase,
+            "error_adaptive_mha": err_mha,
+            "e_sd_complete": e_sd,
+            "error_sd_mha": err_sd_mha,
+            "chemical_accuracy_achieved": chem_acc,
             "subspace_size_m": len(adaptive.labels),
-            "complete_basis_m": len(adaptive.labels),
+            "complete_sd_candidates": len(all_candidates),
             "effective_rank": int(spectrum.effective_rank),
             "condition_number": float(spectrum.condition_number),
             "word_universe": int(adaptive.resources.get("word_universe", 0)),

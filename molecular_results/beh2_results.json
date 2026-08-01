@@ -4,43 +4,45 @@
   "qubits": 14,
   "n_electrons": 6,
   "sz": 0.0,
-  "e_rhf": -15.56033493598719,
-  "e_exact_fci": -15.595182356661716,
-  "e_acase": -15.560359950586111,
-  "error_ha": 0.03482240607560527,
-  "error_mha": 34.82240607560527,
+  "e_rhf": -15.560334935987186,
+  "e_exact_fci": -15.595182356661722,
+  "e_acase_adaptive": -15.560359950586111,
+  "error_adaptive_mha": 34.8224060756106,
+  "e_sd_complete": -15.594429801687465,
+  "error_sd_mha": 0.7525549742570803,
+  "chemical_accuracy_achieved": true,
   "subspace_size_m": 4,
-  "complete_basis_m": 4,
+  "complete_sd_candidates": 204,
   "effective_rank": 4,
   "condition_number": 1.0,
   "word_universe": 21930,
   "double_occupancy": 0.4285714285621334,
-  "total_spin_squared": 3.3244449609192813e-38,
-  "static_susceptibility_chi0": 7.218264509492202e-12,
-  "elapsed_seconds": 23.030991315841675,
+  "total_spin_squared": 1.721915552962335e-41,
+  "static_susceptibility_chi0": 7.218264510164945e-12,
+  "elapsed_seconds": 1895.032019853592,
   "ground_state_coefficients": {
     "I": {
       "real": 0.9999987414928364,
       "imag": 0.0
     },
     "E(6,7<-0,1)": {
-      "real": 0.0015864891046085587,
+      "real": 0.0015864891046085583,
       "imag": 0.0
     },
     "E(10<-0)": {
-      "real": 5.703703233113494e-06,
+      "real": 5.703703233379189e-06,
       "imag": 0.0
     },
     "E(11<-1)": {
-      "real": 5.703703233113312e-06,
+      "real": 5.703703233379193e-06,
       "imag": 0.0
     }
   },
   "lehmann_response": [
     {
       "final_state": 1,
-      "excitation_energy_ha": 4.506932452897448,
-      "weight": 1.6266115285714144e-11
+      "excitation_energy_ha": 4.506932452897441,
+      "weight": 1.626611528723012e-11
     }
   ]
 }

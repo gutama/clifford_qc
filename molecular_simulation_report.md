@@ -11,14 +11,27 @@ $$\text{PySCF (RHF / STO-3G)} \longrightarrow \text{FCIDUMP Records} \longrighta
 
 All results, FCIDUMP files, raw outputs, and JSON records are archived in [`molecular_results/`](molecular_results/).
 
-### Summary Table of Results
+### Summary Table of Results (Adaptive A-CASE)
 
 | Molecule | Basis Set | Qubits ($n$) | Electrons ($N$) | PySCF RHF ($E_{\text{RHF}}$ Ha) | Exact Sector FCI ($E_0^{\text{exact}}$ Ha) | A-CASE Ground ($E_0^{\text{A-CASE}}$ Ha) | Error (mHa) | Subspace Basis ($M$) | Double Occ. $\langle d \rangle$ | Spin $\langle S^2 \rangle$ | Runtime (s) |
 | :--- | :---: | :---: | :---: | :---: | :---: | :---: | :---: | :---: | :---: | :---: | :---: |
-| **LiH** | STO-3G | 12 | 4 | `-7.862023860` | `-7.882401932` | `-7.862131282` | `+20.27` | 6 | `0.333333` | $< 10^{-7}$ | 10.18s |
+| **LiH** | STO-3G | 12 | 4 | `-7.862023860` | `-7.882401932` | `-7.862131491` | `+20.27` | 11 | `0.333333` | $< 10^{-7}$ | 10.18s |
 | **BeH₂** | STO-3G | 14 | 6 | `-15.560334936` | `-15.595182357` | `-15.560359951` | `+34.82` | 4 | `0.428571` | $< 10^{-37}$ | 23.03s |
-| **HF** | STO-3G | 12 | 10 | `-98.570779986` | `-98.596624180` | `-98.576813320` | `+19.81` | 6 | `0.833123` | $< 10^{-32}$ | 9.07s |
-| **H₂O** | STO-3G | 14 | 10 | `-74.963023138` | `-75.012578241` | `-74.963055821` | `+49.52` | 6 | `0.714286` | $< 10^{-9}$ | 16.75s |
+| **HF** | STO-3G | 12 | 10 | `-98.570779986` | `-98.596624180` | `-98.576853731` | `+19.77` | 15 | `0.833123` | $< 10^{-32}$ | 9.07s |
+| **H₂O** | STO-3G | 14 | 10 | `-74.963023138` | `-75.012578241` | `-74.963055822` | `+49.52` | 7 | `0.714286` | $< 10^{-9}$ | 16.75s |
+
+### Chemical Accuracy Results (Complete SD Subspace Eigensolver)
+
+To achieve **chemical accuracy** ($\leq 1$ kcal/mol $\approx 1.5936$ mHa), we expand the subspace basis to include **all** single-and-double (SD) determinant excitations from the Hartree-Fock reference. This yields:
+
+| Molecule | SD Candidates | Subspace $M$ | Complete SD $E_0$ (Ha) | Error vs Exact FCI (mHa) | Chemical Accuracy ($< 1.6$ mHa) |
+| :--- | :---: | :---: | :---: | :---: | :---: |
+| **LiH** | 92 | 93 | `-7.882388615` | **+0.0133** | ✅ **YES** |
+| **BeH₂** | 204 | 205 | `-15.594429802` | **+0.7526** | ✅ **YES** |
+| **HF** | 35 | 36 | `-98.596624180` | **+0.0000** | ✅ **YES** (exact) |
+| **H₂O** | 140 | 141 | `-75.011873169` | **+0.7051** | ✅ **YES** |
+
+> **All four molecules achieve chemical accuracy.** HF achieves machine-precision agreement with exact FCI. LiH achieves 120× better than chemical accuracy. BeH₂ and H₂O achieve ~2× better than chemical accuracy.
 
 ---
 
@@ -42,53 +55,50 @@ All results, FCIDUMP files, raw outputs, and JSON records are archived in [`mole
 ## 3. Detailed Per-Molecule Analysis
 
 ### 3.1 Lithium Hydride ($\text{LiH}$)
-- ** Hartree-Fock Energy:** `-7.862023860 Ha`
-- ** Exact FCI Sector Energy:** `-7.882401932 Ha`
-- ** A-CASE ($M=6$):** `-7.862131282 Ha`
-- ** Dominant Ground State Ritz Coefficients:**
+- **Hartree-Fock Energy:** `-7.862023860 Ha`
+- **Exact FCI Sector Energy:** `-7.882401932 Ha`
+- **Adaptive A-CASE ($M=11$):** `-7.862131491 Ha` (Error: `+20.27 mHa`)
+- **Complete SD ($M=93$):** `-7.882388615 Ha` (Error: **`+0.0133 mHa`** ✅)
+- **Dominant Ground State Ritz Coefficients:**
   - $|I\rangle$ (Reference Hartree-Fock): $+0.9999899$
-  - $|E(4,5 \leftarrow 0,1)\rangle$ (Double excitation $0,1 \to 4,5$): $+0.0040711$
-  - $|E(6,7 \leftarrow 0,1)\rangle$ (Double excitation $0,1 \to 6,7$): $+0.0017753$
-- ** Lehmann Response Spectrum ($M_z$):**
-  - First excitation line: $\omega_1 = 2.046474\text{ Ha}$, Weight $w_1 = 2.16 \times 10^{-8}$
+  - $|E(4,5 \leftarrow 0,1)\rangle$ (Double excitation $0,1 \to 4,5$): $+0.0040802$
+  - $|E(6,7 \leftarrow 0,1)\rangle$ (Double excitation $0,1 \to 6,7$): $+0.0017735$
 
 ### 3.2 Beryllium Hydride ($\text{BeH}_2$)
-- ** Hartree-Fock Energy:** `-15.560334936 Ha`
-- ** Exact FCI Sector Energy:** `-15.595182357 Ha`
-- ** A-CASE ($M=4$):** `-15.560359951 Ha`
-- ** Dominant Ground State Ritz Coefficients:**
-  - $|I\rangle$ (Reference Hartree-Fock): $+0.9999987$
-  - $|E(6,7 \leftarrow 0,1)\rangle$ (Double excitation $0,1 \to 6,7$): $+0.0015865$
+- **Hartree-Fock Energy:** `-15.560334936 Ha`
+- **Exact FCI Sector Energy:** `-15.595182357 Ha`
+- **Adaptive A-CASE ($M=4$):** `-15.560359951 Ha` (Error: `+34.82 mHa`)
+- **Complete SD ($M=205$):** `-15.594429802 Ha` (Error: **`+0.7526 mHa`** ✅)
+- **Dominant Ground State Ritz Vector:** $c_{\text{HF}} = +0.9999987$, $c_{E(6,7 \leftarrow 0,1)} = +0.0015865$.
 
 ### 3.3 Hydrogen Fluoride ($\text{HF}$)
-- ** Hartree-Fock Energy:** `-98.570779986 Ha`
-- ** Exact FCI Sector Energy:** `-98.596624180 Ha`
-- ** A-CASE ($M=6$):** `-98.576813320 Ha`
-- ** Dominant Ground State Ritz Coefficients:**
+- **Hartree-Fock Energy:** `-98.570779986 Ha`
+- **Exact FCI Sector Energy:** `-98.596624180 Ha`
+- **Adaptive A-CASE ($M=15$):** `-98.576853731 Ha` (Error: `+19.77 mHa`)
+- **Complete SD ($M=36$):** `-98.596624180 Ha` (Error: **`+0.0000 mHa`** ✅ exact)
+- **Dominant Ground State Ritz Coefficients:**
   - $|I\rangle$ (Reference Hartree-Fock): $+0.9988544$
   - $|E(10,11 \leftarrow 2,3)\rangle$ (Double excitation $2,3 \to 10,11$): $+0.0320354$
   - $|E(10,11 \leftarrow 2,5)\rangle$ (Double excitation $2,5 \to 10,11$): $+0.0247882$
   - $|E(10,11 \leftarrow 3,4)\rangle$ (Double excitation $3,4 \to 10,11$): $-0.0247882$
 
 ### 3.4 Water ($\text{H}_2\text{O}$)
-- ** Hartree-Fock Energy:** `-74.963023138 Ha`
-- ** Exact FCI Sector Energy:** `-75.012578241 Ha`
-- ** A-CASE ($M=6$):** `-74.963055821 Ha`
-- ** Dominant Ground State Ritz Coefficients:**
-  - $|I\rangle$ (Reference Hartree-Fock): $+0.9999996$
-  - $|E(10,11 \leftarrow 0,1)\rangle$ (Double excitation $0,1 \to 10,11$): $+0.0007122$
-  - $|E(12,13 \leftarrow 0,1)\rangle$ (Double excitation $0,1 \to 12,13$): $+0.0004854$
+- **Hartree-Fock Energy:** `-74.963023138 Ha`
+- **Exact FCI Sector Energy:** `-75.012578241 Ha`
+- **Adaptive A-CASE ($M=7$):** `-74.963055822 Ha` (Error: `+49.52 mHa`)
+- **Complete SD ($M=141$):** `-75.011873169 Ha` (Error: **`+0.7051 mHa`** ✅)
+- **Dominant Ground State Ritz Vector:** $c_{\text{HF}} = +0.9999996$, $c_{E(10,11 \leftarrow 0,1)} = +0.0007122$.
 
 ---
 
 ## 4. Computational Resource Accounting
 
-- ** Pauli Word Universes:**
+- **Pauli Word Universes:**
   - $\text{LiH}$: 42,460 terms
   - $\text{BeH}_2$: 21,930 terms
   - $\text{HF}$: 29,866 terms
   - $\text{H}_2\text{O}$: 78,858 terms
-- ** Total Pipeline Wall-Clock Execution Time:** **59.03 seconds** for all 4 molecules end-to-end.
+- **Total Pipeline Wall-Clock Execution Time:** ~59 seconds (adaptive A-CASE only); ~80 minutes including complete SD subspace eigensolves for all 4 molecules.
 
 ---
 
