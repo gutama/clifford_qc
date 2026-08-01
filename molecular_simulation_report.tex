@@ -77,14 +77,14 @@ To achieve \textbf{chemical accuracy} ($\leq 1$ kcal/mol $\approx 1.5936$ mHa), 
 \centering
 \caption{Chemical Accuracy Results --- Complete SD Subspace Eigensolver}
 \label{tab:chemical_accuracy}
-\begin{tabular}{lccccc}
+\begin{tabular}{lcccccc}
 \toprule
-\textbf{Molecule} & \textbf{SD Candidates} & \textbf{$M$} & \textbf{Complete SD $E_0$ (Ha)} & \textbf{Error (mHa)} & \textbf{Chem.\ Acc.} \\
+\textbf{Molecule} & \textbf{SD Candidates} & \textbf{$M$} & \textbf{Complete SD $E_0$ (Ha)} & \textbf{Error (mHa)} & \textbf{Chem.\ Acc.} & \textbf{SD Runtime (s)} \\
 \midrule
-\textbf{LiH}      & 92  & 93  & $-7.882388615$  & $\mathbf{+0.0133}$ & \textcolor{successgreen}{\textbf{YES}} \\
-\textbf{BeH$_2$}  & 204 & 205 & $-15.594429802$ & $\mathbf{+0.7526}$ & \textcolor{successgreen}{\textbf{YES}} \\
-\textbf{HF}       & 35  & 36  & $-98.596624180$ & $\mathbf{+0.0000}$ & \textcolor{successgreen}{\textbf{YES (exact)}} \\
-\textbf{H$_2$O}   & 140 & 141 & $-75.011873169$ & $\mathbf{+0.7051}$ & \textcolor{successgreen}{\textbf{YES}} \\
+\textbf{LiH}      & 92  & 93  & $-7.882388615$  & $\mathbf{+0.0133}$ & \textcolor{successgreen}{\textbf{YES}} & 269.8s (4.5 min) \\
+\textbf{BeH$_2$}  & 204 & 205 & $-15.594429802$ & $\mathbf{+0.7526}$ & \textcolor{successgreen}{\textbf{YES}} & 1881.9s (31.4 min) \\
+\textbf{HF}       & 35  & 36  & $-98.596624180$ & $\mathbf{+0.0000}$ & \textcolor{successgreen}{\textbf{YES (exact)}} & 37.3s (0.6 min) \\
+\textbf{H$_2$O}   & 140 & 141 & $-75.011873169$ & $\mathbf{+0.7051}$ & \textcolor{successgreen}{\textbf{YES}} & 1514.3s (25.2 min) \\
 \bottomrule
 \end{tabular}
 \end{table}

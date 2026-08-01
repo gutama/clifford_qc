@@ -24,14 +24,14 @@ All results, FCIDUMP files, raw outputs, and JSON records are archived in [`mole
 
 To achieve **chemical accuracy** ($\leq 1$ kcal/mol $\approx 1.5936$ mHa), we expand the subspace basis to include **all** single-and-double (SD) determinant excitations from the Hartree-Fock reference. This yields:
 
-| Molecule | SD Candidates | Subspace $M$ | Complete SD $E_0$ (Ha) | Error vs Exact FCI (mHa) | Chemical Accuracy ($< 1.6$ mHa) |
-| :--- | :---: | :---: | :---: | :---: | :---: |
-| **LiH** | 92 | 93 | `-7.882388615` | **+0.0133** | ✅ **YES** |
-| **BeH₂** | 204 | 205 | `-15.594429802` | **+0.7526** | ✅ **YES** |
-| **HF** | 35 | 36 | `-98.596624180` | **+0.0000** | ✅ **YES** (exact) |
-| **H₂O** | 140 | 141 | `-75.011873169` | **+0.7051** | ✅ **YES** |
+| Molecule | SD Candidates | Subspace $M$ | Complete SD $E_0$ (Ha) | Error vs Exact FCI (mHa) | Chemical Accuracy ($< 1.6$ mHa) | SD Subspace Runtime |
+| :--- | :---: | :---: | :---: | :---: | :---: | :---: |
+| **LiH** | 92 | 93 | `-7.882388615` | **+0.0133** | ✅ **YES** | **269.8s** (4.5 min) |
+| **BeH₂** | 204 | 205 | `-15.594429802` | **+0.7526** | ✅ **YES** | **1881.9s** (31.4 min) |
+| **HF** | 35 | 36 | `-98.596624180` | **+0.0000** | ✅ **YES** (exact) | **37.3s** (0.6 min) |
+| **H₂O** | 140 | 141 | `-75.011873169` | **+0.7051** | ✅ **YES** | **1514.3s** (25.2 min) |
 
-> **All four molecules achieve chemical accuracy.** HF achieves machine-precision agreement with exact FCI. LiH achieves 120× better than chemical accuracy. BeH₂ and H₂O achieve ~2× better than chemical accuracy.
+> **All four molecules achieve chemical accuracy.** HF achieves machine-precision agreement with exact FCI. LiH achieves 120× better than chemical accuracy. BeH₂ and H₂O achieve ~2× better than chemical accuracy. Total SD subspace execution time across all 4 molecules is **3703.3s** (~61.7 minutes).
 
 ---
 

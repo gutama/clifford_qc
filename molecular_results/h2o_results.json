@@ -4,11 +4,11 @@
   "qubits": 14,
   "n_electrons": 10,
   "sz": 0.0,
-  "e_rhf": -74.96302313846125,
-  "e_exact_fci": -75.01257824109227,
-  "e_acase_adaptive": -74.96305582156472,
-  "error_adaptive_mha": 49.52241952754832,
-  "e_sd_complete": -75.01187316935817,
+  "e_rhf": -74.96302313846127,
+  "e_exact_fci": -75.0125782410923,
+  "e_acase_adaptive": -74.96305582156481,
+  "error_adaptive_mha": 49.52241952749148,
+  "e_sd_complete": -75.0118731693582,
   "error_sd_mha": 0.7050717341030577,
   "chemical_accuracy_achieved": true,
   "subspace_size_m": 7,
@@ -16,45 +16,46 @@
   "effective_rank": 7,
   "condition_number": 1.0,
   "word_universe": 97498,
-  "double_occupancy": 0.7142857141750587,
-  "total_spin_squared": 2.277520304718179e-38,
-  "static_susceptibility_chi0": 4.075475897586399e-12,
-  "elapsed_seconds": 1394.329867362976,
+  "double_occupancy": 0.7142857141750588,
+  "total_spin_squared": 1.9290332494734046e-33,
+  "static_susceptibility_chi0": 4.075475897711797e-12,
+  "elapsed_seconds": 1534.7589519023895,
+  "sd_subspace_seconds": 1514.3437342643738,
   "ground_state_coefficients": {
     "I": {
-      "real": 0.9999996281514851,
+      "real": 0.999999628151485,
       "imag": 0.0
     },
     "E(10,11<-0,1)": {
-      "real": 0.0007122523489566694,
+      "real": 0.0007122523489564093,
       "imag": 0.0
     },
     "E(12,13<-0,1)": {
-      "real": 0.00048540591082757206,
+      "real": 0.0004854059108274508,
       "imag": 0.0
     },
     "E(10<-0)": {
-      "real": 9.038273468774746e-06,
+      "real": 9.03827346891376e-06,
       "imag": 0.0
     },
     "E(11<-1)": {
-      "real": 9.038273468774707e-06,
+      "real": 9.038273468913839e-06,
       "imag": 0.0
     },
     "E(10<-2)": {
-      "real": -1.748149052734181e-05,
+      "real": -1.748149052938413e-05,
       "imag": 0.0
     },
     "E(11<-3)": {
-      "real": -1.7481490527341664e-05,
+      "real": -1.748149052942805e-05,
       "imag": 0.0
     }
   },
   "lehmann_response": [
     {
       "final_state": 3,
-      "excitation_energy_ha": 20.04437716578552,
-      "weight": 4.084518801064503e-11
+      "excitation_energy_ha": 20.044377165785626,
+      "weight": 4.0845188011902005e-11
     }
   ]
 }

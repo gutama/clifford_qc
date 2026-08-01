@@ -124,14 +124,17 @@ def run_pipeline(max_candidates: int | None = 25, max_subspace: int = 15) -> Non
         print(f"  Adaptive A-CASE E0: {e_acase:+.9f} Ha (Error: {err_mha:+.4f} mHa, M={len(adaptive.labels)})")
 
         # 6. Complete SD Coordinate Subspace Eigensolver (Chemical Accuracy Check)
+        t_sd_start = time.time()
         sd_spectrum = solve_subspace(
             rho0, model.hamiltonian, [identity_generator(model.n), *all_candidates]
         )
+        t_sd_elapsed = time.time() - t_sd_start
         e_sd = float(sd_spectrum.ground_energy)
         err_sd_ha = e_sd - e_exact
         err_sd_mha = err_sd_ha * 1000.0
         chem_acc = err_sd_mha <= 1.5936
         print(f"  Complete SD Subspace E0: {e_sd:+.9f} Ha (Error: {err_sd_mha:+.4f} mHa, M={len(all_candidates)+1})")
+        print(f"  SD Subspace Wall-Clock Time: {t_sd_elapsed:.1f}s ({t_sd_elapsed/60:.1f} min)")
         print(f"  Chemical Accuracy (< 1.6 mHa): {'ACHIEVED [YES]' if chem_acc else 'NO'}")
 
         # 7. Response Analysis & Observables (on adaptive result)
@@ -185,6 +188,7 @@ def run_pipeline(max_candidates: int | None = 25, max_subspace: int = 15) -> Non
             "total_spin_squared": spin2,
             "static_susceptibility_chi0": chi0,
             "elapsed_seconds": t_elapsed,
+            "sd_subspace_seconds": t_sd_elapsed,
             "ground_state_coefficients": ritz_coeffs,
             "lehmann_response": lehmann_data,
         }
