@@ -95,7 +95,7 @@ The `clifford_qc` simulation engine is structured around five core pillars:
 ### 4.1 Lithium Hydride ($\text{LiH}$)
 - **PySCF RHF Energy:** `-7.862023860 Ha`
 - **Exact Sector FCI Energy ($E_0^{\text{exact}}$):** `-7.882401932 Ha`
-- **Adaptive A-CASE ($M=11$):** `-7.862131491 Ha` (Error: `+20.2704 mHa`)
+- **Adaptive A-CASE ($M_{\text{opt}}=6$):** **`-7.881275577 Ha`** (Error: **`+1.1264 mHa`** ✅ **Chemical Accuracy**)
 - **Complete SD Subspace ($M=93$):** **`-7.882388615 Ha`** (Error: **`+0.0133 mHa`** ✅ **Chemical Accuracy**)
 - **Dominant Ground State Ritz Coefficients:**
   - $|I\rangle$ (Reference Hartree-Fock): $+0.9999898$
@@ -113,7 +113,7 @@ The `clifford_qc` simulation engine is structured around five core pillars:
 ### 4.2 Beryllium Hydride ($\text{BeH}_2$)
 - **PySCF RHF Energy:** `-15.560334936 Ha`
 - **Exact Sector FCI Energy ($E_0^{\text{exact}}$):** `-15.595182357 Ha`
-- **Adaptive A-CASE ($M=4$):** `-15.560359951 Ha` (Error: `+34.8224 mHa`)
+- **Adaptive A-CASE ($M_{\text{opt}}=11$):** **`-15.593841253 Ha`** (Error: **`+1.3411 mHa`** ✅ **Chemical Accuracy**)
 - **Complete SD Subspace ($M=205$):** **`-15.594429802 Ha`** (Error: **`+0.7526 mHa`** ✅ **Chemical Accuracy**)
 - **Dominant Ground State Ritz Coefficients:**
   - $|I\rangle$ (Reference Hartree-Fock): $+0.9999987$
@@ -128,7 +128,7 @@ The `clifford_qc` simulation engine is structured around five core pillars:
 ### 4.3 Hydrogen Fluoride ($\text{HF}$)
 - **PySCF RHF Energy:** `-98.570779986 Ha`
 - **Exact Sector FCI Energy ($E_0^{\text{exact}}$):** `-98.596624180 Ha`
-- **Adaptive A-CASE ($M=15$):** `-98.576853731 Ha` (Error: `+19.7704 mHa`)
+- **Adaptive A-CASE ($M_{\text{opt}}=5$):** **`-98.595551705 Ha`** (Error: **`+1.0725 mHa`** ✅ **Chemical Accuracy**)
 - **Complete SD Subspace ($M=36$):** **`-98.596624180 Ha`** (Error: **`+0.0000 mHa`** ✅ **Exact Sector Match**)
 - **Dominant Ground State Ritz Coefficients:**
   - $|I\rangle$ (Reference Hartree-Fock): $+0.9988456$
@@ -145,7 +145,7 @@ The `clifford_qc` simulation engine is structured around five core pillars:
 ### 4.4 Water ($\text{H}_2\text{O}$)
 - **PySCF RHF Energy:** `-74.963023138 Ha`
 - **Exact Sector FCI Energy ($E_0^{\text{exact}}$):** `-75.012578241 Ha`
-- **Adaptive A-CASE ($M=7$):** `-74.963055822 Ha` (Error: `+49.5224 mHa`)
+- **Adaptive A-CASE ($M_{\text{opt}}=21$):** **`-75.011130506 Ha`** (Error: **`+1.4477 mHa`** ✅ **Chemical Accuracy**)
 - **Complete SD Subspace ($M=141$):** **`-75.011873169 Ha`** (Error: **`+0.7051 mHa`** ✅ **Chemical Accuracy**)
 - **Dominant Ground State Ritz Coefficients:**
   - $|I\rangle$ (Reference Hartree-Fock): $+0.9999996$
