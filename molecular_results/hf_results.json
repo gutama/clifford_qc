@@ -1,0 +1,48 @@
+{
+  "key": "hf",
+  "name": "Hydrogen Fluoride (HF)",
+  "qubits": 12,
+  "n_electrons": 10,
+  "sz": 0.0,
+  "e_rhf": -98.57077998601423,
+  "e_exact_fci": -98.5966241799876,
+  "e_acase": -98.5768133195767,
+  "error_ha": 0.019810860410899522,
+  "error_mha": 19.810860410899522,
+  "subspace_size_m": 6,
+  "complete_basis_m": 6,
+  "effective_rank": 6,
+  "condition_number": 1.0,
+  "word_universe": 29866,
+  "double_occupancy": 0.833122737480377,
+  "total_spin_squared": 8.5703882525232e-33,
+  "static_susceptibility_chi0": 0.0,
+  "elapsed_seconds": 9.074260950088501,
+  "ground_state_coefficients": {
+    "I": {
+      "real": 0.9988544236786207,
+      "imag": 0.0
+    },
+    "E(10,11<-2,3)": {
+      "real": 0.032035373884409114,
+      "imag": 0.0
+    },
+    "E(10,11<-2,5)": {
+      "real": 0.024788167477249184,
+      "imag": 0.0
+    },
+    "E(10,11<-3,4)": {
+      "real": -0.02478816747724923,
+      "imag": 0.0
+    },
+    "E(10<-2)": {
+      "real": 0.004163449529924032,
+      "imag": 0.0
+    },
+    "E(11<-3)": {
+      "real": 0.004163449529924114,
+      "imag": 0.0
+    }
+  },
+  "lehmann_response": []
+}

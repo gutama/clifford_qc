@@ -1,0 +1,54 @@
+{
+  "key": "h2o",
+  "name": "Water (H2O)",
+  "qubits": 14,
+  "n_electrons": 10,
+  "sz": 0.0,
+  "e_rhf": -74.96302313846122,
+  "e_exact_fci": -75.01257824109219,
+  "e_acase": -74.96305582115106,
+  "error_ha": 0.04952241994112683,
+  "error_mha": 49.52241994112683,
+  "subspace_size_m": 6,
+  "complete_basis_m": 6,
+  "effective_rank": 6,
+  "condition_number": 1.0,
+  "word_universe": 78858,
+  "double_occupancy": 0.7142857142119815,
+  "total_spin_squared": 3.53051960206493e-10,
+  "static_susceptibility_chi0": 4.067860879011979e-12,
+  "elapsed_seconds": 16.750068426132202,
+  "ground_state_coefficients": {
+    "I": {
+      "real": 0.9999996282901616,
+      "imag": 0.0
+    },
+    "E(10,11<-0,1)": {
+      "real": 0.0007122390630152395,
+      "imag": 0.0
+    },
+    "E(12,13<-0,1)": {
+      "real": 0.00048540594110509257,
+      "imag": 0.0
+    },
+    "E(10<-0)": {
+      "real": 9.033096213925839e-06,
+      "imag": 0.0
+    },
+    "E(11<-1)": {
+      "real": 9.026554130412762e-06,
+      "imag": 0.0
+    },
+    "E(10<-2)": {
+      "real": -1.8789675819652562e-05,
+      "imag": 0.0
+    }
+  },
+  "lehmann_response": [
+    {
+      "final_state": 2,
+      "excitation_energy_ha": 20.044375875778634,
+      "weight": 4.0768866234645694e-11
+    }
+  ]
+}

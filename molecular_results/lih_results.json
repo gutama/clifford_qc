@@ -1,0 +1,74 @@
+{
+  "key": "lih",
+  "name": "Lithium Hydride (LiH)",
+  "qubits": 12,
+  "n_electrons": 4,
+  "sz": 0.0,
+  "e_rhf": -7.862023860127121,
+  "e_exact_fci": -7.882401932290224,
+  "e_acase": -7.862131282367837,
+  "error_ha": 0.02027064992238703,
+  "error_mha": 20.27064992238703,
+  "subspace_size_m": 6,
+  "complete_basis_m": 6,
+  "effective_rank": 6,
+  "condition_number": 1.0,
+  "word_universe": 42460,
+  "double_occupancy": 0.3333332666165885,
+  "total_spin_squared": 8.67576447603396e-08,
+  "static_susceptibility_chi0": 2.1169540882979857e-08,
+  "elapsed_seconds": 10.176192998886108,
+  "ground_state_coefficients": {
+    "I": {
+      "real": 0.9999899368731909,
+      "imag": 0.0
+    },
+    "E(4,5<-0,1)": {
+      "real": 0.004071133772817432,
+      "imag": 0.0
+    },
+    "E(6,7<-0,1)": {
+      "real": 0.0017753088989983074,
+      "imag": 0.0
+    },
+    "E(4,11<-0,1)": {
+      "real": -0.00039714741670329826,
+      "imag": 0.0
+    },
+    "E(5,10<-0,1)": {
+      "real": 0.00039474362789992517,
+      "imag": 0.0
+    },
+    "E(4<-0)": {
+      "real": 0.0002945366981544548,
+      "imag": 0.0
+    }
+  },
+  "lehmann_response": [
+    {
+      "final_state": 1,
+      "excitation_energy_ha": 2.0464739960618576,
+      "weight": 2.164503310902586e-08
+    },
+    {
+      "final_state": 2,
+      "excitation_energy_ha": 5.303565472385628,
+      "weight": 3.4750435932484545e-11
+    },
+    {
+      "final_state": 3,
+      "excitation_energy_ha": 5.44362552195848,
+      "weight": 5.041899116732453e-12
+    },
+    {
+      "final_state": 4,
+      "excitation_energy_ha": 5.7139992228569,
+      "weight": 1.7934218227576754e-12
+    },
+    {
+      "final_state": 5,
+      "excitation_energy_ha": 5.767970909701817,
+      "weight": 1.3458925626754252e-12
+    }
+  ]
+}
