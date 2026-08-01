@@ -212,6 +212,7 @@ def main() -> int:
             problems.append(f"missing evidence/scope phrase: {phrase}")
     forbidden = ["certified response interval", "quantum speedup is",
                  "outperforms krylov", "cliffordqc2026",
+                 r"\date{\today}",
                  "in the public\n\\texttt{clifford\\_qc} repository"]
     for phrase in forbidden:
         if phrase in lowered:
