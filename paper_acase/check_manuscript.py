@@ -69,6 +69,68 @@ def _row_sources(body: str):
             yield target.read_text()
 
 
+def _brace_group(source: str, start: int) -> tuple[str, int]:
+    """Return a balanced braced group and the offset just after it."""
+    if start >= len(source) or source[start] != "{":
+        raise ValueError("expected a braced group")
+    depth = 0
+    for offset in range(start, len(source)):
+        if source[offset] == "{":
+            depth += 1
+        elif source[offset] == "}":
+            depth -= 1
+            if depth == 0:
+                return source[start + 1:offset], offset + 1
+    raise ValueError("unterminated braced group")
+
+
+def _tabulars(source: str):
+    """Yield tabular preambles and bodies, including braced column widths."""
+    marker = r"\begin{tabular}"
+    closing = r"\end{tabular}"
+    cursor = 0
+    while (begin := source.find(marker, cursor)) >= 0:
+        preamble_start = begin + len(marker)
+        while (preamble_start < len(source)
+               and source[preamble_start].isspace()):
+            preamble_start += 1
+        preamble, body_start = _brace_group(source, preamble_start)
+        end = source.find(closing, body_start)
+        if end < 0:
+            raise ValueError("tabular environment has no closing marker")
+        yield preamble, source[body_start:end]
+        cursor = end + len(closing)
+
+
+def _column_count(preamble: str) -> int:
+    """Count columns while ignoring intercolumn declarations."""
+    count = 0
+    offset = 0
+    while offset < len(preamble):
+        token = preamble[offset]
+        if token in "lcrX":
+            count += 1
+            offset += 1
+        elif token in "pmb":
+            count += 1
+            offset += 1
+            while offset < len(preamble) and preamble[offset].isspace():
+                offset += 1
+            _, offset = _brace_group(preamble, offset)
+        elif token in "@><!":
+            offset += 1
+            while offset < len(preamble) and preamble[offset].isspace():
+                offset += 1
+            _, offset = _brace_group(preamble, offset)
+        elif token == "*":
+            repeats, offset = _brace_group(preamble, offset + 1)
+            repeated, offset = _brace_group(preamble, offset)
+            count += int(repeats) * _column_count(repeated)
+        else:
+            offset += 1
+    return count
+
+
 def _source_digest(path: Path) -> str:
     text = path.read_text(encoding="utf-8").replace("\r\n", "\n")
     return hashlib.sha256(text.encode("utf-8")).hexdigest()
@@ -115,11 +177,14 @@ def main() -> int:
             problems.append(f"missing input: {match.group(1)} "
                             "(run paper_acase/make_tables.py)")
 
-    for match in re.finditer(
-            r"\\begin\{tabular\}\{([^}]*)\}(.*?)\\end\{tabular\}", text, re.S):
-        # T is the manuscript's fixed-width, wrapping text column.
-        ncol = len(re.sub(r"[^lcrT]", "", match.group(1)))
-        for fragment in _row_sources(match.group(2)):
+    if re.search(r"\\usepackage(?:\[[^]]*\])?\{array\}", text):
+        problems.append(
+            "array package is incompatible with REVTeX 4.2f under the "
+            "arXiv TeX Live 2025 stack; use standard tabular columns")
+
+    for preamble, body in _tabulars(text):
+        ncol = _column_count(preamble)
+        for fragment in _row_sources(body):
             for line in fragment.splitlines():
                 line = line.strip()
                 if not line.endswith(r"\\") or line.startswith("%"):
@@ -134,9 +199,8 @@ def main() -> int:
     # A hand-typed label column is fine; a hand-typed number is the thing that
     # goes stale. Headers may legitimately carry digits, and \colrule is what
     # separates them from the body in a ruledtabular.
-    for match in re.finditer(
-            r"\\begin\{tabular\}\{([^}]*)\}(.*?)\\end\{tabular\}", text, re.S):
-        inline = re.sub(r"\\input\{[^}]+\}", "", match.group(2))
+    for _, body in _tabulars(text):
+        inline = re.sub(r"\\input\{[^}]+\}", "", body)
         if r"\colrule" in inline:
             inline = inline.split(r"\colrule", 1)[1]
         for line in inline.splitlines():
@@ -210,6 +274,8 @@ def main() -> int:
     for phrase in required:
         if phrase.lower() not in lowered:
             problems.append(f"missing evidence/scope phrase: {phrase}")
+    if re.search(r"\\date\s*\{[^{}]*\\today[^{}]*\}", text, re.S):
+        problems.append("manuscript date must be fixed for archival rebuilds")
     forbidden = ["certified response interval", "quantum speedup is",
                  "outperforms krylov", "cliffordqc2026",
                  "in the public\n\\texttt{clifford\\_qc} repository"]
