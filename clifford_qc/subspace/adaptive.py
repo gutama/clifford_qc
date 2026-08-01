@@ -330,6 +330,7 @@ def run_acase(rho: MV, hamiltonian, candidates: Sequence, *,
               gamma: float = 0.0,
               leakage_tol: float | None = None,
               exact_ground_energy: float | None = None,
+              target_error: float | None = None,
               tau_s: float = DEFAULT_TAU_S, rel_tau: float = 0.0,
               max_condition: float = DEFAULT_MAX_CONDITION) -> AdaptiveResult:
     """Grow a subspace one certified-by-construction generator at a time.
@@ -347,20 +348,15 @@ def run_acase(rho: MV, hamiltonian, candidates: Sequence, *,
     lowering alone, which is the baseline the cost-aware variants are measured
     against.
 
+    ``target_error`` stops growth early once the ground energy error relative
+    to ``exact_ground_energy`` falls below the threshold (e.g. chemical accuracy
+    1.5936 mHa).
+
     ``roots > 1`` grows the basis against several Ritz roots instead of the
     lowest alone -- the excited-state route of §5. ``aggregation='mean'`` is
     state-averaged growth (the objective is the average of the tracked roots)
     and ``'max'`` is block growth (whichever root gains most decides). The
     reported ``energy``/``energy_history`` follow that objective.
-
-    One caveat on monotonicity, which is real rather than pedantic. Cauchy
-    interlacing makes each *individual* Ritz value non-increasing under growth,
-    so a fixed-weight average of a fixed set of roots is too. Early steps do not
-    have a fixed set: a two-dimensional subspace has only two roots, so the
-    average is taken over fewer of them and can *rise* as a high new root
-    appears. The objective is therefore monotone only from the step where the
-    effective rank first reaches ``roots``; each record's ``root_energies`` says
-    how many roots that step actually had.
     """
     if roots < 1:
         raise ValueError("roots must be at least 1")
@@ -392,6 +388,18 @@ def run_acase(rho: MV, hamiltonian, candidates: Sequence, *,
     history = [value]
     records: list[GrowthRecord] = []
     stopped_reason = "basis budget reached"
+
+    # Check initial reference state accuracy
+    if exact_ground_energy is not None and target_error is not None:
+        if abs(value - exact_ground_energy) <= target_error:
+            stopped_reason = f"target error reached ({abs(value - exact_ground_energy)*1000.0:.4f} mHa <= {target_error*1000.0:.4f} mHa)"
+            return AdaptiveResult(
+                labels=tuple(bank.generator(i).label for i in basis),
+                energy=value, energy_history=tuple(history),
+                records=tuple(records), result=result, bank=bank, indices=tuple(basis),
+                stopped_reason=stopped_reason, exact_ground_energy=exact_ground_energy,
+                relative_error=abs(value - exact_ground_energy)/max(abs(exact_ground_energy), 1e-12),
+                resources=dict(result.resources), root_energies=root_energies)
 
     for step in range(1, max_size + 1):
         remaining = [i for i in pool if i not in basis]
@@ -436,6 +444,11 @@ def run_acase(rho: MV, hamiltonian, candidates: Sequence, *,
             word_universe=bank.resources(basis)["word_universe"],
             leakage=best.leakage, root_energies=root_energies,
             per_root_lowering=best.per_root))
+
+        if exact_ground_energy is not None and target_error is not None:
+            if abs(value - exact_ground_energy) <= target_error:
+                stopped_reason = f"target error reached ({abs(value - exact_ground_energy)*1000.0:.4f} mHa <= {target_error*1000.0:.4f} mHa)"
+                break
 
     relative = None
     if exact_ground_energy is not None:

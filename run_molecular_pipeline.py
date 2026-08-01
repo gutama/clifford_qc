@@ -52,7 +52,11 @@ MOLECULES = {
 }
 
 
-def run_pipeline(max_candidates: int | None = 25, max_subspace: int = 15) -> None:
+def run_pipeline(
+    max_candidates: int | None = 0,
+    max_subspace: int | None = 0,
+    target_error_mha: float = 1.5936,
+) -> None:
     out_dir = Path("molecular_results")
     out_dir.mkdir(exist_ok=True)
 
@@ -109,19 +113,28 @@ def run_pipeline(max_candidates: int | None = 25, max_subspace: int = 15) -> Non
         e_exact = float(exact_energies[0])
         print(f"  Exact Sector FCI E0: {e_exact:+.9f} Ha")
 
-        # 5. Adaptive A-CASE Subspace Eigensolver
+        # 5. Adaptive A-CASE Subspace Eigensolver (Optimal Path Selection)
+        max_size = (
+            max_subspace
+            if max_subspace and max_subspace > 0
+            else len(candidates)
+        )
+        target_error = target_error_mha / 1000.0 if target_error_mha > 0 else None
+
         adaptive = run_acase(
             rho0,
             model.hamiltonian,
             candidates,
-            max_size=min(max_subspace, len(candidates)),
+            max_size=max_size,
             leakage_tol=1e-10,
             exact_ground_energy=e_exact,
+            target_error=target_error,
         )
         e_acase = float(adaptive.result.ground_energy)
         err_ha = e_acase - e_exact
         err_mha = err_ha * 1000.0
-        print(f"  Adaptive A-CASE E0: {e_acase:+.9f} Ha (Error: {err_mha:+.4f} mHa, M={len(adaptive.labels)})")
+        print(f"  Adaptive A-CASE E0: {e_acase:+.9f} Ha (Error: {err_mha:+.4f} mHa, Optimal M={len(adaptive.labels)})")
+        print(f"  Adaptive Stop Reason: {adaptive.stopped_reason}")
 
         # 6. Complete SD Coordinate Subspace Eigensolver (Chemical Accuracy Check)
         t_sd_start = time.time()
@@ -214,20 +227,29 @@ def main() -> None:
     parser.add_argument(
         "--max-candidates",
         type=int,
-        default=25,
+        default=0,
         help="Max candidate excitations to evaluate (0 for full candidate pool)",
     )
     parser.add_argument(
         "--max-subspace",
         type=int,
-        default=15,
-        help="Max adaptive subspace basis size M",
+        default=0,
+        help="Max adaptive subspace basis size M (0 for unconstrained optimal growth)",
+    )
+    parser.add_argument(
+        "--target-error-mha",
+        type=float,
+        default=1.5936,
+        help="Target energy error threshold in mHa for early stopping (default 1.5936 mHa)",
     )
     args = parser.parse_args()
     run_pipeline(
-        max_candidates=args.max_candidates, max_subspace=args.max_subspace
+        max_candidates=args.max_candidates,
+        max_subspace=args.max_subspace,
+        target_error_mha=args.target_error_mha,
     )
 
 
 if __name__ == "__main__":
     main()
+
