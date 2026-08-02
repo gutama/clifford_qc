@@ -121,6 +121,15 @@ assert np.allclose(to_matrix(A * A), to_matrix(A) @ to_matrix(A))
   Kanamori, Anderson impurity, Kitaev honeycomb — built from the package's own
   Jordan-Wigner operators — with observables (`models/observables.py`) for
   occupations, double occupancy, spin correlations, and structure factors
+- orbital bases (`models/orbital.py`): the single-particle rotation
+  `b_p = sum_i W_pi a_i` as a named argument rather than an unstated default —
+  site, momentum, Daubechies wavelet, and non-interacting natural orbitals,
+  each emittable as a rotor circuit (`orbital_rotation_program`), since a
+  Jordan-Wigner Givens rotation is exactly two commuting rotors. The spectrum is
+  invariant; the cost is not — on the half-filled 8-site Hubbard ring the
+  Pauli-word count spans 41–3833 across these bases and the subspace reaching
+  1.6 mHa spans 906–4310 determinants, so a word count quoted without its basis
+  is not reproducible (`benchmarks/run_orbital_basis.py`)
 - a versioned effective-Hamiltonian boundary (`models/effective.py`) that reads
   a spin-independent Wannier one-body matrix plus onsite embedding interactions
   from JSON, validates orbital/spin/sector conventions, and emits the same
@@ -421,6 +430,7 @@ clifford_qc/
   sparse.py        # sparse Pauli reference tier: eigsh, (N,Sz) sectors
   models/          # TFIM, XXZ, random-Ising; Hubbard/Kanamori/Anderson/
                    # Kitaev; versioned effective-Hamiltonian ingestion;
+                   # orbital bases + Givens rotor networks;
                    # material observables; NumPy-only FCIDUMP; chemistry
   backends/        # Backend protocol: exact MV, dense reference, finite-shot,
                    # sector-restricted statevector + matrix-free Lanczos
