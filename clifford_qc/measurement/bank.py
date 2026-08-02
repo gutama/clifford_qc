@@ -12,7 +12,8 @@ from __future__ import annotations
 
 from typing import Sequence
 
-from ..multivector import MV, _lane_mask, word_mul
+from ..multivector import MV
+from ..pauli_kernel import pauli_lane_mask, word_mul
 from ..ir import PauliSum, PauliWord
 
 
@@ -24,7 +25,7 @@ def _pauli_anticommute(n: int, a: int, b: int) -> int:
     dot product a popcount of an AND, so the test is constant-time in the
     register width rather than a per-qubit scan.
     """
-    lo = _lane_mask(n)
+    lo = pauli_lane_mask(n)
     za = (a >> 1) & lo
     xa = (a & lo) ^ za
     zb = (b >> 1) & lo

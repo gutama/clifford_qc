@@ -458,7 +458,7 @@ def state_sector(generator, reference_state) -> dict[str, float]:
     the same state says whether that number is a sharp quantum number or an
     average over a superposition of sectors.
     """
-    from .adaptive import _sector_operators
+    from .symmetry import sector_operators
 
     A = generator.mv if isinstance(generator, Generator) else _to_mv(generator)
     rho = reference_state
@@ -466,7 +466,7 @@ def state_sector(generator, reference_state) -> dict[str, float]:
     if norm <= 1e-15:
         raise ValueError("generator annihilates the reference state")
     out = {}
-    for name, operator in zip(("particle_number", "sz"), _sector_operators(A.n)):
+    for name, operator in zip(("particle_number", "sz"), sector_operators(A.n)):
         first = (A.dagger() * operator * A * rho).trace().real / norm
         second = (A.dagger() * operator * operator * A * rho).trace().real / norm
         out[name] = first

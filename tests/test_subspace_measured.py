@@ -250,6 +250,19 @@ def test_uncertainty_labels_never_claim_certification(well_conditioned):
         assert interval.lower <= interval.estimate <= interval.upper
 
 
+@pytest.mark.parametrize("kwargs, message", [
+    ({"replicates": 1}, "at least two"),
+    ({"delta": 0.0}, "delta"),
+    ({"delta": 1.0}, "delta"),
+])
+def test_ritz_bootstrap_validates_its_statistical_contract(
+        well_conditioned, kwargs, message):
+    _, shared, _, _ = well_conditioned
+    cache = shared.measure(FiniteShotBackend(seed=8), 100)
+    with pytest.raises(ValueError, match=message):
+        bootstrap_ritz(shared, cache, **kwargs)
+
+
 def test_bootstrap_brackets_the_measured_energy(well_conditioned):
     """The resampling cross-check: it re-runs the whole nonlinear pipeline, so
     it sees what the linearization drops, and should agree in scale."""

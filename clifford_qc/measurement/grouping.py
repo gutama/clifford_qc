@@ -25,12 +25,12 @@ from functools import lru_cache
 from typing import Sequence
 
 from ..ir import PauliWord
-from ..multivector import _lane_mask
+from ..pauli_kernel import pauli_lane_mask
 
 
 def _nonident_lanes(n: int, code: int) -> int:
     """Bit plane (one bit per lane) marking qubits where ``code`` is not I."""
-    lo = _lane_mask(n)
+    lo = pauli_lane_mask(n)
     return (code & lo) | ((code >> 1) & lo)
 
 
@@ -79,7 +79,7 @@ def _conflict_degrees(n: int, codes: tuple[int, ...]) -> list[int]:
 
     import numpy as np
 
-    lo = np.int64(_lane_mask(n))
+    lo = np.int64(pauli_lane_mask(n))
     packed = np.fromiter(codes, dtype=np.int64, count=w)
     nz = (packed & lo) | ((packed >> np.int64(1)) & lo)
     degrees = np.zeros(w, dtype=np.int64)
@@ -144,7 +144,7 @@ def _place_vectorized(n: int, codes: Sequence[int], order: Sequence[int],
     """
     import numpy as np
 
-    lo = np.int64(_lane_mask(n))
+    lo = np.int64(pauli_lane_mask(n))
     one = np.int64(1)
     size = max(len(bases) + len(order), 1)
     basis_arr = np.zeros(size, dtype=np.int64)

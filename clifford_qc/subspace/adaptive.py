@@ -37,17 +37,18 @@ from __future__ import annotations
 import math
 import time
 from dataclasses import dataclass, field
-from functools import lru_cache
 from typing import Any, Sequence
 
 import numpy as np
 
-from ..algorithms.adapt import TIE_ATOL, TIE_RTOL, canonical_argmax
+from ..selection import TIE_ATOL, TIE_RTOL, canonical_argmax
 from ..multivector import MV
 from .elements import MatrixElementBank
 from .generators import Generator, as_generators, identity_generator
+from .contracts import as_multivector
 from .solver import (DEFAULT_MAX_CONDITION, DEFAULT_NORM_FLOOR, DEFAULT_TAU_S,
-                     SubspaceResult, _as_mv)
+                     SubspaceResult)
+from .symmetry import sector_leakage
 
 # Floor on a candidate's S-orthogonal fraction. Below it the candidate is
 # (numerically) already in the span and adds conditioning damage, not a
@@ -61,31 +62,6 @@ DEFAULT_LEAKAGE_TOL = 1e-9
 # in double precision (see _two_by_two_lowering). Four orders below the
 # orthogonality floor, so live scoring never reaches it.
 _GAP_FLOOR = 1e-12
-
-
-@lru_cache(maxsize=32)
-def _sector_operators(n: int) -> tuple[MV, MV]:
-    from ..fermion import total_number_op, total_sz_op
-    return total_number_op(n), total_sz_op(n)
-
-
-def sector_leakage(generator) -> dict[str, float]:
-    """Relative operator-level leakage out of the ``(N, S_z)`` sectors.
-
-    ``||[A, N]||_HS / ||A||_HS`` and the same for ``S_z``: zero exactly when
-    the generator commutes with the symmetry, and scale-free, so it can be
-    compared across generators of very different norms. Operator-level rather
-    than state-level on purpose -- a generator that commutes with ``N`` cannot
-    take *any* reference out of its particle-number sector, which is a stronger
-    statement than one state's sector weight.
-    """
-    A = generator.mv if isinstance(generator, Generator) else _as_mv(generator)
-    norm = A.norm_hs()
-    if norm <= 0.0:
-        return {"particle_number": 0.0, "sz": 0.0}
-    N, Sz = _sector_operators(A.n)
-    return {"particle_number": (A * N - N * A).norm_hs() / norm,
-            "sz": (A * Sz - Sz * A).norm_hs() / norm}
 
 
 @dataclass(frozen=True)
@@ -479,21 +455,3 @@ def run_acase(rho: MV, hamiltonian, candidates: Sequence, *,
         relative_error=relative, resources=resources,
         root_energies=root_energies)
 
-
-def adapt_warm_start(model, pool, *, max_operators: int = 4, **kwargs):
-    """Run exact ADAPT-VQE and return ``(rho, AdaptResult)`` for use as a reference.
-
-    The Paper A machinery unchanged; A-CASE then treats the optimized ADAPT
-    state as its single reference, so the subspace is grown around a state that
-    already carries some correlation rather than around a bare determinant.
-    """
-    from ..algorithms.adapt import _ansatz_program, run_adapt
-    from ..backends.exact_mv import ExactMVBackend
-
-    result = run_adapt(model, pool, max_operators=max_operators, **kwargs)
-    by_label = {op.label: op for op in pool}
-    # Rebuild in the order ADAPT selected them; the ansatz is ordered, so
-    # filtering the pool by membership would silently reorder the rotors.
-    chosen = [by_label[label] for label in result.labels]
-    program = _ansatz_program(model, chosen)
-    return ExactMVBackend().state(program, result.parameters), result
