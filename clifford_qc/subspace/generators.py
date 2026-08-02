@@ -20,6 +20,7 @@ Clifford grade.
 from __future__ import annotations
 
 from dataclasses import dataclass
+from math import sqrt
 from typing import Iterable, Sequence
 
 from ..ir import NamedClifford, PauliSum, PauliWord, Program
@@ -358,6 +359,87 @@ def configuration_generators(model, configurations) -> list[Generator]:
     """``configuration_generator`` over a mapping of named configurations."""
     return [configuration_generator(model.reference, configuration, label=name)
             for name, configuration in sorted(dict(configurations).items())]
+
+
+def configuration_haar_packets(configurations: Sequence, *,
+                               min_support: int = 2,
+                               max_support: int | None = 16,
+                               include_scaling: bool = False,
+                               label_prefix: str = "cfgH") -> list[Generator]:
+    """Support-pruned tree-Haar packets over an *ordered* configuration list.
+
+    The list order defines configuration-space locality.  The routine does not
+    pretend to infer that physics: a Hubbard caller can order determinants by
+    excitation rank, doublon count, and charge/spin pattern, while a chemistry
+    caller can choose a different hierarchy.  A balanced binary tree is then
+    built over those ordered leaves.  At every (possibly unbalanced) split,
+    the normalized scaling vectors of the two children are combined into one
+    zero-mean Haar detail,
+
+    ``sqrt(n_r/n) s_l - sqrt(n_l/n) s_r``.
+
+    The complete coefficient transform (all details plus the root scaling
+    vector) is exactly orthogonal for any finite leaf count, not just powers of
+    two.  Therefore, when the supplied ``A_i|psi>`` are distinct orthonormal
+    configuration states, the unpruned packets preserve ``S = I`` and Parseval
+    exactly up to floating-point error.  This is a classical change of basis
+    among virtual A-CASE generators, not a quantum wavelet circuit.
+
+    ``max_support`` caps the actual Pauli-word support ``S_A`` after combining
+    leaves.  Pruning makes the returned family incomplete by design: it is an
+    opt-in coarse candidate tier, not a replacement for the convergence-complete
+    level-4 family.  ``include_scaling`` requests the root average as well; the
+    same support bounds still apply to it.
+    """
+    if min_support < 1:
+        raise ValueError("min_support must be at least 1")
+    if max_support is not None and max_support < min_support:
+        raise ValueError("max_support must be at least min_support")
+    if not isinstance(label_prefix, str) or not label_prefix:
+        raise ValueError("label_prefix must be a non-empty string")
+
+    leaves = as_generators(configurations)
+    keys = [_scalar_free_key(generator.mv) for generator in leaves]
+    if len(set(keys)) != len(keys):
+        raise ValueError("configuration generators must name distinct directions")
+
+    # A row is a sparse coefficient vector over the ordered leaves.  Returning
+    # child details after the parent gives deterministic coarse-to-fine order.
+    def tree(lo: int, hi: int):
+        if hi - lo == 1:
+            return {lo: 1.0}, []
+        mid = lo + (hi - lo) // 2
+        left, left_details = tree(lo, mid)
+        right, right_details = tree(mid, hi)
+        n_left, n_right = mid - lo, hi - mid
+        total = n_left + n_right
+        parent = {index: sqrt(n_left / total) * value
+                  for index, value in left.items()}
+        parent.update({index: sqrt(n_right / total) * value
+                       for index, value in right.items()})
+        detail = {index: sqrt(n_right / total) * value
+                  for index, value in left.items()}
+        detail.update({index: -sqrt(n_left / total) * value
+                       for index, value in right.items()})
+        return parent, [(lo, hi, detail)] + left_details + right_details
+
+    scaling, details = tree(0, len(leaves))
+    rows = details + ([(0, len(leaves), scaling)] if include_scaling else [])
+    out: list[Generator] = []
+    for lo, hi, row in rows:
+        terms: dict[int, complex] = {}
+        for index, coefficient in row.items():
+            for code, value in leaves[index].mv.terms.items():
+                terms[code] = terms.get(code, 0.0) + coefficient * value
+        mv = MV(leaves[0].n, terms)
+        support = mv.nnz()
+        if support < min_support:
+            continue
+        if max_support is not None and support > max_support:
+            continue
+        kind = "S" if row is scaling else "H"
+        out.append(Generator(f"{label_prefix}{kind}[{lo}:{hi})", mv))
+    return out
 
 
 def state_sector(generator, reference_state) -> dict[str, float]:
