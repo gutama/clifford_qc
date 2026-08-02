@@ -444,3 +444,69 @@ def test_multi_root_arguments_are_validated(case):
     with pytest.raises(ValueError, match="aggregation must be"):
         run_acase(rho, model.hamiltonian, candidates, max_size=1,
                   aggregation="median")
+
+
+# ------------------------------------------------------- oracle-assisted stop
+
+
+def test_target_error_stops_growth_once_the_threshold_is_cleared(case):
+    """``target_error`` is a *diagnostic* stop: it is fed the exact energy.
+
+    What it answers is "how small can M be and still clear the threshold",
+    which is a legitimate question about the selector. What it does not answer
+    is what the method costs, because in application the exact energy is the
+    unknown. The record has to say which of the two it is reporting, so this
+    test pins the observable consequence: growth ends at the threshold, the
+    reason says so, and the basis is strictly smaller than the unstopped run.
+    """
+    model, rho, _, candidates, E0 = case
+    threshold = 1e-3
+    stopped = run_acase(rho, model.hamiltonian, candidates, max_size=12,
+                        exact_ground_energy=E0, target_error=threshold)
+    assert abs(stopped.energy - E0) <= threshold
+    assert stopped.stopped_reason.startswith("target error reached")
+
+    free = run_acase(rho, model.hamiltonian, candidates, max_size=12,
+                     exact_ground_energy=E0)
+    assert len(stopped.labels) < len(free.labels)
+    # and it is the *first* such M: one step earlier the threshold was not met
+    assert abs(stopped.energy_history[-2] - E0) > threshold
+
+
+def test_target_error_needs_the_exact_energy_to_do_anything(case):
+    """Without ``exact_ground_energy`` the stop is inert rather than guessing."""
+    model, rho, _, candidates, E0 = case
+    ungated = run_acase(rho, model.hamiltonian, candidates, max_size=6,
+                        target_error=1e-3)
+    assert ungated.stopped_reason != "target error reached"
+    assert len(ungated.labels) == len(
+        run_acase(rho, model.hamiltonian, candidates, max_size=6).labels)
+
+
+def test_an_already_accurate_reference_returns_before_growing(case):
+    """The pre-loop return path: no generator is ever added, so the result must
+    still be well formed -- empty records, a one-element basis, and a history
+    that is just the reference value. This branch returns a separately
+    constructed ``AdaptiveResult`` and so is exactly where a missing field
+    would hide."""
+    model, rho, _, candidates, _ = case
+    reference_energy = run_acase(rho, model.hamiltonian, candidates,
+                                 max_size=1).energy_history[0]
+    result = run_acase(rho, model.hamiltonian, candidates, max_size=12,
+                       exact_ground_energy=reference_energy, target_error=1e-6)
+    assert result.records == ()
+    assert result.labels == ("I",)
+    assert result.energy_history == (reference_energy,)
+    assert result.energy == pytest.approx(reference_energy)
+    assert result.stopped_reason.startswith("target error reached")
+    assert result.relative_error == pytest.approx(0.0, abs=1e-9)
+
+
+def test_effective_rank_never_exceeds_the_basis_size(case):
+    """The invariant the hand-edited molecular record violated: an
+    M-dimensional subspace cannot have effective rank above M."""
+    model, rho, _, candidates, E0 = case
+    for size in (1, 3, 6, 9):
+        result = run_acase(rho, model.hamiltonian, candidates, max_size=size,
+                           exact_ground_energy=E0)
+        assert result.result.effective_rank <= len(result.labels)

@@ -4,6 +4,14 @@ on:
   push:
     branches: [main]
   pull_request:
+  workflow_dispatch:
+
+# Iterating on experiments means pushing to the same branch repeatedly. Without
+# this, every push starts a full run and they queue behind one another when only
+# the newest result is ever wanted.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
 
 jobs:
   core:
@@ -18,12 +26,40 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: ${{ matrix.python-version }}
+          cache: pip
+          cache-dependency-path: pyproject.toml
       - name: Install
         run: python -m pip install -e .[test]
       - name: Run tests (core, bridge tests skip without extras)
         run: python -m pytest
       - name: Verification entry point
         run: python -m clifford_qc.verify
+
+  # The molecular experiment's own gate. It lives here rather than in
+  # manuscripts.yml because molecular_results/ feeds no manuscript and is
+  # explicitly subtracted from that workflow's path filter -- which had the
+  # effect that the gate appeared in CI only as a negated path and never
+  # actually ran. Both scripts are pure standard library, so this job needs no
+  # install and costs seconds.
+  molecular:
+    name: molecular records and report
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Records are internally consistent
+        run: python benchmarks/check_molecular.py
+      # The report is generated from the record, so a regenerated record that
+      # leaves a stale report behind is the same drift class the paper gates
+      # catch. The PDF is not checked here: it needs TeX, and binding it to its
+      # source is a separate open item.
+      - name: Report agrees with the record it is generated from
+        run: |
+          python benchmarks/summarize_molecular.py
+          git diff --exit-code -- \
+            molecular_simulation_report.md molecular_simulation_report.tex
 
   bridges:
     name: bridges (stim, openfermion, pytket, pennylane, pyzx)
@@ -33,127 +69,9 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: "3.12"
+          cache: pip
+          cache-dependency-path: pyproject.toml
       - name: Install with all bridge extras
         run: python -m pip install -e .[test,bridges]
       - name: Run full suite
         run: python -m pytest
-
-  manuscript:
-    name: manuscripts (revtex builds + artifact consistency)
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
-        with:
-          python-version: "3.12"
-      # Chemistry extras are not needed to build the manuscript, but they are
-      # part of the environment REPRODUCING.md quotes its test count for.
-      # Without them three more test files drop out of collection and the
-      # count check downgrades itself to a skip -- so the job that owns that
-      # contract would never actually enforce it.
-      - name: Install (research extras for table stats, chemistry to pin the test count)
-        run: python -m pip install -e .[test,research,chemistry] matplotlib
-      - name: Install TeX Live (revtex4-2 + the manuscript's packages)
-        run: |
-          sudo apt-get update -qq
-          sudo apt-get install -y --no-install-recommends \
-            texlive-latex-base texlive-publishers texlive-latex-recommended \
-            texlive-fonts-recommended texlive-science
-      # The committed figures and tables must be reproducible from the
-      # committed records: a regenerated benchmark that leaves a stale asset
-      # behind is the defect class these checks exist to catch.
-      - name: Regenerate figures and tables, then fail on any drift
-        run: |
-          python paper/make_figures.py
-          python paper/make_tables.py
-          git diff --exit-code -- paper/tables
-      - name: Summaries agree with their records
-        run: python benchmarks/check_summaries.py
-      - name: REPRODUCING.md agrees with the code
-        run: python benchmarks/check_docs.py --require-test-count
-      - name: Manuscript structure (refs, bib keys, table columns, float ages)
-        run: python paper/check_manuscript.py
-      - name: Build the manuscript
-        working-directory: paper
-        run: |
-          pdflatex -interaction=nonstopmode -halt-on-error manuscript.tex
-          bibtex manuscript
-          pdflatex -interaction=nonstopmode -halt-on-error manuscript.tex
-          pdflatex -interaction=nonstopmode -halt-on-error manuscript.tex
-      # Overfull boxes are text running into the margin. They cost nothing to
-      # detect and are invisible in review, so the build gates on zero.
-      - name: No overfull boxes, no undefined references or citations
-        working-directory: paper
-        run: |
-          fail=0
-          for pattern in 'Overfull \\hbox' 'LaTeX Warning: Reference' 'LaTeX Warning: Citation'; do
-            n=$(grep -c "$pattern" manuscript.log || true)
-            echo "$pattern: $n"
-            [ "$n" -eq 0 ] || fail=1
-          done
-          if [ "$fail" -ne 0 ]; then
-            echo '--- offending lines ---'
-            grep -nE 'Overfull \\hbox|LaTeX Warning: (Reference|Citation)' manuscript.log || true
-            exit 1
-          fi
-      - uses: actions/upload-artifact@v4
-        with:
-          name: manuscript-pdf
-          path: paper/manuscript.pdf
-
-      # paper_acase/ is a second, standalone manuscript with its own generators
-      # and its own committed records. It gets the same gates: without them the
-      # drift protection above would cover only half the repository's papers.
-      - name: A-CASE paper -- response records agree with a fresh run
-        run: python paper_acase/check_response_records.py
-      # The warm-start gate keeps every discrete resource and selection field
-      # exact while tolerating only cross-BLAS last-bit energy variation.
-      - name: A-CASE paper -- warm-start record agrees with a fresh run
-        run: python benchmarks/check_warm_start.py
-      # The Krylov widths (Table IV) are checked by value rather than by bytes:
-      # the record's raw counts include round-off-level words that two PySCF
-      # runs disagree about. See the script's docstring.
-      - name: A-CASE paper -- Krylov widths agree with their record
-        run: python benchmarks/check_krylov_width.py
-      # The matched contract (Table V) gets the same exact-discrete,
-      # tolerant-float gate as the warm-start record: its counts reproduce
-      # exactly, its energies carry the optimizer's last bits and so depend on
-      # the runner's BLAS.
-      - name: A-CASE paper -- matched-contract record agrees with a fresh run
-        run: python benchmarks/check_matched_h4.py
-      - name: A-CASE paper -- regenerate figures and tables, then fail on drift
-        run: |
-          python paper_acase/make_figures.py
-          python paper_acase/make_tables.py
-          # Matplotlib PDF streams vary across font/compression builds. The
-          # manifest binds every figure to the exact generator and input
-          # digests; tables remain directly byte reproducible.
-          git diff --exit-code -- \
-            paper_acase/paper_assets/manifest.json paper_acase/tables
-      - name: A-CASE paper -- structure (refs, bib keys, table columns, float ages)
-        run: python paper_acase/check_manuscript.py
-      - name: A-CASE paper -- build the manuscript
-        working-directory: paper_acase
-        run: |
-          pdflatex -interaction=nonstopmode -halt-on-error manuscript.tex
-          bibtex manuscript
-          pdflatex -interaction=nonstopmode -halt-on-error manuscript.tex
-          pdflatex -interaction=nonstopmode -halt-on-error manuscript.tex
-      - name: A-CASE paper -- no overfull boxes, no undefined references
-        working-directory: paper_acase
-        run: |
-          fail=0
-          for pattern in 'Overfull \\hbox' 'LaTeX Warning: Reference' 'LaTeX Warning: Citation'; do
-            n=$(grep -c "$pattern" manuscript.log || true)
-            echo "$pattern: $n"
-            [ "$n" -eq 0 ] || fail=1
-          done
-          if [ "$fail" -ne 0 ]; then
-            echo '--- offending lines ---'
-            grep -nE 'Overfull \\hbox|LaTeX Warning: (Reference|Citation)' manuscript.log || true
-            exit 1
-          fi
-      - uses: actions/upload-artifact@v4
-        with:
-          name: manuscript-acase-pdf
-          path: paper_acase/manuscript.pdf
