@@ -209,6 +209,26 @@ def check_record(key: str, record: dict, errors: list[str]) -> None:
         if field not in record:
             _fail(errors, key, f"missing §6 resource field {field}")
 
+    # 9b: A-CASE's chemistry candidates are singles and doubles on the HF
+    # reference, so its span is a *subspace* of the CISD space and Rayleigh-Ritz
+    # cannot go below the CISD minimum. If it does, the reported CISD is not
+    # that minimum -- an external solver failure, not an A-CASE result.
+    #
+    # This is not hypothetical. At H2O 2.5x, PySCF CISD returns an energy
+    # 55.2 mHa above the true SD-block minimum while reporting converged=True;
+    # direct diagonalization of the 141-determinant block agrees with A-CASE to
+    # 0.13 uHa. A convergence flag from the external solver does not catch it,
+    # and this comparison does, from the record alone.
+    e_ad = record.get("e_acase_adaptive")
+    e_cisd = record.get("e_cisd")
+    if e_ad is not None and e_cisd is not None and e_ad < e_cisd - 1e-6:
+        _fail(errors, key,
+              f"A-CASE {e_ad:.9f} lies below CISD {e_cisd:.9f} by "
+              f"{(e_cisd - e_ad) * 1000:.3f} mHa, but its basis is a subspace "
+              f"of the CISD space and cannot. The reported CISD is not the "
+              f"variational minimum of its own space -- check the external "
+              f"solver rather than A-CASE")
+
     # 10: an unconverged reference makes every correlated number built on it
     # meaningless rather than merely inaccurate, and stretched geometries are
     # exactly where that happens.
