@@ -24,7 +24,6 @@ from __future__ import annotations
 
 import math
 from dataclasses import dataclass, field
-from enum import Enum
 from typing import Any, Sequence
 
 import numpy as np
@@ -39,153 +38,24 @@ from ..measurement.grouping import qwc_groups
 from .layering import build_layer
 from .optimize import minimize_energy
 from .pools import PoolOperator
+from ..selection import (
+    TIE_ATOL,
+    TIE_RTOL,
+    SelectionStatus,
+    canonical_argmax,
+    certification_level,
+    eta_required,
+    is_certified,
+    is_resolved,
+    resolution_kind,
+)
 
-
-class SelectionStatus(Enum):
-    RESOLVED_BEST = "resolved_best"
-    RESOLVED_EPS_BEST = "resolved_eps_best"
-    BELOW_THRESHOLD = "below_threshold"
-    BUDGET_EXHAUSTED_AMBIGUOUS = "budget_exhausted_ambiguous"
-    EXACT = "exact"
-    RANDOM = "random"
-    FAST_PROXY = "fast_proxy"
-
-
-# A selection is *resolved* when the best-arm rule fires. There are two
-# resolution kinds:
-#   - exact-best (RESOLVED_BEST): the leader's lower bound strictly exceeds
-#     every rival's upper bound, certifying the empirical leader is the true
-#     argmax of |g_j|;
-#   - eps-best (RESOLVED_EPS_BEST): the leader's lower bound clears every
-#     rival's upper bound up to a declared tolerance eps (``near_tol``),
-#     L_best >= max_k U_k - eps. On the 1-delta event that all intervals hold
-#     this certifies |g_best| >= max_k |g_k| - eps -- the selected operator's
-#     gradient is within eps of optimal. Crucially it *resolves exact
-#     symmetry ties* (gap 0), which the exact-best rule can never resolve at
-#     any shot budget.
-# EXACT is a noiseless exact-gradient selection. Whether a resolution is a
-# genuine finite-sample certificate or only asymptotic depends on the bound:
-# empirical-Bernstein ('eb') is finite-sample (finite-schedule) valid, normal
-# is asymptotic. Resolution *kind* and certification *level* are recorded
-# separately, so an asymptotic resolution is never reported as a finite-sample
-# certificate and an eps-best selection is never reported as the exact argmax.
-_RESOLVED_STATUSES = frozenset(
-    {SelectionStatus.RESOLVED_BEST, SelectionStatus.RESOLVED_EPS_BEST,
-     SelectionStatus.EXACT})
-
-
-def _is_resolved(status: "SelectionStatus") -> bool:
-    """True when the selection resolved (exact-best or eps-best) or was exact."""
-    return status in _RESOLVED_STATUSES
-
-
-def _resolution_kind(status: "SelectionStatus") -> str:
-    """What was certified: 'exact', 'best' (argmax), 'eps_best' (within eps),
-    or 'none' (unresolved)."""
-    if status is SelectionStatus.EXACT:
-        return "exact"
-    if status is SelectionStatus.RESOLVED_BEST:
-        return "best"
-    if status is SelectionStatus.RESOLVED_EPS_BEST:
-        return "eps_best"
-    return "none"
-
-
-def _certification_level(status: "SelectionStatus", bound: str | None) -> str:
-    """Statistical certification level of a selection.
-
-    - ``'exact'``        : noiseless exact-gradient selection (certain);
-    - ``'finite_sample'``: resolved (exact-best or eps-best) under the
-      empirical-Bernstein ('eb') bound -- a genuine finite-sample guarantee;
-    - ``'asymptotic'``   : resolved under the normal bound -- valid only
-      asymptotically (Gaussian approximation), not a finite-sample certificate;
-    - ``'none'``         : not resolved (ambiguous, below-threshold, random,
-      or proxy selection).
-
-    Exact-best and eps-best carry the same statistical level -- both rest on
-    the same 1-delta interval event -- and differ only in *what* is certified
-    (the argmax versus an operator within eps of it), which
-    ``_resolution_kind`` records.
-    """
-    if status is SelectionStatus.EXACT:
-        return "exact"
-    if status in (SelectionStatus.RESOLVED_BEST, SelectionStatus.RESOLVED_EPS_BEST):
-        return "finite_sample" if bound == "eb" else "asymptotic"
-    return "none"
-
-
-def _is_certified(level: str) -> bool:
-    """True only for a statistical finite-sample certificate.
-
-    Exact gradients are noiseless and recorded as ``certification='exact'``,
-    but they are not statistical confidence certificates.
-    """
-    return level == "finite_sample"
-
-
-def _eta_required(best_lower, rival_upper):
-    """Smallest multiplicative tolerance the current intervals certify.
-
-    The eps-best rule ``L_best >= max_k U_k - eps`` is an *absolute*
-    certificate, so its strength depends on the gradient scale at the step.
-    The same interval event also supports a scale-free (multiplicative)
-    certificate: whenever ``L_best >= (1 - eta) * max_{k != best} U_k``,
-
-        |g_best| >= L_best >= (1 - eta) max_k U_k >= (1 - eta) max_k |g_k|
-
-    on the 1-delta event. This returns the smallest such ``eta``, i.e.
-    ``(U_rival - L_best) / U_rival`` clipped to [0, 1] -- the strongest
-    dimensionless guarantee the measured data supports at this step, directly
-    comparable across Hamiltonians and gradient scales. ``eta = 0`` is an
-    exact-best resolution; ``eta >= 1`` means the data support no nontrivial
-    multiplicative statement.
-    """
-    if rival_upper is None or rival_upper <= 0.0:
-        return 0.0 if best_lower is not None and best_lower > 0.0 else None
-    return float(min(1.0, max(0.0, (rival_upper - best_lower) / rival_upper)))
-
-
-# Ties in |g| are exact symmetries of the Hamiltonian and the pool, not
-# numerical accidents, so the tied groups are large and the gaps between
-# distinct magnitudes are wide. On H4's 160 candidates at the reference state
-# there are twelve exactly-distinct magnitudes: seven selectable ones from
-# 0.137 down to 0.047, separated by at least 8.2e-4, in tie groups of 8 and
-# 16; four near-zero ones around 1e-7; and 72 exact zeros.
-#
-# The tolerance is relative because those two regimes need different absolute
-# widths. Against a selectable leader it is ~1e-10 -- an order of magnitude
-# above the ~1e-11 reduction-order noise and six orders below the 8.2e-4 gap.
-# Against a near-zero leader it shrinks with it, merging the pairs that differ
-# by <1e-16 while still separating the 4.9e-9 gap between the two distinct
-# near-zero magnitudes. Such a step is below any usable threshold and abstains
-# anyway, but the rule should not depend on that.
-TIE_RTOL = 1e-9
-TIE_ATOL = 1e-12
-
-
-def canonical_argmax(candidates, magnitude, rtol=TIE_RTOL, atol=TIE_ATOL):
-    """Argmax that picks the same candidate when the scores are perturbed.
-
-    ``max`` takes whichever candidate is *strictly* largest, so among exactly
-    tied operators a perturbation far below any physical scale decides the
-    step. That is how a four-thread rerun of the H4 trajectory exchanges nine
-    of its twelve operators: multithreaded BLAS reductions sum in completion
-    order, shifting the scores by ~1e-11 and handing each tie to whichever
-    member the shift happened to favour.
-
-    Here the leaders are collected within a tolerance first and the lowest
-    candidate index among them wins. Since the tolerance is far wider than the
-    noise and far narrower than the gap between distinct magnitudes, the tied
-    set is the true symmetry class, and the result no longer depends on the
-    reduction order -- or on the thread count, the BLAS vendor, or the CPU.
-
-    This picks the same member ``max`` would have picked had the arithmetic
-    been exact, so it is not a change of selection rule: on well-separated
-    candidates it is ``max``.
-    """
-    best = max(magnitude(i) for i in candidates)
-    tol = atol + rtol * abs(best)
-    return min(i for i in candidates if magnitude(i) >= best - tol)
+# Compatibility aliases for the published ADAPT module API.
+_is_resolved = is_resolved
+_resolution_kind = resolution_kind
+_certification_level = certification_level
+_is_certified = is_certified
+_eta_required = eta_required
 
 
 def _rank_and_gap(exact_scores, idx):
@@ -521,13 +391,17 @@ class FastInspiredSelector:
         return best, best_score
 
 
-def _ansatz_program(model, chosen: Sequence[PoolOperator]) -> Program:
+def ansatz_program(model, chosen: Sequence[PoolOperator]) -> Program:
     prog = Program(model.n)
     for op in model.reference.ops:
         prog.append(op)
     for k, pool_op in enumerate(chosen):
         prog.append(Rotor(pool_op.word, Parameter(f"t{k}")))
     return prog
+
+
+# Historical name kept for callers that imported the private helper.
+_ansatz_program = ansatz_program
 
 
 def run_adapt(model, pool: Sequence[PoolOperator], *,
@@ -588,11 +462,11 @@ def run_adapt(model, pool: Sequence[PoolOperator], *,
     support_peak = 0
     optimizer_evaluations = 0
     abstentions = 0
-    energy = exact_backend.expectation(_ansatz_program(model, []), H, ())
+    energy = exact_backend.expectation(ansatz_program(model, []), H, ())
     stopped_reason = "operator budget reached"
 
     for step in range(1, max_operators + 1):
-        program = _ansatz_program(model, chosen)
+        program = ansatz_program(model, chosen)
         rho = exact_backend.state(program, theta)
         support_peak = max(support_peak, getattr(exact_backend, "support_peak", 0))
         untried = [i for i in range(len(pool)) if allow_repeats or i not in used]
@@ -735,7 +609,7 @@ def run_adapt(model, pool: Sequence[PoolOperator], *,
                     used.add(j)
                     theta = theta + (0.0,)
                 layer_labels = tuple(pool[j].label for j in layer[1:])
-        program = _ansatz_program(model, chosen)
+        program = ansatz_program(model, chosen)
 
         def f_eg(x):
             E = exact_backend.expectation(program, H, x)

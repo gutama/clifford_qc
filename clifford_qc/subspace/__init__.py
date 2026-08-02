@@ -11,9 +11,10 @@ trace pairing ``MV.trace_pairing``.
 """
 
 from .adaptive import (
-    AdaptiveResult, CandidateScore, GrowthRecord, adapt_warm_start, run_acase,
+    AdaptiveResult, CandidateScore, GrowthRecord, run_acase,
     score_candidate, sector_leakage, select_candidate,
 )
+from ..workflows import adapt_warm_start
 from .adapt_gcim import (
     AdaptGCIMIteration, AdaptGCIMResult, adapt_gcim_gradient, run_adapt_gcim,
 )
@@ -45,6 +46,7 @@ from .solver import (
     DEFAULT_MAX_CONDITION, DEFAULT_NORM_FLOOR, DEFAULT_TAU_S, SubspaceResult,
     canonical_eigh, projected_matrices, solve_projected, solve_subspace,
 )
+from .projection import ProjectedProblem
 
 __all__ = [
     "AdaptiveResult", "CandidateScore", "GrowthRecord", "adapt_warm_start",
@@ -68,6 +70,6 @@ __all__ = [
     "BootstrapResponse", "MeasuredResponseSpectrum",
     "ResponseLineUncertainty", "ResponseMeasurement", "bootstrap_response",
     "DEFAULT_MAX_CONDITION", "DEFAULT_NORM_FLOOR", "DEFAULT_TAU_S",
-    "SubspaceResult", "canonical_eigh", "projected_matrices",
+    "SubspaceResult", "ProjectedProblem", "canonical_eigh", "projected_matrices",
     "solve_projected", "solve_subspace",
 ]

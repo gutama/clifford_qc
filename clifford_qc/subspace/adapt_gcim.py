@@ -28,7 +28,7 @@ from typing import Sequence
 
 import numpy as np
 
-from ..algorithms.adapt import TIE_ATOL, TIE_RTOL, canonical_argmax
+from ..selection import TIE_ATOL, TIE_RTOL, canonical_argmax
 from ..ir import PauliSum
 from ..matrix import to_matrix
 from ..multivector import MV

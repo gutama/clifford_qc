@@ -40,13 +40,15 @@ import numpy as np
 
 from ..backends.protocol import GroupSample, MeasurementBatch
 from ..measurement.cache import GroupedWordCache
+from ..measurement.functionals import split_complex_coefficients
 from ..measurement.grouping import qwc_groups
 from ..ir import PauliWord
 from .elements import MatrixElementBank
-from .measured import HEURISTIC, Interval, SharedMeasurement, _split_complex
+from .measured import HEURISTIC, Interval, SharedMeasurement
 from .response import ResponseLine, broaden_response, static_susceptibility
+from .contracts import as_multivector
 from .solver import (DEFAULT_MAX_CONDITION, DEFAULT_NORM_FLOOR, DEFAULT_TAU_S,
-                     SubspaceResult, _as_mv)
+                     SubspaceResult)
 
 
 @dataclass(frozen=True)
@@ -171,7 +173,7 @@ class ResponseMeasurement(SharedMeasurement):
                  indices: Sequence[int] | None = None, *,
                  label: str = "response_observable"):
         super().__init__(bank, indices)
-        self.observable = _as_mv(observable)
+        self.observable = as_multivector(observable)
         if self.observable.n != bank.n:
             raise ValueError("observable lives in a different algebra")
         if not self.observable.is_hermitian():
@@ -187,7 +189,8 @@ class ResponseMeasurement(SharedMeasurement):
                 operator = bank.observable_operator(
                     self.observable, i, j, label=self.observable_label)
                 observable_codes.update(operator.terms)
-                self._observable_pairs[(i, j)] = _split_complex(operator.terms)
+                self._observable_pairs[(i, j)] = split_complex_coefficients(
+                    operator.terms)
         self._observable_codes = frozenset(observable_codes)
 
         codes = {
