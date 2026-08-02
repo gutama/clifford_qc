@@ -210,11 +210,19 @@ class PeakRSS:
                 return
 
     def __enter__(self) -> "PeakRSS":
+        # Fail here rather than sampling zero. A zero baseline propagates into
+        # the record as ``*_peak_rss_bytes: 0``, which check_molecular.py then
+        # rejects as "the sampler never read a resident set size" -- a
+        # confusing failure hours later, at the end of a run whose real problem
+        # was that /proc was unavailable at the start.
         try:
             self.baseline = self.peak = self._rss()
-        except (OSError, ValueError, IndexError):
-            self.baseline = self.peak = 0
-            return self
+        except (OSError, ValueError, IndexError) as exc:
+            raise RuntimeError(
+                "cannot read /proc/self/statm, so peak RSS cannot be sampled; "
+                "the §6 resource metrics would be recorded as zero and "
+                "rejected by benchmarks/check_molecular.py"
+            ) from exc
         self._thread = threading.Thread(target=self._run, daemon=True)
         self._thread.start()
         return self

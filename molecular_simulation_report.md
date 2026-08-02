@@ -72,7 +72,7 @@ The arm reproduces CISD by construction, so it is skipped on the stretched rows 
 | HF | `-98.596624180` | `-98.596624180` | `+0.00e+00` |
 | LiH | `-7.882388615` | `-7.882388615` | `+0.00e+00` |
 
-### 1.2 Full energies
+### 1.4 Full energies
 
 | Molecule | RHF | CCSD | CISD | Complete SD | A-CASE | Sector-exact FCI |
 | :--- | ---: | ---: | ---: | ---: | ---: | ---: |

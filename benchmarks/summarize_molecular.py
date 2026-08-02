@@ -36,10 +36,10 @@ DISPLAY = {
     "beh2": ("BeH₂", r"\text{BeH}_2", "BeH$_2$"),
     "hf": ("HF", r"\text{HF}", "HF"),
     "h2o": ("H₂O", r"\text{H}_2\text{O}", "H$_2$O"),
-    "lih_stretched": ("LiH 3×", r"\text{LiH}", "LiH 3$\times$"),
-    "beh2_stretched": ("BeH₂ 2×", r"\text{BeH}_2", "BeH$_2$ 2$\times$"),
-    "h2o_stretched": ("H₂O 2×", r"\text{H}_2\text{O}", "H$_2$O 2$\times$"),
-    "h2o_dissociating": ("H₂O 2.5×", r"\text{H}_2\text{O}", "H$_2$O 2.5$\times$"),
+    "lih_stretched": ("LiH 3×", r"\text{LiH}", r"LiH 3$\times$"),
+    "beh2_stretched": ("BeH₂ 2×", r"\text{BeH}_2", r"BeH$_2$ 2$\times$"),
+    "h2o_stretched": ("H₂O 2×", r"\text{H}_2\text{O}", r"H$_2$O 2$\times$"),
+    "h2o_dissociating": ("H₂O 2.5×", r"\text{H}_2\text{O}", r"H$_2$O 2.5$\times$"),
 }
 
 GEOMETRY = {
@@ -252,7 +252,7 @@ def render_markdown(summary: dict) -> str:
         add(f"| {_md_name(r['key'])} | `{r['sd']:.9f}` | `{r['cisd']:.9f}` "
             f"| `{r['sd'] - r['cisd']:+.2e}` |")
     add("")
-    add("### 1.2 Full energies")
+    add("### 1.4 Full energies")
     add("")
     add("| Molecule | RHF | CCSD | CISD | Complete SD | A-CASE | Sector-exact FCI |")
     add("| :--- | ---: | ---: | ---: | ---: | ---: | ---: |")

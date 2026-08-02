@@ -35,6 +35,32 @@ jobs:
       - name: Verification entry point
         run: python -m clifford_qc.verify
 
+  # The molecular experiment's own gate. It lives here rather than in
+  # manuscripts.yml because molecular_results/ feeds no manuscript and is
+  # explicitly subtracted from that workflow's path filter -- which had the
+  # effect that the gate appeared in CI only as a negated path and never
+  # actually ran. Both scripts are pure standard library, so this job needs no
+  # install and costs seconds.
+  molecular:
+    name: molecular records and report
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Records are internally consistent
+        run: python benchmarks/check_molecular.py
+      # The report is generated from the record, so a regenerated record that
+      # leaves a stale report behind is the same drift class the paper gates
+      # catch. The PDF is not checked here: it needs TeX, and binding it to its
+      # source is a separate open item.
+      - name: Report agrees with the record it is generated from
+        run: |
+          python benchmarks/summarize_molecular.py
+          git diff --exit-code -- \
+            molecular_simulation_report.md molecular_simulation_report.tex
+
   bridges:
     name: bridges (stim, openfermion, pytket, pennylane, pyzx)
     runs-on: ubuntu-latest

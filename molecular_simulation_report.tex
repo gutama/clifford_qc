@@ -24,18 +24,18 @@ Molecule & $n$ & $N_e$ & Sector & $M$ & A-CASE & CCSD & CISD & SD & $\kappa(S)$ 
  & & & dim & & (mHa) & (mHa) & (mHa) & (mHa) & \\
 \midrule
 BeH$_2$ & 14 & 6 & 1225 & 11 & $+1.3411$ & $+0.3934$ & $+0.7526$ & $+0.7526$ & $1.00$ \\
-BeH$_2$ 2$	imes$ & 14 & 6 & 1225 & 31 & $+28.5144$ & $+5.8613$ & $+28.5110$ & --- & $1.00$ \\
-H$_2$O 2.5$	imes$ & 14 & 10 & 441 & 21 & $+10.0927$ & $-41.1309$ & $+10.0926$ & --- & $1.00$ \\
+BeH$_2$ 2$\times$ & 14 & 6 & 1225 & 31 & $+28.5144$ & $+5.8613$ & $+28.5110$ & --- & $1.00$ \\
+H$_2$O 2.5$\times$ & 14 & 10 & 441 & 21 & $+10.0927$ & $-41.1309$ & $+10.0926$ & --- & $1.00$ \\
 H$_2$O & 14 & 10 & 441 & 21 & $+1.4477$ & $+0.1165$ & $+0.7051$ & $+0.7051$ & $1.00$ \\
-H$_2$O 2$	imes$ & 14 & 10 & 441 & 21 & $+55.4206$ & $-9.7177$ & $+54.5703$ & --- & $1.00$ \\
+H$_2$O 2$\times$ & 14 & 10 & 441 & 21 & $+55.4206$ & $-9.7177$ & $+54.5703$ & --- & $1.00$ \\
 HF & 12 & 10 & 36 & 5 & $+1.0725$ & $+0.0000$ & $+0.0000$ & $+0.0000$$^\dagger$ & $1.00$ \\
 LiH & 12 & 4 & 225 & 6 & $+1.1264$ & $+0.0105$ & $+0.0133$ & $+0.0133$ & $1.00$ \\
-LiH 3$	imes$ & 12 & 4 & 225 & 5 & $+1.5210$ & $+0.1320$ & $+0.1509$ & --- & $1.00$ \\
+LiH 3$\times$ & 12 & 4 & 225 & 5 & $+1.5210$ & $+0.1320$ & $+0.1509$ & --- & $1.00$ \\
 \bottomrule
 \end{tabular}
 \end{table}
 
-\noindent\textbf{Reading the table.} A-CASE reaches chemical accuracy on all 8 molecules. CCSD is more accurate on 7 of 8 (BeH$_2$, BeH$_2$ 2$	imes$, H$_2$O, H$_2$O 2$	imes$, HF, LiH, LiH 3$	imes$) at a small fraction of the cost. The adaptive subspace is not competitive with classical coupled cluster on these systems and is not presented as if it were; what it shows is that the operator-response subspace clears the threshold at small $M$ against a sector two to three orders larger.
+\noindent\textbf{Reading the table.} A-CASE reaches chemical accuracy on all 8 molecules. CCSD is more accurate on 7 of 8 (BeH$_2$, BeH$_2$ 2$\times$, H$_2$O, H$_2$O 2$\times$, HF, LiH, LiH 3$\times$) at a small fraction of the cost. The adaptive subspace is not competitive with classical coupled cluster on these systems and is not presented as if it were; what it shows is that the operator-response subspace clears the threshold at small $M$ against a sector two to three orders larger.
 
 \noindent\textbf{The stopping rule is oracle-assisted.} Growth halts on the first step whose error against the \emph{exact} energy falls below threshold, so the $M$ column answers how small the basis can be while clearing the bar --- a property of the selector, not a cost the method could reproduce without knowing the answer.
 
@@ -53,13 +53,13 @@ Read off the same solve that produced the adaptive energy, through the projected
 Molecule & $\langle d \rangle$ & uncorrelated & difference & $\langle S^2 \rangle$ \\
 \midrule
 BeH$_2$ & $0.426218803$ & $0.428571429$ & $-2.35e-03$ & $2.06e-04$ \\
-BeH$_2$ 2$	imes$ & $0.395619366$ & $0.428571429$ & $-3.30e-02$ & $8.73e-18$ \\
-H$_2$O 2.5$	imes$ & $0.428571429$ & $0.714285714$ & $-2.86e-01$ & $6.00e+00$ \\
+BeH$_2$ 2$\times$ & $0.395619366$ & $0.428571429$ & $-3.30e-02$ & $8.73e-18$ \\
+H$_2$O 2.5$\times$ & $0.428571429$ & $0.714285714$ & $-2.86e-01$ & $6.00e+00$ \\
 H$_2$O & $0.711243361$ & $0.714285714$ & $-3.04e-03$ & $3.81e-04$ \\
-H$_2$O 2$	imes$ & $0.656131728$ & $0.714285714$ & $-5.82e-02$ & $2.66e-01$ \\
+H$_2$O 2$\times$ & $0.656131728$ & $0.714285714$ & $-5.82e-02$ & $2.66e-01$ \\
 HF & $0.833034591$ & $0.833333333$ & $-2.99e-04$ & $3.01e-34$ \\
 LiH & $0.332419497$ & $0.333333333$ & $-9.14e-04$ & $1.23e-32$ \\
-LiH 3$	imes$ & $0.325510212$ & $0.333333333$ & $-7.82e-03$ & $1.86e-02$ \\
+LiH 3$\times$ & $0.325510212$ & $0.333333333$ & $-7.82e-03$ & $1.86e-02$ \\
 \bottomrule
 \end{tabular}
 \end{table}
@@ -76,13 +76,13 @@ LiH 3$	imes$ & $0.325510212$ & $0.333333333$ & $-7.82e-03$ & $1.86e-02$ \\
 Molecule & Words in $H$ & Element universe & $M$ & SD wall-clock (s) \\
 \midrule
 BeH$_2$ & 666 & 350,196 & 11 & 3018.3 \\
-BeH$_2$ 2$	imes$ & 666 & 1,165,663 & 31 & --- \\
-H$_2$O 2.5$	imes$ & 1086 & 994,052 & 21 & --- \\
+BeH$_2$ 2$\times$ & 666 & 1,165,663 & 31 & --- \\
+H$_2$O 2.5$\times$ & 1086 & 994,052 & 21 & --- \\
 H$_2$O & 1086 & 1,168,272 & 21 & 2461.3 \\
-H$_2$O 2$	imes$ & 1086 & 874,597 & 21 & --- \\
+H$_2$O 2$\times$ & 1086 & 874,597 & 21 & --- \\
 HF & 631 & 21,156 & 5 & 54.2 \\
 LiH & 631 & 38,250 & 6 & 440.3 \\
-LiH 3$	imes$ & 631 & 24,096 & 5 & --- \\
+LiH 3$\times$ & 631 & 24,096 & 5 & --- \\
 \bottomrule
 \end{tabular}
 \end{table}
