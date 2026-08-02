@@ -1,0 +1,227 @@
+{
+  "key": "beh2_stretched",
+  "name": "Beryllium Hydride, 2x symmetric stretch (BeH2, 2.652 A)",
+  "regime": "stretched",
+  "qubits": 14,
+  "n_electrons": 6,
+  "sz": 0.0,
+  "sector_dimension": 1225,
+  "rhf_converged": true,
+  "cisd_converged": true,
+  "ccsd_converged": true,
+  "e_rhf": -15.113758067511673,
+  "e_cisd": -15.313732774008812,
+  "e_ccsd": -15.336382452438256,
+  "e_exact_fci": -15.342243746728707,
+  "error_cisd_mha": 28.510972719894667,
+  "error_ccsd_mha": 5.8612942904510135,
+  "e_acase_adaptive": -15.313729355049718,
+  "error_adaptive_mha": 28.51439167898917,
+  "complete_sd_run": false,
+  "e_sd_complete": null,
+  "error_sd_mha": null,
+  "adaptive_chemical_accuracy": false,
+  "cisd_chemical_accuracy": false,
+  "ccsd_chemical_accuracy": false,
+  "ccsd_below_exact": false,
+  "sd_chemical_accuracy": null,
+  "sd_spans_full_sector": false,
+  "adaptive_stop_reason": "basis budget reached",
+  "adaptive_oracle_stop_used": true,
+  "adaptive_target_error_mha": 1.5936,
+  "subspace_size_m": 31,
+  "complete_sd_candidates": 204,
+  "complete_sd_basis_size": 205,
+  "effective_rank": 31,
+  "condition_number": 1.0,
+  "hamiltonian_pauli_terms": 666,
+  "element_word_universe": 1165663,
+  "adaptive_cached_operator_bytes": 2306582856,
+  "adaptive_assemble_seconds": 819.7676231199983,
+  "adaptive_growth_seconds": 2721.191329851,
+  "adaptive_operator_products": 11985,
+  "adaptive_pairs_built": 5890,
+  "adaptive_element_cache_hits": 274231,
+  "adaptive_max_generator_support": 8,
+  "adaptive_max_hamiltonian_element_support": 31168,
+  "adaptive_seconds": 2721.2785210609436,
+  "adaptive_peak_rss_bytes": 11986464768,
+  "adaptive_peak_rss_delta_bytes": 11082416128,
+  "sd_peak_rss_bytes": null,
+  "sd_peak_rss_delta_bytes": null,
+  "double_occupancy": 0.3956193660128747,
+  "double_occupancy_uncorrelated": 0.42857142857142855,
+  "total_spin_squared": 5.594640665653535e-18,
+  "static_susceptibility_chi0": 4.027146032667025e-06,
+  "response_diagnostic": "3 lines above weight 1e-8",
+  "elapsed_seconds": 2751.7066972255707,
+  "sd_subspace_seconds": null,
+  "ground_state_coefficients": {
+    "I": {
+      "real": 0.6803899558779334,
+      "imag": 0.0
+    },
+    "E(6,7<-4,5)": {
+      "real": 0.589684081919915,
+      "imag": 0.0
+    },
+    "E(6,13<-2,5)": {
+      "real": 0.1572002302299344,
+      "imag": 0.0
+    },
+    "E(7,12<-3,4)": {
+      "real": 0.15720023022993443,
+      "imag": 0.0
+    },
+    "E(12,13<-2,3)": {
+      "real": 0.1260940693702197,
+      "imag": 0.0
+    },
+    "E(6<-2)": {
+      "real": 0.15874462361195577,
+      "imag": 0.0
+    },
+    "E(13<-5)": {
+      "real": -0.10625707598722779,
+      "imag": 0.0
+    },
+    "E(8,9<-2,3)": {
+      "real": 0.07419703222613093,
+      "imag": 0.0
+    },
+    "E(10,11<-2,3)": {
+      "real": 0.07419703222613311,
+      "imag": 0.0
+    },
+    "E(7<-3)": {
+      "real": 0.15874462361196598,
+      "imag": 0.0
+    },
+    "E(12<-4)": {
+      "real": -0.1062570759872275,
+      "imag": 0.0
+    },
+    "E(6,12<-2,4)": {
+      "real": 0.11283228790351617,
+      "imag": 0.0
+    },
+    "E(7,13<-3,5)": {
+      "real": 0.11283228790351785,
+      "imag": 0.0
+    },
+    "E(6,7<-2,3)": {
+      "real": -0.08236007193653977,
+      "imag": 0.0
+    },
+    "E(12,13<-4,5)": {
+      "real": -0.046406107967046695,
+      "imag": 0.0
+    },
+    "E(8,9<-4,5)": {
+      "real": -0.028736825741772082,
+      "imag": 0.0
+    },
+    "E(10,11<-4,5)": {
+      "real": -0.028736825741772103,
+      "imag": 0.0
+    },
+    "E(7,12<-2,5)": {
+      "real": -0.04436794232647097,
+      "imag": 0.0
+    },
+    "E(6,13<-3,4)": {
+      "real": -0.04436794232646593,
+      "imag": 0.0
+    },
+    "E(8,9<-0,3)": {
+      "real": 0.002521486593807,
+      "imag": 0.0
+    },
+    "E(10,11<-1,2)": {
+      "real": -0.0025214865938069653,
+      "imag": 0.0
+    },
+    "E(10,11<-0,3)": {
+      "real": 0.0025214865938070277,
+      "imag": 0.0
+    },
+    "E(8,9<-1,2)": {
+      "real": -0.002521486593806972,
+      "imag": 0.0
+    },
+    "E(12,13<-0,3)": {
+      "real": 0.00233596594366562,
+      "imag": 0.0
+    },
+    "E(12,13<-1,2)": {
+      "real": -0.0023359659436657104,
+      "imag": 0.0
+    },
+    "E(8,9<-0,1)": {
+      "real": 0.0009277960356994727,
+      "imag": 0.0
+    },
+    "E(10,11<-0,1)": {
+      "real": 0.0009277960356994866,
+      "imag": 0.0
+    },
+    "E(12,13<-0,1)": {
+      "real": 0.0007198257903967588,
+      "imag": 0.0
+    },
+    "E(6,7<-0,3)": {
+      "real": -0.0007217599057970422,
+      "imag": 0.0
+    },
+    "E(6,7<-1,2)": {
+      "real": 0.0007217599057969919,
+      "imag": 0.0
+    },
+    "E(6,7<-0,1)": {
+      "real": 0.0004306307928389416,
+      "imag": 0.0
+    }
+  },
+  "lehmann_response": [
+    {
+      "final_state": 3,
+      "excitation_energy_ha": 0.15569470576540567,
+      "weight": 1.1644890521716854e-10
+    },
+    {
+      "final_state": 4,
+      "excitation_energy_ha": 0.3061207304603588,
+      "weight": 4.929810543474347e-11
+    },
+    {
+      "final_state": 7,
+      "excitation_energy_ha": 0.4891443209357096,
+      "weight": 3.1496043914509635e-11
+    },
+    {
+      "final_state": 9,
+      "excitation_energy_ha": 0.5845891811739552,
+      "weight": 9.626468514584367e-12
+    },
+    {
+      "final_state": 12,
+      "excitation_energy_ha": 0.7224046833748421,
+      "weight": 3.203786855292227e-11
+    },
+    {
+      "final_state": 20,
+      "excitation_energy_ha": 4.5869215899257565,
+      "weight": 6.3990929128252184e-06
+    },
+    {
+      "final_state": 23,
+      "excitation_energy_ha": 4.677803390143632,
+      "weight": 1.6056675261555011e-06
+    },
+    {
+      "final_state": 25,
+      "excitation_energy_ha": 4.893032758657414,
+      "weight": 1.3417324221670075e-06
+    }
+  ]
+}

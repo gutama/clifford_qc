@@ -1,0 +1,82 @@
+{
+  "key": "lih_stretched",
+  "name": "Lithium Hydride, 3x stretched (LiH, 4.785 A) [control]",
+  "regime": "stretched",
+  "qubits": 12,
+  "n_electrons": 4,
+  "sz": 0.0,
+  "sector_dimension": 225,
+  "rhf_converged": true,
+  "cisd_converged": true,
+  "ccsd_converged": true,
+  "e_rhf": -7.590393299712645,
+  "e_cisd": -7.78255129261408,
+  "e_ccsd": -7.782570270422689,
+  "e_exact_fci": -7.7827022261053,
+  "error_cisd_mha": 0.15093349121997335,
+  "error_ccsd_mha": 0.13195568261092916,
+  "e_acase_adaptive": -7.7811812485483305,
+  "error_adaptive_mha": 1.5209775569697825,
+  "complete_sd_run": false,
+  "e_sd_complete": null,
+  "error_sd_mha": null,
+  "adaptive_chemical_accuracy": true,
+  "cisd_chemical_accuracy": true,
+  "ccsd_chemical_accuracy": true,
+  "ccsd_below_exact": false,
+  "sd_chemical_accuracy": null,
+  "sd_spans_full_sector": false,
+  "adaptive_stop_reason": "target error reached (1.5210 mHa <= 1.5936 mHa)",
+  "adaptive_oracle_stop_used": true,
+  "adaptive_target_error_mha": 1.5936,
+  "subspace_size_m": 5,
+  "complete_sd_candidates": 92,
+  "complete_sd_basis_size": 93,
+  "effective_rank": 5,
+  "condition_number": 1.0,
+  "hamiltonian_pauli_terms": 631,
+  "element_word_universe": 24096,
+  "adaptive_cached_operator_bytes": 89556288,
+  "adaptive_assemble_seconds": 57.64689089499973,
+  "adaptive_growth_seconds": 70.47992241200001,
+  "adaptive_operator_products": 1003,
+  "adaptive_pairs_built": 455,
+  "adaptive_element_cache_hits": 3366,
+  "adaptive_max_generator_support": 8,
+  "adaptive_max_hamiltonian_element_support": 7232,
+  "adaptive_seconds": 70.48134636878967,
+  "adaptive_peak_rss_bytes": 873881600,
+  "adaptive_peak_rss_delta_bytes": 735199232,
+  "sd_peak_rss_bytes": null,
+  "sd_peak_rss_delta_bytes": null,
+  "double_occupancy": 0.3255102116682589,
+  "double_occupancy_uncorrelated": 0.3333333333333333,
+  "total_spin_squared": 0.018565488490111998,
+  "static_susceptibility_chi0": 0.0,
+  "response_diagnostic": "no significant weight: the S_z operator couples the singlet reference to triplet states that the singlet-preserving excitation basis does not span, so chi0 is a basis artifact rather than a physical response",
+  "elapsed_seconds": 73.04931712150574,
+  "sd_subspace_seconds": null,
+  "ground_state_coefficients": {
+    "I": {
+      "real": 0.7230647967973833,
+      "imag": 0.0
+    },
+    "E(4,5<-2,3)": {
+      "real": 0.6559257348525915,
+      "imag": 0.0
+    },
+    "E(4,11<-2,3)": {
+      "real": 0.13059495924946984,
+      "imag": 0.0
+    },
+    "E(5,10<-2,3)": {
+      "real": -0.10863069165684756,
+      "imag": 0.0
+    },
+    "E(4<-2)": {
+      "real": 0.13447326663404774,
+      "imag": 0.0
+    }
+  },
+  "lehmann_response": []
+}

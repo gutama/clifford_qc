@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import argparse
+import gc
 import json
 import math
 import os
@@ -121,7 +122,10 @@ MOLECULES = {
         "charge": 0,
         "spin": 0,
         "complete_sd": False,
-        "max_subspace": 30,
+        # 30 was killed by the OOM reaper: H2O carries 1086 Pauli words against
+        # BeH2's 666, so its element operators are ~1.6x larger and M=31 needs
+        # ~18 GiB on a 15 GiB machine.
+        "max_subspace": 20,
         "regime": "stretched",
     },
     "h2o_dissociating": {
@@ -131,7 +135,7 @@ MOLECULES = {
         "charge": 0,
         "spin": 0,
         "complete_sd": False,
-        "max_subspace": 30,
+        "max_subspace": 20,
         "regime": "stretched",
     },
 }
@@ -214,10 +218,20 @@ def run_pipeline(
     # authoritative again.
     summary_records = {}
     summary_path = out_dir / "results_summary.json"
-    if molecules is not None and summary_path.exists():
-        summary_records = json.loads(summary_path.read_text())
-        print(f"Merging {len(selected)} molecule(s) into an existing summary of "
-              f"{len(summary_records)}")
+    if molecules is not None:
+        # Seed from the per-molecule files rather than from the summary. They
+        # are the source of truth: the summary is derived, and a run killed
+        # before it finished will have written per-molecule records that never
+        # reached it. Seeding from the summary would silently discard them.
+        for path in sorted(out_dir.glob("*_results.json")):
+            try:
+                seeded = json.loads(path.read_text())
+            except json.JSONDecodeError:
+                continue
+            if "key" in seeded:
+                summary_records[seeded["key"]] = seeded
+        print(f"Merging {len(selected)} molecule(s) into {len(summary_records)} "
+              f"existing record(s) recovered from molecular_results/")
 
     print("==================================================================")
     print("STARTING MOLECULAR SIMULATION PIPELINE (PySCF -> FCIDUMP -> A-CASE)")
@@ -534,6 +548,24 @@ def run_pipeline(
             json.dump(record, f, indent=2)
 
         summary_records[key] = record
+
+        # Write the summary after every molecule, not once at the end. A run
+        # killed partway through used to leave per-molecule records that the
+        # summary never learned about -- which is exactly what an OOM kill on
+        # the third of four molecules produced.
+        with open(summary_path, "w") as f:
+            json.dump(summary_records, f, indent=2)
+
+        # Drop this molecule's bank before starting the next one. The banks are
+        # the dominant allocation and they are not needed once the record is
+        # written; without this the process carries every previous molecule's
+        # element operators forward, which is how BeH2's 11.2 GiB became H2O's
+        # starting point and got the run killed on a 15 GiB machine. It also
+        # makes each arm's RSS baseline mean something.
+        if run_complete_sd:
+            del sd_spectrum
+        del adaptive, spectrum, rho0, model
+        gc.collect()
 
     # Master summary JSON
     with open(out_dir / "results_summary.json", "w") as f:
