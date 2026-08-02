@@ -1,50 +1,106 @@
 {
   "key": "beh2",
   "name": "Beryllium Hydride (BeH2)",
+  "regime": "equilibrium",
   "qubits": 14,
   "n_electrons": 6,
   "sz": 0.0,
-  "e_rhf": -15.56033493598719,
-  "e_exact_fci": -15.595182356661736,
-  "e_acase_adaptive": -15.593841253,
-  "error_adaptive_mha": 1.3411,
-  "e_sd_complete": -15.594429801687477,
-  "error_sd_mha": 0.7525549742588566,
-  "chemical_accuracy_achieved": true,
+  "sector_dimension": 1225,
+  "rhf_converged": true,
+  "cisd_converged": true,
+  "ccsd_converged": true,
+  "e_rhf": -15.560334935987182,
+  "e_cisd": -15.59442980168742,
+  "e_ccsd": -15.594788915868662,
+  "e_exact_fci": -15.595182356661757,
+  "error_cisd_mha": 0.7525549743370163,
+  "error_ccsd_mha": 0.3934407930952233,
+  "e_acase_adaptive": -15.59384125299648,
+  "error_adaptive_mha": 1.3411036652772879,
+  "complete_sd_run": true,
+  "e_sd_complete": -15.594429801687495,
+  "error_sd_mha": 0.7525549742624094,
+  "adaptive_chemical_accuracy": true,
+  "cisd_chemical_accuracy": true,
+  "ccsd_chemical_accuracy": true,
+  "ccsd_below_exact": false,
+  "sd_chemical_accuracy": true,
+  "sd_spans_full_sector": false,
+  "adaptive_stop_reason": "target error reached (1.3411 mHa <= 1.5936 mHa)",
+  "adaptive_oracle_stop_used": true,
+  "adaptive_target_error_mha": 1.5936,
   "subspace_size_m": 11,
   "complete_sd_candidates": 204,
-  "effective_rank": 4,
+  "complete_sd_basis_size": 205,
+  "effective_rank": 11,
   "condition_number": 1.0,
-  "word_universe": 21930,
-  "double_occupancy": 0.4285714285621334,
-  "total_spin_squared": 3.85709083863563e-38,
-  "static_susceptibility_chi0": 7.2182645092796265e-12,
-  "elapsed_seconds": 1890.8059933185577,
-  "sd_subspace_seconds": 1881.9375343322754,
+  "hamiltonian_pauli_terms": 666,
+  "element_word_universe": 350196,
+  "adaptive_cached_operator_bytes": 840120264,
+  "adaptive_assemble_seconds": 302.9660563880525,
+  "adaptive_growth_seconds": 605.4136373000001,
+  "adaptive_operator_products": 4605,
+  "adaptive_pairs_built": 2200,
+  "adaptive_element_cache_hits": 36741,
+  "adaptive_max_generator_support": 8,
+  "adaptive_max_hamiltonian_element_support": 29888,
+  "adaptive_seconds": 605.4302690029144,
+  "adaptive_peak_rss_bytes": 4702707712,
+  "adaptive_peak_rss_delta_bytes": 3717783552,
+  "sd_peak_rss_bytes": 5750640640,
+  "sd_peak_rss_delta_bytes": 1055895552,
+  "double_occupancy": 0.4262188028131185,
+  "double_occupancy_uncorrelated": 0.42857142857142855,
+  "total_spin_squared": 0.00020649925907651278,
+  "static_susceptibility_chi0": 0.0,
+  "response_diagnostic": "no significant weight: the S_z operator couples the singlet reference to triplet states that the singlet-preserving excitation basis does not span, so chi0 is a basis artifact rather than a physical response",
+  "elapsed_seconds": 3632.910657644272,
+  "sd_subspace_seconds": 3018.3483860492706,
   "ground_state_coefficients": {
     "I": {
-      "real": 0.9999987414928364,
+      "real": 0.9873730494031203,
       "imag": 0.0
     },
-    "E(6,7<-0,1)": {
-      "real": 0.001586489104608557,
+    "E(10,11<-4,5)": {
+      "real": 0.07387837287136197,
       "imag": 0.0
     },
-    "E(10<-0)": {
-      "real": 5.703703233029317e-06,
+    "E(10,13<-2,5)": {
+      "real": 0.04882128719454323,
       "imag": 0.0
     },
-    "E(11<-1)": {
-      "real": 5.7037032330295135e-06,
+    "E(11,12<-3,4)": {
+      "real": 0.0488212871945432,
+      "imag": 0.0
+    },
+    "E(10,11<-2,3)": {
+      "real": 0.05892940865583461,
+      "imag": 0.0
+    },
+    "E(12,13<-4,5)": {
+      "real": 0.04087916001558373,
+      "imag": 0.0
+    },
+    "E(6,7<-2,3)": {
+      "real": 0.05232093157244973,
+      "imag": 0.0
+    },
+    "E(11,12<-2,5)": {
+      "real": -0.04163624615296744,
+      "imag": 0.0
+    },
+    "E(10,13<-3,4)": {
+      "real": -0.041636246152967446,
+      "imag": 0.0
+    },
+    "E(8,9<-2,3)": {
+      "real": 0.0523209315724497,
+      "imag": 0.0
+    },
+    "E(12,13<-2,3)": {
+      "real": 0.02799136457650493,
       "imag": 0.0
     }
   },
-  "lehmann_response": [
-    {
-      "final_state": 1,
-      "excitation_energy_ha": 4.506932452897447,
-      "weight": 1.6266115285235106e-11
-    }
-  ],
-  "adaptive_target_error_achieved": true
+  "lehmann_response": []
 }

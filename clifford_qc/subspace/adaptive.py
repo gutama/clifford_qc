@@ -357,6 +357,15 @@ def run_acase(rho: MV, hamiltonian, candidates: Sequence, *,
     state-averaged growth (the objective is the average of the tracked roots)
     and ``'max'`` is block growth (whichever root gains most decides). The
     reported ``energy``/``energy_history`` follow that objective.
+
+    One caveat on monotonicity, which is real rather than pedantic. Cauchy
+    interlacing makes each *individual* Ritz value non-increasing under growth,
+    so a fixed-weight average of a fixed set of roots is too. Early steps do not
+    have a fixed set: a two-dimensional subspace has only two roots, so the
+    average is taken over fewer of them and can *rise* as a high new root
+    appears. The objective is therefore monotone only from the step where the
+    effective rank first reaches ``roots``; each record's ``root_energies`` says
+    how many roots that step actually had.
     """
     if roots < 1:
         raise ValueError("roots must be at least 1")
