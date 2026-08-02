@@ -211,30 +211,53 @@ def check_record(key: str, record: dict, errors: list[str]) -> None:
 
     # 9b: A-CASE's chemistry candidates are singles and doubles on the HF
     # reference, so its span is a *subspace* of the CISD space and Rayleigh-Ritz
-    # cannot go below the CISD minimum. If it does, the reported CISD is not
-    # that minimum -- an external solver failure, not an A-CASE result.
+    # cannot go below the CISD minimum -- **at matched multiplicity**.
     #
-    # This is not hypothetical. At H2O 2.5x, PySCF CISD returns an energy
-    # 55.2 mHa above the true SD-block minimum while reporting converged=True;
-    # direct diagonalization of the 141-determinant block agrees with A-CASE to
-    # 0.13 uHa. A convergence flag from the external solver does not catch it,
-    # and this comparison does, from the record alone.
+    # That qualifier is the whole content of this check, and leaving it out cost
+    # a wrong conclusion. Neither A-CASE nor a plain determinant diagonalization
+    # constrains spin, while CISD from a closed-shell reference means the
+    # singlet. Where a high-spin state lies below the lowest singlet, A-CASE can
+    # legitimately come out under the CISD energy without anything being wrong
+    # with either. The spin check below is what makes this comparison
+    # meaningful, so it runs first.
     # The comparison is against a CISD we computed, never against PySCF's.
     # ``e_cisd_determinant`` is the diagonalized SD determinant block; on rows
     # that ran the complete-SD arm, ``e_sd_complete`` is the same quantity by a
     # slower route, so those rows need no separate field.
+    # 9a: the Ritz state has to be the multiplicity everything else targets.
+    # These are closed-shell molecules, so <S^2> = 0. A-CASE's basis is
+    # S_z-conserving but not spin-adapted, and at H2O 2.5x it converged to
+    # <S^2> = 6 -- a quintet whose energy is not comparable to CCSD's singlet.
+    # That row was removed; this stops the next one being read as a result.
+    spin2 = record.get("total_spin_squared")
+    comparable = True
+    if spin2 is None:
+        _fail(errors, key, "missing total_spin_squared; without it a Ritz "
+                           "energy cannot be shown to describe the same state "
+                           "the classical baselines do")
+    elif abs(spin2) > 1.0:
+        comparable = False
+        _fail(errors, key,
+              f"<S^2> = {spin2:.4f} on a closed-shell molecule: the Ritz state "
+              f"is not a singlet, so its energy is not comparable to CCSD or "
+              f"CISD. Drop the row or spin-adapt the basis")
+    elif abs(spin2) > 0.05:
+        print(f"  note: {key}: <S^2> = {spin2:.4f}, small but not negligible "
+              f"spin contamination in the Ritz state", file=sys.stderr)
+
     e_ad = record.get("e_acase_adaptive")
     reference_cisd = record.get("e_cisd_determinant")
     source = "determinant CISD"
     if reference_cisd is None and record.get("complete_sd_run"):
         reference_cisd = record.get("e_sd_complete")
         source = "complete-SD"
-    if e_ad is not None and reference_cisd is not None:
+    if e_ad is not None and reference_cisd is not None and comparable:
         if e_ad < reference_cisd - 1e-6:
             _fail(errors, key,
                   f"A-CASE {e_ad:.9f} lies below the {source} minimum "
                   f"{reference_cisd:.9f} by {(reference_cisd - e_ad) * 1000:.3f} "
-                  f"mHa, but its basis is a subspace of that space and cannot")
+                  f"mHa at matched multiplicity, but its basis is a subspace "
+                  f"of that space and cannot")
     elif e_ad is not None:
         _fail(errors, key,
               "no CISD reference to check A-CASE against: the row has neither "

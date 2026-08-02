@@ -64,10 +64,9 @@ MOLECULES = {
     # These are geometries where CCSD breaks. Each was screened against PySCF
     # FCI before being added, and the screening decided the set:
     #
-    #   * H2O at 2x and 2.5x go *non-variational* -- CCSD lands 9.7 and 41.1 mHa
-    #     BELOW the exact energy. That is the textbook static-correlation
-    #     failure and the sharpest available contrast with a variational
-    #     subspace method.
+    #   * H2O at 2x goes *non-variational* -- CCSD lands 9.7 mHa BELOW the
+    #     exact energy. That is the textbook static-correlation failure and the
+    #     sharpest available contrast with a variational subspace method.
     #   * BeH2 at 2x misses chemical accuracy by 3.7x (+5.861 mHa). Its stretch
     #     is non-monotonic -- 2.5x is easier again (+0.753) -- so 2x is the hard
     #     point, not the far one.
@@ -88,6 +87,17 @@ MOLECULES = {
     #     same way sparse.py documents for ARPACK. An unreliable oracle makes
     #     every error on that row meaningless.
     #   * LiH at 4x, where RHF does not converge at all.
+    #   * H2O at 2.5x, removed after it had been run. CCSD is dramatically
+    #     non-variational there (-41.1 mHa), which is why it was attractive,
+    #     but A-CASE converges to a state with <S^2> = 6 -- a quintet. The
+    #     lowest root of the singles-and-doubles block at that geometry is a
+    #     quintet 55.2 mHa below the lowest singlet, and neither A-CASE nor a
+    #     plain determinant diagonalization constrains spin, so both land on
+    #     it. Its energy therefore describes a different state than CCSD and
+    #     RHF do, and the row was comparing multiplicities rather than methods.
+    #     Recorded here rather than deleted quietly: the same trap waits at any
+    #     geometry where a high-spin state drops below the singlet, and
+    #     <S^2> is what reveals it.
     #
     # ``complete_sd`` is off for these. That arm reproduces PySCF CISD exactly
     # -- verified to between 7e-14 and 1.1e-11 on all four equilibrium
@@ -129,35 +139,31 @@ MOLECULES = {
         "max_subspace": 20,
         "regime": "stretched",
     },
-    "h2o_dissociating": {
-        "name": "Water, 2.5x symmetric stretch (H2O, 2.3938 A)",
-        "atom": "O 0 0 0.29325; H 0 1.8930 -1.1730; H 0 -1.8930 -1.1730",
-        "basis": "sto-3g",
-        "charge": 0,
-        "spin": 0,
-        "complete_sd": False,
-        "max_subspace": 20,
-        "regime": "stretched",
-    },
 }
 
 
-def determinant_ci_energy(hamiltonian, n, occupied, n_electrons, sz,
-                          max_rank: int = 2) -> tuple[float, int]:
+def determinant_ci_energy(hamiltonian, model, n, occupied, n_electrons, sz,
+                          max_rank: int = 2, target_s2: float = 0.0,
+                          s2_tol: float = 1e-6) -> tuple[float, int, float]:
     """Exact ground energy of the rank-``max_rank`` determinant space.
 
-    PySCF is not a trustworthy CISD oracle at the stretched geometries in this
-    set. At H2O 2.5x it returns an energy 55.2 mHa above the true minimum of
-    its own space while reporting ``converged=True`` -- caught only because
-    A-CASE, whose basis is a *subspace* of that space, came out below it, which
-    is impossible. Two other failures appeared in screening: CISD below FCI at
-    3x, and RHF not converging at 4x.
+    An independent CISD reference, and a lesson about what "the CISD energy"
+    means. An earlier version of this function took ``eigvalsh(block)[0]`` and
+    concluded from the result that PySCF had failed by 55.2 mHa at H2O 2.5x.
+    PySCF had not failed. The determinant block spans every spin state at this
+    ``S_z``, and at that geometry its lowest root is a *quintet*
+    (``<S^2> = 6``), 55.2 mHa below the lowest singlet -- which is exactly the
+    energy PySCF returned. CISD from a closed-shell RHF reference means the
+    singlet, and PySCF was giving it.
 
-    So the baseline is computed here rather than imported. Restricting the
-    Hamiltonian to the determinants within ``max_rank`` excitations of the
-    reference and diagonalizing that block is exact, needs no iteration to
-    converge, and is 141x141 for water in STO-3G -- milliseconds against the
-    half hour the element-operator route takes for the same number.
+    So the root is chosen by multiplicity and only then by energy. Comparing a
+    quintet against CCSD and RHF, which target the singlet, is not a comparison
+    at all -- and reading the gap between them as an external-solver bug is how
+    a sign error becomes an accusation.
+
+    Restricting the Hamiltonian to determinants within ``max_rank`` excitations
+    of the reference and diagonalizing that block is otherwise exact and needs
+    no iteration to converge: 141x141 for water in STO-3G.
 
     Uses the full ``2^n`` sparse Hamiltonian, so it is a small-system tool: it
     is the oracle for the molecules in this pipeline, not a general CI solver.
@@ -170,7 +176,25 @@ def determinant_ci_energy(hamiltonian, n, occupied, n_electrons, sz,
     kept = basis[rank <= max_rank]
     block = to_sparse(hamiltonian).tocsr()[np.ix_(kept, kept)].toarray()
     block = (block + block.conj().T) / 2.0
-    return float(np.linalg.eigvalsh(block)[0]), int(kept.size)
+    energies, vectors = np.linalg.eigh(block)
+
+    # Select by multiplicity, not by energy. The determinant block spans every
+    # spin state at this S_z, and at stretched geometries the lowest root is
+    # not the singlet: at H2O 2.5x it is a quintet 55.2 mHa below the lowest
+    # singlet. Taking eigvalsh()[0] there produced a "CISD" energy for a state
+    # of different multiplicity than CCSD and RHF target, and then read the
+    # gap as a PySCF failure. PySCF was returning the singlet, correctly.
+    spin = to_sparse(total_spin_squared(model).to_mv())
+    spin_block = spin.tocsr()[np.ix_(kept, kept)].toarray()
+    spin_block = (spin_block + spin_block.conj().T) / 2.0
+    s2 = np.real(np.einsum("ij,jk,ki->i", vectors.conj().T, spin_block, vectors))
+    match = np.flatnonzero(np.abs(s2 - target_s2) < s2_tol)
+    if match.size == 0:
+        raise RuntimeError(
+            f"no root of the rank-{max_rank} determinant block has "
+            f"<S^2> = {target_s2}; the lowest few are {s2[:4]}")
+    index = int(match[0])
+    return float(energies[index]), int(kept.size), float(s2[index])
 
 
 class PeakRSS:
@@ -370,16 +394,17 @@ def run_pipeline(
 
         # Our own CISD reference. PySCF's is cross-checked against it rather
         # than trusted; see determinant_ci_energy for why.
-        e_cisd_det, n_sd_determinants = determinant_ci_energy(
-            model.hamiltonian, model.n, occupied, n_electrons, sz, max_rank=2)
+        e_cisd_det, n_sd_determinants, cisd_det_s2 = determinant_ci_energy(
+            model.hamiltonian, model, model.n, occupied, n_electrons, sz,
+            max_rank=2)
         cisd_agrees = abs(e_cisd_det - e_cisd) < 1e-6
         print(f"  Determinant CISD E0: {e_cisd_det:+.9f} Ha "
               f"({n_sd_determinants} determinants, "
               f"error {(e_cisd_det - e_exact) * 1000:+.4f} mHa)")
         if not cisd_agrees:
             print(f"  WARNING: PySCF CISD disagrees by "
-                  f"{(e_cisd - e_cisd_det) * 1000:+.4f} mHa; PySCF did not "
-                  f"reach the minimum of its own space")
+                  f"{(e_cisd - e_cisd_det) * 1000:+.4f} mHa at matched "
+                  f"multiplicity (<S^2> = {cisd_det_s2:.4f})")
 
         # 5. Adaptive A-CASE Subspace Eigensolver (Optimal Path Selection)
         # A per-molecule cap overrides the global one. Stretched geometries need
@@ -533,6 +558,7 @@ def run_pipeline(
             "e_cisd_determinant": e_cisd_det,
             "error_cisd_determinant_mha": (e_cisd_det - e_exact) * 1000.0,
             "sd_determinant_count": n_sd_determinants,
+            "cisd_determinant_s2": cisd_det_s2,
             "cisd_pyscf_agrees": bool(cisd_agrees),
             "error_ccsd_mha": (e_ccsd - e_exact) * 1000.0,
             "e_acase_adaptive": e_acase,
