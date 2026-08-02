@@ -365,7 +365,7 @@ def configuration_haar_packets(configurations: Sequence, *,
                                min_support: int = 2,
                                max_support: int | None = 16,
                                include_scaling: bool = False,
-                               label_prefix: str = "cfgH") -> list[Generator]:
+                               label_prefix: str = "cfg") -> list[Generator]:
     """Support-pruned tree-Haar packets over an *ordered* configuration list.
 
     The list order defines configuration-space locality.  The routine does not
