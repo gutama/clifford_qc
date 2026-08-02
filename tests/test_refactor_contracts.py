@@ -15,6 +15,19 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[1] / "clifford_qc"
 
 
+def _imports_adapt_workflow(node: ast.AST) -> bool:
+    """Recognize direct imports of the ADAPT workflow in every common form."""
+    if isinstance(node, ast.Import):
+        return any(alias.name.endswith("algorithms.adapt")
+                   for alias in node.names)
+    if not isinstance(node, ast.ImportFrom) or not node.module:
+        return False
+    if node.module.endswith("algorithms.adapt"):
+        return True
+    return (node.module.endswith("algorithms")
+            and any(alias.name in {"adapt", "*"} for alias in node.names))
+
+
 def test_legacy_modules_are_compatibility_facades():
     from clifford_qc import multivector
     from clifford_qc import pauli_kernel
@@ -97,7 +110,18 @@ def test_subspace_kernel_does_not_depend_on_adapt_workflow():
     for path in (ROOT / "subspace").glob("*.py"):
         tree = ast.parse(path.read_text(encoding="utf-8"), filename=str(path))
         for node in ast.walk(tree):
-            if isinstance(node, ast.ImportFrom) and node.module:
-                if node.module.endswith("algorithms.adapt"):
-                    offenders.append(path.name)
+            if _imports_adapt_workflow(node):
+                offenders.append(path.name)
     assert offenders == []
+
+
+def test_adapt_dependency_guard_covers_equivalent_import_forms():
+    statements = (
+        "from ..algorithms.adapt import run_adapt",
+        "from ..algorithms import adapt",
+        "import clifford_qc.algorithms.adapt",
+        "import clifford_qc.algorithms.adapt as adapt",
+    )
+    for statement in statements:
+        tree = ast.parse(statement)
+        assert any(_imports_adapt_workflow(node) for node in ast.walk(tree)), statement

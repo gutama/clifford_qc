@@ -69,6 +69,11 @@ def bootstrap_ritz(shared: SharedMeasurement, cache: GroupedWordCache, *,
     the retained eigenspace itself. It captures nothing about coverage under a
     different true state, which is why it is heuristic.
     """
+    if replicates < 2:
+        raise ValueError("replicates must be at least two")
+    if not 0.0 < delta < 1.0:
+        raise ValueError("delta must be in (0, 1)")
+
     rng = np.random.default_rng(seed)
     states = cache.group_states()
     samples: list[float] = []
