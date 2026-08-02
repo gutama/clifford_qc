@@ -91,7 +91,7 @@ No figure or table value in the manuscript is transcribed by hand, and
 ```bash
 python -m venv .venv && source .venv/bin/activate
 pip install -e .[test,research,chemistry]   # numpy + scipy + openfermion/pyscf
-pytest                                      # 815 passed, 6 skipped
+pytest                                      # 820 passed, 6 skipped
 ```
 
 That install is the reference environment for the quoted pair, and it is
@@ -279,6 +279,39 @@ Parameters are predeclared at the top of the script (`CHEMICAL_ACCURACY`,
 `DEFAULT_DISORDER_SEEDS`); `--sites`, `--interaction`, `--disorder`,
 `--disorder-seeds`, and `--accuracy` override them for exploration, and a
 `--sites 4` run finishes in a second.
+
+## Configuration-space Haar packet tier (research benchmark)
+
+The negative orbital-basis result above does not test a change of basis among
+virtual A-CASE configurations.  This separate benchmark orders every
+non-reference determinant in the fixed `(N, S_z)` sector by excitation rank,
+doublon count, charge pattern, and spin pattern; constructs an orthogonal
+finite tree-Haar basis over that order; keeps only details with `S_A <= 16`;
+and offers those details only during the first `M=20` directions before
+handing the retained basis to the ordinary level-4 pool:
+
+```bash
+python benchmarks/run_configuration_packets.py \
+    --out benchmarks/reference_results/configuration_packets.json
+```
+
+The declared selector cost exponent is `gamma=0.5`; both arms use it.  On the
+open-boundary `2x2`, `U=4t`, half-filled Hubbard cluster, the committed record
+has 35 non-reference determinant leaves and an actual packet-state overlap
+residual `max|S-I| = 4.44e-16`.  The comparison is:
+
+| Arm | `M` | energy error (Ha) | `W` | `S_A` | `S_H` |
+| --- | ---: | ---: | ---: | ---: | ---: |
+| level 4, coarse | 20 | 0.288203 | 9919 | 8 | 768 |
+| level 4 + packets, coarse | 20 | 0.253170 | 6245 | 9 | 1224 |
+| level 4, converged | 28 | 0 | 14762 | 8 | 1152 |
+| packets then level 4, converged | 27 | 0 | 9869 | 9 | 1224 |
+
+The staged arm reaches the same exact sector energy with 33.1% fewer projected
+Pauli words and one fewer direction.  The tradeoff is explicit: its largest
+projected element is wider and `kappa(S)=12.47` instead of 1.  This is one
+exact-arithmetic finite-instance result, not a convergence theorem or a
+default basis policy; the packet tier remains opt-in and small-sector only.
 
 ## FCIDUMP H4 CAS(4e,4o) benchmark (numpy only)
 
