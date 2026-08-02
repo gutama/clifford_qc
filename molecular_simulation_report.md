@@ -38,7 +38,7 @@ Recorded stop reasons:
 
 | Molecule | Complete SD $E_0$ (Ha) | PySCF CISD (Ha) | difference (Ha) |
 | :--- | ---: | ---: | ---: |
-| LiH | `-7.882388615` | `-7.882388615` | `-2.27e-12` |
+| LiH | `-7.882388615` | `-7.882388615` | `-2.28e-12` |
 | BeH₂ | `-15.594429802` | `-15.594429802` | `-7.11e-14` |
 | HF | `-98.596624180` | `-98.596624180` | `-8.38e-13` |
 | H₂O | `-75.011873169` | `-75.011873169` | `-1.09e-11` |
@@ -60,7 +60,7 @@ Every number here is read off the *same* solve that produced the adaptive energy
 
 | Molecule | $\langle d \rangle$ | uncorrelated $\langle d \rangle$ | correlation visible | $\langle S^2 \rangle$ |
 | :--- | ---: | ---: | ---: | ---: |
-| LiH | `0.332419497` | `0.333333333` | `-9.14e-04` | `4.81e-35` |
+| LiH | `0.332419497` | `0.333333333` | `-9.14e-04` | `9.34e-32` |
 | BeH₂ | `0.426218803` | `0.428571429` | `-2.35e-03` | `2.06e-04` |
 | HF | `0.833034591` | `0.833333333` | `-2.99e-04` | `1.88e-31` |
 | H₂O | `0.711243361` | `0.714285714` | `-3.04e-03` | `3.81e-04` |
@@ -88,14 +88,31 @@ Two different word counts appear in A-CASE work and they must not be conflated. 
 
 | Molecule | Distinct Pauli words in $H$ | Element word universe | A-CASE $M$ | Complete SD wall-clock (s) |
 | :--- | ---: | ---: | ---: | ---: |
-| LiH | 631 | 38,250 | 6 | 424.2 |
-| BeH₂ | 666 | 350,196 | 11 | 2798.3 |
-| HF | 631 | 21,156 | 5 | 54.2 |
-| H₂O | 1086 | 1,168,272 | 21 | 2263.9 |
+| LiH | 631 | 38,250 | 6 | 352.9 |
+| BeH₂ | 666 | 350,196 | 11 | 2406.3 |
+| HF | 631 | 21,156 | 5 | 47.6 |
+| H₂O | 1086 | 1,168,272 | 21 | 1849.0 |
 
 The Hamiltonian counts are the standard literature values for these systems, and LiH and HF agree exactly because both are six spatial orbitals on twelve qubits — a structural check that the collection step is working.
 
-The complete-SD wall-clock is dominated by the element-operator route, which costs $O(|A_i|\,|H|\,|A_j|)$ per pair over $M(M+1)/2$ pairs. The cyclic contraction $\mathrm{Tr}((HA_j)(\rho A_i^\dagger))$ is the cheaper route at $2M$ products and $M^2$ pairings, at the cost of the support metrics the element route makes observable.
+### 3.1 Time and memory
+
+`ACASE_RESEARCH_PLAN.md` §6 asks for bank build time and peak memory beside basis size, on the grounds that a small basis is not a compactness result if its projected entries cost gigabytes. The adaptive figures come from the bank itself; resident set size is sampled during each arm.
+
+**Read the RSS columns carefully — neither is a clean per-arm cost.** The molecules run sequentially in one process, and freed memory returns to the operating system only partially and unpredictably (large allocations are unmapped, small ones are retained in allocator free lists). So *high-water* carries whatever earlier arms left resident, and the *rise*, measured against the arm's own starting point, is a **lower bound** — an arm served entirely from free lists grows no new mappings at all. The arm's true cost lies between them, and the interval can be wide enough to be uninformative: in this run one arm records a rise of exactly zero beside a high-water above 5 GiB.
+
+| Molecule | A-CASE $M$ | A-CASE time (s) | A-CASE cached ops | SD $M$ | SD time (s) | SD RSS rise | RSS high-water |
+| :--- | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
+| LiH | 6 | 50.4 | 110.4 MiB | 93 | 352.9 | 0.17 GiB | 1.09 GiB |
+| BeH₂ | 11 | 437.6 | 801.2 MiB | 205 | 2406.3 | 0.95 GiB | 5.88 GiB |
+| HF | 5 | 14.5 | 17.0 MiB | 36 | 47.6 | 0.00 GiB | 5.07 GiB |
+| H₂O | 21 | 1322.9 | 1622.8 MiB | 141 | 1849.0 | 0.60 GiB | 8.40 GiB |
+
+`A-CASE cached ops` is the bank's own estimate of the bytes held by its cached element operators — an attributable per-arm figure, unlike the RSS columns, and the one to compare across molecules.
+
+The complete-SD wall clock is dominated by the element-operator route, which costs $O(|A_i|\,|H|\,|A_j|)$ per pair over $M(M+1)/2$ pairs and caches every one. On H₂O that is 10,011 element operators and 8.40 GiB resident for a 141-vector basis — which is the resource statement §6 asks for, and the strongest argument in this dataset for the cyclic contraction $\mathrm{Tr}((HA_j)(\rho A_i^\dagger))$ at $2M$ products and $M^2$ pairings instead. What that route gives up is the support metrics the element route makes observable.
+
+The adaptive arm is the contrast: it pays a small fraction of both, because it never builds pairs for candidates it rejects.
 
 ---
 

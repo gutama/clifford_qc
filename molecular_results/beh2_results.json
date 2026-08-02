@@ -8,13 +8,13 @@
   "e_rhf": -15.560334935987182,
   "e_cisd": -15.59442980168742,
   "e_ccsd": -15.594788915868662,
-  "e_exact_fci": -15.595182356661754,
-  "error_cisd_mha": 0.7525549743334636,
-  "error_ccsd_mha": 0.39344079309167057,
-  "e_acase_adaptive": -15.593841252996471,
+  "e_exact_fci": -15.59518235666175,
+  "error_cisd_mha": 0.7525549743299109,
+  "error_ccsd_mha": 0.39344079308811786,
+  "e_acase_adaptive": -15.593841252996468,
   "error_adaptive_mha": 1.341103665282617,
   "e_sd_complete": -15.594429801687491,
-  "error_sd_mha": 0.7525549742624094,
+  "error_sd_mha": 0.7525549742588566,
   "adaptive_chemical_accuracy": true,
   "sd_chemical_accuracy": true,
   "sd_spans_full_sector": false,
@@ -28,56 +28,69 @@
   "condition_number": 1.0,
   "hamiltonian_pauli_terms": 666,
   "element_word_universe": 350196,
-  "double_occupancy": 0.42621880281311864,
+  "adaptive_cached_operator_bytes": 840120264,
+  "adaptive_assemble_seconds": 229.38404541599652,
+  "adaptive_growth_seconds": 437.551839331,
+  "adaptive_operator_products": 4605,
+  "adaptive_pairs_built": 2200,
+  "adaptive_element_cache_hits": 36741,
+  "adaptive_max_generator_support": 8,
+  "adaptive_max_hamiltonian_element_support": 29888,
+  "adaptive_seconds": 437.56193447113037,
+  "adaptive_peak_rss_bytes": 5298319360,
+  "adaptive_peak_rss_delta_bytes": 4181221376,
+  "sd_peak_rss_bytes": 6313963520,
+  "sd_peak_rss_delta_bytes": 1015644160,
+  "double_occupancy": 0.4262188028131186,
   "double_occupancy_uncorrelated": 0.42857142857142855,
-  "total_spin_squared": 0.0002064992590765283,
+  "total_spin_squared": 0.00020649925907649926,
   "static_susceptibility_chi0": 0.0,
   "response_diagnostic": "no significant weight: the S_z operator couples the singlet reference to triplet states that the singlet-preserving excitation basis does not span, so chi0 is a basis artifact rather than a physical response",
-  "elapsed_seconds": 3365.361631155014,
-  "sd_subspace_seconds": 2798.252190589905,
+  "elapsed_seconds": 2850.0227270126343,
+  "sd_subspace_seconds": 2406.319849252701,
   "ground_state_coefficients": {
     "I": {
-      "real": 0.98737304940312,
+      "real": 0.9873730494031205,
       "imag": 0.0
     },
     "E(10,11<-4,5)": {
-      "real": 0.0738783728713627,
+      "real": 0.07387837287135995,
       "imag": 0.0
     },
     "E(10,13<-2,5)": {
-      "real": 0.04882128719454344,
+      "real": 0.04882128719454273,
       "imag": 0.0
     },
     "E(11,12<-3,4)": {
-      "real": 0.04882128719454333,
+      "real": 0.04882128719454275,
       "imag": 0.0
     },
     "E(10,11<-2,3)": {
-      "real": 0.058929408655834334,
+      "real": 0.05892940865583448,
       "imag": 0.0
     },
     "E(12,13<-4,5)": {
-      "real": 0.04087916001558378,
+      "real": 0.040879160015583615,
       "imag": 0.0
     },
     "E(6,7<-2,3)": {
-      "real": 0.05232093157244945,
+      "real": 0.052320931572449145,
       "imag": 0.0
     },
     "E(11,12<-2,5)": {
-      "real": -0.04163624615296735,
+      "real": -0.04163624615296722,
       "imag": 0.0
     },
     "E(10,13<-3,4)": {
-      "real": -0.04163624615296735,
+      "real": -0.04163624615296722,
       "imag": 0.0
     },
     "E(8,9<-2,3)": {
-      "real": 0.05232093157244931,
+      "real": 0.05232093157244915,
       "imag": 0.0
     },
     "E(12,13<-2,3)": {
-      "real": 0.02799136457650508,
+      "real": 0.027991364576504744,
       "imag": 0.0
     }
   },

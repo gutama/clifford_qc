@@ -183,6 +183,48 @@ def check_record(key: str, record: dict, errors: list[str]) -> None:
               f"{universe}; the element universe is a union over A_i'HA_j and "
               f"contains supp(H), so this says the two are swapped")
 
+    # 9: §6 resource accounting. A basis size is not a compactness result on
+    # its own -- the plan asks for bank build time and peak memory beside it,
+    # and a 141-vector basis costing gigabytes is a result in its own right.
+    for field in ("adaptive_cached_operator_bytes", "adaptive_seconds",
+                  "adaptive_peak_rss_bytes", "sd_peak_rss_bytes",
+                  "adaptive_assemble_seconds", "adaptive_growth_seconds"):
+        if field not in record:
+            _fail(errors, key, f"missing §6 resource field {field}")
+
+    for arm in ("adaptive", "sd"):
+        peak = record.get(f"{arm}_peak_rss_bytes")
+        delta = record.get(f"{arm}_peak_rss_delta_bytes")
+        if peak is not None and delta is not None:
+            if peak <= 0:
+                _fail(errors, key, f"{arm}_peak_rss_bytes is {peak}; the "
+                                   f"sampler never read a resident set size")
+            elif delta > peak:
+                _fail(errors, key,
+                      f"{arm}_peak_rss_delta_bytes {delta} exceeds "
+                      f"{arm}_peak_rss_bytes {peak}; the delta is measured "
+                      f"against a baseline inside the peak")
+
+    # The two bank timings are *nested*, not disjoint, and an earlier version of
+    # this check got that wrong -- it summed them and tripped on all four
+    # molecules at a consistent 1.4-1.8x, which is the signature of
+    # double-counting rather than of bad data. `growth_seconds` brackets the
+    # whole run_acase call (it matches the measured wall clock to the
+    # millisecond), and `assemble_seconds` is the operator-product time spent
+    # inside that window. So the invariant is containment, one level at a time.
+    assemble = record.get("adaptive_assemble_seconds")
+    growth = record.get("adaptive_growth_seconds")
+    outer = record.get("adaptive_seconds")
+    if assemble is not None and growth is not None and assemble > growth + 1.0:
+        _fail(errors, key,
+              f"adaptive assemble {assemble:.1f}s exceeds growth "
+              f"{growth:.1f}s, but assembly happens inside the growth loop")
+    if growth is not None and outer is not None and growth > outer + 1.0:
+        _fail(errors, key,
+              f"adaptive growth {growth:.1f}s exceeds the measured wall clock "
+              f"{outer:.1f}s of the call containing it; the timings describe "
+              f"different runs")
+
 
 def main() -> int:
     if not SUMMARY.exists():

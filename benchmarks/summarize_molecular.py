@@ -84,6 +84,13 @@ def master_rows(summary: dict) -> list[dict]:
             "universe": r["element_word_universe"],
             "sd_seconds": r["sd_subspace_seconds"],
             "seconds": r["elapsed_seconds"],
+            "ad_seconds": r["adaptive_seconds"],
+            "ad_bytes": r["adaptive_cached_operator_bytes"],
+            "ad_rss": r["adaptive_peak_rss_bytes"],
+            "sd_rss": r["sd_peak_rss_bytes"],
+            "sd_rss_delta": r["sd_peak_rss_delta_bytes"],
+            "ad_products": r["adaptive_operator_products"],
+            "ad_pairs": r["adaptive_pairs_built"],
             "response": r["response_diagnostic"],
             "stop": r["adaptive_stop_reason"],
         })
@@ -262,11 +269,53 @@ def render_markdown(summary: dict) -> str:
         "orbitals on twelve qubits — a structural check that the collection step "
         "is working.")
     add("")
-    add("The complete-SD wall-clock is dominated by the element-operator route, "
-        "which costs $O(|A_i|\\,|H|\\,|A_j|)$ per pair over $M(M+1)/2$ pairs. "
-        "The cyclic contraction $\\mathrm{Tr}((HA_j)(\\rho A_i^\\dagger))$ is the "
-        "cheaper route at $2M$ products and $M^2$ pairings, at the cost of the "
-        "support metrics the element route makes observable.")
+    add("### 3.1 Time and memory")
+    add("")
+    add("`ACASE_RESEARCH_PLAN.md` §6 asks for bank build time and peak memory "
+        "beside basis size, on the grounds that a small basis is not a "
+        "compactness result if its projected entries cost gigabytes. The "
+        "adaptive figures come from the bank itself; resident set size is "
+        "sampled during each arm.")
+    add("")
+    add("**Read the RSS columns carefully — neither is a clean per-arm cost.** "
+        "The molecules run sequentially in one process, and freed memory "
+        "returns to the operating system only partially and unpredictably "
+        "(large allocations are unmapped, small ones are retained in allocator "
+        "free lists). So *high-water* carries whatever earlier arms left "
+        "resident, and the *rise*, measured against the arm's own starting "
+        "point, is a **lower bound** — an arm served entirely from free lists "
+        "grows no new mappings at all. The arm's true cost lies between them, "
+        "and the interval can be wide enough to be uninformative: in this run "
+        "one arm records a rise of exactly zero beside a high-water above "
+        "5 GiB.")
+    add("")
+    add("| Molecule | A-CASE $M$ | A-CASE time (s) | A-CASE cached ops | "
+        "SD $M$ | SD time (s) | SD RSS rise | RSS high-water |")
+    add("| :--- | ---: | ---: | ---: | ---: | ---: | ---: | ---: |")
+    for r in rows:
+        add(f"| {_md_name(r['key'])} | {r['ad_m']} | {r['ad_seconds']:.1f} "
+            f"| {r['ad_bytes'] / 2**20:.1f} MiB | {r['sd_m']} "
+            f"| {r['sd_seconds']:.1f} | {r['sd_rss_delta'] / 2**30:.2f} GiB "
+            f"| {r['sd_rss'] / 2**30:.2f} GiB |")
+    add("")
+    add("`A-CASE cached ops` is the bank's own estimate of the bytes held by "
+        "its cached element operators — an attributable per-arm figure, unlike "
+        "the RSS columns, and the one to compare across molecules.")
+    add("")
+    worst = max(rows, key=lambda r: r["sd_rss"])
+    add(f"The complete-SD wall clock is dominated by the element-operator "
+        f"route, which costs $O(|A_i|\\,|H|\\,|A_j|)$ per pair over $M(M+1)/2$ "
+        f"pairs and caches every one. On {_md_name(worst['key'])} that is "
+        f"{worst['sd_m'] * (worst['sd_m'] + 1) // 2:,} element operators and "
+        f"{worst['sd_rss'] / 2**30:.2f} GiB resident for a "
+        f"{worst['sd_m']}-vector basis — which is the resource statement §6 "
+        f"asks for, and the strongest argument in this dataset for the cyclic "
+        f"contraction $\\mathrm{{Tr}}((HA_j)(\\rho A_i^\\dagger))$ at $2M$ "
+        f"products and $M^2$ pairings instead. What that route gives up is the "
+        f"support metrics the element route makes observable.")
+    add("")
+    add("The adaptive arm is the contrast: it pays a small fraction of both, "
+        "because it never builds pairs for candidates it rejects.")
     add("")
     add("---")
     add("")

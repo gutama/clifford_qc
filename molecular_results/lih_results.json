@@ -8,13 +8,13 @@
   "e_rhf": -7.862023860127116,
   "e_cisd": -7.882388614941495,
   "e_ccsd": -7.8823914376164295,
-  "e_exact_fci": -7.882401932290219,
-  "error_cisd_mha": 0.01331734872422885,
-  "error_ccsd_mha": 0.010494673789551712,
-  "e_acase_adaptive": -7.881275577103746,
+  "e_exact_fci": -7.882401932290231,
+  "error_cisd_mha": 0.01331734873577517,
+  "error_ccsd_mha": 0.010494673801098031,
+  "e_acase_adaptive": -7.881275577103757,
   "error_adaptive_mha": 1.1263551864733046,
-  "e_sd_complete": -7.882388614943766,
-  "error_sd_mha": 0.013317346453156631,
+  "e_sd_complete": -7.882388614943773,
+  "error_sd_mha": 0.013317346457597523,
   "adaptive_chemical_accuracy": true,
   "sd_chemical_accuracy": true,
   "sd_spans_full_sector": false,
@@ -28,36 +28,49 @@
   "condition_number": 1.0,
   "hamiltonian_pauli_terms": 631,
   "element_word_universe": 38250,
-  "double_occupancy": 0.33241949692598816,
+  "adaptive_cached_operator_bytes": 115785024,
+  "adaptive_assemble_seconds": 38.364154465999775,
+  "adaptive_growth_seconds": 50.36286365800004,
+  "adaptive_operator_products": 1179,
+  "adaptive_pairs_built": 543,
+  "adaptive_element_cache_hits": 4883,
+  "adaptive_max_generator_support": 8,
+  "adaptive_max_hamiltonian_element_support": 7680,
+  "adaptive_seconds": 50.36398649215698,
+  "adaptive_peak_rss_bytes": 987185152,
+  "adaptive_peak_rss_delta_bytes": 848941056,
+  "sd_peak_rss_bytes": 1172180992,
+  "sd_peak_rss_delta_bytes": 184995840,
+  "double_occupancy": 0.332419496925987,
   "double_occupancy_uncorrelated": 0.3333333333333333,
-  "total_spin_squared": 4.8148248609680854e-35,
+  "total_spin_squared": 9.340760230278098e-32,
   "static_susceptibility_chi0": 0.0,
   "response_diagnostic": "no significant weight: the S_z operator couples the singlet reference to triplet states that the singlet-preserving excitation basis does not span, so chi0 is a basis artifact rather than a physical response",
-  "elapsed_seconds": 493.0662407875061,
-  "sd_subspace_seconds": 424.1561846733093,
+  "elapsed_seconds": 405.74195528030396,
+  "sd_subspace_seconds": 352.85266637802124,
   "ground_state_coefficients": {
     "I": {
-      "real": 0.9896594938853476,
+      "real": 0.989659493885343,
       "imag": 0.0
     },
     "E(10,11<-2,3)": {
-      "real": 0.11661524300102782,
+      "real": 0.11661524300101651,
       "imag": 0.0
     },
     "E(4,11<-2,3)": {
-      "real": -0.05235942343108325,
+      "real": -0.052359423431119524,
       "imag": 0.0
     },
     "E(5,10<-2,3)": {
-      "real": 0.052359423431083255,
+      "real": 0.05235942343111922,
       "imag": 0.0
     },
     "E(4,5<-2,3)": {
-      "real": 0.0278426850323377,
+      "real": 0.02784268503238028,
       "imag": 0.0
     },
     "E(6,7<-2,3)": {
-      "real": 0.026771957502749483,
+      "real": 0.026771957502753508,
       "imag": 0.0
     }
   },

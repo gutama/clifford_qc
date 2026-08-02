@@ -5,6 +5,8 @@ from __future__ import annotations
 import argparse
 import json
 import math
+import os
+import threading
 import time
 from pathlib import Path
 
@@ -51,6 +53,66 @@ MOLECULES = {
         "spin": 0,
     },
 }
+
+
+class PeakRSS:
+    """Sample resident set size in a daemon thread while a block runs.
+
+    ``ACASE_RESEARCH_PLAN.md`` §6 lists bank build time and peak memory beside
+    basis size as resource metrics, on the grounds that a 20-dimensional basis
+    is not compact if its projected entries cost gigabytes. The adaptive arm
+    gets those from the bank for free; the complete-SD arm goes through
+    ``solve_subspace`` with no bank, so there is nothing to ask.
+
+    Sampling ``/proc/self/statm`` costs one read per interval and is what
+    actually rose to ~8.8 GB on the H2O SD solve. ``tracemalloc`` would measure
+    Python allocations more precisely but roughly doubles the runtime of a leg
+    that already takes half an hour, and would still miss allocations numpy
+    makes outside the Python allocator -- so the cheaper measurement of the
+    quantity that matters wins.
+    """
+
+    def __init__(self, interval: float = 0.5) -> None:
+        self.interval = interval
+        self.baseline = 0
+        self.peak = 0
+        self._stop = threading.Event()
+        self._thread: threading.Thread | None = None
+
+    @staticmethod
+    def _rss() -> int:
+        with open("/proc/self/statm") as handle:
+            return int(handle.read().split()[1]) * os.sysconf("SC_PAGE_SIZE")
+
+    def _run(self) -> None:
+        while not self._stop.wait(self.interval):
+            try:
+                self.peak = max(self.peak, self._rss())
+            except (OSError, ValueError, IndexError):
+                return
+
+    def __enter__(self) -> "PeakRSS":
+        try:
+            self.baseline = self.peak = self._rss()
+        except (OSError, ValueError, IndexError):
+            self.baseline = self.peak = 0
+            return self
+        self._thread = threading.Thread(target=self._run, daemon=True)
+        self._thread.start()
+        return self
+
+    def __exit__(self, *exc) -> None:
+        self._stop.set()
+        if self._thread is not None:
+            self._thread.join(timeout=2.0)
+        try:
+            self.peak = max(self.peak, self._rss())
+        except (OSError, ValueError, IndexError):
+            pass
+
+    @property
+    def delta(self) -> int:
+        return max(0, self.peak - self.baseline)
 
 
 def run_pipeline(
@@ -148,15 +210,18 @@ def run_pipeline(
         )
         target_error = target_error_mha / 1000.0 if target_error_mha > 0 else None
 
-        adaptive = run_acase(
-            rho0,
-            model.hamiltonian,
-            candidates,
-            max_size=max_size,
-            leakage_tol=1e-10,
-            exact_ground_energy=e_exact,
-            target_error=target_error,
-        )
+        t_adaptive_start = time.time()
+        with PeakRSS() as adaptive_rss:
+            adaptive = run_acase(
+                rho0,
+                model.hamiltonian,
+                candidates,
+                max_size=max_size,
+                leakage_tol=1e-10,
+                exact_ground_energy=e_exact,
+                target_error=target_error,
+            )
+        t_adaptive_elapsed = time.time() - t_adaptive_start
         e_acase = float(adaptive.result.ground_energy)
         err_ha = e_acase - e_exact
         err_mha = err_ha * 1000.0
@@ -165,10 +230,13 @@ def run_pipeline(
 
         # 6. Complete SD Coordinate Subspace Eigensolver (Chemical Accuracy Check)
         t_sd_start = time.time()
-        sd_spectrum = solve_subspace(
-            rho0, model.hamiltonian, [identity_generator(model.n), *all_candidates]
-        )
+        with PeakRSS() as sd_rss:
+            sd_spectrum = solve_subspace(
+                rho0, model.hamiltonian, [identity_generator(model.n), *all_candidates]
+            )
         t_sd_elapsed = time.time() - t_sd_start
+        print(f"  SD Peak RSS: {sd_rss.peak / 2**30:.2f} GiB "
+              f"(delta {sd_rss.delta / 2**30:.2f} GiB)")
         e_sd = float(sd_spectrum.ground_energy)
         err_sd_ha = e_sd - e_exact
         err_sd_mha = err_sd_ha * 1000.0
@@ -281,6 +349,30 @@ def run_pipeline(
             "condition_number": float(spectrum.condition_number),
             "hamiltonian_pauli_terms": hamiltonian_pauli_terms,
             "element_word_universe": int(adaptive.resources.get("word_universe", 0)),
+            # §6 resource accounting. The adaptive arm's figures are computed by
+            # the bank and were previously discarded; only the SD arm's peak RSS
+            # needed new instrumentation, because solve_subspace holds no bank
+            # to ask.
+            "adaptive_cached_operator_bytes":
+                int(adaptive.resources.get("cached_operator_bytes", 0)),
+            "adaptive_assemble_seconds":
+                float(adaptive.resources.get("assemble_seconds", 0.0)),
+            "adaptive_growth_seconds":
+                float(adaptive.resources.get("growth_seconds", 0.0)),
+            "adaptive_operator_products":
+                int(adaptive.resources.get("operator_products", 0)),
+            "adaptive_pairs_built": int(adaptive.resources.get("pairs_built", 0)),
+            "adaptive_element_cache_hits":
+                int(adaptive.resources.get("element_cache_hits", 0)),
+            "adaptive_max_generator_support":
+                int(adaptive.resources.get("max_generator_support", 0)),
+            "adaptive_max_hamiltonian_element_support":
+                int(adaptive.resources.get("max_hamiltonian_element_support", 0)),
+            "adaptive_seconds": t_adaptive_elapsed,
+            "adaptive_peak_rss_bytes": adaptive_rss.peak,
+            "adaptive_peak_rss_delta_bytes": adaptive_rss.delta,
+            "sd_peak_rss_bytes": sd_rss.peak,
+            "sd_peak_rss_delta_bytes": sd_rss.delta,
             "double_occupancy": double_occ,
             "double_occupancy_uncorrelated": double_occ_hf,
             "total_spin_squared": spin2,
