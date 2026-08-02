@@ -167,6 +167,8 @@ def test_unbalanced_configuration_haar_is_orthogonal_and_preserves_parseval():
     packets = configuration_haar_packets(
         leaves, max_support=None, include_scaling=True)
     assert len(packets) == len(leaves)
+    assert packets[0].label == "cfgH[0:5)"
+    assert packets[-1].label == "cfgS[0:5)"
 
     codes = [next(iter(generator.mv.terms)) for generator in leaves]
     transform = np.array([[packet.mv.terms.get(code, 0.0) for code in codes]
