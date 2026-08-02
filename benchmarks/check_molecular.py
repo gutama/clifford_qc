@@ -82,12 +82,26 @@ def check_record(key: str, record: dict, errors: list[str]) -> None:
         ("adaptive", "e_acase_adaptive", "error_adaptive_mha",
          "adaptive_chemical_accuracy"),
         ("sd", "e_sd_complete", "error_sd_mha", "sd_chemical_accuracy"),
-        ("cisd", "e_cisd", "error_cisd_mha", None),
-        ("ccsd", "e_ccsd", "error_ccsd_mha", None),
+        ("cisd", "e_cisd", "error_cisd_mha", "cisd_chemical_accuracy"),
+        ("ccsd", "e_ccsd", "error_ccsd_mha", "ccsd_chemical_accuracy"),
     ]
+    # The complete-SD arm is optional per molecule: it reproduces PySCF CISD
+    # exactly, so geometries added only to test CCSD skip it. A skipped arm
+    # must be *declared* skipped rather than merely absent, or a run that
+    # crashed halfway would look the same as one that opted out.
+    sd_run = record.get("complete_sd_run")
+    if sd_run is None:
+        _fail(errors, key, "missing complete_sd_run; a skipped arm has to say "
+                           "it was skipped, not just leave fields empty")
     for arm, e_field, err_field, flag_field in arms:
         energy = record.get(e_field)
         reported = record.get(err_field)
+        if arm == "sd" and sd_run is False:
+            if energy is not None or reported is not None:
+                _fail(errors, key,
+                      "complete_sd_run is False but the SD arm reported "
+                      f"{e_field}/{err_field}; one of the two is wrong")
+            continue
         if energy is None or reported is None:
             _fail(errors, key, f"missing {e_field} or {err_field}")
             continue
@@ -186,13 +200,29 @@ def check_record(key: str, record: dict, errors: list[str]) -> None:
     # 9: §6 resource accounting. A basis size is not a compactness result on
     # its own -- the plan asks for bank build time and peak memory beside it,
     # and a 141-vector basis costing gigabytes is a result in its own right.
-    for field in ("adaptive_cached_operator_bytes", "adaptive_seconds",
-                  "adaptive_peak_rss_bytes", "sd_peak_rss_bytes",
-                  "adaptive_assemble_seconds", "adaptive_growth_seconds"):
+    required = ["adaptive_cached_operator_bytes", "adaptive_seconds",
+                "adaptive_peak_rss_bytes", "adaptive_assemble_seconds",
+                "adaptive_growth_seconds"]
+    if record.get("complete_sd_run"):
+        required.append("sd_peak_rss_bytes")
+    for field in required:
         if field not in record:
             _fail(errors, key, f"missing §6 resource field {field}")
 
+    # 10: an unconverged reference makes every correlated number built on it
+    # meaningless rather than merely inaccurate, and stretched geometries are
+    # exactly where that happens.
+    for flag in ("rhf_converged", "cisd_converged", "ccsd_converged"):
+        if flag not in record:
+            _fail(errors, key, f"missing convergence flag {flag}")
+        elif record[flag] is False:
+            _fail(errors, key,
+                  f"{flag} is False; the correlated baselines on this row are "
+                  f"not trustworthy and the row should be dropped or labelled")
+
     for arm in ("adaptive", "sd"):
+        if arm == "sd" and record.get("complete_sd_run") is False:
+            continue
         peak = record.get(f"{arm}_peak_rss_bytes")
         delta = record.get(f"{arm}_peak_rss_delta_bytes")
         if peak is not None and delta is not None:

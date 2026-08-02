@@ -52,6 +52,88 @@ MOLECULES = {
         "charge": 0,
         "spin": 0,
     },
+    # ---------------------------------------------------------------- stretched
+    #
+    # The equilibrium set above cannot answer whether A-CASE has a niche: all
+    # four are closed-shell, near-equilibrium, single-reference molecules in a
+    # minimal basis, which is exactly where coupled cluster is near-exact. CCSD
+    # beats A-CASE on all four, as it should.
+    #
+    # These are geometries where CCSD breaks. Each was screened against PySCF
+    # FCI before being added, and the screening decided the set:
+    #
+    #   * H2O at 2x and 2.5x go *non-variational* -- CCSD lands 9.7 and 41.1 mHa
+    #     BELOW the exact energy. That is the textbook static-correlation
+    #     failure and the sharpest available contrast with a variational
+    #     subspace method.
+    #   * BeH2 at 2x misses chemical accuracy by 3.7x (+5.861 mHa). Its stretch
+    #     is non-monotonic -- 2.5x is easier again (+0.753) -- so 2x is the hard
+    #     point, not the far one.
+    #   * LiH at 3x is a deliberate *control*: a stretched geometry where CCSD
+    #     still wins comfortably (+0.132 mHa). A single sigma bond in a minimal
+    #     basis stays single-reference, and a claim that stretching alone
+    #     favours A-CASE should have to survive this row.
+    #
+    # Two candidates were screened out rather than quietly included:
+    #
+    #   * HF at any stretch. With 10 electrons in 6 orbitals there are two
+    #     holes, so singles and doubles exhaust the excitation manifold and CCSD
+    #     is exact for the *system* at every geometry (-0.000 mHa at 2x). That
+    #     is combinatorics, not chemistry, and no stretch can change it.
+    #   * H2O at 3x. PySCF CISD comes out 0.368 mHa *below* its FCI reference
+    #     there, which is impossible for a variational method -- the reference
+    #     is not the ground state. Near-degenerate spectra defeat Davidson the
+    #     same way sparse.py documents for ARPACK. An unreliable oracle makes
+    #     every error on that row meaningless.
+    #   * LiH at 4x, where RHF does not converge at all.
+    #
+    # ``complete_sd`` is off for these. That arm reproduces PySCF CISD exactly
+    # -- verified to between 7e-14 and 1.1e-11 on all four equilibrium
+    # molecules -- and costs half an hour and gigabytes at 14 qubits, so paying
+    # it again to re-derive a number PySCF gives in milliseconds buys nothing.
+    # ``max_subspace`` bounds the adaptive arm: the oracle stop cannot fire when
+    # the target is out of reach, so without a cap a stretched run grows to the
+    # entire candidate pool.
+    "lih_stretched": {
+        "name": "Lithium Hydride, 3x stretched (LiH, 4.785 A) [control]",
+        "atom": "Li 0 0 0; H 0 0 4.785",
+        "basis": "sto-3g",
+        "charge": 0,
+        "spin": 0,
+        "complete_sd": False,
+        "max_subspace": 30,
+        "regime": "stretched",
+    },
+    "beh2_stretched": {
+        "name": "Beryllium Hydride, 2x symmetric stretch (BeH2, 2.652 A)",
+        "atom": "Be 0 0 0; H 0 0 2.652; H 0 0 -2.652",
+        "basis": "sto-3g",
+        "charge": 0,
+        "spin": 0,
+        "complete_sd": False,
+        "max_subspace": 30,
+        "regime": "stretched",
+    },
+    "h2o_stretched": {
+        "name": "Water, 2x symmetric stretch (H2O, 1.9150 A)",
+        "atom": "O 0 0 0.2346; H 0 1.5144 -0.9384; H 0 -1.5144 -0.9384",
+        "basis": "sto-3g",
+        "charge": 0,
+        "spin": 0,
+        "complete_sd": False,
+        "max_subspace": 30,
+        "regime": "stretched",
+    },
+    "h2o_dissociating": {
+        "name": "Water, 2.5x symmetric stretch (H2O, 2.3938 A)",
+        "atom": "O 0 0 0.29325; H 0 1.8930 -1.1730; H 0 -1.8930 -1.1730",
+        "basis": "sto-3g",
+        "charge": 0,
+        "spin": 0,
+        "complete_sd": False,
+        "max_subspace": 30,
+        "regime": "stretched",
+    },
 }
 
 
@@ -119,17 +201,29 @@ def run_pipeline(
     max_candidates: int | None = 0,
     max_subspace: int | None = 0,
     target_error_mha: float = 1.5936,
+    molecules: list[str] | None = None,
 ) -> None:
     out_dir = Path("molecular_results")
     out_dir.mkdir(exist_ok=True)
 
+    selected = {k: v for k, v in MOLECULES.items()
+                if molecules is None or k in molecules}
+    # A partial run merges into the existing summary. Replacing it would delete
+    # the rows the run did not compute, which is worse than the drift risk the
+    # merge introduces -- and the whole-file rewrite is what makes a full run
+    # authoritative again.
     summary_records = {}
+    summary_path = out_dir / "results_summary.json"
+    if molecules is not None and summary_path.exists():
+        summary_records = json.loads(summary_path.read_text())
+        print(f"Merging {len(selected)} molecule(s) into an existing summary of "
+              f"{len(summary_records)}")
 
     print("==================================================================")
     print("STARTING MOLECULAR SIMULATION PIPELINE (PySCF -> FCIDUMP -> A-CASE)")
     print("==================================================================")
 
-    for key, spec in MOLECULES.items():
+    for key, spec in selected.items():
         t0 = time.time()
         print(f"\n---> Processing {spec['name']} ({key.upper()})...")
 
@@ -141,19 +235,37 @@ def run_pipeline(
             spin=spec["spin"],
             verbose=0,
         )
-        mf = scf.RHF(mol).run()
+        mf = scf.RHF(mol)
+        mf.max_cycle = 300
+        mf.run()
         e_rhf = float(mf.e_tot)
-        print(f"  PySCF RHF Energy: {e_rhf:+.9f} Ha")
+        # At stretched geometries the restricted reference can fail to
+        # converge, and an unconverged reference makes every correlated number
+        # built on it meaningless rather than merely inaccurate. Record it
+        # instead of discovering it later as an anomalous error.
+        rhf_converged = bool(mf.converged)
+        print(f"  PySCF RHF Energy: {e_rhf:+.9f} Ha (converged: {rhf_converged})")
+        if not rhf_converged:
+            print("  WARNING: RHF did not converge; correlated baselines on "
+                  "this reference are not trustworthy")
 
         # 1b. Classical correlated baselines in the same orbital space.
         # Without these the A-CASE column has nothing to be judged against:
         # CISD is the classical method the complete singles/doubles subspace
         # reproduces by construction, and CCSD is the one a chemist would
         # actually run at this cost.
-        e_cisd = float(ci.CISD(mf).run().e_tot)
-        e_ccsd = float(cc.CCSD(mf).run().e_tot)
-        print(f"  PySCF CISD Energy: {e_cisd:+.9f} Ha")
-        print(f"  PySCF CCSD Energy: {e_ccsd:+.9f} Ha")
+        cisd = ci.CISD(mf)
+        cisd.max_cycle = 300
+        cisd.run()
+        e_cisd = float(cisd.e_tot)
+        ccsd = cc.CCSD(mf)
+        ccsd.max_cycle = 300
+        ccsd.run()
+        e_ccsd = float(ccsd.e_tot)
+        ccsd_converged = bool(getattr(ccsd, "converged", False))
+        cisd_converged = bool(getattr(cisd, "converged", False))
+        print(f"  PySCF CISD Energy: {e_cisd:+.9f} Ha (converged: {cisd_converged})")
+        print(f"  PySCF CCSD Energy: {e_ccsd:+.9f} Ha (converged: {ccsd_converged})")
 
         # 2. Dump FCIDUMP
         fcidump_path = out_dir / f"{key}.fcidump"
@@ -203,10 +315,15 @@ def run_pipeline(
         print(f"  Exact Sector FCI E0: {e_exact:+.9f} Ha")
 
         # 5. Adaptive A-CASE Subspace Eigensolver (Optimal Path Selection)
+        # A per-molecule cap overrides the global one. Stretched geometries need
+        # it: the oracle stop cannot fire when chemical accuracy is out of
+        # reach, so growth would otherwise consume the entire candidate pool and
+        # cost as much as the complete-SD arm it is supposed to be cheaper than.
+        spec_max = spec.get("max_subspace")
         max_size = (
-            max_subspace
-            if max_subspace and max_subspace > 0
-            else len(candidates)
+            spec_max if spec_max
+            else (max_subspace if max_subspace and max_subspace > 0
+                  else len(candidates))
         )
         target_error = target_error_mha / 1000.0 if target_error_mha > 0 else None
 
@@ -229,28 +346,42 @@ def run_pipeline(
         print(f"  Adaptive Stop Reason: {adaptive.stopped_reason}")
 
         # 6. Complete SD Coordinate Subspace Eigensolver (Chemical Accuracy Check)
-        t_sd_start = time.time()
-        with PeakRSS() as sd_rss:
-            sd_spectrum = solve_subspace(
-                rho0, model.hamiltonian, [identity_generator(model.n), *all_candidates]
-            )
-        t_sd_elapsed = time.time() - t_sd_start
-        print(f"  SD Peak RSS: {sd_rss.peak / 2**30:.2f} GiB "
-              f"(delta {sd_rss.delta / 2**30:.2f} GiB)")
-        e_sd = float(sd_spectrum.ground_energy)
-        err_sd_ha = e_sd - e_exact
-        err_sd_mha = err_sd_ha * 1000.0
+        # Optional per molecule. The arm reproduces PySCF CISD exactly, so on
+        # geometries added only to test CCSD it re-derives at gigabyte scale a
+        # number PySCF supplies in milliseconds.
+        run_complete_sd = bool(spec.get("complete_sd", True))
         sd_size = len(all_candidates) + 1
-        # When the SD basis already spans the whole sector, "exact to machine
-        # precision" is arithmetic, not accuracy: there is nothing left to
-        # miss. HF/STO-3G is the case here (35 candidates + identity = 36 = the
-        # sector). Recording the flag stops that row being read as a result.
         sd_spans_full_sector = sd_size >= sector_dimension
-        print(f"  Complete SD Subspace E0: {e_sd:+.9f} Ha (Error: {err_sd_mha:+.4f} mHa, M={sd_size})")
-        print(f"  SD Subspace Wall-Clock Time: {t_sd_elapsed:.1f}s ({t_sd_elapsed/60:.1f} min)")
-        if sd_spans_full_sector:
-            print(f"  NOTE: SD basis ({sd_size}) spans the full sector "
-                  f"({sector_dimension}); exactness here is tautological.")
+        if run_complete_sd:
+            t_sd_start = time.time()
+            with PeakRSS() as sd_rss:
+                sd_spectrum = solve_subspace(
+                    rho0, model.hamiltonian,
+                    [identity_generator(model.n), *all_candidates]
+                )
+            t_sd_elapsed = time.time() - t_sd_start
+            print(f"  SD Peak RSS: {sd_rss.peak / 2**30:.2f} GiB "
+                  f"(delta {sd_rss.delta / 2**30:.2f} GiB)")
+            e_sd = float(sd_spectrum.ground_energy)
+            err_sd_mha = (e_sd - e_exact) * 1000.0
+            # When the SD basis already spans the whole sector, "exact to
+            # machine precision" is arithmetic, not accuracy: there is nothing
+            # left to miss. HF/STO-3G is the case here (35 candidates +
+            # identity = 36 = the sector). Recording the flag stops that row
+            # being read as a result.
+            print(f"  Complete SD Subspace E0: {e_sd:+.9f} Ha "
+                  f"(Error: {err_sd_mha:+.4f} mHa, M={sd_size})")
+            print(f"  SD Subspace Wall-Clock Time: {t_sd_elapsed:.1f}s "
+                  f"({t_sd_elapsed/60:.1f} min)")
+            if sd_spans_full_sector:
+                print(f"  NOTE: SD basis ({sd_size}) spans the full sector "
+                      f"({sector_dimension}); exactness here is tautological.")
+        else:
+            e_sd = err_sd_mha = None
+            t_sd_elapsed = None
+            sd_rss = None
+            print("  Complete SD Subspace: skipped (reproduces PySCF CISD "
+                  f"exactly; CISD error {(e_cisd - e_exact) * 1000.0:+.4f} mHa)")
 
         # 7. Response Analysis & Observables (on adaptive result)
         #
@@ -319,10 +450,14 @@ def run_pipeline(
         record = {
             "key": key,
             "name": spec["name"],
+            "regime": spec.get("regime", "equilibrium"),
             "qubits": model.n,
             "n_electrons": n_electrons,
             "sz": sz,
             "sector_dimension": sector_dimension,
+            "rhf_converged": rhf_converged,
+            "cisd_converged": cisd_converged,
+            "ccsd_converged": ccsd_converged,
             "e_rhf": e_rhf,
             "e_cisd": e_cisd,
             "e_ccsd": e_ccsd,
@@ -331,10 +466,20 @@ def run_pipeline(
             "error_ccsd_mha": (e_ccsd - e_exact) * 1000.0,
             "e_acase_adaptive": e_acase,
             "error_adaptive_mha": err_mha,
+            "complete_sd_run": run_complete_sd,
             "e_sd_complete": e_sd,
             "error_sd_mha": err_sd_mha,
             "adaptive_chemical_accuracy": bool(abs(err_mha) <= 1.5936),
-            "sd_chemical_accuracy": bool(abs(err_sd_mha) <= 1.5936),
+            "cisd_chemical_accuracy":
+                bool(abs((e_cisd - e_exact) * 1000.0) <= 1.5936),
+            "ccsd_chemical_accuracy":
+                bool(abs((e_ccsd - e_exact) * 1000.0) <= 1.5936),
+            # A negative CCSD error is the point of the stretched rows: coupled
+            # cluster is not variational, so at strong static correlation it can
+            # and does land below the exact energy. A subspace method cannot.
+            "ccsd_below_exact": bool(e_ccsd < e_exact),
+            "sd_chemical_accuracy":
+                None if err_sd_mha is None else bool(abs(err_sd_mha) <= 1.5936),
             "sd_spans_full_sector": bool(sd_spans_full_sector),
             # The adaptive stop is fed the exact energy, so "M at chemical
             # accuracy" is an oracle-assisted diagnostic and not a cost the
@@ -371,8 +516,8 @@ def run_pipeline(
             "adaptive_seconds": t_adaptive_elapsed,
             "adaptive_peak_rss_bytes": adaptive_rss.peak,
             "adaptive_peak_rss_delta_bytes": adaptive_rss.delta,
-            "sd_peak_rss_bytes": sd_rss.peak,
-            "sd_peak_rss_delta_bytes": sd_rss.delta,
+            "sd_peak_rss_bytes": None if sd_rss is None else sd_rss.peak,
+            "sd_peak_rss_delta_bytes": None if sd_rss is None else sd_rss.delta,
             "double_occupancy": double_occ,
             "double_occupancy_uncorrelated": double_occ_hf,
             "total_spin_squared": spin2,
@@ -420,11 +565,27 @@ def main() -> None:
         default=1.5936,
         help="Target energy error threshold in mHa for early stopping (default 1.5936 mHa)",
     )
+    parser.add_argument(
+        "--molecules",
+        default="",
+        help="Comma-separated subset to run, e.g. 'h2o_stretched,beh2_stretched' "
+             "(default: all). A partial run MERGES into the existing summary "
+             "rather than replacing it, so iterating on one geometry does not "
+             "discard the others -- but it also means the summary can then hold "
+             "rows from different runs, which benchmarks/check_molecular.py "
+             f"cannot detect. Available: {', '.join(MOLECULES)}",
+    )
     args = parser.parse_args()
+    selected = [m.strip() for m in args.molecules.split(",") if m.strip()]
+    unknown = [m for m in selected if m not in MOLECULES]
+    if unknown:
+        parser.error(f"unknown molecule(s): {', '.join(unknown)}. "
+                     f"Available: {', '.join(MOLECULES)}")
     run_pipeline(
         max_candidates=args.max_candidates,
         max_subspace=args.max_subspace,
         target_error_mha=args.target_error_mha,
+        molecules=selected or None,
     )
 
 
