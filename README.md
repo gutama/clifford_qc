@@ -142,6 +142,14 @@ assert np.allclose(to_matrix(A * A), to_matrix(A) @ to_matrix(A))
   level 4): a stabilizer configuration enters as the operator `VR†` that
   carries the reference onto it, so it costs one Pauli word between
   determinants and no second state is ever prepared
+- an experimental configuration-space Haar tier
+  (`subspace.configuration_haar_packets`): deterministic non-dyadic tree
+  details over a caller-declared configuration order, pruned by generator
+  support and used only for early A-CASE growth before handing off to level 4.
+  On the committed `2x2` Hubbard check this staged policy reaches the exact
+  energy with `W=9869` versus `14762` for cost-aware level 4 alone, while
+  recording its larger element support and overlap condition number rather
+  than hiding that tradeoff (`benchmarks/run_configuration_packets.py`)
 - A-CASE (`subspace/`): Rayleigh-Ritz in an operator-generated subspace whose
   basis states `A_i|psi>` are never prepared — every projected matrix element
   is an expectation on one reference state — with a cached matrix-element bank,
@@ -444,7 +452,7 @@ clifford_qc/
                    # layers (shared grouped measurement, asymptotic Ritz
                    # uncertainty, whole-pipeline response bootstrap,
                    # sample-split growth certificate), Lehmann response,
-                   # dense cross-check
+                   # support-pruned configuration Haar tier, dense cross-check
 ```
 
 ## Project Notes

@@ -14,6 +14,7 @@ otherwise they are decoration. The tests below check both, and also record the
 selector's blind spot, which is a real limitation rather than a bug.
 """
 
+import numpy as np
 import pytest
 
 from clifford_qc.backends import ExactMVBackend
@@ -21,10 +22,12 @@ from clifford_qc.ir import PauliWord
 from clifford_qc.models.lattice import bipartition, competing_orders, hubbard
 from clifford_qc.models.spin import tfim
 from clifford_qc.subspace import (compound_response, configuration_generator,
-                                  configuration_generators, determinant_excitations,
-                                  determinant_program, identity_generator,
-                                  occupied_spin_orbitals, pauli_orbit, run_acase,
-                                  sector_leakage, solve_subspace, state_sector)
+                                  configuration_generators,
+                                  configuration_haar_packets,
+                                  determinant_excitations, determinant_program,
+                                  identity_generator, occupied_spin_orbitals,
+                                  pauli_orbit, run_acase, sector_leakage,
+                                  solve_subspace, state_sector)
 
 
 def _words(*labels):
@@ -146,6 +149,66 @@ def test_bipartition_is_the_sublattice_not_the_site_numbering():
 def test_competing_orders_need_a_fermionic_lattice():
     with pytest.raises(ValueError, match="fermionic lattices"):
         competing_orders(tfim(4, 1.0, 0.7))
+
+
+# ------------------------------------------ configuration-space Haar packets (4c)
+
+
+def _configuration_leaves(n_qubits=4):
+    reference = determinant_program(n_qubits, (0, 1))
+    targets = ((0, 2), (0, 3), (1, 2), (1, 3), (2, 3))
+    return reference, [configuration_generator(reference, target, label=f"c{k}")
+                       for k, target in enumerate(targets)]
+
+
+def test_unbalanced_configuration_haar_is_orthogonal_and_preserves_parseval():
+    """Five leaves exercise the finite, non-dyadic normalization explicitly."""
+    reference, leaves = _configuration_leaves()
+    packets = configuration_haar_packets(
+        leaves, max_support=None, include_scaling=True)
+    assert len(packets) == len(leaves)
+    assert packets[0].label == "cfgH[0:5)"
+    assert packets[-1].label == "cfgS[0:5)"
+
+    codes = [next(iter(generator.mv.terms)) for generator in leaves]
+    transform = np.array([[packet.mv.terms.get(code, 0.0) for code in codes]
+                          for packet in packets], dtype=complex)
+    assert np.max(np.abs(transform @ transform.conj().T - np.eye(len(leaves)))) \
+        < 1e-12
+
+    coefficients = np.arange(1, len(leaves) + 1, dtype=float)
+    assert np.vdot(transform @ coefficients, transform @ coefficients).real \
+        == pytest.approx(np.vdot(coefficients, coefficients).real, abs=1e-12)
+
+    # The operator coefficient identity transfers to S=I for these distinct
+    # determinant configurations, checked on the actual A-CASE reference rho.
+    rho = ExactMVBackend().state(reference, ())
+    overlap = np.array([
+        [(left.mv.dagger() * right.mv * rho).trace()
+         for right in packets] for left in packets
+    ])
+    assert np.max(np.abs(overlap - np.eye(len(packets)))) < 1e-12
+
+
+def test_configuration_haar_support_cap_prunes_coarse_global_rows():
+    reference = determinant_program(5, (0, 1))
+    targets = ((0, 2), (0, 3), (0, 4), (1, 2),
+               (1, 3), (1, 4), (2, 3), (2, 4))
+    leaves = [configuration_generator(reference, target, label=f"c{k}")
+              for k, target in enumerate(targets)]
+    packets = configuration_haar_packets(
+        leaves, max_support=4, include_scaling=True)
+    assert len(packets) == 6       # four pair details + two four-leaf details
+    assert max(packet.support() for packet in packets) == 4
+    assert all("[0:8)" not in packet.label for packet in packets)
+
+
+def test_configuration_haar_rejects_invalid_budgets_and_duplicate_leaves():
+    _, leaves = _configuration_leaves()
+    with pytest.raises(ValueError, match="max_support"):
+        configuration_haar_packets(leaves, min_support=2, max_support=1)
+    with pytest.raises(ValueError, match="distinct directions"):
+        configuration_haar_packets(leaves + [leaves[0]])
 
 
 # ------------------------------------------------- what level 4 buys, and does not
