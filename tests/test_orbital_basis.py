@@ -64,6 +64,8 @@ def ring_hopping(sites: int, t: float = 1.0) -> np.ndarray:
 
 
 def ground_energy(hamiltonian, n_electrons, sz):
+    """Sector ground energy. Needs scipy, which the numpy-only core job lacks."""
+    pytest.importorskip("scipy")
     values, _ = sparse_ground_in_sector(hamiltonian, n_electrons=n_electrons, sz=sz)
     return float(np.real(values[0]))
 
