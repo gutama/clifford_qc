@@ -26,10 +26,10 @@ from .measured import (
 )
 from .generators import (
     Generator, as_generators, commutator_response, compound_response,
-    configuration_generator, configuration_generators, determinant_excitations,
-    determinant_program, fermionic_excitation_generators, identity_generator,
-    krylov_response, occupied_spin_orbitals, pauli_orbit, response_hierarchy,
-    state_sector,
+    configuration_generator, configuration_generators,
+    configuration_haar_packets, determinant_excitations, determinant_program,
+    fermionic_excitation_generators, identity_generator, krylov_response,
+    occupied_spin_orbitals, pauli_orbit, response_hierarchy, state_sector,
 )
 from .reference import (
     dense_basis, dense_projected_matrices, dense_residual_norm, dense_subspace,
@@ -58,7 +58,7 @@ __all__ = [
     "ritz_uncertainty", "run_certified_acase",
     "Generator", "MatrixElementBank", "as_generators", "commutator_response",
     "compound_response", "configuration_generator", "configuration_generators",
-    "determinant_excitations", "determinant_program",
+    "configuration_haar_packets", "determinant_excitations", "determinant_program",
     "fermionic_excitation_generators", "identity_generator", "krylov_response",
     "occupied_spin_orbitals", "pauli_orbit", "response_hierarchy", "state_sector",
     "dense_basis", "dense_projected_matrices", "dense_residual_norm",
