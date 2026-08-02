@@ -91,7 +91,7 @@ No figure or table value in the manuscript is transcribed by hand, and
 ```bash
 python -m venv .venv && source .venv/bin/activate
 pip install -e .[test,research,chemistry]   # numpy + scipy + openfermion/pyscf
-pytest                                      # 773 passed, 6 skipped
+pytest                                      # 811 passed, 6 skipped
 ```
 
 That install is the reference environment for the quoted pair, and it is
@@ -238,6 +238,47 @@ Expected invariants (minor last-digit formatting may vary):
 The program accepts another record as its sole argument. The schema is
 `clifford_qc.effective_hamiltonian.v1`; spin orbitals are interleaved
 (`2*site=up`, `2*site+1=down`), and complex one-body entries are `[real, imag]`.
+
+## Orbital-basis cost sweep (numpy only)
+
+Every fermionic cost this repository quotes is a site-basis number, and the
+site basis is a choice. The single-particle rotation `b_p = sum_i W_pi a_i`
+with `W W^T = 1` leaves the spectrum exactly invariant and changes all three
+reported currencies:
+
+```bash
+python benchmarks/run_orbital_basis.py \
+    --out benchmarks/reference_results/orbital_basis.json
+```
+
+Roughly four minutes at the default 8-site ring, `U = 4t`, half filling,
+periodic. Invariance is asserted rather than reported: every basis must
+reproduce the site-basis ground energy to `1e-8` or the script raises and no
+record is written, so a subtly wrong rotation cannot produce an attractive cost
+table for the wrong Hamiltonian.
+
+Expected invariants of the committed record:
+
+- ground energy `-20.603526300` in all seven bases (site, momentum, db1–db4,
+  non-interacting natural orbitals);
+- Pauli-word count spanning `41` (site) to `3833` (db4) — a factor of 93 at
+  identical physics;
+- determinants for `1.6e-3` accuracy spanning `906` (momentum) to `4310` (db1)
+  out of a `4900`-determinant sector;
+- adjacent-mode Givens counts `0` (site) to `28`.
+
+The disorder arm is the reason no basis can be standardised on. Averaged over
+three seeds of uniform diagonal disorder, the most compact basis changes with
+disorder strength: momentum at `W = 0` (906 determinants against the site
+basis's 3658), the site basis by `W = 6`, and natural orbitals at `W = 12`
+(956 against momentum's 3692). Wavelets (db2) are never competitive on either
+axis, which is the negative result the sweep exists to record.
+
+Parameters are predeclared at the top of the script (`CHEMICAL_ACCURACY`,
+`INVARIANCE_TOL`, `DEFAULT_SITES`, `DEFAULT_U`, `DEFAULT_DISORDER`,
+`DEFAULT_DISORDER_SEEDS`); `--sites`, `--interaction`, `--disorder`,
+`--disorder-seeds`, and `--accuracy` override them for exploration, and a
+`--sites 4` run finishes in a second.
 
 ## FCIDUMP H4 CAS(4e,4o) benchmark (numpy only)
 
