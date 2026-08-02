@@ -36,6 +36,10 @@ DISPLAY = {
     "beh2": ("BeH₂", r"\text{BeH}_2", "BeH$_2$"),
     "hf": ("HF", r"\text{HF}", "HF"),
     "h2o": ("H₂O", r"\text{H}_2\text{O}", "H$_2$O"),
+    "lih_stretched": ("LiH 3×", r"\text{LiH}", "LiH 3$\times$"),
+    "beh2_stretched": ("BeH₂ 2×", r"\text{BeH}_2", "BeH$_2$ 2$\times$"),
+    "h2o_stretched": ("H₂O 2×", r"\text{H}_2\text{O}", "H$_2$O 2$\times$"),
+    "h2o_dissociating": ("H₂O 2.5×", r"\text{H}_2\text{O}", "H$_2$O 2.5$\times$"),
 }
 
 GEOMETRY = {
@@ -43,6 +47,10 @@ GEOMETRY = {
     "beh2": "linear, Be--H 1.326 Å",
     "hf": "H--F 0.917 Å",
     "h2o": "O--H 0.9575 Å, ∠HOH 104.51°",
+    "lih_stretched": "Li--H 4.785 Å (3× rₑ), control",
+    "beh2_stretched": "symmetric, Be--H 2.652 Å (2× rₑ)",
+    "h2o_stretched": "symmetric, O--H 1.9150 Å (2× rₑ)",
+    "h2o_dissociating": "symmetric, O--H 2.3938 Å (2.5× rₑ)",
 }
 
 
@@ -65,8 +73,13 @@ def master_rows(summary: dict) -> list[dict]:
             "rhf": r["e_rhf"],
             "ccsd": r["e_ccsd"],
             "ccsd_err": r["error_ccsd_mha"],
-            "cisd": r["e_cisd"],
-            "cisd_err": r["error_cisd_mha"],
+            "cisd": r.get("e_cisd_determinant", r.get("e_sd_complete")),
+            "cisd_err": r.get("error_cisd_determinant_mha",
+                              r.get("error_sd_mha")),
+            "cisd_pyscf_ok": r.get("cisd_pyscf_agrees", True),
+            "regime": r.get("regime", "equilibrium"),
+            "ccsd_low": r.get("ccsd_below_exact", False),
+            "sd_run": r.get("complete_sd_run", True),
             "exact": r["e_exact_fci"],
             "ad": r["e_acase_adaptive"],
             "ad_err": r["error_adaptive_mha"],
@@ -75,6 +88,7 @@ def master_rows(summary: dict) -> list[dict]:
             "sd": r["e_sd_complete"],
             "sd_err": r["error_sd_mha"],
             "sd_m": r["complete_sd_basis_size"],
+            "sd_det": r.get("sd_determinant_count"),
             "sd_full": r["sd_spans_full_sector"],
             "oracle": r["adaptive_oracle_stop_used"],
             "d": r["double_occupancy"],
@@ -82,13 +96,13 @@ def master_rows(summary: dict) -> list[dict]:
             "s2": r["total_spin_squared"],
             "ham_terms": r["hamiltonian_pauli_terms"],
             "universe": r["element_word_universe"],
-            "sd_seconds": r["sd_subspace_seconds"],
+            "sd_seconds": r.get("sd_subspace_seconds"),
             "seconds": r["elapsed_seconds"],
             "ad_seconds": r["adaptive_seconds"],
             "ad_bytes": r["adaptive_cached_operator_bytes"],
             "ad_rss": r["adaptive_peak_rss_bytes"],
-            "sd_rss": r["sd_peak_rss_bytes"],
-            "sd_rss_delta": r["sd_peak_rss_delta_bytes"],
+            "sd_rss": r.get("sd_peak_rss_bytes"),
+            "sd_rss_delta": r.get("sd_peak_rss_delta_bytes"),
             "ad_products": r["adaptive_operator_products"],
             "ad_pairs": r["adaptive_pairs_built"],
             "response": r["response_diagnostic"],
@@ -127,40 +141,90 @@ def render_markdown(summary: dict) -> str:
     add("Errors in mHa against the sector-exact ground energy; chemical accuracy "
         f"is {CHEMICAL_ACCURACY_MHA} mHa.")
     add("")
-    add("| Molecule | $n$ | $N_e$ | Sector dim | A-CASE $M$ | A-CASE err | CCSD err | CISD err | Complete SD $M$ | SD err | $\\kappa(S)$ |")
-    add("| :--- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |")
-    for r in rows:
-        sd_note = " †" if r["sd_full"] else ""
-        add(f"| **{_md_name(r['key'])}** | {r['n']} | {r['ne']} | {r['sector']} "
-            f"| {r['ad_m']} | `{r['ad_err']:+.4f}` | `{r['ccsd_err']:+.4f}` "
-            f"| `{r['cisd_err']:+.4f}` | {r['sd_m']}{sd_note} | `{r['sd_err']:+.4f}` "
-            f"| `{r['kappa']:.2f}` |")
+    add("CISD here is the **determinant-space** minimum computed in this "
+        "repository, not PySCF's. At H₂O 2.5× PySCF returns an energy 55.2 mHa "
+        "above the minimum of its own space while reporting convergence; it "
+        "agrees to nine digits everywhere else. See §1.3.")
     add("")
+    for regime, title in (("equilibrium", "Equilibrium"),
+                          ("stretched", "Stretched")):
+        group = [r for r in rows if r["regime"] == regime]
+        if not group:
+            continue
+        add(f"**{title}**")
+        add("")
+        add("| Geometry | $n$ | Sector | A-CASE $M$ | A-CASE | CCSD | CISD | "
+            "$\\kappa(S)$ |")
+        add("| :--- | ---: | ---: | ---: | ---: | ---: | ---: | ---: |")
+        for r in group:
+            mark = " ‡" if r["ccsd_low"] else (" †" if r["sd_full"] else "")
+            add(f"| **{_md_name(r['key'])}** | {r['n']} | {r['sector']} "
+                f"| {r['ad_m']} | `{r['ad_err']:+.3f}` "
+                f"| `{r['ccsd_err']:+.3f}`{mark} | `{r['cisd_err']:+.3f}` "
+                f"| `{r['kappa']:.2f}` |")
+        add("")
 
     beaten = [r for r in rows if abs(r["ccsd_err"]) < abs(r["ad_err"])]
-    add("**What the table says.** A-CASE reaches chemical accuracy on all four "
-        f"molecules. It is beaten by CCSD on {len(beaten)} of {len(rows)} "
-        f"({', '.join(_md_name(r['key']) for r in beaten)}), at a fraction of "
-        "the cost — CCSD is milliseconds here. The adaptive subspace is not "
-        "competitive with classical coupled cluster on these systems and is not "
-        "offered as if it were; what it demonstrates is that the operator-response "
-        "subspace reaches the threshold at small $M$ against a sector dimension "
-        "two to three orders larger.")
+    low = [r for r in rows if r["ccsd_low"]]
+    ceiling = [r for r in rows
+               if abs(r["ad_err"] - r["cisd_err"]) < 1.0 and r["cisd_err"] > 5.0]
+    add("**What the table says, in both directions.**")
     add("")
-    if any_oracle:
-        add("**The stopping rule is oracle-assisted, and the $M$ column inherits "
-            "that.** Growth halts on the first step where the error against the "
-            "*exact* energy falls below threshold, so $M$ answers \"how small can "
-            "the basis be and still clear the bar\" — a property of the selector. "
-            "It is not a cost the method could reproduce without already knowing "
-            "the answer. An unaided run needs a convergence criterion that does "
-            "not read the oracle; the residual-norm route is the open item.")
+    add(f"*Against the method.* CCSD is more accurate on {len(beaten)} of "
+        f"{len(rows)} geometries, at a small fraction of the cost — "
+        "milliseconds against minutes. Stretching does not open a niche: on "
+        + ", ".join(_md_name(r["key"]) for r in ceiling) +
+        " the A-CASE error sits within 1 mHa of the CISD ceiling it cannot "
+        "pass, because its candidate family *is* singles and doubles, so its "
+        "span is a subspace of the CISD space. The binding constraint is the "
+        "excitation family, not the geometry — the same conclusion "
+        "`ACASE_RESEARCH_PLAN.md` drew from H₄ and the Hubbard clusters, now "
+        "reproduced on molecular chemistry. What would change it is level-4 "
+        "generators (competing-order configurations dressed by excitations), "
+        "not more geometries.")
+    add("")
+    if low:
+        add("*For the method, narrowly.* ‡ On "
+            + " and ".join(_md_name(r["key"]) for r in low) +
+            " CCSD lands **below** the exact energy — it is not variational, "
+            "and under strong static correlation it forfeits the one guarantee "
+            "a Rayleigh–Ritz subspace keeps structurally. An error bar is worth "
+            "less when its sign is not known.")
         add("")
-        add("Recorded stop reasons:")
-        add("")
-        for r in rows:
-            add(f"- {_md_name(r['key'])}: {r['stop']}")
-        add("")
+    add("*The LiH 3× row is a control and behaves like one*: a stretched "
+        "geometry where CCSD still wins comfortably. A single σ bond in a "
+        "minimal basis stays single-reference, so any claim that stretching "
+        "favours A-CASE has to survive it.")
+    add("")
+    add("### 1.2 Where the complete-SD arm ran")
+    add("")
+    add("| Geometry | Complete SD $M$ | SD err | SD determinants |")
+    add("| :--- | ---: | ---: | ---: |")
+    for r in rows:
+        if r["sd_run"]:
+            note = " †" if r["sd_full"] else ""
+            add(f"| {_md_name(r['key'])} | {r['sd_m']}{note} "
+                f"| `{r['sd_err']:+.4f}` | — |")
+        else:
+            add(f"| {_md_name(r['key'])} | skipped | — | {r['sd_det']} |")
+    add("")
+    add("The arm reproduces CISD by construction, so it is skipped on the "
+        "stretched rows and the determinant CISD is diagonalized directly "
+        "instead — a 141×141 problem in milliseconds against the half hour the "
+        "element-operator route needs for the same number.")
+    add("")
+    add("### 1.3 PySCF as a cross-check, not an oracle")
+    add("")
+    bad = [r for r in rows if not r["cisd_pyscf_ok"]]
+    if bad:
+        for r in bad:
+            add(f"- **{_md_name(r['key'])}**: PySCF CISD misses the minimum of "
+                f"its own space. Caught because A-CASE — a *subspace* of that "
+                f"space — came out below it, which is impossible; "
+                f"`check_molecular.py` now tests that inequality directly.")
+    else:
+        add("- PySCF CISD agrees with the determinant minimum on every row.")
+    add("")
     full = [r for r in rows if r["sd_full"]]
     if full:
         names = ", ".join(_md_name(r["key"]) for r in full)
@@ -183,6 +247,8 @@ def render_markdown(summary: dict) -> str:
     add("| Molecule | Complete SD $E_0$ (Ha) | PySCF CISD (Ha) | difference (Ha) |")
     add("| :--- | ---: | ---: | ---: |")
     for r in rows:
+        if not r["sd_run"]:
+            continue
         add(f"| {_md_name(r['key'])} | `{r['sd']:.9f}` | `{r['cisd']:.9f}` "
             f"| `{r['sd'] - r['cisd']:+.2e}` |")
     add("")
@@ -191,8 +257,9 @@ def render_markdown(summary: dict) -> str:
     add("| Molecule | RHF | CCSD | CISD | Complete SD | A-CASE | Sector-exact FCI |")
     add("| :--- | ---: | ---: | ---: | ---: | ---: | ---: |")
     for r in rows:
+        sd = f"`{r['sd']:.9f}`" if r["sd_run"] else "—"
         add(f"| {_md_name(r['key'])} | `{r['rhf']:.9f}` | `{r['ccsd']:.9f}` "
-            f"| `{r['cisd']:.9f}` | `{r['sd']:.9f}` | `{r['ad']:.9f}` "
+            f"| `{r['cisd']:.9f}` | {sd} | `{r['ad']:.9f}` "
             f"| `{r['exact']:.9f}` |")
     add("")
     add("---")
@@ -261,8 +328,9 @@ def render_markdown(summary: dict) -> str:
         "A-CASE $M$ | Complete SD wall-clock (s) |")
     add("| :--- | ---: | ---: | ---: | ---: |")
     for r in rows:
+        secs = f"{r['sd_seconds']:.1f}" if r["sd_run"] else "—"
         add(f"| {_md_name(r['key'])} | {r['ham_terms']} | {r['universe']:,} "
-            f"| {r['ad_m']} | {r['sd_seconds']:.1f} |")
+            f"| {r['ad_m']} | {secs} |")
     add("")
     add("The Hamiltonian counts are the standard literature values for these "
         "systems, and LiH and HF agree exactly because both are six spatial "
@@ -293,16 +361,21 @@ def render_markdown(summary: dict) -> str:
         "SD $M$ | SD time (s) | SD RSS rise | RSS high-water |")
     add("| :--- | ---: | ---: | ---: | ---: | ---: | ---: | ---: |")
     for r in rows:
+        if r["sd_run"]:
+            sd_cols = (f"{r['sd_m']} | {r['sd_seconds']:.1f} "
+                       f"| {r['sd_rss_delta'] / 2**30:.2f} GiB "
+                       f"| {r['sd_rss'] / 2**30:.2f} GiB")
+        else:
+            sd_cols = "skipped | — | — | —"
         add(f"| {_md_name(r['key'])} | {r['ad_m']} | {r['ad_seconds']:.1f} "
-            f"| {r['ad_bytes'] / 2**20:.1f} MiB | {r['sd_m']} "
-            f"| {r['sd_seconds']:.1f} | {r['sd_rss_delta'] / 2**30:.2f} GiB "
-            f"| {r['sd_rss'] / 2**30:.2f} GiB |")
+            f"| {r['ad_bytes'] / 2**20:.1f} MiB | {sd_cols} |")
     add("")
     add("`A-CASE cached ops` is the bank's own estimate of the bytes held by "
         "its cached element operators — an attributable per-arm figure, unlike "
         "the RSS columns, and the one to compare across molecules.")
     add("")
-    worst = max(rows, key=lambda r: r["sd_rss"])
+    worst = max((r for r in rows if r["sd_run"]),
+                key=lambda r: r["sd_rss"])
     add(f"The complete-SD wall clock is dominated by the element-operator "
         f"route, which costs $O(|A_i|\\,|H|\\,|A_j|)$ per pair over $M(M+1)/2$ "
         f"pairs and caches every one. On {_md_name(worst['key'])} that is "
@@ -381,9 +454,10 @@ def render_tex(summary: dict) -> str:
     add(r"\midrule")
     for r in rows:
         note = r"$^\dagger$" if r["sd_full"] else ""
+        sd_col = f"${r['sd_err']:+.4f}${note}" if r["sd_run"] else "---"
         add(f"{_tex_name(r['key'])} & {r['n']} & {r['ne']} & {r['sector']} & "
             f"{r['ad_m']} & ${r['ad_err']:+.4f}$ & ${r['ccsd_err']:+.4f}$ & "
-            f"${r['cisd_err']:+.4f}$ & ${r['sd_err']:+.4f}${note} & "
+            f"${r['cisd_err']:+.4f}$ & {sd_col} & "
             f"${r['kappa']:.2f}$ \\\\")
     add(r"\bottomrule")
     add(r"\end{tabular}")
@@ -448,8 +522,9 @@ def render_tex(summary: dict) -> str:
     add(r"Molecule & Words in $H$ & Element universe & $M$ & SD wall-clock (s) \\")
     add(r"\midrule")
     for r in rows:
+        secs = f"{r['sd_seconds']:.1f}" if r["sd_run"] else "---"
         add(f"{_tex_name(r['key'])} & {r['ham_terms']} & {r['universe']:,} & "
-            f"{r['ad_m']} & {r['sd_seconds']:.1f} \\\\")
+            f"{r['ad_m']} & {secs} \\\\")
     add(r"\bottomrule")
     add(r"\end{tabular}")
     add(r"\end{table}")

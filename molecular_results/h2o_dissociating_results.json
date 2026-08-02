@@ -9,14 +9,18 @@
   "rhf_converged": true,
   "cisd_converged": true,
   "ccsd_converged": true,
-  "e_rhf": -74.23922641140445,
-  "e_cisd": -74.67701643793293,
-  "e_ccsd": -74.78345468967277,
-  "e_exact_fci": -74.74232375893263,
-  "error_cisd_mha": 65.30732099969327,
-  "error_ccsd_mha": -41.13093074013818,
-  "e_acase_adaptive": -74.732231056244,
-  "error_adaptive_mha": 10.092702688623945,
+  "e_rhf": -74.23922641140459,
+  "e_cisd": -74.67701643796877,
+  "e_ccsd": -74.78345468968499,
+  "e_exact_fci": -74.74232375893256,
+  "error_cisd_mha": 65.30732096378244,
+  "e_cisd_determinant": -74.73223118895258,
+  "error_cisd_determinant_mha": 10.092569979974542,
+  "sd_determinant_count": 141,
+  "cisd_pyscf_agrees": false,
+  "error_ccsd_mha": -41.13093075243057,
+  "e_acase_adaptive": -74.73223105624245,
+  "error_adaptive_mha": 10.092702690101873,
   "complete_sd_run": false,
   "e_sd_complete": null,
   "error_sd_mha": null,
@@ -37,106 +41,106 @@
   "hamiltonian_pauli_terms": 1086,
   "element_word_universe": 994052,
   "adaptive_cached_operator_bytes": 1685118696,
-  "adaptive_assemble_seconds": 598.7811181380339,
-  "adaptive_growth_seconds": 1879.8901147079996,
+  "adaptive_assemble_seconds": 642.6256755461836,
+  "adaptive_growth_seconds": 1976.2763261420005,
   "adaptive_operator_products": 5643,
   "adaptive_pairs_built": 2751,
   "adaptive_element_cache_hits": 87070,
   "adaptive_max_generator_support": 8,
   "adaptive_max_hamiltonian_element_support": 49472,
-  "adaptive_seconds": 1879.9515454769135,
-  "adaptive_peak_rss_bytes": 8125431808,
-  "adaptive_peak_rss_delta_bytes": 4458606592,
+  "adaptive_seconds": 1976.3224303722382,
+  "adaptive_peak_rss_bytes": 8154718208,
+  "adaptive_peak_rss_delta_bytes": 3846139904,
   "sd_peak_rss_bytes": null,
   "sd_peak_rss_delta_bytes": null,
-  "double_occupancy": 0.4285714285719032,
+  "double_occupancy": 0.42857142857190317,
   "double_occupancy_uncorrelated": 0.7142857142857143,
-  "total_spin_squared": 5.999999980225563,
-  "static_susceptibility_chi0": 3.2924169948070037e-10,
+  "total_spin_squared": 5.999999980225562,
+  "static_susceptibility_chi0": 3.2924169794921574e-10,
   "response_diagnostic": "no significant weight: the S_z operator couples the singlet reference to triplet states that the singlet-preserving excitation basis does not span, so chi0 is a basis artifact rather than a physical response",
-  "elapsed_seconds": 1902.041826725006,
+  "elapsed_seconds": 2003.4041781425476,
   "sd_subspace_seconds": null,
   "ground_state_coefficients": {
     "E(10,13<-6,9)": {
-      "real": 0.40817802857206326,
+      "real": 0.4081780285686149,
       "imag": 0.0
     },
     "E(11,12<-7,8)": {
-      "real": 0.40817826859706074,
+      "real": 0.4081782685936753,
       "imag": 0.0
     },
     "E(11,12<-6,9)": {
-      "real": 0.40817729518741713,
+      "real": 0.4081772951837464,
       "imag": 0.0
     },
     "E(10,13<-7,8)": {
-      "real": 0.40817779536327176,
+      "real": 0.4081777953595524,
       "imag": 0.0
     },
     "E(10,12<-6,8)": {
-      "real": -0.4081774628136424,
+      "real": -0.40817746280941025,
       "imag": 0.0
     },
     "E(11,13<-7,9)": {
-      "real": -0.408176901882035,
+      "real": -0.40817690187782507,
       "imag": 0.0
     },
     "E(11,12<-2,7)": {
-      "real": 0.007593960846798938,
+      "real": 0.007593961049796633,
       "imag": 0.0
     },
     "E(10,13<-2,7)": {
-      "real": 0.007594649114055518,
+      "real": 0.007594649317038518,
       "imag": 0.0
     },
     "E(10,12<-2,6)": {
-      "real": -0.00759465141700344,
+      "real": -0.00759465161995019,
       "imag": 0.0
     },
     "E(10,13<-3,6)": {
-      "real": 0.007595721690762605,
+      "real": 0.007595721893713066,
       "imag": 0.0
     },
     "E(11,12<-3,6)": {
-      "real": 0.007596791910739568,
+      "real": 0.007596792113665853,
       "imag": 0.0
     },
     "E(11,13<-3,7)": {
-      "real": -0.007596818315355348,
+      "real": -0.007596818518338021,
       "imag": 0.0
     },
     "E(11,12<-0,7)": {
-      "real": 5.748118676934107e-05,
+      "real": 5.748118663725422e-05,
       "imag": 0.0
     },
     "E(10,13<-0,7)": {
-      "real": 5.751399004127978e-05,
+      "real": 5.751398990895746e-05,
       "imag": 0.0
     },
     "E(10,12<-0,6)": {
-      "real": -5.7513921327782976e-05,
+      "real": -5.7513921195356354e-05,
       "imag": 0.0
     },
     "E(10,13<-1,6)": {
-      "real": 5.70177829877747e-05,
+      "real": 5.7017782859996216e-05,
       "imag": 0.0
     }
   },
   "lehmann_response": [
     {
       "final_state": 17,
-      "excitation_energy_ha": 19.942052255523826,
-      "weight": 2.2423224989435954e-09
+      "excitation_energy_ha": 19.942052257219224,
+      "weight": 2.24232248785221e-09
     },
     {
       "final_state": 18,
-      "excitation_energy_ha": 20.128720972694552,
-      "weight": 1.0374389222440711e-09
+      "excitation_energy_ha": 20.128720973790557,
+      "weight": 1.0374389182440803e-09
     },
     {
       "final_state": 19,
-      "excitation_energy_ha": 20.22278080251388,
-      "weight": 1.291641853288081e-11
+      "excitation_energy_ha": 20.222780803555523,
+      "weight": 1.291641856437988e-11
     }
   ]
 }

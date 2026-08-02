@@ -16,6 +16,7 @@ from pyscf import cc, ci, gto, scf, tools
 
 from clifford_qc.backends import ExactMVBackend, SectorStatevectorBackend
 from clifford_qc.models.fcidump import fcidump_model
+from clifford_qc.sparse import to_sparse
 from clifford_qc.models.observables import (double_occupancy, magnetization,
                                              total_spin_squared)
 from clifford_qc.subspace import (MatrixElementBank, determinant_excitations,
@@ -139,6 +140,37 @@ MOLECULES = {
         "regime": "stretched",
     },
 }
+
+
+def determinant_ci_energy(hamiltonian, n, occupied, n_electrons, sz,
+                          max_rank: int = 2) -> tuple[float, int]:
+    """Exact ground energy of the rank-``max_rank`` determinant space.
+
+    PySCF is not a trustworthy CISD oracle at the stretched geometries in this
+    set. At H2O 2.5x it returns an energy 55.2 mHa above the true minimum of
+    its own space while reporting ``converged=True`` -- caught only because
+    A-CASE, whose basis is a *subspace* of that space, came out below it, which
+    is impossible. Two other failures appeared in screening: CISD below FCI at
+    3x, and RHF not converging at 4x.
+
+    So the baseline is computed here rather than imported. Restricting the
+    Hamiltonian to the determinants within ``max_rank`` excitations of the
+    reference and diagonalizing that block is exact, needs no iteration to
+    converge, and is 141x141 for water in STO-3G -- milliseconds against the
+    half hour the element-operator route takes for the same number.
+
+    Uses the full ``2^n`` sparse Hamiltonian, so it is a small-system tool: it
+    is the oracle for the molecules in this pipeline, not a general CI solver.
+    """
+    basis = SectorStatevectorBackend(n, n_electrons, sz).basis
+    reference = 0
+    for q in occupied:
+        reference |= 1 << (n - 1 - q)
+    rank = np.array([bin(int(b) ^ reference).count("1") // 2 for b in basis])
+    kept = basis[rank <= max_rank]
+    block = to_sparse(hamiltonian).tocsr()[np.ix_(kept, kept)].toarray()
+    block = (block + block.conj().T) / 2.0
+    return float(np.linalg.eigvalsh(block)[0]), int(kept.size)
 
 
 class PeakRSS:
@@ -328,6 +360,19 @@ def run_pipeline(
         e_exact = float(exact_energies[0])
         print(f"  Exact Sector FCI E0: {e_exact:+.9f} Ha")
 
+        # Our own CISD reference. PySCF's is cross-checked against it rather
+        # than trusted; see determinant_ci_energy for why.
+        e_cisd_det, n_sd_determinants = determinant_ci_energy(
+            model.hamiltonian, model.n, occupied, n_electrons, sz, max_rank=2)
+        cisd_agrees = abs(e_cisd_det - e_cisd) < 1e-6
+        print(f"  Determinant CISD E0: {e_cisd_det:+.9f} Ha "
+              f"({n_sd_determinants} determinants, "
+              f"error {(e_cisd_det - e_exact) * 1000:+.4f} mHa)")
+        if not cisd_agrees:
+            print(f"  WARNING: PySCF CISD disagrees by "
+                  f"{(e_cisd - e_cisd_det) * 1000:+.4f} mHa; PySCF did not "
+                  f"reach the minimum of its own space")
+
         # 5. Adaptive A-CASE Subspace Eigensolver (Optimal Path Selection)
         # A per-molecule cap overrides the global one. Stretched geometries need
         # it: the oracle stop cannot fire when chemical accuracy is out of
@@ -477,6 +522,10 @@ def run_pipeline(
             "e_ccsd": e_ccsd,
             "e_exact_fci": e_exact,
             "error_cisd_mha": (e_cisd - e_exact) * 1000.0,
+            "e_cisd_determinant": e_cisd_det,
+            "error_cisd_determinant_mha": (e_cisd_det - e_exact) * 1000.0,
+            "sd_determinant_count": n_sd_determinants,
+            "cisd_pyscf_agrees": bool(cisd_agrees),
             "error_ccsd_mha": (e_ccsd - e_exact) * 1000.0,
             "e_acase_adaptive": e_acase,
             "error_adaptive_mha": err_mha,

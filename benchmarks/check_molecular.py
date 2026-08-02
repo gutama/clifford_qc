@@ -219,15 +219,37 @@ def check_record(key: str, record: dict, errors: list[str]) -> None:
     # direct diagonalization of the 141-determinant block agrees with A-CASE to
     # 0.13 uHa. A convergence flag from the external solver does not catch it,
     # and this comparison does, from the record alone.
+    # The comparison is against a CISD we computed, never against PySCF's.
+    # ``e_cisd_determinant`` is the diagonalized SD determinant block; on rows
+    # that ran the complete-SD arm, ``e_sd_complete`` is the same quantity by a
+    # slower route, so those rows need no separate field.
     e_ad = record.get("e_acase_adaptive")
-    e_cisd = record.get("e_cisd")
-    if e_ad is not None and e_cisd is not None and e_ad < e_cisd - 1e-6:
+    reference_cisd = record.get("e_cisd_determinant")
+    source = "determinant CISD"
+    if reference_cisd is None and record.get("complete_sd_run"):
+        reference_cisd = record.get("e_sd_complete")
+        source = "complete-SD"
+    if e_ad is not None and reference_cisd is not None:
+        if e_ad < reference_cisd - 1e-6:
+            _fail(errors, key,
+                  f"A-CASE {e_ad:.9f} lies below the {source} minimum "
+                  f"{reference_cisd:.9f} by {(reference_cisd - e_ad) * 1000:.3f} "
+                  f"mHa, but its basis is a subspace of that space and cannot")
+    elif e_ad is not None:
         _fail(errors, key,
-              f"A-CASE {e_ad:.9f} lies below CISD {e_cisd:.9f} by "
-              f"{(e_cisd - e_ad) * 1000:.3f} mHa, but its basis is a subspace "
-              f"of the CISD space and cannot. The reported CISD is not the "
-              f"variational minimum of its own space -- check the external "
-              f"solver rather than A-CASE")
+              "no CISD reference to check A-CASE against: the row has neither "
+              "e_cisd_determinant nor a complete-SD arm")
+
+    # A PySCF disagreement is a recorded fact about the external solver, not a
+    # defect in the record -- but it has to be recorded rather than silent.
+    agrees = record.get("cisd_pyscf_agrees")
+    e_cisd = record.get("e_cisd")
+    if agrees is not None and not agrees:
+        det = record.get("e_cisd_determinant")
+        if det is not None and e_cisd is not None:
+            print(f"  note: {key}: PySCF CISD is {(e_cisd - det) * 1000:+.3f} "
+                  f"mHa off the determinant CISD minimum; the record uses ours",
+                  file=sys.stderr)
 
     # 10: an unconverged reference makes every correlated number built on it
     # meaningless rather than merely inaccurate, and stretched geometries are

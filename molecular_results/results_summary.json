@@ -1,100 +1,30 @@
 {
-  "lih": {
-    "key": "lih",
-    "name": "Lithium Hydride (LiH)",
-    "qubits": 12,
-    "n_electrons": 4,
-    "sz": 0.0,
-    "sector_dimension": 225,
-    "e_rhf": -7.862023860127116,
-    "e_cisd": -7.882388614941495,
-    "e_ccsd": -7.8823914376164295,
-    "e_exact_fci": -7.882401932290231,
-    "error_cisd_mha": 0.01331734873577517,
-    "error_ccsd_mha": 0.010494673801098031,
-    "e_acase_adaptive": -7.881275577103757,
-    "error_adaptive_mha": 1.1263551864733046,
-    "e_sd_complete": -7.882388614943773,
-    "error_sd_mha": 0.013317346457597523,
-    "adaptive_chemical_accuracy": true,
-    "sd_chemical_accuracy": true,
-    "sd_spans_full_sector": false,
-    "adaptive_stop_reason": "target error reached (1.1264 mHa <= 1.5936 mHa)",
-    "adaptive_oracle_stop_used": true,
-    "adaptive_target_error_mha": 1.5936,
-    "subspace_size_m": 6,
-    "complete_sd_candidates": 92,
-    "complete_sd_basis_size": 93,
-    "effective_rank": 6,
-    "condition_number": 1.0,
-    "hamiltonian_pauli_terms": 631,
-    "element_word_universe": 38250,
-    "adaptive_cached_operator_bytes": 115785024,
-    "adaptive_assemble_seconds": 38.364154465999775,
-    "adaptive_growth_seconds": 50.36286365800004,
-    "adaptive_operator_products": 1179,
-    "adaptive_pairs_built": 543,
-    "adaptive_element_cache_hits": 4883,
-    "adaptive_max_generator_support": 8,
-    "adaptive_max_hamiltonian_element_support": 7680,
-    "adaptive_seconds": 50.36398649215698,
-    "adaptive_peak_rss_bytes": 987185152,
-    "adaptive_peak_rss_delta_bytes": 848941056,
-    "sd_peak_rss_bytes": 1172180992,
-    "sd_peak_rss_delta_bytes": 184995840,
-    "double_occupancy": 0.332419496925987,
-    "double_occupancy_uncorrelated": 0.3333333333333333,
-    "total_spin_squared": 9.340760230278098e-32,
-    "static_susceptibility_chi0": 0.0,
-    "response_diagnostic": "no significant weight: the S_z operator couples the singlet reference to triplet states that the singlet-preserving excitation basis does not span, so chi0 is a basis artifact rather than a physical response",
-    "elapsed_seconds": 405.74195528030396,
-    "sd_subspace_seconds": 352.85266637802124,
-    "ground_state_coefficients": {
-      "I": {
-        "real": 0.989659493885343,
-        "imag": 0.0
-      },
-      "E(10,11<-2,3)": {
-        "real": 0.11661524300101651,
-        "imag": 0.0
-      },
-      "E(4,11<-2,3)": {
-        "real": -0.052359423431119524,
-        "imag": 0.0
-      },
-      "E(5,10<-2,3)": {
-        "real": 0.05235942343111922,
-        "imag": 0.0
-      },
-      "E(4,5<-2,3)": {
-        "real": 0.02784268503238028,
-        "imag": 0.0
-      },
-      "E(6,7<-2,3)": {
-        "real": 0.026771957502753508,
-        "imag": 0.0
-      }
-    },
-    "lehmann_response": []
-  },
   "beh2": {
     "key": "beh2",
     "name": "Beryllium Hydride (BeH2)",
+    "regime": "equilibrium",
     "qubits": 14,
     "n_electrons": 6,
     "sz": 0.0,
     "sector_dimension": 1225,
+    "rhf_converged": true,
+    "cisd_converged": true,
+    "ccsd_converged": true,
     "e_rhf": -15.560334935987182,
     "e_cisd": -15.59442980168742,
     "e_ccsd": -15.594788915868662,
-    "e_exact_fci": -15.59518235666175,
-    "error_cisd_mha": 0.7525549743299109,
-    "error_ccsd_mha": 0.39344079308811786,
-    "e_acase_adaptive": -15.593841252996468,
-    "error_adaptive_mha": 1.341103665282617,
-    "e_sd_complete": -15.594429801687491,
-    "error_sd_mha": 0.7525549742588566,
+    "e_exact_fci": -15.595182356661757,
+    "error_cisd_mha": 0.7525549743370163,
+    "error_ccsd_mha": 0.3934407930952233,
+    "e_acase_adaptive": -15.59384125299648,
+    "error_adaptive_mha": 1.3411036652772879,
+    "complete_sd_run": true,
+    "e_sd_complete": -15.594429801687495,
+    "error_sd_mha": 0.7525549742624094,
     "adaptive_chemical_accuracy": true,
+    "cisd_chemical_accuracy": true,
+    "ccsd_chemical_accuracy": true,
+    "ccsd_below_exact": false,
     "sd_chemical_accuracy": true,
     "sd_spans_full_sector": false,
     "adaptive_stop_reason": "target error reached (1.3411 mHa <= 1.5936 mHa)",
@@ -108,165 +38,476 @@
     "hamiltonian_pauli_terms": 666,
     "element_word_universe": 350196,
     "adaptive_cached_operator_bytes": 840120264,
-    "adaptive_assemble_seconds": 229.38404541599652,
-    "adaptive_growth_seconds": 437.551839331,
+    "adaptive_assemble_seconds": 302.9660563880525,
+    "adaptive_growth_seconds": 605.4136373000001,
     "adaptive_operator_products": 4605,
     "adaptive_pairs_built": 2200,
     "adaptive_element_cache_hits": 36741,
     "adaptive_max_generator_support": 8,
     "adaptive_max_hamiltonian_element_support": 29888,
-    "adaptive_seconds": 437.56193447113037,
-    "adaptive_peak_rss_bytes": 5298319360,
-    "adaptive_peak_rss_delta_bytes": 4181221376,
-    "sd_peak_rss_bytes": 6313963520,
-    "sd_peak_rss_delta_bytes": 1015644160,
-    "double_occupancy": 0.4262188028131186,
+    "adaptive_seconds": 605.4302690029144,
+    "adaptive_peak_rss_bytes": 4702707712,
+    "adaptive_peak_rss_delta_bytes": 3717783552,
+    "sd_peak_rss_bytes": 5750640640,
+    "sd_peak_rss_delta_bytes": 1055895552,
+    "double_occupancy": 0.4262188028131185,
     "double_occupancy_uncorrelated": 0.42857142857142855,
-    "total_spin_squared": 0.00020649925907649926,
+    "total_spin_squared": 0.00020649925907651278,
     "static_susceptibility_chi0": 0.0,
     "response_diagnostic": "no significant weight: the S_z operator couples the singlet reference to triplet states that the singlet-preserving excitation basis does not span, so chi0 is a basis artifact rather than a physical response",
-    "elapsed_seconds": 2850.0227270126343,
-    "sd_subspace_seconds": 2406.319849252701,
+    "elapsed_seconds": 3632.910657644272,
+    "sd_subspace_seconds": 3018.3483860492706,
     "ground_state_coefficients": {
       "I": {
-        "real": 0.9873730494031205,
+        "real": 0.9873730494031203,
         "imag": 0.0
       },
       "E(10,11<-4,5)": {
-        "real": 0.07387837287135995,
+        "real": 0.07387837287136197,
         "imag": 0.0
       },
       "E(10,13<-2,5)": {
-        "real": 0.04882128719454273,
+        "real": 0.04882128719454323,
         "imag": 0.0
       },
       "E(11,12<-3,4)": {
-        "real": 0.04882128719454275,
+        "real": 0.0488212871945432,
         "imag": 0.0
       },
       "E(10,11<-2,3)": {
-        "real": 0.05892940865583448,
+        "real": 0.05892940865583461,
         "imag": 0.0
       },
       "E(12,13<-4,5)": {
-        "real": 0.040879160015583615,
+        "real": 0.04087916001558373,
         "imag": 0.0
       },
       "E(6,7<-2,3)": {
-        "real": 0.052320931572449145,
+        "real": 0.05232093157244973,
         "imag": 0.0
       },
       "E(11,12<-2,5)": {
-        "real": -0.04163624615296722,
+        "real": -0.04163624615296744,
         "imag": 0.0
       },
       "E(10,13<-3,4)": {
-        "real": -0.04163624615296722,
+        "real": -0.041636246152967446,
         "imag": 0.0
       },
       "E(8,9<-2,3)": {
-        "real": 0.05232093157244915,
+        "real": 0.0523209315724497,
         "imag": 0.0
       },
       "E(12,13<-2,3)": {
-        "real": 0.027991364576504744,
+        "real": 0.02799136457650493,
         "imag": 0.0
       }
     },
     "lehmann_response": []
   },
-  "hf": {
-    "key": "hf",
-    "name": "Hydrogen Fluoride (HF)",
-    "qubits": 12,
-    "n_electrons": 10,
+  "beh2_stretched": {
+    "key": "beh2_stretched",
+    "name": "Beryllium Hydride, 2x symmetric stretch (BeH2, 2.652 A)",
+    "regime": "stretched",
+    "qubits": 14,
+    "n_electrons": 6,
     "sz": 0.0,
-    "sector_dimension": 36,
-    "e_rhf": -98.5707799860142,
-    "e_cisd": -98.59662417998659,
-    "e_ccsd": -98.59662415054984,
-    "e_exact_fci": -98.59662417998744,
-    "error_cisd_mha": 8.526512829121202e-10,
-    "error_ccsd_mha": 2.9437600801429653e-05,
-    "e_acase_adaptive": -98.59555170529195,
-    "error_adaptive_mha": 1.072474695490655,
-    "e_sd_complete": -98.59662417998743,
-    "error_sd_mha": 1.4210854715202004e-11,
-    "adaptive_chemical_accuracy": true,
-    "sd_chemical_accuracy": true,
-    "sd_spans_full_sector": true,
-    "adaptive_stop_reason": "target error reached (1.0725 mHa <= 1.5936 mHa)",
+    "sector_dimension": 1225,
+    "rhf_converged": true,
+    "cisd_converged": true,
+    "ccsd_converged": true,
+    "e_rhf": -15.113758067511666,
+    "e_cisd": -15.313732774008823,
+    "e_ccsd": -15.336382452438261,
+    "e_exact_fci": -15.342243746728684,
+    "error_cisd_mha": 28.510972719860916,
+    "e_cisd_determinant": -15.313732774008827,
+    "error_cisd_determinant_mha": 28.510972719857364,
+    "sd_determinant_count": 205,
+    "cisd_pyscf_agrees": true,
+    "error_ccsd_mha": 5.861294290422592,
+    "e_acase_adaptive": -15.31372935504967,
+    "error_adaptive_mha": 28.51439167901404,
+    "complete_sd_run": false,
+    "e_sd_complete": null,
+    "error_sd_mha": null,
+    "adaptive_chemical_accuracy": false,
+    "cisd_chemical_accuracy": false,
+    "ccsd_chemical_accuracy": false,
+    "ccsd_below_exact": false,
+    "sd_chemical_accuracy": null,
+    "sd_spans_full_sector": false,
+    "adaptive_stop_reason": "basis budget reached",
     "adaptive_oracle_stop_used": true,
     "adaptive_target_error_mha": 1.5936,
-    "subspace_size_m": 5,
-    "complete_sd_candidates": 35,
-    "complete_sd_basis_size": 36,
-    "effective_rank": 5,
+    "subspace_size_m": 31,
+    "complete_sd_candidates": 204,
+    "complete_sd_basis_size": 205,
+    "effective_rank": 31,
     "condition_number": 1.0,
-    "hamiltonian_pauli_terms": 631,
-    "element_word_universe": 21156,
-    "adaptive_cached_operator_bytes": 17827968,
-    "adaptive_assemble_seconds": 11.688715377003064,
-    "adaptive_growth_seconds": 14.48191775999976,
-    "adaptive_operator_products": 376,
-    "adaptive_pairs_built": 170,
-    "adaptive_element_cache_hits": 1257,
+    "hamiltonian_pauli_terms": 666,
+    "element_word_universe": 1165663,
+    "adaptive_cached_operator_bytes": 2306582856,
+    "adaptive_assemble_seconds": 849.4171787301457,
+    "adaptive_growth_seconds": 2829.624476617999,
+    "adaptive_operator_products": 11985,
+    "adaptive_pairs_built": 5890,
+    "adaptive_element_cache_hits": 274231,
     "adaptive_max_generator_support": 8,
-    "adaptive_max_hamiltonian_element_support": 7232,
-    "adaptive_seconds": 14.48573112487793,
-    "adaptive_peak_rss_bytes": 5654835200,
-    "adaptive_peak_rss_delta_bytes": 0,
-    "sd_peak_rss_bytes": 5447766016,
-    "sd_peak_rss_delta_bytes": 4096,
-    "double_occupancy": 0.8330345913870522,
-    "double_occupancy_uncorrelated": 0.8333333333333334,
-    "total_spin_squared": 1.880550220072612e-31,
-    "static_susceptibility_chi0": 0.0,
-    "response_diagnostic": "no significant weight: the S_z operator couples the singlet reference to triplet states that the singlet-preserving excitation basis does not span, so chi0 is a basis artifact rather than a physical response",
-    "elapsed_seconds": 67.86715340614319,
-    "sd_subspace_seconds": 47.55188488960266,
+    "adaptive_max_hamiltonian_element_support": 31168,
+    "adaptive_seconds": 2829.7017390727997,
+    "adaptive_peak_rss_bytes": 11543863296,
+    "adaptive_peak_rss_delta_bytes": 10713772032,
+    "sd_peak_rss_bytes": null,
+    "sd_peak_rss_delta_bytes": null,
+    "double_occupancy": 0.395619366012954,
+    "double_occupancy_uncorrelated": 0.42857142857142855,
+    "total_spin_squared": 8.726365763944908e-18,
+    "static_susceptibility_chi0": 4.027146032668711e-06,
+    "response_diagnostic": "3 lines above weight 1e-8",
+    "elapsed_seconds": 2864.1918432712555,
+    "sd_subspace_seconds": null,
     "ground_state_coefficients": {
       "I": {
-        "real": 0.9928770886886497,
+        "real": 0.6803899558785602,
         "imag": 0.0
       },
-      "E(10,11<-4,5)": {
-        "real": 0.10814998661322141,
+      "E(6,7<-4,5)": {
+        "real": 0.5896840819197182,
         "imag": 0.0
       },
-      "E(10,11<-2,5)": {
-        "real": 0.02993703122962218,
+      "E(6,13<-2,5)": {
+        "real": 0.1572002302299356,
+        "imag": 0.0
+      },
+      "E(7,12<-3,4)": {
+        "real": 0.15720023022994367,
+        "imag": 0.0
+      },
+      "E(12,13<-2,3)": {
+        "real": 0.1260940693701354,
+        "imag": 0.0
+      },
+      "E(6<-2)": {
+        "real": 0.1587446236113375,
+        "imag": 0.0
+      },
+      "E(13<-5)": {
+        "real": -0.10625707598719855,
+        "imag": 0.0
+      },
+      "E(8,9<-2,3)": {
+        "real": 0.07419703222614697,
         "imag": 0.0
       },
       "E(10,11<-2,3)": {
-        "real": 0.026574714956594678,
+        "real": 0.07419703222614857,
         "imag": 0.0
       },
-      "E(10,11<-3,4)": {
-        "real": -0.029937031229622612,
+      "E(7<-3)": {
+        "real": 0.15874462361132463,
+        "imag": 0.0
+      },
+      "E(12<-4)": {
+        "real": -0.10625707598718662,
+        "imag": 0.0
+      },
+      "E(6,12<-2,4)": {
+        "real": 0.11283228790330849,
+        "imag": 0.0
+      },
+      "E(7,13<-3,5)": {
+        "real": 0.11283228790330899,
+        "imag": 0.0
+      },
+      "E(6,7<-2,3)": {
+        "real": -0.08236007193600561,
+        "imag": 0.0
+      },
+      "E(12,13<-4,5)": {
+        "real": -0.04640610796684179,
+        "imag": 0.0
+      },
+      "E(8,9<-4,5)": {
+        "real": -0.028736825741665892,
+        "imag": 0.0
+      },
+      "E(10,11<-4,5)": {
+        "real": -0.028736825741667648,
+        "imag": 0.0
+      },
+      "E(7,12<-2,5)": {
+        "real": -0.04436794232658252,
+        "imag": 0.0
+      },
+      "E(6,13<-3,4)": {
+        "real": -0.04436794232658087,
+        "imag": 0.0
+      },
+      "E(8,9<-0,3)": {
+        "real": 0.0025214865938078257,
+        "imag": 0.0
+      },
+      "E(10,11<-1,2)": {
+        "real": -0.002521486593807784,
+        "imag": 0.0
+      },
+      "E(10,11<-0,3)": {
+        "real": 0.0025214865938077424,
+        "imag": 0.0
+      },
+      "E(8,9<-1,2)": {
+        "real": -0.0025214865938078188,
+        "imag": 0.0
+      },
+      "E(12,13<-0,3)": {
+        "real": 0.0023359659436655265,
+        "imag": 0.0
+      },
+      "E(12,13<-1,2)": {
+        "real": -0.002335965943665662,
+        "imag": 0.0
+      },
+      "E(8,9<-0,1)": {
+        "real": 0.0009277960356998821,
+        "imag": 0.0
+      },
+      "E(10,11<-0,1)": {
+        "real": 0.0009277960356998891,
+        "imag": 0.0
+      },
+      "E(12,13<-0,1)": {
+        "real": 0.0007198257903973208,
+        "imag": 0.0
+      },
+      "E(6,7<-0,3)": {
+        "real": -0.000721759905796723,
+        "imag": 0.0
+      },
+      "E(6,7<-1,2)": {
+        "real": 0.0007217599057967455,
+        "imag": 0.0
+      },
+      "E(6,7<-0,1)": {
+        "real": 0.00043063079283930245,
         "imag": 0.0
       }
     },
-    "lehmann_response": []
+    "lehmann_response": [
+      {
+        "final_state": 3,
+        "excitation_energy_ha": 0.15569470576528488,
+        "weight": 1.1644890521683374e-10
+      },
+      {
+        "final_state": 4,
+        "excitation_energy_ha": 0.30612073046023625,
+        "weight": 4.9298105434671675e-11
+      },
+      {
+        "final_state": 7,
+        "excitation_energy_ha": 0.48914432093562965,
+        "weight": 3.149604391457593e-11
+      },
+      {
+        "final_state": 9,
+        "excitation_energy_ha": 0.5845891811737722,
+        "weight": 9.626468514541276e-12
+      },
+      {
+        "final_state": 12,
+        "excitation_energy_ha": 0.7224046833748528,
+        "weight": 3.203786855286741e-11
+      },
+      {
+        "final_state": 20,
+        "excitation_energy_ha": 4.586921589925701,
+        "weight": 6.399092912820198e-06
+      },
+      {
+        "final_state": 23,
+        "excitation_energy_ha": 4.6778033901436356,
+        "weight": 1.6056675261712219e-06
+      },
+      {
+        "final_state": 25,
+        "excitation_energy_ha": 4.893032758657428,
+        "weight": 1.3417324221599773e-06
+      }
+    ]
   },
-  "h2o": {
-    "key": "h2o",
-    "name": "Water (H2O)",
+  "h2o_dissociating": {
+    "key": "h2o_dissociating",
+    "name": "Water, 2.5x symmetric stretch (H2O, 2.3938 A)",
+    "regime": "stretched",
     "qubits": 14,
     "n_electrons": 10,
     "sz": 0.0,
     "sector_dimension": 441,
+    "rhf_converged": true,
+    "cisd_converged": true,
+    "ccsd_converged": true,
+    "e_rhf": -74.23922641140459,
+    "e_cisd": -74.67701643796877,
+    "e_ccsd": -74.78345468968499,
+    "e_exact_fci": -74.74232375893256,
+    "error_cisd_mha": 65.30732096378244,
+    "e_cisd_determinant": -74.73223118895258,
+    "error_cisd_determinant_mha": 10.092569979974542,
+    "sd_determinant_count": 141,
+    "cisd_pyscf_agrees": false,
+    "error_ccsd_mha": -41.13093075243057,
+    "e_acase_adaptive": -74.73223105624245,
+    "error_adaptive_mha": 10.092702690101873,
+    "complete_sd_run": false,
+    "e_sd_complete": null,
+    "error_sd_mha": null,
+    "adaptive_chemical_accuracy": false,
+    "cisd_chemical_accuracy": false,
+    "ccsd_chemical_accuracy": false,
+    "ccsd_below_exact": true,
+    "sd_chemical_accuracy": null,
+    "sd_spans_full_sector": false,
+    "adaptive_stop_reason": "basis budget reached",
+    "adaptive_oracle_stop_used": true,
+    "adaptive_target_error_mha": 1.5936,
+    "subspace_size_m": 21,
+    "complete_sd_candidates": 140,
+    "complete_sd_basis_size": 141,
+    "effective_rank": 21,
+    "condition_number": 1.0,
+    "hamiltonian_pauli_terms": 1086,
+    "element_word_universe": 994052,
+    "adaptive_cached_operator_bytes": 1685118696,
+    "adaptive_assemble_seconds": 642.6256755461836,
+    "adaptive_growth_seconds": 1976.2763261420005,
+    "adaptive_operator_products": 5643,
+    "adaptive_pairs_built": 2751,
+    "adaptive_element_cache_hits": 87070,
+    "adaptive_max_generator_support": 8,
+    "adaptive_max_hamiltonian_element_support": 49472,
+    "adaptive_seconds": 1976.3224303722382,
+    "adaptive_peak_rss_bytes": 8154718208,
+    "adaptive_peak_rss_delta_bytes": 3846139904,
+    "sd_peak_rss_bytes": null,
+    "sd_peak_rss_delta_bytes": null,
+    "double_occupancy": 0.42857142857190317,
+    "double_occupancy_uncorrelated": 0.7142857142857143,
+    "total_spin_squared": 5.999999980225562,
+    "static_susceptibility_chi0": 3.2924169794921574e-10,
+    "response_diagnostic": "no significant weight: the S_z operator couples the singlet reference to triplet states that the singlet-preserving excitation basis does not span, so chi0 is a basis artifact rather than a physical response",
+    "elapsed_seconds": 2003.4041781425476,
+    "sd_subspace_seconds": null,
+    "ground_state_coefficients": {
+      "E(10,13<-6,9)": {
+        "real": 0.4081780285686149,
+        "imag": 0.0
+      },
+      "E(11,12<-7,8)": {
+        "real": 0.4081782685936753,
+        "imag": 0.0
+      },
+      "E(11,12<-6,9)": {
+        "real": 0.4081772951837464,
+        "imag": 0.0
+      },
+      "E(10,13<-7,8)": {
+        "real": 0.4081777953595524,
+        "imag": 0.0
+      },
+      "E(10,12<-6,8)": {
+        "real": -0.40817746280941025,
+        "imag": 0.0
+      },
+      "E(11,13<-7,9)": {
+        "real": -0.40817690187782507,
+        "imag": 0.0
+      },
+      "E(11,12<-2,7)": {
+        "real": 0.007593961049796633,
+        "imag": 0.0
+      },
+      "E(10,13<-2,7)": {
+        "real": 0.007594649317038518,
+        "imag": 0.0
+      },
+      "E(10,12<-2,6)": {
+        "real": -0.00759465161995019,
+        "imag": 0.0
+      },
+      "E(10,13<-3,6)": {
+        "real": 0.007595721893713066,
+        "imag": 0.0
+      },
+      "E(11,12<-3,6)": {
+        "real": 0.007596792113665853,
+        "imag": 0.0
+      },
+      "E(11,13<-3,7)": {
+        "real": -0.007596818518338021,
+        "imag": 0.0
+      },
+      "E(11,12<-0,7)": {
+        "real": 5.748118663725422e-05,
+        "imag": 0.0
+      },
+      "E(10,13<-0,7)": {
+        "real": 5.751398990895746e-05,
+        "imag": 0.0
+      },
+      "E(10,12<-0,6)": {
+        "real": -5.7513921195356354e-05,
+        "imag": 0.0
+      },
+      "E(10,13<-1,6)": {
+        "real": 5.7017782859996216e-05,
+        "imag": 0.0
+      }
+    },
+    "lehmann_response": [
+      {
+        "final_state": 17,
+        "excitation_energy_ha": 19.942052257219224,
+        "weight": 2.24232248785221e-09
+      },
+      {
+        "final_state": 18,
+        "excitation_energy_ha": 20.128720973790557,
+        "weight": 1.0374389182440803e-09
+      },
+      {
+        "final_state": 19,
+        "excitation_energy_ha": 20.222780803555523,
+        "weight": 1.291641856437988e-11
+      }
+    ]
+  },
+  "h2o": {
+    "key": "h2o",
+    "name": "Water (H2O)",
+    "regime": "equilibrium",
+    "qubits": 14,
+    "n_electrons": 10,
+    "sz": 0.0,
+    "sector_dimension": 441,
+    "rhf_converged": true,
+    "cisd_converged": true,
+    "ccsd_converged": true,
     "e_rhf": -74.96302313846125,
     "e_cisd": -75.01187316934731,
     "e_ccsd": -75.01246171277272,
-    "e_exact_fci": -75.01257824109234,
-    "error_cisd_mha": 0.705071745031205,
-    "error_ccsd_mha": 0.11652831962294385,
-    "e_acase_adaptive": -75.01113050590483,
-    "error_adaptive_mha": 1.4477351875115119,
-    "e_sd_complete": -75.01187316935818,
-    "error_sd_mha": 0.7050717341599011,
+    "e_exact_fci": -75.01257824109219,
+    "error_cisd_mha": 0.7050717448748856,
+    "error_ccsd_mha": 0.11652831946662445,
+    "e_acase_adaptive": -75.0111305059047,
+    "error_adaptive_mha": 1.4477351874830902,
+    "complete_sd_run": true,
+    "e_sd_complete": -75.01187316935808,
+    "error_sd_mha": 0.7050717341030577,
     "adaptive_chemical_accuracy": true,
+    "cisd_chemical_accuracy": true,
+    "ccsd_chemical_accuracy": true,
+    "ccsd_below_exact": false,
     "sd_chemical_accuracy": true,
     "sd_spans_full_sector": false,
     "adaptive_stop_reason": "target error reached (1.4477 mHa <= 1.5936 mHa)",
@@ -280,108 +521,512 @@
     "hamiltonian_pauli_terms": 1086,
     "element_word_universe": 1168272,
     "adaptive_cached_operator_bytes": 1701669480,
-    "adaptive_assemble_seconds": 525.2800223769696,
-    "adaptive_growth_seconds": 1322.8065792920002,
+    "adaptive_assemble_seconds": 652.6649690270078,
+    "adaptive_growth_seconds": 1838.8567979069994,
     "adaptive_operator_products": 5643,
     "adaptive_pairs_built": 2751,
     "adaptive_element_cache_hits": 87070,
     "adaptive_max_generator_support": 8,
     "adaptive_max_hamiltonian_element_support": 51648,
-    "adaptive_seconds": 1322.8566536903381,
-    "adaptive_peak_rss_bytes": 8472363008,
-    "adaptive_peak_rss_delta_bytes": 5544796160,
-    "sd_peak_rss_bytes": 9014837248,
-    "sd_peak_rss_delta_bytes": 643149824,
-    "double_occupancy": 0.7112433605875497,
+    "adaptive_seconds": 1839.0660784244537,
+    "adaptive_peak_rss_bytes": 8351711232,
+    "adaptive_peak_rss_delta_bytes": 5989240832,
+    "sd_peak_rss_bytes": 8894201856,
+    "sd_peak_rss_delta_bytes": 643166208,
+    "double_occupancy": 0.7112433605875498,
     "double_occupancy_uncorrelated": 0.7142857142857143,
-    "total_spin_squared": 0.00038075607188570583,
+    "total_spin_squared": 0.0003807560718856489,
     "static_susceptibility_chi0": 0.0,
     "response_diagnostic": "no significant weight: the S_z operator couples the singlet reference to triplet states that the singlet-preserving excitation basis does not span, so chi0 is a basis artifact rather than a physical response",
-    "elapsed_seconds": 3191.6679606437683,
-    "sd_subspace_seconds": 1849.005620956421,
+    "elapsed_seconds": 4320.361037969589,
+    "sd_subspace_seconds": 2461.278134584427,
     "ground_state_coefficients": {
       "I": {
-        "real": 0.9874342902424952,
+        "real": 0.9874342902424933,
         "imag": 0.0
       },
       "E(12,13<-4,5)": {
-        "real": 0.07678244092606598,
+        "real": 0.07678244092607134,
         "imag": 0.0
       },
       "E(11,12<-4,7)": {
-        "real": 0.046654471846204755,
+        "real": 0.046654471846204894,
         "imag": 0.0
       },
       "E(10,13<-5,6)": {
-        "real": 0.0459907537057395,
+        "real": 0.04599075370574128,
         "imag": 0.0
       },
       "E(10,11<-2,3)": {
-        "real": 0.031516363188035204,
+        "real": 0.03151636318803712,
         "imag": 0.0
       },
       "E(12,13<-6,7)": {
-        "real": 0.04044021854829894,
+        "real": 0.04044021854830086,
         "imag": 0.0
       },
       "E(10,13<-2,5)": {
-        "real": 0.0314879263231141,
+        "real": 0.03148792632311583,
         "imag": 0.0
       },
       "E(10,11<-4,5)": {
-        "real": 0.04249815320731344,
+        "real": 0.042498153207315155,
         "imag": 0.0
       },
       "E(11,12<-3,4)": {
-        "real": 0.031177279529291526,
+        "real": 0.03117727952929328,
         "imag": 0.0
       },
       "E(10,11<-6,7)": {
-        "real": 0.044162508194793636,
+        "real": 0.04416250819479558,
         "imag": 0.0
       },
       "E(10,11<-2,7)": {
-        "real": -0.03278225715125283,
+        "real": -0.03278225715125466,
         "imag": 0.0
       },
       "E(10,11<-3,6)": {
-        "real": 0.032320688631882706,
+        "real": 0.032320688631884656,
         "imag": 0.0
       },
       "E(10,13<-4,7)": {
-        "real": -0.03265599624752185,
+        "real": -0.03265599624752367,
         "imag": 0.0
       },
       "E(11,12<-5,6)": {
-        "real": -0.032680241744236005,
+        "real": -0.032680241744237955,
         "imag": 0.0
       },
       "E(10,11<-8,9)": {
-        "real": 0.026551101370680657,
+        "real": 0.02655110137068252,
         "imag": 0.0
       },
       "E(11,12<-2,5)": {
-        "real": -0.020420715041402096,
+        "real": -0.020420715041403546,
         "imag": 0.0
       },
       "E(10,13<-3,4)": {
-        "real": -0.020322657357914713,
+        "real": -0.02032265735791614,
         "imag": 0.0
       },
       "E(12,13<-2,3)": {
-        "real": 0.01673368045166422,
+        "real": 0.016733680451664693,
         "imag": 0.0
       },
       "E(10,12<-2,4)": {
-        "real": 0.0107290283777668,
+        "real": 0.01072902837776713,
         "imag": 0.0
       },
       "E(11,13<-3,5)": {
-        "real": 0.010697878288837996,
+        "real": 0.010697878288838364,
         "imag": 0.0
       },
       "E(10,12<-4,6)": {
-        "real": 0.011802538542984475,
+        "real": 0.011802538542984086,
+        "imag": 0.0
+      }
+    },
+    "lehmann_response": []
+  },
+  "h2o_stretched": {
+    "key": "h2o_stretched",
+    "name": "Water, 2x symmetric stretch (H2O, 1.9150 A)",
+    "regime": "stretched",
+    "qubits": 14,
+    "n_electrons": 10,
+    "sz": 0.0,
+    "sector_dimension": 441,
+    "rhf_converged": true,
+    "cisd_converged": true,
+    "ccsd_converged": true,
+    "e_rhf": -74.44516250498013,
+    "e_cisd": -74.71719939558201,
+    "e_ccsd": -74.78148734675823,
+    "e_exact_fci": -74.77176966699481,
+    "error_cisd_mha": 54.5702714127998,
+    "e_cisd_determinant": -74.71719939558285,
+    "error_cisd_determinant_mha": 54.57027141196136,
+    "sd_determinant_count": 141,
+    "cisd_pyscf_agrees": true,
+    "error_ccsd_mha": -9.71767976341198,
+    "e_acase_adaptive": -74.71634911387235,
+    "error_adaptive_mha": 55.42055312245964,
+    "complete_sd_run": false,
+    "e_sd_complete": null,
+    "error_sd_mha": null,
+    "adaptive_chemical_accuracy": false,
+    "cisd_chemical_accuracy": false,
+    "ccsd_chemical_accuracy": false,
+    "ccsd_below_exact": true,
+    "sd_chemical_accuracy": null,
+    "sd_spans_full_sector": false,
+    "adaptive_stop_reason": "basis budget reached",
+    "adaptive_oracle_stop_used": true,
+    "adaptive_target_error_mha": 1.5936,
+    "subspace_size_m": 21,
+    "complete_sd_candidates": 140,
+    "complete_sd_basis_size": 141,
+    "effective_rank": 21,
+    "condition_number": 1.0,
+    "hamiltonian_pauli_terms": 1086,
+    "element_word_universe": 874597,
+    "adaptive_cached_operator_bytes": 1403522568,
+    "adaptive_assemble_seconds": 488.69502892490345,
+    "adaptive_growth_seconds": 1474.8038798490015,
+    "adaptive_operator_products": 5643,
+    "adaptive_pairs_built": 2751,
+    "adaptive_element_cache_hits": 87070,
+    "adaptive_max_generator_support": 8,
+    "adaptive_max_hamiltonian_element_support": 49472,
+    "adaptive_seconds": 1474.884215593338,
+    "adaptive_peak_rss_bytes": 7008837632,
+    "adaptive_peak_rss_delta_bytes": 2863976448,
+    "sd_peak_rss_bytes": null,
+    "sd_peak_rss_delta_bytes": null,
+    "double_occupancy": 0.6561317281013511,
+    "double_occupancy_uncorrelated": 0.7142857142857143,
+    "total_spin_squared": 0.26626694493401754,
+    "static_susceptibility_chi0": 0.0,
+    "response_diagnostic": "no significant weight: the S_z operator couples the singlet reference to triplet states that the singlet-preserving excitation basis does not span, so chi0 is a basis artifact rather than a physical response",
+    "elapsed_seconds": 1499.446051120758,
+    "sd_subspace_seconds": null,
+    "ground_state_coefficients": {
+      "I": {
+        "real": 0.7638302226723279,
+        "imag": 0.0
+      },
+      "E(10,11<-8,9)": {
+        "real": 0.3397105297718735,
+        "imag": 0.0
+      },
+      "E(12,13<-6,7)": {
+        "real": 0.2998956740844662,
+        "imag": 0.0
+      },
+      "E(10,13<-6,9)": {
+        "real": 0.31089752885664856,
+        "imag": 0.0
+      },
+      "E(11,12<-7,8)": {
+        "real": 0.3108975288567018,
+        "imag": 0.0
+      },
+      "E(10,11<-2,9)": {
+        "real": -0.023745029316953478,
+        "imag": 0.0
+      },
+      "E(10,11<-3,8)": {
+        "real": 0.023745029316952094,
+        "imag": 0.0
+      },
+      "E(10<-8)": {
+        "real": -0.04834353525113928,
+        "imag": 0.0
+      },
+      "E(12,13<-2,3)": {
+        "real": 0.014627536527832958,
+        "imag": 0.0
+      },
+      "E(11,12<-2,7)": {
+        "real": 0.016292716367007885,
+        "imag": 0.0
+      },
+      "E(10,13<-3,6)": {
+        "real": 0.016292716367007985,
+        "imag": 0.0
+      },
+      "E(13<-7)": {
+        "real": 0.029449377397063804,
+        "imag": 0.0
+      },
+      "E(10,11<-2,3)": {
+        "real": 0.016169732111276876,
+        "imag": 0.0
+      },
+      "E(11<-3)": {
+        "real": -0.014854552907776054,
+        "imag": 0.0
+      },
+      "E(11<-9)": {
+        "real": -0.04834353525112232,
+        "imag": 0.0
+      },
+      "E(10<-2)": {
+        "real": -0.014854552907775638,
+        "imag": 0.0
+      },
+      "E(10,13<-7,8)": {
+        "real": -0.05340717248019189,
+        "imag": 0.0
+      },
+      "E(11,12<-6,9)": {
+        "real": -0.05340717248019078,
+        "imag": 0.0
+      },
+      "E(12,13<-8,9)": {
+        "real": 0.04796774136634118,
+        "imag": 0.0
+      },
+      "E(12<-6)": {
+        "real": 0.02944937739708593,
+        "imag": 0.0
+      },
+      "E(10,11<-6,7)": {
+        "real": 0.03030846832805248,
+        "imag": 0.0
+      }
+    },
+    "lehmann_response": []
+  },
+  "hf": {
+    "key": "hf",
+    "name": "Hydrogen Fluoride (HF)",
+    "regime": "equilibrium",
+    "qubits": 12,
+    "n_electrons": 10,
+    "sz": 0.0,
+    "sector_dimension": 36,
+    "rhf_converged": true,
+    "cisd_converged": true,
+    "ccsd_converged": true,
+    "e_rhf": -98.57077998601419,
+    "e_cisd": -98.59662417998658,
+    "e_ccsd": -98.59662415054983,
+    "e_exact_fci": -98.59662417998747,
+    "error_cisd_mha": 8.952838470577262e-10,
+    "error_ccsd_mha": 2.94376434339938e-05,
+    "e_acase_adaptive": -98.59555170529194,
+    "error_adaptive_mha": 1.0724746955332876,
+    "complete_sd_run": true,
+    "e_sd_complete": -98.59662417998744,
+    "error_sd_mha": 2.8421709430404007e-11,
+    "adaptive_chemical_accuracy": true,
+    "cisd_chemical_accuracy": true,
+    "ccsd_chemical_accuracy": true,
+    "ccsd_below_exact": false,
+    "sd_chemical_accuracy": true,
+    "sd_spans_full_sector": true,
+    "adaptive_stop_reason": "target error reached (1.0725 mHa <= 1.5936 mHa)",
+    "adaptive_oracle_stop_used": true,
+    "adaptive_target_error_mha": 1.5936,
+    "subspace_size_m": 5,
+    "complete_sd_candidates": 35,
+    "complete_sd_basis_size": 36,
+    "effective_rank": 5,
+    "condition_number": 1.0,
+    "hamiltonian_pauli_terms": 631,
+    "element_word_universe": 21156,
+    "adaptive_cached_operator_bytes": 17827968,
+    "adaptive_assemble_seconds": 15.298986268004228,
+    "adaptive_growth_seconds": 18.191974973999095,
+    "adaptive_operator_products": 376,
+    "adaptive_pairs_built": 170,
+    "adaptive_element_cache_hits": 1257,
+    "adaptive_max_generator_support": 8,
+    "adaptive_max_hamiltonian_element_support": 7232,
+    "adaptive_seconds": 18.197139739990234,
+    "adaptive_peak_rss_bytes": 3157053440,
+    "adaptive_peak_rss_delta_bytes": 0,
+    "sd_peak_rss_bytes": 2365591552,
+    "sd_peak_rss_delta_bytes": 0,
+    "double_occupancy": 0.8330345913870522,
+    "double_occupancy_uncorrelated": 0.8333333333333334,
+    "total_spin_squared": 3.009265538105057e-34,
+    "static_susceptibility_chi0": 0.0,
+    "response_diagnostic": "no significant weight: the S_z operator couples the singlet reference to triplet states that the singlet-preserving excitation basis does not span, so chi0 is a basis artifact rather than a physical response",
+    "elapsed_seconds": 75.86162519454956,
+    "sd_subspace_seconds": 54.18240451812744,
+    "ground_state_coefficients": {
+      "I": {
+        "real": 0.9928770886886483,
+        "imag": 0.0
+      },
+      "E(10,11<-4,5)": {
+        "real": 0.10814998661323302,
+        "imag": 0.0
+      },
+      "E(10,11<-2,5)": {
+        "real": 0.029937031229624017,
+        "imag": 0.0
+      },
+      "E(10,11<-2,3)": {
+        "real": 0.02657471495659552,
+        "imag": 0.0
+      },
+      "E(10,11<-3,4)": {
+        "real": -0.029937031229624034,
+        "imag": 0.0
+      }
+    },
+    "lehmann_response": []
+  },
+  "lih": {
+    "key": "lih",
+    "name": "Lithium Hydride (LiH)",
+    "regime": "equilibrium",
+    "qubits": 12,
+    "n_electrons": 4,
+    "sz": 0.0,
+    "sector_dimension": 225,
+    "rhf_converged": true,
+    "cisd_converged": true,
+    "ccsd_converged": true,
+    "e_rhf": -7.862023860127123,
+    "e_cisd": -7.882388614941502,
+    "e_ccsd": -7.882391437616437,
+    "e_exact_fci": -7.882401932290228,
+    "error_cisd_mha": 0.013317348726005207,
+    "error_ccsd_mha": 0.010494673791328069,
+    "e_acase_adaptive": -7.881275577103744,
+    "error_adaptive_mha": 1.1263551864839627,
+    "complete_sd_run": true,
+    "e_sd_complete": -7.88238861494377,
+    "error_sd_mha": 0.013317346457597523,
+    "adaptive_chemical_accuracy": true,
+    "cisd_chemical_accuracy": true,
+    "ccsd_chemical_accuracy": true,
+    "ccsd_below_exact": false,
+    "sd_chemical_accuracy": true,
+    "sd_spans_full_sector": false,
+    "adaptive_stop_reason": "target error reached (1.1264 mHa <= 1.5936 mHa)",
+    "adaptive_oracle_stop_used": true,
+    "adaptive_target_error_mha": 1.5936,
+    "subspace_size_m": 6,
+    "complete_sd_candidates": 92,
+    "complete_sd_basis_size": 93,
+    "effective_rank": 6,
+    "condition_number": 1.0,
+    "hamiltonian_pauli_terms": 631,
+    "element_word_universe": 38250,
+    "adaptive_cached_operator_bytes": 115785024,
+    "adaptive_assemble_seconds": 48.9188037079939,
+    "adaptive_growth_seconds": 70.76873625600001,
+    "adaptive_operator_products": 1179,
+    "adaptive_pairs_built": 543,
+    "adaptive_element_cache_hits": 4883,
+    "adaptive_max_generator_support": 8,
+    "adaptive_max_hamiltonian_element_support": 7680,
+    "adaptive_seconds": 70.77036905288696,
+    "adaptive_peak_rss_bytes": 987721728,
+    "adaptive_peak_rss_delta_bytes": 848904192,
+    "sd_peak_rss_bytes": 1172697088,
+    "sd_peak_rss_delta_bytes": 184975360,
+    "double_occupancy": 0.33241949692599043,
+    "double_occupancy_uncorrelated": 0.3333333333333333,
+    "total_spin_squared": 1.2325951644078307e-32,
+    "static_susceptibility_chi0": 0.0,
+    "response_diagnostic": "no significant weight: the S_z operator couples the singlet reference to triplet states that the singlet-preserving excitation basis does not span, so chi0 is a basis artifact rather than a physical response",
+    "elapsed_seconds": 513.9728584289551,
+    "sd_subspace_seconds": 440.29981660842896,
+    "ground_state_coefficients": {
+      "I": {
+        "real": 0.9896594938853535,
+        "imag": 0.0
+      },
+      "E(10,11<-2,3)": {
+        "real": 0.11661524300104915,
+        "imag": 0.0
+      },
+      "E(4,11<-2,3)": {
+        "real": -0.05235942343102155,
+        "imag": 0.0
+      },
+      "E(5,10<-2,3)": {
+        "real": 0.05235942343102166,
+        "imag": 0.0
+      },
+      "E(4,5<-2,3)": {
+        "real": 0.027842685032266255,
+        "imag": 0.0
+      },
+      "E(6,7<-2,3)": {
+        "real": 0.026771957502741105,
+        "imag": 0.0
+      }
+    },
+    "lehmann_response": []
+  },
+  "lih_stretched": {
+    "key": "lih_stretched",
+    "name": "Lithium Hydride, 3x stretched (LiH, 4.785 A) [control]",
+    "regime": "stretched",
+    "qubits": 12,
+    "n_electrons": 4,
+    "sz": 0.0,
+    "sector_dimension": 225,
+    "rhf_converged": true,
+    "cisd_converged": true,
+    "ccsd_converged": true,
+    "e_rhf": -7.590393299712649,
+    "e_cisd": -7.782551292614081,
+    "e_ccsd": -7.782570270422695,
+    "e_exact_fci": -7.78270222610531,
+    "error_cisd_mha": 0.15093349122885513,
+    "e_cisd_determinant": -7.782551292614111,
+    "error_cisd_determinant_mha": 0.15093349119865707,
+    "sd_determinant_count": 93,
+    "cisd_pyscf_agrees": true,
+    "error_ccsd_mha": 0.13195568261537005,
+    "e_acase_adaptive": -7.781181248548214,
+    "error_adaptive_mha": 1.5209775570959039,
+    "complete_sd_run": false,
+    "e_sd_complete": null,
+    "error_sd_mha": null,
+    "adaptive_chemical_accuracy": true,
+    "cisd_chemical_accuracy": true,
+    "ccsd_chemical_accuracy": true,
+    "ccsd_below_exact": false,
+    "sd_chemical_accuracy": null,
+    "sd_spans_full_sector": false,
+    "adaptive_stop_reason": "target error reached (1.5210 mHa <= 1.5936 mHa)",
+    "adaptive_oracle_stop_used": true,
+    "adaptive_target_error_mha": 1.5936,
+    "subspace_size_m": 5,
+    "complete_sd_candidates": 92,
+    "complete_sd_basis_size": 93,
+    "effective_rank": 5,
+    "condition_number": 1.0,
+    "hamiltonian_pauli_terms": 631,
+    "element_word_universe": 24096,
+    "adaptive_cached_operator_bytes": 89556288,
+    "adaptive_assemble_seconds": 44.36969100204806,
+    "adaptive_growth_seconds": 58.254101151000214,
+    "adaptive_operator_products": 1003,
+    "adaptive_pairs_built": 455,
+    "adaptive_element_cache_hits": 3366,
+    "adaptive_max_generator_support": 8,
+    "adaptive_max_hamiltonian_element_support": 7232,
+    "adaptive_seconds": 58.258103370666504,
+    "adaptive_peak_rss_bytes": 874815488,
+    "adaptive_peak_rss_delta_bytes": 736612352,
+    "sd_peak_rss_bytes": null,
+    "sd_peak_rss_delta_bytes": null,
+    "double_occupancy": 0.32551021167066024,
+    "double_occupancy_uncorrelated": 0.3333333333333333,
+    "total_spin_squared": 0.018565488472820857,
+    "static_susceptibility_chi0": 0.0,
+    "response_diagnostic": "no significant weight: the S_z operator couples the singlet reference to triplet states that the singlet-preserving excitation basis does not span, so chi0 is a basis artifact rather than a physical response",
+    "elapsed_seconds": 65.22406101226807,
+    "sd_subspace_seconds": null,
+    "ground_state_coefficients": {
+      "I": {
+        "real": 0.7230647968037452,
+        "imag": 0.0
+      },
+      "E(4,5<-2,3)": {
+        "real": 0.6559257348565614,
+        "imag": 0.0
+      },
+      "E(4,11<-2,3)": {
+        "real": 0.13059495925028153,
+        "imag": 0.0
+      },
+      "E(5,10<-2,3)": {
+        "real": -0.10863069166720857,
+        "imag": 0.0
+      },
+      "E(4<-2)": {
+        "real": 0.13447326657131534,
         "imag": 0.0
       }
     },

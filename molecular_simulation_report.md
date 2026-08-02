@@ -14,23 +14,52 @@ Four closed-shell molecules in STO-3G are carried through the full chain — PyS
 
 Errors in mHa against the sector-exact ground energy; chemical accuracy is 1.5936 mHa.
 
-| Molecule | $n$ | $N_e$ | Sector dim | A-CASE $M$ | A-CASE err | CCSD err | CISD err | Complete SD $M$ | SD err | $\kappa(S)$ |
-| :--- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
-| **LiH** | 12 | 4 | 225 | 6 | `+1.1264` | `+0.0105` | `+0.0133` | 93 | `+0.0133` | `1.00` |
-| **BeH₂** | 14 | 6 | 1225 | 11 | `+1.3411` | `+0.3934` | `+0.7526` | 205 | `+0.7526` | `1.00` |
-| **HF** | 12 | 10 | 36 | 5 | `+1.0725` | `+0.0000` | `+0.0000` | 36 † | `+0.0000` | `1.00` |
-| **H₂O** | 14 | 10 | 441 | 21 | `+1.4477` | `+0.1165` | `+0.7051` | 141 | `+0.7051` | `1.00` |
+CISD here is the **determinant-space** minimum computed in this repository, not PySCF's. At H₂O 2.5× PySCF returns an energy 55.2 mHa above the minimum of its own space while reporting convergence; it agrees to nine digits everywhere else. See §1.3.
 
-**What the table says.** A-CASE reaches chemical accuracy on all four molecules. It is beaten by CCSD on 4 of 4 (LiH, BeH₂, HF, H₂O), at a fraction of the cost — CCSD is milliseconds here. The adaptive subspace is not competitive with classical coupled cluster on these systems and is not offered as if it were; what it demonstrates is that the operator-response subspace reaches the threshold at small $M$ against a sector dimension two to three orders larger.
+**Equilibrium**
 
-**The stopping rule is oracle-assisted, and the $M$ column inherits that.** Growth halts on the first step where the error against the *exact* energy falls below threshold, so $M$ answers "how small can the basis be and still clear the bar" — a property of the selector. It is not a cost the method could reproduce without already knowing the answer. An unaided run needs a convergence criterion that does not read the oracle; the residual-norm route is the open item.
+| Geometry | $n$ | Sector | A-CASE $M$ | A-CASE | CCSD | CISD | $\kappa(S)$ |
+| :--- | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
+| **BeH₂** | 14 | 1225 | 11 | `+1.341` | `+0.393` | `+0.753` | `1.00` |
+| **H₂O** | 14 | 441 | 21 | `+1.448` | `+0.117` | `+0.705` | `1.00` |
+| **HF** | 12 | 36 | 5 | `+1.072` | `+0.000` † | `+0.000` | `1.00` |
+| **LiH** | 12 | 225 | 6 | `+1.126` | `+0.010` | `+0.013` | `1.00` |
 
-Recorded stop reasons:
+**Stretched**
 
-- LiH: target error reached (1.1264 mHa <= 1.5936 mHa)
-- BeH₂: target error reached (1.3411 mHa <= 1.5936 mHa)
-- HF: target error reached (1.0725 mHa <= 1.5936 mHa)
-- H₂O: target error reached (1.4477 mHa <= 1.5936 mHa)
+| Geometry | $n$ | Sector | A-CASE $M$ | A-CASE | CCSD | CISD | $\kappa(S)$ |
+| :--- | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
+| **BeH₂ 2×** | 14 | 1225 | 31 | `+28.514` | `+5.861` | `+28.511` | `1.00` |
+| **H₂O 2.5×** | 14 | 441 | 21 | `+10.093` | `-41.131` ‡ | `+10.093` | `1.00` |
+| **H₂O 2×** | 14 | 441 | 21 | `+55.421` | `-9.718` ‡ | `+54.570` | `1.00` |
+| **LiH 3×** | 12 | 225 | 5 | `+1.521` | `+0.132` | `+0.151` | `1.00` |
+
+**What the table says, in both directions.**
+
+*Against the method.* CCSD is more accurate on 7 of 8 geometries, at a small fraction of the cost — milliseconds against minutes. Stretching does not open a niche: on BeH₂ 2×, H₂O 2.5×, H₂O 2× the A-CASE error sits within 1 mHa of the CISD ceiling it cannot pass, because its candidate family *is* singles and doubles, so its span is a subspace of the CISD space. The binding constraint is the excitation family, not the geometry — the same conclusion `ACASE_RESEARCH_PLAN.md` drew from H₄ and the Hubbard clusters, now reproduced on molecular chemistry. What would change it is level-4 generators (competing-order configurations dressed by excitations), not more geometries.
+
+*For the method, narrowly.* ‡ On H₂O 2.5× and H₂O 2× CCSD lands **below** the exact energy — it is not variational, and under strong static correlation it forfeits the one guarantee a Rayleigh–Ritz subspace keeps structurally. An error bar is worth less when its sign is not known.
+
+*The LiH 3× row is a control and behaves like one*: a stretched geometry where CCSD still wins comfortably. A single σ bond in a minimal basis stays single-reference, so any claim that stretching favours A-CASE has to survive it.
+
+### 1.2 Where the complete-SD arm ran
+
+| Geometry | Complete SD $M$ | SD err | SD determinants |
+| :--- | ---: | ---: | ---: |
+| BeH₂ | 205 | `+0.7526` | — |
+| BeH₂ 2× | skipped | — | 205 |
+| H₂O 2.5× | skipped | — | 141 |
+| H₂O | 141 | `+0.7051` | — |
+| H₂O 2× | skipped | — | 141 |
+| HF | 36 † | `+0.0000` | — |
+| LiH | 93 | `+0.0133` | — |
+| LiH 3× | skipped | — | 93 |
+
+The arm reproduces CISD by construction, so it is skipped on the stretched rows and the determinant CISD is diagonalized directly instead — a 141×141 problem in milliseconds against the half hour the element-operator route needs for the same number.
+
+### 1.3 PySCF as a cross-check, not an oracle
+
+- **H₂O 2.5×**: PySCF CISD misses the minimum of its own space. Caught because A-CASE — a *subspace* of that space — came out below it, which is impossible; `check_molecular.py` now tests that inequality directly.
 
 † The complete SD basis already spans the entire sector for HF (36 vectors against a 36-state sector), so agreement with sector-exact diagonalization there is arithmetic rather than accuracy — there is nothing left to miss. CCSD is converged to the same energy on that row by the same combinatorial fact: with only two holes, singles and doubles exhaust the excitation manifold, so CCSD is exact for the system rather than accurate on it.
 
@@ -38,19 +67,23 @@ Recorded stop reasons:
 
 | Molecule | Complete SD $E_0$ (Ha) | PySCF CISD (Ha) | difference (Ha) |
 | :--- | ---: | ---: | ---: |
-| LiH | `-7.882388615` | `-7.882388615` | `-2.28e-12` |
-| BeH₂ | `-15.594429802` | `-15.594429802` | `-7.11e-14` |
-| HF | `-98.596624180` | `-98.596624180` | `-8.38e-13` |
-| H₂O | `-75.011873169` | `-75.011873169` | `-1.09e-11` |
+| BeH₂ | `-15.594429802` | `-15.594429802` | `+0.00e+00` |
+| H₂O | `-75.011873169` | `-75.011873169` | `+0.00e+00` |
+| HF | `-98.596624180` | `-98.596624180` | `+0.00e+00` |
+| LiH | `-7.882388615` | `-7.882388615` | `+0.00e+00` |
 
 ### 1.2 Full energies
 
 | Molecule | RHF | CCSD | CISD | Complete SD | A-CASE | Sector-exact FCI |
 | :--- | ---: | ---: | ---: | ---: | ---: | ---: |
-| LiH | `-7.862023860` | `-7.882391438` | `-7.882388615` | `-7.882388615` | `-7.881275577` | `-7.882401932` |
 | BeH₂ | `-15.560334936` | `-15.594788916` | `-15.594429802` | `-15.594429802` | `-15.593841253` | `-15.595182357` |
-| HF | `-98.570779986` | `-98.596624151` | `-98.596624180` | `-98.596624180` | `-98.595551705` | `-98.596624180` |
+| BeH₂ 2× | `-15.113758068` | `-15.336382452` | `-15.313732774` | — | `-15.313729355` | `-15.342243747` |
+| H₂O 2.5× | `-74.239226411` | `-74.783454690` | `-74.732231189` | — | `-74.732231056` | `-74.742323759` |
 | H₂O | `-74.963023138` | `-75.012461713` | `-75.011873169` | `-75.011873169` | `-75.011130506` | `-75.012578241` |
+| H₂O 2× | `-74.445162505` | `-74.781487347` | `-74.717199396` | — | `-74.716349114` | `-74.771769667` |
+| HF | `-98.570779986` | `-98.596624151` | `-98.596624180` | `-98.596624180` | `-98.595551705` | `-98.596624180` |
+| LiH | `-7.862023860` | `-7.882391438` | `-7.882388615` | `-7.882388615` | `-7.881275577` | `-7.882401932` |
+| LiH 3× | `-7.590393300` | `-7.782570270` | `-7.782551293` | — | `-7.781181249` | `-7.782702226` |
 
 ---
 
@@ -60,10 +93,14 @@ Every number here is read off the *same* solve that produced the adaptive energy
 
 | Molecule | $\langle d \rangle$ | uncorrelated $\langle d \rangle$ | correlation visible | $\langle S^2 \rangle$ |
 | :--- | ---: | ---: | ---: | ---: |
-| LiH | `0.332419497` | `0.333333333` | `-9.14e-04` | `9.34e-32` |
 | BeH₂ | `0.426218803` | `0.428571429` | `-2.35e-03` | `2.06e-04` |
-| HF | `0.833034591` | `0.833333333` | `-2.99e-04` | `1.88e-31` |
+| BeH₂ 2× | `0.395619366` | `0.428571429` | `-3.30e-02` | `8.73e-18` |
+| H₂O 2.5× | `0.428571429` | `0.714285714` | `-2.86e-01` | `6.00e+00` |
 | H₂O | `0.711243361` | `0.714285714` | `-3.04e-03` | `3.81e-04` |
+| H₂O 2× | `0.656131728` | `0.714285714` | `-5.82e-02` | `2.66e-01` |
+| HF | `0.833034591` | `0.833333333` | `-2.99e-04` | `3.01e-34` |
+| LiH | `0.332419497` | `0.333333333` | `-9.14e-04` | `1.23e-32` |
+| LiH 3× | `0.325510212` | `0.333333333` | `-7.82e-03` | `1.86e-02` |
 
 The uncorrelated column is $N_e/2n_{\text{orb}}$, the closed-shell value. A correlated state sits strictly below it, so the difference column is the direct read on whether correlation was recovered — double occupancy equal to the uncorrelated value to many digits is the signature of a state that is still the reference determinant.
 
@@ -73,10 +110,14 @@ $\langle S^2 \rangle$ is a singlet check. The adaptive basis is built from $S_z$
 
 The Lehmann spectrum is taken for the site-0 $S_z$ operator against the adaptive Ritz roots. $S_z$ couples a singlet to triplets; the adaptive basis contains no triplet, so there is nothing for the operator to reach and every weight lands at the numerical floor. The resulting $\chi_0$ is a property of the basis, not of the molecule, and is not a measured susceptibility.
 
-- **LiH**: no significant weight: the S_z operator couples the singlet reference to triplet states that the singlet-preserving excitation basis does not span, so chi0 is a basis artifact rather than a physical response
 - **BeH₂**: no significant weight: the S_z operator couples the singlet reference to triplet states that the singlet-preserving excitation basis does not span, so chi0 is a basis artifact rather than a physical response
-- **HF**: no significant weight: the S_z operator couples the singlet reference to triplet states that the singlet-preserving excitation basis does not span, so chi0 is a basis artifact rather than a physical response
+- **BeH₂ 2×**: 3 lines above weight 1e-8
+- **H₂O 2.5×**: no significant weight: the S_z operator couples the singlet reference to triplet states that the singlet-preserving excitation basis does not span, so chi0 is a basis artifact rather than a physical response
 - **H₂O**: no significant weight: the S_z operator couples the singlet reference to triplet states that the singlet-preserving excitation basis does not span, so chi0 is a basis artifact rather than a physical response
+- **H₂O 2×**: no significant weight: the S_z operator couples the singlet reference to triplet states that the singlet-preserving excitation basis does not span, so chi0 is a basis artifact rather than a physical response
+- **HF**: no significant weight: the S_z operator couples the singlet reference to triplet states that the singlet-preserving excitation basis does not span, so chi0 is a basis artifact rather than a physical response
+- **LiH**: no significant weight: the S_z operator couples the singlet reference to triplet states that the singlet-preserving excitation basis does not span, so chi0 is a basis artifact rather than a physical response
+- **LiH 3×**: no significant weight: the S_z operator couples the singlet reference to triplet states that the singlet-preserving excitation basis does not span, so chi0 is a basis artifact rather than a physical response
 
 A meaningful magnetic response needs either a triplet-spanning basis (state-averaged growth over roots of both multiplicities) or an operator the singlet manifold actually couples to. Neither is done here, so no response result is claimed.
 
@@ -88,10 +129,14 @@ Two different word counts appear in A-CASE work and they must not be conflated. 
 
 | Molecule | Distinct Pauli words in $H$ | Element word universe | A-CASE $M$ | Complete SD wall-clock (s) |
 | :--- | ---: | ---: | ---: | ---: |
-| LiH | 631 | 38,250 | 6 | 352.9 |
-| BeH₂ | 666 | 350,196 | 11 | 2406.3 |
-| HF | 631 | 21,156 | 5 | 47.6 |
-| H₂O | 1086 | 1,168,272 | 21 | 1849.0 |
+| BeH₂ | 666 | 350,196 | 11 | 3018.3 |
+| BeH₂ 2× | 666 | 1,165,663 | 31 | — |
+| H₂O 2.5× | 1086 | 994,052 | 21 | — |
+| H₂O | 1086 | 1,168,272 | 21 | 2461.3 |
+| H₂O 2× | 1086 | 874,597 | 21 | — |
+| HF | 631 | 21,156 | 5 | 54.2 |
+| LiH | 631 | 38,250 | 6 | 440.3 |
+| LiH 3× | 631 | 24,096 | 5 | — |
 
 The Hamiltonian counts are the standard literature values for these systems, and LiH and HF agree exactly because both are six spatial orbitals on twelve qubits — a structural check that the collection step is working.
 
@@ -103,14 +148,18 @@ The Hamiltonian counts are the standard literature values for these systems, and
 
 | Molecule | A-CASE $M$ | A-CASE time (s) | A-CASE cached ops | SD $M$ | SD time (s) | SD RSS rise | RSS high-water |
 | :--- | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
-| LiH | 6 | 50.4 | 110.4 MiB | 93 | 352.9 | 0.17 GiB | 1.09 GiB |
-| BeH₂ | 11 | 437.6 | 801.2 MiB | 205 | 2406.3 | 0.95 GiB | 5.88 GiB |
-| HF | 5 | 14.5 | 17.0 MiB | 36 | 47.6 | 0.00 GiB | 5.07 GiB |
-| H₂O | 21 | 1322.9 | 1622.8 MiB | 141 | 1849.0 | 0.60 GiB | 8.40 GiB |
+| BeH₂ | 11 | 605.4 | 801.2 MiB | 205 | 3018.3 | 0.98 GiB | 5.36 GiB |
+| BeH₂ 2× | 31 | 2829.7 | 2199.7 MiB | skipped | — | — | — |
+| H₂O 2.5× | 21 | 1976.3 | 1607.1 MiB | skipped | — | — | — |
+| H₂O | 21 | 1839.1 | 1622.8 MiB | 141 | 2461.3 | 0.60 GiB | 8.28 GiB |
+| H₂O 2× | 21 | 1474.9 | 1338.5 MiB | skipped | — | — | — |
+| HF | 5 | 18.2 | 17.0 MiB | 36 | 54.2 | 0.00 GiB | 2.20 GiB |
+| LiH | 6 | 70.8 | 110.4 MiB | 93 | 440.3 | 0.17 GiB | 1.09 GiB |
+| LiH 3× | 5 | 58.3 | 85.4 MiB | skipped | — | — | — |
 
 `A-CASE cached ops` is the bank's own estimate of the bytes held by its cached element operators — an attributable per-arm figure, unlike the RSS columns, and the one to compare across molecules.
 
-The complete-SD wall clock is dominated by the element-operator route, which costs $O(|A_i|\,|H|\,|A_j|)$ per pair over $M(M+1)/2$ pairs and caches every one. On H₂O that is 10,011 element operators and 8.40 GiB resident for a 141-vector basis — which is the resource statement §6 asks for, and the strongest argument in this dataset for the cyclic contraction $\mathrm{Tr}((HA_j)(\rho A_i^\dagger))$ at $2M$ products and $M^2$ pairings instead. What that route gives up is the support metrics the element route makes observable.
+The complete-SD wall clock is dominated by the element-operator route, which costs $O(|A_i|\,|H|\,|A_j|)$ per pair over $M(M+1)/2$ pairs and caches every one. On H₂O that is 10,011 element operators and 8.28 GiB resident for a 141-vector basis — which is the resource statement §6 asks for, and the strongest argument in this dataset for the cyclic contraction $\mathrm{Tr}((HA_j)(\rho A_i^\dagger))$ at $2M$ products and $M^2$ pairings instead. What that route gives up is the support metrics the element route makes observable.
 
 The adaptive arm is the contrast: it pays a small fraction of both, because it never builds pairs for candidates it rejects.
 
@@ -120,10 +169,14 @@ The adaptive arm is the contrast: it pays a small fraction of both, because it n
 
 | Molecule | Geometry | Basis | $n$ | $N_e$ | $S_z$ | Sector dimension |
 | :--- | :--- | :--- | ---: | ---: | ---: | ---: |
-| LiH | Li--H 1.595 Å | STO-3G | 12 | 4 | 0 | 225 |
 | BeH₂ | linear, Be--H 1.326 Å | STO-3G | 14 | 6 | 0 | 1225 |
-| HF | H--F 0.917 Å | STO-3G | 12 | 10 | 0 | 36 |
+| BeH₂ 2× | symmetric, Be--H 2.652 Å (2× rₑ) | STO-3G | 14 | 6 | 0 | 1225 |
+| H₂O 2.5× | symmetric, O--H 2.3938 Å (2.5× rₑ) | STO-3G | 14 | 10 | 0 | 441 |
 | H₂O | O--H 0.9575 Å, ∠HOH 104.51° | STO-3G | 14 | 10 | 0 | 441 |
+| H₂O 2× | symmetric, O--H 1.9150 Å (2× rₑ) | STO-3G | 14 | 10 | 0 | 441 |
+| HF | H--F 0.917 Å | STO-3G | 12 | 10 | 0 | 36 |
+| LiH | Li--H 1.595 Å | STO-3G | 12 | 4 | 0 | 225 |
+| LiH 3× | Li--H 4.785 Å (3× rₑ), control | STO-3G | 12 | 4 | 0 | 225 |
 
 ---
 
