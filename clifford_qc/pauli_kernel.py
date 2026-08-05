@@ -102,16 +102,14 @@ def _word_mul_unchecked(n: int, a: int, b: int) -> tuple[complex, int]:
     return _PHASE4[e], c
 
 
-@lru_cache(maxsize=1_000_000)
 def word_mul(n: int, a: int, b: int) -> tuple[complex, int]:
     """Multiply two packed Pauli words in the same n-qubit algebra."""
     validate_word_code(n, a)
     validate_word_code(n, b)
-    # The public boundary validates. Internal MV products call the cached
-    # unchecked form directly because their constructors already established
-    # these invariants. Bypass its cache on this path: this function has its
-    # own cache, so a public miss should pay only one cache insertion.
-    return _word_mul_unchecked.__wrapped__(n, a, b)
+    # Keep one shared cache for both public and internal multiplication. The
+    # public boundary pays validation on every call; MV hot paths already own
+    # that invariant and call the cached unchecked form directly.
+    return _word_mul_unchecked(n, a, b)
 
 
 _lane_mask = pauli_lane_mask
