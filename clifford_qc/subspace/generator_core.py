@@ -25,7 +25,7 @@ class Generator:
         return self.mv.nnz()
 
 
-def _to_mv(obj, n: int | None = None) -> MV:
+def to_mv(obj, n: int | None = None) -> MV:
     if isinstance(obj, MV):
         return obj
     if isinstance(obj, (PauliWord, PauliSum)):
@@ -52,9 +52,9 @@ def as_generators(items: Iterable) -> list[Generator]:
             continue
         if isinstance(item, tuple) and len(item) == 2 and isinstance(item[0], str):
             label, payload = item
-            out.append(Generator(label, _to_mv(payload)))
+            out.append(Generator(label, to_mv(payload)))
             continue
-        out.append(Generator(_label_of(item, index), _to_mv(item)))
+        out.append(Generator(_label_of(item, index), to_mv(item)))
     if not out:
         raise ValueError("no generators given")
     n = out[0].n
@@ -63,7 +63,7 @@ def as_generators(items: Iterable) -> list[Generator]:
     return out
 
 
-def _scalar_free_key(mv: MV):
+def scalar_free_key(mv: MV):
     """Hash a multivector up to an overall nonzero complex factor."""
     terms = [(code, value) for code, value in sorted(mv.terms.items())
              if abs(value) > 1e-15]
@@ -75,4 +75,4 @@ def _scalar_free_key(mv: MV):
                  for code, value in terms)
 
 
-__all__ = ["Generator", "as_generators"]
+__all__ = ["Generator", "as_generators", "scalar_free_key", "to_mv"]
