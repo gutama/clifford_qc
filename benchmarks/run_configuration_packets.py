@@ -26,6 +26,8 @@ from pathlib import Path
 
 import numpy as np
 
+from clifford_qc.reproducibility import stamp_record
+
 
 def physics_order_key(occupied, reference, sites: int):
     """Deterministic Hubbard ordering used as configuration-space locality.
@@ -212,10 +214,10 @@ def main(argv=None):
     parser.add_argument("--out", type=Path)
     args = parser.parse_args(argv)
     shape = args.shape[0] if len(args.shape) == 1 else tuple(args.shape)
-    record = run_experiment(
+    record = stamp_record(run_experiment(
         shape=shape, t=args.t, u=args.u, coarse_size=args.coarse_size,
         final_size=args.final_size, max_packet_support=args.max_packet_support,
-        max_configurations=args.max_configurations, gamma=args.gamma)
+        max_configurations=args.max_configurations, gamma=args.gamma))
     rendered = json.dumps(record, indent=2, sort_keys=True) + "\n"
     if args.out:
         args.out.parent.mkdir(parents=True, exist_ok=True)
