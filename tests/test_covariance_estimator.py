@@ -11,7 +11,7 @@ import pytest
 
 from clifford_qc.ir import PauliWord
 from clifford_qc.backends import FiniteShotBackend
-from clifford_qc.backends.protocol import MeasurementBatch
+from clifford_qc.backends.protocol import GroupSample, MeasurementBatch
 from clifford_qc.measurement import (
     CommutatorBank, GroupedWordCache, candidate_radius, empirical_bernstein_radius,
     qwc_groups,
@@ -61,9 +61,8 @@ def test_covariance_aware_variance_matches_empirical_bell():
     assert cov > 1.6 * diag                             # ~2x correction
 
 
-def test_covariance_aware_variance_zero_on_deterministic_stabilizer():
-    """On GHZ, ZZ stabilizers are +1 deterministically, so a candidate built
-    from them has exactly zero variance -- the diagonal wrongly reports > 0."""
+def test_covariance_aware_variance_has_a_finite_sample_floor():
+    """Unanimous finite samples must not create a zero-width normal interval."""
     rho = ghz_density(3)
     words = [PauliWord.from_label(l) for l in ("ZZI", "IZZ")]
     coeffs = {words[0].code: 1.0, words[1].code: 1.0}
@@ -71,7 +70,8 @@ def test_covariance_aware_variance_zero_on_deterministic_stabilizer():
     c = _cache(rho, groups, 500, 3, 3)
     cov = sum(sv / n for n, sv, _ in c.candidate_group_terms(coeffs))
     diag = sum(coeffs[cd] ** 2 * c.mean_var(cd)[1] for cd in coeffs)
-    assert cov == pytest.approx(0.0, abs=1e-12)
+    assert cov > 0.0
+    assert cov < 2.0 * diag
     assert diag > 0.0
 
 
@@ -141,6 +141,22 @@ def test_grouped_cache_requires_grouped_batch():
     plain = MeasurementBatch(n=2, shots={1: 10}, plus_counts={1: 6}, circuits=1)
     with pytest.raises(ValueError, match="grouped batch"):
         cache.add_batch(plain)
+
+
+def test_grouped_cache_uses_the_recorded_word_assignment():
+    """A word readable from two bases belongs only to its sampled circuit."""
+    zi = PauliWord.from_label("ZI").code
+    ix = PauliWord.from_label("IX").code
+    iy = PauliWord.from_label("IY").code
+    groups = (
+        GroupSample((0, 1), ((0, "Z"), (1, "X")), {"00": 10}, 10,
+                    word_codes=(ix,)),
+        GroupSample((0, 1), ((0, "Z"), (1, "Y")), {"10": 10}, 10,
+                    word_codes=(zi, iy)),
+    )
+    cache = GroupedWordCache(2)
+    cache.add_batch(MeasurementBatch(2, {}, {}, 2, groups=groups))
+    assert cache.candidate_estimate({zi: 1.0}) == pytest.approx(-1.0)
 
 
 def test_fast_infinite_shot_uses_exact_populations():
