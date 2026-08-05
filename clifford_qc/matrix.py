@@ -52,7 +52,9 @@ def from_matrix(M, n: int | None = None, tol: float = 1e-12) -> MV:
     denom = 2 ** n
     for code in range(4 ** n):
         P = code_to_matrix(n, code)
-        c = np.trace(P.conj().T @ M) / denom
+        # The Pauli coefficient is the Hilbert--Schmidt pairing.  ``vdot``
+        # computes it directly without allocating the dense matrix product.
+        c = np.vdot(P, M) / denom
         if abs(c) > tol:
             coeffs[code] = complex(c)
     return MV(n, coeffs)
@@ -72,11 +74,21 @@ def density_from_statevector(psi, tol: float = 1e-12) -> MV:
 
 
 def expm_matrix(A: MV, tol: float = 1e-12) -> MV:
-    import numpy as np
+    """Dense matrix exponential, including defective/non-normal matrices.
+
+    Diagonalising a general matrix is not a valid exponential algorithm: a
+    Jordan block need not have an invertible eigenvector matrix.  SciPy's
+    scaling-and-squaring Pade implementation is used when the research extra
+    is installed; the package's scaling-and-squaring Taylor implementation is
+    the NumPy-only fallback.
+    """
     M = to_matrix(A)
-    w, V = np.linalg.eig(M)
-    E = V @ np.diag(np.exp(w)) @ np.linalg.inv(V)
-    return from_matrix(E, A.n, tol=tol)
+    try:
+        from scipy.linalg import expm
+    except ImportError:  # pragma: no cover - exercised in a NumPy-only install
+        from .gates import expm_taylor
+        return expm_taylor(A)
+    return from_matrix(expm(M), A.n, tol=tol)
 
 
 def exact_ground(H: MV):
