@@ -24,7 +24,7 @@ from typing import Sequence
 from ..ir import PauliSum
 from ..measurement.bank import CommutatorBank
 from ..multivector import MV
-from .generator_core import Generator, _scalar_free_key, _to_mv, as_generators
+from .generator_core import Generator, as_generators, scalar_free_key, to_mv
 
 
 def identity_generator(n: int) -> Generator:
@@ -45,7 +45,7 @@ def pauli_orbit(words: Sequence) -> list[Generator]:
     for index, item in enumerate(words):
         word = item.word if hasattr(item, "word") else item
         label = getattr(item, "label", None) or getattr(word, "label", f"P{index}")
-        out.append(Generator(label, _to_mv(word)))
+        out.append(Generator(label, to_mv(word)))
     return out
 
 
@@ -143,7 +143,7 @@ def compound_response(left: Sequence, right: Sequence | None = None, *,
                 continue
             if max_support is not None and product.nnz() > max_support:
                 continue
-            key = _scalar_free_key(product)
+            key = scalar_free_key(product)
             if key is None or key in seen:
                 continue
             seen.add(key)
