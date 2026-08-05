@@ -16,6 +16,8 @@ import platform
 import time
 from pathlib import Path
 
+from clifford_qc.reproducibility import stamp_record
+
 
 _THREAD_VARS = ("OMP_NUM_THREADS", "MKL_NUM_THREADS", "OPENBLAS_NUM_THREADS",
                 "NUMEXPR_NUM_THREADS", "VECLIB_MAXIMUM_THREADS")
@@ -183,6 +185,7 @@ def main(argv=None) -> None:
               f"final energy differs by {c['final_energy_abs_difference']:.3g} Ha",
               flush=True)
 
+    row = stamp_record(row)
     out = Path(args.out)
     out.parent.mkdir(parents=True, exist_ok=True)
     tmp = out.with_suffix(out.suffix + ".tmp")
