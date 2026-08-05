@@ -31,6 +31,8 @@ import math
 import time
 from pathlib import Path
 
+from clifford_qc.reproducibility import execution_provenance, stamp_record
+
 CHEMICAL_ACCURACY = 1.6e-3  # Hartree
 
 
@@ -475,11 +477,13 @@ def main(argv=None) -> None:
     out = Path(args.out)
     out.parent.mkdir(parents=True, exist_ok=True)
     written = 0
+    provenance = execution_provenance()
     with out.open("w") as handle:
         for rung in ladder:
             for row in run_rung(rung, methods):
                 row["rung_name"] = rung["name"]
-                handle.write(json.dumps(row, sort_keys=True) + "\n")
+                handle.write(json.dumps(stamp_record(row, provenance),
+                                        sort_keys=True) + "\n")
                 handle.flush()
                 written += 1
                 print(f"[{written}] {row['rung_name']:22s} {row['method']:20s} "
