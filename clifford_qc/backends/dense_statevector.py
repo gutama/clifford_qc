@@ -1,18 +1,19 @@
-"""Dense-matrix reference backend.
+"""Dense-state reference backend.
 
-An independent numerical cross-check built on ``matrix.to_matrix``; it is
-never the native representation. Useful for validating the MV path and for
-somewhat larger pure-state checks.
+Program evolution is an independent small-system cross-check built on
+``dense_reference.to_matrix``; it is never the native representation.
+Observable expectations use packed Pauli action directly, so they do not
+materialize a second dense operator.
 """
 
 from __future__ import annotations
 
 import numpy as np
 
-from ..matrix import to_matrix
-from ..multivector import MV
-from ..states import ket_density
+from ..dense_reference import density_from_statevector, to_matrix
 from ..ir import PauliSum, Program
+from ..multivector import MV
+from ..pauli_action import apply_pauli_sum
 
 
 class DenseStatevectorBackend:
@@ -32,11 +33,9 @@ class DenseStatevectorBackend:
         return U @ psi
 
     def state(self, program: Program, values=None, initial_state: MV | None = None) -> MV:
-        from ..matrix import density_from_statevector
         return density_from_statevector(self._vector(program, values, initial_state))
 
     def expectation(self, program: Program, observable: PauliSum, values=None,
-                    initial_state: MV | None = None) -> float:
+        initial_state: MV | None = None) -> float:
         psi = self._vector(program, values, initial_state)
-        O = to_matrix(observable.to_mv())
-        return float(np.real(np.vdot(psi, O @ psi)))
+        return float(np.real(np.vdot(psi, apply_pauli_sum(observable, psi))))
