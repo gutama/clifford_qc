@@ -48,6 +48,13 @@ def tket_to_program(circuit: Circuit) -> Program:
     """Round-trip a tket circuit built from supported gates and PauliExpBoxes
     back into the IR (measurement/classical operations are not supported)."""
     program = Program(circuit.n_qubits)
+    global_phase = circuit.phase
+    if isinstance(global_phase, str) or hasattr(global_phase, "free_symbols"):
+        if getattr(global_phase, "free_symbols", set()):
+            raise ValueError("symbolic circuit global phase is not supported")
+    if float(global_phase) != 0.0:
+        # tket phase p means exp(i*pi*p); an identity rotor has exp(-i*theta/2).
+        program.rotor("I" * circuit.n_qubits, -2.0 * math.pi * float(global_phase))
     for cmd in circuit.get_commands():
         optype = cmd.op.type
         qubits = tuple(q.index[0] for q in cmd.qubits)
