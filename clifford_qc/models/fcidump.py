@@ -147,6 +147,10 @@ def read_fcidump(path: str | Path, *, duplicate_tolerance: float = 1e-12
         text = raw.decode("utf-8")
     except UnicodeDecodeError as error:
         raise ValueError("FCIDUMP must be UTF-8 text") from error
+    # FCIDUMP is a text interchange format, so checkout-specific CRLF/LF
+    # encoding must not change the identity of the scientific input.  Hash the
+    # canonical UTF-8 representation rather than the platform-specific bytes.
+    canonical = text.replace("\r\n", "\n").replace("\r", "\n").encode("utf-8")
     lines = text.splitlines()
 
     header_lines: list[str] = []
@@ -243,7 +247,7 @@ def read_fcidump(path: str | Path, *, duplicate_tolerance: float = 1e-12
         orbsym=orbsym,
         isym=isym,
         source_path=str(source),
-        source_sha256=hashlib.sha256(raw).hexdigest(),
+        source_sha256=hashlib.sha256(canonical).hexdigest(),
     )
 
 
