@@ -1,6 +1,6 @@
-"""Sparse reference diagonalization, for ``n`` past dense ``eigh``.
+"""Explicit sparse-matrix reference utilities.
 
-``matrix.py`` builds the full ``2^n x 2^n`` array, which is the right oracle for
+``dense_reference.py`` builds the full ``2^n x 2^n`` array, which is the right oracle for
 the algebra kernel and hopeless past ten or twelve qubits: a 12-qubit
 Hamiltonian with a hundred terms would materialize a hundred 134 MB matrices to
 add them together. A Pauli word needs none of that. It is a signed permutation
@@ -9,13 +9,16 @@ matrix -- exactly one nonzero per row -- so it can be written down directly:
     W = i^{n_Y} X^x Z^z,   (X^x Z^z)|i> = (-1)^{z.i} |i xor x>,
 
 with ``x`` the bit mask of the word's X and Y positions and ``z`` the mask of
-its Z and Y positions. Summing those gives a sparse Hamiltonian with at most
-``(#terms) * 2^n`` nonzeros, and ``scipy.sparse.linalg.eigsh`` takes it from
-there.
+its Z and Y positions. Summing those gives an explicit sparse Hamiltonian with
+at most ``(#terms) * 2^n`` nonzeros. That CSR construction remains useful as an
+independent reference. Ground-state solves now route through a packed Pauli
+linear operator and never store those nonzeros.
 
-Reference tier only. This is the baseline the A-CASE subspace is priced
-against, not a scaling path: it still stores a ``2^n``-dimensional vector, and
-the sector-restricted spinor backend of Phase 6 is what removes that.
+The explicit CSR builders in this module are reference tier only. The
+``sparse_ground`` compatibility entry point now delegates to the matrix-free
+full-state operator; that removes ``O(K 2^n)`` operator storage but still keeps
+a ``2^n`` statevector. The sector-restricted spinor backend is what removes
+that remaining full-Hilbert storage.
 """
 
 from __future__ import annotations
@@ -23,44 +26,10 @@ from __future__ import annotations
 import numpy as np
 
 from .ir import PauliSum
-from .multivector import MV, validate_word_code
+from .multivector import MV
+from .pauli_action import matrix_free_ground, parity, word_masks
 
 _PHASE4 = (1 + 0j, 1j, -1 + 0j, -1j)
-
-
-def word_masks(n: int, code: int) -> tuple[int, int, int]:
-    """``(x_mask, z_mask, y_count)`` of a Pauli word, as basis-index bit masks.
-
-    Qubit ``j`` is the leftmost label character and therefore the *most*
-    significant bit of a computational basis index, matching
-    ``matrix.code_to_matrix``'s ``kron`` order. Getting that backwards silently
-    transposes the lattice, which is why the conversion is a named function
-    with a test rather than an inline expression.
-    """
-    validate_word_code(n, code)
-    x_mask = z_mask = y_count = 0
-    for j in range(n):
-        letter = (code >> (2 * j)) & 3
-        bit = 1 << (n - 1 - j)
-        if letter in (1, 2):  # X or Y
-            x_mask |= bit
-        if letter in (2, 3):  # Y or Z
-            z_mask |= bit
-        if letter == 2:
-            y_count += 1
-    return x_mask, z_mask, y_count
-
-
-def _parity(values: np.ndarray, mask: int) -> np.ndarray:
-    """Parity of ``popcount(values & mask)``, vectorized and numpy-version-agnostic.
-
-    A fold rather than ``np.bitwise_count``, which needs numpy 2; the parity is
-    all the sign needs, and the fold is exact for the int64 indices used here.
-    """
-    folded = values & mask
-    for shift in (32, 16, 8, 4, 2, 1):
-        folded = folded ^ (folded >> shift)
-    return folded & 1
 
 
 def to_sparse(operator):
@@ -75,7 +44,7 @@ def to_sparse(operator):
     rows, cols, data = [], [], []
     for code, coeff in mv.terms.items():
         x_mask, z_mask, y_count = word_masks(mv.n, code)
-        signs = np.where(_parity(index, z_mask), -1.0, 1.0)
+        signs = np.where(parity(index, z_mask), -1.0, 1.0)
         rows.append(index ^ x_mask)
         cols.append(index)
         data.append(coeff * _PHASE4[y_count & 3] * signs)
@@ -169,7 +138,7 @@ def spectral_bound(operator) -> float:
 
 def sparse_ground(operator, k: int = 1, *, tol: float = 0.0,
                   maxiter: int | None = None) -> tuple[np.ndarray, np.ndarray]:
-    """Lowest ``k`` eigenpairs by Lanczos on the sparse form, values ascending.
+    """Lowest ``k`` eigenpairs through the matrix-free packed-Pauli operator.
 
     Solved as the *largest-magnitude* eigenpairs of ``H - sigma I`` with
     ``sigma = sum_w |h_w| >= ||H||``, which puts the whole spectrum in
@@ -185,19 +154,9 @@ def sparse_ground(operator, k: int = 1, *, tol: float = 0.0,
     eigenvalue -- so the fix has to be in how the problem is posed. Shifting is
     also cheap: no factorization, one extra diagonal.
 
-    ``eigsh`` needs ``k < dim - 1``; smaller systems fall back to a dense solve
-    of the same sparse matrix, so the function is total on toy inputs.
+    The historical name is retained for API compatibility. Unlike earlier
+    versions, this function does not build a CSR matrix first: ARPACK receives
+    the packed-Pauli matvec directly. Tiny systems and NumPy-only installs use
+    the matrix-free Lanczos fallback.
     """
-    from scipy.sparse import identity
-    from scipy.sparse.linalg import eigsh
-
-    matrix = to_sparse(operator)
-    dim = matrix.shape[0]
-    if k >= dim - 1:
-        values, vectors = np.linalg.eigh(matrix.toarray())
-        return values[:k], vectors[:, :k]
-    shift = spectral_bound(operator)
-    shifted = matrix - shift * identity(dim, dtype=complex, format="csr")
-    values, vectors = eigsh(shifted, k=k, which="LM", tol=tol, maxiter=maxiter)
-    order = np.argsort(values)
-    return values[order].real + shift, vectors[:, order]
+    return matrix_free_ground(operator, k=k, tol=tol, maxiter=maxiter)
