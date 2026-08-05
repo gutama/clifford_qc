@@ -27,7 +27,7 @@ import argparse
 import json
 import time
 
-from clifford_qc.matrix import exact_ground
+from clifford_qc.dense_reference import exact_ground
 from clifford_qc.backends import FiniteShotBackend
 from clifford_qc.measurement import CommutatorBank, UniformDoubling
 from clifford_qc.algorithms import ConfidenceSelector, FastInspiredSelector, run_adapt
