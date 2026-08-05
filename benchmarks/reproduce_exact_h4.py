@@ -149,7 +149,7 @@ def main(argv=None) -> None:
 
     # Executed as a file from ``benchmarks/``; import its sibling directly.
     from run_chemistry import run_arm
-    from clifford_qc.matrix import exact_ground
+    from clifford_qc.dense_reference import exact_ground
     from clifford_qc.models.chemistry import excitation_pool, h4_chain
 
     started = time.time()
