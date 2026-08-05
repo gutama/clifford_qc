@@ -27,6 +27,7 @@ from pathlib import Path
 
 from clifford_qc.backends import ExactMVBackend, SectorStatevectorBackend
 from clifford_qc.models import fcidump_model
+from clifford_qc.reproducibility import stamp_record
 from clifford_qc.subspace import (
     determinant_excitations,
     identity_generator,
@@ -85,7 +86,7 @@ def build_record() -> dict:
     return {
         "schema": "clifford_qc.active_space_result.v1",
         "input": {
-            "path": str(FCIDUMP.relative_to(ROOT.parent)),
+            "path": FCIDUMP.relative_to(ROOT.parent).as_posix(),
             "sha256": model.metadata["source_sha256"],
             "provenance_schema": provenance["schema"],
             "generator": provenance["generator"],
@@ -153,7 +154,7 @@ def main(argv=None) -> None:
     parser = argparse.ArgumentParser()
     parser.add_argument("--out", type=Path)
     args = parser.parse_args(argv)
-    record = build_record()
+    record = stamp_record(build_record())
     rendered = json.dumps(record, indent=2, sort_keys=True) + "\n"
     if args.out is not None:
         args.out.parent.mkdir(parents=True, exist_ok=True)

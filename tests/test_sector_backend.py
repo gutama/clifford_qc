@@ -18,6 +18,7 @@ import math
 import numpy as np
 import pytest
 
+from clifford_qc import Program
 from clifford_qc.backends import ExactMVBackend
 from clifford_qc.backends.sector_statevector import (SectorStatevectorBackend,
                                                     lanczos_ground,
@@ -59,6 +60,15 @@ def test_spin_restricted_sector_is_a_product_of_two_binomials(n, electrons):
     basis = sector_basis(n, electrons, 0.0)
     assert basis.size == math.comb(n // 2, electrons // 2) ** 2
     assert basis.size < 2 ** n
+
+
+def test_blocked_and_explicit_spin_orderings_are_supported():
+    blocked = sector_basis(4, 2, 0.0, spin_ordering="blocked")
+    explicit = sector_basis(4, 2, 0.0,
+                            spin_ordering=("up", "up", "down", "down"))
+    assert np.array_equal(blocked, np.array([0b0101, 0b0110, 0b1001, 0b1010]))
+    assert np.array_equal(explicit, blocked)
+    assert not np.array_equal(blocked, sector_basis(4, 2, 0.0))
 
 
 def test_basis_construction_does_not_enumerate_the_full_space():
@@ -312,3 +322,9 @@ def test_input_validation():
         backend.ground_state(model.hamiltonian, method="magic")
     with pytest.raises(ValueError, match="only X-gate determinant"):
         backend.state_from_program(kitaev_honeycomb(1, 2).reference.clifford("H", 0))
+    with pytest.raises(ValueError, match="does not conserve"):
+        backend.operator(P("XIII"))
+    with pytest.raises(ValueError, match="Hermitian"):
+        backend.ground_state(1j * P("ZIII"), method="dense")
+    with pytest.raises(ValueError, match="different qubit counts"):
+        backend.state_from_program(Program(3))

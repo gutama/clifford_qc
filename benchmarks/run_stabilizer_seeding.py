@@ -32,6 +32,7 @@ from clifford_qc.algorithms import (
     run_adapt, seed_model, stabilizer_ground_program,
     stabilizer_hamiltonian_approximation,
 )
+from clifford_qc.reproducibility import execution_provenance, stamp_record
 
 MAX_OPERATORS = 12
 MAXITER = 150
@@ -135,10 +136,11 @@ def main(argv=None) -> None:
     models.append(tfim(6, 1.0, 1.0, periodic=True))
     models.extend(random_ising(6, seed=s) for s in range(args.disorder_seeds))
 
+    provenance = execution_provenance()
     with open(args.out, "w") as fh:
         for model in models:
             for row in run_family(model):
-                fh.write(json.dumps(row) + "\n")
+                fh.write(json.dumps(stamp_record(row, provenance)) + "\n")
                 fh.flush()
                 print(f"{row['model']:42s} {row['arm']:8s} "
                       f"rel={row.get('relative_error', float('nan')) or float('nan'):.2e} "
@@ -147,7 +149,7 @@ def main(argv=None) -> None:
                       f"{row.get('note', '')}", flush=True)
         for row in large_n_scaffold_demo(args.large_n):
             row["arm"] = "large_n_demo"
-            fh.write(json.dumps(row) + "\n")
+            fh.write(json.dumps(stamp_record(row, provenance)) + "\n")
             print(f"{row['model']:42s} demo     ref={row['reference_energy']:.1f} "
                   f"stab={row['scaffold_energy']:.1f} "
                   f"cliffpt={row['cliffpt_energy']:.1f} "

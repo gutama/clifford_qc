@@ -51,6 +51,7 @@ from clifford_qc.models.orbital import (as_basis, givens_network,
                                         natural_orbital_basis, rotate_model,
                                         rotate_one_body,
                                         rotate_onsite_interaction)
+from clifford_qc.reproducibility import stamp_record
 
 ROOT = Path(__file__).resolve().parents[1]
 DEFAULT_OUT = ROOT / "benchmarks" / "reference_results" / "orbital_basis.json"
@@ -335,8 +336,9 @@ def main(argv=None) -> None:
     args = parser.parse_args(argv)
     if args.sites % 2:
         parser.error("half filling needs an even site count")
-    record = build_record(args.sites, args.interaction, args.disorder,
-                          args.disorder_seeds, args.accuracy)
+    record = stamp_record(build_record(
+        args.sites, args.interaction, args.disorder,
+        args.disorder_seeds, args.accuracy))
     args.out.parent.mkdir(parents=True, exist_ok=True)
     args.out.write_text(json.dumps(record, indent=2, sort_keys=True) + "\n")
     print(args.out)

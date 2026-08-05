@@ -13,10 +13,18 @@ from openfermion import (FermionOperator, commutator, normal_ordered,
 from clifford_qc.matrix import exact_ground
 from clifford_qc.backends import ExactMVBackend
 from clifford_qc.algorithms import FastInspiredSelector, is_odd_y, run_adapt
-from clifford_qc.models.chemistry import (_excitation_generators,
+from clifford_qc.models.chemistry import (_excitation_generators, _hf_reference,
                                           excitation_pool, h2, lih)
 
 CHEMICAL_ACCURACY = 1.6e-3  # Hartree
+
+
+def test_open_shell_hf_reference_respects_interleaved_spin_ordering():
+    reference = _hf_reference(6, n_electrons=3, ms2=3)
+    occupied = {op.qubits[0] for op in reference.ops}
+    assert occupied == {0, 2, 4}
+    with pytest.raises(ValueError, match="parity"):
+        _hf_reference(6, n_electrons=2, ms2=1)
 
 
 @pytest.fixture(scope="module")

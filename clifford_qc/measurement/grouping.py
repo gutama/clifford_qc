@@ -203,7 +203,9 @@ def qwc_groups(words: Sequence[PauliWord]) -> list[list[PauliWord]]:
     count (exact coloring is NP-hard). The partition is cached on the exact
     word set, so repeated candidate sets reuse it.
     """
-    words = list(words)
+    # A measurement partition is over distinct observables.  Duplicate inputs
+    # would otherwise manufacture multiple assignments for the same word.
+    words = list({word.code: word for word in words}.values())
     if not words:
         return []
     n = words[0].n

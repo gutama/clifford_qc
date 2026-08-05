@@ -36,7 +36,10 @@ def evolve(rho: MV, U: MV) -> MV:
 def expectation(rho: MV, O: MV) -> complex:
     if rho.n != O.n:
         raise ValueError("state and observable live in different algebras")
-    return (O * rho).trace()
+    # Tr(O rho) = 2^n sum_w O_w rho_w.  Reading the shared Pauli support is
+    # both the exact trace pairing and avoids forming an entire product merely
+    # to discard every non-scalar term.
+    return (2 ** rho.n) * O.trace_pairing(rho)
 
 
 def probability(rho: MV, projector: MV, *, clip: bool = True) -> float:
@@ -49,7 +52,7 @@ def probability(rho: MV, projector: MV, *, clip: bool = True) -> float:
 
 
 def purity(rho: MV) -> float:
-    return (rho * rho).trace().real
+    return float((2 ** rho.n) * rho.trace_pairing(rho).real)
 
 
 def computational_probabilities(rho: MV) -> dict[str, float]:

@@ -115,7 +115,11 @@ def TOFFOLI(n: int, c1: int, c2: int, t: int) -> MV:
 
 def expm_taylor(A: MV, order: int = 40) -> MV:
     """Scaling-and-squaring Taylor exp(A), intended for small/validation use."""
-    s = max(0, int(math.ceil(math.log2(max(A.norm_hs(), 1e-30)))) + 1)
+    # The coefficient l1 norm bounds the operator norm because every Pauli
+    # word is unitary.  The Hilbert--Schmidt norm carries a spurious sqrt(2^n)
+    # factor and therefore over-scales even a one-word operator as n grows.
+    bound = sum(abs(value) for value in A.terms.values())
+    s = max(0, int(math.ceil(math.log2(max(bound, 1e-30)))) + 1)
     B = (2.0 ** (-s)) * A
     term, out = I(A.n), I(A.n)
     for k in range(1, order + 1):

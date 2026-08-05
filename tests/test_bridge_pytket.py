@@ -65,6 +65,12 @@ class TestRoundTrip:
         with pytest.raises(ValueError):
             tket_to_program(circ)
 
+    def test_circuit_global_phase_survives_round_trip(self):
+        circ = pytket.Circuit(1).H(0)
+        circ.add_phase(0.25)
+        back = tket_to_program(circ)
+        assert np.allclose(to_matrix(back.unitary()), circ.get_unitary(), atol=1e-10)
+
 
 class TestCompilation:
     def test_compiled_circuit_keeps_semantics(self):

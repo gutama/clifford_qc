@@ -1,5 +1,5 @@
 [build-system]
-requires = ["setuptools>=61"]
+requires = ["setuptools>=77"]
 build-backend = "setuptools.build_meta"
 
 [project]
@@ -8,18 +8,22 @@ dynamic = ["version"]
 description = "Operator-centric quantum computing in Cl(2n,C) using sparse Pauli-word multivectors"
 readme = "README.md"
 requires-python = ">=3.10"
-license = {text = "Apache-2.0"}
-authors = [{name = "Ginanjar Utama", email = "ginanjar.utama@gmail.com"}]
+license = "Apache-2.0"
+license-files = ["LICENSE"]
+authors = [
+    {name = "Ginanjar Utama", email = "ginanjar.utama@gmail.com"},
+    {name = "Hermawan Kresno Dipojono"},
+]
 keywords = ["quantum computing", "clifford algebra", "geometric algebra", "pauli", "jordan-wigner"]
 classifiers = [
     "Development Status :: 3 - Alpha",
     "Intended Audience :: Science/Research",
-    "License :: OSI Approved :: Apache Software License",
     "Programming Language :: Python :: 3",
     "Programming Language :: Python :: 3.10",
     "Programming Language :: Python :: 3.11",
     "Programming Language :: Python :: 3.12",
     "Programming Language :: Python :: 3.13",
+    "Programming Language :: Python :: 3.14",
     "Topic :: Scientific/Engineering :: Physics",
 ]
 dependencies = ["numpy>=1.23"]
@@ -29,7 +33,7 @@ Homepage = "https://github.com/gutama/clifford_qc"
 Issues = "https://github.com/gutama/clifford_qc/issues"
 
 [project.optional-dependencies]
-test = ["pytest>=7", "hypothesis>=6"]
+test = ["pytest>=7", "hypothesis>=6", "pytest-cov>=4", "ruff>=0.9"]
 research = ["scipy>=1.11"]
 chemistry = ["openfermion>=1.6", "pyscf>=2.4", "openfermionpyscf>=0.5"]
 stim = ["stim>=1.13"]  # >=1.13 for the SPP (sqrt-of-Pauli-product) gate
@@ -38,6 +42,7 @@ pytket = ["pytket>=1.30"]
 pennylane = ["pennylane>=0.38"]
 pyzx = ["pyzx>=0.8", "numpy>=1.24"]
 bridges = ["clifford-qc[stim,openfermion,pytket,pennylane,pyzx]"]
+release = ["build>=1", "twine>=5"]
 
 [tool.setuptools.dynamic]
 version = {attr = "clifford_qc.__version__"}
@@ -46,5 +51,19 @@ version = {attr = "clifford_qc.__version__"}
 where = ["."]
 include = ["clifford_qc*"]
 
+[tool.setuptools.package-data]
+clifford_qc = ["py.typed"]
+
 [tool.pytest.ini_options]
 testpaths = ["tests"]
+addopts = "-ra --strict-config --strict-markers"
+
+[tool.ruff]
+target-version = "py310"
+line-length = 100
+exclude = ["clifford_qc_paper_code", "paper", "paper_acase"]
+
+[tool.ruff.lint]
+# Start with correctness-bearing parser/name rules.  The existing style and
+# import backlog is intentionally not converted into an all-at-once PR gate.
+select = ["E9", "F63", "F7", "F82"]

@@ -38,6 +38,7 @@ from clifford_qc.measurement import (
     CommutatorBank, UniformFixed, UniformDoubling, VarianceProportional, qwc_groups,
 )
 from clifford_qc.algorithms import ConfidenceSelector, RandomSelector, local_pool, run_adapt
+from clifford_qc.reproducibility import execution_provenance, stamp_record
 
 MAX_OPERATORS = 8
 
@@ -100,6 +101,7 @@ def main(argv=None) -> None:
 
     families = [("tfim_crit", lambda s: tfim(4, 1.0, 1.0)),
                 ("random_ising", lambda s: random_ising(4, seed=s))]
+    provenance = execution_provenance()
     with open(args.out, "w") as fh:
         for fam, build in families:
             E0 = exact_ground(build(0).hamiltonian.to_mv())[0]
@@ -123,7 +125,7 @@ def main(argv=None) -> None:
                        "circuits_median": median(circ),
                        "abstentions_total": absten, **sizes}
                 row["selection_metadata"] = res.metadata
-                fh.write(json.dumps(row) + "\n"); fh.flush()
+                fh.write(json.dumps(stamp_record(row, provenance)) + "\n"); fh.flush()
                 print(f"{fam:14s} {arm:15s} rel={row['rel_err_median']:.2e} "
                       f"shots={row['shots_median']:.0f} circ={row['circuits_median']:.0f} "
                       f"abstain={absten}", flush=True)

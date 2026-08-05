@@ -40,6 +40,8 @@ from __future__ import annotations
 
 import argparse
 import json
+
+from clifford_qc.reproducibility import execution_provenance, stamp_record
 import math
 from statistics import median
 
@@ -155,6 +157,7 @@ def main(argv=None) -> None:
     # returned operator is the unique argmax, eps-best if it is within eps.
     RULES = (("exact_best", None), ("eps_best", EPS))
 
+    provenance = execution_provenance()
     with open(args.out, "w") as fh:
         for rule, eps in RULES:
             for ceiling in CEILINGS:
@@ -216,7 +219,7 @@ def main(argv=None) -> None:
                                                    if a["radius"] else None),
                         "median_eta_required": median(a["eta"]) if a["eta"] else None,
                     }
-                    fh.write(json.dumps(row) + "\n")
+                    fh.write(json.dumps(stamp_record(row, provenance)) + "\n")
                     fh.flush()
                     print(f"{rule:10s} ceil={ceiling:>6} {stratum:10s} "
                           f"res={row['resolved_rate']:.3f} "

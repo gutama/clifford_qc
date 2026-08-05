@@ -236,7 +236,8 @@ def kanamori(sites: int = 2, n_orbitals: int = 2, t: float = 1.0, U: float = 4.0
              u_prime: float | None = None, mu: float | None = None) -> Model:
     """Multi-orbital Hubbard-Kanamori cluster.
 
-    Interaction ``U sum n_mu n_md + U' sum_{m<m'} n_m n_m' - 2J sum_{m<m'} S_m.S_m'``
+    Interaction ``U sum n_mu n_md + (U' - J/2) sum_{m<m'} n_m n_m'``
+    ``- 2J sum_{m<m'} S_m.S_m'``
     in the density-density plus Hund form, with the standard rotationally
     invariant relation ``U' = U - 2J`` unless ``u_prime`` overrides it. Spin-flip
     and pair-hopping terms are included, since dropping them is what turns a
@@ -245,9 +246,10 @@ def kanamori(sites: int = 2, n_orbitals: int = 2, t: float = 1.0, U: float = 4.0
 
     Hopping is intra-orbital between neighbouring sites.
 
-    ``mu`` defaults to the particle-hole symmetric value ``U/2 + (M-1) U'`` for
-    ``M`` orbitals, which is the linear residue the interaction picks up under
-    ``n -> 1 - n`` (the Hund and spin-flip/pair-hopping terms contribute none).
+    ``mu`` defaults to the particle-hole symmetric value
+    ``U/2 + (M-1)(U' - J/2)`` for ``M`` orbitals, which is the linear residue
+    the rotationally invariant interaction picks up under particle-hole
+    conjugation.
     Without it the global ground state sits below half filling, as it does for
     the single-band model.
     """
@@ -257,7 +259,8 @@ def kanamori(sites: int = 2, n_orbitals: int = 2, t: float = 1.0, U: float = 4.0
         raise ValueError("need at least one site")
     n = 2 * sites * n_orbitals
     up_prime = float(U) - 2.0 * float(J) if u_prime is None else float(u_prime)
-    chemical = (0.5 * float(U) + (n_orbitals - 1) * up_prime if mu is None
+    interorbital_density = up_prime - 0.5 * float(J)
+    chemical = (0.5 * float(U) + (n_orbitals - 1) * interorbital_density if mu is None
                 else float(mu))
     bonds = _rectangle_bonds(1, sites, periodic=periodic) if sites > 1 else []
 
@@ -282,7 +285,7 @@ def kanamori(sites: int = 2, n_orbitals: int = 2, t: float = 1.0, U: float = 4.0
                        + _number(n, index(site, m, SPIN_DOWN)))
                 n_mp = (_number(n, index(site, mp, SPIN_UP))
                         + _number(n, index(site, mp, SPIN_DOWN)))
-                diagonal = diagonal + up_prime * (n_m * n_mp)
+                diagonal = diagonal + interorbital_density * (n_m * n_mp)
                 # -2 J S_m . S_m' in the same-site orbital pair, written out as
                 # the Ising part (diagonal) plus spin flip (off-diagonal below)
                 sz_m = 0.5 * (_number(n, index(site, m, SPIN_UP))

@@ -33,7 +33,7 @@ class DenseStatevectorBackend:
 
     def state(self, program: Program, values=None, initial_state: MV | None = None) -> MV:
         from ..matrix import density_from_statevector
-        return density_from_statevector(program.n, self._vector(program, values, initial_state))
+        return density_from_statevector(self._vector(program, values, initial_state))
 
     def expectation(self, program: Program, observable: PauliSum, values=None,
                     initial_state: MV | None = None) -> float:

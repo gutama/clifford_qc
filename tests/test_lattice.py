@@ -211,6 +211,15 @@ def test_kanamori_reduces_to_hubbard_at_one_orbital():
     assert single.hamiltonian.to_mv().is_close(reference.hamiltonian.to_mv(), 1e-10)
 
 
+def test_kanamori_atomic_two_electron_multiplets():
+    """One two-orbital atom has the rotationally invariant Hund multiplets."""
+    model = kanamori(1, 2, t=0.0, U=4.0, J=0.5, mu=0.0)
+    indices = sector_indices(model.n, 2)
+    block = to_matrix(model.hamiltonian.to_mv())[np.ix_(indices, indices)]
+    assert np.linalg.eigvalsh(block) == pytest.approx(
+        [2.5, 2.5, 2.5, 3.5, 3.5, 4.5], abs=1e-10)
+
+
 def test_extended_hubbard_adds_a_neighbour_repulsion():
     plain = hubbard(4, U=4.0)
     extended = extended_hubbard(4, U=4.0, V=1.5)

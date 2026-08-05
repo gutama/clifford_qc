@@ -88,10 +88,11 @@ def bootstrap_ritz(shared: SharedMeasurement, cache: GroupedWordCache, *,
             groups.append(GroupSample(
                 support=group["support"], basis=group["basis"],
                 hist={k: int(c) for k, c in zip(keys, drawn) if c},
-                shots=group["shots"]))
+                shots=group["shots"], word_codes=group["word_codes"]))
         replica = shared.new_cache()
         replica.add_batch(MeasurementBatch(n=shared.n, shots={}, plus_counts={},
-                                           circuits=len(groups), groups=tuple(groups)))
+                                           circuits=len(groups), groups=tuple(groups),
+                                           state_key=cache.state_key))
         samples.append(shared.solve(replica, **kwargs).energies[root])
     values = np.array(samples)
     lower, upper = np.quantile(values, [delta / 2.0, 1.0 - delta / 2.0])

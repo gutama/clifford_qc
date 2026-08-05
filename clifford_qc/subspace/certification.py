@@ -197,6 +197,7 @@ def run_certified_acase(rho: MV, hamiltonian, candidates: Sequence, backend, *,
     total_shots = total_circuits = abstentions = 0
     stopped_reason = "basis budget reached"
     result = None
+    solved_basis: tuple[int, ...] | None = None
 
     for step in range(1, max_size + 1):
         remaining = [i for i in pool if i not in basis]
@@ -216,6 +217,7 @@ def run_certified_acase(rho: MV, hamiltonian, candidates: Sequence, backend, *,
         # --- construction batch: the subspace, the Ritz pair, the candidate norms
         construction_cache = full.measure(backend, construction_shots)
         result = basis_view.solve(construction_cache, **solver_kwargs)
+        solved_basis = tuple(basis)
         history.append(result.ground_energy)
         total_shots += construction_cache.total_shots
         total_circuits += construction_cache.total_circuits
@@ -268,7 +270,7 @@ def run_certified_acase(rho: MV, hamiltonian, candidates: Sequence, backend, *,
             stopped_reason = "abstained: no candidate certified above threshold"
             break
         basis.append(best.index)
-    if result is None or stopped_reason == "basis budget reached":
+    if result is None or solved_basis != tuple(basis):
         # Either nothing was ever solved (a filter emptied the pool at step 1),
         # or the budget ran out with the last accepted generator never solved
         # for. Either way one more construction batch, so the reported energy
@@ -276,6 +278,7 @@ def run_certified_acase(rho: MV, hamiltonian, candidates: Sequence, backend, *,
         final = SharedMeasurement(bank, basis)
         cache = final.measure(backend, construction_shots)
         result = final.solve(cache, **solver_kwargs)
+        solved_basis = tuple(basis)
         history.append(result.ground_energy)
         total_shots += cache.total_shots
         total_circuits += cache.total_circuits

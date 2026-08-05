@@ -32,6 +32,7 @@ from clifford_qc.backends import FiniteShotBackend
 from clifford_qc.measurement import CommutatorBank, UniformDoubling
 from clifford_qc.algorithms import ConfidenceSelector, FastInspiredSelector, run_adapt
 from clifford_qc.models.chemistry import beh2, excitation_pool, h2, h4_chain, lih
+from clifford_qc.reproducibility import execution_provenance, stamp_record
 
 
 def infinite_shot_ranking(model) -> dict:
@@ -144,18 +145,19 @@ def main(argv=None) -> None:
                         help="familywise budget split across H4 selection calls")
     args = parser.parse_args(argv)
 
+    provenance = execution_provenance()
     with open(args.out, "w") as fh:
         # 1. infinite-shot ranking at equilibrium for all molecules
         for builder in (h2, lih, beh2, h4_chain):
             row = infinite_shot_ranking(builder())
-            fh.write(json.dumps(row) + "\n"); fh.flush()
+            fh.write(json.dumps(stamp_record(row, provenance)) + "\n"); fh.flush()
             print(f"[inf-shot] {row['model']:16s} proxy picks argmax? "
                   f"{row['proxy_picks_true_argmax']} "
                   f"(proxy top grad = {row['proxy_top_grad_frac']*100:.0f}% of max, "
                   f"rank {row['proxy_top_rank_by_gradient']})", flush=True)
         # 3. H4 geometry sweep (do before the slow certified run)
         for row in h4_geometry_sweep([0.7, 0.9, 1.1, 1.5, 2.0]):
-            fh.write(json.dumps(row) + "\n"); fh.flush()
+            fh.write(json.dumps(stamp_record(row, provenance)) + "\n"); fh.flush()
             print(f"[geom] H4 r={row['bond_length']}: proxy argmax? "
                   f"{row['proxy_picks_true_argmax']} "
                   f"(top grad {row['proxy_top_grad_frac']*100:.0f}% of max)", flush=True)
@@ -163,7 +165,7 @@ def main(argv=None) -> None:
         if args.strict_h4:
             row = certified_h4(max_operators=args.h4_operators,
                                trajectory_delta=args.trajectory_delta)
-            fh.write(json.dumps(row) + "\n"); fh.flush()
+            fh.write(json.dumps(stamp_record(row, provenance)) + "\n"); fh.flush()
             print(f"[strict] H4: err={row['final_error_mha']:.3f} mHa "
                   f"ops={row['operators']} certified={row['certified_selections']} "
                   f"stop={row['stopped_reason']} ({row['wall_seconds']:.0f}s)",

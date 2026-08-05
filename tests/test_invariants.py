@@ -216,6 +216,12 @@ class TestChannelsAndDynamics:
         assert np.linalg.norm(to_matrix(expm_taylor((-1j * t) * Hmv)) - Uex) < 1e-9
         assert np.linalg.norm(to_matrix(expm_matrix((-1j * t) * Hmv)) - Uex) < 1e-9
 
+    def test_expm_handles_a_defective_jordan_block(self):
+        # N = X + iY is nilpotent but not diagonalizable, so exp(N)=I+N.
+        N = X(1, 0) + 1j * Y(1, 0)
+        assert np.allclose(to_matrix(expm_matrix(N)),
+                           np.eye(2) + to_matrix(N), atol=1e-12)
+
 
 class TestStructure:
     def test_sparsity(self):

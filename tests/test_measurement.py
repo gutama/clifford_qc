@@ -6,7 +6,8 @@ import math
 import numpy as np
 import pytest
 
-from clifford_qc.backends import FiniteShotBackend
+from clifford_qc import Program
+from clifford_qc.backends import ExactMVBackend, FiniteShotBackend
 from clifford_qc.backends.protocol import MeasurementBatch
 from clifford_qc.ir import PauliSum, PauliWord
 from clifford_qc.measurement import (
@@ -40,6 +41,17 @@ def test_cache_accumulates_across_rounds():
     assert cache.unique_words() == 2
     assert cache.total_shots == 160
     assert cache.rounds == 2
+
+
+def test_cache_rejects_batches_from_different_states():
+    word = PauliWord.from_label("ZII")
+    backend = FiniteShotBackend(seed=0)
+    first = ExactMVBackend().state(Program(3), ())
+    second = ExactMVBackend().state(Program(3).clifford("X", 0), ())
+    cache = WordCache(3)
+    cache.add_batch(backend.sample_words_from_state(first, [word], 10))
+    with pytest.raises(ValueError, match="different states"):
+        cache.add_batch(backend.sample_words_from_state(second, [word], 10))
 
 
 def test_cache_unmeasured_word_is_maximally_uncertain():
@@ -231,6 +243,7 @@ def test_uniform_fixed_is_single_round():
     alloc = UniformFixed(100)
     assert alloc.plan(0, bank, cache, [0, 1])
     assert alloc.plan(1, bank, cache, [0, 1]) == {}
+    assert alloc.planned_rounds() == 1
 
 
 def test_variance_proportional_rejects_bad_configuration():

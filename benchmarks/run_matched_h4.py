@@ -73,6 +73,7 @@ from clifford_qc.measurement.bank import CommutatorBank
 from clifford_qc.subspace.elements import MatrixElementBank
 from clifford_qc.measurement.grouping import qwc_groups
 from clifford_qc.models import fcidump_model
+from clifford_qc.reproducibility import stamp_record
 from clifford_qc.subspace import (
     adapt_warm_start,
     dense_basis,
@@ -461,7 +462,7 @@ def build_record() -> dict:
             "quantum_advantage_claim": False,
         },
         "matched": {
-            "input": str(FCIDUMP.relative_to(ROOT.parent)),
+            "input": FCIDUMP.relative_to(ROOT.parent).as_posix(),
             "sha256": model.metadata["source_sha256"],
             "sector": {"n_electrons": model.metadata["n_electrons"],
                        "sz": model.metadata["sz"], "dimension": 36},
@@ -515,7 +516,7 @@ def main() -> None:
     parser = argparse.ArgumentParser()
     parser.add_argument("--out", type=Path, default=DEFAULT_OUT)
     args = parser.parse_args()
-    record = build_record()
+    record = stamp_record(build_record())
     args.out.parent.mkdir(parents=True, exist_ok=True)
     args.out.write_text(json.dumps(record, indent=2, sort_keys=True) + "\n")
     for row in record["rows"]:

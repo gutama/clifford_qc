@@ -28,6 +28,7 @@ from clifford_qc.algorithms.pools import PoolOperator, is_odd_y
 from clifford_qc.backends import ExactMVBackend, SectorStatevectorBackend
 from clifford_qc.ir import PauliWord
 from clifford_qc.models import fcidump_model
+from clifford_qc.reproducibility import stamp_record
 from clifford_qc.subspace import (
     adapt_warm_start,
     determinant_excitations,
@@ -147,7 +148,7 @@ def build_record() -> dict:
             "quantum_advantage_claim": False,
         },
         "input": {
-            "path": str(FCIDUMP.relative_to(ROOT.parent)),
+            "path": FCIDUMP.relative_to(ROOT.parent).as_posix(),
             "sha256": model.metadata["source_sha256"],
             "provenance_schema": provenance["schema"],
             "generator": provenance["generator"],
@@ -180,7 +181,7 @@ def main() -> None:
     parser = argparse.ArgumentParser()
     parser.add_argument("--out", type=Path, default=DEFAULT_OUT)
     args = parser.parse_args()
-    record = build_record()
+    record = stamp_record(build_record())
     args.out.parent.mkdir(parents=True, exist_ok=True)
     args.out.write_text(json.dumps(record, indent=2, sort_keys=True) + "\n")
     print(args.out)
