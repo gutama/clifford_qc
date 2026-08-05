@@ -50,6 +50,14 @@ def test_packed_integrals_restore_all_real_orbital_symmetries():
     assert np.allclose(eri, eri.transpose(2, 3, 0, 1), atol=0.0)
 
 
+def test_source_digest_is_stable_across_line_endings(tmp_path):
+    """Scientific provenance must not depend on Git's Windows checkout mode."""
+    text = DATA.read_text(encoding="utf-8")
+    windows = tmp_path / "windows.FCIDUMP"
+    windows.write_bytes(text.replace("\n", "\r\n").encode("utf-8"))
+    assert read_fcidump(windows).source_sha256 == read_fcidump(DATA).source_sha256
+
+
 def test_fortran_exponents_and_open_shell_reference_are_supported(tmp_path):
     path = tmp_path / "open_shell.FCIDUMP"
     path.write_text(
