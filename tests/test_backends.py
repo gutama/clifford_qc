@@ -31,6 +31,12 @@ def test_protocol_conformance():
     assert isinstance(ExactMVBackend(), Backend)
     assert isinstance(DenseStatevectorBackend(), Backend)
     assert isinstance(FiniteShotBackend(seed=0), SamplingBackend)
+    assert not isinstance(FiniteShotBackend(seed=0), Backend)
+
+
+def test_dense_state_method_returns_the_same_density_as_exact():
+    assert DenseStatevectorBackend().state(_program()).is_close(
+        ExactMVBackend().state(_program()), 1e-10)
 
 
 def test_support_history_tracked():
@@ -64,3 +70,11 @@ def test_per_word_shot_map():
     batch = FiniteShotBackend(seed=5).sample_paulis(_program(), words, shots)
     assert batch.shots[words[0].code] == 100
     assert batch.shots[words[1].code] == 50
+
+
+def test_measurement_batches_are_immutable_and_report_hardware_shots():
+    word = PauliWord.from_label("ZZI")
+    batch = FiniteShotBackend(seed=5).sample_paulis(_program(), [word], 20)
+    assert batch.hardware_shots == 20
+    with pytest.raises(TypeError):
+        batch.shots[word.code] = 1
