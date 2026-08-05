@@ -40,6 +40,8 @@ from statistics import median
 
 import numpy as np
 
+from clifford_qc.reproducibility import execution_provenance, stamp_record
+
 from clifford_qc.models import tfim, random_ising
 from clifford_qc.algorithms import ConfidenceSelector, local_pool
 from clifford_qc.algorithms.adapt import _ansatz_program
@@ -145,6 +147,7 @@ def main(argv=None) -> None:
             "median_circuits": median(agg["circuits"]),
         }
 
+    provenance = execution_provenance()
     with open(args.out, "w") as fh:
         for bound in BOUNDS:
             for delta in DELTAS:
@@ -167,10 +170,10 @@ def main(argv=None) -> None:
                     inst_row = summarize(per_inst, scope="instance", bound=bound,
                                          delta=delta, instance=name,
                                          instance_index=inst_idx)
-                    fh.write(json.dumps(inst_row) + "\n")
+                    fh.write(json.dumps(stamp_record(inst_row, provenance)) + "\n")
                     fh.flush()
                 row = summarize(pooled, scope="pooled", bound=bound, delta=delta)
-                fh.write(json.dumps(row) + "\n")
+                fh.write(json.dumps(stamp_record(row, provenance)) + "\n")
                 fh.flush()
                 print(f"bound={bound} delta={delta:.2f}: wrong={row['wrong_selection_rate']:.4f} "
                       f"(<= delta? {row['wrong_selection_rate'] <= delta}) "
