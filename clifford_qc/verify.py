@@ -128,7 +128,7 @@ def run_verification() -> None:
     _check("Taylor expm and matrix expm agree with exact", np.linalg.norm(to_matrix(expm_taylor((-1j * t) * Hmv)) - Uex) < 1e-9 and np.linalg.norm(to_matrix(expm_matrix((-1j * t) * Hmv)) - Uex) < 1e-9)
 
     print("-- A-CASE operator-response subspace --")
-    from .matrix import exact_ground
+    from .dense_reference import exact_ground
     from .models.spin import tfim
     from .subspace import (MatrixElementBank, SharedMeasurement, dense_subspace,
                            identity_generator, krylov_response, ritz_uncertainty,
