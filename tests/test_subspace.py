@@ -342,6 +342,23 @@ def test_degeneracy_grouping_is_relative_to_the_neighbouring_pair():
     assert _degenerate_blocks(values, TIE_RTOL, TIE_ATOL) == [(0, 1), (1, 2), (2, 4), (4, 5)]
 
 
+def test_degeneracy_grouping_does_not_chain_nearby_values():
+    values = np.array([1.0, 1.0 + 0.75e-9, 1.0 + 1.5e-9])
+    assert _degenerate_blocks(values, TIE_RTOL, TIE_ATOL) == [(0, 2), (2, 3)]
+
+
+def test_near_null_modes_remain_whitened():
+    angle = 0.37
+    Q = np.array([[np.cos(angle), -np.sin(angle)],
+                  [np.sin(angle), np.cos(angle)]])
+    S = Q @ np.diag([1e-10, 1e-10 + 1.5e-12]) @ Q.T
+    Hm = np.diag([0.2, 0.7])
+    result = solve_projected(S, Hm, tau_s=1e-12, max_condition=1e14)
+    assert result.resources["whitening_residual_inf"] < 1e-8
+    assert np.allclose(result.coefficients.conj().T @ S @ result.coefficients,
+                       np.eye(2), atol=1e-7)
+
+
 def test_canonical_eigh_reconstructs_and_pins_phases():
     rng = np.random.default_rng(4)
     Q, _ = np.linalg.qr(rng.normal(size=(6, 6)) + 1j * rng.normal(size=(6, 6)))
