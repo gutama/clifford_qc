@@ -44,6 +44,8 @@ from __future__ import annotations
 
 import argparse
 import json
+
+from clifford_qc.reproducibility import execution_provenance, stamp_record
 from statistics import median
 
 import numpy as np
@@ -279,9 +281,10 @@ def main(argv=None) -> None:
               f"shots={r['median_shots']:.0f}", flush=True)
     rows += trajectory_study(args.traj_seeds)
 
+    provenance = execution_provenance()
     with open(args.out, "w") as fh:
         for r in rows:
-            fh.write(json.dumps(r) + "\n")
+            fh.write(json.dumps(stamp_record(r, provenance)) + "\n")
     print(f"wrote {args.out}")
 
 
