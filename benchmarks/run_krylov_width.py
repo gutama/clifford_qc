@@ -33,6 +33,7 @@ import numpy as np
 
 from clifford_qc.backends import ExactMVBackend
 from clifford_qc.multivector import MV
+from clifford_qc.reproducibility import stamp_record
 from clifford_qc.subspace.solver import solve_projected
 
 ROOT = Path(__file__).resolve().parent
@@ -251,7 +252,7 @@ def main() -> None:
     parser = argparse.ArgumentParser()
     parser.add_argument("--out", type=Path, default=DEFAULT_OUT)
     args = parser.parse_args()
-    record = build_record()
+    record = stamp_record(build_record())
     args.out.parent.mkdir(parents=True, exist_ok=True)
     args.out.write_text(json.dumps(record, indent=2, sort_keys=True) + "\n")
     print(args.out)
