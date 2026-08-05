@@ -27,6 +27,9 @@ class UniformFixed:
             return {}
         return {w.code: self.shots_per_word for w in bank.words_for(active)}
 
+    def planned_rounds(self) -> int:
+        return 1
+
 
 class UniformDoubling:
     """Escalate every active word to base * 2^round cumulative shots.
@@ -54,6 +57,9 @@ class UniformDoubling:
             if add > 0:
                 plan[w.code] = add
         return plan
+
+    def planned_rounds(self) -> int:
+        return self.max_factor.bit_length()
 
 
 class VarianceProportional:
@@ -108,3 +114,6 @@ class VarianceProportional:
             if add > 0:
                 plan[code] = add
         return plan
+
+    def planned_rounds(self) -> int:
+        return self.max_rounds
