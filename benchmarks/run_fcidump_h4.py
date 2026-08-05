@@ -86,7 +86,7 @@ def build_record() -> dict:
     return {
         "schema": "clifford_qc.active_space_result.v1",
         "input": {
-            "path": str(FCIDUMP.relative_to(ROOT.parent)),
+            "path": FCIDUMP.relative_to(ROOT.parent).as_posix(),
             "sha256": model.metadata["source_sha256"],
             "provenance_schema": provenance["schema"],
             "generator": provenance["generator"],
