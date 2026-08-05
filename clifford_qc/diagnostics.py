@@ -3,7 +3,8 @@ from __future__ import annotations
 import math
 
 from .multivector import MV
-from .matrix import to_matrix
+from .dense_reference import to_matrix
+from .pauli_action import apply_pauli_sum
 from .states import partial_transpose
 
 
@@ -27,7 +28,7 @@ def fidelity_pure(rho: MV, psi) -> float:
     import numpy as np
     psi = np.asarray(psi, dtype=complex).reshape(-1)
     psi = psi / np.linalg.norm(psi)
-    return float((psi.conj() @ to_matrix(rho) @ psi).real)
+    return float(np.vdot(psi, apply_pauli_sum(rho, psi)).real)
 
 
 def trace_cyclicity_error(A: MV, B: MV, C: MV) -> float:
