@@ -25,6 +25,7 @@ from clifford_qc.algorithms import (
     ConfidenceSelector, RandomSelector, all_words_pool, local_pool, odd_y_filter,
     run_adapt,
 )
+from clifford_qc.reproducibility import execution_provenance, stamp_record
 
 MODELS = {"tfim": tfim, "xxz": xxz, "random_ising": random_ising}
 ALLOCATORS = {"uniform_fixed": UniformFixed, "uniform_doubling": UniformDoubling,
@@ -153,11 +154,12 @@ def main(argv=None) -> None:
 
     out = Path(args.out)
     done = 0
+    provenance = execution_provenance()
     with out.open("w") as fh:
         for model_entry, method_name, method, seed in jobs:
             row = run_one(model_entry["model"], model_entry.get("pool", {}),
                           method_name, method, seed)
-            fh.write(json.dumps(row) + "\n")
+            fh.write(json.dumps(stamp_record(row, provenance)) + "\n")
             fh.flush()
             done += 1
             print(f"[{done}/{len(jobs)}] {row['model']} / {method_name} / seed {seed}: "
