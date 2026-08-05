@@ -19,15 +19,25 @@ from openfermion.chem import MolecularData
 from openfermion.ops import FermionOperator
 from openfermion.transforms import jordan_wigner
 
-from ..ir import Program
+from ..ir import PauliSum, Program
 from ..bridges.openfermion_bridge import qubit_operator_to_pauli_sum
 from ..algorithms.pools import PoolOperator, is_odd_y
 from .spin import Model
 
 
-def _hf_reference(n_qubits: int, n_electrons: int) -> Program:
+def _hf_reference(n_qubits: int, n_electrons: int, ms2: int = 0) -> Program:
+    """Highest-``M_s`` Aufbau determinant in interleaved alpha/beta ordering."""
+    if (n_electrons + ms2) % 2:
+        raise ValueError("n_electrons and ms2 have incompatible parity")
+    n_alpha = (n_electrons + ms2) // 2
+    n_beta = n_electrons - n_alpha
+    spatial = n_qubits // 2
+    if min(n_alpha, n_beta) < 0 or max(n_alpha, n_beta) > spatial:
+        raise ValueError("requested electron/spin sector does not fit the active space")
     prog = Program(n_qubits)
-    for j in range(n_electrons):
+    for j in range(0, 2 * n_alpha, 2):
+        prog.clifford("X", j)
+    for j in range(1, 2 * n_beta, 2):
         prog.clifford("X", j)
     return prog
 
@@ -55,11 +65,12 @@ def molecule_model(geometry, basis: str = "sto-3g", multiplicity: int = 1,
     n_qubits = pauli_sum.n
     n_core = 2 * len(occupied_indices or ())
     n_active_electrons = molecule.n_electrons - n_core
+    ms2 = int(multiplicity) - 1
     return Model(
         name=name,
         n=n_qubits,
         hamiltonian=pauli_sum,
-        reference=_hf_reference(n_qubits, n_active_electrons),
+        reference=_hf_reference(n_qubits, n_active_electrons, ms2),
         hva_layers=(),
         metadata={
             "kind": "molecular",
@@ -69,7 +80,8 @@ def molecule_model(geometry, basis: str = "sto-3g", multiplicity: int = 1,
             "n_spatial_orbitals": n_qubits // 2,
             "spin_orbitals": n_qubits,
             "spin_convention": "interleaved",
-            "sz": 0.0,
+            "sz": 0.5 * ms2,
+            "multiplicity": int(multiplicity),
             "hf_energy": float(molecule.hf_energy),
             "fci_energy": float(molecule.fci_energy) if run_fci else None,
             "frozen_spatial_orbitals": list(occupied_indices or ()),
