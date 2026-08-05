@@ -148,7 +148,7 @@ def build_record() -> dict:
             "quantum_advantage_claim": False,
         },
         "input": {
-            "path": str(FCIDUMP.relative_to(ROOT.parent)),
+            "path": FCIDUMP.relative_to(ROOT.parent).as_posix(),
             "sha256": model.metadata["source_sha256"],
             "provenance_schema": provenance["schema"],
             "generator": provenance["generator"],
