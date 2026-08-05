@@ -31,6 +31,7 @@ from clifford_qc.algorithms import (
     ConfidenceSelector, FastInspiredSelector, RandomSelector, run_adapt,
 )
 from clifford_qc.models.chemistry import beh2, excitation_pool, h2, h4_chain, lih
+from clifford_qc.reproducibility import execution_provenance, stamp_record
 
 CHEMICAL_ACCURACY = 1.6e-3  # Hartree
 MAX_OPERATORS = 12
@@ -137,6 +138,7 @@ def main(argv=None) -> None:
                              "(support growth makes it slow at n=8 here)")
     args = parser.parse_args(argv)
 
+    provenance = execution_provenance()
     with open(args.out, "w") as fh:
         for model in (h2(), lih(), beh2(), h4_chain()):
             E0, _ = exact_ground(model.hamiltonian.to_mv())
@@ -147,7 +149,7 @@ def main(argv=None) -> None:
                 seeds = (0,) if arm == "exact" else tuple(range(args.seeds))
                 for seed in seeds:
                     row = run_arm(model, pool, arm, seed, E0)
-                    fh.write(json.dumps(row) + "\n")
+                    fh.write(json.dumps(stamp_record(row, provenance)) + "\n")
                     fh.flush()
                     print(f"{row['model']:18s} {arm:10s} seed={seed} "
                           f"err={row['final_error_mha']:.4f} mHa "
