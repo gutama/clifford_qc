@@ -28,6 +28,16 @@ When any module under `clifford_qc/measurement/` or `clifford_qc/algorithms/`
 changes, regenerate every record that depends on it. The manuscript's figures
 and tables are then emitted mechanically from those records:
 
+Every runner stamps each JSON object with a
+`clifford_qc.execution_provenance.v1` block containing the git SHA and dirty
+state, package/Python/dependency versions, platform and BLAS/LAPACK details,
+UTC time, and a digest of the complete installed distribution set. Numerical
+record comparisons deliberately ignore only this metadata block; all physics,
+selection, and resource fields remain value-gated. The scheduled record
+regeneration workflow re-executes every committed runner weekly, compares those
+scientific fields (excluding only provenance and keys ending in `_seconds`),
+and uploads each fresh record whether the comparison passes or fails.
+
 ```bash
 python paper/make_figures.py       # -> paper/paper_assets/*.pdf
 python paper/make_tables.py        # -> paper/tables/*.tex  (\input by the .tex)
@@ -91,7 +101,7 @@ No figure or table value in the manuscript is transcribed by hand, and
 ```bash
 python -m venv .venv && source .venv/bin/activate
 pip install -e .[test,research,chemistry]   # numpy + scipy + openfermion/pyscf
-pytest                                      # 828 passed, 6 skipped
+pytest                                      # 842 passed, 6 skipped
 ```
 
 That install is the reference environment for the quoted pair, and it is
