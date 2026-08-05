@@ -13,6 +13,7 @@ import pytest
 from clifford_qc.multivector import (
     MV, _PTAB, _word_mul_ref, code_to_label, label_to_code, word_mul,
 )
+from clifford_qc.pauli_kernel import _word_mul_unchecked
 
 
 # ---------------------------------------------------------------------------
@@ -24,8 +25,12 @@ def test_packed_matches_reference_exhaustive(n):
     """Every ordered pair of words agrees with the table-lookup reference."""
     for a in range(4 ** n):
         for b in range(4 ** n):
-            assert word_mul(n, a, b) == _word_mul_ref(n, a, b), (
+            expected = _word_mul_ref(n, a, b)
+            assert word_mul(n, a, b) == expected, (
                 f"{code_to_label(n, a)} * {code_to_label(n, b)}")
+            # MV multiplication uses this hot path only after construction has
+            # validated its packed codes, so it must remain the same algebra.
+            assert _word_mul_unchecked(n, a, b) == expected
 
 
 @pytest.mark.parametrize("n", [4, 5, 6, 8])
