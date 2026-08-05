@@ -95,21 +95,18 @@ class SubspaceResult:
 def degenerate_blocks(values: np.ndarray, rtol: float, atol: float) -> list[tuple[int, int]]:
     """Half-open index ranges of ascending values that are equal to tolerance.
 
-    The tolerance is relative to the *neighbouring pair*, not to the spectrum's
-    largest value. An overlap spectrum here routinely runs from ``O(M)`` down
-    to ``1e-16``, and a tolerance scaled to its top would call two eigenvalues
-    at 1e-10 and 3e-8 degenerate -- merging them into one canonical block whose
-    shared eigenvalue is wrong for both, in exactly the near-null directions
-    the thresholding rule is deciding on.
+    The tolerance is anchored to the first eigenvalue in a candidate block.
+    Comparing only neighbours allows a long chain of individually-close but
+    collectively-distinct values to collapse into one false degeneracy.
     """
     if values.size == 0:
         return []
     blocks = []
     start = 0
     for i in range(1, values.size):
-        previous, current = float(values[i - 1]), float(values[i])
-        tol = atol + rtol * max(abs(previous), abs(current))
-        if current - previous > tol:
+        anchor, current = float(values[start]), float(values[i])
+        tol = atol + rtol * max(abs(anchor), abs(current))
+        if current - anchor > tol:
             blocks.append((start, i))
             start = i
     blocks.append((start, values.size))
@@ -172,7 +169,16 @@ def canonical_eigh(matrix: np.ndarray, *, rtol: float = TIE_RTOL,
     values, vectors = np.linalg.eigh(matrix)
     for start, stop in degenerate_blocks(values, rtol, atol):
         if stop - start > 1:
-            vectors[:, start:stop] = canonical_block(vectors[:, start:stop])
+            candidate = canonical_block(vectors[:, start:stop])
+            # A tolerance-grouped block is only safe to rotate if it is an
+            # eigenspace to numerical precision.  Otherwise canonicalisation
+            # mixes distinct near-null modes and destroys S-whitening.
+            residual = matrix @ candidate - candidate * values[None, start:stop]
+            scale = max(float(np.linalg.norm(matrix, ord=np.inf)), 1.0)
+            limit = max(10.0 * atol,
+                        100.0 * np.finfo(float).eps * scale)
+            if float(np.linalg.norm(residual, ord=np.inf)) <= limit:
+                vectors[:, start:stop] = candidate
     for k in range(vectors.shape[1]):
         vectors[:, k] = fix_phase(vectors[:, k])
     return values, vectors
@@ -228,7 +234,18 @@ def solve_projected(S: np.ndarray, Hm: np.ndarray, labels: Sequence[str] | None 
     kept_values = overlap_values[keep]
     # X maps retained overlap modes to an S-orthonormal frame: X' S_bar X = 1.
     X = overlap_vectors[:, keep] / np.sqrt(kept_values)
+    whitening_residual = float(np.linalg.norm(
+        X.conj().T @ S_bar @ X - np.eye(kept_values.size), ord=np.inf))
+    condition = float(kept_values[-1] / kept_values[0])
+    whitening_limit = max(
+        1e-10, 100.0 * np.finfo(float).eps * max(condition, 1.0))
+    if whitening_residual > whitening_limit:
+        raise np.linalg.LinAlgError(
+            "overlap whitening failed: "
+            f"||X^* S X - I||_inf={whitening_residual:.3g} exceeds "
+            f"{whitening_limit:.3g}")
     H_tilde = X.conj().T @ H_bar @ X
+    H_tilde = 0.5 * (H_tilde + H_tilde.conj().T)
     energies, ritz = canonical_eigh(H_tilde)
 
     coefficients = np.zeros((m, ritz.shape[1]), dtype=complex)
@@ -236,7 +253,6 @@ def solve_projected(S: np.ndarray, Hm: np.ndarray, labels: Sequence[str] | None 
     # A_i / scaling_i, so a normalized coefficient divides by the same factor.
     coefficients[index, :] = (X @ ritz) / scaling[index, None]
 
-    condition = float(kept_values[-1] / kept_values[0])
     # Rank at the numerical floor, against rank at the policy threshold: the
     # gap between them is how much of the basis the conditioning rule discards
     # beyond what round-off already destroyed.
@@ -253,6 +269,7 @@ def solve_projected(S: np.ndarray, Hm: np.ndarray, labels: Sequence[str] | None 
         "rank_before_truncation": numerical_rank,
         "retained_rank": int(keep.sum()),
         "retained_condition_number": condition,
+        "whitening_residual_inf": whitening_residual,
         "overlap_threshold": float(cutoff),
         "overlap_eigenvalue_max": largest,
         "overlap_eigenvalue_min": float(overlap_values[0]),
