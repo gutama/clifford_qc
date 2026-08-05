@@ -11,8 +11,9 @@ from clifford_qc.models import tfim, random_ising
 from clifford_qc.backends import FiniteShotBackend
 from clifford_qc.measurement import CommutatorBank, UniformDoubling, WordCache
 from clifford_qc.algorithms import (
-    ConfidenceSelector, SelectionStatus, all_words_pool, hva_program, is_odd_y,
-    local_pool, minimize_energy, odd_y_filter, run_adapt, run_vqe,
+    AdaptConfig, ConfidenceSelector, SelectionStatus, all_words_pool,
+    hva_program, is_odd_y, local_pool, minimize_energy, odd_y_filter,
+    run_adapt, run_vqe,
 )
 from clifford_qc.algorithms.adapt import _ansatz_program
 from clifford_qc.ir import PauliWord
@@ -55,8 +56,11 @@ def test_odd_y_restriction_preserves_exact_adapt_trajectory():
     assert len(restricted) < len(full)
     res_full = run_adapt(m, full, max_operators=4)
     res_restricted = run_adapt(m, restricted, max_operators=4)
+    res_config = run_adapt(m, restricted, config=AdaptConfig(max_operators=4))
     assert res_full.labels == res_restricted.labels
     assert res_full.energy == pytest.approx(res_restricted.energy, abs=1e-9)
+    assert res_config.labels == res_restricted.labels
+    assert res_config.energy == pytest.approx(res_restricted.energy, abs=1e-12)
 
 
 # ---------------------------------------------------------------------------
