@@ -122,7 +122,7 @@ def eps_best_selection(inst, delta, bound, eps, seed):
     selector = ConfidenceSelector(delta=delta, threshold=1e-4, bound=bound, near_tol=eps)
     idx, status, diag = selector.select(bank, cache, sampler, allocator := UniformDoubling(base=BASE, max_factor=MAX_FACTOR), candidates)
     bounds = selector._bounds(bank, cache, candidates,
-                              selector._planned_rounds(allocator), family_size=len(candidates))
+                              allocator.planned_rounds(), family_size=len(candidates))
     covered = sum(1 for j in candidates
                   if bounds[j][1] - 1e-9 <= inst["g"][j] <= bounds[j][2] + 1e-9)
     return idx, status.value, cache.total_shots, covered / len(candidates)
