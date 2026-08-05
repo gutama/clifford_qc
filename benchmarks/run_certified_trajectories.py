@@ -28,6 +28,7 @@ from clifford_qc.algorithms import ConfidenceSelector, local_pool, run_adapt
 from clifford_qc.backends import FiniteShotBackend
 from clifford_qc.measurement import UniformDoubling
 from clifford_qc.matrix import exact_ground
+from clifford_qc.reproducibility import execution_provenance, stamp_record
 
 TRAJ_DELTA = 0.10
 EPS = 0.30
@@ -133,11 +134,12 @@ def main(argv=None):
     parser = argparse.ArgumentParser()
     parser.add_argument("--out", required=True)
     args = parser.parse_args(argv)
+    provenance = execution_provenance()
     with open(args.out, "w") as fh:
         for name, build_model, build_pool, kw in build_systems():
             model = build_model()
             row = run_traj(name, model, build_pool(model), **kw)
-            fh.write(json.dumps(row) + "\n")
+            fh.write(json.dumps(stamp_record(row, provenance)) + "\n")
             fh.flush()
             print(f"{row['system']:18s} ops={row['operators']} "
                   f"certified={row['certified_steps']}/{row['operators']} "
