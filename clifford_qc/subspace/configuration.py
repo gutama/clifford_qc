@@ -7,7 +7,7 @@ from typing import Sequence
 
 from ..ir import NamedClifford, Program
 from ..multivector import MV
-from .generator_core import Generator, _scalar_free_key, _to_mv, as_generators
+from .generator_core import Generator, as_generators, scalar_free_key, to_mv
 
 
 def determinant_program(n_qubits: int, occupied: Sequence[int]) -> Program:
@@ -92,7 +92,7 @@ def configuration_haar_packets(configurations: Sequence, *,
         raise ValueError("label_prefix must be a non-empty string")
 
     leaves = as_generators(configurations)
-    keys = [_scalar_free_key(generator.mv) for generator in leaves]
+    keys = [scalar_free_key(generator.mv) for generator in leaves]
     if len(set(keys)) != len(keys):
         raise ValueError("configuration generators must name distinct directions")
 
@@ -153,7 +153,7 @@ def state_sector(generator, reference_state) -> dict[str, float]:
     """
     from .symmetry import sector_operators
 
-    A = generator.mv if isinstance(generator, Generator) else _to_mv(generator)
+    A = generator.mv if isinstance(generator, Generator) else to_mv(generator)
     rho = reference_state
     norm = (A.dagger() * A * rho).trace().real
     if norm <= 1e-15:
