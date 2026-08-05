@@ -18,6 +18,7 @@ from clifford_qc.algorithms import (
     ConfidenceSelector, RandomSelector, build_layer, local_pool, run_adapt,
     words_commute,
 )
+from clifford_qc.selection import SelectionStatus
 
 
 # ---------------------------------------------------------------------------
@@ -185,3 +186,14 @@ def test_random_selector_baseline_reproducible():
     assert all(r.status.value == "random" for r in a.records if r.selected_label)
     energies = [r.energy for r in a.records if r.energy is not None]
     assert all(y <= x + 1e-9 for x, y in zip(energies, energies[1:]))
+
+
+def test_random_baseline_does_not_use_exact_gradients_to_stop():
+    m = random_ising(3, seed=2)
+    result = run_adapt(
+        m, local_pool(3, periodic_context=False),
+        selector=RandomSelector(seed=9), max_operators=1,
+        threshold=1e9, track_exact_scores=False)
+    assert len(result.labels) == 1
+    assert result.records[0].status is SelectionStatus.RANDOM
+    assert result.records[0].exact_gradient is None
