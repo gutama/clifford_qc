@@ -40,6 +40,7 @@ import numpy as np
 
 from clifford_qc.models import tfim, random_ising, xxz
 from clifford_qc.algorithms import ConfidenceSelector, local_pool, run_adapt
+from clifford_qc.reproducibility import execution_provenance, stamp_record
 from clifford_qc.algorithms.adapt import _ansatz_program
 from clifford_qc.backends import FiniteShotBackend, ExactMVBackend
 from clifford_qc.measurement import (
@@ -187,6 +188,7 @@ def main(argv=None):
     insts = make_instances(args.n)
     print(f"{len(insts)} instances (references/displaced/trajectory)", flush=True)
 
+    provenance = execution_provenance()
     with open(args.out, "w") as fh:
         for bound in BOUNDS:
             for delta in DELTAS:
@@ -203,11 +205,11 @@ def main(argv=None):
                             record(pooled, idx, status, shots, cov, inst, eps)
                             record(strata[strat], idx, status, shots, cov, inst, eps)
                     row = summarize(pooled, scope="pooled", bound=bound, delta=delta, eps=eps)
-                    fh.write(json.dumps(row) + "\n")
+                    fh.write(json.dumps(stamp_record(row, provenance)) + "\n")
                     for strat, agg in sorted(strata.items()):
-                        fh.write(json.dumps(summarize(
+                        fh.write(json.dumps(stamp_record(summarize(
                             agg, scope="stratum", stratum=strat, bound=bound,
-                            delta=delta, eps=eps)) + "\n")
+                            delta=delta, eps=eps), provenance)) + "\n")
                     fh.flush()
                     print(f"bound={bound} d={delta:.2f} eps={eps}: "
                           f"eps_wrong={row['eps_best_wrong_rate']:.4f} "
