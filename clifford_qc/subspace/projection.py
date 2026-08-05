@@ -11,7 +11,7 @@ import numpy as np
 from ..ir import PauliWord
 from ..multivector import MV
 from .contracts import as_multivector, check_reference
-from .generators import Generator, as_generators
+from .generator_core import Generator, as_generators
 from .linalg import (
     DEFAULT_MAX_CONDITION,
     DEFAULT_NORM_FLOOR,
