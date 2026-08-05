@@ -53,7 +53,33 @@ def _parity(values: np.ndarray, mask: int) -> np.ndarray:
     return (folded & 1).astype(np.int64)
 
 
-def sector_basis(n: int, n_electrons: int, sz: float | None = None) -> np.ndarray:
+def _spin_sites(n: int, spin_ordering="interleaved") -> tuple[list[int], list[int]]:
+    """Return up/down qubit indices for an explicit spin-orbital convention."""
+    if spin_ordering == "interleaved":
+        return ([j for j in range(n) if j % 2 == 0],
+                [j for j in range(n) if j % 2 == 1])
+    if spin_ordering == "blocked":
+        if n % 2:
+            raise ValueError("blocked spin ordering requires an even qubit count")
+        return list(range(n // 2)), list(range(n // 2, n))
+    if isinstance(spin_ordering, str):
+        raise ValueError("spin_ordering must be 'interleaved', 'blocked', or a "
+                         "length-n sequence of up/down labels")
+    labels = tuple(spin_ordering)
+    if len(labels) != n:
+        raise ValueError(f"spin ordering has {len(labels)} entries, expected {n}")
+    up_labels = {0, "up", "alpha", "+"}
+    down_labels = {1, "down", "beta", "-"}
+    unknown = [label for label in labels
+               if label not in up_labels and label not in down_labels]
+    if unknown:
+        raise ValueError(f"unrecognised spin labels: {unknown!r}")
+    return ([j for j, label in enumerate(labels) if label in up_labels],
+            [j for j, label in enumerate(labels) if label in down_labels])
+
+
+def sector_basis(n: int, n_electrons: int, sz: float | None = None, *,
+                 spin_ordering="interleaved") -> np.ndarray:
     """Sorted occupation bitmasks of a ``(N, S_z)`` sector.
 
     Built by combination, never by filtering ``2^n`` candidates: for a fixed
@@ -63,13 +89,11 @@ def sector_basis(n: int, n_electrons: int, sz: float | None = None) -> np.ndarra
     the contrast is the point of this module.)
 
     Qubit ``j`` is bit ``n-1-j``, matching ``sparse.word_masks`` and the dense
-    bridge; spin orbitals are interleaved, so even ``j`` is spin up.
+    bridge. ``spin_ordering`` may be ``"interleaved"`` (even qubits up),
+    ``"blocked"`` (all up then all down), or an explicit sequence of labels.
     """
     if not (0 <= n_electrons <= n):
         raise ValueError(f"n_electrons must be in [0, {n}]")
-    up_sites = [j for j in range(n) if j % 2 == 0]
-    down_sites = [j for j in range(n) if j % 2 == 1]
-
     def masks(sites, count):
         for chosen in combinations(sites, count):
             mask = 0
@@ -81,6 +105,7 @@ def sector_basis(n: int, n_electrons: int, sz: float | None = None) -> np.ndarra
         out = np.fromiter(masks(range(n), n_electrons), dtype=np.int64,
                           count=math.comb(n, n_electrons))
         return np.sort(out)
+    up_sites, down_sites = _spin_sites(n, spin_ordering)
     two_sz = round(2.0 * float(sz))
     if abs(2.0 * float(sz) - two_sz) > 1e-12:
         raise ValueError("sz must be an integer or half-integer")
@@ -97,7 +122,8 @@ def sector_basis(n: int, n_electrons: int, sz: float | None = None) -> np.ndarra
     return np.sort((ups[:, None] | downs[None, :]).reshape(-1))
 
 
-def sector_projector(n: int, n_electrons: int, sz: float | None = None) -> MV:
+def sector_projector(n: int, n_electrons: int, sz: float | None = None, *,
+                     spin_ordering="interleaved") -> MV:
     """The sector projector as a multivector -- validation and theory, small ``n``.
 
     ``P = sum_patterns prod_j (n_j or 1 - n_j)`` over the sector's occupation
@@ -110,7 +136,8 @@ def sector_projector(n: int, n_electrons: int, sz: float | None = None) -> MV:
     from ..fermion import number_op_pauli
     from ..pauli import I
 
-    basis = sector_basis(n, n_electrons, sz)
+    basis = sector_basis(n, n_electrons, sz,
+                         spin_ordering=spin_ordering)
     identity = I(n)
     projector = MV(n)
     for mask in basis.tolist():
@@ -134,7 +161,7 @@ class SectorOperator:
     """
 
     def __init__(self, backend: "SectorStatevectorBackend", operator, *,
-                 precompute: bool = True):
+                 precompute: bool = True, validate_sector: bool = True):
         mv = operator.to_mv() if isinstance(operator, PauliSum) else operator
         if mv.n != backend.n:
             raise ValueError("operator and sector act on different qubit counts")
@@ -148,6 +175,8 @@ class SectorOperator:
         self._groups = sorted(groups.items())
         self.words = len(mv.terms)
         self.groups = len(groups)
+        if validate_sector:
+            self._validate_sector_invariance()
         self._passes: list[tuple[np.ndarray, np.ndarray, np.ndarray]] | None = None
         if self.precompute:
             self._passes = [pass_ for pass_ in
@@ -181,6 +210,32 @@ class SectorOperator:
         if not keep.any():
             return None
         return np.flatnonzero(keep), positions[keep], coefficients[keep]
+
+    def _validate_sector_invariance(self, tol: float = 1e-10) -> None:
+        """Reject an operator whose combined action leaks out of this sector.
+
+        Validation is performed after words with the same X mask are combined,
+        so legitimate cancellations in a number-conserving fermionic term are
+        retained.  Testing words independently would reject most hopping terms.
+        """
+        basis = self.backend.basis
+        for x_mask, entries in self._groups:
+            targets = basis ^ x_mask
+            positions = np.searchsorted(basis, targets)
+            live = positions < basis.size
+            safe = np.where(live, positions, 0)
+            live &= basis[safe] == targets
+            if live.all():
+                continue
+            coefficients = np.zeros(basis.size, dtype=complex)
+            scale = 0.0
+            for z_mask, y_count, coeff in entries:
+                scale += abs(coeff)
+                coefficients += (coeff * _PHASE4[y_count & 3]
+                                 * (1.0 - 2.0 * _parity(basis, z_mask)))
+            if np.any(np.abs(coefficients[~live]) > tol * max(scale, 1.0)):
+                raise ValueError(
+                    "operator does not conserve the requested particle/spin sector")
 
     @property
     def dimension(self) -> int:
@@ -217,7 +272,8 @@ class SectorOperator:
             if pass_ is None:
                 continue
             source, target, coefficients = pass_
-            np.add.at(out, target, coefficients * psi[source])
+            # XOR is a permutation, hence every retained target is unique.
+            out[target] += coefficients * psi[source]
         return out
 
     def expectation(self, psi: np.ndarray) -> complex:
@@ -297,11 +353,14 @@ class SectorStatevectorBackend:
     ground-state solve is (number of X-mask groups) gather passes per matvec.
     """
 
-    def __init__(self, n: int, n_electrons: int, sz: float | None = None):
+    def __init__(self, n: int, n_electrons: int, sz: float | None = None, *,
+                 spin_ordering="interleaved"):
         self.n = int(n)
         self.n_electrons = int(n_electrons)
         self.sz = sz
-        self.basis = sector_basis(self.n, self.n_electrons, sz)
+        self.spin_ordering = spin_ordering
+        self.basis = sector_basis(self.n, self.n_electrons, sz,
+                                  spin_ordering=spin_ordering)
         if self.basis.size == 0:
             raise ValueError("the requested sector is empty")
 
@@ -335,6 +394,8 @@ class SectorStatevectorBackend:
         Only X gates are read: a reference that applies anything else is not a
         computational determinant and so is not a single sector basis word.
         """
+        if program.n != self.n:
+            raise ValueError("program and sector have different qubit counts")
         mask = 0
         for operation in program.ops:
             if getattr(operation, "name", None) != "X":
@@ -344,14 +405,18 @@ class SectorStatevectorBackend:
                 mask ^= 1 << (self.n - 1 - qubit)
         return self.occupation_state(mask)
 
-    def operator(self, hamiltonian, *, precompute: bool = True) -> SectorOperator:
-        return SectorOperator(self, hamiltonian, precompute=precompute)
+    def operator(self, hamiltonian, *, precompute: bool = True,
+                 validate_sector: bool = True) -> SectorOperator:
+        return SectorOperator(self, hamiltonian, precompute=precompute,
+                              validate_sector=validate_sector)
 
     def matvec(self, hamiltonian, psi: np.ndarray) -> np.ndarray:
         return self.operator(hamiltonian).matvec(psi)
 
     def expectation(self, hamiltonian, psi: np.ndarray) -> complex:
-        return self.operator(hamiltonian).expectation(psi)
+        # An observable need not conserve the sector: its expectation depends
+        # only on P O P, which the projected matvec computes exactly.
+        return self.operator(hamiltonian, validate_sector=False).expectation(psi)
 
     def ground_state(self, hamiltonian, k: int = 1, *, method: str = "auto",
                      precompute: bool = True, **kwargs
@@ -365,7 +430,11 @@ class SectorStatevectorBackend:
         and the sector is large enough for it, and otherwise falls back --
         including the small-sector case ARPACK refuses.
         """
-        operator = self.operator(hamiltonian, precompute=precompute)
+        mv = hamiltonian.to_mv() if isinstance(hamiltonian, PauliSum) else hamiltonian
+        if not mv.is_hermitian(1e-9):
+            raise ValueError("ground_state requires a Hermitian Hamiltonian")
+        operator = self.operator(hamiltonian, precompute=precompute,
+                                 validate_sector=True)
         if method == "auto":
             try:
                 import scipy.sparse.linalg  # noqa: F401
