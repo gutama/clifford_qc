@@ -53,7 +53,7 @@ import numpy as np
 from clifford_qc.algorithms import ConfidenceSelector, local_pool, run_adapt
 from clifford_qc.algorithms.adapt import _ansatz_program
 from clifford_qc.backends import FiniteShotBackend
-from clifford_qc.matrix import exact_ground
+from clifford_qc.dense_reference import exact_ground
 from clifford_qc.measurement import (
     CommutatorBank, GroupedWordCache, UniformDoubling, UniformFixed, qwc_groups,
 )
