@@ -14,6 +14,16 @@ from __future__ import annotations
 
 from .confidence import jeffreys_mean_var
 
+_UNBOUND = object()
+
+
+def _bind_state(cache, batch) -> None:
+    key = getattr(batch, "state_key", None)
+    if cache._state_key is _UNBOUND:
+        cache._state_key = key
+    elif cache._state_key != key:
+        raise ValueError("cannot combine measurement batches from different states")
+
 
 class WordCache:
     """Accumulates (shots, +1 counts) per Pauli word code across rounds."""
@@ -25,10 +35,18 @@ class WordCache:
         self.total_shots = 0
         self.total_circuits = 0
         self.rounds = 0
+        self._state_key = _UNBOUND
+
+    @property
+    def state_key(self):
+        return None if self._state_key is _UNBOUND else self._state_key
 
     def add_batch(self, batch) -> None:
         if batch.n != self.n:
             raise ValueError("batch and cache act on different qubit counts")
+        if batch.groups:
+            raise ValueError("WordCache requires an ungrouped batch")
+        _bind_state(self, batch)
         for code, N in batch.shots.items():
             self._shots[code] = self._shots.get(code, 0) + N
             self._plus[code] = self._plus.get(code, 0) + batch.plus_counts[code]
@@ -79,19 +97,34 @@ class GroupedWordCache:
         self.n = n
         # basis key (sorted (qubit,letter) tuple) -> group dict
         self._groups: dict[tuple, dict] = {}
+        self._word_group: dict[int, tuple] = {}
         self.total_shots = 0
         self.total_circuits = 0
         self.rounds = 0
+        self._state_key = _UNBOUND
+
+    @property
+    def state_key(self):
+        return None if self._state_key is _UNBOUND else self._state_key
 
     def add_batch(self, batch) -> None:
         if batch.n != self.n:
             raise ValueError("batch and cache act on different qubit counts")
         if not batch.groups:
             raise ValueError("GroupedWordCache requires a grouped batch")
+        _bind_state(self, batch)
         for gs in batch.groups:
             g = self._groups.setdefault(
                 gs.basis, {"support": gs.support, "basis": dict(gs.basis),
-                           "hist": {}, "N": 0})
+                           "hist": {}, "N": 0, "word_codes": set()})
+            if g["support"] != gs.support:
+                raise ValueError("same measurement basis has inconsistent support")
+            for code in gs.word_codes:
+                previous = self._word_group.get(code)
+                if previous is not None and previous != gs.basis:
+                    raise ValueError(f"word code {code} is assigned to multiple groups")
+                self._word_group[code] = gs.basis
+                g["word_codes"].add(code)
             for bits, c in gs.hist.items():
                 g["hist"][bits] = g["hist"].get(bits, 0) + c
             g["N"] += gs.shots
@@ -113,6 +146,11 @@ class GroupedWordCache:
         """The group whose measurement basis reads this word: the group whose
         per-qubit basis letter equals the word's letter at every qubit in the
         word's support. QWC grouping partitions the word set, so it is unique."""
+        assigned = self._word_group.get(code)
+        if assigned is not None:
+            return self._groups.get(assigned)
+        # Compatibility fallback for legacy hand-built GroupSample objects
+        # that predate explicit word assignments.
         supp = self._word_support(self.n, code)
         for g in self._groups.values():
             basis = g["basis"]
@@ -129,6 +167,9 @@ class GroupedWordCache:
         assignment rather than "every group that matches". Counting a word once
         per capable group inflates a variance by the number of such groups.
         """
+        assigned = self._word_group.get(code)
+        if assigned is not None:
+            return assigned
         supp = self._word_support(self.n, code)
         for key, g in self._groups.items():
             basis = g["basis"]
@@ -154,7 +195,8 @@ class GroupedWordCache:
         reaching into the private store.
         """
         return tuple({"basis": key, "support": g["support"],
-                      "hist": dict(g["hist"]), "shots": g["N"]}
+                      "hist": dict(g["hist"]), "shots": g["N"],
+                      "word_codes": tuple(sorted(g["word_codes"]))}
                      for key, g in self._groups.items())
 
     # -- per-word marginal (diagonal; used for the threshold gate) ----------
@@ -217,10 +259,14 @@ class GroupedWordCache:
                 s1 += v * cnt
                 s2 += v * v * cnt
             mean = s1 / N
-            var = max(0.0, s2 / N - mean * mean)
+            raw_var = max(0.0, s2 / N - mean * mean)
             # a-priori range of v = sum_w c_w o_w, o_w in {-1,+1}: width 2*sum|c|.
             # The theoretical range (not the observed one) is required for the
             # empirical-Bernstein bound to remain a valid finite-sample bound.
             rng = 2.0 * sum(abs(c) for c in rowc.values())
+            # A zero plug-in variance after unanimous outcomes makes a normal
+            # interval collapse at finite N.  This Jeffreys-scale floor retains
+            # the covariance estimate while refusing false certainty.
+            var = max(raw_var, rng * rng / (4.0 * (N + 1.0)))
             terms.append((N, var, rng))
         return terms
