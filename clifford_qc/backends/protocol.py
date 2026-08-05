@@ -9,6 +9,7 @@ allocation rounds.
 from __future__ import annotations
 
 from dataclasses import dataclass
+from types import MappingProxyType
 from typing import Mapping, Protocol, Sequence, Union, runtime_checkable
 
 from ..multivector import MV
@@ -33,6 +34,23 @@ class GroupSample:
     basis: tuple
     hist: Mapping[str, int]
     shots: int
+    word_codes: tuple[int, ...] = ()
+
+    def __post_init__(self):
+        support = tuple(int(q) for q in self.support)
+        basis = tuple((int(q), str(letter)) for q, letter in self.basis)
+        hist = {str(bits): int(count) for bits, count in self.hist.items()}
+        shots = int(self.shots)
+        if shots < 0 or any(count < 0 for count in hist.values()):
+            raise ValueError("group shots and counts must be non-negative")
+        if sum(hist.values()) != shots:
+            raise ValueError("group histogram counts must sum to shots")
+        object.__setattr__(self, "support", support)
+        object.__setattr__(self, "basis", basis)
+        object.__setattr__(self, "hist", MappingProxyType(hist))
+        object.__setattr__(self, "shots", shots)
+        object.__setattr__(self, "word_codes",
+                           tuple(dict.fromkeys(int(c) for c in self.word_codes)))
 
 
 @dataclass(frozen=True)
@@ -53,10 +71,40 @@ class MeasurementBatch:
     plus_counts: Mapping[int, int]
     circuits: int
     groups: tuple = ()
+    state_key: object | None = None
+
+    def __post_init__(self):
+        shots = {int(code): int(count) for code, count in self.shots.items()}
+        plus = {int(code): int(count) for code, count in self.plus_counts.items()}
+        if shots.keys() != plus.keys():
+            raise ValueError("shots and plus_counts must have identical word codes")
+        for code, count in shots.items():
+            if count < 0 or not 0 <= plus[code] <= count:
+                raise ValueError("shot counts must satisfy 0 <= plus <= shots")
+        if int(self.circuits) < 0:
+            raise ValueError("circuits must be non-negative")
+        object.__setattr__(self, "n", int(self.n))
+        object.__setattr__(self, "shots", MappingProxyType(shots))
+        object.__setattr__(self, "plus_counts", MappingProxyType(plus))
+        object.__setattr__(self, "circuits", int(self.circuits))
+        object.__setattr__(self, "groups", tuple(self.groups))
 
     def mean(self, code: int) -> float:
         N = self.shots[code]
+        if N <= 0:
+            raise ValueError("cannot compute a mean from zero shots")
         return (2.0 * self.plus_counts[code] - N) / N
+
+    @property
+    def hardware_shots(self) -> int:
+        """Physical circuit executions, without double-counting grouped words."""
+        return (sum(group.shots for group in self.groups) if self.groups
+                else sum(self.shots.values()))
+
+
+def state_fingerprint(rho: MV) -> tuple:
+    """Value identity used to prevent pooling shots from different states."""
+    return rho.n, tuple(sorted(rho.terms.items()))
 
 
 @runtime_checkable
@@ -70,8 +118,22 @@ class Backend(Protocol):
 
 
 @runtime_checkable
-class SamplingBackend(Backend, Protocol):
+class SamplingBackend(Protocol):
+    """Finite-shot capability, deliberately separate from exact expectation."""
+
+    def state(self, program: Program, values=None, initial_state: MV | None = None) -> MV:
+        ...
+
     def sample_paulis(self, program: Program, words: Sequence[PauliWord],
                       shots: Union[int, Mapping[int, int]], values=None,
                       initial_state: MV | None = None) -> MeasurementBatch:
+        ...
+
+    def sample_words_from_state(self, rho: MV, words: Sequence[PauliWord],
+                                shots: Union[int, Mapping[int, int]]) -> MeasurementBatch:
+        ...
+
+    def sample_grouped_from_state(self, rho: MV,
+                                  groups: Sequence[Sequence[PauliWord]],
+                                  shots: Union[int, Mapping[int, int]]) -> MeasurementBatch:
         ...
