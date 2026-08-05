@@ -16,7 +16,9 @@ from .states import (
     partial_trace, partial_transpose, bell_density, ghz_density,
 )
 from .channels import check_kraus, apply_channel, depolarizing, dephasing, amplitude_damping
-from .matrix import code_to_matrix, to_matrix, from_matrix, density_from_statevector, expm_matrix, exact_ground
+from .dense_reference import (code_to_matrix, to_matrix, from_matrix,
+                              density_from_statevector, expm_matrix, exact_ground)
+from .pauli_action import PauliLinearOperator, apply_pauli_sum, matrix_free_ground
 from .sparse import to_sparse, sparse_ground, sparse_ground_in_sector, sector_indices, spectral_bound
 from .diagnostics import (
     negativity, vn_entropy, fidelity_pure, trace_cyclicity_error,
