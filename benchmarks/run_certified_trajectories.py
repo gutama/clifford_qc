@@ -27,7 +27,7 @@ from clifford_qc.models import tfim, random_ising
 from clifford_qc.algorithms import ConfidenceSelector, local_pool, run_adapt
 from clifford_qc.backends import FiniteShotBackend
 from clifford_qc.measurement import UniformDoubling
-from clifford_qc.matrix import exact_ground
+from clifford_qc.dense_reference import exact_ground
 from clifford_qc.reproducibility import execution_provenance, stamp_record
 
 TRAJ_DELTA = 0.10

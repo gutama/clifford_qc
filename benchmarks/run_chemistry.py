@@ -22,7 +22,7 @@ import argparse
 import json
 import time
 
-from clifford_qc.matrix import exact_ground
+from clifford_qc.dense_reference import exact_ground
 from clifford_qc.backends import ExactMVBackend, FiniteShotBackend
 from clifford_qc.diagnostics import fermionic_sector_diagnostics
 from clifford_qc.ir import Parameter, Program, Rotor

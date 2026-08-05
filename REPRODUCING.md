@@ -101,7 +101,7 @@ No figure or table value in the manuscript is transcribed by hand, and
 ```bash
 python -m venv .venv && source .venv/bin/activate
 pip install -e .[test,research,chemistry]   # numpy + scipy + openfermion/pyscf
-pytest                                      # 843 passed, 6 skipped
+pytest                                      # 848 passed, 6 skipped
 ```
 
 That install is the reference environment for the quoted pair, and it is
@@ -127,6 +127,28 @@ CI enforces it in the job that owns the contract.
 The core package imports with numpy alone; without SciPy the optimizer
 falls back to pure-Python Adam (numerically equivalent results at looser
 tolerance — the committed artifacts were produced with SciPy's L-BFGS-B).
+
+R8 keeps dense matrices as a small-system oracle rather than an execution
+representation. The diagnostic below compares the packed Pauli matvec against
+dense BLAS and dense `einsum`; both dense variants intentionally share the same
+`O(4^n)` operator allocation so the timing cannot hide that memory cost:
+
+```bash
+python benchmarks/compare_pauli_action.py --n 6 8 --terms 64 --repeats 7
+```
+
+R7 performance work starts from a deterministic diagnostic rather than an
+optimization guess. This profiles cold packed-word multiplication and element
+construction, cold QWC grouping, repeated projected solves, sector and R8
+full-space matrix-free matvecs, bootstrap re-solves, and the storage implied by
+100-vector full-reorthogonalization Krylov bases:
+
+```bash
+python benchmarks/profile_hotpaths.py --repeats 5 --bootstrap-replicates 30 --sites 6
+```
+
+The script prints JSON to stdout and deliberately writes no reference artifact;
+wall-clock profiles are machine-dependent diagnostics, not scientific records.
 
 ## Spin-model matrices (Phase 3)
 

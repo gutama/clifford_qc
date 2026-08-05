@@ -87,10 +87,8 @@ def pauli_lane_mask(n: int) -> int:
 
 
 @lru_cache(maxsize=1_000_000)
-def word_mul(n: int, a: int, b: int) -> tuple[complex, int]:
-    """Multiply two packed Pauli words in the same n-qubit algebra."""
-    validate_word_code(n, a)
-    validate_word_code(n, b)
+def _word_mul_unchecked(n: int, a: int, b: int) -> tuple[complex, int]:
+    """Hot-path packed product for codes already validated by their owner."""
     lo = pauli_lane_mask(n)
     za = (a >> 1) & lo
     xa = (a & lo) ^ za
@@ -102,6 +100,16 @@ def word_mul(n: int, a: int, b: int) -> tuple[complex, int]:
     e = ((xa & za).bit_count() + (xb & zb).bit_count()
          - (xc & zc).bit_count() + 2 * (za & xb).bit_count()) % 4
     return _PHASE4[e], c
+
+
+def word_mul(n: int, a: int, b: int) -> tuple[complex, int]:
+    """Multiply two packed Pauli words in the same n-qubit algebra."""
+    validate_word_code(n, a)
+    validate_word_code(n, b)
+    # Keep one shared cache for both public and internal multiplication. The
+    # public boundary pays validation on every call; MV hot paths already own
+    # that invariant and call the cached unchecked form directly.
+    return _word_mul_unchecked(n, a, b)
 
 
 _lane_mask = pauli_lane_mask

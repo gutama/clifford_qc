@@ -8,7 +8,7 @@ algebra. Agreement between the two is the Phase-1 correctness statement -- and
 the one that would catch a conjugation or reversion slip in the pairing, since
 the dense route has no word coordinates to get wrong.
 
-Dense throughout, so it is a small-``n`` oracle, exactly as ``matrix.py`` is
+Dense throughout, so it is a small-``n`` oracle, exactly as ``dense_reference.py`` is
 for the algebra kernel. Nothing here belongs on a scaling path.
 """
 
@@ -18,9 +18,9 @@ from typing import Sequence
 
 import numpy as np
 
-from ..matrix import to_matrix
+from ..dense_reference import to_matrix
 from ..multivector import MV
-from .generators import as_generators
+from .generator_core import as_generators
 from .solver import SubspaceResult, solve_projected
 
 

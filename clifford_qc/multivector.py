@@ -16,6 +16,7 @@ from .pauli_kernel import (
     validate_qubit,
     validate_word_code,
     word_mul,
+    _word_mul_unchecked,
     word_mul_reference,
 )
 
@@ -156,7 +157,7 @@ class MV:
         out: dict[int, complex] = {}
         for a, ca in self.terms.items():
             for b, cb in other.terms.items():
-                ph, m = word_mul(self.n, a, b)
+                ph, m = _word_mul_unchecked(self.n, a, b)
                 out[m] = out.get(m, 0.0) + ca * cb * ph
         return MV(self.n, out)
 
@@ -206,7 +207,7 @@ class MV:
         ok = self.is_hermitian(tol) and abs(self.trace() - 1) < tol
         if ok and check_psd:
             import numpy as np
-            from .matrix import to_matrix
+            from .dense_reference import to_matrix
             ok = bool(np.min(np.linalg.eigvalsh(to_matrix(self))) >= -tol)
         return ok
 
@@ -294,7 +295,7 @@ class MV:
             for b, cb in other.terms.items():
                 if ma & masks_b[b]:
                     continue  # shared generator: the top grade cancels
-                ph, m = word_mul(n, a, b)
+                ph, m = _word_mul_unchecked(n, a, b)
                 out[m] = out.get(m, 0.0) + ca * cb * ph
         return MV(n, out)
 

@@ -25,7 +25,7 @@ import time
 
 from clifford_qc.backends import ExactMVBackend
 from clifford_qc.backends.stabilizer import StimBackend
-from clifford_qc.matrix import exact_ground
+from clifford_qc.dense_reference import exact_ground
 from clifford_qc.models import tfim, random_ising
 from clifford_qc.algorithms import (
     bound_hva_program, clifford_point_search, hva_program, local_pool,

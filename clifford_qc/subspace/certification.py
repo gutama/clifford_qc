@@ -13,7 +13,8 @@ from ..measurement.functionals import coupling_functional
 from ..measurement.session import SharedMeasurement
 from ..multivector import MV
 from ..selection import EvidenceLevel, TIE_ATOL, TIE_RTOL, canonical_argmax
-from .generators import as_generators, identity_generator
+from .generator_core import as_generators
+from .generators import identity_generator
 from .linalg import (
     DEFAULT_MAX_CONDITION, DEFAULT_NORM_FLOOR, DEFAULT_TAU_S, SubspaceResult,
 )

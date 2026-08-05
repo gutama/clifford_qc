@@ -10,8 +10,13 @@ from .initialization import (
     stabilizer_hamiltonian_approximation,
 )
 from .adapt import (
-    SelectionStatus, SelectionRecord, AdaptResult, ConfidenceSelector,
-    RandomSelector, FastInspiredSelector, run_adapt,
+    SelectionStatus, SelectionRecord, AdaptConfig, AdaptState,
+    AdaptStepOutcome, AdaptResult, ConfidenceSelector, RandomSelector,
+    FastInspiredSelector, adapt_step, ansatz_program, run_adapt,
+)
+from .adapt_selectors import (
+    AdaptSelectorProtocol, ConfidenceSelectionProtocol,
+    PopulationSelectionProtocol, RandomSelectionProtocol,
 )
 
 __all__ = [
@@ -22,6 +27,9 @@ __all__ = [
     "CLIFFORD_ANGLES", "CliffordPointResult", "StabilizerApprox",
     "bound_hva_program", "clifford_point_search", "seed_model",
     "stabilizer_ground_program", "stabilizer_hamiltonian_approximation",
-    "SelectionStatus", "SelectionRecord", "AdaptResult", "ConfidenceSelector",
-    "RandomSelector", "FastInspiredSelector", "run_adapt",
+    "SelectionStatus", "SelectionRecord", "AdaptConfig", "AdaptState",
+    "AdaptStepOutcome", "AdaptResult", "adapt_step", "ConfidenceSelector",
+    "RandomSelector", "FastInspiredSelector", "AdaptSelectorProtocol",
+    "ConfidenceSelectionProtocol", "PopulationSelectionProtocol",
+    "RandomSelectionProtocol", "ansatz_program", "run_adapt",
 ]

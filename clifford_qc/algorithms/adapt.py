@@ -22,7 +22,6 @@ exact optimizer, not an end-to-end hardware shot budget.
 
 from __future__ import annotations
 
-import math
 from dataclasses import dataclass, field
 from typing import Any, Sequence
 
@@ -33,8 +32,13 @@ from ..backends.exact_mv import ExactMVBackend
 from ..backends.finite_shot import FiniteShotBackend
 from ..measurement.bank import CommutatorBank
 from ..measurement.cache import WordCache, GroupedWordCache
-from ..measurement.confidence import simultaneous_z_radius, candidate_radius
 from ..measurement.grouping import qwc_groups
+from .adapt_selectors import (
+    AdaptSelectorProtocol,
+    ConfidenceSelector,
+    FastInspiredSelector,
+    RandomSelector,
+)
 from .layering import build_layer
 from .optimize import minimize_energy
 from .pools import PoolOperator
@@ -129,153 +133,110 @@ class AdaptResult:
     abstentions: int = 0
 
 
-class ConfidenceSelector:
-    """Best-arm selection on |g_j| with simultaneous confidence bounds.
+@dataclass(frozen=True)
+class AdaptConfig:
+    """Serializable ADAPT-VQE workflow knobs.
 
-    Two resolution rules, tried in order:
-
-    - *exact-best*: resolve ĵ = argmax |ĝ_j| once its lower bound strictly
-      exceeds every rival's upper bound, certifying it is the true argmax.
-    - *eps-best* (enabled by ``near_tol=eps``): resolve ĵ once its lower bound
-      clears every rival's upper bound up to ``eps``,
-      ``L_ĵ >= max_k U_k - eps``. On the 1-delta interval event this certifies
-      ``|g_ĵ| >= max_k |g_k| - eps`` -- an (eps, delta)-PAC ε-best guarantee.
-      Unlike the exact-best rule it *resolves exact symmetry ties* (gap 0):
-      when several operators share the top gradient (generic at symmetric
-      ansatz states), any one of them is eps-best for any eps >= 0, so the
-      selector commits instead of abstaining forever. Both rules use the same
-      delta-budget intervals, so eps-best costs no extra budget; it changes
-      *what* is certified (an operator within eps of the best), not the
-      confidence level.
-
-    The normal path is an asymptotic approximation; the empirical-Bernstein
-    path controls the (eps-)best error at ``delta`` by splitting the budget
-    across rounds, the fixed candidate family declared before measurement, and
-    every QWC group summed into a candidate. Normal intervals use
-    dependence-safe Bonferroni by default. ``eliminate=True`` drops candidates
-    whose upper bound falls below the best lower bound (successive
-    elimination); an eliminated candidate had ``U_k < L_best`` and so cannot be
-    the max on the valid-interval event, keeping the eps-best certificate
-    intact.
+    Backends, selectors, and shot allocators are deliberately *not* config
+    fields: they are runtime services with their own state.  Keeping them out
+    makes a config safe to record in benchmark metadata and keeps the workflow
+    boundary independent of any one execution backend.
     """
 
-    def __init__(self, delta: float = 0.05, threshold: float = 1e-6,
-                 method: str = "bonferroni", eliminate: bool = True,
-                 near_tol: float | None = None, bound: str = "normal"):
-        if not (0.0 < delta < 1.0):
-            raise ValueError("delta must be in (0, 1)")
-        if bound not in ("normal", "eb"):
-            raise ValueError("bound must be 'normal' or 'eb'")
-        self.delta = delta
-        self.threshold = threshold
-        self.method = method
-        self.eliminate = eliminate
-        self.near_tol = near_tol
-        self.bound = bound
+    max_operators: int = 10
+    threshold: float = 1e-6
+    allow_repeats: bool = False
+    accept_ambiguous: bool = True
+    optimizer_method: str = "auto"
+    maxiter: int = 350
+    compute_exact_reference: bool = True
+    track_exact_scores: bool = True
+    grouping: bool = False
+    subpool_size: int | None = None
+    subpool_seed: int = 0
+    layer_alpha: float | None = None
 
-    def _bounds(self, bank, cache, active, rounds, family_size=None):
-        """Return {j: (estimate, lower, upper)} on |g_j|.
+    def __post_init__(self):
+        if self.max_operators < 0:
+            raise ValueError("max_operators must be nonnegative")
+        if self.threshold < 0.0:
+            raise ValueError("threshold must be nonnegative")
+        if self.maxiter < 1:
+            raise ValueError("maxiter must be positive")
+        if self.subpool_size is not None and self.subpool_size < 1:
+            raise ValueError("subpool_size must be positive")
+        if self.layer_alpha is not None and not (0.0 < self.layer_alpha <= 1.0):
+            raise ValueError("layer_alpha must be in (0, 1]")
 
-        Uses the covariance-aware group radius (finite-schedule-valid when the
-        'eb' bound is selected) when the cache exposes joint-group statistics
-        (grouped path), and the per-word normal propagation otherwise
-        (ungrouped path)."""
-        # Keep the simultaneous-testing family fixed at the candidate set
-        # declared before measurement.  The active set is data-dependent;
-        # recycling its smaller size after elimination would require a
-        # separate alpha-recycling proof.  A fixed family size is conservative
-        # and makes the finite-schedule union bound valid under elimination.
-        m = len(active) if family_size is None else int(family_size)
-        if m < len(active):
-            raise ValueError("family_size cannot be smaller than active set")
-        grouped = hasattr(cache, "candidate_group_terms")
-        out = {}
-        for j in active:
-            if grouped:
-                est = cache.candidate_estimate(bank.coeffs[j])
-                terms = cache.candidate_group_terms(bank.coeffs[j])
-                r = (float("inf") if terms is None else
-                     candidate_radius(terms, self.delta, m, bound=self.bound,
-                                      method=self.method, rounds=rounds))
-            else:
-                est, var = bank.estimate(j, cache)
-                r = simultaneous_z_radius(var, self.delta / rounds, m, self.method)
-            out[j] = (est, max(0.0, abs(est) - r), abs(est) + r)
-        return out
 
-    def select(self, bank: CommutatorBank, cache: WordCache, sampler, allocator,
-               candidates: Sequence[int]) -> tuple[int | None, SelectionStatus, dict]:
-        """One selection: allocate, measure, bound, and decide.
+@dataclass(frozen=True)
+class AdaptState:
+    """Immutable orchestration state between ADAPT selection rounds.
 
-        ``sampler(words, plan) -> MeasurementBatch`` measures on the current
-        (fixed) state. Returns ``(index, status, diagnostics)``; index is the
-        empirical best even for ambiguous outcomes so the caller can choose
-        its acceptance policy.
-        """
-        active = list(candidates)
-        if not active:
-            raise ValueError("no candidates to select from")
-        if self.bound == "eb" and not getattr(allocator, "finite_schedule_valid", False):
-            raise ValueError(
-                "empirical-Bernstein certification requires a predeclared "
-                "fixed-endpoint allocation schedule; use UniformFixed or "
-                "UniformDoubling, or use bound='normal' for adaptive allocation")
-        family_size = len(active)
-        planned_rounds = getattr(allocator, "planned_rounds", None)
-        if not callable(planned_rounds):
-            raise TypeError("allocation policy must implement planned_rounds()")
-        rounds = int(planned_rounds())
-        if rounds < 1:
-            raise ValueError("allocation policy planned_rounds() must be positive")
-        best = None
-        bounds: dict[int, tuple[float, float, float]] = {}
-        for round_index in range(rounds):
-            plan = allocator.plan(round_index, bank, cache, active)
-            if not plan:
-                raise ValueError("allocation schedule ended before planned_rounds()")
-            words = [w for w in bank.words_for(active) if w.code in plan]
-            cache.add_batch(sampler(words, plan))
+    The state stores pool indices rather than ``PoolOperator`` objects, so the
+    transition is a small value object and can be replayed against the same
+    declared pool.  Numerical/measurement work happens outside this object;
+    :func:`adapt_step` is the pure reducer that applies one completed round.
+    """
 
-            bounds = self._bounds(bank, cache, active, rounds, family_size)
-            # Same tolerance rule as the exact path. Two arms whose selection
-            # observables are related by a symmetry share a word support and
-            # coefficient magnitudes, so they draw the *same* estimate from
-            # the shared cache and tie bitwise; nominating by strict argmax
-            # then depends on iteration order. This is close to a no-op --
-            # sampling noise separates genuinely different arms far above the
-            # tolerance -- but it removes the order dependence where it does
-            # occur, and the certificate is checked against whichever arm is
-            # nominated either way.
-            best = canonical_argmax(active, lambda j: abs(bounds[j][0]))
-            best_lower = bounds[best][1]
-            rival_upper = max((bounds[j][2] for j in active if j != best), default=0.0)
+    chosen_indices: tuple[int, ...] = ()
+    parameters: tuple[float, ...] = ()
+    used_indices: frozenset[int] = frozenset()
+    records: tuple[SelectionRecord, ...] = ()
+    total_shots: int = 0
+    total_circuits: int = 0
+    support_peak: int = 0
+    optimizer_evaluations: int = 0
+    abstentions: int = 0
+    energy: float = 0.0
+    stopped_reason: str = "operator budget reached"
 
-            if all(bounds[j][2] < self.threshold for j in active):
-                return None, SelectionStatus.BELOW_THRESHOLD, self._diag(best, bounds, active)
-            if best_lower >= self.threshold and best_lower > rival_upper:
-                return best, SelectionStatus.RESOLVED_BEST, self._diag(best, bounds, active)
-            # eps-best: leader clears every rival up to the tolerance eps.
-            # Certifies |g_best| >= max_k |g_k| - eps and resolves exact ties.
-            if (self.near_tol is not None and best_lower >= self.threshold
-                    and rival_upper - best_lower <= self.near_tol):
-                return best, SelectionStatus.RESOLVED_EPS_BEST, self._diag(best, bounds, active)
-            if self.eliminate:
-                active = [j for j in active
-                          if j == best or bounds[j][2] >= best_lower]
-        status = SelectionStatus.BUDGET_EXHAUSTED_AMBIGUOUS
-        return best, status, self._diag(best, bounds, active)
 
-    @staticmethod
-    def _diag(best, bounds, active) -> dict:
-        out = {"active_candidates": len(active)}
-        if best is not None and best in bounds:
-            est, lo, up = bounds[best]
-            rival_upper = max((bounds[j][2] for j in active if j != best),
-                              default=0.0)
-            out.update(estimate=est, lower_bound=lo, upper_bound=up,
-                       rival_upper=rival_upper,
-                       eta_required=_eta_required(lo, rival_upper))
-        return out
+@dataclass(frozen=True)
+class AdaptStepOutcome:
+    """Effects computed for one round before the pure state transition."""
+
+    selected_indices: tuple[int, ...] = ()
+    parameters: tuple[float, ...] | None = None
+    energy: float | None = None
+    record: SelectionRecord | None = None
+    total_shots: int | None = None
+    total_circuits: int | None = None
+    support_peak: int | None = None
+    optimizer_evaluations_added: int = 0
+    abstention_added: int = 0
+    stopped_reason: str | None = None
+
+
+def adapt_step(state: AdaptState, outcome: AdaptStepOutcome) -> AdaptState:
+    """Pure ADAPT workflow transition for one already-evaluated round.
+
+    Selection, sampling and parameter optimization are intentionally outside
+    this reducer.  Given the same ``state`` and ``outcome`` it always returns
+    the same next state; that is the boundary racing/successive-halving logic
+    can target without becoming coupled to the VQE optimizer.
+    """
+    selected = tuple(int(index) for index in outcome.selected_indices)
+    return AdaptState(
+        chosen_indices=state.chosen_indices + selected,
+        parameters=(state.parameters if outcome.parameters is None
+                    else tuple(float(value) for value in outcome.parameters)),
+        used_indices=state.used_indices.union(selected),
+        records=(state.records if outcome.record is None
+                 else state.records + (outcome.record,)),
+        total_shots=(state.total_shots if outcome.total_shots is None
+                     else int(outcome.total_shots)),
+        total_circuits=(state.total_circuits if outcome.total_circuits is None
+                        else int(outcome.total_circuits)),
+        support_peak=(state.support_peak if outcome.support_peak is None
+                      else max(state.support_peak, int(outcome.support_peak))),
+        optimizer_evaluations=(state.optimizer_evaluations
+                               + int(outcome.optimizer_evaluations_added)),
+        abstentions=state.abstentions + int(outcome.abstention_added),
+        energy=state.energy if outcome.energy is None else float(outcome.energy),
+        stopped_reason=(state.stopped_reason if outcome.stopped_reason is None
+                        else outcome.stopped_reason),
+    )
 
 
 def _cache_estimates(bank: CommutatorBank, cache: WordCache,
@@ -287,103 +248,6 @@ def _cache_estimates(bank: CommutatorBank, cache: WordCache,
         if all(cache.shots(code) > 0 for code in bank.coeffs[j]):
             out[j] = bank.estimate(j, cache)[0]
     return out
-
-
-class RandomSelector:
-    """Uniform-random operator selection: the zero-measurement baseline."""
-
-    def __init__(self, seed: int):
-        self.rng = np.random.default_rng(seed)
-
-    def pick(self, candidates: Sequence[int]) -> int:
-        return int(self.rng.choice(list(candidates)))
-
-
-class FastInspiredSelector:
-    """Determinant-population proxy selection (FAST-VQE-inspired baseline).
-
-    One computational-basis measurement circuit per step: sample N
-    bitstrings of the current state, then score each candidate word P by
-
-        score(P) = sum_b p_hat(b) * |H|(flips(P))
-                 + sum_b sqrt(p_hat(b) * p_hat(b ^ flips(P)))
-
-    where flips(P) are P's X/Y positions and |H|(f) = sum of |c_w| over
-    Hamiltonian words with the same flip pattern. The first term is the
-    population-weighted Hamiltonian connectivity of the determinants a
-    candidate would couple (MP2-flavored; nonzero even at a bare
-    determinant reference), the second rewards candidates linking two
-    already-populated determinants. Everything besides the N samples is
-    classical post-processing of known H coefficients, so the measurement
-    cost is one circuit and N shots per step. Determinant populations —
-    not the commutator gradient — are the signal, which is why this is a
-    chemistry baseline: phases are invisible to the proxy.
-    """
-
-    def __init__(self, shots: int | None, seed: int = 0, *,
-                 infinite_shot: bool = False):
-        """``infinite_shot=True`` uses the exact computational-basis
-        probabilities in place of sampled populations (the N -> infinity
-        limit), isolating whether a proxy failure is intrinsic to the
-        determinant-population signal or merely shot noise."""
-        if not infinite_shot and (shots is None or shots <= 0):
-            raise ValueError("shots must be positive unless infinite_shot=True")
-        self.shots = 0 if infinite_shot else shots
-        self.infinite_shot = infinite_shot
-        self.rng = np.random.default_rng(seed)
-        self._h_by_flips: dict[int, float] | None = None
-
-    @staticmethod
-    def _flip_mask(word) -> int:
-        mask = 0
-        for j in word.support():
-            if word.letter(j) in ("X", "Y"):
-                mask |= 1 << j
-        return mask
-
-    def _hamiltonian_connectivity(self, bank: CommutatorBank, hamiltonian) -> dict[int, float]:
-        if self._h_by_flips is None:
-            by_flips: dict[int, float] = {}
-            for word, coeff in hamiltonian.items():
-                mask = self._flip_mask(word)
-                if mask:
-                    by_flips[mask] = by_flips.get(mask, 0.0) + abs(coeff)
-            self._h_by_flips = by_flips
-        return self._h_by_flips
-
-    def pick(self, rho, pool, candidates: Sequence[int], hamiltonian,
-             bank: CommutatorBank | None = None, tol: float = 1e-12):
-        """(best index or None, its proxy score) from one sampling round."""
-        from ..states import computational_probabilities
-
-        h_conn = self._hamiltonian_connectivity(bank, hamiltonian)
-        outcomes = sorted(computational_probabilities(rho).items())
-        probs = np.clip([p for _, p in outcomes], 0.0, None)
-        probs = probs / probs.sum()
-        if self.infinite_shot:
-            # exact populations: the N -> infinity determinant-population proxy
-            p_hat = {bits: p for (bits, _), p in zip(outcomes, probs) if p > 0.0}
-        else:
-            counts = self.rng.multinomial(self.shots, probs)
-            p_hat = {bits: c / self.shots for (bits, _), c in zip(outcomes, counts) if c}
-
-        def flipped(bits: str, mask: int) -> str:
-            return "".join(("1" if ch == "0" else "0") if (mask >> j) & 1 else ch
-                           for j, ch in enumerate(bits))
-
-        best, best_score = None, 0.0
-        for j in candidates:
-            mask = self._flip_mask(pool[j].word)
-            if not mask:
-                continue  # Z-only candidates move no populations
-            coupling = h_conn.get(mask, 0.0)
-            score = 0.0
-            for bits, p in p_hat.items():
-                partner = flipped(bits, mask)
-                score += p * coupling + math.sqrt(p * p_hat.get(partner, 0.0))
-            if score > best_score + tol:
-                best, best_score = j, score
-        return best, best_score
 
 
 def ansatz_program(model, chosen: Sequence[PoolOperator]) -> Program:
@@ -401,7 +265,7 @@ _ansatz_program = ansatz_program
 
 def run_adapt(model, pool: Sequence[PoolOperator], *,
               backend: FiniteShotBackend | None = None,
-              selector: "ConfidenceSelector | RandomSelector | FastInspiredSelector | None" = None,
+              selector: AdaptSelectorProtocol | None = None,
               allocator=None,
               max_operators: int = 10, threshold: float = 1e-6,
               allow_repeats: bool = False, accept_ambiguous: bool = True,
@@ -410,7 +274,8 @@ def run_adapt(model, pool: Sequence[PoolOperator], *,
               track_exact_scores: bool = True,
               grouping: bool = False,
               subpool_size: int | None = None, subpool_seed: int = 0,
-              layer_alpha: float | None = None) -> AdaptResult:
+              layer_alpha: float | None = None,
+              config: AdaptConfig | None = None) -> AdaptResult:
     """ADAPT-VQE. Selection is exact when ``selector`` is None, uniform-random
     with a ``RandomSelector`` (zero-measurement baseline), and finite-shot
     (requiring a sampling ``backend`` and an ``allocator``) with a
@@ -424,15 +289,53 @@ def run_adapt(model, pool: Sequence[PoolOperator], *,
     to the subpool. ``layer_alpha`` appends, after each selection, the
     mutually commuting candidates scoring at least ``layer_alpha`` times the
     selected score (layered ADAPT).
+
+    ``config`` is the structured alternative to the legacy keyword surface.
+    The old keywords remain the stable facade; when a non-default legacy value
+    is supplied together with ``config`` the call is rejected rather than
+    silently choosing one source of truth.
     """
-    random_mode = isinstance(selector, RandomSelector)
-    fast_mode = isinstance(selector, FastInspiredSelector)
-    noisy = selector is not None and not random_mode and not fast_mode
+    legacy_config = AdaptConfig(
+        max_operators=max_operators, threshold=threshold,
+        allow_repeats=allow_repeats, accept_ambiguous=accept_ambiguous,
+        optimizer_method=optimizer_method, maxiter=maxiter,
+        compute_exact_reference=compute_exact_reference,
+        track_exact_scores=track_exact_scores, grouping=grouping,
+        subpool_size=subpool_size, subpool_seed=subpool_seed,
+        layer_alpha=layer_alpha,
+    )
+    if config is None:
+        config = legacy_config
+    elif legacy_config != AdaptConfig():
+        raise ValueError("pass either AdaptConfig or non-default legacy workflow "
+                         "keywords, not both")
+    max_operators = config.max_operators
+    threshold = config.threshold
+    allow_repeats = config.allow_repeats
+    accept_ambiguous = config.accept_ambiguous
+    optimizer_method = config.optimizer_method
+    maxiter = config.maxiter
+    compute_exact_reference = config.compute_exact_reference
+    track_exact_scores = config.track_exact_scores
+    grouping = config.grouping
+    subpool_size = config.subpool_size
+    subpool_seed = config.subpool_seed
+    layer_alpha = config.layer_alpha
+
+    # A selector advertises its scientific signal rather than coupling this
+    # workflow to a concrete implementation class.  Selectors written against
+    # the pre-protocol API did not carry this marker; treating those as
+    # confidence selectors preserves the historical custom-selector contract.
+    selection_mode = (None if selector is None else
+                      getattr(selector, "selection_mode", "confidence"))
+    if selection_mode not in (None, "confidence", "random", "population_proxy"):
+        raise TypeError(f"unsupported selector selection_mode: {selection_mode!r}")
+    random_mode = selection_mode == "random"
+    fast_mode = selection_mode == "population_proxy"
+    noisy = selection_mode == "confidence"
     selector_bound = getattr(selector, "bound", None)  # 'normal' | 'eb' | None
     if noisy and (backend is None or allocator is None):
         raise ValueError("finite-shot selection needs a sampling backend and an allocator")
-    if subpool_size is not None and subpool_size < 1:
-        raise ValueError("subpool_size must be positive")
     subpool_rng = np.random.default_rng(subpool_seed)
     exact_backend = backend.inner if isinstance(backend, FiniteShotBackend) else \
         (backend if backend is not None else ExactMVBackend())
@@ -445,28 +348,29 @@ def run_adapt(model, pool: Sequence[PoolOperator], *,
 
     E0 = None
     if compute_exact_reference:
-        from ..matrix import exact_ground
+        from ..dense_reference import exact_ground
         E0, _ = exact_ground(H.to_mv())
 
-    chosen: list[PoolOperator] = []
-    theta: tuple[float, ...] = ()
-    used: set[int] = set()
-    records: list[SelectionRecord] = []
-    total_shots = 0
-    total_circuits = 0
-    support_peak = 0
-    optimizer_evaluations = 0
-    abstentions = 0
-    energy = exact_backend.expectation(ansatz_program(model, []), H, ())
-    stopped_reason = "operator budget reached"
+    initial_energy = exact_backend.expectation(ansatz_program(model, []), H, ())
+    state = AdaptState(energy=initial_energy,
+                       support_peak=getattr(exact_backend, "support_peak", 0))
 
     for step in range(1, max_operators + 1):
+        chosen = [pool[index] for index in state.chosen_indices]
+        theta = state.parameters
+        used = set(state.used_indices)
+        total_shots = state.total_shots
+        total_circuits = state.total_circuits
+        support_peak = state.support_peak
+        stopped_reason = state.stopped_reason
         program = ansatz_program(model, chosen)
         rho = exact_backend.state(program, theta)
         support_peak = max(support_peak, getattr(exact_backend, "support_peak", 0))
         untried = [i for i in range(len(pool)) if allow_repeats or i not in used]
         if not untried:
-            stopped_reason = "pool exhausted"
+            state = adapt_step(
+                state, AdaptStepOutcome(stopped_reason="pool exhausted",
+                                        support_peak=support_peak))
             break
 
         cache = None
@@ -578,12 +482,10 @@ def run_adapt(model, pool: Sequence[PoolOperator], *,
         # symmetric (tied-gradient) states instead of stalling.
         strict_abstain = (status is SelectionStatus.BUDGET_EXHAUSTED_AMBIGUOUS
                           and not accept_ambiguous)
-        if strict_abstain:
-            abstentions += 1
         sel_rank, top_gap = _rank_and_gap(exact_scores,
                                           None if strict_abstain else idx)
         if idx is None or strict_abstain:
-            records.append(SelectionRecord(
+            record = SelectionRecord(
                 step, None, status, diag.get("estimate"), diag.get("lower_bound"),
                 diag.get("upper_bound"), diag.get("exact_gradient"), exact_max,
                 shots_added, total_shots, words_measured, total_circuits,
@@ -592,9 +494,19 @@ def run_adapt(model, pool: Sequence[PoolOperator], *,
                 resolution=_resolution_kind(status),
                 certified=_is_certified(_certification_level(status, selector_bound)),
                 exact_rank=sel_rank, exact_top_gap=top_gap,
-                eta_required=diag.get("eta_required")))
+                eta_required=diag.get("eta_required"))
+            state = adapt_step(
+                state,
+                AdaptStepOutcome(
+                    record=record, total_shots=total_shots,
+                    total_circuits=total_circuits, support_peak=support_peak,
+                    abstention_added=1 if strict_abstain else 0,
+                    stopped_reason=stopped_reason,
+                ),
+            )
             break
 
+        selected_indices = [idx]
         chosen.append(pool[idx])
         used.add(idx)
         theta = theta + (0.0,)
@@ -607,6 +519,7 @@ def run_adapt(model, pool: Sequence[PoolOperator], *,
             if idx in layer_scores and layer_scores[idx] != 0.0:
                 layer = build_layer(pool, layer_scores, idx, candidates, layer_alpha)
                 for j in layer[1:]:
+                    selected_indices.append(j)
                     chosen.append(pool[j])
                     used.add(j)
                     theta = theta + (0.0,)
@@ -621,9 +534,8 @@ def run_adapt(model, pool: Sequence[PoolOperator], *,
                               maxiter=maxiter, bound=E0)
         theta = res.x
         energy = res.fun
-        optimizer_evaluations += res.evaluations
         support_peak = max(support_peak, getattr(exact_backend, "support_peak", 0))
-        records.append(SelectionRecord(
+        record = SelectionRecord(
             step, pool[idx].label, status, diag.get("estimate"),
             diag.get("lower_bound"), diag.get("upper_bound"),
             exact_scores[idx] if exact_scores else None, exact_max,
@@ -634,18 +546,29 @@ def run_adapt(model, pool: Sequence[PoolOperator], *,
             resolution=_resolution_kind(status),
             certified=_is_certified(_certification_level(status, selector_bound)),
             exact_rank=sel_rank, exact_top_gap=top_gap,
-            eta_required=diag.get("eta_required")))
+            eta_required=diag.get("eta_required"))
+        state = adapt_step(
+            state,
+            AdaptStepOutcome(
+                selected_indices=tuple(selected_indices), parameters=theta,
+                energy=energy, record=record, total_shots=total_shots,
+                total_circuits=total_circuits, support_peak=support_peak,
+                optimizer_evaluations_added=res.evaluations,
+            ),
+        )
 
     rel = None
     if E0 is not None:
-        rel = abs(energy - E0) / max(abs(E0), 1e-12)
+        rel = abs(state.energy - E0) / max(abs(E0), 1e-12)
     mode = "n/a" if not noisy else ("strict" if not accept_ambiguous else "fallback")
     return AdaptResult(
-        labels=tuple(op.label for op in chosen), parameters=theta, energy=energy,
-        exact_ground_energy=E0, relative_error=rel, records=tuple(records),
-        total_shots=total_shots, total_circuits=total_circuits,
-        support_peak=support_peak, optimizer_evaluations=optimizer_evaluations,
-        stopped_reason=stopped_reason, abstentions=abstentions,
+        labels=tuple(pool[index].label for index in state.chosen_indices),
+        parameters=state.parameters, energy=state.energy,
+        exact_ground_energy=E0, relative_error=rel, records=state.records,
+        total_shots=state.total_shots, total_circuits=state.total_circuits,
+        support_peak=state.support_peak,
+        optimizer_evaluations=state.optimizer_evaluations,
+        stopped_reason=state.stopped_reason, abstentions=state.abstentions,
         metadata={"model": model.name, "pool_size": len(pool),
                   "noisy_selection": noisy, "certification_mode": mode,
                   "bound": selector_bound,

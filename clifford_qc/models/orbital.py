@@ -499,7 +499,7 @@ def single_particle_action(program: Program, n_modes: int) -> np.ndarray:
     Builds the dense unitary, so it is a test-scale tool: exponential in the
     mode count, and the reason the regression tests stop at eight modes.
     """
-    from ..matrix import to_matrix
+    from ..dense_reference import to_matrix
 
     unitary = to_matrix(program.unitary())
     action = np.zeros((n_modes, n_modes))

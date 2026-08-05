@@ -44,7 +44,8 @@ import numpy as np
 from ..selection import TIE_ATOL, TIE_RTOL, canonical_argmax
 from ..multivector import MV
 from .elements import MatrixElementBank
-from .generators import Generator, as_generators, identity_generator
+from .generator_core import Generator, as_generators
+from .generators import identity_generator
 from .contracts import as_multivector
 from .solver import (DEFAULT_MAX_CONDITION, DEFAULT_NORM_FLOOR, DEFAULT_TAU_S,
                      SubspaceResult)
@@ -139,6 +140,100 @@ class AdaptiveResult:
     @property
     def basis_size(self) -> int:
         return len(self.labels)
+
+
+@dataclass(frozen=True)
+class ACASEConfig:
+    """Serializable controls for exact adaptive subspace growth.
+
+    The matrix-element bank and generator sets stay runtime inputs; numerical
+    thresholds and stopping policy live here so an A-CASE run has one explicit
+    configuration boundary instead of a long list of independent tolerances.
+    """
+
+    max_size: int = 10
+    roots: int = 1
+    aggregation: str = "mean"
+    min_lowering: float = DEFAULT_MIN_LOWERING
+    min_orthogonality: float = DEFAULT_MIN_ORTHOGONALITY
+    gamma: float = 0.0
+    leakage_tol: float | None = None
+    exact_ground_energy: float | None = None
+    target_error: float | None = None
+    tau_s: float = DEFAULT_TAU_S
+    rel_tau: float = 0.0
+    max_condition: float = DEFAULT_MAX_CONDITION
+
+    def __post_init__(self):
+        if self.max_size < 0:
+            raise ValueError("max_size must be nonnegative")
+        if self.roots < 1:
+            raise ValueError("roots must be at least 1")
+        _aggregate([0.0], self.aggregation)
+        if self.min_lowering < 0.0:
+            raise ValueError("min_lowering must be nonnegative")
+        if self.min_orthogonality < 0.0:
+            raise ValueError("min_orthogonality must be nonnegative")
+        if self.gamma < 0.0:
+            raise ValueError("gamma must be nonnegative")
+        if self.leakage_tol is not None and self.leakage_tol < 0.0:
+            raise ValueError("leakage_tol must be nonnegative")
+        if self.target_error is not None and self.target_error < 0.0:
+            raise ValueError("target_error must be nonnegative")
+        if self.tau_s < 0.0 or self.rel_tau < 0.0:
+            raise ValueError("overlap thresholds must be nonnegative")
+        if self.max_condition <= 0.0:
+            raise ValueError("max_condition must be positive")
+
+
+@dataclass(frozen=True)
+class ACASEState:
+    """Immutable orchestration state between A-CASE growth decisions."""
+
+    basis: tuple[int, ...]
+    pool: tuple[int, ...]
+    result: SubspaceResult
+    energy: float
+    energy_history: tuple[float, ...]
+    records: tuple[GrowthRecord, ...]
+    root_energies: tuple[float, ...]
+    stopped_reason: str = "basis budget reached"
+
+
+@dataclass(frozen=True)
+class ACASEStepOutcome:
+    """Numerical/scoring effects for one A-CASE growth decision."""
+
+    selected_index: int | None = None
+    result: SubspaceResult | None = None
+    energy: float | None = None
+    record: GrowthRecord | None = None
+    root_energies: tuple[float, ...] | None = None
+    stopped_reason: str | None = None
+
+
+def acase_step(state: ACASEState, outcome: ACASEStepOutcome) -> ACASEState:
+    """Pure state transition for an already-scored A-CASE growth step."""
+    basis = state.basis
+    if outcome.selected_index is not None:
+        basis += (int(outcome.selected_index),)
+    energy = state.energy if outcome.energy is None else float(outcome.energy)
+    history = state.energy_history
+    if outcome.energy is not None:
+        history += (energy,)
+    return ACASEState(
+        basis=basis,
+        pool=state.pool,
+        result=state.result if outcome.result is None else outcome.result,
+        energy=energy,
+        energy_history=history,
+        records=(state.records if outcome.record is None
+                 else state.records + (outcome.record,)),
+        root_energies=(state.root_energies if outcome.root_energies is None
+                       else tuple(float(value) for value in outcome.root_energies)),
+        stopped_reason=(state.stopped_reason if outcome.stopped_reason is None
+                        else outcome.stopped_reason),
+    )
 
 
 def _two_by_two_lowering(energy: float, s_a: complex, h_a: complex,
@@ -296,6 +391,82 @@ def select_candidate(scores: Sequence[CandidateScore]) -> CandidateScore | None:
     return live[best]
 
 
+def _acase_objective(result: SubspaceResult, config: ACASEConfig
+                     ) -> tuple[float, tuple[float, ...]]:
+    tracked = tuple(range(config.roots))
+    energies = tuple(result.energies[root] for root in tracked
+                     if root < len(result.energies))
+    return _aggregate(energies, config.aggregation), energies
+
+
+def _evaluate_acase_step(bank: MatrixElementBank, state: ACASEState,
+                         config: ACASEConfig, step: int) -> ACASEStepOutcome:
+    """Score/solve one growth decision without owning workflow state."""
+    remaining = [index for index in state.pool if index not in state.basis]
+    if not remaining:
+        return ACASEStepOutcome(stopped_reason="candidate pool exhausted")
+
+    tracked = tuple(range(config.roots))
+    basis_words = bank.word_set(state.basis)
+    scores = [
+        score_candidate(
+            bank, state.basis, state.result, index, roots=tracked,
+            aggregation=config.aggregation, basis_words=basis_words,
+            min_orthogonality=config.min_orthogonality, gamma=config.gamma,
+            leakage_tol=config.leakage_tol,
+        )
+        for index in remaining
+    ]
+    best = select_candidate(scores)
+    if best is None:
+        return ACASEStepOutcome(
+            stopped_reason="every candidate rejected (conditioning or sector)")
+    if best.predicted_lowering < config.min_lowering:
+        return ACASEStepOutcome(stopped_reason="predicted lowering below threshold")
+
+    new_basis = state.basis + (best.index,)
+    solved = bank.solve(
+        new_basis, tau_s=config.tau_s, rel_tau=config.rel_tau,
+        max_condition=config.max_condition,
+    )
+    value, root_energies = _acase_objective(solved, config)
+    rejected_conditioning = sum(
+        1 for score in scores
+        if score.rejected and score.rejected.startswith("orthogonal"))
+    rejected_sector = sum(
+        1 for score in scores
+        if score.rejected and score.rejected.startswith("sector"))
+    record = GrowthRecord(
+        step=step, selected_label=best.label, energy=value,
+        predicted_lowering=best.predicted_lowering,
+        actual_lowering=state.energy - value,
+        residual_coupling=best.residual_coupling,
+        orthogonal_fraction=best.orthogonal_fraction,
+        basis_size=len(new_basis), effective_rank=solved.effective_rank,
+        condition_number=solved.condition_number,
+        candidates_scored=len(scores),
+        rejected_conditioning=rejected_conditioning,
+        rejected_sector=rejected_sector,
+        new_words=best.new_words,
+        word_universe=bank.resources(new_basis)["word_universe"],
+        leakage=best.leakage, root_energies=root_energies,
+        per_root_lowering=best.per_root,
+    )
+
+    stopped_reason = None
+    if config.exact_ground_energy is not None and config.target_error is not None:
+        error = abs(value - config.exact_ground_energy)
+        if error <= config.target_error:
+            stopped_reason = (
+                f"target error reached ({error * 1000.0:.4f} mHa <= "
+                f"{config.target_error * 1000.0:.4f} mHa)"
+            )
+    return ACASEStepOutcome(
+        selected_index=best.index, result=solved, energy=value, record=record,
+        root_energies=root_energies, stopped_reason=stopped_reason,
+    )
+
+
 def run_acase(rho: MV, hamiltonian, candidates: Sequence, *,
               initial: Sequence | None = None,
               bank: MatrixElementBank | None = None,
@@ -308,150 +479,96 @@ def run_acase(rho: MV, hamiltonian, candidates: Sequence, *,
               exact_ground_energy: float | None = None,
               target_error: float | None = None,
               tau_s: float = DEFAULT_TAU_S, rel_tau: float = 0.0,
-              max_condition: float = DEFAULT_MAX_CONDITION) -> AdaptiveResult:
-    """Grow a subspace one certified-by-construction generator at a time.
+              max_condition: float = DEFAULT_MAX_CONDITION,
+              config: ACASEConfig | None = None) -> AdaptiveResult:
+    """Grow a subspace one generator at a time.
 
-    ``initial`` defaults to the identity generator alone, so the run starts
-    from the reference state itself; passing an ADAPT-VQE state as ``rho``
-    (see :func:`adapt_warm_start`) or a richer ``initial`` set warm-starts it.
+    The legacy keyword surface remains stable. The config object is its
+    structured alternative; runtime objects (reference state, generators and
+    optional matrix-element bank) remain explicit dependencies.
 
-    ``leakage_tol`` turns on the §4.2 sector discipline: candidates whose
-    relative commutator norm with ``N`` or ``S_z`` exceeds it are rejected, and
-    every accepted generator's leakage is recorded either way.
-
-    ``gamma`` prices measurement cost into the acceptance score,
-    ``lowering / (1 + new_words)^gamma``. The default of 0 selects on predicted
-    lowering alone, which is the baseline the cost-aware variants are measured
-    against.
-
-    ``target_error`` stops growth early once the ground energy error relative
-    to ``exact_ground_energy`` falls below the threshold (e.g. chemical accuracy
-    1.5936 mHa).
-
-    ``roots > 1`` grows the basis against several Ritz roots instead of the
-    lowest alone -- the excited-state route of §5. ``aggregation='mean'`` is
-    state-averaged growth (the objective is the average of the tracked roots)
-    and ``'max'`` is block growth (whichever root gains most decides). The
-    reported ``energy``/``energy_history`` follow that objective.
-
-    One caveat on monotonicity, which is real rather than pedantic. Cauchy
-    interlacing makes each *individual* Ritz value non-increasing under growth,
-    so a fixed-weight average of a fixed set of roots is too. Early steps do not
-    have a fixed set: a two-dimensional subspace has only two roots, so the
-    average is taken over fewer of them and can *rise* as a high new root
-    appears. The objective is therefore monotone only from the step where the
-    effective rank first reaches ``roots``; each record's ``root_energies`` says
-    how many roots that step actually had.
+    Candidate scoring and selection stay separate mathematical functions.
+    Numerical work for a growth decision is isolated in the private evaluator,
+    while acase_step is the pure state transition. This keeps A-CASE's Ritz
+    semantics independent of ADAPT-VQE's optimizer even though both workflows
+    expose a similar orchestration boundary.
     """
-    if roots < 1:
-        raise ValueError("roots must be at least 1")
-    _aggregate([0.0], aggregation)  # reject an unknown aggregation up front
+    legacy_config = ACASEConfig(
+        max_size=max_size, roots=roots, aggregation=aggregation,
+        min_lowering=min_lowering, min_orthogonality=min_orthogonality,
+        gamma=gamma, leakage_tol=leakage_tol,
+        exact_ground_energy=exact_ground_energy, target_error=target_error,
+        tau_s=tau_s, rel_tau=rel_tau, max_condition=max_condition,
+    )
+    if config is None:
+        config = legacy_config
+    elif legacy_config != ACASEConfig():
+        raise ValueError(
+            "pass either ACASEConfig or non-default legacy workflow keywords, not both")
+
     started = time.perf_counter()
     if bank is None:
         bank = MatrixElementBank(rho, hamiltonian)
     initial_gens = (as_generators(initial) if initial is not None
                     else [identity_generator(bank.n)])
-    basis = bank.extend(initial_gens)
+    basis = tuple(bank.extend(initial_gens))
     pool: list[int] = []
     for index in bank.extend(as_generators(candidates)):
-        # extend() collapses duplicates onto one id, so the pool can repeat
         if index not in basis and index not in pool:
             pool.append(index)
     if not pool:
         raise ValueError("no candidate generators outside the initial basis")
 
-    solver_kwargs = dict(tau_s=tau_s, rel_tau=rel_tau, max_condition=max_condition)
-    tracked = tuple(range(roots))
+    solved = bank.solve(
+        basis, tau_s=config.tau_s, rel_tau=config.rel_tau,
+        max_condition=config.max_condition,
+    )
+    value, root_energies = _acase_objective(solved, config)
+    state = ACASEState(
+        basis=basis, pool=tuple(pool), result=solved, energy=value,
+        energy_history=(value,), records=(), root_energies=root_energies,
+    )
 
-    def objective(solved: SubspaceResult) -> tuple[float, tuple[float, ...]]:
-        energies = tuple(solved.energies[r] for r in tracked
-                         if r < len(solved.energies))
-        return _aggregate(energies, aggregation), energies
+    if config.exact_ground_energy is not None and config.target_error is not None:
+        error = abs(value - config.exact_ground_energy)
+        if error <= config.target_error:
+            state = acase_step(
+                state,
+                ACASEStepOutcome(
+                    stopped_reason=(
+                        f"target error reached ({error * 1000.0:.4f} mHa <= "
+                        f"{config.target_error * 1000.0:.4f} mHa)"
+                    )
+                ),
+            )
 
-    result = bank.solve(basis, **solver_kwargs)
-    value, root_energies = objective(result)
-    history = [value]
-    records: list[GrowthRecord] = []
-    stopped_reason = "basis budget reached"
-
-    # Check initial reference state accuracy
-    if exact_ground_energy is not None and target_error is not None:
-        if abs(value - exact_ground_energy) <= target_error:
-            stopped_reason = f"target error reached ({abs(value - exact_ground_energy)*1000.0:.4f} mHa <= {target_error*1000.0:.4f} mHa)"
-            return AdaptiveResult(
-                labels=tuple(bank.generator(i).label for i in basis),
-                energy=value, energy_history=tuple(history),
-                records=tuple(records), result=result, bank=bank, indices=tuple(basis),
-                stopped_reason=stopped_reason, exact_ground_energy=exact_ground_energy,
-                relative_error=abs(value - exact_ground_energy)/max(abs(exact_ground_energy), 1e-12),
-                resources=dict(result.resources), root_energies=root_energies)
-
-    for step in range(1, max_size + 1):
-        remaining = [i for i in pool if i not in basis]
-        if not remaining:
-            stopped_reason = "candidate pool exhausted"
-            break
-        basis_words = bank.word_set(basis)
-        scores = [score_candidate(bank, basis, result, i, roots=tracked,
-                                  aggregation=aggregation, basis_words=basis_words,
-                                  min_orthogonality=min_orthogonality, gamma=gamma,
-                                  leakage_tol=leakage_tol)
-                  for i in remaining]
-        best = select_candidate(scores)
-        rejected_conditioning = sum(
-            1 for s in scores if s.rejected and s.rejected.startswith("orthogonal"))
-        rejected_sector = sum(
-            1 for s in scores if s.rejected and s.rejected.startswith("sector"))
-        if best is None:
-            stopped_reason = ("every candidate rejected (conditioning or sector)")
-            break
-        if best.predicted_lowering < min_lowering:
-            stopped_reason = "predicted lowering below threshold"
-            break
-
-        previous = value
-        basis.append(best.index)
-        result = bank.solve(basis, **solver_kwargs)
-        value, root_energies = objective(result)
-        history.append(value)
-        records.append(GrowthRecord(
-            step=step, selected_label=best.label, energy=value,
-            predicted_lowering=best.predicted_lowering,
-            actual_lowering=previous - value,
-            residual_coupling=best.residual_coupling,
-            orthogonal_fraction=best.orthogonal_fraction,
-            basis_size=len(basis), effective_rank=result.effective_rank,
-            condition_number=result.condition_number,
-            candidates_scored=len(scores),
-            rejected_conditioning=rejected_conditioning,
-            rejected_sector=rejected_sector,
-            new_words=best.new_words,
-            word_universe=bank.resources(basis)["word_universe"],
-            leakage=best.leakage, root_energies=root_energies,
-            per_root_lowering=best.per_root))
-
-        if exact_ground_energy is not None and target_error is not None:
-            if abs(value - exact_ground_energy) <= target_error:
-                stopped_reason = f"target error reached ({abs(value - exact_ground_energy)*1000.0:.4f} mHa <= {target_error*1000.0:.4f} mHa)"
+    if state.stopped_reason == "basis budget reached":
+        for step in range(1, config.max_size + 1):
+            outcome = _evaluate_acase_step(bank, state, config, step)
+            state = acase_step(state, outcome)
+            if outcome.stopped_reason is not None:
                 break
 
     relative = None
-    if exact_ground_energy is not None:
-        relative = (abs(result.ground_energy - exact_ground_energy)
-                    / max(abs(exact_ground_energy), 1e-12))
-    resources = dict(result.resources)
+    if config.exact_ground_energy is not None:
+        relative = (
+            abs(state.result.ground_energy - config.exact_ground_energy)
+            / max(abs(config.exact_ground_energy), 1e-12)
+        )
+    resources = dict(state.result.resources)
     resources.update({
-        "candidate_pool_size": len(pool),
+        "candidate_pool_size": len(state.pool),
         "growth_seconds": time.perf_counter() - started,
         "registered_generators": len(bank),
-        "roots": roots,
-        "aggregation": aggregation,
+        "roots": config.roots,
+        "aggregation": config.aggregation,
     })
     return AdaptiveResult(
-        labels=tuple(bank.generator(i).label for i in basis),
-        energy=value, energy_history=tuple(history),
-        records=tuple(records), result=result, bank=bank, indices=tuple(basis),
-        stopped_reason=stopped_reason, exact_ground_energy=exact_ground_energy,
+        labels=tuple(bank.generator(index).label for index in state.basis),
+        energy=state.energy, energy_history=state.energy_history,
+        records=state.records, result=state.result, bank=bank,
+        indices=state.basis, stopped_reason=state.stopped_reason,
+        exact_ground_energy=config.exact_ground_energy,
         relative_error=relative, resources=resources,
-        root_energies=root_energies)
-
+        root_energies=state.root_energies,
+    )
