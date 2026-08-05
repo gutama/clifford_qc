@@ -28,6 +28,16 @@ from clifford_qc.subspace import (compound_response, configuration_generator,
                                   identity_generator, occupied_spin_orbitals,
                                   pauli_orbit, run_acase, sector_leakage,
                                   solve_subspace, state_sector)
+from clifford_qc.subspace.configuration import (
+    configuration_haar_packets as split_configuration_haar_packets,
+)
+from clifford_qc.subspace.fermionic_generators import (
+    determinant_excitations as split_determinant_excitations,
+)
+from clifford_qc.subspace.generators import (
+    configuration_haar_packets as legacy_configuration_haar_packets,
+    determinant_excitations as legacy_determinant_excitations,
+)
 
 
 def _words(*labels):
@@ -163,6 +173,8 @@ def _configuration_leaves(n_qubits=4):
 
 def test_unbalanced_configuration_haar_is_orthogonal_and_preserves_parseval():
     """Five leaves exercise the finite, non-dyadic normalization explicitly."""
+    assert configuration_haar_packets is split_configuration_haar_packets
+    assert configuration_haar_packets is legacy_configuration_haar_packets
     reference, leaves = _configuration_leaves()
     packets = configuration_haar_packets(
         leaves, max_support=None, include_scaling=True)
@@ -222,6 +234,9 @@ def test_level_four_breaks_the_saturation_levels_0_to_3_cannot():
     """
     pytest.importorskip("scipy")
     from clifford_qc.backends import SectorStatevectorBackend
+
+    assert determinant_excitations is split_determinant_excitations
+    assert determinant_excitations is legacy_determinant_excitations
 
     model = hubbard((2, 2))
     rho = ExactMVBackend().state(model.reference, ())
