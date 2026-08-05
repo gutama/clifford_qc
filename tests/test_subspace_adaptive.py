@@ -28,10 +28,10 @@ from clifford_qc.models.spin import tfim, xxz
 from clifford_qc.pauli import P, X, Y, Z
 from clifford_qc.states import ket_density
 from clifford_qc.subspace import (
-    Generator, MatrixElementBank, adapt_warm_start, commutator_response,
-    dense_residual_norm, identity_generator, krylov_response, pauli_orbit,
-    run_acase, score_candidate, sector_leakage, select_candidate,
-    solve_projected, solve_subspace,
+    ACASEConfig, Generator, MatrixElementBank, adapt_warm_start,
+    commutator_response, dense_residual_norm, identity_generator,
+    krylov_response, pauli_orbit, run_acase, score_candidate, sector_leakage,
+    select_candidate, solve_projected, solve_subspace,
 )
 from clifford_qc.subspace.adaptive import _GAP_FLOOR, _two_by_two_lowering
 
@@ -255,8 +255,12 @@ def test_selection_is_deterministic_across_runs(case):
     model, rho, _, candidates, E0 = case
     first = run_acase(rho, model.hamiltonian, candidates, max_size=5)
     second = run_acase(rho, model.hamiltonian, candidates, max_size=5)
+    configured = run_acase(
+        rho, model.hamiltonian, candidates, config=ACASEConfig(max_size=5))
     assert first.labels == second.labels
     assert first.energy_history == second.energy_history
+    assert configured.labels == first.labels
+    assert configured.energy_history == first.energy_history
 
 
 def test_selection_is_invariant_under_candidate_rescaling(case):
