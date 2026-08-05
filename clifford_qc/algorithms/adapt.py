@@ -203,14 +203,6 @@ class ConfidenceSelector:
             out[j] = (est, max(0.0, abs(est) - r), abs(est) + r)
         return out
 
-    @staticmethod
-    def _planned_rounds(allocator) -> int:
-        if hasattr(allocator, "max_rounds"):
-            return max(1, int(allocator.max_rounds))
-        if hasattr(allocator, "max_factor"):
-            return max(1, int(math.log2(allocator.max_factor)) + 1)
-        return 1
-
     def select(self, bank: CommutatorBank, cache: WordCache, sampler, allocator,
                candidates: Sequence[int]) -> tuple[int | None, SelectionStatus, dict]:
         """One selection: allocate, measure, bound, and decide.
@@ -229,14 +221,18 @@ class ConfidenceSelector:
                 "fixed-endpoint allocation schedule; use UniformFixed or "
                 "UniformDoubling, or use bound='normal' for adaptive allocation")
         family_size = len(active)
-        rounds = self._planned_rounds(allocator)
+        planned_rounds = getattr(allocator, "planned_rounds", None)
+        if not callable(planned_rounds):
+            raise TypeError("allocation policy must implement planned_rounds()")
+        rounds = int(planned_rounds())
+        if rounds < 1:
+            raise ValueError("allocation policy planned_rounds() must be positive")
         best = None
         bounds: dict[int, tuple[float, float, float]] = {}
-        for round_index in range(10 ** 6):
+        for round_index in range(rounds):
             plan = allocator.plan(round_index, bank, cache, active)
             if not plan:
-                status = SelectionStatus.BUDGET_EXHAUSTED_AMBIGUOUS
-                break
+                raise ValueError("allocation schedule ended before planned_rounds()")
             words = [w for w in bank.words_for(active) if w.code in plan]
             cache.add_batch(sampler(words, plan))
 
@@ -266,8 +262,7 @@ class ConfidenceSelector:
             if self.eliminate:
                 active = [j for j in active
                           if j == best or bounds[j][2] >= best_lower]
-        else:  # pragma: no cover - loop bound is effectively unreachable
-            status = SelectionStatus.BUDGET_EXHAUSTED_AMBIGUOUS
+        status = SelectionStatus.BUDGET_EXHAUSTED_AMBIGUOUS
         return best, status, self._diag(best, bounds, active)
 
     @staticmethod
@@ -474,8 +469,10 @@ def run_adapt(model, pool: Sequence[PoolOperator], *,
             stopped_reason = "pool exhausted"
             break
 
-        cache = (GroupedWordCache(model.n) if (noisy and grouping)
-                 else WordCache(model.n) if noisy else None)
+        cache = None
+        step_shots = 0
+        step_circuits = 0
+        step_word_codes: set[int] = set()
         # A below-threshold subpool triggers a redraw from the untried
         # remainder (subpool exploration); only a dead remainder stops the run.
         while True:
@@ -485,9 +482,15 @@ def run_adapt(model, pool: Sequence[PoolOperator], *,
             else:
                 candidates = list(untried)
 
+            # A redraw is a new, data-dependent candidate experiment.  Its
+            # samples are charged, but never pooled into the next redraw's
+            # confidence calculation.
+            cache = (GroupedWordCache(model.n) if (noisy and grouping)
+                     else WordCache(model.n) if noisy else None)
+
             exact_scores = None
             exact_max = None
-            if track_exact_scores or not noisy or random_mode:
+            if track_exact_scores or (not noisy and not random_mode):
                 exact_scores = {i: bank.exact_score(i, rho) for i in candidates}
                 exact_max = max(abs(v) for v in exact_scores.values())
 
@@ -511,13 +514,9 @@ def run_adapt(model, pool: Sequence[PoolOperator], *,
                     diag = {"estimate": proxy_score,
                             "active_candidates": len(candidates)}
             elif random_mode:
-                if exact_max < threshold:
-                    idx, status = None, SelectionStatus.BELOW_THRESHOLD
-                    diag = {"active_candidates": len(candidates)}
-                else:
-                    idx = selector.pick(candidates)
-                    status = SelectionStatus.RANDOM
-                    diag = {"active_candidates": len(candidates)}
+                idx = selector.pick(candidates)
+                status = SelectionStatus.RANDOM
+                diag = {"active_candidates": len(candidates)}
             elif not noisy:
                 best = canonical_argmax(candidates,
                                         lambda i: abs(exact_scores[i]))
@@ -543,12 +542,15 @@ def run_adapt(model, pool: Sequence[PoolOperator], *,
                         rho, words, plan)
                 idx, status, diag = selector.select(bank, cache, sampler, allocator,
                                                     candidates)
-                shots_added = cache.total_shots  # cumulative over this step's redraws
+                step_shots += cache.total_shots
+                step_circuits += cache.total_circuits
+                step_word_codes.update(w.code for w in bank.words_for(candidates)
+                                       if cache.shots(w.code) > 0)
+                shots_added = step_shots
                 # distinct Pauli words whose expectation was estimated: the shared
                 # word set. The grouped cache stores joint histograms per QWC basis,
                 # not per word, so count the words directly from the bank.
-                words_measured = (len(bank.words_for(candidates)) if grouping
-                                  else cache.unique_words())
+                words_measured = len(step_word_codes)
 
             if status is SelectionStatus.BELOW_THRESHOLD and subpool_size is not None:
                 remaining = [c for c in untried if c not in candidates]
@@ -558,8 +560,8 @@ def run_adapt(model, pool: Sequence[PoolOperator], *,
             break
 
         if noisy:
-            total_shots += cache.total_shots
-            total_circuits += cache.total_circuits
+            total_shots += step_shots
+            total_circuits += step_circuits
         if status is SelectionStatus.BELOW_THRESHOLD:
             if fast_mode:
                 stopped_reason = "proxy score below threshold"
@@ -659,5 +661,10 @@ def run_adapt(model, pool: Sequence[PoolOperator], *,
                   "allocation_finite_schedule_valid": (
                       getattr(allocator, "finite_schedule_valid", None)
                       if noisy else None),
-                  "shot_accounting": "selection_only_exact_optimizer"},
+                  "shot_accounting": "selection_only_exact_optimizer",
+                  "subpool_redraw_cache": (
+                      "fresh_per_redraw_discarded_shots_charged"
+                      if noisy and subpool_size is not None else None),
+                  "random_termination": (
+                      "operator_or_pool_budget_only" if random_mode else None)},
     )
