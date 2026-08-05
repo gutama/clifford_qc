@@ -11,8 +11,9 @@ trace pairing ``MV.trace_pairing``.
 """
 
 from .adaptive import (
-    AdaptiveResult, CandidateScore, GrowthRecord, run_acase,
-    score_candidate, sector_leakage, select_candidate,
+    ACASEConfig, ACASEState, ACASEStepOutcome, AdaptiveResult, CandidateScore,
+    GrowthRecord, acase_step, run_acase, score_candidate, sector_leakage,
+    select_candidate,
 )
 from ..workflows import adapt_warm_start
 from .adapt_gcim import (
@@ -26,11 +27,17 @@ from .measured import (
     ritz_functional, ritz_uncertainty, run_certified_acase,
 )
 from .generators import (
-    Generator, as_generators, commutator_response, compound_response,
+    commutator_response, compound_response, identity_generator,
+    krylov_response, pauli_orbit, response_hierarchy,
+)
+from .generator_core import Generator, as_generators
+from .configuration import (
     configuration_generator, configuration_generators,
-    configuration_haar_packets, determinant_excitations, determinant_program,
-    fermionic_excitation_generators, identity_generator, krylov_response,
-    occupied_spin_orbitals, pauli_orbit, response_hierarchy, state_sector,
+    configuration_haar_packets, determinant_program, state_sector,
+)
+from .fermionic_generators import (
+    determinant_excitations, fermionic_excitation_generators,
+    occupied_spin_orbitals,
 )
 from .reference import (
     dense_basis, dense_projected_matrices, dense_residual_norm, dense_subspace,
@@ -49,7 +56,8 @@ from .solver import (
 from .projection import ProjectedProblem
 
 __all__ = [
-    "AdaptiveResult", "CandidateScore", "GrowthRecord", "adapt_warm_start",
+    "ACASEConfig", "ACASEState", "ACASEStepOutcome", "AdaptiveResult",
+    "CandidateScore", "GrowthRecord", "adapt_warm_start", "acase_step",
     "run_acase", "score_candidate", "sector_leakage", "select_candidate",
     "AdaptGCIMIteration", "AdaptGCIMResult", "adapt_gcim_gradient",
     "run_adapt_gcim",
