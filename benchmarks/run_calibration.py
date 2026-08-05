@@ -88,7 +88,7 @@ def one_selection(bank, rho, delta, bound, seed):
     idx, status, diag = selector.select(bank, cache, sampler, allocator, candidates)
     # coverage: does every candidate's interval cover the true |g_j| at the end?
     bounds = selector._bounds(bank, cache, candidates,
-                              selector._planned_rounds(allocator),
+                              allocator.planned_rounds(),
                               family_size=len(candidates))
     covered = 0
     for j in candidates:
