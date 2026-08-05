@@ -47,7 +47,7 @@ def _word_mul_profile(repeats: int, n: int = 12, pairs: int = 10_000):
     right = rng.integers(0, 4 ** n, size=pairs, dtype=np.int64)
 
     def cold_batch():
-        word_mul.cache_clear()
+        _word_mul_unchecked.cache_clear()
         for a, b in zip(left, right):
             word_mul(n, int(a), int(b))
 
