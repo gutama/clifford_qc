@@ -27,7 +27,7 @@ same arithmetic in a different order.
 
 Reference tier, as the plan is explicit about: this serves baselines and
 large-``n`` extension, not the compactness claim. What it buys is exactness
-where ``matrix.exact_ground`` cannot go and ``sparse.to_sparse`` costs
+where ``dense_reference.exact_ground`` cannot go and ``sparse.to_sparse`` costs
 ``(#terms) 2^n`` nonzeros -- and, for a DMFT-style outer loop, an operator whose
 expensive part is built once and reused across solves.
 """
@@ -41,16 +41,9 @@ import numpy as np
 
 from ..ir import PauliSum, Program
 from ..multivector import MV
-from ..sparse import word_masks
+from ..pauli_action import parity, word_masks
 
 _PHASE4 = (1 + 0j, 1j, -1 + 0j, -1j)
-
-
-def _parity(values: np.ndarray, mask: int) -> np.ndarray:
-    folded = values & mask
-    for shift in (32, 16, 8, 4, 2, 1):
-        folded = folded ^ (folded >> shift)
-    return (folded & 1).astype(np.int64)
 
 
 def _spin_sites(n: int, spin_ordering="interleaved") -> tuple[list[int], list[int]]:
@@ -88,7 +81,7 @@ def sector_basis(n: int, n_electrons: int, sz: float | None = None, *,
     enumerate the full space -- it exists to mask an already-dense matrix, and
     the contrast is the point of this module.)
 
-    Qubit ``j`` is bit ``n-1-j``, matching ``sparse.word_masks`` and the dense
+    Qubit ``j`` is bit ``n-1-j``, matching ``pauli_action.word_masks`` and the dense
     bridge. ``spin_ordering`` may be ``"interleaved"`` (even qubits up),
     ``"blocked"`` (all up then all down), or an explicit sequence of labels.
     """
@@ -205,7 +198,7 @@ class SectorOperator:
         coefficients = np.zeros(basis.size, dtype=complex)
         for z_mask, y_count, coeff in entries:
             phase = coeff * _PHASE4[y_count & 3]
-            coefficients += phase * (1.0 - 2.0 * _parity(basis, z_mask))
+            coefficients += phase * (1.0 - 2.0 * parity(basis, z_mask))
         keep = live & (coefficients != 0.0)
         if not keep.any():
             return None
@@ -232,7 +225,7 @@ class SectorOperator:
             for z_mask, y_count, coeff in entries:
                 scale += abs(coeff)
                 coefficients += (coeff * _PHASE4[y_count & 3]
-                                 * (1.0 - 2.0 * _parity(basis, z_mask)))
+                                 * (1.0 - 2.0 * parity(basis, z_mask)))
             if np.any(np.abs(coefficients[~live]) > tol * max(scale, 1.0)):
                 raise ValueError(
                     "operator does not conserve the requested particle/spin sector")
