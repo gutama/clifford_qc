@@ -54,6 +54,10 @@ from .solver import (
     canonical_eigh, projected_matrices, solve_projected, solve_subspace,
 )
 from .projection import ProjectedProblem
+from .hybrid import (
+    FamilyReport, HybridArm, configuration_generators_from_words,
+    dressed_family, family_projection_report, run_hybrid,
+)
 from .selected_ci import (
     ControlResult, SpanComparison, containment_residual, excitation_closure,
     family_closure, principal_angles, run_control, score_candidates,
@@ -67,6 +71,8 @@ from .qsci import (
 )
 
 __all__ = [
+    "FamilyReport", "HybridArm", "configuration_generators_from_words",
+    "dressed_family", "family_projection_report", "run_hybrid",
     "ControlResult", "SpanComparison", "containment_residual",
     "excitation_closure", "family_closure", "principal_angles", "run_control",
     "score_candidates", "span_comparison",
