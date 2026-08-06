@@ -19,8 +19,8 @@ from clifford_qc.models import fcidump_model
 from clifford_qc.models.lattice import hubbard
 from clifford_qc.subspace import determinant_excitations, occupied_spin_orbitals
 from clifford_qc.subspace.selected_ci import (
-    excitation_closure, principal_angles, run_control, score_candidates,
-    span_comparison,
+    containment_residual, excitation_closure, family_closure, principal_angles,
+    run_control, score_candidates, span_comparison,
 )
 
 H4_FCIDUMP = (Path(__file__).parents[1] / "benchmarks" / "data"
@@ -92,28 +92,47 @@ def test_singles_only_closure_is_contained_in_singles_and_doubles(sector_case):
     assert set(singles.tolist()) <= set(both.tolist())
 
 
-def test_closure_matches_the_generator_family_it_controls(sector_case):
-    """The control has to close over the *same* excitations the dressing uses.
-
-    Built independently here: apply each `determinant_excitations` generator to
-    each sampled determinant and collect whichever sector words acquire weight.
-    If the hand-written bitmask rule and the generator algebra disagree, the
-    control is policing a different family than the one under test.
+def test_family_closure_equals_the_reach_of_its_generators(sector_case):
+    """Equality, not containment. A superset control passes `subseteq` while
+    measuring a different family, which is exactly how the first version of
+    this control shipped wrong: it re-derived singles and doubles from each
+    determinant's own occupancy and reached the whole 36-determinant Hubbard
+    sector where the declared pool reaches 15.
     """
     backend, _, _, model = sector_case
     sampled = _sample(backend, 3, seed=4)
+    generators = determinant_excitations(model.n, occupied_spin_orbitals(model))
+
     reached = set(backend.basis[sampled].tolist())
-    for generator in determinant_excitations(model.n,
-                                             occupied_spin_orbitals(model)):
+    for generator in generators:
         compiled = backend.operator(generator.mv, validate_sector=False)
         for index in sampled:
             probe = np.zeros(backend.dimension, dtype=complex)
             probe[index] = 1.0
             hit = np.flatnonzero(np.abs(compiled.matvec(probe)) > 1e-12)
             reached.update(backend.basis[hit].tolist())
-    closed = set(excitation_closure(backend.basis[sampled],
-                                    n=model.n).tolist())
-    assert reached <= closed
+
+    closed = family_closure(backend.basis[sampled], generators, backend=backend)
+    assert set(closed.tolist()) == reached
+
+
+def test_per_determinant_closure_is_strictly_larger_on_hubbard(hubbard_case):
+    """The two closures are different objects, and the gap is the whole point."""
+    backend, _, _, model = hubbard_case
+    sampled = _sample(backend, 3, seed=4)
+    generators = determinant_excitations(model.n, occupied_spin_orbitals(model))
+    family = family_closure(backend.basis[sampled], generators, backend=backend)
+    per_determinant = excitation_closure(backend.basis[sampled], n=model.n)
+    assert family.size == 15
+    assert per_determinant.size == backend.dimension == 36
+    assert set(family.tolist()) < set(per_determinant.tolist())
+
+
+def test_family_closure_control_requires_its_family(sector_case):
+    backend, operator, _, _ = sector_case
+    with pytest.raises(ValueError, match="declared family"):
+        run_control(operator, _sample(backend, 3), name="fam",
+                    kind="family_closure")
 
 
 def test_closure_rejects_bad_input(sector_case):
@@ -184,14 +203,19 @@ def test_budget_matched_requires_a_declared_budget(sector_case):
                     kind="budget_matched", exact_energy=exact)
 
 
-def test_nonzero_budget_is_converted_and_recorded(sector_case):
+def test_nonzero_budget_is_enforced_and_recorded(sector_case):
+    """The budget binds on the built matrix, not on floor(sqrt(budget)).
+
+    The proxy was wrong in both directions: it could admit a set whose matrix
+    exceeded the budget, and it could refuse one that fit.
+    """
     backend, operator, exact, _ = sector_case
     sampled = _sample(backend, 4, seed=9)
     control = run_control(operator, sampled, name="budget",
                           kind="budget_matched", exact_energy=exact,
                           max_nonzeros=100)
-    assert control.metadata["budget_from_nonzeros"] == 100
-    assert control.determinant_count <= 10  # floor(sqrt(100))
+    assert control.metadata["nonzero_budget"] == 100
+    assert control.matrix_nonzeros <= 100
 
 
 def test_selection_work_counts_candidates_not_keeps(sector_case):
@@ -335,3 +359,116 @@ def test_control_record_is_json_serializable(sector_case):
     assert record["control"] == "closure"
     assert record["determinant_count"] == control.determinant_count
     assert "variance" in record and "selection_work" in record
+
+
+# ---------------------------------------------- regressions from the PR #41 review
+
+def test_containment_is_not_fooled_by_a_shorter_angle_list():
+    """Rank-2 operator span, rank-1 closure, one shared direction.
+
+    Principal angles number `min(rank A, rank D)`, so this pair produces the
+    single angle `[0]` and read as contained under the original implementation
+    while a whole operator direction sat outside the closure.
+    """
+    identity = np.eye(6, dtype=complex)
+    comparison = span_comparison(identity[:, :2], identity[:, :1])
+    assert comparison.angles.size == 1
+    assert comparison.angles[0] == pytest.approx(0.0, abs=1e-12)
+    assert not comparison.contained
+    assert comparison.containment_residual == pytest.approx(1.0, abs=1e-12)
+    assert comparison.operator_rank == 2 and comparison.determinant_rank == 1
+
+
+def test_rank_is_revealed_for_duplicated_columns():
+    """`[e1, e1, e2]` has rank 2, and an unpivoted QR diagonal says 1.
+
+    The R diagonal here is `[1, 0, 0]`, so a diagonal filter kept a single
+    column for a rank-2 span -- undercounting the operator basis, which is the
+    direction that manufactures false containment.
+    """
+    identity = np.eye(5, dtype=complex)
+    duplicated = np.column_stack([identity[:, 0], identity[:, 0], identity[:, 1]])
+    assert np.abs(np.diag(np.linalg.qr(duplicated)[1]))[1] < 1e-12
+
+    comparison = span_comparison(duplicated, identity[:, :1])
+    assert comparison.operator_rank == 2
+    assert not comparison.contained
+    assert containment_residual(duplicated, identity[:, :1]) == pytest.approx(
+        1.0, abs=1e-12)
+
+
+def test_containment_residual_is_directional():
+    """A into D and D into A are different questions, and must answer so."""
+    identity = np.eye(5, dtype=complex)
+    narrow, wide = identity[:, :1], identity[:, :3]
+    assert containment_residual(narrow, wide) == pytest.approx(0.0, abs=1e-12)
+    assert containment_residual(wide, narrow) == pytest.approx(1.0, abs=1e-12)
+
+
+def test_budget_below_the_seed_truncates_rather_than_overruns(sector_case):
+    """A budget-matched control that exceeds its budget is not matched."""
+    backend, operator, exact, _ = sector_case
+    sampled = _sample(backend, 5, seed=8)
+    control = run_control(operator, sampled, name="budget", kind="budget_matched",
+                          exact_energy=exact, max_determinants=3)
+    assert control.determinant_count == 3
+    assert control.metadata["seed_truncated"] == 2
+
+
+def test_nonzero_budget_binds_on_measured_nonzeros(sector_case):
+    """The budget is on the matrix that gets built, not on a sqrt() proxy."""
+    backend, operator, exact, _ = sector_case
+    sampled = _sample(backend, 5, seed=8)
+    for budget in (4, 12, 40):
+        control = run_control(operator, sampled, name="budget",
+                              kind="budget_matched", exact_energy=exact,
+                              max_nonzeros=budget)
+        assert control.matrix_nonzeros <= budget
+
+
+def test_nonzero_budget_takes_the_largest_prefix_that_fits(sector_case):
+    """Binding is not the same as being needlessly conservative."""
+    backend, operator, exact, _ = sector_case
+    sampled = _sample(backend, 6, seed=2)
+    budget = 30
+    control = run_control(operator, sampled, name="budget",
+                          kind="budget_matched", exact_energy=exact,
+                          max_nonzeros=budget)
+    assert control.matrix_nonzeros <= budget
+    # One more determinant of the same ranking must break the budget, or the
+    # search stopped early and the control is weaker than its budget allows.
+    grown = run_control(operator, sampled, name="grown", kind="budget_matched",
+                        exact_energy=exact,
+                        max_determinants=control.determinant_count + 1)
+    if grown.determinant_count > control.determinant_count:
+        assert grown.matrix_nonzeros > budget
+
+
+def test_timing_fields_name_the_phase_they_measure(sector_case):
+    """build/solve/variance are three phases, not two labels over three."""
+    backend, operator, exact, _ = sector_case
+    control = run_control(operator, _sample(backend, 6, seed=5), name="c",
+                          kind="qsci", exact_energy=exact)
+    record = control.to_record()
+    for key in ("build_seconds", "solve_seconds", "variance_seconds"):
+        assert key in record and record[key] >= 0.0
+
+
+def test_family_closure_control_beats_bare_qsci_without_saturating(hubbard_case):
+    """The corrected control on the sample size the PR originally reported.
+
+    At three sampled determinants the declared family reaches 15 of 36, so the
+    closure control is a real comparator rather than the whole sector. The
+    original PR text claimed Hubbard 2x2 was trivially matched by classical
+    closure; that claim rested on the per-determinant rule, not this one.
+    """
+    backend, operator, exact, model = hubbard_case
+    sampled = _sample(backend, 3, seed=4)
+    generators = determinant_excitations(model.n, occupied_spin_orbitals(model))
+    bare = run_control(operator, sampled, name="qsci", kind="qsci",
+                       exact_energy=exact)
+    closure = run_control(operator, sampled, name="family", kind="family_closure",
+                          generators=generators, exact_energy=exact)
+    assert closure.determinant_count == 15 < backend.dimension
+    assert closure.energy <= bare.energy + 1e-10
+    assert closure.error > 1e-3  # not saturated: still far from exact

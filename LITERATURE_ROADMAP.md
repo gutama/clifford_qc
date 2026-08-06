@@ -289,10 +289,29 @@ operators. Compute numerical ranks and principal angles.
 
 - Equal spans mean the operator form is a representation or measurement-cost
   choice, not a richer variational space.
-- A smaller operator-generated basis spanning a much larger determinant closure
-  is a valid compactness result.
+- A smaller operator rank means the operator family spans strictly *less* than
+  the closure. This is not by itself a compactness result and must not be
+  reported as one: a closure's columns are distinct determinants, hence
+  independent, so no smaller set of vectors spans a larger-dimensional space.
+  Compactness is an energy-at-matched-size claim against the controls above,
+  not a span property.
 - Directions outside the declared closure require an algebraic explanation and
   an independent check.
+
+The comparator must be the closure of the **declared generator family** — the
+determinants those operators actually reach — not a re-derivation of singles
+and doubles from each determinant's own occupancy. A fixed pool built relative
+to the reference annihilates many sampled determinants and moves different
+electrons in the rest, so the two differ badly: on the 2x2 Hubbard sector three
+sampled determinants reach 15 determinants under the pool and all 36 under the
+per-determinant rule. Against the larger comparator every operator direction is
+trivially contained and the diagnostic decides nothing.
+
+Containment is a directional question and principal angles alone cannot answer
+it: there are only `min(rank A, rank D)` of them, so a rank-2 operator span
+sharing one direction with a rank-1 closure yields the single angle `0` and
+reads as contained. Measure `||(I - Q_D Q_D^dagger) Q_A||` and require
+`rank(A) <= rank(D)`.
 
 **Go/no-go:** Phase 10 may claim a hybrid gain only after it beats or differs
 structurally from these controls.

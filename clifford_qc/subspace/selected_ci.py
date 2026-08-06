@@ -7,25 +7,36 @@ selected CI does classically and cheaply.  Without a control that expands the
 same determinant space by classical means, a hybrid gain and a re-derivation of
 selected CI are indistinguishable from the energy alone.
 
-Four controls over one sampled determinant set ``D``:
+Controls over one sampled determinant set ``D``:
 
 1. ``qsci`` -- diagonalize ``span(D)`` and nothing else;
-2. ``excitation_closure`` -- add every determinant reachable from ``D`` by the
-   same singles and doubles the operator dressing uses;
-3. ``selected_ci`` -- add determinants by a declared classical score, one pass;
-4. ``budget_matched`` -- the same score, stopped at a declared determinant count
-   or matrix-nonzero budget.
+2. ``family_closure`` -- add every determinant the *declared generator family*
+   actually reaches, which is §9's comparator;
+3. ``excitation_closure`` -- add every determinant reachable by re-deriving
+   singles and doubles from each determinant's own occupancy; a legitimate but
+   strictly larger classical control, not a substitute for (2);
+4. ``selected_ci`` -- add determinants by a declared classical score, one pass;
+5. ``budget_matched`` -- the same score, stopped at a declared determinant count
+   or measured matrix-nonzero budget.
 
-Controls 2-4 are strictly classical.  Every determinant they add is one a
+Controls 2-5 are strictly classical.  Every determinant they add is one a
 laptop could have found, so any advantage the hybrid claims has to survive
 them.
+
+Keeping (2) and (3) apart matters more than it looks.  A fixed pool built
+relative to the reference determinant annihilates many sampled determinants and
+moves different electrons in the rest, so its reach is far smaller: on the 2x2
+Hubbard sector three sampled determinants reach 15 under the pool and all 36
+under the per-determinant rule.  Feed the larger one to the span diagnostic and
+containment becomes nearly tautological -- everything is inside a comparator
+that is the whole sector.
 
 The span diagnostic answers the sharper question.  Operator-generated states
 ``A_mu|D_k>`` live *somewhere*; if that somewhere is inside the determinant
 closure of the same ``D_k``, the operator form is a representation and a
-measurement-cost choice, not a richer variational space.  Principal angles say
-which case holds, and a rank comparison says whether the operator basis is at
-least more compact.
+measurement-cost choice, not a richer variational space.  Containment is
+decided by :func:`containment_residual`, which is directional; principal angles
+are reported alongside but cannot decide it on their own.
 """
 
 from __future__ import annotations
@@ -42,7 +53,9 @@ from ..pauli_action import PauliLinearOperator
 __all__ = [
     "ControlResult",
     "SpanComparison",
+    "containment_residual",
     "excitation_closure",
+    "family_closure",
     "principal_angles",
     "run_control",
     "score_candidates",
@@ -109,6 +122,7 @@ class SpanComparison:
     angles: np.ndarray
     contained: bool
     max_angle: float
+    containment_residual: float
     operator_columns: int
     determinant_columns: int
 
@@ -119,6 +133,7 @@ class SpanComparison:
             "operator_columns": int(self.operator_columns),
             "determinant_columns": int(self.determinant_columns),
             "max_principal_angle": float(self.max_angle),
+            "containment_residual": float(self.containment_residual),
             "contained_in_closure": bool(self.contained),
             "principal_angles": [float(a) for a in self.angles],
         }
@@ -159,20 +174,28 @@ def _occupied_bits(word: int, n: int) -> list[int]:
 
 def excitation_closure(words, *, n: int, max_rank: int = 2,
                        conserve_sz: bool = True) -> np.ndarray:
-    """Every determinant reachable from ``words`` by singles and doubles.
+    """All spin-conserving singles and doubles applied to *each* determinant.
 
-    The classical control for operator dressing: the dressed family applies the
-    same singles and doubles as *operators*, so the determinants they can reach
-    are exactly this set.  Any direction the dressed family produces beyond this
-    span is the thing §9 asks to have explained.
+    A CISD-per-determinant closure, and deliberately **not** the closure of a
+    fixed generator pool.  The distinction is the whole point and it is easy to
+    lose: this routine re-derives excitations relative to every sampled
+    determinant's own occupancy, whereas a family such as
+    :func:`~clifford_qc.subspace.fermionic_generators.determinant_excitations`
+    is built once relative to the *reference* determinant and then applied
+    unchanged.  The two differ badly -- three sampled determinants of the 2x2
+    Hubbard sector reach 15 determinants under that fixed pool and all 36 under
+    this rule.
 
-    Mirrors the symmetry rule of
-    :func:`~clifford_qc.subspace.fermionic_generators.determinant_excitations`:
-    a single needs matching spins, and a double needs the same number of down
-    spins on each side.  The weaker parity test admits ``Delta S_z = +-2``
-    doubles, so the closure would then be larger than the operators justify --
-    and an oversized control makes the hybrid look better, which is the wrong
-    direction for a control to err in.
+    Use :func:`family_closure` for the §9 comparator, which asks for the
+    determinants reached by "the same singles/doubles used for operator
+    dressing".  This function is a legitimate but *stronger* classical control
+    -- larger space, better energy, harder for a hybrid to beat -- and it must
+    not be substituted for the family closure in the span diagnostic, where an
+    oversized comparator makes containment nearly tautological.
+
+    Mirrors the symmetry rule of ``determinant_excitations``: a single needs
+    matching spins, and a double needs the same number of down spins on each
+    side.  The weaker parity test admits ``Delta S_z = +-2`` doubles.
     """
     if max_rank not in (1, 2):
         raise ValueError("max_rank must be 1 or 2")
@@ -196,6 +219,57 @@ def excitation_closure(words, *, n: int, max_rank: int = 2,
                     continue
                 moved = word & ~(1 << (n - 1 - i)) & ~(1 << (n - 1 - j))
                 reached.add(moved | (1 << (n - 1 - a)) | (1 << (n - 1 - b)))
+    return np.array(sorted(reached), dtype=np.int64)
+
+
+def family_closure(words, generators, *, backend=None, n: int | None = None,
+                   tol: float = 1e-12) -> np.ndarray:
+    """Determinants a declared generator family actually reaches (§9 control 2).
+
+    The roadmap asks for "every unique determinant reached by the same
+    singles/doubles used for operator dressing", which is a property of the
+    *family*, not of a symmetry rule re-derived per determinant.  A fixed pool
+    built relative to the reference determinant annihilates many sampled
+    determinants and moves different electrons in the rest, so its reach is
+    generally far smaller than :func:`excitation_closure` -- and the span
+    diagnostic is only meaningful against this one.
+
+    Computed by applying each generator to each determinant and collecting
+    whatever acquires weight, so it inherits the generators' algebra instead of
+    re-encoding it.  ``backend`` selects sector mode (``words`` are occupation
+    words) and its absence selects full space (``words`` are basis indices,
+    ``n`` required).
+    """
+    words = np.asarray(words, dtype=np.int64).reshape(-1)
+    if words.size == 0:
+        raise ValueError("cannot close an empty determinant set")
+    generators = list(generators)
+    if not generators:
+        raise ValueError("a family closure needs at least one generator")
+
+    if backend is not None:
+        positions = np.searchsorted(backend.basis, words)
+        safe = np.where(positions < backend.basis.size, positions, 0)
+        if not np.array_equal(backend.basis[safe], words):
+            raise ValueError("determinants are not in this sector's basis")
+        dimension, labels = backend.dimension, backend.basis
+        compile_one = lambda mv: backend.operator(mv, validate_sector=False)
+        seeds = safe
+    else:
+        if n is None:
+            raise ValueError("full-space closure needs the qubit count n")
+        dimension, labels = 2 ** n, None
+        compile_one = PauliLinearOperator
+        seeds = words
+
+    reached = set(words.tolist())
+    for generator in generators:
+        compiled = compile_one(getattr(generator, "mv", generator))
+        for index in seeds:
+            probe = np.zeros(dimension, dtype=complex)
+            probe[index] = 1.0
+            hit = np.flatnonzero(np.abs(compiled.matvec(probe)) > tol)
+            reached.update((labels[hit] if labels is not None else hit).tolist())
     return np.array(sorted(reached), dtype=np.int64)
 
 
@@ -317,11 +391,14 @@ def run_control(operator, sampled, *, name: str, kind: str, n: int | None = None
                 max_nonzeros: int | None = None,
                 score: str = "epstein_nesbet",
                 diagonal: np.ndarray | None = None,
-                max_rank: int = 2, conserve_sz: bool = True) -> ControlResult:
+                max_rank: int = 2, conserve_sz: bool = True,
+                generators=None) -> ControlResult:
     """One Phase 9 control over a sampled determinant set.
 
-    ``kind`` is one of ``qsci``, ``excitation_closure``, ``selected_ci``, or
-    ``budget_matched``.  ``sampled`` are indices into the operator's own space
+    ``kind`` is one of ``qsci``, ``family_closure``, ``excitation_closure``,
+    ``selected_ci``, or ``budget_matched``.  ``family_closure`` requires
+    ``generators`` -- it measures a declared family's reach, and there is no
+    such thing without the family.  ``sampled`` are indices into the operator's own space
     -- sector positions for a :class:`SectorOperator`, computational-basis words
     for a :class:`PauliLinearOperator` -- exactly as the QSCI arm returns them.
 
@@ -340,6 +417,29 @@ def run_control(operator, sampled, *, name: str, kind: str, n: int | None = None
 
     if kind == "qsci":
         indices = np.unique(sampled)
+    elif kind == "family_closure":
+        if generators is None:
+            raise ValueError("family_closure needs the generator family whose "
+                             "reach it is meant to measure; without it there is "
+                             "no declared family to close over")
+        base = np.unique(sampled)
+        if basis is None:
+            if n is None:
+                raise ValueError("full-space closure needs the qubit count n")
+            reached = family_closure(base, generators, n=n)
+            indices = np.unique(reached)
+        else:
+            reached = family_closure(basis[base], generators,
+                                     backend=operator.backend)
+            positions = np.searchsorted(basis, reached)
+            safe = np.where(positions < basis.size, positions, 0)
+            if not np.array_equal(basis[safe], reached):
+                raise ValueError("the generator family left the sector; its "
+                                 "reach and the sector disagree")
+            indices = np.unique(safe)
+        work = int(len(list(generators)) * base.size)
+        metadata["closure_added"] = int(indices.size - base.size)
+        metadata["generators"] = int(len(list(generators)))
     elif kind == "excitation_closure":
         if basis is None:
             if n is None:
@@ -370,42 +470,106 @@ def run_control(operator, sampled, *, name: str, kind: str, n: int | None = None
                              "max_nonzeros; without a declared budget it is "
                              "the unbudgeted control under another name")
         base = np.unique(sampled)
-        _, seed_vector, _ = _solve(operator, base)
-        seed_energy = float(np.linalg.eigvalsh(operator.restrict(base))[0])
+        seed_energy, seed_vector, _ = _solve(operator, base)
         candidates, values, work = score_candidates(
             operator, base, seed_vector, energy=seed_energy, score=score,
             diagonal=diagonal)
-        budget = max_determinants
-        if budget is None and max_nonzeros is not None:
-            # Nonzeros are bounded by M^2, so the largest M that can satisfy a
-            # nonzero budget is its square root. Reported as the derived figure
-            # it is, rather than presented as an independent budget.
-            budget = max(base.size, int(np.floor(np.sqrt(max_nonzeros))))
-            metadata["budget_from_nonzeros"] = int(max_nonzeros)
-        if budget is None:
-            budget = base.size + int((values > 0).sum())
-        take = max(0, int(budget) - int(base.size))
-        indices = np.unique(np.concatenate([base, candidates[:take]]))
-        metadata.update({"score": score, "selected_added": int(take),
+        # One priority order over seed *and* candidates. The seed is ranked by
+        # Ritz weight so that a budget below the seed size truncates the least
+        # important determinants rather than silently overrunning -- a
+        # budget-matched control that exceeds its budget is not matched.
+        seed_order = base[np.argsort(-np.abs(seed_vector))]
+        ranked = np.concatenate([seed_order, candidates])
+        limit = ranked.size if max_determinants is None else int(max_determinants)
+        limit = max(1, min(limit, ranked.size))
+        if max_nonzeros is not None:
+            # Actual Hamiltonian nonzeros, not a floor(sqrt(budget)) proxy for
+            # them. Adding a determinant adds a row and a column and changes no
+            # existing entry, so nonzeros are monotone in the prefix length and
+            # the largest admissible prefix is a binary search.
+            low, high = 1, limit
+            while low < high:
+                middle = (low + high + 1) // 2
+                if np.count_nonzero(
+                        operator.restrict(np.unique(ranked[:middle]))) <= max_nonzeros:
+                    low = middle
+                else:
+                    high = middle - 1
+            limit = low
+            metadata["nonzero_budget"] = int(max_nonzeros)
+        indices = np.unique(ranked[:limit])
+        metadata.update({"score": score,
+                         "selected_added": int(max(0, limit - base.size)),
+                         "seed_truncated": int(max(0, base.size - limit)),
                          "candidates_scored": int(work)})
     else:
-        raise ValueError("kind must be qsci, excitation_closure, selected_ci, "
-                         "or budget_matched")
+        raise ValueError("kind must be qsci, family_closure, "
+                         "excitation_closure, selected_ci, or budget_matched")
 
-    energy, vector, matrix = _solve(operator, indices)
+    # Three phases, three clocks. Folding the eigensolve into `build_seconds`
+    # and then naming the variance matvec `solve_seconds` would put the
+    # diagonalization cost under the wrong heading in every comparison the
+    # controls exist to support.
+    matrix = operator.restrict(indices)
     build_seconds = time.perf_counter() - start
+
     solve_start = time.perf_counter()
-    variance = _variance(operator, indices, vector, energy, dimension)
+    values, vectors = np.linalg.eigh(0.5 * (matrix + matrix.conj().T))
+    energy, vector = float(values[0]), vectors[:, 0]
     solve_seconds = time.perf_counter() - solve_start
 
-    if max_nonzeros is not None:
-        metadata["nonzero_budget"] = int(max_nonzeros)
+    variance_start = time.perf_counter()
+    variance = _variance(operator, indices, vector, energy, dimension)
+    metadata["variance_seconds"] = time.perf_counter() - variance_start
+
     return ControlResult(
         name=name, determinants=indices, energy=energy, variance=variance,
         matrix_nonzeros=int(np.count_nonzero(matrix)),
         matrix_bytes=int(matrix.nbytes), selection_work=work,
         build_seconds=build_seconds, solve_seconds=solve_seconds,
         exact_energy=exact_energy, metadata=metadata)
+
+
+def _orthonormal(matrix, tol: float) -> np.ndarray:
+    """Rank-revealing orthonormal basis of a column span, by SVD.
+
+    Not by the diagonal of an unpivoted QR.  That test is not rank revealing
+    and fails on ordinary inputs: for columns ``[e1, e1, e2]`` the R diagonal is
+    ``[1, 0, 0]``, so a diagonal filter keeps one column for a span of rank two
+    -- and a span diagnostic that silently under-counts the operator basis will
+    report containment that is not there.
+    """
+    matrix = np.asarray(matrix, dtype=complex)
+    if matrix.ndim != 2 or matrix.shape[1] == 0:
+        raise ValueError("each subspace needs at least one column")
+    left, singular, _ = np.linalg.svd(matrix, full_matrices=False)
+    keep = singular > tol * max(1.0, float(singular.max()))
+    if not keep.any():
+        raise ValueError("subspace collapsed to rank zero at this tolerance")
+    return left[:, keep]
+
+
+def containment_residual(operator_basis, determinant_basis, *,
+                         tol: float = 1e-10) -> float:
+    """``max_{a in span(A), |a|=1} dist(a, span(D))`` -- the containment measure.
+
+    The quantity the §9 go/no-go actually needs, and the one principal angles
+    cannot supply on their own: there are only ``min(rank A, rank D)`` of them,
+    so an operator span of rank 2 sharing a single direction with a rank-1
+    closure yields the single angle ``[0]`` and reads as contained while a whole
+    direction sits outside.
+
+    Computed as the largest singular value of ``(I - Q_D Q_D^H) Q_A``, which is
+    the sine of the largest principal angle *of A into D* and is 1 whenever
+    ``rank A > rank D``.  Directional by construction, where principal angles
+    are symmetric.
+    """
+    q_operator = _orthonormal(operator_basis, tol)
+    q_determinant = _orthonormal(determinant_basis, tol)
+    if q_operator.shape[0] != q_determinant.shape[0]:
+        raise ValueError("subspaces live in different ambient dimensions")
+    residual = q_operator - q_determinant @ (q_determinant.conj().T @ q_operator)
+    return float(np.linalg.svd(residual, compute_uv=False).max())
 
 
 def principal_angles(first: np.ndarray, second: np.ndarray, *,
@@ -427,17 +591,7 @@ def principal_angles(first: np.ndarray, second: np.ndarray, *,
     zero; the Knyazev-Argentati hybrid below switches to the cosine route past
     ``pi/4`` where the roles reverse.
     """
-    def orthonormal(matrix: np.ndarray) -> np.ndarray:
-        matrix = np.asarray(matrix, dtype=complex)
-        if matrix.ndim != 2 or matrix.shape[1] == 0:
-            raise ValueError("each subspace needs at least one column")
-        q, r = np.linalg.qr(matrix)
-        keep = np.abs(np.diag(r)) > tol * max(1.0, float(np.abs(r).max()))
-        if not keep.any():
-            raise ValueError("subspace collapsed to rank zero at this tolerance")
-        return q[:, keep]
-
-    q_first, q_second = orthonormal(first), orthonormal(second)
+    q_first, q_second = _orthonormal(first, tol), _orthonormal(second, tol)
     if q_first.shape[0] != q_second.shape[0]:
         raise ValueError("subspaces live in different ambient dimensions")
 
@@ -470,16 +624,21 @@ def span_comparison(operator_basis: np.ndarray, determinant_basis: np.ndarray,
     operator_basis = np.asarray(operator_basis, dtype=complex)
     determinant_basis = np.asarray(determinant_basis, dtype=complex)
     angles = principal_angles(operator_basis, determinant_basis, tol=tol)
-    operator_rank = int(np.linalg.matrix_rank(operator_basis, tol=tol))
-    determinant_rank = int(np.linalg.matrix_rank(determinant_basis, tol=tol))
-    # Containment asks about the operator span's own directions, so the test
-    # runs over its first `operator_rank` angles: extra angles only exist
-    # because the closure is larger, and counting them would report every
-    # genuinely contained operator basis as escaping.
-    relevant = angles[:operator_rank] if operator_rank else angles
-    max_angle = float(relevant.max()) if relevant.size else 0.0
+    # Ranks from the same rank-revealing basis the residual uses, so the three
+    # numbers on the record cannot disagree with each other.
+    operator_rank = int(_orthonormal(operator_basis, tol).shape[1])
+    determinant_rank = int(_orthonormal(determinant_basis, tol).shape[1])
+    residual = containment_residual(operator_basis, determinant_basis, tol=tol)
+    # Containment is decided on the directional residual, never on the angle
+    # list: a rank-2 operator span sharing one direction with a rank-1 closure
+    # produces exactly one angle, [0], and would otherwise read as contained.
+    # The rank guard is redundant against the residual and kept because it
+    # fails loudly for the same reason rather than silently.
+    contained = bool(residual < 1e-7 and operator_rank <= determinant_rank)
+    max_angle = float(angles.max()) if angles.size else 0.0
     return SpanComparison(
         operator_rank=operator_rank, determinant_rank=determinant_rank,
-        angles=angles, contained=bool(max_angle < 1e-7), max_angle=max_angle,
+        angles=angles, contained=contained, max_angle=max_angle,
+        containment_residual=residual,
         operator_columns=int(operator_basis.shape[1]),
         determinant_columns=int(determinant_basis.shape[1]))
