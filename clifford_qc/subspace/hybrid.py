@@ -49,7 +49,7 @@ from .adaptive import run_acase
 from .configuration import configuration_generator, configuration_haar_packets
 from .elements import MatrixElementBank
 from .generator_core import Generator, as_generators
-from .generators import commutator_response, compound_response
+from .generators import commutator_response, compound_response, identity_generator
 from .fermionic_generators import determinant_excitations, occupied_spin_orbitals
 
 __all__ = [
@@ -338,7 +338,20 @@ def run_hybrid(rho, model, words, *, max_size: int = 12,
     two directions against a dressed arm that used all five is not a
     matched-size comparison, whatever the energies say.
     """
-    configurations = configuration_generators_from_words(model, words)
+    words_array = np.asarray(words, dtype=np.int64).reshape(-1)
+    if words_array.size == 0:
+        raise ValueError("cannot run the hybrid from no sampled words")
+    reference_occupancy = frozenset(occupied_spin_orbitals(model))
+    reference_sampled = any(
+        frozenset(_occupied(int(word), model.n)) == reference_occupancy
+        for word in words_array.tolist())
+    nonreference = [
+        int(word) for word in words_array.tolist()
+        if frozenset(_occupied(int(word), model.n)) != reference_occupancy
+    ]
+    configurations = (
+        configuration_generators_from_words(model, words_array)
+        if nonreference else [])
     # A-CASE seeds the identity when no `initial` is given, and the identity
     # direction *is* the reference determinant. QSCI sampling does not
     # guarantee the reference was observed, so seeding it unconditionally puts
@@ -346,27 +359,34 @@ def run_hybrid(rho, model, words, *, max_size: int = 12,
     # baseline -- and on a one-determinant sample the arm came back spanning
     # only that unsampled reference. Seed the identity exactly when the
     # reference was sampled, and otherwise start from a sampled direction.
-    reference_occupancy = frozenset(occupied_spin_orbitals(model))
-    reference_sampled = any(
-        frozenset(_occupied(int(word), model.n)) == reference_occupancy
-        for word in np.asarray(words, dtype=np.int64).reshape(-1).tolist())
     seed = None if reference_sampled else [configurations[0]]
     sampling_note = {"reference_sampled": bool(reference_sampled),
-                     "sampled_words": int(np.unique(words).size)}
+                     "sampled_words": int(np.unique(words_array).size)}
+    family_configurations = list(configurations)
+    if reference_sampled:
+        family_configurations.insert(0, identity_generator(model.n))
     if family is None:
-        family = dressed_family(configurations, model, kind=kind,
+        family = dressed_family(family_configurations, model, kind=kind,
                                 hamiltonian=model.hamiltonian,
                                 max_support=max_support,
                                 max_generators=max_generators)
-    packets = configuration_haar_packets(
-        configurations, max_support=max_packet_support, label_prefix="cfgH")
+    packets = (
+        configuration_haar_packets(
+            configurations, max_support=max_packet_support, label_prefix="cfgH")
+        if configurations else [])
     common = dict(exact_ground_energy=exact_energy, gamma=gamma,
                   leakage_tol=leakage_tol)
     dressed_pool = list(configurations) + list(family.generators)
     arms = []
 
     started = time.perf_counter()
-    if seed is not None and len(configurations) == 1:
+    if reference_sampled and not configurations:
+        arms.append(_fixed_basis_arm(
+            "bare_configurations", rho, model.hamiltonian,
+            [identity_generator(model.n)],
+            exact_energy=exact_energy, seconds=time.perf_counter() - started,
+            metadata={"family": None, **sampling_note}))
+    elif seed is not None and len(configurations) == 1:
         arms.append(_fixed_basis_arm(
             "bare_configurations", rho, model.hamiltonian, configurations,
             exact_energy=exact_energy, seconds=time.perf_counter() - started,
