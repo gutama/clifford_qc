@@ -40,6 +40,8 @@ TINY_CONFIG = {
         "acase_certified": {"kind": "acase_certified", "max_size": 1,
                             "construction_shots": 200, "certification_shots": 200,
                             "threshold": 0.05, "family": "acase"},
+        "qsci_reference": {"kind": "qsci", "input": "reference", "shots": 64,
+                           "family": "qsci"},
     },
     "ladder": [
         {"name": "tfim4", "rung": 1, "system": {"type": "tfim", "n": 4},
@@ -49,7 +51,7 @@ TINY_CONFIG = {
         {"name": "hubbard_1x2", "rung": 2,
          "system": {"type": "hubbard", "shape": 2},
          "methods": ["exact", "reference_state", "generator_coordinate",
-                     "acase_exact", "acase_states"]},
+                     "acase_exact", "acase_states", "qsci_reference"]},
     ],
 }
 
@@ -68,7 +70,7 @@ def ladder(tmp_path_factory):
 
 def test_every_method_produces_a_row_with_the_required_fields(ladder):
     _, _, rows = ladder
-    assert len(rows) == 8 + 5
+    assert len(rows) == 9 + 5
     for row in rows:
         assert {"system", "rung", "rung_name", "n", "method", "family", "evidence",
                 "energy", "reference_energy", "error", "relative_error",
@@ -116,6 +118,14 @@ def test_finite_shot_rows_carry_shots_circuits_and_abstentions(ladder):
         row = next(r for r in rows if r["method"] == method)
         assert row.get("total_shots", 0) == 0
 
+    qsci = next(r for r in rows if r["method"] == "qsci_reference")
+    assert qsci["evidence"] == "finite_sample"
+    assert qsci["sampling_source"] == "exact_probabilities"
+    assert qsci["raw_shots"] == 64
+    assert qsci["state_preparations"] == 1
+    assert qsci["state_preparation_executions"] == 64
+    assert qsci["peak_rss_bytes"] is None or qsci["peak_rss_bytes"] > 0
+
 
 def test_lattice_rungs_report_projected_observables(ladder):
     """The Hubbard rung's observables come through the §8 route for A-CASE rows
@@ -156,6 +166,31 @@ def test_summarizer_is_deterministic_and_reports_the_evidence(ladder):
     header = csv_path.read_text().splitlines()[0]
     assert header.startswith("rung,system,n,method,evidence,energy,error")
     assert len(csv_path.read_text().splitlines()) == len(rows) + 1
+
+
+def test_oracle_and_reference_qsci_cannot_enter_competitive_summary():
+    """Validation/control rows stay visible without becoming method claims."""
+    base = {"system": "toy", "rung": 1, "rung_name": "toy", "n": 2,
+            "energy": -1.0, "reference_energy": -1.0, "error": 0.0,
+            "chemical_accuracy": True, "basis_size": 1, "family": "qsci",
+            "evidence": "finite_sample"}
+    rows = [
+        base | {"method": "reference_state", "family": "reference",
+                "evidence": "exact"},
+        base | {"method": "qsci_reference", "input_category": "implementable",
+                "sampling_state": "reference_determinant"},
+        base | {"method": "qsci_oracle", "input_category": "oracle",
+                "sampling_state": "exact_ground_oracle"},
+        base | {"method": "real_method", "family": "fixed", "evidence": "exact",
+                "basis_size": 3},
+    ]
+    report = summarize_ladder.markdown(rows)
+    claim = report.split("### Reached chemical accuracy", 1)[1].split(
+        "### Sampled subspaces", 1)[0]
+    assert "real_method" in claim
+    assert "qsci_reference" not in claim
+    assert "qsci_oracle" not in claim
+    assert "most compact exact-arithmetic" in claim
 
 
 def test_the_fermionic_leakage_filter_is_not_applied_to_a_spin_model():
