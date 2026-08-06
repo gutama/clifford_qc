@@ -136,6 +136,52 @@ class PauliLinearOperator:
         return LinearOperator(self.shape, matvec=self.matvec, matmat=self.matmat,
                               dtype=complex)
 
+    def restrict(self, indices) -> np.ndarray:
+        """Exact ``H[I, I]`` on a declared set of full-space basis words.
+
+        This is the sampled-subspace projection of ``LITERATURE_ROADMAP.md``
+        §8B for models with no particle-number sector -- the spin arm.  It is a
+        row/column restriction of the same compiled action the matvec uses, not
+        a second Hamiltonian builder: whatever the word list means, the
+        restricted matrix inherits it.
+
+        ``indices`` are computational-basis words in the bit order of
+        :func:`word_masks`.  Order is the caller's; the returned matrix is in
+        that order, and permuting it similarity-transforms the matrix, so no
+        eigenvalue moves.
+        """
+        indices = np.asarray(indices, dtype=np.int64).reshape(-1)
+        if indices.size == 0:
+            raise ValueError("cannot restrict to an empty index set")
+        if indices.min() < 0 or indices.max() >= self.dimension:
+            raise ValueError(f"indices must lie in [0, {self.dimension})")
+        if np.unique(indices).size != indices.size:
+            raise ValueError("restriction indices must be distinct")
+        # Membership is resolved by binary search on a sorted copy rather than
+        # by a 2^n lookup table.  The table would be the obvious way to write
+        # this and costs O(2^n) scratch on top of the caller's O(M^2) result;
+        # `order` carries the caller's ordering back through the sort, so the
+        # returned matrix is still in the order they asked for.
+        order = np.argsort(indices)
+        ascending = indices[order]
+        rows_all = np.arange(indices.size, dtype=np.int64)
+        out = np.zeros((indices.size, indices.size), dtype=complex)
+        for x_mask, entries in self._groups:
+            # Row `t` of the restricted matrix draws from the single source
+            # `t xor x`; keep the pair only when both ends were sampled.
+            sources = indices ^ x_mask
+            slot = np.searchsorted(ascending, sources)
+            safe = np.where(slot < indices.size, slot, 0)
+            keep = ascending[safe] == sources
+            if not keep.any():
+                continue
+            rows = rows_all[keep]
+            live_sources, live_columns = sources[keep], order[safe[keep]]
+            for z_mask, phase in entries:
+                signs = 1.0 - 2.0 * parity(live_sources, z_mask)
+                np.add.at(out, (rows, live_columns), phase * signs)
+        return out
+
     def memory_estimate(self) -> dict[str, int]:
         """Persistent numeric storage, excluding Python-container overhead."""
         return {

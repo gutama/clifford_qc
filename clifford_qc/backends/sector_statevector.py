@@ -276,6 +276,46 @@ class SectorOperator:
             raise ValueError("cannot take the expectation of a zero state")
         return complex(np.vdot(psi, self.matvec(psi))) / norm
 
+    def restrict(self, indices) -> np.ndarray:
+        """Exact ``H[I, I]`` on a declared set of *sector* indices.
+
+        The sampled-subspace projection of ``LITERATURE_ROADMAP.md`` §8B. It
+        reuses the compiled gather-scatter passes rather than deriving
+        Slater-Condon rules: the restricted matrix is a submatrix of the
+        operator the sector tests already validate, so it inherits that
+        validation instead of needing its own.
+
+        ``indices`` index ``self.backend.basis``, not occupation words -- use
+        ``backend.index_of`` to convert.  Selecting the whole sector returns the
+        full sector matrix, and permuting ``indices`` permutes rows and columns
+        together, so the spectrum is order-independent.
+        """
+        indices = np.asarray(indices, dtype=np.int64).reshape(-1)
+        if indices.size == 0:
+            raise ValueError("cannot restrict to an empty index set")
+        if indices.min() < 0 or indices.max() >= self.dimension:
+            raise ValueError(f"indices must lie in [0, {self.dimension})")
+        if np.unique(indices).size != indices.size:
+            raise ValueError("restriction indices must be distinct")
+        position = np.full(self.dimension, -1, dtype=np.int64)
+        position[indices] = np.arange(indices.size, dtype=np.int64)
+        out = np.zeros((indices.size, indices.size), dtype=complex)
+        passes = (self._passes if self._passes is not None
+                  else (self._build_pass(x_mask, entries)
+                        for x_mask, entries in self._groups))
+        for pass_ in passes:
+            if pass_ is None:
+                continue
+            source, target, coefficients = pass_
+            rows, columns = position[target], position[source]
+            keep = (rows >= 0) & (columns >= 0)
+            if not keep.any():
+                continue
+            # Targets are unique within a pass, but two passes can hit the same
+            # entry, so the accumulation has to be unbuffered.
+            np.add.at(out, (rows[keep], columns[keep]), coefficients[keep])
+        return out
+
     def as_linear_operator(self):
         from scipy.sparse.linalg import LinearOperator
 

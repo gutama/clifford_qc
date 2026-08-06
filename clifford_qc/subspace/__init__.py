@@ -54,8 +54,14 @@ from .solver import (
     canonical_eigh, projected_matrices, solve_projected, solve_subspace,
 )
 from .projection import ProjectedProblem
+from .qsci import (
+    QSCIResult, SamplingRecord, recover_configurations, run_qsci,
+    sample_configurations,
+)
 
 __all__ = [
+    "QSCIResult", "SamplingRecord", "recover_configurations", "run_qsci",
+    "sample_configurations",
     "ACASEConfig", "ACASEState", "ACASEStepOutcome", "AdaptiveResult",
     "CandidateScore", "GrowthRecord", "adapt_warm_start", "acase_step",
     "run_acase", "score_candidate", "sector_leakage", "select_candidate",
