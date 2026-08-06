@@ -73,8 +73,8 @@
 | 6 | kitaev(2x2,K=1.0,1.0,1.0,obc) | 8 | acase_exact | exact | -4.96238861 | +8.12e-13 | yes | 6 | - | 140 | 76 | 6 | 3.83e+04 | - | - | - |
 | 6 | kitaev(2x2,K=1.0,1.0,1.0,obc) | 8 | acase_certified_n8 | finite_sample | -4.84272921 | +1.20e-01 | no | 2 | - | 47 | 28 | 2 | 1.97e+01 | 151,296,000 | 4,728 | 1 |
 | 1 | h2(r=0.7414) | 4 | qsci_reference | finite_sample | -1.11668439 | +2.06e-02 | no | 1 | - | 0 | - | - | - | - | - | - |
-| 1 | h2(r=0.7414) | 4 | qsci_adapt | finite_sample | -1.13727017 | -2.22e-15 | yes | 2 | - | 0 | - | - | - | - | - | - |
-| 1 | h2(r=0.7414) | 4 | qsci_oracle | finite_sample | -1.13727017 | -2.22e-15 | yes | 2 | - | 0 | - | - | - | - | - | - |
+| 1 | h2(r=0.7414) | 4 | qsci_adapt | finite_sample | -1.13727017 | -5.77e-15 | yes | 2 | - | 0 | - | - | - | - | - | - |
+| 1 | h2(r=0.7414) | 4 | qsci_oracle | finite_sample | -1.13727017 | -5.77e-15 | yes | 2 | - | 0 | - | - | - | - | - | - |
 | 1 | lih(r=1.5949) | 4 | qsci_reference | finite_sample | -7.86202696 | +2.62e-04 | yes | 1 | - | 0 | - | - | - | - | - | - |
 | 1 | lih(r=1.5949) | 4 | qsci_adapt | finite_sample | -7.86227425 | +1.43e-05 | yes | 2 | - | 0 | - | - | - | - | - | - |
 | 1 | lih(r=1.5949) | 4 | qsci_oracle | finite_sample | -7.86227425 | +1.43e-05 | yes | 2 | - | 0 | - | - | - | - | - | - |
@@ -86,12 +86,12 @@
 | 2 | h4_chain(r=1.8) | 8 | qsci_oracle | finite_sample | -1.92436268 | +6.80e-05 | yes | 18 | - | 0 | - | - | - | - | - | - |
 | 5 | hubbard(2x2,t=1.0,U=4.0,obc) | 8 | qsci_reference | finite_sample | -8.00000000 | +2.10e+00 | no | 1 | - | 0 | - | - | - | - | - | - |
 | 5 | hubbard(2x2,t=1.0,U=4.0,obc) | 8 | qsci_adapt | finite_sample | -9.29575466 | +8.07e-01 | no | 12 | - | 0 | - | - | - | - | - | - |
-| 5 | hubbard(2x2,t=1.0,U=4.0,obc) | 8 | qsci_oracle | finite_sample | -10.10274848 | -4.62e-14 | yes | 26 | - | 0 | - | - | - | - | - | - |
+| 5 | hubbard(2x2,t=1.0,U=4.0,obc) | 8 | qsci_oracle | finite_sample | -10.10274848 | -9.95e-14 | yes | 26 | - | 0 | - | - | - | - | - | - |
 | 5 | hubbard(2x3,t=1.0,U=4.0,obc) | 12 | qsci_reference | finite_sample | -12.00000000 | +3.62e+00 | no | 1 | - | 0 | - | - | - | - | - | - |
 | 5 | hubbard(2x3,t=1.0,U=4.0,obc) | 12 | qsci_oracle | finite_sample | -15.49366281 | +1.26e-01 | no | 282 | - | 0 | - | - | - | - | - | - |
 | 6 | kitaev(2x2,K=1.0,1.0,1.0,obc) | 8 | qsci_reference | finite_sample | -4.00000000 | +9.62e-01 | no | 1 | - | 0 | - | - | - | - | - | - |
 | 6 | kitaev(2x2,K=1.0,1.0,1.0,obc) | 8 | qsci_adapt | finite_sample | -4.00000000 | +9.62e-01 | no | 1 | - | 0 | - | - | - | - | - | - |
-| 6 | kitaev(2x2,K=1.0,1.0,1.0,obc) | 8 | qsci_oracle | finite_sample | -4.96238861 | -2.49e-14 | yes | 93 | - | 0 | - | - | - | - | - | - |
+| 6 | kitaev(2x2,K=1.0,1.0,1.0,obc) | 8 | qsci_oracle | finite_sample | -4.96238861 | -8.88e-16 | yes | 87 | - | 0 | - | - | - | - | - | - |
 
 ### Reached chemical accuracy (1.6 mHa) against the sector reference
 
@@ -111,34 +111,32 @@
 
 | rung | input | input_cat | sample_ev | mode | M | error | draws | unique | dup | discard | kept_p | prep_states | prep_exec | W | nnz | bytes | build_s | solve_s | peak_rss | rss_delta |
 |---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
-| h2 | reference_determinant | implementable | finite_sample | sector | 1 | +2.06e-02 | 4096 | 1 | 0.9998 | 0 | 1 | 1 | - | 0 | 1 | 16 | 0.0001256 | 6.541e-05 | - | - |
-| h2 | adapt_vqe | implementable | finite_sample | sector | 2 | -2.22e-15 | 4096 | 2 | 0.9995 | 0 | 1 | 1 | - | 0 | 4 | 64 | 7.501e-05 | 4.524e-05 | - | - |
-| h2 | exact_ground_oracle | oracle | finite_sample | sector | 2 | -2.22e-15 | 4096 | 2 | 0.9995 | 0 | 1 | - | - | 0 | 4 | 64 | 6.101e-05 | 3.801e-05 | - | - |
-| lih_2e2o | reference_determinant | implementable | finite_sample | sector | 1 | +2.62e-04 | 4096 | 1 | 0.9998 | 0 | 1 | 1 | - | 0 | 1 | 16 | 0.0001618 | 6.78e-05 | - | - |
-| lih_2e2o | adapt_vqe | implementable | finite_sample | sector | 2 | +1.43e-05 | 4096 | 2 | 0.9995 | 0 | 0.9999 | 1 | - | 0 | 4 | 64 | 0.000145 | 6.3e-05 | - | - |
-| lih_2e2o | exact_ground_oracle | oracle | finite_sample | sector | 2 | +1.43e-05 | 4096 | 2 | 0.9995 | 0 | 0.9999 | - | - | 0 | 4 | 64 | 0.0001506 | 5.586e-05 | - | - |
-| h4_equilibrium | reference_determinant | implementable | finite_sample | sector | 1 | +5.61e-02 | 4096 | 1 | 0.9998 | 0 | 1 | 1 | - | 0 | 1 | 16 | 0.0001899 | 4.588e-05 | - | - |
-| h4_equilibrium | adapt_vqe | implementable | finite_sample | post_selected | 5 | +1.38e-02 | 4096 | 5 | 0.9988 | 0 | 0.9995 | 1 | - | 0 | 21 | 400 | 0.000218 | 6.739e-05 | - | - |
-| h4_equilibrium | exact_ground_oracle | oracle | finite_sample | sector | 13 | +1.20e-04 | 4096 | 13 | 0.9968 | 0 | 0.9999 | - | - | 0 | 149 | 2704 | 0.0002456 | 6.386e-05 | - | - |
-| h4_stretched | reference_determinant | implementable | finite_sample | sector | 1 | +2.58e-01 | 4096 | 1 | 0.9998 | 0 | 1 | 1 | - | 0 | 1 | 16 | 0.0002074 | 4.234e-05 | - | - |
-| h4_stretched | adapt_vqe | implementable | finite_sample | post_selected | 6 | +1.38e-02 | 4096 | 6 | 0.9984 | 0.06055 | 0.9361 | 1 | - | 0 | 30 | 576 | 0.0002126 | 6.076e-05 | - | - |
-| h4_stretched | exact_ground_oracle | oracle | finite_sample | sector | 18 | +6.80e-05 | 4096 | 18 | 0.9956 | 0 | 0.9998 | - | - | 0 | 260 | 5184 | 0.0002636 | 8.527e-05 | - | - |
-| hubbard_2x2 | reference_determinant | implementable | finite_sample | sector | 1 | +2.10e+00 | 4096 | 1 | 0.9998 | 0 | 1 | 1 | - | 0 | 1 | 16 | 9.076e-05 | 4.041e-05 | - | - |
-| hubbard_2x2 | adapt_vqe | implementable | finite_sample | sector | 12 | +8.07e-01 | 4096 | 12 | 0.9971 | 0 | 0.9991 | 1 | - | 0 | 46 | 2304 | 0.0001323 | 7.157e-05 | - | - |
-| hubbard_2x2 | exact_ground_oracle | oracle | finite_sample | sector | 26 | -4.62e-14 | 4096 | 26 | 0.9937 | 0 | 1 | - | - | 0 | 118 | 10816 | 0.0001185 | 8.026e-05 | - | - |
-| hubbard_2x3 | reference_determinant | implementable | finite_sample | sector | 1 | +3.62e+00 | 4096 | 1 | 0.9998 | 0 | 1 | 1 | - | 0 | 1 | 16 | 0.0001781 | 6.739e-05 | - | - |
-| hubbard_2x3 | exact_ground_oracle | oracle | finite_sample | sector | 282 | +1.26e-01 | 4096 | 282 | 0.9312 | 0 | 0.9838 | - | - | 0 | 2178 | 1272384 | 0.01663 | 1.826 | - | - |
-| kitaev_2x2 | reference_determinant | implementable | finite_sample | full_space | 1 | +9.62e-01 | 4096 | 1 | 0.9998 | 0 | 1 | 1 | - | 0 | 1 | 16 | 0.0001752 | 4.158e-05 | - | - |
-| kitaev_2x2 | adapt_vqe | implementable | finite_sample | full_space | 1 | +9.62e-01 | 4096 | 1 | 0.9998 | 0 | 1 | 1 | - | 0 | 1 | 16 | 0.000172 | 3.666e-05 | - | - |
-| kitaev_2x2 | exact_ground_oracle | oracle | finite_sample | full_space | 93 | -2.49e-14 | 4096 | 93 | 0.9773 | 0 | 0.9993 | - | - | 0 | 260 | 138384 | 0.0003812 | 0.01515 | - | - |
+| h2 | reference_determinant | implementable | finite_sample | sector | 1 | +2.06e-02 | 4096 | 1 | 0.9998 | 0 | 1 | 1 | 4096 | 0 | 1 | 16 | 0.0002311 | 0.0003315 | 254504960 | 131072 |
+| h2 | adapt_vqe | implementable | finite_sample | sector | 2 | -5.77e-15 | 4096 | 2 | 0.9995 | 0 | 1 | 1 | 4096 | 0 | 4 | 64 | 0.0001983 | 7.669e-05 | 255705088 | 65536 |
+| h2 | exact_ground_oracle | oracle | finite_sample | sector | 2 | -5.77e-15 | 4096 | 2 | 0.9995 | 0 | 1 | - | - | 0 | 4 | 64 | 0.0001076 | 4.859e-05 | 255705088 | 0 |
+| lih_2e2o | reference_determinant | implementable | finite_sample | sector | 1 | +2.62e-04 | 4096 | 1 | 0.9998 | 0 | 1 | 1 | 4096 | 0 | 1 | 16 | 0.000184 | 5.811e-05 | 259076096 | 0 |
+| lih_2e2o | adapt_vqe | implementable | finite_sample | sector | 2 | +1.43e-05 | 4096 | 2 | 0.9995 | 0 | 0.9999 | 1 | 4096 | 0 | 4 | 64 | 0.0001708 | 6.771e-05 | 259092480 | 0 |
+| lih_2e2o | exact_ground_oracle | oracle | finite_sample | sector | 2 | +1.43e-05 | 4096 | 2 | 0.9995 | 0 | 0.9999 | - | - | 0 | 4 | 64 | 0.000158 | 6.86e-05 | 259092480 | 0 |
+| h4_equilibrium | reference_determinant | implementable | finite_sample | sector | 1 | +5.61e-02 | 4096 | 1 | 0.9998 | 0 | 1 | 1 | 4096 | 0 | 1 | 16 | 0.0002752 | 5.329e-05 | 259837952 | 0 |
+| h4_equilibrium | adapt_vqe | implementable | finite_sample | post_selected | 5 | +1.38e-02 | 4096 | 5 | 0.9988 | 0 | 0.9995 | 1 | 4096 | 0 | 21 | 400 | 0.0003668 | 9.14e-05 | 377335808 | 0 |
+| h4_equilibrium | exact_ground_oracle | oracle | finite_sample | sector | 13 | +1.20e-04 | 4096 | 13 | 0.9968 | 0 | 0.9999 | - | - | 0 | 149 | 2704 | 0.0004585 | 8.823e-05 | 377335808 | 0 |
+| h4_stretched | reference_determinant | implementable | finite_sample | sector | 1 | +2.58e-01 | 4096 | 1 | 0.9998 | 0 | 1 | 1 | 4096 | 0 | 1 | 16 | 0.0002848 | 5.869e-05 | 377339904 | 0 |
+| h4_stretched | adapt_vqe | implementable | finite_sample | post_selected | 6 | +1.38e-02 | 4096 | 6 | 0.9984 | 0.06055 | 0.9361 | 1 | 4096 | 0 | 30 | 576 | 0.0003114 | 6.487e-05 | 377602048 | 0 |
+| h4_stretched | exact_ground_oracle | oracle | finite_sample | sector | 18 | +6.80e-05 | 4096 | 18 | 0.9956 | 0 | 0.9998 | - | - | 0 | 260 | 5184 | 0.0004003 | 9.998e-05 | 377602048 | 0 |
+| hubbard_2x2 | reference_determinant | implementable | finite_sample | sector | 1 | +2.10e+00 | 4096 | 1 | 0.9998 | 0 | 1 | 1 | 4096 | 0 | 1 | 16 | 0.0002205 | 6.146e-05 | 377995264 | 0 |
+| hubbard_2x2 | adapt_vqe | implementable | finite_sample | sector | 12 | +8.07e-01 | 4096 | 12 | 0.9971 | 0 | 0.9991 | 1 | 4096 | 0 | 46 | 2304 | 0.000231 | 8.069e-05 | 387055616 | 0 |
+| hubbard_2x2 | exact_ground_oracle | oracle | finite_sample | sector | 26 | -9.95e-14 | 4096 | 26 | 0.9937 | 0 | 1 | - | - | 0 | 118 | 10816 | 0.0002279 | 0.0001694 | 387055616 | 0 |
+| hubbard_2x3 | reference_determinant | implementable | finite_sample | sector | 1 | +3.62e+00 | 4096 | 1 | 0.9998 | 0 | 1 | 1 | 4096 | 0 | 1 | 16 | 0.0002379 | 0.0001064 | 394825728 | 4096 |
+| hubbard_2x3 | exact_ground_oracle | oracle | finite_sample | sector | 282 | +1.26e-01 | 4096 | 282 | 0.9312 | 0 | 0.9838 | - | - | 0 | 2178 | 1272384 | 0.0104 | 0.1127 | 400277504 | 5447680 |
+| kitaev_2x2 | reference_determinant | implementable | finite_sample | full_space | 1 | +9.62e-01 | 4096 | 1 | 0.9998 | 0 | 1 | 1 | 4096 | 0 | 1 | 16 | 0.0002401 | 4.508e-05 | 400285696 | 0 |
+| kitaev_2x2 | adapt_vqe | implementable | finite_sample | full_space | 1 | +9.62e-01 | 4096 | 1 | 0.9998 | 0 | 1 | 1 | 4096 | 0 | 1 | 16 | 0.0003235 | 6.683e-05 | 400297984 | 0 |
+| kitaev_2x2 | exact_ground_oracle | oracle | finite_sample | full_space | 87 | -8.88e-16 | 4096 | 87 | 0.9788 | 0 | 0.9988 | - | - | 0 | 236 | 121104 | 0.0004295 | 0.001047 | 400302080 | 0 |
 
 `input_cat` and `sample_ev` are deliberately separate. `oracle` inputs sample an exact eigenvector no device can prepare: they validate the method and bound what sampling could achieve, and they carry no preparation resource because there is no preparation to count. Reading an oracle row on the same resource axis as an `implementable` one advertises a frontier nothing can reach. `finite_sample` means the retained subspace came from finitely many draws even though this validation layer samples exact probabilities.
 
 Both categories are present above, so this table is a record, not a comparison. Any Pareto frontier drawn from it must be drawn within one category.
 
 The `adapt_vqe` sampling states in this validation ladder were optimized by exact simulation. Their ADAPT training cost is therefore unaccounted hardware construction cost, not a zero-cost device preparation; fresh runs record this as `adapt_construction_cost_accounted=false`.
-
-WARNING: 20 QSCI row(s) were generated from a dirty working tree. They are retained as legacy validation records, not citable benchmark evidence; regenerate them from a clean commit before manuscript use.
 
 ### Evidence labels
 
