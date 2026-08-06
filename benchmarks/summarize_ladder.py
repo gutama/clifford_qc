@@ -32,6 +32,23 @@ COLUMNS = [
     ("abstain", "abstentions"),
 ]
 
+# The sampled-subspace arms spend a different budget, and the main table has no
+# column for most of it. Left in the main table alone a QSCI row reads as a
+# method that costs nothing -- W really is zero, and every other resource column
+# is blank -- which is the exact misreading `LITERATURE_ROADMAP.md` §0.1 warns
+# against. These are the §8E Pareto axes, reported beside the energy.
+SAMPLED_COLUMNS = [
+    ("rung", "rung_name"), ("input", "sampling_state"),
+    ("evidence", "input_category"), ("mode", "sampling_mode"),
+    ("M", "subspace_dimension"), ("error", "error"),
+    ("draws", "raw_shots"), ("unique", "unique_configurations"),
+    ("dup", "duplicate_fraction"), ("discard", "discarded_fraction"),
+    ("kept_p", "retained_probability"), ("preps", "state_preparations"),
+    ("W", "projected_matrix_words"), ("nnz", "matrix_nonzeros"),
+    ("bytes", "matrix_bytes"), ("build_s", "build_seconds"),
+    ("solve_s", "solve_seconds"),
+]
+
 
 def load(path: Path) -> list[dict]:
     rows = [json.loads(line) for line in path.read_text().splitlines() if line.strip()]
@@ -81,6 +98,34 @@ def ordered(rows: list[dict]) -> list[dict]:
                                                row["method"])])
 
 
+def sampled_subspace_section(rows: list[dict]) -> list[str]:
+    """The §8E resource table for QSCI-family rows, or nothing if there are none."""
+    sampled = [row for row in ordered(rows) if row.get("family") == "qsci"]
+    if not sampled:
+        return []
+    lines = ["", "### Sampled subspaces (QSCI): the resources that replace `W`", ""]
+    lines.append("| " + " | ".join(name for name, _ in SAMPLED_COLUMNS) + " |")
+    lines.append("|" + "|".join("---" for _ in SAMPLED_COLUMNS) + "|")
+    for row in sampled:
+        lines.append("| " + " | ".join(cell(row, key)
+                                       for _, key in SAMPLED_COLUMNS) + " |")
+    categories = {row.get("input_category") for row in sampled}
+    lines.append("")
+    lines.append("`evidence` here is the *input* category, not the arithmetic. "
+                 "`oracle` rows sample an exact eigenvector no device can "
+                 "prepare: they validate the method and bound what sampling "
+                 "could achieve, and they carry no `preps` because there is no "
+                 "preparation to count. Reading an oracle row on the same "
+                 "resource axis as an `implementable` one advertises a frontier "
+                 "nothing can reach.")
+    if categories == {"oracle", "implementable"}:
+        lines.append("")
+        lines.append("Both categories are present above, so this table is a "
+                     "record, not a comparison. Any Pareto frontier drawn from "
+                     "it must be drawn within one category.")
+    return lines
+
+
 def markdown(rows: list[dict]) -> str:
     lines = ["| " + " | ".join(name for name, _ in COLUMNS) + " |",
              "|" + "|".join("---" for _ in COLUMNS) + "|"]
@@ -117,6 +162,8 @@ def markdown(rows: list[dict]) -> str:
         lines.append(f"| {name} | {discriminating} | "
                      f"{', '.join(accurate) or 'none'} | {winner} |")
 
+    lines.extend(sampled_subspace_section(rows))
+
     lines.append("")
     lines.append("### Evidence labels")
     lines.append("")
@@ -131,7 +178,10 @@ def markdown(rows: list[dict]) -> str:
 
 
 def write_csv(rows: list[dict], path: Path) -> None:
-    fields = [key for _, key in COLUMNS]
+    # The sampled-subspace keys ride along so the CSV stays a superset of both
+    # tables; they are empty on rows whose method does not sample.
+    fields = list(dict.fromkeys([key for _, key in COLUMNS]
+                                + [key for _, key in SAMPLED_COLUMNS]))
     with path.open("w", newline="") as handle:
         writer = csv.DictWriter(handle, fieldnames=fields, extrasaction="ignore")
         writer.writeheader()

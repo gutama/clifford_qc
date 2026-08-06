@@ -55,13 +55,18 @@ from .solver import (
 )
 from .projection import ProjectedProblem
 from .qsci import (
-    QSCIResult, SamplingRecord, recover_configurations, run_qsci,
-    sample_configurations,
+    IMPLEMENTABLE, ORACLE, QSCIResult, SamplingRecord, StateInput,
+    adapt_vqe_state, assert_single_evidence_category, exact_ground_state_oracle,
+    recover_configurations, reference_determinant_state, run_qsci,
+    sample_configurations, sample_state_input,
 )
 
 __all__ = [
-    "QSCIResult", "SamplingRecord", "recover_configurations", "run_qsci",
-    "sample_configurations",
+    "IMPLEMENTABLE", "ORACLE", "QSCIResult", "SamplingRecord", "StateInput",
+    "adapt_vqe_state", "assert_single_evidence_category",
+    "exact_ground_state_oracle", "recover_configurations",
+    "reference_determinant_state", "run_qsci", "sample_configurations",
+    "sample_state_input",
     "ACASEConfig", "ACASEState", "ACASEStepOutcome", "AdaptiveResult",
     "CandidateScore", "GrowthRecord", "adapt_warm_start", "acase_step",
     "run_acase", "score_candidate", "sector_leakage", "select_candidate",

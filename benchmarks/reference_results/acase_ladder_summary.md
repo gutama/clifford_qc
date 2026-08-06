@@ -72,20 +72,69 @@
 | 6 | kitaev(2x2,K=1.0,1.0,1.0,obc) | 8 | adapt_exact | exact | -4.00000000 | +9.62e-01 | no | - | 0 | - | - | - | - | 0 | 0 | 0 |
 | 6 | kitaev(2x2,K=1.0,1.0,1.0,obc) | 8 | acase_exact | exact | -4.96238861 | +8.12e-13 | yes | 6 | - | 140 | 76 | 6 | 3.83e+04 | - | - | - |
 | 6 | kitaev(2x2,K=1.0,1.0,1.0,obc) | 8 | acase_certified_n8 | finite_sample | -4.84272921 | +1.20e-01 | no | 2 | - | 47 | 28 | 2 | 1.97e+01 | 151,296,000 | 4,728 | 1 |
+| 1 | h2(r=0.7414) | 4 | qsci_reference | exact | -1.11668439 | +2.06e-02 | no | 1 | - | 0 | - | - | - | - | - | - |
+| 1 | h2(r=0.7414) | 4 | qsci_adapt | exact | -1.13727017 | -2.22e-15 | yes | 2 | - | 0 | - | - | - | - | - | - |
+| 1 | h2(r=0.7414) | 4 | qsci_oracle | exact | -1.13727017 | -2.22e-15 | yes | 2 | - | 0 | - | - | - | - | - | - |
+| 1 | lih(r=1.5949) | 4 | qsci_reference | exact | -7.86202696 | +2.62e-04 | yes | 1 | - | 0 | - | - | - | - | - | - |
+| 1 | lih(r=1.5949) | 4 | qsci_adapt | exact | -7.86227425 | +1.43e-05 | yes | 2 | - | 0 | - | - | - | - | - | - |
+| 1 | lih(r=1.5949) | 4 | qsci_oracle | exact | -7.86227425 | +1.43e-05 | yes | 2 | - | 0 | - | - | - | - | - | - |
+| 2 | h4_chain(r=0.9) | 8 | qsci_reference | exact | -2.12425974 | +5.61e-02 | no | 1 | - | 0 | - | - | - | - | - | - |
+| 2 | h4_chain(r=0.9) | 8 | qsci_adapt | exact | -2.16655668 | +1.38e-02 | no | 5 | - | 0 | - | - | - | - | - | - |
+| 2 | h4_chain(r=0.9) | 8 | qsci_oracle | exact | -2.18019656 | +1.20e-04 | yes | 13 | - | 0 | - | - | - | - | - | - |
+| 2 | h4_chain(r=1.8) | 8 | qsci_reference | exact | -1.66686716 | +2.58e-01 | no | 1 | - | 0 | - | - | - | - | - | - |
+| 2 | h4_chain(r=1.8) | 8 | qsci_adapt | exact | -1.91059743 | +1.38e-02 | no | 6 | - | 0 | - | - | - | - | - | - |
+| 2 | h4_chain(r=1.8) | 8 | qsci_oracle | exact | -1.92436268 | +6.80e-05 | yes | 18 | - | 0 | - | - | - | - | - | - |
+| 5 | hubbard(2x2,t=1.0,U=4.0,obc) | 8 | qsci_reference | exact | -8.00000000 | +2.10e+00 | no | 1 | - | 0 | - | - | - | - | - | - |
+| 5 | hubbard(2x2,t=1.0,U=4.0,obc) | 8 | qsci_adapt | exact | -9.29575466 | +8.07e-01 | no | 12 | - | 0 | - | - | - | - | - | - |
+| 5 | hubbard(2x2,t=1.0,U=4.0,obc) | 8 | qsci_oracle | exact | -10.10274848 | -4.62e-14 | yes | 26 | - | 0 | - | - | - | - | - | - |
+| 5 | hubbard(2x3,t=1.0,U=4.0,obc) | 12 | qsci_reference | exact | -12.00000000 | +3.62e+00 | no | 1 | - | 0 | - | - | - | - | - | - |
+| 5 | hubbard(2x3,t=1.0,U=4.0,obc) | 12 | qsci_oracle | exact | -15.49366281 | +1.26e-01 | no | 282 | - | 0 | - | - | - | - | - | - |
+| 6 | kitaev(2x2,K=1.0,1.0,1.0,obc) | 8 | qsci_reference | exact | -4.00000000 | +9.62e-01 | no | 1 | - | 0 | - | - | - | - | - | - |
+| 6 | kitaev(2x2,K=1.0,1.0,1.0,obc) | 8 | qsci_adapt | exact | -4.00000000 | +9.62e-01 | no | 1 | - | 0 | - | - | - | - | - | - |
+| 6 | kitaev(2x2,K=1.0,1.0,1.0,obc) | 8 | qsci_oracle | exact | -4.96238861 | -2.49e-14 | yes | 93 | - | 0 | - | - | - | - | - | - |
 
 ### Reached chemical accuracy (1.6 mHa) against the sector reference
 
 | rung | reference determinant | methods reaching accuracy | most compact exact-arithmetic |
 |---|---|---|---|
-| h2 | not accurate | qse, krylov, generator_coordinate, adapt_exact, adapt_shot, acase_exact, acase_certified | adapt_exact (M=1) |
-| lih_2e2o | already accurate (rung does not discriminate) | qse, krylov, generator_coordinate, adapt_exact, adapt_shot, acase_exact, acase_certified | adapt_exact (M=3) |
-| h4_equilibrium | not accurate | krylov | krylov (M=9) |
-| h4_stretched | not accurate | krylov | krylov (M=9) |
+| h2 | not accurate | qse, krylov, generator_coordinate, adapt_exact, adapt_shot, acase_exact, acase_certified, qsci_adapt, qsci_oracle | adapt_exact (M=1) |
+| lih_2e2o | already accurate (rung does not discriminate) | qse, krylov, generator_coordinate, adapt_exact, adapt_shot, acase_exact, acase_certified, qsci_reference, qsci_adapt, qsci_oracle | qsci_reference (M=1) |
+| h4_equilibrium | not accurate | krylov, qsci_oracle | krylov (M=9) |
+| h4_stretched | not accurate | krylov, qsci_oracle | krylov (M=9) |
 | h2o_cas4e4o_stretched | not accurate | none | none |
 | h2o_cas8e6o | not accurate | none | none |
-| hubbard_2x2 | not accurate | acase_level4 | acase_level4 (M=26) |
+| hubbard_2x2 | not accurate | acase_level4, qsci_oracle | acase_level4 (M=26) |
 | hubbard_2x3 | not accurate | none | none |
-| kitaev_2x2 | not accurate | krylov, acase_exact | acase_exact (M=6) |
+| kitaev_2x2 | not accurate | krylov, acase_exact, qsci_oracle | acase_exact (M=6) |
+
+### Sampled subspaces (QSCI): the resources that replace `W`
+
+| rung | input | evidence | mode | M | error | draws | unique | dup | discard | kept_p | preps | W | nnz | bytes | build_s | solve_s |
+|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
+| h2 | reference_determinant | implementable | sector | 1 | +2.06e-02 | 4096 | 1 | 0.9998 | 0 | 1 | 1 | 0 | 1 | 16 | 0.0001256 | 6.541e-05 |
+| h2 | adapt_vqe | implementable | sector | 2 | -2.22e-15 | 4096 | 2 | 0.9995 | 0 | 1 | 1 | 0 | 4 | 64 | 7.501e-05 | 4.524e-05 |
+| h2 | exact_ground_oracle | oracle | sector | 2 | -2.22e-15 | 4096 | 2 | 0.9995 | 0 | 1 | - | 0 | 4 | 64 | 6.101e-05 | 3.801e-05 |
+| lih_2e2o | reference_determinant | implementable | sector | 1 | +2.62e-04 | 4096 | 1 | 0.9998 | 0 | 1 | 1 | 0 | 1 | 16 | 0.0001618 | 6.78e-05 |
+| lih_2e2o | adapt_vqe | implementable | sector | 2 | +1.43e-05 | 4096 | 2 | 0.9995 | 0 | 0.9999 | 1 | 0 | 4 | 64 | 0.000145 | 6.3e-05 |
+| lih_2e2o | exact_ground_oracle | oracle | sector | 2 | +1.43e-05 | 4096 | 2 | 0.9995 | 0 | 0.9999 | - | 0 | 4 | 64 | 0.0001506 | 5.586e-05 |
+| h4_equilibrium | reference_determinant | implementable | sector | 1 | +5.61e-02 | 4096 | 1 | 0.9998 | 0 | 1 | 1 | 0 | 1 | 16 | 0.0001899 | 4.588e-05 |
+| h4_equilibrium | adapt_vqe | implementable | post_selected | 5 | +1.38e-02 | 4096 | 5 | 0.9988 | 0 | 0.9995 | 1 | 0 | 21 | 400 | 0.000218 | 6.739e-05 |
+| h4_equilibrium | exact_ground_oracle | oracle | sector | 13 | +1.20e-04 | 4096 | 13 | 0.9968 | 0 | 0.9999 | - | 0 | 149 | 2704 | 0.0002456 | 6.386e-05 |
+| h4_stretched | reference_determinant | implementable | sector | 1 | +2.58e-01 | 4096 | 1 | 0.9998 | 0 | 1 | 1 | 0 | 1 | 16 | 0.0002074 | 4.234e-05 |
+| h4_stretched | adapt_vqe | implementable | post_selected | 6 | +1.38e-02 | 4096 | 6 | 0.9984 | 0.06055 | 0.9361 | 1 | 0 | 30 | 576 | 0.0002126 | 6.076e-05 |
+| h4_stretched | exact_ground_oracle | oracle | sector | 18 | +6.80e-05 | 4096 | 18 | 0.9956 | 0 | 0.9998 | - | 0 | 260 | 5184 | 0.0002636 | 8.527e-05 |
+| hubbard_2x2 | reference_determinant | implementable | sector | 1 | +2.10e+00 | 4096 | 1 | 0.9998 | 0 | 1 | 1 | 0 | 1 | 16 | 9.076e-05 | 4.041e-05 |
+| hubbard_2x2 | adapt_vqe | implementable | sector | 12 | +8.07e-01 | 4096 | 12 | 0.9971 | 0 | 0.9991 | 1 | 0 | 46 | 2304 | 0.0001323 | 7.157e-05 |
+| hubbard_2x2 | exact_ground_oracle | oracle | sector | 26 | -4.62e-14 | 4096 | 26 | 0.9937 | 0 | 1 | - | 0 | 118 | 10816 | 0.0001185 | 8.026e-05 |
+| hubbard_2x3 | reference_determinant | implementable | sector | 1 | +3.62e+00 | 4096 | 1 | 0.9998 | 0 | 1 | 1 | 0 | 1 | 16 | 0.0001781 | 6.739e-05 |
+| hubbard_2x3 | exact_ground_oracle | oracle | sector | 282 | +1.26e-01 | 4096 | 282 | 0.9312 | 0 | 0.9838 | - | 0 | 2178 | 1272384 | 0.01663 | 1.826 |
+| kitaev_2x2 | reference_determinant | implementable | full_space | 1 | +9.62e-01 | 4096 | 1 | 0.9998 | 0 | 1 | 1 | 0 | 1 | 16 | 0.0001752 | 4.158e-05 |
+| kitaev_2x2 | adapt_vqe | implementable | full_space | 1 | +9.62e-01 | 4096 | 1 | 0.9998 | 0 | 1 | 1 | 0 | 1 | 16 | 0.000172 | 3.666e-05 |
+| kitaev_2x2 | exact_ground_oracle | oracle | full_space | 93 | -2.49e-14 | 4096 | 93 | 0.9773 | 0 | 0.9993 | - | 0 | 260 | 138384 | 0.0003812 | 0.01515 |
+
+`evidence` here is the *input* category, not the arithmetic. `oracle` rows sample an exact eigenvector no device can prepare: they validate the method and bound what sampling could achieve, and they carry no `preps` because there is no preparation to count. Reading an oracle row on the same resource axis as an `implementable` one advertises a frontier nothing can reach.
+
+Both categories are present above, so this table is a record, not a comparison. Any Pareto frontier drawn from it must be drawn within one category.
 
 ### Evidence labels
 

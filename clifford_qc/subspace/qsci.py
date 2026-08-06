@@ -30,7 +30,7 @@ exists, so :func:`run_qsci` accepts a full-space operator with no sector.
 from __future__ import annotations
 
 import time
-from dataclasses import dataclass, field
+from dataclasses import dataclass, field, replace
 
 import numpy as np
 
@@ -39,12 +39,28 @@ from ..pauli_action import PauliLinearOperator
 from ..selection import EvidenceLevel
 
 __all__ = [
+    "IMPLEMENTABLE",
+    "ORACLE",
     "SamplingRecord",
     "QSCIResult",
+    "StateInput",
+    "adapt_vqe_state",
+    "assert_single_evidence_category",
+    "exact_ground_state_oracle",
+    "reference_determinant_state",
     "sample_configurations",
+    "sample_state_input",
     "recover_configurations",
     "run_qsci",
 ]
+
+# The §8D evidence split.  An oracle input is one no hardware can prepare --
+# it exists to validate the method, and its energy is not a claim about what a
+# device would produce.  Mixing the two inside one comparison is the specific
+# confusion §8D forbids, so the category travels on every record.
+ORACLE = "oracle"
+IMPLEMENTABLE = "implementable"
+_CATEGORIES = (ORACLE, IMPLEMENTABLE)
 
 
 @dataclass(frozen=True)
@@ -65,6 +81,8 @@ class SamplingRecord:
     input_label: str
     seed: int | None
     recovery: str = "none"
+    input_category: str = "unspecified"
+    state_preparations: int | None = None
 
     @property
     def duplicate_fraction(self) -> float:
@@ -97,6 +115,8 @@ class SamplingRecord:
             "repaired_fraction": float(self.repaired_fraction),
             "retained_probability": float(self.retained_probability),
             "input_label": self.input_label,
+            "input_category": self.input_category,
+            "state_preparations": self.state_preparations,
             "recovery": self.recovery,
             "seed": self.seed,
         }
@@ -151,6 +171,224 @@ class QSCIResult:
             record["variational_gap"] = float(self.variational_gap)
         record.update(self.metadata)
         return record
+
+
+@dataclass(frozen=True)
+class StateInput:
+    """A declared sampling state, with what it costs and whether it is real (§8D).
+
+    ``basis`` is the sector's occupation words for a sector-restricted state, or
+    ``None`` for a full-space one; that single field is what selects the two
+    sampling modes downstream, so a caller cannot pair sector amplitudes with a
+    full-space operator by accident.
+
+    ``preparations`` is the number of state preparations one sampling run costs.
+    It is ``None`` for an oracle, and that is not a missing measurement -- there
+    is no preparation to count, which is exactly why an oracle row cannot sit on
+    a resource axis beside an implementable one.
+
+    ``post_selection`` is set when ``amplitudes`` are full-space *and* the
+    caller still wants sector indices back: a qubit-ADAPT ansatz built from
+    individual Pauli words does not conserve particle number, so its state
+    genuinely carries weight outside the sector.  Sampling it full-space and
+    post-selecting is the honest treatment -- it is what a device would face --
+    and the discarded fraction lands on the record instead of being defined
+    away.
+    """
+
+    label: str
+    category: str
+    amplitudes: np.ndarray
+    basis: np.ndarray | None = None
+    preparations: int | None = None
+    post_selection: dict | None = None
+    metadata: dict = field(default_factory=dict)
+
+    def __post_init__(self):
+        if self.category not in _CATEGORIES:
+            raise ValueError(f"category must be one of {_CATEGORIES}, "
+                             f"got {self.category!r}")
+        if self.category == ORACLE and self.preparations is not None:
+            raise ValueError("an oracle input has no preparation cost to report")
+        if self.category == IMPLEMENTABLE and self.preparations is None:
+            raise ValueError(f"implementable input {self.label!r} must declare "
+                             "its state-preparation count")
+
+
+def assert_single_evidence_category(records) -> str:
+    """Reject a comparison that mixes oracle and implementable inputs (§8D).
+
+    Accepts anything carrying a category: :class:`StateInput`,
+    :class:`SamplingRecord`, :class:`QSCIResult`, or a plain record mapping.
+    Returns the single category found, so a caller can label the comparison
+    with it.
+
+    This exists because the mixing failure is silent otherwise.  An oracle row
+    and an implementable row are both real numbers with the same units, and a
+    Pareto plot will happily draw a frontier through both -- one that no device
+    can reach, presented as if it could.
+    """
+    categories = set()
+    for record in records:
+        if isinstance(record, QSCIResult):
+            categories.add(record.sampling.input_category)
+        elif isinstance(record, (StateInput, SamplingRecord)):
+            categories.add(record.category if isinstance(record, StateInput)
+                           else record.input_category)
+        else:
+            categories.add(dict(record).get("input_category", "unspecified"))
+    if not categories:
+        raise ValueError("no records to check")
+    if len(categories) > 1:
+        raise ValueError(
+            "cannot compare inputs from different evidence categories: "
+            f"{sorted(categories)}. An oracle state is a method-validation "
+            "input; putting it on a resource axis beside an implementable one "
+            "advertises a frontier no device can reach.")
+    return categories.pop()
+
+
+def _to_sampling_basis(backend, dense: np.ndarray, *, tol: float = 1e-9):
+    """``(amplitudes, basis, post_selection, leaked)`` for a prepared state.
+
+    ``backend`` is ``None`` for models with no particle-number sector, where the
+    full-space vector *is* the sampling state.  Where a sector exists the vector
+    is restricted to it when it fits, and otherwise kept full-space with a
+    post-selection spec: a leaking state is not an error, it is the ordinary
+    situation for an ansatz built from non-conserving words, and discarding its
+    out-of-sector shots is what a device would have to do anyway.
+    """
+    dense = np.asarray(dense, dtype=complex).reshape(-1)
+    if backend is None:
+        return dense, None, None, 0.0
+    restricted = dense[backend.basis]
+    # A difference of two norms, so a non-leaking state lands a few ulp below
+    # zero. Clamped, because a negative leaked weight is not a small number --
+    # it is a meaningless one, and it would travel onto the record as such.
+    leaked = max(0.0, float(np.vdot(dense, dense).real
+                            - np.vdot(restricted, restricted).real))
+    if leaked <= tol:
+        return restricted, backend.basis, None, leaked
+    return dense, backend.basis, {
+        "n": backend.n, "n_electrons": backend.n_electrons, "sz": backend.sz,
+        "spin_ordering": backend.spin_ordering}, leaked
+
+
+def _determinant_amplitudes(program, n: int) -> np.ndarray:
+    """One-hot full-space vector of an X-gate-only reference program.
+
+    Read off the gates rather than routed through a density multivector: a
+    determinant on ``n`` qubits is one nonzero amplitude, while
+    ``to_matrix(rho)`` would sum ``2^n`` Kronecker products into a ``2^n x 2^n``
+    matrix to rediscover it.  At twelve qubits that is the difference between a
+    dictionary lookup and several minutes.  Mirrors the bit convention of
+    :meth:`SectorStatevectorBackend.state_from_program`.
+    """
+    mask = 0
+    for operation in program.ops:
+        if getattr(operation, "name", None) != "X":
+            raise ValueError("only X-gate determinant references map to a "
+                             "single computational basis state")
+        for qubit in operation.qubits:
+            mask ^= 1 << (n - 1 - qubit)
+    psi = np.zeros(2 ** n, dtype=complex)
+    psi[mask] = 1.0
+    return psi
+
+
+def reference_determinant_state(backend, model) -> StateInput:
+    """The reference determinant -- the cheapest implementable input.
+
+    Sampling it returns exactly one configuration, which is the point: it is
+    the floor every other input has to beat, not a competitive arm.
+    """
+    if backend is None:
+        amplitudes, basis = _determinant_amplitudes(model.reference, model.n), None
+    else:
+        # Raises if the reference is not in this sector, which is the right
+        # failure: a reference outside its own sector is a configuration error.
+        amplitudes, basis = backend.state_from_program(model.reference), backend.basis
+    return StateInput(label="reference_determinant", category=IMPLEMENTABLE,
+                      amplitudes=amplitudes, basis=basis, preparations=1,
+                      metadata={"state_kind": "computational_determinant"})
+
+
+def exact_ground_state_oracle(operator_or_backend, hamiltonian=None) -> StateInput:
+    """The exact ground state, for method validation only.
+
+    Pass a :class:`~clifford_qc.pauli_action.PauliLinearOperator` for a
+    full-space model, or a sector backend together with its Hamiltonian.  The
+    returned input is labelled :data:`ORACLE`, so any attempt to place it on a
+    resource comparison with an implementable arm fails loudly.
+    """
+    if isinstance(operator_or_backend, PauliLinearOperator):
+        _, vectors = operator_or_backend.ground_state()
+        return StateInput(label="exact_ground_oracle", category=ORACLE,
+                          amplitudes=vectors[:, 0], basis=None,
+                          metadata={"state_kind": "exact_eigenvector"})
+    if hamiltonian is None:
+        raise ValueError("a sector backend needs its Hamiltonian to solve for")
+    backend = operator_or_backend
+    _, vectors = backend.ground_state(hamiltonian)
+    return StateInput(label="exact_ground_oracle", category=ORACLE,
+                      amplitudes=vectors[:, 0], basis=backend.basis,
+                      metadata={"state_kind": "exact_eigenvector"})
+
+
+def adapt_vqe_state(backend, model, pool, *, max_operators: int = 4,
+                    **kwargs) -> StateInput:
+    """An optimized ADAPT-VQE state as the sampling input.
+
+    The correlated implementable input: it costs a full ADAPT run to build and
+    one preparation per sampling run thereafter, and both numbers are reported
+    so the arm is not scored as though the state were free.
+    """
+    from ..workflows import adapt_warm_start
+    from .reference import pure_statevector
+
+    rho, result = adapt_warm_start(model, pool, max_operators=max_operators,
+                                   **kwargs)
+    amplitudes, basis, post, leaked = _to_sampling_basis(backend,
+                                                         pure_statevector(rho))
+    return StateInput(
+        label="adapt_vqe", category=IMPLEMENTABLE,
+        amplitudes=amplitudes, basis=basis, preparations=1,
+        post_selection=post,
+        metadata={"state_kind": "adapt_vqe_ansatz",
+                  "adapt_sector_leakage": leaked,
+                  "adapt_operators": len(result.labels),
+                  "adapt_labels": list(result.labels),
+                  "adapt_energy": float(result.energy),
+                  "adapt_construction_circuits": int(result.total_circuits),
+                  "adapt_construction_shots": int(result.total_shots)})
+
+
+def sample_state_input(state: StateInput, *, shots: int, seed: int | None = 0,
+                       **kwargs) -> tuple[np.ndarray, SamplingRecord]:
+    """:func:`sample_configurations` with the input's label, mode, and category.
+
+    Returned indices always address the operator the state was built against:
+    sector positions where the state has a sector, computational-basis words
+    where it does not.  A post-selecting input samples full-space and the
+    surviving words are mapped back to sector positions here, so the caller
+    never has to know which of the three paths ran.
+    """
+    if state.post_selection is None:
+        indices, record = sample_configurations(
+            state.amplitudes, shots=shots, seed=seed, basis=state.basis,
+            input_label=state.label, **kwargs)
+    else:
+        words, record = sample_configurations(
+            state.amplitudes, shots=shots, seed=seed, basis=None,
+            input_label=state.label, **state.post_selection, **kwargs)
+        # Post-selection guarantees membership, so a miss here means the sector
+        # spec and the basis disagree -- worth an assertion, not a silent drop.
+        indices = np.searchsorted(state.basis, words)
+        if indices.size and not np.array_equal(state.basis[indices], words):
+            raise ValueError("post-selected configurations are not in the "
+                             "sector basis they were selected against")
+    return indices, replace(record, input_category=state.category,
+                            state_preparations=state.preparations)
 
 
 def _probabilities(psi: np.ndarray) -> np.ndarray:

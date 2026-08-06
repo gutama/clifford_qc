@@ -82,6 +82,28 @@
       "max_size": 25,
       "leakage_tol": null,
       "family": "acase"
+    },
+    "qsci_reference": {
+      "kind": "qsci",
+      "input": "reference",
+      "shots": 4096,
+      "seed": 0,
+      "family": "qsci"
+    },
+    "qsci_adapt": {
+      "kind": "qsci",
+      "input": "adapt",
+      "shots": 4096,
+      "seed": 0,
+      "max_operators": 4,
+      "family": "qsci"
+    },
+    "qsci_oracle": {
+      "kind": "qsci",
+      "input": "oracle",
+      "shots": 4096,
+      "seed": 0,
+      "family": "qsci"
     }
   },
   "ladder": [
@@ -100,7 +122,10 @@
         "adapt_exact",
         "adapt_shot",
         "acase_exact",
-        "acase_certified"
+        "acase_certified",
+        "qsci_reference",
+        "qsci_adapt",
+        "qsci_oracle"
       ]
     },
     {
@@ -118,7 +143,10 @@
         "adapt_exact",
         "adapt_shot",
         "acase_exact",
-        "acase_certified"
+        "acase_certified",
+        "qsci_reference",
+        "qsci_adapt",
+        "qsci_oracle"
       ]
     },
     {
@@ -136,7 +164,10 @@
         "generator_coordinate",
         "adapt_exact",
         "acase_exact",
-        "acase_certified_n8"
+        "acase_certified_n8",
+        "qsci_reference",
+        "qsci_adapt",
+        "qsci_oracle"
       ]
     },
     {
@@ -154,7 +185,10 @@
         "generator_coordinate",
         "adapt_exact",
         "acase_exact",
-        "acase_certified_n8"
+        "acase_certified_n8",
+        "qsci_reference",
+        "qsci_adapt",
+        "qsci_oracle"
       ]
     },
     {
@@ -213,7 +247,10 @@
         "acase_states",
         "acase_certified_n8",
         "acase_exact_m25",
-        "acase_level4"
+        "acase_level4",
+        "qsci_reference",
+        "qsci_adapt",
+        "qsci_oracle"
       ]
     },
     {
@@ -233,7 +270,9 @@
         "generator_coordinate",
         "acase_exact",
         "acase_exact_m25",
-        "acase_level4"
+        "acase_level4",
+        "qsci_reference",
+        "qsci_oracle"
       ]
     },
     {
@@ -252,7 +291,10 @@
         "krylov",
         "adapt_exact",
         "acase_exact",
-        "acase_certified_n8"
+        "acase_certified_n8",
+        "qsci_reference",
+        "qsci_adapt",
+        "qsci_oracle"
       ]
     }
   ]
