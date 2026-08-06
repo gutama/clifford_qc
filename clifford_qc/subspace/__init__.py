@@ -54,6 +54,10 @@ from .solver import (
     canonical_eigh, projected_matrices, solve_projected, solve_subspace,
 )
 from .projection import ProjectedProblem
+from .selected_ci import (
+    ControlResult, SpanComparison, excitation_closure, principal_angles,
+    run_control, score_candidates, span_comparison,
+)
 from .qsci import (
     IMPLEMENTABLE, ORACLE, QSCIResult, SamplingRecord, StateInput,
     adapt_vqe_state, assert_single_evidence_category, exact_ground_state_oracle,
@@ -62,6 +66,8 @@ from .qsci import (
 )
 
 __all__ = [
+    "ControlResult", "SpanComparison", "excitation_closure",
+    "principal_angles", "run_control", "score_candidates", "span_comparison",
     "IMPLEMENTABLE", "ORACLE", "QSCIResult", "SamplingRecord", "StateInput",
     "adapt_vqe_state", "assert_single_evidence_category",
     "exact_ground_state_oracle", "recover_configurations",
