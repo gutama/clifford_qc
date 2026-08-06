@@ -177,18 +177,31 @@ class QSCIResult:
 class StateInput:
     """A declared sampling state, with what it costs and whether it is real (§8D).
 
-    ``basis`` is the sector's occupation words for a sector-restricted state, or
-    ``None`` for a full-space one; that single field is what selects the two
-    sampling modes downstream, so a caller cannot pair sector amplitudes with a
-    full-space operator by accident.
+    ``basis`` and ``post_selection`` together name one of **three** modes, and
+    it is ``post_selection`` -- not ``basis`` alone -- that distinguishes the
+    last two:
+
+    ===================  ==================  =================  ==============
+    mode                 ``amplitudes``      ``basis``          ``post_selection``
+    ===================  ==================  =================  ==============
+    full space           ``2^n``             ``None``           ``None``
+    sector               sector length       occupation words   ``None``
+    post-selected        ``2^n``             occupation words   spec mapping
+    ===================  ==================  =================  ==============
+
+    So a post-selected input carries full-space amplitudes *and* a non-``None``
+    ``basis``: the amplitudes are what gets sampled, and the basis is what the
+    surviving words are mapped back onto.  Use :func:`sample_state_input`, which
+    reads both fields and dispatches; passing ``basis=state.basis`` straight to
+    :func:`sample_configurations` is wrong for this mode and will fail its
+    length check.
 
     ``preparations`` is the number of state preparations one sampling run costs.
     It is ``None`` for an oracle, and that is not a missing measurement -- there
     is no preparation to count, which is exactly why an oracle row cannot sit on
     a resource axis beside an implementable one.
 
-    ``post_selection`` is set when ``amplitudes`` are full-space *and* the
-    caller still wants sector indices back: a qubit-ADAPT ansatz built from
+    The post-selected mode exists because a qubit-ADAPT ansatz built from
     individual Pauli words does not conserve particle number, so its state
     genuinely carries weight outside the sector.  Sampling it full-space and
     post-selecting is the honest treatment -- it is what a device would face --
@@ -383,7 +396,11 @@ def sample_state_input(state: StateInput, *, shots: int, seed: int | None = 0,
             input_label=state.label, **state.post_selection, **kwargs)
         # Post-selection guarantees membership, so a miss here means the sector
         # spec and the basis disagree -- worth an assertion, not a silent drop.
-        indices = np.searchsorted(state.basis, words)
+        # A word above every basis element lands at `basis.size`, so the slots
+        # are clipped before indexing: without that the mismatch surfaces as an
+        # out-of-bounds IndexError instead of the message written for it.
+        slots = np.searchsorted(state.basis, words)
+        indices = np.where(slots < state.basis.size, slots, 0)
         if indices.size and not np.array_equal(state.basis[indices], words):
             raise ValueError("post-selected configurations are not in the "
                              "sector basis they were selected against")

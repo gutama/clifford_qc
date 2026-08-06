@@ -512,3 +512,31 @@ def test_full_space_and_sector_determinants_agree(hubbard_case):
     embedded[backend.basis] = sector.amplitudes
     assert np.array_equal(embedded, full.amplitudes)
     assert int((np.abs(full.amplitudes) > 0).sum()) == 1
+
+
+def test_mismatched_post_selection_spec_raises_the_written_error():
+    """A word above every basis element must not surface as an IndexError.
+
+    `np.searchsorted` returns `basis.size` for a word larger than the whole
+    basis, so indexing with it unclipped raises `IndexError: index out of
+    bounds` -- and the caller sees an array-bounds message where the code has a
+    written explanation ready. The spec below post-selects six electrons while
+    the basis holds the two-electron sector, so surviving words are both absent
+    from the basis and numerically past its end.
+    """
+    from clifford_qc.backends.sector_statevector import sector_basis
+
+    n = 8
+    basis = sector_basis(n, 2, 0.0)
+    six = [w for w in range(2 ** n) if bin(w).count("1") == 6]
+    assert max(six) > int(basis.max())
+    amplitudes = np.zeros(2 ** n, dtype=complex)
+    amplitudes[max(six)] = 1.0
+
+    state = StateInput(
+        label="mismatched", category=IMPLEMENTABLE, amplitudes=amplitudes,
+        basis=basis, preparations=1,
+        post_selection={"n": n, "n_electrons": 6, "sz": 0.0,
+                        "spin_ordering": "interleaved"})
+    with pytest.raises(ValueError, match="not in the sector basis"):
+        sample_state_input(state, shots=32, seed=0)
