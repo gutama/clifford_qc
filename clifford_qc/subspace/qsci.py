@@ -282,8 +282,14 @@ def sample_configurations(psi, *, shots: int, seed: int | None = 0,
 
     if n is None:
         n = int(round(np.log2(probabilities.size)))
-        if 2 ** n != probabilities.size:
-            raise ValueError("full-space sampling needs a 2^n-length state")
+    # Checked whether `n` was inferred or supplied. A caller-supplied `n` that
+    # disagrees with the state sets the bit width used by post-selection and
+    # recovery, so a wrong value does not fail -- it silently keeps the wrong
+    # configurations, which is the one failure mode this contract cannot have.
+    if 2 ** n != probabilities.size:
+        raise ValueError(f"full-space sampling needs a 2^n-length state: "
+                         f"n={n} implies {2 ** n} amplitudes, got "
+                         f"{probabilities.size}")
     words = draws.astype(np.int64)
     if n_electrons is None:
         # Spin arm: no particle-number sector exists, so nothing is out of it.

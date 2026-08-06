@@ -137,6 +137,22 @@ def test_permutation_moves_no_eigenvalue(restriction_case):
     assert np.allclose(straight, shuffled, atol=1e-10)
 
 
+def test_restriction_matches_the_submatrix_entrywise(restriction_case):
+    """Entries, not just eigenvalues, and on a deliberately unsorted index set.
+
+    Membership is resolved by binary search on a sorted copy, so the caller's
+    ordering has to be carried back through that sort. An eigenvalue check
+    cannot see a slip there -- any consistent row/column permutation leaves the
+    spectrum alone -- but comparing against ``full[ix_(I, I)]`` can.
+    """
+    operator, _, dimension = restriction_case
+    rng = np.random.default_rng(23)
+    full = operator.restrict(np.arange(dimension))
+    indices = rng.permutation(dimension)[:min(9, dimension)]
+    assert np.allclose(operator.restrict(indices),
+                       full[np.ix_(indices, indices)], atol=1e-12)
+
+
 def test_restriction_rejects_malformed_index_sets(restriction_case):
     operator, _, dimension = restriction_case
     with pytest.raises(ValueError, match="empty"):
@@ -183,6 +199,20 @@ def test_more_shots_retain_more_probability(hubbard_case):
                                           basis=backend.basis)
         masses.append(record.retained_probability)
     assert masses[0] <= masses[1] + 1e-12 <= masses[2] + 1e-12
+
+
+@pytest.mark.parametrize("n", [7, 9])
+def test_mismatched_qubit_count_is_rejected(n):
+    """A wrong `n` would silently post-select on the wrong bits, so it raises.
+
+    This is the one input error the sampling contract cannot absorb: every
+    other bad argument fails loudly, but a plausible-looking `n` just shifts
+    the occupation mask and returns confidently wrong configurations.
+    """
+    state = np.full(2 ** 8, 2.0 ** -4)
+    with pytest.raises(ValueError, match="2\\^n-length state"):
+        sample_configurations(state, shots=10, seed=0, n=n, n_electrons=4,
+                              sz=0.0)
 
 
 def test_zero_state_is_rejected(hubbard_case):

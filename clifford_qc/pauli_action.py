@@ -157,21 +157,26 @@ class PauliLinearOperator:
             raise ValueError(f"indices must lie in [0, {self.dimension})")
         if np.unique(indices).size != indices.size:
             raise ValueError("restriction indices must be distinct")
-        # position[word] = row of that word in the restricted matrix, or -1.
-        # Dense in 2^n, which is the space this class already assumes.
-        position = np.full(self.dimension, -1, dtype=np.int64)
-        position[indices] = np.arange(indices.size, dtype=np.int64)
+        # Membership is resolved by binary search on a sorted copy rather than
+        # by a 2^n lookup table.  The table would be the obvious way to write
+        # this and costs O(2^n) scratch on top of the caller's O(M^2) result;
+        # `order` carries the caller's ordering back through the sort, so the
+        # returned matrix is still in the order they asked for.
+        order = np.argsort(indices)
+        ascending = indices[order]
+        rows_all = np.arange(indices.size, dtype=np.int64)
         out = np.zeros((indices.size, indices.size), dtype=complex)
         for x_mask, entries in self._groups:
             # Row `t` of the restricted matrix draws from the single source
             # `t xor x`; keep the pair only when both ends were sampled.
             sources = indices ^ x_mask
-            columns = position[sources]
-            keep = columns >= 0
+            slot = np.searchsorted(ascending, sources)
+            safe = np.where(slot < indices.size, slot, 0)
+            keep = ascending[safe] == sources
             if not keep.any():
                 continue
-            rows = np.arange(indices.size, dtype=np.int64)[keep]
-            live_sources, live_columns = sources[keep], columns[keep]
+            rows = rows_all[keep]
+            live_sources, live_columns = sources[keep], order[safe[keep]]
             for z_mask, phase in entries:
                 signs = 1.0 - 2.0 * parity(live_sources, z_mask)
                 np.add.at(out, (rows, live_columns), phase * signs)
