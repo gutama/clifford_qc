@@ -113,18 +113,24 @@ class FamilyReport:
     partner_family: str
     max_generator_support: int
     support_cap: int | None = None
+    generator_cap: int | None = None
 
     @property
     def candidate_count(self) -> int:
         return len(self.generators)
 
     def to_record(self) -> dict:
+        # Namespaced. An arm reports the support of the directions it actually
+        # retained; this is the maximum over the whole candidate family. Both
+        # are useful and they are different numbers, so merging a family record
+        # into an arm record must not let one silently overwrite the other.
         return {
             "family": self.name,
-            "partner_family": self.partner_family,
-            "candidate_count": self.candidate_count,
-            "max_generator_support": int(self.max_generator_support),
-            "support_cap": self.support_cap,
+            "family_partner": self.partner_family,
+            "family_candidate_count": self.candidate_count,
+            "family_max_generator_support": int(self.max_generator_support),
+            "family_support_cap": self.support_cap,
+            "family_generator_cap": self.generator_cap,
         }
 
 
@@ -166,7 +172,14 @@ def dressed_family(configurations, model, *, kind: str = "excitation",
     else:
         raise ValueError("kind must be 'excitation' or 'commutator'")
 
-    generators = compound_response(configurations, partners,
+    # Partners on the LEFT. Dressing the sampled determinant
+    # ``|D_k> = C_k|ref>`` means applying the excitation to *it*, so the
+    # generator is ``E_mu C_k`` and not ``C_k E_mu``. The two are different
+    # variational families, not a convention: on the 2x2 Hubbard cluster the
+    # reversed product ``C E|ref>`` for word 15 and ``E(2,6<-0,4)`` has norm 1
+    # while the intended ``E C|ref>`` is exactly zero -- so the wrong order
+    # manufactures a direction that dresses nothing, and drops one that does.
+    generators = compound_response(partners, configurations,
                                    max_support=max_support,
                                    max_generators=max_generators)
     if not generators:
@@ -176,6 +189,7 @@ def dressed_family(configurations, model, *, kind: str = "excitation",
     return FamilyReport(
         name=f"configuration_x_{kind}", generators=tuple(generators),
         partner_family=partner_name, support_cap=max_support,
+        generator_cap=max_generators,
         max_generator_support=max(g.support() for g in generators))
 
 
@@ -236,6 +250,40 @@ def _count(labels, prefix: str) -> int:
     return sum(1 for label in labels if label.startswith(prefix))
 
 
+def _fixed_basis_arm(name, rho, hamiltonian, generators, *, exact_energy,
+                     seconds, metadata=None):
+    """An arm whose basis is fully determined, with no growth decision to make.
+
+    Reached when the sampled set is a single determinant and the reference was
+    not among it: seeding from that determinant leaves nothing to grow, and
+    ``run_acase`` rejects an empty candidate pool.  The answer is still
+    well-defined -- it is that determinant's Rayleigh quotient -- so it is
+    solved directly rather than reported as an error.
+    """
+    bank = MatrixElementBank(rho, hamiltonian)
+    indices = tuple(bank.extend(as_generators(generators)))
+    solved = bank.solve(indices)
+    labels = tuple(solved.basis_labels)
+    resources = solved.resources
+    return HybridArm(
+        name=name, energy=float(solved.ground_energy), basis_size=len(labels),
+        retained_rank=int(solved.effective_rank),
+        condition_number=float(solved.condition_number),
+        word_universe=resources.get("word_universe"),
+        max_generator_support=resources.get("max_generator_support"),
+        max_element_support=resources.get("max_hamiltonian_element_support"),
+        candidate_pool=len(labels),
+        configuration_directions=sum(1 for label in labels
+                                     if label.startswith("cfg[")
+                                     and "*" not in label),
+        dressed_directions=sum(1 for label in labels if "*" in label),
+        packet_directions=sum(1 for label in labels
+                              if label.startswith("cfgH") and "*" not in label),
+        stopped_reason="fixed basis: nothing to grow", labels=labels,
+        seconds=seconds, exact_energy=exact_energy,
+        metadata=dict(metadata or {}))
+
+
 def _arm_from_result(name, result, *, candidate_pool, exact_energy, seconds,
                      configuration_prefix, packet_prefix, metadata=None):
     labels = tuple(result.result.basis_labels)
@@ -270,6 +318,7 @@ def run_hybrid(rho, model, words, *, max_size: int = 12,
                family: FamilyReport | None = None,
                kind: str = "excitation",
                max_support: int | None = 64,
+               max_generators: int | None = None,
                max_packet_support: int | None = 16,
                packet_stage: int | None = None,
                leakage_tol: float | None = None,
@@ -290,10 +339,25 @@ def run_hybrid(rho, model, words, *, max_size: int = 12,
     matched-size comparison, whatever the energies say.
     """
     configurations = configuration_generators_from_words(model, words)
+    # A-CASE seeds the identity when no `initial` is given, and the identity
+    # direction *is* the reference determinant. QSCI sampling does not
+    # guarantee the reference was observed, so seeding it unconditionally puts
+    # a determinant nobody sampled into the "bare sampled configurations"
+    # baseline -- and on a one-determinant sample the arm came back spanning
+    # only that unsampled reference. Seed the identity exactly when the
+    # reference was sampled, and otherwise start from a sampled direction.
+    reference_occupancy = frozenset(occupied_spin_orbitals(model))
+    reference_sampled = any(
+        frozenset(_occupied(int(word), model.n)) == reference_occupancy
+        for word in np.asarray(words, dtype=np.int64).reshape(-1).tolist())
+    seed = None if reference_sampled else [configurations[0]]
+    sampling_note = {"reference_sampled": bool(reference_sampled),
+                     "sampled_words": int(np.unique(words).size)}
     if family is None:
         family = dressed_family(configurations, model, kind=kind,
                                 hamiltonian=model.hamiltonian,
-                                max_support=max_support)
+                                max_support=max_support,
+                                max_generators=max_generators)
     packets = configuration_haar_packets(
         configurations, max_support=max_packet_support, label_prefix="cfgH")
     common = dict(exact_ground_energy=exact_energy, gamma=gamma,
@@ -302,22 +366,28 @@ def run_hybrid(rho, model, words, *, max_size: int = 12,
     arms = []
 
     started = time.perf_counter()
-    bare = run_acase(rho, model.hamiltonian, configurations,
-                     max_size=max_size, **common)
-    arms.append(_arm_from_result(
-        "bare_configurations", bare, candidate_pool=len(configurations),
-        exact_energy=exact_energy, seconds=time.perf_counter() - started,
-        configuration_prefix="cfg[", packet_prefix="cfgH",
-        metadata={"family": None}))
+    if seed is not None and len(configurations) == 1:
+        arms.append(_fixed_basis_arm(
+            "bare_configurations", rho, model.hamiltonian, configurations,
+            exact_energy=exact_energy, seconds=time.perf_counter() - started,
+            metadata={"family": None, **sampling_note}))
+    else:
+        bare = run_acase(rho, model.hamiltonian, configurations, initial=seed,
+                         max_size=max_size, **common)
+        arms.append(_arm_from_result(
+            "bare_configurations", bare, candidate_pool=len(configurations),
+            exact_energy=exact_energy, seconds=time.perf_counter() - started,
+            configuration_prefix="cfg[", packet_prefix="cfgH",
+            metadata={"family": None, **sampling_note}))
 
     started = time.perf_counter()
-    dressed = run_acase(rho, model.hamiltonian, dressed_pool,
+    dressed = run_acase(rho, model.hamiltonian, dressed_pool, initial=seed,
                         max_size=max_size, **common)
     arms.append(_arm_from_result(
         "configurations_plus_dressed", dressed, candidate_pool=len(dressed_pool),
         exact_energy=exact_energy, seconds=time.perf_counter() - started,
         configuration_prefix="cfg[", packet_prefix="cfgH",
-        metadata=family.to_record()))
+        metadata={**family.to_record(), **sampling_note}))
 
     if not packets:
         # No packet arm rather than a silently substituted one: an empty packet
@@ -325,17 +395,16 @@ def run_hybrid(rho, model, words, *, max_size: int = 12,
         # dressed arm under the packet name would fabricate a third comparison.
         return arms
 
-    # At least 2: `max_size` counts the seeded identity, so a stage of 1 grows
-    # nothing and the packet arm silently degenerates into the dressed arm.
-    stage = packet_stage if packet_stage is not None else max(2, max_size // 3)
-    stage = max(2, min(stage, max_size))
-    if max_size < 3:
-        raise ValueError("the packet arm needs max_size >= 3: one direction "
-                         "for the seeded identity, one for a staged packet, "
-                         "and one for the dressed pool to add anything")
+    # `max_size` counts growth *steps* on top of the seeded basis, so a stage
+    # of 1 performs one selection and can retain one packet. An earlier version
+    # forced stage >= 2 and refused max_size < 3 on the belief that a stage of
+    # 1 grew nothing; that was an off-by-one reading of the budget, and the
+    # rejection encoded an invariant the solver does not have.
+    stage = packet_stage if packet_stage is not None else max(1, max_size // 3)
+    stage = max(1, min(stage, max_size))
     started = time.perf_counter()
     coarse = run_acase(rho, model.hamiltonian, list(configurations) + packets,
-                       max_size=stage, **common)
+                       initial=seed, max_size=stage, **common)
     retained = [coarse.bank.generator(index) for index in coarse.indices]
     staged = run_acase(rho, model.hamiltonian, dressed_pool,
                        initial=retained, bank=coarse.bank,
@@ -345,7 +414,8 @@ def run_hybrid(rho, model, words, *, max_size: int = 12,
         candidate_pool=len(configurations) + len(packets) + len(dressed_pool),
         exact_energy=exact_energy, seconds=time.perf_counter() - started,
         configuration_prefix="cfg[", packet_prefix="cfgH",
-        metadata={**family.to_record(), "packet_candidates": len(packets),
+        metadata={**family.to_record(), **sampling_note,
+                  "packet_candidates": len(packets),
                   "packet_stage_size": int(stage),
                   "max_packet_support": max_packet_support}))
     return arms

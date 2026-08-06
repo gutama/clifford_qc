@@ -102,10 +102,11 @@ def test_dressed_family_reports_its_declared_accounting(hubbard_case,
                             max_support=16, max_generators=24)
     record = family.to_record()
     assert record["family"] == "configuration_x_excitation"
-    assert record["partner_family"] == "determinant_excitations"
-    assert 0 < record["candidate_count"] <= 24
-    assert record["support_cap"] == 16
-    assert record["max_generator_support"] <= 16
+    assert record["family_partner"] == "determinant_excitations"
+    assert 0 < record["family_candidate_count"] <= 24
+    assert record["family_support_cap"] == 16
+    assert record["family_generator_cap"] == 24
+    assert record["family_max_generator_support"] <= 16
 
 
 def test_support_cap_binds(hubbard_case, sampled_words):
@@ -260,14 +261,6 @@ def test_hybrid_reports_error_rather_than_picking_a_winner(arms):
         assert "error" in record
 
 
-def test_packet_arm_requires_room_to_stage(hubbard_case, sampled_words):
-    """Below three directions the staging is not a third arm, just a rename."""
-    model, _, rho, exact = hubbard_case
-    with pytest.raises(ValueError, match="max_size >= 3"):
-        run_hybrid(rho, model, sampled_words, max_size=2, exact_energy=exact,
-                   max_support=12, max_packet_support=8)
-
-
 def test_compound_labels_are_counted_once(hubbard_case, sampled_words):
     """Regression: `cfg[k]*E(a<-i)` is a dressed direction, not also a bare one."""
     model, _, rho, exact = hubbard_case
@@ -282,3 +275,154 @@ def test_compound_labels_are_counted_once(hubbard_case, sampled_words):
         bare = [label for label in arm.labels
                 if label.startswith("cfg[") and "*" not in label]
         assert arm.configuration_directions == len(bare)
+
+
+# ------------------------------------------- regressions from the PR #42 review
+
+def test_dressing_applies_the_excitation_to_the_determinant(hubbard_case):
+    """`E_mu C_k`, not `C_k E_mu`. These are different variational families.
+
+    Dressing the sampled determinant `|D_k> = C_k|ref>` means applying the
+    excitation to *it*. The reversed product is not a convention difference:
+    for word 15 and `E(2,6<-0,4)` on this cluster, `C E|ref>` has norm 1 while
+    the intended `E C|ref>` is exactly zero, so the wrong order manufactures a
+    direction that dresses nothing and drops one that does.
+    """
+    from clifford_qc.subspace import (determinant_excitations,
+                                      occupied_spin_orbitals)
+
+    model, backend, _, _ = hubbard_case
+    reference = backend.state_from_program(model.reference)
+    configuration = configuration_generators_from_words(
+        model, np.array([15], dtype=np.int64))[0]
+    excitation = next(g for g in determinant_excitations(
+        model.n, occupied_spin_orbitals(model)) if g.label == "E(2,6<-0,4)")
+
+    def norm(mv):
+        return float(np.linalg.norm(
+            backend.operator(mv, validate_sector=False).matvec(reference)))
+
+    assert norm(configuration.mv * excitation.mv) == pytest.approx(1.0, abs=1e-9)
+    assert norm(excitation.mv * configuration.mv) == pytest.approx(0.0, abs=1e-12)
+
+    # And the family must be built the second way.
+    family = dressed_family([configuration], model, max_support=64)
+    for generator in family.generators:
+        assert generator.label.endswith("*cfg[0]")
+
+
+def test_dressed_generators_are_products_with_their_configuration(hubbard_case,
+                                                                  sampled_words):
+    """Every dressed direction factors as (partner)(configuration), in order."""
+    model, _, _, _ = hubbard_case
+    configurations = configuration_generators_from_words(model, sampled_words[:2])
+    labels = {generator.label for generator in configurations}
+    family = dressed_family(configurations, model, max_support=16,
+                            max_generators=12)
+    for generator in family.generators:
+        left, _, right = generator.label.rpartition("*")
+        assert right in labels and left
+
+
+def test_bare_arm_spans_only_what_was_sampled(hubbard_case):
+    """A-CASE seeds the identity, and the identity *is* the reference.
+
+    QSCI sampling does not guarantee the reference is observed, so seeding it
+    unconditionally puts an unsampled determinant into the baseline. On this
+    one-determinant sample the arm previously came back spanning `('I',)` --
+    only the determinant that was never sampled.
+    """
+    model, backend, rho, exact = hubbard_case
+    reference = backend.state_from_program(model.reference)
+    reference_word = int(backend.basis[int(np.argmax(np.abs(reference)))])
+    assert reference_word != 15
+
+    arms = run_hybrid(rho, model, np.array([15], dtype=np.int64), max_size=2,
+                      exact_energy=exact, max_support=12, max_packet_support=8)
+    bare = arms[0]
+    assert bare.to_record()["reference_sampled"] is False
+    assert "I" not in bare.labels
+    assert bare.labels == ("cfg[0]",)
+    assert bare.basis_size == 1
+
+
+def test_identity_is_seeded_when_the_reference_was_sampled(hubbard_case):
+    """The converse: if the reference *was* sampled, its direction belongs."""
+    model, backend, rho, exact = hubbard_case
+    reference = backend.state_from_program(model.reference)
+    reference_word = int(backend.basis[int(np.argmax(np.abs(reference)))])
+    arms = run_hybrid(rho, model,
+                      np.array([reference_word, 15, 30], dtype=np.int64),
+                      max_size=3, exact_energy=exact, max_support=12,
+                      max_packet_support=8)
+    assert arms[0].to_record()["reference_sampled"] is True
+    assert "I" in arms[0].labels
+
+
+def test_family_support_does_not_overwrite_the_arm_support(hubbard_case,
+                                                           sampled_words):
+    """Two different numbers under one key is a silently wrong column.
+
+    The arm's `max_generator_support` is over the directions it retained; the
+    family's is over every candidate it could have retained. Merging the family
+    record into the arm record used to clobber the first with the second.
+    """
+    model, _, rho, exact = hubbard_case
+    arms = run_hybrid(rho, model, sampled_words, max_size=4,
+                      exact_energy=exact, max_support=12, max_generators=20,
+                      max_packet_support=8)
+    dressed = arms[1]
+    record = dressed.to_record()
+    assert record["max_generator_support"] == dressed.max_generator_support
+    assert "family_max_generator_support" in record
+    assert record["family_max_generator_support"] <= 12
+
+
+def test_generator_cap_is_wired_through_the_runner(hubbard_case, sampled_words):
+    """An advertised ceiling that the main runner does not pass is not a ceiling."""
+    model, _, rho, exact = hubbard_case
+    arms = run_hybrid(rho, model, sampled_words, max_size=3,
+                      exact_energy=exact, max_support=16, max_generators=5,
+                      max_packet_support=8)
+    record = arms[1].to_record()
+    assert record["family_generator_cap"] == 5
+    assert record["family_candidate_count"] <= 5
+
+
+def test_a_single_stage_can_retain_a_packet(hubbard_case, sampled_words):
+    """`max_size` counts growth steps, so stage 1 performs one selection.
+
+    An earlier version forced stage >= 2 and refused `max_size < 3` on the
+    belief that a stage of 1 grew nothing. A-CASE seeds the basis and then runs
+    `max_size` steps, so stage 1 can and does retain a packet.
+    """
+    from clifford_qc.subspace import configuration_haar_packets, run_acase
+
+    model, backend, rho, _ = hubbard_case
+    # A wide sample, so the packet tree is deep enough for a coarse packet to
+    # out-score a single determinant. Whether it does is data; that a stage of
+    # one *can* retain one is the invariant the old code denied.
+    indices, _ = sample_state_input(
+        exact_ground_state_oracle(backend, model.hamiltonian), shots=200, seed=5)
+    configurations = configuration_generators_from_words(
+        model, backend.basis[indices])
+    packets = configuration_haar_packets(configurations, max_support=16,
+                                         label_prefix="cfgH")
+    assert packets
+    grown = run_acase(rho, model.hamiltonian, configurations + packets,
+                      max_size=1)
+    labels = tuple(grown.result.basis_labels)
+    assert len(labels) == 2  # seeded identity plus one selection
+    assert any(label.startswith("cfgH") for label in labels)
+
+
+def test_small_budgets_are_accepted(hubbard_case, sampled_words):
+    """max_size < 3 was refused on an invariant the solver does not have."""
+    model, _, rho, exact = hubbard_case
+    for budget in (1, 2):
+        arms = run_hybrid(rho, model, sampled_words, max_size=budget,
+                          exact_energy=exact, max_support=12,
+                          max_generators=8, max_packet_support=8)
+        assert len(arms) == 3
+        for arm in arms:
+            assert arm.basis_size <= budget + 1
