@@ -1,9 +1,8 @@
 name: CI
 
+# Automatic CI is intentionally paused. Restore the push/pull_request triggers
+# when the project is ready to reactivate GitHub Actions.
 on:
-  push:
-    branches: [main]
-  pull_request:
   workflow_dispatch:
 
 permissions:
