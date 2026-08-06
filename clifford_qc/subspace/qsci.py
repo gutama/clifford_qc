@@ -29,6 +29,8 @@ exists, so :func:`run_qsci` accepts a full-space operator with no sector.
 
 from __future__ import annotations
 
+import os
+import threading
 import time
 from dataclasses import dataclass, field, replace
 
@@ -63,6 +65,61 @@ IMPLEMENTABLE = "implementable"
 _CATEGORIES = (ORACLE, IMPLEMENTABLE)
 
 
+def _current_rss_bytes() -> int | None:
+    """Current resident set size on Linux, or ``None`` when unavailable.
+
+    The benchmark suite already uses ``/proc/self/statm`` for molecular peak
+    RSS because it includes NumPy/BLAS allocations that Python-only allocation
+    tracers miss.  Keep the same metric here; portability is represented by a
+    missing value rather than by fabricating a cross-platform estimate.
+    """
+    try:
+        with open("/proc/self/statm", encoding="ascii") as handle:
+            resident_pages = int(handle.read().split()[1])
+        return resident_pages * int(os.sysconf("SC_PAGE_SIZE"))
+    except (OSError, ValueError, IndexError):
+        return None
+
+
+class _PeakRSS:
+    """Low-overhead RSS sampler covering restriction and eigensolve work."""
+
+    def __init__(self, interval: float = 0.002) -> None:
+        self.interval = interval
+        self.baseline: int | None = None
+        self.peak: int | None = None
+        self._stop = threading.Event()
+        self._thread: threading.Thread | None = None
+
+    def _sample(self) -> None:
+        value = _current_rss_bytes()
+        if value is not None:
+            self.peak = value if self.peak is None else max(self.peak, value)
+
+    def _run(self) -> None:
+        while not self._stop.wait(self.interval):
+            self._sample()
+
+    def __enter__(self) -> "_PeakRSS":
+        self.baseline = self.peak = _current_rss_bytes()
+        if self.baseline is not None:
+            self._thread = threading.Thread(target=self._run, daemon=True)
+            self._thread.start()
+        return self
+
+    def __exit__(self, *exc) -> None:
+        self._stop.set()
+        if self._thread is not None:
+            self._thread.join(timeout=max(0.05, 5.0 * self.interval))
+        self._sample()
+
+    @property
+    def delta(self) -> int | None:
+        if self.baseline is None or self.peak is None:
+            return None
+        return max(0, self.peak - self.baseline)
+
+
 @dataclass(frozen=True)
 class SamplingRecord:
     """The §8A sampling contract.
@@ -82,7 +139,12 @@ class SamplingRecord:
     seed: int | None
     recovery: str = "none"
     input_category: str = "unspecified"
+    # Project-wide convention: ``state_preparations`` counts *distinct*
+    # preparation circuits/states.  QSCI also needs the execution count because
+    # every computational-basis shot destroys the state and therefore requires
+    # a fresh preparation.
     state_preparations: int | None = None
+    state_preparation_executions: int | None = None
 
     @property
     def duplicate_fraction(self) -> float:
@@ -117,6 +179,7 @@ class SamplingRecord:
             "input_label": self.input_label,
             "input_category": self.input_category,
             "state_preparations": self.state_preparations,
+            "state_preparation_executions": self.state_preparation_executions,
             "recovery": self.recovery,
             "seed": self.seed,
         }
@@ -134,6 +197,8 @@ class QSCIResult:
     hermiticity_residual: float
     matrix_nonzeros: int
     matrix_bytes: int
+    peak_rss_bytes: int | None
+    peak_rss_delta_bytes: int | None
     build_seconds: float
     solve_seconds: float
     exact_energy: float | None = None
@@ -160,6 +225,8 @@ class QSCIResult:
             "projected_matrix_words": 0,
             "matrix_nonzeros": int(self.matrix_nonzeros),
             "matrix_bytes": int(self.matrix_bytes),
+            "peak_rss_bytes": self.peak_rss_bytes,
+            "peak_rss_delta_bytes": self.peak_rss_delta_bytes,
             "hermiticity_residual": float(self.hermiticity_residual),
             "build_seconds": float(self.build_seconds),
             "solve_seconds": float(self.solve_seconds),
@@ -196,10 +263,12 @@ class StateInput:
     :func:`sample_configurations` is wrong for this mode and will fail its
     length check.
 
-    ``preparations`` is the number of state preparations one sampling run costs.
-    It is ``None`` for an oracle, and that is not a missing measurement -- there
-    is no preparation to count, which is exactly why an oracle row cannot sit on
-    a resource axis beside an implementable one.
+    ``preparations`` follows the repository-wide resource convention: it counts
+    distinct preparation circuits/states, not repeated executions.  An
+    implementable QSCI input normally has one such circuit, but every raw shot
+    still executes it once; :func:`sample_state_input` therefore records both
+    quantities.  Both are ``None`` for an oracle, which is exactly why an oracle
+    row cannot sit on a resource axis beside an implementable one.
 
     The post-selected mode exists because a qubit-ADAPT ansatz built from
     individual Pauli words does not conserve particle number, so its state
@@ -226,6 +295,8 @@ class StateInput:
         if self.category == IMPLEMENTABLE and self.preparations is None:
             raise ValueError(f"implementable input {self.label!r} must declare "
                              "its state-preparation count")
+        if self.preparations is not None and self.preparations <= 0:
+            raise ValueError("state-preparation count must be positive")
 
 
 def assert_single_evidence_category(records) -> str:
@@ -353,8 +424,10 @@ def adapt_vqe_state(backend, model, pool, *, max_operators: int = 4,
     """An optimized ADAPT-VQE state as the sampling input.
 
     The correlated implementable input: it costs a full ADAPT run to build and
-    one preparation per sampling run thereafter, and both numbers are reported
-    so the arm is not scored as though the state were free.
+    one distinct preparation circuit thereafter.  This helper currently builds
+    the ansatz with the exact simulator, so its zero quantum-shot/circuit counts
+    are explicitly labelled as *unaccounted hardware construction cost* rather
+    than being allowed to read as a free experimental optimization.
     """
     from ..workflows import adapt_warm_start
     from .reference import pure_statevector
@@ -372,6 +445,8 @@ def adapt_vqe_state(backend, model, pool, *, max_operators: int = 4,
                   "adapt_operators": len(result.labels),
                   "adapt_labels": list(result.labels),
                   "adapt_energy": float(result.energy),
+                  "adapt_construction_cost_accounted": False,
+                  "adapt_construction_evidence": "exact_simulation",
                   "adapt_construction_circuits": int(result.total_circuits),
                   "adapt_construction_shots": int(result.total_shots)})
 
@@ -404,8 +479,14 @@ def sample_state_input(state: StateInput, *, shots: int, seed: int | None = 0,
         if indices.size and not np.array_equal(state.basis[indices], words):
             raise ValueError("post-selected configurations are not in the "
                              "sector basis they were selected against")
-    return indices, replace(record, input_category=state.category,
-                            state_preparations=state.preparations)
+    # One destructive computational-basis measurement consumes one preparation
+    # execution. ``state.preparations`` is the count of *distinct* preparation
+    # circuits, so multiplying by it would mix two different resource axes.
+    executions = None if state.category == ORACLE else int(record.raw_shots)
+    return indices, replace(
+        record, input_category=state.category,
+        state_preparations=state.preparations,
+        state_preparation_executions=executions)
 
 
 def _probabilities(psi: np.ndarray) -> np.ndarray:
@@ -431,10 +512,23 @@ def _sector_membership(words: np.ndarray, n: int, n_electrons: int,
     for j in up_sites:
         up_counts += (words >> (n - 1 - j)) & 1
     # S_z = (n_up - n_down)/2 with n_down = N - n_up, so n_up = N/2 + S_z.
-    two_sz = round(2.0 * float(sz))
+    raw_two_sz = 2.0 * float(sz)
+    two_sz = round(raw_two_sz)
+    if not np.isclose(raw_two_sz, two_sz, atol=1e-12, rtol=0.0):
+        raise ValueError("S_z must be an integer or half-integer")
     if (n_electrons + two_sz) % 2:
         return np.zeros(words.size, dtype=bool)
     return keep & (up_counts == (n_electrons + two_sz) // 2)
+
+
+def _empirical_occupancy(words: np.ndarray, n: int) -> np.ndarray:
+    """Mean orbital occupations estimated from the actual sampling record."""
+    words = np.asarray(words, dtype=np.int64).reshape(-1)
+    if words.size == 0:
+        raise ValueError("cannot estimate occupancy from zero sampled words")
+    return np.array([
+        float(np.mean((words >> (n - 1 - j)) & 1)) for j in range(n)
+    ], dtype=float)
 
 
 def recover_configurations(words: np.ndarray, occupancy: np.ndarray, *, n: int,
@@ -463,7 +557,10 @@ def recover_configurations(words: np.ndarray, occupancy: np.ndarray, *, n: int,
         groups = [(list(range(n)), n_electrons)]
     else:
         up_sites, down_sites = _spin_sites(n, spin_ordering)
-        two_sz = round(2.0 * float(sz))
+        raw_two_sz = 2.0 * float(sz)
+        two_sz = round(raw_two_sz)
+        if not np.isclose(raw_two_sz, two_sz, atol=1e-12, rtol=0.0):
+            raise ValueError("S_z must be an integer or half-integer")
         if (n_electrons + two_sz) % 2:
             raise ValueError("particle number and S_z do not define integer counts")
         n_up = (n_electrons + two_sz) // 2
@@ -558,10 +655,11 @@ def sample_configurations(psi, *, shots: int, seed: int | None = 0,
     inside = _sector_membership(words, n, n_electrons, sz, spin_ordering)
     repaired_shots = 0
     if recovery == "occupancy" and not inside.all():
-        all_words = np.arange(probabilities.size, dtype=np.int64)
-        occupancy = np.array(
-            [float(probabilities[((all_words >> (n - 1 - j)) & 1) == 1].sum())
-             for j in range(n)], dtype=float)
+        # Recovery is a sampling heuristic, so its occupancy guide must come
+        # from the samples too.  Reading it from the exact 2^n probability
+        # vector would leak oracle information into a method whose point is to
+        # work from computational-basis draws.
+        occupancy = _empirical_occupancy(words, n)
         words = words.copy()
         words[~inside] = recover_configurations(
             words[~inside], occupancy, n=n, n_electrons=n_electrons, sz=sz,
@@ -586,7 +684,7 @@ def sample_configurations(psi, *, shots: int, seed: int | None = 0,
 
 def run_qsci(operator, indices, *, sampling: SamplingRecord,
              exact_energy: float | None = None, k: int = 1,
-             evidence: str = EvidenceLevel.EXACT.value,
+             evidence: str = EvidenceLevel.FINITE_SAMPLE.value,
              hermiticity_tol: float = 1e-10,
              metadata: dict | None = None) -> QSCIResult:
     """Diagonalize ``H`` restricted to sampled configurations (§8B).
@@ -605,19 +703,21 @@ def run_qsci(operator, indices, *, sampling: SamplingRecord,
     if not isinstance(k, int) or not 1 <= k <= indices.size:
         raise ValueError(f"k must be in [1, {indices.size}]")
 
-    start = time.perf_counter()
-    matrix = operator.restrict(indices)
-    build_seconds = time.perf_counter() - start
+    with _PeakRSS() as rss:
+        start = time.perf_counter()
+        matrix = operator.restrict(indices)
+        build_seconds = time.perf_counter() - start
 
-    residual = float(np.abs(matrix - matrix.conj().T).max()) if matrix.size else 0.0
-    if residual > hermiticity_tol * max(1.0, float(np.abs(matrix).max())):
-        raise ValueError(
-            f"restricted Hamiltonian is not Hermitian (residual {residual:.3e}); "
-            "the operator or the index set is wrong, and symmetrizing would hide it")
+        residual = (float(np.abs(matrix - matrix.conj().T).max())
+                    if matrix.size else 0.0)
+        if residual > hermiticity_tol * max(1.0, float(np.abs(matrix).max())):
+            raise ValueError(
+                f"restricted Hamiltonian is not Hermitian (residual {residual:.3e}); "
+                "the operator or the index set is wrong, and symmetrizing would hide it")
 
-    start = time.perf_counter()
-    values = np.linalg.eigvalsh(0.5 * (matrix + matrix.conj().T))
-    solve_seconds = time.perf_counter() - start
+        start = time.perf_counter()
+        values = np.linalg.eigvalsh(0.5 * (matrix + matrix.conj().T))
+        solve_seconds = time.perf_counter() - start
 
     return QSCIResult(
         energy=float(values[0]),
@@ -628,6 +728,8 @@ def run_qsci(operator, indices, *, sampling: SamplingRecord,
         hermiticity_residual=residual,
         matrix_nonzeros=int(np.count_nonzero(matrix)),
         matrix_bytes=int(matrix.nbytes),
+        peak_rss_bytes=rss.peak,
+        peak_rss_delta_bytes=rss.delta,
         build_seconds=build_seconds,
         solve_seconds=solve_seconds,
         exact_energy=exact_energy,
