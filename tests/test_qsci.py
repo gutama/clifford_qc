@@ -27,7 +27,10 @@ from clifford_qc.models import fcidump_model
 from clifford_qc.models.lattice import hubbard, kitaev_honeycomb
 from clifford_qc.pauli_action import PauliLinearOperator
 from clifford_qc.subspace.qsci import (
-    recover_configurations, run_qsci, sample_configurations,
+    IMPLEMENTABLE, ORACLE, StateInput, adapt_vqe_state,
+    assert_single_evidence_category, exact_ground_state_oracle,
+    recover_configurations, reference_determinant_state, run_qsci,
+    sample_configurations, sample_state_input,
 )
 
 # The committed CAS(4e,4o) active space, so the H4 leg of the gate needs no
@@ -322,3 +325,218 @@ def test_sector_mode_rejects_recovery(hubbard_case):
     with pytest.raises(ValueError, match="nothing to recover"):
         sample_configurations(state, shots=10, basis=backend.basis,
                               recovery="occupancy")
+
+
+# ------------------------------------------------------------ §8D state inputs
+
+def test_reference_determinant_is_a_single_configuration(hubbard_case):
+    """The floor every other input has to beat, and it should look like one."""
+    backend, operator, exact, model = hubbard_case
+    state = reference_determinant_state(backend, model)
+    assert state.category == IMPLEMENTABLE
+    assert state.preparations == 1
+    indices, record = sample_state_input(state, shots=256, seed=0)
+    assert indices.size == 1
+    assert record.duplicate_fraction == pytest.approx(1.0 - 1.0 / 256)
+    result = run_qsci(operator, indices, sampling=record,
+                      exact_energy=float(exact[0]))
+    assert result.variational_gap > 0.0
+
+
+def test_oracle_declares_no_preparation_cost(hubbard_case):
+    """An oracle has no preparation to count, and must not invent one."""
+    backend, _, _, model = hubbard_case
+    state = exact_ground_state_oracle(backend, model.hamiltonian)
+    assert state.category == ORACLE
+    assert state.preparations is None
+    _, record = sample_state_input(state, shots=128, seed=0)
+    assert record.input_category == ORACLE
+    assert record.state_preparations is None
+
+
+def test_oracle_rejects_a_declared_preparation_count(hubbard_case):
+    backend, _, _, _ = hubbard_case
+    with pytest.raises(ValueError, match="no preparation cost"):
+        StateInput(label="bogus", category=ORACLE,
+                   amplitudes=np.ones(backend.dimension), preparations=1)
+
+
+def test_implementable_must_declare_a_preparation_count(hubbard_case):
+    backend, _, _, _ = hubbard_case
+    with pytest.raises(ValueError, match="state-preparation count"):
+        StateInput(label="bogus", category=IMPLEMENTABLE,
+                   amplitudes=np.ones(backend.dimension))
+
+
+def test_mixing_evidence_categories_is_refused(hubbard_case):
+    """§8D's one hard rule, enforced rather than documented."""
+    backend, operator, exact, model = hubbard_case
+    oracle = exact_ground_state_oracle(backend, model.hamiltonian)
+    implementable = reference_determinant_state(backend, model)
+    assert assert_single_evidence_category([oracle, oracle]) == ORACLE
+    assert (assert_single_evidence_category([implementable, implementable])
+            == IMPLEMENTABLE)
+    with pytest.raises(ValueError, match="different evidence categories"):
+        assert_single_evidence_category([oracle, implementable])
+
+    # And on solved results, which is the form a ladder comparison actually has.
+    results = []
+    for state in (oracle, implementable):
+        indices, record = sample_state_input(state, shots=64, seed=0)
+        results.append(run_qsci(operator, indices, sampling=record,
+                                exact_energy=float(exact[0])))
+    with pytest.raises(ValueError, match="different evidence categories"):
+        assert_single_evidence_category(results)
+    with pytest.raises(ValueError, match="different evidence categories"):
+        assert_single_evidence_category([r.to_record() for r in results])
+
+
+def test_spin_model_inputs_need_no_sector(kitaev_case):
+    """Both declared inputs work with backend=None, which is the spin arm."""
+    operator, exact = kitaev_case
+    from clifford_qc.models.lattice import kitaev_honeycomb
+
+    model = kitaev_honeycomb(rows=2, cols=2)
+    oracle = exact_ground_state_oracle(operator)
+    reference = reference_determinant_state(None, model)
+    assert oracle.basis is None and reference.basis is None
+    for state in (oracle, reference):
+        indices, record = sample_state_input(state, shots=200, seed=6)
+        result = run_qsci(operator, indices, sampling=record,
+                          exact_energy=float(exact[0]))
+        assert result.variational_gap >= -1e-9
+
+
+def test_post_selection_discard_converges_to_the_leaked_weight():
+    """A leaking state is post-selected, and the discard rate matches the leak.
+
+    Built analytically rather than by hoping an ADAPT run happens to leak: the
+    state carries a declared `eps` of weight on an out-of-sector word, so the
+    expected discard fraction is known exactly and the assertion is a real
+    bound instead of a skip.
+
+    This is the situation a qubit-ADAPT ansatz creates -- its pool is built
+    from individual Pauli words of conserving generators, which do not conserve
+    particle number themselves. Restricting such a state to the sector would
+    quietly renormalize the leaked weight away; sampling full-space and
+    post-selecting is what a device would have to do.
+    """
+    from clifford_qc.models.lattice import hubbard
+
+    model = hubbard(shape=(2, 2), t=1.0, U=4.0)
+    n_electrons = int(model.metadata["n_electrons"])
+    backend = SectorStatevectorBackend(model.n, n_electrons,
+                                       float(model.metadata["sz"]))
+    eps = 0.02
+    dense = np.zeros(2 ** model.n, dtype=complex)
+    dense[backend.basis] = np.sqrt((1.0 - eps) / backend.dimension)
+    outside = [w for w in range(2 ** model.n)
+               if bin(w).count("1") != n_electrons]
+    dense[outside[0]] = np.sqrt(eps)
+
+    state = StateInput(
+        label="synthetic_leaking", category=IMPLEMENTABLE, amplitudes=dense,
+        basis=backend.basis, preparations=1,
+        post_selection={"n": model.n, "n_electrons": n_electrons, "sz": 0.0,
+                        "spin_ordering": backend.spin_ordering})
+    shots = 40000
+    indices, record = sample_state_input(state, shots=shots, seed=11)
+
+    assert record.discarded_shots > 0
+    tolerance = 6.0 * np.sqrt(shots * eps * (1.0 - eps)) / shots
+    assert record.discarded_fraction == pytest.approx(eps, abs=tolerance)
+    # Survivors must come back as sector indices, not raw words.
+    assert indices.max() < backend.dimension
+
+
+def test_adapt_state_input_plumbs_through_to_an_energy(hubbard_case):
+    """The ADAPT arm runs end to end, whether or not that ansatz leaks."""
+    from clifford_qc.algorithms.pools import PoolOperator, is_odd_y
+    from clifford_qc.ir import PauliWord
+    from clifford_qc.subspace import (determinant_excitations,
+                                      occupied_spin_orbitals)
+
+    backend, operator, exact, model = hubbard_case
+    pool = {}
+    for generator in determinant_excitations(model.n,
+                                             occupied_spin_orbitals(model)):
+        for code in sorted(generator.mv.terms):
+            word = PauliWord(model.n, code)
+            if code and is_odd_y(word) and code not in pool:
+                pool[code] = PoolOperator(word.label, word)
+    state = adapt_vqe_state(backend, model, list(pool.values()),
+                            max_operators=3, compute_exact_reference=False)
+    assert state.category == IMPLEMENTABLE
+    assert state.preparations == 1
+    assert state.metadata["adapt_operators"] <= 3
+    assert state.metadata["adapt_sector_leakage"] >= 0.0
+    indices, record = sample_state_input(state, shots=2000, seed=4)
+    assert indices.max() < backend.dimension
+    result = run_qsci(operator, indices, sampling=record,
+                      exact_energy=float(exact[0]))
+    assert result.variational_gap >= -1e-9
+
+
+def test_sampled_indices_address_the_operator_after_post_selection():
+    """Post-selected words come back as sector indices, so run_qsci just works."""
+    from clifford_qc.models.lattice import hubbard
+
+    model = hubbard(shape=(2, 2), t=1.0, U=4.0)
+    backend = SectorStatevectorBackend(model.n,
+                                       int(model.metadata["n_electrons"]),
+                                       float(model.metadata["sz"]))
+    operator = backend.operator(model.hamiltonian)
+    exact = float(np.linalg.eigvalsh(operator.restrict(
+        np.arange(backend.dimension)))[0])
+    state = reference_determinant_state(backend, model)
+    indices, record = sample_state_input(state, shots=100, seed=0)
+    assert indices.max() < backend.dimension
+    assert run_qsci(operator, indices, sampling=record,
+                    exact_energy=exact).variational_gap >= -1e-9
+
+
+def test_full_space_and_sector_determinants_agree(hubbard_case):
+    """The two reference-determinant paths must share a bit convention.
+
+    The full-space path reads the X gates directly instead of routing through
+    ``to_matrix`` on a density multivector -- at twelve qubits that route sums
+    ``2^n`` Kronecker products into a ``2^n x 2^n`` matrix to rediscover a
+    single amplitude. The shortcut is only safe if it lands on the same word
+    the sector backend does, which is what this checks.
+    """
+    backend, _, _, model = hubbard_case
+    sector = reference_determinant_state(backend, model)
+    full = reference_determinant_state(None, model)
+    assert full.basis is None and sector.basis is not None
+    embedded = np.zeros(2 ** model.n, dtype=complex)
+    embedded[backend.basis] = sector.amplitudes
+    assert np.array_equal(embedded, full.amplitudes)
+    assert int((np.abs(full.amplitudes) > 0).sum()) == 1
+
+
+def test_mismatched_post_selection_spec_raises_the_written_error():
+    """A word above every basis element must not surface as an IndexError.
+
+    `np.searchsorted` returns `basis.size` for a word larger than the whole
+    basis, so indexing with it unclipped raises `IndexError: index out of
+    bounds` -- and the caller sees an array-bounds message where the code has a
+    written explanation ready. The spec below post-selects six electrons while
+    the basis holds the two-electron sector, so surviving words are both absent
+    from the basis and numerically past its end.
+    """
+    from clifford_qc.backends.sector_statevector import sector_basis
+
+    n = 8
+    basis = sector_basis(n, 2, 0.0)
+    six = [w for w in range(2 ** n) if bin(w).count("1") == 6]
+    assert max(six) > int(basis.max())
+    amplitudes = np.zeros(2 ** n, dtype=complex)
+    amplitudes[max(six)] = 1.0
+
+    state = StateInput(
+        label="mismatched", category=IMPLEMENTABLE, amplitudes=amplitudes,
+        basis=basis, preparations=1,
+        post_selection={"n": n, "n_electrons": 6, "sz": 0.0,
+                        "spin_ordering": "interleaved"})
+    with pytest.raises(ValueError, match="not in the sector basis"):
+        sample_state_input(state, shots=32, seed=0)

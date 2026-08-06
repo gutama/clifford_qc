@@ -197,7 +197,7 @@ def observable_set(model, kind: str) -> dict:
 
 METHOD_KINDS = frozenset({
     "exact", "reference_state", "qse", "krylov", "generator_coordinate",
-    "acase_exact", "acase_certified", "adapt_exact", "adapt_shot",
+    "acase_exact", "acase_certified", "adapt_exact", "adapt_shot", "qsci",
 })
 
 
@@ -377,6 +377,53 @@ def run_method(name: str, spec: dict, model, kind: str, context: dict) -> dict:
         row.update(_subspace_row(result.result, observables))
         return row
 
+    if method == "qsci":
+        from clifford_qc.subspace.qsci import (
+            adapt_vqe_state, exact_ground_state_oracle,
+            reference_determinant_state, run_qsci, sample_state_input,
+        )
+
+        which = str(spec.pop("input", "oracle"))
+        shots = int(spec.pop("shots", 4096))
+        backend = context["sector_backend"]
+        operator = context["sampling_operator"]
+        if which == "oracle":
+            state = (exact_ground_state_oracle(operator) if backend is None
+                     else exact_ground_state_oracle(backend, model.hamiltonian))
+        elif which == "reference":
+            state = reference_determinant_state(backend, model)
+        elif which == "adapt":
+            state = adapt_vqe_state(backend, model, context["pool"],
+                                    max_operators=int(spec.pop("max_operators", 4)),
+                                    compute_exact_reference=False)
+        else:
+            raise ValueError(f"unknown qsci input {which!r}; known: "
+                             "oracle, reference, adapt")
+        indices, sampling = sample_state_input(state, shots=shots, seed=seed)
+        result = run_qsci(operator, indices, sampling=sampling,
+                          exact_energy=context["reference"])
+        row = result.to_record()
+        # `method` and `energy` are set by the caller from the ladder spec, and
+        # the row's own `evidence` must stay the ladder's vocabulary; the QSCI
+        # input category rides alongside rather than overwriting it.
+        row.pop("method")
+        row.update({
+            "evidence": "exact",
+            "basis_size": result.subspace_dimension,
+            # Not absent -- zero. The projected matrix is built classically, so
+            # the ladder's W column is directly comparable across the two
+            # families, and reporting it as missing would read as "not measured"
+            # rather than as the thing the arm exists to demonstrate.
+            "word_universe": 0,
+            "sampling_state": state.label,
+            "sampling_mode": ("post_selected" if state.post_selection
+                              else "full_space" if backend is None else "sector"),
+        })
+        row.update({f"adapt_{key.split('adapt_')[-1]}": value
+                    for key, value in state.metadata.items()
+                    if key.startswith("adapt_")})
+        return row
+
     if method in ("adapt_exact", "adapt_shot"):
         from clifford_qc.algorithms import ConfidenceSelector, run_adapt
         from clifford_qc.measurement import UniformDoubling
@@ -428,8 +475,28 @@ def run_rung(rung: dict, methods: dict) -> list[dict]:
             name: float((psi.conj() @ (to_sparse(operator) @ psi)).real)
             for name, operator in observables.items()}
 
+    # The QSCI arm samples and restricts on the same object, so both come from
+    # one place: a sector backend where a particle-number sector exists, and the
+    # full-space compiled action where it does not. Built only when a QSCI
+    # method is on this rung -- compiling the operator is not free, and the
+    # rungs that never sample should not pay for it.
+    sector_backend = sampling_operator = None
+    if any(methods[name].get("kind") == "qsci" for name in rung["methods"]):
+        if kind == "spin_lattice":
+            from clifford_qc.pauli_action import PauliLinearOperator
+
+            sampling_operator = PauliLinearOperator(model.hamiltonian)
+        else:
+            from clifford_qc.backends import SectorStatevectorBackend
+
+            sector_backend = SectorStatevectorBackend(
+                model.n, model.metadata["n_electrons"], model.metadata["sz"])
+            sampling_operator = sector_backend.operator(model.hamiltonian)
+
     wants_level4 = any(methods[name].get("level4") for name in rung["methods"])
     context = {"rho": rho, "reference": reference, "sector": sector,
+               "sector_backend": sector_backend,
+               "sampling_operator": sampling_operator,
                "observables": observables, "exact_observables": exact_observables,
                "pool": word_pool(model, kind),
                "candidates": build_candidates(model, kind,
@@ -466,19 +533,39 @@ def main(argv=None) -> None:
     parser.add_argument("--out", required=True)
     parser.add_argument("--rungs", default=None,
                         help="comma-separated rung names to run (default: all)")
+    parser.add_argument("--methods", default=None,
+                        help="comma-separated method names to run (default: "
+                             "every method each selected rung declares)")
+    parser.add_argument("--append", action="store_true",
+                        help="append to --out instead of rewriting it. Adding "
+                             "one arm to a committed ladder does not justify "
+                             "re-running every other row: a rewrite would "
+                             "perturb each row's wall_seconds and redraw the "
+                             "stochastic finite-shot arms for no new evidence.")
     args = parser.parse_args(argv)
 
     config = json.loads(Path(args.config).read_text())
     methods = config["methods"]
     wanted = set(args.rungs.split(",")) if args.rungs else None
-    ladder = [rung for rung in config["ladder"]
-              if wanted is None or rung["name"] in wanted]
+    chosen = set(args.methods.split(",")) if args.methods else None
+    if chosen and not chosen <= set(methods):
+        raise SystemExit(f"unknown methods: {sorted(chosen - set(methods))}")
+    ladder = []
+    for rung in config["ladder"]:
+        if wanted is not None and rung["name"] not in wanted:
+            continue
+        if chosen is not None:
+            rung = dict(rung)
+            rung["methods"] = [name for name in rung["methods"] if name in chosen]
+            if not rung["methods"]:
+                continue
+        ladder.append(rung)
 
     out = Path(args.out)
     out.parent.mkdir(parents=True, exist_ok=True)
     written = 0
     provenance = execution_provenance()
-    with out.open("w") as handle:
+    with out.open("a" if args.append else "w") as handle:
         for rung in ladder:
             for row in run_rung(rung, methods):
                 row["rung_name"] = rung["name"]
@@ -486,9 +573,14 @@ def main(argv=None) -> None:
                                         sort_keys=True) + "\n")
                 handle.flush()
                 written += 1
+                # Measured shots and sampling draws are different resources --
+                # a QSCI row spends zero of the former -- so they print under
+                # different names rather than sharing one "shots" column.
+                spend = (f"draws={row['raw_shots']:,}" if "raw_shots" in row
+                         else f"shots={row.get('total_shots', 0):,}")
                 print(f"[{written}] {row['rung_name']:22s} {row['method']:20s} "
-                      f"E={row['energy']:.8f} err={row['error']:+.2e} "
-                      f"shots={row.get('total_shots', 0):,}", flush=True)
+                      f"E={row['energy']:.8f} err={row['error']:+.2e} {spend}",
+                      flush=True)
     print(f"wrote {written} runs to {out}")
 
 
