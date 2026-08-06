@@ -403,18 +403,21 @@ def run_method(name: str, spec: dict, model, kind: str, context: dict) -> dict:
         result = run_qsci(operator, indices, sampling=sampling,
                           exact_energy=context["reference"])
         row = result.to_record()
-        # `method` and `energy` are set by the caller from the ladder spec, and
-        # the row's own `evidence` must stay the ladder's vocabulary; the QSCI
-        # input category rides alongside rather than overwriting it.
+        # `method` and `energy` are set by the caller from the ladder spec.  The
+        # restricted diagonalization is exact arithmetic, but the subspace was
+        # selected by a finite random sample; calling that composite result
+        # `exact` would let it enter exact-arithmetic winner tables.  Keep the
+        # result's finite-sample evidence and say separately that this validation
+        # layer drew from exact probabilities.
         row.pop("method")
         row.update({
-            "evidence": "exact",
             "basis_size": result.subspace_dimension,
             # Not absent -- zero. The projected matrix is built classically, so
             # the ladder's W column is directly comparable across the two
             # families, and reporting it as missing would read as "not measured"
             # rather than as the thing the arm exists to demonstrate.
             "word_universe": 0,
+            "sampling_source": "exact_probabilities",
             "sampling_state": state.label,
             "sampling_mode": ("post_selected" if state.post_selection
                               else "full_space" if backend is None else "sector"),
@@ -565,6 +568,11 @@ def main(argv=None) -> None:
     out.parent.mkdir(parents=True, exist_ok=True)
     written = 0
     provenance = execution_provenance()
+    if "reference_results" in out.parts and provenance.get("git_dirty"):
+        raise SystemExit(
+            "refusing to write a committed reference result from a dirty "
+            "working tree; commit the implementation first, then regenerate "
+            "the benchmark so its provenance names the code that produced it")
     with out.open("a" if args.append else "w") as handle:
         for rung in ladder:
             for row in run_rung(rung, methods):
