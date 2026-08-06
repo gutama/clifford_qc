@@ -320,7 +320,9 @@ def _all_variational(records: list[dict], tolerance: float = 1e-9) -> bool:
     for record in records:
         errors = [record["full_qsci"]["error"], record["bare_acase"]["error"]]
         errors += [arm["error"] for arm in record["hybrid_arms"]]
-        errors += [control["error"] for control in record["phase9_controls"]
+        # `phase9_controls` is keyed by control name, so iterate its values.
+        errors += [control["error"]
+                   for control in record["phase9_controls"].values()
                    if control.get("error") is not None]
         if any(error < -tolerance for error in errors):
             return False
