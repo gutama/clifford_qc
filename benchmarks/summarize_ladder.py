@@ -39,14 +39,17 @@ COLUMNS = [
 # against. These are the §8E Pareto axes, reported beside the energy.
 SAMPLED_COLUMNS = [
     ("rung", "rung_name"), ("input", "sampling_state"),
-    ("evidence", "input_category"), ("mode", "sampling_mode"),
+    ("input_cat", "input_category"), ("sample_ev", "evidence"),
+    ("mode", "sampling_mode"),
     ("M", "subspace_dimension"), ("error", "error"),
     ("draws", "raw_shots"), ("unique", "unique_configurations"),
     ("dup", "duplicate_fraction"), ("discard", "discarded_fraction"),
-    ("kept_p", "retained_probability"), ("preps", "state_preparations"),
+    ("kept_p", "retained_probability"), ("prep_states", "state_preparations"),
+    ("prep_exec", "state_preparation_executions"),
     ("W", "projected_matrix_words"), ("nnz", "matrix_nonzeros"),
     ("bytes", "matrix_bytes"), ("build_s", "build_seconds"),
-    ("solve_s", "solve_seconds"),
+    ("solve_s", "solve_seconds"), ("peak_rss", "peak_rss_bytes"),
+    ("rss_delta", "peak_rss_delta_bytes"),
 ]
 
 
@@ -62,8 +65,21 @@ def load(path: Path) -> list[dict]:
     return rows
 
 
+def effective_evidence(row: dict) -> str | None:
+    """Evidence after applying schema semantics to legacy Phase-8 rows.
+
+    The first committed QSCI batch incorrectly wrote ``exact`` even though its
+    subspaces came from finite random draws. Keep the raw JSONL immutable as a
+    provenance record, but never reproduce that mislabel in derived tables.
+    Fresh runs now write ``finite_sample`` directly.
+    """
+    if row.get("family") == "qsci" and row.get("raw_shots") is not None:
+        return "finite_sample"
+    return row.get("evidence")
+
+
 def cell(row: dict, key: str) -> str:
-    value = row.get(key)
+    value = effective_evidence(row) if key == "evidence" else row.get(key)
     if value is None:
         # A missing support column means one of two different things: the method
         # has no projected matrix (the reference determinant), or the row was
@@ -111,18 +127,35 @@ def sampled_subspace_section(rows: list[dict]) -> list[str]:
                                        for _, key in SAMPLED_COLUMNS) + " |")
     categories = {row.get("input_category") for row in sampled}
     lines.append("")
-    lines.append("`evidence` here is the *input* category, not the arithmetic. "
-                 "`oracle` rows sample an exact eigenvector no device can "
+    lines.append("`input_cat` and `sample_ev` are deliberately separate. "
+                 "`oracle` inputs sample an exact eigenvector no device can "
                  "prepare: they validate the method and bound what sampling "
-                 "could achieve, and they carry no `preps` because there is no "
+                 "could achieve, and they carry no preparation resource because there is no "
                  "preparation to count. Reading an oracle row on the same "
                  "resource axis as an `implementable` one advertises a frontier "
-                 "nothing can reach.")
+                 "nothing can reach. `finite_sample` means the retained subspace "
+                 "came from finitely many draws even though this validation layer "
+                 "samples exact probabilities.")
     if categories == {"oracle", "implementable"}:
         lines.append("")
         lines.append("Both categories are present above, so this table is a "
                      "record, not a comparison. Any Pareto frontier drawn from "
                      "it must be drawn within one category.")
+    if any(row.get("sampling_state") == "adapt_vqe" for row in sampled):
+        lines.append("")
+        lines.append("The `adapt_vqe` sampling states in this validation ladder "
+                     "were optimized by exact simulation. Their ADAPT training "
+                     "cost is therefore unaccounted hardware construction cost, "
+                     "not a zero-cost device preparation; fresh runs record this "
+                     "as `adapt_construction_cost_accounted=false`.")
+    dirty = [row for row in sampled
+             if row.get("provenance", {}).get("git_dirty") is True]
+    if dirty:
+        lines.append("")
+        lines.append(f"WARNING: {len(dirty)} QSCI row(s) were generated from a "
+                     "dirty working tree. They are retained as legacy validation "
+                     "records, not citable benchmark evidence; regenerate them "
+                     "from a clean commit before manuscript use.")
     return lines
 
 
@@ -142,6 +175,17 @@ def markdown(rows: list[dict]) -> str:
     # result about subspaces, it is a rung that does not discriminate -- so the
     # table says so instead.
     excluded = {"exact", "reference_state"}
+
+    def competitive(row: dict) -> bool:
+        """Rows eligible for method claims rather than controls/validation."""
+        if row["method"] in excluded:
+            return False
+        if row.get("input_category") == "oracle":
+            return False
+        # This is the same determinant already reported in the dedicated
+        # reference column.  Giving it a QSCI method name must not sneak it back
+        # into the compactness contest the reference exclusion exists to avoid.
+        return row.get("sampling_state") != "reference_determinant"
     lines.append("| rung | reference determinant | methods reaching accuracy "
                  "| most compact exact-arithmetic |")
     lines.append("|---|---|---|---|")
@@ -153,11 +197,11 @@ def markdown(rows: list[dict]) -> str:
                           if reference is not None
                           and reference.get("chemical_accuracy") else "not accurate")
         accurate = [row["method"] for row in rung
-                    if row.get("chemical_accuracy") and row["method"] not in excluded]
+                    if row.get("chemical_accuracy") and competitive(row)]
         sized = [(row.get("basis_size") or row.get("operators") or 0, row["method"])
                  for row in rung
-                 if row.get("chemical_accuracy") and row["evidence"] == "exact"
-                 and row["method"] not in excluded]
+                 if row.get("chemical_accuracy") and effective_evidence(row) == "exact"
+                 and competitive(row)]
         winner = min(sized)[1] + f" (M={min(sized)[0]})" if sized else "none"
         lines.append(f"| {name} | {discriminating} | "
                      f"{', '.join(accurate) or 'none'} | {winner} |")
@@ -168,12 +212,14 @@ def markdown(rows: list[dict]) -> str:
     lines.append("### Evidence labels")
     lines.append("")
     lines.append("`reference` is the exact diagonalization every error column is "
-                 "measured against; `exact` is noiseless arithmetic; "
-                 "`finite_sample` is a shot-based run whose growth decisions carry "
-                 "an empirical-Bernstein certificate. A `finite_sample` energy "
-                 "below the reference is not an improvement -- thresholding a "
-                 "noisy overlap matrix has no variational guarantee (open "
-                 "question Q3).")
+                 "measured against; `exact` is a deterministic noiseless result; "
+                 "`finite_sample` means finite random draws affected the result. "
+                 "Certification is method-specific: certified A-CASE rows carry "
+                 "their empirical-Bernstein decision record, while QSCI rows here "
+                 "sample exact probabilities without a finite-shot certificate. "
+                 "A finite-sample energy below the reference is never evidence of "
+                 "an improvement; noisy-overlap A-CASE additionally has "
+                 "no variational guarantee under thresholding (open question Q3).")
     return "\n".join(lines) + "\n"
 
 
@@ -186,7 +232,8 @@ def write_csv(rows: list[dict], path: Path) -> None:
         writer = csv.DictWriter(handle, fieldnames=fields, extrasaction="ignore")
         writer.writeheader()
         for row in ordered(rows):
-            writer.writerow({key: row.get(key) for key in fields})
+            writer.writerow({key: (effective_evidence(row) if key == "evidence"
+                                   else row.get(key)) for key in fields})
 
 
 def main(argv=None) -> int:

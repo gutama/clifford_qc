@@ -238,7 +238,11 @@ def test_run_qsci_is_variational_and_converges_to_exact(hubbard_case):
     assert result.variational_gap >= -1e-9
     assert result.subspace_dimension == partial.size
     assert result.to_record()["projected_matrix_words"] == 0
+    assert result.evidence == "finite_sample"
     assert result.matrix_nonzeros > 0
+    assert result.peak_rss_bytes is None or result.peak_rss_bytes >= result.matrix_bytes
+    assert (result.peak_rss_delta_bytes is None
+            or result.peak_rss_delta_bytes >= 0)
     assert result.hermiticity_residual < 1e-12
 
     whole = run_qsci(operator, np.arange(backend.dimension), sampling=record,
@@ -337,6 +341,8 @@ def test_reference_determinant_is_a_single_configuration(hubbard_case):
     assert state.preparations == 1
     indices, record = sample_state_input(state, shots=256, seed=0)
     assert indices.size == 1
+    assert record.state_preparations == 1  # distinct preparation circuit
+    assert record.state_preparation_executions == 256  # one execution per draw
     assert record.duplicate_fraction == pytest.approx(1.0 - 1.0 / 256)
     result = run_qsci(operator, indices, sampling=record,
                       exact_energy=float(exact[0]))
@@ -352,6 +358,7 @@ def test_oracle_declares_no_preparation_cost(hubbard_case):
     _, record = sample_state_input(state, shots=128, seed=0)
     assert record.input_category == ORACLE
     assert record.state_preparations is None
+    assert record.state_preparation_executions is None
 
 
 def test_oracle_rejects_a_declared_preparation_count(hubbard_case):
@@ -366,6 +373,14 @@ def test_implementable_must_declare_a_preparation_count(hubbard_case):
     with pytest.raises(ValueError, match="state-preparation count"):
         StateInput(label="bogus", category=IMPLEMENTABLE,
                    amplitudes=np.ones(backend.dimension))
+
+
+def test_preparation_states_and_executions_are_distinct_resource_axes():
+    state = StateInput(label="ensemble", category=IMPLEMENTABLE,
+                       amplitudes=np.array([1.0, 0.0]), preparations=2)
+    _, record = sample_state_input(state, shots=17, seed=0)
+    assert record.state_preparations == 2
+    assert record.state_preparation_executions == 17
 
 
 def test_mixing_evidence_categories_is_refused(hubbard_case):
@@ -470,7 +485,10 @@ def test_adapt_state_input_plumbs_through_to_an_energy(hubbard_case):
     assert state.preparations == 1
     assert state.metadata["adapt_operators"] <= 3
     assert state.metadata["adapt_sector_leakage"] >= 0.0
+    assert state.metadata["adapt_construction_cost_accounted"] is False
+    assert state.metadata["adapt_construction_evidence"] == "exact_simulation"
     indices, record = sample_state_input(state, shots=2000, seed=4)
+    assert record.state_preparation_executions == 2000
     assert indices.max() < backend.dimension
     result = run_qsci(operator, indices, sampling=record,
                       exact_energy=float(exact[0]))
