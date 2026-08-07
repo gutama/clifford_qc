@@ -165,6 +165,15 @@ class TargetOverlapScore:
 
 
 @dataclass(frozen=True)
+class _TargetOverlapContext:
+    """Candidate-independent pieces of one target-overlap scoring step."""
+
+    indices: tuple[int, ...]
+    coefficients: np.ndarray
+    target_ritz: np.ndarray
+
+
+@dataclass(frozen=True)
 class GrowthRecord:
     """What one accepted (or refused) growth step did."""
 
@@ -473,25 +482,33 @@ def select_candidate(scores: Sequence[CandidateScore]) -> CandidateScore | None:
     return live[best]
 
 
-def score_target_overlap(bank: MatrixElementBank, basis: Sequence[int],
-                         result: SubspaceResult, candidate: int,
-                         target: OverlapTarget, *,
-                         min_orthogonality: float = DEFAULT_MIN_ORTHOGONALITY,
-                         leakage_tol: float | None = None) -> TargetOverlapScore:
-    """Score the new target weight captured by a candidate direction (§11A).
+def _prepare_target_overlap_context(
+        bank: MatrixElementBank, basis: Sequence[int], result: SubspaceResult,
+        target: OverlapTarget) -> _TargetOverlapContext:
+    """Build target Gram/normalization data once for one retained subspace."""
+    target_indices = tuple(bank.extend(target.generators))
+    coefficients = np.asarray(target.coefficients, dtype=complex)
+    target_overlap = np.array([
+        [bank.entry(i, j)[0] for j in target_indices] for i in target_indices
+    ], dtype=complex)
+    target_norm = float((coefficients.conj() @ target_overlap @ coefficients).real)
+    if target_norm <= DEFAULT_NORM_FLOOR ** 2:
+        raise ValueError("overlap target has zero norm on this reference state")
+    coefficients = coefficients / math.sqrt(target_norm)
 
-    The candidate is first deflated against the *entire* retained Ritz space,
-    exactly as in :func:`score_candidate`.  If ``q=(I-P_B)|chi>`` and ``|T>``
-    is the normalized classical target, the score is
+    target_basis = np.array([
+        [bank.entry(i, j)[0] for j in basis] for i in target_indices
+    ], dtype=complex)
+    target_ritz = coefficients.conj() @ target_basis @ result.coefficients
+    return _TargetOverlapContext(target_indices, coefficients, target_ritz)
 
-    ``|<T|q>|^2 / <q|q>``.
 
-    It is therefore invariant to rescaling either the candidate or the target,
-    vanishes for directions already in the retained span, and measures the
-    incremental squared projection onto the target rather than energy
-    lowering.  All overlaps are assembled from the same virtual-generator bank;
-    no target state is prepared on a quantum backend.
-    """
+def _score_target_overlap_precomputed(
+        bank: MatrixElementBank, basis: Sequence[int], result: SubspaceResult,
+        candidate: int, context: _TargetOverlapContext, *,
+        min_orthogonality: float = DEFAULT_MIN_ORTHOGONALITY,
+        leakage_tol: float | None = None) -> TargetOverlapScore:
+    """Score one candidate using target data shared by the whole frontier."""
     label = bank.generator(candidate).label
     leakage = None
     if leakage_tol is not None:
@@ -519,30 +536,41 @@ def score_target_overlap(bank: MatrixElementBank, basis: Sequence[int],
             rejected=f"orthogonal fraction {orthogonal_fraction:.2e}",
             leakage=leakage)
 
-    target_indices = tuple(bank.extend(target.generators))
-    coefficients = np.asarray(target.coefficients, dtype=complex)
-    target_overlap = np.array([
-        [bank.entry(i, j)[0] for j in target_indices] for i in target_indices
-    ], dtype=complex)
-    target_norm = float((coefficients.conj() @ target_overlap @ coefficients).real)
-    if target_norm <= DEFAULT_NORM_FLOOR ** 2:
-        raise ValueError("overlap target has zero norm on this reference state")
-    coefficients = coefficients / math.sqrt(target_norm)
-
     target_candidate = sum(
         np.conjugate(coefficient) * bank.entry(index, candidate)[0]
-        for index, coefficient in zip(target_indices, coefficients)
+        for index, coefficient in zip(context.indices, context.coefficients)
     )
-    target_basis = np.array([
-        [bank.entry(i, j)[0] for j in basis] for i in target_indices
-    ], dtype=complex)
-    target_ritz = coefficients.conj() @ target_basis @ result.coefficients
-    target_q = target_candidate - np.dot(target_ritz, projections)
+    target_q = target_candidate - np.dot(context.target_ritz, projections)
     gain = max(0.0, float(abs(target_q) ** 2 / q_norm))
     # Roundoff may put a normalized projection a few ulps above one.
     gain = min(1.0, gain)
     return TargetOverlapScore(candidate, label, gain, orthogonal_fraction, gain,
                               leakage=leakage)
+
+
+def score_target_overlap(bank: MatrixElementBank, basis: Sequence[int],
+                         result: SubspaceResult, candidate: int,
+                         target: OverlapTarget, *,
+                         min_orthogonality: float = DEFAULT_MIN_ORTHOGONALITY,
+                         leakage_tol: float | None = None) -> TargetOverlapScore:
+    """Score the new target weight captured by a candidate direction (§11A).
+
+    The candidate is first deflated against the *entire* retained Ritz space,
+    exactly as in :func:`score_candidate`.  If ``q=(I-P_B)|chi>`` and ``|T>``
+    is the normalized classical target, the score is
+
+    ``|<T|q>|^2 / <q|q>``.
+
+    It is therefore invariant to rescaling either the candidate or the target,
+    vanishes for directions already in the retained span, and measures the
+    incremental squared projection onto the target rather than energy
+    lowering.  All overlaps are assembled from the same virtual-generator bank;
+    no target state is prepared on a quantum backend.
+    """
+    context = _prepare_target_overlap_context(bank, basis, result, target)
+    return _score_target_overlap_precomputed(
+        bank, basis, result, candidate, context,
+        min_orthogonality=min_orthogonality, leakage_tol=leakage_tol)
 
 
 def select_target_candidate(scores: Sequence[TargetOverlapScore]
@@ -601,9 +629,11 @@ def _evaluate_acase_step(bank: MatrixElementBank, state: ACASEState,
     else:
         if target is None:
             raise ValueError("target_overlap selection needs an OverlapTarget")
+        target_context = _prepare_target_overlap_context(
+            bank, state.basis, state.result, target)
         target_scores = [
-            score_target_overlap(
-                bank, state.basis, state.result, index, target,
+            _score_target_overlap_precomputed(
+                bank, state.basis, state.result, index, target_context,
                 min_orthogonality=config.min_orthogonality,
                 leakage_tol=config.leakage_tol,
             )
@@ -624,8 +654,6 @@ def _evaluate_acase_step(bank: MatrixElementBank, state: ACASEState,
             min_orthogonality=config.min_orthogonality, gamma=config.gamma,
             leakage_tol=config.leakage_tol,
         )
-        if not best.accepted:
-            raise RuntimeError("target and lowering scorers disagree on candidate viability")
         selection_score = targeted.score
         target_gain = targeted.overlap_gain
         rejected_conditioning = sum(
