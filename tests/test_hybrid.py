@@ -359,6 +359,37 @@ def test_identity_is_seeded_when_the_reference_was_sampled(hubbard_case):
     assert "I" in arms[0].labels
 
 
+def test_all_reference_sample_is_a_valid_two_arm_case(hubbard_case):
+    """Bare QSCI of the reference alone is valid even with no Haar packet."""
+    model, backend, rho, exact = hubbard_case
+    reference = backend.state_from_program(model.reference)
+    reference_word = int(backend.basis[int(np.argmax(np.abs(reference)))])
+    arms = run_hybrid(
+        rho, model, np.array([reference_word], dtype=np.int64),
+        max_size=2, exact_energy=exact, max_generators=16)
+    assert [arm.name for arm in arms] == [
+        "bare_configurations", "configurations_plus_dressed"]
+    assert arms[0].labels == ("I",)
+    assert arms[0].to_record()["reference_sampled"] is True
+
+
+def test_reference_sample_contributes_its_dressed_family(hubbard_case):
+    """If the reference was sampled, E_mu I must be in the candidate family."""
+    from clifford_qc.subspace import identity_generator
+
+    model, backend, rho, exact = hubbard_case
+    reference = backend.state_from_program(model.reference)
+    reference_word = int(backend.basis[int(np.argmax(np.abs(reference)))])
+    arms = run_hybrid(
+        rho, model, np.array([reference_word, 15], dtype=np.int64),
+        max_size=2, exact_energy=exact, max_generators=None)
+    labels = [generator.label for generator in dressed_family(
+        [identity_generator(model.n)], model, max_generators=None).generators]
+    assert labels
+    assert all(label.endswith("*I") for label in labels)
+    assert arms[1].to_record()["family_candidate_count"] >= len(labels)
+
+
 def test_family_support_does_not_overwrite_the_arm_support(hubbard_case,
                                                            sampled_words):
     """Two different numbers under one key is a silently wrong column.
