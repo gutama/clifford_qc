@@ -95,8 +95,12 @@ def test_qsci_and_selected_ci_expose_vectors_for_overlap_targets():
     operator = PauliLinearOperator(hamiltonian)
     sampling = SamplingRecord(8, 8, 0, 0, 2, 1.0, "test", 0)
     indices = np.array([0, 2], dtype=np.int64)
-    qsci = run_qsci(operator, indices, sampling=sampling, k=2)
+    baseline = run_qsci(operator, indices, sampling=sampling, k=2)
+    assert baseline.eigenvectors is None
+    qsci = run_qsci(
+        operator, indices, sampling=sampling, k=2, want_eigenvectors=True)
     restricted = operator.restrict(indices)
+    assert qsci.eigenvectors.base is None
     assert np.allclose(qsci.eigenvectors.conj().T @ qsci.eigenvectors,
                        np.eye(2), atol=1e-12)
     assert np.allclose(restricted @ qsci.eigenvectors,
@@ -108,6 +112,7 @@ def test_qsci_and_selected_ci_expose_vectors_for_overlap_targets():
     control = run_control(operator, np.array([0]), name="selected",
                           kind="selected_ci", n=n, max_determinants=2)
     assert control.coefficients is not None
+    assert control.coefficients.base is None
     assert np.linalg.norm(control.coefficients) == pytest.approx(1.0, abs=1e-12)
     ci_target = OverlapTarget.from_selected_ci(
         [_word_generator(n, word) for word in control.determinants], control)
@@ -128,7 +133,8 @@ def test_hubbard_2x3_overlap_target_exposes_a_lowering_selector_blind_spot():
     operator = backend.operator(model.hamiltonian)
     indices, sampling = sample_state_input(
         exact_ground_state_oracle(backend, model.hamiltonian), shots=64, seed=11)
-    qsci = run_qsci(operator, indices, sampling=sampling, k=1)
+    qsci = run_qsci(
+        operator, indices, sampling=sampling, k=1, want_eigenvectors=True)
     words = backend.basis[indices]
 
     reference = frozenset(occupied_spin_orbitals(model))
@@ -220,6 +226,67 @@ def test_packet_hierarchy_refines_then_hands_off_to_complete_pool():
         assert result.result.energy <= result.packet_energy_history[-1] + 1e-10
 
 
+def test_packet_hierarchy_dedup_uses_bank_index_not_generator_label():
+    n = 2
+    rho = ket_density(n, "00")
+    hamiltonian = -1.0 * X(n, 0) - 0.5 * X(n, 1)
+    configurations = [_x_generator(n, qubit, f"cfg[{qubit}]")
+                      for qubit in range(n)]
+    bank = MatrixElementBank(rho, hamiltonian)
+    config = ACASEConfig(max_size=1, min_lowering=0.0)
+
+    first = run_coarse_to_fine_acase(
+        rho, hamiltonian, configurations, configurations, bank=bank,
+        config=config, packet_steps=1, label_prefix="first")
+    second = run_coarse_to_fine_acase(
+        rho, hamiltonian, configurations, configurations, bank=bank,
+        config=config, packet_steps=1, label_prefix="second")
+
+    assert first.packet_labels
+    assert second.packet_labels
+    assert second.packet_labels[0].startswith("second")
+
+
+def test_packet_lowering_gate_is_unpenalized_but_frontier_ranking_is_not():
+    n = 2
+    rho = ket_density(n, "00")
+    hamiltonian = -1.0 * X(n, 0)
+    configurations = [_x_generator(n, qubit, f"cfg[{qubit}]")
+                      for qubit in range(n)]
+    result = run_coarse_to_fine_acase(
+        rho, hamiltonian, configurations, configurations,
+        config=ACASEConfig(max_size=1, min_lowering=0.3, gamma=2.0),
+        packet_steps=1, label_prefix="gamma")
+
+    assert result.packet_labels
+    # One live root is scored once by the packet policy and once by run_acase;
+    # the resource counter must report both passes.
+    assert result.frontiers_scored == 2
+
+
+def test_target_context_is_prepared_once_per_growth_step(monkeypatch):
+    import clifford_qc.subspace.adaptive as adaptive_module
+
+    n = 3
+    rho = ket_density(n, "000")
+    hamiltonian = -1.0 * X(n, 0)
+    candidates = [_x_generator(n, qubit, f"x{qubit}") for qubit in range(n)]
+    target = OverlapTarget.from_coefficients([candidates[1]], [1.0])
+    original = adaptive_module._prepare_target_overlap_context
+    calls = 0
+
+    def counted(*args, **kwargs):
+        nonlocal calls
+        calls += 1
+        return original(*args, **kwargs)
+
+    monkeypatch.setattr(adaptive_module, "_prepare_target_overlap_context", counted)
+    run_acase(
+        rho, hamiltonian, candidates, max_size=1,
+        criterion="target_overlap", target=target, min_target_overlap=0.0)
+    assert calls == 1
+
+
 # --------------------------------------------------------------------- 11D
 
 def test_sampling_records_duplicate_bootstrap_and_unseen_mass_baselines():
@@ -236,3 +303,31 @@ def test_sampling_records_duplicate_bootstrap_and_unseen_mass_baselines():
     samples = np.array([0, 0, 0, 1, 2, 3], dtype=np.int64)
     stability = sampling_set_stability(samples, replicates=64, seed=9)
     assert 0.0 < stability < 1.0
+
+
+def test_sampling_bootstrap_can_be_disabled_without_relaxing_stop_rule():
+    psi = np.array([1.0, 0.0, 0.0, 0.0], dtype=complex)
+    _, record = sample_configurations(
+        psi, shots=16, seed=4, stability_bootstrap=0)
+    assert record.bootstrap_set_stability is None
+    assert not sampling_stop_ready(
+        record, max_unseen_mass=0.0, min_set_stability=0.0)
+
+
+def test_good_turing_singletons_are_counted_before_occupancy_repair():
+    n = 4
+    shots = 32
+    seed = 13
+    psi = np.ones(2 ** n, dtype=complex) / np.sqrt(2 ** n)
+    probabilities = np.abs(psi) ** 2
+    draws = np.random.default_rng(seed).choice(
+        probabilities.size, size=shots, p=probabilities)
+    _, counts = np.unique(draws, return_counts=True)
+    expected_singletons = int(np.count_nonzero(counts == 1))
+
+    _, record = sample_configurations(
+        psi, shots=shots, seed=seed, n=n, n_electrons=2,
+        recovery="occupancy", stability_bootstrap=0)
+    assert record.repaired_shots > 0
+    assert record.singleton_configurations == expected_singletons
+    assert record.unseen_mass_estimate == pytest.approx(expected_singletons / shots)
