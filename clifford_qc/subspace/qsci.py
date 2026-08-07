@@ -54,6 +54,8 @@ __all__ = [
     "sample_state_input",
     "recover_configurations",
     "run_qsci",
+    "sampling_set_stability",
+    "sampling_stop_ready",
 ]
 
 # The §8D evidence split.  An oracle input is one no hardware can prepare --
@@ -145,6 +147,8 @@ class SamplingRecord:
     # a fresh preparation.
     state_preparations: int | None = None
     state_preparation_executions: int | None = None
+    singleton_configurations: int = 0
+    bootstrap_set_stability: float | None = None
 
     @property
     def duplicate_fraction(self) -> float:
@@ -165,6 +169,13 @@ class SamplingRecord:
             return 0.0
         return self.repaired_shots / self.raw_shots
 
+    @property
+    def unseen_mass_estimate(self) -> float:
+        """Good-Turing first-order unseen-mass estimate ``N_1 / N`` (§11D)."""
+        if self.accepted_shots <= 0:
+            return 0.0
+        return self.singleton_configurations / self.accepted_shots
+
     def to_record(self) -> dict:
         return {
             "raw_shots": int(self.raw_shots),
@@ -176,6 +187,9 @@ class SamplingRecord:
             "discarded_fraction": float(self.discarded_fraction),
             "repaired_fraction": float(self.repaired_fraction),
             "retained_probability": float(self.retained_probability),
+            "singleton_configurations": int(self.singleton_configurations),
+            "unseen_mass_estimate": float(self.unseen_mass_estimate),
+            "bootstrap_set_stability": self.bootstrap_set_stability,
             "input_label": self.input_label,
             "input_category": self.input_category,
             "state_preparations": self.state_preparations,
@@ -183,6 +197,55 @@ class SamplingRecord:
             "recovery": self.recovery,
             "seed": self.seed,
         }
+
+
+def sampling_set_stability(samples, *, replicates: int = 128,
+                           seed: int | None = 0) -> float:
+    """Bootstrap stability of the observed configuration set (§11D).
+
+    Each replicate resamples the accepted shots with replacement and reports
+    the fraction of the observed unique set recovered.  The mean is a compact
+    ``[0, 1]`` stability statistic.  It is deliberately paired with the
+    Good-Turing singleton estimate: an empirical bootstrap cannot invent an
+    unseen configuration, so stability alone is not an unseen-mass estimate.
+    """
+    samples = np.asarray(samples, dtype=np.int64).reshape(-1)
+    if samples.size == 0:
+        raise ValueError("set stability needs at least one accepted sample")
+    if replicates < 1:
+        raise ValueError("replicates must be positive")
+    observed = np.unique(samples)
+    rng = np.random.default_rng(seed)
+    recovered = 0.0
+    for _ in range(int(replicates)):
+        draw = rng.choice(samples, size=samples.size, replace=True)
+        recovered += np.unique(draw).size / observed.size
+    return float(recovered / replicates)
+
+
+def sampling_stop_ready(record: SamplingRecord, *, max_unseen_mass: float = 0.05,
+                        min_set_stability: float = 0.95,
+                        min_duplicate_fraction: float | None = None) -> bool:
+    """Declared Phase-11D baseline stop using sampling diagnostics.
+
+    Thresholds are caller policy, never hidden tuning constants.  Duplicate
+    rate is optional because a compact physical distribution can saturate at a
+    very different rate from a broad one; when supplied it is required in
+    addition to unseen-mass and bootstrap stability.
+    """
+    if not 0.0 <= max_unseen_mass <= 1.0:
+        raise ValueError("max_unseen_mass must lie in [0, 1]")
+    if not 0.0 <= min_set_stability <= 1.0:
+        raise ValueError("min_set_stability must lie in [0, 1]")
+    if min_duplicate_fraction is not None and not 0.0 <= min_duplicate_fraction <= 1.0:
+        raise ValueError("min_duplicate_fraction must lie in [0, 1]")
+    if record.bootstrap_set_stability is None:
+        return False
+    ready = (record.unseen_mass_estimate <= max_unseen_mass
+             and record.bootstrap_set_stability >= min_set_stability)
+    if min_duplicate_fraction is not None:
+        ready = ready and record.duplicate_fraction >= min_duplicate_fraction
+    return bool(ready)
 
 
 @dataclass(frozen=True)
@@ -203,6 +266,10 @@ class QSCIResult:
     solve_seconds: float
     exact_energy: float | None = None
     metadata: dict = field(default_factory=dict)
+    # Retained Ritz vectors in the sampled-configuration basis.  Phase 11 uses
+    # these as optional classical overlap targets; they are not a new quantum
+    # resource and are intentionally omitted from serialized benchmark rows.
+    eigenvectors: np.ndarray | None = None
 
     @property
     def subspace_dimension(self) -> int:
@@ -593,6 +660,7 @@ def sample_configurations(psi, *, shots: int, seed: int | None = 0,
                           spin_ordering="interleaved",
                           recovery: str = "none",
                           input_label: str = "unspecified",
+                          stability_bootstrap: int = 128,
                           ) -> tuple[np.ndarray, SamplingRecord]:
     """Draw configurations from a state's exact probabilities (§8A).
 
@@ -617,6 +685,14 @@ def sample_configurations(psi, *, shots: int, seed: int | None = 0,
     probabilities = _probabilities(psi)
     rng = np.random.default_rng(seed)
     draws = rng.choice(probabilities.size, size=int(shots), p=probabilities)
+    stability_seed = None if seed is None else int(seed) ^ 0x5EED
+
+    def diagnostics(accepted):
+        _, counts = np.unique(accepted, return_counts=True)
+        return (int(np.count_nonzero(counts == 1)),
+                sampling_set_stability(
+                    accepted, replicates=stability_bootstrap,
+                    seed=stability_seed))
 
     if basis is not None:
         basis = np.asarray(basis, dtype=np.int64).reshape(-1)
@@ -626,11 +702,14 @@ def sample_configurations(psi, *, shots: int, seed: int | None = 0,
             raise ValueError("sector-mode sampling has nothing to recover: "
                              "every draw is already in the sector")
         unique = np.unique(draws)
+        singletons, stability = diagnostics(draws)
         return unique, SamplingRecord(
             raw_shots=int(shots), accepted_shots=int(shots), discarded_shots=0,
             repaired_shots=0, unique_configurations=int(unique.size),
             retained_probability=float(probabilities[unique].sum()),
-            input_label=input_label, seed=seed)
+            input_label=input_label, seed=seed,
+            singleton_configurations=singletons,
+            bootstrap_set_stability=stability)
 
     if n is None:
         n = int(round(np.log2(probabilities.size)))
@@ -646,11 +725,14 @@ def sample_configurations(psi, *, shots: int, seed: int | None = 0,
     if n_electrons is None:
         # Spin arm: no particle-number sector exists, so nothing is out of it.
         unique = np.unique(words)
+        singletons, stability = diagnostics(words)
         return unique, SamplingRecord(
             raw_shots=int(shots), accepted_shots=int(shots), discarded_shots=0,
             repaired_shots=0, unique_configurations=int(unique.size),
             retained_probability=float(probabilities[unique].sum()),
-            input_label=input_label, seed=seed, recovery="none")
+            input_label=input_label, seed=seed, recovery="none",
+            singleton_configurations=singletons,
+            bootstrap_set_stability=stability)
 
     inside = _sector_membership(words, n, n_electrons, sz, spin_ordering)
     repaired_shots = 0
@@ -674,12 +756,15 @@ def sample_configurations(psi, *, shots: int, seed: int | None = 0,
         raise ValueError("every sampled configuration fell outside the requested "
                          "sector; the state and the sector disagree")
     unique = np.unique(accepted)
+    singletons, stability = diagnostics(accepted)
     return unique, SamplingRecord(
         raw_shots=int(shots), accepted_shots=int(accepted.size),
         discarded_shots=discarded_shots, repaired_shots=repaired_shots,
         unique_configurations=int(unique.size),
         retained_probability=float(probabilities[unique].sum()),
-        input_label=input_label, seed=seed, recovery=recovery)
+        input_label=input_label, seed=seed, recovery=recovery,
+        singleton_configurations=singletons,
+        bootstrap_set_stability=stability)
 
 
 def run_qsci(operator, indices, *, sampling: SamplingRecord,
@@ -716,7 +801,7 @@ def run_qsci(operator, indices, *, sampling: SamplingRecord,
                 "the operator or the index set is wrong, and symmetrizing would hide it")
 
         start = time.perf_counter()
-        values = np.linalg.eigvalsh(0.5 * (matrix + matrix.conj().T))
+        values, vectors = np.linalg.eigh(0.5 * (matrix + matrix.conj().T))
         solve_seconds = time.perf_counter() - start
 
     return QSCIResult(
@@ -734,4 +819,5 @@ def run_qsci(operator, indices, *, sampling: SamplingRecord,
         solve_seconds=solve_seconds,
         exact_energy=exact_energy,
         metadata=dict(metadata or {}),
+        eigenvectors=vectors[:, :k],
     )
