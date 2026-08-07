@@ -147,6 +147,9 @@ class SamplingRecord:
     # a fresh preparation.
     state_preparations: int | None = None
     state_preparation_executions: int | None = None
+    # For occupancy recovery this is deliberately counted on the pre-repair
+    # draws: repair can merge distinct words and would bias Good-Turing unseen
+    # mass downward exactly when recovery is doing the most work.
     singleton_configurations: int = 0
     bootstrap_set_stability: float | None = None
 
@@ -660,7 +663,7 @@ def sample_configurations(psi, *, shots: int, seed: int | None = 0,
                           spin_ordering="interleaved",
                           recovery: str = "none",
                           input_label: str = "unspecified",
-                          stability_bootstrap: int = 128,
+                          stability_bootstrap: int | None = 128,
                           ) -> tuple[np.ndarray, SamplingRecord]:
     """Draw configurations from a state's exact probabilities (§8A).
 
@@ -682,6 +685,8 @@ def sample_configurations(psi, *, shots: int, seed: int | None = 0,
         raise ValueError("shots must be positive")
     if recovery not in ("none", "occupancy"):
         raise ValueError("recovery must be 'none' or 'occupancy'")
+    if stability_bootstrap is not None and stability_bootstrap < 0:
+        raise ValueError("stability_bootstrap must be nonnegative or None")
     probabilities = _probabilities(psi)
     rng = np.random.default_rng(seed)
     draws = rng.choice(probabilities.size, size=int(shots), p=probabilities)
@@ -689,10 +694,11 @@ def sample_configurations(psi, *, shots: int, seed: int | None = 0,
 
     def diagnostics(accepted):
         _, counts = np.unique(accepted, return_counts=True)
-        return (int(np.count_nonzero(counts == 1)),
-                sampling_set_stability(
-                    accepted, replicates=stability_bootstrap,
-                    seed=stability_seed))
+        stability = None
+        if stability_bootstrap not in (None, 0):
+            stability = sampling_set_stability(
+                accepted, replicates=stability_bootstrap, seed=stability_seed)
+        return int(np.count_nonzero(counts == 1)), stability
 
     if basis is not None:
         basis = np.asarray(basis, dtype=np.int64).reshape(-1)
@@ -736,7 +742,14 @@ def sample_configurations(psi, *, shots: int, seed: int | None = 0,
 
     inside = _sector_membership(words, n, n_electrons, sz, spin_ordering)
     repaired_shots = 0
+    pre_repair_singletons = None
     if recovery == "occupancy" and not inside.all():
+        # Every raw draw in this branch will be accepted after repair.  Count
+        # Good-Turing singletons before the many-to-one repair map can merge
+        # distinct sampled configurations; bootstrap stability still describes
+        # the repaired set that is actually diagonalized.
+        _, raw_counts = np.unique(words, return_counts=True)
+        pre_repair_singletons = int(np.count_nonzero(raw_counts == 1))
         # Recovery is a sampling heuristic, so its occupancy guide must come
         # from the samples too.  Reading it from the exact 2^n probability
         # vector would leak oracle information into a method whose point is to
@@ -757,6 +770,8 @@ def sample_configurations(psi, *, shots: int, seed: int | None = 0,
                          "sector; the state and the sector disagree")
     unique = np.unique(accepted)
     singletons, stability = diagnostics(accepted)
+    if pre_repair_singletons is not None:
+        singletons = pre_repair_singletons
     return unique, SamplingRecord(
         raw_shots=int(shots), accepted_shots=int(accepted.size),
         discarded_shots=discarded_shots, repaired_shots=repaired_shots,
@@ -769,6 +784,7 @@ def sample_configurations(psi, *, shots: int, seed: int | None = 0,
 
 def run_qsci(operator, indices, *, sampling: SamplingRecord,
              exact_energy: float | None = None, k: int = 1,
+             want_eigenvectors: bool = False,
              evidence: str = EvidenceLevel.FINITE_SAMPLE.value,
              hermiticity_tol: float = 1e-10,
              metadata: dict | None = None) -> QSCIResult:
@@ -778,7 +794,9 @@ def run_qsci(operator, indices, *, sampling: SamplingRecord,
     or a :class:`PauliLinearOperator` (indices are computational-basis words).
     Hermiticity is *checked* against ``hermiticity_tol`` and the residual is
     reported rather than silently symmetrized away -- invariant 1 of §8B is a
-    test, not a repair.
+    test, not a repair.  Ritz vectors are opt-in so the default QSCI benchmark
+    keeps its historical eigensolve time and peak-memory measurement boundary;
+    Phase 11 target construction requests them explicitly.
     """
     if not isinstance(operator, (SectorOperator, PauliLinearOperator)):
         raise TypeError("operator must be a SectorOperator or PauliLinearOperator")
@@ -801,7 +819,12 @@ def run_qsci(operator, indices, *, sampling: SamplingRecord,
                 "the operator or the index set is wrong, and symmetrizing would hide it")
 
         start = time.perf_counter()
-        values, vectors = np.linalg.eigh(0.5 * (matrix + matrix.conj().T))
+        hermitian = 0.5 * (matrix + matrix.conj().T)
+        if want_eigenvectors:
+            values, vectors = np.linalg.eigh(hermitian)
+        else:
+            values = np.linalg.eigvalsh(hermitian)
+            vectors = None
         solve_seconds = time.perf_counter() - start
 
     return QSCIResult(
@@ -819,5 +842,5 @@ def run_qsci(operator, indices, *, sampling: SamplingRecord,
         solve_seconds=solve_seconds,
         exact_energy=exact_energy,
         metadata=dict(metadata or {}),
-        eigenvectors=vectors[:, :k],
+        eigenvectors=(None if vectors is None else vectors[:, :k].copy()),
     )
