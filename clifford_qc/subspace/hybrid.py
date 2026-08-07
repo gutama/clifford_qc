@@ -117,6 +117,8 @@ class FamilyReport:
     partners_offered: int = 0
     identity_products: int = 0
     identity_only: bool = False
+    truncated: bool = False
+    selection: str = "round_robin"
 
     @property
     def candidate_count(self) -> int:
@@ -150,9 +152,12 @@ class FamilyReport:
             "family_partner_coverage": self.partner_coverage,
             "family_identity_products": int(self.identity_products),
             "family_identity_only": bool(self.identity_only),
-            "family_cap_bound": bool(
-                self.generator_cap is not None
-                and self.candidate_count >= self.generator_cap),
+            "family_selection": self.selection,
+            # Measured, not inferred from `candidate_count == generator_cap`:
+            # a complete family that happens to be exactly the cap is not a
+            # truncated one, and reporting it as bound would overstate what the
+            # ceiling did.
+            "family_truncated": bool(self.truncated),
         }
 
 
@@ -177,22 +182,19 @@ def dressed_family(configurations, model, *, kind: str = "excitation",
     stating the cap.
     """
     configurations = list(as_generators(configurations))
-    # ``E_mu * I`` is just ``E_mu`` -- the bare excitation, which is already a
-    # whole separate arm. Carried inside the dressed family it duplicates that
-    # arm while costing one product per partner in the minor loop, so under a
-    # binding ``max_generators`` it evicts genuinely dressed directions: on
-    # hubbard_2x2 at the driver's defaults, partner coverage 13 -> 12 and 12 of
-    # 256 products spent on undressed copies. Reordering does not help, because
-    # the identity recurs in every partner's block.
+    # The identity stays. ``E_mu * I |psi> = E_mu |psi>`` looks like a
+    # duplicate of the bare A-CASE arm, and an earlier revision dropped it on
+    # that reasoning -- wrongly. The bare arm is a *separate solve*; inside the
+    # hybrid's own candidate pool those are genuine variational directions the
+    # hybrid may select, and on the 2x2 cluster 25 of 26 of them lie outside
+    # the sampled-determinant baseline span. Removing them shrank the family
+    # the hybrid is defined to search.
     #
-    # So the identity is kept only when it is the *only* configuration, which
-    # is the all-reference sample: there the family has to be the bare
-    # excitations or it does not exist at all.
-    dressable = [generator for generator in configurations
-                 if not (generator.mv.nnz() == 1 and 0 in generator.mv.terms)]
-    identity_only = not dressable
-    if dressable:
-        configurations = dressable
+    # The cap-allocation problem that motivated the removal is real, and is
+    # solved where it belongs: by the round-robin truncation below, not by
+    # deleting variational content.
+    identity_only = all(generator.mv.nnz() == 1 and 0 in generator.mv.terms
+                        for generator in configurations)
     if kind == "excitation":
         partners = determinant_excitations(model.n, occupied_spin_orbitals(model))
         partner_name = "determinant_excitations"
@@ -230,9 +232,19 @@ def dressed_family(configurations, model, *, kind: str = "excitation",
     # reversed product ``C E|ref>`` for word 15 and ``E(2,6<-0,4)`` has norm 1
     # while the intended ``E C|ref>`` is exactly zero -- so the wrong order
     # manufactures a direction that dresses nothing, and drops one that does.
+    # Round-robin, so a binding cap spreads across partners instead of
+    # exhausting the first few. One extra product is requested beyond the cap
+    # purely to learn whether the cap actually truncated: `len(out) == cap`
+    # alone cannot distinguish a family the ceiling cut from one that happens
+    # to be exactly that size.
+    probe_cap = None if max_generators is None else max_generators + 1
     generators = compound_response(partners, configurations,
                                    max_support=max_support,
-                                   max_generators=max_generators)
+                                   max_generators=probe_cap,
+                                   selection="round_robin")
+    truncated = (max_generators is not None and len(generators) > max_generators)
+    if truncated:
+        generators = generators[:max_generators]
     if not generators:
         raise ValueError(f"the {kind} family is empty at support cap "
                          f"{max_support}; raise the cap or declare a different "
@@ -241,7 +253,8 @@ def dressed_family(configurations, model, *, kind: str = "excitation",
         name=f"configuration_x_{kind}", generators=tuple(generators),
         partner_family=partner_name, support_cap=max_support,
         generator_cap=max_generators, partners_offered=len(partners),
-        identity_only=identity_only,
+        identity_only=identity_only, truncated=truncated,
+        selection="round_robin",
         identity_products=sum(1 for generator in generators
                               if generator.label.endswith("*I")),
         max_generator_support=max(g.support() for g in generators))

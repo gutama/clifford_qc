@@ -26,6 +26,7 @@ from __future__ import annotations
 import argparse
 import json
 import os
+import subprocess
 import time
 from pathlib import Path
 
@@ -297,17 +298,24 @@ def _resolve_base_sha(provenance: dict) -> str:
     An override must therefore look like a git object name, and is rejected
     rather than recorded when it does not.
     """
-    override = os.environ.get("PHASE10_BASE_SHA")
-    if override is None:
-        return provenance["git_sha"]
-    candidate = override.strip()
-    if not (7 <= len(candidate) <= 40
-            and all(character in "0123456789abcdefABCDEF"
-                    for character in candidate)):
+    candidate = os.environ.get("PHASE10_BASE_SHA") or provenance.get("git_sha")
+    if not candidate or candidate == "unknown":
         raise SystemExit(
-            f"PHASE10_BASE_SHA={override!r} is not a git object name; a record "
-            "whose revision identifier cannot be resolved names nothing")
-    return candidate.lower()
+            "no resolvable revision for this record: git reported "
+            f"{provenance.get('git_sha')!r} and PHASE10_BASE_SHA is unset. A "
+            "committed benchmark whose revision cannot be resolved names "
+            "nothing; set PHASE10_BASE_SHA to the commit under test")
+    resolved = subprocess.run(
+        ["git", "rev-parse", "--verify", "--quiet", f"{candidate.strip()}^{{commit}}"],
+        cwd=ROOT, capture_output=True, text=True, check=False)
+    if resolved.returncode != 0 or not resolved.stdout.strip():
+        # A hex-shaped string is not a revision. `deadbeef` passes any spelling
+        # check and resolves to no object, so the record would carry an
+        # identifier that looks authoritative and points at nothing.
+        raise SystemExit(
+            f"{candidate!r} does not resolve to a commit in this repository; "
+            "a record's revision identifier has to name code that exists")
+    return resolved.stdout.strip()
 
 
 def _all_variational(records: list[dict], tolerance: float = 1e-9) -> bool:

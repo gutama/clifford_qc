@@ -457,3 +457,108 @@ def test_small_budgets_are_accepted(hubbard_case, sampled_words):
         assert len(arms) == 3
         for arm in arms:
             assert arm.basis_size <= budget + 1
+
+
+# ------------------------------------------- regressions from the PR #44 review
+
+def test_dressed_family_retains_the_bare_excitation_directions(hubbard_case):
+    """`E_mu * I` stays in the family, and the labels must actually be there.
+
+    An earlier revision dropped them, reasoning that they duplicate the bare
+    A-CASE arm. They do not: that arm is a *separate solve*, while inside the
+    hybrid's own candidate pool these are directions the hybrid may select. On
+    this cluster 25 of 26 lie outside the sampled-determinant baseline span, so
+    removing them shrank the family the hybrid is defined to search.
+
+    The count-only assertion this replaces could not catch that -- a family of
+    the right size made of the wrong products passes it.
+    """
+    from clifford_qc.subspace import identity_generator
+
+    model, backend, _, _ = hubbard_case
+    reference = backend.state_from_program(model.reference)
+    reference_word = int(backend.basis[int(np.argmax(np.abs(reference)))])
+    configurations = configuration_generators_from_words(
+        model, np.array([reference_word, 15], dtype=np.int64))
+    family = dressed_family(configurations + [identity_generator(model.n)],
+                            model, max_support=64)
+
+    identity_products = [g.label for g in family.generators
+                         if g.label.endswith("*I")]
+    assert identity_products, "the bare-excitation directions were dropped"
+    assert family.to_record()["family_identity_products"] == len(identity_products)
+
+    # And they are genuinely new directions, not copies of the baseline.
+    from clifford_qc.subspace.selected_ci import containment_residual
+
+    baseline = np.zeros((backend.dimension, 2), dtype=complex)
+    baseline[backend.index_of(reference_word), 0] = 1.0
+    baseline[backend.index_of(15), 1] = 1.0
+    outside = 0
+    for label in identity_products:
+        generator = next(g for g in family.generators if g.label == label)
+        produced = backend.operator(generator.mv,
+                                    validate_sector=False).matvec(reference)
+        if np.linalg.norm(produced) > 1e-12 and containment_residual(
+                produced.reshape(-1, 1), baseline) > 1e-7:
+            outside += 1
+    assert outside > 0
+
+
+def test_capped_family_spreads_across_partners(hubbard_case, sampled_words):
+    """Round-robin, so a binding cap does not exhaust the first few partners.
+
+    Left-major truncation gave 4 of 117 partners on the 2x3 hybrid and two
+    *disjoint* 256-generator sets under a reversal of the partner order, which
+    made the measured-resource conclusion an artefact of enumeration.
+    """
+    from clifford_qc.subspace import (compound_response, determinant_excitations,
+                                      occupied_spin_orbitals)
+
+    model, _, _, _ = hubbard_case
+    configurations = configuration_generators_from_words(model, sampled_words)
+    partners = determinant_excitations(model.n, occupied_spin_orbitals(model))
+    cap = 30
+
+    def coverage(order, selection):
+        products = compound_response(order, configurations, max_support=64,
+                                     max_generators=cap, selection=selection)
+        return ({g.label for g in products},
+                len({g.label.rpartition("*")[0] for g in products}))
+
+    major_forward, major_cover = coverage(partners, "major")
+    round_forward, round_cover = coverage(partners, "round_robin")
+    round_reverse, reverse_cover = coverage(list(reversed(partners)),
+                                            "round_robin")
+
+    assert round_cover > major_cover
+    assert round_cover == reverse_cover
+    # Order sensitivity survives only in the one truncated round.
+    overlap = len(round_forward & round_reverse) / len(round_forward)
+    assert overlap > 0.5
+    assert len(major_forward) == len(round_forward) == cap
+
+
+def test_unknown_selection_is_refused(hubbard_case, sampled_words):
+    from clifford_qc.subspace import compound_response
+
+    model, _, _, _ = hubbard_case
+    configurations = configuration_generators_from_words(model, sampled_words)
+    with pytest.raises(ValueError, match="selection must be"):
+        compound_response(configurations, configurations, selection="whatever")
+
+
+def test_truncation_is_measured_not_inferred(hubbard_case, sampled_words):
+    """A complete family that happens to equal the cap was not truncated."""
+    model, _, _, _ = hubbard_case
+    configurations = configuration_generators_from_words(model, sampled_words)
+
+    bound = dressed_family(configurations, model, max_support=64,
+                           max_generators=10)
+    assert bound.to_record()["family_truncated"] is True
+
+    whole = dressed_family(configurations, model, max_support=64)
+    exact_cap = dressed_family(configurations, model, max_support=64,
+                               max_generators=whole.candidate_count)
+    assert exact_cap.candidate_count == whole.candidate_count
+    assert exact_cap.to_record()["family_truncated"] is False

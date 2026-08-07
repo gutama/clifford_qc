@@ -96,7 +96,8 @@ def krylov_response(hamiltonian, order: int) -> list[Generator]:
 def compound_response(left: Sequence, right: Sequence | None = None, *,
                       max_generators: int | None = None,
                       max_support: int | None = None,
-                      drop_scalar: bool = True) -> list[Generator]:
+                      drop_scalar: bool = True,
+                      selection: str = "major") -> list[Generator]:
     """Level 4a: the compound directions ``A_i A_j |psi>``.
 
     ``P_i P_j`` and ``P_i G_j`` in the plan's notation -- pass the Pauli orbit
@@ -132,24 +133,40 @@ def compound_response(left: Sequence, right: Sequence | None = None, *,
         if generator.n != n:
             raise ValueError("compound factors act on different qubit counts")
 
+    if selection == "major":
+        # Left-major, right-minor: the whole of `right` for the first `left`,
+        # then the whole of `right` for the second, and so on.
+        pairs = ((a, b) for a in left_gens for b in right_gens)
+    elif selection == "round_robin":
+        # Every `left` factor gets one product before any gets two. When
+        # `max_generators` binds, this is the difference between covering a
+        # handful of left factors completely and covering all of them
+        # partially -- and, because a truncated round is the only part that
+        # depends on within-round order, between a cap whose result flips
+        # under a reordering of `left` and one that mostly does not. Measured
+        # on the 2x3 Hubbard hybrid: left-major truncation gave 4 of 117
+        # partners and two *disjoint* 256-generator sets under reversal.
+        pairs = ((a, b) for b in right_gens for a in left_gens)
+    else:
+        raise ValueError("selection must be 'major' or 'round_robin'")
+
     out: list[Generator] = []
     seen: set[tuple] = set()
-    for a in left_gens:
-        for b in right_gens:
-            product = a.mv * b.mv
-            if product.is_zero():
-                continue
-            if drop_scalar and product.nnz() == 1 and 0 in product.terms:
-                continue
-            if max_support is not None and product.nnz() > max_support:
-                continue
-            key = scalar_free_key(product)
-            if key is None or key in seen:
-                continue
-            seen.add(key)
-            out.append(Generator(f"{a.label}*{b.label}", product))
-            if max_generators is not None and len(out) >= max_generators:
-                return out
+    for a, b in pairs:
+        product = a.mv * b.mv
+        if product.is_zero():
+            continue
+        if drop_scalar and product.nnz() == 1 and 0 in product.terms:
+            continue
+        if max_support is not None and product.nnz() > max_support:
+            continue
+        key = scalar_free_key(product)
+        if key is None or key in seen:
+            continue
+        seen.add(key)
+        out.append(Generator(f"{a.label}*{b.label}", product))
+        if max_generators is not None and len(out) >= max_generators:
+            return out
     return out
 
 
