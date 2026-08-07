@@ -127,6 +127,21 @@ PARETO_COST_AXES = (
     "wall_seconds",
 )
 
+# These fields have a meaningful value on every Phase 12 arm.  Other schema
+# fields may be ``None`` where the resource is genuinely undefined (for
+# example, ADAPT-VQE has no overlap-matrix condition number).
+ALWAYS_POPULATED_FIELDS = (
+    "method",
+    "evidence_category",
+    "seed",
+    "M",
+    "energy",
+    "energy_error",
+    "absolute_error",
+    "sampling_shots",
+    "wall_seconds",
+)
+
 
 def _current_rss_bytes() -> int | None:
     try:
@@ -169,13 +184,19 @@ class _PeakRSS:
             self._thread.join(timeout=max(0.05, 5.0 * self.interval))
         self._sample()
 
+    @property
+    def delta(self) -> int | None:
+        if self.baseline is None or self.peak is None:
+            return None
+        return max(0, self.peak - self.baseline)
+
 
 def _observed(call):
-    """Return ``(value, wall_seconds, peak_rss)`` for one complete arm."""
+    """Return ``(value, wall_seconds, incremental_peak_rss)`` for one arm."""
     started = time.perf_counter()
     with _PeakRSS() as rss:
         value = call()
-    return value, float(time.perf_counter() - started), rss.peak
+    return value, float(time.perf_counter() - started), rss.delta
 
 
 def _blank_record(method: str, evidence_category: str, seed: int) -> dict:
@@ -198,6 +219,27 @@ def _finish_record(row: dict, exact_energy: float) -> dict:
     row["energy"] = float(row["energy"])
     row["energy_error"] = float(row["energy"] - exact_energy)
     row["absolute_error"] = float(abs(row["energy_error"]))
+    unpopulated = [key for key in ALWAYS_POPULATED_FIELDS if row.get(key) is None]
+    if row["evidence_category"] == "finite_sample":
+        unpopulated.extend(
+            key for key in (
+                "grouping_contexts", "certified_shot_cost",
+                "state_preparations", "state_preparation_executions")
+            if row.get(key) is None)
+    if row["evidence_category"].endswith("_sampled"):
+        unpopulated.extend(
+            key for key in (
+                "unique_configurations", "unique_yield", "duplicate_rate",
+                "discard_rate", "recovery_rate")
+            if row.get(key) is None)
+    if row["evidence_category"] == "implementable_sampled":
+        unpopulated.extend(
+            key for key in ("state_preparations", "state_preparation_executions")
+            if row.get(key) is None)
+    if unpopulated:
+        raise AssertionError(
+            f"{row['method']} left required resource fields unpopulated: "
+            f"{sorted(set(unpopulated))}")
     return row
 
 
@@ -213,6 +255,39 @@ def _no_sampling_fields() -> dict:
         "state_preparation_category": IMPLEMENTABLE,
         "state_preparations": 1,
         "state_preparation_executions": None,
+    }
+
+
+def _finite_shot_fields(method: str, raw: dict) -> dict:
+    """Quantum executions for finite-shot ADAPT/A-CASE measurement arms."""
+    total_shots = raw.get("total_shots")
+    total_circuits = raw.get("total_circuits")
+    if total_shots is None or total_circuits is None:
+        raise AssertionError(
+            f"finite-shot arm {method!r} did not report shots and circuits")
+    operators = raw.get("operators")
+    if operators is None:
+        preparations = 1
+        label = "reference_program"
+    else:
+        # Each accepted ADAPT operator produces a new ansatz program; the
+        # terminal selection pass measures the final one as well.
+        preparations = int(operators) + 1
+        label = "adaptive_ansatz_programs"
+    return {
+        # On finite-shot selector arms this is estimator sampling rather than
+        # determinant sampling.  ``certified_shot_cost`` carries the same
+        # executions under the measurement-resource name used by the roadmap.
+        "sampling_shots": int(total_shots),
+        "unique_configurations": None,
+        "unique_yield": None,
+        "duplicate_rate": None,
+        "discard_rate": None,
+        "recovery_rate": None,
+        "state_preparation_label": label,
+        "state_preparation_category": IMPLEMENTABLE,
+        "state_preparations": preparations,
+        "state_preparation_executions": int(total_shots),
     }
 
 
@@ -247,10 +322,14 @@ def _reference_word(backend: SectorStatevectorBackend, model) -> int:
 
 
 def _reference_row(model, backend, operator, exact_energy: float, seed: int) -> dict:
-    state = backend.state_from_program(model.reference)
-    applied = operator.matvec(state)
-    energy = float(np.vdot(state, applied).real)
-    variance = max(0.0, float(np.vdot(applied, applied).real - energy ** 2))
+    def evaluate():
+        state = backend.state_from_program(model.reference)
+        applied = operator.matvec(state)
+        energy = float(np.vdot(state, applied).real)
+        variance = max(0.0, float(np.vdot(applied, applied).real - energy ** 2))
+        return energy, variance
+
+    (energy, variance), wall, peak = _observed(evaluate)
     row = _blank_record("reference_state", "exact_simulation", seed)
     row.update(_no_sampling_fields())
     row.update({
@@ -260,15 +339,16 @@ def _reference_row(model, backend, operator, exact_energy: float, seed: int) -> 
         "energy": energy,
         "variance": variance,
         "true_residual": math.sqrt(variance),
-        "peak_memory_bytes": _current_rss_bytes(),
+        "peak_memory_bytes": peak,
         "generator_support": 1,
-        "wall_seconds": 0.0,
+        "wall_seconds": wall,
         "metadata": {"reference": "model.reference"},
     })
     return _finish_record(row, exact_energy)
 
 
-def _exact_row(backend, exact_energy: float, seed: int) -> dict:
+def _exact_row(backend, exact_energy: float, seed: int, wall: float,
+               peak: int | None) -> dict:
     row = _blank_record("exact_sector", "reference", seed)
     row.update(_no_sampling_fields())
     row.update({
@@ -278,8 +358,9 @@ def _exact_row(backend, exact_energy: float, seed: int) -> dict:
         "energy": exact_energy,
         "variance": 0.0,
         "true_residual": 0.0,
-        "peak_memory_bytes": _current_rss_bytes(),
-        "wall_seconds": 0.0,
+        "solve_seconds": wall,
+        "peak_memory_bytes": peak,
+        "wall_seconds": wall,
         "metadata": {"role": "exact-sector reference"},
     })
     return _finish_record(row, exact_energy)
@@ -292,10 +373,28 @@ def _ladder_row(method: str, spec: dict, model, kind: str, context: dict,
     evidence = ("finite_sample" if raw.get("evidence") == "finite_sample"
                 else "exact_simulation")
     row = _blank_record(method, evidence, seed)
-    row.update(_no_sampling_fields())
     measured = evidence == "finite_sample"
+    row.update(_finite_shot_fields(method, raw) if measured
+               else _no_sampling_fields())
+    basis_size = raw.get("basis_size")
+    operators = raw.get("operators")
+    if basis_size is None and operators is not None:
+        basis_size = int(operators)
+    metadata = {key: value for key, value in raw.items()
+                if key not in {"energy", "evidence"}}
+    if operators is not None:
+        metadata.update({
+            "M_semantics": (
+                "selected ADAPT ansatz operators; an ADAPT size analogue, "
+                "not a Rayleigh-Ritz subspace dimension"),
+            "retained_rank_semantics": "not defined for single-state ADAPT-VQE",
+            "kappa_S_semantics": "not defined: ADAPT-VQE has no overlap matrix",
+        })
+    if measured:
+        metadata["sampling_shots_semantics"] = (
+            "finite-shot estimator executions; not configuration sampling")
     row.update({
-        "M": raw.get("basis_size"),
+        "M": basis_size,
         "retained_rank": raw.get("retained_rank"),
         "kappa_S": raw.get("condition_number"),
         "energy": raw["energy"],
@@ -307,8 +406,7 @@ def _ladder_row(method: str, spec: dict, model, kind: str, context: dict,
             "max_generator_support", raw.get("support_peak")),
         "element_support": raw.get("max_element_support"),
         "wall_seconds": wall,
-        "metadata": {key: value for key, value in raw.items()
-                     if key not in {"energy", "evidence"}},
+        "metadata": metadata,
     })
     return _finish_record(row, exact_energy)
 
@@ -326,7 +424,7 @@ def _qsci_row(result, state, exact_energy: float, seed: int) -> dict:
         "matrix_bytes": result.matrix_bytes,
         "build_seconds": result.build_seconds,
         "solve_seconds": result.solve_seconds,
-        "peak_memory_bytes": result.peak_rss_bytes,
+        "peak_memory_bytes": result.peak_rss_delta_bytes,
         "generator_support": None,
         "element_support": None,
         "wall_seconds": result.build_seconds + result.solve_seconds,
@@ -369,7 +467,8 @@ def _control_row(method: str, control, sampling, state, exact_energy: float,
 
 def _adaptive_hybrid_row(method: str, result, sampling, state,
                          exact_energy: float, seed: int, wall: float,
-                         peak: int | None, metadata: dict) -> dict:
+                         peak: int | None, metadata: dict,
+                         selection_work_addend: int = 0) -> dict:
     solved = result.result
     resources = solved.resources
     row = _blank_record(method, _sampled_evidence(state), seed)
@@ -386,7 +485,9 @@ def _adaptive_hybrid_row(method: str, result, sampling, state,
         "wall_seconds": wall,
         "metadata": {
             "candidate_pool": result.resources.get("candidate_pool_size"),
-            "selection_work": int(sum(r.candidates_scored for r in result.records)),
+            "selection_work": int(
+                sum(r.candidates_scored for r in result.records)
+                + selection_work_addend),
             "stopped_reason": result.stopped_reason,
             "labels": list(result.labels),
             "state_preparation_metadata": dict(state.metadata),
@@ -399,6 +500,7 @@ def _adaptive_hybrid_row(method: str, result, sampling, state,
 def _pareto_methods(rows: list[dict], cost_axis: str) -> list[str]:
     candidates = [
         row for row in rows
+        if row.get("metadata", {}).get("pareto_eligible", True)
         if row.get(cost_axis) is not None
         and np.isfinite(float(row[cost_axis]))
         and np.isfinite(float(row["absolute_error"]))
@@ -505,7 +607,9 @@ def run_system(name: str, *, shots: int = 128, seed: int = 0,
     backend = SectorStatevectorBackend(
         model.n, int(model.metadata["n_electrons"]), float(model.metadata["sz"]))
     operator = backend.operator(model.hamiltonian)
-    exact_values, _ = backend.ground_state(model.hamiltonian, k=1)
+    (exact_solution, exact_wall, exact_peak) = _observed(
+        lambda: backend.ground_state(model.hamiltonian, k=1))
+    exact_values, _ = exact_solution
     exact_energy = float(exact_values[0])
     rho = ExactMVBackend().state(model.reference, ())
     pool = ladder.word_pool(model, kind)
@@ -525,7 +629,7 @@ def run_system(name: str, *, shots: int = 128, seed: int = 0,
 
     rows = [
         _reference_row(model, backend, operator, exact_energy, seed),
-        _exact_row(backend, exact_energy, seed),
+        _exact_row(backend, exact_energy, seed, exact_wall, exact_peak),
         _ladder_row(
             "fixed_qse", {"kind": "qse", "size": max_size,
                            "selection": "stride", "seed": seed},
@@ -569,7 +673,7 @@ def run_system(name: str, *, shots: int = 128, seed: int = 0,
             model, backend, words, max_support=max_support,
             max_generators=max_generators, seed=seed))
     final_pool = list(configurations) + list(family.generators)
-    dressed, wall, peak = _observed(lambda: run_acase(
+    dressed, dressed_wall, dressed_peak = _observed(lambda: run_acase(
         rho, model.hamiltonian, final_pool, initial=seed_basis,
         max_size=max_size, exact_ground_energy=exact_energy))
     common_hybrid_metadata = {
@@ -581,11 +685,12 @@ def run_system(name: str, *, shots: int = 128, seed: int = 0,
     }
     rows.append(_adaptive_hybrid_row(
         "qsci_dressed_acase", dressed, sampling, state, exact_energy, seed,
-        wall, peak, {**common_hybrid_metadata, "haar_stage": False}))
+        dressed_wall, dressed_peak,
+        {**common_hybrid_metadata, "haar_stage": False}))
 
-    if configurations:
+    if len(configurations) >= 2:
         packet_steps = max(1, max_size // 3)
-        hierarchy, wall, peak = _observed(lambda: run_coarse_to_fine_acase(
+        hierarchy, haar_wall, haar_peak = _observed(lambda: run_coarse_to_fine_acase(
             rho, model.hamiltonian, configurations, final_pool,
             initial=seed_basis,
             config=ACASEConfig(
@@ -608,13 +713,17 @@ def run_system(name: str, *, shots: int = 128, seed: int = 0,
             "max_packet_support": max_packet_support,
         }
     else:
-        # A reference-only sample has no nontrivial configuration interval to
-        # transform.  Keep the arm explicit, but do not pretend a Haar stage ran.
-        haar_result, wall, peak = dressed, 0.0, _current_rss_bytes()
+        # Fewer than two non-reference samples have no interval to transform.
+        # Keep the arm explicit and carry the work of the dressed result it
+        # reuses, but exclude this unavailable duplicate from Pareto ranking.
+        haar_result, haar_wall, haar_peak = (
+            dressed, dressed_wall, dressed_peak)
         haar_metadata = {
             **common_hybrid_metadata,
             "haar_stage": False,
-            "haar_unavailable_reason": "no non-reference sampled configurations",
+            "haar_unavailable_reason": (
+                "fewer than two non-reference sampled configurations"),
+            "pareto_eligible": False,
             "packet_directions": 0,
             "packet_candidates": 0,
             "frontiers_scored": 0,
@@ -622,7 +731,9 @@ def run_system(name: str, *, shots: int = 128, seed: int = 0,
         }
     rows.append(_adaptive_hybrid_row(
         "qsci_haar_dressed_acase", haar_result, sampling, state, exact_energy,
-        seed, wall, peak, haar_metadata))
+        seed, haar_wall, haar_peak, haar_metadata,
+        selection_work_addend=(hierarchy.frontiers_scored
+                                if len(configurations) >= 2 else 0)))
 
     if include_measured:
         rows.extend([
@@ -706,6 +817,11 @@ def main(argv=None) -> None:
     if unknown:
         raise SystemExit(f"unknown Phase 12 systems: {unknown}")
 
+    # Revision identity is a precondition, not a postcondition.  Fail before a
+    # potentially long multi-system run rather than discarding completed work.
+    provenance = execution_provenance()
+    source_base_sha = _resolve_source_sha(provenance)
+
     records = []
     for name in systems:
         record = run_system(
@@ -726,8 +842,6 @@ def main(argv=None) -> None:
                 f"  {row['method']:27s} M={m:>3s} "
                 f"err={row['energy_error']:+.3e} W={w}", flush=True)
 
-    provenance = execution_provenance()
-    source_base_sha = _resolve_source_sha(provenance)
     result = stamp_record({
         "schema": "clifford_qc.phase12_paper_b.v1",
         "source_base_git_sha": source_base_sha,
