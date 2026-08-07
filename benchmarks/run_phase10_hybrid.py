@@ -26,6 +26,7 @@ from __future__ import annotations
 import argparse
 import json
 import os
+import subprocess
 import time
 from pathlib import Path
 
@@ -285,9 +286,60 @@ def run_system(name: str, *, shots: int = 128, seed: int = 0,
     }
 
 
+def _resolve_base_sha(provenance: dict) -> str:
+    """The revision this record names, validated before it is written.
+
+    ``execution_provenance`` reports ``"unknown"`` where git is unavailable, so
+    ``PHASE10_BASE_SHA`` exists as an override for that case. It was previously
+    copied verbatim, which left an unvalidated environment string as the
+    record's only revision identifier -- the same failure the Phase 8E
+    dirty-tree guard exists to prevent, arriving through a different door.
+
+    An override must therefore look like a git object name, and is rejected
+    rather than recorded when it does not.
+    """
+    candidate = os.environ.get("PHASE10_BASE_SHA") or provenance.get("git_sha")
+    if not candidate or candidate == "unknown":
+        raise SystemExit(
+            "no resolvable revision for this record: git reported "
+            f"{provenance.get('git_sha')!r} and PHASE10_BASE_SHA is unset. A "
+            "committed benchmark whose revision cannot be resolved names "
+            "nothing; set PHASE10_BASE_SHA to the commit under test")
+    resolved = subprocess.run(
+        ["git", "rev-parse", "--verify", "--quiet", f"{candidate.strip()}^{{commit}}"],
+        cwd=ROOT, capture_output=True, text=True, check=False)
+    if resolved.returncode != 0 or not resolved.stdout.strip():
+        # A hex-shaped string is not a revision. `deadbeef` passes any spelling
+        # check and resolves to no object, so the record would carry an
+        # identifier that looks authoritative and points at nothing.
+        raise SystemExit(
+            f"{candidate!r} does not resolve to a commit in this repository; "
+            "a record's revision identifier has to name code that exists")
+    return resolved.stdout.strip()
+
+
+def _all_variational(records: list[dict], tolerance: float = 1e-9) -> bool:
+    """Every reported energy sits at or above its exact reference.
+
+    Computed from the records rather than asserted. A cross-check that is a
+    hardcoded ``True`` cannot fail, so it certifies nothing while reading in
+    the output exactly like one that does.
+    """
+    for record in records:
+        errors = [record["full_qsci"]["error"], record["bare_acase"]["error"]]
+        errors += [arm["error"] for arm in record["hybrid_arms"]]
+        # `phase9_controls` is keyed by control name, so iterate its values.
+        errors += [control["error"]
+                   for control in record["phase9_controls"].values()
+                   if control.get("error") is not None]
+        if any(error < -tolerance for error in errors):
+            return False
+    return True
+
+
 def _cross_checks(records: list[dict]) -> dict:
     checks = {
-        "all_variational": True,
+        "all_variational": _all_variational(records),
         "h4_equilibrium_fcidump_energy_delta": None,
         "h4_equilibrium_fcidump_match": None,
     }
@@ -347,7 +399,7 @@ def main(argv=None) -> None:
                 flush=True)
 
     provenance = execution_provenance()
-    source_base_sha = os.environ.get("PHASE10_BASE_SHA", provenance["git_sha"])
+    source_base_sha = _resolve_base_sha(provenance)
     result = stamp_record({
         "schema": "clifford_qc.phase10_primary.v1",
         "source_base_git_sha": source_base_sha,

@@ -114,10 +114,27 @@ class FamilyReport:
     max_generator_support: int
     support_cap: int | None = None
     generator_cap: int | None = None
+    partners_offered: int = 0
+    identity_products: int = 0
+    identity_only: bool = False
+    truncated: bool = False
+    selection: str = "round_robin"
 
     @property
     def candidate_count(self) -> int:
         return len(self.generators)
+
+    @property
+    def partner_coverage(self) -> int:
+        """Distinct partners that survived into the family.
+
+        Reported because `candidate_count` cannot show a binding cap: it sits
+        pinned at `generator_cap` whether the cap truncated one product or a
+        hundred. Coverage falling below `partners_offered` is the visible
+        signal that the ceiling bound and some partners were dropped whole.
+        """
+        return len({generator.label.rpartition("*")[0]
+                    for generator in self.generators})
 
     def to_record(self) -> dict:
         # Namespaced. An arm reports the support of the directions it actually
@@ -131,6 +148,16 @@ class FamilyReport:
             "family_max_generator_support": int(self.max_generator_support),
             "family_support_cap": self.support_cap,
             "family_generator_cap": self.generator_cap,
+            "family_partners_offered": int(self.partners_offered),
+            "family_partner_coverage": self.partner_coverage,
+            "family_identity_products": int(self.identity_products),
+            "family_identity_only": bool(self.identity_only),
+            "family_selection": self.selection,
+            # Measured, not inferred from `candidate_count == generator_cap`:
+            # a complete family that happens to be exactly the cap is not a
+            # truncated one, and reporting it as bound would overstate what the
+            # ceiling did.
+            "family_truncated": bool(self.truncated),
         }
 
 
@@ -155,6 +182,19 @@ def dressed_family(configurations, model, *, kind: str = "excitation",
     stating the cap.
     """
     configurations = list(as_generators(configurations))
+    # The identity stays. ``E_mu * I |psi> = E_mu |psi>`` looks like a
+    # duplicate of the bare A-CASE arm, and an earlier revision dropped it on
+    # that reasoning -- wrongly. The bare arm is a *separate solve*; inside the
+    # hybrid's own candidate pool those are genuine variational directions the
+    # hybrid may select, and on the 2x2 cluster 25 of 26 of them lie outside
+    # the sampled-determinant baseline span. Removing them shrank the family
+    # the hybrid is defined to search.
+    #
+    # The cap-allocation problem that motivated the removal is real, and is
+    # solved where it belongs: by the round-robin truncation below, not by
+    # deleting variational content.
+    identity_only = all(generator.mv.nnz() == 1 and 0 in generator.mv.terms
+                        for generator in configurations)
     if kind == "excitation":
         partners = determinant_excitations(model.n, occupied_spin_orbitals(model))
         partner_name = "determinant_excitations"
@@ -166,8 +206,21 @@ def dressed_family(configurations, model, *, kind: str = "excitation",
                         for code in generator.mv.terms})
         from ..ir import PauliWord
 
-        partners = commutator_response(
-            hamiltonian, [PauliWord(model.n, code) for code in words if code])
+        # Code 0 is the identity, and ``[H, I] = 0``, so it is dropped. When it
+        # is the *only* code -- an all-reference sample, whose sole
+        # configuration is the identity -- the response is genuinely empty and
+        # the family cannot exist. Say that here: letting the empty partner
+        # list reach ``compound_response`` surfaces as "no generators given",
+        # which names neither the cause nor the input that produced it.
+        response_words = [PauliWord(model.n, code) for code in words if code]
+        if identity_only or not response_words:
+            raise ValueError(
+                "the commutator family is empty: every configuration is the "
+                "identity, and [H, I] = 0 leaves no response direction. This "
+                "happens when the sample contains only the reference "
+                "determinant; use kind='excitation' there, whose partners do "
+                "not depend on the sampled configurations")
+        partners = commutator_response(hamiltonian, response_words)
         partner_name = "commutator_response"
     else:
         raise ValueError("kind must be 'excitation' or 'commutator'")
@@ -179,9 +232,19 @@ def dressed_family(configurations, model, *, kind: str = "excitation",
     # reversed product ``C E|ref>`` for word 15 and ``E(2,6<-0,4)`` has norm 1
     # while the intended ``E C|ref>`` is exactly zero -- so the wrong order
     # manufactures a direction that dresses nothing, and drops one that does.
+    # Round-robin, so a binding cap spreads across partners instead of
+    # exhausting the first few. One extra product is requested beyond the cap
+    # purely to learn whether the cap actually truncated: `len(out) == cap`
+    # alone cannot distinguish a family the ceiling cut from one that happens
+    # to be exactly that size.
+    probe_cap = None if max_generators is None else max_generators + 1
     generators = compound_response(partners, configurations,
                                    max_support=max_support,
-                                   max_generators=max_generators)
+                                   max_generators=probe_cap,
+                                   selection="round_robin")
+    truncated = (max_generators is not None and len(generators) > max_generators)
+    if truncated:
+        generators = generators[:max_generators]
     if not generators:
         raise ValueError(f"the {kind} family is empty at support cap "
                          f"{max_support}; raise the cap or declare a different "
@@ -189,7 +252,11 @@ def dressed_family(configurations, model, *, kind: str = "excitation",
     return FamilyReport(
         name=f"configuration_x_{kind}", generators=tuple(generators),
         partner_family=partner_name, support_cap=max_support,
-        generator_cap=max_generators,
+        generator_cap=max_generators, partners_offered=len(partners),
+        identity_only=identity_only, truncated=truncated,
+        selection="round_robin",
+        identity_products=sum(1 for generator in generators
+                              if generator.label.endswith("*I")),
         max_generator_support=max(g.support() for g in generators))
 
 
@@ -254,11 +321,16 @@ def _fixed_basis_arm(name, rho, hamiltonian, generators, *, exact_energy,
                      seconds, metadata=None):
     """An arm whose basis is fully determined, with no growth decision to make.
 
-    Reached when the sampled set is a single determinant and the reference was
-    not among it: seeding from that determinant leaves nothing to grow, and
-    ``run_acase`` rejects an empty candidate pool.  The answer is still
-    well-defined -- it is that determinant's Rayleigh quotient -- so it is
-    solved directly rather than reported as an error.
+    Two callers, and they are opposite cases:
+
+    - the sampled set is a single non-reference determinant, so seeding from it
+      leaves nothing to grow;
+    - the sampled set is *only* the reference, so the identity is the whole
+      basis and there is no configuration direction at all.
+
+    Either way ``run_acase`` would reject the empty candidate pool, while the
+    answer is well defined -- the Rayleigh quotient on that one direction -- so
+    it is solved directly rather than reported as an error.
     """
     bank = MatrixElementBank(rho, hamiltonian)
     indices = tuple(bank.extend(as_generators(generators)))
@@ -364,7 +436,13 @@ def run_hybrid(rho, model, words, *, max_size: int = 12,
                      "sampled_words": int(np.unique(words_array).size)}
     family_configurations = list(configurations)
     if reference_sampled:
-        family_configurations.insert(0, identity_generator(model.n))
+        # The reference determinant is a sampled configuration, so it belongs
+        # in the family input. `dressed_family` drops it again whenever other
+        # configurations exist, because `E_mu * I` is the bare excitation and
+        # duplicating that arm inside the dressed family costs one product per
+        # partner under a binding cap. It survives only for an all-reference
+        # sample, where it is the only thing there is to dress.
+        family_configurations.append(identity_generator(model.n))
     if family is None:
         family = dressed_family(family_configurations, model, kind=kind,
                                 hamiltonian=model.hamiltonian,
