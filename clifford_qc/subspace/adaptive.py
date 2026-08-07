@@ -92,6 +92,79 @@ class CandidateScore:
 
 
 @dataclass(frozen=True)
+class OverlapTarget:
+    """A classical target vector expressed in virtual A-CASE directions.
+
+    ``coefficients`` multiply ``generators`` in the same order.  The target is
+    deliberately *not* part of :class:`CandidateScore`: energy lowering and
+    target overlap are different scientific questions and remain separately
+    testable.  Normalization is evaluated with the matrix-element bank's
+    overlap metric when the target is scored, so neither the generators nor
+    their coefficients need a special normalization convention.
+    """
+
+    generators: tuple[Generator, ...]
+    coefficients: tuple[complex, ...]
+    label: str = "target"
+
+    def __post_init__(self):
+        if not self.generators:
+            raise ValueError("an overlap target needs at least one generator")
+        if len(self.generators) != len(self.coefficients):
+            raise ValueError("target generators and coefficients have different lengths")
+        if not any(abs(value) > 0.0 for value in self.coefficients):
+            raise ValueError("an overlap target cannot be the zero vector")
+
+    @classmethod
+    def from_coefficients(cls, generators: Sequence, coefficients, *,
+                          label: str = "target") -> "OverlapTarget":
+        gens = tuple(as_generators(generators))
+        values = np.asarray(coefficients, dtype=complex).reshape(-1)
+        return cls(gens, tuple(complex(value) for value in values), label)
+
+    @classmethod
+    def from_qsci(cls, generators: Sequence, result, *, root: int = 0,
+                  label: str | None = None) -> "OverlapTarget":
+        """Build a target from a QSCI Ritz vector aligned with ``generators``."""
+        vectors = getattr(result, "eigenvectors", None)
+        if vectors is None:
+            raise ValueError("the QSCI result does not carry Ritz eigenvectors")
+        vectors = np.asarray(vectors, dtype=complex)
+        if vectors.ndim != 2 or not 0 <= root < vectors.shape[1]:
+            raise IndexError("QSCI target root is outside the retained Ritz vectors")
+        return cls.from_coefficients(
+            generators, vectors[:, root],
+            label=label or f"qsci_root_{root}",
+        )
+
+    @classmethod
+    def from_selected_ci(cls, generators: Sequence, result, *,
+                         label: str = "selected_ci") -> "OverlapTarget":
+        """Build a target from a selected-CI control's retained Ritz vector."""
+        coefficients = getattr(result, "coefficients", None)
+        if coefficients is None:
+            raise ValueError("the selected-CI result does not carry Ritz coefficients")
+        return cls.from_coefficients(generators, coefficients, label=label)
+
+
+@dataclass(frozen=True)
+class TargetOverlapScore:
+    """Incremental target weight captured by one S-orthogonal direction."""
+
+    index: int
+    label: str
+    overlap_gain: float
+    orthogonal_fraction: float
+    score: float
+    rejected: str | None = None
+    leakage: dict[str, float] | None = None
+
+    @property
+    def accepted(self) -> bool:
+        return self.rejected is None
+
+
+@dataclass(frozen=True)
 class GrowthRecord:
     """What one accepted (or refused) growth step did."""
 
@@ -115,6 +188,9 @@ class GrowthRecord:
     # and the per-root predicted lowerings of the accepted generator.
     root_energies: tuple[float, ...] = ()
     per_root_lowering: tuple[float, ...] = ()
+    selection_criterion: str = "lowering"
+    selection_score: float = 0.0
+    target_overlap_gain: float | None = None
 
 
 @dataclass(frozen=True)
@@ -157,6 +233,8 @@ class ACASEConfig:
     min_lowering: float = DEFAULT_MIN_LOWERING
     min_orthogonality: float = DEFAULT_MIN_ORTHOGONALITY
     gamma: float = 0.0
+    criterion: str = "lowering"
+    min_target_overlap: float = 1e-12
     leakage_tol: float | None = None
     exact_ground_energy: float | None = None
     target_error: float | None = None
@@ -176,6 +254,10 @@ class ACASEConfig:
             raise ValueError("min_orthogonality must be nonnegative")
         if self.gamma < 0.0:
             raise ValueError("gamma must be nonnegative")
+        if self.criterion not in ("lowering", "target_overlap"):
+            raise ValueError("criterion must be 'lowering' or 'target_overlap'")
+        if self.min_target_overlap < 0.0:
+            raise ValueError("min_target_overlap must be nonnegative")
         if self.leakage_tol is not None and self.leakage_tol < 0.0:
             raise ValueError("leakage_tol must be nonnegative")
         if self.target_error is not None and self.target_error < 0.0:
@@ -391,6 +473,89 @@ def select_candidate(scores: Sequence[CandidateScore]) -> CandidateScore | None:
     return live[best]
 
 
+def score_target_overlap(bank: MatrixElementBank, basis: Sequence[int],
+                         result: SubspaceResult, candidate: int,
+                         target: OverlapTarget, *,
+                         min_orthogonality: float = DEFAULT_MIN_ORTHOGONALITY,
+                         leakage_tol: float | None = None) -> TargetOverlapScore:
+    """Score the new target weight captured by a candidate direction (§11A).
+
+    The candidate is first deflated against the *entire* retained Ritz space,
+    exactly as in :func:`score_candidate`.  If ``q=(I-P_B)|chi>`` and ``|T>``
+    is the normalized classical target, the score is
+
+    ``|<T|q>|^2 / <q|q>``.
+
+    It is therefore invariant to rescaling either the candidate or the target,
+    vanishes for directions already in the retained span, and measures the
+    incremental squared projection onto the target rather than energy
+    lowering.  All overlaps are assembled from the same virtual-generator bank;
+    no target state is prepared on a quantum backend.
+    """
+    label = bank.generator(candidate).label
+    leakage = None
+    if leakage_tol is not None:
+        leakage = sector_leakage(bank.generator(candidate))
+        worst = max(leakage.values())
+        if worst > leakage_tol:
+            return TargetOverlapScore(
+                candidate, label, 0.0, 0.0, 0.0,
+                rejected=f"sector leakage {worst:.2e}", leakage=leakage)
+
+    s_aa = float(bank.entry(candidate, candidate)[0].real)
+    if s_aa <= DEFAULT_NORM_FLOOR ** 2:
+        return TargetOverlapScore(
+            candidate, label, 0.0, 0.0, 0.0,
+            rejected="annihilates the reference", leakage=leakage)
+
+    s_column = np.array([bank.entry(i, candidate)[0] for i in basis],
+                        dtype=complex)
+    projections = result.coefficients.conj().T @ s_column
+    q_norm = max(0.0, s_aa - float(np.sum(np.abs(projections) ** 2)))
+    orthogonal_fraction = q_norm / s_aa
+    if orthogonal_fraction < min_orthogonality or q_norm <= _GAP_FLOOR * s_aa:
+        return TargetOverlapScore(
+            candidate, label, 0.0, orthogonal_fraction, 0.0,
+            rejected=f"orthogonal fraction {orthogonal_fraction:.2e}",
+            leakage=leakage)
+
+    target_indices = tuple(bank.extend(target.generators))
+    coefficients = np.asarray(target.coefficients, dtype=complex)
+    target_overlap = np.array([
+        [bank.entry(i, j)[0] for j in target_indices] for i in target_indices
+    ], dtype=complex)
+    target_norm = float((coefficients.conj() @ target_overlap @ coefficients).real)
+    if target_norm <= DEFAULT_NORM_FLOOR ** 2:
+        raise ValueError("overlap target has zero norm on this reference state")
+    coefficients = coefficients / math.sqrt(target_norm)
+
+    target_candidate = sum(
+        np.conjugate(coefficient) * bank.entry(index, candidate)[0]
+        for index, coefficient in zip(target_indices, coefficients)
+    )
+    target_basis = np.array([
+        [bank.entry(i, j)[0] for j in basis] for i in target_indices
+    ], dtype=complex)
+    target_ritz = coefficients.conj() @ target_basis @ result.coefficients
+    target_q = target_candidate - np.dot(target_ritz, projections)
+    gain = max(0.0, float(abs(target_q) ** 2 / q_norm))
+    # Roundoff may put a normalized projection a few ulps above one.
+    gain = min(1.0, gain)
+    return TargetOverlapScore(candidate, label, gain, orthogonal_fraction, gain,
+                              leakage=leakage)
+
+
+def select_target_candidate(scores: Sequence[TargetOverlapScore]
+                            ) -> TargetOverlapScore | None:
+    """Deterministic counterpart of :func:`select_candidate` for §11A."""
+    live = [score for score in scores if score.accepted]
+    if not live:
+        return None
+    best = canonical_argmax(range(len(live)), lambda k: live[k].score,
+                            rtol=TIE_RTOL, atol=TIE_ATOL)
+    return live[best]
+
+
 def _acase_objective(result: SubspaceResult, config: ACASEConfig
                      ) -> tuple[float, tuple[float, ...]]:
     tracked = tuple(range(config.roots))
@@ -400,7 +565,8 @@ def _acase_objective(result: SubspaceResult, config: ACASEConfig
 
 
 def _evaluate_acase_step(bank: MatrixElementBank, state: ACASEState,
-                         config: ACASEConfig, step: int) -> ACASEStepOutcome:
+                         config: ACASEConfig, step: int,
+                         target: OverlapTarget | None = None) -> ACASEStepOutcome:
     """Score/solve one growth decision without owning workflow state."""
     remaining = [index for index in state.pool if index not in state.basis]
     if not remaining:
@@ -408,21 +574,66 @@ def _evaluate_acase_step(bank: MatrixElementBank, state: ACASEState,
 
     tracked = tuple(range(config.roots))
     basis_words = bank.word_set(state.basis)
-    scores = [
-        score_candidate(
-            bank, state.basis, state.result, index, roots=tracked,
+    target_gain = None
+    if config.criterion == "lowering":
+        scores = [
+            score_candidate(
+                bank, state.basis, state.result, index, roots=tracked,
+                aggregation=config.aggregation, basis_words=basis_words,
+                min_orthogonality=config.min_orthogonality, gamma=config.gamma,
+                leakage_tol=config.leakage_tol,
+            )
+            for index in remaining
+        ]
+        best = select_candidate(scores)
+        if best is None:
+            return ACASEStepOutcome(
+                stopped_reason="every candidate rejected (conditioning or sector)")
+        if best.predicted_lowering < config.min_lowering:
+            return ACASEStepOutcome(stopped_reason="predicted lowering below threshold")
+        selection_score = best.score
+        rejected_conditioning = sum(
+            1 for score in scores
+            if score.rejected and score.rejected.startswith("orthogonal"))
+        rejected_sector = sum(
+            1 for score in scores
+            if score.rejected and score.rejected.startswith("sector"))
+    else:
+        if target is None:
+            raise ValueError("target_overlap selection needs an OverlapTarget")
+        target_scores = [
+            score_target_overlap(
+                bank, state.basis, state.result, index, target,
+                min_orthogonality=config.min_orthogonality,
+                leakage_tol=config.leakage_tol,
+            )
+            for index in remaining
+        ]
+        targeted = select_target_candidate(target_scores)
+        if targeted is None:
+            return ACASEStepOutcome(
+                stopped_reason="every candidate rejected (conditioning or sector)")
+        if targeted.score < config.min_target_overlap:
+            return ACASEStepOutcome(stopped_reason="target overlap below threshold")
+        # Energy lowering is still recorded as a diagnostic, but it did not
+        # choose this direction.  Keeping the two score objects separate is the
+        # §11A boundary that lets both criteria be tested independently.
+        best = score_candidate(
+            bank, state.basis, state.result, targeted.index, roots=tracked,
             aggregation=config.aggregation, basis_words=basis_words,
             min_orthogonality=config.min_orthogonality, gamma=config.gamma,
             leakage_tol=config.leakage_tol,
         )
-        for index in remaining
-    ]
-    best = select_candidate(scores)
-    if best is None:
-        return ACASEStepOutcome(
-            stopped_reason="every candidate rejected (conditioning or sector)")
-    if best.predicted_lowering < config.min_lowering:
-        return ACASEStepOutcome(stopped_reason="predicted lowering below threshold")
+        if not best.accepted:
+            raise RuntimeError("target and lowering scorers disagree on candidate viability")
+        selection_score = targeted.score
+        target_gain = targeted.overlap_gain
+        rejected_conditioning = sum(
+            1 for score in target_scores
+            if score.rejected and score.rejected.startswith("orthogonal"))
+        rejected_sector = sum(
+            1 for score in target_scores
+            if score.rejected and score.rejected.startswith("sector"))
 
     new_basis = state.basis + (best.index,)
     solved = bank.solve(
@@ -430,12 +641,6 @@ def _evaluate_acase_step(bank: MatrixElementBank, state: ACASEState,
         max_condition=config.max_condition,
     )
     value, root_energies = _acase_objective(solved, config)
-    rejected_conditioning = sum(
-        1 for score in scores
-        if score.rejected and score.rejected.startswith("orthogonal"))
-    rejected_sector = sum(
-        1 for score in scores
-        if score.rejected and score.rejected.startswith("sector"))
     record = GrowthRecord(
         step=step, selected_label=best.label, energy=value,
         predicted_lowering=best.predicted_lowering,
@@ -444,13 +649,15 @@ def _evaluate_acase_step(bank: MatrixElementBank, state: ACASEState,
         orthogonal_fraction=best.orthogonal_fraction,
         basis_size=len(new_basis), effective_rank=solved.effective_rank,
         condition_number=solved.condition_number,
-        candidates_scored=len(scores),
+        candidates_scored=len(remaining),
         rejected_conditioning=rejected_conditioning,
         rejected_sector=rejected_sector,
         new_words=best.new_words,
         word_universe=bank.resources(new_basis)["word_universe"],
         leakage=best.leakage, root_energies=root_energies,
         per_root_lowering=best.per_root,
+        selection_criterion=config.criterion, selection_score=selection_score,
+        target_overlap_gain=target_gain,
     )
 
     stopped_reason = None
@@ -475,6 +682,9 @@ def run_acase(rho: MV, hamiltonian, candidates: Sequence, *,
               min_lowering: float = DEFAULT_MIN_LOWERING,
               min_orthogonality: float = DEFAULT_MIN_ORTHOGONALITY,
               gamma: float = 0.0,
+              criterion: str = "lowering",
+              min_target_overlap: float = 1e-12,
+              target: OverlapTarget | None = None,
               leakage_tol: float | None = None,
               exact_ground_energy: float | None = None,
               target_error: float | None = None,
@@ -496,7 +706,8 @@ def run_acase(rho: MV, hamiltonian, candidates: Sequence, *,
     legacy_config = ACASEConfig(
         max_size=max_size, roots=roots, aggregation=aggregation,
         min_lowering=min_lowering, min_orthogonality=min_orthogonality,
-        gamma=gamma, leakage_tol=leakage_tol,
+        gamma=gamma, criterion=criterion, min_target_overlap=min_target_overlap,
+        leakage_tol=leakage_tol,
         exact_ground_energy=exact_ground_energy, target_error=target_error,
         tau_s=tau_s, rel_tau=rel_tau, max_condition=max_condition,
     )
@@ -505,6 +716,10 @@ def run_acase(rho: MV, hamiltonian, candidates: Sequence, *,
     elif legacy_config != ACASEConfig():
         raise ValueError(
             "pass either ACASEConfig or non-default legacy workflow keywords, not both")
+    if config.criterion == "target_overlap" and target is None:
+        raise ValueError("target_overlap selection needs an OverlapTarget")
+    if target is not None and config.criterion != "target_overlap":
+        raise ValueError("an OverlapTarget is only used with criterion='target_overlap'")
 
     started = time.perf_counter()
     if bank is None:
@@ -544,7 +759,7 @@ def run_acase(rho: MV, hamiltonian, candidates: Sequence, *,
 
     if state.stopped_reason == "basis budget reached":
         for step in range(1, config.max_size + 1):
-            outcome = _evaluate_acase_step(bank, state, config, step)
+            outcome = _evaluate_acase_step(bank, state, config, step, target)
             state = acase_step(state, outcome)
             if outcome.stopped_reason is not None:
                 break
@@ -562,6 +777,8 @@ def run_acase(rho: MV, hamiltonian, candidates: Sequence, *,
         "registered_generators": len(bank),
         "roots": config.roots,
         "aggregation": config.aggregation,
+        "selection_criterion": config.criterion,
+        "overlap_target": None if target is None else target.label,
     })
     return AdaptiveResult(
         labels=tuple(bank.generator(index).label for index in state.basis),
