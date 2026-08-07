@@ -20,8 +20,9 @@ from typing import Sequence
 import numpy as np
 
 from .adaptive import (
-    ACASEConfig, AdaptiveResult, OverlapTarget, score_candidate,
-    score_target_overlap, run_acase,
+    ACASEConfig, AdaptiveResult, OverlapTarget, _prepare_target_overlap_context,
+    _score_target_overlap_precomputed, run_acase, score_candidate,
+    select_candidate, select_target_candidate,
 )
 from .configuration import configuration_haar_packets
 from .elements import MatrixElementBank
@@ -354,27 +355,39 @@ def run_coarse_to_fine_acase(rho, hamiltonian, configurations: Sequence,
                 min_orthogonality=config.min_orthogonality,
                 gamma=config.gamma, leakage_tol=config.leakage_tol)
                 for index in candidate_indices]
-            values = {score.index: score.score for score in scores if score.accepted}
+            selected_score = select_candidate(scores)
+            ranking_values = {
+                score.index: score.score for score in scores if score.accepted}
+            gate_value = (None if selected_score is None
+                          else selected_score.predicted_lowering)
             threshold = config.min_lowering
         else:
-            scores = [score_target_overlap(
-                bank, retained, solved, index, target,
+            target_context = _prepare_target_overlap_context(
+                bank, retained, solved, target)
+            scores = [_score_target_overlap_precomputed(
+                bank, retained, solved, index, target_context,
                 min_orthogonality=config.min_orthogonality,
                 leakage_tol=config.leakage_tol)
                 for index in candidate_indices]
-            values = {score.index: score.score for score in scores if score.accepted}
+            selected_score = select_target_candidate(scores)
+            ranking_values = {
+                score.index: score.score for score in scores if score.accepted}
+            gate_value = None if selected_score is None else selected_score.score
             threshold = config.min_target_overlap
         frontiers_scored += len(candidate_indices)
-        if not values:
+        if not ranking_values or gate_value is None:
             break
-        best_value = max(values.values())
-        if best_value < threshold:
+        best_value = max(ranking_values.values())
+        # Selection may include a measurement-width penalty, but the stopping
+        # threshold has the same unpenalized semantics as run_acase.
+        if gate_value < threshold:
             break
         competitive = sorted(
             (node for node in live_nodes
-             if values.get(bank.add(node.generator), -1.0)
+             if ranking_values.get(bank.add(node.generator), -1.0)
              >= competitive_ratio * best_value),
-            key=lambda node: (-values[bank.add(node.generator)], node.lo, node.hi),
+            key=lambda node: (-ranking_values[bank.add(node.generator)],
+                              node.lo, node.hi),
         )[:max_competitive]
 
         one_step = replace(config, max_size=1)
@@ -384,9 +397,13 @@ def run_coarse_to_fine_acase(rho, hamiltonian, configurations: Sequence,
             config=one_step, target=target)
         if not staged.records:
             break
-        selected_label = staged.records[-1].selected_label
+        # The local pass above and run_acase both score this frontier; report
+        # the actual work rather than only the first pass.
+        frontiers_scored += staged.records[-1].candidates_scored
+        selected_index = staged.indices[-1]
         selected = next(node for node in live_nodes
-                        if node.generator.label == selected_label)
+                        if bank.add(node.generator) == selected_index)
+        selected_label = selected.generator.label
         retained = staged.indices
         packet_labels.append(selected_label)
         packet_energy_history.append(float(staged.energy))
