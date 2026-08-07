@@ -37,6 +37,11 @@ import numpy as np
 # The seeded random-order arm is a control, never a candidate policy.
 CONTROL_ORDERING = "random"
 
+# Smallest median error ratio worth calling a result: 10**0.01 is a 2.3% change.
+# Below this the packet and dressed arms are doing the same thing, however
+# consistently the sign happens to fall.
+MIN_EFFECT_LOG10 = 0.01
+
 
 def _binomial_sign_test(wins: int, trials: int) -> float:
     """Exact two-sided binomial p-value at p=0.5."""
@@ -93,15 +98,22 @@ def _summarize(cells: list[dict], label: str) -> dict:
 
 
 def _verdict(row: dict) -> str:
-    """The §11C bar, applied mechanically so the reader is not talked into it."""
-    if row["compared"] < 8:
+    """The §11C bar, applied mechanically so the reader is not talked into it.
+
+    A CI clear of zero is *consistency*, not importance.  On h4_stretched at 32
+    shots the packet arm wins 73% of paired draws while 70% of cells move the
+    error by under 2% -- a real sign, a meaningless magnitude.  Reporting that
+    as "packets better" beside a genuine 33% reduction at 256 shots would put
+    noise and result in the same column, so significance and effect size are
+    required together and the consistent-but-tiny case gets its own label.
+    """
+    if row["compared"] < 8 or math.isnan(row["ci_high"]):
         return "insufficient"
-    if math.isnan(row["ci_high"]):
-        return "insufficient"
+    median = row["median_log_ratio"]
     if row["ci_high"] < 0.0:
-        return "packets better"
+        return "packets better" if -median >= MIN_EFFECT_LOG10 else "negligible"
     if row["ci_low"] > 0.0:
-        return "packets worse"
+        return "packets worse" if median >= MIN_EFFECT_LOG10 else "negligible"
     return "no effect"
 
 
