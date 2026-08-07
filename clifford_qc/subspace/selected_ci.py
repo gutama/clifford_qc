@@ -531,7 +531,7 @@ def run_control(operator, sampled, *, name: str, kind: str, n: int | None = None
         matrix_nonzeros=int(np.count_nonzero(matrix)),
         matrix_bytes=int(matrix.nbytes), selection_work=work,
         build_seconds=build_seconds, solve_seconds=solve_seconds,
-        exact_energy=exact_energy, metadata=metadata, coefficients=vector)
+        exact_energy=exact_energy, metadata=metadata, coefficients=vector.copy())
 
 
 def _orthonormal(matrix, tol: float) -> np.ndarray:
