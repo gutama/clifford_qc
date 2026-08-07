@@ -12,8 +12,9 @@ trace pairing ``MV.trace_pairing``.
 
 from .adaptive import (
     ACASEConfig, ACASEState, ACASEStepOutcome, AdaptiveResult, CandidateScore,
-    GrowthRecord, acase_step, run_acase, score_candidate, sector_leakage,
-    select_candidate,
+    GrowthRecord, OverlapTarget, TargetOverlapScore, acase_step, run_acase,
+    score_candidate, score_target_overlap, sector_leakage, select_candidate,
+    select_target_candidate,
 )
 from ..workflows import adapt_warm_start
 from .adapt_gcim import (
@@ -67,7 +68,13 @@ from .qsci import (
     IMPLEMENTABLE, ORACLE, QSCIResult, SamplingRecord, StateInput,
     adapt_vqe_state, assert_single_evidence_category, exact_ground_state_oracle,
     recover_configurations, reference_determinant_state, run_qsci,
-    sample_configurations, sample_state_input,
+    sample_configurations, sample_state_input, sampling_set_stability,
+    sampling_stop_ready,
+)
+from .multiresolution import (
+    ConfigurationOrdering, HaarPacketNode, MultiresolutionResult,
+    configuration_ordering, configuration_packet_hierarchy,
+    run_coarse_to_fine_acase,
 )
 
 __all__ = [
@@ -80,10 +87,15 @@ __all__ = [
     "adapt_vqe_state", "assert_single_evidence_category",
     "exact_ground_state_oracle", "recover_configurations",
     "reference_determinant_state", "run_qsci", "sample_configurations",
-    "sample_state_input",
+    "sample_state_input", "sampling_set_stability", "sampling_stop_ready",
     "ACASEConfig", "ACASEState", "ACASEStepOutcome", "AdaptiveResult",
-    "CandidateScore", "GrowthRecord", "adapt_warm_start", "acase_step",
-    "run_acase", "score_candidate", "sector_leakage", "select_candidate",
+    "CandidateScore", "GrowthRecord", "OverlapTarget", "TargetOverlapScore",
+    "adapt_warm_start", "acase_step", "run_acase", "score_candidate",
+    "score_target_overlap", "sector_leakage", "select_candidate",
+    "select_target_candidate",
+    "ConfigurationOrdering", "HaarPacketNode", "MultiresolutionResult",
+    "configuration_ordering", "configuration_packet_hierarchy",
+    "run_coarse_to_fine_acase",
     "AdaptGCIMIteration", "AdaptGCIMResult", "adapt_gcim_gradient",
     "run_adapt_gcim",
     "ASYMPTOTIC", "EXACT", "FINITE_SAMPLE", "HEURISTIC",

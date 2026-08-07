@@ -83,6 +83,10 @@ class ControlResult:
     solve_seconds: float
     exact_energy: float | None = None
     metadata: dict = field(default_factory=dict)
+    # Ground-state Ritz coefficients in ``determinants`` order.  Kept out of
+    # ``to_record`` because Phase 11 consumes the vector in-memory as an
+    # overlap target; benchmark JSON should not grow with the subspace.
+    coefficients: np.ndarray | None = None
 
     @property
     def determinant_count(self) -> int:
@@ -527,7 +531,7 @@ def run_control(operator, sampled, *, name: str, kind: str, n: int | None = None
         matrix_nonzeros=int(np.count_nonzero(matrix)),
         matrix_bytes=int(matrix.nbytes), selection_work=work,
         build_seconds=build_seconds, solve_seconds=solve_seconds,
-        exact_energy=exact_energy, metadata=metadata)
+        exact_energy=exact_energy, metadata=metadata, coefficients=vector.copy())
 
 
 def _orthonormal(matrix, tol: float) -> np.ndarray:
