@@ -34,6 +34,10 @@ from pathlib import Path
 import numpy as np
 
 
+# The seeded random-order arm is a control, never a candidate policy.
+CONTROL_ORDERING = "random"
+
+
 def _binomial_sign_test(wins: int, trials: int) -> float:
     """Exact two-sided binomial p-value at p=0.5."""
     if trials == 0:
@@ -128,16 +132,29 @@ def main(argv=None) -> None:
     orderings = sorted({c["ordering"] for c in cells})
     shot_grid = sorted({c["shots"] for c in cells})
 
-    groups = [_summarize(cells, "ALL")]
+    # `random` is the 11C control, not a candidate policy.  Pooling it into
+    # the headline averages the treatment with its own placebo, which is how
+    # a real ordering-dependent effect gets reported as no effect.  Keep it
+    # out of every pooled row and show it alongside as calibration: the
+    # hierarchy is supposed to lose under an uninformative order.
+    policy = [c for c in cells if c["ordering"] != CONTROL_ORDERING]
+    control = [c for c in cells if c["ordering"] == CONTROL_ORDERING]
+
+    groups = [_summarize(policy, "POOLED (policy orderings)")]
+    if control:
+        groups.append(_summarize(control, f"CONTROL ({CONTROL_ORDERING})"))
     for ordering in orderings:
+        tag = "control" if ordering == CONTROL_ORDERING else "order"
         groups.append(_summarize(
-            [c for c in cells if c["ordering"] == ordering], f"order={ordering}"))
+            [c for c in cells if c["ordering"] == ordering], f"{tag}={ordering}"))
     for system in systems:
         groups.append(_summarize(
-            [c for c in cells if c["system"] == system], f"system={system}"))
+            [c for c in policy if c["system"] == system],
+            f"system={system} (policy only)"))
     for shots in shot_grid:
         groups.append(_summarize(
-            [c for c in cells if c["shots"] == shots], f"shots={shots}"))
+            [c for c in policy if c["shots"] == shots],
+            f"shots={shots} (policy only)"))
     for system in systems:
         for ordering in orderings:
             subset = [c for c in cells
@@ -155,6 +172,12 @@ def main(argv=None) -> None:
         "Negative `median log10 ratio` favours the packet arm. A confidence "
         "interval straddling zero is a no-effect result, which is the "
         "§11C answer, not a missing one.",
+        "",
+        f"Pooled rows exclude the `{CONTROL_ORDERING}` ordering, which is the "
+        "§11C control rather than a policy: the hierarchy is *expected* to "
+        "lose under an uninformative order, and averaging that in turns a "
+        "real ordering-dependent effect into a spurious null. The control is "
+        "reported on its own row as calibration.",
         "",
         "| Group | n | win rate | sign p | median log10 ratio | 95% CI | verdict |",
         "| :--- | ---: | ---: | ---: | ---: | :---: | :--- |",
