@@ -16,6 +16,7 @@ extension without disguising their separate provenance records.
 from __future__ import annotations
 
 import argparse
+import hashlib
 import json
 import math
 from collections import defaultdict
@@ -144,6 +145,31 @@ def _load(paths: list[Path]) -> tuple[list[dict], list[dict], list[dict]]:
     return cells, headers, systems
 
 
+def _verified_sources(paths: list[Path]) -> dict[str, str]:
+    """Map result paths to externally verified source commits when available."""
+    verified: dict[str, str] = {}
+    candidates = {
+        path.parent / "packet_seed_ensemble_molecular.provenance.json"
+        for path in paths
+    }
+    for candidate in candidates:
+        if not candidate.exists():
+            continue
+        record = json.loads(candidate.read_text(encoding="utf-8"))
+        source_sha = record.get("source_code_git_sha")
+        for result_path, expected in record.get("records", {}).items():
+            path = Path(result_path)
+            if path not in paths or not path.exists():
+                continue
+            digest = hashlib.sha256(path.read_bytes()).hexdigest()
+            if digest != expected.get("sha256"):
+                raise ValueError(
+                    f"source-verification digest mismatch for {result_path}")
+            if source_sha:
+                verified[str(path)] = str(source_sha)
+    return verified
+
+
 def summarize(paths: list[Path]) -> tuple[str, list[dict]]:
     cells, headers, system_records = _load(paths)
     if not cells:
@@ -153,6 +179,7 @@ def summarize(paths: list[Path]) -> tuple[str, list[dict]]:
     orderings = sorted({cell["ordering"] for cell in cells})
     shot_grid = sorted({int(cell["shots"]) for cell in cells})
     seed_grid = sorted({int(cell["seed"]) for cell in cells})
+    verified_sources = _verified_sources(paths)
 
     policy = [cell for cell in cells if cell["ordering"] != CONTROL_ORDERING]
     control = [cell for cell in cells if cell["ordering"] == CONTROL_ORDERING]
@@ -249,10 +276,14 @@ def summarize(paths: list[Path]) -> tuple[str, list[dict]]:
         lines += ["", "## Provenance", ""]
         for header in headers:
             prov = header.get("provenance", {})
+            verified = verified_sources.get(header["path"])
+            verification_text = (
+                f"; source code verified at git `{verified}`"
+                if verified else "")
             lines.append(
                 f"- `{header['path']}`: git `{prov.get('git_sha', 'unknown')}`"
                 f"{' (dirty)' if prov.get('git_dirty') else ''}; "
-                f"evidence `{header.get('evidence')}`")
+                f"evidence `{header.get('evidence')}`{verification_text}")
         lines.append(
             f"- boundary: {headers[0].get('claim_boundary', 'not recorded')}")
 
