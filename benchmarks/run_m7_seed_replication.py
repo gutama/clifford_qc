@@ -11,9 +11,10 @@ Arms replicated, all at the same retained-direction budget and all fed the
 identical draw within a cell:
 
 ``budget_selected_ci``
-    classical selection that *has* seen the sample (rescored against the
-    reference when the budget is below the seed size, so it selects rather
-    than truncates).
+    classical selection that *has* seen the sample.  Below the seed size it
+    ranks seed and outside determinants together by estimated squared
+    amplitude, so the two compete under one criterion instead of the seed
+    preceding every candidate by construction.
 ``matched_selected_ci``
     classical selection that has *not* seen the sample; sample-independent, so
     it is constant across seeds within a system and acts as a fixed baseline.
