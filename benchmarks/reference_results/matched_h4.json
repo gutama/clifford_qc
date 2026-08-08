@@ -4,8 +4,10 @@
   "chemical_accuracy_hartree": 0.0016,
   "column_notes": {
     "adapt_gcim_matrix_pairs": "unique upper-triangle Hamiltonian pairs and off-diagonal overlap pairs. These transition measurements are not a single-reference Pauli-word universe and are therefore not reported as final_words.",
+    "selection_qwc_group_evaluations": "sum of QWC settings over changing-state selection steps. Under uniform R shots per group, multiply by R for selection circuit executions/state preparations. Fixed-reference A-CASE instead measures one cached union, so this equals its single selection_qwc_groups count before any warm-start prelude.",
+    "selection_rotor_qwc_group_evaluations": "sum over selection settings of adaptive-rotor depth times QWC settings, before the shot multiplier. This prices circuit depth for the selection stage without pretending to price the exact ADAPT optimizer's missing physical gradient protocol.",
     "selection_words": "distinct Pauli words the arm must read to score its candidates: for A-CASE the whole element cache, including rows for candidates that were then rejected, which is strictly larger than the retained final_words the manuscript ledger reports",
-    "state_preparations": "distinct states prepared. Circuit executions are this times the QWC group count times shots per group; the shot factor is outside this exact-arithmetic record. For ADAPT-GCIM this is the number of distinct generating-function basis circuits; its cumulative selector states are already members of that set."
+    "state_evaluation_contexts": "state/parameter contexts at which the exact workflow evaluates observables; not physical preparation executions. On hardware a fresh state preparation occurs for every shot of every measurement setting. For ADAPT-GCIM this field is the number of distinct generating-function basis circuits."
   },
   "evidence": {
     "energies": "exact",
@@ -25,7 +27,7 @@
     "sector": {
       "dimension": 36,
       "n_electrons": 4,
-      "sz": 0.0
+      "sz": 0
     },
     "sha256": "bf32568461477cf1ec8e7c4aaae737b0c6c80bcbd83d51f783ec3a3daed5a922",
     "unmatched": "generator granularity: ADAPT-VQE consumes single Pauli words, while A-CASE's default and ADAPT-GCIM candidates are whole determinant excitations. ADAPT-GCIM also measures off-diagonal transition elements rather than one fixed-reference word bank; both costs are reported without an assumed exchange rate."
@@ -37,7 +39,7 @@
       "arm": "QSE",
       "basis_size": 9,
       "chemical_accuracy": false,
-      "condition_number": 1.0,
+      "condition_number": 1,
       "effective_rank": 9,
       "error_hartree": 0.04165277558738545,
       "error_millihartree": 41.65277558738545,
@@ -58,11 +60,13 @@
       "notes": "fixed basis: committed before any measurement",
       "optimizer_evaluations": 0,
       "pool": "odd-Y words",
-      "sector_weight": 1.0,
+      "sector_weight": 1,
       "selection_evaluations": 0,
+      "selection_qwc_group_evaluations": 0,
       "selection_qwc_groups": 0,
+      "selection_rotor_qwc_group_evaluations": 0,
       "selection_words": 0,
-      "state_preparations": 1
+      "state_evaluation_contexts": 1
     },
     {
       "ansatz_rotors": 0,
@@ -71,11 +75,11 @@
       "chemical_accuracy": true,
       "condition_number": 65664634699.02181,
       "effective_rank": 9,
-      "error_hartree": 1.0495888602690684e-08,
-      "error_millihartree": 1.0495888602690684e-05,
+      "error_hartree": 1.0495885049977005e-8,
+      "error_millihartree": 0.000010495885049977005,
       "final_qwc_groups": null,
       "final_words": null,
-      "ground_energy": -2.18031660382797,
+      "ground_energy": -2.1803166038279738,
       "labels": [
         "I",
         "H^1",
@@ -90,22 +94,24 @@
       "notes": "fixed basis: committed before any measurement; deep Krylov elements are not tractable through the tracked route -- see run_krylov_width.py",
       "optimizer_evaluations": 0,
       "pool": "Hamiltonian powers",
-      "sector_weight": 1.0000000000000002,
+      "sector_weight": 1,
       "selection_evaluations": 0,
+      "selection_qwc_group_evaluations": 0,
       "selection_qwc_groups": 0,
+      "selection_rotor_qwc_group_evaluations": 0,
       "selection_words": 0,
-      "state_preparations": 1
+      "state_evaluation_contexts": 1
     },
     {
       "ansatz_rotors": 0,
       "arm": "generator coordinate",
       "basis_size": 9,
       "chemical_accuracy": false,
-      "condition_number": 1.0,
+      "condition_number": 1,
       "effective_rank": 9,
       "error_hartree": 0.0495764475592666,
       "error_millihartree": 49.5764475592666,
-      "final_qwc_groups": null,
+      "final_qwc_groups": 1705,
       "final_words": 13646,
       "ground_energy": -2.130740166764592,
       "labels": [
@@ -122,11 +128,13 @@
       "notes": "fixed basis: committed before any measurement",
       "optimizer_evaluations": 0,
       "pool": "determinant excitations",
-      "sector_weight": 1.0,
+      "sector_weight": 1,
       "selection_evaluations": 0,
+      "selection_qwc_group_evaluations": 0,
       "selection_qwc_groups": 0,
+      "selection_rotor_qwc_group_evaluations": 0,
       "selection_words": 0,
-      "state_preparations": 1
+      "state_evaluation_contexts": 1
     },
     {
       "ansatz_rotors": 4,
@@ -137,11 +145,11 @@
       "condition_cap": null,
       "condition_number": 32.87814347545524,
       "effective_rank": 6,
-      "error_hartree": 0.013364382708263012,
-      "error_millihartree": 13.364382708263012,
+      "error_hartree": 0.013364382708263456,
+      "error_millihartree": 13.364382708263456,
       "final_qwc_groups": null,
       "final_words": null,
-      "ground_energy": -2.166952231615596,
+      "ground_energy": -2.1669522316155954,
       "hamiltonian_matrix_pairs": 36,
       "iterations": 4,
       "labels": [
@@ -160,7 +168,7 @@
       "overlap_offdiagonal_pairs": 28,
       "overlap_threshold": 1e-13,
       "pool": "determinant excitations",
-      "sector_weight": 1.0,
+      "sector_weight": 1,
       "selected_labels": [
         "E(4,5<-2,3)",
         "E(4,7<-0,3)",
@@ -168,9 +176,41 @@
         "E(5,6<-1,2)"
       ],
       "selection_evaluations": 98,
+      "selection_plan": [
+        {
+          "active_candidates": 26,
+          "iteration": 1,
+          "selection_qwc_groups": 452,
+          "selection_words": 2424,
+          "state_rotors": 0
+        },
+        {
+          "active_candidates": 25,
+          "iteration": 2,
+          "selection_qwc_groups": 454,
+          "selection_words": 2416,
+          "state_rotors": 1
+        },
+        {
+          "active_candidates": 24,
+          "iteration": 3,
+          "selection_qwc_groups": 452,
+          "selection_words": 2404,
+          "state_rotors": 2
+        },
+        {
+          "active_candidates": 23,
+          "iteration": 4,
+          "selection_qwc_groups": 454,
+          "selection_words": 2396,
+          "state_rotors": 3
+        }
+      ],
+      "selection_qwc_group_evaluations": 1812,
       "selection_qwc_groups": 452,
+      "selection_rotor_qwc_group_evaluations": 2720,
       "selection_words": 2424,
-      "state_preparations": 8,
+      "state_evaluation_contexts": 8,
       "theta": 0.7853981633974483,
       "trajectory": [
         {
@@ -219,7 +259,7 @@
           "condition_number": 39.90935530390824,
           "effective_rank": 5,
           "gradient": -0.28486157392853473,
-          "ground_energy": -2.1577428044012192,
+          "ground_energy": -2.157742804401219,
           "iteration": 3,
           "selected_index": 11,
           "selected_label": "E(6,7<-0,1)"
@@ -240,7 +280,7 @@
           "condition_number": 32.87814347545524,
           "effective_rank": 6,
           "gradient": 0.7155996288137232,
-          "ground_energy": -2.166952231615596,
+          "ground_energy": -2.1669522316155954,
           "iteration": 4,
           "selected_index": 19,
           "selected_label": "E(5,6<-1,2)"
@@ -256,11 +296,11 @@
       "condition_cap": null,
       "condition_number": 1088.0545146201862,
       "effective_rank": 12,
-      "error_hartree": 0.010673839349238268,
-      "error_millihartree": 10.673839349238268,
+      "error_hartree": 0.010673839349236935,
+      "error_millihartree": 10.673839349236935,
       "final_qwc_groups": null,
       "final_words": null,
-      "ground_energy": -2.1696427749746205,
+      "ground_energy": -2.169642774974622,
       "hamiltonian_matrix_pairs": 136,
       "iterations": 8,
       "labels": [
@@ -287,7 +327,7 @@
       "overlap_offdiagonal_pairs": 120,
       "overlap_threshold": 1e-13,
       "pool": "determinant excitations",
-      "sector_weight": 1.0000000000000002,
+      "sector_weight": 1,
       "selected_labels": [
         "E(4,5<-2,3)",
         "E(4,7<-0,3)",
@@ -299,9 +339,69 @@
         "E(7<-3)"
       ],
       "selection_evaluations": 180,
+      "selection_plan": [
+        {
+          "active_candidates": 26,
+          "iteration": 1,
+          "selection_qwc_groups": 452,
+          "selection_words": 2424,
+          "state_rotors": 0
+        },
+        {
+          "active_candidates": 25,
+          "iteration": 2,
+          "selection_qwc_groups": 454,
+          "selection_words": 2416,
+          "state_rotors": 1
+        },
+        {
+          "active_candidates": 24,
+          "iteration": 3,
+          "selection_qwc_groups": 452,
+          "selection_words": 2404,
+          "state_rotors": 2
+        },
+        {
+          "active_candidates": 23,
+          "iteration": 4,
+          "selection_qwc_groups": 454,
+          "selection_words": 2396,
+          "state_rotors": 3
+        },
+        {
+          "active_candidates": 22,
+          "iteration": 5,
+          "selection_qwc_groups": 452,
+          "selection_words": 2384,
+          "state_rotors": 4
+        },
+        {
+          "active_candidates": 21,
+          "iteration": 6,
+          "selection_qwc_groups": 442,
+          "selection_words": 2344,
+          "state_rotors": 5
+        },
+        {
+          "active_candidates": 20,
+          "iteration": 7,
+          "selection_qwc_groups": 433,
+          "selection_words": 2304,
+          "state_rotors": 6
+        },
+        {
+          "active_candidates": 19,
+          "iteration": 8,
+          "selection_qwc_groups": 433,
+          "selection_words": 2304,
+          "state_rotors": 7
+        }
+      ],
+      "selection_qwc_group_evaluations": 3572,
       "selection_qwc_groups": 452,
+      "selection_rotor_qwc_group_evaluations": 12367,
       "selection_words": 2424,
-      "state_preparations": 16,
+      "state_evaluation_contexts": 16,
       "theta": 0.7853981633974483,
       "trajectory": [
         {
@@ -350,7 +450,7 @@
           "condition_number": 39.90935530390824,
           "effective_rank": 5,
           "gradient": -0.28486157392853473,
-          "ground_energy": -2.1577428044012192,
+          "ground_energy": -2.157742804401219,
           "iteration": 3,
           "selected_index": 11,
           "selected_label": "E(6,7<-0,1)"
@@ -371,7 +471,7 @@
           "condition_number": 32.87814347545524,
           "effective_rank": 6,
           "gradient": 0.7155996288137232,
-          "ground_energy": -2.166952231615596,
+          "ground_energy": -2.1669522316155954,
           "iteration": 4,
           "selected_index": 19,
           "selected_label": "E(5,6<-1,2)"
@@ -394,7 +494,7 @@
           "condition_number": 47.98597615924259,
           "effective_rank": 8,
           "gradient": -0.08473701810803518,
-          "ground_energy": -2.1693812335580818,
+          "ground_energy": -2.169381233558081,
           "iteration": 5,
           "selected_index": 18,
           "selected_label": "E(4,7<-1,2)"
@@ -446,7 +546,7 @@
           "condition_number": 86.14057023583406,
           "effective_rank": 10,
           "gradient": 0.027496977585203076,
-          "ground_energy": -2.1695300725009536,
+          "ground_energy": -2.1695300725009528,
           "iteration": 7,
           "selected_index": 0,
           "selected_label": "E(4<-0)"
@@ -475,7 +575,7 @@
           "condition_number": 1088.0545146201862,
           "effective_rank": 12,
           "gradient": 0.2469179847322223,
-          "ground_energy": -2.1696427749746205,
+          "ground_energy": -2.169642774974622,
           "iteration": 8,
           "selected_index": 7,
           "selected_label": "E(7<-3)"
@@ -494,6 +594,7 @@
       "final_qwc_groups": 68,
       "final_words": 185,
       "ground_energy": -2.177941450828819,
+      "hardware_optimizer_cost": "unpriced: the benchmark optimizer uses an exact adjoint gradient; a physical gradient-measurement protocol is not specified",
       "labels": [
         "IIYXXXII",
         "YZZXXZZX",
@@ -505,24 +606,85 @@
         "IYYIYZZX"
       ],
       "notes": "no overlap matrix: a product ansatz has no kappa_S, and the prepared state is a sector eigenstate by construction",
+      "optimizer_energy_qwc_group_evaluations_lower_bound": 5576,
       "optimizer_evaluations": 82,
       "pool": "odd-Y words",
       "sector_weight": null,
       "selection_evaluations": 1252,
+      "selection_plan": [
+        {
+          "active_candidates": 160,
+          "selection_qwc_groups": 452,
+          "selection_words": 2424,
+          "state_rotors": 0,
+          "step": 1
+        },
+        {
+          "active_candidates": 159,
+          "selection_qwc_groups": 452,
+          "selection_words": 2424,
+          "state_rotors": 1,
+          "step": 2
+        },
+        {
+          "active_candidates": 158,
+          "selection_qwc_groups": 452,
+          "selection_words": 2424,
+          "state_rotors": 2,
+          "step": 3
+        },
+        {
+          "active_candidates": 157,
+          "selection_qwc_groups": 452,
+          "selection_words": 2424,
+          "state_rotors": 3,
+          "step": 4
+        },
+        {
+          "active_candidates": 156,
+          "selection_qwc_groups": 452,
+          "selection_words": 2424,
+          "state_rotors": 4,
+          "step": 5
+        },
+        {
+          "active_candidates": 155,
+          "selection_qwc_groups": 452,
+          "selection_words": 2424,
+          "state_rotors": 5,
+          "step": 6
+        },
+        {
+          "active_candidates": 154,
+          "selection_qwc_groups": 452,
+          "selection_words": 2424,
+          "state_rotors": 6,
+          "step": 7
+        },
+        {
+          "active_candidates": 153,
+          "selection_qwc_groups": 452,
+          "selection_words": 2424,
+          "state_rotors": 7,
+          "step": 8
+        }
+      ],
+      "selection_qwc_group_evaluations": 3616,
       "selection_qwc_groups": 452,
+      "selection_rotor_qwc_group_evaluations": 12656,
       "selection_words": 2424,
-      "state_preparations": 90
+      "state_evaluation_contexts": 90
     },
     {
       "ansatz_rotors": 0,
       "arm": "A-CASE (determinant)",
       "basis_size": 9,
       "chemical_accuracy": false,
-      "condition_number": 1.0,
+      "condition_number": 1,
       "effective_rank": 9,
       "error_hartree": 0.003018781343635979,
       "error_millihartree": 3.018781343635979,
-      "final_qwc_groups": null,
+      "final_qwc_groups": 913,
       "final_words": 7371,
       "ground_energy": -2.177297832980223,
       "labels": [
@@ -541,16 +703,18 @@
       "pool": "determinant excitations",
       "sector_weight": 1.0000000000000002,
       "selection_evaluations": 180,
-      "selection_qwc_groups": null,
+      "selection_qwc_group_evaluations": 1681,
+      "selection_qwc_groups": 1681,
+      "selection_rotor_qwc_group_evaluations": 0,
       "selection_words": 15783,
-      "state_preparations": 1
+      "state_evaluation_contexts": 1
     },
     {
       "ansatz_rotors": 0,
       "arm": "A-CASE (word, leakage rejected)",
       "basis_size": 1,
       "chemical_accuracy": false,
-      "condition_number": 1.0,
+      "condition_number": 1,
       "effective_rank": 1,
       "error_hartree": 0.05605687535104753,
       "error_millihartree": 56.05687535104753,
@@ -563,18 +727,20 @@
       "notes": "every candidate rejected: operator leakage out of (N, S_z) is sqrt(2) for every odd-Y word",
       "optimizer_evaluations": 0,
       "pool": "odd-Y words",
-      "sector_weight": 1.0,
+      "sector_weight": 1,
       "selection_evaluations": 0,
+      "selection_qwc_group_evaluations": 68,
       "selection_qwc_groups": 68,
+      "selection_rotor_qwc_group_evaluations": 0,
       "selection_words": 185,
-      "state_preparations": 1
+      "state_evaluation_contexts": 1
     },
     {
       "ansatz_rotors": 0,
       "arm": "A-CASE (word)",
       "basis_size": 9,
       "chemical_accuracy": false,
-      "condition_number": 1.0,
+      "condition_number": 1,
       "effective_rank": 9,
       "error_hartree": 0.003018781343636423,
       "error_millihartree": 3.018781343636423,
@@ -595,11 +761,13 @@
       "notes": "same pool ADAPT consumes, leakage rejection disabled; the Ritz vector is still exactly in sector",
       "optimizer_evaluations": 0,
       "pool": "odd-Y words",
-      "sector_weight": 1.0,
+      "sector_weight": 1,
       "selection_evaluations": 1252,
-      "selection_qwc_groups": null,
+      "selection_qwc_group_evaluations": 1672,
+      "selection_qwc_groups": 1672,
+      "selection_rotor_qwc_group_evaluations": 0,
       "selection_words": 14401,
-      "state_preparations": 1
+      "state_evaluation_contexts": 1
     },
     {
       "ansatz_rotors": 2,
@@ -608,11 +776,11 @@
       "chemical_accuracy": true,
       "condition_number": 1.022125751646508,
       "effective_rank": 9,
-      "error_hartree": 0.0003423008937817329,
-      "error_millihartree": 0.3423008937817329,
-      "final_qwc_groups": null,
+      "error_hartree": 0.0003423008937812888,
+      "error_millihartree": 0.3423008937812888,
+      "final_qwc_groups": 913,
       "final_words": 7510,
-      "ground_energy": -2.179974313430077,
+      "ground_energy": -2.1799743134300775,
       "labels": [
         "I",
         "E(5,6<-1,2)",
@@ -630,20 +798,42 @@
       "prelude": {
         "energy": -2.153225606225887,
         "error_millihartree": 27.091008097971603,
+        "hardware_optimizer_cost": "unpriced: exact adjoint gradient; no physical gradient protocol",
+        "optimizer_energy_qwc_group_evaluations_lower_bound": 1020,
         "optimizer_evaluations": 15,
-        "preparations": 17,
         "rotors": 2,
         "selection_evaluations": 319,
+        "selection_plan": [
+          {
+            "active_candidates": 160,
+            "selection_qwc_groups": 452,
+            "selection_words": 2424,
+            "state_rotors": 0,
+            "step": 1
+          },
+          {
+            "active_candidates": 159,
+            "selection_qwc_groups": 452,
+            "selection_words": 2424,
+            "state_rotors": 1,
+            "step": 2
+          }
+        ],
+        "selection_qwc_group_evaluations": 904,
         "selection_qwc_groups": 452,
+        "selection_rotor_qwc_group_evaluations": 452,
         "selection_words": 2424,
-        "stage": "ADAPT-VQE, 2 operators"
+        "stage": "ADAPT-VQE, 2 operators",
+        "state_evaluation_contexts": 17
       },
       "sector_weight": 0.9998820842064668,
       "selection_evaluations": 499,
-      "selection_qwc_groups": null,
+      "selection_qwc_group_evaluations": 2589,
+      "selection_qwc_groups": 1685,
+      "selection_rotor_qwc_group_evaluations": 3822,
       "selection_words": 15803,
-      "state_preparations": 18
+      "state_evaluation_contexts": 18
     }
   ],
-  "schema": "clifford_qc.matched_h4.v2"
+  "schema": "clifford_qc.matched_h4.v3"
 }
