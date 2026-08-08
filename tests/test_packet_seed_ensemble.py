@@ -1,5 +1,7 @@
 import json
+from types import SimpleNamespace
 
+import numpy as np
 import pytest
 
 from benchmarks import run_packet_seed_ensemble as ensemble
@@ -70,7 +72,15 @@ def test_duplicate_treatment_cells_across_input_files_are_rejected(tmp_path):
     row = _cell(0, "physics", -0.1)
     paths = [tmp_path / "a.jsonl", tmp_path / "b.jsonl"]
     for path in paths:
-        path.write_text(json.dumps(row) + "\n")
+        header = {
+            "record": "header",
+            "schema": "clifford_qc.packet_seed_ensemble.v2",
+            "systems": ["toy"],
+            "orderings": ["physics"],
+            "shots": [64],
+            "seeds": 1,
+        }
+        path.write_text(json.dumps(header) + "\n" + json.dumps(row) + "\n")
 
     with pytest.raises(ValueError, match="duplicate treatment cell"):
         summary.summarize(paths)
@@ -79,6 +89,117 @@ def test_duplicate_treatment_cells_across_input_files_are_rejected(tmp_path):
 def test_publication_ensemble_includes_requested_molecular_systems():
     assert "h2o_qsci" in ensemble.DEFAULT_SYSTEMS
     assert "beh2_stretched" in ensemble.DEFAULT_SYSTEMS
+
+
+def test_probability_ordering_uses_the_state_that_was_sampled(monkeypatch):
+    captured = {}
+    backend = SimpleNamespace(
+        basis=np.array([1, 2], dtype=np.int64),
+        state_from_program=lambda _program: np.array([1.0, 0.0]),
+    )
+    model = SimpleNamespace(reference=object(), n=2)
+    operator = SimpleNamespace(restrict=lambda _indices: np.eye(2))
+    state = SimpleNamespace(amplitudes=np.array([0.6, 0.8], dtype=complex))
+
+    def ordering(words, **kwargs):
+        captured.update(kwargs)
+        return SimpleNamespace(words=np.asarray(words))
+
+    monkeypatch.setattr(ensemble, "configuration_ordering", ordering)
+    monkeypatch.setattr(
+        ensemble, "configuration_generators_from_words",
+        lambda *_args, **_kwargs: [SimpleNamespace()])
+    monkeypatch.setattr(
+        ensemble, "dressed_family",
+        lambda *_args, **_kwargs: SimpleNamespace(generators=[]))
+
+    ensemble._ordered_inputs(
+        model, backend, operator, state, np.array([1, 2]), np.array([0, 1]),
+        method="probability", max_support=4, max_generators=4, seed=0)
+
+    assert captured["probabilities"] == pytest.approx([0.36, 0.64])
+
+
+def test_incomplete_grid_is_rejected(tmp_path):
+    path = tmp_path / "truncated.jsonl"
+    header = {
+        "record": "header",
+        "schema": "clifford_qc.packet_seed_ensemble.v2",
+        "systems": ["toy"],
+        "orderings": ["physics"],
+        "shots": [64],
+        "seeds": 2,
+    }
+    path.write_text(json.dumps(header) + "\n" + json.dumps(_cell(0, "physics", -0.1)) + "\n")
+
+    with pytest.raises(ValueError, match="incomplete treatment grid"):
+        summary.summarize([path])
+
+
+def test_missing_matched_budget_flag_is_rejected():
+    cell = _cell(0, "physics", -0.1)
+    del cell["matched_M"]
+    with pytest.raises(ValueError, match="matched_M"):
+        summary._summarize([cell], "broken")
+
+
+def test_shot_groups_use_balanced_system_subset(tmp_path):
+    path = tmp_path / "unbalanced.jsonl"
+    header = {
+        "record": "header",
+        "schema": "clifford_qc.packet_seed_ensemble.v2",
+        "systems": ["old", "new"],
+        "orderings": ["physics"],
+        "shots": [32, 128],
+        "seeds": 8,
+    }
+    rows = []
+    for seed in range(8):
+        for shots in (32, 128):
+            cell = _cell(seed, "physics", -0.02)
+            cell.update(system="old", shots=shots)
+            rows.append(cell)
+        cell = _cell(seed, "physics", 0.2)
+        cell.update(system="new", shots=128)
+        rows.append(cell)
+    # This is intentionally unbalanced, so omit the rectangular header fields
+    # that would assert a complete Cartesian product and record the true count.
+    header.pop("systems")
+    header.pop("orderings")
+    header.pop("shots")
+    header.pop("seeds")
+    header["total_cells"] = len(rows)
+    path.write_text(
+        json.dumps(header) + "\n" + "\n".join(json.dumps(row) for row in rows) + "\n")
+
+    _, groups = summary.summarize([path])
+    shot_rows = [row for row in groups if row["group"].startswith("shots=")]
+    assert len(shot_rows) == 2
+    assert all(row["cells"] == 8 for row in shot_rows)
+    assert all(row["median_log_ratio"] == pytest.approx(-0.02) for row in shot_rows)
+
+
+def test_output_guard_requires_force_and_matching_design(tmp_path):
+    path = tmp_path / "existing.jsonl"
+    header = {
+        "record": "header",
+        "systems": ["toy"],
+        "orderings": ["physics"],
+        "shots": [64],
+        "seeds": 2,
+        "max_size": 10,
+    }
+    path.write_text(json.dumps(header) + "\n")
+    kwargs = dict(
+        systems=["toy"], orderings=["physics"], shots=[64],
+        seeds=2, max_size=10)
+    with pytest.raises(SystemExit, match="--force"):
+        ensemble._validate_output(path, force=False, **kwargs)
+    ensemble._validate_output(path, force=True, **kwargs)
+    with pytest.raises(SystemExit, match="header differs"):
+        ensemble._validate_output(
+            path, systems=["different"], orderings=["physics"], shots=[64],
+            seeds=2, max_size=10, force=True)
 
 
 def test_molecular_benchmark_definitions_when_chemistry_extra_is_available(monkeypatch):
