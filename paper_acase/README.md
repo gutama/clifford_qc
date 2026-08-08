@@ -1,18 +1,20 @@
 # Paper B — One reference state, one measurement bank
 
 Standalone manuscript built from the A-CASE effective-Hamiltonian, FCIDUMP,
-active-space benchmark, and finite-shot response work.
+active-space benchmark, finite-shot response, QSCI/packet ensemble, and
+matched-budget Phase 12 work.  It incorporates the seed-level and comparator
+corrections merged through pull requests #47, #48, and #49.
 
 The paper argues an **architectural** thesis, not a scoreboard one. Fixing a
 single reference and reconstructing every overlap, Hamiltonian, and observable
-element from Pauli expectations on it has three measurable consequences: the
-basis uses one reference context at any size, QWC setting counts rather than
-raw word counts determine the shot-level preparation schedule, the measurement
-width is tunable through generator resolution, and one cached bank serves
-energy, projected observables, and Lehmann response. Energy accuracy at matched budget is
-explicitly *not* the claim — Sec. "What the architecture does not buy" states
-where the method loses, including the inertness of operator dressing against a
-sample-independent selected-CI control.
+element from Pauli expectations on it has measurable consequences: the basis
+uses one reference context at any size, QWC setting counts rather than raw word
+counts determine the shot-level preparation schedule, the measurement width is
+tunable through generator resolution, and one cached bank serves energy,
+projected observables, and Lehmann response. Energy accuracy at matched budget
+is explicitly *not* the claim — Sec. "What the architecture does not buy"
+states where the method loses, including the inertness of operator dressing
+against a sample-independent selected-CI control.
 
 The paper does not depend on the ADAPT-VQE manuscript in `../paper/`.  It
 defines the method, measurement model, benchmark contract, and evidence labels
@@ -133,3 +135,6 @@ identity.  They are not finite-sample confidence certificates.
 | FCIDUMP H4 table | `../benchmarks/reference_results/fcidump_h4.json` |
 | Warm-start resource table | `../benchmarks/reference_results/warm_start_h4.json` |
 | Matched A-CASE/ADAPT-VQE/ADAPT-GCIM table | `../benchmarks/reference_results/matched_h4.json` |
+| Phase 12 matched-budget primary table | `../benchmarks/results/phase12_paper_b_five_system.json` |
+| Phase 11 packet seed-cluster inference | `../benchmarks/results/packet_seed_ensemble*.jsonl` plus molecular provenance sidecar and generated Markdown summary |
+| Phase 12 M=7 seed replication | `../benchmarks/results/m7_seed_replication.jsonl` plus generated Markdown summary |

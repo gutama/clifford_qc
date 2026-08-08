@@ -33,6 +33,9 @@ ROOT = HERE.parent
 TEX = HERE / "manuscript.tex"
 BIB = HERE / "references.bib"
 FIGURE_MANIFEST = HERE / "paper_assets" / "manifest.json"
+PHASE12_PRIMARY = ROOT / "benchmarks" / "results" / "phase12_paper_b_five_system.json"
+PHASE12_TABLE = HERE / "tables" / "phase12_primary.tex"
+TABLE_GENERATOR = HERE / "make_tables.py"
 
 # which committed record each figure is plotted from; kept in step with
 # make_figures.py so a regenerated record forces a regenerated figure
@@ -136,6 +139,13 @@ def _source_digest(path: Path) -> str:
     return hashlib.sha256(text.encode("utf-8")).hexdigest()
 
 
+def _git_blob_sha(path: Path) -> str:
+    """Return the byte-exact SHA-1 object id used by Git blob objects."""
+    data = path.read_bytes()
+    header = f"blob {len(data)}\0".encode()
+    return hashlib.sha1(header + data, usedforsecurity=False).hexdigest()
+
+
 def main() -> int:
     text = TEX.read_text()
     problems: list[str] = []
@@ -176,6 +186,17 @@ def main() -> int:
         if not target.exists() and not target.with_suffix(".tex").exists():
             problems.append(f"missing input: {match.group(1)} "
                             "(run paper_acase/make_tables.py)")
+
+    if PHASE12_TABLE.exists():
+        headers = set(PHASE12_TABLE.read_text(encoding="utf-8").splitlines()[:2])
+        expected = {
+            f"% source-git-blob-sha: {_git_blob_sha(PHASE12_PRIMARY)}",
+            f"% generator-git-blob-sha: {_git_blob_sha(TABLE_GENERATOR)}",
+        }
+        if headers != expected:
+            problems.append(
+                "phase12_primary.tex is stale against its result record or "
+                "table generator (run paper_acase/make_tables.py)")
 
     if re.search(r"\\usepackage(?:\[[^]]*\])?\{array\}", text):
         problems.append(
