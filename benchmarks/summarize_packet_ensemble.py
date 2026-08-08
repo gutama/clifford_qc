@@ -27,6 +27,11 @@ import numpy as np
 
 CONTROL_ORDERING = "random"
 MIN_EFFECT_LOG10 = 0.01
+SUPPORTED_SCHEMAS = {
+    "clifford_qc.packet_seed_ensemble.v1",
+    "clifford_qc.packet_seed_ensemble.v2",
+}
+REPO_ROOT = Path(__file__).resolve().parent.parent
 
 
 def _binomial_sign_test(wins: int, trials: int) -> float:
@@ -63,7 +68,11 @@ def _cluster_bootstrap_ci(seed_effects: np.ndarray, *, replicates: int = 10000,
 
 def _matched(cells: list[dict]) -> tuple[list[dict], int, int]:
     eligible = [cell for cell in cells if cell.get("packet_eligible")]
-    matched = [cell for cell in eligible if cell.get("matched_M", True)]
+    missing = [cell for cell in eligible if "matched_M" not in cell]
+    if missing:
+        raise ValueError(
+            "eligible treatment cell is missing required matched_M pairing flag")
+    matched = [cell for cell in eligible if cell["matched_M"]]
     return matched, len(cells) - len(eligible), len(eligible) - len(matched)
 
 
@@ -127,12 +136,19 @@ def _load(paths: list[Path]) -> tuple[list[dict], list[dict], list[dict]]:
     systems: list[dict] = []
     seen: set[tuple] = set()
     for path in paths:
+        path_headers: list[dict] = []
+        path_cells: list[dict] = []
         for line in path.read_text(encoding="utf-8").splitlines():
             if not line.strip():
                 continue
             row = json.loads(line)
             if row.get("record") == "header":
+                schema = row.get("schema")
+                if schema not in SUPPORTED_SCHEMAS:
+                    raise ValueError(
+                        f"unsupported packet ensemble schema {schema!r} in {path}")
                 headers.append({"path": str(path), **row})
+                path_headers.append(row)
                 continue
             if row.get("record") == "system":
                 systems.append({"path": str(path), **row})
@@ -142,12 +158,30 @@ def _load(paths: list[Path]) -> tuple[list[dict], list[dict], list[dict]]:
                 raise ValueError(f"duplicate treatment cell across inputs: {key}")
             seen.add(key)
             cells.append(row)
+            path_cells.append(row)
+        if len(path_headers) != 1:
+            raise ValueError(
+                f"expected exactly one packet ensemble header in {path}, "
+                f"found {len(path_headers)}")
+        header = path_headers[0]
+        expected_cells = header.get("total_cells")
+        if expected_cells is None:
+            fields = ("systems", "orderings", "shots", "seeds")
+            if all(field in header for field in fields):
+                expected_cells = (
+                    len(header["systems"]) * len(header["orderings"])
+                    * len(header["shots"]) * int(header["seeds"]))
+        if expected_cells is not None and len(path_cells) != int(expected_cells):
+            raise ValueError(
+                f"incomplete treatment grid in {path}: found {len(path_cells)} "
+                f"cells, header requires {int(expected_cells)}")
     return cells, headers, systems
 
 
-def _verified_sources(paths: list[Path]) -> dict[str, str]:
-    """Map result paths to externally verified source commits when available."""
-    verified: dict[str, str] = {}
+def _verified_results(paths: list[Path]) -> dict[Path, str]:
+    """Verify result digests and return their recorded generation commits."""
+    verified: dict[Path, str] = {}
+    supplied = {path.resolve() for path in paths}
     candidates = {
         path.parent / "packet_seed_ensemble_molecular.provenance.json"
         for path in paths
@@ -158,15 +192,26 @@ def _verified_sources(paths: list[Path]) -> dict[str, str]:
         record = json.loads(candidate.read_text(encoding="utf-8"))
         source_sha = record.get("source_code_git_sha")
         for result_path, expected in record.get("records", {}).items():
-            path = Path(result_path)
-            if path not in paths or not path.exists():
+            recorded = Path(result_path)
+            path = (recorded if recorded.is_absolute()
+                    else REPO_ROOT / recorded).resolve()
+            if path not in supplied:
+                # A basename match means this sidecar is trying to describe a
+                # supplied result but resolves somewhere else.  Treat that as
+                # an error instead of quietly turning provenance checking off.
+                if any(item.name == recorded.name for item in supplied):
+                    raise ValueError(
+                        f"provenance record {result_path} does not resolve to "
+                        "the supplied result path")
                 continue
+            if not path.exists():
+                raise ValueError(f"provenance result path does not exist: {path}")
             digest = hashlib.sha256(path.read_bytes()).hexdigest()
             if digest != expected.get("sha256"):
                 raise ValueError(
-                    f"source-verification digest mismatch for {result_path}")
+                    f"result provenance digest mismatch for {result_path}")
             if source_sha:
-                verified[str(path)] = str(source_sha)
+                verified[path] = str(source_sha)
     return verified
 
 
@@ -179,7 +224,7 @@ def summarize(paths: list[Path]) -> tuple[str, list[dict]]:
     orderings = sorted({cell["ordering"] for cell in cells})
     shot_grid = sorted({int(cell["shots"]) for cell in cells})
     seed_grid = sorted({int(cell["seed"]) for cell in cells})
-    verified_sources = _verified_sources(paths)
+    verified_results = _verified_results(paths)
 
     policy = [cell for cell in cells if cell["ordering"] != CONTROL_ORDERING]
     control = [cell for cell in cells if cell["ordering"] == CONTROL_ORDERING]
@@ -187,18 +232,25 @@ def summarize(paths: list[Path]) -> tuple[str, list[dict]]:
     if control:
         groups.append(_summarize(control, f"CONTROL ({CONTROL_ORDERING})"))
     for ordering in orderings:
-        tag = "control" if ordering == CONTROL_ORDERING else "order"
+        if ordering == CONTROL_ORDERING:
+            continue
         groups.append(_summarize(
             [cell for cell in cells if cell["ordering"] == ordering],
-            f"{tag}={ordering}"))
+            f"order={ordering}"))
     for system in systems:
         groups.append(_summarize(
             [cell for cell in policy if cell["system"] == system],
             f"system={system} (policy only)"))
+    systems_by_shot = [
+        {cell["system"] for cell in policy if int(cell["shots"]) == shots}
+        for shots in shot_grid
+    ]
+    balanced_systems = set.intersection(*systems_by_shot) if systems_by_shot else set()
     for shots in shot_grid:
         groups.append(_summarize(
-            [cell for cell in policy if int(cell["shots"]) == shots],
-            f"shots={shots} (policy only)"))
+            [cell for cell in policy
+             if int(cell["shots"]) == shots and cell["system"] in balanced_systems],
+            f"shots={shots} (policy only; balanced systems)"))
     for system in systems:
         for ordering in orderings:
             subset = [
@@ -233,17 +285,20 @@ def summarize(paths: list[Path]) -> tuple[str, list[dict]]:
         f"`{CONTROL_ORDERING}` is the predeclared ordering control and is kept "
         "separate from the candidate-policy pool by design.",
         "",
-        "| Group | cells | seeds | cell win | seed win | seed sign p | "
+        "Shot-setting rows use only systems present at every shot setting "
+        f"({', '.join(sorted(balanced_systems))}) so tiers remain like-for-like.",
+        "",
+        "| Group | compared / cells | seeds | cell win | seed win | seed sign p | "
         "median seed log10 ratio | cluster 95% CI | verdict |",
         "| :--- | ---: | ---: | ---: | ---: | ---: | ---: | :---: | :--- |",
     ]
     for row in groups:
         if row["seed_clusters"] == 0:
             lines.append(
-                f"| {row['group']} | {row['compared']} | 0 | — | — | — | — | — | insufficient |")
+                f"| {row['group']} | {row['compared']} / {row['cells']} | 0 | — | — | — | — | — | insufficient |")
             continue
         lines.append(
-            f"| {row['group']} | {row['compared']} | {row['seed_clusters']} | "
+            f"| {row['group']} | {row['compared']} / {row['cells']} | {row['seed_clusters']} | "
             f"{row['cell_win_rate']:.2f} | {row['seed_win_rate']:.2f} | "
             f"{row['sign_test_p']:.3f} | {row['median_log_ratio']:+.3f} | "
             f"[{row['ci_low']:+.3f}, {row['ci_high']:+.3f}] | {_verdict(row)} |")
@@ -276,9 +331,10 @@ def summarize(paths: list[Path]) -> tuple[str, list[dict]]:
         lines += ["", "## Provenance", ""]
         for header in headers:
             prov = header.get("provenance", {})
-            verified = verified_sources.get(header["path"])
+            verified = verified_results.get(Path(header["path"]).resolve())
             verification_text = (
-                f"; source code verified at git `{verified}`"
+                f"; result digest verified against provenance record; "
+                f"generation source recorded at git `{verified}`"
                 if verified else "")
             lines.append(
                 f"- `{header['path']}`: git `{prov.get('git_sha', 'unknown')}`"
