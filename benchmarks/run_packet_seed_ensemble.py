@@ -1,38 +1,14 @@
 """Seed-ensemble sweep for the Phase 11B coarse-to-fine packet claim.
 
-The Phase 10 primary record establishes the packet arm's advantage at a single
-draw per system (``seed=0``, ``shots=128``, one ordering, one retained-direction
-budget).  Five rows at one draw each is a screen, not evidence: the §11C
-go/no-go explicitly requires that a packet result "is not an accident of one
-ordering", and nothing in the record yet bounds the seed-to-seed spread.
+Each ``(system, ordering, shots, seed)`` cell uses one oracle sample and hands
+the identical sampled configurations to the plain dressed and packet-dressed
+arms.  Orderings and shot budgets are repeated conditions within a seed; the
+companion summarizer therefore performs inference by resampling whole seeds,
+not individual treatment cells.
 
-This driver runs the *paired* comparison that closes that gap.  For each
-``(system, ordering, shots, seed)`` cell it draws one sample and hands the
-identical sampled configurations to both hybrid arms:
-
-``dressed``
-    sampled configurations plus the dressed excitation family -- Phase 10C
-    arm 2, the baseline the packet stage has to beat.
-``packets``
-    the same pool entered through the support-pruned coarse-to-fine Haar
-    packet hierarchy -- Phase 10C arm 3.
-
-Pairing is what makes ~20 seeds informative: both arms see the same draw, the
-same ordering, and the same retained-direction budget, so the per-cell
-difference isolates the packet stage rather than the sampling noise.  The
-summarizer therefore reports paired statistics (win rate, sign test, bootstrap
-CI on the median log ratio) rather than comparing two independent means.
-
-Evidence boundary: the default sampling input is the exact sector ground state.
-That is Phase 8's validation oracle.  These rows test *selector* behaviour and
-carry no implementable state-preparation claim, exactly as in Phases 10-12.
-
-Run from the repository root::
-
-    PYTHONPATH=. python benchmarks/run_packet_seed_ensemble.py \
-        --systems hubbard_2x2,hubbard_2x3 --seeds 20
-
-then summarize with ``benchmarks/summarize_packet_ensemble.py``.
+Evidence boundary: the default sampling input is the exact sector ground
+state.  These rows test selector/subspace behaviour and carry no implementable
+state-preparation claim.
 """
 
 from __future__ import annotations
@@ -64,15 +40,33 @@ from clifford_qc.subspace import (
 
 ORDERINGS = ("probability", "physics", "graph", "random")
 
-# The §11C ablations are the point of the sweep, so every ordering is run on
-# every cell.  A packet advantage that survives only under `physics` ordering is
-# a reportable negative result, not a win.
-DEFAULT_SYSTEMS = ("hubbard_2x2", "hubbard_2x3", "h4_equilibrium", "h4_stretched")
+DEFAULT_SYSTEMS = (
+    "hubbard_2x2",
+    "hubbard_2x3",
+    "h4_equilibrium",
+    "h4_stretched",
+    "h2o_qsci",
+    "beh2_stretched",
+)
+
+
+def _reference_word(backend: SectorStatevectorBackend, model) -> int:
+    vector = backend.state_from_program(model.reference)
+    return int(backend.basis[int(np.argmax(np.abs(vector)))])
+
+
+def operator_state_amplitudes(backend, model):
+    """Exact sector ground-state amplitudes, cached per backend instance."""
+    cached = getattr(backend, "_ensemble_amplitudes", None)
+    if cached is None:
+        _, vectors = backend.ground_state(model.hamiltonian, k=1)
+        cached = np.asarray(vectors)[:, 0]
+        backend._ensemble_amplitudes = cached
+    return cached
 
 
 def _ordered_inputs(model, backend, operator, words, indices, *, method: str,
                     max_support: int, max_generators: int, seed: int):
-    """Phase 12's hybrid input construction, with the ordering parameterized."""
     reference_word = _reference_word(backend, model)
     kwargs = {"reference_word": reference_word, "n": model.n, "seed": seed}
     if method in ("probability", "graph"):
@@ -101,22 +95,6 @@ def _ordered_inputs(model, backend, operator, words, indices, *, method: str,
         max_generators=max_generators)
     seed_basis = None if reference_sampled else [configurations[0]]
     return ordering, configurations, family, seed_basis, reference_sampled
-
-
-def _reference_word(backend: SectorStatevectorBackend, model) -> int:
-    """Occupation word of the reference program, as Phase 12 resolves it."""
-    vector = backend.state_from_program(model.reference)
-    return int(backend.basis[int(np.argmax(np.abs(vector)))])
-
-
-def operator_state_amplitudes(backend, model):
-    """Exact sector ground-state amplitudes, cached per backend instance."""
-    cached = getattr(backend, "_ensemble_amplitudes", None)
-    if cached is None:
-        _, vectors = backend.ground_state(model.hamiltonian, k=1)
-        cached = np.asarray(vectors)[:, 0]
-        backend._ensemble_amplitudes = cached
-    return cached
 
 
 def run_cell(name: str, model, backend, operator, rho, exact_energy: float, *,
@@ -156,12 +134,9 @@ def run_cell(name: str, model, backend, operator, rho, exact_energy: float, *,
         "dressed_M": int(dressed.basis_size),
         "dressed_seconds": dressed_seconds,
         "dressed_selection_work": int(
-            sum(r.candidates_scored for r in dressed.records)),
+            sum(record.candidates_scored for record in dressed.records)),
     }
 
-    # Fewer than two non-reference configurations leaves no interval to
-    # transform; record the cell as packet-ineligible rather than dropping it,
-    # so the denominator of the win rate stays honest.
     if len(configurations) < 2:
         row.update({
             "packet_eligible": False,
@@ -189,8 +164,6 @@ def run_cell(name: str, model, backend, operator, rho, exact_energy: float, *,
 
     packet_error = abs(float(packet.energy) - exact_energy)
     dressed_error = row["dressed_error"]
-    # Log ratio is the paired statistic: negative means the packet arm is more
-    # accurate at the same budget.  Guard the degenerate exactly-zero cases.
     floor = 1e-15
     log_ratio = float(np.log10(max(packet_error, floor)
                                / max(dressed_error, floor)))
@@ -201,11 +174,11 @@ def run_cell(name: str, model, backend, operator, rho, exact_energy: float, *,
         "packet_M": int(packet.basis_size),
         "packet_seconds": packet_seconds,
         "packet_selection_work": int(
-            sum(r.candidates_scored for r in packet.records)
+            sum(record.candidates_scored for record in packet.records)
             + hierarchy.frontiers_scored),
         "packet_directions": len(hierarchy.packet_labels),
         "packet_labels": list(hierarchy.packet_labels),
-        "refined_intervals": [list(i) for i in hierarchy.refined_intervals],
+        "refined_intervals": [list(interval) for interval in hierarchy.refined_intervals],
         "log_ratio": log_ratio,
         "matched_M": int(packet.basis_size) == int(dressed.basis_size),
     })
@@ -213,9 +186,7 @@ def run_cell(name: str, model, backend, operator, rho, exact_energy: float, *,
 
 
 def main(argv=None) -> None:
-    parser = argparse.ArgumentParser(
-        description=__doc__,
-        formatter_class=argparse.RawDescriptionHelpFormatter)
+    parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--systems", default=",".join(DEFAULT_SYSTEMS))
     parser.add_argument("--seeds", type=int, default=20,
                         help="seeds 0..N-1 per (system, ordering, shots) cell")
@@ -229,34 +200,37 @@ def main(argv=None) -> None:
                         default=Path("benchmarks/results/packet_seed_ensemble.jsonl"))
     args = parser.parse_args(argv)
 
-    systems = [s.strip() for s in args.systems.split(",") if s.strip()]
-    shot_grid = [int(s) for s in args.shots.split(",") if s.strip()]
-    orderings = [o.strip() for o in args.orderings.split(",") if o.strip()]
+    systems = [item.strip() for item in args.systems.split(",") if item.strip()]
+    shot_grid = [int(item) for item in args.shots.split(",") if item.strip()]
+    orderings = [item.strip() for item in args.orderings.split(",") if item.strip()]
     unknown = sorted(set(orderings) - set(ORDERINGS))
     if unknown:
         raise SystemExit(f"unknown orderings: {unknown}")
+    if args.seeds < 1 or not shot_grid or min(shot_grid) < 1:
+        raise SystemExit("seeds and shot counts must be positive")
 
-    # Provenance is a precondition: fail before a long sweep, not after it.
     provenance = execution_provenance()
-
     args.out.parent.mkdir(parents=True, exist_ok=True)
     total = len(systems) * len(orderings) * len(shot_grid) * args.seeds
     done = 0
     with args.out.open("w", encoding="utf-8") as handle:
         handle.write(json.dumps(stamp_record({
-            "schema": "clifford_qc.packet_seed_ensemble.v1",
+            "schema": "clifford_qc.packet_seed_ensemble.v2",
             "record": "header",
             "evidence": "oracle_sampled; selector behaviour only",
             "claim_boundary": (
                 "paired dressed-vs-packet comparison at matched budget; no "
                 "implementable state-preparation claim"),
-            "systems": systems, "orderings": orderings,
-            "shots": shot_grid, "seeds": args.seeds,
+            "inference_unit": "seed_cluster",
+            "systems": systems,
+            "orderings": orderings,
+            "shots": shot_grid,
+            "seeds": args.seeds,
             "max_size": args.max_size,
         }, provenance)) + "\n")
 
         for name in systems:
-            model, _ = phase10.build_system(name)
+            model, construction = phase10.build_system(name)
             backend = SectorStatevectorBackend(
                 model.n, int(model.metadata["n_electrons"]),
                 float(model.metadata["sz"]))
@@ -264,6 +238,16 @@ def main(argv=None) -> None:
             values, _ = backend.ground_state(model.hamiltonian, k=1)
             exact_energy = float(values[0])
             rho = ExactMVBackend().state(model.reference, ())
+
+            handle.write(json.dumps({
+                "record": "system",
+                "system": name,
+                "model": model.name,
+                "n_qubits": int(model.n),
+                "n_electrons": int(model.metadata["n_electrons"]),
+                "sector_dimension": int(backend.dimension),
+                "construction": construction,
+            }, sort_keys=True) + "\n")
 
             for ordering_method in orderings:
                 for shots in shot_grid:
