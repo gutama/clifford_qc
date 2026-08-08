@@ -4,6 +4,11 @@ from types import SimpleNamespace
 from benchmarks import run_phase12_paper_b as phase12
 
 
+def test_phase12_includes_paper_b_molecular_benchmarks():
+    assert "h2o_qsci" in phase12.PRIMARY_SYSTEMS
+    assert "beh2_stretched" in phase12.PRIMARY_SYSTEMS
+
+
 def test_pareto_frontiers_never_mix_evidence_categories():
     rows = [
         {
