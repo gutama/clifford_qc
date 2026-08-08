@@ -16,7 +16,7 @@
     },
     "validation_ladder.pdf": {
       "sources": {
-        "benchmarks/reference_results/acase_ladder_summary.csv": "03ac038ad71a3259d2b80aa4a8efd6312c3b5eec46a841929ad7d584e6e86602"
+        "benchmarks/reference_results/acase_ladder_summary.csv": "6c0d3f349942cc27818829d0911c8af2bc8d5831154b63de08f8a5dcf126e694"
       }
     }
   },

@@ -1,8 +1,17 @@
-# Paper B — Adaptive operator-generated subspaces
+# Paper B — One prepared state, one measurement bank
 
 Standalone manuscript built from the A-CASE effective-Hamiltonian, FCIDUMP,
-active-space benchmark, and finite-shot response work merged in pull requests
-#23 and #24.
+active-space benchmark, and finite-shot response work.
+
+The paper argues an **architectural** thesis, not a scoreboard one. Fixing a
+single reference and reconstructing every overlap, Hamiltonian, and observable
+element from Pauli expectations on it has three measurable consequences: the
+basis costs one prepared state at any size, the measurement width is tunable
+through generator resolution, and one cached bank serves energy, projected
+observables, and Lehmann response. Energy accuracy at matched budget is
+explicitly *not* the claim — Sec. "What the architecture does not buy" states
+where the method loses, including the inertness of operator dressing against a
+sample-independent selected-CI control.
 
 The paper does not depend on the ADAPT-VQE manuscript in `../paper/`.  It
 defines the method, measurement model, benchmark contract, and evidence labels
@@ -113,7 +122,8 @@ identity.  They are not finite-sample confidence certificates.
 |---|---|
 | Pipeline figure | method contract in `clifford_qc/subspace/` and `clifford_qc/models/` |
 | Method-relation table | primary references in `references.bib`; no numerical claims |
-| Validation-ladder figure and table | `../benchmarks/reference_results/acase_ladder_summary.csv` plus certified `krylov_width.json` for the comparator width column |
+| Validation-ladder table | `../benchmarks/reference_results/acase_ladder_summary.csv` plus certified `krylov_width.json` for the comparator width column |
+| Matched-budget limits prose (Sec. "does not buy") | `../benchmarks/results/phase12_paper_b_five_system.json` for the five-system `M=7` ladder; `../benchmarks/results/m7_seed_replication.jsonl` for the eighty-draw dressing-inertness result |
 | Response figure and table | `data/response_bootstrap.json` |
 | Conditioning figure and table | `data/response_bootstrap.json` and `data/response_bootstrap_illconditioned.json` |
 | Dimer table | `../examples/data/wannier_hubbard_dimer.json` and closed-form dimer identities |
