@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import csv
+import hashlib
 import json
 import math
 from pathlib import Path
@@ -26,9 +27,16 @@ def _write(name: str, rows: list[str]) -> None:
     (TABLES / name).write_text("\n".join(rows) + "\n")
 
 
+def _git_blob_sha(path: Path) -> str:
+    """Git blob identity for byte-exact generated-artifact bindings."""
+    data = path.read_bytes()
+    header = f"blob {len(data)}\0".encode()
+    return hashlib.sha1(header + data, usedforsecurity=False).hexdigest()
+
+
 def _sci(value: float, digits: int = 2) -> str:
     if value == 0.0:
-        return "0"
+        return "$0$"
     exponent = int(math.floor(math.log10(abs(value))))
     mantissa = value / 10 ** exponent
     if exponent == 0:
@@ -188,11 +196,19 @@ def phase12_primary_table() -> None:
     )
 
     def fmt(value: float) -> str:
-        if abs(value) >= 1e-2:
-            return "$" + f"{value:.3f}" + "$"
-        return _sci(value, 2)
+        """Four significant figures, with small values in scientific form."""
+        if value == 0.0:
+            return "$0$"
+        exponent = int(math.floor(math.log10(abs(value))))
+        if abs(value) >= 0.1:
+            decimals = max(0, 3 - exponent)
+            return "$" + f"{value:.{decimals}f}" + "$"
+        return _sci(value, 3)
 
-    out = []
+    out = [
+        f"% source-git-blob-sha: {_git_blob_sha(PHASE12_PRIMARY)}",
+        f"% generator-git-blob-sha: {_git_blob_sha(Path(__file__).resolve())}",
+    ]
     for display, key in labels:
         arms = {row["method"]: row for row in by_key[key]["arms"]}
         missing = [method for method in methods if method not in arms]
