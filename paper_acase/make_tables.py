@@ -15,6 +15,7 @@ H4 = ROOT / "benchmarks" / "reference_results" / "fcidump_h4.json"
 WARM = ROOT / "benchmarks" / "reference_results" / "warm_start_h4.json"
 KRYLOV_WIDTH = ROOT / "benchmarks" / "reference_results" / "krylov_width.json"
 MATCHED = ROOT / "benchmarks" / "reference_results" / "matched_h4.json"
+PHASE12_PRIMARY = ROOT / "benchmarks" / "results" / "phase12_paper_b_five_system.json"
 DIMER = ROOT / "examples" / "data" / "wannier_hubbard_dimer.json"
 RESPONSE = HERE / "data" / "response_bootstrap.json"
 RESPONSE_ILL = HERE / "data" / "response_bootstrap_illconditioned.json"
@@ -166,6 +167,48 @@ def ladder_table() -> None:
     _write("ladder_results.tex", out)
 
 
+
+def phase12_primary_table() -> None:
+    """Matched-budget Phase 12 rows from the committed five-system record."""
+    record = json.loads(PHASE12_PRIMARY.read_text())
+    by_key = {row["system_key"]: row for row in record["systems"]}
+    methods = (
+        "budget_selected_ci",
+        "matched_selected_ci",
+        "acase",
+        "qsci_haar_dressed_acase",
+        "fixed_krylov",
+    )
+    labels = (
+        ("Hubbard $2\\times2$", "hubbard_2x2"),
+        ("Hubbard $2\\times3$", "hubbard_2x3"),
+        ("H$_4$, 0.9 \\AA", "h4_equilibrium"),
+        ("H$_4$, 1.8 \\AA", "h4_stretched"),
+        ("H$_4$ FCIDUMP", "fcidump_h4_equilibrium"),
+    )
+
+    def fmt(value: float) -> str:
+        if abs(value) >= 1e-2:
+            return "$" + f"{value:.3f}" + "$"
+        return _sci(value, 2)
+
+    out = []
+    for display, key in labels:
+        arms = {row["method"]: row for row in by_key[key]["arms"]}
+        missing = [method for method in methods if method not in arms]
+        if missing:
+            raise ValueError(f"Phase 12 {key} is missing arms: {missing}")
+        if any(arms[method]["M"] != 7 for method in methods):
+            raise ValueError(f"Phase 12 {key} does not satisfy the M=7 table contract")
+        out.append(
+            display + " & "
+            + " & ".join(fmt(abs(float(arms[method]["absolute_error"])))
+                         for method in methods)
+            + r" \\"
+        )
+    _write("phase12_primary.tex", out)
+
+
 def response_table() -> None:
     record = json.loads(RESPONSE.read_text())
     exact = record["exact"]
@@ -259,6 +302,7 @@ def main() -> None:
     warm_start_table()
     matched_table()
     ladder_table()
+    phase12_primary_table()
     response_table()
     conditioning_table()
     print(TABLES)
