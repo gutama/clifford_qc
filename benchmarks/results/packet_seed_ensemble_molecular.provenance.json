@@ -1,0 +1,28 @@
+{
+  "schema": "clifford_qc.packet_seed_ensemble.source_verification.v1",
+  "source_code_git_sha": "a635462d316ec5e8cd3aa19fc71419ff6f711983",
+  "verification": "git blob hashes of the local execution sources matched the PR head byte-for-byte",
+  "source_blobs": {
+    "clifford_qc/models/chemistry.py": "4b5c63cc0580654909d5a2b102236375dc6dbfb5",
+    "benchmarks/run_phase10_hybrid.py": "3547a527bdbecfc420feb9d7dc00a58af95d3c36",
+    "benchmarks/run_packet_seed_ensemble.py": "7ed23dee78899b5b013213508cde1d11408d6264"
+  },
+  "records": {
+    "benchmarks/results/packet_seed_ensemble_h2o_qsci.jsonl": {
+      "sha256": "e58464d48f76fb4c2bc1fb0296180a79118809345c73448361bdbdb080544395",
+      "systems": ["h2o_qsci"],
+      "shots": [128],
+      "seeds": 20,
+      "orderings": ["probability", "physics", "graph", "random"]
+    },
+    "benchmarks/results/packet_seed_ensemble_beh2_stretched.jsonl": {
+      "sha256": "5a6a200837262523f4f15db541204209ec6bcb7d8dcf94746758decb1304081b",
+      "systems": ["beh2_stretched"],
+      "shots": [128],
+      "seeds": 20,
+      "orderings": ["probability", "physics", "graph", "random"]
+    }
+  },
+  "evidence": "oracle_sampled; selector behaviour only",
+  "claim_boundary": "source verification does not convert oracle-sampled rows into an implementable state-preparation claim"
+}
