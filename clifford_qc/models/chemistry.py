@@ -131,6 +131,52 @@ def beh2(bond_length: float = 1.3264) -> Model:
                           occupied_indices=[0], active_indices=[1, 2, 3])
 
 
+def h2o_qsci() -> Model:
+    """QSCI-aligned H2O benchmark: STO-3G CAS(6e,5o) -> 10 qubits.
+
+    The geometry and active-space size follow Kanno *et al.*,
+    arXiv:2302.11320 / Phys. Rev. Research 8, 023268 (2026).  The paper
+    specifies six active electrons in five active spatial orbitals but not the
+    orbital indices.  With the canonical RHF/STO-3G orbitals used here, the
+    two lowest occupied orbitals are frozen and the remaining five orbitals
+    form the active space.  Keeping this convention explicit avoids claiming
+    a stronger reproduction of the paper's orbital choice than is documented.
+    """
+    geometry = [
+        ("O", (0.0, 0.0, 0.0)),
+        ("H", (0.2774, 0.8929, 0.2544)),
+        ("H", (0.6068, -0.2383, -0.7169)),
+    ]
+    return molecule_model(
+        geometry,
+        name="h2o_qsci_sto3g_cas6e5o",
+        occupied_indices=[0, 1],
+        active_indices=[2, 3, 4, 5, 6],
+    )
+
+
+def beh2_frozen_core(bond_length: float = 3.0) -> Model:
+    """Linear BeH2 STO-3G with only the Be 1s core frozen: CAS(4e,6o).
+
+    ``bond_length=3.0`` Angstrom is the stretched, strongly-correlated BeH2
+    geometry used by Feniou *et al.* (arXiv:2301.10196).  Their calculation
+    uses the full STO-3G space; this benchmark freezes only the chemically
+    inert Be 1s core to keep the 20-seed selector sweep tractable, and records
+    that distinction rather than presenting it as an exact reproduction.
+    """
+    geometry = [
+        ("Be", (0.0, 0.0, 0.0)),
+        ("H", (0.0, 0.0, -bond_length)),
+        ("H", (0.0, 0.0, bond_length)),
+    ]
+    return molecule_model(
+        geometry,
+        name=f"beh2_stretched_sto3g_cas4e6o(r={bond_length})",
+        occupied_indices=[0],
+        active_indices=[1, 2, 3, 4, 5, 6],
+    )
+
+
 def _excitation_generators(n_qubits: int, n_electrons: int) -> list[FermionOperator]:
     """Anti-Hermitian singles/doubles generators that conserve particle
     number and total spin projection S_z.
