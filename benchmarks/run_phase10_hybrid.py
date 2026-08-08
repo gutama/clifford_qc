@@ -85,7 +85,7 @@ def _pyscf_memory_probe_fallback() -> bool:
 
 
 def build_system(name: str):
-    """Return (model, construction_metadata) for one Phase 10D system."""
+    """Return ``(model, construction_metadata)`` for a registered benchmark."""
     if name == "hubbard_2x2":
         return hubbard((2, 2), t=1.0, U=4.0), {
             "source": "native_hubbard", "shape": [2, 2], "t": 1.0, "U": 4.0}
@@ -102,6 +102,48 @@ def build_system(name: str):
             "spacing_angstrom": spacing,
             "pyscf_memory_probe_fallback": fallback,
         }
+    if name == "h2o_qsci":
+        fallback = _pyscf_memory_probe_fallback()
+        from clifford_qc.models.chemistry import h2o_qsci
+
+        return h2o_qsci(), {
+            "source": "pyscf_sto3g",
+            "benchmark": "QSCI H2O ground-state setup",
+            "geometry_angstrom": [
+                ["O", [0.0, 0.0, 0.0]],
+                ["H", [0.2774, 0.8929, 0.2544]],
+                ["H", [0.6068, -0.2383, -0.7169]],
+            ],
+            "active_space": {"electrons": 6, "spatial_orbitals": 5},
+            "frozen_spatial_orbitals": [0, 1],
+            "active_spatial_orbitals": [2, 3, 4, 5, 6],
+            "reference": "https://arxiv.org/abs/2302.11320",
+            "alignment_boundary": (
+                "geometry, STO-3G basis, electron count, and active-space size "
+                "match the QSCI paper; canonical-RHF active orbital indices "
+                "are explicit here because the paper does not enumerate them"
+            ),
+            "pyscf_memory_probe_fallback": fallback,
+        }
+    if name == "beh2_stretched":
+        fallback = _pyscf_memory_probe_fallback()
+        from clifford_qc.models.chemistry import beh2_frozen_core
+
+        return beh2_frozen_core(bond_length=3.0), {
+            "source": "pyscf_sto3g",
+            "benchmark": "stretched BeH2 selector stress test",
+            "bond_length_angstrom": 3.0,
+            "active_space": {"electrons": 4, "spatial_orbitals": 6},
+            "frozen_spatial_orbitals": [0],
+            "active_spatial_orbitals": [1, 2, 3, 4, 5, 6],
+            "reference": "https://arxiv.org/abs/2301.10196",
+            "alignment_boundary": (
+                "the 3.0 Angstrom strongly-correlated geometry follows the "
+                "Overlap-ADAPT benchmark; this sweep freezes only the Be 1s "
+                "core and therefore is not a full-space reproduction"
+            ),
+            "pyscf_memory_probe_fallback": fallback,
+        }
     if name == "fcidump_h4_equilibrium":
         provenance = json.loads(FCIDUMP_PROVENANCE.read_text(encoding="utf-8"))
         model = fcidump_model(FCIDUMP_H4, name=provenance["name"])
@@ -114,7 +156,7 @@ def build_system(name: str):
             "external_fci_energy": float(
                 provenance["reference_energies"]["fci"]),
         }
-    raise ValueError(f"unknown Phase 10 primary system {name!r}")
+    raise ValueError(f"unknown benchmark system {name!r}")
 
 
 def _reference_word(backend: SectorStatevectorBackend, model) -> int:
