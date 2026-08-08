@@ -55,20 +55,24 @@ quantum-selected configurations, support-pruned Haar packets, a
 sample-independent selected-CI comparator, and an explicitly priced fixed
 Krylov arm.  The sampling experiments deliberately draw from the exact ground
 state: they test selector and subspace behavior under an oracle, not an
-implementable state-preparation claim.  In a five-system, thirteen-arm
-matched-budget ladder, fixed Krylov gives the lowest energy error on all five
-systems.  On the $2\times3$ Hubbard rung, a fair sample-independent selected-CI
+implementable state-preparation claim.  The five-system Phase 12 record
+contains thirteen arms with heterogeneous native sizes; among the five $M=7$
+arms shown in the primary matched-budget comparison, fixed Krylov gives the
+lowest energy error on all five systems.  On the $2\times3$ Hubbard rung, a fair sample-independent selected-CI
 baseline and bare A-CASE both have error $2.457$ in the declared Hamiltonian
 unit, while operator dressing leaves the result unchanged; the apparent
 advantage over classical selection in an earlier comparator disappears.
 Haar-packet refinement is the only sampling-fed component that separates, but
-its effect is not uniform.  Across 160 paired seed-level cells at the ladder
-budget, policy-pooled packet effects are null on both Hubbard systems, whereas
-physics ordering favors packets on $2\times2$ and $2\times3$ and graph ordering
-reverses the effect on $2\times3$.  In a separate 1440-cell ensemble spanning
-six systems, four orderings, four shot settings, and twenty seed clusters,
-stretched BeH$_2$ shows a material packet effect while the QSCI-aligned H$_2$O
-case does not.  The favorable ordering itself changes with the retained
+its effect is not uniform.  Across 160 paired seed-level cells at the ladder budget,
+policy-pooled packet effects are null on both Hubbard systems.  Exploratory
+secondary contrasts favor physics ordering on $2\times2$ and $2\times3$ and
+reverse under graph ordering on $2\times3$; their subgroup $p$ values are
+unadjusted for multiplicity and do not define a selected policy.  A separate,
+unbalanced 1440-cell ensemble runs the four baseline H$_4$/Hubbard systems
+across four shot settings and adds H$_2$O and stretched BeH$_2$ only at
+128 shots; all use four orderings and twenty seed clusters.  Stretched
+BeH$_2$ shows a material packet effect while the QSCI-aligned H$_2$O case does
+not.  The favorable ordering itself changes with the retained
 direction budget.  Finally, grouped resampling of the complete nonlinear
 response pipeline shows acceptance falling from $200/200$ for a
 well-conditioned representation to $139/200$ for an ill-conditioned one under
@@ -684,11 +688,16 @@ packet arms receive the same draw, so their comparison is paired.
 The larger Phase 11 ensemble contains 1440 treatment cells: the original H$_4$
 and Hubbard systems across four shot settings, plus 128-shot molecular
 extensions for a QSCI-aligned H$_2$O STO-3G CAS(6e,5o) active space and
-stretched BeH$_2$ STO-3G CAS(4e,6o) at 3.0~\AA.  The former follows the
-molecular geometry used in the original QSCI study
-\cite{kanno2026qsci}; the latter follows the stretched strongly correlated
-benchmark used for Overlap-ADAPT-VQE \cite{feniou2023overlapadapt}.  There are
-20 seed clusters.  Because orderings and shot settings reuse seed streams,
+stretched BeH$_2$ STO-3G CAS(4e,6o) at 3.0~\AA.  For H$_2$O, the geometry and
+active-space size follow the original QSCI study \cite{kanno2026qsci}, but the
+published specification does not identify the active orbital indices; here
+the two lowest canonical RHF/STO-3G orbitals are frozen and the remaining five
+are active.  For BeH$_2$, the 3.0~\AA geometry follows the strongly correlated
+Overlap-ADAPT-VQE benchmark \cite{feniou2023overlapadapt}, whose calculation
+uses the full STO-3G space; here the Be $1s$ core is frozen to obtain
+CAS(4e,6o) and keep the 20-seed selector sweep tractable.  These are aligned
+benchmarks, not numerical reproductions of the cited orbital spaces.  There
+are 20 seed clusters.  Because orderings and shot settings reuse seed streams,
 inference first reduces every group to one median paired
 \[
  r_s=\operatorname{median}\!
@@ -702,19 +711,32 @@ descriptive only, and secondary-group $p$ values are unadjusted.
 Phase 12 makes the budget comparison stricter.  Its primary ladder contains
 five systems---open-boundary $2\times2$ and $2\times3$ Hubbard clusters,
 linear H$_4$ at 0.9 and 1.8~\AA, and the committed equilibrium-H$_4$
-FCIDUMP---with thirteen arms and a retained budget $M=7$.  The fixed Krylov arm
-uses depth six on every system and is uncapped.  Two selected-CI controls
-separate information from budget.  \texttt{budget\_selected\_ci} is
-sample-informed and ranks sampled and outside determinants on the same
-estimated squared-amplitude scale.  \texttt{matched\_selected\_ci} is
+FCIDUMP.  The record contains thirteen arms at their native sizes; eight of
+those arms have retained dimension $M=7$.  Table~\ref{tab:phase12-primary}
+isolates five $M=7$ arms that determine the new sampling/classical comparison.
+The fixed Krylov arm uses depth six on every system and is uncapped.  Two
+selected-CI controls separate information from budget.
+\texttt{budget\_selected\_ci} is sample-informed.  When the determinant budget
+is smaller than the sampled set, it ranks sampled and outside determinants on
+one estimated squared-amplitude scale.  When the sample already fits inside
+the budget, it retains the whole sample (ordered by Ritz amplitude) and fills
+the remaining slots with outside candidates in the configured
+Epstein--Nesbet order.  The equilibrium H$_4$ and FCIDUMP-H$_4$ primary rows
+fall in this second case and explicitly record
+\texttt{unified\_amplitude\_ranking=false}; the two Hubbard rows and stretched
+H$_4$ use the unified ranking because their samples exceed seven determinants.
+\texttt{matched\_selected\_ci} is
 sample-independent: it takes the reference determinant plus the
 highest-scoring connected determinants under one Epstein--Nesbet criterion,
 without consulting the quantum sample.  The latter is the critical laptop
 baseline: a hybrid improvement must survive comparison with what the same
-dimension buys without seeing the sample.  A second Phase 12 record replicates
-the five sampling-dependent arms over 160 cells
+dimension buys without seeing the sample.  A second Phase 12 record evaluates
+five comparison arms over 160 cells
 ($2$ Hubbard systems $\times4$ orderings $\times20$ seeds) at this $M=7$
-budget.
+budget.  The sample-independent matched-SCI and bare A-CASE arms are retained
+as deterministic within-system controls; the other three arms carry the
+sample-dependent path.  Fixed Krylov is deterministic and already represented
+in the primary record, so it is not rerun across seeds.
 
 \section{Results}
 \label{sec:results}
@@ -872,8 +894,9 @@ is identical as well.  The earlier $3.619$ error of
 beats a fair classical selected-CI baseline: at this draw the sample contains
 68 determinants for seven slots and the sample-informed rule spends the budget
 on the high-amplitude sampled set.  Only the packet arm separates, reducing the
-single-draw error from $2.457$ to $2.072$.  Fixed Krylov remains substantially
-more accurate at $0.190$ and is the energy winner on all five rows.
+single-draw error from $2.457$ to $2.072$.  Among the five $M=7$ arms
+shown in Table~\ref{tab:phase12-primary}, fixed Krylov remains substantially
+more accurate at $0.190$ and has the lowest error on every system.
 
 \begin{table*}[t]
 \caption{Phase 12 primary ladder at retained budget $M=7$.  Entries are
@@ -900,9 +923,12 @@ $[-0.0331,+0.0000]$ on $2\times3$.  The effect nevertheless resolves within
 specific policies.  Physics ordering favors packets on both systems
 ($r_s=-0.0350$, sign-test $p=0.012$ on $2\times2$;
 $r_s=-0.0467$, $p=0.008$ on $2\times3$), and probability ordering also favors
-them on $2\times3$ ($r_s=-0.0358$, $p=0.019$).  Graph ordering reverses the
-effect on $2\times3$ ($r_s=+0.0296$, $p<0.001$), while the random control is
-harmful on both systems.  Dressing itself is inert on the $2\times3$ cells:
+them on $2\times3$ ($r_s=-0.0358$, $p=0.019$).  These favorable
+order-specific sign-test values ($p=0.012,0.008,0.019$) are unadjusted
+secondary comparisons; none clears the conservative $0.05/8$ Bonferroni
+threshold, so no family-wise ordering claim is made.  Graph ordering reverses
+the effect on $2\times3$ ($r_s=+0.0296$, $p<0.001$), while the random control
+is harmful on both systems.  Dressing itself is inert on the $2\times3$ cells:
 bare A-CASE, dressed A-CASE, and the sample-independent matched SCI arm all
 return the same $2.45704$ error across the eighty draws; only the packet arm
 moves.
@@ -1043,9 +1069,10 @@ Given oracle samples, Haar-packet refinement can improve a matched retained
 subspace for specific systems, orderings, and budgets, and the effect survives
 seed-cluster replication in those cells.  It does not support a generic
 sampling advantage.  The sample-independent selected-CI control removes the
-apparent operator-dressing advantage on $2\times3$ Hubbard, fixed Krylov wins
-the primary five-system ladder in energy, and the packet ordering that helps
-at one retained-direction budget can hurt at another.  The oracle input also
+apparent operator-dressing advantage on $2\times3$ Hubbard; among the five
+matched-$M=7$ arms in Table~\ref{tab:phase12-primary}, fixed Krylov has the
+lowest error on every system; and the packet ordering that helps at one
+retained-direction budget can hurt at another.  The oracle input also
 means none of these rows establishes an implementable state-preparation
 advantage.
 
@@ -1143,9 +1170,12 @@ H$_2$O and stretched-BeH$_2$ molecular records and a provenance sidecar; its
 Markdown summary is generated from seed-clustered inference rather than from
 independent-cell tests.  Phase 12 stores the five-system thirteen-arm ladder in
 \texttt{phase12\_paper\_b\_five\_system.json} and the 160-cell matched-budget
-replication in \texttt{m7\_seed\_replication.jsonl}.  The latter excludes fixed
-Krylov because that arm is deterministic and records explicitly that its
-sampling input is an oracle.
+replication in \texttt{m7\_seed\_replication.jsonl}.  That record retains
+sample-independent matched SCI and bare A-CASE as deterministic controls
+beside three sample-fed arms; fixed Krylov is omitted because the replication
+question is packet versus dressed behavior under identical draws and its
+deterministic value is already stored in the primary ladder.  The replication
+record explicitly labels the sampling input as an oracle.
 
 The independent checks are: (i) the dimer closed forms in
 Table~\ref{tab:dimer}; (ii) determinant FCI versus the mapped H$_4$ sector;
@@ -1186,8 +1216,8 @@ independent H$_4$ mapping check and closed-form dimer oracle make the workflow
 more than a self-consistency demonstration.
 
 The benchmark outcome is intentionally nonuniform.  A-CASE improves on some
-fixed local subspaces, while fixed Krylov remains the most accurate arm in the
-five-system Phase 12 primary ladder.  After a fair sample-independent
+fixed local subspaces.  Among the five matched-$M=7$ arms shown in the Phase 12
+primary comparison, fixed Krylov has the lowest error on every system.  After a fair sample-independent
 selected-CI control is admitted, operator dressing supplies no advantage on the
 difficult $2\times3$ Hubbard rung.  Haar-packet refinement can still move the
 answer, including reproducible improvements under specific orderings, but the
