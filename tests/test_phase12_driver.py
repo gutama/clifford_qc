@@ -209,3 +209,40 @@ def test_phase12_hubbard_smoke_has_complete_honest_ladder():
 
     assert set(record["pareto_frontiers"]) == {
         "exact_simulation", "oracle_sampled", "reference"}
+
+
+def test_krylov_depth_cap_is_declared_and_bounded():
+    """A narrowed Krylov arm must be visibly narrowed, not silently smaller."""
+    import pytest
+
+    from benchmarks.run_phase12_paper_b import _krylov_depth_metadata, run_system
+
+    uncapped = _krylov_depth_metadata(6, 6)
+    assert uncapped == {"krylov_depth": 6, "krylov_depth_capped": False}
+
+    capped = _krylov_depth_metadata(6, 3)
+    assert capped["krylov_depth"] == 3
+    assert capped["krylov_depth_capped"] is True
+    assert capped["krylov_depth_budget"] == 6
+    assert "H^3" in capped["krylov_depth_semantics"]
+
+    # A cap above the ladder budget would let fixed_krylov span more than every
+    # other arm, which is the one direction that breaks the comparison.
+    for bad in (0, 7):
+        with pytest.raises(ValueError, match="krylov_size must lie in"):
+            run_system("hubbard_2x2", max_size=6, krylov_size=bad)
+
+
+def test_krylov_cap_narrows_the_recorded_arm():
+    from benchmarks.run_phase12_paper_b import run_system
+
+    capped = run_system("hubbard_2x2", shots=16, seed=0, max_size=4,
+                        krylov_size=2)
+    row = {arm["method"]: arm for arm in capped["arms"]}["fixed_krylov"]
+    assert row["metadata"]["krylov_depth"] == 2
+    assert row["metadata"]["krylov_depth_capped"] is True
+    assert row["metadata"]["krylov_depth_budget"] == 4
+    # The cap must bind the subspace, not merely be annotated onto it.
+    assert row["M"] <= 3
+    # Capped or not, the arm is still a variational Rayleigh-Ritz subspace.
+    assert row["energy"] >= capped["exact_energy"] - 1e-9
