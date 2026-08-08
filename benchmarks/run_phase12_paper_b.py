@@ -17,8 +17,8 @@ Run from the repository root, for example::
 
     python -m benchmarks.run_phase12_paper_b --systems hubbard_2x2,hubbard_2x3
 
-The two PySCF-built H4 systems require the chemistry extra; the committed
-FCIDUMP H4 rung remains dependency-light.
+The PySCF-built H4, QSCI-aligned H2O, and stretched BeH2 systems require the
+chemistry extra; the committed FCIDUMP H4 rung remains dependency-light.
 """
 
 from __future__ import annotations
@@ -60,7 +60,8 @@ from clifford_qc.subspace.qsci import (
 
 
 ROOT = Path(__file__).resolve().parent
-PRIMARY_SYSTEMS = phase10.PRIMARY_SYSTEMS
+PAPER_B_MOLECULAR_SYSTEMS = ("h2o_qsci", "beh2_stretched")
+PRIMARY_SYSTEMS = phase10.PRIMARY_SYSTEMS + PAPER_B_MOLECULAR_SYSTEMS
 
 REQUIRED_ARMS = (
     "reference_state",
