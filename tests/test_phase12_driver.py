@@ -4,6 +4,13 @@ from types import SimpleNamespace
 from benchmarks import run_phase12_paper_b as phase12
 
 
+def test_phase12_does_not_promote_unvalidated_molecular_ladders():
+    assert "h2o_qsci" not in phase12.PRIMARY_SYSTEMS
+    assert "beh2_stretched" not in phase12.PRIMARY_SYSTEMS
+    with pytest.raises(ValueError, match="unknown Phase 12 primary system"):
+        phase12.run_system("beh2_stretched")
+
+
 def test_pareto_frontiers_never_mix_evidence_categories():
     rows = [
         {
