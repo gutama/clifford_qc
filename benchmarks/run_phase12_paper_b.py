@@ -373,8 +373,39 @@ def _exact_row(backend, exact_energy: float, seed: int, wall: float,
     return _finish_record(row, exact_energy)
 
 
+def _krylov_depth_metadata(max_size: int, krylov_depth: int) -> dict:
+    """Declare whether the Krylov arm ran at the ladder budget or below it.
+
+    The arm's cost is set by the total word count of ``H^k |ref>``, which grows
+    geometrically in the qubit count.  Measured on this repository: at depth 6
+    the summed generator support is 8,128 words on the 8-qubit hubbard_2x2 and
+    274,836 on the 12-qubit hubbard_2x3, and ``projected_matrices`` wall time
+    runs close to linear in that sum (~9.3 ms per unit support), so the same
+    declared depth is seconds on one system and tens of minutes on the other.
+
+    A capped row is still a Rayleigh-Ritz subspace and still variational, but
+    it is *not* the same method as an uncapped one: it spans a shorter Krylov
+    space.  Recording the cap is what keeps the ladder honest -- a reader
+    comparing ``fixed_krylov`` across systems has to be able to see that the
+    arm was narrowed rather than that the system was harder.
+    """
+    if krylov_depth == max_size:
+        return {"krylov_depth": krylov_depth, "krylov_depth_capped": False}
+    return {
+        "krylov_depth": krylov_depth,
+        "krylov_depth_capped": True,
+        "krylov_depth_budget": max_size,
+        "krylov_depth_semantics": (
+            f"Krylov space truncated to H^{krylov_depth} against the ladder's "
+            f"max_size={max_size}; this arm spans a strictly smaller subspace "
+            "than an uncapped fixed_krylov row and is not directly comparable "
+            "to one"),
+    }
+
+
 def _ladder_row(method: str, spec: dict, model, kind: str, context: dict,
-                exact_energy: float, seed: int) -> dict:
+                exact_energy: float, seed: int,
+                extra_metadata: dict | None = None) -> dict:
     raw, wall, peak = _observed(
         lambda: ladder.run_method(method, spec, model, kind, context))
     evidence = ("finite_sample" if raw.get("evidence") == "finite_sample"
@@ -400,6 +431,8 @@ def _ladder_row(method: str, spec: dict, model, kind: str, context: dict,
     if measured:
         metadata["sampling_shots_semantics"] = (
             "finite-shot estimator executions; not configuration sampling")
+    if extra_metadata:
+        metadata.update(extra_metadata)
     row.update({
         "M": basis_size,
         "retained_rank": raw.get("retained_rank"),
@@ -602,10 +635,16 @@ def run_system(name: str, *, shots: int = 128, seed: int = 0,
                max_size: int = 6, max_generators: int = 128,
                max_support: int = 64, max_packet_support: int = 16,
                sampling_input: str = "oracle",
-               include_measured: bool = False) -> dict:
+               include_measured: bool = False,
+               krylov_size: int | None = None) -> dict:
     """Run the complete Phase 12 ladder for one Track A primary system."""
     if shots <= 0 or max_size < 1 or max_generators < 1:
         raise ValueError("shots, max_size, and max_generators must be positive")
+    krylov_depth = max_size if krylov_size is None else int(krylov_size)
+    if not 1 <= krylov_depth <= max_size:
+        raise ValueError(
+            f"krylov_size must lie in [1, max_size={max_size}]; a cap above the "
+            "ladder budget would make fixed_krylov span more than every other arm")
     if name not in PRIMARY_SYSTEMS:
         raise ValueError(f"unknown Phase 12 primary system {name!r}")
 
@@ -642,9 +681,10 @@ def run_system(name: str, *, shots: int = 128, seed: int = 0,
                            "selection": "stride", "seed": seed},
             model, kind, context, exact_energy, seed),
         _ladder_row(
-            "fixed_krylov", {"kind": "krylov", "size": max_size,
+            "fixed_krylov", {"kind": "krylov", "size": krylov_depth,
                               "max_tracked_support": 512, "seed": seed},
-            model, kind, context, exact_energy, seed),
+            model, kind, context, exact_energy, seed,
+            extra_metadata=_krylov_depth_metadata(max_size, krylov_depth)),
         _ladder_row(
             "adapt_vqe", {"kind": "adapt_exact", "max_operators": max_size,
                            "seed": seed},
@@ -808,6 +848,14 @@ def main(argv=None) -> None:
     parser.add_argument("--shots", type=int, default=128)
     parser.add_argument("--seed", type=int, default=0)
     parser.add_argument("--max-size", type=int, default=6)
+    parser.add_argument(
+        "--krylov-size", type=int, default=None,
+        help="Krylov depth for the fixed_krylov arm; defaults to --max-size. "
+             "Lower it when H^k word growth makes the full depth impractical: "
+             "the summed generator support at depth 6 is 8,128 words on the "
+             "8-qubit hubbard_2x2 but 274,836 on the 12-qubit hubbard_2x3. A "
+             "capped run is recorded as krylov_depth_capped so the narrowed "
+             "arm cannot be mistaken for a full-depth one.")
     parser.add_argument("--max-generators", type=int, default=128)
     parser.add_argument("--max-support", type=int, default=64)
     parser.add_argument("--max-packet-support", type=int, default=16)
@@ -843,7 +891,8 @@ def main(argv=None) -> None:
             max_generators=args.max_generators, max_support=args.max_support,
             max_packet_support=args.max_packet_support,
             sampling_input=args.sampling_input,
-            include_measured=args.include_measured)
+            include_measured=args.include_measured,
+            krylov_size=args.krylov_size)
         records.append(record)
         print(
             f"{name:27s} exact={record['exact_energy']:+.9f} "
