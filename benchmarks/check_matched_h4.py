@@ -1,9 +1,9 @@
 """Check the matched-contract record with exact resources and tolerant energies.
 
 Every quantity the comparison actually argues from is discrete and reproduces
-exactly: state preparations, ansatz rotors, optimizer evaluations, candidate
-scorings, word universes, QWC group counts, basis sizes, effective ranks, and
-the selected labels. Those are compared bit for bit.
+exactly: state-evaluation contexts, ansatz rotors, optimizer evaluations,
+candidate scorings, word universes, per-step QWC group counts, basis sizes,
+effective ranks, and the selected labels. Those are compared bit for bit.
 
 The floating fields do not survive a change of BLAS. A byte gate on this record
 failed CI on differences of a few units in the fifteenth decimal place --
