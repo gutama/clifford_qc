@@ -1,8 +1,9 @@
 # Paper B — Adaptive operator-generated subspaces
 
 Standalone manuscript built from the A-CASE effective-Hamiltonian, FCIDUMP,
-active-space benchmark, and finite-shot response work merged in pull requests
-#23 and #24.
+active-space benchmark, finite-shot response, QSCI/packet ensemble, and
+matched-budget Phase 12 work.  The current rewrite incorporates the seed-level
+and comparator corrections merged through pull requests #47 and #48.
 
 The paper does not depend on the ADAPT-VQE manuscript in `../paper/`.  It
 defines the method, measurement model, benchmark contract, and evidence labels
@@ -120,3 +121,6 @@ identity.  They are not finite-sample confidence certificates.
 | FCIDUMP H4 table | `../benchmarks/reference_results/fcidump_h4.json` |
 | Warm-start resource table | `../benchmarks/reference_results/warm_start_h4.json` |
 | Matched A-CASE/ADAPT-VQE/ADAPT-GCIM table | `../benchmarks/reference_results/matched_h4.json` |
+| Phase 12 matched-budget primary table | `../benchmarks/results/phase12_paper_b_five_system.json` |
+| Phase 11 packet seed-cluster inference | `../benchmarks/results/packet_seed_ensemble*.jsonl` plus molecular provenance sidecar and generated Markdown summary |
+| Phase 12 M=7 seed replication | `../benchmarks/results/m7_seed_replication.jsonl` plus generated Markdown summary |
