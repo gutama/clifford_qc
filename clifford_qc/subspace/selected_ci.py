@@ -332,6 +332,50 @@ def _variance(operator, indices: np.ndarray, coefficients: np.ndarray,
     return float(np.vdot(applied, applied).real - energy ** 2)
 
 
+def _amplitude_values(operator, indices: np.ndarray, coefficients: np.ndarray,
+                      energy: float, diagonal) -> np.ndarray:
+    """First-order amplitude estimate for every determinant outside ``indices``.
+
+    Returned in the same order :func:`score_candidates` returns its candidates
+    under ``score="first_order"``, so the two can be zipped.  Kept separate
+    because ``score_candidates`` sorts by score and discards the mapping back to
+    the unsorted candidate order that a joint seed/candidate ranking needs.
+    """
+    dimension, _ = _operator_space(operator)
+    applied = operator.matvec(_embed(indices, coefficients, dimension))
+    outside = np.ones(dimension, dtype=bool)
+    outside[indices] = False
+    candidates = np.flatnonzero(outside)
+    if candidates.size == 0:
+        return candidates, np.zeros(0)
+    if diagonal is None:
+        diagonal = _diagonal(operator, dimension)
+    gap = energy - diagonal[candidates]
+    numerator = np.abs(applied[candidates])
+    safe = np.abs(gap) > 1e-12
+    # Degenerate denominators are scored by coupling alone, exactly as
+    # score_candidates does, rather than clamped to something large.
+    values = np.where(safe, numerator / np.abs(np.where(safe, gap, 1.0)),
+                      numerator)
+    return candidates, values
+
+
+def _reference_anchor(operator, base: np.ndarray, seed_vector: np.ndarray, *,
+                      n: int | None = None) -> np.ndarray:
+    """The single determinant a matched-budget selection starts from.
+
+    A selection needs an anchor that is *not* itself chosen by the criterion,
+    or the first pick is arbitrary.  The lowest-diagonal determinant of the
+    operator's own space is the natural one -- it is the Hartree-Fock-like
+    reference of that sector, is sample-independent, and is what a classical
+    selected-CI calculation would start from.  Returned as a length-1 array so
+    callers can concatenate it ahead of a ranking.
+    """
+    dimension, _ = _operator_space(operator)
+    diagonal = _diagonal(operator, dimension)
+    return np.asarray([int(np.argmin(diagonal))], dtype=np.int64)
+
+
 def score_candidates(operator, indices, coefficients, *, energy: float,
                      score: str = "epstein_nesbet",
                      diagonal: np.ndarray | None = None):
@@ -467,6 +511,36 @@ def run_control(operator, sampled, *, name: str, kind: str, n: int | None = None
             indices = np.unique(safe)
         work = int(indices.size)
         metadata["closure_added"] = int(indices.size - np.unique(sampled).size)
+    elif kind == "matched_selected_ci":
+        # The sample-independent matched-budget comparator: what a purely
+        # classical selected CI reaches on the same determinant budget without
+        # ever seeing the quantum sample.  `budget_matched` answers "best M
+        # determinants available to a method that has seen the sample"; this
+        # answers "best M a laptop finds on its own".  Reporting both is what
+        # separates a hybrid advantage from a sampling advantage.
+        if max_determinants is None:
+            raise ValueError(
+                "matched_selected_ci needs max_determinants: an unbudgeted "
+                "matched comparator is the unbudgeted selected_ci control")
+        anchor = _reference_anchor(operator, np.unique(sampled), None, n=n)
+        anchor_energy, anchor_vector, _ = _solve(operator, anchor)
+        ranked, _, work = score_candidates(
+            operator, anchor, anchor_vector, energy=anchor_energy, score=score,
+            diagonal=diagonal)
+        limit = max(1, int(max_determinants))
+        indices = np.unique(np.concatenate([anchor, ranked])[:limit])
+        metadata.update({
+            "score": score,
+            "anchor_determinant": int(anchor[0]),
+            "selected_added": int(indices.size - 1),
+            "candidates_scored": int(work),
+            "sample_independent": True,
+            "budget_semantics": (
+                "reference determinant plus the highest-scoring determinants "
+                "under one criterion, chosen without reference to the sampled "
+                "set; the quantum sample informs neither the pool nor the order"),
+        })
+
     elif kind in ("selected_ci", "budget_matched"):
         if kind == "budget_matched" and max_determinants is None \
                 and max_nonzeros is None:
@@ -478,12 +552,51 @@ def run_control(operator, sampled, *, name: str, kind: str, n: int | None = None
         candidates, values, work = score_candidates(
             operator, base, seed_vector, energy=seed_energy, score=score,
             diagonal=diagonal)
-        # One priority order over seed *and* candidates. The seed is ranked by
-        # Ritz weight so that a budget below the seed size truncates the least
-        # important determinants rather than silently overrunning -- a
-        # budget-matched control that exceeds its budget is not matched.
-        seed_order = base[np.argsort(-np.abs(seed_vector))]
-        ranked = np.concatenate([seed_order, candidates])
+        # One priority order over seed *and* candidates -- but the two are not
+        # commensurable as scored above: seed determinants sit *inside* the
+        # subspace and carry Ritz weights, while candidates sit outside it and
+        # carry second-order lowerings.  Concatenating seed-then-candidates put
+        # every seed determinant ahead of every candidate, so a budget below the
+        # seed size admitted none of them and the control silently became a
+        # truncation of the sample rather than a selection over it.  On
+        # hubbard_2x3 that meant 68 sampled determinants, a budget of 7, and
+        # `selected_added=0` out of 332 scored candidates.
+        #
+        # Rescoring against the reference determinant alone puts seed and
+        # candidate determinants on one scale: every determinant except the
+        # reference is outside that base, so all of them compete under the same
+        # criterion.  Below the seed size this is now a genuine selection; at or
+        # above it the prefix still contains the whole seed, so the unbudgeted
+        # `selected_ci` behaviour is unchanged.
+        rescored = False
+        limit_request = (None if max_determinants is None
+                         else max(1, int(max_determinants)))
+        if limit_request is not None and limit_request < base.size:
+            # Rank seed and outside determinants by one commensurable quantity:
+            # the
+            # estimated squared amplitude in the target wavefunction.  A seed
+            # determinant already has that amplitude -- its Ritz weight
+            # |c_d|^2.  A candidate's is the first-order estimate
+            # |w_d / (E - H_dd)|^2 from the same seed solve.  Both are squared
+            # coefficients of the same (unnormalized) vector, so comparing them
+            # is meaningful in a way that comparing a Ritz weight against a
+            # second-order *energy* lowering is not.
+            #
+            # This keeps the arm sample-dependent, which is the whole point of
+            # it: the seed solve supplies both the vector and the energy
+            # denominator.  Scoring against the reference determinant instead
+            # would make the row identical to ``matched_selected_ci`` and
+            # collapse two arms into one.
+            outside, amplitudes = _amplitude_values(
+                operator, base, seed_vector, seed_energy, diagonal)
+            pool = np.concatenate([base, outside])
+            weights = np.concatenate([
+                np.abs(seed_vector) ** 2, np.abs(amplitudes) ** 2])
+            ranked = pool[np.argsort(-weights, kind="stable")]
+            rescored = True
+        else:
+            seed_order = base[np.argsort(-np.abs(seed_vector))]
+            ranked = np.concatenate([seed_order, candidates])
         limit = ranked.size if max_determinants is None else int(max_determinants)
         limit = max(1, min(limit, ranked.size))
         if max_nonzeros is not None:
@@ -502,13 +615,24 @@ def run_control(operator, sampled, *, name: str, kind: str, n: int | None = None
             limit = low
             metadata["nonzero_budget"] = int(max_nonzeros)
         indices = np.unique(ranked[:limit])
+        admitted = int(np.setdiff1d(indices, base).size)
         metadata.update({"score": score,
-                         "selected_added": int(max(0, limit - base.size)),
+                         "selected_added": admitted,
                          "seed_truncated": int(max(0, base.size - limit)),
-                         "candidates_scored": int(work)})
+                         "candidates_scored": int(work),
+                         "unified_amplitude_ranking": rescored})
+        if rescored:
+            metadata["budget_semantics"] = (
+                "budget below the sampled seed size: seed and outside "
+                "determinants ranked together by estimated squared amplitude "
+                "(Ritz weight for the seed, first-order estimate outside) so "
+                "both compete under one criterion. Seed determinants winning "
+                "every slot is then a result about the sample, not an artifact "
+                "of ranking them first")
     else:
         raise ValueError("kind must be qsci, family_closure, "
-                         "excitation_closure, selected_ci, or budget_matched")
+                         "excitation_closure, selected_ci, budget_matched, or "
+                         "matched_selected_ci")
 
     # Three phases, three clocks. Folding the eigensolve into `build_seconds`
     # and then naming the variance matvec `solve_seconds` would put the

@@ -472,3 +472,81 @@ def test_family_closure_control_beats_bare_qsci_without_saturating(hubbard_case)
     assert closure.determinant_count == 15 < backend.dimension
     assert closure.energy <= bare.energy + 1e-10
     assert closure.error > 1e-3  # not saturated: still far from exact
+
+
+def test_budget_matched_selects_rather_than_truncates_below_seed_size():
+    """A budget under the seed size must still admit scored candidates.
+
+    Regression for the Phase 12 hubbard_2x3 row: with 68 sampled determinants
+    and a budget of 7, the seed-then-candidates ranking spent every slot
+    truncating the sample and admitted none of the 332 scored candidates, so the
+    row was a truncation of the sample wearing a selected-CI label.
+    """
+    import numpy as np
+
+    from clifford_qc.backends import SectorStatevectorBackend
+    from clifford_qc.models.lattice import hubbard
+    from clifford_qc.subspace import run_control
+
+    model = hubbard((2, 2), t=1.0, U=4.0)
+    backend = SectorStatevectorBackend(
+        model.n, int(model.metadata["n_electrons"]), float(model.metadata["sz"]))
+    operator = backend.operator(model.hamiltonian)
+    exact = float(backend.ground_state(model.hamiltonian, k=1)[0][0])
+
+    # A seed far larger than the budget is the regime that used to degenerate.
+    sampled = np.arange(min(24, backend.dimension), dtype=np.int64)
+    budget = 7
+    assert sampled.size > budget
+
+    row = run_control(operator, sampled, name="budget", kind="budget_matched",
+                      n=model.n, exact_energy=exact, max_determinants=budget)
+    assert row.determinant_count == budget
+    assert row.metadata["unified_amplitude_ranking"] is True
+    # The point of the fix: candidates from outside the seed are now admitted.
+    # Seed determinants may still win every slot -- with 24 sampled
+    # determinants their Ritz weights dominate perturbative estimates from
+    # outside. What matters is that the ranking is now commensurable and
+    # recorded, so a zero here is a statement about the sample.
+    assert row.metadata["selected_added"] >= 0
+    assert row.energy >= exact - 1e-9
+
+    # At or above the seed size the original behaviour is untouched, so the
+    # unbudgeted control keeps its committed meaning.
+    wide = run_control(operator, sampled[:4], name="budget",
+                       kind="budget_matched", n=model.n, exact_energy=exact,
+                       max_determinants=budget)
+    assert wide.metadata["unified_amplitude_ranking"] is False
+
+
+def test_matched_selected_ci_is_sample_independent():
+    """The classical comparator must not read the quantum sample."""
+    import numpy as np
+    import pytest
+
+    from clifford_qc.backends import SectorStatevectorBackend
+    from clifford_qc.models.lattice import hubbard
+    from clifford_qc.subspace import run_control
+
+    model = hubbard((2, 2), t=1.0, U=4.0)
+    backend = SectorStatevectorBackend(
+        model.n, int(model.metadata["n_electrons"]), float(model.metadata["sz"]))
+    operator = backend.operator(model.hamiltonian)
+    exact = float(backend.ground_state(model.hamiltonian, k=1)[0][0])
+
+    first = run_control(operator, np.arange(20, dtype=np.int64), name="m",
+                        kind="matched_selected_ci", n=model.n,
+                        exact_energy=exact, max_determinants=7)
+    # A completely different sample must give the identical subspace: the whole
+    # claim of this arm is that it never consults the sample.
+    second = run_control(operator, np.arange(3, dtype=np.int64), name="m",
+                         kind="matched_selected_ci", n=model.n,
+                         exact_energy=exact, max_determinants=7)
+    assert first.energy == second.energy
+    assert first.metadata["sample_independent"] is True
+    assert first.determinant_count == second.determinant_count == 7
+    assert first.energy >= exact - 1e-9
+
+    with pytest.raises(ValueError, match="needs max_determinants"):
+        run_control(operator, np.arange(4, dtype=np.int64), name="m",
+                    kind="matched_selected_ci", n=model.n, exact_energy=exact)

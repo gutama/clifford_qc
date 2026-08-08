@@ -80,6 +80,7 @@ REQUIRED_ARMS = (
     "excitation_closure",
     "selected_ci",
     "budget_selected_ci",
+    "matched_selected_ci",
     "qsci_dressed_acase",
     "qsci_haar_dressed_acase",
 )
@@ -706,6 +707,14 @@ def run_system(name: str, *, shots: int = 128, seed: int = 0,
         ("excitation_closure", "excitation_closure", {}),
         ("selected_ci", "selected_ci", {}),
         ("budget_selected_ci", "budget_matched",
+         {"max_determinants": max_size + 1}),
+        # The sample-independent twin of the row above. `budget_matched` asks
+        # what the best M determinants are for a method that has seen the
+        # quantum sample; this asks what a laptop reaches on the same budget
+        # having never seen it. Reporting both is what separates a hybrid
+        # advantage from a sampling advantage, and it makes the older record's
+        # truncation artifact visible as a measured difference.
+        ("matched_selected_ci", "matched_selected_ci",
          {"max_determinants": max_size + 1}),
     )
     for method, control_kind, extra in control_specs:
