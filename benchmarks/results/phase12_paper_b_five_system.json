@@ -69,7 +69,9 @@
         ],
         "found": [
           "X86_V3",
-          "X86_V4",
+          "X86_V4"
+        ],
+        "not found": [
           "AVX512_ICL",
           "AVX512_SPR"
         ]
@@ -84,8 +86,8 @@
       "scipy": "1.17.1"
     },
     "environment_sha256": "04cd819de0ec8c8bf20dbbcc353f66eccb0b6e8245db3e954655e66007d2053b",
-    "git_dirty": false,
-    "git_sha": "e4f24ab8aa83f8106e37cceae59f63d5317b196a",
+    "git_dirty": true,
+    "git_sha": "919dadb209104c0b37a5b6c339d6f5d762f3911e",
     "platform": {
       "hostname": "vm",
       "machine": "x86_64",
@@ -95,7 +97,7 @@
     },
     "python": "3.11.15",
     "schema": "clifford_qc.execution_provenance.v1",
-    "utc": "2026-08-08T10:39:55.802595+00:00"
+    "utc": "2026-08-08T12:29:17.702398+00:00"
   },
   "required_fields": [
     "method",
@@ -132,21 +134,21 @@
     "wall_seconds"
   ],
   "schema": "clifford_qc.phase12_paper_b.v1",
-  "source_base_git_sha": "e4f24ab8aa83f8106e37cceae59f63d5317b196a",
+  "source_base_git_sha": "919dadb209104c0b37a5b6c339d6f5d762f3911e",
   "systems": [
     {
       "arms": [
         {
           "M": 1,
           "W": null,
-          "absolute_error": 2.1027484834621006,
+          "absolute_error": 2.102748483462044,
           "build_seconds": null,
           "certified_shot_cost": null,
           "discard_rate": null,
           "duplicate_rate": null,
           "element_support": null,
           "energy": -8.0,
-          "energy_error": 2.1027484834621006,
+          "energy_error": 2.102748483462044,
           "evidence_category": "exact_simulation",
           "generator_support": 1,
           "grouping_contexts": null,
@@ -171,7 +173,7 @@
           "unique_configurations": null,
           "unique_yield": null,
           "variance": 4.0,
-          "wall_seconds": 0.0006091579998610541
+          "wall_seconds": 0.000736189999997805
         },
         {
           "M": 36,
@@ -182,7 +184,7 @@
           "discard_rate": null,
           "duplicate_rate": null,
           "element_support": null,
-          "energy": -10.1027484834621,
+          "energy": -10.102748483462044,
           "energy_error": 0.0,
           "evidence_category": "reference",
           "generator_support": null,
@@ -194,12 +196,12 @@
             "role": "exact-sector reference"
           },
           "method": "exact_sector",
-          "peak_memory_bytes": 26652672,
+          "peak_memory_bytes": 26714112,
           "recovery_rate": null,
           "retained_rank": 36,
           "sampling_shots": 0,
           "seed": 0,
-          "solve_seconds": 0.39651483399939025,
+          "solve_seconds": 0.23958985100000518,
           "state_preparation_category": "implementable",
           "state_preparation_executions": null,
           "state_preparation_label": "reference_program",
@@ -208,19 +210,19 @@
           "unique_configurations": null,
           "unique_yield": null,
           "variance": 0.0,
-          "wall_seconds": 0.39651483399939025
+          "wall_seconds": 0.23958985100000518
         },
         {
           "M": 7,
           "W": 438,
-          "absolute_error": 1.853192604663347,
+          "absolute_error": 1.85319260466329,
           "build_seconds": null,
           "certified_shot_cost": null,
           "discard_rate": null,
           "duplicate_rate": null,
           "element_support": 21,
           "energy": -8.249555878798754,
-          "energy_error": 1.853192604663347,
+          "energy_error": 1.85319260466329,
           "evidence_category": "exact_simulation",
           "generator_support": 1,
           "grouping_contexts": null,
@@ -247,7 +249,7 @@
             "word_universe": 438
           },
           "method": "fixed_qse",
-          "peak_memory_bytes": 1863680,
+          "peak_memory_bytes": 1871872,
           "recovery_rate": null,
           "retained_rank": 7,
           "sampling_shots": 0,
@@ -261,19 +263,19 @@
           "unique_configurations": null,
           "unique_yield": null,
           "variance": null,
-          "wall_seconds": 0.007228950000353507
+          "wall_seconds": 0.005793389000018578
         },
         {
           "M": 7,
           "W": null,
-          "absolute_error": 0.006818320045603343,
+          "absolute_error": 0.0068183200455465,
           "build_seconds": null,
           "certified_shot_cost": null,
           "discard_rate": null,
           "duplicate_rate": null,
           "element_support": null,
           "energy": -10.095930163416497,
-          "energy_error": 0.006818320045603343,
+          "energy_error": 0.0068183200455465,
           "evidence_category": "exact_simulation",
           "generator_support": 3128,
           "grouping_contexts": null,
@@ -302,7 +304,7 @@
             "word_universe": null
           },
           "method": "fixed_krylov",
-          "peak_memory_bytes": 250363904,
+          "peak_memory_bytes": 250171392,
           "recovery_rate": null,
           "retained_rank": 7,
           "sampling_shots": 0,
@@ -316,19 +318,19 @@
           "unique_configurations": null,
           "unique_yield": null,
           "variance": null,
-          "wall_seconds": 3.1110800200003723
+          "wall_seconds": 3.9346228339999243
         },
         {
           "M": 6,
           "W": null,
-          "absolute_error": 0.44589423396972094,
+          "absolute_error": 0.4458942339696641,
           "build_seconds": null,
           "certified_shot_cost": null,
           "discard_rate": null,
           "duplicate_rate": null,
           "element_support": null,
           "energy": -9.65685424949238,
-          "energy_error": 0.44589423396972094,
+          "energy_error": 0.4458942339696641,
           "evidence_category": "exact_simulation",
           "generator_support": 1440,
           "grouping_contexts": null,
@@ -355,7 +357,7 @@
             "total_shots": 0
           },
           "method": "adapt_vqe",
-          "peak_memory_bytes": 30519296,
+          "peak_memory_bytes": 30777344,
           "recovery_rate": null,
           "retained_rank": null,
           "sampling_shots": 0,
@@ -369,19 +371,19 @@
           "unique_configurations": null,
           "unique_yield": null,
           "variance": null,
-          "wall_seconds": 5.043250448001345
+          "wall_seconds": 9.382608363999907
         },
         {
           "M": 7,
           "W": 2519,
-          "absolute_error": 0.9404708232937224,
+          "absolute_error": 0.9404708232936656,
           "build_seconds": null,
           "certified_shot_cost": null,
           "discard_rate": null,
           "duplicate_rate": null,
           "element_support": 832,
           "energy": -9.162277660168378,
-          "energy_error": 0.9404708232937224,
+          "energy_error": 0.9404708232936656,
           "evidence_category": "exact_simulation",
           "generator_support": 8,
           "grouping_contexts": null,
@@ -423,7 +425,7 @@
             "word_universe": 2519
           },
           "method": "acase",
-          "peak_memory_bytes": 6369280,
+          "peak_memory_bytes": 6340608,
           "recovery_rate": null,
           "retained_rank": 7,
           "sampling_shots": 0,
@@ -437,19 +439,19 @@
           "unique_configurations": null,
           "unique_yield": null,
           "variance": null,
-          "wall_seconds": 0.20738024399906863
+          "wall_seconds": 0.3295052160000296
         },
         {
           "M": 22,
           "W": 0,
-          "absolute_error": 0.10274848346209886,
-          "build_seconds": 0.00032563199965807144,
+          "absolute_error": 0.10274848346204202,
+          "build_seconds": 0.0002340700000331708,
           "certified_shot_cost": null,
           "discard_rate": 0.0,
           "duplicate_rate": 0.828125,
           "element_support": null,
           "energy": -10.000000000000002,
-          "energy_error": 0.10274848346209886,
+          "energy_error": 0.10274848346204202,
           "evidence_category": "oracle_sampled",
           "generator_support": null,
           "grouping_contexts": null,
@@ -469,7 +471,7 @@
           "retained_rank": 22,
           "sampling_shots": 128,
           "seed": 0,
-          "solve_seconds": 0.00016589199913141783,
+          "solve_seconds": 0.0001629049999110066,
           "state_preparation_category": "oracle",
           "state_preparation_executions": null,
           "state_preparation_label": "exact_ground_oracle",
@@ -478,19 +480,19 @@
           "unique_configurations": 22,
           "unique_yield": 0.171875,
           "variance": null,
-          "wall_seconds": 0.0004915239987894893
+          "wall_seconds": 0.0003969749999441774
         },
         {
           "M": 36,
           "W": 0,
-          "absolute_error": 2.4868995751603507e-14,
-          "build_seconds": 0.0006171760014694883,
+          "absolute_error": 3.197442310920451e-14,
+          "build_seconds": 0.0009205759999986185,
           "certified_shot_cost": null,
           "discard_rate": 0.0,
           "duplicate_rate": 0.828125,
           "element_support": null,
           "energy": -10.102748483462076,
-          "energy_error": 2.4868995751603507e-14,
+          "energy_error": -3.197442310920451e-14,
           "evidence_category": "oracle_sampled",
           "generator_support": null,
           "grouping_contexts": null,
@@ -504,7 +506,7 @@
             "state_preparation_metadata": {
               "state_kind": "exact_eigenvector"
             },
-            "variance_seconds": 5.037099981564097e-05
+            "variance_seconds": 8.363200004168903e-05
           },
           "method": "excitation_closure",
           "peak_memory_bytes": 421888,
@@ -512,7 +514,7 @@
           "retained_rank": 36,
           "sampling_shots": 128,
           "seed": 0,
-          "solve_seconds": 0.0007482719993276987,
+          "solve_seconds": 0.0004045350000296821,
           "state_preparation_category": "oracle",
           "state_preparation_executions": null,
           "state_preparation_label": "exact_ground_oracle",
@@ -521,19 +523,19 @@
           "unique_configurations": 22,
           "unique_yield": 0.171875,
           "variance": 1.4210854715202004e-14,
-          "wall_seconds": 0.0025857439995888853
+          "wall_seconds": 0.0022542509999539107
         },
         {
           "M": 36,
           "W": 0,
-          "absolute_error": 2.4868995751603507e-14,
-          "build_seconds": 0.001245335000930936,
+          "absolute_error": 3.197442310920451e-14,
+          "build_seconds": 0.0017879950000860845,
           "certified_shot_cost": null,
           "discard_rate": 0.0,
           "duplicate_rate": 0.828125,
           "element_support": null,
           "energy": -10.102748483462076,
-          "energy_error": 2.4868995751603507e-14,
+          "energy_error": -3.197442310920451e-14,
           "evidence_category": "oracle_sampled",
           "generator_support": null,
           "grouping_contexts": null,
@@ -550,15 +552,16 @@
             "state_preparation_metadata": {
               "state_kind": "exact_eigenvector"
             },
-            "variance_seconds": 5.680899994331412e-05
+            "unified_amplitude_ranking": false,
+            "variance_seconds": 6.841499998699874e-05
           },
           "method": "selected_ci",
-          "peak_memory_bytes": 196608,
+          "peak_memory_bytes": 200704,
           "recovery_rate": 0.0,
           "retained_rank": 36,
           "sampling_shots": 128,
           "seed": 0,
-          "solve_seconds": 0.0002031719996011816,
+          "solve_seconds": 0.00041459200008375774,
           "state_preparation_category": "oracle",
           "state_preparation_executions": null,
           "state_preparation_label": "exact_ground_oracle",
@@ -567,19 +570,19 @@
           "unique_configurations": 22,
           "unique_yield": 0.171875,
           "variance": 1.4210854715202004e-14,
-          "wall_seconds": 0.0018638109995663399
+          "wall_seconds": 0.0028150560000312908
         },
         {
           "M": 7,
           "W": 0,
-          "absolute_error": 1.6532587406789219,
-          "build_seconds": 0.0009354600006190594,
+          "absolute_error": 1.653258740678865,
+          "build_seconds": 0.0028753000000278917,
           "certified_shot_cost": null,
           "discard_rate": 0.0,
           "duplicate_rate": 0.828125,
           "element_support": null,
           "energy": -8.449489742783179,
-          "energy_error": 1.6532587406789219,
+          "energy_error": 1.653258740678865,
           "evidence_category": "oracle_sampled",
           "generator_support": null,
           "grouping_contexts": null,
@@ -587,6 +590,7 @@
           "matrix_bytes": 784,
           "matrix_nonzeros": 11,
           "metadata": {
+            "budget_semantics": "budget below the sampled seed size: seed and outside determinants ranked together by estimated squared amplitude (Ritz weight for the seed, first-order estimate outside) so both compete under one criterion. Seed determinants winning every slot is then a result about the sample, not an artifact of ranking them first",
             "candidates_scored": 14,
             "kind": "budget_matched",
             "score": "epstein_nesbet",
@@ -596,15 +600,16 @@
             "state_preparation_metadata": {
               "state_kind": "exact_eigenvector"
             },
-            "variance_seconds": 2.8395001208991744e-05
+            "unified_amplitude_ranking": true,
+            "variance_seconds": 7.372500010660588e-05
           },
           "method": "budget_selected_ci",
-          "peak_memory_bytes": 0,
+          "peak_memory_bytes": 135168,
           "recovery_rate": 0.0,
           "retained_rank": 7,
           "sampling_shots": 128,
           "seed": 0,
-          "solve_seconds": 3.8783000491093844e-05,
+          "solve_seconds": 0.00013466200005041173,
           "state_preparation_category": "oracle",
           "state_preparation_executions": null,
           "state_preparation_label": "exact_ground_oracle",
@@ -613,19 +618,67 @@
           "unique_configurations": 22,
           "unique_yield": 0.171875,
           "variance": 5.816496580927705,
-          "wall_seconds": 0.0016641370002616895
+          "wall_seconds": 0.00379815899998448
+        },
+        {
+          "M": 7,
+          "W": 0,
+          "absolute_error": 1.274321358715854,
+          "build_seconds": 0.0021288110000341476,
+          "certified_shot_cost": null,
+          "discard_rate": 0.0,
+          "duplicate_rate": 0.828125,
+          "element_support": null,
+          "energy": -8.82842712474619,
+          "energy_error": 1.274321358715854,
+          "evidence_category": "oracle_sampled",
+          "generator_support": null,
+          "grouping_contexts": null,
+          "kappa_S": 1.0,
+          "matrix_bytes": 784,
+          "matrix_nonzeros": 14,
+          "metadata": {
+            "anchor_determinant": 11,
+            "budget_semantics": "reference determinant plus the highest-scoring determinants under one criterion, chosen without reference to the sampled set; the quantum sample informs neither the pool nor the order",
+            "candidates_scored": 35,
+            "kind": "matched_selected_ci",
+            "sample_independent": true,
+            "score": "epstein_nesbet",
+            "selected_added": 6,
+            "selection_work": 35,
+            "state_preparation_metadata": {
+              "state_kind": "exact_eigenvector"
+            },
+            "variance_seconds": 9.594900006959506e-05
+          },
+          "method": "matched_selected_ci",
+          "peak_memory_bytes": 4096,
+          "recovery_rate": 0.0,
+          "retained_rank": 7,
+          "sampling_shots": 128,
+          "seed": 0,
+          "solve_seconds": 7.15250000666856e-05,
+          "state_preparation_category": "oracle",
+          "state_preparation_executions": null,
+          "state_preparation_label": "exact_ground_oracle",
+          "state_preparations": null,
+          "true_residual": 0.9373791423113687,
+          "unique_configurations": 22,
+          "unique_yield": 0.171875,
+          "variance": 0.8786796564403971,
+          "wall_seconds": 0.002971566000042003
         },
         {
           "M": 7,
           "W": 336,
-          "absolute_error": 0.9404708232937224,
+          "absolute_error": 0.9404708232936656,
           "build_seconds": null,
           "certified_shot_cost": null,
           "discard_rate": 0.0,
           "duplicate_rate": 0.828125,
           "element_support": 21,
           "energy": -9.162277660168378,
-          "energy_error": 0.9404708232937224,
+          "energy_error": 0.9404708232936656,
           "evidence_category": "oracle_sampled",
           "generator_support": 1,
           "grouping_contexts": null,
@@ -693,7 +746,7 @@
             "stopped_reason": "basis budget reached"
           },
           "method": "qsci_dressed_acase",
-          "peak_memory_bytes": 933888,
+          "peak_memory_bytes": 950272,
           "recovery_rate": 0.0,
           "retained_rank": 7,
           "sampling_shots": 128,
@@ -707,19 +760,19 @@
           "unique_configurations": 22,
           "unique_yield": 0.171875,
           "variance": null,
-          "wall_seconds": 0.31353363000016543
+          "wall_seconds": 0.5579447510000364
         },
         {
           "M": 7,
           "W": 904,
-          "absolute_error": 0.8581755849853359,
+          "absolute_error": 0.858175584985279,
           "build_seconds": null,
           "certified_shot_cost": null,
           "discard_rate": 0.0,
           "duplicate_rate": 0.828125,
           "element_support": 531,
           "energy": -9.244572898476765,
-          "energy_error": 0.8581755849853359,
+          "energy_error": 0.858175584985279,
           "evidence_category": "oracle_sampled",
           "generator_support": 10,
           "grouping_contexts": null,
@@ -807,7 +860,7 @@
             "stopped_reason": "basis budget reached"
           },
           "method": "qsci_haar_dressed_acase",
-          "peak_memory_bytes": 9592832,
+          "peak_memory_bytes": 9609216,
           "recovery_rate": 0.0,
           "retained_rank": 7,
           "sampling_shots": 128,
@@ -821,7 +874,7 @@
           "unique_configurations": 22,
           "unique_yield": 0.171875,
           "variance": null,
-          "wall_seconds": 0.4232601989988325
+          "wall_seconds": 0.5700379959999964
         }
       ],
       "claim_boundary": "oracle-sampled rows are capability validation only",
@@ -834,7 +887,7 @@
         "source": "native_hubbard",
         "t": 1.0
       },
-      "exact_energy": -10.1027484834621,
+      "exact_energy": -10.102748483462044,
       "n_electrons": 4,
       "n_qubits": 8,
       "pareto_frontiers": {
@@ -878,12 +931,13 @@
           ],
           "matrix_nonzeros": [
             "budget_selected_ci",
+            "matched_selected_ci",
             "qsci",
             "excitation_closure",
             "selected_ci"
           ],
           "peak_memory_bytes": [
-            "budget_selected_ci",
+            "matched_selected_ci",
             "qsci",
             "selected_ci"
           ],
@@ -893,7 +947,7 @@
           ],
           "wall_seconds": [
             "qsci",
-            "selected_ci"
+            "excitation_closure"
           ]
         },
         "reference": {
@@ -954,14 +1008,14 @@
         {
           "M": 1,
           "W": null,
-          "absolute_error": 3.619321323957557,
+          "absolute_error": 3.619321323957685,
           "build_seconds": null,
           "certified_shot_cost": null,
           "discard_rate": null,
           "duplicate_rate": null,
           "element_support": null,
           "energy": -12.0,
-          "energy_error": 3.619321323957557,
+          "energy_error": 3.619321323957685,
           "evidence_category": "exact_simulation",
           "generator_support": 1,
           "grouping_contexts": null,
@@ -986,7 +1040,7 @@
           "unique_configurations": null,
           "unique_yield": null,
           "variance": 14.0,
-          "wall_seconds": 0.0007969620000949362
+          "wall_seconds": 0.0009055429999307307
         },
         {
           "M": 400,
@@ -997,7 +1051,7 @@
           "discard_rate": null,
           "duplicate_rate": null,
           "element_support": null,
-          "energy": -15.619321323957557,
+          "energy": -15.619321323957685,
           "energy_error": 0.0,
           "evidence_category": "reference",
           "generator_support": null,
@@ -1009,12 +1063,12 @@
             "role": "exact-sector reference"
           },
           "method": "exact_sector",
-          "peak_memory_bytes": 8192,
+          "peak_memory_bytes": 12288,
           "recovery_rate": null,
           "retained_rank": 400,
           "sampling_shots": 0,
           "seed": 0,
-          "solve_seconds": 0.012322615999437403,
+          "solve_seconds": 0.020867405999979383,
           "state_preparation_category": "implementable",
           "state_preparation_executions": null,
           "state_preparation_label": "reference_program",
@@ -1023,19 +1077,19 @@
           "unique_configurations": null,
           "unique_yield": null,
           "variance": 0.0,
-          "wall_seconds": 0.012322615999437403
+          "wall_seconds": 0.020867405999979383
         },
         {
           "M": 7,
           "W": 758,
-          "absolute_error": 3.3701807858280084,
+          "absolute_error": 3.3701807858281363,
           "build_seconds": null,
           "certified_shot_cost": null,
           "discard_rate": null,
           "duplicate_rate": null,
           "element_support": 35,
           "energy": -12.249140538129549,
-          "energy_error": 3.3701807858280084,
+          "energy_error": 3.3701807858281363,
           "evidence_category": "exact_simulation",
           "generator_support": 1,
           "grouping_contexts": null,
@@ -1062,7 +1116,7 @@
             "word_universe": 758
           },
           "method": "fixed_qse",
-          "peak_memory_bytes": 4096,
+          "peak_memory_bytes": 8192,
           "recovery_rate": null,
           "retained_rank": 7,
           "sampling_shots": 0,
@@ -1076,19 +1130,19 @@
           "unique_configurations": null,
           "unique_yield": null,
           "variance": null,
-          "wall_seconds": 0.012477567999667372
+          "wall_seconds": 0.019281688999967628
         },
         {
           "M": 7,
           "W": null,
-          "absolute_error": 0.1894739580529503,
+          "absolute_error": 0.1894739580530782,
           "build_seconds": null,
           "certified_shot_cost": null,
           "discard_rate": null,
           "duplicate_rate": null,
           "element_support": null,
           "energy": -15.429847365904607,
-          "energy_error": 0.1894739580529503,
+          "energy_error": 0.1894739580530782,
           "evidence_category": "exact_simulation",
           "generator_support": 184298,
           "grouping_contexts": null,
@@ -1117,7 +1171,7 @@
             "word_universe": null
           },
           "method": "fixed_krylov",
-          "peak_memory_bytes": 1277603840,
+          "peak_memory_bytes": 1277636608,
           "recovery_rate": null,
           "retained_rank": 7,
           "sampling_shots": 0,
@@ -1131,19 +1185,19 @@
           "unique_configurations": null,
           "unique_yield": null,
           "variance": null,
-          "wall_seconds": 2802.056143886999
+          "wall_seconds": 4525.518713205
         },
         {
           "M": 6,
           "W": null,
-          "absolute_error": 2.119321323957559,
+          "absolute_error": 2.1193213239576867,
           "build_seconds": null,
           "certified_shot_cost": null,
           "discard_rate": null,
           "duplicate_rate": null,
           "element_support": null,
           "energy": -13.499999999999998,
-          "energy_error": 2.119321323957559,
+          "energy_error": 2.1193213239576867,
           "evidence_category": "exact_simulation",
           "generator_support": 46656,
           "grouping_contexts": null,
@@ -1170,7 +1224,7 @@
             "total_shots": 0
           },
           "method": "adapt_vqe",
-          "peak_memory_bytes": 19685376,
+          "peak_memory_bytes": 21897216,
           "recovery_rate": null,
           "retained_rank": null,
           "sampling_shots": 0,
@@ -1184,19 +1238,19 @@
           "unique_configurations": null,
           "unique_yield": null,
           "variance": null,
-          "wall_seconds": 181.85078471199995
+          "wall_seconds": 341.73649753800055
         },
         {
           "M": 7,
           "W": 3328,
-          "absolute_error": 2.457043663789179,
+          "absolute_error": 2.4570436637893067,
           "build_seconds": null,
           "certified_shot_cost": null,
           "discard_rate": null,
           "duplicate_rate": null,
           "element_support": 480,
           "energy": -13.162277660168378,
-          "energy_error": 2.457043663789179,
+          "energy_error": 2.4570436637893067,
           "evidence_category": "exact_simulation",
           "generator_support": 8,
           "grouping_contexts": null,
@@ -1238,7 +1292,7 @@
             "word_universe": 3328
           },
           "method": "acase",
-          "peak_memory_bytes": 7335936,
+          "peak_memory_bytes": 6045696,
           "recovery_rate": null,
           "retained_rank": 7,
           "sampling_shots": 0,
@@ -1252,19 +1306,19 @@
           "unique_configurations": null,
           "unique_yield": null,
           "variance": null,
-          "wall_seconds": 3.8963209520006785
+          "wall_seconds": 4.905982451999989
         },
         {
           "M": 68,
           "W": 0,
-          "absolute_error": 1.6243720309120064,
-          "build_seconds": 0.000847130999318324,
+          "absolute_error": 1.6243720309121343,
+          "build_seconds": 0.0019960239997089957,
           "certified_shot_cost": null,
           "discard_rate": 0.0,
           "duplicate_rate": 0.46875,
           "element_support": null,
           "energy": -13.99494929304555,
-          "energy_error": 1.6243720309120064,
+          "energy_error": 1.6243720309121343,
           "evidence_category": "oracle_sampled",
           "generator_support": null,
           "grouping_contexts": null,
@@ -1273,18 +1327,18 @@
           "matrix_nonzeros": 244,
           "metadata": {
             "hermiticity_residual": 0.0,
-            "retained_probability": 0.6976529172892536,
+            "retained_probability": 0.6976529172892554,
             "state_preparation_metadata": {
               "state_kind": "exact_eigenvector"
             }
           },
           "method": "qsci",
-          "peak_memory_bytes": 32768,
+          "peak_memory_bytes": 36864,
           "recovery_rate": 0.0,
           "retained_rank": 68,
           "sampling_shots": 128,
           "seed": 0,
-          "solve_seconds": 0.0009894930008158553,
+          "solve_seconds": 0.0022134950004328857,
           "state_preparation_category": "oracle",
           "state_preparation_executions": null,
           "state_preparation_label": "exact_ground_oracle",
@@ -1293,19 +1347,19 @@
           "unique_configurations": 68,
           "unique_yield": 0.53125,
           "variance": null,
-          "wall_seconds": 0.0018366240001341794
+          "wall_seconds": 0.004209519000141881
         },
         {
           "M": 400,
           "W": 0,
-          "absolute_error": 1.7763568394002505e-15,
-          "build_seconds": 0.006253128000025754,
+          "absolute_error": 1.2967404927621828e-13,
+          "build_seconds": 0.009665874999882362,
           "certified_shot_cost": null,
           "discard_rate": 0.0,
           "duplicate_rate": 0.46875,
           "element_support": null,
           "energy": -15.619321323957555,
-          "energy_error": 1.7763568394002505e-15,
+          "energy_error": 1.2967404927621828e-13,
           "evidence_category": "oracle_sampled",
           "generator_support": null,
           "grouping_contexts": null,
@@ -1319,15 +1373,15 @@
             "state_preparation_metadata": {
               "state_kind": "exact_eigenvector"
             },
-            "variance_seconds": 0.00020337400019343477
+            "variance_seconds": 0.00029459000052156625
           },
           "method": "excitation_closure",
-          "peak_memory_bytes": 1216512,
+          "peak_memory_bytes": 2457600,
           "recovery_rate": 0.0,
           "retained_rank": 400,
           "sampling_shots": 128,
           "seed": 0,
-          "solve_seconds": 0.07008677100020577,
+          "solve_seconds": 0.10522892199969647,
           "state_preparation_category": "oracle",
           "state_preparation_executions": null,
           "state_preparation_label": "exact_ground_oracle",
@@ -1336,19 +1390,19 @@
           "unique_configurations": 68,
           "unique_yield": 0.53125,
           "variance": 8.526512829121202e-14,
-          "wall_seconds": 0.07807504400079779
+          "wall_seconds": 0.11731182600033208
         },
         {
           "M": 400,
           "W": 0,
-          "absolute_error": 1.7763568394002505e-15,
-          "build_seconds": 0.028637833000175306,
+          "absolute_error": 1.2967404927621828e-13,
+          "build_seconds": 0.04128580999986298,
           "certified_shot_cost": null,
           "discard_rate": 0.0,
           "duplicate_rate": 0.46875,
           "element_support": null,
           "energy": -15.619321323957555,
-          "energy_error": 1.7763568394002505e-15,
+          "energy_error": 1.2967404927621828e-13,
           "evidence_category": "oracle_sampled",
           "generator_support": null,
           "grouping_contexts": null,
@@ -1365,7 +1419,8 @@
             "state_preparation_metadata": {
               "state_kind": "exact_eigenvector"
             },
-            "variance_seconds": 0.00015790100042067934
+            "unified_amplitude_ranking": false,
+            "variance_seconds": 0.00021817600008944282
           },
           "method": "selected_ci",
           "peak_memory_bytes": 4096,
@@ -1373,7 +1428,7 @@
           "retained_rank": 400,
           "sampling_shots": 128,
           "seed": 0,
-          "solve_seconds": 0.06737242999952286,
+          "solve_seconds": 0.0985735639997074,
           "state_preparation_category": "oracle",
           "state_preparation_executions": null,
           "state_preparation_label": "exact_ground_oracle",
@@ -1382,19 +1437,19 @@
           "unique_configurations": 68,
           "unique_yield": 0.53125,
           "variance": 8.526512829121202e-14,
-          "wall_seconds": 0.09726540699921316
+          "wall_seconds": 0.1413903480006411
         },
         {
           "M": 7,
           "W": 0,
-          "absolute_error": 3.619321323957557,
-          "build_seconds": 0.02420644199992239,
+          "absolute_error": 3.619321323957685,
+          "build_seconds": 0.07849033799993776,
           "certified_shot_cost": null,
           "discard_rate": 0.0,
           "duplicate_rate": 0.46875,
           "element_support": null,
           "energy": -12.0,
-          "energy_error": 3.619321323957557,
+          "energy_error": 3.619321323957685,
           "evidence_category": "oracle_sampled",
           "generator_support": null,
           "grouping_contexts": null,
@@ -1402,6 +1457,7 @@
           "matrix_bytes": 784,
           "matrix_nonzeros": 7,
           "metadata": {
+            "budget_semantics": "budget below the sampled seed size: seed and outside determinants ranked together by estimated squared amplitude (Ritz weight for the seed, first-order estimate outside) so both compete under one criterion. Seed determinants winning every slot is then a result about the sample, not an artifact of ranking them first",
             "candidates_scored": 332,
             "kind": "budget_matched",
             "score": "epstein_nesbet",
@@ -1411,7 +1467,8 @@
             "state_preparation_metadata": {
               "state_kind": "exact_eigenvector"
             },
-            "variance_seconds": 8.137999975588173e-05
+            "unified_amplitude_ranking": true,
+            "variance_seconds": 0.00011032300062652212
           },
           "method": "budget_selected_ci",
           "peak_memory_bytes": 4096,
@@ -1419,7 +1476,7 @@
           "retained_rank": 7,
           "sampling_shots": 128,
           "seed": 0,
-          "solve_seconds": 6.068199945730157e-05,
+          "solve_seconds": 0.00010524799927225104,
           "state_preparation_category": "oracle",
           "state_preparation_executions": null,
           "state_preparation_label": "exact_ground_oracle",
@@ -1428,19 +1485,67 @@
           "unique_configurations": 68,
           "unique_yield": 0.53125,
           "variance": 8.0,
-          "wall_seconds": 0.024878813999748672
+          "wall_seconds": 0.0795171810004831
+        },
+        {
+          "M": 7,
+          "W": 0,
+          "absolute_error": 2.457043663789303,
+          "build_seconds": 0.07254935599939927,
+          "certified_shot_cost": null,
+          "discard_rate": 0.0,
+          "duplicate_rate": 0.46875,
+          "element_support": null,
+          "energy": -13.162277660168382,
+          "energy_error": 2.457043663789303,
+          "evidence_category": "oracle_sampled",
+          "generator_support": null,
+          "grouping_contexts": null,
+          "kappa_S": 1.0,
+          "matrix_bytes": 784,
+          "matrix_nonzeros": 19,
+          "metadata": {
+            "anchor_determinant": 127,
+            "budget_semantics": "reference determinant plus the highest-scoring determinants under one criterion, chosen without reference to the sampled set; the quantum sample informs neither the pool nor the order",
+            "candidates_scored": 399,
+            "kind": "matched_selected_ci",
+            "sample_independent": true,
+            "score": "epstein_nesbet",
+            "selected_added": 6,
+            "selection_work": 399,
+            "state_preparation_metadata": {
+              "state_kind": "exact_eigenvector"
+            },
+            "variance_seconds": 0.00013574900003732182
+          },
+          "method": "matched_selected_ci",
+          "peak_memory_bytes": 4096,
+          "recovery_rate": 0.0,
+          "retained_rank": 7,
+          "sampling_shots": 128,
+          "seed": 0,
+          "solve_seconds": 0.0003015329994013882,
+          "state_preparation_category": "oracle",
+          "state_preparation_executions": null,
+          "state_preparation_label": "exact_ground_oracle",
+          "state_preparations": null,
+          "true_residual": 1.3556261799742795,
+          "unique_configurations": 68,
+          "unique_yield": 0.53125,
+          "variance": 1.8377223398316573,
+          "wall_seconds": 0.07383549999940442
         },
         {
           "M": 7,
           "W": 770,
-          "absolute_error": 2.457043663789177,
+          "absolute_error": 2.457043663789305,
           "build_seconds": null,
           "certified_shot_cost": null,
           "discard_rate": 0.0,
           "duplicate_rate": 0.46875,
           "element_support": 35,
           "energy": -13.16227766016838,
-          "energy_error": 2.457043663789177,
+          "energy_error": 2.457043663789305,
           "evidence_category": "oracle_sampled",
           "generator_support": 1,
           "grouping_contexts": null,
@@ -1568,19 +1673,19 @@
           "unique_configurations": 68,
           "unique_yield": 0.53125,
           "variance": null,
-          "wall_seconds": 1.1173777949989017
+          "wall_seconds": 1.6802276890002759
         },
         {
           "M": 7,
           "W": 4108,
-          "absolute_error": 2.072109651776728,
+          "absolute_error": 2.072109651776856,
           "build_seconds": null,
           "certified_shot_cost": null,
           "discard_rate": 0.0,
           "duplicate_rate": 0.46875,
           "element_support": 2520,
           "energy": -13.547211672180829,
-          "energy_error": 2.072109651776728,
+          "energy_error": 2.072109651776856,
           "evidence_category": "oracle_sampled",
           "generator_support": 16,
           "grouping_contexts": null,
@@ -1718,7 +1823,7 @@
             "stopped_reason": "basis budget reached"
           },
           "method": "qsci_haar_dressed_acase",
-          "peak_memory_bytes": 6508544,
+          "peak_memory_bytes": 8323072,
           "recovery_rate": 0.0,
           "retained_rank": 7,
           "sampling_shots": 128,
@@ -1732,7 +1837,7 @@
           "unique_configurations": 68,
           "unique_yield": 0.53125,
           "variance": null,
-          "wall_seconds": 1.6615190109987452
+          "wall_seconds": 2.474675613000727
         }
       ],
       "claim_boundary": "oracle-sampled rows are capability validation only",
@@ -1745,7 +1850,7 @@
         "source": "native_hubbard",
         "t": 1.0
       },
-      "exact_energy": -15.619321323957557,
+      "exact_energy": -15.619321323957685,
       "n_electrons": 6,
       "n_qubits": 12,
       "pareto_frontiers": {
@@ -1790,6 +1895,7 @@
           ],
           "matrix_nonzeros": [
             "budget_selected_ci",
+            "matched_selected_ci",
             "qsci",
             "excitation_closure",
             "selected_ci"
@@ -1833,7 +1939,7 @@
         "recovery": "none",
         "repaired_fraction": 0.0,
         "repaired_shots": 0,
-        "retained_probability": 0.6976529172892536,
+        "retained_probability": 0.6976529172892554,
         "seed": 0,
         "singleton_configurations": 44,
         "state_preparation_executions": null,
@@ -1864,14 +1970,14 @@
         {
           "M": 1,
           "W": null,
-          "absolute_error": 0.056056875351103486,
+          "absolute_error": 0.05605687535111148,
           "build_seconds": null,
           "certified_shot_cost": null,
           "discard_rate": null,
           "duplicate_rate": null,
           "element_support": null,
-          "energy": -2.1242597389727775,
-          "energy_error": 0.056056875351103486,
+          "energy": -2.1242597389727766,
+          "energy_error": 0.05605687535111148,
           "evidence_category": "exact_simulation",
           "generator_support": 1,
           "grouping_contexts": null,
@@ -1892,11 +1998,11 @@
           "state_preparation_executions": null,
           "state_preparation_label": "reference_program",
           "state_preparations": 1,
-          "true_residual": 0.27880054343384914,
+          "true_residual": 0.2788005434338475,
           "unique_configurations": null,
           "unique_yield": null,
-          "variance": 0.07772974301900959,
-          "wall_seconds": 0.0008261959992523771
+          "variance": 0.0777297430190087,
+          "wall_seconds": 0.001625046000299335
         },
         {
           "M": 36,
@@ -1907,7 +2013,7 @@
           "discard_rate": null,
           "duplicate_rate": null,
           "element_support": null,
-          "energy": -2.180316614323881,
+          "energy": -2.180316614323888,
           "energy_error": 0.0,
           "evidence_category": "reference",
           "generator_support": null,
@@ -1924,7 +2030,7 @@
           "retained_rank": 36,
           "sampling_shots": 0,
           "seed": 0,
-          "solve_seconds": 0.012316788001044188,
+          "solve_seconds": 0.017512143999738328,
           "state_preparation_category": "implementable",
           "state_preparation_executions": null,
           "state_preparation_label": "reference_program",
@@ -1933,19 +2039,19 @@
           "unique_configurations": null,
           "unique_yield": null,
           "variance": 0.0,
-          "wall_seconds": 0.012316788001044188
+          "wall_seconds": 0.017512143999738328
         },
         {
           "M": 7,
           "W": 2847,
-          "absolute_error": 0.023306558806051036,
+          "absolute_error": 0.02330655880605903,
           "build_seconds": null,
           "certified_shot_cost": null,
           "discard_rate": null,
           "duplicate_rate": null,
           "element_support": 185,
-          "energy": -2.15701005551783,
-          "energy_error": 0.023306558806051036,
+          "energy": -2.157010055517829,
+          "energy_error": 0.02330655880605903,
           "evidence_category": "exact_simulation",
           "generator_support": 1,
           "grouping_contexts": null,
@@ -1972,7 +2078,7 @@
             "word_universe": 2847
           },
           "method": "fixed_qse",
-          "peak_memory_bytes": 0,
+          "peak_memory_bytes": 4096,
           "recovery_rate": null,
           "retained_rank": 7,
           "sampling_shots": 0,
@@ -1986,28 +2092,28 @@
           "unique_configurations": null,
           "unique_yield": null,
           "variance": null,
-          "wall_seconds": 0.019140755000989884
+          "wall_seconds": 0.027880741999979364
         },
         {
           "M": 7,
           "W": null,
-          "absolute_error": 1.5337961980499415e-06,
+          "absolute_error": 1.5337962713246611e-06,
           "build_seconds": null,
           "certified_shot_cost": null,
           "discard_rate": null,
           "duplicate_rate": null,
           "element_support": null,
-          "energy": -2.180315080527683,
-          "energy_error": 1.5337961980499415e-06,
+          "energy": -2.180315080527617,
+          "energy_error": 1.5337962713246611e-06,
           "evidence_category": "exact_simulation",
           "generator_support": 4224,
           "grouping_contexts": null,
-          "kappa_S": 104151940.9932751,
+          "kappa_S": 104151940.31314556,
           "matrix_bytes": null,
           "matrix_nonzeros": null,
           "metadata": {
             "basis_size": 7,
-            "condition_number": 104151940.9932751,
+            "condition_number": 104151940.31314556,
             "krylov_depth": 6,
             "krylov_depth_capped": false,
             "labels": [
@@ -2041,19 +2147,19 @@
           "unique_configurations": null,
           "unique_yield": null,
           "variance": null,
-          "wall_seconds": 16.354797619000237
+          "wall_seconds": 24.46036019100029
         },
         {
           "M": 6,
           "W": null,
-          "absolute_error": 0.006791102458370446,
+          "absolute_error": 0.0067911024583775514,
           "build_seconds": null,
           "certified_shot_cost": null,
           "discard_rate": null,
           "duplicate_rate": null,
           "element_support": null,
           "energy": -2.1735255118655106,
-          "energy_error": 0.006791102458370446,
+          "energy_error": 0.0067911024583775514,
           "evidence_category": "exact_simulation",
           "generator_support": 1888,
           "grouping_contexts": null,
@@ -2094,19 +2200,19 @@
           "unique_configurations": null,
           "unique_yield": null,
           "variance": null,
-          "wall_seconds": 58.3235039780011
+          "wall_seconds": 85.49817587199959
         },
         {
           "M": 7,
           "W": 7283,
-          "absolute_error": 0.00677231685038393,
+          "absolute_error": 0.006772316850391924,
           "build_seconds": null,
           "certified_shot_cost": null,
           "discard_rate": null,
           "duplicate_rate": null,
           "element_support": 3840,
-          "energy": -2.173544297473497,
-          "energy_error": 0.00677231685038393,
+          "energy": -2.173544297473496,
+          "energy_error": 0.006772316850391924,
           "evidence_category": "exact_simulation",
           "generator_support": 8,
           "grouping_contexts": null,
@@ -2119,13 +2225,13 @@
             "candidate_pool_size": 26,
             "condition_number": 1.0,
             "energy_history": [
-              -2.1242597389727775,
-              -2.14525575859781,
-              -2.1533715309732058,
-              -2.161585723438534,
-              -2.166754392353158,
-              -2.170956224680432,
-              -2.173544297473497
+              -2.1242597389727766,
+              -2.1452557585978087,
+              -2.153371530973205,
+              -2.161585723438533,
+              -2.166754392353157,
+              -2.170956224680431,
+              -2.173544297473496
             ],
             "labels": [
               "I",
@@ -2142,13 +2248,13 @@
             "max_generator_support": 8,
             "retained_rank": 7,
             "root_energies": [
-              -2.173544297473497
+              -2.173544297473496
             ],
             "stopped_reason": "basis budget reached",
             "word_universe": 7283
           },
           "method": "acase",
-          "peak_memory_bytes": 6565888,
+          "peak_memory_bytes": 6598656,
           "recovery_rate": null,
           "retained_rank": 7,
           "sampling_shots": 0,
@@ -2162,19 +2268,19 @@
           "unique_configurations": null,
           "unique_yield": null,
           "variance": null,
-          "wall_seconds": 2.9410278129998915
+          "wall_seconds": 4.673032633999355
         },
         {
           "M": 5,
           "W": 0,
-          "absolute_error": 0.019910301165162014,
-          "build_seconds": 0.00026031199922726955,
+          "absolute_error": 0.01991030116516823,
+          "build_seconds": 0.000425758000346832,
           "certified_shot_cost": null,
           "discard_rate": 0.0,
           "duplicate_rate": 0.9609375,
           "element_support": null,
-          "energy": -2.160406313158719,
-          "energy_error": 0.019910301165162014,
+          "energy": -2.16040631315872,
+          "energy_error": 0.01991030116516823,
           "evidence_category": "oracle_sampled",
           "generator_support": null,
           "grouping_contexts": null,
@@ -2183,7 +2289,7 @@
           "matrix_nonzeros": 25,
           "metadata": {
             "hermiticity_residual": 0.0,
-            "retained_probability": 0.9896501257905931,
+            "retained_probability": 0.989650125790593,
             "state_preparation_metadata": {
               "state_kind": "exact_eigenvector"
             }
@@ -2194,7 +2300,7 @@
           "retained_rank": 5,
           "sampling_shots": 128,
           "seed": 0,
-          "solve_seconds": 8.159699973475654e-05,
+          "solve_seconds": 9.566599965182832e-05,
           "state_preparation_category": "oracle",
           "state_preparation_executions": null,
           "state_preparation_label": "exact_ground_oracle",
@@ -2203,19 +2309,19 @@
           "unique_configurations": 5,
           "unique_yield": 0.0390625,
           "variance": null,
-          "wall_seconds": 0.0003419089989620261
+          "wall_seconds": 0.0005214239999986603
         },
         {
           "M": 36,
           "W": 0,
-          "absolute_error": 2.4424906541753444e-14,
-          "build_seconds": 0.0003958950001106132,
+          "absolute_error": 3.1530333899354446e-14,
+          "build_seconds": 0.0007009959999777493,
           "certified_shot_cost": null,
           "discard_rate": 0.0,
           "duplicate_rate": 0.9609375,
           "element_support": null,
           "energy": -2.1803166143238566,
-          "energy_error": 2.4424906541753444e-14,
+          "energy_error": 3.1530333899354446e-14,
           "evidence_category": "oracle_sampled",
           "generator_support": null,
           "grouping_contexts": null,
@@ -2229,7 +2335,7 @@
             "state_preparation_metadata": {
               "state_kind": "exact_eigenvector"
             },
-            "variance_seconds": 6.502200085378718e-05
+            "variance_seconds": 0.0001574220004840754
           },
           "method": "excitation_closure",
           "peak_memory_bytes": 0,
@@ -2237,28 +2343,28 @@
           "retained_rank": 36,
           "sampling_shots": 128,
           "seed": 0,
-          "solve_seconds": 0.0003033659995708149,
+          "solve_seconds": 0.0006399570002031396,
           "state_preparation_category": "oracle",
           "state_preparation_executions": null,
           "state_preparation_label": "exact_ground_oracle",
           "state_preparations": null,
-          "true_residual": 6.664001874625056e-08,
+          "true_residual": 5.1619136559035694e-08,
           "unique_configurations": 5,
           "unique_yield": 0.0390625,
-          "variance": 4.440892098500626e-15,
-          "wall_seconds": 0.001253271000678069
+          "variance": 2.6645352591003757e-15,
+          "wall_seconds": 0.0025088470001719543
         },
         {
           "M": 36,
           "W": 0,
-          "absolute_error": 2.4424906541753444e-14,
-          "build_seconds": 0.0018246170002385043,
+          "absolute_error": 3.1530333899354446e-14,
+          "build_seconds": 0.003907956999682938,
           "certified_shot_cost": null,
           "discard_rate": 0.0,
           "duplicate_rate": 0.9609375,
           "element_support": null,
           "energy": -2.1803166143238566,
-          "energy_error": 2.4424906541753444e-14,
+          "energy_error": 3.1530333899354446e-14,
           "evidence_category": "oracle_sampled",
           "generator_support": null,
           "grouping_contexts": null,
@@ -2275,7 +2381,8 @@
             "state_preparation_metadata": {
               "state_kind": "exact_eigenvector"
             },
-            "variance_seconds": 0.00011011300011887215
+            "unified_amplitude_ranking": false,
+            "variance_seconds": 0.00017324300006293925
           },
           "method": "selected_ci",
           "peak_memory_bytes": 4096,
@@ -2283,28 +2390,28 @@
           "retained_rank": 36,
           "sampling_shots": 128,
           "seed": 0,
-          "solve_seconds": 0.00041411900019738823,
+          "solve_seconds": 0.0003927269999621785,
           "state_preparation_category": "oracle",
           "state_preparation_executions": null,
           "state_preparation_label": "exact_ground_oracle",
           "state_preparations": null,
-          "true_residual": 6.664001874625056e-08,
+          "true_residual": 5.1619136559035694e-08,
           "unique_configurations": 5,
           "unique_yield": 0.0390625,
-          "variance": 4.440892098500626e-15,
-          "wall_seconds": 0.002888428998630843
+          "variance": 2.6645352591003757e-15,
+          "wall_seconds": 0.005130595000082394
         },
         {
           "M": 7,
           "W": 0,
-          "absolute_error": 0.0078110024910311715,
-          "build_seconds": 0.0016369170007237699,
+          "absolute_error": 0.007811002491038721,
+          "build_seconds": 0.0034471799999664654,
           "certified_shot_cost": null,
           "discard_rate": 0.0,
           "duplicate_rate": 0.9609375,
           "element_support": null,
-          "energy": -2.17250561183285,
-          "energy_error": 0.0078110024910311715,
+          "energy": -2.1725056118328494,
+          "energy_error": 0.007811002491038721,
           "evidence_category": "oracle_sampled",
           "generator_support": null,
           "grouping_contexts": null,
@@ -2321,36 +2428,85 @@
             "state_preparation_metadata": {
               "state_kind": "exact_eigenvector"
             },
-            "variance_seconds": 5.277899981592782e-05
+            "unified_amplitude_ranking": false,
+            "variance_seconds": 0.0001088819999495172
           },
           "method": "budget_selected_ci",
-          "peak_memory_bytes": 0,
+          "peak_memory_bytes": 4096,
           "recovery_rate": 0.0,
           "retained_rank": 7,
           "sampling_shots": 128,
           "seed": 0,
-          "solve_seconds": 4.958600038662553e-05,
+          "solve_seconds": 7.806000030541327e-05,
           "state_preparation_category": "oracle",
           "state_preparation_executions": null,
           "state_preparation_label": "exact_ground_oracle",
           "state_preparations": null,
-          "true_residual": 0.12044161155931792,
+          "true_residual": 0.12044161155930685,
           "unique_configurations": 5,
           "unique_yield": 0.0390625,
-          "variance": 0.014506181795005624,
-          "wall_seconds": 0.002746041998761939
+          "variance": 0.01450618179500296,
+          "wall_seconds": 0.00414524900043034
+        },
+        {
+          "M": 7,
+          "W": 0,
+          "absolute_error": 0.00677231685039148,
+          "build_seconds": 0.007610798000314389,
+          "certified_shot_cost": null,
+          "discard_rate": 0.0,
+          "duplicate_rate": 0.9609375,
+          "element_support": null,
+          "energy": -2.1735442974734966,
+          "energy_error": 0.00677231685039148,
+          "evidence_category": "oracle_sampled",
+          "generator_support": null,
+          "grouping_contexts": null,
+          "kappa_S": 1.0,
+          "matrix_bytes": 784,
+          "matrix_nonzeros": 43,
+          "metadata": {
+            "anchor_determinant": 35,
+            "budget_semantics": "reference determinant plus the highest-scoring determinants under one criterion, chosen without reference to the sampled set; the quantum sample informs neither the pool nor the order",
+            "candidates_scored": 35,
+            "kind": "matched_selected_ci",
+            "sample_independent": true,
+            "score": "epstein_nesbet",
+            "selected_added": 6,
+            "selection_work": 35,
+            "state_preparation_metadata": {
+              "state_kind": "exact_eigenvector"
+            },
+            "variance_seconds": 0.00010451599973748671
+          },
+          "method": "matched_selected_ci",
+          "peak_memory_bytes": 4096,
+          "recovery_rate": 0.0,
+          "retained_rank": 7,
+          "sampling_shots": 128,
+          "seed": 0,
+          "solve_seconds": 0.00010920800013991538,
+          "state_preparation_category": "oracle",
+          "state_preparation_executions": null,
+          "state_preparation_label": "exact_ground_oracle",
+          "state_preparations": null,
+          "true_residual": 0.10224306649830893,
+          "unique_configurations": 5,
+          "unique_yield": 0.0390625,
+          "variance": 0.010453644646977622,
+          "wall_seconds": 0.008593675000156509
         },
         {
           "M": 7,
           "W": 5986,
-          "absolute_error": 0.007811002491029839,
+          "absolute_error": 0.007811002491037833,
           "build_seconds": null,
           "certified_shot_cost": null,
           "discard_rate": 0.0,
           "duplicate_rate": 0.9609375,
           "element_support": 1344,
-          "energy": -2.172505611832851,
-          "energy_error": 0.007811002491029839,
+          "energy": -2.1725056118328503,
+          "energy_error": 0.007811002491037833,
           "evidence_category": "oracle_sampled",
           "generator_support": 8,
           "grouping_contexts": null,
@@ -2401,7 +2557,7 @@
             "stopped_reason": "basis budget reached"
           },
           "method": "qsci_dressed_acase",
-          "peak_memory_bytes": 6631424,
+          "peak_memory_bytes": 6606848,
           "recovery_rate": 0.0,
           "retained_rank": 7,
           "sampling_shots": 128,
@@ -2415,23 +2571,23 @@
           "unique_configurations": 5,
           "unique_yield": 0.0390625,
           "variance": null,
-          "wall_seconds": 4.4300728180005535
+          "wall_seconds": 6.879034324999338
         },
         {
           "M": 7,
           "W": 5986,
-          "absolute_error": 0.007811002491030727,
+          "absolute_error": 0.007811002491039609,
           "build_seconds": null,
           "certified_shot_cost": null,
           "discard_rate": 0.0,
           "duplicate_rate": 0.9609375,
           "element_support": 3136,
-          "energy": -2.1725056118328503,
-          "energy_error": 0.007811002491030727,
+          "energy": -2.1725056118328485,
+          "energy_error": 0.007811002491039609,
           "evidence_category": "oracle_sampled",
           "generator_support": 8,
           "grouping_contexts": null,
-          "kappa_S": 5.828427124746193,
+          "kappa_S": 5.828427124746191,
           "matrix_bytes": null,
           "matrix_nonzeros": null,
           "metadata": {
@@ -2455,11 +2611,11 @@
             "labels": [
               "I",
               "p12HH[0:4)",
-              "p12HH[0:2)",
-              "p12cfg[4]",
+              "p12HH[2:4)",
               "E(4,7<-0,3)*I",
-              "p12cfg[3]",
-              "E(6,7<-0,1)*I"
+              "p12cfg[1]",
+              "E(6,7<-0,1)*I",
+              "p12cfg[2]"
             ],
             "max_packet_support": 16,
             "ordering_metadata": {
@@ -2471,7 +2627,7 @@
             "packet_directions": 2,
             "packet_labels": [
               "p12HH[0:4)",
-              "p12HH[0:2)"
+              "p12HH[2:4)"
             ],
             "reference_sampled": true,
             "refined_intervals": [
@@ -2494,7 +2650,7 @@
             "stopped_reason": "basis budget reached"
           },
           "method": "qsci_haar_dressed_acase",
-          "peak_memory_bytes": 18231296,
+          "peak_memory_bytes": 20144128,
           "recovery_rate": 0.0,
           "retained_rank": 7,
           "sampling_shots": 128,
@@ -2508,7 +2664,7 @@
           "unique_configurations": 5,
           "unique_yield": 0.0390625,
           "variance": null,
-          "wall_seconds": 4.20175603700045
+          "wall_seconds": 6.702314223999565
         }
       ],
       "claim_boundary": "oracle-sampled rows are capability validation only",
@@ -2517,7 +2673,7 @@
         "source": "pyscf_sto3g",
         "spacing_angstrom": 0.9
       },
-      "exact_energy": -2.180316614323881,
+      "exact_energy": -2.180316614323888,
       "n_electrons": 4,
       "n_qubits": 8,
       "pareto_frontiers": {
@@ -2532,7 +2688,7 @@
             "acase"
           ],
           "peak_memory_bytes": [
-            "fixed_qse",
+            "reference_state",
             "fixed_krylov"
           ],
           "sampling_shots": [
@@ -2548,7 +2704,7 @@
         "oracle_sampled": {
           "M": [
             "qsci",
-            "qsci_dressed_acase",
+            "matched_selected_ci",
             "excitation_closure",
             "selected_ci"
           ],
@@ -2558,7 +2714,7 @@
           ],
           "matrix_nonzeros": [
             "qsci",
-            "budget_selected_ci",
+            "matched_selected_ci",
             "excitation_closure",
             "selected_ci"
           ],
@@ -2601,7 +2757,7 @@
         "recovery": "none",
         "repaired_fraction": 0.0,
         "repaired_shots": 0,
-        "retained_probability": 0.9896501257905931,
+        "retained_probability": 0.989650125790593,
         "seed": 0,
         "singleton_configurations": 2,
         "state_preparation_executions": null,
@@ -2632,14 +2788,14 @@
         {
           "M": 1,
           "W": null,
-          "absolute_error": 0.2575634769528312,
+          "absolute_error": 0.2575634769528554,
           "build_seconds": null,
           "certified_shot_cost": null,
           "discard_rate": null,
           "duplicate_rate": null,
           "element_support": null,
-          "energy": -1.6668671611838706,
-          "energy_error": 0.2575634769528312,
+          "energy": -1.666867161183873,
+          "energy_error": 0.2575634769528554,
           "evidence_category": "exact_simulation",
           "generator_support": 1,
           "grouping_contexts": null,
@@ -2664,7 +2820,7 @@
           "unique_configurations": null,
           "unique_yield": null,
           "variance": 0.11542954601570266,
-          "wall_seconds": 0.001229555999088916
+          "wall_seconds": 0.0010921550001512514
         },
         {
           "M": 36,
@@ -2675,7 +2831,7 @@
           "discard_rate": null,
           "duplicate_rate": null,
           "element_support": null,
-          "energy": -1.9244306381367018,
+          "energy": -1.9244306381367284,
           "energy_error": 0.0,
           "evidence_category": "reference",
           "generator_support": null,
@@ -2692,7 +2848,7 @@
           "retained_rank": 36,
           "sampling_shots": 0,
           "seed": 0,
-          "solve_seconds": 0.009653901999627124,
+          "solve_seconds": 0.01700478699967789,
           "state_preparation_category": "implementable",
           "state_preparation_executions": null,
           "state_preparation_label": "reference_program",
@@ -2701,19 +2857,19 @@
           "unique_configurations": null,
           "unique_yield": null,
           "variance": 0.0,
-          "wall_seconds": 0.009653901999627124
+          "wall_seconds": 0.01700478699967789
         },
         {
           "M": 7,
           "W": 2847,
-          "absolute_error": 0.12341333891638095,
+          "absolute_error": 0.12341333891640538,
           "build_seconds": null,
           "certified_shot_cost": null,
           "discard_rate": null,
           "duplicate_rate": null,
           "element_support": 185,
-          "energy": -1.8010172992203208,
-          "energy_error": 0.12341333891638095,
+          "energy": -1.801017299220323,
+          "energy_error": 0.12341333891640538,
           "evidence_category": "exact_simulation",
           "generator_support": 1,
           "grouping_contexts": null,
@@ -2754,28 +2910,28 @@
           "unique_configurations": null,
           "unique_yield": null,
           "variance": null,
-          "wall_seconds": 0.019718105000720243
+          "wall_seconds": 0.02590158299972245
         },
         {
           "M": 7,
           "W": null,
-          "absolute_error": 0.000250856867789917,
+          "absolute_error": 0.00025085648571887553,
           "build_seconds": null,
           "certified_shot_cost": null,
           "discard_rate": null,
           "duplicate_rate": null,
           "element_support": null,
-          "energy": -1.9241797812689119,
-          "energy_error": 0.000250856867789917,
+          "energy": -1.9241797816510096,
+          "energy_error": 0.00025085648571887553,
           "evidence_category": "exact_simulation",
           "generator_support": 4224,
           "grouping_contexts": null,
-          "kappa_S": 519005656.5583951,
+          "kappa_S": 519005665.55673534,
           "matrix_bytes": null,
           "matrix_nonzeros": null,
           "metadata": {
             "basis_size": 7,
-            "condition_number": 519005656.5583951,
+            "condition_number": 519005665.55673534,
             "krylov_depth": 6,
             "krylov_depth_capped": false,
             "labels": [
@@ -2809,19 +2965,19 @@
           "unique_configurations": null,
           "unique_yield": null,
           "variance": null,
-          "wall_seconds": 16.399167457999283
+          "wall_seconds": 23.92964009499974
         },
         {
           "M": 6,
           "W": null,
-          "absolute_error": 0.01307861844173197,
+          "absolute_error": 0.013078618441755507,
           "build_seconds": null,
           "certified_shot_cost": null,
           "discard_rate": null,
           "duplicate_rate": null,
           "element_support": null,
-          "energy": -1.9113520196949698,
-          "energy_error": 0.01307861844173197,
+          "energy": -1.911352019694973,
+          "energy_error": 0.013078618441755507,
           "evidence_category": "exact_simulation",
           "generator_support": 1888,
           "grouping_contexts": null,
@@ -2862,19 +3018,19 @@
           "unique_configurations": null,
           "unique_yield": null,
           "variance": null,
-          "wall_seconds": 71.10859771600008
+          "wall_seconds": 98.66197933500007
         },
         {
           "M": 7,
           "W": 7579,
-          "absolute_error": 0.03987936181935181,
+          "absolute_error": 0.039879361819377124,
           "build_seconds": null,
           "certified_shot_cost": null,
           "discard_rate": null,
           "duplicate_rate": null,
           "element_support": 3840,
-          "energy": -1.88455127631735,
-          "energy_error": 0.03987936181935181,
+          "energy": -1.8845512763173513,
+          "energy_error": 0.039879361819377124,
           "evidence_category": "exact_simulation",
           "generator_support": 8,
           "grouping_contexts": null,
@@ -2887,13 +3043,13 @@
             "candidate_pool_size": 26,
             "condition_number": 1.0,
             "energy_history": [
-              -1.6668671611838706,
-              -1.7275244946821917,
-              -1.7867936802450322,
-              -1.8390371757840867,
-              -1.8830264230587648,
-              -1.8835758328295993,
-              -1.88455127631735
+              -1.666867161183873,
+              -1.7275244946821937,
+              -1.786793680245034,
+              -1.8390371757840887,
+              -1.8830264230587672,
+              -1.8835758328296008,
+              -1.8845512763173513
             ],
             "labels": [
               "I",
@@ -2910,7 +3066,7 @@
             "max_generator_support": 8,
             "retained_rank": 7,
             "root_energies": [
-              -1.88455127631735
+              -1.8845512763173513
             ],
             "stopped_reason": "basis budget reached",
             "word_universe": 7579
@@ -2930,19 +3086,19 @@
           "unique_configurations": null,
           "unique_yield": null,
           "variance": null,
-          "wall_seconds": 2.396237539998765
+          "wall_seconds": 3.806839261999812
         },
         {
           "M": 11,
           "W": 0,
-          "absolute_error": 0.004282323704423163,
-          "build_seconds": 0.00027847199999087024,
+          "absolute_error": 0.004282323704448476,
+          "build_seconds": 0.0004104850004296168,
           "certified_shot_cost": null,
           "discard_rate": 0.0,
           "duplicate_rate": 0.9140625,
           "element_support": null,
-          "energy": -1.9201483144322786,
-          "energy_error": 0.004282323704423163,
+          "energy": -1.92014831443228,
+          "energy_error": 0.004282323704448476,
           "evidence_category": "oracle_sampled",
           "generator_support": null,
           "grouping_contexts": null,
@@ -2951,7 +3107,7 @@
           "matrix_nonzeros": 111,
           "metadata": {
             "hermiticity_residual": 0.0,
-            "retained_probability": 0.9919265036993083,
+            "retained_probability": 0.9919265036993088,
             "state_preparation_metadata": {
               "state_kind": "exact_eigenvector"
             }
@@ -2962,7 +3118,7 @@
           "retained_rank": 11,
           "sampling_shots": 128,
           "seed": 0,
-          "solve_seconds": 7.703099981881678e-05,
+          "solve_seconds": 0.00010387700058345217,
           "state_preparation_category": "oracle",
           "state_preparation_executions": null,
           "state_preparation_label": "exact_ground_oracle",
@@ -2971,19 +3127,19 @@
           "unique_configurations": 11,
           "unique_yield": 0.0859375,
           "variance": null,
-          "wall_seconds": 0.000355502999809687
+          "wall_seconds": 0.000514362001013069
         },
         {
           "M": 36,
           "W": 0,
-          "absolute_error": 1.84297022087776e-14,
-          "build_seconds": 0.000503925999510102,
+          "absolute_error": 5.551115123125783e-15,
+          "build_seconds": 0.0008597010000812588,
           "certified_shot_cost": null,
           "discard_rate": 0.0,
           "duplicate_rate": 0.9140625,
           "element_support": null,
-          "energy": -1.9244306381367202,
-          "energy_error": -1.84297022087776e-14,
+          "energy": -1.9244306381367229,
+          "energy_error": 5.551115123125783e-15,
           "evidence_category": "oracle_sampled",
           "generator_support": null,
           "grouping_contexts": null,
@@ -2997,7 +3153,7 @@
             "state_preparation_metadata": {
               "state_kind": "exact_eigenvector"
             },
-            "variance_seconds": 0.0001095770003303187
+            "variance_seconds": 0.00016980000054900302
           },
           "method": "excitation_closure",
           "peak_memory_bytes": 0,
@@ -3005,28 +3161,28 @@
           "retained_rank": 36,
           "sampling_shots": 128,
           "seed": 0,
-          "solve_seconds": 0.0002699289998417953,
+          "solve_seconds": 0.00042808999933185987,
           "state_preparation_category": "oracle",
           "state_preparation_executions": null,
           "state_preparation_label": "exact_ground_oracle",
           "state_preparations": null,
-          "true_residual": 2.9802322387695312e-08,
+          "true_residual": 0.0,
           "unique_configurations": 11,
           "unique_yield": 0.0859375,
-          "variance": 8.881784197001252e-16,
-          "wall_seconds": 0.0013320090001798235
+          "variance": 0.0,
+          "wall_seconds": 0.002001354999265459
         },
         {
           "M": 36,
           "W": 0,
-          "absolute_error": 1.84297022087776e-14,
-          "build_seconds": 0.001729572999465745,
+          "absolute_error": 5.551115123125783e-15,
+          "build_seconds": 0.003648935999990499,
           "certified_shot_cost": null,
           "discard_rate": 0.0,
           "duplicate_rate": 0.9140625,
           "element_support": null,
-          "energy": -1.9244306381367202,
-          "energy_error": -1.84297022087776e-14,
+          "energy": -1.9244306381367229,
+          "energy_error": 5.551115123125783e-15,
           "evidence_category": "oracle_sampled",
           "generator_support": null,
           "grouping_contexts": null,
@@ -3043,36 +3199,37 @@
             "state_preparation_metadata": {
               "state_kind": "exact_eigenvector"
             },
-            "variance_seconds": 5.9748999774456024e-05
+            "unified_amplitude_ranking": false,
+            "variance_seconds": 0.0001399809998474666
           },
           "method": "selected_ci",
-          "peak_memory_bytes": 0,
+          "peak_memory_bytes": 4096,
           "recovery_rate": 0.0,
           "retained_rank": 36,
           "sampling_shots": 128,
           "seed": 0,
-          "solve_seconds": 0.00024853200011420995,
+          "solve_seconds": 0.0004120439998587244,
           "state_preparation_category": "oracle",
           "state_preparation_executions": null,
           "state_preparation_label": "exact_ground_oracle",
           "state_preparations": null,
-          "true_residual": 2.9802322387695312e-08,
+          "true_residual": 0.0,
           "unique_configurations": 11,
           "unique_yield": 0.0859375,
-          "variance": 8.881784197001252e-16,
-          "wall_seconds": 0.0024346509999304544
+          "variance": 0.0,
+          "wall_seconds": 0.004946002999531629
         },
         {
           "M": 7,
           "W": 0,
-          "absolute_error": 0.01299581937794736,
-          "build_seconds": 0.0017832430003181798,
+          "absolute_error": 0.012995819377971785,
+          "build_seconds": 0.007788415000504756,
           "certified_shot_cost": null,
           "discard_rate": 0.0,
           "duplicate_rate": 0.9140625,
           "element_support": null,
-          "energy": -1.9114348187587544,
-          "energy_error": 0.01299581937794736,
+          "energy": -1.9114348187587566,
+          "energy_error": 0.012995819377971785,
           "evidence_category": "oracle_sampled",
           "generator_support": null,
           "grouping_contexts": null,
@@ -3080,6 +3237,7 @@
           "matrix_bytes": 784,
           "matrix_nonzeros": 43,
           "metadata": {
+            "budget_semantics": "budget below the sampled seed size: seed and outside determinants ranked together by estimated squared amplitude (Ritz weight for the seed, first-order estimate outside) so both compete under one criterion. Seed determinants winning every slot is then a result about the sample, not an artifact of ranking them first",
             "candidates_scored": 25,
             "kind": "budget_matched",
             "score": "epstein_nesbet",
@@ -3089,36 +3247,85 @@
             "state_preparation_metadata": {
               "state_kind": "exact_eigenvector"
             },
-            "variance_seconds": 4.758099930768367e-05
+            "unified_amplitude_ranking": true,
+            "variance_seconds": 0.00012161799986643018
           },
           "method": "budget_selected_ci",
-          "peak_memory_bytes": 0,
+          "peak_memory_bytes": 4096,
           "recovery_rate": 0.0,
           "retained_rank": 7,
           "sampling_shots": 128,
           "seed": 0,
-          "solve_seconds": 5.178599894861691e-05,
+          "solve_seconds": 0.00010062999990623211,
           "state_preparation_category": "oracle",
           "state_preparation_executions": null,
           "state_preparation_label": "exact_ground_oracle",
           "state_preparations": null,
-          "true_residual": 0.06158372479982237,
+          "true_residual": 0.061583724799818766,
           "unique_configurations": 11,
           "unique_yield": 0.0859375,
-          "variance": 0.0037925551602202567,
-          "wall_seconds": 0.0023046220012474805
+          "variance": 0.0037925551602198126,
+          "wall_seconds": 0.00878321500022139
+        },
+        {
+          "M": 7,
+          "W": 0,
+          "absolute_error": 0.04094719526278956,
+          "build_seconds": 0.005756397999903129,
+          "certified_shot_cost": null,
+          "discard_rate": 0.0,
+          "duplicate_rate": 0.9140625,
+          "element_support": null,
+          "energy": -1.8834834428739389,
+          "energy_error": 0.04094719526278956,
+          "evidence_category": "oracle_sampled",
+          "generator_support": null,
+          "grouping_contexts": null,
+          "kappa_S": 1.0,
+          "matrix_bytes": 784,
+          "matrix_nonzeros": 43,
+          "metadata": {
+            "anchor_determinant": 35,
+            "budget_semantics": "reference determinant plus the highest-scoring determinants under one criterion, chosen without reference to the sampled set; the quantum sample informs neither the pool nor the order",
+            "candidates_scored": 35,
+            "kind": "matched_selected_ci",
+            "sample_independent": true,
+            "score": "epstein_nesbet",
+            "selected_added": 6,
+            "selection_work": 35,
+            "state_preparation_metadata": {
+              "state_kind": "exact_eigenvector"
+            },
+            "variance_seconds": 0.00012020300073345425
+          },
+          "method": "matched_selected_ci",
+          "peak_memory_bytes": 4096,
+          "recovery_rate": 0.0,
+          "retained_rank": 7,
+          "sampling_shots": 128,
+          "seed": 0,
+          "solve_seconds": 9.847699948295485e-05,
+          "state_preparation_category": "oracle",
+          "state_preparation_executions": null,
+          "state_preparation_label": "exact_ground_oracle",
+          "state_preparations": null,
+          "true_residual": 0.16627457493678724,
+          "unique_configurations": 11,
+          "unique_yield": 0.0859375,
+          "variance": 0.02764723427040927,
+          "wall_seconds": 0.006669778999821574
         },
         {
           "M": 7,
           "W": 1542,
-          "absolute_error": 0.012995819377947804,
+          "absolute_error": 0.012995819377971785,
           "build_seconds": null,
           "certified_shot_cost": null,
           "discard_rate": 0.0,
           "duplicate_rate": 0.9140625,
           "element_support": 185,
-          "energy": -1.911434818758754,
-          "energy_error": 0.012995819377947804,
+          "energy": -1.9114348187587566,
+          "energy_error": 0.012995819377971785,
           "evidence_category": "oracle_sampled",
           "generator_support": 1,
           "grouping_contexts": null,
@@ -3189,19 +3396,19 @@
           "unique_configurations": 11,
           "unique_yield": 0.0859375,
           "variance": null,
-          "wall_seconds": 3.255910808000408
+          "wall_seconds": 4.42834949600001
         },
         {
           "M": 7,
           "W": 1648,
-          "absolute_error": 0.03501572175531109,
+          "absolute_error": 0.035015721755336626,
           "build_seconds": null,
           "certified_shot_cost": null,
           "discard_rate": 0.0,
           "duplicate_rate": 0.9140625,
           "element_support": 1441,
-          "energy": -1.8894149163813907,
-          "energy_error": 0.03501572175531109,
+          "energy": -1.8894149163813918,
+          "energy_error": 0.035015721755336626,
           "evidence_category": "oracle_sampled",
           "generator_support": 10,
           "grouping_contexts": null,
@@ -3296,7 +3503,7 @@
           "unique_configurations": 11,
           "unique_yield": 0.0859375,
           "variance": null,
-          "wall_seconds": 1.8823575459991844
+          "wall_seconds": 2.4441119449993494
         }
       ],
       "claim_boundary": "oracle-sampled rows are capability validation only",
@@ -3305,7 +3512,7 @@
         "source": "pyscf_sto3g",
         "spacing_angstrom": 1.8
       },
-      "exact_energy": -1.9244306381367018,
+      "exact_energy": -1.9244306381367284,
       "n_electrons": 4,
       "n_qubits": 8,
       "pareto_frontiers": {
@@ -3336,6 +3543,7 @@
         "oracle_sampled": {
           "M": [
             "budget_selected_ci",
+            "qsci_dressed_acase",
             "qsci",
             "excitation_closure",
             "selected_ci"
@@ -3351,8 +3559,7 @@
             "selected_ci"
           ],
           "peak_memory_bytes": [
-            "excitation_closure",
-            "selected_ci"
+            "excitation_closure"
           ],
           "sampling_shots": [
             "excitation_closure",
@@ -3390,7 +3597,7 @@
         "recovery": "none",
         "repaired_fraction": 0.0,
         "repaired_shots": 0,
-        "retained_probability": 0.9919265036993083,
+        "retained_probability": 0.9919265036993088,
         "seed": 0,
         "singleton_configurations": 2,
         "state_preparation_executions": null,
@@ -3421,14 +3628,14 @@
         {
           "M": 1,
           "W": null,
-          "absolute_error": 0.05605687535103954,
+          "absolute_error": 0.05605687535106618,
           "build_seconds": null,
           "certified_shot_cost": null,
           "discard_rate": null,
           "duplicate_rate": null,
           "element_support": null,
           "energy": -2.1242597389728113,
-          "energy_error": 0.05605687535103954,
+          "energy_error": 0.05605687535106618,
           "evidence_category": "exact_simulation",
           "generator_support": 1,
           "grouping_contexts": null,
@@ -3453,7 +3660,7 @@
           "unique_configurations": null,
           "unique_yield": null,
           "variance": 0.07772974192731841,
-          "wall_seconds": 0.0006370810006046668
+          "wall_seconds": 0.0011829369996121386
         },
         {
           "M": 36,
@@ -3464,7 +3671,7 @@
           "discard_rate": null,
           "duplicate_rate": null,
           "element_support": null,
-          "energy": -2.180316614323851,
+          "energy": -2.1803166143238775,
           "energy_error": 0.0,
           "evidence_category": "reference",
           "generator_support": null,
@@ -3481,7 +3688,7 @@
           "retained_rank": 36,
           "sampling_shots": 0,
           "seed": 0,
-          "solve_seconds": 0.009421930999451433,
+          "solve_seconds": 0.017349888999888208,
           "state_preparation_category": "implementable",
           "state_preparation_executions": null,
           "state_preparation_label": "reference_program",
@@ -3490,19 +3697,19 @@
           "unique_configurations": null,
           "unique_yield": null,
           "variance": 0.0,
-          "wall_seconds": 0.009421930999451433
+          "wall_seconds": 0.017349888999888208
         },
         {
           "M": 7,
           "W": 2847,
-          "absolute_error": 0.02330655605592913,
+          "absolute_error": 0.023306556055955774,
           "build_seconds": null,
           "certified_shot_cost": null,
           "discard_rate": null,
           "duplicate_rate": null,
           "element_support": 185,
           "energy": -2.1570100582679217,
-          "energy_error": 0.02330655605592913,
+          "energy_error": 0.023306556055955774,
           "evidence_category": "exact_simulation",
           "generator_support": 1,
           "grouping_contexts": null,
@@ -3543,19 +3750,19 @@
           "unique_configurations": null,
           "unique_yield": null,
           "variance": null,
-          "wall_seconds": 0.01745729699905496
+          "wall_seconds": 0.02833001100043475
         },
         {
           "M": 7,
           "W": null,
-          "absolute_error": 1.533796482711125e-06,
+          "absolute_error": 1.5337965093564776e-06,
           "build_seconds": null,
           "certified_shot_cost": null,
           "discard_rate": null,
           "duplicate_rate": null,
           "element_support": null,
           "energy": -2.180315080527368,
-          "energy_error": 1.533796482711125e-06,
+          "energy_error": 1.5337965093564776e-06,
           "evidence_category": "exact_simulation",
           "generator_support": 4224,
           "grouping_contexts": null,
@@ -3598,19 +3805,19 @@
           "unique_configurations": null,
           "unique_yield": null,
           "variance": null,
-          "wall_seconds": 17.248462440000367
+          "wall_seconds": 25.326006762999896
         },
         {
           "M": 6,
           "W": null,
-          "absolute_error": 0.006791100010192785,
+          "absolute_error": 0.006791100010219431,
           "build_seconds": null,
           "certified_shot_cost": null,
           "discard_rate": null,
           "duplicate_rate": null,
           "element_support": null,
           "energy": -2.173525514313658,
-          "energy_error": 0.006791100010192785,
+          "energy_error": 0.006791100010219431,
           "evidence_category": "exact_simulation",
           "generator_support": 1888,
           "grouping_contexts": null,
@@ -3651,19 +3858,19 @@
           "unique_configurations": null,
           "unique_yield": null,
           "variance": null,
-          "wall_seconds": 55.60536206600045
+          "wall_seconds": 100.21601671500048
         },
         {
           "M": 7,
           "W": 7283,
-          "absolute_error": 0.006772314337742724,
+          "absolute_error": 0.0067723143377693695,
           "build_seconds": null,
           "certified_shot_cost": null,
           "discard_rate": null,
           "duplicate_rate": null,
           "element_support": 3840,
           "energy": -2.173544299986108,
-          "energy_error": 0.006772314337742724,
+          "energy_error": 0.0067723143377693695,
           "evidence_category": "exact_simulation",
           "generator_support": 8,
           "grouping_contexts": null,
@@ -3719,19 +3926,19 @@
           "unique_configurations": null,
           "unique_yield": null,
           "variance": null,
-          "wall_seconds": 3.2101588679997803
+          "wall_seconds": 4.504520606000369
         },
         {
           "M": 5,
           "W": 0,
-          "absolute_error": 0.019910298399658632,
-          "build_seconds": 0.000278939000054379,
+          "absolute_error": 0.019910298399685278,
+          "build_seconds": 0.00041120800051430706,
           "certified_shot_cost": null,
           "discard_rate": 0.0,
           "duplicate_rate": 0.9609375,
           "element_support": null,
           "energy": -2.160406315924192,
-          "energy_error": 0.019910298399658632,
+          "energy_error": 0.019910298399685278,
           "evidence_category": "oracle_sampled",
           "generator_support": null,
           "grouping_contexts": null,
@@ -3751,7 +3958,7 @@
           "retained_rank": 5,
           "sampling_shots": 128,
           "seed": 0,
-          "solve_seconds": 6.935900091775693e-05,
+          "solve_seconds": 9.296099960920401e-05,
           "state_preparation_category": "oracle",
           "state_preparation_executions": null,
           "state_preparation_label": "exact_ground_oracle",
@@ -3760,19 +3967,19 @@
           "unique_configurations": 5,
           "unique_yield": 0.0390625,
           "variance": null,
-          "wall_seconds": 0.0003482980009721359
+          "wall_seconds": 0.0005041690001235111
         },
         {
           "M": 36,
           "W": 0,
-          "absolute_error": 7.993605777301127e-15,
-          "build_seconds": 0.0004158930005360162,
+          "absolute_error": 1.865174681370263e-14,
+          "build_seconds": 0.0006067739996069577,
           "certified_shot_cost": null,
           "discard_rate": 0.0,
           "duplicate_rate": 0.9609375,
           "element_support": null,
           "energy": -2.180316614323859,
-          "energy_error": -7.993605777301127e-15,
+          "energy_error": 1.865174681370263e-14,
           "evidence_category": "oracle_sampled",
           "generator_support": null,
           "grouping_contexts": null,
@@ -3786,7 +3993,7 @@
             "state_preparation_metadata": {
               "state_kind": "exact_eigenvector"
             },
-            "variance_seconds": 5.813200004922692e-05
+            "variance_seconds": 0.00014757200005988125
           },
           "method": "excitation_closure",
           "peak_memory_bytes": 0,
@@ -3794,7 +4001,7 @@
           "retained_rank": 36,
           "sampling_shots": 128,
           "seed": 0,
-          "solve_seconds": 0.0002629950013215421,
+          "solve_seconds": 0.0005339579993233201,
           "state_preparation_category": "oracle",
           "state_preparation_executions": null,
           "state_preparation_label": "exact_ground_oracle",
@@ -3803,19 +4010,19 @@
           "unique_configurations": 5,
           "unique_yield": 0.0390625,
           "variance": 0.0,
-          "wall_seconds": 0.0012046050014760112
+          "wall_seconds": 0.0019210030004614964
         },
         {
           "M": 36,
           "W": 0,
-          "absolute_error": 7.993605777301127e-15,
-          "build_seconds": 0.0016474190015287604,
+          "absolute_error": 1.865174681370263e-14,
+          "build_seconds": 0.0034178260002590832,
           "certified_shot_cost": null,
           "discard_rate": 0.0,
           "duplicate_rate": 0.9609375,
           "element_support": null,
           "energy": -2.180316614323859,
-          "energy_error": -7.993605777301127e-15,
+          "energy_error": 1.865174681370263e-14,
           "evidence_category": "oracle_sampled",
           "generator_support": null,
           "grouping_contexts": null,
@@ -3832,15 +4039,16 @@
             "state_preparation_metadata": {
               "state_kind": "exact_eigenvector"
             },
-            "variance_seconds": 5.7309000112582e-05
+            "unified_amplitude_ranking": false,
+            "variance_seconds": 0.00010640300024533644
           },
           "method": "selected_ci",
-          "peak_memory_bytes": 0,
+          "peak_memory_bytes": 4096,
           "recovery_rate": 0.0,
           "retained_rank": 36,
           "sampling_shots": 128,
           "seed": 0,
-          "solve_seconds": 0.00021050500072306022,
+          "solve_seconds": 0.00036199700025463244,
           "state_preparation_category": "oracle",
           "state_preparation_executions": null,
           "state_preparation_label": "exact_ground_oracle",
@@ -3849,19 +4057,19 @@
           "unique_configurations": 5,
           "unique_yield": 0.0390625,
           "variance": 0.0,
-          "wall_seconds": 0.002353693000259227
+          "wall_seconds": 0.004445799000677653
         },
         {
           "M": 7,
           "W": 0,
-          "absolute_error": 0.007810999929031226,
-          "build_seconds": 0.0017666650001046946,
+          "absolute_error": 0.007810999929057871,
+          "build_seconds": 0.004086279000148352,
           "certified_shot_cost": null,
           "discard_rate": 0.0,
           "duplicate_rate": 0.9609375,
           "element_support": null,
           "energy": -2.1725056143948196,
-          "energy_error": 0.007810999929031226,
+          "energy_error": 0.007810999929057871,
           "evidence_category": "oracle_sampled",
           "generator_support": null,
           "grouping_contexts": null,
@@ -3878,15 +4086,16 @@
             "state_preparation_metadata": {
               "state_kind": "exact_eigenvector"
             },
-            "variance_seconds": 4.66799992864253e-05
+            "unified_amplitude_ranking": false,
+            "variance_seconds": 0.00011988299957010895
           },
           "method": "budget_selected_ci",
-          "peak_memory_bytes": 0,
+          "peak_memory_bytes": 4096,
           "recovery_rate": 0.0,
           "retained_rank": 7,
           "sampling_shots": 128,
           "seed": 0,
-          "solve_seconds": 5.891699947824236e-05,
+          "solve_seconds": 8.425299984082812e-05,
           "state_preparation_category": "oracle",
           "state_preparation_executions": null,
           "state_preparation_label": "exact_ground_oracle",
@@ -3895,19 +4104,67 @@
           "unique_configurations": 5,
           "unique_yield": 0.0390625,
           "variance": 0.014506177663340836,
-          "wall_seconds": 0.002343901998756337
+          "wall_seconds": 0.004792918000021018
+        },
+        {
+          "M": 7,
+          "W": 0,
+          "absolute_error": 0.006772314337770258,
+          "build_seconds": 0.005924941000557737,
+          "certified_shot_cost": null,
+          "discard_rate": 0.0,
+          "duplicate_rate": 0.9609375,
+          "element_support": null,
+          "energy": -2.173544299986107,
+          "energy_error": 0.006772314337770258,
+          "evidence_category": "oracle_sampled",
+          "generator_support": null,
+          "grouping_contexts": null,
+          "kappa_S": 1.0,
+          "matrix_bytes": 784,
+          "matrix_nonzeros": 43,
+          "metadata": {
+            "anchor_determinant": 35,
+            "budget_semantics": "reference determinant plus the highest-scoring determinants under one criterion, chosen without reference to the sampled set; the quantum sample informs neither the pool nor the order",
+            "candidates_scored": 35,
+            "kind": "matched_selected_ci",
+            "sample_independent": true,
+            "score": "epstein_nesbet",
+            "selected_added": 6,
+            "selection_work": 35,
+            "state_preparation_metadata": {
+              "state_kind": "exact_eigenvector"
+            },
+            "variance_seconds": 0.00012271400009922218
+          },
+          "method": "matched_selected_ci",
+          "peak_memory_bytes": 4096,
+          "recovery_rate": 0.0,
+          "retained_rank": 7,
+          "sampling_shots": 128,
+          "seed": 0,
+          "solve_seconds": 8.399900070799049e-05,
+          "state_preparation_category": "oracle",
+          "state_preparation_executions": null,
+          "state_preparation_label": "exact_ground_oracle",
+          "state_preparations": null,
+          "true_residual": 0.10224304874222132,
+          "unique_configurations": 5,
+          "unique_yield": 0.0390625,
+          "variance": 0.010453641016104243,
+          "wall_seconds": 0.006812673999775143
         },
         {
           "M": 7,
           "W": 5986,
-          "absolute_error": 0.007810999929031226,
+          "absolute_error": 0.007810999929057871,
           "build_seconds": null,
           "certified_shot_cost": null,
           "discard_rate": 0.0,
           "duplicate_rate": 0.9609375,
           "element_support": 1344,
           "energy": -2.1725056143948196,
-          "energy_error": 0.007810999929031226,
+          "energy_error": 0.007810999929057871,
           "evidence_category": "oracle_sampled",
           "generator_support": 8,
           "grouping_contexts": null,
@@ -3972,19 +4229,19 @@
           "unique_configurations": 5,
           "unique_yield": 0.0390625,
           "variance": null,
-          "wall_seconds": 4.363823263000086
+          "wall_seconds": 6.22603907499979
         },
         {
           "M": 7,
           "W": 5986,
-          "absolute_error": 0.007810999929033446,
+          "absolute_error": 0.007810999929060092,
           "build_seconds": null,
           "certified_shot_cost": null,
           "discard_rate": 0.0,
           "duplicate_rate": 0.9609375,
           "element_support": 3136,
           "energy": -2.1725056143948174,
-          "energy_error": 0.007810999929033446,
+          "energy_error": 0.007810999929060092,
           "evidence_category": "oracle_sampled",
           "generator_support": 8,
           "grouping_contexts": null,
@@ -4065,7 +4322,7 @@
           "unique_configurations": 5,
           "unique_yield": 0.0390625,
           "variance": null,
-          "wall_seconds": 3.8570917320012086
+          "wall_seconds": 5.979954032000023
         }
       ],
       "claim_boundary": "oracle-sampled rows are capability validation only",
@@ -4075,7 +4332,7 @@
         "sha256": "bf32568461477cf1ec8e7c4aaae737b0c6c80bcbd83d51f783ec3a3daed5a922",
         "source": "committed_fcidump"
       },
-      "exact_energy": -2.180316614323851,
+      "exact_energy": -2.1803166143238775,
       "n_electrons": 4,
       "n_qubits": 8,
       "pareto_frontiers": {
@@ -4106,8 +4363,7 @@
         "oracle_sampled": {
           "M": [
             "qsci",
-            "budget_selected_ci",
-            "qsci_dressed_acase",
+            "matched_selected_ci",
             "excitation_closure",
             "selected_ci"
           ],
@@ -4117,13 +4373,12 @@
           ],
           "matrix_nonzeros": [
             "qsci",
-            "budget_selected_ci",
+            "matched_selected_ci",
             "excitation_closure",
             "selected_ci"
           ],
           "peak_memory_bytes": [
-            "excitation_closure",
-            "selected_ci"
+            "excitation_closure"
           ],
           "sampling_shots": [
             "excitation_closure",
