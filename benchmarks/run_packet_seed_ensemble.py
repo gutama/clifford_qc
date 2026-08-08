@@ -28,10 +28,11 @@ from clifford_qc.backends import ExactMVBackend, SectorStatevectorBackend
 from clifford_qc.reproducibility import execution_provenance, stamp_record
 from clifford_qc.subspace import (
     ACASEConfig,
+    ORACLE,
+    StateInput,
     configuration_generators_from_words,
     configuration_ordering,
     dressed_family,
-    exact_ground_state_oracle,
     identity_generator,
     run_acase,
     run_coarse_to_fine_acase,
@@ -55,22 +56,16 @@ def _reference_word(backend: SectorStatevectorBackend, model) -> int:
     return int(backend.basis[int(np.argmax(np.abs(vector)))])
 
 
-def operator_state_amplitudes(backend, model):
-    """Exact sector ground-state amplitudes, cached per backend instance."""
-    cached = getattr(backend, "_ensemble_amplitudes", None)
-    if cached is None:
-        _, vectors = backend.ground_state(model.hamiltonian, k=1)
-        cached = np.asarray(vectors)[:, 0]
-        backend._ensemble_amplitudes = cached
-    return cached
-
-
-def _ordered_inputs(model, backend, operator, words, indices, *, method: str,
+def _ordered_inputs(model, backend, operator, state, words, indices, *, method: str,
                     max_support: int, max_generators: int, seed: int):
     reference_word = _reference_word(backend, model)
     kwargs = {"reference_word": reference_word, "n": model.n, "seed": seed}
-    if method in ("probability", "graph"):
-        amplitudes = np.asarray(operator_state_amplitudes(backend, model), dtype=complex)
+    if method == "probability":
+        # These indices were sampled from this exact StateInput.  Reusing the
+        # same vector matters for a degenerate/near-degenerate eigenspace: an
+        # independent ground-state solve could return a different vector and
+        # rank configurations by probabilities that did not generate the draw.
+        amplitudes = np.asarray(state.amplitudes, dtype=complex)
         kwargs["probabilities"] = np.abs(amplitudes[indices]) ** 2
     if method == "graph":
         kwargs["graph_matrix"] = operator.restrict(indices)
@@ -98,16 +93,16 @@ def _ordered_inputs(model, backend, operator, words, indices, *, method: str,
 
 
 def run_cell(name: str, model, backend, operator, rho, exact_energy: float, *,
+             state: StateInput,
              ordering_method: str, shots: int, seed: int, max_size: int,
              max_generators: int, max_support: int,
              max_packet_support: int) -> dict:
     """One paired dressed-vs-packets comparison at a single draw."""
-    state = exact_ground_state_oracle(backend, model.hamiltonian)
     indices, sampling = sample_state_input(state, shots=shots, seed=seed)
     words = backend.basis[indices]
 
     ordering, configurations, family, seed_basis, reference_sampled = _ordered_inputs(
-        model, backend, operator, words, indices, method=ordering_method,
+        model, backend, operator, state, words, indices, method=ordering_method,
         max_support=max_support, max_generators=max_generators, seed=seed)
     final_pool = list(configurations) + list(family.generators)
 
@@ -140,6 +135,8 @@ def run_cell(name: str, model, backend, operator, rho, exact_energy: float, *,
     if len(configurations) < 2:
         row.update({
             "packet_eligible": False,
+            "packet_ineligible_reason": (
+                "fewer than two non-reference sampled configurations"),
             "packet_energy": None,
             "packet_error": None,
             "packet_M": None,
@@ -152,13 +149,33 @@ def run_cell(name: str, model, backend, operator, rho, exact_energy: float, *,
 
     packet_steps = max(1, max_size // 3)
     started = time.perf_counter()
-    hierarchy = run_coarse_to_fine_acase(
-        rho, model.hamiltonian, configurations, final_pool,
-        initial=seed_basis,
-        config=ACASEConfig(max_size=max_size, exact_ground_energy=exact_energy),
-        packet_steps=packet_steps,
-        max_packet_support=max_packet_support,
-        label_prefix=f"ensH{ordering_method[:3]}")
+    try:
+        hierarchy = run_coarse_to_fine_acase(
+            rho, model.hamiltonian, configurations, final_pool,
+            initial=seed_basis,
+            config=ACASEConfig(max_size=max_size, exact_ground_energy=exact_energy),
+            packet_steps=packet_steps,
+            max_packet_support=max_packet_support,
+            label_prefix=f"ensH{ordering_method[:3]}")
+    except (ValueError, RuntimeError) as exc:
+        expected = {
+            "the packet support cap admits no coarse direction",
+            "packet hierarchy has no admissible frontier",
+        }
+        if str(exc) not in expected:
+            raise
+        row.update({
+            "packet_eligible": False,
+            "packet_ineligible_reason": str(exc),
+            "packet_energy": None,
+            "packet_error": None,
+            "packet_M": None,
+            "packet_seconds": time.perf_counter() - started,
+            "packet_selection_work": None,
+            "packet_directions": 0,
+            "log_ratio": None,
+        })
+        return row
     packet_seconds = time.perf_counter() - started
     packet = hierarchy.result
 
@@ -185,6 +202,40 @@ def run_cell(name: str, model, backend, operator, rho, exact_energy: float, *,
     return row
 
 
+def _validate_output(path: Path, *, systems: list[str], orderings: list[str],
+                     shots: list[int], seeds: int, max_size: int,
+                     force: bool) -> None:
+    """Refuse accidental replacement, especially across experiment designs."""
+    if not path.exists():
+        return
+    try:
+        first = next(
+            line for line in path.read_text(encoding="utf-8").splitlines()
+            if line.strip())
+        header = json.loads(first)
+    except (StopIteration, json.JSONDecodeError) as exc:
+        raise SystemExit(
+            f"refusing to overwrite unrecognized existing output {path}") from exc
+
+    expected = {
+        "systems": systems,
+        "orderings": orderings,
+        "shots": shots,
+        "seeds": seeds,
+        "max_size": max_size,
+    }
+    mismatches = [
+        key for key, value in expected.items()
+        if key not in header or header[key] != value
+    ]
+    if header.get("record") != "header" or mismatches:
+        detail = ", ".join(mismatches) if mismatches else "record type"
+        raise SystemExit(
+            f"refusing to overwrite {path}: experiment header differs in {detail}")
+    if not force:
+        raise SystemExit(f"output {path} already exists; pass --force to replace it")
+
+
 def main(argv=None) -> None:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--systems", default=",".join(DEFAULT_SYSTEMS))
@@ -197,7 +248,11 @@ def main(argv=None) -> None:
     parser.add_argument("--max-support", type=int, default=64)
     parser.add_argument("--max-packet-support", type=int, default=16)
     parser.add_argument("--out", type=Path,
-                        default=Path("benchmarks/results/packet_seed_ensemble.jsonl"))
+                        default=Path(
+                            "benchmarks/results/packet_seed_ensemble_rerun.jsonl"))
+    parser.add_argument(
+        "--force", action="store_true",
+        help="replace an existing output only when its experiment header matches")
     args = parser.parse_args(argv)
 
     systems = [item.strip() for item in args.systems.split(",") if item.strip()]
@@ -208,6 +263,10 @@ def main(argv=None) -> None:
         raise SystemExit(f"unknown orderings: {unknown}")
     if args.seeds < 1 or not shot_grid or min(shot_grid) < 1:
         raise SystemExit("seeds and shot counts must be positive")
+
+    _validate_output(
+        args.out, systems=systems, orderings=orderings, shots=shot_grid,
+        seeds=args.seeds, max_size=args.max_size, force=args.force)
 
     provenance = execution_provenance()
     args.out.parent.mkdir(parents=True, exist_ok=True)
@@ -235,8 +294,15 @@ def main(argv=None) -> None:
                 model.n, int(model.metadata["n_electrons"]),
                 float(model.metadata["sz"]))
             operator = backend.operator(model.hamiltonian)
-            values, _ = backend.ground_state(model.hamiltonian, k=1)
+            values, vectors = backend.ground_state(model.hamiltonian, k=1)
             exact_energy = float(values[0])
+            state = StateInput(
+                label="exact_ground_oracle",
+                category=ORACLE,
+                amplitudes=np.asarray(vectors, dtype=complex)[:, 0],
+                basis=backend.basis,
+                metadata={"state_kind": "exact_eigenvector"},
+            )
             rho = ExactMVBackend().state(model.reference, ())
 
             handle.write(json.dumps({
@@ -254,6 +320,7 @@ def main(argv=None) -> None:
                     for seed in range(args.seeds):
                         row = run_cell(
                             name, model, backend, operator, rho, exact_energy,
+                            state=state,
                             ordering_method=ordering_method, shots=shots,
                             seed=seed, max_size=args.max_size,
                             max_generators=args.max_generators,
