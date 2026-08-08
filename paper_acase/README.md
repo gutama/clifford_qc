@@ -1,4 +1,4 @@
-# Paper B — One prepared state, one measurement bank
+# Paper B — One reference state, one measurement bank
 
 Standalone manuscript built from the A-CASE effective-Hamiltonian, FCIDUMP,
 active-space benchmark, and finite-shot response work.
@@ -6,9 +6,10 @@ active-space benchmark, and finite-shot response work.
 The paper argues an **architectural** thesis, not a scoreboard one. Fixing a
 single reference and reconstructing every overlap, Hamiltonian, and observable
 element from Pauli expectations on it has three measurable consequences: the
-basis costs one prepared state at any size, the measurement width is tunable
-through generator resolution, and one cached bank serves energy, projected
-observables, and Lehmann response. Energy accuracy at matched budget is
+basis uses one reference context at any size, QWC setting counts rather than
+raw word counts determine the shot-level preparation schedule, the measurement
+width is tunable through generator resolution, and one cached bank serves
+energy, projected observables, and Lehmann response. Energy accuracy at matched budget is
 explicitly *not* the claim — Sec. "What the architecture does not buy" states
 where the method loses, including the inertness of operator dressing against a
 sample-independent selected-CI control.
@@ -81,8 +82,10 @@ benchmarks rather than paper artifacts:
   the published fixed `theta=pi/4`, cumulative-surrogate selector, and
   `M=2k` basis rule. Its off-diagonal Hamiltonian/overlap pair counts remain
   separate from A-CASE's single-reference word universe. The record also
-  carries the two A-CASE arms that differ only in generator resolution, whose
-  retained subspaces are identical and whose measurement widths are not.
+  distinguishes state-evaluation contexts from physical preparations, stores
+  QWC groups for the large A-CASE banks, and sums groups over each changing
+  ADAPT selection state. The two A-CASE arms differ only in generator
+  resolution; their retained subspaces are identical and their widths are not.
 
 ## Reproduce
 
