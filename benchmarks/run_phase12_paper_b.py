@@ -17,8 +17,11 @@ Run from the repository root, for example::
 
     python -m benchmarks.run_phase12_paper_b --systems hubbard_2x2,hubbard_2x3
 
-The PySCF-built H4, QSCI-aligned H2O, and stretched BeH2 systems require the
-chemistry extra; the committed FCIDUMP H4 rung remains dependency-light.
+The PySCF-built H4 systems require the chemistry extra; the committed FCIDUMP
+H4 rung remains dependency-light.  QSCI-aligned H2O and stretched BeH2 are
+available to the Phase 11 packet ensemble, but are deliberately not promoted
+to this primary ladder until its expensive arms have been demonstrated on
+those sizes.
 """
 
 from __future__ import annotations
@@ -60,8 +63,11 @@ from clifford_qc.subspace.qsci import (
 
 
 ROOT = Path(__file__).resolve().parent
-PAPER_B_MOLECULAR_SYSTEMS = ("h2o_qsci", "beh2_stretched")
-PRIMARY_SYSTEMS = phase10.PRIMARY_SYSTEMS + PAPER_B_MOLECULAR_SYSTEMS
+# Keep Phase 12's primary ladder at the systems that have actually been taken
+# through this expensive driver.  The H2O/BeH2 additions are Phase 11 packet
+# benchmarks; promoting them here would make an ordinary Paper B run include
+# unvalidated 10/12-qubit fixed-Krylov jobs.
+PRIMARY_SYSTEMS = phase10.PRIMARY_SYSTEMS
 
 REQUIRED_ARMS = (
     "reference_state",
@@ -810,13 +816,20 @@ def main(argv=None) -> None:
         default="oracle")
     parser.add_argument("--include-measured", action="store_true")
     parser.add_argument(
-        "--out", type=Path, default=ROOT / "results" / "phase12_paper_b.json")
+        "--out", type=Path,
+        default=ROOT / "results" / "phase12_paper_b_rerun.json")
+    parser.add_argument(
+        "--force", action="store_true",
+        help="replace an existing output file (never enabled by default)")
     args = parser.parse_args(argv)
 
     systems = [item.strip() for item in args.systems.split(",") if item.strip()]
     unknown = sorted(set(systems) - set(PRIMARY_SYSTEMS))
     if unknown:
         raise SystemExit(f"unknown Phase 12 systems: {unknown}")
+    if args.out.exists() and not args.force:
+        raise SystemExit(
+            f"output {args.out} already exists; pass --force to replace it")
 
     # Revision identity is a precondition, not a postcondition.  Fail before a
     # potentially long multi-system run rather than discarding completed work.
