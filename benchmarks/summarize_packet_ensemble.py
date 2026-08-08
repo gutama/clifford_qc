@@ -1,27 +1,16 @@
-"""Paired statistics for the Phase 11B packet seed-ensemble sweep.
+"""Seed-clustered inference for the Phase 11B packet ensemble.
 
-Reads ``packet_seed_ensemble.jsonl`` and answers the question the Phase 10
-single-draw record cannot: does the coarse-to-fine packet stage beat the plain
-dressed arm at matched budget *reliably*, or was the five-row screen an
-accident of one seed and one ordering?
+Orderings and shot budgets are repeated conditions within a random seed.  They
+must not be treated as independent observations.  This summarizer therefore:
 
-Every statistic here is **paired**.  Each cell ran both arms on the identical
-draw, so the unit of evidence is the within-cell difference, not two marginal
-distributions.  Three things are reported per group:
+* keeps the cell-level packet win rate as a descriptive statistic only;
+* reduces each seed to its median paired log10 error ratio within each group;
+* applies the exact sign test to those seed-level effects; and
+* bootstraps whole seed effects to obtain the confidence interval.
 
-``win rate``
-    fraction of eligible cells where the packet error is strictly lower.
-``sign test``
-    exact two-sided binomial p-value against the null "packets and dressed are
-    equally likely to win".  Ties are dropped from both numerator and
-    denominator, which is the conservative convention.
-``median log10 ratio + bootstrap CI``
-    effect size.  Negative favours packets; -1.0 means a 10x error reduction.
-    The CI is a percentile bootstrap over cells, so it carries the seed spread
-    that the single-draw record silently assumed away.
-
-A win rate near 0.5 with a CI straddling zero is a *negative result* and should
-be reported as one -- that is the §11C bar, not a disappointment.
+Negative log10 ratios favour the packet arm.  Multiple JSONL inputs are
+accepted so an immutable earlier sweep can be combined with a later molecular
+extension without disguising their separate provenance records.
 """
 
 from __future__ import annotations
@@ -29,22 +18,18 @@ from __future__ import annotations
 import argparse
 import json
 import math
+from collections import defaultdict
 from pathlib import Path
 
 import numpy as np
 
 
-# The seeded random-order arm is a control, never a candidate policy.
 CONTROL_ORDERING = "random"
-
-# Smallest median error ratio worth calling a result: 10**0.01 is a 2.3% change.
-# Below this the packet and dressed arms are doing the same thing, however
-# consistently the sign happens to fall.
 MIN_EFFECT_LOG10 = 0.01
 
 
 def _binomial_sign_test(wins: int, trials: int) -> float:
-    """Exact two-sided binomial p-value at p=0.5."""
+    """Exact two-sided sign-test p-value at p=0.5."""
     if trials == 0:
         return float("nan")
     tail = min(wins, trials - wins)
@@ -52,9 +37,20 @@ def _binomial_sign_test(wins: int, trials: int) -> float:
     return float(min(1.0, 2.0 * cdf))
 
 
-def _bootstrap_ci(values, *, replicates: int = 10000, seed: int = 0,
-                  alpha: float = 0.05) -> tuple[float, float]:
-    values = np.asarray(values, dtype=float)
+def _seed_effects(cells: list[dict]) -> np.ndarray:
+    """One equally weighted median paired effect for each random seed."""
+    by_seed: dict[int, list[float]] = defaultdict(list)
+    for cell in cells:
+        by_seed[int(cell["seed"])].append(float(cell["log_ratio"]))
+    return np.asarray([
+        float(np.median(by_seed[seed])) for seed in sorted(by_seed)
+    ], dtype=float)
+
+
+def _cluster_bootstrap_ci(seed_effects: np.ndarray, *, replicates: int = 10000,
+                          seed: int = 0, alpha: float = 0.05) -> tuple[float, float]:
+    """Percentile CI obtained by resampling independent seed clusters."""
+    values = np.asarray(seed_effects, dtype=float)
     if values.size == 0:
         return (float("nan"), float("nan"))
     rng = np.random.default_rng(seed)
@@ -64,171 +60,216 @@ def _bootstrap_ci(values, *, replicates: int = 10000, seed: int = 0,
     return (float(lo), float(hi))
 
 
+def _matched(cells: list[dict]) -> tuple[list[dict], int, int]:
+    eligible = [cell for cell in cells if cell.get("packet_eligible")]
+    matched = [cell for cell in eligible if cell.get("matched_M", True)]
+    return matched, len(cells) - len(eligible), len(eligible) - len(matched)
+
+
 def _summarize(cells: list[dict], label: str) -> dict:
-    eligible = [c for c in cells if c.get("packet_eligible")]
-    ineligible = len(cells) - len(eligible)
-    matched = [c for c in eligible if c.get("matched_M", True)]
-    ratios = [c["log_ratio"] for c in matched]
-    wins = sum(1 for c in matched if c["packet_error"] < c["dressed_error"])
-    losses = sum(1 for c in matched if c["packet_error"] > c["dressed_error"])
-    decided = wins + losses
-    lo, hi = _bootstrap_ci(ratios)
+    matched, ineligible, unmatched = _matched(cells)
+    cell_wins = sum(
+        1 for cell in matched if cell["packet_error"] < cell["dressed_error"])
+    cell_losses = sum(
+        1 for cell in matched if cell["packet_error"] > cell["dressed_error"])
+    cell_decided = cell_wins + cell_losses
+
+    seed_effects = _seed_effects(matched)
+    seed_wins = int(np.sum(seed_effects < 0.0))
+    seed_losses = int(np.sum(seed_effects > 0.0))
+    seed_decided = seed_wins + seed_losses
+    lo, hi = _cluster_bootstrap_ci(seed_effects)
     return {
         "group": label,
         "cells": len(cells),
         "ineligible": ineligible,
-        "unmatched_M": len(eligible) - len(matched),
+        "unmatched_M": unmatched,
         "compared": len(matched),
-        "wins": wins,
-        "losses": losses,
-        "ties": len(matched) - decided,
-        "win_rate": (wins / decided) if decided else float("nan"),
-        "sign_test_p": _binomial_sign_test(wins, decided),
-        "median_log_ratio": float(np.median(ratios)) if ratios else float("nan"),
+        "seed_clusters": int(seed_effects.size),
+        "cell_win_rate": (cell_wins / cell_decided) if cell_decided else float("nan"),
+        "seed_wins": seed_wins,
+        "seed_losses": seed_losses,
+        "seed_ties": int(seed_effects.size) - seed_decided,
+        "seed_win_rate": (seed_wins / seed_decided) if seed_decided else float("nan"),
+        "sign_test_p": _binomial_sign_test(seed_wins, seed_decided),
+        "median_log_ratio": (
+            float(np.median(seed_effects)) if seed_effects.size else float("nan")),
         "ci_low": lo,
         "ci_high": hi,
         "median_packet_directions": (
-            float(np.median([c.get("packet_directions", 0) for c in matched]))
+            float(np.median([cell.get("packet_directions", 0) for cell in matched]))
             if matched else float("nan")),
         "median_extra_selection_work": (
-            float(np.median([c["packet_selection_work"]
-                             - c["dressed_selection_work"] for c in matched]))
-            if matched else float("nan")),
+            float(np.median([
+                cell["packet_selection_work"] - cell["dressed_selection_work"]
+                for cell in matched
+            ])) if matched else float("nan")),
     }
 
 
 def _verdict(row: dict) -> str:
-    """The §11C bar, applied mechanically so the reader is not talked into it.
-
-    A CI clear of zero is *consistency*, not importance.  On h4_stretched at 32
-    shots the packet arm wins 73% of paired draws while 70% of cells move the
-    error by under 2% -- a real sign, a meaningless magnitude.  Reporting that
-    as "packets better" beside a genuine 33% reduction at 256 shots would put
-    noise and result in the same column, so significance and effect size are
-    required together and the consistent-but-tiny case gets its own label.
-    """
-    if row["compared"] < 8 or math.isnan(row["ci_high"]):
+    """Apply the predeclared consistency plus material-effect rule."""
+    if row["seed_clusters"] < 8 or math.isnan(row["ci_high"]):
         return "insufficient"
     median = row["median_log_ratio"]
-    if row["ci_high"] < 0.0:
+    significant = row["sign_test_p"] < 0.05
+    if significant and row["ci_high"] < 0.0:
         return "packets better" if -median >= MIN_EFFECT_LOG10 else "negligible"
-    if row["ci_low"] > 0.0:
+    if significant and row["ci_low"] > 0.0:
         return "packets worse" if median >= MIN_EFFECT_LOG10 else "negligible"
     return "no effect"
 
 
-def main(argv=None) -> None:
-    parser = argparse.ArgumentParser(
-        description=__doc__,
-        formatter_class=argparse.RawDescriptionHelpFormatter)
-    parser.add_argument(
-        "--path", type=Path,
-        default=Path("benchmarks/results/packet_seed_ensemble.jsonl"))
-    parser.add_argument("--out", type=Path, default=None,
-                        help="optional markdown output path")
-    args = parser.parse_args(argv)
+def _load(paths: list[Path]) -> tuple[list[dict], list[dict], list[dict]]:
+    cells: list[dict] = []
+    headers: list[dict] = []
+    systems: list[dict] = []
+    seen: set[tuple] = set()
+    for path in paths:
+        for line in path.read_text(encoding="utf-8").splitlines():
+            if not line.strip():
+                continue
+            row = json.loads(line)
+            if row.get("record") == "header":
+                headers.append({"path": str(path), **row})
+                continue
+            if row.get("record") == "system":
+                systems.append({"path": str(path), **row})
+                continue
+            key = (row["system"], row["ordering"], int(row["shots"]), int(row["seed"]))
+            if key in seen:
+                raise ValueError(f"duplicate treatment cell across inputs: {key}")
+            seen.add(key)
+            cells.append(row)
+    return cells, headers, systems
 
-    cells, header = [], None
-    for line in args.path.read_text(encoding="utf-8").splitlines():
-        if not line.strip():
-            continue
-        row = json.loads(line)
-        if row.get("record") == "header":
-            header = row
-            continue
-        cells.append(row)
+
+def summarize(paths: list[Path]) -> tuple[str, list[dict]]:
+    cells, headers, system_records = _load(paths)
     if not cells:
-        raise SystemExit(f"no cells in {args.path}")
+        raise ValueError("no treatment cells in input")
 
-    systems = sorted({c["system"] for c in cells})
-    orderings = sorted({c["ordering"] for c in cells})
-    shot_grid = sorted({c["shots"] for c in cells})
+    systems = sorted({cell["system"] for cell in cells})
+    orderings = sorted({cell["ordering"] for cell in cells})
+    shot_grid = sorted({int(cell["shots"]) for cell in cells})
+    seed_grid = sorted({int(cell["seed"]) for cell in cells})
 
-    # `random` is the 11C control, not a candidate policy.  Pooling it into
-    # the headline averages the treatment with its own placebo, which is how
-    # a real ordering-dependent effect gets reported as no effect.  Keep it
-    # out of every pooled row and show it alongside as calibration: the
-    # hierarchy is supposed to lose under an uninformative order.
-    policy = [c for c in cells if c["ordering"] != CONTROL_ORDERING]
-    control = [c for c in cells if c["ordering"] == CONTROL_ORDERING]
-
+    policy = [cell for cell in cells if cell["ordering"] != CONTROL_ORDERING]
+    control = [cell for cell in cells if cell["ordering"] == CONTROL_ORDERING]
     groups = [_summarize(policy, "POOLED (policy orderings)")]
     if control:
         groups.append(_summarize(control, f"CONTROL ({CONTROL_ORDERING})"))
     for ordering in orderings:
         tag = "control" if ordering == CONTROL_ORDERING else "order"
         groups.append(_summarize(
-            [c for c in cells if c["ordering"] == ordering], f"{tag}={ordering}"))
+            [cell for cell in cells if cell["ordering"] == ordering],
+            f"{tag}={ordering}"))
     for system in systems:
         groups.append(_summarize(
-            [c for c in policy if c["system"] == system],
+            [cell for cell in policy if cell["system"] == system],
             f"system={system} (policy only)"))
     for shots in shot_grid:
         groups.append(_summarize(
-            [c for c in policy if c["shots"] == shots],
+            [cell for cell in policy if int(cell["shots"]) == shots],
             f"shots={shots} (policy only)"))
     for system in systems:
         for ordering in orderings:
-            subset = [c for c in cells
-                      if c["system"] == system and c["ordering"] == ordering]
+            subset = [
+                cell for cell in cells
+                if cell["system"] == system and cell["ordering"] == ordering
+            ]
             if subset:
                 groups.append(_summarize(subset, f"{system} / {ordering}"))
 
+    source_text = ", ".join(f"`{path}`" for path in paths)
+    factorial = len(systems) * len(orderings) * len(shot_grid) * len(seed_grid)
+    design = (
+        f"complete {len(systems)} systems x {len(orderings)} orderings x "
+        f"{len(shot_grid)} shot settings x {len(seed_grid)} seed clusters"
+        if len(cells) == factorial else
+        f"unbalanced design spanning {len(systems)} systems, {len(orderings)} "
+        f"orderings, {len(shot_grid)} shot settings, and {len(seed_grid)} seed clusters"
+    )
     lines = [
-        "# Packet seed-ensemble: paired dressed-vs-packet comparison",
+        "# Packet seed-ensemble: seed-clustered dressed-vs-packet inference",
         "",
-        f"Source: `{args.path}` — {len(cells)} cells "
-        f"({len(systems)} systems x {len(orderings)} orderings x "
-        f"{len(shot_grid)} shot settings).",
+        f"Sources: {source_text} — {len(cells)} treatment cells ({design}).",
         "",
-        "Negative `median log10 ratio` favours the packet arm. A confidence "
-        "interval straddling zero is a no-effect result, which is the "
-        "§11C answer, not a missing one.",
+        "Orderings and shot settings are repeated conditions within seed. "
+        "Inference therefore uses one median paired effect per seed and "
+        "resamples whole seed clusters. Cell win rate is descriptive only.",
         "",
-        f"Pooled rows exclude the `{CONTROL_ORDERING}` ordering, which is the "
-        "§11C control rather than a policy: the hierarchy is *expected* to "
-        "lose under an uninformative order, and averaging that in turns a "
-        "real ordering-dependent effect into a spurious null. The control is "
-        "reported on its own row as calibration.",
+        "Negative median log10 ratio favours packets. A confidence interval "
+        "straddling zero or a seed-level sign-test p >= 0.05 is a no-effect "
+        "result. Reported p-values are unadjusted across secondary groups.",
         "",
-        "| Group | n | win rate | sign p | median log10 ratio | 95% CI | verdict |",
-        "| :--- | ---: | ---: | ---: | ---: | :---: | :--- |",
+        f"`{CONTROL_ORDERING}` is the predeclared ordering control and is kept "
+        "separate from the candidate-policy pool by design.",
+        "",
+        "| Group | cells | seeds | cell win | seed win | seed sign p | "
+        "median seed log10 ratio | cluster 95% CI | verdict |",
+        "| :--- | ---: | ---: | ---: | ---: | ---: | ---: | :---: | :--- |",
     ]
     for row in groups:
-        if row["compared"] == 0:
-            lines.append(f"| {row['group']} | 0 | — | — | — | — | insufficient |")
+        if row["seed_clusters"] == 0:
+            lines.append(
+                f"| {row['group']} | {row['compared']} | 0 | — | — | — | — | — | insufficient |")
             continue
         lines.append(
-            f"| {row['group']} | {row['compared']} | {row['win_rate']:.2f} | "
+            f"| {row['group']} | {row['compared']} | {row['seed_clusters']} | "
+            f"{row['cell_win_rate']:.2f} | {row['seed_win_rate']:.2f} | "
             f"{row['sign_test_p']:.3f} | {row['median_log_ratio']:+.3f} | "
             f"[{row['ci_low']:+.3f}, {row['ci_high']:+.3f}] | {_verdict(row)} |")
 
-    overall = groups[0]
+    policy_overall = groups[0]
+    _, total_ineligible, total_unmatched = _matched(cells)
     lines += [
         "",
         "## Cost side",
         "",
-        f"- median extra frontier scoring for the packet stage: "
-        f"`{overall['median_extra_selection_work']:+.0f}` candidates per run",
-        f"- median packet directions retained: "
-        f"`{overall['median_packet_directions']:.1f}`",
-        f"- packet-ineligible cells (fewer than two non-reference "
-        f"configurations): `{overall['ineligible']}`",
-        f"- cells dropped for unmatched M: `{overall['unmatched_M']}`",
+        f"- median extra frontier scoring, policy orderings: "
+        f"`{policy_overall['median_extra_selection_work']:+.0f}` candidates per run",
+        f"- median packet directions retained, policy orderings: "
+        f"`{policy_overall['median_packet_directions']:.1f}`",
+        f"- packet-ineligible cells: `{total_ineligible}` total; "
+        f"`{policy_overall['ineligible']}` in policy orderings",
+        f"- cells dropped for unmatched M: `{total_unmatched}` total; "
+        f"`{policy_overall['unmatched_M']}` in policy orderings",
     ]
-    if header is not None:
-        prov = header.get("provenance", {})
-        lines += [
-            "",
-            "## Provenance",
-            "",
-            f"- git sha: `{prov.get('git_sha', 'unknown')}`"
-            f"{' (dirty)' if prov.get('git_dirty') else ''}",
-            f"- evidence: `{header.get('evidence')}`",
-            f"- boundary: {header.get('claim_boundary')}",
-        ]
 
-    text = "\n".join(lines) + "\n"
+    if system_records:
+        lines += ["", "## Molecular/system records", ""]
+        for record in system_records:
+            lines.append(
+                f"- `{record['system']}`: {record.get('model', 'unknown model')}; "
+                f"{record.get('n_qubits', '?')} qubits; sector dimension "
+                f"{record.get('sector_dimension', '?')} (`{record['path']}`)")
+
+    if headers:
+        lines += ["", "## Provenance", ""]
+        for header in headers:
+            prov = header.get("provenance", {})
+            lines.append(
+                f"- `{header['path']}`: git `{prov.get('git_sha', 'unknown')}`"
+                f"{' (dirty)' if prov.get('git_dirty') else ''}; "
+                f"evidence `{header.get('evidence')}`")
+        lines.append(
+            f"- boundary: {headers[0].get('claim_boundary', 'not recorded')}")
+
+    return "\n".join(lines) + "\n", groups
+
+
+def main(argv=None) -> None:
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument(
+        "--path", type=Path, nargs="+",
+        default=[Path("benchmarks/results/packet_seed_ensemble.jsonl")],
+        help="one or more non-overlapping ensemble JSONL records")
+    parser.add_argument("--out", type=Path, default=None,
+                        help="optional markdown output path")
+    args = parser.parse_args(argv)
+
+    text, _ = summarize(args.path)
     print(text)
     if args.out is not None:
         args.out.parent.mkdir(parents=True, exist_ok=True)
