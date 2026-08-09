@@ -157,31 +157,44 @@ def _census_summary(committed: dict, fresh: dict) -> str:
             f"committed={committed.get('failures')} fresh={fresh.get('failures')}")
 
 
-def _movers(committed: dict, fresh: dict) -> list[str]:
-    """Name the individual replicas whose outcome changed.
+def _format_field(name: str, was, now) -> str:
+    """Render one changed fingerprint field."""
+    if isinstance(was, float) and isinstance(now, float):
+        return f"{name} {was:+.6e} -> {now:+.6e} (shift {now - was:+.3e})"
+    return f"{name} {was} -> {now}"
 
-    This is what the per-replica fingerprint buys.  Each line reports the
-    replica index, the outcome on both sides, and the smallest overlap
-    eigenvalue that decided it -- so a marginal sign flip near zero is
-    immediately distinguishable from a pipeline that moved the eigenvalue
-    wholesale.
+
+def _movers(committed: dict, fresh: dict) -> list[str]:
+    """Name every replica whose fingerprint changed, on any field.
+
+    A changed outcome label is the obvious case, but not the only one that
+    matters: the same label can sit on a rank-decision margin that moved, and
+    that is precisely the signal separating a marginal decision from a shifted
+    pipeline.  Comparing only the label would let such a replica fail the
+    census tier while reporting nothing to look at, so every field is compared
+    and indices present on one side only are reported as well.
     """
     before = {row["index"]: row for row in committed.get("replica_census", [])}
     after = {row["index"]: row for row in fresh.get("replica_census", [])}
     lines: list[str] = []
+
+    for index in sorted(before.keys() - after.keys()):
+        lines.append(f"replica {index}: present in committed record, missing here")
+    for index in sorted(after.keys() - before.keys()):
+        lines.append(f"replica {index}: present here, missing from committed record")
+
     for index in sorted(before.keys() & after.keys()):
         was, now = before[index], after[index]
-        if was["outcome"] == now["outcome"]:
+        fields = [key for key in sorted(set(was) | set(now))
+                  if key != "index" and was.get(key) != now.get(key)]
+        if not fields:
             continue
-        old_min, new_min = was["overlap_eigenvalue_min"], now["overlap_eigenvalue_min"]
-        shift = ("n/a" if old_min is None or new_min is None
-                 else f"{new_min - old_min:+.3e}")
-        lines.append(
-            f"replica {index}: {was['outcome']} -> {now['outcome']}, "
-            f"lambda_min {old_min:+.6e} -> {new_min:+.6e} (shift {shift})"
-            if old_min is not None and new_min is not None else
-            f"replica {index}: {was['outcome']} -> {now['outcome']}, "
-            f"lambda_min {old_min} -> {new_min}")
+        # The outcome label leads when it moved; the numeric fields follow, so
+        # the margin that explains the move is on the same line.
+        fields.sort(key=lambda key: (key != "outcome", key))
+        detail = ", ".join(
+            _format_field(key, was.get(key), now.get(key)) for key in fields)
+        lines.append(f"replica {index}: {detail}")
     return lines
 
 
@@ -217,8 +230,13 @@ def main() -> int:
                 if len(movers) > MAX_REPORTED_PER_TIER:
                     print(f"      ... {len(movers) - MAX_REPORTED_PER_TIER} more")
                 if not movers:
-                    print("      no per-replica fingerprint to diff; "
-                          "regenerate the record to gain one")
+                    has_census = bool(committed_tiers["census"].get("replica_census")
+                                      and fresh_tiers["census"].get("replica_census"))
+                    print("      every per-replica fingerprint agrees; the "
+                          "difference is in the aggregate counters alone"
+                          if has_census else
+                          "no per-replica fingerprint to diff; regenerate the "
+                          "record to gain one")
                 continue
             if tier == "intervals":
                 print(f"   intervals FAIL  {len(problems)} band value(s) moved, "

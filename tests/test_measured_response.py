@@ -177,9 +177,18 @@ def test_replica_census_fingerprints_every_replica(dimer_response):
             # a solve that raised has no pencil to report
             assert item.overlap_eigenvalue_min is None
             assert item.effective_rank is None
+            assert item.rank_decision_margin is None
+            assert item.controlling_mode is None
             continue
         assert isinstance(item.overlap_eigenvalue_min, float)
         assert isinstance(item.effective_rank, int)
+        # the decision itself, not a proxy for it: retention is
+        # `value > cutoff` mode by mode, so the margin and the cutoff that
+        # applied are what a later run must be diffed against
+        assert isinstance(item.rank_decision_margin, float)
+        assert isinstance(item.overlap_threshold, float)
+        assert isinstance(item.controlling_mode, int)
+        assert 0 <= item.controlling_mode < item.effective_rank + 4
     accepted = [item for item in census if item.outcome == "accepted"]
     # every accepted replica matched the point estimate's rank, by definition
     # of the gate -- so the census cannot silently disagree with it
@@ -193,3 +202,41 @@ def test_acceptance_rate_is_defined_when_nothing_was_requested():
         delta=0.05, replicates_requested=0, replicates_succeeded=0,
         rank_failures=0, root_collision_failures=0, solver_failures=0)
     assert empty.acceptance_rate == 0.0
+
+
+def test_rank_decision_margin_tracks_the_cutoff_not_the_sign(dimer_response):
+    """A positive smallest eigenvalue below its cutoff is still dropped.
+
+    The census would be misleading if it recorded only ``lambda_min``: modes
+    are retained against ``value > cutoff``, so raising the cutoff above a
+    positive eigenvalue drops that mode. The recorded margin must follow the
+    cutoff, and go negative exactly when the mode is rejected while the
+    eigenvalue itself stays positive.
+    """
+    _, _, measurement = dimer_response
+    cache = measurement.measure(FiniteShotBackend(seed=5), 4000)
+
+    relaxed = measurement.spectrum(cache, initial_state=0, min_weight=1e-3)
+    values = relaxed.result.overlap_eigenvalues  # descending
+    lambda_min = relaxed.result.resources["overlap_eigenvalue_min"]
+    assert lambda_min > 0.0
+    assert lambda_min == pytest.approx(values[-1])
+
+    # a cutoff between the smallest mode and the next one: the eigenvalue is
+    # unchanged and still positive, but the mode is now excluded
+    cutoff = 0.5 * (values[-1] + values[-2])
+    strict = measurement.spectrum(cache, initial_state=0, min_weight=1e-3,
+                                  tau_s=cutoff)
+    assert strict.result.resources["overlap_eigenvalue_min"] == pytest.approx(
+        lambda_min)
+    assert strict.result.effective_rank == relaxed.result.effective_rank - 1
+
+    margins = strict.result.resources["overlap_decision_margin_per_mode"]
+    thresholds = strict.result.resources["overlap_threshold_per_mode"]
+    # descending order, so the smallest mode is last, and it is below cutoff
+    assert margins[-1] < 0.0
+    assert thresholds[-1] == pytest.approx(cutoff)
+    # the controlling mode is the one nearest its cutoff, and here that is the
+    # rejected mode -- so the fingerprint reports a negative margin while
+    # lambda_min stays positive, which a sign test on lambda_min would miss
+    assert margins[-1] == pytest.approx(lambda_min - cutoff)

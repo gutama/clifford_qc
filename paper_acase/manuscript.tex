@@ -576,10 +576,13 @@ source revision, data, environment, and artifact generators.  A tagged
 archival release with a persistent identifier is intended after the interfaces
 and evidence contracts stabilize.
 
-The H$_4$ interchange file is bound to its record by SHA-256.  Table fragments
-are generated from committed JSON records, and a structural checker verifies
-balanced environments, references, citations, table columns, and input
-freshness.  Krylov width is quoted only when its numerical cutoff passes a
+The H$_4$ interchange file is bound to its record by SHA-256.  Every table
+fragment this manuscript inputs is generated from committed JSON records and
+carries a blob digest of each source record and of the generator itself, which
+a structural checker re-derives; a record regenerated without rerunning the
+generator therefore fails rather than typesetting stale numbers.  The same
+checker verifies balanced environments, references, citations, and table
+column counts.  Krylov width is quoted only when its numerical cutoff passes a
 support count certified to describe the same normalized pencil, rank, energy,
 and condition number as the unpruned calculation.
 

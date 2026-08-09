@@ -300,6 +300,18 @@ def solve_projected(S: np.ndarray, Hm: np.ndarray, labels: Sequence[str] | None 
         "overlap_noise_floor_per_mode": (
             tuple(float(value) for value in noise_floor)
             if noise_floor.ndim == 1 else None),
+        # Retention is `value > cutoff` mode by mode, and with a per-mode floor
+        # the cutoff differs per mode, so a single scalar threshold cannot say
+        # how close a given solve came to a different rank. These two arrays
+        # carry the actual decision: each mode's own cutoff, and its signed
+        # distance from it. Descending, to index alongside overlap_eigenvalues.
+        "overlap_threshold_per_mode": tuple(
+            float(value) for value in
+            np.broadcast_to(cutoffs, overlap_values.shape)[::-1]),
+        "overlap_decision_margin_per_mode": tuple(
+            float(value) for value in
+            (overlap_values - np.broadcast_to(
+                cutoffs, overlap_values.shape))[::-1]),
         "overlap_eigenvalue_max": largest,
         "overlap_eigenvalue_min": float(overlap_values[0]),
         "overlap_negative_modes": negative_modes,

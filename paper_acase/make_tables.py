@@ -34,9 +34,35 @@ def _git_blob_sha(path: Path) -> str:
     return hashlib.sha1(header + data, usedforsecurity=False).hexdigest()
 
 
+# Which committed record each source-bound table is generated from.  The
+# checker re-derives these SHAs, so a record regenerated without rerunning this
+# module is caught rather than left to typeset as a stale table.  Every table
+# the current manuscript inputs is bound here.
+TABLE_SOURCES: dict[str, tuple[Path, ...]] = {
+    "phase12_primary.tex": (PHASE12_PRIMARY,),
+    "matched_results.tex": (MATCHED, KRYLOV_WIDTH),
+    "clifford_hierarchy.tex": CLIFFORD_HIERARCHY,
+    "finite_shot.tex": (FINITE_SHOT,),
+}
+
+
 def _write(name: str, rows: list[str]) -> None:
+    """Write one table fragment, source-bound when its inputs are declared.
+
+    A generated fragment carrying no binding cannot be told apart from a
+    hand-edited one, and a record regenerated without rerunning this module
+    leaves a stale table that still typesets.  For a declared table this
+    prepends one blob-SHA header per source plus one for this generator, which
+    ``check_manuscript.py`` re-derives and compares.
+    """
     TABLES.mkdir(parents=True, exist_ok=True)
-    (TABLES / name).write_text("\n".join(rows) + "\n")
+    sources = TABLE_SOURCES.get(name, ())
+    header = [f"% source-git-blob-sha: {_git_blob_sha(path)}"
+              for path in sources]
+    if sources:
+        header.append(
+            f"% generator-git-blob-sha: {_git_blob_sha(Path(__file__).resolve())}")
+    (TABLES / name).write_text("\n".join(header + rows) + "\n")
 
 
 def _sci(value: float, digits: int = 2) -> str:
@@ -209,10 +235,7 @@ def phase12_primary_table() -> None:
             return "$" + f"{value:.{decimals}f}" + "$"
         return _sci(value, 3)
 
-    out = [
-        f"% source-git-blob-sha: {_git_blob_sha(PHASE12_PRIMARY)}",
-        f"% generator-git-blob-sha: {_git_blob_sha(Path(__file__).resolve())}",
-    ]
+    out: list[str] = []
     for display, key in labels:
         arms = {row["method"]: row for row in by_key[key]["arms"]}
         missing = [method for method in methods if method not in arms]

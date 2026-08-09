@@ -33,9 +33,12 @@ ROOT = HERE.parent
 TEX = HERE / "manuscript.tex"
 BIB = HERE / "references.bib"
 FIGURE_MANIFEST = HERE / "paper_assets" / "manifest.json"
-PHASE12_PRIMARY = ROOT / "benchmarks" / "results" / "phase12_paper_b_five_system.json"
-PHASE12_TABLE = HERE / "tables" / "phase12_primary.tex"
 TABLE_GENERATOR = HERE / "make_tables.py"
+
+# Re-derived from make_tables.py rather than restated, so the two cannot drift
+# into disagreeing about which record backs which table.
+sys.path.insert(0, str(HERE))
+from make_tables import TABLE_SOURCES  # noqa: E402
 
 # which committed record each figure is plotted from; kept in step with
 # make_figures.py so a regenerated record forces a regenerated figure
@@ -187,16 +190,25 @@ def main() -> int:
             problems.append(f"missing input: {match.group(1)} "
                             "(run paper_acase/make_tables.py)")
 
-    if PHASE12_TABLE.exists():
-        headers = set(PHASE12_TABLE.read_text(encoding="utf-8").splitlines()[:2])
-        expected = {
-            f"% source-git-blob-sha: {_git_blob_sha(PHASE12_PRIMARY)}",
-            f"% generator-git-blob-sha: {_git_blob_sha(TABLE_GENERATOR)}",
-        }
+    # Every source-bound table, not just the Phase 12 one: a record regenerated
+    # without rerunning the generator leaves a table that still typesets, and
+    # only the binding catches it.  Tables the manuscript does not input are
+    # skipped, so trimming the paper does not strand a check on a dead file.
+    for name, sources in sorted(TABLE_SOURCES.items()):
+        table = HERE / "tables" / name
+        if not table.exists():
+            continue
+        if f"tables/{name}" not in text and f"tables/{Path(name).stem}" not in text:
+            continue
+        expected = [f"% source-git-blob-sha: {_git_blob_sha(path)}"
+                    for path in sources]
+        expected.append(
+            f"% generator-git-blob-sha: {_git_blob_sha(TABLE_GENERATOR)}")
+        headers = table.read_text(encoding="utf-8").splitlines()[:len(expected)]
         if headers != expected:
             problems.append(
-                "phase12_primary.tex is stale against its result record or "
-                "table generator (run paper_acase/make_tables.py)")
+                f"{name} is stale against its result record or table "
+                "generator (run paper_acase/make_tables.py)")
 
     if re.search(r"\\usepackage(?:\[[^]]*\])?\{array\}", text):
         problems.append(

@@ -81,24 +81,66 @@ class ReplicaOutcome:
     """What one bootstrap replica did, and the number that decided it.
 
     The census exists to make a disagreement between two runs diagnosable.
-    Acceptance turns on ``effective_rank`` matching the point estimate's, and
-    that rank is in practice decided by the *sign* of the resampled overlap's
-    smallest eigenvalue.  Recording ``overlap_eigenvalue_min`` per replica
-    means a run that accepts a different number of replicas can be diffed
-    against a committed record replica by replica: the ones that moved are
-    visible, and how far each sits from the sign boundary says immediately
-    whether the difference is a marginal decision or a different pipeline.
-    Without it, a census disagreement is only ever a pair of totals.
+    Acceptance requires ``effective_rank`` to match the point estimate's, and
+    the solver sets that rank by testing each overlap mode against its own
+    cutoff, ``value > max(tau_s, rel_tau * lambda_max, lambda_max /
+    max_condition, noise_floor)``.  That cutoff is per-mode whenever a
+    calibrated floor is in play, so neither the smallest eigenvalue nor its
+    sign decides the rank in general: a positive minimum eigenvalue below its
+    own cutoff is still dropped.
+
+    The decisive quantity is therefore recorded directly.
+    ``rank_decision_margin`` is the signed distance from its cutoff of the mode
+    sitting closest to one -- the mode that flips the retained count first --
+    and ``controlling_mode`` indexes it in descending-eigenvalue order, with
+    ``overlap_threshold`` the cutoff that actually applied to it.  A run that
+    accepts a different number of replicas can then be diffed against a
+    committed record replica by replica: the movers are visible, and each
+    mover's margin says whether the decision was marginal or the pipeline
+    moved wholesale.  Without this, a census disagreement is only ever a pair
+    of totals.
 
     ``outcome`` is ``"accepted"`` or the rejection reason -- ``"rank"``,
     ``"root_collision"``, or ``"solver"``.  A replica whose solve raised has
-    no eigenvalue to report, so both numeric fields are ``None``.
+    no pencil to report, so every numeric field is ``None``.
     """
 
     index: int
     outcome: str
     overlap_eigenvalue_min: float | None
     effective_rank: int | None
+    overlap_threshold: float | None = None
+    rank_decision_margin: float | None = None
+    controlling_mode: int | None = None
+
+
+def _rank_decision_fingerprint(result: SubspaceResult) -> dict:
+    """Locate the overlap mode that decides this solve's retained rank.
+
+    Retention is ``value > cutoff`` mode by mode, so the mode nearest its own
+    cutoff is the one whose side would flip first, taking the retained count
+    -- and therefore the rank gate -- with it.  Its signed distance is the
+    margin worth recording; a scalar threshold cannot express this once the
+    cutoff varies per mode.
+    """
+    resources = result.resources
+    margins = resources.get("overlap_decision_margin_per_mode")
+    thresholds = resources.get("overlap_threshold_per_mode")
+    minimum = resources.get("overlap_eigenvalue_min")
+    fingerprint = {
+        "overlap_eigenvalue_min": None if minimum is None else float(minimum),
+        "overlap_threshold": None,
+        "rank_decision_margin": None,
+        "controlling_mode": None,
+    }
+    if not margins:
+        return fingerprint
+    controlling = min(range(len(margins)), key=lambda i: abs(margins[i]))
+    fingerprint["controlling_mode"] = int(controlling)
+    fingerprint["rank_decision_margin"] = float(margins[controlling])
+    if thresholds is not None:
+        fingerprint["overlap_threshold"] = float(thresholds[controlling])
+    return fingerprint
 
 
 @dataclass(frozen=True)
@@ -458,28 +500,30 @@ def bootstrap_response(measurement: ResponseMeasurement,
             solver_failures += 1
             census.append(ReplicaOutcome(index, "solver", None, None))
             continue
-        # The eigenvalue whose sign decides the rank gate below, recorded for
-        # every replica including the accepted ones: a future run that accepts
-        # a different count is diffed against this, not against a total.
-        lambda_min = spectrum.result.resources.get("overlap_eigenvalue_min")
-        lambda_min = None if lambda_min is None else float(lambda_min)
+        # The fingerprint of the rank gate below, recorded for every replica
+        # including the accepted ones: a future run that accepts a different
+        # count is diffed against this, not against a total.
+        fingerprint = _rank_decision_fingerprint(spectrum.result)
         rank = int(spectrum.result.effective_rank)
+
+        def outcome(label: str) -> ReplicaOutcome:
+            return ReplicaOutcome(index, label, effective_rank=rank,
+                                  **fingerprint)
+
         if rank != point.result.effective_rank:
             rank_failures += 1
-            census.append(ReplicaOutcome(index, "rank", lambda_min, rank))
+            census.append(outcome("rank"))
             continue
         if _minimum_root_gap(spectrum.result.energies) <= root_gap_tolerance:
             root_failures += 1
-            census.append(
-                ReplicaOutcome(index, "root_collision", lambda_min, rank))
+            census.append(outcome("root_collision"))
             continue
         by_state = {line.final_state: line for line in spectrum.lines}
         if any(state not in by_state for state in target_states):
             root_failures += 1
-            census.append(
-                ReplicaOutcome(index, "root_collision", lambda_min, rank))
+            census.append(outcome("root_collision"))
             continue
-        census.append(ReplicaOutcome(index, "accepted", lambda_min, rank))
+        census.append(outcome("accepted"))
         for state in target_states:
             gap_samples[state].append(by_state[state].excitation_energy)
             weight_samples[state].append(by_state[state].weight)

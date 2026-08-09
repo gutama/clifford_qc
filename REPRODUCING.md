@@ -624,31 +624,47 @@ distinguish that from a changed pipeline.
 
 Both records carry a per-replica fingerprint under
 `bootstrap.replica_census`: one row per replica in draw order, holding its
-outcome (`accepted`, `rank`, `root_collision`, `solver`), the smallest
-overlap eigenvalue of that resampled pencil, and its effective rank. That
-eigenvalue is the quantity whose *sign* decides acceptance, so when two
-environments disagree on the census the checker diffs them replica by replica
-and prints exactly which ones moved and how far each sits from zero:
+outcome (`accepted`, `rank`, `root_collision`, `solver`), its effective rank,
+the smallest eigenvalue of the normalized overlap, and — the field that
+actually decides the gate — `rank_decision_margin` with the
+`overlap_threshold` and `controlling_mode` it belongs to.
+
+The margin is recorded rather than inferred from the eigenvalue because the
+solver retains a mode when it clears *its own* cutoff,
+`value > max(tau_s, rel_tau * lambda_max, lambda_max / max_condition,
+noise_floor)`. With a calibrated per-mode floor that cutoff varies by mode, so
+a positive smallest eigenvalue can still be dropped and no sign test on it is
+correct in general. `rank_decision_margin` is the signed distance from its
+cutoff of the mode sitting nearest one — the mode that flips the retained
+count first — and `controlling_mode` indexes it in descending-eigenvalue
+order. On these two fixed records the cutoff is the `tau_s` default `1e-10`,
+so the margin and the eigenvalue nearly coincide; the record states the
+cutoff so the reader does not have to assume that.
+
+When two environments disagree on the census, the checker diffs every
+fingerprint field — not just the outcome label — and names the replicas that
+moved, including any index present on only one side:
 
 ```
 census    FAIL  136/200 replicas accepted here against 137/200 committed (-1)
-   replica 0: accepted -> rank, lambda_min +5.679516e-04 -> -5.679516e-06
+   replica 0: outcome accepted -> rank, rank_decision_margin +5.679515e-04 -> -5.679516e-06
 ```
 
-A marginal sign flip and a pipeline that moved the eigenvalue wholesale are
-then distinguishable at a glance, rather than appearing as a pair of totals.
+A marginal flip and a pipeline that moved the margin wholesale are then
+distinguishable at a glance, rather than appearing as a pair of totals.
 
 The records were regenerated to add the fingerprint, which also closed a
 standing environment gap: the ill-conditioned record had been committed at
 `139/200` accepted replicas and reproduced at `137/200`, shifting every
 percentile band by up to `5.2e-4` relative. That gap was environmental rather
 than code drift — it reproduced identically at the records' own authoring
-commit — and it was not last-bit noise in the acceptance test, since the
-deciding eigenvalue agrees between `float64` and `float128` to `1.9e-13`
-across all 200 replicas while the replica nearest the sign boundary sits
-`4.5e-4` from it. The committed records now carry the `137/200` census, which
-is what the manuscript quotes, and the fingerprint is what makes any future
-recurrence diagnosable in one step instead of an inference from totals.
+commit — and it was not last-bit numerical noise, since on the normalized
+pencil the record thresholds, `float64` and `float128` agree to `2.0e-16`
+across all 200 replicas while the replica nearest the boundary sits
+`-9.03e-6` from it, some ten orders of magnitude clear. The committed records
+now carry the `137/200` census, which is what the manuscript quotes, and each
+record is stamped with the revision, dependency set, and BLAS/LAPACK build
+that produced it, so a future recurrence names its own cause.
 
 ## DA-CASE validation ladder (Phase 7, `chemistry` extra)
 
