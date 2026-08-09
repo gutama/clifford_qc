@@ -90,6 +90,7 @@ from clifford_qc.subspace import (
     krylov_response,
     occupied_spin_orbitals,
     pauli_orbit,
+    project_reference_to_sector,
     run_adapt_gcim,
     run_acase,
     solve_subspace,
@@ -302,7 +303,7 @@ def build_record() -> dict:
 
     def acase(name, candidates, pool_kind, *, leakage_tol,
               leakage_mode="operator", sector_target=None, notes="",
-              reference=None, prelude=None):
+              reference=None, prelude=None, post_selection=None):
         started = time.perf_counter()
         kwargs = {"max_size": BUDGET, "exact_ground_energy": exact_energy}
         if leakage_tol is not None:
@@ -338,6 +339,8 @@ def build_record() -> dict:
             row["selection_rotor_qwc_group_evaluations"] += (
                 prelude["selection_rotor_qwc_group_evaluations"])
             row["prelude"] = prelude
+        if post_selection is not None:
+            row["sector_post_selection"] = post_selection
         row["leakage_mode"] = leakage_mode if leakage_tol is not None else "disabled"
         row["sector_certificate"] = result.resources.get("sector_certificate")
         print(f"  {name}: {time.perf_counter() - started:.1f}s", flush=True)
@@ -561,7 +564,70 @@ def build_record() -> dict:
           "determinant excitations", leakage_tol=1e-10, reference=warm_rho,
           prelude=prelude,
           notes=("total cost includes the ADAPT prelude that prepared rho: "
-                 "its rotors, optimizer evaluations, and pool scorings"))
+                 "its rotors, optimizer evaluations, and pool scorings; the "
+                 "reference is sector-mixed, so this arm keeps the "
+                 "operator-global generator rule and receives no "
+                 "reference-conditioned certificate"))
+
+    # The same warm start, post-selected onto the declared sector.  This is
+    # what makes the arm certifiable: on the projected reference the sector
+    # weight is one by construction, so the cascade and the whole-span
+    # certificate both apply.
+    #
+    # The acceptance probability is reported as its own multiplier rather than
+    # folded into any setting count.  The ADAPT prelude's ledger is unchanged:
+    # its selection scorings and optimizer evaluations all happened on the
+    # unprojected state, before the sector measurement exists, so no retry can
+    # reach back and make them more expensive.  What the acceptance probability
+    # buys is retries on everything downstream of the projection -- each
+    # A-CASE setting-shot must re-run the two-rotor preparation and the sector
+    # measurement, and keep only the accepted outcome.  So 1/weight multiplies
+    # preparation executions for the A-CASE stage, and it multiplies nothing in
+    # the setting ledger, which counts distinct measurement settings and not
+    # shots.
+    sector_target = (model.metadata["n_electrons"], model.metadata["sz"])
+    projected_rho, projection = project_reference_to_sector(
+        warm_rho, sector_target=sector_target)
+    projected_prelude = dict(prelude)
+    projected_prelude["stage"] = (
+        f"{prelude['stage']}, post-selected onto (N={sector_target[0]}, "
+        f"S_z={sector_target[1]})")
+    projected_prelude["sector_projection"] = projection
+    post_selection = {
+        "acceptance_probability": projection["sector_weight"],
+        "state_preparation_overhead": projection["shot_overhead"],
+        "applies_to": (
+            "the A-CASE stage only. Multiply this arm's A-CASE preparation "
+            "executions -- R * selection_qwc_groups and R * final_qwc_groups "
+            "at R shots per setting -- by the overhead, because every accepted "
+            "shot needs 1/weight attempts on average. The ADAPT prelude's "
+            "counts are unchanged: its measurements preceded the projection."),
+        "does_not_apply_to": (
+            "any setting count. selection_qwc_group_evaluations and "
+            "selection_rotor_qwc_group_evaluations are structural counts of "
+            "distinct measurement settings, not shots, so scaling them by a "
+            "retry factor would mix units."),
+        "sector_measurement_circuit": (
+            "unpriced. Realizing P rho P without collapsing the state onto a "
+            "single determinant needs a quantum non-demolition (N, S_z) "
+            "measurement -- phase estimation on the number and spin operators, "
+            "or equivalent syndrome extraction onto ancillas -- and no gate, "
+            "ancilla, or shot cost for that circuit is charged anywhere in "
+            "this ledger. The reported overhead prices only the rejected "
+            "attempts, not the apparatus that decides them."),
+    }
+    acase("A-CASE (determinant, sector-projected ADAPT warm start)",
+          determinants, "determinant excitations", leakage_tol=1e-10,
+          leakage_mode="operator_then_reference", sector_target=sector_target,
+          reference=projected_rho, prelude=projected_prelude,
+          post_selection=post_selection,
+          notes=("the warm start post-selected onto the declared sector at "
+                 f"acceptance probability {projection['sector_weight']:.6f}; "
+                 "the whole retained span is certified in sector. The "
+                 "1/weight retry factor is reported in sector_post_selection "
+                 "and applies to A-CASE-stage preparation executions only; "
+                 "setting counts are unchanged, and the QND sector-measurement "
+                 "circuit is left unpriced"))
 
     return {
         "schema": "clifford_qc.matched_h4.v3",
@@ -620,6 +686,15 @@ def build_record() -> dict:
                 "settings, before the shot multiplier. This prices circuit "
                 "depth for the selection stage without pretending to price the "
                 "exact ADAPT optimizer's missing physical gradient protocol."),
+            "sector_post_selection": (
+                "present only on an arm whose reference was post-selected onto "
+                "a declared sector. It carries the acceptance probability and "
+                "the 1/weight retry factor as a separate multiplier: the "
+                "factor converts that arm's A-CASE-stage preparation "
+                "executions, and is deliberately absent from every setting "
+                "count in the row, which counts distinct settings rather than "
+                "shots. The non-demolition sector-measurement circuit that "
+                "would realize the projection is left unpriced."),
             "adapt_gcim_matrix_pairs": (
                 "unique upper-triangle Hamiltonian pairs and off-diagonal "
                 "overlap pairs. These transition measurements are not a "

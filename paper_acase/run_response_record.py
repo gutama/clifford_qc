@@ -31,6 +31,7 @@ import numpy as np
 
 from clifford_qc.backends import ExactMVBackend, FiniteShotBackend
 from clifford_qc.models import load_effective_hamiltonian, magnetization
+from clifford_qc.reproducibility import execution_provenance, stamp_record
 from clifford_qc.subspace import (
     MatrixElementBank,
     ResponseMeasurement,
@@ -127,9 +128,28 @@ def build_record(*, generators: str = "determinant") -> dict:
     if succeeded + sum(failures.values()) != requested:
         raise RuntimeError("bootstrap replica accounting does not close")
 
+    # One row per replica, in draw order.  This is the fingerprint that makes a
+    # census disagreement between two environments diagnosable.  The solver
+    # retains a mode when it clears its own cutoff, so the decisive quantity is
+    # the signed margin of the mode nearest one -- not the smallest eigenvalue,
+    # which can be positive and still be dropped.  Recording the margin, the
+    # cutoff that applied, and which mode it was lets a run that accepts a
+    # different count be diffed replica by replica, with each mover's margin
+    # saying whether the decision was marginal or the pipeline differs.
+    census = [{
+        "index": item.index,
+        "outcome": item.outcome,
+        "overlap_eigenvalue_min": item.overlap_eigenvalue_min,
+        "effective_rank": item.effective_rank,
+        "overlap_threshold": item.overlap_threshold,
+        "rank_decision_margin": item.rank_decision_margin,
+        "controlling_mode": item.controlling_mode,
+    } for item in result.replica_census]
+    if len(census) != requested:
+        raise RuntimeError("replica census does not cover every replica")
+
     return {
-        "schema": "clifford_qc.acase_response_bootstrap.v1",
-        "source_main_commit": "4b1c636953e4ebe9aa7541d4260cfe95aa18674e",
+        "schema": "clifford_qc.acase_response_bootstrap.v2",
         "basis": {
             "generators": generators,
             "family": family_label,
@@ -156,11 +176,17 @@ def build_record(*, generators: str = "determinant") -> dict:
             "replicates_succeeded": succeeded,
             "acceptance_rate": succeeded / requested,
             "bootstrap_seed": BOOTSTRAP_SEED,
+            # Non-default, and it changes what the run is allowed to report:
+            # the ill-conditioned arm must be free to record a low acceptance
+            # rate rather than raise, so the threshold belongs in the contract
+            # a checker compares rather than only in this module's source.
+            "minimum_success_fraction": MINIMUM_SUCCESS_FRACTION,
             "failures": failures,
             "conditional_on_surviving_replicas": True,
             "evidence": result.evidence,
             "certified": result.certified,
             "pointwise_not_simultaneous": True,
+            "replica_census": census,
         },
         "exact": {
             "lines": [{
@@ -196,9 +222,18 @@ def main() -> None:
     parser.add_argument("--ill-conditioned-out", type=Path,
                         default=ILL_CONDITIONED_OUT)
     args = parser.parse_args()
+    # One provenance for the whole run, captured before anything is written.
+    # Stamping per record would let the first file land, dirty the tree, and
+    # make the second record claim a different revision state than the first
+    # although both came from the same execution of the same code.
+    provenance = execution_provenance()
     for path, family in ((args.out, "determinant"),
                          (args.ill_conditioned_out, "krylov")):
-        record = build_record(generators=family)
+        # Stamped at the writer rather than baked into build_record: the
+        # provenance names the revision and environment that produced the file
+        # on disk, and compare_json_records ignores it, so a fresh run is still
+        # compared on content while the committed artifact stays attributable.
+        record = stamp_record(build_record(generators=family), provenance)
         path.parent.mkdir(parents=True, exist_ok=True)
         path.write_text(json.dumps(record, indent=2, sort_keys=True) + "\n")
         bootstrap = record["bootstrap"]

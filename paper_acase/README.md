@@ -54,9 +54,24 @@ PDFs remain CI/release artifacts and are not committed as source.
   records from the merged implementation.
 - `check_response_records.py` — compares a fresh run with the committed
   records, requiring exact seeds, replica accounting, and metadata while
-  tolerating only last-bit floating-point variation.
-- `data/response_bootstrap.json` — deterministic paper record, including the
-  seeds, shot budget, replica accounting, intervals, and plotted spectrum.
+  tolerating only last-bit floating-point variation. It reports in four tiers
+  — `contract`, `point`, `census`, `intervals` — and names the earliest one
+  that failed, because every percentile band is conditional on the replica
+  census and a flat diff turns one upstream disagreement into hundreds of
+  downstream ones. On a census disagreement it diffs the per-replica
+  fingerprint and names the individual replicas that moved.
+- `data/response_bootstrap.json` — deterministic paper record (schema `v2`),
+  including the seeds, shot budget, replica accounting, intervals, plotted
+  spectrum, and an execution-provenance stamp naming the revision, dependency
+  set, and BLAS/LAPACK build that produced it.
+  `bootstrap.replica_census` adds one row per replica in draw order: its
+  outcome, effective rank, smallest normalized overlap eigenvalue, and the
+  `rank_decision_margin` / `overlap_threshold` / `controlling_mode` triple
+  that records the retention decision itself. Modes are retained against
+  per-mode cutoffs, so the margin — not the eigenvalue's sign — is what
+  decides the gate. The census is the fingerprint that makes a disagreement
+  between two environments diagnosable replica by replica rather than only as
+  a pair of totals.
 - `data/response_bootstrap_illconditioned.json` — the same run with the
   determinant generators replaced by Hamiltonian powers. The system,
   observable, word set, grouping, shots, basis size, and seeds are held fixed;

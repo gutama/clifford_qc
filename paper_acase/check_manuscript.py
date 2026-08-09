@@ -33,9 +33,12 @@ ROOT = HERE.parent
 TEX = HERE / "manuscript.tex"
 BIB = HERE / "references.bib"
 FIGURE_MANIFEST = HERE / "paper_assets" / "manifest.json"
-PHASE12_PRIMARY = ROOT / "benchmarks" / "results" / "phase12_paper_b_five_system.json"
-PHASE12_TABLE = HERE / "tables" / "phase12_primary.tex"
 TABLE_GENERATOR = HERE / "make_tables.py"
+
+# Re-derived from make_tables.py rather than restated, so the two cannot drift
+# into disagreeing about which record backs which table.
+sys.path.insert(0, str(HERE))
+from make_tables import TABLE_SOURCES  # noqa: E402
 
 # which committed record each figure is plotted from; kept in step with
 # make_figures.py so a regenerated record forces a regenerated figure
@@ -187,16 +190,25 @@ def main() -> int:
             problems.append(f"missing input: {match.group(1)} "
                             "(run paper_acase/make_tables.py)")
 
-    if PHASE12_TABLE.exists():
-        headers = set(PHASE12_TABLE.read_text(encoding="utf-8").splitlines()[:2])
-        expected = {
-            f"% source-git-blob-sha: {_git_blob_sha(PHASE12_PRIMARY)}",
-            f"% generator-git-blob-sha: {_git_blob_sha(TABLE_GENERATOR)}",
-        }
+    # Every source-bound table, not just the Phase 12 one: a record regenerated
+    # without rerunning the generator leaves a table that still typesets, and
+    # only the binding catches it.  Tables the manuscript does not input are
+    # skipped, so trimming the paper does not strand a check on a dead file.
+    for name, sources in sorted(TABLE_SOURCES.items()):
+        table = HERE / "tables" / name
+        if not table.exists():
+            continue
+        if f"tables/{name}" not in text and f"tables/{Path(name).stem}" not in text:
+            continue
+        expected = [f"% source-git-blob-sha: {_git_blob_sha(path)}"
+                    for path in sources]
+        expected.append(
+            f"% generator-git-blob-sha: {_git_blob_sha(TABLE_GENERATOR)}")
+        headers = table.read_text(encoding="utf-8").splitlines()[:len(expected)]
         if headers != expected:
             problems.append(
-                "phase12_primary.tex is stale against its result record or "
-                "table generator (run paper_acase/make_tables.py)")
+                f"{name} is stale against its result record or table "
+                "generator (run paper_acase/make_tables.py)")
 
     if re.search(r"\\usepackage(?:\[[^]]*\])?\{array\}", text):
         problems.append(
@@ -237,43 +249,44 @@ def main() -> int:
                         f"(run paper_acase/make_tables.py): {line[:60]}")
                     break
 
-    # Figure freshness is decided by the source digests in the manifest below,
-    # not by mtimes: a fresh clone gives checkout-order mtimes that say nothing
-    # about whether a figure matches the record it was drawn from.
+    # Figure freshness is decided by source digests rather than mtimes.  Only
+    # figures referenced by the current manuscript are release dependencies:
+    # a simplified manuscript must not be held hostage by stale assets it no
+    # longer includes.
+    referenced_figures: list[tuple[str, Path]] = []
     for match in re.finditer(
             r"\\includegraphics(?:\[[^\]]*\])?\{([^}]+)\}", text):
-        asset = HERE / match.group(1)
+        relative = match.group(1)
+        asset = HERE / relative
+        referenced_figures.append((Path(relative).name, asset))
         if not asset.exists():
-            problems.append(f"missing figure: {match.group(1)}")
+            problems.append(f"missing figure: {relative}")
 
-    if not FIGURE_MANIFEST.exists():
-        problems.append("missing figure manifest "
-                        "(run paper_acase/make_figures.py)")
-    else:
-        manifest = json.loads(FIGURE_MANIFEST.read_text(encoding="utf-8"))
-        expected_generator = _source_digest(HERE / "make_figures.py")
-        if manifest.get("generator", {}).get("sha256") != expected_generator:
-            problems.append("figure manifest has a stale generator digest "
+    if referenced_figures:
+        if not FIGURE_MANIFEST.exists():
+            problems.append("missing figure manifest "
                             "(run paper_acase/make_figures.py)")
-        expected_sources = {
-            "pipeline.pdf": (),
-            "validation_ladder.pdf": FIGURE_SOURCES["validation_ladder.pdf"],
-            "response_bootstrap.pdf": FIGURE_SOURCES["response_bootstrap.pdf"],
-            "conditioning_bands.pdf": FIGURE_SOURCES["conditioning_bands.pdf"],
-        }
-        figures = manifest.get("figures", {})
-        if set(figures) != set(expected_sources):
-            problems.append("figure manifest names do not match the manuscript")
-        for name, paths in expected_sources.items():
-            recorded = figures.get(name, {}).get("sources", {})
-            expected = {
-                str(path.resolve().relative_to(ROOT)): _source_digest(path)
-                for path in paths
-            }
-            if recorded != expected:
-                problems.append(
-                    f"{name} manifest has stale source digests "
-                    "(run paper_acase/make_figures.py)")
+        else:
+            manifest = json.loads(FIGURE_MANIFEST.read_text(encoding="utf-8"))
+            expected_generator = _source_digest(HERE / "make_figures.py")
+            if manifest.get("generator", {}).get("sha256") != expected_generator:
+                problems.append("figure manifest has a stale generator digest "
+                                "(run paper_acase/make_figures.py)")
+            figures = manifest.get("figures", {})
+            for name, _ in referenced_figures:
+                if name not in figures:
+                    problems.append(f"{name} is absent from the figure manifest")
+                    continue
+                paths = FIGURE_SOURCES.get(name, ())
+                recorded = figures[name].get("sources", {})
+                expected = {
+                    str(path.resolve().relative_to(ROOT)): _source_digest(path)
+                    for path in paths
+                }
+                if recorded != expected:
+                    problems.append(
+                        f"{name} manifest has stale source digests "
+                        "(run paper_acase/make_figures.py)")
 
     required = [
         "heuristic",

@@ -8,9 +8,14 @@ budget.  It then crosses two acquisition policies
 * a uniform pilot followed by covariance-aware Neyman allocation for the
   pilot Ritz functional;
 
-with fixed and shot-calibrated overlap truncation.  Fixed/calibrated solver
-arms reuse the same cache, so regularization is compared without charging a
-second measurement budget.
+with three overlap-truncation rules: the fixed numerical cutoff, a uniform
+shot-calibrated cutoff, and a per-mode shot-calibrated cutoff.  All solver arms
+reuse the same cache, so regularization is compared without charging a second
+measurement budget.
+
+The uniform and per-mode calibrated rules differ only in whether one mode's
+noise radius may condemn another: the uniform rule thresholds every mode at the
+*worst* mode's radius, the per-mode rule at each mode's own.
 """
 
 from __future__ import annotations
@@ -73,7 +78,7 @@ def _adaptive_cache(shared, seed: int, total_budget: int,
         raise ValueError("pilot budget must be smaller than the total budget")
     backend = FiniteShotBackend(seed)
     cache = shared.measure(backend, pilot_shots_per_group)
-    pilot = shared.solve(cache, calibrate_overlap=True)
+    pilot = shared.solve(cache, calibrate_overlap=True, overlap_policy="per_mode")
     target = ritz_functional(
         shared.bank,
         pilot.indices,
@@ -108,9 +113,11 @@ def _adaptive_cache(shared, seed: int, total_budget: int,
     }
 
 
-def _solve(shared, cache, calibrated: bool, variance_diagnostics):
+def _solve(shared, cache, calibrated: bool, variance_diagnostics, *,
+           policy: str = "per_mode"):
     try:
-        result = shared.solve(cache, calibrate_overlap=calibrated)
+        result = shared.solve(cache, calibrate_overlap=calibrated,
+                              overlap_policy=policy)
     except (ValueError, np.linalg.LinAlgError) as exc:
         return {"failure": type(exc).__name__, "message": str(exc)}
     return {
@@ -167,9 +174,11 @@ def run(replicas: int, shots_per_group: int, pilot_shots_per_group: int,
     total_budget = shots_per_group * len(shared.groups)
     raw = {
         "uniform_fixed": [],
-        "uniform_calibrated": [],
+        "uniform_calibrated_uniform": [],
+        "uniform_calibrated_per_mode": [],
         "group_optimal_fixed": [],
-        "group_optimal_calibrated": [],
+        "group_optimal_calibrated_uniform": [],
+        "group_optimal_calibrated_per_mode": [],
     }
     exact_target = ritz_functional(
         bank, exact.indices, exact.ritz_vector(0), exact.ground_energy)
@@ -193,17 +202,16 @@ def run(replicas: int, shots_per_group: int, pilot_shots_per_group: int,
         allocation_diagnostics.append(diagnostics)
         uniform_variance = variance_diagnostics(uniform)
         adaptive_variance = variance_diagnostics(adaptive)
-        raw["uniform_fixed"].append(
-            _solve(shared, uniform, False, uniform_variance))
-        raw["uniform_calibrated"].append(
-            _solve(shared, uniform, True, uniform_variance))
-        raw["group_optimal_fixed"].append(
-            _solve(shared, adaptive, False, adaptive_variance))
-        raw["group_optimal_calibrated"].append(
-            _solve(shared, adaptive, True, adaptive_variance))
+        for name, cache, variance in (("uniform", uniform, uniform_variance),
+                                      ("group_optimal", adaptive, adaptive_variance)):
+            raw[f"{name}_fixed"].append(
+                _solve(shared, cache, False, variance))
+            for policy in ("uniform", "per_mode"):
+                raw[f"{name}_calibrated_{policy}"].append(
+                    _solve(shared, cache, True, variance, policy=policy))
 
     return stamp_record({
-        "schema": "clifford_qc.finite_shot_optimization.v1",
+        "schema": "clifford_qc.finite_shot_optimization.v2",
         "evidence": "heuristic",
         "interpretation": (
             "Monte Carlo diagnostic on one fixed four-qubit projected subspace; "

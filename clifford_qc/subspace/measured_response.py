@@ -77,6 +77,73 @@ class ResponseLineUncertainty:
 
 
 @dataclass(frozen=True)
+class ReplicaOutcome:
+    """What one bootstrap replica did, and the number that decided it.
+
+    The census exists to make a disagreement between two runs diagnosable.
+    Acceptance requires ``effective_rank`` to match the point estimate's, and
+    the solver sets that rank by testing each overlap mode against its own
+    cutoff, ``value > max(tau_s, rel_tau * lambda_max, lambda_max /
+    max_condition, noise_floor)``.  That cutoff is per-mode whenever a
+    calibrated floor is in play, so neither the smallest eigenvalue nor its
+    sign decides the rank in general: a positive minimum eigenvalue below its
+    own cutoff is still dropped.
+
+    The decisive quantity is therefore recorded directly.
+    ``rank_decision_margin`` is the signed distance from its cutoff of the mode
+    sitting closest to one -- the mode that flips the retained count first --
+    and ``controlling_mode`` indexes it in descending-eigenvalue order, with
+    ``overlap_threshold`` the cutoff that actually applied to it.  A run that
+    accepts a different number of replicas can then be diffed against a
+    committed record replica by replica: the movers are visible, and each
+    mover's margin says whether the decision was marginal or the pipeline
+    moved wholesale.  Without this, a census disagreement is only ever a pair
+    of totals.
+
+    ``outcome`` is ``"accepted"`` or the rejection reason -- ``"rank"``,
+    ``"root_collision"``, or ``"solver"``.  A replica whose solve raised has
+    no pencil to report, so every numeric field is ``None``.
+    """
+
+    index: int
+    outcome: str
+    overlap_eigenvalue_min: float | None
+    effective_rank: int | None
+    overlap_threshold: float | None = None
+    rank_decision_margin: float | None = None
+    controlling_mode: int | None = None
+
+
+def _rank_decision_fingerprint(result: SubspaceResult) -> dict:
+    """Locate the overlap mode that decides this solve's retained rank.
+
+    Retention is ``value > cutoff`` mode by mode, so the mode nearest its own
+    cutoff is the one whose side would flip first, taking the retained count
+    -- and therefore the rank gate -- with it.  Its signed distance is the
+    margin worth recording; a scalar threshold cannot express this once the
+    cutoff varies per mode.
+    """
+    resources = result.resources
+    margins = resources.get("overlap_decision_margin_per_mode")
+    thresholds = resources.get("overlap_threshold_per_mode")
+    minimum = resources.get("overlap_eigenvalue_min")
+    fingerprint = {
+        "overlap_eigenvalue_min": None if minimum is None else float(minimum),
+        "overlap_threshold": None,
+        "rank_decision_margin": None,
+        "controlling_mode": None,
+    }
+    if not margins:
+        return fingerprint
+    controlling = min(range(len(margins)), key=lambda i: abs(margins[i]))
+    fingerprint["controlling_mode"] = int(controlling)
+    fingerprint["rank_decision_margin"] = float(margins[controlling])
+    if thresholds is not None:
+        fingerprint["overlap_threshold"] = float(thresholds[controlling])
+    return fingerprint
+
+
+@dataclass(frozen=True)
 class BootstrapResponse:
     """Whole-pipeline grouped-bootstrap result.
 
@@ -105,6 +172,7 @@ class BootstrapResponse:
     rank_failures: int
     root_collision_failures: int
     solver_failures: int
+    replica_census: tuple[ReplicaOutcome, ...] = ()
     frequencies: np.ndarray | None = None
     broadened_estimate: np.ndarray | None = None
     broadened_lower: np.ndarray | None = None
@@ -415,9 +483,10 @@ def bootstrap_response(measurement: ResponseMeasurement,
     susceptibility_samples: list[float] = []
     broadened_samples: list[np.ndarray] = []
     rank_failures = root_failures = solver_failures = 0
+    census: list[ReplicaOutcome] = []
     rng = np.random.default_rng(seed)
 
-    for _ in range(replicates):
+    for index in range(replicates):
         replica = _resampled_cache(measurement, cache, rng)
         try:
             spectrum = measurement.spectrum(
@@ -429,17 +498,32 @@ def bootstrap_response(measurement: ResponseMeasurement,
             )
         except (ValueError, np.linalg.LinAlgError, IndexError):
             solver_failures += 1
+            census.append(ReplicaOutcome(index, "solver", None, None))
             continue
-        if spectrum.result.effective_rank != point.result.effective_rank:
+        # The fingerprint of the rank gate below, recorded for every replica
+        # including the accepted ones: a future run that accepts a different
+        # count is diffed against this, not against a total.
+        fingerprint = _rank_decision_fingerprint(spectrum.result)
+        rank = int(spectrum.result.effective_rank)
+
+        def outcome(label: str) -> ReplicaOutcome:
+            return ReplicaOutcome(index, label, effective_rank=rank,
+                                  **fingerprint)
+
+        if rank != point.result.effective_rank:
             rank_failures += 1
+            census.append(outcome("rank"))
             continue
         if _minimum_root_gap(spectrum.result.energies) <= root_gap_tolerance:
             root_failures += 1
+            census.append(outcome("root_collision"))
             continue
         by_state = {line.final_state: line for line in spectrum.lines}
         if any(state not in by_state for state in target_states):
             root_failures += 1
+            census.append(outcome("root_collision"))
             continue
+        census.append(outcome("accepted"))
         for state in target_states:
             gap_samples[state].append(by_state[state].excitation_energy)
             weight_samples[state].append(by_state[state].weight)
@@ -487,6 +571,7 @@ def bootstrap_response(measurement: ResponseMeasurement,
         rank_failures=rank_failures,
         root_collision_failures=root_failures,
         solver_failures=solver_failures,
+        replica_census=tuple(census),
         frequencies=omega,
         broadened_estimate=point_broadened,
         broadened_lower=lower,
@@ -497,6 +582,7 @@ def bootstrap_response(measurement: ResponseMeasurement,
 __all__ = [
     "BootstrapResponse",
     "MeasuredResponseSpectrum",
+    "ReplicaOutcome",
     "ResponseLineUncertainty",
     "ResponseMeasurement",
     "bootstrap_response",

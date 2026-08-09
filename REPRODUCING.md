@@ -504,6 +504,59 @@ The selection width is the whole element cache, including rows for candidates
 that were then rejected; it is strictly larger than the retained `W` the
 manuscript's ledger reports.
 
+The warm-started arm appears twice. The first keeps the sector-mixed ADAPT
+reference and the operator-global generator rule, and carries no
+reference-conditioned certificate: with sector weight `0.999882` there is no
+sharp `(N, S_z)` to condition on, and inference refuses rather than rounding an
+average occupation into an undeclared convention. The second post-selects that
+reference onto the declared sector, `rho -> P rho P / tr(P rho)`. That makes
+the sector weight one by construction, so the cascade and the whole-span
+certificate apply; it improves the arm from `0.342` to `0.199 mHa`, and the
+`1/weight = 1.00012` retry factor is reported in the row's
+`sector_post_selection` block rather than folded into any count. It applies to
+the A-CASE stage's preparation executions only — every accepted shot there
+needs `1/weight` attempts on average — and to no setting count, since
+`selection_qwc_group_evaluations` and its rotor-weighted companion are
+structural counts of distinct measurement settings rather than shots. The
+prelude's ledger is unchanged, because its measurements preceded the
+projection. The non-demolition `(N, S_z)` measurement circuit that would
+realize `P rho P` without resolving the determinant is explicitly unpriced.
+
+### Finite-shot allocation and overlap regularization
+
+One fixed four-qubit TFIM projected bank, one physical shot budget, and a
+`2 x 3` cross of acquisition policy against overlap-truncation rule:
+
+```bash
+python benchmarks/run_finite_shot_optimization.py \
+    --out reproductions/finite_shot_optimization.json
+python benchmarks/check_finite_shot_optimization.py
+```
+
+Expected results
+(`benchmarks/reference_results/finite_shot_optimization.json`), at 200 replicas
+of 104,000 physical setting-shots:
+
+- covariance-aware allocation reduces the median summed projected-matrix
+  variance from `272.46` to `84.75` (68.9%) and the exact-Ritz first-order
+  variance by 20.0%. Against the fixed overlap cutoff this moves the median
+  absolute error only from `4.48` to `4.44 mHa`, but cuts `>0.1 Ha` failures
+  from `4/200` to `1/200`;
+- the calibrated cutoff must be read **per mode**. Thresholding every mode at
+  the worst mode's noise radius retains six or seven modes and never the exact
+  rank eight, leaving median errors of `21.4`/`81.4 mHa`. Comparing each mode
+  against its own radius recovers rank eight in `71/200` and `67/200` replicas
+  and gives median errors of `10.6`/`8.7 mHa`;
+- against the fixed cutoff at matched allocation, per-mode calibration trades a
+  factor of two in median error for a `22x` RMSE reduction (`12.85` versus
+  `285.41 mHa`), a maximum error of `39.4 mHa` rather than `4.03 Ha`, and no
+  catastrophic replica. The calibrated arms carry an `8-10 mHa` upward bias
+  that a truncated rank cannot avoid.
+
+This is a fixed-bank Monte Carlo diagnostic with a data-derived rank rule. It
+is not a coverage certificate, a hardware result, or an end-to-end advantage
+claim.
+
 This is an exact implementation of the published ADAPT-GCIM algorithm on the
 matched local 26-excitation pool. It is not a reproduction of the original
 paper's molecular curves, generalized pool, transpilation, or hardware shot
@@ -560,6 +613,58 @@ The intervals are percentile diagnostics labelled `heuristic`:
 - thresholded-rank changes and root collisions are counted as failed replicas;
 - at least 80% of replicas must remain usable by default;
 - broadened-response bands are pointwise, not simultaneous.
+
+`check_response_records.py` compares a fresh run against the committed records
+in four tiers -- `contract` (seeds, budget, basis), `point` (exact spectrum,
+conditioning, every point estimate), `census` (how many replicas survived), and
+`intervals` (the percentile bands) -- and names the earliest failing tier. The
+tiers exist because the bands are all conditional on the census: two fewer
+surviving replicas move eight hundred band values, and a flat diff cannot
+distinguish that from a changed pipeline.
+
+Both records carry a per-replica fingerprint under
+`bootstrap.replica_census`: one row per replica in draw order, holding its
+outcome (`accepted`, `rank`, `root_collision`, `solver`), its effective rank,
+the smallest eigenvalue of the normalized overlap, and — the field that
+actually decides the gate — `rank_decision_margin` with the
+`overlap_threshold` and `controlling_mode` it belongs to.
+
+The margin is recorded rather than inferred from the eigenvalue because the
+solver retains a mode when it clears *its own* cutoff,
+`value > max(tau_s, rel_tau * lambda_max, lambda_max / max_condition,
+noise_floor)`. With a calibrated per-mode floor that cutoff varies by mode, so
+a positive smallest eigenvalue can still be dropped and no sign test on it is
+correct in general. `rank_decision_margin` is the signed distance from its
+cutoff of the mode sitting nearest one — the mode that flips the retained
+count first — and `controlling_mode` indexes it in descending-eigenvalue
+order. On these two fixed records the cutoff is the `tau_s` default `1e-10`,
+so the margin and the eigenvalue nearly coincide; the record states the
+cutoff so the reader does not have to assume that.
+
+When two environments disagree on the census, the checker diffs every
+fingerprint field — not just the outcome label — and names the replicas that
+moved, including any index present on only one side:
+
+```
+census    FAIL  136/200 replicas accepted here against 137/200 committed (-1)
+   replica 0: outcome accepted -> rank, rank_decision_margin +5.679515e-04 -> -5.679516e-06
+```
+
+A marginal flip and a pipeline that moved the margin wholesale are then
+distinguishable at a glance, rather than appearing as a pair of totals.
+
+The records were regenerated to add the fingerprint, which also closed a
+standing environment gap: the ill-conditioned record had been committed at
+`139/200` accepted replicas and reproduced at `137/200`, shifting every
+percentile band by up to `5.2e-4` relative. That gap was environmental rather
+than code drift — it reproduced identically at the records' own authoring
+commit — and it was not last-bit numerical noise, since on the normalized
+pencil the record thresholds, `float64` and `float128` agree to `2.0e-16`
+across all 200 replicas while the replica nearest the boundary sits
+`-9.03e-6` from it, some ten orders of magnitude clear. The committed records
+now carry the `137/200` census, which is what the manuscript quotes, and each
+record is stamped with the revision, dependency set, and BLAS/LAPACK build
+that produced it, so a future recurrence names its own cause.
 
 ## DA-CASE validation ladder (Phase 7, `chemistry` extra)
 

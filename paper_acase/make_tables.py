@@ -16,6 +16,8 @@ H4 = ROOT / "benchmarks" / "reference_results" / "fcidump_h4.json"
 WARM = ROOT / "benchmarks" / "reference_results" / "warm_start_h4.json"
 KRYLOV_WIDTH = ROOT / "benchmarks" / "reference_results" / "krylov_width.json"
 MATCHED = ROOT / "benchmarks" / "reference_results" / "matched_h4.json"
+FINITE_SHOT = (ROOT / "benchmarks" / "reference_results"
+               / "finite_shot_optimization.json")
 PHASE12_PRIMARY = ROOT / "benchmarks" / "results" / "phase12_paper_b_five_system.json"
 CLIFFORD_HIERARCHY = tuple(
     ROOT / "benchmarks" / "reference_results" / f"clifford_hierarchy_{system}.json"
@@ -32,9 +34,35 @@ def _git_blob_sha(path: Path) -> str:
     return hashlib.sha1(header + data, usedforsecurity=False).hexdigest()
 
 
+# Which committed record each source-bound table is generated from.  The
+# checker re-derives these SHAs, so a record regenerated without rerunning this
+# module is caught rather than left to typeset as a stale table.  Every table
+# the current manuscript inputs is bound here.
+TABLE_SOURCES: dict[str, tuple[Path, ...]] = {
+    "phase12_primary.tex": (PHASE12_PRIMARY,),
+    "matched_results.tex": (MATCHED, KRYLOV_WIDTH),
+    "clifford_hierarchy.tex": CLIFFORD_HIERARCHY,
+    "finite_shot.tex": (FINITE_SHOT,),
+}
+
+
 def _write(name: str, rows: list[str]) -> None:
+    """Write one table fragment, source-bound when its inputs are declared.
+
+    A generated fragment carrying no binding cannot be told apart from a
+    hand-edited one, and a record regenerated without rerunning this module
+    leaves a stale table that still typesets.  For a declared table this
+    prepends one blob-SHA header per source plus one for this generator, which
+    ``check_manuscript.py`` re-derives and compares.
+    """
     TABLES.mkdir(parents=True, exist_ok=True)
-    (TABLES / name).write_text("\n".join(rows) + "\n")
+    sources = TABLE_SOURCES.get(name, ())
+    header = [f"% source-git-blob-sha: {_git_blob_sha(path)}"
+              for path in sources]
+    if sources:
+        header.append(
+            f"% generator-git-blob-sha: {_git_blob_sha(Path(__file__).resolve())}")
+    (TABLES / name).write_text("\n".join(header + rows) + "\n")
 
 
 def _sci(value: float, digits: int = 2) -> str:
@@ -207,10 +235,7 @@ def phase12_primary_table() -> None:
             return "$" + f"{value:.{decimals}f}" + "$"
         return _sci(value, 3)
 
-    out = [
-        f"% source-git-blob-sha: {_git_blob_sha(PHASE12_PRIMARY)}",
-        f"% generator-git-blob-sha: {_git_blob_sha(Path(__file__).resolve())}",
-    ]
+    out: list[str] = []
     for display, key in labels:
         arms = {row["method"]: row for row in by_key[key]["arms"]}
         missing = [method for method in methods if method not in arms]
@@ -246,6 +271,25 @@ def response_table() -> None:
         rf"[{chi['lower']:.9f}, {chi['upper']:.9f}] \\",
     ]
     _write("response_results.tex", out)
+
+
+# Display-only abbreviations for the matched table's arm column, applied after
+# the stored A-CASE -> DA-CASE mapping and never written back to the records.
+# The two warm-start labels are long enough to overrun the full-width table:
+# spelling "determinant" out in them pushes the row 11.6pt past the margin,
+# which LaTeX reports as an overfull hbox and prints into the gutter.  "det."
+# is unambiguous beside the unabbreviated "DA-CASE (determinant)" row above.
+_MATCHED_ARM_ABBREVIATIONS = {
+    "DA-CASE (determinant, ADAPT warm start)":
+        "DA-CASE (det., ADAPT warm start)",
+    "DA-CASE (determinant, sector-projected ADAPT warm start)":
+        "DA-CASE (det., sector-projected ADAPT warm start)",
+}
+
+
+def _matched_display_arm(stored: str) -> str:
+    renamed = stored.replace("A-CASE", "DA-CASE")
+    return _MATCHED_ARM_ABBREVIATIONS.get(renamed, renamed)
 
 
 def matched_table() -> None:
@@ -291,7 +335,7 @@ def matched_table() -> None:
         error = row["error_millihartree"]
         error_cell = (f"{error:.3f}" if abs(error) >= 5e-4
                       else _sci(error, 2).replace("$", "$"))
-        display_arm = row["arm"].replace("A-CASE", "DA-CASE")
+        display_arm = _matched_display_arm(row["arm"])
         rows.append(
             rf"{display_arm} & {basis} & {error_cell} & "
             rf"{kappa} & {row['state_evaluation_contexts']:,} & "
@@ -331,6 +375,36 @@ def clifford_hierarchy_table() -> None:
     _write("clifford_hierarchy.tex", out)
 
 
+def finite_shot_table() -> None:
+    """Allocation x truncation cross on the fixed four-qubit projected bank."""
+    record = json.loads(FINITE_SHOT.read_text())
+    arms = record["arms"]
+    exact_rank = record["setting"]["exact_effective_rank"]
+    replicas = arms["uniform_fixed"]["replicas"]
+    allocations = (("uniform", "uniform"), ("group_optimal", "covariance-aware"))
+    rules = (("fixed", "fixed"), ("calibrated_uniform", "calibrated (uniform)"),
+             ("calibrated_per_mode", "calibrated (per mode)"))
+    out: list[str] = []
+    for key, allocation in allocations:
+        if out:
+            out.append(r"\colrule")
+        for suffix, rule in rules:
+            arm = arms[f"{key}_{suffix}"]
+            out.append(
+                f"{allocation} & {rule} & "
+                f"{arm['median_absolute_error_millihartree']:.2f} & "
+                f"{arm['p95_absolute_error_millihartree']:.2f} & "
+                f"{arm['max_absolute_error_millihartree']:.1f} & "
+                f"{arm['rmse_millihartree']:.2f} & "
+                f"{arm['bias_millihartree']:+.2f} & "
+                f"{arm['catastrophic_error_count']}/{replicas} & "
+                f"{arm['exact_rank_count']}/{replicas}"
+                + r" \\")
+            allocation = ""
+    out.append(rf"% exact effective rank {exact_rank}; {replicas} replicas")
+    _write("finite_shot.tex", out)
+
+
 def conditioning_table() -> None:
     rows = []
     for path in (RESPONSE, RESPONSE_ILL):
@@ -359,6 +433,7 @@ def main() -> None:
     phase12_primary_table()
     response_table()
     conditioning_table()
+    finite_shot_table()
     print(TABLES)
 
 

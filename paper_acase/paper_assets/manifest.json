@@ -2,8 +2,8 @@
   "figures": {
     "conditioning_bands.pdf": {
       "sources": {
-        "paper_acase/data/response_bootstrap.json": "4083ccc05f9ca5dbdfbeac51eed36c1811ca7317586df4f60e0b8bb7adfabc58",
-        "paper_acase/data/response_bootstrap_illconditioned.json": "89e97efc6d3e0efbdf951ffdf44b788a152c36249170c1b447482d6988d4fd53"
+        "paper_acase/data/response_bootstrap.json": "4c125f98169ec837cd4327fd45586c4cca6921301142f0c23d73a4134e0555fa",
+        "paper_acase/data/response_bootstrap_illconditioned.json": "a147700ce4ae8ec4521d124878ba0f21175d03c02fe1dd3a3949d21635cbe534"
       }
     },
     "pipeline.pdf": {
@@ -11,7 +11,7 @@
     },
     "response_bootstrap.pdf": {
       "sources": {
-        "paper_acase/data/response_bootstrap.json": "4083ccc05f9ca5dbdfbeac51eed36c1811ca7317586df4f60e0b8bb7adfabc58"
+        "paper_acase/data/response_bootstrap.json": "4c125f98169ec837cd4327fd45586c4cca6921301142f0c23d73a4134e0555fa"
       }
     },
     "validation_ladder.pdf": {

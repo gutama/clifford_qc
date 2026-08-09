@@ -37,8 +37,8 @@ from .configuration import (
     configuration_haar_packets, determinant_program, state_sector,
 )
 from .symmetry import (
-    infer_reference_sector, reference_sector_leakage,
-    subspace_sector_certificate,
+    infer_reference_sector, project_reference_to_sector,
+    reference_sector_leakage, subspace_sector_certificate,
 )
 from .fermionic_generators import (
     determinant_excitations, fermionic_excitation_generators,
@@ -51,7 +51,8 @@ from .reference import (
 from .response import (ResponseLine, broaden_response, lehmann_spectrum,
                        static_susceptibility)
 from .measured_response import (
-    BootstrapResponse, MeasuredResponseSpectrum, ResponseLineUncertainty,
+    BootstrapResponse, MeasuredResponseSpectrum, ReplicaOutcome,
+    ResponseLineUncertainty,
     ResponseMeasurement, bootstrap_response,
 )
 from .solver import (
@@ -98,6 +99,7 @@ __all__ = [
     "score_target_overlap", "sector_leakage", "select_candidate",
     "select_target_candidate", "infer_reference_sector",
     "reference_sector_leakage", "subspace_sector_certificate",
+    "project_reference_to_sector",
     "ConfigurationOrdering", "HaarPacketNode", "MultiresolutionResult",
     "configuration_ordering", "configuration_packet_hierarchy",
     "run_coarse_to_fine_acase",
@@ -117,7 +119,7 @@ __all__ = [
     "dense_subspace", "pure_statevector",
     "ResponseLine", "broaden_response", "lehmann_spectrum",
     "static_susceptibility",
-    "BootstrapResponse", "MeasuredResponseSpectrum",
+    "BootstrapResponse", "MeasuredResponseSpectrum", "ReplicaOutcome",
     "ResponseLineUncertainty", "ResponseMeasurement", "bootstrap_response",
     "DEFAULT_MAX_CONDITION", "DEFAULT_NORM_FLOOR", "DEFAULT_TAU_S",
     "SubspaceResult", "ProjectedProblem", "canonical_eigh", "projected_matrices",

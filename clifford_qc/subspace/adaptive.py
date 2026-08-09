@@ -249,6 +249,7 @@ class ACASEConfig:
     leakage_tol: float | None = None
     leakage_mode: str = "operator"
     sector_target: tuple[int, float] | None = None
+    spin_ordering: str | tuple = "interleaved"
     exact_ground_energy: float | None = None
     target_error: float | None = None
     tau_s: float = DEFAULT_TAU_S
@@ -283,6 +284,11 @@ class ACASEConfig:
                 raise ValueError("sector_target particle number must be a nonnegative integer")
             if abs(2.0 * float(sz) - round(2.0 * float(sz))) > 1e-12:
                 raise ValueError("sector_target S_z must be an integer or half-integer")
+        if isinstance(self.spin_ordering, str):
+            if self.spin_ordering not in ("interleaved", "blocked"):
+                raise ValueError(
+                    "spin_ordering must be 'interleaved', 'blocked', or a "
+                    "length-n sequence of spin labels")
         if self.target_error is not None and self.target_error < 0.0:
             raise ValueError("target_error must be nonnegative")
         if self.tau_s < 0.0 or self.rel_tau < 0.0:
@@ -399,18 +405,20 @@ def _aggregate(values: Sequence[float], aggregation: str) -> float:
 
 def _candidate_sector_leakage(bank: MatrixElementBank, candidate: int, *,
                               leakage_tol: float, leakage_mode: str,
-                              sector_target: tuple[int, float] | None
+                              sector_target: tuple[int, float] | None,
+                              spin_ordering="interleaved",
                               ) -> tuple[dict[str, float], float]:
     """Return diagnostic fields and the scalar used by the sector gate."""
     generator = bank.generator(candidate)
-    operator = sector_leakage(generator)
+    operator = sector_leakage(generator, spin_ordering=spin_ordering)
     operator_worst = max(operator.values())
     if leakage_mode == "operator" or (
             leakage_mode == "operator_then_reference" and
             operator_worst <= leakage_tol):
         return operator, operator_worst
     conditioned = reference_sector_leakage(
-        generator, bank.reference, sector_target=sector_target)
+        generator, bank.reference, sector_target=sector_target,
+        spin_ordering=spin_ordering)
     diagnostic = dict(conditioned)
     if leakage_mode == "operator_then_reference":
         diagnostic.update({f"operator_{key}": value
@@ -426,6 +434,7 @@ def score_candidate(bank: MatrixElementBank, basis: Sequence[int],
                     gamma: float = 0.0, leakage_tol: float | None = None,
                     leakage_mode: str = "operator",
                     sector_target: tuple[int, float] | None = None,
+                    spin_ordering="interleaved",
                     ) -> CandidateScore:
     """Weigh one candidate against the Ritz pairs ``roots`` of ``result``.
 
@@ -451,7 +460,8 @@ def score_candidate(bank: MatrixElementBank, basis: Sequence[int],
     if leakage_tol is not None:
         leakage, worst = _candidate_sector_leakage(
             bank, candidate, leakage_tol=leakage_tol,
-            leakage_mode=leakage_mode, sector_target=sector_target)
+            leakage_mode=leakage_mode, sector_target=sector_target,
+            spin_ordering=spin_ordering)
         if worst > leakage_tol:
             return CandidateScore(candidate, label, 0.0, 0.0, 0.0, 0, 0.0,
                                   rejected=f"sector leakage {worst:.2e}",
@@ -545,7 +555,8 @@ def _score_target_overlap_precomputed(
         candidate: int, context: _TargetOverlapContext, *,
         min_orthogonality: float = DEFAULT_MIN_ORTHOGONALITY,
         leakage_tol: float | None = None, leakage_mode: str = "operator",
-        sector_target: tuple[int, float] | None = None) -> TargetOverlapScore:
+        sector_target: tuple[int, float] | None = None,
+        spin_ordering="interleaved") -> TargetOverlapScore:
     """Score one candidate using target data shared by the whole frontier."""
     label = bank.generator(candidate).label
     leakage = None
@@ -557,7 +568,8 @@ def _score_target_overlap_precomputed(
     if leakage_tol is not None:
         leakage, worst = _candidate_sector_leakage(
             bank, candidate, leakage_tol=leakage_tol,
-            leakage_mode=leakage_mode, sector_target=sector_target)
+            leakage_mode=leakage_mode, sector_target=sector_target,
+            spin_ordering=spin_ordering)
         if worst > leakage_tol:
             return TargetOverlapScore(
                 candidate, label, 0.0, 0.0, 0.0,
@@ -593,6 +605,7 @@ def score_target_overlap(bank: MatrixElementBank, basis: Sequence[int],
                          leakage_tol: float | None = None,
                          leakage_mode: str = "operator",
                          sector_target: tuple[int, float] | None = None,
+                         spin_ordering="interleaved",
                          ) -> TargetOverlapScore:
     """Score the new target weight captured by a candidate direction (§11A).
 
@@ -612,7 +625,8 @@ def score_target_overlap(bank: MatrixElementBank, basis: Sequence[int],
     return _score_target_overlap_precomputed(
         bank, basis, result, candidate, context,
         min_orthogonality=min_orthogonality, leakage_tol=leakage_tol,
-        leakage_mode=leakage_mode, sector_target=sector_target)
+        leakage_mode=leakage_mode, sector_target=sector_target,
+        spin_ordering=spin_ordering)
 
 
 def select_target_candidate(scores: Sequence[TargetOverlapScore]
@@ -653,6 +667,7 @@ def _evaluate_acase_step(bank: MatrixElementBank, state: ACASEState,
                 min_orthogonality=config.min_orthogonality, gamma=config.gamma,
                 leakage_tol=config.leakage_tol, leakage_mode=config.leakage_mode,
                 sector_target=config.sector_target,
+                spin_ordering=config.spin_ordering,
             )
             for index in remaining
         ]
@@ -680,6 +695,7 @@ def _evaluate_acase_step(bank: MatrixElementBank, state: ACASEState,
                 min_orthogonality=config.min_orthogonality,
                 leakage_tol=config.leakage_tol, leakage_mode=config.leakage_mode,
                 sector_target=config.sector_target,
+                spin_ordering=config.spin_ordering,
             )
             for index in remaining
         ]
@@ -698,6 +714,7 @@ def _evaluate_acase_step(bank: MatrixElementBank, state: ACASEState,
             min_orthogonality=config.min_orthogonality, gamma=config.gamma,
             leakage_tol=config.leakage_tol, leakage_mode=config.leakage_mode,
             sector_target=config.sector_target,
+            spin_ordering=config.spin_ordering,
         )
         selection_score = targeted.score
         target_gain = targeted.overlap_gain
@@ -761,6 +778,7 @@ def run_acase(rho: MV, hamiltonian, candidates: Sequence, *,
               leakage_tol: float | None = None,
               leakage_mode: str = "operator",
               sector_target: tuple[int, float] | None = None,
+              spin_ordering="interleaved",
               exact_ground_energy: float | None = None,
               target_error: float | None = None,
               tau_s: float = DEFAULT_TAU_S, rel_tau: float = 0.0,
@@ -783,7 +801,7 @@ def run_acase(rho: MV, hamiltonian, candidates: Sequence, *,
         min_lowering=min_lowering, min_orthogonality=min_orthogonality,
         gamma=gamma, criterion=criterion, min_target_overlap=min_target_overlap,
         leakage_tol=leakage_tol, leakage_mode=leakage_mode,
-        sector_target=sector_target,
+        sector_target=sector_target, spin_ordering=spin_ordering,
         exact_ground_energy=exact_ground_energy, target_error=target_error,
         tau_s=tau_s, rel_tau=rel_tau, max_condition=max_condition,
     )
@@ -857,11 +875,13 @@ def run_acase(rho: MV, hamiltonian, candidates: Sequence, *,
         "overlap_target": None if target is None else target.label,
         "leakage_mode": config.leakage_mode,
         "sector_target": config.sector_target,
+        "spin_ordering": config.spin_ordering,
     })
     if config.leakage_tol is not None and config.leakage_mode != "operator":
         certificate = subspace_sector_certificate(
             bank.reference, [bank.generator(index) for index in state.basis],
-            sector_target=config.sector_target)
+            sector_target=config.sector_target,
+            spin_ordering=config.spin_ordering)
         resources["sector_certificate"] = certificate
         if certificate["max_sector_leakage"] > config.leakage_tol:
             raise ValueError(
