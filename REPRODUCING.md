@@ -124,9 +124,12 @@ The standalone DA-CASE paper's dyadic Clifford measurement hierarchy uses the
 retained H4 and BeH2 banks:
 
 DA-CASE is the paper-level name for the complete architecture: *Dyadic
-Adaptive Clifford-Algebra Subspace Eigensolver*.  For provenance and backward
-compatibility, source identifiers such as ``acase_*`` and stored JSON arm
-labels containing ``A-CASE`` are not renamed in-place.
+Adaptive Clifford-Algebra Subspace Eigensolver*.  The adaptive subspace engine
+is followed by a configurable dyadic Clifford measurement stage; its ``k=1``
+endpoint is exactly QWC and remains the matched-ledger choice for comparability.
+For provenance and backward compatibility, source identifiers such as
+``acase_*`` and stored JSON arm labels containing ``A-CASE`` are not
+renamed in-place.
 
 ```bash
 python benchmarks/run_clifford_hierarchy.py --system h4
@@ -142,7 +145,9 @@ run on `data/beh2_sto3g_r1.3264.FCIDUMP`, which
 `benchmarks/make_beh2_fcidump.py` regenerates from PySCF under the `chemistry`
 extra. Both records report logical all-to-all CX counts and depth only;
 topology routing, device noise, and mitigation are deliberately outside that
-experiment.
+experiment. The tableau elimination is a constructive synthesis rather than a
+CX-minimizing compiler, and the paper's two-currency break-even proxy omits
+single-qubit Clifford costs (the JSON rows still retain their H/S counts).
 
 `check_docs.py` verifies the documented pair by collection. It reports a
 skip when the installed extras do not match the environment above; pass
