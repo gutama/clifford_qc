@@ -150,17 +150,6 @@ def main() -> int:
     text = TEX.read_text()
     problems: list[str] = []
 
-    if PHASE12_TABLE.exists():
-        headers = set(PHASE12_TABLE.read_text(encoding="utf-8").splitlines()[:2])
-        expected = {
-            f"% source-git-blob-sha: {_git_blob_sha(PHASE12_PRIMARY)}",
-            f"% generator-git-blob-sha: {_git_blob_sha(TABLE_GENERATOR)}",
-        }
-        if headers != expected:
-            problems.append(
-                "phase12_primary.tex is stale against its result record or "
-                "table generator (run paper_acase/make_tables.py)")
-
     opens = collections.Counter(re.findall(r"\\begin\{(\w+\*?)\}", text))
     closes = collections.Counter(re.findall(r"\\end\{(\w+\*?)\}", text))
     for env in set(opens) | set(closes):
@@ -197,6 +186,17 @@ def main() -> int:
         if not target.exists() and not target.with_suffix(".tex").exists():
             problems.append(f"missing input: {match.group(1)} "
                             "(run paper_acase/make_tables.py)")
+
+    if PHASE12_TABLE.exists():
+        headers = set(PHASE12_TABLE.read_text(encoding="utf-8").splitlines()[:2])
+        expected = {
+            f"% source-git-blob-sha: {_git_blob_sha(PHASE12_PRIMARY)}",
+            f"% generator-git-blob-sha: {_git_blob_sha(TABLE_GENERATOR)}",
+        }
+        if headers != expected:
+            problems.append(
+                "phase12_primary.tex is stale against its result record or "
+                "table generator (run paper_acase/make_tables.py)")
 
     if re.search(r"\\usepackage(?:\[[^]]*\])?\{array\}", text):
         problems.append(
