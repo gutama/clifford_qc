@@ -23,11 +23,13 @@ again, while citing the operator-centric Clifford-algebra paper for the shared
 software representation.
 
 **Naming boundary.** DA-CASE means *Dyadic Adaptive Clifford-Algebra Subspace
-Eigensolver*: the existing adaptive subspace engine plus the dyadic Clifford
-measurement hierarchy.  Source APIs, filenames, and stored benchmark arm
-labels retain `acase` / `A-CASE` for provenance and backward compatibility;
-paper table generation maps those stored labels to `DA-CASE` without mutating
-the records.
+Eigensolver*: the existing adaptive subspace engine followed by a configurable
+dyadic Clifford measurement stage.  Its $k=1$ endpoint is exactly QWC and is
+kept in the matched ledgers for comparability; $k>1$ changes only measurement
+compatibility and block-local Clifford synthesis.  Source APIs, filenames, and
+stored benchmark arm labels retain `acase` / `A-CASE` for provenance and
+backward compatibility; paper table generation maps those stored labels to
+`DA-CASE` without mutating the records.
 
 ## Development and review access
 
