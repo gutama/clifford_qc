@@ -72,7 +72,7 @@ def execution_provenance() -> dict[str, Any]:
         "dependencies": {
             name: _version(name)
             for name in ("numpy", "scipy", "pyscf", "openfermion",
-                         "openfermionpyscf")
+                         "openfermionpyscf", "stim")
         },
         "platform": {
             "system": platform.system(),

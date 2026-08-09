@@ -1,4 +1,4 @@
-"""Generate all numerical table fragments for the standalone A-CASE paper."""
+"""Generate all numerical table fragments for the standalone DA-CASE paper."""
 
 from __future__ import annotations
 
@@ -17,14 +17,12 @@ WARM = ROOT / "benchmarks" / "reference_results" / "warm_start_h4.json"
 KRYLOV_WIDTH = ROOT / "benchmarks" / "reference_results" / "krylov_width.json"
 MATCHED = ROOT / "benchmarks" / "reference_results" / "matched_h4.json"
 PHASE12_PRIMARY = ROOT / "benchmarks" / "results" / "phase12_paper_b_five_system.json"
+CLIFFORD_HIERARCHY = tuple(
+    ROOT / "benchmarks" / "reference_results" / f"clifford_hierarchy_{system}.json"
+    for system in ("h4", "beh2"))
 DIMER = ROOT / "examples" / "data" / "wannier_hubbard_dimer.json"
 RESPONSE = HERE / "data" / "response_bootstrap.json"
 RESPONSE_ILL = HERE / "data" / "response_bootstrap_illconditioned.json"
-
-
-def _write(name: str, rows: list[str]) -> None:
-    TABLES.mkdir(parents=True, exist_ok=True)
-    (TABLES / name).write_text("\n".join(rows) + "\n")
 
 
 def _git_blob_sha(path: Path) -> str:
@@ -32,6 +30,11 @@ def _git_blob_sha(path: Path) -> str:
     data = path.read_bytes()
     header = f"blob {len(data)}\0".encode()
     return hashlib.sha1(header + data, usedforsecurity=False).hexdigest()
+
+
+def _write(name: str, rows: list[str]) -> None:
+    TABLES.mkdir(parents=True, exist_ok=True)
+    (TABLES / name).write_text("\n".join(rows) + "\n")
 
 
 def _sci(value: float, digits: int = 2) -> str:
@@ -87,7 +90,7 @@ def h4_table() -> None:
         rf"External determinant FCI & {ref:.15f} & --- & --- \\",
         rf"Mapped sector oracle & {mapped['ground_energy']:.15f} & "
         rf"{_sci(mapped['external_fci_error'])} Ha & 36 \\",
-        rf"Adaptive A-CASE & {adaptive['ground_energy']:.15f} & "
+        rf"DA-CASE & {adaptive['ground_energy']:.15f} & "
         rf"{adaptive['error_millihartree']:.6f} mHa & "
         rf"{adaptive['basis_size']} \\",
         rf"Complete singles/doubles & {sd['ground_energy']:.15f} & "
@@ -175,7 +178,6 @@ def ladder_table() -> None:
     _write("ladder_results.tex", out)
 
 
-
 def phase12_primary_table() -> None:
     """Matched-budget Phase 12 rows from the committed five-system record."""
     record = json.loads(PHASE12_PRIMARY.read_text())
@@ -252,7 +254,7 @@ def matched_table() -> None:
     ``state_evaluation_contexts`` is deliberately not called a preparation
     count: every shot of every physical measurement setting requires a fresh
     preparation. ``selection_qwc_group_evaluations`` sums settings across
-    changing-state selection rounds; for fixed-reference A-CASE it is the one
+    changing-state selection rounds; for fixed-reference DA-CASE it is the one
     cached union. ``---`` marks a column an arm does not have. ADAPT-GCIM's
     final object is instead counted as Hamiltonian/overlap transition pairs.
     """
@@ -289,12 +291,44 @@ def matched_table() -> None:
         error = row["error_millihartree"]
         error_cell = (f"{error:.3f}" if abs(error) >= 5e-4
                       else _sci(error, 2).replace("$", "$"))
+        display_arm = row["arm"].replace("A-CASE", "DA-CASE")
         rows.append(
-            rf"{row['arm']} & {basis} & {error_cell} & "
+            rf"{display_arm} & {basis} & {error_cell} & "
             rf"{kappa} & {row['state_evaluation_contexts']:,} & "
             rf"{row['ansatz_rotors']} & {selection_cell} & {words_cell} & "
             rf"{final_cell} & {pair_cell} \\")
     _write("matched_results.tex", rows)
+
+
+def clifford_hierarchy_table() -> None:
+    """Both eight-qubit hierarchy records, one block per system."""
+    out: list[str] = []
+    for path in CLIFFORD_HIERARCHY:
+        record = json.loads(path.read_text())
+        if out:
+            out.append(r"\colrule")
+        # A leading system column rather than a spanning header row: a
+        # \multicolumn may not be the first token of an \input fragment inside
+        # a TeX alignment.
+        system = (rf"{record['label']} ($M={record['basis_size']}$, "
+                  rf"$W={record['word_universe']:,}$)")
+        for row in record["rows"]:
+            block = row["block_size"]
+            label = "$1$ (QWC)" if block == 1 else (
+                f"${block}$ (full)" if block == record["n_qubits"]
+                else f"${block}$")
+            ratio = row["cx_to_preparation_cost_ratio_vs_qwc"]
+            out.append(
+                f"{system} & {label} & {row['settings']} & "
+                f"{row['word_samples_per_preparation']:.2f} & "
+                f"{row['logical_cx_per_sweep']} & "
+                f"{row['mean_logical_cx_depth']:.2f} & "
+                f"{row['max_logical_cx_depth']} & "
+                f"{row['state_preparations_at_uniform_shots'] / 1e6:.3f} & "
+                + ("---" if ratio is None else f"{ratio:.3f}")
+                + r" \\")
+            system = ""
+    _write("clifford_hierarchy.tex", out)
 
 
 def conditioning_table() -> None:
@@ -320,6 +354,7 @@ def main() -> None:
     h4_table()
     warm_start_table()
     matched_table()
+    clifford_hierarchy_table()
     ladder_table()
     phase12_primary_table()
     response_table()

@@ -119,6 +119,36 @@ pip install -e .[stim]               # stabilizer backend / Phase 4
 pip install -e .[bridges]            # stim + pytket + pennylane + pyzx + openfermion
 ```
 
+The standalone DA-CASE paper's dyadic Clifford measurement hierarchy uses the
+``stim`` extra to synthesize and verify exact logical diagonalizers for the
+retained H4 and BeH2 banks:
+
+DA-CASE is the paper-level name for the complete architecture: *Dyadic
+Adaptive Clifford-Algebra Subspace Eigensolver*.  The adaptive subspace engine
+is followed by a configurable dyadic Clifford measurement stage; its ``k=1``
+endpoint is exactly QWC and remains the matched-ledger choice for comparability.
+For provenance and backward compatibility, source identifiers such as
+``acase_*`` and stored JSON arm labels containing ``A-CASE`` are not
+renamed in-place.
+
+```bash
+python benchmarks/run_clifford_hierarchy.py --system h4
+python benchmarks/run_clifford_hierarchy.py --system beh2
+python benchmarks/check_clifford_hierarchy.py
+```
+
+This writes `reference_results/clifford_hierarchy_h4.json` and
+`reference_results/clifford_hierarchy_beh2.json`. The H4 bank is reconstructed
+from the retained labels in `matched_h4.json`, so the hierarchy and the matched
+ledger share one bank by construction; the BeH2 bank is an independent DA-CASE
+run on `data/beh2_sto3g_r1.3264.FCIDUMP`, which
+`benchmarks/make_beh2_fcidump.py` regenerates from PySCF under the `chemistry`
+extra. Both records report logical all-to-all CX counts and depth only;
+topology routing, device noise, and mitigation are deliberately outside that
+experiment. The tableau elimination is a constructive synthesis rather than a
+CX-minimizing compiler, and the paper's two-currency break-even proxy omits
+single-qubit Clifford costs (the JSON rows still retain their H/S counts).
+
 `check_docs.py` verifies the documented pair by collection. It reports a
 skip when the installed extras do not match the environment above; pass
 `--require-test-count` to turn that mismatch into a failure, which is how
@@ -255,13 +285,13 @@ an upstream Wannier/embedding workflow would use:
 
 ```text
 Hermitian one-body matrix + onsite U + explicit reference sector
-    -> Jordan-Wigner Hamiltonian -> A-CASE
+    -> Jordan-Wigner Hamiltonian -> DA-CASE
     -> energy + state coefficients + correlations + Lehmann response
 ```
 
 Expected invariants (minor last-digit formatting may vary):
 
-- sector exact and adaptive A-CASE energies both `-0.828427125 eV`;
+- sector exact and adaptive DA-CASE energies both `-0.828427125 eV`;
 - absolute energy mismatch below `1e-12 eV`;
 - complete response basis `M=4`, rank `4`, `kappa(S)=1`;
 - singlet diagnostic `<S^2>` below `1e-12`;
@@ -315,7 +345,7 @@ Parameters are predeclared at the top of the script (`CHEMICAL_ACCURACY`,
 ## Configuration-space Haar packet tier (research benchmark)
 
 The negative orbital-basis result above does not test a change of basis among
-virtual A-CASE configurations.  This separate benchmark orders every
+virtual DA-CASE configurations.  This separate benchmark orders every
 non-reference determinant in the fixed `(N, S_z)` sector by excitation rank,
 doublon count, charge pattern, and spin pattern; constructs an orthogonal
 finite tree-Haar basis over that order; keeps only details with `S_A <= 16`;
@@ -365,7 +395,7 @@ The committed reference record is
 - sector exact `E0 = -2.180316614324 Ha`;
 - difference from the external PySCF determinant-space FCI result below
   `1e-10 Ha`;
-- adaptive A-CASE at 8 additions: `M=9`, `W=7371`,
+- adaptive DA-CASE at 8 additions: `M=9`, `W=7371`,
   error `3.018781 mHa`;
 - complete singles/doubles coordinate space: `M=27`,
   error `0.765862 mHa` (chemical accuracy).
@@ -377,7 +407,7 @@ than weakening coefficient tolerances.
 
 ### Varying the reference state
 
-The adaptive arm above misses chemical accuracy at its declared A-CASE budget.
+The adaptive arm above misses chemical accuracy at its declared DA-CASE budget.
 This experiment asks whether changing the reference is sufficient to cross the
 accuracy threshold without increasing that nine-vector subspace:
 
@@ -387,7 +417,7 @@ python benchmarks/run_warm_start.py \
 python benchmarks/check_warm_start.py
 ```
 
-Same FCIDUMP, same A-CASE candidate pool, and same eight additions; `rho`
+Same FCIDUMP, same DA-CASE candidate pool, and same eight additions; `rho`
 changes from the Hartree-Fock determinant to an ADAPT-VQE state. The ADAPT
 stage is additional work, and the record includes its pool-gradient
 evaluations, optimizer evaluations, and state-preparation rotor count.
@@ -399,7 +429,7 @@ Expected results
   `kappa(S)=1.02`, `W=7510`, 319 active-pool gradient evaluations,
   15 optimizer evaluations, and 2 state-preparation rotors;
 - the ADAPT state alone is `27.091 mHa`, an order of magnitude worse than the
-  cold A-CASE result it improves;
+  cold DA-CASE result it improves;
 - deeper warm starts are better states and give worse subspaces: `0.612 mHa`
   at `k=4` and `0.768 mHa` at `k=6`.
 
@@ -409,8 +439,8 @@ of the determinant excitations rather than through the OpenFermion-backed
 
 Selection and optimization are exact in this record. Therefore its zero
 selection-shot count is an exact-simulation label, not an end-to-end hardware
-resource estimate. The hybrid result holds the A-CASE budget fixed; it does
-not claim that the total ADAPT+A-CASE cost equals the cold A-CASE cost.
+resource estimate. The hybrid result holds the DA-CASE budget fixed; it does
+not claim that the total ADAPT+DA-CASE cost equals the cold DA-CASE cost.
 
 ### Matched-contract cost comparison, including exact ADAPT-GCIM
 
@@ -441,7 +471,7 @@ results
   preparation executions; physical preparations occur once per setting-shot;
 - ADAPT-VQE's 2424-word selection union has 452 QWC settings and is paid on
   eight changing selection states, giving 3616 selection setting-evaluations.
-  A-CASE's fixed-reference selection banks contain 15783/14401 words but only
+  DA-CASE's fixed-reference selection banks contain 15783/14401 words but only
   1681/1672 QWC settings at determinant/word resolution, paid once. Under
   uniform `R` shots per setting the selection circuit/preparation counts are
   therefore `3616*R` versus `1681*R`/`1672*R`;
@@ -455,15 +485,15 @@ results
   (`k=4`, `M=8`) has `13.364 mHa` error, effective rank 6, and
   `kappa(S)=32.9`; the iteration-matched arm (`k=8`, `M=16`) has
   `10.674 mHa` error, rank 12, and `kappa(S)=1.09e3`. Both use the published
-  exact overlap cutoff `1e-13` without A-CASE's additional condition cap;
+  exact overlap cutoff `1e-13` without DA-CASE's additional condition cap;
 - those ADAPT-GCIM pencils require 36 Hamiltonian/28 off-diagonal overlap
   pairs and 136/120 pairs, respectively. They are transition measurements
   between separately prepared states, so the record deliberately does not
-  mislabel them as A-CASE's single-reference final `W`;
-- ADAPT's final Hamiltonian has 185 words/68 QWC settings; A-CASE's retained
+  mislabel them as DA-CASE's single-reference final `W`;
+- ADAPT's final Hamiltonian has 185 words/68 QWC settings; DA-CASE's retained
   word-resolution bank has 2240 words/465 settings and its determinant bank
   has 7371 words/913 settings;
-- A-CASE at determinant resolution and at word resolution return the same
+- DA-CASE at determinant resolution and at word resolution return the same
   energy to `4e-16 Ha`, the same `M=9` and `kappa(S)=1`, and the same subspace
   (all nine principal angles zero) at `W=7371` and `W=2240` respectively;
 - the word pool is rejected outright under the declared leakage tolerance
@@ -494,10 +524,10 @@ Expected results (`benchmarks/reference_results/krylov_width.json`), at the
 `1e-8` coefficient threshold the record reports:
 
 - `h2` `W=24` and `lih` `W=64`, reproducing the ladder's own tracked counts;
-- `h4_chain(r=0.9)` `W=4224` against A-CASE's `7371`;
-- `h2o_4e4o(scale=2.0)` `W=8192` against A-CASE's `7783`, the one rung where
+- `h4_chain(r=0.9)` `W=4224` against DA-CASE's `7371`;
+- `h2o_4e4o(scale=2.0)` `W=8192` against DA-CASE's `7783`, the one rung where
   the operator-generated basis is the narrower of the two;
-- `kitaev` `W=140`, equal to A-CASE, which there is a pruned Krylov basis.
+- `kitaev` `W=140`, equal to DA-CASE, which there is a pruned Krylov basis.
 
 The threshold matters: repeated multiplication accumulates round-off, so the
 raw Krylov count on `h4_chain(r=0.9)` fluctuates near `8184` rather than
@@ -531,7 +561,7 @@ The intervals are percentile diagnostics labelled `heuristic`:
 - at least 80% of replicas must remain usable by default;
 - broadened-response bands are pointwise, not simultaneous.
 
-## A-CASE validation ladder (Phase 7, `chemistry` extra)
+## DA-CASE validation ladder (Phase 7, `chemistry` extra)
 
 ```bash
 python benchmarks/run_acase_ladder.py \
@@ -557,7 +587,7 @@ Four conventions in the record are choices, not defaults, and each is
 recorded in the row that made it:
 
 - **The error column is measured against the reference's own symmetry
-  sector**, not against the global ground state. A-CASE never leaves the
+  sector**, not against the global ground state. DA-CASE never leaves the
   sector its reference lives in, and a grand-canonical Hubbard cluster's
   global minimum sits at a different filling. Each row carries the `sector`
   it was scored in.
@@ -575,7 +605,7 @@ recorded in the row that made it:
   sector.** `sector_leakage` measures `||[A,N]||/||A||` and the same for
   `S_z`, and it sees a generator alone, so on the Kitaev cluster — one qubit
   per site, no Jordan–Wigner transformation, no particle number — it rejects
-  every candidate and A-CASE reports a basis of size one at the reference
+  every candidate and DA-CASE reports a basis of size one at the reference
   energy. That reads as a method failure and is a configuration error. Rows
   carry `leakage_filter` saying whether the tolerance was applied or dropped.
   On the fermionic rungs the excitation candidates conserve both symmetries
@@ -587,7 +617,7 @@ recorded in the row that made it:
   through the cheap route and sets `support_tracked: false` rather than
   reporting guessed support columns.
 
-Certified A-CASE runs on the eight-qubit rungs as `acase_certified_n8`, at
+Certified DA-CASE runs on the eight-qubit rungs as `acase_certified_n8`, at
 32 000 shots per group against the four-qubit rungs' 4 000. It needs the larger
 budget: at 4 000 it abstains immediately on H₄, which is a correct certified
 outcome rather than a failure, and the extra shots are nearly free because the
@@ -620,6 +650,26 @@ sector of the state it names, which `subspace.state_sector` reports.
 Costs on one laptop-class core: the four-qubit rungs are seconds each, the
 `h4_*` rungs a few minutes apiece, and `h2o_cas8e6o` (12 qubits) dominates the
 total. The certified eight-qubit rows add roughly three minutes each.
+
+## Phase 10--12 paper-level drivers
+
+Four orchestration/replication runners sit above the primitive benchmarks
+documented in the sections above:
+
+- `benchmarks/run_phase10_hybrid.py` runs the Phase 10 QSCI x DA-CASE
+  primary-system capability comparison.
+- `benchmarks/run_packet_seed_ensemble.py` runs the Phase 11 coarse-to-fine
+  packet seed ensemble; inference resamples whole seeds.
+- `benchmarks/run_m7_seed_replication.py` replicates the sampling-dependent
+  Phase 12 matched-budget `M=7` arms across seeds and packet orderings.
+- `benchmarks/run_phase12_paper_b.py` assembles the integrated Paper B
+  resource ledger and computes Pareto frontiers only within one evidence
+  category.
+
+Their QSCI defaults use the exact sector ground state as a validation oracle,
+not an implementable state-preparation claim.  The Phase 10 and 12 H$_4$
+systems built through PySCF require the `chemistry` extra; dependency-light
+FCIDUMP rungs remain available for the matching checks.
 
 ## Demos (not committed as artifacts)
 
