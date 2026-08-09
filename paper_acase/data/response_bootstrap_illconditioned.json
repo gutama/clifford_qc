@@ -18,1207 +18,1808 @@
       "solver": 0
     },
     "method": "grouped nonparametric percentile bootstrap",
+    "minimum_success_fraction": 0.01,
     "pointwise_not_simultaneous": true,
     "replica_census": [
       {
+        "controlling_mode": 3,
         "effective_rank": 4,
         "index": 0,
         "outcome": "accepted",
-        "overlap_eigenvalue_min": 0.0005679515770722861
+        "overlap_eigenvalue_min": 0.0005679515770722861,
+        "overlap_threshold": 1e-10,
+        "rank_decision_margin": 0.0005679514770722861
       },
       {
+        "controlling_mode": 3,
         "effective_rank": 4,
         "index": 1,
         "outcome": "accepted",
-        "overlap_eigenvalue_min": 0.0010317615051960148
+        "overlap_eigenvalue_min": 0.0010317615051960148,
+        "overlap_threshold": 1e-10,
+        "rank_decision_margin": 0.0010317614051960147
       },
       {
+        "controlling_mode": 3,
         "effective_rank": 3,
         "index": 2,
         "outcome": "rank",
-        "overlap_eigenvalue_min": -1.6975909413708963e-05
+        "overlap_eigenvalue_min": -1.6975909413708963e-05,
+        "overlap_threshold": 1e-10,
+        "rank_decision_margin": -1.6976009413708963e-05
       },
       {
+        "controlling_mode": 3,
         "effective_rank": 3,
         "index": 3,
         "outcome": "rank",
-        "overlap_eigenvalue_min": -0.00024853463387619667
+        "overlap_eigenvalue_min": -0.00024853463387619667,
+        "overlap_threshold": 1e-10,
+        "rank_decision_margin": -0.00024853473387619665
       },
       {
+        "controlling_mode": 3,
         "effective_rank": 4,
         "index": 4,
         "outcome": "accepted",
-        "overlap_eigenvalue_min": 0.0006645661087007223
+        "overlap_eigenvalue_min": 0.0006645661087007223,
+        "overlap_threshold": 1e-10,
+        "rank_decision_margin": 0.0006645660087007222
       },
       {
+        "controlling_mode": 3,
         "effective_rank": 4,
         "index": 5,
         "outcome": "accepted",
-        "overlap_eigenvalue_min": 5.262187978033765e-05
+        "overlap_eigenvalue_min": 5.262187978033765e-05,
+        "overlap_threshold": 1e-10,
+        "rank_decision_margin": 5.262177978033765e-05
       },
       {
+        "controlling_mode": 3,
         "effective_rank": 3,
         "index": 6,
         "outcome": "rank",
-        "overlap_eigenvalue_min": -0.0005300077576833381
+        "overlap_eigenvalue_min": -0.0005300077576833381,
+        "overlap_threshold": 1e-10,
+        "rank_decision_margin": -0.0005300078576833382
       },
       {
+        "controlling_mode": 3,
         "effective_rank": 4,
         "index": 7,
         "outcome": "accepted",
-        "overlap_eigenvalue_min": 0.0023293119742966543
+        "overlap_eigenvalue_min": 0.0023293119742966543,
+        "overlap_threshold": 1e-10,
+        "rank_decision_margin": 0.0023293118742966543
       },
       {
+        "controlling_mode": 3,
         "effective_rank": 3,
         "index": 8,
         "outcome": "rank",
-        "overlap_eigenvalue_min": -0.000516793756783814
+        "overlap_eigenvalue_min": -0.000516793756783814,
+        "overlap_threshold": 1e-10,
+        "rank_decision_margin": -0.000516793856783814
       },
       {
+        "controlling_mode": 3,
         "effective_rank": 4,
         "index": 9,
         "outcome": "accepted",
-        "overlap_eigenvalue_min": 0.0008116063457432404
+        "overlap_eigenvalue_min": 0.0008116063457432404,
+        "overlap_threshold": 1e-10,
+        "rank_decision_margin": 0.0008116062457432404
       },
       {
+        "controlling_mode": 3,
         "effective_rank": 4,
         "index": 10,
         "outcome": "accepted",
-        "overlap_eigenvalue_min": 0.0007675998374261447
+        "overlap_eigenvalue_min": 0.0007675998374261447,
+        "overlap_threshold": 1e-10,
+        "rank_decision_margin": 0.0007675997374261447
       },
       {
+        "controlling_mode": 3,
         "effective_rank": 4,
         "index": 11,
         "outcome": "accepted",
-        "overlap_eigenvalue_min": 0.0007056653803766542
+        "overlap_eigenvalue_min": 0.0007056653803766542,
+        "overlap_threshold": 1e-10,
+        "rank_decision_margin": 0.0007056652803766541
       },
       {
+        "controlling_mode": 3,
         "effective_rank": 3,
         "index": 12,
         "outcome": "rank",
-        "overlap_eigenvalue_min": -0.00014054733797376948
+        "overlap_eigenvalue_min": -0.00014054733797376948,
+        "overlap_threshold": 1e-10,
+        "rank_decision_margin": -0.00014054743797376948
       },
       {
+        "controlling_mode": 3,
         "effective_rank": 3,
         "index": 13,
         "outcome": "rank",
-        "overlap_eigenvalue_min": -0.00042236610171750126
+        "overlap_eigenvalue_min": -0.00042236610171750126,
+        "overlap_threshold": 1e-10,
+        "rank_decision_margin": -0.00042236620171750124
       },
       {
+        "controlling_mode": 3,
         "effective_rank": 3,
         "index": 14,
         "outcome": "rank",
-        "overlap_eigenvalue_min": -0.0004132983155643035
+        "overlap_eigenvalue_min": -0.0004132983155643035,
+        "overlap_threshold": 1e-10,
+        "rank_decision_margin": -0.0004132984155643035
       },
       {
+        "controlling_mode": 3,
         "effective_rank": 3,
         "index": 15,
         "outcome": "rank",
-        "overlap_eigenvalue_min": -0.0009149751684957104
+        "overlap_eigenvalue_min": -0.0009149751684957104,
+        "overlap_threshold": 1e-10,
+        "rank_decision_margin": -0.0009149752684957104
       },
       {
+        "controlling_mode": 3,
         "effective_rank": 4,
         "index": 16,
         "outcome": "accepted",
-        "overlap_eigenvalue_min": 0.001796793618824467
+        "overlap_eigenvalue_min": 0.001796793618824467,
+        "overlap_threshold": 1e-10,
+        "rank_decision_margin": 0.001796793518824467
       },
       {
+        "controlling_mode": 3,
         "effective_rank": 4,
         "index": 17,
         "outcome": "accepted",
-        "overlap_eigenvalue_min": 0.0012916530707543156
+        "overlap_eigenvalue_min": 0.0012916530707543156,
+        "overlap_threshold": 1e-10,
+        "rank_decision_margin": 0.0012916529707543156
       },
       {
+        "controlling_mode": 3,
         "effective_rank": 4,
         "index": 18,
         "outcome": "accepted",
-        "overlap_eigenvalue_min": 0.00029293432896456106
+        "overlap_eigenvalue_min": 0.00029293432896456106,
+        "overlap_threshold": 1e-10,
+        "rank_decision_margin": 0.0002929342289645611
       },
       {
+        "controlling_mode": 3,
         "effective_rank": 3,
         "index": 19,
         "outcome": "rank",
-        "overlap_eigenvalue_min": -0.0007915504846830092
+        "overlap_eigenvalue_min": -0.0007915504846830092,
+        "overlap_threshold": 1e-10,
+        "rank_decision_margin": -0.0007915505846830093
       },
       {
+        "controlling_mode": 3,
         "effective_rank": 4,
         "index": 20,
         "outcome": "accepted",
-        "overlap_eigenvalue_min": 0.0003024715325288892
+        "overlap_eigenvalue_min": 0.0003024715325288892,
+        "overlap_threshold": 1e-10,
+        "rank_decision_margin": 0.00030247143252888924
       },
       {
+        "controlling_mode": 3,
         "effective_rank": 4,
         "index": 21,
         "outcome": "accepted",
-        "overlap_eigenvalue_min": 0.0005660512321658648
+        "overlap_eigenvalue_min": 0.0005660512321658648,
+        "overlap_threshold": 1e-10,
+        "rank_decision_margin": 0.0005660511321658648
       },
       {
+        "controlling_mode": 3,
         "effective_rank": 3,
         "index": 22,
         "outcome": "rank",
-        "overlap_eigenvalue_min": -0.000553717529006497
+        "overlap_eigenvalue_min": -0.000553717529006497,
+        "overlap_threshold": 1e-10,
+        "rank_decision_margin": -0.0005537176290064971
       },
       {
+        "controlling_mode": 3,
         "effective_rank": 4,
         "index": 23,
         "outcome": "accepted",
-        "overlap_eigenvalue_min": 0.00018184213211368605
+        "overlap_eigenvalue_min": 0.00018184213211368605,
+        "overlap_threshold": 1e-10,
+        "rank_decision_margin": 0.00018184203211368604
       },
       {
+        "controlling_mode": 3,
         "effective_rank": 4,
         "index": 24,
         "outcome": "accepted",
-        "overlap_eigenvalue_min": 4.7624580705514555e-05
+        "overlap_eigenvalue_min": 4.7624580705514555e-05,
+        "overlap_threshold": 1e-10,
+        "rank_decision_margin": 4.7624480705514555e-05
       },
       {
+        "controlling_mode": 3,
         "effective_rank": 4,
         "index": 25,
         "outcome": "accepted",
-        "overlap_eigenvalue_min": 0.0006338680903806262
+        "overlap_eigenvalue_min": 0.0006338680903806262,
+        "overlap_threshold": 1e-10,
+        "rank_decision_margin": 0.0006338679903806261
       },
       {
+        "controlling_mode": 3,
         "effective_rank": 4,
         "index": 26,
         "outcome": "accepted",
-        "overlap_eigenvalue_min": 0.000990670478570997
+        "overlap_eigenvalue_min": 0.000990670478570997,
+        "overlap_threshold": 1e-10,
+        "rank_decision_margin": 0.000990670378570997
       },
       {
+        "controlling_mode": 3,
         "effective_rank": 3,
         "index": 27,
         "outcome": "rank",
-        "overlap_eigenvalue_min": -0.0006408841699699408
+        "overlap_eigenvalue_min": -0.0006408841699699408,
+        "overlap_threshold": 1e-10,
+        "rank_decision_margin": -0.0006408842699699408
       },
       {
+        "controlling_mode": 3,
         "effective_rank": 4,
         "index": 28,
         "outcome": "accepted",
-        "overlap_eigenvalue_min": 0.0008735534662780931
+        "overlap_eigenvalue_min": 0.0008735534662780931,
+        "overlap_threshold": 1e-10,
+        "rank_decision_margin": 0.000873553366278093
       },
       {
+        "controlling_mode": 3,
         "effective_rank": 4,
         "index": 29,
         "outcome": "accepted",
-        "overlap_eigenvalue_min": 0.0017139286283586585
+        "overlap_eigenvalue_min": 0.0017139286283586585,
+        "overlap_threshold": 1e-10,
+        "rank_decision_margin": 0.0017139285283586585
       },
       {
+        "controlling_mode": 3,
         "effective_rank": 4,
         "index": 30,
         "outcome": "accepted",
-        "overlap_eigenvalue_min": 0.0002696171680864779
+        "overlap_eigenvalue_min": 0.0002696171680864779,
+        "overlap_threshold": 1e-10,
+        "rank_decision_margin": 0.0002696170680864779
       },
       {
+        "controlling_mode": 3,
         "effective_rank": 3,
         "index": 31,
         "outcome": "rank",
-        "overlap_eigenvalue_min": -0.00040472126298112844
+        "overlap_eigenvalue_min": -0.00040472126298112844,
+        "overlap_threshold": 1e-10,
+        "rank_decision_margin": -0.0004047213629811284
       },
       {
+        "controlling_mode": 3,
         "effective_rank": 4,
         "index": 32,
         "outcome": "accepted",
-        "overlap_eigenvalue_min": 0.0009978506945864764
+        "overlap_eigenvalue_min": 0.0009978506945864764,
+        "overlap_threshold": 1e-10,
+        "rank_decision_margin": 0.0009978505945864764
       },
       {
+        "controlling_mode": 3,
         "effective_rank": 4,
         "index": 33,
         "outcome": "accepted",
-        "overlap_eigenvalue_min": 0.0006318266429134308
+        "overlap_eigenvalue_min": 0.0006318266429134308,
+        "overlap_threshold": 1e-10,
+        "rank_decision_margin": 0.0006318265429134307
       },
       {
+        "controlling_mode": 3,
         "effective_rank": 4,
         "index": 34,
         "outcome": "accepted",
-        "overlap_eigenvalue_min": 0.0007551418316973943
+        "overlap_eigenvalue_min": 0.0007551418316973943,
+        "overlap_threshold": 1e-10,
+        "rank_decision_margin": 0.0007551417316973943
       },
       {
+        "controlling_mode": 3,
         "effective_rank": 4,
         "index": 35,
         "outcome": "accepted",
-        "overlap_eigenvalue_min": 0.00012550233767152737
+        "overlap_eigenvalue_min": 0.00012550233767152737,
+        "overlap_threshold": 1e-10,
+        "rank_decision_margin": 0.00012550223767152736
       },
       {
+        "controlling_mode": 3,
         "effective_rank": 3,
         "index": 36,
         "outcome": "rank",
-        "overlap_eigenvalue_min": -0.0001771573285864545
+        "overlap_eigenvalue_min": -0.0001771573285864545,
+        "overlap_threshold": 1e-10,
+        "rank_decision_margin": -0.00017715742858645452
       },
       {
+        "controlling_mode": 3,
         "effective_rank": 4,
         "index": 37,
         "outcome": "accepted",
-        "overlap_eigenvalue_min": 0.0003991992254841685
+        "overlap_eigenvalue_min": 0.0003991992254841685,
+        "overlap_threshold": 1e-10,
+        "rank_decision_margin": 0.0003991991254841685
       },
       {
+        "controlling_mode": 3,
         "effective_rank": 4,
         "index": 38,
         "outcome": "accepted",
-        "overlap_eigenvalue_min": 0.0008254375247173978
+        "overlap_eigenvalue_min": 0.0008254375247173978,
+        "overlap_threshold": 1e-10,
+        "rank_decision_margin": 0.0008254374247173978
       },
       {
+        "controlling_mode": 3,
         "effective_rank": 3,
         "index": 39,
         "outcome": "rank",
-        "overlap_eigenvalue_min": -0.0002661818234533582
+        "overlap_eigenvalue_min": -0.0002661818234533582,
+        "overlap_threshold": 1e-10,
+        "rank_decision_margin": -0.0002661819234533582
       },
       {
+        "controlling_mode": 3,
         "effective_rank": 4,
         "index": 40,
         "outcome": "accepted",
-        "overlap_eigenvalue_min": 0.0004396562844485559
+        "overlap_eigenvalue_min": 0.0004396562844485559,
+        "overlap_threshold": 1e-10,
+        "rank_decision_margin": 0.0004396561844485559
       },
       {
+        "controlling_mode": 3,
         "effective_rank": 4,
         "index": 41,
         "outcome": "accepted",
-        "overlap_eigenvalue_min": 0.0010507510079914256
+        "overlap_eigenvalue_min": 0.0010507510079914256,
+        "overlap_threshold": 1e-10,
+        "rank_decision_margin": 0.0010507509079914256
       },
       {
+        "controlling_mode": 3,
         "effective_rank": 4,
         "index": 42,
         "outcome": "accepted",
-        "overlap_eigenvalue_min": 0.0008453989745045887
+        "overlap_eigenvalue_min": 0.0008453989745045887,
+        "overlap_threshold": 1e-10,
+        "rank_decision_margin": 0.0008453988745045887
       },
       {
+        "controlling_mode": 3,
         "effective_rank": 3,
         "index": 43,
         "outcome": "rank",
-        "overlap_eigenvalue_min": -2.0034938145240385e-05
+        "overlap_eigenvalue_min": -2.0034938145240385e-05,
+        "overlap_threshold": 1e-10,
+        "rank_decision_margin": -2.0035038145240385e-05
       },
       {
+        "controlling_mode": 3,
         "effective_rank": 4,
         "index": 44,
         "outcome": "accepted",
-        "overlap_eigenvalue_min": 0.000514244334627629
+        "overlap_eigenvalue_min": 0.000514244334627629,
+        "overlap_threshold": 1e-10,
+        "rank_decision_margin": 0.0005142442346276289
       },
       {
+        "controlling_mode": 3,
         "effective_rank": 4,
         "index": 45,
         "outcome": "accepted",
-        "overlap_eigenvalue_min": 0.0004047938424041217
+        "overlap_eigenvalue_min": 0.0004047938424041217,
+        "overlap_threshold": 1e-10,
+        "rank_decision_margin": 0.0004047937424041217
       },
       {
+        "controlling_mode": 3,
         "effective_rank": 4,
         "index": 46,
         "outcome": "accepted",
-        "overlap_eigenvalue_min": 0.00015078507650565399
+        "overlap_eigenvalue_min": 0.00015078507650565399,
+        "overlap_threshold": 1e-10,
+        "rank_decision_margin": 0.00015078497650565398
       },
       {
+        "controlling_mode": 3,
         "effective_rank": 4,
         "index": 47,
         "outcome": "accepted",
-        "overlap_eigenvalue_min": 0.0015268579646980592
+        "overlap_eigenvalue_min": 0.0015268579646980592,
+        "overlap_threshold": 1e-10,
+        "rank_decision_margin": 0.0015268578646980592
       },
       {
+        "controlling_mode": 3,
         "effective_rank": 3,
         "index": 48,
         "outcome": "rank",
-        "overlap_eigenvalue_min": -0.00029942874006474686
+        "overlap_eigenvalue_min": -0.00029942874006474686,
+        "overlap_threshold": 1e-10,
+        "rank_decision_margin": -0.00029942884006474684
       },
       {
+        "controlling_mode": 3,
         "effective_rank": 3,
         "index": 49,
         "outcome": "rank",
-        "overlap_eigenvalue_min": -0.00037582334388206986
+        "overlap_eigenvalue_min": -0.00037582334388206986,
+        "overlap_threshold": 1e-10,
+        "rank_decision_margin": -0.00037582344388206984
       },
       {
+        "controlling_mode": 3,
         "effective_rank": 3,
         "index": 50,
         "outcome": "rank",
-        "overlap_eigenvalue_min": -0.00016500626509443088
+        "overlap_eigenvalue_min": -0.00016500626509443088,
+        "overlap_threshold": 1e-10,
+        "rank_decision_margin": -0.00016500636509443088
       },
       {
+        "controlling_mode": 3,
         "effective_rank": 4,
         "index": 51,
         "outcome": "accepted",
-        "overlap_eigenvalue_min": 0.00014337920356376533
+        "overlap_eigenvalue_min": 0.00014337920356376533,
+        "overlap_threshold": 1e-10,
+        "rank_decision_margin": 0.00014337910356376532
       },
       {
+        "controlling_mode": 3,
         "effective_rank": 4,
         "index": 52,
         "outcome": "accepted",
-        "overlap_eigenvalue_min": 0.0005471883159118492
+        "overlap_eigenvalue_min": 0.0005471883159118492,
+        "overlap_threshold": 1e-10,
+        "rank_decision_margin": 0.0005471882159118492
       },
       {
+        "controlling_mode": 3,
         "effective_rank": 4,
         "index": 53,
         "outcome": "accepted",
-        "overlap_eigenvalue_min": 0.0010046755330787066
+        "overlap_eigenvalue_min": 0.0010046755330787066,
+        "overlap_threshold": 1e-10,
+        "rank_decision_margin": 0.0010046754330787066
       },
       {
+        "controlling_mode": 3,
         "effective_rank": 4,
         "index": 54,
         "outcome": "accepted",
-        "overlap_eigenvalue_min": 0.0009676544912692942
+        "overlap_eigenvalue_min": 0.0009676544912692942,
+        "overlap_threshold": 1e-10,
+        "rank_decision_margin": 0.0009676543912692942
       },
       {
+        "controlling_mode": 3,
         "effective_rank": 3,
         "index": 55,
         "outcome": "rank",
-        "overlap_eigenvalue_min": -6.566290161552357e-05
+        "overlap_eigenvalue_min": -6.566290161552357e-05,
+        "overlap_threshold": 1e-10,
+        "rank_decision_margin": -6.566300161552356e-05
       },
       {
+        "controlling_mode": 3,
         "effective_rank": 4,
         "index": 56,
         "outcome": "accepted",
-        "overlap_eigenvalue_min": 0.000912240230984993
+        "overlap_eigenvalue_min": 0.000912240230984993,
+        "overlap_threshold": 1e-10,
+        "rank_decision_margin": 0.000912240130984993
       },
       {
+        "controlling_mode": 3,
         "effective_rank": 4,
         "index": 57,
         "outcome": "accepted",
-        "overlap_eigenvalue_min": 0.0007813938543642296
+        "overlap_eigenvalue_min": 0.0007813938543642296,
+        "overlap_threshold": 1e-10,
+        "rank_decision_margin": 0.0007813937543642295
       },
       {
+        "controlling_mode": 3,
         "effective_rank": 4,
         "index": 58,
         "outcome": "accepted",
-        "overlap_eigenvalue_min": 0.0001568105724912395
+        "overlap_eigenvalue_min": 0.0001568105724912395,
+        "overlap_threshold": 1e-10,
+        "rank_decision_margin": 0.0001568104724912395
       },
       {
+        "controlling_mode": 3,
         "effective_rank": 4,
         "index": 59,
         "outcome": "accepted",
-        "overlap_eigenvalue_min": 0.00011079893213922959
+        "overlap_eigenvalue_min": 0.00011079893213922959,
+        "overlap_threshold": 1e-10,
+        "rank_decision_margin": 0.0001107988321392296
       },
       {
+        "controlling_mode": 3,
         "effective_rank": 4,
         "index": 60,
         "outcome": "accepted",
-        "overlap_eigenvalue_min": 9.747354607416314e-05
+        "overlap_eigenvalue_min": 9.747354607416314e-05,
+        "overlap_threshold": 1e-10,
+        "rank_decision_margin": 9.747344607416314e-05
       },
       {
+        "controlling_mode": 3,
         "effective_rank": 3,
         "index": 61,
         "outcome": "rank",
-        "overlap_eigenvalue_min": -0.0007274169726656502
+        "overlap_eigenvalue_min": -0.0007274169726656502,
+        "overlap_threshold": 1e-10,
+        "rank_decision_margin": -0.0007274170726656502
       },
       {
+        "controlling_mode": 3,
         "effective_rank": 4,
         "index": 62,
         "outcome": "accepted",
-        "overlap_eigenvalue_min": 0.0005763936993093122
+        "overlap_eigenvalue_min": 0.0005763936993093122,
+        "overlap_threshold": 1e-10,
+        "rank_decision_margin": 0.0005763935993093122
       },
       {
+        "controlling_mode": 3,
         "effective_rank": 4,
         "index": 63,
         "outcome": "accepted",
-        "overlap_eigenvalue_min": 0.0001620123723390624
+        "overlap_eigenvalue_min": 0.0001620123723390624,
+        "overlap_threshold": 1e-10,
+        "rank_decision_margin": 0.0001620122723390624
       },
       {
+        "controlling_mode": 3,
         "effective_rank": 3,
         "index": 64,
         "outcome": "rank",
-        "overlap_eigenvalue_min": -0.00018573835544490695
+        "overlap_eigenvalue_min": -0.00018573835544490695,
+        "overlap_threshold": 1e-10,
+        "rank_decision_margin": -0.00018573845544490696
       },
       {
+        "controlling_mode": 3,
         "effective_rank": 4,
         "index": 65,
         "outcome": "accepted",
-        "overlap_eigenvalue_min": 0.00017999983377157784
+        "overlap_eigenvalue_min": 0.00017999983377157784,
+        "overlap_threshold": 1e-10,
+        "rank_decision_margin": 0.00017999973377157784
       },
       {
+        "controlling_mode": 3,
         "effective_rank": 4,
         "index": 66,
         "outcome": "accepted",
-        "overlap_eigenvalue_min": 0.0002432681329038901
+        "overlap_eigenvalue_min": 0.0002432681329038901,
+        "overlap_threshold": 1e-10,
+        "rank_decision_margin": 0.0002432680329038901
       },
       {
+        "controlling_mode": 3,
         "effective_rank": 4,
         "index": 67,
         "outcome": "accepted",
-        "overlap_eigenvalue_min": 0.0015286258383622553
+        "overlap_eigenvalue_min": 0.0015286258383622553,
+        "overlap_threshold": 1e-10,
+        "rank_decision_margin": 0.0015286257383622553
       },
       {
+        "controlling_mode": 3,
         "effective_rank": 4,
         "index": 68,
         "outcome": "accepted",
-        "overlap_eigenvalue_min": 0.00024124409598220243
+        "overlap_eigenvalue_min": 0.00024124409598220243,
+        "overlap_threshold": 1e-10,
+        "rank_decision_margin": 0.00024124399598220243
       },
       {
+        "controlling_mode": 3,
         "effective_rank": 4,
         "index": 69,
         "outcome": "accepted",
-        "overlap_eigenvalue_min": 0.0003604460842591172
+        "overlap_eigenvalue_min": 0.0003604460842591172,
+        "overlap_threshold": 1e-10,
+        "rank_decision_margin": 0.0003604459842591172
       },
       {
+        "controlling_mode": 3,
         "effective_rank": 4,
         "index": 70,
         "outcome": "accepted",
-        "overlap_eigenvalue_min": 0.0008339801483735296
+        "overlap_eigenvalue_min": 0.0008339801483735296,
+        "overlap_threshold": 1e-10,
+        "rank_decision_margin": 0.0008339800483735296
       },
       {
+        "controlling_mode": 3,
         "effective_rank": 4,
         "index": 71,
         "outcome": "accepted",
-        "overlap_eigenvalue_min": 9.950187897832316e-05
+        "overlap_eigenvalue_min": 9.950187897832316e-05,
+        "overlap_threshold": 1e-10,
+        "rank_decision_margin": 9.950177897832317e-05
       },
       {
+        "controlling_mode": 3,
         "effective_rank": 4,
         "index": 72,
         "outcome": "accepted",
-        "overlap_eigenvalue_min": 0.0005393277948081414
+        "overlap_eigenvalue_min": 0.0005393277948081414,
+        "overlap_threshold": 1e-10,
+        "rank_decision_margin": 0.0005393276948081414
       },
       {
+        "controlling_mode": 3,
         "effective_rank": 4,
         "index": 73,
         "outcome": "accepted",
-        "overlap_eigenvalue_min": 0.0014036038226051856
+        "overlap_eigenvalue_min": 0.0014036038226051856,
+        "overlap_threshold": 1e-10,
+        "rank_decision_margin": 0.0014036037226051856
       },
       {
+        "controlling_mode": 3,
         "effective_rank": 4,
         "index": 74,
         "outcome": "accepted",
-        "overlap_eigenvalue_min": 0.0017004698058534318
+        "overlap_eigenvalue_min": 0.0017004698058534318,
+        "overlap_threshold": 1e-10,
+        "rank_decision_margin": 0.0017004697058534317
       },
       {
+        "controlling_mode": 3,
         "effective_rank": 3,
         "index": 75,
         "outcome": "rank",
-        "overlap_eigenvalue_min": -0.0003748177832561778
+        "overlap_eigenvalue_min": -0.0003748177832561778,
+        "overlap_threshold": 1e-10,
+        "rank_decision_margin": -0.0003748178832561778
       },
       {
+        "controlling_mode": 3,
         "effective_rank": 4,
         "index": 76,
         "outcome": "accepted",
-        "overlap_eigenvalue_min": 0.00010377586460059308
+        "overlap_eigenvalue_min": 0.00010377586460059308,
+        "overlap_threshold": 1e-10,
+        "rank_decision_margin": 0.00010377576460059309
       },
       {
+        "controlling_mode": 3,
         "effective_rank": 4,
         "index": 77,
         "outcome": "accepted",
-        "overlap_eigenvalue_min": 0.0010420436214602937
+        "overlap_eigenvalue_min": 0.0010420436214602937,
+        "overlap_threshold": 1e-10,
+        "rank_decision_margin": 0.0010420435214602937
       },
       {
+        "controlling_mode": 3,
         "effective_rank": 4,
         "index": 78,
         "outcome": "accepted",
-        "overlap_eigenvalue_min": 0.0016270154302280503
+        "overlap_eigenvalue_min": 0.0016270154302280503,
+        "overlap_threshold": 1e-10,
+        "rank_decision_margin": 0.0016270153302280503
       },
       {
+        "controlling_mode": 3,
         "effective_rank": 4,
         "index": 79,
         "outcome": "accepted",
-        "overlap_eigenvalue_min": 0.0012573575844389898
+        "overlap_eigenvalue_min": 0.0012573575844389898,
+        "overlap_threshold": 1e-10,
+        "rank_decision_margin": 0.0012573574844389898
       },
       {
+        "controlling_mode": 3,
         "effective_rank": 4,
         "index": 80,
         "outcome": "accepted",
-        "overlap_eigenvalue_min": 0.0014399860258440113
+        "overlap_eigenvalue_min": 0.0014399860258440113,
+        "overlap_threshold": 1e-10,
+        "rank_decision_margin": 0.0014399859258440112
       },
       {
+        "controlling_mode": 3,
         "effective_rank": 3,
         "index": 81,
         "outcome": "rank",
-        "overlap_eigenvalue_min": -9.545478173825992e-05
+        "overlap_eigenvalue_min": -9.545478173825992e-05,
+        "overlap_threshold": 1e-10,
+        "rank_decision_margin": -9.545488173825992e-05
       },
       {
+        "controlling_mode": 3,
         "effective_rank": 4,
         "index": 82,
         "outcome": "accepted",
-        "overlap_eigenvalue_min": 0.0001853034499182234
+        "overlap_eigenvalue_min": 0.0001853034499182234,
+        "overlap_threshold": 1e-10,
+        "rank_decision_margin": 0.00018530334991822338
       },
       {
+        "controlling_mode": 3,
         "effective_rank": 3,
         "index": 83,
         "outcome": "rank",
-        "overlap_eigenvalue_min": -0.000710320960140392
+        "overlap_eigenvalue_min": -0.000710320960140392,
+        "overlap_threshold": 1e-10,
+        "rank_decision_margin": -0.000710321060140392
       },
       {
+        "controlling_mode": 3,
         "effective_rank": 4,
         "index": 84,
         "outcome": "accepted",
-        "overlap_eigenvalue_min": 0.0005470311285748858
+        "overlap_eigenvalue_min": 0.0005470311285748858,
+        "overlap_threshold": 1e-10,
+        "rank_decision_margin": 0.0005470310285748857
       },
       {
+        "controlling_mode": 3,
         "effective_rank": 4,
         "index": 85,
         "outcome": "accepted",
-        "overlap_eigenvalue_min": 0.0009069738824799197
+        "overlap_eigenvalue_min": 0.0009069738824799197,
+        "overlap_threshold": 1e-10,
+        "rank_decision_margin": 0.0009069737824799197
       },
       {
+        "controlling_mode": 3,
         "effective_rank": 3,
         "index": 86,
         "outcome": "rank",
-        "overlap_eigenvalue_min": -0.0009152965836028954
+        "overlap_eigenvalue_min": -0.0009152965836028954,
+        "overlap_threshold": 1e-10,
+        "rank_decision_margin": -0.0009152966836028954
       },
       {
+        "controlling_mode": 3,
         "effective_rank": 4,
         "index": 87,
         "outcome": "accepted",
-        "overlap_eigenvalue_min": 0.0015420327477333236
+        "overlap_eigenvalue_min": 0.0015420327477333236,
+        "overlap_threshold": 1e-10,
+        "rank_decision_margin": 0.0015420326477333236
       },
       {
+        "controlling_mode": 3,
         "effective_rank": 4,
         "index": 88,
         "outcome": "accepted",
-        "overlap_eigenvalue_min": 0.000679079834736677
+        "overlap_eigenvalue_min": 0.000679079834736677,
+        "overlap_threshold": 1e-10,
+        "rank_decision_margin": 0.000679079734736677
       },
       {
+        "controlling_mode": 3,
         "effective_rank": 4,
         "index": 89,
         "outcome": "accepted",
-        "overlap_eigenvalue_min": 0.00013235914642883235
+        "overlap_eigenvalue_min": 0.00013235914642883235,
+        "overlap_threshold": 1e-10,
+        "rank_decision_margin": 0.00013235904642883235
       },
       {
+        "controlling_mode": 3,
         "effective_rank": 4,
         "index": 90,
         "outcome": "accepted",
-        "overlap_eigenvalue_min": 0.0007526847331164168
+        "overlap_eigenvalue_min": 0.0007526847331164168,
+        "overlap_threshold": 1e-10,
+        "rank_decision_margin": 0.0007526846331164168
       },
       {
+        "controlling_mode": 3,
         "effective_rank": 4,
         "index": 91,
         "outcome": "accepted",
-        "overlap_eigenvalue_min": 0.001082682243068113
+        "overlap_eigenvalue_min": 0.001082682243068113,
+        "overlap_threshold": 1e-10,
+        "rank_decision_margin": 0.0010826821430681129
       },
       {
+        "controlling_mode": 3,
         "effective_rank": 4,
         "index": 92,
         "outcome": "accepted",
-        "overlap_eigenvalue_min": 0.0006951576367857008
+        "overlap_eigenvalue_min": 0.0006951576367857008,
+        "overlap_threshold": 1e-10,
+        "rank_decision_margin": 0.0006951575367857008
       },
       {
+        "controlling_mode": 3,
         "effective_rank": 4,
         "index": 93,
         "outcome": "accepted",
-        "overlap_eigenvalue_min": 0.0011864646786262684
+        "overlap_eigenvalue_min": 0.0011864646786262684,
+        "overlap_threshold": 1e-10,
+        "rank_decision_margin": 0.0011864645786262683
       },
       {
+        "controlling_mode": 3,
         "effective_rank": 4,
         "index": 94,
         "outcome": "accepted",
-        "overlap_eigenvalue_min": 0.00044139897453718475
+        "overlap_eigenvalue_min": 0.00044139897453718475,
+        "overlap_threshold": 1e-10,
+        "rank_decision_margin": 0.00044139887453718477
       },
       {
+        "controlling_mode": 3,
         "effective_rank": 4,
         "index": 95,
         "outcome": "accepted",
-        "overlap_eigenvalue_min": 0.0005934937486528865
+        "overlap_eigenvalue_min": 0.0005934937486528865,
+        "overlap_threshold": 1e-10,
+        "rank_decision_margin": 0.0005934936486528865
       },
       {
+        "controlling_mode": 3,
         "effective_rank": 4,
         "index": 96,
         "outcome": "accepted",
-        "overlap_eigenvalue_min": 0.0009585276741005144
+        "overlap_eigenvalue_min": 0.0009585276741005144,
+        "overlap_threshold": 1e-10,
+        "rank_decision_margin": 0.0009585275741005143
       },
       {
+        "controlling_mode": 3,
         "effective_rank": 4,
         "index": 97,
         "outcome": "accepted",
-        "overlap_eigenvalue_min": 0.00030288482176138014
+        "overlap_eigenvalue_min": 0.00030288482176138014,
+        "overlap_threshold": 1e-10,
+        "rank_decision_margin": 0.00030288472176138016
       },
       {
+        "controlling_mode": 3,
         "effective_rank": 4,
         "index": 98,
         "outcome": "accepted",
-        "overlap_eigenvalue_min": 0.0004374109801981892
+        "overlap_eigenvalue_min": 0.0004374109801981892,
+        "overlap_threshold": 1e-10,
+        "rank_decision_margin": 0.00043741088019818924
       },
       {
+        "controlling_mode": 3,
         "effective_rank": 3,
         "index": 99,
         "outcome": "rank",
-        "overlap_eigenvalue_min": -0.00040886182634582255
+        "overlap_eigenvalue_min": -0.00040886182634582255,
+        "overlap_threshold": 1e-10,
+        "rank_decision_margin": -0.00040886192634582253
       },
       {
+        "controlling_mode": 3,
         "effective_rank": 3,
         "index": 100,
         "outcome": "rank",
-        "overlap_eigenvalue_min": -1.8399376752882785e-05
+        "overlap_eigenvalue_min": -1.8399376752882785e-05,
+        "overlap_threshold": 1e-10,
+        "rank_decision_margin": -1.8399476752882785e-05
       },
       {
+        "controlling_mode": 3,
         "effective_rank": 4,
         "index": 101,
         "outcome": "accepted",
-        "overlap_eigenvalue_min": 0.0008599219618969428
+        "overlap_eigenvalue_min": 0.0008599219618969428,
+        "overlap_threshold": 1e-10,
+        "rank_decision_margin": 0.0008599218618969427
       },
       {
+        "controlling_mode": 3,
         "effective_rank": 4,
         "index": 102,
         "outcome": "accepted",
-        "overlap_eigenvalue_min": 0.0013813092320597326
+        "overlap_eigenvalue_min": 0.0013813092320597326,
+        "overlap_threshold": 1e-10,
+        "rank_decision_margin": 0.0013813091320597326
       },
       {
+        "controlling_mode": 3,
         "effective_rank": 4,
         "index": 103,
         "outcome": "accepted",
-        "overlap_eigenvalue_min": 0.00028297777168555184
+        "overlap_eigenvalue_min": 0.00028297777168555184,
+        "overlap_threshold": 1e-10,
+        "rank_decision_margin": 0.00028297767168555186
       },
       {
+        "controlling_mode": 3,
         "effective_rank": 3,
         "index": 104,
         "outcome": "rank",
-        "overlap_eigenvalue_min": -9.026144085526416e-06
+        "overlap_eigenvalue_min": -9.026144085526416e-06,
+        "overlap_threshold": 1e-10,
+        "rank_decision_margin": -9.026244085526416e-06
       },
       {
+        "controlling_mode": 3,
         "effective_rank": 4,
         "index": 105,
         "outcome": "accepted",
-        "overlap_eigenvalue_min": 0.0016111126351060442
+        "overlap_eigenvalue_min": 0.0016111126351060442,
+        "overlap_threshold": 1e-10,
+        "rank_decision_margin": 0.0016111125351060442
       },
       {
+        "controlling_mode": 3,
         "effective_rank": 4,
         "index": 106,
         "outcome": "accepted",
-        "overlap_eigenvalue_min": 0.00013729899599964582
+        "overlap_eigenvalue_min": 0.00013729899599964582,
+        "overlap_threshold": 1e-10,
+        "rank_decision_margin": 0.00013729889599964581
       },
       {
+        "controlling_mode": 3,
         "effective_rank": 3,
         "index": 107,
         "outcome": "rank",
-        "overlap_eigenvalue_min": -0.0003249960575492835
+        "overlap_eigenvalue_min": -0.0003249960575492835,
+        "overlap_threshold": 1e-10,
+        "rank_decision_margin": -0.0003249961575492835
       },
       {
+        "controlling_mode": 3,
         "effective_rank": 4,
         "index": 108,
         "outcome": "accepted",
-        "overlap_eigenvalue_min": 0.0011602264230571374
+        "overlap_eigenvalue_min": 0.0011602264230571374,
+        "overlap_threshold": 1e-10,
+        "rank_decision_margin": 0.0011602263230571373
       },
       {
+        "controlling_mode": 3,
         "effective_rank": 4,
         "index": 109,
         "outcome": "accepted",
-        "overlap_eigenvalue_min": 0.0018187282513740855
+        "overlap_eigenvalue_min": 0.0018187282513740855,
+        "overlap_threshold": 1e-10,
+        "rank_decision_margin": 0.0018187281513740855
       },
       {
+        "controlling_mode": 3,
         "effective_rank": 4,
         "index": 110,
         "outcome": "accepted",
-        "overlap_eigenvalue_min": 0.0005316781834867899
+        "overlap_eigenvalue_min": 0.0005316781834867899,
+        "overlap_threshold": 1e-10,
+        "rank_decision_margin": 0.0005316780834867899
       },
       {
+        "controlling_mode": 3,
         "effective_rank": 3,
         "index": 111,
         "outcome": "rank",
-        "overlap_eigenvalue_min": -0.0004784915839262539
+        "overlap_eigenvalue_min": -0.0004784915839262539,
+        "overlap_threshold": 1e-10,
+        "rank_decision_margin": -0.0004784916839262539
       },
       {
+        "controlling_mode": 3,
         "effective_rank": 3,
         "index": 112,
         "outcome": "rank",
-        "overlap_eigenvalue_min": -0.0006826057588020539
+        "overlap_eigenvalue_min": -0.0006826057588020539,
+        "overlap_threshold": 1e-10,
+        "rank_decision_margin": -0.000682605858802054
       },
       {
+        "controlling_mode": 3,
         "effective_rank": 4,
         "index": 113,
         "outcome": "accepted",
-        "overlap_eigenvalue_min": 0.00011506575607394513
+        "overlap_eigenvalue_min": 0.00011506575607394513,
+        "overlap_threshold": 1e-10,
+        "rank_decision_margin": 0.00011506565607394514
       },
       {
+        "controlling_mode": 3,
         "effective_rank": 3,
         "index": 114,
         "outcome": "rank",
-        "overlap_eigenvalue_min": -5.946502082691823e-05
+        "overlap_eigenvalue_min": -5.946502082691823e-05,
+        "overlap_threshold": 1e-10,
+        "rank_decision_margin": -5.946512082691823e-05
       },
       {
+        "controlling_mode": 3,
         "effective_rank": 4,
         "index": 115,
         "outcome": "accepted",
-        "overlap_eigenvalue_min": 0.0003043049121427239
+        "overlap_eigenvalue_min": 0.0003043049121427239,
+        "overlap_threshold": 1e-10,
+        "rank_decision_margin": 0.0003043048121427239
       },
       {
+        "controlling_mode": 3,
         "effective_rank": 4,
         "index": 116,
         "outcome": "accepted",
-        "overlap_eigenvalue_min": 0.0005106053209938562
+        "overlap_eigenvalue_min": 0.0005106053209938562,
+        "overlap_threshold": 1e-10,
+        "rank_decision_margin": 0.0005106052209938562
       },
       {
+        "controlling_mode": 3,
         "effective_rank": 3,
         "index": 117,
         "outcome": "rank",
-        "overlap_eigenvalue_min": -0.0006363535853698102
+        "overlap_eigenvalue_min": -0.0006363535853698102,
+        "overlap_threshold": 1e-10,
+        "rank_decision_margin": -0.0006363536853698103
       },
       {
+        "controlling_mode": 3,
         "effective_rank": 4,
         "index": 118,
         "outcome": "accepted",
-        "overlap_eigenvalue_min": 0.000241243187730531
+        "overlap_eigenvalue_min": 0.000241243187730531,
+        "overlap_threshold": 1e-10,
+        "rank_decision_margin": 0.000241243087730531
       },
       {
+        "controlling_mode": 3,
         "effective_rank": 4,
         "index": 119,
         "outcome": "accepted",
-        "overlap_eigenvalue_min": 0.0007592265135628755
+        "overlap_eigenvalue_min": 0.0007592265135628755,
+        "overlap_threshold": 1e-10,
+        "rank_decision_margin": 0.0007592264135628755
       },
       {
+        "controlling_mode": 3,
         "effective_rank": 3,
         "index": 120,
         "outcome": "rank",
-        "overlap_eigenvalue_min": -0.0002910509446143431
+        "overlap_eigenvalue_min": -0.0002910509446143431,
+        "overlap_threshold": 1e-10,
+        "rank_decision_margin": -0.0002910510446143431
       },
       {
+        "controlling_mode": 3,
         "effective_rank": 4,
         "index": 121,
         "outcome": "accepted",
-        "overlap_eigenvalue_min": 0.001722029683722314
+        "overlap_eigenvalue_min": 0.001722029683722314,
+        "overlap_threshold": 1e-10,
+        "rank_decision_margin": 0.001722029583722314
       },
       {
+        "controlling_mode": 3,
         "effective_rank": 3,
         "index": 122,
         "outcome": "rank",
-        "overlap_eigenvalue_min": -0.0004931314558650456
+        "overlap_eigenvalue_min": -0.0004931314558650456,
+        "overlap_threshold": 1e-10,
+        "rank_decision_margin": -0.0004931315558650457
       },
       {
+        "controlling_mode": 3,
         "effective_rank": 3,
         "index": 123,
         "outcome": "rank",
-        "overlap_eigenvalue_min": -0.00024112673409104794
+        "overlap_eigenvalue_min": -0.00024112673409104794,
+        "overlap_threshold": 1e-10,
+        "rank_decision_margin": -0.00024112683409104795
       },
       {
+        "controlling_mode": 3,
         "effective_rank": 3,
         "index": 124,
         "outcome": "rank",
-        "overlap_eigenvalue_min": -0.00018821110610387683
+        "overlap_eigenvalue_min": -0.00018821110610387683,
+        "overlap_threshold": 1e-10,
+        "rank_decision_margin": -0.00018821120610387684
       },
       {
+        "controlling_mode": 3,
         "effective_rank": 3,
         "index": 125,
         "outcome": "rank",
-        "overlap_eigenvalue_min": -0.00093751352000054
+        "overlap_eigenvalue_min": -0.00093751352000054,
+        "overlap_threshold": 1e-10,
+        "rank_decision_margin": -0.00093751362000054
       },
       {
+        "controlling_mode": 3,
         "effective_rank": 4,
         "index": 126,
         "outcome": "accepted",
-        "overlap_eigenvalue_min": 0.0010748286234383635
+        "overlap_eigenvalue_min": 0.0010748286234383635,
+        "overlap_threshold": 1e-10,
+        "rank_decision_margin": 0.0010748285234383635
       },
       {
+        "controlling_mode": 3,
         "effective_rank": 4,
         "index": 127,
         "outcome": "accepted",
-        "overlap_eigenvalue_min": 0.0006609505674683943
+        "overlap_eigenvalue_min": 0.0006609505674683943,
+        "overlap_threshold": 1e-10,
+        "rank_decision_margin": 0.0006609504674683943
       },
       {
+        "controlling_mode": 3,
         "effective_rank": 4,
         "index": 128,
         "outcome": "accepted",
-        "overlap_eigenvalue_min": 0.0014231598437353427
+        "overlap_eigenvalue_min": 0.0014231598437353427,
+        "overlap_threshold": 1e-10,
+        "rank_decision_margin": 0.0014231597437353426
       },
       {
+        "controlling_mode": 3,
         "effective_rank": 4,
         "index": 129,
         "outcome": "accepted",
-        "overlap_eigenvalue_min": 0.0007899698732198912
+        "overlap_eigenvalue_min": 0.0007899698732198912,
+        "overlap_threshold": 1e-10,
+        "rank_decision_margin": 0.0007899697732198912
       },
       {
+        "controlling_mode": 3,
         "effective_rank": 3,
         "index": 130,
         "outcome": "rank",
-        "overlap_eigenvalue_min": -0.00031936240384010384
+        "overlap_eigenvalue_min": -0.00031936240384010384,
+        "overlap_threshold": 1e-10,
+        "rank_decision_margin": -0.0003193625038401038
       },
       {
+        "controlling_mode": 3,
         "effective_rank": 4,
         "index": 131,
         "outcome": "accepted",
-        "overlap_eigenvalue_min": 2.1211798333267614e-05
+        "overlap_eigenvalue_min": 2.1211798333267614e-05,
+        "overlap_threshold": 1e-10,
+        "rank_decision_margin": 2.1211698333267614e-05
       },
       {
+        "controlling_mode": 3,
         "effective_rank": 3,
         "index": 132,
         "outcome": "rank",
-        "overlap_eigenvalue_min": -0.0005373640724819107
+        "overlap_eigenvalue_min": -0.0005373640724819107,
+        "overlap_threshold": 1e-10,
+        "rank_decision_margin": -0.0005373641724819107
       },
       {
+        "controlling_mode": 3,
         "effective_rank": 4,
         "index": 133,
         "outcome": "accepted",
-        "overlap_eigenvalue_min": 0.00042992074737513154
+        "overlap_eigenvalue_min": 0.00042992074737513154,
+        "overlap_threshold": 1e-10,
+        "rank_decision_margin": 0.00042992064737513156
       },
       {
+        "controlling_mode": 3,
         "effective_rank": 4,
         "index": 134,
         "outcome": "accepted",
-        "overlap_eigenvalue_min": 0.001581064684200392
+        "overlap_eigenvalue_min": 0.001581064684200392,
+        "overlap_threshold": 1e-10,
+        "rank_decision_margin": 0.001581064584200392
       },
       {
+        "controlling_mode": 3,
         "effective_rank": 4,
         "index": 135,
         "outcome": "accepted",
-        "overlap_eigenvalue_min": 0.0007476086055191735
+        "overlap_eigenvalue_min": 0.0007476086055191735,
+        "overlap_threshold": 1e-10,
+        "rank_decision_margin": 0.0007476085055191735
       },
       {
+        "controlling_mode": 3,
         "effective_rank": 4,
         "index": 136,
         "outcome": "accepted",
-        "overlap_eigenvalue_min": 0.001322728894191744
+        "overlap_eigenvalue_min": 0.001322728894191744,
+        "overlap_threshold": 1e-10,
+        "rank_decision_margin": 0.001322728794191744
       },
       {
+        "controlling_mode": 3,
         "effective_rank": 4,
         "index": 137,
         "outcome": "accepted",
-        "overlap_eigenvalue_min": 0.00038708249679097876
+        "overlap_eigenvalue_min": 0.00038708249679097876,
+        "overlap_threshold": 1e-10,
+        "rank_decision_margin": 0.0003870823967909788
       },
       {
+        "controlling_mode": 3,
         "effective_rank": 3,
         "index": 138,
         "outcome": "rank",
-        "overlap_eigenvalue_min": -0.0010096287710123113
+        "overlap_eigenvalue_min": -0.0010096287710123113,
+        "overlap_threshold": 1e-10,
+        "rank_decision_margin": -0.0010096288710123114
       },
       {
+        "controlling_mode": 3,
         "effective_rank": 3,
         "index": 139,
         "outcome": "rank",
-        "overlap_eigenvalue_min": -0.00017020445758285022
+        "overlap_eigenvalue_min": -0.00017020445758285022,
+        "overlap_threshold": 1e-10,
+        "rank_decision_margin": -0.00017020455758285022
       },
       {
+        "controlling_mode": 3,
         "effective_rank": 4,
         "index": 140,
         "outcome": "accepted",
-        "overlap_eigenvalue_min": 0.00014136096931316192
+        "overlap_eigenvalue_min": 0.00014136096931316192,
+        "overlap_threshold": 1e-10,
+        "rank_decision_margin": 0.00014136086931316192
       },
       {
+        "controlling_mode": 3,
         "effective_rank": 4,
         "index": 141,
         "outcome": "accepted",
-        "overlap_eigenvalue_min": 0.0001972274859783071
+        "overlap_eigenvalue_min": 0.0001972274859783071,
+        "overlap_threshold": 1e-10,
+        "rank_decision_margin": 0.00019722738597830708
       },
       {
+        "controlling_mode": 3,
         "effective_rank": 4,
         "index": 142,
         "outcome": "accepted",
-        "overlap_eigenvalue_min": 0.0006126004797321184
+        "overlap_eigenvalue_min": 0.0006126004797321184,
+        "overlap_threshold": 1e-10,
+        "rank_decision_margin": 0.0006126003797321184
       },
       {
+        "controlling_mode": 3,
         "effective_rank": 4,
         "index": 143,
         "outcome": "accepted",
-        "overlap_eigenvalue_min": 0.0011630341010575684
+        "overlap_eigenvalue_min": 0.0011630341010575684,
+        "overlap_threshold": 1e-10,
+        "rank_decision_margin": 0.0011630340010575684
       },
       {
+        "controlling_mode": 3,
         "effective_rank": 4,
         "index": 144,
         "outcome": "accepted",
-        "overlap_eigenvalue_min": 0.0006510718437893766
+        "overlap_eigenvalue_min": 0.0006510718437893766,
+        "overlap_threshold": 1e-10,
+        "rank_decision_margin": 0.0006510717437893766
       },
       {
+        "controlling_mode": 3,
         "effective_rank": 4,
         "index": 145,
         "outcome": "accepted",
-        "overlap_eigenvalue_min": 0.0004330266046259373
+        "overlap_eigenvalue_min": 0.0004330266046259373,
+        "overlap_threshold": 1e-10,
+        "rank_decision_margin": 0.0004330265046259373
       },
       {
+        "controlling_mode": 3,
         "effective_rank": 3,
         "index": 146,
         "outcome": "rank",
-        "overlap_eigenvalue_min": -0.00017694958014599212
+        "overlap_eigenvalue_min": -0.00017694958014599212,
+        "overlap_threshold": 1e-10,
+        "rank_decision_margin": -0.00017694968014599213
       },
       {
+        "controlling_mode": 3,
         "effective_rank": 3,
         "index": 147,
         "outcome": "rank",
-        "overlap_eigenvalue_min": -7.325957381441291e-05
+        "overlap_eigenvalue_min": -7.325957381441291e-05,
+        "overlap_threshold": 1e-10,
+        "rank_decision_margin": -7.32596738144129e-05
       },
       {
+        "controlling_mode": 3,
         "effective_rank": 4,
         "index": 148,
         "outcome": "accepted",
-        "overlap_eigenvalue_min": 0.0006968065816511635
+        "overlap_eigenvalue_min": 0.0006968065816511635,
+        "overlap_threshold": 1e-10,
+        "rank_decision_margin": 0.0006968064816511635
       },
       {
+        "controlling_mode": 3,
         "effective_rank": 4,
         "index": 149,
         "outcome": "accepted",
-        "overlap_eigenvalue_min": 0.0002849659434904219
+        "overlap_eigenvalue_min": 0.0002849659434904219,
+        "overlap_threshold": 1e-10,
+        "rank_decision_margin": 0.0002849658434904219
       },
       {
+        "controlling_mode": 3,
         "effective_rank": 3,
         "index": 150,
         "outcome": "rank",
-        "overlap_eigenvalue_min": -0.0006607095283377347
+        "overlap_eigenvalue_min": -0.0006607095283377347,
+        "overlap_threshold": 1e-10,
+        "rank_decision_margin": -0.0006607096283377347
       },
       {
+        "controlling_mode": 3,
         "effective_rank": 4,
         "index": 151,
         "outcome": "accepted",
-        "overlap_eigenvalue_min": 0.0023331708754655163
+        "overlap_eigenvalue_min": 0.0023331708754655163,
+        "overlap_threshold": 1e-10,
+        "rank_decision_margin": 0.0023331707754655163
       },
       {
+        "controlling_mode": 3,
         "effective_rank": 4,
         "index": 152,
         "outcome": "accepted",
-        "overlap_eigenvalue_min": 0.0001941153680876996
+        "overlap_eigenvalue_min": 0.0001941153680876996,
+        "overlap_threshold": 1e-10,
+        "rank_decision_margin": 0.0001941152680876996
       },
       {
+        "controlling_mode": 3,
         "effective_rank": 4,
         "index": 153,
         "outcome": "accepted",
-        "overlap_eigenvalue_min": 0.00020402478759003765
+        "overlap_eigenvalue_min": 0.00020402478759003765,
+        "overlap_threshold": 1e-10,
+        "rank_decision_margin": 0.00020402468759003764
       },
       {
+        "controlling_mode": 3,
         "effective_rank": 4,
         "index": 154,
         "outcome": "accepted",
-        "overlap_eigenvalue_min": 0.00013320061743512555
+        "overlap_eigenvalue_min": 0.00013320061743512555,
+        "overlap_threshold": 1e-10,
+        "rank_decision_margin": 0.00013320051743512555
       },
       {
+        "controlling_mode": 3,
         "effective_rank": 3,
         "index": 155,
         "outcome": "rank",
-        "overlap_eigenvalue_min": -0.001209169589322782
+        "overlap_eigenvalue_min": -0.001209169589322782,
+        "overlap_threshold": 1e-10,
+        "rank_decision_margin": -0.001209169689322782
       },
       {
+        "controlling_mode": 3,
         "effective_rank": 3,
         "index": 156,
         "outcome": "rank",
-        "overlap_eigenvalue_min": -8.23071194248314e-05
+        "overlap_eigenvalue_min": -8.23071194248314e-05,
+        "overlap_threshold": 1e-10,
+        "rank_decision_margin": -8.23072194248314e-05
       },
       {
+        "controlling_mode": 3,
         "effective_rank": 4,
         "index": 157,
         "outcome": "accepted",
-        "overlap_eigenvalue_min": 0.00035298458675995533
+        "overlap_eigenvalue_min": 0.00035298458675995533,
+        "overlap_threshold": 1e-10,
+        "rank_decision_margin": 0.00035298448675995535
       },
       {
+        "controlling_mode": 3,
         "effective_rank": 4,
         "index": 158,
         "outcome": "accepted",
-        "overlap_eigenvalue_min": 0.0004913158787143386
+        "overlap_eigenvalue_min": 0.0004913158787143386,
+        "overlap_threshold": 1e-10,
+        "rank_decision_margin": 0.0004913157787143385
       },
       {
+        "controlling_mode": 3,
         "effective_rank": 4,
         "index": 159,
         "outcome": "accepted",
-        "overlap_eigenvalue_min": 0.0008048344360426556
+        "overlap_eigenvalue_min": 0.0008048344360426556,
+        "overlap_threshold": 1e-10,
+        "rank_decision_margin": 0.0008048343360426555
       },
       {
+        "controlling_mode": 3,
         "effective_rank": 4,
         "index": 160,
         "outcome": "accepted",
-        "overlap_eigenvalue_min": 0.0008852247167015962
+        "overlap_eigenvalue_min": 0.0008852247167015962,
+        "overlap_threshold": 1e-10,
+        "rank_decision_margin": 0.0008852246167015961
       },
       {
+        "controlling_mode": 3,
         "effective_rank": 4,
         "index": 161,
         "outcome": "accepted",
-        "overlap_eigenvalue_min": 0.00018462118061696859
+        "overlap_eigenvalue_min": 0.00018462118061696859,
+        "overlap_threshold": 1e-10,
+        "rank_decision_margin": 0.00018462108061696858
       },
       {
+        "controlling_mode": 3,
         "effective_rank": 4,
         "index": 162,
         "outcome": "accepted",
-        "overlap_eigenvalue_min": 0.0002504635368404562
+        "overlap_eigenvalue_min": 0.0002504635368404562,
+        "overlap_threshold": 1e-10,
+        "rank_decision_margin": 0.0002504634368404562
       },
       {
+        "controlling_mode": 3,
         "effective_rank": 3,
         "index": 163,
         "outcome": "rank",
-        "overlap_eigenvalue_min": -0.0007742538542872695
+        "overlap_eigenvalue_min": -0.0007742538542872695,
+        "overlap_threshold": 1e-10,
+        "rank_decision_margin": -0.0007742539542872696
       },
       {
+        "controlling_mode": 3,
         "effective_rank": 4,
         "index": 164,
         "outcome": "accepted",
-        "overlap_eigenvalue_min": 0.00026614595320202374
+        "overlap_eigenvalue_min": 0.00026614595320202374,
+        "overlap_threshold": 1e-10,
+        "rank_decision_margin": 0.00026614585320202376
       },
       {
+        "controlling_mode": 3,
         "effective_rank": 4,
         "index": 165,
         "outcome": "accepted",
-        "overlap_eigenvalue_min": 0.0008825231165075774
+        "overlap_eigenvalue_min": 0.0008825231165075774,
+        "overlap_threshold": 1e-10,
+        "rank_decision_margin": 0.0008825230165075774
       },
       {
+        "controlling_mode": 3,
         "effective_rank": 3,
         "index": 166,
         "outcome": "rank",
-        "overlap_eigenvalue_min": -0.001820532345588636
+        "overlap_eigenvalue_min": -0.001820532345588636,
+        "overlap_threshold": 1e-10,
+        "rank_decision_margin": -0.001820532445588636
       },
       {
+        "controlling_mode": 3,
         "effective_rank": 4,
         "index": 167,
         "outcome": "accepted",
-        "overlap_eigenvalue_min": 0.001087603422207997
+        "overlap_eigenvalue_min": 0.001087603422207997,
+        "overlap_threshold": 1e-10,
+        "rank_decision_margin": 0.001087603322207997
       },
       {
+        "controlling_mode": 3,
         "effective_rank": 3,
         "index": 168,
         "outcome": "rank",
-        "overlap_eigenvalue_min": -0.00018704505948076205
+        "overlap_eigenvalue_min": -0.00018704505948076205,
+        "overlap_threshold": 1e-10,
+        "rank_decision_margin": -0.00018704515948076206
       },
       {
+        "controlling_mode": 3,
         "effective_rank": 4,
         "index": 169,
         "outcome": "accepted",
-        "overlap_eigenvalue_min": 0.00018145292300926139
+        "overlap_eigenvalue_min": 0.00018145292300926139,
+        "overlap_threshold": 1e-10,
+        "rank_decision_margin": 0.00018145282300926138
       },
       {
+        "controlling_mode": 3,
         "effective_rank": 4,
         "index": 170,
         "outcome": "accepted",
-        "overlap_eigenvalue_min": 0.00043924004665122897
+        "overlap_eigenvalue_min": 0.00043924004665122897,
+        "overlap_threshold": 1e-10,
+        "rank_decision_margin": 0.000439239946651229
       },
       {
+        "controlling_mode": 3,
         "effective_rank": 4,
         "index": 171,
         "outcome": "accepted",
-        "overlap_eigenvalue_min": 0.0005781657014413717
+        "overlap_eigenvalue_min": 0.0005781657014413717,
+        "overlap_threshold": 1e-10,
+        "rank_decision_margin": 0.0005781656014413717
       },
       {
+        "controlling_mode": 3,
         "effective_rank": 4,
         "index": 172,
         "outcome": "accepted",
-        "overlap_eigenvalue_min": 0.0009213014686872133
+        "overlap_eigenvalue_min": 0.0009213014686872133,
+        "overlap_threshold": 1e-10,
+        "rank_decision_margin": 0.0009213013686872133
       },
       {
+        "controlling_mode": 3,
         "effective_rank": 4,
         "index": 173,
         "outcome": "accepted",
-        "overlap_eigenvalue_min": 0.0004486115133057471
+        "overlap_eigenvalue_min": 0.0004486115133057471,
+        "overlap_threshold": 1e-10,
+        "rank_decision_margin": 0.0004486114133057471
       },
       {
+        "controlling_mode": 3,
         "effective_rank": 4,
         "index": 174,
         "outcome": "accepted",
-        "overlap_eigenvalue_min": 0.0003076974986687879
+        "overlap_eigenvalue_min": 0.0003076974986687879,
+        "overlap_threshold": 1e-10,
+        "rank_decision_margin": 0.00030769739866878793
       },
       {
+        "controlling_mode": 3,
         "effective_rank": 4,
         "index": 175,
         "outcome": "accepted",
-        "overlap_eigenvalue_min": 0.000460190395271401
+        "overlap_eigenvalue_min": 0.000460190395271401,
+        "overlap_threshold": 1e-10,
+        "rank_decision_margin": 0.000460190295271401
       },
       {
+        "controlling_mode": 3,
         "effective_rank": 4,
         "index": 176,
         "outcome": "accepted",
-        "overlap_eigenvalue_min": 0.00017056156727524697
+        "overlap_eigenvalue_min": 0.00017056156727524697,
+        "overlap_threshold": 1e-10,
+        "rank_decision_margin": 0.00017056146727524696
       },
       {
+        "controlling_mode": 3,
         "effective_rank": 3,
         "index": 177,
         "outcome": "rank",
-        "overlap_eigenvalue_min": -0.0003043064509783277
+        "overlap_eigenvalue_min": -0.0003043064509783277,
+        "overlap_threshold": 1e-10,
+        "rank_decision_margin": -0.0003043065509783277
       },
       {
+        "controlling_mode": 3,
         "effective_rank": 3,
         "index": 178,
         "outcome": "rank",
-        "overlap_eigenvalue_min": -0.0005008210227024679
+        "overlap_eigenvalue_min": -0.0005008210227024679,
+        "overlap_threshold": 1e-10,
+        "rank_decision_margin": -0.0005008211227024679
       },
       {
+        "controlling_mode": 3,
         "effective_rank": 3,
         "index": 179,
         "outcome": "rank",
-        "overlap_eigenvalue_min": -0.0003387630808563721
+        "overlap_eigenvalue_min": -0.0003387630808563721,
+        "overlap_threshold": 1e-10,
+        "rank_decision_margin": -0.0003387631808563721
       },
       {
+        "controlling_mode": 3,
         "effective_rank": 4,
         "index": 180,
         "outcome": "accepted",
-        "overlap_eigenvalue_min": 0.00025871527425743
+        "overlap_eigenvalue_min": 0.00025871527425743,
+        "overlap_threshold": 1e-10,
+        "rank_decision_margin": 0.00025871517425743
       },
       {
+        "controlling_mode": 3,
         "effective_rank": 4,
         "index": 181,
         "outcome": "accepted",
-        "overlap_eigenvalue_min": 0.0006423829729919773
+        "overlap_eigenvalue_min": 0.0006423829729919773,
+        "overlap_threshold": 1e-10,
+        "rank_decision_margin": 0.0006423828729919773
       },
       {
+        "controlling_mode": 3,
         "effective_rank": 4,
         "index": 182,
         "outcome": "accepted",
-        "overlap_eigenvalue_min": 0.0002685033310763307
+        "overlap_eigenvalue_min": 0.0002685033310763307,
+        "overlap_threshold": 1e-10,
+        "rank_decision_margin": 0.0002685032310763307
       },
       {
+        "controlling_mode": 3,
         "effective_rank": 3,
         "index": 183,
         "outcome": "rank",
-        "overlap_eigenvalue_min": -0.0005033048742067979
+        "overlap_eigenvalue_min": -0.0005033048742067979,
+        "overlap_threshold": 1e-10,
+        "rank_decision_margin": -0.0005033049742067979
       },
       {
+        "controlling_mode": 3,
         "effective_rank": 3,
         "index": 184,
         "outcome": "rank",
-        "overlap_eigenvalue_min": -0.00021898988748747452
+        "overlap_eigenvalue_min": -0.00021898988748747452,
+        "overlap_threshold": 1e-10,
+        "rank_decision_margin": -0.00021898998748747452
       },
       {
+        "controlling_mode": 3,
         "effective_rank": 4,
         "index": 185,
         "outcome": "accepted",
-        "overlap_eigenvalue_min": 0.0011984854955007956
+        "overlap_eigenvalue_min": 0.0011984854955007956,
+        "overlap_threshold": 1e-10,
+        "rank_decision_margin": 0.0011984853955007955
       },
       {
+        "controlling_mode": 3,
         "effective_rank": 4,
         "index": 186,
         "outcome": "accepted",
-        "overlap_eigenvalue_min": 0.0002517018631053232
+        "overlap_eigenvalue_min": 0.0002517018631053232,
+        "overlap_threshold": 1e-10,
+        "rank_decision_margin": 0.00025170176310532324
       },
       {
+        "controlling_mode": 3,
         "effective_rank": 3,
         "index": 187,
         "outcome": "rank",
-        "overlap_eigenvalue_min": -0.0005678813880343946
+        "overlap_eigenvalue_min": -0.0005678813880343946,
+        "overlap_threshold": 1e-10,
+        "rank_decision_margin": -0.0005678814880343946
       },
       {
+        "controlling_mode": 3,
         "effective_rank": 3,
         "index": 188,
         "outcome": "rank",
-        "overlap_eigenvalue_min": -5.6747697424009796e-05
+        "overlap_eigenvalue_min": -5.6747697424009796e-05,
+        "overlap_threshold": 1e-10,
+        "rank_decision_margin": -5.67477974240098e-05
       },
       {
+        "controlling_mode": 3,
         "effective_rank": 3,
         "index": 189,
         "outcome": "rank",
-        "overlap_eigenvalue_min": -7.750117439129412e-05
+        "overlap_eigenvalue_min": -7.750117439129412e-05,
+        "overlap_threshold": 1e-10,
+        "rank_decision_margin": -7.750127439129411e-05
       },
       {
+        "controlling_mode": 3,
         "effective_rank": 3,
         "index": 190,
         "outcome": "rank",
-        "overlap_eigenvalue_min": -0.0008665325819891954
+        "overlap_eigenvalue_min": -0.0008665325819891954,
+        "overlap_threshold": 1e-10,
+        "rank_decision_margin": -0.0008665326819891954
       },
       {
+        "controlling_mode": 3,
         "effective_rank": 4,
         "index": 191,
         "outcome": "accepted",
-        "overlap_eigenvalue_min": 0.00029945247108987844
+        "overlap_eigenvalue_min": 0.00029945247108987844,
+        "overlap_threshold": 1e-10,
+        "rank_decision_margin": 0.00029945237108987846
       },
       {
+        "controlling_mode": 3,
         "effective_rank": 3,
         "index": 192,
         "outcome": "rank",
-        "overlap_eigenvalue_min": -0.0003051387838203917
+        "overlap_eigenvalue_min": -0.0003051387838203917,
+        "overlap_threshold": 1e-10,
+        "rank_decision_margin": -0.0003051388838203917
       },
       {
+        "controlling_mode": 3,
         "effective_rank": 3,
         "index": 193,
         "outcome": "rank",
-        "overlap_eigenvalue_min": -0.0005210606270517035
+        "overlap_eigenvalue_min": -0.0005210606270517035,
+        "overlap_threshold": 1e-10,
+        "rank_decision_margin": -0.0005210607270517035
       },
       {
+        "controlling_mode": 3,
         "effective_rank": 3,
         "index": 194,
         "outcome": "rank",
-        "overlap_eigenvalue_min": -0.0008100575756004828
+        "overlap_eigenvalue_min": -0.0008100575756004828,
+        "overlap_threshold": 1e-10,
+        "rank_decision_margin": -0.0008100576756004829
       },
       {
+        "controlling_mode": 3,
         "effective_rank": 4,
         "index": 195,
         "outcome": "accepted",
-        "overlap_eigenvalue_min": 0.0008156744285279478
+        "overlap_eigenvalue_min": 0.0008156744285279478,
+        "overlap_threshold": 1e-10,
+        "rank_decision_margin": 0.0008156743285279477
       },
       {
+        "controlling_mode": 3,
         "effective_rank": 4,
         "index": 196,
         "outcome": "accepted",
-        "overlap_eigenvalue_min": 0.0011037430711238725
+        "overlap_eigenvalue_min": 0.0011037430711238725,
+        "overlap_threshold": 1e-10,
+        "rank_decision_margin": 0.0011037429711238725
       },
       {
+        "controlling_mode": 3,
         "effective_rank": 4,
         "index": 197,
         "outcome": "accepted",
-        "overlap_eigenvalue_min": 0.0014470105440498337
+        "overlap_eigenvalue_min": 0.0014470105440498337,
+        "overlap_threshold": 1e-10,
+        "rank_decision_margin": 0.0014470104440498337
       },
       {
+        "controlling_mode": 3,
         "effective_rank": 3,
         "index": 198,
         "outcome": "rank",
-        "overlap_eigenvalue_min": -9.083301325938254e-05
+        "overlap_eigenvalue_min": -9.083301325938254e-05,
+        "overlap_threshold": 1e-10,
+        "rank_decision_margin": -9.083311325938253e-05
       },
       {
+        "controlling_mode": 3,
         "effective_rank": 4,
         "index": 199,
         "outcome": "accepted",
-        "overlap_eigenvalue_min": 0.00016653889612388285
+        "overlap_eigenvalue_min": 0.00016653889612388285,
+        "overlap_threshold": 1e-10,
+        "rank_decision_margin": 0.00016653879612388284
       }
     ],
     "replicates_requested": 200,
@@ -1265,8 +1866,106 @@
     "total_shots": 200000,
     "words": 63
   },
+  "provenance": {
+    "blas_lapack": {
+      "Build Dependencies": {
+        "blas": {
+          "detection method": "pkgconfig",
+          "found": true,
+          "include directory": "/opt/_internal/cpython-3.11.14/lib/python3.11/site-packages/scipy_openblas64/include",
+          "lib directory": "/opt/_internal/cpython-3.11.14/lib/python3.11/site-packages/scipy_openblas64/lib",
+          "name": "scipy-openblas",
+          "openblas configuration": "OpenBLAS 0.3.31.188.0  USE64BITINT DYNAMIC_ARCH NO_AFFINITY Haswell MAX_THREADS=64",
+          "pc file directory": "/project/.openblas",
+          "version": "0.3.31.188.0"
+        },
+        "lapack": {
+          "detection method": "pkgconfig",
+          "found": true,
+          "include directory": "/opt/_internal/cpython-3.11.14/lib/python3.11/site-packages/scipy_openblas64/include",
+          "lib directory": "/opt/_internal/cpython-3.11.14/lib/python3.11/site-packages/scipy_openblas64/lib",
+          "name": "scipy-openblas",
+          "openblas configuration": "OpenBLAS 0.3.31.188.0  USE64BITINT DYNAMIC_ARCH NO_AFFINITY Haswell MAX_THREADS=64",
+          "pc file directory": "/project/.openblas",
+          "version": "0.3.31.188.0"
+        }
+      },
+      "Compilers": {
+        "c": {
+          "commands": "cc",
+          "linker": "ld.bfd",
+          "name": "gcc",
+          "version": "14.2.1"
+        },
+        "c++": {
+          "commands": "c++",
+          "linker": "ld.bfd",
+          "name": "gcc",
+          "version": "14.2.1"
+        },
+        "cython": {
+          "commands": "cython",
+          "linker": "cython",
+          "name": "cython",
+          "version": "3.2.4"
+        }
+      },
+      "Machine Information": {
+        "build": {
+          "cpu": "x86_64",
+          "endian": "little",
+          "family": "x86_64",
+          "system": "linux"
+        },
+        "host": {
+          "cpu": "x86_64",
+          "endian": "little",
+          "family": "x86_64",
+          "system": "linux"
+        }
+      },
+      "Python Information": {
+        "path": "/tmp/build-env-gjolnpt6/bin/python",
+        "version": "3.11"
+      },
+      "SIMD Extensions": {
+        "baseline": [
+          "X86_V2"
+        ],
+        "found": [
+          "X86_V3",
+          "X86_V4"
+        ],
+        "not found": [
+          "AVX512_ICL",
+          "AVX512_SPR"
+        ]
+      }
+    },
+    "clifford_qc": "0.3.0",
+    "dependencies": {
+      "numpy": "2.4.6",
+      "openfermion": null,
+      "openfermionpyscf": null,
+      "pyscf": null,
+      "scipy": "1.17.1",
+      "stim": "1.16.0"
+    },
+    "environment_sha256": "1d28c8f59a7f6c4223ea86f8600f48b804a19a31bb0e5db7718538d8062076ba",
+    "git_dirty": false,
+    "git_sha": "56666fa55660e440b8e665ed5373c2f2fc16291a",
+    "platform": {
+      "hostname": "vm",
+      "machine": "x86_64",
+      "processor": "x86_64",
+      "release": "6.18.5-fc-v20",
+      "system": "Linux"
+    },
+    "python": "3.11.15",
+    "schema": "clifford_qc.execution_provenance.v1",
+    "utc": "2026-08-09T14:08:43.670549+00:00"
+  },
   "schema": "clifford_qc.acase_response_bootstrap.v2",
-  "source_main_commit": "4b1c636953e4ebe9aa7541d4260cfe95aa18674e",
   "spectrum": {
     "broadening_ev": 0.1,
     "estimate": [
