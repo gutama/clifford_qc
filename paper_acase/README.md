@@ -1,7 +1,9 @@
 # Paper B — DA-CASE
 
 Standalone manuscript built from the DA-CASE effective-Hamiltonian, FCIDUMP,
-active-space benchmark, and finite-shot response work.
+active-space benchmark, finite-shot response, QSCI/packet ensemble, and
+matched-budget Phase 12 work.  It incorporates the seed-level and comparator
+corrections merged through pull requests #47, #48, and #49.
 
 The paper argues an **architectural** thesis, not a scoreboard one. Fixing a
 single reference and reconstructing every overlap, Hamiltonian, and observable
@@ -152,3 +154,6 @@ identity.  They are not finite-sample confidence certificates.
 | Warm-start resource table | `../benchmarks/reference_results/warm_start_h4.json` |
 | Matched DA-CASE/ADAPT-VQE/ADAPT-GCIM table | `../benchmarks/reference_results/matched_h4.json` |
 | Dyadic Clifford measurement hierarchy | `../benchmarks/reference_results/clifford_hierarchy_h4.json` |
+| Phase 12 matched-budget primary table | `../benchmarks/results/phase12_paper_b_five_system.json` |
+| Phase 11 packet seed-cluster inference | `../benchmarks/results/packet_seed_ensemble*.jsonl` plus molecular provenance sidecar and generated Markdown summary |
+| Phase 12 M=7 seed replication | `../benchmarks/results/m7_seed_replication.jsonl` plus generated Markdown summary |
