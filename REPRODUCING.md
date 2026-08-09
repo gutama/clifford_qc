@@ -614,6 +614,30 @@ The intervals are percentile diagnostics labelled `heuristic`:
 - at least 80% of replicas must remain usable by default;
 - broadened-response bands are pointwise, not simultaneous.
 
+`check_response_records.py` compares a fresh run against the committed records
+in four tiers -- `contract` (seeds, budget, basis), `point` (exact spectrum,
+conditioning, every point estimate), `census` (how many replicas survived), and
+`intervals` (the percentile bands) -- and names the earliest failing tier. The
+tiers exist because the bands are all conditional on the census: two fewer
+surviving replicas move eight hundred band values, and a flat diff cannot
+distinguish that from a changed pipeline.
+
+**Known reproduction gap.** On the committed records the `contract` and `point`
+tiers reproduce exactly, including the overlap condition number to the last
+stored digit. The ill-conditioned record's `census` does not: it was committed
+at `139/200` accepted replicas and reproduces here at `137/200`, which shifts
+every percentile band by up to `5.2e-4` relative. The well-conditioned record
+keeps its `200/200` census and moves two band values by `2.9e-5`. This is not
+last-bit float noise in the acceptance test: acceptance turns on the sign of
+the resampled overlap's smallest eigenvalue, that eigenvalue agrees between
+`float64` and `float128` to `1.9e-13` across all 200 replicas, and the replica
+nearest the sign boundary sits `4.5e-4` away from it -- nine orders of
+magnitude clear. The gap predates the tiering and reproduces at the records'
+own authoring commit, so it is environmental rather than code drift. The
+records store no per-replica fingerprint, so which two replicas moved cannot
+currently be recovered from the record alone; adding one would make the next
+such disagreement diagnosable in a single step.
+
 ## DA-CASE validation ladder (Phase 7, `chemistry` extra)
 
 ```bash

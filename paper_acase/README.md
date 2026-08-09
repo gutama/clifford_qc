@@ -54,7 +54,13 @@ PDFs remain CI/release artifacts and are not committed as source.
   records from the merged implementation.
 - `check_response_records.py` — compares a fresh run with the committed
   records, requiring exact seeds, replica accounting, and metadata while
-  tolerating only last-bit floating-point variation.
+  tolerating only last-bit floating-point variation. It reports in four tiers
+  — `contract`, `point`, `census`, `intervals` — and names the earliest one
+  that failed, because every percentile band is conditional on the replica
+  census and a flat diff turns one upstream disagreement into hundreds of
+  downstream ones. See "Known reproduction gap" in `../REPRODUCING.md`: the
+  ill-conditioned record's census currently reproduces at `137/200` rather
+  than the committed `139/200`, which the manuscript quotes.
 - `data/response_bootstrap.json` — deterministic paper record, including the
   seeds, shot budget, replica accounting, intervals, and plotted spectrum.
 - `data/response_bootstrap_illconditioned.json` — the same run with the

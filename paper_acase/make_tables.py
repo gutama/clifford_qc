@@ -250,6 +250,25 @@ def response_table() -> None:
     _write("response_results.tex", out)
 
 
+# Display-only abbreviations for the matched table's arm column, applied after
+# the stored A-CASE -> DA-CASE mapping and never written back to the records.
+# The two warm-start labels are long enough to overrun the full-width table:
+# spelling "determinant" out in them pushes the row 11.6pt past the margin,
+# which LaTeX reports as an overfull hbox and prints into the gutter.  "det."
+# is unambiguous beside the unabbreviated "DA-CASE (determinant)" row above.
+_MATCHED_ARM_ABBREVIATIONS = {
+    "DA-CASE (determinant, ADAPT warm start)":
+        "DA-CASE (det., ADAPT warm start)",
+    "DA-CASE (determinant, sector-projected ADAPT warm start)":
+        "DA-CASE (det., sector-projected ADAPT warm start)",
+}
+
+
+def _matched_display_arm(stored: str) -> str:
+    renamed = stored.replace("A-CASE", "DA-CASE")
+    return _MATCHED_ARM_ABBREVIATIONS.get(renamed, renamed)
+
+
 def matched_table() -> None:
     """Every arm on one H4 contract with words and physical QWC settings.
 
@@ -293,7 +312,7 @@ def matched_table() -> None:
         error = row["error_millihartree"]
         error_cell = (f"{error:.3f}" if abs(error) >= 5e-4
                       else _sci(error, 2).replace("$", "$"))
-        display_arm = row["arm"].replace("A-CASE", "DA-CASE")
+        display_arm = _matched_display_arm(row["arm"])
         rows.append(
             rf"{display_arm} & {basis} & {error_cell} & "
             rf"{kappa} & {row['state_evaluation_contexts']:,} & "
