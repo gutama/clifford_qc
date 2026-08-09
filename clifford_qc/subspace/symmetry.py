@@ -212,10 +212,23 @@ def project_reference_to_sector(reference_state: MV, *,
     Returns ``(P rho P / tr(P rho), diagnostics)``.  This is exactly the state
     a sector measurement on the prepared reference leaves behind when the
     outcome is kept, which is why the retained weight is reported rather than
-    discarded: it *is* the acceptance probability, and the shot cost of the
-    warm start rises by ``1/weight``.  A reference that is 99.99% in sector
-    costs 1.0001x; one that is 60% in sector costs 1.67x, and only the caller
-    can decide whether that is worth paying.
+    discarded: it *is* the acceptance probability, so ``1/weight`` attempts are
+    needed per accepted shot.  A reference that is 99.99% in sector costs
+    1.0001x; one that is 60% in sector costs 1.67x, and only the caller can
+    decide whether that is worth paying.
+
+    ``shot_overhead`` is a retry factor on *state preparation executions
+    downstream of the projection*, and nothing else.  Work already performed on
+    the unprojected reference is untouched -- it happened before the sector
+    measurement exists, so no rejected attempt can make it more expensive --
+    and the factor must not be applied to counts of distinct measurement
+    settings, which are structural and not shots.  Multiplying a setting count
+    by a retry factor mixes units.
+
+    Two costs are outside this function.  The non-demolition ``(N, S_z)``
+    measurement that realizes the projection without collapsing the state onto
+    a single determinant is not priced here, and neither is the re-preparation
+    circuit itself; only the acceptance probability is returned.
 
     The target must be declared explicitly.  A warm start assembled from
     symmetry-breaking rotors is by construction sector-mixed, so there is no
@@ -227,7 +240,10 @@ def project_reference_to_sector(reference_state: MV, *,
     construction, so :func:`subspace_sector_certificate` becomes meaningful
     rather than vacuously failing.
     """
-    n_electrons, sz = int(sector_target[0]), float(sector_target[1])
+    declared_n = sector_target[0]
+    if int(declared_n) != declared_n:
+        raise ValueError("target particle number must be an integer")
+    n_electrons, sz = int(declared_n), float(sector_target[1])
     if not 0 <= n_electrons <= reference_state.n:
         raise ValueError("target particle number must be in [0, n]")
     if abs(2.0 * sz - round(2.0 * sz)) > 1e-12:
@@ -240,6 +256,10 @@ def project_reference_to_sector(reference_state: MV, *,
     projector = _target_projector(reference_state.n, n_electrons, sz, spin_ordering)
     projected = projector * reference_state * projector
     weight = float(projected.trace().real) / trace
+    # An exactly in-sector state can land a few ulps above one, which would
+    # report negative leakage and a retry overhead below unity.  Clamp on the
+    # same convention reference_sector_leakage uses.
+    weight = min(1.0, max(0.0, weight))
     if weight <= 0.0:
         raise ValueError(
             f"reference has no weight in the (N={n_electrons}, S_z={sz}) sector")
@@ -253,8 +273,8 @@ def project_reference_to_sector(reference_state: MV, *,
         "spin_ordering": (spin_ordering if isinstance(spin_ordering, str)
                           else list(spin_ordering)),
         "sector_weight": weight,
-        "leakage_removed": 1.0 - weight,
-        "shot_overhead": 1.0 / weight,
+        "leakage_removed": 0.0 if abs(1.0 - weight) <= 1e-13 else 1.0 - weight,
+        "shot_overhead": 1.0 if abs(1.0 - weight) <= 1e-13 else 1.0 / weight,
     }
 
 

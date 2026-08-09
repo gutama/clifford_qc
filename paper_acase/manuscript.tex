@@ -83,8 +83,9 @@ fifteen times wider.  A reference-conditioned sector test now certifies the
 entire nine-dimensional word-resolution span with zero leakage, so the width
 saving no longer requires disabling the default filter; post-selecting a
 sector-mixed ADAPT warm start onto its declared sector extends the same
-certificate to the warm-started arm at a $1.00012\times$ shot overhead, and
-improves it from $0.342$ to $0.199$ mHa.  In a separate
+certificate to the warm-started arm at a $1.00012\times$ preparation-retry
+factor on the A-CASE stage, with the non-demolition sector measurement itself
+left unpriced, and improves it from $0.342$ to $0.199$ mHa.  In a separate
 equal-shot diagnostic, covariance-aware group allocation reduces the summed
 projected-matrix variance by $68.9\%$; a shot-calibrated overlap cutoff read
 per mode removes all $>0.1$ Ha outliers and cuts RMSE $22\times$ against the
@@ -748,7 +749,11 @@ these transition measurements do not form a single-reference $W$.
 ``---'' marks a column an arm does not have and ``n/t'' a word count that is
 not the applicable measurement primitive.  ``Rot.'' is the deepest
 state-preparation ansatz in adaptive rotors; the record also stores the sum
-over all distinct basis circuits.}
+over all distinct basis circuits.  The two warm-started arms share every
+setting count by construction: sector post-selection changes which state is
+prepared, not which settings are measured, so its $1/\text{weight}$ retry
+factor is reported separately and multiplies preparation executions rather
+than any entry in this table.}
 \label{tab:matched}
 \scriptsize
 \begin{ruledtabular}
@@ -980,8 +985,21 @@ Post-selecting the reference onto the declared sector removes the obstruction
 at its source.  Replacing $\rho$ by $P\rho P/\operatorname{tr}(P\rho)$ makes
 the sector weight one by construction, so the cascade and the whole-span
 certificate both apply; the retained weight is the acceptance probability, and
-the $1/\text{weight}$ shot overhead is charged to the prelude rather than
-hidden.  On this instance the overhead is $1.00012\times$, and the projected
+the $1/\text{weight}$ retry factor is reported as its own multiplier rather
+than hidden.  It is charged where the retries actually fall.  The ADAPT
+prelude's selection scorings and optimizer evaluations all took place on the
+unprojected state, before any sector measurement exists, so its ledger is
+unchanged; what the acceptance probability costs is repeated attempts at every
+A-CASE-stage preparation downstream of the projection.  The factor therefore
+multiplies preparation executions for that stage alone, and multiplies nothing
+in the setting ledger, which counts distinct measurement settings rather than
+shots.  One cost is left explicitly unpriced: realizing $P\rho P$ without
+collapsing the state onto a single determinant requires a non-demolition
+$(N,S_z)$ measurement---phase estimation on the number and spin operators, or
+equivalent syndrome extraction onto ancillas---and no gate, ancilla, or shot
+count for that apparatus is charged anywhere here.  The overhead prices the
+rejected attempts, not the circuit that decides them.  On this instance the
+retry factor is $1.00012\times$, and the projected
 arm is both certifiable---$\ell_{\cal B}=0$ over the full $M=9$ span---and more
 accurate than the arm it replaces, $0.199$ against $0.342$ mHa, because the
 discarded $1.2\times10^{-4}$ of out-of-sector weight was contaminating the
@@ -1229,11 +1247,16 @@ gives up a factor of two in median error ($8.7$ versus $4.4$ mHa) and buys a
 $22\times$ reduction in RMSE ($12.9$ versus $285.4$ mHa), a maximum absolute
 error of $39.4$ mHa rather than $4.03$ Ha, and no catastrophic replica at all.
 That is a defensible trade where the uniform rule's was not.  It remains a
-trade: the calibrated arms are biased upward by $8$--$10$ mHa because a
-truncated rank cannot reach the exact projected energy, and a caller who cares
-about the median more than the tail should keep the fixed cutoff.  This is a
-fixed-bank Monte Carlo diagnostic with a data-derived rank rule, not a
-coverage, hardware, or end-to-end advantage claim.
+trade: the calibrated arms carry a positive mean bias of $8$--$10$ mHa,
+consistent with rank truncation, and a caller who cares about the median more
+than the tail should keep the fixed cutoff.  The bias is an observed property
+of these records, not a variational bound: both the projected matrices and the
+retained rank are selected from noisy data, so the usual exact-subspace upper
+bound does not apply, and indeed $22/200$ and $34/200$ per-mode replicas land
+below the exact energy.  Separating the truncation floor from the estimator's
+scatter would need an exact-matrix truncated-rank control, which we do not run
+here.  This is a fixed-bank Monte Carlo diagnostic with a data-derived rank
+rule, not a coverage, hardware, or end-to-end advantage claim.
 
 \section{What the architecture does not buy}
 \label{sec:limits}
@@ -1463,7 +1486,8 @@ reference-conditioned whole-bank certificate with zero sector leakage, while
 the operator-global negative control continues to reject the words; sector
 post-selection carries the same certificate to the ADAPT warm start, which is
 sector-mixed by construction, and improves it from $0.342$ to $0.199$ mHa at a
-$1.00012\times$ shot overhead.
+$1.00012\times$ retry factor on the A-CASE stage's preparation executions,
+the non-demolition sector measurement being left unpriced.
 Measurement compatibility supplies an independent dial: the $7371$-word H$_4$
 determinant bank needs $913$ QWC settings but only
 $64$ fully commuting settings under the constructive dyadic hierarchy.  At

@@ -638,6 +638,40 @@ def test_projecting_a_warm_start_makes_it_certifiable(case):
     assert certificate["min_sector_weight"] == pytest.approx(1.0)
 
 
+def test_projection_refuses_a_fractional_particle_number():
+    """`int()` would silently turn 2.5 into the N=2 sector.
+
+    Every other bound in this helper is validated, and `ACASEConfig` already
+    refuses a non-integral declared particle number, so a public helper that
+    truncated instead would certify against a sector the caller never asked
+    for.
+    """
+    from clifford_qc.subspace.symmetry import project_reference_to_sector
+
+    rho = ket_density(4, "1010")
+    with pytest.raises(ValueError, match="particle number must be an integer"):
+        project_reference_to_sector(rho, sector_target=(2.5, 0.0))
+
+
+def test_projecting_an_in_sector_reference_costs_exactly_one_attempt():
+    """A state already in sector must not report a sub-unit retry factor.
+
+    The trace ratio of an exactly in-sector determinant lands a few ulps
+    either side of one, so an unclamped weight can exceed one and produce
+    negative leakage and an overhead below unity -- a post-selection that
+    saves shots.  The clamp and the snap rule together forbid that.
+    """
+    from clifford_qc.subspace.symmetry import project_reference_to_sector
+
+    rho = ket_density(4, "1100")
+    projected, diagnostics = project_reference_to_sector(
+        rho, sector_target=(2, 0.0))
+    assert diagnostics["sector_weight"] <= 1.0
+    assert diagnostics["leakage_removed"] == 0.0
+    assert diagnostics["shot_overhead"] == 1.0
+    assert abs(projected.trace() - 1.0) < 1e-12
+
+
 def test_projection_refuses_a_sector_the_reference_has_no_weight_in():
     from clifford_qc.subspace.symmetry import project_reference_to_sector
 

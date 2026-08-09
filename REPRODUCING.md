@@ -512,8 +512,15 @@ average occupation into an undeclared convention. The second post-selects that
 reference onto the declared sector, `rho -> P rho P / tr(P rho)`. That makes
 the sector weight one by construction, so the cascade and the whole-span
 certificate apply; it improves the arm from `0.342` to `0.199 mHa`, and the
-`1/weight = 1.00012` shot overhead is charged to the prelude rather than
-hidden.
+`1/weight = 1.00012` retry factor is reported in the row's
+`sector_post_selection` block rather than folded into any count. It applies to
+the A-CASE stage's preparation executions only — every accepted shot there
+needs `1/weight` attempts on average — and to no setting count, since
+`selection_qwc_group_evaluations` and its rotor-weighted companion are
+structural counts of distinct measurement settings rather than shots. The
+prelude's ledger is unchanged, because its measurements preceded the
+projection. The non-demolition `(N, S_z)` measurement circuit that would
+realize `P rho P` without resolving the determinant is explicitly unpriced.
 
 ### Finite-shot allocation and overlap regularization
 

@@ -4,6 +4,7 @@
   "chemical_accuracy_hartree": 0.0016,
   "column_notes": {
     "adapt_gcim_matrix_pairs": "unique upper-triangle Hamiltonian pairs and off-diagonal overlap pairs. These transition measurements are not a single-reference Pauli-word universe and are therefore not reported as final_words.",
+    "sector_post_selection": "present only on an arm whose reference was post-selected onto a declared sector. It carries the acceptance probability and the 1/weight retry factor as a separate multiplier: the factor converts that arm's A-CASE-stage preparation executions, and is deliberately absent from every setting count in the row, which counts distinct settings rather than shots. The non-demolition sector-measurement circuit that would realize the projection is left unpriced.",
     "selection_qwc_group_evaluations": "sum of QWC settings over changing-state selection steps. Under uniform R shots per group, multiply by R for selection circuit executions/state preparations. Fixed-reference A-CASE instead measures one cached union, so this equals its single selection_qwc_groups count before any warm-start prelude.",
     "selection_rotor_qwc_group_evaluations": "sum over selection settings of adaptive-rotor depth times QWC settings, before the shot multiplier. This prices circuit depth for the selection stage without pretending to price the exact ADAPT optimizer's missing physical gradient protocol.",
     "selection_words": "distinct Pauli words the arm must read to score its candidates: for A-CASE the whole element cache, including rows for candidates that were then rejected, which is strictly larger than the retained final_words the manuscript ledger reports",
@@ -117,9 +118,9 @@
       "scipy": "1.17.1",
       "stim": null
     },
-    "environment_sha256": "7b826af32fe8521fa16bcbd54bddb7dc391268c17508454a053a52d3dfb4e57d",
+    "environment_sha256": "48a7633d32e3d2d83cba0c7d2da36b48d92d03b47f7f9af03ce61bd5ca70c272",
     "git_dirty": true,
-    "git_sha": "f5f3f78d9fb1ec0f6a37576ccdabde06b5212839",
+    "git_sha": "2264c129d2a833a9e53b0221edf000aa47f10142",
     "platform": {
       "hostname": "vm",
       "machine": "x86_64",
@@ -129,7 +130,7 @@
     },
     "python": "3.11.15",
     "schema": "clifford_qc.execution_provenance.v1",
-    "utc": "2026-08-09T10:26:01.249967+00:00"
+    "utc": "2026-08-09T11:51:51.504302+00:00"
   },
   "reference_energy": -2.180316614323859,
   "rows": [
@@ -973,7 +974,7 @@
         "E(4,6<-0,2)"
       ],
       "leakage_mode": "operator_then_reference",
-      "notes": "the warm start post-selected onto the declared sector at acceptance probability 0.999880; the whole retained span is certified in sector, and the 1/weight shot overhead is charged to the prelude",
+      "notes": "the warm start post-selected onto the declared sector at acceptance probability 0.999880; the whole retained span is certified in sector. The 1/weight retry factor is reported in sector_post_selection and applies to A-CASE-stage preparation executions only; setting counts are unchanged, and the QND sector-measurement circuit is left unpriced",
       "optimizer_evaluations": 15,
       "pool": "determinant excitations",
       "prelude": {
@@ -1008,9 +1009,9 @@
             "step": 2
           }
         ],
-        "selection_qwc_group_evaluations": 905,
+        "selection_qwc_group_evaluations": 904,
         "selection_qwc_groups": 452,
-        "selection_rotor_qwc_group_evaluations": 453,
+        "selection_rotor_qwc_group_evaluations": 452,
         "selection_words": 2424,
         "stage": "ADAPT-VQE, 2 operators, post-selected onto (N=4, S_z=0.0)",
         "state_evaluation_contexts": 17
@@ -1024,11 +1025,18 @@
         "target_particle_number": 4,
         "target_sz": 0.0
       },
+      "sector_post_selection": {
+        "acceptance_probability": 0.9998802764056718,
+        "applies_to": "the A-CASE stage only. Multiply this arm's A-CASE preparation executions -- R * selection_qwc_groups and R * final_qwc_groups at R shots per setting -- by the overhead, because every accepted shot needs 1/weight attempts on average. The ADAPT prelude's counts are unchanged: its measurements preceded the projection.",
+        "does_not_apply_to": "any setting count. selection_qwc_group_evaluations and selection_rotor_qwc_group_evaluations are structural counts of distinct measurement settings, not shots, so scaling them by a retry factor would mix units.",
+        "sector_measurement_circuit": "unpriced. Realizing P rho P without collapsing the state onto a single determinant needs a quantum non-demolition (N, S_z) measurement -- phase estimation on the number and spin operators, or equivalent syndrome extraction onto ancillas -- and no gate, ancilla, or shot cost for that circuit is charged anywhere in this ledger. The reported overhead prices only the rejected attempts, not the apparatus that decides them.",
+        "state_preparation_overhead": 1.0001197379297835
+      },
       "sector_weight": 1.0000000000000002,
       "selection_evaluations": 499,
-      "selection_qwc_group_evaluations": 2590,
+      "selection_qwc_group_evaluations": 2589,
       "selection_qwc_groups": 1685,
-      "selection_rotor_qwc_group_evaluations": 3823,
+      "selection_rotor_qwc_group_evaluations": 3822,
       "selection_words": 15803,
       "state_evaluation_contexts": 18
     }
