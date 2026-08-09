@@ -1,25 +1,31 @@
-# Paper B — One reference state, one measurement bank
+# Paper B — DA-CASE
 
-Standalone manuscript built from the A-CASE effective-Hamiltonian, FCIDUMP,
-active-space benchmark, finite-shot response, QSCI/packet ensemble, and
-matched-budget Phase 12 work.  It incorporates the seed-level and comparator
-corrections merged through pull requests #47, #48, and #49.
+Standalone manuscript built from the DA-CASE effective-Hamiltonian, FCIDUMP,
+active-space benchmark, and finite-shot response work.
 
 The paper argues an **architectural** thesis, not a scoreboard one. Fixing a
 single reference and reconstructing every overlap, Hamiltonian, and observable
-element from Pauli expectations on it has measurable consequences: the basis
-uses one reference context at any size, QWC setting counts rather than raw word
-counts determine the shot-level preparation schedule, the measurement width is
-tunable through generator resolution, and one cached bank serves energy,
-projected observables, and Lehmann response. Energy accuracy at matched budget
-is explicitly *not* the claim — Sec. "What the architecture does not buy"
-states where the method loses, including the inertness of operator dressing
-against a sample-independent selected-CI control.
+element from Pauli expectations on it has several measurable consequences: the
+basis uses one reference context at any size, compatible-setting counts rather
+than raw word counts determine the shot-level preparation schedule, a dyadic
+block-commuting hierarchy exposes the setting-versus-logical-CX trade, the
+measurement width is tunable through generator resolution, and one cached bank
+serves energy, projected observables, and Lehmann response. Energy accuracy at matched budget is
+explicitly *not* the claim — Sec. "What the architecture does not buy" states
+where the method loses, including the inertness of operator dressing against a
+sample-independent selected-CI control.
 
 The paper does not depend on the ADAPT-VQE manuscript in `../paper/`.  It
 defines the method, measurement model, benchmark contract, and evidence labels
 again, while citing the operator-centric Clifford-algebra paper for the shared
 software representation.
+
+**Naming boundary.** DA-CASE means *Dyadic Adaptive Clifford-Algebra Subspace
+Eigensolver*: the existing adaptive subspace engine plus the dyadic Clifford
+measurement hierarchy.  Source APIs, filenames, and stored benchmark arm
+labels retain `acase` / `A-CASE` for provenance and backward compatibility;
+paper table generation maps those stored labels to `DA-CASE` without mutating
+the records.
 
 ## Development and review access
 
@@ -61,11 +67,18 @@ PDFs remain CI/release artifacts and are not committed as source.
 - `check_manuscript.py` — checks labels, references, citations, inputs, table
   column counts, hand-typed numeric cells, figure staleness, and
   evidence-language invariants.
+- `../benchmarks/reference_results/clifford_hierarchy_h4.json` — the exact
+  logical block-commuting measurement hierarchy for the retained H4
+  determinant DA-CASE bank, including the Z-only tableau invariant, setting
+  counts, logical CX counts, and two-qubit depths.
+- `../benchmarks/run_clifford_hierarchy_h4.py` and
+  `../benchmarks/check_clifford_hierarchy_h4.py` — regenerate and gate that
+  record (requires the optional `stim` extra).
 
 Two records live under `../benchmarks/reference_results/` because they are
 benchmarks rather than paper artifacts:
 
-- `warm_start_h4.json` — A-CASE at the paper's nine-vector budget with the
+- `warm_start_h4.json` — DA-CASE at the paper's nine-vector budget with the
   reference state varied from the Hartree-Fock determinant to ADAPT-VQE states
   (`benchmarks/run_warm_start.py`). The v2 record also reports the additional
   ADAPT pool-gradient, optimizer, and state-preparation counts; it does not
@@ -83,10 +96,10 @@ benchmarks rather than paper artifacts:
   near-size match (`k=4`, `M=8`) and iteration match (`k=8`, `M=16`), with
   the published fixed `theta=pi/4`, cumulative-surrogate selector, and
   `M=2k` basis rule. Its off-diagonal Hamiltonian/overlap pair counts remain
-  separate from A-CASE's single-reference word universe. The record also
+  separate from DA-CASE's single-reference word universe. The record also
   distinguishes state-evaluation contexts from physical preparations, stores
-  QWC groups for the large A-CASE banks, and sums groups over each changing
-  ADAPT selection state. The two A-CASE arms differ only in generator
+  QWC groups for the large DA-CASE banks, and sums groups over each changing
+  ADAPT selection state. The two DA-CASE arms differ only in generator
   resolution; their retained subspaces are identical and their widths are not.
 
 ## Reproduce
@@ -101,6 +114,9 @@ python benchmarks/check_warm_start.py
 python benchmarks/run_krylov_width.py
 python benchmarks/run_matched_h4.py
 python benchmarks/check_matched_h4.py
+pip install -e '.[stim]'
+python benchmarks/run_clifford_hierarchy_h4.py
+python benchmarks/check_clifford_hierarchy_h4.py
 python paper_acase/make_tables.py
 python paper_acase/make_figures.py
 python paper_acase/check_manuscript.py
@@ -134,7 +150,5 @@ identity.  They are not finite-sample confidence certificates.
 | Dimer table | `../examples/data/wannier_hubbard_dimer.json` and closed-form dimer identities |
 | FCIDUMP H4 table | `../benchmarks/reference_results/fcidump_h4.json` |
 | Warm-start resource table | `../benchmarks/reference_results/warm_start_h4.json` |
-| Matched A-CASE/ADAPT-VQE/ADAPT-GCIM table | `../benchmarks/reference_results/matched_h4.json` |
-| Phase 12 matched-budget primary table | `../benchmarks/results/phase12_paper_b_five_system.json` |
-| Phase 11 packet seed-cluster inference | `../benchmarks/results/packet_seed_ensemble*.jsonl` plus molecular provenance sidecar and generated Markdown summary |
-| Phase 12 M=7 seed replication | `../benchmarks/results/m7_seed_replication.jsonl` plus generated Markdown summary |
+| Matched DA-CASE/ADAPT-VQE/ADAPT-GCIM table | `../benchmarks/reference_results/matched_h4.json` |
+| Dyadic Clifford measurement hierarchy | `../benchmarks/reference_results/clifford_hierarchy_h4.json` |
