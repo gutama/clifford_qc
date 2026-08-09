@@ -68,11 +68,12 @@ conditioning carries a measured downstream price, taking bootstrap acceptance
 from $200/200$ to $139/200$ across four orders of $\kappa_S$.  Fourth, a
 measurement-side dyadic hierarchy, requiring commutation only within blocks of
 $1,2,4,$ or $8$ qubits, interpolates between QWC and fully commuting
-measurements, and exact tableau synthesis prices the reduction in logical CX
-gates rather than treating it as free.  On two eight-qubit banks the setting
-count falls $913\to64$ (H$_4$) and $353\to14$ (BeH$_2$), but the two order the
-intermediate levels oppositely, so the block size that pays is an instance
-property rather than a rule.  We state the architecture's costs with equal
+measurements; a constructive tableau synthesis prices that setting reduction
+with explicit added logical CX gates.  On two eight-qubit banks the setting
+count falls $913\to64$ (H$_4$) and $353\to14$ (BeH$_2$), but under the fixed
+grouping/synthesis protocol the two order the intermediate levels oppositely, so
+the block size that pays is instance- and compilation-dependent rather than a
+rule.  We state the architecture's costs with equal
 weight: it is not the most accurate arm at matched budget, its selection stage
 reads an order of magnitude more words than it measures, and its sampling-fed
 dressing supplies no advantage over a sample-independent selected-CI control at
@@ -314,9 +315,11 @@ elimination.  We then verify the stronger circuit invariant directly: every
 restricted Pauli in the group, not only the independent basis, conjugates to a
 $Z$-only word.  The setting count is therefore constructive rather than an
 optimal-coloring claim, while the synthesized circuit supplies a logical CX
-count and two-qubit depth.  This use of ``Clifford'' means a stabilizer Clifford
-measurement circuit, distinct from the Clifford-algebra operator
-representation used by DA-CASE itself.
+count and two-qubit depth.  Tableau elimination is one constructive compiler
+path, not a CX-minimizing synthesis; the reported entangling-gate counts and any
+cost frontier derived from them are therefore compiler-dependent.  This use of
+``Clifford'' means a stabilizer Clifford measurement circuit, distinct from
+the Clifford-algebra operator representation used by DA-CASE itself.
 
 The hierarchy is wavelet-inspired only in its dyadic locality: it does
 \emph{not} form Haar or other linear combinations of measured Pauli words.
@@ -848,14 +851,19 @@ $c_{\rm CX}$ the marginal logical-CX cost, level $k$ beats QWC when
  \frac{c_{\rm CX}}{c_{\rm prep}}<\frac{G_1-G_k}{N_{{\rm CX},k}},
  \label{eq:clifford-break-even}
 \end{equation}
-and the shot count cancels.  The two systems order the levels oppositely.  On
-H$_4$ the ratio grows with $k$---$0.084$, $0.183$, $0.423$---so the deepest
+and the shot count cancels.  This is intentionally a two-currency proxy: it
+omits single-qubit Clifford cost (although the machine-readable records retain
+the H/S counts), routing, and device calibration.  Its threshold is therefore
+conditional on the stated logical cost model, not an exact hardware break-even.
+The two systems order the levels oppositely.  On H$_4$ the ratio grows with
+$k$---$0.084$, $0.183$, $0.423$---so the deepest
 level is the most permissive, and each preparation it avoids costs
 $2006/849=2.36$ added logical CX applications.  On BeH$_2$ the ratio falls with
 $k$---$1.86$, $1.40$, $1.02$---so the \emph{shallowest} nontrivial level is the
 most permissive, and even $k=8$ tolerates a marginal CX roughly as expensive as
-a whole preparation.  Which block size to compile is therefore an instance
-property, which is the practical reason to expose $k$ as a dial rather than to
+a whole preparation.  Which block size to compile is therefore instance- and
+compilation-dependent under this fixed greedy-grouping/tableau-elimination
+protocol, which is the practical reason to expose $k$ as a dial rather than to
 report only the two endpoints.
 
 All synthesized groups on both systems pass the exact $Z$-only conjugation
@@ -1161,11 +1169,13 @@ compatibility} multiresolution.  The evidence therefore favors a dyadic
 Clifford measurement hierarchy, not wavelet-combined DA-CASE operators.
 
 \emph{The measurement hierarchy is not surveyed.}  Two eight-qubit banks are
-enough to show that the level ordering is instance-dependent, and therefore
-enough to withdraw any claim that one block size is generally preferable.  They
-are not enough to predict which level a given Hamiltonian will favor, and the
-grouping is a constructive greedy coloring rather than an optimal one, so every
-setting count reported here is an upper bound.
+enough to show that even under the fixed compiler the level ordering is
+instance-dependent, and therefore enough to withdraw any claim that one block
+size is generally preferable.  They are not enough to predict which level a
+new instance/compiler pairing will favor.  The grouping is a constructive
+greedy coloring rather than an optimal one, so every setting count reported
+here is an upper bound; the tableau elimination is likewise not claimed to
+minimize CX count.
 
 \emph{Finite-shot growth is not certified.}  Eight-qubit certified-growth
 attempts spend $1.5\times10^8$ to $4.6\times10^8$ physical shots and frequently
@@ -1280,10 +1290,15 @@ evidence standard described next.
 
 For provenance stability, source APIs and stored benchmark schemas retain the
 identifier \texttt{acase} and the record label \texttt{A-CASE} for the adaptive
-subspace engine.  In this manuscript \emph{DA-CASE} denotes that unchanged
-engine together with the dyadic Clifford measurement layer of
-Sec.~\ref{sec:clifford-hierarchy}.  Table generation maps the stored arm label
-to the manuscript name without relabeling the underlying records.
+subspace engine.  In this manuscript \emph{DA-CASE} denotes the complete
+architecture: that unchanged engine followed by a configurable dyadic Clifford
+measurement stage from Sec.~\ref{sec:clifford-hierarchy}.  The $k=1$ choice is
+exactly QWC and is intentionally retained in the matched ledgers for
+comparability; higher $k$ changes only the measurement compatibility and its
+block-local Clifford synthesis.  Thus the legacy QWC ledger is the baseline
+endpoint of the DA-CASE hierarchy, not a separate method.  Table generation
+maps the stored arm label to the manuscript name without relabeling the
+underlying records.
 
 Every number in this manuscript is generated from a committed record rather
 than typed.  The table fragments are produced by \texttt{paper\_acase/make\_tables.py}
