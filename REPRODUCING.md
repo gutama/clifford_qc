@@ -651,6 +651,26 @@ Costs on one laptop-class core: the four-qubit rungs are seconds each, the
 `h4_*` rungs a few minutes apiece, and `h2o_cas8e6o` (12 qubits) dominates the
 total. The certified eight-qubit rows add roughly three minutes each.
 
+## Phase 10--12 paper-level drivers
+
+Four orchestration/replication runners sit above the primitive benchmarks
+documented in the sections above:
+
+- `benchmarks/run_phase10_hybrid.py` runs the Phase 10 QSCI x DA-CASE
+  primary-system capability comparison.
+- `benchmarks/run_packet_seed_ensemble.py` runs the Phase 11 coarse-to-fine
+  packet seed ensemble; inference resamples whole seeds.
+- `benchmarks/run_m7_seed_replication.py` replicates the sampling-dependent
+  Phase 12 matched-budget `M=7` arms across seeds and packet orderings.
+- `benchmarks/run_phase12_paper_b.py` assembles the integrated Paper B
+  resource ledger and computes Pareto frontiers only within one evidence
+  category.
+
+Their QSCI defaults use the exact sector ground state as a validation oracle,
+not an implementable state-preparation claim.  The Phase 10 and 12 H$_4$
+systems built through PySCF require the `chemistry` extra; dependency-light
+FCIDUMP rungs remain available for the matching checks.
+
 ## Demos (not committed as artifacts)
 
 ```bash
