@@ -237,43 +237,44 @@ def main() -> int:
                         f"(run paper_acase/make_tables.py): {line[:60]}")
                     break
 
-    # Figure freshness is decided by the source digests in the manifest below,
-    # not by mtimes: a fresh clone gives checkout-order mtimes that say nothing
-    # about whether a figure matches the record it was drawn from.
+    # Figure freshness is decided by source digests rather than mtimes.  Only
+    # figures referenced by the current manuscript are release dependencies:
+    # a simplified manuscript must not be held hostage by stale assets it no
+    # longer includes.
+    referenced_figures: list[tuple[str, Path]] = []
     for match in re.finditer(
             r"\\includegraphics(?:\[[^\]]*\])?\{([^}]+)\}", text):
-        asset = HERE / match.group(1)
+        relative = match.group(1)
+        asset = HERE / relative
+        referenced_figures.append((Path(relative).name, asset))
         if not asset.exists():
-            problems.append(f"missing figure: {match.group(1)}")
+            problems.append(f"missing figure: {relative}")
 
-    if not FIGURE_MANIFEST.exists():
-        problems.append("missing figure manifest "
-                        "(run paper_acase/make_figures.py)")
-    else:
-        manifest = json.loads(FIGURE_MANIFEST.read_text(encoding="utf-8"))
-        expected_generator = _source_digest(HERE / "make_figures.py")
-        if manifest.get("generator", {}).get("sha256") != expected_generator:
-            problems.append("figure manifest has a stale generator digest "
+    if referenced_figures:
+        if not FIGURE_MANIFEST.exists():
+            problems.append("missing figure manifest "
                             "(run paper_acase/make_figures.py)")
-        expected_sources = {
-            "pipeline.pdf": (),
-            "validation_ladder.pdf": FIGURE_SOURCES["validation_ladder.pdf"],
-            "response_bootstrap.pdf": FIGURE_SOURCES["response_bootstrap.pdf"],
-            "conditioning_bands.pdf": FIGURE_SOURCES["conditioning_bands.pdf"],
-        }
-        figures = manifest.get("figures", {})
-        if set(figures) != set(expected_sources):
-            problems.append("figure manifest names do not match the manuscript")
-        for name, paths in expected_sources.items():
-            recorded = figures.get(name, {}).get("sources", {})
-            expected = {
-                str(path.resolve().relative_to(ROOT)): _source_digest(path)
-                for path in paths
-            }
-            if recorded != expected:
-                problems.append(
-                    f"{name} manifest has stale source digests "
-                    "(run paper_acase/make_figures.py)")
+        else:
+            manifest = json.loads(FIGURE_MANIFEST.read_text(encoding="utf-8"))
+            expected_generator = _source_digest(HERE / "make_figures.py")
+            if manifest.get("generator", {}).get("sha256") != expected_generator:
+                problems.append("figure manifest has a stale generator digest "
+                                "(run paper_acase/make_figures.py)")
+            figures = manifest.get("figures", {})
+            for name, _ in referenced_figures:
+                if name not in figures:
+                    problems.append(f"{name} is absent from the figure manifest")
+                    continue
+                paths = FIGURE_SOURCES.get(name, ())
+                recorded = figures[name].get("sources", {})
+                expected = {
+                    str(path.resolve().relative_to(ROOT)): _source_digest(path)
+                    for path in paths
+                }
+                if recorded != expected:
+                    problems.append(
+                        f"{name} manifest has stale source digests "
+                        "(run paper_acase/make_figures.py)")
 
     required = [
         "heuristic",
