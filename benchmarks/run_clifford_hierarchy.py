@@ -73,6 +73,18 @@ def _xz(n: int, code: int) -> tuple[int, int]:
     return x, z
 
 
+def _parity_u64(values: np.ndarray) -> np.ndarray:
+    """Vectorized uint64 parity, compatible with the declared NumPy >=1.23."""
+    work = np.array(values, dtype=np.uint64, copy=True)
+    work ^= work >> 32
+    work ^= work >> 16
+    work ^= work >> 8
+    work ^= work >> 4
+    work ^= work >> 2
+    work ^= work >> 1
+    return (work & np.uint64(1)).astype(bool)
+
+
 def _partition(n: int, codes: list[int], block_size: int) -> list[list[int]]:
     """Largest-conflict-degree greedy partition under block commutativity."""
     width = len(codes)
@@ -90,7 +102,7 @@ def _partition(n: int, codes: list[int], block_size: int) -> list[list[int]]:
         cross = (xs[i] & zs) ^ (zs[i] & xs)
         bad = np.zeros(width, dtype=bool)
         for mask in block_masks:
-            bad |= (np.bitwise_count(cross & mask) & 1).astype(bool)
+            bad |= _parity_u64(cross & mask)
         degrees[i] = int(bad.sum())
         packed = np.packbits(bad, bitorder="little")
         conflicts.append(int.from_bytes(packed.tobytes(), "little"))
@@ -344,8 +356,9 @@ def build_record(system: str = "h4") -> dict:
             f"{qwc['settings']} != {committed_groups}")
 
     # Break-even against the QWC endpoint under C_k = R (c_prep G_k + c_CX N_k):
-    # level k is cheaper than k=1 iff c_CX/c_prep is below this ratio.  Which
-    # level is most permissive is an instance property, not a rule.
+    # level k is cheaper than k=1 iff c_CX/c_prep is below this ratio.  Under
+    # the fixed greedy grouping and stim-elimination synthesis below, which
+    # level is most permissive is instance- and compilation-dependent.
     for row in rows[1:]:
         row["cx_to_preparation_cost_ratio_vs_qwc"] = (
             (qwc["settings"] - row["settings"]) / row["logical_cx_per_sweep"])
