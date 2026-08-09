@@ -17,8 +17,9 @@ WARM = ROOT / "benchmarks" / "reference_results" / "warm_start_h4.json"
 KRYLOV_WIDTH = ROOT / "benchmarks" / "reference_results" / "krylov_width.json"
 MATCHED = ROOT / "benchmarks" / "reference_results" / "matched_h4.json"
 PHASE12_PRIMARY = ROOT / "benchmarks" / "results" / "phase12_paper_b_five_system.json"
-CLIFFORD_HIERARCHY = (
-    ROOT / "benchmarks" / "reference_results" / "clifford_hierarchy_h4.json")
+CLIFFORD_HIERARCHY = tuple(
+    ROOT / "benchmarks" / "reference_results" / f"clifford_hierarchy_{system}.json"
+    for system in ("h4", "beh2"))
 DIMER = ROOT / "examples" / "data" / "wannier_hubbard_dimer.json"
 RESPONSE = HERE / "data" / "response_bootstrap.json"
 RESPONSE_ILL = HERE / "data" / "response_bootstrap_illconditioned.json"
@@ -300,20 +301,33 @@ def matched_table() -> None:
 
 
 def clifford_hierarchy_table() -> None:
-    record = json.loads(CLIFFORD_HIERARCHY.read_text())
-    out = []
-    for row in record["rows"]:
-        block = row["block_size"]
-        label = "$1$ (QWC)" if block == 1 else (
-            f"${block}$ (full)" if block == record["n_qubits"] else f"${block}$")
-        out.append(
-            f"{label} & {row['settings']} & "
-            f"{row['word_samples_per_preparation']:.2f} & "
-            f"{row['logical_cx_per_sweep']} & "
-            f"{row['mean_logical_cx_depth']:.2f} & "
-            f"{row['max_logical_cx_depth']} & "
-            f"{row['state_preparations_at_uniform_shots'] / 1e6:.3f} "
-            + r"\\")
+    """Both eight-qubit hierarchy records, one block per system."""
+    out: list[str] = []
+    for path in CLIFFORD_HIERARCHY:
+        record = json.loads(path.read_text())
+        if out:
+            out.append(r"\colrule")
+        # A leading system column rather than a spanning header row: a
+        # \multicolumn may not be the first token of an \input fragment inside
+        # a TeX alignment.
+        system = (rf"{record['label']} ($M={record['basis_size']}$, "
+                  rf"$W={record['word_universe']:,}$)")
+        for row in record["rows"]:
+            block = row["block_size"]
+            label = "$1$ (QWC)" if block == 1 else (
+                f"${block}$ (full)" if block == record["n_qubits"]
+                else f"${block}$")
+            ratio = row["cx_to_preparation_cost_ratio_vs_qwc"]
+            out.append(
+                f"{system} & {label} & {row['settings']} & "
+                f"{row['word_samples_per_preparation']:.2f} & "
+                f"{row['logical_cx_per_sweep']} & "
+                f"{row['mean_logical_cx_depth']:.2f} & "
+                f"{row['max_logical_cx_depth']} & "
+                f"{row['state_preparations_at_uniform_shots'] / 1e6:.3f} & "
+                + ("---" if ratio is None else f"{ratio:.3f}")
+                + r" \\")
+            system = ""
     _write("clifford_hierarchy.tex", out)
 
 

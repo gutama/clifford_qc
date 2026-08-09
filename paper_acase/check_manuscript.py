@@ -237,17 +237,14 @@ def main() -> int:
                         f"(run paper_acase/make_tables.py): {line[:60]}")
                     break
 
+    # Figure freshness is decided by the source digests in the manifest below,
+    # not by mtimes: a fresh clone gives checkout-order mtimes that say nothing
+    # about whether a figure matches the record it was drawn from.
     for match in re.finditer(
             r"\\includegraphics(?:\[[^\]]*\])?\{([^}]+)\}", text):
         asset = HERE / match.group(1)
         if not asset.exists():
             problems.append(f"missing figure: {match.group(1)}")
-            continue
-        for record in FIGURE_SOURCES.get(asset.name, ()):
-            if record.exists() and asset.stat().st_mtime < record.stat().st_mtime:
-                problems.append(
-                    f"{asset.name} is older than {record.name} "
-                    "(run paper_acase/make_figures.py)")
 
     if not FIGURE_MANIFEST.exists():
         problems.append("missing figure manifest "
@@ -292,17 +289,19 @@ def main() -> int:
         "editors and referees",
         "tagged archival release",
     ]
-    lowered = text.lower()
+    # Source line breaks are not semantic in LaTeX, so a phrase that happens to
+    # wrap must neither satisfy a forbidden check nor fail a required one.
+    lowered = re.sub(r"\s+", " ", text.lower())
     for phrase in required:
-        if phrase.lower() not in lowered:
+        if re.sub(r"\s+", " ", phrase.lower()) not in lowered:
             problems.append(f"missing evidence/scope phrase: {phrase}")
     if re.search(r"\\date\s*\{[^{}]*\\today[^{}]*\}", text, re.S):
         problems.append("manuscript date must be fixed for archival rebuilds")
     forbidden = ["certified response interval", "quantum speedup is",
                  "outperforms krylov", "cliffordqc2026",
-                 "in the public\n\\texttt{clifford\\_qc} repository"]
+                 r"in the public \texttt{clifford\_qc} repository"]
     for phrase in forbidden:
-        if phrase in lowered:
+        if re.sub(r"\s+", " ", phrase.lower()) in lowered:
             problems.append(f"forbidden overclaim phrase: {phrase}")
 
     for problem in problems:

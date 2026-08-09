@@ -121,7 +121,7 @@ pip install -e .[bridges]            # stim + pytket + pennylane + pyzx + openfe
 
 The standalone DA-CASE paper's dyadic Clifford measurement hierarchy uses the
 ``stim`` extra to synthesize and verify exact logical diagonalizers for the
-retained H4 bank:
+retained H4 and BeH2 banks:
 
 DA-CASE is the paper-level name for the complete architecture: *Dyadic
 Adaptive Clifford-Algebra Subspace Eigensolver*.  For provenance and backward
@@ -129,12 +129,20 @@ compatibility, source identifiers such as ``acase_*`` and stored JSON arm
 labels containing ``A-CASE`` are not renamed in-place.
 
 ```bash
-python benchmarks/run_clifford_hierarchy_h4.py
-python benchmarks/check_clifford_hierarchy_h4.py
+python benchmarks/run_clifford_hierarchy.py --system h4
+python benchmarks/run_clifford_hierarchy.py --system beh2
+python benchmarks/check_clifford_hierarchy.py
 ```
 
-The record reports logical all-to-all CX counts and depth only; topology
-routing, device noise, and mitigation are deliberately outside that experiment.
+This writes `reference_results/clifford_hierarchy_h4.json` and
+`reference_results/clifford_hierarchy_beh2.json`. The H4 bank is reconstructed
+from the retained labels in `matched_h4.json`, so the hierarchy and the matched
+ledger share one bank by construction; the BeH2 bank is an independent DA-CASE
+run on `data/beh2_sto3g_r1.3264.FCIDUMP`, which
+`benchmarks/make_beh2_fcidump.py` regenerates from PySCF under the `chemistry`
+extra. Both records report logical all-to-all CX counts and depth only;
+topology routing, device noise, and mitigation are deliberately outside that
+experiment.
 
 `check_docs.py` verifies the documented pair by collection. It reports a
 skip when the installed extras do not match the environment above; pass

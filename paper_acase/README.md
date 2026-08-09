@@ -69,13 +69,19 @@ PDFs remain CI/release artifacts and are not committed as source.
 - `check_manuscript.py` — checks labels, references, citations, inputs, table
   column counts, hand-typed numeric cells, figure staleness, and
   evidence-language invariants.
-- `../benchmarks/reference_results/clifford_hierarchy_h4.json` — the exact
-  logical block-commuting measurement hierarchy for the retained H4
-  determinant DA-CASE bank, including the Z-only tableau invariant, setting
-  counts, logical CX counts, and two-qubit depths.
-- `../benchmarks/run_clifford_hierarchy_h4.py` and
-  `../benchmarks/check_clifford_hierarchy_h4.py` — regenerate and gate that
-  record (requires the optional `stim` extra).
+- `../benchmarks/reference_results/clifford_hierarchy_h4.json` and
+  `clifford_hierarchy_beh2.json` — the exact logical block-commuting
+  measurement hierarchy for two eight-qubit DA-CASE banks, including the
+  Z-only tableau invariant, setting counts, logical CX counts, two-qubit
+  depths, and the per-level break-even CX/preparation cost ratio. The H4 bank
+  is reconstructed from the matched contract's retained labels; the BeH2 bank
+  is an independent DA-CASE run on its own frozen FCIDUMP.
+- `../benchmarks/run_clifford_hierarchy.py` and
+  `../benchmarks/check_clifford_hierarchy.py` — regenerate and gate those
+  records (requires the optional `stim` extra).
+- `../benchmarks/make_beh2_fcidump.py` — regenerates the committed BeH2
+  CAS(4e,4o) FCIDUMP and its provenance sidecar (requires the `chemistry`
+  extra); the emitted file is the immutable benchmark input.
 
 Two records live under `../benchmarks/reference_results/` because they are
 benchmarks rather than paper artifacts:
@@ -117,8 +123,9 @@ python benchmarks/run_krylov_width.py
 python benchmarks/run_matched_h4.py
 python benchmarks/check_matched_h4.py
 pip install -e '.[stim]'
-python benchmarks/run_clifford_hierarchy_h4.py
-python benchmarks/check_clifford_hierarchy_h4.py
+python benchmarks/run_clifford_hierarchy.py --system h4
+python benchmarks/run_clifford_hierarchy.py --system beh2
+python benchmarks/check_clifford_hierarchy.py
 python paper_acase/make_tables.py
 python paper_acase/make_figures.py
 python paper_acase/check_manuscript.py
@@ -153,7 +160,7 @@ identity.  They are not finite-sample confidence certificates.
 | FCIDUMP H4 table | `../benchmarks/reference_results/fcidump_h4.json` |
 | Warm-start resource table | `../benchmarks/reference_results/warm_start_h4.json` |
 | Matched DA-CASE/ADAPT-VQE/ADAPT-GCIM table | `../benchmarks/reference_results/matched_h4.json` |
-| Dyadic Clifford measurement hierarchy | `../benchmarks/reference_results/clifford_hierarchy_h4.json` |
+| Dyadic Clifford measurement hierarchy | `../benchmarks/reference_results/clifford_hierarchy_h4.json` and `clifford_hierarchy_beh2.json` |
 | Phase 12 matched-budget primary table | `../benchmarks/results/phase12_paper_b_five_system.json` |
 | Phase 11 packet seed-cluster inference | `../benchmarks/results/packet_seed_ensemble*.jsonl` plus molecular provenance sidecar and generated Markdown summary |
 | Phase 12 M=7 seed replication | `../benchmarks/results/m7_seed_replication.jsonl` plus generated Markdown summary |

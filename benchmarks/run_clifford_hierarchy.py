@@ -1,12 +1,26 @@
-"""Reproduce the dyadic block-commuting H4 measurement hierarchy.
+"""Reproduce the dyadic block-commuting measurement hierarchy.
 
-The retained determinant-resolution DA-CASE bank is reconstructed from the
-selected labels in ``matched_h4.json``.  Only the measurement compatibility
-rule changes.  For k=1,2,4,8 we greedily group words that commute inside every
-contiguous k-qubit block, synthesize an exact block-local Clifford
-diagonalizer with stim, and count logical CX gates and two-qubit depth.
+Only the measurement compatibility rule varies.  For each dyadic block size
+``k`` we greedily group the words of a retained DA-CASE bank so that grouped
+words commute inside every contiguous ``k``-qubit block, synthesize an exact
+block-local Clifford diagonalizer with stim, and count logical CX gates and
+two-qubit depth.
 
-    python benchmarks/run_clifford_hierarchy_h4.py
+Two eight-qubit systems are run at the same block sizes so the trade is
+measured on more than one Hamiltonian:
+
+``h4``
+    The retained determinant-resolution bank of the matched H4 contract,
+    reconstructed from the labels stored in ``matched_h4.json`` so that the
+    manuscript's ledger and this experiment share one bank by construction.
+``beh2``
+    An independent DA-CASE run on the frozen BeH2 CAS(4e,4o) FCIDUMP, grown
+    under the same budget and candidate rule.  BeH2 stops on its own lowering
+    threshold before the budget is spent, so its bank is smaller; that is
+    reported rather than padded.
+
+    python benchmarks/run_clifford_hierarchy.py --system h4
+    python benchmarks/run_clifford_hierarchy.py --system beh2
 """
 
 from __future__ import annotations
@@ -18,13 +32,14 @@ from pathlib import Path
 
 import numpy as np
 
-from clifford_qc.backends import ExactMVBackend
+from clifford_qc.backends import ExactMVBackend, SectorStatevectorBackend
 from clifford_qc.models import fcidump_model
 from clifford_qc.reproducibility import stamp_record
 from clifford_qc.subspace import (
     determinant_excitations,
     identity_generator,
     occupied_spin_orbitals,
+    run_acase,
 )
 from clifford_qc.subspace.elements import MatrixElementBank
 
@@ -32,17 +47,19 @@ try:
     import stim
 except ImportError as exc:  # pragma: no cover - exercised only without extra
     raise SystemExit(
-        "run_clifford_hierarchy_h4.py requires the stim extra: "
+        "run_clifford_hierarchy.py requires the stim extra: "
         "pip install -e '.[stim]'"
     ) from exc
 
 
 HERE = Path(__file__).resolve().parent
 MATCHED = HERE / "reference_results" / "matched_h4.json"
-FCIDUMP = HERE / "data" / "h4_sto3g_r0.9.FCIDUMP"
-DEFAULT_OUT = HERE / "reference_results" / "clifford_hierarchy_h4.json"
+H4_FCIDUMP = HERE / "data" / "h4_sto3g_r0.9.FCIDUMP"
+BEH2_FCIDUMP = HERE / "data" / "beh2_sto3g_r1.3264.FCIDUMP"
+BEH2_PROVENANCE = HERE / "data" / "beh2_sto3g_r1.3264.provenance.json"
 SHOTS_PER_SETTING = 8_000
 BLOCK_SIZES = (1, 2, 4, 8)
+BUDGET = 8
 
 
 def _xz(n: int, code: int) -> tuple[int, int]:
@@ -61,10 +78,8 @@ def _partition(n: int, codes: list[int], block_size: int) -> list[list[int]]:
     width = len(codes)
     xs = np.asarray([_xz(n, code)[0] for code in codes], dtype=np.uint64)
     zs = np.asarray([_xz(n, code)[1] for code in codes], dtype=np.uint64)
-    parity = np.asarray([value.bit_count() & 1 for value in range(1 << n)],
-                        dtype=np.uint8)
     block_masks = [
-        ((1 << min(block_size, n - start)) - 1) << start
+        np.uint64(((1 << min(block_size, n - start)) - 1) << start)
         for start in range(0, n, block_size)
     ]
 
@@ -75,7 +90,7 @@ def _partition(n: int, codes: list[int], block_size: int) -> list[list[int]]:
         cross = (xs[i] & zs) ^ (zs[i] & xs)
         bad = np.zeros(width, dtype=bool)
         for mask in block_masks:
-            bad |= parity[cross & np.uint64(mask)].astype(bool)
+            bad |= (np.bitwise_count(cross & mask) & 1).astype(bool)
         degrees[i] = int(bad.sum())
         packed = np.packbits(bad, bitorder="little")
         conflicts.append(int.from_bytes(packed.tobytes(), "little"))
@@ -228,11 +243,12 @@ def _synthesize(n: int, codes: list[int], groups: list[list[int]],
     }
 
 
-def build_record() -> dict:
+def _h4_bank() -> dict:
+    """The retained determinant bank of the matched H4 contract."""
     matched = json.loads(MATCHED.read_text(encoding="utf-8"))
     selected = next(
         row for row in matched["rows"] if row["arm"] == "A-CASE (determinant)")
-    model = fcidump_model(FCIDUMP)
+    model = fcidump_model(H4_FCIDUMP)
     rho = ExactMVBackend().state(model.reference, ())
     determinants = determinant_excitations(
         model.n, occupied_spin_orbitals(model), max_rank=2)
@@ -246,20 +262,98 @@ def build_record() -> dict:
     if len(codes) != selected["final_words"]:
         raise AssertionError(
             f"matched bank drift: {len(codes)} != {selected['final_words']}")
+    return {
+        "system": "h4",
+        "label": "H$_4$",
+        "source": str(MATCHED.relative_to(HERE.parent)),
+        "bank_provenance": (
+            "retained determinant-resolution bank of the matched H4 contract, "
+            f"arm {selected['arm']!r}"),
+        "n_qubits": model.n,
+        "basis_size": len(family),
+        "basis_labels": list(selected["labels"]),
+        "ground_energy": selected["ground_energy"],
+        "error_millihartree": selected["error_millihartree"],
+        "condition_number": selected["condition_number"],
+        "codes": codes,
+        "committed_qwc_groups": selected["final_qwc_groups"],
+    }
+
+
+def _beh2_bank() -> dict:
+    """An independent DA-CASE run on the frozen BeH2 CAS(4e,4o) FCIDUMP."""
+    provenance = json.loads(BEH2_PROVENANCE.read_text(encoding="utf-8"))
+    model = fcidump_model(BEH2_FCIDUMP, name=provenance["name"])
+    if model.metadata["source_sha256"] != provenance["fcidump_sha256"]:
+        raise ValueError("FCIDUMP digest disagrees with its provenance record")
+    sector = SectorStatevectorBackend(
+        model.n, model.metadata["n_electrons"], model.metadata["sz"])
+    exact_energy = float(
+        sector.ground_state(model.hamiltonian, k=4, method="dense")[0][0])
+    if abs(exact_energy - provenance["reference_energies"]["fci"]) > 1e-10:
+        raise ValueError("sector-exact energy disagrees with external provenance")
+
+    rho = ExactMVBackend().state(model.reference, ())
+    determinants = determinant_excitations(
+        model.n, occupied_spin_orbitals(model), max_rank=2)
+    run = run_acase(rho, model.hamiltonian, determinants, max_size=BUDGET,
+                    exact_ground_energy=exact_energy)
+    result = run.result
+    energy = float(result.energies[0])
+    codes = sorted(run.bank.word_set(result.indices))
+    return {
+        "system": "beh2",
+        "label": "BeH$_2$",
+        "source": str(BEH2_FCIDUMP.relative_to(HERE.parent)),
+        "bank_provenance": (
+            f"{provenance['name']}, PySCF {provenance['generator']['version']}; "
+            f"DA-CASE grown at budget {BUDGET}, stopped by "
+            f"{run.stopped_reason!r}"),
+        "n_qubits": model.n,
+        "basis_size": len(result.basis_labels),
+        "basis_labels": list(result.basis_labels),
+        "ground_energy": energy,
+        "error_millihartree": (energy - exact_energy) * 1e3,
+        "condition_number": result.condition_number,
+        "codes": codes,
+        "committed_qwc_groups": None,
+    }
+
+
+SYSTEMS = {"h4": _h4_bank, "beh2": _beh2_bank}
+
+
+def record_path(system: str) -> Path:
+    return HERE / "reference_results" / f"clifford_hierarchy_{system}.json"
+
+
+def build_record(system: str = "h4") -> dict:
+    bank = SYSTEMS[system]()
+    codes = bank.pop("codes")
+    committed_groups = bank.pop("committed_qwc_groups")
 
     rows = []
     for block_size in BLOCK_SIZES:
-        groups = _partition(model.n, codes, block_size)
-        rows.append(_synthesize(model.n, codes, groups, block_size))
+        groups = _partition(bank["n_qubits"], codes, block_size)
+        rows.append(_synthesize(bank["n_qubits"], codes, groups, block_size))
 
     qwc, full = rows[0], rows[-1]
+    if committed_groups is not None and qwc["settings"] != committed_groups:
+        raise AssertionError(
+            f"k=1 grouping is not the committed QWC ledger: "
+            f"{qwc['settings']} != {committed_groups}")
+
+    # Break-even against the QWC endpoint under C_k = R (c_prep G_k + c_CX N_k):
+    # level k is cheaper than k=1 iff c_CX/c_prep is below this ratio.  Which
+    # level is most permissive is an instance property, not a rule.
+    for row in rows[1:]:
+        row["cx_to_preparation_cost_ratio_vs_qwc"] = (
+            (qwc["settings"] - row["settings"]) / row["logical_cx_per_sweep"])
+    rows[0]["cx_to_preparation_cost_ratio_vs_qwc"] = None
+    best = max(rows[1:], key=lambda row: row["cx_to_preparation_cost_ratio_vs_qwc"])
     settings_saved = qwc["settings"] - full["settings"]
     return {
-        "schema": "clifford_qc.h4_clifford_measurement_hierarchy.v1",
-        "source_record": str(MATCHED.relative_to(HERE.parent)),
-        "source_arm": selected["arm"],
-        "n_qubits": model.n,
-        "basis_size": len(family),
+        "schema": "clifford_qc.clifford_measurement_hierarchy.v2",
         "word_universe": len(codes),
         "shots_per_setting": SHOTS_PER_SETTING,
         "grouping": (
@@ -273,6 +367,7 @@ def build_record() -> dict:
         "logical_model": (
             "all-to-all logical Clifford circuits; no routing, noise, or mitigation"
         ),
+        **bank,
         "rows": rows,
         "qwc_to_full": {
             "settings_saved": settings_saved,
@@ -282,25 +377,33 @@ def build_record() -> dict:
             "max_cx_to_preparation_cost_ratio": (
                 settings_saved / full["logical_cx_per_sweep"]),
         },
+        "most_permissive_level": {
+            "block_size": best["block_size"],
+            "cx_to_preparation_cost_ratio_vs_qwc": (
+                best["cx_to_preparation_cost_ratio_vs_qwc"]),
+        },
         "invariant": "PASS: every grouped Pauli restriction maps to Z-only",
     }
 
 
 def main() -> None:
     parser = argparse.ArgumentParser()
-    parser.add_argument("--out", type=Path, default=DEFAULT_OUT)
+    parser.add_argument("--system", choices=sorted(SYSTEMS), default="h4")
+    parser.add_argument("--out", type=Path, default=None)
     args = parser.parse_args()
-    record = stamp_record(build_record())
-    args.out.parent.mkdir(parents=True, exist_ok=True)
-    args.out.write_text(json.dumps(record, indent=2, sort_keys=True) + "\n",
-                        encoding="utf-8")
+    record = stamp_record(build_record(args.system))
+    out = args.out or record_path(args.system)
+    out.parent.mkdir(parents=True, exist_ok=True)
+    out.write_text(json.dumps(record, indent=2, sort_keys=True) + "\n",
+                   encoding="utf-8")
+    print(f"{args.system}: M={record['basis_size']} W={record['word_universe']}")
     for row in record["rows"]:
         print(
             f"k={row['block_size']}: G={row['settings']} "
             f"CX={row['logical_cx_per_sweep']} "
             f"D2={row['mean_logical_cx_depth']:.2f}/"
             f"{row['max_logical_cx_depth']}")
-    print(args.out)
+    print(out)
 
 
 if __name__ == "__main__":

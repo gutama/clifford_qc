@@ -44,53 +44,40 @@ measurement hierarchy}
 
 \begin{abstract}
 Quantum subspace methods differ less in the eigenproblem they solve than in
-what a machine must \emph{do} to fill it: which state/parameter contexts are
+what a machine must \emph{do} to fill it: which state or parameter contexts are
 visited, how many measurement settings and shots are executed there, which
 primitive supplies the off-diagonal entries, and whether a new physical
-quantity requires a new experiment.  We develop an
-architecture in which these answers are fixed by one design choice.  In the
-Dyadic Adaptive Clifford-Algebra Subspace Eigensolver (DA-CASE), basis directions are
-virtual operators $A_i\ket{\psi}$ acting on a single reference, so every
-overlap, Hamiltonian, and observable element reduces to Pauli expectations on
-the same $\rho$ and is served from one cached bank.  Several consequences are
-measured rather than asserted.  First, the basis uses one reference context
-regardless of its size.  On a matched H$_4$ contract, the corresponding exact
-workflow has $1$ state-evaluation context for DA-CASE, $8$ or $16$ distinct
-generating-function states, and $90$ ADAPT-VQE selection/optimizer contexts;
-the last number is \emph{not} a physical preparation count.  At the shot-level
-primitive, DA-CASE's $14401$-word selection cache groups into $1672$ QWC
-settings once, whereas ADAPT-VQE's $2424$-word selection union is $452$
-settings repeated over eight changing states, or $3616$ setting-evaluations.
-The generating-function arms additionally require $36/28$ and $136/120$
-unique Hamiltonian/overlap state pairs.  Second, because the basis is generated
-by operators, generator
-resolution is an exposed dial: the same retained subspace---identical energy to
-$4\times10^{-16}$ Ha, identical $M=9$ and $\kappa_S=1$, all nine principal
-angles zero---costs $7371$ measured words from determinant excitations and
-$2240$ from the $160$ words they decompose into, a factor of $3.3$, and a
-factor of $6$ on a Hubbard plaquette ($2519\to413$).  At word resolution the
-bank is narrower than the Krylov comparator's $4224$, reversing the width
-comparison obtained at determinant resolution; the saving is paid in
-selection, $1252$ candidate scorings against $180$.  Third, one bank serves
-several quantities: the same $63$ words yield energy, a projected
-staggered-spin observable, and Lehmann response without materializing a Ritz
-state, and grouped resampling of that shared bank propagates finite-shot
-variability through the entire nonlinear pipeline.  Holding system, observable,
-word set, group count, shot budget, and seeds fixed and varying only the
-generator family, acceptance falls from $200/200$ at $\kappa_S=1.02$ to
-$139/200$ four orders of conditioning later, with a $\chi(0)$ interval roughly
-fifteen times wider.  A measurement-side dyadic hierarchy supplies a fourth
-dial: requiring commutation only within blocks of $1,2,4,$ or $8$ qubits
-interpolates between QWC and full commuting measurements.  On the retained
-$7371$-word determinant DA-CASE bank, the constructive setting count falls
-$913\to647\to238\to64$; exact tableau synthesis exposes the corresponding
-logical-CX depth rather than treating the reduction as free.  We state the
-architecture's costs with equal weight: it
-is not the most accurate arm at matched budget, its selection stage reads an
-order of magnitude more words than it measures, and its sampling-fed dressing
-supplies no advantage over a sample-independent selected-CI control at matched
-dimension.  The contribution is a resource profile and a strict, digest-bound
-interchange boundary, not an accuracy or scaling claim.
+quantity requires a new experiment.  We develop an architecture in which these
+answers follow from one design choice.  In the Dyadic Adaptive Clifford-Algebra
+Subspace Eigensolver (DA-CASE), basis directions are virtual operators
+$A_i\ket{\psi}$ acting on a single reference, so every overlap, Hamiltonian,
+and observable element reduces to Pauli expectations on the same $\rho$ and is
+served from one cached bank.  Four consequences are measured rather than
+asserted.  First, the basis uses one reference context whatever its size: on a
+matched H$_4$ contract DA-CASE has one state-evaluation context against $8$,
+$16$, and $90$ for the comparator arms, and its selection cache is $1672$
+qubit-wise-commuting (QWC) settings read once, against $3616$
+setting-evaluations spread over changing ADAPT-VQE states.  Second, generator
+resolution is an exposed dial: a subspace identical to machine precision in
+energy, dimension, conditioning, and every principal angle costs $7371$ or
+$2240$ measured words depending on generator granularity, and a factor of $6$
+separates the two on a Hubbard plaquette.  Third, one bank serves several
+quantities---energy, a projected staggered-spin observable, and Lehmann
+response from the same $63$ words, with no Ritz state materialized---and
+conditioning carries a measured downstream price, taking bootstrap acceptance
+from $200/200$ to $139/200$ across four orders of $\kappa_S$.  Fourth, a
+measurement-side dyadic hierarchy, requiring commutation only within blocks of
+$1,2,4,$ or $8$ qubits, interpolates between QWC and fully commuting
+measurements, and exact tableau synthesis prices the reduction in logical CX
+gates rather than treating it as free.  On two eight-qubit banks the setting
+count falls $913\to64$ (H$_4$) and $353\to14$ (BeH$_2$), but the two order the
+intermediate levels oppositely, so the block size that pays is an instance
+property rather than a rule.  We state the architecture's costs with equal
+weight: it is not the most accurate arm at matched budget, its selection stage
+reads an order of magnitude more words than it measures, and its sampling-fed
+dressing supplies no advantage over a sample-independent selected-CI control at
+matched dimension.  The contribution is a resource profile and a strict,
+digest-bound interchange boundary, not an accuracy or scaling claim.
 \end{abstract}
 
 \maketitle
@@ -165,8 +152,8 @@ rather than a performance claim.
  \item \emph{Measurement compatibility is a multiresolution dial.}  A dyadic
  block-commuting hierarchy interpolates from product-basis QWC measurement to
  fully commuting Pauli groups, and constructive stabilizer-tableau synthesis
- makes the saved setting-shots and added logical two-qubit gates commensurate
- (Sec.~\ref{sec:results-clifford-hierarchy}).
+ makes the saved setting-shots and added logical two-qubit gates commensurate on
+ two eight-qubit molecular banks (Sec.~\ref{sec:results-clifford-hierarchy}).
  \item \emph{Generator resolution is an architectural dial.}  Because
  directions are generated by operators, the same subspace can be reached at
  different generator granularities with materially different measurement
@@ -337,9 +324,9 @@ Thus it preserves the bank and the DA-CASE subspace exactly and moves only the
 boundary between setting count and measurement-circuit depth.
 Unless stated otherwise, the matched selection ledgers below retain the
 $k=1$ QWC endpoint so that their previously fixed measurement contract is not
-silently changed; Sec.~\ref{sec:results-clifford-hierarchy} isolates the
-dyadic layer on the retained bank with the eigensolver and word universe held
-fixed.
+silently changed; Sec.~\ref{sec:results-clifford-hierarchy} isolates the dyadic
+layer on two retained banks with the eigensolver and word universe held fixed
+in each.
 
 \subsection{Adaptive growth}
 \label{sec:growth}
@@ -571,6 +558,16 @@ software version, RHF energy, and an external determinant-FCI energy are
 committed.  After checkout, parsing, mapping, sector diagonalization, and
 DA-CASE require only NumPy.
 
+A second frozen input under the same contract carries the measurement
+experiment of Sec.~\ref{sec:results-clifford-hierarchy} onto a different
+Hamiltonian: linear BeH$_2$ at the equilibrium Be--H distance, STO-3G, with the
+Be $1s$ core frozen and the next four canonical RHF orbitals active,
+CAS(4e,4o).  The active-space size, and hence the register width and the dyadic
+block structure, deliberately match H$_4$, so the two hierarchies differ in the
+Hamiltonian and not in the geometry of the blocks.  The committed reference is
+PySCF's CASCI energy in the same active space; the mapped $(N=4,S_z=0)$ sector
+reproduces it to $1.2\times10^{-14}$ Ha.
+
 \begin{table*}[t]
 \caption{Frozen H$_4$ FCIDUMP benchmark.  The adaptive budget is eight
 additions.  ``Complete singles/doubles'' is a fixed determinant-generated
@@ -706,7 +703,7 @@ to $M=26$ on the Hubbard clusters.  Chemical accuracy is defined as $1.6$ mHa
 only on molecular rungs; lattice-model errors remain in the Hamiltonian's own
 units.
 
-The paper uses four evidence labels, and they are enforced in the result
+The paper uses five evidence labels, and they are enforced in the result
 records rather than in prose:
 \begin{itemize}
  \item \texttt{reference}: sector-exact energy against which errors are formed;
@@ -787,67 +784,85 @@ larger generalized pool.
 \subsection{Dyadic commuting groups expose the preparation--CX exchange}
 \label{sec:results-clifford-hierarchy}
 
-The retained determinant-resolution DA-CASE bank provides a controlled test of
-the hierarchy in Sec.~\ref{sec:clifford-hierarchy}: $M=9$, $W=7371$, and the
-energy and subspace are held fixed while only the measurement compatibility
-rule changes.  Table~\ref{tab:clifford-hierarchy} gives the resulting logical
-circuits.  The $k=1$ endpoint reproduces the committed $913$-setting QWC
-count.  Increasing the block size gives $647$, $238$, and finally $64$
-settings.  At a uniform $R=8000$ shots per setting this changes the number of
-physical state preparations from $7.304$ million to $0.512$ million, a
-$93.0\%$ reduction.  Because every word belongs to one group and is read on
-every shot of that group, a complete uniform-shot sweep produces exactly
-$RW$ word samples using $RG$ preparations; the conditional yield is therefore
-$W/G$.  It rises from $8.07$ word samples per preparation under QWC to
-$115.17$ at $k=8$, a factor of $14.3$.
+Two eight-qubit banks give a controlled test of the hierarchy in
+Sec.~\ref{sec:clifford-hierarchy}: within each, the energy and the subspace are
+held fixed and only the measurement compatibility rule changes.  The first is
+the retained determinant-resolution H$_4$ bank of the matched contract ($M=9$,
+$W=7371$); the second is an independent DA-CASE run on the frozen BeH$_2$
+CAS(4e,4o) input ($M=5$, $W=1815$), which is a chemically different Hamiltonian
+on the same register width.  Table~\ref{tab:clifford-hierarchy} gives the
+resulting logical circuits.
+
+The setting reduction is large and in the same direction on both systems.  On
+H$_4$ the $k=1$ endpoint reproduces the committed $913$-setting QWC count, and
+increasing the block size gives $647$, $238$, and finally $64$ settings; on
+BeH$_2$ the sequence is $353\to41\to26\to14$.  At a uniform $R=8000$ shots per
+setting this is $7.304$ down to $0.512$ million physical state preparations
+($93.0\%$) and $2.824$ down to $0.112$ million ($96.0\%$).  Because every word
+belongs to one group and is read on every shot of that group, a complete
+uniform-shot sweep produces exactly $RW$ word samples using $RG$ preparations;
+the conditional yield is therefore $W/G$.  It rises from $8.07$ to $115.17$ on
+H$_4$ and from $5.14$ to $129.64$ on BeH$_2$, factors of $14.3$ and $25.2$.
 
 \begin{table*}[t]
-\caption{Dyadic block-commuting measurement hierarchy for the retained
-determinant-resolution H$_4$ DA-CASE bank ($M=9$, $W=7371$).  $N_{\rm CX}$ is
-the sum of logical CX gates over one execution of every setting.  The reported
-two-qubit depth excludes single-qubit gates and parallelizes operations on
-disjoint dyadic blocks.  ``Preps.'' is $RG$ for the illustrative uniform
-$R=8000$ shots per setting.  Synthesis assumes logical all-to-all connectivity;
-no routing, device noise, or error mitigation is included.}
+\caption{Dyadic block-commuting measurement hierarchy on two eight-qubit
+DA-CASE banks: the retained determinant-resolution H$_4$ bank of the matched
+contract, and an independent DA-CASE run on the frozen BeH$_2$ CAS(4e,4o)
+input.  $N_{\rm CX}$ is the sum of logical CX gates over one execution of every
+setting.  The reported two-qubit depth excludes single-qubit gates and
+parallelizes operations on disjoint dyadic blocks.  ``Preps.'' is $RG$ for the
+illustrative uniform $R=8000$ shots per setting.  The last column is the
+break-even ratio of Eq.~\eqref{eq:clifford-break-even}: level $k$ costs less
+than QWC when $c_{\rm CX}/c_{\rm prep}$ falls below it.  Synthesis assumes
+logical all-to-all connectivity; no routing, device noise, or error mitigation
+is included.}
 \label{tab:clifford-hierarchy}
 \begin{ruledtabular}
-\begin{tabular}{lrrrrrr}
-$k$ & $G$ & $W/G$ & $N_{\rm CX}$ & mean $D_{\rm CX}$ & max $D_{\rm CX}$ & Preps. ($10^6$) \\
+\begin{tabular}{llrrrrrrr}
+Bank & $k$ & $G$ & $W/G$ & $N_{\rm CX}$ & mean $D_{\rm CX}$ & max $D_{\rm CX}$ & Preps. ($10^6$) & $(G_1-G_k)/N_{\rm CX}$ \\
 \colrule
 \input{tables/clifford_hierarchy.tex}
 \end{tabular}
 \end{ruledtabular}
 \end{table*}
 
-The entangling basis change is not free.  The synthesized $k=8$ settings use
-$2006$ logical CX gates per one pass over all settings, with mean/max two-qubit depth
-$25.72/42$; at $R=8000$ this is $16.048$ million logical CX applications.
-The shallow $k=2$ endpoint has mean/max depth $2.55/4$, but its larger setting
-count makes its aggregate CX count $3185$, and $k=4$ uses $3688$.  Thus $k=8$
-dominates the intermediate levels in both setting count and aggregate CX count
-on this instance, while the intermediate levels retain the advantage in
-per-circuit depth.
+The entangling basis change is not free, and this is where the two systems
+separate.  On H$_4$ the aggregate CX count is non-monotone in $k$:
+$3185$ at $k=2$, $3688$ at $k=4$, then $2006$ at $k=8$, because the collapse in
+setting count outruns the growth in per-circuit cost.  There, $k=8$ dominates
+the intermediate levels in both settings and aggregate CX, and the intermediate
+levels keep only a per-circuit depth advantage (mean/max $2.55/4$ at $k=2$
+against $25.72/42$ at $k=8$).  On BeH$_2$ the aggregate CX count instead rises
+monotonically, $168\to234\to332$, so no level dominates and all three lie on the
+resource frontier.
 
-The resource exchange can now be stated without equating a raw word with a
-state preparation.  In the illustrative additive logical cost
+The exchange can be stated without equating a raw word with a state
+preparation.  In the illustrative additive logical cost
 \begin{equation}
  C_k=R\left(c_{\rm prep}G_k+c_{\rm CX}N_{{\rm CX},k}\right),
  \label{eq:clifford-cost}
 \end{equation}
 where $c_{\rm prep}$ prices a base preparation/readout setting-shot and
-$c_{\rm CX}$ the marginal logical-CX cost, the $k=8$ circuit beats QWC when
+$c_{\rm CX}$ the marginal logical-CX cost, level $k$ beats QWC when
 \begin{equation}
- \frac{c_{\rm CX}}{c_{\rm prep}}
- <\frac{913-64}{2006}=0.423.
+ \frac{c_{\rm CX}}{c_{\rm prep}}<\frac{G_1-G_k}{N_{{\rm CX},k}},
  \label{eq:clifford-break-even}
 \end{equation}
-Equivalently, each preparation avoided by the uniform-shot schedule costs
-$2006/849=2.36$ added logical CX applications.  The shot count cancels from
-this crossover.  All synthesized groups pass the exact $Z$-only conjugation
+and the shot count cancels.  The two systems order the levels oppositely.  On
+H$_4$ the ratio grows with $k$---$0.084$, $0.183$, $0.423$---so the deepest
+level is the most permissive, and each preparation it avoids costs
+$2006/849=2.36$ added logical CX applications.  On BeH$_2$ the ratio falls with
+$k$---$1.86$, $1.40$, $1.02$---so the \emph{shallowest} nontrivial level is the
+most permissive, and even $k=8$ tolerates a marginal CX roughly as expensive as
+a whole preparation.  Which block size to compile is therefore an instance
+property, which is the practical reason to expose $k$ as a dial rather than to
+report only the two endpoints.
+
+All synthesized groups on both systems pass the exact $Z$-only conjugation
 invariant.  These are logical-circuit resource counts, not a hardware advantage
 claim: limited connectivity, routing, calibration, and two-qubit noise can
-reverse the ordering, precisely because the $k=8$ circuits are deeper
-\cite{miller2024hardware}.
+reverse any of these orderings, precisely because the larger-$k$ circuits are
+deeper \cite{miller2024hardware}.
 
 \subsection{Generator resolution controls measurement width}
 \label{sec:results-resolution}
@@ -1145,6 +1160,13 @@ and matrix element unchanged and makes only the \emph{measurement
 compatibility} multiresolution.  The evidence therefore favors a dyadic
 Clifford measurement hierarchy, not wavelet-combined DA-CASE operators.
 
+\emph{The measurement hierarchy is not surveyed.}  Two eight-qubit banks are
+enough to show that the level ordering is instance-dependent, and therefore
+enough to withdraw any claim that one block size is generally preferable.  They
+are not enough to predict which level a given Hamiltonian will favor, and the
+grouping is a constructive greedy coloring rather than an optimal one, so every
+setting count reported here is an upper bound.
+
 \emph{Finite-shot growth is not certified.}  Eight-qubit certified-growth
 attempts spend $1.5\times10^8$ to $4.6\times10^8$ physical shots and frequently
 stop or abstain with inaccurate energies.  A noisy thresholded overlap can even
@@ -1177,8 +1199,9 @@ primitive is a setting-shot.  Once a partition is fixed, however, a uniform
 complete sweep has an exact conditional yield: $R W$ word samples from $R G$
 preparations, or $W/G$ word samples per preparation.  The dyadic experiment of
 Sec.~\ref{sec:results-clifford-hierarchy} shows why that qualification matters:
-the same $W=7371$ bank moves from $W/G=8.07$ to $115.17$ solely by changing the
-allowed measurement circuit.
+the same $W=7371$ H$_4$ bank moves from $W/G=8.07$ to $115.17$, and the BeH$_2$
+bank from $5.14$ to $129.64$, solely by changing the allowed measurement
+circuit.
 For method $X$ a device-level runtime model is
 \begin{equation}
  T_X=\sum_{s,g} n_{sg}
@@ -1231,7 +1254,9 @@ would address the one currency in which the architecture is clearly expensive.
 The dyadic hierarchy now also makes hardware-aware compilation an explicit
 next test: route the exact block-local diagonalizers onto a declared topology
 and inject a calibrated two-qubit noise model to locate the $k=1,2,4,8$
-crossover rather than extrapolating it from logical CX counts.  Finally, the
+crossover rather than extrapolating it from logical CX counts.  That the two
+systems already order the intermediate levels oppositely makes the question a
+per-instance compilation choice, not a constant to be measured once.  Finally, the
 conditioning result of Sec.~\ref{sec:results-conditioning} suggests
 that acceptance rate, not interval width, is the quantity a subspace response
 calculation should be judged on; we would like to see it reported alongside
@@ -1274,7 +1299,10 @@ The frozen H$_4$ FCIDUMP is committed with its geometry, basis, PySCF version
 mapped $(N=4,S_z=0)$ sector energy agrees with that reference to
 $3.1\times10^{-15}$ Ha, and an independent OpenFermion reconstruction
 \cite{mcclean2020openfermion} agrees over $185$ Pauli terms to
-$8.74\times10^{-16}$.  After checkout, the H$_4$ path requires only NumPy.
+$8.74\times10^{-16}$.  The BeH$_2$ FCIDUMP of
+Sec.~\ref{sec:results-clifford-hierarchy} is committed on the same terms,
+together with the script that regenerates it.  After checkout, both molecular
+paths require only NumPy.
 
 Evidence labels travel with the records, not with the prose.  Exact-arithmetic
 rows carry \texttt{exact}; bootstrap diagnostics carry \texttt{heuristic} and
@@ -1297,24 +1325,24 @@ it yields one reference context at any basis size.  The matched H$_4$ context
 counts are $1$ against $8$, $16$, and $90$, but they are not physical
 preparation counts: at the shot-level primitive the word-resolution DA-CASE
 selection bank is $1672$ QWC settings once, against $3616$ ADAPT-VQE selection
-setting-evaluations across changing states; the latter's optimizer adds at
-least $5576$ energy settings before gradient measurements are priced.  The
-same bank architecture makes energy, projected observables, and Lehmann
-response available from one cached set of $63$ words on the finite-shot dimer
-without materializing a Ritz state.  Because the basis is operator-generated, its
-measurement width is tunable: the same retained subspace, identical to machine
-precision in energy, dimension, conditioning, and every principal angle, costs
-$7371$ or $2240$ words depending on generator resolution, and $2519$ or $413$
-on a Hubbard plaquette.  Measurement compatibility supplies an independent
-dial: the $7371$-word H$_4$ determinant bank needs $913$ QWC settings but only
-$64$ fully commuting settings under the constructive dyadic hierarchy.  At
-$8000$ uniform shots this is $7.304$ versus $0.512$ million preparation
-executions; the reduction is paid for by $2006$ logical CX gates per one pass
-over all $64$ settings and mean/max two-qubit depth $25.72/42$, with the logical break-even
-$c_{\rm CX}/c_{\rm prep}<0.423$.  Conditioning is likewise a design variable with a
-measured downstream price: at matched system, observable, word set, groups,
-shots, and seeds, four orders of $\kappa_S$ take bootstrap acceptance from
-$200/200$ to $139/200$ and widen the $\chi(0)$ interval roughly fifteenfold.
+setting-evaluations across changing states, before that arm's optimizer adds at
+least $5576$ energy settings.  The same bank makes energy, projected
+observables, and Lehmann response available from one cached set of $63$ words
+on the finite-shot dimer without materializing a Ritz state, and conditioning
+is a design variable with a measured downstream price.
+
+Two dials follow from the architecture.  Generator resolution tunes measurement
+width: a subspace identical to machine precision in energy, dimension,
+conditioning, and every principal angle costs $7371$ or $2240$ words on H$_4$,
+and $2519$ or $413$ on a Hubbard plaquette.  Measurement compatibility tunes
+setting count independently of both: the dyadic hierarchy takes H$_4$ from
+$913$ QWC settings to $64$ fully commuting ones and BeH$_2$ from $353$ to $14$,
+which at $8000$ uniform shots is a drop from $7.304$ to $0.512$ and from
+$2.824$ to $0.112$ million preparation executions.  Exact tableau synthesis
+prices that reduction rather than assuming it: the H$_4$ break-even is
+$c_{\rm CX}/c_{\rm prep}<0.423$ at $k=8$, whereas BeH$_2$ is most permissive at
+$k=2$, with $1.86$.  The dial is worth exposing precisely because its best
+setting is not the same on the two systems.
 
 The costs are equally definite.  The architecture is not the most accurate arm
 at matched budget on any rung tested; its selection stage reads an order of

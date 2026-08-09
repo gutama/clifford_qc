@@ -1,0 +1,55 @@
+{
+  "schema": "clifford_qc.active_space_benchmark.v1",
+  "name": "linear BeH2 STO-3G CAS(4e,4o)",
+  "geometry_angstrom": [
+    [
+      "Be",
+      [
+        0.0,
+        0.0,
+        0.0
+      ]
+    ],
+    [
+      "H",
+      [
+        0.0,
+        0.0,
+        -1.3264
+      ]
+    ],
+    [
+      "H",
+      [
+        0.0,
+        0.0,
+        1.3264
+      ]
+    ]
+  ],
+  "basis": "sto-3g",
+  "orbital_method": "RHF",
+  "active_space": {
+    "electrons": 4,
+    "spatial_orbitals": 4,
+    "selection": "Be 1s core frozen; next four canonical RHF orbitals"
+  },
+  "generator": {
+    "software": "PySCF",
+    "version": "2.14.0",
+    "scf_convergence_tolerance": 1e-12,
+    "script": "benchmarks/make_beh2_fcidump.py"
+  },
+  "fcidump_sha256": "01ef4422b2e9e7f711895ae897a94ea11c1b0fae5a5fd91c3396fbd4d69fba76",
+  "energy_unit": "hartree",
+  "reference_energies": {
+    "rhf": -15.560312342811917,
+    "fci": -15.566211795095155
+  },
+  "notes": [
+    "The committed FCIDUMP is the immutable benchmark input.",
+    "The reference energy is PySCF's CASCI(4e,4o) determinant-space solution in the same active space, computed independently of clifford_qc's Jordan-Wigner and projected-subspace paths.",
+    "Molecular-orbital signs are gauge choices; the committed file fixes one gauge through its SHA-256 digest.",
+    "The active-space size matches the committed H4 input so that the eight-qubit dyadic measurement hierarchy is comparable across two different Hamiltonians."
+  ]
+}
