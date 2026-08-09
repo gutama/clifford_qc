@@ -35,17 +35,28 @@ def total_number_op(n: int) -> MV:
     return out
 
 
-def total_sz_op(n: int) -> MV:
-    """Total spin projection S_z = 1/2 sum_j (-1)^j n_j.
+def total_sz_op(n: int, *, spin_ordering="interleaved") -> MV:
+    """Total spin projection S_z = 1/2 sum_j s_j n_j, with s_j = +1 on up sites.
 
-    Interleaved Jordan-Wigner ordering, the convention the OpenFermion bridge
-    and the chemistry models use: even spin-orbital indices carry spin up and
-    odd ones spin down. A generator that conserves particle number need not
-    conserve this -- two spin-up electrons excited into two spin-down orbitals
-    keep ``N`` and change ``S_z`` by 2 -- which is why the two are separate
-    diagnostics rather than one symmetry check.
+    ``spin_ordering`` defaults to ``"interleaved"`` -- the convention the
+    OpenFermion bridge and the chemistry models use, where even spin-orbital
+    indices carry spin up and odd ones spin down -- and also accepts
+    ``"blocked"`` or an explicit length-``n`` sequence of spin labels.  Unlike
+    particle number, ``S_z`` is *not* ordering-invariant: the same occupation
+    bitstring carries different ``S_z`` under different conventions, so any
+    caller that projects or certifies against a declared sector must pass the
+    ordering its Hamiltonian was mapped with.
+
+    A generator that conserves particle number need not conserve this -- two
+    spin-up electrons excited into two spin-down orbitals keep ``N`` and change
+    ``S_z`` by 2 -- which is why the two are separate diagnostics rather than
+    one symmetry check.
     """
+    from .backends.sector_statevector import _spin_sites
+
+    up_sites, _ = _spin_sites(n, spin_ordering)
+    up = set(up_sites)
     out = MV(n)
     for j in range(n):
-        out = out + (0.5 if j % 2 == 0 else -0.5) * number_op_pauli(n, j)
+        out = out + (0.5 if j in up else -0.5) * number_op_pauli(n, j)
     return out

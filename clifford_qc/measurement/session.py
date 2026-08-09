@@ -162,17 +162,31 @@ class SharedMeasurement:
                                  delta: float = 0.05, bound: str = "normal",
                                  method: str = "bonferroni", safety: float = 1.0,
                                  strategy: str = "modewise",
+                                 policy: str = "per_mode",
                                  norm_floor: float = DEFAULT_NORM_FLOOR,
                                  overlap: np.ndarray | None = None) -> dict:
         """Estimate a shot-budget-dependent cutoff for normalized overlap modes.
 
         ``strategy='modewise'`` projects the measured overlap uncertainty onto
-        each observed normalized overlap eigenvector and uses the largest
-        simultaneous covariance-aware radius.  This directly asks whether a
-        mode is larger than its shot noise and is the default.  The more
-        conservative ``'entrywise'`` strategy takes the spectral norm of a
-        matrix of simultaneous entrywise radii.  Scaling uses the measured
-        diagonal because canonical truncation acts on the normalized overlap.
+        each observed normalized overlap eigenvector and reports that mode's
+        own simultaneous covariance-aware radius.  The more conservative
+        ``'entrywise'`` strategy takes the spectral norm of a matrix of
+        simultaneous entrywise radii, which is a single number by construction.
+
+        ``policy='per_mode'`` keeps the modewise radii separate, so the solver
+        can ask of each mode whether it stands above *its own* shot noise.
+        ``policy='uniform'`` collapses them to their maximum and applies that
+        to every mode; it is strictly more aggressive, because one badly
+        resolved direction then sets the cutoff for well resolved ones, and it
+        is retained only as a comparator.
+
+        Normalization and the live-generator mask follow
+        :func:`~clifford_qc.subspace.linalg.solve_projected` exactly -- same
+        ``norm_floor``, same dropped rows, same ``canonical_eigh`` ordering --
+        because a floor derived from a different matrix than the one being
+        truncated is not a floor for it.  A generator that annihilates the
+        reference is dropped rather than divided by ``norm_floor``, which
+        would otherwise inflate its radius without bound.
 
         This is a noise-aware regularization *diagnostic*, not a variational or
         coverage certificate: the same data select the retained rank and solve
@@ -180,24 +194,38 @@ class SharedMeasurement:
         Bernstein semantics inapplicable unless an independent frozen batch is
         used.
         """
+        from ..subspace.linalg import canonical_eigh
+
         if safety <= 0.0 or not math.isfinite(safety):
             raise ValueError("overlap safety factor must be positive and finite")
         if strategy not in ("modewise", "entrywise"):
             raise ValueError("overlap strategy must be 'modewise' or 'entrywise'")
+        if policy not in ("per_mode", "uniform"):
+            raise ValueError("overlap policy must be 'per_mode' or 'uniform'")
         overlap = self.matrices(cache)[0] if overlap is None else np.asarray(overlap)
-        size = len(self.indices)
-        diagonal = np.clip(overlap.diagonal().real, norm_floor ** 2, None)
-        scales = np.sqrt(diagonal)
-        normalized = (overlap / scales[:, None]) / scales[None, :]
+
+        # Mirror solve_projected: drop annihilated directions, normalize the
+        # survivors by their measured norms.
+        norms = np.sqrt(np.clip(overlap.diagonal().real, 0.0, None))
+        live = norms > norm_floor
+        if not live.any():
+            raise ValueError("every generator annihilates the reference state")
+        scaling = np.where(live, norms, 1.0)
+        index = np.flatnonzero(live)
+        normalized = ((overlap / scaling[:, None]) / scaling[None, :])[
+            np.ix_(index, index)]
+        live_size = int(live.sum())
 
         if strategy == "entrywise":
             stochastic = sum(
                 not functional.is_deterministic
                 for pair in self._pairs.values() for functional in pair[0])
             family = max(1, stochastic)
-            radii = np.zeros((size, size), dtype=float)
-            for a, i in enumerate(self.indices):
-                for b, j in enumerate(self.indices[a:], start=a):
+            radii = np.zeros((live_size, live_size), dtype=float)
+            for a, position in enumerate(index):
+                i = self.indices[position]
+                for b, other in enumerate(index[a:], start=a):
+                    j = self.indices[other]
                     real, imag = self._pairs[(i, j)][0]
                     real_radius = real.radius(
                         cache, delta, family, bound=bound, method=method)
@@ -205,18 +233,23 @@ class SharedMeasurement:
                         cache, delta, family, bound=bound, method=method)
                     radius = math.hypot(real_radius, imag_radius)
                     radii[a, b] = radii[b, a] = radius
-            normalized_radii = (radii / scales[:, None]) / scales[None, :]
-            raw = float(np.linalg.norm(normalized_radii, ord=2))
+            live_scaling = scaling[index]
+            normalized_radii = ((radii / live_scaling[:, None])
+                                / live_scaling[None, :])
+            mode_radii = [float(np.linalg.norm(normalized_radii, ord=2))] * live_size
         else:
             # Treat the measured normalization as fixed and propagate the full
             # grouped covariance of u^* S_bar u for every observed mode.  The
             # resulting delta-method threshold is intentionally labelled
             # heuristic below: both u and the diagonal scaling are data-derived.
-            _, vectors = np.linalg.eigh(normalized)
-            family = size
+            _, vectors = canonical_eigh(normalized)
+            family = live_size
             mode_radii = []
-            for column in range(size):
-                amplitudes = vectors[:, column] / scales
+            for column in range(live_size):
+                # Full-length generator-coordinate amplitudes, zero on the
+                # dropped rows, so the pair loop below needs no special case.
+                amplitudes = np.zeros(len(self.indices), dtype=complex)
+                amplitudes[index] = vectors[:, column] / scaling[index]
                 coefficients: dict[int, float] = {}
 
                 def add(functional: WordFunctional, weight: float) -> None:
@@ -228,8 +261,10 @@ class SharedMeasurement:
 
                 for a, i in enumerate(self.indices):
                     for b, j in enumerate(self.indices[a:], start=a):
-                        real, imag = self._pairs[(i, j)][0]
                         weight = np.conjugate(amplitudes[a]) * amplitudes[b]
+                        if weight == 0.0:
+                            continue
+                        real, imag = self._pairs[(i, j)][0]
                         if a == b:
                             add(real, float(weight.real))
                         else:
@@ -239,16 +274,22 @@ class SharedMeasurement:
                     code: value for code, value in coefficients.items()
                     if value != 0.0
                 })
-                mode_radii.append(functional.radius(
-                    cache, delta, family, bound=bound, method=method))
-            raw = float(max(mode_radii, default=0.0))
+                mode_radii.append(float(functional.radius(
+                    cache, delta, family, bound=bound, method=method)))
 
-        if not math.isfinite(raw):
+        raw = float(max(mode_radii, default=0.0))
+        if not all(math.isfinite(radius) for radius in mode_radii):
             raise ValueError("overlap noise floor is unresolved: some words are unmeasured")
+        thresholds = tuple(safety * radius for radius in mode_radii)
+        if policy == "uniform":
+            thresholds = tuple(safety * raw for _ in mode_radii)
         return {
             "threshold": safety * raw,
+            "mode_thresholds": thresholds,
             "raw_noise_radius": raw,
             "family_size": family,
+            "live_generators": live_size,
+            "policy": policy,
             "delta": float(delta),
             "bound": bound,
             "method": method,
@@ -265,6 +306,7 @@ class SharedMeasurement:
               overlap_bound: str = "normal",
               overlap_method: str = "bonferroni",
               overlap_strategy: str = "modewise",
+              overlap_policy: str = "per_mode",
               overlap_safety: float = 1.0) -> SubspaceResult:
         """Thresholded GEP on the measured matrices.
 
@@ -272,19 +314,24 @@ class SharedMeasurement:
         ``overlap_negative_modes``: with estimated entries ``S_hat`` is no longer
         positive semidefinite, and thresholding those modes away is a repair
         whose effect on the variational bound is not established (Q3).
+
+        ``calibrate_overlap`` replaces the fixed numerical cutoff with the
+        shot-calibrated one of :meth:`calibrated_overlap_floor`.  It defaults
+        to off: the calibrated rule trades tail risk for bias, and which of
+        those a caller wants is not a default the solver can pick.
         """
         from ..subspace.linalg import solve_projected
 
         S, Hm = self.matrices(cache)
         calibration = None
-        noise_floor = 0.0
+        noise_floor: float | tuple[float, ...] = 0.0
         if calibrate_overlap:
             calibration = self.calibrated_overlap_floor(
                 cache, delta=overlap_delta, bound=overlap_bound,
                 method=overlap_method, strategy=overlap_strategy,
-                safety=overlap_safety,
+                safety=overlap_safety, policy=overlap_policy,
                 norm_floor=norm_floor, overlap=S)
-            noise_floor = calibration["threshold"]
+            noise_floor = calibration["mode_thresholds"]
         resources = dict(self.bank.resources(self.indices))
         resources.update({
             "evidence": HEURISTIC,
@@ -295,7 +342,8 @@ class SharedMeasurement:
             "shots_per_measured_word": (cache.total_shots / len(self.words)
                                         if self.words else 0.0),
             "overlap_threshold_policy": (
-                "shot_calibrated" if calibrate_overlap else "fixed"),
+                f"shot_calibrated_{overlap_policy}" if calibrate_overlap
+                else "fixed"),
             "overlap_calibration": calibration,
         })
         return solve_projected(S, Hm,

@@ -504,6 +504,52 @@ The selection width is the whole element cache, including rows for candidates
 that were then rejected; it is strictly larger than the retained `W` the
 manuscript's ledger reports.
 
+The warm-started arm appears twice. The first keeps the sector-mixed ADAPT
+reference and the operator-global generator rule, and carries no
+reference-conditioned certificate: with sector weight `0.999882` there is no
+sharp `(N, S_z)` to condition on, and inference refuses rather than rounding an
+average occupation into an undeclared convention. The second post-selects that
+reference onto the declared sector, `rho -> P rho P / tr(P rho)`. That makes
+the sector weight one by construction, so the cascade and the whole-span
+certificate apply; it improves the arm from `0.342` to `0.199 mHa`, and the
+`1/weight = 1.00012` shot overhead is charged to the prelude rather than
+hidden.
+
+### Finite-shot allocation and overlap regularization
+
+One fixed four-qubit TFIM projected bank, one physical shot budget, and a
+`2 x 3` cross of acquisition policy against overlap-truncation rule:
+
+```bash
+python benchmarks/run_finite_shot_optimization.py \
+    --out reproductions/finite_shot_optimization.json
+python benchmarks/check_finite_shot_optimization.py
+```
+
+Expected results
+(`benchmarks/reference_results/finite_shot_optimization.json`), at 200 replicas
+of 104,000 physical setting-shots:
+
+- covariance-aware allocation reduces the median summed projected-matrix
+  variance from `272.46` to `84.75` (68.9%) and the exact-Ritz first-order
+  variance by 20.0%. Against the fixed overlap cutoff this moves the median
+  absolute error only from `4.48` to `4.44 mHa`, but cuts `>0.1 Ha` failures
+  from `4/200` to `1/200`;
+- the calibrated cutoff must be read **per mode**. Thresholding every mode at
+  the worst mode's noise radius retains six or seven modes and never the exact
+  rank eight, leaving median errors of `21.4`/`81.4 mHa`. Comparing each mode
+  against its own radius recovers rank eight in `71/200` and `67/200` replicas
+  and gives median errors of `10.6`/`8.7 mHa`;
+- against the fixed cutoff at matched allocation, per-mode calibration trades a
+  factor of two in median error for a `22x` RMSE reduction (`12.85` versus
+  `285.41 mHa`), a maximum error of `39.4 mHa` rather than `4.03 Ha`, and no
+  catastrophic replica. The calibrated arms carry an `8-10 mHa` upward bias
+  that a truncated rank cannot avoid.
+
+This is a fixed-bank Monte Carlo diagnostic with a data-derived rank rule. It
+is not a coverage certificate, a hardware result, or an end-to-end advantage
+claim.
+
 This is an exact implementation of the published ADAPT-GCIM algorithm on the
 matched local 26-excitation pool. It is not a reproduction of the original
 paper's molecular curves, generalized pool, transpilation, or hardware shot

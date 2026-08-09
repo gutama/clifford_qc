@@ -150,9 +150,14 @@ def test_shot_calibrated_overlap_floor_shrinks_and_controls_the_solver(
 
     result = shared.solve(large, calibrate_overlap=True)
     calibration = result.resources["overlap_calibration"]
-    assert result.resources["overlap_threshold_policy"] == "shot_calibrated"
+    assert result.resources["overlap_threshold_policy"] == "shot_calibrated_per_mode"
     assert calibration["strategy"] == "modewise"
+    assert calibration["policy"] == "per_mode"
+    # The reported scalar floor is the worst mode's, which is what the uniform
+    # policy would have applied to all of them.
     assert result.resources["overlap_noise_floor"] == pytest.approx(
+        calibration["threshold"])
+    assert max(calibration["mode_thresholds"]) == pytest.approx(
         calibration["threshold"])
     assert result.resources["overlap_threshold"] >= calibration["threshold"]
 
@@ -479,3 +484,116 @@ def test_run_certified_acase_rejects_an_empty_pool(setting):
         run_certified_acase(rho, model.hamiltonian, [identity_generator(N)],
                             FiniteShotBackend(seed=0), max_size=1,
                             construction_shots=100, certification_shots=100)
+
+
+# --- 4D: the shot-calibrated overlap cutoff ------------------------------
+#
+# Two properties matter here and they are easy to get wrong in opposite
+# directions.  The floor must be derived from the *same* normalized matrix the
+# solver truncates, or it is not a floor for it; and it must be read per mode,
+# or one badly resolved direction condemns well resolved ones.
+
+def _bank_with_annihilating_direction(setting):
+    from clifford_qc.pauli import I, X
+
+    model, rho, words, _ = setting
+    generators = [identity_generator(N)] + pauli_orbit(words[:3])
+    # |+>^n is the +1 eigenstate of X_0, so (1 - X_0)/2 annihilates it exactly.
+    dead = Generator("dead", 0.5 * (I(N) - X(N, 0)))
+    return MatrixElementBank(rho, model.hamiltonian, generators + [dead])
+
+
+def test_calibrated_floor_drops_annihilated_rows_like_the_solver(setting):
+    """A null direction must not set the cutoff for the live ones.
+
+    Normalizing it by ``norm_floor`` instead of dropping it inflates its radius
+    by ~1/norm_floor**2, which used to produce a cutoff above every eigenvalue
+    of the live block and turn a solvable pencil into a hard failure.
+    """
+    bank = _bank_with_annihilating_direction(setting)
+    shared = SharedMeasurement(bank)
+    cache = shared.measure(FiniteShotBackend(seed=7), 4000)
+
+    calibration = shared.calibrated_overlap_floor(cache)
+    assert calibration["live_generators"] == len(shared.indices) - 1
+    assert len(calibration["mode_thresholds"]) == calibration["live_generators"]
+    assert all(np.isfinite(value) for value in calibration["mode_thresholds"])
+    assert max(calibration["mode_thresholds"]) < 1.0
+
+    fixed = shared.solve(cache)
+    calibrated = shared.solve(cache, calibrate_overlap=True)
+    # Same dropped row, same live block, so the two paths agree on the basis
+    # they are truncating even though they threshold it differently.
+    assert calibrated.resources["dropped_generators"] == \
+        fixed.resources["dropped_generators"] == ("dead",)
+    assert calibrated.resources["live_generators"] == \
+        fixed.resources["live_generators"]
+
+
+def test_calibrated_floor_matches_a_clean_bank_of_the_same_live_rows(setting):
+    """Adding an annihilated generator must not move the calibrated cutoff."""
+    model, rho, words, _ = setting
+    generators = [identity_generator(N)] + pauli_orbit(words[:3])
+    clean = SharedMeasurement(MatrixElementBank(rho, model.hamiltonian, generators))
+    padded = SharedMeasurement(_bank_with_annihilating_direction(setting))
+
+    # The dead direction contributes no new words, so the same seed and the
+    # same per-group shot count give both sessions the same measurements.
+    clean_floor = clean.calibrated_overlap_floor(
+        clean.measure(FiniteShotBackend(seed=11), 4000))
+    padded_floor = padded.calibrated_overlap_floor(
+        padded.measure(FiniteShotBackend(seed=11), 4000))
+    assert padded_floor["mode_thresholds"] == pytest.approx(
+        clean_floor["mode_thresholds"], rel=1e-12)
+
+
+def test_per_mode_policy_never_truncates_more_than_the_uniform_one(setting):
+    """The uniform rule is the per-mode rule with every radius raised to the max.
+
+    So it can only ever retain fewer modes -- which is exactly why it collapsed
+    the rank on the finite-shot benchmark.
+    """
+    model, rho, words, _ = setting
+    bank = MatrixElementBank(
+        rho, model.hamiltonian,
+        [identity_generator(N)] + pauli_orbit(words[:5])
+        + krylov_response(model.hamiltonian, 2))
+    shared = SharedMeasurement(bank)
+    for seed in (31, 32, 33):
+        cache = shared.measure(FiniteShotBackend(seed=seed), 2000)
+        per_mode = shared.solve(cache, calibrate_overlap=True,
+                                overlap_policy="per_mode")
+        uniform = shared.solve(cache, calibrate_overlap=True,
+                               overlap_policy="uniform")
+        assert per_mode.effective_rank >= uniform.effective_rank
+        floors = shared.calibrated_overlap_floor(cache, policy="per_mode")
+        assert max(floors["mode_thresholds"]) == pytest.approx(
+            floors["threshold"], rel=1e-12)
+
+
+def test_solve_projected_rejects_a_misaligned_per_mode_floor(setting):
+    from clifford_qc.subspace.linalg import solve_projected
+
+    model, rho, words, _ = setting
+    bank = MatrixElementBank(rho, model.hamiltonian,
+                             [identity_generator(N)] + pauli_orbit(words[:2]))
+    S, Hm = bank.matrices()
+    with pytest.raises(ValueError, match="one entry per live generator"):
+        solve_projected(S, Hm, overlap_noise_floor=[0.0, 0.0])
+    with pytest.raises(ValueError, match="nonnegative and finite"):
+        solve_projected(S, Hm, overlap_noise_floor=[0.0, -1.0, 0.0])
+
+
+def test_a_scalar_floor_still_applies_to_every_mode(setting):
+    """The scalar form is unchanged: one number, every mode."""
+    from clifford_qc.subspace.linalg import solve_projected
+
+    model, rho, words, _ = setting
+    bank = MatrixElementBank(rho, model.hamiltonian,
+                             [identity_generator(N)] + pauli_orbit(words[:2]))
+    S, Hm = bank.matrices()
+    scalar = solve_projected(S, Hm, overlap_noise_floor=0.5)
+    vector = solve_projected(S, Hm, overlap_noise_floor=[0.5, 0.5, 0.5])
+    assert scalar.effective_rank == vector.effective_rank
+    assert scalar.resources["overlap_threshold"] == pytest.approx(
+        vector.resources["overlap_threshold"])

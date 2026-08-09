@@ -67,6 +67,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import math
 import sys
 import time
 from pathlib import Path
@@ -90,6 +91,7 @@ from clifford_qc.subspace import (
     krylov_response,
     occupied_spin_orbitals,
     pauli_orbit,
+    project_reference_to_sector,
     run_adapt_gcim,
     run_acase,
     solve_subspace,
@@ -561,7 +563,37 @@ def build_record() -> dict:
           "determinant excitations", leakage_tol=1e-10, reference=warm_rho,
           prelude=prelude,
           notes=("total cost includes the ADAPT prelude that prepared rho: "
-                 "its rotors, optimizer evaluations, and pool scorings"))
+                 "its rotors, optimizer evaluations, and pool scorings; the "
+                 "reference is sector-mixed, so this arm keeps the "
+                 "operator-global generator rule and receives no "
+                 "reference-conditioned certificate"))
+
+    # The same warm start, post-selected onto the declared sector.  This is
+    # what makes the arm certifiable: on the projected reference the sector
+    # weight is one by construction, so the cascade and the whole-span
+    # certificate both apply.  The acceptance probability is priced into the
+    # prelude rather than hidden.
+    sector_target = (model.metadata["n_electrons"], model.metadata["sz"])
+    projected_rho, projection = project_reference_to_sector(
+        warm_rho, sector_target=sector_target)
+    projected_prelude = dict(prelude)
+    projected_prelude["stage"] = (
+        f"{prelude['stage']}, post-selected onto (N={sector_target[0]}, "
+        f"S_z={sector_target[1]})")
+    projected_prelude["sector_projection"] = projection
+    projected_prelude["selection_qwc_group_evaluations"] = math.ceil(
+        prelude["selection_qwc_group_evaluations"] * projection["shot_overhead"])
+    projected_prelude["selection_rotor_qwc_group_evaluations"] = math.ceil(
+        prelude["selection_rotor_qwc_group_evaluations"]
+        * projection["shot_overhead"])
+    acase("A-CASE (determinant, sector-projected ADAPT warm start)",
+          determinants, "determinant excitations", leakage_tol=1e-10,
+          leakage_mode="operator_then_reference", sector_target=sector_target,
+          reference=projected_rho, prelude=projected_prelude,
+          notes=("the warm start post-selected onto the declared sector at "
+                 f"acceptance probability {projection['sector_weight']:.6f}; "
+                 "the whole retained span is certified in sector, and the "
+                 "1/weight shot overhead is charged to the prelude"))
 
     return {
         "schema": "clifford_qc.matched_h4.v3",

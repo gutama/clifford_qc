@@ -16,6 +16,8 @@ H4 = ROOT / "benchmarks" / "reference_results" / "fcidump_h4.json"
 WARM = ROOT / "benchmarks" / "reference_results" / "warm_start_h4.json"
 KRYLOV_WIDTH = ROOT / "benchmarks" / "reference_results" / "krylov_width.json"
 MATCHED = ROOT / "benchmarks" / "reference_results" / "matched_h4.json"
+FINITE_SHOT = (ROOT / "benchmarks" / "reference_results"
+               / "finite_shot_optimization.json")
 PHASE12_PRIMARY = ROOT / "benchmarks" / "results" / "phase12_paper_b_five_system.json"
 CLIFFORD_HIERARCHY = tuple(
     ROOT / "benchmarks" / "reference_results" / f"clifford_hierarchy_{system}.json"
@@ -331,6 +333,36 @@ def clifford_hierarchy_table() -> None:
     _write("clifford_hierarchy.tex", out)
 
 
+def finite_shot_table() -> None:
+    """Allocation x truncation cross on the fixed four-qubit projected bank."""
+    record = json.loads(FINITE_SHOT.read_text())
+    arms = record["arms"]
+    exact_rank = record["setting"]["exact_effective_rank"]
+    replicas = arms["uniform_fixed"]["replicas"]
+    allocations = (("uniform", "uniform"), ("group_optimal", "covariance-aware"))
+    rules = (("fixed", "fixed"), ("calibrated_uniform", "calibrated (uniform)"),
+             ("calibrated_per_mode", "calibrated (per mode)"))
+    out: list[str] = []
+    for key, allocation in allocations:
+        if out:
+            out.append(r"\colrule")
+        for suffix, rule in rules:
+            arm = arms[f"{key}_{suffix}"]
+            out.append(
+                f"{allocation} & {rule} & "
+                f"{arm['median_absolute_error_millihartree']:.2f} & "
+                f"{arm['p95_absolute_error_millihartree']:.2f} & "
+                f"{arm['max_absolute_error_millihartree']:.1f} & "
+                f"{arm['rmse_millihartree']:.2f} & "
+                f"{arm['bias_millihartree']:+.2f} & "
+                f"{arm['catastrophic_error_count']}/{replicas} & "
+                f"{arm['exact_rank_count']}/{replicas}"
+                + r" \\")
+            allocation = ""
+    out.append(rf"% exact effective rank {exact_rank}; {replicas} replicas")
+    _write("finite_shot.tex", out)
+
+
 def conditioning_table() -> None:
     rows = []
     for path in (RESPONSE, RESPONSE_ILL):
@@ -359,6 +391,7 @@ def main() -> None:
     phase12_primary_table()
     response_table()
     conditioning_table()
+    finite_shot_table()
     print(TABLES)
 
 

@@ -38,22 +38,22 @@
         "blas": {
           "detection method": "pkgconfig",
           "found": true,
-          "include directory": "/opt/_internal/cpython-3.12.12/lib/python3.12/site-packages/scipy_openblas64/include",
-          "lib directory": "/opt/_internal/cpython-3.12.12/lib/python3.12/site-packages/scipy_openblas64/lib",
+          "include directory": "/opt/_internal/cpython-3.11.14/lib/python3.11/site-packages/scipy_openblas64/include",
+          "lib directory": "/opt/_internal/cpython-3.11.14/lib/python3.11/site-packages/scipy_openblas64/lib",
           "name": "scipy-openblas",
-          "openblas configuration": "OpenBLAS 0.3.30  USE64BITINT DYNAMIC_ARCH NO_AFFINITY Haswell MAX_THREADS=64",
+          "openblas configuration": "OpenBLAS 0.3.31.188.0  USE64BITINT DYNAMIC_ARCH NO_AFFINITY Haswell MAX_THREADS=64",
           "pc file directory": "/project/.openblas",
-          "version": "0.3.30"
+          "version": "0.3.31.188.0"
         },
         "lapack": {
           "detection method": "pkgconfig",
           "found": true,
-          "include directory": "/opt/_internal/cpython-3.12.12/lib/python3.12/site-packages/scipy_openblas64/include",
-          "lib directory": "/opt/_internal/cpython-3.12.12/lib/python3.12/site-packages/scipy_openblas64/lib",
+          "include directory": "/opt/_internal/cpython-3.11.14/lib/python3.11/site-packages/scipy_openblas64/include",
+          "lib directory": "/opt/_internal/cpython-3.11.14/lib/python3.11/site-packages/scipy_openblas64/lib",
           "name": "scipy-openblas",
-          "openblas configuration": "OpenBLAS 0.3.30  USE64BITINT DYNAMIC_ARCH NO_AFFINITY Haswell MAX_THREADS=64",
+          "openblas configuration": "OpenBLAS 0.3.31.188.0  USE64BITINT DYNAMIC_ARCH NO_AFFINITY Haswell MAX_THREADS=64",
           "pc file directory": "/project/.openblas",
-          "version": "0.3.30"
+          "version": "0.3.31.188.0"
         }
       },
       "Compilers": {
@@ -73,7 +73,7 @@
           "commands": "cython",
           "linker": "cython",
           "name": "cython",
-          "version": "3.2.1"
+          "version": "3.2.4"
         }
       },
       "Machine Information": {
@@ -91,60 +91,45 @@
         }
       },
       "Python Information": {
-        "path": "/tmp/build-env-aw1mwcap/bin/python",
-        "version": "3.12"
+        "path": "/tmp/build-env-gjolnpt6/bin/python",
+        "version": "3.11"
       },
       "SIMD Extensions": {
         "baseline": [
-          "SSE",
-          "SSE2",
-          "SSE3"
+          "X86_V2"
         ],
         "found": [
-          "SSSE3",
-          "SSE41",
-          "POPCNT",
-          "SSE42",
-          "AVX",
-          "F16C",
-          "FMA3",
-          "AVX2",
-          "AVX512F",
-          "AVX512CD",
-          "AVX512_SKX",
-          "AVX512_CLX",
-          "AVX512_CNL",
-          "AVX512_ICL"
+          "X86_V3",
+          "X86_V4"
         ],
         "not found": [
-          "AVX512_KNL",
-          "AVX512_KNM",
+          "AVX512_ICL",
           "AVX512_SPR"
         ]
       }
     },
     "clifford_qc": "0.3.0",
     "dependencies": {
-      "numpy": "2.3.5",
+      "numpy": "2.4.6",
       "openfermion": null,
       "openfermionpyscf": null,
       "pyscf": null,
-      "scipy": "1.17.0",
+      "scipy": "1.17.1",
       "stim": null
     },
-    "environment_sha256": "e83025b543a17836895f6d11e801048d0043b3d8a2a7cf8d2fbf8963ae486ac1",
-    "git_dirty": null,
-    "git_sha": "unknown",
+    "environment_sha256": "7b826af32fe8521fa16bcbd54bddb7dc391268c17508454a053a52d3dfb4e57d",
+    "git_dirty": true,
+    "git_sha": "f5f3f78d9fb1ec0f6a37576ccdabde06b5212839",
     "platform": {
-      "hostname": "1b9d0d361690",
+      "hostname": "vm",
       "machine": "x86_64",
       "processor": "x86_64",
-      "release": "6.18.35",
+      "release": "6.18.5-fc-v20",
       "system": "Linux"
     },
-    "python": "3.12.13",
+    "python": "3.11.15",
     "schema": "clifford_qc.execution_provenance.v1",
-    "utc": "2026-08-09T06:59:33.040825+00:00"
+    "utc": "2026-08-09T10:26:01.249967+00:00"
   },
   "reference_energy": -2.180316614323859,
   "rows": [
@@ -885,6 +870,7 @@
         "max_sector_leakage": 0.0,
         "min_sector_weight": 1.0,
         "overlap_rank": 9,
+        "spin_ordering": "interleaved",
         "target_particle_number": 4,
         "target_sz": 0.0
       },
@@ -920,7 +906,7 @@
         "E(4,6<-0,2)"
       ],
       "leakage_mode": "operator",
-      "notes": "total cost includes the ADAPT prelude that prepared rho: its rotors, optimizer evaluations, and pool scorings",
+      "notes": "total cost includes the ADAPT prelude that prepared rho: its rotors, optimizer evaluations, and pool scorings; the reference is sector-mixed, so this arm keeps the operator-global generator rule and receives no reference-conditioned certificate",
       "optimizer_evaluations": 15,
       "pool": "determinant excitations",
       "prelude": {
@@ -955,11 +941,94 @@
         "state_evaluation_contexts": 17
       },
       "sector_certificate": null,
-      "sector_weight": 0.9998820842064668,
+      "sector_weight": 0.9998820842064666,
       "selection_evaluations": 499,
       "selection_qwc_group_evaluations": 2589,
       "selection_qwc_groups": 1685,
       "selection_rotor_qwc_group_evaluations": 3822,
+      "selection_words": 15803,
+      "state_evaluation_contexts": 18
+    },
+    {
+      "ansatz_rotors": 2,
+      "arm": "A-CASE (determinant, sector-projected ADAPT warm start)",
+      "basis_size": 9,
+      "chemical_accuracy": true,
+      "condition_number": 1.0221257516465085,
+      "effective_rank": 9,
+      "error_hartree": 0.0001991422925642361,
+      "error_millihartree": 0.1991422925642361,
+      "final_qwc_groups": 913,
+      "final_words": 7510,
+      "ground_energy": -2.1801174720312946,
+      "labels": [
+        "I",
+        "E(5,6<-1,2)",
+        "E(4,5<-0,1)",
+        "E(6,7<-0,1)",
+        "E(6,7<-2,3)",
+        "E(5,6<-0,3)",
+        "E(4,7<-1,2)",
+        "E(5,7<-1,3)",
+        "E(4,6<-0,2)"
+      ],
+      "leakage_mode": "operator_then_reference",
+      "notes": "the warm start post-selected onto the declared sector at acceptance probability 0.999880; the whole retained span is certified in sector, and the 1/weight shot overhead is charged to the prelude",
+      "optimizer_evaluations": 15,
+      "pool": "determinant excitations",
+      "prelude": {
+        "energy": -2.153225606225887,
+        "error_millihartree": 27.091008097971603,
+        "hardware_optimizer_cost": "unpriced: exact adjoint gradient; no physical gradient protocol",
+        "optimizer_energy_qwc_group_evaluations_lower_bound": 1020,
+        "optimizer_evaluations": 15,
+        "rotors": 2,
+        "sector_projection": {
+          "leakage_removed": 0.00011972359432821378,
+          "sector_weight": 0.9998802764056718,
+          "shot_overhead": 1.0001197379297835,
+          "spin_ordering": "interleaved",
+          "target_particle_number": 4,
+          "target_sz": 0.0
+        },
+        "selection_evaluations": 319,
+        "selection_plan": [
+          {
+            "active_candidates": 160,
+            "selection_qwc_groups": 452,
+            "selection_words": 2424,
+            "state_rotors": 0,
+            "step": 1
+          },
+          {
+            "active_candidates": 159,
+            "selection_qwc_groups": 452,
+            "selection_words": 2424,
+            "state_rotors": 1,
+            "step": 2
+          }
+        ],
+        "selection_qwc_group_evaluations": 905,
+        "selection_qwc_groups": 452,
+        "selection_rotor_qwc_group_evaluations": 453,
+        "selection_words": 2424,
+        "stage": "ADAPT-VQE, 2 operators, post-selected onto (N=4, S_z=0.0)",
+        "state_evaluation_contexts": 17
+      },
+      "sector_certificate": {
+        "basis_size": 9,
+        "max_sector_leakage": 0.0,
+        "min_sector_weight": 1.0,
+        "overlap_rank": 9,
+        "spin_ordering": "interleaved",
+        "target_particle_number": 4,
+        "target_sz": 0.0
+      },
+      "sector_weight": 1.0000000000000002,
+      "selection_evaluations": 499,
+      "selection_qwc_group_evaluations": 2590,
+      "selection_qwc_groups": 1685,
+      "selection_rotor_qwc_group_evaluations": 3823,
       "selection_words": 15803,
       "state_evaluation_contexts": 18
     }

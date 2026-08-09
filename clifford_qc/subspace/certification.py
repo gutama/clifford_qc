@@ -151,6 +151,7 @@ def run_certified_acase(rho: MV, hamiltonian, candidates: Sequence, backend, *,
                         leakage_tol: float | None = None,
                         leakage_mode: str = "operator",
                         sector_target: tuple[int, float] | None = None,
+                        spin_ordering="interleaved",
                         exact_ground_energy: float | None = None,
                         tau_s: float = DEFAULT_TAU_S, rel_tau: float = 0.0,
                         max_condition: float = DEFAULT_MAX_CONDITION
@@ -213,7 +214,8 @@ def run_certified_acase(rho: MV, hamiltonian, candidates: Sequence, backend, *,
         if leakage_tol is not None:
             filtered = []
             for index in remaining:
-                operator = sector_leakage(bank.generator(index))
+                operator = sector_leakage(bank.generator(index),
+                                          spin_ordering=spin_ordering)
                 operator_worst = max(operator.values())
                 if leakage_mode == "operator" or (
                         leakage_mode == "operator_then_reference" and
@@ -223,7 +225,8 @@ def run_certified_acase(rho: MV, hamiltonian, candidates: Sequence, backend, *,
                     try:
                         conditioned = reference_sector_leakage(
                             bank.generator(index), bank.reference,
-                            sector_target=sector_target)
+                            sector_target=sector_target,
+                            spin_ordering=spin_ordering)
                     except ValueError as exc:
                         if "annihilates" in str(exc):
                             keep = False
@@ -323,11 +326,12 @@ def run_certified_acase(rho: MV, hamiltonian, candidates: Sequence, backend, *,
         "variational_bound": "not_established_under_noise",
         "leakage_mode": leakage_mode,
         "sector_target": sector_target,
+        "spin_ordering": spin_ordering,
     })
     if leakage_tol is not None and leakage_mode != "operator":
         certificate = subspace_sector_certificate(
             bank.reference, [bank.generator(index) for index in basis],
-            sector_target=sector_target)
+            sector_target=sector_target, spin_ordering=spin_ordering)
         resources["sector_certificate"] = certificate
         if certificate["max_sector_leakage"] > leakage_tol:
             raise ValueError(

@@ -187,7 +187,7 @@ def canonical_eigh(matrix: np.ndarray, *, rtol: float = TIE_RTOL,
 def solve_projected(S: np.ndarray, Hm: np.ndarray, labels: Sequence[str] | None = None,
                     *, tau_s: float = DEFAULT_TAU_S, rel_tau: float = 0.0,
                     max_condition: float = DEFAULT_MAX_CONDITION,
-                    overlap_noise_floor: float = 0.0,
+                    overlap_noise_floor: float | Sequence[float] = 0.0,
                     norm_floor: float = DEFAULT_NORM_FLOOR,
                     resources: dict | None = None) -> SubspaceResult:
     """The normalized, thresholded, deterministic generalized eigenproblem (§4.1.3).
@@ -201,6 +201,15 @@ def solve_projected(S: np.ndarray, Hm: np.ndarray, labels: Sequence[str] | None 
     near-singular regime is generic here, not exceptional.  The numerical
     solver does not estimate that statistical floor itself; keeping the two
     layers separate prevents exact solves from acquiring a hidden shot model.
+
+    ``overlap_noise_floor`` may be one scalar applied to every mode, or one
+    floor *per mode* ascending in the retained (live) overlap spectrum.  The
+    per-mode form is the statistically meaningful one: a mode is resolvable
+    when it stands above *its own* shot noise, not above the noisiest mode's.
+    A caller supplying the vector form is responsible for deriving it from the
+    same normalized overlap matrix this function decomposes, which is why the
+    live-generator convention below is part of the contract rather than an
+    implementation detail.
     """
     S = np.asarray(S, dtype=complex)
     Hm = np.asarray(Hm, dtype=complex)
@@ -213,7 +222,10 @@ def solve_projected(S: np.ndarray, Hm: np.ndarray, labels: Sequence[str] | None 
     labels = tuple(labels) if labels is not None else tuple(f"A{i}" for i in range(m))
     if len(labels) != m:
         raise ValueError("labels and matrix size disagree")
-    if overlap_noise_floor < 0.0 or not np.isfinite(overlap_noise_floor):
+    noise_floor = np.asarray(overlap_noise_floor, dtype=float)
+    if noise_floor.ndim > 1:
+        raise ValueError("overlap_noise_floor must be a scalar or a 1-D sequence")
+    if np.any(noise_floor < 0.0) or not np.all(np.isfinite(noise_floor)):
         raise ValueError("overlap_noise_floor must be nonnegative and finite")
 
     diagonal = np.clip(S.diagonal().real, 0.0, None)
@@ -232,12 +244,17 @@ def solve_projected(S: np.ndarray, Hm: np.ndarray, labels: Sequence[str] | None 
 
     overlap_values, overlap_vectors = canonical_eigh(S_bar)
     largest = float(overlap_values[-1])
-    cutoff = max(tau_s, rel_tau * largest, largest / max_condition,
-                 overlap_noise_floor)
-    keep = overlap_values > cutoff
+    if noise_floor.ndim == 1 and noise_floor.size != overlap_values.size:
+        raise ValueError(
+            "a per-mode overlap_noise_floor must have one entry per live "
+            f"generator ({overlap_values.size}), got {noise_floor.size}")
+    deterministic_cutoff = max(tau_s, rel_tau * largest, largest / max_condition)
+    cutoffs = np.maximum(deterministic_cutoff, noise_floor)
+    keep = overlap_values > cutoffs
     if not keep.any():
-        raise ValueError(f"overlap threshold {cutoff:g} retained no direction; "
-                         f"largest overlap eigenvalue is {largest:g}")
+        raise ValueError(f"overlap threshold {float(np.max(cutoffs)):g} retained no "
+                         f"direction; largest overlap eigenvalue is {largest:g}")
+    cutoff = float(np.max(np.broadcast_to(cutoffs, overlap_values.shape)))
     kept_values = overlap_values[keep]
     # X maps retained overlap modes to an S-orthonormal frame: X' S_bar X = 1.
     X = overlap_vectors[:, keep] / np.sqrt(kept_values)
@@ -278,7 +295,11 @@ def solve_projected(S: np.ndarray, Hm: np.ndarray, labels: Sequence[str] | None 
         "retained_condition_number": condition,
         "whitening_residual_inf": whitening_residual,
         "overlap_threshold": float(cutoff),
-        "overlap_noise_floor": float(overlap_noise_floor),
+        "overlap_threshold_policy_floor": float(deterministic_cutoff),
+        "overlap_noise_floor": float(np.max(noise_floor, initial=0.0)),
+        "overlap_noise_floor_per_mode": (
+            tuple(float(value) for value in noise_floor)
+            if noise_floor.ndim == 1 else None),
         "overlap_eigenvalue_max": largest,
         "overlap_eigenvalue_min": float(overlap_values[0]),
         "overlap_negative_modes": negative_modes,
