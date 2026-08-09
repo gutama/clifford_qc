@@ -65,7 +65,7 @@ RECORDS = (
 # replica-conditional bands, so they are split rather than assigned whole.
 _CONTRACT_KEYS = ("schema", "source_main_commit", "system", "measurement")
 _CENSUS_KEYS = ("replicates_succeeded", "replicates_requested",
-                "acceptance_rate", "failures")
+                "acceptance_rate", "failures", "replica_census")
 _INTERVAL_LEAVES = ("lower", "upper")
 
 
@@ -157,6 +157,34 @@ def _census_summary(committed: dict, fresh: dict) -> str:
             f"committed={committed.get('failures')} fresh={fresh.get('failures')}")
 
 
+def _movers(committed: dict, fresh: dict) -> list[str]:
+    """Name the individual replicas whose outcome changed.
+
+    This is what the per-replica fingerprint buys.  Each line reports the
+    replica index, the outcome on both sides, and the smallest overlap
+    eigenvalue that decided it -- so a marginal sign flip near zero is
+    immediately distinguishable from a pipeline that moved the eigenvalue
+    wholesale.
+    """
+    before = {row["index"]: row for row in committed.get("replica_census", [])}
+    after = {row["index"]: row for row in fresh.get("replica_census", [])}
+    lines: list[str] = []
+    for index in sorted(before.keys() & after.keys()):
+        was, now = before[index], after[index]
+        if was["outcome"] == now["outcome"]:
+            continue
+        old_min, new_min = was["overlap_eigenvalue_min"], now["overlap_eigenvalue_min"]
+        shift = ("n/a" if old_min is None or new_min is None
+                 else f"{new_min - old_min:+.3e}")
+        lines.append(
+            f"replica {index}: {was['outcome']} -> {now['outcome']}, "
+            f"lambda_min {old_min:+.6e} -> {new_min:+.6e} (shift {shift})"
+            if old_min is not None and new_min is not None else
+            f"replica {index}: {was['outcome']} -> {now['outcome']}, "
+            f"lambda_min {old_min} -> {new_min}")
+    return lines
+
+
 def main() -> int:
     tier_order = ("contract", "point", "census", "intervals")
     failed_tiers: set[str] = set()
@@ -183,6 +211,14 @@ def main() -> int:
             if tier == "census":
                 print(f"   census    FAIL  "
                       f"{_census_summary(committed_tiers['census'], fresh_tiers['census'])}")
+                movers = _movers(committed_tiers["census"], fresh_tiers["census"])
+                for line in movers[:MAX_REPORTED_PER_TIER]:
+                    print(f"      {line}")
+                if len(movers) > MAX_REPORTED_PER_TIER:
+                    print(f"      ... {len(movers) - MAX_REPORTED_PER_TIER} more")
+                if not movers:
+                    print("      no per-replica fingerprint to diff; "
+                          "regenerate the record to gain one")
                 continue
             if tier == "intervals":
                 print(f"   intervals FAIL  {len(problems)} band value(s) moved, "

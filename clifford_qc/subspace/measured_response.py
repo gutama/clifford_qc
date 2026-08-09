@@ -77,6 +77,31 @@ class ResponseLineUncertainty:
 
 
 @dataclass(frozen=True)
+class ReplicaOutcome:
+    """What one bootstrap replica did, and the number that decided it.
+
+    The census exists to make a disagreement between two runs diagnosable.
+    Acceptance turns on ``effective_rank`` matching the point estimate's, and
+    that rank is in practice decided by the *sign* of the resampled overlap's
+    smallest eigenvalue.  Recording ``overlap_eigenvalue_min`` per replica
+    means a run that accepts a different number of replicas can be diffed
+    against a committed record replica by replica: the ones that moved are
+    visible, and how far each sits from the sign boundary says immediately
+    whether the difference is a marginal decision or a different pipeline.
+    Without it, a census disagreement is only ever a pair of totals.
+
+    ``outcome`` is ``"accepted"`` or the rejection reason -- ``"rank"``,
+    ``"root_collision"``, or ``"solver"``.  A replica whose solve raised has
+    no eigenvalue to report, so both numeric fields are ``None``.
+    """
+
+    index: int
+    outcome: str
+    overlap_eigenvalue_min: float | None
+    effective_rank: int | None
+
+
+@dataclass(frozen=True)
 class BootstrapResponse:
     """Whole-pipeline grouped-bootstrap result.
 
@@ -105,6 +130,7 @@ class BootstrapResponse:
     rank_failures: int
     root_collision_failures: int
     solver_failures: int
+    replica_census: tuple[ReplicaOutcome, ...] = ()
     frequencies: np.ndarray | None = None
     broadened_estimate: np.ndarray | None = None
     broadened_lower: np.ndarray | None = None
@@ -415,9 +441,10 @@ def bootstrap_response(measurement: ResponseMeasurement,
     susceptibility_samples: list[float] = []
     broadened_samples: list[np.ndarray] = []
     rank_failures = root_failures = solver_failures = 0
+    census: list[ReplicaOutcome] = []
     rng = np.random.default_rng(seed)
 
-    for _ in range(replicates):
+    for index in range(replicates):
         replica = _resampled_cache(measurement, cache, rng)
         try:
             spectrum = measurement.spectrum(
@@ -429,17 +456,30 @@ def bootstrap_response(measurement: ResponseMeasurement,
             )
         except (ValueError, np.linalg.LinAlgError, IndexError):
             solver_failures += 1
+            census.append(ReplicaOutcome(index, "solver", None, None))
             continue
-        if spectrum.result.effective_rank != point.result.effective_rank:
+        # The eigenvalue whose sign decides the rank gate below, recorded for
+        # every replica including the accepted ones: a future run that accepts
+        # a different count is diffed against this, not against a total.
+        lambda_min = spectrum.result.resources.get("overlap_eigenvalue_min")
+        lambda_min = None if lambda_min is None else float(lambda_min)
+        rank = int(spectrum.result.effective_rank)
+        if rank != point.result.effective_rank:
             rank_failures += 1
+            census.append(ReplicaOutcome(index, "rank", lambda_min, rank))
             continue
         if _minimum_root_gap(spectrum.result.energies) <= root_gap_tolerance:
             root_failures += 1
+            census.append(
+                ReplicaOutcome(index, "root_collision", lambda_min, rank))
             continue
         by_state = {line.final_state: line for line in spectrum.lines}
         if any(state not in by_state for state in target_states):
             root_failures += 1
+            census.append(
+                ReplicaOutcome(index, "root_collision", lambda_min, rank))
             continue
+        census.append(ReplicaOutcome(index, "accepted", lambda_min, rank))
         for state in target_states:
             gap_samples[state].append(by_state[state].excitation_energy)
             weight_samples[state].append(by_state[state].weight)
@@ -487,6 +527,7 @@ def bootstrap_response(measurement: ResponseMeasurement,
         rank_failures=rank_failures,
         root_collision_failures=root_failures,
         solver_failures=solver_failures,
+        replica_census=tuple(census),
         frequencies=omega,
         broadened_estimate=point_broadened,
         broadened_lower=lower,
@@ -497,6 +538,7 @@ def bootstrap_response(measurement: ResponseMeasurement,
 __all__ = [
     "BootstrapResponse",
     "MeasuredResponseSpectrum",
+    "ReplicaOutcome",
     "ResponseLineUncertainty",
     "ResponseMeasurement",
     "bootstrap_response",

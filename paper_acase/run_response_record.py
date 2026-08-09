@@ -127,8 +127,23 @@ def build_record(*, generators: str = "determinant") -> dict:
     if succeeded + sum(failures.values()) != requested:
         raise RuntimeError("bootstrap replica accounting does not close")
 
+    # One row per replica, in draw order.  This is the fingerprint that makes a
+    # census disagreement between two environments diagnosable: acceptance
+    # turns on the sign of the resampled overlap's smallest eigenvalue, so a
+    # run accepting a different number of replicas can be diffed against this
+    # record replica by replica, and each mover's distance from zero says
+    # whether the decision was marginal or the pipeline differs.
+    census = [{
+        "index": item.index,
+        "outcome": item.outcome,
+        "overlap_eigenvalue_min": item.overlap_eigenvalue_min,
+        "effective_rank": item.effective_rank,
+    } for item in result.replica_census]
+    if len(census) != requested:
+        raise RuntimeError("replica census does not cover every replica")
+
     return {
-        "schema": "clifford_qc.acase_response_bootstrap.v1",
+        "schema": "clifford_qc.acase_response_bootstrap.v2",
         "source_main_commit": "4b1c636953e4ebe9aa7541d4260cfe95aa18674e",
         "basis": {
             "generators": generators,
@@ -161,6 +176,7 @@ def build_record(*, generators: str = "determinant") -> dict:
             "evidence": result.evidence,
             "certified": result.certified,
             "pointwise_not_simultaneous": True,
+            "replica_census": census,
         },
         "exact": {
             "lines": [{

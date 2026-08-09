@@ -146,6 +146,47 @@ def test_intervals_report_what_they_are_conditioned_on(dimer_response):
     assert result.certified is False
 
 
+def test_replica_census_fingerprints_every_replica(dimer_response):
+    """Totals cannot localize a census disagreement; the census can.
+
+    Two environments that accept different numbers of replicas produce the
+    same pair of totals whatever the cause. The per-replica record carries the
+    eigenvalue whose sign decided each acceptance, so the replicas that moved
+    -- and whether each was a marginal flip or a wholesale shift -- are
+    recoverable by diffing two records.
+    """
+    _, _, measurement = dimer_response
+    cache = measurement.measure(FiniteShotBackend(seed=5), 4000)
+    result = bootstrap_response(measurement, cache, replicates=40, seed=3)
+
+    census = result.replica_census
+    assert len(census) == result.replicates_requested
+    # draw order, no gaps: a diff against another run aligns index by index
+    assert [item.index for item in census] == list(range(len(census)))
+
+    outcomes = [item.outcome for item in census]
+    assert set(outcomes) <= {"accepted", "rank", "root_collision", "solver"}
+    # the census reproduces the aggregate counters rather than restating them
+    assert outcomes.count("accepted") == result.replicates_succeeded
+    assert outcomes.count("rank") == result.rank_failures
+    assert outcomes.count("root_collision") == result.root_collision_failures
+    assert outcomes.count("solver") == result.solver_failures
+
+    for item in census:
+        if item.outcome == "solver":
+            # a solve that raised has no pencil to report
+            assert item.overlap_eigenvalue_min is None
+            assert item.effective_rank is None
+            continue
+        assert isinstance(item.overlap_eigenvalue_min, float)
+        assert isinstance(item.effective_rank, int)
+    accepted = [item for item in census if item.outcome == "accepted"]
+    # every accepted replica matched the point estimate's rank, by definition
+    # of the gate -- so the census cannot silently disagree with it
+    point_rank = result.spectrum.result.effective_rank
+    assert all(item.effective_rank == point_rank for item in accepted)
+
+
 def test_acceptance_rate_is_defined_when_nothing_was_requested():
     empty = BootstrapResponse(
         spectrum=None, lines=(), susceptibility=None, evidence=HEURISTIC,

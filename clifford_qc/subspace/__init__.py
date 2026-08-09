@@ -51,7 +51,8 @@ from .reference import (
 from .response import (ResponseLine, broaden_response, lehmann_spectrum,
                        static_susceptibility)
 from .measured_response import (
-    BootstrapResponse, MeasuredResponseSpectrum, ResponseLineUncertainty,
+    BootstrapResponse, MeasuredResponseSpectrum, ReplicaOutcome,
+    ResponseLineUncertainty,
     ResponseMeasurement, bootstrap_response,
 )
 from .solver import (
@@ -118,7 +119,7 @@ __all__ = [
     "dense_subspace", "pure_statevector",
     "ResponseLine", "broaden_response", "lehmann_spectrum",
     "static_susceptibility",
-    "BootstrapResponse", "MeasuredResponseSpectrum",
+    "BootstrapResponse", "MeasuredResponseSpectrum", "ReplicaOutcome",
     "ResponseLineUncertainty", "ResponseMeasurement", "bootstrap_response",
     "DEFAULT_MAX_CONDITION", "DEFAULT_NORM_FLOOR", "DEFAULT_TAU_S",
     "SubspaceResult", "ProjectedProblem", "canonical_eigh", "projected_matrices",

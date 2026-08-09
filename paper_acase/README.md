@@ -58,11 +58,15 @@ PDFs remain CI/release artifacts and are not committed as source.
   — `contract`, `point`, `census`, `intervals` — and names the earliest one
   that failed, because every percentile band is conditional on the replica
   census and a flat diff turns one upstream disagreement into hundreds of
-  downstream ones. See "Known reproduction gap" in `../REPRODUCING.md`: the
-  ill-conditioned record's census currently reproduces at `137/200` rather
-  than the committed `139/200`, which the manuscript quotes.
-- `data/response_bootstrap.json` — deterministic paper record, including the
-  seeds, shot budget, replica accounting, intervals, and plotted spectrum.
+  downstream ones. On a census disagreement it diffs the per-replica
+  fingerprint and names the individual replicas that moved.
+- `data/response_bootstrap.json` — deterministic paper record (schema `v2`),
+  including the seeds, shot budget, replica accounting, intervals, and plotted
+  spectrum. `bootstrap.replica_census` adds one row per replica in draw order:
+  its outcome, the smallest overlap eigenvalue of that resampled pencil, and
+  its effective rank. Acceptance turns on the sign of that eigenvalue, so the
+  census is the fingerprint that makes a disagreement between two environments
+  diagnosable replica by replica rather than only as a pair of totals.
 - `data/response_bootstrap_illconditioned.json` — the same run with the
   determinant generators replaced by Hamiltonian powers. The system,
   observable, word set, grouping, shots, basis size, and seeds are held fixed;
