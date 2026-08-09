@@ -247,15 +247,14 @@ def response_table() -> None:
 
 
 def matched_table() -> None:
-    """Every arm on one H4 contract, priced in four separate currencies.
+    """Every arm on one H4 contract with words and physical QWC settings.
 
-    The currencies are kept apart rather than summed because they are not
-    interchangeable on hardware: a state preparation and a Pauli word are
-    different machines' bottlenecks. ``---`` marks a column an arm does not
-    have -- a product ansatz has no overlap matrix, and a fixed basis does no
-    selection. ADAPT-GCIM's final object is instead counted as unique
-    Hamiltonian/overlap state pairs, because it has no single-reference word
-    universe.
+    ``state_evaluation_contexts`` is deliberately not called a preparation
+    count: every shot of every physical measurement setting requires a fresh
+    preparation. ``selection_qwc_group_evaluations`` sums settings across
+    changing-state selection rounds; for fixed-reference A-CASE it is the one
+    cached union. ``---`` marks a column an arm does not have. ADAPT-GCIM's
+    final object is instead counted as Hamiltonian/overlap transition pairs.
     """
     record = json.loads(MATCHED.read_text())
     # The matched table is where the width comparison is actually made, so the
@@ -271,12 +270,16 @@ def matched_table() -> None:
         selection = row["selection_evaluations"]
         selection_cell = "---" if not selection else f"{selection:,}"
         words = row["selection_words"]
-        words_cell = "---" if not words else f"{words:,}"
+        selection_groups = row.get("selection_qwc_group_evaluations")
+        words_cell = ("---" if not words else
+                      f"{words:,}/{selection_groups:,}")
         final = row["final_words"]
         if final is None and row["arm"] == "Krylov" and krylov is not None:
-            final_cell = rf"{krylov:,}\footnotemark[1]"
+            final_cell = rf"{krylov:,}/---\footnotemark[1]"
         else:
-            final_cell = "n/t" if final is None else f"{final:,}"
+            final_groups = row.get("final_qwc_groups")
+            final_cell = ("n/t" if final is None else
+                          f"{final:,}/{final_groups:,}")
         h_pairs = row.get("hamiltonian_matrix_pairs")
         s_pairs = row.get("overlap_offdiagonal_pairs")
         pair_cell = ("---" if h_pairs is None
@@ -288,7 +291,7 @@ def matched_table() -> None:
                       else _sci(error, 2).replace("$", "$"))
         rows.append(
             rf"{row['arm']} & {basis} & {error_cell} & "
-            rf"{kappa} & {row['state_preparations']:,} & "
+            rf"{kappa} & {row['state_evaluation_contexts']:,} & "
             rf"{row['ansatz_rotors']} & {selection_cell} & {words_cell} & "
             rf"{final_cell} & {pair_cell} \\")
     _write("matched_results.tex", rows)

@@ -25,18 +25,26 @@ excitations.  Those are the same operator content at two resolutions, so both
 are run, and the difference between them turns out to be the most interesting
 column in the table.
 
-Costs are reported in four currencies rather than collapsed into a score,
-because they are not interchangeable on hardware:
+Costs are reported in separate currencies rather than collapsed into a score.
+A *state-evaluation context* is a state or parameter point at which observables
+are evaluated; it is not a physical state preparation.  On hardware the latter
+happens once per measurement shot:
 
-* ``state_preparations``   -- distinct states the arm must prepare.
-  Fixed-reference operator subspaces need one; ADAPT-GCIM needs its ``M``
-  generating-function states; ADAPT-VQE needs a fresh state per selection step
-  and optimizer evaluation.
+* ``state_evaluation_contexts`` -- contexts in the exact workflow.
+  Fixed-reference operator subspaces need one; ADAPT-GCIM has its ``M``
+  generating-function states; ADAPT-VQE has one context per selection step and
+  optimizer evaluation. This is *not* a shot-level preparation count.
 * ``ansatz_rotors``        -- rotors in the deepest prepared state, a depth
   proxy. ADAPT-GCIM also records the sum over all distinct basis circuits.
 * ``selection_evaluations`` -- candidate scorings summed over steps.
 * ``selection_words`` / ``final_words`` -- distinct Pauli words, with their QWC
   group counts, for scoring candidates and for the final object.
+
+For changing-state selectors the record additionally stores the QWC group
+count at every step and its sum. Under uniform ``R`` shots per group this sum
+gives ``R * selection_qwc_group_evaluations`` physical selection circuit
+executions, hence the same number of physical state preparations. A word is
+not an execution unit: one QWC-group shot returns all compatible words.
 
 ADAPT-GCIM has a genuinely different final measurement primitive: off-diagonal
 transition matrix elements between separately prepared generating-function
@@ -109,18 +117,63 @@ def word_pool(model, candidates) -> list[PoolOperator]:
     return list(pool.values())
 
 
-# qwc_groups is a greedy colouring over the QWC-incompatibility graph, so it
-# builds O(W^2) pairs. That is affordable for the word sets this comparison
-# turns on and ruinous for the 15k-word selection caches, where the group count
-# is a derived convenience rather than a quantity any claim rests on.
-MAX_GROUPED_WORDS = 5_000
+def _groups(n: int, codes) -> int:
+    """Constructive QWC group count for a word set.
 
-
-def _groups(n: int, codes) -> int | None:
+    The grouper has a vectorized large-bank path, so suppressing counts above
+    an arbitrary word threshold would discard the physical setting count this
+    comparison needs. The greedy count is an upper bound, not an optimal
+    coloring certificate.
+    """
     codes = list(codes)
-    if len(codes) > MAX_GROUPED_WORDS:
-        return None
     return len(qwc_groups([PauliWord(n, code) for code in codes]))
+
+
+def _adapt_selection_plan(model, pool, records) -> tuple[list[dict], int]:
+    """Per-step QWC settings for ADAPT's shrinking active candidate pool."""
+    bank = CommutatorBank(model.hamiltonian, [op.word for op in pool],
+                          [op.label for op in pool])
+    by_label = {op.label: i for i, op in enumerate(pool)}
+    active = list(range(len(pool)))
+    steps: list[dict] = []
+    for record in records:
+        if record.active_candidates != len(active):
+            raise ValueError("ADAPT active-candidate count disagrees with replay")
+        words = bank.words_for(active)
+        groups = _groups(model.n, (word.code for word in words))
+        steps.append({
+            "step": record.step,
+            "state_rotors": len(pool) - len(active),
+            "active_candidates": len(active),
+            "selection_words": len(words),
+            "selection_qwc_groups": groups,
+        })
+        for label in ((record.selected_label,) + tuple(record.layer_labels)):
+            if label is not None:
+                active.remove(by_label[label])
+    return steps, sum(step["selection_qwc_groups"] for step in steps)
+
+
+def _generator_selection_plan(n: int, per_candidate_codes, records) -> tuple[list[dict], int]:
+    """Per-step QWC settings for determinant-generator gradient selection."""
+    active = list(range(len(per_candidate_codes)))
+    steps: list[dict] = []
+    for record in records:
+        if record.active_candidates != len(active):
+            raise ValueError("GCIM active-candidate count disagrees with replay")
+        codes: set[int] = set()
+        for j in active:
+            codes.update(per_candidate_codes[j])
+        groups = _groups(n, codes)
+        steps.append({
+            "iteration": record.iteration,
+            "state_rotors": record.iteration - 1,
+            "active_candidates": len(active),
+            "selection_words": len(codes),
+            "selection_qwc_groups": groups,
+        })
+        active.remove(record.selected_index)
+    return steps, sum(step["selection_qwc_groups"] for step in steps)
 
 
 def selection_width(model, pool) -> tuple[int, int]:
@@ -177,7 +230,7 @@ def sector_weight(model, rho, result, generators) -> float:
 def _subspace_row(name, pool_kind, result, exact_energy, *,
                   model, rho, generators, selection_evaluations,
                   selection_words, selection_groups, final_groups=None,
-                  state_preparations=1, ansatz_rotors=0,
+                  state_evaluation_contexts=1, ansatz_rotors=0,
                   optimizer_evaluations=0, notes=""):
     energy = result.ground_energy if hasattr(result, "ground_energy") else result.energies[0]
     error = energy - exact_energy
@@ -194,12 +247,14 @@ def _subspace_row(name, pool_kind, result, exact_energy, *,
         "condition_number": result.condition_number,
         "effective_rank": result.effective_rank,
         "sector_weight": sector_weight(model, rho, result, generators),
-        "state_preparations": state_preparations,
+        "state_evaluation_contexts": state_evaluation_contexts,
         "ansatz_rotors": ansatz_rotors,
         "optimizer_evaluations": optimizer_evaluations,
         "selection_evaluations": selection_evaluations,
         "selection_words": selection_words,
         "selection_qwc_groups": selection_groups,
+        "selection_qwc_group_evaluations": selection_groups,
+        "selection_rotor_qwc_group_evaluations": ansatz_rotors * selection_groups,
         "final_words": final_words,
         "final_qwc_groups": final_groups,
         "notes": notes,
@@ -232,9 +287,12 @@ def build_record() -> dict:
     # construction makes the ADAPT-GCIM resource row independent of that fact.
     H_mv = model.hamiltonian.to_mv()
     gcim_selection_codes: set[int] = set()
+    gcim_candidate_codes: list[set[int]] = []
     for generator in determinants:
         commutator = H_mv * generator.mv - generator.mv * H_mv
-        gcim_selection_codes.update(commutator.terms)
+        codes = set(commutator.terms)
+        gcim_candidate_codes.append(codes)
+        gcim_selection_codes.update(codes)
     gcim_sel_words = len(gcim_selection_codes)
     gcim_sel_groups = _groups(model.n, gcim_selection_codes)
     hamiltonian_groups = _groups(model.n, model.hamiltonian.terms)
@@ -265,12 +323,17 @@ def build_record() -> dict:
             selection_words=len(selection_codes),
             selection_groups=_groups(model.n, selection_codes),
             final_groups=_groups(model.n, final_codes),
-            state_preparations=1 if prelude is None else prelude["preparations"] + 1,
+            state_evaluation_contexts=(
+                1 if prelude is None else prelude["state_evaluation_contexts"] + 1),
             ansatz_rotors=0 if prelude is None else prelude["rotors"],
             optimizer_evaluations=0 if prelude is None else prelude["optimizer_evaluations"],
             notes=notes)
         if prelude is not None:
             row["selection_evaluations"] += prelude["selection_evaluations"]
+            row["selection_qwc_group_evaluations"] += (
+                prelude["selection_qwc_group_evaluations"])
+            row["selection_rotor_qwc_group_evaluations"] += (
+                prelude["selection_rotor_qwc_group_evaluations"])
             row["prelude"] = prelude
         print(f"  {name}: {time.perf_counter() - started:.1f}s", flush=True)
         rows.append(row)
@@ -318,6 +381,11 @@ def build_record() -> dict:
             rho, model.hamiltonian, determinants,
             max_iterations=iterations)
         result = gcim.result
+        selection_plan, selection_group_evaluations = _generator_selection_plan(
+            model.n, gcim_candidate_codes, gcim.records)
+        selection_rotor_group_evaluations = sum(
+            step["state_rotors"] * step["selection_qwc_groups"]
+            for step in selection_plan)
         energy = result.ground_energy
         error = energy - exact_energy
         ritz_state = gcim.basis @ np.asarray(result.coefficients)[:, 0]
@@ -354,7 +422,7 @@ def build_record() -> dict:
             # Distinct generating-function state circuits. The cumulative
             # surrogate states used for selection are already members of this
             # final set, so they are not double-counted.
-            "state_preparations": len(result.basis_labels),
+            "state_evaluation_contexts": len(result.basis_labels),
             # The deepest basis circuit; total rotor applications across all
             # distinct basis circuits is reported in its own field below.
             "ansatz_rotors": max(gcim.basis_rotor_depths),
@@ -365,6 +433,10 @@ def build_record() -> dict:
                 record.active_candidates for record in gcim.records),
             "selection_words": gcim_sel_words,
             "selection_qwc_groups": gcim_sel_groups,
+            "selection_qwc_group_evaluations": selection_group_evaluations,
+            "selection_rotor_qwc_group_evaluations": (
+                selection_rotor_group_evaluations),
+            "selection_plan": selection_plan,
             # No single-reference W exists for transition measurements between
             # different prepared states.
             "final_words": None,
@@ -397,7 +469,12 @@ def build_record() -> dict:
                       compute_exact_reference=False)
     adapt_error = adapt.energy - exact_energy
     adapt_scored = sum(record.active_candidates for record in adapt.records)
-    adapt_preparations = len(adapt.records) + adapt.optimizer_evaluations
+    adapt_contexts = len(adapt.records) + adapt.optimizer_evaluations
+    adapt_selection_plan, adapt_selection_group_evaluations = _adapt_selection_plan(
+        model, pool, adapt.records)
+    adapt_selection_rotor_group_evaluations = sum(
+        step["state_rotors"] * step["selection_qwc_groups"]
+        for step in adapt_selection_plan)
     rows.append({
         "arm": "ADAPT-VQE",
         "pool": "odd-Y words",
@@ -410,14 +487,23 @@ def build_record() -> dict:
         "condition_number": None,
         "effective_rank": None,
         "sector_weight": None,
-        "state_preparations": adapt_preparations,
+        "state_evaluation_contexts": adapt_contexts,
         "ansatz_rotors": len(adapt.labels),
         "optimizer_evaluations": adapt.optimizer_evaluations,
         "selection_evaluations": adapt_scored,
         "selection_words": sel_words,
         "selection_qwc_groups": sel_groups,
+        "selection_qwc_group_evaluations": adapt_selection_group_evaluations,
+        "selection_rotor_qwc_group_evaluations": (
+            adapt_selection_rotor_group_evaluations),
+        "selection_plan": adapt_selection_plan,
         "final_words": len(model.hamiltonian.terms),
         "final_qwc_groups": hamiltonian_groups,
+        "optimizer_energy_qwc_group_evaluations_lower_bound": (
+            adapt.optimizer_evaluations * hamiltonian_groups),
+        "hardware_optimizer_cost": (
+            "unpriced: the benchmark optimizer uses an exact adjoint gradient; "
+            "a physical gradient-measurement protocol is not specified"),
         "notes": ("no overlap matrix: a product ansatz has no kappa_S, and the "
                   "prepared state is a sector eigenstate by construction"),
     })
@@ -437,16 +523,30 @@ def build_record() -> dict:
     # --- warm-started A-CASE, with the prelude priced ---------------------
     warm_rho, warm_adapt = adapt_warm_start(
         model, pool, max_operators=WARM_OPERATORS, compute_exact_reference=False)
+    warm_selection_plan, warm_selection_group_evaluations = _adapt_selection_plan(
+        model, pool, warm_adapt.records)
+    warm_selection_rotor_group_evaluations = sum(
+        step["state_rotors"] * step["selection_qwc_groups"]
+        for step in warm_selection_plan)
     prelude = {
         "stage": f"ADAPT-VQE, {len(warm_adapt.labels)} operators",
         "energy": warm_adapt.energy,
         "error_millihartree": (warm_adapt.energy - exact_energy) * 1e3,
         "rotors": len(warm_adapt.labels),
-        "preparations": len(warm_adapt.records) + warm_adapt.optimizer_evaluations,
+        "state_evaluation_contexts": (
+            len(warm_adapt.records) + warm_adapt.optimizer_evaluations),
         "optimizer_evaluations": warm_adapt.optimizer_evaluations,
         "selection_evaluations": sum(r.active_candidates for r in warm_adapt.records),
         "selection_words": sel_words,
         "selection_qwc_groups": sel_groups,
+        "selection_qwc_group_evaluations": warm_selection_group_evaluations,
+        "selection_rotor_qwc_group_evaluations": (
+            warm_selection_rotor_group_evaluations),
+        "selection_plan": warm_selection_plan,
+        "optimizer_energy_qwc_group_evaluations_lower_bound": (
+            warm_adapt.optimizer_evaluations * hamiltonian_groups),
+        "hardware_optimizer_cost": (
+            "unpriced: exact adjoint gradient; no physical gradient protocol"),
     }
     acase("A-CASE (determinant, ADAPT warm start)", determinants,
           "determinant excitations", leakage_tol=1e-10, reference=warm_rho,
@@ -455,7 +555,7 @@ def build_record() -> dict:
                  "its rotors, optimizer evaluations, and pool scorings"))
 
     return {
-        "schema": "clifford_qc.matched_h4.v2",
+        "schema": "clifford_qc.matched_h4.v3",
         "evidence": {
             "energies": "exact",
             "resource_counts": "exact",
@@ -494,13 +594,23 @@ def build_record() -> dict:
                 "including rows for candidates that were then rejected, "
                 "which is strictly larger than the retained final_words "
                 "the manuscript ledger reports"),
-            "state_preparations": (
-                "distinct states prepared. Circuit executions are this "
-                "times the QWC group count times shots per group; the "
-                "shot factor is outside this exact-arithmetic record. For "
-                "ADAPT-GCIM this is the number of distinct generating-"
-                "function basis circuits; its cumulative selector states are "
-                "already members of that set."),
+            "state_evaluation_contexts": (
+                "state/parameter contexts at which the exact workflow evaluates "
+                "observables; not physical preparation executions. On hardware "
+                "a fresh state preparation occurs for every shot of every "
+                "measurement setting. For ADAPT-GCIM this field is the number "
+                "of distinct generating-function basis circuits."),
+            "selection_qwc_group_evaluations": (
+                "sum of QWC settings over changing-state selection steps. "
+                "Under uniform R shots per group, multiply by R for selection "
+                "circuit executions/state preparations. Fixed-reference A-CASE "
+                "instead measures one cached union, so this equals its single "
+                "selection_qwc_groups count before any warm-start prelude."),
+            "selection_rotor_qwc_group_evaluations": (
+                "sum over selection settings of adaptive-rotor depth times QWC "
+                "settings, before the shot multiplier. This prices circuit "
+                "depth for the selection stage without pretending to price the "
+                "exact ADAPT optimizer's missing physical gradient protocol."),
             "adapt_gcim_matrix_pairs": (
                 "unique upper-triangle Hamiltonian pairs and off-diagonal "
                 "overlap pairs. These transition measurements are not a "
@@ -522,7 +632,7 @@ def main() -> None:
     for row in record["rows"]:
         error = row["error_millihartree"]
         print(f"{row['arm']:38s} err={error:10.4f} mHa  "
-              f"prep={row['state_preparations']:>6}  "
+              f"ctx={row['state_evaluation_contexts']:>6}  "
               f"sel={row['selection_evaluations']:>6}  "
               f"W={row['final_words']}", flush=True)
     print(args.out)

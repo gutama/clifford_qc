@@ -1,9 +1,20 @@
-# Paper B — Adaptive operator-generated subspaces
+# Paper B — One reference state, one measurement bank
 
 Standalone manuscript built from the A-CASE effective-Hamiltonian, FCIDUMP,
 active-space benchmark, finite-shot response, QSCI/packet ensemble, and
-matched-budget Phase 12 work.  The current rewrite incorporates the seed-level
-and comparator corrections merged through pull requests #47 and #48.
+matched-budget Phase 12 work.  It incorporates the seed-level and comparator
+corrections merged through pull requests #47, #48, and #49.
+
+The paper argues an **architectural** thesis, not a scoreboard one. Fixing a
+single reference and reconstructing every overlap, Hamiltonian, and observable
+element from Pauli expectations on it has measurable consequences: the basis
+uses one reference context at any size, QWC setting counts rather than raw word
+counts determine the shot-level preparation schedule, the measurement width is
+tunable through generator resolution, and one cached bank serves energy,
+projected observables, and Lehmann response. Energy accuracy at matched budget
+is explicitly *not* the claim — Sec. "What the architecture does not buy"
+states where the method loses, including the inertness of operator dressing
+against a sample-independent selected-CI control.
 
 The paper does not depend on the ADAPT-VQE manuscript in `../paper/`.  It
 defines the method, measurement model, benchmark contract, and evidence labels
@@ -73,8 +84,10 @@ benchmarks rather than paper artifacts:
   the published fixed `theta=pi/4`, cumulative-surrogate selector, and
   `M=2k` basis rule. Its off-diagonal Hamiltonian/overlap pair counts remain
   separate from A-CASE's single-reference word universe. The record also
-  carries the two A-CASE arms that differ only in generator resolution, whose
-  retained subspaces are identical and whose measurement widths are not.
+  distinguishes state-evaluation contexts from physical preparations, stores
+  QWC groups for the large A-CASE banks, and sums groups over each changing
+  ADAPT selection state. The two A-CASE arms differ only in generator
+  resolution; their retained subspaces are identical and their widths are not.
 
 ## Reproduce
 
@@ -114,7 +127,8 @@ identity.  They are not finite-sample confidence certificates.
 |---|---|
 | Pipeline figure | method contract in `clifford_qc/subspace/` and `clifford_qc/models/` |
 | Method-relation table | primary references in `references.bib`; no numerical claims |
-| Validation-ladder figure and table | `../benchmarks/reference_results/acase_ladder_summary.csv` plus certified `krylov_width.json` for the comparator width column |
+| Validation-ladder table | `../benchmarks/reference_results/acase_ladder_summary.csv` plus certified `krylov_width.json` for the comparator width column |
+| Matched-budget limits prose (Sec. "does not buy") | `../benchmarks/results/phase12_paper_b_five_system.json` for the five-system `M=7` ladder; `../benchmarks/results/m7_seed_replication.jsonl` for the eighty-draw dressing-inertness result |
 | Response figure and table | `data/response_bootstrap.json` |
 | Conditioning figure and table | `data/response_bootstrap.json` and `data/response_bootstrap_illconditioned.json` |
 | Dimer table | `../examples/data/wannier_hubbard_dimer.json` and closed-form dimer identities |

@@ -7,9 +7,10 @@
 \usepackage{xcolor}
 \usepackage[colorlinks=true,linkcolor=blue,citecolor=blue,urlcolor=blue]{hyperref}
 \hypersetup{
-  pdftitle={Adaptive operator-generated subspaces for effective many-body Hamiltonians},
+  pdftitle={One reference state, one measurement bank: an operator-centric
+    subspace architecture for effective many-body Hamiltonians},
   pdfauthor={Ginanjar Utama and Hermawan Kresno Dipojono},
-  pdfsubject={A reproducible effective-Hamiltonian to many-body observables workflow}
+  pdfsubject={A fixed-reference operator-generated subspace architecture}
 }
 
 \newcommand{\Tr}{\operatorname{Tr}}
@@ -27,7 +28,8 @@
 
 \begin{document}
 
-\title{Adaptive operator-generated subspaces for effective many-body Hamiltonians}
+\title{One reference state, one measurement bank: an operator-centric subspace
+architecture for effective many-body Hamiltonians}
 
 \author{Ginanjar Utama}
 \email{ginanjar.utama@gmail.com}
@@ -40,47 +42,48 @@
 \date{August 8, 2026}
 
 \begin{abstract}
-Projection-based quantum eigensolvers replace a deep optimized circuit by a
-small generalized eigenproblem, but comparisons can conflate three distinct
-resources: information used to choose the subspace, the basis used to represent
-it, and the classical work available at the same retained dimension.  We study
-these layers with the Adaptive Clifford-Algebra Subspace Eigensolver (A-CASE),
-a single-reference Rayleigh--Ritz method in which virtual basis vectors
-$A_i\ket{\psi}$ are reconstructed from one shared bank of Pauli expectations.
-The same bank supports energy, projected observables, and Lehmann response.
-A strict FCIDUMP boundary is independently checked on linear H$_4$, where the
-mapped $(N=4,S_z=0)$ sector energy agrees with determinant FCI to
-$3.1\times10^{-15}$ Ha.  We then extend the benchmark contract with
-quantum-selected configurations, support-pruned Haar packets, a
-sample-independent selected-CI comparator, and an explicitly priced fixed
-Krylov arm.  The sampling experiments deliberately draw from the exact ground
-state: they test selector and subspace behavior under an oracle, not an
-implementable state-preparation claim.  The five-system Phase 12 record
-contains thirteen arms with heterogeneous native sizes; among the five $M=7$
-arms shown in the primary matched-budget comparison, fixed Krylov gives the
-lowest energy error on all five systems.  On the $2\times3$ Hubbard rung, a fair sample-independent selected-CI
-baseline and bare A-CASE both have error $2.457$ in the declared Hamiltonian
-unit, while operator dressing leaves the result unchanged; the apparent
-advantage over classical selection in an earlier comparator disappears.
-Haar-packet refinement is the only sampling-fed component that separates, but
-its effect is not uniform.  Across 160 paired seed-level cells at the ladder budget,
-policy-pooled packet effects are null on both Hubbard systems.  Exploratory
-secondary contrasts favor physics ordering on $2\times2$ and $2\times3$ and
-reverse under graph ordering on $2\times3$; their subgroup $p$ values are
-unadjusted for multiplicity and do not define a selected policy.  A separate,
-unbalanced 1440-cell ensemble runs the four baseline H$_4$/Hubbard systems
-across four shot settings and adds H$_2$O and stretched BeH$_2$ only at
-128 shots; all use four orderings and twenty seed clusters.  Stretched
-BeH$_2$ shows a material packet effect while the QSCI-aligned H$_2$O case does
-not.  The favorable ordering itself changes with the retained
-direction budget.  Finally, grouped resampling of the complete nonlinear
-response pipeline shows acceptance falling from $200/200$ for a
-well-conditioned representation to $139/200$ for an ill-conditioned one under
-otherwise matched measurements.  These results support a reproducible
-operator-generated workflow and a narrower conclusion: multiresolution
-sampling can improve selected subspaces in specific regimes, but the present
-evidence establishes neither a universal sampling advantage nor favorable
-scaling or quantum advantage.
+Quantum subspace methods differ less in the eigenproblem they solve than in
+what a machine must \emph{do} to fill it: which state/parameter contexts are
+visited, how many measurement settings and shots are executed there, which
+primitive supplies the off-diagonal entries, and whether a new physical
+quantity requires a new experiment.  We develop an
+architecture in which these answers are fixed by one design choice.  In the
+Adaptive Clifford-Algebra Subspace Eigensolver (A-CASE), basis directions are
+virtual operators $A_i\ket{\psi}$ acting on a single reference, so every
+overlap, Hamiltonian, and observable element reduces to Pauli expectations on
+the same $\rho$ and is served from one cached bank.  Three consequences are
+measured rather than asserted.  First, the basis uses one reference context
+regardless of its size.  On a matched H$_4$ contract, the corresponding exact
+workflow has $1$ state-evaluation context for A-CASE, $8$ or $16$ distinct
+generating-function states, and $90$ ADAPT-VQE selection/optimizer contexts;
+the last number is \emph{not} a physical preparation count.  At the shot-level
+primitive, A-CASE's $14401$-word selection cache groups into $1672$ QWC
+settings once, whereas ADAPT-VQE's $2424$-word selection union is $452$
+settings repeated over eight changing states, or $3616$ setting-evaluations.
+The generating-function arms additionally require $36/28$ and $136/120$
+unique Hamiltonian/overlap state pairs.  Second, because the basis is generated
+by operators, generator
+resolution is an exposed dial: the same retained subspace---identical energy to
+$4\times10^{-16}$ Ha, identical $M=9$ and $\kappa_S=1$, all nine principal
+angles zero---costs $7371$ measured words from determinant excitations and
+$2240$ from the $160$ words they decompose into, a factor of $3.3$, and a
+factor of $6$ on a Hubbard plaquette ($2519\to413$).  At word resolution the
+bank is narrower than the Krylov comparator's $4224$, reversing the width
+comparison obtained at determinant resolution; the saving is paid in
+selection, $1252$ candidate scorings against $180$.  Third, one bank serves
+several quantities: the same $63$ words yield energy, a projected
+staggered-spin observable, and Lehmann response without materializing a Ritz
+state, and grouped resampling of that shared bank propagates finite-shot
+variability through the entire nonlinear pipeline.  Holding system, observable,
+word set, group count, shot budget, and seeds fixed and varying only the
+generator family, acceptance falls from $200/200$ at $\kappa_S=1.02$ to
+$139/200$ four orders of conditioning later, with a $\chi(0)$ interval roughly
+fifteen times wider.  We state the architecture's costs with equal weight: it
+is not the most accurate arm at matched budget, its selection stage reads an
+order of magnitude more words than it measures, and its sampling-fed dressing
+supplies no advantage over a sample-independent selected-CI control at matched
+dimension.  The contribution is a resource profile and a strict, digest-bound
+interchange boundary, not an accuracy or scaling claim.
 \end{abstract}
 
 \maketitle
@@ -88,88 +91,102 @@ scaling or quantum advantage.
 \section{Introduction}
 \label{sec:introduction}
 
-The difficult part of a materials calculation is not represented by a single
-algorithm.  Density-functional theory, Wannierization, constrained screening,
-and embedding each remove degrees of freedom or redefine interactions before
-a correlated active-space problem is solved
+A materials calculation reaches a correlated solver only after a long
+reduction.  Density-functional theory, Wannierization, constrained screening,
+and embedding each remove degrees of freedom or redefine interactions
 \cite{marzari2012wannier,pizzi2020wannier90,aryasetiawan2004crpa,georges1996dmft}.
-The output of that upstream chain is an effective many-body Hamiltonian, not a
-quantum circuit.  Conversely, variational and subspace quantum algorithms are
-often assessed on a qubit Hamiltonian already in memory
-\cite{peruzzo2014vqe,mcclean2017qse,huggins2020nonorthogonal}.  A useful
-downstream solver must therefore make its input contract as explicit as its
-eigensolver: orbital order, electron number, spin sector, energy units,
-one- and two-body conventions, provenance, and the reference determinant all
-belong to the scientific result.
+What arrives at the end of that chain is an effective many-body Hamiltonian in
+an interchange file, not a quantum circuit.  Variational and subspace quantum
+algorithms, by contrast, are usually assessed on a qubit Hamiltonian already in
+memory \cite{peruzzo2014vqe,mcclean2017qse,huggins2020nonorthogonal}.  A solver
+that intends to sit at that junction must therefore make its input contract as
+explicit as its eigensolver: orbital order, electron number, spin sector,
+energy units, one- and two-body conventions, provenance, and the reference
+determinant are part of the scientific result, not configuration.
 
 Quantum subspace diagonalization (QSD) is attractive at this boundary because
-it replaces a deep optimized circuit by matrix elements in a small,
-nonorthogonal subspace.  Quantum subspace expansion (QSE), nonorthogonal VQE,
-and quantum Krylov methods instantiate this idea with different basis
-families \cite{mcclean2017qse,huggins2020nonorthogonal,stair2020krylov}.
-Iterative and residual-driven variants aim to improve compactness
-\cite{tkachenko2024davidson,oleary2025partitioned}, while QSCI selects a
-determinant subspace from sampled configurations
-\cite{kanno2026qsci,nakagawa2024adaptqsci}.  Recent exact-ground-state
-analysis of Hubbard and Heisenberg models further shows that raw
-configuration-only SQD can require rapidly growing support even under ideal
-probability ordering \cite{gaberle2026critical}.  IQAE iteratively enlarges a Pauli/Hamiltonian
-moment space \cite{bharti2021iqae}; Q-SENSE exchanges circuit depth for
-seniority-structured matrix elements \cite{patel2026qsense}; and AS-SQD uses a
-finite-shot, perturbative acquisition rule for sampled determinant spaces
-\cite{miura2026assqd}.  Most closely, ADAPT-GCIM selects UCC/Givens generating
-functions adaptively, solves a nonorthogonal generalized eigenproblem, and can
-be composed with ADAPT-VQE \cite{zheng2024adaptgcim}.  Thus neither adaptive
-subspace growth nor replacing variational optimization by a generalized
-eigenproblem is new in this work.  Two obstacles recur across these methods.
-First, a compact basis in vector count can still be expensive in measurement
-width.  Second, the generalized eigenproblem
+it replaces a deep optimized circuit with matrix elements in a small,
+nonorthogonal subspace, solved as
 \begin{equation}
-    H_{\rm sub}c = E S c
+    H_{\rm sub}c = E S c .
     \label{eq:gep-intro}
 \end{equation}
-can become ill-conditioned, so small measurement errors are amplified
-\cite{epperly2022theory,lee2024sampling,zhang2024measurement}.  Reporting only
-$M$, the number of basis vectors, conceals both costs.
+Quantum subspace expansion, nonorthogonal VQE, and quantum Krylov methods
+instantiate this with different basis families
+\cite{mcclean2017qse,huggins2020nonorthogonal,stair2020krylov}; iterative and
+residual-driven variants pursue compactness
+\cite{tkachenko2024davidson,oleary2025partitioned}; QSCI and its adaptive
+descendants select determinant subspaces from sampled configurations
+\cite{kanno2026qsci,nakagawa2024adaptqsci}.  IQAE enlarges a Pauli moment space
+\cite{bharti2021iqae}, Q-SENSE exchanges circuit depth for seniority-structured
+elements \cite{patel2026qsense}, and AS-SQD uses a finite-shot perturbative
+acquisition rule \cite{miura2026assqd}.  ADAPT-GCIM selects UCC/Givens
+generating functions adaptively and solves a nonorthogonal generalized
+eigenproblem \cite{zheng2024adaptgcim}.
 
-This work studies an adaptive operator-generated construction, A-CASE:
-\emph{Adaptive Clifford-Algebra Subspace Eigensolver}.  The method uses one
-reference density operator $\rho$ and virtual basis vectors
-$A_i\ket{\psi}$; it does not prepare a different quantum state for every
-$i$.  Every matrix element is reduced to Pauli-word expectations on $\rho$,
-and the same cached expectations support energy, projected observables, and
-response.  The complex Clifford algebra
-$\Cl(2n,\mathbb C)\cong M(2^n,\mathbb C)$ supplies the implementation's typed
-operator representation, with Jordan--Wigner strings mapping fermionic modes
-to local qubit Paulis \cite{utama2026operatorcentric}.  This is a
-representation choice, not extra expressivity and not a speedup claim.
+Our starting observation is that this literature is normally compared along one
+axis---energy error at a stated basis size $M$---while the axis that binds on
+hardware is architectural.  Two methods can solve the same
+Eq.~\eqref{eq:gep-intro} at the same $M$ and still differ in whether the
+off-diagonal entries come from expectations on a single state, from transition
+measurements between distinct prepared states, or from an ancilla test.  Those
+are different machines' bottlenecks.  They are also invisible in $M$.
 
-The contribution is fourfold.  First, we specify a strict FCIDUMP-to-qubit
-boundary and independently check its integral convention.  Second, we make
-adaptive growth overlap-aware and resource-aware: candidate selection,
-conditioning, symmetry leakage, word-universe growth, and retained rank are
-recorded together.  Third, we connect the same projected space to
-correlations and Lehmann response without materializing the Ritz state.
-Fourth, we propagate finite-shot variability through the \emph{whole}
-nonlinear response pipeline by grouped resampling, while refusing to call the
-result a confidence certificate.
+This work therefore develops A-CASE---\emph{Adaptive Clifford-Algebra Subspace
+Eigensolver}---as an architecture rather than as a scoreboard entry.  The
+design commitment is a single reference density operator $\rho$ with virtual
+basis directions $A_i\ket{\psi}$: no distinct state is prepared per $i$.  Every
+matrix element reduces to Pauli-word expectations on that one $\rho$, and the
+resulting cache is reused for energy, projected observables, and response
+alike.  The complex Clifford algebra
+$\Cl(2n,\mathbb C)\cong M(2^n,\mathbb C)$ supplies the typed operator
+representation, with Jordan--Wigner strings mapping fermionic modes to local
+qubit Paulis \cite{utama2026operatorcentric}.  This is a representation choice.
+It is not additional expressivity and not a speedup claim.
 
-Table~\ref{tab:relation} states the methodological boundary against the
-closest approaches.  In particular, A-CASE is distinguished from ADAPT-GCIM
-by its fixed-reference Pauli-expectation bank and its overlap-aware local
-energy-lowering score, not by adaptivity or the generalized eigenproblem.
-The matched H$_4$ ladder includes an exact implementation of ADAPT-GCIM's
-published selector and generating-function rule: unused anti-Hermitian
-excitations are ranked on the cumulative surrogate state, every selected
-unitary uses the fixed angle $\theta=\pi/4$, and the basis grows as $M=2k$
-without parameter optimization.  This is an algorithm-level comparison on the
-same local pool, not a reproduction of the published molecular curves or a
-numerical superiority claim over that method in its original setting.
+The contribution is fourfold, and each item is a measured resource property
+rather than a performance claim.
+\begin{itemize}
+ \item \emph{One reference context, any $M$.}  We separate state-evaluation
+ contexts from physical shot-level preparations, count QWC settings at every
+ changing-state selection step, and show that the closest adaptive
+ generalized-eigenproblem method additionally
+ requires a measurement primitive---unique $H/S$ state pairs---that a
+ single-reference ledger cannot express (Sec.~\ref{sec:results-preparation}).
+ \item \emph{Generator resolution is an architectural dial.}  Because
+ directions are generated by operators, the same subspace can be reached at
+ different generator granularities with materially different measurement
+ width, at unchanged energy and conditioning
+ (Sec.~\ref{sec:results-resolution}).
+ \item \emph{One bank, several quantities.}  The same cached expectations
+ support energy, projected observables via Eq.~\eqref{eq:projected-q}, and
+ projected Lehmann response, with no reconstructed $2^n$-component Ritz state
+ (Secs.~\ref{sec:response} and~\ref{sec:results-response}).
+ \item \emph{Conditioning is a controllable architectural property with a
+ measurable downstream price.}  We propagate finite-shot variability through
+ the whole nonlinear response pipeline by grouped resampling, and isolate
+ conditioning as the single varied factor (Sec.~\ref{sec:results-conditioning}).
+\end{itemize}
+
+Neither adaptive subspace growth nor replacing variational optimization by a
+generalized eigenproblem is new here.  Table~\ref{tab:relation} states the
+boundary against the closest approaches.  A-CASE is distinguished from
+ADAPT-GCIM by its fixed-reference Pauli-expectation bank and its overlap-aware
+local energy-lowering score, not by adaptivity.  The matched H$_4$ contract of
+Sec.~\ref{sec:matched} includes an exact implementation of ADAPT-GCIM's
+published selector and generating-function rule---unused anti-Hermitian
+excitations ranked on the cumulative surrogate state, every selected unitary at
+the fixed angle $\theta=\pi/4$, basis growth $M=2k$ without parameter
+optimization---on the same local pool.  That is an algorithm-level comparison,
+not a reproduction of the published molecular curves and not a superiority
+claim over that method in its original setting.
 
 \begin{table*}[t]
 \caption{Relation to the closest adaptive and operator-generated subspace
 methods.  ``Prepared objects'' identifies what must change across basis
-directions; ``selection'' identifies the adaptive acquisition rule.}
+directions; ``selection'' identifies the adaptive acquisition rule.  The final
+column names the architectural distinction, which is the axis this paper
+measures.}
 \label{tab:relation}
 \begin{ruledtabular}
 \footnotesize
@@ -185,10 +202,9 @@ A-CASE (this work) & Virtual operators on one reference & Overlap-aware local pe
 \end{ruledtabular}
 \end{table*}
 
-Figure~\ref{fig:pipeline} summarizes the boundary.  A-CASE begins at an
-effective Hamiltonian.  It is not a DFT, Wannier, cRPA, or DMFT implementation,
-and the synthetic dimer below is not represented as the result of any of those
-upstream calculations.
+Figure~\ref{fig:pipeline} fixes the scope.  A-CASE begins at an effective
+Hamiltonian.  It is not a DFT, Wannier, cRPA, or DMFT implementation, and the
+synthetic dimer below is not presented as the output of any of those stages.
 
 \begin{figure*}[t]
     \includegraphics[width=\textwidth]{paper_assets/pipeline.pdf}
@@ -201,7 +217,7 @@ upstream calculations.
     \label{fig:pipeline}
 \end{figure*}
 
-\section{Operator-generated adaptive subspaces}
+\section{The architecture}
 \label{sec:method}
 
 \subsection{Single-reference matrix elements}
@@ -223,18 +239,19 @@ spectrum is thresholded.  Their observable matrix elements are
     {\sqrt{(c_k^\dagger S c_k)(c_l^\dagger S c_l)}}.
     \label{eq:projected-q}
 \end{equation}
-No reconstructed $2^n$-component Ritz state is needed.
+No reconstructed $2^n$-component Ritz state is needed at any point.
 
 Each operator in Eqs.~\eqref{eq:s}--\eqref{eq:q} is expanded in the Hermitian
 Pauli basis.  Although $A_i^\dagger H A_j$ need not be Hermitian, its
-coefficients may be complex while each Pauli expectation is real.  Thus every
-entry is a linear reconstruction from expectations measured on the
-\emph{same} $\rho$; neither an ancilla-based Hadamard test nor a separately
-prepared $A_j\ket{\psi}$ is required.  This observation does not remove the
-cost: it moves the relevant cost boundary to the number and grouping of
-distinct Pauli words.
+coefficients may be complex while each Pauli expectation stays real.  Every
+entry is thus a linear reconstruction from expectations measured on the
+\emph{same} $\rho$: neither an ancilla-based Hadamard test nor a separately
+prepared $A_j\ket{\psi}$ is required.  This is the architectural commitment of
+the paper, and it is what Sec.~\ref{sec:results-preparation} prices.  It does
+not make the calculation free; it moves the binding cost to the number and
+grouping of distinct Pauli words.
 
-\subsection{Matrix-element bank and resource boundary}
+\subsection{The bank and its resource ledger}
 \label{sec:bank}
 
 For a basis index set $\mathcal B$, the measurement universe is
@@ -244,84 +261,51 @@ For a basis index set $\mathcal B$, the measurement universe is
  \bigcup_{i,j\in\mathcal B}\supp(A_i^\dagger A_j)
  \nonumber\\
  &\quad\cup
- \bigcup_{i,j\in\mathcal B}\supp(A_i^\dagger H A_j).
+ \bigcup_{i,j\in\mathcal B}\supp(A_i^\dagger H A_j),
  \label{eq:word-universe}
 \end{align}
-Its width is $W=|\mathcal W|$.
-The matrix-element bank caches the operator-valued entries, reuses Hermitian
-pairs, and records whether an accepted generator reuses an existing word or
-introduces a new one.  Projected observables extend the same bank by
-$\supp(A_i^\dagger Q A_j)$.  The relevant resource ledger is therefore
+with width $W=|\mathcal W|$.  The bank caches the operator-valued entries,
+reuses Hermitian pairs, and records whether an accepted generator reuses an
+existing word or introduces a new one.  Projected observables extend the same
+bank by $\supp(A_i^\dagger Q A_j)$---this reuse is the point of the
+construction, and Sec.~\ref{sec:results-response} measures what it buys.  The
+word set is partitioned into $G$ QWC measurement settings.  If setting $g$
+receives $n_g$ shots, its shot-level circuit executions---and therefore its
+physical state preparations---are $n_g$, while every compatible word in that
+group is read from the same shots.  Thus $W$ is a representation width, $G$ is
+a setting count, and neither is itself a physical preparation count.  The
+resource ledger is
 \begin{equation}
- (M,\;\rank S,\;\kappa_S,\;W,\;S_H,\;S_A,\;\ell_N,\;\ell_{S_z}),
+ (M,\;\rank S,\;\kappa_S,\;W,\;G,\;S_H,\;S_A,\;\ell_N,\;\ell_{S_z}),
  \label{eq:ledger}
 \end{equation}
 where $S_H$ is the largest support of a cached Hamiltonian element, $S_A$ the
-largest generator support, and $\ell_N,\ell_{S_z}$ are relative commutator
-norms with particle number and spin projection.  A method is not compact merely
-because $M$ is small.
-
-\subsection{Pricing the Krylov baseline}
-\label{sec:krylov-width}
-
-A ledger that reports $W$ for one method and leaves it blank for the
-comparator cannot support a claim about measurable support.  The obstruction is
-that building the element operators costs $O(|A_i|\,|H|\,|A_j|)$ per pair, and
-deep Hamiltonian powers carry thousands of words each.  For the Krylov family
-that cost is avoidable.  With $A_0=I$, $A_k=H^k$, and $H$ Hermitian,
-\begin{equation}
- A_i^\dagger A_j = H^{i+j},\qquad
- A_i^\dagger H A_j = H^{i+j+1},
- \label{eq:krylov-collapse}
-\end{equation}
-so the union in Eq.~\eqref{eq:word-universe} reduces from $O(M^2)$ distinct
-element operators to the $2m+2$ powers $H^0,\dots,H^{2m+1}$.  This is linear in
-$M$ and runs in seconds.  On the rungs small enough for the direct enumeration
-to finish, the two agree exactly, including against the ladder's own tracked
-counts of $24$ and $64$ words for H$_2$ and LiH.
-
-One caveat is quantitative rather than structural.  Repeated multiplication
-accumulates round-off, and after seventeen products thousands of words carry
-coefficients near $10^{-11}$ that are absent from the exact operator.  The
-A-CASE universe is insensitive to this---every one of its $7371$ words on
-H$_4$ survives a $10^{-8}$ cut---while the raw Krylov count nearly doubles
-because of it.  The untruncated count is not even reproducible: two runs of
-the same rung differ by a few words, because the upstream self-consistent
-field settles on orbital coefficients differing in the last bits and a
-Hamiltonian perturbed at $10^{-16}$ has a different round-off-level support at
-the seventeenth power.  A cutoff is an approximation, so it cannot be paired
-with the untruncated Krylov energy without a further check.  Every cutoff in
-the committed sweep is therefore applied independently to the same unpruned
-powers, never fed recursively into the next multiplication; the support sets
-are consequently nested.  At each cutoff we rebuild the complete Hankel
-overlap and Hamiltonian pencils and resolve the GEP.  The reported $10^{-8}$
-count is admitted only when effective rank agrees and the normalized pencil
-entries, ground energy, and condition number meet the declared tolerances.
-On every quoted rung those differences are zero at the stored
-double-precision resolution.  Thus Table~\ref{tab:ladder} pairs the reported
-Krylov energy and conditioning only with a support count certified to describe
-the same numerical pencil.
+largest generator support, and $\ell_N,\ell_{S_z}$ relative commutator norms
+with particle number and spin projection.  A method is not compact merely
+because $M$ is small.  Section~\ref{sec:results-resolution} shows that $W$
+carries its own qualification and must be quoted with a generator resolution
+attached.
 
 \subsection{Adaptive growth}
 \label{sec:growth}
 
-Suppose the current normalized Ritz pair is $(E,\ket{\Psi})$ and a candidate
-direction is $\ket{\chi_a}=A_a\ket{\psi}$.  A-CASE evaluates the generalized
-$2\times2$ pencil
+Given a current normalized Ritz pair $(E,\ket{\Psi})$ and a candidate direction
+$\ket{\chi_a}=A_a\ket{\psi}$, A-CASE evaluates the generalized $2\times2$
+pencil
 \begin{equation}
  \begin{pmatrix}E&h_a\\h_a^*&h_{aa}\end{pmatrix}v
  =\lambda
  \begin{pmatrix}1&s_a\\s_a^*&s_{aa}\end{pmatrix}v,
  \label{eq:two-by-two}
 \end{equation}
-with $s_a=\langle\Psi|\chi_a\rangle$,
-$h_a=\langle\Psi|H|\chi_a\rangle$,
+with $s_a=\langle\Psi|\chi_a\rangle$, $h_a=\langle\Psi|H|\chi_a\rangle$,
 $s_{aa}=\langle\chi_a|\chi_a\rangle$, and
 $h_{aa}=\langle\chi_a|H|\chi_a\rangle$.  The score is the predicted lowering
 $\Delta_a=\max(0,E-\lambda_{\min})$, optionally divided by a penalty for newly
-introduced words.  Keeping the overlap block is essential: replacing it by
-the identity would give a nonzero score to a rescaled duplicate of the
-current Ritz state.
+introduced words---the one place the ledger of Eq.~\eqref{eq:ledger} feeds back
+into selection.  Keeping the overlap block is essential: replacing it by the
+identity would assign a nonzero score to a rescaled duplicate of the current
+Ritz state.
 
 Before scoring, the component outside the retained subspace is measured by
 \begin{equation}
@@ -334,17 +318,73 @@ exceeding the declared sector-leakage tolerance are rejected.  The accepted
 candidate with the largest deterministic score appends one row and column to
 the cached pencil.  The exact Ritz energy is variational and non-increasing
 under nested growth; that statement does not survive arbitrary finite-shot
-perturbations of $(S,H)$.
+perturbations of $(S,H)$, a point Sec.~\ref{sec:results-conditioning} makes
+concrete.
 
-The candidate hierarchy used here contains identity, symmetry-preserving
-determinant excitations, commutator-response directions, selected Hamiltonian
-powers, compound products, and explicitly reached competing-order
-configurations.  These are Pauli-sum operators in a Clifford-algebra
-representation; they are not quantum-information Clifford transformations.
-The hierarchy is intentionally heterogeneous because no single family spans
-all of the molecular, Hubbard, and spin-model rungs below.
+The candidate hierarchy contains identity, symmetry-preserving determinant
+excitations, commutator-response directions, selected Hamiltonian powers,
+compound products, and explicitly reached competing-order configurations.
+These are Pauli-sum operators in a Clifford-algebra representation; they are
+not quantum-information Clifford transformations.  The hierarchy is
+deliberately heterogeneous because no single family spans the molecular,
+Hubbard, and spin-model rungs below.
 
-\section{Interchange boundary and response}
+\subsection{Generator resolution}
+\label{sec:resolution}
+
+One property of an operator-generated basis has no analogue in a
+state-preparation-based one.  A determinant excitation is not an atom: it
+decomposes into Pauli words, and A-CASE can be run with either object as its
+candidate.  The two choices explore the same reachable span with different
+granularity, so they may converge on the same retained subspace by different
+routes and at different bank sizes.  Nothing forces them to agree, and nothing
+forces the coarser one to be cheaper.
+
+Rather than declare one resolution canonical, we run both and report both.
+Section~\ref{sec:results-resolution} shows that on the matched H$_4$ contract
+the two resolutions reach a subspace that is the same to machine precision, at
+measurement widths differing by a factor of $3.3$, and that the direction of
+the saving is not the one a coarser generator suggests.
+
+\subsection{Pricing a comparator's width}
+\label{sec:krylov-width}
+
+A ledger that reports $W$ for one method and leaves it blank for the comparator
+cannot support any statement about measurable support.  The obstruction is that
+building element operators costs $O(|A_i|\,|H|\,|A_j|)$ per pair, and deep
+Hamiltonian powers carry thousands of words each.  For the Krylov family that
+cost is avoidable.  With $A_0=I$, $A_k=H^k$, and $H$ Hermitian,
+\begin{equation}
+ A_i^\dagger A_j = H^{i+j},\qquad
+ A_i^\dagger H A_j = H^{i+j+1},
+ \label{eq:krylov-collapse}
+\end{equation}
+so the union in Eq.~\eqref{eq:word-universe} reduces from $O(M^2)$ distinct
+element operators to the $2m+2$ powers $H^0,\dots,H^{2m+1}$.  This is linear in
+$M$ and runs in seconds.  On rungs small enough for direct enumeration to
+finish, the two agree exactly, including against the ladder's own tracked
+counts of $24$ and $64$ words for H$_2$ and LiH.
+
+One caveat is quantitative rather than structural.  Repeated multiplication
+accumulates round-off, and after seventeen products thousands of words carry
+coefficients near $10^{-11}$ that are absent from the exact operator.  The
+A-CASE universe is insensitive to this---every one of its $7371$ words on
+H$_4$ survives a $10^{-8}$ cut---while the raw Krylov count nearly doubles.
+The untruncated count is not even reproducible: two runs of the same rung
+differ by a few words, because the upstream self-consistent field settles on
+orbital coefficients differing in the last bits, and a Hamiltonian perturbed at
+$10^{-16}$ has a different round-off-level support at the seventeenth power.  A
+cutoff is an approximation, so it cannot be paired with the untruncated Krylov
+energy without a further check.  Every cutoff in the committed sweep is applied
+independently to the same unpruned powers, never fed recursively into the next
+multiplication, so the support sets are nested.  At each cutoff we rebuild the
+complete Hankel overlap and Hamiltonian pencils and resolve the GEP.  The
+reported $10^{-8}$ count is admitted only when effective rank agrees and the
+normalized pencil entries, ground energy, and condition number meet the
+declared tolerances; on every quoted rung those differences are zero at stored
+double precision.
+
+\section{What one bank serves}
 \label{sec:boundary-response}
 
 \subsection{Restricted FCIDUMP adapter}
@@ -361,14 +401,18 @@ constructs the chemist-notation Hamiltonian directly,
  \label{eq:fcidump-h}
 \end{align}
 The implementation restores packed integral symmetries, accepts Fortran
-\texttt{D} exponents, validates \texttt{NORB}, \texttt{NELEC},
-\texttt{MS2}, sentinels, duplicates, finiteness, and electron--spin parity,
-then maps an interleaved spin-orbital ordering through Jordan--Wigner.
-Unrestricted \texttt{IUHF=1} records are rejected rather than interpreted by
-guess.  A SHA-256 digest binds every benchmark result to the exact input
-gauge.  An independent OpenFermion reconstruction
-\cite{mcclean2020openfermion} agrees over 185 Pauli terms to a maximum
-coefficient difference of $8.74\times10^{-16}$.
+\texttt{D} exponents, validates \texttt{NORB}, \texttt{NELEC}, \texttt{MS2},
+sentinels, duplicates, finiteness, and electron--spin parity, then maps an
+interleaved spin-orbital ordering through Jordan--Wigner.  Unrestricted
+\texttt{IUHF=1} records are rejected rather than interpreted by guess.  A
+SHA-256 digest binds every benchmark result to the exact input gauge.  An
+independent OpenFermion reconstruction \cite{mcclean2020openfermion} agrees
+over $185$ Pauli terms to a maximum coefficient difference of
+$8.74\times10^{-16}$.
+
+This boundary is part of the architecture, not preprocessing: the bank is
+built once against a digest-bound operator, and every downstream quantity in
+this paper inherits that binding.
 
 \subsection{Projected Lehmann response}
 \label{sec:response}
@@ -390,19 +434,22 @@ A Lorentzian of width $\eta$ converts the discrete lines into
  \frac{w_f\eta}{\pi[(\omega-\omega_f)^2+\eta^2]}.
  \label{eq:broadening}
 \end{equation}
-These quantities are exact only for the chosen projected subspace.  Response
-completeness is a separate requirement from ground-state accuracy:
-$Q\ket{\Psi_0}$ must be represented by the retained roots
-\cite{colless2018spectra,umeano2025response}.
+Every ingredient comes from the bank of Sec.~\ref{sec:bank} through
+Eq.~\eqref{eq:projected-q}; the response requires no new prepared state and no
+new experiment beyond $\supp(A_i^\dagger Q A_j)$.  These quantities are exact
+only for the chosen projected subspace.  Response completeness is a separate
+requirement from ground-state accuracy: $Q\ket{\Psi_0}$ must be represented by
+the retained roots \cite{colless2018spectra,umeano2025response}.
 
-\subsection{Finite-shot nonlinear uncertainty}
+\subsection{Finite-shot propagation}
 \label{sec:bootstrap}
 
-One qubit-wise-commuting (QWC) partition
-\cite{verteletskyi2020grouping} is built for the union of the words required
-by $S$, $H$, and $Q_{\rm sub}$.  Each group contributes a joint outcome
-histogram, retaining the covariance between compatible Pauli words read from
-the same shots.  The finite-shot response is not a fixed linear functional:
+One qubit-wise-commuting (QWC) partition \cite{verteletskyi2020grouping} is
+built for the union of the words required by $S$, $H$, and $Q_{\rm sub}$.  Each
+group contributes a joint outcome histogram, retaining the covariance between
+compatible Pauli words read from the same shots.  Because a single bank feeds
+every stage, the finite-shot response is not a fixed linear functional of the
+measured data:
 \begin{align}
  \{\text{histograms}\}
  &\longmapsto(S,H,Q)
@@ -414,22 +461,21 @@ the same shots.  The finite-shot response is not a fixed linear functional:
 Linear word-mean intervals cannot be substituted through this map and called
 spectral confidence intervals.
 
-We use a grouped nonparametric bootstrap \cite{efron1979bootstrap}.  Each
-replica draws a multinomial histogram within every fixed QWC group and reruns
-all operations in Eq.~\eqref{eq:nonlinear-map}.  Ordered-root matching is used
-only when the point estimate and the replica have isolated adjacent roots.
-Replicas with a changed retained rank, a root collision, or a solver failure
-are counted and excluded.  Consequently, the percentile intervals are
+We therefore use a grouped nonparametric bootstrap \cite{efron1979bootstrap}.
+Each replica draws a multinomial histogram within every fixed QWC group and
+reruns all operations in Eq.~\eqref{eq:nonlinear-map}.  Ordered-root matching
+is used only when the point estimate and the replica have isolated adjacent
+roots.  Replicas with a changed retained rank, a root collision, or a solver
+failure are counted and excluded, so percentile intervals are
 \emph{conditional on the surviving replicas}.  That exclusion is not neutral:
-the failed draws are precisely the draws that can widen a spectrum in an
-ill-conditioned regime.  We therefore report the acceptance rate beside every
-interval.
+the failed draws are precisely the ones that can widen a spectrum in an
+ill-conditioned regime.  We report the acceptance rate beside every interval.
 
-The evidence label is always \texttt{heuristic}; \texttt{certified=False} is
-part of the result contract.  A finite-sample certificate would require a
-confidence set for the correlated matrix pencil and observable together with
-a valid root-identification argument.  Pointwise intervals for
-$S_\eta(\omega)$ are not a simultaneous spectral band.
+The evidence label is always \texttt{heuristic}, and \texttt{certified=False}
+is part of the result contract.  A finite-sample certificate would require a
+confidence set for the correlated matrix pencil and observable together with a
+valid root-identification argument.  Pointwise intervals for $S_\eta(\omega)$
+are not a simultaneous spectral band.
 
 \section{Benchmark design}
 \label{sec:benchmarks}
@@ -442,7 +488,8 @@ $t=1$ eV and $U=4$ eV.  A versioned JSON record plays the role of a synthetic
 two-Wannier-site effective Hamiltonian.  Its $(N=2,S_z=0)$ sector has dimension
 four, and the correlated singlet is analytically solvable.  Table~\ref{tab:dimer}
 checks every reported energy, correlation, and response quantity against a
-closed form that shares no projected-observable code.
+closed form that shares no projected-observable code---an integration test of
+the bank, not a compactness result.
 
 \begin{table*}[t]
 \caption{Two-site effective-Hamiltonian oracle.  The response basis has
@@ -461,13 +508,13 @@ Quantity & A-CASE result & independent check \\
 \subsection{Frozen \texorpdfstring{H$_4$}{H4} active space}
 \label{sec:h4-benchmark}
 
-The interchange benchmark is linear H$_4$ with separations of $0.9$ \AA,
-STO-3G, and CAS(4e,4o): four electrons in four spatial orbitals, mapped to
-eight qubits.  The frozen FCIDUMP was generated with PySCF 2.14
-\cite{sun2018pyscf} using an RHF convergence tolerance of $10^{-12}$.
-The file digest, geometry, basis, software version, RHF energy, and an external
-determinant-FCI energy are committed.  After checkout, parsing, mapping,
-sector diagonalization, and A-CASE require only NumPy.
+The interchange benchmark is linear H$_4$ at $0.9$ \AA{} separations, STO-3G,
+CAS(4e,4o): four electrons in four spatial orbitals, mapped to eight qubits.
+The frozen FCIDUMP was generated with PySCF 2.14 \cite{sun2018pyscf} at an RHF
+convergence tolerance of $10^{-12}$.  The file digest, geometry, basis,
+software version, RHF energy, and an external determinant-FCI energy are
+committed.  After checkout, parsing, mapping, sector diagonalization, and
+A-CASE require only NumPy.
 
 \begin{table*}[t]
 \caption{Frozen H$_4$ FCIDUMP benchmark.  The adaptive budget is eight
@@ -487,20 +534,20 @@ Method & Energy (Ha) & Error & $M$ or sector dimension \\
 \subsection{The reference state as a variable}
 \label{sec:warm-start}
 
-The adaptive rung above grows its subspace around a single Hartree--Fock
-determinant, so every correlation effect must be paid for out of the eight
-additions.  That is a choice, not a requirement: any state the pipeline can
-prepare may serve as $\rho$.  We therefore repeat the H$_4$ benchmark with the
+Because the architecture fixes \emph{one} reference rather than a determinant
+in particular, $\rho$ is a free slot.  We repeat the H$_4$ benchmark with the
 budget, candidate pool, and frozen FCIDUMP held fixed and the reference
-replaced by an ADAPT-VQE state \cite{grimsley2019adapt} of $k$ operators,
-obtained from a qubit-ADAPT pool built from the odd-$Y$ words of the same
-determinant excitations.  Table~\ref{tab:warm} reports the ADAPT stage's own
-energy beside the A-CASE result, because the two must not be conflated.
-It also reports the pool-gradient and optimizer evaluations and the number of
-ADAPT rotors that must be executed before every A-CASE measurement.  These are
-exact-simulation algorithmic counts.  Because selection and optimization are
-noiseless here, assigning them zero shots would be a simulation convention,
-not a physical-cost estimate; no end-to-end hardware shot comparison is made.
+replaced by an ADAPT-VQE state \cite{grimsley2019adapt} of $k$ operators, drawn
+from a qubit-ADAPT pool built from the odd-$Y$ words of the same determinant
+excitations.  Overlap-driven variants of that construction target exactly this
+slot \cite{feniou2023overlapadapt}.  Table~\ref{tab:warm} reports the ADAPT
+stage's own energy beside the A-CASE result, because the two must not be
+conflated, along with the pool-gradient and optimizer evaluations and the
+number of ADAPT rotors that must execute before every A-CASE measurement.
+These are exact-simulation algorithmic counts.  Because selection and
+optimization are noiseless here, assigning them zero shots would be a
+simulation convention rather than a physical-cost estimate; no end-to-end
+hardware shot comparison is made.
 
 \begin{table*}[t]
 \caption{Hybrid resource ledger.  The frozen FCIDUMP, A-CASE candidate pool,
@@ -520,6 +567,17 @@ Reference $\rho$ & Grad. & Opt. & Rot. & ADAPT error & $M$ & A-CASE error & $\ka
 \end{ruledtabular}
 \end{table*}
 
+The reference slot turns out to be a real lever on this instance: for the
+frozen H$_4$ record, determinant-excitation family, and nine-vector budget, a
+two-rotor ADAPT reference is enough to cross chemical accuracy, taking the
+A-CASE error from $3.019$ to $0.342$ mHa at $\kappa_S=1.02$.  This is the one
+place where the two adaptive methods compose rather than compete, since the
+ADAPT state is a worse energy answer on its own than the A-CASE run it
+improves.  The reference is still one state context, but every measurement
+shot now carries the two adaptive rotors that prepare it; the table reports
+that depth rather than absorbing it into a fictitious preparation count.
+It is not a total-resource advantage claim.
+
 \subsection{One contract, explicit currencies}
 \label{sec:matched}
 
@@ -529,38 +587,44 @@ fix one contract and run every arm inside it: the same frozen FCIDUMP and
 digest, the same $(N=4,S_z=0)$ sector, the same Hartree--Fock reference, the
 same eight-addition budget, and exact arithmetic throughout.  Every arm runs
 its budget out, with no early exit.  The pool is the same operator content for
-every arm: 26 symmetry-preserving determinant excitations, which decompose into
-160 odd-$Y$ Pauli words.  ADAPT-GCIM necessarily needs two rows: its published
-basis rule gives $M=2k$, so $k=4$ gives the nearest basis-size match ($M=8$)
-to the nine-vector subspaces, while $k=8$ matches the number of adaptive
-iterations and gives $M=16$.
+every arm: $26$ symmetry-preserving determinant excitations, which decompose
+into $160$ odd-$Y$ Pauli words.  ADAPT-GCIM necessarily needs two rows, since
+its published basis rule gives $M=2k$: $k=4$ gives the nearest basis-size match
+($M=8$) to the nine-vector subspaces, while $k=8$ matches the number of
+adaptive iterations and gives $M=16$.
 
-Granularity is the one thing the contract cannot fix.  ADAPT-VQE consumes
-single words; A-CASE's default candidates are whole excitations.  Rather than
-declare one canonical, we run A-CASE at both resolutions.  ADAPT-GCIM uses the
-whole-excitation resolution.  Costs are reported as separate currencies rather
-than summed, because a state preparation, a Pauli word, and an off-diagonal
-state-pair measurement are different machines' bottlenecks and an exchange
-rate between them would be an assumption, not a measurement.
+We do not assign an exchange rate between a ``state preparation'' and a Pauli
+word, because neither is the correct atomic hardware unit.  A shot executes a
+prepared state in one measurement setting, and one QWC setting can return many
+compatible words.  We therefore report word width $W$, constructive QWC group
+count $G$, and state-evaluation contexts separately.  For a selector whose
+state changes across steps, $G_\Sigma=\sum_s G_s$ sums the settings over those
+contexts; for fixed-reference A-CASE, $G_\Sigma$ is the one cached selection
+union.  Under a uniform $R$ shots per setting, the selection execution count is
+simply $R G_\Sigma$.  Off-diagonal state-pair measurements remain a separate
+primitive because the matched record does not prescribe their physical
+implementation.
 
 \begin{table*}[t]
-\caption{Matched H$_4$ contract.  ``Prep.'' counts distinct states the arm must
-prepare; circuit executions are that times the QWC group count times shots per
-group, and the shot factor is outside this exact-arithmetic record.  ``Sel.''
-is candidate scorings summed over steps and ``Sel.\ $W$'' the words needed to
-perform them---for A-CASE the whole element cache, including rows for
-candidates later rejected, which is strictly larger than the retained $W$ the
-ledger of Eq.~\eqref{eq:ledger} reports.  ``$H/S$ pairs'' gives unique
+\caption{Matched H$_4$ contract.  ``Ctx.'' counts state/parameter contexts in
+the exact workflow, \emph{not} physical preparation executions. ``Sel.'' is
+candidate scorings summed over steps; ``Sel.\ $W/G_\Sigma$'' gives distinct
+selection words followed by QWC setting-evaluations summed over changing-state
+steps.  For A-CASE the selection entry is the whole one-reference cache,
+including rows for candidates later rejected. ``$W/G$'' gives retained words
+and their constructive QWC groups.  With uniform $R$ shots per setting,
+$R G_\Sigma$ is the selection circuit/preparation count. ``$H/S$ pairs'' gives unique
 upper-triangle Hamiltonian pairs/off-diagonal overlap pairs for ADAPT-GCIM;
 these transition measurements do not form a single-reference $W$.
 ``---'' marks a column an arm does not have and ``n/t'' a word count that is
-not the applicable measurement primitive.  ``Rot.'' is the deepest prepared
-state; the record also stores the sum over all distinct basis circuits.}
+not the applicable measurement primitive.  ``Rot.'' is the deepest
+state-preparation ansatz in adaptive rotors; the record also stores the sum
+over all distinct basis circuits.}
 \label{tab:matched}
 \scriptsize
 \begin{ruledtabular}
 \begin{tabular}{lccccccccc}
-Arm & $M$ & Error (mHa) & $\kappa_S$ & Prep. & Rot. & Sel. & Sel.\ $W$ & $W$ & $H/S$ pairs \\
+Arm & $M$ & Error (mHa) & $\kappa_S$ & Ctx. & Rot. & Sel. & Sel.\ $W/G_\Sigma$ & $W/G$ & $H/S$ pairs \\
 \colrule
 \input{tables/matched_results.tex}
 \end{tabular}
@@ -569,83 +633,22 @@ does not reach the deep Krylov powers.}
 \end{ruledtabular}
 \end{table*}
 
-Four readings follow, and only the first is the one the method was designed
-to produce.
-
-\emph{The preparation asymmetry is real and large.}  Every subspace arm needs
-one prepared state only when its basis is virtual on a fixed reference:
-A-CASE and the fixed operator bases do, whereas ADAPT-GCIM prepares 8 or 16
-distinct generating-function states and ADAPT-VQE needs 90 state
-preparations, one per selection step and optimizer evaluation.  That is the
-architectural claim of Sec.~\ref{sec:elements} in numbers.  It is bought, not
-free: ADAPT-VQE reads 2424 words to score its pool and 185 to measure its final
-energy, against A-CASE's 14401--15783 and 2240--7371.  The fixed-reference
-operator route trades a $90\times$ reduction in state preparations for roughly
-an order of magnitude more measured words.  Which side of that trade is
-favorable is a hardware question this paper does not answer.
-
-\emph{The exact ADAPT-GCIM comparison changes the baseline, not the
-conclusion.}  At the nearest size match, $k=4$ gives $M=8$, effective rank 6,
-$\kappa_S=32.9$, and a $13.364$ mHa error.  At the iteration match, $k=8$
-gives $M=16$, effective rank 12, $\kappa_S=1.09\times10^3$, and a
-$10.674$ mHa error.  Both are variationally above the sector oracle, and the
-larger nested basis lowers the energy.  There is no optimizer: the selector
-uses 98 and 180 candidate gradients, respectively, with the published fixed
-angle.  The final pencils require 36/28 and 136/120 unique $H/S$ state pairs,
-so their cost cannot be inferred from A-CASE's single-reference $W$.  These
-numbers establish the exact algorithm on the matched 26-excitation local pool;
-they do not reproduce ADAPT-GCIM under a larger generalized pool or convert
-state pairs into a hardware shot count.
-
-\emph{The measurement width is a property of the representation, not of the
-subspace.}  Run on the determinant excitations, adaptive A-CASE needs $7371$
-words; run on the 160 words those excitations decompose into, it needs $2240$.
-The two arms are not merely close.  They return the same energy to
-$4\times10^{-16}$ Ha, the same $M=9$ and $\kappa_S=1$, and their retained
-subspaces have all nine principal angles zero---they are the same subspace,
-reached by generators of different granularity, at $3.3\times$ different
-measurement cost.  The ledger column introduced to stop $M$ from flattering a
-method is therefore itself representation-dependent, and a $W$ quoted without
-its generator resolution is not comparable across methods.  At word resolution
-A-CASE needs fewer words than the Krylov arm's $4224$, which reverses the
-width comparison of Sec.~\ref{sec:results-ladder} on this rung; the width
-saving is paid for in selection, $1252$ scorings against $180$.  The effect is
-not particular to this rung: on the $2\times2$ Hubbard plaquette the same
-substitution takes $2519$ words to $413$, a factor of six, again at an
-unchanged basis size and energy.
-
-\emph{The leakage rule is stricter than the physics.}  The word pool is
-rejected outright under the declared tolerance---every odd-$Y$ word has
-operator leakage $\sqrt2$ out of particle number---leaving $M=1$ and the
-Hartree--Fock energy.  Yet with the rule disabled the resulting Ritz vector
-has sector weight $1$ to machine precision.  The test asks whether a generator
-could take \emph{any} reference out of the sector, which for a determinant
-reference is stronger than what is needed: a single word acting on a
-determinant returns a determinant.  The conservative rule is the right default
-for an arbitrary reference and is leaving a factor of three on the table here.
-
-The exception proves the rule's purpose.  The warm-started arm is the only one
-whose Ritz vector is not exactly in sector, at weight $0.999882$: its reference
-is an ADAPT state assembled from those same symmetry-breaking words, and a
-product of rotors does not return a determinant.  The leak is small and does
-not threaten the energy, but it is real, and it is the situation the
-operator-level test exists to catch.
-
-\subsection{Validation ladder and matched baselines}
+\subsection{Broader validation ladder}
 \label{sec:ladder}
 
-The broader 72-run committed ladder covers H$_2$, LiH(2e,2o), equilibrium and
+The broader $72$-run committed ladder covers H$_2$, LiH(2e,2o), equilibrium and
 stretched H$_4$, stretched H$_2$O CAS(4e,4o), H$_2$O CAS(8e,6o), open-boundary
 $2\times2$ and $2\times3$ Hubbard clusters, and a $2\times2$ Kitaev cluster.
 The comparison set is the reference determinant, sector-exact diagonalization,
 fixed Pauli QSE, Hamiltonian-power Krylov, a strided generator-coordinate
 basis, exact ADAPT-VQE \cite{grimsley2019adapt}, and A-CASE.  Default exact
-subspace arms use
-$M=9$ wherever available.  Level-4 A-CASE is additionally run to $M=26$ on
-the Hubbard clusters.  Chemical accuracy is defined as $1.6$ mHa only on
-molecular rungs; lattice-model errors remain in the Hamiltonian's own units.
+subspace arms use $M=9$ wherever available; level-4 A-CASE is additionally run
+to $M=26$ on the Hubbard clusters.  Chemical accuracy is defined as $1.6$ mHa
+only on molecular rungs; lattice-model errors remain in the Hamiltonian's own
+units.
 
-The paper uses four evidence labels:
+The paper uses four evidence labels, and they are enforced in the result
+records rather than in prose:
 \begin{itemize}
  \item \texttt{reference}: sector-exact energy against which errors are formed;
  \item \texttt{exact}: noiseless arithmetic on a declared subspace;
@@ -659,146 +662,141 @@ The paper uses four evidence labels:
 This taxonomy prevents a confidence statement about one selection event from
 silently becoming a confidence statement about the final spectrum.
 
-
-\subsection{Oracle-sampled multiresolution and matched-budget protocol}
-\label{sec:packet-benchmarks}
-
-The Phase 11--12 extension asks a narrower question than hardware feasibility:
-if computational-basis samples were already available, can sampled
-configurations, operator dressing, or multiresolution packets improve a
-retained subspace after strong classical baselines are admitted?  To isolate
-that question, every sampling-fed row uses draws from the exact ground state.
-This is the most favorable possible input distribution and is labelled
-\texttt{oracle\_sampled}; it is a selector/subspace capability experiment, not
-an implementable state-preparation protocol.  QSCI motivates the
-sample-to-configuration boundary \cite{kanno2026qsci}; the use of an oracle
-also exposes rather than hides the configuration-compressibility issue
-identified in exact-ground-state SQD studies \cite{gaberle2026critical}.
-
-For each draw, the sampled determinants define a configuration program.
-Dressed A-CASE augments that program with symmetry-compatible excitation
-products.  The packet arm replaces selected configuration directions by a
-support-pruned orthonormal Haar hierarchy and refines coarse intervals only
-within the fixed retained-direction budget.  Four configuration orderings are
-predeclared: decreasing sample probability, physics metadata, a determinant
-graph order, and seeded random order.  Random is a control and is never pooled
-with the three candidate policies.  Within a treatment cell the dressed and
-packet arms receive the same draw, so their comparison is paired.
-
-The larger Phase 11 ensemble contains 1440 treatment cells: the original H$_4$
-and Hubbard systems across four shot settings, plus 128-shot molecular
-extensions for a QSCI-aligned H$_2$O STO-3G CAS(6e,5o) active space and
-stretched BeH$_2$ STO-3G CAS(4e,6o) at 3.0~\AA.  For H$_2$O, the geometry and
-active-space size follow the original QSCI study \cite{kanno2026qsci}, but the
-published specification does not identify the active orbital indices; here
-the two lowest canonical RHF/STO-3G orbitals are frozen and the remaining five
-are active.  For BeH$_2$, the 3.0~\AA geometry follows the strongly correlated
-Overlap-ADAPT-VQE benchmark \cite{feniou2023overlapadapt}, whose calculation
-uses the full STO-3G space; here the Be $1s$ core is frozen to obtain
-CAS(4e,6o) and keep the 20-seed selector sweep tractable.  These are aligned
-benchmarks, not numerical reproductions of the cited orbital spaces.  There
-are 20 seed clusters.  Because orderings and shot settings reuse seed streams,
-inference first reduces every group to one median paired
-\[
- r_s=\operatorname{median}\!
- \left[\log_{10}\frac{\epsilon_{\rm packet}}
- {\epsilon_{\rm dressed}}\right]_s
-\]
-per seed, applies an exact sign test to those seed effects, and bootstraps
-whole seed effects for the reported 95\% interval.  Cell win rate is
-descriptive only, and secondary-group $p$ values are unadjusted.
-
-Phase 12 makes the budget comparison stricter.  Its primary ladder contains
-five systems---open-boundary $2\times2$ and $2\times3$ Hubbard clusters,
-linear H$_4$ at 0.9 and 1.8~\AA, and the committed equilibrium-H$_4$
-FCIDUMP.  The record contains thirteen arms at their native sizes; eight of
-those arms have retained dimension $M=7$.  Table~\ref{tab:phase12-primary}
-isolates five $M=7$ arms that determine the new sampling/classical comparison.
-The fixed Krylov arm uses depth six on every system and is uncapped.  Two
-selected-CI controls separate information from budget.
-\texttt{budget\_selected\_ci} is sample-informed.  When the determinant budget
-is smaller than the sampled set, it ranks sampled and outside determinants on
-one estimated squared-amplitude scale.  When the sample already fits inside
-the budget, it retains the whole sample (ordered by Ritz amplitude) and fills
-the remaining slots with outside candidates in the configured
-Epstein--Nesbet order.  The equilibrium H$_4$ and FCIDUMP-H$_4$ primary rows
-fall in this second case and explicitly record
-\texttt{unified\_amplitude\_ranking=false}; the two Hubbard rows and stretched
-H$_4$ use the unified ranking because their samples exceed seven determinants.
-\texttt{matched\_selected\_ci} is
-sample-independent: it takes the reference determinant plus the
-highest-scoring connected determinants under one Epstein--Nesbet criterion,
-without consulting the quantum sample.  The latter is the critical laptop
-baseline: a hybrid improvement must survive comparison with what the same
-dimension buys without seeing the sample.  A second Phase 12 record evaluates
-five comparison arms over 160 cells
-($2$ Hubbard systems $\times4$ orderings $\times20$ seeds) at this $M=7$
-budget.  The sample-independent matched-SCI and bare A-CASE arms are retained
-as deterministic within-system controls; the other three arms carry the
-sample-dependent path.  Fixed Krylov is deterministic and already represented
-in the primary record, so it is not rerun across seeds.
-
 \section{Results}
 \label{sec:results}
 
-\subsection{The interchange boundary is independently reproducible}
-\label{sec:results-boundary}
+\subsection{The hardware unit is a prepared-state measurement shot}
+\label{sec:results-preparation}
 
-The dimer reaches the analytic sector ground energy to
-$6.7\times10^{-16}$ eV, and all six nontrivial observables in
-Table~\ref{tab:dimer} agree to nine printed digits.  This establishes the
-software path from a versioned effective Hamiltonian through energies,
-coefficients, correlations, and response.  It does not establish materials
-accuracy because the input parameters are synthetic.
+Table~\ref{tab:matched} prices the architectural commitment of
+Sec.~\ref{sec:elements}.  The entries $1$, $8$, $16$, and $90$ in ``Ctx.'' are
+state-evaluation contexts, not physical preparation executions.  A-CASE and
+the fixed operator bases evaluate observables on one reference context;
+ADAPT-GCIM has $8$ or $16$ distinct generating-function states; and
+ADAPT-VQE visits eight selection states plus $82$ optimizer evaluation
+contexts.  On hardware, however, every shot of every measurement setting
+requires a fresh preparation.  Calling the $90$ contexts ``90 state
+preparations'' therefore undercounts physical preparations and creates a false
+exchange rate against a word count.
 
-For H$_4$, Table~\ref{tab:h4} separates three questions.  The mapped sector
-oracle agrees with external determinant FCI to $3.1\times10^{-15}$ Ha, testing
-the FCIDUMP convention and fermion-to-qubit map.  At the predeclared
-nine-vector budget, adaptive A-CASE recovers most but not all of the
-correlation energy and misses chemical accuracy at $3.019$ mHa.  The complete
-27-dimensional singles/doubles subspace reaches $0.766$ mHa.  Because the
-full $(N=4,S_z=0)$ sector has dimension 36, this is a meaningful active-space
-rung, but it remains an eight-qubit calculation and is not evidence of
-favorable scaling.
+Grouping puts both sides on a common shot-level primitive.  ADAPT-VQE's
+$2424$-word selection union has $452$ QWC settings; replaying the shrinking
+active pool over its eight changing states gives $G_\Sigma=3616$ setting
+evaluations.  A-CASE measures its fixed-reference selection union once:
+$15783$ words group into $1681$ settings at determinant resolution and $14401$
+into $1672$ at word resolution.  Thus with a uniform $R$ shots per setting the
+selection schedules require $3616R$ versus $1681R$ or $1672R$ physical
+circuits/preparations.  The raw word counts suggest the opposite ordering.
+This uniform-shot comparison is a scheduling diagnostic, not an equal-precision
+claim: estimator variances can require different $R$.  Weighting each selection
+setting by the number of adaptive rotors in its prepared state gives $12656$
+rotor-setting evaluations for ADAPT-VQE and zero adaptive-rotor settings for
+the cold A-CASE reference; the record stores this depth-weighted diagnostic,
+which is not a total gate count and does not price fixed Hartree--Fock
+preparation gates.
 
-Table~\ref{tab:warm} shows that, for this H$_4$ instance and candidate family,
-changing the reference is sufficient to cross chemical accuracy without
-increasing the nine-vector A-CASE budget.  Replacing the Hartree--Fock
-determinant by a
-two-operator ADAPT-VQE state moves the error from $3.019$ mHa to $0.342$ mHa,
-inside chemical accuracy and below the 27-dimensional complete
-singles/doubles rung, while $\kappa_S$ stays near unity and $W$ grows by under
-two percent.  The ADAPT state is not doing the work: on its own it is
-$27.091$ mHa, an order of magnitude worse than the cold A-CASE result it
-rescues.  What changes is that the eight additions no longer have to spend
-themselves reaching correlation the reference could have carried.  This does
-not make the hybrid free: Table~\ref{tab:warm} exposes the extra gradient,
-optimization, and state-preparation work, and the present exact simulation
-does not convert those counts to hardware shots.
+The ADAPT optimizer strengthens the same caution.  Its $82$ exact optimizer
+evaluations would require at least $82\times68=5576$ additional Hamiltonian
+setting-evaluations merely to read the energy, so selection plus energy gives
+$9192$ settings per uniform shot before gradient measurements.  The benchmark
+uses an exact adjoint gradient and specifies no physical gradient protocol;
+we therefore report $5576$ as a lower bound and do not manufacture an
+end-to-end hardware count from it.
 
-The effect is not monotonic in ADAPT depth.  Deeper warm starts are better
-states---$13.779$ mHa at $k=4$ and $6.791$ mHa at $k=6$---and yet yield worse
-A-CASE results, $0.612$ and $0.768$ mHa.  A plausible reading is that the
-determinant-excitation pool is matched to a determinant, so a reference further
-from one is less well served by those candidates; we have not tested that, and
-it identifies reference and pool as coupled choices rather than independent
-ones.
+A second architectural distinction appears in the last column and is easy to
+miss in an energy-only comparison.  ADAPT-GCIM's final pencils require $36/28$
+and $136/120$ unique $H/S$ state pairs.  Those are transition measurements
+between distinct prepared states; they are not expectations on a single
+reference, and they cannot be converted into a single-reference $W$ without an
+assumption about the hardware primitive.  The comparison in
+Table~\ref{tab:matched} therefore reports them in their own column rather than
+folding them into a shared width.  A method's measurement cost is not always
+expressible in the same unit as its comparator's, and a benchmark that forces
+it into one has made a modelling choice it should declare.
 
-\subsection{Compactness is a three-way trade}
+On energy at this contract, the exact ADAPT-GCIM comparison changes the
+baseline without changing the conclusion.  At the nearest size match, $k=4$
+gives $M=8$, effective rank $6$, $\kappa_S=32.9$, and $13.364$ mHa; at the
+iteration match, $k=8$ gives $M=16$, effective rank $12$,
+$\kappa_S=1.09\times10^3$, and $10.674$ mHa.  Both are variationally above the
+sector oracle, and the larger nested basis lowers the energy.  There is no
+optimizer: the selector uses $98$ and $180$ candidate gradients at the
+published fixed angle.  These numbers establish the exact algorithm on the
+matched $26$-excitation local pool; they do not reproduce ADAPT-GCIM under a
+larger generalized pool.
+
+\subsection{Generator resolution controls measurement width}
+\label{sec:results-resolution}
+
+The most consequential architectural result in the table is the pair of A-CASE
+rows.  Run on the determinant excitations, adaptive A-CASE needs $7371$ words;
+run on the $160$ words those excitations decompose into, it needs $2240$.
+
+The two arms are not merely close in outcome.  They return the same energy to
+$4\times10^{-16}$ Ha, the same $M=9$ and $\kappa_S=1$, and their retained
+subspaces have all nine principal angles zero.  They are the same subspace,
+reached by generators of different granularity, at $3.3\times$ different
+measurement cost.  The effect is not particular to this rung: on the
+$2\times2$ Hubbard plaquette the same substitution takes $2519$ words to $413$,
+a factor of six, again at unchanged basis size and energy.
+
+Two consequences follow, and they point in different directions.
+
+The first is a caution about the ledger itself.  The column introduced in
+Eq.~\eqref{eq:ledger} to stop $M$ from flattering a method is itself
+representation-dependent, so a $W$ quoted without its generator resolution is
+not comparable across methods.  This applies to our own numbers: the ladder
+rows of Sec.~\ref{sec:results-ladder} are all determinant-resolution and
+therefore price one representation of A-CASE rather than the method's floor.
+
+The second is that the dial is real and usable.  At word resolution A-CASE
+needs fewer words than the Krylov arm's $4224$, which reverses the width
+comparison obtained at determinant resolution on this rung.  The saving is paid
+for in selection---$1252$ candidate scorings against $180$---so the finer
+resolution shifts work from the quantum measurement budget to the classical
+selection budget.  For a device where word count binds and classical scoring
+does not, that is a favorable exchange available to an operator-generated basis
+and unavailable to a basis defined by prepared states, because there is no
+corresponding way to subdivide a prepared circuit into cheaper measurable
+pieces spanning the same space.
+
+We note one asymmetry that keeps this from being a free win.  The finer pool
+must still pass the sector-leakage test, and under the declared tolerance it
+does not: every odd-$Y$ word has operator leakage $\sqrt2$ out of particle
+number, so the word pool is rejected outright, leaving $M=1$ and the
+Hartree--Fock energy.  With the rule disabled the resulting Ritz vector has
+sector weight $1$ to machine precision.  The test asks whether a generator
+could take \emph{any} reference out of the sector, which for a determinant
+reference is stronger than necessary---a single word acting on a determinant
+returns a determinant.  The conservative rule is the right default for an
+arbitrary reference, and it is leaving a factor of three on the table here.
+Realizing the width saving therefore requires declaring a reference-aware
+leakage rule, which we report as an available but not-yet-default setting.
+
+The exception proves the rule's purpose.  The warm-started arm is the only one
+whose Ritz vector is not exactly in sector, at weight $0.999882$: its reference
+is an ADAPT state assembled from those same symmetry-breaking words, and a
+product of rotors does not return a determinant.  The leak is small and does
+not threaten the energy, but it is real, and it is the situation the
+operator-level test exists to catch.
+
+\subsection{Compactness across the ladder is a three-way trade}
 \label{sec:results-ladder}
 
-Figure~\ref{fig:ladder} shows the default matched-budget ladder in dimensionless
-relative error.  Table~\ref{tab:ladder} adds the information the color alone
-cannot show: basis size, overlap conditioning, and the measured word universe.
-The results do not support a blanket superiority statement.
+Figure~\ref{fig:ladder} shows the default matched-budget ladder in
+dimensionless relative error, and Table~\ref{tab:ladder} adds what the color
+alone cannot: basis size, overlap conditioning, and measured word universe
+together.  The rows do not support a blanket superiority statement, and we do
+not make one.
 
 \begin{figure*}[t]
     \includegraphics[width=0.94\textwidth]{paper_assets/validation_ladder.pdf}
     \caption{Absolute relative energy error for the default matched-budget
     ladder.  ``n/t'' means that the arm was not run.  The heat map compares
     energy only; Table~\ref{tab:ladder} supplies the conditioning and
-    measurement-width trade.  The default A-CASE column uses $M=9$, not the
-    larger level-4 Hubbard run.}
+    measurement-width trade that the architectural argument of this paper
+    rests on.  The default A-CASE column uses $M=9$, not the larger level-4
+    Hubbard run.}
     \label{fig:ladder}
 \end{figure*}
 
@@ -809,7 +807,8 @@ The Krylov widths are obtained from the identity of
 Sec.~\ref{sec:krylov-width} rather than from the quadratic element route, at a
 $10^{-8}$ coefficient threshold under which the A-CASE counts are unchanged.
 The comparator is the strongest available matched or nearby-budget subspace
-baseline, not necessarily a method A-CASE beats.}
+baseline, not necessarily a method A-CASE beats.  All A-CASE rows here are
+determinant-resolution; see Sec.~\ref{sec:results-resolution}.}
 \label{tab:ladder}
 \scriptsize
 \begin{ruledtabular}
@@ -822,147 +821,53 @@ System & \multicolumn{4}{c}{A-CASE} & Comparator & \multicolumn{4}{c}{Comparator
 \end{ruledtabular}
 \end{table*}
 
-On equilibrium H$_4$, A-CASE at $M=9$ improves substantially over the
-same-size fixed QSE and generator-coordinate bases, but exact ADAPT-VQE is
-slightly better and fixed Krylov is better by orders of magnitude.  Krylov's
-overlap condition number is $6.6\times10^{10}$, versus $1$ for A-CASE.  The
-same pattern is sharper for stretched H$_4$ and stretched H$_2$O (4e,4o):
-Krylov buys energy accuracy with near-linear dependence, while A-CASE remains
-conditioned but does not reach chemical accuracy from a determinant reference.
-ADAPT-VQE's margin over A-CASE also widens on those rungs rather than
-staying slight---$7.4$ against $39.2$ mHa on stretched H$_4$, and $11.9$
-against $55.4$ mHa on H$_2$O---so from a determinant reference the $M=9$
-A-CASE arm is the weaker of the two adaptive methods wherever both run on a
-fermionic rung.
+On equilibrium H$_4$, A-CASE at $M=9$ improves substantially over the same-size
+fixed QSE and generator-coordinate bases, but exact ADAPT-VQE is slightly
+better and fixed Krylov is better by orders of magnitude.  Krylov's overlap
+condition number is $6.6\times10^{10}$, against $1$ for A-CASE.  The pattern is
+sharper for stretched H$_4$ and stretched H$_2$O (4e,4o): Krylov buys energy
+accuracy with near-linear dependence, while A-CASE remains conditioned but does
+not reach chemical accuracy from a determinant reference.  ADAPT-VQE's margin
+over A-CASE also widens on those rungs rather than staying slight---$7.4$
+against $39.2$ mHa on stretched H$_4$, and $11.9$ against $55.4$ mHa on
+H$_2$O---so from a determinant reference the $M=9$ A-CASE arm is the weaker of
+the two adaptive methods wherever both run on a fermionic rung.
 
-With the Krylov widths of Sec.~\ref{sec:krylov-width} in hand, the third leg
-of the trade can finally be read, and it does not favor A-CASE.  On both H$_4$
-rungs the Krylov arm needs $4224$ words against A-CASE's $7371$ and $7715$,
-and on the Hubbard plaquette $3968$ against $15191$; on the Kitaev cluster the
-two coincide at $140$, which they must, since A-CASE there \emph{is} a pruned
-Krylov construction.  The single rung where the operator-generated basis is
-narrower is stretched H$_2$O (4e,4o), at $7783$ against $8192$.  So at this
-resolution Krylov is more accurate on every one of these rungs and narrower on
-most of them.
+At determinant resolution the width comparison does not favor A-CASE either.
+On both H$_4$ rungs Krylov needs $4224$ words against A-CASE's $7371$ and
+$7715$, and on the Hubbard plaquette $3968$ against $15191$; on the Kitaev
+cluster the two coincide at $140$, which they must, since A-CASE there
+\emph{is} a pruned Krylov construction.  The single rung where the
+operator-generated basis is narrower at this resolution is stretched H$_2$O
+(4e,4o), at $7783$ against $8192$.  Section~\ref{sec:results-resolution} is the
+reason this is a statement about a representation and not about the method.
 
-That comparison is resolution-dependent, and Sec.~\ref{sec:matched} shows it
-reversing on the equilibrium H$_4$ rung: the same retained subspace generated
-at word rather than determinant resolution costs $2240$ words, below Krylov's
-$4224$, at an unchanged energy and $\kappa_S=1$.  The ladder rows above are all
-determinant-resolution, so they price one representation of A-CASE rather than
-the method's floor, and every cross-method $W$ in this paper should be read
-with its generator resolution attached.  The honest statement is that this is a
-trade between energy accuracy and conditioning, with measurable support a third
-axis whose comparison is not settled by these rows, and not a win by basis
-count.
+Against the fixed local bases the width comparison runs the other way, which is
+the comparison the ledger was built to make: on H$_2$O (8e,6o) A-CASE is both
+more accurate than the generator-coordinate arm and narrower, $143117$ words
+against $232515$.
 
-Against the fixed local bases the width comparison runs the other way, which
-is the comparison the ledger was built to make: on H$_2$O (8e,6o) A-CASE is
-both more accurate than the generator-coordinate arm and narrower, $143117$
-words against $232515$.
-
-Level-4 configuration generators change the $2\times2$ Hubbard result:
-A-CASE reaches the sector ground state at $M=26$ with
-$\kappa_S=1$.  The same pool adds no selected level-4 direction on
-$2\times3$, leaving a $1.09t$ error at the same $M$.  Thus the $2\times2$
-closure demonstrates that the missing span can be supplied, while the
-$2\times3$ failure demonstrates that the current selection rule cannot
-reliably discover a useful competing-order configuration.  On the Kitaev
+Level-4 configuration generators change the $2\times2$ Hubbard result: A-CASE
+reaches the sector ground state at $M=26$ with $\kappa_S=1$.  The same pool adds
+no selected level-4 direction on $2\times3$, leaving a $1.09t$ error at the
+same $M$.  The $2\times2$ closure demonstrates that the missing span can be
+supplied; the $2\times3$ failure demonstrates that the current selection rule
+cannot reliably discover a useful competing-order configuration.  On the Kitaev
 cluster, A-CASE selects six Hamiltonian-power directions and reaches the exact
-energy, but its $\kappa_S=3.8\times10^4$ resembles Krylov because in that case
-it \emph{is} a pruned Krylov construction.
+energy, but its $\kappa_S=3.8\times10^4$ resembles Krylov, because in that case
+it is a pruned Krylov construction.
 
-The finite-shot growth rows make the same warning more concrete.  Eight-qubit
-certified-growth attempts spend $1.5\times10^8$ to $4.6\times10^8$ physical
-shots and frequently stop or abstain with inaccurate energies.  A noisy
-thresholded overlap can even yield an energy below the exact reference; this
-does not violate Rayleigh--Ritz because the measured pencil no longer
-represents an exact subspace projection.  Sample-split certification of a
-growth coupling must not be reported as certification of the final energy.
-
-
-\subsection{Sampling-fed packets help selectively, not uniformly}
-\label{sec:results-packets}
-
-Table~\ref{tab:phase12-primary} gives the Phase 12 single-draw primary ladder
-for the arms that determine the main comparison.  The new
-\texttt{matched\_selected\_ci} control changes the interpretation.  On
-$2\times3$ Hubbard it reaches the same energy as bare A-CASE to
-$3.6\times10^{-15}$ in the stored double-precision result, and the dressed arm
-is identical as well.  The earlier $3.619$ error of
-\texttt{budget\_selected\_ci} is therefore not evidence that operator dressing
-beats a fair classical selected-CI baseline: at this draw the sample contains
-68 determinants for seven slots and the sample-informed rule spends the budget
-on the high-amplitude sampled set.  Only the packet arm separates, reducing the
-single-draw error from $2.457$ to $2.072$.  Among the five $M=7$ arms
-shown in Table~\ref{tab:phase12-primary}, fixed Krylov remains substantially
-more accurate at $0.190$ and has the lowest error on every system.
-
-\begin{table*}[t]
-\caption{Phase 12 primary ladder at retained budget $M=7$.  Entries are
-absolute energy errors in the Hamiltonian's declared unit (Ha for the molecular
-rows; $t=1$ for the Hubbard rows).  The first selected-CI arm uses the sample;
-the second is sample-independent.  The packet column is the QSCI--Haar--dressed
-A-CASE arm.  Fixed Krylov uses depth six and is uncapped on every row.}
-\label{tab:phase12-primary}
-\begin{ruledtabular}
-\begin{tabular}{lccccc}
-System & sample-informed SCI & matched SCI & A-CASE & packet & fixed Krylov \\
-\colrule
-\input{tables/phase12_primary.tex}
-\end{tabular}
-\end{ruledtabular}
-\end{table*}
-
-The seed replication is more informative than that favorable packet draw.
-Pooling the three policy orderings, the packet effect is statistically
-consistent with zero on both Hubbard systems:
-median $r_s=-0.0034$ with 95\% interval
-$[-0.0235,+0.0046]$ on $2\times2$, and $-0.0190$ with
-$[-0.0331,+0.0000]$ on $2\times3$.  The effect nevertheless resolves within
-specific policies.  Physics ordering favors packets on both systems
-($r_s=-0.0350$, sign-test $p=0.012$ on $2\times2$;
-$r_s=-0.0467$, $p=0.008$ on $2\times3$), and probability ordering also favors
-them on $2\times3$ ($r_s=-0.0358$, $p=0.019$).  These favorable
-order-specific sign-test values ($p=0.012,0.008,0.019$) are unadjusted
-secondary comparisons; none clears the conservative $0.05/8$ Bonferroni
-threshold, so no family-wise ordering claim is made.  Graph ordering reverses
-the effect on $2\times3$ ($r_s=+0.0296$, $p<0.001$), while the random control
-is harmful on both systems.  Dressing itself is inert on the $2\times3$ cells:
-bare A-CASE, dressed A-CASE, and the sample-independent matched SCI arm all
-return the same $2.45704$ error across the eighty draws; only the packet arm
-moves.
-
-The larger Phase 11 ensemble shows why no ordering should be promoted to a
-general rule.  Across policy orderings its aggregate median effect is
-numerically negligible even though the seed signs are consistent.  At the
-system level, stretched BeH$_2$ is the clearest molecular separation:
-$r_s=-0.051$, 95\% interval $[-0.095,-0.034]$, and sign-test $p=0.003$,
-whereas the QSCI-aligned H$_2$O extension is null
-($r_s=0$ to the reported precision, interval spanning zero, $p=1$).
-Probability ordering is strongest on stretched BeH$_2$
-($r_s=-0.098$, interval $[-0.134,-0.073]$, 20/20 seed wins).
-On the four-system balanced shot subset, 32 shots show no effect, 64 shots a
-negligible one, and the 128- and 256-shot tiers show material negative median
-log ratios.
-
-Most importantly, the preferred ordering changes with the retained-direction
-budget.  On $2\times3$ Hubbard the larger Phase 11 design favors graph ordering
-($r_s=-0.020$) while physics is null; at the Phase 12 $M=7$ budget graph is
-harmful and physics is favorable.  This interaction is the robust scientific
-message of the packet experiments.  The data support a multiresolution
-selection mechanism whose usefulness depends on the resolution budget and
-ordering, not a universally superior wavelet or sampling policy.
-
-\subsection{Whole-pipeline response uncertainty}
+\subsection{One bank, several quantities}
 \label{sec:results-response}
 
-The response example uses the four-qubit dimer, 63 measured words, 25 QWC
-groups, and 8,000 shots per group, for 200,000 physical shots.  All 200
-bootstrap replicas preserve the rank and isolated ordered root in this
-well-conditioned case.  Table~\ref{tab:response} and
-Fig.~\ref{fig:response} compare the exact projected result with the finite-shot
-point estimate and the 95\% percentile interval.
+The response example exercises the reuse claim of Sec.~\ref{sec:bank}
+end-to-end.  It uses the four-qubit dimer, $63$ measured words, $25$ QWC
+groups, and $8{,}000$ shots per group, for $200{,}000$ physical shots.  From
+that one measurement set the pipeline produces the ground energy, a projected
+staggered-spin observable, the Lehmann lines of Eq.~\eqref{eq:lehmann}, the
+static susceptibility of Eq.~\eqref{eq:chi}, and the broadened spectrum of
+Eq.~\eqref{eq:broadening}.  No quantity beyond the first required a new
+experiment, and no $2^n$-component Ritz state was formed.
 
 \begin{table*}[t]
 \caption{Finite-shot dimer response.  The interval is a grouped-bootstrap
@@ -987,17 +892,21 @@ Quantity & exact & measured & percentile interval \\
     \label{fig:response}
 \end{figure}
 
-The exact values lie inside all three reported intervals in this one run.  That
-observation is a consistency check, not a coverage study.
+All $200$ bootstrap replicas preserve the rank and isolated ordered root in
+this well-conditioned case, and the exact values lie inside all three reported
+intervals.  That is a consistency check, not a coverage study.
 
-The $200/200$ acceptance also means that this run alone does not exercise the
-failure accounting of Sec.~\ref{sec:bootstrap}: nothing is rejected, so the
-machinery is described rather than demonstrated.  We therefore repeat it as a
-controlled comparison in which conditioning is the only variable.  The system,
-observable, word set, group count, shot budget, basis size, and both seeds are
-held fixed; the determinant excitations are replaced by the Hamiltonian powers
-$I,H,H^2,H^3$, which span the same four-dimensional sector with an overlap
-condition number four orders larger.  Table~\ref{tab:conditioning} reports both.
+\subsection{Conditioning has a measurable downstream price}
+\label{sec:results-conditioning}
+
+The $200/200$ acceptance means the run above does not exercise the failure
+accounting of Sec.~\ref{sec:bootstrap}: nothing is rejected, so the machinery
+is described rather than demonstrated.  We therefore repeat it as a controlled
+comparison in which conditioning is the only variable.  The system, observable,
+word set, group count, shot budget, basis size, and both seeds are held fixed;
+the determinant excitations are replaced by the Hamiltonian powers
+$I,H,H^2,H^3$, which span the \emph{same} four-dimensional sector with an
+overlap condition number four orders larger.
 
 \begin{table*}[t]
 \caption{The same bootstrap at two conditionings.  Both rows use the dimer,
@@ -1027,115 +936,166 @@ Generator family & $\kappa_S$ & accepted & rank & root & solver & $\chi(0)$ widt
     \label{fig:conditioning}
 \end{figure}
 
-The ill-conditioned arm rejects $61$ of $200$ replicas, all of them for a moved
+The ill-conditioned arm rejects $61$ of $200$ replicas, all for a moved
 thresholded rank, and its surviving-replica $\chi(0)$ interval is roughly
-fifteen times wider.  Figure~\ref{fig:conditioning} shows the same separation
+fifteen times wider.  Figure~\ref{fig:conditioning} shows the separation
 holding across the whole frequency axis rather than at a single summary point.
-Two things follow.  The diagnostic does respond to
-conditioning rather than reporting a comfortable width regardless, which is the
-minimum one should demand of it.  But the reported width is still conditional
-on the $139$ replicas that reproduced the pipeline's rank; the $61$
-excluded draws are precisely the ones a rank-stable summary cannot represent,
-and the conditional interval does not bound what they would contribute.  This is why the
-acceptance rate belongs beside every interval, and why larger systems must
-report the rank, root-collision, and solver-failure counts before the width of
-a surviving-replica interval is interpreted.
+
+This is the result that gives $\kappa_S$ operational meaning in
+Table~\ref{tab:ladder}.  A subspace method reporting only energy error would
+score these two generator families identically at matched measurement cost;
+they span the same sector.  What separates them is entirely downstream, and it
+is severe: nearly a third of the replicas cannot be represented at all.  The
+architecture's $\kappa_S=1$ on most rungs is therefore not a cosmetic ledger
+entry but the property that keeps the shared bank usable for quantities beyond
+the ground energy.
+
+Two cautions attach.  The diagnostic does respond to conditioning rather than
+reporting a comfortable width regardless, which is the minimum one should
+demand of it.  But the reported width remains conditional on the $139$ replicas
+that reproduced the pipeline's rank; the $61$ excluded draws are precisely the
+ones a rank-stable summary cannot represent, and the conditional interval does
+not bound what they would contribute.  This is why the acceptance rate belongs
+beside every interval, and why larger systems must report rank, root-collision,
+and solver-failure counts before the width of a surviving-replica interval is
+interpreted.
+
+\section{What the architecture does not buy}
+\label{sec:limits}
+
+The preceding section states resource properties.  This one states, with equal
+weight, the claims the same evidence refuses.
+
+\emph{It is not the most accurate arm at matched budget.}  On the ladder of
+Sec.~\ref{sec:results-ladder}, fixed Krylov is more accurate than A-CASE on
+every rung where both run, often by orders of magnitude, and exact ADAPT-VQE is
+more accurate on every fermionic rung.  Among the matched-budget arms of a
+separate five-system Phase 12 ladder at retained budget $M=7$---open-boundary
+$2\times2$ and $2\times3$ Hubbard, linear H$_4$ at $0.9$ and $1.8$ \AA, and the
+committed equilibrium-H$_4$ FCIDUMP---fixed Krylov at depth six is the
+lowest-error arm on all five rows.  The architecture's case rests on preparation
+count, quantity reuse, and conditioning, not on energy at matched $M$.
+
+\emph{Its selection stage is expensive in the currency it saves.}  A-CASE reads
+$14401$--$15783$ words to score candidates and $2240$--$7371$ to measure the
+retained subspace.  The scoring cache is strictly larger than the retained
+ledger, and it includes rows for candidates later rejected.  A deployment that
+cannot amortize selection across many runs on the same pool does not see the
+width numbers this paper reports.
+
+\emph{Operator dressing supplies no advantage over a fair classical control at
+matched dimension.}  We tested whether augmenting a sampled configuration
+program with symmetry-compatible excitation products improves the retained
+subspace, against a sample-independent selected-CI comparator that takes the
+reference determinant plus the highest-scoring connected determinants under one
+Epstein--Nesbet criterion, without consulting the quantum sample.  On the
+$2\times3$ Hubbard rung at $M=7$, bare A-CASE, dressed A-CASE, and that
+matched control return the same error, $2.45704$, agreeing to
+$3.6\times10^{-15}$ in the stored double-precision record, across eighty draws.
+The dressing is inert.  An earlier comparator that ranked sampled and outside
+determinants on one sample-informed scale appeared to show an advantage; that
+appearance was an artifact of the control, not a property of the method, and we
+withdraw it.  This is a useful negative result for the architecture's scope: a
+shared operator bank is a measurement-reuse mechanism, not a selection
+improvement.
+
+\emph{Sampling-fed refinement is not established as a general gain.}  Replacing
+selected configuration directions with a support-pruned orthonormal Haar
+hierarchy separates from the dressed arm in specific system, ordering, and
+budget cells, but the policy-pooled effect at the $M=7$ budget is statistically
+consistent with zero on both Hubbard systems, and the favorable configuration
+ordering itself changes with the retained-direction budget.  Every sampling-fed
+row in this programme draws from the exact ground state and is labelled
+\texttt{oracle\_sampled}: it is the most favorable possible input distribution,
+a selector and subspace capability test, not an implementable
+state-preparation protocol.  Studies of exact-ground-state SQD show that
+configuration-only selection can require rapidly growing support even under
+ideal probability ordering \cite{gaberle2026critical}, and QSCI-style sampling
+motivates the boundary we are deliberately not crossing here
+\cite{kanno2026qsci}.  We report these experiments as scope limits rather than
+as results, and a full account belongs elsewhere.
+
+\emph{Finite-shot growth is not certified.}  Eight-qubit certified-growth
+attempts spend $1.5\times10^8$ to $4.6\times10^8$ physical shots and frequently
+stop or abstain with inaccurate energies.  A noisy thresholded overlap can even
+yield an energy below the exact reference; this does not violate
+Rayleigh--Ritz, because the measured pencil no longer represents an exact
+subspace projection.  Sample-split certification of a growth coupling must not
+be reported as certification of the final energy.
+
+\emph{No scaling or advantage claim is made.}  Every system here is small
+enough for exact sector diagonalization.  Nothing in this paper speaks to
+asymptotic cost, and the ill-conditioning literature
+\cite{epperly2022theory,lee2024sampling,zhang2024measurement} makes clear that
+the conditioning behaviour we exploit at these sizes is exactly what requires
+independent study at larger ones.
 
 \section{Discussion}
 \label{sec:discussion}
 
-\subsection{What is established}
-\label{sec:established}
+The architecture's defensible claim is narrow and, we think, useful: fixing one
+reference and reconstructing every matrix element from expectations on it turns
+a family of downstream quantities into a cache lookup, with one reference
+context independent of basis size, conditioning under the designer's control,
+and a measurement width that the generator resolution can tune.  Physical
+preparations still occur once per setting-shot. Each clause is a measured
+property in Sec.~\ref{sec:results}, and none of them is an energy comparison.
 
-Three claims are directly supported.  First, a real active-space interchange
-record can be parsed, mapped, and checked against independent determinant FCI
-without PySCF or OpenFermion at solver runtime.  Second, one reference state
-and one word cache are sufficient to construct the projected energy,
-observables, and response matrices; state-specific circuits and materialized
-Ritz statevectors are not intrinsic to this operator-generated formulation.
-Third, adaptive selection can preserve good overlap conditioning while
-improving materially over fixed local QSE and generator-coordinate bases on
-some rungs.
+There is consequently no scalar ``exchange rate'' between one state
+preparation and one measured word.  The common primitive is a setting-shot.
+For method $X$ a device-level runtime model is
+\begin{equation}
+ T_X=\sum_{s,g} n_{sg}
+ \left[t_{\rm prep}^{X}(s)+t_{\rm basis}(g)+t_{\rm ro}+t_{\rm reset}\right],
+ \label{eq:hardware-cost}
+\end{equation}
+where $s$ is a state/parameter context, $g$ a compatible measurement setting,
+and $n_{sg}$ its shot allocation.  State-preparation depth enters through
+$t_{\rm prep}$; word packing enters through the number of $g$ values.  They are
+therefore priced in the same execution rather than exchanged as independent
+objects.
 
-A fourth claim is supported by Table~\ref{tab:warm}: for the frozen H$_4$
-instance, determinant-excitation family, and nine-vector A-CASE budget, a
-two-rotor ADAPT reference is sufficient to cross chemical accuracy.  This is
-also the one place where the two adaptive methods compose rather than compete,
-since the ADAPT state is a worse energy answer on its own than the A-CASE run
-it improves.  It is not a total-resource advantage claim.
+The H$_4$ record supplies a dimensionless break-even curve.  Let
+$q=R_{\rm A}/R_{\rm D}$ be the ratio of uniform shots per setting and let
+$\bar t_{\rm A}/\bar t_{\rm D}$ be the ratio of mean setting-shot durations in
+Eq.~\eqref{eq:hardware-cost}.  For selection alone, word-resolution A-CASE is
+faster whenever
+\begin{equation}
+ q\,\frac{\bar t_{\rm A}}{\bar t_{\rm D}}
+ < \frac{3616}{1672}=2.16.
+ \label{eq:break-even}
+\end{equation}
+If the $5576$ optimizer energy settings are included but gradient measurement
+is still omitted, $3616$ becomes the lower bound $9192$, giving $5.50$ as a
+sufficient threshold against that lower bound.  These are scheduling curves,
+not accuracy claims: the required shot ratio $q$ is determined by precision.
 
-The Phase 11--12 extension supports a further, deliberately narrower claim.
-Given oracle samples, Haar-packet refinement can improve a matched retained
-subspace for specific systems, orderings, and budgets, and the effect survives
-seed-cluster replication in those cells.  It does not support a generic
-sampling advantage.  The sample-independent selected-CI control removes the
-apparent operator-dressing advantage on $2\times3$ Hubbard; among the five
-matched-$M=7$ arms in Table~\ref{tab:phase12-primary}, fixed Krylov has the
-lowest error on every system; and the packet ordering that helps at one
-retained-direction budget can hurt at another.  The oracle input also
-means none of these rows establishes an implementable state-preparation
-advantage.
+At fixed target precision, a principled comparison allocates shots rather than
+holding $R$ fixed.  For a linearized target with independent QWC-group
+contributions $V_g/n_g$, minimizing $N=\sum_g n_g$ subject to
+$\sum_g V_g/n_g\le\epsilon^2$ gives
+\begin{equation}
+ n_g^*=\frac{\sqrt{V_g}}{\epsilon^2}\sum_h\sqrt{V_h},\qquad
+ N^*=\frac{\left(\sum_g\sqrt{V_g}\right)^2}{\epsilon^2}.
+ \label{eq:optimal-shots}
+\end{equation}
+Here $V_g$ must include within-group covariance and the sensitivity of the
+reported quantity to that group.  For a thresholded nonlinear GEP those
+sensitivities must be propagated through the solve.  The present exact ADAPT
+optimizer supplies neither a physical gradient protocol nor matched group
+variances, so an equal-precision end-to-end winner is not supported by this
+record.  What is resolved is the accounting: contexts, settings, shots, and
+depth have a common hardware expression, and raw words do not stand in for
+executions.
 
-The results also establish useful negative boundaries.  At the matched $M=9$
-budget, fixed Krylov is the energy winner on every fermionic rung where it was
-configured, despite severe conditioning; the exception is the $2\times2$
-Hubbard cluster, where level-4 A-CASE at $M=26$ reaches the sector ground state
-that Krylov misses by $2.6\times10^{-3}t$.  Krylov also needs fewer measured
-words than determinant-resolution A-CASE on most rungs where both counts are
-available, though Sec.~\ref{sec:matched} shows that ordering reversing on
-equilibrium H$_4$ once the same subspace is generated at word resolution, so
-the width comparison is a statement about a representation and not about the
-method.  A second boundary belongs beside it: the measurement cost the ledger
-reports is the retained subspace's, and scoring the candidates that were
-rejected on the way to it cost $15783$ words against the $7371$ quoted.  From a
-determinant reference the default A-CASE pool does not reach chemical accuracy
-on H$_4$ or H$_2$O at $M=9$.  Compound/configuration generators solve the
-$2\times2$ Hubbard case but do not transfer to $2\times3$.  Finite-shot
-response bands diagnose the implemented nonlinear pipeline but do not carry a
-finite-sample coverage theorem, and Table~\ref{tab:conditioning} shows their
-acceptance rate falling to $139/200$ as soon as the overlap is ill-conditioned.
-The adaptive-GEP architecture itself is not claimed as new: ADAPT-GCIM is the
-closest precedent.  The exact matched-pool comparison above implements its
-fixed-angle selector and $M=2k$ generating-function basis, while keeping its
-off-diagonal $H/S$ measurement burden separate from the fixed-reference bank.
-It is not a reproduction of the original paper's full benchmark setting.
-
-\subsection{What remains open}
-\label{sec:open}
-
-The principal algorithmic question is whether candidate families can reduce
-$M$ \emph{and} $W$ while keeping $\kappa_S$ controlled on active spaces beyond
-eight qubits.  A promising direction is block or state-averaged growth against
-several Ritz roots, because a ground-state-selected basis is not automatically
-response-complete.  A second direction is to replace the candidate-by-candidate
-two-dimensional score with a residual block or a preconditioned correction,
-closer to Davidson methods, while preserving the shared-word accounting
-\cite{tkachenko2024davidson}.
-
-The packet results add an immediate design question: what observable property
-of a sampled configuration set predicts which multiresolution ordering and
-retained-direction budget will help before the answer is known?  The reversal
-between graph and physics ordering on $2\times3$ shows that choosing an
-ordering after inspecting the target energy would simply move the optimization
-into classical model selection.  A useful next test should therefore predeclare
-an ordering or learn it on disjoint systems/budgets, then evaluate it on held-out
-instances.
-
-Statistically, three layers must remain separate.  Regularizing a measured
-$S$ can stabilize a solve, but does not by itself restore a variational bound.
-A bootstrap can reveal nonlinear spread, but survivor conditioning can hide
-the worst draws.  A genuine response certificate needs simultaneous control
-of a correlated matrix pencil, a root-isolation event, and a nonlinear
-observable map.  Existing QSD perturbation and sampling analyses provide the
-right starting point \cite{epperly2022theory,lee2024sampling}, but the complete
-construction is not supplied here.
-
-Finally, a materials claim requires a real upstream calculation and comparison
-with an accepted correlated solver on the same downfolded Hamiltonian.  The
-current effective-Hamiltonian JSON proves the software boundary, and FCIDUMP
-proves a real interchange boundary.  Neither substitutes for validating the
-downfolding, double-counting correction, interaction model, or observable
-embedding for a material.
+Three directions follow naturally.  A reference-aware leakage rule would make
+the word-resolution saving a default rather than an available setting.  A
+selection stage that reuses its scoring cache across runs on a shared pool
+would address the one currency in which the architecture is clearly expensive.
+And the conditioning result of Sec.~\ref{sec:results-conditioning} suggests
+that acceptance rate, not interval width, is the quantity a subspace response
+calculation should be judged on; we would like to see it reported alongside
+spectra elsewhere.
 
 \section{Reproducibility and evidence ledger}
 \label{sec:reproducibility}
@@ -1150,84 +1110,78 @@ access-controlled frozen snapshot that identifies the exact source revision
 and contains the code, data, environment specification, and artifact
 generators used here.  A tagged archival release with a persistent identifier
 is intended once the framework interfaces and evidence contracts are stable.
-Thus private development changes the distribution channel, not the executable
-evidence standard described below.
+Private development changes the distribution channel, not the executable
+evidence standard described next.
 
-The H$_4$ record contains the FCIDUMP SHA-256 digest and independent PySCF
-version and energies,
-and the warm-start record repeats them for every reference state in
-Table~\ref{tab:warm} together with the ADAPT operator labels.  Both finite-shot
-response records contain both random seeds, the shots per group, the QWC group
-count, the requested and accepted replicas, every failure category, and the
-full plotted frequency arrays.  The Krylov width record carries the whole
-threshold sweep, not only the value quoted in Table~\ref{tab:ladder}.
-The matched record stores both ADAPT-GCIM matching rules, the selected
-excitation sequence, fixed angle, nominal and retained ranks, every trajectory
-energy, basis-circuit rotor depths, and separate Hamiltonian and overlap pair
-counts.
-The Phase 11 packet ensemble is stored as the base JSONL record plus separate
-H$_2$O and stretched-BeH$_2$ molecular records and a provenance sidecar; its
-Markdown summary is generated from seed-clustered inference rather than from
-independent-cell tests.  Phase 12 stores the five-system thirteen-arm ladder in
-\texttt{phase12\_paper\_b\_five\_system.json} and the 160-cell matched-budget
-replication in \texttt{m7\_seed\_replication.jsonl}.  That record retains
-sample-independent matched SCI and bare A-CASE as deterministic controls
-beside three sample-fed arms; fixed Krylov is omitted because the replication
-question is packet versus dressed behavior under identical draws and its
-deterministic value is already stored in the primary ladder.  The replication
-record explicitly labels the sampling input as an oracle.
+Every number in this manuscript is generated from a committed record rather
+than typed.  The table fragments are produced by \texttt{paper\_acase/make\_tables.py}
+and the figures by \texttt{paper\_acase/make\_figures.py}; a structural checker,
+\texttt{paper\_acase/check\_manuscript.py}, verifies environment balance,
+label and citation resolution, generated-fragment presence, table column
+counts against their declared preambles, the absence of hand-typed numeric
+table cells, and figure freshness against a source-digest manifest.
 
-The independent checks are: (i) the dimer closed forms in
-Table~\ref{tab:dimer}; (ii) determinant FCI versus the mapped H$_4$ sector;
-(iii) OpenFermion versus the direct chemist-notation mapping; (iv) exact
-infinite-shot reconstruction through the finite-shot coefficient maps;
-(v) replica accounting, for which every requested draw must either succeed or
-enter exactly one failure category; and (vi) the Krylov width identity of
-Eq.~\eqref{eq:krylov-collapse} against direct element enumeration, which also
-reproduces the ladder's own tracked counts on the two rungs where that route
-finishes.  The repository test suite and
-\texttt{python -m clifford\_qc.verify} exercise algebraic, fermionic,
-subspace, effective-model, FCIDUMP, and response invariants.
+The interchange boundary is bound by SHA-256 digest to each benchmark result.
+The frozen H$_4$ FCIDUMP is committed with its geometry, basis, PySCF version
+\cite{sun2018pyscf}, RHF energy, and an external determinant-FCI reference; the
+mapped $(N=4,S_z=0)$ sector energy agrees with that reference to
+$3.1\times10^{-15}$ Ha, and an independent OpenFermion reconstruction
+\cite{mcclean2020openfermion} agrees over $185$ Pauli terms to
+$8.74\times10^{-16}$.  After checkout, the H$_4$ path requires only NumPy.
 
-For clarity, the claim ledger is:
-\begin{itemize}
- \item \emph{exact arithmetic}: dimer identities, FCIDUMP mapping, sector
- energies, exact subspace energies, and exact resource counts;
- \item \emph{oracle sampled}: Phase 11--12 configuration, dressing, and
- packet experiments using exact-ground-state draws to isolate selector and
- subspace behavior; these are not state-preparation demonstrations;
- \item \emph{finite sample}: only declared sample-split candidate-growth
- decisions, conditional on their assumptions;
- \item \emph{heuristic}: bootstrap response intervals;
- \item \emph{not claimed}: novelty of adaptive GEPs, superiority to
- ADAPT-GCIM, DFT replacement, material prediction, scaling advantage,
- hardware demonstration, or quantum speedup.
-\end{itemize}
+Evidence labels travel with the records, not with the prose.  Exact-arithmetic
+rows carry \texttt{exact}; bootstrap diagnostics carry \texttt{heuristic} and
+\texttt{certified=False}; sampling-fed rows carry \texttt{oracle\_sampled} and
+are excluded from any statement about implementable state preparation.  The
+Krylov width counts of Sec.~\ref{sec:krylov-width} are admitted only when the
+truncated pencil reproduces the untruncated rank, normalized entries, ground
+energy, and condition number within declared tolerances, so every reported
+Krylov width is a support count certified to describe the same numerical
+pencil as the energy beside it.
 
 \section{Conclusion}
 \label{sec:conclusion}
 
-A-CASE provides a narrow but complete downstream workflow: an effective
-many-body Hamiltonian enters through a versioned or FCIDUMP boundary; one
-reference state supplies a cached operator-generated subspace; the subspace
-returns energies, correlations, and response; and finite-shot response is
-accompanied by an explicit evidence label and failure accounting.  The
-independent H$_4$ mapping check and closed-form dimer oracle make the workflow
-more than a self-consistency demonstration.
+We have presented A-CASE as an architecture for effective many-body
+Hamiltonians rather than as a competitor on energy error, and measured what the
+architecture costs and returns.  Fixing a single reference and reconstructing
+every overlap, Hamiltonian, and observable element from Pauli expectations on
+it yields one reference context at any basis size.  The matched H$_4$ context
+counts are $1$ against $8$, $16$, and $90$, but they are not physical
+preparation counts: at the shot-level primitive the word-resolution A-CASE
+selection bank is $1672$ QWC settings once, against $3616$ ADAPT-VQE selection
+setting-evaluations across changing states; the latter's optimizer adds at
+least $5576$ energy settings before gradient measurements are priced.  The
+same bank architecture makes energy, projected observables, and Lehmann
+response available from one cached set of $63$ words on the finite-shot dimer
+without materializing a Ritz state.  Because the basis is operator-generated, its
+measurement width is tunable: the same retained subspace, identical to machine
+precision in energy, dimension, conditioning, and every principal angle, costs
+$7371$ or $2240$ words depending on generator resolution, and $2519$ or $413$
+on a Hubbard plaquette.  Conditioning is likewise a design variable with a
+measured downstream price: at matched system, observable, word set, groups,
+shots, and seeds, four orders of $\kappa_S$ take bootstrap acceptance from
+$200/200$ to $139/200$ and widen the $\chi(0)$ interval roughly fifteenfold.
 
-The benchmark outcome is intentionally nonuniform.  A-CASE improves on some
-fixed local subspaces.  Among the five matched-$M=7$ arms shown in the Phase 12
-primary comparison, fixed Krylov has the lowest error on every system.  After a fair sample-independent
-selected-CI control is admitted, operator dressing supplies no advantage on the
-difficult $2\times3$ Hubbard rung.  Haar-packet refinement can still move the
-answer, including reproducible improvements under specific orderings, but the
-favored ordering reverses when the retained-direction budget changes and the
-policy-pooled effect is null at the $M=7$ budget.  This mixed result is the
-useful one.  It makes state-preparation information, classical selection,
-generator resolution, conditioning, measurement width, and response
-completeness explicit currencies rather than allowing any one of them to stand
-in for end-to-end performance.  We make no quantum advantage claim.
+The costs are equally definite.  The architecture is not the most accurate arm
+at matched budget on any rung tested; its selection stage reads an order of
+magnitude more words than it measures; its sampling-fed operator dressing is
+inert against a sample-independent selected-CI control at matched dimension;
+and nothing here supports a scaling claim.  What we offer is a resource profile
+bound to a strict interchange contract and reproducible from committed records.
+Contexts, QWC settings, shots, and preparation depth are connected by
+Eq.~\eqref{eq:hardware-cost}; a variance-optimal fixed-precision comparison
+still requires the method-specific group variances and a physical ADAPT
+gradient protocol.  Making that missing information explicit is the point: no
+raw state-context or word count may stand in for end-to-end performance.
+We make no quantum advantage claim.
 
+\begin{acknowledgments}
+The authors thank the Department of Engineering Physics, Institut Teknologi
+Bandung.
+\end{acknowledgments}
+
+\bibliographystyle{apsrev4-2}
 \bibliography{references}
 
 \end{document}

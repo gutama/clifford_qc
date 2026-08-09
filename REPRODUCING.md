@@ -429,14 +429,27 @@ while the ADAPT and warm-started arms carry a parameter optimization whose last
 bits depend on the runner's BLAS. A byte comparison of this record fails CI on
 a `sector_weight` of `1.0` serialized as `0.9999999999999999`.
 
-Costs are reported as separate currencies rather than summed, because a state
-preparation, a Pauli word, and an off-diagonal state-pair measurement are
-different machines' bottlenecks. Expected results
+The record does not assign an exchange rate between a state preparation and a
+Pauli word. A physical measurement shot prepares one state in one measurement
+setting, while a QWC setting can return several compatible words. Expected
+results
 (`benchmarks/reference_results/matched_h4.json`):
 
-- fixed-reference subspace arms need 1 state preparation; exact ADAPT-GCIM
-  needs 8 distinct generating-function states at `k=4` and 16 at `k=8`;
-  ADAPT-VQE needs 90, one per selection step and optimizer evaluation;
+- the exact workflow has 1 state-evaluation context for fixed-reference arms,
+  8 or 16 distinct generating-function contexts for ADAPT-GCIM, and 90
+  ADAPT-VQE selection/optimizer contexts. These are **not** physical
+  preparation executions; physical preparations occur once per setting-shot;
+- ADAPT-VQE's 2424-word selection union has 452 QWC settings and is paid on
+  eight changing selection states, giving 3616 selection setting-evaluations.
+  A-CASE's fixed-reference selection banks contain 15783/14401 words but only
+  1681/1672 QWC settings at determinant/word resolution, paid once. Under
+  uniform `R` shots per setting the selection circuit/preparation counts are
+  therefore `3616*R` versus `1681*R`/`1672*R`;
+- weighting each ADAPT-VQE selection setting by adaptive-rotor depth gives
+  12656 rotor-setting evaluations. Its 82 optimizer evaluations add a lower
+  bound of `82*68 = 5576` Hamiltonian setting-evaluations for energy alone;
+  physical gradient cost is deliberately unpriced because this exact
+  benchmark specifies no hardware gradient protocol;
 - ADAPT-GCIM uses the published cumulative-surrogate gradient, fixed
   `theta=pi/4`, no parameter optimization, and `M=2k`. The near-size arm
   (`k=4`, `M=8`) has `13.364 mHa` error, effective rank 6, and
@@ -447,8 +460,9 @@ different machines' bottlenecks. Expected results
   pairs and 136/120 pairs, respectively. They are transition measurements
   between separately prepared states, so the record deliberately does not
   mislabel them as A-CASE's single-reference final `W`;
-- ADAPT reads 2424 words to score its pool and 185 for its final energy;
-  A-CASE reads 14401-15783 to score and 2240-7371 for the retained subspace;
+- ADAPT's final Hamiltonian has 185 words/68 QWC settings; A-CASE's retained
+  word-resolution bank has 2240 words/465 settings and its determinant bank
+  has 7371 words/913 settings;
 - A-CASE at determinant resolution and at word resolution return the same
   energy to `4e-16 Ha`, the same `M=9` and `kappa(S)=1`, and the same subspace
   (all nine principal angles zero) at `W=7371` and `W=2240` respectively;

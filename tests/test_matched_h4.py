@@ -239,7 +239,7 @@ def test_adapt_gcim_rows_encode_both_exact_matching_rules(committed_record):
         assert row["trajectory"][-1]["ground_energy"] == pytest.approx(
             row["ground_energy"])
         assert row["optimizer_evaluations"] == 0
-        assert row["state_preparations"] == size
+        assert row["state_evaluation_contexts"] == size
         assert row["hamiltonian_matrix_pairs"] == size * (size + 1) // 2
         assert row["overlap_offdiagonal_pairs"] == size * (size - 1) // 2
         assert row["final_words"] is None
@@ -249,8 +249,8 @@ def test_adapt_gcim_rows_encode_both_exact_matching_rules(committed_record):
 @pytest.mark.parametrize("mutate", [
     pytest.param(
         lambda r: _row(r, "ADAPT-VQE").__setitem__(
-            "state_preparations", 91),
-                 id="preparation-count"),
+            "state_evaluation_contexts", 91),
+                 id="state-context-count"),
     pytest.param(
         lambda r: _row(r, "A-CASE (word)").__setitem__(
             "final_words", 2241),
@@ -272,3 +272,32 @@ def test_gate_rejects_a_real_regression(monkeypatch, committed_record, mutate):
     fresh = copy.deepcopy(committed_record)
     mutate(fresh)
     assert _gate_with(monkeypatch, fresh) == 1
+
+
+def test_setting_accounting_uses_groups_at_each_state_context(committed_record):
+    """A word width is not a shot-level execution count.
+
+    ADAPT changes state between selection rounds, so its grouped settings must
+    be paid again at every round. A-CASE reads one fixed-reference union and
+    reuses that bank. The record therefore stores both width and the summed
+    setting evaluations instead of manufacturing a word/preparation exchange
+    rate.
+    """
+    adapt = _row(committed_record, "ADAPT-VQE")
+    acase = _row(committed_record, "A-CASE (word)")
+
+    assert "state_preparations" not in adapt
+    assert adapt["selection_qwc_group_evaluations"] == sum(
+        step["selection_qwc_groups"] for step in adapt["selection_plan"])
+    assert adapt["selection_qwc_group_evaluations"] == 3616
+    assert adapt["selection_rotor_qwc_group_evaluations"] == sum(
+        step["state_rotors"] * step["selection_qwc_groups"]
+        for step in adapt["selection_plan"])
+    assert adapt["selection_rotor_qwc_group_evaluations"] == 12656
+    assert adapt["optimizer_energy_qwc_group_evaluations_lower_bound"] == (
+        adapt["optimizer_evaluations"] * adapt["final_qwc_groups"])
+
+    assert acase["selection_qwc_groups"] == 1672
+    assert acase["selection_qwc_group_evaluations"] == 1672
+    assert acase["selection_rotor_qwc_group_evaluations"] == 0
+    assert acase["selection_qwc_groups"] < acase["selection_words"]
