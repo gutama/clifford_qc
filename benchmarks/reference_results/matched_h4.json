@@ -32,6 +32,120 @@
     "sha256": "bf32568461477cf1ec8e7c4aaae737b0c6c80bcbd83d51f783ec3a3daed5a922",
     "unmatched": "generator granularity: ADAPT-VQE consumes single Pauli words, while A-CASE's default and ADAPT-GCIM candidates are whole determinant excitations. ADAPT-GCIM also measures off-diagonal transition elements rather than one fixed-reference word bank; both costs are reported without an assumed exchange rate."
   },
+  "provenance": {
+    "blas_lapack": {
+      "Build Dependencies": {
+        "blas": {
+          "detection method": "pkgconfig",
+          "found": true,
+          "include directory": "/opt/_internal/cpython-3.12.12/lib/python3.12/site-packages/scipy_openblas64/include",
+          "lib directory": "/opt/_internal/cpython-3.12.12/lib/python3.12/site-packages/scipy_openblas64/lib",
+          "name": "scipy-openblas",
+          "openblas configuration": "OpenBLAS 0.3.30  USE64BITINT DYNAMIC_ARCH NO_AFFINITY Haswell MAX_THREADS=64",
+          "pc file directory": "/project/.openblas",
+          "version": "0.3.30"
+        },
+        "lapack": {
+          "detection method": "pkgconfig",
+          "found": true,
+          "include directory": "/opt/_internal/cpython-3.12.12/lib/python3.12/site-packages/scipy_openblas64/include",
+          "lib directory": "/opt/_internal/cpython-3.12.12/lib/python3.12/site-packages/scipy_openblas64/lib",
+          "name": "scipy-openblas",
+          "openblas configuration": "OpenBLAS 0.3.30  USE64BITINT DYNAMIC_ARCH NO_AFFINITY Haswell MAX_THREADS=64",
+          "pc file directory": "/project/.openblas",
+          "version": "0.3.30"
+        }
+      },
+      "Compilers": {
+        "c": {
+          "commands": "cc",
+          "linker": "ld.bfd",
+          "name": "gcc",
+          "version": "14.2.1"
+        },
+        "c++": {
+          "commands": "c++",
+          "linker": "ld.bfd",
+          "name": "gcc",
+          "version": "14.2.1"
+        },
+        "cython": {
+          "commands": "cython",
+          "linker": "cython",
+          "name": "cython",
+          "version": "3.2.1"
+        }
+      },
+      "Machine Information": {
+        "build": {
+          "cpu": "x86_64",
+          "endian": "little",
+          "family": "x86_64",
+          "system": "linux"
+        },
+        "host": {
+          "cpu": "x86_64",
+          "endian": "little",
+          "family": "x86_64",
+          "system": "linux"
+        }
+      },
+      "Python Information": {
+        "path": "/tmp/build-env-aw1mwcap/bin/python",
+        "version": "3.12"
+      },
+      "SIMD Extensions": {
+        "baseline": [
+          "SSE",
+          "SSE2",
+          "SSE3"
+        ],
+        "found": [
+          "SSSE3",
+          "SSE41",
+          "POPCNT",
+          "SSE42",
+          "AVX",
+          "F16C",
+          "FMA3",
+          "AVX2",
+          "AVX512F",
+          "AVX512CD",
+          "AVX512_SKX",
+          "AVX512_CLX",
+          "AVX512_CNL",
+          "AVX512_ICL"
+        ],
+        "not found": [
+          "AVX512_KNL",
+          "AVX512_KNM",
+          "AVX512_SPR"
+        ]
+      }
+    },
+    "clifford_qc": "0.3.0",
+    "dependencies": {
+      "numpy": "2.3.5",
+      "openfermion": null,
+      "openfermionpyscf": null,
+      "pyscf": null,
+      "scipy": "1.17.0",
+      "stim": null
+    },
+    "environment_sha256": "e83025b543a17836895f6d11e801048d0043b3d8a2a7cf8d2fbf8963ae486ac1",
+    "git_dirty": null,
+    "git_sha": "unknown",
+    "platform": {
+      "hostname": "1b9d0d361690",
+      "machine": "x86_64",
+      "processor": "x86_64",
+      "release": "6.18.35",
+      "system": "Linux"
+    },
+    "python": "3.12.13",
+    "schema": "clifford_qc.execution_provenance.v1",
+    "utc": "2026-08-09T06:59:33.040825+00:00"
+  },
   "reference_energy": -2.180316614323859,
   "rows": [
     {
@@ -39,7 +153,7 @@
       "arm": "QSE",
       "basis_size": 9,
       "chemical_accuracy": false,
-      "condition_number": 1,
+      "condition_number": 1.0,
       "effective_rank": 9,
       "error_hartree": 0.04165277558738545,
       "error_millihartree": 41.65277558738545,
@@ -107,7 +221,7 @@
       "arm": "generator coordinate",
       "basis_size": 9,
       "chemical_accuracy": false,
-      "condition_number": 1,
+      "condition_number": 1.0,
       "effective_rank": 9,
       "error_hartree": 0.0495764475592666,
       "error_millihartree": 49.5764475592666,
@@ -680,7 +794,7 @@
       "arm": "A-CASE (determinant)",
       "basis_size": 9,
       "chemical_accuracy": false,
-      "condition_number": 1,
+      "condition_number": 1.0,
       "effective_rank": 9,
       "error_hartree": 0.003018781343635979,
       "error_millihartree": 3.018781343635979,
@@ -698,9 +812,11 @@
         "E(5,6<-0,3)",
         "E(4,7<-1,2)"
       ],
+      "leakage_mode": "operator",
       "notes": "the manuscript's default arm",
       "optimizer_evaluations": 0,
       "pool": "determinant excitations",
+      "sector_certificate": null,
       "sector_weight": 1.0000000000000002,
       "selection_evaluations": 180,
       "selection_qwc_group_evaluations": 1681,
@@ -714,7 +830,7 @@
       "arm": "A-CASE (word, leakage rejected)",
       "basis_size": 1,
       "chemical_accuracy": false,
-      "condition_number": 1,
+      "condition_number": 1.0,
       "effective_rank": 1,
       "error_hartree": 0.05605687535104753,
       "error_millihartree": 56.05687535104753,
@@ -724,9 +840,11 @@
       "labels": [
         "I"
       ],
+      "leakage_mode": "operator",
       "notes": "every candidate rejected: operator leakage out of (N, S_z) is sqrt(2) for every odd-Y word",
       "optimizer_evaluations": 0,
       "pool": "odd-Y words",
+      "sector_certificate": null,
       "sector_weight": 1.0,
       "selection_evaluations": 0,
       "selection_qwc_group_evaluations": 68,
@@ -740,7 +858,7 @@
       "arm": "A-CASE (word)",
       "basis_size": 9,
       "chemical_accuracy": false,
-      "condition_number": 1,
+      "condition_number": 1.0,
       "effective_rank": 9,
       "error_hartree": 0.003018781343636423,
       "error_millihartree": 3.018781343636423,
@@ -758,9 +876,18 @@
         "YZZXIXXI",
         "IYXIXZZX"
       ],
-      "notes": "same pool ADAPT consumes, leakage rejection disabled; the Ritz vector is still exactly in sector",
+      "leakage_mode": "operator_then_reference",
+      "notes": "same pool ADAPT consumes; operator-global rejection falls back to a reference-conditioned sector certificate, and the whole retained span is certified in sector",
       "optimizer_evaluations": 0,
       "pool": "odd-Y words",
+      "sector_certificate": {
+        "basis_size": 9,
+        "max_sector_leakage": 0.0,
+        "min_sector_weight": 1.0,
+        "overlap_rank": 9,
+        "target_particle_number": 4,
+        "target_sz": 0.0
+      },
       "sector_weight": 1.0,
       "selection_evaluations": 1252,
       "selection_qwc_group_evaluations": 1672,
@@ -792,6 +919,7 @@
         "E(5,7<-1,3)",
         "E(4,6<-0,2)"
       ],
+      "leakage_mode": "operator",
       "notes": "total cost includes the ADAPT prelude that prepared rho: its rotors, optimizer evaluations, and pool scorings",
       "optimizer_evaluations": 15,
       "pool": "determinant excitations",
@@ -826,6 +954,7 @@
         "stage": "ADAPT-VQE, 2 operators",
         "state_evaluation_contexts": 17
       },
+      "sector_certificate": null,
       "sector_weight": 0.9998820842064668,
       "selection_evaluations": 499,
       "selection_qwc_group_evaluations": 2589,

@@ -25,6 +25,7 @@ from clifford_qc.backends import ExactMVBackend
 from clifford_qc.backends.finite_shot import FiniteShotBackend
 from clifford_qc.matrix import exact_ground
 from clifford_qc.measurement.confidence import simultaneous_z_radius
+from clifford_qc.measurement import variance_optimal_group_plan
 from clifford_qc.models.spin import tfim
 from clifford_qc.subspace import (
     ASYMPTOTIC, FINITE_SAMPLE, HEURISTIC, Generator, MatrixElementBank,
@@ -108,6 +109,56 @@ def test_shot_and_circuit_accounting(ill_conditioned):
     assert result.resources["shots"] == 500 * len(shared.groups)
     assert result.resources["measured_words"] == len(shared.words)
     assert result.resources["evidence"] == HEURISTIC  # energies from noisy matrices
+
+
+def test_ritz_targeted_group_allocation_spends_the_declared_physical_budget(
+        well_conditioned):
+    bank, shared, exact, _ = well_conditioned
+    cache = shared.measure(FiniteShotBackend(seed=20), 500)
+    functional = ritz_functional(
+        bank, exact.indices, exact.ritz_vector(0), exact.ground_energy)
+    plan = variance_optimal_group_plan(shared.groups, cache, [functional], 4000)
+    before = cache.total_shots
+    shared.measure_plan(FiniteShotBackend(seed=21), plan, cache)
+    assert cache.total_shots - before == 4000
+    for group in shared.groups:
+        counts = {plan.get(word.code, 0) for word in group}
+        assert len(counts) == 1
+
+
+def test_projected_matrix_functionals_cover_the_shared_word_universe(
+        well_conditioned):
+    _, shared, _, _ = well_conditioned
+    functionals = shared.matrix_functionals()
+    covered = {code for functional in functionals
+               for code in functional.coefficients}
+    assert covered == {word.code for word in shared.words}
+    assert all(not functional.is_deterministic for functional in functionals)
+    assert (len(shared.matrix_functionals(overlap=False)) > 0
+            and len(shared.matrix_functionals(hamiltonian=False)) > 0)
+    assert shared.matrix_functionals(overlap=False, hamiltonian=False) == ()
+
+
+def test_shot_calibrated_overlap_floor_shrinks_and_controls_the_solver(
+        well_conditioned):
+    _, shared, _, _ = well_conditioned
+    small = shared.measure(FiniteShotBackend(seed=22), 1000)
+    large = shared.measure(FiniteShotBackend(seed=22), 100_000)
+    small_floor = shared.calibrated_overlap_floor(small)["threshold"]
+    large_floor = shared.calibrated_overlap_floor(large)["threshold"]
+    assert large_floor < small_floor / 5.0
+
+    result = shared.solve(large, calibrate_overlap=True)
+    calibration = result.resources["overlap_calibration"]
+    assert result.resources["overlap_threshold_policy"] == "shot_calibrated"
+    assert calibration["strategy"] == "modewise"
+    assert result.resources["overlap_noise_floor"] == pytest.approx(
+        calibration["threshold"])
+    assert result.resources["overlap_threshold"] >= calibration["threshold"]
+
+    conservative = shared.calibrated_overlap_floor(large, strategy="entrywise")
+    assert conservative["strategy"] == "entrywise"
+    assert conservative["threshold"] >= calibration["threshold"]
 
 
 def test_a_deterministic_functional_costs_no_shots_and_no_interval(well_conditioned):

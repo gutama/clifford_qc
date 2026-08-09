@@ -236,12 +236,22 @@ class ResponseMeasurement(SharedMeasurement):
                  gap_floor: float = 1e-12, tau_s: float = DEFAULT_TAU_S,
                  rel_tau: float = 0.0,
                  max_condition: float = DEFAULT_MAX_CONDITION,
-                 norm_floor: float = DEFAULT_NORM_FLOOR
+                 norm_floor: float = DEFAULT_NORM_FLOOR,
+                 calibrate_overlap: bool = False,
+                 overlap_delta: float = 0.05,
+                 overlap_bound: str = "normal",
+                 overlap_method: str = "bonferroni",
+                 overlap_strategy: str = "modewise",
+                 overlap_safety: float = 1.0,
                  ) -> MeasuredResponseSpectrum:
         """Run the measured matrix-pencil and response pipeline once."""
         result = self.solve(
             cache, tau_s=tau_s, rel_tau=rel_tau,
-            max_condition=max_condition, norm_floor=norm_floor)
+            max_condition=max_condition, norm_floor=norm_floor,
+            calibrate_overlap=calibrate_overlap,
+            overlap_delta=overlap_delta, overlap_bound=overlap_bound,
+            overlap_method=overlap_method, overlap_strategy=overlap_strategy,
+            overlap_safety=overlap_safety)
         overlap, _ = self.matrices(cache)
         observable = self.observable_matrix(cache)
         lines = _projected_lines(

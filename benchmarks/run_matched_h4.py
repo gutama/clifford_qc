@@ -300,12 +300,15 @@ def build_record() -> dict:
     identity = identity_generator(model.n)
     rows: list[dict] = []
 
-    def acase(name, candidates, pool_kind, *, leakage_tol, notes="",
+    def acase(name, candidates, pool_kind, *, leakage_tol,
+              leakage_mode="operator", sector_target=None, notes="",
               reference=None, prelude=None):
         started = time.perf_counter()
         kwargs = {"max_size": BUDGET, "exact_ground_energy": exact_energy}
         if leakage_tol is not None:
             kwargs["leakage_tol"] = leakage_tol
+            kwargs["leakage_mode"] = leakage_mode
+            kwargs["sector_target"] = sector_target
         result = run_acase(reference if reference is not None else rho,
                            model.hamiltonian, candidates, **kwargs)
         scored = sum(record.candidates_scored for record in result.records)
@@ -335,6 +338,8 @@ def build_record() -> dict:
             row["selection_rotor_qwc_group_evaluations"] += (
                 prelude["selection_rotor_qwc_group_evaluations"])
             row["prelude"] = prelude
+        row["leakage_mode"] = leakage_mode if leakage_tol is not None else "disabled"
+        row["sector_certificate"] = result.resources.get("sector_certificate")
         print(f"  {name}: {time.perf_counter() - started:.1f}s", flush=True)
         rows.append(row)
         return result
@@ -516,9 +521,13 @@ def build_record() -> dict:
           leakage_tol=1e-10,
           notes=("every candidate rejected: operator leakage out of (N, S_z) "
                  "is sqrt(2) for every odd-Y word"))
-    acase("A-CASE (word)", words, "odd-Y words", leakage_tol=None,
-          notes=("same pool ADAPT consumes, leakage rejection disabled; the "
-                 "Ritz vector is still exactly in sector"))
+    acase(
+        "A-CASE (word)", words, "odd-Y words", leakage_tol=1e-10,
+        leakage_mode="operator_then_reference",
+        sector_target=(model.metadata["n_electrons"], model.metadata["sz"]),
+        notes=("same pool ADAPT consumes; operator-global rejection falls back "
+               "to a reference-conditioned sector certificate, and the whole "
+               "retained span is certified in sector"))
 
     # --- warm-started A-CASE, with the prelude priced ---------------------
     warm_rho, warm_adapt = adapt_warm_start(

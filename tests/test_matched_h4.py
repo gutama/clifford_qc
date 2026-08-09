@@ -31,7 +31,8 @@ from clifford_qc.ir import PauliWord
 from clifford_qc.models.lattice import hubbard
 from clifford_qc.subspace import (dense_basis, determinant_excitations,
                                   occupied_spin_orbitals, pauli_orbit,
-                                  run_acase, sector_leakage)
+                                  reference_sector_leakage, run_acase,
+                                  sector_leakage, subspace_sector_certificate)
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "benchmarks"))
 
@@ -68,7 +69,10 @@ def test_resolution_changes_width_without_changing_the_subspace(plaquette):
     model, rho, determinants, words = plaquette
     coarse = run_acase(rho, model.hamiltonian, determinants, max_size=6,
                        leakage_tol=1e-10)
-    fine = run_acase(rho, model.hamiltonian, words, max_size=6)
+    fine = run_acase(
+        rho, model.hamiltonian, words, max_size=6,
+        leakage_tol=1e-10, leakage_mode="operator_then_reference",
+        sector_target=(model.metadata["n_electrons"], 0.0))
 
     assert coarse.energy == pytest.approx(fine.energy, abs=1e-12)
     assert len(coarse.result.basis_labels) == len(fine.result.basis_labels)
@@ -107,6 +111,26 @@ def test_word_generators_break_symmetry_as_operators(plaquette):
     _, _, _, words = plaquette
     leakage = [sector_leakage(g)["particle_number"] for g in words]
     assert min(leakage) > 1.0
+
+
+def test_reference_filter_accepts_safe_words_and_certifies_the_span(plaquette):
+    """The fallback spends the cheaper global test first, then certifies state leakage."""
+    model, rho, _, words = plaquette
+    target = (model.metadata["n_electrons"], 0.0)
+    first = reference_sector_leakage(words[0], rho, sector_target=target)
+    assert first["target_sector"] == 0.0
+
+    result = run_acase(
+        rho, model.hamiltonian, words, max_size=6,
+        leakage_tol=1e-10, leakage_mode="operator_then_reference",
+        sector_target=target)
+    certificate = result.resources["sector_certificate"]
+    assert certificate["max_sector_leakage"] == 0.0
+    assert certificate["min_sector_weight"] == 1.0
+    independent = subspace_sector_certificate(
+        rho, [result.bank._generators[i] for i in result.result.indices],
+        sector_target=target)
+    assert independent == certificate
 
 
 def test_but_their_ritz_vector_stays_in_sector(plaquette):

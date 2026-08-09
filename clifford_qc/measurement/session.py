@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import math
 from typing import TYPE_CHECKING, Sequence
 
 import numpy as np
@@ -61,6 +62,25 @@ class SharedMeasurement:
         """``S_ii`` as a functional -- the candidate norm, when it must be measured."""
         return self._pairs[(index, index)][0][0]
 
+    def matrix_functionals(self, *, overlap: bool = True,
+                           hamiltonian: bool = True) -> tuple[WordFunctional, ...]:
+        """Independent real functionals defining the measured ``(S, H)``.
+
+        The upper triangle is structurally mirrored by :meth:`matrices`, so
+        returning its real and imaginary parts once gives an allocation policy
+        a nonduplicated target family.  Deterministic entries are omitted:
+        they neither need shots nor contribute estimator variance.
+        """
+        if not overlap and not hamiltonian:
+            return ()
+        out = []
+        for pair in self._pairs.values():
+            selected = pair if overlap and hamiltonian else (
+                pair[0:1] if overlap else pair[1:2])
+            out.extend(functional for parts in selected for functional in parts
+                       if not functional.is_deterministic)
+        return tuple(out)
+
     @property
     def n(self) -> int:
         return self.bank.n
@@ -83,6 +103,29 @@ class SharedMeasurement:
         cache = self.new_cache() if cache is None else cache
         batch = backend.sample_grouped_from_state(self.bank.reference, self.groups,
                                                  shots_per_group)
+        cache.add_batch(batch)
+        return cache
+
+    def measure_plan(self, backend, plan: dict[int, int],
+                     cache: GroupedWordCache | None = None) -> GroupedWordCache:
+        """Measure a word-keyed plan whose counts are constant within groups.
+
+        Allocation policies return word keys for backend compatibility, while
+        the physical resource is one shot count per group.  Rejecting
+        inconsistent counts here prevents a caller from accidentally relying
+        on the backend's historical ``max(group member counts)`` fallback and
+        misreporting the spent budget.
+        """
+        if not plan:
+            raise ValueError("measurement plan is empty")
+        for group in self.groups:
+            counts = {int(plan.get(word.code, 0)) for word in group}
+            if len(counts) > 1:
+                raise ValueError("all words in a measurement group need the same shots")
+            if next(iter(counts), 0) < 0:
+                raise ValueError("shots must be nonnegative")
+        cache = self.new_cache() if cache is None else cache
+        batch = backend.sample_grouped_from_state(self.bank.reference, self.groups, plan)
         cache.add_batch(batch)
         return cache
 
@@ -115,9 +158,114 @@ class SharedMeasurement:
         rho = self.bank.reference
         return self._assemble(lambda f: f.exact(rho))
 
+    def calibrated_overlap_floor(self, cache: GroupedWordCache, *,
+                                 delta: float = 0.05, bound: str = "normal",
+                                 method: str = "bonferroni", safety: float = 1.0,
+                                 strategy: str = "modewise",
+                                 norm_floor: float = DEFAULT_NORM_FLOOR,
+                                 overlap: np.ndarray | None = None) -> dict:
+        """Estimate a shot-budget-dependent cutoff for normalized overlap modes.
+
+        ``strategy='modewise'`` projects the measured overlap uncertainty onto
+        each observed normalized overlap eigenvector and uses the largest
+        simultaneous covariance-aware radius.  This directly asks whether a
+        mode is larger than its shot noise and is the default.  The more
+        conservative ``'entrywise'`` strategy takes the spectral norm of a
+        matrix of simultaneous entrywise radii.  Scaling uses the measured
+        diagonal because canonical truncation acts on the normalized overlap.
+
+        This is a noise-aware regularization *diagnostic*, not a variational or
+        coverage certificate: the same data select the retained rank and solve
+        the pencil, and adaptive shot schedules make fixed-endpoint empirical
+        Bernstein semantics inapplicable unless an independent frozen batch is
+        used.
+        """
+        if safety <= 0.0 or not math.isfinite(safety):
+            raise ValueError("overlap safety factor must be positive and finite")
+        if strategy not in ("modewise", "entrywise"):
+            raise ValueError("overlap strategy must be 'modewise' or 'entrywise'")
+        overlap = self.matrices(cache)[0] if overlap is None else np.asarray(overlap)
+        size = len(self.indices)
+        diagonal = np.clip(overlap.diagonal().real, norm_floor ** 2, None)
+        scales = np.sqrt(diagonal)
+        normalized = (overlap / scales[:, None]) / scales[None, :]
+
+        if strategy == "entrywise":
+            stochastic = sum(
+                not functional.is_deterministic
+                for pair in self._pairs.values() for functional in pair[0])
+            family = max(1, stochastic)
+            radii = np.zeros((size, size), dtype=float)
+            for a, i in enumerate(self.indices):
+                for b, j in enumerate(self.indices[a:], start=a):
+                    real, imag = self._pairs[(i, j)][0]
+                    real_radius = real.radius(
+                        cache, delta, family, bound=bound, method=method)
+                    imag_radius = imag.radius(
+                        cache, delta, family, bound=bound, method=method)
+                    radius = math.hypot(real_radius, imag_radius)
+                    radii[a, b] = radii[b, a] = radius
+            normalized_radii = (radii / scales[:, None]) / scales[None, :]
+            raw = float(np.linalg.norm(normalized_radii, ord=2))
+        else:
+            # Treat the measured normalization as fixed and propagate the full
+            # grouped covariance of u^* S_bar u for every observed mode.  The
+            # resulting delta-method threshold is intentionally labelled
+            # heuristic below: both u and the diagonal scaling are data-derived.
+            _, vectors = np.linalg.eigh(normalized)
+            family = size
+            mode_radii = []
+            for column in range(size):
+                amplitudes = vectors[:, column] / scales
+                coefficients: dict[int, float] = {}
+
+                def add(functional: WordFunctional, weight: float) -> None:
+                    if weight == 0.0:
+                        return
+                    for code, value in functional.coefficients.items():
+                        coefficients[code] = coefficients.get(code, 0.0) \
+                            + weight * value
+
+                for a, i in enumerate(self.indices):
+                    for b, j in enumerate(self.indices[a:], start=a):
+                        real, imag = self._pairs[(i, j)][0]
+                        weight = np.conjugate(amplitudes[a]) * amplitudes[b]
+                        if a == b:
+                            add(real, float(weight.real))
+                        else:
+                            add(real, float(2.0 * weight.real))
+                            add(imag, float(-2.0 * weight.imag))
+                functional = WordFunctional({
+                    code: value for code, value in coefficients.items()
+                    if value != 0.0
+                })
+                mode_radii.append(functional.radius(
+                    cache, delta, family, bound=bound, method=method))
+            raw = float(max(mode_radii, default=0.0))
+
+        if not math.isfinite(raw):
+            raise ValueError("overlap noise floor is unresolved: some words are unmeasured")
+        return {
+            "threshold": safety * raw,
+            "raw_noise_radius": raw,
+            "family_size": family,
+            "delta": float(delta),
+            "bound": bound,
+            "method": method,
+            "strategy": strategy,
+            "safety": float(safety),
+            "evidence": HEURISTIC,
+        }
+
     def solve(self, cache: GroupedWordCache, *, tau_s: float = DEFAULT_TAU_S,
               rel_tau: float = 0.0, max_condition: float = DEFAULT_MAX_CONDITION,
-              norm_floor: float = DEFAULT_NORM_FLOOR) -> SubspaceResult:
+              norm_floor: float = DEFAULT_NORM_FLOOR,
+              calibrate_overlap: bool = False,
+              overlap_delta: float = 0.05,
+              overlap_bound: str = "normal",
+              overlap_method: str = "bonferroni",
+              overlap_strategy: str = "modewise",
+              overlap_safety: float = 1.0) -> SubspaceResult:
         """Thresholded GEP on the measured matrices.
 
         The result reports the same conditioning metrics as the exact path plus
@@ -128,6 +276,15 @@ class SharedMeasurement:
         from ..subspace.linalg import solve_projected
 
         S, Hm = self.matrices(cache)
+        calibration = None
+        noise_floor = 0.0
+        if calibrate_overlap:
+            calibration = self.calibrated_overlap_floor(
+                cache, delta=overlap_delta, bound=overlap_bound,
+                method=overlap_method, strategy=overlap_strategy,
+                safety=overlap_safety,
+                norm_floor=norm_floor, overlap=S)
+            noise_floor = calibration["threshold"]
         resources = dict(self.bank.resources(self.indices))
         resources.update({
             "evidence": HEURISTIC,
@@ -137,11 +294,16 @@ class SharedMeasurement:
             "measured_words": len(self.words),
             "shots_per_measured_word": (cache.total_shots / len(self.words)
                                         if self.words else 0.0),
+            "overlap_threshold_policy": (
+                "shot_calibrated" if calibrate_overlap else "fixed"),
+            "overlap_calibration": calibration,
         })
         return solve_projected(S, Hm,
                                [self.bank.generator(i).label for i in self.indices],
                                tau_s=tau_s, rel_tau=rel_tau,
-                               max_condition=max_condition, norm_floor=norm_floor,
+                               max_condition=max_condition,
+                               overlap_noise_floor=noise_floor,
+                               norm_floor=norm_floor,
                                resources=resources).with_bank(self.bank, self.indices)
 
 

@@ -36,6 +36,10 @@ from .configuration import (
     configuration_generator, configuration_generators,
     configuration_haar_packets, determinant_program, state_sector,
 )
+from .symmetry import (
+    infer_reference_sector, reference_sector_leakage,
+    subspace_sector_certificate,
+)
 from .fermionic_generators import (
     determinant_excitations, fermionic_excitation_generators,
     occupied_spin_orbitals,
@@ -92,7 +96,8 @@ __all__ = [
     "CandidateScore", "GrowthRecord", "OverlapTarget", "TargetOverlapScore",
     "adapt_warm_start", "acase_step", "run_acase", "score_candidate",
     "score_target_overlap", "sector_leakage", "select_candidate",
-    "select_target_candidate",
+    "select_target_candidate", "infer_reference_sector",
+    "reference_sector_leakage", "subspace_sector_certificate",
     "ConfigurationOrdering", "HaarPacketNode", "MultiresolutionResult",
     "configuration_ordering", "configuration_packet_hierarchy",
     "run_coarse_to_fine_acase",
