@@ -231,10 +231,15 @@ class GroupedWordCache:
             est += c * mean / g["N"]
         return est
 
-    def candidate_group_terms(self, coeffs: dict):
-        """Yield ``(N_g, sample_var_g, range_g)`` of the candidate's per-shot
-        combined value within each group it touches. Feeds ``candidate_radius``.
-        Returns ``None`` if any touched word is unmeasured (unresolved)."""
+    def candidate_group_statistics(self, coeffs: dict):
+        """Per-group statistics of a linear functional of word outcomes.
+
+        Returns ``{basis_key: (N_g, sample_var_g, range_g)}``, or ``None`` if
+        any touched word is unmeasured.  Keeping the basis key is what a
+        physical-shot allocator needs: every member of one QWC group is read by
+        the same circuit shot, so allocating independently to the words would
+        count a resource the hardware cannot spend independently.
+        """
         # bucket the candidate's coefficients by the group that reads each word
         buckets: dict[tuple, tuple] = {}
         for code, c in coeffs.items():
@@ -243,7 +248,7 @@ class GroupedWordCache:
                 return None
             key = tuple(sorted(g["basis"].items()))
             buckets.setdefault(key, (g, {}))[1][code] = c
-        terms = []
+        terms = {}
         for key, (g, rowc) in buckets.items():
             support = g["support"]
             N = g["N"]
@@ -268,5 +273,14 @@ class GroupedWordCache:
             # interval collapse at finite N.  This Jeffreys-scale floor retains
             # the covariance estimate while refusing false certainty.
             var = max(raw_var, rng * rng / (4.0 * (N + 1.0)))
-            terms.append((N, var, rng))
+            terms[key] = (N, var, rng)
         return terms
+
+    def candidate_group_terms(self, coeffs: dict):
+        """``(N_g, sample_var_g, range_g)`` per touched measurement group.
+
+        Compatibility view for confidence routines; allocators should use
+        :meth:`candidate_group_statistics` so the group identity is retained.
+        """
+        statistics = self.candidate_group_statistics(coeffs)
+        return None if statistics is None else list(statistics.values())

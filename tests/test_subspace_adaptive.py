@@ -73,6 +73,19 @@ def test_closed_form_lowering_matches_the_generalized_two_by_two():
             energy - reference, abs=1e-9)
 
 
+def test_overlap_noise_floor_discards_modes_below_the_measured_resolution():
+    # Canonical truncation acts after normalizing generator norms, so the small
+    # mode must represent near dependence rather than a merely rescaled vector.
+    overlap = np.array([[1.0, 0.99995], [0.99995, 1.0]])
+    hamiltonian = np.diag([-1.0, -0.9])
+    unregularized = solve_projected(overlap, hamiltonian, tau_s=0.0)
+    calibrated = solve_projected(
+        overlap, hamiltonian, tau_s=0.0, overlap_noise_floor=1e-3)
+    assert unregularized.effective_rank == 2
+    assert calibrated.effective_rank == 1
+    assert calibrated.resources["overlap_noise_floor"] == pytest.approx(1e-3)
+
+
 def test_lowering_is_zero_when_the_deflation_stops_being_computable():
     """The 0/0 limit returns zero rather than a fabricated eigenvalue."""
     energy = -4.0

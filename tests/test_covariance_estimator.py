@@ -13,9 +13,10 @@ from clifford_qc.ir import PauliWord
 from clifford_qc.backends import FiniteShotBackend
 from clifford_qc.backends.protocol import GroupSample, MeasurementBatch
 from clifford_qc.measurement import (
-    CommutatorBank, GroupedWordCache, candidate_radius, empirical_bernstein_radius,
-    qwc_groups,
+    CommutatorBank, GroupedWordCache, GroupVarianceOptimal, candidate_radius,
+    empirical_bernstein_radius, qwc_groups, variance_optimal_group_plan,
 )
+from clifford_qc.measurement.functionals import WordFunctional
 from clifford_qc.models import tfim
 from clifford_qc.states import bell_density, ghz_density
 
@@ -85,6 +86,63 @@ def test_candidate_radius_normal_and_eb_shrink_with_shots():
     # EB is a strictly more conservative finite-sample bound than the normal one
     assert candidate_radius(terms_small, 0.05, 3, bound="eb", rounds=4) > \
         candidate_radius(terms_small, 0.05, 3, bound="normal", rounds=4)
+
+
+def test_variance_optimal_plan_allocates_physical_groups_not_words():
+    """Bell covariance makes the Z group four times as variable as the X group.
+
+    Neyman allocation therefore approaches a 2:1 shot ratio.  Every word in
+    the Z group must receive the same plan value because those outcomes come
+    from one physical circuit execution.
+    """
+    zi = PauliWord.from_label("ZI")
+    iz = PauliWord.from_label("IZ")
+    xi = PauliWord.from_label("XI")
+    groups = qwc_groups([zi, iz, xi])
+    cache = _cache(bell_density(), groups, 1000, 17, 2)
+    functionals = [
+        WordFunctional({zi.code: 1.0, iz.code: 1.0}),
+        WordFunctional({xi.code: 1.0}),
+    ]
+    plan = variance_optimal_group_plan(groups, cache, functionals, 900)
+    group_counts = []
+    for group in groups:
+        counts = {plan[word.code] for word in group}
+        assert len(counts) == 1
+        group_counts.append(next(iter(counts)))
+    assert sum(group_counts) == 900
+    z_count = plan[zi.code]
+    assert plan[iz.code] == z_count
+    assert 1.7 < z_count / plan[xi.code] < 2.3
+
+
+def test_group_variance_allocator_bootstraps_and_respects_round_budget():
+    model = tfim(3)
+    from clifford_qc.algorithms import local_pool
+    pool = local_pool(3, periodic_context=False)
+    bank = CommutatorBank(model.hamiltonian, [operator.word for operator in pool])
+    groups = qwc_groups(bank.words)
+    cache = GroupedWordCache(3)
+    allocator = GroupVarianceOptimal(200, groups=groups, max_rounds=1)
+    plan = allocator.plan(0, bank, cache, list(range(len(bank))))
+    counts = []
+    for group in groups:
+        touched = [word for word in group if word.code in plan]
+        if touched:
+            assert len({plan[word.code] for word in touched}) == 1
+            counts.append(plan[touched[0].code])
+    assert sum(counts) == 200
+    assert allocator.plan(1, bank, cache, list(range(len(bank)))) == {}
+
+
+def test_group_allocator_rejects_duplicate_physical_bases():
+    zi = PauliWord.from_label("ZI")
+    iz = PauliWord.from_label("IZ")
+    zz = PauliWord.from_label("ZZ")
+    cache = GroupedWordCache(2)
+    functional = WordFunctional({zi.code: 1.0, iz.code: 1.0, zz.code: 1.0})
+    with pytest.raises(ValueError, match="distinct shared bases"):
+        variance_optimal_group_plan([[zi, iz], [zz]], cache, [functional], 20)
 
 
 def test_empirical_bernstein_budget_is_split_over_groups():

@@ -1,0 +1,223 @@
+{
+  "allocation_diagnostics": {
+    "additional_group_shots_max": 13399.0,
+    "additional_group_shots_min": 31.0,
+    "additional_group_shots_nonzero": 52.0
+  },
+  "arms": {
+    "group_optimal_calibrated": {
+      "below_exact_count": 3,
+      "bias_millihartree": 53.49209932811043,
+      "catastrophic_error_count": 0,
+      "exact_rank_count": 0,
+      "failures": {},
+      "max_absolute_error_millihartree": 93.35960547831502,
+      "median_absolute_error_millihartree": 81.41580054241172,
+      "median_condition_number": 3.266930310264004,
+      "median_exact_ritz_variance": 2.7593150616437364e-05,
+      "median_overlap_threshold": 0.07217441179500657,
+      "median_projected_matrix_variance_sum": 84.74562412899782,
+      "p95_absolute_error_millihartree": 91.42361003098776,
+      "rank_histogram": {
+        "6": 108,
+        "7": 92
+      },
+      "replicas": 200,
+      "rmse_millihartree": 64.66202439845118,
+      "successful_solves": 200
+    },
+    "group_optimal_fixed": {
+      "below_exact_count": 128,
+      "bias_millihartree": -24.811216640192384,
+      "catastrophic_error_count": 1,
+      "exact_rank_count": 200,
+      "failures": {},
+      "max_absolute_error_millihartree": 4032.5677971176574,
+      "median_absolute_error_millihartree": 4.435992805782885,
+      "median_condition_number": 174.43603928176344,
+      "median_exact_ritz_variance": 2.7593150616437364e-05,
+      "median_overlap_threshold": 1e-10,
+      "median_projected_matrix_variance_sum": 84.74562412899782,
+      "p95_absolute_error_millihartree": 27.592556960716706,
+      "rank_histogram": {
+        "8": 200
+      },
+      "replicas": 200,
+      "rmse_millihartree": 285.39998454828225,
+      "successful_solves": 200
+    },
+    "uniform_calibrated": {
+      "below_exact_count": 0,
+      "bias_millihartree": 38.14554964419265,
+      "catastrophic_error_count": 0,
+      "exact_rank_count": 0,
+      "failures": {},
+      "max_absolute_error_millihartree": 97.8103808264157,
+      "median_absolute_error_millihartree": 21.404083498111515,
+      "median_condition_number": 39.17173126963782,
+      "median_exact_ritz_variance": 3.4466825472727355e-05,
+      "median_overlap_threshold": 0.06719609536307969,
+      "median_projected_matrix_variance_sum": 272.46127774725005,
+      "p95_absolute_error_millihartree": 90.1664233276548,
+      "rank_histogram": {
+        "6": 62,
+        "7": 138
+      },
+      "replicas": 200,
+      "rmse_millihartree": 50.144689912765216,
+      "successful_solves": 200
+    },
+    "uniform_fixed": {
+      "below_exact_count": 121,
+      "bias_millihartree": -178.0810797219864,
+      "catastrophic_error_count": 4,
+      "exact_rank_count": 200,
+      "failures": {},
+      "max_absolute_error_millihartree": 22760.19648976996,
+      "median_absolute_error_millihartree": 4.476566391405257,
+      "median_condition_number": 181.4316621090705,
+      "median_exact_ritz_variance": 3.4466825472727355e-05,
+      "median_overlap_threshold": 1e-10,
+      "median_projected_matrix_variance_sum": 272.46127774725005,
+      "p95_absolute_error_millihartree": 37.00613160896697,
+      "rank_histogram": {
+        "8": 200
+      },
+      "replicas": 200,
+      "rmse_millihartree": 1786.20625259282,
+      "successful_solves": 200
+    }
+  },
+  "budget": {
+    "adaptive_pilot_physical_shots": 10400,
+    "adaptive_pilot_shots_per_group": 200,
+    "physical_shots_per_replica": 104000,
+    "uniform_shots_per_group": 2000
+  },
+  "evidence": "heuristic",
+  "interpretation": "Monte Carlo diagnostic on one fixed four-qubit projected subspace; not a hardware result or finite-sample coverage certificate.",
+  "provenance": {
+    "blas_lapack": {
+      "Build Dependencies": {
+        "blas": {
+          "detection method": "pkgconfig",
+          "found": true,
+          "include directory": "/opt/_internal/cpython-3.12.12/lib/python3.12/site-packages/scipy_openblas64/include",
+          "lib directory": "/opt/_internal/cpython-3.12.12/lib/python3.12/site-packages/scipy_openblas64/lib",
+          "name": "scipy-openblas",
+          "openblas configuration": "OpenBLAS 0.3.30  USE64BITINT DYNAMIC_ARCH NO_AFFINITY Haswell MAX_THREADS=64",
+          "pc file directory": "/project/.openblas",
+          "version": "0.3.30"
+        },
+        "lapack": {
+          "detection method": "pkgconfig",
+          "found": true,
+          "include directory": "/opt/_internal/cpython-3.12.12/lib/python3.12/site-packages/scipy_openblas64/include",
+          "lib directory": "/opt/_internal/cpython-3.12.12/lib/python3.12/site-packages/scipy_openblas64/lib",
+          "name": "scipy-openblas",
+          "openblas configuration": "OpenBLAS 0.3.30  USE64BITINT DYNAMIC_ARCH NO_AFFINITY Haswell MAX_THREADS=64",
+          "pc file directory": "/project/.openblas",
+          "version": "0.3.30"
+        }
+      },
+      "Compilers": {
+        "c": {
+          "commands": "cc",
+          "linker": "ld.bfd",
+          "name": "gcc",
+          "version": "14.2.1"
+        },
+        "c++": {
+          "commands": "c++",
+          "linker": "ld.bfd",
+          "name": "gcc",
+          "version": "14.2.1"
+        },
+        "cython": {
+          "commands": "cython",
+          "linker": "cython",
+          "name": "cython",
+          "version": "3.2.1"
+        }
+      },
+      "Machine Information": {
+        "build": {
+          "cpu": "x86_64",
+          "endian": "little",
+          "family": "x86_64",
+          "system": "linux"
+        },
+        "host": {
+          "cpu": "x86_64",
+          "endian": "little",
+          "family": "x86_64",
+          "system": "linux"
+        }
+      },
+      "Python Information": {
+        "path": "/tmp/build-env-aw1mwcap/bin/python",
+        "version": "3.12"
+      },
+      "SIMD Extensions": {
+        "baseline": [
+          "SSE",
+          "SSE2",
+          "SSE3"
+        ],
+        "found": [
+          "SSSE3",
+          "SSE41",
+          "POPCNT",
+          "SSE42",
+          "AVX",
+          "F16C",
+          "FMA3",
+          "AVX2",
+          "AVX512F",
+          "AVX512CD",
+          "AVX512_SKX",
+          "AVX512_CLX",
+          "AVX512_CNL",
+          "AVX512_ICL"
+        ],
+        "not found": [
+          "AVX512_KNL",
+          "AVX512_KNM",
+          "AVX512_SPR"
+        ]
+      }
+    },
+    "clifford_qc": "0.3.0",
+    "dependencies": {
+      "numpy": "2.3.5",
+      "openfermion": null,
+      "openfermionpyscf": null,
+      "pyscf": null,
+      "scipy": "1.17.0",
+      "stim": null
+    },
+    "environment_sha256": "db4abcea7b4333ea945a622956ff11451676f47d3f2e1f4cceada0df6c45da90",
+    "git_dirty": null,
+    "git_sha": "unknown",
+    "platform": {
+      "hostname": "1b9d0d361690",
+      "machine": "x86_64",
+      "processor": "x86_64",
+      "release": "6.18.35",
+      "system": "Linux"
+    },
+    "python": "3.12.13",
+    "schema": "clifford_qc.execution_provenance.v1",
+    "utc": "2026-08-09T07:11:04.744004+00:00"
+  },
+  "schema": "clifford_qc.finite_shot_optimization.v1",
+  "setting": {
+    "basis_size": 9,
+    "exact_condition_number": 194.94355457060277,
+    "exact_effective_rank": 8,
+    "exact_projected_ground_energy": -4.747495110068037,
+    "measurement_words": 189,
+    "model": "four-qubit TFIM (J=h=1)",
+    "qwc_groups": 52
+  }
+}

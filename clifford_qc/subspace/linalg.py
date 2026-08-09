@@ -187,6 +187,7 @@ def canonical_eigh(matrix: np.ndarray, *, rtol: float = TIE_RTOL,
 def solve_projected(S: np.ndarray, Hm: np.ndarray, labels: Sequence[str] | None = None,
                     *, tau_s: float = DEFAULT_TAU_S, rel_tau: float = 0.0,
                     max_condition: float = DEFAULT_MAX_CONDITION,
+                    overlap_noise_floor: float = 0.0,
                     norm_floor: float = DEFAULT_NORM_FLOOR,
                     resources: dict | None = None) -> SubspaceResult:
     """The normalized, thresholded, deterministic generalized eigenproblem (§4.1.3).
@@ -194,9 +195,12 @@ def solve_projected(S: np.ndarray, Hm: np.ndarray, labels: Sequence[str] | None 
     ``S`` and ``H`` are taken as Hermitian by construction; a caller that
     assembles them any other way is checked here rather than silently
     symmetrized. The retained subspace is decided on the *normalized* overlap
-    matrix by three rules at once -- absolute floor ``tau_s``, relative floor
-    ``rel_tau``, and a cap on the retained condition number -- because the
-    near-singular regime is generic here, not exceptional.
+    matrix by four rules at once -- absolute floor ``tau_s``, relative floor
+    ``rel_tau``, a cap on the retained condition number, and an optional
+    ``overlap_noise_floor`` supplied by a measurement layer -- because the
+    near-singular regime is generic here, not exceptional.  The numerical
+    solver does not estimate that statistical floor itself; keeping the two
+    layers separate prevents exact solves from acquiring a hidden shot model.
     """
     S = np.asarray(S, dtype=complex)
     Hm = np.asarray(Hm, dtype=complex)
@@ -209,6 +213,8 @@ def solve_projected(S: np.ndarray, Hm: np.ndarray, labels: Sequence[str] | None 
     labels = tuple(labels) if labels is not None else tuple(f"A{i}" for i in range(m))
     if len(labels) != m:
         raise ValueError("labels and matrix size disagree")
+    if overlap_noise_floor < 0.0 or not np.isfinite(overlap_noise_floor):
+        raise ValueError("overlap_noise_floor must be nonnegative and finite")
 
     diagonal = np.clip(S.diagonal().real, 0.0, None)
     norms = np.sqrt(diagonal)
@@ -226,7 +232,8 @@ def solve_projected(S: np.ndarray, Hm: np.ndarray, labels: Sequence[str] | None 
 
     overlap_values, overlap_vectors = canonical_eigh(S_bar)
     largest = float(overlap_values[-1])
-    cutoff = max(tau_s, rel_tau * largest, largest / max_condition)
+    cutoff = max(tau_s, rel_tau * largest, largest / max_condition,
+                 overlap_noise_floor)
     keep = overlap_values > cutoff
     if not keep.any():
         raise ValueError(f"overlap threshold {cutoff:g} retained no direction; "
@@ -271,6 +278,7 @@ def solve_projected(S: np.ndarray, Hm: np.ndarray, labels: Sequence[str] | None 
         "retained_condition_number": condition,
         "whitening_residual_inf": whitening_residual,
         "overlap_threshold": float(cutoff),
+        "overlap_noise_floor": float(overlap_noise_floor),
         "overlap_eigenvalue_max": largest,
         "overlap_eigenvalue_min": float(overlap_values[0]),
         "overlap_negative_modes": negative_modes,

@@ -353,7 +353,9 @@ def run_coarse_to_fine_acase(rho, hamiltonian, configurations: Sequence,
                 roots=tuple(range(config.roots)), aggregation=config.aggregation,
                 basis_words=basis_words,
                 min_orthogonality=config.min_orthogonality,
-                gamma=config.gamma, leakage_tol=config.leakage_tol)
+                gamma=config.gamma, leakage_tol=config.leakage_tol,
+                leakage_mode=config.leakage_mode,
+                sector_target=config.sector_target)
                 for index in candidate_indices]
             selected_score = select_candidate(scores)
             ranking_values = {
@@ -367,7 +369,9 @@ def run_coarse_to_fine_acase(rho, hamiltonian, configurations: Sequence,
             scores = [_score_target_overlap_precomputed(
                 bank, retained, solved, index, target_context,
                 min_orthogonality=config.min_orthogonality,
-                leakage_tol=config.leakage_tol)
+                leakage_tol=config.leakage_tol,
+                leakage_mode=config.leakage_mode,
+                sector_target=config.sector_target)
                 for index in candidate_indices]
             selected_score = select_target_candidate(scores)
             ranking_values = {

@@ -19,7 +19,9 @@ from .linalg import (
     DEFAULT_MAX_CONDITION, DEFAULT_NORM_FLOOR, DEFAULT_TAU_S, SubspaceResult,
 )
 from .projection import MatrixElementBank
-from .symmetry import sector_leakage
+from .symmetry import (
+    reference_sector_leakage, sector_leakage, subspace_sector_certificate,
+)
 
 ASYMPTOTIC = EvidenceLevel.ASYMPTOTIC.value
 FINITE_SAMPLE = EvidenceLevel.FINITE_SAMPLE.value
@@ -147,6 +149,8 @@ def run_certified_acase(rho: MV, hamiltonian, candidates: Sequence, backend, *,
                         delta: float = 0.05, threshold: float = 1e-2,
                         bound: str = "eb",
                         leakage_tol: float | None = None,
+                        leakage_mode: str = "operator",
+                        sector_target: tuple[int, float] | None = None,
                         exact_ground_energy: float | None = None,
                         tau_s: float = DEFAULT_TAU_S, rel_tau: float = 0.0,
                         max_condition: float = DEFAULT_MAX_CONDITION
@@ -182,6 +186,10 @@ def run_certified_acase(rho: MV, hamiltonian, candidates: Sequence, backend, *,
     """
     if bank is None:
         bank = MatrixElementBank(rho, hamiltonian)
+    if leakage_mode not in ("operator", "reference", "operator_then_reference"):
+        raise ValueError(
+            "leakage_mode must be 'operator', 'reference', or "
+            "'operator_then_reference'")
     initial_gens = (as_generators(initial) if initial is not None
                     else [identity_generator(bank.n)])
     basis = bank.extend(initial_gens)
@@ -203,8 +211,29 @@ def run_certified_acase(rho: MV, hamiltonian, candidates: Sequence, backend, *,
     for step in range(1, max_size + 1):
         remaining = [i for i in pool if i not in basis]
         if leakage_tol is not None:
-            remaining = [i for i in remaining
-                         if max(sector_leakage(bank.generator(i)).values()) <= leakage_tol]
+            filtered = []
+            for index in remaining:
+                operator = sector_leakage(bank.generator(index))
+                operator_worst = max(operator.values())
+                if leakage_mode == "operator" or (
+                        leakage_mode == "operator_then_reference" and
+                        operator_worst <= leakage_tol):
+                    keep = operator_worst <= leakage_tol
+                else:
+                    try:
+                        conditioned = reference_sector_leakage(
+                            bank.generator(index), bank.reference,
+                            sector_target=sector_target)
+                    except ValueError as exc:
+                        if "annihilates" in str(exc):
+                            keep = False
+                        else:
+                            raise
+                    else:
+                        keep = conditioned["target_sector"] <= leakage_tol
+                if keep:
+                    filtered.append(index)
+            remaining = filtered
         if not remaining:
             stopped_reason = "candidate pool exhausted"
             break
@@ -292,7 +321,19 @@ def run_certified_acase(rho: MV, hamiltonian, candidates: Sequence, backend, *,
         "certification_scope": "per_step_conditional_on_construction_batch",
         "shot_accounting": "construction_plus_certification_batches",
         "variational_bound": "not_established_under_noise",
+        "leakage_mode": leakage_mode,
+        "sector_target": sector_target,
     })
+    if leakage_tol is not None and leakage_mode != "operator":
+        certificate = subspace_sector_certificate(
+            bank.reference, [bank.generator(index) for index in basis],
+            sector_target=sector_target)
+        resources["sector_certificate"] = certificate
+        if certificate["max_sector_leakage"] > leakage_tol:
+            raise ValueError(
+                "retained subspace fails the reference-conditioned sector "
+                f"certificate: {certificate['max_sector_leakage']:.3g} > "
+                f"{leakage_tol:.3g}")
     return CertifiedResult(
         labels=tuple(bank.generator(i).label for i in basis),
         energy=result.ground_energy, energy_history=tuple(history),

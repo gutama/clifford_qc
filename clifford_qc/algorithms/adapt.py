@@ -439,6 +439,9 @@ def run_adapt(model, pool: Sequence[PoolOperator], *,
                     # cumulative histogram a sufficient statistic, which the
                     # covariance-aware / finite-schedule-valid variance requires.
                     fixed_groups = qwc_groups(bank.words_for(candidates))
+                    bind_groups = getattr(allocator, "bind_groups", None)
+                    if callable(bind_groups):
+                        bind_groups(fixed_groups)
                     sampler = lambda words, plan: backend.sample_grouped_from_state(
                         rho, fixed_groups, plan)
                 else:
