@@ -12,6 +12,7 @@ matched-baseline and finite-shot evidence remain separately labelled.
 from __future__ import annotations
 
 import argparse
+import copy
 import hashlib
 import json
 import sys
@@ -24,6 +25,9 @@ ROOT = Path(__file__).resolve().parent
 DEFAULT_CONFIG = ROOT / "configs" / "prd_case_paper_suite.json"
 DEFAULT_RESULTS = Path("/tmp/clifford_qc_prd_case_suite")
 SCHEMA = "clifford_qc.prd_case_paper_suite.v1"
+CONFIRMATORY_SCHEMA = "clifford_qc.prd_case_paper_suite.v2"
+OVERLAY_SCHEMA = "clifford_qc.prd_case_paper_suite_overlay.v1"
+SUPPORTED_SCHEMAS = frozenset({SCHEMA, CONFIRMATORY_SCHEMA})
 CHECKPOINT_SCHEMA = "clifford_qc.prd_case_suite_checkpoint.v1"
 _MODEL_CACHE = {}
 
@@ -38,7 +42,59 @@ def config_sha256(document: dict) -> str:
 
 def load_manifest(path: Path) -> dict:
     document = json.loads(path.read_text(encoding="utf-8"))
+    if document.get("schema") == OVERLAY_SCHEMA:
+        document = _resolve_manifest_overlay(path, document)
     validate_manifest(document)
+    return document
+
+
+def _resolve_manifest_overlay(path: Path, overlay: dict) -> dict:
+    """Resolve a small, reviewable revision without copying the frozen v1 grid.
+
+    The base manifest remains byte-for-byte unchanged.  A revision may narrow
+    per-system budgets after a pilot invariant failure, but it must carry the
+    pilot record and an explicit stage update.  The returned document is the
+    full object that is hashed into checkpoints and result records.
+    """
+    base_name = overlay.get("base_manifest")
+    if not isinstance(base_name, str) or not base_name:
+        raise ValueError("manifest overlay requires base_manifest")
+    base_path = (path.parent / base_name).resolve()
+    base = json.loads(base_path.read_text(encoding="utf-8"))
+    if base.get("schema") != SCHEMA:
+        raise ValueError("manifest overlay must resolve directly from frozen v1")
+    document = copy.deepcopy(base)
+    document["schema"] = overlay.get("resolved_schema")
+    document["suite_name"] = overlay.get("suite_name", document["suite_name"])
+    document["manifest_revision"] = {
+        "overlay_schema": OVERLAY_SCHEMA,
+        "base_manifest": base_name,
+        "revision_id": overlay.get("revision_id"),
+        "evidence_role": overlay.get("evidence_role"),
+    }
+    document["pilot_provenance"] = copy.deepcopy(
+        overlay.get("pilot_provenance"))
+
+    updates = overlay.get("stage_updates") or {}
+    stages = {stage["id"]: stage for stage in document["execution_stages"]}
+    unknown_stages = sorted(set(updates) - set(stages))
+    if unknown_stages:
+        raise ValueError(f"manifest overlay updates unknown stages: {unknown_stages}")
+    for stage_id, change in updates.items():
+        if not isinstance(change, dict):
+            raise ValueError(f"stage update {stage_id!r} must be an object")
+        stages[stage_id].update(copy.deepcopy(change))
+
+    budgets = overlay.get("system_m_budgets") or {}
+    systems = {system["id"]: system for system in document["systems"]}
+    unknown_systems = sorted(set(budgets) - set(systems))
+    if unknown_systems:
+        raise ValueError(
+            f"manifest overlay sets budgets for unknown systems: {unknown_systems}")
+    for system_id, values in budgets.items():
+        systems[system_id]["m_budgets"] = copy.deepcopy(values)
+    document["analysis_revision"] = copy.deepcopy(
+        overlay.get("analysis_revision"))
     return document
 
 
@@ -52,8 +108,8 @@ def _strictly_increasing_positive_ints(values, field: str, *, minimum=1):
 
 def validate_manifest(document: dict) -> None:
     problems: list[str] = []
-    if document.get("schema") != SCHEMA:
-        problems.append(f"schema must be {SCHEMA!r}")
+    if document.get("schema") not in SUPPORTED_SCHEMAS:
+        problems.append(f"schema must be one of {sorted(SUPPORTED_SCHEMAS)!r}")
     if document.get("preregistered") is not True:
         problems.append("preregistered must be true")
     if document.get("results_committed_separately") is not True:
@@ -84,6 +140,12 @@ def validate_manifest(document: dict) -> None:
             problems.append(f"{entry.get('id')}: builder.kind is required")
         if entry.get("default_run") not in (True, False):
             problems.append(f"{entry.get('id')}: default_run must be boolean")
+        if "m_budgets" in entry:
+            try:
+                _strictly_increasing_positive_ints(
+                    entry["m_budgets"], f"{entry.get('id')}.m_budgets", minimum=2)
+            except ValueError as error:
+                problems.append(str(error))
 
     exact = document.get("exact_simulation") or {}
     try:
@@ -134,6 +196,27 @@ def validate_manifest(document: dict) -> None:
     boundaries = " ".join(document.get("claim_boundaries") or []).lower()
     if "no quantum-advantage" not in boundaries:
         problems.append("the exact tier must explicitly reject a quantum-advantage claim")
+
+    if document.get("schema") == CONFIRMATORY_SCHEMA:
+        pilot = document.get("pilot_provenance") or {}
+        if pilot.get("selection_rule_declared_before_new_acase_results") is not True:
+            problems.append(
+                "v2 must say its validity-cap rule preceded new A-CASE results")
+        for field in ("v1_config_sha256", "v1_result_archive_sha256"):
+            value = pilot.get(field)
+            if not isinstance(value, str) or len(value) != 64:
+                problems.append(f"v2 pilot_provenance.{field} must be a SHA-256")
+        missing_caps = sorted(
+            entry["id"] for entry in systems
+            if entry.get("default_run") and "m_budgets" not in entry)
+        if missing_caps:
+            problems.append(
+                f"v2 requires explicit budgets for every default system: {missing_caps}")
+        matched = next(
+            (stage for stage in document.get("execution_stages") or []
+             if stage.get("id") == "matched_acase"), {})
+        if matched.get("implemented_by") != "benchmarks/run_prd_case_matched_acase.py":
+            problems.append("v2 must bind matched_acase to its dedicated driver")
 
     if problems:
         raise ValueError("invalid PRD-CASE paper-suite manifest:\n  "
