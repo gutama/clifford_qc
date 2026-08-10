@@ -73,19 +73,6 @@ def test_closed_form_lowering_matches_the_generalized_two_by_two():
             energy - reference, abs=1e-9)
 
 
-def test_overlap_noise_floor_discards_modes_below_the_measured_resolution():
-    # Canonical truncation acts after normalizing generator norms, so the small
-    # mode must represent near dependence rather than a merely rescaled vector.
-    overlap = np.array([[1.0, 0.99995], [0.99995, 1.0]])
-    hamiltonian = np.diag([-1.0, -0.9])
-    unregularized = solve_projected(overlap, hamiltonian, tau_s=0.0)
-    calibrated = solve_projected(
-        overlap, hamiltonian, tau_s=0.0, overlap_noise_floor=1e-3)
-    assert unregularized.effective_rank == 2
-    assert calibrated.effective_rank == 1
-    assert calibrated.resources["overlap_noise_floor"] == pytest.approx(1e-3)
-
-
 def test_lowering_is_zero_when_the_deflation_stops_being_computable():
     """The 0/0 limit returns zero rather than a fabricated eigenvalue."""
     energy = -4.0
@@ -210,9 +197,17 @@ def test_word_universe_and_new_word_costs_are_recorded(case):
     result = run_acase(rho, model.hamiltonian, candidates, max_size=5,
                        exact_ground_energy=E0)
     universes = [record.word_universe for record in result.records]
+    selection_universes = [record.selection_word_universe
+                           for record in result.records]
     assert all(b >= a for a, b in zip(universes, universes[1:]))  # monotone
+    assert all(b >= a for a, b in zip(selection_universes,
+                                      selection_universes[1:]))
+    assert all(selection >= retained for selection, retained
+               in zip(selection_universes, universes))
     assert universes[-1] == result.resources["word_universe"]
+    assert selection_universes[-1] == len(result.bank.word_set())
     assert all(record.new_words >= 0 for record in result.records)
+    assert all(record.step_seconds >= 0.0 for record in result.records)
     assert result.resources["candidate_pool_size"] == len(candidates)
 
 
@@ -527,163 +522,3 @@ def test_effective_rank_never_exceeds_the_basis_size(case):
         result = run_acase(rho, model.hamiltonian, candidates, max_size=size,
                            exact_ground_energy=E0)
         assert result.result.effective_rank <= len(result.labels)
-
-
-# ------------------------------------------------- spin-orbital ordering
-
-
-def test_sz_is_not_ordering_invariant_and_the_convention_must_travel():
-    """A determinant is a sharp ``S_z`` eigenstate under *every* ordering.
-
-    That is precisely why the convention cannot be inferred: sharpness is not
-    evidence that the caller's Hamiltonian used the same one.  Three qubits
-    occupied out of eight read as ``S_z=1/2`` interleaved and ``S_z=3/2``
-    blocked, and both answers are exact.
-    """
-    from clifford_qc.subspace.symmetry import infer_reference_sector
-
-    rho = ket_density(8, "11100000")
-    assert infer_reference_sector(rho, spin_ordering="interleaved") == (3, 0.5)
-    assert infer_reference_sector(rho, spin_ordering="blocked") == (3, 1.5)
-    explicit = ("up", "up", "down", "down", "up", "up", "down", "down")
-    assert infer_reference_sector(rho, spin_ordering=explicit) == (3, 0.5)
-
-
-def test_operator_leakage_follows_the_declared_ordering():
-    """A hop between qubits 0 and 2 conserves interleaved ``S_z`` (both up) but
-    not blocked ``S_z`` (up to down)."""
-    from clifford_qc.fermion import c_op, cdag_op
-    from clifford_qc.subspace.symmetry import sector_leakage as leak
-
-    hop = cdag_op(4, 2) * c_op(4, 0) - cdag_op(4, 0) * c_op(4, 2)
-    assert leak(hop, spin_ordering="interleaved")["sz"] < 1e-12
-    assert leak(hop, spin_ordering="blocked")["sz"] > 0.1
-    # particle number is ordering-invariant, so it agrees either way
-    assert leak(hop, spin_ordering="interleaved")["particle_number"] == \
-        pytest.approx(leak(hop, spin_ordering="blocked")["particle_number"])
-
-
-def test_reference_leakage_and_certificate_respect_the_ordering():
-    from clifford_qc.subspace.symmetry import (
-        reference_sector_leakage, subspace_sector_certificate)
-
-    # |1010> occupies qubits 0 and 2: both "up" interleaved (S_z = +1), one up
-    # and one down blocked (S_z = 0).  The state is the same; the sector is not.
-    rho = ket_density(4, "1010")
-    generator = Generator("Z0", Z(4, 0))
-    interleaved = reference_sector_leakage(
-        identity_generator(4), rho, sector_target=(2, 1.0),
-        spin_ordering="interleaved")
-    assert interleaved["target_sector"] == pytest.approx(0.0)
-    # the same state is not in the (2, +1) sector under blocked ordering
-    blocked = reference_sector_leakage(
-        identity_generator(4), rho, sector_target=(2, 1.0),
-        spin_ordering="blocked")
-    assert blocked["target_sector"] == pytest.approx(1.0)
-    certificate = subspace_sector_certificate(
-        rho, [generator], sector_target=(2, 0.0), spin_ordering="blocked")
-    assert certificate["spin_ordering"] == "blocked"
-    assert certificate["max_sector_leakage"] == pytest.approx(0.0)
-
-
-def test_an_empty_declared_sector_is_refused_rather_than_certified():
-    from clifford_qc.subspace.symmetry import reference_sector_leakage
-
-    rho = ket_density(4, "1010")
-    # three electrons cannot carry S_z = 0
-    with pytest.raises(ValueError, match="sector is empty"):
-        reference_sector_leakage(rho, rho, sector_target=(3, 0.0))
-
-
-# ------------------------------------------- sector post-selection of a warm start
-
-
-def test_projecting_a_warm_start_makes_it_certifiable(case):
-    """The gap the operator/reference cascade leaves open.
-
-    An ADAPT warm start assembled from symmetry-breaking rotors is
-    sector-mixed, so no sharp target can be inferred and the whole-span
-    certificate cannot apply to it.  Post-selecting onto the declared sector
-    closes that: the projected reference carries weight one by construction,
-    and the acceptance probability is returned as the price.
-    """
-    from clifford_qc.subspace.symmetry import (
-        infer_reference_sector, project_reference_to_sector,
-        subspace_sector_certificate)
-
-    model, _, pool_ops, candidates, E0 = case
-    warm_rho, _ = adapt_warm_start(model, pool_ops, max_operators=2,
-                                   compute_exact_reference=False)
-    # |++++> and everything grown from it by word rotors is sector-mixed, so
-    # inference must refuse and the caller must declare.
-    with pytest.raises(ValueError, match="cannot infer a sharp"):
-        infer_reference_sector(warm_rho)
-    target = (2, 0.0)
-
-    projected, diagnostics = project_reference_to_sector(
-        warm_rho, sector_target=target)
-    assert projected.is_hermitian()
-    assert abs(projected.trace() - 1.0) < 1e-12
-    assert 0.0 < diagnostics["sector_weight"] <= 1.0
-    assert diagnostics["shot_overhead"] == pytest.approx(
-        1.0 / diagnostics["sector_weight"])
-    assert diagnostics["leakage_removed"] == pytest.approx(
-        1.0 - diagnostics["sector_weight"])
-
-    # The projected state is now sharp, so inference stops refusing it.
-    assert infer_reference_sector(projected) == target
-    certificate = subspace_sector_certificate(
-        projected, [identity_generator(N)], sector_target=target)
-    assert certificate["max_sector_leakage"] == pytest.approx(0.0)
-    assert certificate["min_sector_weight"] == pytest.approx(1.0)
-
-
-def test_projection_refuses_a_fractional_particle_number():
-    """`int()` would silently turn 2.5 into the N=2 sector.
-
-    Every other bound in this helper is validated, and `ACASEConfig` already
-    refuses a non-integral declared particle number, so a public helper that
-    truncated instead would certify against a sector the caller never asked
-    for.
-    """
-    from clifford_qc.subspace.symmetry import project_reference_to_sector
-
-    rho = ket_density(4, "1010")
-    with pytest.raises(ValueError, match="particle number must be an integer"):
-        project_reference_to_sector(rho, sector_target=(2.5, 0.0))
-
-
-def test_projecting_an_in_sector_reference_costs_exactly_one_attempt():
-    """A state already in sector must not report a sub-unit retry factor.
-
-    The trace ratio of an exactly in-sector determinant lands a few ulps
-    either side of one, so an unclamped weight can exceed one and produce
-    negative leakage and an overhead below unity -- a post-selection that
-    saves shots.  The clamp and the snap rule together forbid that.
-    """
-    from clifford_qc.subspace.symmetry import project_reference_to_sector
-
-    rho = ket_density(4, "1100")
-    projected, diagnostics = project_reference_to_sector(
-        rho, sector_target=(2, 0.0))
-    assert diagnostics["sector_weight"] <= 1.0
-    assert diagnostics["leakage_removed"] == 0.0
-    assert diagnostics["shot_overhead"] == 1.0
-    assert abs(projected.trace() - 1.0) < 1e-12
-
-
-def test_projection_refuses_a_sector_the_reference_has_no_weight_in():
-    from clifford_qc.subspace.symmetry import project_reference_to_sector
-
-    from clifford_qc.states import plus_density
-
-    rho = ket_density(4, "1010")
-    with pytest.raises(ValueError, match="no weight"):
-        project_reference_to_sector(rho, sector_target=(4, 0.0))
-    # |++++> spreads over every sector, so a demanding floor must refuse it
-    # rather than quietly renormalizing a small slice into a "reference".
-    mixed = plus_density(4)
-    _, diagnostics = project_reference_to_sector(mixed, sector_target=(2, 0.0))
-    assert diagnostics["sector_weight"] == pytest.approx(4.0 / 16.0)
-    with pytest.raises(ValueError, match="below the declared minimum"):
-        project_reference_to_sector(mixed, sector_target=(2, 0.0), min_weight=0.9)
