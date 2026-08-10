@@ -101,7 +101,7 @@ No figure or table value in the manuscript is transcribed by hand, and
 ```bash
 python -m venv .venv && source .venv/bin/activate
 pip install -e .[test,research,chemistry]   # numpy + scipy + openfermion/pyscf
-pytest                                      # 1082 passed, 6 skipped
+pytest                                      # 1091 passed, 6 skipped
 ```
 
 That install is the reference environment for the quoted pair, and it is
@@ -796,10 +796,18 @@ The arms answer different questions and must not be read as a single ranking:
   residual expansion spans the Krylov space by construction — with
   `|Psi_m> = p_{m-1}(H)|psi>`, the residual `(H - E_m)|Psi_m>` lies in
   `K_{m+1}` and Galerkin orthogonality puts it perpendicular to `K_m` — so this
-  arm exists only to confirm that it reproduces `power_krylov` while holding
-  `S = I`. The record stores the agreement gap and the conditioning bound that
-  gap is allowed to occupy; exact equality is not asserted, because the raw
-  monomial basis loses digits the orthogonal basis keeps.
+  arm exists only to confirm the span while holding `S = I`.
+- `orthonormalized_power_krylov` is what that regression is gated against: the
+  same monomial basis, SVD-orthonormalized before the solve. The gate is a
+  fixed absolute energy tolerance (`REGRESSION_ENERGY_TOLERANCE = 1e-9`) plus a
+  principal-angle span comparison (`REGRESSION_SPAN_TOLERANCE = 1e-7`), and it
+  fires only when the two retained ranks match; the residual arm spanning
+  *fewer* directions is a defect, spanning more just means the monomial basis
+  went numerically rank-deficient first. A tolerance sized by the raw arm's
+  `kappa(S)` would not be a test — on hubbard_2x3 that arm reaches
+  `kappa(S) ~ 7e15`, which would admit an energy error of tens of hartree — so
+  raw `power_krylov` is kept only as an ill-conditioned contrast and gates
+  nothing.
 - `davidson` is the principal method. The shift `mu` is swept over a declared
   grid, the whole curve is retained, and the selected value is the minimiser of
   the **projected** Ritz energy. That criterion is variational, so it never
@@ -821,19 +829,30 @@ from the sample-independent classical selected-CI ranking and hold
 ground-state-distilled references are reported **only** under
 `oracle_diagnostics` with `evidence_category = "oracle_diagnostic"`.
 
-The packet program prices a correction packet before measuring its accuracy:
+The packet program prices **the basis each run actually retains**. The
+expansion appends a different top-`K` correction at every iteration, so each
+`K` is run first (matvecs only, which is the cheap part), and then every
+realized packet direction is compiled as `A_new = sum_k c_k A_k` and priced
+together, cross elements included. Pricing one probe packet and reusing its
+number for a seven-step trajectory would describe a one-step benchmark that
+this driver does not run.
 
-```
-Delta W(K) = |W(B u {A_new}) \ W(B)|,   A_new = sum_k c_k A_k
-```
+Word counts live in explicitly scoped fields, never in a bare `W`:
 
-Both numbers are reported — the no-cancellation `pair_support_bound` over the
-`K^2 + K M` products, and the `coefficient_aware` universe of the single
-compiled generator after cancellation — and QWC grouping is computed only for
-the `K` values the gate accepts. The gate prices one packet direction against
-one committed A-CASE direction on the same system, read from
-`benchmarks/results/phase12_paper_b_five_system.json`; when that record is
-absent it falls back to an identity-baseline ratio and says so in the output.
+- `determinant_baseline_W` — the matched determinant bank at the same `M`.
+- `W_total` — the full universe of the retained packet bank. This is the only
+  count that is like-for-like with an A-CASE row's `W`, and it is what the gate
+  compares, against `benchmarks/results/phase12_paper_b_five_system.json`.
+- `W_incremental` — what the packet directions add on top of the matched
+  determinant bank. Never comparable to an A-CASE total.
+- `pair_support_bound` — the no-cancellation union over the products, reported
+  beside `cancellation_factor`.
+
+`grouping_contexts` carries its own `scope` and covers the same whole packet
+bank, so a group count and a word count in adjacent fields describe one
+experiment rather than two. Pricing runs under an abort budget, so a `K`
+headed for rejection is abandoned rather than completed, and QWC grouping is
+paid for survivors only.
 
 Two costs are gated rather than paid unconditionally, and both report the
 reason instead of the number when they are skipped. The packet's sector

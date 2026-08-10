@@ -87,14 +87,81 @@ def test_full_K_packet_reproduces_the_uncompressed_direction():
     assert full["energy"] == pytest.approx(plain["energy"], abs=1e-12)
 
 
-def test_truncated_packet_is_no_better_than_the_full_correction():
+def test_a_truncated_run_is_internally_consistent():
+    """Truncation changes the trajectory, so no cross-run ordering holds.
+
+    Top-K truncation changes the next Ritz state and therefore every later
+    correction, so the truncated and uncompressed final subspaces are not
+    nested and a truncated run can legitimately end lower at fixed M. What must
+    hold is what follows from each run's *own* nested basis: variationality
+    against the exact ground energy, a monotone energy curve, and S = I.
+    """
     matrix, apply, unit = _toy()
+    exact = float(np.linalg.eigvalsh(matrix)[0])
     diagonal = np.real(np.diag(matrix))
-    plain = pe.expand(apply, unit, 6, diagonal=diagonal, mu=0.4)
-    for K in (2, 4):
-        packet = pe.expand(apply, unit, 6, diagonal=diagonal, mu=0.4,
-                           packet_K=K)
-        assert packet["energy"] >= plain["energy"] - 1e-12
+    for K in (2, 4, 8):
+        run = pe.expand(apply, unit, 6, diagonal=diagonal, mu=0.4, packet_K=K)
+        assert run["energy"] >= exact - 1e-12
+        assert all(later <= earlier + 1e-12
+                   for earlier, later in zip(run["energies"],
+                                             run["energies"][1:]))
+        assert run["orthonormality_defect"] < 1e-10
+
+
+def test_every_realized_packet_is_retained_for_pricing():
+    """Pricing needs the whole trajectory, not the first step's packet."""
+    _, apply, unit = _toy()
+    diagonal = np.real(np.diag(matrix_of := np.eye(12)) * 0 + 1.0)
+    run = pe.expand(apply, unit, 5, diagonal=diagonal, mu=0.4, packet_K=3)
+    assert len(run["packet_supports"]) == run["M"] - 1
+    assert len(run["packet_coefficients"]) == len(run["packet_supports"])
+    for support, coefficients in zip(run["packet_supports"],
+                                     run["packet_coefficients"]):
+        assert len(support) == len(coefficients)
+
+
+# ------------------------------------------------- packet coefficient alignment
+
+
+def test_packet_generators_drop_the_reference_from_masks_and_coefficients():
+    """Regression: the reference is mid-list, so end-truncation misaligns.
+
+    ``_packet_generators`` drops the reference determinant because it enters as
+    the identity. Filtering the generators while truncating the coefficient
+    array from the end shifts every coefficient after the reference onto the
+    wrong generator -- which is what happened in the first committed Hubbard
+    2x2 K=32 packet, where the reference sat at index 22 of 32.
+    """
+    n = 4
+    reference = (0, 1)
+    reference_mask = 0b1100                      # qubits 0 and 1 occupied
+    masks = [0b1010, reference_mask, 0b0101]     # reference in the middle
+    coefficients = [10.0, 99.0, 30.0]
+
+    pairs = pe._packet_generators(reference, masks, n, "pkt", coefficients)
+
+    assert len(pairs) == 2                       # the reference is dropped
+    assert [weight for _, weight in pairs] == [10.0, 30.0]
+    # The labels carry the original positions, so the survivors are 0 and 2 --
+    # never 0 and 1, which is what an end-truncated array would have produced.
+    assert [generator.label for generator, _ in pairs] == ["pkt[0]", "pkt[2]"]
+
+
+def test_packet_generators_reject_a_coefficient_count_mismatch():
+    with pytest.raises(ValueError, match="same order"):
+        pe._packet_generators((0, 1), [0b1010, 0b0101], 4, "pkt", [1.0])
+
+
+def test_a_compiled_packet_uses_each_generator_own_coefficient():
+    n = 4
+    reference = (0, 1)
+    masks = [0b1010, 0b1100, 0b0101]             # middle entry is the reference
+    pairs = pe._packet_generators(reference, masks, n, "pkt",
+                                  [2.0, 99.0, 5.0])
+    packet = pe._compile_packet(pairs, "packet")
+    separate = pe._compile_packet([(pairs[0][0], 2.0)], "a")
+    other = pe._compile_packet([(pairs[1][0], 5.0)], "b")
+    assert set(packet.mv.terms) == set(separate.mv.terms) | set(other.mv.terms)
 
 
 def test_shift_selection_never_consults_the_exact_ground_energy():
@@ -147,6 +214,55 @@ def test_top_k_packet_keeps_the_largest_components():
     assert packet[0] == 0 and packet[2] == 0 and packet[3] == 0
 
 
+# --------------------------------------------------------------- cost charging
+
+
+def test_shift_selection_is_charged_to_the_row_that_spends_it():
+    """Audit and block rows selected a shift without paying for it.
+
+    ``select_shift`` was called outside those rows' timing window, so they
+    reported ``selection_work = 9`` beside a matvec count covering only the
+    final expansion -- a tenth of the true cost, and not comparable with the
+    primary Davidson row whose sweep was charged.
+    """
+    matrix, apply, unit = _toy()
+    diagonal = np.real(np.diag(matrix))
+
+    class Counter:
+        def __init__(self):
+            self.matvecs = 0
+
+        def __call__(self, vector):
+            self.matvecs += 1
+            return apply(vector)
+
+    counting = Counter()
+    row = {}
+    sweep = pe._charged_shift_sweep(counting, unit, 5, diagonal,
+                                    pe.DEFAULT_SHIFT_GRID, row)
+
+    assert row["mu"] == sweep["selected_mu"]
+    assert row["selection_work"] == len(pe.DEFAULT_SHIFT_GRID)
+    # The sweep runs one expansion per grid point, so its matvec bill dwarfs
+    # the single expansion that follows it.
+    assert row["_charged_matvecs"] == counting.matvecs
+    assert row["_charged_matvecs"] > 0
+    assert row["_charged_seconds"] >= 0.0
+
+
+def test_a_charged_sweep_is_folded_into_the_row_and_consumed_once():
+    """The charge is popped, so a reused row cannot be billed twice."""
+    row = {"_charged_matvecs": 100, "_charged_seconds": 1.0,
+           "reference_block_size": 1}
+    finished = pe._finish_row(
+        dict(row), {"energy": -1.0, "M": 3, "energies": [-1.0],
+                    "stopped_reason": "budget_exhausted"},
+        -1.0, matvecs=7, wall=0.5)
+    assert finished["matvecs"] == 107
+    assert finished["wall_seconds"] == pytest.approx(1.5)
+    assert "_charged_matvecs" not in finished
+
+
 # ------------------------------------------------------------------ invariants
 
 
@@ -172,8 +288,8 @@ def _record(**overrides):
         "total_directions": 3,
         "spin_ordering": "interleaved",
         "sector_masks": [3, 5, 6],
-        "arms": [row("power_krylov"), row("orthogonal_residual"),
-                 row("davidson"),
+        "arms": [row("power_krylov"), row("orthonormalized_power_krylov"),
+                 row("orthogonal_residual"), row("davidson"),
                  row("matched_selected_ci", "classical_control")],
         "reference_audit": [],
         "reference_blocks": [],
@@ -184,8 +300,18 @@ def _record(**overrides):
             "selected_mu": 0.1,
             "curve": [{"mu": 0.1, "projected_energy": -1.0},
                       {"mu": 0.5, "projected_energy": -0.8}]},
+        "krylov_agreement": {
+            "orthonormalized_energy": -1.0,
+            "orthogonal_residual_energy": -1.0,
+            "energy_gap": 0.0,
+            "energy_tolerance": pe.REGRESSION_ENERGY_TOLERANCE,
+            "orthonormalized_rank": 3,
+            "orthogonal_residual_rank": 3,
+            "ranks_match": True,
+            "subspace_gap": 0.0,
+            "subspace_tolerance": pe.REGRESSION_SPAN_TOLERANCE},
         "packet_program": {
-            "preflight": [], "runs": [], "packet_masks": {},
+            "pricing": [], "runs": [], "packet_masks": {},
             "full_K_control": {"difference": 0.0}},
     }
     record.update(overrides)
@@ -203,20 +329,49 @@ def test_a_row_below_the_variational_bound_is_rejected():
         pe.check_invariants(record)
 
 
-def test_an_orthogonal_arm_that_misses_the_krylov_span_is_rejected():
+def test_an_energy_disagreement_with_the_orthonormal_krylov_basis_is_rejected():
     record = _record()
-    record["arms"][1]["energy"] = -0.5      # far above power_krylov's -1.0
-    with pytest.raises(AssertionError, match="beyond the conditioning bound"):
+    record["krylov_agreement"]["energy_gap"] = 1e-6
+    with pytest.raises(AssertionError, match="beyond the tolerance"):
         pe.check_invariants(record)
 
 
-def test_a_conditioning_sized_disagreement_with_krylov_is_accepted():
-    """The ill-conditioned arm may sit a hair lower; that is roundoff."""
+def test_a_span_disagreement_with_the_krylov_basis_is_rejected():
     record = _record()
-    record["arms"][0]["kappa_S"] = 1e12         # power_krylov
-    record["arms"][1]["energy"] = -1.0 + 1e-7   # orthogonal_residual, above it
+    record["krylov_agreement"]["subspace_gap"] = 1e-3
+    with pytest.raises(AssertionError, match="does not span the Krylov space"):
+        pe.check_invariants(record)
+
+
+def test_the_regression_gate_is_not_sized_by_the_raw_arm_conditioning():
+    """The tolerance must not scale with the ill-conditioned arm's kappa(S).
+
+    Sizing it that way made the gate vacuous: at kappa(S) = 7.4e15 on
+    hubbard_2x3 the admitted energy error was tens of hartree.
+    """
+    record = _record()
+    record["arms"][0]["kappa_S"] = 7.4e15            # power_krylov
+    record["krylov_agreement"]["energy_gap"] = 1e-3  # tiny next to kappa*eps
+    with pytest.raises(AssertionError, match="beyond the tolerance"):
+        pe.check_invariants(record)
+
+
+def test_a_residual_arm_spanning_less_than_the_krylov_basis_is_rejected():
+    record = _record()
+    record["krylov_agreement"].update(
+        {"ranks_match": False, "orthogonal_residual_rank": 2,
+         "orthonormalized_rank": 3})
+    with pytest.raises(AssertionError, match="retained fewer directions"):
+        pe.check_invariants(record)
+
+
+def test_a_rank_deficient_monomial_basis_is_not_held_against_the_residual_arm():
+    """Spanning *more* is the monomial basis going rank-deficient first."""
+    record = _record()
+    record["krylov_agreement"].update(
+        {"ranks_match": False, "orthogonal_residual_rank": 7,
+         "orthonormalized_rank": 5})
     pe.check_invariants(record)
-    assert record["krylov_agreement"]["signed_gap"] > 0
 
 
 def test_a_broken_overlap_identity_is_rejected():
@@ -280,7 +435,7 @@ def test_an_oracle_row_outside_the_quarantine_is_rejected():
 def test_a_packet_reaching_outside_the_sector_is_rejected_structurally():
     """The structural certificate is a proof, and it is what the gate reads."""
     record = _record()
-    record["packet_program"]["preflight"] = [
+    record["packet_program"]["pricing"] = [
         {"K": 4, "structural_sector_certificate": {
             "in_sector": False, "outside_sector": [7]}}]
     with pytest.raises(AssertionError, match="outside the sector"):
@@ -289,7 +444,7 @@ def test_a_packet_reaching_outside_the_sector_is_rejected_structurally():
 
 def test_a_failing_numeric_certificate_is_rejected():
     record = _record()
-    record["packet_program"]["preflight"] = [
+    record["packet_program"]["pricing"] = [
         {"K": 4,
          "structural_sector_certificate": {"in_sector": True,
                                            "outside_sector": []},
@@ -301,7 +456,7 @@ def test_a_failing_numeric_certificate_is_rejected():
 def test_a_skipped_numeric_certificate_leaves_the_structural_one_in_charge():
     """Above the qubit threshold the projector is unaffordable, not ignored."""
     record = _record()
-    record["packet_program"]["preflight"] = [
+    record["packet_program"]["pricing"] = [
         {"K": 4,
          "structural_sector_certificate": {"in_sector": True,
                                            "outside_sector": []},

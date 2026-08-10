@@ -96,6 +96,7 @@ PRIMARY_SYSTEMS = phase10.PRIMARY_SYSTEMS
 
 REQUIRED_ARMS = (
     "power_krylov",
+    "orthonormalized_power_krylov",
     "orthogonal_residual",
     "davidson",
     "matched_selected_ci",
@@ -130,7 +131,9 @@ REQUIRED_FIELDS = (
     "true_residual",
     "matvecs",
     "selection_work",
-    "W",
+    "W_total",
+    "W_incremental",
+    "W_scope",
     "grouping_contexts",
     "build_seconds",
     "solve_seconds",
@@ -147,6 +150,14 @@ DEFAULT_PACKET_K = (2, 4, 8, 16, 32)
 # already larger than this multiple of the retained bank.  A K that fails here
 # is reported and skipped, never silently run.
 DEFAULT_WORD_BUDGET_RATIO = 4.0
+
+# The Lanczos regression is gated against the SVD-orthonormalized Krylov basis,
+# so the tolerance can be absolute rather than sized by kappa(S).  A tolerance
+# proportional to the raw monomial arm's conditioning is not a test: on
+# hubbard_2x3 that arm reaches kappa(S) ~ 7e15, which would admit tens of
+# hartree.
+REGRESSION_ENERGY_TOLERANCE = 1e-9
+REGRESSION_SPAN_TOLERANCE = 1e-7
 
 
 # --------------------------------------------------------------- operator glue
@@ -223,6 +234,7 @@ def expand(apply, reference: np.ndarray, target_M: int, *,
     stopped = "budget_exhausted"
     energies: list[float] = []
     packet_supports: list[np.ndarray] = []
+    packet_coefficients: list[np.ndarray] = []
     energy, state, Q, defect = _ritz(basis, apply)
     energies.append(energy)
 
@@ -246,9 +258,14 @@ def expand(apply, reference: np.ndarray, target_M: int, *,
         correction = correction - Q @ (Q.conj().T @ correction)
         if packet_K is not None:
             correction, support = _top_k_packet(correction, packet_K)
-            correction = correction - Q @ (Q.conj().T @ correction)
-            correction = correction - Q @ (Q.conj().T @ correction)
+            # The packet that is actually retained at this step, coefficients
+            # and all.  Pricing needs every one of them: the trajectory appends
+            # a *different* packet at every iteration, so a cost read off the
+            # first one describes a benchmark this driver does not run.
             packet_supports.append(support)
+            packet_coefficients.append(correction[support].copy())
+            correction = correction - Q @ (Q.conj().T @ correction)
+            correction = correction - Q @ (Q.conj().T @ correction)
         norm = float(np.linalg.norm(correction))
         if norm < 1e-12:                       # happy breakdown: span is closed
             stopped = "happy_breakdown"
@@ -262,6 +279,7 @@ def expand(apply, reference: np.ndarray, target_M: int, *,
     return {
         "energy": energy,
         "state": state,
+        "basis": Q,
         "M": int(basis.shape[1]),
         "stopped_reason": stopped,
         "energies": energies,
@@ -271,7 +289,64 @@ def expand(apply, reference: np.ndarray, target_M: int, *,
         "true_residual": float(np.linalg.norm(residual)),
         "variance": float(np.real(np.vdot(acted, acted)) - energy ** 2),
         "packet_supports": packet_supports,
+        "packet_coefficients": packet_coefficients,
     }
+
+
+def orthonormalized_power_krylov(apply, reference: np.ndarray, M: int, *,
+                                 rank_tol: float = 1e-10) -> dict:
+    """The Krylov space solved in an SVD-orthonormalized basis.
+
+    This is the arm the regression gate compares against.  Solving the raw
+    monomial basis through a Gram-whitened pencil loses digits in proportion to
+    ``kappa(S)``, and a tolerance sized by that conditioning is not a test: at
+    ``kappa(S) = 7.4e15`` it would admit an energy error of tens of hartree.
+    Orthonormalizing the same basis by SVD removes the conditioning from the
+    comparison entirely, so ``orthogonal_residual`` can be held to a tight
+    absolute tolerance against a basis for the *same span*.
+
+    The retained rank is reported because it is the honest way the two arms can
+    legitimately differ: a rank-deficient monomial basis spans less, and that is
+    a difference of span, not of arithmetic.
+    """
+    columns = [reference.astype(complex)]
+    for _ in range(M - 1):
+        columns.append(apply(columns[-1]))
+    basis = np.column_stack(columns)
+    left, singular, _ = np.linalg.svd(basis, full_matrices=False)
+    keep = singular > rank_tol * float(singular.max())
+    Q = left[:, keep]
+    projected = np.column_stack([apply(Q[:, j]) for j in range(Q.shape[1])])
+    matrix = Q.conj().T @ projected
+    matrix = 0.5 * (matrix + matrix.conj().T)
+    values, vectors = np.linalg.eigh(matrix)
+    state = Q @ vectors[:, 0]
+    acted = apply(state)
+    energy = float(values[0])
+    return {
+        "energy": energy,
+        "state": state,
+        "basis": Q,
+        "M": M,
+        "kappa_S": 1.0,
+        "retained_rank": int(keep.sum()),
+        "rank_tol": float(rank_tol),
+        "orthonormality_defect": float(
+            np.abs(Q.conj().T @ Q - np.eye(Q.shape[1])).max()),
+        "true_residual": float(np.linalg.norm(acted - energy * state)),
+        "variance": float(np.real(np.vdot(acted, acted)) - energy ** 2),
+    }
+
+
+def subspace_gap(first: np.ndarray, second: np.ndarray) -> float:
+    """Largest principal-angle sine between two orthonormal bases.
+
+    ``max sin(theta)`` of ``(I - Q1 Q1') Q2`` -- zero exactly when the second
+    span sits inside the first.  This is what decides whether two arms really
+    solved the same subspace, independently of what their eigensolves returned.
+    """
+    residual = second - first @ (first.conj().T @ second)
+    return float(np.clip(np.linalg.svd(residual, compute_uv=False), 0.0, 1.0).max())
 
 
 def power_krylov(apply, reference: np.ndarray, M: int) -> dict:
@@ -445,193 +520,233 @@ def block_vector(operator, indices: np.ndarray, dimension: int) -> np.ndarray:
 # ----------------------------------------------------------- word-cost preflight
 
 
-def _packet_generators(reference_occupied, masks, n: int, prefix: str):
-    """One configuration generator per packet determinant, from this reference."""
+def _packet_generators(reference_occupied, masks, n: int, prefix: str,
+                       coefficients=None):
+    """Aligned ``(generator, coefficient)`` pairs for one packet.
+
+    The reference determinant enters as the identity, which the growth already
+    seeds, so it is dropped -- and it must be dropped from the *coefficients
+    too*.  Filtering the generators while truncating the coefficient array from
+    the end silently shifts every coefficient after the reference onto the wrong
+    generator whenever the reference is not last, which is the common case: in
+    the committed Hubbard 2x2 ``K=32`` packet the reference sits at index 22 of
+    32.  Carrying the pair through one filter makes that misalignment
+    unrepresentable.
+    """
     reference_program = determinant_program(n, reference_occupied)
-    generators = []
+    weights = (None if coefficients is None
+               else np.asarray(coefficients, dtype=complex).reshape(-1))
+    if weights is not None and weights.size != len(masks):
+        raise ValueError(
+            f"packet has {len(masks)} determinants but {weights.size} "
+            "coefficients; they must be given in the same order")
+    reference_key = tuple(sorted(reference_occupied))
+    pairs = []
     for position, mask in enumerate(masks):
         occupied = _occupied_from_mask(int(mask), n)
-        if tuple(sorted(occupied)) == tuple(sorted(reference_occupied)):
+        if tuple(sorted(occupied)) == reference_key:
             continue                      # the identity direction, already seeded
-        generators.append(configuration_generator(
+        generator = configuration_generator(
             reference_program, determinant_program(n, occupied),
-            label=f"{prefix}[{position}]"))
-    return generators
+            label=f"{prefix}[{position}]")
+        pairs.append((generator,
+                      None if weights is None else complex(weights[position])))
+    return pairs
 
 
-def word_cost_preflight(model, backend, reference_entry, retained_masks,
-                        packet_masks, coefficients, *,
-                        spin_ordering="interleaved",
-                        numeric_certificate_max_qubits: int = 8) -> dict:
-    """``Delta W(K)``: what one packet direction adds to the word universe.
+def _compile_packet(pairs, label: str):
+    """The single generator ``A_new = sum_k c_k A_k`` from aligned pairs."""
+    from clifford_qc.subspace.generator_core import Generator
 
-    Two numbers, because they answer different questions:
+    combined = None
+    for generator, weight in pairs:
+        term = generator.mv * (1.0 if weight is None else weight)
+        combined = term if combined is None else combined + term
+    return Generator(label, combined)
 
-    ``pair_support_bound``
-        The no-cancellation union over the ``K^2 + K M`` products
-        ``A_k' A_l`` and ``A_k' H A_l``.  This is what a cost model that treats
-        the packet as a sum of independent directions would predict.
 
-    ``coefficient_aware``
-        The true incremental universe of the single compiled generator
-        ``A_new = sum_k c_k A_k``, after the coefficients have been applied and
-        cancellations have happened.  This is what a measurement plan pays.
+def price_packet_basis(model, backend, reference_entry, retained_masks,
+                       packets, *, spin_ordering="interleaved",
+                       numeric_certificate_max_qubits: int = 8,
+                       abort_above: int | None = None) -> dict:
+    """Price the packet basis a run actually retains.
 
-    The gap between them is the whole implementability question, which is why
-    the preflight runs *before* any accuracy sweep.
+    ``packets`` is one ``(masks, coefficients)`` pair per *realized* packet
+    direction.  Pricing the first packet only and reusing its number for the
+    whole trajectory describes a one-step benchmark, not this one: the
+    expansion appends a different top-``K`` correction at every iteration, and
+    the packet-packet cross elements among those directions are exactly the
+    cost that decides whether the compression is affordable.
+
+    Three word counts, in declared scopes, because they are not
+    interchangeable:
+
+    ``determinant_baseline_W``
+        the matched determinant bank at the same ``M`` -- what a determinant
+        A-CASE arm would measure.
+
+    ``packet_bank_W_total``
+        the full universe of the retained packet bank.  This is the number that
+        is like-for-like with an A-CASE row's ``W``, and it is what the gate
+        compares.
+
+    ``W_incremental``
+        what the packet directions add *on top of* the matched determinant
+        bank.  Never comparable to an A-CASE total, and never reported as one.
+
+    ``abort_above`` stops the pricing as soon as the running universe passes a
+    budget, so a ``K`` that is going to be rejected is not paid for in full.
     """
     n = model.n
-    sector_basis = backend.basis
+    sector_masks = set(int(mask) for mask in backend.basis.tolist())
     reference_occupied = reference_entry["occupied"]
-    rho = backend.density_from_program(determinant_program(n, reference_occupied)) \
-        if hasattr(backend, "density_from_program") else None
-    if rho is None:
-        from clifford_qc.backends import ExactMVBackend
-        rho = ExactMVBackend().state(determinant_program(n, reference_occupied), ())
+    from clifford_qc.backends import ExactMVBackend
+    rho = ExactMVBackend().state(
+        determinant_program(n, reference_occupied), ())
 
     retained = ([identity_generator(n)]
-                + _packet_generators(reference_occupied, retained_masks, n, "ret"))
-    packet_parts = _packet_generators(reference_occupied, packet_masks, n, "pkt")
-    if not packet_parts:
-        return {"K": int(len(packet_masks)), "skipped": "packet is the reference"}
+                + [generator for generator, _ in _packet_generators(
+                    reference_occupied, retained_masks, n, "ret")])
 
-    # ``word_set`` reports the universe of pairs that have actually been
-    # built, and the bank is lazy.  Forcing the full (S, H) assembly is what
-    # makes ``W(B)`` the measurement plan for the retained bank rather than an
-    # empty set -- and therefore what makes Delta W a genuine increment.
+    compiled, parts, all_masks, products = [], [], [], 0
+    for step, (masks, coefficients) in enumerate(packets):
+        pairs = _packet_generators(reference_occupied, masks, n,
+                                   f"pkt{step}", coefficients)
+        if not pairs:
+            continue
+        compiled.append(_compile_packet(pairs, f"packet[step={step}]"))
+        parts.extend(generator for generator, _ in pairs)
+        all_masks.extend(int(mask) for mask in masks)
+    if not compiled:
+        return {"skipped": "every packet was the reference determinant"}
+
+    # (0) matched determinant bank.
     baseline = MatrixElementBank(rho, model.hamiltonian, retained)
     baseline.matrices()
     baseline_words = baseline.word_set()
 
-    # (a) no-cancellation bound over the K^2 + K M products.
-    with_parts = MatrixElementBank(rho, model.hamiltonian, retained)
-    with_parts.matrices()
-    part_ids = [with_parts.add(generator) for generator in packet_parts]
-    retained_ids = [with_parts.add(generator) for generator in retained]
-    products = 0
+    # (1) the retained packet bank, priced pair by pair so a hopeless K can be
+    #     abandoned rather than completed.
+    packet_bank = MatrixElementBank(
+        rho, model.hamiltonian, [identity_generator(n)] + compiled)
+    order = list(packet_bank.resolve(None))
+    universe: set[int] = set()
+    aborted = None
+    for i_index, i in enumerate(order):
+        for j in order[i_index:]:
+            universe.update(packet_bank.overlap_operator(i, j).terms)
+            universe.update(packet_bank.element_operator(i, j).terms)
+        if abort_above is not None and len(universe) > abort_above:
+            aborted = {"aborted_after_generators": i_index + 1,
+                       "of_generators": len(order),
+                       "words_so_far": int(len(universe)),
+                       "abort_above": int(abort_above)}
+            break
+
+    result = {
+        "packet_directions": len(compiled),
+        "packet_parts_total": len(parts),
+        "determinant_baseline_W": int(len(baseline_words)),
+        "packet_bank_W_total": int(len(universe)),
+        "W_incremental": int(len(universe - baseline_words)),
+        "scope_note": ("packet_bank_W_total is the full universe of the "
+                       "retained packet bank and is the only count comparable "
+                       "with an A-CASE row's W; W_incremental is measured "
+                       "against the matched determinant bank"),
+    }
+    if aborted is not None:
+        result["pricing_aborted"] = aborted
+        return result
+
+    # (2) no-cancellation bound over the products among parts and retained.
+    bound_bank = MatrixElementBank(rho, model.hamiltonian, retained)
+    bound_bank.matrices()
+    part_ids = [bound_bank.add(generator) for generator in parts]
+    retained_ids = list(bound_bank.resolve(None))
     bound_words: set[int] = set()
     for i in part_ids:
         for j in part_ids + retained_ids:
-            bound_words.update(with_parts.overlap_operator(i, j).terms)
-            bound_words.update(with_parts.element_operator(i, j).terms)
+            bound_words.update(bound_bank.overlap_operator(i, j).terms)
+            bound_words.update(bound_bank.element_operator(i, j).terms)
             products += 1
+    result["pair_support_bound"] = int(len(bound_words - baseline_words))
+    result["products"] = int(products)
+    result["cancellation_factor"] = float(
+        result["pair_support_bound"] / max(1, result["W_incremental"]))
 
-    # (b) coefficient-aware universe of the single compiled generator.
-    combined = None
-    weights = np.asarray(coefficients, dtype=complex).reshape(-1)
-    if weights.size != len(packet_parts):
-        weights = weights[:len(packet_parts)]
-    for weight, generator in zip(weights, packet_parts):
-        term = generator.mv * complex(weight)
-        combined = term if combined is None else combined + term
-    from clifford_qc.subspace.generator_core import Generator
-
-    packet = Generator(f"packet[K={len(packet_parts)}]", combined)
-    exact_bank = MatrixElementBank(rho, model.hamiltonian, retained)
-    exact_bank.add(packet)
-    exact_bank.matrices()
-    exact_words = exact_bank.word_set()
-
-    # A configuration generator ``A = V R'`` is an X-string, so it does *not*
-    # commute with N and Sz: operator-global leakage is nonzero by construction
-    # and is reported, not asserted on.  The certificate that actually binds is
-    # reference-conditioned -- what ``A|psi>`` does, not what ``A`` does.
-    #
-    # For a configuration packet that certificate is *structural* and exact:
-    # every part carries the reference onto one sector basis determinant, so
-    # ``A_new|psi>`` is a combination of sector basis states and cannot leave
-    # the sector.  Checking the packet's determinants against the sector basis
-    # is therefore a proof, not an estimate, and it costs ``O(K)``.
-    #
-    # ``subspace_sector_certificate`` states the same thing numerically, but it
-    # builds the explicit sector projector -- one term per pattern times ``2^n``
-    # word products -- which is a small-``n`` object by construction and is
-    # hopeless by 12 qubits.  So it runs as a cross-check of the structural
-    # argument where it is affordable, and is reported as skipped where it is
-    # not.  The invariant reads the structural result either way.
-    leakage = sector_leakage(packet, spin_ordering=spin_ordering)
-    sector_masks = set(int(mask) for mask in sector_basis)
-    stray = sorted(int(mask) for mask in packet_masks
-                   if int(mask) not in sector_masks)
-    structural = {"packet_determinants": int(len(packet_masks)),
-                  "outside_sector": stray,
-                  "in_sector": not stray,
-                  "argument": "every packet part reaches one sector basis "
-                              "determinant, so the packet cannot leave the "
-                              "sector"}
+    # (3) sector certificates.  Structural first, because it is a proof: every
+    #     packet part reaches one sector basis determinant, so no combination
+    #     of them can leave the sector.  The numeric certificate builds the
+    #     explicit sector projector -- a small-n object -- so it runs only as a
+    #     cross-check where it is affordable.
+    stray = sorted({mask for mask in all_masks if mask not in sector_masks})
+    result["structural_sector_certificate"] = {
+        "packet_determinants": len(all_masks),
+        "outside_sector": stray,
+        "in_sector": not stray,
+        "argument": "every packet part reaches one sector basis determinant, "
+                    "so the packet cannot leave the sector"}
+    result["operator_global_leakage"] = {
+        key: float(value)
+        for key, value in sector_leakage(compiled[0],
+                                         spin_ordering=spin_ordering).items()}
+    result["operator_global_leakage_note"] = (
+        "nonzero by construction: a configuration generator is an X-string and "
+        "does not commute with N or Sz. Not a defect, and not the certificate "
+        "the invariant checks")
     if n <= numeric_certificate_max_qubits:
-        certificate = {
+        result["reference_conditioned_certificate"] = {
             key: (value if isinstance(value, (str, bool)) else float(value))
             for key, value in subspace_sector_certificate(
-                rho, [packet], spin_ordering=spin_ordering).items()}
+                rho, compiled, spin_ordering=spin_ordering).items()}
     else:
-        certificate = {
+        result["reference_conditioned_certificate"] = {
             "skipped": f"n={n} exceeds numeric_certificate_max_qubits="
                        f"{numeric_certificate_max_qubits}; the explicit sector "
                        "projector is a small-n object and the structural "
                        "certificate already decides this case"}
-    return {
-        "K": int(len(packet_parts)),
-        "products": int(products),
-        "products_formula": int(len(packet_parts) ** 2
-                                + len(packet_parts) * len(retained)),
-        "baseline_W": int(len(baseline_words)),
-        "pair_support_bound": int(len(set(bound_words) - baseline_words)),
-        "coefficient_aware": int(len(exact_words - baseline_words)),
-        "packet_generator_support": int(packet.support()),
-        "operator_global_leakage": {key: float(value)
-                                    for key, value in leakage.items()},
-        "operator_global_leakage_note": (
-            "nonzero by construction: a configuration generator is an X-string "
-            "and does not commute with N or Sz. Not a defect, and not the "
-            "certificate the invariant checks"),
-        "structural_sector_certificate": structural,
-        "reference_conditioned_certificate": certificate,
-    }
+    return result
 
 
 DEFAULT_GROUPING_WORD_LIMIT = 20000
 
 
-def grouping_contexts(model, backend, reference_entry, retained_masks,
-                      packet_masks, coefficients, *,
+def grouping_contexts(model, backend, reference_entry, packets, *,
                       word_limit: int = DEFAULT_GROUPING_WORD_LIMIT):
-    """QWC group count for a packet that survived the preflight.
+    """QWC groups for the *whole* retained packet bank, not its first step.
 
-    Deliberately separate from the preflight: grouping is the expensive count,
-    and paying it for a ``K`` whose word universe already failed would be work
-    spent on a configuration that is not going to be run.
+    The scope travels in the return value, because a group count over one
+    packet direction reported beside a word count over seven is not a cost
+    model -- it is two different experiments in adjacent fields.
     """
     n = model.n
-    reference_occupied = reference_entry["occupied"]
     from clifford_qc.backends import ExactMVBackend
-    from clifford_qc.subspace.generator_core import Generator
 
+    reference_occupied = reference_entry["occupied"]
     rho = ExactMVBackend().state(determinant_program(n, reference_occupied), ())
-    retained = ([identity_generator(n)]
-                + _packet_generators(reference_occupied, retained_masks, n, "ret"))
-    parts = _packet_generators(reference_occupied, packet_masks, n, "pkt")
-    if not parts:
+    compiled = []
+    for step, (masks, coefficients) in enumerate(packets):
+        pairs = _packet_generators(reference_occupied, masks, n,
+                                   f"pkt{step}", coefficients)
+        if pairs:
+            compiled.append(_compile_packet(pairs, f"packet[step={step}]"))
+    if not compiled:
         return None
-    combined = None
-    weights = np.asarray(coefficients, dtype=complex).reshape(-1)[:len(parts)]
-    for weight, generator in zip(weights, parts):
-        term = generator.mv * complex(weight)
-        combined = term if combined is None else combined + term
     bank = MatrixElementBank(rho, model.hamiltonian,
-                             retained + [Generator("packet", combined)])
+                             [identity_generator(n)] + compiled)
     bank.matrices()
     universe = len(bank.word_set())
+    scope = "packet bank (identity + realized packet directions)"
     # The greedy QWC partition is quadratic in the universe size, which is why
     # the bank keeps it off the default resource report.  Above the limit this
-    # returns the reason instead of the count: a number that took an hour to
-    # produce for one packet configuration is not worth more than saying so.
+    # returns the reason instead of the count.
     if universe > word_limit:
         return {"skipped": f"word universe {universe} exceeds the grouping "
                            f"limit {word_limit}; the QWC partition is "
                            "quadratic in the universe size",
-                "word_universe": int(universe)}
-    return int(bank.qwc_group_count())
+                "scope": scope, "word_universe": int(universe)}
+    return {"groups": int(bank.qwc_group_count()), "scope": scope,
+            "word_universe": int(universe)}
 
 
 # ------------------------------------------------------------------ row builder
@@ -647,7 +762,17 @@ def _blank_row(method: str, category: str, seed: int) -> dict:
 
 def _finish_row(row: dict, run: dict, exact_energy: float, *,
                 matvecs: int, wall: float) -> dict:
+    """Fill one row, folding in any cost already charged to it.
+
+    Shift selection is charged onto the row by ``_charged_shift_sweep`` before
+    the expansion runs.  Folding it in here -- and consuming it, so a row
+    cannot be billed twice -- is what keeps the audit and reference-block arms
+    comparable with the primary Davidson arm, which used to be the only one
+    whose sweep was counted.
+    """
     energy = float(run["energy"])
+    matvecs = int(matvecs) + int(row.pop("_charged_matvecs", 0))
+    wall = float(wall) + float(row.pop("_charged_seconds", 0.0))
     row.update({
         "M": int(run["M"]),
         "stopped_reason": run.get("stopped_reason"),
@@ -672,10 +797,29 @@ def _finish_row(row: dict, run: dict, exact_energy: float, *,
 # ------------------------------------------------------------------ the ladder
 
 
+def _charged_shift_sweep(counting, reference, target_M, diagonal, grid, row):
+    """Sweep the shift and bill the sweep to the row that consumed it.
+
+    The primary Davidson arm folded its sweep into its own matvec and wall
+    counts; the audit and reference-block arms called ``select_shift`` outside
+    their timing window and so reported a tenth of their true cost.  Every arm
+    that selects a shift pays for the selection here.
+    """
+    before, started = counting.matvecs, time.perf_counter()
+    sweep = select_shift(counting, reference, target_M, diagonal, grid)
+    row["mu"] = sweep["selected_mu"]
+    row["selection_work"] = sweep["selection_work"]
+    row["_charged_matvecs"] = counting.matvecs - before
+    row["_charged_seconds"] = time.perf_counter() - started
+    return sweep
+
+
 def run_system(name: str, *, seed: int = 0, total_directions: int = 7,
                shift_grid=DEFAULT_SHIFT_GRID, packet_K=DEFAULT_PACKET_K,
                word_budget_ratio: float = DEFAULT_WORD_BUDGET_RATIO,
-               reference_blocks=(1, 2, 4)) -> dict:
+               reference_blocks=(1, 2, 4),
+               regression_tolerance: float = REGRESSION_ENERGY_TOLERANCE,
+               span_tolerance: float = REGRESSION_SPAN_TOLERANCE) -> dict:
     """The full preconditioned-expansion ladder for one primary system."""
     if name not in PRIMARY_SYSTEMS:
         raise ValueError(f"unknown primary system {name!r}")
@@ -723,6 +867,18 @@ def run_system(name: str, *, seed: int = 0, total_directions: int = 7,
                                   total_directions))
     rows.append(krylov_row)
 
+    # --- the same Krylov span, orthonormalized: the regression comparator.
+    row = _blank_row("orthonormalized_power_krylov", "exact_simulation", seed)
+    row.update({"reference_policy": "model_reference",
+                "reference_identity": primary["identity"],
+                "reference_block_size": 1,
+                "declared_total_directions": total_directions,
+                "shift_rule": "none (unpreconditioned)"})
+    orthonormal_row, orthonormal_run = timed(
+        row, lambda: orthonormalized_power_krylov(
+            counting, unit(primary["position"]), total_directions))
+    rows.append(orthonormal_row)
+
     # --- orthogonal residual: the Lanczos regression arm.
     row = _blank_row("orthogonal_residual", "exact_simulation", seed)
     row.update({"reference_policy": "model_reference",
@@ -734,29 +890,19 @@ def run_system(name: str, *, seed: int = 0, total_directions: int = 7,
     rows.append(orthogonal_row)
 
     # --- Davidson: the principal method, over the declared shift sweep.
-    sweep_start = counting.matvecs
-    sweep_wall = time.perf_counter()
-    sweep = select_shift(counting, unit(primary["position"]), total_directions,
-                         diagonal, shift_grid)
-    sweep_matvecs = counting.matvecs - sweep_start
-    sweep_seconds = time.perf_counter() - sweep_wall
-
     row = _blank_row("davidson", "exact_simulation", seed)
+    sweep = _charged_shift_sweep(counting, unit(primary["position"]),
+                                 total_directions, diagonal, shift_grid, row)
     row.update({
         "reference_policy": "model_reference",
         "reference_identity": primary["identity"],
         "reference_block_size": 1, "declared_total_directions": total_directions,
         "preconditioner_category": "classical_preconditioner",
         "shift_rule": "(D - E_m + mu)^-1, mu from the declared grid by "
-                      "min projected Ritz energy",
-        "mu": sweep["selected_mu"],
-        "selection_work": sweep["selection_work"]})
+                      "min projected Ritz energy"})
     davidson_row, davidson_run = timed(
         row, lambda: expand(counting, unit(primary["position"]), total_directions,
                             diagonal=diagonal, mu=sweep["selected_mu"]))
-    davidson_row["matvecs"] = int(davidson_row["matvecs"] + sweep_matvecs)
-    davidson_row["wall_seconds"] = float(davidson_row["wall_seconds"]
-                                         + sweep_seconds)
     rows.append(davidson_row)
 
     # --- mandatory classical control at the matched direction budget.
@@ -800,10 +946,8 @@ def run_system(name: str, *, seed: int = 0, total_directions: int = 7,
             "preconditioner_category": "classical_preconditioner",
             "shift_rule": "declared-grid mu, reselected per reference",
             "mu": None})
-        local = select_shift(counting, unit(entry["position"]), total_directions,
-                             diagonal, shift_grid)
-        base["mu"] = local["selected_mu"]
-        base["selection_work"] = local["selection_work"]
+        local = _charged_shift_sweep(counting, unit(entry["position"]),
+                                     total_directions, diagonal, shift_grid, base)
         filled, _ = timed(base, lambda e=entry, m=local["selected_mu"]: expand(
             counting, unit(e["position"]), total_directions,
             diagonal=diagonal, mu=m))
@@ -835,10 +979,9 @@ def run_system(name: str, *, seed: int = 0, total_directions: int = 7,
                               "exact_simulation", seed)
             chosen = None
             if label == "davidson":
-                local = select_shift(counting, vector, target_M, diagonal,
-                                     shift_grid)
+                local = _charged_shift_sweep(counting, vector, target_M,
+                                             diagonal, shift_grid, base)
                 chosen = local["selected_mu"]
-                base["selection_work"] = local["selection_work"]
                 base["preconditioner_category"] = "classical_preconditioner"
                 base["shift_rule"] = "declared-grid mu, reselected per block"
             base.update({
@@ -882,6 +1025,32 @@ def run_system(name: str, *, seed: int = 0, total_directions: int = 7,
         filled["realized_total_directions"] = int(L + filled["M"] - 1)
         oracle.append(filled)
 
+    # --- the regression evidence: same span, and same answer on it.
+    krylov_agreement = {
+        "orthonormalized_energy": float(orthonormal_run["energy"]),
+        "orthogonal_residual_energy": float(orthogonal_run["energy"]),
+        "energy_gap": float(abs(orthonormal_run["energy"]
+                                - orthogonal_run["energy"])),
+        "energy_tolerance": float(regression_tolerance),
+        "orthonormalized_rank": int(orthonormal_run["retained_rank"]),
+        "orthogonal_residual_rank": int(orthogonal_run["M"]),
+        "ranks_match": bool(orthonormal_run["retained_rank"]
+                            == orthogonal_run["M"]),
+        "subspace_gap": float(subspace_gap(orthonormal_run["basis"],
+                                           orthogonal_run["basis"])),
+        "subspace_tolerance": float(span_tolerance),
+        "raw_power_energy": float(krylov_run["energy"]),
+        "raw_power_rank": int(krylov_run["retained_rank"]),
+        "raw_power_kappa_S": float(krylov_run["kappa_S"]),
+        "raw_power_gap": float(abs(krylov_run["energy"]
+                                   - orthogonal_run["energy"])),
+        "note": ("the gate compares orthogonal_residual against the SVD-"
+                 "orthonormalized Krylov basis at a fixed absolute tolerance "
+                 "and against its span by principal angle. The raw monomial "
+                 "solve is reported for contrast only: its Gram-whitened "
+                 "pencil loses digits with kappa(S) and can retain fewer "
+                 "directions, so it is not fit to gate anything")}
+
     # --- word-cost preflight, then grouping only for the survivors.
     packet_report = _packet_program(
         model, backend, counting, diagonal, primary, exact_energy,
@@ -907,6 +1076,7 @@ def run_system(name: str, *, seed: int = 0, total_directions: int = 7,
         "reference_blocks": blocks,
         "oracle_diagnostics": oracle,
         "shift_sweep": sweep,
+        "krylov_agreement": krylov_agreement,
         "packet_program": packet_report,
         "reference_policies": {
             key: {"identity": value["identity"], "note": value["note"],
@@ -971,65 +1141,39 @@ def committed_acase_word_cost(system: str) -> dict:
 def _packet_program(model, backend, counting, diagonal, primary, exact_energy,
                     total_directions, mu, packet_K, word_budget_ratio, seed,
                     timed, system: str) -> dict:
-    """Preflight every ``K``, then run and group only the survivors."""
+    """Run each ``K``, price the basis it actually retained, then gate grouping.
+
+    The expansion itself is only matvecs, so it is cheap; the word bank is what
+    costs.  Running first and pricing the realized trajectory is therefore both
+    cheaper and honest, where pricing one probe packet and reusing the number
+    for a seven-step run was neither.  Pricing carries an abort budget, so a
+    ``K`` headed for rejection is abandoned rather than completed, and grouping
+    is paid only for the survivors.
+    """
     dimension = int(backend.dimension)
     vector = np.zeros(dimension, dtype=complex)
     vector[primary["position"]] = 1.0
 
-    # One uncompressed Davidson step supplies the correction whose top-K
-    # truncation the preflight prices.  Pricing a packet needs the coefficients
-    # the method would actually produce, not a placeholder.
-    seed_run = expand(counting, vector, 2, diagonal=diagonal, mu=mu)
-    probe = _residual(counting, seed_run["state"], seed_run["energy"])
-    probe = probe / (diagonal - seed_run["energy"] + mu)
-
-    # A bank matched to the expansion: the reference plus the determinants
-    # carrying the most weight in the current Ritz state.  This is the object a
-    # determinant A-CASE arm at this M would actually have to measure, so its
-    # word universe is the right thing to price the packet against.
-    ranked = np.argsort(-np.abs(seed_run["state"]))[:total_directions]
+    # A determinant bank matched to this M: the reference plus the determinants
+    # carrying the most weight in the uncompressed Ritz state.  This is what a
+    # determinant A-CASE arm at the same budget would have to measure.
+    uncompressed = expand(counting, vector, total_directions,
+                          diagonal=diagonal, mu=mu)
+    ranked = np.argsort(-np.abs(uncompressed["state"]))[:total_directions]
     retained_masks = [int(backend.basis[primary["position"]])]
     retained_masks += [int(backend.basis[i]) for i in ranked
                        if int(backend.basis[i]) not in retained_masks]
     retained_masks = retained_masks[:total_directions]
 
     anchor = committed_acase_word_cost(system)
-    preflight, accepted, rejected = [], [], []
+    budget = (int(word_budget_ratio * anchor["acase_W"])
+              if anchor.get("available") else None)
+
+    pricing, accepted, rejected, runs = [], [], [], []
     packet_masks: dict[str, list[int]] = {}
     for K in packet_K:
         if K > dimension:
             continue
-        packet, support = _top_k_packet(probe, K)
-        masks = [int(backend.basis[i]) for i in support]
-        packet_masks[str(int(K))] = masks
-        try:
-            entry = word_cost_preflight(model, backend, primary, retained_masks,
-                                        masks, packet[support])
-        except (ValueError, MemoryError) as error:      # pragma: no cover
-            entry = {"K": int(K), "failed": str(error)}
-        entry["K"] = int(K)
-        if "coefficient_aware" in entry:
-            delta = entry["coefficient_aware"]
-            entry["cancellation_factor"] = float(
-                entry["pair_support_bound"] / max(1, delta))
-            entry["incremental_ratio"] = float(delta
-                                               / max(1, entry["baseline_W"]))
-            if anchor.get("available"):
-                per_direction = anchor["words_per_direction"]
-                entry["acase_words_per_direction"] = per_direction
-                entry["cost_vs_acase_direction"] = float(delta / per_direction)
-                entry["accepted"] = bool(
-                    delta <= word_budget_ratio * per_direction)
-                entry["gate_basis"] = "committed A-CASE words per direction"
-            else:
-                entry["accepted"] = bool(
-                    entry["incremental_ratio"] <= word_budget_ratio)
-                entry["gate_basis"] = "identity-baseline ratio (fallback)"
-            (accepted if entry["accepted"] else rejected).append(int(K))
-        preflight.append(entry)
-
-    runs = []
-    for K in accepted:
         row = _blank_row(f"packet_davidson[K={K}]", "exact_simulation", seed)
         row.update({
             "reference_policy": "model_reference",
@@ -1042,32 +1186,74 @@ def _packet_program(model, backend, counting, diagonal, primary, exact_energy,
         filled, run = timed(row, lambda k=K: expand(
             counting, vector, total_directions, diagonal=diagonal, mu=mu,
             packet_K=k))
-        entry = next(item for item in preflight if item["K"] == K)
-        filled["W"] = entry.get("coefficient_aware")
-        if run["packet_supports"]:
-            masks = [int(backend.basis[i]) for i in run["packet_supports"][0]]
-            coefficients = probe[run["packet_supports"][0]]
+
+        packets = [([int(backend.basis[i]) for i in support], coefficients)
+                   for support, coefficients in zip(run["packet_supports"],
+                                                    run["packet_coefficients"])]
+        packet_masks[str(int(K))] = sorted(
+            {mask for masks, _ in packets for mask in masks})
+        try:
+            entry = price_packet_basis(model, backend, primary, retained_masks,
+                                       packets, abort_above=budget)
+        except (ValueError, MemoryError) as error:      # pragma: no cover
+            entry = {"failed": str(error)}
+        entry["K"] = int(K)
+        entry["packet_steps"] = len(packets)
+
+        total = entry.get("packet_bank_W_total")
+        if total is None:
+            entry["accepted"] = False
+            entry["gate_basis"] = "pricing failed"
+        elif budget is not None:
+            entry["acase_W"] = anchor["acase_W"]
+            entry["cost_vs_acase_total"] = float(total / anchor["acase_W"])
+            entry["accepted"] = bool("pricing_aborted" not in entry
+                                     and total <= budget)
+            entry["gate_basis"] = ("committed A-CASE total word universe on "
+                                   "this system, like for like")
+        else:
+            ratio = total / max(1, entry["determinant_baseline_W"])
+            entry["incremental_ratio"] = float(ratio)
+            entry["accepted"] = bool(ratio <= word_budget_ratio)
+            entry["gate_basis"] = "matched determinant bank (fallback)"
+        pricing.append(entry)
+
+        # Word counts go into explicitly scoped fields.  ``W`` stays None on
+        # these rows: an unlabeled total-cost column that silently held an
+        # increment is what made these rows read as comparable with A-CASE
+        # totals when they were not.
+        filled["W_total"] = total
+        filled["W_incremental"] = entry.get("W_incremental")
+        filled["W_scope"] = entry.get("scope_note")
+        if entry["accepted"]:
+            accepted.append(int(K))
             filled["grouping_contexts"] = grouping_contexts(
-                model, backend, primary, retained_masks, masks, coefficients)
+                model, backend, primary, packets)
+        else:
+            rejected.append(int(K))
+            filled["grouping_contexts"] = {
+                "skipped": "K rejected by the word-cost gate",
+                "scope": "packet bank (identity + realized packet directions)"}
         runs.append(filled)
 
     # The full-K control: keeping every component must reproduce the
     # uncompressed Davidson direction exactly.
     full = expand(counting, vector, total_directions, diagonal=diagonal, mu=mu,
                   packet_K=dimension)
-    uncompressed = expand(counting, vector, total_directions, diagonal=diagonal,
-                          mu=mu)
     return {
-        "preflight": preflight,
+        "pricing": pricing,
         "packet_masks": packet_masks,
         "accepted_K": accepted,
         "rejected_K": rejected,
         "word_budget_ratio": float(word_budget_ratio),
+        "word_budget": budget,
         "anchor": anchor,
-        "gate_rule": ("a K is run only if its coefficient-aware incremental "
-                      "word universe is within word_budget_ratio times the "
-                      "committed A-CASE cost of one retained direction on this "
-                      "system; QWC grouping is computed for survivors only"),
+        "gate_rule": ("each K is run (matvecs only), the basis it actually "
+                      "retained is priced with an abort budget, and a K is "
+                      "accepted only if its packet-bank total word universe is "
+                      "within word_budget_ratio times the committed A-CASE "
+                      "total on this system. QWC grouping is paid for "
+                      "survivors only, over the whole packet bank"),
         "runs": runs,
         "full_K_control": {
             "full_K_energy": full["energy"],
@@ -1105,33 +1291,38 @@ def check_invariants(record: dict, *, tolerance: float = 1e-9) -> None:
     #    as "no worse, and not better than the conditioning gap allows": the
     #    orthogonal arm is a *sharper* Ritz value of the same span, so a strict
     #    equality assertion would fail exactly where the arm is doing its job.
-    orthogonal, krylov = arms.get("orthogonal_residual"), arms.get("power_krylov")
-    if orthogonal and krylov:
-        if orthogonal["M"] != krylov["M"]:
-            problems.append("orthogonal_residual and power_krylov are not "
-                            "at matched M")
-        # Same span, so the two Ritz values may differ only by what the raw
-        # monomial basis loses to its own conditioning.  Asserting exact
-        # equality would fail precisely where the orthogonal arm is doing its
-        # job; asserting nothing would make the regression arm vacuous.
-        signed = orthogonal["energy"] - krylov["energy"]
-        bound = max(1e-8, float(np.finfo(float).eps)
-                    * float(krylov["kappa_S"]) * max(1.0, abs(krylov["energy"])))
-        record["krylov_agreement"] = {
-            "signed_gap": float(signed),
-            "gap": float(abs(signed)),
-            "conditioning_bound": float(bound),
-            "kappa_S_krylov": float(krylov["kappa_S"]),
-            "note": ("the orthogonal arm spans the same Krylov space at S = I. "
-                     "In exact arithmetic it is the sharper Ritz value; in "
-                     "floating point the monomial arm's own conditioning can "
-                     "put it a hair lower, so the tolerance both directions "
-                     "are held to is the conditioning bound, not a constant")}
-        if abs(signed) > bound:
+    orthogonal = arms.get("orthogonal_residual")
+    orthonormal = arms.get("orthonormalized_power_krylov")
+    if orthogonal and orthonormal and orthogonal["M"] != orthonormal["M"]:
+        problems.append("orthogonal_residual and orthonormalized_power_krylov "
+                        "are not at matched M")
+    agreement = record.get("krylov_agreement")
+    if agreement is None:
+        problems.append("no Krylov agreement evidence was recorded")
+    else:
+        # Same span, orthonormal bases on both sides, so the comparison is a
+        # real one: a fixed absolute tolerance, plus the principal angle that
+        # decides whether the spans are actually equal.
+        if agreement["ranks_match"]:
+            if agreement["energy_gap"] > agreement["energy_tolerance"]:
+                problems.append(
+                    f"orthogonal_residual and the orthonormalized Krylov basis "
+                    f"disagree by {agreement['energy_gap']:.3g}, beyond the "
+                    f"tolerance {agreement['energy_tolerance']:.3g}")
+            if agreement["subspace_gap"] > agreement["subspace_tolerance"]:
+                problems.append(
+                    f"orthogonal_residual does not span the Krylov space: "
+                    f"principal-angle gap {agreement['subspace_gap']:.3g} "
+                    f"exceeds {agreement['subspace_tolerance']:.3g}")
+        elif agreement["orthogonal_residual_rank"] < \
+                agreement["orthonormalized_rank"]:
+            # The residual arm spanning *less* is a defect; spanning more just
+            # means the monomial basis went numerically rank-deficient first.
             problems.append(
-                f"orthogonal_residual and power_krylov disagree by "
-                f"{abs(signed):.3g}, beyond the conditioning bound "
-                f"{bound:.3g}; they are supposed to span the same Krylov space")
+                "orthogonal_residual retained fewer directions "
+                f"({agreement['orthogonal_residual_rank']}) than the "
+                f"orthonormalized Krylov basis "
+                f"({agreement['orthonormalized_rank']})")
 
     # 2. S = I for every orthonormal expansion arm.
     for row in every:
@@ -1196,12 +1387,16 @@ def check_invariants(record: dict, *, tolerance: float = 1e-9) -> None:
     # 7. Spin ordering and sector certificates propagate.
     if not record.get("spin_ordering"):
         problems.append("the spin ordering convention is not recorded")
-    for entry in record["packet_program"]["preflight"]:
+    for entry in record["packet_program"]["pricing"]:
         structural = entry.get("structural_sector_certificate")
         if structural is not None and not structural["in_sector"]:
             problems.append(
                 f"packet K={entry['K']} reaches determinants outside the "
                 f"sector: {structural['outside_sector']}")
+        if entry.get("accepted") and entry.get("packet_steps", 0) < 1:
+            problems.append(
+                f"packet K={entry['K']} was accepted without pricing any "
+                "realized packet direction")
         certificate = entry.get("reference_conditioned_certificate") or {}
         if "max_sector_leakage" not in certificate:
             continue                       # skipped above the qubit threshold
