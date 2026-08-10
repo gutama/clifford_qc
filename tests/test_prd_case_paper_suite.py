@@ -120,6 +120,28 @@ class TestPRDCasePaperSuite(unittest.TestCase):
         self.assertIs(fake.phase10.build_system, original_builder)
         self.assertIs(fake.price_packet_basis, original_pricer)
 
+    def test_phase10_registry_uses_the_unpatched_builder(self):
+        calls = []
+
+        def original_builder(name):
+            calls.append(name)
+            return "model", {"source": "control"}
+
+        fake = SimpleNamespace(
+            phase10=SimpleNamespace(build_system=original_builder),
+            PRIMARY_SYSTEMS=("old",),
+            price_packet_basis=lambda *args, **kwargs: None,
+        )
+        builder = {"kind": "phase10_registry",
+                   "source_key": "fcidump_h4_equilibrium"}
+        suite._MODEL_CACHE.clear()
+        with suite._registered_for_one_run(
+                fake, "validation", builder, absolute_word_abort=20000):
+            model, construction = fake.phase10.build_system("validation")
+        self.assertEqual(model, "model")
+        self.assertEqual(construction, {"source": "control"})
+        self.assertEqual(calls, ["fcidump_h4_equilibrium"])
+
 
 if __name__ == "__main__":
     unittest.main()

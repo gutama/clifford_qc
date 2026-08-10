@@ -205,7 +205,8 @@ def _h2o_geometry(scale: float):
     ]
 
 
-def _build_system_uncached(system_id: str, builder: dict):
+def _build_system_uncached(system_id: str, builder: dict, *,
+                           phase10_builder=None):
     kind = builder["kind"]
     if kind == "hubbard":
         from clifford_qc.models.lattice import hubbard
@@ -240,14 +241,17 @@ def _build_system_uncached(system_id: str, builder: dict):
                        "geometry_angstrom": _h2o_geometry(scale)}
     if kind == "phase10_registry":
         from benchmarks import run_phase10_hybrid as phase10
-        return phase10.build_system(builder["source_key"])
+        registered_builder = phase10_builder or phase10.build_system
+        return registered_builder(builder["source_key"])
     raise ValueError(f"{system_id}: unknown builder kind {kind!r}")
 
 
-def build_system_from_spec(system_id: str, builder: dict):
+def build_system_from_spec(system_id: str, builder: dict, *,
+                           phase10_builder=None):
     key = (system_id, json.dumps(builder, sort_keys=True, separators=(",", ":")))
     if key not in _MODEL_CACHE:
-        _MODEL_CACHE[key] = _build_system_uncached(system_id, builder)
+        _MODEL_CACHE[key] = _build_system_uncached(
+            system_id, builder, phase10_builder=phase10_builder)
     return _MODEL_CACHE[key]
 
 
@@ -263,7 +267,8 @@ def _registered_for_one_run(pe, system_id: str, builder: dict,
         effective = ceiling if abort_above is None else min(ceiling, int(abort_above))
         return original_pricer(*args, abort_above=effective, **kwargs)
 
-    pe.phase10.build_system = lambda name: build_system_from_spec(name, builder)
+    pe.phase10.build_system = lambda name: build_system_from_spec(
+        name, builder, phase10_builder=original_builder)
     pe.PRIMARY_SYSTEMS = (system_id,)
     pe.price_packet_basis = guarded_pricer
     try:
