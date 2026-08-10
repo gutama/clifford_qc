@@ -101,7 +101,7 @@ No figure or table value in the manuscript is transcribed by hand, and
 ```bash
 python -m venv .venv && source .venv/bin/activate
 pip install -e .[test,research,chemistry]   # numpy + scipy + openfermion/pyscf
-pytest                                      # 1091 passed, 6 skipped
+pytest                                      # 1117 passed, 6 skipped
 ```
 
 That install is the reference environment for the quoted pair, and it is
@@ -875,8 +875,58 @@ reference *sensitivity*, not a general reference-optimisation advantage — the
 that record's sector-projected row leaves its QND projection circuit unpriced.
 
 Costs on one laptop-class core: the four-qubit and eight-qubit sectors are
-seconds to a few minutes; the 12-qubit `hubbard_2x3` word preflight dominates
+seconds to a few minutes; the 12-qubit `hubbard_2x3` word pricing dominates
 the total.
+
+## Warm-start replication
+
+```bash
+python benchmarks/run_warm_start_replication.py \
+    --systems hubbard_2x2,hubbard_2x3,h4_equilibrium,h4_stretched \
+    --additions 8 --operator-ladder 1,2,3,4,5,6,8 \
+    --output benchmarks/results/warm_start_replication.json
+```
+
+`benchmarks/run_warm_start_replication.py` asks whether the warm-start anomaly
+in `reference_results/warm_start_h4.json` — downstream A-CASE error getting
+*worse* as the ADAPT reference gets *better* — is a property of A-CASE or a
+property of one system. That committed trend is a single system, a single
+budget, and three points, and it is the whole evidential basis for treating
+reference optimisation as an accuracy lever, so it is worth replicating before
+it is built on.
+
+The driver runs cold and warm A-CASE across the five Phase 12 primary systems
+over a denser operator ladder that contains the committed `(2, 4, 6)` rungs as
+a subset. Three things make it a replication rather than another run:
+
+- **A positive control.** The `fcidump_h4_equilibrium` rows must reproduce
+  `reference_results/warm_start_h4.json` to 1e-6 mHa, cold row included. A
+  failure blocks the record, because a replication whose control has drifted is
+  measuring a different experiment. The committed rungs are also scored
+  separately from the full ladder, so a denser sweep cannot dilute what the
+  original three points said.
+- **A rank statistic, not three numbers.** The claim is ordinal, so it is
+  tested as one: Kendall's tau-b between the ADAPT reference error and the
+  downstream A-CASE error. `tau < 0` is the anomaly. The tie correction
+  matters — a flat downstream error must report *no* trend rather than a
+  spurious ±1.
+- **A mechanism diagnostic.** `subspace_capture` is
+  `||P_span |psi_exact>||^2` over the retained span, which is what actually
+  bounds the achievable Ritz error; `reference_capture` is the same quantity
+  for the reference alone. If capture falls as the reference improves, the
+  anomaly is a span problem rather than a conditioning or optimiser artifact —
+  and conditioning is ruled out independently, since the committed rows all
+  carry full effective rank at `kappa(S) ~ 1.02–1.06`.
+
+Both capture diagnostics are computed matrix-free through `apply_pauli_sum`,
+with purity *verified* rather than assumed; the dense
+`subspace.reference.pure_statevector` route is a small-`n` oracle that costs
+more than the benchmark it diagnoses by 12 qubits.
+
+Warm references here are sector-mixed and unprojected. The committed record's
+sector-projected row leaves its QND projection circuit unpriced, and nothing in
+this driver removes that caveat; the ADAPT prelude is priced in rotors,
+gradient evaluations, and optimizer evaluations, never in shots.
 
 ## Demos (not committed as artifacts)
 
