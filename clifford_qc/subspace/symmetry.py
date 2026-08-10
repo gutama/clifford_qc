@@ -166,16 +166,23 @@ def subspace_sector_certificate(reference_state: MV, generators, *,
         raise ValueError("sector certification needs at least one generator")
     target = (infer_reference_sector(reference_state, spin_ordering=spin_ordering)
               if sector_target is None else sector_target)
-    projector = _target_projector(reference_state.n, int(target[0]),
-                                  float(target[1]), spin_ordering)
-    complement = MV.scalar(reference_state.n, 1.0) - projector
     size = len(gens)
     overlap = np.zeros((size, size), dtype=complex)
     leakage = np.zeros((size, size), dtype=complex)
+    projected = _determinant_projected_basis(
+        reference_state, gens, target, spin_ordering)
+    complement = None
+    if projected is None:
+        projector = _target_projector(reference_state.n, int(target[0]),
+                                      float(target[1]), spin_ordering)
+        complement = MV.scalar(reference_state.n, 1.0) - projector
     for i, left in enumerate(gens):
         for j, right in enumerate(gens[i:], start=i):
             s_ij = (left.mv.dagger() * right.mv * reference_state).trace()
-            l_ij = (left.mv.dagger() * complement * right.mv * reference_state).trace()
+            l_ij = (s_ij - np.vdot(projected[:, i], projected[:, j])
+                    if projected is not None else
+                    (left.mv.dagger() * complement * right.mv
+                     * reference_state).trace())
             overlap[i, j] = s_ij
             leakage[i, j] = l_ij
             if i != j:
@@ -200,6 +207,35 @@ def subspace_sector_certificate(reference_state: MV, generators, *,
         "max_sector_leakage": worst,
         "min_sector_weight": 1.0 - worst,
     }
+
+
+def _determinant_projected_basis(reference_state: MV, generators, target,
+                                 spin_ordering):
+    """Exact target-sector columns for a computational determinant, if one.
+
+    ``S - (P B)^dagger(P B)`` is the leakage Gram matrix.  This route avoids
+    constructing the exponentially wide projector multivector while retaining
+    the same generalized-eigenvalue certificate.  Non-determinant references
+    fall back to the explicit projector above.
+    """
+    from ..backends import SectorStatevectorBackend
+    from ..states import computational_probabilities
+
+    probabilities = computational_probabilities(reference_state)
+    bits, weight = max(probabilities.items(), key=lambda item: item[1])
+    if weight < 1.0 - 1e-10:
+        return None
+    backend = SectorStatevectorBackend(
+        reference_state.n, int(target[0]), float(target[1]),
+        spin_ordering=spin_ordering)
+    try:
+        reference = backend.occupation_state(bits)
+    except KeyError:
+        return None
+    return np.column_stack([
+        backend.operator(generator.mv, validate_sector=False).matvec(reference)
+        for generator in generators
+    ])
 
 
 def project_reference_to_sector(reference_state: MV, *,
