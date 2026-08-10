@@ -101,7 +101,7 @@ No figure or table value in the manuscript is transcribed by hand, and
 ```bash
 python -m venv .venv && source .venv/bin/activate
 pip install -e .[test,research,chemistry]   # numpy + scipy + openfermion/pyscf
-pytest                                      # 848 passed, 6 skipped
+pytest                                      # 1082 passed, 6 skipped
 ```
 
 That install is the reference environment for the quoted pair, and it is
@@ -775,6 +775,89 @@ Their QSCI defaults use the exact sector ground state as a validation oracle,
 not an implementable state-preparation claim.  The Phase 10 and 12 H$_4$
 systems built through PySCF require the `chemistry` extra; dependency-light
 FCIDUMP rungs remain available for the matching checks.
+
+## Preconditioned residual expansion
+
+```bash
+python benchmarks/run_preconditioned_expansion.py \
+    --systems hubbard_2x2,hubbard_2x3,h4_equilibrium,h4_stretched \
+    --total-directions 7 --seed 0 \
+    --output benchmarks/results/preconditioned_expansion.json
+```
+
+`benchmarks/run_preconditioned_expansion.py` measures the corrected accuracy
+hierarchy on the Phase 12 primary systems at a matched direction budget. It
+writes `benchmarks/results/preconditioned_expansion.json` and refuses to write
+at all if its invariants fail.
+
+The arms answer different questions and must not be read as a single ranking:
+
+- `orthogonal_residual` is a **regression arm, not a result**. Normalised Ritz
+  residual expansion spans the Krylov space by construction — with
+  `|Psi_m> = p_{m-1}(H)|psi>`, the residual `(H - E_m)|Psi_m>` lies in
+  `K_{m+1}` and Galerkin orthogonality puts it perpendicular to `K_m` — so this
+  arm exists only to confirm that it reproduces `power_krylov` while holding
+  `S = I`. The record stores the agreement gap and the conditioning bound that
+  gap is allowed to occupy; exact equality is not asserted, because the raw
+  monomial basis loses digits the orthogonal basis keeps.
+- `davidson` is the principal method. The shift `mu` is swept over a declared
+  grid, the whole curve is retained, and the selected value is the minimiser of
+  the **projected** Ritz energy. That criterion is variational, so it never
+  consults the exact ground energy, and the selection can be re-derived from
+  the stored curve without rerunning the benchmark. The sweep's cost is
+  reported as `selection_work` and folded into the arm's matvec count.
+- `packet_davidson` is gated behind the word-cost preflight below and is only
+  run for the `K` values that survive it.
+- `matched_selected_ci` is a mandatory classical control at the same budget.
+  Every accuracy statement is reported against it, because its repeated ties
+  with A-CASE in the Phase 12 ledger mean the operator construction has not yet
+  demonstrated greater energy compactness than classical determinant selection.
+
+The reference-policy audit runs `model.reference`, the lowest-diagonal
+determinant, a fixed physics-informed determinant where the lattice admits one,
+and a fixed-seed control. Budget-matched `L`-determinant reference blocks come
+from the sample-independent classical selected-CI ranking and hold
+`reference_block_size + M - 1` fixed across `L`. Best/worst-determinant and
+ground-state-distilled references are reported **only** under
+`oracle_diagnostics` with `evidence_category = "oracle_diagnostic"`.
+
+The packet program prices a correction packet before measuring its accuracy:
+
+```
+Delta W(K) = |W(B u {A_new}) \ W(B)|,   A_new = sum_k c_k A_k
+```
+
+Both numbers are reported — the no-cancellation `pair_support_bound` over the
+`K^2 + K M` products, and the `coefficient_aware` universe of the single
+compiled generator after cancellation — and QWC grouping is computed only for
+the `K` values the gate accepts. The gate prices one packet direction against
+one committed A-CASE direction on the same system, read from
+`benchmarks/results/phase12_paper_b_five_system.json`; when that record is
+absent it falls back to an identity-baseline ratio and says so in the output.
+
+Two costs are gated rather than paid unconditionally, and both report the
+reason instead of the number when they are skipped. The packet's sector
+certificate is *structural* — every part carries the reference onto one sector
+basis determinant, so the packet cannot leave the sector, which is a proof
+costing `O(K)` — and that is what the invariant gate reads;
+`subspace_sector_certificate` runs as a numeric cross-check only up to
+`numeric_certificate_max_qubits = 8`, because it builds the explicit sector
+projector and that is a small-`n` object by construction. QWC grouping is
+skipped above `DEFAULT_GROUPING_WORD_LIMIT = 20000` words, since the greedy
+partition is quadratic in the universe size.
+
+Two claim boundaries travel with every record this driver writes. The Davidson
+preconditioner is cheap **in the classical sector backend only**: it is not yet
+a bounded-support measurable packet, so its rows are stamped `exact_simulation`
+with `preconditioner_category = "classical_preconditioner"` and
+`implementable = false`. And the committed H$_4$ warm-start rows establish
+reference *sensitivity*, not a general reference-optimisation advantage — the
+2/4/6-operator ordering there is a single system and remains unexplained, and
+that record's sector-projected row leaves its QND projection circuit unpriced.
+
+Costs on one laptop-class core: the four-qubit and eight-qubit sectors are
+seconds to a few minutes; the 12-qubit `hubbard_2x3` word preflight dominates
+the total.
 
 ## Demos (not committed as artifacts)
 
