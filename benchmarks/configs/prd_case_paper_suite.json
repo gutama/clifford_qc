@@ -1,0 +1,350 @@
+{
+  "schema": "clifford_qc.prd_case_paper_suite.v1",
+  "suite_name": "PRD-CASE credible paper suite",
+  "preregistered": true,
+  "results_committed_separately": true,
+  "physical_instance_count": 12,
+  "validation_instance_count": 1,
+  "claim": "Davidson preconditioning improves fixed-dimensional residual subspaces, while compilation into bounded-support configuration packets has a system-dependent measurement-cost frontier.",
+  "claim_boundaries": [
+    "Orthogonal residual expansion is a Lanczos/Krylov regression arm, not a competing method.",
+    "Uncompressed Davidson uses an exact classical sector-statevector preconditioner and is not an implementable hardware primitive.",
+    "Packet coefficients and top-K supports are exact-simulation compression diagnostics until a hardware-accessible selection protocol is supplied.",
+    "No quantum-advantage, physical-runtime, or shot-cost claim is made by the exact-simulation tier.",
+    "The FCIDUMP H4 instance validates construction and is not counted as a distinct physical problem.",
+    "CISD and CCSD are chemistry context; only matched-M methods are ranked as compact subspace competitors."
+  ],
+  "conventions": {
+    "fermion_to_qubit_map": "Jordan-Wigner",
+    "spin_orbital_ordering": "interleaved alpha/beta",
+    "sector": "fixed particle number and Sz=0",
+    "energy_unit": "hartree",
+    "reported_error_unit": "mHa",
+    "packet_word_scope": "complete realized packet basis including all cross elements",
+    "global_phase": "irrelevant; relative phase retained"
+  },
+  "exact_simulation": {
+    "seed": 0,
+    "m_budgets": [3, 5, 7, 11, 21],
+    "packet_k": [2, 4, 8, 16, 32],
+    "accuracy_only_packet_extension": {
+      "packet_k_for_sector_dimension_at_least_400": [64, 128],
+      "implemented_by_this_driver": false,
+      "status": "required_before_final_compression_frontier"
+    },
+    "shift_grid": [0.0, 0.01, 0.025, 0.05, 0.1, 0.25, 0.5, 1.0, 2.0],
+    "reference_blocks": [1, 2, 4],
+    "word_budget_ratio": 2.0,
+    "absolute_packet_word_abort": 20000,
+    "regression_energy_tolerance": 1e-9,
+    "regression_subspace_tolerance": 1e-7,
+    "grouping_word_limit": 20000,
+    "run_rejected_packet_accuracy": true,
+    "group_rejected_packets": false
+  },
+  "execution_stages": [
+    {
+      "id": "preconditioned_expansion",
+      "implemented_by": "benchmarks/run_prd_case_paper_suite.py",
+      "status": "preregistered",
+      "evidence_category": "exact_simulation"
+    },
+    {
+      "id": "matched_acase",
+      "implemented_by": null,
+      "status": "required_before_paper_analysis",
+      "evidence_category": "exact_simulation",
+      "boundary": "A-CASE determinant- and word-resolution arms require a dedicated matched-M driver; absence must fail paper-level completeness rather than silently dropping the baseline."
+    },
+    {
+      "id": "large_sector_packet_accuracy",
+      "implemented_by": null,
+      "status": "required_before_final_compression_frontier",
+      "evidence_category": "exact_simulation",
+      "boundary": "K=64 and K=128 are accuracy-only probes. They do not authorize unbounded word pricing or grouping."
+    },
+    {
+      "id": "finite_shot",
+      "implemented_by": null,
+      "status": "required_for_hardware-facing_claims_only",
+      "evidence_category": "finite_shot_simulation"
+    }
+  ],
+  "methods": [
+    {
+      "id": "orthonormalized_power_krylov",
+      "role": "stable unpreconditioned baseline",
+      "matched_budget": "M",
+      "execution_stage": "preconditioned_expansion"
+    },
+    {
+      "id": "orthogonal_residual",
+      "role": "Krylov theorem regression",
+      "matched_budget": "M",
+      "execution_stage": "preconditioned_expansion"
+    },
+    {
+      "id": "davidson",
+      "role": "uncompressed preconditioning accuracy ceiling",
+      "matched_budget": "M",
+      "execution_stage": "preconditioned_expansion",
+      "implementable": false
+    },
+    {
+      "id": "packet_davidson",
+      "role": "packet-compression diagnostic",
+      "matched_budget": "M",
+      "execution_stage": "preconditioned_expansion",
+      "implementable": false
+    },
+    {
+      "id": "matched_selected_ci",
+      "role": "mandatory classical compactness control",
+      "matched_budget": "M",
+      "execution_stage": "preconditioned_expansion"
+    },
+    {
+      "id": "acase_determinant",
+      "role": "matched A-CASE comparator",
+      "matched_budget": "M",
+      "execution_stage": "matched_acase"
+    },
+    {
+      "id": "acase_word",
+      "role": "measurement-width comparator and enabling infrastructure",
+      "matched_budget": "M",
+      "execution_stage": "matched_acase"
+    }
+  ],
+  "systems": [
+    {
+      "id": "h4_equilibrium",
+      "family": "molecule",
+      "regime": "equilibrium",
+      "analysis_role": "primary",
+      "count_as_distinct": true,
+      "default_run": true,
+      "builder": {"kind": "h4_chain", "spacing_angstrom": 0.9},
+      "expected": {"n_qubits": 8, "sector_dimension": 36}
+    },
+    {
+      "id": "h4_stretched",
+      "family": "molecule",
+      "regime": "stretched",
+      "analysis_role": "primary",
+      "count_as_distinct": true,
+      "default_run": true,
+      "builder": {"kind": "h4_chain", "spacing_angstrom": 1.8},
+      "expected": {"n_qubits": 8, "sector_dimension": 36}
+    },
+    {
+      "id": "beh2_equilibrium",
+      "family": "molecule",
+      "regime": "equilibrium",
+      "analysis_role": "primary",
+      "count_as_distinct": true,
+      "default_run": true,
+      "builder": {
+        "kind": "beh2_frozen_core",
+        "bond_length_angstrom": 1.3264,
+        "active_space": {"electrons": 4, "spatial_orbitals": 6},
+        "frozen_spatial_orbitals": [0]
+      },
+      "expected": {"n_qubits": 12, "sector_dimension": 225}
+    },
+    {
+      "id": "beh2_stretched",
+      "family": "molecule",
+      "regime": "stretched",
+      "analysis_role": "primary",
+      "count_as_distinct": true,
+      "default_run": true,
+      "builder": {
+        "kind": "beh2_frozen_core",
+        "bond_length_angstrom": 3.0,
+        "active_space": {"electrons": 4, "spatial_orbitals": 6},
+        "frozen_spatial_orbitals": [0]
+      },
+      "expected": {"n_qubits": 12, "sector_dimension": 225},
+      "alignment_boundary": "The geometry follows the Overlap-ADAPT stress test, but only the Be 1s core is frozen; this is not a full-space reproduction."
+    },
+    {
+      "id": "h2o_qsci_equilibrium",
+      "family": "molecule",
+      "regime": "equilibrium",
+      "analysis_role": "primary",
+      "count_as_distinct": true,
+      "default_run": true,
+      "builder": {
+        "kind": "h2o_qsci_scaled",
+        "bond_scale": 1.0,
+        "active_space": {"electrons": 6, "spatial_orbitals": 5},
+        "frozen_spatial_orbitals": [0, 1],
+        "active_spatial_orbitals": [2, 3, 4, 5, 6]
+      },
+      "expected": {"n_qubits": 10, "sector_dimension": 100},
+      "alignment_boundary": "Geometry, STO-3G basis, electron count and active-space size match the QSCI setup; canonical-RHF active-orbital indices are declared because the source does not enumerate them."
+    },
+    {
+      "id": "h2o_qsci_stretched",
+      "family": "molecule",
+      "regime": "twofold_bond_stretch",
+      "analysis_role": "primary",
+      "count_as_distinct": true,
+      "default_run": true,
+      "builder": {
+        "kind": "h2o_qsci_scaled",
+        "bond_scale": 2.0,
+        "active_space": {"electrons": 6, "spatial_orbitals": 5},
+        "frozen_spatial_orbitals": [0, 1],
+        "active_spatial_orbitals": [2, 3, 4, 5, 6]
+      },
+      "expected": {"n_qubits": 10, "sector_dimension": 100},
+      "alignment_boundary": "Both O-H vectors are scaled from the declared QSCI-aligned equilibrium geometry while preserving the active-orbital convention."
+    },
+    {
+      "id": "hubbard_2x2_u2",
+      "family": "hubbard",
+      "regime": "weak_to_intermediate",
+      "analysis_role": "primary",
+      "count_as_distinct": true,
+      "default_run": true,
+      "builder": {"kind": "hubbard", "shape": [2, 2], "t": 1.0, "U": 2.0},
+      "expected": {"n_qubits": 8, "sector_dimension": 36}
+    },
+    {
+      "id": "hubbard_2x2_u4",
+      "family": "hubbard",
+      "regime": "intermediate",
+      "analysis_role": "primary",
+      "count_as_distinct": true,
+      "default_run": true,
+      "builder": {"kind": "hubbard", "shape": [2, 2], "t": 1.0, "U": 4.0},
+      "expected": {"n_qubits": 8, "sector_dimension": 36}
+    },
+    {
+      "id": "hubbard_2x2_u8",
+      "family": "hubbard",
+      "regime": "strong",
+      "analysis_role": "primary",
+      "count_as_distinct": true,
+      "default_run": true,
+      "builder": {"kind": "hubbard", "shape": [2, 2], "t": 1.0, "U": 8.0},
+      "expected": {"n_qubits": 8, "sector_dimension": 36}
+    },
+    {
+      "id": "hubbard_2x3_u2",
+      "family": "hubbard",
+      "regime": "weak_to_intermediate",
+      "analysis_role": "primary",
+      "count_as_distinct": true,
+      "default_run": true,
+      "builder": {"kind": "hubbard", "shape": [2, 3], "t": 1.0, "U": 2.0},
+      "expected": {"n_qubits": 12, "sector_dimension": 400}
+    },
+    {
+      "id": "hubbard_2x3_u4",
+      "family": "hubbard",
+      "regime": "intermediate",
+      "analysis_role": "primary",
+      "count_as_distinct": true,
+      "default_run": true,
+      "builder": {"kind": "hubbard", "shape": [2, 3], "t": 1.0, "U": 4.0},
+      "expected": {"n_qubits": 12, "sector_dimension": 400}
+    },
+    {
+      "id": "hubbard_2x3_u8",
+      "family": "hubbard",
+      "regime": "strong",
+      "analysis_role": "primary",
+      "count_as_distinct": true,
+      "default_run": true,
+      "builder": {"kind": "hubbard", "shape": [2, 3], "t": 1.0, "U": 8.0},
+      "expected": {"n_qubits": 12, "sector_dimension": 400}
+    },
+    {
+      "id": "fcidump_h4_equilibrium",
+      "family": "molecule",
+      "regime": "equilibrium",
+      "analysis_role": "construction_validation",
+      "count_as_distinct": false,
+      "default_run": true,
+      "m_budgets": [7],
+      "builder": {"kind": "phase10_registry", "source_key": "fcidump_h4_equilibrium"},
+      "expected": {"n_qubits": 8, "sector_dimension": 36},
+      "validation_target": "h4_equilibrium",
+      "energy_tolerance": 1e-10
+    },
+    {
+      "id": "hubbard_2x4_u4",
+      "family": "hubbard",
+      "regime": "intermediate_scaling_stress",
+      "analysis_role": "exploratory_scaling",
+      "count_as_distinct": false,
+      "default_run": false,
+      "m_budgets": [3, 5, 7],
+      "builder": {"kind": "hubbard", "shape": [2, 4], "t": 1.0, "U": 4.0},
+      "expected": {"n_qubits": 16, "sector_dimension": 4900},
+      "execution_boundary": "Accuracy-first. Packet word pricing and grouping may stop at the declared cost ceilings."
+    }
+  ],
+  "finite_shot_tier": {
+    "implemented_by_this_driver": false,
+    "systems": ["h4_stretched", "hubbard_2x2_u4", "h2o_qsci_stretched"],
+    "shot_budgets": [10000, 100000, 1000000],
+    "seeds": [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19],
+    "required_statistics": [
+      "median_energy_error_mHa",
+      "seed_level_confidence_interval",
+      "variational_violation_rate",
+      "regularization_frequency",
+      "failed_solve_rate"
+    ]
+  },
+  "required_metrics": [
+    "energy",
+    "absolute_error",
+    "variance",
+    "true_residual",
+    "M",
+    "retained_rank",
+    "kappa_S",
+    "orthonormality_defect",
+    "mu",
+    "selection_work",
+    "matvecs",
+    "packet_K",
+    "determinant_baseline_W",
+    "W_total",
+    "W_incremental",
+    "W_scope",
+    "grouping_contexts",
+    "wall_seconds",
+    "reference_identity",
+    "spin_ordering"
+  ],
+  "producer_invariants": {
+    "variational_tolerance_hartree": 1e-9,
+    "orthonormality_defect_max": 1e-10,
+    "nested_energy_tolerance_hartree": 1e-9,
+    "full_k_energy_tolerance_hartree": 1e-10,
+    "krylov_energy_tolerance_hartree": 1e-9,
+    "krylov_subspace_tolerance": 1e-7,
+    "shift_selection_must_be_oracle_free": true,
+    "all_word_counts_require_scope": true,
+    "all_references_require_identity": true
+  },
+  "analysis_plan": {
+    "primary_figures": [
+      "energy error versus M by system and method",
+      "energy-error versus W_total Pareto frontier",
+      "preconditioning gain heatmap over system, U/t and M",
+      "packet correction-norm capture and W_total versus K",
+      "mu and reference sensitivity",
+      "finite-shot seed-level distributions on the declared subset"
+    ],
+    "aggregation": "Report systems individually and aggregate only within declared families. Geometry and U/t points are not independent statistical replicates.",
+    "headline_threshold_mHa": 1.6,
+    "negative_results_retained": true
+  }
+}
