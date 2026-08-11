@@ -235,6 +235,7 @@ def expand(apply, reference: np.ndarray, target_M: int, *,
     energies: list[float] = []
     packet_supports: list[np.ndarray] = []
     packet_coefficients: list[np.ndarray] = []
+    packet_norm_captures: list[float] = []
     energy, state, Q, defect = _ritz(basis, apply)
     energies.append(energy)
 
@@ -257,7 +258,12 @@ def expand(apply, reference: np.ndarray, target_M: int, *,
         correction = correction - Q @ (Q.conj().T @ correction)
         correction = correction - Q @ (Q.conj().T @ correction)
         if packet_K is not None:
+            full_correction_norm = float(np.linalg.norm(correction))
             correction, support = _top_k_packet(correction, packet_K)
+            retained_correction_norm = float(np.linalg.norm(correction))
+            packet_norm_captures.append(
+                0.0 if full_correction_norm <= 0.0 else
+                (retained_correction_norm / full_correction_norm) ** 2)
             # The packet that is actually retained at this step, coefficients
             # and all.  Pricing needs every one of them: the trajectory appends
             # a *different* packet at every iteration, so a cost read off the
@@ -290,6 +296,7 @@ def expand(apply, reference: np.ndarray, target_M: int, *,
         "variance": float(np.real(np.vdot(acted, acted)) - energy ** 2),
         "packet_supports": packet_supports,
         "packet_coefficients": packet_coefficients,
+        "packet_norm_captures": packet_norm_captures,
     }
 
 

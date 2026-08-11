@@ -101,7 +101,7 @@ No figure or table value in the manuscript is transcribed by hand, and
 ```bash
 python -m venv .venv && source .venv/bin/activate
 pip install -e .[test,research,chemistry]   # numpy + scipy + openfermion/pyscf
-pytest                                      # 1117 passed, 6 skipped
+pytest                                      # 1143 passed, 6 skipped
 ```
 
 That install is the reference environment for the quoted pair, and it is
@@ -927,6 +927,70 @@ Warm references here are sector-mixed and unprojected. The committed record's
 sector-projected row leaves its QND projection circuit unpriced, and nothing in
 this driver removes that caveat; the ADAPT prelude is priced in rotors,
 gradient evaluations, and optimizer evaluations, never in shots.
+
+## PRD-CASE paper suite
+
+The suite is preregistered: a frozen manifest fixes the systems, M grid, and
+per-stage scope *before* execution, and each producer stamps the resolved
+config hash into every record it writes. Dry-run is the default throughout;
+nothing expensive runs without `--execute`.
+
+```bash
+python benchmarks/run_prd_case_paper_suite.py --execute --results-dir RESULTS
+python benchmarks/run_prd_case_matched_acase.py --execute --results-dir RESULTS
+python benchmarks/run_prd_case_large_sector_packets.py --execute --results-dir RESULTS
+python benchmarks/run_prd_case_finite_shot.py --execute --results-dir RESULTS
+```
+
+Records are written outside the source tree by default and are **not**
+committed here; the manifests and producers are.
+
+The manifests form a chain, each overlaying the last:
+
+- `configs/prd_case_paper_suite.json` — the frozen v1 grid.
+- `configs/prd_case_paper_suite_v2.json` — the post-pilot validity revision.
+  It narrows only budgets that crossed exact effective-rank ceilings, using the
+  producer invariant and never an energy or method ranking, and it carries the
+  v1 config and result-archive digests so the revision is auditable against
+  what it revised. v1 records stay labelled pilot/descriptive rather than being
+  relabelled confirmatory. Its `system_m_budgets` contains 52 listed pairs:
+  the declared 48 primary and one validation pair plus three opt-in
+  `hubbard_2x4_u4` exploratory-scaling pairs. The exploratory family is not
+  included in the default 49-task analysis.
+- `configs/prd_case_paper_suite_v3.json` — the finite-shot extension, with
+  `configs/prd_case_finite_shot_bases.json` holding the frozen packet supports
+  and coefficients.
+
+Stage scopes are deliberately unequal, and each producer enforces its own:
+
+- `run_prd_case_paper_suite.py` orchestrates the exact tier only. It does not
+  dispatch finite-shot work, and the absence of the matched A-CASE baseline is
+  explicit in every record rather than passing silently as a favourable
+  comparison.
+- `run_prd_case_matched_acase.py` runs matched-M A-CASE at determinant and
+  odd-Y word resolution, snapshotting every preregistered prefix from one
+  nested trajectory. It prices the retained measurement bank *and* the larger
+  selection cache, because a rejected candidate still cost a measured row.
+- `run_prd_case_large_sector_packets.py` is accuracy-only. The manifest
+  authorizes K=64/128 as exact accuracy probes and not as priced packets, so
+  every row carries `W_total = null` and a `grouping_contexts` scope of
+  `forbidden_for_accuracy_only_extension`; the producer refuses to emit a row
+  that carries a word count.
+- `run_prd_case_finite_shot.py` samples frozen packet Davidson under the v3
+  protocol. `--prepare-only` compiles the QWC group plans without drawing
+  shots, and `--summary-only` reduces completed seed records.
+
+Verifying the freeze is a two-line check — resolve the committed manifest and
+compare its digest against the one quoted in the record:
+
+```bash
+python -c "from benchmarks import run_prd_case_paper_suite as s, run_prd_case_finite_shot as f; print(s.config_sha256(s.load_manifest(f.DEFAULT_CONFIG)))"
+```
+
+Claim boundary: exact rows are exact statevector simulation with exact
+algorithmic counts; finite-shot rows report sampled estimator behaviour under
+one declared allocation rule. Neither tier carries a hardware-runtime,
+implementability, or quantum-advantage claim.
 
 ## Demos (not committed as artifacts)
 

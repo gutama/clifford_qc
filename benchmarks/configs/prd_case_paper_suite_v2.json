@@ -1,0 +1,55 @@
+{
+  "schema": "clifford_qc.prd_case_paper_suite_overlay.v1",
+  "resolved_schema": "clifford_qc.prd_case_paper_suite.v2",
+  "base_manifest": "prd_case_paper_suite.json",
+  "revision_id": "post-pilot-effective-rank-cap-2026-08-10",
+  "suite_name": "PRD-CASE paper suite v2 (post-pilot validity revision)",
+  "evidence_role": "The v1 preconditioned-expansion results are transparent pilot/descriptive evidence. The matched A-CASE extension is frozen here before its first suite-wide execution; it is the only new confirmatory comparison in v2.",
+  "pilot_provenance": {
+    "v1_config_sha256": "0d84dbb47c4ab57e22835cf4785f771714a18892634bed23a6bd7dd92b829f7e",
+    "v1_result_archive_sha256": "9b6e9ac6e997466cd39f8666662de713aa291fbb66a1a8ea8187ed54126ced81",
+    "v1_source_commit": "d89ca96dcf01f78a35e3b813bd48bf6985a0a586",
+    "pilot_completed_records": 49,
+    "pilot_invariant_rejections": 12,
+    "selection_rule_declared_before_new_acase_results": true,
+    "selection_rule": "For each declared physical family and size, retain the largest preregistered M for which orthogonal residual and SVD-orthonormalized Krylov had matched effective rank on every interaction or geometry member. The rule uses only the producer invariant, never an energy or method ranking.",
+    "excluded_budgets": {
+      "molecules": [21],
+      "hubbard_2x2": [11, 21],
+      "hubbard_2x3": []
+    }
+  },
+  "stage_updates": {
+    "preconditioned_expansion": {
+      "status": "completed_pilot_evidence",
+      "evidence_role": "pilot_descriptive"
+    },
+    "matched_acase": {
+      "implemented_by": "benchmarks/run_prd_case_matched_acase.py",
+      "status": "preregistered_confirmatory_extension",
+      "evidence_role": "new_confirmatory_comparison"
+    }
+  },
+  "system_m_budgets": {
+    "h4_equilibrium": [3, 5, 7, 11],
+    "h4_stretched": [3, 5, 7, 11],
+    "beh2_equilibrium": [3, 5, 7, 11],
+    "beh2_stretched": [3, 5, 7, 11],
+    "h2o_qsci_equilibrium": [3, 5, 7, 11],
+    "h2o_qsci_stretched": [3, 5, 7, 11],
+    "hubbard_2x2_u2": [3, 5, 7],
+    "hubbard_2x2_u4": [3, 5, 7],
+    "hubbard_2x2_u8": [3, 5, 7],
+    "hubbard_2x3_u2": [3, 5, 7, 11, 21],
+    "hubbard_2x3_u4": [3, 5, 7, 11, 21],
+    "hubbard_2x3_u8": [3, 5, 7, 11, 21],
+    "fcidump_h4_equilibrium": [7],
+    "hubbard_2x4_u4": [3, 5, 7]
+  },
+  "analysis_revision": {
+    "reason": "The v1 global M grid crossed exact effective-rank ceilings on nine of twelve physical instances. Those producer rejections are retained as negative pilot results; v2 narrows only invalid budgets and does not select systems or M values using energy accuracy.",
+    "primary_task_count": 48,
+    "validation_task_count": 1,
+    "reuse_policy": "v1 records may be described as pilot evidence but are not relabelled confirmatory. New matched A-CASE records are hashed to this resolved v2 manifest."
+  }
+}

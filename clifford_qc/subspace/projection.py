@@ -193,6 +193,13 @@ class MatrixElementBank:
         self._universe: set[int] = set()
         self._new_words: list[int] = []
         self._reused_words: list[int] = []
+        # Candidate-sector diagnostics depend only on a fixed reference and a
+        # generator, not on the growing Ritz basis.  Adaptive scoring revisits
+        # every live candidate at each step, so retaining this cache avoids
+        # rebuilding the same reference-conditioned projector contraction M
+        # times on the fine-grained word pool.
+        self._sector_leakage_cache: dict[tuple, tuple[dict[str, float], float]] = {}
+        self._reference_sector_context: dict[tuple, tuple[Any, np.ndarray] | None] = {}
 
         self._observables: dict[tuple, dict] = {}
         self._pairs_built = 0

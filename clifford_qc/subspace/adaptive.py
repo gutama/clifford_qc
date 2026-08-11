@@ -194,6 +194,12 @@ class GrowthRecord:
     rejected_sector: int
     new_words: int
     word_universe: int
+    # Full matrix-element cache after this selection decision.  This prices
+    # every candidate row that was measured, including candidates that were
+    # rejected or simply not retained.  ``word_universe`` above remains the
+    # smaller final-subspace ledger used by the manuscript.
+    selection_word_universe: int = 0
+    step_seconds: float = 0.0
     leakage: dict[str, float] | None = None
     # State-averaged / block growth: the tracked roots' energies at this step,
     # and the per-root predicted lowerings of the accepted generator.
@@ -409,21 +415,85 @@ def _candidate_sector_leakage(bank: MatrixElementBank, candidate: int, *,
                               spin_ordering="interleaved",
                               ) -> tuple[dict[str, float], float]:
     """Return diagnostic fields and the scalar used by the sector gate."""
+    ordering_key = (spin_ordering if isinstance(spin_ordering, str)
+                    else tuple(spin_ordering))
+    target_key = None if sector_target is None else tuple(sector_target)
+    cache_key = (int(candidate), float(leakage_tol), leakage_mode,
+                 target_key, ordering_key)
+    cached = bank._sector_leakage_cache.get(cache_key)
+    if cached is not None:
+        return cached
     generator = bank.generator(candidate)
     operator = sector_leakage(generator, spin_ordering=spin_ordering)
     operator_worst = max(operator.values())
     if leakage_mode == "operator" or (
             leakage_mode == "operator_then_reference" and
             operator_worst <= leakage_tol):
-        return operator, operator_worst
-    conditioned = reference_sector_leakage(
-        generator, bank.reference, sector_target=sector_target,
-        spin_ordering=spin_ordering)
+        answer = (operator, operator_worst)
+        bank._sector_leakage_cache[cache_key] = answer
+        return answer
+    conditioned = _fast_determinant_reference_leakage(
+        bank, candidate, generator, sector_target, spin_ordering)
+    if conditioned is None:
+        conditioned = reference_sector_leakage(
+            generator, bank.reference, sector_target=sector_target,
+            spin_ordering=spin_ordering)
     diagnostic = dict(conditioned)
     if leakage_mode == "operator_then_reference":
         diagnostic.update({f"operator_{key}": value
                            for key, value in operator.items()})
-    return diagnostic, conditioned["target_sector"]
+    answer = (diagnostic, conditioned["target_sector"])
+    bank._sector_leakage_cache[cache_key] = answer
+    return answer
+
+
+def _fast_determinant_reference_leakage(
+        bank: MatrixElementBank, candidate: int, generator,
+        sector_target: tuple[int, float] | None, spin_ordering,
+        ) -> dict[str, float] | None:
+    """Cheap exact ``||P A|ref>||`` route for a determinant reference.
+
+    The general projector contraction remains the fallback for a non-
+    computational reference.  A determinant is the paper suite's fixed
+    reference, however, and compiling ``A`` on the target sector gives the
+    same numerator without multiplying by a ``2^n``-term projector.
+    """
+    if sector_target is None:
+        return None
+    ordering_key = (spin_ordering if isinstance(spin_ordering, str)
+                    else tuple(spin_ordering))
+    context_key = (tuple(sector_target), ordering_key)
+    if context_key not in bank._reference_sector_context:
+        from ..backends import SectorStatevectorBackend
+        from ..states import computational_probabilities
+
+        probabilities = computational_probabilities(bank.reference)
+        bits, weight = max(probabilities.items(), key=lambda item: item[1])
+        if weight < 1.0 - 1e-10:
+            bank._reference_sector_context[context_key] = None
+        else:
+            backend = SectorStatevectorBackend(
+                bank.n, int(sector_target[0]), float(sector_target[1]),
+                spin_ordering=spin_ordering)
+            try:
+                reference = backend.occupation_state(bits)
+            except KeyError:
+                bank._reference_sector_context[context_key] = None
+            else:
+                bank._reference_sector_context[context_key] = (backend, reference)
+    context = bank._reference_sector_context[context_key]
+    if context is None:
+        return None
+    backend, reference = context
+    full_norm = float(bank.entry(candidate, candidate)[0].real)
+    if full_norm <= 1e-15:
+        raise ValueError("generator annihilates the reference state")
+    projected = backend.operator(
+        generator.mv, validate_sector=False).matvec(reference)
+    weight = float(np.vdot(projected, projected).real / full_norm)
+    weight = min(1.0, max(0.0, weight))
+    leakage = 0.0 if abs(1.0 - weight) <= 1e-13 else 1.0 - weight
+    return {"target_sector": leakage}
 
 
 def score_candidate(bank: MatrixElementBank, basis: Sequence[int],
@@ -652,6 +722,7 @@ def _evaluate_acase_step(bank: MatrixElementBank, state: ACASEState,
                          config: ACASEConfig, step: int,
                          target: OverlapTarget | None = None) -> ACASEStepOutcome:
     """Score/solve one growth decision without owning workflow state."""
+    step_started = time.perf_counter()
     remaining = [index for index in state.pool if index not in state.basis]
     if not remaining:
         return ACASEStepOutcome(stopped_reason="candidate pool exhausted")
@@ -744,6 +815,8 @@ def _evaluate_acase_step(bank: MatrixElementBank, state: ACASEState,
         rejected_sector=rejected_sector,
         new_words=best.new_words,
         word_universe=bank.resources(new_basis)["word_universe"],
+        selection_word_universe=len(bank.word_set()),
+        step_seconds=time.perf_counter() - step_started,
         leakage=best.leakage, root_energies=root_energies,
         per_root_lowering=best.per_root,
         selection_criterion=config.criterion, selection_score=selection_score,
@@ -832,6 +905,7 @@ def run_acase(rho: MV, hamiltonian, candidates: Sequence, *,
         basis, tau_s=config.tau_s, rel_tau=config.rel_tau,
         max_condition=config.max_condition,
     )
+    initialization_seconds = time.perf_counter() - started
     value, root_energies = _acase_objective(solved, config)
     state = ACASEState(
         basis=basis, pool=tuple(pool), result=solved, energy=value,
@@ -868,6 +942,7 @@ def run_acase(rho: MV, hamiltonian, candidates: Sequence, *,
     resources.update({
         "candidate_pool_size": len(state.pool),
         "growth_seconds": time.perf_counter() - started,
+        "initialization_seconds": initialization_seconds,
         "registered_generators": len(bank),
         "roots": config.roots,
         "aggregation": config.aggregation,

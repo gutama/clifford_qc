@@ -1,0 +1,154 @@
+{
+  "schema": "clifford_qc.prd_case_paper_suite_overlay.v1",
+  "resolved_schema": "clifford_qc.prd_case_paper_suite.v3",
+  "base_manifest": "prd_case_paper_suite.json",
+  "revision_id": "finite-shot-packet-davidson-2026-08-11",
+  "suite_name": "PRD-CASE paper suite v3 (frozen finite-shot extension)",
+  "evidence_role": "The v1 exact expansion is pilot/descriptive evidence, the v2 matched A-CASE extension is confirmatory exact evidence, and this v3 extension freezes the finite-shot protocol before any v3 sampled result is generated.",
+  "pilot_provenance": {
+    "v1_config_sha256": "0d84dbb47c4ab57e22835cf4785f771714a18892634bed23a6bd7dd92b829f7e",
+    "v1_result_archive_sha256": "9b6e9ac6e997466cd39f8666662de713aa291fbb66a1a8ea8187ed54126ced81",
+    "v1_source_commit": "d89ca96dcf01f78a35e3b813bd48bf6985a0a586",
+    "pilot_completed_records": 49,
+    "pilot_invariant_rejections": 12,
+    "selection_rule_declared_before_new_acase_results": true,
+    "selection_rule": "For each declared physical family and size, retain the largest preregistered M for which orthogonal residual and SVD-orthonormalized Krylov had matched effective rank on every interaction or geometry member. The rule uses only the producer invariant, never an energy or method ranking.",
+    "excluded_budgets": {
+      "molecules": [21],
+      "hubbard_2x2": [11, 21],
+      "hubbard_2x3": []
+    }
+  },
+  "completed_exact_provenance": {
+    "resolved_v2_manifest_sha256": "3514b0a7ab8f3eedef54f76b31cb5344d1018dbf4e58c0d35e77b29044809c0a",
+    "v2_overlay_file_sha256": "782fe69cf82b91bb15d0f5082315f04449a804c9fa0d2f34672ed2df05a4a237",
+    "exact_suite_archive_sha256": "0df2d1dffc6c52c181769305e6e2e73835b0f90c4a8f03981721bfb17793b717",
+    "preconditioned_expansion_source_commit": "0d84dbb4",
+    "matched_acase_source_commit": "fac3eb795321dbdafb004b48475cae34369fb34b",
+    "large_sector_source_commit": "760bce75f75f31ddbc0e2906037b6b411ae27539",
+    "basis_selection_evidence": "M=7, K=16 was recommended after exact-suite completion because the same fixed packet rule was accuracy-qualified on all three predeclared finite-shot systems. No finite-shot outcome was used."
+  },
+  "stage_updates": {
+    "preconditioned_expansion": {
+      "status": "completed_pilot_evidence",
+      "evidence_role": "pilot_descriptive"
+    },
+    "matched_acase": {
+      "implemented_by": "benchmarks/run_prd_case_matched_acase.py",
+      "status": "completed_confirmatory_extension",
+      "evidence_role": "confirmatory_exact_simulation"
+    },
+    "large_sector_packet_accuracy": {
+      "implemented_by": "benchmarks/run_prd_case_large_sector_packets.py",
+      "status": "completed_accuracy_only_extension",
+      "evidence_role": "exact_simulation_accuracy_only"
+    },
+    "finite_shot": {
+      "implemented_by": "benchmarks/run_prd_case_finite_shot.py",
+      "status": "preregistered_before_v3_sampling",
+      "evidence_role": "finite_shot_simulation"
+    }
+  },
+  "system_m_budgets": {
+    "h4_equilibrium": [3, 5, 7, 11],
+    "h4_stretched": [3, 5, 7, 11],
+    "beh2_equilibrium": [3, 5, 7, 11],
+    "beh2_stretched": [3, 5, 7, 11],
+    "h2o_qsci_equilibrium": [3, 5, 7, 11],
+    "h2o_qsci_stretched": [3, 5, 7, 11],
+    "hubbard_2x2_u2": [3, 5, 7],
+    "hubbard_2x2_u4": [3, 5, 7],
+    "hubbard_2x2_u8": [3, 5, 7],
+    "hubbard_2x3_u2": [3, 5, 7, 11, 21],
+    "hubbard_2x3_u4": [3, 5, 7, 11, 21],
+    "hubbard_2x3_u8": [3, 5, 7, 11, 21],
+    "fcidump_h4_equilibrium": [7],
+    "hubbard_2x4_u4": [3, 5, 7]
+  },
+  "finite_shot_tier": {
+    "implemented_by_this_driver": false,
+    "implemented_by": "benchmarks/run_prd_case_finite_shot.py",
+    "systems": ["h4_stretched", "hubbard_2x2_u4", "h2o_qsci_stretched"],
+    "method": "packet_davidson",
+    "M": 7,
+    "packet_K": 16,
+    "basis_policy": "Load the realized M=7, K=16 packet-Davidson supports, coefficients, and paired Pauli Hamiltonian frozen before sampling, then require their canonical digest. Pairing avoids molecular-orbital gauge drift on rebuild.",
+    "basis_file": "prd_case_finite_shot_bases.json",
+    "frozen_bases": {
+      "h4_stretched": {
+        "selected_mu": 0.25,
+        "expected_exact_packet_energy": -1.924411073305013,
+        "expected_basis_sha256": "3c34ce9106fea2f3b2e492f22f14c793cbb99e67905d3d68e6e032654521819b"
+      },
+      "hubbard_2x2_u4": {
+        "selected_mu": 0.25,
+        "expected_exact_packet_energy": -10.102484150030316,
+        "expected_basis_sha256": "96b23e626337d575c52b8658412f9fa9adfe5ddfb0880d85e9e438fe2261a6c5"
+      },
+      "h2o_qsci_stretched": {
+        "selected_mu": 2.0,
+        "expected_exact_packet_energy": -74.76424125480018,
+        "expected_basis_sha256": "72d3bf8dd44dbcc8da2ec320ea2f1794ff9e95857b32d44ca6e604c000149f18"
+      }
+    },
+    "shot_budget_scope": "total_state_preparation_shots_across_qwc_groups",
+    "shot_budgets": [10000, 100000, 1000000],
+    "seeds": [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19],
+    "seed_derivation": "numpy SeedSequence([20260811, system_index, shot_budget, seed]); cells are independent rather than nested",
+    "allocation": {
+      "rule": "static_stratified_variance_optimal_qwc",
+      "outcome_dependent": false,
+      "overlap_fraction": 0.25,
+      "hamiltonian_fraction": 0.75,
+      "within_stratum_aggregation": "sum_first_order_variances",
+      "unmeasured_group_proxy": "squared_l1_coefficient_range",
+      "minimum_shots_per_touched_group_per_stratum": 1,
+      "circuit_cost": 1.0,
+      "pilot_shots": 0
+    },
+    "estimator": {
+      "measurement_bank": "complete shared S/H Pauli-word universe of identity plus six realized packet directions",
+      "grouping": "deterministic greedy qubit-wise commuting partition",
+      "matrix_assembly": "one measured upper triangle mirrored by Hermiticity",
+      "identity_expectation": "analytic, zero shots",
+      "sample_reuse": "the same grouped outcomes reconstruct every S/H entry"
+    },
+    "solver": {
+      "primary_policy": "modewise_per_mode",
+      "sensitivity_policy": "entrywise_uniform",
+      "tau_s": 1e-10,
+      "relative_tau_s": 0.0,
+      "max_condition": 1000000000000.0,
+      "norm_floor": 1e-14,
+      "calibrate_overlap": true,
+      "overlap_delta": 0.05,
+      "overlap_bound": "normal",
+      "overlap_multiple_testing": "bonferroni",
+      "overlap_safety": 1.0,
+      "evidence_boundary": "Both shot-calibrated overlap rules are data-dependent regularization diagnostics using asymptotic normal radii, not finite-sample coverage certificates."
+    },
+    "summary": {
+      "bootstrap_resamples": 10000,
+      "bootstrap_seed": 20260811,
+      "confidence_level": 0.95,
+      "failed_solves_excluded_from_energy_summaries": true,
+      "variational_violation_tolerance_hartree": 1e-9,
+      "chemical_accuracy_mHa": 1.6
+    },
+    "required_statistics": [
+      "median_energy_error_mHa",
+      "seed_level_confidence_interval",
+      "variational_violation_rate",
+      "regularization_frequency",
+      "failed_solve_rate"
+    ],
+    "claim_boundary": "This is a finite-shot estimator stress test on bases and allocation coefficients frozen by exact simulation. It does not make packet selection hardware-accessible and does not support a quantum-advantage or physical-runtime claim."
+  },
+  "analysis_revision": {
+    "reason": "The exact suite is complete. This revision adds only the previously declared finite-shot tier and freezes every choice that the v1 manifest left underspecified.",
+    "measurement_task_count": 180,
+    "solver_rows_per_measurement_task": 2,
+    "preregistration_rule": "Publish the v3 manifest, producer, and tests before executing any v3 sampled task.",
+    "reuse_policy": "Exact v1/v2 records select and validate the frozen packet bases. They are not relabelled finite-shot evidence."
+  }
+}
