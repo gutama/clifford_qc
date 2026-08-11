@@ -1,0 +1,467 @@
+{
+  "arms": {
+    "2000": {
+      "assigned_calibrated": {
+        "below_exact_count": 22,
+        "bias_millihartree": 10.333361468555745,
+        "catastrophic_error_count": 0,
+        "exact_rank_count": 71,
+        "failures": {},
+        "max_absolute_error_millihartree": 34.8381003094449,
+        "median_absolute_error_millihartree": 10.63705314434893,
+        "median_condition_number": 46.91003318227108,
+        "median_exact_ritz_variance": 3.4466825472727355e-05,
+        "median_projected_matrix_variance_sum": 272.46127774725005,
+        "p95_absolute_error_millihartree": 23.955362727896773,
+        "rank_histogram": {
+          "7": 129,
+          "8": 71
+        },
+        "replicas": 200,
+        "rmse_millihartree": 13.307089663437782,
+        "successful_solves": 200
+      },
+      "assigned_fixed": {
+        "below_exact_count": 121,
+        "bias_millihartree": -178.0810797219864,
+        "catastrophic_error_count": 4,
+        "exact_rank_count": 200,
+        "failures": {},
+        "max_absolute_error_millihartree": 22760.19648976996,
+        "median_absolute_error_millihartree": 4.476566391405257,
+        "median_condition_number": 181.4316621090705,
+        "median_exact_ritz_variance": 3.4466825472727355e-05,
+        "median_projected_matrix_variance_sum": 272.46127774725005,
+        "p95_absolute_error_millihartree": 37.00613160896697,
+        "rank_histogram": {
+          "8": 200
+        },
+        "replicas": 200,
+        "rmse_millihartree": 1786.20625259282,
+        "successful_solves": 200
+      },
+      "assigned_ridge": {
+        "below_exact_count": 29,
+        "bias_millihartree": -406.1473474864538,
+        "catastrophic_error_count": 73,
+        "exact_rank_count": 1,
+        "failures": {},
+        "max_absolute_error_millihartree": 21589.192902186962,
+        "median_absolute_error_millihartree": 97.41623279471234,
+        "median_condition_number": 275.34166701289826,
+        "median_exact_ritz_variance": 3.4466825472727355e-05,
+        "median_projected_matrix_variance_sum": 272.46127774725005,
+        "p95_absolute_error_millihartree": 2754.8881243478604,
+        "rank_histogram": {
+          "8": 1,
+          "9": 199
+        },
+        "replicas": 200,
+        "rmse_millihartree": 2095.933104768265,
+        "successful_solves": 200
+      },
+      "assigned_selected": {
+        "below_exact_count": 83,
+        "bias_millihartree": 1.7290732463420477,
+        "catastrophic_error_count": 0,
+        "exact_rank_count": 162,
+        "failures": {},
+        "max_absolute_error_millihartree": 21.795107427400318,
+        "median_absolute_error_millihartree": 4.557381843220298,
+        "median_condition_number": 147.9252014567885,
+        "median_exact_ritz_variance": 3.4466825472727355e-05,
+        "median_projected_matrix_variance_sum": 272.46127774725005,
+        "p95_absolute_error_millihartree": 16.274967252935504,
+        "rank_histogram": {
+          "7": 38,
+          "8": 162
+        },
+        "replicas": 200,
+        "rmse_millihartree": 7.822404295608839,
+        "successful_solves": 200
+      },
+      "pooled_calibrated": {
+        "below_exact_count": 125,
+        "bias_millihartree": -1.1262806311536755,
+        "catastrophic_error_count": 0,
+        "exact_rank_count": 195,
+        "failures": {},
+        "max_absolute_error_millihartree": 21.28933891920415,
+        "median_absolute_error_millihartree": 2.5565821179078796,
+        "median_condition_number": 186.38356352700902,
+        "median_exact_ritz_variance": 1.294560706845404e-05,
+        "median_projected_matrix_variance_sum": 90.25822044472096,
+        "p95_absolute_error_millihartree": 10.123896806146684,
+        "rank_histogram": {
+          "7": 5,
+          "8": 195
+        },
+        "replicas": 200,
+        "rmse_millihartree": 4.856348723936643,
+        "successful_solves": 200
+      },
+      "pooled_fixed": {
+        "below_exact_count": 130,
+        "bias_millihartree": -2.464982383184955,
+        "catastrophic_error_count": 1,
+        "exact_rank_count": 200,
+        "failures": {},
+        "max_absolute_error_millihartree": 152.6432508302209,
+        "median_absolute_error_millihartree": 2.5565821179078796,
+        "median_condition_number": 187.72785887562122,
+        "median_exact_ritz_variance": 1.294560706845404e-05,
+        "median_projected_matrix_variance_sum": 90.25822044472096,
+        "p95_absolute_error_millihartree": 10.148399187678423,
+        "rank_histogram": {
+          "8": 200
+        },
+        "replicas": 200,
+        "rmse_millihartree": 11.698988365589692,
+        "successful_solves": 200
+      },
+      "pooled_ridge": {
+        "below_exact_count": 70,
+        "bias_millihartree": -2125.7612181224385,
+        "catastrophic_error_count": 65,
+        "exact_rank_count": 0,
+        "failures": {},
+        "max_absolute_error_millihartree": 46061.65396228568,
+        "median_absolute_error_millihartree": 50.01754924473944,
+        "median_condition_number": 899.3608656456261,
+        "median_exact_ritz_variance": 1.294560706845404e-05,
+        "median_projected_matrix_variance_sum": 90.25822044472096,
+        "p95_absolute_error_millihartree": 11637.24860789314,
+        "rank_histogram": {
+          "9": 200
+        },
+        "replicas": 200,
+        "rmse_millihartree": 6166.13384318798,
+        "successful_solves": 200
+      },
+      "pooled_selected": {
+        "below_exact_count": 128,
+        "bias_millihartree": -1.4476679980751417,
+        "catastrophic_error_count": 0,
+        "exact_rank_count": 198,
+        "failures": {},
+        "max_absolute_error_millihartree": 21.28933891920415,
+        "median_absolute_error_millihartree": 2.5565821179078796,
+        "median_condition_number": 187.25599189599714,
+        "median_exact_ritz_variance": 1.294560706845404e-05,
+        "median_projected_matrix_variance_sum": 90.25822044472096,
+        "p95_absolute_error_millihartree": 10.193548194928942,
+        "rank_histogram": {
+          "7": 2,
+          "8": 198
+        },
+        "replicas": 200,
+        "rmse_millihartree": 4.8986277716153515,
+        "successful_solves": 200
+      }
+    },
+    "250": {
+      "assigned_calibrated": {
+        "below_exact_count": 43,
+        "bias_millihartree": 37.85741392878196,
+        "catastrophic_error_count": 7,
+        "exact_rank_count": 5,
+        "failures": {},
+        "max_absolute_error_millihartree": 119.74618108731683,
+        "median_absolute_error_millihartree": 32.625151489040775,
+        "median_condition_number": 20.13678772187965,
+        "median_exact_ritz_variance": 0.00027472875203798887,
+        "median_projected_matrix_variance_sum": 2173.0121557759994,
+        "p95_absolute_error_millihartree": 93.65268709125489,
+        "rank_histogram": {
+          "6": 98,
+          "7": 97,
+          "8": 5
+        },
+        "replicas": 200,
+        "rmse_millihartree": 53.881084336770954,
+        "successful_solves": 200
+      },
+      "assigned_fixed": {
+        "below_exact_count": 152,
+        "bias_millihartree": -446.48810669534373,
+        "catastrophic_error_count": 34,
+        "exact_rank_count": 160,
+        "failures": {},
+        "max_absolute_error_millihartree": 23859.853954221835,
+        "median_absolute_error_millihartree": 21.608111915777606,
+        "median_condition_number": 118.93728273151626,
+        "median_exact_ritz_variance": 0.00027472875203798887,
+        "median_projected_matrix_variance_sum": 2173.0121557759994,
+        "p95_absolute_error_millihartree": 1812.0247143766644,
+        "rank_histogram": {
+          "7": 40,
+          "8": 160
+        },
+        "replicas": 200,
+        "rmse_millihartree": 2254.4172024362365,
+        "successful_solves": 200
+      },
+      "assigned_ridge": {
+        "below_exact_count": 54,
+        "bias_millihartree": -3444.7350321209988,
+        "catastrophic_error_count": 190,
+        "exact_rank_count": 2,
+        "failures": {},
+        "max_absolute_error_millihartree": 549587.6255952171,
+        "median_absolute_error_millihartree": 240.4181975207833,
+        "median_condition_number": 77.96186566266299,
+        "median_exact_ritz_variance": 0.00027472875203798887,
+        "median_projected_matrix_variance_sum": 2173.0121557759994,
+        "p95_absolute_error_millihartree": 3245.805273759089,
+        "rank_histogram": {
+          "8": 2,
+          "9": 198
+        },
+        "replicas": 200,
+        "rmse_millihartree": 39254.96411133667,
+        "successful_solves": 200
+      },
+      "assigned_selected": {
+        "below_exact_count": 86,
+        "bias_millihartree": 1.8808070228983498,
+        "catastrophic_error_count": 0,
+        "exact_rank_count": 64,
+        "failures": {},
+        "max_absolute_error_millihartree": 84.19300834008503,
+        "median_absolute_error_millihartree": 11.188493129831834,
+        "median_condition_number": 50.100506209233814,
+        "median_exact_ritz_variance": 0.00027472875203798887,
+        "median_projected_matrix_variance_sum": 2173.0121557759994,
+        "p95_absolute_error_millihartree": 42.7346044645263,
+        "rank_histogram": {
+          "5": 1,
+          "6": 2,
+          "7": 133,
+          "8": 64
+        },
+        "replicas": 200,
+        "rmse_millihartree": 20.97359607929377,
+        "successful_solves": 200
+      },
+      "pooled_calibrated": {
+        "below_exact_count": 47,
+        "bias_millihartree": 9.724501402626018,
+        "catastrophic_error_count": 0,
+        "exact_rank_count": 48,
+        "failures": {},
+        "max_absolute_error_millihartree": 44.56330262359298,
+        "median_absolute_error_millihartree": 12.72533512187346,
+        "median_condition_number": 45.110258227845804,
+        "median_exact_ritz_variance": 0.00010309645849531827,
+        "median_projected_matrix_variance_sum": 719.533718812968,
+        "p95_absolute_error_millihartree": 32.04618216660009,
+        "rank_histogram": {
+          "7": 152,
+          "8": 48
+        },
+        "replicas": 200,
+        "rmse_millihartree": 17.077103184480066,
+        "successful_solves": 200
+      },
+      "pooled_fixed": {
+        "below_exact_count": 146,
+        "bias_millihartree": -171.9526407341128,
+        "catastrophic_error_count": 14,
+        "exact_rank_count": 198,
+        "failures": {},
+        "max_absolute_error_millihartree": 14303.831819379151,
+        "median_absolute_error_millihartree": 11.475734551919192,
+        "median_condition_number": 154.91817798596298,
+        "median_exact_ritz_variance": 0.00010309645849531827,
+        "median_projected_matrix_variance_sum": 719.533718812968,
+        "p95_absolute_error_millihartree": 173.93496237581078,
+        "rank_histogram": {
+          "7": 2,
+          "8": 198
+        },
+        "replicas": 200,
+        "rmse_millihartree": 1186.4502583581698,
+        "successful_solves": 200
+      },
+      "pooled_ridge": {
+        "below_exact_count": 58,
+        "bias_millihartree": -1267.714328653736,
+        "catastrophic_error_count": 174,
+        "exact_rank_count": 1,
+        "failures": {},
+        "max_absolute_error_millihartree": 76476.76793621236,
+        "median_absolute_error_millihartree": 130.06710642690945,
+        "median_condition_number": 215.67287938987283,
+        "median_exact_ritz_variance": 0.00010309645849531827,
+        "median_projected_matrix_variance_sum": 719.533718812968,
+        "p95_absolute_error_millihartree": 5292.96447147024,
+        "rank_histogram": {
+          "8": 1,
+          "9": 199
+        },
+        "replicas": 200,
+        "rmse_millihartree": 5986.663813239906,
+        "successful_solves": 200
+      },
+      "pooled_selected": {
+        "below_exact_count": 90,
+        "bias_millihartree": 1.582364247451915,
+        "catastrophic_error_count": 0,
+        "exact_rank_count": 130,
+        "failures": {},
+        "max_absolute_error_millihartree": 44.56330262359298,
+        "median_absolute_error_millihartree": 10.113844249779014,
+        "median_condition_number": 103.84448180269959,
+        "median_exact_ritz_variance": 0.00010309645849531827,
+        "median_projected_matrix_variance_sum": 719.533718812968,
+        "p95_absolute_error_millihartree": 26.617810093743117,
+        "rank_histogram": {
+          "7": 70,
+          "8": 130
+        },
+        "replicas": 200,
+        "rmse_millihartree": 14.333072532216615,
+        "successful_solves": 200
+      }
+    }
+  },
+  "evidence": "heuristic",
+  "interpretation": "Monte Carlo diagnostic on one fixed four-qubit projected subspace. Every arm at a budget reads the same shots, so differences are estimator differences, not measurement-budget differences. Not a hardware result and not a finite-sample coverage certificate: the same data supply the matrices, the retained rank, and the error bar, so no arm's value is a variational bound on E_0.",
+  "protocol": {
+    "allocation": "uniform shots per QWC group",
+    "estimators": {
+      "assigned": "word read from its assigned QWC group only",
+      "pooled": "word read from every group whose basis records it, weighted by that group's shots"
+    },
+    "physical_shots_per_replica": [
+      13000,
+      104000
+    ],
+    "rank_rules": {
+      "calibrated": "per-mode shot-calibrated overlap cutoff",
+      "fixed": "numerical overlap cutoff",
+      "ridge": "per-mode shot-calibrated overlap ridge (no truncation)",
+      "selected": "rank minimizing E_hat + gamma * sigma_hat"
+    },
+    "rank_selection_gamma": 2.0,
+    "replicas": 200,
+    "seed": 9000,
+    "shots_per_group": [
+      250,
+      2000
+    ]
+  },
+  "provenance": {
+    "blas_lapack": {
+      "Build Dependencies": {
+        "blas": {
+          "detection method": "pkgconfig",
+          "found": true,
+          "include directory": "/opt/_internal/cpython-3.11.14/lib/python3.11/site-packages/scipy_openblas64/include",
+          "lib directory": "/opt/_internal/cpython-3.11.14/lib/python3.11/site-packages/scipy_openblas64/lib",
+          "name": "scipy-openblas",
+          "openblas configuration": "OpenBLAS 0.3.31.188.0  USE64BITINT DYNAMIC_ARCH NO_AFFINITY Haswell MAX_THREADS=64",
+          "pc file directory": "/project/.openblas",
+          "version": "0.3.31.188.0"
+        },
+        "lapack": {
+          "detection method": "pkgconfig",
+          "found": true,
+          "include directory": "/opt/_internal/cpython-3.11.14/lib/python3.11/site-packages/scipy_openblas64/include",
+          "lib directory": "/opt/_internal/cpython-3.11.14/lib/python3.11/site-packages/scipy_openblas64/lib",
+          "name": "scipy-openblas",
+          "openblas configuration": "OpenBLAS 0.3.31.188.0  USE64BITINT DYNAMIC_ARCH NO_AFFINITY Haswell MAX_THREADS=64",
+          "pc file directory": "/project/.openblas",
+          "version": "0.3.31.188.0"
+        }
+      },
+      "Compilers": {
+        "c": {
+          "commands": "cc",
+          "linker": "ld.bfd",
+          "name": "gcc",
+          "version": "14.2.1"
+        },
+        "c++": {
+          "commands": "c++",
+          "linker": "ld.bfd",
+          "name": "gcc",
+          "version": "14.2.1"
+        },
+        "cython": {
+          "commands": "cython",
+          "linker": "cython",
+          "name": "cython",
+          "version": "3.2.4"
+        }
+      },
+      "Machine Information": {
+        "build": {
+          "cpu": "x86_64",
+          "endian": "little",
+          "family": "x86_64",
+          "system": "linux"
+        },
+        "host": {
+          "cpu": "x86_64",
+          "endian": "little",
+          "family": "x86_64",
+          "system": "linux"
+        }
+      },
+      "Python Information": {
+        "path": "/tmp/build-env-gjolnpt6/bin/python",
+        "version": "3.11"
+      },
+      "SIMD Extensions": {
+        "baseline": [
+          "X86_V2"
+        ],
+        "found": [
+          "X86_V3",
+          "X86_V4"
+        ],
+        "not found": [
+          "AVX512_ICL",
+          "AVX512_SPR"
+        ]
+      }
+    },
+    "clifford_qc": "0.3.0",
+    "dependencies": {
+      "numpy": "2.4.6",
+      "openfermion": null,
+      "openfermionpyscf": null,
+      "pyscf": null,
+      "scipy": "1.17.1",
+      "stim": null
+    },
+    "environment_sha256": "45745eaed48399a4a62c2f498c2ebe8e89d33fd3b09525e8e9b9a9c62a06d88e",
+    "git_dirty": true,
+    "git_sha": "cf943ff369e3a96bdc47f50bc6e3ff8f7539f2c0",
+    "platform": {
+      "hostname": "vm",
+      "machine": "x86_64",
+      "processor": "x86_64",
+      "release": "6.18.5-fc-v20",
+      "system": "Linux"
+    },
+    "python": "3.11.15",
+    "schema": "clifford_qc.execution_provenance.v1",
+    "utc": "2026-08-11T09:04:55.061369+00:00"
+  },
+  "schema": "clifford_qc.finite_shot_rethink.v1",
+  "setting": {
+    "basis_size": 9,
+    "exact_condition_number": 194.94355457060277,
+    "exact_effective_rank": 8,
+    "exact_projected_ground_energy": -4.747495110068037,
+    "mean_reading_groups_per_word": {
+      "2000": 3.7195767195767195,
+      "250": 3.7195767195767195
+    },
+    "measurement_words": 189,
+    "model": "four-qubit TFIM (J=h=1)",
+    "qwc_groups": 52
+  }
+}

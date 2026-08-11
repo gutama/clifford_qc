@@ -101,7 +101,7 @@ No figure or table value in the manuscript is transcribed by hand, and
 ```bash
 python -m venv .venv && source .venv/bin/activate
 pip install -e .[test,research,chemistry]   # numpy + scipy + openfermion/pyscf
-pytest                                      # 1143 passed, 6 skipped
+pytest                                      # 1162 passed, 6 skipped
 ```
 
 That install is the reference environment for the quoted pair, and it is
@@ -556,6 +556,50 @@ of 104,000 physical setting-shots:
 This is a fixed-bank Monte Carlo diagnostic with a data-derived rank rule. It
 is not a coverage certificate, a hardware result, or an end-to-end advantage
 claim.
+
+### Finite-shot reconstruction and rank rule
+
+The same bank, seed, and budget, with acquisition held at uniform and the two
+*later* stages crossed instead: how a word mean is reconstructed from the
+recorded histograms, and how the retained rank is chosen. See
+`FINITE_SHOT_RETHINK.md` for the argument.
+
+```bash
+python benchmarks/run_finite_shot_rethink.py \
+    --out reproductions/finite_shot_rethink.json
+python benchmarks/check_finite_shot_rethink.py
+```
+
+Expected results (`benchmarks/reference_results/finite_shot_rethink.json`), at
+200 replicas of 13,000 and 104,000 physical setting-shots. The `assigned`
+`fixed` and `calibrated` arms at 104,000 shots reproduce the previous section's
+`uniform` rows exactly, which is what makes the rest comparable to them:
+
+- **pooling** reads each word from every QWC setting whose basis records it
+  rather than from the one the partition assigned it to — the same circuits,
+  shots, and histograms. On this bank a word is recorded by `3.72` settings on
+  average. It moves the fixed-cutoff arm from `4.48`/`1786.21 mHa`
+  median/RMSE to `2.56`/`11.70`, and the per-mode calibrated arm from
+  `10.64`/`13.31` to `2.56`/`4.86`, with exact-rank recovery rising from
+  `71/200` to `195/200`. The published trade of median accuracy against tail
+  control does not survive it;
+- **`solve_selected_rank`** picks the rank minimizing `E_hat + 2*sigma_hat`
+  instead of thresholding overlap modes against their own noise. Without
+  pooling it gives `4.56 mHa` median and `7.82 mHa` RMSE with no catastrophic
+  replica — the fixed rule's median with better than the calibrated rule's
+  tail. At the eight-times smaller budget it is the best arm on both
+  reconstructions (`10.11 mHa` median, `14.33 mHa` RMSE, `0/200` catastrophes
+  pooled);
+- **`overlap_ridge`** — smooth per-mode damping in place of truncation — is a
+  recorded **negative** result: `50.02 mHa` median and `6166 mHa` RMSE against
+  truncation's `2.56` and `4.86`, and no ridge scale between `1x` and `300x`
+  the noise radius recovers. The damage is in the numerator, not the metric;
+  damping a direction is not truncating it.
+
+Same caveats as above, plus one more: `pooling='shots'` and
+`solve_selected_rank` are both off by default, because every committed record
+in this repository was produced under the single-assignment estimator and the
+fixed cutoff.
 
 This is an exact implementation of the published ADAPT-GCIM algorithm on the
 matched local 26-excitation pool. It is not a reproduction of the original

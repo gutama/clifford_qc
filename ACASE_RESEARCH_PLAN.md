@@ -622,6 +622,65 @@ budget per group — fixed endpoints are what the empirical-Bernstein validity
 argument needs; policy-driven allocation across groups would need the same
 fixed-schedule discipline the Paper A allocators already carry.
 
+**Phase 4R — the acquisition stage was the wrong one to optimize
+(`FINITE_SHOT_RETHINK.md`).** Covariance-aware allocation cut the summed
+projected-matrix variance by 68.9% and moved the median error from `4.48` to
+`4.44 mHa`. That is the finding that reframes the problem: a near-null overlap
+mode is dangerous through its variance *relative to its eigenvalue*, and no
+reallocation of a fixed budget changes that ratio by the orders of magnitude
+needed. The two stages after acquisition had never been varied, and both change
+without spending a shot.
+
+- *Reconstruction.* QWC grouping partitions the word universe to answer "how few
+  circuits cover everything" — a scheduling question. It had also been answering
+  "which shots estimate this word" — an estimation question, and wrongly: a
+  setting's histogram records **every** word supported inside its basis with
+  matching letters, not only the one the partition assigned there. On the frozen
+  bank a word is recorded by 3.72 settings on average and by up to 23.
+  `pooling='shots'` reads all of them, weighted by shot count — which is exactly
+  the inverse-variance weighting, since a word's per-shot variance `1 - mu_w^2`
+  does not depend on which compatible basis read it. Unbiased, exact in the
+  reported covariance (the coefficient is *split* across reading groups, not
+  duplicated into each — that duplication is the multiplicity bug above), and
+  outcome-independent, so fixed-endpoint bounds survive.
+- *Rank rule.* The calibrated cutoff asks whether an overlap mode stands above
+  its own noise, which is a question about `S`. `solve_selected_rank` asks the
+  one that matters — solve at every attainable rank and take the minimizer of
+  `E_hat(k) + gamma sigma_hat(k)`, with `sigma_hat` the delta-method error of
+  `ritz_functional` at that solution.
+
+*Measured (same bank, seed, and budget as the table above; the `assigned`/fixed
+and `assigned`/calibrated arms reproduce it to the digit):*
+
+| reconstruction | rank rule | median | RMSE | bias | >0.1 Ha | rank 8 |
+|---|---|---:|---:|---:|---:|---:|
+| assigned | fixed | 4.48 | 1786.21 | −178.08 | 4/200 | 200/200 |
+| assigned | calibrated | 10.64 | 13.31 | +10.33 | 0/200 | 71/200 |
+| assigned | selected | 4.56 | 7.82 | +1.73 | 0/200 | 162/200 |
+| pooled | calibrated | 2.56 | 4.86 | −1.13 | 0/200 | 195/200 |
+| pooled | selected | 2.56 | 4.90 | −1.45 | 0/200 | 198/200 |
+
+The manuscript's trade of median accuracy against tail control does not survive
+pooling: the pooled arms beat the published best median *and* the published best
+RMSE at once. Rank selection is what still matters at the eight-times smaller
+budget, where it is the best arm on both reconstructions. Both are off by
+default — every committed record predates them.
+
+The recorded negative is `overlap_ridge`: damping each overlap mode by
+`lambda/(lambda + r)` instead of truncating it is worse by orders of magnitude
+at every scale from `1x` to `300x` the noise radius. The damage is in the
+numerator — along a near-null mode the measured `H_bar` is noise, and the
+Rayleigh quotient descends into it for any damping that leaves the direction in
+the space. Removing a direction is not a limit of shrinking it.
+
+One caveat for the certified path: pooling helps the estimator more than the
+current bound. On the Ritz functional it cuts `sigma` from `5.87e-3` to
+`3.60e-3` but the empirical-Bernstein radius only from `0.208` to `0.183`,
+because that radius is a sum of per-group radii under a union bound over the
+groups touched. Bounding the sum directly, and replacing fixed-schedule EB with
+an anytime-valid confidence sequence, are the companion pieces — and the latter
+is what would license the confidence-set reuse the 4C cost analysis asks for.
+
 **Phase 5 — done (`models/lattice.py`, `models/observables.py`,
 `sparse.py`).** `models/lattice.py`: Hubbard, extended Hubbard, Kanamori,
 small Anderson impurity, Kitaev honeycomb cluster. The fermionic models are

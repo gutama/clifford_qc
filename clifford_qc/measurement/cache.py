@@ -91,10 +91,35 @@ class GroupedWordCache:
     o_w`` -- has an exact sample mean and variance, so the candidate
     estimate and its variance carry within-group covariance without any
     diagonal approximation.
+
+    ``pooling`` selects which shots a word's mean is read from.
+
+    - ``'assigned'`` (default): the one group the QWC partition assigned the
+      word to. This is what every committed record was produced under.
+    - ``'shots'``: *every* group whose measurement basis can read the word,
+      combined with weights proportional to that group's shot count.
+
+    Pooling is a post-processing change, not a measurement change: the extra
+    outcomes are already in the histograms.  A group's basis fixes a letter on
+    each qubit of its support, and any word supported inside that set with
+    matching letters is a function of the *same* bitstrings, so its outcome is
+    recorded in that group's histogram whether or not the partition assigned it
+    there.  Each such group therefore supplies an unbiased estimate of the same
+    word mean, and -- because the marginal law of a word's +/-1 outcome does not
+    depend on which compatible basis was used to read it -- every reading group
+    has the same per-shot variance ``1 - mu_w^2``.  Shot-count weights are then
+    exactly the inverse-variance (Neyman) weights, so pooling is the
+    minimum-variance combination of the readings and reduces a word's variance
+    by its reader count.  The weights depend only on the predeclared shot
+    schedule, never on outcomes, so a fixed-endpoint finite-sample bound stays
+    valid under pooling.
     """
 
-    def __init__(self, n: int):
+    def __init__(self, n: int, *, pooling: str = "assigned"):
+        if pooling not in ("assigned", "shots"):
+            raise ValueError("pooling must be 'assigned' or 'shots'")
         self.n = n
+        self.pooling = pooling
         # basis key (sorted (qubit,letter) tuple) -> group dict
         self._groups: dict[tuple, dict] = {}
         self._word_group: dict[int, tuple] = {}
@@ -102,6 +127,11 @@ class GroupedWordCache:
         self.total_circuits = 0
         self.rounds = 0
         self._state_key = _UNBOUND
+        # Readers depend only on the set of group bases; per-group word sums
+        # depend on the histograms.  Both are rebuilt when those change.
+        self._readers: dict[int, tuple] = {}
+        self._reader_arrays = None
+        self._word_sums: dict[tuple, tuple[int, int]] = {}
 
     @property
     def state_key(self):
@@ -113,6 +143,12 @@ class GroupedWordCache:
         if not batch.groups:
             raise ValueError("GroupedWordCache requires a grouped batch")
         _bind_state(self, batch)
+        # New shots change every per-group word sum, and a new basis changes
+        # which groups read which word.
+        self._word_sums.clear()
+        if any(gs.basis not in self._groups for gs in batch.groups):
+            self._readers.clear()
+            self._reader_arrays = None
         for gs in batch.groups:
             g = self._groups.setdefault(
                 gs.basis, {"support": gs.support, "basis": dict(gs.basis),
@@ -177,9 +213,101 @@ class GroupedWordCache:
                 return key
         return None
 
+    def reader_keys(self, code: int) -> tuple:
+        """Basis keys of *every* group whose shots record this word's outcome.
+
+        A group reads a word when the word's support lies inside the group's
+        support and their letters agree there.  Written on packed codes: with
+        ``nz(c)`` the non-identity lane mask of ``c`` and ``b`` the group's
+        merged basis code, that is ``nz(c) & ~keep == 0`` (support inside) and
+        ``nz(c) & nz(c ^ b) == 0`` (letters agree), the same two machine-word
+        tests the QWC partition itself uses.
+        """
+        cached = self._readers.get(code)
+        if cached is not None:
+            return cached
+        keys = tuple(self._scan_readers(code))
+        self._readers[code] = keys
+        return keys
+
+    def _scan_readers(self, code: int):
+        supp = self._word_support(self.n, code)
+        if 2 * self.n > 63 or len(self._groups) < 32:
+            return [key for key, g in self._groups.items()
+                    if all(j in g["basis"] and g["basis"][j] == self._letter(code, j)
+                           for j in supp)]
+        import numpy as np
+
+        from ..pauli_kernel import pauli_lane_mask
+
+        if self._reader_arrays is None:
+            lo = np.int64(pauli_lane_mask(self.n))
+            keys = tuple(self._groups)
+            merged = np.fromiter(
+                (self._basis_code(g["basis"]) for g in self._groups.values()),
+                dtype=np.int64, count=len(keys))
+            keep = (merged & lo) | ((merged >> np.int64(1)) & lo)
+            self._reader_arrays = (keys, merged, keep, lo)
+        keys, merged, keep, lo = self._reader_arrays
+        packed = np.int64(code)
+        nz = (packed & lo) | ((packed >> np.int64(1)) & lo)
+        diff = merged ^ packed
+        nz_diff = (diff & lo) | ((diff >> np.int64(1)) & lo)
+        readable = ((nz & ~keep) == 0) & ((nz & nz_diff) == 0)
+        return [keys[i] for i in np.flatnonzero(readable)]
+
+    @staticmethod
+    def _basis_code(basis: dict) -> int:
+        return sum("IXYZ".index(letter) << (2 * qubit)
+                   for qubit, letter in basis.items())
+
+    def group_weights(self, code: int) -> dict[tuple, float]:
+        """How this cache's estimate of a word mean is split over groups.
+
+        Under ``pooling='assigned'`` this is the single assigned group at weight
+        one -- the historical behavior.  Under ``pooling='shots'`` it is every
+        reading group at weight ``N_g / sum_g' N_g'``.  A consumer that buckets
+        a functional's coefficients group by group must scale each coefficient
+        by these weights: they sum to one over the reading groups, so the
+        combination stays unbiased, and no group is counted twice.
+        """
+        if self.pooling == "assigned":
+            key = self.group_key(code)
+            if key is None or self._groups[key]["N"] <= 0:
+                return {}
+            return {key: 1.0}
+        keys = [key for key in self.reader_keys(code) if self._groups[key]["N"] > 0]
+        total = float(sum(self._groups[key]["N"] for key in keys))
+        if total <= 0.0:
+            return {}
+        return {key: self._groups[key]["N"] / total for key in keys}
+
+    def _group_word_sums(self, key: tuple, code: int) -> tuple[int, int]:
+        """``(+1 count, shots)`` for one word inside one group's histogram."""
+        cached = self._word_sums.get((key, code))
+        if cached is not None:
+            return cached
+        g = self._groups[key]
+        pos = [g["support"].index(q) for q in self._word_support(self.n, code)]
+        plus = 0
+        for bits, count in g["hist"].items():
+            if sum(bits[p] == "1" for p in pos) % 2 == 0:
+                plus += count
+        out = (plus, g["N"])
+        self._word_sums[(key, code)] = out
+        return out
+
     def shots(self, code: int) -> int:
+        """Shots this cache reads the word from -- pooled over readers when
+        ``pooling='shots'``, so it is the resource the word's variance reflects."""
+        if self.pooling == "shots":
+            return sum(self._groups[key]["N"] for key in self.reader_keys(code))
         g = self._group_of(code)
         return g["N"] if g else 0
+
+    def reader_count(self, code: int) -> int:
+        """How many measurement settings record this word (pooling diagnostic)."""
+        return len(self.reader_keys(code))
 
     def num_groups(self) -> int:
         """Distinct QWC measurement bases (measurement circuits) accumulated."""
@@ -202,17 +330,20 @@ class GroupedWordCache:
     # -- per-word marginal (diagonal; used for the threshold gate) ----------
 
     def mean_var(self, code: int) -> tuple[float, float]:
-        g = self._group_of(code)
-        if g is None or g["N"] == 0:
+        """Jeffreys ``(mean, variance)`` of one word mean, over the shots this
+        cache reads it from -- one group, or every reading group when pooling."""
+        keys = self.group_weights(code)
+        if not keys:
             return 0.0, float("inf")
-        N = g["N"]
-        pos = [g["support"].index(q) for q in self._word_support(self.n, code)]
-        plus = 0
-        for bits, c in g["hist"].items():
-            if sum(bits[p] == "1" for p in pos) % 2 == 0:
-                plus += c
+        plus = shots = 0
+        for key in keys:
+            group_plus, group_shots = self._group_word_sums(key, code)
+            plus += group_plus
+            shots += group_shots
+        if shots == 0:
+            return 0.0, float("inf")
         from .confidence import jeffreys_mean_var
-        return jeffreys_mean_var(plus, N)
+        return jeffreys_mean_var(plus, shots)
 
     # -- covariance-aware candidate statistics ------------------------------
 
@@ -220,15 +351,9 @@ class GroupedWordCache:
         """g_hat_j = sum_w c_jw <W_w>, reconstructed from group histograms."""
         est = 0.0
         for code, c in coeffs.items():
-            g = self._group_of(code)
-            if g is None or g["N"] == 0:
-                continue
-            pos = [g["support"].index(q) for q in self._word_support(self.n, code)]
-            mean = 0.0
-            for bits, cnt in g["hist"].items():
-                o = -1.0 if sum(bits[p] == "1" for p in pos) % 2 else 1.0
-                mean += o * cnt
-            est += c * mean / g["N"]
+            for key, weight in self.group_weights(code).items():
+                plus, shots = self._group_word_sums(key, code)
+                est += c * weight * (2.0 * plus - shots) / shots
         return est
 
     def candidate_group_statistics(self, coeffs: dict):
@@ -240,14 +365,17 @@ class GroupedWordCache:
         the same circuit shot, so allocating independently to the words would
         count a resource the hardware cannot spend independently.
         """
-        # bucket the candidate's coefficients by the group that reads each word
+        # Bucket the candidate's coefficients by the groups that read each word,
+        # scaled by this cache's pooling weights.  Every group then still holds
+        # one per-shot combined value, so the covariance stays exact.
         buckets: dict[tuple, tuple] = {}
         for code, c in coeffs.items():
-            g = self._group_of(code)
-            if g is None or g["N"] == 0:
+            weights = self.group_weights(code)
+            if not weights:
                 return None
-            key = tuple(sorted(g["basis"].items()))
-            buckets.setdefault(key, (g, {}))[1][code] = c
+            for key, weight in weights.items():
+                row = buckets.setdefault(key, (self._groups[key], {}))[1]
+                row[code] = row.get(code, 0.0) + c * weight
         terms = {}
         for key, (g, rowc) in buckets.items():
             support = g["support"]
