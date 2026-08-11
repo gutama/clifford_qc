@@ -8,6 +8,7 @@ from pathlib import Path
 import pytest
 
 from benchmarks import run_prd_case_matched_acase as matched
+from benchmarks import run_prd_case_large_sector_packets as large_packets
 from benchmarks import run_prd_case_paper_suite as suite
 
 
@@ -53,6 +54,26 @@ def test_matched_plan_is_one_nested_task_per_system_and_resolution():
     system = [task for task in tasks if task["system"] == "hubbard_2x3_u4"]
     assert {task["method"] for task in system} == set(matched.METHODS)
     assert all(task["m_budgets"] == [3, 5, 7, 11, 21] for task in system)
+
+
+def test_large_sector_extension_is_only_the_three_2x3_hubbard_systems():
+    manifest = suite.load_manifest(V2_CONFIG)
+    tasks = large_packets.build_tasks(manifest)
+    assert [task["system"] for task in tasks] == [
+        "hubbard_2x3_u2", "hubbard_2x3_u4", "hubbard_2x3_u8"]
+    assert all(task["m_budgets"] == [3, 5, 7, 11, 21] for task in tasks)
+    assert all(task["packet_k"] == [64, 128] for task in tasks)
+
+
+def test_large_sector_invariant_forbids_word_pricing():
+    record = {"rows": [{
+        "M": 3, "declared_total_directions": 3, "retained_rank": 3,
+        "energy_error": 0.1, "absolute_error": 0.1,
+        "packet_K": 64, "packet_norm_captures": [0.9, 0.95],
+        "W_total": 1,
+    }]}
+    with pytest.raises(AssertionError, match="forbidden W"):
+        large_packets.check_invariants(record)
 
 
 @pytest.fixture(scope="module")
