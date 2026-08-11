@@ -26,8 +26,10 @@ DEFAULT_CONFIG = ROOT / "configs" / "prd_case_paper_suite.json"
 DEFAULT_RESULTS = Path("/tmp/clifford_qc_prd_case_suite")
 SCHEMA = "clifford_qc.prd_case_paper_suite.v1"
 CONFIRMATORY_SCHEMA = "clifford_qc.prd_case_paper_suite.v2"
+FINITE_SHOT_SCHEMA = "clifford_qc.prd_case_paper_suite.v3"
 OVERLAY_SCHEMA = "clifford_qc.prd_case_paper_suite_overlay.v1"
-SUPPORTED_SCHEMAS = frozenset({SCHEMA, CONFIRMATORY_SCHEMA})
+SUPPORTED_SCHEMAS = frozenset({SCHEMA, CONFIRMATORY_SCHEMA,
+                               FINITE_SHOT_SCHEMA})
 CHECKPOINT_SCHEMA = "clifford_qc.prd_case_suite_checkpoint.v1"
 _MODEL_CACHE = {}
 
@@ -95,6 +97,14 @@ def _resolve_manifest_overlay(path: Path, overlay: dict) -> dict:
         systems[system_id]["m_budgets"] = copy.deepcopy(values)
     document["analysis_revision"] = copy.deepcopy(
         overlay.get("analysis_revision"))
+    if "finite_shot_tier" in overlay:
+        finite = overlay["finite_shot_tier"]
+        if not isinstance(finite, dict):
+            raise ValueError("finite_shot_tier overlay must be an object")
+        document["finite_shot_tier"] = copy.deepcopy(finite)
+    if "completed_exact_provenance" in overlay:
+        document["completed_exact_provenance"] = copy.deepcopy(
+            overlay["completed_exact_provenance"])
     return document
 
 
@@ -192,6 +202,34 @@ def validate_manifest(document: dict) -> None:
     unknown_finite = set(finite.get("systems") or []) - set(ids)
     if unknown_finite:
         problems.append(f"finite-shot systems are unknown: {sorted(unknown_finite)}")
+    if document.get("schema") == FINITE_SHOT_SCHEMA:
+        if finite.get("implemented_by") != \
+                "benchmarks/run_prd_case_finite_shot.py":
+            problems.append("v3 must bind finite_shot to its dedicated driver")
+        if finite.get("method") != "packet_davidson":
+            problems.append("v3 finite-shot method must be packet_davidson")
+        if finite.get("M") != 7 or finite.get("packet_K") != 16:
+            problems.append("v3 finite-shot basis must freeze M=7 and K=16")
+        if finite.get("shot_budget_scope") != \
+                "total_state_preparation_shots_across_qwc_groups":
+            problems.append("v3 must define shot budgets as total QWC-group shots")
+        allocation = finite.get("allocation") or {}
+        if allocation.get("outcome_dependent") is not False:
+            problems.append("v3 allocation must be fixed before outcomes")
+        if allocation.get("overlap_fraction") != 0.25:
+            problems.append("v3 must freeze the overlap allocation fraction")
+        solver = finite.get("solver") or {}
+        if solver.get("primary_policy") != "modewise_per_mode":
+            problems.append("v3 must freeze its primary overlap policy")
+        frozen = finite.get("frozen_bases") or {}
+        if set(frozen) != set(finite.get("systems") or []):
+            problems.append("v3 needs one frozen basis declaration per system")
+        for system_id, declaration in frozen.items():
+            if type(declaration.get("selected_mu")) not in (int, float):
+                problems.append(f"{system_id}: frozen selected_mu is required")
+            digest = declaration.get("expected_basis_sha256")
+            if not isinstance(digest, str) or len(digest) != 64:
+                problems.append(f"{system_id}: expected_basis_sha256 is required")
 
     boundaries = " ".join(document.get("claim_boundaries") or []).lower()
     if "no quantum-advantage" not in boundaries:
