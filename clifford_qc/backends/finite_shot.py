@@ -64,6 +64,25 @@ class FiniteShotBackend:
         self.inner = inner if inner is not None else ExactMVBackend()
         self._plans: OrderedDict[object, dict[tuple[int, ...], _GroupPlan]] = OrderedDict()
 
+    def reseed(self, seed) -> None:
+        """Reset only the sampling stream while retaining compiled group plans.
+
+        A seed sweep over one fixed state and one fixed QWC partition should
+        not repay state rotation, partial trace, and parity-table construction
+        for every replicate.  The cached plans contain no sampled outcomes, so
+        retaining them cannot couple otherwise independent RNG streams.
+        """
+        self.rng = np.random.default_rng(seed)
+
+    def prepare_grouped_state(self, rho: MV,
+                              groups: Sequence[Sequence[PauliWord]]) -> int:
+        """Compile deterministic grouped-sampling plans without taking shots."""
+        table = self._group_plans(rho)
+        for group in groups:
+            if group:
+                self._plan(rho, group, table)
+        return len(table)
+
     def _group_plans(self, rho: MV) -> dict[tuple[int, ...], _GroupPlan]:
         """The plan table for ``rho``, keyed by the state's own terms.
 
