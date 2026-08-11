@@ -594,6 +594,61 @@ def test_reference_leakage_and_certificate_respect_the_ordering():
     assert certificate["max_sector_leakage"] == pytest.approx(0.0)
 
 
+@pytest.mark.parametrize(("spin_ordering", "target"), [
+    ("interleaved", (2, 1.0)),
+    ("blocked", (2, 0.0)),
+])
+def test_determinant_fast_certificate_matches_explicit_projector(
+        monkeypatch, spin_ordering, target):
+    """The sector-statevector shortcut is the explicit projector in disguise.
+
+    A mixed I + X_0 direction has exactly half of its norm in the determinant's
+    sector, which avoids a saturated zero/one comparison while exercising both
+    spin-orbital conventions.
+    """
+    import clifford_qc.subspace.symmetry as symmetry
+
+    rho = ket_density(4, "1010")
+    mixed = Generator(
+        "I+X0", identity_generator(4).mv + X(4, 0))
+    fast = symmetry.subspace_sector_certificate(
+        rho, [mixed], sector_target=target, spin_ordering=spin_ordering)
+
+    monkeypatch.setattr(
+        symmetry, "_determinant_projected_basis",
+        lambda *_args, **_kwargs: None)
+    explicit = symmetry.subspace_sector_certificate(
+        rho, [mixed], sector_target=target, spin_ordering=spin_ordering)
+
+    assert fast["max_sector_leakage"] == pytest.approx(0.5)
+    assert fast["max_sector_leakage"] == pytest.approx(
+        explicit["max_sector_leakage"], abs=1e-13)
+    assert fast["min_sector_weight"] == pytest.approx(
+        explicit["min_sector_weight"], abs=1e-13)
+    assert fast["overlap_rank"] == explicit["overlap_rank"] == 1
+
+
+def test_fast_reference_leakage_refuses_an_annihilating_generator():
+    """The determinant shortcut and projector fallback share the 0/0 guard."""
+    from clifford_qc.subspace.adaptive import (
+        _fast_determinant_reference_leakage)
+    from clifford_qc.subspace.symmetry import reference_sector_leakage
+
+    rho = ket_density(4, "1100")
+    number_2 = Generator(
+        "n2", 0.5 * (identity_generator(4).mv - Z(4, 2)))
+    bank = MatrixElementBank(rho, Z(4, 0))
+    candidate = bank.add(number_2)
+
+    with pytest.raises(ValueError, match="annihilates the reference"):
+        _fast_determinant_reference_leakage(
+            bank, candidate, number_2, (2, 0.0), "interleaved")
+    with pytest.raises(ValueError, match="annihilates the reference"):
+        reference_sector_leakage(
+            number_2, rho, sector_target=(2, 0.0),
+            spin_ordering="interleaved")
+
+
 def test_an_empty_declared_sector_is_refused_rather_than_certified():
     from clifford_qc.subspace.symmetry import reference_sector_leakage
 

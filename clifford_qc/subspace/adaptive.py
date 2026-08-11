@@ -486,6 +486,8 @@ def _fast_determinant_reference_leakage(
         return None
     backend, reference = context
     full_norm = float(bank.entry(candidate, candidate)[0].real)
+    if full_norm <= 1e-15:
+        raise ValueError("generator annihilates the reference state")
     projected = backend.operator(
         generator.mv, validate_sector=False).matvec(reference)
     weight = float(np.vdot(projected, projected).real / full_norm)

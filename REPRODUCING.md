@@ -101,7 +101,7 @@ No figure or table value in the manuscript is transcribed by hand, and
 ```bash
 python -m venv .venv && source .venv/bin/activate
 pip install -e .[test,research,chemistry]   # numpy + scipy + openfermion/pyscf
-pytest                                      # 1140 passed, 6 skipped
+pytest                                      # 1143 passed, 6 skipped
 ```
 
 That install is the reference environment for the quoted pair, and it is
@@ -953,7 +953,10 @@ The manifests form a chain, each overlaying the last:
   producer invariant and never an energy or method ranking, and it carries the
   v1 config and result-archive digests so the revision is auditable against
   what it revised. v1 records stay labelled pilot/descriptive rather than being
-  relabelled confirmatory.
+  relabelled confirmatory. Its `system_m_budgets` contains 52 listed pairs:
+  the declared 48 primary and one validation pair plus three opt-in
+  `hubbard_2x4_u4` exploratory-scaling pairs. The exploratory family is not
+  included in the default 49-task analysis.
 - `configs/prd_case_paper_suite_v3.json` — the finite-shot extension, with
   `configs/prd_case_finite_shot_bases.json` holding the frozen packet supports
   and coefficients.
