@@ -188,6 +188,7 @@ def solve_projected(S: np.ndarray, Hm: np.ndarray, labels: Sequence[str] | None 
                     *, tau_s: float = DEFAULT_TAU_S, rel_tau: float = 0.0,
                     max_condition: float = DEFAULT_MAX_CONDITION,
                     overlap_noise_floor: float | Sequence[float] = 0.0,
+                    overlap_ridge: float | Sequence[float] = 0.0,
                     norm_floor: float = DEFAULT_NORM_FLOOR,
                     resources: dict | None = None) -> SubspaceResult:
     """The normalized, thresholded, deterministic generalized eigenproblem (§4.1.3).
@@ -210,6 +211,20 @@ def solve_projected(S: np.ndarray, Hm: np.ndarray, labels: Sequence[str] | None 
     same normalized overlap matrix this function decomposes, which is why the
     live-generator convention below is part of the contract rather than an
     implementation detail.
+
+    ``overlap_ridge`` is the smooth alternative to that hard cut, in the same
+    per-mode units: the normalized overlap is replaced by
+    ``S_bar + sum_k delta_k u_k u_k'`` before whitening, so a mode contributes
+    ``1/(lambda_k + delta_k)`` to the inverse metric instead of
+    ``1/lambda_k``.  Truncation is the ``delta -> 0`` limit of this with a
+    binary decision; the ridge damps a near-null mode by
+    ``lambda_k/(lambda_k + delta_k)`` and keeps its resolved part instead of
+    discarding the direction entirely.  The whitening identity
+    ``X' (S_bar + Delta) X = I`` still holds exactly, so the reduced problem is
+    an ordinary Rayleigh-Ritz one in the ridged metric -- not the original
+    pencil, which is the price: the resulting value is variational for
+    ``S_bar + Delta``, not for ``S_bar``.  Both rules may be supplied together,
+    in which case the floor is applied to the ridged spectrum.
     """
     S = np.asarray(S, dtype=complex)
     Hm = np.asarray(Hm, dtype=complex)
@@ -227,6 +242,11 @@ def solve_projected(S: np.ndarray, Hm: np.ndarray, labels: Sequence[str] | None 
         raise ValueError("overlap_noise_floor must be a scalar or a 1-D sequence")
     if np.any(noise_floor < 0.0) or not np.all(np.isfinite(noise_floor)):
         raise ValueError("overlap_noise_floor must be nonnegative and finite")
+    ridge = np.asarray(overlap_ridge, dtype=float)
+    if ridge.ndim > 1:
+        raise ValueError("overlap_ridge must be a scalar or a 1-D sequence")
+    if np.any(ridge < 0.0) or not np.all(np.isfinite(ridge)):
+        raise ValueError("overlap_ridge must be nonnegative and finite")
 
     diagonal = np.clip(S.diagonal().real, 0.0, None)
     norms = np.sqrt(diagonal)
@@ -244,22 +264,33 @@ def solve_projected(S: np.ndarray, Hm: np.ndarray, labels: Sequence[str] | None 
 
     overlap_values, overlap_vectors = canonical_eigh(S_bar)
     largest = float(overlap_values[-1])
-    if noise_floor.ndim == 1 and noise_floor.size != overlap_values.size:
-        raise ValueError(
-            "a per-mode overlap_noise_floor must have one entry per live "
-            f"generator ({overlap_values.size}), got {noise_floor.size}")
+    for name, vector in (("overlap_noise_floor", noise_floor),
+                         ("overlap_ridge", ridge)):
+        if vector.ndim == 1 and vector.size != overlap_values.size:
+            raise ValueError(
+                f"a per-mode {name} must have one entry per live "
+                f"generator ({overlap_values.size}), got {vector.size}")
+    # The ridge acts in the overlap eigenbasis, so S_bar + Delta shares the
+    # eigenvectors and only shifts the values.  Everything downstream then
+    # reads the ridged spectrum, including the retention test.
+    ridged_values = overlap_values + np.broadcast_to(ridge, overlap_values.shape)
     deterministic_cutoff = max(tau_s, rel_tau * largest, largest / max_condition)
     cutoffs = np.maximum(deterministic_cutoff, noise_floor)
-    keep = overlap_values > cutoffs
+    keep = ridged_values > cutoffs
     if not keep.any():
         raise ValueError(f"overlap threshold {float(np.max(cutoffs)):g} retained no "
                          f"direction; largest overlap eigenvalue is {largest:g}")
     cutoff = float(np.max(np.broadcast_to(cutoffs, overlap_values.shape)))
-    kept_values = overlap_values[keep]
-    # X maps retained overlap modes to an S-orthonormal frame: X' S_bar X = 1.
+    kept_values = ridged_values[keep]
+    # X maps retained overlap modes to an S-orthonormal frame: X' S_bar X = 1
+    # -- in the ridged metric when a ridge is supplied, since that is the
+    # matrix whose inverse the whitening actually forms.
     X = overlap_vectors[:, keep] / np.sqrt(kept_values)
+    S_metric = S_bar if not ridge.any() else (
+        S_bar + (overlap_vectors * np.broadcast_to(ridge, overlap_values.shape))
+        @ overlap_vectors.conj().T)
     whitening_residual = float(np.linalg.norm(
-        X.conj().T @ S_bar @ X - np.eye(kept_values.size), ord=np.inf))
+        X.conj().T @ S_metric @ X - np.eye(kept_values.size), ord=np.inf))
     condition = float(kept_values[-1] / kept_values[0])
     whitening_limit = max(
         1e-10, 100.0 * np.finfo(float).eps * max(condition, 1.0))
@@ -310,8 +341,12 @@ def solve_projected(S: np.ndarray, Hm: np.ndarray, labels: Sequence[str] | None 
             np.broadcast_to(cutoffs, overlap_values.shape)[::-1]),
         "overlap_decision_margin_per_mode": tuple(
             float(value) for value in
-            (overlap_values - np.broadcast_to(
+            (ridged_values - np.broadcast_to(
                 cutoffs, overlap_values.shape))[::-1]),
+        "overlap_ridge": float(np.max(ridge, initial=0.0)),
+        "overlap_ridge_per_mode": (
+            tuple(float(value) for value in ridge)
+            if ridge.ndim == 1 else None),
         "overlap_eigenvalue_max": largest,
         "overlap_eigenvalue_min": float(overlap_values[0]),
         "overlap_negative_modes": negative_modes,

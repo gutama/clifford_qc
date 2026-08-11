@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import math
+from dataclasses import replace
 from typing import TYPE_CHECKING, Sequence
 
 import numpy as np
@@ -34,10 +35,21 @@ class SharedMeasurement:
     the same circuits recur every batch, which is what makes each group's
     cumulative histogram a sufficient statistic -- and what the
     finite-sample bounds require.
+
+    ``pooling`` is handed to the caches this session creates.  ``'shots'`` reads
+    every word from every setting whose histogram contains it rather than from
+    the one setting the partition assigned it to -- the same circuits, the same
+    shots, a lower-variance reconstruction (see :class:`GroupedWordCache`).  It
+    is off by default because committed records were produced under the
+    single-assignment estimator.
     """
 
     def __init__(self, bank: MatrixElementBank, indices: Sequence[int] | None = None,
-                 *, groups: Sequence[Sequence[PauliWord]] | None = None):
+                 *, groups: Sequence[Sequence[PauliWord]] | None = None,
+                 pooling: str = "assigned"):
+        if pooling not in ("assigned", "shots"):
+            raise ValueError("pooling must be 'assigned' or 'shots'")
+        self.pooling = pooling
         self.bank = bank
         self.indices = bank.resolve(indices)
         bank.matrices(self.indices)  # force every pair, so the universe is complete
@@ -86,7 +98,7 @@ class SharedMeasurement:
         return self.bank.n
 
     def new_cache(self) -> GroupedWordCache:
-        return GroupedWordCache(self.n)
+        return GroupedWordCache(self.n, pooling=self.pooling)
 
     def measure(self, backend, shots_per_group: int,
                 cache: GroupedWordCache | None = None) -> GroupedWordCache:
@@ -307,7 +319,8 @@ class SharedMeasurement:
               overlap_method: str = "bonferroni",
               overlap_strategy: str = "modewise",
               overlap_policy: str = "per_mode",
-              overlap_safety: float = 1.0) -> SubspaceResult:
+              overlap_safety: float = 1.0,
+              overlap_regularizer: str = "truncate") -> SubspaceResult:
         """Thresholded GEP on the measured matrices.
 
         The result reports the same conditioning metrics as the exact path plus
@@ -319,31 +332,49 @@ class SharedMeasurement:
         shot-calibrated one of :meth:`calibrated_overlap_floor`.  It defaults
         to off: the calibrated rule trades tail risk for bias, and which of
         those a caller wants is not a default the solver can pick.
+
+        ``overlap_regularizer`` chooses what the calibrated radii are *used
+        for*: ``'truncate'`` makes each radius a retention threshold (the mode
+        is kept whole or dropped whole), ``'ridge'`` adds it to that mode's
+        overlap eigenvalue instead, damping the mode by
+        ``lambda/(lambda + r)`` rather than deciding its fate.  Truncation is
+        a rank decision taken on noisy data; the ridge replaces it with a
+        continuous one, at the cost of solving a perturbed metric.  It has no
+        effect without ``calibrate_overlap``.
         """
         from ..subspace.linalg import solve_projected
 
+        if overlap_regularizer not in ("truncate", "ridge"):
+            raise ValueError("overlap_regularizer must be 'truncate' or 'ridge'")
         S, Hm = self.matrices(cache)
         calibration = None
         noise_floor: float | tuple[float, ...] = 0.0
+        ridge: float | tuple[float, ...] = 0.0
         if calibrate_overlap:
             calibration = self.calibrated_overlap_floor(
                 cache, delta=overlap_delta, bound=overlap_bound,
                 method=overlap_method, strategy=overlap_strategy,
                 safety=overlap_safety, policy=overlap_policy,
                 norm_floor=norm_floor, overlap=S)
-            noise_floor = calibration["mode_thresholds"]
+            if overlap_regularizer == "ridge":
+                ridge = calibration["mode_thresholds"]
+            else:
+                noise_floor = calibration["mode_thresholds"]
         resources = dict(self.bank.resources(self.indices))
         resources.update({
             "evidence": HEURISTIC,
             "shots": cache.total_shots,
             "circuits": cache.total_circuits,
             "qwc_groups": len(self.groups),
+            "word_pooling": cache.pooling,
             "measured_words": len(self.words),
             "shots_per_measured_word": (cache.total_shots / len(self.words)
                                         if self.words else 0.0),
             "overlap_threshold_policy": (
                 f"shot_calibrated_{overlap_policy}" if calibrate_overlap
                 else "fixed"),
+            "overlap_regularizer": (overlap_regularizer if calibrate_overlap
+                                    else "truncate"),
             "overlap_calibration": calibration,
         })
         return solve_projected(S, Hm,
@@ -351,8 +382,116 @@ class SharedMeasurement:
                                tau_s=tau_s, rel_tau=rel_tau,
                                max_condition=max_condition,
                                overlap_noise_floor=noise_floor,
+                               overlap_ridge=ridge,
                                norm_floor=norm_floor,
                                resources=resources).with_bank(self.bank, self.indices)
+
+    def solve_selected_rank(self, cache: GroupedWordCache, *, gamma: float = 2.0,
+                            tau_s: float = DEFAULT_TAU_S, rel_tau: float = 0.0,
+                            max_condition: float = DEFAULT_MAX_CONDITION,
+                            norm_floor: float = DEFAULT_NORM_FLOOR
+                            ) -> SubspaceResult:
+        """Solve at the rank minimizing ``E_hat(k) + gamma * sigma_hat(k)``.
+
+        The overlap-threshold rules decide the retained rank by asking whether a
+        mode stands above its own shot noise -- a question about ``S`` alone.
+        The quantity actually at risk is the Ritz value, and a mode's danger is
+        how much noise it lets into *that*: a barely resolved direction is
+        harmless if the Hamiltonian hardly couples to it and ruinous if it does.
+        This rule asks that question directly.  Each attainable rank is solved,
+        its Ritz value paired with the delta-method standard error of
+        :func:`ritz_functional` at that solution, and the rank minimizing the
+        upper confidence bound is returned.
+
+        Adding a mode lowers ``E_hat`` by Cauchy interlacing and raises
+        ``sigma_hat`` once the mode is noise-dominated, so the score has an
+        interior minimum and ``gamma`` prices one against the other: at
+        ``gamma = 0`` it always takes the full rank, and as ``gamma`` grows it
+        retreats toward rank one.  ``gamma = 2`` is a two-sigma price and the
+        default.
+
+        This is a selection rule, not a certificate.  The same cache supplies
+        the matrices, the rank, and the error bar, so the reported ``sigma`` is
+        an asymptotic quantity conditioned on a data-dependent choice, and the
+        returned value is not a variational bound on ``E_0``.
+
+        Each candidate rank costs one solve and one covariance-vector product
+        over the subspace's word universe, so the sweep is ``M`` times the cost
+        of a single :meth:`solve` -- cheap against the shots that produced the
+        cache, but not free.
+        """
+        from ..subspace.linalg import canonical_eigh, solve_projected
+        from .functionals import ritz_functional
+
+        if gamma < 0.0 or not math.isfinite(gamma):
+            raise ValueError("gamma must be nonnegative and finite")
+        S, Hm = self.matrices(cache)
+        labels = [self.bank.generator(i).label for i in self.indices]
+
+        norms = np.sqrt(np.clip(S.diagonal().real, 0.0, None))
+        live = norms > norm_floor
+        if not live.any():
+            raise ValueError("every generator annihilates the reference state")
+        scaling = np.where(live, norms, 1.0)
+        index = np.flatnonzero(live)
+        normalized = ((S / scaling[:, None]) / scaling[None, :])[np.ix_(index, index)]
+        # Ascending, the order solve_projected's per-mode vectors are given in.
+        values, _ = canonical_eigh(normalized)
+
+        best = None
+        scores = []
+        for rank in range(1, values.size + 1):
+            # Realize exactly this rank by floor-ing every mode below the cut at
+            # its own value: retention is a strict ``>``, so a mode floored at
+            # itself is dropped whatever the gaps or degeneracies are.
+            floor = np.zeros(values.size)
+            drop = values.size - rank
+            floor[:drop] = np.clip(values[:drop], 0.0, None)
+            try:
+                candidate = solve_projected(
+                    S, Hm, labels, tau_s=tau_s, rel_tau=rel_tau,
+                    max_condition=max_condition, overlap_noise_floor=floor,
+                    norm_floor=norm_floor).with_bank(self.bank, self.indices)
+            except (ValueError, np.linalg.LinAlgError):
+                continue
+            if candidate.effective_rank != rank:
+                # A deterministic rule (tau_s, the condition cap) already
+                # forbids this rank; scoring it would misreport what was solved.
+                continue
+            functional = ritz_functional(self.bank, self.indices,
+                                         candidate.ritz_vector(0),
+                                         candidate.ground_energy)
+            variance = functional.variance(cache)
+            sigma = math.sqrt(max(0.0, variance))
+            score = candidate.ground_energy + gamma * sigma
+            scores.append({"rank": rank, "energy": candidate.ground_energy,
+                           "sigma": sigma, "score": score})
+            if best is None or score < best[0]:
+                best = (score, candidate, sigma, rank)
+        if best is None:
+            raise ValueError("no attainable rank produced a solvable pencil")
+
+        score, result, sigma, rank = best
+        resources = dict(result.resources)
+        resources.update({
+            "evidence": HEURISTIC,
+            "shots": cache.total_shots,
+            "circuits": cache.total_circuits,
+            "qwc_groups": len(self.groups),
+            "word_pooling": cache.pooling,
+            "measured_words": len(self.words),
+            "shots_per_measured_word": (cache.total_shots / len(self.words)
+                                        if self.words else 0.0),
+            "overlap_threshold_policy": "confidence_selected_rank",
+            "rank_selection_gamma": float(gamma),
+            "rank_selection_score": float(score),
+            "rank_selection_sigma": float(sigma),
+            "rank_selection_rank": int(rank),
+            "rank_selection_scores": tuple(
+                (entry["rank"], entry["energy"], entry["sigma"], entry["score"])
+                for entry in scores),
+        })
+        return replace(result, resources=resources)
 
 
 # --------------------------------------------------------------- 4B: uncertainty

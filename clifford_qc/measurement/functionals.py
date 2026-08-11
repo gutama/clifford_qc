@@ -132,18 +132,22 @@ class WordFunctional:
 
 
 def _bucket_by_group(cache: GroupedWordCache, coefficients: dict) -> dict[tuple, dict]:
-    """Coefficients split by the *one* group the cache reads each word from.
+    """Coefficients split over the groups the cache reads each word from,
+    scaled by the cache's pooling weights.
 
-    The single assignment matters: several groups may be able to read the same
-    word, and attributing it to each of them would count its contribution once
-    per capable group -- inflating a variance by that factor.
+    The weights are what keeps this honest: several groups may be *able* to read
+    the same word, and attributing the full coefficient to each of them would
+    count its contribution once per capable group -- inflating a variance by
+    that factor.  Weights summing to one over the reading groups spread the
+    coefficient instead of duplicating it, which is a reweighting of the same
+    estimate rather than a second copy of it.  ``pooling='assigned'`` puts all
+    the weight on one group and reproduces the single-assignment behavior.
     """
     out: dict[tuple, dict] = {}
     for code, c in coefficients.items():
-        key = cache.group_key(code)
-        if key is None:
-            continue
-        out.setdefault(key, {})[code] = c
+        for key, weight in cache.group_weights(code).items():
+            row = out.setdefault(key, {})
+            row[code] = row.get(code, 0.0) + c * weight
     return out
 
 
