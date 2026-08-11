@@ -209,7 +209,7 @@
         "failures": {},
         "max_absolute_error_millihartree": 549587.6255952171,
         "median_absolute_error_millihartree": 240.4181975207833,
-        "median_condition_number": 77.65047535518686,
+        "median_condition_number": 77.96186566266299,
         "median_exact_ritz_variance": 0.00027472875203798887,
         "median_projected_matrix_variance_sum": 2173.0121557759994,
         "p95_absolute_error_millihartree": 3245.805273759089,
@@ -438,7 +438,7 @@
     },
     "environment_sha256": "45745eaed48399a4a62c2f498c2ebe8e89d33fd3b09525e8e9b9a9c62a06d88e",
     "git_dirty": true,
-    "git_sha": "11eda6ff4ddbe0f497b8a5288127f051c8e6c25a",
+    "git_sha": "cf943ff369e3a96bdc47f50bc6e3ff8f7539f2c0",
     "platform": {
       "hostname": "vm",
       "machine": "x86_64",
@@ -448,7 +448,7 @@
     },
     "python": "3.11.15",
     "schema": "clifford_qc.execution_provenance.v1",
-    "utc": "2026-08-11T08:14:34.970742+00:00"
+    "utc": "2026-08-11T09:04:55.061369+00:00"
   },
   "schema": "clifford_qc.finite_shot_rethink.v1",
   "setting": {

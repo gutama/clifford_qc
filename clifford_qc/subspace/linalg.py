@@ -274,7 +274,17 @@ def solve_projected(S: np.ndarray, Hm: np.ndarray, labels: Sequence[str] | None 
     # eigenvectors and only shifts the values.  Everything downstream then
     # reads the ridged spectrum, including the retention test.
     ridged_values = overlap_values + np.broadcast_to(ridge, overlap_values.shape)
-    deterministic_cutoff = max(tau_s, rel_tau * largest, largest / max_condition)
+    # ``overlap_values`` is ascending, but a per-mode ridge need not be, so the
+    # ridged spectrum can be *reordered* -- the smallest overlap mode can end up
+    # the largest ridged one.  Every scale-relative rule below therefore reads
+    # the ridged extremes rather than assuming the ends of the array are them.
+    # Taking ``ridged_values[-1]`` and ``[0]`` instead reports condition numbers
+    # below one and lets ``max_condition`` be violated silently, since the cap
+    # would be anchored to a maximum the solved metric does not have.  With no
+    # ridge the two readings coincide exactly, so this leaves that path alone.
+    ridged_largest = float(np.max(ridged_values))
+    deterministic_cutoff = max(tau_s, rel_tau * ridged_largest,
+                               ridged_largest / max_condition)
     cutoffs = np.maximum(deterministic_cutoff, noise_floor)
     keep = ridged_values > cutoffs
     if not keep.any():
@@ -291,7 +301,7 @@ def solve_projected(S: np.ndarray, Hm: np.ndarray, labels: Sequence[str] | None 
         @ overlap_vectors.conj().T)
     whitening_residual = float(np.linalg.norm(
         X.conj().T @ S_metric @ X - np.eye(kept_values.size), ord=np.inf))
-    condition = float(kept_values[-1] / kept_values[0])
+    condition = float(np.max(kept_values) / np.min(kept_values))
     whitening_limit = max(
         1e-10, 100.0 * np.finfo(float).eps * max(condition, 1.0))
     if whitening_residual > whitening_limit:

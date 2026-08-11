@@ -24,7 +24,8 @@ from clifford_qc.backends import ExactMVBackend, FiniteShotBackend
 from clifford_qc.ir import PauliWord
 from clifford_qc.measurement import GroupedWordCache, qwc_groups
 from clifford_qc.measurement.functionals import WordFunctional
-from clifford_qc.models import tfim
+from clifford_qc.measurement.session import select_scored_rank
+from clifford_qc.models import tfim, xxz
 from clifford_qc.subspace import (
     MatrixElementBank,
     SharedMeasurement,
@@ -239,15 +240,111 @@ def test_selected_rank_reports_its_whole_score_sweep(sessions):
                for earlier, later in zip(energies, energies[1:]))
 
 
-def test_zero_gamma_selects_the_full_rank(sessions):
-    """Without a variance price the rule degenerates to 'take everything'."""
+def test_zero_gamma_takes_the_lowest_energy_at_the_smallest_such_rank(sessions):
+    """Without a variance price the score is the energy, and the contract is
+    'lowest energy, smallest rank achieving it' -- not 'full rank'."""
     pooled = sessions[1]
     cache = pooled.measure(FiniteShotBackend(13), 500)
     greedy = pooled.solve_selected_rank(cache, gamma=0.0)
     scores = greedy.resources["rank_selection_scores"]
-    assert greedy.effective_rank == max(entry[0] for entry in scores)
+    best = min(entry[3] for entry in scores)
+    assert greedy.effective_rank == min(entry[0] for entry in scores
+                                        if entry[3] == best)
     with pytest.raises(ValueError):
         pooled.solve_selected_rank(cache, gamma=-1.0)
+
+
+def test_scored_rank_ties_resolve_to_the_smaller_rank():
+    """The tie rule, on inputs a noisy cache cannot produce but exact matrices
+    can: interlacing leaves a decoupled mode at its predecessor's energy."""
+    tied = [(-4.236, "r2", 0.01, 2), (-4.236, "r3", 0.02, 3),
+            (-4.236, "r4", 0.03, 4)]
+    assert select_scored_rank(tied)[3] == 2
+    # Order of presentation must not decide it.
+    assert select_scored_rank(list(reversed(tied)))[3] == 2
+    # A strictly better score still wins over a smaller rank.
+    assert select_scored_rank([(-1.0, "a", 0.0, 1), (-9.0, "b", 0.0, 3),
+                               (-2.0, "c", 0.0, 2)])[3] == 3
+    with pytest.raises(ValueError):
+        select_scored_rank([])
+
+
+def test_nested_rank_energies_really_can_tie():
+    """The premise of the tie rule, on a real bank rather than by assertion.
+
+    Four-qubit XXZ with this generator set decouples the modes added at ranks 3
+    and 4 from the ground Ritz vector, so exact matrices give one energy for
+    ranks 2, 3 and 4. Without the tie rule the returned rank there would depend
+    on iteration order.
+    """
+    model = xxz(4, delta=1.0)
+    reference = ExactMVBackend().state(model.reference, ())
+    generators = [identity_generator(4)] + pauli_orbit(
+        [PauliWord.from_label(label)
+         for label in ("XIII", "IXII", "ZZII", "YYII")])
+    bank = MatrixElementBank(reference, model.hamiltonian, generators)
+    session = SharedMeasurement(bank)
+    S, Hm = session.exact_matrices()
+    labels = [bank.generator(i).label for i in session.indices]
+    values = np.linalg.eigvalsh(S / np.sqrt(np.clip(S.diagonal().real, 1e-30, None))[:, None]
+                                / np.sqrt(np.clip(S.diagonal().real, 1e-30, None))[None, :])
+    energies = {}
+    for rank in range(1, values.size + 1):
+        floor = np.zeros(values.size)
+        floor[:values.size - rank] = np.clip(values[:values.size - rank], 0.0, None)
+        result = solve_projected(S, Hm, labels, overlap_noise_floor=floor)
+        if result.effective_rank == rank:
+            energies[rank] = result.ground_energy
+    assert {2, 3, 4} <= set(energies)
+    assert energies[3] == pytest.approx(energies[2], abs=1e-12)
+    assert energies[4] == pytest.approx(energies[2], abs=1e-12)
+
+
+def test_non_monotone_ridge_keeps_the_condition_invariants():
+    """A per-mode ridge can reorder the spectrum, and the scale-relative rules
+    must follow it.
+
+    ``overlap_values`` is ascending; the ridge need not be, so the smallest
+    overlap mode can become the largest ridged one. Reading the ends of the
+    array as the extremes then reports condition numbers below one and anchors
+    the ``max_condition`` cap to a maximum the solved metric does not have,
+    letting the cap be violated silently.
+    """
+    # Unit diagonal, so the normalization is the identity and the normalized
+    # overlap spectrum is exactly [0.1, 1.9] ascending.
+    S = np.array([[1.0, 0.9], [0.9, 1.0]], dtype=complex)
+    Hm = np.array([[-1.0, 0.2], [0.2, -0.5]], dtype=complex)
+    labels = ["a", "b"]
+    ridge = np.array([100.0, 0.0])          # huge on the *small* mode
+    ridged = np.sort(np.linalg.eigvalsh(S)) + ridge
+    assert ridged[0] > ridged[-1]           # the ridge really did reorder it
+
+    uncapped = solve_projected(S, Hm, labels, overlap_ridge=ridge,
+                               max_condition=1e12)
+    assert uncapped.effective_rank == 2
+    expected = float(np.max(ridged) / np.min(ridged))
+    assert uncapped.condition_number == pytest.approx(expected)
+    assert uncapped.condition_number > 1.0
+
+    # The cap is enforced against the ridged spectrum, so it must bite here.
+    capped = solve_projected(S, Hm, labels, overlap_ridge=ridge,
+                             max_condition=10.0)
+    assert capped.condition_number <= 10.0
+    assert capped.effective_rank < uncapped.effective_rank
+
+
+def test_ridge_free_path_reads_the_same_extremes(bank, sessions):
+    """With no ridge the ordered and the extremal readings coincide, so the
+    committed non-ridge records cannot move."""
+    assigned = sessions[0]
+    cache = assigned.measure(FiniteShotBackend(37), 400)
+    S, Hm = assigned.matrices(cache)
+    labels = [bank.generator(i).label for i in assigned.indices]
+    result = solve_projected(S, Hm, labels)
+    values = np.array(result.overlap_eigenvalues)[::-1]      # ascending
+    kept = values[values > result.resources["overlap_threshold"]]
+    assert result.condition_number == pytest.approx(kept[-1] / kept[0])
+    assert result.condition_number == pytest.approx(np.max(kept) / np.min(kept))
 
 
 def test_overlap_ridge_keeps_the_whitening_identity_and_damps_modes(bank, sessions):

@@ -26,6 +26,27 @@ DEFAULT_NORM_FLOOR = 1e-14
 
 HEURISTIC = EvidenceLevel.HEURISTIC.value
 
+def select_scored_rank(solved):
+    """The scored rank a confidence sweep returns: least score, least rank.
+
+    ``solved`` is ``[(score, result, sigma, rank), ...]``. Factored out of
+    :meth:`SharedMeasurement.solve_selected_rank` because the tie rule is the
+    part worth testing on its own: exact ties in the score are unreachable from
+    noisy data but entirely reachable from exact matrices, where interlacing
+    leaves a decoupled mode's rank at the same energy as its predecessor's.
+
+    Ties resolve to the *smaller* rank. Among equal scores that basis is never
+    worse -- same value, fewer noise-carrying directions, better conditioning --
+    and it is what ``gamma -> 0+`` already converges to, since ``sigma_hat``
+    grows with the rank. Iterating in ascending rank and keeping a strict
+    ``<`` would give the same answer; the explicit key states the rule instead
+    of leaving it to the loop order.
+    """
+    if not solved:
+        raise ValueError("no attainable rank produced a solvable pencil")
+    return min(solved, key=lambda entry: (entry[0], entry[3]))
+
+
 class SharedMeasurement:
     """One QWC-grouped measurement of a bank subspace's whole word universe (4A).
 
@@ -405,10 +426,23 @@ class SharedMeasurement:
 
         Adding a mode lowers ``E_hat`` by Cauchy interlacing and raises
         ``sigma_hat`` once the mode is noise-dominated, so the score has an
-        interior minimum and ``gamma`` prices one against the other: at
-        ``gamma = 0`` it always takes the full rank, and as ``gamma`` grows it
-        retreats toward rank one.  ``gamma = 2`` is a two-sigma price and the
-        default.
+        interior minimum and ``gamma`` prices one against the other: as
+        ``gamma`` grows the rule retreats toward rank one, and as it falls the
+        rule approaches "take the lowest energy".  ``gamma = 2`` is a two-sigma
+        price and the default.
+
+        **Ties go to the smaller rank.**  Interlacing makes ``E_hat``
+        non-increasing in the rank but not strictly decreasing: a mode that
+        decouples from the current ground Ritz vector adds nothing, and on a
+        symmetric model with exact matrices whole runs of ranks share one energy
+        (the four-qubit XXZ bank ties ranks 2, 3 and 4). Among equal scores the
+        smallest rank is returned, which is both the parsimonious choice -- same
+        value, fewer noise-carrying directions, better conditioning -- and the
+        continuous one, since ``sigma_hat`` rises with the rank, so the
+        ``gamma -> 0+`` limit already selects the smallest tied rank.  ``gamma =
+        0`` therefore means "lowest energy, smallest rank achieving it", not
+        "full rank"; it is the limit of its own neighbourhood rather than a
+        special case grafted onto it.
 
         This is a selection rule, not a certificate.  The same cache supplies
         the matrices, the rank, and the error bar, so the reported ``sigma`` is
@@ -438,7 +472,7 @@ class SharedMeasurement:
         # Ascending, the order solve_projected's per-mode vectors are given in.
         values, _ = canonical_eigh(normalized)
 
-        best = None
+        solved = []
         scores = []
         for rank in range(1, values.size + 1):
             # Realize exactly this rank by floor-ing every mode below the cut at
@@ -466,10 +500,10 @@ class SharedMeasurement:
             score = candidate.ground_energy + gamma * sigma
             scores.append({"rank": rank, "energy": candidate.ground_energy,
                            "sigma": sigma, "score": score})
-            if best is None or score < best[0]:
-                best = (score, candidate, sigma, rank)
-        if best is None:
+            solved.append((score, candidate, sigma, rank))
+        if not solved:
             raise ValueError("no attainable rank produced a solvable pencil")
+        best = select_scored_rank(solved)
 
         score, result, sigma, rank = best
         resources = dict(result.resources)
@@ -496,4 +530,4 @@ class SharedMeasurement:
 
 # --------------------------------------------------------------- 4B: uncertainty
 
-__all__ = ["SharedMeasurement"]
+__all__ = ["SharedMeasurement", "select_scored_rank"]
