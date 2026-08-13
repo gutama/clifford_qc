@@ -1782,10 +1782,11 @@ block, and word-multiset bijection under a pure encoding change.
 Two contracts the implementation fixes, both of which are the silent-failure mode this
 class of code has:
 
-- **A state is checked into its sector, never rescaled into it.** For an in-sector
-  density multivector the `W` and `W·Z_q` terms merge under the fix, so the trace
-  returns to 1 on its own; `Restriction.state` therefore asserts that rather than
-  normalizing, because a shortfall is evidence the declared signs are wrong.
+- **A state is checked into its sector, never rescaled into it.** The input is first
+  required to be Hermitian with unit trace. For an in-sector density multivector the
+  `W` and `W·Z_q` terms merge under the fix, so the restricted trace returns to 1 on
+  its own; `Restriction.state` therefore asserts that rather than normalizing,
+  because a shortfall is evidence the declared signs are wrong.
 - **Commuting is required only where it is meant.** The Hamiltonian and the symmetry
   generators transport with `require_commuting=True` and raise on any anticommuting
   term; candidate generators transport without it and are projected term-wise, which
