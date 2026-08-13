@@ -156,7 +156,7 @@ assert np.allclose(to_matrix(A * A), to_matrix(A) @ to_matrix(A))
   adaptive basis growth, projected observables (expectations and transitions
   without materializing a Ritz state), and finite-shot layers whose intervals
   are labelled `asymptotic`, `heuristic`, or `finite_sample` and never
-  conflated; see `ACASE_RESEARCH_PLAN.md`
+  conflated; see `PLAN.md`
 - a validation ladder (`benchmarks/run_acase_ladder.py`) running H2 through
   H2O CAS(8e,6o), Hubbard clusters, and a Kitaev cluster against the reference
   determinant, sector-exact diagonalization, QSE, fixed Krylov,
@@ -463,19 +463,23 @@ clifford_qc/
   criteria.
 - `RESEARCH_PLAN.md` is the Paper A roadmap (confidence-certified,
   measurement-efficient ADAPT-VQE).
-- `ACASE_RESEARCH_PLAN.md` is the active roadmap (A-CASE: adaptive
-  Clifford-algebra subspace eigensolver); Phases 1-7 and the §4.2 basis
-  hierarchy through level 4 ship in `subspace/`,
+- `PLAN.md` is the single active roadmap, consolidating what were three
+  documents (the A-CASE research plan, the integrated literature roadmap, and
+  the resource-accounting plan). It carries the method (§1–§4), the phase
+  ledger (§5: Phases 0–7 done, Phases 8–18 across the Paper B
+  QSCI/selected-CI/hybrid critical path, Clifford-accessible measurement, and
+  longer-horizon infrastructure, plus Phases R1–R4 for hardware-aware costing),
+  the resource model (§6), the validation ladder and benchmark inventory (§7),
+  the falsifiable questions (§9), and the fifteen-paper literature index (§10).
+  Phases 1-7 and the §4.2 basis hierarchy through level 4 ship in `subspace/`,
   `models/lattice.py`, `models/observables.py`, `sparse.py`,
   `backends/sector_statevector.py`, and the validation ladder
   (`benchmarks/run_acase_ladder.py`, committed as
-  `benchmarks/reference_results/acase_ladder.jsonl`).
-- `LITERATURE_ROADMAP.md` is the integrated Phases 8–18 roadmap across the
-  Paper B QSCI/selected-CI/hybrid critical path, Clifford-accessible measurement
-  methods, and longer-horizon second-moment, time-evolution, mapping, and
-  embedding infrastructure. It retains the fifteen-paper literature index,
-  records the comparisons the project expects to lose, and confines wavelets
-  to the implemented configuration-space Haar staging experiment.
+  `benchmarks/reference_results/acase_ladder.jsonl`). It records the
+  comparisons the project expects to lose and confines wavelets to the
+  implemented configuration-space Haar staging experiment.
+- `FINITE_SHOT_RETHINK.md` is the lab note behind Phase 4R (pooled
+  reconstruction and rank selection).
 - `paper/` holds the Paper A manuscript (REVTeX) with figures regenerated
   from the committed benchmark data.
 - License: Apache-2.0.

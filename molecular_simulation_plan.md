@@ -139,7 +139,7 @@ falsified.
 
 **Decision: orbital wavelets stay out of the molecular study.** Reopening them
 requires a specific falsifiable reason from a new system, per
-`LITERATURE_ROADMAP.md` §0.3.
+`PLAN.md` §2.5.
 
 ### 4.3 Relationship to the submitted manuscript
 
@@ -172,7 +172,7 @@ additive, and each one is separately abandonable.
    as a deterministic tiebreak.
 
 7. **Run the ordering ablations before reporting any packet number.**
-   Required by `LITERATURE_ROADMAP.md` §11C. Compare at least: the §6 physics
+   Required by `PLAN.md` Phase 11C. Compare at least: the §6 physics
    order, excitation rank alone, orbital-energy order alone, and randomised
    order controls with fixed seeds. A packet result that survives only one
    favourable ordering is an artefact, and is reported as one.
@@ -194,7 +194,7 @@ additive, and each one is separately abandonable.
 
 ### 5.1 The classical control is already present
 
-`LITERATURE_ROADMAP.md` §9 makes an excitation-closure control mandatory before
+`PLAN.md` Phase 9 makes an excitation-closure control mandatory before
 any hybrid novelty claim. The molecular pipeline already ships it: the
 complete-SD arm (`complete_sd`, 35–204 candidates) is exactly the determinant
 excitation closure of the same SD pool, and it already reproduces PySCF CISD.

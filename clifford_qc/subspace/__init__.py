@@ -1,6 +1,6 @@
 """A-CASE: Rayleigh-Ritz in Clifford-algebra operator-response subspaces.
 
-Phases 1-4 of ``ACASE_RESEARCH_PLAN.md``: exact fixed-basis solves, a cached
+Phases 1-4 of ``PLAN.md``: exact fixed-basis solves, a cached
 matrix-element bank with projected observables, adaptive basis growth, and the
 finite-shot layers (shared grouped measurement, asymptotic Ritz uncertainty,
 whole-pipeline response bootstrap, and a sample-split growth certificate with

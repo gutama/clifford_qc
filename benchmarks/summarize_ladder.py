@@ -35,7 +35,7 @@ COLUMNS = [
 # The sampled-subspace arms spend a different budget, and the main table has no
 # column for most of it. Left in the main table alone a QSCI row reads as a
 # method that costs nothing -- W really is zero, and every other resource column
-# is blank -- which is the exact misreading `LITERATURE_ROADMAP.md` §0.1 warns
+# is blank -- which is the exact misreading `PLAN.md` §2.4 warns
 # against. These are the §8E Pareto axes, reported beside the energy.
 SAMPLED_COLUMNS = [
     ("rung", "rung_name"), ("input", "sampling_state"),

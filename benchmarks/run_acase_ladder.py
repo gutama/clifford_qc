@@ -1,4 +1,4 @@
-"""A-CASE validation ladder: systems x methods -> JSONL (ACASE_RESEARCH_PLAN.md §7).
+"""A-CASE validation ladder: systems x methods -> JSONL (PLAN.md §7).
 
 One output line per (system, method) run, carrying the energy *and* the §6
 resource metrics -- basis size, word universe, element supports, retained rank,

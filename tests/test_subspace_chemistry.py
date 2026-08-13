@@ -1,7 +1,7 @@
 """A-CASE on the molecular targets: H2, H4 (equilibrium and stretched),
 LiH(2e,2o).
 
-These are the Phase-1 acceptance targets of ``ACASE_RESEARCH_PLAN.md`` §5. The
+These are the Phase-1 acceptance targets of ``PLAN.md`` §5. The
 generators are the *symmetry-preserving* mode of §4.2 -- whole Jordan-Wigner
 images of particle-number- and S_z-conserving excitations, one multivector
 each, not the individual words a qubit-ADAPT pool would split them into. The

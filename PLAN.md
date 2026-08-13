@@ -1,0 +1,1895 @@
+# `clifford_qc` research plan — A-CASE
+
+**One document.** It consolidates the former `ACASE_RESEARCH_PLAN.md` (identity,
+method, Phases 0–7), `LITERATURE_ROADMAP.md` (Phases 8–18, tracks, literature),
+and `RESOURCE_ACCOUNTING_PLAN.md` (hardware-aware costing, Phases R1–R4). Phase
+numbers, question numbers, and the section numbers cited from code docstrings
+are unchanged, so existing references still resolve.
+
+The project's scientific identity:
+
+> **Do low-energy states of correlated molecular and materials Hamiltonians have
+> a compact adaptive representation in Clifford-algebra operator-response
+> subspaces — and can that subspace be diagonalized reliably from globally
+> shared, finite-shot Pauli measurements with explicit certificates?**
+
+and the comparison that decides whether it is worth publishing:
+
+> **Can sampled determinant subspaces, operator-response dressing, and
+> support-pruned multiresolution packets produce a compact, resource-honest
+> eigensolver that adds something classical selected CI does not already give?**
+
+**Naming.** The method is A-CASE, never "ACSE": in quantum chemistry ACSE is the
+anti-Hermitian contracted Schrödinger equation (Mazziotti and successors), still
+active in contracted quantum eigensolver research, and colliding with it would
+corrupt literature searches and referee context. Terminology discipline: the
+working space is a **Clifford-algebra operator-response subspace**. `P_j|ψ⟩` are
+Pauli-orbit directions; `G_j|ψ⟩` with `G_j = -i/2·[H,P_j]` are commutator-response
+directions (Pauli sums, not Clifford transformations); `H^k|ψ⟩` are Krylov
+response states; genuine **Clifford-group orbit** states (versor/stabilizer
+transforms of a reference) are one candidate family among several, not the
+generic case. Compound generators need not be versors.
+
+### How to read this
+
+| you want | go to |
+|---|---|
+| what the project is and is not | §1 |
+| why the architecture is what it is | §2 |
+| the algebra contract and standing invariants | §3 |
+| the method itself | §4 |
+| **status: what is built, and what it measured** | §5, Phases 0–7 |
+| **the forward program** | §5, Phases 8–18 and R1–R4 |
+| how cost is counted, and the device model | §6 |
+| the validation ladder and benchmark inventory | §7 |
+| what would falsify each claim | §9 |
+| what is deliberately not claimed | §13 |
+
+Status at a glance:
+
+| phase | subject | status |
+|---|---|---|
+| 0–7 | exterior layer, subspace solver, bank, adaptive growth, finite-shot certification, lattice models, sector backend, validation ladder | **done** |
+| 4R | pooled reconstruction and rank selection | **done**, off by default |
+| 8–12 | QSCI baseline, selected-CI controls, hybrid, overlap/multiresolution selection, Paper B ladder | Track A, open |
+| 13–14 | parity/X-rank invariant, fully commuting grouping | Track B, open |
+| 15–18 | second moments, time-evolved inputs, mapping breadth, embedding | Track C, open |
+| R1–R4 | hardware-aware cost model, mapping axis, protocol axis, contextual-subspace comparator | open, R1 first |
+
+---
+
+## 1. Scope and positioning
+
+`clifford_qc` is a **correlated active-space and lattice-model solver**, not a
+general materials suite:
+
+```text
+DFT / Wannier / embedding  →  effective many-body Hamiltonian
+                           →  clifford_qc (this plan)
+                           →  energies, states, correlations, response
+```
+
+It does not compute band structures, forces, phonons, or geometry optimization;
+established DFT codes own that layer. `clifford_qc` solves the small-but-hard
+correlated subproblem (active spaces, Hubbard/Kanamori clusters, impurity
+models, spin lattices) that downfolding or embedding produces, and returns
+energies, low-lying spectra, and material observables.
+
+**Method stack (three tiers).**
+
+1. **A-CASE** — Rayleigh–Ritz in an adaptively grown, operator-generated
+   subspace. Primary research contribution; Paper B candidate.
+2. **Exact references** — dense `exact_ground`, PySCF FCI metadata, the
+   scipy-sparse `eigsh` tier (`sparse.py`), and the sector-restricted spinor
+   backend with matrix-free Lanczos for `n` beyond dense reach. Baselines, not
+   the identity.
+3. **ADAPT-VQE** (Paper A machinery, complete) — the variational comparison
+   point at matched operator budget.
+
+### 1.1 Minimum viable materials-facing showcase — shipped
+
+`models/effective.py` is the narrow boundary the diagram above was missing. It
+reads the versioned schema `clifford_qc.effective_hamiltonian.v1`: a Hermitian,
+spin-independent Wannier one-body matrix, local `U_i`, chemical potential,
+energy-unit label, explicit interleaved spin-orbital reference, and optional
+provenance. It builds the ordinary second-quantized Hamiltonian and maps it
+through the package's existing Jordan-Wigner layer. It does **not** claim to run
+DFT, Wannierization, cRPA, or DMFT.
+
+The canonical integration rung is the two-site Hubbard dimer (`t=1`, `U=4` eV,
+four qubits, sector `N=2, S_z=0`) — the smallest system that exercises the whole
+output contract while retaining an independent oracle:
+
+| output | A-CASE showcase | independent check |
+|---|---:|---:|
+| ground energy | `-0.828427125 eV` | `(U-sqrt(U^2+16t^2))/2`, and the sector-exact backend |
+| average double occupancy | `0.073223305` | `dE_0/dU / 2` (Hellmann-Feynman) |
+| `<S_0.S_1>` | `-0.640165043` | `-3/4 (1-2d)` |
+| `<S^2>` | `< 1e-12` | singlet invariant |
+| staggered-spin line | `omega=0.828427125 eV` | `0 - E_0` (the `S_z=0` triplet sits at 0) |
+| staggered-spin weight | `0.853553391` | `1-2d`, and the Lehmann sum rule |
+| `chi(0)` | `2.060660172 1/eV` | `2w/omega` |
+| response basis | `M=4`, rank `4`, `kappa(S)=1` | sector dimension `4` |
+
+Every row but the last is checked against arithmetic that shares no code with
+the projected-observable route that produced it, which is what makes it an
+oracle: comparing a projected observable against another projected observable
+would agree with itself under a systematic error. The last row is not a
+compactness result and is not offered as one — `M = 4` **is** the sector
+dimension, so the response arm is full configuration interaction in that sector,
+chosen deliberately so the Lehmann lines are exact while the adaptive arm is
+scored separately on the energy.
+
+The benchmark is intentionally labelled synthetic: it proves that an effective
+Hamiltonian can cross the software boundary and produce energies, projected
+state coefficients, correlations, and response. It does not establish materials
+accuracy or a quantum advantage.
+
+---
+
+## 2. Repository facts that determine the plan
+
+### 2.1 Why A-CASE comes before matrix-free Lanczos (architecture audit)
+
+An earlier ordering put matrix-free Pauli Lanczos first. The audit of what the
+merged codebase already provides reversed it:
+
+- **The basis states stay virtual.** `|φ_i⟩ = A_i|ψ⟩` is never prepared; every
+  projected element is an expectation **on the single reference state**:
+  `S_ij = ⟨ψ|A_i†A_j|ψ⟩`, `H_ij = ⟨ψ|A_i†HA_j|ψ⟩`. One reference, one global
+  Pauli-word universe, one measurement cache, every measured word reused across
+  many entries and candidates. This — not the mere use of Clifford algebra — is
+  the project's strongest computational proposition, and it is exactly the
+  `CommutatorBank` architecture generalized from candidate-by-word to
+  matrix-entry-by-word.
+- `states.expectation(rho, O) = Tr(O·rho)` is complex-valued and does not require
+  `O` Hermitian (`states.py`). With `MV.dagger()` and the word product, every
+  matrix element is computable today, with zero new backends.
+  (`ExactMVBackend.expectation` forces `.real`; A-CASE calls the core function,
+  not the backend wrapper.)
+- In Pauli-word coordinates, `Tr(O·ρ) = 2^n Σ_w o_w·r_w` — a bilinear,
+  conjugation-free coefficient pairing.
+
+A large-`n` spinor/Lanczos substrate is a genuinely new backend (Phase 6), not a
+matvec swap, and finite-shot certification of a nonlinear projected eigenproblem
+is a new statistical problem (Phase 4), not a reuse of the gradient confidence
+code.
+
+### 2.2 Matrix-free action changes the feasible boundary
+
+`PauliLinearOperator` and `SectorOperator` provide matrix-free action and Krylov
+solves without materializing dense operators: exact QSCI sampling-state oracles
+on small and medium systems, restriction to sampled index sets, propagation
+diagnostics, residual and variance checks. They do **not** make real-time
+operators sparse in the multivector generator bank; circuit-native real-time
+A-CASE remains a separate architectural problem (Phase 16B).
+
+### 2.3 Adaptive workflows have clean extension seams
+
+`AdaptConfig`/`AdaptState`/`adapt_step` and `ACASEConfig`/`ACASEState`/
+`acase_step` allow hierarchical or racing policies without unifying the distinct
+mathematics of ADAPT-VQE and A-CASE. Multiresolution selection targets these
+boundaries; it does not introduce a generic adaptive runner.
+
+### 2.4 QSCI remains missing — the principal external-validity gap
+
+`clifford_qc` has no first-class QSCI/SQD implementation and no QSCI row on the
+ladder. QSCI and A-CASE spend different resources:
+
+| | A-CASE | QSCI/SQD |
+|---|---|---|
+| basis | virtual operator states `A_i|psi>` | sampled basis configurations |
+| overlap | measured nonorthogonal `S` | identity |
+| projected Hamiltonian | reconstructed from measured Pauli words | built classically |
+| main quantum cost | state preparation plus grouped word measurement | state preparation plus computational-basis sampling |
+| principal risk | `W`, shot cost, and conditioning | duplicate sampling and determinant compactness |
+
+`W=0` for QSCI projected-matrix measurement is correct, but it is not a complete
+resource verdict. The comparison must also report sampling yield, preparation
+cost, classical matrix construction, diagonalization cost, and memory. (Code
+citing "§0.1 of the literature roadmap" refers to this subsection.)
+
+### 2.5 Configuration-space Haar is implemented; orbital wavelets are not the target
+
+`subspace.configuration.configuration_haar_packets` builds an orthogonal finite
+tree-Haar transform over a caller-ordered configuration list — a classical change
+of basis among virtual generators, not a quantum wavelet circuit. Support pruning
+makes it an opt-in coarse tier rather than a convergence-complete basis. The
+committed 2×2 Hubbard benchmark gives one positive finite instance: staging Haar
+packets before the ordinary level-4 pool reaches the exact sector energy with
+33.1% fewer projected Pauli words and one fewer basis direction, while increasing
+maximum element support and `kappa(S)`. That justifies packets as a hybrid
+ablation, not as a default.
+
+The orbital-basis benchmark found that no basis wins uniformly and that the
+tested Daubechies orbital bases lose to site or momentum bases on the relevant
+trade-offs. Orbital basis stays a recorded model parameter; orbital-wavelet
+optimization is not reopened without a new, system-specific, falsifiable reason.
+
+---
+
+## 3. Conceptual layer (geometric-algebra contract)
+
+Every phase states its algebra, objects, and validation invariants before its
+implementation substrate.
+
+**Algebra.** `Cl(2n,ℂ) ≅ M(2^n,ℂ)` throughout. Two representations of the *same*
+algebra are used, and they must not be conflated:
+
+| Representation | Object | Storage | Role |
+|---|---|---|---|
+| Operator-centric (current) | density multivector `ρ ∈ Cl(2n,ℂ)`, Pauli-word basis | up to `4^n` words | operators, ADAPT, A-CASE matrix elements |
+| Witt-ideal spinor (Phase 6) | `Ψ ∈ Cl(2n,ℂ)·P₀`, `P₀ = ∏_j c_j c_j†` | `2^n` ideal components; `C(n,k)` in a particle sector | large-n pure states, Lanczos |
+
+The Witt/minimal-left-ideal representation is the GA-native name for the
+"symmetry-restricted determinant basis": computational determinants are the
+occupation words `(c†)^{x₁}…(c†)^{xₙ}·P₀`, particle-number and `S_z` sectors are
+subspaces of the ideal spanned by fixed-weight occupation words, and
+Jordan–Wigner dressing is built into the Witt basis rather than bolted on. Adding
+it is not a departure from the operator-centric identity; it is the minimal left
+ideal of the same algebra, and it removes the `4^n` density-word blow-up for
+strongly correlated pure states. Its engineering surface is nevertheless plain
+(`SectorStatevectorBackend`); the ideal language belongs to the theory sections,
+not the API.
+
+**The three pairings.** Conflating them produces silent conjugation or sign
+errors:
+
+| Pairing | Formula (word coordinates) | Character |
+|---|---|---|
+| `scalar_product` | `Σ_w a_w b_w (−1)^{k_w(k_w−1)/2}` | bilinear, reversion sign (`⟨A~B⟩₀`) |
+| `hs_product` | `Σ_w conj(a_w) b_w` | sesquilinear (`Tr(A†B)/2^n`) |
+| `trace_pairing` (Phase 1, shipped) | `Σ_w a_w b_w` | bilinear, no reversion, no conjugation (`Tr(AB)/2^n`) |
+
+Matrix elements need `trace_pairing`: `A_i†HA_j` is non-Hermitian, so its word
+coefficients are complex and `hs_product` would conjugate them wrongly, while
+Hermitian test cases (real coefficients) would mask the bug. `trace_pairing` is a
+distinct primitive, not an overload, and it is the exact foundation of the
+matrix-element bank. It also avoids forming the full product `O·ρ` just to read
+one scalar.
+
+**Objects.**
+
+- Pauli words: blades (up to phase) under the JW correspondence; the exterior
+  layer (`reverse`, `wedge`, `scalar_product`, `is_blade`) makes grade/blade
+  structure first-class.
+- A-CASE generators `A_i`: multivectors from the hierarchy in §4.2. Stabilizer
+  configurations (genuine Clifford-group orbits of `|0…0⟩`) admit tableau-cheap
+  overlaps through the Stim bridge; they are the "competing mean-field /
+  magnetic-order configurations" of the materials strategy.
+
+**Standing invariants** (checked in tests, not prose):
+
+- `E_sub ≥ E₀` for every exact-arithmetic subspace (variational bound); monotone
+  non-increasing under nested basis growth.
+- `S ⪰ 0`, `S = S†` exactly; `H` Hermitian exactly (enforced structurally, not
+  numerically).
+- Generator-scaling invariance: replacing `A_i` by `cA_i` must not change which
+  physical directions survive thresholding (§4.1 normalization).
+- Reproduction: a subspace containing the exact ground state returns the FCI
+  energy to solver tolerance (validated against `exact_ground` and PySCF
+  `fci_energy` metadata for every chemistry model).
+- Do **not** truncate by GA grade. Grade is not a good quantum number for
+  JW-dressed Hamiltonians; truncation criteria are particle number, `S_z`, Pauli
+  support, excitation rank, residual coupling, and conditioning.
+
+---
+
+## 4. The method
+
+### 4.1 Core loop
+
+Given reference state `ρ` (pure), Hamiltonian `H`, and current generator set
+`{A_i}`:
+
+1. Build `O_ij^S = A_i†A_j` and `O_ij^H = A_i†HA_j` as sparse MVs, cached in the
+   bank (products computed once; Hermitian pairs share work).
+2. Assemble `S_ij`, `H_ij` by `trace_pairing` (exact) or shared measurement
+   reconstruction (finite-shot, Phase 4).
+3. Solve the **normalized**, thresholded generalized eigenproblem:
+   - drop zero-norm rows; scale `D_ii = √S_ii`, `S̄ = D⁻¹SD⁻¹`, `H̄ = D⁻¹HD⁻¹` —
+     thresholding raw `S` would make the retained subspace depend on arbitrary
+     generator scaling;
+   - hermitize; diagonalize `S̄ = UΛU†`; drop modes by absolute threshold `τ_S`,
+     relative threshold, and a maximum retained condition number;
+   - form `H̃ = Λ^{-1/2}U†H̄UΛ^{-1/2}`, diagonalize;
+   - fix deterministic eigenvector phases and a deterministic order inside
+     degenerate overlap eigenspaces;
+   - record effective rank before and after truncation.
+4. Select the next generator by certified residual coupling or predicted Ritz
+   lowering (§4.3); add it, or abstain and stop.
+
+### 4.2 Basis hierarchy
+
+- **Level 0**: current reference `|ψ⟩` (HF, ADAPT warm start, or stabilizer
+  configuration).
+- **Level 1** (tangent / Pauli-orbit): `P_j|ψ⟩` — tangent directions of the
+  Pauli-rotor ansatz at `θ=0`.
+- **Level 2** (commutator response): `G_j|ψ⟩` — rows already materialized by
+  `CommutatorBank`.
+- **Level 3** (Krylov response): `H^k|ψ⟩`, one candidate family among others, not
+  the organizing principle.
+- **Level 4** (compound / Clifford-group orbits) — **done**
+  (`subspace/generators.py`, `models/lattice.py`): selected `P_iP_j|ψ⟩`,
+  `P_iG_j|ψ⟩` via `compound_response` (deduplicated up to a scalar, since the
+  solver normalizes and `P_jP_i` is `±P_iP_j`; `max_support` and `max_generators`
+  make the width and pool size declared rather than discovered), and stabilizer
+  configurations `V|0…0⟩` via `configuration_generator`. A configuration enters as
+  the operator that *reaches* it: with `|ψ⟩ = R|0…0⟩` and `|φ⟩ = V|0…0⟩` the
+  generator is `A = VR†`, so `A|ψ⟩ = |φ⟩` exactly and no second state is prepared.
+  Between two determinants that operator is a single `X`-string, so a whole
+  competing order costs `S_A = 1`. `models.lattice.competing_orders` names them
+  for a Hubbard cluster (antiferromagnet on the *bond-coloured* sublattice — site
+  index parity gets the 2×2 grid wrong — its spin-flipped partner, two charge
+  density waves, and the stripe the numbering produces), emitting only
+  configurations at the reference's own `(N, S_z)`.
+
+  *Configurations need a different sector test, and this is the trap.*
+  `sector_leakage` asks whether the **operator** commutes with `N`; an `X`-string
+  does not, so a leakage filter rejects every competing-order configuration — the
+  same failure mode as the Kitaev misconfiguration in Phase 7, in a new place.
+  What matters is the sector of the configuration, so `state_sector` reports
+  `⟨N⟩`, `⟨S_z⟩` **and their variances** for `A|ψ⟩` as expectations on the
+  reference (nothing prepared). The competing orders come out sharp: variance `0`
+  to machine precision.
+
+**Chemistry basis modes.** Two distinct modes, with the second as the chemistry
+default:
+
+- *Word-level benchmark mode*: individual Pauli words `P_j|ψ⟩`, for direct
+  comparison with qubit-ADAPT pools.
+- *Symmetry-preserving mode*: `T_μ|ψ⟩` where `T_μ` is the **complete** JW image of
+  a particle-number- and `S_z`-conserving fermionic excitation, kept as one
+  multivector rather than split into words. A word split from a conserving
+  generator need not itself conserve `N` or `S_z`
+  (`fermionic_sector_diagnostics`); without this the subspace can gain energy by
+  leaking into unphysical sectors. Candidate records report `N`/`S_z` leakage, the
+  sector of each stabilizer configuration, and rejection of sector-incompatible
+  candidates.
+
+### 4.3 Selection criterion
+
+For candidate `|χ_a⟩` against current Ritz pair `(E_m, |Ψ_m⟩)`:
+
+- residual coupling `r_a = ⟨χ_a|(H−E_m)|Ψ_m⟩`;
+- predicted lowering `ΔE_a` from the **generalized** 2×2 problem in
+  `span{Ψ_m, χ_a}` — both blocks, `(E_m, h_a; h_a*, h_aa)` against
+  `(1, s_a; s_a*, s_aa)`. The overlap block is mandatory: without it the score is
+  biased exactly in the near-linearly-dependent direction the method must reject;
+- acceptance score `ΔE_a / cost_a^γ`, with rejection when the candidate's
+  `S`-orthogonal component falls below the conditioning floor.
+
+A known limitation, exposed by level 4 (Phase 7): the generalized 2×2 score
+cannot see a bare competing-order configuration. Such a determinant has zero
+overlap with the reference *and* zero Hamiltonian matrix element to it, so the
+predicted lowering is exactly zero and greedy growth never takes one, however
+useful it would be in combination. A selector weighing second-order coupling
+would change this; the present one cannot, and that is a property of the
+criterion rather than of the family.
+
+### 4.4 Residual norms need a second-moment bank
+
+The true Ritz residual `‖(H−E)|Ψ⟩‖² = (c†Kc)/(c†Sc) − E²` requires
+`K_ij = ⟨ψ|A_i†H²A_j|ψ⟩`, which the projected `(H,S)` pair cannot supply and whose
+Pauli support can be much larger. Policy: `residual_norms` is **optional** —
+computed either from a later `SecondMomentBank` (Phase 15) or, in small exact
+runs, from a dense reconstructed state. Never expose the *projected* residual
+under that name: it is zero by construction for a solved Ritz pair and says
+nothing about error outside the subspace.
+
+---
+
+## 5. Phase ledger
+
+Phases are ordered by dependency; each has a go/no-go invariant. The bank comes
+**before** adaptive growth: adaptive selection repeatedly adds rows and columns,
+and without cached pair products it would recompute `A_i†A_j` and `A_i†HA_j` many
+times — making a sound method look uncompetitive because of a deliberately
+temporary implementation.
+
+### Phase 0 — done (merged main)
+
+Exterior layer on `MV` (reversion, wedge, k-vector dot, blade tests), O(1) exact
+gradients, deterministic selection, `fermionic_sector_diagnostics`, gate
+preconditions, generated paper tables.
+
+### Phase 1 — done (`clifford_qc/subspace/`)
+
+`MV.trace_pairing`; `solver.py` with the normalized, thresholded, deterministic
+GEP of §4.1 and `SubspaceResult(energies, coefficients, basis_labels,
+overlap_eigenvalues, condition_number, effective_rank, resources)`;
+`generators.py` for the level-0..3 families; `reference.py` for the dense-matrix
+cross-check; `models.chemistry.excitation_multivectors` for the
+symmetry-preserving chemistry mode. Two assembly routes, verified equal: the
+element-operator route forms `A_i†A_j` and `A_i†HA_j` (the operators Phase 2
+caches and Phase 4 must measure, and the only route that can report `W` and
+`S_H`); the cyclic route contracts `Tr(A_i†HA_j ρ) = Tr((HA_j)(ρA_i†))` in `2M`
+products and `M²` sparse pairings and is correspondingly blind to those metrics.
+
+*Validated* (`tests/test_subspace.py`, `tests/test_subspace_chemistry.py`, and
+the `A-CASE` section of `clifford_qc.verify`): `E_sub ≥ E₀` and nested
+monotonicity on TFIM, XXZ, and both H₄ legs; exact agreement with the dense
+route; `S = S†` bitwise (structural, from the upper-triangle layout, not a
+numerical symmetrization); FCI reproduction on H₂ and LiH(2e,2o) to 1e-9 with
+four generators, and by a ground-state-projector generator on TFIM; invariance of
+the retained subspace, its spectrum, and `κ_S` under random complex generator
+rescaling; deterministic eigenbases inside degenerate overlap and Ritz
+eigenspaces (canonicalized from the spectral projector, so independent of the
+LAPACK basis); Ritz states staying in the reference `(N, S_z)` sector.
+
+*Measured* (H₄ chain, sto-3g, 8 qubits; `E₀ = -2.180317` at r=0.9 and `-1.924431`
+at r=1.8; `S_A = max_i |supp(A_i)|`):
+
+| fixed basis | M | rank | ΔE (r=0.9) | ΔE (r=1.8) | κ_S | S_A |
+|---|---|---|---|---|---|---|
+| A-CASE symmetry-preserving level 1 | 27 | 27 | 7.7×10⁻⁴ | 3.5×10⁻² | 1.0 | 8 |
+| word-level QSE, matched budget | 27 | 11 | 4.8×10⁻² | 1.6×10⁻¹ | 8.0 | 1 |
+| word-level QSE, full odd-Y pool | 161 | 27 | 7.7×10⁻⁴ | 3.5×10⁻² | 8.0 | 1 |
+| fixed Krylov `H^k`, k ≤ 6 | 7 | 7 | 1.5×10⁻⁶ | 2.5×10⁻⁴ | 1.0×10⁸ | 4224 |
+| fixed Krylov `H^k`, k ≤ 10 | 11 | 9 | 5.3×10⁻⁹ | 6.4×10⁻⁵ | 3.4×10¹⁰ | 4224 |
+
+*Go/no-go: conditionally met, and not in the way the criterion assumed.* The
+symmetry-preserving level-1 basis reaches chemical accuracy at equilibrium with
+`M = 27` against a 36-state `(N=4, S_z=0)` sector, spans the same subspace as the
+161-word QSE pool at a sixth the basis size, and does so at `κ_S = 1` — but it
+does **not** beat fixed Krylov on energy per basis vector, at either geometry.
+Krylov wins that column by orders of magnitude. What it pays is exactly the §6
+currency: generators 500× wider (`S_A = 4224` vs 8, so wide that the
+element-operator route is not affordable on H₄ at all, while the A-CASE basis
+assembles in seconds) and `κ_S` of 10⁸–10¹⁰, the conditioning regime where noisy
+PSD repair and finite-shot certification (Q2, Q3) are least likely to survive. So
+the compactness claim Q1 is **not** established by fixed bases: it rests on
+adaptive selection, which is Phase 3.
+
+*TFIM premise check.* `examples/acase_premise_check.py` runs on the shipped
+solver: the variational bound and nested monotonicity hold at every level, the
+level-0..3 hierarchy closes the gap from 1.76 to 1.8×10⁻², and 37 generators
+yield only 12 independent directions — the near-singular-`S` regime that makes
+conditioning-aware adaptive selection load-bearing rather than an optimization.
+
+### Phase 2 — done (`subspace/elements.py`)
+
+`MatrixElementBank`: canonical generator IDs (a repeated operator returns the id
+it already has; a label rebound to a different operator is an error, since labels
+are what records report); cached `A_i†A_j` and `A_i†HA_j` with Hermitian-pair
+reuse (upper triangle only — `S_ji = conj(S_ij)` is a property of the layout);
+global word-union tracking, including new-versus-reused words per accepted
+generator; exact `trace_pairing` assembly reproducing Phase 1 **bit for bit** —
+the product order is deliberately identical, since floating-point addition is not
+associative and a "mathematically equivalent" rearrangement would make the two
+routes' records irreproducible; support/conditioning metrics per build, plus
+cached-operator bytes and an opt-in QWC group count (quadratic in `W`, so never a
+hidden cost). No finite-shot machinery: the cached coefficient maps *are* the
+sufficient statistics Phase 4 reconstructs from measured word means, so that
+layer attaches without disturbing this one. Pair products are lazy, so a
+candidate that is never scored costs nothing.
+
+**Projected observables (§8) ship with it.** `project_observable(Q) → Q_sub`
+through the same element machinery, then `result.expectation(Q, k)` and
+`result.transition(Q, i, j)` contract it with the Ritz coefficients.
+
+*Measured (the reason the bank comes before adaptive growth).* Solving every
+nested prefix of a basis — the access pattern Phase 3 generates — costs
+`M(M+1)(M+2)/6` pair products when each solve reassembles, and `M(M+1)/2` through
+the bank:
+
+| trajectory | pair products | wall clock |
+|---|---|---|
+| TFIM n=4, M=37, reassembling | 9139 | 0.28 s |
+| TFIM n=4, M=37, banked | 703 | 0.15 s |
+| H₄ r=0.9, M=27, reassembling | 3654 | 13.9 s |
+| H₄ r=0.9, M=27, banked | 378 | 2.3 s |
+
+The gap widens with `M` (ratio `(M+2)/3`) and with generator width, which is why
+the TFIM speedup is modest — its solves are dominated by the eigendecomposition,
+not the products — while H₄'s is 6×. The cost side is memory, and it is not
+small: H₄'s 378 cached element operators hold 15 847 distinct words and ~10.6 MB.
+That figure is the §6 metric to watch as Phase 3 grows bases, not a footnote.
+
+### Phase 3 — done (`subspace/adaptive.py`)
+
+`run_acase` grows the basis one generator at a time on top of the bank:
+generalized-2×2 predicted lowering (closed form, overlap block carried
+explicitly), scale-free residual coupling, linear-dependence rejection,
+`energy_history`, per-step `GrowthRecord`s carrying conditioning and word costs,
+an optional cost-aware score `ΔE/(1+new words)^γ`,
+`fermionic_excitation_generators` as the chemistry default with `sector_leakage`
+reported per accepted generator (and sector-breaking candidates rejected when
+`leakage_tol` is set), and `adapt_warm_start` for growing around an ADAPT-VQE
+state.
+
+Three details are load-bearing, and each is pinned by a test that fails under the
+obvious alternative:
+
+- *The overlap block is not optional.* Assume the candidate is orthonormal to the
+  current Ritz vector, and a candidate that **is** that vector times 3.5 scores
+  over a Hartree of predicted gain; the generalized 2×2 scores exactly zero.
+- *Rejection is measured against the retained subspace, not the Ritz vector.* A
+  candidate duplicating some other basis direction sits at a perfectly healthy
+  angle to the Ritz vector, passes the weaker test, and makes `S` singular — the
+  thresholded solve then discards it after it has been paid for.
+- *The 2×2 deflation needs a floor.* Below an orthogonal fraction of ~1e-12 the
+  deflated diagonal is a genuine 0/0, and double precision returns noise that is
+  not small: a parallel candidate lands at −6 instead of −4, two Hartree of
+  fabricated lowering. The conditioning floor sits four orders above it, so live
+  scoring never reaches the cliff.
+
+*Validated:* `E_sub ≥ E₀` and monotone `energy_history`; **predicted lowering ≤
+actual lowering** at every step (`span{Ψ_m, χ}` sits inside `span{basis ∪ χ}`, so
+the 2×2 can only underestimate); adaptive ≤ fixed basis at equal size on TFIM,
+XXZ, and both H₄ legs; deterministic and scale-invariant selection; convergence
+cross-checked against the dense `dense_residual_norm` that §4.4 keeps out of the
+projected API.
+
+*Measured, TFIM n=4 from the model's own reference `|++++⟩`
+(`examples/acase_adaptive.py`):*
+
+| M | A-CASE | κ_S | fixed Krylov | κ_S | fixed QSE | ADAPT-VQE |
+|---|---|---|---|---|---|---|
+| 3 | 4.1×10⁻⁸ | 3.6×10² | 2.3×10⁻² | 1.8×10² | 7.6×10⁻¹ | 2.7×10⁻¹ |
+| 5 | 4.0×10⁻¹⁰ | 8.8×10² | 1.6×10⁻⁶ | 1.2×10⁴ | 5.2×10⁻¹ | 1.3×10⁻² |
+| 7 | 8.9×10⁻¹⁶ | 9.2×10² | −1.8×10⁻¹⁵ | 1.8×10⁷ | 5.2×10⁻¹ | 7.1×10⁻¹⁵ |
+
+The criterion is met on the spin model: A-CASE matches or beats every baseline at
+matched budget, and where fixed Krylov finally catches up it does so at
+`κ_S = 1.8×10⁷` against A-CASE's `9.2×10²` — five orders of conditioning, the
+currency Q2 and Q3 are denominated in. Warm-starting from a 2-operator ADAPT state
+improves M=5 further, 4.0×10⁻¹⁰ → 2.0×10⁻¹¹.
+
+*Measured, H₄ chain (symmetry-preserving candidates, `leakage_tol=1e-9`; every
+accepted generator leaks < 1e-12 and `κ_S = 1` throughout):*
+
+| M | A-CASE (r=0.9) | fixed prefix | ADAPT-VQE | A-CASE (r=1.8) | ADAPT-VQE |
+|---|---|---|---|---|---|
+| 4 | 1.87×10⁻² | 5.61×10⁻² | 1.87×10⁻² | 8.54×10⁻² | 3.86×10⁻² |
+| 6 | 9.36×10⁻³ | 5.61×10⁻² | 9.72×10⁻³ | 4.09×10⁻² | 2.33×10⁻² |
+| 9 | 3.02×10⁻³ | 5.61×10⁻² | 2.38×10⁻³ | — | — |
+
+Against the fixed prefix the gain is decisive at every size — the natural ordering
+emits singles first, and on a closed-shell determinant those contribute almost
+nothing, so the fixed basis stalls at 5.6×10⁻² while adaptive selection takes the
+doubles that matter. Against ADAPT-VQE the honest reading is a draw at equilibrium
+(ahead at M=6, behind at M=9) and a **loss on the stretched geometry**, where
+ADAPT reaches 3.9×10⁻² against A-CASE's 8.5×10⁻² at M=4. A linear span of singles
+and doubles on an HF reference is the wrong object for a strongly multireference
+state; the answer is compound generators and competing-order references (§4.2
+level 4), not more of the same family.
+
+### Phase 4 — done (`subspace/measured.py`)
+
+Certification here is a **new nonlinear statistical problem**: `(H,S)` are
+estimated, the retained eigenspace is data-dependent, the Ritz pair `(c,E)` is
+data-dependent, and residual couplings and 2×2 lowerings are nonlinear functions
+of correlated estimates. The gradient best-arm code assumed linear estimators; it
+did not transfer unchanged. What did transfer is the shape: everything the
+subspace needs is a linear functional of Pauli-word means, and `WordFunctional`
+is that object — the single place shots enter, with `estimate`, `variance`, a
+covariance-vector product, an exact (infinite-shot) evaluation, and arithmetic,
+so a difference of functionals is a functional.
+
+- *4A — shared grouped measurement.* `SharedMeasurement` measures a subspace's
+  whole word universe through QWC groups and reconstructs every entry from the
+  same shots; the lower triangle stays the conjugate by construction rather than
+  an independent noisy estimate. Its `exact_matrices()` walks the same
+  reconstruction with exact means and reproduces the Phase-2 matrices to
+  5×10⁻¹³, which is the acceptance criterion for the infinite-shot limit. The
+  identity word is never measured: `⟨I⟩ = 1` is known, and reporting it as
+  measured would inflate the empirical-Bernstein range of every group reading it.
+- *4B — asymptotic uncertainty.* `ritz_uncertainty` linearizes:
+  `dE = Σ_w q_w dμ_w` with `q` the word coefficients of `B†(H−E)B`,
+  `B = Σ_i c_i A_i` — one *real* functional (that operator is Hermitian), so the
+  Jacobian of the Ritz value with respect to every word mean is a single
+  bank-derived object. `bootstrap_ritz` resamples the grouped histograms and
+  reruns the whole nonlinear pipeline as the cross-check. Both are labelled
+  `asymptotic` / `heuristic`; `Interval.certified` is False for both.
+- *4B-R — nonlinear response uncertainty (`subspace/measured_response.py`).*
+  `ResponseMeasurement` extends the shared universe to a Hermitian projected
+  observable `Q_sub`; `bootstrap_response` resamples the grouped joint histograms
+  and reruns `(S,H,Q_sub)` reconstruction, overlap thresholding, the generalized
+  eigensolve, transition amplitudes, squared weights, gaps, susceptibility, and
+  optional broadening. Root-resolved lines are emitted only for isolated ordered
+  roots; rank changes and root collisions are counted. The result is always
+  `heuristic` and never certified. A finite-sample response certificate remains a
+  separate matrix-pencil confidence-set problem.
+- *4C — finite-sample growth certificate by sample splitting.*
+  `run_certified_acase` spends a construction batch on `(S,H)`, freezing the
+  thresholded subspace, its Ritz pair, **and the candidate norms**; an independent
+  certification batch bounds each candidate's residual coupling with those held
+  constant. `|r| = √(Re² + Im²)` is not linear, so the interval is a rectangle
+  over the two real functionals with the union bound paid explicitly over
+  `2·(#candidates)` events. Growth happens only when a candidate's lower bound
+  clears the threshold; otherwise the run **abstains** and stops.
+
+The norm subtlety is worth stating because it was easy to get wrong: the coupling
+must be normalized by `‖A_a|ψ⟩‖` or the ranking would depend on how a candidate
+happens to be scaled, but dividing by a quantity estimated from the *same* batch
+would make the statistic a ratio of correlated estimates and void the
+certificate. The construction batch is what makes the norm a constant.
+
+**Covariance discipline** (honored): no dense covariance over `(H,S)` entries is
+ever formed. The grouped joint histograms stay the sufficient statistic and
+`WordFunctional.covariance` computes one covariance-vector product on demand;
+comparisons need no covariance object at all, since a difference of linear
+functionals is a linear functional. One bug found this way and worth recording:
+several QWC groups can be *able* to read the same word, and attributing it to
+each capable group inflated every variance by that multiplicity — caught only by
+comparing the predicted `σ` against a Monte-Carlo spread, which is now the test.
+
+*Measured (TFIM n=4, 40 measurement seeds, `examples/acase_finite_shot.py`):*
+
+| basis | shots/group | MC std | mean σ̂ | median σ̂ | bias | 95% coverage |
+|---|---|---|---|---|---|---|
+| κ_S = 1 | 2000 | 3.2×10⁻² | 3.7×10⁻² | 3.6×10⁻² | −1.5×10⁻² | 0.95 |
+| κ_S = 1 | 20000 | 1.15×10⁻² | 1.10×10⁻² | 1.10×10⁻² | −4.9×10⁻³ | 0.93 |
+| κ_S ≈ 2×10² | 2000 | 1.85 | 2.34 | 6.6×10⁻³ | −3.0×10⁻¹ | 0.97 |
+| κ_S ≈ 2×10² | 20000 | 1.65×10⁻³ | 1.95×10⁻³ | 1.81×10⁻³ | −1.7×10⁻⁵ | 0.97 |
+
+With a well-conditioned overlap the delta method is accurate (within ~15% of the
+Monte-Carlo spread) and the grouped bootstrap agrees to three digits (2.49×10⁻²
+vs 2.51×10⁻² at 4000 shots). Two findings cut the other way and are the reason
+for the labels. First, the measured Ritz value carries a **systematic downward
+bias** that shrinks with shots (−1.5×10⁻² at 2000 shots/group, −4.9×10⁻³ at 20000
+for `κ_S = 1`): the noisy energy is not an upper bound on `E₀`, and at low budgets
+the bias is a large fraction of the standard deviation. Second, at `κ_S ≈ 2×10²`
+and 2000 shots/group the error distribution is **heavy-tailed** — a handful of
+runs in forty admit a near-null overlap mode and land whole Hartrees away, giving
+an MC std of 1.85 Ha against a median `σ̂` of 6.6×10⁻³. A mean-and-variance
+description of the error is inadequate there. That is the strongest argument in
+the code base both for conditioning-aware growth and for never calling these
+intervals certified. The variational-bound violation is a test, not a caveat: at
+200 shots/group most seeds put `E_sub` below `E₀`, by up to 2×10⁻². Quantifying
+it in terms of `τ_S`, shot covariance, and conditioning remains **Q3**.
+
+*Measured (4C certified growth, δ = 0.05, EB bounds):*
+
+| shots/group | threshold | certified steps | final gap | shots | circuits |
+|---|---|---|---|---|---|
+| 4000 | 0.05 | 3, then abstain | 1.2×10⁻¹ | 2.6×10⁶ | 648 |
+| 40000 | 0.05 | 4, then abstain | 1.4×10⁻² | 3.2×10⁷ | 810 |
+| 40000 | 0.40 | 3, then abstain | 1.1×10⁻¹ | 2.6×10⁷ | 648 |
+
+Every accepted step is `finite_sample`, and every run ends in abstention rather
+than uncertified growth — the behavior the plan asked for, at the cost the plan
+predicted. The cost is the headline: two independent full-universe batches per
+step put certified growth four orders of magnitude above the exact-arithmetic
+path in shots, and the certified trajectories stop at gaps (10⁻²) that Phase 3
+reaches at 10⁻¹⁰ exactly. Note also what is *not* certified: the statement is
+about the accepted candidate's coupling with the frozen Ritz pair, conditional on
+the construction batch. It is not a claim that the candidate is the best available
+(`resolution` records separately whether the leader also cleared every rival's
+upper bound — at these budgets it usually does not), and it is emphatically not a
+bound on the energy. Confidence-set reuse across steps, which would recover much
+of the shot cost, is the obvious next stage and is not attempted here.
+
+Two further gaps are left open on purpose. The certified path ranks candidates by
+**residual coupling**, not by the generalized 2×2 lowering Phase 3 uses: the
+lowering is a nonlinear function of `s_aa`, `h_aa`, and a square root, so it
+admits only a delta-method treatment, and the certified gate has to be the linear
+statistic. And shot allocation is a predeclared uniform budget per group — fixed
+endpoints are what the empirical-Bernstein validity argument needs.
+
+### Phase 4R — the acquisition stage was the wrong one to optimize
+
+Full lab note: `FINITE_SHOT_RETHINK.md`; producer
+`benchmarks/run_finite_shot_rethink.py`; record
+`reference_results/finite_shot_rethink.json`.
+
+Covariance-aware allocation cut the summed projected-matrix variance by 68.9% and
+moved the median error from `4.48` to `4.44 mHa`. That is the finding that
+reframes the problem: a near-null overlap mode is dangerous through its variance
+*relative to its eigenvalue*, and no reallocation of a fixed budget changes that
+ratio by the orders of magnitude needed. The two stages after acquisition had
+never been varied, and both change without spending a shot.
+
+- *Reconstruction.* QWC grouping partitions the word universe to answer "how few
+  circuits cover everything" — a scheduling question. It had also been answering
+  "which shots estimate this word" — an estimation question, and wrongly: a
+  setting's histogram records **every** word supported inside its basis with
+  matching letters, not only the one the partition assigned there. On the frozen
+  bank a word is recorded by 3.72 settings on average and by up to 23.
+  `pooling='shots'` reads all of them, weighted by shot count — exactly the
+  inverse-variance weighting, since a word's per-shot variance `1 - mu_w^2` does
+  not depend on which compatible basis read it. Unbiased, exact in the reported
+  covariance (the coefficient is *split* across reading groups, not duplicated
+  into each — that duplication is the multiplicity bug above), and
+  outcome-independent, so fixed-endpoint bounds survive.
+- *Rank rule.* The calibrated cutoff asks whether an overlap mode stands above its
+  own noise, which is a question about `S`. `solve_selected_rank` asks the one
+  that matters — solve at every attainable rank and take the minimizer of
+  `E_hat(k) + gamma·sigma_hat(k)`, with `sigma_hat` the delta-method error of
+  `ritz_functional` at that solution. Ties resolve to the smaller rank.
+
+*Measured (same bank, seed, and budget as the Phase 4 tables; the
+`assigned`/fixed and `assigned`/calibrated arms reproduce the published study to
+the digit):*
+
+| reconstruction | rank rule | median | RMSE | bias | >0.1 Ha | rank 8 |
+|---|---|---:|---:|---:|---:|---:|
+| assigned | fixed | 4.48 | 1786.21 | −178.08 | 4/200 | 200/200 |
+| assigned | calibrated | 10.64 | 13.31 | +10.33 | 0/200 | 71/200 |
+| assigned | selected | 4.56 | 7.82 | +1.73 | 0/200 | 162/200 |
+| pooled | calibrated | 2.56 | 4.86 | −1.13 | 0/200 | 195/200 |
+| pooled | selected | 2.56 | 4.90 | −1.45 | 0/200 | 198/200 |
+
+The manuscript's trade of median accuracy against tail control does not survive
+pooling: the pooled arms beat the published best median *and* the published best
+RMSE at once. Rank selection is what still matters at the eight-times smaller
+budget, where it is the best arm on both reconstructions. Both are off by default
+— every committed record predates them.
+
+The recorded negative is `overlap_ridge`: damping each overlap mode by
+`lambda/(lambda + r)` instead of truncating it is worse by orders of magnitude at
+every scale from `1x` to `300x` the noise radius. The damage is in the numerator —
+along a near-null mode the measured `H_bar` is noise, and the Rayleigh quotient
+descends into it for any damping that leaves the direction in the space. Removing
+a direction is not a limit of shrinking it.
+
+One caveat for the certified path: pooling helps the estimator more than the
+current bound. On the Ritz functional it cuts `sigma` from `5.87e-3` to `3.60e-3`
+but the empirical-Bernstein radius only from `0.208` to `0.183`, because that
+radius is a sum of per-group radii under a union bound over the groups touched.
+Bounding the sum directly, and replacing fixed-schedule EB with an anytime-valid
+confidence sequence, are the companion pieces — and the latter is what would
+license the confidence-set reuse the 4C cost analysis asks for.
+
+### Phase 5 — done (`models/lattice.py`, `models/observables.py`, `sparse.py`)
+
+`models/lattice.py`: Hubbard, extended Hubbard, Kanamori, small Anderson
+impurity, Kitaev honeycomb cluster. The fermionic models are built from the
+package's *own* Jordan-Wigner operators, so the materials layer needs no
+chemistry extra at all; the Kitaev cluster is a native `PauliSum` with one qubit
+per site and no transformation. Hopping is written once and added to its own
+adjoint, so hermiticity is structural. Every model carries
+site/orbital/bond/sector metadata, which is what lets an observable be asked for
+by site rather than by spin-orbital index.
+
+*Observables through the projected-matrix route* (§8): occupations, double
+occupancy, per-site spin operators, spin correlations, the antiferromagnetic
+structure factor, Kitaev per-link bond operators, and `S²` — each a `PauliSum`
+handed to `result.expectation(Q)`, so no Ritz state is ever formed, and every one
+checked against the dense exact state A-CASE refuses to store.
+
+*Excited states*: `run_acase(roots=k, aggregation='mean'|'max')` — state-averaged
+growth (objective = average of the tracked roots) or block growth (whichever root
+gains most decides). Records carry `root_energies` and `per_root_lowering`. The
+per-root variational bound `E_k^sub ≥ E_k` holds by Cauchy interlacing and is
+tested; the *objective* is monotone only from the step where the effective rank
+first reaches `k`.
+
+*Ingestion*: `models.fcidump.fcidump_model` reads the restricted real FCIDUMP that
+a downfolding or embedding step actually hands over, with NumPy only. It restores
+packed one- and two-body symmetries, validates `NORB`, `NELEC`, `MS2`, sentinel
+patterns, duplicates, and finite coefficients, rejects unsupported `IUHF=1`, fixes
+the interleaved-spin reference sector, records the source SHA-256, and maps
+chemist integrals directly with the package's own fermion operators. The
+chemist/physicist ordering remains the trap; the chemistry-extra test compares all
+185 H₄ coefficients against the independent OpenFermion/PySCF construction
+(maximum mismatch `8.7×10⁻¹⁶`).
+
+*Committed active-space rung*: the linear H₄ STO-3G CAS(4e,4o) FCIDUMP is frozen
+with geometry, PySCF 2.14 provenance, SHA-256, RHF energy, and a determinant-space
+FCI oracle. It maps to 8 qubits, 185 Pauli terms, and a 36-state `(N=4,S_z=0)`
+sector; the mapped sector energy agrees with external FCI to `3.1×10⁻¹⁵ Ha`. At
+eight adaptive additions A-CASE has `M=9`, `W=7,371`, `kappa(S)=1`, and a
+`3.019 mHa` error. The complete singles/doubles coordinate space has `M=27`,
+`kappa(S)=1`, and a `0.766 mHa` error. This is a reproducible chemistry benchmark,
+not evidence of quantum advantage; the adaptive arm does not reach chemical
+accuracy at the declared budget.
+
+*Sparse reference tier*: `sparse.py` writes each Pauli word as the signed
+permutation matrix it is (`W = i^{n_Y} X^x Z^z`) instead of summing dense
+Kronecker products, giving `eigsh` a Hamiltonian with `≤ (#terms)·2^n` nonzeros —
+a 12-qubit XXZ ground state in 0.1 s. Two findings are baked in:
+
+- **`which='SA'` is not safe here.** On the `t = 0` Hubbard cluster (diagonal,
+  eigenvalues in `{0, U, 2U, …}`, 256-fold zero eigenspace) ARPACK returns `U`,
+  converged and residual-free, for a matrix whose minimum is 0. A residual check
+  cannot catch it — `U` really is an eigenvalue. The fix is in how the problem is
+  posed: solve for the largest-magnitude eigenpair of `H − σI` with
+  `σ = Σ_w|h_w| ≥ ‖H‖`, which costs one diagonal and no factorization.
+- **A grand-canonical cluster does not minimize at the filling its name implies.**
+  With `μ = 0` the 4-site Hubbard chain's global ground state sits in the *two*-
+  electron sector. `hubbard` therefore defaults to `μ = U/2` (and Kanamori to
+  `U/2 + (M−1)U'`, the interaction's linear residue under `n → 1−n`), and
+  `sparse_ground_in_sector` restricts to a `(N, S_z)` block when a specific filling
+  is wanted — the honest comparison for A-CASE, since the subspace stays in its
+  reference's sector.
+
+*Measured (`examples/acase_materials.py`).* Analytic limits first, because they
+are what catches a hopping sign or a JW string: the `U = 0` Hubbard chain
+reproduces `2Σ_{ε_k<0} ε_k` to 10⁻⁸ for 2, 4, and 6 sites; the `t = 0` cluster
+gives `−UN/2`; free-fermion double occupancy is exactly 1/4; the singlet ground
+state has `⟨S²⟩ = 0`; and the Kitaev cluster's energy is reproduced by its three
+per-link correlators alone (`⟨XX⟩_x = ⟨YY⟩_y = 0.4527`, `⟨ZZ⟩_z = 0.7879`,
+non-link pairs at `−0.015`) — the spin-liquid signature.
+
+The load-bearing negative result is on the Hubbard clusters. From the Néel product
+reference, the **entire** singles-and-doubles response space saturates at a gap of
+3.2×10⁻¹ (4-site chain) and 2.6×10⁻¹ (2×2) against the sector ground energy at
+`U = 4`, and adaptive growth reaches that same limit and then correctly stops —
+the space does not contain the state. Adding Krylov candidates helps the chain
+(1.8×10⁻¹ at M=11) and not the 2×2. Observables converge in the right direction
+along the trajectory (double occupancy 0 → 0.053 against an exact 0.072, `⟨S²⟩`
+2.0 → 0.82 against 0) without the energy converging.
+
+*That debt is now paid, and it settles the span half of Q4.* Level 4 ships (§4.2),
+and on the 2×2 cluster it does exactly what was predicted: levels 0–3 saturate at
+`−9.8475` against a sector ground energy of `−10.1027`, adding the competing-order
+configurations *by themselves* changes nothing (they are determinants `H` does not
+connect to the reference at first order), and adding the compound products
+`configuration × excitation` reaches `−10.102748` — the sector ground state, to
+`1e-8`. The barrier was the span, and it was the one-reference structure of levels
+0–3 that imposed it.
+
+### Phase 6 — done (`backends/sector_statevector.py`)
+
+`SectorStatevectorBackend` stores a pure state on the occupation words of one
+`(N, S_z)` sector — `C(n,k)` amplitudes, never `2^n` — and applies a Pauli word as
+a bit-mask gather, `W|b⟩ = i^{n_Y}(−1)^{|z∧b|}|b⊕x⟩`. Words are **grouped by
+X-mask**: every word in a group shares the permutation `b → b⊕x`, so the gather is
+resolved once per group and only the diagonal phases differ — and those phases do
+not depend on the state either, so each group collapses to one coefficient vector
+and a matvec is a few gather-multiply-scatter passes. `SectorOperator` exposes
+that as a `LinearOperator` for `eigsh`, with a numpy-only `lanczos_ground`
+fallback. `sector_projector` builds the ideal's projector as an `MV` for
+theory-facing checks; the backend never forms it.
+
+Three implementation points are load-bearing:
+
+- *Term-wise projection is exact, not approximate.* Individual words of a
+  number-conserving Hamiltonian do **not** conserve `N`, so most words map part of
+  the sector out of it, and the backend drops those components. That is legitimate
+  because `H` commutes with the sector projector: `H|ψ⟩ = P H|ψ⟩ = Σ_w h_w
+  (P W_w|ψ⟩)`, and `P` distributes over the sum. The out-of-sector pieces cancel in
+  the total; projecting each term is the same arithmetic reordered.
+- *No `2^n` index table.* The permutation `b → b⊕x` is resolved by binary search on
+  the sorted sector, not by a lookup array over the full space — which would
+  reintroduce exactly the memory the backend exists to avoid. Basis construction is
+  combinatorial for the same reason (`C(40,2)` states out of `2^40` in
+  milliseconds).
+- *Lanczos converges on the residual, not the eigenvalue.* Ritz values converge
+  quadratically faster than their vectors, so stopping when the eigenvalue settles
+  returns vectors an order of magnitude short of the advertised tolerance. The
+  criterion is `β_k|s_k[i]|`, with full reorthogonalization (the bare three-term
+  recurrence starts manufacturing duplicate eigenvalues, which on a degenerate
+  spectrum is indistinguishable from real degeneracy).
+
+*Validated:* ground energies match `exact_ground` and `sparse_ground_in_sector` on
+every lattice model for `n ≤ 12`, through both `eigsh` and the numpy-only Lanczos;
+the matvec matches the sparse submatrix; `P² = P`, `P† = P`, `tr P = |sector|`,
+`[H,P] = 0`; the sector basis agrees with the independent dense enumeration;
+expectations of *non*-conserving observables agree with the dense restriction; and
+the `t=0` degenerate spectrum that defeats ARPACK's `which='SA'` is handled by both
+solvers.
+
+*Measured (`examples/acase_sector_backend.py`, half-filled Hubbard chains):*
+
+| sites | n | sector dim | 2^n | ratio | state | sparse nnz it avoids |
+|---|---|---|---|---|---|---|
+| 4 | 8 | 36 | 256 | 7.1× | 0.6 kB | 4 352 |
+| 6 | 12 | 400 | 4 096 | 10.2× | 6 kB | 110 592 |
+| 8 | 16 | 4 900 | 65 536 | 13.4× | 78 kB | 2 424 832 |
+| 10 | 20 | 63 504 | 1 048 576 | 16.5× | 1.0 MB | 49 283 072 |
+| 12 | 24 | 853 776 | 16 777 216 | 19.7× | 13.7 MB | — |
+
+Ground energies: 20 qubits in 1.8 s, 24 qubits in 54 s. The compiled operator is
+19 X-mask groups from 47 words at `n = 20` (matvec 6.6 ms, 22 MB held) against
+93 ms recomputing per matvec — the compile-once/solve-many trade a DMFT-style outer
+loop wants, and `precompute=False` is there because at `n = 24` the compiled passes
+want 355 MB against the state's 14 MB.
+
+*A Phase-5 bug this phase caught.* The lattice metadata hardcoded `S_z = 0` at half
+filling, which is wrong for an odd site count. The backend refuses to build an
+empty sector, which surfaced it; sector metadata is now read from the reference
+determinant's own gates, so it cannot disagree with the state it describes.
+
+### Phase 7 — done (`benchmarks/run_acase_ladder.py`, `summarize_ladder.py`)
+
+The validation ladder and everything it settled are in §7.
+
+### Phase 8 — trusted sampled-subspace baseline (Track A, open)
+
+Add `clifford_qc/subspace/qsci.py` as a first-class method rather than a benchmark
+stub.
+
+**8A — sampling contract.** A result object carrying at least: raw and accepted
+shots; unique basis configurations and duplicate fraction; discarded or repaired
+fraction; cumulative retained probability; sampled subspace dimension `M`;
+projected-matrix measurement words `W=0`; classical matrix nonzeros, build time,
+solve time, and peak memory; energy, variational gap, and evidence label. The
+initial implementation samples exact probabilities from existing state backends;
+hardware-noise emulation and configuration recovery are later layers over the same
+contract.
+
+**8B — sampled Hamiltonian restriction.** Reuse `sector_basis`, sector indexing,
+and the compiled `SectorOperator`; add a safe API that restricts a sector operator
+to a declared set of sector indices. An exact row/column restriction of the
+validated sector operator is preferable to writing Slater–Condon rules
+prematurely. Required invariants: (1) the sampled Hamiltonian is Hermitian; (2)
+increasing nested sampled sets give non-increasing Ritz energies; (3) for every
+retained root `k`, the `k`-th sampled Ritz value is not below the `k`-th exact
+sector eigenvalue (Cauchy interlacing); (4) selecting the entire sector reproduces
+the sector spectrum; (5) permutation of sampled configuration order changes no
+eigenvalue.
+
+**8C — fermionic recovery and generic spin sampling.** For fermionic systems,
+post-selection and optional recovery against particle number and `S_z`, reporting
+every discarded or repaired sample. For spin systems such as Kitaev, do **not**
+report that QSCI has no arm: the fermionic SQD recovery rule is unavailable, but
+raw computational-basis sampled subspace diagonalization remains a valid baseline.
+The question is whether the basis is compact, not whether it is definitionally
+excluded.
+
+**8D — state inputs.** Declared inputs: reference determinant; exact ground-state
+sampling oracle (validation only); existing ADAPT-VQE state; later, a time-evolved
+state. Never mix oracle and implementable inputs in one evidence category.
+
+**8E — ladder integration.** Add QSCI to the ladder. Equal-`M` remains one
+comparison, but the ladder must also emit Pareto records for error versus quantum
+shots and unique configurations; versus state-preparation cost; versus classical
+matrix nonzeros and solve time; and versus memory.
+
+**Go/no-go:** the full-sector limit, Hermiticity, interlacing, and permutation
+invariants must hold on H₄, Hubbard, and at least one spin model before QSCI is
+used in manuscript claims.
+
+### Phase 9 — classical selected-CI controls (mandatory)
+
+Without it, a successful QSCI × A-CASE hybrid may be indistinguishable from
+ordinary determinant-space expansion. For each sampled determinant set `D`:
+
+1. **QSCI:** diagonalize only `span(D)`.
+2. **Excitation closure:** add every unique determinant reached by the same
+   singles/doubles used for operator dressing.
+3. **One-step selected CI:** add determinants using a declared HCI-, CIPSI-, or
+   perturbative-style score.
+4. **Budget-matched selected CI:** stop at the same determinant count or classical
+   matrix cost as the hybrid.
+
+Record determinant count, Hamiltonian nonzeros, classical selection work, energy,
+variance, and memory.
+
+**Span-equivalence diagnostic.** For each dressed family compare
+`span{E_mu |D_k>}` with the determinant closure generated from the same `D_k` and
+excitation operators; compute numerical ranks and principal angles.
+
+- Equal spans mean the operator form is a representation or measurement-cost
+  choice, not a richer variational space.
+- A smaller operator rank means the operator family spans strictly *less* than the
+  closure. This is not by itself a compactness result and must not be reported as
+  one: a closure's columns are distinct determinants, hence independent, so no
+  smaller set of vectors spans a larger-dimensional space. Compactness is an
+  energy-at-matched-size claim against the controls above, not a span property.
+- Directions outside the declared closure require an algebraic explanation and an
+  independent check.
+
+The comparator must be the closure of the **declared generator family** — the
+determinants those operators actually reach — not a re-derivation of singles and
+doubles from each determinant's own occupancy. A fixed pool built relative to the
+reference annihilates many sampled determinants and moves different electrons in
+the rest: on the 2×2 Hubbard sector three sampled determinants reach 15
+determinants under the pool and all 36 under the per-determinant rule. Against the
+larger comparator every operator direction is trivially contained and the
+diagnostic decides nothing.
+
+Containment is directional and principal angles alone cannot answer it: there are
+only `min(rank A, rank D)` of them, so a rank-2 operator span sharing one direction
+with a rank-1 closure yields the single angle `0` and reads as contained. Measure
+`||(I - Q_D Q_D^dagger) Q_A||` and require `rank(A) <= rank(D)`.
+
+**Go/no-go:** Phase 10 may claim a hybrid gain only after it beats or differs
+structurally from these controls.
+
+### Phase 10 — QSCI × A-CASE hybrid
+
+**10A** — convert retained QSCI configurations through `configuration_generator`.
+**10B** — operator-response dressing in declared families: configuration ×
+conserving excitation; configuration × commutator response; optional
+support-bounded compound families. Every family reports candidate count, generator
+support `S_A`, projected element support `S_H`, incremental word universe, and
+conditioning impact. **10C** — required arms: bare sampled configurations; sampled
+configurations plus individual dressed generators; sampled configurations plus
+support-pruned Haar packets followed by the ordinary dressed pool (the third arm
+integrates the existing wavelet result without creating a separate state-vector
+compression project). **10D — honest claim:**
+
+> A sampled determinant set, enriched by selected operator-response directions,
+> may reach a target accuracy with fewer retained variational directions or a
+> better measured-resource Pareto point than either bare QSCI or bare A-CASE.
+
+Do not claim that operator dressing is strictly richer until Phase 9 proves it.
+Primary systems: `hubbard_2x2`, `hubbard_2x3`, H₄ equilibrium/stretched, and one
+molecular FCIDUMP rung with matched multiplicity.
+
+### Phase 11 — overlap-targeted and multiresolution selection
+
+**11A** — extend A-CASE scoring with a target-overlap criterion using the QSCI Ritz
+vector or a classical selected-CI vector. Preserve existing scale invariance and
+orthogonality rejection; keep the target outside `CandidateScore` so lowering and
+overlap criteria remain independently testable. **11B** — coarse-to-fine packet
+selection using the existing configuration Haar transform: order sampled
+configurations using declared physics metadata; score support-pruned coarse
+packets first; refine only selected or competitive intervals; hand the retained
+basis to the convergence-complete individual/dressed pool. Candidate blocks may use
+`acase_step`, but the score stays A-CASE-specific — do not create a shared
+ADAPT/A-CASE runner. **11C** — ordering ablations: probability order; excitation
+rank plus occupation-pattern metadata; determinant-graph traversal; random-order
+controls. A packet result is publishable only if it is not an accident of one
+ordering. **11D** — stopping and uncertainty: duplicate-rate stopping, bootstrap set
+stability, or an unseen-mass estimate first; wavelet/block allocation only if it
+improves those controls.
+
+**Go/no-go:** on `hubbard_2x3`, the new criterion or hierarchy must select useful
+configuration/dressed directions that the lowering-only pool misses, or the blind
+spot is attributed to the family rather than the selector.
+
+### Phase 12 — integrated Paper B ladder
+
+Arms: reference and exact-sector results; fixed QSE and Krylov; ADAPT-VQE and
+A-CASE; QSCI; excitation-closure and selected-CI controls; QSCI × dressed A-CASE;
+QSCI × Haar-stage × dressed A-CASE. Required fields: `M`, retained rank, and
+`kappa(S)`; energy error, variance or true residual where available; sampling
+shots, unique yield, duplicate rate, discard/recovery rate; state-preparation
+metadata; `W`, grouping contexts, and certified shot cost for measured arms;
+classical matrix nonzeros, build/solve time, and peak memory; generator and element
+supports; evidence category and seed.
+
+Paper B must follow the Pareto frontier that survives. If QSCI and classical
+selected CI dominate chemistry, narrow A-CASE to systems and representations where
+operator-generated or packet directions add measured value.
+
+### Phase 13 — structural invariant first (Track B)
+
+Implement GF(2) rank of Hamiltonian X masks using `word_masks`. Test the explicit
+parity/X-rank ceiling `r_X <= 2(N - 1)` across spin-conserving Jordan–Wigner
+Hamiltonians, FCIDUMP models, lattice models, and effective-Hamiltonian ingestion.
+Any violation stops the grouping work until the theorem/model construction mismatch
+is understood.
+
+### Phase 14 — QWC plus fully commuting groups
+
+Extend measurement grouping with fully commuting groups and Clifford simultaneous
+diagonalization. The metric is not group count alone: report certified leading shot
+cost at fixed word universe, allocator, and confidence target, plus diagonalizing
+circuit depth and two-qubit gates; connectivity assumptions; covariance-aware
+reconstruction; Monte Carlo agreement between predicted and empirical uncertainty.
+The multiply-capable-word variance bug remains the gate: lower group count with
+inflated or double-counted variance is failure.
+
+The dyadic block-commuting hierarchy already covers both endpoints and their
+interior (§6.6); what is still missing — a device card, accuracy-matched shot
+counts, a fidelity term, and re-measurement under the pooled estimator — is Phases
+R1 and R3. This track supports Paper A or a separate measurement paper and must not
+block Track A.
+
+### Phase 15 — second-moment bank (Track C)
+
+Add a `SecondMomentBank` for `K_ij = <psi|A_i^dagger H^2 A_j|psi>`. Before building
+the full bank, add a support/cost preflight for `H^2`; if the estimated word
+universe is prohibitive, keep dense or matrix-free residual oracles for validation
+and restrict the measured implementation to declared small systems. Uses: true Ritz
+residual norms; energy variance and variance extrapolation; folded-spectrum roots;
+an independent convergence criterion.
+
+### Phase 16 — time-evolved inputs, split by method
+
+**16A — QSCI input.** Use `PauliLinearOperator.as_linear_operator()` with
+matrix-free `scipy.sparse.linalg.expm_multiply`, Krylov propagation, or a validated
+Trotter circuit to generate time-evolved sampling states. SciPy is a `research`
+extra; when `expm_multiply` receives a `LinearOperator`, supply the analytically
+known `traceA` rather than asking SciPy to estimate it from a matrix-free object.
+
+**16B — A-CASE real-time generators.** Do not represent `exp(-iHt)` as an `MV` by
+default: Pauli support can become dense. A circuit-native generator requires a
+different matrix-element backend and resource model — architecture research. A
+short-time polynomial response may be tested only with explicit truncation, norm,
+fidelity, energy-error, and conditioning budgets against matrix-free propagation.
+This phase owns Q8.
+
+### Phase 17 — mapping validation and breadth
+
+Before using BK or parity in scientific records: transform Hamiltonian, reference,
+and generators consistently; verify energy and gradient invariance; compare Pauli
+weight, distinct words, grouping, and circuits separately. Lower Pauli weight does
+not imply lower `W` or fewer groups — and, more strongly, `W` is *exactly*
+invariant across the linear encoding family (§6.2), so the invariance is a check
+rather than a measurement. The executable form of this phase is R2 (§5, Phases
+R1–R4). A CEO pool and dedicated MORE-ADAPT benchmark are follow-ups after Track A;
+they constrain positioning but do not gate the QSCI hybrid experiment.
+
+### Phase 18 — embedding boundary
+
+Keep DMET and projection-based embedding outside the package. Provide a versioned
+effective-Hamiltonian schema and a fragment-solver callback returning energy plus
+one- and two-particle density matrices. QSCI, selected CI, and the hybrid should
+implement the same callback.
+
+### Phases R1–R4 — hardware-aware resource accounting
+
+The cost model these phases install is §6; the phases themselves:
+
+**R1 — cost infrastructure, no solver change.** Deliverables:
+`clifford_qc/measurement/cost.py` (device card loader, per-setting
+gate/depth/fidelity accounting, `C_time`, admissibility, break-even surface);
+`benchmarks/configs/device_cards/*.json` with at least `logical-alltoall`, one
+superconducting-like and one ion-like card; `run_clifford_hierarchy.py` extended to
+schema `clifford_qc.clifford_measurement_hierarchy.v3` carrying the §6.5 columns for
+both estimators; an extended `check_clifford_hierarchy.py`; a `REPRODUCING.md`
+entry. *Gates:* (1) under `logical-alltoall`, every v2 field regenerates digit for
+digit — a changed number is a regression in the extension, not a finding; (2) the
+pooled arm is reported beside the single-assignment arm on the same bank, and if
+coverage `f_w` moves the accuracy-matched cost ordering between `k` rungs, that is
+R1's headline result and it lands before any mapping work; (3) no solver, selector,
+or certificate code changes.
+
+**R2 — the mapping axis.** Arms: `JW`, `parity`, `parity+2q`, `BK`, `BK+2q`. Held
+identical across arms: Hamiltonian and active space, reference determinant,
+generator family and its enumeration order, growth budget, accuracy target,
+estimator, rank rule, seed.
+
+*Step 1 — invariance, as checks.* Construct the encoding change as a CNOT network,
+verify it is Clifford through `clifford_tableau`, then assert: spectrum on the
+sector, reference energy, `W`, `S_H`, `M`, `κ_S`, Ritz values, and the word-multiset
+bijection. Failure stops the phase — this is Phase 13's discipline applied to
+mappings.
+
+*Step 2 — measure only the variant quantities:* weight distributions on all three
+multisets (§6.5), `G(k)` across protocol rungs, `N_1q`/`N_2q`/`D_2q`, coverage, and
+`C_time(ε)` under each device card.
+
+*Pre-registered predictions and falsifiers.*
+
+- **P1.** `W_JW = W_BK`, and `κ_S`, `M`, Ritz values identical to solver tolerance
+  for the non-reduced arms. *Falsifier:* any difference — which indicts the
+  implementation, not the hypothesis.
+- **P2.** `w̄` on the Hamiltonian multiset falls under BK relative to JW, most
+  visibly at larger `n`. *Falsifier:* no reduction at `n = 8, 12`, which would mean
+  the asymptotic argument has no purchase at the sizes this project runs — itself a
+  publishable negative for a chemistry-scale claim.
+- **P3.** At QWC (`k = 1`) the mapping's effect appears in **single-qubit gate count
+  and group count, not depth**: the basis rotation is one layer whatever the weight,
+  and the frozen record already carries `gate_counts_per_sweep` (H₄: 14 608 `H`,
+  15 552 `S` at `k = 1`) as the place it shows. *Falsifier:* a material `D_1q`
+  difference at `k = 1`, meaning the synthesizer is not emitting a single rotation
+  layer.
+- **P4.** The weight advantage attenuates from the Hamiltonian multiset to the
+  element-operator universe, because the latter is built from products `A_i†HA_j`
+  and JW's Z-strings cancel structurally in products. *Falsifier:* equal ratios on
+  both multisets — in which case Hamiltonian weight is a sufficient proxy and the
+  extra bookkeeping can be dropped.
+- **P5.** `G(k=n)` agrees between mappings within tie-break noise, and the mapping's
+  `C_time` gap closes monotonically as `k → n`. *Falsifier:* a gap at `k = n` beyond
+  the §6.2 bound, meaning either the coloring is not comparing isomorphic graphs or
+  diagonalizer synthesis is the dominant effect.
+- **P6.** The `+2q` arms beat their unreduced parents on every cost column, and by
+  more than the `JW → BK` difference at fixed `n`. *Falsifier:* reduction worth less
+  than the encoding change, which would invert the plan's advice on where to spend
+  effort.
+
+*The claim this phase may make.* Not "BK is shallower". Either "the mapping changes
+measurement cost by `X%` at protocol `k` on device card `D`, while leaving the
+subspace and `W` provably unchanged", or "it does not, at the sizes measured".
+
+**R3 — the protocol axis and `k*`.** The `mapping × k` grid under the R1 cost model,
+not a new protocol; `k*` as defined in §6.7. *Gate:* margins reported; regions, not
+integers, wherever the margin sits inside the shot-search uncertainty.
+
+**R4 — contextual subspace as comparator, then preconditioner.** Arms, at matched
+accuracy target and matched candidate family: full QSE, CS-QSE, A-CASE, CS + A-CASE.
+
+*Report the bias floor, not only the compression.* The contextual restriction is an
+approximation whose error is not variationally controlled by the restricted solve; a
+rung where the restriction's own floor exceeds the accuracy target cannot be
+compared to an unrestricted arm on cost, because it never reaches the target. Every
+CS arm reports the restricted-space exact energy against the same exact reference
+used elsewhere on that rung, and the qubits removed. An arm that cannot reach `ε`
+reports `C(ε) = ∞` and its floor.
+
+*The interaction question, made measurable.* With `C₀` the full-QSE cost,
+
+```
+C₀/C_CS+ACASE  =  (C₀/C_CS) · (C_CS/C_CS+ACASE)
+```
+
+and the interaction is the deviation of the observed joint ratio from the product of
+the marginals, computed in logs with the shot-search uncertainty propagated. Three
+pre-registered outcomes: **complementary** (joint ≥ product, within uncertainty —
+the two compressions attack different structure, and CS-preconditioned A-CASE is
+worth building); **redundant** (joint ≈ larger marginal — CS removes what A-CASE
+would have pruned; report it and do not build the preconditioner); **antagonistic**
+(joint < larger marginal — restriction removes directions adaptive selection needed;
+the interesting negative, and it belongs in the paper).
+
+*Gate before any solver change.* Complementarity must appear in `C(ε)`, not only in
+`M` or `W`. A drop in `M` that leaves the accuracy-matched cost flat is exactly the
+reading §6 exists to block — the ladder has already produced one such case (§7).
+
+**One primitive serves R2 and R4.** BK/parity change-of-encoding, `Z₂` tapering, and
+contextual-subspace restriction are the same two-step object: a Clifford rotation,
+then fixing a set of commuting stabilizer qubits to `±1`.
+
+| operation | Clifford part | fixing part |
+|---|---|---|
+| JW → BK / parity | CNOT network of the encoding change | none |
+| BK/parity two-qubit reduction | same | fix the two symmetry qubits to `±1` |
+| `Z₂` symmetry tapering | Clifford mapping each symmetry generator to a single `Z` | fix those qubits to the reference's eigenvalue |
+| contextual-subspace restriction | Clifford rotations of the noncontextual stabilizers | fix the stabilizer qubits |
+
+So both phases share `clifford_qc/subspace/restriction.py`, exposing a `Restriction`
+carrying `(clifford_program, fixed_qubits, signs)` that transports Hamiltonian,
+reference, generator pool, and observables together. `CliffordMap.conjugate`
+(`bridges/stim_bridge.py`) already provides the word action; what is missing is the
+fixing step and the bookkeeping that keeps the four objects consistent. Sign
+conventions on fixed qubits, phase accumulation in the conjugation, and the
+reference state's image are the three places this class of code goes wrong silently,
+so each gets an explicit test before any benchmark consumes it:
+`⟨HF_B|H_B|HF_B⟩ = ⟨HF_JW|H_JW|HF_JW⟩`, spectrum equality on the sector, and
+word-multiset bijection.
+
+**The hidden cost these phases must price.** The package identifies the
+computational basis with the occupation-number basis in several places that are
+correct **only under Jordan–Wigner**: `fermion.py` `total_number_op`/`total_sz_op`
+build `n_j = (I − Z_j)/2` directly and `subspace/symmetry.py` `sector_operators`
+consumes them, so `sector_leakage`, `reference_sector_leakage`,
+`infer_reference_sector`, and `subspace_sector_certificate` are JW-specific;
+`backends/sector_statevector.py` groups by X-mask over occupation strings; and
+`subspace/qsci.py` and `subspace/selected_ci.py` read bitstrings as determinants.
+Under BK or parity these are wrong by construction, and wrong in the quiet way —
+they return numbers. Phase 7's Kitaev incident (§7) records what that failure mode
+costs. R2 is therefore gated on one of two choices, declared per arm in the record:
+either the sector layer is transported through the `Restriction` (the number
+operator's image is still diagonal, so this is mechanical but must be tested), or
+the mapping arm runs with the sector filter **off** and says so. No mapping arm runs
+with a JW sector filter silently applied to non-JW operators.
+
+---
+
+## 6. Resource accounting (equal partner to basis size)
+
+A 20-dimensional basis is not compact if its projected entries carry millions of
+words. The compactness question is not "is `M` small?" but: **does the adaptive
+basis stay small while its projected operator bank stays measurably smaller than
+competing QSE/Krylov constructions — at a cost a device would actually pay?**
+
+### 6.1 Cost is only meaningful at a fixed certified accuracy
+
+Phase 4R settles this on this codebase: at 104 000 setting-shots on the frozen
+four-qubit TFIM bank, changing nothing but the estimator and the rank rule moved the
+RMSE from `1786` to `4.86` mHa. A cost quoted at fixed shots is therefore a statement
+about the estimator, not about the hardware, and it can be moved by two orders of
+magnitude without touching a circuit.
+
+Every cost here is `C(ε)`: the cost of reaching a **certified** interval of
+half-width `ε` on the target Ritz value, at declared coverage, with the estimator and
+rank rule named in the record. Where certification abstains, the row reports
+`C(ε) = ∞` with the abstention reason rather than a number obtained by dropping the
+certificate. `N_g` is not an input, it is the output of a shot-to-target search, and
+two protocols are compared by `(C(ε), ε, coverage, abstention rate)`, never by
+settings alone.
+
+### 6.2 What the fermion mapping can and cannot move
+
+For the linear (encoding-matrix) family — Jordan–Wigner, parity, Bravyi–Kitaev,
+segment codes — two encodings differ by an invertible `GF(2)` change of basis on
+occupation vectors, realized on qubits by a **CNOT network**. A CNOT network is
+Clifford, so `H_B = U H_JW U†` with `U` Clifford, and conjugation by a Clifford is an
+algebra automorphism mapping Pauli words bijectively to Pauli words up to sign:
+
+| quantity | under `U · U†` | why |
+|---|---|---|
+| spectrum, Ritz values, `M`, rank, `κ_S` | **invariant** | same operator, similarity transform |
+| `W`, `S_A`, `S_H`, `nnz` | **invariant** | word-to-word bijection, products map to products |
+| per-word variance `1 - μ_w²` | **invariant** | `μ_w` invariant up to the conjugation sign |
+| full-commutation conflict graph (`k = n`) | **isomorphic** | commutation is preserved |
+| Pauli weight distribution `w̄, w₅₀, w₉₀, w_max` | **variant** | weight is not Clifford-invariant |
+| QWC compatibility, `G(k)` for `k < n` | **variant** | qubit-wise commutation is basis-dependent |
+| single-qubit rotation count, CX count, two-qubit depth | **variant** | synthesis depends on the tableau |
+
+So `W_JW = W_BK` **exactly**, and a measured difference in `W`, `M`, `κ_S`, or energy
+between mappings is a bug in the transformation, the reference, or the generator
+pool — not a finding. Two riders, both of which go in the record:
+
+- **The greedy coloring is not canonical.** At `k = n` the conflict graph is
+  isomorphic, so the chromatic number is invariant, but the largest-degree greedy
+  partition can differ by tie-breaking. The check compares degree-sequence and
+  component invariants of the conflict graph, and reports `|G_JW − G_BK|` at `k = n`
+  as tie noise with its own tolerance.
+- **Diagonalizer cost is not invariant even where the grouping is.** If `V_g`
+  diagonalizes a group, `V_g U†` diagonalizes its image, so
+  `cost_BK ≤ cost_JW + cost(U)` — a bound, not an equality, because synthesis starts
+  from the image tableau rather than composing. A measured `cost_BK` far above the
+  bound means the synthesizer, not the mapping, is what is being measured.
+
+**Qubit reduction is a different operation.** The literature's BK advantage is largely
+the two-qubit reduction, which is conjugation **plus fixing** stabilizer qubits and
+deleting them. Deletion is where `W` can genuinely fall (distinct words collide on
+fewer qubits), where `n` falls, and where every downstream cost falls with it. Hence
+the separate `+2q` arms in R2: comparing JW at `n` against reduced BK at `n−2` and
+attributing the difference to "the mapping" would publish a confound.
+
+### 6.3 Fewer settings is not automatically cheaper
+
+**Pooling coverage.** Under the pooled estimator a word is read by every compatible
+setting, so at a fixed *total* budget `N_total = G·N_g` the effective shots on word
+`w` are `f_w · N_total` with coverage fraction `f_w = m_w / G` (`m_w` = settings that
+record `w`). Coarser protocols raise `W/G` — the frozen H₄ record goes `8.07 → 115.17`
+from `k = 1` to `k = 8` — and `f_w` moves with it in a direction no one has measured,
+because the frozen hierarchy predates the pooled estimator. The protocol trade must
+be re-measured with `pooling='shots'` before any `k*` is claimed.
+
+**Fidelity.** A depth-versus-time model with no error model monotonically prefers the
+deepest protocol, because it only ever removes state preparations. Depth actually
+enters through infidelity, and protocols whose damping exceeds a declared floor are
+**inadmissible**, not merely expensive.
+
+### 6.4 The cost model
+
+**Device card — a declared, versioned artifact.** No scalar cost may be printed
+without one. Schema `clifford_qc.device_card.v1`, stored beside the benchmark configs
+and stamped into every record that consumes it:
+
+```json
+{
+  "schema": "clifford_qc.device_card.v1",
+  "name": "logical-alltoall",
+  "t_prep_us": 0.0, "t_1q_us": 0.05, "t_2q_us": 0.3,
+  "t_readout_us": 1.0, "t_reset_us": 1.0,
+  "eps_1q": 0.0, "eps_2q": 0.0, "eps_readout": 0.0,
+  "connectivity": "all-to-all",
+  "routing": false
+}
+```
+
+The all-zero-error, all-to-all card reproduces the current logical model exactly,
+which is what makes the extension checkable (R1 gate 1).
+
+**Time cost.** For each setting `g` the synthesized diagonalizer supplies `N_1q,g`,
+`N_2q,g`, `D_1q,g`, `D_2q,g`; the readout covers all `n` qubits regardless of group:
+
+```
+C_time(ε) = Σ_g N_g(ε) · [ t_prep + t_1q·D_1q,g + t_2q·D_2q,g + t_ro + t_reset ]
+```
+
+*The A-CASE-specific term.* A-CASE measures every setting on **one** reference state,
+so `t_prep` factors out: `C_time = N_total·t_prep + Σ_g N_g·(measurement + readout +
+reset)`. On the current pipeline the reference is a Hartree–Fock determinant — a
+computational basis state, prep depth zero up to `X` gates — and under any linear
+encoding it stays one, so the prep term is very nearly free. That inverts the usual
+VQE accounting in which preparation dominates: the currency the frozen table reports
+(`state_preparations_at_uniform_shots`, `7.304 M → 0.512 M` on H₄) is the right
+currency only on a device where reset and readout are cheap relative to preparation.
+On a superconducting card where `t_ro + t_reset` dominates, `C_time` tracks total
+executions and the deep-protocol advantage is near its maximum; on a trapped-ion card
+with slow gates and fast state prep, near its minimum.
+
+**Fidelity and admissibility.** With a depolarizing surrogate,
+`F_g = (1-eps_1q)^{N_1q,g}·(1-eps_2q)^{N_2q,g}·(1-eps_ro)^n`. An unbiased estimator
+built on damped readings inflates variance by `F_g^{-2}`, so `N_g(ε) ∝ F_g^{-2}` and
+the record reports effective as well as raw shots. A setting is inadmissible when
+`F_g` falls below the declared floor (default `0.5`, recorded per run); runs report
+the admissible `k` set before reporting `k*`. This is deliberately a surrogate, not a
+noise simulation: it exists so the cost model cannot recommend a protocol a device
+could not execute, and claiming a calibrated error prediction from it would be exactly
+the overreach §13 forbids.
+
+**What may be printed.** Default output is a **break-even surface** — the admissible
+region and the `k*` boundary over the `(t_2q/(t_ro+t_reset), ε_2q)` plane with the
+accuracy target fixed. The frozen table's `c_CX/c_prep` column is its one-parameter
+version and is kept. A scalar `C_time(ε)` may be printed **only** under a named device
+card, with the card's name and hash in the row; a cost with no card is a schema error,
+not a default.
+
+### 6.5 The metric ledger
+
+Every run records `M`; `W = |⋃_ij supp(O_ij^H) ∪ supp(O_ij^S)|`;
+`S_A = max_i |supp(A_i)|` and `S_H = max_ij |supp(A_i†HA_j)|`; `r_S` retained rank at
+threshold `τ`; `κ_S` retained condition number; bank build time and peak memory;
+reused vs. newly introduced words per accepted generator; QWC group count. Added by
+this section, with the axis on which each is measured:
+
+| metric | measured on |
+|---|---|
+| `w̄, w₅₀, w₉₀, w_max` | three distinct multisets, reported separately: (a) Hamiltonian words, (b) the A-CASE element-operator universe `⋃ supp(A_i†HA_j)`, (c) per-setting support. (b) is what A-CASE actually pays for, and it is *not* predicted by (a) — see R2-P4 |
+| `G(k)`, `W/G`, coverage `f_w` (mean, min) | per protocol rung |
+| `N_1q`, `N_2q`, `D_1q`, `D_2q` (mean, max) | per setting, summed per sweep |
+| `F_g`, `N_eff`, admissibility | per setting, under the device card |
+| `N_g(ε)`, `C_time(ε)`, `ε`, coverage, abstention | per arm, at the accuracy target |
+| encoding, reduction, taper qubits, `n_eff` | per mapping arm |
+
+Each projected observable's word universe, and the words it adds beyond what `(S, H)`
+already require, enter this accounting too (§8).
+
+### 6.6 What the measurement layer already reports
+
+`benchmarks/run_clifford_hierarchy.py` implements the dyadic block-commuting
+hierarchy: for `n = 2^L` qubits and block size `k = 2^ℓ`, partition the register into
+contiguous blocks and call two words `k`-compatible when their restrictions commute
+inside every block. The endpoints are QWC at `k = 1` and full Pauli commutation at
+`k = n`; each group is diagonalized by block-local stabilizer Clifford circuits
+synthesized with stim, and every word — not only an independent stabilizer basis — is
+verified to map to a `Z`-only word. The hierarchy leaves the subspace and `W`
+unchanged while trading fewer settings for more logical CX gates and depth.
+
+Frozen (`reference_results/clifford_hierarchy_{h4,beh2}.json`, schema
+`clifford_qc.clifford_measurement_hierarchy.v2`, 8000 shots per setting):
+
+| system | `k` | `G` | `W/G` | `N_CX` | mean `D_CX` | max `D_CX` | preps (10⁶) | `c_CX/c_prep` |
+|---|---|---:|---:|---:|---:|---:|---:|---:|
+| H₄ (`M=9`, `W=7 371`) | 1 (QWC) | 913 | 8.07 | 0 | 0.00 | 0 | 7.304 | — |
+| | 2 | 647 | 11.39 | 3185 | 2.55 | 4 | 5.176 | 0.084 |
+| | 4 | 238 | 30.97 | 3688 | 8.90 | 17 | 1.904 | 0.183 |
+| | 8 (full) | 64 | 115.17 | 2006 | 25.72 | 42 | 0.512 | 0.423 |
+| BeH₂ (`M=5`, `W=1 815`) | 1 (QWC) | 353 | 5.14 | 0 | 0.00 | 0 | 2.824 | — |
+| | 2 | 41 | 44.27 | 168 | 1.78 | 2 | 0.328 | 1.857 |
+| | 4 | 26 | 69.81 | 234 | 5.12 | 10 | 0.208 | 1.397 |
+| | 8 (full) | 14 | 129.64 | 332 | 19.00 | 27 | 0.112 | 1.021 |
+
+This is a tunable logical trade, not a preferred block size, and the instance spread
+is the reason: the `k = 2` break-even ratio is `0.084` on H₄ and `1.857` on BeH₂ — 22×
+under an identical logical model, before any device enters. Connectivity, routing,
+device noise, and error mitigation are excluded.
+
+### 6.7 `k*`, defined
+
+```
+k*(ε, device card, instance) = argmin_{k admissible} C_time(ε; k)
+```
+
+— the smallest-cost *admissible* block size at a fixed certified accuracy on a named
+device card, reported with the argmin's margin over its neighbours. It is not a
+function of `W` alone, it is not an instance-independent constant, and it is reported
+as a region over the break-even plane whenever the margin is within the estimator's
+own uncertainty.
+
+### 6.8 Three compression classes stay separate
+
+In every table: **Hilbert-space compression** (qubits, sector, restriction);
+**operator-pool compression** (`M`, candidates evaluated); **measurement/hardware
+compression** (`W`, `G`, weight, gates, depth, `C_time`). Contextual-subspace methods
+attack the first two; word reuse, pooling, and grouping attack the third. A table that
+sums them into one number cannot show which mechanism paid.
+
+---
+
+## 7. Validation ladder and benchmark inventory
+
+### 7.1 The ladder (Phase 7 — done)
+
+`benchmarks/run_acase_ladder.py` and `summarize_ladder.py`: H₂ → LiH → H₄ (equilibrium
+and stretched) → stretched H₂O CAS(4e,4o) → H₂O CAS(8e,6o) → 2×2/2×3 Hubbard → one
+Kitaev cluster with link correlations. Comparison set: the reference determinant,
+exact diagonalization, plain QSE, fixed Krylov, generator-coordinate-style fixed
+subspaces, ADAPT-VQE (exact and finite-shot), A-CASE (exact and finite-shot
+certified). Every row carries the §6 metrics, shots, circuits, and abstentions beside
+the energy, plus the `evidence` label that says what kind of number it is.
+
+Three conventions decide what the table means:
+
+- *The error column is measured against the reference's own symmetry sector.* A-CASE
+  never leaves the sector its reference lives in, and a grand-canonical Hubbard
+  cluster's global minimum sits at a different filling — scoring against the global
+  ground state would charge every method for a particle-number difference none of them
+  can cross.
+- *The generator-coordinate arm takes an even stride through the candidate family, not
+  its prefix.* The excitation family lists singles first and every single is
+  Brillouin-dead on a Hartree–Fock reference, so a prefix of eight reproduces the
+  reference energy to machine precision. That is a fact about the ordering, not about
+  non-adaptive subspaces. With the stride, the arm clears HF on H₄ (−2.1307 against
+  −2.1243) and is still beaten.
+- *Wide generators fall back to the cyclic contraction.* Above `max_tracked_support`
+  the row is solved through `Tr((HA_j)(ρA_i†))` and marks its support columns `n/t`
+  rather than reporting guessed ones.
+
+*A configuration error the ladder caught, which would have published as a method
+failure.* `sector_leakage` measures `||[A,N]||/||A||` and the same for `S_z` — the
+*fermionic* symmetries — and it takes a generator alone, so it cannot know that the
+Kitaev cluster is one qubit per site with no Jordan–Wigner transformation behind it
+and no particle number to conserve. Applied there, the §4.2 sector filter rejected all
+72 candidates (the whole pool leaks at 0.94 or above) and A-CASE reported a basis of
+size one sitting at the reference energy, `−4.0` against the cluster's `−4.9624`. Read
+off the table that is "A-CASE cannot grow on a frustrated spin cluster." It is nothing
+of the kind: with the filter correctly not applied, A-CASE reaches the exact energy to
+`7e-13` at `M = 6`. The tolerance is now dropped for models with no fermionic sector
+and the row records that it was dropped, so the failure cannot recur silently.
+
+That recovered row is worth reading carefully rather than banking as a win, because it
+is exactly the reading §6 exists to block. A-CASE's selected basis is
+`I, H¹, H², H³, H⁷, H⁸` — six of the nine Krylov powers sitting in its own candidate
+pool, with every `pauli_orbit` and `commutator_response` candidate passed over. So it
+did not find a more compact *kind* of basis; it pruned the Krylov basis by a third. And
+the resources do not follow the basis size down: the word universe is identical
+(`W = 140`, `S_H = 76`, the same words either way) and the conditioning is marginally
+*worse* (`κ_S = 3.8e+04` against Krylov's `3.3e+04`).
+
+*The measurement layer, not the shot budget, was what confined certified growth to four
+qubits.* The QWC partition is greedy and quadratic in the word universe, and that was
+the obvious suspect — but it is memoized on the word set, and the certified loop's
+universe is the same index set at every growth step, so it was computed **once**, not
+per step, and it was never the binding cost (15 846 words, 1 689 groups: ten seconds of
+a batch that took hours). The binding cost was `computational_probabilities`: 11.4 s per
+eight-qubit readout, called once per QWC group per batch. A Z-basis readout only sees
+the *diagonal* Pauli content of the state, so with `|b⟩⟨b| = Π_j (I + s_j Z_j)/2`,
+
+    p(b) = Σ_z ρ_z (−1)^popcount(z ∧ b),
+
+the Walsh–Hadamard transform of the diagonal coefficients — `O(2^n n)` for all outcomes
+at once, against `O(4^n)` word products for building each projector and multiplying it
+out. With that, plus holding the shot-independent part of each group's sampling plan
+instead of rebuilding it every batch, a warm batch over those 1 689 groups is 0.19 s.
+The partition was separately made output-preserving-but-fast: 15 846 words, 77 s →
+2.3 s. The lesson is the one §6 keeps making in a different register: the quantity that
+looked expensive by inspection was not the quantity that was expensive, and only
+measurement distinguished them.
+
+*Certified growth at eight qubits* (`acase_certified_n8`, 32 000 shots per group,
+`max_size = 4`):
+
+| rung | M reached | error | shots | outcome |
+|---|---|---|---|---|
+| h4_equilibrium | 2 | +3.66e-02 | 216 M | abstained |
+| h4_stretched | 5 | +4.09e-02 | 461 M | budget reached |
+| h2o_cas4e4o_stretched | 4 | +1.03e-01 | 432 M | abstained |
+| hubbard_2x2 | 5 | +1.28e+00 | 442 M | budget reached |
+| kitaev_2x2 | 2 | +1.20e-01 | 151 M | abstained |
+
+This is the first Q2 evidence above four qubits. Two rungs grow to the full budget
+without a single uncertified step; three stop by abstention rather than by growing on a
+decision the shots do not support. At 4 000 shots per group — the four-qubit budget —
+H₄ abstains immediately, so the certified arm is *shot-limited* at eight qubits rather
+than structurally blocked. Every certified energy here sits well above chemical
+accuracy, so this establishes that the certificate keeps working at `n = 8`, not that
+certified A-CASE is accurate there.
+
+*Measured* (`benchmarks/reference_results/acase_ladder.jsonl`, 72 runs; error in Hartree
+against the reference's own sector, `—` where the config does not run that arm):
+
+| rung | n | reference | QSE | Krylov | gen-coord | ADAPT | A-CASE |
+|---|---|---|---|---|---|---|---|
+| h2 | 4 | +2.1e-02 | −2.7e-15 | −1.8e-15 | −2.4e-15 | −2.0e-15 | −2.4e-15 |
+| lih_2e2o | 4 | +2.6e-04 | +3.0e-14 | +9.8e-12 | +3.1e-14 | +2.8e-14 | +3.1e-14 |
+| h4_equilibrium | 8 | +5.6e-02 | +4.2e-02 | **+1.0e-08** | +5.0e-02 | +2.4e-03 | +3.0e-03 |
+| h4_stretched | 8 | +2.6e-01 | +1.8e-01 | **+1.5e-05** | +1.8e-01 | +7.4e-03 | +3.9e-02 |
+| h2o_cas4e4o_stretched | 8 | +3.2e-01 | +1.7e-01 | **+7.1e-03** | +1.6e-01 | +1.2e-02 | +5.5e-02 |
+| h2o_cas8e6o | 12 | +5.0e-02 | +4.7e-02 | — | +4.2e-02 | — | **+1.4e-02** |
+| hubbard_2x2 | 8 | +2.1e+00 | +1.5e+00 | +2.6e-03 | +1.9e+00 | +4.0e-01 | +8.6e-01 |
+| hubbard_2x2 (level 4) | 8 | — | — | — | — | — | **−1.1e-14** |
+| hubbard_2x3 | 12 | +3.6e+00 | +3.4e+00 | — | +3.2e+00 | — | **+2.2e+00** |
+| kitaev_2x2 | 8 | +9.6e-01 | +9.6e-01 | −1.1e-14 | — | +9.6e-01 | **+7.4e-13** |
+
+Read with §6 beside it, at the equal budget `M = 9` on the six rungs where both
+non-adaptive and adaptive arms ran:
+
+| rung | gen-coord `W` | A-CASE `W` | gen-coord `κ_S` | Krylov `κ_S` | A-CASE `κ_S` |
+|---|---|---|---|---|---|
+| h4_equilibrium | 13 646 | 7 371 | 1.0 | 6.6e+10 | 1.0 |
+| h4_stretched | 13 646 | 7 715 | 1.0 | 2.6e+10 | 1.0 |
+| h2o_cas4e4o_stretched | 12 734 | 7 783 | 1.0 | 6.0e+07 | 1.0 |
+| h2o_cas8e6o | 232 515 | 143 117 | 1.0 | — | 1.0 |
+| hubbard_2x2 | 6 258 | 5 537 | 1.0 | 9.7e+09 | 1.0 |
+| hubbard_2x3 | 27 870 | 5 358 | 1.0 | — | 1.0 |
+
+### 7.2 What the ladder does and does not support
+
+- **Q1, against blind selection: supported.** At equal `M = 9` and drawing from the
+  *same* candidate family, adaptive selection beats the strided generator-coordinate
+  subspace on every rung — in error (by 1.5× on the 2×3 Hubbard up to 17× on
+  equilibrium H₄) and in word universe simultaneously (7 371 against 13 646 on H₄;
+  5 358 against 27 870 on the 2×3 Hubbard, a 5.2× saving). The `W` column is what makes
+  it a resource claim rather than a basis-size claim.
+- **Q1, against fixed Krylov: not supported.** Krylov wins the energy on every fermionic
+  rung where it ran, at the same `M` and by up to five orders of magnitude (1.0e-08
+  against 3.0e-03 on equilibrium H₄). The compactness claim does not survive that
+  comparison and should not be advertised as if it did. What Krylov pays is conditioning
+  — `κ_S` from 3.3e+04 to 6.6e+10, against A-CASE's `1.0` on every fermionic rung — and
+  at eight qubits its generators are too wide to bank at all. The honest summary is a
+  trade, not a win: Krylov buys accuracy with an overlap matrix no finite-shot run could
+  invert, and A-CASE buys a conditioned, measurable subspace at a worse energy.
+- **A-CASE does not beat ADAPT-VQE.** ADAPT is better on stretched H₄ (7.4e-03 against
+  3.9e-02), stretched water (1.2e-02 against 5.5e-02), and the 2×2 Hubbard (4.0e-01
+  against 8.6e-01), and ties at equilibrium H₄. This reproduces the Phase 3 finding
+  rather than overturning it. The one place ADAPT collapses is the Kitaev cluster, where
+  its exact gradient is below threshold at the reference and it selects *zero* operators:
+  the reference is a stationary point, and a first-order selection rule has nothing to
+  see. A-CASE's 2×2 generalized lowering is not a gradient and does grow there.
+- **Q4: the span half is answered, the compactness half only on the smaller cluster.**
+  With levels 0–3 the singles-and-doubles family saturates 0.86 Ha above the 2×2 sector
+  ground energy and 2.2 Ha above the 2×3, and no arm but Krylov comes close. Level 4
+  removes the span barrier outright. From the committed record, both arms grown
+  adaptively at the same budget:
+
+  | rung | family | M | error | `κ_S` | `W` | level-4 picked | stop |
+  |---|---|---|---|---|---|---|---|
+  | hubbard_2x2 | levels 0–3 | 23 | +2.55e-01 | 1.00 | 13 665 | 0 | saturated |
+  | hubbard_2x2 | levels 0–4 | 26 | **−1.07e-14** | 1.00 | 15 191 | 5 | budget |
+  | hubbard_2x3 | levels 0–3 | 26 | +1.09e+00 | 1.00 | 85 264 | 0 | budget |
+  | hubbard_2x3 | levels 0–4 | 26 | +1.09e+00 | 1.00 | 85 264 | 0 | budget |
+
+  On the 2×2 that is the sector ground state at machine precision with `M = 26` against a
+  **36**-state sector, at `κ_S = 1` and 11 % more words than the saturated levels-0-3
+  basis — a compact, well-conditioned, measurable basis rather than a re-derivation of
+  full CI. It is the only arm on that rung to reach chemical accuracy at all; fixed
+  Krylov gets to `+2.6e-03` and misses, at `κ_S = 9.7e+09`. The five generators selected
+  are `afm*E(2<-0)`, `afm*E(1<-3)`, `afm*E(1,2<-0,3)`, `afm_flipped*E(6<-4)` and
+  `afm_flipped*E(5<-7)` — the antiferromagnet and its spin-flipped partner, each dressed
+  by an excitation. The levels-0-3 arm stops on its own at `M = 23` with predicted
+  lowering below threshold: it is not budget-limited, it is out of directions. The 2×3
+  cluster is the honest negative: identical rows, zero level-4 generators selected.
+- **Q2: supported as far as the ladder reaches.** Certified growth runs at eight qubits
+  on five rungs; no run grows on a step the shots do not certify, and abstention rather
+  than silent growth is what stops three of them. Coverage itself is calibrated in the
+  Paper A experiments, not here.
+- **Q3 has a concrete instance in the record.** The certified H₂ row reports
+  `−1.13821296` against a reference of `−1.13727017` — 0.94 mHa *below* the exact energy.
+  The variational bound does not survive thresholding a noisy overlap matrix, which is
+  why the summarizer refuses to rank on energy without the evidence label.
+
+### 7.3 Benchmark inventory — what each rung can support
+
+| rung | `n` (JW) | exact reference | frozen artifact | role |
+|---|---:|---|---|---|
+| H₄ `r = 0.9` | 8 | yes | `matched_h4.json`, `clifford_hierarchy_h4.json` | primary; the frozen bank both cost axes reuse |
+| BeH₂ CAS(4e,4o) | 8 | yes | `clifford_hierarchy_beh2.json` | second instance; the 22× break-even spread |
+| H₂O CAS(4e,4o) stretched | 8 | yes | ladder | strong-correlation control |
+| H₂O CAS(8e,6o) | 12 | yes | ladder | size stress for `W` and grouping |
+| Hubbard 2×2 / 2×3 | 8 / 12 | yes | ladder | strongly correlated control, non-molecular weight profile |
+| Kitaev 2×2 | 8 | yes | ladder | **excluded from the mapping axis** — one qubit per site, no fermionic encoding behind it |
+| TFIM `n = 4` | 4 | yes | `finite_shot_rethink.json` | where the accuracy-matched cost search is calibrated first |
+| HCl | 20 | **no** | — | resource-only unless given a declared active space |
+
+**HCl.** STO-3G HCl is ten spatial orbitals, so twenty qubits under JW — past this
+project's exact-reference reach, and the ladder already runs without ADAPT/Krylov arms
+at `n = 12`. It enters on one of two terms, declared in the row: with an explicit active
+space small enough for an exact reference (a full rung), or **resource-only** — weights,
+`W`, `G`, gates, depth, no error column, no accuracy-matched cost, and an evidence label
+saying the row carries no accuracy claim. It is worth running on the second term because
+the contextual-subspace literature reports its largest operator-pool compression there,
+and a resource-only row can still falsify a compression claim. It is not worth running on
+terms that let a reader mistake it for an accuracy result.
+
+### 7.4 Excited states — deferred, with the reason
+
+A-CASE's projected generalized eigensolver already returns multiple Ritz roots
+(`acase_states`, `roots: 3`), so root-aware or state-balanced selection is a natural
+extension and contextual-subspace methods are a relevant comparator. Two things must land
+first.
+
+*The metric changes.* The word universe is shared across roots — one bank, one measurement
+campaign, `R` roots — so the right figure is the **amortized** `C(ε)` per root, and that is
+where A-CASE should be structurally ahead of running `R` separate variational
+optimizations. Report `C(ε)/R` beside the per-root accuracy, never the total alone.
+
+*The certificate does not cover it.* The current machinery certifies a ground-state Ritz
+interval; interior roots need interval statements that the delta-method scoring in
+`SharedMeasurement.solve_selected_rank` does not supply, and inventing one is theory work,
+not benchmark work. Until then, excited-state rows carry heuristic evidence labels and no
+certified cost. This track is scheduled after R1–R4 and is explicitly not on the critical
+path.
+
+---
+
+## 8. Projected observables
+
+Material observables are conceptually `PauliSum` expectations of Ritz states, but the Ritz
+state is never stored natively. For every observable `Q`, build
+`Q_sub[i,j] = ⟨ψ|A_i†QA_j|ψ⟩` through the same bank machinery and evaluate
+`⟨Q⟩_k = (c_k†Q_sub c_k)/(c_k†Sc_k)` and transition elements between Ritz roots. A
+Hermitian `Q` is mirrored from its upper triangle like `(S, H)`; a non-Hermitian one is not
+(`Q_sub[j,i]` is then an independent element), and `expectation` refuses it rather than
+quietly returning the real part. The extra word and measurement cost of each projected
+observable enters the §6 accounting.
+
+---
+
+## 9. Falsifiable questions
+
+**Core (Q1–Q4).**
+
+- **Q1 (compactness).** Does adaptive selection reach chemical accuracy with materially
+  smaller `M` *and* `W` than fixed QSE/Krylov at equal generator budget? *Falsifier:* no gap
+  on the Phase 7 ladder. *Status:* supported against blind selection, not supported against
+  fixed Krylov (§7.2).
+- **Q2 (certification).** Do finite-shot Ritz intervals achieve nominal coverage while
+  abstention prevents uncertified growth? *Falsifier:* coverage collapse or near-total
+  abstention at realistic budgets. *Status:* supported as far as the ladder reaches.
+- **Q3 (bound survival).** Under what measurable conditions does the variational upper bound
+  survive noisy PSD repair? *Deliverable:* a bias bound in terms of `τ_S`, shot covariance,
+  and conditioning — or a documented counterexample family. *Status:* counterexample in the
+  record.
+- **Q4 (materials reach).** Do competing-order stabilizer configurations plus response
+  directions compactly represent low-energy states of the Hubbard/Kitaev clusters?
+  *Falsifier:* basis growth tracking sector dimension. *Status:* span half answered,
+  compactness half answered on the 2×2 and open on the 2×3.
+
+**Track A and beyond (Q5–Q13).**
+
+- **Q5 — QSCI dominance:** at equal `M`, does QSCI match or beat A-CASE on fermionic
+  chemistry while spending zero measured words on projected matrices, once preparation,
+  sampling, and classical costs are also reported?
+- **Q6 — hybrid versus classical closure:** does the dressed hybrid reach a Pareto point
+  unavailable to bare QSCI, selected CI, and A-CASE, and is its span different from or more
+  compact than determinant excitation closure?
+- **Q7 — overlap selection:** does a QSCI/selected-CI target expose useful candidates that
+  lowering-only growth misses on `hubbard_2x3`?
+- **Q8 — real-time family:** can a real-time or controlled short-time family recover
+  fixed-Krylov accuracy at a `kappa(S)` and propagation error budget a finite-shot
+  calculation could survive?
+- **Q9 — Clifford grouping:** does fully commuting grouping reduce certified leading shot
+  cost with covariance and circuit overhead accounted for?
+- **Q10 — parity ceiling:** does `r_X <= 2(N - 1)` hold across every declared
+  spin-conserving Jordan–Wigner Hamiltonian construction path?
+- **Q11 — packet gain:** do Haar-stage policies survive ordering ablations and improve the
+  final Pareto frontier rather than one finite instance only?
+- **Q12 — spin sampled subspaces:** is computational-basis sampled diagonalization
+  noncompact on Kitaev, rather than nonexistent?
+- **Q13 — mapping invariance:** do JW, BK, and parity reproduce exact energies and equivalent
+  fermionic gradients under consistent transforms?
+
+**Resource accounting (QR1–QR6).**
+
+- **QR1 (accounting).** Does the accuracy-matched cost `C(ε)` ever reorder the protocol rungs
+  relative to the settings-count ordering? *Falsifier:* identical ordering on every rung and
+  card, in which case settings count was an adequate proxy and this machinery is overhead —
+  record it and say so.
+- **QR2 (mapping invariance).** Do the §6.2 invariants hold exactly across mappings on every
+  rung? *Falsifier:* any violation, which halts R2 as an implementation defect.
+- **QR3 (mapping cost).** Is there a device card and protocol rung at which the mapping
+  changes `C(ε)` by more than the instance-to-instance spread already present between H₄ and
+  BeH₂? *Falsifier:* the mapping effect is smaller than the instance effect everywhere —
+  which would demote fermion mapping from an optimization dimension to a footnote, itself a
+  useful result.
+- **QR4 (pooling × protocol).** Does the coverage fraction `f_w` change the `k*` chosen under
+  the pooled estimator relative to the single-assignment one? *Falsifier:* identical `k*`
+  under both, which retires the concern.
+- **QR5 (compression interaction).** Is the CS × A-CASE cost ratio multiplicative,
+  sub-multiplicative, or antagonistic? *Falsifier for the preconditioner plan:* anything but
+  complementary.
+- **QR6 (weight propagation).** Does the Hamiltonian-level weight advantage survive into the
+  element-operator universe? *Falsifier:* equal ratios on both multisets.
+
+---
+
+## 10. Literature index and citation discipline
+
+| # | arXiv | Theme | Integrated disposition |
+|---|---|---|---|
+| 1 | 2302.11320 | QSCI | Mandatory sampled-subspace baseline; Track A. |
+| 2 | 2411.00468 | ext-SQD excited states | Direct chemistry/excited-state comparator; Track A. |
+| 3 | 2407.08696 | CEO-ADAPT-VQE | Constrains Paper A framing; pool benchmark deferred until after Track A. |
+| 4 | 2409.03747 | Oscillator-qubit | Qumode layer declined; retain symmetry-post-selection accounting only. |
+| 5 | 2301.10196 | Overlap-ADAPT-VQE | Motivates overlap-targeted A-CASE selection; Phase 11. |
+| 6 | 2412.13839 | Time-evolved QSCI | Time-evolved QSCI input; Phase 16A. |
+| 7 | 2302.03052 | Projection-based embedding | Interface boundary only; Phase 18. |
+| 8 | 2606.30551 | Generative-ML QSCI | Withdrawn; do not cite. Use paper 14 instead. |
+| 9 | 2501.14968 | Measurement review | Fully commuting grouping context; Track B. |
+| 10 | 2305.04783 | Folded-spectrum VQE | Second moments, variance, folded spectrum; Phase 15. |
+| 11 | 2606.05968 | BK symmetry trap | Not evidence for the headline claim; mapping regression motivation only. |
+| 12 | 2409.11210 | MORE-ADAPT-VQE | Existing multi-root capability deserves a later benchmark; deferred. |
+| 13 | 2311.01393 | FLDC barren plateaus | Positioning only; build nothing. |
+| 14 | 2607.20585 | ML-compact QSCI subspaces | Compactness comparison structure; unrefereed benchmark claims require reproduction. |
+| 15 | 2607.16869 | Correlation rank and Clifford-accessible measurement | Test the explicit invariant first; benchmark claims remain unverified. |
+
+**Actionable hygiene.**
+
+- **arXiv:2606.30551** was withdrawn by arXiv administrators because the submitter did not
+  have the rights to agree to the licence at submission. It must not enter either
+  bibliography. For related RBM/configuration-recovery content, cite **arXiv:2607.20585**
+  and label its benchmark evidence as unrefereed until reproduced.
+- **arXiv:2606.05968** is not evidence for an intrinsic Bravyi–Kitaev symmetry trap or
+  one-cycle FCI convergence. Its stated fixed-UCCSD derivative and ADAPT commutator gradient
+  are the same derivative for the same anti-Hermitian generator, while its claimed FCI states
+  retain large commutator gradients. Use it only to motivate mapping-consistency regression
+  tests.
+- **arXiv:2607.16869** supplies an explicit structural claim that can be tested
+  independently. Separate a reproduced parity/X-rank invariant from its unreproduced
+  shot-reduction benchmarks.
+
+The mapping regression suite motivated by paper 11 must check exact energy invariance across
+mappings; correctly encoded reference states; equality of finite-difference, analytic, and
+commutator gradients; and separate measurement of Pauli weight, distinct-word count, grouping
+cost, and compiled circuits (R2, §5).
+
+**Deferred or positioning-only.** MORE-ADAPT-VQE: multi-root A-CASE already exists, but a
+dedicated comparison waits for the QSCI/ext-SQD ladder. FLDC barren plateaus: positioning for
+finite-depth ADAPT circuits only — A-CASE solves a generalized eigenproblem and has no
+variational trainability landscape. Circuit-native real-time A-CASE: Q8 and Phase 16B, not an
+incremental generator.
+
+---
+
+## 11. Manuscript positioning
+
+1. **Paper B must confront QSCI and classical selected CI.** A QSCI comparison alone is
+   insufficient once the hybrid dresses determinants.
+2. **Paper A's novelty is certification, not generic measurement efficiency.** CEO-ADAPT
+   constrains the pool-design claim; a benchmark can follow Track A.
+3. **Ancilla-free A-CASE is a resource-boundary statement, not a zero-T-count statement.**
+4. **Configuration Haar packets are an opt-in coarse basis with a measured trade-off**, not a
+   universal wavelet advantage.
+5. **Orbital basis is a recorded parameter.** The repository contains a negative result
+   against standardizing wavelet orbitals.
+6. **BK-trap claims are excluded** unless independent mapping and gradient invariants
+   reproduce them.
+7. **FLDC is positioning only.**
+8. **Mapping-invariant claims must be labelled as such.** The subspace-level resource claims
+   are invariant by construction across the linear encoding family (§6.2); only the
+   measurement-compilation layer is mapping-dependent, and only it may carry an empirical
+   mapping claim.
+
+---
+
+## 12. Execution order
+
+Track A must not wait for Tracks B or C. Within each track the order is dependency-forced;
+between tracks, R1 is cheap and its result can reorder Track B's protocol conclusions, so it
+comes early.
+
+**Track A — Paper B critical path.**
+
+1. QSCI contracts and exact sampled-subspace restriction (Phase 8A–8D).
+2. QSCI on the ladder, including a raw spin-system arm (8E).
+3. Excitation-closure and selected-CI controls (Phase 9).
+4. QSCI configuration generators and dressed families (10A–10B).
+5. Span/principal-angle diagnostics (Phase 9 diagnostic, gating 10D).
+6. The Haar packet tier as a staged hybrid arm (10C).
+7. Overlap-targeted scoring and ordering ablations (Phase 11).
+8. The complete Track A ladder; reposition Paper B (Phase 12).
+
+**Track B — measurement.**
+
+9. Explicit X-rank invariant (Phase 13), then fully commuting grouping (Phase 14).
+
+**Resource accounting** (interleaves with Track B; R1 first).
+
+10. R1 — cost model on the frozen banks. *Gate:* v2 regenerates exactly under
+    `logical-alltoall`; QR1 and QR4 answered on H₄ and BeH₂.
+11. R2a — restriction primitive and invariance checks. *Gate:* QR2 passes on every rung; no
+    cost numbers are published from a run whose invariants failed.
+12. R2b — mapping measurements on H₄, BeH₂, H₂O CAS(8e,6o), Hubbard. *Gate:* QR3 answered
+    with the instance spread as the comparison scale.
+13. R3 — `mapping × k` grid and `k*` regions under three device cards.
+14. R4a — contextual-subspace comparator arms with bias floors. *Gate:* QR5 answered.
+15. R4b — CS-preconditioned A-CASE, built only on a complementary QR5.
+
+**Track C — longer horizon.**
+
+16. Second moments, time-evolved inputs, mapping breadth, and embedding (Phases 15–18) after
+    the Paper B result is known.
+17. CEO and MORE-ADAPT benchmarks after the critical comparison is stable.
+18. The excited-state track, after the certificate question of §7.4 has an answer.
+
+Each phase ships the project's standard triple: a `run_*.py` producer, a stamped
+`reference_results/*.json` record with an explicit `schema` string, and a `check_*.py` that
+regenerates and compares it — plus its `REPRODUCING.md` entry and its evidence labels.
+
+---
+
+## 13. What this plan does not claim
+
+**On method.** No claim to the first subspace/QSE method, the first quantum Krylov or
+non-orthogonal eigensolver, a speedup over dense linear algebra at small `n`, DFT
+replacement, or an exponential-complexity escape via geometric algebra. The Clifford
+representation is an algebraic backend that makes the measurement-sharing and certification
+layers natural; the physics guarantees (variational bounds, Ritz theory) come from the same
+eigensolver principles as always.
+
+**On prior art.** No claim to originate QSCI, selected CI, overlap-guided adaptation, Haar
+transforms, folded-spectrum methods, real-time Krylov, fully commuting measurement, the BK
+mapping, CEO operators, MORE-ADAPT, or embedding. The possible contributions are narrower: a
+resource-honest comparison of sampled determinant and measured operator subspaces; a tested
+hybrid whose distinction from classical determinant closure is made explicit; a
+support-pruned multiresolution staging policy built on the existing virtual-configuration
+transform; and certified measurement and convergence diagnostics around those methods.
+
+**On hardware.** No device-runtime prediction: the cost model is a logical model plus a
+declared card, with no routing, no crosstalk, no mitigation, and a depolarizing surrogate
+standing in for a noise simulation. No mapping, protocol, or restriction is preferable in
+general — every `k*` is a function of an instance, an accuracy target, and a card. Lower
+Pauli weight does not imply lower `W`, fewer settings, or lower cost; §6.2 says the first
+implication is false by construction. And hardware-aware accounting is not assumed to favour
+A-CASE: the honest form of the target statement is that the subspace-level resource claims
+are *mapping-invariant by construction*, and the open question is whether the
+measurement-compilation layer, which is not invariant, preserves or erodes them.
+
+**On failure.** Failure remains acceptable. If QSCI or classical selected CI dominates
+chemistry and the hybrid span collapses to ordinary excitation closure without a compactness
+advantage, Paper B must narrow its claim rather than hide the comparison.

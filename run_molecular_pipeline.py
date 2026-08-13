@@ -200,7 +200,7 @@ def determinant_ci_energy(hamiltonian, model, n, occupied, n_electrons, sz,
 class PeakRSS:
     """Sample resident set size in a daemon thread while a block runs.
 
-    ``ACASE_RESEARCH_PLAN.md`` §6 lists bank build time and peak memory beside
+    ``PLAN.md`` §6 lists bank build time and peak memory beside
     basis size as resource metrics, on the grounds that a 20-dimensional basis
     is not compact if its projected entries cost gigabytes. The adaptive arm
     gets those from the bank for free; the complete-SD arm goes through

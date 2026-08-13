@@ -1,6 +1,6 @@
 r"""QSCI/SQD: sampled determinant subspaces as a first-class method.
 
-Phase 8 of ``LITERATURE_ROADMAP.md``.  A sampled-subspace eigensolver draws
+Phase 8 of ``PLAN.md``.  A sampled-subspace eigensolver draws
 computational-basis configurations from a prepared state, keeps the distinct
 ones, and diagonalizes the Hamiltonian restricted to their span.  Its cost
 profile is the complement of A-CASE's: the projected matrix needs **zero**

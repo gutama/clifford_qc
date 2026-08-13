@@ -1,6 +1,6 @@
 r"""QSCI x A-CASE: sampled determinants enriched by operator response.
 
-Phase 10 of ``LITERATURE_ROADMAP.md``.  QSCI supplies a determinant set from
+Phase 10 of ``PLAN.md``.  QSCI supplies a determinant set from
 computational-basis sampling; A-CASE supplies directions built by applying
 operators to one reference.  The hybrid asks whether a sampled set *dressed*
 with selected operator-response directions reaches a target accuracy with fewer

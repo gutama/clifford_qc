@@ -1,6 +1,6 @@
 # Rethinking finite-shot performance
 
-`ACASE_RESEARCH_PLAN.md` §4 (Phase 4) and the A-CASE manuscript's
+`PLAN.md` §5 Phase 4 and the A-CASE manuscript's
 §"Finite-shot stabilization trades median accuracy for tail control" left the
 finite-shot projected eigensolver in a state with one good property and two bad
 ones. The good property: everything the subspace needs is a linear functional of

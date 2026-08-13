@@ -1,4 +1,4 @@
-"""Phase 10 of ``LITERATURE_ROADMAP.md``: the QSCI x A-CASE hybrid.
+"""Phase 10 of ``PLAN.md``: the QSCI x A-CASE hybrid.
 
 §10D fixes what may be claimed, and the tests are shaped by it. The hybrid is
 allowed to claim fewer retained directions or a better resource point; it is

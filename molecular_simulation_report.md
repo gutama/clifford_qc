@@ -35,7 +35,7 @@ CISD here is the **determinant-space** minimum computed in this repository, not 
 
 **What the table says, in both directions.**
 
-*Against the method.* CCSD is more accurate on 7 of 7 geometries, at a small fraction of the cost — milliseconds against minutes. Stretching does not open a niche: on BeH₂ 2×, H₂O 2× the A-CASE error sits within 1 mHa of the CISD ceiling it cannot pass, because its candidate family *is* singles and doubles, so its span is a subspace of the CISD space. The binding constraint is the excitation family, not the geometry — the same conclusion `ACASE_RESEARCH_PLAN.md` drew from H₄ and the Hubbard clusters, now reproduced on molecular chemistry. What would change it is level-4 generators (competing-order configurations dressed by excitations), not more geometries.
+*Against the method.* CCSD is more accurate on 7 of 7 geometries, at a small fraction of the cost — milliseconds against minutes. Stretching does not open a niche: on BeH₂ 2×, H₂O 2× the A-CASE error sits within 1 mHa of the CISD ceiling it cannot pass, because its candidate family *is* singles and doubles, so its span is a subspace of the CISD space. The binding constraint is the excitation family, not the geometry — the same conclusion `PLAN.md` drew from H₄ and the Hubbard clusters, now reproduced on molecular chemistry. What would change it is level-4 generators (competing-order configurations dressed by excitations), not more geometries.
 
 *For the method, narrowly.* ‡ On H₂O 2× CCSD lands **below** the exact energy — it is not variational, and under strong static correlation it forfeits the one guarantee a Rayleigh–Ritz subspace keeps structurally. An error bar is worth less when its sign is not known.
 
@@ -136,7 +136,7 @@ The Hamiltonian counts are the standard literature values for these systems, and
 
 ### 3.1 Time and memory
 
-`ACASE_RESEARCH_PLAN.md` §6 asks for bank build time and peak memory beside basis size, on the grounds that a small basis is not a compactness result if its projected entries cost gigabytes. The adaptive figures come from the bank itself; resident set size is sampled during each arm.
+`PLAN.md` §6 asks for bank build time and peak memory beside basis size, on the grounds that a small basis is not a compactness result if its projected entries cost gigabytes. The adaptive figures come from the bank itself; resident set size is sampled during each arm.
 
 **Read the RSS columns carefully — neither is a clean per-arm cost.** The molecules run sequentially in one process, and freed memory returns to the operating system only partially and unpredictably (large allocations are unmapped, small ones are retained in allocator free lists). So *high-water* carries whatever earlier arms left resident, and the *rise*, measured against the arm's own starting point, is a **lower bound** — an arm served entirely from free lists grows no new mappings at all. The arm's true cost lies between them, and the interval can be wide enough to be uninformative: in this run one arm records a rise of exactly zero beside a high-water above 5 GiB.
 
