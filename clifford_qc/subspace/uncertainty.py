@@ -88,7 +88,9 @@ def bootstrap_ritz(shared: SharedMeasurement, cache: GroupedWordCache, *,
             groups.append(GroupSample(
                 support=group["support"], basis=group["basis"],
                 hist={k: int(c) for k, c in zip(keys, drawn) if c},
-                shots=group["shots"], word_codes=group["word_codes"]))
+                shots=group["shots"], word_codes=group["word_codes"],
+                setting_key=group.get("setting_key"),
+                readouts=group.get("readouts", {})))
         replica = shared.new_cache()
         replica.add_batch(MeasurementBatch(n=shared.n, shots={}, plus_counts={},
                                            circuits=len(groups), groups=tuple(groups),

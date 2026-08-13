@@ -217,6 +217,48 @@ def test_grouped_cache_uses_the_recorded_word_assignment():
     assert cache.candidate_estimate({zi: 1.0}) == pytest.approx(-1.0)
 
 
+def test_grouped_cache_uses_signed_compiled_readouts():
+    """Entangling settings read signed output parities, not physical supports."""
+    xx, zz, yy = (PauliWord.from_label(label).code for label in ("XX", "ZZ", "YY"))
+    sample = GroupSample(
+        support=(0, 1),
+        basis=(),
+        hist={"00": 5, "01": 3, "10": 2},
+        shots=10,
+        word_codes=(xx, zz, yy),
+        setting_key=("compiled", 0),
+        readouts={xx: (1, (0,)), zz: (1, (1,)), yy: (-1, (0, 1))},
+    )
+    cache = GroupedWordCache(2)
+    cache.add_batch(MeasurementBatch(2, {}, {}, 1, groups=(sample,)))
+    assert cache.candidate_estimate({xx: 1.0}) == pytest.approx(0.6)
+    assert cache.candidate_estimate({zz: 1.0}) == pytest.approx(0.4)
+    assert cache.candidate_estimate({yy: 1.0}) == pytest.approx(0.0)
+    # The covariance-aware combination must use the same signed parity map.
+    coeffs = {xx: 0.3, zz: -0.7, yy: 1.1}
+    outcomes = []
+    for bits, count in sample.hist.items():
+        values = {
+            xx: -1.0 if bits[0] == "1" else 1.0,
+            zz: -1.0 if bits[1] == "1" else 1.0,
+            yy: -(-1.0 if (bits.count("1") % 2) else 1.0),
+        }
+        outcomes.extend([sum(coeffs[code] * values[code] for code in coeffs)] * count)
+    terms = cache.candidate_group_terms(coeffs)
+    assert len(terms) == 1
+    assert terms[0][1] == pytest.approx(np.var(outcomes))
+
+
+def test_compiled_group_sample_rejects_missing_or_invalid_readouts():
+    xx = PauliWord.from_label("XX").code
+    with pytest.raises(ValueError, match="every assigned word"):
+        GroupSample((0, 1), (), {"00": 1}, 1, word_codes=(xx,),
+                    setting_key=("compiled",), readouts={})
+    with pytest.raises(ValueError, match="readout sign"):
+        GroupSample((0, 1), (), {"00": 1}, 1, word_codes=(xx,),
+                    setting_key=("compiled",), readouts={xx: (0, (0,))})
+
+
 def test_fast_infinite_shot_uses_exact_populations():
     """Infinite-shot FAST proxy is deterministic (no sampling) and reports
     zero shot cost -- it is the N -> infinity population limit."""

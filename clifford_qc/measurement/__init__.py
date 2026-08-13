@@ -20,6 +20,7 @@ from .cost import (
     setting_duration_us,
     setting_fidelity,
 )
+from .compiled import CompiledMeasurementSampler, CompiledSetting
 
 __all__ = ["WordCache", "GroupedWordCache", "CommutatorBank", "simultaneous_z_radius",
            "jeffreys_mean_var", "empirical_bernstein_radius", "candidate_radius",
@@ -29,3 +30,4 @@ __all__ = ["WordCache", "GroupedWordCache", "CommutatorBank", "simultaneous_z_ra
            "DeviceCard", "SettingResources", "break_even_surface",
            "cost_schedule", "estimator_information", "inflate_shots_for_fidelity",
            "setting_duration_us", "setting_fidelity"]
+__all__ += ["CompiledSetting", "CompiledMeasurementSampler"]

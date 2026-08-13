@@ -7,7 +7,8 @@ once. ``WordCache`` accumulates independent per-word counts (ungrouped
 path). ``GroupedWordCache`` accumulates the joint outcome histogram of each
 qubit-wise-commuting group, from which a candidate's variance is computed
 covariance-aware -- carrying the within-group correlations that the
-per-word diagonal ignores.
+per-word diagonal ignores.  Grouped outcomes may come from either a QWC basis
+or an explicitly compiled Clifford readout map.
 """
 
 from __future__ import annotations
@@ -82,7 +83,7 @@ class WordCache:
 
 
 class GroupedWordCache:
-    """Cumulative joint-histogram cache for QWC-grouped measurement.
+    """Cumulative joint-histogram cache for commuting grouped measurement.
 
     The grouping is fixed for the selection step (the same measurement
     circuits recur every round), so each group's samples are i.i.d. and its
@@ -120,7 +121,7 @@ class GroupedWordCache:
             raise ValueError("pooling must be 'assigned' or 'shots'")
         self.n = n
         self.pooling = pooling
-        # basis key (sorted (qubit,letter) tuple) -> group dict
+        # QWC basis key or explicit compiled-setting key -> group dict.
         self._groups: dict[tuple, dict] = {}
         self._word_group: dict[int, tuple] = {}
         self.total_shots = 0
@@ -146,20 +147,30 @@ class GroupedWordCache:
         # New shots change every per-group word sum, and a new basis changes
         # which groups read which word.
         self._word_sums.clear()
-        if any(gs.basis not in self._groups for gs in batch.groups):
+        keys = [gs.setting_key if gs.setting_key is not None else gs.basis
+                for gs in batch.groups]
+        if len(keys) != len(set(keys)):
+            raise ValueError("a grouped batch contains duplicate measurement settings")
+        if any(key not in self._groups for key in keys):
             self._readers.clear()
             self._reader_arrays = None
-        for gs in batch.groups:
+        for gs, key in zip(batch.groups, keys):
             g = self._groups.setdefault(
-                gs.basis, {"support": gs.support, "basis": dict(gs.basis),
-                           "hist": {}, "N": 0, "word_codes": set()})
+                key, {"support": gs.support, "basis": dict(gs.basis),
+                      "basis_tuple": gs.basis, "setting_key": gs.setting_key,
+                      "readouts": dict(gs.readouts), "hist": {}, "N": 0,
+                      "word_codes": set()})
             if g["support"] != gs.support:
-                raise ValueError("same measurement basis has inconsistent support")
+                raise ValueError("same measurement setting has inconsistent support")
+            if (g["basis_tuple"] != gs.basis
+                    or g["setting_key"] != gs.setting_key
+                    or g["readouts"] != dict(gs.readouts)):
+                raise ValueError("same measurement setting has inconsistent readout metadata")
             for code in gs.word_codes:
                 previous = self._word_group.get(code)
-                if previous is not None and previous != gs.basis:
+                if previous is not None and previous != key:
                     raise ValueError(f"word code {code} is assigned to multiple groups")
-                self._word_group[code] = gs.basis
+                self._word_group[code] = key
                 g["word_codes"].add(code)
             for bits, c in gs.hist.items():
                 g["hist"][bits] = g["hist"].get(bits, 0) + c
@@ -189,8 +200,7 @@ class GroupedWordCache:
         # that predate explicit word assignments.
         supp = self._word_support(self.n, code)
         for g in self._groups.values():
-            basis = g["basis"]
-            if all(j in basis and basis[j] == self._letter(code, j) for j in supp):
+            if self._group_reads(g, code, supp):
                 return g
         return None
 
@@ -208,8 +218,7 @@ class GroupedWordCache:
             return assigned
         supp = self._word_support(self.n, code)
         for key, g in self._groups.items():
-            basis = g["basis"]
-            if all(j in basis and basis[j] == self._letter(code, j) for j in supp):
+            if self._group_reads(g, code, supp):
                 return key
         return None
 
@@ -232,10 +241,10 @@ class GroupedWordCache:
 
     def _scan_readers(self, code: int):
         supp = self._word_support(self.n, code)
-        if 2 * self.n > 63 or len(self._groups) < 32:
+        if (any(g["setting_key"] is not None for g in self._groups.values())
+                or 2 * self.n > 63 or len(self._groups) < 32):
             return [key for key, g in self._groups.items()
-                    if all(j in g["basis"] and g["basis"][j] == self._letter(code, j)
-                           for j in supp)]
+                    if self._group_reads(g, code, supp)]
         import numpy as np
 
         from ..pauli_kernel import pauli_lane_mask
@@ -260,6 +269,22 @@ class GroupedWordCache:
     def _basis_code(basis: dict) -> int:
         return sum("IXYZ".index(letter) << (2 * qubit)
                    for qubit, letter in basis.items())
+
+    def _group_reads(self, group: dict, code: int, support: tuple | None = None) -> bool:
+        if group["setting_key"] is not None:
+            return code in group["readouts"]
+        supp = self._word_support(self.n, code) if support is None else support
+        basis = group["basis"]
+        return all(j in basis and basis[j] == self._letter(code, j) for j in supp)
+
+    def _readout(self, group: dict, code: int) -> tuple[int, tuple[int, ...]]:
+        explicit = group["readouts"].get(code)
+        if explicit is not None:
+            return explicit
+        positions = tuple(
+            group["support"].index(q) for q in self._word_support(self.n, code)
+        )
+        return 1, positions
 
     def group_weights(self, code: int) -> dict[tuple, float]:
         """How this cache's estimate of a word mean is split over groups.
@@ -288,10 +313,11 @@ class GroupedWordCache:
         if cached is not None:
             return cached
         g = self._groups[key]
-        pos = [g["support"].index(q) for q in self._word_support(self.n, code)]
+        sign, pos = self._readout(g, code)
         plus = 0
         for bits, count in g["hist"].items():
-            if sum(bits[p] == "1" for p in pos) % 2 == 0:
+            parity_sign = -1 if sum(bits[p] == "1" for p in pos) % 2 else 1
+            if sign * parity_sign == 1:
                 plus += count
         out = (plus, g["N"])
         self._word_sums[(key, code)] = out
@@ -315,15 +341,19 @@ class GroupedWordCache:
 
     def group_states(self) -> tuple[dict, ...]:
         """Read-only view of the sufficient statistic: one dict per group with
-        ``basis``, ``support``, ``hist`` (copied), and ``shots``.
+        ``key``, ``basis``, ``support``, ``hist`` (copied), ``shots``, and any
+        explicit compiled-setting ``readouts``.
 
         This *is* the cache's information content -- everything downstream
         (estimates, covariance-aware variances, bootstrap resampling) is a
         function of these histograms, so exposing them avoids each consumer
         reaching into the private store.
         """
-        return tuple({"basis": key, "support": g["support"],
+        return tuple({"key": key, "basis": g["basis_tuple"],
+                      "support": g["support"],
+                      "setting_key": g["setting_key"],
                       "hist": dict(g["hist"]), "shots": g["N"],
+                      "readouts": dict(g["readouts"]),
                       "word_codes": tuple(sorted(g["word_codes"]))}
                      for key, g in self._groups.items())
 
@@ -381,13 +411,15 @@ class GroupedWordCache:
             support = g["support"]
             N = g["N"]
             # per-outcome combined value v and its histogram moments
-            code_pos = {code: [support.index(q) for q in self._word_support(self.n, code)]
-                        for code in rowc}
+            code_readouts = {code: self._readout(g, code) for code in rowc}
             s1 = s2 = 0.0
             for bits, cnt in g["hist"].items():
                 v = 0.0
                 for code, c in rowc.items():
-                    o = -1.0 if sum(bits[p] == "1" for p in code_pos[code]) % 2 else 1.0
+                    sign, positions = code_readouts[code]
+                    parity_sign = (-1.0 if sum(bits[p] == "1" for p in positions) % 2
+                                   else 1.0)
+                    o = sign * parity_sign
                     v += c * o
                 s1 += v * cnt
                 s2 += v * v * cnt

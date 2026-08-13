@@ -34,6 +34,9 @@ from pathlib import Path
 import numpy as np
 
 from clifford_qc.backends import ExactMVBackend, SectorStatevectorBackend
+from clifford_qc.bridges.stim_bridge import CliffordMap
+from clifford_qc.ir import PauliWord
+from clifford_qc.measurement.compiled import CompiledSetting
 from clifford_qc.measurement.cost import (
     DeviceCard,
     SettingResources,
@@ -379,6 +382,84 @@ def _synthesize(n: int, codes: list[int], groups: list[list[int]],
     return row, setting_resources, compatibility, assignment
 
 
+def _compiled_settings(n: int, codes: list[int], groups: list[list[int]],
+                       block_size: int) -> tuple[CompiledSetting, ...]:
+    """Compile the hierarchy grouping into signed joint-readout settings.
+
+    The structural ledger only needed a Boolean compatibility matrix.  The
+    exact-tier shot search needs the stronger object behind that matrix: the
+    actual Clifford applied before measurement and the signed Z parity of
+    every bank word it reads.  This routine independently rechecks those
+    readouts against the global Stim tableau so a block-offset or phase error
+    cannot enter the nonlinear estimator silently.
+    """
+    compiled = []
+    for setting_index, members in enumerate(groups):
+        circuit = stim.Circuit()
+        readouts = {code: [1, []] for code in codes}
+        readable = {code: True for code in codes}
+        for start in range(0, n, block_size):
+            size = min(block_size, n - start)
+            local_members = [_local_code(codes[index], start, size) for index in members]
+            basis = _independent_codes(local_members, size)
+            if basis:
+                tableau = stim.Tableau.from_stabilizers(
+                    [stim.PauliString(_stim_label(code, size)) for code in basis],
+                    allow_redundant=False,
+                    allow_underconstrained=True,
+                )
+                diagonalizer = tableau.inverse()
+            else:
+                diagonalizer = stim.Tableau(size)
+
+            for instruction in diagonalizer.to_circuit("elimination"):
+                targets = [start + target.value for target in instruction.targets_copy()]
+                circuit.append(instruction.name, targets)
+
+            for code in codes:
+                local = _local_code(code, start, size)
+                transformed = diagonalizer(stim.PauliString(_stim_label(local, size)))
+                x_bits, z_bits = transformed.to_numpy()
+                if bool(x_bits.any()):
+                    readable[code] = False
+                    continue
+                phase = complex(transformed.sign)
+                if abs(phase.imag) > 1e-12 or round(phase.real) not in (-1, 1):
+                    raise AssertionError("Hermitian Pauli acquired a non-real readout phase")
+                readouts[code][0] *= int(round(phase.real))
+                readouts[code][1].extend(
+                    start + qubit for qubit, present in enumerate(z_bits) if present
+                )
+
+        # Force the tableau to retain idle trailing qubits without changing it.
+        circuit.append("I", range(n))
+        clifford = CliffordMap(n, circuit.to_tableau())
+        explicit = {
+            code: (int(readouts[code][0]), tuple(readouts[code][1]))
+            for code in codes if readable[code]
+        }
+        assigned_codes = tuple(codes[index] for index in members)
+        if any(code not in explicit for code in assigned_codes):
+            raise AssertionError("an assigned word lacks a compiled readout")
+
+        for code, expected in explicit.items():
+            phase, image = clifford.conjugate(PauliWord(n, code))
+            if any(image.letter(qubit) not in ("I", "Z") for qubit in range(n)):
+                raise AssertionError("global compiled readout is not Z-only")
+            actual_sign = int(round(complex(phase).real))
+            actual_positions = tuple(image.support())
+            if abs(complex(phase).imag) > 1e-12 or (actual_sign, actual_positions) != expected:
+                raise AssertionError("block readout disagrees with the global Clifford tableau")
+
+        compiled.append(CompiledSetting(
+            key=("dyadic-block", block_size, setting_index),
+            clifford=clifford,
+            assigned_word_codes=assigned_codes,
+            readouts=explicit,
+        ))
+    return tuple(compiled)
+
+
 def _h4_bank() -> dict:
     """The retained determinant bank of the matched H4 contract."""
     matched = json.loads(MATCHED.read_text(encoding="utf-8"))
@@ -409,6 +490,9 @@ def _h4_bank() -> dict:
         "basis_size": len(family),
         "basis_labels": list(selected["labels"]),
         "ground_energy": selected["ground_energy"],
+        "_exact_ground_energy": (
+            selected["ground_energy"] - selected["error_millihartree"] * 1e-3
+        ),
         "error_millihartree": selected["error_millihartree"],
         "condition_number": selected["condition_number"],
         "codes": codes,
@@ -451,6 +535,7 @@ def _beh2_bank() -> dict:
         "basis_size": len(result.basis_labels),
         "basis_labels": list(result.basis_labels),
         "ground_energy": energy,
+        "_exact_ground_energy": exact_energy,
         "error_millihartree": (energy - exact_energy) * 1e3,
         "condition_number": result.condition_number,
         "codes": codes,
@@ -826,6 +911,7 @@ def build_record(system: str = "h4", device_cards: list[DeviceCard] | None = Non
     bank = SYSTEMS[system]()
     codes = bank.pop("codes")
     committed_groups = bank.pop("committed_qwc_groups")
+    bank.pop("_exact_ground_energy")
     matrix_bank = bank.pop("_matrix_bank")
     result = bank.pop("_result")
     ritz = ritz_functional(

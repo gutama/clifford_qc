@@ -8,7 +8,7 @@ allocation rounds.
 
 from __future__ import annotations
 
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from types import MappingProxyType
 from typing import Mapping, Protocol, Sequence, Union, runtime_checkable
 
@@ -18,7 +18,7 @@ from ..ir import PauliSum, PauliWord, Program
 
 @dataclass(frozen=True)
 class GroupSample:
-    """Joint outcome histogram of one qubit-wise-commuting measurement group.
+    """Joint outcome histogram of one commuting measurement setting.
 
     ``support`` is the sorted tuple of measured qubits; ``basis`` is the
     per-qubit measurement letter (``((qubit, 'X'|'Y'|'Z'), ...)``) that
@@ -28,6 +28,14 @@ class GroupSample:
     histogram the mean, variance, and covariance of every word read out of
     the group are exact, which is what makes the candidate variance
     covariance-aware.
+
+    The default representation is a QWC setting: ``basis`` determines the
+    parity positions for every readable word.  A Clifford-diagonalized
+    commuting setting instead supplies a stable ``setting_key`` and explicit
+    ``readouts`` mapping ``word_code -> (sign, positions)``.  Its word outcome
+    is ``sign * (-1)**parity(bits[positions])``.  Keeping both forms in one
+    outcome contract lets the nonlinear estimator consume real joint samples
+    from the dyadic hierarchy without pretending that it was measured QWC.
     """
 
     support: tuple
@@ -35,6 +43,8 @@ class GroupSample:
     hist: Mapping[str, int]
     shots: int
     word_codes: tuple[int, ...] = ()
+    setting_key: tuple | None = None
+    readouts: Mapping[int, tuple[int, tuple[int, ...]]] = field(default_factory=dict)
 
     def __post_init__(self):
         support = tuple(int(q) for q in self.support)
@@ -45,12 +55,33 @@ class GroupSample:
             raise ValueError("group shots and counts must be non-negative")
         if sum(hist.values()) != shots:
             raise ValueError("group histogram counts must sum to shots")
+        if len(set(support)) != len(support):
+            raise ValueError("group support qubits must be distinct")
+        if any(len(bits) != len(support) or set(bits) - {"0", "1"} for bits in hist):
+            raise ValueError("group histogram keys must be binary strings aligned to support")
+        setting_key = None if self.setting_key is None else tuple(self.setting_key)
+        readouts = {}
+        for code, raw in self.readouts.items():
+            sign, positions = raw
+            sign = int(sign)
+            positions = tuple(int(position) for position in positions)
+            if sign not in (-1, 1):
+                raise ValueError("readout signs must be +1 or -1")
+            if len(set(positions)) != len(positions):
+                raise ValueError("readout positions must be distinct")
+            if any(not 0 <= position < len(support) for position in positions):
+                raise ValueError("readout position lies outside the histogram support")
+            readouts[int(code)] = (sign, positions)
+        word_codes = tuple(dict.fromkeys(int(c) for c in self.word_codes))
+        if setting_key is not None and any(code not in readouts for code in word_codes):
+            raise ValueError("every assigned word needs an explicit readout")
         object.__setattr__(self, "support", support)
         object.__setattr__(self, "basis", basis)
         object.__setattr__(self, "hist", MappingProxyType(hist))
         object.__setattr__(self, "shots", shots)
-        object.__setattr__(self, "word_codes",
-                           tuple(dict.fromkeys(int(c) for c in self.word_codes)))
+        object.__setattr__(self, "word_codes", word_codes)
+        object.__setattr__(self, "setting_key", setting_key)
+        object.__setattr__(self, "readouts", MappingProxyType(readouts))
 
 
 @dataclass(frozen=True)

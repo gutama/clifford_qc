@@ -392,6 +392,8 @@ def _resampled_cache(measurement: ResponseMeasurement, cache: GroupedWordCache,
             hist={key: int(count) for key, count in zip(keys, drawn) if count},
             shots=group["shots"],
             word_codes=group["word_codes"],
+            setting_key=group.get("setting_key"),
+            readouts=group.get("readouts", {}),
         ))
     replica = measurement.new_cache()
     replica.add_batch(MeasurementBatch(
