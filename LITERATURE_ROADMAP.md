@@ -464,6 +464,14 @@ The previous multiply-capable-word variance bug remains the gate: lower group
 count with inflated or double-counted variance is failure. This track supports
 Paper A or a separate measurement paper and must not block Track A.
 
+The dyadic block-commuting hierarchy (`benchmarks/run_clifford_hierarchy.py`,
+`k in {1,2,4,8}`) already covers both endpoints and their interior.
+`RESOURCE_ACCOUNTING_PLAN.md` phases R1 and R3 schedule what is still missing:
+a declared device card, accuracy-matched shot counts, a fidelity/admissibility
+term, and a re-measurement under the pooled estimator — the frozen hierarchy
+record was produced under single assignment, and cross-setting coverage can
+reorder the rungs it compares.
+
 ---
 
 ## Track C — longer-horizon infrastructure
@@ -515,6 +523,16 @@ Before using BK or parity in scientific records:
 - compare Pauli weight, distinct words, grouping, and circuits separately.
 
 Lower Pauli weight does not imply lower `W` or fewer groups.
+
+Stronger, and now scheduled as `RESOURCE_ACCOUNTING_PLAN.md` phase R2: for the
+linear encoding family (JW, parity, BK) the change of encoding is an invertible
+GF(2) map realized by a CNOT network, hence a Clifford conjugation, so `W` is
+*exactly* invariant rather than merely uncorrelated with weight — along with
+`M`, `S_H`, `kappa_S`, and the spectrum. The invariance is therefore a check,
+not a measurement, and only weight, QWC compatibility, and compiled circuits
+remain empirical. The two-qubit reduction is a separate operation (conjugation
+plus fixing stabilizer qubits) and must be a separate arm, or it confounds the
+mapping comparison with a change in `n`.
 
 A CEO pool and dedicated MORE-ADAPT benchmark are follow-ups after Track A;
 they constrain positioning but do not gate the QSCI hybrid experiment.

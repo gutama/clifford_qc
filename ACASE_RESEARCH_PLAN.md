@@ -1089,6 +1089,19 @@ The compactness question is not "is `M` small?" but: **does the adaptive
 basis stay small while its projected operator bank stays measurably
 smaller than competing QSE/Krylov constructions?**
 
+`RESOURCE_ACCOUNTING_PLAN.md` carries this section into hardware-aware
+territory without changing what it asks. It adds the Pauli-weight
+distributions (on three distinct multisets, since the Hamiltonian's weight
+does not predict the element universe's), per-setting gate counts and
+two-qubit depth, a declared device card, and the rule that every cost is
+quoted at a fixed *certified* accuracy rather than at fixed shots — the
+finite-shot rethink moved RMSE by two orders of magnitude at identical shot
+counts, so a shots-only cost is a statement about the estimator. It also
+records why the fermion mapping cannot move the metrics above: Jordan–Wigner
+and Bravyi–Kitaev differ by a Clifford conjugation, so `W`, `S_H`, `M`,
+`κ_S`, and every Ritz value are invariant by construction, and a measured
+difference in them is a bug rather than a result.
+
 ## 7. Falsifiable questions
 
 - **Q1 (compactness).** Does adaptive selection reach chemical accuracy
