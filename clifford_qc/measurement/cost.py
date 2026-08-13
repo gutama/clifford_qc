@@ -8,6 +8,8 @@ independent-error fidelity surrogate into a hardware calibration claim.
 from __future__ import annotations
 
 from dataclasses import dataclass, replace
+from fractions import Fraction
+from functools import lru_cache
 import hashlib
 import json
 import math
@@ -24,6 +26,12 @@ EVIDENCE_TIERS = frozenset({"exact", "asymptotic", "finite_sample"})
 _TIME_REL_TOL = 1e-12
 _TIME_ABS_TOL_US = 1e-9
 
+_NUMERIC_CARD_FIELDS = (
+    "t_prep_us", "t_1q_us", "t_2q_us", "t_readout_us", "t_reset_us",
+    "eps_1q", "eps_2q", "eps_readout", "fidelity_floor",
+    "routing_2q_multiplier", "routing_depth_multiplier",
+)
+
 
 def _finite_number(value: object, field: str) -> float:
     if isinstance(value, bool) or not isinstance(value, (int, float)):
@@ -32,6 +40,25 @@ def _finite_number(value: object, field: str) -> float:
     if not math.isfinite(result):
         raise ValueError(f"{field} must be finite")
     return result
+
+
+@lru_cache(maxsize=None)
+def _declared_multiplier(multiplier: float) -> Fraction:
+    """The multiplier the card declares, not its nearest binary float.
+
+    ``Fraction(1.1)`` is fractionally above ``11/10``, so ``50 * 1.1`` rounds
+    up to 56 rather than 55.  Reading the shortest round-tripping decimal back
+    as a rational keeps the routed count equal to the declared value.
+    """
+    return Fraction(str(float(multiplier)))
+
+
+def _routed_ceil(count: int, multiplier: float) -> int:
+    """Ceiling of ``count * multiplier`` under exact rational arithmetic."""
+    if multiplier == 1.0:
+        return int(count)
+    ratio = _declared_multiplier(multiplier)
+    return -((-int(count) * ratio.numerator) // ratio.denominator)
 
 
 @dataclass(frozen=True)
@@ -88,6 +115,10 @@ class DeviceCard:
                 raise ValueError(f"{field} must be at least one")
             if not self.routing and value != 1.0:
                 raise ValueError(f"{field} must be one when routing is false")
+        # Keep the validated float, so a card spelled ``1`` and one spelled
+        # ``1.0`` serialize identically and therefore share one sha256.
+        for field in _NUMERIC_CARD_FIELDS:
+            object.__setattr__(self, field, float(getattr(self, field)))
 
     @classmethod
     def from_dict(cls, data: Mapping[str, object]) -> "DeviceCard":
@@ -203,7 +234,7 @@ def _shot_vector(shots: int | Sequence[int], settings: int) -> np.ndarray:
 
 def setting_duration_us(card: DeviceCard, setting: SettingResources) -> float:
     """Wall-clock surrogate from logical depths, readout, reset, and preparation."""
-    routed_d_2q = math.ceil(setting.d_2q * card.routing_depth_multiplier)
+    routed_d_2q = _routed_ceil(setting.d_2q, card.routing_depth_multiplier)
     return (
         card.t_prep_us
         + card.t_1q_us * setting.d_1q
@@ -217,7 +248,7 @@ def setting_fidelity(card: DeviceCard, setting: SettingResources, n_qubits: int)
     """Independent depolarizing-style fidelity surrogate declared by the card."""
     if isinstance(n_qubits, bool) or not isinstance(n_qubits, int) or n_qubits < 1:
         raise ValueError("n_qubits must be a positive integer")
-    routed_n_2q = math.ceil(setting.n_2q * card.routing_2q_multiplier)
+    routed_n_2q = _routed_ceil(setting.n_2q, card.routing_2q_multiplier)
     return (
         (1.0 - card.eps_1q) ** setting.n_1q
         * (1.0 - card.eps_2q) ** routed_n_2q
@@ -280,7 +311,7 @@ def cost_schedule(
     weighted_n_1q = sum(int(shots_g) * item.n_1q for shots_g, item in zip(shot_vector, compiled))
     weighted_n_2q = sum(int(shots_g) * item.n_2q for shots_g, item in zip(shot_vector, compiled))
     modeled_n_2q = sum(
-        int(shots_g) * math.ceil(item.n_2q * card.routing_2q_multiplier)
+        int(shots_g) * _routed_ceil(item.n_2q, card.routing_2q_multiplier)
         for shots_g, item in zip(shot_vector, compiled)
     )
     accuracy_status = "fixed_shot_only"
@@ -417,7 +448,15 @@ def break_even_surface(
     evidence_tier: str,
     epsilon: float | None = None,
 ) -> dict[str, object]:
-    """Evaluate the winner over ``t_2q/(t_readout+t_reset)`` and ``eps_2q``."""
+    """Evaluate the winner over ``t_2q/(t_readout+t_reset)`` and ``eps_2q``.
+
+    A time comparison only ranks protocols when both schedules already stand at
+    the same accuracy, which is what passing ``epsilon`` asserts.  Without it
+    the two schedules differ in setting count as well as depth, so the points
+    report ``not_accuracy_matched`` rather than naming a winner from
+    ``fixed_shot_time_us``.  Admissibility is accuracy-independent and is still
+    decided at every point.
+    """
     reference = _resources(reference)
     candidate = _resources(candidate)
     cycle = card.t_readout_us + card.t_reset_us
@@ -453,9 +492,11 @@ def break_even_surface(
                 winner = "candidate"
             elif not candidate_cost["admissible"]:
                 winner = "reference"
+            elif epsilon is None:
+                winner = "not_accuracy_matched"
             else:
-                ref_time = ref_cost["fixed_shot_time_us"]
-                candidate_time = candidate_cost["fixed_shot_time_us"]
+                ref_time = ref_cost["accuracy"]["C_time_epsilon_us"]
+                candidate_time = candidate_cost["accuracy"]["C_time_epsilon_us"]
                 if math.isclose(
                     candidate_time,
                     ref_time,

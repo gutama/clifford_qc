@@ -1660,7 +1660,9 @@ verified to map to a `Z`-only word. The hierarchy leaves the subspace and `W`
 unchanged while trading fewer settings for more logical CX gates and depth.
 
 Frozen (`reference_results/clifford_hierarchy_{h4,beh2}.json`, schema
-`clifford_qc.clifford_measurement_hierarchy.v2`, 8000 shots per setting):
+`clifford_qc.clifford_measurement_hierarchy.v3`, 8000 shots per setting; the
+schema-v2 controls these columns are gated against sit beside them with the
+`_v2.json` suffix):
 
 | system | `k` | `G` | `W/G` | `N_CX` | mean `D_CX` | max `D_CX` | preps (10⁶) | `c_CX/c_prep` |
 |---|---|---:|---:|---:|---:|---:|---:|---:|

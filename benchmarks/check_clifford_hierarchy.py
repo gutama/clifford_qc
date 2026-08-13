@@ -20,7 +20,13 @@ def v2_record_path(system: str):
 
 
 def v3_contract_problems(record: dict) -> list[str]:
-    """Checks that are structural rather than tolerant record comparisons."""
+    """Checks that are structural rather than tolerant record comparisons.
+
+    Run this against the committed artifact as well as the rebuilt record: the
+    tier fields are literals in ``build_record``, so asserting them only on a
+    record this process just built restates the producer instead of gating the
+    file a reader actually consumes.
+    """
     problems: list[str] = []
     if record.get("schema") != "clifford_qc.clifford_measurement_hierarchy.v3":
         problems.append("schema is not hierarchy v3")
@@ -64,7 +70,35 @@ def v3_contract_problems(record: dict) -> list[str]:
                 problems.append(
                     f"k={row['block_size']} {estimator}: priced an unattainable target"
                 )
+            # A scalar runtime is only meaningful with the card that attains
+            # it, and a rung some declared card cannot run is not "priced".
+            scalar = cost.get("C_time_epsilon_us")
+            named = cost.get("C_time_epsilon_device_card")
+            if (scalar is None) != (named is None):
+                problems.append(
+                    f"k={row['block_size']} {estimator}: C(epsilon) without a named card"
+                )
+            if cost.get("status") == "priced" and cost.get("inadmissible_device_cards"):
+                problems.append(
+                    f"k={row['block_size']} {estimator}: priced despite an "
+                    "inadmissible declared card"
+                )
     return problems
+
+
+def v2_projection_problems(system: str, actual: dict) -> list[str]:
+    """Compare the legacy projection, reporting rather than raising on setup."""
+    try:
+        projected = legacy_v2_projection(actual)
+    except ValueError as exc:
+        return [f"legacy v2 projection failed: {exc}"]
+    try:
+        expected_v2 = json.loads(v2_record_path(system).read_text(encoding="utf-8"))
+    except (OSError, ValueError) as exc:
+        return [f"frozen v2 control is unreadable: {exc}"]
+    return compare_json_records(
+        expected_v2, projected, path="$.legacy_v2", atol=1e-12, rtol=1e-12,
+    )
 
 
 def main() -> int:
@@ -75,11 +109,11 @@ def main() -> int:
         actual = build_record(system)
         problems = compare_json_records(expected, actual, atol=1e-12, rtol=1e-12)
         problems.extend(v3_contract_problems(actual))
-        expected_v2 = json.loads(v2_record_path(system).read_text(encoding="utf-8"))
-        problems.extend(compare_json_records(
-            expected_v2, legacy_v2_projection(actual),
-            path="$.legacy_v2", atol=1e-12, rtol=1e-12,
-        ))
+        problems.extend(
+            f"committed record: {problem}"
+            for problem in v3_contract_problems(expected)
+        )
+        problems.extend(v2_projection_problems(system, actual))
         if problems:
             failures += 1
             print(f"clifford hierarchy {system}: FAIL")

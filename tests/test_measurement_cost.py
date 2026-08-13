@@ -28,7 +28,44 @@ def test_all_declared_device_cards_load_and_hash_stably():
     cards = [DeviceCard.load(path) for path in paths]
     assert len({card.sha256 for card in cards}) == len(cards)
     assert DeviceCard.from_dict(cards[0].to_dict()).sha256 == cards[0].sha256
-    assert all("vendor" not in card.calibration_status for card in cards)
+    # The "not vendor data" disclaimer lives in `source`; `calibration_status`
+    # is a closed set that must never claim a measured calibration.
+    assert all(
+        card.calibration_status in {"illustrative_scenario", "logical_baseline"}
+        for card in cards
+    )
+    assert all(
+        "not vendor data" in card.source or "not a hardware calibration" in card.source
+        for card in cards
+    )
+
+
+def test_device_card_hash_ignores_integer_versus_float_spelling():
+    card = DeviceCard.load(CARDS / "logical-alltoall.json").to_dict()
+    assert DeviceCard.from_dict({**card, "t_prep_us": 1}).sha256 == (
+        DeviceCard.from_dict({**card, "t_prep_us": 1.0}).sha256
+    )
+
+
+def test_routing_multipliers_use_the_declared_decimal_value():
+    card = replace(
+        DeviceCard.load(CARDS / "superconducting-like.json"),
+        routing_2q_multiplier=1.1,
+        routing_depth_multiplier=1.1,
+    )
+    # 50 * 1.1 is 55.00000000000001 in binary floating point; charging 56 two-
+    # qubit gates would silently overstate the declared 10% routing overhead.
+    ledger = cost_schedule(
+        card, [SettingResources(n_1q=0, n_2q=50, d_1q=0, d_2q=10)], 1,
+        n_qubits=4, evidence_tier="exact",
+    )
+    assert ledger["modeled_2q_applications"] == 55
+    assert setting_fidelity(card, SettingResources(0, 50, 0, 10), 4) == pytest.approx(
+        0.99**55 * 0.98**4
+    )
+    assert setting_duration_us(card, SettingResources(0, 50, 0, 10)) == pytest.approx(
+        1.0 + 0.3 * 11 + 1.0 + 1.0
+    )
 
 
 def test_device_card_rejects_unknown_and_unphysical_fields():
@@ -122,6 +159,13 @@ def test_pooled_estimator_uses_every_compatible_setting_on_the_same_bank():
     assert pooled["effective_word_shots"]["total"] == pytest.approx(300)
 
 
+def _winners(surface):
+    return {
+        (point["t_2q_over_readout_reset"], point["eps_2q"]): point["winner"]
+        for point in surface["points"]
+    }
+
+
 def test_break_even_surface_reports_admissibility_and_named_card():
     card = DeviceCard.load(CARDS / "logical-alltoall.json")
     qwc = [SettingResources(1, 0, 1, 0)] * 4
@@ -132,9 +176,14 @@ def test_break_even_surface_reports_admissibility_and_named_card():
         evidence_tier="exact",
     )
     assert surface["base_device_card"]["name"] == "logical-alltoall"
-    assert len(surface["points"]) == 4
-    assert {point["winner"] for point in surface["points"]} <= {
-        "reference", "candidate", "tie", "neither"
+    # Without an epsilon the two schedules differ in setting count as well as
+    # depth, so no fixed-shot time comparison can rank them; at eps_2q=0.4 the
+    # candidate's 0.6**2 fidelity falls under the 0.5 floor, which does rank.
+    assert _winners(surface) == {
+        (0.0, 0.0): "not_accuracy_matched",
+        (0.0, 0.4): "reference",
+        (2.0, 0.0): "not_accuracy_matched",
+        (2.0, 0.4): "reference",
     }
 
 
@@ -150,10 +199,33 @@ def test_break_even_surface_treats_roundoff_scale_time_difference_as_tie():
         SettingResources(12, 0, 12, 0),
         SettingResources(0, 0, 0, 0),
     ]
+    # An epsilon is what asserts the two schedules stand at the same accuracy;
+    # only then does a time comparison rank them, and only then can it tie.
     surface = break_even_surface(
         card, reference, candidate, 1, n_qubits=1,
         t_2q_ratios=[0.0], eps_2q_values=[0.0], evidence_tier="exact",
+        epsilon=0.0016,
     )
     point = surface["points"][0]
     assert point["reference_time_us"] != point["candidate_time_us"]
     assert point["winner"] == "tie"
+
+
+def test_break_even_surface_ranks_only_accuracy_matched_schedules():
+    card = DeviceCard.load(CARDS / "logical-alltoall.json")
+    qwc = [SettingResources(1, 0, 1, 0)] * 4
+    deep = [SettingResources(2, 2, 1, 1)]
+    surface = break_even_surface(
+        card, qwc, deep, 100, n_qubits=4,
+        t_2q_ratios=[0.0, 2.0], eps_2q_values=[0.0],
+        evidence_tier="asymptotic", epsilon=0.0016,
+    )
+    # 4 settings x 100 shots x 2.05 us against 1 setting at 2.05 us, then at
+    # 6.05 us once t_2q reaches twice the readout+reset cycle.
+    assert _winners(surface) == {(0.0, 0.0): "candidate", (2.0, 0.0): "candidate"}
+    assert [point["candidate_time_us"] for point in surface["points"]] == pytest.approx(
+        [205.0, 605.0]
+    )
+    assert [point["reference_time_us"] for point in surface["points"]] == pytest.approx(
+        [820.0, 820.0]
+    )

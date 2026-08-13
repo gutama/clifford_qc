@@ -1,18 +1,21 @@
 {
   "accuracy_matched_ordering": {
     "ion-like": {
+      "compared_block_sizes": [],
       "pooled": [],
-      "pooling_reorders_protocols": false,
+      "pooling_reorders_protocols": null,
       "single_assignment": []
     },
     "logical-alltoall": {
+      "compared_block_sizes": [],
       "pooled": [],
-      "pooling_reorders_protocols": false,
+      "pooling_reorders_protocols": null,
       "single_assignment": []
     },
     "superconducting-like": {
+      "compared_block_sizes": [],
       "pooled": [],
-      "pooling_reorders_protocols": false,
+      "pooling_reorders_protocols": null,
       "single_assignment": []
     }
   },
@@ -38,7 +41,7 @@
     "E(4,7<-1,2)"
   ],
   "basis_size": 9,
-  "condition_number": 1,
+  "condition_number": 1.0,
   "cost_model": "declared device-card timing plus independent-error fidelity surrogate; routing is a declared scalar sensitivity multiplier, not compilation",
   "device_cards": [
     {
@@ -122,22 +125,22 @@
         "blas": {
           "detection method": "pkgconfig",
           "found": true,
-          "include directory": "/opt/_internal/cpython-3.12.13/lib/python3.12/site-packages/scipy_openblas64/include",
-          "lib directory": "/opt/_internal/cpython-3.12.13/lib/python3.12/site-packages/scipy_openblas64/lib",
+          "include directory": "/opt/_internal/cpython-3.11.14/lib/python3.11/site-packages/scipy_openblas64/include",
+          "lib directory": "/opt/_internal/cpython-3.11.14/lib/python3.11/site-packages/scipy_openblas64/lib",
           "name": "scipy-openblas",
-          "openblas configuration": "OpenBLAS 0.3.34.0.0  USE64BITINT DYNAMIC_ARCH NO_AFFINITY Haswell MAX_THREADS=64",
+          "openblas configuration": "OpenBLAS 0.3.31.188.0  USE64BITINT DYNAMIC_ARCH NO_AFFINITY Haswell MAX_THREADS=64",
           "pc file directory": "/project/.openblas",
-          "version": "0.3.34.0.0"
+          "version": "0.3.31.188.0"
         },
         "lapack": {
           "detection method": "pkgconfig",
           "found": true,
-          "include directory": "/opt/_internal/cpython-3.12.13/lib/python3.12/site-packages/scipy_openblas64/include",
-          "lib directory": "/opt/_internal/cpython-3.12.13/lib/python3.12/site-packages/scipy_openblas64/lib",
+          "include directory": "/opt/_internal/cpython-3.11.14/lib/python3.11/site-packages/scipy_openblas64/include",
+          "lib directory": "/opt/_internal/cpython-3.11.14/lib/python3.11/site-packages/scipy_openblas64/lib",
           "name": "scipy-openblas",
-          "openblas configuration": "OpenBLAS 0.3.34.0.0  USE64BITINT DYNAMIC_ARCH NO_AFFINITY Haswell MAX_THREADS=64",
+          "openblas configuration": "OpenBLAS 0.3.31.188.0  USE64BITINT DYNAMIC_ARCH NO_AFFINITY Haswell MAX_THREADS=64",
           "pc file directory": "/project/.openblas",
-          "version": "0.3.34.0.0"
+          "version": "0.3.31.188.0"
         }
       },
       "Compilers": {
@@ -157,7 +160,7 @@
           "commands": "cython",
           "linker": "cython",
           "name": "cython",
-          "version": "3.2.9"
+          "version": "3.2.4"
         }
       },
       "Machine Information": {
@@ -175,8 +178,8 @@
         }
       },
       "Python Information": {
-        "path": "/tmp/build-env-jmn5a0j4/bin/python",
-        "version": "3.12"
+        "path": "/tmp/build-env-gjolnpt6/bin/python",
+        "version": "3.11"
       },
       "SIMD Extensions": {
         "baseline": [
@@ -184,36 +187,36 @@
         ],
         "found": [
           "X86_V3",
-          "X86_V4",
-          "AVX512_ICL"
+          "X86_V4"
         ],
         "not found": [
+          "AVX512_ICL",
           "AVX512_SPR"
         ]
       }
     },
     "clifford_qc": "0.3.0",
     "dependencies": {
-      "numpy": "2.5.2",
+      "numpy": "2.4.6",
       "openfermion": null,
       "openfermionpyscf": null,
       "pyscf": null,
-      "scipy": null,
+      "scipy": "1.17.1",
       "stim": "1.16.0"
     },
-    "environment_sha256": "5a1d06e11767554bf8ff9cc4a14a16e4935354cc16c81582bb8d286b636f6dd2",
+    "environment_sha256": "3d8bd6ebf85c0ef5a8f20c8c53bbe045e4aee2a4ef0c799e551e6e59061239db",
     "git_dirty": true,
-    "git_sha": "61d35346614ef1d3a4d505c15ab81c1e834f1833",
+    "git_sha": "7304778a1b495c88188d3b3350e8929f59a26781",
     "platform": {
-      "hostname": "a594d72ee523",
+      "hostname": "vm",
       "machine": "x86_64",
       "processor": "x86_64",
-      "release": "6.18.35",
+      "release": "6.18.5-fc-v20",
       "system": "Linux"
     },
-    "python": "3.12.13",
+    "python": "3.11.15",
     "schema": "clifford_qc.execution_provenance.v1",
-    "utc": "2026-08-13T07:08:35.603550+00:00"
+    "utc": "2026-08-13T09:43:43.192898+00:00"
   },
   "qwc_to_full": {
     "logical_cx_per_preparation_avoided": 2.3627797408716136,
@@ -225,6 +228,7 @@
     {
       "accuracy_matched_costs": {
         "pooled": {
+          "C_time_epsilon_device_card": null,
           "C_time_epsilon_us": null,
           "claim_boundary": "first-order Ritz-functional propagation about the exact frozen bank; not a finite-sample energy certificate or nonlinear solver study",
           "device_costs": {},
@@ -232,10 +236,17 @@
           "epsilon_millihartree": 1.6,
           "evidence_tier": "asymptotic",
           "exact_subspace_bias_millihartree": 3.018781343635979,
+          "inadmissible_device_cards": [
+            "ion-like",
+            "logical-alltoall",
+            "superconducting-like"
+          ],
           "linearized_variance_ha2_at_one_shot_per_setting": null,
+          "pooled_weighting": "uniform over the settings that read each word, which is the inverse-variance combination at the equal-effective-shot schedule priced here",
           "status": "bias_floor_exceeds_target"
         },
         "single_assignment": {
+          "C_time_epsilon_device_card": null,
           "C_time_epsilon_us": null,
           "claim_boundary": "first-order Ritz-functional propagation about the exact frozen bank; not a finite-sample energy certificate or nonlinear solver study",
           "device_costs": {},
@@ -243,7 +254,13 @@
           "epsilon_millihartree": 1.6,
           "evidence_tier": "asymptotic",
           "exact_subspace_bias_millihartree": 3.018781343635979,
+          "inadmissible_device_cards": [
+            "ion-like",
+            "logical-alltoall",
+            "superconducting-like"
+          ],
           "linearized_variance_ha2_at_one_shot_per_setting": null,
+          "pooled_weighting": "uniform over the settings that read each word, which is the inverse-variance combination at the equal-effective-shot schedule priced here",
           "status": "bias_floor_exceeds_target"
         }
       },
@@ -734,6 +751,7 @@
     {
       "accuracy_matched_costs": {
         "pooled": {
+          "C_time_epsilon_device_card": null,
           "C_time_epsilon_us": null,
           "claim_boundary": "first-order Ritz-functional propagation about the exact frozen bank; not a finite-sample energy certificate or nonlinear solver study",
           "device_costs": {},
@@ -741,10 +759,17 @@
           "epsilon_millihartree": 1.6,
           "evidence_tier": "asymptotic",
           "exact_subspace_bias_millihartree": 3.018781343635979,
+          "inadmissible_device_cards": [
+            "ion-like",
+            "logical-alltoall",
+            "superconducting-like"
+          ],
           "linearized_variance_ha2_at_one_shot_per_setting": null,
+          "pooled_weighting": "uniform over the settings that read each word, which is the inverse-variance combination at the equal-effective-shot schedule priced here",
           "status": "bias_floor_exceeds_target"
         },
         "single_assignment": {
+          "C_time_epsilon_device_card": null,
           "C_time_epsilon_us": null,
           "claim_boundary": "first-order Ritz-functional propagation about the exact frozen bank; not a finite-sample energy certificate or nonlinear solver study",
           "device_costs": {},
@@ -752,7 +777,13 @@
           "epsilon_millihartree": 1.6,
           "evidence_tier": "asymptotic",
           "exact_subspace_bias_millihartree": 3.018781343635979,
+          "inadmissible_device_cards": [
+            "ion-like",
+            "logical-alltoall",
+            "superconducting-like"
+          ],
           "linearized_variance_ha2_at_one_shot_per_setting": null,
+          "pooled_weighting": "uniform over the settings that read each word, which is the inverse-variance combination at the equal-effective-shot schedule priced here",
           "status": "bias_floor_exceeds_target"
         }
       },
@@ -769,43 +800,43 @@
           "points": [
             {
               "candidate_admissible": true,
-              "candidate_time_us": 1785399110.0,
+              "candidate_time_us": 1797806100.0,
               "eps_2q": 0.0,
               "reference_admissible": true,
               "reference_time_us": 2550151200.0,
               "t_2q_over_readout_reset": 0.0,
-              "winner": "candidate"
+              "winner": "not_accuracy_matched"
             },
             {
               "candidate_admissible": true,
-              "candidate_time_us": 1876538710.0,
+              "candidate_time_us": 1889696330.0,
               "eps_2q": 0.005,
               "reference_admissible": true,
               "reference_time_us": 2550151200.0,
               "t_2q_over_readout_reset": 0.0,
-              "winner": "candidate"
+              "winner": "not_accuracy_matched"
             },
             {
               "candidate_admissible": true,
-              "candidate_time_us": 1974668110.0,
+              "candidate_time_us": 1988638510.0,
               "eps_2q": 0.01,
               "reference_admissible": true,
               "reference_time_us": 2550151200.0,
               "t_2q_over_readout_reset": 0.0,
-              "winner": "candidate"
+              "winner": "not_accuracy_matched"
             },
             {
               "candidate_admissible": true,
-              "candidate_time_us": 2194739430.0,
+              "candidate_time_us": 2210548570.0,
               "eps_2q": 0.02,
               "reference_admissible": true,
               "reference_time_us": 2550151200.0,
               "t_2q_over_readout_reset": 0.0,
-              "winner": "candidate"
+              "winner": "not_accuracy_matched"
             },
             {
               "candidate_admissible": false,
-              "candidate_time_us": 3111374710.0,
+              "candidate_time_us": 3135046250.0,
               "eps_2q": 0.05,
               "reference_admissible": true,
               "reference_time_us": 2550151200.0,
@@ -814,43 +845,43 @@
             },
             {
               "candidate_admissible": true,
-              "candidate_time_us": 2024649020.0,
+              "candidate_time_us": 2037056010.0,
               "eps_2q": 0.0,
               "reference_admissible": true,
               "reference_time_us": 2550151200.0,
               "t_2q_over_readout_reset": 0.1,
-              "winner": "candidate"
+              "winner": "not_accuracy_matched"
             },
             {
               "candidate_admissible": true,
-              "candidate_time_us": 2131307530.0,
+              "candidate_time_us": 2144465150.0,
               "eps_2q": 0.005,
               "reference_admissible": true,
               "reference_time_us": 2550151200.0,
               "t_2q_over_readout_reset": 0.1,
-              "winner": "candidate"
+              "winner": "not_accuracy_matched"
             },
             {
               "candidate_admissible": true,
-              "candidate_time_us": 2246262970.0,
+              "candidate_time_us": 2260233370.0,
               "eps_2q": 0.01,
               "reference_admissible": true,
               "reference_time_us": 2550151200.0,
               "t_2q_over_readout_reset": 0.1,
-              "winner": "candidate"
+              "winner": "not_accuracy_matched"
             },
             {
               "candidate_admissible": true,
-              "candidate_time_us": 2504463780.0,
+              "candidate_time_us": 2520272920.0,
               "eps_2q": 0.02,
               "reference_admissible": true,
               "reference_time_us": 2550151200.0,
               "t_2q_over_readout_reset": 0.1,
-              "winner": "candidate"
+              "winner": "not_accuracy_matched"
             },
             {
               "candidate_admissible": false,
-              "candidate_time_us": 3584366860.0,
+              "candidate_time_us": 3608038400.0,
               "eps_2q": 0.05,
               "reference_admissible": true,
               "reference_time_us": 2550151200.0,
@@ -859,43 +890,43 @@
             },
             {
               "candidate_admissible": true,
-              "candidate_time_us": 2981648660.0,
+              "candidate_time_us": 2994055650.0,
               "eps_2q": 0.0,
               "reference_admissible": true,
               "reference_time_us": 2550151200.0,
               "t_2q_over_readout_reset": 0.5,
-              "winner": "reference"
+              "winner": "not_accuracy_matched"
             },
             {
               "candidate_admissible": true,
-              "candidate_time_us": 3150382810.0,
+              "candidate_time_us": 3163540430.0,
               "eps_2q": 0.005,
               "reference_admissible": true,
               "reference_time_us": 2550151200.0,
               "t_2q_over_readout_reset": 0.5,
-              "winner": "reference"
+              "winner": "not_accuracy_matched"
             },
             {
               "candidate_admissible": true,
-              "candidate_time_us": 3332642410.0,
+              "candidate_time_us": 3346612810.0,
               "eps_2q": 0.01,
               "reference_admissible": true,
               "reference_time_us": 2550151200.0,
               "t_2q_over_readout_reset": 0.5,
-              "winner": "reference"
+              "winner": "not_accuracy_matched"
             },
             {
               "candidate_admissible": true,
-              "candidate_time_us": 3743361180.0,
+              "candidate_time_us": 3759170320.0,
               "eps_2q": 0.02,
               "reference_admissible": true,
               "reference_time_us": 2550151200.0,
               "t_2q_over_readout_reset": 0.5,
-              "winner": "reference"
+              "winner": "not_accuracy_matched"
             },
             {
               "candidate_admissible": false,
-              "candidate_time_us": 5476335460.0,
+              "candidate_time_us": 5500007000.0,
               "eps_2q": 0.05,
               "reference_admissible": true,
               "reference_time_us": 2550151200.0,
@@ -904,43 +935,43 @@
             },
             {
               "candidate_admissible": true,
-              "candidate_time_us": 4177898210.0,
+              "candidate_time_us": 4190305200.0,
               "eps_2q": 0.0,
               "reference_admissible": true,
               "reference_time_us": 2550151200.0,
               "t_2q_over_readout_reset": 1.0,
-              "winner": "reference"
+              "winner": "not_accuracy_matched"
             },
             {
               "candidate_admissible": true,
-              "candidate_time_us": 4424226910.0,
+              "candidate_time_us": 4437384530.0,
               "eps_2q": 0.005,
               "reference_admissible": true,
               "reference_time_us": 2550151200.0,
               "t_2q_over_readout_reset": 1.0,
-              "winner": "reference"
+              "winner": "not_accuracy_matched"
             },
             {
               "candidate_admissible": true,
-              "candidate_time_us": 4690616710.0,
+              "candidate_time_us": 4704587110.0,
               "eps_2q": 0.01,
               "reference_admissible": true,
               "reference_time_us": 2550151200.0,
               "t_2q_over_readout_reset": 1.0,
-              "winner": "reference"
+              "winner": "not_accuracy_matched"
             },
             {
               "candidate_admissible": true,
-              "candidate_time_us": 5291982930.0,
+              "candidate_time_us": 5307792070.0,
               "eps_2q": 0.02,
               "reference_admissible": true,
               "reference_time_us": 2550151200.0,
               "t_2q_over_readout_reset": 1.0,
-              "winner": "reference"
+              "winner": "not_accuracy_matched"
             },
             {
               "candidate_admissible": false,
-              "candidate_time_us": 7841296210.0,
+              "candidate_time_us": 7864967750.0,
               "eps_2q": 0.05,
               "reference_admissible": true,
               "reference_time_us": 2550151200.0,
@@ -949,43 +980,43 @@
             },
             {
               "candidate_admissible": true,
-              "candidate_time_us": 6570397310.0,
+              "candidate_time_us": 6582804300.0,
               "eps_2q": 0.0,
               "reference_admissible": true,
               "reference_time_us": 2550151200.0,
               "t_2q_over_readout_reset": 2.0,
-              "winner": "reference"
+              "winner": "not_accuracy_matched"
             },
             {
               "candidate_admissible": true,
-              "candidate_time_us": 6971915110.0,
+              "candidate_time_us": 6985072730.0,
               "eps_2q": 0.005,
               "reference_admissible": true,
               "reference_time_us": 2550151200.0,
               "t_2q_over_readout_reset": 2.0,
-              "winner": "reference"
+              "winner": "not_accuracy_matched"
             },
             {
               "candidate_admissible": true,
-              "candidate_time_us": 7406565310.0,
+              "candidate_time_us": 7420535710.0,
               "eps_2q": 0.01,
               "reference_admissible": true,
               "reference_time_us": 2550151200.0,
               "t_2q_over_readout_reset": 2.0,
-              "winner": "reference"
+              "winner": "not_accuracy_matched"
             },
             {
               "candidate_admissible": true,
-              "candidate_time_us": 8389226430.0,
+              "candidate_time_us": 8405035570.0,
               "eps_2q": 0.02,
               "reference_admissible": true,
               "reference_time_us": 2550151200.0,
               "t_2q_over_readout_reset": 2.0,
-              "winner": "reference"
+              "winner": "not_accuracy_matched"
             },
             {
               "candidate_admissible": false,
-              "candidate_time_us": 12571217710.0,
+              "candidate_time_us": 12594889250.0,
               "eps_2q": 0.05,
               "reference_admissible": true,
               "reference_time_us": 2550151200.0,
@@ -1006,43 +1037,43 @@
           "points": [
             {
               "candidate_admissible": true,
-              "candidate_time_us": 12548800.0,
+              "candidate_time_us": 12600000.0,
               "eps_2q": 0.0,
               "reference_admissible": true,
               "reference_time_us": 17804800.0,
               "t_2q_over_readout_reset": 0.0,
-              "winner": "candidate"
+              "winner": "not_accuracy_matched"
             },
             {
               "candidate_admissible": true,
-              "candidate_time_us": 13190348.7,
+              "candidate_time_us": 13244652.850000001,
               "eps_2q": 0.005,
               "reference_admissible": true,
               "reference_time_us": 17804800.0,
               "t_2q_over_readout_reset": 0.0,
-              "winner": "candidate"
+              "winner": "not_accuracy_matched"
             },
             {
               "candidate_admissible": true,
-              "candidate_time_us": 13880128.000000002,
+              "candidate_time_us": 13937789.300000003,
               "eps_2q": 0.01,
               "reference_admissible": true,
               "reference_time_us": 17804800.0,
               "t_2q_over_readout_reset": 0.0,
-              "winner": "candidate"
+              "winner": "not_accuracy_matched"
             },
             {
               "candidate_admissible": true,
-              "candidate_time_us": 15427007.600000001,
+              "candidate_time_us": 15492265.000000002,
               "eps_2q": 0.02,
               "reference_admissible": true,
               "reference_time_us": 17804800.0,
               "t_2q_over_readout_reset": 0.0,
-              "winner": "candidate"
+              "winner": "not_accuracy_matched"
             },
             {
               "candidate_admissible": false,
-              "candidate_time_us": 21868965.2,
+              "candidate_time_us": 21966702.2,
               "eps_2q": 0.05,
               "reference_admissible": true,
               "reference_time_us": 17804800.0,
@@ -1051,43 +1082,43 @@
             },
             {
               "candidate_admissible": true,
-              "candidate_time_us": 15184000.0,
+              "candidate_time_us": 15235200.0,
               "eps_2q": 0.0,
               "reference_admissible": true,
               "reference_time_us": 17804800.0,
               "t_2q_over_readout_reset": 0.1,
-              "winner": "candidate"
+              "winner": "not_accuracy_matched"
             },
             {
               "candidate_admissible": true,
-              "candidate_time_us": 15996614.7,
+              "candidate_time_us": 16050918.85,
               "eps_2q": 0.005,
               "reference_admissible": true,
               "reference_time_us": 17804800.0,
               "t_2q_over_readout_reset": 0.1,
-              "winner": "candidate"
+              "winner": "not_accuracy_matched"
             },
             {
               "candidate_admissible": true,
-              "candidate_time_us": 16871688.2,
+              "candidate_time_us": 16929349.5,
               "eps_2q": 0.01,
               "reference_admissible": true,
               "reference_time_us": 17804800.0,
               "t_2q_over_readout_reset": 0.1,
-              "winner": "candidate"
+              "winner": "not_accuracy_matched"
             },
             {
               "candidate_admissible": true,
-              "candidate_time_us": 18838442.8,
+              "candidate_time_us": 18903700.200000003,
               "eps_2q": 0.02,
               "reference_admissible": true,
               "reference_time_us": 17804800.0,
               "t_2q_over_readout_reset": 0.1,
-              "winner": "reference"
+              "winner": "not_accuracy_matched"
             },
             {
               "candidate_admissible": false,
-              "candidate_time_us": 27077971.400000006,
+              "candidate_time_us": 27175708.400000006,
               "eps_2q": 0.05,
               "reference_admissible": true,
               "reference_time_us": 17804800.0,
@@ -1096,43 +1127,43 @@
             },
             {
               "candidate_admissible": true,
-              "candidate_time_us": 25724800.0,
+              "candidate_time_us": 25776000.0,
               "eps_2q": 0.0,
               "reference_admissible": true,
               "reference_time_us": 17804800.0,
               "t_2q_over_readout_reset": 0.5,
-              "winner": "reference"
+              "winner": "not_accuracy_matched"
             },
             {
               "candidate_admissible": true,
-              "candidate_time_us": 27221678.7,
+              "candidate_time_us": 27275982.849999998,
               "eps_2q": 0.005,
               "reference_admissible": true,
               "reference_time_us": 17804800.0,
               "t_2q_over_readout_reset": 0.5,
-              "winner": "reference"
+              "winner": "not_accuracy_matched"
             },
             {
               "candidate_admissible": true,
-              "candidate_time_us": 28837929.000000004,
+              "candidate_time_us": 28895590.3,
               "eps_2q": 0.01,
               "reference_admissible": true,
               "reference_time_us": 17804800.0,
               "t_2q_over_readout_reset": 0.5,
-              "winner": "reference"
+              "winner": "not_accuracy_matched"
             },
             {
               "candidate_admissible": true,
-              "candidate_time_us": 32484183.6,
+              "candidate_time_us": 32549441.0,
               "eps_2q": 0.02,
               "reference_admissible": true,
               "reference_time_us": 17804800.0,
               "t_2q_over_readout_reset": 0.5,
-              "winner": "reference"
+              "winner": "not_accuracy_matched"
             },
             {
               "candidate_admissible": false,
-              "candidate_time_us": 47913996.199999996,
+              "candidate_time_us": 48011733.19999999,
               "eps_2q": 0.05,
               "reference_admissible": true,
               "reference_time_us": 17804800.0,
@@ -1141,43 +1172,43 @@
             },
             {
               "candidate_admissible": true,
-              "candidate_time_us": 38900800.0,
+              "candidate_time_us": 38952000.0,
               "eps_2q": 0.0,
               "reference_admissible": true,
               "reference_time_us": 17804800.0,
               "t_2q_over_readout_reset": 1.0,
-              "winner": "reference"
+              "winner": "not_accuracy_matched"
             },
             {
               "candidate_admissible": true,
-              "candidate_time_us": 41253008.699999996,
+              "candidate_time_us": 41307312.85,
               "eps_2q": 0.005,
               "reference_admissible": true,
               "reference_time_us": 17804800.0,
               "t_2q_over_readout_reset": 1.0,
-              "winner": "reference"
+              "winner": "not_accuracy_matched"
             },
             {
               "candidate_admissible": true,
-              "candidate_time_us": 43795729.99999999,
+              "candidate_time_us": 43853391.3,
               "eps_2q": 0.01,
               "reference_admissible": true,
               "reference_time_us": 17804800.0,
               "t_2q_over_readout_reset": 1.0,
-              "winner": "reference"
+              "winner": "not_accuracy_matched"
             },
             {
               "candidate_admissible": true,
-              "candidate_time_us": 49541359.599999994,
+              "candidate_time_us": 49606616.99999999,
               "eps_2q": 0.02,
               "reference_admissible": true,
               "reference_time_us": 17804800.0,
               "t_2q_over_readout_reset": 1.0,
-              "winner": "reference"
+              "winner": "not_accuracy_matched"
             },
             {
               "candidate_admissible": false,
-              "candidate_time_us": 73959027.2,
+              "candidate_time_us": 74056764.2,
               "eps_2q": 0.05,
               "reference_admissible": true,
               "reference_time_us": 17804800.0,
@@ -1186,43 +1217,43 @@
             },
             {
               "candidate_admissible": true,
-              "candidate_time_us": 65252800.0,
+              "candidate_time_us": 65304000.0,
               "eps_2q": 0.0,
               "reference_admissible": true,
               "reference_time_us": 17804800.0,
               "t_2q_over_readout_reset": 2.0,
-              "winner": "reference"
+              "winner": "not_accuracy_matched"
             },
             {
               "candidate_admissible": true,
-              "candidate_time_us": 69315668.7,
+              "candidate_time_us": 69369972.85000001,
               "eps_2q": 0.005,
               "reference_admissible": true,
               "reference_time_us": 17804800.0,
               "t_2q_over_readout_reset": 2.0,
-              "winner": "reference"
+              "winner": "not_accuracy_matched"
             },
             {
               "candidate_admissible": true,
-              "candidate_time_us": 73711331.99999999,
+              "candidate_time_us": 73768993.3,
               "eps_2q": 0.01,
               "reference_admissible": true,
               "reference_time_us": 17804800.0,
               "t_2q_over_readout_reset": 2.0,
-              "winner": "reference"
+              "winner": "not_accuracy_matched"
             },
             {
               "candidate_admissible": true,
-              "candidate_time_us": 83655711.6,
+              "candidate_time_us": 83720969.0,
               "eps_2q": 0.02,
               "reference_admissible": true,
               "reference_time_us": 17804800.0,
               "t_2q_over_readout_reset": 2.0,
-              "winner": "reference"
+              "winner": "not_accuracy_matched"
             },
             {
               "candidate_admissible": false,
-              "candidate_time_us": 126049089.2,
+              "candidate_time_us": 126146826.2,
               "eps_2q": 0.05,
               "reference_admissible": true,
               "reference_time_us": 17804800.0,
@@ -1243,34 +1274,34 @@
           "points": [
             {
               "candidate_admissible": true,
-              "candidate_time_us": 26020223.100000005,
+              "candidate_time_us": 26095516.450000003,
               "eps_2q": 0.0,
               "reference_admissible": true,
               "reference_time_us": 37076689.900000006,
               "t_2q_over_readout_reset": 0.0,
-              "winner": "candidate"
+              "winner": "not_accuracy_matched"
             },
             {
               "candidate_admissible": true,
-              "candidate_time_us": 30299264.100000005,
+              "candidate_time_us": 30389297.35,
               "eps_2q": 0.005,
               "reference_admissible": true,
               "reference_time_us": 37076689.900000006,
               "t_2q_over_readout_reset": 0.0,
-              "winner": "candidate"
+              "winner": "not_accuracy_matched"
             },
             {
               "candidate_admissible": true,
-              "candidate_time_us": 35618796.6,
+              "candidate_time_us": 35727475.050000004,
               "eps_2q": 0.01,
               "reference_admissible": true,
               "reference_time_us": 37076689.900000006,
               "t_2q_over_readout_reset": 0.0,
-              "winner": "candidate"
+              "winner": "not_accuracy_matched"
             },
             {
               "candidate_admissible": false,
-              "candidate_time_us": 50753008.2,
+              "candidate_time_us": 50916298.650000006,
               "eps_2q": 0.02,
               "reference_admissible": true,
               "reference_time_us": 37076689.900000006,
@@ -1279,7 +1310,7 @@
             },
             {
               "candidate_admissible": false,
-              "candidate_time_us": 194437012.30000004,
+              "candidate_time_us": 195168783.55000004,
               "eps_2q": 0.05,
               "reference_admissible": true,
               "reference_time_us": 37076689.900000006,
@@ -1288,34 +1319,34 @@
             },
             {
               "candidate_admissible": true,
-              "candidate_time_us": 33756609.1,
+              "candidate_time_us": 33831902.45,
               "eps_2q": 0.0,
               "reference_admissible": true,
               "reference_time_us": 37076689.900000006,
               "t_2q_over_readout_reset": 0.1,
-              "winner": "candidate"
+              "winner": "not_accuracy_matched"
             },
             {
               "candidate_admissible": true,
-              "candidate_time_us": 39663592.099999994,
+              "candidate_time_us": 39753625.35,
               "eps_2q": 0.005,
               "reference_admissible": true,
               "reference_time_us": 37076689.900000006,
               "t_2q_over_readout_reset": 0.1,
-              "winner": "reference"
+              "winner": "not_accuracy_matched"
             },
             {
               "candidate_admissible": true,
-              "candidate_time_us": 47048151.40000001,
+              "candidate_time_us": 47156829.85,
               "eps_2q": 0.01,
               "reference_admissible": true,
               "reference_time_us": 37076689.900000006,
               "t_2q_over_readout_reset": 0.1,
-              "winner": "reference"
+              "winner": "not_accuracy_matched"
             },
             {
               "candidate_admissible": false,
-              "candidate_time_us": 68231517.80000001,
+              "candidate_time_us": 68394808.25,
               "eps_2q": 0.02,
               "reference_admissible": true,
               "reference_time_us": 37076689.900000006,
@@ -1324,7 +1355,7 @@
             },
             {
               "candidate_admissible": false,
-              "candidate_time_us": 273509144.3,
+              "candidate_time_us": 274240915.55,
               "eps_2q": 0.05,
               "reference_admissible": true,
               "reference_time_us": 37076689.900000006,
@@ -1333,34 +1364,34 @@
             },
             {
               "candidate_admissible": true,
-              "candidate_time_us": 64702153.1,
+              "candidate_time_us": 64777446.449999996,
               "eps_2q": 0.0,
               "reference_admissible": true,
               "reference_time_us": 37076689.900000006,
               "t_2q_over_readout_reset": 0.5,
-              "winner": "reference"
+              "winner": "not_accuracy_matched"
             },
             {
               "candidate_admissible": true,
-              "candidate_time_us": 77120904.1,
+              "candidate_time_us": 77210937.34999998,
               "eps_2q": 0.005,
               "reference_admissible": true,
               "reference_time_us": 37076689.900000006,
               "t_2q_over_readout_reset": 0.5,
-              "winner": "reference"
+              "winner": "not_accuracy_matched"
             },
             {
               "candidate_admissible": true,
-              "candidate_time_us": 92765570.6,
+              "candidate_time_us": 92874249.05,
               "eps_2q": 0.01,
               "reference_admissible": true,
               "reference_time_us": 37076689.900000006,
               "t_2q_over_readout_reset": 0.5,
-              "winner": "reference"
+              "winner": "not_accuracy_matched"
             },
             {
               "candidate_admissible": false,
-              "candidate_time_us": 138145556.2,
+              "candidate_time_us": 138308846.64999998,
               "eps_2q": 0.02,
               "reference_admissible": true,
               "reference_time_us": 37076689.900000006,
@@ -1369,7 +1400,7 @@
             },
             {
               "candidate_admissible": false,
-              "candidate_time_us": 589797672.2999998,
+              "candidate_time_us": 590529443.5499998,
               "eps_2q": 0.05,
               "reference_admissible": true,
               "reference_time_us": 37076689.900000006,
@@ -1378,34 +1409,34 @@
             },
             {
               "candidate_admissible": true,
-              "candidate_time_us": 103384083.1,
+              "candidate_time_us": 103459376.44999999,
               "eps_2q": 0.0,
               "reference_admissible": true,
               "reference_time_us": 37076689.900000006,
               "t_2q_over_readout_reset": 1.0,
-              "winner": "reference"
+              "winner": "not_accuracy_matched"
             },
             {
               "candidate_admissible": true,
-              "candidate_time_us": 123942544.1,
+              "candidate_time_us": 124032577.35,
               "eps_2q": 0.005,
               "reference_admissible": true,
               "reference_time_us": 37076689.900000006,
               "t_2q_over_readout_reset": 1.0,
-              "winner": "reference"
+              "winner": "not_accuracy_matched"
             },
             {
               "candidate_admissible": true,
-              "candidate_time_us": 149912344.6,
+              "candidate_time_us": 150021023.04999998,
               "eps_2q": 0.01,
               "reference_admissible": true,
               "reference_time_us": 37076689.900000006,
               "t_2q_over_readout_reset": 1.0,
-              "winner": "reference"
+              "winner": "not_accuracy_matched"
             },
             {
               "candidate_admissible": false,
-              "candidate_time_us": 225538104.2,
+              "candidate_time_us": 225701394.64999998,
               "eps_2q": 0.02,
               "reference_admissible": true,
               "reference_time_us": 37076689.900000006,
@@ -1414,7 +1445,7 @@
             },
             {
               "candidate_admissible": false,
-              "candidate_time_us": 985158332.2999998,
+              "candidate_time_us": 985890103.5499998,
               "eps_2q": 0.05,
               "reference_admissible": true,
               "reference_time_us": 37076689.900000006,
@@ -1423,34 +1454,34 @@
             },
             {
               "candidate_admissible": true,
-              "candidate_time_us": 180747943.10000002,
+              "candidate_time_us": 180823236.45000002,
               "eps_2q": 0.0,
               "reference_admissible": true,
               "reference_time_us": 37076689.900000006,
               "t_2q_over_readout_reset": 2.0,
-              "winner": "reference"
+              "winner": "not_accuracy_matched"
             },
             {
               "candidate_admissible": true,
-              "candidate_time_us": 217585824.10000005,
+              "candidate_time_us": 217675857.35000002,
               "eps_2q": 0.005,
               "reference_admissible": true,
               "reference_time_us": 37076689.900000006,
               "t_2q_over_readout_reset": 2.0,
-              "winner": "reference"
+              "winner": "not_accuracy_matched"
             },
             {
               "candidate_admissible": true,
-              "candidate_time_us": 264205892.6,
+              "candidate_time_us": 264314571.04999998,
               "eps_2q": 0.01,
               "reference_admissible": true,
               "reference_time_us": 37076689.900000006,
               "t_2q_over_readout_reset": 2.0,
-              "winner": "reference"
+              "winner": "not_accuracy_matched"
             },
             {
               "candidate_admissible": false,
-              "candidate_time_us": 400323200.20000005,
+              "candidate_time_us": 400486490.65,
               "eps_2q": 0.02,
               "reference_admissible": true,
               "reference_time_us": 37076689.900000006,
@@ -1459,7 +1490,7 @@
             },
             {
               "candidate_admissible": false,
-              "candidate_time_us": 1775879652.3,
+              "candidate_time_us": 1776611423.55,
               "eps_2q": 0.05,
               "reference_admissible": true,
               "reference_time_us": 37076689.900000006,
@@ -1494,7 +1525,7 @@
               "mean": 0.8869393983352459,
               "min": 0.8347622229049784
             },
-            "fixed_shot_time_us": 5273456310.0,
+            "fixed_shot_time_us": 5286613930.0,
             "inadmissible_settings": 0,
             "logical_1q_applications": 198710794,
             "logical_2q_applications": 33029332,
@@ -1584,7 +1615,7 @@
               "mean": 0.8869393983352459,
               "min": 0.8347622229049784
             },
-            "fixed_shot_time_us": 4109760000.0,
+            "fixed_shot_time_us": 4120000000.0,
             "inadmissible_settings": 0,
             "logical_1q_applications": 155560000,
             "logical_2q_applications": 25480000,
@@ -1623,7 +1654,7 @@
               "mean": 1.0,
               "min": 1.0
             },
-            "fixed_shot_time_us": 16501600.0,
+            "fixed_shot_time_us": 16552800.0,
             "inadmissible_settings": 0,
             "logical_1q_applications": 155560000,
             "logical_2q_applications": 25480000,
@@ -1713,7 +1744,7 @@
               "mean": 1.0,
               "min": 1.0
             },
-            "fixed_shot_time_us": 16501600.0,
+            "fixed_shot_time_us": 16552800.0,
             "inadmissible_settings": 0,
             "logical_1q_applications": 155560000,
             "logical_2q_applications": 25480000,
@@ -1752,7 +1783,7 @@
               "mean": 0.7146510761758157,
               "min": 0.5045654108170142
             },
-            "fixed_shot_time_us": 52762828.8,
+            "fixed_shot_time_us": 52871507.25,
             "inadmissible_settings": 0,
             "logical_1q_applications": 315523659,
             "logical_2q_applications": 57210719,
@@ -1842,7 +1873,7 @@
               "mean": 0.7146510761758157,
               "min": 0.5045654108170142
             },
-            "fixed_shot_time_us": 25630400.0,
+            "fixed_shot_time_us": 25681600.0,
             "inadmissible_settings": 0,
             "logical_1q_applications": 155560000,
             "logical_2q_applications": 25480000,
@@ -1928,9 +1959,9 @@
       "mean_logical_cx_per_setting": 4.922720247295208,
       "resource_metrics": {
         "D_1q": {
-          "max": 9,
-          "mean": 8.488408037094281,
-          "sum": 5492
+          "max": 10,
+          "mean": 8.686244204018546,
+          "sum": 5620
         },
         "D_2q": {
           "max": 4,
@@ -1956,6 +1987,7 @@
     {
       "accuracy_matched_costs": {
         "pooled": {
+          "C_time_epsilon_device_card": null,
           "C_time_epsilon_us": null,
           "claim_boundary": "first-order Ritz-functional propagation about the exact frozen bank; not a finite-sample energy certificate or nonlinear solver study",
           "device_costs": {},
@@ -1963,10 +1995,17 @@
           "epsilon_millihartree": 1.6,
           "evidence_tier": "asymptotic",
           "exact_subspace_bias_millihartree": 3.018781343635979,
+          "inadmissible_device_cards": [
+            "ion-like",
+            "logical-alltoall",
+            "superconducting-like"
+          ],
           "linearized_variance_ha2_at_one_shot_per_setting": null,
+          "pooled_weighting": "uniform over the settings that read each word, which is the inverse-variance combination at the equal-effective-shot schedule priced here",
           "status": "bias_floor_exceeds_target"
         },
         "single_assignment": {
+          "C_time_epsilon_device_card": null,
           "C_time_epsilon_us": null,
           "claim_boundary": "first-order Ritz-functional propagation about the exact frozen bank; not a finite-sample energy certificate or nonlinear solver study",
           "device_costs": {},
@@ -1974,7 +2013,13 @@
           "epsilon_millihartree": 1.6,
           "evidence_tier": "asymptotic",
           "exact_subspace_bias_millihartree": 3.018781343635979,
+          "inadmissible_device_cards": [
+            "ion-like",
+            "logical-alltoall",
+            "superconducting-like"
+          ],
           "linearized_variance_ha2_at_one_shot_per_setting": null,
+          "pooled_weighting": "uniform over the settings that read each word, which is the inverse-variance combination at the equal-effective-shot schedule priced here",
           "status": "bias_floor_exceeds_target"
         }
       },
@@ -1991,34 +2036,34 @@
           "points": [
             {
               "candidate_admissible": true,
-              "candidate_time_us": 663231520.0,
+              "candidate_time_us": 716340190.0,
               "eps_2q": 0.0,
               "reference_admissible": true,
               "reference_time_us": 2550151200.0,
               "t_2q_over_readout_reset": 0.0,
-              "winner": "candidate"
+              "winner": "not_accuracy_matched"
             },
             {
               "candidate_admissible": true,
-              "candidate_time_us": 776880070.0,
+              "candidate_time_us": 840043140.0,
               "eps_2q": 0.005,
               "reference_admissible": true,
               "reference_time_us": 2550151200.0,
               "t_2q_over_readout_reset": 0.0,
-              "winner": "candidate"
+              "winner": "not_accuracy_matched"
             },
             {
               "candidate_admissible": true,
-              "candidate_time_us": 913368610.0,
+              "candidate_time_us": 988738350.0,
               "eps_2q": 0.01,
               "reference_admissible": true,
               "reference_time_us": 2550151200.0,
               "t_2q_over_readout_reset": 0.0,
-              "winner": "candidate"
+              "winner": "not_accuracy_matched"
             },
             {
               "candidate_admissible": false,
-              "candidate_time_us": 1276821880.0,
+              "candidate_time_us": 1385224550.0,
               "eps_2q": 0.02,
               "reference_admissible": true,
               "reference_time_us": 2550151200.0,
@@ -2027,7 +2072,7 @@
             },
             {
               "candidate_admissible": false,
-              "candidate_time_us": 3830085560.0,
+              "candidate_time_us": 4180749520.0,
               "eps_2q": 0.05,
               "reference_admissible": true,
               "reference_time_us": 2550151200.0,
@@ -2036,34 +2081,34 @@
             },
             {
               "candidate_admissible": true,
-              "candidate_time_us": 973019590.0,
+              "candidate_time_us": 1029642340.0,
               "eps_2q": 0.0,
               "reference_admissible": true,
               "reference_time_us": 2550151200.0,
               "t_2q_over_readout_reset": 0.1,
-              "winner": "candidate"
+              "winner": "not_accuracy_matched"
             },
             {
               "candidate_admissible": true,
-              "candidate_time_us": 1144988785.0,
+              "candidate_time_us": 1212302565.0,
               "eps_2q": 0.005,
               "reference_admissible": true,
               "reference_time_us": 2550151200.0,
               "t_2q_over_readout_reset": 0.1,
-              "winner": "candidate"
+              "winner": "not_accuracy_matched"
             },
             {
               "candidate_admissible": true,
-              "candidate_time_us": 1352290120.0,
+              "candidate_time_us": 1432580190.0,
               "eps_2q": 0.01,
               "reference_admissible": true,
               "reference_time_us": 2550151200.0,
               "t_2q_over_readout_reset": 0.1,
-              "winner": "candidate"
+              "winner": "not_accuracy_matched"
             },
             {
               "candidate_admissible": false,
-              "candidate_time_us": 1907467495.0,
+              "candidate_time_us": 2022863375.0,
               "eps_2q": 0.02,
               "reference_admissible": true,
               "reference_time_us": 2550151200.0,
@@ -2072,7 +2117,7 @@
             },
             {
               "candidate_admissible": false,
-              "candidate_time_us": 5871671240.0,
+              "candidate_time_us": 6244557250.0,
               "eps_2q": 0.05,
               "reference_admissible": true,
               "reference_time_us": 2550151200.0,
@@ -2081,34 +2126,34 @@
             },
             {
               "candidate_admissible": true,
-              "candidate_time_us": 2212171870.0,
+              "candidate_time_us": 2282850940.0,
               "eps_2q": 0.0,
               "reference_admissible": true,
               "reference_time_us": 2550151200.0,
               "t_2q_over_readout_reset": 0.5,
-              "winner": "candidate"
+              "winner": "not_accuracy_matched"
             },
             {
               "candidate_admissible": true,
-              "candidate_time_us": 2617423645.0,
+              "candidate_time_us": 2701340265.0,
               "eps_2q": 0.005,
               "reference_admissible": true,
               "reference_time_us": 2550151200.0,
               "t_2q_over_readout_reset": 0.5,
-              "winner": "reference"
+              "winner": "not_accuracy_matched"
             },
             {
               "candidate_admissible": true,
-              "candidate_time_us": 3107976160.0,
+              "candidate_time_us": 3207947550.0,
               "eps_2q": 0.01,
               "reference_admissible": true,
               "reference_time_us": 2550151200.0,
               "t_2q_over_readout_reset": 0.5,
-              "winner": "reference"
+              "winner": "not_accuracy_matched"
             },
             {
               "candidate_admissible": false,
-              "candidate_time_us": 4430049955.0,
+              "candidate_time_us": 4573418675.0,
               "eps_2q": 0.02,
               "reference_admissible": true,
               "reference_time_us": 2550151200.0,
@@ -2117,7 +2162,7 @@
             },
             {
               "candidate_admissible": false,
-              "candidate_time_us": 14038013960.0,
+              "candidate_time_us": 14499788170.0,
               "eps_2q": 0.05,
               "reference_admissible": true,
               "reference_time_us": 2550151200.0,
@@ -2126,34 +2171,34 @@
             },
             {
               "candidate_admissible": true,
-              "candidate_time_us": 3761112220.0,
+              "candidate_time_us": 3849361690.0,
               "eps_2q": 0.0,
               "reference_admissible": true,
               "reference_time_us": 2550151200.0,
               "t_2q_over_readout_reset": 1.0,
-              "winner": "reference"
+              "winner": "not_accuracy_matched"
             },
             {
               "candidate_admissible": true,
-              "candidate_time_us": 4457967220.0,
+              "candidate_time_us": 4562637390.0,
               "eps_2q": 0.005,
               "reference_admissible": true,
               "reference_time_us": 2550151200.0,
               "t_2q_over_readout_reset": 1.0,
-              "winner": "reference"
+              "winner": "not_accuracy_matched"
             },
             {
               "candidate_admissible": true,
-              "candidate_time_us": 5302583710.0,
+              "candidate_time_us": 5427156750.0,
               "eps_2q": 0.01,
               "reference_admissible": true,
               "reference_time_us": 2550151200.0,
               "t_2q_over_readout_reset": 1.0,
-              "winner": "reference"
+              "winner": "not_accuracy_matched"
             },
             {
               "candidate_admissible": false,
-              "candidate_time_us": 7583278030.0,
+              "candidate_time_us": 7761612800.0,
               "eps_2q": 0.02,
               "reference_admissible": true,
               "reference_time_us": 2550151200.0,
@@ -2162,7 +2207,7 @@
             },
             {
               "candidate_admissible": false,
-              "candidate_time_us": 24245942360.0,
+              "candidate_time_us": 24818826820.0,
               "eps_2q": 0.05,
               "reference_admissible": true,
               "reference_time_us": 2550151200.0,
@@ -2171,34 +2216,34 @@
             },
             {
               "candidate_admissible": true,
-              "candidate_time_us": 6858992920.0,
+              "candidate_time_us": 6982383190.0,
               "eps_2q": 0.0,
               "reference_admissible": true,
               "reference_time_us": 2550151200.0,
               "t_2q_over_readout_reset": 2.0,
-              "winner": "reference"
+              "winner": "not_accuracy_matched"
             },
             {
               "candidate_admissible": true,
-              "candidate_time_us": 8139054370.0,
+              "candidate_time_us": 8285231640.0,
               "eps_2q": 0.005,
               "reference_admissible": true,
               "reference_time_us": 2550151200.0,
               "t_2q_over_readout_reset": 2.0,
-              "winner": "reference"
+              "winner": "not_accuracy_matched"
             },
             {
               "candidate_admissible": true,
-              "candidate_time_us": 9691798810.0,
+              "candidate_time_us": 9865575150.0,
               "eps_2q": 0.01,
               "reference_admissible": true,
               "reference_time_us": 2550151200.0,
               "t_2q_over_readout_reset": 2.0,
-              "winner": "reference"
+              "winner": "not_accuracy_matched"
             },
             {
               "candidate_admissible": false,
-              "candidate_time_us": 13889734180.0,
+              "candidate_time_us": 14138001050.0,
               "eps_2q": 0.02,
               "reference_admissible": true,
               "reference_time_us": 2550151200.0,
@@ -2207,7 +2252,7 @@
             },
             {
               "candidate_admissible": false,
-              "candidate_time_us": 44661799160.0,
+              "candidate_time_us": 45456904120.0,
               "eps_2q": 0.05,
               "reference_admissible": true,
               "reference_time_us": 2550151200.0,
@@ -2228,43 +2273,43 @@
           "points": [
             {
               "candidate_admissible": true,
-              "candidate_time_us": 4628000.0,
+              "candidate_time_us": 4845600.0,
               "eps_2q": 0.0,
               "reference_admissible": true,
               "reference_time_us": 17804800.0,
               "t_2q_over_readout_reset": 0.0,
-              "winner": "candidate"
+              "winner": "not_accuracy_matched"
             },
             {
               "candidate_admissible": true,
-              "candidate_time_us": 5417532.599999999,
+              "candidate_time_us": 5676290.949999998,
               "eps_2q": 0.005,
               "reference_admissible": true,
               "reference_time_us": 17804800.0,
               "t_2q_over_readout_reset": 0.0,
-              "winner": "candidate"
+              "winner": "not_accuracy_matched"
             },
             {
               "candidate_admissible": true,
-              "candidate_time_us": 6364758.500000001,
+              "candidate_time_us": 6673453.550000001,
               "eps_2q": 0.01,
               "reference_admissible": true,
               "reference_time_us": 17804800.0,
               "t_2q_over_readout_reset": 0.0,
-              "winner": "candidate"
+              "winner": "not_accuracy_matched"
             },
             {
               "candidate_admissible": true,
-              "candidate_time_us": 8884721.799999997,
+              "candidate_time_us": 9328520.149999999,
               "eps_2q": 0.02,
               "reference_admissible": true,
               "reference_time_us": 17804800.0,
               "t_2q_over_readout_reset": 0.0,
-              "winner": "candidate"
+              "winner": "not_accuracy_matched"
             },
             {
               "candidate_admissible": false,
-              "candidate_time_us": 26535578.799999997,
+              "candidate_time_us": 27969406.65,
               "eps_2q": 0.05,
               "reference_admissible": true,
               "reference_time_us": 17804800.0,
@@ -2273,43 +2318,43 @@
             },
             {
               "candidate_admissible": true,
-              "candidate_time_us": 8018400.0,
+              "candidate_time_us": 8274400.0,
               "eps_2q": 0.0,
               "reference_admissible": true,
               "reference_time_us": 17804800.0,
               "t_2q_over_readout_reset": 0.1,
-              "winner": "candidate"
+              "winner": "not_accuracy_matched"
             },
             {
               "candidate_admissible": true,
-              "candidate_time_us": 9445578.799999995,
+              "candidate_time_us": 9749687.95,
               "eps_2q": 0.005,
               "reference_admissible": true,
               "reference_time_us": 17804800.0,
               "t_2q_over_readout_reset": 0.1,
-              "winner": "candidate"
+              "winner": "not_accuracy_matched"
             },
             {
               "candidate_admissible": true,
-              "candidate_time_us": 11166555.5,
+              "candidate_time_us": 11528999.950000003,
               "eps_2q": 0.01,
               "reference_admissible": true,
               "reference_time_us": 17804800.0,
               "t_2q_over_readout_reset": 0.1,
-              "winner": "candidate"
+              "winner": "not_accuracy_matched"
             },
             {
               "candidate_admissible": true,
-              "candidate_time_us": 15780858.600000001,
+              "candidate_time_us": 16301014.15,
               "eps_2q": 0.02,
               "reference_admissible": true,
               "reference_time_us": 17804800.0,
               "t_2q_over_readout_reset": 0.1,
-              "winner": "candidate"
+              "winner": "not_accuracy_matched"
             },
             {
               "candidate_admissible": false,
-              "candidate_time_us": 48830353.4,
+              "candidate_time_us": 50506374.65,
               "eps_2q": 0.05,
               "reference_admissible": true,
               "reference_time_us": 17804800.0,
@@ -2318,43 +2363,43 @@
             },
             {
               "candidate_admissible": true,
-              "candidate_time_us": 21580000.0,
+              "candidate_time_us": 21989600.0,
               "eps_2q": 0.0,
               "reference_admissible": true,
               "reference_time_us": 17804800.0,
               "t_2q_over_readout_reset": 0.5,
-              "winner": "reference"
+              "winner": "not_accuracy_matched"
             },
             {
               "candidate_admissible": true,
-              "candidate_time_us": 25557763.600000005,
+              "candidate_time_us": 26043275.950000007,
               "eps_2q": 0.005,
               "reference_admissible": true,
               "reference_time_us": 17804800.0,
               "t_2q_over_readout_reset": 0.5,
-              "winner": "reference"
+              "winner": "not_accuracy_matched"
             },
             {
               "candidate_admissible": true,
-              "candidate_time_us": 30373743.5,
+              "candidate_time_us": 30951185.549999997,
               "eps_2q": 0.01,
               "reference_admissible": true,
               "reference_time_us": 17804800.0,
               "t_2q_over_readout_reset": 0.5,
-              "winner": "reference"
+              "winner": "not_accuracy_matched"
             },
             {
               "candidate_admissible": true,
-              "candidate_time_us": 43365405.80000001,
+              "candidate_time_us": 44190990.150000006,
               "eps_2q": 0.02,
               "reference_admissible": true,
               "reference_time_us": 17804800.0,
               "t_2q_over_readout_reset": 0.5,
-              "winner": "reference"
+              "winner": "not_accuracy_matched"
             },
             {
               "candidate_admissible": false,
-              "candidate_time_us": 138009451.80000004,
+              "candidate_time_us": 140654246.65,
               "eps_2q": 0.05,
               "reference_admissible": true,
               "reference_time_us": 17804800.0,
@@ -2363,43 +2408,43 @@
             },
             {
               "candidate_admissible": true,
-              "candidate_time_us": 38532000.0,
+              "candidate_time_us": 39133600.0,
               "eps_2q": 0.0,
               "reference_admissible": true,
               "reference_time_us": 17804800.0,
               "t_2q_over_readout_reset": 1.0,
-              "winner": "reference"
+              "winner": "not_accuracy_matched"
             },
             {
               "candidate_admissible": true,
-              "candidate_time_us": 45697994.60000001,
+              "candidate_time_us": 46410260.95000001,
               "eps_2q": 0.005,
               "reference_admissible": true,
               "reference_time_us": 17804800.0,
               "t_2q_over_readout_reset": 1.0,
-              "winner": "reference"
+              "winner": "not_accuracy_matched"
             },
             {
               "candidate_admissible": true,
-              "candidate_time_us": 54382728.49999999,
+              "candidate_time_us": 55228917.54999999,
               "eps_2q": 0.01,
               "reference_admissible": true,
               "reference_time_us": 17804800.0,
               "t_2q_over_readout_reset": 1.0,
-              "winner": "reference"
+              "winner": "not_accuracy_matched"
             },
             {
               "candidate_admissible": true,
-              "candidate_time_us": 77846089.79999998,
+              "candidate_time_us": 79053460.14999998,
               "eps_2q": 0.02,
               "reference_admissible": true,
               "reference_time_us": 17804800.0,
               "t_2q_over_readout_reset": 1.0,
-              "winner": "reference"
+              "winner": "not_accuracy_matched"
             },
             {
               "candidate_admissible": false,
-              "candidate_time_us": 249483324.80000007,
+              "candidate_time_us": 253339086.64999998,
               "eps_2q": 0.05,
               "reference_admissible": true,
               "reference_time_us": 17804800.0,
@@ -2408,43 +2453,43 @@
             },
             {
               "candidate_admissible": true,
-              "candidate_time_us": 72436000.0,
+              "candidate_time_us": 73421600.0,
               "eps_2q": 0.0,
               "reference_admissible": true,
               "reference_time_us": 17804800.0,
               "t_2q_over_readout_reset": 2.0,
-              "winner": "reference"
+              "winner": "not_accuracy_matched"
             },
             {
               "candidate_admissible": true,
-              "candidate_time_us": 85978456.59999998,
+              "candidate_time_us": 87144230.94999997,
               "eps_2q": 0.005,
               "reference_admissible": true,
               "reference_time_us": 17804800.0,
               "t_2q_over_readout_reset": 2.0,
-              "winner": "reference"
+              "winner": "not_accuracy_matched"
             },
             {
               "candidate_admissible": true,
-              "candidate_time_us": 102400698.5,
+              "candidate_time_us": 103784381.55000001,
               "eps_2q": 0.01,
               "reference_admissible": true,
               "reference_time_us": 17804800.0,
               "t_2q_over_readout_reset": 2.0,
-              "winner": "reference"
+              "winner": "not_accuracy_matched"
             },
             {
               "candidate_admissible": true,
-              "candidate_time_us": 146807457.79999995,
+              "candidate_time_us": 148778400.14999998,
               "eps_2q": 0.02,
               "reference_admissible": true,
               "reference_time_us": 17804800.0,
               "t_2q_over_readout_reset": 2.0,
-              "winner": "reference"
+              "winner": "not_accuracy_matched"
             },
             {
               "candidate_admissible": false,
-              "candidate_time_us": 472431070.79999995,
+              "candidate_time_us": 478708766.65,
               "eps_2q": 0.05,
               "reference_admissible": true,
               "reference_time_us": 17804800.0,
@@ -2465,25 +2510,25 @@
           "points": [
             {
               "candidate_admissible": true,
-              "candidate_time_us": 9690188.000000004,
+              "candidate_time_us": 10014802.850000001,
               "eps_2q": 0.0,
               "reference_admissible": true,
               "reference_time_us": 37076689.900000006,
               "t_2q_over_readout_reset": 0.0,
-              "winner": "candidate"
+              "winner": "not_accuracy_matched"
             },
             {
               "candidate_admissible": true,
-              "candidate_time_us": 15689379.950000001,
+              "candidate_time_us": 16239785.499999998,
               "eps_2q": 0.005,
               "reference_admissible": true,
               "reference_time_us": 37076689.900000006,
               "t_2q_over_readout_reset": 0.0,
-              "winner": "candidate"
+              "winner": "not_accuracy_matched"
             },
             {
               "candidate_admissible": false,
-              "candidate_time_us": 26134785.300000004,
+              "candidate_time_us": 27091113.700000007,
               "eps_2q": 0.01,
               "reference_admissible": true,
               "reference_time_us": 37076689.900000006,
@@ -2492,7 +2537,7 @@
             },
             {
               "candidate_admissible": false,
-              "candidate_time_us": 79021683.99999999,
+              "candidate_time_us": 82130344.14999999,
               "eps_2q": 0.02,
               "reference_admissible": true,
               "reference_time_us": 37076689.900000006,
@@ -2501,7 +2546,7 @@
             },
             {
               "candidate_admissible": false,
-              "candidate_time_us": 4291447868.499999,
+              "candidate_time_us": 4482552360.299999,
               "eps_2q": 0.05,
               "reference_admissible": true,
               "reference_time_us": 37076689.900000006,
@@ -2510,25 +2555,25 @@
             },
             {
               "candidate_admissible": true,
-              "candidate_time_us": 19772012.8,
+              "candidate_time_us": 20211168.85,
               "eps_2q": 0.0,
               "reference_admissible": true,
               "reference_time_us": 37076689.900000006,
               "t_2q_over_readout_reset": 0.1,
-              "winner": "candidate"
+              "winner": "not_accuracy_matched"
             },
             {
               "candidate_admissible": true,
-              "candidate_time_us": 32746441.55,
+              "candidate_time_us": 33487291.1,
               "eps_2q": 0.005,
               "reference_admissible": true,
               "reference_time_us": 37076689.900000006,
               "t_2q_over_readout_reset": 0.1,
-              "winner": "candidate"
+              "winner": "not_accuracy_matched"
             },
             {
               "candidate_admissible": false,
-              "candidate_time_us": 55747628.49999999,
+              "candidate_time_us": 57029958.900000006,
               "eps_2q": 0.01,
               "reference_admissible": true,
               "reference_time_us": 37076689.900000006,
@@ -2537,7 +2582,7 @@
             },
             {
               "candidate_admissible": false,
-              "candidate_time_us": 175540241.20000008,
+              "candidate_time_us": 179702741.75000003,
               "eps_2q": 0.02,
               "reference_admissible": true,
               "reference_time_us": 37076689.900000006,
@@ -2546,7 +2591,7 @@
             },
             {
               "candidate_admissible": false,
-              "candidate_time_us": 10483920927.7,
+              "candidate_time_us": 10759980855.900005,
               "eps_2q": 0.05,
               "reference_admissible": true,
               "reference_time_us": 37076689.900000006,
@@ -2555,25 +2600,25 @@
             },
             {
               "candidate_admissible": true,
-              "candidate_time_us": 60099311.99999999,
+              "candidate_time_us": 60996632.849999994,
               "eps_2q": 0.0,
               "reference_admissible": true,
               "reference_time_us": 37076689.900000006,
               "t_2q_over_readout_reset": 0.5,
-              "winner": "reference"
+              "winner": "not_accuracy_matched"
             },
             {
               "candidate_admissible": true,
-              "candidate_time_us": 100974687.95,
+              "candidate_time_us": 102477313.49999999,
               "eps_2q": 0.005,
               "reference_admissible": true,
               "reference_time_us": 37076689.900000006,
               "t_2q_over_readout_reset": 0.5,
-              "winner": "reference"
+              "winner": "not_accuracy_matched"
             },
             {
               "candidate_admissible": false,
-              "candidate_time_us": 174199001.29999998,
+              "candidate_time_us": 176785339.70000002,
               "eps_2q": 0.01,
               "reference_admissible": true,
               "reference_time_us": 37076689.900000006,
@@ -2582,7 +2627,7 @@
             },
             {
               "candidate_admissible": false,
-              "candidate_time_us": 561614470.0000001,
+              "candidate_time_us": 569992332.15,
               "eps_2q": 0.02,
               "reference_admissible": true,
               "reference_time_us": 37076689.900000006,
@@ -2591,7 +2636,7 @@
             },
             {
               "candidate_admissible": false,
-              "candidate_time_us": 35253813164.499985,
+              "candidate_time_us": 35869694838.3,
               "eps_2q": 0.05,
               "reference_admissible": true,
               "reference_time_us": 37076689.900000006,
@@ -2600,25 +2645,25 @@
             },
             {
               "candidate_admissible": true,
-              "candidate_time_us": 110508435.99999999,
+              "candidate_time_us": 111978462.85000001,
               "eps_2q": 0.0,
               "reference_admissible": true,
               "reference_time_us": 37076689.900000006,
               "t_2q_over_readout_reset": 1.0,
-              "winner": "reference"
+              "winner": "not_accuracy_matched"
             },
             {
               "candidate_admissible": true,
-              "candidate_time_us": 186259995.95000002,
+              "candidate_time_us": 188714841.5,
               "eps_2q": 0.005,
               "reference_admissible": true,
               "reference_time_us": 37076689.900000006,
               "t_2q_over_readout_reset": 1.0,
-              "winner": "reference"
+              "winner": "not_accuracy_matched"
             },
             {
               "candidate_admissible": false,
-              "candidate_time_us": 322263217.3000001,
+              "candidate_time_us": 326479565.70000005,
               "eps_2q": 0.01,
               "reference_admissible": true,
               "reference_time_us": 37076689.900000006,
@@ -2627,7 +2672,7 @@
             },
             {
               "candidate_admissible": false,
-              "candidate_time_us": 1044207256.0000001,
+              "candidate_time_us": 1057854320.1499999,
               "eps_2q": 0.02,
               "reference_admissible": true,
               "reference_time_us": 37076689.900000006,
@@ -2636,7 +2681,7 @@
             },
             {
               "candidate_admissible": false,
-              "candidate_time_us": 66216178460.499985,
+              "candidate_time_us": 67256837316.3,
               "eps_2q": 0.05,
               "reference_admissible": true,
               "reference_time_us": 37076689.900000006,
@@ -2645,25 +2690,25 @@
             },
             {
               "candidate_admissible": true,
-              "candidate_time_us": 211326684.00000003,
+              "candidate_time_us": 213942122.85000002,
               "eps_2q": 0.0,
               "reference_admissible": true,
               "reference_time_us": 37076689.900000006,
               "t_2q_over_readout_reset": 2.0,
-              "winner": "reference"
+              "winner": "not_accuracy_matched"
             },
             {
               "candidate_admissible": true,
-              "candidate_time_us": 356830611.95000005,
+              "candidate_time_us": 361189897.50000006,
               "eps_2q": 0.005,
               "reference_admissible": true,
               "reference_time_us": 37076689.900000006,
               "t_2q_over_readout_reset": 2.0,
-              "winner": "reference"
+              "winner": "not_accuracy_matched"
             },
             {
               "candidate_admissible": false,
-              "candidate_time_us": 618391649.3000002,
+              "candidate_time_us": 625868017.6999999,
               "eps_2q": 0.01,
               "reference_admissible": true,
               "reference_time_us": 37076689.900000006,
@@ -2672,7 +2717,7 @@
             },
             {
               "candidate_admissible": false,
-              "candidate_time_us": 2009392828.0,
+              "candidate_time_us": 2033578296.1499999,
               "eps_2q": 0.02,
               "reference_admissible": true,
               "reference_time_us": 37076689.900000006,
@@ -2681,7 +2726,7 @@
             },
             {
               "candidate_admissible": false,
-              "candidate_time_us": 128140909052.50002,
+              "candidate_time_us": 130031122272.29999,
               "eps_2q": 0.05,
               "reference_admissible": true,
               "reference_time_us": 37076689.900000006,
@@ -2716,7 +2761,7 @@
               "mean": 0.8392894822268129,
               "min": 0.773147395507279
             },
-            "fixed_shot_time_us": 5684996270.0,
+            "fixed_shot_time_us": 5803502140.0,
             "inadmissible_settings": 0,
             "logical_1q_applications": 96276336,
             "logical_2q_applications": 42843368,
@@ -2806,7 +2851,7 @@
               "mean": 0.8392894822268129,
               "min": 0.773147395507279
             },
-            "fixed_shot_time_us": 3935200000.0,
+            "fixed_shot_time_us": 4017120000.0,
             "inadmissible_settings": 0,
             "logical_1q_applications": 66872000,
             "logical_2q_applications": 29504000,
@@ -2845,7 +2890,7 @@
               "mean": 1.0,
               "min": 1.0
             },
-            "fixed_shot_time_us": 9713600.0,
+            "fixed_shot_time_us": 9988800.0,
             "inadmissible_settings": 0,
             "logical_1q_applications": 66872000,
             "logical_2q_applications": 29504000,
@@ -2935,7 +2980,7 @@
               "mean": 1.0,
               "min": 1.0
             },
-            "fixed_shot_time_us": 9713600.0,
+            "fixed_shot_time_us": 9988800.0,
             "inadmissible_settings": 0,
             "logical_1q_applications": 66872000,
             "logical_2q_applications": 29504000,
@@ -2974,7 +3019,7 @@
               "mean": 0.5219833131968887,
               "min": 0.32654797526508805
             },
-            "fixed_shot_time_us": 70554050.10000001,
+            "fixed_shot_time_us": 71999381.49999997,
             "inadmissible_settings": 109,
             "logical_1q_applications": 280183174,
             "logical_2q_applications": 131077224,
@@ -3064,7 +3109,7 @@
               "mean": 0.5219833131968887,
               "min": 0.32654797526508805
             },
-            "fixed_shot_time_us": 16703200.0,
+            "fixed_shot_time_us": 17036000.0,
             "inadmissible_settings": 109,
             "logical_1q_applications": 66872000,
             "logical_2q_applications": 29504000,
@@ -3150,14 +3195,14 @@
       "mean_logical_cx_per_setting": 15.495798319327731,
       "resource_metrics": {
         "D_1q": {
-          "max": 14,
-          "mean": 8.61344537815126,
-          "sum": 2050
+          "max": 17,
+          "mean": 10.899159663865547,
+          "sum": 2594
         },
         "D_2q": {
           "max": 17,
-          "mean": 8.903361344537815,
-          "sum": 2119
+          "mean": 9.004201680672269,
+          "sum": 2143
         },
         "N_1q": {
           "max": 62,
@@ -3178,6 +3223,7 @@
     {
       "accuracy_matched_costs": {
         "pooled": {
+          "C_time_epsilon_device_card": null,
           "C_time_epsilon_us": null,
           "claim_boundary": "first-order Ritz-functional propagation about the exact frozen bank; not a finite-sample energy certificate or nonlinear solver study",
           "device_costs": {},
@@ -3185,10 +3231,17 @@
           "epsilon_millihartree": 1.6,
           "evidence_tier": "asymptotic",
           "exact_subspace_bias_millihartree": 3.018781343635979,
+          "inadmissible_device_cards": [
+            "ion-like",
+            "logical-alltoall",
+            "superconducting-like"
+          ],
           "linearized_variance_ha2_at_one_shot_per_setting": null,
+          "pooled_weighting": "uniform over the settings that read each word, which is the inverse-variance combination at the equal-effective-shot schedule priced here",
           "status": "bias_floor_exceeds_target"
         },
         "single_assignment": {
+          "C_time_epsilon_device_card": null,
           "C_time_epsilon_us": null,
           "claim_boundary": "first-order Ritz-functional propagation about the exact frozen bank; not a finite-sample energy certificate or nonlinear solver study",
           "device_costs": {},
@@ -3196,7 +3249,13 @@
           "epsilon_millihartree": 1.6,
           "evidence_tier": "asymptotic",
           "exact_subspace_bias_millihartree": 3.018781343635979,
+          "inadmissible_device_cards": [
+            "ion-like",
+            "logical-alltoall",
+            "superconducting-like"
+          ],
           "linearized_variance_ha2_at_one_shot_per_setting": null,
+          "pooled_weighting": "uniform over the settings that read each word, which is the inverse-variance combination at the equal-effective-shot schedule priced here",
           "status": "bias_floor_exceeds_target"
         }
       },
@@ -3213,34 +3272,34 @@
           "points": [
             {
               "candidate_admissible": true,
-              "candidate_time_us": 178132080.0,
+              "candidate_time_us": 226045940.0,
               "eps_2q": 0.0,
               "reference_admissible": true,
               "reference_time_us": 2550151200.0,
               "t_2q_over_readout_reset": 0.0,
-              "winner": "candidate"
+              "winner": "not_accuracy_matched"
             },
             {
               "candidate_admissible": true,
-              "candidate_time_us": 245160940.0,
+              "candidate_time_us": 311645370.0,
               "eps_2q": 0.005,
               "reference_admissible": true,
               "reference_time_us": 2550151200.0,
               "t_2q_over_readout_reset": 0.0,
-              "winner": "candidate"
+              "winner": "not_accuracy_matched"
             },
             {
               "candidate_admissible": true,
-              "candidate_time_us": 339385470.0,
+              "candidate_time_us": 432122110.0,
               "eps_2q": 0.01,
               "reference_admissible": true,
               "reference_time_us": 2550151200.0,
               "t_2q_over_readout_reset": 0.0,
-              "winner": "candidate"
+              "winner": "not_accuracy_matched"
             },
             {
               "candidate_admissible": false,
-              "candidate_time_us": 661663140.0,
+              "candidate_time_us": 845034950.0,
               "eps_2q": 0.02,
               "reference_admissible": true,
               "reference_time_us": 2550151200.0,
@@ -3249,7 +3308,7 @@
             },
             {
               "candidate_admissible": false,
-              "candidate_time_us": 5626857760.0,
+              "candidate_time_us": 7251704260.0,
               "eps_2q": 0.05,
               "reference_admissible": true,
               "reference_time_us": 2550151200.0,
@@ -3258,34 +3317,34 @@
             },
             {
               "candidate_admissible": true,
-              "candidate_time_us": 419549955.0,
+              "candidate_time_us": 478823705.0,
               "eps_2q": 0.0,
               "reference_admissible": true,
               "reference_time_us": 2550151200.0,
               "t_2q_over_readout_reset": 0.1,
-              "winner": "candidate"
+              "winner": "not_accuracy_matched"
             },
             {
               "candidate_admissible": true,
-              "candidate_time_us": 581339230.0,
+              "candidate_time_us": 663441045.0,
               "eps_2q": 0.005,
               "reference_admissible": true,
               "reference_time_us": 2550151200.0,
               "t_2q_over_readout_reset": 0.1,
-              "winner": "candidate"
+              "winner": "not_accuracy_matched"
             },
             {
               "candidate_admissible": true,
-              "candidate_time_us": 809915850.0,
+              "candidate_time_us": 924234430.0,
               "eps_2q": 0.01,
               "reference_admissible": true,
               "reference_time_us": 2550151200.0,
               "t_2q_over_readout_reset": 0.1,
-              "winner": "candidate"
+              "winner": "not_accuracy_matched"
             },
             {
               "candidate_admissible": false,
-              "candidate_time_us": 1598113395.0,
+              "candidate_time_us": 1823369960.0,
               "eps_2q": 0.02,
               "reference_admissible": true,
               "reference_time_us": 2550151200.0,
@@ -3294,7 +3353,7 @@
             },
             {
               "candidate_admissible": false,
-              "candidate_time_us": 14067451885.0,
+              "candidate_time_us": 16042966645.0,
               "eps_2q": 0.05,
               "reference_admissible": true,
               "reference_time_us": 2550151200.0,
@@ -3303,34 +3362,34 @@
             },
             {
               "candidate_admissible": true,
-              "candidate_time_us": 1385221455.0,
+              "candidate_time_us": 1489934765.0,
               "eps_2q": 0.0,
               "reference_admissible": true,
               "reference_time_us": 2550151200.0,
               "t_2q_over_readout_reset": 0.5,
-              "winner": "candidate"
+              "winner": "not_accuracy_matched"
             },
             {
               "candidate_admissible": true,
-              "candidate_time_us": 1926052390.0,
+              "candidate_time_us": 2070623745.0,
               "eps_2q": 0.005,
               "reference_admissible": true,
               "reference_time_us": 2550151200.0,
               "t_2q_over_readout_reset": 0.5,
-              "winner": "candidate"
+              "winner": "not_accuracy_matched"
             },
             {
               "candidate_admissible": true,
-              "candidate_time_us": 2692037370.0,
+              "candidate_time_us": 2892683710.0,
               "eps_2q": 0.01,
               "reference_admissible": true,
               "reference_time_us": 2550151200.0,
               "t_2q_over_readout_reset": 0.5,
-              "winner": "reference"
+              "winner": "not_accuracy_matched"
             },
             {
               "candidate_admissible": false,
-              "candidate_time_us": 5343914415.0,
+              "candidate_time_us": 5736710000.0,
               "eps_2q": 0.02,
               "reference_admissible": true,
               "reference_time_us": 2550151200.0,
@@ -3339,7 +3398,7 @@
             },
             {
               "candidate_admissible": false,
-              "candidate_time_us": 47829828385.0,
+              "candidate_time_us": 51208016185.0,
               "eps_2q": 0.05,
               "reference_admissible": true,
               "reference_time_us": 2550151200.0,
@@ -3348,34 +3407,34 @@
             },
             {
               "candidate_admissible": true,
-              "candidate_time_us": 2592310830.0,
+              "candidate_time_us": 2753823590.0,
               "eps_2q": 0.0,
               "reference_admissible": true,
               "reference_time_us": 2550151200.0,
               "t_2q_over_readout_reset": 1.0,
-              "winner": "reference"
+              "winner": "not_accuracy_matched"
             },
             {
               "candidate_admissible": true,
-              "candidate_time_us": 3606943840.0,
+              "candidate_time_us": 3829602120.0,
               "eps_2q": 0.005,
               "reference_admissible": true,
               "reference_time_us": 2550151200.0,
               "t_2q_over_readout_reset": 1.0,
-              "winner": "reference"
+              "winner": "not_accuracy_matched"
             },
             {
               "candidate_admissible": true,
-              "candidate_time_us": 5044689270.0,
+              "candidate_time_us": 5353245310.0,
               "eps_2q": 0.01,
               "reference_admissible": true,
               "reference_time_us": 2550151200.0,
               "t_2q_over_readout_reset": 1.0,
-              "winner": "reference"
+              "winner": "not_accuracy_matched"
             },
             {
               "candidate_admissible": false,
-              "candidate_time_us": 10026165690.0,
+              "candidate_time_us": 10628385050.0,
               "eps_2q": 0.02,
               "reference_admissible": true,
               "reference_time_us": 2550151200.0,
@@ -3384,7 +3443,7 @@
             },
             {
               "candidate_admissible": false,
-              "candidate_time_us": 90032799010.0,
+              "candidate_time_us": 95164328110.0,
               "eps_2q": 0.05,
               "reference_admissible": true,
               "reference_time_us": 2550151200.0,
@@ -3393,34 +3452,34 @@
             },
             {
               "candidate_admissible": true,
-              "candidate_time_us": 5006489580.0,
+              "candidate_time_us": 5281601240.0,
               "eps_2q": 0.0,
               "reference_admissible": true,
               "reference_time_us": 2550151200.0,
               "t_2q_over_readout_reset": 2.0,
-              "winner": "reference"
+              "winner": "not_accuracy_matched"
             },
             {
               "candidate_admissible": true,
-              "candidate_time_us": 6968726740.0,
+              "candidate_time_us": 7347558870.0,
               "eps_2q": 0.005,
               "reference_admissible": true,
               "reference_time_us": 2550151200.0,
               "t_2q_over_readout_reset": 2.0,
-              "winner": "reference"
+              "winner": "not_accuracy_matched"
             },
             {
               "candidate_admissible": true,
-              "candidate_time_us": 9749993070.0,
+              "candidate_time_us": 10274368510.0,
               "eps_2q": 0.01,
               "reference_admissible": true,
               "reference_time_us": 2550151200.0,
               "t_2q_over_readout_reset": 2.0,
-              "winner": "reference"
+              "winner": "not_accuracy_matched"
             },
             {
               "candidate_admissible": false,
-              "candidate_time_us": 19390668240.0,
+              "candidate_time_us": 20411735150.0,
               "eps_2q": 0.02,
               "reference_admissible": true,
               "reference_time_us": 2550151200.0,
@@ -3429,7 +3488,7 @@
             },
             {
               "candidate_admissible": false,
-              "candidate_time_us": 174438740260.0,
+              "candidate_time_us": 183076951960.0,
               "eps_2q": 0.05,
               "reference_admissible": true,
               "reference_time_us": 2550151200.0,
@@ -3450,34 +3509,34 @@
           "points": [
             {
               "candidate_admissible": true,
-              "candidate_time_us": 1240800.0,
+              "candidate_time_us": 1436400.0,
               "eps_2q": 0.0,
               "reference_admissible": true,
               "reference_time_us": 17804800.0,
               "t_2q_over_readout_reset": 0.0,
-              "winner": "candidate"
+              "winner": "not_accuracy_matched"
             },
             {
               "candidate_admissible": true,
-              "candidate_time_us": 1705391.75,
+              "candidate_time_us": 1976742.5999999999,
               "eps_2q": 0.005,
               "reference_admissible": true,
               "reference_time_us": 17804800.0,
               "t_2q_over_readout_reset": 0.0,
-              "winner": "candidate"
+              "winner": "not_accuracy_matched"
             },
             {
               "candidate_admissible": true,
-              "candidate_time_us": 2357809.65,
+              "candidate_time_us": 2736205.25,
               "eps_2q": 0.01,
               "reference_admissible": true,
               "reference_time_us": 17804800.0,
               "t_2q_over_readout_reset": 0.0,
-              "winner": "candidate"
+              "winner": "not_accuracy_matched"
             },
             {
               "candidate_admissible": false,
-              "candidate_time_us": 4585795.799999999,
+              "candidate_time_us": 5333583.199999999,
               "eps_2q": 0.02,
               "reference_admissible": true,
               "reference_time_us": 17804800.0,
@@ -3486,7 +3545,7 @@
             },
             {
               "candidate_admissible": false,
-              "candidate_time_us": 38740102.25,
+              "candidate_time_us": 45354476.65,
               "eps_2q": 0.05,
               "reference_admissible": true,
               "reference_time_us": 17804800.0,
@@ -3495,34 +3554,34 @@
             },
             {
               "candidate_admissible": true,
-              "candidate_time_us": 3874400.0,
+              "candidate_time_us": 4193200.0,
               "eps_2q": 0.0,
               "reference_admissible": true,
               "reference_time_us": 17804800.0,
               "t_2q_over_readout_reset": 0.1,
-              "winner": "candidate"
+              "winner": "not_accuracy_matched"
             },
             {
               "candidate_admissible": true,
-              "candidate_time_us": 5371859.95,
+              "candidate_time_us": 5812516.4,
               "eps_2q": 0.005,
               "reference_admissible": true,
               "reference_time_us": 17804800.0,
               "t_2q_over_readout_reset": 0.1,
-              "winner": "candidate"
+              "winner": "not_accuracy_matched"
             },
             {
               "candidate_admissible": true,
-              "candidate_time_us": 7488099.65,
+              "candidate_time_us": 8100355.850000001,
               "eps_2q": 0.01,
               "reference_admissible": true,
               "reference_time_us": 17804800.0,
               "t_2q_over_readout_reset": 0.1,
-              "winner": "candidate"
+              "winner": "not_accuracy_matched"
             },
             {
               "candidate_admissible": false,
-              "candidate_time_us": 14789832.0,
+              "candidate_time_us": 15991035.600000001,
               "eps_2q": 0.02,
               "reference_admissible": true,
               "reference_time_us": 17804800.0,
@@ -3531,7 +3590,7 @@
             },
             {
               "candidate_admissible": false,
-              "candidate_time_us": 130534817.65,
+              "candidate_time_us": 140933668.05,
               "eps_2q": 0.05,
               "reference_admissible": true,
               "reference_time_us": 17804800.0,
@@ -3540,34 +3599,34 @@
             },
             {
               "candidate_admissible": true,
-              "candidate_time_us": 14408800.0,
+              "candidate_time_us": 15220400.0,
               "eps_2q": 0.0,
               "reference_admissible": true,
               "reference_time_us": 17804800.0,
               "t_2q_over_readout_reset": 0.5,
-              "winner": "candidate"
+              "winner": "not_accuracy_matched"
             },
             {
               "candidate_admissible": true,
-              "candidate_time_us": 20037732.75,
+              "candidate_time_us": 21155611.6,
               "eps_2q": 0.005,
               "reference_admissible": true,
               "reference_time_us": 17804800.0,
               "t_2q_over_readout_reset": 0.5,
-              "winner": "reference"
+              "winner": "not_accuracy_matched"
             },
             {
               "candidate_admissible": true,
-              "candidate_time_us": 28009259.65,
+              "candidate_time_us": 29556958.25,
               "eps_2q": 0.01,
               "reference_admissible": true,
               "reference_time_us": 17804800.0,
               "t_2q_over_readout_reset": 0.5,
-              "winner": "reference"
+              "winner": "not_accuracy_matched"
             },
             {
               "candidate_admissible": false,
-              "candidate_time_us": 55605976.800000004,
+              "candidate_time_us": 58620845.2,
               "eps_2q": 0.02,
               "reference_admissible": true,
               "reference_time_us": 17804800.0,
@@ -3576,7 +3635,7 @@
             },
             {
               "candidate_admissible": false,
-              "candidate_time_us": 497713679.25,
+              "candidate_time_us": 523250433.65,
               "eps_2q": 0.05,
               "reference_admissible": true,
               "reference_time_us": 17804800.0,
@@ -3585,34 +3644,34 @@
             },
             {
               "candidate_admissible": true,
-              "candidate_time_us": 27576800.0,
+              "candidate_time_us": 29004400.0,
               "eps_2q": 0.0,
               "reference_admissible": true,
               "reference_time_us": 17804800.0,
               "t_2q_over_readout_reset": 1.0,
-              "winner": "reference"
+              "winner": "not_accuracy_matched"
             },
             {
               "candidate_admissible": true,
-              "candidate_time_us": 38370073.75,
+              "candidate_time_us": 40334480.599999994,
               "eps_2q": 0.005,
               "reference_admissible": true,
               "reference_time_us": 17804800.0,
               "t_2q_over_readout_reset": 1.0,
-              "winner": "reference"
+              "winner": "not_accuracy_matched"
             },
             {
               "candidate_admissible": true,
-              "candidate_time_us": 53660709.650000006,
+              "candidate_time_us": 56377711.25,
               "eps_2q": 0.01,
               "reference_admissible": true,
               "reference_time_us": 17804800.0,
               "t_2q_over_readout_reset": 1.0,
-              "winner": "reference"
+              "winner": "not_accuracy_matched"
             },
             {
               "candidate_admissible": false,
-              "candidate_time_us": 106626157.80000001,
+              "candidate_time_us": 111908107.19999999,
               "eps_2q": 0.02,
               "reference_admissible": true,
               "reference_time_us": 17804800.0,
@@ -3621,7 +3680,7 @@
             },
             {
               "candidate_admissible": false,
-              "candidate_time_us": 956687256.25,
+              "candidate_time_us": 1001146390.6500001,
               "eps_2q": 0.05,
               "reference_admissible": true,
               "reference_time_us": 17804800.0,
@@ -3630,34 +3689,34 @@
             },
             {
               "candidate_admissible": true,
-              "candidate_time_us": 53912800.0,
+              "candidate_time_us": 56572400.0,
               "eps_2q": 0.0,
               "reference_admissible": true,
               "reference_time_us": 17804800.0,
               "t_2q_over_readout_reset": 2.0,
-              "winner": "reference"
+              "winner": "not_accuracy_matched"
             },
             {
               "candidate_admissible": true,
-              "candidate_time_us": 75034755.75,
+              "candidate_time_us": 78692218.6,
               "eps_2q": 0.005,
               "reference_admissible": true,
               "reference_time_us": 17804800.0,
               "t_2q_over_readout_reset": 2.0,
-              "winner": "reference"
+              "winner": "not_accuracy_matched"
             },
             {
               "candidate_admissible": true,
-              "candidate_time_us": 104963609.65,
+              "candidate_time_us": 110019217.25,
               "eps_2q": 0.01,
               "reference_admissible": true,
               "reference_time_us": 17804800.0,
               "t_2q_over_readout_reset": 2.0,
-              "winner": "reference"
+              "winner": "not_accuracy_matched"
             },
             {
               "candidate_admissible": false,
-              "candidate_time_us": 208666519.79999998,
+              "candidate_time_us": 218482631.2,
               "eps_2q": 0.02,
               "reference_admissible": true,
               "reference_time_us": 17804800.0,
@@ -3666,7 +3725,7 @@
             },
             {
               "candidate_admissible": false,
-              "candidate_time_us": 1874634410.25,
+              "candidate_time_us": 1956938304.65,
               "eps_2q": 0.05,
               "reference_admissible": true,
               "reference_time_us": 17804800.0,
@@ -3687,16 +3746,16 @@
           "points": [
             {
               "candidate_admissible": true,
-              "candidate_time_us": 2619150.95,
+              "candidate_time_us": 2913099.8499999996,
               "eps_2q": 0.0,
               "reference_admissible": true,
               "reference_time_us": 37076689.900000006,
               "t_2q_over_readout_reset": 0.0,
-              "winner": "candidate"
+              "winner": "not_accuracy_matched"
             },
             {
               "candidate_admissible": false,
-              "candidate_time_us": 6893795.65,
+              "candidate_time_us": 7688229.949999999,
               "eps_2q": 0.005,
               "reference_admissible": true,
               "reference_time_us": 37076689.900000006,
@@ -3705,7 +3764,7 @@
             },
             {
               "candidate_admissible": false,
-              "candidate_time_us": 18903421.05,
+              "candidate_time_us": 21133482.85,
               "eps_2q": 0.01,
               "reference_admissible": true,
               "reference_time_us": 37076689.900000006,
@@ -3714,7 +3773,7 @@
             },
             {
               "candidate_admissible": false,
-              "candidate_time_us": 159985683.35,
+              "candidate_time_us": 179754333.55,
               "eps_2q": 0.02,
               "reference_admissible": true,
               "reference_time_us": 37076689.900000006,
@@ -3723,7 +3782,7 @@
             },
             {
               "candidate_admissible": false,
-              "candidate_time_us": 241909927357.85004,
+              "candidate_time_us": 275764830528.15,
               "eps_2q": 0.05,
               "reference_admissible": true,
               "reference_time_us": 37076689.900000006,
@@ -3732,16 +3791,16 @@
             },
             {
               "candidate_admissible": true,
-              "candidate_time_us": 10501989.350000001,
+              "candidate_time_us": 11169026.25,
               "eps_2q": 0.0,
               "reference_admissible": true,
               "reference_time_us": 37076689.900000006,
               "t_2q_over_readout_reset": 0.1,
-              "winner": "candidate"
+              "winner": "not_accuracy_matched"
             },
             {
               "candidate_admissible": false,
-              "candidate_time_us": 28418153.65,
+              "candidate_time_us": 30193816.75,
               "eps_2q": 0.005,
               "reference_admissible": true,
               "reference_time_us": 37076689.900000006,
@@ -3750,7 +3809,7 @@
             },
             {
               "candidate_admissible": false,
-              "candidate_time_us": 79881660.25,
+              "candidate_time_us": 84792798.85000001,
               "eps_2q": 0.01,
               "reference_admissible": true,
               "reference_time_us": 37076689.900000006,
@@ -3759,7 +3818,7 @@
             },
             {
               "candidate_admissible": false,
-              "candidate_time_us": 709158053.75,
+              "candidate_time_us": 751419611.1500001,
               "eps_2q": 0.02,
               "reference_admissible": true,
               "reference_time_us": 37076689.900000006,
@@ -3768,7 +3827,7 @@
             },
             {
               "candidate_admissible": false,
-              "candidate_time_us": 1217334797301.8499,
+              "candidate_time_us": 1279837137898.55,
               "eps_2q": 0.05,
               "reference_admissible": true,
               "reference_time_us": 37076689.900000006,
@@ -3777,16 +3836,16 @@
             },
             {
               "candidate_admissible": true,
-              "candidate_time_us": 42033342.95,
+              "candidate_time_us": 44192731.849999994,
               "eps_2q": 0.0,
               "reference_admissible": true,
               "reference_time_us": 37076689.900000006,
               "t_2q_over_readout_reset": 0.5,
-              "winner": "reference"
+              "winner": "not_accuracy_matched"
             },
             {
               "candidate_admissible": false,
-              "candidate_time_us": 114515585.65,
+              "candidate_time_us": 120216163.95,
               "eps_2q": 0.005,
               "reference_admissible": true,
               "reference_time_us": 37076689.900000006,
@@ -3795,7 +3854,7 @@
             },
             {
               "candidate_admissible": false,
-              "candidate_time_us": 323794617.04999995,
+              "candidate_time_us": 339430062.85,
               "eps_2q": 0.01,
               "reference_admissible": true,
               "reference_time_us": 37076689.900000006,
@@ -3804,7 +3863,7 @@
             },
             {
               "candidate_admissible": false,
-              "candidate_time_us": 2905847535.35,
+              "candidate_time_us": 3038080721.55,
               "eps_2q": 0.02,
               "reference_admissible": true,
               "reference_time_us": 37076689.900000006,
@@ -3813,7 +3872,7 @@
             },
             {
               "candidate_admissible": false,
-              "candidate_time_us": 5119034277077.851,
+              "candidate_time_us": 5296126367380.15,
               "eps_2q": 0.05,
               "reference_admissible": true,
               "reference_time_us": 37076689.900000006,
@@ -3822,16 +3881,16 @@
             },
             {
               "candidate_admissible": true,
-              "candidate_time_us": 81447534.94999999,
+              "candidate_time_us": 85472363.85000001,
               "eps_2q": 0.0,
               "reference_admissible": true,
               "reference_time_us": 37076689.900000006,
               "t_2q_over_readout_reset": 1.0,
-              "winner": "reference"
+              "winner": "not_accuracy_matched"
             },
             {
               "candidate_admissible": false,
-              "candidate_time_us": 222137375.65,
+              "candidate_time_us": 232744097.95,
               "eps_2q": 0.005,
               "reference_admissible": true,
               "reference_time_us": 37076689.900000006,
@@ -3840,7 +3899,7 @@
             },
             {
               "candidate_admissible": false,
-              "candidate_time_us": 628685813.05,
+              "candidate_time_us": 657726642.8499999,
               "eps_2q": 0.01,
               "reference_admissible": true,
               "reference_time_us": 37076689.900000006,
@@ -3849,7 +3908,7 @@
             },
             {
               "candidate_admissible": false,
-              "candidate_time_us": 5651709387.35,
+              "candidate_time_us": 5896407109.55,
               "eps_2q": 0.02,
               "reference_admissible": true,
               "reference_time_us": 37076689.900000006,
@@ -3858,7 +3917,7 @@
             },
             {
               "candidate_admissible": false,
-              "candidate_time_us": 9996158626797.85,
+              "candidate_time_us": 10316487904232.15,
               "eps_2q": 0.05,
               "reference_admissible": true,
               "reference_time_us": 37076689.900000006,
@@ -3867,16 +3926,16 @@
             },
             {
               "candidate_admissible": true,
-              "candidate_time_us": 160275918.95,
+              "candidate_time_us": 168031627.85000002,
               "eps_2q": 0.0,
               "reference_admissible": true,
               "reference_time_us": 37076689.900000006,
               "t_2q_over_readout_reset": 2.0,
-              "winner": "reference"
+              "winner": "not_accuracy_matched"
             },
             {
               "candidate_admissible": false,
-              "candidate_time_us": 437380955.65,
+              "candidate_time_us": 457799965.95000005,
               "eps_2q": 0.005,
               "reference_admissible": true,
               "reference_time_us": 37076689.900000006,
@@ -3885,7 +3944,7 @@
             },
             {
               "candidate_admissible": false,
-              "candidate_time_us": 1238468205.0500002,
+              "candidate_time_us": 1294319802.85,
               "eps_2q": 0.01,
               "reference_admissible": true,
               "reference_time_us": 37076689.900000006,
@@ -3894,7 +3953,7 @@
             },
             {
               "candidate_admissible": false,
-              "candidate_time_us": 11143433091.35,
+              "candidate_time_us": 11613059885.55,
               "eps_2q": 0.02,
               "reference_admissible": true,
               "reference_time_us": 37076689.900000006,
@@ -3903,7 +3962,7 @@
             },
             {
               "candidate_admissible": false,
-              "candidate_time_us": 19750407326237.848,
+              "candidate_time_us": 20357210977936.15,
               "eps_2q": 0.05,
               "reference_admissible": true,
               "reference_time_us": 37076689.900000006,
@@ -3938,7 +3997,7 @@
               "mean": 0.7741423327868212,
               "min": 0.7128403623131008
             },
-            "fixed_shot_time_us": 4727538140.0,
+            "fixed_shot_time_us": 5002254370.0,
             "inadmissible_settings": 0,
             "logical_1q_applications": 33551897,
             "logical_2q_applications": 27322795,
@@ -4028,7 +4087,7 @@
               "mean": 0.7741423327868212,
               "min": 0.7128403623131008
             },
-            "fixed_shot_time_us": 2779360000.0,
+            "fixed_shot_time_us": 2941680000.0,
             "inadmissible_settings": 0,
             "logical_1q_applications": 19688000,
             "logical_2q_applications": 16048000,
@@ -4067,7 +4126,7 @@
               "mean": 1.0,
               "min": 1.0
             },
-            "fixed_shot_time_us": 5191200.0,
+            "fixed_shot_time_us": 5571600.0,
             "inadmissible_settings": 0,
             "logical_1q_applications": 19688000,
             "logical_2q_applications": 16048000,
@@ -4157,7 +4216,7 @@
               "mean": 1.0,
               "min": 1.0
             },
-            "fixed_shot_time_us": 5191200.0,
+            "fixed_shot_time_us": 5571600.0,
             "inadmissible_settings": 0,
             "logical_1q_applications": 19688000,
             "logical_2q_applications": 16048000,
@@ -4196,7 +4255,7 @@
               "mean": 0.326398609183552,
               "min": 0.19715963885246937
             },
-            "fixed_shot_time_us": 110370779.85,
+            "fixed_shot_time_us": 116622456.85,
             "inadmissible_settings": 63,
             "logical_1q_applications": 225557979,
             "logical_2q_applications": 185862531,
@@ -4286,7 +4345,7 @@
               "mean": 0.326398609183552,
               "min": 0.19715963885246937
             },
-            "fixed_shot_time_us": 9653600.0,
+            "fixed_shot_time_us": 10218800.0,
             "inadmissible_settings": 63,
             "logical_1q_applications": 19688000,
             "logical_2q_applications": 16048000,
@@ -4372,14 +4431,14 @@
       "mean_logical_cx_per_setting": 31.34375,
       "resource_metrics": {
         "D_1q": {
-          "max": 14,
-          "mean": 8.46875,
-          "sum": 542
+          "max": 26,
+          "mean": 16.109375,
+          "sum": 1031
         },
         "D_2q": {
           "max": 42,
-          "mean": 25.71875,
-          "sum": 1646
+          "mean": 26.921875,
+          "sum": 1723
         },
         "N_1q": {
           "max": 66,
