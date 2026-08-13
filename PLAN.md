@@ -56,10 +56,16 @@ Status at a glance:
 | A0–A5 | Paper A: exact research layer, measurement/confidence layer, scaling and layering, stabilizer initialization, chemistry | **done**; manuscript remains |
 | 0–7 | exterior layer, subspace solver, bank, adaptive growth, finite-shot certification, lattice models, sector backend, validation ladder | **done** |
 | 4R | pooled reconstruction and rank selection | **done**, off by default |
-| 8–12 | QSCI baseline, selected-CI controls, hybrid, overlap/multiresolution selection, Paper B ladder | Track A, open |
-| 13–14 | parity/X-rank invariant, fully commuting grouping | Track B, open |
-| 15–18 | second moments, time-evolved inputs, mapping breadth, embedding | Track C, open |
+| 8–12 | QSCI baseline, selected-CI controls, hybrid, overlap/multiresolution selection, Paper B ladder | **machinery shipped**; the readings it produces are what Paper B turns on |
+| 13 | parity/X-rank invariant | Track B, open |
+| 14 | fully commuting grouping | partial — the dyadic hierarchy runs as a benchmark (§6.6); the library API, cost model, and pooled re-measurement are R1/R3 |
+| 15–18 | second moments, time-evolved inputs, mapping breadth, embedding | Track C, open (Phase 18's versioned effective-Hamiltonian schema ships in `models/effective.py`; the fragment-solver callback does not) |
 | R1–R4 | hardware-aware cost model, mapping axis, protocol axis, contextual-subspace comparator | open, R1 first |
+
+"Shipped" means the module, its tests, and where applicable its benchmark
+producer exist. It does not mean the phase's go/no-go has been read: those
+verdicts live in the committed records and in §7, and a phase can be built and
+still be waiting on the comparison that decides it.
 
 ---
 
@@ -176,10 +182,13 @@ A-CASE remains a separate architectural problem (Phase 16B).
 mathematics of ADAPT-VQE and A-CASE. Multiresolution selection targets these
 boundaries; it does not introduce a generic adaptive runner.
 
-### 2.4 QSCI remains missing — the principal external-validity gap
+### 2.4 QSCI is the external-validity comparison, and it now exists
 
-`clifford_qc` has no first-class QSCI/SQD implementation and no QSCI row on the
-ladder. QSCI and A-CASE spend different resources:
+This subsection was written when `clifford_qc` had no first-class QSCI/SQD
+implementation and no QSCI row on the ladder — the principal external-validity
+gap for Paper B. Phase 8 closed it (`subspace/qsci.py`, ladder arm `qsci`); what
+survives is the contract that made it a gap, because it governs how the
+comparison must be reported. QSCI and A-CASE spend different resources:
 
 | | A-CASE | QSCI/SQD |
 |---|---|---|
@@ -998,10 +1007,11 @@ determinant's own gates, so it cannot disagree with the state it describes.
 
 The validation ladder and everything it settled are in §7.
 
-### Phase 8 — trusted sampled-subspace baseline (Track A, open)
+### Phase 8 — trusted sampled-subspace baseline — shipped
 
-Add `clifford_qc/subspace/qsci.py` as a first-class method rather than a benchmark
-stub.
+`subspace/qsci.py`, `tests/test_qsci.py`, ladder arm `qsci`. QSCI is a
+first-class method rather than a benchmark stub. The contract below is what it
+implements and what its rows must carry.
 
 **8A — sampling contract.** A result object carrying at least: raw and accepted
 shots; unique basis configurations and duplicate fraction; discarded or repaired
@@ -1044,9 +1054,9 @@ matrix nonzeros and solve time; and versus memory.
 invariants must hold on H₄, Hubbard, and at least one spin model before QSCI is
 used in manuscript claims.
 
-### Phase 9 — classical selected-CI controls (mandatory)
+### Phase 9 — classical selected-CI controls — shipped (mandatory)
 
-Without it, a successful QSCI × A-CASE hybrid may be indistinguishable from
+`subspace/selected_ci.py`, `tests/test_selected_ci.py`. Without it, a successful QSCI × A-CASE hybrid may be indistinguishable from
 ordinary determinant-space expansion. For each sampled determinant set `D`:
 
 1. **QSCI:** diagonalize only `span(D)`.
@@ -1091,7 +1101,9 @@ with a rank-1 closure yields the single angle `0` and reads as contained. Measur
 **Go/no-go:** Phase 10 may claim a hybrid gain only after it beats or differs
 structurally from these controls.
 
-### Phase 10 — QSCI × A-CASE hybrid
+### Phase 10 — QSCI × A-CASE hybrid — shipped
+
+`subspace/hybrid.py`, `tests/test_hybrid.py`, `tests/test_phase10_driver.py`.
 
 **10A** — convert retained QSCI configurations through `configuration_generator`.
 **10B** — operator-response dressing in declared families: configuration ×
@@ -1112,7 +1124,10 @@ Do not claim that operator dressing is strictly richer until Phase 9 proves it.
 Primary systems: `hubbard_2x2`, `hubbard_2x3`, H₄ equilibrium/stretched, and one
 molecular FCIDUMP rung with matched multiplicity.
 
-### Phase 11 — overlap-targeted and multiresolution selection
+### Phase 11 — overlap-targeted and multiresolution selection — shipped
+
+`subspace/multiresolution.py` and the `OverlapTarget`/`score_target_overlap`
+path in `subspace/adaptive.py`; `tests/test_phase11.py`.
 
 **11A** — extend A-CASE scoring with a target-overlap criterion using the QSCI Ritz
 vector or a classical selected-CI vector. Preserve existing scale invariance and
@@ -1134,7 +1149,13 @@ improves those controls.
 configuration/dressed directions that the lowering-only pool misses, or the blind
 spot is attributed to the family rather than the selector.
 
-### Phase 12 — integrated Paper B ladder
+### Phase 12 — integrated Paper B ladder — producer shipped
+
+`benchmarks/run_phase12_paper_b.py`, normalizing every arm onto one schema so a
+Paper B comparison cannot silently drop an inconvenient cost column, with Pareto
+frontiers computed only inside one evidence category — an oracle-sampled QSCI
+hybrid never dominates an implementable arm merely because the oracle has no
+state-preparation cost to report.
 
 Arms: reference and exact-sector results; fixed QSE and Krylov; ADAPT-VQE and
 A-CASE; QSCI; excitation-closure and selected-CI controls; QSCI × dressed A-CASE;
@@ -1149,7 +1170,7 @@ Paper B must follow the Pareto frontier that survives. If QSCI and classical
 selected CI dominate chemistry, narrow A-CASE to systems and representations where
 operator-generated or packet directions add measured value.
 
-### Phase 13 — structural invariant first (Track B)
+### Phase 13 — structural invariant first (Track B, open)
 
 Implement GF(2) rank of Hamiltonian X masks using `word_masks`. Test the explicit
 parity/X-rank ceiling `r_X <= 2(N - 1)` across spin-conserving Jordan–Wigner
@@ -1173,7 +1194,7 @@ counts, a fidelity term, and re-measurement under the pooled estimator — is Ph
 R1 and R3. This track supports Paper A or a separate measurement paper and must not
 block Track A.
 
-### Phase 15 — second-moment bank (Track C)
+### Phase 15 — second-moment bank (Track C, open)
 
 Add a `SecondMomentBank` for `K_ij = <psi|A_i^dagger H^2 A_j|psi>`. Before building
 the full bank, add a support/cost preflight for `H^2`; if the estimated word
@@ -2180,7 +2201,10 @@ comes early.
 are complete (§9.6); figures, manuscript text, and submission remain. Nothing below depends
 on it, and it depends on nothing below.
 
-**Track A — Paper B critical path.**
+**Track A — Paper B critical path.** Steps 1–8 are built (§5, Phases 8–12); what
+remains on this track is running them to a reading and repositioning the
+manuscript on the frontier that survives. The order is retained because it is
+also the dependency order for re-running or extending any of it.
 
 1. QSCI contracts and exact sampled-subspace restriction (Phase 8A–8D).
 2. QSCI on the ladder, including a raw spin-system arm (8E).

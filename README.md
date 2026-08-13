@@ -157,12 +157,38 @@ assert np.allclose(to_matrix(A * A), to_matrix(A) @ to_matrix(A))
   without materializing a Ritz state), and finite-shot layers whose intervals
   are labelled `asymptotic`, `heuristic`, or `finite_sample` and never
   conflated; see `PLAN.md`
+- QSCI/SQD as a first-class comparison (`subspace/qsci.py`), its classical
+  controls (`subspace/selected_ci.py`: excitation closure, one-step and
+  budget-matched selected CI, span/principal-angle containment diagnostics), and
+  the hybrid that dresses sampled determinants with operator-response directions
+  (`subspace/hybrid.py`). QSCI's projected matrix costs zero measured Pauli
+  words because it is built classically, so its rows carry sampling yield,
+  duplicate fraction, retained probability, preparation cost, matrix nonzeros,
+  build/solve time, and memory instead — `W=0` alone is not a resource verdict
+- cross-setting shot pooling and rank selection (`measurement/cache.py`,
+  `measurement/session.py`): a QWC setting's histogram records every word
+  supported inside its basis, not only the one the partition assigned there, so
+  `pooling='shots'` reads each word from all of them under inverse-variance
+  weights, and `solve_selected_rank` picks the retained rank by
+  `E + gamma*sigma` rather than by an overlap-mode cutoff. Both are off by
+  default, since the committed records predate them
 - a validation ladder (`benchmarks/run_acase_ladder.py`) running H2 through
   H2O CAS(8e,6o), Hubbard clusters, and a Kitaev cluster against the reference
   determinant, sector-exact diagonalization, QSE, fixed Krylov,
-  generator-coordinate subspaces, and ADAPT-VQE — every row carrying the
+  generator-coordinate subspaces, QSCI, and ADAPT-VQE — every row carrying the
   resource metrics, shots, and abstentions beside the energy, and an evidence
-  label saying what kind of number it is
+  label saying what kind of number it is — plus the integrated Paper B ladder
+  (`benchmarks/run_phase12_paper_b.py`), which normalizes every arm onto one
+  schema and computes Pareto frontiers only inside a single evidence category,
+  so an oracle-sampled arm cannot dominate an implementable one by having no
+  state-preparation cost to report
+- a dyadic block-commuting measurement hierarchy
+  (`benchmarks/run_clifford_hierarchy.py`): block size `k` interpolates from
+  qubit-wise commuting (`k=1`) to fully commuting (`k=n`), each group
+  diagonalized by a stim-synthesized block-local Clifford circuit, trading
+  settings for entangling depth — 913 settings to 64 on the H4 bank, at 2006
+  logical CX and two-qubit depth 42. The trade is instance-dependent and is
+  reported as a break-even ratio, not as a preferred block size
 
 ### Smallest end-to-end correlated-materials showcase
 
@@ -232,33 +258,43 @@ coverage certificate.
 ## System Architecture & Methodological Framework
 
 ```text
-               +-------------------------------------------------------+
-               | DFT / Wannier Downfolding / Chemistry FCIDUMP Records |
-               +-------------------------------------------------------+
-                                           |
-                                           v
-               +-------------------------------------------------------+
-               |  clifford_qc.models (Effective, FCIDUMP, Lattice)     |
-               +-------------------------------------------------------+
-                                           |
-                   +-----------------------+-----------------------+
-                   |                                               |
-                   v                                               v
-+------------------------------------+           +------------------------------------+
-|               A-CASE               |           |             ADAPT-VQE              |
-| Rayleigh-Ritz in operator-response |           | Confidence-certified, measurement- |
-| subspace (No state preparation)    |           | efficient selection (Odd-Y pool)   |
-+------------------------------------+           +------------------------------------+
-                   |                                               |
-                   +-----------------------+-----------------------+
-                                           |
-                                           v
-               +-------------------------------------------------------+
-               | Sector Statevector / Scipy-Sparse Oracles & Validation |
-               +-------------------------------------------------------+
+            +-------------------------------------------------------+
+            | DFT / Wannier downfolding / chemistry FCIDUMP records |
+            +-------------------------------------------------------+
+                                     |
+                                     v
+            +-------------------------------------------------------+
+            |     clifford_qc.models (effective, FCIDUMP, lattice)   |
+            +-------------------------------------------------------+
+                                     |
+        +----------------------------+----------------------------+
+        |                            |                            |
+        v                            v                            v
++---------------------+  +-------------------------+  +----------------------+
+|       A-CASE        |  |       QSCI / SQD        |  |      ADAPT-VQE       |
+| Rayleigh-Ritz in an |  | Sampled determinant     |  | Confidence-certified |
+| operator-response   |  | subspace; the projected |  | selection on the     |
+| subspace; no basis  |  | matrix is built         |  | odd-Y pool from      |
+| state is prepared   |  | classically (W = 0)     |  | shared word caches   |
++---------------------+  +-------------------------+  +----------------------+
+        |                            |                            |
+        +-------------+--------------+                            |
+                      v                                           |
+     +---------------------------------------+                    |
+     | Hybrid: sampled determinants dressed  |                    |
+     | by operator response, scored against  |                    |
+     | classical selected-CI controls        |                    |
+     +---------------------------------------+                    |
+                      |                                           |
+                      +---------------------+---------------------+
+                                            |
+                                            v
+            +-------------------------------------------------------+
+            | Sector statevector / SciPy-sparse oracles & validation |
+            +-------------------------------------------------------+
 ```
 
-`clifford_qc` is structured around five core engineering and theoretical pillars:
+`clifford_qc` is structured around six core engineering and theoretical pillars:
 
 1. **Unified Multivector Representation (`MV`):** States ($\rho$), unitary gates ($U$), observables ($O$), Kraus channels, Jordan-Wigner Clifford generators ($\gamma_j$), and CAR creation/annihilation operators ($c_j, c_j^\dagger$) all exist as sparse multivectors in $Cl(2n, \mathbb{C}) \cong M(2^n, \mathbb{C})$. Qubit Pauli letters are packed into 2 bits per qubit ($0=I, 1=X, 2=Y, 3=Z$), enabling fast binary-symplectic multiplication via bitwise `XOR`, `AND`, and `popcount` (mod 4).
 2. **Three Exact Scalar Pairings:**
@@ -268,6 +304,7 @@ coverage certificate.
 3. **A-CASE Subspace Eigensolver:** Operates via Rayleigh-Ritz projection in an adaptively grown operator-response subspace basis $\{A_i |\psi_0\rangle\}$. Matrix elements $H_{ij} = \langle \psi_0| A_i^\dagger H A_j |\psi_0\rangle$ and overlaps $S_{ij} = \langle \psi_0| A_i^\dagger A_j |\psi_0\rangle$ are calculated as expectation values on a single reference state $|\psi_0\rangle$ without ever preparing basis states $A_i|\psi_0\rangle$ on hardware.
 4. **Statistically Certified ADAPT-VQE:** Evaluates candidate selection gradients $G_j = \operatorname{Tr}\left[\rho \cdot \left(-\frac{i}{2}\right)[H, P_j]\right]$ using odd-Y algebraic pool reduction for antiunitary-real Hamiltonians, shared QWC measurement caches, and Šidák/Bonferroni confidence bounds.
 5. **Sector-Restricted Statevector & Matrix-Free Tier:** `backends/sector_statevector.py` tracks statevector amplitudes directly in $C(n,k)$ particle/spin symmetry sectors without building dense $2^n \times 2^n$ matrices or full statevectors.
+6. **Sampled Determinant Subspaces and Their Controls:** `subspace/qsci.py` diagonalizes the Hamiltonian restricted to sampled computational-basis configurations, taken as a submatrix of the same compiled operator action the matvecs use rather than a second Slater-Condon implementation. `subspace/selected_ci.py` supplies the classical controls — excitation closure, one-step and budget-matched selected CI, and the containment diagnostic $\lVert (I - Q_D Q_D^\dagger) Q_A \rVert$ with $\operatorname{rank}(A) \le \operatorname{rank}(D)$ — so a hybrid gain cannot be claimed against an absent comparator.
 
 ## Core Conventions
 
@@ -418,6 +455,16 @@ dense-matrix homomorphism and round-trips, density/channel behavior, IR JSON
 golden vectors, QASM3 lowering semantics, exact gradients, and optional bridge
 conformance where dependencies are installed.
 
+Published numbers have a second gate. Every committed benchmark record has a
+producer (`benchmarks/run_*.py`), a stamped JSON/JSONL artifact under
+`benchmarks/reference_results/`, and a checker (`benchmarks/check_*.py`) that
+regenerates it and compares field by field — discrete fields exactly, floats to
+tolerance. `benchmarks/check_docs.py` closes the same loop on the prose: it
+verifies that every command in `REPRODUCING.md` names a script that exists,
+that every long flag is one the script accepts, that the predeclared parameter
+table matches the constants in the code, and that no committed record goes
+undocumented. Documentation drift is a reproduction failure, not a cosmetic one.
+
 ## Package Layout
 
 ```text
@@ -442,8 +489,9 @@ clifford_qc/
                    # material observables; NumPy-only FCIDUMP; chemistry
   backends/        # Backend protocol: exact MV, dense reference, finite-shot,
                    # sector-restricted statevector + matrix-free Lanczos
-  measurement/     # commutator bank, shared word cache, confidence,
-                   # allocation policies, QWC measurement grouping
+  measurement/     # commutator bank, shared word cache with cross-setting
+                   # pooling, confidence, allocation policies, QWC grouping,
+                   # shared grouped-measurement sessions and rank selection
   algorithms/      # optimizers, pools (odd-Y), fixed-depth VQE, ADAPT-VQE
                    # (exact / finite-shot / layered / subpool / random)
   subspace/        # A-CASE: generator families, the normalized/thresholded
@@ -451,35 +499,39 @@ clifford_qc/
                    # with projected observables, adaptive growth, finite-shot
                    # layers (shared grouped measurement, asymptotic Ritz
                    # uncertainty, whole-pipeline response bootstrap,
-                   # sample-split growth certificate), Lehmann response,
-                   # support-pruned configuration Haar tier, dense cross-check
+                   # sample-split growth certificate), reference-aware sector
+                   # certificates, Lehmann response, support-pruned
+                   # configuration Haar tier, dense cross-check;
+                   # QSCI/SQD, classical selected-CI controls, the
+                   # QSCI x A-CASE hybrid, and coarse-to-fine packet selection
 ```
 
 ## Project Notes
 
 - The project is currently alpha (`0.3.0`).
+- `PLAN.md` is the single research plan — one document, consolidating what were
+  five. It is the place to look for what is built, what is not, and what would
+  falsify each claim:
+
+  | § | contents |
+  |---|---|
+  | 1–4 | scope, repository facts, the algebra contract and standing invariants, the method |
+  | 5 | the phase ledger: Phases 0–7 and 8–12 shipped, 13–18 open, R1–R4 for hardware-aware costing |
+  | 6 | resource accounting — word universe, supports, conditioning, and the device-card cost model |
+  | 7 | the validation ladder, what it does and does not support, and the benchmark inventory |
+  | 9 | Paper A: confidence-certified, measurement-efficient ADAPT-VQE (phases A0–A5; software and data complete, manuscript remains) |
+  | 10–11 | falsifiable questions Q1–Q13 and QR1–QR6; the fifteen-paper literature index |
+  | 14 | what the plan does not claim |
+
+  It records the comparisons the project expects to lose — A-CASE does not beat
+  fixed Krylov on energy, or ADAPT-VQE on stretched geometries — and confines
+  wavelets to the implemented configuration-space Haar staging experiment.
+- `REPRODUCING.md` is the reproduction contract: the command, record, and
+  drift check for every committed benchmark.
 - `MIGRATION.md` maps the old single-file API onto this package.
 - `simple_plan.md` records the implemented roadmap and bridge validation
   criteria.
-- `PLAN.md` is the single research plan, consolidating what were five documents
-  (the A-CASE research plan, the integrated literature roadmap, the
-  resource-accounting plan, the Paper A roadmap, and the finite-shot lab note).
-  It carries the method (§1–§4), the phase
-  ledger (§5: Phases 0–7 done, Phases 8–18 across the Paper B
-  QSCI/selected-CI/hybrid critical path, Clifford-accessible measurement, and
-  longer-horizon infrastructure, plus Phases R1–R4 for hardware-aware costing),
-  the resource model (§6), the validation ladder and benchmark inventory (§7),
-  Paper A — confidence-certified, measurement-efficient ADAPT-VQE, whose
-  software and data are complete and whose manuscript remains (§9, phases
-  A0–A5), the falsifiable questions (§10), and the fifteen-paper literature
-  index (§11).
-  Phases 1-7 and the §4.2 basis hierarchy through level 4 ship in `subspace/`,
-  `models/lattice.py`, `models/observables.py`, `sparse.py`,
-  `backends/sector_statevector.py`, and the validation ladder
-  (`benchmarks/run_acase_ladder.py`, committed as
-  `benchmarks/reference_results/acase_ladder.jsonl`). It records the
-  comparisons the project expects to lose and confines wavelets to the
-  implemented configuration-space Haar staging experiment.
-- `paper/` holds the Paper A manuscript (REVTeX) with figures regenerated
-  from the committed benchmark data.
+- `paper/` holds the Paper A manuscript (REVTeX) and `paper_acase/` the A-CASE
+  manuscript, both with figures and tables regenerated from the committed
+  benchmark data.
 - License: Apache-2.0.
