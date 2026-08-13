@@ -537,7 +537,7 @@ clifford_qc/
   the dyadic-measurement variant of the method this README calls A-CASE. Both
   regenerate their figures and tables from the committed benchmark data and both
   carry a `check_manuscript.py` that fails on drift.
-- **Published work.** Two papers from this repository are on arXiv:
+- **Public preprints.** Two papers from this repository are on arXiv:
   [arXiv:2608.00560](https://arxiv.org/abs/2608.00560), *Adaptive
   operator-generated subspaces for effective many-body Hamiltonians* (A-CASE), and
   [arXiv:2608.08739](https://arxiv.org/abs/2608.08739), *DA-CASE: reusable

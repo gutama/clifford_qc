@@ -13,7 +13,7 @@ section numbers cited from code docstrings are unchanged, so existing references
 resolve; Paper A's own phases are relabelled A0–A5 to keep them distinct from the
 Phases 0–18 of §5.
 
-**Two papers are published** (§1.2). Everything they established is now prior art
+**Two papers are public as arXiv preprints** (§1.2). Everything they report is now prior art
 *for this project's own future claims*: the plan may extend or contradict them, but it
 may not re-claim them. Read §1.2 before writing any novelty statement.
 
@@ -46,9 +46,9 @@ already a symmetry-, reference-, and redundancy-reduced operator domain:
 ```text
 fermionic problem
   → GA structural restriction        (§3.5, Phases G1–G3)  — mapping-independent
-  → JW / BK encoding                 (§6.2, Phase R2)      — the only mapping-dependent step
+  → JW / BK encoding                 (§6.2, Phase R2)      — mapping choice enters here
   → A-CASE / PRD basis selection     (§4)
-  → WISE measurement and inference   (§6)
+  → WISE measurement and inference   (§6)                  — cost inherits encoded locality
 ```
 
 The division of labour that makes this worth doing is **GA = structural
@@ -59,10 +59,12 @@ statistically; it should never reach the ranking. Conversely GA says nothing abo
 which admissible direction lowers the energy — that is PRD's job and only PRD's.
 
 This is *not* a claim that geometric algebra finds a smaller Hilbert space. It
-finds no space at all. What it supplies is a compact algebraic language for
-symmetry sectors, ideals, parity, annihilated directions, and equivalence classes
-**before they explode into Pauli words**, plus one filter class (action
-equivalence, §3.5E) that has no natural expression after encoding.
+restricts the candidate operator domain while leaving the Hilbert-space dimension
+unchanged. What it supplies is a compact algebraic language for symmetry sectors,
+ideals, parity, annihilated directions, and equivalence classes **before they
+expand into Pauli words**. Action equivalence (§3.5E) is especially direct in this
+language, although an equivalent projected-action test remains possible after
+encoding.
 
 The method is A-CASE, never "ACSE": in quantum chemistry ACSE is the
 anti-Hermitian contracted Schrödinger equation (Mazziotti and successors), still
@@ -79,7 +81,7 @@ generic case. Compound generators need not be versors.
 
 | you want | go to |
 |---|---|
-| **what is already published, and what that forecloses** | §1.2 |
+| **what is already public, and what that forecloses** | §1.2 |
 | what the project is and is not | §1 |
 | why the architecture is what it is | §2 |
 | the algebra contract and standing invariants | §3 |
@@ -97,8 +99,8 @@ Status at a glance:
 
 | phase | subject | status |
 |---|---|---|
-| — | **arXiv:2608.00560** — A-CASE, operator-generated subspaces | **published** (§1.2) |
-| — | **arXiv:2608.08739** — DA-CASE, reusable measurements | **published** (§1.2) |
+| — | **arXiv:2608.00560** — A-CASE, operator-generated subspaces | **public arXiv preprint** (§1.2) |
+| — | **arXiv:2608.08739** — DA-CASE, reusable measurements | **public arXiv preprint** (§1.2) |
 | A0–A5 | Paper A: exact research layer, measurement/confidence layer, scaling and layering, stabilizer initialization, chemistry | **done**; the manuscript is written and checked (§9.6.1), and is the one manuscript not yet submitted |
 | 0–7 | exterior layer, subspace solver, bank, adaptive growth, finite-shot certification, lattice models, sector backend, validation ladder | **done** |
 | 4R | pooled reconstruction and rank selection | **done**, off by default |
@@ -187,7 +189,7 @@ Hamiltonian can cross the software boundary and produce energies, projected
 state coefficients, correlations, and response. It does not establish materials
 accuracy or a quantum advantage.
 
-### 1.2 Published results — what is already claimed
+### 1.2 Public preprints — what is already reported
 
 Two manuscripts from this repository are public. They are the project's own prior
 art: a future manuscript may **extend, sharpen, or contradict** them, but it may
@@ -227,27 +229,31 @@ exact and Monte Carlo results".
 **Consequences for the rest of this plan, stated once so they are not re-litigated
 per section:**
 
-1. **Word-bank and setting-count reduction on the frozen H₄ bank is published.**
+1. **Word-bank and setting-count reduction on the frozen H₄ bank is already
+   reported in P2.**
    `7371 → 2240` and `913 → 64` are P2's numbers. §6.6 and the
    `clifford_hierarchy_*` records reproduce them; they are a regression baseline
    now, not a finding. A new claim in this area has to be about *accuracy-matched
    cost* (§6.1), not about counts.
-2. **Covariance-aware allocation is published.** The 68.9% variance reduction is
-   P2's. Phase 4R and the WISE inference layer may be cited, not re-announced.
+2. **Covariance-aware allocation is already reported in P2.** The 68.9% variance
+   reduction is P2's. Phase 4R and the WISE inference layer may be cited, not
+   re-announced.
 3. **The exact-arithmetic compactness of operator-generated subspaces is
-   published.** What remains open — and what the PRD suite's negative finite-shot
-   result (§5, Phase PRD) makes the live question — is whether that compactness
+   already reported in P1.** What remains open — and what the PRD suite's
+   negative finite-shot result (§5, Phase PRD) makes the live question — is
+   whether that compactness
    survives finite-shot energy accuracy. That, not compactness, is the forward
    claim.
 4. **Paper A (§9) is the one written manuscript still unsubmitted.** Its subject,
    certified ADAPT-VQE operator selection, is disjoint from P1 and P2, so it is
    unaffected by the two publications except that it may now cite them as
    companion work rather than as forthcoming.
-5. **The GA structural preconditioner (§3.5) is the first genuinely new scientific
-   content since P2.** It is design only. Nothing in §3.5 or Phases G1–G3 has been
-   built or measured, and no part of it may be described as a result.
+5. **The GA structural preconditioner (§3.5) is the first newly proposed
+   scientific direction in this plan after P2.** It is design only. Nothing in
+   §3.5 or Phases G1–G3 has been built or measured, and no part of it may be
+   described as a result.
 6. **"Paper B" is a manuscript line, not a manuscript.** It named the A-CASE/QSCI
-   work of §1–§8; P1 and P2 are its published outputs. The label survives in
+   work of §1–§8; P1 and P2 are its public arXiv outputs. The label survives in
    Phase 12, §7, and the committed records, so it is not renamed — but where the
    text says "Paper B" it now means the unwritten successor in that line (§9,
    naming collision 3).
@@ -413,9 +419,10 @@ Checked in tests, not prose:
 ### 3.5 The GA structural preconditioner (design; nothing built)
 
 The filters below run **before** the fermion-to-qubit encoding. That placement is
-the whole point: after JW or BK, a symmetry sector is a stabilizer condition on
-Pauli words and an operator equivalence is invisible, whereas before encoding both
-are one-line algebraic conditions on a few hundred abstract operators. This
+the whole point: after JW or BK, the restrictions become encoded Pauli/symmetry
+conditions and action equivalence is less transparent and usually more expensive
+to test, whereas before encoding both are direct algebraic conditions on a few
+hundred abstract operators. This
 section is a contract, not a result — see §1.2(5).
 
 **Where the algebra actually lives.** For `n` fermionic modes introduce `2n`
@@ -426,35 +433,46 @@ Majorana generators with
                                   a_p† = (γ_2p − i γ_2p+1)/2 .
 ```
 
-The generators alone span the **real** `Cl(2n,0)`. The `i` in `a_p` does not live
-there, and neither do the sector idempotents of §3.5C, so the working algebra is
-its complexification `Cl(2n,ℂ)` — the same algebra §3.1 already fixes, reached
-through a Majorana rather than a Pauli generating set. Stating this precisely
-matters because "work in `Cl(2n,0)`" and "work in `Cl(2n,ℂ)`" differ exactly where
-the projectors are, and the projectors are the machinery. JW and BK then become
-two qubit *representations* of one fermionic algebra rather than the place where
-the physics is defined (P-BK, P-ENC in §11).
+The Majorana generators generate the **real** `Cl(2n,0)`. The `i` in `a_p`
+does not live there, so ladder operators and their complex linear combinations
+require its complexification `Cl(2n,ℂ)` — the same algebra §3.1 already fixes,
+reached through a Majorana rather than a Pauli generating set. Sector projectors
+do not by themselves force that extension: when every `S_α` is real, the
+projector in §3.5C is already an element of the real algebra. The complex working
+algebra is fixed by the ladder operators, complex coefficients, and Hilbert-space
+adjoint structure, not by the projector formula. JW and BK then become two qubit
+representations of one fermionic algebra rather than the place where the physics
+is defined (P-BK, P-ENC in §11).
 
 **A — parity / even-subalgebra restriction.** Electronic Hamiltonians satisfy
-`[H, (−1)^N̂] = 0`, so physical operators live in the even subalgebra
-`𝒜⁺ ⊂ Cl(2n,ℂ)`. Whole classes of odd candidates disappear before encoding.
+`[H, (−1)^N̂] = 0`, so parity-preserving candidate operators lie in the even
+subalgebra `𝒜⁺ ⊂ Cl(2n,ℂ)`. Whole classes of odd candidates disappear before
+encoding.
 Parity is the robust invariant here; **grade is not** — products of creation and
 annihilation operators generally resolve into mixtures of Clifford grades, so
 grade may be recorded as an additional structural descriptor but never used as
 excitation rank (§3.4).
 
 **B — conserved-quantity centralizer.** For conserved `Q_α` (particle number,
-`S_z`, fermionic parity, point-group and molecular symmetries), a same-sector
-ground-state basis needs
+`S_z`, fermionic parity, point-group and molecular symmetries), the centralizer
 
 ```text
-𝒞_Q = { A ∈ 𝒜 : [A, Q_α] = 0  ∀α } .
+𝒞_Q = { A ∈ 𝒜 : [A, Q_α] = 0  ∀α }
 ```
 
+is a mapping-independent **sufficient** restriction when the pool contract requires
+each operator to conserve every `Q_α` globally. It is not necessary for
+reference-conditioned admissibility. If `Q_α ψ_ref = q_α ψ_ref`, the exact
+same-sector condition is `(Q_α − q_α) A ψ_ref = 0`; §§3.5C–D test that action
+directly. G1 must not discard a candidate merely because global commutation fails
+when its projected action on the reference remains in sector, or it cannot satisfy
+the gate requiring agreement with the existing reference-aware leakage filter.
+
 For a deliberately targeted *different* irrep — the excited-state case of §7.4 —
-the requirement is not commutation but a specified transformation character under
-`Q_α`. Any implementation that hard-codes `[A,Q]=0` forecloses the excited-state
-track, so the character is a parameter from the start.
+the requirement is a declared target character (or target eigenvalue) on
+`A ψ_ref`, not unconditional commutation. Any implementation that hard-codes
+`[A,Q]=0` forecloses the excited-state track, so the character is a parameter
+from the start.
 
 **C — sector idempotents.** For commuting `S_α` with `S_α² = 1` and signs
 `s_α = ±1`,
@@ -471,29 +489,35 @@ rather than bolted-on matrix constructions (P-IDEM, §11). This filter is the
 same object R4 studies as the contextual-subspace comparator, which is why R4 and
 G1 must share one implementation (§5, Phase G1).
 
-**D — reference ideal.** Represent the reference through an idempotent / minimal
-left ideal `f_ref`, so a candidate's action is `A f_ref`. Then
+**D — reference ideal.** Choose a primitive idempotent `f` generating the
+minimal left ideal `Cl(2n,ℂ) f`, and represent the reference spinor as
+`ψ_ref = Ψ_ref f` in that ideal. The idempotent, the ideal it generates, and a
+particular spinor in the ideal are distinct objects; `ψ_ref = f` is only the
+special case where the chosen primitive idempotent itself represents the reference.
+A candidate's action is `A ψ_ref`. Then
 
 ```text
-discard  A f_ref = 0            (algebraically real, but annihilates the reference)
-require  P_phys A f_ref = A f_ref  (does not leave the target sector)
+discard  A ψ_ref = 0                 (A may be nonzero but annihilates the reference)
+require  P_phys A ψ_ref = A ψ_ref   (does not leave the target sector)
 ```
 
 This is the GA form of the reference-aware leakage restriction the project has
 been converging on from the Pauli side.
 
-**E — action-equivalence quotient.** Inside a fixed sector `S_α f_ref = s_α f_ref`,
-hence `A S_α f_ref = s_α A f_ref`: the operators `A` and `A S_α` generate the same
-physical direction up to sign. More generally define
+**E — action-equivalence quotient.** Inside a fixed sector
+`S_α ψ_ref = s_α ψ_ref`, hence `A S_α ψ_ref = s_α A ψ_ref`: the operators `A`
+and `A S_α` generate the same physical direction up to sign. More generally define
 
 ```text
-A ∼ B   iff   P_phys A f_ref = λ P_phys B f_ref ,   λ ≠ 0
+A ∼ B   iff   P_phys A ψ_ref = λ P_phys B ψ_ref ,   λ ≠ 0
 ```
 
 and carry one canonical representative of `𝒜_candidate / ∼`. This is **not**
 Pauli-word deduplication: it removes candidates whose *physical action on the
-reference* coincides, which no post-encoding filter recovers, and it is the one
-filter in this section with no existing analogue anywhere in the codebase. If any
+reference* coincides. The equivalence is representation-invariant and can also be
+tested after encoding by comparing projected actions; GA exposes it before Pauli
+expansion, and no existing code path performs that quotient. It is the one proposed
+filter in this section with no current analogue in the codebase. If any
 part of §3.5 justifies the work, it is this one — so G1 reports its marginal
 contribution separately from A–D (§5, Phase G1).
 
@@ -1579,7 +1603,7 @@ C_HW^raw  →  C_HW^GA  →  C_HW^GA+PRD  →  C_HW^GA+PRD+WISE
 
 each measured at a **fixed accuracy target on a declared evidence tier** (§6.1) and
 under a named device card (§6.4) — a chain of counts would be exactly the reading
-§6 exists to block, and P2 has already published the count reductions (§1.2(1)).
+§6 exists to block, and P2 already reports the count reductions (§1.2(1)).
 
 *Gate.* Each arrow reports its own margin with the shot-search uncertainty
 propagated. An arrow whose interval covers zero is reported as "no measured
@@ -2013,7 +2037,7 @@ C_HW^raw  →  C_HW^GA  →  C_HW^GA+PRD  →  C_HW^GA+PRD+WISE
 rather than a single ratio: GA, PRD, and WISE act on different classes, and only a
 per-arrow margin at fixed accuracy shows which one paid. Reporting the chain in
 counts instead of accuracy-matched cost would reproduce exactly the error §6.1
-forbids — and the count reductions on this bank are already published (§1.2(1)).
+forbids — and P2 already reports the count reductions on this bank (§1.2(1)).
 
 ---
 
@@ -2263,7 +2287,7 @@ go/no-go returned NO-GO (§9.7) and it became a negative-result section of Paper
 (2) Paper A's phases are relabelled **A0–A5** here, so they cannot be confused with
 the Phases 0–18 of §5. (3) "Paper B" is now a **manuscript line, not a manuscript**:
 it named the A-CASE/QSCI work of §1–§8, and that line has already produced two
-published papers, P1 and P2 (§1.2). Where the text below says "Paper B", read *the
+public preprints, P1 and P2 (§1.2). Where the text below says "Paper B", read *the
 unwritten successor in that line* — the QSCI and classical-selected-CI confrontation
 at accuracy-matched cost (§12). The label is left in place because Phase 12, §7, and
 the committed records use it, and renaming it in prose while the records keep it
@@ -2649,7 +2673,7 @@ A-CASE's.
 | 13 | 2311.01393 | FLDC barren plateaus | Positioning only; build nothing. |
 | 14 | 2607.20585 | ML-compact QSCI subspaces | Compactness comparison structure; unrefereed benchmark claims require reproduction. |
 
-**This project's own published work** — cite as prior art, never as forthcoming
+**This project's own public preprints** — cite as prior art, never as forthcoming
 (§1.2): **P1** [2608.00560](https://arxiv.org/abs/2608.00560), A-CASE;
 **P2** [2608.08739](https://arxiv.org/abs/2608.08739), DA-CASE.
 
@@ -2703,7 +2727,7 @@ Everything else in this section describes work that has not been written up.
 must state what it adds *on top of P1 and P2*, not merely what it adds on top of
 the external literature. The three claims most at risk of accidental
 self-duplication are word-bank reduction, setting-count reduction, and
-covariance-aware allocation — all published in P2 (§1.2(1)–(2)).
+covariance-aware allocation — all already reported in P2 (§1.2(1)–(2)).
 
 1. **A successor to P1/P2 must confront QSCI and classical selected CI at
    accuracy-matched cost.** A QSCI comparison alone is
@@ -2853,7 +2877,7 @@ P-ENC, P-IDEM, P-GAGATE rows record who does own them and, in two cases, what th
 do *not* establish. Until Phase G1 reports per-filter marginals, the section has
 no quantitative content whatsoever.
 
-**On this project's own prior work.** P1 and P2 (§1.2) are published. Their results
+**On this project's own prior work.** P1 and P2 (§1.2) are public arXiv preprints. Their results
 — exact-arithmetic subspace compactness, the `7371 → 2240` word bank, the
 `913 → 64` setting reduction, the 68.9% covariance-aware variance reduction — are
 not available for re-announcement, and a successor manuscript that reports them as
