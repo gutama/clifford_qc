@@ -1,0 +1,18 @@
+{
+  "schema": "clifford_qc.device_card.v1",
+  "name": "ion-like",
+  "t_prep_us": 50.0,
+  "t_1q_us": 10.0,
+  "t_2q_us": 200.0,
+  "t_readout_us": 100.0,
+  "t_reset_us": 50.0,
+  "eps_1q": 0.0005,
+  "eps_2q": 0.005,
+  "eps_readout": 0.01,
+  "connectivity": "all-to-all",
+  "routing": false,
+  "fidelity_floor": 0.5,
+  "calibration_status": "illustrative_scenario",
+  "description": "Slow-gate, all-to-all design scenario for sensitivity analysis.",
+  "source": "Illustrative project scenario; not vendor data or a current-device claim."
+}

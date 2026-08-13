@@ -72,7 +72,8 @@ Status at a glance:
 | 13 | parity/X-rank invariant | Track B, open |
 | 14 | fully commuting grouping | partial — the dyadic hierarchy runs as a benchmark (§6.6); the library API, cost model, and pooled re-measurement are R1/R3 |
 | 15–18 | second moments, time-evolved inputs, mapping breadth, embedding | Track C, open (Phase 18's versioned effective-Hamiltonian schema ships in `models/effective.py`; the fragment-solver callback does not) |
-| R1–R4 | hardware-aware cost model, mapping axis, protocol axis, contextual-subspace comparator | open, R1 first |
+| R1 | hardware-aware cost model and pooled-estimator ledger | **infrastructure shipped**; asymptotic `C(ε)` is recorded, exact-tier finite-shot search remains open |
+| R2–R4 | mapping axis, protocol axis, contextual-subspace comparator | open after the remaining R1 exact-tier gate |
 
 "Shipped" means the module, its tests, and where applicable its benchmark
 producer exist. It does not mean the phase's go/no-go has been read: those
@@ -1295,7 +1296,8 @@ implement the same callback.
 
 The cost model these phases install is §6; the phases themselves:
 
-**R1 — cost infrastructure, no solver change.** Deliverables:
+**R1 — cost infrastructure, no solver change — infrastructure shipped; exact-tier
+search open.** Deliverables:
 `clifford_qc/measurement/cost.py` (device card loader, per-setting
 gate/depth/fidelity accounting, `C_time`, admissibility, break-even surface);
 `benchmarks/configs/device_cards/*.json` with at least `logical-alltoall`, one
@@ -1308,6 +1310,16 @@ pooled arm is reported beside the single-assignment arm on the same bank, and if
 coverage `f_w` moves the accuracy-matched cost ordering between `k` rungs, that is
 R1's headline result and it lands before any mapping work; (3) no solver, selector,
 or certificate code changes.
+
+The shipped schema-v3 hierarchy closes the structural part of this phase: all three
+device cards, `N_1q/N_2q/D_1q/D_2q`, timing, routing sensitivity, fidelity,
+admissibility, break-even surfaces, and assigned/pooled coverage are recorded while
+the frozen v2 projection regenerates exactly. The 1.6 mHa comparison is explicitly
+`asymptotic`, using the exact frozen-bank bias plus the covariance-aware first-order
+Ritz functional. H₄ is unattainable because its 3.019 mHa subspace bias already
+exceeds the target; on BeH₂, pooling reorders the `k` rungs under all three cards.
+The exact-tier nonlinear finite-shot search remains an R1 gate and must land before
+R2 begins; the asymptotic ledger is not silently promoted to that tier.
 
 **R2 — the mapping axis.** Arms: `JW`, `parity`, `parity+2q`, `BK`, `BK+2q`. Held
 identical across arms: Hamiltonian and active space, reference determinant,
@@ -2384,8 +2396,9 @@ not another open accuracy phase.
 
 **Resource accounting** (interleaves with Track B; R1 first).
 
-10. R1 — cost model on the frozen banks. *Gate:* v2 regenerates exactly under
-    `logical-alltoall`; QR1 and QR4 answered on H₄ and BeH₂.
+10. R1 — cost model on the frozen banks. *Status:* structural and asymptotic layers
+    shipped; exact-tier nonlinear shot search open. *Gate:* v2 regenerates exactly
+    under `logical-alltoall`; QR1 and QR4 answered on H₄ and BeH₂ before R2.
 11. R2a — restriction primitive and invariance checks. *Gate:* QR2 passes on every rung; no
     cost numbers are published from a run whose invariants failed.
 12. R2b — mapping measurements on H₄, BeH₂, H₂O CAS(8e,6o), Hubbard. *Gate:* QR3 answered

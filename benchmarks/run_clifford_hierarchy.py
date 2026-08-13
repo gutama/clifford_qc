@@ -28,11 +28,22 @@ from __future__ import annotations
 import argparse
 from collections import Counter
 import json
+import math
 from pathlib import Path
 
 import numpy as np
 
 from clifford_qc.backends import ExactMVBackend, SectorStatevectorBackend
+from clifford_qc.measurement.cost import (
+    DeviceCard,
+    SettingResources,
+    break_even_surface,
+    cost_schedule,
+    estimator_information,
+    inflate_shots_for_fidelity,
+    setting_fidelity,
+)
+from clifford_qc.measurement.functionals import ritz_functional
 from clifford_qc.models import fcidump_model
 from clifford_qc.reproducibility import stamp_record
 from clifford_qc.subspace import (
@@ -57,9 +68,13 @@ MATCHED = HERE / "reference_results" / "matched_h4.json"
 H4_FCIDUMP = HERE / "data" / "h4_sto3g_r0.9.FCIDUMP"
 BEH2_FCIDUMP = HERE / "data" / "beh2_sto3g_r1.3264.FCIDUMP"
 BEH2_PROVENANCE = HERE / "data" / "beh2_sto3g_r1.3264.provenance.json"
+DEVICE_CARDS = HERE / "configs" / "device_cards"
 SHOTS_PER_SETTING = 8_000
 BLOCK_SIZES = (1, 2, 4, 8)
 BUDGET = 8
+ACCURACY_TARGET_MILLIHARTREE = 1.6
+BREAK_EVEN_T2Q_RATIOS = (0.0, 0.1, 0.5, 1.0, 2.0)
+BREAK_EVEN_EPS_2Q = (0.0, 0.005, 0.01, 0.02, 0.05)
 
 
 def _xz(n: int, code: int) -> tuple[int, int]:
@@ -83,6 +98,19 @@ def _parity_u64(values: np.ndarray) -> np.ndarray:
     work ^= work >> 2
     work ^= work >> 1
     return (work & np.uint64(1)).astype(bool)
+
+
+def _popcount_u64(values: np.ndarray) -> np.ndarray:
+    """Vectorized uint64 population count for the declared NumPy >=1.23."""
+    work = np.asarray(values, dtype=np.uint64).copy()
+    work -= (work >> np.uint64(1)) & np.uint64(0x5555555555555555)
+    work = (
+        (work & np.uint64(0x3333333333333333))
+        + ((work >> np.uint64(2)) & np.uint64(0x3333333333333333))
+    )
+    work = (work + (work >> np.uint64(4))) & np.uint64(0x0F0F0F0F0F0F0F0F)
+    work *= np.uint64(0x0101010101010101)
+    return (work >> np.uint64(56)).astype(np.int16)
 
 
 def _partition(n: int, codes: list[int], block_size: int) -> list[list[int]]:
@@ -168,11 +196,13 @@ def _stim_label(code: int, size: int) -> str:
     return "".join("IXYZ"[(code >> (2 * q)) & 3] for q in range(size))
 
 
-def _circuit_stats(circuit) -> tuple[Counter, int]:
-    """Literal logical gate counts and CX-only depth for a stim elimination."""
+def _circuit_stats(circuit) -> tuple[Counter, int, int]:
+    """Literal logical gate counts and separate one-/two-qubit depths."""
     counts: Counter = Counter()
-    last_layer: dict[int, int] = {}
-    depth = 0
+    last_1q_layer: dict[int, int] = {}
+    last_2q_layer: dict[int, int] = {}
+    depth_1q = 0
+    depth_2q = 0
     for instruction in circuit:
         name = instruction.name
         targets = instruction.targets_copy()
@@ -182,37 +212,83 @@ def _circuit_stats(circuit) -> tuple[Counter, int]:
             for a, b in zip(targets[0::2], targets[1::2]):
                 qa, qb = a.value, b.value
                 counts["CX"] += 1
-                layer = 1 + max(last_layer.get(qa, 0), last_layer.get(qb, 0))
-                last_layer[qa] = last_layer[qb] = layer
-                depth = max(depth, layer)
+                layer = 1 + max(
+                    last_2q_layer.get(qa, 0), last_2q_layer.get(qb, 0)
+                )
+                last_2q_layer[qa] = last_2q_layer[qb] = layer
+                depth_2q = max(depth_2q, layer)
         elif name in {"H", "S"}:
             counts[name] += len(targets)
+            for target in targets:
+                qubit = target.value
+                layer = 1 + last_1q_layer.get(qubit, 0)
+                last_1q_layer[qubit] = layer
+                depth_1q = max(depth_1q, layer)
         else:
             raise AssertionError(f"unexpected tableau-elimination gate {name}")
-    return counts, depth
+    return counts, depth_1q, depth_2q
+
+
+def _x_mask_lut(diagonalizer, size: int) -> np.ndarray:
+    """X mask after Clifford conjugation for every local packed Pauli code."""
+    x_from_x: list[int] = []
+    x_from_z: list[int] = []
+    for qubit in range(size):
+        x_bits, _ = diagonalizer.x_output(qubit).to_numpy()
+        x_from_x.append(sum(int(bit) << q for q, bit in enumerate(x_bits)))
+        x_bits, _ = diagonalizer.z_output(qubit).to_numpy()
+        x_from_z.append(sum(int(bit) << q for q, bit in enumerate(x_bits)))
+    lut = np.zeros(1 << (2 * size), dtype=np.uint16)
+    for code in range(len(lut)):
+        x_mask = 0
+        for qubit in range(size):
+            letter = (code >> (2 * qubit)) & 3
+            if letter in (1, 2):
+                x_mask ^= x_from_x[qubit]
+            if letter in (2, 3):
+                x_mask ^= x_from_z[qubit]
+        lut[code] = x_mask
+    return lut
 
 
 def _synthesize(n: int, codes: list[int], groups: list[list[int]],
-                block_size: int) -> dict:
+                block_size: int) -> tuple[dict, list[SettingResources], np.ndarray, list[int]]:
     total: Counter = Counter()
     cx_per_setting: list[int] = []
-    depth_per_setting: list[int] = []
+    depth_1q_per_setting: list[int] = []
+    depth_2q_per_setting: list[int] = []
+    setting_resources: list[SettingResources] = []
+    compatibility = np.zeros((len(groups), len(codes)), dtype=bool)
+    assignment = [-1] * len(codes)
+    local_codes = {
+        (start, min(block_size, n - start)): np.asarray(
+            [_local_code(code, start, min(block_size, n - start)) for code in codes],
+            dtype=np.uint16,
+        )
+        for start in range(0, n, block_size)
+    }
     checked = 0
-    for members in groups:
+    for setting_index, members in enumerate(groups):
         setting_counts: Counter = Counter()
-        block_depths: list[int] = []
+        block_depths_1q: list[int] = []
+        block_depths_2q: list[int] = []
+        setting_reads = np.ones(len(codes), dtype=bool)
+        for member in members:
+            if assignment[member] != -1:
+                raise AssertionError("a word was assigned to more than one group")
+            assignment[member] = setting_index
         for start in range(0, n, block_size):
             size = min(block_size, n - start)
             local = [_local_code(codes[i], start, size) for i in members]
             basis = _independent_codes(local, size)
             if not basis:
-                block_depths.append(0)
-                continue
-            stabilizers = [stim.PauliString(_stim_label(code, size))
-                           for code in basis]
-            tableau = stim.Tableau.from_stabilizers(
-                stabilizers, allow_redundant=False, allow_underconstrained=True)
-            diagonalizer = tableau.inverse()
+                diagonalizer = stim.Tableau(size)
+            else:
+                stabilizers = [stim.PauliString(_stim_label(code, size))
+                               for code in basis]
+                tableau = stim.Tableau.from_stabilizers(
+                    stabilizers, allow_redundant=False, allow_underconstrained=True)
+                diagonalizer = tableau.inverse()
 
             # Strong circuit invariant: every member, not only the basis,
             # must become computational-basis diagonal.
@@ -226,19 +302,38 @@ def _synthesize(n: int, codes: list[int], groups: list[list[int]],
                         f"did not map to Z-only ({transformed})")
                 checked += 1
 
-            counts, depth = _circuit_stats(
+            counts, depth_1q, depth_2q = _circuit_stats(
                 diagonalizer.to_circuit("elimination"))
             setting_counts.update(counts)
-            block_depths.append(depth)
+            block_depths_1q.append(depth_1q)
+            block_depths_2q.append(depth_2q)
+            setting_reads &= (
+                _x_mask_lut(diagonalizer, size)[local_codes[(start, size)]] == 0
+            )
 
         total.update(setting_counts)
         cx_per_setting.append(setting_counts["CX"])
-        depth_per_setting.append(max(block_depths, default=0))
+        depth_1q = max(block_depths_1q, default=0)
+        depth_2q = max(block_depths_2q, default=0)
+        depth_1q_per_setting.append(depth_1q)
+        depth_2q_per_setting.append(depth_2q)
+        setting_resources.append(SettingResources(
+            n_1q=setting_counts["H"] + setting_counts["S"],
+            n_2q=setting_counts["CX"],
+            d_1q=depth_1q,
+            d_2q=depth_2q,
+        ))
+        if not bool(setting_reads[members].all()):
+            raise AssertionError("an assigned word is not read by its setting")
+        compatibility[setting_index] = setting_reads
+
+    if any(index < 0 for index in assignment):
+        raise AssertionError("the grouping did not assign every word")
 
     settings = len(groups)
     cx = sum(cx_per_setting)
-    depth_sum = sum(depth_per_setting)
-    return {
+    depth_sum = sum(depth_2q_per_setting)
+    row = {
         "block_size": block_size,
         "settings": settings,
         "word_samples_per_preparation": len(codes) / settings,
@@ -247,12 +342,13 @@ def _synthesize(n: int, codes: list[int], groups: list[list[int]],
         "max_logical_cx_per_setting": max(cx_per_setting),
         "logical_cx_depth_sum": depth_sum,
         "mean_logical_cx_depth": depth_sum / settings,
-        "max_logical_cx_depth": max(depth_per_setting),
+        "max_logical_cx_depth": max(depth_2q_per_setting),
         "state_preparations_at_uniform_shots": settings * SHOTS_PER_SETTING,
         "logical_cx_applications_at_uniform_shots": cx * SHOTS_PER_SETTING,
         "gate_counts_per_sweep": dict(sorted(total.items())),
         "z_only_restrictions_checked": checked,
     }
+    return row, setting_resources, compatibility, assignment
 
 
 def _h4_bank() -> dict:
@@ -269,7 +365,7 @@ def _h4_bank() -> dict:
         by_label[label] for label in selected["labels"] if label != "I"
     ]
     bank = MatrixElementBank(rho, model.hamiltonian, family)
-    bank.solve()
+    result = bank.solve()
     codes = sorted(bank.word_set(range(len(family))))
     if len(codes) != selected["final_words"]:
         raise AssertionError(
@@ -286,9 +382,17 @@ def _h4_bank() -> dict:
         "basis_labels": list(selected["labels"]),
         "ground_energy": selected["ground_energy"],
         "error_millihartree": selected["error_millihartree"],
-        "condition_number": selected["condition_number"],
+        # The frozen v2 hierarchy serialized this exact orthonormal value as an
+        # integer. Preserve the JSON type as part of the digit-for-digit gate.
+        "condition_number": (
+            int(selected["condition_number"])
+            if float(selected["condition_number"]).is_integer()
+            else selected["condition_number"]
+        ),
         "codes": codes,
         "committed_qwc_groups": selected["final_qwc_groups"],
+        "_matrix_bank": bank,
+        "_result": result,
     }
 
 
@@ -329,25 +433,332 @@ def _beh2_bank() -> dict:
         "condition_number": result.condition_number,
         "codes": codes,
         "committed_qwc_groups": None,
+        "_matrix_bank": run.bank,
+        "_result": result,
     }
 
 
 SYSTEMS = {"h4": _h4_bank, "beh2": _beh2_bank}
+
+V2_ROW_FIELDS = (
+    "block_size", "settings", "word_samples_per_preparation",
+    "logical_cx_per_sweep", "mean_logical_cx_per_setting",
+    "max_logical_cx_per_setting", "logical_cx_depth_sum",
+    "mean_logical_cx_depth", "max_logical_cx_depth",
+    "state_preparations_at_uniform_shots",
+    "logical_cx_applications_at_uniform_shots", "gate_counts_per_sweep",
+    "z_only_restrictions_checked", "cx_to_preparation_cost_ratio_vs_qwc",
+)
+V2_TOP_FIELDS = (
+    "word_universe", "shots_per_setting", "grouping", "synthesis",
+    "logical_model", "system", "label", "source", "bank_provenance",
+    "n_qubits", "basis_size", "basis_labels", "ground_energy",
+    "error_millihartree", "condition_number", "qwc_to_full",
+    "most_permissive_level", "invariant",
+)
+
+
+def load_device_cards(paths: list[Path] | None = None) -> list[DeviceCard]:
+    """Load a deterministic, uniquely named set of declared device scenarios."""
+    selected = sorted(DEVICE_CARDS.glob("*.json")) if paths is None else paths
+    if not selected:
+        raise ValueError("at least one device card is required")
+    cards = [DeviceCard.load(path) for path in selected]
+    names = [card.name for card in cards]
+    if len(names) != len(set(names)):
+        raise ValueError("device-card names must be unique")
+    return cards
+
+
+def legacy_v2_projection(record: dict) -> dict:
+    """Project a v3 record onto the exact field contract of the frozen v2 row."""
+    if record.get("schema") != "clifford_qc.clifford_measurement_hierarchy.v3":
+        raise ValueError("legacy projection requires a hierarchy v3 record")
+    projected = {
+        "schema": "clifford_qc.clifford_measurement_hierarchy.v2",
+        **{field: record[field] for field in V2_TOP_FIELDS},
+        "rows": [
+            {field: row[field] for field in V2_ROW_FIELDS}
+            for row in record["rows"]
+        ],
+    }
+    return projected
+
+
+def _resource_metrics(settings: list[SettingResources]) -> dict:
+    def summary(field: str) -> dict[str, float | int]:
+        values = [getattr(setting, field) for setting in settings]
+        return {
+            "sum": sum(values),
+            "mean": sum(values) / len(values),
+            "max": max(values),
+        }
+
+    return {
+        "N_1q": summary("n_1q"),
+        "N_2q": summary("n_2q"),
+        "D_1q": summary("d_1q"),
+        "D_2q": summary("d_2q"),
+    }
+
+
+def _device_costs(
+    cards: list[DeviceCard],
+    settings: list[SettingResources],
+    compatibility: np.ndarray,
+    assignment: list[int],
+    n_qubits: int,
+) -> dict[str, dict]:
+    results: dict[str, dict] = {}
+    for card in cards:
+        fidelities = [setting_fidelity(card, setting, n_qubits) for setting in settings]
+        equal_effective_raw = inflate_shots_for_fidelity(
+            card, settings, SHOTS_PER_SETTING, n_qubits
+        )
+        results[card.name] = {
+            "device_card_sha256": card.sha256,
+            "fixed_uniform_raw_shots": cost_schedule(
+                card, settings, SHOTS_PER_SETTING, n_qubits=n_qubits,
+                evidence_tier="exact",
+            ),
+            "equal_effective_shots": cost_schedule(
+                card, settings, equal_effective_raw, n_qubits=n_qubits,
+                evidence_tier="exact",
+            ),
+            "estimator_information_at_uniform_raw_shots": {
+                estimator: estimator_information(
+                    compatibility, assignment, SHOTS_PER_SETTING,
+                    estimator=estimator, fidelities=fidelities,
+                )
+                for estimator in ("single_assignment", "pooled")
+            },
+        }
+    return results
+
+
+def _pauli_quadratic_variance(
+    n: int,
+    rho,
+    codes: np.ndarray,
+    coefficients: np.ndarray,
+) -> float:
+    """Exact per-shot variance of a commuting real Pauli functional."""
+    if len(codes) == 0:
+        return 0.0
+    codes = np.asarray(codes, dtype=np.uint64)
+    coefficients = np.asarray(coefficients, dtype=float)
+    means = np.zeros(4**n, dtype=float)
+    scale = float(2**n)
+    for code, value in rho.terms.items():
+        means[code] = scale * complex(value).real
+
+    lo = np.uint64(((1 << (2 * n)) - 1) // 3)
+    z = (codes >> np.uint64(1)) & lo
+    x = (codes & lo) ^ z
+    xz_count = _popcount_u64(x & z)
+    second = float(np.dot(coefficients, coefficients))
+    phase_lookup = np.asarray([1.0, 0.0, -1.0, 0.0])
+    for i in range(len(codes) - 1):
+        other = slice(i + 1, None)
+        product = codes[i] ^ codes[other]
+        z_product = (product >> np.uint64(1)) & lo
+        x_product = (product & lo) ^ z_product
+        exponent = (
+            int(xz_count[i])
+            + xz_count[other]
+            - _popcount_u64(x_product & z_product)
+            + 2 * _popcount_u64(z[i] & x[other])
+        ) % 4
+        if bool((exponent % 2).any()):
+            raise AssertionError("one synthesized setting contains anticommuting words")
+        product_means = phase_lookup[exponent] * means[product.astype(np.int64)]
+        second += 2.0 * coefficients[i] * float(
+            np.dot(coefficients[other], product_means)
+        )
+    mean = float(np.dot(coefficients, means[codes.astype(np.int64)]))
+    variance = second - mean * mean
+    scale_guard = max(abs(second), mean * mean, 1.0)
+    if variance < -1e-10 * scale_guard:
+        raise AssertionError(f"negative Pauli-functional variance {variance}")
+    return max(0.0, variance)
+
+
+def _ritz_variance_per_shot_sum(
+    n: int,
+    rho,
+    codes: list[int],
+    coefficients: dict[int, float],
+    compatibility: np.ndarray,
+    assignment: list[int],
+    estimator: str,
+) -> float:
+    """Sum of per-setting Ritz-Jacobian variances for uniform shots."""
+    code_positions = {code: index for index, code in enumerate(codes)}
+    unknown = sorted(set(coefficients) - set(code_positions))
+    if unknown:
+        raise AssertionError(f"Ritz functional contains {len(unknown)} unbanked words")
+    coefficient_vector = np.zeros(len(codes), dtype=float)
+    for code, value in coefficients.items():
+        coefficient_vector[code_positions[code]] = value
+    assignment_array = np.asarray(assignment, dtype=np.int64)
+    reader_counts = compatibility.sum(axis=0)
+    if bool((reader_counts <= 0).any()):
+        raise AssertionError("some words have no compatible measurement setting")
+    total = 0.0
+    for setting_index, compatible in enumerate(compatibility):
+        if estimator == "single_assignment":
+            live = (assignment_array == setting_index) & (coefficient_vector != 0.0)
+            weights = coefficient_vector[live]
+        elif estimator == "pooled":
+            live = compatible & (coefficient_vector != 0.0)
+            weights = coefficient_vector[live] / reader_counts[live]
+        else:  # pragma: no cover - internal callers are fixed above
+            raise ValueError("unknown estimator")
+        total += _pauli_quadratic_variance(
+            n, rho, np.asarray(codes, dtype=np.uint64)[live], weights
+        )
+    return total
+
+
+def _accuracy_matched_costs(
+    cards: list[DeviceCard],
+    settings: list[SettingResources],
+    compatibility: np.ndarray,
+    assignment: list[int],
+    *,
+    n_qubits: int,
+    rho,
+    codes: list[int],
+    ritz_coefficients: dict[int, float],
+    bias_millihartree: float,
+) -> dict[str, dict]:
+    """Asymptotic delta-method ``C(epsilon)`` with an exact bias-floor gate."""
+    target_mha = ACCURACY_TARGET_MILLIHARTREE
+    bias_mha = abs(float(bias_millihartree))
+    output: dict[str, dict] = {}
+    for estimator in ("single_assignment", "pooled"):
+        base: dict[str, object] = {
+            "epsilon_millihartree": target_mha,
+            "exact_subspace_bias_millihartree": bias_mha,
+            "evidence_tier": "asymptotic",
+            "C_time_epsilon_us": None,
+            "claim_boundary": (
+                "first-order Ritz-functional propagation about the exact frozen "
+                "bank; not a finite-sample energy certificate or nonlinear solver study"
+            ),
+        }
+        if bias_mha >= target_mha:
+            base.update({
+                "status": "bias_floor_exceeds_target",
+                "effective_shots_per_setting": None,
+                "linearized_variance_ha2_at_one_shot_per_setting": None,
+                "device_costs": {},
+            })
+            output[estimator] = base
+            continue
+        variance = _ritz_variance_per_shot_sum(
+            n_qubits, rho, codes, ritz_coefficients,
+            compatibility, assignment, estimator,
+        )
+        stochastic_budget_ha2 = (
+            target_mha**2 - bias_mha**2
+        ) * 1e-6
+        effective_shots = max(1, math.ceil(variance / stochastic_budget_ha2))
+        device_costs = {}
+        for card in cards:
+            raw = inflate_shots_for_fidelity(
+                card, settings, effective_shots, n_qubits
+            )
+            device_costs[card.name] = cost_schedule(
+                card, settings, raw, n_qubits=n_qubits,
+                evidence_tier="asymptotic", epsilon=target_mha * 1e-3,
+            )
+        finite_costs = [
+            cost["accuracy"]["C_time_epsilon_us"]
+            for cost in device_costs.values()
+            if cost["accuracy"]["C_time_epsilon_us"] is not None
+        ]
+        base.update({
+            "status": "priced" if finite_costs else "inadmissible",
+            "effective_shots_per_setting": effective_shots,
+            "linearized_variance_ha2_at_one_shot_per_setting": variance,
+            "C_time_epsilon_us": min(finite_costs) if finite_costs else None,
+            "device_costs": device_costs,
+        })
+        output[estimator] = base
+    return output
+
+
+def _accuracy_ordering(rows: list[dict], cards: list[DeviceCard]) -> dict[str, dict]:
+    """Rank admissible protocol rungs by asymptotic ``C(epsilon)``."""
+    output = {}
+    for card in cards:
+        by_estimator = {}
+        for estimator in ("single_assignment", "pooled"):
+            live = []
+            for row in rows:
+                cost = row["accuracy_matched_costs"][estimator]
+                ledger = cost.get("device_costs", {}).get(card.name)
+                if ledger is None:
+                    continue
+                value = ledger["accuracy"]["C_time_epsilon_us"]
+                if value is not None:
+                    live.append({
+                        "block_size": row["block_size"],
+                        "C_time_epsilon_us": value,
+                    })
+            by_estimator[estimator] = sorted(
+                live, key=lambda item: (item["C_time_epsilon_us"], item["block_size"])
+            )
+        assigned = [item["block_size"] for item in by_estimator["single_assignment"]]
+        pooled = [item["block_size"] for item in by_estimator["pooled"]]
+        by_estimator["pooling_reorders_protocols"] = assigned != pooled
+        output[card.name] = by_estimator
+    return output
 
 
 def record_path(system: str) -> Path:
     return HERE / "reference_results" / f"clifford_hierarchy_{system}.json"
 
 
-def build_record(system: str = "h4") -> dict:
+def build_record(system: str = "h4", device_cards: list[DeviceCard] | None = None) -> dict:
+    cards = load_device_cards() if device_cards is None else list(device_cards)
+    if not cards:
+        raise ValueError("at least one device card is required")
     bank = SYSTEMS[system]()
     codes = bank.pop("codes")
     committed_groups = bank.pop("committed_qwc_groups")
+    matrix_bank = bank.pop("_matrix_bank")
+    result = bank.pop("_result")
+    ritz = ritz_functional(
+        matrix_bank, result.indices, result.ritz_vector(), result.ground_energy
+    )
 
     rows = []
+    compiled: list[tuple[list[SettingResources], np.ndarray, list[int]]] = []
     for block_size in BLOCK_SIZES:
         groups = _partition(bank["n_qubits"], codes, block_size)
-        rows.append(_synthesize(bank["n_qubits"], codes, groups, block_size))
+        row, settings, compatibility, assignment = _synthesize(
+            bank["n_qubits"], codes, groups, block_size
+        )
+        row["resource_metrics"] = _resource_metrics(settings)
+        row["estimators"] = {
+            estimator: estimator_information(
+                compatibility, assignment, SHOTS_PER_SETTING, estimator=estimator
+            )
+            for estimator in ("single_assignment", "pooled")
+        }
+        row["device_costs"] = _device_costs(
+            cards, settings, compatibility, assignment, bank["n_qubits"]
+        )
+        row["accuracy_matched_costs"] = _accuracy_matched_costs(
+            cards, settings, compatibility, assignment,
+            n_qubits=bank["n_qubits"], rho=matrix_bank.reference, codes=codes,
+            ritz_coefficients=ritz.coefficients,
+            bias_millihartree=bank["error_millihartree"],
+        )
+        rows.append(row)
+        compiled.append((settings, compatibility, assignment))
 
     qwc, full = rows[0], rows[-1]
     if committed_groups is not None and qwc["settings"] != committed_groups:
@@ -365,8 +776,23 @@ def build_record(system: str = "h4") -> dict:
     rows[0]["cx_to_preparation_cost_ratio_vs_qwc"] = None
     best = max(rows[1:], key=lambda row: row["cx_to_preparation_cost_ratio_vs_qwc"])
     settings_saved = qwc["settings"] - full["settings"]
+    qwc_settings = compiled[0][0]
+    for row, (settings, _, _) in zip(rows, compiled):
+        if row is qwc:
+            row["break_even_vs_qwc"] = None
+            continue
+        row["break_even_vs_qwc"] = {
+            card.name: break_even_surface(
+                card, qwc_settings, settings, SHOTS_PER_SETTING,
+                n_qubits=bank["n_qubits"],
+                t_2q_ratios=BREAK_EVEN_T2Q_RATIOS,
+                eps_2q_values=BREAK_EVEN_EPS_2Q,
+                evidence_tier="exact",
+            )
+            for card in cards
+        }
     return {
-        "schema": "clifford_qc.clifford_measurement_hierarchy.v2",
+        "schema": "clifford_qc.clifford_measurement_hierarchy.v3",
         "word_universe": len(codes),
         "shots_per_setting": SHOTS_PER_SETTING,
         "grouping": (
@@ -380,6 +806,30 @@ def build_record(system: str = "h4") -> dict:
         "logical_model": (
             "all-to-all logical Clifford circuits; no routing, noise, or mitigation"
         ),
+        "cost_model": (
+            "declared device-card timing plus independent-error fidelity surrogate; "
+            "routing is a declared scalar sensitivity multiplier, not compilation"
+        ),
+        "device_cards": [
+            {"sha256": card.sha256, **card.to_dict()} for card in cards
+        ],
+        "accuracy_matching": {
+            "epsilon_millihartree": ACCURACY_TARGET_MILLIHARTREE,
+            "exact_subspace_bias_millihartree": abs(bank["error_millihartree"]),
+            "default_evidence_tier": "exact",
+            "default_tier_status": "unavailable",
+            "reported_evidence_tier": "asymptotic",
+            "reported_tier_status": (
+                "bias_floor_exceeds_target"
+                if abs(bank["error_millihartree"]) >= ACCURACY_TARGET_MILLIHARTREE
+                else "priced"
+            ),
+            "reason": (
+                "no finite-sample Ritz-energy certificate exists; reported C(epsilon) "
+                "uses the exact bias floor plus first-order Ritz-functional variance"
+            ),
+        },
+        "accuracy_matched_ordering": _accuracy_ordering(rows, cards),
         **bank,
         "rows": rows,
         "qwc_to_full": {
@@ -403,8 +853,13 @@ def main() -> None:
     parser = argparse.ArgumentParser()
     parser.add_argument("--system", choices=sorted(SYSTEMS), default="h4")
     parser.add_argument("--out", type=Path, default=None)
+    parser.add_argument(
+        "--device-card", type=Path, action="append", default=None,
+        help="device-card JSON (repeatable; defaults to every declared R1 card)",
+    )
     args = parser.parse_args()
-    record = stamp_record(build_record(args.system))
+    cards = load_device_cards(args.device_card)
+    record = stamp_record(build_record(args.system, cards))
     out = args.out or record_path(args.system)
     out.parent.mkdir(parents=True, exist_ok=True)
     out.write_text(json.dumps(record, indent=2, sort_keys=True) + "\n",
@@ -415,7 +870,15 @@ def main() -> None:
             f"k={row['block_size']}: G={row['settings']} "
             f"CX={row['logical_cx_per_sweep']} "
             f"D2={row['mean_logical_cx_depth']:.2f}/"
-            f"{row['max_logical_cx_depth']}")
+            f"{row['max_logical_cx_depth']} "
+            f"coverage={row['estimators']['pooled']['coverage_fraction']['mean']:.4f}"
+        )
+    matching = record["accuracy_matching"]
+    print(
+        "accuracy matching: "
+        f"{matching['reported_tier_status']} at {matching['reported_evidence_tier']} "
+        f"tier (exact tier {matching['default_tier_status']})"
+    )
     print(out)
 
 

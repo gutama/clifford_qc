@@ -137,17 +137,47 @@ python benchmarks/run_clifford_hierarchy.py --system beh2
 python benchmarks/check_clifford_hierarchy.py
 ```
 
-This writes `reference_results/clifford_hierarchy_h4.json` and
-`reference_results/clifford_hierarchy_beh2.json`. The H4 bank is reconstructed
+This writes schema-v3 `reference_results/clifford_hierarchy_h4.json` and
+`reference_results/clifford_hierarchy_beh2.json`; the frozen schema-v2 controls
+remain beside them with the `_v2.json` suffix. The checker projects every v3
+record back onto the v2 contract and requires every legacy field and JSON type to
+match before checking the new columns. The H4 bank is reconstructed
 from the retained labels in `matched_h4.json`, so the hierarchy and the matched
 ledger share one bank by construction; the BeH2 bank is an independent DA-CASE
 run on `data/beh2_sto3g_r1.3264.FCIDUMP`, which
 `benchmarks/make_beh2_fcidump.py` regenerates from PySCF under the `chemistry`
-extra. Both records report logical all-to-all CX counts and depth only;
-topology routing, device noise, and mitigation are deliberately outside that
-experiment. The tableau elimination is a constructive synthesis rather than a
-CX-minimizing compiler, and the paper's two-currency break-even proxy omits
-single-qubit Clifford costs (the JSON rows still retain their H/S counts).
+extra.
+
+R1 adds three versioned device cards from `configs/device_cards/`: the zero-error
+`logical-alltoall` regression card and explicitly illustrative
+`superconducting-like` and `ion-like` sensitivity scenarios. The latter two are
+project-defined parameter sets, not vendor calibration or current-hardware
+claims. Sparse-connectivity routing is a declared count/depth multiplier rather
+than a routing compiler. Every cost row carries the full card and its canonical
+SHA-256; scalar times without a named card are rejected by the schema.
+
+Each protocol rung reports per-setting `N_1q`, `N_2q`, `D_1q`, and `D_2q`, the
+independent-error fidelity surrogate and admissibility, fixed-shot and
+equal-effective-shot times, and both estimators on exactly the same synthesized
+settings. `single_assignment` reads each word only from its partition group;
+`pooled` reads it from every compatible setting, with weights that sum to one.
+The record retains coverage and raw/effective word observations separately, so
+free post-processing reads are not confused with physical state preparations.
+
+The 1.6 mHa `C(epsilon)` column is evidence-tiered. The exact tier remains
+unavailable because this benchmark has no exact finite-shot energy search, and no
+finite-sample Ritz-energy certificate exists. The reported comparison is
+`asymptotic`: exact frozen-subspace bias plus first-order covariance-aware
+propagation of the Ritz functional. H4's 3.019 mHa subspace bias exceeds the target,
+so every arm correctly reports the target as unattainable rather than printing a
+runtime. BeH2 is priced, and the committed ordering records whether pooling changes
+the ranking of `k` rungs under each card. These values are not a nonlinear noisy-GEP
+study, a hardware prediction, or a replacement for the negative PRD finite-shot
+result.
+
+The tableau elimination remains a constructive synthesis rather than a
+CX-minimizing compiler. Mitigation and calibrated topology routing remain outside
+this experiment.
 
 `check_docs.py` verifies the documented pair by collection. It reports a
 skip when the installed extras do not match the environment above; pass
