@@ -14,7 +14,7 @@ import numpy as np
 import pytest
 
 from clifford_qc.dense_reference import to_matrix
-from clifford_qc.ir import Program
+from clifford_qc.ir import PauliWord, Program
 from clifford_qc.multivector import MV
 from clifford_qc.pauli import I, X, Y, Z
 from clifford_qc.states import ket_density
@@ -132,9 +132,10 @@ class TestTaperingWithoutRotation:
             restriction.state(ket_density(2, "00"))
 
     def test_a_word_and_its_z_partner_merge_rather_than_survive_separately(self):
-        # The transport preserves products, not coefficients term by term.
-        # Both words below land on the same restricted word, so pinning this
-        # keeps the docstring honest about what the homomorphism does.
+        # On the commuting subalgebra the transport preserves products, not
+        # coefficients term by term. Both words below land on the same
+        # restricted word, so pinning this keeps the docstring honest about
+        # what that scoped homomorphism does.
         restriction = Restriction(
             n=2, clifford=None, fixed_qubits=(1,), signs=(1,)
         )
@@ -151,13 +152,35 @@ class TestTaperingWithoutRotation:
     def test_sector_check_rejects_a_complex_trace_with_the_right_real_part(self):
         # A phase error is one of the failures this primitive exists to catch,
         # so it must not be the one that slips past by having Re(tr) == 1.
+        class PhaseBrokenMap:
+            n = 2
+
+            def conjugate(self, word):
+                # Deliberately violate Clifford phase bookkeeping only for Z_1.
+                if word.code == next(iter(Z(2, 1).terms)):
+                    return 1j, word
+                # Supply the missing real scalar through a second deliberately
+                # invalid image, so the restricted trace is exactly 1 + 0.5i.
+                if word.code == next(iter(Z(2, 0).terms)):
+                    return 1.0, PauliWord(2, 0)
+                return 1.0, word
+
         restriction = Restriction(
-            n=2, clifford=None, fixed_qubits=(1,), signs=(1,)
+            n=2, clifford=PhaseBrokenMap(), fixed_qubits=(1,), signs=(1,)
         )
-        phase_broken = ket_density(2, "00") + 0.125j * I(2)
+        phase_broken = ket_density(2, "00")
         assert restriction.operator(phase_broken).trace().real == pytest.approx(1.0)
         with pytest.raises(ValueError, match="not in the fixed sector"):
             restriction.state(phase_broken)
+
+    def test_reference_must_be_a_normalized_hermitian_density_input(self):
+        restriction = Restriction(
+            n=2, clifford=None, fixed_qubits=(1,), signs=(1,)
+        )
+        with pytest.raises(ValueError, match="unit trace before restriction"):
+            restriction.state(ket_density(2, "00") + ket_density(2, "01"))
+        with pytest.raises(ValueError, match="Hermitian"):
+            restriction.state(ket_density(2, "00") + 0.1j * X(2, 0))
 
     def test_non_commuting_operator_is_rejected_only_when_required(self):
         n, fixed = 3, 2
@@ -171,6 +194,16 @@ class TestTaperingWithoutRotation:
         # it moves the state to an orthogonal sector and correctly vanishes.
         assert restriction.operator(leaky).is_zero(1e-12)
         assert restriction.leakage(leaky) == pytest.approx(1.0)
+
+    def test_non_commuting_compression_is_not_claimed_as_a_homomorphism(self):
+        restriction = Restriction(
+            n=2, clifford=None, fixed_qubits=(1,), signs=(1,)
+        )
+        sector_changing = X(2, 1)
+        assert restriction.operator(sector_changing).is_zero(1e-12)
+        assert not restriction.operator(sector_changing * sector_changing).is_zero(
+            1e-12
+        )
 
 
 class TestEncodingChange:
@@ -262,6 +295,22 @@ class TestCongruentTransport:
         assert problem.hamiltonian.is_close(H, 1e-12)
         assert problem.reference.is_close(rho, 1e-12)
         assert problem.generator_leakage == (pytest.approx(0.0),)
+
+    def test_transport_keeps_leakage_metadata_for_generator_iterators(self):
+        n, fixed = 3, 2
+        restriction = Restriction(
+            n=n, clifford=None, fixed_qubits=(fixed,), signs=(1,)
+        )
+        generator_iter = (g for g in (Z(n, 0), X(n, fixed)))
+        problem = restriction.transport(
+            hamiltonian=_z2_hamiltonian(n, fixed),
+            reference=ket_density(n, "000"),
+            generators=generator_iter,
+        )
+        assert len(problem.generators) == 2
+        assert problem.generator_leakage == (
+            pytest.approx(0.0), pytest.approx(1.0),
+        )
 
 
 class TestSectorLayerTransport:
