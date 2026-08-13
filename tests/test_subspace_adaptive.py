@@ -13,7 +13,7 @@ selection rule were built the obvious wrong way:
   in quantity, and invariant under how the candidates happen to be scaled.
 
 The matched-budget comparisons against fixed QSE, fixed Krylov, and ADAPT-VQE
-are the Phase-3 validation of ``ACASE_RESEARCH_PLAN.md`` §5, run from the same
+are the Phase-3 validation of ``PLAN.md`` §5, run from the same
 reference state each method starts from.
 """
 

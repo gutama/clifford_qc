@@ -562,7 +562,7 @@ claim.
 The same bank, seed, and budget, with acquisition held at uniform and the two
 *later* stages crossed instead: how a word mean is reconstructed from the
 recorded histograms, and how the retained rank is chosen. See
-`FINITE_SHOT_RETHINK.md` for the argument.
+`PLAN.md` §5 Phase 4R for the argument.
 
 ```bash
 python benchmarks/run_finite_shot_rethink.py \
@@ -1057,7 +1057,7 @@ variance-proportional round budget 4096 (growth 2, 7 rounds), operator budgets
 8 (n=4/6 spin) and 12 (chemistry and seeding), optimizer L-BFGS-B (gtol 1e-8;
 maxiter 150 for the n=6 matrix and 200 for chemistry, unlimited-default
 elsewhere). Chemical accuracy is 1.6e-3 Ha against the active-space FCI energy.
-Resource metrics follow RESEARCH_PLAN.md section 7 (shots, circuits, unique
+Resource metrics follow PLAN.md section 9.5 (shots, circuits, unique
 words, operators, optimizer evaluations, peak Pauli support).
 
 The **certification experiments do not share those values** — each predeclares

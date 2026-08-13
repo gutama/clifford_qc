@@ -1,6 +1,6 @@
 """Sector-restricted statevector backend: the exact tier past dense reach.
 
-The Witt/minimal-left-ideal representation of ``ACASE_RESEARCH_PLAN.md`` §3,
+The Witt/minimal-left-ideal representation of ``PLAN.md`` §3,
 with a plain engineering surface. A pure state is stored as its amplitudes on
 the occupation words of one particle-number (and optionally ``S_z``) sector --
 ``C(n,k)`` components rather than ``2^n`` -- and every operator acts on that
@@ -279,7 +279,7 @@ class SectorOperator:
     def restrict(self, indices) -> np.ndarray:
         """Exact ``H[I, I]`` on a declared set of *sector* indices.
 
-        The sampled-subspace projection of ``LITERATURE_ROADMAP.md`` §8B. It
+        The sampled-subspace projection of ``PLAN.md`` Phase 8B. It
         reuses the compiled gather-scatter passes rather than deriving
         Slater-Condon rules: the restricted matrix is a submatrix of the
         operator the sector tests already validate, so it inherits that

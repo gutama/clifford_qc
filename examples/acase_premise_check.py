@@ -2,7 +2,7 @@
 
 Run from the repository root: PYTHONPATH=. python examples/acase_premise_check.py
 
-Validates the standing invariants of ACASE_RESEARCH_PLAN.md §3 on the shipped
+Validates the standing invariants of PLAN.md §3 on the shipped
 Phase-1 solver (``clifford_qc.subspace``):
 
   1. H_ij, S_ij are assembled from the bilinear trace pairing against a single

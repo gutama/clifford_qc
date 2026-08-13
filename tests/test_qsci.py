@@ -1,4 +1,4 @@
-"""Phase 8 of ``LITERATURE_ROADMAP.md``: the sampled-subspace baseline.
+"""Phase 8 of ``PLAN.md``: the sampled-subspace baseline.
 
 The go/no-go for the QSCI arm is stated as five invariants on the restricted
 Hamiltonian plus a demand that they hold on H4, Hubbard, and at least one spin

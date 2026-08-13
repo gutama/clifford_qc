@@ -4,7 +4,7 @@ Run from the repository root: PYTHONPATH=. python examples/acase_adaptive.py
 
 Grows a subspace one generator at a time from the model's own reference state
 |++++> -- the same state ADAPT-VQE starts from -- choosing each addition by the
-generalized 2x2 predicted lowering of ACASE_RESEARCH_PLAN.md §4.3, and prints
+generalized 2x2 predicted lowering of PLAN.md §4.3, and prints
 the §5 matched-budget comparison against the fixed constructions.
 
 Two columns deserve attention beyond the energies. ``kappa_S`` is the retained

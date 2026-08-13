@@ -2,7 +2,7 @@
 
 Reports median and IQR for relative error, shots, and circuits, plus
 near-optimality and ambiguity rates — the resource-accounting quantities
-of RESEARCH_PLAN.md section 7. Writes CSV when --csv is given, always
+of PLAN.md section 9.5. Writes CSV when --csv is given, always
 prints a markdown table.
 
 Run: python benchmarks/summarize.py results.jsonl [--csv summary.csv]

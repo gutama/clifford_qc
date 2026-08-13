@@ -139,8 +139,8 @@ class PauliLinearOperator:
     def restrict(self, indices) -> np.ndarray:
         """Exact ``H[I, I]`` on a declared set of full-space basis words.
 
-        This is the sampled-subspace projection of ``LITERATURE_ROADMAP.md``
-        §8B for models with no particle-number sector -- the spin arm.  It is a
+        This is the sampled-subspace projection of ``PLAN.md``
+        Phase 8B for models with no particle-number sector -- the spin arm.  It is a
         row/column restriction of the same compiled action the matvec uses, not
         a second Hamiltonian builder: whatever the word list means, the
         restricted matrix inherits it.

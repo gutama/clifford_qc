@@ -1,6 +1,6 @@
 r"""Classical selected-CI controls for the sampled-subspace arm.
 
-Phase 9 of ``LITERATURE_ROADMAP.md``, and the roadmap calls it mandatory for a
+Phase 9 of ``PLAN.md``, and the roadmap calls it mandatory for a
 reason: a hybrid that dresses sampled determinants with excitation operators
 may reach its accuracy by *spanning more determinants*, which is what ordinary
 selected CI does classically and cheaply.  Without a control that expands the

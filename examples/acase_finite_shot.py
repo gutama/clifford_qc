@@ -2,7 +2,7 @@
 
 Run from the repository root: PYTHONPATH=. python examples/acase_finite_shot.py
 
-Three studies, one per stage of ACASE_RESEARCH_PLAN.md §5 Phase 4, kept apart
+Three studies, one per stage of PLAN.md §5 Phase 4, kept apart
 because the whole point of the staging is that an asymptotic error bar must
 never be mistaken for a certificate.
 

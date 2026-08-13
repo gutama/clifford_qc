@@ -7,7 +7,7 @@ while never preparing a basis state -- that agreement is the Phase-1
 correctness statement, and it is what a conjugation or reversion slip in the
 pairing would break.
 
-The standing invariants of ``ACASE_RESEARCH_PLAN.md`` §3 are checked here
+The standing invariants of ``PLAN.md`` §3 are checked here
 rather than asserted in the solver: ``E_sub >= E_0``, monotone non-increasing
 Ritz values under nested growth, exact Hermiticity and positive
 semidefiniteness of ``S``, invariance of the retained subspace under generator

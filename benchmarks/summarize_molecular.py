@@ -178,7 +178,7 @@ def render_markdown(summary: dict) -> str:
         "pass, because its candidate family *is* singles and doubles, so its "
         "span is a subspace of the CISD space. The binding constraint is the "
         "excitation family, not the geometry — the same conclusion "
-        "`ACASE_RESEARCH_PLAN.md` drew from H₄ and the Hubbard clusters, now "
+        "`PLAN.md` drew from H₄ and the Hubbard clusters, now "
         "reproduced on molecular chemistry. What would change it is level-4 "
         "generators (competing-order configurations dressed by excitations), "
         "not more geometries.")
@@ -339,7 +339,7 @@ def render_markdown(summary: dict) -> str:
     add("")
     add("### 3.1 Time and memory")
     add("")
-    add("`ACASE_RESEARCH_PLAN.md` §6 asks for bank build time and peak memory "
+    add("`PLAN.md` §6 asks for bank build time and peak memory "
         "beside basis size, on the grounds that a small basis is not a "
         "compactness result if its projected entries cost gigabytes. The "
         "adaptive figures come from the bank itself; resident set size is "

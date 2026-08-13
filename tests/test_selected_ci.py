@@ -1,4 +1,4 @@
-"""Phase 9 of ``LITERATURE_ROADMAP.md``: the classical selected-CI controls.
+"""Phase 9 of ``PLAN.md``: the classical selected-CI controls.
 
 The controls exist so a hybrid gain cannot be confused with ordinary
 determinant-space expansion, which means the controls themselves have to be

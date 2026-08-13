@@ -2,7 +2,7 @@
 
 Run from the repository root: PYTHONPATH=. python examples/acase_sector_backend.py
 
-The Witt/minimal-left-ideal representation of ACASE_RESEARCH_PLAN.md §3 with a
+The Witt/minimal-left-ideal representation of PLAN.md §3 with a
 plain surface: a pure state is stored on the occupation words of one
 (N, S_z) sector, so memory is C(n,k) rather than 2^n, and a Pauli word acts by
 bit-mask gather with the words grouped by X-mask.

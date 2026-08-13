@@ -1,6 +1,6 @@
 """Materials models: the correlated subproblem downfolding hands over.
 
-The §1 scope of ``ACASE_RESEARCH_PLAN.md`` in code. These are not materials
+The §1 scope of ``PLAN.md`` in code. These are not materials
 simulations; they are the small-but-hard clusters an embedding or downfolding
 step produces -- Hubbard and extended Hubbard, multi-orbital Kanamori, a small
 Anderson impurity, and a Kitaev honeycomb patch -- expressed in the same
