@@ -137,7 +137,7 @@ assert np.allclose(to_matrix(A * A), to_matrix(A) @ to_matrix(A))
 - a research layer for VQE/ADAPT-VQE: model builders (`models/`), execution
   backends (`backends/`), a finite-shot measurement/confidence stack
   (`measurement/`), and packaged algorithms (`algorithms/`) — see
-  `RESEARCH_PLAN.md`
+  `PLAN.md` §9
 - competing-order configurations and compound generators (`subspace/`, §4.2
   level 4): a stabilizer configuration enters as the operator `VR†` that
   carries the reference onto it, so it costs one Pauli word between
@@ -461,16 +461,18 @@ clifford_qc/
 - `MIGRATION.md` maps the old single-file API onto this package.
 - `simple_plan.md` records the implemented roadmap and bridge validation
   criteria.
-- `RESEARCH_PLAN.md` is the Paper A roadmap (confidence-certified,
-  measurement-efficient ADAPT-VQE).
-- `PLAN.md` is the single active roadmap, consolidating what were three
-  documents (the A-CASE research plan, the integrated literature roadmap, and
-  the resource-accounting plan). It carries the method (§1–§4), the phase
+- `PLAN.md` is the single research plan, consolidating what were five documents
+  (the A-CASE research plan, the integrated literature roadmap, the
+  resource-accounting plan, the Paper A roadmap, and the finite-shot lab note).
+  It carries the method (§1–§4), the phase
   ledger (§5: Phases 0–7 done, Phases 8–18 across the Paper B
   QSCI/selected-CI/hybrid critical path, Clifford-accessible measurement, and
   longer-horizon infrastructure, plus Phases R1–R4 for hardware-aware costing),
   the resource model (§6), the validation ladder and benchmark inventory (§7),
-  the falsifiable questions (§9), and the fifteen-paper literature index (§10).
+  Paper A — confidence-certified, measurement-efficient ADAPT-VQE, whose
+  software and data are complete and whose manuscript remains (§9, phases
+  A0–A5), the falsifiable questions (§10), and the fifteen-paper literature
+  index (§11).
   Phases 1-7 and the §4.2 basis hierarchy through level 4 ship in `subspace/`,
   `models/lattice.py`, `models/observables.py`, `sparse.py`,
   `backends/sector_statevector.py`, and the validation ladder
@@ -478,8 +480,6 @@ clifford_qc/
   `benchmarks/reference_results/acase_ladder.jsonl`). It records the
   comparisons the project expects to lose and confines wavelets to the
   implemented configuration-space Haar staging experiment.
-- `FINITE_SHOT_RETHINK.md` is the lab note behind Phase 4R (pooled
-  reconstruction and rank selection).
 - `paper/` holds the Paper A manuscript (REVTeX) with figures regenerated
   from the committed benchmark data.
 - License: Apache-2.0.

@@ -2,9 +2,12 @@
 
 **One document.** It consolidates the former `ACASE_RESEARCH_PLAN.md` (identity,
 method, Phases 0–7), `LITERATURE_ROADMAP.md` (Phases 8–18, tracks, literature),
-and `RESOURCE_ACCOUNTING_PLAN.md` (hardware-aware costing, Phases R1–R4). Phase
-numbers, question numbers, and the section numbers cited from code docstrings
-are unchanged, so existing references still resolve.
+`RESOURCE_ACCOUNTING_PLAN.md` (hardware-aware costing, Phases R1–R4),
+`RESEARCH_PLAN.md` (Paper A: certified ADAPT-VQE, §9), and
+`FINITE_SHOT_RETHINK.md` (the Phase 4R lab note). Phase numbers, question
+numbers, and the section numbers cited from code docstrings are unchanged, so
+existing references still resolve; Paper A's own phases are relabelled A0–A5 to
+keep them distinct from the Phases 0–18 of §5.
 
 The project's scientific identity:
 
@@ -42,13 +45,15 @@ generic case. Compound generators need not be versors.
 | **the forward program** | §5, Phases 8–18 and R1–R4 |
 | how cost is counted, and the device model | §6 |
 | the validation ladder and benchmark inventory | §7 |
-| what would falsify each claim | §9 |
-| what is deliberately not claimed | §13 |
+| **Paper A — certified ADAPT-VQE, the predecessor programme** | §9 |
+| what would falsify each claim | §10 (A-CASE), §9.2 (Paper A) |
+| what is deliberately not claimed | §14 |
 
 Status at a glance:
 
 | phase | subject | status |
 |---|---|---|
+| A0–A5 | Paper A: exact research layer, measurement/confidence layer, scaling and layering, stabilizer initialization, chemistry | **done**; manuscript remains |
 | 0–7 | exterior layer, subspace solver, bank, adaptive growth, finite-shot certification, lattice models, sector backend, validation ladder | **done** |
 | 4R | pooled reconstruction and rank selection | **done**, off by default |
 | 8–12 | QSCI baseline, selected-CI controls, hybrid, overlap/multiresolution selection, Paper B ladder | Track A, open |
@@ -670,16 +675,38 @@ endpoints are what the empirical-Bernstein validity argument needs.
 
 ### Phase 4R — the acquisition stage was the wrong one to optimize
 
-Full lab note: `FINITE_SHOT_RETHINK.md`; producer
-`benchmarks/run_finite_shot_rethink.py`; record
-`reference_results/finite_shot_rethink.json`.
+Producer `benchmarks/run_finite_shot_rethink.py`; record
+`reference_results/finite_shot_rethink.json`; regenerated and compared by
+`benchmarks/check_finite_shot_rethink.py`. It runs on the *same* bank, seed, and
+budget as the published study, and its `assigned`/`fixed` and
+`assigned`/`calibrated` arms reproduce that study's rows to the digit, so the new
+arms are directly comparable to what is in the manuscript.
+
+Phase 4 left the finite-shot projected eigensolver with one good property and two
+bad ones. Good: everything the subspace needs is a linear functional of Pauli-word
+means, measured once through shared QWC groups. Bad: (1) **the tail, not the
+median, is the error** — at 104 000 setting-shots the median absolute error is
+`4.48 mHa` and the RMSE is `1786 mHa`, because four replicas in two hundred land
+whole Hartrees away when a near-null overlap mode is resolved the wrong way; and
+(2) **every fix cost accuracy** — thresholding overlap modes at their own shot
+noise removed the tail (`RMSE 13.31 mHa`) but doubled the median to `10.64 mHa`,
+carried a `+10 mHa` truncation bias, and recovered the exact rank in only `71/200`
+replicas.
 
 Covariance-aware allocation cut the summed projected-matrix variance by 68.9% and
 moved the median error from `4.48` to `4.44 mHa`. That is the finding that
 reframes the problem: a near-null overlap mode is dangerous through its variance
 *relative to its eigenvalue*, and no reallocation of a fixed budget changes that
-ratio by the orders of magnitude needed. The two stages after acquisition had
-never been varied, and both change without spending a shot.
+ratio by the orders of magnitude needed. There are three stages between shots and
+an energy, and only the first had ever been varied:
+
+```text
+   acquisition           reconstruction              rank rule
+shots -> settings  ->  histograms -> (S_hat, H_hat) -> retained modes -> E_hat
+```
+
+The two that had not are the ones worth attacking, and both change without
+spending a shot.
 
 - *Reconstruction.* QWC grouping partitions the word universe to answer "how few
   circuits cover everything" — a scheduling question. It had also been answering
@@ -699,38 +726,122 @@ never been varied, and both change without spending a shot.
   `E_hat(k) + gamma·sigma_hat(k)`, with `sigma_hat` the delta-method error of
   `ritz_functional` at that solution. Ties resolve to the smaller rank.
 
-*Measured (same bank, seed, and budget as the Phase 4 tables; the
-`assigned`/fixed and `assigned`/calibrated arms reproduce the published study to
-the digit):*
+Three properties make pooling the right combination rather than merely a bigger
+one. *Unbiased:* each reading group's estimate is unbiased for the same mean and
+the weights sum to one over the reading groups — a reweighting, not a second copy.
+*Optimal:* the marginal law of a word's ±1 outcome does not depend on which
+compatible basis read it, so every reading group has the same per-shot variance
+and shot-count weights are exactly the inverse-variance weights.
+*Certificate-safe:* the weights depend only on the predeclared shot schedule,
+never on outcomes, so a fixed-endpoint empirical-Bernstein argument survives.
 
-| reconstruction | rank rule | median | RMSE | bias | >0.1 Ha | rank 8 |
-|---|---|---:|---:|---:|---:|---:|
-| assigned | fixed | 4.48 | 1786.21 | −178.08 | 4/200 | 200/200 |
-| assigned | calibrated | 10.64 | 13.31 | +10.33 | 0/200 | 71/200 |
-| assigned | selected | 4.56 | 7.82 | +1.73 | 0/200 | 162/200 |
-| pooled | calibrated | 2.56 | 4.86 | −1.13 | 0/200 | 195/200 |
-| pooled | selected | 2.56 | 4.90 | −1.45 | 0/200 | 198/200 |
+- *Third experiment — smooth spectral damping instead of truncation (negative).*
+  Truncation is a binary decision taken on noisy data, which invites the obvious
+  alternative: keep every mode and damp it. `solve_projected(..., overlap_ridge=)`
+  replaces `S_bar` with `S_bar + Σ_k δ_k u_k u_k'`, so a mode contributes
+  `1/(λ_k + δ_k)` to the inverse metric and the whitening identity still holds
+  exactly in the ridged metric. **Worse than truncation at every scale tried, by
+  orders of magnitude:** at the calibrated radii it gives `50 mHa` median and
+  `6166 mHa` RMSE where truncation gives `2.56` and `4.86`, and sweeping the ridge
+  up by factors of 3 to 300 trades the tail for a uniform positive bias reaching
+  `3.4 Ha` without ever passing truncation. The reason says something about the
+  problem rather than the knob: the ridge bounds the *metric*, and the damage is
+  in the *numerator* — along a near-null mode the measured `H_bar` is noise, and
+  the Rayleigh quotient descends into it for any damping that leaves the direction
+  in the space. A factor of `λ/(λ + r)` — one half, at the noise radius — is
+  nowhere near enough, and a ridge large enough to suppress it also distorts the
+  well-resolved modes, since it acts on all of them. Removing a direction is
+  qualitatively, not quantitatively, different from shrinking it. The knob is
+  retained, off by default, so the negative stays reproducible.
 
-The manuscript's trade of median accuracy against tail control does not survive
-pooling: the pooled arms beat the published best median *and* the published best
-RMSE at once. Rank selection is what still matters at the eight-times smaller
-budget, where it is the best arm on both reconstructions. Both are off by default
-— every committed record predates them.
+*Measured.* One bank (four-qubit TFIM, `M=9`, exact rank 8, `κ_S = 194.94`, 189
+words, 52 QWC groups), uniform allocation, 200 replicas. Every arm at a budget
+reads the same caches, so the table compares estimators, not budgets. Errors in
+mHa against the exact projected energy.
 
-The recorded negative is `overlap_ridge`: damping each overlap mode by
-`lambda/(lambda + r)` instead of truncating it is worse by orders of magnitude at
-every scale from `1x` to `300x` the noise radius. The damage is in the numerator —
-along a near-null mode the measured `H_bar` is noise, and the Rayleigh quotient
-descends into it for any damping that leaves the direction in the space. Removing
-a direction is not a limit of shrinking it.
+**104 000 setting-shots per replica** (the published budget):
 
-One caveat for the certified path: pooling helps the estimator more than the
-current bound. On the Ritz functional it cuts `sigma` from `5.87e-3` to `3.60e-3`
-but the empirical-Bernstein radius only from `0.208` to `0.183`, because that
-radius is a sum of per-group radii under a union bound over the groups touched.
-Bounding the sum directly, and replacing fixed-schedule EB with an anytime-valid
-confidence sequence, are the companion pieces — and the latter is what would
-license the confidence-set reuse the 4C cost analysis asks for.
+| reconstruction | rank rule | median | p95 | max | RMSE | bias | >0.1 Ha | rank 8 |
+|---|---|---:|---:|---:|---:|---:|---:|---:|
+| assigned | fixed | 4.48 | 37.01 | 22760.20 | 1786.21 | −178.08 | 4/200 | 200/200 |
+| assigned | calibrated | 10.64 | 23.96 | 34.84 | 13.31 | +10.33 | 0/200 | 71/200 |
+| assigned | selected | 4.56 | 16.27 | 21.80 | 7.82 | +1.73 | 0/200 | 162/200 |
+| assigned | ridge | 97.42 | 2754.89 | 21589.19 | 2095.93 | −406.15 | 73/200 | 1/200 |
+| pooled | fixed | 2.56 | 10.15 | 152.64 | 11.70 | −2.46 | 1/200 | 200/200 |
+| **pooled** | **calibrated** | **2.56** | **10.12** | **21.29** | **4.86** | **−1.13** | **0/200** | **195/200** |
+| pooled | selected | 2.56 | 10.19 | 21.29 | 4.90 | −1.45 | 0/200 | 198/200 |
+| pooled | ridge | 50.02 | 11637.25 | 46061.65 | 6166.13 | −2125.76 | 65/200 | 0/200 |
+
+**13 000 setting-shots per replica** (eight times smaller):
+
+| reconstruction | rank rule | median | p95 | max | RMSE | bias | >0.1 Ha | rank 8 |
+|---|---|---:|---:|---:|---:|---:|---:|---:|
+| assigned | fixed | 21.61 | 1812.02 | 23859.85 | 2254.42 | −446.49 | 34/200 | 160/200 |
+| assigned | calibrated | 32.63 | 93.65 | 119.75 | 53.88 | +37.86 | 7/200 | 5/200 |
+| assigned | selected | 11.19 | 42.73 | 84.19 | 20.97 | +1.88 | 0/200 | 64/200 |
+| assigned | ridge | 240.42 | 3245.81 | 549587.63 | 39254.96 | −3444.74 | 190/200 | 2/200 |
+| pooled | fixed | 11.48 | 173.93 | 14303.83 | 1186.45 | −171.95 | 14/200 | 198/200 |
+| pooled | calibrated | 12.73 | 32.05 | 44.56 | 17.08 | +9.72 | 0/200 | 48/200 |
+| **pooled** | **selected** | **10.11** | **26.62** | **44.56** | **14.33** | **+1.58** | **0/200** | 130/200 |
+| pooled | ridge | 130.07 | 5292.96 | 76476.77 | 5986.66 | −1267.71 | 174/200 | 1/200 |
+
+Read together: **pooling is what to change first, and the rank rule is what still
+matters once shots are scarce.** The recommended pair is `pooling='shots'` with
+`solve_selected_rank` — the best or tied-best arm at both budgets, and the only
+arm besides pooled/calibrated with no catastrophic replica anywhere. Pooling does
+not make the rank rule redundant: `pooled`/`fixed` still leaves one catastrophic
+replica in two hundred at the full budget. The manuscript's trade of median
+accuracy against tail control does not survive pooling — the pooled arms beat the
+published best median *and* the published best RMSE at once. Both are off by
+default; every committed record predates them.
+
+Two things the tables do not say. It is one bank at one conditioning, four qubits,
+in simulation with no device noise — the recommendation is a default to try, not
+an established scaling law. And no arm's value is a variational bound: the same
+data supply the matrices, the retained rank, and the error bar, so `bias` stays a
+measured property of an estimator, not a certified one.
+
+*Considered and not done, with the measurement that decided it.*
+
+- **Redesigning the settings themselves.** Once pooling exists the partition is no
+  longer the right object — settings could be chosen to *overlap* deliberately,
+  maximizing coverage-weighted readings rather than minimizing circuit count.
+  Measured on this bank: a greedy cover from the 81 full four-qubit bases needs 57
+  settings (against the partition's 52) to reach mean readers `4.09` (against
+  `3.72`). About 10% more readings for 10% more settings — much smaller than the
+  3.72× pooling already recovers from the existing partition, so the partition
+  stays.
+- **Completing each setting's basis** on qubits its words do not touch (free on
+  hardware, which measures them anyway). Measured: mean readers `3.72 → 3.78` at
+  four qubits and `4.41 → 4.43` at six. Negligible; not implemented.
+- **Anytime-valid confidence sequences** in place of fixed-schedule
+  empirical-Bernstein bounds. This is the remaining large win on the *certified*
+  path, where two independent full-universe batches per step put certified growth
+  four orders of magnitude above the exact path in shots; a confidence sequence
+  would license outcome-dependent allocation and confidence-set reuse across
+  growth steps. It is a genuine piece of work, not a knob. Alongside it: pooling
+  helps the estimator more than it helps the current certificate — on the Ritz
+  functional at 2 000 shots/group it cuts `sigma` from `5.87e-3` to `3.60e-3` (and
+  the normal radius likewise) but the EB radius only from `0.208` to `0.183`,
+  because that bound is a sum of per-group radii under a union bound over the
+  groups touched, and pooling touches at least as many. Bounding the sum directly
+  is the companion piece.
+- **A variance-penalized Rayleigh quotient** — the continuous version of
+  `solve_selected_rank`, minimizing `R(c) + γ·σ(c)` over the coefficient vector
+  rather than over the rank. Better motivated than the ridge, since it penalizes
+  the numerator noise the ridge fails to reach, but each `σ(c)` evaluation is a
+  covariance-vector product over the whole word universe inside an optimization
+  loop.
+- **Wiring pooling into noisy ADAPT selection.** `GroupedWordCache` is also what
+  `run_adapt` builds when `grouping=True`, and an ADAPT gradient is the same shape
+  of object — a linear functional of word means — so pooling applies unchanged. It
+  is deliberately not wired through: `run_adapt` carries a structured/legacy
+  keyword reconciliation and a certified selector whose calibration records are
+  committed, and a free variance reduction is not worth half-changing that surface
+  in the same pass. The cache supports it today; only the plumbing is missing.
+- **Bias correction** by grouped bootstrap or jackknife. The measured bias of the
+  recommended arms is `1.1`–`1.6 mHa` against median errors of `2.6`–`10`, so
+  there is little left to correct once pooling and rank selection are in.
 
 ### Phase 5 — done (`models/lattice.py`, `models/observables.py`, `sparse.py`)
 
@@ -1370,7 +1481,7 @@ the record reports effective as well as raw shots. A setting is inadmissible whe
 the admissible `k` set before reporting `k*`. This is deliberately a surrogate, not a
 noise simulation: it exists so the cost model cannot recommend a protocol a device
 could not execute, and claiming a calibrated error prediction from it would be exactly
-the overreach §13 forbids.
+the overreach §14 forbids.
 
 **What may be printed.** Default output is a **break-even surface** — the admissible
 region and the `k*` boundary over the `(t_2q/(t_ro+t_reset), ε_2q)` plane with the
@@ -1680,7 +1791,249 @@ observable enters the §6 accounting.
 
 ---
 
-## 9. Falsifiable questions
+## 9. Paper A — confidence-certified, measurement-efficient ADAPT-VQE
+
+The predecessor programme, and the machinery A-CASE builds on. Its software and
+data are complete; the manuscript is the remaining work. It answers a different
+question from §1's:
+
+> **Can algebraic symmetry, shared Pauli-word structure, and stabilizer
+> information make ADAPT-VQE operator selection statistically reliable with
+> materially fewer measurements and fewer non-Clifford operations?**
+
+**Two naming collisions this consolidation resolves.** (1) The contingent "Paper
+B — stabilizer-seeded residual ADAPT" of the old Paper A plan is **retired**: its
+go/no-go returned NO-GO (§9.7) and it became a negative-result section of Paper A.
+"Paper B" now refers exclusively to the A-CASE/QSCI manuscript of §1–§8. (2) Paper
+A's phases are relabelled **A0–A5** here, so they cannot be confused with the
+Phases 0–18 of §5.
+
+### 9.1 Positioning, novelty, and what not to claim
+
+No published work duplicates the full combination (density-multivector formulation
++ exact adjoint gradients + odd-Y pool restriction + finite-shot rank resolution),
+but five developments constrain the novelty claims:
+
+| Work | Constraint |
+|---|---|
+| Magoulas & Evangelista, PRA 113 (2026); Evangelista & Magoulas, PRA 111, 042825 (2025) | Fermionic Clifford transformations exist; do **not** claim the first Clifford treatment of Pauli–Majorana–Dirac structure. Cite in the Clifford/JW sections. |
+| Majland et al. (FAST-VQE), PRA 108, 052422 (2023); Long et al., PRA 109, 042413 (2024) | Measurement-efficient ADAPT selection is an active area; do **not** claim generic "measurement-efficient ADAPT-VQE". Cite in the finite-shot sections and use as baselines. |
+| Cheng et al., PRA 111, 062413 (2025); Robin, PRA 112, 052408 (2025) | Clifford-point initialization and stabilizer/residual splitting exist; frame the stabilizer work as combining them with the operator-centric representation. |
+| Scriva et al., PRA 109, 032408 (2024) | Shot noise can dominate outer-loop cost; resource accounting must cover the full outer loop. Cite in limitations. |
+| Yoo, Bae & Kim, PRA 111, 032615 (2025) | Symmetry-preserving ansätze are known; position odd-Y restriction as an *algebraic pool* symmetry with an exactness theorem, not as the first symmetry-aware pool. |
+
+**Defensible novelty statement.** *We introduce an operator-centric ADAPT-VQE
+framework in which commutator-gradient observables are represented collectively in
+a sparse Clifford-algebra basis. This enables exact algebraic pool reduction,
+global reuse of shared Pauli measurements, sequential confidence-certified
+operator selection, and stabilizer-aware initialization, all within one versioned
+Pauli-rotor intermediate representation.*
+
+Avoid claiming: first Clifford formulation of QC; first Clifford fermions; first
+measurement-efficient ADAPT; first symmetry-restricted pool; or a "fundamentally
+faster" representation than matrices.
+
+**Differentiator vs FAST-VQE.** FAST-VQE ranks by sampled determinant populations
+(a proxy). This work estimates the *exact* commutator selection observable
+`G_j = Tr[ρ·(−i/2)[H,P_j]]` with (a) cumulative shot reuse, (b) global shared-word
+measurement reuse, (c) simultaneous confidence bounds with an explicit
+wrong-selection probability `δ`, (d) an explicit ambiguity outcome instead of
+silently picking the empirical max, and (e) algebraic (odd-Y / real-sector) pool
+reduction.
+
+### 9.2 Hypotheses H1–H5
+
+Each has a falsifiable test; all comparisons are at matched empirical
+wrong-selection rate.
+
+- **H1 — Symmetry restriction.** For Hamiltonians and states real in the
+  computational basis (antiunitary-real sector), restricting the pool to odd-Y
+  Pauli words yields the *same exact* ADAPT trajectory as the unrestricted pool
+  while shrinking candidate and word counts. *Test:* exact trajectories agree
+  operator-for-operator on TFIM/XXZ; extend the TFIM observation to a proof for
+  the antiunitary-real sector.
+- **H2 — Shared-word measurement reuse.** The candidate observables `G_j` overlap
+  heavily in Pauli words; measuring the union `𝒲 = ⋃_j supp(G_j)` once per round
+  and reconstructing every `ĝ_j` from the shared cache costs strictly fewer
+  distinct measurements than per-candidate estimation. *Test:* unique-word counts
+  and shot totals against the per-candidate baseline at equal selection accuracy.
+  (The most immediate practical win, and the ancestor of the A-CASE bank.)
+- **H3 — Sequential selection guarantee.** A best-arm identification rule — select
+  `ĵ` only when its simultaneous lower bound exceeds every other upper bound —
+  controls `Pr(wrong operator) ≤ δ`. *Test:* empirical wrong-selection rate ≤ δ
+  within sampling error over ≥100 seeds (calibration is the headline validation).
+- **H4 — Adaptive allocation beats uniform doubling.** Spending new shots on words
+  that dominate the variance of *unresolved pairwise gaps* resolves selection with
+  fewer total shots than doubling everything. *Test:* median shots-to-resolution,
+  uniform vs variance-weighted vs successive elimination.
+- **H5 — Layering preserves selection quality at lower depth.** Adding a commuting
+  layer of sufficiently strong candidates after the top selection reduces depth
+  without degrading the energy trajectory. *Test:* energy vs two-qubit depth
+  against single-operator ADAPT.
+
+### 9.3 Statistical method
+
+- **Global commutator bank.** All selection observables in one sparse
+  candidate-by-word coefficient matrix `C = (c_jw)`, with `ĝ_j = Σ_w c_jw μ̂_w` and
+  `μ̂_w = (N_w⁺ − N_w⁻)/N_w`. No per-candidate accumulators owning duplicate
+  measurements.
+- **Confidence bounds, two tiers.** *Tier 1 (robust default):* Jeffreys pseudocount
+  `p̃_w = (N_w⁺ + ½)/(N_w + 1)`, variance propagated through the linear estimator
+  `Var(ĝ_j) = Σ_w |c_jw|² Var(μ̂_w)`, Šidák/Bonferroni correction across
+  candidates. *Tier 2 (publication-grade):* empirical-Bernstein / confidence-
+  sequence bounds valid under adaptive stopping.
+- **Selection outcomes.** The selector returns one of `resolved_best`,
+  `resolved_near_optimal`, `below_threshold`, `budget_exhausted_ambiguous`. Never
+  silently pick the empirical max while ambiguity remains.
+- **Allocation policies (interchangeable):** `uniform_fixed` (baseline),
+  `uniform_doubling`, `variance_proportional`, `successive_elimination` (drop
+  candidates whose upper bound falls below the best lower bound), `pairwise_gap`.
+  Expected winner: successive elimination plus the shared-word cache.
+
+### 9.4 Benchmarks and baselines
+
+*Stage 1 — spin systems:* open/periodic TFIM (`n = 4…12`, `h/J` sweep through
+criticality), random-field Ising (30 disorder seeds), XXZ chain, LMG (stabilizer
+path). The `n = 4` result is a golden regression test, not the evidence.
+
+*Stage 2 — chemistry* (OpenFermion bridge): H₂, linear H₄, LiH and BeH₂ active
+spaces. FAST-VQE determinant-population selection is only meaningful here, so the
+FAST-inspired baseline lives in stage 2.
+
+*Baselines for every headline result:* exact-gradient ADAPT; fixed-shot ADAPT;
+cumulative-doubling ADAPT; shared-word cumulative ADAPT; confidence-certified
+(successive-elimination) ADAPT; random selection; subpool exploration; layered
+ADAPT; FAST-inspired selection (chemistry); fixed-depth HVA/VQE.
+
+### 9.5 Resource accounting and statistical protocol
+
+**Report separately, never just total shots:** `N_shots` (individual
+measurements), `N_circuits` (distinct measurement circuits), `N_words` (unique
+Pauli expectations), `D_2q` (compiled two-qubit depth), `N_non-Clifford`
+(non-Clifford rotation count), `S_max` (peak active Pauli support), plus optimizer
+evaluations and classical preprocessing time. (This is the accounting
+`benchmarks/summarize.py` implements; §6 is its A-CASE-side successor, and the
+hardware-aware extension of §6.4 applies to both.)
+
+**Statistical protocol:** ≥30 seeds exploratory, ≥100 seeds for headline
+finite-shot comparisons; predeclare seeds, initialization, budgets, tolerances,
+`δ`, and near-optimality `ε`. Report wrong-selection probability, top-k
+probability, selection regret `R_t = |g*_t| − |g_selected,t|`, median/IQR shots,
+95% CIs, ambiguity and failure rates. Headline check: empirical
+`Pr(wrong selection) ≤ δ` within sampling uncertainty.
+
+### 9.6 Phase status A0–A5, and what each measured
+
+All 18 backlog items are implemented; the remaining work is the manuscript.
+
+- **A0 — consolidation (done).** IR schema versioning with a backward reader;
+  gate-by-gate execution (`Program.state()` evolves `ρ` op-by-op instead of forming
+  the whole unitary, so Pauli support stays as sparse as the circuit allows);
+  Clifford-angle rotor recognition (`θ ∈ πℤ/2`) and stim lowering, validated
+  against MV conjugation. *Exit:* all tests pass; old JSON still loads.
+- **A1 — exact research layer (done).** Backend protocol and `ExactMVBackend`
+  (gate-by-gate density-multivector evolution, exact expectations, exact adjoint
+  gradients, per-gate support tracking), `FiniteShotBackend` (seeded binomial
+  sampling, cumulative counts), `DenseStatevectorBackend` (independent reference,
+  never presented as the native representation), `StimBackend` (stabilizer
+  expectations, discrete Clifford-point search at large `n`); model builders;
+  optimizer adapters; fixed-depth HVA VQE; exact ADAPT; odd-Y/real-sector pools.
+- **A2 — measurement and confidence layer (done).** Shot data structures, global
+  commutator bank, shared word cache, uniform/variance allocation, simultaneous
+  confidence intervals, successive elimination, explicit ambiguity outcomes, cost
+  accounting. *Exit:* confidence calibration validated on synthetic Pauli means and
+  small TFIM instances.
+- **A3 — scaling and layering (done).** Commutation graph and layer construction
+  (`algorithms/layering.py`), subpool exploration with dead-subpool redraw, QWC
+  grouping with joint-distribution sampling, a random-selection baseline, and the
+  config-driven benchmark matrix. *Findings*, from the 100-seed `n=4` matrix (TFIM
+  `h ∈ {0.5, 1, 1.5}`, periodic TFIM, random-field Ising) and the 20-seed `n=6`
+  exploratory matrix: confidence-gated selection beats random selection by 2–4
+  orders of magnitude in median energy error at equal operator budget across every
+  family; QWC grouping cuts circuits 3.3–4.0×; at `n=6` noisy selection matches
+  exact-selection final error (random Ising: 4.1e-3 vs 4.5e-3, near-optimality
+  0.96); XXZ with the two-local odd-Y pool hits an ADAPT gradient plateau at ~1e-1
+  error — **the pool, not the selector, is the bottleneck**, and it needs
+  higher-weight or repeat-enabled pools. A known finding pinned by a regression
+  test: alpha-layering without operator repeats can stall at symmetric stationary
+  points. Cost: noisy runs are ~3.5 s at `n=4`, ~5 min at `n=6`, and infeasible at
+  `n≥8` on a laptop-class core — the `n = 8–12` headline sweeps need dedicated
+  hardware (configs are committed and shardable via `--shard i/k`).
+- **A4 — stabilizer initialization (done; go/no-go decided).** See §9.7.
+- **A5 — chemistry and manuscript (software and data done).**
+  `models/chemistry.py` with PySCF-computed H₂, LiH(2e,2o), BeH₂(4e,3o) and
+  H₄-chain models (HF/FCI cross-checked to machine precision), the JW
+  singles/doubles odd-Y `excitation_pool`, the FAST-inspired determinant-population
+  selector, the four-arm chemistry benchmark, and `REPRODUCING.md`. *Findings:*
+  H₂/LiH/BeH₂ at equilibrium are easy — every arm reaches chemical accuracy, and
+  BeH₂ separates the costs (exact and FAST need 1 operator, FAST at 4 096 shots;
+  confidence-gated needs 1 operator at 1.69 M shots, the price of simultaneous
+  certification over the pool; random needs 2–9). **H₄ is the discriminating case
+  and the headline chemistry result: the FAST-inspired proxy fails outright** —
+  56.1 mHa final error, identical across seeds, a deterministic selection failure,
+  with even random selection closer at 10–19 mHa — while exact commutator-gradient
+  selection reaches chemical accuracy at 9 operators (0.42 mHa). Determinant-
+  population proxies are blind to the phase structure that matters for correlated
+  states; gradient selection, which the confidence machinery certifies at finite
+  shots, is not. This is the core measurement-versus-proxy trade-off of Paper A:
+  the proxy is 400× cheaper when determinant structure carries the signal, and
+  unboundedly wrong when it does not, whereas confidence-gated gradient selection
+  pays more per step but never silently fails. *Remaining:* figures, manuscript
+  text, submission.
+
+### 9.7 Stabilizer-seeded residual ADAPT — the NO-GO
+
+The design: decompose `H = H_stab + λV` with `H_stab` admitting an efficiently
+preparable stabilizer ground state; prepare it as a Clifford `Program`; run odd-Y
+ADAPT restricted to non-Clifford residual rotations; count the non-Clifford
+operations needed to reach target accuracy. Two initialization variants —
+**(A)** discrete Clifford-point search over HVA angles `θ ∈ {0, π/2, π, 3π/2}` with
+a stabilizer backend, and **(B)** Hamiltonian stabilizer approximation, a mutually
+commuting subset maximizing `Σ_{w∈S} |h_w|` with a consistent eigenspace.
+
+**Verdict: NO-GO for a standalone paper — stabilizer initialization becomes a
+negative-result section of Paper A.** Evidence from the three-arm experiment on 9
+model instances plus an `n=24` stabilizer-only demo
+(`reference_results/stabilizer_seeding.jsonl`): (a) Variant A is *vacuous for this
+ansatz class* — the TFIM HVA's optimal Clifford point **is** the `|+…+⟩` reference
+on every family tested, exhaustively verified at depth ≤ 3; (b) Variant B's
+scaffold, despite starting up to 2 J per bond lower in energy (−23 vs −12 at
+`n=24, h=0.5`), leads residual ADAPT into gradient plateaus — final error
+1.8e-2–3.3e-2 against ≤ 1e-4 for the baseline on `h=1.0` TFIM (open and periodic)
+and 4 of 5 disorder realizations, with early stopping on vanishing gradients. The
+one partial positive: at `h=0.5` the scaffold reaches 1e-2 relative error in 6
+operators against the baseline's 8.
+
+Interpretation for the manuscript: **symmetry alignment of the reference with the
+ground sector, not raw scaffold energy, governs the non-Clifford correction cost.**
+The section should present the alignment criterion and the `h=0.5`
+early-convergence trade-off.
+
+### 9.8 Go/no-go criteria
+
+**Paper A proceeds** when, at the same empirical wrong-selection rate and across ≥3
+benchmark families, the method achieves at least one of: fewer shots; fewer
+distinct measurement circuits; materially fewer ambiguous selections; or better
+final energy at a fixed measurement budget.
+
+**The stabilizer-seeding paper proceeded separately** only on ≥2× fewer
+non-Clifford rotations, or ≥2× fewer optimizer evaluations, or materially higher
+success probability at fixed shot/depth budget, on more than one model class. It
+did not meet them (§9.7), so it folds into Paper A. (These are the criteria
+`benchmarks/run_stabilizer_seeding.py` reports against.)
+
+### 9.9 Non-goals
+
+No generic quantum SDK: no device plugins, transpilers, or vendor runtimes beyond
+the existing validated bridges. No new dependencies in the core import path (numpy
+only). No claims outside the novelty statement of §9.1.
+
+---
+
+## 10. Falsifiable questions
+
+Paper A's hypotheses H1–H5 (§9.2) are the ADAPT-side questions; those below are
+A-CASE's.
 
 **Core (Q1–Q4).**
 
@@ -1748,7 +2101,7 @@ observable enters the §6 accounting.
 
 ---
 
-## 10. Literature index and citation discipline
+## 11. Literature index and citation discipline
 
 | # | arXiv | Theme | Integrated disposition |
 |---|---|---|---|
@@ -1796,7 +2149,7 @@ incremental generator.
 
 ---
 
-## 11. Manuscript positioning
+## 12. Manuscript positioning
 
 1. **Paper B must confront QSCI and classical selected CI.** A QSCI comparison alone is
    insufficient once the hybrid dresses determinants.
@@ -1817,11 +2170,15 @@ incremental generator.
 
 ---
 
-## 12. Execution order
+## 13. Execution order
 
 Track A must not wait for Tracks B or C. Within each track the order is dependency-forced;
 between tracks, R1 is cheap and its result can reorder Track B's protocol conclusions, so it
 comes early.
+
+**Paper A — the one item outside the tracks.** Its software, data, and go/no-go decisions
+are complete (§9.6); figures, manuscript text, and submission remain. Nothing below depends
+on it, and it depends on nothing below.
 
 **Track A — Paper B critical path.**
 
@@ -1863,7 +2220,11 @@ regenerates and compares it — plus its `REPRODUCING.md` entry and its evidence
 
 ---
 
-## 13. What this plan does not claim
+## 14. What this plan does not claim
+
+**On Paper A.** Its claim discipline is separate and stated where it belongs: the defensible
+novelty statement and the five things not to claim are §9.1, and its non-goals are §9.9.
+Stabilizer seeding is reported as a negative result (§9.7), not as a deferred success.
 
 **On method.** No claim to the first subspace/QSE method, the first quantum Krylov or
 non-orthogonal eigensolver, a speedup over dense linear algebra at small `n`, DFT

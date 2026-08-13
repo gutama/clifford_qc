@@ -12,7 +12,7 @@ Three arms per model:
 
 Metrics per arm: scaffold/start energy, operators to reach relative error
 1e-2 and 1e-3, final relative error at the fixed operator budget, and
-optimizer evaluations — the quantities in RESEARCH_PLAN.md section 9.
+optimizer evaluations — the quantities in PLAN.md section 9.8.
 
 Run: python benchmarks/run_stabilizer_seeding.py --out results.jsonl
 """
