@@ -537,4 +537,12 @@ clifford_qc/
   the dyadic-measurement variant of the method this README calls A-CASE. Both
   regenerate their figures and tables from the committed benchmark data and both
   carry a `check_manuscript.py` that fails on drift.
+- **Published work.** Two papers from this repository are on arXiv:
+  [arXiv:2608.00560](https://arxiv.org/abs/2608.00560), *Adaptive
+  operator-generated subspaces for effective many-body Hamiltonians* (A-CASE), and
+  [arXiv:2608.08739](https://arxiv.org/abs/2608.08739), *DA-CASE: reusable
+  measurements for adaptive quantum subspaces*. Both are Utama & Dipojono; see
+  `CITATION.cff`. Note that `paper_acase/` currently holds the DA-CASE manuscript
+  and previously held the A-CASE one, so the A-CASE sources are reachable only
+  through git history — PLAN.md §13 tracks splitting the two.
 - License: Apache-2.0.

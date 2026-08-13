@@ -11,3 +11,31 @@ authors:
 version: 0.3.0
 license: Apache-2.0
 repository-code: "https://github.com/gutama/clifford_qc"
+preferred-citation:
+  type: article
+  title: "Adaptive operator-generated subspaces for effective many-body Hamiltonians"
+  authors:
+    - family-names: Utama
+      given-names: Ginanjar
+    - family-names: Dipojono
+      given-names: Hermawan Kresno
+  year: 2026
+  identifiers:
+    - type: doi
+      value: "10.48550/arXiv.2608.00560"
+    - type: other
+      value: "arXiv:2608.00560"
+references:
+  - type: article
+    title: "DA-CASE: reusable measurements for adaptive quantum subspaces"
+    authors:
+      - family-names: Utama
+        given-names: Ginanjar
+      - family-names: Dipojono
+        given-names: Hermawan Kresno
+    year: 2026
+    identifiers:
+      - type: doi
+        value: "10.48550/arXiv.2608.08739"
+      - type: other
+        value: "arXiv:2608.08739"
