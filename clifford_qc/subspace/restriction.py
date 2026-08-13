@@ -15,16 +15,20 @@ numbers. ``RestrictedProblem`` exists so the four objects cannot drift apart.
 Two transports, deliberately named differently:
 
 ``operator``
-    The tapering homomorphism. Word coefficients are preserved, so the
-    restricted operator's spectrum equals the original's on the fixed sector.
+    The tapering homomorphism. It preserves products, which is what makes the
+    restricted operator's spectrum equal the original's on the fixed sector.
+    It is *not* term-by-term: a word ``W`` and its partner ``W*Z_q`` land on
+    the same restricted word and their coefficients merge, at the fixed sign.
     Used for the Hamiltonian, generators, and observables.
 ``state``
     The same homomorphism, plus the check that makes it meaningful for a
     density multivector: an in-sector state's terms pair up (``W`` and
-    ``W*Z_q`` carry equal coefficients) and merge under the fix, so the trace
-    comes out at 1 by itself. It is *not* renormalized -- a trace below 1 means
-    the reference was not in the sector being fixed, which is a finding about
-    the caller's declared signs and not something to divide away.
+    ``W*Z_q`` carry equal coefficients) and merge under the fix -- the same
+    merge described above -- so the trace comes out at 1 by itself. It is
+    *not* renormalized: a trace away from 1 means the reference was not in the
+    sector being fixed, which is a finding about the caller's declared signs
+    and not something to divide away. The check is on the full complex trace,
+    so a phase error cannot pass by having the right real part.
 """
 
 from __future__ import annotations
@@ -153,14 +157,20 @@ class Restriction:
         No renormalization: for an in-sector state the merge of ``W`` with
         ``W*Z_q`` restores the trace on its own, so a shortfall is evidence
         about the declared signs rather than a scale to divide out.
+
+        The comparison is on the full complex trace. Testing only the real part
+        would let a trace of ``1 + 0.25i`` through, and a phase error in the
+        conjugation is precisely one of the failures this primitive exists to
+        catch, so it must not be the one that slips past the sector check.
         """
         restricted = self.operator(reference)
-        trace = restricted.trace().real
+        trace = restricted.trace()
         if abs(trace - 1.0) > tol:
             raise ValueError(
                 f"reference is not in the fixed sector: restricted trace {trace:.6f} "
-                "!= 1. The declared signs disagree with the reference state; "
-                "infer them from the reference instead of assuming them."
+                "!= 1. The declared signs disagree with the reference state, or a "
+                "phase was lost in the rotation; infer the signs from the "
+                "reference instead of assuming them."
             )
         return restricted
 

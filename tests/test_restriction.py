@@ -131,6 +131,34 @@ class TestTaperingWithoutRotation:
         with pytest.raises(ValueError, match="not in the fixed sector"):
             restriction.state(ket_density(2, "00"))
 
+    def test_a_word_and_its_z_partner_merge_rather_than_survive_separately(self):
+        # The transport preserves products, not coefficients term by term.
+        # Both words below land on the same restricted word, so pinning this
+        # keeps the docstring honest about what the homomorphism does.
+        restriction = Restriction(
+            n=2, clifford=None, fixed_qubits=(1,), signs=(1,)
+        )
+        merged = restriction.operator(
+            1.0 * Z(2, 0) + 3.0 * (Z(2, 0) * Z(2, 1)), require_commuting=True
+        )
+        assert merged.to_labels() == {"Z": pytest.approx(4.0)}
+        # ...and at the other declared sign the partner subtracts instead.
+        flipped = Restriction(
+            n=2, clifford=None, fixed_qubits=(1,), signs=(-1,)
+        ).operator(1.0 * Z(2, 0) + 3.0 * (Z(2, 0) * Z(2, 1)), require_commuting=True)
+        assert flipped.to_labels() == {"Z": pytest.approx(-2.0)}
+
+    def test_sector_check_rejects_a_complex_trace_with_the_right_real_part(self):
+        # A phase error is one of the failures this primitive exists to catch,
+        # so it must not be the one that slips past by having Re(tr) == 1.
+        restriction = Restriction(
+            n=2, clifford=None, fixed_qubits=(1,), signs=(1,)
+        )
+        phase_broken = ket_density(2, "00") + 0.125j * I(2)
+        assert restriction.operator(phase_broken).trace().real == pytest.approx(1.0)
+        with pytest.raises(ValueError, match="not in the fixed sector"):
+            restriction.state(phase_broken)
+
     def test_non_commuting_operator_is_rejected_only_when_required(self):
         n, fixed = 3, 2
         leaky = X(n, fixed) * 1.0
