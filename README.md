@@ -509,9 +509,10 @@ clifford_qc/
 ## Project Notes
 
 - The project is currently alpha (`0.3.0`).
-- `PLAN.md` is the single research plan — one document, consolidating what were
-  five. It is the place to look for what is built, what is not, and what would
-  falsify each claim:
+- `PLAN.md` is the single research plan — one document, consolidating the four
+  former roadmaps plus newly integrated hardware-aware resource accounting. It is
+  the place to look for what is built, what is not, and what would falsify each
+  claim:
 
   | § | contents |
   |---|---|
@@ -519,7 +520,7 @@ clifford_qc/
   | 5 | the phase ledger: Phases 0–7 and 8–12 shipped, 13–18 open, R1–R4 for hardware-aware costing |
   | 6 | resource accounting — word universe, supports, conditioning, and the device-card cost model |
   | 7 | the validation ladder, what it does and does not support, and the benchmark inventory |
-  | 9 | Paper A: confidence-certified, measurement-efficient ADAPT-VQE (phases A0–A5; software and data complete, manuscript remains) |
+  | 9 | Paper A: confidence-certified, measurement-efficient ADAPT-VQE (phases A0–A5, all complete; the manuscript's findings are quoted there from `paper/manuscript.tex`) |
   | 10–11 | falsifiable questions Q1–Q13 and QR1–QR6; the fifteen-paper literature index |
   | 14 | what the plan does not claim |
 
@@ -531,7 +532,9 @@ clifford_qc/
 - `MIGRATION.md` maps the old single-file API onto this package.
 - `simple_plan.md` records the implemented roadmap and bridge validation
   criteria.
-- `paper/` holds the Paper A manuscript (REVTeX) and `paper_acase/` the A-CASE
-  manuscript, both with figures and tables regenerated from the committed
-  benchmark data.
+- `paper/` holds the Paper A manuscript (REVTeX) and `paper_acase/` the DA-CASE
+  manuscript — "DA-CASE: reusable measurements for adaptive quantum subspaces",
+  the dyadic-measurement variant of the method this README calls A-CASE. Both
+  regenerate their figures and tables from the committed benchmark data and both
+  carry a `check_manuscript.py` that fails on drift.
 - License: Apache-2.0.

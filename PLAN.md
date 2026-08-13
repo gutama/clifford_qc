@@ -2,12 +2,14 @@
 
 **One document.** It consolidates the former `ACASE_RESEARCH_PLAN.md` (identity,
 method, Phases 0–7), `LITERATURE_ROADMAP.md` (Phases 8–18, tracks, literature),
-`RESOURCE_ACCOUNTING_PLAN.md` (hardware-aware costing, Phases R1–R4),
-`RESEARCH_PLAN.md` (Paper A: certified ADAPT-VQE, §9), and
-`FINITE_SHOT_RETHINK.md` (the Phase 4R lab note). Phase numbers, question
-numbers, and the section numbers cited from code docstrings are unchanged, so
-existing references still resolve; Paper A's own phases are relabelled A0–A5 to
-keep them distinct from the Phases 0–18 of §5.
+`RESEARCH_PLAN.md` (Paper A: certified ADAPT-VQE, §9), and `FINITE_SHOT_RETHINK.md`
+(the Phase 4R lab note) — four documents that existed on `main`. The hardware-aware
+resource accounting of §6 and Phases R1–R4 is **new design work**, introduced on this
+branch (briefly as a separate `RESOURCE_ACCOUNTING_PLAN.md`, then merged here); it has
+no provenance in the base tree and should be reviewed as new rather than as carried
+over. Phase numbers, question numbers, and the section numbers cited from code
+docstrings are unchanged, so existing references still resolve; Paper A's own phases
+are relabelled A0–A5 to keep them distinct from the Phases 0–18 of §5.
 
 The project's scientific identity:
 
@@ -53,7 +55,7 @@ Status at a glance:
 
 | phase | subject | status |
 |---|---|---|
-| A0–A5 | Paper A: exact research layer, measurement/confidence layer, scaling and layering, stabilizer initialization, chemistry | **done**; manuscript remains |
+| A0–A5 | Paper A: exact research layer, measurement/confidence layer, scaling and layering, stabilizer initialization, chemistry | **done**; the manuscript is written and checked (§9.6.1) |
 | 0–7 | exterior layer, subspace solver, bank, adaptive growth, finite-shot certification, lattice models, sector backend, validation ladder | **done** |
 | 4R | pooled reconstruction and rank selection | **done**, off by default |
 | 8–12 | QSCI baseline, selected-CI controls, hybrid, overlap/multiresolution selection, Paper B ladder | **machinery shipped**; the readings it produces are what Paper B turns on |
@@ -1317,20 +1319,38 @@ CS arm reports the restricted-space exact energy against the same exact referenc
 used elsewhere on that rung, and the qubits removed. An arm that cannot reach `ε`
 reports `C(ε) = ∞` and its floor.
 
-*The interaction question, made measurable.* With `C₀` the full-QSE cost,
+*The interaction question, made measurable.* The test compares the joint gain against
+the two **standalone** gains, each measured against the same full-QSE baseline `C₀`:
 
 ```
-C₀/C_CS+ACASE  =  (C₀/C_CS) · (C_CS/C_CS+ACASE)
+r_CS    = C₀ / C_CS            (contextual restriction alone)
+r_A     = C₀ / C_ACASE         (adaptive selection alone)
+r_joint = C₀ / C_CS+ACASE      (both)
+
+Δ = log r_joint − log r_CS − log r_A
 ```
 
-and the interaction is the deviation of the observed joint ratio from the product of
-the marginals, computed in logs with the shot-search uncertainty propagated. Three
-pre-registered outcomes: **complementary** (joint ≥ product, within uncertainty —
-the two compressions attack different structure, and CS-preconditioned A-CASE is
-worth building); **redundant** (joint ≈ larger marginal — CS removes what A-CASE
-would have pruned; report it and do not build the preconditioner); **antagonistic**
-(joint < larger marginal — restriction removes directions adaptive selection needed;
-the interesting negative, and it belongs in the paper).
+with the shot-search uncertainty propagated into `Δ`. The four arms this phase already
+runs supply all three ratios, so nothing extra is measured — but the marginals must be
+the standalone ones. Chaining the *conditional* gain instead
+(`r_joint = r_CS · C_CS/C_CS+ACASE`) is an algebraic identity that telescopes, so its
+"deviation from the product" is zero by construction and classifies nothing. The
+conditional gain `r_joint/r_CS` is still worth reporting — it is A-CASE's marginal
+value *given* CS — and the test is equivalently whether it differs from the standalone
+`r_A`.
+
+Four pre-registered outcomes, in decreasing order of interest:
+
+| outcome | signature | what follows |
+|---|---|---|
+| **complementary** | `Δ > 0` beyond uncertainty (super-multiplicative) | the two compressions attack different structure; CS-preconditioned A-CASE is worth building |
+| **multiplicative** | `Δ ≈ 0` | the gains compose but do not reinforce; build it only if the engineering is cheap |
+| **redundant** | `r_joint ≈ max(r_CS, r_A)` | CS removes what A-CASE would have pruned; report it and do not build the preconditioner |
+| **antagonistic** | `r_joint < max(r_CS, r_A)` | restriction removes directions adaptive selection needed; the interesting negative, and it belongs in the paper |
+
+The redundancy boundary is stated on the ratios rather than on `Δ` because `Δ ≈ 0` and
+`r_joint ≈ max` are different statements whenever one marginal is near 1, and it is the
+second that means "one mechanism did all the work".
 
 *Gate before any solver change.* Complementarity must appear in `C(ε)`, not only in
 `M` or `W`. A drop in `M` that leaves the accuracy-matched cost flat is exactly the
@@ -1383,21 +1403,46 @@ words. The compactness question is not "is `M` small?" but: **does the adaptive
 basis stay small while its projected operator bank stays measurably smaller than
 competing QSE/Krylov constructions — at a cost a device would actually pay?**
 
-### 6.1 Cost is only meaningful at a fixed certified accuracy
+### 6.1 Cost is only meaningful at a fixed accuracy, on a declared evidence tier
 
-Phase 4R settles this on this codebase: at 104 000 setting-shots on the frozen
-four-qubit TFIM bank, changing nothing but the estimator and the rank rule moved the
-RMSE from `1786` to `4.86` mHa. A cost quoted at fixed shots is therefore a statement
-about the estimator, not about the hardware, and it can be moved by two orders of
-magnitude without touching a circuit.
+Phase 4R settles the first half on this codebase: at 104 000 setting-shots on the
+frozen four-qubit TFIM bank, changing nothing but the estimator and the rank rule
+moved the RMSE from `1786` to `4.86` mHa. A cost quoted at fixed shots is therefore a
+statement about the estimator, not about the hardware, and it can be moved by two
+orders of magnitude without touching a circuit. So `N_g` is never an input: it is the
+output of a shot-to-target search, and two protocols are compared at equal accuracy or
+not at all.
 
-Every cost here is `C(ε)`: the cost of reaching a **certified** interval of
-half-width `ε` on the target Ritz value, at declared coverage, with the estimator and
-rank rule named in the record. Where certification abstains, the row reports
-`C(ε) = ∞` with the abstention reason rather than a number obtained by dropping the
-certificate. `N_g` is not an input, it is the output of a shot-to-target search, and
-two protocols are compared by `(C(ε), ε, coverage, abstention rate)`, never by
-settings alone.
+The second half is which accuracy statement the target is made against, and here the
+plan has to obey its own certificate contract. **There is no finite-sample certificate
+on the Ritz energy in this codebase.** Phase 4C certifies a candidate's residual
+coupling with a frozen Ritz pair, conditional on the construction batch, and says
+explicitly that this is not a bound on the energy; Phase 4R's `solve_selected_rank` is
+a selection rule whose returned value is not a variational bound; and R1 forbids
+touching the solver or the certificate. A cost defined through a *certified* energy
+interval would therefore be `∞` for every arm, and R1–R4 would produce no comparisons
+at all.
+
+`C(ε)` is consequently defined on a **declared evidence tier**, using the labels the
+package already carries (`exact`, `asymptotic`, `heuristic`, `finite_sample`), and the
+tier is a required field of every cost row:
+
+| tier | `ε` measured as | available today | used by |
+|---|---|---|---|
+| `exact` (default for R1–R4) | absolute error against the rung's exact reference, which §7.3 supplies for every rung but HCl | yes | the accuracy-matched shot search in R1–R4 |
+| `asymptotic` | half-width of the delta-method Ritz interval at declared nominal coverage | yes, uncertified | reported beside the `exact` tier as the estimator's own view |
+| `finite_sample` | half-width of a finite-sample Ritz-energy certificate | **no** | nothing, until such a certificate exists |
+
+The default tier is an **oracle** target: it uses the exact answer, which a device run
+would not have. That is legitimate for comparing *protocols and mappings* on frozen
+benchmark banks, which is all R1–R4 do — the oracle enters identically in every arm, so
+it cannot favour one — and it is illegitimate as a claim about what a hardware run
+would cost. Every row says which tier produced it, and no row mixes tiers.
+
+Promoting the cost model to a certified tier is a *prerequisite*, not a knob: it needs
+a finite-sample Ritz-energy certificate, which is the anytime-valid confidence-sequence
+work Phase 4R names and Phase 15's second moments would support. Until that lands, no
+certified `C(ε)` may be published, and `k*` (§6.7) is an oracle-accuracy statement.
 
 ### 6.2 What the fermion mapping can and cannot move
 
@@ -1525,7 +1570,7 @@ this section, with the axis on which each is measured:
 | `G(k)`, `W/G`, coverage `f_w` (mean, min) | per protocol rung |
 | `N_1q`, `N_2q`, `D_1q`, `D_2q` (mean, max) | per setting, summed per sweep |
 | `F_g`, `N_eff`, admissibility | per setting, under the device card |
-| `N_g(ε)`, `C_time(ε)`, `ε`, coverage, abstention | per arm, at the accuracy target |
+| `N_g(ε)`, `C_time(ε)`, `ε`, evidence tier, coverage, abstention | per arm, at the accuracy target (§6.1); the tier is required, never defaulted |
 | encoding, reduction, taper qubits, `n_eff` | per mapping arm |
 
 Each projected observable's word universe, and the words it adds beyond what `(S, H)`
@@ -1567,8 +1612,9 @@ device noise, and error mitigation are excluded.
 k*(ε, device card, instance) = argmin_{k admissible} C_time(ε; k)
 ```
 
-— the smallest-cost *admissible* block size at a fixed certified accuracy on a named
-device card, reported with the argmin's margin over its neighbours. It is not a
+— the smallest-cost *admissible* block size at a fixed accuracy on a named device card
+and a declared evidence tier (§6.1, `exact` by default), reported with the argmin's
+margin over its neighbours. It is not a
 function of `W` alone, it is not an instance-independent constant, and it is reported
 as a region over the break-even plane whenever the margin is within the estimator's
 own uncertainty.
@@ -1815,8 +1861,8 @@ observable enters the §6 accounting.
 ## 9. Paper A — confidence-certified, measurement-efficient ADAPT-VQE
 
 The predecessor programme, and the machinery A-CASE builds on. Its software and
-data are complete; the manuscript is the remaining work. It answers a different
-question from §1's:
+data are complete, and its manuscript is written and drift-checked (§9.6.1). It
+answers a different question from §1's:
 
 > **Can algebraic symmetry, shared Pauli-word structure, and stabilizer
 > information make ADAPT-VQE operator selection statistically reliable with
@@ -1981,26 +2027,76 @@ All 18 backlog items are implemented; the remaining work is the manuscript.
   `n≥8` on a laptop-class core — the `n = 8–12` headline sweeps need dedicated
   hardware (configs are committed and shardable via `--shard i/k`).
 - **A4 — stabilizer initialization (done; go/no-go decided).** See §9.7.
-- **A5 — chemistry and manuscript (software and data done).**
+- **A5 — chemistry (done; the manuscript is written, see §9.6.1).**
   `models/chemistry.py` with PySCF-computed H₂, LiH(2e,2o), BeH₂(4e,3o) and
   H₄-chain models (HF/FCI cross-checked to machine precision), the JW
   singles/doubles odd-Y `excitation_pool`, the FAST-inspired determinant-population
-  selector, the four-arm chemistry benchmark, and `REPRODUCING.md`. *Findings:*
-  H₂/LiH/BeH₂ at equilibrium are easy — every arm reaches chemical accuracy, and
-  BeH₂ separates the costs (exact and FAST need 1 operator, FAST at 4 096 shots;
-  confidence-gated needs 1 operator at 1.69 M shots, the price of simultaneous
-  certification over the pool; random needs 2–9). **H₄ is the discriminating case
-  and the headline chemistry result: the FAST-inspired proxy fails outright** —
-  56.1 mHa final error, identical across seeds, a deterministic selection failure,
-  with even random selection closer at 10–19 mHa — while exact commutator-gradient
-  selection reaches chemical accuracy at 9 operators (0.42 mHa). Determinant-
-  population proxies are blind to the phase structure that matters for correlated
-  states; gradient selection, which the confidence machinery certifies at finite
-  shots, is not. This is the core measurement-versus-proxy trade-off of Paper A:
-  the proxy is 400× cheaper when determinant structure carries the signal, and
-  unboundedly wrong when it does not, whereas confidence-gated gradient selection
-  pays more per step but never silently fails. *Remaining:* figures, manuscript
-  text, submission.
+  selector, the four-arm chemistry benchmark, and `REPRODUCING.md`.
+
+  *Findings, quoted from the manuscript rather than from the superseded plan
+  drafts* (`paper/manuscript.tex` §"Molecular systems and the proxy–gradient
+  boundary"; the figures and tables regenerate from the committed records):
+
+  - **The proxy failure is intrinsic, not statistical.** Evaluated at `N → ∞` on
+    *exact* computational-basis populations, the proxy's top pick carries
+    `8.15e-7` of the maximum gradient on H₄ at 0.9 Å (rank 81 of 160) and
+    `9.43e-7` on LiH (rank 9 of 12), while picking the true argmax on H₂ and
+    BeH₂. No number of shots removes that bias.
+  - **And it is regime-confined.** Sweeping H₄ over 0.7–2.0 Å, the proxy's
+    gradient fraction stays below `1.5e-5` from 0.7 to 1.5 Å but recovers the
+    true argmax at the dissociated 2.0 Å geometry, where a single excitation
+    dominates. The misalignment lives wherever several excitations compete.
+  - **H₄ is the discriminating case.** Hartree–Fock is `56.0569 mHa` above FCI;
+    the proxy recovers less than half of that correlation energy and plateaus at
+    **33.89 mHa**, identically on all three seeds, worse than the random arm
+    (3.55, 14.26, 18.30 mHa; median 14.26). Exact commutator-gradient selection
+    reaches chemical accuracy after nine operators and, at its twelve-operator
+    budget, gives `−2.179923798653 Ha` — **0.392816 mHa** above
+    `E_FCI = −2.180316614324 Ha`, recovering 99.2993 % of the HF-to-FCI
+    correlation energy in 141 optimizer evaluations.
+  - **Cost, where the comparison is fair.** At equilibrium the proxy is ~34×
+    cheaper than confidence-guided gradient selection on BeH₂ (one operator,
+    4 096 shots against `1.39e5` to chemical accuracy) and ~11–13× cheaper on H₂
+    and LiH. On correlated H₄ it is far cheaper still and selects a
+    numerically negligible-gradient direction.
+
+  *Two scoping caveats the manuscript states and this plan must not drop.* All
+  arms share the word-level qubit-ADAPT pool, so the result bounds the
+  *mechanism* — a population proxy against the commutator gradient — and is not
+  an indictment of any specific FAST implementation or of its natural
+  excitation-operator pool. And the exact-gradient H₄ trajectory is the
+  exact-gradient quality ceiling obtained with **zero measurement shots**: it is
+  *not* a certified finite-shot H₄ trajectory, and no full strict finite-shot
+  trajectory on the eight-qubit chain has been run, because grouped selection
+  over 160 candidates is beyond the present reference implementation's
+  classical-simulation budget. The selector calibration is a separate per-selection
+  experiment on well-posed spin instances.
+
+  So the trade-off Paper A reports is: the proxy is an order of magnitude cheaper
+  where determinant structure carries the signal, and intrinsically misaligned
+  where correlation is essential, whereas gradient selection pays more per step
+  and does not silently fail.
+
+#### 9.6.1 Manuscript status
+
+Both manuscripts exist in-tree, complete, with figures and tables regenerated from
+the committed records and a checker that verifies they have not drifted:
+
+| manuscript | source | scope | checker |
+|---|---|---|---|
+| Paper A | `paper/manuscript.tex`, `paper/README.md` | the measurement layer: commutator bank, shared-word caching and QWC grouping, confidence-certified selection, allocation policies, the 100-seed spin study, the proxy-versus-gradient boundary, and the stabilizer-seeding negative | `paper/check_manuscript.py` |
+| DA-CASE | `paper_acase/manuscript.tex` (dated 9 August 2026) | "DA-CASE: reusable measurements for adaptive quantum subspaces" — the **Dyadic** Adaptive Clifford-Algebra Subspace Eigensolver: one reference, reused measurements, and the dyadic block-commuting hierarchy of §6.6 | `paper_acase/check_manuscript.py` |
+
+**A naming distinction this plan owes the reader.** The method described in §1–§8
+is **A-CASE**; **DA-CASE** is the manuscript's name for the dyadic-measurement
+variant, and the dyadic hierarchy is its contribution, not a separate track. Where
+this plan says "the A-CASE manuscript" it means the DA-CASE paper. §6.6's frozen
+hierarchy tables are that manuscript's data.
+
+This plan does not record submission or archival state for either manuscript — that
+is not derivable from the tree, and asserting it here is how a status line goes
+stale. What is derivable, and is the claim made above, is that the sources are
+complete and regenerate from committed data.
 
 ### 9.7 Stabilizer-seeded residual ADAPT — the NO-GO
 
@@ -2197,9 +2293,9 @@ Track A must not wait for Tracks B or C. Within each track the order is dependen
 between tracks, R1 is cheap and its result can reorder Track B's protocol conclusions, so it
 comes early.
 
-**Paper A — the one item outside the tracks.** Its software, data, and go/no-go decisions
-are complete (§9.6); figures, manuscript text, and submission remain. Nothing below depends
-on it, and it depends on nothing below.
+**Paper A — the one item outside the tracks.** Its software, data, go/no-go decisions,
+and manuscript are complete (§9.6, §9.6.1). Nothing below depends on it, and it depends
+on nothing below.
 
 **Track A — Paper B critical path.** Steps 1–8 are built (§5, Phases 8–12); what
 remains on this track is running them to a reading and repositioning the
