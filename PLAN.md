@@ -1,4 +1,4 @@
-# `clifford_qc` research plan — A-CASE
+# `clifford_qc` research plan — WISE–A-CASE (PRD)
 
 **One document.** It consolidates the former `ACASE_RESEARCH_PLAN.md` (identity,
 method, Phases 0–7), `LITERATURE_ROADMAP.md` (Phases 8–18, tracks, literature),
@@ -24,7 +24,16 @@ and the comparison that decides whether it is worth publishing:
 > support-pruned multiresolution packets produce a compact, resource-honest
 > eigensolver that adds something classical selected CI does not already give?**
 
-**Naming.** The method is A-CASE, never "ACSE": in quantum chemistry ACSE is the
+**Naming and current architecture.** The current programme is
+**WISE–A-CASE (PRD)**: *Word-Reusing, Inference-Stabilized A-CASE* is the
+measurement-and-inference architecture, while preconditioned residual Davidson
+(PRD) is the default accuracy and basis-growth engine established by the completed
+PRD-CASE suite. A-CASE remains the operator-response span, shared-word bank, and
+matched comparator; it is no longer presented as the strongest accuracy engine.
+DA-CASE remains the manuscript-level name for the dyadic measurement hierarchy,
+and historical source identifiers and record labels are not renamed in place.
+
+The method is A-CASE, never "ACSE": in quantum chemistry ACSE is the
 anti-Hermitian contracted Schrödinger equation (Mazziotti and successors), still
 active in contracted quantum eigensolver research, and colliding with it would
 corrupt literature searches and referee context. Terminology discipline: the
@@ -43,8 +52,8 @@ generic case. Compound generators need not be versors.
 | why the architecture is what it is | §2 |
 | the algebra contract and standing invariants | §3 |
 | the method itself | §4 |
-| **status: what is built, and what it measured** | §5, Phases 0–7 |
-| **the forward program** | §5, Phases 8–18 and R1–R4 |
+| **status: what is built, and what it measured** | §5, Phases 0–12 and PRD |
+| **the forward program** | §5, Phases 13–18 and R1–R4 |
 | how cost is counted, and the device model | §6 |
 | the validation ladder and benchmark inventory | §7 |
 | **Paper A — certified ADAPT-VQE, the predecessor programme** | §9 |
@@ -58,11 +67,13 @@ Status at a glance:
 | A0–A5 | Paper A: exact research layer, measurement/confidence layer, scaling and layering, stabilizer initialization, chemistry | **done**; the manuscript is written and checked (§9.6.1) |
 | 0–7 | exterior layer, subspace solver, bank, adaptive growth, finite-shot certification, lattice models, sector backend, validation ladder | **done** |
 | 4R | pooled reconstruction and rank selection | **done**, off by default |
-| 8–12 | QSCI baseline, selected-CI controls, hybrid, overlap/multiresolution selection, Paper B ladder | **machinery shipped**; the readings it produces are what Paper B turns on |
+| 8–12 | QSCI baseline, selected-CI controls, hybrid, overlap/multiresolution selection, Paper B ladder | **done and read**; the result motivated the PRD programme below |
+| PRD | orthogonal-residual regression, Davidson/preconditioned expansion, packet pricing, matched A-CASE, exact and finite-shot suites | **done and read**; exact compactness is positive, complete-bank QWC finite-shot energy accuracy is negative |
 | 13 | parity/X-rank invariant | Track B, open |
 | 14 | fully commuting grouping | partial — the dyadic hierarchy runs as a benchmark (§6.6); the library API, cost model, and pooled re-measurement are R1/R3 |
 | 15–18 | second moments, time-evolved inputs, mapping breadth, embedding | Track C, open (Phase 18's versioned effective-Hamiltonian schema ships in `models/effective.py`; the fragment-solver callback does not) |
-| R1–R4 | hardware-aware cost model, mapping axis, protocol axis, contextual-subspace comparator | open, R1 first |
+| R1 | hardware-aware cost model and pooled-estimator ledger | **infrastructure shipped**; asymptotic `C(ε)` is recorded, exact-tier finite-shot search remains open |
+| R2–R4 | mapping axis, protocol axis, contextual-subspace comparator | open after the remaining R1 exact-tier gate |
 
 "Shipped" means the module, its tests, and where applicable its benchmark
 producer exist. It does not mean the phase's go/no-go has been read: those
@@ -90,8 +101,10 @@ energies, low-lying spectra, and material observables.
 
 **Method stack (three tiers).**
 
-1. **A-CASE** — Rayleigh–Ritz in an adaptively grown, operator-generated
-   subspace. Primary research contribution; Paper B candidate.
+1. **WISE–A-CASE (PRD)** — Davidson/preconditioned residual growth is the
+   primary accuracy engine; the WISE layer reuses the global Pauli-word bank and
+   owns stabilized measurement and inference. A-CASE supplies the
+   operator-response span machinery and the matched infrastructure comparator.
 2. **Exact references** — dense `exact_ground`, PySCF FCI metadata, the
    scipy-sparse `eigsh` tier (`sparse.py`), and the sector-restricted spinor
    backend with matrix-free Lanczos for `n` beyond dense reach. Baselines, not
@@ -1172,6 +1185,47 @@ Paper B must follow the Pareto frontier that survives. If QSCI and classical
 selected CI dominate chemistry, narrow A-CASE to systems and representations where
 operator-generated or packet directions add measured value.
 
+### Phase PRD — preconditioned residual Davidson and WISE split — done
+
+PRs #54 and #55 replace the proposed residual-oracle phase with the question that
+survived the theorem and the data. Unpreconditioned orthogonal residual expansion is
+Lanczos in an orthogonal basis and remains only a regression arm. Davidson is the
+principal accuracy method: its shift is selected by the projected Ritz energy, the
+entire shift curve and its work are retained, and the exact ground energy is not used
+for selection. Packet Davidson is separately priced because a cheap classical
+preconditioner is not automatically a bounded-support measurable generator.
+
+The completed exact suite fixes the method hierarchy. At matched `M = 7`, Davidson
+reaches the 1.6 mHa threshold on 9/12 systems, orthogonal residual on 6/12, and
+A-CASE and matched selected CI on 0/12. Across the 49 valid exact points, Davidson
+is in the minimum-error set at 46 points (ties included), orthogonal residual at 6,
+and A-CASE and matched selected CI at 0. The 12 effective-rank rejections remain
+explicit negative feasibility evidence; results must not be collapsed onto one
+nominal-`M` axis when the effective ranks differ.
+
+Word resolution is measurement infrastructure rather than a competing accuracy
+method: it preserves the determinant-resolution A-CASE span and energy while
+reducing retained-bank `W` by 58.2–91.4% (median 79.8%). The full selection cache
+falls by only 5.2–56.8% (median 36.5%), so retained-bank compression must never be
+reported as the cost of adaptive selection.
+
+The preregistered finite-shot extension is a retained negative result. Frozen packet
+Davidson (`M = 7`, `K = 16`) was measured with complete shared-QWC banks on H₄
+stretched, Hubbard 2×2 at `U/t = 4`, and stretched H₂O, with 20 seeds at 10k, 100k,
+and 1M aggregate state-preparation shots (180 cells). At 1M shots the primary median
+errors are 6.35, 28.00, and 196.80 mHa; variational-violation rates are 65%, 50%,
+and 95%; chemical-accuracy rates are 5%, 0%, and 0%. Packet selection and
+coefficients came from exact simulation, the regularization floors are diagnostics
+rather than finite-sample energy certificates, and no hardware-readiness or
+implementable-selection claim follows.
+
+**Architectural consequence.** PRD owns accuracy and basis growth; WISE owns word
+reuse, measurement design, and inference stabilization; A-CASE remains the matched
+span/measurement infrastructure and comparator. The next study is measurement-first:
+price and reduce word/group width, then optimize a centered energy/Ritz functional
+under a newly frozen protocol. R1 is the first accounting step and does not repair or
+supersede the finite-shot negative result.
+
 ### Phase 13 — structural invariant first (Track B, open)
 
 Implement GF(2) rank of Hamiltonian X masks using `word_masks`. Test the explicit
@@ -1242,7 +1296,8 @@ implement the same callback.
 
 The cost model these phases install is §6; the phases themselves:
 
-**R1 — cost infrastructure, no solver change.** Deliverables:
+**R1 — cost infrastructure, no solver change — infrastructure shipped; exact-tier
+search open.** Deliverables:
 `clifford_qc/measurement/cost.py` (device card loader, per-setting
 gate/depth/fidelity accounting, `C_time`, admissibility, break-even surface);
 `benchmarks/configs/device_cards/*.json` with at least `logical-alltoall`, one
@@ -1255,6 +1310,16 @@ pooled arm is reported beside the single-assignment arm on the same bank, and if
 coverage `f_w` moves the accuracy-matched cost ordering between `k` rungs, that is
 R1's headline result and it lands before any mapping work; (3) no solver, selector,
 or certificate code changes.
+
+The shipped schema-v3 hierarchy closes the structural part of this phase: all three
+device cards, `N_1q/N_2q/D_1q/D_2q`, timing, routing sensitivity, fidelity,
+admissibility, break-even surfaces, and assigned/pooled coverage are recorded while
+the frozen v2 projection regenerates exactly. The 1.6 mHa comparison is explicitly
+`asymptotic`, using the exact frozen-bank bias plus the covariance-aware first-order
+Ritz functional. H₄ is unattainable because its 3.019 mHa subspace bias already
+exceeds the target; on BeH₂, pooling reorders the `k` rungs under all three cards.
+The exact-tier nonlinear finite-shot search remains an R1 gate and must land before
+R2 begins; the asymptotic ledger is not silently promoted to that tier.
 
 **R2 — the mapping axis.** Arms: `JW`, `parity`, `parity+2q`, `BK`, `BK+2q`. Held
 identical across arms: Hamiltonian and active space, reference determinant,
@@ -1402,6 +1467,13 @@ A 20-dimensional basis is not compact if its projected entries carry millions of
 words. The compactness question is not "is `M` small?" but: **does the adaptive
 basis stay small while its projected operator bank stays measurably smaller than
 competing QSE/Krylov constructions — at a cost a device would actually pay?**
+
+The completed PRD suite sharpens that question: Davidson already supplies the
+strongest exact compact basis in the matched study, while complete-bank QWC
+measurement fails to convert that compactness into finite-shot energy accuracy at
+up to one million aggregate shots. Resource accounting therefore evaluates the
+WISE measurement layer around a frozen basis; it is not evidence that the basis can
+be selected on hardware or that the resulting energy estimate is certified.
 
 ### 6.1 Cost is only meaningful at a fixed accuracy, on a declared evidence tier
 
@@ -1588,7 +1660,9 @@ verified to map to a `Z`-only word. The hierarchy leaves the subspace and `W`
 unchanged while trading fewer settings for more logical CX gates and depth.
 
 Frozen (`reference_results/clifford_hierarchy_{h4,beh2}.json`, schema
-`clifford_qc.clifford_measurement_hierarchy.v2`, 8000 shots per setting):
+`clifford_qc.clifford_measurement_hierarchy.v3`, 8000 shots per setting; the
+schema-v2 controls these columns are gated against sit beside them with the
+`_v2.json` suffix):
 
 | system | `k` | `G` | `W/G` | `N_CX` | mean `D_CX` | max `D_CX` | preps (10⁶) | `c_CX/c_prep` |
 |---|---|---:|---:|---:|---:|---:|---:|---:|
@@ -2297,10 +2371,11 @@ comes early.
 and manuscript are complete (§9.6, §9.6.1). Nothing below depends on it, and it depends
 on nothing below.
 
-**Track A — Paper B critical path.** Steps 1–8 are built (§5, Phases 8–12); what
-remains on this track is running them to a reading and repositioning the
-manuscript on the frontier that survives. The order is retained because it is
-also the dependency order for re-running or extending any of it.
+**Track A — Paper B critical path.** Steps 1–8 are built and have been read
+(§5, Phases 8–12). Their result led to the completed PRD programme: at matched
+budget, preconditioned residual Davidson is the accuracy engine, while A-CASE and
+selected CI are controls rather than the minimum-error method. The order is retained
+because it is also the dependency order for re-running or extending any of it.
 
 1. QSCI contracts and exact sampled-subspace restriction (Phase 8A–8D).
 2. QSCI on the ladder, including a raw spin-system arm (8E).
@@ -2311,14 +2386,21 @@ also the dependency order for re-running or extending any of it.
 7. Overlap-targeted scoring and ordering ablations (Phase 11).
 8. The complete Track A ladder; reposition Paper B (Phase 12).
 
+**PRD/WISE architecture — completed.** The orthogonal-residual regression,
+Davidson shift sweep, packet-cost preflight, matched A-CASE study, and frozen exact
+and finite-shot suites are complete (Phase PRD). Their positive exact and negative
+finite-shot results are the premise for the measurement-first resource work below,
+not another open accuracy phase.
+
 **Track B — measurement.**
 
 9. Explicit X-rank invariant (Phase 13), then fully commuting grouping (Phase 14).
 
 **Resource accounting** (interleaves with Track B; R1 first).
 
-10. R1 — cost model on the frozen banks. *Gate:* v2 regenerates exactly under
-    `logical-alltoall`; QR1 and QR4 answered on H₄ and BeH₂.
+10. R1 — cost model on the frozen banks. *Status:* structural and asymptotic layers
+    shipped; exact-tier nonlinear shot search open. *Gate:* v2 regenerates exactly
+    under `logical-alltoall`; QR1 and QR4 answered on H₄ and BeH₂ before R2.
 11. R2a — restriction primitive and invariance checks. *Gate:* QR2 passes on every rung; no
     cost numbers are published from a run whose invariants failed.
 12. R2b — mapping measurements on H₄, BeH₂, H₂O CAS(8e,6o), Hubbard. *Gate:* QR3 answered

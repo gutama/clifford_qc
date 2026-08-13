@@ -1,0 +1,20 @@
+{
+  "schema": "clifford_qc.device_card.v1",
+  "name": "superconducting-like",
+  "t_prep_us": 1.0,
+  "t_1q_us": 0.05,
+  "t_2q_us": 0.3,
+  "t_readout_us": 1.0,
+  "t_reset_us": 1.0,
+  "eps_1q": 0.001,
+  "eps_2q": 0.01,
+  "eps_readout": 0.02,
+  "connectivity": "sparse-nearest-neighbor",
+  "routing": true,
+  "routing_2q_multiplier": 3.0,
+  "routing_depth_multiplier": 2.0,
+  "fidelity_floor": 0.5,
+  "calibration_status": "illustrative_scenario",
+  "description": "Fast-gate, sparse-connectivity design scenario for sensitivity analysis.",
+  "source": "Illustrative project scenario; not vendor data or a current-device claim."
+}

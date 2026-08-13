@@ -1,0 +1,18 @@
+{
+  "schema": "clifford_qc.device_card.v1",
+  "name": "logical-alltoall",
+  "t_prep_us": 0.0,
+  "t_1q_us": 0.05,
+  "t_2q_us": 0.3,
+  "t_readout_us": 1.0,
+  "t_reset_us": 1.0,
+  "eps_1q": 0.0,
+  "eps_2q": 0.0,
+  "eps_readout": 0.0,
+  "connectivity": "all-to-all",
+  "routing": false,
+  "fidelity_floor": 0.5,
+  "calibration_status": "logical_baseline",
+  "description": "All-to-all logical accounting baseline with zero surrogate error.",
+  "source": "Project-defined logical scenario; not a hardware calibration."
+}
