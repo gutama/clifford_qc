@@ -463,7 +463,9 @@ def load_device_cards(paths: list[Path] | None = None) -> list[DeviceCard]:
     selected = sorted(DEVICE_CARDS.glob("*.json")) if paths is None else paths
     if not selected:
         raise ValueError("at least one device card is required")
-    cards = [DeviceCard.load(path) for path in selected]
+    cards = sorted(
+        (DeviceCard.load(path) for path in selected), key=lambda card: card.name
+    )
     names = [card.name for card in cards]
     if len(names) != len(set(names)):
         raise ValueError("device-card names must be unique")
@@ -543,14 +545,17 @@ def _pauli_quadratic_variance(
     coefficients: np.ndarray,
 ) -> float:
     """Exact per-shot variance of a commuting real Pauli functional."""
+    if isinstance(n, bool) or not isinstance(n, int) or not 0 <= n <= 32:
+        raise ValueError("n must be an integer in [0, 32] for uint64 Pauli codes")
     if len(codes) == 0:
         return 0.0
     codes = np.asarray(codes, dtype=np.uint64)
     coefficients = np.asarray(coefficients, dtype=float)
-    means = np.zeros(4**n, dtype=float)
     scale = float(2**n)
-    for code, value in rho.terms.items():
-        means[code] = scale * complex(value).real
+    means = {
+        int(code): scale * complex(value).real
+        for code, value in rho.terms.items()
+    }
 
     lo = np.uint64(((1 << (2 * n)) - 1) // 3)
     z = (codes >> np.uint64(1)) & lo
@@ -571,11 +576,20 @@ def _pauli_quadratic_variance(
         ) % 4
         if bool((exponent % 2).any()):
             raise AssertionError("one synthesized setting contains anticommuting words")
-        product_means = phase_lookup[exponent] * means[product.astype(np.int64)]
+        product_means = phase_lookup[exponent] * np.fromiter(
+            (means.get(int(code), 0.0) for code in product),
+            dtype=float,
+            count=len(product),
+        )
         second += 2.0 * coefficients[i] * float(
             np.dot(coefficients[other], product_means)
         )
-    mean = float(np.dot(coefficients, means[codes.astype(np.int64)]))
+    word_means = np.fromiter(
+        (means.get(int(code), 0.0) for code in codes),
+        dtype=float,
+        count=len(codes),
+    )
+    mean = float(np.dot(coefficients, word_means))
     variance = second - mean * mean
     scale_guard = max(abs(second), mean * mean, 1.0)
     if variance < -1e-10 * scale_guard:

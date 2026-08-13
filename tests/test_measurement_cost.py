@@ -136,3 +136,24 @@ def test_break_even_surface_reports_admissibility_and_named_card():
     assert {point["winner"] for point in surface["points"]} <= {
         "reference", "candidate", "tie", "neither"
     }
+
+
+def test_break_even_surface_treats_roundoff_scale_time_difference_as_tie():
+    card = replace(
+        DeviceCard.load(CARDS / "logical-alltoall.json"),
+        t_1q_us=0.1,
+        t_readout_us=0.1,
+        t_reset_us=0.2,
+    )
+    reference = [SettingResources(15, 0, 15, 0)]
+    candidate = [
+        SettingResources(12, 0, 12, 0),
+        SettingResources(0, 0, 0, 0),
+    ]
+    surface = break_even_surface(
+        card, reference, candidate, 1, n_qubits=1,
+        t_2q_ratios=[0.0], eps_2q_values=[0.0], evidence_tier="exact",
+    )
+    point = surface["points"][0]
+    assert point["reference_time_us"] != point["candidate_time_us"]
+    assert point["winner"] == "tie"

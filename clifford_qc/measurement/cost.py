@@ -21,6 +21,8 @@ DEVICE_CARD_SCHEMA = "clifford_qc.device_card.v1"
 COST_LEDGER_SCHEMA = "clifford_qc.measurement_cost.v1"
 BREAK_EVEN_SCHEMA = "clifford_qc.measurement_break_even.v1"
 EVIDENCE_TIERS = frozenset({"exact", "asymptotic", "finite_sample"})
+_TIME_REL_TOL = 1e-12
+_TIME_ABS_TOL_US = 1e-9
 
 
 def _finite_number(value: object, field: str) -> float:
@@ -454,9 +456,17 @@ def break_even_surface(
             else:
                 ref_time = ref_cost["fixed_shot_time_us"]
                 candidate_time = candidate_cost["fixed_shot_time_us"]
-                winner = "candidate" if candidate_time < ref_time else "reference"
-                if candidate_time == ref_time:
+                if math.isclose(
+                    candidate_time,
+                    ref_time,
+                    rel_tol=_TIME_REL_TOL,
+                    abs_tol=_TIME_ABS_TOL_US,
+                ):
                     winner = "tie"
+                else:
+                    winner = (
+                        "candidate" if candidate_time < ref_time else "reference"
+                    )
             points.append({
                 "t_2q_over_readout_reset": ratio,
                 "eps_2q": error,
