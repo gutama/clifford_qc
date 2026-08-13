@@ -111,6 +111,7 @@ Status at a glance:
 | 15–18 | second moments, time-evolved inputs, mapping breadth, embedding | Track C, open (Phase 18's versioned effective-Hamiltonian schema ships in `models/effective.py`; the fragment-solver callback does not) |
 | G1–G3 | GA structural preconditioner, mapping-invariance test on the restricted pool, PRD/WISE integration with a cost decomposition | **design only** (§3.5, §5); nothing built, no results |
 | R1 | hardware-aware cost model and pooled-estimator ledger | **infrastructure shipped**; asymptotic `C(ε)` is recorded, exact-tier finite-shot search remains open |
+| R2a | shared restriction primitive (`subspace/restriction.py`) | **shipped**; no arm consumes it yet |
 | R2–R4 | mapping axis, protocol axis, contextual-subspace comparator | open after the remaining R1 exact-tier gate; R2 is re-scoped to run on the G1 pool |
 
 "Shipped" means the module, its tests, and where applicable its benchmark
@@ -1768,16 +1769,32 @@ then fixing a set of commuting stabilizer qubits to `±1`.
 | `Z₂` symmetry tapering | Clifford mapping each symmetry generator to a single `Z` | fix those qubits to the reference's eigenvalue |
 | contextual-subspace restriction | Clifford rotations of the noncontextual stabilizers | fix the stabilizer qubits |
 
-So both phases share `clifford_qc/subspace/restriction.py`, exposing a `Restriction`
-carrying `(clifford_program, fixed_qubits, signs)` that transports Hamiltonian,
-reference, generator pool, and observables together. `CliffordMap.conjugate`
-(`bridges/stim_bridge.py`) already provides the word action; what is missing is the
-fixing step and the bookkeeping that keeps the four objects consistent. Sign
-conventions on fixed qubits, phase accumulation in the conjugation, and the
-reference state's image are the three places this class of code goes wrong silently,
-so each gets an explicit test before any benchmark consumes it:
-`⟨HF_B|H_B|HF_B⟩ = ⟨HF_JW|H_JW|HF_JW⟩`, spectrum equality on the sector, and
-word-multiset bijection.
+So both phases share `clifford_qc/subspace/restriction.py` — **shipped** — exposing a
+`Restriction` carrying `(clifford, fixed_qubits, signs)` that transports Hamiltonian,
+reference, generator pool, and observables together through
+`Restriction.transport`, returning a `RestrictedProblem` that also reports per-generator
+sector leakage. `CliffordMap.conjugate` (`bridges/stim_bridge.py`) provides the word
+action; the module adds the fixing step and the bookkeeping that keeps the four objects
+consistent. The three oracle checks are in `tests/test_restriction.py`:
+`⟨HF_B|H_B|HF_B⟩ = ⟨HF_JW|H_JW|HF_JW⟩`, spectrum equality against the dense sector
+block, and word-multiset bijection under a pure encoding change.
+
+Two contracts the implementation fixes, both of which are the silent-failure mode this
+class of code has:
+
+- **A state is checked into its sector, never rescaled into it.** For an in-sector
+  density multivector the `W` and `W·Z_q` terms merge under the fix, so the trace
+  returns to 1 on its own; `Restriction.state` therefore asserts that rather than
+  normalizing, because a shortfall is evidence the declared signs are wrong.
+- **Commuting is required only where it is meant.** The Hamiltonian and the symmetry
+  generators transport with `require_commuting=True` and raise on any anticommuting
+  term; candidate generators transport without it and are projected term-wise, which
+  is the §3.5C rule that an operator moving the state to an orthogonal sector vanishes.
+  A generator annihilated this way is reported through `annihilated_indices`, not
+  dropped silently.
+
+`restricted_sector_operators` transports `(N, S_z)` through the same restriction, which
+is the first of the two choices the hidden-cost gate below demands.
 
 **The hidden cost these phases must price.** The package identifies the
 computational basis with the occupation-number basis in several places that are
@@ -2817,8 +2834,12 @@ not another open accuracy phase.
 10. R1 — cost model on the frozen banks. *Status:* structural and asymptotic layers
     shipped; exact-tier nonlinear shot search open. *Gate:* v2 regenerates exactly
     under `logical-alltoall`; QR1 and QR4 answered on H₄ and BeH₂ before R2.
-11. R2a — restriction primitive and invariance checks. *Gate:* QR2 passes on every rung; no
-    cost numbers are published from a run whose invariants failed.
+11. R2a — restriction primitive and invariance checks. **Shipped**
+    (`clifford_qc/subspace/restriction.py`, `tests/test_restriction.py`): the
+    `Restriction`/`RestrictedProblem` transport, the three oracle checks, and
+    `restricted_sector_operators`. What remains under R2a is applying it — no arm yet
+    consumes it. *Gate:* QR2 passes on every rung; no cost numbers are published from a
+    run whose invariants failed.
 12. R2b — mapping measurements on H₄, BeH₂, H₂O CAS(8e,6o), Hubbard. *Gate:* QR3 answered
     with the instance spread as the comparison scale.
 13. R3 — `mapping × k` grid and `k*` regions under three device cards.

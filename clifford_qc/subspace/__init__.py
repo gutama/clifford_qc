@@ -40,6 +40,9 @@ from .symmetry import (
     infer_reference_sector, project_reference_to_sector,
     reference_sector_leakage, subspace_sector_certificate,
 )
+from .restriction import (
+    RestrictedProblem, Restriction, restricted_sector_operators,
+)
 from .fermionic_generators import (
     determinant_excitations, fermionic_excitation_generators,
     occupied_spin_orbitals,
@@ -100,6 +103,7 @@ __all__ = [
     "select_target_candidate", "infer_reference_sector",
     "reference_sector_leakage", "subspace_sector_certificate",
     "project_reference_to_sector",
+    "RestrictedProblem", "Restriction", "restricted_sector_operators",
     "ConfigurationOrdering", "HaarPacketNode", "MultiresolutionResult",
     "configuration_ordering", "configuration_packet_hierarchy",
     "run_coarse_to_fine_acase",
