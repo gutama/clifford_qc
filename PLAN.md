@@ -440,9 +440,19 @@ reached through a Majorana rather than a Pauli generating set. Sector projectors
 do not by themselves force that extension: when every `S_α` is real, the
 projector in §3.5C is already an element of the real algebra. The complex working
 algebra is fixed by the ladder operators, complex coefficients, and Hilbert-space
-adjoint structure, not by the projector formula. JW and BK then become two qubit
-representations of one fermionic algebra rather than the place where the physics
-is defined (P-BK, P-ENC in §11).
+adjoint structure, not by the projector formula.
+
+That real-projector branch is nevertheless empty for the stabilizers this plan
+actually uses. A product of `k` distinct Majoranas squares to `(−1)^{k(k−1)/2}`,
+so real involutions exist only for `k ≡ 0, 1 (mod 4)` — while occupation,
+per-mode parity, and `S_z` are built from `k = 2` products,
+`n_p = (1 + i γ_2p γ_2p+1)/2`, which square to `−1` and therefore carry the `i`
+explicitly. So the conditional above is correct in general and vacuous here: a G1
+implementation that chooses the real algebra on the strength of it meets the
+complexification at its first stabilizer.
+
+JW and BK then become two qubit representations of one fermionic algebra rather
+than the place where the physics is defined (P-BK, P-ENC in §11).
 
 **A — parity / even-subalgebra restriction.** Electronic Hamiltonians satisfy
 `[H, (−1)^N̂] = 0`, so parity-preserving candidate operators lie in the even
