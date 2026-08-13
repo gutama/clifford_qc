@@ -15,20 +15,24 @@ numbers. ``RestrictedProblem`` exists so the four objects cannot drift apart.
 Two transports, deliberately named differently:
 
 ``operator``
-    The tapering homomorphism. It preserves products, which is what makes the
-    restricted operator's spectrum equal the original's on the fixed sector.
-    It is *not* term-by-term: a word ``W`` and its partner ``W*Z_q`` land on
-    the same restricted word and their coefficients merge, at the fixed sign.
-    Used for the Hamiltonian, generators, and observables.
+    Fixed-sector compression. On the subalgebra commuting with every fixed
+    stabilizer it is a homomorphism, which is what makes the restricted
+    Hamiltonian's spectrum equal the original's on the fixed sector. For a
+    general operator it is linear but not multiplicative: for example, a
+    sector-changing ``X_q`` restricts to zero even though ``X_q**2`` does not.
+    It is *not* coefficient-preserving: a word ``W`` and its partner
+    ``W*Z_q`` land on the same restricted word and their coefficients merge,
+    at the fixed sign. Used for the Hamiltonian, generators, and observables.
 ``state``
-    The same homomorphism, plus the check that makes it meaningful for a
-    density multivector: an in-sector state's terms pair up (``W`` and
-    ``W*Z_q`` carry equal coefficients) and merge under the fix -- the same
-    merge described above -- so the trace comes out at 1 by itself. It is
-    *not* renormalized: a trace away from 1 means the reference was not in the
-    sector being fixed, which is a finding about the caller's declared signs
-    and not something to divide away. The check is on the full complex trace,
-    so a phase error cannot pass by having the right real part.
+    The same compression, plus the checks that make it meaningful for a
+    density multivector: the input must be Hermitian with unit trace, and an
+    in-sector state's terms pair up (``W`` and ``W*Z_q`` carry equal
+    coefficients) and merge under the fix -- the same merge described above
+    -- so the restricted trace comes out at 1 by itself. It is *not*
+    renormalized: a trace away from 1 means the reference was not in the sector
+    being fixed, which is a finding about the caller's declared signs and not
+    something to divide away. The trace checks use the full complex value, so
+    a phase error cannot pass by having the right real part.
 """
 
 from __future__ import annotations
@@ -139,6 +143,10 @@ class Restriction:
         for objects that are supposed to commute with every stabilizer (the
         Hamiltonian, the symmetry generators themselves); a dropped term there
         means the declared symmetry is wrong, not that the operator leaks.
+
+        This map preserves products only when the operands preserve the fixed
+        sector. For arbitrary inputs it is the linear compression ``P O P``
+        represented on the smaller register, not an algebra homomorphism.
         """
         rotated = self.rotate(operator)
         restricted, dropped_norm = self._fix(rotated)
@@ -163,6 +171,15 @@ class Restriction:
         conjugation is precisely one of the failures this primitive exists to
         catch, so it must not be the one that slips past the sector check.
         """
+        reference = _as_mv(reference, self.n)
+        if not reference.is_hermitian(tol):
+            raise ValueError("reference state must be Hermitian")
+        input_trace = reference.trace()
+        if abs(input_trace - 1.0) > tol:
+            raise ValueError(
+                "reference state must have unit trace before restriction, "
+                f"got {input_trace}"
+            )
         restricted = self.operator(reference)
         trace = restricted.trace()
         if abs(trace - 1.0) > tol:
@@ -175,10 +192,13 @@ class Restriction:
         return restricted
 
     def leakage(self, operator: MV) -> float:
-        """Fraction of an operator's HS norm killed by the sector projection.
+        """Fraction of HS norm in terms anticommuting with fixed stabilizers.
 
         Zero means the operator commutes with every fixed stabilizer; one means
-        it is entirely off-sector and the restriction deletes it.
+        it is entirely sector-changing and the restriction deletes it. A
+        commuting operator can still vanish at one fixed sign (for example
+        ``I - Z_q`` at ``Z_q = +1``); ``annihilated_indices`` reports that
+        separately while this commutator-style leakage remains zero.
         """
         operator = _as_mv(operator, self.n)
         norm = operator.norm_hs()
@@ -191,8 +211,8 @@ class Restriction:
         """Project onto the fixed signs and delete the fixed lanes.
 
         Returns the restricted operator and the Hilbert-Schmidt norm of the
-        part the projection removed, so callers can tell "commutes" from
-        "leaked" without a second pass.
+        anticommuting terms removed, so callers can tell "commutes" from
+        "sector-changing" without a second pass.
         """
         dropped = self._dropped
         if not dropped:
@@ -224,6 +244,10 @@ class Restriction:
     def transport(self, *, hamiltonian: MV, reference: MV,
                   generators=(), observables=()) -> "RestrictedProblem":
         """Move all four objects together, which is the point of the class."""
+        # Materialize one-shot iterables once: generators are traversed both to
+        # transport them and to record their leakage metadata.
+        generators = tuple(generators)
+        observables = tuple(observables)
         return RestrictedProblem(
             restriction=self,
             hamiltonian=self.operator(hamiltonian, require_commuting=True),
@@ -238,11 +262,13 @@ class Restriction:
 class RestrictedProblem:
     """The four transported objects, plus what the transport cost each one.
 
-    ``generator_leakage[i]`` is the fraction of generator ``i`` the sector
-    projection removed. A generator that comes back zero (leakage 1.0) is not
-    an error -- it is the restriction correctly reporting that the candidate
-    only acted outside the sector -- but it must not silently enter a basis, so
-    ``surviving_generators`` is the accessor a selector should use.
+    ``generator_leakage[i]`` is the fraction of generator ``i`` carried by
+    terms anticommuting with a fixed stabilizer. A generator that comes back
+    zero is not an error -- it is the restriction correctly reporting that the
+    candidate has no action inside the selected sector -- but it must not
+    silently enter a basis, so ``surviving_generators`` is the accessor a
+    selector should use. A zero image can have leakage below 1 when commuting
+    terms cancel at the selected signs.
     """
 
     restriction: Restriction
