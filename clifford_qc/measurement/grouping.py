@@ -281,12 +281,13 @@ def qwc_basis_cover(
     if refinement_passes < 0:
         raise ValueError("refinement_passes must be non-negative")
 
-    unique = list({word.code: word for word in words}.values())
-    if not unique:
+    original = list(words)
+    if not original:
         return []
-    n = unique[0].n
-    if any(word.n != n for word in unique):
+    n = original[0].n
+    if any(word.n != n for word in original):
         raise ValueError("words act on different qubit counts")
+    unique = list({word.code: word for word in original}.values())
     if 2 * n > 63:
         # The packed NumPy implementation is intentionally bounded to int64.
         # Keep a valid dependency-light fallback rather than wrapping codes.

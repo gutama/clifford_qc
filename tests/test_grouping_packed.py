@@ -167,6 +167,8 @@ def test_basis_cover_is_deterministic_valid_and_complete():
 def test_basis_cover_deduplicates_and_validates_controls():
     word = PauliWord.from_label("XI")
     assert _codes(qwc_basis_cover([word, word])) == [[word.code]]
+    with pytest.raises(ValueError, match="different qubit counts"):
+        qwc_basis_cover([PauliWord(2, 1), PauliWord(3, 1)])
     with pytest.raises(ValueError, match="positive"):
         qwc_basis_cover([word], max_candidate_bases=0)
     with pytest.raises(ValueError, match="non-negative"):
