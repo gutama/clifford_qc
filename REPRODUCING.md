@@ -1222,3 +1222,61 @@ implementation. It may legitimately stop at the first ambiguous selection;
 that abstention is the certified result. The default command emits only the
 infinite-shot ranking and geometry sweep and never labels fallback output as
 certified.
+
+## Published A-CASE source snapshot (arXiv:2608.00560)
+
+The first A-CASE preprint and the later DA-CASE preprint originally occupied
+`paper_acase/` in sequence. The P1 source state at commit `67ea0dd` is restored
+under `paper_a_case_subspaces/`; `paper_acase/` remains the P2/DA-CASE tree.
+The historical README and checker remain byte-identical and therefore retain
+their original `paper_acase/` prose and error-message paths. Use the restored
+paths below; changing those historical files would break the source boundary.
+
+```bash
+python paper_a_case_subspaces/check_snapshot.py
+python paper_a_case_subspaces/check_manuscript.py
+
+cd paper_a_case_subspaces
+pdflatex -interaction=nonstopmode -halt-on-error manuscript.tex
+bibtex manuscript
+pdflatex -interaction=nonstopmode -halt-on-error manuscript.tex
+pdflatex -interaction=nonstopmode -halt-on-error manuscript.tex
+```
+
+`SOURCE_SNAPSHOT.json` pins the source commit and the Git blob id of every
+historical file. The sixteen text/data/table sources must remain byte-identical.
+The four PDF figures are generated outputs: `make_figures.py` may regenerate
+different PDF metadata under a newer Matplotlib, while `check_manuscript.py`
+still checks their existence, scientific inputs, and staleness.
+
+## R2b fermion-mapping foundation
+
+The five predeclared mapping arms are constructed in
+`clifford_qc/fermion_mapping.py`:
+
+- `jw`, `parity`, and `bk` are invertible CNOT-only changes of occupation-bit
+  basis; parity uses prefix parities and BK uses Fenwick-tree intervals;
+- `parity+2q` and `bk+2q` expose spin-up and total occupation parity on two
+  encoded qubits, derive their signs from declared `(N,S_z)`, and use the
+  shared `Restriction` to rotate, fix, and delete them.
+
+Run the implementation and independent invariant gates with:
+
+```bash
+python -m pytest tests/test_fermion_mapping.py -q
+```
+
+The gate compares the transported and JW projected `(S,H)` matrices, basis
+size, retained rank, condition number, Ritz values, and reference energy. Pure
+encoding arms additionally require a Pauli-word-universe bijection. At small
+qubit count, every arm is checked against an independently materialized full or
+fixed-parity dense spectrum. A sector-changing generator or an incorrectly
+declared reference sector aborts. The report records the mapping name, and the
+relative/absolute comparison tolerances, dimensionless leakage tolerance, and
+absolute zero-operator tolerance are independent controls.
+
+This is infrastructure, not an R2 result. It produces no mapping-cost record,
+does not answer QR3, and does not label the dense oracle as a hardware-available
+stopping rule. The next R2b increment must add the raw-pool multi-system
+producer, stamped reference record, regenerating checker, and device-card cost
+comparison before any mapping conclusion is reported.

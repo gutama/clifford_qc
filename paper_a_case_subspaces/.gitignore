@@ -1,0 +1,10 @@
+# Local LaTeX build products
+/manuscript.pdf
+/manuscript.aux
+/manuscript.bbl
+/manuscript.blg
+/manuscript.fdb_latexmk
+/manuscript.fls
+/manuscript.log
+/manuscript.out
+/manuscript.synctex.gz

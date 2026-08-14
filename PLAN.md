@@ -111,8 +111,9 @@ Status at a glance:
 | 15–18 | second moments, time-evolved inputs, mapping breadth, embedding | Track C, open (Phase 18's versioned effective-Hamiltonian schema ships in `models/effective.py`; the fragment-solver callback does not) |
 | G1–G3 | GA structural preconditioner, mapping-invariance test on the restricted pool, PRD/WISE integration with a cost decomposition | **design only** (§3.5, §5); nothing built, no results |
 | R1 | hardware-aware cost model and pooled-estimator ledger | **done**; asymptotic and exact-oracle nonlinear shot-search tiers are recorded |
-| R2a | shared restriction primitive (`subspace/restriction.py`) | **shipped**; no arm consumes it yet |
-| R2–R4 | mapping axis, protocol axis, contextual-subspace comparator | open; the R1 dependency is closed and R2 is re-scoped to run on the G1 pool |
+| R2a | shared restriction primitive (`subspace/restriction.py`) | **shipped and consumed by the R2b foundation** |
+| R2b | raw-pool mapping axis | **foundation shipped, experiment open** — JW/parity/BK CNOT encodings, the two `+2q` restrictions, and the invariant gate exist; no multi-instance cost record yet |
+| R3–R4 | protocol axis and contextual-subspace comparator | open after the R2b record |
 
 "Shipped" means the module, its tests, and where applicable its benchmark
 producer exist. It does not mean the phase's go/no-go has been read: those
@@ -199,14 +200,14 @@ on top of these two.
 
 | # | arXiv | Title | Submitted | Source in tree |
 |---|---|---|---|---|
-| P1 | [2608.00560](https://arxiv.org/abs/2608.00560) | Adaptive operator-generated subspaces for effective many-body Hamiltonians | 1 Aug 2026 | `paper_acase/`, at the pre-DA-CASE title |
+| P1 | [2608.00560](https://arxiv.org/abs/2608.00560) | Adaptive operator-generated subspaces for effective many-body Hamiltonians | 1 Aug 2026 | `paper_a_case_subspaces/`, restored from `67ea0dd` |
 | P2 | [2608.08739](https://arxiv.org/abs/2608.08739) | DA-CASE: reusable measurements for adaptive quantum subspaces | 9 Aug 2026 | `paper_acase/` (current) |
 
-Both are Utama & Dipojono. The two share one manuscript directory in sequence:
-`paper_acase/manuscript.tex` carried P1's title through commit `67ea0dd` and was
-retitled to P2 afterwards. **P1's sources are therefore only reachable through
-git history**, which is a reproducibility hazard the plan should fix — see the
-housekeeping item in §13.
+Both are Utama & Dipojono. The two originally shared one manuscript directory in
+sequence: `paper_acase/manuscript.tex` carried P1's title through commit `67ea0dd`
+and was retitled to P2 afterwards. The published P1 text sources are now restored
+byte-for-byte under `paper_a_case_subspaces/`, with their source-commit/blob
+manifest and independent snapshot/manuscript checks. `paper_acase/` remains P2.
 
 **What P1 established.** A-CASE as a single-reference, operator-generated
 Rayleigh–Ritz method: matrices reconstructed from one shared Pauli-expectation
@@ -1601,8 +1602,9 @@ generator family; G2 gives both mappings the same *physical operator domain*,
 which is the cleaner experiment because it separates structural compression from
 encoding locality instead of confounding them. R2's pre-registered predictions
 P1–P6 and its hidden-cost gate (the JW-specific sector layer) transfer unchanged.
-If G1 lands first, R2 runs on the G1 pool; if the G programme fails its falsifier,
-R2 runs as originally written on the raw pool.
+The initial R2b experiment runs on the raw pool, as §13 explicitly orders. If G1
+later survives its falsifier, G2 reruns the same mapping producer on the
+G1-admissible pool; it does not replace or retroactively redefine the raw result.
 
 **G3 — PRD and WISE on the admissible pool, with a cost decomposition.** PRD ranks
 only GA-admissible operators; WISE measures the resulting JW/BK representation.
@@ -1683,11 +1685,24 @@ identical across arms: Hamiltonian and active space, reference determinant,
 generator family and its enumeration order, growth budget, accuracy target,
 estimator, rank rule, seed.
 
-*Which pool this runs on.* If Phase G1 lands first, the generator family here is
-the G1-admissible pool, so both mappings receive the same physical operator domain
-and structural compression is separated from encoding locality (Phase G2). If the
-G programme fails its falsifier, this phase runs unchanged on the raw pool.
-Everything below holds either way.
+*Which pool this runs on.* The first R2b record uses the raw generator family. This
+is the explicit ordering decision in §13: R1 has cleared the dependency, while G1
+is speculative and may stop at its own falsifier. If G1 later survives, G2 applies
+the same producer to the G1-admissible pool as a second, separately labelled
+comparison. Everything below holds for both records; neither is silently replaced.
+
+*Implementation state.* `clifford_qc/fermion_mapping.py` now constructs the five
+declared arms as explicit invertible GF(2) occupation-bit maps. JW is the identity,
+parity is the prefix-parity network, and BK uses Fenwick-tree rows; every unreduced
+arm is a CNOT-only Clifford change of representation. The `+2q` arms use a linear
+base-network-plus-fixup construction, complete their base rows with spin-up and
+total-parity rows, derive the fixed signs from declared `(N,S_z)`, and delegate
+rotate/fix/delete to the R2a `Restriction`. The shared
+`assert_mapping_invariants` gate compares the projected `(S,H)` matrices, retained
+rank, condition number, Ritz values, reference energy, and word bijection; at small
+`n` it also compares the full mapped/fixed-sector spectrum against an independently
+extracted dense block. These are implementation checks only: no R2 cost row or QR3
+answer exists until the standard producer/record/checker triple lands.
 
 *Step 1 — invariance, as checks.* Construct the encoding change as a CNOT network,
 verify it is Clifford through `clifford_tableau`, then assert: spectrum on the
@@ -2822,14 +2837,13 @@ and manuscript are complete (§9.6, §9.6.1) but it is not submitted. Nothing be
 depends on it, and it depends on nothing below, so submission is schedulable at any
 time; it may now cite P1/P2 as companion work.
 
-**Housekeeping, ahead of everything else because it is a reproducibility defect.**
-`paper_acase/` carried P1's manuscript and now carries P2's, so P1's exact sources
-are reachable only at commit `67ea0dd` (§1.2). Split the directory — `paper_acase/`
-for P2, a restored `paper_a_case_subspaces/` (or equivalent) for P1 — so each
-published arXiv entry has a directory at its published state, with its own
-`check_manuscript.py`. Until that lands, any P1 reproduction request requires a
-git archaeology step that the `REPRODUCING.md` contract is supposed to make
-unnecessary.
+**Housekeeping — done.** `paper_acase/` remains the P2 source tree. P1's sixteen
+published text/data/table sources from `67ea0dd` are restored byte-for-byte under
+`paper_a_case_subspaces/`; `SOURCE_SNAPSHOT.json` records every historical blob,
+and `check_snapshot.py` plus the restored `check_manuscript.py` gate provenance and
+manuscript structure. The four PDF figures are generated outputs and may carry
+different PDF metadata under a newer Matplotlib, while their historical blob ids,
+scientific inputs, and staleness checks remain recorded.
 
 **Track A — Paper B critical path.** Steps 1–8 are built and have been read
 (§5, Phases 8–12). Their result led to the completed PRD programme: at matched
@@ -2864,11 +2878,15 @@ not another open accuracy phase.
 11. R2a — restriction primitive and invariance checks. **Shipped**
     (`clifford_qc/subspace/restriction.py`, `tests/test_restriction.py`): the
     `Restriction`/`RestrictedProblem` transport, the three oracle checks, and
-    `restricted_sector_operators`. What remains under R2a is applying it — no arm yet
-    consumes it. *Gate:* QR2 passes on every rung; no cost numbers are published from a
-    run whose invariants failed.
-12. R2b — mapping measurements on H₄, BeH₂, H₂O CAS(8e,6o), Hubbard. *Gate:* QR3 answered
-    with the instance spread as the comparison scale.
+    `restricted_sector_operators`. The R2b mapping foundation now consumes this
+    primitive; applying it across the full benchmark ladder remains open. *Gate:* QR2
+    passes on every rung; no cost numbers are published from a run whose invariants
+    failed.
+12. R2b — mapping measurements on H₄, BeH₂, H₂O CAS(8e,6o), Hubbard.
+    **Foundation shipped:** the five encoding/reduction arms and the QR2 invariant
+    gate exist. **Open:** the raw-pool producer, stamped record, regenerating checker,
+    and therefore every cost conclusion. *Gate:* QR3 is answered with the instance
+    spread as the comparison scale.
 13. R3 — `mapping × k` grid and `k*` regions under three device cards.
 14. R4a — contextual-subspace comparator arms with bias floors. *Gate:* QR5 answered.
 15. R4b — CS-preconditioned A-CASE, built only on a complementary QR5.
@@ -2880,8 +2898,8 @@ it shares the `Restriction` primitive with R2a, so it starts no earlier than ste
     existing Pauli-side filters exactly; E's marginal is reported separately. *Stop
     condition:* if E removes nothing, publish the short negative and do not run
     G2/G3.
-17. G2 — JW/BK on the G1-admissible pool. Merges with R2b rather than duplicating it:
-    whichever of the two pools exists when R2b runs is the one it uses.
+17. G2 — rerun the R2b producer on the G1-admissible pool if G1 survives. This is
+    a second labelled record beside the raw-pool result, not a replacement for it.
 18. G3 — PRD and WISE on the admissible pool, reporting the
     `raw → GA → GA+PRD → GA+PRD+WISE` decomposition at fixed accuracy under a named
     card. *Gate:* every arrow carries its own propagated margin.

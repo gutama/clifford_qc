@@ -82,6 +82,8 @@ class Restriction:
     clifford: object | None
     fixed_qubits: tuple[int, ...]
     signs: tuple[int, ...]
+    label: str | None = None
+    spin_ordering: str = "interleaved"
 
     def __post_init__(self) -> None:
         if not isinstance(self.n, int) or self.n < 1:
@@ -100,16 +102,38 @@ class Restriction:
             raise ValueError("clifford map acts on a different qubit count")
         if len(self.fixed_qubits) >= self.n:
             raise ValueError("cannot fix every qubit; nothing would remain")
+        if self.label is not None and (
+            not isinstance(self.label, str) or not self.label.strip()
+        ):
+            raise ValueError("restriction label must be a non-empty string or None")
+        if self.spin_ordering not in ("interleaved", "blocked"):
+            raise ValueError("spin_ordering must be 'interleaved' or 'blocked'")
 
     @classmethod
-    def identity(cls, n: int) -> "Restriction":
+    def identity(cls, n: int, *, label: str | None = None,
+                 spin_ordering: str = "interleaved") -> "Restriction":
         """The no-op restriction, useful as a control arm."""
-        return cls(n=n, clifford=None, fixed_qubits=(), signs=())
+        return cls(
+            n=n,
+            clifford=None,
+            fixed_qubits=(),
+            signs=(),
+            label=label,
+            spin_ordering=spin_ordering,
+        )
 
     @classmethod
-    def encoding(cls, clifford) -> "Restriction":
+    def encoding(cls, clifford, *, label: str | None = None,
+                 spin_ordering: str = "interleaved") -> "Restriction":
         """A pure change of encoding: rotate, fix nothing."""
-        return cls(n=clifford.n, clifford=clifford, fixed_qubits=(), signs=())
+        return cls(
+            n=clifford.n,
+            clifford=clifford,
+            fixed_qubits=(),
+            signs=(),
+            label=label,
+            spin_ordering=spin_ordering,
+        )
 
     @property
     def n_restricted(self) -> int:
@@ -290,7 +314,7 @@ class RestrictedProblem:
 
 
 def restricted_sector_operators(restriction: Restriction, *,
-                                spin_ordering="interleaved") -> tuple[MV, MV]:
+                                spin_ordering=None) -> tuple[MV, MV]:
     """``(N, S_z)`` transported through a restriction.
 
     ``fermion.total_number_op`` and ``total_sz_op`` build ``n_j = (I - Z_j)/2``
@@ -300,14 +324,16 @@ def restricted_sector_operators(restriction: Restriction, *,
     non-JW encoding they do not raise, they return plausible wrong numbers.
 
     Transporting the two operators through the same restriction that moved the
-    Hamiltonian is the fix: the number operator's image stays diagonal, so the
-    sector diagnostics remain meaningful in the restricted register instead of
-    being silently applied to operators they no longer describe.
+    Hamiltonian is the fix.  By default the spin ordering is read from the
+    restriction, so a fermion encoding cannot silently lose that convention at
+    this boundary.  ``spin_ordering`` remains an explicit override for manually
+    constructed restrictions.
     """
     from ..fermion import total_number_op, total_sz_op
 
+    ordering = restriction.spin_ordering if spin_ordering is None else spin_ordering
     number = total_number_op(restriction.n)
-    sz = total_sz_op(restriction.n, spin_ordering=spin_ordering)
+    sz = total_sz_op(restriction.n, spin_ordering=ordering)
     return (
         restriction.operator(number, require_commuting=True),
         restriction.operator(sz, require_commuting=True),

@@ -1,0 +1,110 @@
+{
+  "schema": "clifford_qc.paper_source_snapshot.v1",
+  "paper": "Adaptive operator-generated subspaces for effective many-body Hamiltonians",
+  "arxiv": "2608.00560",
+  "source_commit": "67ea0dd97c68737b2c5709a0ce12714869d7cbd0",
+  "source_directory": "paper_acase",
+  "restored_directory": "paper_a_case_subspaces",
+  "files": [
+    {
+      "path": ".gitignore",
+      "git_blob_sha1": "39eca0972438230858d4a8b0f8d9dafb7c71ebac",
+      "role": "published_text_source"
+    },
+    {
+      "path": "README.md",
+      "git_blob_sha1": "a553ce99efc1684e6296f6ebe3b6df9dcf47a45a",
+      "role": "published_text_source"
+    },
+    {
+      "path": "check_manuscript.py",
+      "git_blob_sha1": "502833c53e186bf1054764c4443aff830be60599",
+      "role": "published_text_source"
+    },
+    {
+      "path": "data/response_bootstrap.json",
+      "git_blob_sha1": "9049c1e03fb8f584bacbbd3edd9c05006780fe4e",
+      "role": "published_text_source"
+    },
+    {
+      "path": "data/response_bootstrap_illconditioned.json",
+      "git_blob_sha1": "8f9826a063aa6e2b93814daa0facf95752b142e7",
+      "role": "published_text_source"
+    },
+    {
+      "path": "make_figures.py",
+      "git_blob_sha1": "6f5760003b6caa1624412ebec94ab0e33398feb3",
+      "role": "published_text_source"
+    },
+    {
+      "path": "make_tables.py",
+      "git_blob_sha1": "1939c18979367d14f034747805d6f05d86d73dbc",
+      "role": "published_text_source"
+    },
+    {
+      "path": "manuscript.tex",
+      "git_blob_sha1": "61ddfa4641bcd794c37bb8491767174d386e5f35",
+      "role": "published_text_source"
+    },
+    {
+      "path": "paper_assets/conditioning_bands.pdf",
+      "git_blob_sha1": "e5ce855f259f6a24a1f3a4ae30fd5d046ee5a0ec",
+      "role": "generated_figure"
+    },
+    {
+      "path": "paper_assets/pipeline.pdf",
+      "git_blob_sha1": "39a95f4df2ab52705056bf541102595fa439e130",
+      "role": "generated_figure"
+    },
+    {
+      "path": "paper_assets/response_bootstrap.pdf",
+      "git_blob_sha1": "44952df479df1ae09a49080e4006a85cf3d78d06",
+      "role": "generated_figure"
+    },
+    {
+      "path": "paper_assets/validation_ladder.pdf",
+      "git_blob_sha1": "8d961f59cfa80a891f2f2976d71f7f172c79871f",
+      "role": "generated_figure"
+    },
+    {
+      "path": "references.bib",
+      "git_blob_sha1": "54210019ad15bfbbeca9ac4db008c41405e3befd",
+      "role": "published_text_source"
+    },
+    {
+      "path": "run_response_record.py",
+      "git_blob_sha1": "61f1c722fab870279ef270b1eda8701f401d93d2",
+      "role": "published_text_source"
+    },
+    {
+      "path": "tables/conditioning_results.tex",
+      "git_blob_sha1": "a4e90f645636a2ba01507dd7d44ec4f6c76a33a6",
+      "role": "published_text_source"
+    },
+    {
+      "path": "tables/dimer_results.tex",
+      "git_blob_sha1": "d9e72a083499381b565e73ae47191eff4a57b2c6",
+      "role": "published_text_source"
+    },
+    {
+      "path": "tables/h4_results.tex",
+      "git_blob_sha1": "39f122fa51b5ea9866b2c163ba1b9b77e485f8cc",
+      "role": "published_text_source"
+    },
+    {
+      "path": "tables/ladder_results.tex",
+      "git_blob_sha1": "50fdac2dfeac4461beab1d64892a88aa0bd2ce70",
+      "role": "published_text_source"
+    },
+    {
+      "path": "tables/response_results.tex",
+      "git_blob_sha1": "6dcad229c3b0db08b633d5898d46ff664acc518f",
+      "role": "published_text_source"
+    },
+    {
+      "path": "tables/warm_start_results.tex",
+      "git_blob_sha1": "dea825bec6c354d5635ebbbf7996a02da3168364",
+      "role": "published_text_source"
+    }
+  ]
+}

@@ -532,17 +532,17 @@ clifford_qc/
 - `MIGRATION.md` maps the old single-file API onto this package.
 - `simple_plan.md` records the implemented roadmap and bridge validation
   criteria.
-- `paper/` holds the Paper A manuscript (REVTeX) and `paper_acase/` the DA-CASE
-  manuscript — "DA-CASE: reusable measurements for adaptive quantum subspaces",
-  the dyadic-measurement variant of the method this README calls A-CASE. Both
-  regenerate their figures and tables from the committed benchmark data and both
-  carry a `check_manuscript.py` that fails on drift.
+- `paper/` holds the unsubmitted Paper A manuscript (REVTeX),
+  `paper_a_case_subspaces/` the restored source snapshot for the first public
+  A-CASE preprint, and `paper_acase/` the later DA-CASE manuscript — "DA-CASE:
+  reusable measurements for adaptive quantum subspaces", the dyadic-measurement
+  variant of the method this README calls A-CASE. Each public snapshot has its
+  own drift checker and provenance boundary.
 - **Public preprints.** Two papers from this repository are on arXiv:
   [arXiv:2608.00560](https://arxiv.org/abs/2608.00560), *Adaptive
   operator-generated subspaces for effective many-body Hamiltonians* (A-CASE), and
   [arXiv:2608.08739](https://arxiv.org/abs/2608.08739), *DA-CASE: reusable
   measurements for adaptive quantum subspaces*. Both are Utama & Dipojono; see
-  `CITATION.cff`. Note that `paper_acase/` currently holds the DA-CASE manuscript
-  and previously held the A-CASE one, so the A-CASE sources are reachable only
-  through git history — PLAN.md §13 tracks splitting the two.
+  `CITATION.cff`. The A-CASE sources from commit `67ea0dd` are restored under
+  `paper_a_case_subspaces/`; `SOURCE_SNAPSHOT.json` pins their historical blobs.
 - License: Apache-2.0.
