@@ -138,19 +138,20 @@ def contract_problems(record: dict) -> list[str]:
 
 def main() -> int:
     expected = json.loads(REFERENCE.read_text(encoding="utf-8"))
-    # Every value here descends from multinomial shot draws, so the environment
-    # check comes before the rebuild rather than after it.  Under a different
-    # NumPy the rebuild draws a *different sample*: comparing it would report
-    # shifted quantiles as though they were drift and invite a widened
-    # tolerance, which is exactly the wrong repair -- and it would spend the
-    # full search to produce that misleading answer.
+    # Every value here descends from sampled shots fed through a projected
+    # eigensolve, so the environment check comes before the rebuild rather than
+    # after it.  Under a different NumPy the ill-conditioned rank-5 solves land
+    # elsewhere -- measured here as a 0.11 mHa shift on individual BeH2
+    # replicas from identical shot histograms -- and comparing that reports a
+    # moved quantile as though it were drift, inviting a widened tolerance.
+    # That is the wrong repair, and the full search would be spent to reach it.
     stream = sampling_stream_mismatch(expected)
     if stream:
-        print("exact shot search: FAIL (sampling stream differs)")
+        print("exact shot search: FAIL (build environment differs)")
         for problem in stream:
             print(f"  {problem}")
-        print("  skipped the rebuild: it would draw a different sample rather "
-              "than verify this one")
+        print("  skipped the rebuild: under a different environment it answers a "
+              "different question rather than verifying this record")
         problems = contract_problems(expected)
         if problems:
             print("  the committed record also fails its own contracts:")

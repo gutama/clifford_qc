@@ -193,19 +193,25 @@ def sampling_stream_mismatch(
 ) -> list[str]:
     """Report packages whose version differs from the one that stamped ``record``.
 
-    A record whose values come from sampled shots is only value-comparable
-    under the library versions that drew those shots.  ``numpy.random.Generator``
-    carries **no** cross-version bit-stream guarantee -- NEP 19 froze
-    ``RandomState`` for that purpose and left ``Generator`` free to change its
-    distribution algorithms -- so a different NumPy draws a different Monte
-    Carlo sample from the same seed.  The result is deterministic on each
-    version and simply unequal between them.
+    A record whose values come from finite-shot sampling followed by a
+    projected eigensolve is only value-comparable under the library versions
+    that produced it.  Two distinct mechanisms put it out of reach otherwise,
+    and a version stamp is the cheapest thing that detects either:
 
-    That failure is invisible in a value diff, which reports a shifted mean or
-    quantile and invites the reader to widen a tolerance.  Widening is the wrong
-    response: nothing is noisy, the sample itself is different.  Callers should
-    surface this list *before* any numeric comparison so the diagnosis names the
-    environment rather than the arithmetic.
+    * a NumPy release may change the bundled BLAS/LAPACK, so an ill-conditioned
+      generalized eigenproblem lands on a different solution -- the shots are
+      identical, the answer is not, and the difference can be amplified far
+      above last-bit noise;
+    * ``numpy.random.Generator`` carries no cross-version bit-stream guarantee
+      (NEP 19 froze ``RandomState`` for that purpose), so a release is also
+      free to change the draws themselves.
+
+    Either way the result is deterministic within a version and unequal between
+    them, which is invisible in a value diff: it reports a shifted mean or
+    quantile and invites the reader to widen a tolerance.  Widening is the
+    wrong response, because nothing here is noisy in the run-to-run sense.
+    Callers should surface this list *before* any numeric comparison so the
+    diagnosis names the environment rather than the arithmetic.
     """
     if not isinstance(record, dict):
         return []
@@ -227,10 +233,11 @@ def sampling_stream_mismatch(
         if actual is not None and actual != expected:
             problems.append(
                 f"{package} {actual} differs from the {expected} that produced "
-                "this record; sampled-shot values are not comparable across "
-                "versions (Generator streams are not stream-stable, NEP 19), "
-                "so a rebuild here would be a different Monte Carlo sample "
-                "rather than numerical drift"
+                "this record; finite-shot values are not comparable across "
+                "versions, which may change the bundled BLAS/LAPACK an "
+                "ill-conditioned eigensolve depends on or the sampling stream "
+                "itself, so a rebuild here answers a different question rather "
+                "than verifying this record"
             )
     return problems
 
