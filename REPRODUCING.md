@@ -1228,6 +1228,9 @@ certified.
 The first A-CASE preprint and the later DA-CASE preprint originally occupied
 `paper_acase/` in sequence. The P1 source state at commit `67ea0dd` is restored
 under `paper_a_case_subspaces/`; `paper_acase/` remains the P2/DA-CASE tree.
+The historical README and checker remain byte-identical and therefore retain
+their original `paper_acase/` prose and error-message paths. Use the restored
+paths below; changing those historical files would break the source boundary.
 
 ```bash
 python paper_a_case_subspaces/check_snapshot.py
@@ -1268,7 +1271,9 @@ size, retained rank, condition number, Ritz values, and reference energy. Pure
 encoding arms additionally require a Pauli-word-universe bijection. At small
 qubit count, every arm is checked against an independently materialized full or
 fixed-parity dense spectrum. A sector-changing generator or an incorrectly
-declared reference sector aborts.
+declared reference sector aborts. The report records the mapping name, and the
+relative/absolute comparison tolerances, dimensionless leakage tolerance, and
+absolute zero-operator tolerance are independent controls.
 
 This is infrastructure, not an R2 result. It produces no mapping-cost record,
 does not answer QR3, and does not label the dense oracle as a hardware-available

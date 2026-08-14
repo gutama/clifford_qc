@@ -71,6 +71,29 @@ def test_unreduced_networks_use_the_standard_linear_size_constructions():
 
 
 @pytest.mark.parametrize("name", ["parity+2q", "bk+2q"])
+def test_reduced_networks_use_a_linear_base_plus_fixup_construction(name):
+    base_name = name.split("+", 1)[0]
+    for n in range(4, 34, 2):
+        base_size = len(fermion_encoding(base_name, n).program().ops)
+        reduced_size = len(
+            fermion_encoding(name, n, n_electrons=2, sz=0.0).program().ops
+        )
+        assert reduced_size <= base_size + 5 * n
+
+
+def test_program_rows_remain_authoritative_for_custom_or_mismatched_names():
+    rows = fermion_encoding("parity", 4).rows
+    for encoding in (
+        FermionEncoding("jw", 4, rows),
+        FermionEncoding("custom-linear", 4, rows),
+    ):
+        for occupation in itertools.product((0, 1), repeat=4):
+            assert _simulate_cnot_program(
+                encoding.program(), occupation
+            ) == encoding.encode_bits(occupation)
+
+
+@pytest.mark.parametrize("name", ["parity+2q", "bk+2q"])
 def test_reduced_encodings_put_declared_sector_parities_on_fixed_qubits(name):
     encoding = fermion_encoding(name, 6, n_electrons=2, sz=0.0)
     assert encoding.fixed_qubits == (4, 5)
@@ -121,6 +144,8 @@ def test_encoding_factory_rejects_ambiguous_or_impossible_reductions():
         fermion_encoding("parity+2q", 5, n_electrons=2, sz=0.0)
     with pytest.raises(ValueError, match="integral spin sector"):
         fermion_encoding("bk+2q", 6, n_electrons=2, sz=0.25)
+    with pytest.raises(ValueError, match="integral spin sector"):
+        fermion_encoding("parity+2q", 8, n_electrons=4, sz=1e-9)
     with pytest.raises(ValueError, match="cannot exceed"):
         fermion_encoding("bk+2q", 6, n_electrons=8, sz=0.0)
     with pytest.raises(ValueError, match="larger than its orbital count"):
@@ -131,6 +156,8 @@ def test_encoding_factory_rejects_ambiguous_or_impossible_reductions():
         FermionEncoding("broken", 3, (1, 1, 4))
     with pytest.raises(ValueError, match="binary entries"):
         fermion_encoding("bk", 3).encode_bits((0, 0.5, 1))
+    with pytest.raises(ValueError, match="spin_ordering"):
+        fermion_encoding("parity", 6, spin_ordering="alternating")
 
 
 @pytest.mark.parametrize("name", ["parity+2q", "bk+2q"])
@@ -198,6 +225,28 @@ def test_reduced_mapping_arms_match_an_independent_fixed_parity_block(name):
     assert np.all(np.isreal(np.linalg.eigvalsh(to_matrix(sz))))
 
 
+def test_blocked_spin_ordering_survives_the_restriction_boundary():
+    pytest.importorskip("stim")
+    encoding = fermion_encoding(
+        "parity+2q",
+        6,
+        n_electrons=3,
+        sz=0.5,
+        spin_ordering="blocked",
+    )
+    restriction = encoding.restriction()
+    _, transported_sz = restricted_sector_operators(restriction)
+    expected = restriction.operator(
+        total_sz_op(6, spin_ordering="blocked"), require_commuting=True
+    )
+    wrong = restriction.operator(
+        total_sz_op(6, spin_ordering="interleaved"), require_commuting=True
+    )
+    assert restriction.spin_ordering == "blocked"
+    assert transported_sz.is_close(expected, 1e-12)
+    assert not transported_sz.is_close(wrong, 1e-12)
+
+
 def test_wrong_reduction_sector_is_rejected_by_reference_transport():
     pytest.importorskip("stim")
     model, reference, generators = _two_site_problem()
@@ -222,4 +271,72 @@ def test_sector_changing_generator_blocks_the_mapping_arm():
     with pytest.raises(AssertionError, match="physical generator domain"):
         assert_mapping_invariants(
             reference, model.hamiltonian, generators, restriction
+        )
+
+
+def test_reduction_names_generator_collisions_instead_of_crashing():
+    pytest.importorskip("stim")
+    model, reference, _ = _two_site_problem()
+    total_parity = I(model.n)
+    for qubit in range(model.n):
+        total_parity = total_parity * Z(model.n, qubit)
+    generators = [
+        identity_generator(model.n),
+        Generator("total_parity", total_parity),
+    ]
+    restriction = fermion_encoding(
+        "parity+2q",
+        model.n,
+        n_electrons=model.metadata["n_electrons"],
+        sz=model.metadata["sz"],
+    ).restriction()
+    with pytest.raises(
+        AssertionError, match="collapsed distinct generators.*'I'.*total_parity"
+    ):
+        assert_mapping_invariants(
+            reference, model.hamiltonian, generators, restriction
+        )
+
+
+def test_comparison_tolerance_does_not_change_zero_or_leakage_gates():
+    pytest.importorskip("stim")
+    model, reference, _ = _two_site_problem()
+    generators = [
+        identity_generator(model.n),
+        Generator("small_number", 1e-6 * total_number_op(model.n)),
+    ]
+    report = assert_mapping_invariants(
+        reference,
+        model.hamiltonian,
+        generators,
+        fermion_encoding("parity", model.n).restriction(),
+        relative_tolerance=1e-3,
+        zero_tolerance=1e-12,
+        leakage_tolerance=1e-12,
+    )
+    assert report.mapping_name == "parity"
+    assert report.relative_tolerance == 1e-3
+    assert report.zero_tolerance == 1e-12
+
+
+def test_mapping_gate_rejects_invalid_tolerance_contracts():
+    pytest.importorskip("stim")
+    model, reference, generators = _two_site_problem()
+    restriction = fermion_encoding("jw", model.n).restriction()
+    with pytest.raises(ValueError, match="non-negative"):
+        assert_mapping_invariants(
+            reference,
+            model.hamiltonian,
+            generators,
+            restriction,
+            leakage_tolerance=-1.0,
+        )
+    with pytest.raises(ValueError, match="cannot both be zero"):
+        assert_mapping_invariants(
+            reference,
+            model.hamiltonian,
+            generators,
+            restriction,
+            relative_tolerance=0.0,
+            absolute_tolerance=0.0,
         )

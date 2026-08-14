@@ -37,6 +37,7 @@ __all__ = ["MappingInvariantReport", "assert_mapping_invariants"]
 class MappingInvariantReport:
     """Machine-readable evidence emitted only after every applicable gate passes."""
 
+    mapping_name: str
     source_qubits: int
     mapped_qubits: int
     qubits_removed: int
@@ -54,6 +55,10 @@ class MappingInvariantReport:
     word_bijection_checked: bool
     dense_spectrum_checked: bool
     max_spectrum_error: float | None
+    relative_tolerance: float
+    absolute_tolerance: float
+    leakage_tolerance: float
+    zero_tolerance: float
 
     def to_dict(self) -> dict:
         return asdict(self)
@@ -83,8 +88,14 @@ def _fixed_sector_block(
     return matrix[np.ix_(keep, keep)]
 
 
-def _assert_close(error: float, scale: float, tolerance: float, label: str) -> None:
-    allowed = tolerance * max(1.0, scale)
+def _assert_close(
+    error: float,
+    scale: float,
+    relative_tolerance: float,
+    absolute_tolerance: float,
+    label: str,
+) -> None:
+    allowed = absolute_tolerance + relative_tolerance * scale
     if error > allowed:
         raise AssertionError(f"mapping invariant failed for {label}: {error:.3e} > {allowed:.3e}")
 
@@ -99,6 +110,19 @@ def _mapped_word_set(restriction: Restriction, words: Sequence[int]) -> frozense
     return frozenset(mapped)
 
 
+def _generator_collisions(generators: Sequence[Generator]) -> list[tuple[str, str]]:
+    seen: dict[tuple, str] = {}
+    collisions = []
+    for generator in generators:
+        key = tuple(sorted(generator.mv.terms.items()))
+        previous = seen.get(key)
+        if previous is not None:
+            collisions.append((previous, generator.label))
+        else:
+            seen[key] = generator.label
+    return collisions
+
+
 def assert_mapping_invariants(
     reference: MV,
     hamiltonian,
@@ -107,7 +131,10 @@ def assert_mapping_invariants(
     *,
     tau_s: float = DEFAULT_TAU_S,
     max_condition: float = DEFAULT_MAX_CONDITION,
-    tolerance: float = 1e-10,
+    relative_tolerance: float = 1e-10,
+    absolute_tolerance: float = 1e-12,
+    leakage_tolerance: float = 1e-12,
+    zero_tolerance: float = 1e-12,
     dense_spectrum_max_qubits: int = 10,
 ) -> MappingInvariantReport:
     """Transport and gate one mapping arm before resource accounting.
@@ -123,10 +150,22 @@ def assert_mapping_invariants(
         raise ValueError("reference, Hamiltonian, and restriction disagree on n")
     if any(generator.n != H.n for generator in source):
         raise ValueError("generator and Hamiltonian qubit counts disagree")
-    if tolerance <= 0.0:
-        raise ValueError("tolerance must be positive")
+    tolerances = {
+        "relative_tolerance": relative_tolerance,
+        "absolute_tolerance": absolute_tolerance,
+        "leakage_tolerance": leakage_tolerance,
+        "zero_tolerance": zero_tolerance,
+    }
+    if any(value < 0.0 for value in tolerances.values()):
+        raise ValueError("mapping tolerances must be non-negative")
+    if relative_tolerance == 0.0 and absolute_tolerance == 0.0:
+        raise ValueError("relative_tolerance and absolute_tolerance cannot both be zero")
     if dense_spectrum_max_qubits < 0:
         raise ValueError("dense_spectrum_max_qubits must be non-negative")
+    source_collisions = _generator_collisions(source)
+    if source_collisions:
+        pairs = ", ".join(f"{left!r}/{right!r}" for left, right in source_collisions)
+        raise ValueError(f"source generator domain contains duplicates: {pairs}")
 
     transported = restriction.transport(
         hamiltonian=H,
@@ -134,17 +173,25 @@ def assert_mapping_invariants(
         generators=(generator.mv for generator in source),
     )
     max_leakage = max(transported.generator_leakage, default=0.0)
-    if max_leakage > tolerance:
+    if max_leakage > leakage_tolerance:
         raise AssertionError(
             "mapping arm changed the physical generator domain: maximum fixed-sector "
             f"leakage is {max_leakage:.3e}"
         )
-    if transported.annihilated_indices(tol=tolerance):
-        raise AssertionError("mapping arm annihilated a declared generator")
+    annihilated = transported.annihilated_indices(tol=zero_tolerance)
+    if annihilated:
+        labels = ", ".join(source[index].label for index in annihilated)
+        raise AssertionError(f"mapping arm annihilated declared generator(s): {labels}")
     mapped_generators = [
         Generator(generator.label, image)
         for generator, image in zip(source, transported.generators)
     ]
+    mapped_collisions = _generator_collisions(mapped_generators)
+    if mapped_collisions:
+        pairs = ", ".join(f"{left!r}/{right!r}" for left, right in mapped_collisions)
+        raise AssertionError(
+            f"mapping arm collapsed distinct generators after restriction: {pairs}"
+        )
 
     before = MatrixElementBank(reference, H, source)
     after = MatrixElementBank(
@@ -166,16 +213,24 @@ def assert_mapping_invariants(
     _assert_close(
         operator_error,
         operator_scale,
-        tolerance,
+        relative_tolerance,
+        absolute_tolerance,
         "transported element operators",
     )
     overlap_error = _max_abs(S_after - S_before)
     hamiltonian_error = _max_abs(H_after - H_before)
-    _assert_close(overlap_error, _max_abs(S_before), tolerance, "projected overlap")
+    _assert_close(
+        overlap_error,
+        _max_abs(S_before),
+        relative_tolerance,
+        absolute_tolerance,
+        "projected overlap",
+    )
     _assert_close(
         hamiltonian_error,
         _max_abs(H_before),
-        tolerance,
+        relative_tolerance,
+        absolute_tolerance,
         "projected Hamiltonian",
     )
 
@@ -191,7 +246,8 @@ def assert_mapping_invariants(
     _assert_close(
         ritz_error,
         _max_abs(energies_before),
-        tolerance,
+        relative_tolerance,
+        absolute_tolerance,
         "Ritz values",
     )
     condition_error = abs(
@@ -200,23 +256,35 @@ def assert_mapping_invariants(
     _assert_close(
         condition_error,
         solved_before.condition_number,
-        tolerance,
+        relative_tolerance,
+        absolute_tolerance,
         "overlap condition number",
     )
 
-    energy_before = complex((H * reference).trace())
+    energy_before = complex((2 ** H.n) * H.trace_pairing(reference))
     energy_after = complex(
-        (transported.hamiltonian * transported.reference).trace()
+        (2 ** transported.n)
+        * transported.hamiltonian.trace_pairing(transported.reference)
     )
     reference_error = abs(energy_after - energy_before)
-    _assert_close(reference_error, abs(energy_before), tolerance, "reference energy")
+    _assert_close(
+        reference_error,
+        abs(energy_before),
+        relative_tolerance,
+        absolute_tolerance,
+        "reference energy",
+    )
 
     resources_before = before.resources()
     resources_after = after.resources()
     pure_encoding = restriction.qubits_removed == 0
+    if resources_before["basis_size"] != resources_after["basis_size"]:
+        raise AssertionError(
+            "mapping changed the declared basis size: "
+            f"{resources_before['basis_size']} != {resources_after['basis_size']}"
+        )
     if pure_encoding:
         for field in (
-            "basis_size",
             "word_universe",
             "max_generator_support",
             "max_overlap_element_support",
@@ -252,11 +320,13 @@ def assert_mapping_invariants(
         _assert_close(
             spectrum_error,
             _max_abs(expected_spectrum),
-            tolerance,
+            relative_tolerance,
+            absolute_tolerance,
             "fixed-sector spectrum",
         )
 
     return MappingInvariantReport(
+        mapping_name=restriction.label or "unlabelled",
         source_qubits=H.n,
         mapped_qubits=transported.n,
         qubits_removed=restriction.qubits_removed,
@@ -274,4 +344,8 @@ def assert_mapping_invariants(
         word_bijection_checked=pure_encoding,
         dense_spectrum_checked=dense_checked,
         max_spectrum_error=spectrum_error,
+        relative_tolerance=float(relative_tolerance),
+        absolute_tolerance=float(absolute_tolerance),
+        leakage_tolerance=float(leakage_tolerance),
+        zero_tolerance=float(zero_tolerance),
     )

@@ -64,6 +64,18 @@ def _gf2_rank(rows: Sequence[int], n: int) -> int:
     return rank
 
 
+def _extend_gf2_basis(pivots: dict[int, int], row: int) -> bool:
+    """Add one packed row to an echelon basis, returning its independence."""
+    reduced = int(row)
+    for pivot in sorted(pivots, reverse=True):
+        if (reduced >> pivot) & 1:
+            reduced ^= pivots[pivot]
+    if reduced == 0:
+        return False
+    pivots[reduced.bit_length() - 1] = reduced
+    return True
+
+
 def _base_rows(name: str, n: int) -> tuple[int, ...]:
     if name == "jw":
         return tuple(1 << index for index in range(n))
@@ -100,7 +112,9 @@ def _sector_signs(n: int, n_electrons: int, sz: float) -> tuple[int, int]:
     twice_sz = 2.0 * float(sz)
     n_alpha = 0.5 * (n_electrons + twice_sz)
     n_beta = n_electrons - n_alpha
-    if not math.isclose(n_alpha, round(n_alpha), abs_tol=1e-12):
+    if not math.isclose(
+        n_alpha, round(n_alpha), rel_tol=0.0, abs_tol=1e-12
+    ):
         raise ValueError("n_electrons and sz do not define an integral spin sector")
     if n_alpha < 0 or n_beta < 0:
         raise ValueError("n_electrons and sz define a negative spin population")
@@ -112,9 +126,9 @@ def _sector_signs(n: int, n_electrons: int, sz: float) -> tuple[int, int]:
             -1 if n_electrons % 2 else 1)
 
 
-def _rows_with_fixed_parities(
+def _fixed_parity_basis(
     base: Sequence[int], n: int, spin_ordering: str
-) -> tuple[int, ...]:
+) -> tuple[tuple[int, ...], tuple[int, ...]]:
     """Complete the two parity rows with rows inherited from ``base``.
 
     Starting from the physical symmetry rows and greedily adding independent
@@ -122,20 +136,57 @@ def _rows_with_fixed_parities(
     fixed symmetries while retaining their distinct non-fixed coordinates.
     """
     spin_up, total = _spin_parity_rows(n, spin_ordering)
-    independent = [spin_up, total]
+    pivots: dict[int, int] = {}
+    if not _extend_gf2_basis(pivots, spin_up):
+        raise AssertionError("spin-up parity row is zero")
+    if not _extend_gf2_basis(pivots, total):
+        raise AssertionError("spin-up and total parity rows are dependent")
     free: list[int] = []
-    rank = _gf2_rank(independent, n)
-    for row in base:
-        candidate_rank = _gf2_rank([*independent, *free, row], n)
-        if candidate_rank > rank:
+    free_indices: list[int] = []
+    for index, row in enumerate(base):
+        if _extend_gf2_basis(pivots, row):
             free.append(row)
-            rank = candidate_rank
+            free_indices.append(index)
         if len(free) == n - 2:
             break
     rows = tuple([*free, spin_up, total])
     if len(rows) != n or _gf2_rank(rows, n) != n:
         raise AssertionError("failed to complete the parity symmetries to an encoding basis")
-    return rows
+    return rows, tuple(free_indices)
+
+
+def _rows_with_fixed_parities(
+    base: Sequence[int], n: int, spin_ordering: str
+) -> tuple[int, ...]:
+    return _fixed_parity_basis(base, n, spin_ordering)[0]
+
+
+def _gf2_inverse(rows: Sequence[int], n: int) -> tuple[int, ...]:
+    """Inverse of a packed square binary matrix."""
+    work = [int(row) | (1 << (n + index)) for index, row in enumerate(rows)]
+    for column in range(n):
+        pivot = next(
+            (row for row in range(column, n) if (work[row] >> column) & 1),
+            None,
+        )
+        if pivot is None:
+            raise ValueError("encoding matrix is singular over GF(2)")
+        work[column], work[pivot] = work[pivot], work[column]
+        for row in range(n):
+            if row != column and ((work[row] >> column) & 1):
+                work[row] ^= work[column]
+    low_mask = (1 << n) - 1
+    if [row & low_mask for row in work] != [1 << index for index in range(n)]:
+        raise AssertionError("GF(2) inversion did not produce the identity")
+    return tuple(row >> n for row in work)
+
+
+def _row_times_matrix(row: int, matrix_rows: Sequence[int]) -> int:
+    out = 0
+    for index, matrix_row in enumerate(matrix_rows):
+        if (row >> index) & 1:
+            out ^= matrix_row
+    return out
 
 
 def _elimination_operations(rows: Sequence[int], n: int) -> list[tuple[str, int, int]]:
@@ -176,6 +227,36 @@ def _program_from_rows(rows: Sequence[int], n: int) -> Program:
     return program
 
 
+def _append_swap(program: Program, first: int, second: int) -> None:
+    program.clifford("CX", first, second)
+    program.clifford("CX", second, first)
+    program.clifford("CX", first, second)
+
+
+def _append_program(program: Program, suffix: Program, *, offset: int = 0) -> None:
+    for operation in suffix.ops:
+        if operation.name != "CX":
+            raise AssertionError("fermion encoding synthesis must remain CNOT-only")
+        control, target = operation.qubits
+        program.clifford("CX", control + offset, target + offset)
+
+
+def _rows_from_program(program: Program) -> tuple[int, ...]:
+    rows = [1 << index for index in range(program.n)]
+    for operation in program.ops:
+        if operation.name != "CX":
+            raise AssertionError("fermion encoding synthesis must remain CNOT-only")
+        control, target = operation.qubits
+        rows[target] ^= rows[control]
+    return tuple(rows)
+
+
+def _checked_program(program: Program, rows: Sequence[int]) -> Program:
+    if _rows_from_program(program) != tuple(rows):
+        raise AssertionError("encoding program does not realize its declared rows")
+    return program
+
+
 def _base_program(name: str, n: int) -> Program:
     """Minimal standard networks for the three unreduced encodings."""
     program = Program(n)
@@ -195,6 +276,56 @@ def _base_program(name: str, n: int) -> Program:
                 program.clifford("CX", index, parent)
         return program
     raise ValueError(f"unknown base fermion encoding {name!r}")
+
+
+def _reduced_program(
+    base_name: str,
+    rows: Sequence[int],
+    n: int,
+    spin_ordering: str,
+) -> Program:
+    """Base network plus an O(n) change exposing the two fixed parities."""
+    base_rows = _base_rows(base_name, n)
+    expected, selected = _fixed_parity_basis(base_rows, n, spin_ordering)
+    if tuple(rows) != expected:
+        return _program_from_rows(rows, n)
+
+    selected_set = set(selected)
+    omitted = tuple(index for index in range(n) if index not in selected_set)
+    order = (*selected, *omitted)
+    program = _base_program(base_name, n)
+
+    # Reorder the base coordinates so the retained rows stay in the first
+    # n-2 lanes.  At most n-1 SWAPs are required, each exposed as three CNOTs.
+    current = list(range(n))
+    for target, wanted in enumerate(order):
+        source = current.index(wanted, target)
+        if source == target:
+            continue
+        _append_swap(program, target, source)
+        current[target], current[source] = current[source], current[target]
+
+    ordered_rows = tuple(base_rows[index] for index in order)
+    inverse = _gf2_inverse(ordered_rows, n)
+    parity_coordinates = tuple(
+        _row_times_matrix(row, inverse) for row in rows[-2:]
+    )
+    for row, coordinates in zip(rows[-2:], parity_coordinates):
+        reconstructed = 0
+        for index in range(n):
+            if (coordinates >> index) & 1:
+                reconstructed ^= ordered_rows[index]
+        if reconstructed != row:
+            raise AssertionError("failed to express a fixed parity in the base encoding")
+
+    free = n - 2
+    tail_rows = tuple((coordinates >> free) & 0b11 for coordinates in parity_coordinates)
+    _append_program(program, _program_from_rows(tail_rows, 2), offset=free)
+    for target, coordinates in enumerate(parity_coordinates, start=free):
+        for source in range(free):
+            if (coordinates >> source) & 1:
+                program.clifford("CX", source, target)
+    return program
 
 
 @dataclass(frozen=True)
@@ -231,6 +362,10 @@ class FermionEncoding:
             raise ValueError("an encoding cannot fix every qubit")
         if any(sign not in (-1, 1) for sign in self.signs):
             raise ValueError("fixed signs must be +1 or -1")
+        if not isinstance(self.name, str) or not self.name.strip():
+            raise ValueError("encoding name must be a non-empty string")
+        if self.spin_ordering not in ("interleaved", "blocked"):
+            raise ValueError("spin_ordering must be 'interleaved' or 'blocked'")
 
     @property
     def qubits_removed(self) -> int:
@@ -242,9 +377,23 @@ class FermionEncoding:
 
     def program(self) -> Program:
         """Return a fresh CNOT-only program implementing the encoding matrix."""
-        if not self.fixed_qubits:
-            return _base_program(self.name, self.n)
-        return _program_from_rows(self.rows, self.n)
+        if (
+            not self.fixed_qubits
+            and self.name in _BASE_ENCODINGS
+            and self.rows == _base_rows(self.name, self.n)
+        ):
+            program = _base_program(self.name, self.n)
+        elif (
+            self.name in _REDUCED_ENCODINGS
+            and self.fixed_qubits == (self.n - 2, self.n - 1)
+        ):
+            base_name = self.name.split("+", 1)[0]
+            program = _reduced_program(
+                base_name, self.rows, self.n, self.spin_ordering
+            )
+        else:
+            program = _program_from_rows(self.rows, self.n)
+        return _checked_program(program, self.rows)
 
     def encode_bits(self, occupation: Sequence[int] | str) -> tuple[int, ...]:
         """Classically evaluate ``y=A x`` for an occupation bit string."""
@@ -264,14 +413,22 @@ class FermionEncoding:
         from .bridges.stim_bridge import CliffordMap
         from .subspace.restriction import Restriction
 
-        if self.name == "jw" and not self.fixed_qubits:
-            return Restriction.identity(self.n)
+        if self.rows == _base_rows("jw", self.n) and not self.fixed_qubits:
+            return Restriction.identity(
+                self.n, label=self.name, spin_ordering=self.spin_ordering
+            )
         clifford = CliffordMap.from_program(self.program())
+        if not self.fixed_qubits:
+            return Restriction.encoding(
+                clifford, label=self.name, spin_ordering=self.spin_ordering
+            )
         return Restriction(
             n=self.n,
             clifford=clifford,
             fixed_qubits=self.fixed_qubits,
             signs=self.signs,
+            label=self.name,
+            spin_ordering=self.spin_ordering,
         )
 
 

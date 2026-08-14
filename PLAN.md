@@ -1694,9 +1694,10 @@ comparison. Everything below holds for both records; neither is silently replace
 *Implementation state.* `clifford_qc/fermion_mapping.py` now constructs the five
 declared arms as explicit invertible GF(2) occupation-bit maps. JW is the identity,
 parity is the prefix-parity network, and BK uses Fenwick-tree rows; every unreduced
-arm is a CNOT-only Clifford change of representation. The `+2q` arms complete their
-base rows with spin-up and total-parity rows, derive the fixed signs from declared
-`(N,S_z)`, and delegate rotate/fix/delete to the R2a `Restriction`. The shared
+arm is a CNOT-only Clifford change of representation. The `+2q` arms use a linear
+base-network-plus-fixup construction, complete their base rows with spin-up and
+total-parity rows, derive the fixed signs from declared `(N,S_z)`, and delegate
+rotate/fix/delete to the R2a `Restriction`. The shared
 `assert_mapping_invariants` gate compares the projected `(S,H)` matrices, retained
 rank, condition number, Ritz values, reference energy, and word bijection; at small
 `n` it also compares the full mapped/fixed-sector spectrum against an independently
