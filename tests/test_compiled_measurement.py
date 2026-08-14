@@ -1,5 +1,8 @@
 """Exact joint sampling checks for Clifford-diagonalized settings."""
 
+import subprocess
+import sys
+
 import pytest
 
 pytest.importorskip("stim")
@@ -9,6 +12,24 @@ from clifford_qc.ir import PauliWord
 from clifford_qc.measurement.cache import GroupedWordCache
 from clifford_qc.measurement.compiled import CompiledMeasurementSampler
 from clifford_qc.states import bell_density
+
+
+def test_importing_measurement_does_not_eagerly_load_subspace():
+    result = subprocess.run(
+        [
+            sys.executable,
+            "-c",
+            (
+                "import sys; import clifford_qc.measurement; "
+                "assert 'clifford_qc.subspace' not in sys.modules; "
+                "assert 'clifford_qc.subspace.adaptive' not in sys.modules"
+            ),
+        ],
+        check=False,
+        capture_output=True,
+        text=True,
+    )
+    assert result.returncode == 0, result.stderr
 
 
 def test_compiled_bell_setting_preserves_joint_pauli_outcomes():

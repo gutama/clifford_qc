@@ -149,22 +149,26 @@ class GroupedWordCache:
         self._word_sums.clear()
         keys = [gs.setting_key if gs.setting_key is not None else gs.basis
                 for gs in batch.groups]
-        if len(keys) != len(set(keys)):
-            raise ValueError("a grouped batch contains duplicate measurement settings")
+        compiled_keys = [
+            gs.setting_key for gs in batch.groups if gs.setting_key is not None
+        ]
+        if len(compiled_keys) != len(set(compiled_keys)):
+            raise ValueError("a grouped batch contains duplicate compiled settings")
         if any(key not in self._groups for key in keys):
             self._readers.clear()
             self._reader_arrays = None
         for gs, key in zip(batch.groups, keys):
+            readouts = dict(gs.readouts)
             g = self._groups.setdefault(
                 key, {"support": gs.support, "basis": dict(gs.basis),
                       "basis_tuple": gs.basis, "setting_key": gs.setting_key,
-                      "readouts": dict(gs.readouts), "hist": {}, "N": 0,
+                      "readouts": readouts, "hist": {}, "N": 0,
                       "word_codes": set()})
             if g["support"] != gs.support:
                 raise ValueError("same measurement setting has inconsistent support")
             if (g["basis_tuple"] != gs.basis
                     or g["setting_key"] != gs.setting_key
-                    or g["readouts"] != dict(gs.readouts)):
+                    or g["readouts"] != readouts):
                 raise ValueError("same measurement setting has inconsistent readout metadata")
             for code in gs.word_codes:
                 previous = self._word_group.get(code)
@@ -281,6 +285,11 @@ class GroupedWordCache:
         explicit = group["readouts"].get(code)
         if explicit is not None:
             return explicit
+        if group["setting_key"] is not None:
+            raise KeyError(
+                f"compiled setting {group['setting_key']!r} has no readout "
+                f"for word code {code}"
+            )
         positions = tuple(
             group["support"].index(q) for q in self._word_support(self.n, code)
         )

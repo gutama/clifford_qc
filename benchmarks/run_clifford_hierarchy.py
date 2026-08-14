@@ -277,6 +277,19 @@ def _x_masks(diagonalizer, size: int, codes: np.ndarray) -> np.ndarray:
     return masks
 
 
+def _diagonalizer(local_members: list[int], size: int):
+    """Return the one canonical local Clifford used for costing and sampling."""
+    basis = _independent_codes(local_members, size)
+    if not basis:
+        return stim.Tableau(size)
+    tableau = stim.Tableau.from_stabilizers(
+        [stim.PauliString(_stim_label(code, size)) for code in basis],
+        allow_redundant=False,
+        allow_underconstrained=True,
+    )
+    return tableau.inverse()
+
+
 def _synthesize(n: int, codes: list[int], groups: list[list[int]],
                 block_size: int) -> tuple[dict, list[SettingResources], np.ndarray, list[int]]:
     total: Counter = Counter()
@@ -308,15 +321,7 @@ def _synthesize(n: int, codes: list[int], groups: list[list[int]],
         for start in range(0, n, block_size):
             size = min(block_size, n - start)
             local = [_local_code(codes[i], start, size) for i in members]
-            basis = _independent_codes(local, size)
-            if not basis:
-                diagonalizer = stim.Tableau(size)
-            else:
-                stabilizers = [stim.PauliString(_stim_label(code, size))
-                               for code in basis]
-                tableau = stim.Tableau.from_stabilizers(
-                    stabilizers, allow_redundant=False, allow_underconstrained=True)
-                diagonalizer = tableau.inverse()
+            diagonalizer = _diagonalizer(local, size)
 
             # Strong circuit invariant: every member, not only the basis,
             # must become computational-basis diagonal.
@@ -401,16 +406,7 @@ def _compiled_settings(n: int, codes: list[int], groups: list[list[int]],
         for start in range(0, n, block_size):
             size = min(block_size, n - start)
             local_members = [_local_code(codes[index], start, size) for index in members]
-            basis = _independent_codes(local_members, size)
-            if basis:
-                tableau = stim.Tableau.from_stabilizers(
-                    [stim.PauliString(_stim_label(code, size)) for code in basis],
-                    allow_redundant=False,
-                    allow_underconstrained=True,
-                )
-                diagonalizer = tableau.inverse()
-            else:
-                diagonalizer = stim.Tableau(size)
+            diagonalizer = _diagonalizer(local_members, size)
 
             for instruction in diagonalizer.to_circuit("elimination"):
                 targets = [start + target.value for target in instruction.targets_copy()]
@@ -860,6 +856,21 @@ def _accuracy_matched_costs(
     return output
 
 
+def _ordering_verdict(by_estimator: dict[str, list[dict]]) -> dict[str, object]:
+    """Compare estimator rankings only on their common admissible rungs."""
+    assigned = [item["block_size"] for item in by_estimator["single_assignment"]]
+    pooled = [item["block_size"] for item in by_estimator["pooled"]]
+    common = set(assigned) & set(pooled)
+    return {
+        "compared_block_sizes": sorted(common),
+        "pooling_reorders_protocols": (
+            None if not assigned or not pooled else
+            [k for k in assigned if k in common]
+            != [k for k in pooled if k in common]
+        ),
+    }
+
+
 def _accuracy_ordering(rows: list[dict], cards: list[DeviceCard]) -> dict[str, dict]:
     """Rank admissible protocol rungs by asymptotic ``C(epsilon)``."""
     output = {}
@@ -881,21 +892,11 @@ def _accuracy_ordering(rows: list[dict], cards: list[DeviceCard]) -> dict[str, d
             by_estimator[estimator] = sorted(
                 live, key=lambda item: (item["C_time_epsilon_us"], item["block_size"])
             )
-        assigned = [item["block_size"] for item in by_estimator["single_assignment"]]
-        pooled = [item["block_size"] for item in by_estimator["pooled"]]
         # Only rungs both estimators admit can be reordered by the choice of
         # estimator; a differing admissible set is a different question.  With
         # nothing admissible there is no reading at all, so abstain rather than
         # report a measured "pooling changes nothing".
-        common = set(assigned) & set(pooled)
-        by_estimator["compared_block_sizes"] = sorted(common)
-        if not assigned or not pooled:
-            by_estimator["pooling_reorders_protocols"] = None
-        else:
-            by_estimator["pooling_reorders_protocols"] = (
-                [k for k in assigned if k in common]
-                != [k for k in pooled if k in common]
-            )
+        by_estimator.update(_ordering_verdict(by_estimator))
         output[card.name] = by_estimator
     return output
 

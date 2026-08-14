@@ -40,6 +40,7 @@ try:  # package import in tests versus direct ``python benchmarks/...`` executio
         BLOCK_SIZES,
         SYSTEMS,
         _compiled_settings,
+        _ordering_verdict,
         _partition,
         _synthesize,
         load_device_cards,
@@ -50,6 +51,7 @@ except ImportError:  # pragma: no cover - direct script execution
         BLOCK_SIZES,
         SYSTEMS,
         _compiled_settings,
+        _ordering_verdict,
         _partition,
         _synthesize,
         load_device_cards,
@@ -68,6 +70,13 @@ BOOTSTRAP_REPLICATES = 10_000
 DELTA = 0.05
 RANK_SELECTION_GAMMA = 2.0
 ESTIMATORS = ("single_assignment", "pooled")
+
+
+def _seed_sequence(root: int, *coordinates: int) -> np.random.SeedSequence:
+    """One collision-resistant deterministic namespace for every random stream."""
+    return np.random.SeedSequence(
+        int(root), spawn_key=tuple(int(value) for value in coordinates)
+    )
 
 
 def _summary(rows: list[dict], exact_energy: float, *, bootstrap_seed: int) -> dict:
@@ -176,7 +185,7 @@ def _run_endpoints(
     sampler = CompiledMeasurementSampler(seed)
     sampler.prepare(reference, settings)
     for replica in range(replicas):
-        sampler.reseed(seed + 100_000 * block_size + replica)
+        sampler.reseed(_seed_sequence(seed, block_size, replica))
         caches = {
             "single_assignment": GroupedWordCache(reference.n, pooling="assigned"),
             "pooled": GroupedWordCache(reference.n, pooling="shots"),
@@ -196,7 +205,7 @@ def _run_endpoints(
 
 
 def _summaries(raw: dict, exact_energy: float, *, block_size: int,
-               seed_offset: int) -> dict[str, list[dict]]:
+               seed_namespace: int) -> dict[str, list[dict]]:
     output = {}
     for estimator_index, estimator in enumerate(ESTIMATORS):
         output[estimator] = []
@@ -204,9 +213,12 @@ def _summaries(raw: dict, exact_energy: float, *, block_size: int,
             summary = _summary(
                 rows,
                 exact_energy,
-                bootstrap_seed=(
-                    BOOTSTRAP_SEED + seed_offset + 1_000_000 * block_size
-                    + 100_000 * estimator_index + endpoint
+                bootstrap_seed=_seed_sequence(
+                    BOOTSTRAP_SEED,
+                    seed_namespace,
+                    block_size,
+                    estimator_index,
+                    endpoint,
                 ),
             )
             output[estimator].append({
@@ -241,21 +253,50 @@ def _confirm_result(exploration: list[dict], confirmation: list[dict]) -> dict:
             "confirmed_failing_effective_shots_per_setting": None,
             "confirmed_passing_effective_shots_per_setting": None,
         }
-    high_passes = by_endpoint[high]["passes_target"]
-    low_fails = low is None or not by_endpoint[low]["passes_target"]
-    if high_passes and low_fails:
-        status = "confirmed_upper_bound" if low is None else "confirmed_bracket"
-    elif high_passes:
-        status = "crossing_below_exploratory_bracket"
-    else:
-        status = "exploratory_crossing_not_confirmed"
+    passing = sorted(
+        endpoint for endpoint, row in by_endpoint.items() if row["passes_target"]
+    )
+    if not passing:
+        return {
+            "status": "exploratory_crossing_not_confirmed",
+            "confirmed_failing_effective_shots_per_setting": None,
+            "confirmed_passing_effective_shots_per_setting": None,
+        }
+    confirmed_pass = passing[0]
+    # A lower pass followed by a higher failure is not a stable shot-to-target
+    # crossing.  Refuse to price it instead of selecting a convenient endpoint.
+    if any(
+        endpoint > confirmed_pass and not row["passes_target"]
+        for endpoint, row in by_endpoint.items()
+    ):
+        return {
+            "status": "nonmonotone_confirmation",
+            "confirmed_failing_effective_shots_per_setting": None,
+            "confirmed_passing_effective_shots_per_setting": None,
+        }
+    failing = [
+        endpoint for endpoint, row in by_endpoint.items()
+        if endpoint < confirmed_pass and not row["passes_target"]
+    ]
+    confirmed_fail = max(failing, default=None)
+    status = "confirmed_upper_bound" if confirmed_fail is None else "confirmed_bracket"
     return {
         "status": status,
-        "confirmed_failing_effective_shots_per_setting": (
-            low if low is not None and low_fails else None
-        ),
-        "confirmed_passing_effective_shots_per_setting": high if high_passes else None,
+        "confirmed_failing_effective_shots_per_setting": confirmed_fail,
+        "confirmed_passing_effective_shots_per_setting": confirmed_pass,
     }
+
+
+def _confirmation_endpoints(exploration: list[dict]) -> tuple[int, ...]:
+    """Confirm every grid point through the exploratory crossing.
+
+    Confirming only the two exploratory endpoints cannot tighten the bracket
+    when its lower endpoint also passes on the independent block.
+    """
+    low, high = _exploratory_bracket(exploration)
+    if high is None:
+        return () if low is None else (low,)
+    return tuple(endpoint for endpoint in SEARCH_ENDPOINTS if endpoint <= high)
 
 
 def _device_prices(cards, resources, effective_shots: int | None, n_qubits: int) -> dict:
@@ -276,8 +317,8 @@ def _device_prices(cards, resources, effective_shots: int | None, n_qubits: int)
 
 
 def _search_rung(arguments) -> dict:
-    block_size, exploratory_replicas, confirmatory_replicas, cards = arguments
-    problem = SYSTEMS["beh2"]()
+    system, block_size, exploratory_replicas, confirmatory_replicas, cards = arguments
+    problem = SYSTEMS[system]()
     codes = problem["codes"]
     bank = problem["_matrix_bank"]
     result = problem["_result"]
@@ -303,14 +344,12 @@ def _search_rung(arguments) -> dict:
         block_size=block_size,
     )
     exploration = _summaries(
-        exploratory_raw, exact_energy, block_size=block_size, seed_offset=0
+        exploratory_raw, exact_energy, block_size=block_size, seed_namespace=0
     )
-    confirmation_requested = {}
-    for estimator in ESTIMATORS:
-        low, high = _exploratory_bracket(exploration[estimator])
-        confirmation_requested[estimator] = tuple(
-            endpoint for endpoint in (low, high) if endpoint is not None
-        )
+    confirmation_requested = {
+        estimator: _confirmation_endpoints(exploration[estimator])
+        for estimator in ESTIMATORS
+    }
     confirmation_raw = _run_endpoints(
         reference=bank.reference,
         bank=bank,
@@ -322,7 +361,7 @@ def _search_rung(arguments) -> dict:
         block_size=block_size,
     )
     confirmation = _summaries(
-        confirmation_raw, exact_energy, block_size=block_size, seed_offset=10_000_000
+        confirmation_raw, exact_energy, block_size=block_size, seed_namespace=1
     )
 
     estimators = {}
@@ -365,29 +404,21 @@ def _ordering(rows: list[dict], cards) -> dict:
             by_estimator[estimator] = sorted(
                 live, key=lambda item: (item["C_time_epsilon_us"], item["block_size"])
             )
-        assigned = [row["block_size"] for row in by_estimator["single_assignment"]]
-        pooled = [row["block_size"] for row in by_estimator["pooled"]]
-        common = set(assigned) & set(pooled)
-        by_estimator["compared_block_sizes"] = sorted(common)
-        by_estimator["pooling_reorders_protocols"] = (
-            [value for value in assigned if value in common]
-            != [value for value in pooled if value in common]
-        ) if common else None
+        by_estimator.update(_ordering_verdict(by_estimator))
         output[card.name] = by_estimator
     return output
 
 
-def build_record(*, exploratory_replicas: int = EXPLORATORY_REPLICAS,
-                 confirmatory_replicas: int = CONFIRMATORY_REPLICAS,
-                 workers: int = 1) -> dict:
-    if exploratory_replicas <= 0 or confirmatory_replicas <= 0:
-        raise ValueError("replica counts must be positive")
-    if workers <= 0:
-        raise ValueError("workers must be positive")
-    cards = load_device_cards()
-    h4 = SYSTEMS["h4"]()
-    h4_bias = abs(float(h4["error_millihartree"]))
-    h4_rows = [{
+def _system_status(bias_millihartree: float) -> str:
+    return (
+        "bias_floor_exceeds_target"
+        if bias_millihartree >= ACCURACY_TARGET_MILLIHARTREE
+        else "searched"
+    )
+
+
+def _bias_floor_rows() -> list[dict]:
+    return [{
         "block_size": block_size,
         "estimators": {
             estimator: {
@@ -401,16 +432,50 @@ def build_record(*, exploratory_replicas: int = EXPLORATORY_REPLICAS,
             for estimator in ESTIMATORS
         },
     } for block_size in BLOCK_SIZES]
+
+
+def _system_rows(system: str, bias_millihartree: float, cards, *,
+                 exploratory_replicas: int, confirmatory_replicas: int,
+                 workers: int) -> list[dict]:
+    if _system_status(bias_millihartree) == "bias_floor_exceeds_target":
+        return _bias_floor_rows()
     arguments = [
-        (block_size, exploratory_replicas, confirmatory_replicas, cards)
+        (system, block_size, exploratory_replicas, confirmatory_replicas, cards)
         for block_size in BLOCK_SIZES
     ]
     if workers == 1:
-        beh2_rows = [_search_rung(argument) for argument in arguments]
+        rows = [_search_rung(argument) for argument in arguments]
     else:
         with ProcessPoolExecutor(max_workers=workers) as pool:
-            beh2_rows = list(pool.map(_search_rung, arguments))
-    beh2_rows.sort(key=lambda row: row["block_size"])
+            rows = list(pool.map(_search_rung, arguments))
+    rows.sort(key=lambda row: row["block_size"])
+    return rows
+
+
+def build_record(*, exploratory_replicas: int = EXPLORATORY_REPLICAS,
+                 confirmatory_replicas: int = CONFIRMATORY_REPLICAS,
+                 workers: int = 1) -> dict:
+    if exploratory_replicas <= 0 or confirmatory_replicas <= 0:
+        raise ValueError("replica counts must be positive")
+    if workers <= 0:
+        raise ValueError("workers must be positive")
+    cards = load_device_cards()
+    h4 = SYSTEMS["h4"]()
+    h4_bias = abs(float(h4["error_millihartree"]))
+    h4_rows = _system_rows(
+        "h4", h4_bias, cards,
+        exploratory_replicas=exploratory_replicas,
+        confirmatory_replicas=confirmatory_replicas,
+        workers=workers,
+    )
+    beh2 = SYSTEMS["beh2"]()
+    beh2_bias = abs(float(beh2["error_millihartree"]))
+    beh2_rows = _system_rows(
+        "beh2", beh2_bias, cards,
+        exploratory_replicas=exploratory_replicas,
+        confirmatory_replicas=confirmatory_replicas,
+        workers=workers,
+    )
     return {
         "schema": "clifford_qc.exact_shot_search.v1",
         "evidence_tier": "exact",
@@ -438,6 +503,7 @@ def build_record(*, exploratory_replicas: int = EXPLORATORY_REPLICAS,
             "confirmatory_replicas": confirmatory_replicas,
             "exploratory_seed": EXPLORATORY_SEED,
             "confirmatory_seed": CONFIRMATORY_SEED,
+            "seed_derivation": "numpy.SeedSequence(root, spawn_key=coordinates)",
             "paired_estimators": True,
             "bootstrap_replicates": BOOTSTRAP_REPLICATES,
             "bootstrap_seed": BOOTSTRAP_SEED,
@@ -451,15 +517,13 @@ def build_record(*, exploratory_replicas: int = EXPLORATORY_REPLICAS,
             "h4": {
                 "exact_ground_energy": h4["_exact_ground_energy"],
                 "exact_subspace_bias_millihartree": h4_bias,
-                "status": "bias_floor_exceeds_target",
+                "status": _system_status(h4_bias),
                 "rows": h4_rows,
             },
             "beh2": {
-                "exact_ground_energy": SYSTEMS["beh2"]()["_exact_ground_energy"],
-                "exact_subspace_bias_millihartree": abs(
-                    SYSTEMS["beh2"]()["error_millihartree"]
-                ),
-                "status": "searched",
+                "exact_ground_energy": beh2["_exact_ground_energy"],
+                "exact_subspace_bias_millihartree": beh2_bias,
+                "status": _system_status(beh2_bias),
                 "rows": beh2_rows,
                 "accuracy_matched_ordering": _ordering(beh2_rows, cards),
             },

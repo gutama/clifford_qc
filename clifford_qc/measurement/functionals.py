@@ -159,6 +159,11 @@ def _positions(cache: GroupedWordCache, coefficients: dict, group: dict):
     for code, c in coefficients.items():
         if code in explicit:
             sign, positions = explicit[code]
+        elif group.get("setting_key") is not None:
+            raise KeyError(
+                f"compiled setting {group['setting_key']!r} has no readout "
+                f"for word code {code}"
+            )
         else:
             sign = 1
             word_support = [j for j in range(cache.n) if (code >> (2 * j)) & 3]

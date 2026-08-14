@@ -50,63 +50,86 @@ def contract_problems(record: dict) -> list[str]:
         problems.append("system pair is not H4 and BeH2")
         return problems
 
-    h4 = systems["h4"]
-    if h4.get("status") != "bias_floor_exceeds_target":
-        problems.append("H4 did not stop at its exact subspace bias floor")
-    if h4.get("exact_subspace_bias_millihartree", 0.0) <= record.get(
-        "accuracy_target_millihartree", float("inf")
-    ):
-        problems.append("H4 bias-floor status disagrees with its numbers")
-    for row in h4.get("rows", []):
-        for estimator, arm in row.get("estimators", {}).items():
-            if arm.get("device_costs"):
-                problems.append(f"H4 k={row.get('block_size')} {estimator} was priced")
+    target = record.get("accuracy_target_millihartree", float("inf"))
+    for system_name, system in systems.items():
+        bias = system.get("exact_subspace_bias_millihartree", float("inf"))
+        expected_status = "bias_floor_exceeds_target" if bias >= target else "searched"
+        if system.get("status") != expected_status:
+            problems.append(
+                f"{system_name} status disagrees with its exact subspace bias"
+            )
+        if expected_status == "bias_floor_exceeds_target":
+            for row in system.get("rows", []):
+                for estimator, arm in row.get("estimators", {}).items():
+                    if arm.get("device_costs"):
+                        problems.append(
+                            f"{system_name} k={row.get('block_size')} "
+                            f"{estimator} was priced above its bias floor"
+                        )
 
-    beh2 = systems["beh2"]
-    rows = beh2.get("rows", [])
-    if [row.get("block_size") for row in rows] != list(BLOCK_SIZES):
-        problems.append("BeH2 block-size ladder is incomplete or unordered")
-    for row in rows:
-        if set(row.get("estimators", {})) != set(ESTIMATORS):
-            problems.append(f"k={row.get('block_size')}: estimator pair is incomplete")
-            continue
-        for estimator, arm in row["estimators"].items():
-            exploration = arm.get("exploration", [])
-            if [item.get("effective_shots_per_setting") for item in exploration] != list(
-                SEARCH_ENDPOINTS
-            ):
-                problems.append(f"k={row['block_size']} {estimator}: exploration grid drift")
-            search = arm.get("shot_to_target", {})
-            passing = search.get("confirmed_passing_effective_shots_per_setting")
-            confirmation = {
-                item.get("effective_shots_per_setting"): item
-                for item in arm.get("confirmation", [])
-            }
-            prices = arm.get("device_costs", {})
-            if passing is None:
-                if prices:
-                    problems.append(
-                        f"k={row['block_size']} {estimator}: unconfirmed target was priced"
-                    )
+    for system_name, system in systems.items():
+        rows = system.get("rows", [])
+        if [row.get("block_size") for row in rows] != list(BLOCK_SIZES):
+            problems.append(
+                f"{system_name} block-size ladder is incomplete or unordered"
+            )
+        for row in rows:
+            if set(row.get("estimators", {})) != set(ESTIMATORS):
+                problems.append(
+                    f"{system_name} k={row.get('block_size')}: "
+                    "estimator pair is incomplete"
+                )
                 continue
-            if not confirmation.get(passing, {}).get("passes_target"):
-                problems.append(
-                    f"k={row['block_size']} {estimator}: priced endpoint did not pass"
+            if system.get("status") != "searched":
+                continue
+            for estimator, arm in row["estimators"].items():
+                prefix = f"{system_name} k={row['block_size']} {estimator}"
+                exploration = arm.get("exploration", [])
+                if [
+                    item.get("effective_shots_per_setting") for item in exploration
+                ] != list(SEARCH_ENDPOINTS):
+                    problems.append(f"{prefix}: exploration grid drift")
+                search = arm.get("shot_to_target", {})
+                passing = search.get("confirmed_passing_effective_shots_per_setting")
+                failing = search.get("confirmed_failing_effective_shots_per_setting")
+                confirmation = {
+                    item.get("effective_shots_per_setting"): item
+                    for item in arm.get("confirmation", [])
+                }
+                prices = arm.get("device_costs", {})
+                if passing is None:
+                    if prices:
+                        problems.append(f"{prefix}: unconfirmed target was priced")
+                    continue
+                if not confirmation.get(passing, {}).get("passes_target"):
+                    problems.append(f"{prefix}: priced endpoint did not pass")
+                passing_endpoints = sorted(
+                    endpoint for endpoint, summary in confirmation.items()
+                    if summary.get("passes_target")
                 )
-            if set(prices) != set(card_hashes):
-                problems.append(
-                    f"k={row['block_size']} {estimator}: device-card prices incomplete"
-                )
-            for name, cost in prices.items():
-                device = cost.get("device_card", {})
-                if device.get("sha256") != card_hashes.get(name):
+                if passing_endpoints and passing != passing_endpoints[0]:
                     problems.append(
-                        f"k={row['block_size']} {estimator}: {name} hash drift"
+                        f"{prefix}: priced endpoint is not the smallest confirmed pass"
                     )
-                if cost.get("accuracy", {}).get("evidence_tier") != "exact":
+                if any(
+                    endpoint > passing and not summary.get("passes_target")
+                    for endpoint, summary in confirmation.items()
+                ):
+                    problems.append(f"{prefix}: priced crossing is nonmonotone")
+                if failing is not None and confirmation.get(failing, {}).get(
+                    "passes_target"
+                ) is not False:
                     problems.append(
-                        f"k={row['block_size']} {estimator}: {name} wrong tier"
+                        f"{prefix}: reported failing endpoint did not fail"
                     )
+                if set(prices) != set(card_hashes):
+                    problems.append(f"{prefix}: device-card prices incomplete")
+                for name, cost in prices.items():
+                    device = cost.get("device_card", {})
+                    if device.get("sha256") != card_hashes.get(name):
+                        problems.append(f"{prefix}: {name} hash drift")
+                    if cost.get("accuracy", {}).get("evidence_tier") != "exact":
+                        problems.append(f"{prefix}: {name} wrong tier")
     return problems
 
 

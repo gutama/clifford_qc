@@ -203,20 +203,24 @@ python benchmarks/check_exact_shot_search.py
 The producer writes schema `clifford_qc.exact_shot_search.v1` to
 `benchmarks/reference_results/exact_shot_search.json`. It uses 30 paired exploratory
 replicas on the fixed `64…65536` geometric endpoint grid, then an independent block of
-100 paired replicas at the pilot bracket. An endpoint passes only with no solver
-failure and a one-sided 95% nonparametric-bootstrap upper bound on replica RMSE at or
-below 1.6 mHa. Endpoints are nested; assigned and pooled estimators consume the same
-joint histograms. The exact tier names the unavailable-on-hardware oracle comparator;
-the bootstrap uncertainty is explicitly heuristic, not a finite-sample energy
-certificate or deployable stopping rule.
+100 paired replicas at every grid point through the pilot crossing. This downward
+extension makes the priced endpoint the smallest confirmed pass and requires an
+actual confirmed failure below it; a nonmonotone confirmation is not priced. Every
+phase, rung, replica, estimator, and bootstrap stream has a disjoint NumPy
+`SeedSequence` namespace. An endpoint passes only with no solver failure and a
+one-sided 95% nonparametric-bootstrap upper bound on replica RMSE at or below 1.6 mHa.
+Endpoints are nested; assigned and pooled estimators consume the same joint
+histograms. The exact tier names the unavailable-on-hardware oracle comparator; the
+bootstrap uncertainty is explicitly heuristic, not a finite-sample energy certificate
+or deployable stopping rule.
 
 H4 exits without sampling because its 3.019 mHa exact bank bias already exceeds the
 target. On BeH2 the confirmed assigned/pooled passing endpoints are `4096/1024` at
 `k=1`, `16384/4096` at `k=2`, `16384/16384` at `k=4`, and `16384/4096` at `k=8`.
-The `k=4` pilot lower endpoint also passes on confirmation, so the record marks that
-crossing as upper-only instead of asserting an unmeasured lower boundary. All 1,600
-confirmatory solves succeed. Device-card costs are computed only from confirmed
-passing endpoints. The fidelity layer
+At `k=4`, 4096 fails and 16384 passes for both estimators, closing the bracket that the
+original two-endpoint confirmation left invalid. All 3,500 confirmatory solves
+succeed. Device-card costs are computed only from the smallest confirmed passing
+endpoints. The fidelity layer
 remains the same illustrative `F^-2` surrogate, not a device-noise simulation.
 
 `check_docs.py` verifies the documented pair by collection. It reports a

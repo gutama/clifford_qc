@@ -8,6 +8,7 @@ depends on.
 
 import numpy as np
 import pytest
+from types import SimpleNamespace
 
 from clifford_qc.ir import PauliWord
 from clifford_qc.backends import FiniteShotBackend
@@ -19,6 +20,8 @@ from clifford_qc.measurement import (
 from clifford_qc.measurement.functionals import WordFunctional
 from clifford_qc.models import tfim
 from clifford_qc.states import bell_density, ghz_density
+from clifford_qc.subspace.measured_response import _resampled_cache
+from clifford_qc.subspace.uncertainty import bootstrap_ritz
 
 
 def _cache(rho, groups, shots, seed, n):
@@ -217,6 +220,27 @@ def test_grouped_cache_uses_the_recorded_word_assignment():
     assert cache.candidate_estimate({zi: 1.0}) == pytest.approx(-1.0)
 
 
+def test_same_qwc_basis_groups_merge_consistently_with_separate_batches():
+    zi = PauliWord.from_label("ZI").code
+    iz = PauliWord.from_label("IZ").code
+    zz = PauliWord.from_label("ZZ").code
+    basis = ((0, "Z"), (1, "Z"))
+    groups = (
+        GroupSample((0, 1), basis, {"00": 4, "11": 6}, 10,
+                    word_codes=(zz,)),
+        GroupSample((0, 1), basis, {"00": 7, "11": 3}, 10,
+                    word_codes=(zi, iz)),
+    )
+    together = GroupedWordCache(2)
+    together.add_batch(MeasurementBatch(2, {}, {}, 2, groups=groups))
+    separate = GroupedWordCache(2)
+    for group in groups:
+        separate.add_batch(MeasurementBatch(2, {}, {}, 1, groups=(group,)))
+    assert together.num_groups() == separate.num_groups() == 1
+    for code in (zi, iz, zz):
+        assert together.mean_var(code) == pytest.approx(separate.mean_var(code))
+
+
 def test_grouped_cache_uses_signed_compiled_readouts():
     """Entangling settings read signed output parities, not physical supports."""
     xx, zz, yy = (PauliWord.from_label(label).code for label in ("XX", "ZZ", "YY"))
@@ -257,6 +281,53 @@ def test_compiled_group_sample_rejects_missing_or_invalid_readouts():
     with pytest.raises(ValueError, match="readout sign"):
         GroupSample((0, 1), (), {"00": 1}, 1, word_codes=(xx,),
                     setting_key=("compiled",), readouts={xx: (0, (0,))})
+
+
+def _compiled_cache_for_resampling():
+    xx = PauliWord.from_label("XX").code
+    sample = GroupSample(
+        support=(0, 1),
+        basis=(),
+        hist={"00": 6, "01": 4},
+        shots=10,
+        word_codes=(xx,),
+        setting_key=("compiled", 7),
+        readouts={xx: (-1, (0, 1))},
+    )
+    cache = GroupedWordCache(2)
+    cache.add_batch(MeasurementBatch(2, {}, {}, 1, groups=(sample,)))
+    return xx, cache
+
+
+def test_compiled_metadata_survives_both_bootstrap_resamplers():
+    xx, cache = _compiled_cache_for_resampling()
+
+    class StubMeasurement:
+        n = 2
+
+        @staticmethod
+        def new_cache():
+            return GroupedWordCache(2)
+
+    response_replica = _resampled_cache(
+        StubMeasurement(), cache, np.random.default_rng(3)
+    )
+    response_group = response_replica.group_states()[0]
+    assert response_group["setting_key"] == ("compiled", 7)
+    assert response_group["readouts"] == {xx: (-1, (0, 1))}
+
+    class StubShared(StubMeasurement):
+        @staticmethod
+        def solve(replica, **_kwargs):
+            group = replica.group_states()[0]
+            assert group["setting_key"] == ("compiled", 7)
+            assert group["readouts"] == {xx: (-1, (0, 1))}
+            return SimpleNamespace(
+                energies=np.asarray([replica.candidate_estimate({xx: 1.0})])
+            )
+
+    interval = bootstrap_ritz(StubShared(), cache, replicates=3, seed=5)
+    assert np.isfinite(interval.estimate)
 
 
 def test_fast_infinite_shot_uses_exact_populations():

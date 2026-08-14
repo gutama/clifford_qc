@@ -1658,11 +1658,11 @@ is replica RMSE: a search endpoint passes only with zero solver failures and a o
 95% nonparametric-bootstrap upper bound at or below 1.6 mHa.  Thirty paired exploratory
 replicas locate a persistent crossing on the predeclared geometric grid
 `64, 256, 1024, 4096, 16384, 65536` effective shots per setting; an independent block
-of 100 paired replicas confirms the adjacent region.  The estimator arms share the
-same sampled caches and endpoints are nested.  The output is a region between a
-confirmed failing and passing endpoint when both survive; if the pilot's lower
-endpoint passes in confirmation, it reports an upper-only crossing rather than a
-falsely precise integer.
+of 100 paired replicas confirms every grid point through that crossing.  The estimator
+arms share the same sampled caches, endpoints are nested, and phase/rung/replica/
+bootstrap streams use disjoint `SeedSequence` namespaces.  The producer prices only
+the smallest confirmed passing endpoint, requires a confirmed failing endpoint below
+it unless the crossing lies below the grid, and abstains on a nonmonotone confirmation.
 
 The comparator tier is `exact` (the unavailable-on-hardware oracle); the bootstrap
 uncertainty remains `heuristic`.  It is not a finite-sample Ritz-energy certificate or
@@ -1670,8 +1670,9 @@ deployable stopping rule.  H₄ still exits before sampling because its 3.019 mH
 subspace bias exceeds the target.  On BeH₂ the independent 100-replica block confirms
 assigned/pooled passing endpoints of `4096/1024` shots per setting at `k=1`,
 `16384/4096` at `k=2`, `16384/16384` at `k=4`, and `16384/4096` at `k=8`.  Every solve
-succeeds.  The `k=4` pilot lower endpoint also passes in confirmation, so that rung is
-reported as an upper-only crossing (`N* <= 16384`), not a fabricated lower bound.
+succeeds: 1,440 exploratory and 3,500 confirmatory endpoint solves.  At `k=4`, 4096
+fails and 16384 passes for both estimators, so the record now contains a genuine
+confirmed bracket rather than pricing a loose pilot upper endpoint.
 Pooling changes the accuracy-cost order under the ion-like and logical-all-to-all
 cards; only `k={1,2}` is admissible on the superconducting-like card, and pooling does
 not reorder that common set.  The asymptotic ledger was not promoted: in particular,

@@ -10,6 +10,7 @@ this path.
 
 from __future__ import annotations
 
+from collections import OrderedDict
 from dataclasses import dataclass
 from types import MappingProxyType
 from typing import Mapping, Sequence, Union
@@ -18,7 +19,6 @@ import numpy as np
 
 from ..backends.protocol import GroupSample, MeasurementBatch, state_fingerprint
 from ..states import computational_probabilities
-from ..subspace.restriction import Restriction
 
 
 @dataclass(frozen=True)
@@ -77,20 +77,38 @@ class _SamplingPlan:
 class CompiledMeasurementSampler:
     """Seeded exact-state sampler for :class:`CompiledSetting` objects."""
 
+    _PLAN_STATES = 8
+
     def __init__(self, seed: int):
         self.rng = np.random.default_rng(seed)
-        self._plans: dict[tuple, _SamplingPlan] = {}
+        self._plans: OrderedDict[object, dict[tuple, _SamplingPlan]] = OrderedDict()
 
     def reseed(self, seed: int) -> None:
         """Reset sampled outcomes while retaining deterministic rotations."""
         self.rng = np.random.default_rng(seed)
 
-    def _plan(self, rho, setting: CompiledSetting) -> _SamplingPlan:
-        fingerprint = state_fingerprint(rho)
-        cache_key = (fingerprint, setting.key)
-        plan = self._plans.get(cache_key)
+    def _state_plans(self, fingerprint: object) -> dict[tuple, _SamplingPlan]:
+        plans = self._plans.get(fingerprint)
+        if plans is not None:
+            self._plans.move_to_end(fingerprint)
+            return plans
+        plans = {}
+        self._plans[fingerprint] = plans
+        while len(self._plans) > self._PLAN_STATES:
+            self._plans.popitem(last=False)
+        return plans
+
+    def _plan(self, rho, setting: CompiledSetting, *,
+              fingerprint: object | None = None) -> _SamplingPlan:
+        fingerprint = state_fingerprint(rho) if fingerprint is None else fingerprint
+        plans = self._state_plans(fingerprint)
+        plan = plans.get(setting.key)
         if plan is not None:
             return plan
+        # Keep measurement below subspace in the package dependency graph.
+        # Restriction is needed only while constructing a new probability plan.
+        from ..subspace.restriction import Restriction
+
         rotated = Restriction.encoding(setting.clifford).state(rho)
         outcomes = sorted(computational_probabilities(rotated).items())
         bits = tuple(bitstring for bitstring, _ in outcomes)
@@ -102,15 +120,16 @@ class CompiledMeasurementSampler:
         probabilities = np.clip(probabilities, 0.0, 1.0)
         probabilities /= probabilities.sum()
         plan = _SamplingPlan(bits, probabilities)
-        self._plans[cache_key] = plan
+        plans[setting.key] = plan
         return plan
 
     def prepare(self, rho, settings: Sequence[CompiledSetting]) -> int:
         """Compile all fixed state/setting probability tables without sampling."""
+        fingerprint = state_fingerprint(rho)
         for setting in settings:
             if setting.n != rho.n:
                 raise ValueError("compiled setting and state act on different qubit counts")
-            self._plan(rho, setting)
+            self._plan(rho, setting, fingerprint=fingerprint)
         return len(settings)
 
     def sample_from_state(
@@ -140,13 +159,14 @@ class CompiledMeasurementSampler:
         plus_counts: dict[int, int] = {}
         circuits = 0
         support = tuple(range(rho.n))
+        fingerprint = state_fingerprint(rho)
         for setting in settings:
             if setting.n != rho.n:
                 raise ValueError("compiled setting and state act on different qubit counts")
             count = uniform if uniform is not None else shot_map.get(setting.key, 0)
             if count <= 0:
                 continue
-            plan = self._plan(rho, setting)
+            plan = self._plan(rho, setting, fingerprint=fingerprint)
             drawn = self.rng.multinomial(count, plan.probabilities)
             hist = {bits: int(value) for bits, value in zip(plan.bits, drawn) if value}
             groups.append(GroupSample(
@@ -174,7 +194,7 @@ class CompiledMeasurementSampler:
             plus_counts=plus_counts,
             circuits=circuits,
             groups=tuple(groups),
-            state_key=state_fingerprint(rho),
+            state_key=fingerprint,
         )
 
 
