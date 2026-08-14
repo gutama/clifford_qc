@@ -188,4 +188,52 @@ def compare_json_records(
     return problems
 
 
-__all__ = ["compare_json_records", "execution_provenance", "stamp_record"]
+def sampling_stream_mismatch(
+        record: Any, *, packages: tuple[str, ...] = ("numpy",),
+) -> list[str]:
+    """Report packages whose version differs from the one that stamped ``record``.
+
+    A record whose values come from sampled shots is only value-comparable
+    under the library versions that drew those shots.  ``numpy.random.Generator``
+    carries **no** cross-version bit-stream guarantee -- NEP 19 froze
+    ``RandomState`` for that purpose and left ``Generator`` free to change its
+    distribution algorithms -- so a different NumPy draws a different Monte
+    Carlo sample from the same seed.  The result is deterministic on each
+    version and simply unequal between them.
+
+    That failure is invisible in a value diff, which reports a shifted mean or
+    quantile and invites the reader to widen a tolerance.  Widening is the wrong
+    response: nothing is noisy, the sample itself is different.  Callers should
+    surface this list *before* any numeric comparison so the diagnosis names the
+    environment rather than the arithmetic.
+    """
+    if not isinstance(record, dict):
+        return []
+    stamped = record.get("provenance")
+    if not isinstance(stamped, dict):
+        return []
+    declared = stamped.get("dependencies")
+    if not isinstance(declared, dict):
+        return []
+    problems: list[str] = []
+    for package in packages:
+        expected = declared.get(package)
+        if expected is None:
+            continue
+        try:
+            actual = importlib.metadata.version(package)
+        except importlib.metadata.PackageNotFoundError:
+            actual = None
+        if actual is not None and actual != expected:
+            problems.append(
+                f"{package} {actual} differs from the {expected} that produced "
+                "this record; sampled-shot values are not comparable across "
+                "versions (Generator streams are not stream-stable, NEP 19), "
+                "so a rebuild here would be a different Monte Carlo sample "
+                "rather than numerical drift"
+            )
+    return problems
+
+
+__all__ = ["compare_json_records", "execution_provenance",
+           "sampling_stream_mismatch", "stamp_record"]

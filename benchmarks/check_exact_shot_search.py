@@ -4,7 +4,10 @@ from __future__ import annotations
 
 import json
 
-from clifford_qc.reproducibility import compare_json_records
+from clifford_qc.reproducibility import (
+    compare_json_records,
+    sampling_stream_mismatch,
+)
 
 try:  # package import in tests versus direct ``python benchmarks/...`` execution
     from benchmarks.run_exact_shot_search import (
@@ -135,6 +138,28 @@ def contract_problems(record: dict) -> list[str]:
 
 def main() -> int:
     expected = json.loads(REFERENCE.read_text(encoding="utf-8"))
+    # Every value here descends from multinomial shot draws, so the environment
+    # check comes before the rebuild rather than after it.  Under a different
+    # NumPy the rebuild draws a *different sample*: comparing it would report
+    # shifted quantiles as though they were drift and invite a widened
+    # tolerance, which is exactly the wrong repair -- and it would spend the
+    # full search to produce that misleading answer.
+    stream = sampling_stream_mismatch(expected)
+    if stream:
+        print("exact shot search: FAIL (sampling stream differs)")
+        for problem in stream:
+            print(f"  {problem}")
+        print("  skipped the rebuild: it would draw a different sample rather "
+              "than verify this one")
+        problems = contract_problems(expected)
+        if problems:
+            print("  the committed record also fails its own contracts:")
+            for problem in problems[:30]:
+                print(f"    {problem}")
+        else:
+            print("  the committed record still passes every contract check "
+                  "that does not require a rebuild")
+        return 1
     actual = build_record(
         exploratory_replicas=EXPLORATORY_REPLICAS,
         confirmatory_replicas=CONFIRMATORY_REPLICAS,
