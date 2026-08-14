@@ -191,9 +191,12 @@ def test_pure_mapping_arms_pass_the_complete_small_system_invariant_gate(name):
     assert report.mapped_qubits == model.n
     assert report.word_bijection_checked
     assert report.dense_spectrum_checked
+    assert report.dense_spectrum_reason is None
     assert report.word_universe_after == report.word_universe_before
     assert report.max_spectrum_error == pytest.approx(0.0, abs=1e-12)
     assert report.max_operator_transport_error == pytest.approx(0.0, abs=1e-12)
+    assert report.overlap_matrix_scale > 0.0
+    assert report.hamiltonian_matrix_scale > 0.0
 
 
 @pytest.mark.parametrize("name", ["parity+2q", "bk+2q"])
@@ -214,6 +217,7 @@ def test_reduced_mapping_arms_match_an_independent_fixed_parity_block(name):
     assert report.mapped_qubits == model.n - 2
     assert not report.word_bijection_checked
     assert report.dense_spectrum_checked
+    assert report.dense_spectrum_reason is None
     assert report.max_spectrum_error == pytest.approx(0.0, abs=1e-12)
     assert report.max_operator_transport_error == pytest.approx(0.0, abs=1e-12)
 

@@ -112,8 +112,8 @@ Status at a glance:
 | G1–G3 | GA structural preconditioner, mapping-invariance test on the restricted pool, PRD/WISE integration with a cost decomposition | **design only** (§3.5, §5); nothing built, no results |
 | R1 | hardware-aware cost model and pooled-estimator ledger | **done**; asymptotic and exact-oracle nonlinear shot-search tiers are recorded |
 | R2a | shared restriction primitive (`subspace/restriction.py`) | **shipped and consumed by the completed R2b record** |
-| R2b | raw-pool mapping axis | **done** — five mapping arms, four systems, QR2 gates, QWC/device ledgers, and the regenerating record/checker ship together |
-| R3–R4 | protocol axis and contextual-subspace comparator | open; R3 is next after the R2b fixed-QWC result |
+| R2b | raw-pool mapping axis | **done, negative QR3 result** — QR2 passes, but mapping spread is not smaller than instance spread on either independent fixed-QWC metric |
+| R3–R4 | protocol axis and contextual-subspace comparator | open; R3 owns the explicitly deferred `G(k)`/coverage grid |
 
 "Shipped" means the module, its tests, and where applicable its benchmark
 producer exist. It does not mean the phase's go/no-go has been read: those
@@ -1705,8 +1705,8 @@ extracted dense block. These are implementation checks only: no R2 cost row or Q
 answer is accepted from an arm that fails them. The completed experiment is
 `benchmarks/run_mapping_axis.py`, configured by `configs/mapping_axis.json` and
 frozen in `reference_results/mapping_axis.json`; `check_mapping_axis.py` rebuilds
-the record and independently enforces the invariant, tier, coverage, and bias-floor
-contracts.
+the record and independently enforces the numerical invariants, tier,
+QWC-partition, QR3-arithmetic, and bias-floor contracts.
 
 *Step 1 — invariance, as checks.* Construct the encoding change as a CNOT network,
 verify it is Clifford through `clifford_tableau`, then assert: spectrum on the
@@ -1714,11 +1714,17 @@ sector, reference energy, `W`, `S_H`, `M`, `κ_S`, Ritz values, and the word-mul
 bijection. Failure stops the phase — this is Phase 13's discipline applied to
 mappings.
 
-*Step 2 — measure only the variant quantities:* weight distributions on the
-Hamiltonian, generator, element-operator, and deduplicated word multisets; one fixed
-QWC cover; `N_1q/N_2q/D_1q/D_2q`; fixed-shot cost; and an explicitly asymptotic
-single-assignment `C_time(ε)` under each device card. The `mapping × k` interaction
-remains R3 and is not consumed here.
+*Registration/deviation note.* The original Step 2 registered `G(k)` and coverage
+across protocol rungs. This closing PR executes only the fixed-QWC (`k=1`) mapping
+axis and defers those two quantities to R3, where the complete `mapping × k` grid
+belongs. This is an explicit post-registration scope change, not evidence for P5;
+the record carries `deferred_to_r3` so the successor experiment cannot silently
+drop them.
+
+*Step 2 executed here:* weight distributions on the Hamiltonian, generator,
+element-operator, and deduplicated word multisets; one fixed QWC grouping per arm;
+`N_1q/N_2q/D_1q/D_2q`; fixed-shot projections; and an explicitly asymptotic
+single-assignment `C_time(ε)`. P5 remains untested until R3.
 
 *Pre-registered predictions and falsifiers.*
 
@@ -1754,16 +1760,22 @@ measurement cost by `X%` at protocol `k` on device card `D`, while leaving the
 subspace and `W` provably unchanged", or "it does not, at the sizes measured".
 
 *Completed fixed-QWC result.* QR2 passes for every arm on H₄, BeH₂, equilibrium
-H₂O CAS(8e,6o), and the open 2×2 Hubbard model. The constructive QWC setting counts
-for `JW/parity/parity+2q/BK/BK+2q` are respectively `1590/602/351/710/406`,
-`1036/41/27/41/27`, `44172/30298/11329/36256/10083`, and
-`1903/977/467/1184/489`. These are upper bounds from the named scalable cover, not
-minimum colorings and not the legacy largest-degree heuristic. On each structural
-and fixed-shot QR3 metric the recorded mapping spread is smaller than the
-cross-instance spread. The accuracy-matched comparison abstains: only BeH₂ clears
-the 1.6 mHa exact subspace-bias floor in all five arms, so there are not two eligible
-instances. Its prices remain labelled asymptotic; R1's nonlinear exact-oracle
-search was not silently approximated for this record.
+H₂O CAS(8e,6o), and the open 2×2 Hubbard model. H₄, BeH₂, and Hubbard use the same
+established largest-degree greedy; their `JW/parity/parity+2q/BK/BK+2q` setting
+counts are `913/533/351/615/403`, `353/41/27/41/27`, and
+`1406/798/457/907/478`. H₂O alone needs the scalable full-basis-seeded first-fit
+cover and records `24334/17118/9908/18108/8759`; those counts are descriptive upper
+bounds and are excluded from the cross-instance QWC verdict.
+
+The corrected like-for-like QR3 result is negative: on matched-greedy QWC settings,
+the maximum mapping spread is `13.074×` versus a minimum instance spread of
+`3.983×`; on algorithm-independent mean word weight the corresponding factors are
+`1.571×` and `1.489×`. Mapping spread is therefore not smaller on either independent
+metric. The three fixed-shot device-card rows are not counted as corroboration:
+QWC has `N_2q=D_2q=0`, so those times are derived projections of setting count and
+one-qubit rotations. Accuracy-matched QR3 still abstains because only BeH₂ clears
+the 1.6 mHa exact bias floor in all five arms. Its prices remain asymptotic; R1's
+nonlinear exact-oracle search was not approximated for this record.
 
 **R3 — the protocol axis and `k*`.** The `mapping × k` grid under the R1 cost model,
 not a new protocol; `k*` as defined in §6.7. *Gate:* margins reported; regions, not
@@ -2902,10 +2914,11 @@ not another open accuracy phase.
     whose invariants failed.
 12. R2b — mapping measurements on H₄, BeH₂, H₂O CAS(8e,6o), Hubbard.
     **Done:** the raw-pool producer, pinned configuration and H₂O input, stamped
-    record, regenerating checker, and four-system QWC/device comparison ship. QR2
-    passes; structural/fixed-shot QR3 is smaller than the instance spread, while the
-    accuracy-matched QR3 comparison abstains because only BeH₂ clears its bias floor.
-13. R3 — `mapping × k` grid and `k*` regions under three device cards. **Next.**
+    record, regenerating checker, and four-system QWC/device ledger ship. QR2 passes;
+    corrected like-for-like QR3 is negative on both independent metrics, while the
+    accuracy-matched comparison abstains because only BeH₂ clears its bias floor.
+13. R3 — the explicitly deferred `mapping × k`, coverage, and `k*` regions under
+    three device cards. **Next.**
 14. R4a — contextual-subspace comparator arms with bias floors. *Gate:* QR5 answered.
 15. R4b — CS-preconditioned A-CASE, built only on a complementary QR5.
 

@@ -47,14 +47,22 @@ class MappingInvariantReport:
     effective_rank: int
     condition_number: float
     max_overlap_matrix_error: float
+    overlap_matrix_scale: float
     max_hamiltonian_matrix_error: float
+    hamiltonian_matrix_scale: float
     max_operator_transport_error: float
+    operator_transport_scale: float
     max_ritz_error: float
+    ritz_scale: float
     reference_energy_error: float
+    reference_energy_scale: float
     max_generator_leakage: float
     word_bijection_checked: bool
     dense_spectrum_checked: bool
     max_spectrum_error: float | None
+    spectrum_scale: float | None
+    dense_spectrum_max_qubits: int
+    dense_spectrum_reason: str | None
     relative_tolerance: float
     absolute_tolerance: float
     leakage_tolerance: float
@@ -218,17 +226,19 @@ def assert_mapping_invariants(
         "transported element operators",
     )
     overlap_error = _max_abs(S_after - S_before)
+    overlap_scale = _max_abs(S_before)
     hamiltonian_error = _max_abs(H_after - H_before)
+    hamiltonian_scale = _max_abs(H_before)
     _assert_close(
         overlap_error,
-        _max_abs(S_before),
+        overlap_scale,
         relative_tolerance,
         absolute_tolerance,
         "projected overlap",
     )
     _assert_close(
         hamiltonian_error,
-        _max_abs(H_before),
+        hamiltonian_scale,
         relative_tolerance,
         absolute_tolerance,
         "projected Hamiltonian",
@@ -243,9 +253,10 @@ def assert_mapping_invariants(
     if energies_before.shape != energies_after.shape:
         raise AssertionError("mapping changed the number of retained Ritz values")
     ritz_error = _max_abs(energies_after - energies_before)
+    ritz_scale = _max_abs(energies_before)
     _assert_close(
         ritz_error,
-        _max_abs(energies_before),
+        ritz_scale,
         relative_tolerance,
         absolute_tolerance,
         "Ritz values",
@@ -267,9 +278,10 @@ def assert_mapping_invariants(
         * transported.hamiltonian.trace_pairing(transported.reference)
     )
     reference_error = abs(energy_after - energy_before)
+    reference_scale = abs(energy_before)
     _assert_close(
         reference_error,
-        abs(energy_before),
+        reference_scale,
         relative_tolerance,
         absolute_tolerance,
         "reference energy",
@@ -302,6 +314,7 @@ def assert_mapping_invariants(
 
     dense_checked = H.n <= dense_spectrum_max_qubits
     spectrum_error = None
+    spectrum_scale = None
     if dense_checked:
         if pure_encoding:
             expected_spectrum = np.linalg.eigvalsh(to_matrix(H))
@@ -317,9 +330,10 @@ def assert_mapping_invariants(
         if expected_spectrum.shape != mapped_spectrum.shape:
             raise AssertionError("mapping changed the fixed-sector spectrum dimension")
         spectrum_error = _max_abs(mapped_spectrum - expected_spectrum)
+        spectrum_scale = _max_abs(expected_spectrum)
         _assert_close(
             spectrum_error,
-            _max_abs(expected_spectrum),
+            spectrum_scale,
             relative_tolerance,
             absolute_tolerance,
             "fixed-sector spectrum",
@@ -336,14 +350,29 @@ def assert_mapping_invariants(
         effective_rank=int(solved_before.effective_rank),
         condition_number=float(solved_before.condition_number),
         max_overlap_matrix_error=overlap_error,
+        overlap_matrix_scale=overlap_scale,
         max_hamiltonian_matrix_error=hamiltonian_error,
+        hamiltonian_matrix_scale=hamiltonian_scale,
         max_operator_transport_error=float(operator_error),
+        operator_transport_scale=float(operator_scale),
         max_ritz_error=ritz_error,
+        ritz_scale=ritz_scale,
         reference_energy_error=float(reference_error),
+        reference_energy_scale=float(reference_scale),
         max_generator_leakage=float(max_leakage),
         word_bijection_checked=pure_encoding,
         dense_spectrum_checked=dense_checked,
         max_spectrum_error=spectrum_error,
+        spectrum_scale=spectrum_scale,
+        dense_spectrum_max_qubits=int(dense_spectrum_max_qubits),
+        dense_spectrum_reason=(
+            None
+            if dense_checked
+            else (
+                "source qubits exceed the declared dense-spectrum "
+                "materialization limit"
+            )
+        ),
         relative_tolerance=float(relative_tolerance),
         absolute_tolerance=float(absolute_tolerance),
         leakage_tolerance=float(leakage_tolerance),

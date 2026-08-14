@@ -16,9 +16,12 @@
     "bk+2q"
   ],
   "measurement": {
-    "protocol": "qwc_basis_cover",
-    "max_candidate_bases": 8192,
-    "refinement_passes": 2,
+    "grouping_protocol_by_system": {
+      "h4": "qwc_groups",
+      "beh2": "qwc_groups",
+      "h2o_cas8e6o": "qwc_basis_cover",
+      "hubbard_2x2": "qwc_groups"
+    },
     "uniform_raw_shots_per_setting": 8000,
     "estimator": "single_assignment",
     "accuracy_target_millihartree": 1.6,

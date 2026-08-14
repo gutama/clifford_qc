@@ -1276,30 +1276,36 @@ The gate compares the transported and JW projected `(S,H)` matrices, basis
 size, retained rank, condition number, Ritz values, and reference energy. Pure
 encoding arms additionally require a Pauli-word-universe bijection. At small
 qubit count, every arm is checked against an independently materialized full or
-fixed-parity dense spectrum. A sector-changing generator or an incorrectly
-declared reference sector aborts. The report records the mapping name, and the
-relative/absolute comparison tolerances, dimensionless leakage tolerance, and
-absolute zero-operator tolerance are independent controls.
+fixed-parity dense spectrum. H₂O exceeds the declared ten-qubit dense-oracle limit;
+the record states that exclusion explicitly while retaining the projected-matrix,
+operator-transport, Ritz, reference-energy, leakage, and encoding gates. Every
+numerical error is stored with its comparison scale and tolerance, and the checker
+recomputes each gate. A sector-changing generator or incorrectly declared reference
+sector aborts.
 
 `benchmarks/configs/mapping_axis.json` pins the five-arm order, selected raw-pool
-labels and source-row hashes, fixed QWC grouping parameters, 8000 raw shots per
-setting, the single-assignment estimator, the 1.6 mHa target, and all four system
-inputs. `benchmarks/reference_results/mapping_axis.json` records the resulting
-weight ledgers, QWC resources, fixed-shot device costs, and asymptotic
-accuracy-matched costs. The QWC routine is a deterministic constructive cover
-designed for the 143117-word water bank. Its setting count is an upper bound, not
-a minimum-coloring result, and must not be compared with the legacy
-largest-degree greedy count without naming the changed heuristic.
+labels and source-row hashes, the grouping protocol for each system, 8000 raw shots
+per setting, the single-assignment estimator, the 1.6 mHa target, and all four
+inputs. H₄, BeH₂, and Hubbard use the established largest-degree greedy. H₂O alone
+uses the scalable full-basis-seeded first-fit cover; its setting counts are
+constructive upper bounds and are excluded from the cross-instance QWC verdict.
+Neither protocol claims a minimum coloring.
 
 The committed `JW/parity/parity+2q/BK/BK+2q` setting counts are
-`1590/602/351/710/406` for H₄, `1036/41/27/41/27` for BeH₂,
-`44172/30298/11329/36256/10083` for H₂O, and
-`1903/977/467/1184/489` for Hubbard. QR2 passes for every arm. Structural and
-fixed-shot QR3 reports mapping spread below cross-instance spread for every named
-metric and device card. Accuracy-matched QR3 abstains because only BeH₂ is below
-the exact subspace-bias floor in all five arms. Those BeH₂ prices use exact bias
-plus first-order Ritz-functional variance and remain labelled `asymptotic`; this
-producer does not rerun or replace R1's nonlinear exact-oracle shot search.
+`913/533/351/615/403` for H₄, `353/41/27/41/27` for BeH₂,
+`24334/17118/9908/18108/8759` for H₂O, and `1406/798/457/907/478` for Hubbard.
+QR2 passes for every arm. The corrected ratio-versus-ratio QR3 comparison is
+negative: mapping spread is not smaller than instance spread for matched-greedy
+QWC settings (`13.074×` versus `3.983×`) or mean word weight (`1.571×` versus
+`1.489×`). Fixed-shot card rows are derived projections, not independent evidence,
+because QWC uses no two-qubit measurement gates. Accuracy-matched QR3 abstains
+because only BeH₂ clears the exact subspace-bias floor in all five arms. Its prices
+remain `asymptotic`; this producer does not replace R1's nonlinear exact-oracle
+shot search.
+
+The original plan also named `G(k)` and coverage across protocol rungs. They are
+explicitly recorded as a post-registration deferral to R3; this fixed-QWC record
+does not claim to test that protocol interaction.
 
 Ordinary reproduction consumes the committed H₂O FCIDUMP and does not require a
 live chemistry build. To regenerate that immutable input with the chemistry extra:

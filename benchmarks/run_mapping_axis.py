@@ -6,9 +6,11 @@ This producer changes only their qubit representation across JW, parity,
 parity+2q, BK, and BK+2q.  Every arm must pass the R2 mapping-invariant gate
 before any word-weight, grouping, or device-card number is emitted.
 
-The committed record uses one fixed QWC protocol.  The later R3 phase owns the
-``mapping x k`` block-commuting grid; keeping that interaction out of this file
-prevents the mapping-axis result from silently consuming its successor phase.
+The committed record uses one fixed-QWC policy: the established greedy on the
+three affordable systems and a separately labelled scalable cover on H2O.  The
+later R3 phase owns the ``mapping x k`` block-commuting grid; keeping that
+interaction out of this file prevents this result from silently consuming its
+successor phase.
 """
 
 from __future__ import annotations
@@ -26,7 +28,7 @@ import numpy as np
 from clifford_qc.backends import ExactMVBackend, SectorStatevectorBackend
 from clifford_qc.fermion_mapping import fermion_encoding
 from clifford_qc.ir import PauliWord
-from clifford_qc.measurement import qwc_basis_cover, shared_basis
+from clifford_qc.measurement import qwc_basis_cover, qwc_groups, shared_basis
 from clifford_qc.measurement.cost import (
     DeviceCard,
     SettingResources,
@@ -92,6 +94,14 @@ def load_config(path: Path = CONFIG) -> dict:
     keys = [system.get("key") for system in config.get("systems", [])]
     if not keys or len(keys) != len(set(keys)):
         raise ValueError("mapping-axis system keys must be non-empty and unique")
+    grouping = config.get("measurement", {}).get("grouping_protocol_by_system")
+    if not isinstance(grouping, dict) or set(grouping) != set(keys):
+        raise ValueError("every mapping-axis system must pin one grouping protocol")
+    if any(
+        value not in ("qwc_groups", "qwc_basis_cover")
+        for value in grouping.values()
+    ):
+        raise ValueError("unsupported mapping-axis grouping protocol")
     return config
 
 
@@ -266,10 +276,12 @@ def _summary(values: Sequence[int]) -> dict:
     }
 
 
-def _measurement_ledger(groups, settings: Sequence[SettingResources]) -> dict:
+def _measurement_ledger(
+    groups, settings: Sequence[SettingResources], *, protocol: str
+) -> dict:
     sizes = [len(group) for group in groups]
     return {
-        "protocol": "qwc_basis_cover",
+        "protocol": protocol,
         "settings": len(groups),
         "group_size": _summary(sizes),
         "resource_metrics": {
@@ -421,6 +433,7 @@ def _build_arm(
     exact_energy: float,
     cards: Sequence[DeviceCard],
     measurement: dict,
+    grouping_protocol: str,
 ) -> dict:
     reduced = name.endswith("+2q")
     encoding = fermion_encoding(
@@ -450,11 +463,12 @@ def _build_arm(
         for code in sorted(bank.word_set())
         if code != 0
     ]
-    groups = qwc_basis_cover(
-        words,
-        max_candidate_bases=int(measurement["max_candidate_bases"]),
-        refinement_passes=int(measurement["refinement_passes"]),
-    )
+    if grouping_protocol == "qwc_groups":
+        groups = qwc_groups(words)
+    elif grouping_protocol == "qwc_basis_cover":
+        groups = qwc_basis_cover(words)
+    else:
+        raise ValueError(f"unsupported QWC grouping protocol {grouping_protocol!r}")
     settings = _measurement_resources(groups)
     return {
         "mapping": name,
@@ -477,7 +491,9 @@ def _build_arm(
             "error_millihartree": float(result.ground_energy - exact_energy) * 1e3,
         },
         "weights": _weight_ledger(transported.hamiltonian, mapped, bank),
-        "measurement": _measurement_ledger(groups, settings),
+        "measurement": _measurement_ledger(
+            groups, settings, protocol=grouping_protocol
+        ),
         "device_costs": _device_costs(
             cards,
             settings,
@@ -503,6 +519,10 @@ def build_system_record(
     cards: Sequence[DeviceCard],
     measurement: dict,
 ) -> dict:
+    grouping_protocols = measurement.get("grouping_protocol_by_system", {})
+    grouping_protocol = grouping_protocols.get(spec["key"])
+    if grouping_protocol not in ("qwc_groups", "qwc_basis_cover"):
+        raise ValueError(f"missing grouping protocol for {spec['key']}")
     model, construction = _build_model(spec)
     selection = _selection_row(spec)
     if selection is not None:
@@ -538,6 +558,7 @@ def build_system_record(
             exact_energy,
             cards,
             measurement,
+            grouping_protocol,
         )
         for name in arms
     ]
@@ -549,6 +570,7 @@ def build_system_record(
         "n_electrons": int(model.metadata["n_electrons"]),
         "sz": float(model.metadata["sz"]),
         "spin_ordering": model.metadata.get("spin_convention", "interleaved"),
+        "grouping_protocol": grouping_protocol,
         "hamiltonian_terms": len(model.hamiltonian.terms),
         "hamiltonian_sha256": _mv_sha256(as_multivector(model.hamiltonian)),
         "reference_sha256": _mv_sha256(reference),
@@ -570,58 +592,65 @@ def build_system_record(
     }
 
 
-def _metric_value(arm: dict, metric: str, card: str | None = None) -> float:
+def _metric_value(arm: dict, metric: str) -> float:
     if metric == "qwc_settings":
         return float(arm["measurement"]["settings"])
     if metric == "mean_word_weight":
         return float(arm["weights"]["deduplicated_word_universe"]["mean_weight"])
-    if metric == "fixed_uniform_time_us" and card is not None:
-        return float(
-            arm["device_costs"][card]["fixed_uniform_raw_shots"]["fixed_shot_time_us"]
-        )
     raise ValueError(f"unknown QR3 metric {metric!r}")
 
 
-def _qr3_summary(systems: Sequence[dict], cards: Sequence[DeviceCard]) -> dict:
-    metrics = [("qwc_settings", None), ("mean_word_weight", None)] + [
-        ("fixed_uniform_time_us", card.name) for card in cards
-    ]
-    summaries = {}
-    for metric, card in metrics:
-        key = metric if card is None else f"{metric}:{card}"
-        within = {}
-        for system in systems:
-            values = [_metric_value(arm, metric, card) for arm in system["arms"]]
-            jw = values[0]
-            within[system["system"]] = {
-                "jw": jw,
-                "minimum": min(values),
-                "maximum": max(values),
-                "mapping_spread_fraction_of_jw": (max(values) - min(values)) / jw,
-            }
-        by_mapping = {}
-        for index, mapping in enumerate(systems[0]["arms"]):
-            values = [
-                _metric_value(system["arms"][index], metric, card) for system in systems
-            ]
-            by_mapping[mapping["mapping"]] = {
-                "minimum": min(values),
-                "maximum": max(values),
-                "instance_spread_factor": max(values) / min(values),
-            }
-        max_mapping = max(
-            item["mapping_spread_fraction_of_jw"] for item in within.values()
-        )
-        min_instance = min(item["instance_spread_factor"] for item in by_mapping.values())
-        summaries[key] = {
-            "within_system": within,
-            "across_instances": by_mapping,
-            "verdict": (
-                "mapping_spread_smaller_than_instance_spread"
-                if 1.0 + max_mapping < min_instance
-                else "mapping_spread_not_smaller_than_instance_spread"
-            ),
+def _spread_summary(systems: Sequence[dict], metric: str) -> dict:
+    within = {}
+    for system in systems:
+        values = [_metric_value(arm, metric) for arm in system["arms"]]
+        minimum = min(values)
+        maximum = max(values)
+        within[system["system"]] = {
+            "minimum": minimum,
+            "maximum": maximum,
+            "mapping_spread_factor": maximum / minimum,
         }
+    by_mapping = {}
+    for index, mapping in enumerate(systems[0]["arms"]):
+        values = [
+            _metric_value(system["arms"][index], metric)
+            for system in systems
+        ]
+        minimum = min(values)
+        maximum = max(values)
+        by_mapping[mapping["mapping"]] = {
+            "minimum": minimum,
+            "maximum": maximum,
+            "instance_spread_factor": maximum / minimum,
+        }
+    max_mapping = max(item["mapping_spread_factor"] for item in within.values())
+    min_instance = min(item["instance_spread_factor"] for item in by_mapping.values())
+    return {
+        "systems_included": [system["system"] for system in systems],
+        "within_system": within,
+        "across_instances": by_mapping,
+        "max_mapping_spread_factor": max_mapping,
+        "min_instance_spread_factor": min_instance,
+        "margin_factor": min_instance / max_mapping,
+        "verdict": (
+            "mapping_spread_smaller_than_instance_spread"
+            if max_mapping < min_instance
+            else "mapping_spread_not_smaller_than_instance_spread"
+        ),
+    }
+
+
+def _qr3_summary(systems: Sequence[dict], cards: Sequence[DeviceCard]) -> dict:
+    matched_qwc = [
+        system for system in systems if system["grouping_protocol"] == "qwc_groups"
+    ]
+    structural = {
+        "qwc_settings_matched_greedy": _spread_summary(
+            matched_qwc, "qwc_settings"
+        ),
+        "mean_word_weight": _spread_summary(systems, "mean_word_weight"),
+    }
     eligible = [
         system["system"]
         for system in systems
@@ -631,7 +660,36 @@ def _qr3_summary(systems: Sequence[dict], cards: Sequence[DeviceCard]) -> dict:
         )
     ]
     return {
-        "structural_fixed_shot": summaries,
+        "structural": structural,
+        "structural_verdict": (
+            "mapping_spread_smaller_than_instance_spread_on_both_independent_metrics"
+            if all(
+                summary["verdict"]
+                == "mapping_spread_smaller_than_instance_spread"
+                for summary in structural.values()
+            )
+            else "mapping_spread_not_smaller_on_every_independent_metric"
+        ),
+        "qwc_exclusion": {
+            "systems": [
+                system["system"]
+                for system in systems
+                if system["grouping_protocol"] != "qwc_groups"
+            ],
+            "reason": (
+                "scalable-cover counts are constructive upper bounds from a different "
+                "heuristic and are excluded from the cross-instance QWC verdict"
+            ),
+        },
+        "device_card_projections": {
+            "cards": [card.name for card in cards],
+            "independent_evidence": False,
+            "reason": (
+                "QWC basis rotations have N_2q=D_2q=0, so fixed-shot card times "
+                "are derived projections of setting count and one-qubit rotations, "
+                "not independent confirmations"
+            ),
+        },
         "accuracy_matched": {
             "eligible_systems": eligible,
             "verdict": (
@@ -641,9 +699,10 @@ def _qr3_summary(systems: Sequence[dict], cards: Sequence[DeviceCard]) -> dict:
             ),
         },
         "claim_boundary": (
-            "structural and fixed-shot comparison under one constructive QWC cover; "
-            "accuracy-matched QR3 abstains unless at least two complete systems clear "
-            "the exact subspace-bias floor in every mapping arm"
+            "like-for-like ratio comparison on algorithm-independent word weight and "
+            "matched largest-degree-greedy QWC systems; H2O scalable-cover counts and "
+            "device-card projections are descriptive only; accuracy-matched QR3 "
+            "abstains unless at least two complete systems clear the exact bias floor"
         ),
     }
 
@@ -680,10 +739,15 @@ def build_record(
         "measurement_contract": {
             **config["measurement"],
             "grouping_claim": (
-                "constructive QWC upper bound from observed full bases and bounded "
-                "frequency-completion refinement; not minimum coloring and not the "
-                "legacy largest-degree greedy heuristic"
+                "H4, BeH2, and Hubbard use the established largest-degree greedy; "
+                "H2O uses a full-basis-seeded first-fit scalable cover and is excluded "
+                "from the cross-instance QWC verdict; neither protocol claims a "
+                "minimum coloring"
             ),
+            "deferred_to_r3": [
+                "G(k) across protocol rungs",
+                "coverage across protocol rungs",
+            ],
             "mapping_network_charge": (
                 "not charged per shot: each encoded reference determinant is prepared "
                 "directly; the CNOT network is retained as an equivalence witness"
@@ -698,9 +762,11 @@ def build_record(
             "verdict": "not_evaluated_on_partial_record"
         },
         "claim_boundary": (
-            "exact representation and resource counts plus an asymptotic single-assignment "
-            "shot model; no nonlinear finite-shot mapping search, hardware calibration, "
-            "optimal-coloring claim, or mapping-by-protocol interaction"
+            "exact representation and resource counts plus an asymptotic "
+            "single-assignment shot model; no nonlinear finite-shot mapping search, "
+            "hardware calibration, "
+            "optimal-coloring claim, H2O cross-heuristic QWC verdict, independent "
+            "device-card corroboration, or mapping-by-protocol interaction"
         ),
     }
     return stamp_record(record)

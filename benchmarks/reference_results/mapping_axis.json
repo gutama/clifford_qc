@@ -2,7 +2,7 @@
   "schema": "clifford_qc.mapping_axis.v1",
   "phase": "R2b_raw_pool_mapping_axis",
   "scope": "complete",
-  "config_sha256": "b5efa0c8c78cd428b3634da8ed09bf4e041a64a2c846fc4b990860d7b0d66e7c",
+  "config_sha256": "b9619e0f3ee5cd7ce012ab57f69502a5b42857155d5698554a59882aaf5925c1",
   "mapping_arms": [
     "jw",
     "parity",
@@ -18,14 +18,21 @@
     "maximum_basis_size": 9
   },
   "measurement_contract": {
-    "protocol": "qwc_basis_cover",
-    "max_candidate_bases": 8192,
-    "refinement_passes": 2,
+    "grouping_protocol_by_system": {
+      "h4": "qwc_groups",
+      "beh2": "qwc_groups",
+      "h2o_cas8e6o": "qwc_basis_cover",
+      "hubbard_2x2": "qwc_groups"
+    },
     "uniform_raw_shots_per_setting": 8000,
     "estimator": "single_assignment",
     "accuracy_target_millihartree": 1.6,
     "accuracy_evidence_tier": "asymptotic",
-    "grouping_claim": "constructive QWC upper bound from observed full bases and bounded frequency-completion refinement; not minimum coloring and not the legacy largest-degree greedy heuristic",
+    "grouping_claim": "H4, BeH2, and Hubbard use the established largest-degree greedy; H2O uses a full-basis-seeded first-fit scalable cover and is excluded from the cross-instance QWC verdict; neither protocol claims a minimum coloring",
+    "deferred_to_r3": [
+      "G(k) across protocol rungs",
+      "coverage across protocol rungs"
+    ],
     "mapping_network_charge": "not charged per shot: each encoded reference determinant is prepared directly; the CNOT network is retained as an equivalence witness"
   },
   "device_cards": [
@@ -109,10 +116,11 @@
       "n_electrons": 4,
       "sz": 0.0,
       "spin_ordering": "interleaved",
+      "grouping_protocol": "qwc_groups",
       "hamiltonian_terms": 185,
       "hamiltonian_sha256": "9fd29628c8751189c82b7929b233d74720206c6b13a2dc3368517a454a593cc5",
       "reference_sha256": "4728c49308acc16c7d029fd9343649f0a9b9c5540472d906494cc2f769e1257a",
-      "exact_sector_energy": -2.1803166143239023,
+      "exact_sector_energy": -2.180316614323888,
       "raw_pool": {
         "size": 26,
         "sha256": "42834bb59ea24b2ad0ef21fa06374d1c46e0fa8296d4f2d685e6dd2d306eee52",
@@ -173,14 +181,22 @@
             "effective_rank": 9,
             "condition_number": 1.0,
             "max_overlap_matrix_error": 0.0,
+            "overlap_matrix_scale": 1.0,
             "max_hamiltonian_matrix_error": 0.0,
+            "hamiltonian_matrix_scale": 2.1242597389728113,
             "max_operator_transport_error": 0.0,
+            "operator_transport_scale": 16.0,
             "max_ritz_error": 0.0,
+            "ritz_scale": 2.177297832980223,
             "reference_energy_error": 0.0,
+            "reference_energy_scale": 2.1242597389728113,
             "max_generator_leakage": 0.0,
             "word_bijection_checked": true,
             "dense_spectrum_checked": true,
             "max_spectrum_error": 0.0,
+            "spectrum_scale": 3.5227349694720633,
+            "dense_spectrum_max_qubits": 10,
+            "dense_spectrum_reason": null,
             "relative_tolerance": 1e-10,
             "absolute_tolerance": 1e-12,
             "leakage_tolerance": 1e-12,
@@ -202,7 +218,7 @@
             "retained_rank": 9,
             "condition_number": 1.0,
             "ground_energy": -2.177297832980223,
-            "error_millihartree": 3.0187813436794997
+            "error_millihartree": 3.018781343665289
           },
           "weights": {
             "hamiltonian_multiset": {
@@ -268,17 +284,17 @@
             }
           },
           "measurement": {
-            "protocol": "qwc_basis_cover",
-            "settings": 1590,
+            "protocol": "qwc_groups",
+            "settings": 913,
             "group_size": {
               "sum": 7370,
-              "mean": 4.635220125786163,
-              "max": 39
+              "mean": 8.072289156626505,
+              "max": 38
             },
             "resource_metrics": {
               "N_1q": {
-                "sum": 11688,
-                "mean": 7.350943396226415,
+                "sum": 7776,
+                "mean": 8.51697699890471,
                 "max": 16
               },
               "N_2q": {
@@ -287,8 +303,8 @@
                 "max": 0
               },
               "D_1q": {
-                "sum": 3077,
-                "mean": 1.9352201257861634,
+                "sum": 1793,
+                "mean": 1.963855421686747,
                 "max": 2
               },
               "D_2q": {
@@ -310,11 +326,11 @@
                   "calibration_status": "illustrative_scenario"
                 },
                 "n_qubits": 8,
-                "settings": 1590,
-                "raw_shots": 12720000,
-                "effective_shots": 10751242.952901248,
-                "fixed_shot_time_us": 2790160000.0,
-                "logical_1q_applications": 93504000,
+                "settings": 913,
+                "raw_shots": 7304000,
+                "effective_shots": 6166316.522070074,
+                "fixed_shot_time_us": 1604240000.0,
+                "logical_1q_applications": 62208000,
                 "logical_2q_applications": 0,
                 "modeled_2q_applications": 0,
                 "routing": {
@@ -325,7 +341,7 @@
                 },
                 "fidelity": {
                   "min": 0.9153903547260381,
-                  "mean": 0.9193594647940307,
+                  "mean": 0.9188234919053305,
                   "max": 0.9227446944279201,
                   "floor": 0.5
                 },
@@ -346,11 +362,11 @@
                   "calibration_status": "illustrative_scenario"
                 },
                 "n_qubits": 8,
-                "settings": 1590,
-                "raw_shots": 15050156,
-                "effective_shots": 12720644.166749198,
-                "fixed_shot_time_us": 3301344280.0,
-                "logical_1q_applications": 110752834,
+                "settings": 913,
+                "raw_shots": 8652192,
+                "effective_shots": 7304453.30590821,
+                "fixed_shot_time_us": 1900369400.0,
+                "logical_1q_applications": 73759860,
                 "logical_2q_applications": 0,
                 "modeled_2q_applications": 0,
                 "routing": {
@@ -361,7 +377,7 @@
                 },
                 "fidelity": {
                   "min": 0.9153903547260381,
-                  "mean": 0.9193594647940307,
+                  "mean": 0.9188234919053305,
                   "max": 0.9227446944279201,
                   "floor": 0.5
                 },
@@ -385,11 +401,11 @@
                   "calibration_status": "logical_baseline"
                 },
                 "n_qubits": 8,
-                "settings": 1590,
-                "raw_shots": 12720000,
-                "effective_shots": 12720000.0,
-                "fixed_shot_time_us": 26670800.0,
-                "logical_1q_applications": 93504000,
+                "settings": 913,
+                "raw_shots": 7304000,
+                "effective_shots": 7304000.0,
+                "fixed_shot_time_us": 15325200.0,
+                "logical_1q_applications": 62208000,
                 "logical_2q_applications": 0,
                 "modeled_2q_applications": 0,
                 "routing": {
@@ -421,11 +437,11 @@
                   "calibration_status": "logical_baseline"
                 },
                 "n_qubits": 8,
-                "settings": 1590,
-                "raw_shots": 12720000,
-                "effective_shots": 12720000.0,
-                "fixed_shot_time_us": 26670800.0,
-                "logical_1q_applications": 93504000,
+                "settings": 913,
+                "raw_shots": 7304000,
+                "effective_shots": 7304000.0,
+                "fixed_shot_time_us": 15325200.0,
+                "logical_1q_applications": 62208000,
                 "logical_2q_applications": 0,
                 "modeled_2q_applications": 0,
                 "routing": {
@@ -460,11 +476,11 @@
                   "calibration_status": "illustrative_scenario"
                 },
                 "n_qubits": 8,
-                "settings": 1590,
-                "raw_shots": 12720000,
-                "effective_shots": 9072418.50587174,
-                "fixed_shot_time_us": 39390800.0,
-                "logical_1q_applications": 93504000,
+                "settings": 913,
+                "raw_shots": 7304000,
+                "effective_shots": 5197368.031476415,
+                "fixed_shot_time_us": 22629200.0,
+                "logical_1q_applications": 62208000,
                 "logical_2q_applications": 0,
                 "modeled_2q_applications": 0,
                 "routing": {
@@ -475,7 +491,7 @@
                 },
                 "fidelity": {
                   "min": 0.8372524309005734,
-                  "mean": 0.8445322890312876,
+                  "mean": 0.843547643106237,
                   "max": 0.8507630225817855,
                   "floor": 0.5
                 },
@@ -496,11 +512,11 @@
                   "calibration_status": "illustrative_scenario"
                 },
                 "n_qubits": 8,
-                "settings": 1590,
-                "raw_shots": 17835325,
-                "effective_shots": 12720470.52939365,
-                "fixed_shot_time_us": 55232441.899999976,
-                "logical_1q_applications": 131390242,
+                "settings": 913,
+                "raw_shots": 10265286,
+                "effective_shots": 7304320.91382465,
+                "fixed_shot_time_us": 31804006.5,
+                "logical_1q_applications": 87593676,
                 "logical_2q_applications": 0,
                 "modeled_2q_applications": 0,
                 "routing": {
@@ -511,7 +527,7 @@
                 },
                 "fidelity": {
                   "min": 0.8372524309005734,
-                  "mean": 0.8445322890312876,
+                  "mean": 0.843547643106237,
                   "max": 0.8507630225817855,
                   "floor": 0.5
                 },
@@ -528,7 +544,7 @@
           },
           "accuracy_matched_cost": {
             "epsilon_millihartree": 1.6,
-            "exact_subspace_bias_millihartree": 3.0187813436794997,
+            "exact_subspace_bias_millihartree": 3.018781343665289,
             "estimator": "single_assignment",
             "evidence_tier": "asymptotic",
             "claim_boundary": "exact bias floor plus first-order Ritz-functional variance; not the R1 nonlinear exact-oracle shot search or a finite-sample certificate",
@@ -574,14 +590,22 @@
             "effective_rank": 9,
             "condition_number": 1.0,
             "max_overlap_matrix_error": 0.0,
+            "overlap_matrix_scale": 1.0,
             "max_hamiltonian_matrix_error": 0.0,
+            "hamiltonian_matrix_scale": 2.1242597389728113,
             "max_operator_transport_error": 0.0,
+            "operator_transport_scale": 16.0,
             "max_ritz_error": 0.0,
+            "ritz_scale": 2.177297832980223,
             "reference_energy_error": 0.0,
+            "reference_energy_scale": 2.1242597389728113,
             "max_generator_leakage": 0.0,
             "word_bijection_checked": true,
             "dense_spectrum_checked": true,
             "max_spectrum_error": 1.2878587085651816e-14,
+            "spectrum_scale": 3.5227349694720633,
+            "dense_spectrum_max_qubits": 10,
+            "dense_spectrum_reason": null,
             "relative_tolerance": 1e-10,
             "absolute_tolerance": 1e-12,
             "leakage_tolerance": 1e-12,
@@ -603,7 +627,7 @@
             "retained_rank": 9,
             "condition_number": 1.0,
             "ground_energy": -2.177297832980223,
-            "error_millihartree": 3.0187813436794997
+            "error_millihartree": 3.018781343665289
           },
           "weights": {
             "hamiltonian_multiset": {
@@ -675,17 +699,17 @@
             }
           },
           "measurement": {
-            "protocol": "qwc_basis_cover",
-            "settings": 602,
+            "protocol": "qwc_groups",
+            "settings": 533,
             "group_size": {
               "sum": 7370,
-              "mean": 12.242524916943522,
-              "max": 64
+              "mean": 13.827392120075046,
+              "max": 54
             },
             "resource_metrics": {
               "N_1q": {
-                "sum": 4086,
-                "mean": 6.787375415282392,
+                "sum": 3660,
+                "mean": 6.866791744840525,
                 "max": 12
               },
               "N_2q": {
@@ -694,8 +718,8 @@
                 "max": 0
               },
               "D_1q": {
-                "sum": 1167,
-                "mean": 1.9385382059800664,
+                "sum": 1033,
+                "mean": 1.9380863039399625,
                 "max": 2
               },
               "D_2q": {
@@ -717,11 +741,11 @@
                   "calibration_status": "illustrative_scenario"
                 },
                 "n_qubits": 8,
-                "settings": 602,
-                "raw_shots": 4816000,
-                "effective_shots": 4072883.9176232456,
-                "fixed_shot_time_us": 1056560000.0,
-                "logical_1q_applications": 32688000,
+                "settings": 533,
+                "raw_shots": 4264000,
+                "effective_shots": 3605772.2369053834,
+                "fixed_shot_time_us": 935440000.0,
+                "logical_1q_applications": 29280000,
                 "logical_2q_applications": 0,
                 "modeled_2q_applications": 0,
                 "routing": {
@@ -732,7 +756,7 @@
                 },
                 "fidelity": {
                   "min": 0.9172234262018567,
-                  "mean": 0.9196181893578853,
+                  "mean": 0.9195816852872964,
                   "max": 0.9227446944279201,
                   "floor": 0.5
                 },
@@ -753,11 +777,11 @@
                   "calibration_status": "illustrative_scenario"
                 },
                 "n_qubits": 8,
-                "settings": 602,
-                "raw_shots": 5695059,
-                "effective_shots": 4816282.800724633,
-                "fixed_shot_time_us": 1249424300.0,
-                "logical_1q_applications": 38678131,
+                "settings": 533,
+                "raw_shots": 5042705,
+                "effective_shots": 4264251.16658355,
+                "fixed_shot_time_us": 1106283780.0,
+                "logical_1q_applications": 34649030,
                 "logical_2q_applications": 0,
                 "modeled_2q_applications": 0,
                 "routing": {
@@ -768,7 +792,7 @@
                 },
                 "fidelity": {
                   "min": 0.9172234262018567,
-                  "mean": 0.9196181893578853,
+                  "mean": 0.9195816852872964,
                   "max": 0.9227446944279201,
                   "floor": 0.5
                 },
@@ -792,11 +816,11 @@
                   "calibration_status": "logical_baseline"
                 },
                 "n_qubits": 8,
-                "settings": 602,
-                "raw_shots": 4816000,
-                "effective_shots": 4816000.0,
-                "fixed_shot_time_us": 10098800.0,
-                "logical_1q_applications": 32688000,
+                "settings": 533,
+                "raw_shots": 4264000,
+                "effective_shots": 4264000.0,
+                "fixed_shot_time_us": 8941200.0,
+                "logical_1q_applications": 29280000,
                 "logical_2q_applications": 0,
                 "modeled_2q_applications": 0,
                 "routing": {
@@ -828,11 +852,11 @@
                   "calibration_status": "logical_baseline"
                 },
                 "n_qubits": 8,
-                "settings": 602,
-                "raw_shots": 4816000,
-                "effective_shots": 4816000.0,
-                "fixed_shot_time_us": 10098800.0,
-                "logical_1q_applications": 32688000,
+                "settings": 533,
+                "raw_shots": 4264000,
+                "effective_shots": 4264000.0,
+                "fixed_shot_time_us": 8941200.0,
+                "logical_1q_applications": 29280000,
                 "logical_2q_applications": 0,
                 "modeled_2q_applications": 0,
                 "routing": {
@@ -867,11 +891,11 @@
                   "calibration_status": "illustrative_scenario"
                 },
                 "n_qubits": 8,
-                "settings": 602,
-                "raw_shots": 4816000,
-                "effective_shots": 3438815.6236210437,
-                "fixed_shot_time_us": 14914800.0,
-                "logical_1q_applications": 32688000,
+                "settings": 533,
+                "raw_shots": 4264000,
+                "effective_shots": 3044182.9634653674,
+                "fixed_shot_time_us": 13205200.0,
+                "logical_1q_applications": 29280000,
                 "logical_2q_applications": 0,
                 "modeled_2q_applications": 0,
                 "routing": {
@@ -882,7 +906,7 @@
                 },
                 "fidelity": {
                   "min": 0.8406098299228841,
-                  "mean": 0.845007004255551,
+                  "mean": 0.844939942129135,
                   "max": 0.8507630225817855,
                   "floor": 0.5
                 },
@@ -903,11 +927,11 @@
                   "calibration_status": "illustrative_scenario"
                 },
                 "n_qubits": 8,
-                "settings": 602,
-                "raw_shots": 6745117,
-                "effective_shots": 4816202.161802991,
-                "fixed_shot_time_us": 20889271.949999996,
-                "logical_1q_applications": 45837479,
+                "settings": 533,
+                "raw_shots": 5972961,
+                "effective_shots": 4264181.985020647,
+                "fixed_shot_time_us": 18497816.750000004,
+                "logical_1q_applications": 41066652,
                 "logical_2q_applications": 0,
                 "modeled_2q_applications": 0,
                 "routing": {
@@ -918,7 +942,7 @@
                 },
                 "fidelity": {
                   "min": 0.8406098299228841,
-                  "mean": 0.845007004255551,
+                  "mean": 0.844939942129135,
                   "max": 0.8507630225817855,
                   "floor": 0.5
                 },
@@ -935,7 +959,7 @@
           },
           "accuracy_matched_cost": {
             "epsilon_millihartree": 1.6,
-            "exact_subspace_bias_millihartree": 3.0187813436794997,
+            "exact_subspace_bias_millihartree": 3.018781343665289,
             "estimator": "single_assignment",
             "evidence_tier": "asymptotic",
             "claim_boundary": "exact bias floor plus first-order Ritz-functional variance; not the R1 nonlinear exact-oracle shot search or a finite-sample certificate",
@@ -987,14 +1011,22 @@
             "effective_rank": 9,
             "condition_number": 1.0,
             "max_overlap_matrix_error": 0.0,
+            "overlap_matrix_scale": 1.0,
             "max_hamiltonian_matrix_error": 8.881784197001252e-16,
+            "hamiltonian_matrix_scale": 2.1242597389728113,
             "max_operator_transport_error": 0.0,
+            "operator_transport_scale": 8.036610090812397,
             "max_ritz_error": 8.881784197001252e-16,
+            "ritz_scale": 2.177297832980223,
             "reference_energy_error": 0.0,
+            "reference_energy_scale": 2.1242597389728113,
             "max_generator_leakage": 0.0,
             "word_bijection_checked": false,
             "dense_spectrum_checked": true,
             "max_spectrum_error": 3.9968028886505635e-15,
+            "spectrum_scale": 3.5227349694720607,
+            "dense_spectrum_max_qubits": 10,
+            "dense_spectrum_reason": null,
             "relative_tolerance": 1e-10,
             "absolute_tolerance": 1e-12,
             "leakage_tolerance": 1e-12,
@@ -1016,7 +1048,7 @@
             "retained_rank": 9,
             "condition_number": 1.0,
             "ground_energy": -2.177297832980223,
-            "error_millihartree": 3.0187813436794997
+            "error_millihartree": 3.018781343665289
           },
           "weights": {
             "hamiltonian_multiset": {
@@ -1081,7 +1113,7 @@
             }
           },
           "measurement": {
-            "protocol": "qwc_basis_cover",
+            "protocol": "qwc_groups",
             "settings": 351,
             "group_size": {
               "sum": 2031,
@@ -1138,7 +1170,7 @@
                 },
                 "fidelity": {
                   "min": 0.9367833261958236,
-                  "mean": 0.9387679413726127,
+                  "mean": 0.9387679413726128,
                   "max": 0.941480149401,
                   "floor": 0.5
                 },
@@ -1174,7 +1206,7 @@
                 },
                 "fidelity": {
                   "min": 0.9367833261958236,
-                  "mean": 0.9387679413726127,
+                  "mean": 0.9387679413726128,
                   "max": 0.941480149401,
                   "floor": 0.5
                 },
@@ -1275,7 +1307,7 @@
                 "n_qubits": 6,
                 "settings": 351,
                 "raw_shots": 2808000,
-                "effective_shots": 2178206.8073323946,
+                "effective_shots": 2178206.807332395,
                 "fixed_shot_time_us": 8691600.0,
                 "logical_1q_applications": 16200000,
                 "logical_2q_applications": 0,
@@ -1288,7 +1320,7 @@
                 },
                 "fidelity": {
                   "min": 0.877023713847217,
-                  "mean": 0.8807452903002003,
+                  "mean": 0.8807452903002001,
                   "max": 0.8858423808639999,
                   "floor": 0.5
                 },
@@ -1312,7 +1344,7 @@
                 "settings": 351,
                 "raw_shots": 3620102,
                 "effective_shots": 2808131.3708797833,
-                "fixed_shot_time_us": 11205395.649999999,
+                "fixed_shot_time_us": 11205395.649999997,
                 "logical_1q_applications": 20907663,
                 "logical_2q_applications": 0,
                 "modeled_2q_applications": 0,
@@ -1324,7 +1356,7 @@
                 },
                 "fidelity": {
                   "min": 0.877023713847217,
-                  "mean": 0.8807452903002003,
+                  "mean": 0.8807452903002001,
                   "max": 0.8858423808639999,
                   "floor": 0.5
                 },
@@ -1341,7 +1373,7 @@
           },
           "accuracy_matched_cost": {
             "epsilon_millihartree": 1.6,
-            "exact_subspace_bias_millihartree": 3.0187813436794997,
+            "exact_subspace_bias_millihartree": 3.018781343665289,
             "estimator": "single_assignment",
             "evidence_tier": "asymptotic",
             "claim_boundary": "exact bias floor plus first-order Ritz-functional variance; not the R1 nonlinear exact-oracle shot search or a finite-sample certificate",
@@ -1387,14 +1419,22 @@
             "effective_rank": 9,
             "condition_number": 1.0,
             "max_overlap_matrix_error": 0.0,
+            "overlap_matrix_scale": 1.0,
             "max_hamiltonian_matrix_error": 0.0,
+            "hamiltonian_matrix_scale": 2.1242597389728113,
             "max_operator_transport_error": 0.0,
+            "operator_transport_scale": 16.0,
             "max_ritz_error": 0.0,
+            "ritz_scale": 2.177297832980223,
             "reference_energy_error": 0.0,
+            "reference_energy_scale": 2.1242597389728113,
             "max_generator_leakage": 0.0,
             "word_bijection_checked": true,
             "dense_spectrum_checked": true,
             "max_spectrum_error": 1.0436096431476471e-14,
+            "spectrum_scale": 3.5227349694720633,
+            "dense_spectrum_max_qubits": 10,
+            "dense_spectrum_reason": null,
             "relative_tolerance": 1e-10,
             "absolute_tolerance": 1e-12,
             "leakage_tolerance": 1e-12,
@@ -1416,7 +1456,7 @@
             "retained_rank": 9,
             "condition_number": 1.0,
             "ground_energy": -2.177297832980223,
-            "error_millihartree": 3.0187813436794997
+            "error_millihartree": 3.018781343665289
           },
           "weights": {
             "hamiltonian_multiset": {
@@ -1486,17 +1526,17 @@
             }
           },
           "measurement": {
-            "protocol": "qwc_basis_cover",
-            "settings": 710,
+            "protocol": "qwc_groups",
+            "settings": 615,
             "group_size": {
               "sum": 7370,
-              "mean": 10.380281690140846,
-              "max": 96
+              "mean": 11.983739837398375,
+              "max": 76
             },
             "resource_metrics": {
               "N_1q": {
-                "sum": 5153,
-                "mean": 7.25774647887324,
+                "sum": 4611,
+                "mean": 7.4975609756097565,
                 "max": 14
               },
               "N_2q": {
@@ -1505,8 +1545,8 @@
                 "max": 0
               },
               "D_1q": {
-                "sum": 1387,
-                "mean": 1.9535211267605634,
+                "sum": 1197,
+                "mean": 1.946341463414634,
                 "max": 2
               },
               "D_2q": {
@@ -1528,11 +1568,11 @@
                   "calibration_status": "illustrative_scenario"
                 },
                 "n_qubits": 8,
-                "settings": 710,
-                "raw_shots": 5680000,
-                "effective_shots": 4801311.249814184,
-                "fixed_shot_time_us": 1246960000.0,
-                "logical_1q_applications": 41224000,
+                "settings": 615,
+                "raw_shots": 4920000,
+                "effective_shots": 4157885.204375469,
+                "fixed_shot_time_us": 1079760000.0,
+                "logical_1q_applications": 36888000,
                 "logical_2q_applications": 0,
                 "modeled_2q_applications": 0,
                 "routing": {
@@ -1543,7 +1583,7 @@
                 },
                 "fidelity": {
                   "min": 0.9163064320815115,
-                  "mean": 0.9194020393104153,
+                  "mean": 0.9192917982596599,
                   "max": 0.9227446944279201,
                   "floor": 0.5
                 },
@@ -1564,11 +1604,11 @@
                   "calibration_status": "illustrative_scenario"
                 },
                 "n_qubits": 8,
-                "settings": 710,
-                "raw_shots": 6719938,
-                "effective_shots": 5680340.71201404,
-                "fixed_shot_time_us": 1475275110.0,
-                "logical_1q_applications": 48808817,
+                "settings": 615,
+                "raw_shots": 5822192,
+                "effective_shots": 4920298.190411048,
+                "fixed_shot_time_us": 1277770990.0,
+                "logical_1q_applications": 43685631,
                 "logical_2q_applications": 0,
                 "modeled_2q_applications": 0,
                 "routing": {
@@ -1579,7 +1619,7 @@
                 },
                 "fidelity": {
                   "min": 0.9163064320815115,
-                  "mean": 0.9194020393104153,
+                  "mean": 0.9192917982596599,
                   "max": 0.9227446944279201,
                   "floor": 0.5
                 },
@@ -1603,11 +1643,11 @@
                   "calibration_status": "logical_baseline"
                 },
                 "n_qubits": 8,
-                "settings": 710,
-                "raw_shots": 5680000,
-                "effective_shots": 5680000.0,
-                "fixed_shot_time_us": 11914800.0,
-                "logical_1q_applications": 41224000,
+                "settings": 615,
+                "raw_shots": 4920000,
+                "effective_shots": 4920000.0,
+                "fixed_shot_time_us": 10318800.0,
+                "logical_1q_applications": 36888000,
                 "logical_2q_applications": 0,
                 "modeled_2q_applications": 0,
                 "routing": {
@@ -1639,11 +1679,11 @@
                   "calibration_status": "logical_baseline"
                 },
                 "n_qubits": 8,
-                "settings": 710,
-                "raw_shots": 5680000,
-                "effective_shots": 5680000.0,
-                "fixed_shot_time_us": 11914800.0,
-                "logical_1q_applications": 41224000,
+                "settings": 615,
+                "raw_shots": 4920000,
+                "effective_shots": 4920000.0,
+                "fixed_shot_time_us": 10318800.0,
+                "logical_1q_applications": 36888000,
                 "logical_2q_applications": 0,
                 "modeled_2q_applications": 0,
                 "routing": {
@@ -1678,11 +1718,11 @@
                   "calibration_status": "illustrative_scenario"
                 },
                 "n_qubits": 8,
-                "settings": 710,
-                "raw_shots": 5680000,
-                "effective_shots": 4051941.7259315774,
-                "fixed_shot_time_us": 17594800.0,
-                "logical_1q_applications": 41224000,
+                "settings": 615,
+                "raw_shots": 4920000,
+                "effective_shots": 3508098.083849686,
+                "fixed_shot_time_us": 15238800.0,
+                "logical_1q_applications": 36888000,
                 "logical_2q_applications": 0,
                 "modeled_2q_applications": 0,
                 "routing": {
@@ -1693,7 +1733,7 @@
                 },
                 "fidelity": {
                   "min": 0.8389294508728683,
-                  "mean": 0.8446100184056655,
+                  "mean": 0.8444074758980272,
                   "max": 0.8507630225817855,
                   "floor": 0.5
                 },
@@ -1714,11 +1754,11 @@
                   "calibration_status": "illustrative_scenario"
                 },
                 "n_qubits": 8,
-                "settings": 710,
-                "raw_shots": 7962724,
-                "effective_shots": 5680242.962844955,
-                "fixed_shot_time_us": 24666082.150000002,
-                "logical_1q_applications": 57879476,
+                "settings": 615,
+                "raw_shots": 6900612,
+                "effective_shots": 4920217.322437052,
+                "fixed_shot_time_us": 21373534.95,
+                "logical_1q_applications": 51816748,
                 "logical_2q_applications": 0,
                 "modeled_2q_applications": 0,
                 "routing": {
@@ -1729,7 +1769,7 @@
                 },
                 "fidelity": {
                   "min": 0.8389294508728683,
-                  "mean": 0.8446100184056655,
+                  "mean": 0.8444074758980272,
                   "max": 0.8507630225817855,
                   "floor": 0.5
                 },
@@ -1746,7 +1786,7 @@
           },
           "accuracy_matched_cost": {
             "epsilon_millihartree": 1.6,
-            "exact_subspace_bias_millihartree": 3.0187813436794997,
+            "exact_subspace_bias_millihartree": 3.018781343665289,
             "estimator": "single_assignment",
             "evidence_tier": "asymptotic",
             "claim_boundary": "exact bias floor plus first-order Ritz-functional variance; not the R1 nonlinear exact-oracle shot search or a finite-sample certificate",
@@ -1798,14 +1838,22 @@
             "effective_rank": 9,
             "condition_number": 1.0,
             "max_overlap_matrix_error": 0.0,
+            "overlap_matrix_scale": 1.0,
             "max_hamiltonian_matrix_error": 8.881784197001252e-16,
+            "hamiltonian_matrix_scale": 2.1242597389728113,
             "max_operator_transport_error": 0.0,
+            "operator_transport_scale": 8.036610090812397,
             "max_ritz_error": 8.881784197001252e-16,
+            "ritz_scale": 2.177297832980223,
             "reference_energy_error": 0.0,
+            "reference_energy_scale": 2.1242597389728113,
             "max_generator_leakage": 0.0,
             "word_bijection_checked": false,
             "dense_spectrum_checked": true,
             "max_spectrum_error": 7.105427357601002e-15,
+            "spectrum_scale": 3.522734969472062,
+            "dense_spectrum_max_qubits": 10,
+            "dense_spectrum_reason": null,
             "relative_tolerance": 1e-10,
             "absolute_tolerance": 1e-12,
             "leakage_tolerance": 1e-12,
@@ -1827,7 +1875,7 @@
             "retained_rank": 9,
             "condition_number": 1.0,
             "ground_energy": -2.177297832980223,
-            "error_millihartree": 3.0187813436794997
+            "error_millihartree": 3.018781343665289
           },
           "weights": {
             "hamiltonian_multiset": {
@@ -1892,17 +1940,17 @@
             }
           },
           "measurement": {
-            "protocol": "qwc_basis_cover",
-            "settings": 406,
+            "protocol": "qwc_groups",
+            "settings": 403,
             "group_size": {
               "sum": 2031,
-              "mean": 5.002463054187192,
-              "max": 48
+              "mean": 5.039702233250621,
+              "max": 46
             },
             "resource_metrics": {
               "N_1q": {
-                "sum": 2587,
-                "mean": 6.37192118226601,
+                "sum": 2574,
+                "mean": 6.387096774193548,
                 "max": 12
               },
               "N_2q": {
@@ -1911,8 +1959,8 @@
                 "max": 0
               },
               "D_1q": {
-                "sum": 779,
-                "mean": 1.9187192118226601,
+                "sum": 773,
+                "mean": 1.9181141439205955,
                 "max": 2
               },
               "D_2q": {
@@ -1934,11 +1982,11 @@
                   "calibration_status": "illustrative_scenario"
                 },
                 "n_qubits": 6,
-                "settings": 406,
-                "raw_shots": 3248000,
-                "effective_shots": 2860693.651860918,
-                "fixed_shot_time_us": 711920000.0,
-                "logical_1q_applications": 20696000,
+                "settings": 403,
+                "raw_shots": 3224000,
+                "effective_shots": 2839512.4059966,
+                "fixed_shot_time_us": 706640000.0,
+                "logical_1q_applications": 20592000,
                 "logical_2q_applications": 0,
                 "modeled_2q_applications": 0,
                 "routing": {
@@ -1949,7 +1997,7 @@
                 },
                 "fidelity": {
                   "min": 0.9358467770654594,
-                  "mean": 0.9384851848352163,
+                  "mean": 0.9384780609675588,
                   "max": 0.941480149401,
                   "floor": 0.5
                 },
@@ -1970,11 +2018,11 @@
                   "calibration_status": "illustrative_scenario"
                 },
                 "n_qubits": 6,
-                "settings": 406,
-                "raw_shots": 3687903,
-                "effective_shots": 3248125.928669742,
-                "fixed_shot_time_us": 808351440.0,
-                "logical_1q_applications": 23515689,
+                "settings": 403,
+                "raw_shots": 3660708,
+                "effective_shots": 3224124.966517343,
+                "fixed_shot_time_us": 802368540.0,
+                "logical_1q_applications": 23397802,
                 "logical_2q_applications": 0,
                 "modeled_2q_applications": 0,
                 "routing": {
@@ -1985,7 +2033,7 @@
                 },
                 "fidelity": {
                   "min": 0.9358467770654594,
-                  "mean": 0.9384851848352163,
+                  "mean": 0.9384780609675588,
                   "max": 0.941480149401,
                   "floor": 0.5
                 },
@@ -2009,11 +2057,11 @@
                   "calibration_status": "logical_baseline"
                 },
                 "n_qubits": 6,
-                "settings": 406,
-                "raw_shots": 3248000,
-                "effective_shots": 3248000.0,
-                "fixed_shot_time_us": 6807600.0,
-                "logical_1q_applications": 20696000,
+                "settings": 403,
+                "raw_shots": 3224000,
+                "effective_shots": 3224000.0,
+                "fixed_shot_time_us": 6757200.0,
+                "logical_1q_applications": 20592000,
                 "logical_2q_applications": 0,
                 "modeled_2q_applications": 0,
                 "routing": {
@@ -2045,11 +2093,11 @@
                   "calibration_status": "logical_baseline"
                 },
                 "n_qubits": 6,
-                "settings": 406,
-                "raw_shots": 3248000,
-                "effective_shots": 3248000.0,
-                "fixed_shot_time_us": 6807600.0,
-                "logical_1q_applications": 20696000,
+                "settings": 403,
+                "raw_shots": 3224000,
+                "effective_shots": 3224000.0,
+                "fixed_shot_time_us": 6757200.0,
+                "logical_1q_applications": 20592000,
                 "logical_2q_applications": 0,
                 "modeled_2q_applications": 0,
                 "routing": {
@@ -2084,11 +2132,11 @@
                   "calibration_status": "illustrative_scenario"
                 },
                 "n_qubits": 6,
-                "settings": 406,
-                "raw_shots": 3248000,
-                "effective_shots": 2516491.6680662357,
-                "fixed_shot_time_us": 10055600.0,
-                "logical_1q_applications": 20696000,
+                "settings": 403,
+                "raw_shots": 3224000,
+                "effective_shots": 2497821.0053567276,
+                "fixed_shot_time_us": 9981200.0,
+                "logical_1q_applications": 20592000,
                 "logical_2q_applications": 0,
                 "modeled_2q_applications": 0,
                 "routing": {
@@ -2099,7 +2147,7 @@
                 },
                 "fidelity": {
                   "min": 0.8752705434432363,
-                  "mean": 0.8802149866207728,
+                  "mean": 0.8802016182092004,
                   "max": 0.8858423808639999,
                   "floor": 0.5
                 },
@@ -2120,11 +2168,11 @@
                   "calibration_status": "illustrative_scenario"
                 },
                 "n_qubits": 6,
-                "settings": 406,
-                "raw_shots": 4192431,
-                "effective_shots": 3248161.1062506996,
-                "fixed_shot_time_us": 12979615.549999999,
-                "logical_1q_applications": 26751639,
+                "settings": 403,
+                "raw_shots": 4161579,
+                "effective_shots": 3224160.117149641,
+                "fixed_shot_time_us": 12883974.35,
+                "logical_1q_applications": 26617852,
                 "logical_2q_applications": 0,
                 "modeled_2q_applications": 0,
                 "routing": {
@@ -2135,7 +2183,7 @@
                 },
                 "fidelity": {
                   "min": 0.8752705434432363,
-                  "mean": 0.8802149866207728,
+                  "mean": 0.8802016182092004,
                   "max": 0.8858423808639999,
                   "floor": 0.5
                 },
@@ -2152,7 +2200,7 @@
           },
           "accuracy_matched_cost": {
             "epsilon_millihartree": 1.6,
-            "exact_subspace_bias_millihartree": 3.0187813436794997,
+            "exact_subspace_bias_millihartree": 3.018781343665289,
             "estimator": "single_assignment",
             "evidence_tier": "asymptotic",
             "claim_boundary": "exact bias floor plus first-order Ritz-functional variance; not the R1 nonlinear exact-oracle shot search or a finite-sample certificate",
@@ -2179,10 +2227,11 @@
       "n_electrons": 4,
       "sz": 0.0,
       "spin_ordering": "interleaved",
+      "grouping_protocol": "qwc_groups",
       "hamiltonian_terms": 61,
       "hamiltonian_sha256": "685c5d5d85bc317f4494ac09a56cc200516d35a884ad3165ebe6e6d5b2d136f2",
       "reference_sha256": "4728c49308acc16c7d029fd9343649f0a9b9c5540472d906494cc2f769e1257a",
-      "exact_sector_energy": -15.5662117950952,
+      "exact_sector_energy": -15.566211795095185,
       "raw_pool": {
         "size": 26,
         "sha256": "42834bb59ea24b2ad0ef21fa06374d1c46e0fa8296d4f2d685e6dd2d306eee52",
@@ -2239,14 +2288,22 @@
             "effective_rank": 5,
             "condition_number": 1.0,
             "max_overlap_matrix_error": 0.0,
+            "overlap_matrix_scale": 1.0,
             "max_hamiltonian_matrix_error": 0.0,
+            "hamiltonian_matrix_scale": 15.560312342811923,
             "max_operator_transport_error": 0.0,
+            "operator_transport_scale": 232.06124197306804,
             "max_ritz_error": 0.0,
+            "ritz_scale": 15.566208493595418,
             "reference_energy_error": 0.0,
+            "reference_energy_scale": 15.560312342811923,
             "max_generator_leakage": 0.0,
             "word_bijection_checked": true,
             "dense_spectrum_checked": true,
             "max_spectrum_error": 0.0,
+            "spectrum_scale": 15.566211795095166,
+            "dense_spectrum_max_qubits": 10,
+            "dense_spectrum_reason": null,
             "relative_tolerance": 1e-10,
             "absolute_tolerance": 1e-12,
             "leakage_tolerance": 1e-12,
@@ -2264,7 +2321,7 @@
             "retained_rank": 5,
             "condition_number": 1.0,
             "ground_energy": -15.566208493595418,
-            "error_millihartree": 0.0033014997811164903
+            "error_millihartree": 0.0033014997669056356
           },
           "weights": {
             "hamiltonian_multiset": {
@@ -2325,17 +2382,17 @@
             }
           },
           "measurement": {
-            "protocol": "qwc_basis_cover",
-            "settings": 1036,
+            "protocol": "qwc_groups",
+            "settings": 353,
             "group_size": {
               "sum": 1814,
-              "mean": 1.750965250965251,
-              "max": 30
+              "mean": 5.138810198300283,
+              "max": 132
             },
             "resource_metrics": {
               "N_1q": {
-                "sum": 7176,
-                "mean": 6.926640926640927,
+                "sum": 3648,
+                "mean": 10.3342776203966,
                 "max": 16
               },
               "N_2q": {
@@ -2344,8 +2401,8 @@
                 "max": 0
               },
               "D_1q": {
-                "sum": 1801,
-                "mean": 1.7384169884169884,
+                "sum": 697,
+                "mean": 1.9745042492917848,
                 "max": 2
               },
               "D_2q": {
@@ -2367,11 +2424,11 @@
                   "calibration_status": "illustrative_scenario"
                 },
                 "n_qubits": 8,
-                "settings": 1036,
-                "raw_shots": 8288000,
-                "effective_shots": 7008206.465730861,
-                "fixed_shot_time_us": 1801680000.0,
-                "logical_1q_applications": 57408000,
+                "settings": 353,
+                "raw_shots": 2824000,
+                "effective_shots": 2379800.503877894,
+                "fixed_shot_time_us": 620560000.0,
+                "logical_1q_applications": 29184000,
                 "logical_2q_applications": 0,
                 "modeled_2q_applications": 0,
                 "routing": {
@@ -2382,7 +2439,7 @@
                 },
                 "fidelity": {
                   "min": 0.9153903547260381,
-                  "mean": 0.9195552456129976,
+                  "mean": 0.917988905775794,
                   "max": 0.9227446944279201,
                   "floor": 0.5
                 },
@@ -2403,11 +2460,11 @@
                   "calibration_status": "illustrative_scenario"
                 },
                 "n_qubits": 8,
-                "settings": 1036,
-                "raw_shots": 9802064,
-                "effective_shots": 8288361.613807786,
-                "fixed_shot_time_us": 2130987880.0,
-                "logical_1q_applications": 68030488,
+                "settings": 353,
+                "raw_shots": 3351356,
+                "effective_shots": 2824180.4607895007,
+                "fixed_shot_time_us": 736449640.0,
+                "logical_1q_applications": 34664512,
                 "logical_2q_applications": 0,
                 "modeled_2q_applications": 0,
                 "routing": {
@@ -2418,7 +2475,7 @@
                 },
                 "fidelity": {
                   "min": 0.9153903547260381,
-                  "mean": 0.9195552456129976,
+                  "mean": 0.917988905775794,
                   "max": 0.9227446944279201,
                   "floor": 0.5
                 },
@@ -2442,11 +2499,11 @@
                   "calibration_status": "logical_baseline"
                 },
                 "n_qubits": 8,
-                "settings": 1036,
-                "raw_shots": 8288000,
-                "effective_shots": 8288000.0,
-                "fixed_shot_time_us": 17296400.0,
-                "logical_1q_applications": 57408000,
+                "settings": 353,
+                "raw_shots": 2824000,
+                "effective_shots": 2824000.0,
+                "fixed_shot_time_us": 5926800.0,
+                "logical_1q_applications": 29184000,
                 "logical_2q_applications": 0,
                 "modeled_2q_applications": 0,
                 "routing": {
@@ -2478,11 +2535,11 @@
                   "calibration_status": "logical_baseline"
                 },
                 "n_qubits": 8,
-                "settings": 1036,
-                "raw_shots": 8288000,
-                "effective_shots": 8288000.0,
-                "fixed_shot_time_us": 17296400.0,
-                "logical_1q_applications": 57408000,
+                "settings": 353,
+                "raw_shots": 2824000,
+                "effective_shots": 2824000.0,
+                "fixed_shot_time_us": 5926800.0,
+                "logical_1q_applications": 29184000,
                 "logical_2q_applications": 0,
                 "modeled_2q_applications": 0,
                 "routing": {
@@ -2517,11 +2574,11 @@
                   "calibration_status": "illustrative_scenario"
                 },
                 "n_qubits": 8,
-                "settings": 1036,
-                "raw_shots": 8288000,
-                "effective_shots": 5916426.740457529,
-                "fixed_shot_time_us": 25584400.0,
-                "logical_1q_applications": 57408000,
+                "settings": 353,
+                "raw_shots": 2824000,
+                "effective_shots": 2002207.7381507824,
+                "fixed_shot_time_us": 8750800.0,
+                "logical_1q_applications": 29184000,
                 "logical_2q_applications": 0,
                 "modeled_2q_applications": 0,
                 "routing": {
@@ -2532,7 +2589,7 @@
                 },
                 "fidelity": {
                   "min": 0.8372524309005734,
-                  "mean": 0.8448933389226335,
+                  "mean": 0.8420157780755252,
                   "max": 0.8507630225817855,
                   "floor": 0.5
                 },
@@ -2553,11 +2610,11 @@
                   "calibration_status": "illustrative_scenario"
                 },
                 "n_qubits": 8,
-                "settings": 1036,
-                "raw_shots": 11611165,
-                "effective_shots": 8288226.48706034,
-                "fixed_shot_time_us": 35844807.700000025,
-                "logical_1q_applications": 80746080,
+                "settings": 353,
+                "raw_shots": 3983414,
+                "effective_shots": 2824125.354911835,
+                "fixed_shot_time_us": 12343573.900000002,
+                "logical_1q_applications": 41238528,
                 "logical_2q_applications": 0,
                 "modeled_2q_applications": 0,
                 "routing": {
@@ -2568,7 +2625,7 @@
                 },
                 "fidelity": {
                   "min": 0.8372524309005734,
-                  "mean": 0.8448933389226335,
+                  "mean": 0.8420157780755252,
                   "max": 0.8507630225817855,
                   "floor": 0.5
                 },
@@ -2585,12 +2642,12 @@
           },
           "accuracy_matched_cost": {
             "epsilon_millihartree": 1.6,
-            "exact_subspace_bias_millihartree": 0.0033014997811164903,
+            "exact_subspace_bias_millihartree": 0.0033014997669056356,
             "estimator": "single_assignment",
             "evidence_tier": "asymptotic",
             "claim_boundary": "exact bias floor plus first-order Ritz-functional variance; not the R1 nonlinear exact-oracle shot search or a finite-sample certificate",
             "status": "priced",
-            "linearized_variance_ha2_at_one_shot_per_setting": 0.007548955076121135,
+            "linearized_variance_ha2_at_one_shot_per_setting": 0.007548955076120861,
             "effective_shots_per_setting": 2949,
             "device_costs": {
               "ion-like": {
@@ -2601,11 +2658,11 @@
                   "calibration_status": "illustrative_scenario"
                 },
                 "n_qubits": 8,
-                "settings": 1036,
-                "raw_shots": 3613456,
-                "effective_shots": 3055441.2896177405,
-                "fixed_shot_time_us": 785571760.0,
-                "logical_1q_applications": 25078792,
+                "settings": 353,
+                "raw_shots": 1235472,
+                "effective_shots": 1041129.5924990629,
+                "fixed_shot_time_us": 271490960.0,
+                "logical_1q_applications": 12779008,
                 "logical_2q_applications": 0,
                 "modeled_2q_applications": 0,
                 "routing": {
@@ -2616,7 +2673,7 @@
                 },
                 "fidelity": {
                   "min": 0.9153903547260381,
-                  "mean": 0.9195552456129976,
+                  "mean": 0.917988905775794,
                   "max": 0.9227446944279201,
                   "floor": 0.5
                 },
@@ -2626,7 +2683,7 @@
                   "epsilon": 0.0016,
                   "evidence_tier": "asymptotic",
                   "status": "priced",
-                  "C_time_epsilon_us": 785571760.0
+                  "C_time_epsilon_us": 271490960.0
                 }
               },
               "logical-alltoall": {
@@ -2637,11 +2694,11 @@
                   "calibration_status": "logical_baseline"
                 },
                 "n_qubits": 8,
-                "settings": 1036,
-                "raw_shots": 3055164,
-                "effective_shots": 3055164.0,
-                "fixed_shot_time_us": 6375885.45,
-                "logical_1q_applications": 21162024,
+                "settings": 353,
+                "raw_shots": 1040997,
+                "effective_shots": 1040997.0,
+                "fixed_shot_time_us": 2184766.6500000004,
+                "logical_1q_applications": 10757952,
                 "logical_2q_applications": 0,
                 "modeled_2q_applications": 0,
                 "routing": {
@@ -2662,7 +2719,7 @@
                   "epsilon": 0.0016,
                   "evidence_tier": "asymptotic",
                   "status": "priced",
-                  "C_time_epsilon_us": 6375885.45
+                  "C_time_epsilon_us": 2184766.6500000004
                 }
               },
               "superconducting-like": {
@@ -2673,11 +2730,11 @@
                   "calibration_status": "illustrative_scenario"
                 },
                 "n_qubits": 8,
-                "settings": 1036,
-                "raw_shots": 4280530,
-                "effective_shots": 3055507.920540136,
-                "fixed_shot_time_us": 13214413.550000004,
-                "logical_1q_applications": 29767288,
+                "settings": 353,
+                "raw_shots": 1468529,
+                "effective_shots": 1041144.6033361014,
+                "fixed_shot_time_us": 4550592.95,
+                "logical_1q_applications": 15203032,
                 "logical_2q_applications": 0,
                 "modeled_2q_applications": 0,
                 "routing": {
@@ -2688,7 +2745,7 @@
                 },
                 "fidelity": {
                   "min": 0.8372524309005734,
-                  "mean": 0.8448933389226335,
+                  "mean": 0.8420157780755252,
                   "max": 0.8507630225817855,
                   "floor": 0.5
                 },
@@ -2698,7 +2755,7 @@
                   "epsilon": 0.0016,
                   "evidence_tier": "asymptotic",
                   "status": "priced",
-                  "C_time_epsilon_us": 13214413.550000004
+                  "C_time_epsilon_us": 4550592.95
                 }
               }
             }
@@ -2740,14 +2797,22 @@
             "effective_rank": 5,
             "condition_number": 1.0,
             "max_overlap_matrix_error": 0.0,
+            "overlap_matrix_scale": 1.0,
             "max_hamiltonian_matrix_error": 0.0,
+            "hamiltonian_matrix_scale": 15.560312342811923,
             "max_operator_transport_error": 0.0,
+            "operator_transport_scale": 232.06124197306804,
             "max_ritz_error": 0.0,
+            "ritz_scale": 15.566208493595418,
             "reference_energy_error": 0.0,
+            "reference_energy_scale": 15.560312342811923,
             "max_generator_leakage": 0.0,
             "word_bijection_checked": true,
             "dense_spectrum_checked": true,
             "max_spectrum_error": 3.375077994860476e-14,
+            "spectrum_scale": 15.566211795095166,
+            "dense_spectrum_max_qubits": 10,
+            "dense_spectrum_reason": null,
             "relative_tolerance": 1e-10,
             "absolute_tolerance": 1e-12,
             "leakage_tolerance": 1e-12,
@@ -2765,7 +2830,7 @@
             "retained_rank": 5,
             "condition_number": 1.0,
             "ground_energy": -15.566208493595418,
-            "error_millihartree": 0.0033014997811164903
+            "error_millihartree": 0.0033014997669056356
           },
           "weights": {
             "hamiltonian_multiset": {
@@ -2830,12 +2895,12 @@
             }
           },
           "measurement": {
-            "protocol": "qwc_basis_cover",
+            "protocol": "qwc_groups",
             "settings": 41,
             "group_size": {
               "sum": 1814,
               "mean": 44.24390243902439,
-              "max": 126
+              "max": 102
             },
             "resource_metrics": {
               "N_1q": {
@@ -3061,7 +3126,7 @@
                 "settings": 41,
                 "raw_shots": 456921,
                 "effective_shots": 328015.7310102477,
-                "fixed_shot_time_us": 1411463.2999999998,
+                "fixed_shot_time_us": 1411463.3,
                 "logical_1q_applications": 1875192,
                 "logical_2q_applications": 0,
                 "modeled_2q_applications": 0,
@@ -3090,13 +3155,13 @@
           },
           "accuracy_matched_cost": {
             "epsilon_millihartree": 1.6,
-            "exact_subspace_bias_millihartree": 0.0033014997811164903,
+            "exact_subspace_bias_millihartree": 0.0033014997669056356,
             "estimator": "single_assignment",
             "evidence_tier": "asymptotic",
             "claim_boundary": "exact bias floor plus first-order Ritz-functional variance; not the R1 nonlinear exact-oracle shot search or a finite-sample certificate",
             "status": "priced",
-            "linearized_variance_ha2_at_one_shot_per_setting": 0.0140728808510901,
-            "effective_shots_per_setting": 5498,
+            "linearized_variance_ha2_at_one_shot_per_setting": 0.013901711358702771,
+            "effective_shots_per_setting": 5431,
             "device_costs": {
               "ion-like": {
                 "schema": "clifford_qc.measurement_cost.v1",
@@ -3107,10 +3172,10 @@
                 },
                 "n_qubits": 8,
                 "settings": 41,
-                "raw_shots": 265860,
-                "effective_shots": 225442.3081933819,
-                "fixed_shot_time_us": 57906940.0,
-                "logical_1q_applications": 1090232,
+                "raw_shots": 262614,
+                "effective_shots": 222689.78945442723,
+                "fixed_shot_time_us": 57199930.0,
+                "logical_1q_applications": 1076916,
                 "logical_2q_applications": 0,
                 "modeled_2q_applications": 0,
                 "routing": {
@@ -3131,7 +3196,7 @@
                   "epsilon": 0.0016,
                   "evidence_tier": "asymptotic",
                   "status": "priced",
-                  "C_time_epsilon_us": 57906940.0
+                  "C_time_epsilon_us": 57199930.0
                 }
               },
               "logical-alltoall": {
@@ -3143,10 +3208,10 @@
                 },
                 "n_qubits": 8,
                 "settings": 41,
-                "raw_shots": 225418,
-                "effective_shots": 225418.0,
-                "fixed_shot_time_us": 470903.7,
-                "logical_1q_applications": 923664,
+                "raw_shots": 222671,
+                "effective_shots": 222671.0,
+                "fixed_shot_time_us": 465165.14999999985,
+                "logical_1q_applications": 912408,
                 "logical_2q_applications": 0,
                 "modeled_2q_applications": 0,
                 "routing": {
@@ -3167,7 +3232,7 @@
                   "epsilon": 0.0016,
                   "evidence_tier": "asymptotic",
                   "status": "priced",
-                  "C_time_epsilon_us": 470903.7
+                  "C_time_epsilon_us": 465165.14999999985
                 }
               },
               "superconducting-like": {
@@ -3179,10 +3244,10 @@
                 },
                 "n_qubits": 8,
                 "settings": 41,
-                "raw_shots": 314024,
-                "effective_shots": 225432.42320025395,
-                "fixed_shot_time_us": 970043.7,
-                "logical_1q_applications": 1288752,
+                "raw_shots": 310195,
+                "effective_shots": 222683.64115223367,
+                "fixed_shot_time_us": 958215.7000000001,
+                "logical_1q_applications": 1273044,
                 "logical_2q_applications": 0,
                 "modeled_2q_applications": 0,
                 "routing": {
@@ -3203,7 +3268,7 @@
                   "epsilon": 0.0016,
                   "evidence_tier": "asymptotic",
                   "status": "priced",
-                  "C_time_epsilon_us": 970043.7
+                  "C_time_epsilon_us": 958215.7000000001
                 }
               }
             }
@@ -3251,14 +3316,22 @@
             "effective_rank": 5,
             "condition_number": 1.0,
             "max_overlap_matrix_error": 0.0,
+            "overlap_matrix_scale": 1.0,
             "max_hamiltonian_matrix_error": 1.7763568394002505e-14,
+            "hamiltonian_matrix_scale": 15.560312342811923,
             "max_operator_transport_error": 0.0,
+            "operator_transport_scale": 116.05216692304812,
             "max_ritz_error": 1.7763568394002505e-14,
+            "ritz_scale": 15.566208493595418,
             "reference_energy_error": 5.329070518200751e-15,
+            "reference_energy_scale": 15.560312342811923,
             "max_generator_leakage": 0.0,
             "word_bijection_checked": false,
             "dense_spectrum_checked": true,
             "max_spectrum_error": 2.3092638912203256e-14,
+            "spectrum_scale": 15.566211795095168,
+            "dense_spectrum_max_qubits": 10,
+            "dense_spectrum_reason": null,
             "relative_tolerance": 1e-10,
             "absolute_tolerance": 1e-12,
             "leakage_tolerance": 1e-12,
@@ -3276,7 +3349,7 @@
             "retained_rank": 5,
             "condition_number": 1.0,
             "ground_energy": -15.566208493595413,
-            "error_millihartree": 0.003301499786445561
+            "error_millihartree": 0.003301499772234706
           },
           "weights": {
             "hamiltonian_multiset": {
@@ -3341,7 +3414,7 @@
             }
           },
           "measurement": {
-            "protocol": "qwc_basis_cover",
+            "protocol": "qwc_groups",
             "settings": 27,
             "group_size": {
               "sum": 511,
@@ -3601,12 +3674,12 @@
           },
           "accuracy_matched_cost": {
             "epsilon_millihartree": 1.6,
-            "exact_subspace_bias_millihartree": 0.003301499786445561,
+            "exact_subspace_bias_millihartree": 0.003301499772234706,
             "estimator": "single_assignment",
             "evidence_tier": "asymptotic",
             "claim_boundary": "exact bias floor plus first-order Ritz-functional variance; not the R1 nonlinear exact-oracle shot search or a finite-sample certificate",
             "status": "priced",
-            "linearized_variance_ha2_at_one_shot_per_setting": 0.013996809990968107,
+            "linearized_variance_ha2_at_one_shot_per_setting": 0.013996809990968017,
             "effective_shots_per_setting": 5468,
             "device_costs": {
               "ion-like": {
@@ -3756,14 +3829,22 @@
             "effective_rank": 5,
             "condition_number": 1.0,
             "max_overlap_matrix_error": 0.0,
+            "overlap_matrix_scale": 1.0,
             "max_hamiltonian_matrix_error": 0.0,
+            "hamiltonian_matrix_scale": 15.560312342811923,
             "max_operator_transport_error": 0.0,
+            "operator_transport_scale": 232.06124197306804,
             "max_ritz_error": 0.0,
+            "ritz_scale": 15.566208493595418,
             "reference_energy_error": 0.0,
+            "reference_energy_scale": 15.560312342811923,
             "max_generator_leakage": 0.0,
             "word_bijection_checked": true,
             "dense_spectrum_checked": true,
             "max_spectrum_error": 4.618527782440651e-14,
+            "spectrum_scale": 15.566211795095166,
+            "dense_spectrum_max_qubits": 10,
+            "dense_spectrum_reason": null,
             "relative_tolerance": 1e-10,
             "absolute_tolerance": 1e-12,
             "leakage_tolerance": 1e-12,
@@ -3781,7 +3862,7 @@
             "retained_rank": 5,
             "condition_number": 1.0,
             "ground_energy": -15.566208493595418,
-            "error_millihartree": 0.0033014997811164903
+            "error_millihartree": 0.0033014997669056356
           },
           "weights": {
             "hamiltonian_multiset": {
@@ -3849,12 +3930,12 @@
             }
           },
           "measurement": {
-            "protocol": "qwc_basis_cover",
+            "protocol": "qwc_groups",
             "settings": 41,
             "group_size": {
               "sum": 1814,
               "mean": 44.24390243902439,
-              "max": 126
+              "max": 102
             },
             "resource_metrics": {
               "N_1q": {
@@ -4080,7 +4161,7 @@
                 "settings": 41,
                 "raw_shots": 456921,
                 "effective_shots": 328015.7310102477,
-                "fixed_shot_time_us": 1411463.2999999998,
+                "fixed_shot_time_us": 1411463.3,
                 "logical_1q_applications": 1875192,
                 "logical_2q_applications": 0,
                 "modeled_2q_applications": 0,
@@ -4109,13 +4190,13 @@
           },
           "accuracy_matched_cost": {
             "epsilon_millihartree": 1.6,
-            "exact_subspace_bias_millihartree": 0.0033014997811164903,
+            "exact_subspace_bias_millihartree": 0.0033014997669056356,
             "estimator": "single_assignment",
             "evidence_tier": "asymptotic",
             "claim_boundary": "exact bias floor plus first-order Ritz-functional variance; not the R1 nonlinear exact-oracle shot search or a finite-sample certificate",
             "status": "priced",
-            "linearized_variance_ha2_at_one_shot_per_setting": 0.014072880851090182,
-            "effective_shots_per_setting": 5498,
+            "linearized_variance_ha2_at_one_shot_per_setting": 0.013901711358702704,
+            "effective_shots_per_setting": 5431,
             "device_costs": {
               "ion-like": {
                 "schema": "clifford_qc.measurement_cost.v1",
@@ -4126,10 +4207,10 @@
                 },
                 "n_qubits": 8,
                 "settings": 41,
-                "raw_shots": 265860,
-                "effective_shots": 225442.3081933819,
-                "fixed_shot_time_us": 57906940.0,
-                "logical_1q_applications": 1090232,
+                "raw_shots": 262614,
+                "effective_shots": 222689.78945442723,
+                "fixed_shot_time_us": 57199930.0,
+                "logical_1q_applications": 1076916,
                 "logical_2q_applications": 0,
                 "modeled_2q_applications": 0,
                 "routing": {
@@ -4150,7 +4231,7 @@
                   "epsilon": 0.0016,
                   "evidence_tier": "asymptotic",
                   "status": "priced",
-                  "C_time_epsilon_us": 57906940.0
+                  "C_time_epsilon_us": 57199930.0
                 }
               },
               "logical-alltoall": {
@@ -4162,10 +4243,10 @@
                 },
                 "n_qubits": 8,
                 "settings": 41,
-                "raw_shots": 225418,
-                "effective_shots": 225418.0,
-                "fixed_shot_time_us": 470903.7,
-                "logical_1q_applications": 923664,
+                "raw_shots": 222671,
+                "effective_shots": 222671.0,
+                "fixed_shot_time_us": 465165.14999999985,
+                "logical_1q_applications": 912408,
                 "logical_2q_applications": 0,
                 "modeled_2q_applications": 0,
                 "routing": {
@@ -4186,7 +4267,7 @@
                   "epsilon": 0.0016,
                   "evidence_tier": "asymptotic",
                   "status": "priced",
-                  "C_time_epsilon_us": 470903.7
+                  "C_time_epsilon_us": 465165.14999999985
                 }
               },
               "superconducting-like": {
@@ -4198,10 +4279,10 @@
                 },
                 "n_qubits": 8,
                 "settings": 41,
-                "raw_shots": 314024,
-                "effective_shots": 225432.42320025395,
-                "fixed_shot_time_us": 970043.7,
-                "logical_1q_applications": 1288752,
+                "raw_shots": 310195,
+                "effective_shots": 222683.64115223367,
+                "fixed_shot_time_us": 958215.7000000001,
+                "logical_1q_applications": 1273044,
                 "logical_2q_applications": 0,
                 "modeled_2q_applications": 0,
                 "routing": {
@@ -4222,7 +4303,7 @@
                   "epsilon": 0.0016,
                   "evidence_tier": "asymptotic",
                   "status": "priced",
-                  "C_time_epsilon_us": 970043.7
+                  "C_time_epsilon_us": 958215.7000000001
                 }
               }
             }
@@ -4270,14 +4351,22 @@
             "effective_rank": 5,
             "condition_number": 1.0,
             "max_overlap_matrix_error": 0.0,
+            "overlap_matrix_scale": 1.0,
             "max_hamiltonian_matrix_error": 1.7763568394002505e-14,
+            "hamiltonian_matrix_scale": 15.560312342811923,
             "max_operator_transport_error": 0.0,
+            "operator_transport_scale": 116.05216692304812,
             "max_ritz_error": 1.7763568394002505e-14,
+            "ritz_scale": 15.566208493595418,
             "reference_energy_error": 5.329070518200751e-15,
+            "reference_energy_scale": 15.560312342811923,
             "max_generator_leakage": 0.0,
             "word_bijection_checked": false,
             "dense_spectrum_checked": true,
             "max_spectrum_error": 1.7763568394002505e-14,
+            "spectrum_scale": 15.566211795095164,
+            "dense_spectrum_max_qubits": 10,
+            "dense_spectrum_reason": null,
             "relative_tolerance": 1e-10,
             "absolute_tolerance": 1e-12,
             "leakage_tolerance": 1e-12,
@@ -4295,7 +4384,7 @@
             "retained_rank": 5,
             "condition_number": 1.0,
             "ground_energy": -15.566208493595413,
-            "error_millihartree": 0.003301499786445561
+            "error_millihartree": 0.003301499772234706
           },
           "weights": {
             "hamiltonian_multiset": {
@@ -4359,7 +4448,7 @@
             }
           },
           "measurement": {
-            "protocol": "qwc_basis_cover",
+            "protocol": "qwc_groups",
             "settings": 27,
             "group_size": {
               "sum": 511,
@@ -4619,12 +4708,12 @@
           },
           "accuracy_matched_cost": {
             "epsilon_millihartree": 1.6,
-            "exact_subspace_bias_millihartree": 0.003301499786445561,
+            "exact_subspace_bias_millihartree": 0.003301499772234706,
             "estimator": "single_assignment",
             "evidence_tier": "asymptotic",
             "claim_boundary": "exact bias floor plus first-order Ritz-functional variance; not the R1 nonlinear exact-oracle shot search or a finite-sample certificate",
             "status": "priced",
-            "linearized_variance_ha2_at_one_shot_per_setting": 0.013996809990968329,
+            "linearized_variance_ha2_at_one_shot_per_setting": 0.013996809990968155,
             "effective_shots_per_setting": 5468,
             "device_costs": {
               "ion-like": {
@@ -4755,10 +4844,11 @@
       "n_electrons": 8,
       "sz": 0.0,
       "spin_ordering": "interleaved",
+      "grouping_protocol": "qwc_basis_cover",
       "hamiltonian_terms": 551,
       "hamiltonian_sha256": "b3377e54ee1200db54bd44f5e824aad13ba77b78099284ad9b07657368e60793",
       "reference_sha256": "45acfa41d72fcc11d37df36c744fc8c7229f1b2e9306922e8a510e1f5230a52e",
-      "exact_sector_energy": -75.01268130509872,
+      "exact_sector_energy": -75.01268130509818,
       "raw_pool": {
         "size": 92,
         "sha256": "5a52848b3efebd649681f75550c0cd6ddc0780c5e8a421695c148d2d0b73a3dd",
@@ -4823,14 +4913,22 @@
             "effective_rank": 9,
             "condition_number": 1.0,
             "max_overlap_matrix_error": 0.0,
+            "overlap_matrix_scale": 1.0,
             "max_hamiltonian_matrix_error": 0.0,
+            "hamiltonian_matrix_scale": 74.96311986160843,
             "max_operator_transport_error": 0.0,
+            "operator_transport_scale": 4488.43627001449,
             "max_ritz_error": 0.0,
+            "ritz_scale": 74.99845661593258,
             "reference_energy_error": 0.0,
+            "reference_energy_scale": 74.96311986160843,
             "max_generator_leakage": 0.0,
             "word_bijection_checked": true,
             "dense_spectrum_checked": false,
             "max_spectrum_error": null,
+            "spectrum_scale": null,
+            "dense_spectrum_max_qubits": 10,
+            "dense_spectrum_reason": "source qubits exceed the declared dense-spectrum materialization limit",
             "relative_tolerance": 1e-10,
             "absolute_tolerance": 1e-12,
             "leakage_tolerance": 1e-12,
@@ -4852,7 +4950,7 @@
             "retained_rank": 9,
             "condition_number": 1.0,
             "ground_energy": -74.99845661593258,
-            "error_millihartree": 14.224689166141502
+            "error_millihartree": 14.22468916560149
           },
           "weights": {
             "hamiltonian_multiset": {
@@ -4930,17 +5028,17 @@
           },
           "measurement": {
             "protocol": "qwc_basis_cover",
-            "settings": 44172,
+            "settings": 24334,
             "group_size": {
               "sum": 143116,
-              "mean": 3.2399710223671105,
+              "mean": 5.881318320046026,
               "max": 173
             },
             "resource_metrics": {
               "N_1q": {
-                "sum": 475280,
-                "mean": 10.759757312324549,
-                "max": 20
+                "sum": 302592,
+                "mean": 12.43494698775376,
+                "max": 21
               },
               "N_2q": {
                 "sum": 0,
@@ -4948,8 +5046,8 @@
                 "max": 0
               },
               "D_1q": {
-                "sum": 87799,
-                "mean": 1.9876618672462194,
+                "sum": 48500,
+                "mean": 1.993096079559464,
                 "max": 2
               },
               "D_2q": {
@@ -4971,11 +5069,11 @@
                   "calibration_status": "illustrative_scenario"
                 },
                 "n_qubits": 12,
-                "settings": 44172,
-                "raw_shots": 353376000,
-                "effective_shots": 274669075.2655837,
-                "fixed_shot_time_us": 77699120000.0,
-                "logical_1q_applications": 3802240000,
+                "settings": 24334,
+                "raw_shots": 194672000,
+                "effective_shots": 151059618.87231487,
+                "fixed_shot_time_us": 42814400000.0,
+                "logical_1q_applications": 2420736000,
                 "logical_2q_applications": 0,
                 "modeled_2q_applications": 0,
                 "routing": {
@@ -4985,9 +5083,9 @@
                   "model": "declared scalar sensitivity surrogate"
                 },
                 "fidelity": {
-                  "min": 0.8775630002385106,
-                  "mean": 0.8816289209840932,
-                  "max": 0.8863848717161292,
+                  "min": 0.8771242187383915,
+                  "mean": 0.8808905402869719,
+                  "max": 0.8854987084406312,
                   "floor": 0.5
                 },
                 "admissible": true,
@@ -5007,11 +5105,11 @@
                   "calibration_status": "illustrative_scenario"
                 },
                 "n_qubits": 12,
-                "settings": 44172,
-                "raw_shots": 454661462,
-                "effective_shots": 353391930.0238767,
-                "fixed_shot_time_us": 99969760440.0,
-                "logical_1q_applications": 4896475667,
+                "settings": 24334,
+                "raw_shots": 250889216,
+                "effective_shots": 194680693.15509337,
+                "fixed_shot_time_us": 55178418360.0,
+                "logical_1q_applications": 3122106820,
                 "logical_2q_applications": 0,
                 "modeled_2q_applications": 0,
                 "routing": {
@@ -5021,9 +5119,9 @@
                   "model": "declared scalar sensitivity surrogate"
                 },
                 "fidelity": {
-                  "min": 0.8775630002385106,
-                  "mean": 0.8816289209840932,
-                  "max": 0.8863848717161292,
+                  "min": 0.8771242187383915,
+                  "mean": 0.8808905402869719,
+                  "max": 0.8854987084406312,
                   "floor": 0.5
                 },
                 "admissible": true,
@@ -5046,11 +5144,11 @@
                   "calibration_status": "logical_baseline"
                 },
                 "n_qubits": 12,
-                "settings": 44172,
-                "raw_shots": 353376000,
-                "effective_shots": 353376000.0,
-                "fixed_shot_time_us": 741871600.0,
-                "logical_1q_applications": 3802240000,
+                "settings": 24334,
+                "raw_shots": 194672000,
+                "effective_shots": 194672000.0,
+                "fixed_shot_time_us": 408744000.0,
+                "logical_1q_applications": 2420736000,
                 "logical_2q_applications": 0,
                 "modeled_2q_applications": 0,
                 "routing": {
@@ -5082,11 +5180,11 @@
                   "calibration_status": "logical_baseline"
                 },
                 "n_qubits": 12,
-                "settings": 44172,
-                "raw_shots": 353376000,
-                "effective_shots": 353376000.0,
-                "fixed_shot_time_us": 741871600.0,
-                "logical_1q_applications": 3802240000,
+                "settings": 24334,
+                "raw_shots": 194672000,
+                "effective_shots": 194672000.0,
+                "fixed_shot_time_us": 408744000.0,
+                "logical_1q_applications": 2420736000,
                 "logical_2q_applications": 0,
                 "modeled_2q_applications": 0,
                 "routing": {
@@ -5121,11 +5219,11 @@
                   "calibration_status": "illustrative_scenario"
                 },
                 "n_qubits": 12,
-                "settings": 44172,
-                "raw_shots": 353376000,
-                "effective_shots": 212971188.31162184,
-                "fixed_shot_time_us": 1095247600.0,
-                "logical_1q_applications": 3802240000,
+                "settings": 24334,
+                "raw_shots": 194672000,
+                "effective_shots": 116931376.36420819,
+                "fixed_shot_time_us": 603416000.0,
+                "logical_1q_applications": 2420736000,
                 "logical_2q_applications": 0,
                 "modeled_2q_applications": 0,
                 "routing": {
@@ -5135,9 +5233,9 @@
                   "model": "declared scalar sensitivity surrogate"
                 },
                 "fidelity": {
-                  "min": 0.7691705946503651,
-                  "mean": 0.7763182297256427,
-                  "max": 0.7847167237347998,
+                  "min": 0.7684014240557147,
+                  "mean": 0.7750179860813419,
+                  "max": 0.783148075004054,
                   "floor": 0.5
                 },
                 "admissible": true,
@@ -5157,11 +5255,11 @@
                   "calibration_status": "illustrative_scenario"
                 },
                 "n_qubits": 12,
-                "settings": 44172,
-                "raw_shots": 586391392,
-                "effective_shots": 353390145.761309,
-                "fixed_shot_time_us": 1817455893.0499988,
-                "logical_1q_applications": 6320870807,
+                "settings": 24334,
+                "raw_shots": 324123689,
+                "effective_shots": 194680430.70471448,
+                "fixed_shot_time_us": 1004672996.3000001,
+                "logical_1q_applications": 4036445303,
                 "logical_2q_applications": 0,
                 "modeled_2q_applications": 0,
                 "routing": {
@@ -5171,9 +5269,9 @@
                   "model": "declared scalar sensitivity surrogate"
                 },
                 "fidelity": {
-                  "min": 0.7691705946503651,
-                  "mean": 0.7763182297256427,
-                  "max": 0.7847167237347998,
+                  "min": 0.7684014240557147,
+                  "mean": 0.7750179860813419,
+                  "max": 0.783148075004054,
                   "floor": 0.5
                 },
                 "admissible": true,
@@ -5189,7 +5287,7 @@
           },
           "accuracy_matched_cost": {
             "epsilon_millihartree": 1.6,
-            "exact_subspace_bias_millihartree": 14.224689166141502,
+            "exact_subspace_bias_millihartree": 14.22468916560149,
             "estimator": "single_assignment",
             "evidence_tier": "asymptotic",
             "claim_boundary": "exact bias floor plus first-order Ritz-functional variance; not the R1 nonlinear exact-oracle shot search or a finite-sample certificate",
@@ -5239,14 +5337,22 @@
             "effective_rank": 9,
             "condition_number": 1.0,
             "max_overlap_matrix_error": 0.0,
+            "overlap_matrix_scale": 1.0,
             "max_hamiltonian_matrix_error": 0.0,
+            "hamiltonian_matrix_scale": 74.96311986160843,
             "max_operator_transport_error": 0.0,
+            "operator_transport_scale": 4488.43627001449,
             "max_ritz_error": 0.0,
+            "ritz_scale": 74.99845661593258,
             "reference_energy_error": 0.0,
+            "reference_energy_scale": 74.96311986160843,
             "max_generator_leakage": 0.0,
             "word_bijection_checked": true,
             "dense_spectrum_checked": false,
             "max_spectrum_error": null,
+            "spectrum_scale": null,
+            "dense_spectrum_max_qubits": 10,
+            "dense_spectrum_reason": "source qubits exceed the declared dense-spectrum materialization limit",
             "relative_tolerance": 1e-10,
             "absolute_tolerance": 1e-12,
             "leakage_tolerance": 1e-12,
@@ -5268,7 +5374,7 @@
             "retained_rank": 9,
             "condition_number": 1.0,
             "ground_energy": -74.99845661593258,
-            "error_millihartree": 14.224689166141502
+            "error_millihartree": 14.22468916560149
           },
           "weights": {
             "hamiltonian_multiset": {
@@ -5354,17 +5460,17 @@
           },
           "measurement": {
             "protocol": "qwc_basis_cover",
-            "settings": 30298,
+            "settings": 17118,
             "group_size": {
               "sum": 143116,
-              "mean": 4.723612119611856,
-              "max": 315
+              "mean": 8.36055613973595,
+              "max": 398
             },
             "resource_metrics": {
               "N_1q": {
-                "sum": 307385,
-                "mean": 10.145389134596343,
-                "max": 19
+                "sum": 192601,
+                "mean": 11.25137282392803,
+                "max": 22
               },
               "N_2q": {
                 "sum": 0,
@@ -5372,8 +5478,8 @@
                 "max": 0
               },
               "D_1q": {
-                "sum": 59995,
-                "mean": 1.980163707175391,
+                "sum": 34040,
+                "mean": 1.9885500642598435,
                 "max": 2
               },
               "D_2q": {
@@ -5395,11 +5501,11 @@
                   "calibration_status": "illustrative_scenario"
                 },
                 "n_qubits": 12,
-                "settings": 30298,
-                "raw_shots": 242384000,
-                "effective_shots": 188513792.52135307,
-                "fixed_shot_time_us": 53276400000.0,
-                "logical_1q_applications": 2459080000,
+                "settings": 17118,
+                "raw_shots": 136944000,
+                "effective_shots": 106390175.9656662,
+                "fixed_shot_time_us": 30112000000.0,
+                "logical_1q_applications": 1540808000,
                 "logical_2q_applications": 0,
                 "modeled_2q_applications": 0,
                 "routing": {
@@ -5409,8 +5515,8 @@
                   "model": "declared scalar sensitivity surrogate"
                 },
                 "fidelity": {
-                  "min": 0.8780020012391302,
-                  "mean": 0.881899641420585,
+                  "min": 0.8766856566290224,
+                  "mean": 0.8814118587439419,
                   "max": 0.8863848717161292,
                   "floor": 0.5
                 },
@@ -5431,11 +5537,11 @@
                   "calibration_status": "illustrative_scenario"
                 },
                 "n_qubits": 12,
-                "settings": 30298,
-                "raw_shots": 311664444,
-                "effective_shots": 242394658.48094875,
-                "fixed_shot_time_us": 68504753850.0,
-                "logical_1q_applications": 3164392457,
+                "settings": 17118,
+                "raw_shots": 176281432,
+                "effective_shots": 136950030.60225064,
+                "fixed_shot_time_us": 38761835440.0,
+                "logical_1q_applications": 1984606810,
                 "logical_2q_applications": 0,
                 "modeled_2q_applications": 0,
                 "routing": {
@@ -5445,8 +5551,8 @@
                   "model": "declared scalar sensitivity surrogate"
                 },
                 "fidelity": {
-                  "min": 0.8780020012391302,
-                  "mean": 0.881899641420585,
+                  "min": 0.8766856566290224,
+                  "mean": 0.8814118587439419,
                   "max": 0.8863848717161292,
                   "floor": 0.5
                 },
@@ -5470,11 +5576,11 @@
                   "calibration_status": "logical_baseline"
                 },
                 "n_qubits": 12,
-                "settings": 30298,
-                "raw_shots": 242384000,
-                "effective_shots": 242384000.0,
-                "fixed_shot_time_us": 508766000.0,
-                "logical_1q_applications": 2459080000,
+                "settings": 17118,
+                "raw_shots": 136944000,
+                "effective_shots": 136944000.0,
+                "fixed_shot_time_us": 287504000.0,
+                "logical_1q_applications": 1540808000,
                 "logical_2q_applications": 0,
                 "modeled_2q_applications": 0,
                 "routing": {
@@ -5506,11 +5612,11 @@
                   "calibration_status": "logical_baseline"
                 },
                 "n_qubits": 12,
-                "settings": 30298,
-                "raw_shots": 242384000,
-                "effective_shots": 242384000.0,
-                "fixed_shot_time_us": 508766000.0,
-                "logical_1q_applications": 2459080000,
+                "settings": 17118,
+                "raw_shots": 136944000,
+                "effective_shots": 136944000.0,
+                "fixed_shot_time_us": 287504000.0,
+                "logical_1q_applications": 1540808000,
                 "logical_2q_applications": 0,
                 "modeled_2q_applications": 0,
                 "routing": {
@@ -5545,11 +5651,11 @@
                   "calibration_status": "illustrative_scenario"
                 },
                 "n_qubits": 12,
-                "settings": 30298,
-                "raw_shots": 242384000,
-                "effective_shots": 146258121.1763657,
-                "fixed_shot_time_us": 751150000.0,
-                "logical_1q_applications": 2459080000,
+                "settings": 17118,
+                "raw_shots": 136944000,
+                "effective_shots": 82451210.6955438,
+                "fixed_shot_time_us": 424448000.0,
+                "logical_1q_applications": 1540808000,
                 "logical_2q_applications": 0,
                 "modeled_2q_applications": 0,
                 "routing": {
@@ -5559,8 +5665,8 @@
                   "model": "declared scalar sensitivity surrogate"
                 },
                 "fidelity": {
-                  "min": 0.7699405351855505,
-                  "mean": 0.7767948159823682,
+                  "min": 0.7676330226316589,
+                  "mean": 0.7759353431721956,
                   "max": 0.7847167237347998,
                   "floor": 0.5
                 },
@@ -5581,11 +5687,11 @@
                   "calibration_status": "illustrative_scenario"
                 },
                 "n_qubits": 12,
-                "settings": 30298,
-                "raw_shots": 401715110,
-                "effective_shots": 242393289.0192615,
-                "fixed_shot_time_us": 1244923553.4999998,
-                "logical_1q_applications": 4081845238,
+                "settings": 17118,
+                "raw_shots": 227467002,
+                "effective_shots": 136949542.3203246,
+                "fixed_shot_time_us": 705018831.8,
+                "logical_1q_applications": 2562415991,
                 "logical_2q_applications": 0,
                 "modeled_2q_applications": 0,
                 "routing": {
@@ -5595,8 +5701,8 @@
                   "model": "declared scalar sensitivity surrogate"
                 },
                 "fidelity": {
-                  "min": 0.7699405351855505,
-                  "mean": 0.7767948159823682,
+                  "min": 0.7676330226316589,
+                  "mean": 0.7759353431721956,
                   "max": 0.7847167237347998,
                   "floor": 0.5
                 },
@@ -5613,7 +5719,7 @@
           },
           "accuracy_matched_cost": {
             "epsilon_millihartree": 1.6,
-            "exact_subspace_bias_millihartree": 14.224689166141502,
+            "exact_subspace_bias_millihartree": 14.22468916560149,
             "estimator": "single_assignment",
             "evidence_tier": "asymptotic",
             "claim_boundary": "exact bias floor plus first-order Ritz-functional variance; not the R1 nonlinear exact-oracle shot search or a finite-sample certificate",
@@ -5669,14 +5775,22 @@
             "effective_rank": 9,
             "condition_number": 1.0,
             "max_overlap_matrix_error": 0.0,
+            "overlap_matrix_scale": 1.0,
             "max_hamiltonian_matrix_error": 4.547473508864641e-13,
+            "hamiltonian_matrix_scale": 74.96311986160843,
             "max_operator_transport_error": 0.0,
+            "operator_transport_scale": 2244.218135007245,
             "max_ritz_error": 4.405364961712621e-13,
+            "ritz_scale": 74.99845661593258,
             "reference_energy_error": 0.0,
+            "reference_energy_scale": 74.96311986160843,
             "max_generator_leakage": 0.0,
             "word_bijection_checked": false,
             "dense_spectrum_checked": false,
             "max_spectrum_error": null,
+            "spectrum_scale": null,
+            "dense_spectrum_max_qubits": 10,
+            "dense_spectrum_reason": "source qubits exceed the declared dense-spectrum materialization limit",
             "relative_tolerance": 1e-10,
             "absolute_tolerance": 1e-12,
             "leakage_tolerance": 1e-12,
@@ -5698,7 +5812,7 @@
             "retained_rank": 9,
             "condition_number": 1.0,
             "ground_energy": -74.99845661593258,
-            "error_millihartree": 14.224689166141502
+            "error_millihartree": 14.22468916560149
           },
           "weights": {
             "hamiltonian_multiset": {
@@ -5779,16 +5893,16 @@
           },
           "measurement": {
             "protocol": "qwc_basis_cover",
-            "settings": 11329,
+            "settings": 9908,
             "group_size": {
               "sum": 105640,
-              "mean": 9.324741813046165,
+              "mean": 10.662091239402503,
               "max": 258
             },
             "resource_metrics": {
               "N_1q": {
-                "sum": 112225,
-                "mean": 9.90599346809074,
+                "sum": 100227,
+                "mean": 10.115765038352846,
                 "max": 18
               },
               "N_2q": {
@@ -5797,8 +5911,8 @@
                 "max": 0
               },
               "D_1q": {
-                "sum": 22435,
-                "mean": 1.9803160031776856,
+                "sum": 19626,
+                "mean": 1.9808235769075495,
                 "max": 2
               },
               "D_2q": {
@@ -5820,11 +5934,11 @@
                   "calibration_status": "illustrative_scenario"
                 },
                 "n_qubits": 10,
-                "settings": 11329,
-                "raw_shots": 90632000,
-                "effective_shots": 73397911.1930903,
-                "fixed_shot_time_us": 19921200000.0,
-                "logical_1q_applications": 897800000,
+                "settings": 9908,
+                "raw_shots": 79264000,
+                "effective_shots": 64178130.339801304,
+                "fixed_shot_time_us": 17422880000.0,
+                "logical_1q_applications": 801816000,
                 "logical_2q_applications": 0,
                 "modeled_2q_applications": 0,
                 "routing": {
@@ -5835,7 +5949,7 @@
                 },
                 "fidelity": {
                   "min": 0.8962771368738447,
-                  "mean": 0.8999133792327042,
+                  "mean": 0.8998190058929744,
                   "max": 0.9043820750088044,
                   "floor": 0.5
                 },
@@ -5856,11 +5970,11 @@
                   "calibration_status": "illustrative_scenario"
                 },
                 "n_qubits": 10,
-                "settings": 11329,
-                "raw_shots": 111919637,
-                "effective_shots": 90637004.58924422,
-                "fixed_shot_time_us": 24600402710.0,
-                "logical_1q_applications": 1109418407,
+                "settings": 9908,
+                "raw_shots": 97902084,
+                "effective_shots": 79268383.11868839,
+                "fixed_shot_time_us": 21519782900.0,
+                "logical_1q_applications": 991033284,
                 "logical_2q_applications": 0,
                 "modeled_2q_applications": 0,
                 "routing": {
@@ -5871,7 +5985,7 @@
                 },
                 "fidelity": {
                   "min": 0.8962771368738447,
-                  "mean": 0.8999133792327042,
+                  "mean": 0.8998190058929744,
                   "max": 0.9043820750088044,
                   "floor": 0.5
                 },
@@ -5895,11 +6009,11 @@
                   "calibration_status": "logical_baseline"
                 },
                 "n_qubits": 10,
-                "settings": 11329,
-                "raw_shots": 90632000,
-                "effective_shots": 90632000.0,
-                "fixed_shot_time_us": 190238000.0,
-                "logical_1q_applications": 897800000,
+                "settings": 9908,
+                "raw_shots": 79264000,
+                "effective_shots": 79264000.0,
+                "fixed_shot_time_us": 166378400.0,
+                "logical_1q_applications": 801816000,
                 "logical_2q_applications": 0,
                 "modeled_2q_applications": 0,
                 "routing": {
@@ -5931,11 +6045,11 @@
                   "calibration_status": "logical_baseline"
                 },
                 "n_qubits": 10,
-                "settings": 11329,
-                "raw_shots": 90632000,
-                "effective_shots": 90632000.0,
-                "fixed_shot_time_us": 190238000.0,
-                "logical_1q_applications": 897800000,
+                "settings": 9908,
+                "raw_shots": 79264000,
+                "effective_shots": 79264000.0,
+                "fixed_shot_time_us": 166378400.0,
+                "logical_1q_applications": 801816000,
                 "logical_2q_applications": 0,
                 "modeled_2q_applications": 0,
                 "routing": {
@@ -5970,11 +6084,11 @@
                   "calibration_status": "illustrative_scenario"
                 },
                 "n_qubits": 10,
-                "settings": 11329,
-                "raw_shots": 90632000,
-                "effective_shots": 59319884.432058156,
-                "fixed_shot_time_us": 280870000.0,
-                "logical_1q_applications": 897800000,
+                "settings": 9908,
+                "raw_shots": 79264000,
+                "effective_shots": 51857631.7725465,
+                "fixed_shot_time_us": 245642400.0,
+                "logical_1q_applications": 801816000,
                 "logical_2q_applications": 0,
                 "modeled_2q_applications": 0,
                 "routing": {
@@ -5985,7 +6099,7 @@
                 },
                 "fidelity": {
                   "min": 0.8024898442648715,
-                  "mean": 0.8090175185057528,
+                  "mean": 0.8088478628625033,
                   "max": 0.8170728068875467,
                   "floor": 0.5
                 },
@@ -6006,11 +6120,11 @@
                   "calibration_status": "illustrative_scenario"
                 },
                 "n_qubits": 10,
-                "settings": 11329,
-                "raw_shots": 138481229,
-                "effective_shots": 90635457.62400508,
-                "fixed_shot_time_us": 429156908.0500001,
-                "logical_1q_applications": 1373627370,
+                "settings": 9908,
+                "raw_shots": 121162360,
+                "effective_shots": 79266994.69025825,
+                "fixed_shot_time_us": 375488358.2499997,
+                "logical_1q_applications": 1227325688,
                 "logical_2q_applications": 0,
                 "modeled_2q_applications": 0,
                 "routing": {
@@ -6021,7 +6135,7 @@
                 },
                 "fidelity": {
                   "min": 0.8024898442648715,
-                  "mean": 0.8090175185057528,
+                  "mean": 0.8088478628625033,
                   "max": 0.8170728068875467,
                   "floor": 0.5
                 },
@@ -6038,7 +6152,7 @@
           },
           "accuracy_matched_cost": {
             "epsilon_millihartree": 1.6,
-            "exact_subspace_bias_millihartree": 14.224689166141502,
+            "exact_subspace_bias_millihartree": 14.22468916560149,
             "estimator": "single_assignment",
             "evidence_tier": "asymptotic",
             "claim_boundary": "exact bias floor plus first-order Ritz-functional variance; not the R1 nonlinear exact-oracle shot search or a finite-sample certificate",
@@ -6088,14 +6202,22 @@
             "effective_rank": 9,
             "condition_number": 1.0,
             "max_overlap_matrix_error": 0.0,
+            "overlap_matrix_scale": 1.0,
             "max_hamiltonian_matrix_error": 0.0,
+            "hamiltonian_matrix_scale": 74.96311986160843,
             "max_operator_transport_error": 0.0,
+            "operator_transport_scale": 4488.43627001449,
             "max_ritz_error": 0.0,
+            "ritz_scale": 74.99845661593258,
             "reference_energy_error": 0.0,
+            "reference_energy_scale": 74.96311986160843,
             "max_generator_leakage": 0.0,
             "word_bijection_checked": true,
             "dense_spectrum_checked": false,
             "max_spectrum_error": null,
+            "spectrum_scale": null,
+            "dense_spectrum_max_qubits": 10,
+            "dense_spectrum_reason": "source qubits exceed the declared dense-spectrum materialization limit",
             "relative_tolerance": 1e-10,
             "absolute_tolerance": 1e-12,
             "leakage_tolerance": 1e-12,
@@ -6117,7 +6239,7 @@
             "retained_rank": 9,
             "condition_number": 1.0,
             "ground_energy": -74.99845661593258,
-            "error_millihartree": 14.224689166141502
+            "error_millihartree": 14.22468916560149
           },
           "weights": {
             "hamiltonian_multiset": {
@@ -6200,16 +6322,16 @@
           },
           "measurement": {
             "protocol": "qwc_basis_cover",
-            "settings": 36256,
+            "settings": 18108,
             "group_size": {
               "sum": 143116,
-              "mean": 3.9473742277140333,
-              "max": 331
+              "mean": 7.9034680804064505,
+              "max": 394
             },
             "resource_metrics": {
               "N_1q": {
-                "sum": 378788,
-                "mean": 10.447594880847308,
+                "sum": 219768,
+                "mean": 12.136514247846256,
                 "max": 22
               },
               "N_2q": {
@@ -6218,8 +6340,8 @@
                 "max": 0
               },
               "D_1q": {
-                "sum": 71940,
-                "mean": 1.9842233009708738,
+                "sum": 36125,
+                "mean": 1.9949745968632648,
                 "max": 2
               },
               "D_2q": {
@@ -6241,11 +6363,11 @@
                   "calibration_status": "illustrative_scenario"
                 },
                 "n_qubits": 12,
-                "settings": 36256,
-                "raw_shots": 290048000,
-                "effective_shots": 225516287.2052098,
-                "fixed_shot_time_us": 63764800000.0,
-                "logical_1q_applications": 3030304000,
+                "settings": 18108,
+                "raw_shots": 144864000,
+                "effective_shots": 112443584.93932012,
+                "fixed_shot_time_us": 31862800000.0,
+                "logical_1q_applications": 1758144000,
                 "logical_2q_applications": 0,
                 "modeled_2q_applications": 0,
                 "routing": {
@@ -6256,7 +6378,7 @@
                 },
                 "fidelity": {
                   "min": 0.8766856566290224,
-                  "mean": 0.8817664288976478,
+                  "mean": 0.8810218622036636,
                   "max": 0.8863848717161292,
                   "floor": 0.5
                 },
@@ -6277,11 +6399,11 @@
                   "calibration_status": "illustrative_scenario"
                 },
                 "n_qubits": 12,
-                "settings": 36256,
-                "raw_shots": 373065466,
-                "effective_shots": 290061054.4530411,
-                "fixed_shot_time_us": 82015946020.0,
-                "logical_1q_applications": 3900783963,
+                "settings": 18108,
+                "raw_shots": 186641541,
+                "effective_shots": 144870235.21701866,
+                "fixed_shot_time_us": 41051822080.0,
+                "logical_1q_applications": 2266619890,
                 "logical_2q_applications": 0,
                 "modeled_2q_applications": 0,
                 "routing": {
@@ -6292,7 +6414,7 @@
                 },
                 "fidelity": {
                   "min": 0.8766856566290224,
-                  "mean": 0.8817664288976478,
+                  "mean": 0.8810218622036636,
                   "max": 0.8863848717161292,
                   "floor": 0.5
                 },
@@ -6316,11 +6438,11 @@
                   "calibration_status": "logical_baseline"
                 },
                 "n_qubits": 12,
-                "settings": 36256,
-                "raw_shots": 290048000,
-                "effective_shots": 290048000.0,
-                "fixed_shot_time_us": 608872000.0,
-                "logical_1q_applications": 3030304000,
+                "settings": 18108,
+                "raw_shots": 144864000,
+                "effective_shots": 144864000.0,
+                "fixed_shot_time_us": 304178000.0,
+                "logical_1q_applications": 1758144000,
                 "logical_2q_applications": 0,
                 "modeled_2q_applications": 0,
                 "routing": {
@@ -6352,11 +6474,11 @@
                   "calibration_status": "logical_baseline"
                 },
                 "n_qubits": 12,
-                "settings": 36256,
-                "raw_shots": 290048000,
-                "effective_shots": 290048000.0,
-                "fixed_shot_time_us": 608872000.0,
-                "logical_1q_applications": 3030304000,
+                "settings": 18108,
+                "raw_shots": 144864000,
+                "effective_shots": 144864000.0,
+                "fixed_shot_time_us": 304178000.0,
+                "logical_1q_applications": 1758144000,
                 "logical_2q_applications": 0,
                 "modeled_2q_applications": 0,
                 "routing": {
@@ -6391,11 +6513,11 @@
                   "calibration_status": "illustrative_scenario"
                 },
                 "n_qubits": 12,
-                "settings": 36256,
-                "raw_shots": 290048000,
-                "effective_shots": 174913701.4261859,
-                "fixed_shot_time_us": 898920000.0,
-                "logical_1q_applications": 3030304000,
+                "settings": 18108,
+                "raw_shots": 144864000,
+                "effective_shots": 87065499.23350964,
+                "fixed_shot_time_us": 449042000.0,
+                "logical_1q_applications": 1758144000,
                 "logical_2q_applications": 0,
                 "modeled_2q_applications": 0,
                 "routing": {
@@ -6406,7 +6528,7 @@
                 },
                 "fidelity": {
                   "min": 0.7676330226316589,
-                  "mean": 0.7765602226683044,
+                  "mean": 0.7752488494163305,
                   "max": 0.7847167237347998,
                   "floor": 0.5
                 },
@@ -6427,11 +6549,11 @@
                   "calibration_status": "illustrative_scenario"
                 },
                 "n_qubits": 12,
-                "settings": 36256,
-                "raw_shots": 481002949,
-                "effective_shots": 290059437.0068249,
-                "fixed_shot_time_us": 1490734869.8999994,
-                "logical_1q_applications": 5033453659,
+                "settings": 18108,
+                "raw_shots": 241049677,
+                "effective_shots": 144870087.20439583,
+                "fixed_shot_time_us": 747194237.05,
+                "logical_1q_applications": 2929234197,
                 "logical_2q_applications": 0,
                 "modeled_2q_applications": 0,
                 "routing": {
@@ -6442,7 +6564,7 @@
                 },
                 "fidelity": {
                   "min": 0.7676330226316589,
-                  "mean": 0.7765602226683044,
+                  "mean": 0.7752488494163305,
                   "max": 0.7847167237347998,
                   "floor": 0.5
                 },
@@ -6459,7 +6581,7 @@
           },
           "accuracy_matched_cost": {
             "epsilon_millihartree": 1.6,
-            "exact_subspace_bias_millihartree": 14.224689166141502,
+            "exact_subspace_bias_millihartree": 14.22468916560149,
             "estimator": "single_assignment",
             "evidence_tier": "asymptotic",
             "claim_boundary": "exact bias floor plus first-order Ritz-functional variance; not the R1 nonlinear exact-oracle shot search or a finite-sample certificate",
@@ -6515,14 +6637,22 @@
             "effective_rank": 9,
             "condition_number": 1.0,
             "max_overlap_matrix_error": 0.0,
+            "overlap_matrix_scale": 1.0,
             "max_hamiltonian_matrix_error": 4.547473508864641e-13,
+            "hamiltonian_matrix_scale": 74.96311986160843,
             "max_operator_transport_error": 0.0,
+            "operator_transport_scale": 2244.218135007245,
             "max_ritz_error": 4.405364961712621e-13,
+            "ritz_scale": 74.99845661593258,
             "reference_energy_error": 0.0,
+            "reference_energy_scale": 74.96311986160843,
             "max_generator_leakage": 0.0,
             "word_bijection_checked": false,
             "dense_spectrum_checked": false,
             "max_spectrum_error": null,
+            "spectrum_scale": null,
+            "dense_spectrum_max_qubits": 10,
+            "dense_spectrum_reason": "source qubits exceed the declared dense-spectrum materialization limit",
             "relative_tolerance": 1e-10,
             "absolute_tolerance": 1e-12,
             "leakage_tolerance": 1e-12,
@@ -6544,7 +6674,7 @@
             "retained_rank": 9,
             "condition_number": 1.0,
             "ground_energy": -74.99845661593258,
-            "error_millihartree": 14.224689166141502
+            "error_millihartree": 14.22468916560149
           },
           "weights": {
             "hamiltonian_multiset": {
@@ -6625,16 +6755,16 @@
           },
           "measurement": {
             "protocol": "qwc_basis_cover",
-            "settings": 10083,
+            "settings": 8759,
             "group_size": {
               "sum": 105640,
-              "mean": 10.477040563324408,
+              "mean": 12.060737527114968,
               "max": 239
             },
             "resource_metrics": {
               "N_1q": {
-                "sum": 92157,
-                "mean": 9.139839333531688,
+                "sum": 83212,
+                "mean": 9.500171252426076,
                 "max": 18
               },
               "N_2q": {
@@ -6643,8 +6773,8 @@
                 "max": 0
               },
               "D_1q": {
-                "sum": 19928,
-                "mean": 1.9763959139145095,
+                "sum": 17342,
+                "mean": 1.9799063820070784,
                 "max": 2
               },
               "D_2q": {
@@ -6666,11 +6796,11 @@
                   "calibration_status": "illustrative_scenario"
                 },
                 "n_qubits": 10,
-                "settings": 10083,
-                "raw_shots": 80664000,
-                "effective_shots": 65375406.954572625,
-                "fixed_shot_time_us": 17727040000.0,
-                "logical_1q_applications": 737256000,
+                "settings": 8759,
+                "raw_shots": 70072000,
+                "effective_shots": 56770502.66714978,
+                "fixed_shot_time_us": 15401760000.0,
+                "logical_1q_applications": 665696000,
                 "logical_2q_applications": 0,
                 "modeled_2q_applications": 0,
                 "routing": {
@@ -6681,7 +6811,7 @@
                 },
                 "fidelity": {
                   "min": 0.8962771368738447,
-                  "mean": 0.9002581094483658,
+                  "mean": 0.9000959417774597,
                   "max": 0.9043820750088044,
                   "floor": 0.5
                 },
@@ -6702,11 +6832,11 @@
                   "calibration_status": "illustrative_scenario"
                 },
                 "n_qubits": 10,
-                "settings": 10083,
-                "raw_shots": 99533607,
-                "effective_shots": 80668153.32678059,
-                "fixed_shot_time_us": 21874001450.0,
-                "logical_1q_applications": 910243273,
+                "settings": 8759,
+                "raw_shots": 86495148,
+                "effective_shots": 70075706.6926693,
+                "fixed_shot_time_us": 19011633430.0,
+                "logical_1q_applications": 822213744,
                 "logical_2q_applications": 0,
                 "modeled_2q_applications": 0,
                 "routing": {
@@ -6717,7 +6847,7 @@
                 },
                 "fidelity": {
                   "min": 0.8962771368738447,
-                  "mean": 0.9002581094483658,
+                  "mean": 0.9000959417774597,
                   "max": 0.9043820750088044,
                   "floor": 0.5
                 },
@@ -6741,11 +6871,11 @@
                   "calibration_status": "logical_baseline"
                 },
                 "n_qubits": 10,
-                "settings": 10083,
-                "raw_shots": 80664000,
-                "effective_shots": 80664000.0,
-                "fixed_shot_time_us": 169299200.0,
-                "logical_1q_applications": 737256000,
+                "settings": 8759,
+                "raw_shots": 70072000,
+                "effective_shots": 70072000.0,
+                "fixed_shot_time_us": 147080800.0,
+                "logical_1q_applications": 665696000,
                 "logical_2q_applications": 0,
                 "modeled_2q_applications": 0,
                 "routing": {
@@ -6777,11 +6907,11 @@
                   "calibration_status": "logical_baseline"
                 },
                 "n_qubits": 10,
-                "settings": 10083,
-                "raw_shots": 80664000,
-                "effective_shots": 80664000.0,
-                "fixed_shot_time_us": 169299200.0,
-                "logical_1q_applications": 737256000,
+                "settings": 8759,
+                "raw_shots": 70072000,
+                "effective_shots": 70072000.0,
+                "fixed_shot_time_us": 147080800.0,
+                "logical_1q_applications": 665696000,
                 "logical_2q_applications": 0,
                 "modeled_2q_applications": 0,
                 "routing": {
@@ -6816,11 +6946,11 @@
                   "calibration_status": "illustrative_scenario"
                 },
                 "n_qubits": 10,
-                "settings": 10083,
-                "raw_shots": 80664000,
-                "effective_shots": 52876544.91581443,
-                "fixed_shot_time_us": 249963200.0,
-                "logical_1q_applications": 737256000,
+                "settings": 8759,
+                "raw_shots": 70072000,
+                "effective_shots": 45900256.21304609,
+                "fixed_shot_time_us": 217152800.0,
+                "logical_1q_applications": 665696000,
                 "logical_2q_applications": 0,
                 "modeled_2q_applications": 0,
                 "routing": {
@@ -6831,7 +6961,7 @@
                 },
                 "fidelity": {
                   "min": 0.8024898442648715,
-                  "mean": 0.8096373287676726,
+                  "mean": 0.8093456920330951,
                   "max": 0.8170728068875467,
                   "floor": 0.5
                 },
@@ -6852,11 +6982,11 @@
                   "calibration_status": "illustrative_scenario"
                 },
                 "n_qubits": 10,
-                "settings": 10083,
-                "raw_shots": 123061619,
-                "effective_shots": 80667179.54407752,
-                "fixed_shot_time_us": 381347037.50000006,
-                "logical_1q_applications": 1126047231,
+                "settings": 8759,
+                "raw_shots": 106979551,
+                "effective_shots": 70074735.07812543,
+                "fixed_shot_time_us": 331530125.14999986,
+                "logical_1q_applications": 1017543019,
                 "logical_2q_applications": 0,
                 "modeled_2q_applications": 0,
                 "routing": {
@@ -6867,7 +6997,7 @@
                 },
                 "fidelity": {
                   "min": 0.8024898442648715,
-                  "mean": 0.8096373287676726,
+                  "mean": 0.8093456920330951,
                   "max": 0.8170728068875467,
                   "floor": 0.5
                 },
@@ -6884,7 +7014,7 @@
           },
           "accuracy_matched_cost": {
             "epsilon_millihartree": 1.6,
-            "exact_subspace_bias_millihartree": 14.224689166141502,
+            "exact_subspace_bias_millihartree": 14.22468916560149,
             "estimator": "single_assignment",
             "evidence_tier": "asymptotic",
             "claim_boundary": "exact bias floor plus first-order Ritz-functional variance; not the R1 nonlinear exact-oracle shot search or a finite-sample certificate",
@@ -6913,10 +7043,11 @@
       "n_electrons": 4,
       "sz": 0.0,
       "spin_ordering": "interleaved",
+      "grouping_protocol": "qwc_groups",
       "hamiltonian_terms": 21,
       "hamiltonian_sha256": "a9707187f273fe60b952a8f75734575f69a65b2ec035d22633326d872f244a76",
       "reference_sha256": "b62ceccb46ae609c71889216686e399c3210bee183045b236894a3721fc71dc5",
-      "exact_sector_energy": -10.102748483462129,
+      "exact_sector_energy": -10.102748483462104,
       "raw_pool": {
         "size": 26,
         "sha256": "eab9de040b6aeb0f94605b5aae97b5672082802122c7578c876e79abc77f6881",
@@ -6977,14 +7108,22 @@
             "effective_rank": 9,
             "condition_number": 1.0,
             "max_overlap_matrix_error": 0.0,
+            "overlap_matrix_scale": 1.0,
             "max_hamiltonian_matrix_error": 0.0,
+            "hamiltonian_matrix_scale": 8.0,
             "max_operator_transport_error": 0.0,
+            "operator_transport_scale": 78.38367176906169,
             "max_ritz_error": 0.0,
+            "ritz_scale": 9.239438100571599,
             "reference_energy_error": 0.0,
+            "reference_energy_scale": 8.0,
             "max_generator_leakage": 0.0,
             "word_bijection_checked": true,
             "dense_spectrum_checked": true,
             "max_spectrum_error": 0.0,
+            "spectrum_scale": 10.102748483462058,
+            "dense_spectrum_max_qubits": 10,
+            "dense_spectrum_reason": null,
             "relative_tolerance": 1e-10,
             "absolute_tolerance": 1e-12,
             "leakage_tolerance": 1e-12,
@@ -7006,7 +7145,7 @@
             "retained_rank": 9,
             "condition_number": 1.0,
             "ground_energy": -9.239438100571599,
-            "error_millihartree": 863.3103828905301
+            "error_millihartree": 863.3103828905054
           },
           "weights": {
             "hamiltonian_multiset": {
@@ -7069,17 +7208,17 @@
             }
           },
           "measurement": {
-            "protocol": "qwc_basis_cover",
-            "settings": 1903,
+            "protocol": "qwc_groups",
+            "settings": 1406,
             "group_size": {
               "sum": 5536,
-              "mean": 2.909090909090909,
-              "max": 32
+              "mean": 3.937411095305832,
+              "max": 19
             },
             "resource_metrics": {
               "N_1q": {
-                "sum": 14728,
-                "mean": 7.739358906988965,
+                "sum": 11964,
+                "mean": 8.509246088193457,
                 "max": 15
               },
               "N_2q": {
@@ -7088,8 +7227,8 @@
                 "max": 0
               },
               "D_1q": {
-                "sum": 3702,
-                "mean": 1.9453494482396216,
+                "sum": 2766,
+                "mean": 1.9672830725462305,
                 "max": 2
               },
               "D_2q": {
@@ -7111,11 +7250,11 @@
                   "calibration_status": "illustrative_scenario"
                 },
                 "n_qubits": 8,
-                "settings": 1903,
-                "raw_shots": 15224000,
-                "effective_shots": 12862676.482042838,
-                "fixed_shot_time_us": 3340960000.0,
-                "logical_1q_applications": 117824000,
+                "settings": 1406,
+                "raw_shots": 11248000,
+                "effective_shots": 9496054.925498635,
+                "fixed_shot_time_us": 2470880000.0,
+                "logical_1q_applications": 95712000,
                 "logical_2q_applications": 0,
                 "modeled_2q_applications": 0,
                 "routing": {
@@ -7126,7 +7265,7 @@
                 },
                 "fidelity": {
                   "min": 0.9158482788654707,
-                  "mean": 0.919180750648223,
+                  "mean": 0.9188267813787928,
                   "max": 0.9227446944279201,
                   "floor": 0.5
                 },
@@ -7147,11 +7286,11 @@
                   "calibration_status": "illustrative_scenario"
                 },
                 "n_qubits": 8,
-                "settings": 1903,
-                "raw_shots": 18020021,
-                "effective_shots": 15224917.17649088,
-                "fixed_shot_time_us": 3954603110.0,
-                "logical_1q_applications": 139584753,
+                "settings": 1406,
+                "raw_shots": 13324057,
+                "effective_shots": 11248688.979735635,
+                "fixed_shot_time_us": 2926952270.0,
+                "logical_1q_applications": 113453843,
                 "logical_2q_applications": 0,
                 "modeled_2q_applications": 0,
                 "routing": {
@@ -7162,7 +7301,7 @@
                 },
                 "fidelity": {
                   "min": 0.9158482788654707,
-                  "mean": 0.919180750648223,
+                  "mean": 0.9188267813787928,
                   "max": 0.9227446944279201,
                   "floor": 0.5
                 },
@@ -7186,11 +7325,11 @@
                   "calibration_status": "logical_baseline"
                 },
                 "n_qubits": 8,
-                "settings": 1903,
-                "raw_shots": 15224000,
-                "effective_shots": 15224000.0,
-                "fixed_shot_time_us": 31928800.0,
-                "logical_1q_applications": 117824000,
+                "settings": 1406,
+                "raw_shots": 11248000,
+                "effective_shots": 11248000.0,
+                "fixed_shot_time_us": 23602400.0,
+                "logical_1q_applications": 95712000,
                 "logical_2q_applications": 0,
                 "modeled_2q_applications": 0,
                 "routing": {
@@ -7222,11 +7361,11 @@
                   "calibration_status": "logical_baseline"
                 },
                 "n_qubits": 8,
-                "settings": 1903,
-                "raw_shots": 15224000,
-                "effective_shots": 15224000.0,
-                "fixed_shot_time_us": 31928800.0,
-                "logical_1q_applications": 117824000,
+                "settings": 1406,
+                "raw_shots": 11248000,
+                "effective_shots": 11248000.0,
+                "fixed_shot_time_us": 23602400.0,
+                "logical_1q_applications": 95712000,
                 "logical_2q_applications": 0,
                 "modeled_2q_applications": 0,
                 "routing": {
@@ -7261,11 +7400,11 @@
                   "calibration_status": "illustrative_scenario"
                 },
                 "n_qubits": 8,
-                "settings": 1903,
-                "raw_shots": 15224000,
-                "effective_shots": 10849910.126457617,
-                "fixed_shot_time_us": 47152800.0,
-                "logical_1q_applications": 117824000,
+                "settings": 1406,
+                "raw_shots": 11248000,
+                "effective_shots": 8003920.09161487,
+                "fixed_shot_time_us": 34850400.0,
+                "logical_1q_applications": 95712000,
                 "logical_2q_applications": 0,
                 "modeled_2q_applications": 0,
                 "routing": {
@@ -7276,7 +7415,7 @@
                 },
                 "fidelity": {
                   "min": 0.8380905214219955,
-                  "mean": 0.8442036447494184,
+                  "mean": 0.8435532015506069,
                   "max": 0.8507630225817855,
                   "floor": 0.5
                 },
@@ -7297,11 +7436,11 @@
                   "calibration_status": "illustrative_scenario"
                 },
                 "n_qubits": 8,
-                "settings": 1903,
-                "raw_shots": 21363035,
-                "effective_shots": 15224696.121676872,
-                "fixed_shot_time_us": 66167583.74999996,
-                "logical_1q_applications": 165623417,
+                "settings": 1406,
+                "raw_shots": 15808017,
+                "effective_shots": 11248507.51979327,
+                "fixed_shot_time_us": 48979217.79999996,
+                "logical_1q_applications": 134694884,
                 "logical_2q_applications": 0,
                 "modeled_2q_applications": 0,
                 "routing": {
@@ -7312,7 +7451,7 @@
                 },
                 "fidelity": {
                   "min": 0.8380905214219955,
-                  "mean": 0.8442036447494184,
+                  "mean": 0.8435532015506069,
                   "max": 0.8507630225817855,
                   "floor": 0.5
                 },
@@ -7329,7 +7468,7 @@
           },
           "accuracy_matched_cost": {
             "epsilon_millihartree": 1.6,
-            "exact_subspace_bias_millihartree": 863.3103828905301,
+            "exact_subspace_bias_millihartree": 863.3103828905054,
             "estimator": "single_assignment",
             "evidence_tier": "asymptotic",
             "claim_boundary": "exact bias floor plus first-order Ritz-functional variance; not the R1 nonlinear exact-oracle shot search or a finite-sample certificate",
@@ -7375,14 +7514,22 @@
             "effective_rank": 9,
             "condition_number": 1.0,
             "max_overlap_matrix_error": 0.0,
+            "overlap_matrix_scale": 1.0,
             "max_hamiltonian_matrix_error": 0.0,
+            "hamiltonian_matrix_scale": 8.0,
             "max_operator_transport_error": 0.0,
+            "operator_transport_scale": 78.38367176906169,
             "max_ritz_error": 0.0,
+            "ritz_scale": 9.239438100571599,
             "reference_energy_error": 0.0,
+            "reference_energy_scale": 8.0,
             "max_generator_leakage": 0.0,
             "word_bijection_checked": true,
             "dense_spectrum_checked": true,
             "max_spectrum_error": 2.4868995751603507e-14,
+            "spectrum_scale": 10.102748483462058,
+            "dense_spectrum_max_qubits": 10,
+            "dense_spectrum_reason": null,
             "relative_tolerance": 1e-10,
             "absolute_tolerance": 1e-12,
             "leakage_tolerance": 1e-12,
@@ -7404,7 +7551,7 @@
             "retained_rank": 9,
             "condition_number": 1.0,
             "ground_energy": -9.239438100571599,
-            "error_millihartree": 863.3103828905301
+            "error_millihartree": 863.3103828905054
           },
           "weights": {
             "hamiltonian_multiset": {
@@ -7473,18 +7620,18 @@
             }
           },
           "measurement": {
-            "protocol": "qwc_basis_cover",
-            "settings": 977,
+            "protocol": "qwc_groups",
+            "settings": 798,
             "group_size": {
               "sum": 5536,
-              "mean": 5.66632548618219,
-              "max": 43
+              "mean": 6.93734335839599,
+              "max": 27
             },
             "resource_metrics": {
               "N_1q": {
-                "sum": 6545,
-                "mean": 6.699078812691914,
-                "max": 12
+                "sum": 5482,
+                "mean": 6.869674185463659,
+                "max": 13
               },
               "N_2q": {
                 "sum": 0,
@@ -7492,8 +7639,8 @@
                 "max": 0
               },
               "D_1q": {
-                "sum": 1890,
-                "mean": 1.9344933469805528,
+                "sum": 1545,
+                "mean": 1.9360902255639099,
                 "max": 2
               },
               "D_2q": {
@@ -7515,11 +7662,11 @@
                   "calibration_status": "illustrative_scenario"
                 },
                 "n_qubits": 8,
-                "settings": 977,
-                "raw_shots": 7816000,
-                "effective_shots": 6610564.985851082,
-                "fixed_shot_time_us": 1714400000.0,
-                "logical_1q_applications": 52360000,
+                "settings": 798,
+                "raw_shots": 6384000,
+                "effective_shots": 5398495.730111976,
+                "fixed_shot_time_us": 1400400000.0,
+                "logical_1q_applications": 43856000,
                 "logical_2q_applications": 0,
                 "modeled_2q_applications": 0,
                 "routing": {
@@ -7529,8 +7676,8 @@
                   "model": "declared scalar sensitivity surrogate"
                 },
                 "fidelity": {
-                  "min": 0.9172234262018567,
-                  "mean": 0.9196588623655315,
+                  "min": 0.9167648144887558,
+                  "mean": 0.9195803816233867,
                   "max": 0.9227446944279201,
                   "floor": 0.5
                 },
@@ -7551,11 +7698,11 @@
                   "calibration_status": "illustrative_scenario"
                 },
                 "n_qubits": 8,
-                "settings": 977,
-                "raw_shots": 9241826,
-                "effective_shots": 7816453.995397855,
-                "fixed_shot_time_us": 2027168060.0,
-                "logical_1q_applications": 61955115,
+                "settings": 798,
+                "raw_shots": 7549887,
+                "effective_shots": 6384374.749620978,
+                "fixed_shot_time_us": 1656166180.0,
+                "logical_1q_applications": 51899402,
                 "logical_2q_applications": 0,
                 "modeled_2q_applications": 0,
                 "routing": {
@@ -7565,8 +7712,8 @@
                   "model": "declared scalar sensitivity surrogate"
                 },
                 "fidelity": {
-                  "min": 0.9172234262018567,
-                  "mean": 0.9196588623655315,
+                  "min": 0.9167648144887558,
+                  "mean": 0.9195803816233867,
                   "max": 0.9227446944279201,
                   "floor": 0.5
                 },
@@ -7590,11 +7737,11 @@
                   "calibration_status": "logical_baseline"
                 },
                 "n_qubits": 8,
-                "settings": 977,
-                "raw_shots": 7816000,
-                "effective_shots": 7816000.0,
-                "fixed_shot_time_us": 16388000.0,
-                "logical_1q_applications": 52360000,
+                "settings": 798,
+                "raw_shots": 6384000,
+                "effective_shots": 6384000.0,
+                "fixed_shot_time_us": 13386000.0,
+                "logical_1q_applications": 43856000,
                 "logical_2q_applications": 0,
                 "modeled_2q_applications": 0,
                 "routing": {
@@ -7626,11 +7773,11 @@
                   "calibration_status": "logical_baseline"
                 },
                 "n_qubits": 8,
-                "settings": 977,
-                "raw_shots": 7816000,
-                "effective_shots": 7816000.0,
-                "fixed_shot_time_us": 16388000.0,
-                "logical_1q_applications": 52360000,
+                "settings": 798,
+                "raw_shots": 6384000,
+                "effective_shots": 6384000.0,
+                "fixed_shot_time_us": 13386000.0,
+                "logical_1q_applications": 43856000,
                 "logical_2q_applications": 0,
                 "modeled_2q_applications": 0,
                 "routing": {
@@ -7665,11 +7812,11 @@
                   "calibration_status": "illustrative_scenario"
                 },
                 "n_qubits": 8,
-                "settings": 977,
-                "raw_shots": 7816000,
-                "effective_shots": 5581927.193203934,
-                "fixed_shot_time_us": 24204000.0,
-                "logical_1q_applications": 52360000,
+                "settings": 798,
+                "raw_shots": 6384000,
+                "effective_shots": 4557682.781508403,
+                "fixed_shot_time_us": 19770000.0,
+                "logical_1q_applications": 43856000,
                 "logical_2q_applications": 0,
                 "modeled_2q_applications": 0,
                 "routing": {
@@ -7679,8 +7826,8 @@
                   "model": "declared scalar sensitivity surrogate"
                 },
                 "fidelity": {
-                  "min": 0.8406098299228841,
-                  "mean": 0.8450818856041155,
+                  "min": 0.8397692200929613,
+                  "mean": 0.8449375862515448,
                   "max": 0.8507630225817855,
                   "floor": 0.5
                 },
@@ -7701,11 +7848,11 @@
                   "calibration_status": "illustrative_scenario"
                 },
                 "n_qubits": 8,
-                "settings": 977,
-                "raw_shots": 10944906,
-                "effective_shots": 7816341.4226631895,
-                "fixed_shot_time_us": 33893601.25,
-                "logical_1q_applications": 73423199,
+                "settings": 798,
+                "raw_shots": 8942688,
+                "effective_shots": 6384273.131737711,
+                "fixed_shot_time_us": 27693947.99999999,
+                "logical_1q_applications": 61514004,
                 "logical_2q_applications": 0,
                 "modeled_2q_applications": 0,
                 "routing": {
@@ -7715,8 +7862,8 @@
                   "model": "declared scalar sensitivity surrogate"
                 },
                 "fidelity": {
-                  "min": 0.8406098299228841,
-                  "mean": 0.8450818856041155,
+                  "min": 0.8397692200929613,
+                  "mean": 0.8449375862515448,
                   "max": 0.8507630225817855,
                   "floor": 0.5
                 },
@@ -7733,7 +7880,7 @@
           },
           "accuracy_matched_cost": {
             "epsilon_millihartree": 1.6,
-            "exact_subspace_bias_millihartree": 863.3103828905301,
+            "exact_subspace_bias_millihartree": 863.3103828905054,
             "estimator": "single_assignment",
             "evidence_tier": "asymptotic",
             "claim_boundary": "exact bias floor plus first-order Ritz-functional variance; not the R1 nonlinear exact-oracle shot search or a finite-sample certificate",
@@ -7785,14 +7932,22 @@
             "effective_rank": 9,
             "condition_number": 1.0,
             "max_overlap_matrix_error": 0.0,
+            "overlap_matrix_scale": 1.0,
             "max_hamiltonian_matrix_error": 0.0,
+            "hamiltonian_matrix_scale": 8.0,
             "max_operator_transport_error": 0.0,
+            "operator_transport_scale": 39.191835884530846,
             "max_ritz_error": 0.0,
+            "ritz_scale": 9.239438100571599,
             "reference_energy_error": 0.0,
+            "reference_energy_scale": 8.0,
             "max_generator_leakage": 0.0,
             "word_bijection_checked": false,
             "dense_spectrum_checked": true,
             "max_spectrum_error": 0.0,
+            "spectrum_scale": 10.102748483462078,
+            "dense_spectrum_max_qubits": 10,
+            "dense_spectrum_reason": null,
             "relative_tolerance": 1e-10,
             "absolute_tolerance": 1e-12,
             "leakage_tolerance": 1e-12,
@@ -7814,7 +7969,7 @@
             "retained_rank": 9,
             "condition_number": 1.0,
             "ground_energy": -9.239438100571599,
-            "error_millihartree": 863.3103828905301
+            "error_millihartree": 863.3103828905054
           },
           "weights": {
             "hamiltonian_multiset": {
@@ -7879,17 +8034,17 @@
             }
           },
           "measurement": {
-            "protocol": "qwc_basis_cover",
-            "settings": 467,
+            "protocol": "qwc_groups",
+            "settings": 457,
             "group_size": {
               "sum": 2439,
-              "mean": 5.222698072805139,
-              "max": 41
+              "mean": 5.336980306345733,
+              "max": 26
             },
             "resource_metrics": {
               "N_1q": {
-                "sum": 2795,
-                "mean": 5.985010706638116,
+                "sum": 2754,
+                "mean": 6.0262582056892775,
                 "max": 12
               },
               "N_2q": {
@@ -7898,8 +8053,8 @@
                 "max": 0
               },
               "D_1q": {
-                "sum": 891,
-                "mean": 1.9079229122055674,
+                "sum": 872,
+                "mean": 1.9080962800875274,
                 "max": 2
               },
               "D_2q": {
@@ -7921,11 +8076,11 @@
                   "calibration_status": "illustrative_scenario"
                 },
                 "n_qubits": 6,
-                "settings": 467,
-                "raw_shots": 3736000,
-                "effective_shots": 3291775.7902441844,
-                "fixed_shot_time_us": 818480000.0,
-                "logical_1q_applications": 22360000,
+                "settings": 457,
+                "raw_shots": 3656000,
+                "effective_shots": 3221155.236972459,
+                "fixed_shot_time_us": 800960000.0,
+                "logical_1q_applications": 22032000,
                 "logical_2q_applications": 0,
                 "modeled_2q_applications": 0,
                 "routing": {
@@ -7936,7 +8091,7 @@
                 },
                 "fidelity": {
                   "min": 0.9358467770654594,
-                  "mean": 0.9386667878764327,
+                  "mean": 0.9386474281572285,
                   "max": 0.941480149401,
                   "floor": 0.5
                 },
@@ -7957,11 +8112,11 @@
                   "calibration_status": "illustrative_scenario"
                 },
                 "n_qubits": 6,
-                "settings": 467,
-                "raw_shots": 4240354,
-                "effective_shots": 3736143.836574735,
-                "fixed_shot_time_us": 928985450.0,
-                "logical_1q_applications": 25397173,
+                "settings": 457,
+                "raw_shots": 4149725,
+                "effective_shots": 3656140.4038712205,
+                "fixed_shot_time_us": 909137600.0,
+                "logical_1q_applications": 25025658,
                 "logical_2q_applications": 0,
                 "modeled_2q_applications": 0,
                 "routing": {
@@ -7972,7 +8127,7 @@
                 },
                 "fidelity": {
                   "min": 0.9358467770654594,
-                  "mean": 0.9386667878764327,
+                  "mean": 0.9386474281572285,
                   "max": 0.941480149401,
                   "floor": 0.5
                 },
@@ -7996,11 +8151,11 @@
                   "calibration_status": "logical_baseline"
                 },
                 "n_qubits": 6,
-                "settings": 467,
-                "raw_shots": 3736000,
-                "effective_shots": 3736000.0,
-                "fixed_shot_time_us": 7828400.0,
-                "logical_1q_applications": 22360000,
+                "settings": 457,
+                "raw_shots": 3656000,
+                "effective_shots": 3656000.0,
+                "fixed_shot_time_us": 7660800.0,
+                "logical_1q_applications": 22032000,
                 "logical_2q_applications": 0,
                 "modeled_2q_applications": 0,
                 "routing": {
@@ -8032,11 +8187,11 @@
                   "calibration_status": "logical_baseline"
                 },
                 "n_qubits": 6,
-                "settings": 467,
-                "raw_shots": 3736000,
-                "effective_shots": 3736000.0,
-                "fixed_shot_time_us": 7828400.0,
-                "logical_1q_applications": 22360000,
+                "settings": 457,
+                "raw_shots": 3656000,
+                "effective_shots": 3656000.0,
+                "fixed_shot_time_us": 7660800.0,
+                "logical_1q_applications": 22032000,
                 "logical_2q_applications": 0,
                 "modeled_2q_applications": 0,
                 "routing": {
@@ -8071,11 +8226,11 @@
                   "calibration_status": "illustrative_scenario"
                 },
                 "n_qubits": 6,
-                "settings": 467,
-                "raw_shots": 3736000,
-                "effective_shots": 2896826.3843197143,
-                "fixed_shot_time_us": 11564400.0,
-                "logical_1q_applications": 22360000,
+                "settings": 457,
+                "raw_shots": 3656000,
+                "effective_shots": 2834562.0592118544,
+                "fixed_shot_time_us": 11316800.0,
+                "logical_1q_applications": 22032000,
                 "logical_2q_applications": 0,
                 "modeled_2q_applications": 0,
                 "routing": {
@@ -8086,7 +8241,7 @@
                 },
                 "fidelity": {
                   "min": 0.8752705434432363,
-                  "mean": 0.8805557316008351,
+                  "mean": 0.8805194075633034,
                   "max": 0.8858423808639999,
                   "floor": 0.5
                 },
@@ -8107,11 +8262,11 @@
                   "calibration_status": "illustrative_scenario"
                 },
                 "n_qubits": 6,
-                "settings": 467,
-                "raw_shots": 4818589,
-                "effective_shots": 3736180.678669461,
-                "fixed_shot_time_us": 14915577.950000001,
-                "logical_1q_applications": 28881535,
+                "settings": 457,
+                "raw_shots": 4715797,
+                "effective_shots": 3656177.0154457074,
+                "fixed_shot_time_us": 14597435.6,
+                "logical_1q_applications": 28460238,
                 "logical_2q_applications": 0,
                 "modeled_2q_applications": 0,
                 "routing": {
@@ -8122,7 +8277,7 @@
                 },
                 "fidelity": {
                   "min": 0.8752705434432363,
-                  "mean": 0.8805557316008351,
+                  "mean": 0.8805194075633034,
                   "max": 0.8858423808639999,
                   "floor": 0.5
                 },
@@ -8139,7 +8294,7 @@
           },
           "accuracy_matched_cost": {
             "epsilon_millihartree": 1.6,
-            "exact_subspace_bias_millihartree": 863.3103828905301,
+            "exact_subspace_bias_millihartree": 863.3103828905054,
             "estimator": "single_assignment",
             "evidence_tier": "asymptotic",
             "claim_boundary": "exact bias floor plus first-order Ritz-functional variance; not the R1 nonlinear exact-oracle shot search or a finite-sample certificate",
@@ -8185,14 +8340,22 @@
             "effective_rank": 9,
             "condition_number": 1.0,
             "max_overlap_matrix_error": 0.0,
+            "overlap_matrix_scale": 1.0,
             "max_hamiltonian_matrix_error": 0.0,
+            "hamiltonian_matrix_scale": 8.0,
             "max_operator_transport_error": 0.0,
+            "operator_transport_scale": 78.38367176906169,
             "max_ritz_error": 0.0,
+            "ritz_scale": 9.239438100571599,
             "reference_energy_error": 0.0,
+            "reference_energy_scale": 8.0,
             "max_generator_leakage": 0.0,
             "word_bijection_checked": true,
             "dense_spectrum_checked": true,
             "max_spectrum_error": 3.375077994860476e-14,
+            "spectrum_scale": 10.102748483462058,
+            "dense_spectrum_max_qubits": 10,
+            "dense_spectrum_reason": null,
             "relative_tolerance": 1e-10,
             "absolute_tolerance": 1e-12,
             "leakage_tolerance": 1e-12,
@@ -8214,7 +8377,7 @@
             "retained_rank": 9,
             "condition_number": 1.0,
             "ground_energy": -9.239438100571599,
-            "error_millihartree": 863.3103828905301
+            "error_millihartree": 863.3103828905054
           },
           "weights": {
             "hamiltonian_multiset": {
@@ -8281,17 +8444,17 @@
             }
           },
           "measurement": {
-            "protocol": "qwc_basis_cover",
-            "settings": 1184,
+            "protocol": "qwc_groups",
+            "settings": 907,
             "group_size": {
               "sum": 5536,
-              "mean": 4.675675675675675,
-              "max": 41
+              "mean": 6.103638368246968,
+              "max": 31
             },
             "resource_metrics": {
               "N_1q": {
-                "sum": 8191,
-                "mean": 6.918074324324325,
+                "sum": 6672,
+                "mean": 7.356119073869901,
                 "max": 14
               },
               "N_2q": {
@@ -8300,8 +8463,8 @@
                 "max": 0
               },
               "D_1q": {
-                "sum": 2281,
-                "mean": 1.9265202702702702,
+                "sum": 1779,
+                "mean": 1.9614112458654906,
                 "max": 2
               },
               "D_2q": {
@@ -8323,11 +8486,11 @@
                   "calibration_status": "illustrative_scenario"
                 },
                 "n_qubits": 8,
-                "settings": 1184,
-                "raw_shots": 9472000,
-                "effective_shots": 8009414.898190282,
-                "fixed_shot_time_us": 2076880000.0,
-                "logical_1q_applications": 65528000,
+                "settings": 907,
+                "raw_shots": 7256000,
+                "effective_shots": 6132901.398575802,
+                "fixed_shot_time_us": 1593520000.0,
+                "logical_1q_applications": 53376000,
                 "logical_2q_applications": 0,
                 "modeled_2q_applications": 0,
                 "routing": {
@@ -8338,7 +8501,7 @@
                 },
                 "fidelity": {
                   "min": 0.9163064320815115,
-                  "mean": 0.9195582511292149,
+                  "mean": 0.9193567631685031,
                   "max": 0.9227446944279201,
                   "floor": 0.5
                 },
@@ -8359,11 +8522,11 @@
                   "calibration_status": "illustrative_scenario"
                 },
                 "n_qubits": 8,
-                "settings": 1184,
-                "raw_shots": 11202377,
-                "effective_shots": 9472548.483867839,
-                "fixed_shot_time_us": 2456326920.0,
-                "logical_1q_applications": 77562033,
+                "settings": 907,
+                "raw_shots": 8585327,
+                "effective_shots": 7256435.025626186,
+                "fixed_shot_time_us": 1885472110.0,
+                "logical_1q_applications": 63198938,
                 "logical_2q_applications": 0,
                 "modeled_2q_applications": 0,
                 "routing": {
@@ -8374,7 +8537,7 @@
                 },
                 "fidelity": {
                   "min": 0.9163064320815115,
-                  "mean": 0.9195582511292149,
+                  "mean": 0.9193567631685031,
                   "max": 0.9227446944279201,
                   "floor": 0.5
                 },
@@ -8398,11 +8561,11 @@
                   "calibration_status": "logical_baseline"
                 },
                 "n_qubits": 8,
-                "settings": 1184,
-                "raw_shots": 9472000,
-                "effective_shots": 9472000.0,
-                "fixed_shot_time_us": 19856400.0,
-                "logical_1q_applications": 65528000,
+                "settings": 907,
+                "raw_shots": 7256000,
+                "effective_shots": 7256000.0,
+                "fixed_shot_time_us": 15223600.0,
+                "logical_1q_applications": 53376000,
                 "logical_2q_applications": 0,
                 "modeled_2q_applications": 0,
                 "routing": {
@@ -8434,11 +8597,11 @@
                   "calibration_status": "logical_baseline"
                 },
                 "n_qubits": 8,
-                "settings": 1184,
-                "raw_shots": 9472000,
-                "effective_shots": 9472000.0,
-                "fixed_shot_time_us": 19856400.0,
-                "logical_1q_applications": 65528000,
+                "settings": 907,
+                "raw_shots": 7256000,
+                "effective_shots": 7256000.0,
+                "fixed_shot_time_us": 15223600.0,
+                "logical_1q_applications": 53376000,
                 "logical_2q_applications": 0,
                 "modeled_2q_applications": 0,
                 "routing": {
@@ -8473,11 +8636,11 @@
                   "calibration_status": "illustrative_scenario"
                 },
                 "n_qubits": 8,
-                "settings": 1184,
-                "raw_shots": 9472000,
-                "effective_shots": 6761636.479407514,
-                "fixed_shot_time_us": 29328400.0,
-                "logical_1q_applications": 65528000,
+                "settings": 907,
+                "raw_shots": 7256000,
+                "effective_shots": 5175190.1189983245,
+                "fixed_shot_time_us": 22479600.0,
+                "logical_1q_applications": 53376000,
                 "logical_2q_applications": 0,
                 "modeled_2q_applications": 0,
                 "routing": {
@@ -8488,7 +8651,7 @@
                 },
                 "fidelity": {
                   "min": 0.8389294508728683,
-                  "mean": 0.8448971450448195,
+                  "mean": 0.8445267328798418,
                   "max": 0.8507630225817855,
                   "floor": 0.5
                 },
@@ -8509,11 +8672,11 @@
                   "calibration_status": "illustrative_scenario"
                 },
                 "n_qubits": 8,
-                "settings": 1184,
-                "raw_shots": 13269638,
-                "effective_shots": 9472386.685279153,
-                "fixed_shot_time_us": 41087544.39999999,
-                "logical_1q_applications": 91949748,
+                "settings": 907,
+                "raw_shots": 10174092,
+                "effective_shots": 7256308.761959203,
+                "fixed_shot_time_us": 31520209.949999988,
+                "logical_1q_applications": 74946536,
                 "logical_2q_applications": 0,
                 "modeled_2q_applications": 0,
                 "routing": {
@@ -8524,7 +8687,7 @@
                 },
                 "fidelity": {
                   "min": 0.8389294508728683,
-                  "mean": 0.8448971450448195,
+                  "mean": 0.8445267328798418,
                   "max": 0.8507630225817855,
                   "floor": 0.5
                 },
@@ -8541,7 +8704,7 @@
           },
           "accuracy_matched_cost": {
             "epsilon_millihartree": 1.6,
-            "exact_subspace_bias_millihartree": 863.3103828905301,
+            "exact_subspace_bias_millihartree": 863.3103828905054,
             "estimator": "single_assignment",
             "evidence_tier": "asymptotic",
             "claim_boundary": "exact bias floor plus first-order Ritz-functional variance; not the R1 nonlinear exact-oracle shot search or a finite-sample certificate",
@@ -8593,14 +8756,22 @@
             "effective_rank": 9,
             "condition_number": 1.0,
             "max_overlap_matrix_error": 0.0,
+            "overlap_matrix_scale": 1.0,
             "max_hamiltonian_matrix_error": 0.0,
+            "hamiltonian_matrix_scale": 8.0,
             "max_operator_transport_error": 0.0,
+            "operator_transport_scale": 39.191835884530846,
             "max_ritz_error": 0.0,
+            "ritz_scale": 9.239438100571599,
             "reference_energy_error": 0.0,
+            "reference_energy_scale": 8.0,
             "max_generator_leakage": 0.0,
             "word_bijection_checked": false,
             "dense_spectrum_checked": true,
             "max_spectrum_error": 0.0,
+            "spectrum_scale": 10.10274848346207,
+            "dense_spectrum_max_qubits": 10,
+            "dense_spectrum_reason": null,
             "relative_tolerance": 1e-10,
             "absolute_tolerance": 1e-12,
             "leakage_tolerance": 1e-12,
@@ -8622,7 +8793,7 @@
             "retained_rank": 9,
             "condition_number": 1.0,
             "ground_energy": -9.239438100571599,
-            "error_millihartree": 863.3103828905301
+            "error_millihartree": 863.3103828905054
           },
           "weights": {
             "hamiltonian_multiset": {
@@ -8687,17 +8858,17 @@
             }
           },
           "measurement": {
-            "protocol": "qwc_basis_cover",
-            "settings": 489,
+            "protocol": "qwc_groups",
+            "settings": 478,
             "group_size": {
               "sum": 2439,
-              "mean": 4.987730061349693,
-              "max": 41
+              "mean": 5.102510460251046,
+              "max": 24
             },
             "resource_metrics": {
               "N_1q": {
-                "sum": 2902,
-                "mean": 5.934560327198364,
+                "sum": 2852,
+                "mean": 5.96652719665272,
                 "max": 11
               },
               "N_2q": {
@@ -8706,8 +8877,8 @@
                 "max": 0
               },
               "D_1q": {
-                "sum": 940,
-                "mean": 1.9222903885480573,
+                "sum": 918,
+                "mean": 1.9205020920502092,
                 "max": 2
               },
               "D_2q": {
@@ -8729,11 +8900,11 @@
                   "calibration_status": "illustrative_scenario"
                 },
                 "n_qubits": 6,
-                "settings": 489,
-                "raw_shots": 3912000,
-                "effective_shots": 3447021.591935168,
-                "fixed_shot_time_us": 857600000.0,
-                "logical_1q_applications": 23216000,
+                "settings": 478,
+                "raw_shots": 3824000,
+                "effective_shots": 3369373.642873045,
+                "fixed_shot_time_us": 838240000.0,
+                "logical_1q_applications": 22816000,
                 "logical_2q_applications": 0,
                 "modeled_2q_applications": 0,
                 "routing": {
@@ -8744,7 +8915,7 @@
                 },
                 "fidelity": {
                   "min": 0.9363149345327257,
-                  "mean": 0.9386903978960626,
+                  "mean": 0.9386754012747018,
                   "max": 0.941480149401,
                   "floor": 0.5
                 },
@@ -8765,11 +8936,11 @@
                   "calibration_status": "illustrative_scenario"
                 },
                 "n_qubits": 6,
-                "settings": 489,
-                "raw_shots": 4439877,
-                "effective_shots": 3912140.7198503185,
-                "fixed_shot_time_us": 973333160.0,
-                "logical_1q_applications": 26365363,
+                "settings": 478,
+                "raw_shots": 4340143,
+                "effective_shots": 3824138.930512269,
+                "fixed_shot_time_us": 951391680.0,
+                "logical_1q_applications": 25912245,
                 "logical_2q_applications": 0,
                 "modeled_2q_applications": 0,
                 "routing": {
@@ -8780,7 +8951,7 @@
                 },
                 "fidelity": {
                   "min": 0.9363149345327257,
-                  "mean": 0.9386903978960626,
+                  "mean": 0.9386754012747018,
                   "max": 0.941480149401,
                   "floor": 0.5
                 },
@@ -8804,11 +8975,11 @@
                   "calibration_status": "logical_baseline"
                 },
                 "n_qubits": 6,
-                "settings": 489,
-                "raw_shots": 3912000,
-                "effective_shots": 3912000.0,
-                "fixed_shot_time_us": 8200000.0,
-                "logical_1q_applications": 23216000,
+                "settings": 478,
+                "raw_shots": 3824000,
+                "effective_shots": 3824000.0,
+                "fixed_shot_time_us": 8015200.0,
+                "logical_1q_applications": 22816000,
                 "logical_2q_applications": 0,
                 "modeled_2q_applications": 0,
                 "routing": {
@@ -8840,11 +9011,11 @@
                   "calibration_status": "logical_baseline"
                 },
                 "n_qubits": 6,
-                "settings": 489,
-                "raw_shots": 3912000,
-                "effective_shots": 3912000.0,
-                "fixed_shot_time_us": 8200000.0,
-                "logical_1q_applications": 23216000,
+                "settings": 478,
+                "raw_shots": 3824000,
+                "effective_shots": 3824000.0,
+                "fixed_shot_time_us": 8015200.0,
+                "logical_1q_applications": 22816000,
                 "logical_2q_applications": 0,
                 "modeled_2q_applications": 0,
                 "routing": {
@@ -8879,11 +9050,11 @@
                   "calibration_status": "illustrative_scenario"
                 },
                 "n_qubits": 6,
-                "settings": 489,
-                "raw_shots": 3912000,
-                "effective_shots": 3033595.9709495814,
-                "fixed_shot_time_us": 12112000.0,
-                "logical_1q_applications": 23216000,
+                "settings": 478,
+                "raw_shots": 3824000,
+                "effective_shots": 2965166.4277080726,
+                "fixed_shot_time_us": 11839200.0,
+                "logical_1q_applications": 22816000,
                 "logical_2q_applications": 0,
                 "modeled_2q_applications": 0,
                 "routing": {
@@ -8894,7 +9065,7 @@
                 },
                 "fidelity": {
                   "min": 0.8761466901333697,
-                  "mean": 0.8805999006080915,
+                  "mean": 0.8805717764160769,
                   "max": 0.8858423808639999,
                   "floor": 0.5
                 },
@@ -8915,11 +9086,11 @@
                   "calibration_status": "illustrative_scenario"
                 },
                 "n_qubits": 6,
-                "settings": 489,
-                "raw_shots": 5045072,
-                "effective_shots": 3912188.2526381025,
-                "fixed_shot_time_us": 15620239.549999999,
-                "logical_1q_applications": 29978118,
+                "settings": 478,
+                "raw_shots": 4931902,
+                "effective_shots": 3824185.5529180337,
+                "fixed_shot_time_us": 15269412.550000008,
+                "logical_1q_applications": 29464195,
                 "logical_2q_applications": 0,
                 "modeled_2q_applications": 0,
                 "routing": {
@@ -8930,7 +9101,7 @@
                 },
                 "fidelity": {
                   "min": 0.8761466901333697,
-                  "mean": 0.8805999006080915,
+                  "mean": 0.8805717764160769,
                   "max": 0.8858423808639999,
                   "floor": 0.5
                 },
@@ -8947,7 +9118,7 @@
           },
           "accuracy_matched_cost": {
             "epsilon_millihartree": 1.6,
-            "exact_subspace_bias_millihartree": 863.3103828905301,
+            "exact_subspace_bias_millihartree": 863.3103828905054,
             "estimator": "single_assignment",
             "evidence_tier": "asymptotic",
             "claim_boundary": "exact bias floor plus first-order Ritz-functional variance; not the R1 nonlinear exact-oracle shot search or a finite-sample certificate",
@@ -8962,88 +9133,89 @@
   ],
   "qr2": "PASS: every emitted arm passed the mapping-invariance gate",
   "qr3": {
-    "structural_fixed_shot": {
-      "qwc_settings": {
+    "structural": {
+      "qwc_settings_matched_greedy": {
+        "systems_included": [
+          "h4",
+          "beh2",
+          "hubbard_2x2"
+        ],
         "within_system": {
           "h4": {
-            "jw": 1590.0,
             "minimum": 351.0,
-            "maximum": 1590.0,
-            "mapping_spread_fraction_of_jw": 0.779245283018868
+            "maximum": 913.0,
+            "mapping_spread_factor": 2.601139601139601
           },
           "beh2": {
-            "jw": 1036.0,
             "minimum": 27.0,
-            "maximum": 1036.0,
-            "mapping_spread_fraction_of_jw": 0.9739382239382239
-          },
-          "h2o_cas8e6o": {
-            "jw": 44172.0,
-            "minimum": 10083.0,
-            "maximum": 44172.0,
-            "mapping_spread_fraction_of_jw": 0.77173322466721
+            "maximum": 353.0,
+            "mapping_spread_factor": 13.074074074074074
           },
           "hubbard_2x2": {
-            "jw": 1903.0,
-            "minimum": 467.0,
-            "maximum": 1903.0,
-            "mapping_spread_fraction_of_jw": 0.7545980031529165
+            "minimum": 457.0,
+            "maximum": 1406.0,
+            "mapping_spread_factor": 3.076586433260394
           }
         },
         "across_instances": {
           "jw": {
-            "minimum": 1036.0,
-            "maximum": 44172.0,
-            "instance_spread_factor": 42.63706563706564
+            "minimum": 353.0,
+            "maximum": 1406.0,
+            "instance_spread_factor": 3.9830028328611897
           },
           "parity": {
             "minimum": 41.0,
-            "maximum": 30298.0,
-            "instance_spread_factor": 738.9756097560976
+            "maximum": 798.0,
+            "instance_spread_factor": 19.463414634146343
           },
           "parity+2q": {
             "minimum": 27.0,
-            "maximum": 11329.0,
-            "instance_spread_factor": 419.5925925925926
+            "maximum": 457.0,
+            "instance_spread_factor": 16.925925925925927
           },
           "bk": {
             "minimum": 41.0,
-            "maximum": 36256.0,
-            "instance_spread_factor": 884.2926829268292
+            "maximum": 907.0,
+            "instance_spread_factor": 22.121951219512194
           },
           "bk+2q": {
             "minimum": 27.0,
-            "maximum": 10083.0,
-            "instance_spread_factor": 373.44444444444446
+            "maximum": 478.0,
+            "instance_spread_factor": 17.703703703703702
           }
         },
-        "verdict": "mapping_spread_smaller_than_instance_spread"
+        "max_mapping_spread_factor": 13.074074074074074,
+        "min_instance_spread_factor": 3.9830028328611897,
+        "margin_factor": 0.3046489418902326,
+        "verdict": "mapping_spread_not_smaller_than_instance_spread"
       },
       "mean_word_weight": {
+        "systems_included": [
+          "h4",
+          "beh2",
+          "h2o_cas8e6o",
+          "hubbard_2x2"
+        ],
         "within_system": {
           "h4": {
-            "jw": 6.001899335232668,
             "minimum": 4.496062992125984,
             "maximum": 6.001899335232668,
-            "mapping_spread_fraction_of_jw": 0.2508933021030599
+            "mapping_spread_factor": 1.3349233197452695
           },
           "beh2": {
-            "jw": 5.893112947658402,
             "minimum": 3.75,
             "maximum": 5.893112947658402,
-            "mapping_spread_fraction_of_jw": 0.36366398653702314
+            "mapping_spread_factor": 1.5714967860422404
           },
           "h2o_cas8e6o": {
-            "jw": 8.774638931783086,
             "minimum": 7.340890374002518,
             "maximum": 8.774638931783086,
-            "mapping_spread_fraction_of_jw": 0.16339687238722853
+            "mapping_spread_factor": 1.1953098990359716
           },
           "hubbard_2x2": {
-            "jw": 6.129311901751851,
             "minimum": 4.477868852459016,
             "maximum": 6.129311901751851,
-            "mapping_spread_fraction_of_jw": 0.26943367799912865
+            "mapping_spread_factor": 1.3688011202887167
           }
         },
         "across_instances": {
@@ -9073,176 +9245,27 @@
             "instance_spread_factor": 1.9575707664006714
           }
         },
-        "verdict": "mapping_spread_smaller_than_instance_spread"
-      },
-      "fixed_uniform_time_us:ion-like": {
-        "within_system": {
-          "h4": {
-            "jw": 2790160000.0,
-            "minimum": 615120000.0,
-            "maximum": 2790160000.0,
-            "mapping_spread_fraction_of_jw": 0.7795395246150758
-          },
-          "beh2": {
-            "jw": 1801680000.0,
-            "minimum": 46800000.0,
-            "maximum": 1801680000.0,
-            "mapping_spread_fraction_of_jw": 0.974024244038897
-          },
-          "h2o_cas8e6o": {
-            "jw": 77699120000.0,
-            "minimum": 17727040000.0,
-            "maximum": 77699120000.0,
-            "mapping_spread_fraction_of_jw": 0.771850183116617
-          },
-          "hubbard_2x2": {
-            "jw": 3340960000.0,
-            "minimum": 818480000.0,
-            "maximum": 3340960000.0,
-            "mapping_spread_fraction_of_jw": 0.7550165221972128
-          }
-        },
-        "across_instances": {
-          "jw": {
-            "minimum": 1801680000.0,
-            "maximum": 77699120000.0,
-            "instance_spread_factor": 43.125926912659295
-          },
-          "parity": {
-            "minimum": 71440000.0,
-            "maximum": 53276400000.0,
-            "instance_spread_factor": 745.7502799552071
-          },
-          "parity+2q": {
-            "minimum": 46800000.0,
-            "maximum": 19921200000.0,
-            "instance_spread_factor": 425.6666666666667
-          },
-          "bk": {
-            "minimum": 71440000.0,
-            "maximum": 63764800000.0,
-            "instance_spread_factor": 892.5643896976484
-          },
-          "bk+2q": {
-            "minimum": 46800000.0,
-            "maximum": 17727040000.0,
-            "instance_spread_factor": 378.78290598290596
-          }
-        },
-        "verdict": "mapping_spread_smaller_than_instance_spread"
-      },
-      "fixed_uniform_time_us:logical-alltoall": {
-        "within_system": {
-          "h4": {
-            "jw": 26670800.0,
-            "minimum": 5883600.0,
-            "maximum": 26670800.0,
-            "mapping_spread_fraction_of_jw": 0.7793991931250657
-          },
-          "beh2": {
-            "jw": 17296400.0,
-            "minimum": 450000.0,
-            "maximum": 17296400.0,
-            "mapping_spread_fraction_of_jw": 0.973983025369441
-          },
-          "h2o_cas8e6o": {
-            "jw": 741871600.0,
-            "minimum": 169299200.0,
-            "maximum": 741871600.0,
-            "mapping_spread_fraction_of_jw": 0.7717944722509933
-          },
-          "hubbard_2x2": {
-            "jw": 31928800.0,
-            "minimum": 7828400.0,
-            "maximum": 31928800.0,
-            "mapping_spread_fraction_of_jw": 0.754816967753251
-          }
-        },
-        "across_instances": {
-          "jw": {
-            "minimum": 17296400.0,
-            "maximum": 741871600.0,
-            "instance_spread_factor": 42.89167688073819
-          },
-          "parity": {
-            "minimum": 685200.0,
-            "maximum": 508766000.0,
-            "instance_spread_factor": 742.5072971395213
-          },
-          "parity+2q": {
-            "minimum": 450000.0,
-            "maximum": 190238000.0,
-            "instance_spread_factor": 422.75111111111113
-          },
-          "bk": {
-            "minimum": 685200.0,
-            "maximum": 608872000.0,
-            "instance_spread_factor": 888.6047869235259
-          },
-          "bk+2q": {
-            "minimum": 450000.0,
-            "maximum": 169299200.0,
-            "instance_spread_factor": 376.22044444444447
-          }
-        },
-        "verdict": "mapping_spread_smaller_than_instance_spread"
-      },
-      "fixed_uniform_time_us:superconducting-like": {
-        "within_system": {
-          "h4": {
-            "jw": 39390800.0,
-            "minimum": 8691600.0,
-            "maximum": 39390800.0,
-            "mapping_spread_fraction_of_jw": 0.7793494927749627
-          },
-          "beh2": {
-            "jw": 25584400.0,
-            "minimum": 666000.0,
-            "maximum": 25584400.0,
-            "mapping_spread_fraction_of_jw": 0.9739685120620378
-          },
-          "h2o_cas8e6o": {
-            "jw": 1095247600.0,
-            "minimum": 249963200.0,
-            "maximum": 1095247600.0,
-            "mapping_spread_fraction_of_jw": 0.7717747110333772
-          },
-          "hubbard_2x2": {
-            "jw": 47152800.0,
-            "minimum": 11564400.0,
-            "maximum": 47152800.0,
-            "mapping_spread_fraction_of_jw": 0.7547462716954242
-          }
-        },
-        "across_instances": {
-          "jw": {
-            "minimum": 25584400.0,
-            "maximum": 1095247600.0,
-            "instance_spread_factor": 42.80919622895202
-          },
-          "parity": {
-            "minimum": 1013200.0,
-            "maximum": 751150000.0,
-            "instance_spread_factor": 741.3639952625346
-          },
-          "parity+2q": {
-            "minimum": 666000.0,
-            "maximum": 280870000.0,
-            "instance_spread_factor": 421.7267267267267
-          },
-          "bk": {
-            "minimum": 1013200.0,
-            "maximum": 898920000.0,
-            "instance_spread_factor": 887.2088432688512
-          },
-          "bk+2q": {
-            "minimum": 666000.0,
-            "maximum": 249963200.0,
-            "instance_spread_factor": 375.3201201201201
-          }
-        },
-        "verdict": "mapping_spread_smaller_than_instance_spread"
+        "max_mapping_spread_factor": 1.5714967860422404,
+        "min_instance_spread_factor": 1.4889650019807688,
+        "margin_factor": 0.9474820535463359,
+        "verdict": "mapping_spread_not_smaller_than_instance_spread"
       }
+    },
+    "structural_verdict": "mapping_spread_not_smaller_on_every_independent_metric",
+    "qwc_exclusion": {
+      "systems": [
+        "h2o_cas8e6o"
+      ],
+      "reason": "scalable-cover counts are constructive upper bounds from a different heuristic and are excluded from the cross-instance QWC verdict"
+    },
+    "device_card_projections": {
+      "cards": [
+        "ion-like",
+        "logical-alltoall",
+        "superconducting-like"
+      ],
+      "independent_evidence": false,
+      "reason": "QWC basis rotations have N_2q=D_2q=0, so fixed-shot card times are derived projections of setting count and one-qubit rotations, not independent confirmations"
     },
     "accuracy_matched": {
       "eligible_systems": [
@@ -9250,12 +9273,12 @@
       ],
       "verdict": "insufficient_eligible_instances"
     },
-    "claim_boundary": "structural and fixed-shot comparison under one constructive QWC cover; accuracy-matched QR3 abstains unless at least two complete systems clear the exact subspace-bias floor in every mapping arm"
+    "claim_boundary": "like-for-like ratio comparison on algorithm-independent word weight and matched largest-degree-greedy QWC systems; H2O scalable-cover counts and device-card projections are descriptive only; accuracy-matched QR3 abstains unless at least two complete systems clear the exact bias floor"
   },
-  "claim_boundary": "exact representation and resource counts plus an asymptotic single-assignment shot model; no nonlinear finite-shot mapping search, hardware calibration, optimal-coloring claim, or mapping-by-protocol interaction",
+  "claim_boundary": "exact representation and resource counts plus an asymptotic single-assignment shot model; no nonlinear finite-shot mapping search, hardware calibration, optimal-coloring claim, H2O cross-heuristic QWC verdict, independent device-card corroboration, or mapping-by-protocol interaction",
   "provenance": {
     "schema": "clifford_qc.execution_provenance.v1",
-    "git_sha": "8109e6394c307a9890d4bddd94128bea7e65cee5",
+    "git_sha": "fbd78390225cb34facea346860431e7e40a9ac4a",
     "git_dirty": true,
     "clifford_qc": "0.3.0",
     "python": "3.12.13",
@@ -9272,7 +9295,7 @@
       "release": "6.18.35",
       "machine": "x86_64",
       "processor": "x86_64",
-      "hostname": "40a45927c1ee"
+      "hostname": "d3258ef9a741"
     },
     "blas_lapack": {
       "Compilers": {
@@ -9350,6 +9373,6 @@
       }
     },
     "environment_sha256": "f0e33c4691f7438ff561191c6b97ca5182531c444dc722dbd0699e693ab7b933",
-    "utc": "2026-08-14T04:59:23.785768+00:00"
+    "utc": "2026-08-14T13:17:58.345058+00:00"
   }
 }

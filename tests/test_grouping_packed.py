@@ -149,10 +149,8 @@ def test_basis_cover_is_deterministic_valid_and_complete():
         "ZZZZ", "YIYI", "IYIY", "YYYY", "ZIZI", "IZIZ",
     )
     words = [PauliWord.from_label(label) for label in labels]
-    first = qwc_basis_cover(words, max_candidate_bases=4, refinement_passes=2)
-    second = qwc_basis_cover(
-        list(reversed(words)), max_candidate_bases=4, refinement_passes=2
-    )
+    first = qwc_basis_cover(words)
+    second = qwc_basis_cover(list(reversed(words)))
     assert _codes(first) == _codes(second)
     seen = []
     for group in first:
@@ -164,14 +162,13 @@ def test_basis_cover_is_deterministic_valid_and_complete():
     assert sorted(seen) == sorted(word.code for word in words)
 
 
-def test_basis_cover_deduplicates_and_validates_controls():
+def test_groupers_deduplicate_and_validate_widths():
     word = PauliWord.from_label("XI")
     assert _codes(qwc_basis_cover([word, word])) == [[word.code]]
-    with pytest.raises(ValueError, match="different qubit counts"):
-        qwc_basis_cover([PauliWord(2, 1), PauliWord(3, 1)])
-    with pytest.raises(ValueError, match="positive"):
-        qwc_basis_cover([word], max_candidate_bases=0)
-    with pytest.raises(ValueError, match="non-negative"):
-        qwc_basis_cover([word], refinement_passes=-1)
-    with pytest.raises(TypeError, match="integer"):
-        qwc_basis_cover([word], refinement_passes=True)
+    assert _codes(qwc_groups([word, word])) == [[word.code]]
+    mixed = [PauliWord(2, 1), PauliWord(3, 1)]
+    for grouper in (qwc_basis_cover, qwc_groups):
+        with pytest.raises(ValueError, match="different qubit counts"):
+            grouper(mixed)
+    with pytest.raises(ValueError, match="at most 31 qubits"):
+        qwc_basis_cover([PauliWord(32, 1)])
