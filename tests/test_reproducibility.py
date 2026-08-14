@@ -24,3 +24,39 @@ def test_stamp_record_is_non_mutating_and_json_safe(monkeypatch):
     assert stamped["provenance"]["clifford_qc"]
     assert len(stamped["provenance"]["environment_sha256"]) == 64
     json.dumps(stamped)
+
+
+def test_key_tolerances_widen_only_the_named_field():
+    # A residue of two large energies keeps only a few significant digits, so
+    # its own magnitude is the wrong error scale; a neighbouring field of the
+    # same size that is *not* a difference must stay on the tight default.
+    expected = {"error_millihartree": 0.0033014997669056356,
+                "condition_number": 0.0033014997669056356}
+    actual = {"error_millihartree": 0.0033014999125668965,
+              "condition_number": 0.0033014999125668965}
+    tight = compare_json_records(expected, actual, atol=1e-10, rtol=1e-10)
+    assert len(tight) == 2
+
+    widened = compare_json_records(
+        expected, actual, atol=1e-10, rtol=1e-10,
+        key_tolerances={"error_millihartree": (1e-10, 1e-8)},
+    )
+    assert len(widened) == 1
+    assert "condition_number" in widened[0]
+
+
+def test_key_tolerances_still_reject_a_scientifically_real_change():
+    expected = {"error_millihartree": 0.0033014997669056356}
+    actual = {"error_millihartree": 0.0033114997669056356}   # +1e-5 mHa
+    assert compare_json_records(
+        expected, actual, atol=1e-10, rtol=1e-10,
+        key_tolerances={"error_millihartree": (1e-10, 1e-8)},
+    )
+
+
+def test_key_tolerances_default_leaves_comparison_unchanged():
+    expected = {"a": 1.0, "b": {"c": 2.0}}
+    assert compare_json_records(expected, {"a": 1.0, "b": {"c": 2.0}},
+                                key_tolerances=None) == []
+    assert compare_json_records(expected, {"a": 1.0, "b": {"c": 2.5}},
+                                key_tolerances={"z": (1.0, 1.0)})

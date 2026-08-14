@@ -1,0 +1,61 @@
+{
+  "schema": "clifford_qc.active_space_benchmark.v1",
+  "name": "H2O STO-3G CAS(8e,6o)",
+  "geometry_angstrom": [
+    [
+      "O",
+      [
+        0.0,
+        0.0,
+        0.0
+      ]
+    ],
+    [
+      "H",
+      [
+        0.7575407977810179,
+        0.0,
+        0.5870796365888523
+      ]
+    ],
+    [
+      "H",
+      [
+        -0.7575407977810179,
+        0.0,
+        0.5870796365888523
+      ]
+    ]
+  ],
+  "basis": "sto-3g",
+  "orbital_method": "RHF",
+  "active_space": {
+    "electrons": 8,
+    "spatial_orbitals": 6,
+    "selection": "lowest canonical RHF orbital frozen; next six active"
+  },
+  "generator": {
+    "software": "PySCF",
+    "version": "2.14.0",
+    "scf_convergence_tolerance": 1e-12,
+    "script": "benchmarks/make_h2o_fcidump.py",
+    "memory_probe_fallback": true
+  },
+  "fcidump_sha256": "2f68b1d3f9f77e9c1483cb1b879bac2a67a9d8204ce2e9e985697c10029c6103",
+  "energy_unit": "hartree",
+  "reference_energies": {
+    "rhf": -74.96311986160856,
+    "fci": -75.01268130509854
+  },
+  "source_ladder": {
+    "config": "benchmarks/configs/acase_ladder.json",
+    "result": "benchmarks/reference_results/acase_ladder.jsonl",
+    "rung_name": "h2o_cas8e6o",
+    "geometry_scale": 1.0
+  },
+  "notes": [
+    "The committed FCIDUMP, not a live chemistry rebuild, is the R2b input.",
+    "The CASCI energy independently checks the sector-exact clifford_qc solve.",
+    "Molecular-orbital signs are gauge choices; the SHA-256 fixes this gauge."
+  ]
+}

@@ -9,7 +9,7 @@ from .allocation import (
     GroupVarianceOptimal, UniformFixed, UniformDoubling,
     VarianceProportional, variance_optimal_group_plan,
 )
-from .grouping import qubit_wise_commute, qwc_groups, shared_basis
+from .grouping import qwc_basis_cover, qubit_wise_commute, qwc_groups, shared_basis
 from .cost import (
     DeviceCard,
     SettingResources,
@@ -26,7 +26,7 @@ __all__ = ["WordCache", "GroupedWordCache", "CommutatorBank", "simultaneous_z_ra
            "jeffreys_mean_var", "empirical_bernstein_radius", "candidate_radius",
            "UniformFixed", "UniformDoubling", "VarianceProportional",
            "GroupVarianceOptimal", "variance_optimal_group_plan",
-           "qubit_wise_commute", "qwc_groups", "shared_basis",
+           "qubit_wise_commute", "qwc_groups", "qwc_basis_cover", "shared_basis",
            "DeviceCard", "SettingResources", "break_even_surface",
            "cost_schedule", "estimator_information", "inflate_shots_for_fidelity",
            "setting_duration_us", "setting_fidelity"]

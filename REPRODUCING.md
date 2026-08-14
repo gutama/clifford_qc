@@ -101,7 +101,7 @@ No figure or table value in the manuscript is transcribed by hand, and
 ```bash
 python -m venv .venv && source .venv/bin/activate
 pip install -e .[test,research,chemistry]   # numpy + scipy + openfermion/pyscf
-pytest                                      # 1162 passed, 6 skipped
+pytest                                      # 1167 passed, 6 skipped
 ```
 
 That install is the reference environment for the quoted pair, and it is
@@ -1249,7 +1249,7 @@ The four PDF figures are generated outputs: `make_figures.py` may regenerate
 different PDF metadata under a newer Matplotlib, while `check_manuscript.py`
 still checks their existence, scientific inputs, and staleness.
 
-## R2b fermion-mapping foundation
+## R2b raw-pool fermion-mapping axis
 
 The five predeclared mapping arms are constructed in
 `clifford_qc/fermion_mapping.py`:
@@ -1260,23 +1260,75 @@ The five predeclared mapping arms are constructed in
   encoded qubits, derive their signs from declared `(N,S_z)`, and use the
   shared `Restriction` to rotate, fix, and delete them.
 
-Run the implementation and independent invariant gates with:
+The committed experiment holds the physical generator labels fixed across
+representations and evaluates H₄, BeH₂ CAS(4e,4o), equilibrium H₂O CAS(8e,6o),
+and the open 2×2 Hubbard model. Run the implementation tests, rebuild the stamped
+record, and run its independent checker with:
 
 ```bash
 python -m pytest tests/test_fermion_mapping.py -q
+python -m pytest tests/test_mapping_axis.py tests/test_grouping_packed.py -q
+python benchmarks/run_mapping_axis.py
+python benchmarks/check_mapping_axis.py
 ```
 
 The gate compares the transported and JW projected `(S,H)` matrices, basis
 size, retained rank, condition number, Ritz values, and reference energy. Pure
 encoding arms additionally require a Pauli-word-universe bijection. At small
 qubit count, every arm is checked against an independently materialized full or
-fixed-parity dense spectrum. A sector-changing generator or an incorrectly
-declared reference sector aborts. The report records the mapping name, and the
-relative/absolute comparison tolerances, dimensionless leakage tolerance, and
-absolute zero-operator tolerance are independent controls.
+fixed-parity dense spectrum. H₂O exceeds the declared ten-qubit dense-oracle limit;
+the record states that exclusion explicitly while retaining the projected-matrix,
+operator-transport, Ritz, reference-energy, leakage, and encoding gates. Every
+numerical error is stored with its comparison scale and tolerance, and the checker
+recomputes each gate. A sector-changing generator or incorrectly declared reference
+sector aborts.
 
-This is infrastructure, not an R2 result. It produces no mapping-cost record,
-does not answer QR3, and does not label the dense oracle as a hardware-available
-stopping rule. The next R2b increment must add the raw-pool multi-system
-producer, stamped reference record, regenerating checker, and device-card cost
-comparison before any mapping conclusion is reported.
+Two record fields are compared on an absolute rather than a relative scale.
+`error_millihartree` and `exact_subspace_bias_millihartree` are both
+`subspace energy - exact energy`: a residue of order `1e-3` mHa left by energies of
+order `1e4` mHa, so seven significant digits are lost to cancellation before any
+comparison happens, and the residue's own magnitude is not the scale its arithmetic
+can reproduce. Measured across `OMP_NUM_THREADS=1` and `=8` on one machine, the
+BeH₂ values move by `1.5e-10` mHa — enough to fail a `1e-10` gate and leave the
+checker's verdict depending on the thread count. They are therefore gated at
+`1e-8` mHa absolute, which clears the observed spread by ~70× while staying five
+orders below the smallest bias the record reports and eight below the 1.6 mHa
+target. This is the same discipline as the tie-break above: where reduction order
+can be made irrelevant it is, and where it cannot — a cancellation residue is not
+bit-reproducible across BLAS reduction orders — the tolerance is set by the
+physical scale and stated rather than tuned until the gate passes.
+
+`benchmarks/configs/mapping_axis.json` pins the five-arm order, selected raw-pool
+labels and source-row hashes, the grouping protocol for each system, 8000 raw shots
+per setting, the single-assignment estimator, the 1.6 mHa target, and all four
+inputs. H₄, BeH₂, and Hubbard use the established largest-degree greedy. H₂O alone
+uses the scalable full-basis-seeded first-fit cover; its setting counts are
+constructive upper bounds and are excluded from the cross-instance QWC verdict.
+Neither protocol claims a minimum coloring.
+
+The committed `JW/parity/parity+2q/BK/BK+2q` setting counts are
+`913/533/351/615/403` for H₄, `353/41/27/41/27` for BeH₂,
+`24334/17118/9908/18108/8759` for H₂O, and `1406/798/457/907/478` for Hubbard.
+QR2 passes for every arm. The corrected ratio-versus-ratio QR3 comparison is
+negative: mapping spread is not smaller than instance spread for matched-greedy
+QWC settings (`13.074×` versus `3.983×`) or mean word weight (`1.571×` versus
+`1.489×`). Fixed-shot card rows are derived projections, not independent evidence,
+because QWC uses no two-qubit measurement gates. Accuracy-matched QR3 abstains
+because only BeH₂ clears the exact subspace-bias floor in all five arms. Its prices
+remain `asymptotic`; this producer does not replace R1's nonlinear exact-oracle
+shot search.
+
+The original plan also named `G(k)` and coverage across protocol rungs. They are
+explicitly recorded as a post-registration deferral to R3; this fixed-QWC record
+does not claim to test that protocol interaction.
+
+Ordinary reproduction consumes the committed H₂O FCIDUMP and does not require a
+live chemistry build. To regenerate that immutable input with the chemistry extra:
+
+```bash
+python benchmarks/make_h2o_fcidump.py
+```
+
+The emitted provenance pins the geometry, active space, PySCF version, independent
+CASCI energy, and FCIDUMP SHA-256. A changed orbital gauge changes the digest and
+must be reviewed as a new benchmark input, not accepted as harmless record drift.

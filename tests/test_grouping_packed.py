@@ -14,7 +14,7 @@ from clifford_qc.algorithms import local_pool
 from clifford_qc.ir import PauliWord
 from clifford_qc.measurement import CommutatorBank
 from clifford_qc.measurement.grouping import (
-    _qwc_codes, qubit_wise_commute, qwc_groups, shared_basis,
+    _qwc_codes, qubit_wise_commute, qwc_basis_cover, qwc_groups, shared_basis,
 )
 from clifford_qc.models import random_ising, tfim
 from clifford_qc.multivector import code_to_label
@@ -141,3 +141,34 @@ def test_subset_after_elimination_regroups_validly():
                           [op.word for op in local_pool(4, periodic_context=False)])
     subset = bank.words_for([0, 2, 3])
     _assert_matches_reference(subset)
+
+
+def test_basis_cover_is_deterministic_valid_and_complete():
+    labels = (
+        "XIII", "IXII", "IIXI", "IIIX", "XXII", "IXXI", "IIXX",
+        "ZZZZ", "YIYI", "IYIY", "YYYY", "ZIZI", "IZIZ",
+    )
+    words = [PauliWord.from_label(label) for label in labels]
+    first = qwc_basis_cover(words)
+    second = qwc_basis_cover(list(reversed(words)))
+    assert _codes(first) == _codes(second)
+    seen = []
+    for group in first:
+        shared_basis(group)
+        for left in group:
+            for right in group:
+                assert qubit_wise_commute(left, right)
+        seen.extend(word.code for word in group)
+    assert sorted(seen) == sorted(word.code for word in words)
+
+
+def test_groupers_deduplicate_and_validate_widths():
+    word = PauliWord.from_label("XI")
+    assert _codes(qwc_basis_cover([word, word])) == [[word.code]]
+    assert _codes(qwc_groups([word, word])) == [[word.code]]
+    mixed = [PauliWord(2, 1), PauliWord(3, 1)]
+    for grouper in (qwc_basis_cover, qwc_groups):
+        with pytest.raises(ValueError, match="different qubit counts"):
+            grouper(mixed)
+    with pytest.raises(ValueError, match="at most 31 qubits"):
+        qwc_basis_cover([PauliWord(32, 1)])

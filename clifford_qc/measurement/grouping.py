@@ -203,16 +203,114 @@ def qwc_groups(words: Sequence[PauliWord]) -> list[list[PauliWord]]:
     count (exact coloring is NP-hard). The partition is cached on the exact
     word set, so repeated candidate sets reuse it.
     """
+    original = list(words)
+    if not original:
+        return []
+    n = original[0].n
+    if any(word.n != n for word in original):
+        raise ValueError("words act on different qubit counts")
     # A measurement partition is over distinct observables.  Duplicate inputs
     # would otherwise manufacture multiple assignments for the same word.
-    words = list({word.code: word for word in words}.values())
-    if not words:
-        return []
-    n = words[0].n
-    if any(word.n != n for word in words):
-        raise ValueError("words act on different qubit counts")
+    words = list({word.code: word for word in original}.values())
     partition = _qwc_partition(n, tuple(word.code for word in words))
     return [[PauliWord(n, code) for code in group] for group in partition]
+
+
+def _first_compatible_full_bases(
+    n: int,
+    partial_codes,
+    full_bases,
+    *,
+    work_items: int = 1 << 22,
+):
+    """Vectorized first compatible full basis, or ``-1`` when none exists."""
+    import numpy as np
+
+    partial = np.asarray(partial_codes, dtype=np.int64)
+    bases = np.asarray(full_bases, dtype=np.int64)
+    selected = np.full(len(partial), -1, dtype=np.int64)
+    if not len(partial) or not len(bases):
+        return selected
+    lo = np.int64(pauli_lane_mask(n))
+    block = max(1, int(work_items) // len(bases))
+    for start in range(0, len(partial), block):
+        stop = min(start + block, len(partial))
+        values = partial[start:stop, None]
+        nonidentity = (values & lo) | ((values >> np.int64(1)) & lo)
+        difference = values ^ bases[None, :]
+        difference_nonidentity = (
+            (difference & lo) | ((difference >> np.int64(1)) & lo)
+        )
+        compatible = (nonidentity & difference_nonidentity) == 0
+        found = compatible.any(axis=1)
+        first = np.argmax(compatible, axis=1)
+        selected[start:stop] = np.where(found, bases[first], -1)
+    return selected
+
+
+def qwc_basis_cover(
+    words: Sequence[PauliWord],
+) -> list[list[PauliWord]]:
+    """Scalable deterministic QWC cover for very wide word universes.
+
+    The exact largest-conflict-degree greedy used by :func:`qwc_groups` needs
+    all pairwise conflict degrees.  That contract is valuable for frozen small
+    records but becomes quadratic at the 143k-word H2O R2b rung.  This routine
+    constructs a different, explicitly labelled upper bound:
+
+    1. seed one group for every observed full-support word (distinct full
+       supports can never share a QWC setting);
+    2. assign each compatible partial word to the lexicographically first
+       seeded basis;
+    3. place every unmatched word by deterministic first fit against the
+       accumulated group bases.
+
+    Every returned group is checked through the same packed QWC predicate.
+    The result is a constructive circuit cover, not a chromatic-number claim,
+    and must not be compared numerically with the older degree-greedy counts
+    without naming the changed heuristic.
+    """
+    original = list(words)
+    if not original:
+        return []
+    n = original[0].n
+    if any(word.n != n for word in original):
+        raise ValueError("words act on different qubit counts")
+    unique = list({word.code: word for word in original}.values())
+    if 2 * n > 63:
+        raise ValueError("qwc_basis_cover requires at most 31 qubits")
+
+    import numpy as np
+
+    codes = tuple(sorted(word.code for word in unique))
+    packed = np.asarray(codes, dtype=np.int64)
+    lo = np.int64(pauli_lane_mask(n))
+    nonidentity = (packed & lo) | ((packed >> np.int64(1)) & lo)
+    full = np.sort(packed[nonidentity == lo])
+    assignments = _first_compatible_full_bases(n, packed, full)
+
+    bases = [int(value) for value in full]
+    members: list[list[int]] = [[] for _ in bases]
+    unmatched = []
+    for index, assignment in enumerate(assignments):
+        if assignment < 0:
+            unmatched.append(index)
+        else:
+            group_index = int(np.searchsorted(full, assignment))
+            members[group_index].append(index)
+    _place(n, codes, unmatched, bases, members)
+
+    groups = [
+        [PauliWord(n, codes[index]) for index in group]
+        for group in members
+    ]
+    for group in groups:
+        basis = 0
+        for word in group:
+            if not _qwc_codes(n, word.code, basis):
+                raise AssertionError("basis-cover grouping produced a QWC conflict")
+            basis |= word.code
+    return groups
 
 
 def shared_basis(group: Sequence[PauliWord]) -> dict[int, str]:
