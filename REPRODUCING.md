@@ -101,7 +101,7 @@ No figure or table value in the manuscript is transcribed by hand, and
 ```bash
 python -m venv .venv && source .venv/bin/activate
 pip install -e .[test,research,chemistry]   # numpy + scipy + openfermion/pyscf
-pytest                                      # 1162 passed, 6 skipped
+pytest                                      # 1167 passed, 6 skipped
 ```
 
 That install is the reference environment for the quoted pair, and it is
@@ -1249,7 +1249,7 @@ The four PDF figures are generated outputs: `make_figures.py` may regenerate
 different PDF metadata under a newer Matplotlib, while `check_manuscript.py`
 still checks their existence, scientific inputs, and staleness.
 
-## R2b fermion-mapping foundation
+## R2b raw-pool fermion-mapping axis
 
 The five predeclared mapping arms are constructed in
 `clifford_qc/fermion_mapping.py`:
@@ -1260,10 +1260,16 @@ The five predeclared mapping arms are constructed in
   encoded qubits, derive their signs from declared `(N,S_z)`, and use the
   shared `Restriction` to rotate, fix, and delete them.
 
-Run the implementation and independent invariant gates with:
+The committed experiment holds the physical generator labels fixed across
+representations and evaluates H₄, BeH₂ CAS(4e,4o), equilibrium H₂O CAS(8e,6o),
+and the open 2×2 Hubbard model. Run the implementation tests, rebuild the stamped
+record, and run its independent checker with:
 
 ```bash
 python -m pytest tests/test_fermion_mapping.py -q
+python -m pytest tests/test_mapping_axis.py tests/test_grouping_packed.py -q
+python benchmarks/run_mapping_axis.py
+python benchmarks/check_mapping_axis.py
 ```
 
 The gate compares the transported and JW projected `(S,H)` matrices, basis
@@ -1275,8 +1281,33 @@ declared reference sector aborts. The report records the mapping name, and the
 relative/absolute comparison tolerances, dimensionless leakage tolerance, and
 absolute zero-operator tolerance are independent controls.
 
-This is infrastructure, not an R2 result. It produces no mapping-cost record,
-does not answer QR3, and does not label the dense oracle as a hardware-available
-stopping rule. The next R2b increment must add the raw-pool multi-system
-producer, stamped reference record, regenerating checker, and device-card cost
-comparison before any mapping conclusion is reported.
+`benchmarks/configs/mapping_axis.json` pins the five-arm order, selected raw-pool
+labels and source-row hashes, fixed QWC grouping parameters, 8000 raw shots per
+setting, the single-assignment estimator, the 1.6 mHa target, and all four system
+inputs. `benchmarks/reference_results/mapping_axis.json` records the resulting
+weight ledgers, QWC resources, fixed-shot device costs, and asymptotic
+accuracy-matched costs. The QWC routine is a deterministic constructive cover
+designed for the 143117-word water bank. Its setting count is an upper bound, not
+a minimum-coloring result, and must not be compared with the legacy
+largest-degree greedy count without naming the changed heuristic.
+
+The committed `JW/parity/parity+2q/BK/BK+2q` setting counts are
+`1590/602/351/710/406` for H₄, `1036/41/27/41/27` for BeH₂,
+`44172/30298/11329/36256/10083` for H₂O, and
+`1903/977/467/1184/489` for Hubbard. QR2 passes for every arm. Structural and
+fixed-shot QR3 reports mapping spread below cross-instance spread for every named
+metric and device card. Accuracy-matched QR3 abstains because only BeH₂ is below
+the exact subspace-bias floor in all five arms. Those BeH₂ prices use exact bias
+plus first-order Ritz-functional variance and remain labelled `asymptotic`; this
+producer does not rerun or replace R1's nonlinear exact-oracle shot search.
+
+Ordinary reproduction consumes the committed H₂O FCIDUMP and does not require a
+live chemistry build. To regenerate that immutable input with the chemistry extra:
+
+```bash
+python benchmarks/make_h2o_fcidump.py
+```
+
+The emitted provenance pins the geometry, active space, PySCF version, independent
+CASCI energy, and FCIDUMP SHA-256. A changed orbital gauge changes the digest and
+must be reviewed as a new benchmark input, not accepted as harmless record drift.

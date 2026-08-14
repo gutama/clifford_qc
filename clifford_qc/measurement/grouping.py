@@ -215,6 +215,135 @@ def qwc_groups(words: Sequence[PauliWord]) -> list[list[PauliWord]]:
     return [[PauliWord(n, code) for code in group] for group in partition]
 
 
+def _first_compatible_full_bases(
+    n: int,
+    partial_codes,
+    full_bases,
+    *,
+    work_items: int = 1 << 22,
+):
+    """Vectorized first compatible full basis, or ``-1`` when none exists."""
+    import numpy as np
+
+    partial = np.asarray(partial_codes, dtype=np.int64)
+    bases = np.asarray(full_bases, dtype=np.int64)
+    selected = np.full(len(partial), -1, dtype=np.int64)
+    if not len(partial) or not len(bases):
+        return selected
+    lo = np.int64(pauli_lane_mask(n))
+    block = max(1, int(work_items) // len(bases))
+    for start in range(0, len(partial), block):
+        stop = min(start + block, len(partial))
+        values = partial[start:stop, None]
+        nonidentity = (values & lo) | ((values >> np.int64(1)) & lo)
+        difference = values ^ bases[None, :]
+        difference_nonidentity = (
+            (difference & lo) | ((difference >> np.int64(1)) & lo)
+        )
+        compatible = (nonidentity & difference_nonidentity) == 0
+        found = compatible.any(axis=1)
+        first = np.argmax(compatible, axis=1)
+        selected[start:stop] = np.where(found, bases[first], -1)
+    return selected
+
+
+def qwc_basis_cover(
+    words: Sequence[PauliWord],
+    *,
+    max_candidate_bases: int = 8192,
+    refinement_passes: int = 2,
+) -> list[list[PauliWord]]:
+    """Scalable deterministic QWC cover for very wide word universes.
+
+    The exact largest-conflict-degree greedy used by :func:`qwc_groups` needs
+    all pairwise conflict degrees.  That contract is valuable for frozen small
+    records but becomes quadratic at the 143k-word H2O R2b rung.  This routine
+    constructs a different, explicitly labelled upper bound:
+
+    1. use observed full-support words as candidate product-measurement bases;
+    2. assign each partial word to the lexicographically first compatible
+       candidate, or complete its identity lanes with the most frequent local
+       non-identity letter;
+    3. run a bounded number of deterministic refinement passes using the
+       largest current groups as additional candidate bases.
+
+    Every returned group is checked through the same packed QWC predicate.
+    The result is a constructive circuit cover, not a chromatic-number claim,
+    and must not be compared numerically with the older degree-greedy counts
+    without naming the changed heuristic.
+    """
+    if isinstance(max_candidate_bases, bool) or not isinstance(max_candidate_bases, int):
+        raise TypeError("max_candidate_bases must be an integer")
+    if max_candidate_bases < 1:
+        raise ValueError("max_candidate_bases must be positive")
+    if isinstance(refinement_passes, bool) or not isinstance(refinement_passes, int):
+        raise TypeError("refinement_passes must be an integer")
+    if refinement_passes < 0:
+        raise ValueError("refinement_passes must be non-negative")
+
+    unique = list({word.code: word for word in words}.values())
+    if not unique:
+        return []
+    n = unique[0].n
+    if any(word.n != n for word in unique):
+        raise ValueError("words act on different qubit counts")
+    if 2 * n > 63:
+        # The packed NumPy implementation is intentionally bounded to int64.
+        # Keep a valid dependency-light fallback rather than wrapping codes.
+        return qwc_groups(unique)
+
+    import numpy as np
+
+    codes = np.asarray(sorted(word.code for word in unique), dtype=np.int64)
+    lo = np.int64(pauli_lane_mask(n))
+    nonidentity = (codes & lo) | ((codes >> np.int64(1)) & lo)
+    full = np.sort(codes[nonidentity == lo])
+    if len(full) > max_candidate_bases:
+        full = full[:max_candidate_bases]
+    assignments = _first_compatible_full_bases(n, codes, full)
+
+    completion = codes.copy()
+    for qubit in range(n):
+        letters = (codes >> np.int64(2 * qubit)) & np.int64(3)
+        counts = np.bincount(letters, minlength=4)
+        # Identities do not define a measurement basis.  Ties among X/Y/Z are
+        # resolved by their packed order because np.argmax returns the first.
+        fill = int(np.argmax(counts[1:]) + 1)
+        completion |= np.where(
+            letters == 0, np.int64(fill << (2 * qubit)), np.int64(0)
+        )
+    assignments = np.where(assignments < 0, completion, assignments)
+
+    for _ in range(refinement_passes):
+        keys, inverse = np.unique(assignments, return_inverse=True)
+        sizes = np.bincount(inverse)
+        actual = np.zeros(len(keys), dtype=np.int64)
+        for index, group_index in enumerate(inverse):
+            actual[group_index] |= codes[index]
+        order = sorted(
+            range(len(keys)), key=lambda index: (-int(sizes[index]), int(keys[index]))
+        )[:max_candidate_bases]
+        candidates = keys[np.asarray(order, dtype=np.int64)]
+        reassigned = _first_compatible_full_bases(n, actual, candidates)
+        next_keys = np.where(reassigned < 0, keys, reassigned)
+        updated = next_keys[inverse]
+        if np.array_equal(updated, assignments):
+            break
+        assignments = updated
+
+    keys, inverse = np.unique(assignments, return_inverse=True)
+    groups: list[list[PauliWord]] = [[] for _ in range(len(keys))]
+    for code, group_index in zip(codes, inverse):
+        groups[int(group_index)].append(PauliWord(n, int(code)))
+    for group in groups:
+        basis = 0
+        for word in group:
+            if not _qwc_codes(n, word.code, basis):
+                raise AssertionError("basis-cover grouping produced a QWC conflict")
+            basis |= word.code
+    return groups
+
+
 def shared_basis(group: Sequence[PauliWord]) -> dict[int, str]:
     """The per-qubit measurement basis of a QWC group: qubit -> X/Y/Z.
 

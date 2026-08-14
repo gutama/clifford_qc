@@ -1,0 +1,121 @@
+{
+  "schema": "clifford_qc.mapping_axis_config.v1",
+  "phase": "R2b",
+  "pool": {
+    "name": "raw_symmetry_preserving_determinant_excitations",
+    "max_excitation_rank": 2,
+    "ordering": "determinant_excitations native enumeration order",
+    "selection": "labels frozen by completed raw-pool A-CASE runs before mapping costs",
+    "maximum_basis_size": 9
+  },
+  "mapping_arms": [
+    "jw",
+    "parity",
+    "parity+2q",
+    "bk",
+    "bk+2q"
+  ],
+  "measurement": {
+    "protocol": "qwc_basis_cover",
+    "max_candidate_bases": 8192,
+    "refinement_passes": 2,
+    "uniform_raw_shots_per_setting": 8000,
+    "estimator": "single_assignment",
+    "accuracy_target_millihartree": 1.6,
+    "accuracy_evidence_tier": "asymptotic"
+  },
+  "systems": [
+    {
+      "key": "h4",
+      "label": "H4 equilibrium STO-3G",
+      "builder": "fcidump",
+      "source": "benchmarks/data/h4_sto3g_r0.9.FCIDUMP",
+      "provenance": "benchmarks/data/h4_sto3g_r0.9.provenance.json",
+      "selection_source": "benchmarks/reference_results/acase_ladder.jsonl",
+      "selection_rung": "h4_equilibrium",
+      "selection_row_sha256": "33a704d798edfcc8b00a75dcc55d357378849056a8d138e664d1e823f8f9d560",
+      "expected_selected_energy": -2.177297831995652,
+      "selected_energy_tolerance": 5e-08,
+      "selected_labels": [
+        "I",
+        "E(4,5<-2,3)",
+        "E(4,7<-0,3)",
+        "E(5,6<-1,2)",
+        "E(4,5<-0,1)",
+        "E(6,7<-0,1)",
+        "E(6,7<-2,3)",
+        "E(5,6<-0,3)",
+        "E(4,7<-1,2)"
+      ]
+    },
+    {
+      "key": "beh2",
+      "label": "BeH2 equilibrium STO-3G CAS(4e,4o)",
+      "builder": "fcidump",
+      "source": "benchmarks/data/beh2_sto3g_r1.3264.FCIDUMP",
+      "provenance": "benchmarks/data/beh2_sto3g_r1.3264.provenance.json",
+      "selection_source": "benchmarks/reference_results/clifford_hierarchy_beh2.json",
+      "selection_file_sha256": "3eec12597dcd3ce0023d0de7a144225b4c1586520bd433c70c0649c2ad462c8d",
+      "expected_selected_energy": -15.566208493595418,
+      "selected_energy_tolerance": 1e-10,
+      "selected_labels": [
+        "I",
+        "E(4,5<-0,1)",
+        "E(6,7<-0,1)",
+        "E(4,5<-2,3)",
+        "E(6,7<-2,3)"
+      ]
+    },
+    {
+      "key": "h2o_cas8e6o",
+      "label": "H2O equilibrium STO-3G CAS(8e,6o)",
+      "builder": "fcidump",
+      "source": "benchmarks/data/h2o_sto3g_cas8e6o.FCIDUMP",
+      "provenance": "benchmarks/data/h2o_sto3g_cas8e6o.provenance.json",
+      "selection_source": "benchmarks/reference_results/acase_ladder.jsonl",
+      "selection_rung": "h2o_cas8e6o",
+      "selection_row_sha256": "ca8ae6d0268a6051248e70db7613cfdf7ca4b050ac648e1198b6c4195199cea6",
+      "expected_selected_energy": -74.99845660198307,
+      "selected_energy_tolerance": 5e-08,
+      "selected_labels": [
+        "I",
+        "E(10,11<-2,3)",
+        "E(9,10<-2,5)",
+        "E(8,11<-3,4)",
+        "E(8,9<-0,1)",
+        "E(10,11<-4,5)",
+        "E(8,11<-0,3)",
+        "E(8,9<-2,3)",
+        "E(9,10<-1,2)"
+      ]
+    },
+    {
+      "key": "hubbard_2x2",
+      "label": "Hubbard 2x2 open boundary U/t=4",
+      "builder": "hubbard",
+      "shape": [
+        2,
+        2
+      ],
+      "t": 1.0,
+      "U": 4.0,
+      "periodic": false,
+      "selection_source": "benchmarks/reference_results/acase_ladder.jsonl",
+      "selection_rung": "hubbard_2x2",
+      "selection_row_sha256": "3b447a55c91de2d39cb6057574447227f7f6b5e430f135eb6ddf067f511c8552",
+      "expected_selected_energy": -9.239438100571599,
+      "selected_energy_tolerance": 1e-10,
+      "selected_labels": [
+        "I",
+        "E(2<-0)",
+        "E(1<-3)",
+        "E(1,2<-0,3)",
+        "E(6<-4)",
+        "E(5<-7)",
+        "E(5,6<-4,7)",
+        "E(1,6<-0,3)",
+        "E(2,5<-0,3)"
+      ]
+    }
+  ]
+}
