@@ -13,7 +13,7 @@ import subprocess
 from contextlib import redirect_stdout
 from datetime import datetime, timezone
 from io import StringIO
-from typing import Any
+from typing import Any, Mapping
 
 
 def _git_output(*args: str) -> str | None:
@@ -109,14 +109,28 @@ def compare_json_records(
         atol: float = 1e-11,
         rtol: float = 1e-11,
         ignored_keys: frozenset[str] = frozenset({"provenance"}),
+        key_tolerances: Mapping[str, tuple[float, float]] | None = None,
 ) -> list[str]:
     """Compare JSON-like values with exact discrete and tolerant float fields.
 
     Keys, list lengths, strings, booleans, integers, and nulls are exact.
     Floating fields alone use :func:`math.isclose`, which isolates harmless
     BLAS/LAPACK last-bit changes without weakening resource or replica counts.
+
+    ``key_tolerances`` maps a field name to its own ``(rtol, atol)``.  It exists
+    for quantities whose *own* magnitude is not the right error scale: a small
+    difference of two large energies loses most of its significant digits to
+    cancellation, so a relative tolerance on the difference is far stricter than
+    the arithmetic that produced it can honour.  Such a field needs an absolute
+    tolerance set by the energies it came from, not by the residue.  Naming the
+    field explicitly keeps every other float on the tight default.
     """
     problems: list[str] = []
+    overrides = dict(key_tolerances or {})
+
+    def tolerances(here: str) -> tuple[float, float]:
+        key = here.rsplit(".", 1)[-1]
+        return overrides.get(key, (rtol, atol))
 
     def compare(left: Any, right: Any, here: str) -> None:
         if isinstance(left, dict):
@@ -160,8 +174,9 @@ def compare_json_records(
                 problems.append(
                     f"{here}: expected floating value, got {right!r}")
                 return
+            field_rtol, field_atol = tolerances(here)
             if not math.isclose(
-                    left, float(right), rel_tol=rtol, abs_tol=atol):
+                    left, float(right), rel_tol=field_rtol, abs_tol=field_atol):
                 problems.append(
                     f"{here}: expected {left:.17g}, got {float(right):.17g}")
             return

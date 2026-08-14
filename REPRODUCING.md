@@ -1283,6 +1283,21 @@ numerical error is stored with its comparison scale and tolerance, and the check
 recomputes each gate. A sector-changing generator or incorrectly declared reference
 sector aborts.
 
+Two record fields are compared on an absolute rather than a relative scale.
+`error_millihartree` and `exact_subspace_bias_millihartree` are both
+`subspace energy - exact energy`: a residue of order `1e-3` mHa left by energies of
+order `1e4` mHa, so seven significant digits are lost to cancellation before any
+comparison happens, and the residue's own magnitude is not the scale its arithmetic
+can reproduce. Measured across `OMP_NUM_THREADS=1` and `=8` on one machine, the
+BeH₂ values move by `1.5e-10` mHa — enough to fail a `1e-10` gate and leave the
+checker's verdict depending on the thread count. They are therefore gated at
+`1e-8` mHa absolute, which clears the observed spread by ~70× while staying five
+orders below the smallest bias the record reports and eight below the 1.6 mHa
+target. This is the same discipline as the tie-break above: where reduction order
+can be made irrelevant it is, and where it cannot — a cancellation residue is not
+bit-reproducible across BLAS reduction orders — the tolerance is set by the
+physical scale and stated rather than tuned until the gate passes.
+
 `benchmarks/configs/mapping_axis.json` pins the five-arm order, selected raw-pool
 labels and source-row hashes, the grouping protocol for each system, 8000 raw shots
 per setting, the single-assignment estimator, the 1.6 mHa target, and all four

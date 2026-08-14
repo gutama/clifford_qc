@@ -19,6 +19,19 @@ except ImportError:  # pragma: no cover - direct script execution
 
 ARMS = ["jw", "parity", "parity+2q", "bk", "bk+2q"]
 SYSTEMS = ["h4", "beh2", "h2o_cas8e6o", "hubbard_2x2"]
+
+# Both fields are (subspace energy - exact energy) in millihartree: a residue of
+# order 1e-3 mHa left by two energies of order 1e4 mHa (BeH2 sits at -15566 mHa),
+# so seven significant digits are gone to cancellation before the comparison
+# starts.  Their reproducible scale is set by the energies, not by the residue --
+# the measured spread between OMP_NUM_THREADS=1 and =8 is 1.5e-10 mHa, which the
+# default atol=1e-10 sits directly on top of.  1e-8 mHa clears that by ~70x while
+# staying five orders below the smallest bias the record reports and eight below
+# the 1.6 mHa target, so a scientifically real change still fails.
+ENERGY_DIFFERENCE_TOLERANCES = {
+    "error_millihartree": (1e-10, 1e-8),
+    "exact_subspace_bias_millihartree": (1e-10, 1e-8),
+}
 GROUPING_PROTOCOLS = {
     "h4": "qwc_groups",
     "beh2": "qwc_groups",
@@ -536,7 +549,10 @@ def contract_problems(record: dict) -> list[str]:
 def main() -> int:
     expected = json.loads(REFERENCE.read_text(encoding="utf-8"))
     actual = build_record()
-    problems = compare_json_records(expected, actual, atol=1e-10, rtol=1e-10)
+    problems = compare_json_records(
+        expected, actual, atol=1e-10, rtol=1e-10,
+        key_tolerances=ENERGY_DIFFERENCE_TOLERANCES,
+    )
     problems.extend(contract_problems(expected))
     problems.extend(
         f"rebuilt record: {problem}" for problem in contract_problems(actual)

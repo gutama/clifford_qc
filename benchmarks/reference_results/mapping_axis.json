@@ -109,7 +109,7 @@
         "source": "benchmarks/data/h4_sto3g_r0.9.FCIDUMP",
         "source_sha256": "bf32568461477cf1ec8e7c4aaae737b0c6c80bcbd83d51f783ec3a3daed5a922",
         "provenance": "benchmarks/data/h4_sto3g_r0.9.provenance.json",
-        "provenance_sha256": "9d2ff009c2e352e0fcf66f5000c792529eb4103b8fa4b5841389f1d70699b842",
+        "provenance_sha256": "4b5cc30240ee42709e407f1794b73d9e585bc4032ecc14ff5eef450722868229",
         "external_sector_energy": -2.180316614323862
       },
       "n_qubits": 8,
@@ -120,7 +120,7 @@
       "hamiltonian_terms": 185,
       "hamiltonian_sha256": "9fd29628c8751189c82b7929b233d74720206c6b13a2dc3368517a454a593cc5",
       "reference_sha256": "4728c49308acc16c7d029fd9343649f0a9b9c5540472d906494cc2f769e1257a",
-      "exact_sector_energy": -2.180316614323888,
+      "exact_sector_energy": -2.1803166143238437,
       "raw_pool": {
         "size": 26,
         "sha256": "42834bb59ea24b2ad0ef21fa06374d1c46e0fa8296d4f2d685e6dd2d306eee52",
@@ -194,7 +194,7 @@
             "word_bijection_checked": true,
             "dense_spectrum_checked": true,
             "max_spectrum_error": 0.0,
-            "spectrum_scale": 3.5227349694720633,
+            "spectrum_scale": 3.5227349694720638,
             "dense_spectrum_max_qubits": 10,
             "dense_spectrum_reason": null,
             "relative_tolerance": 1e-10,
@@ -218,7 +218,7 @@
             "retained_rank": 9,
             "condition_number": 1.0,
             "ground_energy": -2.177297832980223,
-            "error_millihartree": 3.018781343665289
+            "error_millihartree": 3.01878134362088
           },
           "weights": {
             "hamiltonian_multiset": {
@@ -544,7 +544,7 @@
           },
           "accuracy_matched_cost": {
             "epsilon_millihartree": 1.6,
-            "exact_subspace_bias_millihartree": 3.018781343665289,
+            "exact_subspace_bias_millihartree": 3.01878134362088,
             "estimator": "single_assignment",
             "evidence_tier": "asymptotic",
             "claim_boundary": "exact bias floor plus first-order Ritz-functional variance; not the R1 nonlinear exact-oracle shot search or a finite-sample certificate",
@@ -602,8 +602,8 @@
             "max_generator_leakage": 0.0,
             "word_bijection_checked": true,
             "dense_spectrum_checked": true,
-            "max_spectrum_error": 1.2878587085651816e-14,
-            "spectrum_scale": 3.5227349694720633,
+            "max_spectrum_error": 7.771561172376096e-15,
+            "spectrum_scale": 3.5227349694720638,
             "dense_spectrum_max_qubits": 10,
             "dense_spectrum_reason": null,
             "relative_tolerance": 1e-10,
@@ -627,7 +627,7 @@
             "retained_rank": 9,
             "condition_number": 1.0,
             "ground_energy": -2.177297832980223,
-            "error_millihartree": 3.018781343665289
+            "error_millihartree": 3.01878134362088
           },
           "weights": {
             "hamiltonian_multiset": {
@@ -959,7 +959,7 @@
           },
           "accuracy_matched_cost": {
             "epsilon_millihartree": 1.6,
-            "exact_subspace_bias_millihartree": 3.018781343665289,
+            "exact_subspace_bias_millihartree": 3.01878134362088,
             "estimator": "single_assignment",
             "evidence_tier": "asymptotic",
             "claim_boundary": "exact bias floor plus first-order Ritz-functional variance; not the R1 nonlinear exact-oracle shot search or a finite-sample certificate",
@@ -1048,7 +1048,7 @@
             "retained_rank": 9,
             "condition_number": 1.0,
             "ground_energy": -2.177297832980223,
-            "error_millihartree": 3.018781343665289
+            "error_millihartree": 3.01878134362088
           },
           "weights": {
             "hamiltonian_multiset": {
@@ -1373,7 +1373,7 @@
           },
           "accuracy_matched_cost": {
             "epsilon_millihartree": 1.6,
-            "exact_subspace_bias_millihartree": 3.018781343665289,
+            "exact_subspace_bias_millihartree": 3.01878134362088,
             "estimator": "single_assignment",
             "evidence_tier": "asymptotic",
             "claim_boundary": "exact bias floor plus first-order Ritz-functional variance; not the R1 nonlinear exact-oracle shot search or a finite-sample certificate",
@@ -1431,8 +1431,8 @@
             "max_generator_leakage": 0.0,
             "word_bijection_checked": true,
             "dense_spectrum_checked": true,
-            "max_spectrum_error": 1.0436096431476471e-14,
-            "spectrum_scale": 3.5227349694720633,
+            "max_spectrum_error": 8.215650382226158e-15,
+            "spectrum_scale": 3.5227349694720638,
             "dense_spectrum_max_qubits": 10,
             "dense_spectrum_reason": null,
             "relative_tolerance": 1e-10,
@@ -1456,7 +1456,7 @@
             "retained_rank": 9,
             "condition_number": 1.0,
             "ground_energy": -2.177297832980223,
-            "error_millihartree": 3.018781343665289
+            "error_millihartree": 3.01878134362088
           },
           "weights": {
             "hamiltonian_multiset": {
@@ -1786,7 +1786,7 @@
           },
           "accuracy_matched_cost": {
             "epsilon_millihartree": 1.6,
-            "exact_subspace_bias_millihartree": 3.018781343665289,
+            "exact_subspace_bias_millihartree": 3.01878134362088,
             "estimator": "single_assignment",
             "evidence_tier": "asymptotic",
             "claim_boundary": "exact bias floor plus first-order Ritz-functional variance; not the R1 nonlinear exact-oracle shot search or a finite-sample certificate",
@@ -1875,7 +1875,7 @@
             "retained_rank": 9,
             "condition_number": 1.0,
             "ground_energy": -2.177297832980223,
-            "error_millihartree": 3.018781343665289
+            "error_millihartree": 3.01878134362088
           },
           "weights": {
             "hamiltonian_multiset": {
@@ -2200,7 +2200,7 @@
           },
           "accuracy_matched_cost": {
             "epsilon_millihartree": 1.6,
-            "exact_subspace_bias_millihartree": 3.018781343665289,
+            "exact_subspace_bias_millihartree": 3.01878134362088,
             "estimator": "single_assignment",
             "evidence_tier": "asymptotic",
             "claim_boundary": "exact bias floor plus first-order Ritz-functional variance; not the R1 nonlinear exact-oracle shot search or a finite-sample certificate",
@@ -2231,7 +2231,7 @@
       "hamiltonian_terms": 61,
       "hamiltonian_sha256": "685c5d5d85bc317f4494ac09a56cc200516d35a884ad3165ebe6e6d5b2d136f2",
       "reference_sha256": "4728c49308acc16c7d029fd9343649f0a9b9c5540472d906494cc2f769e1257a",
-      "exact_sector_energy": -15.566211795095185,
+      "exact_sector_energy": -15.56621179509511,
       "raw_pool": {
         "size": 26,
         "sha256": "42834bb59ea24b2ad0ef21fa06374d1c46e0fa8296d4f2d685e6dd2d306eee52",
@@ -2292,7 +2292,7 @@
             "max_hamiltonian_matrix_error": 0.0,
             "hamiltonian_matrix_scale": 15.560312342811923,
             "max_operator_transport_error": 0.0,
-            "operator_transport_scale": 232.06124197306804,
+            "operator_transport_scale": 232.06124197306787,
             "max_ritz_error": 0.0,
             "ritz_scale": 15.566208493595418,
             "reference_energy_error": 0.0,
@@ -2301,7 +2301,7 @@
             "word_bijection_checked": true,
             "dense_spectrum_checked": true,
             "max_spectrum_error": 0.0,
-            "spectrum_scale": 15.566211795095166,
+            "spectrum_scale": 15.566211795095171,
             "dense_spectrum_max_qubits": 10,
             "dense_spectrum_reason": null,
             "relative_tolerance": 1e-10,
@@ -2321,7 +2321,7 @@
             "retained_rank": 5,
             "condition_number": 1.0,
             "ground_energy": -15.566208493595418,
-            "error_millihartree": 0.0033014997669056356
+            "error_millihartree": 0.0033014996922986484
           },
           "weights": {
             "hamiltonian_multiset": {
@@ -2642,7 +2642,7 @@
           },
           "accuracy_matched_cost": {
             "epsilon_millihartree": 1.6,
-            "exact_subspace_bias_millihartree": 0.0033014997669056356,
+            "exact_subspace_bias_millihartree": 0.0033014996922986484,
             "estimator": "single_assignment",
             "evidence_tier": "asymptotic",
             "claim_boundary": "exact bias floor plus first-order Ritz-functional variance; not the R1 nonlinear exact-oracle shot search or a finite-sample certificate",
@@ -2801,7 +2801,7 @@
             "max_hamiltonian_matrix_error": 0.0,
             "hamiltonian_matrix_scale": 15.560312342811923,
             "max_operator_transport_error": 0.0,
-            "operator_transport_scale": 232.06124197306804,
+            "operator_transport_scale": 232.06124197306787,
             "max_ritz_error": 0.0,
             "ritz_scale": 15.566208493595418,
             "reference_energy_error": 0.0,
@@ -2809,8 +2809,8 @@
             "max_generator_leakage": 0.0,
             "word_bijection_checked": true,
             "dense_spectrum_checked": true,
-            "max_spectrum_error": 3.375077994860476e-14,
-            "spectrum_scale": 15.566211795095166,
+            "max_spectrum_error": 3.730349362740526e-14,
+            "spectrum_scale": 15.566211795095171,
             "dense_spectrum_max_qubits": 10,
             "dense_spectrum_reason": null,
             "relative_tolerance": 1e-10,
@@ -2830,7 +2830,7 @@
             "retained_rank": 5,
             "condition_number": 1.0,
             "ground_energy": -15.566208493595418,
-            "error_millihartree": 0.0033014997669056356
+            "error_millihartree": 0.0033014996922986484
           },
           "weights": {
             "hamiltonian_multiset": {
@@ -3155,7 +3155,7 @@
           },
           "accuracy_matched_cost": {
             "epsilon_millihartree": 1.6,
-            "exact_subspace_bias_millihartree": 0.0033014997669056356,
+            "exact_subspace_bias_millihartree": 0.0033014996922986484,
             "estimator": "single_assignment",
             "evidence_tier": "asymptotic",
             "claim_boundary": "exact bias floor plus first-order Ritz-functional variance; not the R1 nonlinear exact-oracle shot search or a finite-sample certificate",
@@ -3320,7 +3320,7 @@
             "max_hamiltonian_matrix_error": 1.7763568394002505e-14,
             "hamiltonian_matrix_scale": 15.560312342811923,
             "max_operator_transport_error": 0.0,
-            "operator_transport_scale": 116.05216692304812,
+            "operator_transport_scale": 116.05216692304805,
             "max_ritz_error": 1.7763568394002505e-14,
             "ritz_scale": 15.566208493595418,
             "reference_energy_error": 5.329070518200751e-15,
@@ -3349,7 +3349,7 @@
             "retained_rank": 5,
             "condition_number": 1.0,
             "ground_energy": -15.566208493595413,
-            "error_millihartree": 0.003301499772234706
+            "error_millihartree": 0.003301499697627719
           },
           "weights": {
             "hamiltonian_multiset": {
@@ -3674,7 +3674,7 @@
           },
           "accuracy_matched_cost": {
             "epsilon_millihartree": 1.6,
-            "exact_subspace_bias_millihartree": 0.003301499772234706,
+            "exact_subspace_bias_millihartree": 0.003301499697627719,
             "estimator": "single_assignment",
             "evidence_tier": "asymptotic",
             "claim_boundary": "exact bias floor plus first-order Ritz-functional variance; not the R1 nonlinear exact-oracle shot search or a finite-sample certificate",
@@ -3833,7 +3833,7 @@
             "max_hamiltonian_matrix_error": 0.0,
             "hamiltonian_matrix_scale": 15.560312342811923,
             "max_operator_transport_error": 0.0,
-            "operator_transport_scale": 232.06124197306804,
+            "operator_transport_scale": 232.06124197306787,
             "max_ritz_error": 0.0,
             "ritz_scale": 15.566208493595418,
             "reference_energy_error": 0.0,
@@ -3841,8 +3841,8 @@
             "max_generator_leakage": 0.0,
             "word_bijection_checked": true,
             "dense_spectrum_checked": true,
-            "max_spectrum_error": 4.618527782440651e-14,
-            "spectrum_scale": 15.566211795095166,
+            "max_spectrum_error": 3.730349362740526e-14,
+            "spectrum_scale": 15.566211795095171,
             "dense_spectrum_max_qubits": 10,
             "dense_spectrum_reason": null,
             "relative_tolerance": 1e-10,
@@ -3862,7 +3862,7 @@
             "retained_rank": 5,
             "condition_number": 1.0,
             "ground_energy": -15.566208493595418,
-            "error_millihartree": 0.0033014997669056356
+            "error_millihartree": 0.0033014996922986484
           },
           "weights": {
             "hamiltonian_multiset": {
@@ -4190,7 +4190,7 @@
           },
           "accuracy_matched_cost": {
             "epsilon_millihartree": 1.6,
-            "exact_subspace_bias_millihartree": 0.0033014997669056356,
+            "exact_subspace_bias_millihartree": 0.0033014996922986484,
             "estimator": "single_assignment",
             "evidence_tier": "asymptotic",
             "claim_boundary": "exact bias floor plus first-order Ritz-functional variance; not the R1 nonlinear exact-oracle shot search or a finite-sample certificate",
@@ -4355,7 +4355,7 @@
             "max_hamiltonian_matrix_error": 1.7763568394002505e-14,
             "hamiltonian_matrix_scale": 15.560312342811923,
             "max_operator_transport_error": 0.0,
-            "operator_transport_scale": 116.05216692304812,
+            "operator_transport_scale": 116.05216692304805,
             "max_ritz_error": 1.7763568394002505e-14,
             "ritz_scale": 15.566208493595418,
             "reference_energy_error": 5.329070518200751e-15,
@@ -4384,7 +4384,7 @@
             "retained_rank": 5,
             "condition_number": 1.0,
             "ground_energy": -15.566208493595413,
-            "error_millihartree": 0.003301499772234706
+            "error_millihartree": 0.003301499697627719
           },
           "weights": {
             "hamiltonian_multiset": {
@@ -4708,7 +4708,7 @@
           },
           "accuracy_matched_cost": {
             "epsilon_millihartree": 1.6,
-            "exact_subspace_bias_millihartree": 0.003301499772234706,
+            "exact_subspace_bias_millihartree": 0.003301499697627719,
             "estimator": "single_assignment",
             "evidence_tier": "asymptotic",
             "claim_boundary": "exact bias floor plus first-order Ritz-functional variance; not the R1 nonlinear exact-oracle shot search or a finite-sample certificate",
@@ -4848,7 +4848,7 @@
       "hamiltonian_terms": 551,
       "hamiltonian_sha256": "b3377e54ee1200db54bd44f5e824aad13ba77b78099284ad9b07657368e60793",
       "reference_sha256": "45acfa41d72fcc11d37df36c744fc8c7229f1b2e9306922e8a510e1f5230a52e",
-      "exact_sector_energy": -75.01268130509818,
+      "exact_sector_energy": -75.01268130509861,
       "raw_pool": {
         "size": 92,
         "sha256": "5a52848b3efebd649681f75550c0cd6ddc0780c5e8a421695c148d2d0b73a3dd",
@@ -4917,7 +4917,7 @@
             "max_hamiltonian_matrix_error": 0.0,
             "hamiltonian_matrix_scale": 74.96311986160843,
             "max_operator_transport_error": 0.0,
-            "operator_transport_scale": 4488.43627001449,
+            "operator_transport_scale": 4488.436270014484,
             "max_ritz_error": 0.0,
             "ritz_scale": 74.99845661593258,
             "reference_energy_error": 0.0,
@@ -4950,7 +4950,7 @@
             "retained_rank": 9,
             "condition_number": 1.0,
             "ground_energy": -74.99845661593258,
-            "error_millihartree": 14.22468916560149
+            "error_millihartree": 14.224689166027815
           },
           "weights": {
             "hamiltonian_multiset": {
@@ -5258,7 +5258,7 @@
                 "settings": 24334,
                 "raw_shots": 324123689,
                 "effective_shots": 194680430.70471448,
-                "fixed_shot_time_us": 1004672996.3000001,
+                "fixed_shot_time_us": 1004672996.2999985,
                 "logical_1q_applications": 4036445303,
                 "logical_2q_applications": 0,
                 "modeled_2q_applications": 0,
@@ -5287,7 +5287,7 @@
           },
           "accuracy_matched_cost": {
             "epsilon_millihartree": 1.6,
-            "exact_subspace_bias_millihartree": 14.22468916560149,
+            "exact_subspace_bias_millihartree": 14.224689166027815,
             "estimator": "single_assignment",
             "evidence_tier": "asymptotic",
             "claim_boundary": "exact bias floor plus first-order Ritz-functional variance; not the R1 nonlinear exact-oracle shot search or a finite-sample certificate",
@@ -5341,7 +5341,7 @@
             "max_hamiltonian_matrix_error": 0.0,
             "hamiltonian_matrix_scale": 74.96311986160843,
             "max_operator_transport_error": 0.0,
-            "operator_transport_scale": 4488.43627001449,
+            "operator_transport_scale": 4488.436270014484,
             "max_ritz_error": 0.0,
             "ritz_scale": 74.99845661593258,
             "reference_energy_error": 0.0,
@@ -5374,7 +5374,7 @@
             "retained_rank": 9,
             "condition_number": 1.0,
             "ground_energy": -74.99845661593258,
-            "error_millihartree": 14.22468916560149
+            "error_millihartree": 14.224689166027815
           },
           "weights": {
             "hamiltonian_multiset": {
@@ -5690,7 +5690,7 @@
                 "settings": 17118,
                 "raw_shots": 227467002,
                 "effective_shots": 136949542.3203246,
-                "fixed_shot_time_us": 705018831.8,
+                "fixed_shot_time_us": 705018831.7999996,
                 "logical_1q_applications": 2562415991,
                 "logical_2q_applications": 0,
                 "modeled_2q_applications": 0,
@@ -5719,7 +5719,7 @@
           },
           "accuracy_matched_cost": {
             "epsilon_millihartree": 1.6,
-            "exact_subspace_bias_millihartree": 14.22468916560149,
+            "exact_subspace_bias_millihartree": 14.224689166027815,
             "estimator": "single_assignment",
             "evidence_tier": "asymptotic",
             "claim_boundary": "exact bias floor plus first-order Ritz-functional variance; not the R1 nonlinear exact-oracle shot search or a finite-sample certificate",
@@ -5779,7 +5779,7 @@
             "max_hamiltonian_matrix_error": 4.547473508864641e-13,
             "hamiltonian_matrix_scale": 74.96311986160843,
             "max_operator_transport_error": 0.0,
-            "operator_transport_scale": 2244.218135007245,
+            "operator_transport_scale": 2244.218135007242,
             "max_ritz_error": 4.405364961712621e-13,
             "ritz_scale": 74.99845661593258,
             "reference_energy_error": 0.0,
@@ -5812,7 +5812,7 @@
             "retained_rank": 9,
             "condition_number": 1.0,
             "ground_energy": -74.99845661593258,
-            "error_millihartree": 14.22468916560149
+            "error_millihartree": 14.224689166027815
           },
           "weights": {
             "hamiltonian_multiset": {
@@ -6152,7 +6152,7 @@
           },
           "accuracy_matched_cost": {
             "epsilon_millihartree": 1.6,
-            "exact_subspace_bias_millihartree": 14.22468916560149,
+            "exact_subspace_bias_millihartree": 14.224689166027815,
             "estimator": "single_assignment",
             "evidence_tier": "asymptotic",
             "claim_boundary": "exact bias floor plus first-order Ritz-functional variance; not the R1 nonlinear exact-oracle shot search or a finite-sample certificate",
@@ -6206,7 +6206,7 @@
             "max_hamiltonian_matrix_error": 0.0,
             "hamiltonian_matrix_scale": 74.96311986160843,
             "max_operator_transport_error": 0.0,
-            "operator_transport_scale": 4488.43627001449,
+            "operator_transport_scale": 4488.436270014484,
             "max_ritz_error": 0.0,
             "ritz_scale": 74.99845661593258,
             "reference_energy_error": 0.0,
@@ -6239,7 +6239,7 @@
             "retained_rank": 9,
             "condition_number": 1.0,
             "ground_energy": -74.99845661593258,
-            "error_millihartree": 14.22468916560149
+            "error_millihartree": 14.224689166027815
           },
           "weights": {
             "hamiltonian_multiset": {
@@ -6552,7 +6552,7 @@
                 "settings": 18108,
                 "raw_shots": 241049677,
                 "effective_shots": 144870087.20439583,
-                "fixed_shot_time_us": 747194237.05,
+                "fixed_shot_time_us": 747194237.0499994,
                 "logical_1q_applications": 2929234197,
                 "logical_2q_applications": 0,
                 "modeled_2q_applications": 0,
@@ -6581,7 +6581,7 @@
           },
           "accuracy_matched_cost": {
             "epsilon_millihartree": 1.6,
-            "exact_subspace_bias_millihartree": 14.22468916560149,
+            "exact_subspace_bias_millihartree": 14.224689166027815,
             "estimator": "single_assignment",
             "evidence_tier": "asymptotic",
             "claim_boundary": "exact bias floor plus first-order Ritz-functional variance; not the R1 nonlinear exact-oracle shot search or a finite-sample certificate",
@@ -6641,7 +6641,7 @@
             "max_hamiltonian_matrix_error": 4.547473508864641e-13,
             "hamiltonian_matrix_scale": 74.96311986160843,
             "max_operator_transport_error": 0.0,
-            "operator_transport_scale": 2244.218135007245,
+            "operator_transport_scale": 2244.218135007242,
             "max_ritz_error": 4.405364961712621e-13,
             "ritz_scale": 74.99845661593258,
             "reference_energy_error": 0.0,
@@ -6674,7 +6674,7 @@
             "retained_rank": 9,
             "condition_number": 1.0,
             "ground_energy": -74.99845661593258,
-            "error_millihartree": 14.22468916560149
+            "error_millihartree": 14.224689166027815
           },
           "weights": {
             "hamiltonian_multiset": {
@@ -7014,7 +7014,7 @@
           },
           "accuracy_matched_cost": {
             "epsilon_millihartree": 1.6,
-            "exact_subspace_bias_millihartree": 14.22468916560149,
+            "exact_subspace_bias_millihartree": 14.224689166027815,
             "estimator": "single_assignment",
             "evidence_tier": "asymptotic",
             "claim_boundary": "exact bias floor plus first-order Ritz-functional variance; not the R1 nonlinear exact-oracle shot search or a finite-sample certificate",
@@ -7047,7 +7047,7 @@
       "hamiltonian_terms": 21,
       "hamiltonian_sha256": "a9707187f273fe60b952a8f75734575f69a65b2ec035d22633326d872f244a76",
       "reference_sha256": "b62ceccb46ae609c71889216686e399c3210bee183045b236894a3721fc71dc5",
-      "exact_sector_energy": -10.102748483462104,
+      "exact_sector_energy": -10.10274848346204,
       "raw_pool": {
         "size": 26,
         "sha256": "eab9de040b6aeb0f94605b5aae97b5672082802122c7578c876e79abc77f6881",
@@ -7121,7 +7121,7 @@
             "word_bijection_checked": true,
             "dense_spectrum_checked": true,
             "max_spectrum_error": 0.0,
-            "spectrum_scale": 10.102748483462058,
+            "spectrum_scale": 10.102748483462074,
             "dense_spectrum_max_qubits": 10,
             "dense_spectrum_reason": null,
             "relative_tolerance": 1e-10,
@@ -7145,7 +7145,7 @@
             "retained_rank": 9,
             "condition_number": 1.0,
             "ground_energy": -9.239438100571599,
-            "error_millihartree": 863.3103828905054
+            "error_millihartree": 863.3103828904414
           },
           "weights": {
             "hamiltonian_multiset": {
@@ -7468,7 +7468,7 @@
           },
           "accuracy_matched_cost": {
             "epsilon_millihartree": 1.6,
-            "exact_subspace_bias_millihartree": 863.3103828905054,
+            "exact_subspace_bias_millihartree": 863.3103828904414,
             "estimator": "single_assignment",
             "evidence_tier": "asymptotic",
             "claim_boundary": "exact bias floor plus first-order Ritz-functional variance; not the R1 nonlinear exact-oracle shot search or a finite-sample certificate",
@@ -7527,7 +7527,7 @@
             "word_bijection_checked": true,
             "dense_spectrum_checked": true,
             "max_spectrum_error": 2.4868995751603507e-14,
-            "spectrum_scale": 10.102748483462058,
+            "spectrum_scale": 10.102748483462074,
             "dense_spectrum_max_qubits": 10,
             "dense_spectrum_reason": null,
             "relative_tolerance": 1e-10,
@@ -7551,7 +7551,7 @@
             "retained_rank": 9,
             "condition_number": 1.0,
             "ground_energy": -9.239438100571599,
-            "error_millihartree": 863.3103828905054
+            "error_millihartree": 863.3103828904414
           },
           "weights": {
             "hamiltonian_multiset": {
@@ -7880,7 +7880,7 @@
           },
           "accuracy_matched_cost": {
             "epsilon_millihartree": 1.6,
-            "exact_subspace_bias_millihartree": 863.3103828905054,
+            "exact_subspace_bias_millihartree": 863.3103828904414,
             "estimator": "single_assignment",
             "evidence_tier": "asymptotic",
             "claim_boundary": "exact bias floor plus first-order Ritz-functional variance; not the R1 nonlinear exact-oracle shot search or a finite-sample certificate",
@@ -7969,7 +7969,7 @@
             "retained_rank": 9,
             "condition_number": 1.0,
             "ground_energy": -9.239438100571599,
-            "error_millihartree": 863.3103828905054
+            "error_millihartree": 863.3103828904414
           },
           "weights": {
             "hamiltonian_multiset": {
@@ -8294,7 +8294,7 @@
           },
           "accuracy_matched_cost": {
             "epsilon_millihartree": 1.6,
-            "exact_subspace_bias_millihartree": 863.3103828905054,
+            "exact_subspace_bias_millihartree": 863.3103828904414,
             "estimator": "single_assignment",
             "evidence_tier": "asymptotic",
             "claim_boundary": "exact bias floor plus first-order Ritz-functional variance; not the R1 nonlinear exact-oracle shot search or a finite-sample certificate",
@@ -8352,8 +8352,8 @@
             "max_generator_leakage": 0.0,
             "word_bijection_checked": true,
             "dense_spectrum_checked": true,
-            "max_spectrum_error": 3.375077994860476e-14,
-            "spectrum_scale": 10.102748483462058,
+            "max_spectrum_error": 1.9539925233402755e-14,
+            "spectrum_scale": 10.102748483462074,
             "dense_spectrum_max_qubits": 10,
             "dense_spectrum_reason": null,
             "relative_tolerance": 1e-10,
@@ -8377,7 +8377,7 @@
             "retained_rank": 9,
             "condition_number": 1.0,
             "ground_energy": -9.239438100571599,
-            "error_millihartree": 863.3103828905054
+            "error_millihartree": 863.3103828904414
           },
           "weights": {
             "hamiltonian_multiset": {
@@ -8704,7 +8704,7 @@
           },
           "accuracy_matched_cost": {
             "epsilon_millihartree": 1.6,
-            "exact_subspace_bias_millihartree": 863.3103828905054,
+            "exact_subspace_bias_millihartree": 863.3103828904414,
             "estimator": "single_assignment",
             "evidence_tier": "asymptotic",
             "claim_boundary": "exact bias floor plus first-order Ritz-functional variance; not the R1 nonlinear exact-oracle shot search or a finite-sample certificate",
@@ -8793,7 +8793,7 @@
             "retained_rank": 9,
             "condition_number": 1.0,
             "ground_energy": -9.239438100571599,
-            "error_millihartree": 863.3103828905054
+            "error_millihartree": 863.3103828904414
           },
           "weights": {
             "hamiltonian_multiset": {
@@ -9118,7 +9118,7 @@
           },
           "accuracy_matched_cost": {
             "epsilon_millihartree": 1.6,
-            "exact_subspace_bias_millihartree": 863.3103828905054,
+            "exact_subspace_bias_millihartree": 863.3103828904414,
             "estimator": "single_assignment",
             "evidence_tier": "asymptotic",
             "claim_boundary": "exact bias floor plus first-order Ritz-functional variance; not the R1 nonlinear exact-oracle shot search or a finite-sample certificate",
@@ -9278,24 +9278,24 @@
   "claim_boundary": "exact representation and resource counts plus an asymptotic single-assignment shot model; no nonlinear finite-shot mapping search, hardware calibration, optimal-coloring claim, H2O cross-heuristic QWC verdict, independent device-card corroboration, or mapping-by-protocol interaction",
   "provenance": {
     "schema": "clifford_qc.execution_provenance.v1",
-    "git_sha": "fbd78390225cb34facea346860431e7e40a9ac4a",
+    "git_sha": "1329648030037c9375b2d3aaf47685624d50f8f7",
     "git_dirty": true,
     "clifford_qc": "0.3.0",
-    "python": "3.12.13",
+    "python": "3.11.15",
     "dependencies": {
-      "numpy": "2.5.2",
-      "scipy": "1.18.0",
-      "pyscf": "2.14.0",
-      "openfermion": "1.8.1",
-      "openfermionpyscf": "0.5",
+      "numpy": "2.4.6",
+      "scipy": "1.17.1",
+      "pyscf": null,
+      "openfermion": null,
+      "openfermionpyscf": null,
       "stim": "1.16.0"
     },
     "platform": {
       "system": "Linux",
-      "release": "6.18.35",
+      "release": "6.18.5-fc-v20",
       "machine": "x86_64",
       "processor": "x86_64",
-      "hostname": "d3258ef9a741"
+      "hostname": "vm"
     },
     "blas_lapack": {
       "Compilers": {
@@ -9308,7 +9308,7 @@
         "cython": {
           "name": "cython",
           "linker": "cython",
-          "version": "3.2.9",
+          "version": "3.2.4",
           "commands": "cython"
         },
         "c++": {
@@ -9336,27 +9336,27 @@
         "blas": {
           "name": "scipy-openblas",
           "found": true,
-          "version": "0.3.34.0.0",
+          "version": "0.3.31.188.0",
           "detection method": "pkgconfig",
-          "include directory": "/opt/_internal/cpython-3.12.13/lib/python3.12/site-packages/scipy_openblas64/include",
-          "lib directory": "/opt/_internal/cpython-3.12.13/lib/python3.12/site-packages/scipy_openblas64/lib",
-          "openblas configuration": "OpenBLAS 0.3.34.0.0  USE64BITINT DYNAMIC_ARCH NO_AFFINITY Haswell MAX_THREADS=64",
+          "include directory": "/opt/_internal/cpython-3.11.14/lib/python3.11/site-packages/scipy_openblas64/include",
+          "lib directory": "/opt/_internal/cpython-3.11.14/lib/python3.11/site-packages/scipy_openblas64/lib",
+          "openblas configuration": "OpenBLAS 0.3.31.188.0  USE64BITINT DYNAMIC_ARCH NO_AFFINITY Haswell MAX_THREADS=64",
           "pc file directory": "/project/.openblas"
         },
         "lapack": {
           "name": "scipy-openblas",
           "found": true,
-          "version": "0.3.34.0.0",
+          "version": "0.3.31.188.0",
           "detection method": "pkgconfig",
-          "include directory": "/opt/_internal/cpython-3.12.13/lib/python3.12/site-packages/scipy_openblas64/include",
-          "lib directory": "/opt/_internal/cpython-3.12.13/lib/python3.12/site-packages/scipy_openblas64/lib",
-          "openblas configuration": "OpenBLAS 0.3.34.0.0  USE64BITINT DYNAMIC_ARCH NO_AFFINITY Haswell MAX_THREADS=64",
+          "include directory": "/opt/_internal/cpython-3.11.14/lib/python3.11/site-packages/scipy_openblas64/include",
+          "lib directory": "/opt/_internal/cpython-3.11.14/lib/python3.11/site-packages/scipy_openblas64/lib",
+          "openblas configuration": "OpenBLAS 0.3.31.188.0  USE64BITINT DYNAMIC_ARCH NO_AFFINITY Haswell MAX_THREADS=64",
           "pc file directory": "/project/.openblas"
         }
       },
       "Python Information": {
-        "path": "/tmp/build-env-jmn5a0j4/bin/python",
-        "version": "3.12"
+        "path": "/tmp/build-env-gjolnpt6/bin/python",
+        "version": "3.11"
       },
       "SIMD Extensions": {
         "baseline": [
@@ -9365,14 +9365,12 @@
         "found": [
           "X86_V3",
           "X86_V4",
-          "AVX512_ICL"
-        ],
-        "not found": [
+          "AVX512_ICL",
           "AVX512_SPR"
         ]
       }
     },
-    "environment_sha256": "f0e33c4691f7438ff561191c6b97ca5182531c444dc722dbd0699e693ab7b933",
-    "utc": "2026-08-14T13:17:58.345058+00:00"
+    "environment_sha256": "51db819cb5ddbf3035e3a2e05aef661c57296a9674529a0c75df188d2cfaf4eb",
+    "utc": "2026-08-14T14:40:00.434270+00:00"
   }
 }
