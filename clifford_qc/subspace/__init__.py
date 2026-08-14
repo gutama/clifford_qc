@@ -43,6 +43,9 @@ from .symmetry import (
 from .restriction import (
     RestrictedProblem, Restriction, restricted_sector_operators,
 )
+from .mapping_invariants import (
+    MappingInvariantReport, assert_mapping_invariants,
+)
 from .fermionic_generators import (
     determinant_excitations, fermionic_excitation_generators,
     occupied_spin_orbitals,
@@ -104,6 +107,7 @@ __all__ = [
     "reference_sector_leakage", "subspace_sector_certificate",
     "project_reference_to_sector",
     "RestrictedProblem", "Restriction", "restricted_sector_operators",
+    "MappingInvariantReport", "assert_mapping_invariants",
     "ConfigurationOrdering", "HaarPacketNode", "MultiresolutionResult",
     "configuration_ordering", "configuration_packet_hierarchy",
     "run_coarse_to_fine_acase",
