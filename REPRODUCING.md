@@ -168,16 +168,15 @@ v2 ledger reports. `single_assignment` reads each word only from its partition g
 The record retains coverage and raw/effective word observations separately, so
 free post-processing reads are not confused with physical state preparations.
 
-The 1.6 mHa `C(epsilon)` column is evidence-tiered. The exact tier remains
-unavailable because this benchmark has no exact finite-shot energy search, and no
-finite-sample Ritz-energy certificate exists. The reported comparison is
-`asymptotic`: exact frozen-subspace bias plus first-order covariance-aware
-propagation of the Ritz functional. H4's 3.019 mHa subspace bias exceeds the target,
-so every arm correctly reports the target as unattainable rather than printing a
-runtime. BeH2 is priced, and every scalar names the card that attains it: a rung
-some declared card cannot run at the fidelity floor is `partially_priced`, with
-the inadmissible cards listed rather than dropped from a minimum. The committed
-ordering records whether pooling changes the ranking of `k` rungs under each
+The schema-v3 hierarchy's 1.6 mHa `C(epsilon)` column is evidence-tiered and remains
+`asymptotic`: exact frozen-subspace bias plus first-order covariance-aware propagation
+of the Ritz functional. It is not silently relabelled after the nonlinear benchmark
+below lands. H4's 3.019 mHa subspace bias exceeds the target, so every arm correctly
+reports the target as unattainable rather than printing a runtime. BeH2 is priced, and
+every scalar names the card that attains it: a rung some declared card cannot run at
+the fidelity floor is `partially_priced`, with the inadmissible cards listed rather
+than dropped from a minimum. The committed ordering records whether pooling changes
+the ranking of `k` rungs under each
 card, comparing only the rungs both estimators admit and abstaining with `null`
 where neither admits any. The break-even surface likewise names a winner only
 where the two schedules are already accuracy-matched; otherwise it reports
@@ -189,6 +188,40 @@ result.
 The tableau elimination remains a constructive synthesis rather than a
 CX-minimizing compiler. Mitigation and calibrated topology routing remain outside
 this experiment.
+
+### R1 exact-oracle nonlinear shot search
+
+The separate exact-tier search reuses the frozen H4 and BeH2 banks and the same
+dyadic settings, but replaces the hierarchy record's first-order variance propagation
+with actual finite-shot joint sampling and the complete nonlinear selected-rank solve:
+
+```bash
+python benchmarks/run_exact_shot_search.py --workers 4
+python benchmarks/check_exact_shot_search.py
+```
+
+The producer writes schema `clifford_qc.exact_shot_search.v1` to
+`benchmarks/reference_results/exact_shot_search.json`. It uses 30 paired exploratory
+replicas on the fixed `64…65536` geometric endpoint grid, then an independent block of
+100 paired replicas at every grid point through the pilot crossing. This downward
+extension makes the priced endpoint the smallest confirmed pass and requires an
+actual confirmed failure below it; a nonmonotone confirmation is not priced. Every
+phase, rung, replica, estimator, and bootstrap stream has a disjoint NumPy
+`SeedSequence` namespace. An endpoint passes only with no solver failure and a
+one-sided 95% nonparametric-bootstrap upper bound on replica RMSE at or below 1.6 mHa.
+Endpoints are nested; assigned and pooled estimators consume the same joint
+histograms. The exact tier names the unavailable-on-hardware oracle comparator; the
+bootstrap uncertainty is explicitly heuristic, not a finite-sample energy certificate
+or deployable stopping rule.
+
+H4 exits without sampling because its 3.019 mHa exact bank bias already exceeds the
+target. On BeH2 the confirmed assigned/pooled passing endpoints are `4096/1024` at
+`k=1`, `16384/4096` at `k=2`, `16384/16384` at `k=4`, and `16384/4096` at `k=8`.
+At `k=4`, 4096 fails and 16384 passes for both estimators, closing the bracket that the
+original two-endpoint confirmation left invalid. All 3,500 confirmatory solves
+succeed. Device-card costs are computed only from the smallest confirmed passing
+endpoints. The fidelity layer
+remains the same illustrative `F^-2` surrogate, not a device-noise simulation.
 
 `check_docs.py` verifies the documented pair by collection. It reports a
 skip when the installed extras do not match the environment above; pass

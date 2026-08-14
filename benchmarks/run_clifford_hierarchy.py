@@ -34,6 +34,9 @@ from pathlib import Path
 import numpy as np
 
 from clifford_qc.backends import ExactMVBackend, SectorStatevectorBackend
+from clifford_qc.bridges.stim_bridge import CliffordMap
+from clifford_qc.ir import PauliWord
+from clifford_qc.measurement.compiled import CompiledSetting
 from clifford_qc.measurement.cost import (
     DeviceCard,
     SettingResources,
@@ -274,6 +277,19 @@ def _x_masks(diagonalizer, size: int, codes: np.ndarray) -> np.ndarray:
     return masks
 
 
+def _diagonalizer(local_members: list[int], size: int):
+    """Return the one canonical local Clifford used for costing and sampling."""
+    basis = _independent_codes(local_members, size)
+    if not basis:
+        return stim.Tableau(size)
+    tableau = stim.Tableau.from_stabilizers(
+        [stim.PauliString(_stim_label(code, size)) for code in basis],
+        allow_redundant=False,
+        allow_underconstrained=True,
+    )
+    return tableau.inverse()
+
+
 def _synthesize(n: int, codes: list[int], groups: list[list[int]],
                 block_size: int) -> tuple[dict, list[SettingResources], np.ndarray, list[int]]:
     total: Counter = Counter()
@@ -305,15 +321,7 @@ def _synthesize(n: int, codes: list[int], groups: list[list[int]],
         for start in range(0, n, block_size):
             size = min(block_size, n - start)
             local = [_local_code(codes[i], start, size) for i in members]
-            basis = _independent_codes(local, size)
-            if not basis:
-                diagonalizer = stim.Tableau(size)
-            else:
-                stabilizers = [stim.PauliString(_stim_label(code, size))
-                               for code in basis]
-                tableau = stim.Tableau.from_stabilizers(
-                    stabilizers, allow_redundant=False, allow_underconstrained=True)
-                diagonalizer = tableau.inverse()
+            diagonalizer = _diagonalizer(local, size)
 
             # Strong circuit invariant: every member, not only the basis,
             # must become computational-basis diagonal.
@@ -379,6 +387,75 @@ def _synthesize(n: int, codes: list[int], groups: list[list[int]],
     return row, setting_resources, compatibility, assignment
 
 
+def _compiled_settings(n: int, codes: list[int], groups: list[list[int]],
+                       block_size: int) -> tuple[CompiledSetting, ...]:
+    """Compile the hierarchy grouping into signed joint-readout settings.
+
+    The structural ledger only needed a Boolean compatibility matrix.  The
+    exact-tier shot search needs the stronger object behind that matrix: the
+    actual Clifford applied before measurement and the signed Z parity of
+    every bank word it reads.  This routine independently rechecks those
+    readouts against the global Stim tableau so a block-offset or phase error
+    cannot enter the nonlinear estimator silently.
+    """
+    compiled = []
+    for setting_index, members in enumerate(groups):
+        circuit = stim.Circuit()
+        readouts = {code: [1, []] for code in codes}
+        readable = {code: True for code in codes}
+        for start in range(0, n, block_size):
+            size = min(block_size, n - start)
+            local_members = [_local_code(codes[index], start, size) for index in members]
+            diagonalizer = _diagonalizer(local_members, size)
+
+            for instruction in diagonalizer.to_circuit("elimination"):
+                targets = [start + target.value for target in instruction.targets_copy()]
+                circuit.append(instruction.name, targets)
+
+            for code in codes:
+                local = _local_code(code, start, size)
+                transformed = diagonalizer(stim.PauliString(_stim_label(local, size)))
+                x_bits, z_bits = transformed.to_numpy()
+                if bool(x_bits.any()):
+                    readable[code] = False
+                    continue
+                phase = complex(transformed.sign)
+                if abs(phase.imag) > 1e-12 or round(phase.real) not in (-1, 1):
+                    raise AssertionError("Hermitian Pauli acquired a non-real readout phase")
+                readouts[code][0] *= int(round(phase.real))
+                readouts[code][1].extend(
+                    start + qubit for qubit, present in enumerate(z_bits) if present
+                )
+
+        # Force the tableau to retain idle trailing qubits without changing it.
+        circuit.append("I", range(n))
+        clifford = CliffordMap(n, circuit.to_tableau())
+        explicit = {
+            code: (int(readouts[code][0]), tuple(readouts[code][1]))
+            for code in codes if readable[code]
+        }
+        assigned_codes = tuple(codes[index] for index in members)
+        if any(code not in explicit for code in assigned_codes):
+            raise AssertionError("an assigned word lacks a compiled readout")
+
+        for code, expected in explicit.items():
+            phase, image = clifford.conjugate(PauliWord(n, code))
+            if any(image.letter(qubit) not in ("I", "Z") for qubit in range(n)):
+                raise AssertionError("global compiled readout is not Z-only")
+            actual_sign = int(round(complex(phase).real))
+            actual_positions = tuple(image.support())
+            if abs(complex(phase).imag) > 1e-12 or (actual_sign, actual_positions) != expected:
+                raise AssertionError("block readout disagrees with the global Clifford tableau")
+
+        compiled.append(CompiledSetting(
+            key=("dyadic-block", block_size, setting_index),
+            clifford=clifford,
+            assigned_word_codes=assigned_codes,
+            readouts=explicit,
+        ))
+    return tuple(compiled)
+
+
 def _h4_bank() -> dict:
     """The retained determinant bank of the matched H4 contract."""
     matched = json.loads(MATCHED.read_text(encoding="utf-8"))
@@ -409,6 +486,9 @@ def _h4_bank() -> dict:
         "basis_size": len(family),
         "basis_labels": list(selected["labels"]),
         "ground_energy": selected["ground_energy"],
+        "_exact_ground_energy": (
+            selected["ground_energy"] - selected["error_millihartree"] * 1e-3
+        ),
         "error_millihartree": selected["error_millihartree"],
         "condition_number": selected["condition_number"],
         "codes": codes,
@@ -451,6 +531,7 @@ def _beh2_bank() -> dict:
         "basis_size": len(result.basis_labels),
         "basis_labels": list(result.basis_labels),
         "ground_energy": energy,
+        "_exact_ground_energy": exact_energy,
         "error_millihartree": (energy - exact_energy) * 1e3,
         "condition_number": result.condition_number,
         "codes": codes,
@@ -775,6 +856,21 @@ def _accuracy_matched_costs(
     return output
 
 
+def _ordering_verdict(by_estimator: dict[str, list[dict]]) -> dict[str, object]:
+    """Compare estimator rankings only on their common admissible rungs."""
+    assigned = [item["block_size"] for item in by_estimator["single_assignment"]]
+    pooled = [item["block_size"] for item in by_estimator["pooled"]]
+    common = set(assigned) & set(pooled)
+    return {
+        "compared_block_sizes": sorted(common),
+        "pooling_reorders_protocols": (
+            None if not assigned or not pooled else
+            [k for k in assigned if k in common]
+            != [k for k in pooled if k in common]
+        ),
+    }
+
+
 def _accuracy_ordering(rows: list[dict], cards: list[DeviceCard]) -> dict[str, dict]:
     """Rank admissible protocol rungs by asymptotic ``C(epsilon)``."""
     output = {}
@@ -796,21 +892,11 @@ def _accuracy_ordering(rows: list[dict], cards: list[DeviceCard]) -> dict[str, d
             by_estimator[estimator] = sorted(
                 live, key=lambda item: (item["C_time_epsilon_us"], item["block_size"])
             )
-        assigned = [item["block_size"] for item in by_estimator["single_assignment"]]
-        pooled = [item["block_size"] for item in by_estimator["pooled"]]
         # Only rungs both estimators admit can be reordered by the choice of
         # estimator; a differing admissible set is a different question.  With
         # nothing admissible there is no reading at all, so abstain rather than
         # report a measured "pooling changes nothing".
-        common = set(assigned) & set(pooled)
-        by_estimator["compared_block_sizes"] = sorted(common)
-        if not assigned or not pooled:
-            by_estimator["pooling_reorders_protocols"] = None
-        else:
-            by_estimator["pooling_reorders_protocols"] = (
-                [k for k in assigned if k in common]
-                != [k for k in pooled if k in common]
-            )
+        by_estimator.update(_ordering_verdict(by_estimator))
         output[card.name] = by_estimator
     return output
 
@@ -826,6 +912,7 @@ def build_record(system: str = "h4", device_cards: list[DeviceCard] | None = Non
     bank = SYSTEMS[system]()
     codes = bank.pop("codes")
     committed_groups = bank.pop("committed_qwc_groups")
+    bank.pop("_exact_ground_energy")
     matrix_bank = bank.pop("_matrix_bank")
     result = bank.pop("_result")
     ritz = ritz_functional(

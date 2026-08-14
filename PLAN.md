@@ -107,12 +107,12 @@ Status at a glance:
 | 8–12 | QSCI baseline, selected-CI controls, hybrid, overlap/multiresolution selection, Paper B ladder | **done and read**; the result motivated the PRD programme below |
 | PRD | orthogonal-residual regression, Davidson/preconditioned expansion, packet pricing, matched A-CASE, exact and finite-shot suites | **done and read**; exact compactness is positive, complete-bank QWC finite-shot energy accuracy is negative |
 | 13 | parity/X-rank invariant | Track B, open |
-| 14 | fully commuting grouping | partial — the dyadic hierarchy runs as a benchmark (§6.6); the library API, cost model, and pooled re-measurement are R1/R3 |
+| 14 | fully commuting grouping | partial — the dyadic hierarchy and compiled joint-readout sampler run; a general grouping/synthesis library API remains open |
 | 15–18 | second moments, time-evolved inputs, mapping breadth, embedding | Track C, open (Phase 18's versioned effective-Hamiltonian schema ships in `models/effective.py`; the fragment-solver callback does not) |
 | G1–G3 | GA structural preconditioner, mapping-invariance test on the restricted pool, PRD/WISE integration with a cost decomposition | **design only** (§3.5, §5); nothing built, no results |
-| R1 | hardware-aware cost model and pooled-estimator ledger | **infrastructure shipped**; asymptotic `C(ε)` is recorded, exact-tier finite-shot search remains open |
+| R1 | hardware-aware cost model and pooled-estimator ledger | **done**; asymptotic and exact-oracle nonlinear shot-search tiers are recorded |
 | R2a | shared restriction primitive (`subspace/restriction.py`) | **shipped**; no arm consumes it yet |
-| R2–R4 | mapping axis, protocol axis, contextual-subspace comparator | open after the remaining R1 exact-tier gate; R2 is re-scoped to run on the G1 pool |
+| R2–R4 | mapping axis, protocol axis, contextual-subspace comparator | open; the R1 dependency is closed and R2 is re-scoped to run on the G1 pool |
 
 "Shipped" means the module, its tests, and where applicable its benchmark
 producer exist. It does not mean the phase's go/no-go has been read: those
@@ -1627,8 +1627,7 @@ converse.
 
 The cost model these phases install is §6; the phases themselves:
 
-**R1 — cost infrastructure, no solver change — infrastructure shipped; exact-tier
-search open.** Deliverables:
+**R1 — cost infrastructure, no solver change — done.** Deliverables:
 `clifford_qc/measurement/cost.py` (device card loader, per-setting
 gate/depth/fidelity accounting, `C_time`, admissibility, break-even surface);
 `benchmarks/configs/device_cards/*.json` with at least `logical-alltoall`, one
@@ -1649,8 +1648,35 @@ the frozen v2 projection regenerates exactly. The 1.6 mHa comparison is explicit
 `asymptotic`, using the exact frozen-bank bias plus the covariance-aware first-order
 Ritz functional. H₄ is unattainable because its 3.019 mHa subspace bias already
 exceeds the target; on BeH₂, pooling reorders the `k` rungs under all three cards.
-The exact-tier nonlinear finite-shot search remains an R1 gate and must land before
-R2 begins; the asymptotic ledger is not silently promoted to that tier.
+The exact-tier nonlinear finite-shot search is a separate producer
+(`benchmarks/run_exact_shot_search.py`), record
+(`reference_results/exact_shot_search.json`), and regenerating checker.  It samples
+the actual joint bitstrings after each synthesized Clifford diagonalizer, reruns the
+complete measured `(S,H)` reconstruction and `E + 2 sigma` selected-rank sweep, and
+compares every replica with the full exact-sector ground energy.  The primary aggregate
+is replica RMSE: a search endpoint passes only with zero solver failures and a one-sided
+95% nonparametric-bootstrap upper bound at or below 1.6 mHa.  Thirty paired exploratory
+replicas locate a persistent crossing on the predeclared geometric grid
+`64, 256, 1024, 4096, 16384, 65536` effective shots per setting; an independent block
+of 100 paired replicas confirms every grid point through that crossing.  The estimator
+arms share the same sampled caches, endpoints are nested, and phase/rung/replica/
+bootstrap streams use disjoint `SeedSequence` namespaces.  The producer prices only
+the smallest confirmed passing endpoint, requires a confirmed failing endpoint below
+it unless the crossing lies below the grid, and abstains on a nonmonotone confirmation.
+
+The comparator tier is `exact` (the unavailable-on-hardware oracle); the bootstrap
+uncertainty remains `heuristic`.  It is not a finite-sample Ritz-energy certificate or
+deployable stopping rule.  H₄ still exits before sampling because its 3.019 mHa exact
+subspace bias exceeds the target.  On BeH₂ the independent 100-replica block confirms
+assigned/pooled passing endpoints of `4096/1024` shots per setting at `k=1`,
+`16384/4096` at `k=2`, `16384/16384` at `k=4`, and `16384/4096` at `k=8`.  Every solve
+succeeds: 1,440 exploratory and 3,500 confirmatory endpoint solves.  At `k=4`, 4096
+fails and 16384 passes for both estimators, so the record now contains a genuine
+confirmed bracket rather than pricing a loose pilot upper endpoint.
+Pooling changes the accuracy-cost order under the ion-like and logical-all-to-all
+cards; only `k={1,2}` is admissible on the superconducting-like card, and pooling does
+not reorder that common set.  The asymptotic ledger was not promoted: in particular,
+its very small `k=4` assigned-shot prediction does not survive the nonlinear search.
 
 **R2 — the mapping axis.** Arms: `JW`, `parity`, `parity+2q`, `BK`, `BK+2q`. Held
 identical across arms: Hamiltonian and active space, reference determinant,
@@ -1855,7 +1881,7 @@ tier is a required field of every cost row:
 
 | tier | `ε` measured as | available today | used by |
 |---|---|---|---|
-| `exact` (default for R1–R4) | absolute error against the rung's exact reference, which §7.3 supplies for every rung but HCl | yes | the accuracy-matched shot search in R1–R4 |
+| `exact` (default for R1–R4) | replica RMSE of the nonlinear estimate's absolute error against the rung's exact reference, which §7.3 supplies for every rung but HCl | yes | the accuracy-matched shot search in R1–R4 |
 | `asymptotic` | half-width of the delta-method Ritz interval at declared nominal coverage | yes, uncertified | reported beside the `exact` tier as the estimator's own view |
 | `finite_sample` | half-width of a finite-sample Ritz-energy certificate | **no** | nothing, until such a certificate exists |
 
@@ -2832,9 +2858,9 @@ not another open accuracy phase.
 
 **Resource accounting** (interleaves with Track B; R1 first).
 
-10. R1 — cost model on the frozen banks. *Status:* structural and asymptotic layers
-    shipped; exact-tier nonlinear shot search open. *Gate:* v2 regenerates exactly
-    under `logical-alltoall`; QR1 and QR4 answered on H₄ and BeH₂ before R2.
+10. R1 — cost model on the frozen banks. **Done:** structural, asymptotic, and
+    exact-oracle nonlinear shot-search layers ship; v2 regenerates exactly under
+    `logical-alltoall`, and QR1/QR4 are answered on H₄ and BeH₂.
 11. R2a — restriction primitive and invariance checks. **Shipped**
     (`clifford_qc/subspace/restriction.py`, `tests/test_restriction.py`): the
     `Restriction`/`RestrictedProblem` transport, the three oracle checks, and

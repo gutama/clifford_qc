@@ -99,7 +99,7 @@ class WordFunctional:
         total = 0.0
         for group in cache.group_states():
             shots = group["shots"]
-            key = group["basis"]
+            key = group["key"]
             if shots <= 0 or key not in mine or key not in theirs:
                 continue
             left = _positions(cache, mine[key], group)
@@ -152,21 +152,32 @@ def _bucket_by_group(cache: GroupedWordCache, coefficients: dict) -> dict[tuple,
 
 
 def _positions(cache: GroupedWordCache, coefficients: dict, group: dict):
-    """``[(coefficient, bit positions)]`` for words assigned to this group."""
+    """``[(coefficient, sign, bit positions)]`` for one setting."""
     support = group["support"]
+    explicit = group.get("readouts", {})
     out = []
     for code, c in coefficients.items():
-        word_support = [j for j in range(cache.n) if (code >> (2 * j)) & 3]
-        out.append((c, [support.index(j) for j in word_support]))
+        if code in explicit:
+            sign, positions = explicit[code]
+        elif group.get("setting_key") is not None:
+            raise KeyError(
+                f"compiled setting {group['setting_key']!r} has no readout "
+                f"for word code {code}"
+            )
+        else:
+            sign = 1
+            word_support = [j for j in range(cache.n) if (code >> (2 * j)) & 3]
+            positions = [support.index(j) for j in word_support]
+        out.append((c, sign, positions))
     return out
 
 
 def _combined_value(bits: str, entries) -> float:
     """Per-shot value ``sum_w c_w o_w`` of one outcome bitstring."""
     total = 0.0
-    for c, positions in entries:
+    for c, sign, positions in entries:
         parity = sum(bits[p] == "1" for p in positions) % 2
-        total += -c if parity else c
+        total += sign * (-c if parity else c)
     return total
 
 

@@ -1,0 +1,2998 @@
+{
+  "accuracy_target_millihartree": 1.6,
+  "claim_boundary": "oracle-reference benchmark comparison with heuristic Monte Carlo uncertainty; not a finite-sample energy certificate, deployable stopping rule, calibrated device-noise simulation, or hardware result",
+  "device_cards": [
+    {
+      "calibration_status": "illustrative_scenario",
+      "connectivity": "all-to-all",
+      "description": "Slow-gate, all-to-all design scenario for sensitivity analysis.",
+      "eps_1q": 0.0005,
+      "eps_2q": 0.005,
+      "eps_readout": 0.01,
+      "fidelity_floor": 0.5,
+      "name": "ion-like",
+      "routing": false,
+      "routing_2q_multiplier": 1.0,
+      "routing_depth_multiplier": 1.0,
+      "schema": "clifford_qc.device_card.v1",
+      "sha256": "9cc7e53e935e4ec3c265efbd9b6218f17a68c51d727d658c5a5bcaf98d34f453",
+      "source": "Illustrative project scenario; not vendor data or a current-device claim.",
+      "t_1q_us": 10.0,
+      "t_2q_us": 200.0,
+      "t_prep_us": 50.0,
+      "t_readout_us": 100.0,
+      "t_reset_us": 50.0
+    },
+    {
+      "calibration_status": "logical_baseline",
+      "connectivity": "all-to-all",
+      "description": "All-to-all logical accounting baseline with zero surrogate error.",
+      "eps_1q": 0.0,
+      "eps_2q": 0.0,
+      "eps_readout": 0.0,
+      "fidelity_floor": 0.5,
+      "name": "logical-alltoall",
+      "routing": false,
+      "routing_2q_multiplier": 1.0,
+      "routing_depth_multiplier": 1.0,
+      "schema": "clifford_qc.device_card.v1",
+      "sha256": "07e9cc637e590668bc89b7d407535f34f509155e08c95d2ecd0f8f931738265b",
+      "source": "Project-defined logical scenario; not a hardware calibration.",
+      "t_1q_us": 0.05,
+      "t_2q_us": 0.3,
+      "t_prep_us": 0.0,
+      "t_readout_us": 1.0,
+      "t_reset_us": 1.0
+    },
+    {
+      "calibration_status": "illustrative_scenario",
+      "connectivity": "sparse-nearest-neighbor",
+      "description": "Fast-gate, sparse-connectivity design scenario for sensitivity analysis.",
+      "eps_1q": 0.001,
+      "eps_2q": 0.01,
+      "eps_readout": 0.02,
+      "fidelity_floor": 0.5,
+      "name": "superconducting-like",
+      "routing": true,
+      "routing_2q_multiplier": 3.0,
+      "routing_depth_multiplier": 2.0,
+      "schema": "clifford_qc.device_card.v1",
+      "sha256": "cf78e3240ad48839a8113a1570a43e614c230a8428fe8ceda7783e7ff75e1a13",
+      "source": "Illustrative project scenario; not vendor data or a current-device claim.",
+      "t_1q_us": 0.05,
+      "t_2q_us": 0.3,
+      "t_prep_us": 1.0,
+      "t_readout_us": 1.0,
+      "t_reset_us": 1.0
+    }
+  ],
+  "evidence_tier": "exact",
+  "pass_rule": "zero solver failures and the one-sided 95% nonparametric-bootstrap upper bound on RMSE <= 1.6 mHa",
+  "primary_metric": "replica RMSE of the nonlinear selected-rank Ritz energy against the full exact ground energy",
+  "protocol": {
+    "bootstrap_replicates": 10000,
+    "bootstrap_seed": 261013000,
+    "calibration_artifact": "benchmarks/reference_results/finite_shot_rethink.json",
+    "confirmatory_replicas": 100,
+    "confirmatory_seed": 260913000,
+    "delta": 0.05,
+    "exploratory_replicas": 30,
+    "exploratory_seed": 260813000,
+    "nested_endpoints": true,
+    "paired_estimators": true,
+    "rank_rule": "minimize measured E(rank) + gamma*sigma(rank)",
+    "rank_selection_gamma": 2.0,
+    "search_endpoints_effective_shots_per_setting": [
+      64,
+      256,
+      1024,
+      4096,
+      16384,
+      65536
+    ],
+    "seed_derivation": "numpy.SeedSequence(root, spawn_key=coordinates)"
+  },
+  "provenance": {
+    "blas_lapack": {
+      "Build Dependencies": {
+        "blas": {
+          "detection method": "pkgconfig",
+          "found": true,
+          "include directory": "/opt/_internal/cpython-3.12.13/lib/python3.12/site-packages/scipy_openblas64/include",
+          "lib directory": "/opt/_internal/cpython-3.12.13/lib/python3.12/site-packages/scipy_openblas64/lib",
+          "name": "scipy-openblas",
+          "openblas configuration": "OpenBLAS 0.3.34.0.0  USE64BITINT DYNAMIC_ARCH NO_AFFINITY Haswell MAX_THREADS=64",
+          "pc file directory": "/project/.openblas",
+          "version": "0.3.34.0.0"
+        },
+        "lapack": {
+          "detection method": "pkgconfig",
+          "found": true,
+          "include directory": "/opt/_internal/cpython-3.12.13/lib/python3.12/site-packages/scipy_openblas64/include",
+          "lib directory": "/opt/_internal/cpython-3.12.13/lib/python3.12/site-packages/scipy_openblas64/lib",
+          "name": "scipy-openblas",
+          "openblas configuration": "OpenBLAS 0.3.34.0.0  USE64BITINT DYNAMIC_ARCH NO_AFFINITY Haswell MAX_THREADS=64",
+          "pc file directory": "/project/.openblas",
+          "version": "0.3.34.0.0"
+        }
+      },
+      "Compilers": {
+        "c": {
+          "commands": "cc",
+          "linker": "ld.bfd",
+          "name": "gcc",
+          "version": "14.2.1"
+        },
+        "c++": {
+          "commands": "c++",
+          "linker": "ld.bfd",
+          "name": "gcc",
+          "version": "14.2.1"
+        },
+        "cython": {
+          "commands": "cython",
+          "linker": "cython",
+          "name": "cython",
+          "version": "3.2.9"
+        }
+      },
+      "Machine Information": {
+        "build": {
+          "cpu": "x86_64",
+          "endian": "little",
+          "family": "x86_64",
+          "system": "linux"
+        },
+        "host": {
+          "cpu": "x86_64",
+          "endian": "little",
+          "family": "x86_64",
+          "system": "linux"
+        }
+      },
+      "Python Information": {
+        "path": "/tmp/build-env-jmn5a0j4/bin/python",
+        "version": "3.12"
+      },
+      "SIMD Extensions": {
+        "baseline": [
+          "X86_V2"
+        ],
+        "found": [
+          "X86_V3",
+          "X86_V4",
+          "AVX512_ICL"
+        ],
+        "not found": [
+          "AVX512_SPR"
+        ]
+      }
+    },
+    "clifford_qc": "0.3.0",
+    "dependencies": {
+      "numpy": "2.5.2",
+      "openfermion": null,
+      "openfermionpyscf": null,
+      "pyscf": null,
+      "scipy": null,
+      "stim": "1.16.0"
+    },
+    "environment_sha256": "5a1d06e11767554bf8ff9cc4a14a16e4935354cc16c81582bb8d286b636f6dd2",
+    "git_dirty": true,
+    "git_sha": "fb6ae63ab80b06dd9ff7d506257dbc37bd6905d4",
+    "platform": {
+      "hostname": "88bc3dc4a4a8",
+      "machine": "x86_64",
+      "processor": "x86_64",
+      "release": "6.18.35",
+      "system": "Linux"
+    },
+    "python": "3.12.13",
+    "schema": "clifford_qc.execution_provenance.v1",
+    "utc": "2026-08-14T00:11:58.796903+00:00"
+  },
+  "schema": "clifford_qc.exact_shot_search.v1",
+  "search_uncertainty_evidence": "heuristic",
+  "systems": {
+    "beh2": {
+      "accuracy_matched_ordering": {
+        "ion-like": {
+          "compared_block_sizes": [
+            1,
+            2,
+            4,
+            8
+          ],
+          "pooled": [
+            {
+              "C_time_epsilon_us": 127053980.0,
+              "block_size": 1
+            },
+            {
+              "C_time_epsilon_us": 133989480.0,
+              "block_size": 2
+            },
+            {
+              "C_time_epsilon_us": 440006410.0,
+              "block_size": 8
+            },
+            {
+              "C_time_epsilon_us": 758254590.0,
+              "block_size": 4
+            }
+          ],
+          "pooling_reorders_protocols": true,
+          "single_assignment": [
+            {
+              "C_time_epsilon_us": 508169120.0,
+              "block_size": 1
+            },
+            {
+              "C_time_epsilon_us": 535927950.0,
+              "block_size": 2
+            },
+            {
+              "C_time_epsilon_us": 758254590.0,
+              "block_size": 4
+            },
+            {
+              "C_time_epsilon_us": 1759928470.0,
+              "block_size": 8
+            }
+          ]
+        },
+        "logical-alltoall": {
+          "compared_block_sizes": [
+            1,
+            2,
+            4,
+            8
+          ],
+          "pooled": [
+            {
+              "C_time_epsilon_us": 491110.3999999999,
+              "block_size": 2
+            },
+            {
+              "C_time_epsilon_us": 544972.7999999999,
+              "block_size": 8
+            },
+            {
+              "C_time_epsilon_us": 882687.9999999999,
+              "block_size": 1
+            },
+            {
+              "C_time_epsilon_us": 1706393.5999999994,
+              "block_size": 4
+            }
+          ],
+          "pooling_reorders_protocols": true,
+          "single_assignment": [
+            {
+              "C_time_epsilon_us": 1706393.5999999994,
+              "block_size": 4
+            },
+            {
+              "C_time_epsilon_us": 1964441.5999999996,
+              "block_size": 2
+            },
+            {
+              "C_time_epsilon_us": 2179891.1999999997,
+              "block_size": 8
+            },
+            {
+              "C_time_epsilon_us": 3530751.9999999995,
+              "block_size": 1
+            }
+          ]
+        },
+        "superconducting-like": {
+          "compared_block_sizes": [
+            1,
+            2
+          ],
+          "pooled": [
+            {
+              "C_time_epsilon_us": 1409730.3000000005,
+              "block_size": 2
+            },
+            {
+              "C_time_epsilon_us": 1851202.5499999998,
+              "block_size": 1
+            }
+          ],
+          "pooling_reorders_protocols": false,
+          "single_assignment": [
+            {
+              "C_time_epsilon_us": 5638578.700000002,
+              "block_size": 2
+            },
+            {
+              "C_time_epsilon_us": 7402857.300000002,
+              "block_size": 1
+            }
+          ]
+        }
+      },
+      "exact_ground_energy": -15.566211795095168,
+      "exact_subspace_bias_millihartree": 0.0033014997491420672,
+      "rows": [
+        {
+          "block_size": 1,
+          "compatible_readouts": 5143,
+          "estimators": {
+            "pooled": {
+              "confirmation": [
+                {
+                  "below_exact_count": 86,
+                  "bias_millihartree": -3.3011157555205806,
+                  "chemical_accuracy_fraction": 0.24,
+                  "effective_shots_per_setting": 64,
+                  "failures": {},
+                  "max_absolute_error_millihartree": 10.996981532532146,
+                  "median_absolute_error_millihartree": 3.27242447802778,
+                  "p95_absolute_error_millihartree": 8.451591472674645,
+                  "passes_target": false,
+                  "rank_histogram": {
+                    "4": 1,
+                    "5": 99
+                  },
+                  "replicas": 100,
+                  "rmse_millihartree": 4.674681883593416,
+                  "rmse_one_sided_95pct_upper_millihartree": 5.138185526741367,
+                  "successful_solves": 100,
+                  "zero_failure_gate": true
+                },
+                {
+                  "below_exact_count": 75,
+                  "bias_millihartree": -0.937070842644907,
+                  "chemical_accuracy_fraction": 0.66,
+                  "effective_shots_per_setting": 256,
+                  "failures": {},
+                  "max_absolute_error_millihartree": 4.706692813591928,
+                  "median_absolute_error_millihartree": 1.1446105084464975,
+                  "p95_absolute_error_millihartree": 3.4114745951961285,
+                  "passes_target": false,
+                  "rank_histogram": {
+                    "5": 100
+                  },
+                  "replicas": 100,
+                  "rmse_millihartree": 1.7323045355886941,
+                  "rmse_one_sided_95pct_upper_millihartree": 1.9204966427550931,
+                  "successful_solves": 100,
+                  "zero_failure_gate": true
+                },
+                {
+                  "below_exact_count": 63,
+                  "bias_millihartree": -0.26175731688800496,
+                  "chemical_accuracy_fraction": 0.98,
+                  "effective_shots_per_setting": 1024,
+                  "failures": {},
+                  "max_absolute_error_millihartree": 2.30351129095574,
+                  "median_absolute_error_millihartree": 0.5400688249688201,
+                  "p95_absolute_error_millihartree": 1.444071791441015,
+                  "passes_target": true,
+                  "rank_histogram": {
+                    "5": 100
+                  },
+                  "replicas": 100,
+                  "rmse_millihartree": 0.7247644915676268,
+                  "rmse_one_sided_95pct_upper_millihartree": 0.810226063110664,
+                  "successful_solves": 100,
+                  "zero_failure_gate": true
+                }
+              ],
+              "device_costs": {
+                "ion-like": {
+                  "accuracy": {
+                    "C_time_epsilon_us": 127053980.0,
+                    "epsilon": 0.0016,
+                    "evidence_tier": "exact",
+                    "status": "priced"
+                  },
+                  "admissible": true,
+                  "device_card": {
+                    "calibration_status": "illustrative_scenario",
+                    "name": "ion-like",
+                    "sha256": "9cc7e53e935e4ec3c265efbd9b6218f17a68c51d727d658c5a5bcaf98d34f453"
+                  },
+                  "effective_shots": 361543.53790512576,
+                  "fidelity": {
+                    "floor": 0.5,
+                    "max": 0.9190601684078923,
+                    "mean": 0.9059926766009719,
+                    "min": 0.8901086991572532
+                  },
+                  "fixed_shot_time_us": 127053980.0,
+                  "inadmissible_settings": 0,
+                  "logical_1q_applications": 16214536,
+                  "logical_2q_applications": 0,
+                  "modeled_2q_applications": 0,
+                  "n_qubits": 8,
+                  "raw_shots": 440511,
+                  "routing": {
+                    "model": "declared scalar sensitivity surrogate",
+                    "required": false,
+                    "two_qubit_count_multiplier": 1.0,
+                    "two_qubit_depth_multiplier": 1.0
+                  },
+                  "schema": "clifford_qc.measurement_cost.v1",
+                  "settings": 353
+                },
+                "logical-alltoall": {
+                  "accuracy": {
+                    "C_time_epsilon_us": 882687.9999999999,
+                    "epsilon": 0.0016,
+                    "evidence_tier": "exact",
+                    "status": "priced"
+                  },
+                  "admissible": true,
+                  "device_card": {
+                    "calibration_status": "logical_baseline",
+                    "name": "logical-alltoall",
+                    "sha256": "07e9cc637e590668bc89b7d407535f34f509155e08c95d2ecd0f8f931738265b"
+                  },
+                  "effective_shots": 361472.0,
+                  "fidelity": {
+                    "floor": 0.5,
+                    "max": 1.0,
+                    "mean": 1.0,
+                    "min": 1.0
+                  },
+                  "fixed_shot_time_us": 882687.9999999999,
+                  "inadmissible_settings": 0,
+                  "logical_1q_applications": 13254656,
+                  "logical_2q_applications": 0,
+                  "modeled_2q_applications": 0,
+                  "n_qubits": 8,
+                  "raw_shots": 361472,
+                  "routing": {
+                    "model": "declared scalar sensitivity surrogate",
+                    "required": false,
+                    "two_qubit_count_multiplier": 1.0,
+                    "two_qubit_depth_multiplier": 1.0
+                  },
+                  "schema": "clifford_qc.measurement_cost.v1",
+                  "settings": 353
+                },
+                "superconducting-like": {
+                  "accuracy": {
+                    "C_time_epsilon_us": 1851202.5499999998,
+                    "epsilon": 0.0016,
+                    "evidence_tier": "exact",
+                    "status": "priced"
+                  },
+                  "admissible": true,
+                  "device_card": {
+                    "calibration_status": "illustrative_scenario",
+                    "name": "superconducting-like",
+                    "sha256": "cf78e3240ad48839a8113a1570a43e614c230a8428fe8ceda7783e7ff75e1a13"
+                  },
+                  "effective_shots": 361603.5698450479,
+                  "fidelity": {
+                    "floor": 0.5,
+                    "max": 0.84398069218254,
+                    "mean": 0.8201741550150352,
+                    "min": 0.79163275921963
+                  },
+                  "fixed_shot_time_us": 1851202.5499999998,
+                  "inadmissible_settings": 0,
+                  "logical_1q_applications": 19870352,
+                  "logical_2q_applications": 0,
+                  "modeled_2q_applications": 0,
+                  "n_qubits": 8,
+                  "raw_shots": 537778,
+                  "routing": {
+                    "model": "declared scalar sensitivity surrogate",
+                    "required": true,
+                    "two_qubit_count_multiplier": 3.0,
+                    "two_qubit_depth_multiplier": 2.0
+                  },
+                  "schema": "clifford_qc.measurement_cost.v1",
+                  "settings": 353
+                }
+              },
+              "exploration": [
+                {
+                  "below_exact_count": 27,
+                  "bias_millihartree": -3.9880929895113346,
+                  "chemical_accuracy_fraction": 0.23333333333333334,
+                  "effective_shots_per_setting": 64,
+                  "failures": {},
+                  "max_absolute_error_millihartree": 9.725493331139035,
+                  "median_absolute_error_millihartree": 4.029468796574065,
+                  "p95_absolute_error_millihartree": 8.453670768883457,
+                  "passes_target": false,
+                  "rank_histogram": {
+                    "5": 30
+                  },
+                  "replicas": 30,
+                  "rmse_millihartree": 4.936096717189721,
+                  "rmse_one_sided_95pct_upper_millihartree": 5.668293768786437,
+                  "successful_solves": 30,
+                  "zero_failure_gate": true
+                },
+                {
+                  "below_exact_count": 23,
+                  "bias_millihartree": -1.1177089984728994,
+                  "chemical_accuracy_fraction": 0.6,
+                  "effective_shots_per_setting": 256,
+                  "failures": {},
+                  "max_absolute_error_millihartree": 4.001228897339004,
+                  "median_absolute_error_millihartree": 1.3090711180510084,
+                  "p95_absolute_error_millihartree": 3.2165490921081563,
+                  "passes_target": false,
+                  "rank_histogram": {
+                    "5": 30
+                  },
+                  "replicas": 30,
+                  "rmse_millihartree": 1.91357592710795,
+                  "rmse_one_sided_95pct_upper_millihartree": 2.2319001113061008,
+                  "successful_solves": 30,
+                  "zero_failure_gate": true
+                },
+                {
+                  "below_exact_count": 21,
+                  "bias_millihartree": -0.27933527945596853,
+                  "chemical_accuracy_fraction": 0.9666666666666667,
+                  "effective_shots_per_setting": 1024,
+                  "failures": {},
+                  "max_absolute_error_millihartree": 1.7187192701317855,
+                  "median_absolute_error_millihartree": 0.5043974909799687,
+                  "p95_absolute_error_millihartree": 1.4660318870613582,
+                  "passes_target": true,
+                  "rank_histogram": {
+                    "5": 30
+                  },
+                  "replicas": 30,
+                  "rmse_millihartree": 0.7378391263914374,
+                  "rmse_one_sided_95pct_upper_millihartree": 0.8782718905067952,
+                  "successful_solves": 30,
+                  "zero_failure_gate": true
+                },
+                {
+                  "below_exact_count": 20,
+                  "bias_millihartree": -0.11126999398006394,
+                  "chemical_accuracy_fraction": 1.0,
+                  "effective_shots_per_setting": 4096,
+                  "failures": {},
+                  "max_absolute_error_millihartree": 0.8278344808445581,
+                  "median_absolute_error_millihartree": 0.24432613899882938,
+                  "p95_absolute_error_millihartree": 0.6643947851836526,
+                  "passes_target": true,
+                  "rank_histogram": {
+                    "5": 30
+                  },
+                  "replicas": 30,
+                  "rmse_millihartree": 0.34323761628052823,
+                  "rmse_one_sided_95pct_upper_millihartree": 0.40986931972751833,
+                  "successful_solves": 30,
+                  "zero_failure_gate": true
+                },
+                {
+                  "below_exact_count": 21,
+                  "bias_millihartree": -0.07095800142836357,
+                  "chemical_accuracy_fraction": 1.0,
+                  "effective_shots_per_setting": 16384,
+                  "failures": {},
+                  "max_absolute_error_millihartree": 0.41253121317907926,
+                  "median_absolute_error_millihartree": 0.10570482788008206,
+                  "p95_absolute_error_millihartree": 0.336309817892477,
+                  "passes_target": true,
+                  "rank_histogram": {
+                    "5": 30
+                  },
+                  "replicas": 30,
+                  "rmse_millihartree": 0.16441135138648372,
+                  "rmse_one_sided_95pct_upper_millihartree": 0.198925849071326,
+                  "successful_solves": 30,
+                  "zero_failure_gate": true
+                },
+                {
+                  "below_exact_count": 21,
+                  "bias_millihartree": -0.029906566073556462,
+                  "chemical_accuracy_fraction": 1.0,
+                  "effective_shots_per_setting": 65536,
+                  "failures": {},
+                  "max_absolute_error_millihartree": 0.26378544270144744,
+                  "median_absolute_error_millihartree": 0.0642544890334662,
+                  "p95_absolute_error_millihartree": 0.1583297760795687,
+                  "passes_target": true,
+                  "rank_histogram": {
+                    "5": 30
+                  },
+                  "replicas": 30,
+                  "rmse_millihartree": 0.09063507200038792,
+                  "rmse_one_sided_95pct_upper_millihartree": 0.11341448179639085,
+                  "successful_solves": 30,
+                  "zero_failure_gate": true
+                }
+              ],
+              "shot_to_target": {
+                "confirmed_failing_effective_shots_per_setting": 256,
+                "confirmed_passing_effective_shots_per_setting": 1024,
+                "status": "confirmed_bracket"
+              }
+            },
+            "single_assignment": {
+              "confirmation": [
+                {
+                  "below_exact_count": 84,
+                  "bias_millihartree": -15.386253998463422,
+                  "chemical_accuracy_fraction": 0.04,
+                  "effective_shots_per_setting": 64,
+                  "failures": {},
+                  "max_absolute_error_millihartree": 57.46098722024939,
+                  "median_absolute_error_millihartree": 13.943365736656332,
+                  "p95_absolute_error_millihartree": 44.76620915265944,
+                  "passes_target": false,
+                  "rank_histogram": {
+                    "5": 100
+                  },
+                  "replicas": 100,
+                  "rmse_millihartree": 21.48122183360932,
+                  "rmse_one_sided_95pct_upper_millihartree": 23.965726737567437,
+                  "successful_solves": 100,
+                  "zero_failure_gate": true
+                },
+                {
+                  "below_exact_count": 76,
+                  "bias_millihartree": -3.992603695616079,
+                  "chemical_accuracy_fraction": 0.19,
+                  "effective_shots_per_setting": 256,
+                  "failures": {},
+                  "max_absolute_error_millihartree": 19.228332954696725,
+                  "median_absolute_error_millihartree": 5.023597877450214,
+                  "p95_absolute_error_millihartree": 12.854319404215616,
+                  "passes_target": false,
+                  "rank_histogram": {
+                    "5": 100
+                  },
+                  "replicas": 100,
+                  "rmse_millihartree": 7.072780950876462,
+                  "rmse_one_sided_95pct_upper_millihartree": 7.851818355899169,
+                  "successful_solves": 100,
+                  "zero_failure_gate": true
+                },
+                {
+                  "below_exact_count": 54,
+                  "bias_millihartree": -0.7411809002805825,
+                  "chemical_accuracy_fraction": 0.43,
+                  "effective_shots_per_setting": 1024,
+                  "failures": {},
+                  "max_absolute_error_millihartree": 9.855077776096621,
+                  "median_absolute_error_millihartree": 1.831449869353463,
+                  "p95_absolute_error_millihartree": 5.7576629911420865,
+                  "passes_target": false,
+                  "rank_histogram": {
+                    "5": 100
+                  },
+                  "replicas": 100,
+                  "rmse_millihartree": 3.218104690569031,
+                  "rmse_one_sided_95pct_upper_millihartree": 3.5974261000082763,
+                  "successful_solves": 100,
+                  "zero_failure_gate": true
+                },
+                {
+                  "below_exact_count": 58,
+                  "bias_millihartree": -0.16202899563181106,
+                  "chemical_accuracy_fraction": 0.72,
+                  "effective_shots_per_setting": 4096,
+                  "failures": {},
+                  "max_absolute_error_millihartree": 3.9014164610051694,
+                  "median_absolute_error_millihartree": 0.9436636809780907,
+                  "p95_absolute_error_millihartree": 2.48654843749323,
+                  "passes_target": true,
+                  "rank_histogram": {
+                    "5": 100
+                  },
+                  "replicas": 100,
+                  "rmse_millihartree": 1.3788193724190039,
+                  "rmse_one_sided_95pct_upper_millihartree": 1.5260572344480725,
+                  "successful_solves": 100,
+                  "zero_failure_gate": true
+                }
+              ],
+              "device_costs": {
+                "ion-like": {
+                  "accuracy": {
+                    "C_time_epsilon_us": 508169120.0,
+                    "epsilon": 0.0016,
+                    "evidence_tier": "exact",
+                    "status": "priced"
+                  },
+                  "admissible": true,
+                  "device_card": {
+                    "calibration_status": "illustrative_scenario",
+                    "name": "ion-like",
+                    "sha256": "9cc7e53e935e4ec3c265efbd9b6218f17a68c51d727d658c5a5bcaf98d34f453"
+                  },
+                  "effective_shots": 1446036.9654569428,
+                  "fidelity": {
+                    "floor": 0.5,
+                    "max": 0.9190601684078923,
+                    "mean": 0.9059926766009719,
+                    "min": 0.8901086991572532
+                  },
+                  "fixed_shot_time_us": 508169120.0,
+                  "inadmissible_settings": 0,
+                  "logical_1q_applications": 64852136,
+                  "logical_2q_applications": 0,
+                  "modeled_2q_applications": 0,
+                  "n_qubits": 8,
+                  "raw_shots": 1761877,
+                  "routing": {
+                    "model": "declared scalar sensitivity surrogate",
+                    "required": false,
+                    "two_qubit_count_multiplier": 1.0,
+                    "two_qubit_depth_multiplier": 1.0
+                  },
+                  "schema": "clifford_qc.measurement_cost.v1",
+                  "settings": 353
+                },
+                "logical-alltoall": {
+                  "accuracy": {
+                    "C_time_epsilon_us": 3530751.9999999995,
+                    "epsilon": 0.0016,
+                    "evidence_tier": "exact",
+                    "status": "priced"
+                  },
+                  "admissible": true,
+                  "device_card": {
+                    "calibration_status": "logical_baseline",
+                    "name": "logical-alltoall",
+                    "sha256": "07e9cc637e590668bc89b7d407535f34f509155e08c95d2ecd0f8f931738265b"
+                  },
+                  "effective_shots": 1445888.0,
+                  "fidelity": {
+                    "floor": 0.5,
+                    "max": 1.0,
+                    "mean": 1.0,
+                    "min": 1.0
+                  },
+                  "fixed_shot_time_us": 3530751.9999999995,
+                  "inadmissible_settings": 0,
+                  "logical_1q_applications": 53018624,
+                  "logical_2q_applications": 0,
+                  "modeled_2q_applications": 0,
+                  "n_qubits": 8,
+                  "raw_shots": 1445888,
+                  "routing": {
+                    "model": "declared scalar sensitivity surrogate",
+                    "required": false,
+                    "two_qubit_count_multiplier": 1.0,
+                    "two_qubit_depth_multiplier": 1.0
+                  },
+                  "schema": "clifford_qc.measurement_cost.v1",
+                  "settings": 353
+                },
+                "superconducting-like": {
+                  "accuracy": {
+                    "C_time_epsilon_us": 7402857.300000002,
+                    "epsilon": 0.0016,
+                    "evidence_tier": "exact",
+                    "status": "priced"
+                  },
+                  "admissible": true,
+                  "device_card": {
+                    "calibration_status": "illustrative_scenario",
+                    "name": "superconducting-like",
+                    "sha256": "cf78e3240ad48839a8113a1570a43e614c230a8428fe8ceda7783e7ff75e1a13"
+                  },
+                  "effective_shots": 1446032.196111324,
+                  "fidelity": {
+                    "floor": 0.5,
+                    "max": 0.84398069218254,
+                    "mean": 0.8201741550150352,
+                    "min": 0.79163275921963
+                  },
+                  "fixed_shot_time_us": 7402857.300000002,
+                  "inadmissible_settings": 0,
+                  "logical_1q_applications": 79460536,
+                  "logical_2q_applications": 0,
+                  "modeled_2q_applications": 0,
+                  "n_qubits": 8,
+                  "raw_shots": 2150544,
+                  "routing": {
+                    "model": "declared scalar sensitivity surrogate",
+                    "required": true,
+                    "two_qubit_count_multiplier": 3.0,
+                    "two_qubit_depth_multiplier": 2.0
+                  },
+                  "schema": "clifford_qc.measurement_cost.v1",
+                  "settings": 353
+                }
+              },
+              "exploration": [
+                {
+                  "below_exact_count": 28,
+                  "bias_millihartree": -20.53617396311113,
+                  "chemical_accuracy_fraction": 0.0,
+                  "effective_shots_per_setting": 64,
+                  "failures": {},
+                  "max_absolute_error_millihartree": 64.92198492527379,
+                  "median_absolute_error_millihartree": 19.403054969154176,
+                  "p95_absolute_error_millihartree": 40.40477076505108,
+                  "passes_target": false,
+                  "rank_histogram": {
+                    "5": 30
+                  },
+                  "replicas": 30,
+                  "rmse_millihartree": 24.642302341391307,
+                  "rmse_one_sided_95pct_upper_millihartree": 29.57311430905044,
+                  "successful_solves": 30,
+                  "zero_failure_gate": true
+                },
+                {
+                  "below_exact_count": 27,
+                  "bias_millihartree": -5.9006772426740755,
+                  "chemical_accuracy_fraction": 0.03333333333333333,
+                  "effective_shots_per_setting": 256,
+                  "failures": {},
+                  "max_absolute_error_millihartree": 15.481591630004843,
+                  "median_absolute_error_millihartree": 5.986405809720097,
+                  "p95_absolute_error_millihartree": 14.105580291318716,
+                  "passes_target": false,
+                  "rank_histogram": {
+                    "5": 30
+                  },
+                  "replicas": 30,
+                  "rmse_millihartree": 7.899644601823589,
+                  "rmse_one_sided_95pct_upper_millihartree": 9.165692677049684,
+                  "successful_solves": 30,
+                  "zero_failure_gate": true
+                },
+                {
+                  "below_exact_count": 21,
+                  "bias_millihartree": -0.9549913220112671,
+                  "chemical_accuracy_fraction": 0.4666666666666667,
+                  "effective_shots_per_setting": 1024,
+                  "failures": {},
+                  "max_absolute_error_millihartree": 5.141402955331387,
+                  "median_absolute_error_millihartree": 1.7965526220837802,
+                  "p95_absolute_error_millihartree": 4.8958920890264315,
+                  "passes_target": false,
+                  "rank_histogram": {
+                    "5": 30
+                  },
+                  "replicas": 30,
+                  "rmse_millihartree": 2.649994692430765,
+                  "rmse_one_sided_95pct_upper_millihartree": 3.0699715604448303,
+                  "successful_solves": 30,
+                  "zero_failure_gate": true
+                },
+                {
+                  "below_exact_count": 19,
+                  "bias_millihartree": -0.5417976399182697,
+                  "chemical_accuracy_fraction": 0.7,
+                  "effective_shots_per_setting": 4096,
+                  "failures": {},
+                  "max_absolute_error_millihartree": 2.9099257660174516,
+                  "median_absolute_error_millihartree": 1.024604603138357,
+                  "p95_absolute_error_millihartree": 2.235498319453466,
+                  "passes_target": true,
+                  "rank_histogram": {
+                    "5": 30
+                  },
+                  "replicas": 30,
+                  "rmse_millihartree": 1.3814292412178082,
+                  "rmse_one_sided_95pct_upper_millihartree": 1.597288731415505,
+                  "successful_solves": 30,
+                  "zero_failure_gate": true
+                },
+                {
+                  "below_exact_count": 15,
+                  "bias_millihartree": -0.01976203093748315,
+                  "chemical_accuracy_fraction": 1.0,
+                  "effective_shots_per_setting": 16384,
+                  "failures": {},
+                  "max_absolute_error_millihartree": 1.3357986504001218,
+                  "median_absolute_error_millihartree": 0.3617568644180835,
+                  "p95_absolute_error_millihartree": 1.010721093829492,
+                  "passes_target": true,
+                  "rank_histogram": {
+                    "5": 30
+                  },
+                  "replicas": 30,
+                  "rmse_millihartree": 0.5378011801699917,
+                  "rmse_one_sided_95pct_upper_millihartree": 0.6451090768439255,
+                  "successful_solves": 30,
+                  "zero_failure_gate": true
+                },
+                {
+                  "below_exact_count": 20,
+                  "bias_millihartree": -0.0892231809436576,
+                  "chemical_accuracy_fraction": 1.0,
+                  "effective_shots_per_setting": 65536,
+                  "failures": {},
+                  "max_absolute_error_millihartree": 0.6608406296937375,
+                  "median_absolute_error_millihartree": 0.26766929029253816,
+                  "p95_absolute_error_millihartree": 0.5515188298750751,
+                  "passes_target": true,
+                  "rank_histogram": {
+                    "5": 30
+                  },
+                  "replicas": 30,
+                  "rmse_millihartree": 0.34285416723455864,
+                  "rmse_one_sided_95pct_upper_millihartree": 0.3918841852603275,
+                  "successful_solves": 30,
+                  "zero_failure_gate": true
+                }
+              ],
+              "shot_to_target": {
+                "confirmed_failing_effective_shots_per_setting": 1024,
+                "confirmed_passing_effective_shots_per_setting": 4096,
+                "status": "confirmed_bracket"
+              }
+            }
+          },
+          "mean_reader_count": 2.8336088154269974,
+          "settings": 353
+        },
+        {
+          "block_size": 2,
+          "compatible_readouts": 4687,
+          "estimators": {
+            "pooled": {
+              "confirmation": [
+                {
+                  "below_exact_count": 96,
+                  "bias_millihartree": -22.264414008208245,
+                  "chemical_accuracy_fraction": 0.02,
+                  "effective_shots_per_setting": 64,
+                  "failures": {},
+                  "max_absolute_error_millihartree": 72.07337982479523,
+                  "median_absolute_error_millihartree": 20.022073592983247,
+                  "p95_absolute_error_millihartree": 48.78475153768445,
+                  "passes_target": false,
+                  "rank_histogram": {
+                    "4": 3,
+                    "5": 97
+                  },
+                  "replicas": 100,
+                  "rmse_millihartree": 26.831341299646354,
+                  "rmse_one_sided_95pct_upper_millihartree": 29.53364391872359,
+                  "successful_solves": 100,
+                  "zero_failure_gate": true
+                },
+                {
+                  "below_exact_count": 85,
+                  "bias_millihartree": -5.187322501133487,
+                  "chemical_accuracy_fraction": 0.2,
+                  "effective_shots_per_setting": 256,
+                  "failures": {},
+                  "max_absolute_error_millihartree": 20.945466239616906,
+                  "median_absolute_error_millihartree": 5.242194185448135,
+                  "p95_absolute_error_millihartree": 12.29792435644281,
+                  "passes_target": false,
+                  "rank_histogram": {
+                    "4": 4,
+                    "5": 96
+                  },
+                  "replicas": 100,
+                  "rmse_millihartree": 7.13443534704096,
+                  "rmse_one_sided_95pct_upper_millihartree": 7.901789144733885,
+                  "successful_solves": 100,
+                  "zero_failure_gate": true
+                },
+                {
+                  "below_exact_count": 73,
+                  "bias_millihartree": -1.3290303131877579,
+                  "chemical_accuracy_fraction": 0.49,
+                  "effective_shots_per_setting": 1024,
+                  "failures": {},
+                  "max_absolute_error_millihartree": 7.632503480911268,
+                  "median_absolute_error_millihartree": 1.6178531757375936,
+                  "p95_absolute_error_millihartree": 4.852295800701434,
+                  "passes_target": false,
+                  "rank_histogram": {
+                    "5": 100
+                  },
+                  "replicas": 100,
+                  "rmse_millihartree": 2.4968078986495623,
+                  "rmse_one_sided_95pct_upper_millihartree": 2.7847360071984273,
+                  "successful_solves": 100,
+                  "zero_failure_gate": true
+                },
+                {
+                  "below_exact_count": 68,
+                  "bias_millihartree": -0.4134740650516022,
+                  "chemical_accuracy_fraction": 0.89,
+                  "effective_shots_per_setting": 4096,
+                  "failures": {},
+                  "max_absolute_error_millihartree": 3.4305884254663965,
+                  "median_absolute_error_millihartree": 0.6769258264425204,
+                  "p95_absolute_error_millihartree": 1.790305106764478,
+                  "passes_target": true,
+                  "rank_histogram": {
+                    "5": 100
+                  },
+                  "replicas": 100,
+                  "rmse_millihartree": 0.9719562556357281,
+                  "rmse_one_sided_95pct_upper_millihartree": 1.0958198460790511,
+                  "successful_solves": 100,
+                  "zero_failure_gate": true
+                }
+              ],
+              "device_costs": {
+                "ion-like": {
+                  "accuracy": {
+                    "C_time_epsilon_us": 133989480.0,
+                    "epsilon": 0.0016,
+                    "evidence_tier": "exact",
+                    "status": "priced"
+                  },
+                  "admissible": true,
+                  "device_card": {
+                    "calibration_status": "illustrative_scenario",
+                    "name": "ion-like",
+                    "sha256": "9cc7e53e935e4ec3c265efbd9b6218f17a68c51d727d658c5a5bcaf98d34f453"
+                  },
+                  "effective_shots": 167948.41356533667,
+                  "fidelity": {
+                    "floor": 0.5,
+                    "max": 0.9190601684078923,
+                    "mean": 0.8924739510442317,
+                    "min": 0.879448865903705
+                  },
+                  "fixed_shot_time_us": 133989480.0,
+                  "inadmissible_settings": 0,
+                  "logical_1q_applications": 5467676,
+                  "logical_2q_applications": 871852,
+                  "modeled_2q_applications": 871852,
+                  "n_qubits": 8,
+                  "raw_shots": 210938,
+                  "routing": {
+                    "model": "declared scalar sensitivity surrogate",
+                    "required": false,
+                    "two_qubit_count_multiplier": 1.0,
+                    "two_qubit_depth_multiplier": 1.0
+                  },
+                  "schema": "clifford_qc.measurement_cost.v1",
+                  "settings": 41
+                },
+                "logical-alltoall": {
+                  "accuracy": {
+                    "C_time_epsilon_us": 491110.3999999999,
+                    "epsilon": 0.0016,
+                    "evidence_tier": "exact",
+                    "status": "priced"
+                  },
+                  "admissible": true,
+                  "device_card": {
+                    "calibration_status": "logical_baseline",
+                    "name": "logical-alltoall",
+                    "sha256": "07e9cc637e590668bc89b7d407535f34f509155e08c95d2ecd0f8f931738265b"
+                  },
+                  "effective_shots": 167936.0,
+                  "fidelity": {
+                    "floor": 0.5,
+                    "max": 1.0,
+                    "mean": 1.0,
+                    "min": 1.0
+                  },
+                  "fixed_shot_time_us": 491110.3999999999,
+                  "inadmissible_settings": 0,
+                  "logical_1q_applications": 4325376,
+                  "logical_2q_applications": 688128,
+                  "modeled_2q_applications": 688128,
+                  "n_qubits": 8,
+                  "raw_shots": 167936,
+                  "routing": {
+                    "model": "declared scalar sensitivity surrogate",
+                    "required": false,
+                    "two_qubit_count_multiplier": 1.0,
+                    "two_qubit_depth_multiplier": 1.0
+                  },
+                  "schema": "clifford_qc.measurement_cost.v1",
+                  "settings": 41
+                },
+                "superconducting-like": {
+                  "accuracy": {
+                    "C_time_epsilon_us": 1409730.3000000005,
+                    "epsilon": 0.0016,
+                    "evidence_tier": "exact",
+                    "status": "priced"
+                  },
+                  "admissible": true,
+                  "device_card": {
+                    "calibration_status": "illustrative_scenario",
+                    "name": "superconducting-like",
+                    "sha256": "cf78e3240ad48839a8113a1570a43e614c230a8428fe8ceda7783e7ff75e1a13"
+                  },
+                  "effective_shots": 167950.46599886677,
+                  "fidelity": {
+                    "floor": 0.5,
+                    "max": 0.84398069218254,
+                    "mean": 0.7339510424675396,
+                    "min": 0.660448768318084
+                  },
+                  "fixed_shot_time_us": 1409730.3000000005,
+                  "inadmissible_settings": 0,
+                  "logical_1q_applications": 8253224,
+                  "logical_2q_applications": 1353712,
+                  "modeled_2q_applications": 4061136,
+                  "n_qubits": 8,
+                  "raw_shots": 314845,
+                  "routing": {
+                    "model": "declared scalar sensitivity surrogate",
+                    "required": true,
+                    "two_qubit_count_multiplier": 3.0,
+                    "two_qubit_depth_multiplier": 2.0
+                  },
+                  "schema": "clifford_qc.measurement_cost.v1",
+                  "settings": 41
+                }
+              },
+              "exploration": [
+                {
+                  "below_exact_count": 29,
+                  "bias_millihartree": -21.587284384977085,
+                  "chemical_accuracy_fraction": 0.0,
+                  "effective_shots_per_setting": 64,
+                  "failures": {},
+                  "max_absolute_error_millihartree": 50.62322364501348,
+                  "median_absolute_error_millihartree": 17.99753077366084,
+                  "p95_absolute_error_millihartree": 50.173429962568235,
+                  "passes_target": false,
+                  "rank_histogram": {
+                    "5": 30
+                  },
+                  "replicas": 30,
+                  "rmse_millihartree": 26.221936285142757,
+                  "rmse_one_sided_95pct_upper_millihartree": 30.728787029570437,
+                  "successful_solves": 30,
+                  "zero_failure_gate": true
+                },
+                {
+                  "below_exact_count": 29,
+                  "bias_millihartree": -6.165843335057748,
+                  "chemical_accuracy_fraction": 0.06666666666666667,
+                  "effective_shots_per_setting": 256,
+                  "failures": {},
+                  "max_absolute_error_millihartree": 18.171639097340986,
+                  "median_absolute_error_millihartree": 5.239384183506779,
+                  "p95_absolute_error_millihartree": 15.246521957849062,
+                  "passes_target": false,
+                  "rank_histogram": {
+                    "5": 30
+                  },
+                  "replicas": 30,
+                  "rmse_millihartree": 7.5474936731478905,
+                  "rmse_one_sided_95pct_upper_millihartree": 9.124791771627969,
+                  "successful_solves": 30,
+                  "zero_failure_gate": true
+                },
+                {
+                  "below_exact_count": 21,
+                  "bias_millihartree": -1.2323210461537097,
+                  "chemical_accuracy_fraction": 0.5,
+                  "effective_shots_per_setting": 1024,
+                  "failures": {},
+                  "max_absolute_error_millihartree": 4.515837987415949,
+                  "median_absolute_error_millihartree": 1.5025920042361918,
+                  "p95_absolute_error_millihartree": 3.536482248104898,
+                  "passes_target": false,
+                  "rank_histogram": {
+                    "5": 30
+                  },
+                  "replicas": 30,
+                  "rmse_millihartree": 2.003087249941817,
+                  "rmse_one_sided_95pct_upper_millihartree": 2.3487426033694985,
+                  "successful_solves": 30,
+                  "zero_failure_gate": true
+                },
+                {
+                  "below_exact_count": 15,
+                  "bias_millihartree": 0.0570991880634845,
+                  "chemical_accuracy_fraction": 0.8666666666666667,
+                  "effective_shots_per_setting": 4096,
+                  "failures": {},
+                  "max_absolute_error_millihartree": 1.9399653013589813,
+                  "median_absolute_error_millihartree": 0.584353583816366,
+                  "p95_absolute_error_millihartree": 1.852057173096444,
+                  "passes_target": true,
+                  "rank_histogram": {
+                    "5": 30
+                  },
+                  "replicas": 30,
+                  "rmse_millihartree": 0.9507284580623918,
+                  "rmse_one_sided_95pct_upper_millihartree": 1.124267355098196,
+                  "successful_solves": 30,
+                  "zero_failure_gate": true
+                },
+                {
+                  "below_exact_count": 17,
+                  "bias_millihartree": -0.021553763776260837,
+                  "chemical_accuracy_fraction": 1.0,
+                  "effective_shots_per_setting": 16384,
+                  "failures": {},
+                  "max_absolute_error_millihartree": 1.2833808906922428,
+                  "median_absolute_error_millihartree": 0.2853248892531468,
+                  "p95_absolute_error_millihartree": 1.0236273191217105,
+                  "passes_target": true,
+                  "rank_histogram": {
+                    "5": 30
+                  },
+                  "replicas": 30,
+                  "rmse_millihartree": 0.4723481380345375,
+                  "rmse_one_sided_95pct_upper_millihartree": 0.5915827181316278,
+                  "successful_solves": 30,
+                  "zero_failure_gate": true
+                },
+                {
+                  "below_exact_count": 13,
+                  "bias_millihartree": 0.040931815776327575,
+                  "chemical_accuracy_fraction": 1.0,
+                  "effective_shots_per_setting": 65536,
+                  "failures": {},
+                  "max_absolute_error_millihartree": 0.39806790944751924,
+                  "median_absolute_error_millihartree": 0.18516345143915203,
+                  "p95_absolute_error_millihartree": 0.3854256718289761,
+                  "passes_target": true,
+                  "rank_histogram": {
+                    "5": 30
+                  },
+                  "replicas": 30,
+                  "rmse_millihartree": 0.2237358155699244,
+                  "rmse_one_sided_95pct_upper_millihartree": 0.254732402978885,
+                  "successful_solves": 30,
+                  "zero_failure_gate": true
+                }
+              ],
+              "shot_to_target": {
+                "confirmed_failing_effective_shots_per_setting": 1024,
+                "confirmed_passing_effective_shots_per_setting": 4096,
+                "status": "confirmed_bracket"
+              }
+            },
+            "single_assignment": {
+              "confirmation": [
+                {
+                  "below_exact_count": 98,
+                  "bias_millihartree": -85.72163981502275,
+                  "chemical_accuracy_fraction": 0.0,
+                  "effective_shots_per_setting": 64,
+                  "failures": {},
+                  "max_absolute_error_millihartree": 266.74572907870873,
+                  "median_absolute_error_millihartree": 74.0585898179047,
+                  "p95_absolute_error_millihartree": 203.9605589776972,
+                  "passes_target": false,
+                  "rank_histogram": {
+                    "5": 100
+                  },
+                  "replicas": 100,
+                  "rmse_millihartree": 104.87318548889749,
+                  "rmse_one_sided_95pct_upper_millihartree": 115.84563701661776,
+                  "successful_solves": 100,
+                  "zero_failure_gate": true
+                },
+                {
+                  "below_exact_count": 97,
+                  "bias_millihartree": -20.69370072174598,
+                  "chemical_accuracy_fraction": 0.02,
+                  "effective_shots_per_setting": 256,
+                  "failures": {},
+                  "max_absolute_error_millihartree": 89.57352654293693,
+                  "median_absolute_error_millihartree": 20.412499183452226,
+                  "p95_absolute_error_millihartree": 42.458065684386966,
+                  "passes_target": false,
+                  "rank_histogram": {
+                    "5": 100
+                  },
+                  "replicas": 100,
+                  "rmse_millihartree": 25.04841971423805,
+                  "rmse_one_sided_95pct_upper_millihartree": 28.22910720888026,
+                  "successful_solves": 100,
+                  "zero_failure_gate": true
+                },
+                {
+                  "below_exact_count": 87,
+                  "bias_millihartree": -5.202122211790261,
+                  "chemical_accuracy_fraction": 0.12,
+                  "effective_shots_per_setting": 1024,
+                  "failures": {},
+                  "max_absolute_error_millihartree": 21.524562436132655,
+                  "median_absolute_error_millihartree": 5.014203999254008,
+                  "p95_absolute_error_millihartree": 14.938229850781767,
+                  "passes_target": false,
+                  "rank_histogram": {
+                    "5": 100
+                  },
+                  "replicas": 100,
+                  "rmse_millihartree": 7.365789723302926,
+                  "rmse_one_sided_95pct_upper_millihartree": 8.259011278137972,
+                  "successful_solves": 100,
+                  "zero_failure_gate": true
+                },
+                {
+                  "below_exact_count": 79,
+                  "bias_millihartree": -1.4193584079361443,
+                  "chemical_accuracy_fraction": 0.55,
+                  "effective_shots_per_setting": 4096,
+                  "failures": {},
+                  "max_absolute_error_millihartree": 6.689575621409816,
+                  "median_absolute_error_millihartree": 1.3416233700862534,
+                  "p95_absolute_error_millihartree": 4.403710443468966,
+                  "passes_target": false,
+                  "rank_histogram": {
+                    "5": 100
+                  },
+                  "replicas": 100,
+                  "rmse_millihartree": 2.283669081360628,
+                  "rmse_one_sided_95pct_upper_millihartree": 2.5661614600273026,
+                  "successful_solves": 100,
+                  "zero_failure_gate": true
+                },
+                {
+                  "below_exact_count": 63,
+                  "bias_millihartree": -0.27173347550402127,
+                  "chemical_accuracy_fraction": 0.88,
+                  "effective_shots_per_setting": 16384,
+                  "failures": {},
+                  "max_absolute_error_millihartree": 3.517958982435232,
+                  "median_absolute_error_millihartree": 0.6323072651035488,
+                  "p95_absolute_error_millihartree": 2.044863869188873,
+                  "passes_target": true,
+                  "rank_histogram": {
+                    "5": 100
+                  },
+                  "replicas": 100,
+                  "rmse_millihartree": 1.0553906284682584,
+                  "rmse_one_sided_95pct_upper_millihartree": 1.1902560341534107,
+                  "successful_solves": 100,
+                  "zero_failure_gate": true
+                }
+              ],
+              "device_costs": {
+                "ion-like": {
+                  "accuracy": {
+                    "C_time_epsilon_us": 535927950.0,
+                    "epsilon": 0.0016,
+                    "evidence_tier": "exact",
+                    "status": "priced"
+                  },
+                  "admissible": true,
+                  "device_card": {
+                    "calibration_status": "illustrative_scenario",
+                    "name": "ion-like",
+                    "sha256": "9cc7e53e935e4ec3c265efbd9b6218f17a68c51d727d658c5a5bcaf98d34f453"
+                  },
+                  "effective_shots": 671755.4214619172,
+                  "fidelity": {
+                    "floor": 0.5,
+                    "max": 0.9190601684078923,
+                    "mean": 0.8924739510442317,
+                    "min": 0.879448865903705
+                  },
+                  "fixed_shot_time_us": 535927950.0,
+                  "inadmissible_settings": 0,
+                  "logical_1q_applications": 21869572,
+                  "logical_2q_applications": 3487200,
+                  "modeled_2q_applications": 3487200,
+                  "n_qubits": 8,
+                  "raw_shots": 843704,
+                  "routing": {
+                    "model": "declared scalar sensitivity surrogate",
+                    "required": false,
+                    "two_qubit_count_multiplier": 1.0,
+                    "two_qubit_depth_multiplier": 1.0
+                  },
+                  "schema": "clifford_qc.measurement_cost.v1",
+                  "settings": 41
+                },
+                "logical-alltoall": {
+                  "accuracy": {
+                    "C_time_epsilon_us": 1964441.5999999996,
+                    "epsilon": 0.0016,
+                    "evidence_tier": "exact",
+                    "status": "priced"
+                  },
+                  "admissible": true,
+                  "device_card": {
+                    "calibration_status": "logical_baseline",
+                    "name": "logical-alltoall",
+                    "sha256": "07e9cc637e590668bc89b7d407535f34f509155e08c95d2ecd0f8f931738265b"
+                  },
+                  "effective_shots": 671744.0,
+                  "fidelity": {
+                    "floor": 0.5,
+                    "max": 1.0,
+                    "mean": 1.0,
+                    "min": 1.0
+                  },
+                  "fixed_shot_time_us": 1964441.5999999996,
+                  "inadmissible_settings": 0,
+                  "logical_1q_applications": 17301504,
+                  "logical_2q_applications": 2752512,
+                  "modeled_2q_applications": 2752512,
+                  "n_qubits": 8,
+                  "raw_shots": 671744,
+                  "routing": {
+                    "model": "declared scalar sensitivity surrogate",
+                    "required": false,
+                    "two_qubit_count_multiplier": 1.0,
+                    "two_qubit_depth_multiplier": 1.0
+                  },
+                  "schema": "clifford_qc.measurement_cost.v1",
+                  "settings": 41
+                },
+                "superconducting-like": {
+                  "accuracy": {
+                    "C_time_epsilon_us": 5638578.700000002,
+                    "epsilon": 0.0016,
+                    "evidence_tier": "exact",
+                    "status": "priced"
+                  },
+                  "admissible": true,
+                  "device_card": {
+                    "calibration_status": "illustrative_scenario",
+                    "name": "superconducting-like",
+                    "sha256": "cf78e3240ad48839a8113a1570a43e614c230a8428fe8ceda7783e7ff75e1a13"
+                  },
+                  "effective_shots": 671761.1640130606,
+                  "fidelity": {
+                    "floor": 0.5,
+                    "max": 0.84398069218254,
+                    "mean": 0.7339510424675396,
+                    "min": 0.660448768318084
+                  },
+                  "fixed_shot_time_us": 5638578.700000002,
+                  "inadmissible_settings": 0,
+                  "logical_1q_applications": 33010976,
+                  "logical_2q_applications": 5414524,
+                  "modeled_2q_applications": 16243572,
+                  "n_qubits": 8,
+                  "raw_shots": 1259304,
+                  "routing": {
+                    "model": "declared scalar sensitivity surrogate",
+                    "required": true,
+                    "two_qubit_count_multiplier": 3.0,
+                    "two_qubit_depth_multiplier": 2.0
+                  },
+                  "schema": "clifford_qc.measurement_cost.v1",
+                  "settings": 41
+                }
+              },
+              "exploration": [
+                {
+                  "below_exact_count": 30,
+                  "bias_millihartree": -78.08514918422773,
+                  "chemical_accuracy_fraction": 0.0,
+                  "effective_shots_per_setting": 64,
+                  "failures": {},
+                  "max_absolute_error_millihartree": 190.31480691369396,
+                  "median_absolute_error_millihartree": 74.69220378794984,
+                  "p95_absolute_error_millihartree": 141.37286618585753,
+                  "passes_target": false,
+                  "rank_histogram": {
+                    "4": 1,
+                    "5": 29
+                  },
+                  "replicas": 30,
+                  "rmse_millihartree": 89.27504746148533,
+                  "rmse_one_sided_95pct_upper_millihartree": 101.99149809938606,
+                  "successful_solves": 30,
+                  "zero_failure_gate": true
+                },
+                {
+                  "below_exact_count": 29,
+                  "bias_millihartree": -22.818796431646145,
+                  "chemical_accuracy_fraction": 0.03333333333333333,
+                  "effective_shots_per_setting": 256,
+                  "failures": {},
+                  "max_absolute_error_millihartree": 53.15816249191663,
+                  "median_absolute_error_millihartree": 24.398577326860682,
+                  "p95_absolute_error_millihartree": 47.68171829423255,
+                  "passes_target": false,
+                  "rank_histogram": {
+                    "5": 30
+                  },
+                  "replicas": 30,
+                  "rmse_millihartree": 27.067772644920673,
+                  "rmse_one_sided_95pct_upper_millihartree": 31.113536482952384,
+                  "successful_solves": 30,
+                  "zero_failure_gate": true
+                },
+                {
+                  "below_exact_count": 24,
+                  "bias_millihartree": -3.885332727941204,
+                  "chemical_accuracy_fraction": 0.26666666666666666,
+                  "effective_shots_per_setting": 1024,
+                  "failures": {},
+                  "max_absolute_error_millihartree": 16.50199670882202,
+                  "median_absolute_error_millihartree": 3.7184973549670985,
+                  "p95_absolute_error_millihartree": 12.369244370019667,
+                  "passes_target": false,
+                  "rank_histogram": {
+                    "5": 30
+                  },
+                  "replicas": 30,
+                  "rmse_millihartree": 5.812338485517096,
+                  "rmse_one_sided_95pct_upper_millihartree": 7.275961030321602,
+                  "successful_solves": 30,
+                  "zero_failure_gate": true
+                },
+                {
+                  "below_exact_count": 17,
+                  "bias_millihartree": -0.23003073914384942,
+                  "chemical_accuracy_fraction": 0.5333333333333333,
+                  "effective_shots_per_setting": 4096,
+                  "failures": {},
+                  "max_absolute_error_millihartree": 3.8113561293950937,
+                  "median_absolute_error_millihartree": 1.3730844821369104,
+                  "p95_absolute_error_millihartree": 3.633421735064246,
+                  "passes_target": false,
+                  "rank_histogram": {
+                    "5": 30
+                  },
+                  "replicas": 30,
+                  "rmse_millihartree": 2.028235031729154,
+                  "rmse_one_sided_95pct_upper_millihartree": 2.353621566616711,
+                  "successful_solves": 30,
+                  "zero_failure_gate": true
+                },
+                {
+                  "below_exact_count": 16,
+                  "bias_millihartree": -0.025666076441469936,
+                  "chemical_accuracy_fraction": 0.9333333333333333,
+                  "effective_shots_per_setting": 16384,
+                  "failures": {},
+                  "max_absolute_error_millihartree": 1.7361653629492935,
+                  "median_absolute_error_millihartree": 0.8615530282893857,
+                  "p95_absolute_error_millihartree": 1.5455964464116783,
+                  "passes_target": true,
+                  "rank_histogram": {
+                    "5": 30
+                  },
+                  "replicas": 30,
+                  "rmse_millihartree": 0.9309512523736939,
+                  "rmse_one_sided_95pct_upper_millihartree": 1.0521473653565483,
+                  "successful_solves": 30,
+                  "zero_failure_gate": true
+                },
+                {
+                  "below_exact_count": 13,
+                  "bias_millihartree": 0.018859341855363237,
+                  "chemical_accuracy_fraction": 1.0,
+                  "effective_shots_per_setting": 65536,
+                  "failures": {},
+                  "max_absolute_error_millihartree": 1.315718071127847,
+                  "median_absolute_error_millihartree": 0.2513369982724001,
+                  "p95_absolute_error_millihartree": 0.8429844944915381,
+                  "passes_target": true,
+                  "rank_histogram": {
+                    "5": 30
+                  },
+                  "replicas": 30,
+                  "rmse_millihartree": 0.4661429482422426,
+                  "rmse_one_sided_95pct_upper_millihartree": 0.5751312685715931,
+                  "successful_solves": 30,
+                  "zero_failure_gate": true
+                }
+              ],
+              "shot_to_target": {
+                "confirmed_failing_effective_shots_per_setting": 4096,
+                "confirmed_passing_effective_shots_per_setting": 16384,
+                "status": "confirmed_bracket"
+              }
+            }
+          },
+          "mean_reader_count": 2.58236914600551,
+          "settings": 41
+        },
+        {
+          "block_size": 4,
+          "compatible_readouts": 4002,
+          "estimators": {
+            "pooled": {
+              "confirmation": [
+                {
+                  "below_exact_count": 100,
+                  "bias_millihartree": -69.05665485087208,
+                  "chemical_accuracy_fraction": 0.0,
+                  "effective_shots_per_setting": 64,
+                  "failures": {},
+                  "max_absolute_error_millihartree": 308.05590038914056,
+                  "median_absolute_error_millihartree": 58.595923870244704,
+                  "p95_absolute_error_millihartree": 158.97377170136716,
+                  "passes_target": false,
+                  "rank_histogram": {
+                    "4": 1,
+                    "5": 99
+                  },
+                  "replicas": 100,
+                  "rmse_millihartree": 85.75576398573739,
+                  "rmse_one_sided_95pct_upper_millihartree": 98.51691496456604,
+                  "successful_solves": 100,
+                  "zero_failure_gate": true
+                },
+                {
+                  "below_exact_count": 100,
+                  "bias_millihartree": -18.2146931360219,
+                  "chemical_accuracy_fraction": 0.01,
+                  "effective_shots_per_setting": 256,
+                  "failures": {},
+                  "max_absolute_error_millihartree": 62.721352897170846,
+                  "median_absolute_error_millihartree": 16.33170962139019,
+                  "p95_absolute_error_millihartree": 35.826815275411136,
+                  "passes_target": false,
+                  "rank_histogram": {
+                    "5": 100
+                  },
+                  "replicas": 100,
+                  "rmse_millihartree": 21.216568902364692,
+                  "rmse_one_sided_95pct_upper_millihartree": 23.50128130229442,
+                  "successful_solves": 100,
+                  "zero_failure_gate": true
+                },
+                {
+                  "below_exact_count": 99,
+                  "bias_millihartree": -4.661543184042873,
+                  "chemical_accuracy_fraction": 0.15,
+                  "effective_shots_per_setting": 1024,
+                  "failures": {},
+                  "max_absolute_error_millihartree": 17.45427310794767,
+                  "median_absolute_error_millihartree": 4.109256841356768,
+                  "p95_absolute_error_millihartree": 11.41344647608351,
+                  "passes_target": false,
+                  "rank_histogram": {
+                    "5": 100
+                  },
+                  "replicas": 100,
+                  "rmse_millihartree": 5.605931679378926,
+                  "rmse_one_sided_95pct_upper_millihartree": 6.233653796277733,
+                  "successful_solves": 100,
+                  "zero_failure_gate": true
+                },
+                {
+                  "below_exact_count": 88,
+                  "bias_millihartree": -1.209827792566145,
+                  "chemical_accuracy_fraction": 0.7,
+                  "effective_shots_per_setting": 4096,
+                  "failures": {},
+                  "max_absolute_error_millihartree": 4.870041642575984,
+                  "median_absolute_error_millihartree": 1.0869979863938894,
+                  "p95_absolute_error_millihartree": 2.713673390381554,
+                  "passes_target": false,
+                  "rank_histogram": {
+                    "5": 100
+                  },
+                  "replicas": 100,
+                  "rmse_millihartree": 1.5444801687851502,
+                  "rmse_one_sided_95pct_upper_millihartree": 1.7221791782695797,
+                  "successful_solves": 100,
+                  "zero_failure_gate": true
+                },
+                {
+                  "below_exact_count": 76,
+                  "bias_millihartree": -0.2515423530377703,
+                  "chemical_accuracy_fraction": 1.0,
+                  "effective_shots_per_setting": 16384,
+                  "failures": {},
+                  "max_absolute_error_millihartree": 0.8975018210666263,
+                  "median_absolute_error_millihartree": 0.295938670062057,
+                  "p95_absolute_error_millihartree": 0.7019158865822382,
+                  "passes_target": true,
+                  "rank_histogram": {
+                    "5": 100
+                  },
+                  "replicas": 100,
+                  "rmse_millihartree": 0.4060057063700539,
+                  "rmse_one_sided_95pct_upper_millihartree": 0.44304588828145675,
+                  "successful_solves": 100,
+                  "zero_failure_gate": true
+                }
+              ],
+              "device_costs": {
+                "ion-like": {
+                  "accuracy": {
+                    "C_time_epsilon_us": 758254590.0,
+                    "epsilon": 0.0016,
+                    "evidence_tier": "exact",
+                    "status": "priced"
+                  },
+                  "admissible": true,
+                  "device_card": {
+                    "calibration_status": "illustrative_scenario",
+                    "name": "ion-like",
+                    "sha256": "9cc7e53e935e4ec3c265efbd9b6218f17a68c51d727d658c5a5bcaf98d34f453"
+                  },
+                  "effective_shots": 425994.78061429074,
+                  "fidelity": {
+                    "floor": 0.5,
+                    "max": 0.9209005886947913,
+                    "mean": 0.8700426174512497,
+                    "min": 0.8355881765979714
+                  },
+                  "fixed_shot_time_us": 758254590.0,
+                  "inadmissible_settings": 0,
+                  "logical_1q_applications": 15761760,
+                  "logical_2q_applications": 5143369,
+                  "modeled_2q_applications": 5143369,
+                  "n_qubits": 8,
+                  "raw_shots": 563399,
+                  "routing": {
+                    "model": "declared scalar sensitivity surrogate",
+                    "required": false,
+                    "two_qubit_count_multiplier": 1.0,
+                    "two_qubit_depth_multiplier": 1.0
+                  },
+                  "schema": "clifford_qc.measurement_cost.v1",
+                  "settings": 26
+                },
+                "logical-alltoall": {
+                  "accuracy": {
+                    "C_time_epsilon_us": 1706393.5999999994,
+                    "epsilon": 0.0016,
+                    "evidence_tier": "exact",
+                    "status": "priced"
+                  },
+                  "admissible": true,
+                  "device_card": {
+                    "calibration_status": "logical_baseline",
+                    "name": "logical-alltoall",
+                    "sha256": "07e9cc637e590668bc89b7d407535f34f509155e08c95d2ecd0f8f931738265b"
+                  },
+                  "effective_shots": 425984.0,
+                  "fidelity": {
+                    "floor": 0.5,
+                    "max": 1.0,
+                    "mean": 1.0,
+                    "min": 1.0
+                  },
+                  "fixed_shot_time_us": 1706393.5999999994,
+                  "inadmissible_settings": 0,
+                  "logical_1q_applications": 11829248,
+                  "logical_2q_applications": 3833856,
+                  "modeled_2q_applications": 3833856,
+                  "n_qubits": 8,
+                  "raw_shots": 425984,
+                  "routing": {
+                    "model": "declared scalar sensitivity surrogate",
+                    "required": false,
+                    "two_qubit_count_multiplier": 1.0,
+                    "two_qubit_depth_multiplier": 1.0
+                  },
+                  "schema": "clifford_qc.measurement_cost.v1",
+                  "settings": 26
+                },
+                "superconducting-like": {
+                  "accuracy": {
+                    "C_time_epsilon_us": null,
+                    "epsilon": 0.0016,
+                    "evidence_tier": "exact",
+                    "status": "inadmissible"
+                  },
+                  "admissible": false,
+                  "device_card": {
+                    "calibration_status": "illustrative_scenario",
+                    "name": "superconducting-like",
+                    "sha256": "cf78e3240ad48839a8113a1570a43e614c230a8428fe8ceda7783e7ff75e1a13"
+                  },
+                  "effective_shots": 425989.4032282397,
+                  "fidelity": {
+                    "floor": 0.5,
+                    "max": 0.8473650716673925,
+                    "mean": 0.6346335568152667,
+                    "min": 0.49549263137668953
+                  },
+                  "fixed_shot_time_us": 7455136.700000001,
+                  "inadmissible_settings": 1,
+                  "logical_1q_applications": 30783640,
+                  "logical_2q_applications": 10704142,
+                  "modeled_2q_applications": 32112426,
+                  "n_qubits": 8,
+                  "raw_shots": 1096111,
+                  "routing": {
+                    "model": "declared scalar sensitivity surrogate",
+                    "required": true,
+                    "two_qubit_count_multiplier": 3.0,
+                    "two_qubit_depth_multiplier": 2.0
+                  },
+                  "schema": "clifford_qc.measurement_cost.v1",
+                  "settings": 26
+                }
+              },
+              "exploration": [
+                {
+                  "below_exact_count": 30,
+                  "bias_millihartree": -73.614807137032,
+                  "chemical_accuracy_fraction": 0.0,
+                  "effective_shots_per_setting": 64,
+                  "failures": {},
+                  "max_absolute_error_millihartree": 272.1619759020637,
+                  "median_absolute_error_millihartree": 61.45970020577529,
+                  "p95_absolute_error_millihartree": 131.85725749450455,
+                  "passes_target": false,
+                  "rank_histogram": {
+                    "5": 30
+                  },
+                  "replicas": 30,
+                  "rmse_millihartree": 88.90609190748214,
+                  "rmse_one_sided_95pct_upper_millihartree": 111.76423374764516,
+                  "successful_solves": 30,
+                  "zero_failure_gate": true
+                },
+                {
+                  "below_exact_count": 29,
+                  "bias_millihartree": -22.398574307758004,
+                  "chemical_accuracy_fraction": 0.03333333333333333,
+                  "effective_shots_per_setting": 256,
+                  "failures": {},
+                  "max_absolute_error_millihartree": 65.86832556927291,
+                  "median_absolute_error_millihartree": 17.623700492209515,
+                  "p95_absolute_error_millihartree": 54.70767395097047,
+                  "passes_target": false,
+                  "rank_histogram": {
+                    "5": 30
+                  },
+                  "replicas": 30,
+                  "rmse_millihartree": 27.021148267737253,
+                  "rmse_one_sided_95pct_upper_millihartree": 32.28539436532261,
+                  "successful_solves": 30,
+                  "zero_failure_gate": true
+                },
+                {
+                  "below_exact_count": 30,
+                  "bias_millihartree": -3.976789991026545,
+                  "chemical_accuracy_fraction": 0.16666666666666666,
+                  "effective_shots_per_setting": 1024,
+                  "failures": {},
+                  "max_absolute_error_millihartree": 9.89722434804996,
+                  "median_absolute_error_millihartree": 3.4614881355805593,
+                  "p95_absolute_error_millihartree": 9.081695670274657,
+                  "passes_target": false,
+                  "rank_histogram": {
+                    "5": 30
+                  },
+                  "replicas": 30,
+                  "rmse_millihartree": 4.712706000529987,
+                  "rmse_one_sided_95pct_upper_millihartree": 5.515306783766831,
+                  "successful_solves": 30,
+                  "zero_failure_gate": true
+                },
+                {
+                  "below_exact_count": 27,
+                  "bias_millihartree": -1.1225502604548392,
+                  "chemical_accuracy_fraction": 0.7666666666666667,
+                  "effective_shots_per_setting": 4096,
+                  "failures": {},
+                  "max_absolute_error_millihartree": 3.6648680543986956,
+                  "median_absolute_error_millihartree": 1.0171383528883027,
+                  "p95_absolute_error_millihartree": 2.5766762346429486,
+                  "passes_target": false,
+                  "rank_histogram": {
+                    "5": 30
+                  },
+                  "replicas": 30,
+                  "rmse_millihartree": 1.4195315118634386,
+                  "rmse_one_sided_95pct_upper_millihartree": 1.6982056893257025,
+                  "successful_solves": 30,
+                  "zero_failure_gate": true
+                },
+                {
+                  "below_exact_count": 24,
+                  "bias_millihartree": -0.2292957356634299,
+                  "chemical_accuracy_fraction": 1.0,
+                  "effective_shots_per_setting": 16384,
+                  "failures": {},
+                  "max_absolute_error_millihartree": 0.7309219741298278,
+                  "median_absolute_error_millihartree": 0.2504062944135299,
+                  "p95_absolute_error_millihartree": 0.6010132972195769,
+                  "passes_target": true,
+                  "rank_histogram": {
+                    "5": 30
+                  },
+                  "replicas": 30,
+                  "rmse_millihartree": 0.3315259134120269,
+                  "rmse_one_sided_95pct_upper_millihartree": 0.38952752797202045,
+                  "successful_solves": 30,
+                  "zero_failure_gate": true
+                },
+                {
+                  "below_exact_count": 23,
+                  "bias_millihartree": -0.06377477783452434,
+                  "chemical_accuracy_fraction": 1.0,
+                  "effective_shots_per_setting": 65536,
+                  "failures": {},
+                  "max_absolute_error_millihartree": 0.3141904099219772,
+                  "median_absolute_error_millihartree": 0.1219224325970103,
+                  "p95_absolute_error_millihartree": 0.26955827704657737,
+                  "passes_target": true,
+                  "rank_histogram": {
+                    "5": 30
+                  },
+                  "replicas": 30,
+                  "rmse_millihartree": 0.1507743316933765,
+                  "rmse_one_sided_95pct_upper_millihartree": 0.17423889525617123,
+                  "successful_solves": 30,
+                  "zero_failure_gate": true
+                }
+              ],
+              "shot_to_target": {
+                "confirmed_failing_effective_shots_per_setting": 4096,
+                "confirmed_passing_effective_shots_per_setting": 16384,
+                "status": "confirmed_bracket"
+              }
+            },
+            "single_assignment": {
+              "confirmation": [
+                {
+                  "below_exact_count": 100,
+                  "bias_millihartree": -69.15430676989808,
+                  "chemical_accuracy_fraction": 0.0,
+                  "effective_shots_per_setting": 64,
+                  "failures": {},
+                  "max_absolute_error_millihartree": 312.79152131798327,
+                  "median_absolute_error_millihartree": 59.52244154163555,
+                  "p95_absolute_error_millihartree": 163.06268792487828,
+                  "passes_target": false,
+                  "rank_histogram": {
+                    "5": 100
+                  },
+                  "replicas": 100,
+                  "rmse_millihartree": 85.19576222357443,
+                  "rmse_one_sided_95pct_upper_millihartree": 97.68481222956295,
+                  "successful_solves": 100,
+                  "zero_failure_gate": true
+                },
+                {
+                  "below_exact_count": 100,
+                  "bias_millihartree": -18.461573048847413,
+                  "chemical_accuracy_fraction": 0.02,
+                  "effective_shots_per_setting": 256,
+                  "failures": {},
+                  "max_absolute_error_millihartree": 64.53472808406069,
+                  "median_absolute_error_millihartree": 16.437267693249602,
+                  "p95_absolute_error_millihartree": 37.594919374124906,
+                  "passes_target": false,
+                  "rank_histogram": {
+                    "5": 100
+                  },
+                  "replicas": 100,
+                  "rmse_millihartree": 21.406252777866527,
+                  "rmse_one_sided_95pct_upper_millihartree": 23.660398800143543,
+                  "successful_solves": 100,
+                  "zero_failure_gate": true
+                },
+                {
+                  "below_exact_count": 100,
+                  "bias_millihartree": -4.5875962856448815,
+                  "chemical_accuracy_fraction": 0.12,
+                  "effective_shots_per_setting": 1024,
+                  "failures": {},
+                  "max_absolute_error_millihartree": 17.48056108700702,
+                  "median_absolute_error_millihartree": 4.136980652202027,
+                  "p95_absolute_error_millihartree": 11.374304374114619,
+                  "passes_target": false,
+                  "rank_histogram": {
+                    "5": 100
+                  },
+                  "replicas": 100,
+                  "rmse_millihartree": 5.433734780759096,
+                  "rmse_one_sided_95pct_upper_millihartree": 6.079495867052114,
+                  "successful_solves": 100,
+                  "zero_failure_gate": true
+                },
+                {
+                  "below_exact_count": 99,
+                  "bias_millihartree": -1.2078812923099669,
+                  "chemical_accuracy_fraction": 0.71,
+                  "effective_shots_per_setting": 4096,
+                  "failures": {},
+                  "max_absolute_error_millihartree": 4.743744487599955,
+                  "median_absolute_error_millihartree": 1.0029461001099804,
+                  "p95_absolute_error_millihartree": 2.323785261014333,
+                  "passes_target": false,
+                  "rank_histogram": {
+                    "5": 100
+                  },
+                  "replicas": 100,
+                  "rmse_millihartree": 1.443151755065083,
+                  "rmse_one_sided_95pct_upper_millihartree": 1.605351237554382,
+                  "successful_solves": 100,
+                  "zero_failure_gate": true
+                },
+                {
+                  "below_exact_count": 89,
+                  "bias_millihartree": -0.25090615269585115,
+                  "chemical_accuracy_fraction": 1.0,
+                  "effective_shots_per_setting": 16384,
+                  "failures": {},
+                  "max_absolute_error_millihartree": 0.809581897751599,
+                  "median_absolute_error_millihartree": 0.215747508441666,
+                  "p95_absolute_error_millihartree": 0.571232485767581,
+                  "passes_target": true,
+                  "rank_histogram": {
+                    "5": 100
+                  },
+                  "replicas": 100,
+                  "rmse_millihartree": 0.32232285832974766,
+                  "rmse_one_sided_95pct_upper_millihartree": 0.354552152957697,
+                  "successful_solves": 100,
+                  "zero_failure_gate": true
+                }
+              ],
+              "device_costs": {
+                "ion-like": {
+                  "accuracy": {
+                    "C_time_epsilon_us": 758254590.0,
+                    "epsilon": 0.0016,
+                    "evidence_tier": "exact",
+                    "status": "priced"
+                  },
+                  "admissible": true,
+                  "device_card": {
+                    "calibration_status": "illustrative_scenario",
+                    "name": "ion-like",
+                    "sha256": "9cc7e53e935e4ec3c265efbd9b6218f17a68c51d727d658c5a5bcaf98d34f453"
+                  },
+                  "effective_shots": 425994.78061429074,
+                  "fidelity": {
+                    "floor": 0.5,
+                    "max": 0.9209005886947913,
+                    "mean": 0.8700426174512497,
+                    "min": 0.8355881765979714
+                  },
+                  "fixed_shot_time_us": 758254590.0,
+                  "inadmissible_settings": 0,
+                  "logical_1q_applications": 15761760,
+                  "logical_2q_applications": 5143369,
+                  "modeled_2q_applications": 5143369,
+                  "n_qubits": 8,
+                  "raw_shots": 563399,
+                  "routing": {
+                    "model": "declared scalar sensitivity surrogate",
+                    "required": false,
+                    "two_qubit_count_multiplier": 1.0,
+                    "two_qubit_depth_multiplier": 1.0
+                  },
+                  "schema": "clifford_qc.measurement_cost.v1",
+                  "settings": 26
+                },
+                "logical-alltoall": {
+                  "accuracy": {
+                    "C_time_epsilon_us": 1706393.5999999994,
+                    "epsilon": 0.0016,
+                    "evidence_tier": "exact",
+                    "status": "priced"
+                  },
+                  "admissible": true,
+                  "device_card": {
+                    "calibration_status": "logical_baseline",
+                    "name": "logical-alltoall",
+                    "sha256": "07e9cc637e590668bc89b7d407535f34f509155e08c95d2ecd0f8f931738265b"
+                  },
+                  "effective_shots": 425984.0,
+                  "fidelity": {
+                    "floor": 0.5,
+                    "max": 1.0,
+                    "mean": 1.0,
+                    "min": 1.0
+                  },
+                  "fixed_shot_time_us": 1706393.5999999994,
+                  "inadmissible_settings": 0,
+                  "logical_1q_applications": 11829248,
+                  "logical_2q_applications": 3833856,
+                  "modeled_2q_applications": 3833856,
+                  "n_qubits": 8,
+                  "raw_shots": 425984,
+                  "routing": {
+                    "model": "declared scalar sensitivity surrogate",
+                    "required": false,
+                    "two_qubit_count_multiplier": 1.0,
+                    "two_qubit_depth_multiplier": 1.0
+                  },
+                  "schema": "clifford_qc.measurement_cost.v1",
+                  "settings": 26
+                },
+                "superconducting-like": {
+                  "accuracy": {
+                    "C_time_epsilon_us": null,
+                    "epsilon": 0.0016,
+                    "evidence_tier": "exact",
+                    "status": "inadmissible"
+                  },
+                  "admissible": false,
+                  "device_card": {
+                    "calibration_status": "illustrative_scenario",
+                    "name": "superconducting-like",
+                    "sha256": "cf78e3240ad48839a8113a1570a43e614c230a8428fe8ceda7783e7ff75e1a13"
+                  },
+                  "effective_shots": 425989.4032282397,
+                  "fidelity": {
+                    "floor": 0.5,
+                    "max": 0.8473650716673925,
+                    "mean": 0.6346335568152667,
+                    "min": 0.49549263137668953
+                  },
+                  "fixed_shot_time_us": 7455136.700000001,
+                  "inadmissible_settings": 1,
+                  "logical_1q_applications": 30783640,
+                  "logical_2q_applications": 10704142,
+                  "modeled_2q_applications": 32112426,
+                  "n_qubits": 8,
+                  "raw_shots": 1096111,
+                  "routing": {
+                    "model": "declared scalar sensitivity surrogate",
+                    "required": true,
+                    "two_qubit_count_multiplier": 3.0,
+                    "two_qubit_depth_multiplier": 2.0
+                  },
+                  "schema": "clifford_qc.measurement_cost.v1",
+                  "settings": 26
+                }
+              },
+              "exploration": [
+                {
+                  "below_exact_count": 30,
+                  "bias_millihartree": -74.1221737597496,
+                  "chemical_accuracy_fraction": 0.0,
+                  "effective_shots_per_setting": 64,
+                  "failures": {},
+                  "max_absolute_error_millihartree": 270.0684078326603,
+                  "median_absolute_error_millihartree": 62.40005937889048,
+                  "p95_absolute_error_millihartree": 139.35956911262986,
+                  "passes_target": false,
+                  "rank_histogram": {
+                    "5": 30
+                  },
+                  "replicas": 30,
+                  "rmse_millihartree": 89.31239490809658,
+                  "rmse_one_sided_95pct_upper_millihartree": 111.81871802824001,
+                  "successful_solves": 30,
+                  "zero_failure_gate": true
+                },
+                {
+                  "below_exact_count": 30,
+                  "bias_millihartree": -22.349579690518635,
+                  "chemical_accuracy_fraction": 0.0,
+                  "effective_shots_per_setting": 256,
+                  "failures": {},
+                  "max_absolute_error_millihartree": 67.1390163553447,
+                  "median_absolute_error_millihartree": 17.07607831339608,
+                  "p95_absolute_error_millihartree": 53.6547828146613,
+                  "passes_target": false,
+                  "rank_histogram": {
+                    "5": 30
+                  },
+                  "replicas": 30,
+                  "rmse_millihartree": 26.940970698932787,
+                  "rmse_one_sided_95pct_upper_millihartree": 32.40696863749142,
+                  "successful_solves": 30,
+                  "zero_failure_gate": true
+                },
+                {
+                  "below_exact_count": 30,
+                  "bias_millihartree": -3.934592642253835,
+                  "chemical_accuracy_fraction": 0.2,
+                  "effective_shots_per_setting": 1024,
+                  "failures": {},
+                  "max_absolute_error_millihartree": 10.910085517878088,
+                  "median_absolute_error_millihartree": 3.3988939285212183,
+                  "p95_absolute_error_millihartree": 8.203557771736131,
+                  "passes_target": false,
+                  "rank_histogram": {
+                    "5": 30
+                  },
+                  "replicas": 30,
+                  "rmse_millihartree": 4.598467787974122,
+                  "rmse_one_sided_95pct_upper_millihartree": 5.421935665843841,
+                  "successful_solves": 30,
+                  "zero_failure_gate": true
+                },
+                {
+                  "below_exact_count": 28,
+                  "bias_millihartree": -1.2293428449306514,
+                  "chemical_accuracy_fraction": 0.7,
+                  "effective_shots_per_setting": 4096,
+                  "failures": {},
+                  "max_absolute_error_millihartree": 4.243383250082999,
+                  "median_absolute_error_millihartree": 1.1497256523709254,
+                  "p95_absolute_error_millihartree": 2.6408858660440497,
+                  "passes_target": false,
+                  "rank_histogram": {
+                    "5": 30
+                  },
+                  "replicas": 30,
+                  "rmse_millihartree": 1.5361460410762313,
+                  "rmse_one_sided_95pct_upper_millihartree": 1.859081957367487,
+                  "successful_solves": 30,
+                  "zero_failure_gate": true
+                },
+                {
+                  "below_exact_count": 28,
+                  "bias_millihartree": -0.242254355001729,
+                  "chemical_accuracy_fraction": 1.0,
+                  "effective_shots_per_setting": 16384,
+                  "failures": {},
+                  "max_absolute_error_millihartree": 0.6450926536789581,
+                  "median_absolute_error_millihartree": 0.21217609448154207,
+                  "p95_absolute_error_millihartree": 0.5479900382144184,
+                  "passes_target": true,
+                  "rank_histogram": {
+                    "5": 30
+                  },
+                  "replicas": 30,
+                  "rmse_millihartree": 0.30194072861331994,
+                  "rmse_one_sided_95pct_upper_millihartree": 0.3518367924732432,
+                  "successful_solves": 30,
+                  "zero_failure_gate": true
+                },
+                {
+                  "below_exact_count": 25,
+                  "bias_millihartree": -0.05717883510675629,
+                  "chemical_accuracy_fraction": 1.0,
+                  "effective_shots_per_setting": 65536,
+                  "failures": {},
+                  "max_absolute_error_millihartree": 0.20104507077078893,
+                  "median_absolute_error_millihartree": 0.05694409194845207,
+                  "p95_absolute_error_millihartree": 0.16358777443823397,
+                  "passes_target": true,
+                  "rank_histogram": {
+                    "5": 30
+                  },
+                  "replicas": 30,
+                  "rmse_millihartree": 0.0835766331930875,
+                  "rmse_one_sided_95pct_upper_millihartree": 0.10023307994775989,
+                  "successful_solves": 30,
+                  "zero_failure_gate": true
+                }
+              ],
+              "shot_to_target": {
+                "confirmed_failing_effective_shots_per_setting": 4096,
+                "confirmed_passing_effective_shots_per_setting": 16384,
+                "status": "confirmed_bracket"
+              }
+            }
+          },
+          "mean_reader_count": 2.2049586776859504,
+          "settings": 26
+        },
+        {
+          "block_size": 8,
+          "compatible_readouts": 3298,
+          "estimators": {
+            "pooled": {
+              "confirmation": [
+                {
+                  "below_exact_count": 100,
+                  "bias_millihartree": -45.20686553676758,
+                  "chemical_accuracy_fraction": 0.02,
+                  "effective_shots_per_setting": 64,
+                  "failures": {},
+                  "max_absolute_error_millihartree": 150.22066855172866,
+                  "median_absolute_error_millihartree": 39.51011033042828,
+                  "p95_absolute_error_millihartree": 103.02390280116018,
+                  "passes_target": false,
+                  "rank_histogram": {
+                    "5": 100
+                  },
+                  "replicas": 100,
+                  "rmse_millihartree": 52.87351852386449,
+                  "rmse_one_sided_95pct_upper_millihartree": 58.42794213076154,
+                  "successful_solves": 100,
+                  "zero_failure_gate": true
+                },
+                {
+                  "below_exact_count": 91,
+                  "bias_millihartree": -9.933059559337849,
+                  "chemical_accuracy_fraction": 0.08,
+                  "effective_shots_per_setting": 256,
+                  "failures": {},
+                  "max_absolute_error_millihartree": 31.869017845973957,
+                  "median_absolute_error_millihartree": 9.225033532707982,
+                  "p95_absolute_error_millihartree": 21.586115567138098,
+                  "passes_target": false,
+                  "rank_histogram": {
+                    "5": 100
+                  },
+                  "replicas": 100,
+                  "rmse_millihartree": 12.149959775488437,
+                  "rmse_one_sided_95pct_upper_millihartree": 13.31706376285307,
+                  "successful_solves": 100,
+                  "zero_failure_gate": true
+                },
+                {
+                  "below_exact_count": 85,
+                  "bias_millihartree": -2.750175290627013,
+                  "chemical_accuracy_fraction": 0.29,
+                  "effective_shots_per_setting": 1024,
+                  "failures": {},
+                  "max_absolute_error_millihartree": 10.416771152060633,
+                  "median_absolute_error_millihartree": 2.6455055081102685,
+                  "p95_absolute_error_millihartree": 7.00755228435348,
+                  "passes_target": false,
+                  "rank_histogram": {
+                    "5": 100
+                  },
+                  "replicas": 100,
+                  "rmse_millihartree": 3.7111014526199355,
+                  "rmse_one_sided_95pct_upper_millihartree": 4.1108048222080855,
+                  "successful_solves": 100,
+                  "zero_failure_gate": true
+                },
+                {
+                  "below_exact_count": 75,
+                  "bias_millihartree": -0.718444183702811,
+                  "chemical_accuracy_fraction": 0.82,
+                  "effective_shots_per_setting": 4096,
+                  "failures": {},
+                  "max_absolute_error_millihartree": 3.7040286094587316,
+                  "median_absolute_error_millihartree": 0.8679415773800159,
+                  "p95_absolute_error_millihartree": 2.5365789206504448,
+                  "passes_target": true,
+                  "rank_histogram": {
+                    "5": 100
+                  },
+                  "replicas": 100,
+                  "rmse_millihartree": 1.2604990698896301,
+                  "rmse_one_sided_95pct_upper_millihartree": 1.4197954218376798,
+                  "successful_solves": 100,
+                  "zero_failure_gate": true
+                }
+              ],
+              "device_costs": {
+                "ion-like": {
+                  "accuracy": {
+                    "C_time_epsilon_us": 440006410.0,
+                    "epsilon": 0.0016,
+                    "evidence_tier": "exact",
+                    "status": "priced"
+                  },
+                  "admissible": true,
+                  "device_card": {
+                    "calibration_status": "illustrative_scenario",
+                    "name": "ion-like",
+                    "sha256": "9cc7e53e935e4ec3c265efbd9b6218f17a68c51d727d658c5a5bcaf98d34f453"
+                  },
+                  "effective_shots": 57348.70748270873,
+                  "fidelity": {
+                    "floor": 0.5,
+                    "max": 0.9218221804196659,
+                    "mean": 0.8039453971029481,
+                    "min": 0.7681196397068025
+                  },
+                  "fixed_shot_time_us": 440006410.0,
+                  "inadmissible_settings": 0,
+                  "logical_1q_applications": 3636540,
+                  "logical_2q_applications": 2162276,
+                  "modeled_2q_applications": 2162276,
+                  "n_qubits": 8,
+                  "raw_shots": 89185,
+                  "routing": {
+                    "model": "declared scalar sensitivity surrogate",
+                    "required": false,
+                    "two_qubit_count_multiplier": 1.0,
+                    "two_qubit_depth_multiplier": 1.0
+                  },
+                  "schema": "clifford_qc.measurement_cost.v1",
+                  "settings": 14
+                },
+                "logical-alltoall": {
+                  "accuracy": {
+                    "C_time_epsilon_us": 544972.7999999999,
+                    "epsilon": 0.0016,
+                    "evidence_tier": "exact",
+                    "status": "priced"
+                  },
+                  "admissible": true,
+                  "device_card": {
+                    "calibration_status": "logical_baseline",
+                    "name": "logical-alltoall",
+                    "sha256": "07e9cc637e590668bc89b7d407535f34f509155e08c95d2ecd0f8f931738265b"
+                  },
+                  "effective_shots": 57344.0,
+                  "fidelity": {
+                    "floor": 0.5,
+                    "max": 1.0,
+                    "mean": 1.0,
+                    "min": 1.0
+                  },
+                  "fixed_shot_time_us": 544972.7999999999,
+                  "inadmissible_settings": 0,
+                  "logical_1q_applications": 2277376,
+                  "logical_2q_applications": 1359872,
+                  "modeled_2q_applications": 1359872,
+                  "n_qubits": 8,
+                  "raw_shots": 57344,
+                  "routing": {
+                    "model": "declared scalar sensitivity surrogate",
+                    "required": false,
+                    "two_qubit_count_multiplier": 1.0,
+                    "two_qubit_depth_multiplier": 1.0
+                  },
+                  "schema": "clifford_qc.measurement_cost.v1",
+                  "settings": 14
+                },
+                "superconducting-like": {
+                  "accuracy": {
+                    "C_time_epsilon_us": null,
+                    "epsilon": 0.0016,
+                    "evidence_tier": "exact",
+                    "status": "inadmissible"
+                  },
+                  "admissible": false,
+                  "device_card": {
+                    "calibration_status": "illustrative_scenario",
+                    "name": "superconducting-like",
+                    "sha256": "cf78e3240ad48839a8113a1570a43e614c230a8428fe8ceda7783e7ff75e1a13"
+                  },
+                  "effective_shots": 57345.4184062239,
+                  "fidelity": {
+                    "floor": 0.5,
+                    "max": 0.8490623472996445,
+                    "mean": 0.41254835548148167,
+                    "min": 0.3095991397606994
+                  },
+                  "fixed_shot_time_us": 7081349.25,
+                  "inadmissible_settings": 13,
+                  "logical_1q_applications": 16680630,
+                  "logical_2q_applications": 9907090,
+                  "modeled_2q_applications": 29721270,
+                  "n_qubits": 8,
+                  "raw_shots": 385758,
+                  "routing": {
+                    "model": "declared scalar sensitivity surrogate",
+                    "required": true,
+                    "two_qubit_count_multiplier": 3.0,
+                    "two_qubit_depth_multiplier": 2.0
+                  },
+                  "schema": "clifford_qc.measurement_cost.v1",
+                  "settings": 14
+                }
+              },
+              "exploration": [
+                {
+                  "below_exact_count": 30,
+                  "bias_millihartree": -44.49787131791301,
+                  "chemical_accuracy_fraction": 0.0,
+                  "effective_shots_per_setting": 64,
+                  "failures": {},
+                  "max_absolute_error_millihartree": 109.79959312808063,
+                  "median_absolute_error_millihartree": 40.687457621612744,
+                  "p95_absolute_error_millihartree": 87.15132191614443,
+                  "passes_target": false,
+                  "rank_histogram": {
+                    "5": 30
+                  },
+                  "replicas": 30,
+                  "rmse_millihartree": 50.12316597766052,
+                  "rmse_one_sided_95pct_upper_millihartree": 57.91614277505221,
+                  "successful_solves": 30,
+                  "zero_failure_gate": true
+                },
+                {
+                  "below_exact_count": 28,
+                  "bias_millihartree": -9.988046672011565,
+                  "chemical_accuracy_fraction": 0.13333333333333333,
+                  "effective_shots_per_setting": 256,
+                  "failures": {},
+                  "max_absolute_error_millihartree": 38.31539657329941,
+                  "median_absolute_error_millihartree": 8.75590992549391,
+                  "p95_absolute_error_millihartree": 22.07767497968208,
+                  "passes_target": false,
+                  "rank_histogram": {
+                    "5": 30
+                  },
+                  "replicas": 30,
+                  "rmse_millihartree": 12.84210643691004,
+                  "rmse_one_sided_95pct_upper_millihartree": 16.06366405109208,
+                  "successful_solves": 30,
+                  "zero_failure_gate": true
+                },
+                {
+                  "below_exact_count": 24,
+                  "bias_millihartree": -2.74202509541522,
+                  "chemical_accuracy_fraction": 0.2,
+                  "effective_shots_per_setting": 1024,
+                  "failures": {},
+                  "max_absolute_error_millihartree": 8.833577910484891,
+                  "median_absolute_error_millihartree": 2.6980070170647963,
+                  "p95_absolute_error_millihartree": 7.230075148022669,
+                  "passes_target": false,
+                  "rank_histogram": {
+                    "5": 30
+                  },
+                  "replicas": 30,
+                  "rmse_millihartree": 3.881730914160545,
+                  "rmse_one_sided_95pct_upper_millihartree": 4.591894783398398,
+                  "successful_solves": 30,
+                  "zero_failure_gate": true
+                },
+                {
+                  "below_exact_count": 22,
+                  "bias_millihartree": -0.6546753944367248,
+                  "chemical_accuracy_fraction": 0.8333333333333334,
+                  "effective_shots_per_setting": 4096,
+                  "failures": {},
+                  "max_absolute_error_millihartree": 2.6135247185621324,
+                  "median_absolute_error_millihartree": 0.7975169239049507,
+                  "p95_absolute_error_millihartree": 2.109098173086109,
+                  "passes_target": true,
+                  "rank_histogram": {
+                    "5": 30
+                  },
+                  "replicas": 30,
+                  "rmse_millihartree": 1.1218534789207955,
+                  "rmse_one_sided_95pct_upper_millihartree": 1.333443833601005,
+                  "successful_solves": 30,
+                  "zero_failure_gate": true
+                },
+                {
+                  "below_exact_count": 17,
+                  "bias_millihartree": -0.22395018724156537,
+                  "chemical_accuracy_fraction": 1.0,
+                  "effective_shots_per_setting": 16384,
+                  "failures": {},
+                  "max_absolute_error_millihartree": 1.2054571633779432,
+                  "median_absolute_error_millihartree": 0.2945285707216527,
+                  "p95_absolute_error_millihartree": 0.7905060986359123,
+                  "passes_target": true,
+                  "rank_histogram": {
+                    "5": 30
+                  },
+                  "replicas": 30,
+                  "rmse_millihartree": 0.4351653060153532,
+                  "rmse_one_sided_95pct_upper_millihartree": 0.5319484026528998,
+                  "successful_solves": 30,
+                  "zero_failure_gate": true
+                },
+                {
+                  "below_exact_count": 22,
+                  "bias_millihartree": -0.0977191590713744,
+                  "chemical_accuracy_fraction": 1.0,
+                  "effective_shots_per_setting": 65536,
+                  "failures": {},
+                  "max_absolute_error_millihartree": 0.48377947594602233,
+                  "median_absolute_error_millihartree": 0.10457844068501032,
+                  "p95_absolute_error_millihartree": 0.4009323674915244,
+                  "passes_target": true,
+                  "rank_histogram": {
+                    "5": 30
+                  },
+                  "replicas": 30,
+                  "rmse_millihartree": 0.20764358902253502,
+                  "rmse_one_sided_95pct_upper_millihartree": 0.2508804056093785,
+                  "successful_solves": 30,
+                  "zero_failure_gate": true
+                }
+              ],
+              "shot_to_target": {
+                "confirmed_failing_effective_shots_per_setting": 1024,
+                "confirmed_passing_effective_shots_per_setting": 4096,
+                "status": "confirmed_bracket"
+              }
+            },
+            "single_assignment": {
+              "confirmation": [
+                {
+                  "below_exact_count": 96,
+                  "bias_millihartree": -46.905043740320544,
+                  "chemical_accuracy_fraction": 0.0,
+                  "effective_shots_per_setting": 64,
+                  "failures": {},
+                  "max_absolute_error_millihartree": 147.52148443309386,
+                  "median_absolute_error_millihartree": 44.03655332027867,
+                  "p95_absolute_error_millihartree": 102.1277006147346,
+                  "passes_target": false,
+                  "rank_histogram": {
+                    "4": 2,
+                    "5": 98
+                  },
+                  "replicas": 100,
+                  "rmse_millihartree": 55.98974584192335,
+                  "rmse_one_sided_95pct_upper_millihartree": 61.52029229872662,
+                  "successful_solves": 100,
+                  "zero_failure_gate": true
+                },
+                {
+                  "below_exact_count": 91,
+                  "bias_millihartree": -11.247818838890105,
+                  "chemical_accuracy_fraction": 0.08,
+                  "effective_shots_per_setting": 256,
+                  "failures": {},
+                  "max_absolute_error_millihartree": 35.171484982539525,
+                  "median_absolute_error_millihartree": 10.385938936683381,
+                  "p95_absolute_error_millihartree": 25.134848000658923,
+                  "passes_target": false,
+                  "rank_histogram": {
+                    "5": 100
+                  },
+                  "replicas": 100,
+                  "rmse_millihartree": 14.24281464185896,
+                  "rmse_one_sided_95pct_upper_millihartree": 15.519408019249045,
+                  "successful_solves": 100,
+                  "zero_failure_gate": true
+                },
+                {
+                  "below_exact_count": 82,
+                  "bias_millihartree": -3.605413799303587,
+                  "chemical_accuracy_fraction": 0.24,
+                  "effective_shots_per_setting": 1024,
+                  "failures": {},
+                  "max_absolute_error_millihartree": 11.523188305895715,
+                  "median_absolute_error_millihartree": 3.951476818147448,
+                  "p95_absolute_error_millihartree": 10.441031812182098,
+                  "passes_target": false,
+                  "rank_histogram": {
+                    "5": 100
+                  },
+                  "replicas": 100,
+                  "rmse_millihartree": 5.34882433401517,
+                  "rmse_one_sided_95pct_upper_millihartree": 5.86344965668998,
+                  "successful_solves": 100,
+                  "zero_failure_gate": true
+                },
+                {
+                  "below_exact_count": 77,
+                  "bias_millihartree": -1.2596517594450418,
+                  "chemical_accuracy_fraction": 0.55,
+                  "effective_shots_per_setting": 4096,
+                  "failures": {},
+                  "max_absolute_error_millihartree": 6.8141475132215135,
+                  "median_absolute_error_millihartree": 1.3803081199732503,
+                  "p95_absolute_error_millihartree": 4.314288140212774,
+                  "passes_target": false,
+                  "rank_histogram": {
+                    "5": 100
+                  },
+                  "replicas": 100,
+                  "rmse_millihartree": 2.1267981459377157,
+                  "rmse_one_sided_95pct_upper_millihartree": 2.3786998199149054,
+                  "successful_solves": 100,
+                  "zero_failure_gate": true
+                },
+                {
+                  "below_exact_count": 58,
+                  "bias_millihartree": -0.17161929198822534,
+                  "chemical_accuracy_fraction": 0.93,
+                  "effective_shots_per_setting": 16384,
+                  "failures": {},
+                  "max_absolute_error_millihartree": 2.916714050654079,
+                  "median_absolute_error_millihartree": 0.6251021348848695,
+                  "p95_absolute_error_millihartree": 1.886441559104579,
+                  "passes_target": true,
+                  "rank_histogram": {
+                    "5": 100
+                  },
+                  "replicas": 100,
+                  "rmse_millihartree": 0.9491414437511025,
+                  "rmse_one_sided_95pct_upper_millihartree": 1.0572212551305005,
+                  "successful_solves": 100,
+                  "zero_failure_gate": true
+                }
+              ],
+              "device_costs": {
+                "ion-like": {
+                  "accuracy": {
+                    "C_time_epsilon_us": 1759928470.0,
+                    "epsilon": 0.0016,
+                    "evidence_tier": "exact",
+                    "status": "priced"
+                  },
+                  "admissible": true,
+                  "device_card": {
+                    "calibration_status": "illustrative_scenario",
+                    "name": "ion-like",
+                    "sha256": "9cc7e53e935e4ec3c265efbd9b6218f17a68c51d727d658c5a5bcaf98d34f453"
+                  },
+                  "effective_shots": 229380.9769031002,
+                  "fidelity": {
+                    "floor": 0.5,
+                    "max": 0.9218221804196659,
+                    "mean": 0.8039453971029481,
+                    "min": 0.7681196397068025
+                  },
+                  "fixed_shot_time_us": 1759928470.0,
+                  "inadmissible_settings": 0,
+                  "logical_1q_applications": 14545424,
+                  "logical_2q_applications": 8648629,
+                  "modeled_2q_applications": 8648629,
+                  "n_qubits": 8,
+                  "raw_shots": 356719,
+                  "routing": {
+                    "model": "declared scalar sensitivity surrogate",
+                    "required": false,
+                    "two_qubit_count_multiplier": 1.0,
+                    "two_qubit_depth_multiplier": 1.0
+                  },
+                  "schema": "clifford_qc.measurement_cost.v1",
+                  "settings": 14
+                },
+                "logical-alltoall": {
+                  "accuracy": {
+                    "C_time_epsilon_us": 2179891.1999999997,
+                    "epsilon": 0.0016,
+                    "evidence_tier": "exact",
+                    "status": "priced"
+                  },
+                  "admissible": true,
+                  "device_card": {
+                    "calibration_status": "logical_baseline",
+                    "name": "logical-alltoall",
+                    "sha256": "07e9cc637e590668bc89b7d407535f34f509155e08c95d2ecd0f8f931738265b"
+                  },
+                  "effective_shots": 229376.0,
+                  "fidelity": {
+                    "floor": 0.5,
+                    "max": 1.0,
+                    "mean": 1.0,
+                    "min": 1.0
+                  },
+                  "fixed_shot_time_us": 2179891.1999999997,
+                  "inadmissible_settings": 0,
+                  "logical_1q_applications": 9109504,
+                  "logical_2q_applications": 5439488,
+                  "modeled_2q_applications": 5439488,
+                  "n_qubits": 8,
+                  "raw_shots": 229376,
+                  "routing": {
+                    "model": "declared scalar sensitivity surrogate",
+                    "required": false,
+                    "two_qubit_count_multiplier": 1.0,
+                    "two_qubit_depth_multiplier": 1.0
+                  },
+                  "schema": "clifford_qc.measurement_cost.v1",
+                  "settings": 14
+                },
+                "superconducting-like": {
+                  "accuracy": {
+                    "C_time_epsilon_us": null,
+                    "epsilon": 0.0016,
+                    "evidence_tier": "exact",
+                    "status": "inadmissible"
+                  },
+                  "admissible": false,
+                  "device_card": {
+                    "calibration_status": "illustrative_scenario",
+                    "name": "superconducting-like",
+                    "sha256": "cf78e3240ad48839a8113a1570a43e614c230a8428fe8ceda7783e7ff75e1a13"
+                  },
+                  "effective_shots": 229377.00073674094,
+                  "fidelity": {
+                    "floor": 0.5,
+                    "max": 0.8490623472996445,
+                    "mean": 0.41254835548148167,
+                    "min": 0.3095991397606994
+                  },
+                  "fixed_shot_time_us": 28324899.349999998,
+                  "inadmissible_settings": 13,
+                  "logical_1q_applications": 66721350,
+                  "logical_2q_applications": 39627677,
+                  "modeled_2q_applications": 118883031,
+                  "n_qubits": 8,
+                  "raw_shots": 1543004,
+                  "routing": {
+                    "model": "declared scalar sensitivity surrogate",
+                    "required": true,
+                    "two_qubit_count_multiplier": 3.0,
+                    "two_qubit_depth_multiplier": 2.0
+                  },
+                  "schema": "clifford_qc.measurement_cost.v1",
+                  "settings": 14
+                }
+              },
+              "exploration": [
+                {
+                  "below_exact_count": 30,
+                  "bias_millihartree": -46.80468301118399,
+                  "chemical_accuracy_fraction": 0.0,
+                  "effective_shots_per_setting": 64,
+                  "failures": {},
+                  "max_absolute_error_millihartree": 113.11140744377113,
+                  "median_absolute_error_millihartree": 41.87047123902765,
+                  "p95_absolute_error_millihartree": 83.69937436017086,
+                  "passes_target": false,
+                  "rank_histogram": {
+                    "5": 30
+                  },
+                  "replicas": 30,
+                  "rmse_millihartree": 52.20712275477986,
+                  "rmse_one_sided_95pct_upper_millihartree": 59.774064505358595,
+                  "successful_solves": 30,
+                  "zero_failure_gate": true
+                },
+                {
+                  "below_exact_count": 24,
+                  "bias_millihartree": -10.539661915983936,
+                  "chemical_accuracy_fraction": 0.13333333333333333,
+                  "effective_shots_per_setting": 256,
+                  "failures": {},
+                  "max_absolute_error_millihartree": 37.46815131590253,
+                  "median_absolute_error_millihartree": 11.369175325896208,
+                  "p95_absolute_error_millihartree": 27.10815395394632,
+                  "passes_target": false,
+                  "rank_histogram": {
+                    "5": 30
+                  },
+                  "replicas": 30,
+                  "rmse_millihartree": 14.695526120432481,
+                  "rmse_one_sided_95pct_upper_millihartree": 17.72496292753369,
+                  "successful_solves": 30,
+                  "zero_failure_gate": true
+                },
+                {
+                  "below_exact_count": 22,
+                  "bias_millihartree": -2.596915927509317,
+                  "chemical_accuracy_fraction": 0.26666666666666666,
+                  "effective_shots_per_setting": 1024,
+                  "failures": {},
+                  "max_absolute_error_millihartree": 11.824946947383452,
+                  "median_absolute_error_millihartree": 3.5773009407789047,
+                  "p95_absolute_error_millihartree": 7.727293117370414,
+                  "passes_target": false,
+                  "rank_histogram": {
+                    "5": 30
+                  },
+                  "replicas": 30,
+                  "rmse_millihartree": 4.7198385190014935,
+                  "rmse_one_sided_95pct_upper_millihartree": 5.63295927693941,
+                  "successful_solves": 30,
+                  "zero_failure_gate": true
+                },
+                {
+                  "below_exact_count": 20,
+                  "bias_millihartree": -0.680905261242574,
+                  "chemical_accuracy_fraction": 0.6,
+                  "effective_shots_per_setting": 4096,
+                  "failures": {},
+                  "max_absolute_error_millihartree": 4.463845412328027,
+                  "median_absolute_error_millihartree": 1.1664284349963694,
+                  "p95_absolute_error_millihartree": 4.028575486985897,
+                  "passes_target": false,
+                  "rank_histogram": {
+                    "5": 30
+                  },
+                  "replicas": 30,
+                  "rmse_millihartree": 1.960205283497775,
+                  "rmse_one_sided_95pct_upper_millihartree": 2.3345140818375016,
+                  "successful_solves": 30,
+                  "zero_failure_gate": true
+                },
+                {
+                  "below_exact_count": 14,
+                  "bias_millihartree": -0.08574907015006517,
+                  "chemical_accuracy_fraction": 0.9333333333333333,
+                  "effective_shots_per_setting": 16384,
+                  "failures": {},
+                  "max_absolute_error_millihartree": 2.7481479520297114,
+                  "median_absolute_error_millihartree": 0.6343249731388667,
+                  "p95_absolute_error_millihartree": 1.5909051499959581,
+                  "passes_target": true,
+                  "rank_histogram": {
+                    "5": 30
+                  },
+                  "replicas": 30,
+                  "rmse_millihartree": 0.9471094783955792,
+                  "rmse_one_sided_95pct_upper_millihartree": 1.1727029122519483,
+                  "successful_solves": 30,
+                  "zero_failure_gate": true
+                },
+                {
+                  "below_exact_count": 11,
+                  "bias_millihartree": 0.07689682619342146,
+                  "chemical_accuracy_fraction": 1.0,
+                  "effective_shots_per_setting": 65536,
+                  "failures": {},
+                  "max_absolute_error_millihartree": 0.7699761602140143,
+                  "median_absolute_error_millihartree": 0.3135160399319048,
+                  "p95_absolute_error_millihartree": 0.761055261381749,
+                  "passes_target": true,
+                  "rank_histogram": {
+                    "5": 30
+                  },
+                  "replicas": 30,
+                  "rmse_millihartree": 0.40866725944128957,
+                  "rmse_one_sided_95pct_upper_millihartree": 0.47098249374369605,
+                  "successful_solves": 30,
+                  "zero_failure_gate": true
+                }
+              ],
+              "shot_to_target": {
+                "confirmed_failing_effective_shots_per_setting": 4096,
+                "confirmed_passing_effective_shots_per_setting": 16384,
+                "status": "confirmed_bracket"
+              }
+            }
+          },
+          "mean_reader_count": 1.8170798898071625,
+          "settings": 14
+        }
+      ],
+      "status": "searched"
+    },
+    "h4": {
+      "exact_ground_energy": -2.180316614323859,
+      "exact_subspace_bias_millihartree": 3.018781343635979,
+      "rows": [
+        {
+          "block_size": 1,
+          "estimators": {
+            "pooled": {
+              "device_costs": {},
+              "shot_to_target": {
+                "confirmed_failing_effective_shots_per_setting": null,
+                "confirmed_passing_effective_shots_per_setting": null,
+                "status": "bias_floor_exceeds_target"
+              }
+            },
+            "single_assignment": {
+              "device_costs": {},
+              "shot_to_target": {
+                "confirmed_failing_effective_shots_per_setting": null,
+                "confirmed_passing_effective_shots_per_setting": null,
+                "status": "bias_floor_exceeds_target"
+              }
+            }
+          }
+        },
+        {
+          "block_size": 2,
+          "estimators": {
+            "pooled": {
+              "device_costs": {},
+              "shot_to_target": {
+                "confirmed_failing_effective_shots_per_setting": null,
+                "confirmed_passing_effective_shots_per_setting": null,
+                "status": "bias_floor_exceeds_target"
+              }
+            },
+            "single_assignment": {
+              "device_costs": {},
+              "shot_to_target": {
+                "confirmed_failing_effective_shots_per_setting": null,
+                "confirmed_passing_effective_shots_per_setting": null,
+                "status": "bias_floor_exceeds_target"
+              }
+            }
+          }
+        },
+        {
+          "block_size": 4,
+          "estimators": {
+            "pooled": {
+              "device_costs": {},
+              "shot_to_target": {
+                "confirmed_failing_effective_shots_per_setting": null,
+                "confirmed_passing_effective_shots_per_setting": null,
+                "status": "bias_floor_exceeds_target"
+              }
+            },
+            "single_assignment": {
+              "device_costs": {},
+              "shot_to_target": {
+                "confirmed_failing_effective_shots_per_setting": null,
+                "confirmed_passing_effective_shots_per_setting": null,
+                "status": "bias_floor_exceeds_target"
+              }
+            }
+          }
+        },
+        {
+          "block_size": 8,
+          "estimators": {
+            "pooled": {
+              "device_costs": {},
+              "shot_to_target": {
+                "confirmed_failing_effective_shots_per_setting": null,
+                "confirmed_passing_effective_shots_per_setting": null,
+                "status": "bias_floor_exceeds_target"
+              }
+            },
+            "single_assignment": {
+              "device_costs": {},
+              "shot_to_target": {
+                "confirmed_failing_effective_shots_per_setting": null,
+                "confirmed_passing_effective_shots_per_setting": null,
+                "status": "bias_floor_exceeds_target"
+              }
+            }
+          }
+        }
+      ],
+      "status": "bias_floor_exceeds_target"
+    }
+  }
+}
