@@ -191,12 +191,19 @@ def compare_json_records(
 def sampling_stream_mismatch(
         record: Any, *, packages: tuple[str, ...] = ("numpy",),
 ) -> list[str]:
-    """Report packages whose version differs from the one that stamped ``record``.
+    """Report named packages this environment cannot reproduce ``record`` under.
 
     A record whose values come from finite-shot sampling followed by a
     projected eigensolve is only value-comparable under the library versions
-    that produced it.  Two distinct mechanisms put it out of reach otherwise,
-    and a version stamp is the cheapest thing that detects either:
+    that produced it.  A named package that is *missing* counts as well as one
+    at a different version: naming it is the caller's statement that its
+    absence moves the values rather than only the speed, as SciPy's does when
+    the optimizer falls back to the pure-Python one.  A record that declares
+    ``null`` for a package is a different case -- it was produced without it,
+    and claims nothing.
+
+    Two distinct mechanisms put a differing version out of reach, and a version
+    stamp is the cheapest thing that detects either:
 
     * a NumPy release may change the bundled BLAS/LAPACK, so an ill-conditioned
       generalized eigenproblem lands on a different solution -- the shots are
@@ -230,7 +237,14 @@ def sampling_stream_mismatch(
             actual = importlib.metadata.version(package)
         except importlib.metadata.PackageNotFoundError:
             actual = None
-        if actual is not None and actual != expected:
+        if actual is None:
+            problems.append(
+                f"{package} is not installed, but {expected} produced this "
+                "record; a package the caller names here is one whose absence "
+                "changes the values rather than only the speed, so a rebuild "
+                "answers a different question rather than verifying this record"
+            )
+        elif actual != expected:
             problems.append(
                 f"{package} {actual} differs from the {expected} that produced "
                 "this record; finite-shot values are not comparable across "

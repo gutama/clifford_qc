@@ -85,6 +85,16 @@ def test_sampling_stream_mismatch_is_silent_without_a_dependency_stamp():
     assert sampling_stream_mismatch({"provenance": {}}) == []
     assert sampling_stream_mismatch({"provenance": {"dependencies": {}}}) == []
     assert sampling_stream_mismatch("not a record") == []
-    # An absent optional package must not be reported as a mismatch.
+    # A record built *without* an optional package claims nothing about it.
     assert sampling_stream_mismatch(
         {"provenance": {"dependencies": {"numpy": None}}}) == []
+
+
+def test_a_named_package_that_is_missing_here_is_as_disqualifying_as_a_bump():
+    # The caller names a package because its absence moves the values, not
+    # merely the speed, so silence would defer the diagnosis to whatever the
+    # fallback path happens to produce.
+    record = {"provenance": {"dependencies": {"nonexistent-package": "1.2.3"}}}
+    problems = sampling_stream_mismatch(record, packages=("nonexistent-package",))
+    assert len(problems) == 1
+    assert "is not installed" in problems[0] and "1.2.3" in problems[0]

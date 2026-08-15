@@ -133,6 +133,18 @@ def contract_problems(record: dict) -> list[str]:
                 marginal = search.get("environment_marginal_endpoints")
                 if marginal is None:
                     problems.append(f"{prefix}: crossing margin was not recorded")
+                elif not isinstance(marginal, list) or not all(
+                    item in ("passing", "failing") for item in marginal
+                ):
+                    # The listing is read below with ``label in marginal``, which
+                    # on a string is substring membership and on a mapping is key
+                    # membership.  A scalar ``"passing"`` would satisfy every
+                    # check below and read as a well-formed record, so the shape
+                    # is established before it is believed.
+                    problems.append(
+                        f"{prefix}: marginal endpoints are not a list of "
+                        "'passing'/'failing' labels"
+                    )
                 elif bool(marginal) != bool(
                     search.get("crossing_is_environment_marginal")
                 ):

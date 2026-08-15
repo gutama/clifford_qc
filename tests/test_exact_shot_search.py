@@ -124,6 +124,19 @@ def test_record_gate_rejects_nonminimal_pricing_and_a_false_failing_endpoint():
     assert any("reported failing endpoint did not fail" in problem for problem in problems)
 
 
+def test_record_gate_rejects_a_marginal_listing_that_is_not_a_list_of_labels():
+    record = json.loads(REFERENCE.read_text(encoding="utf-8"))
+    # Each of these satisfies `label in marginal` for at least one label while
+    # meaning something else: a bare string matches by substring, a mapping by
+    # key, and an empty string is falsy enough to agree with a cleared flag.
+    for malformed in ("passing", "", {"passing": True}, ["passing", "sideways"]):
+        broken = copy.deepcopy(record)
+        arm = broken["systems"]["beh2"]["rows"][0]["estimators"]["pooled"]
+        arm["shot_to_target"]["environment_marginal_endpoints"] = malformed
+        problems = contract_problems(broken)
+        assert any("are not a list of" in problem for problem in problems), malformed
+
+
 def test_solver_failure_forces_an_endpoint_to_fail():
     rows = [
         {"failure": None, "energy": -1.0, "rank": 2},
