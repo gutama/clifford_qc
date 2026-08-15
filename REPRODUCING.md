@@ -33,10 +33,11 @@ Every runner stamps each JSON object with a
 state, package/Python/dependency versions, platform and BLAS/LAPACK details,
 UTC time, and a digest of the complete installed distribution set. Numerical
 record comparisons deliberately ignore only this metadata block; all physics,
-selection, and resource fields remain value-gated. The scheduled record
-regeneration workflow re-executes every committed runner weekly, compares those
-scientific fields (excluding only provenance and keys ending in `_seconds`),
-and uploads each fresh record whether the comparison passes or fails.
+selection, and resource fields remain value-gated. The versions in it are not
+inert, though: `benchmarks/check_record_environment.py` reads them back out,
+requires the committed records to agree on one environment, and emits the
+interpreter and the pip constraints that CI installs against, so every gate
+runs under the versions its own record was produced under.
 
 ```bash
 python paper/make_figures.py       # -> paper/paper_assets/*.pdf
@@ -80,10 +81,11 @@ references or citations:
 grep -cE 'Overfull \\hbox|LaTeX Warning: (Reference|Citation)' paper/manuscript.log   # -> 0
 ```
 
-The `manuscript` CI job runs exactly this sequence plus the three checkers
-above and fails on any drift, so a regenerated benchmark that leaves a stale
-figure or table behind, or an edit that pushes text into the margin, is caught
-before merge rather than at submission.
+This sequence is a local step, not a CI job: the manuscript build needs a full
+REVTeX installation, which is far more expensive to provision than the checks
+that gate the code. Run it before a submission, so a regenerated benchmark that
+leaves a stale figure or table behind, or an edit that pushes text into the
+margin, is caught then rather than at submission.
 
 `check_summaries.py` exists because a regenerated JSONL leaves its
 `summarize.py`-derived CSV and Markdown behind unless they are rebuilt too:
@@ -104,8 +106,8 @@ pip install -e .[test,research,chemistry]   # numpy + scipy + openfermion/pyscf
 pytest                                      # 1167 passed, 6 skipped
 ```
 
-That install is the reference environment for the quoted pair, and it is
-what CI's `manuscript` job builds. The count depends on it: a missing
+That install is the reference environment for the quoted pair. The count
+depends on it: a missing
 optional module makes pytest drop the whole test file at collection, so
 each absent extra moves one file from the passed count to the skipped
 count. The six skips here are the bridge files — `stim` (three of them),
@@ -139,7 +141,8 @@ python benchmarks/check_clifford_hierarchy.py
 
 This writes schema-v3 `reference_results/clifford_hierarchy_h4.json` and
 `reference_results/clifford_hierarchy_beh2.json`; the frozen schema-v2 controls
-remain beside them with the `_v2.json` suffix. The checker projects every v3
+`clifford_hierarchy_h4_v2.json` and `clifford_hierarchy_beh2_v2.json` remain
+beside them, and are not regenerated. The checker projects every v3
 record back onto the v2 contract and requires every legacy field and JSON type to
 match before checking the new columns. The H4 bank is reconstructed
 from the retained labels in `matched_h4.json`, so the hierarchy and the matched
@@ -250,8 +253,10 @@ downstream consumer of that distinction.
 
 `check_docs.py` verifies the documented pair by collection. It reports a
 skip when the installed extras do not match the environment above; pass
-`--require-test-count` to turn that mismatch into a failure, which is how
-CI enforces it in the job that owns the contract.
+`--require-test-count` to turn that mismatch into a failure, which is what a
+run that has installed those extras should do. CI installs `test`, `research`,
+and `stim` only, so it takes the skip rather than gating on a count it cannot
+have produced.
 
 The core package imports with numpy alone; without SciPy the optimizer
 falls back to pure-Python Adam (numerically equivalent results at looser
@@ -278,6 +283,53 @@ python benchmarks/profile_hotpaths.py --repeats 5 --bootstrap-replicates 30 --si
 
 The script prints JSON to stdout and deliberately writes no reference artifact;
 wall-clock profiles are machine-dependent diagnostics, not scientific records.
+
+## Continuous integration
+
+`.github/workflows/ci.yml` runs on every pull request and on every push to
+`main`. It builds its environment out of the records rather than out of a
+hand-written pin:
+
+```bash
+python benchmarks/check_record_environment.py --python       # -> 3.11
+python benchmarks/check_record_environment.py --constraints  # -> numpy==2.4.6, ...
+python benchmarks/check_record_environment.py                # check this machine
+```
+
+The first two read the provenance block of every stamped record, require the
+records to agree on one version per package, and emit the interpreter and a pip
+constraints file; CI installs `test`, `research`, and `stim` against them. The
+third compares the running environment against the same agreement, and is worth
+a second before a long rebuild locally.
+
+Disagreement is a failure, not something to resolve by majority: if one record
+was rebuilt under a newer NumPy than its siblings, no single environment
+reproduces all of them, and the odd one out has to be rebuilt rather than
+pinned to. That case is not hypothetical — it is how `exact_shot_search.json`
+came to be committed under `numpy 2.5.2` while the other eight records were
+built under `2.4.6`, which read as scientific drift for as long as the versions
+were treated as metadata.
+
+Two tiers run:
+
+| job | when | contents |
+| --- | --- | --- |
+| `test` | pull request, push to `main` | `ruff`, `pytest --hypothesis-profile=ci`, and the record gates that finish in about a minute: `check_docs`, `check_molecular`, `check_krylov_width`, `check_clifford_hierarchy`, `check_finite_shot_optimization`, `check_warm_start` |
+| `records` | push to `main`, manual dispatch | the four gates that rebuild their records from scratch: `check_finite_shot_rethink`, `check_mapping_axis`, `check_matched_h4`, `check_exact_shot_search` |
+
+The split is by cost, not by importance. The four long gates take roughly three,
+three, six, and twelve minutes here, so running them on every push to a pull
+request would repeat the same computation for the same answer on every rebase.
+They run in a matrix with `fail-fast` disabled, because the set of failures is
+the diagnosis; the short gates in `test` run past each other's failures for the
+same reason. To gate a branch on them before merging rather than after, dispatch
+the workflow against that branch from the Actions tab.
+
+`check_summaries.py` is deliberately not a gate yet: five `*_summary` pairs
+declared by configs have no committed JSONL, so it fails on `main` today for
+reasons that predate the workflow. `paper/check_manuscript.py` and
+`paper_a_case_subspaces/check_manuscript.py` stay out for the reason given
+above — they need a REVTeX installation.
 
 ## Spin-model matrices (Phase 3)
 
@@ -499,8 +551,10 @@ The committed reference record is
 - complete singles/doubles coordinate space: `M=27`,
   error `0.765862 mHa` (chemical accuracy).
 
-The adapter itself needs no chemistry extra. Full CI additionally compares its
-185 Pauli coefficients against the independent OpenFermion/PySCF construction.
+The adapter itself needs no chemistry extra. With that extra installed,
+`tests/test_fcidump.py` additionally compares its 185 Pauli coefficients
+against the independent OpenFermion/PySCF construction; CI does not install it,
+so that comparison is a local step.
 FCIDUMP orbital signs are a gauge; the committed digest fixes one gauge rather
 than weakening coefficient tolerances.
 

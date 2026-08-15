@@ -1,8 +1,9 @@
 name: CI
 
-# Automatic CI is intentionally paused. Restore the push/pull_request triggers
-# when the project is ready to reactivate GitHub Actions.
 on:
+  push:
+    branches: [main]
+  pull_request:
   workflow_dispatch:
 
 permissions:
@@ -14,12 +15,59 @@ concurrency:
 
 jobs:
   test:
+    name: tests, lint, and the short record gates
     runs-on: ubuntu-latest
+    timeout-minutes: 30
     steps:
       - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
-        with:
-          python-version: "3.12"
-      - run: python -m pip install -e '.[test,research]'
-      - run: python -m pytest --hypothesis-profile=ci
+      - uses: ./.github/actions/record-environment
+
       - run: ruff check clifford_qc tests benchmarks
+      - run: python -m pytest --hypothesis-profile=ci
+
+      # Record gates that finish in about a minute.  Each one runs even after an
+      # earlier failure: a drift suite that stops at the first mismatch reports
+      # one symptom of what is usually a shared cause.
+      - name: documentation drift
+        if: ${{ !cancelled() }}
+        run: python benchmarks/check_docs.py
+      - name: molecular records
+        if: ${{ !cancelled() }}
+        run: python benchmarks/check_molecular.py
+      - name: Krylov width
+        if: ${{ !cancelled() }}
+        run: python benchmarks/check_krylov_width.py
+      - name: Clifford measurement hierarchy
+        if: ${{ !cancelled() }}
+        run: python benchmarks/check_clifford_hierarchy.py
+      - name: finite-shot optimization
+        if: ${{ !cancelled() }}
+        run: python benchmarks/check_finite_shot_optimization.py
+      - name: warm start
+        if: ${{ !cancelled() }}
+        run: python benchmarks/check_warm_start.py
+
+  records:
+    # The remaining gates rebuild their records from scratch and take minutes
+    # each.  They gate main, where the cost is paid once per merge, rather than
+    # every push to a pull request, where a rebase would repeat the same
+    # computation for the same answer.  Run them on a branch before merging with
+    # the workflow's "Run workflow" button, which dispatches against any ref.
+    if: github.event_name != 'pull_request'
+    name: ${{ matrix.gate }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    strategy:
+      # One red gate must not cancel the others; the set of failures is the
+      # diagnosis.
+      fail-fast: false
+      matrix:
+        gate:
+          - check_finite_shot_rethink
+          - check_mapping_axis
+          - check_matched_h4
+          - check_exact_shot_search
+    steps:
+      - uses: actions/checkout@v4
+      - uses: ./.github/actions/record-environment
+      - run: python benchmarks/${{ matrix.gate }}.py
