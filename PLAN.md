@@ -1666,6 +1666,19 @@ bootstrap streams use disjoint `SeedSequence` namespaces.  The producer prices o
 the smallest confirmed passing endpoint, requires a confirmed failing endpoint below
 it unless the crossing lies below the grid, and abstains on a nonmonotone confirmation.
 
+**A crossing decided on the target is a region, not an integer.**  Each arm records
+the distance from 1.6 mHa for both deciding endpoints and flags the crossing when
+either lies within ±10%.  Three of BeH₂'s eight arms are flagged: `k=1` assigned
+(passing at −4.6%), `k=4` assigned (passing at −1.8%), and `k=4` pooled (failing at
++6.3%).  The band is calibrated against a measured effect rather than chosen —
+rebuilding the record under a different NumPy moved the `k=4` assigned upper bound at
+4096 shots across the target by 2.2%, changing that arm's reported count from 4096 to
+16384 with identical shot histograms, because a few ill-conditioned rank-5 solves land
+elsewhere under a different bundled LAPACK.  The flag names the same three arms in
+both environments, so it is stable where the count is not.  This is §6.7's `k*`-as-a-
+region rule applied one level down, to the shot count feeding each `C(ε)`: a flagged
+arm's price carries the width of its crossing, and R3 must not read it as exact.
+
 The comparator tier is `exact` (the unavailable-on-hardware oracle); the bootstrap
 uncertainty remains `heuristic`.  It is not a finite-sample Ritz-energy certificate or
 deployable stopping rule.  H₄ still exits before sampling because its 3.019 mHa exact

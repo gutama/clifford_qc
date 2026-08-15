@@ -216,12 +216,37 @@ or deployable stopping rule.
 
 H4 exits without sampling because its 3.019 mHa exact bank bias already exceeds the
 target. On BeH2 the confirmed assigned/pooled passing endpoints are `4096/1024` at
-`k=1`, `16384/4096` at `k=2`, `16384/16384` at `k=4`, and `16384/4096` at `k=8`.
-At `k=4`, 4096 fails and 16384 passes for both estimators, closing the bracket that the
-original two-endpoint confirmation left invalid. All 3,500 confirmatory solves
-succeed. Device-card costs are computed only from the smallest confirmed passing
-endpoints. The fidelity layer
-remains the same illustrative `F^-2` surrogate, not a device-noise simulation.
+`k=1`, `16384/4096` at `k=2`, `4096/16384` at `k=4`, and `16384/4096` at `k=8`.
+All 3,500 confirmatory solves succeed. Device-card costs are computed only from the
+smallest confirmed passing endpoints. The fidelity layer remains the same
+illustrative `F^-2` surrogate, not a device-noise simulation.
+
+**Three of the eight crossings are not resolved by this experiment**, and the record
+says so rather than reporting them as settled counts. Each arm stores the distance
+from the target for both deciding endpoints — the smallest confirmed pass, which sets
+the reported count, and the largest confirmed failure, which sets that the count is
+not smaller — and flags the crossing when either sits within ±10% of 1.6 mHa:
+
+| arm | reported | passing margin | failing margin | marginal side |
+|---|---:|---:|---:|---|
+| `k=1` assigned | 4096 | −4.6% | +124.8% | passing |
+| `k=4` assigned | 4096 | −1.8% | +280.0% | passing |
+| `k=4` pooled | 16384 | −72.3% | +6.3% | failing |
+
+The band is measured, not chosen: rebuilding this record under numpy 2.5.2 rather
+than the 2.4.6 above moved the `k=4` assigned upper bound at 4096 shots from 1.5705
+to 1.6054 mHa — 2.2% of the target, and across it, changing that arm's reported
+count from 4096 to 16384. Nothing was wrong with either run. The endpoint deciding
+that arm sits on the target, so which side it lands on is a property of the build
+environment rather than of the protocol, and `±10%` is roughly four times the
+observed sensitivity. `k=4` pooled shows the failing side matters equally: its
+passing side is a comfortable −72.3% while its failing side sits at +6.3%, one
+environment away from moving 16384 down to 4096 as well.
+
+Applied to both environments the flag names the same three arms even where the
+reported count differs, so it is stable exactly where the count is not. Read a
+flagged arm as a region rather than an integer; §6.7's `k*` regions are the
+downstream consumer of that distinction.
 
 `check_docs.py` verifies the documented pair by collection. It reports a
 skip when the installed extras do not match the environment above; pass
