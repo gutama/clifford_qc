@@ -1,7 +1,8 @@
 import json
 
 from clifford_qc.reproducibility import (
-    compare_json_records, execution_provenance, stamp_record,
+    compare_json_records, execution_provenance, sampling_stream_mismatch,
+    stamp_record,
 )
 
 
@@ -60,3 +61,40 @@ def test_key_tolerances_default_leaves_comparison_unchanged():
                                 key_tolerances=None) == []
     assert compare_json_records(expected, {"a": 1.0, "b": {"c": 2.5}},
                                 key_tolerances={"z": (1.0, 1.0)})
+
+
+def test_sampling_stream_mismatch_names_the_environment_not_the_arithmetic():
+    import importlib.metadata
+    installed = importlib.metadata.version("numpy")
+    matching = {"provenance": {"dependencies": {"numpy": installed}}}
+    assert sampling_stream_mismatch(matching) == []
+
+    # A record built under a different NumPy answers a different question --
+    # different bundled LAPACK, possibly different draws -- rather than drifting,
+    # so the diagnosis must say so rather than leave a reader widening a
+    # tolerance against it.
+    drifted = {"provenance": {"dependencies": {"numpy": "0.0.1-not-installed"}}}
+    problems = sampling_stream_mismatch(drifted)
+    assert len(problems) == 1
+    assert "0.0.1-not-installed" in problems[0] and installed in problems[0]
+    assert "not comparable across" in problems[0]
+
+
+def test_sampling_stream_mismatch_is_silent_without_a_dependency_stamp():
+    assert sampling_stream_mismatch({}) == []
+    assert sampling_stream_mismatch({"provenance": {}}) == []
+    assert sampling_stream_mismatch({"provenance": {"dependencies": {}}}) == []
+    assert sampling_stream_mismatch("not a record") == []
+    # A record built *without* an optional package claims nothing about it.
+    assert sampling_stream_mismatch(
+        {"provenance": {"dependencies": {"numpy": None}}}) == []
+
+
+def test_a_named_package_that_is_missing_here_is_as_disqualifying_as_a_bump():
+    # The caller names a package because its absence moves the values, not
+    # merely the speed, so silence would defer the diagnosis to whatever the
+    # fallback path happens to produce.
+    record = {"provenance": {"dependencies": {"nonexistent-package": "1.2.3"}}}
+    problems = sampling_stream_mismatch(record, packages=("nonexistent-package",))
+    assert len(problems) == 1
+    assert "is not installed" in problems[0] and "1.2.3" in problems[0]

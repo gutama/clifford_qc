@@ -188,4 +188,73 @@ def compare_json_records(
     return problems
 
 
-__all__ = ["compare_json_records", "execution_provenance", "stamp_record"]
+def sampling_stream_mismatch(
+        record: Any, *, packages: tuple[str, ...] = ("numpy",),
+) -> list[str]:
+    """Report named packages this environment cannot reproduce ``record`` under.
+
+    A record whose values come from finite-shot sampling followed by a
+    projected eigensolve is only value-comparable under the library versions
+    that produced it.  A named package that is *missing* counts as well as one
+    at a different version: naming it is the caller's statement that its
+    absence moves the values rather than only the speed, as SciPy's does when
+    the optimizer falls back to the pure-Python one.  A record that declares
+    ``null`` for a package is a different case -- it was produced without it,
+    and claims nothing.
+
+    Two distinct mechanisms put a differing version out of reach, and a version
+    stamp is the cheapest thing that detects either:
+
+    * a NumPy release may change the bundled BLAS/LAPACK, so an ill-conditioned
+      generalized eigenproblem lands on a different solution -- the shots are
+      identical, the answer is not, and the difference can be amplified far
+      above last-bit noise;
+    * ``numpy.random.Generator`` carries no cross-version bit-stream guarantee
+      (NEP 19 froze ``RandomState`` for that purpose), so a release is also
+      free to change the draws themselves.
+
+    Either way the result is deterministic within a version and unequal between
+    them, which is invisible in a value diff: it reports a shifted mean or
+    quantile and invites the reader to widen a tolerance.  Widening is the
+    wrong response, because nothing here is noisy in the run-to-run sense.
+    Callers should surface this list *before* any numeric comparison so the
+    diagnosis names the environment rather than the arithmetic.
+    """
+    if not isinstance(record, dict):
+        return []
+    stamped = record.get("provenance")
+    if not isinstance(stamped, dict):
+        return []
+    declared = stamped.get("dependencies")
+    if not isinstance(declared, dict):
+        return []
+    problems: list[str] = []
+    for package in packages:
+        expected = declared.get(package)
+        if expected is None:
+            continue
+        try:
+            actual = importlib.metadata.version(package)
+        except importlib.metadata.PackageNotFoundError:
+            actual = None
+        if actual is None:
+            problems.append(
+                f"{package} is not installed, but {expected} produced this "
+                "record; a package the caller names here is one whose absence "
+                "changes the values rather than only the speed, so a rebuild "
+                "answers a different question rather than verifying this record"
+            )
+        elif actual != expected:
+            problems.append(
+                f"{package} {actual} differs from the {expected} that produced "
+                "this record; finite-shot values are not comparable across "
+                "versions, which may change the bundled BLAS/LAPACK an "
+                "ill-conditioned eigensolve depends on or the sampling stream "
+                "itself, so a rebuild here answers a different question rather "
+                "than verifying this record"
+            )
+    return problems
+
+
+__all__ = ["compare_json_records", "execution_provenance",
+           "sampling_stream_mismatch", "stamp_record"]

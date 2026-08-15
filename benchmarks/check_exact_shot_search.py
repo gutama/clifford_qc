@@ -4,7 +4,10 @@ from __future__ import annotations
 
 import json
 
-from clifford_qc.reproducibility import compare_json_records
+from clifford_qc.reproducibility import (
+    compare_json_records,
+    sampling_stream_mismatch,
+)
 
 try:  # package import in tests versus direct ``python benchmarks/...`` execution
     from benchmarks.run_exact_shot_search import (
@@ -12,6 +15,7 @@ try:  # package import in tests versus direct ``python benchmarks/...`` executio
         CONFIRMATORY_REPLICAS,
         ESTIMATORS,
         EXPLORATORY_REPLICAS,
+        MARGINAL_TARGET_FRACTION,
         REFERENCE,
         SEARCH_ENDPOINTS,
         build_record,
@@ -22,6 +26,7 @@ except ImportError:  # pragma: no cover - direct script execution
         CONFIRMATORY_REPLICAS,
         ESTIMATORS,
         EXPLORATORY_REPLICAS,
+        MARGINAL_TARGET_FRACTION,
         REFERENCE,
         SEARCH_ENDPOINTS,
         build_record,
@@ -122,6 +127,41 @@ def contract_problems(record: dict) -> list[str]:
                     problems.append(
                         f"{prefix}: reported failing endpoint did not fail"
                     )
+                # A crossing decided within the environment-marginal band is
+                # not a resolved shot count, and must say so rather than being
+                # read as one.
+                marginal = search.get("environment_marginal_endpoints")
+                if marginal is None:
+                    problems.append(f"{prefix}: crossing margin was not recorded")
+                elif not isinstance(marginal, list) or not all(
+                    item in ("passing", "failing") for item in marginal
+                ):
+                    # The listing is read below with ``label in marginal``, which
+                    # on a string is substring membership and on a mapping is key
+                    # membership.  A scalar ``"passing"`` would satisfy every
+                    # check below and read as a well-formed record, so the shape
+                    # is established before it is believed.
+                    problems.append(
+                        f"{prefix}: marginal endpoints are not a list of "
+                        "'passing'/'failing' labels"
+                    )
+                elif bool(marginal) != bool(
+                    search.get("crossing_is_environment_marginal")
+                ):
+                    problems.append(
+                        f"{prefix}: marginal endpoints disagree with the flag"
+                    )
+                else:
+                    for label in ("passing", "failing"):
+                        fraction = search.get(f"{label}_target_margin_fraction")
+                        if fraction is None:
+                            continue
+                        near = abs(fraction) <= MARGINAL_TARGET_FRACTION
+                        if near != (label in marginal):
+                            problems.append(
+                                f"{prefix}: {label} margin {fraction:+.3f} "
+                                "disagrees with its marginal listing"
+                            )
                 if set(prices) != set(card_hashes):
                     problems.append(f"{prefix}: device-card prices incomplete")
                 for name, cost in prices.items():
@@ -135,6 +175,29 @@ def contract_problems(record: dict) -> list[str]:
 
 def main() -> int:
     expected = json.loads(REFERENCE.read_text(encoding="utf-8"))
+    # Every value here descends from sampled shots fed through a projected
+    # eigensolve, so the environment check comes before the rebuild rather than
+    # after it.  Under a different NumPy the ill-conditioned rank-5 solves land
+    # elsewhere -- measured here as a 0.11 mHa shift on individual BeH2
+    # replicas from identical shot histograms -- and comparing that reports a
+    # moved quantile as though it were drift, inviting a widened tolerance.
+    # That is the wrong repair, and the full search would be spent to reach it.
+    stream = sampling_stream_mismatch(expected)
+    if stream:
+        print("exact shot search: FAIL (build environment differs)")
+        for problem in stream:
+            print(f"  {problem}")
+        print("  skipped the rebuild: under a different environment it answers a "
+              "different question rather than verifying this record")
+        problems = contract_problems(expected)
+        if problems:
+            print("  the committed record also fails its own contracts:")
+            for problem in problems[:30]:
+                print(f"    {problem}")
+        else:
+            print("  the committed record still passes every contract check "
+                  "that does not require a rebuild")
+        return 1
     actual = build_record(
         exploratory_replicas=EXPLORATORY_REPLICAS,
         confirmatory_replicas=CONFIRMATORY_REPLICAS,

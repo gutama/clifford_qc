@@ -1,0 +1,44 @@
+name: Record environment
+description: >-
+  Install the project under the interpreter and library versions that every
+  committed record was produced under.  The versions are read out of the
+  records themselves, so nothing here can drift away from the evidence it
+  exists to reproduce.
+
+runs:
+  using: composite
+  steps:
+    - name: Read the interpreter the records were produced under
+      id: interpreter
+      shell: bash
+      # The runner's own Python is enough here: the script is standard library
+      # only, precisely so it can speak before anything has been installed --
+      # including the interpreter this step is choosing.
+      run: |
+        version="$(python3 benchmarks/check_record_environment.py --python)"
+        echo "version=${version}" >> "$GITHUB_OUTPUT"
+
+    - uses: actions/setup-python@v5
+      with:
+        python-version: ${{ steps.interpreter.outputs.version }}
+        cache: pip
+        cache-dependency-path: pyproject.toml
+
+    - name: Derive the library pin from the records
+      shell: bash
+      run: |
+        python benchmarks/check_record_environment.py --constraints \
+          > constraints.txt
+        cat constraints.txt
+
+    - name: Install
+      shell: bash
+      # stim is not a test dependency, but three test files and the hierarchy
+      # records need it; without it they would skip quietly rather than fail.
+      run: |
+        python -m pip install --upgrade pip
+        python -m pip install -e '.[test,research,stim]' -c constraints.txt
+
+    - name: Verify the installed environment against every stamped record
+      shell: bash
+      run: python benchmarks/check_record_environment.py

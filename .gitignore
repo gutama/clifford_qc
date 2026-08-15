@@ -227,3 +227,7 @@ __marimo__/
 *.synctex.gz
 *Notes.bib
 paper/manuscript.pdf
+
+# Written by benchmarks/check_record_environment.py --constraints; derived from
+# the records' provenance, so it is regenerated rather than committed.
+constraints.txt
