@@ -15,6 +15,7 @@ try:  # package import in tests versus direct ``python benchmarks/...`` executio
         CONFIRMATORY_REPLICAS,
         ESTIMATORS,
         EXPLORATORY_REPLICAS,
+        MARGINAL_TARGET_FRACTION,
         REFERENCE,
         SEARCH_ENDPOINTS,
         build_record,
@@ -25,6 +26,7 @@ except ImportError:  # pragma: no cover - direct script execution
         CONFIRMATORY_REPLICAS,
         ESTIMATORS,
         EXPLORATORY_REPLICAS,
+        MARGINAL_TARGET_FRACTION,
         REFERENCE,
         SEARCH_ENDPOINTS,
         build_record,
@@ -125,6 +127,29 @@ def contract_problems(record: dict) -> list[str]:
                     problems.append(
                         f"{prefix}: reported failing endpoint did not fail"
                     )
+                # A crossing decided within the environment-marginal band is
+                # not a resolved shot count, and must say so rather than being
+                # read as one.
+                marginal = search.get("environment_marginal_endpoints")
+                if marginal is None:
+                    problems.append(f"{prefix}: crossing margin was not recorded")
+                elif bool(marginal) != bool(
+                    search.get("crossing_is_environment_marginal")
+                ):
+                    problems.append(
+                        f"{prefix}: marginal endpoints disagree with the flag"
+                    )
+                else:
+                    for label in ("passing", "failing"):
+                        fraction = search.get(f"{label}_target_margin_fraction")
+                        if fraction is None:
+                            continue
+                        near = abs(fraction) <= MARGINAL_TARGET_FRACTION
+                        if near != (label in marginal):
+                            problems.append(
+                                f"{prefix}: {label} margin {fraction:+.3f} "
+                                "disagrees with its marginal listing"
+                            )
                 if set(prices) != set(card_hashes):
                     problems.append(f"{prefix}: device-card prices incomplete")
                 for name, cost in prices.items():

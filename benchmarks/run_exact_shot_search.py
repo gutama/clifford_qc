@@ -69,6 +69,9 @@ BOOTSTRAP_SEED = 261_013_000
 BOOTSTRAP_REPLICATES = 10_000
 DELTA = 0.05
 RANK_SELECTION_GAMMA = 2.0
+# See _crossing_margin: four times the 2.2%-of-target shift a NumPy change was
+# measured to produce in a deciding endpoint's upper bound.
+MARGINAL_TARGET_FRACTION = 0.10
 ESTIMATORS = ("single_assignment", "pooled")
 
 
@@ -284,7 +287,46 @@ def _confirm_result(exploration: list[dict], confirmation: list[dict]) -> dict:
         "status": status,
         "confirmed_failing_effective_shots_per_setting": confirmed_fail,
         "confirmed_passing_effective_shots_per_setting": confirmed_pass,
+        **_crossing_margin(by_endpoint, confirmed_pass, confirmed_fail),
     }
+
+
+def _crossing_margin(by_endpoint: dict, confirmed_pass, confirmed_fail) -> dict:
+    """How far the deciding endpoints sit from the target, on both sides.
+
+    A crossing is only as reproducible as the endpoint that decides it.  Both
+    sides matter: the smallest passing endpoint decides the reported count, and
+    the largest failing one decides that the count is not smaller, so either
+    landing near the target leaves the answer environment-dependent.
+
+    ``MARGINAL_TARGET_FRACTION`` is set from measurement, not taste.  Rebuilding
+    this record under a different NumPy moved the BeH2 k=4 assigned upper bound
+    at 4096 shots from 1.6054 to 1.5705 mHa -- 2.2% of the target, and enough to
+    move that endpoint from failing to passing and the reported count from 16384
+    to 4096.  The band is roughly four times that observed sensitivity, so an
+    endpoint inside it should be read as unresolved rather than as a number.
+    """
+    output: dict[str, object] = {}
+    marginal = []
+    for label, endpoint in (("passing", confirmed_pass), ("failing", confirmed_fail)):
+        if endpoint is None:
+            output[f"{label}_target_margin_fraction"] = None
+            continue
+        # A failed endpoint can carry no bootstrap bound at all; an unknown
+        # margin is reported as unknown rather than assumed comfortable.
+        upper = by_endpoint.get(endpoint, {}).get(
+            "rmse_one_sided_95pct_upper_millihartree"
+        )
+        if upper is None:
+            output[f"{label}_target_margin_fraction"] = None
+            continue
+        fraction = (upper - ACCURACY_TARGET_MILLIHARTREE) / ACCURACY_TARGET_MILLIHARTREE
+        output[f"{label}_target_margin_fraction"] = fraction
+        if abs(fraction) <= MARGINAL_TARGET_FRACTION:
+            marginal.append(label)
+    output["environment_marginal_endpoints"] = marginal
+    output["crossing_is_environment_marginal"] = bool(marginal)
+    return output
 
 
 def _confirmation_endpoints(exploration: list[dict]) -> tuple[int, ...]:

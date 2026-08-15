@@ -40,6 +40,12 @@ def test_confirmation_reports_a_region_not_a_false_exact_integer():
         "status": "confirmed_bracket",
         "confirmed_failing_effective_shots_per_setting": 64,
         "confirmed_passing_effective_shots_per_setting": 256,
+        # These fixtures carry no bootstrap bound, so the margin is
+        # unknown rather than comfortable.
+        "environment_marginal_endpoints": [],
+        "crossing_is_environment_marginal": False,
+        "passing_target_margin_fraction": None,
+        "failing_target_margin_fraction": None,
     }
 
 
@@ -57,6 +63,12 @@ def test_confirmation_extends_downward_and_prices_the_smallest_pass():
         "status": "confirmed_bracket",
         "confirmed_failing_effective_shots_per_setting": 256,
         "confirmed_passing_effective_shots_per_setting": 1024,
+        # These fixtures carry no bootstrap bound, so the margin is
+        # unknown rather than comfortable.
+        "environment_marginal_endpoints": [],
+        "crossing_is_environment_marginal": False,
+        "passing_target_margin_fraction": None,
+        "failing_target_margin_fraction": None,
     }
 
 
@@ -121,3 +133,38 @@ def test_solver_failure_forces_an_endpoint_to_fail():
     assert not summary["zero_failure_gate"]
     assert not summary["passes_target"]
     assert summary["failures"] == {"ValueError": 1}
+
+
+def test_crossing_margin_flags_either_side_of_the_target():
+    from benchmarks.run_exact_shot_search import (
+        ACCURACY_TARGET_MILLIHARTREE as T,
+        MARGINAL_TARGET_FRACTION,
+        _crossing_margin,
+    )
+
+    def endpoint(upper):
+        return {"rmse_one_sided_95pct_upper_millihartree": upper}
+
+    # A crossing is only as reproducible as the endpoint deciding it, so the
+    # failing side counts too: a comfortable pass over a barely-failing lower
+    # endpoint is one environment away from reporting the smaller count.
+    by_endpoint = {4096: endpoint(0.2 * T), 1024: endpoint(1.02 * T)}
+    margin = _crossing_margin(by_endpoint, 4096, 1024)
+    assert margin["environment_marginal_endpoints"] == ["failing"]
+    assert margin["crossing_is_environment_marginal"] is True
+    assert margin["passing_target_margin_fraction"] == pytest.approx(-0.8)
+    assert margin["failing_target_margin_fraction"] == pytest.approx(0.02)
+
+    # Both sides clear of the band is a resolved crossing.
+    resolved = _crossing_margin(
+        {4096: endpoint(0.2 * T), 1024: endpoint(3.0 * T)}, 4096, 1024
+    )
+    assert resolved["environment_marginal_endpoints"] == []
+    assert resolved["crossing_is_environment_marginal"] is False
+
+    # The band is symmetric: a pass just under the target is equally unresolved.
+    just_under = _crossing_margin(
+        {4096: endpoint((1.0 - MARGINAL_TARGET_FRACTION / 2) * T)}, 4096, None
+    )
+    assert just_under["environment_marginal_endpoints"] == ["passing"]
+    assert just_under["failing_target_margin_fraction"] is None
