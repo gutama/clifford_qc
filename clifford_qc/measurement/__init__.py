@@ -10,6 +10,12 @@ from .allocation import (
     VarianceProportional, variance_optimal_group_plan,
 )
 from .grouping import qwc_basis_cover, qubit_wise_commute, qwc_groups, shared_basis
+from .block_commuting import (
+    block_commuting_groups,
+    block_commuting_partition,
+    block_ranges,
+    block_wise_commute,
+)
 from .cost import (
     DeviceCard,
     SettingResources,
@@ -31,3 +37,5 @@ __all__ = ["WordCache", "GroupedWordCache", "CommutatorBank", "simultaneous_z_ra
            "cost_schedule", "estimator_information", "inflate_shots_for_fidelity",
            "setting_duration_us", "setting_fidelity"]
 __all__ += ["CompiledSetting", "CompiledMeasurementSampler"]
+__all__ += ["block_wise_commute", "block_commuting_partition",
+            "block_commuting_groups", "block_ranges"]

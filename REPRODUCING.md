@@ -103,15 +103,27 @@ No figure or table value in the manuscript is transcribed by hand, and
 ```bash
 python -m venv .venv && source .venv/bin/activate
 pip install -e .[test,research,chemistry]   # numpy + scipy + openfermion/pyscf
-pytest                                      # 1167 passed, 6 skipped
+pytest                                      # 1255 passed, 24 skipped
 ```
 
 That install is the reference environment for the quoted pair. The count
 depends on it: a missing
 optional module makes pytest drop the whole test file at collection, so
 each absent extra moves one file from the passed count to the skipped
-count. The six skips here are the bridge files — `stim` (three of them),
-`pennylane`, `pytket`, and `pyzx`.
+count. Ten files are dropped that way here — `stim` (seven of them:
+`test_bridge_stim`, `test_clifford_hierarchy_cost`, `test_compiled_measurement`,
+`test_exact_shot_search`, `test_phase4`, `test_restriction`,
+`test_stim_clifford_rotors`), plus `pennylane`, `pytket`, and `pyzx`. The
+remaining fourteen skips are per-test rather than per-file: `test_fermion_mapping`
+and `test_mapping_axis` guard only the individual tests that reach the stim
+bridge, so those files still run.
+
+Two numbers therefore diverge, and `check_docs.py` compares the wrong pair:
+it matches the quoted skip count against the number of *files* carrying an
+`importorskip`, which is 12 here — neither the ten files pytest actually drops
+nor the twenty-four skips it reports. The two agreed when the section was
+written and no longer do, so the count check reports "unverified" rather than
+enforcing. The figures above are measured, not derived from it.
 
 Adding the remaining extras therefore *changes both numbers*, which is
 expected rather than a failure:

@@ -1794,6 +1794,18 @@ nonlinear exact-oracle search was not approximated for this record.
 not a new protocol; `k*` as defined in §6.7. *Gate:* margins reported; regions, not
 integers, wherever the margin sits inside the shot-search uncertainty.
 
+*Implementation state.* The protocol axis is a library primitive:
+`clifford_qc/measurement/block_commuting.py` owns the dyadic block-commuting
+compatibility rule and its largest-conflict-degree greedy, and both R1 producers
+(`run_clifford_hierarchy.py`, `run_exact_shot_search.py`) consume it rather than
+carrying private copies. `tests/test_block_commuting.py` pins the packed
+predicate against a letter oracle and pins the two endpoints the family
+interpolates — `k = 1` is qubit-wise commutation, `k >= n` is full commutation —
+so the claim that the hierarchy spans both protocols is tested rather than
+asserted. The frozen hierarchy and shot-search records regenerate digit for
+digit across the extraction, which is what makes it a refactor. The mapping arms
+of R2b still group at fixed QWC; joining the two axes is R3's own work.
+
 **R4 — contextual subspace as comparator, then preconditioner.** Arms, at matched
 accuracy target and matched candidate family: full QSE, CS-QSE, A-CASE, CS + A-CASE.
 

@@ -36,6 +36,7 @@ import numpy as np
 from clifford_qc.backends import ExactMVBackend, SectorStatevectorBackend
 from clifford_qc.bridges.stim_bridge import CliffordMap
 from clifford_qc.ir import PauliWord
+from clifford_qc.measurement.block_commuting import block_commuting_partition
 from clifford_qc.measurement.compiled import CompiledSetting
 from clifford_qc.measurement.cost import (
     DeviceCard,
@@ -81,29 +82,6 @@ BREAK_EVEN_T2Q_RATIOS = (0.0, 0.1, 0.5, 1.0, 2.0)
 BREAK_EVEN_EPS_2Q = (0.0, 0.005, 0.01, 0.02, 0.05)
 
 
-def _xz(n: int, code: int) -> tuple[int, int]:
-    x = z = 0
-    for q in range(n):
-        letter = (code >> (2 * q)) & 3
-        if letter in (1, 2):
-            x |= 1 << q
-        if letter in (2, 3):
-            z |= 1 << q
-    return x, z
-
-
-def _parity_u64(values: np.ndarray) -> np.ndarray:
-    """Vectorized uint64 parity, compatible with the declared NumPy >=1.23."""
-    work = np.array(values, dtype=np.uint64, copy=True)
-    work ^= work >> 32
-    work ^= work >> 16
-    work ^= work >> 8
-    work ^= work >> 4
-    work ^= work >> 2
-    work ^= work >> 1
-    return (work & np.uint64(1)).astype(bool)
-
-
 def _popcount_u64(values: np.ndarray) -> np.ndarray:
     """Vectorized uint64 population count for the declared NumPy >=1.23."""
     work = np.asarray(values, dtype=np.uint64).copy()
@@ -115,50 +93,6 @@ def _popcount_u64(values: np.ndarray) -> np.ndarray:
     work = (work + (work >> np.uint64(4))) & np.uint64(0x0F0F0F0F0F0F0F0F)
     work *= np.uint64(0x0101010101010101)
     return (work >> np.uint64(56)).astype(np.int16)
-
-
-def _partition(n: int, codes: list[int], block_size: int) -> list[list[int]]:
-    """Largest-conflict-degree greedy partition under block commutativity."""
-    width = len(codes)
-    xs = np.asarray([_xz(n, code)[0] for code in codes], dtype=np.uint64)
-    zs = np.asarray([_xz(n, code)[1] for code in codes], dtype=np.uint64)
-    block_masks = [
-        np.uint64(((1 << min(block_size, n - start)) - 1) << start)
-        for start in range(0, n, block_size)
-    ]
-
-    degrees = np.empty(width, dtype=np.int32)
-    conflicts: list[int] = []
-    for i in range(width):
-        # One bit per qubit marks a local anticommutation contribution.
-        cross = (xs[i] & zs) ^ (zs[i] & xs)
-        bad = np.zeros(width, dtype=bool)
-        for mask in block_masks:
-            bad |= _parity_u64(cross & mask)
-        degrees[i] = int(bad.sum())
-        packed = np.packbits(bad, bitorder="little")
-        conflicts.append(int.from_bytes(packed.tobytes(), "little"))
-
-    order = sorted(range(width), key=lambda i: (-int(degrees[i]), codes[i]))
-    groups: list[list[int]] = []
-    group_masks: list[int] = []
-    for i in order:
-        conflict = conflicts[i]
-        for group_index, member_mask in enumerate(group_masks):
-            if conflict & member_mask == 0:
-                groups[group_index].append(i)
-                group_masks[group_index] = member_mask | (1 << i)
-                break
-        else:
-            groups.append([i])
-            group_masks.append(1 << i)
-
-    # Independent grouping invariant: no member conflicts with its group mask.
-    for members, member_mask in zip(groups, group_masks):
-        for i in members:
-            if conflicts[i] & member_mask:
-                raise AssertionError("block-commuting partition invariant failed")
-    return groups
 
 
 def _local_code(code: int, start: int, size: int) -> int:
@@ -922,7 +856,7 @@ def build_record(system: str = "h4", device_cards: list[DeviceCard] | None = Non
     rows = []
     compiled: list[tuple[list[SettingResources], np.ndarray, list[int]]] = []
     for block_size in BLOCK_SIZES:
-        groups = _partition(bank["n_qubits"], codes, block_size)
+        groups = block_commuting_partition(bank["n_qubits"], codes, block_size)
         row, settings, compatibility, assignment = _synthesize(
             bank["n_qubits"], codes, groups, block_size
         )

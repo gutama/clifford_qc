@@ -490,7 +490,8 @@ clifford_qc/
   backends/        # Backend protocol: exact MV, dense reference, finite-shot,
                    # sector-restricted statevector + matrix-free Lanczos
   measurement/     # commutator bank, shared word cache with cross-setting
-                   # pooling, confidence, allocation policies, QWC grouping,
+                   # pooling, confidence, allocation policies, QWC and dyadic
+                   # block-commuting grouping, device-card cost model,
                    # shared grouped-measurement sessions and rank selection
   algorithms/      # optimizers, pools (odd-Y), fixed-depth VQE, ADAPT-VQE
                    # (exact / finite-shot / layered / subpool / random)
