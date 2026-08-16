@@ -92,6 +92,39 @@ def test_seed_namespaces_do_not_overlap_across_phases_or_rungs():
     assert len(streams) == len(set(streams))
 
 
+def test_an_empty_arm_namespace_is_r1s_own_stream():
+    """R3 reuses this search per mapping arm; R1's own draws must not move.
+
+    ``_run_endpoints`` prefixes its per-replica coordinates with a caller
+    ``namespace`` so each of R3's five arms draws a disjoint stream. R1 passes
+    the default empty tuple, and unpacking it has to leave the coordinates it
+    had before the parameter existed -- otherwise the frozen record would be
+    rebuilt against different shots by a change that only meant to make room.
+    """
+    for block_size in (1, 2, 4, 8):
+        for replica in (0, 7):
+            before = np.random.default_rng(
+                _seed_sequence(260_813_000, block_size, replica)
+            ).bytes(64)
+            after = np.random.default_rng(
+                _seed_sequence(260_813_000, *(), block_size, replica)
+            ).bytes(64)
+            assert before == after
+
+
+def test_each_arm_namespace_draws_a_disjoint_stream():
+    """And a non-empty namespace must actually separate the arms."""
+    streams = [
+        np.random.default_rng(
+            _seed_sequence(260_813_000, *namespace, block_size, replica)
+        ).bytes(64)
+        for namespace in ((), (0,), (1,), (2,), (3,), (4,))
+        for block_size in (1, 2, 4, 8)
+        for replica in range(4)
+    ]
+    assert len(streams) == len(set(streams))
+
+
 def test_system_status_is_derived_from_the_bias_floor():
     assert _system_status(1.599) == "searched"
     assert _system_status(1.600) == "bias_floor_exceeds_target"

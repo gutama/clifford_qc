@@ -1,0 +1,553 @@
+#!/usr/bin/env python3
+"""Recompute and gate the R3 accuracy-matched ``C(epsilon)`` and ``k*`` record.
+
+Two independent jobs, as the project's other checkers do: the record is rebuilt
+from scratch and compared field by field, and every contract it claims is
+re-derived from its own contents rather than trusted.
+
+The contracts, in the order a reader should care about them:
+
+* the setting count of every ``(arm, k)`` cell reproduces the structural R3
+  grid -- the condition that makes this the cost layer *of that grid* rather
+  than a second, differently-partitioned experiment;
+* H4 is unpriced and says why, since its bank's bias floor already exceeds the
+  target on every arm;
+* each crossing satisfies R1's own pricing rules -- smallest confirmed pass,
+  a confirmed failure below it, monotone confirmation, one retained rank at
+  both deciding endpoints, and margins that agree with the marginal flag;
+* each cost interval is the bracket its crossing licenses, widened exactly on
+  the sides R1 flagged and nowhere else;
+* each ``k*`` region is re-derived from the intervals, contains its own point
+  argmin, and accounts for every rung exactly once;
+* the QR1 and QR4 verdicts are re-derived from the costs they summarize;
+* the ``jw`` arm's crossings are compared against R1's frozen BeH2 column.
+
+    python benchmarks/check_protocol_cost.py
+"""
+
+from __future__ import annotations
+
+import json
+import sys
+
+from clifford_qc.reproducibility import (
+    compare_json_records,
+    sampling_stream_mismatch,
+)
+
+try:  # package import in tests versus direct script execution
+    from benchmarks.check_exact_shot_search import _rank_stability_problems
+    from benchmarks.run_clifford_hierarchy import ACCURACY_TARGET_MILLIHARTREE
+    from benchmarks.run_exact_shot_search import (
+        CONFIRMATORY_REPLICAS,
+        ESTIMATORS,
+        EXPLORATORY_REPLICAS,
+        MARGINAL_TARGET_FRACTION,
+        SEARCH_ENDPOINTS,
+    )
+    from benchmarks.run_protocol_cost import (
+        REFERENCE,
+        SCHEMA,
+        build_record,
+        r1_crossings,
+        structural_settings,
+    )
+except ImportError:  # pragma: no cover - direct script execution
+    from check_exact_shot_search import _rank_stability_problems
+    from run_clifford_hierarchy import ACCURACY_TARGET_MILLIHARTREE
+    from run_exact_shot_search import (
+        CONFIRMATORY_REPLICAS,
+        ESTIMATORS,
+        EXPLORATORY_REPLICAS,
+        MARGINAL_TARGET_FRACTION,
+        SEARCH_ENDPOINTS,
+    )
+    from run_protocol_cost import (
+        REFERENCE,
+        SCHEMA,
+        build_record,
+        r1_crossings,
+        structural_settings,
+    )
+
+# C_time is a sum of per-setting durations times an integer shot vector, so two
+# routes to the same schedule agree to rounding, not to the last bit.
+COST_RELATIVE_TOLERANCE = 1e-9
+
+# The subspace bias is (subspace energy - exact energy): a residue of order
+# 1e-3 mHa left by two energies of order 1e4 mHa, so seven significant digits
+# are gone to cancellation before the comparison starts. Its reproducible scale
+# is set by the energies, not by the residue -- the same tolerance, for the same
+# reason, that check_protocol_axis.py documents for the same transport path.
+ENERGY_DIFFERENCE_TOLERANCES = {
+    "exact_subspace_bias_millihartree": (1e-10, 1e-8),
+    "max_exact_subspace_bias_millihartree": (1e-10, 1e-8),
+}
+
+
+def _close(left: float | None, right: float | None) -> bool:
+    if left is None or right is None:
+        return left is right
+    return abs(left - right) <= COST_RELATIVE_TOLERANCE * max(abs(left), abs(right), 1.0)
+
+
+def _crossing_problems(prefix: str, arm: dict) -> list[str]:
+    """R1's pricing rules, re-derived on one cell rather than inherited."""
+    problems: list[str] = []
+    search = arm.get("shot_to_target", {})
+    passing = search.get("confirmed_passing_effective_shots_per_setting")
+    failing = search.get("confirmed_failing_effective_shots_per_setting")
+    confirmation = {
+        item.get("effective_shots_per_setting"): item
+        for item in arm.get("confirmation", [])
+    }
+    exploration = [
+        item.get("effective_shots_per_setting") for item in arm.get("exploration", [])
+    ]
+    if exploration != list(SEARCH_ENDPOINTS):
+        problems.append(f"{prefix}: exploration grid drift")
+    if passing is None:
+        if arm.get("device_costs"):
+            problems.append(f"{prefix}: unconfirmed target was priced")
+        if arm.get("cost_bracket", {}).get("priced"):
+            problems.append(f"{prefix}: unconfirmed target carries a cost interval")
+        return problems
+    if not confirmation.get(passing, {}).get("passes_target"):
+        problems.append(f"{prefix}: priced endpoint did not pass")
+    smallest = sorted(
+        endpoint for endpoint, summary in confirmation.items()
+        if summary.get("passes_target")
+    )
+    if smallest and passing != smallest[0]:
+        problems.append(f"{prefix}: priced endpoint is not the smallest confirmed pass")
+    if any(
+        endpoint > passing and not summary.get("passes_target")
+        for endpoint, summary in confirmation.items()
+    ):
+        problems.append(f"{prefix}: priced crossing is nonmonotone")
+    if failing is not None and confirmation.get(failing, {}).get("passes_target") is not False:
+        problems.append(f"{prefix}: reported failing endpoint did not fail")
+    problems.extend(_rank_stability_problems(prefix, confirmation, passing, failing))
+
+    marginal = search.get("environment_marginal_endpoints")
+    if marginal is None:
+        problems.append(f"{prefix}: crossing margin was not recorded")
+    elif not isinstance(marginal, list) or not all(
+        item in ("passing", "failing") for item in marginal
+    ):
+        problems.append(
+            f"{prefix}: marginal endpoints are not a list of 'passing'/'failing' labels"
+        )
+    elif bool(marginal) != bool(search.get("crossing_is_environment_marginal")):
+        problems.append(f"{prefix}: marginal endpoints disagree with the flag")
+    else:
+        for label in ("passing", "failing"):
+            fraction = search.get(f"{label}_target_margin_fraction")
+            if fraction is None:
+                continue
+            if (abs(fraction) <= MARGINAL_TARGET_FRACTION) != (label in marginal):
+                problems.append(
+                    f"{prefix}: {label} margin {fraction:+.3f} disagrees with "
+                    "its marginal listing"
+                )
+    return problems
+
+
+def _bracket_problems(prefix: str, arm: dict, card_hashes: dict) -> list[str]:
+    """The interval must be the one its crossing licenses -- no wider, no narrower."""
+    problems: list[str] = []
+    search = arm.get("shot_to_target", {})
+    bracket = arm.get("cost_bracket", {})
+    passing = search.get("confirmed_passing_effective_shots_per_setting")
+    failing = search.get("confirmed_failing_effective_shots_per_setting")
+    if passing is None:
+        return problems
+    if not bracket.get("priced"):
+        problems.append(f"{prefix}: a confirmed crossing carries no cost interval")
+        return problems
+    grid = list(SEARCH_ENDPOINTS)
+    marginal = search.get("environment_marginal_endpoints") or []
+
+    if bracket.get("point_effective_shots_per_setting") != passing:
+        problems.append(f"{prefix}: interval point is not the reported count")
+    expected_widened = sorted(
+        side for side in ("passing", "failing")
+        if side in marginal and not (side == "failing" and failing is None)
+    )
+    if sorted(bracket.get("widened_sides", [])) != expected_widened:
+        problems.append(
+            f"{prefix}: widened sides {bracket.get('widened_sides')} do not match "
+            f"the marginal flags {expected_widened}"
+        )
+    upper = bracket.get("upper_effective_shots_per_setting")
+    if "passing" in marginal:
+        index = grid.index(passing)
+        expected_upper = grid[index + 1] if index + 1 < len(grid) else None
+    else:
+        expected_upper = passing
+    if upper != expected_upper:
+        problems.append(
+            f"{prefix}: upper endpoint {upper} should be {expected_upper}"
+        )
+    lower = bracket.get("lower_effective_shots_per_setting")
+    if failing is None:
+        expected_lower = None
+    elif "failing" in marginal:
+        index = grid.index(failing)
+        expected_lower = grid[index - 1] if index > 0 else None
+    else:
+        expected_lower = failing
+    if lower != expected_lower:
+        problems.append(
+            f"{prefix}: lower endpoint {lower} should be {expected_lower}"
+        )
+    if bool(bracket.get("unbounded_below")) != (expected_lower is None):
+        problems.append(f"{prefix}: unbounded-below flag disagrees with the interval")
+    if bool(bracket.get("unbounded_above")) != (expected_upper is None):
+        problems.append(f"{prefix}: unbounded-above flag disagrees with the interval")
+
+    cards = bracket.get("cards", {})
+    if set(cards) != set(card_hashes):
+        problems.append(f"{prefix}: cost interval is missing a declared device card")
+    for name, entry in cards.items():
+        if entry.get("device_card_sha256") != card_hashes.get(name):
+            problems.append(f"{prefix}: {name} device-card hash drift")
+        point = entry.get("C_time_epsilon_us")
+        if not entry.get("admissible"):
+            if point is not None:
+                problems.append(f"{prefix}: {name} is inadmissible but carries a runtime")
+            continue
+        low = entry.get("C_time_lower_us")
+        high = entry.get("C_time_upper_us")
+        if point is None:
+            problems.append(f"{prefix}: {name} is admissible with no runtime")
+            continue
+        if low is None or low > point + COST_RELATIVE_TOLERANCE * max(point, 1.0):
+            problems.append(
+                f"{prefix}: {name} lower bound {low} exceeds its point cost {point}"
+            )
+        if high is not None and high < point - COST_RELATIVE_TOLERANCE * max(point, 1.0):
+            problems.append(
+                f"{prefix}: {name} upper bound {high} is below its point cost {point}"
+            )
+        prices = arm.get("device_costs", {}).get(name, {})
+        priced = prices.get("accuracy", {}).get("C_time_epsilon_us")
+        if not _close(priced, point):
+            problems.append(
+                f"{prefix}: {name} interval point {point} disagrees with the "
+                f"priced schedule {priced}"
+            )
+        if prices.get("accuracy", {}).get("evidence_tier") != "exact":
+            problems.append(f"{prefix}: {name} priced schedule is not exact-tier")
+    return problems
+
+
+def _k_star_problems(prefix: str, arm: dict, entry: dict, card: str,
+                     estimator: str) -> list[str]:
+    """Re-derive the region, its membership, and its bookkeeping."""
+    problems: list[str] = []
+    priced, unresolved, inadmissible = [], [], []
+    for rung in arm["rungs"]:
+        bracket = rung["estimators"][estimator]["cost_bracket"]
+        cell = bracket.get("cards", {}).get(card)
+        if not bracket.get("priced") or cell is None:
+            unresolved.append(rung["block_size"])
+        elif not cell["admissible"]:
+            inadmissible.append(rung["block_size"])
+        else:
+            priced.append((rung["block_size"], cell))
+
+    for label, expected in (
+        ("unresolved_block_sizes", sorted(unresolved)),
+        ("inadmissible_block_sizes", sorted(inadmissible)),
+        ("priced_block_sizes", sorted(size for size, _ in priced)),
+    ):
+        if entry.get(label) != expected:
+            problems.append(f"{prefix}: {label} is {entry.get(label)}, expected {expected}")
+    total = (
+        len(entry.get("unresolved_block_sizes", []))
+        + len(entry.get("inadmissible_block_sizes", []))
+        + len(entry.get("priced_block_sizes", []))
+    )
+    if total != len(arm["rungs"]):
+        problems.append(
+            f"{prefix}: {total} rungs accounted for out of {len(arm['rungs'])}"
+        )
+    if not priced:
+        if entry.get("k_star_region") or entry.get("k_star_point") is not None:
+            problems.append(f"{prefix}: a k* was reported with no priced rung")
+        return problems
+
+    best = min(priced, key=lambda item: (item[1]["C_time_epsilon_us"], item[0]))
+    if entry.get("k_star_point") != best[0]:
+        problems.append(
+            f"{prefix}: k* point {entry.get('k_star_point')} is not the cheapest "
+            f"reported count ({best[0]})"
+        )
+    uppers = [
+        cell["C_time_upper_us"] for _, cell in priced
+        if cell["C_time_upper_us"] is not None
+    ]
+    if uppers:
+        ceiling = min(uppers)
+        expected_region = sorted(
+            size for size, cell in priced if cell["C_time_lower_us"] <= ceiling
+        )
+        if not _close(entry.get("region_ceiling_us"), ceiling):
+            problems.append(f"{prefix}: region ceiling drifted")
+    else:
+        expected_region = sorted(size for size, _ in priced)
+    if entry.get("k_star_region") != expected_region:
+        problems.append(
+            f"{prefix}: k* region {entry.get('k_star_region')} is not the set of "
+            f"rungs reaching the smallest upper bound ({expected_region})"
+        )
+    if entry.get("k_star_point") not in (entry.get("k_star_region") or []):
+        problems.append(
+            f"{prefix}: k* point {entry.get('k_star_point')} lies outside its own "
+            "region, which its construction forbids"
+        )
+    if entry.get("resolved") != (len(expected_region) == 1):
+        problems.append(f"{prefix}: resolved flag disagrees with the region width")
+    expected_status = "resolved" if len(expected_region) == 1 else "region"
+    if uppers and entry.get("status") != expected_status:
+        problems.append(
+            f"{prefix}: status {entry.get('status')!r} disagrees with a region of "
+            f"width {len(expected_region)}"
+        )
+    return problems
+
+
+def _verdict_problems(prefix: str, payload: dict, mapping: str) -> list[str]:
+    """QR1 and QR4 are summaries; they must summarize what is in the record."""
+    problems: list[str] = []
+    entry = payload["by_arm"][mapping]
+    qr1 = payload["qr1_settings_proxy"][mapping]
+    costs = entry.get("costs", [])
+    if len(costs) < 2:
+        if qr1.get("comparable"):
+            problems.append(f"{prefix}: QR1 claims comparability with < 2 priced rungs")
+        return problems
+    by_cost = [
+        item["block_size"] for item in
+        sorted(costs, key=lambda item: (item["C_time_epsilon_us"], item["block_size"]))
+    ]
+    by_settings = [
+        item["block_size"] for item in
+        sorted(costs, key=lambda item: (item["settings"], item["block_size"]))
+    ]
+    if qr1.get("by_accuracy_matched_cost") != by_cost:
+        problems.append(f"{prefix}: QR1 cost ordering drifted")
+    if qr1.get("by_setting_count") != by_settings:
+        problems.append(f"{prefix}: QR1 setting-count ordering drifted")
+    if qr1.get("reorders_settings_ordering") != (by_cost != by_settings):
+        problems.append(f"{prefix}: QR1 verdict disagrees with its own orderings")
+    return problems
+
+
+def contract_problems(record: dict) -> list[str]:
+    problems: list[str] = []
+    if record.get("schema") != SCHEMA:
+        problems.append(f"unexpected schema {record.get('schema')!r}")
+    if record.get("evidence_tier") != "exact":
+        problems.append("oracle comparator is not labelled exact")
+    if record.get("search_uncertainty_evidence") != "heuristic":
+        problems.append("Monte Carlo search uncertainty is not labelled heuristic")
+    protocol = record.get("protocol", {})
+    if protocol.get("exploratory_replicas", 0) < EXPLORATORY_REPLICAS:
+        problems.append("headline record has fewer than 30 exploratory replicas")
+    if protocol.get("confirmatory_replicas", 0) < CONFIRMATORY_REPLICAS:
+        problems.append("headline record has fewer than 100 confirmatory replicas")
+    if protocol.get("search_endpoints_effective_shots_per_setting") != list(SEARCH_ENDPOINTS):
+        problems.append("shot-search endpoint grid drifted")
+    if list(protocol.get("estimators", [])) != list(ESTIMATORS):
+        problems.append("estimator pair drifted")
+    if record.get("accuracy_target_millihartree") != ACCURACY_TARGET_MILLIHARTREE:
+        problems.append(
+            "the accuracy target drifted from the one the rest of R1-R3 is "
+            "matched at, so these costs are not comparable to their records"
+        )
+    if record.get("qr3_accuracy_matched", {}).get("status") != "abstains":
+        problems.append(
+            "the accuracy-matched mapping-versus-instance verdict is not an "
+            "abstention, but only one instance is priced"
+        )
+    card_hashes = {card.get("name"): card.get("sha256") for card in record.get("device_cards", [])}
+    if not card_hashes:
+        problems.append("no device cards declared")
+
+    frozen = structural_settings()
+    target = record.get("accuracy_target_millihartree", float("inf"))
+    arms_declared = list(protocol.get("mapping_arms", []))
+
+    for key, system in record.get("systems", {}).items():
+        if [arm["mapping"] for arm in system.get("arms", [])] != arms_declared:
+            problems.append(f"{key}: arm list does not match the declared arms")
+        bias = system.get("max_exact_subspace_bias_millihartree", float("inf"))
+        expected_status = "searched" if bias < target else "bias_floor_exceeds_target"
+        if system.get("status") != expected_status:
+            problems.append(f"{key}: status disagrees with its exact subspace bias")
+
+        for arm in system.get("arms", []):
+            mapping = arm["mapping"]
+            width = arm["measured_qubits"]
+            sizes = [rung["block_size"] for rung in arm["rungs"]]
+            if sizes != sorted(set(sizes)):
+                problems.append(f"{key}/{mapping}: rungs are unordered or duplicated")
+            if any(size > width for size in sizes):
+                problems.append(
+                    f"{key}/{mapping}: a rung exceeds the arm's {width} measured qubits"
+                )
+            for rung in arm["rungs"]:
+                expected = frozen.get((key, mapping, rung["block_size"]))
+                if expected is not None and rung.get("settings") != expected:
+                    problems.append(
+                        f"{key}/{mapping} k={rung['block_size']}: "
+                        f"{rung.get('settings')} settings, the structural R3 grid "
+                        f"froze {expected}"
+                    )
+                if set(rung.get("estimators", {})) != set(ESTIMATORS):
+                    problems.append(
+                        f"{key}/{mapping} k={rung['block_size']}: estimator pair "
+                        "is incomplete"
+                    )
+                    continue
+                for estimator, cell in rung["estimators"].items():
+                    prefix = f"{key}/{mapping} k={rung['block_size']} {estimator}"
+                    if expected_status != "searched":
+                        if cell.get("device_costs") or cell.get(
+                            "cost_bracket", {}
+                        ).get("priced"):
+                            problems.append(
+                                f"{prefix}: priced above its system's bias floor"
+                            )
+                        continue
+                    problems.extend(_crossing_problems(prefix, cell))
+                    problems.extend(_bracket_problems(prefix, cell, card_hashes))
+
+        if expected_status != "searched":
+            if "k_star" in system:
+                problems.append(f"{key}: an unpriced system reported a k*")
+            continue
+
+        by_mapping = {arm["mapping"]: arm for arm in system["arms"]}
+        summary = system.get("k_star", {})
+        if set(summary) != set(card_hashes):
+            problems.append(f"{key}: k* is not reported on every declared card")
+        for card, payload in summary.items():
+            for estimator in ESTIMATORS:
+                if estimator not in payload:
+                    problems.append(f"{key}/{card}: {estimator} k* missing")
+                    continue
+                for mapping, entry in payload[estimator]["by_arm"].items():
+                    prefix = f"{key}/{card}/{estimator}/{mapping}"
+                    problems.extend(
+                        _k_star_problems(prefix, by_mapping[mapping], entry, card, estimator)
+                    )
+                    problems.extend(
+                        _verdict_problems(prefix, payload[estimator], mapping)
+                    )
+            for mapping, verdict in payload.get("qr4_pooling", {}).items():
+                left = payload["single_assignment"]["by_arm"][mapping]["k_star_region"]
+                right = payload["pooled"]["by_arm"][mapping]["k_star_region"]
+                prefix = f"{key}/{card}/{mapping} QR4"
+                if not left or not right:
+                    if verdict.get("comparable"):
+                        problems.append(f"{prefix}: comparable with an empty region")
+                    continue
+                if verdict.get("single_assignment_region") != left or (
+                    verdict.get("pooled_region") != right
+                ):
+                    problems.append(f"{prefix}: quoted regions drifted")
+                if verdict.get("pooling_moves_k_star") != (not (set(left) & set(right))):
+                    problems.append(
+                        f"{prefix}: verdict disagrees with the region overlap it quotes"
+                    )
+
+        cross = system.get("r1_cross_check", {})
+        if cross.get("status") != "compared":
+            problems.append(f"{key}: the R1 cross-check did not run")
+        else:
+            expected_rows = r1_crossings()
+            for row in cross.get("rows", []):
+                pinned = expected_rows.get((row["block_size"], row["estimator"]), {})
+                if row.get("r1_confirmed_passing") != pinned.get("confirmed_passing"):
+                    problems.append(
+                        f"{key}: R1 cross-check quotes {row.get('r1_confirmed_passing')} "
+                        f"for k={row['block_size']} {row['estimator']}, the frozen "
+                        f"record says {pinned.get('confirmed_passing')}"
+                    )
+                if row.get("r1_environment_marginal") != pinned.get(
+                    "environment_marginal"
+                ):
+                    problems.append(
+                        f"{key}: R1 cross-check misquotes the marginal flag for "
+                        f"k={row['block_size']} {row['estimator']}"
+                    )
+                if row.get("agrees") != (
+                    row.get("r1_confirmed_passing") == row.get("r3_confirmed_passing")
+                ):
+                    problems.append(f"{key}: R1 cross-check agreement flag drifted")
+            disagreeing = [row for row in cross.get("rows", []) if not row.get("agrees")]
+            if cross.get("disagreements_all_environment_marginal") != all(
+                row.get("r1_environment_marginal") or row.get("r3_environment_marginal")
+                for row in disagreeing
+            ):
+                problems.append(f"{key}: R1 cross-check marginal summary drifted")
+            # A disagreement on a crossing *neither* record calls marginal means
+            # two independent streams resolved the same bank differently, which
+            # is a finding about the search rather than about R3.
+            for row in disagreeing:
+                if not (
+                    row.get("r1_environment_marginal")
+                    or row.get("r3_environment_marginal")
+                ):
+                    problems.append(
+                        f"{key}: k={row['block_size']} {row['estimator']} reprices "
+                        f"R1's {row.get('r1_confirmed_passing')} as "
+                        f"{row.get('r3_confirmed_passing')} on a crossing neither "
+                        "record calls environment-marginal"
+                    )
+    return problems
+
+
+def main() -> int:
+    expected = json.loads(REFERENCE.read_text(encoding="utf-8"))
+    # Same reason check_exact_shot_search states: every value here descends from
+    # sampled shots fed through an ill-conditioned projected eigensolve, so a
+    # differing environment answers a different question rather than verifying
+    # this one, and a value diff would invite a widened tolerance as the repair.
+    stream = sampling_stream_mismatch(expected)
+    if stream:
+        print("protocol cost: FAIL (build environment differs)")
+        for problem in stream:
+            print(f"  {problem}")
+        print("  skipped the rebuild: under a different environment it answers a "
+              "different question rather than verifying this record")
+        problems = contract_problems(expected)
+        if problems:
+            print("  the committed record also fails its own contracts:")
+            for problem in problems[:30]:
+                print(f"    {problem}")
+        else:
+            print("  the committed record still passes every contract check "
+                  "that does not require a rebuild")
+        return 1
+    actual = build_record(workers=4)
+    problems = compare_json_records(
+        expected, actual, atol=1e-12, rtol=1e-12,
+        key_tolerances=ENERGY_DIFFERENCE_TOLERANCES,
+    )
+    problems.extend(contract_problems(expected))
+    problems.extend(f"rebuilt record: {problem}" for problem in contract_problems(actual))
+    if problems:
+        print("protocol cost: FAIL")
+        for problem in problems[:30]:
+            print(f"  {problem}")
+        return 1
+    print("protocol cost: PASS")
+    return 0
+
+
+if __name__ == "__main__":
+    sys.exit(main())
