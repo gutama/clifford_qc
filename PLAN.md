@@ -2961,7 +2961,26 @@ not another open accuracy phase.
     corrected like-for-like QR3 is negative on both independent metrics, while the
     accuracy-matched comparison abstains because only BeH₂ clears its bias floor.
 13. R3 — the explicitly deferred `mapping × k`, coverage, and `k*` regions under
-    three device cards. **Next.**
+    three device cards. **Structural layer shipped**
+    (`run_protocol_axis.py`, `reference_results/protocol_axis.json`,
+    `check_protocol_axis.py`): `G(k)` and coverage are recorded on H₄ and BeH₂
+    across `k ∈ {1,2,4,8}` for all five mapping arms, discharging R2b's
+    `deferred_to_r3`. The `k=1` column reproduces every frozen R2b setting count,
+    which is the condition that makes the grid an extension of that record.
+    **Open:** the accuracy-matched `C(ε)` layer and `k*` regions, which need
+    R1's exact-tier shot search per arm and are BeH₂-only.
+
+    *Result on P5.* Its first clause survives on the full-width arms and its
+    monotonicity clause does not survive at all. The `JW/parity/BK` spread in
+    `G(k)` falls from `1.713×` at `k=1` to `1.048×` at `k=8` on H₄, and from
+    `8.610×` to `1.071×` on BeH₂ — `G(k=n)` does agree between mappings within
+    tie-break noise. But the closing is not monotone: BeH₂ touches `1.000×` at
+    `k=2` and `k=4` before rising to `1.071×`, and on H₄ the two `+2q` arms
+    narrow to `1.054×` at `k=4` and then *widen* to `1.181×` at `k=6`, the
+    largest spread of any rung except `k=1`. A reduced arm measures a narrower
+    register, so its `k=n` is a different problem; the record compares only arms
+    of equal measured width, and `tests/test_protocol_axis.py` pins the
+    counter-example so it cannot be refactored away.
 14. R4a — contextual-subspace comparator arms with bias floors. *Gate:* QR5 answered.
 15. R4b — CS-preconditioned A-CASE, built only on a complementary QR5.
 
