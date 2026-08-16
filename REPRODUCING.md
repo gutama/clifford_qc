@@ -103,28 +103,29 @@ No figure or table value in the manuscript is transcribed by hand, and
 ```bash
 python -m venv .venv && source .venv/bin/activate
 pip install -e .[test,research,chemistry]   # numpy + scipy + openfermion/pyscf
-pytest                                      # 1265 passed, 24 skipped
+pytest                                      # 1265 passed, 25 skipped
 ```
 
 That install is the reference environment for the quoted pair. The count
 depends on it: a missing
 optional module makes pytest drop the whole test file at collection, so
 each absent extra moves one file from the passed count to the skipped
-count. Ten files are dropped that way here — `stim` (seven of them:
-`test_bridge_stim`, `test_clifford_hierarchy_cost`, `test_compiled_measurement`,
-`test_exact_shot_search`, `test_phase4`, `test_restriction`,
-`test_stim_clifford_rotors`), plus `pennylane`, `pytket`, and `pyzx`. The
+count. Eleven files are dropped that way here — `stim` (eight of them:
+`test_block_synthesis`, `test_bridge_stim`, `test_clifford_hierarchy_cost`,
+`test_compiled_measurement`, `test_exact_shot_search`, `test_phase4`,
+`test_restriction`, `test_stim_clifford_rotors`), plus `pennylane`, `pytket`,
+and `pyzx`. The
 remaining fourteen skips are per-test rather than per-file: `test_fermion_mapping`
 and `test_mapping_axis` guard only the individual tests that reach the stim
 bridge, so those files still run.
 
 `check_docs.py` enforces the pair through the identity relating them. Each of
-the ten dropped files contributes exactly one skip and no collected tests, so
-the remaining `24 - 10 = 14` skips are per-test and *are* collected:
+the eleven dropped files contributes exactly one skip and no collected tests, so
+the remaining `25 - 11 = 14` skips are per-test and *are* collected:
 
 ```text
 collected == passed + (skipped - files dropped at collection)
-1279      == 1265   + (24      -  10)
+1279      == 1265   + (25      -  11)
 ```
 
 Both sides are computed from the tree, so a drift in either quoted number
