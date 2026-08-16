@@ -163,8 +163,16 @@ def _run_endpoints(
     replicas: int,
     seed: int,
     block_size: int,
+    namespace: tuple[int, ...] = (),
 ) -> dict[str, dict[int, list[dict]]]:
-    """Run nested endpoint samples; estimator arms share every outcome."""
+    """Run nested endpoint samples; estimator arms share every outcome.
+
+    ``namespace`` prefixes the per-replica ``SeedSequence`` coordinates so a
+    second producer sweeping a wider grid -- R3 runs this same search once per
+    fermion-mapping arm -- gets a disjoint stream per arm instead of redrawing
+    R1's. It defaults to empty, which is exactly R1's own coordinate tuple, so
+    the frozen ``exact_shot_search.json`` regenerates digit for digit.
+    """
     endpoints = sorted(set(endpoint for values in requested.values() for endpoint in values))
     if not endpoints:
         return {estimator: {} for estimator in ESTIMATORS}
@@ -187,7 +195,7 @@ def _run_endpoints(
     sampler = CompiledMeasurementSampler(seed)
     sampler.prepare(reference, settings)
     for replica in range(replicas):
-        sampler.reseed(_seed_sequence(seed, block_size, replica))
+        sampler.reseed(_seed_sequence(seed, *namespace, block_size, replica))
         caches = {
             "single_assignment": GroupedWordCache(reference.n, pooling="assigned"),
             "pooled": GroupedWordCache(reference.n, pooling="shots"),
@@ -207,7 +215,9 @@ def _run_endpoints(
 
 
 def _summaries(raw: dict, exact_energy: float, *, block_size: int,
-               seed_namespace: int) -> dict[str, list[dict]]:
+               seed_namespace: int,
+               namespace: tuple[int, ...] = ()) -> dict[str, list[dict]]:
+    """Summarize each endpoint; ``namespace`` is the R3 arm prefix of _run_endpoints."""
     output = {}
     for estimator_index, estimator in enumerate(ESTIMATORS):
         output[estimator] = []
@@ -217,6 +227,7 @@ def _summaries(raw: dict, exact_energy: float, *, block_size: int,
                 exact_energy,
                 bootstrap_seed=_seed_sequence(
                     BOOTSTRAP_SEED,
+                    *namespace,
                     seed_namespace,
                     block_size,
                     estimator_index,

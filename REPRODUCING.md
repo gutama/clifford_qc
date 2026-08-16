@@ -103,29 +103,29 @@ No figure or table value in the manuscript is transcribed by hand, and
 ```bash
 python -m venv .venv && source .venv/bin/activate
 pip install -e .[test,research,chemistry]   # numpy + scipy + openfermion/pyscf
-pytest                                      # 1265 passed, 26 skipped
+pytest                                      # 1265 passed, 27 skipped
 ```
 
 That install is the reference environment for the quoted pair. The count
 depends on it: a missing
 optional module makes pytest drop the whole test file at collection, so
 each absent extra moves one file from the passed count to the skipped
-count. Twelve files are dropped that way here — `stim` (nine of them:
-`test_block_synthesis`, `test_protocol_axis`, `test_bridge_stim`, `test_clifford_hierarchy_cost`,
-`test_compiled_measurement`, `test_exact_shot_search`, `test_phase4`,
-`test_restriction`, `test_stim_clifford_rotors`), plus `pennylane`, `pytket`,
-and `pyzx`. The
+count. Thirteen files are dropped that way here — `stim` (ten of them:
+`test_block_synthesis`, `test_protocol_axis`, `test_protocol_cost`, `test_bridge_stim`,
+`test_clifford_hierarchy_cost`, `test_compiled_measurement`, `test_exact_shot_search`,
+`test_phase4`, `test_restriction`, `test_stim_clifford_rotors`), plus `pennylane`,
+`pytket`, and `pyzx`. The
 remaining fourteen skips are per-test rather than per-file: `test_fermion_mapping`
 and `test_mapping_axis` guard only the individual tests that reach the stim
 bridge, so those files still run.
 
 `check_docs.py` enforces the pair through the identity relating them. Each of
-the twelve dropped files contributes exactly one skip and no collected tests, so
-the remaining `26 - 12 = 14` skips are per-test and *are* collected:
+the thirteen dropped files contributes exactly one skip and no collected tests, so
+the remaining `27 - 13 = 14` skips are per-test and *are* collected:
 
 ```text
 collected == passed + (skipped - files dropped at collection)
-1279      == 1265   + (26      -  12)
+1279      == 1265   + (27      -  13)
 ```
 
 Both sides are computed from the tree, so a drift in either quoted number
@@ -1372,8 +1372,121 @@ qubit-wise commutation.
 Labelled `structural`. It reports group counts, coverage, and the synthesis
 resources a declared card prices at uniform shots; it does **not** price an
 accuracy-matched `C(epsilon)`, which needs R1's exact-tier shot search and which
-only BeH2 clears on its bias floor. P5's second clause -- that the mapping's
-`C_time` gap closes monotonically -- is therefore untested here.
+only BeH2 clears on its bias floor. That layer is the separate producer below.
+
+**Known, unfixed: this record's exact reference is not bit-reproducible.** Its
+`error_millihartree` column carries a loosened `(1e-10, 1e-8)` tolerance whose
+stated reason is cancellation. Cancellation is real, but it is not the whole
+cause. `SectorStatevectorBackend.ground_state` defaults to `method='auto'`,
+which selects ARPACK for `k = 1` below the sector dimension, and ARPACK returns
+a different last bit in every process — three calls on the same BeH2
+Hamiltonian give `-15.566211795095189`, `...217` and `...239`, against
+`-15.566211795095168` from `method='dense'` every time. Against energies of
+order `1e4` mHa that `5e-14` Ha spread is a `1e-10` mHa shift on the residue,
+which is the scale the tolerance was widened to. `run_protocol_cost.py` takes
+the dense path for exactly this reason and compares at `1e-12` with no
+per-field tolerance at all. Nothing here is wrong — the setting counts this
+record exists to report are integers and unaffected — but the same one-line
+change would let this record tighten too, and `run_mapping_axis.py` shares the
+pattern. Both are left alone deliberately: changing them rewrites frozen floats
+in records this branch was not asked to touch.
+
+## R3 accuracy-matched `C(epsilon)` and `k*` regions
+
+```bash
+python benchmarks/run_protocol_cost.py --workers 4   # writes reference_results/protocol_cost.json
+python benchmarks/check_protocol_cost.py             # rebuilds and compares, then re-derives the contracts
+```
+
+The cost half of the same `mapping x k` grid. It runs R1's exact-oracle
+nonlinear shot search -- joint bitstrings from each synthesized Clifford
+setting, the full measured `(S, H)` reconstruction, the `E + 2 sigma`
+selected-rank sweep, replica RMSE against the exact sector ground energy -- once
+per `(mapping arm, k)` cell, then turns each confirmed crossing into
+`C_time(epsilon)` and the `k*` of §6.7. Same 1.6 mHa target, same
+`64…65536` endpoint grid, same 30 exploratory and 100 confirmatory paired
+replicas, same pass rule. Each arm draws a disjoint `SeedSequence` namespace
+prefixed by its arm index, and the roots are disjoint from R1's, so the `jw`
+column is an independent stream over the same bank rather than a rerun of it.
+
+Twenty cells is the expensive gate in this repository: about two and a half
+core-hours, and the BeH2 `jw k=1` cell alone -- 353 settings times 130 replicas
+times the nested grid -- is half an hour of it. The `records` CI job's timeout
+is sized for it.
+
+**H4 is not priced, and the record says why.** Its bank's 3.019 mHa exact
+subspace bias exceeds the target on all five arms, so no shot count reaches
+1.6 mHa and no arm may be given a runtime. It is recorded with status
+`bias_floor_exceeds_target` and empty cost ledgers rather than omitted:
+unattainable at this target is the measurement.
+
+**A crossing is a bracket, so a cost is an interval.** The search resolves a
+shot count only to the geometric grid -- the true count lies in
+`(confirmed_fail, confirmed_pass]` -- so the rung's cost lies in
+`(C(confirmed_fail), C(confirmed_pass)]`. R1 additionally flags a crossing
+environment-marginal when either deciding endpoint sits within +-10% of the
+target, and §6.7 named this layer as that flag's consumer, so a flagged side
+widens the interval by one grid step on the side that could move: a marginal
+pass could fail elsewhere and push the count up, a marginal failure could pass
+elsewhere and pull it down. A crossing with no confirmed failure below it is
+recorded as unbounded below rather than pinned to the smallest endpoint tested.
+`k*` is then every rung whose interval reaches the smallest upper bound.
+
+**Every `k*` in this record is a region.** Across three cards, two estimators,
+and five arms -- thirty determinations -- not one separates to a single rung.
+Under `logical-alltoall` the region is the whole ladder on the full-width arms;
+under `ion-like` it narrows to `k in {1, 2}` on every arm but three; under
+`superconducting-like` it is `{1, 2, 4}` on nine of the ten arm/estimator pairs
+and `{1, 2}` on pooled `jw`, with `k = 8` inadmissible on the three full-width
+arms -- their deepest settings reach minimum fidelity `0.299`-`0.357` against
+that card's `0.5` floor, while the two `+2q` arms clear it at `k = 6` with
+`0.513`. The point argmins move
+around inside those regions -- `k = 4` under `logical-alltoall` single
+assignment, `k = 1` or `k = 2` elsewhere -- which is exactly the reading §6.7
+forbids publishing as an integer.
+
+**QR1 is answered, and its falsifier does not fire.** Accuracy-matched cost
+reorders the protocol rungs relative to setting count in 28 of the 30
+arm/card/estimator combinations. The two exceptions are
+`superconducting-like` single assignment on `parity` and `bk`, where the
+inadmissible `k = 8` rung leaves only three rungs to order. So setting count is
+*not* an adequate proxy for cost on this instance, and the accounting layer is
+not overhead. The mechanism is visible in the ordering itself: `jw` at `k = 1`
+buys 353 cheap settings against 41 at `k = 2`, and the shot-to-target crossing
+moves the other way.
+
+**QR4's falsifier does fire.** Pooling never moves `k*`: on all fifteen
+arm/card pairs the single-assignment and pooled regions overlap. It does move
+the *point* argmin on five of them, which is precisely why the question is
+answered on regions -- a relocated point inside a shared region is not evidence
+that coverage relocated `k*`.
+
+**QR3 still abstains at this tier, deliberately.** The mapping spread in
+`C(epsilon)` is recorded -- among the three full-width arms it reaches `3.87x`
+(`logical-alltoall`, single assignment, `k = 4`, `bk` against `jw`), while the
+two `+2q` arms are priced identically at every rung under single assignment and
+differ only at `k = 6` under pooling, where one grid step of shot count separates
+them by `4.00x`, the largest equal-width spread in the record -- but the
+question asks whether the mapping effect exceeds the *instance* spread, and an
+instance spread needs two priced instances. Only BeH2 clears its bias floor, so
+the record carries `qr3_accuracy_matched: abstains` and the checker fails any
+record that upgrades it.
+
+**The `jw` column reprices R1's BeH2 search under an independent stream**, and
+the result is the sharpest corroboration in this record of R1's own marginal
+flag. Six of the eight crossings agree exactly. The two that disagree -- `k = 4`
+under both estimators, where this record confirms 16384 against R1's 4096 -- are
+two of the three R1 itself flagged as environment-marginal. So the two records
+agree on every crossing R1 called resolved and differ on the ones it called
+unresolved, which is what "the flag is stable exactly where the count is not"
+predicts. The gate is written to match: a disagreement is tolerated where either
+record flags the crossing and is a failure where neither does.
+
+Labelled `exact` on the oracle comparator with `heuristic` Monte Carlo search
+uncertainty, as R1 is. These are logical runtimes under declared illustrative
+cards -- not a finite-sample energy certificate, a device-noise simulation, a
+hardware result, or an instance-independent preference for any mapping or block
+size.
 
 ## R2b raw-pool fermion-mapping axis
 

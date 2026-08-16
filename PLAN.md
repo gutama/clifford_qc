@@ -1510,9 +1510,10 @@ The multiply-capable-word variance bug remains the gate: lower group count with
 inflated or double-counted variance is failure.
 
 The dyadic block-commuting hierarchy already covers both endpoints and their
-interior (§6.6); what is still missing — a device card, accuracy-matched shot
-counts, a fidelity term, and re-measurement under the pooled estimator — is Phases
-R1 and R3. This track supports Paper A or a separate measurement paper and must not
+interior (§6.6); the device card, accuracy-matched shot counts, fidelity term, and
+pooled re-measurement that were missing here are Phases R1 and R3, and both have
+now shipped them — `protocol_cost.json` carries all four across the `mapping × k`
+grid. This track supports Paper A or a separate measurement paper and must not
 block Track A.
 
 ### Phase 15 — second-moment bank (Track C, open)
@@ -1678,6 +1679,18 @@ elsewhere under a different bundled LAPACK.  The flag names the same three arms 
 both environments, so it is stable where the count is not.  This is §6.7's `k*`-as-a-
 region rule applied one level down, to the shot count feeding each `C(ε)`: a flagged
 arm's price carries the width of its crossing, and R3 must not read it as exact.
+
+*And an independent stream says the same thing.*  R3's cost record reprices this
+exact BeH₂ bank through the `jw` mapping arm, reaching it by the mapping-axis
+transport instead of the DA-CASE producer and drawing from disjoint seed roots.
+Six of the eight crossings agree endpoint for endpoint.  The two that differ —
+`k=4` under both estimators, where R3 confirms 16384 against R1's 4096 — are two
+of the three arms flagged above.  Nothing was rebuilt and no environment changed;
+two independent streams simply landed on opposite sides of a crossing decided on
+the target, which is what the flag predicts and what an unflagged crossing must
+not do.  `check_protocol_cost.py` states it that way round: a disagreement is
+tolerated where either record flags the crossing and is a failure where neither
+does.
 
 **Where a backend change may and may not reach.** The standard this search is held
 to is that swapping BLAS/LAPACK may move floating-point residuals but must not move
@@ -1856,6 +1869,27 @@ so the claim that the hierarchy spans both protocols is tested rather than
 asserted. The frozen hierarchy and shot-search records regenerate digit for
 digit across the extraction, which is what makes it a refactor. The mapping arms
 of R2b still group at fixed QWC; joining the two axes is R3's own work.
+
+*The two axes are now joined, in two records.* `protocol_axis.json` carries the
+structural half — `G(k)`, coverage, synthesis resources at uniform shots — and
+`protocol_cost.json` carries the accuracy-matched half, running R1's exact-tier
+search once per `(arm, k)` cell and pricing each confirmed crossing as an
+interval rather than a point. Splitting them is deliberate: they sit at
+different evidence tiers (`structural` against `exact`), they cover different
+system sets (both against BeH₂ only), and they differ by two orders of magnitude
+in cost, so folding the cheap structural grid into the expensive search would
+make it unrunnable for the question it actually answers. What ties them together
+is a gate rather than a convention — every cell of the cost record reproduces
+the structural grid's setting count, and the producer refuses to write a record
+where it does not.
+
+*The gate, discharged.* Margins are reported on both sides of every crossing and
+on every `k*`; and regions rather than integers is not a fallback here but the
+uniform outcome — all thirty `k*` determinations are regions. The one thing this
+phase does **not** deliver is a cross-instance accuracy-matched mapping verdict:
+QR3 needs two priced instances and H₄'s bias floor leaves one, so the record
+abstains explicitly rather than reporting BeH₂'s mapping spread as though it
+answered the question.
 
 **R4 — contextual subspace as comparator, then preconditioner.** Arms, at matched
 accuracy target and matched candidate family: full QSE, CS-QSE, A-CASE, CS + A-CASE.
@@ -2193,6 +2227,20 @@ margin over its neighbours. It is not a
 function of `W` alone, it is not an instance-independent constant, and it is reported
 as a region over the break-even plane whenever the margin is within the estimator's
 own uncertainty.
+
+*How the region is computed, once there is a measured `C_time`.* The uncertainty
+that matters is the shot search's own resolution. A confirmed crossing brackets
+the shot count in `(confirmed_fail, confirmed_pass]`, so the rung's cost lies in
+`(C_time(confirmed_fail), C_time(confirmed_pass)]`, and a crossing R1 flags
+environment-marginal widens that interval by one grid step on the side that could
+move — a marginal pass could fail in another environment and push the count up, a
+marginal failure could pass and pull it down. `k*` is then every admissible rung
+whose interval reaches the smallest upper bound, and the point argmin of the
+reported counts is recorded beside it. The point is always inside its own region,
+since `C_time(pass) ≤ C_time(upper)` rung by rung. `run_protocol_cost.py` builds
+this and `check_protocol_cost.py` re-derives it; on the BeH₂ grid every one of the
+thirty determinations comes out a region rather than a single rung, so nothing in
+this project currently publishes a `k*` integer.
 
 ### 6.8 Three compression classes stay separate
 
@@ -2792,17 +2840,33 @@ A-CASE's.
 - **QR1 (accounting).** Does the accuracy-matched cost `C(ε)` ever reorder the protocol rungs
   relative to the settings-count ordering? *Falsifier:* identical ordering on every rung and
   card, in which case settings count was an adequate proxy and this machinery is overhead —
-  record it and say so.
+  record it and say so. **Answered yes on the R3 grid** (`protocol_cost.json`): the two
+  orderings differ in 28 of 30 arm × card × estimator combinations, and the two that agree
+  are the `superconducting-like` single-assignment `parity` and `bk` arms, where an
+  inadmissible `k = 8` leaves only three rungs to order. The mechanism is visible in the
+  `jw` column — `k = 1` buys 353 cheap settings against 41 at `k = 2`, and the
+  shot-to-target crossing moves the other way. So the falsifier does not fire and the
+  count is not an adequate proxy on this instance.
 - **QR2 (mapping invariance).** Do the §6.2 invariants hold exactly across mappings on every
   rung? *Falsifier:* any violation, which halts R2 as an implementation defect.
 - **QR3 (mapping cost).** Is there a device card and protocol rung at which the mapping
   changes `C(ε)` by more than the instance-to-instance spread already present between H₄ and
   BeH₂? *Falsifier:* the mapping effect is smaller than the instance effect everywhere —
   which would demote fermion mapping from an optimization dimension to a footnote, itself a
-  useful result.
+  useful result. **Still abstaining at the accuracy-matched tier.** R3 records the mapping
+  spread in `C(ε)` — `3.87×` among the three full-width arms, and `4.00×` between the two
+  `+2q` arms at `k = 6` under pooling, the largest at equal measured width — but the question
+  weighs that against an *instance* spread, and only BeH₂ clears its bias floor, so there is one priced
+  instance and no instance spread to compare against. `protocol_cost.json` carries the
+  abstention as a field and `check_protocol_cost.py` fails any record that upgrades it.
 - **QR4 (pooling × protocol).** Does the coverage fraction `f_w` change the `k*` chosen under
   the pooled estimator relative to the single-assignment one? *Falsifier:* identical `k*`
-  under both, which retires the concern.
+  under both, which retires the concern. **The falsifier fires on the R3 grid**
+  (`protocol_cost.json`): the two estimators' `k*` regions overlap on all fifteen arm × card
+  pairs, so pooling never moves `k*`. It does move the point argmin on five of them, which is
+  why the question is answered on regions — a relocated point inside a shared region is not
+  evidence that coverage relocated `k*`, and reporting it as one would be the same error
+  §6.7 exists to block one level up.
 - **QR5 (compression interaction).** Is the CS × A-CASE cost ratio multiplicative,
   sub-multiplicative, or antagonistic? *Falsifier for the preconditioner plan:* anything but
   complementary.
@@ -3000,8 +3064,39 @@ not another open accuracy phase.
     across `k ∈ {1,2,4,8}` for all five mapping arms, discharging R2b's
     `deferred_to_r3`. The `k=1` column reproduces every frozen R2b setting count,
     which is the condition that makes the grid an extension of that record.
-    **Open:** the accuracy-matched `C(ε)` layer and `k*` regions, which need
-    R1's exact-tier shot search per arm and are BeH₂-only.
+    **Accuracy-matched layer shipped** (`run_protocol_cost.py`,
+    `reference_results/protocol_cost.json`, `check_protocol_cost.py`): R1's
+    exact-tier nonlinear shot search runs once per `(arm, k)` cell, and each
+    confirmed crossing becomes a `C_time(ε)` *interval* — `(C(fail), C(pass)]`,
+    widened one grid step on any side R1 flagged environment-marginal — from
+    which `k*` is read as the set of rungs reaching the smallest upper bound.
+    BeH₂ only; H₄ is recorded unpriced because its 3.019 mHa bank bias exceeds
+    the target on every arm. Every cell reproduces the structural grid's setting
+    count, which is what makes this the cost layer of that grid.
+
+    *Result.* **All thirty `k*` determinations — three cards × two estimators ×
+    five arms — are regions, not integers.** The endpoint grid never separates
+    the rungs on this instance, which is §6.7's rule firing rather than an
+    evasion of it: `logical-alltoall` admits the whole ladder on full-width
+    arms, `ion-like` narrows to `k ∈ {1,2}`, and `superconducting-like` loses
+    `k = 8` on the three full-width arms to its fidelity floor (minimum setting
+    fidelity `0.299`–`0.357` against `0.5`) while the `+2q` arms clear `k = 6`
+    at `0.513`. The point argmins move around inside those regions — `k = 4`
+    under `logical-alltoall` single assignment, `k = 1` or `2` elsewhere — which
+    is exactly the integer §6.7 forbids publishing.
+
+    *One defect found and left alone, deliberately.* Both `run_protocol_axis.py`
+    and `run_mapping_axis.py` take their exact sector reference from
+    `ground_state(..., k=1)`, whose `method='auto'` selects ARPACK and returns a
+    different last bit in every process — a `5e-14` Ha spread, measured, which
+    lands as `1e-10` mHa on a residue of order `1`. That is what the loosened
+    `error_millihartree` tolerance in `check_protocol_axis.py` is actually
+    absorbing, cancellation being only part of the story.
+    `run_protocol_cost.py` uses `method='dense'` and needs no per-field
+    tolerance. The same one-line change would let both older records tighten,
+    but it rewrites frozen floats in records this phase was not asked to
+    revisit, so it is recorded here rather than done — and their setting counts,
+    which are what R3 consumes from them, are integers and unaffected either way.
 
     *Result on P5.* Its first clause survives on the full-width arms and its
     monotonicity clause does not survive at all. The `JW/parity/BK` spread in
