@@ -1374,6 +1374,23 @@ resources a declared card prices at uniform shots; it does **not** price an
 accuracy-matched `C(epsilon)`, which needs R1's exact-tier shot search and which
 only BeH2 clears on its bias floor. That layer is the separate producer below.
 
+**Known, unfixed: this record's exact reference is not bit-reproducible.** Its
+`error_millihartree` column carries a loosened `(1e-10, 1e-8)` tolerance whose
+stated reason is cancellation. Cancellation is real, but it is not the whole
+cause. `SectorStatevectorBackend.ground_state` defaults to `method='auto'`,
+which selects ARPACK for `k = 1` below the sector dimension, and ARPACK returns
+a different last bit in every process — three calls on the same BeH2
+Hamiltonian give `-15.566211795095189`, `...217` and `...239`, against
+`-15.566211795095168` from `method='dense'` every time. Against energies of
+order `1e4` mHa that `5e-14` Ha spread is a `1e-10` mHa shift on the residue,
+which is the scale the tolerance was widened to. `run_protocol_cost.py` takes
+the dense path for exactly this reason and compares at `1e-12` with no
+per-field tolerance at all. Nothing here is wrong — the setting counts this
+record exists to report are integers and unaffected — but the same one-line
+change would let this record tighten too, and `run_mapping_axis.py` shares the
+pattern. Both are left alone deliberately: changing them rewrites frozen floats
+in records this branch was not asked to touch.
+
 ## R3 accuracy-matched `C(epsilon)` and `k*` regions
 
 ```bash
@@ -1445,10 +1462,11 @@ answered on regions -- a relocated point inside a shared region is not evidence
 that coverage relocated `k*`.
 
 **QR3 still abstains at this tier, deliberately.** The mapping spread in
-`C(epsilon)` is recorded -- at equal measured width it reaches `3.87x`
+`C(epsilon)` is recorded -- among the three full-width arms it reaches `3.87x`
 (`logical-alltoall`, single assignment, `k = 4`, `bk` against `jw`), while the
 two `+2q` arms are priced identically at every rung under single assignment and
-differ only at `k = 6` under pooling, by exactly one grid step -- but the
+differ only at `k = 6` under pooling, where one grid step of shot count separates
+them by `4.00x`, the largest equal-width spread in the record -- but the
 question asks whether the mapping effect exceeds the *instance* spread, and an
 instance spread needs two priced instances. Only BeH2 clears its bias floor, so
 the record carries `qr3_accuracy_matched: abstains` and the checker fails any

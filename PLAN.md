@@ -2854,8 +2854,9 @@ A-CASE's.
   BeH₂? *Falsifier:* the mapping effect is smaller than the instance effect everywhere —
   which would demote fermion mapping from an optimization dimension to a footnote, itself a
   useful result. **Still abstaining at the accuracy-matched tier.** R3 records the mapping
-  spread in `C(ε)` — up to `3.87×` at equal measured width — but the question compares it
-  against an *instance* spread, and only BeH₂ clears its bias floor, so there is one priced
+  spread in `C(ε)` — `3.87×` among the three full-width arms, and `4.00×` between the two
+  `+2q` arms at `k = 6` under pooling, the largest at equal measured width — but the question
+  weighs that against an *instance* spread, and only BeH₂ clears its bias floor, so there is one priced
   instance and no instance spread to compare against. `protocol_cost.json` carries the
   abstention as a field and `check_protocol_cost.py` fails any record that upgrades it.
 - **QR4 (pooling × protocol).** Does the coverage fraction `f_w` change the `k*` chosen under
@@ -3083,6 +3084,19 @@ not another open accuracy phase.
     at `0.513`. The point argmins move around inside those regions — `k = 4`
     under `logical-alltoall` single assignment, `k = 1` or `2` elsewhere — which
     is exactly the integer §6.7 forbids publishing.
+
+    *One defect found and left alone, deliberately.* Both `run_protocol_axis.py`
+    and `run_mapping_axis.py` take their exact sector reference from
+    `ground_state(..., k=1)`, whose `method='auto'` selects ARPACK and returns a
+    different last bit in every process — a `5e-14` Ha spread, measured, which
+    lands as `1e-10` mHa on a residue of order `1`. That is what the loosened
+    `error_millihartree` tolerance in `check_protocol_axis.py` is actually
+    absorbing, cancellation being only part of the story.
+    `run_protocol_cost.py` uses `method='dense'` and needs no per-field
+    tolerance. The same one-line change would let both older records tighten,
+    but it rewrites frozen floats in records this phase was not asked to
+    revisit, so it is recorded here rather than done — and their setting counts,
+    which are what R3 consumes from them, are integers and unaffected either way.
 
     *Result on P5.* Its first clause survives on the full-width arms and its
     monotonicity clause does not survive at all. The `JW/parity/BK` spread in
