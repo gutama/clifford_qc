@@ -16,8 +16,9 @@ from ``clifford_qc.measurement``: the package must stay importable without the
 
 from __future__ import annotations
 
-from collections import Counter
+from collections import Counter, deque
 from dataclasses import dataclass, field
+from functools import lru_cache
 from typing import Sequence
 
 import numpy as np
@@ -67,6 +68,13 @@ def stim_label(code: int, size: int) -> str:
     return "".join("IXYZ"[(code >> (2 * q)) & 3] for q in range(size))
 
 
+# The declared one-qubit gate set the cost model charges ``t_1q`` per element
+# of. S_DAG is included because hardware realises it as one pulse, exactly like
+# S; synthesising it as three S gates would price a rotation at three times its
+# physical cost.
+SINGLE_QUBIT_GATES = ("H", "S", "S_DAG")
+
+
 def circuit_stats(circuit) -> tuple[Counter, int, int, int]:
     """Gate counts, the CX-only depth, and a schedulable one-/two-qubit pair.
 
@@ -110,7 +118,7 @@ def circuit_stats(circuit) -> tuple[Counter, int, int, int]:
                 last_cx_layer[qa] = last_cx_layer[qb] = layer
                 cx_depth = max(cx_depth, layer)
                 schedule("2q", (qa, qb))
-        elif name in {"H", "S"}:
+        elif name in SINGLE_QUBIT_GATES:
             counts[name] += len(targets)
             for target in targets:
                 schedule("1q", (target.value,))
@@ -144,8 +152,141 @@ def x_masks(diagonalizer, size: int, codes: np.ndarray) -> np.ndarray:
     return masks
 
 
+@lru_cache(maxsize=1)
+def _minimal_single_qubit_words() -> dict[tuple[str, str], tuple[str, ...]]:
+    """Minimal ``SINGLE_QUBIT_GATES`` word for each of the 24 one-qubit Cliffords.
+
+    Breadth-first from the identity, so the first word reaching an element is a
+    shortest one; ties break on the generator order above, which makes the
+    choice deterministic and therefore reproducible in a committed record.
+    """
+    gates = {name: stim.Tableau.from_named_gate(name)
+             for name in SINGLE_QUBIT_GATES}
+    start = stim.Tableau(1)
+    words = {_tableau_key(start): ()}
+    frontier = deque([start])
+    while frontier:
+        current = frontier.popleft()
+        word = words[_tableau_key(current)]
+        for name in SINGLE_QUBIT_GATES:
+            nxt = current.then(gates[name])
+            key = _tableau_key(nxt)
+            if key not in words:
+                words[key] = word + (name,)
+                frontier.append(nxt)
+    return words
+
+
+def _tableau_key(tableau) -> tuple[str, str]:
+    return (str(tableau.x_output(0)), str(tableau.z_output(0)))
+
+
+@lru_cache(maxsize=1)
+def _z_preserving_corrections() -> tuple:
+    """One-qubit Cliffords mapping ``Z`` to ``+-Z``.
+
+    Post-multiplying a diagonalizer by one of these on any output qubit leaves
+    it a diagonalizer -- the image of every member stays a product of ``Z``\\ s,
+    with at most a sign change, which the readout bookkeeping already tracks.
+    That freedom is a coset, and stim's synthesis picks an arbitrary member of
+    it; choosing the cheapest member instead is what makes the emitted circuit
+    a *minimal* basis rotation rather than an arbitrary one.
+    """
+    gates = {name: stim.Tableau.from_named_gate(name)
+             for name in SINGLE_QUBIT_GATES}
+    out = []
+    for key, word in sorted(_minimal_single_qubit_words().items()):
+        if key[1] not in ("+Z", "-Z"):
+            continue
+        tableau = stim.Tableau(1)
+        for name in word:
+            tableau = tableau.then(gates[name])
+        out.append((len(word), word, tableau))
+    return tuple(out)
+
+
+def _layer_cost(circuit, size: int) -> tuple[int, int]:
+    """``(two-qubit gates, one-qubit gates)`` of the reduced circuit.
+
+    Ordered so a caller can minimise lexicographically. The two-qubit count
+    leads because it must: every device card prices a CX far above a rotation
+    (200us against 10us on the ion-like card), so trading entangling gates for
+    one-qubit savings is a cost regression however much it shortens the
+    rotation layer.
+    """
+    two_qubit = 0
+    one_qubit = 0
+    for word, qubits in _reduced_instructions(circuit, size):
+        if len(qubits) == 2:
+            two_qubit += 1
+        else:
+            one_qubit += len(word)
+    return two_qubit, one_qubit
+
+
+def _reduced_instructions(circuit, size: int):
+    """``(word, qubits)`` pairs after collapsing consecutive one-qubit runs.
+
+    Merging is exact: only *adjacent* one-qubit gates on the same qubit are
+    combined, and their product is re-emitted as a shortest word for the same
+    Clifford. Nothing is commuted past a CX.
+    """
+    gates = {name: stim.Tableau.from_named_gate(name)
+             for name in SINGLE_QUBIT_GATES}
+    words = _minimal_single_qubit_words()
+    pending = {q: stim.Tableau(1) for q in range(size)}
+    out: list[tuple[tuple[str, ...], tuple[int, ...]]] = []
+
+    def flush(qubit: int) -> None:
+        word = words[_tableau_key(pending[qubit])]
+        if word:
+            out.append((word, (qubit,)))
+        pending[qubit] = stim.Tableau(1)
+
+    for instruction in circuit:
+        name = instruction.name
+        targets = instruction.targets_copy()
+        if name == "CX":
+            for a, b in zip(targets[0::2], targets[1::2]):
+                flush(a.value)
+                flush(b.value)
+                out.append((("CX",), (a.value, b.value)))
+        elif name in gates:
+            for target in targets:
+                pending[target.value] = pending[target.value].then(gates[name])
+        else:
+            raise AssertionError(f"unexpected tableau-elimination gate {name}")
+    for qubit in range(size):
+        flush(qubit)
+    return out
+
+
+def diagonalizer_circuit(tableau, size: int):
+    """A minimal-one-qubit-layer circuit implementing ``tableau``.
+
+    stim's ``to_circuit("elimination")`` is correct but unoptimized -- it emits
+    ``S H S H S S H S S`` for a one-qubit Y rotation that two gates realise.
+    Its two-qubit structure is kept verbatim; only maximal one-qubit runs are
+    re-expressed, so the circuit's action is unchanged by construction.
+    """
+    circuit = stim.Circuit()
+    for word, qubits in _reduced_instructions(
+            tableau.to_circuit("elimination"), size):
+        for name in word:
+            circuit.append(name, list(qubits))
+    return circuit
+
+
 def block_diagonalizer(local_members: Sequence[int], size: int):
-    """The one canonical local Clifford used for costing and sampling."""
+    """The one canonical local Clifford used for costing and sampling.
+
+    Any Clifford sending the group's generators to ``Z``-type words will do, so
+    the choice is fixed by cost: stim's representative is post-multiplied, one
+    output qubit at a time, by the cheapest ``Z``-preserving correction. At
+    ``k = 1`` this recovers the minimal basis rotation exactly -- one gate for
+    an ``X`` block, two for ``Y``, none for ``Z`` -- which is the analytic
+    convention the fixed-QWC mapping-axis record is priced under.
+    """
     basis = independent_codes(local_members, size)
     if not basis:
         return stim.Tableau(size)
@@ -153,8 +294,22 @@ def block_diagonalizer(local_members: Sequence[int], size: int):
         [stim.PauliString(stim_label(code, size)) for code in basis],
         allow_redundant=False,
         allow_underconstrained=True,
-    )
-    return tableau.inverse()
+    ).inverse()
+
+    for qubit in range(size):
+        best = None
+        for length, word, correction in _z_preserving_corrections():
+            candidate = stim.Tableau(size)
+            candidate.append(correction, [qubit])
+            candidate = tableau.then(candidate)
+            cost = _layer_cost(candidate.to_circuit("elimination"), size)
+            # Ties break on the correction's own word length and then its
+            # letters, so the representative is a function of the group alone.
+            marker = (cost, length, word)
+            if best is None or marker < best[0]:
+                best = (marker, candidate)
+        tableau = best[1]
+    return tableau
 
 
 @dataclass
@@ -243,7 +398,7 @@ def synthesize_block_settings(
                 checked += 1
 
             counts, cx_depth, depth_1q, depth_2q = circuit_stats(
-                diagonalizer.to_circuit("elimination"))
+                diagonalizer_circuit(diagonalizer, size))
             setting_counts.update(counts)
             block_cx_depths.append(cx_depth)
             block_depths_1q.append(depth_1q)
@@ -259,7 +414,7 @@ def synthesize_block_settings(
         depth_1q = max(block_depths_1q, default=0)
         depth_2q = max(block_depths_2q, default=0)
         setting_resources.append(SettingResources(
-            n_1q=setting_counts["H"] + setting_counts["S"],
+            n_1q=sum(setting_counts[name] for name in SINGLE_QUBIT_GATES),
             n_2q=setting_counts["CX"],
             d_1q=depth_1q,
             d_2q=depth_2q,

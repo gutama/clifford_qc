@@ -8,7 +8,7 @@
     "E(6,7<-2,3)"
   ],
   "basis_size": 5,
-  "condition_number": 1.0,
+  "condition_number": 1,
   "error_millihartree": 0.0033014997491420672,
   "ground_energy": -15.566208493595418,
   "grouping": "largest-conflict-degree greedy coloring; two words are compatible iff their restrictions commute inside every contiguous k-qubit block",
@@ -17,110 +17,12 @@
   "logical_model": "all-to-all logical Clifford circuits; no routing, noise, or mitigation",
   "most_permissive_level": {
     "block_size": 2,
-    "cx_to_preparation_cost_ratio_vs_qwc": 1.8571428571428572
+    "cx_to_preparation_cost_ratio_vs_qwc": 2.7857142857142856
   },
   "n_qubits": 8,
-  "provenance": {
-    "blas_lapack": {
-      "Build Dependencies": {
-        "blas": {
-          "detection method": "pkgconfig",
-          "found": true,
-          "include directory": "/opt/_internal/cpython-3.11.14/lib/python3.11/site-packages/scipy_openblas64/include",
-          "lib directory": "/opt/_internal/cpython-3.11.14/lib/python3.11/site-packages/scipy_openblas64/lib",
-          "name": "scipy-openblas",
-          "openblas configuration": "OpenBLAS 0.3.31.188.0  USE64BITINT DYNAMIC_ARCH NO_AFFINITY Haswell MAX_THREADS=64",
-          "pc file directory": "/project/.openblas",
-          "version": "0.3.31.188.0"
-        },
-        "lapack": {
-          "detection method": "pkgconfig",
-          "found": true,
-          "include directory": "/opt/_internal/cpython-3.11.14/lib/python3.11/site-packages/scipy_openblas64/include",
-          "lib directory": "/opt/_internal/cpython-3.11.14/lib/python3.11/site-packages/scipy_openblas64/lib",
-          "name": "scipy-openblas",
-          "openblas configuration": "OpenBLAS 0.3.31.188.0  USE64BITINT DYNAMIC_ARCH NO_AFFINITY Haswell MAX_THREADS=64",
-          "pc file directory": "/project/.openblas",
-          "version": "0.3.31.188.0"
-        }
-      },
-      "Compilers": {
-        "c": {
-          "commands": "cc",
-          "linker": "ld.bfd",
-          "name": "gcc",
-          "version": "14.2.1"
-        },
-        "c++": {
-          "commands": "c++",
-          "linker": "ld.bfd",
-          "name": "gcc",
-          "version": "14.2.1"
-        },
-        "cython": {
-          "commands": "cython",
-          "linker": "cython",
-          "name": "cython",
-          "version": "3.2.4"
-        }
-      },
-      "Machine Information": {
-        "build": {
-          "cpu": "x86_64",
-          "endian": "little",
-          "family": "x86_64",
-          "system": "linux"
-        },
-        "host": {
-          "cpu": "x86_64",
-          "endian": "little",
-          "family": "x86_64",
-          "system": "linux"
-        }
-      },
-      "Python Information": {
-        "path": "/tmp/build-env-gjolnpt6/bin/python",
-        "version": "3.11"
-      },
-      "SIMD Extensions": {
-        "baseline": [
-          "X86_V2"
-        ],
-        "found": [
-          "X86_V3",
-          "X86_V4"
-        ],
-        "not found": [
-          "AVX512_ICL",
-          "AVX512_SPR"
-        ]
-      }
-    },
-    "clifford_qc": "0.3.0",
-    "dependencies": {
-      "numpy": "2.4.6",
-      "openfermion": null,
-      "openfermionpyscf": null,
-      "pyscf": "2.14.0",
-      "scipy": "1.17.1"
-    },
-    "environment_sha256": "d945db09e0dd0deabb493e00a0f67f38cf42600da38a3b5e0a615fdd6ce0ab1a",
-    "git_dirty": true,
-    "git_sha": "745d7852b33fe1f19dd126283c52bf4705f4f890",
-    "platform": {
-      "hostname": "vm",
-      "machine": "x86_64",
-      "processor": "x86_64",
-      "release": "6.18.5-fc-v20",
-      "system": "Linux"
-    },
-    "python": "3.11.15",
-    "schema": "clifford_qc.execution_provenance.v1",
-    "utc": "2026-08-09T01:22:15.243588+00:00"
-  },
   "qwc_to_full": {
-    "logical_cx_per_preparation_avoided": 0.9793510324483776,
-    "max_cx_to_preparation_cost_ratio": 1.0210843373493976,
+    "logical_cx_per_preparation_avoided": 0.8731563421828908,
+    "max_cx_to_preparation_cost_ratio": 1.1452702702702702,
     "preparation_reduction_fraction": 0.9603399433427762,
     "settings_saved": 339
   },
@@ -129,8 +31,8 @@
       "block_size": 1,
       "cx_to_preparation_cost_ratio_vs_qwc": null,
       "gate_counts_per_sweep": {
-        "H": 5648,
-        "S": 7296
+        "H": 2432,
+        "S_DAG": 1216
       },
       "logical_cx_applications_at_uniform_shots": 0,
       "logical_cx_depth_sum": 0,
@@ -146,19 +48,20 @@
     },
     {
       "block_size": 2,
-      "cx_to_preparation_cost_ratio_vs_qwc": 1.8571428571428572,
+      "cx_to_preparation_cost_ratio_vs_qwc": 2.7857142857142856,
       "gate_counts_per_sweep": {
-        "CX": 168,
-        "H": 552,
-        "S": 504
+        "CX": 112,
+        "H": 392,
+        "S": 168,
+        "S_DAG": 56
       },
-      "logical_cx_applications_at_uniform_shots": 1344000,
-      "logical_cx_depth_sum": 73,
-      "logical_cx_per_sweep": 168,
-      "max_logical_cx_depth": 2,
-      "max_logical_cx_per_setting": 8,
-      "mean_logical_cx_depth": 1.7804878048780488,
-      "mean_logical_cx_per_setting": 4.097560975609756,
+      "logical_cx_applications_at_uniform_shots": 896000,
+      "logical_cx_depth_sum": 40,
+      "logical_cx_per_sweep": 112,
+      "max_logical_cx_depth": 1,
+      "max_logical_cx_per_setting": 4,
+      "mean_logical_cx_depth": 0.975609756097561,
+      "mean_logical_cx_per_setting": 2.731707317073171,
       "settings": 41,
       "state_preparations_at_uniform_shots": 328000,
       "word_samples_per_preparation": 44.26829268292683,
@@ -166,19 +69,20 @@
     },
     {
       "block_size": 4,
-      "cx_to_preparation_cost_ratio_vs_qwc": 1.3974358974358974,
+      "cx_to_preparation_cost_ratio_vs_qwc": 1.694300518134715,
       "gate_counts_per_sweep": {
-        "CX": 234,
-        "H": 388,
-        "S": 334
+        "CX": 193,
+        "H": 337,
+        "S": 99,
+        "S_DAG": 39
       },
-      "logical_cx_applications_at_uniform_shots": 1872000,
-      "logical_cx_depth_sum": 133,
-      "logical_cx_per_sweep": 234,
+      "logical_cx_applications_at_uniform_shots": 1544000,
+      "logical_cx_depth_sum": 116,
+      "logical_cx_per_sweep": 193,
       "max_logical_cx_depth": 10,
-      "max_logical_cx_per_setting": 17,
-      "mean_logical_cx_depth": 5.115384615384615,
-      "mean_logical_cx_per_setting": 9.0,
+      "max_logical_cx_per_setting": 15,
+      "mean_logical_cx_depth": 4.461538461538462,
+      "mean_logical_cx_per_setting": 7.423076923076923,
       "settings": 26,
       "state_preparations_at_uniform_shots": 208000,
       "word_samples_per_preparation": 69.8076923076923,
@@ -186,19 +90,20 @@
     },
     {
       "block_size": 8,
-      "cx_to_preparation_cost_ratio_vs_qwc": 1.0210843373493976,
+      "cx_to_preparation_cost_ratio_vs_qwc": 1.1452702702702702,
       "gate_counts_per_sweep": {
-        "CX": 332,
-        "H": 303,
-        "S": 253
+        "CX": 296,
+        "H": 213,
+        "S": 72,
+        "S_DAG": 12
       },
-      "logical_cx_applications_at_uniform_shots": 2656000,
-      "logical_cx_depth_sum": 266,
-      "logical_cx_per_sweep": 332,
-      "max_logical_cx_depth": 27,
-      "max_logical_cx_per_setting": 32,
-      "mean_logical_cx_depth": 19.0,
-      "mean_logical_cx_per_setting": 23.714285714285715,
+      "logical_cx_applications_at_uniform_shots": 2368000,
+      "logical_cx_depth_sum": 250,
+      "logical_cx_per_sweep": 296,
+      "max_logical_cx_depth": 23,
+      "max_logical_cx_per_setting": 28,
+      "mean_logical_cx_depth": 17.857142857142858,
+      "mean_logical_cx_per_setting": 21.142857142857142,
       "settings": 14,
       "state_preparations_at_uniform_shots": 112000,
       "word_samples_per_preparation": 129.64285714285714,

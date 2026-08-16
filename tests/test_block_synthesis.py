@@ -29,6 +29,8 @@ from clifford_qc.measurement.block_commuting import (  # noqa: E402
     block_ranges,
 )
 from clifford_qc.measurement.block_synthesis import (  # noqa: E402
+    SINGLE_QUBIT_GATES,
+    diagonalizer_circuit,
     block_diagonalizer,
     circuit_stats,
     independent_codes,
@@ -176,27 +178,62 @@ def test_qwc_rung_costs_no_entangling_gates():
         assert setting.d_2q == 0
 
 
-def test_elimination_synthesis_is_not_a_minimal_basis_rotation():
-    """stim's elimination circuit is correct but unoptimized, and that shows.
+@pytest.mark.parametrize(
+    "letter,code,n_1q",
+    [("X", 0b01, 1), ("Y", 0b10, 2), ("Z", 0b11, 0)],
+)
+def test_k1_rotation_matches_the_analytic_qwc_convention(letter, code, n_1q):
+    """One gate for X, two for Y, none for Z -- the QWC pricing convention.
 
-    A single-qubit Y diagonalizer needs two gates; ``to_circuit("elimination")``
-    emits nine. The one-qubit cost of a ``k = 1`` setting is therefore a
-    property of the *synthesizer*, not of the protocol, and the two producers in
-    this repo disagree about it: ``run_mapping_axis.py`` prices QWC analytically
-    (``D_1q`` max 2 on H4) while ``run_clifford_hierarchy.py`` prices the same
-    protocol through elimination.
-
-    Pinned here because it is a constraint on joining the mapping and protocol
-    axes: a ``mapping x k`` grid that switches conventions at ``k = 1`` would
-    manufacture a cost step between ``k = 1`` and ``k = 2`` that is an artifact
-    of synthesis rather than a measurement of the protocol.
+    ``run_mapping_axis.py`` prices a fixed-QWC setting analytically at exactly
+    these costs. Raw stim synthesis does not reach them: elimination emits nine
+    gates for the Y rotation, and even over ``{H, S, S_DAG}`` the tableau stim
+    returns needs three, because ``from_stabilizers`` picks an arbitrary member
+    of the coset of Cliffords that diagonalize the block -- one that also pins
+    the other axis. Choosing the cheapest member of that coset is what closes
+    the gap, and closing it is what lets a ``mapping x k`` grid use one
+    synthesis convention at every ``k`` instead of switching at ``k = 1``.
     """
-    y_only = block_diagonalizer([0b10], 1)
-    counts, _, depth_1q, depth_2q = circuit_stats(
-        y_only.to_circuit("elimination"))
+    circuit = diagonalizer_circuit(block_diagonalizer([code], 1), 1)
+    counts, _, depth_1q, depth_2q = circuit_stats(circuit)
+    assert sum(counts[name] for name in SINGLE_QUBIT_GATES) == n_1q
+    assert depth_1q == n_1q  # one qubit, so every gate is its own layer
     assert depth_2q == 0
-    assert counts["H"] + counts["S"] > 2
-    assert depth_1q > 2
+
+
+def test_reduced_circuit_implements_the_same_clifford():
+    """Run merging is exact: only adjacent one-qubit gates are combined."""
+    n = 6
+    codes = _universe(n, 80, seed=11)
+    for block_size in (2, 3, 6):
+        groups = block_commuting_partition(n, codes, block_size)
+        for members in groups[:6]:
+            for start, size in block_ranges(n, block_size):
+                local = [local_code(codes[i], start, size) for i in members]
+                tableau = block_diagonalizer(local, size)
+                reduced = diagonalizer_circuit(tableau, size)
+                # stim drops idle trailing qubits when converting a circuit
+                # back to a tableau, so pad before comparing widths.
+                padded = reduced.copy()
+                padded.append("I", range(size))
+                assert padded.to_tableau() == tableau
+
+
+def test_reduction_never_lengthens_the_one_qubit_layer():
+    n = 6
+    codes = _universe(n, 80, seed=12)
+    for block_size in (1, 2, 3, 6):
+        groups = block_commuting_partition(n, codes, block_size)
+        for members in groups[:6]:
+            for start, size in block_ranges(n, block_size):
+                local = [local_code(codes[i], start, size) for i in members]
+                tableau = block_diagonalizer(local, size)
+                raw = circuit_stats(tableau.to_circuit("elimination"))[0]
+                new = circuit_stats(diagonalizer_circuit(tableau, size))[0]
+                raw_1q = sum(raw[name] for name in SINGLE_QUBIT_GATES)
+                new_1q = sum(new[name] for name in SINGLE_QUBIT_GATES)
+                assert new_1q <= raw_1q
+                assert new["CX"] == raw["CX"]
 
 
 def test_two_qubit_gates_stay_inside_their_block():

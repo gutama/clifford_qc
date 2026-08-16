@@ -1749,11 +1749,29 @@ single-assignment `C_time(ε)`. P5 remains untested until R3.
   the asymptotic argument has no purchase at the sizes this project runs — itself a
   publishable negative for a chemistry-scale claim.
 - **P3.** At QWC (`k = 1`) the mapping's effect appears in **single-qubit gate count
-  and group count, not depth**: the basis rotation is one layer whatever the weight,
-  and the frozen record already carries `gate_counts_per_sweep` (H₄: 14 608 `H`,
-  15 552 `S` at `k = 1`) as the place it shows. *Falsifier:* a material `D_1q`
-  difference at `k = 1`, meaning the synthesizer is not emitting a single rotation
-  layer.
+  and group count, not depth**: the rotation is one gate per non-identity axis
+  whatever the weight, and the frozen record carries `gate_counts_per_sweep`
+  (H₄: 5 184 `H`, 2 592 `S_DAG` at `k = 1`, so `N_1q = 7 776`) as the place it
+  shows. *Falsifier:* a material `D_1q` difference at `k = 1` beyond the two
+  layers a `Y` rotation needs, meaning the synthesizer is not emitting a minimal
+  rotation layer.
+
+  *Restated after a synthesis defect.* This prediction was originally written
+  against `14 608 H` and `15 552 S`, and its falsifier said "not emitting a
+  single rotation layer". Those figures were an artifact: stim's
+  `from_stabilizers(...).inverse()` returns an arbitrary member of the coset of
+  Cliffords that diagonalize a block, and `to_circuit("elimination")` then
+  expands it unoptimized — nine gates for a one-qubit `Y` rotation that two
+  realise. P3 would therefore have been falsified by tooling rather than by the
+  encoding. `clifford_qc/measurement/block_synthesis.py` now picks the cheapest
+  `Z`-preserving coset representative per output qubit and reduces maximal
+  one-qubit runs to shortest words over a declared `{H, S, S_DAG}` set. The
+  correction is not confined to the rotation layer — it lowers `CX` at every
+  `k > 1` as well (H₄ `k = 4`: 3 688 → 3 277) — so both the v3 records and their
+  frozen v2 projections were regenerated, and no cost number published before
+  that regeneration is comparable with one published after it. Settings counts
+  are unchanged at every rung (H₄ `913/647/238/64`), because the grouping rule
+  never moved.
 - **P4.** The weight advantage attenuates from the Hamiltonian multiset to the
   element-operator universe, because the latter is built from products `A_i†HA_j`
   and JW's Z-strings cancel structurally in products. *Falsifier:* equal ratios on
