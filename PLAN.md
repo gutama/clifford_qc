@@ -1669,8 +1669,8 @@ it unless the crossing lies below the grid, and abstains on a nonmonotone confir
 **A crossing decided on the target is a region, not an integer.**  Each arm records
 the distance from 1.6 mHa for both deciding endpoints and flags the crossing when
 either lies within ±10%.  Three of BeH₂'s eight arms are flagged: `k=1` assigned
-(passing at −4.6%), `k=4` assigned (passing at −1.8%), and `k=4` pooled (failing at
-+6.3%).  The band is calibrated against a measured effect rather than chosen —
+(passing at −4.6%), `k=4` assigned (passing at −8.4%), and `k=4` pooled (passing at
+−4.2%).  The band is calibrated against a measured effect rather than chosen —
 rebuilding the record under a different NumPy moved the `k=4` assigned upper bound at
 4096 shots across the target by 2.2%, changing that arm's reported count from 4096 to
 16384 with identical shot histograms, because a few ill-conditioned rank-5 solves land
@@ -1684,10 +1684,20 @@ uncertainty remains `heuristic`.  It is not a finite-sample Ritz-energy certific
 deployable stopping rule.  H₄ still exits before sampling because its 3.019 mHa exact
 subspace bias exceeds the target.  On BeH₂ the independent 100-replica block confirms
 assigned/pooled passing endpoints of `4096/1024` shots per setting at `k=1`,
-`16384/4096` at `k=2`, `16384/16384` at `k=4`, and `16384/4096` at `k=8`.  Every solve
-succeeds: 1,440 exploratory and 3,500 confirmatory endpoint solves.  At `k=4`, 4096
-fails and 16384 passes for both estimators, so the record now contains a genuine
-confirmed bracket rather than pricing a loose pilot upper endpoint.
+`16384/4096` at `k=2`, `4096/4096` at `k=4`, and `16384/4096` at `k=8`.  Every arm
+reports a confirmed bracket — a confirmed failing endpoint directly below the priced
+passing one — rather than a loose pilot upper endpoint.
+
+*The `k=4` endpoints moved when the diagonalizers did.* They were `16384/16384`
+before the minimal-synthesis correction below and are `4096/4096` after it. This is
+not a shot-search regression and not a re-tuning: the search samples real bitstrings
+after each synthesized Clifford, so changing the diagonalizer changes the joint
+readout structure and therefore the estimator's variance. `k=4` is exactly the rung
+whose crossing this section already flags as environment-marginal — the arm that a
+different bundled LAPACK had already moved across the target — so it was sitting on
+the crossing and a cheaper diagonalizer pushed it over. The flag, not the count, is
+the stable quantity, which is the rule this paragraph exists to state. Both `k=4`
+arms remain flagged after the change, and no endpoint at `k∈{1,2,8}` moved at all.
 Pooling changes the accuracy-cost order under the ion-like and logical-all-to-all
 cards; only `k={1,2}` is admissible on the superconducting-like card, and pooling does
 not reorder that common set.  The asymptotic ledger was not promoted: in particular,
