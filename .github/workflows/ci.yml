@@ -65,6 +65,7 @@ jobs:
         gate:
           - check_finite_shot_rethink
           - check_mapping_axis
+          - check_protocol_axis
           - check_matched_h4
           - check_exact_shot_search
     steps:
