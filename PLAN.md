@@ -1679,6 +1679,29 @@ both environments, so it is stable where the count is not.  This is §6.7's `k*`
 region rule applied one level down, to the shot count feeding each `C(ε)`: a flagged
 arm's price carries the width of its crossing, and R3 must not read it as exact.
 
+**Where a backend change may and may not reach.** The standard this search is held
+to is that swapping BLAS/LAPACK may move floating-point residuals but must not move
+the grouping, the Clifford equivalence, the random samples, or the verdict. The
+first three hold by construction: grouping is packed GF(2) parity over integer
+codes, the diagonalizers are exact `stim` tableaus whose coset representative is
+chosen by *integer* gate count, and every replica draws from
+`SeedSequence(root, spawn_key=(k, replica))`, so its stream is a function of its own
+coordinates rather than of what ran before it. The estimator arms consume the same
+drawn batch through nested endpoints, so `single_assignment` and `pooled` differ by
+reconstruction and not by luck.
+
+One float comparison survives all of that and becomes a *discrete* choice: the
+retained rank, cut on the eigenvalues of an ill-conditioned overlap matrix. That is
+the mechanism behind the recorded LAPACK sensitivity, and
+`check_exact_shot_search.py` now gates it directly — a deciding endpoint, passing or
+failing, whose 100-replica panel does not agree on one retained rank is reported as
+**rank-marginal** and its crossing is not a resolved shot count. The gate is live
+rather than vacuous: it passes on the committed record, whose eight deciding
+endpoints are unanimous, while six non-deciding endpoints at 64–256 shots do split
+their rank and are left alone because they decide nothing. With that invariant
+enforced, a residual `4096 ↔ 16384` fluctuation is classifiable as Monte Carlo
+threshold uncertainty rather than environment sensitivity.
+
 The comparator tier is `exact` (the unavailable-on-hardware oracle); the bootstrap
 uncertainty remains `heuristic`.  It is not a finite-sample Ritz-energy certificate or
 deployable stopping rule.  H₄ still exits before sampling because its 3.019 mHa exact
