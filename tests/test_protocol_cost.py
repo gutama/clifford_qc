@@ -258,6 +258,29 @@ def test_h4_is_recorded_as_unpriced_rather_than_omitted(record):
                 assert cell["cost_bracket"]["priced"] is False
 
 
+def test_the_jw_arm_reproduces_r1s_frozen_bank_bias_bit_for_bit(record):
+    """The two construction paths reach the same bank, to the last bit.
+
+    R1 grows the BeH2 bank with the DA-CASE producer; this record reaches it
+    through the mapping-axis selection transported by ``jw``. Both take their
+    exact reference from the dense eigensolve, so the agreement is exact rather
+    than tolerant -- and a drift here would mean the mapping transport moved the
+    subspace, which is the R2b invariant, not a rounding question.
+    """
+    r1 = json.loads(
+        (REFERENCE.parent / "exact_shot_search.json").read_text(encoding="utf-8")
+    )
+    jw = next(
+        arm for arm in record["systems"]["beh2"]["arms"] if arm["mapping"] == "jw"
+    )
+    assert jw["exact_subspace_bias_millihartree"] == r1["systems"]["beh2"][
+        "exact_subspace_bias_millihartree"
+    ]
+    assert record["systems"]["beh2"]["exact_ground_energy"] == r1["systems"]["beh2"][
+        "exact_ground_energy"
+    ]
+
+
 def test_every_cell_reproduces_the_structural_grids_setting_count(record):
     """The condition that makes this the cost layer of that grid."""
     from benchmarks.run_protocol_cost import structural_settings

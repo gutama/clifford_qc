@@ -178,7 +178,21 @@ def arm_problem(system: str, mapping: str) -> dict:
         int(model.metadata["n_electrons"]),
         float(model.metadata["sz"]),
     )
-    exact_energy = float(sector.ground_state(model.hamiltonian, k=1)[0][0])
+    # ``method='dense'``, not the default ``'auto'``, and the reason is
+    # reproducibility rather than speed. Every number in this record is an
+    # energy *difference* against this reference, in millihartree: a residue of
+    # order 1 against energies of order 1e4, so four significant digits are
+    # gone to cancellation before the comparison starts. ARPACK returns a
+    # different last bit in every process -- measured here as a 5e-14 Ha spread
+    # across three runs of the same call -- which lands as a constant ~1e-10 mHa
+    # shift on all 2 400 replica statistics at once and fails a rebuild that has
+    # drawn identical shots. The dense path is a fixed ``eigh`` on a fixed
+    # 36-dimensional matrix; it reproduces bit for bit, and it is the value R1's
+    # frozen BeH2 bank already pins. Widening the tolerance instead would hide a
+    # nondeterministic reference behind an arithmetic excuse.
+    exact_energy = float(
+        sector.ground_state(model.hamiltonian, k=1, method="dense")[0][0]
+    )
 
     _, restriction = _mapped_bank(mapping, model, reference)
     transported = restriction.transport(

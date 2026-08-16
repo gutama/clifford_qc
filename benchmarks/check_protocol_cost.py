@@ -74,15 +74,14 @@ except ImportError:  # pragma: no cover - direct script execution
 # routes to the same schedule agree to rounding, not to the last bit.
 COST_RELATIVE_TOLERANCE = 1e-9
 
-# The subspace bias is (subspace energy - exact energy): a residue of order
-# 1e-3 mHa left by two energies of order 1e4 mHa, so seven significant digits
-# are gone to cancellation before the comparison starts. Its reproducible scale
-# is set by the energies, not by the residue -- the same tolerance, for the same
-# reason, that check_protocol_axis.py documents for the same transport path.
-ENERGY_DIFFERENCE_TOLERANCES = {
-    "exact_subspace_bias_millihartree": (1e-10, 1e-8),
-    "max_exact_subspace_bias_millihartree": (1e-10, 1e-8),
-}
+# Every millihartree field in this record is an energy *difference* against the
+# exact sector reference, so cancellation would normally argue for a loosened
+# per-field tolerance -- and that argument is declined here, deliberately. The
+# producer takes its reference from the dense eigensolve rather than ARPACK
+# precisely so the difference reproduces bit for bit, and it does: the same
+# fields drift by a constant ~1e-10 mHa under the default 'auto' path and by
+# nothing at all under 'dense'. So the comparison stays at R1's 1e-12, where a
+# nondeterministic reference fails the gate instead of being absorbed by it.
 
 
 def _close(left: float | None, right: float | None) -> bool:
@@ -534,10 +533,7 @@ def main() -> int:
                   "that does not require a rebuild")
         return 1
     actual = build_record(workers=4)
-    problems = compare_json_records(
-        expected, actual, atol=1e-12, rtol=1e-12,
-        key_tolerances=ENERGY_DIFFERENCE_TOLERANCES,
-    )
+    problems = compare_json_records(expected, actual, atol=1e-12, rtol=1e-12)
     problems.extend(contract_problems(expected))
     problems.extend(f"rebuilt record: {problem}" for problem in contract_problems(actual))
     if problems:
