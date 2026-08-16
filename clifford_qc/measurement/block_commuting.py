@@ -122,7 +122,10 @@ def block_commuting_partition(
     width = len(codes)
     if not width:
         return []
-    if n and max(codes) >= 1 << (2 * n):
+    # No ``n and`` guard: on zero qubits the only representable code is 0, so
+    # skipping the check there would let a non-zero code through the one case
+    # where nothing can be valid.
+    if max(codes) >= 1 << (2 * n):
         raise ValueError("a code carries letters beyond the declared qubit count")
     if n > 64:
         raise ValueError("block-commuting partition requires at most 64 qubits")

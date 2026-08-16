@@ -36,6 +36,7 @@ from clifford_qc.measurement.block_synthesis import (  # noqa: E402
     independent_codes,
     local_code,
     stim_label,
+    x_masks,
     synthesize_block_settings,
 )
 
@@ -298,3 +299,44 @@ def test_empty_bank_synthesizes_nothing():
     assert synthesis.logical_cx_per_sweep == 0
     assert synthesis.coverage == []
     assert np.asarray(synthesis.compatibility).size == 0
+
+
+# ---------------------------------------------------------------------------
+# Packed-code width
+
+
+def test_local_code_dtype_widens_with_the_block():
+    """A packed code spends two bits per qubit, and k=8 sits on uint16's edge.
+
+    ``4**8 - 1 == 65535`` exactly fills uint16, so the dyadic ladder's widest
+    current rung is the last one that fits. A ninth qubit would have wrapped
+    silently and corrupted compatibility and coverage rather than raising.
+    """
+    from clifford_qc.measurement.block_synthesis import _local_code_dtype
+
+    assert _local_code_dtype(8) is np.uint16
+    assert _local_code_dtype(9) is np.uint32
+    assert _local_code_dtype(16) is np.uint32
+    assert _local_code_dtype(17) is np.uint64
+    assert _local_code_dtype(32) is np.uint64
+    with pytest.raises(ValueError, match="beyond uint64"):
+        _local_code_dtype(33)
+
+
+def test_wide_block_codes_survive_the_round_trip():
+    """The all-Y word on nine qubits exceeds uint16 and must not truncate."""
+    from clifford_qc.measurement.block_synthesis import _local_code_dtype
+
+    size = 9
+    code = int("".join("10" for _ in range(size))[::-1], 2)  # every letter Y
+    stored = np.asarray([code], dtype=_local_code_dtype(size))
+    assert int(stored[0]) == code
+    assert code > np.iinfo(np.uint16).max
+
+
+def test_x_masks_are_unsigned():
+    """Bit patterns, not signed integers: a set top bit must not sign-extend."""
+    tableau = block_diagonalizer([0b01], 1)
+    masks = x_masks(tableau, 1, np.asarray([0b01, 0b11], dtype=np.uint64))
+    assert masks.dtype == np.uint64
+    assert (masks >= 0).all()

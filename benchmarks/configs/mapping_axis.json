@@ -58,7 +58,7 @@
       "source": "benchmarks/data/beh2_sto3g_r1.3264.FCIDUMP",
       "provenance": "benchmarks/data/beh2_sto3g_r1.3264.provenance.json",
       "selection_source": "benchmarks/reference_results/clifford_hierarchy_beh2.json",
-      "selection_file_sha256": "3eec12597dcd3ce0023d0de7a144225b4c1586520bd433c70c0649c2ad462c8d",
+      "selection_file_sha256": "39e0e493629c30982f176f6d964774294b07ca66d8b08da0c7ea97e4f64cddbd",
       "expected_selected_energy": -15.566208493595418,
       "selected_energy_tolerance": 1e-10,
       "selected_labels": [

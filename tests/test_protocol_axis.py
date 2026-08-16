@@ -24,29 +24,41 @@ def test_k1_column_reproduces_the_frozen_mapping_axis(record):
     """The condition that makes this an extension of R2b, not a new experiment."""
     for system in record["systems"]:
         for arm in system["arms"]:
-            k1 = next(r for r in arm["rungs"] if r["block_size"] == 1)
+            k1 = _rung(arm, 1)
             assert k1["settings"] == arm["frozen_qwc_settings"], (
                 system["system"], arm["mapping"])
 
 
+def _rung(arm, block_size):
+    """Select a rung by its ``block_size``, never by position.
+
+    Rung order is an ordering choice of the producer, not part of the contract
+    these tests exercise. Indexing by position would make them fail for the
+    wrong reason -- or silently stop testing anything -- if that order changed.
+    """
+    return next(row for row in arm["rungs"] if row["block_size"] == block_size)
+
+
+def _widest_rung(arm):
+    return max(arm["rungs"], key=lambda row: row["block_size"])
+
+
 def test_contract_catches_a_drifted_k1_column(record):
     broken = copy.deepcopy(record)
-    broken["systems"][0]["arms"][0]["rungs"][0]["settings"] += 1
+    _rung(broken["systems"][0]["arms"][0], 1)["settings"] += 1
     assert any("R2b froze" in problem for problem in contract_problems(broken))
 
 
 def test_contract_catches_a_non_monotone_k_sweep(record):
     broken = copy.deepcopy(record)
-    rungs = broken["systems"][0]["arms"][0]["rungs"]
-    rungs[-1]["settings"] = rungs[0]["settings"] + 1
+    arm = broken["systems"][0]["arms"][0]
+    _widest_rung(arm)["settings"] = _rung(arm, 1)["settings"] + 1
     assert any("non-increasing" in problem for problem in contract_problems(broken))
 
 
 def test_contract_catches_entangling_gates_at_qwc(record):
     broken = copy.deepcopy(record)
-    k1 = next(
-        r for r in broken["systems"][0]["arms"][0]["rungs"] if r["block_size"] == 1
-    )
+    k1 = _rung(broken["systems"][0]["arms"][0], 1)
     k1["resource_metrics"]["N_2q"]["sum"] = 7
     assert any("two-qubit gates" in problem for problem in contract_problems(broken))
 

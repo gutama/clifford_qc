@@ -28,8 +28,27 @@ from .block_commuting import block_ranges
 from .cost import SettingResources
 
 
+def _local_code_dtype(size: int):
+    """The narrowest unsigned dtype holding a ``size``-qubit packed code.
+
+    A packed code spends two bits per qubit, so ``size = 8`` lands exactly on
+    ``uint16``'s ceiling (``4**8 - 1 == 65535``) and one qubit more would wrap.
+    The dyadic ladder currently stops at ``k = 8``, i.e. precisely on that
+    boundary, so the truncation is invisible today and would corrupt
+    compatibility and coverage silently the first time a wider rung is run.
+    Widen with the block, and refuse a width no integer dtype can hold.
+    """
+    bits = 2 * size
+    for dtype in (np.uint16, np.uint32, np.uint64):
+        if bits <= np.iinfo(dtype).bits:
+            return dtype
+    raise ValueError(
+        f"a {size}-qubit block needs {bits} bits per packed code, beyond uint64"
+    )
+
+
 def local_code(code: int, start: int, size: int) -> int:
-    """The packed sub-word ``code`` restricts to on ``size`` qubits at ``start``."""
+    """The sub-word ``code`` restricts to, on ``size`` qubits from ``start``."""
     out = 0
     for q in range(size):
         out |= ((code >> (2 * (start + q))) & 3) << (2 * q)
@@ -137,18 +156,20 @@ def x_masks(diagonalizer, size: int, codes: np.ndarray) -> np.ndarray:
     per-qubit ``X``/``Z`` image masks XOR-reduce directly over the code array
     instead, which drops the ``4**size`` factor.
     """
-    codes = np.asarray(codes, dtype=np.int64)
-    masks = np.zeros(len(codes), dtype=np.int64)
+    # Unsigned throughout: these are bit patterns, and a signed right shift
+    # would sign-extend a code whose top bit is set once blocks get wide.
+    codes = np.asarray(codes, dtype=np.uint64)
+    masks = np.zeros(len(codes), dtype=np.uint64)
     for qubit in range(size):
         x_bits, _ = diagonalizer.x_output(qubit).to_numpy()
         x_from_x = sum(int(bit) << q for q, bit in enumerate(x_bits))
         x_bits, _ = diagonalizer.z_output(qubit).to_numpy()
         x_from_z = sum(int(bit) << q for q, bit in enumerate(x_bits))
         # Letter Y and Z carry Z; letters X and Y carry X (low bit xor high).
-        z_bit = (codes >> (2 * qubit + 1)) & 1
-        x_bit = ((codes >> (2 * qubit)) & 1) ^ z_bit
-        masks ^= x_bit * x_from_x
-        masks ^= z_bit * x_from_z
+        z_bit = (codes >> np.uint64(2 * qubit + 1)) & np.uint64(1)
+        x_bit = ((codes >> np.uint64(2 * qubit)) & np.uint64(1)) ^ z_bit
+        masks ^= x_bit * np.uint64(x_from_x)
+        masks ^= z_bit * np.uint64(x_from_z)
     return masks
 
 
@@ -366,7 +387,8 @@ def synthesize_block_settings(
     ranges = block_ranges(n, block_size)
     local_codes = {
         (start, size): np.asarray(
-            [local_code(code, start, size) for code in codes], dtype=np.uint16
+            [local_code(code, start, size) for code in codes],
+            dtype=_local_code_dtype(size),
         )
         for start, size in ranges
     }
