@@ -103,7 +103,7 @@ No figure or table value in the manuscript is transcribed by hand, and
 ```bash
 python -m venv .venv && source .venv/bin/activate
 pip install -e .[test,research,chemistry]   # numpy + scipy + openfermion/pyscf
-pytest                                      # 1255 passed, 24 skipped
+pytest                                      # 1265 passed, 24 skipped
 ```
 
 That install is the reference environment for the quoted pair. The count
@@ -118,12 +118,21 @@ remaining fourteen skips are per-test rather than per-file: `test_fermion_mappin
 and `test_mapping_axis` guard only the individual tests that reach the stim
 bridge, so those files still run.
 
-Two numbers therefore diverge, and `check_docs.py` compares the wrong pair:
-it matches the quoted skip count against the number of *files* carrying an
-`importorskip`, which is 12 here — neither the ten files pytest actually drops
-nor the twenty-four skips it reports. The two agreed when the section was
-written and no longer do, so the count check reports "unverified" rather than
-enforcing. The figures above are measured, not derived from it.
+`check_docs.py` enforces the pair through the identity relating them. Each of
+the ten dropped files contributes exactly one skip and no collected tests, so
+the remaining `24 - 10 = 14` skips are per-test and *are* collected:
+
+```text
+collected == passed + (skipped - files dropped at collection)
+1279      == 1265   + (24      -  10)
+```
+
+Both sides are computed from the tree, so a drift in either quoted number
+breaks the identity. The check runs collection only and never executes a test.
+Because the identity is specific to one environment, it is enforced only when
+the installed extras are the ones the `pip install` line above names — decided
+by importability of the guarded modules, not by counting files. Under any other
+extras it reports "unverified" and says which modules differ.
 
 Adding the remaining extras therefore *changes both numbers*, which is
 expected rather than a failure:
