@@ -36,6 +36,13 @@ import numpy as np
 from clifford_qc.backends import ExactMVBackend, SectorStatevectorBackend
 from clifford_qc.bridges.stim_bridge import CliffordMap
 from clifford_qc.ir import PauliWord
+from clifford_qc.measurement.block_commuting import block_commuting_partition
+from clifford_qc.measurement.block_synthesis import (
+    block_diagonalizer,
+    local_code,
+    stim_label,
+    synthesize_block_settings,
+)
 from clifford_qc.measurement.compiled import CompiledSetting
 from clifford_qc.measurement.cost import (
     DeviceCard,
@@ -81,29 +88,6 @@ BREAK_EVEN_T2Q_RATIOS = (0.0, 0.1, 0.5, 1.0, 2.0)
 BREAK_EVEN_EPS_2Q = (0.0, 0.005, 0.01, 0.02, 0.05)
 
 
-def _xz(n: int, code: int) -> tuple[int, int]:
-    x = z = 0
-    for q in range(n):
-        letter = (code >> (2 * q)) & 3
-        if letter in (1, 2):
-            x |= 1 << q
-        if letter in (2, 3):
-            z |= 1 << q
-    return x, z
-
-
-def _parity_u64(values: np.ndarray) -> np.ndarray:
-    """Vectorized uint64 parity, compatible with the declared NumPy >=1.23."""
-    work = np.array(values, dtype=np.uint64, copy=True)
-    work ^= work >> 32
-    work ^= work >> 16
-    work ^= work >> 8
-    work ^= work >> 4
-    work ^= work >> 2
-    work ^= work >> 1
-    return (work & np.uint64(1)).astype(bool)
-
-
 def _popcount_u64(values: np.ndarray) -> np.ndarray:
     """Vectorized uint64 population count for the declared NumPy >=1.23."""
     work = np.asarray(values, dtype=np.uint64).copy()
@@ -117,274 +101,34 @@ def _popcount_u64(values: np.ndarray) -> np.ndarray:
     return (work >> np.uint64(56)).astype(np.int16)
 
 
-def _partition(n: int, codes: list[int], block_size: int) -> list[list[int]]:
-    """Largest-conflict-degree greedy partition under block commutativity."""
-    width = len(codes)
-    xs = np.asarray([_xz(n, code)[0] for code in codes], dtype=np.uint64)
-    zs = np.asarray([_xz(n, code)[1] for code in codes], dtype=np.uint64)
-    block_masks = [
-        np.uint64(((1 << min(block_size, n - start)) - 1) << start)
-        for start in range(0, n, block_size)
-    ]
-
-    degrees = np.empty(width, dtype=np.int32)
-    conflicts: list[int] = []
-    for i in range(width):
-        # One bit per qubit marks a local anticommutation contribution.
-        cross = (xs[i] & zs) ^ (zs[i] & xs)
-        bad = np.zeros(width, dtype=bool)
-        for mask in block_masks:
-            bad |= _parity_u64(cross & mask)
-        degrees[i] = int(bad.sum())
-        packed = np.packbits(bad, bitorder="little")
-        conflicts.append(int.from_bytes(packed.tobytes(), "little"))
-
-    order = sorted(range(width), key=lambda i: (-int(degrees[i]), codes[i]))
-    groups: list[list[int]] = []
-    group_masks: list[int] = []
-    for i in order:
-        conflict = conflicts[i]
-        for group_index, member_mask in enumerate(group_masks):
-            if conflict & member_mask == 0:
-                groups[group_index].append(i)
-                group_masks[group_index] = member_mask | (1 << i)
-                break
-        else:
-            groups.append([i])
-            group_masks.append(1 << i)
-
-    # Independent grouping invariant: no member conflicts with its group mask.
-    for members, member_mask in zip(groups, group_masks):
-        for i in members:
-            if conflicts[i] & member_mask:
-                raise AssertionError("block-commuting partition invariant failed")
-    return groups
-
-
-def _local_code(code: int, start: int, size: int) -> int:
-    out = 0
-    for q in range(size):
-        out |= ((code >> (2 * (start + q))) & 3) << (2 * q)
-    return out
-
-
-def _local_xz(code: int, size: int) -> int:
-    x = z = 0
-    for q in range(size):
-        letter = (code >> (2 * q)) & 3
-        if letter in (1, 2):
-            x |= 1 << q
-        if letter in (2, 3):
-            z |= 1 << q
-    return x | (z << size)
-
-
-def _independent_codes(codes: list[int], size: int) -> list[int]:
-    """Keep an independent GF(2) basis without changing its Pauli elements."""
-    pivots: dict[int, int] = {}
-    kept: list[int] = []
-    for code in sorted(set(codes)):
-        if code == 0:
-            continue
-        reduced = _local_xz(code, size)
-        for pivot in sorted(pivots, reverse=True):
-            if (reduced >> pivot) & 1:
-                reduced ^= pivots[pivot]
-        if reduced:
-            pivots[reduced.bit_length() - 1] = reduced
-            kept.append(code)
-    return kept
-
-
-def _stim_label(code: int, size: int) -> str:
-    return "".join("IXYZ"[(code >> (2 * q)) & 3] for q in range(size))
-
-
-def _circuit_stats(circuit) -> tuple[Counter, int, int, int]:
-    """Gate counts, the CX-only depth, and a schedulable one-/two-qubit pair.
-
-    ``cx_depth`` is the two-qubit critical path on its own, which is the
-    ``logical_cx_depth_*`` column the frozen v2 ledger reports.
-
-    The cost model instead charges ``t_1q * D_1q + t_2q * D_2q`` as wall-clock
-    time, so that pair has to come from one schedule: tracking the two gate
-    kinds on independent clocks drops every dependency that runs through a CX
-    and undercounts exactly the deep, 1q/2q-interleaved rungs.  Here one shared
-    per-qubit clock schedules gates as-soon-as-possible into type-homogeneous
-    layers, so ``D_1q + D_2q`` is a real critical path and the priced time is a
-    duration some schedule attains.
-    """
-    counts: Counter = Counter()
-    last_cx_layer: dict[int, int] = {}
-    cx_depth = 0
-    ready: dict[int, int] = {}
-    layer_kind: dict[int, str] = {}
-
-    def schedule(kind: str, qubits: tuple[int, ...]) -> None:
-        layer = 1 + max((ready.get(qubit, 0) for qubit in qubits), default=0)
-        while layer_kind.get(layer, kind) != kind:
-            layer += 1
-        layer_kind[layer] = kind
-        for qubit in qubits:
-            ready[qubit] = layer
-
-    for instruction in circuit:
-        name = instruction.name
-        targets = instruction.targets_copy()
-        if name == "CX":
-            if len(targets) % 2:
-                raise AssertionError("CX instruction has an odd target count")
-            for a, b in zip(targets[0::2], targets[1::2]):
-                qa, qb = a.value, b.value
-                counts["CX"] += 1
-                layer = 1 + max(
-                    last_cx_layer.get(qa, 0), last_cx_layer.get(qb, 0)
-                )
-                last_cx_layer[qa] = last_cx_layer[qb] = layer
-                cx_depth = max(cx_depth, layer)
-                schedule("2q", (qa, qb))
-        elif name in {"H", "S"}:
-            counts[name] += len(targets)
-            for target in targets:
-                schedule("1q", (target.value,))
-        else:
-            raise AssertionError(f"unexpected tableau-elimination gate {name}")
-    depth_1q = sum(1 for kind in layer_kind.values() if kind == "1q")
-    depth_2q = sum(1 for kind in layer_kind.values() if kind == "2q")
-    return counts, cx_depth, depth_1q, depth_2q
-
-
-def _x_masks(diagonalizer, size: int, codes: np.ndarray) -> np.ndarray:
-    """X mask after Clifford conjugation, for the banked local codes only.
-
-    Tabulating all ``4**size`` codes costs 65536 entries at ``size=8`` and is
-    rebuilt per setting, while only ``len(codes)`` of them are ever read.  The
-    per-qubit ``X``/``Z`` image masks XOR-reduce directly over the code array
-    instead, which drops the ``4**size`` factor.
-    """
-    codes = np.asarray(codes, dtype=np.int64)
-    masks = np.zeros(len(codes), dtype=np.int64)
-    for qubit in range(size):
-        x_bits, _ = diagonalizer.x_output(qubit).to_numpy()
-        x_from_x = sum(int(bit) << q for q, bit in enumerate(x_bits))
-        x_bits, _ = diagonalizer.z_output(qubit).to_numpy()
-        x_from_z = sum(int(bit) << q for q, bit in enumerate(x_bits))
-        # Letter Y and Z carry Z; letters X and Y carry X (low bit xor high).
-        z_bit = (codes >> (2 * qubit + 1)) & 1
-        x_bit = ((codes >> (2 * qubit)) & 1) ^ z_bit
-        masks ^= x_bit * x_from_x
-        masks ^= z_bit * x_from_z
-    return masks
-
-
-def _diagonalizer(local_members: list[int], size: int):
-    """Return the one canonical local Clifford used for costing and sampling."""
-    basis = _independent_codes(local_members, size)
-    if not basis:
-        return stim.Tableau(size)
-    tableau = stim.Tableau.from_stabilizers(
-        [stim.PauliString(_stim_label(code, size)) for code in basis],
-        allow_redundant=False,
-        allow_underconstrained=True,
-    )
-    return tableau.inverse()
-
-
 def _synthesize(n: int, codes: list[int], groups: list[list[int]],
                 block_size: int) -> tuple[dict, list[SettingResources], np.ndarray, list[int]]:
-    total: Counter = Counter()
-    cx_per_setting: list[int] = []
-    cx_depth_per_setting: list[int] = []
-    depth_1q_per_setting: list[int] = []
-    depth_2q_per_setting: list[int] = []
-    setting_resources: list[SettingResources] = []
-    compatibility = np.zeros((len(groups), len(codes)), dtype=bool)
-    assignment = [-1] * len(codes)
-    local_codes = {
-        (start, min(block_size, n - start)): np.asarray(
-            [_local_code(code, start, min(block_size, n - start)) for code in codes],
-            dtype=np.uint16,
-        )
-        for start in range(0, n, block_size)
-    }
-    checked = 0
-    for setting_index, members in enumerate(groups):
-        setting_counts: Counter = Counter()
-        block_cx_depths: list[int] = []
-        block_depths_1q: list[int] = []
-        block_depths_2q: list[int] = []
-        setting_reads = np.ones(len(codes), dtype=bool)
-        for member in members:
-            if assignment[member] != -1:
-                raise AssertionError("a word was assigned to more than one group")
-            assignment[member] = setting_index
-        for start in range(0, n, block_size):
-            size = min(block_size, n - start)
-            local = [_local_code(codes[i], start, size) for i in members]
-            diagonalizer = _diagonalizer(local, size)
+    """The v2/v3 record row for one ``k`` rung, over the shared synthesis.
 
-            # Strong circuit invariant: every member, not only the basis,
-            # must become computational-basis diagonal.
-            for code in set(local):
-                transformed = diagonalizer(
-                    stim.PauliString(_stim_label(code, size)))
-                x_bits, _ = transformed.to_numpy()
-                if bool(x_bits.any()):
-                    raise AssertionError(
-                        f"k={block_size} block={start}: {_stim_label(code, size)} "
-                        f"did not map to Z-only ({transformed})")
-                checked += 1
-
-            counts, cx_depth, depth_1q, depth_2q = _circuit_stats(
-                diagonalizer.to_circuit("elimination"))
-            setting_counts.update(counts)
-            block_cx_depths.append(cx_depth)
-            block_depths_1q.append(depth_1q)
-            block_depths_2q.append(depth_2q)
-            setting_reads &= (
-                _x_masks(diagonalizer, size, local_codes[(start, size)]) == 0
-            )
-
-        total.update(setting_counts)
-        cx_per_setting.append(setting_counts["CX"])
-        # Blocks occupy disjoint qubits, so a setting runs them in parallel.
-        cx_depth_per_setting.append(max(block_cx_depths, default=0))
-        depth_1q = max(block_depths_1q, default=0)
-        depth_2q = max(block_depths_2q, default=0)
-        depth_1q_per_setting.append(depth_1q)
-        depth_2q_per_setting.append(depth_2q)
-        setting_resources.append(SettingResources(
-            n_1q=setting_counts["H"] + setting_counts["S"],
-            n_2q=setting_counts["CX"],
-            d_1q=depth_1q,
-            d_2q=depth_2q,
-        ))
-        if not bool(setting_reads[members].all()):
-            raise AssertionError("an assigned word is not read by its setting")
-        compatibility[setting_index] = setting_reads
-
-    if any(index < 0 for index in assignment):
-        raise AssertionError("the grouping did not assign every word")
-
-    settings = len(groups)
-    cx = sum(cx_per_setting)
-    depth_sum = sum(cx_depth_per_setting)
+    The synthesis itself is protocol-level and lives in the library; what stays
+    here is the record's own shape -- the uniform-shot projections and the
+    column names the frozen ledger commits to.
+    """
+    synthesis = synthesize_block_settings(n, codes, groups, block_size)
+    settings = synthesis.n_settings
+    cx = synthesis.logical_cx_per_sweep
+    depth_sum = sum(synthesis.cx_depth_per_setting)
     row = {
         "block_size": block_size,
         "settings": settings,
         "word_samples_per_preparation": len(codes) / settings,
         "logical_cx_per_sweep": cx,
         "mean_logical_cx_per_setting": cx / settings,
-        "max_logical_cx_per_setting": max(cx_per_setting),
+        "max_logical_cx_per_setting": max(synthesis.cx_per_setting),
         "logical_cx_depth_sum": depth_sum,
         "mean_logical_cx_depth": depth_sum / settings,
-        "max_logical_cx_depth": max(cx_depth_per_setting),
+        "max_logical_cx_depth": max(synthesis.cx_depth_per_setting),
         "state_preparations_at_uniform_shots": settings * SHOTS_PER_SETTING,
         "logical_cx_applications_at_uniform_shots": cx * SHOTS_PER_SETTING,
-        "gate_counts_per_sweep": dict(sorted(total.items())),
-        "z_only_restrictions_checked": checked,
+        "gate_counts_per_sweep": dict(sorted(synthesis.gate_counts.items())),
+        "z_only_restrictions_checked": synthesis.z_only_restrictions_checked,
     }
-    return row, setting_resources, compatibility, assignment
+    return row, synthesis.settings, synthesis.compatibility, synthesis.assignment
 
 
 def _compiled_settings(n: int, codes: list[int], groups: list[list[int]],
@@ -405,16 +149,16 @@ def _compiled_settings(n: int, codes: list[int], groups: list[list[int]],
         readable = {code: True for code in codes}
         for start in range(0, n, block_size):
             size = min(block_size, n - start)
-            local_members = [_local_code(codes[index], start, size) for index in members]
-            diagonalizer = _diagonalizer(local_members, size)
+            local_members = [local_code(codes[index], start, size) for index in members]
+            diagonalizer = block_diagonalizer(local_members, size)
 
             for instruction in diagonalizer.to_circuit("elimination"):
                 targets = [start + target.value for target in instruction.targets_copy()]
                 circuit.append(instruction.name, targets)
 
             for code in codes:
-                local = _local_code(code, start, size)
-                transformed = diagonalizer(stim.PauliString(_stim_label(local, size)))
+                local = local_code(code, start, size)
+                transformed = diagonalizer(stim.PauliString(stim_label(local, size)))
                 x_bits, z_bits = transformed.to_numpy()
                 if bool(x_bits.any()):
                     readable[code] = False
@@ -922,7 +666,7 @@ def build_record(system: str = "h4", device_cards: list[DeviceCard] | None = Non
     rows = []
     compiled: list[tuple[list[SettingResources], np.ndarray, list[int]]] = []
     for block_size in BLOCK_SIZES:
-        groups = _partition(bank["n_qubits"], codes, block_size)
+        groups = block_commuting_partition(bank["n_qubits"], codes, block_size)
         row, settings, compatibility, assignment = _synthesize(
             bank["n_qubits"], codes, groups, block_size
         )

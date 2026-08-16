@@ -1,0 +1,23 @@
+{
+  "schema": "clifford_qc.protocol_axis_config.v1",
+  "phase": "R3",
+  "inherits_systems_from": "benchmarks/configs/mapping_axis.json",
+  "systems": ["h4", "beh2"],
+  "mapping_arms": [
+    "jw",
+    "parity",
+    "parity+2q",
+    "bk",
+    "bk+2q"
+  ],
+  "protocol": {
+    "grouping_rule": "dyadic block commutativity: two words share a setting iff their restrictions commute inside every contiguous k-qubit block",
+    "block_sizes": [1, 2, 4, 8],
+    "block_size_note": "k is clamped to the arm's measured qubit count, so a +2q arm at n=6 records k=6 rather than k=8; rungs at different n are not comparable on qubit count",
+    "synthesis": "block-local Clifford diagonalizer, cheapest Z-preserving coset representative per output qubit, one-qubit runs reduced to shortest words over {H, S, S_DAG}",
+    "estimators": ["single_assignment", "pooled"],
+    "uniform_raw_shots_per_setting": 8000,
+    "evidence_tier": "structural"
+  },
+  "claim_boundary": "group counts, coverage, and synthesis resources under a declared card at uniform shots; not an accuracy-matched C(epsilon), which R1's exact-tier shot search prices separately and only BeH2 clears"
+}

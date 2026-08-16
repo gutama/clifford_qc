@@ -1669,8 +1669,8 @@ it unless the crossing lies below the grid, and abstains on a nonmonotone confir
 **A crossing decided on the target is a region, not an integer.**  Each arm records
 the distance from 1.6 mHa for both deciding endpoints and flags the crossing when
 either lies within ±10%.  Three of BeH₂'s eight arms are flagged: `k=1` assigned
-(passing at −4.6%), `k=4` assigned (passing at −1.8%), and `k=4` pooled (failing at
-+6.3%).  The band is calibrated against a measured effect rather than chosen —
+(passing at −4.6%), `k=4` assigned (passing at −8.4%), and `k=4` pooled (passing at
+−4.2%).  The band is calibrated against a measured effect rather than chosen —
 rebuilding the record under a different NumPy moved the `k=4` assigned upper bound at
 4096 shots across the target by 2.2%, changing that arm's reported count from 4096 to
 16384 with identical shot histograms, because a few ill-conditioned rank-5 solves land
@@ -1679,15 +1679,48 @@ both environments, so it is stable where the count is not.  This is §6.7's `k*`
 region rule applied one level down, to the shot count feeding each `C(ε)`: a flagged
 arm's price carries the width of its crossing, and R3 must not read it as exact.
 
+**Where a backend change may and may not reach.** The standard this search is held
+to is that swapping BLAS/LAPACK may move floating-point residuals but must not move
+the grouping, the Clifford equivalence, the random samples, or the verdict. The
+first three hold by construction: grouping is packed GF(2) parity over integer
+codes, the diagonalizers are exact `stim` tableaus whose coset representative is
+chosen by *integer* gate count, and every replica draws from
+`SeedSequence(root, spawn_key=(k, replica))`, so its stream is a function of its own
+coordinates rather than of what ran before it. The estimator arms consume the same
+drawn batch through nested endpoints, so `single_assignment` and `pooled` differ by
+reconstruction and not by luck.
+
+One float comparison survives all of that and becomes a *discrete* choice: the
+retained rank, cut on the eigenvalues of an ill-conditioned overlap matrix. That is
+the mechanism behind the recorded LAPACK sensitivity, and
+`check_exact_shot_search.py` now gates it directly — a deciding endpoint, passing or
+failing, whose 100-replica panel does not agree on one retained rank is reported as
+**rank-marginal** and its crossing is not a resolved shot count. The gate is live
+rather than vacuous: it passes on the committed record, whose eight deciding
+endpoints are unanimous, while six non-deciding endpoints at 64–256 shots do split
+their rank and are left alone because they decide nothing. With that invariant
+enforced, a residual `4096 ↔ 16384` fluctuation is classifiable as Monte Carlo
+threshold uncertainty rather than environment sensitivity.
+
 The comparator tier is `exact` (the unavailable-on-hardware oracle); the bootstrap
 uncertainty remains `heuristic`.  It is not a finite-sample Ritz-energy certificate or
 deployable stopping rule.  H₄ still exits before sampling because its 3.019 mHa exact
 subspace bias exceeds the target.  On BeH₂ the independent 100-replica block confirms
 assigned/pooled passing endpoints of `4096/1024` shots per setting at `k=1`,
-`16384/4096` at `k=2`, `16384/16384` at `k=4`, and `16384/4096` at `k=8`.  Every solve
-succeeds: 1,440 exploratory and 3,500 confirmatory endpoint solves.  At `k=4`, 4096
-fails and 16384 passes for both estimators, so the record now contains a genuine
-confirmed bracket rather than pricing a loose pilot upper endpoint.
+`16384/4096` at `k=2`, `4096/4096` at `k=4`, and `16384/4096` at `k=8`.  Every arm
+reports a confirmed bracket — a confirmed failing endpoint directly below the priced
+passing one — rather than a loose pilot upper endpoint.
+
+*The `k=4` endpoints moved when the diagonalizers did.* They were `16384/16384`
+before the minimal-synthesis correction below and are `4096/4096` after it. This is
+not a shot-search regression and not a re-tuning: the search samples real bitstrings
+after each synthesized Clifford, so changing the diagonalizer changes the joint
+readout structure and therefore the estimator's variance. `k=4` is exactly the rung
+whose crossing this section already flags as environment-marginal — the arm that a
+different bundled LAPACK had already moved across the target — so it was sitting on
+the crossing and a cheaper diagonalizer pushed it over. The flag, not the count, is
+the stable quantity, which is the rule this paragraph exists to state. Both `k=4`
+arms remain flagged after the change, and no endpoint at `k∈{1,2,8}` moved at all.
 Pooling changes the accuracy-cost order under the ion-like and logical-all-to-all
 cards; only `k={1,2}` is admissible on the superconducting-like card, and pooling does
 not reorder that common set.  The asymptotic ledger was not promoted: in particular,
@@ -1749,11 +1782,29 @@ single-assignment `C_time(ε)`. P5 remains untested until R3.
   the asymptotic argument has no purchase at the sizes this project runs — itself a
   publishable negative for a chemistry-scale claim.
 - **P3.** At QWC (`k = 1`) the mapping's effect appears in **single-qubit gate count
-  and group count, not depth**: the basis rotation is one layer whatever the weight,
-  and the frozen record already carries `gate_counts_per_sweep` (H₄: 14 608 `H`,
-  15 552 `S` at `k = 1`) as the place it shows. *Falsifier:* a material `D_1q`
-  difference at `k = 1`, meaning the synthesizer is not emitting a single rotation
-  layer.
+  and group count, not depth**: the rotation is one gate per non-identity axis
+  whatever the weight, and the frozen record carries `gate_counts_per_sweep`
+  (H₄: 5 184 `H`, 2 592 `S_DAG` at `k = 1`, so `N_1q = 7 776`) as the place it
+  shows. *Falsifier:* a material `D_1q` difference at `k = 1` beyond the two
+  layers a `Y` rotation needs, meaning the synthesizer is not emitting a minimal
+  rotation layer.
+
+  *Restated after a synthesis defect.* This prediction was originally written
+  against `14 608 H` and `15 552 S`, and its falsifier said "not emitting a
+  single rotation layer". Those figures were an artifact: stim's
+  `from_stabilizers(...).inverse()` returns an arbitrary member of the coset of
+  Cliffords that diagonalize a block, and `to_circuit("elimination")` then
+  expands it unoptimized — nine gates for a one-qubit `Y` rotation that two
+  realise. P3 would therefore have been falsified by tooling rather than by the
+  encoding. `clifford_qc/measurement/block_synthesis.py` now picks the cheapest
+  `Z`-preserving coset representative per output qubit and reduces maximal
+  one-qubit runs to shortest words over a declared `{H, S, S_DAG}` set. The
+  correction is not confined to the rotation layer — it lowers `CX` at every
+  `k > 1` as well (H₄ `k = 4`: 3 688 → 3 277) — so both the v3 records and their
+  frozen v2 projections were regenerated, and no cost number published before
+  that regeneration is comparable with one published after it. Settings counts
+  are unchanged at every rung (H₄ `913/647/238/64`), because the grouping rule
+  never moved.
 - **P4.** The weight advantage attenuates from the Hamiltonian multiset to the
   element-operator universe, because the latter is built from products `A_i†HA_j`
   and JW's Z-strings cancel structurally in products. *Falsifier:* equal ratios on
@@ -1793,6 +1844,18 @@ nonlinear exact-oracle search was not approximated for this record.
 **R3 — the protocol axis and `k*`.** The `mapping × k` grid under the R1 cost model,
 not a new protocol; `k*` as defined in §6.7. *Gate:* margins reported; regions, not
 integers, wherever the margin sits inside the shot-search uncertainty.
+
+*Implementation state.* The protocol axis is a library primitive:
+`clifford_qc/measurement/block_commuting.py` owns the dyadic block-commuting
+compatibility rule and its largest-conflict-degree greedy, and both R1 producers
+(`run_clifford_hierarchy.py`, `run_exact_shot_search.py`) consume it rather than
+carrying private copies. `tests/test_block_commuting.py` pins the packed
+predicate against a letter oracle and pins the two endpoints the family
+interpolates — `k = 1` is qubit-wise commutation, `k >= n` is full commutation —
+so the claim that the hierarchy spans both protocols is tested rather than
+asserted. The frozen hierarchy and shot-search records regenerate digit for
+digit across the extraction, which is what makes it a refactor. The mapping arms
+of R2b still group at fixed QWC; joining the two axes is R3's own work.
 
 **R4 — contextual subspace as comparator, then preconditioner.** Arms, at matched
 accuracy target and matched candidate family: full QSE, CS-QSE, A-CASE, CS + A-CASE.
@@ -2931,7 +2994,26 @@ not another open accuracy phase.
     corrected like-for-like QR3 is negative on both independent metrics, while the
     accuracy-matched comparison abstains because only BeH₂ clears its bias floor.
 13. R3 — the explicitly deferred `mapping × k`, coverage, and `k*` regions under
-    three device cards. **Next.**
+    three device cards. **Structural layer shipped**
+    (`run_protocol_axis.py`, `reference_results/protocol_axis.json`,
+    `check_protocol_axis.py`): `G(k)` and coverage are recorded on H₄ and BeH₂
+    across `k ∈ {1,2,4,8}` for all five mapping arms, discharging R2b's
+    `deferred_to_r3`. The `k=1` column reproduces every frozen R2b setting count,
+    which is the condition that makes the grid an extension of that record.
+    **Open:** the accuracy-matched `C(ε)` layer and `k*` regions, which need
+    R1's exact-tier shot search per arm and are BeH₂-only.
+
+    *Result on P5.* Its first clause survives on the full-width arms and its
+    monotonicity clause does not survive at all. The `JW/parity/BK` spread in
+    `G(k)` falls from `1.713×` at `k=1` to `1.048×` at `k=8` on H₄, and from
+    `8.610×` to `1.071×` on BeH₂ — `G(k=n)` does agree between mappings within
+    tie-break noise. But the closing is not monotone: BeH₂ touches `1.000×` at
+    `k=2` and `k=4` before rising to `1.071×`, and on H₄ the two `+2q` arms
+    narrow to `1.054×` at `k=4` and then *widen* to `1.181×` at `k=6`, the
+    largest spread of any rung except `k=1`. A reduced arm measures a narrower
+    register, so its `k=n` is a different problem; the record compares only arms
+    of equal measured width, and `tests/test_protocol_axis.py` pins the
+    counter-example so it cannot be refactored away.
 14. R4a — contextual-subspace comparator arms with bias floors. *Gate:* QR5 answered.
 15. R4b — CS-preconditioned A-CASE, built only on a complementary QR5.
 

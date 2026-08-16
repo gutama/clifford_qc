@@ -25,6 +25,7 @@ from pathlib import Path
 
 import numpy as np
 
+from clifford_qc.measurement.block_commuting import block_commuting_partition
 from clifford_qc.measurement.cache import GroupedWordCache
 from clifford_qc.measurement.compiled import CompiledMeasurementSampler
 from clifford_qc.measurement.cost import (
@@ -41,7 +42,6 @@ try:  # package import in tests versus direct ``python benchmarks/...`` executio
         SYSTEMS,
         _compiled_settings,
         _ordering_verdict,
-        _partition,
         _synthesize,
         load_device_cards,
     )
@@ -52,7 +52,6 @@ except ImportError:  # pragma: no cover - direct script execution
         SYSTEMS,
         _compiled_settings,
         _ordering_verdict,
-        _partition,
         _synthesize,
         load_device_cards,
     )
@@ -365,7 +364,7 @@ def _search_rung(arguments) -> dict:
     bank = problem["_matrix_bank"]
     result = problem["_result"]
     exact_energy = problem["_exact_ground_energy"]
-    groups = _partition(problem["n_qubits"], codes, block_size)
+    groups = block_commuting_partition(problem["n_qubits"], codes, block_size)
     row, resources, compatibility, _ = _synthesize(
         problem["n_qubits"], codes, groups, block_size
     )

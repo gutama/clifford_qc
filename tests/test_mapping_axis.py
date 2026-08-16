@@ -3,6 +3,8 @@
 import copy
 import json
 
+import pytest
+
 from benchmarks.check_mapping_axis import contract_problems
 from benchmarks.run_mapping_axis import REFERENCE, build_system_record, load_config
 
@@ -88,6 +90,12 @@ def test_contract_recomputes_qr3_ratio_verdict():
 
 
 def test_jw_rebuild_preserves_the_h4_physical_bank():
+    # Rebuilding an arm goes through ``FermionEncoding.restriction()``, which
+    # reaches the stim bridge.  The other tests in this file read the committed
+    # record and need no extra, so the guard is per-test rather than module
+    # level -- without it this file fails outright in the environment
+    # REPRODUCING.md quotes its test count for.
+    pytest.importorskip("stim")
     config = load_config()
     spec = next(system for system in config["systems"] if system["key"] == "h4")
     expected = json.loads(REFERENCE.read_text(encoding="utf-8"))["systems"][0]

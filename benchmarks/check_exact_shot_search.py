@@ -33,6 +33,57 @@ except ImportError:  # pragma: no cover - direct script execution
     )
 
 
+def _rank_stability_problems(
+    prefix: str,
+    confirmation: dict,
+    passing: int | None,
+    failing: int | None,
+) -> list[str]:
+    """The two deciding endpoints must select one retained rank, not several.
+
+    Everything else about this search is already invariant to the linear-algebra
+    backend by construction: grouping is packed GF(2) parity, the diagonalizers
+    are exact stim tableaus chosen by integer gate count, and each replica draws
+    from ``SeedSequence(root, spawn_key=(k, replica))`` so its stream does not
+    depend on what ran before it. One float comparison survives all of that and
+    turns into a *discrete* choice -- the retained rank, cut on the eigenvalues
+    of an ill-conditioned overlap matrix. That is the one place a different
+    bundled LAPACK can still move a published number, and it is what moved the
+    k=4 endpoint across the target in an earlier environment.
+
+    So the invariant is stated where it bites. A replica panel that splits its
+    rank at a deciding endpoint is not pricing one estimator; it is averaging
+    two, and the resulting shot count must not be read as resolved. Endpoints
+    away from the crossing may split freely -- they decide nothing -- and this
+    record has six such splits, all at 64-256 shots and all failing.
+    """
+    problems = []
+    for label, endpoint in (("passing", passing), ("failing", failing)):
+        if endpoint is None:
+            continue
+        summary = confirmation.get(endpoint)
+        if summary is None:
+            continue
+        histogram = summary.get("rank_histogram")
+        if not histogram:
+            problems.append(
+                f"{prefix}: {label} endpoint {endpoint} recorded no rank "
+                "histogram, so rank stability could not be decided"
+            )
+            continue
+        if len(histogram) > 1:
+            spread = ", ".join(
+                f"rank {rank} x{count}"
+                for rank, count in sorted(histogram.items(), key=lambda kv: int(kv[0]))
+            )
+            problems.append(
+                f"{prefix}: {label} endpoint {endpoint} is rank-marginal "
+                f"({spread}); the deciding panel does not agree on a retained "
+                "rank, so this crossing is not a resolved shot count"
+            )
+    return problems
+
+
 def contract_problems(record: dict) -> list[str]:
     problems = []
     if record.get("schema") != "clifford_qc.exact_shot_search.v1":
@@ -127,6 +178,9 @@ def contract_problems(record: dict) -> list[str]:
                     problems.append(
                         f"{prefix}: reported failing endpoint did not fail"
                     )
+                problems.extend(
+                    _rank_stability_problems(prefix, confirmation, passing, failing)
+                )
                 # A crossing decided within the environment-marginal band is
                 # not a resolved shot count, and must say so rather than being
                 # read as one.

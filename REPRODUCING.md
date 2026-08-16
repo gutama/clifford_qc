@@ -103,15 +103,37 @@ No figure or table value in the manuscript is transcribed by hand, and
 ```bash
 python -m venv .venv && source .venv/bin/activate
 pip install -e .[test,research,chemistry]   # numpy + scipy + openfermion/pyscf
-pytest                                      # 1167 passed, 6 skipped
+pytest                                      # 1265 passed, 26 skipped
 ```
 
 That install is the reference environment for the quoted pair. The count
 depends on it: a missing
 optional module makes pytest drop the whole test file at collection, so
 each absent extra moves one file from the passed count to the skipped
-count. The six skips here are the bridge files — `stim` (three of them),
-`pennylane`, `pytket`, and `pyzx`.
+count. Twelve files are dropped that way here — `stim` (nine of them:
+`test_block_synthesis`, `test_protocol_axis`, `test_bridge_stim`, `test_clifford_hierarchy_cost`,
+`test_compiled_measurement`, `test_exact_shot_search`, `test_phase4`,
+`test_restriction`, `test_stim_clifford_rotors`), plus `pennylane`, `pytket`,
+and `pyzx`. The
+remaining fourteen skips are per-test rather than per-file: `test_fermion_mapping`
+and `test_mapping_axis` guard only the individual tests that reach the stim
+bridge, so those files still run.
+
+`check_docs.py` enforces the pair through the identity relating them. Each of
+the twelve dropped files contributes exactly one skip and no collected tests, so
+the remaining `26 - 12 = 14` skips are per-test and *are* collected:
+
+```text
+collected == passed + (skipped - files dropped at collection)
+1279      == 1265   + (26      -  12)
+```
+
+Both sides are computed from the tree, so a drift in either quoted number
+breaks the identity. The check runs collection only and never executes a test.
+Because the identity is specific to one environment, it is enforced only when
+the installed extras are the ones the `pip install` line above names — decided
+by importability of the guarded modules, not by counting files. Under any other
+extras it reports "unverified" and says which modules differ.
 
 Adding the remaining extras therefore *changes both numbers*, which is
 expected rather than a failure:
@@ -1327,6 +1349,31 @@ historical file. The sixteen text/data/table sources must remain byte-identical.
 The four PDF figures are generated outputs: `make_figures.py` may regenerate
 different PDF metadata under a newer Matplotlib, while `check_manuscript.py`
 still checks their existence, scientific inputs, and staleness.
+
+## R3 protocol axis (`mapping x k`)
+
+```bash
+python benchmarks/run_protocol_axis.py       # writes reference_results/protocol_axis.json
+python benchmarks/check_protocol_axis.py     # rebuilds and compares, then re-derives the contracts
+```
+
+Sweeps the dyadic block-commuting rung `k in {1, 2, 4, 8}` inside each of R2b's
+five mapping arms on H4 and BeH2, discharging the two quantities the R2b record
+listed under `deferred_to_r3`: `G(k)` and coverage across protocol rungs. `k` is
+clamped to the arm's measured register, so a `+2q` arm records `k = 6`.
+
+The `k = 1` column reproduces the setting count R2b froze on every arm --
+H4 `913/533/351/615/403`, BeH2 `353/41/27/41/27` -- and the producer raises
+rather than writing a record if it does not. That agreement is what makes the
+grid an extension of the frozen record instead of a separate experiment: one
+grouping rule spans it, `block_commuting_partition` at `k = 1` being exactly
+qubit-wise commutation.
+
+Labelled `structural`. It reports group counts, coverage, and the synthesis
+resources a declared card prices at uniform shots; it does **not** price an
+accuracy-matched `C(epsilon)`, which needs R1's exact-tier shot search and which
+only BeH2 clears on its bias floor. P5's second clause -- that the mapping's
+`C_time` gap closes monotonically -- is therefore untested here.
 
 ## R2b raw-pool fermion-mapping axis
 

@@ -181,3 +181,95 @@ def test_crossing_margin_flags_either_side_of_the_target():
     )
     assert just_under["environment_marginal_endpoints"] == ["passing"]
     assert just_under["failing_target_margin_fraction"] is None
+
+
+# ---------------------------------------------------------------------------
+# Rank stability at the deciding endpoints
+#
+# Everything upstream of the solve is already backend-invariant by
+# construction: grouping is packed GF(2) parity, the diagonalizers are exact
+# stim tableaus chosen by integer gate count, and each replica draws from
+# SeedSequence(root, spawn_key=(k, replica)) so its stream does not depend on
+# execution order. The retained rank is the one float comparison that becomes a
+# discrete choice, and it is what moved a published endpoint across the target
+# under a different bundled LAPACK.
+
+
+def _arm_with_ranks(passing_histogram, failing_histogram=None):
+    arm = {
+        "exploration": [],
+        "confirmation": [
+            {"effective_shots_per_setting": 1024, "passes_target": False,
+             "rank_histogram": failing_histogram or {"5": 100}},
+            {"effective_shots_per_setting": 4096, "passes_target": True,
+             "rank_histogram": passing_histogram},
+        ],
+        "shot_to_target": {
+            "confirmed_passing_effective_shots_per_setting": 4096,
+            "confirmed_failing_effective_shots_per_setting": 1024,
+        },
+    }
+    return arm
+
+
+def _rank_problems(arm):
+    from benchmarks.check_exact_shot_search import _rank_stability_problems
+
+    confirmation = {
+        item["effective_shots_per_setting"]: item for item in arm["confirmation"]
+    }
+    return _rank_stability_problems("probe", confirmation, 4096, 1024)
+
+
+def test_a_unanimous_rank_panel_is_accepted():
+    assert _rank_problems(_arm_with_ranks({"5": 100})) == []
+
+
+def test_a_split_rank_at_the_passing_endpoint_is_rejected():
+    problems = _rank_problems(_arm_with_ranks({"4": 3, "5": 97}))
+    assert len(problems) == 1
+    assert "passing endpoint 4096 is rank-marginal" in problems[0]
+    assert "rank 4 x3, rank 5 x97" in problems[0]
+
+
+def test_a_split_rank_at_the_failing_endpoint_is_rejected():
+    """The failing endpoint decides the bracket too, so it is held to the same bar."""
+    problems = _rank_problems(
+        _arm_with_ranks({"5": 100}, failing_histogram={"4": 1, "5": 99})
+    )
+    assert len(problems) == 1
+    assert "failing endpoint 1024 is rank-marginal" in problems[0]
+
+
+def test_a_missing_rank_histogram_is_rejected_rather_than_assumed_stable():
+    arm = _arm_with_ranks({"5": 100})
+    arm["confirmation"][1].pop("rank_histogram")
+    problems = _rank_problems(arm)
+    assert len(problems) == 1
+    assert "recorded no rank histogram" in problems[0]
+
+
+def test_committed_record_has_rank_stable_deciding_endpoints():
+    """The gate is live, not vacuous: it passes on the real record today."""
+    record = json.loads(REFERENCE.read_text(encoding="utf-8"))
+    assert [p for p in contract_problems(record) if "rank-marginal" in p] == []
+
+
+def test_committed_record_still_splits_rank_away_from_the_crossing():
+    """Non-deciding endpoints may split, and do -- so the gate is discriminating.
+
+    If this ever reached zero, the gate would no longer be distinguishing
+    deciding from non-deciding endpoints and the test above would pass for the
+    wrong reason.
+    """
+    record = json.loads(REFERENCE.read_text(encoding="utf-8"))
+    mixed = [
+        (row["block_size"], estimator, item["effective_shots_per_setting"])
+        for row in record["systems"]["beh2"]["rows"]
+        for estimator, arm in row["estimators"].items()
+        for phase in ("exploration", "confirmation")
+        for item in arm[phase]
+        if len(item.get("rank_histogram", {})) > 1
+    ]
+    assert mixed, "expected rank splits away from the crossing"
+    assert all(shots <= 256 for _, _, shots in mixed)
