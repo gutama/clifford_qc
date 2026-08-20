@@ -216,7 +216,8 @@ def _run_endpoints(
 
 def _summaries(raw: dict, exact_energy: float, *, block_size: int,
                seed_namespace: int,
-               namespace: tuple[int, ...] = ()) -> dict[str, list[dict]]:
+               namespace: tuple[int, ...] = (),
+               bootstrap_seed: int = BOOTSTRAP_SEED) -> dict[str, list[dict]]:
     """Summarize each endpoint; ``namespace`` is the R3 arm prefix of _run_endpoints."""
     output = {}
     for estimator_index, estimator in enumerate(ESTIMATORS):
@@ -226,7 +227,7 @@ def _summaries(raw: dict, exact_energy: float, *, block_size: int,
                 rows,
                 exact_energy,
                 bootstrap_seed=_seed_sequence(
-                    BOOTSTRAP_SEED,
+                    bootstrap_seed,
                     *namespace,
                     seed_namespace,
                     block_size,

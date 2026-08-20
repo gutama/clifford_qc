@@ -1,0 +1,47 @@
+{
+  "schema": "clifford_qc.active_space_benchmark.v1",
+  "name": "LiH STO-3G CAS(4e,4o)",
+  "geometry_angstrom": [
+    [
+      "Li",
+      [
+        0.0,
+        0.0,
+        0.0
+      ]
+    ],
+    [
+      "H",
+      [
+        0.0,
+        0.0,
+        1.5949
+      ]
+    ]
+  ],
+  "basis": "sto-3g",
+  "orbital_method": "RHF",
+  "active_space": {
+    "electrons": 4,
+    "spatial_orbitals": 4,
+    "selection": "lowest four canonical RHF orbitals; no frozen electrons"
+  },
+  "generator": {
+    "software": "PySCF",
+    "version": "2.11.0",
+    "scf_convergence_tolerance": 1e-12,
+    "script": "benchmarks/make_lih_fcidump.py"
+  },
+  "fcidump_sha256": "1163b1c1a79b20b452f429b694e55a1e34db5b636398f541074a2494d73a4130",
+  "energy_unit": "hartree",
+  "reference_energies": {
+    "rhf": -7.862026959394135,
+    "fci": -7.863222550890625
+  },
+  "notes": [
+    "The committed FCIDUMP is the immutable QR3b candidate input.",
+    "The reference energy is PySCF CASCI(4e,4o) in the same active space, computed independently of clifford_qc's mapping and projected-subspace paths.",
+    "Molecular-orbital signs are gauge choices; the committed file fixes one gauge through its SHA-256 digest.",
+    "The eight-qubit width matches H4 and BeH2, but this chemically independent Hamiltonian is an extension rather than a replacement for H4's right-censored exact-tier row."
+  ]
+}
