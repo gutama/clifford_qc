@@ -1851,8 +1851,12 @@ the maximum mapping spread is `13.074×` versus a minimum instance spread of
 metric. The three fixed-shot device-card rows are not counted as corroboration:
 QWC has `N_2q=D_2q=0`, so those times are derived projections of setting count and
 one-qubit rotations. Accuracy-matched QR3 still abstains because only BeH₂ clears
-the 1.6 mHa exact bias floor in all five arms. Its prices remain asymptotic; R1's
-nonlinear exact-oracle search was not approximated for this record.
+the 1.6 mHa exact bias floor in all five arms. **That is no longer the case.** The
+`h4_converged` bank clears the same floor at `0.766 mHa` on all five arms, so this
+record's `qr3.accuracy_matched` now reads `eligible_for_cross_instance_comparison`
+over `[h4_converged, beh2]`. Its prices remain asymptotic; R1's nonlinear
+exact-oracle search was not approximated for this record, and at that tier the
+second instance is deferred on resolution rather than accuracy (§5, Phase R3).
 
 **R3 — the protocol axis and `k*`.** The `mapping × k` grid under the R1 cost model,
 not a new protocol; `k*` as defined in §6.7. *Gate:* margins reported; regions, not
@@ -1887,9 +1891,43 @@ where it does not.
 on every `k*`; and regions rather than integers is not a fallback here but the
 uniform outcome — all thirty `k*` determinations are regions. The one thing this
 phase does **not** deliver is a cross-instance accuracy-matched mapping verdict:
-QR3 needs two priced instances and H₄'s bias floor leaves one, so the record
-abstains explicitly rather than reporting BeH₂'s mapping spread as though it
-answered the question.
+QR3 needs two priced instances, so the record abstains explicitly rather than
+reporting BeH₂'s mapping spread as though it answered the question.
+
+*Why the second instance is still missing, now that a qualifying bank exists.*
+The obstacle was read as H₄'s bias floor, and that reading was incomplete. The
+budget-8 bank misses the target because A-CASE was stopped at eight additions
+while still lowering; carrying the same greedy on the same Hartree–Fock
+reference to its own threshold reaches `M=15`, `W=7927` and `0.766 mHa`, which
+clears `1.6 mHa` with a factor of two to spare and costs almost exactly the same
+to measure — `913/533/351/615/405` settings at `k=1` against the frozen bank's
+`913/533/351/615/403`. That bank ships as `h4_converged`, and at the
+*asymptotic* tier it does what it was built for: `mapping_axis.json` now records
+`eligible_for_cross_instance_comparison` where it recorded
+`insufficient_eligible_instances`.
+
+At the **exact** tier it fails a second gate, and one this plan had not
+separated from the first. The nonlinear shot search resolves a crossing only
+inside `SEARCH_ENDPOINTS`, and this bank's crossings do not land there. Its word
+universe is `7926` against BeH₂'s `1814` on the full-width arms and `2047`
+against `511` on the `+2q` arms; four times the words reconstructed from the
+same shots is four times the pencil variance, which moves the confirmed
+crossings from BeH₂'s `4096–16384` up to `16384–65536` — against a grid whose
+last point *is* `65536`. A reduced-replica scoping probe left 12 of 20
+single-assignment cells unresolved and put three of the eight that did confirm
+on the final grid point. Extrapolated to the headline replica counts that
+attempt costs about a day of four-core time and still returns mostly unpriced
+cells.
+
+So `protocol_cost.json` carries an explicit `cost_layer_scope`: the structural
+grid's three banks are partitioned into the ones it prices and the ones it
+defers, each deferral with its reason, and `check_protocol_cost.py` fails a
+record where a system is merely absent. **The correction this forces is worth
+stating plainly: clearing the bias floor is necessary for a price and is not
+sufficient.** A bank must also be resolvable at the declared endpoint grid, and
+that is a condition on `W`, which §6.2 says the linear encoding family cannot
+move. Lifting it means endpoints above `65536`, which `exact_shot_search.json`
+shares — a change to R1 and R3 together, not a scope change to R3.
 
 **R4 — contextual subspace as comparator, then preconditioner.** Arms, at matched
 accuracy target and matched candidate family: full QSE, CS-QSE, A-CASE, CS + A-CASE.
@@ -2856,9 +2894,17 @@ A-CASE's.
   useful result. **Still abstaining at the accuracy-matched tier.** R3 records the mapping
   spread in `C(ε)` — `3.87×` among the three full-width arms, and `4.00×` between the two
   `+2q` arms at `k = 6` under pooling, the largest at equal measured width — but the question
-  weighs that against an *instance* spread, and only BeH₂ clears its bias floor, so there is one priced
-  instance and no instance spread to compare against. `protocol_cost.json` carries the
-  abstention as a field and `check_protocol_cost.py` fails any record that upgrades it.
+  weighs that against an *instance* spread, and there is still one priced instance. The reason
+  changed, though, and the new one is the more interesting half. A second H₄ bank that clears
+  the bias floor now ships (`h4_converged`, `0.766 mHa`), and it makes QR3 eligible at the
+  *asymptotic* tier — `mapping_axis.json` records
+  `eligible_for_cross_instance_comparison`. At the *exact* tier it is blocked by a
+  second condition this question had folded into the first: a crossing is resolvable only
+  inside `SEARCH_ENDPOINTS`, and this bank's `W = 7926` against BeH₂'s `1814` puts its
+  crossings at `16384–65536` on a grid ending at `65536`. So the accuracy-matched
+  abstention now rests on **resolution**, not accuracy, and `protocol_cost.json` says which
+  through `cost_layer_scope`. `check_protocol_cost.py` fails any record that upgrades the
+  verdict, and equally any record that drops a structural system without deferring it.
 - **QR4 (pooling × protocol).** Does the coverage fraction `f_w` change the `k*` chosen under
   the pooled estimator relative to the single-assignment one? *Falsifier:* identical `k*`
   under both, which retires the concern. **The falsifier fires on the R3 grid**
@@ -3060,19 +3106,26 @@ not another open accuracy phase.
 13. R3 — the explicitly deferred `mapping × k`, coverage, and `k*` regions under
     three device cards. **Structural layer shipped**
     (`run_protocol_axis.py`, `reference_results/protocol_axis.json`,
-    `check_protocol_axis.py`): `G(k)` and coverage are recorded on H₄ and BeH₂
-    across `k ∈ {1,2,4,8}` for all five mapping arms, discharging R2b's
-    `deferred_to_r3`. The `k=1` column reproduces every frozen R2b setting count,
-    which is the condition that makes the grid an extension of that record.
+    `check_protocol_axis.py`): `G(k)` and coverage are recorded on H₄, the
+    converged H₄ bank and BeH₂ across `k ∈ {1,2,4,8}` for all five mapping
+    arms, discharging R2b's `deferred_to_r3`. The `k=1` column reproduces every
+    frozen R2b setting count, which is the condition that makes the grid an
+    extension of that record.
     **Accuracy-matched layer shipped** (`run_protocol_cost.py`,
     `reference_results/protocol_cost.json`, `check_protocol_cost.py`): R1's
     exact-tier nonlinear shot search runs once per `(arm, k)` cell, and each
     confirmed crossing becomes a `C_time(ε)` *interval* — `(C(fail), C(pass)]`,
     widened one grid step on any side R1 flagged environment-marginal — from
     which `k*` is read as the set of rungs reaching the smallest upper bound.
-    BeH₂ only; H₄ is recorded unpriced because its 3.019 mHa bank bias exceeds
-    the target on every arm. Every cell reproduces the structural grid's setting
-    count, which is what makes this the cost layer of that grid.
+    BeH₂ only, and the cost layer now declares its own scope rather than
+    inheriting the structural one: `cost_layer_scope` partitions the structural
+    grid's three banks into what it prices and what it defers, with a reason on
+    each deferral, and the checker fails a record where a system is merely
+    absent. `h4` is unpriced because its 3.019 mHa bank bias exceeds the target
+    on every arm; `h4_converged` is deferred because its crossings do not
+    resolve inside `SEARCH_ENDPOINTS`. Every priced cell reproduces the
+    structural grid's setting count, which is what makes this the cost layer of
+    that grid.
 
     *Result.* **All thirty `k*` determinations — three cards × two estimators ×
     five arms — are regions, not integers.** The endpoint grid never separates

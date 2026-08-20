@@ -1423,11 +1423,39 @@ core-hours, and the BeH2 `jw k=1` cell alone -- 353 settings times 130 replicas
 times the nested grid -- is half an hour of it. The `records` CI job's timeout
 is sized for it.
 
-**H4 is not priced, and the record says why.** Its bank's 3.019 mHa exact
-subspace bias exceeds the target on all five arms, so no shot count reaches
-1.6 mHa and no arm may be given a runtime. It is recorded with status
+**Two gates, and the structural grid's three banks fail them in two different
+places.** `cost_layer_scope` partitions that grid into what this record prices
+and what it defers, with a reason on each deferral, and
+`check_protocol_cost.py` fails a record where a system is merely absent from
+both.
+
+*`h4` fails the accuracy gate.* Its budget-8 bank's 3.019 mHa exact subspace
+bias exceeds the target on all five arms, so no shot count reaches 1.6 mHa and
+no arm may be given a runtime. It is recorded with status
 `bias_floor_exceeds_target` and empty cost ledgers rather than omitted:
 unattainable at this target is the measurement.
+
+*`h4_converged` passes that gate and fails the resolution one.* At 0.766 mHa it
+clears the floor with a factor of two to spare, and that is what makes QR3
+eligible at the asymptotic tier in `mapping_axis.json`. But a crossing is
+resolvable only inside the `64…65536` endpoint grid, and this bank's crossings
+are not. Its word universe is 7926 against BeH2's 1814 on the full-width arms
+and 2047 against 511 on the `+2q` arms; four times the words reconstructed from
+the same shots is four times the pencil variance, which moves the confirmed
+crossings from BeH2's 4096-16384 up to 16384-65536, against a grid whose last
+point is 65536. A reduced-replica scoping probe -- 2 exploratory and 2
+confirmatory, recorded in the config and labelled `is_a_record: false` because
+no number in it may be quoted as a cost -- left 12 of 20 single-assignment
+cells unresolved and put three of the eight that did confirm on the final grid
+point. It also took 49 minutes against the BeH2-only probe's 2, which
+extrapolates to roughly a day of four-core time at the headline replica counts,
+for a record that would still be mostly unpriced.
+
+So the deferral is on resolution, not accuracy, and the distinction is the
+finding: **clearing the bias floor is necessary for a price and is not
+sufficient.** What would lift it is endpoints above 65536, which
+`SEARCH_ENDPOINTS` pins and `exact_shot_search.json` shares -- a change to R1
+and R3 together, not a scope change to R3.
 
 **A crossing is a bracket, so a cost is an interval.** The search resolves a
 shot count only to the geometric grid -- the true count lies in
@@ -1477,9 +1505,12 @@ two `+2q` arms are priced identically at every rung under single assignment and
 differ only at `k = 6` under pooling, where one grid step of shot count separates
 them by `4.00x`, the largest equal-width spread in the record -- but the
 question asks whether the mapping effect exceeds the *instance* spread, and an
-instance spread needs two priced instances. Only BeH2 clears its bias floor, so
-the record carries `qr3_accuracy_matched: abstains` and the checker fails any
-record that upgrades it.
+instance spread needs two priced instances. A second bank that clears the bias
+floor now exists -- `h4_converged` -- and it is deferred here on resolution
+rather than accuracy, per `cost_layer_scope` above. So the record still carries
+`qr3_accuracy_matched: abstains`; the checker re-derives that verdict from the
+record's own priced cells rather than reading it, and fails any record that
+upgrades it or that drops a structural system without deferring it.
 
 **The `jw` column reprices R1's BeH2 search under an independent stream**, and
 the result is the sharpest corroboration in this record of R1's own marginal
@@ -1549,22 +1580,27 @@ physical scale and stated rather than tuned until the gate passes.
 `benchmarks/configs/mapping_axis.json` pins the five-arm order, selected raw-pool
 labels and source-row hashes, the grouping protocol for each system, 8000 raw shots
 per setting, the single-assignment estimator, the 1.6 mHa target, and all four
-inputs. H₄, BeH₂, and Hubbard use the established largest-degree greedy. H₂O alone
-uses the scalable full-basis-seeded first-fit cover; its setting counts are
+inputs. H₄ (both banks), BeH₂, and Hubbard use the established largest-degree
+greedy. H₂O alone uses the scalable full-basis-seeded first-fit cover; its setting counts are
 constructive upper bounds and are excluded from the cross-instance QWC verdict.
 Neither protocol claims a minimum coloring.
 
 The committed `JW/parity/parity+2q/BK/BK+2q` setting counts are
-`913/533/351/615/403` for H₄, `353/41/27/41/27` for BeH₂,
+`913/533/351/615/403` for H₄, `913/533/351/615/405` for H₄-converged,
+`353/41/27/41/27` for BeH₂,
 `24334/17118/9908/18108/8759` for H₂O, and `1406/798/457/907/478` for Hubbard.
 QR2 passes for every arm. The corrected ratio-versus-ratio QR3 comparison is
 negative: mapping spread is not smaller than instance spread for matched-greedy
 QWC settings (`13.074×` versus `3.983×`) or mean word weight (`1.571×` versus
 `1.489×`). Fixed-shot card rows are derived projections, not independent evidence,
-because QWC uses no two-qubit measurement gates. Accuracy-matched QR3 abstains
-because only BeH₂ clears the exact subspace-bias floor in all five arms. Its prices
-remain `asymptotic`; this producer does not replace R1's nonlinear exact-oracle
-shot search.
+because QWC uses no two-qubit measurement gates. **Accuracy-matched QR3 no longer
+abstains at this tier.** `h4_converged` clears the exact subspace-bias floor at
+`0.766 mHa` on all five arms, so `qr3.accuracy_matched` reads
+`eligible_for_cross_instance_comparison` over `[h4_converged, beh2]` where it read
+`insufficient_eligible_instances`. Its prices remain `asymptotic`; this producer
+does not replace R1's nonlinear exact-oracle shot search, and at *that* tier the
+second instance is deferred for a different reason (see the cost-layer section
+above).
 
 The original plan also named `G(k)` and coverage across protocol rungs. They are
 explicitly recorded as a post-registration deferral to R3; this fixed-QWC record

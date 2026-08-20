@@ -353,6 +353,64 @@ def _verdict_problems(prefix: str, payload: dict, mapping: str) -> list[str]:
     return problems
 
 
+def _scope_problems(record: dict) -> list[str]:
+    """Every structural system is priced or deferred with a reason, never absent.
+
+    A narrower cost layer is legitimate -- the two layers sit at different
+    evidence tiers and have never covered the same systems. What is not
+    legitimate is a system quietly missing, because a reader comparing the two
+    records would have to notice the gap and guess at it. So the scope is
+    checked against the structural grid it names, and a deferral without a
+    reason is a failure.
+    """
+    problems: list[str] = []
+    scope = record.get("cost_layer_scope")
+    if not isinstance(scope, dict):
+        return ["the cost layer declares no scope"]
+    structural = record.get("structural_reference", {}).get(
+        "systems_in_structural_grid"
+    )
+    if not isinstance(structural, list) or not structural:
+        return ["the record does not name the structural grid it narrows"]
+
+    priced = list(scope.get("systems", []))
+    deferred = list(scope.get("deferred", []))
+    deferred_keys = [item.get("system") for item in deferred]
+    if sorted(priced + deferred_keys) != sorted(structural):
+        problems.append(
+            f"cost-layer scope {sorted(priced + deferred_keys)} does not "
+            f"partition the structural grid {sorted(structural)}"
+        )
+    if set(priced) & set(deferred_keys):
+        problems.append("a system is both priced and deferred")
+    if sorted(record.get("systems", {})) != sorted(priced):
+        problems.append(
+            "the systems the record carries are not the ones its scope prices"
+        )
+    for item in deferred:
+        key = item.get("system")
+        if not item.get("reason"):
+            problems.append(f"{key}: deferred with no reason")
+        probe = item.get("scoping_probe")
+        if isinstance(probe, dict) and probe.get("is_a_record") is not False:
+            # A reduced-replica probe is how the scope was decided, not
+            # evidence for a cost. It has to say so about itself.
+            problems.append(f"{key}: a scoping probe does not disclaim record status")
+        if isinstance(probe, dict):
+            for field in ("exploratory_replicas", "confirmatory_replicas"):
+                value = probe.get(field)
+                headline = (
+                    EXPLORATORY_REPLICAS if field.startswith("expl")
+                    else CONFIRMATORY_REPLICAS
+                )
+                if isinstance(value, int) and value >= headline:
+                    problems.append(
+                        f"{key}: scoping probe claims {field}={value}, at or above "
+                        f"the headline {headline}; that is a record, not a probe"
+                    )
+    return problems
+
+
 def _qr3_problems(record: dict) -> list[str]:
     """QR3's verdict is re-derived from the record's own costs, not trusted.
 
@@ -410,6 +468,7 @@ def contract_problems(record: dict) -> list[str]:
             "matched at, so these costs are not comparable to their records"
         )
     problems.extend(_qr3_problems(record))
+    problems.extend(_scope_problems(record))
     card_hashes = {card.get("name"): card.get("sha256") for card in record.get("device_cards", [])}
     if not card_hashes:
         problems.append("no device cards declared")

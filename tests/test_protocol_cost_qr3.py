@@ -147,3 +147,109 @@ def test_an_unpriced_bracket_never_enters_the_comparison():
     payload = _instance_cost_spread(systems, CARDS, ["a", "b"])
     assert payload["status"] == "abstains"
     assert "nothing to compare like for like" in payload["reason"]
+
+
+# --- the cost layer's declared scope -----------------------------------------
+
+
+def _scoped_record(priced, deferred, *, structural=None, probe_is_record=False):
+    """A record carrying only the fields the scope contract reads."""
+    return {
+        "systems": {key: {"status": "searched"} for key in priced},
+        "structural_reference": {
+            "systems_in_structural_grid": (
+                structural if structural is not None
+                else list(priced) + [item["system"] for item in deferred]
+            ),
+        },
+        "cost_layer_scope": {
+            "systems": list(priced),
+            "deferred": [
+                {
+                    **item,
+                    "scoping_probe": {
+                        "is_a_record": probe_is_record,
+                        "exploratory_replicas": 2,
+                        "confirmatory_replicas": 2,
+                    },
+                }
+                for item in deferred
+            ],
+        },
+    }
+
+
+def test_a_scope_that_partitions_the_structural_grid_passes():
+    from benchmarks.check_protocol_cost import _scope_problems
+
+    record = _scoped_record(["beh2"], [{"system": "h4c", "reason": "grid ceiling"}])
+    assert _scope_problems(record) == []
+
+
+def test_a_system_that_is_neither_priced_nor_deferred_is_a_failure():
+    from benchmarks.check_protocol_cost import _scope_problems
+
+    record = _scoped_record(
+        ["beh2"], [{"system": "h4c", "reason": "grid ceiling"}],
+        structural=["beh2", "h4c", "h4"],
+    )
+    assert any("does not partition" in problem for problem in _scope_problems(record))
+
+
+def test_a_deferral_without_a_reason_is_a_failure():
+    from benchmarks.check_protocol_cost import _scope_problems
+
+    record = _scoped_record(["beh2"], [{"system": "h4c", "reason": ""}])
+    assert any("deferred with no reason" in problem for problem in _scope_problems(record))
+
+
+def test_a_scoping_probe_must_disclaim_record_status():
+    from benchmarks.check_protocol_cost import _scope_problems
+
+    record = _scoped_record(
+        ["beh2"], [{"system": "h4c", "reason": "grid ceiling"}],
+        probe_is_record=True,
+    )
+    assert any("disclaim record status" in problem for problem in _scope_problems(record))
+
+
+def test_a_probe_at_headline_replicas_is_not_a_probe():
+    from benchmarks.check_protocol_cost import _scope_problems
+
+    record = _scoped_record(["beh2"], [{"system": "h4c", "reason": "grid ceiling"}])
+    probe = record["cost_layer_scope"]["deferred"][0]["scoping_probe"]
+    probe["confirmatory_replicas"] = 100
+    assert any(
+        "that is a record, not a probe" in problem
+        for problem in _scope_problems(record)
+    )
+
+
+def test_the_record_must_carry_exactly_the_systems_its_scope_prices():
+    from benchmarks.check_protocol_cost import _scope_problems
+
+    record = _scoped_record(["beh2"], [{"system": "h4c", "reason": "grid ceiling"}])
+    record["systems"]["h4c"] = {"status": "searched"}
+    assert any(
+        "not the ones its scope prices" in problem
+        for problem in _scope_problems(record)
+    )
+
+
+def test_the_checker_subset_filter_narrows_to_declared_systems():
+    from benchmarks.check_protocol_cost import _subset_config
+
+    config = _subset_config(("beh2",))
+    assert config["systems"] == ["beh2"]
+    # Narrowing the rebuild must not narrow the scope declaration -- the
+    # deferral ledger is what a partial run still has to reproduce.
+    assert config["cost_layer"]["systems"] == ["h4", "beh2"]
+
+
+def test_the_checker_subset_filter_rejects_an_unknown_system():
+    import pytest as _pytest
+
+    from benchmarks.check_protocol_cost import _subset_config
+
+    with _pytest.raises(ValueError, match="unknown systems"):
+        _subset_config(("nope",))

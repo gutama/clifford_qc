@@ -10,16 +10,24 @@ the ``E + 2 sigma`` selected-rank sweep, replica RMSE against the exact sector
 ground energy -- once per ``(mapping arm, k)`` cell, and turns the confirmed
 shot-to-target crossings into ``C_time(epsilon)`` and the ``k*`` of PLAN §6.7.
 
-**Two instances, and the record says why the third is not one.** A bank may be
-priced only if its own exact subspace bias leaves room under the target, and
-the grid carries two H4 banks that differ in exactly that. The budget-8 bank
-(``h4``) sits at 3.019 mHa against a 1.6 mHa target, so no shot count reaches
-the target on any arm and no arm may be priced; it is recorded with that
-status rather than dropped, because "unattainable at this target" is the
-measurement. The converged bank (``h4_converged``) is the same instance, the
-same Hartree-Fock reference and the same greedy carried past that budget to
-its own stopping threshold: 0.766 mHa, and priceable. It is what lets QR3
-weigh a mapping effect against an instance effect instead of abstaining.
+**Still BeH2 only, and now for two different reasons.** A bank reaches a price
+by clearing two independent gates, and the structural grid's three banks fail
+them in different places.
+
+``h4`` fails the *accuracy* gate. Its budget-8 bank sits at 3.019 mHa against a
+1.6 mHa target, so no shot count reaches the target on any arm. It is recorded
+with that status rather than dropped, because "unattainable at this target" is
+the measurement.
+
+``h4_converged`` passes that gate -- 0.766 mHa, the same Hartree-Fock reference
+and the same greedy carried past the budget to its own stopping threshold --
+and fails the *resolution* one. Its word universe is 7926 against BeH2's 1814,
+and four times the words to reconstruct from the same shots is four times the
+pencil variance, which puts its crossings at 16384-65536 against a grid whose
+last point is 65536. So it is deferred rather than priced, by
+``cost_layer_scope`` and with the reason attached there. That distinction is
+worth keeping: the bias floor is necessary for a price and this record is where
+it becomes visible that it is not sufficient.
 
 **A crossing is a bracket, so a cost is an interval.** The search resolves a
 shot count only to the geometric grid: the true count lies in
@@ -632,6 +640,38 @@ def _mapping_cost_spread(system: dict, card_name: str, estimator: str) -> dict:
     }
 
 
+def _cost_layer(config: dict) -> dict:
+    """Which systems this layer prices, and why it skips the ones it skips.
+
+    The structural grid and the cost grid are not the same experiment and have
+    never covered the same systems, so the cost layer reads its own scope
+    rather than inheriting the structural one. Making that explicit is the
+    point: a system added to the structural grid must not silently commit the
+    exact-tier search to it, and a system left out must carry a reason a reader
+    can weigh rather than an absence they have to notice.
+    """
+    declared = config.get("cost_layer")
+    if declared is None:
+        return {"systems": list(config["systems"]), "deferred": []}
+    systems = list(declared["systems"])
+    deferred = list(declared.get("deferred", []))
+    known = set(config["systems"])
+    unknown = sorted((set(systems) | {item["system"] for item in deferred}) - known)
+    if unknown:
+        raise ValueError(f"cost layer names systems the grid does not declare: {unknown}")
+    covered = set(systems) | {item["system"] for item in deferred}
+    missing = sorted(known - covered)
+    if missing:
+        raise ValueError(
+            f"structural systems {missing} are neither priced nor deferred; a "
+            "system must be one or the other, never merely absent"
+        )
+    for item in deferred:
+        if not item.get("reason"):
+            raise ValueError(f"deferred system {item['system']!r} carries no reason")
+    return {"systems": systems, "deferred": deferred}
+
+
 def _spread_bracket(intervals: Sequence[tuple[float, float, float]]) -> dict:
     """The spread of a set of interval-valued costs, as an interval.
 
@@ -692,7 +732,9 @@ def _instance_cost_spread(systems: dict, cards, priced: Sequence[str]) -> dict:
             "reason": (
                 "an accuracy-matched mapping-versus-instance comparison needs "
                 "two priced instances; the mapping spread in C(epsilon) is "
-                "recorded per system, the cross-instance verdict is not"
+                "recorded per system, the cross-instance verdict is not. Which "
+                "banks are eligible and which are deferred, with the reason, is "
+                "cost_layer_scope"
             ),
         }
 
@@ -887,9 +929,10 @@ def build_record(
     arms: Sequence[str] = config["mapping_arms"]
     block_sizes = config["protocol"]["block_sizes"]
     frozen = structural_settings()
+    cost_layer = _cost_layer(config)
 
     systems = {}
-    for key in config["systems"]:
+    for key in cost_layer["systems"]:
         arm_records = []
         cells: list[tuple] = []
         for arm_index, mapping in enumerate(arms):
@@ -1000,7 +1043,12 @@ def build_record(
         "structural_reference": {
             "path": "benchmarks/reference_results/protocol_axis.json",
             "settings_reproduced": True,
+            # The structural grid is wider than this one, and the difference is
+            # declared rather than left for a reader to spot by comparing the
+            # two records' system lists.
+            "systems_in_structural_grid": list(config["systems"]),
         },
+        "cost_layer_scope": cost_layer,
         "r1_reference": {
             "path": "benchmarks/reference_results/exact_shot_search.json",
         },
