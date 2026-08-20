@@ -1,6 +1,34 @@
 {
   "accuracy_target_millihartree": 1.6,
   "claim_boundary": "accuracy-matched logical runtime under declared illustrative device cards, on one instance at one target, with heuristic Monte Carlo search uncertainty; not a finite-sample energy certificate, a device-noise simulation, a hardware result, or an instance-independent preference for any mapping or block size",
+  "cost_layer_scope": {
+    "deferred": [
+      {
+        "reason": "the exact-tier shot search does not resolve this bank's crossings inside the declared endpoint grid. Its word universe is 7926 against BeH2's 1814 on the full-width arms and 2047 against 511 on the +2q arms, and four times the words to reconstruct from the same shots is four times the pencil variance, which moves the confirmed crossings from BeH2's 4096-16384 up to 16384-65536 -- against a grid whose last point is 65536. This is a deferral on resolution, not on accuracy: the bank clears the 1.6 mHa bias floor with room at 0.766 mHa, it is priced structurally in protocol_axis.json, and it is what makes QR3 eligible at the asymptotic tier in mapping_axis.json.",
+        "scoping_probe": {
+          "beh2_only_wall_time_seconds": 117,
+          "confirmatory_replicas": 2,
+          "confirmed_crossing_endpoints": [
+            16384,
+            65536
+          ],
+          "exploratory_replicas": 2,
+          "is_a_record": false,
+          "note": "a reduced-replica probe run to fix this scope decision. It is not evidence for any cost and no number here may be quoted as one; the headline replica counts this record requires are 30 and 100.",
+          "single_assignment_cells_total": 20,
+          "single_assignment_cells_unresolved": 12,
+          "wall_time_seconds": 2959,
+          "workers": 4
+        },
+        "system": "h4_converged",
+        "what_would_lift_it": "endpoints above 65536, which SEARCH_ENDPOINTS pins and exact_shot_search.json shares, so lifting it rebuilds R1's record too and is a change to both layers rather than a scope change to this one"
+      }
+    ],
+    "systems": [
+      "h4",
+      "beh2"
+    ]
+  },
   "device_cards": [
     {
       "calibration_status": "illustrative_scenario",
@@ -178,9 +206,7 @@
         ],
         "found": [
           "X86_V3",
-          "X86_V4"
-        ],
-        "not found": [
+          "X86_V4",
           "AVX512_ICL",
           "AVX512_SPR"
         ]
@@ -195,9 +221,9 @@
       "scipy": "1.17.1",
       "stim": "1.16.0"
     },
-    "environment_sha256": "dfd367a69a25759abd362d436ae1f5886646c36f033e1e33e027c6fc5686821e",
-    "git_dirty": true,
-    "git_sha": "7683058e9c35f4561ebec806504d544241c8d98b",
+    "environment_sha256": "28a6fbf6142fed9841f7274c09e3bb6a0e2a17278b266d8419461db51ec246aa",
+    "git_dirty": false,
+    "git_sha": "377ff949ab6eb6da32eae63266994339056d55c8",
     "platform": {
       "hostname": "vm",
       "machine": "x86_64",
@@ -207,10 +233,13 @@
     },
     "python": "3.11.15",
     "schema": "clifford_qc.execution_provenance.v1",
-    "utc": "2026-08-16T16:58:47.706397+00:00"
+    "utc": "2026-08-20T15:45:55.145338+00:00"
   },
   "qr3_accuracy_matched": {
-    "reason": "an accuracy-matched mapping-versus-instance comparison needs two priced instances, and only BeH2 clears its bias floor; the mapping spread in C(epsilon) is recorded, the cross-instance verdict is not",
+    "priced_instances": [
+      "beh2"
+    ],
+    "reason": "an accuracy-matched mapping-versus-instance comparison needs two priced instances; the mapping spread in C(epsilon) is recorded per system, the cross-instance verdict is not. Which banks are eligible and which are deferred, with the reason, is cost_layer_scope",
     "status": "abstains"
   },
   "r1_reference": {
@@ -220,7 +249,12 @@
   "search_uncertainty_evidence": "heuristic",
   "structural_reference": {
     "path": "benchmarks/reference_results/protocol_axis.json",
-    "settings_reproduced": true
+    "settings_reproduced": true,
+    "systems_in_structural_grid": [
+      "h4",
+      "h4_converged",
+      "beh2"
+    ]
   },
   "systems": {
     "beh2": {
