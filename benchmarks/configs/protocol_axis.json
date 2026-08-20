@@ -25,7 +25,10 @@
     "deferred": [
       {
         "system": "h4_converged",
-        "reason": "the exact-tier shot search does not resolve this bank's crossings inside the declared endpoint grid. Its word universe is 7926 against BeH2's 1814 on the full-width arms and 2047 against 511 on the +2q arms, and four times the words to reconstruct from the same shots is four times the pencil variance, which moves the confirmed crossings from BeH2's 4096-16384 up to 16384-65536 -- against a grid whose last point is 65536. This is a deferral on resolution, not on accuracy: the bank clears the 1.6 mHa bias floor with room at 0.766 mHa, it is priced structurally in protocol_axis.json, and it is what makes QR3 eligible at the asymptotic tier in mapping_axis.json.",
+        "status": "right_censored",
+        "search_ceiling_effective_shots_per_setting": 65536,
+        "further_search": "deferred",
+        "reason": "the exact-tier shot search does not resolve this bank's crossings inside the declared endpoint grid. Its word universe is 7926 against BeH2's 1814 on the full-width arms and 2047 against 511 on the +2q arms, and four times the words to reconstruct from the same shots is four times the pencil variance, which moves the confirmed crossings from BeH2's 4096-16384 up to 16384-65536 -- against a grid whose last point is 65536. This is right-censoring on the declared shot-search domain, not an accuracy failure: the bank clears the 1.6 mHa bias floor with room at 0.766 mHa, it is priced structurally in protocol_axis.json, and it is what makes QR3 eligible at the asymptotic tier in mapping_axis.json.",
         "what_would_lift_it": "endpoints above 65536, which SEARCH_ENDPOINTS pins and exact_shot_search.json shares, so lifting it rebuilds R1's record too and is a change to both layers rather than a scope change to this one",
         "scoping_probe": {
           "is_a_record": false,

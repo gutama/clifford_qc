@@ -23,6 +23,13 @@ ARMS = ["jw", "parity", "parity+2q", "bk", "bk+2q"]
 # alone must not be able to change it silently. The two H4 rows are the same
 # instance at two subspace budgets and are ordered as a pair.
 SYSTEMS = ["h4", "h4_converged", "beh2", "h2o_cas8e6o", "hubbard_2x2"]
+STRUCTURAL_QR3_EXCLUSIONS = {
+    "h4_converged": (
+        "h4 and h4_converged are one physical H4 instance at two subspace "
+        "budgets; h4_converged is retained for subspace-robustness and P5, "
+        "not counted as another instance in structural QR3"
+    ),
+}
 
 # Both fields are (subspace energy - exact energy) in millihartree: a residue of
 # order 1e-3 mHa left by two energies of order 1e4 mHa (BeH2 sits at -15566 mHa),
@@ -490,19 +497,19 @@ def _contract_problems(record: dict) -> list[str]:
     by_key = {system["system"]: system for system in systems}
     expected_structural = {
         "qwc_settings_matched_greedy": _recompute_spread(
-            # The matched-greedy QWC set, named rather than filtered: H2O uses
-            # the scalable cover and is excluded by GROUPING_PROTOCOLS above,
-            # and naming the rest keeps a new system from joining this verdict
-            # without an edit here.
-            [
-                by_key[key]
-                for key in ("h4", "h4_converged", "beh2", "hubbard_2x2")
-            ],
+            # h4_converged is the same physical instance as h4 at a second
+            # subspace budget. It is a robustness row, not another instance.
+            [by_key[key] for key in ("h4", "beh2", "hubbard_2x2")],
             "qwc_settings",
             problems=problems,
         ),
         "mean_word_weight": _recompute_spread(
-            systems, "mean_word_weight", problems=problems
+            [
+                by_key[key]
+                for key in ("h4", "beh2", "h2o_cas8e6o", "hubbard_2x2")
+            ],
+            "mean_word_weight",
+            problems=problems,
         ),
     }
     if all(value is not None for value in expected_structural.values()):
@@ -526,6 +533,13 @@ def _contract_problems(record: dict) -> list[str]:
         )
         if qr3.get("structural_verdict") != expected_structural_verdict:
             problems.append("QR3 structural verdict disagrees with recomputed ratios")
+    robustness = qr3.get("subspace_robustness_exclusion", {})
+    if (
+        not isinstance(robustness, dict)
+        or robustness.get("systems") != list(STRUCTURAL_QR3_EXCLUSIONS)
+        or robustness.get("reason") != " ".join(STRUCTURAL_QR3_EXCLUSIONS.values())
+    ):
+        problems.append("QR3 subspace-robustness exclusion drifted")
     exclusion = qr3.get("qwc_exclusion", {})
     if not isinstance(exclusion, dict) or exclusion.get("systems") != ["h2o_cas8e6o"]:
         problems.append("QR3 QWC exclusion drifted")

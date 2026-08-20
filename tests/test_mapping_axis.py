@@ -94,6 +94,22 @@ def test_contract_recomputes_qr3_ratio_verdict():
     assert any(problem.startswith("QR3 structural:") for problem in problems)
 
 
+def test_structural_qr3_does_not_double_count_the_second_h4_bank():
+    record = json.loads(REFERENCE.read_text(encoding="utf-8"))
+    qr3 = record["qr3"]
+    for summary in qr3["structural"].values():
+        assert "h4" in summary["systems_included"]
+        assert "h4_converged" not in summary["systems_included"]
+    assert qr3["subspace_robustness_exclusion"]["systems"] == ["h4_converged"]
+
+    broken = copy.deepcopy(record)
+    broken["qr3"]["subspace_robustness_exclusion"]["systems"] = []
+    assert any(
+        "subspace-robustness exclusion drifted" in problem
+        for problem in contract_problems(broken)
+    )
+
+
 def test_jw_rebuild_preserves_the_h4_physical_bank():
     # Rebuilding an arm goes through ``FermionEncoding.restriction()``, which
     # reaches the stim bridge.  The other tests in this file read the committed

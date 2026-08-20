@@ -56,6 +56,13 @@ CONFIG = HERE / "configs" / "mapping_axis.json"
 REFERENCE = HERE / "reference_results" / "mapping_axis.json"
 DEVICE_CARDS = HERE / "configs" / "device_cards"
 SCHEMA = "clifford_qc.mapping_axis.v1"
+STRUCTURAL_QR3_EXCLUSIONS = {
+    "h4_converged": (
+        "h4 and h4_converged are one physical H4 instance at two subspace "
+        "budgets; h4_converged is retained for subspace-robustness and P5, "
+        "not counted as another instance in structural QR3"
+    ),
+}
 
 
 def _sha256_bytes(payload: bytes) -> str:
@@ -660,15 +667,29 @@ def _spread_summary(systems: Sequence[dict], metric: str) -> dict:
     }
 
 
+
 def _qr3_summary(systems: Sequence[dict], cards: Sequence[DeviceCard]) -> dict:
+    # A second bank on the same Hamiltonian is a subspace-robustness row, not a
+    # second physical instance. Keep it available to the accuracy eligibility
+    # ledger below, where the budget-8 bank fails the bias gate and the converged
+    # bank is the H4 representative, but do not double-count H4 structurally.
+    structural_systems = [
+        system
+        for system in systems
+        if system["system"] not in STRUCTURAL_QR3_EXCLUSIONS
+    ]
     matched_qwc = [
-        system for system in systems if system["grouping_protocol"] == "qwc_groups"
+        system
+        for system in structural_systems
+        if system["grouping_protocol"] == "qwc_groups"
     ]
     structural = {
         "qwc_settings_matched_greedy": _spread_summary(
             matched_qwc, "qwc_settings"
         ),
-        "mean_word_weight": _spread_summary(systems, "mean_word_weight"),
+        "mean_word_weight": _spread_summary(
+            structural_systems, "mean_word_weight"
+        ),
     }
     eligible = [
         system["system"]
@@ -689,10 +710,14 @@ def _qr3_summary(systems: Sequence[dict], cards: Sequence[DeviceCard]) -> dict:
             )
             else "mapping_spread_not_smaller_on_every_independent_metric"
         ),
+        "subspace_robustness_exclusion": {
+            "systems": list(STRUCTURAL_QR3_EXCLUSIONS),
+            "reason": " ".join(STRUCTURAL_QR3_EXCLUSIONS.values()),
+        },
         "qwc_exclusion": {
             "systems": [
                 system["system"]
-                for system in systems
+                for system in structural_systems
                 if system["grouping_protocol"] != "qwc_groups"
             ],
             "reason": (
@@ -719,12 +744,12 @@ def _qr3_summary(systems: Sequence[dict], cards: Sequence[DeviceCard]) -> dict:
         },
         "claim_boundary": (
             "like-for-like ratio comparison on algorithm-independent word weight and "
-            "matched largest-degree-greedy QWC systems; H2O scalable-cover counts and "
-            "device-card projections are descriptive only; accuracy-matched QR3 "
-            "abstains unless at least two complete systems clear the exact bias floor"
+            "matched largest-degree-greedy QWC physical instances; alternate "
+            "subspace budgets, H2O scalable-cover counts, and device-card projections "
+            "are descriptive only; accuracy-matched QR3 abstains unless at least two "
+            "complete physical instances clear the exact bias floor"
         ),
     }
-
 
 def build_record(
     *,

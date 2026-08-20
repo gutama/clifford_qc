@@ -1,4 +1,4 @@
-"""The declared banks are re-derivable, and the second one is priceable.
+"""The declared banks are re-derivable and clear the intended evidence gates.
 
 ``mapping_axis.json`` freezes each system's subspace as a list of labels. For
 most systems those labels are copied from an earlier frozen record, which is
@@ -7,7 +7,8 @@ until its own lowering threshold stops it -- so the freeze is only as good as
 a test that re-runs that rule and gets the same labels back. That is what this
 module is.
 
-It also pins the two facts that make the bank worth declaring at all: it clears
+The converged bank clears the bias gate but is exact-tier right-censored. The
+module also pins why the bank is worth declaring at all: it clears
 the 1.6 mHa target that the frozen budget-8 bank misses, and lifting the budget
 cap that produced it leaves the BeH2 bank untouched, so BeH2's existing prices
 still describe the bank they were measured on.

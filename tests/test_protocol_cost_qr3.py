@@ -10,7 +10,12 @@ checkable by hand.
 
 import pytest
 
-from benchmarks.run_protocol_cost import _instance_cost_spread, _spread_bracket
+from benchmarks.run_protocol_cost import (
+    _cost_interval,
+    _instance_cost_spread,
+    _spread_bracket,
+    _spread_extremum,
+)
 
 
 class _Card:
@@ -115,6 +120,61 @@ def test_overlapping_brackets_are_reported_as_indeterminate():
     assert payload["verdict"] == "indeterminate_at_this_shot_grid"
 
 
+
+def test_cell_extrema_are_enveloped_before_the_directional_verdict():
+    # The point-max mapping cell and point-min instance cell look separated,
+    # but different cells support the wider uncertainty endpoints. Selecting
+    # the point witnesses first would falsely report a directional result.
+    mapping_cells = [
+        {"cell": "point-max", "minimum_possible": 1.9, "point": 2.0,
+         "maximum_possible": 2.1},
+        {"cell": "wide", "minimum_possible": 1.0, "point": 1.9,
+         "maximum_possible": 10.0},
+    ]
+    instance_cells = [
+        {"cell": "point-min", "minimum_possible": 2.9, "point": 3.0,
+         "maximum_possible": 3.1},
+        {"cell": "wide", "minimum_possible": 1.0, "point": 4.0,
+         "maximum_possible": 5.0},
+    ]
+    mapping = _spread_extremum(mapping_cells, extremum="maximum")
+    instance = _spread_extremum(instance_cells, extremum="minimum")
+
+    assert mapping["point"] == 2.0
+    assert mapping["maximum_possible"] == 10.0
+    assert instance["point"] == 3.0
+    assert instance["minimum_possible"] == 1.0
+    assert mapping["supporting_cells"]["point"]["cell"] == "point-max"
+    assert mapping["supporting_cells"]["maximum_possible"]["cell"] == "wide"
+    assert not (
+        mapping["maximum_possible"] < instance["minimum_possible"]
+        or mapping["minimum_possible"] > instance["maximum_possible"]
+    )
+
+
+def test_right_censored_cost_brackets_are_not_coerced_to_finite_ratios():
+    rung = {
+        "estimators": {
+            "single_assignment": {
+                "cost_bracket": {
+                    "priced": True,
+                    "unbounded_below": False,
+                    "unbounded_above": True,
+                    "cards": {
+                        "logical-alltoall": {
+                            "admissible": True,
+                            "C_time_lower_us": 90.0,
+                            "C_time_epsilon_us": 100.0,
+                            "C_time_upper_us": None,
+                        }
+                    },
+                }
+            }
+        }
+    }
+    assert _cost_interval(rung, "logical-alltoall", "single_assignment") is None
+
+
 def test_a_cell_only_one_instance_can_run_is_excluded():
     # 'b' lost its bk arm to a fidelity floor. Counting it would report the
     # missing rung as a cost difference.
@@ -166,11 +226,16 @@ def _scoped_record(priced, deferred, *, structural=None, probe_is_record=False):
             "systems": list(priced),
             "deferred": [
                 {
+                    "status": "right_censored",
+                    "search_ceiling_effective_shots_per_setting": 65536,
+                    "further_search": "deferred",
                     **item,
                     "scoping_probe": {
                         "is_a_record": probe_is_record,
                         "exploratory_replicas": 2,
                         "confirmatory_replicas": 2,
+                        "single_assignment_cells_unresolved": 1,
+                        "single_assignment_cells_total": 1,
                     },
                 }
                 for item in deferred
@@ -280,8 +345,32 @@ def test_the_checker_subset_filter_rejects_a_deferred_system_by_name():
 
     from benchmarks.check_protocol_cost import _subset_config
 
-    with _pytest.raises(ValueError, match="deferred, not priced"):
+    with _pytest.raises(ValueError, match="deferred, not evaluated"):
         _subset_config(("h4_converged",))
+
+
+
+def test_a_deferred_system_must_name_its_evidence_status():
+    from benchmarks.check_protocol_cost import _scope_problems
+
+    record = _scoped_record(
+        ["beh2"], [{"system": "h4c", "reason": "grid ceiling", "status": ""}]
+    )
+    assert any("no evidence status" in problem for problem in _scope_problems(record))
+
+
+def test_right_censoring_pins_the_frozen_ceiling_and_search_decision():
+    from benchmarks.check_protocol_cost import _scope_problems
+
+    record = _scoped_record(
+        ["beh2"], [{"system": "h4c", "reason": "grid ceiling"}]
+    )
+    item = record["cost_layer_scope"]["deferred"][0]
+    item["search_ceiling_effective_shots_per_setting"] = 131072
+    item["further_search"] = "extended"
+    problems = _scope_problems(record)
+    assert any("frozen ceiling 65536" in problem for problem in problems)
+    assert any("further_search=deferred" in problem for problem in problems)
 
 
 def test_scope_problems_reports_a_nameless_deferral_instead_of_raising():

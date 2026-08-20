@@ -1435,7 +1435,7 @@ no arm may be given a runtime. It is recorded with status
 `bias_floor_exceeds_target` and empty cost ledgers rather than omitted:
 unattainable at this target is the measurement.
 
-*`h4_converged` passes that gate and fails the resolution one.* At 0.766 mHa it
+*`h4_converged` passes that gate and is right-censored by the resolution one.* At 0.766 mHa it
 clears the floor with a factor of two to spare, and that is what makes QR3
 eligible at the asymptotic tier in `mapping_axis.json`. But a crossing is
 resolvable only inside the `64…65536` endpoint grid, and this bank's crossings
@@ -1451,8 +1451,10 @@ point. It also took 49 minutes against the BeH2-only probe's 2, which
 extrapolates to roughly a day of four-core time at the headline replica counts,
 for a record that would still be mostly unpriced.
 
-So the deferral is on resolution, not accuracy, and the distinction is the
-finding: **clearing the bias floor is necessary for a price and is not
+So the evidence status is `right_censored` at a ceiling of `65536`, while
+`further_search: deferred` records the separate decision not to extend the
+frozen grid. The censoring is on resolution, not accuracy, and the distinction
+is the finding: **clearing the bias floor is necessary for a price and is not
 sufficient.** What would lift it is endpoints above 65536, which
 `SEARCH_ENDPOINTS` pins and `exact_shot_search.json` shares -- a change to R1
 and R3 together, not a scope change to R3.
@@ -1589,8 +1591,10 @@ The committed `JW/parity/parity+2q/BK/BK+2q` setting counts are
 `913/533/351/615/403` for H₄, `913/533/351/615/405` for H₄-converged,
 `353/41/27/41/27` for BeH₂,
 `24334/17118/9908/18108/8759` for H₂O, and `1406/798/457/907/478` for Hubbard.
-QR2 passes for every arm. The corrected ratio-versus-ratio QR3 comparison is
-negative: mapping spread is not smaller than instance spread for matched-greedy
+QR2 passes for every arm. Structural QR3 excludes `h4_converged` from the
+cross-instance denominator because it is the same physical H4 instance as `h4`
+at a second subspace budget; it remains in the record as subspace-robustness
+evidence for P5. The corrected ratio-versus-ratio QR3 comparison is negative: mapping spread is not smaller than instance spread for matched-greedy
 QWC settings (`13.074×` versus `3.983×`) or mean word weight (`1.571×` versus
 `1.489×`). Fixed-shot card rows are derived projections, not independent evidence,
 because QWC uses no two-qubit measurement gates. **Accuracy-matched QR3 no longer

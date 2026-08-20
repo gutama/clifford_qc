@@ -353,15 +353,14 @@ def _verdict_problems(prefix: str, payload: dict, mapping: str) -> list[str]:
     return problems
 
 
-def _scope_problems(record: dict) -> list[str]:
-    """Every structural system is priced or deferred with a reason, never absent.
 
-    A narrower cost layer is legitimate -- the two layers sit at different
-    evidence tiers and have never covered the same systems. What is not
-    legitimate is a system quietly missing, because a reader comparing the two
-    records would have to notice the gap and guess at it. So the scope is
-    checked against the structural grid it names, and a deferral without a
-    reason is a failure.
+def _scope_problems(record: dict) -> list[str]:
+    """Every structural system is evaluated or deferred, never silently absent.
+
+    ``cost_layer_scope.systems`` is the evaluated set. It includes a bank whose
+    bias floor makes pricing impossible, because that failure is itself the
+    result. A deferred bank separately records the evidence status and the
+    decision not to extend the frozen protocol.
     """
     problems: list[str] = []
     scope = record.get("cost_layer_scope")
@@ -373,40 +372,60 @@ def _scope_problems(record: dict) -> list[str]:
     if not isinstance(structural, list) or not structural:
         return ["the record does not name the structural grid it narrows"]
 
-    priced = list(scope.get("systems", []))
+    evaluated = list(scope.get("systems", []))
     deferred = list(scope.get("deferred", []))
-    # A deferral that does not name its system cannot take part in the
-    # partition, and sorting it alongside the named ones would raise rather
-    # than report. Name the defect and compare what is left.
-    named = [item for item in deferred if isinstance(item.get("system"), str)]
+    named = [
+        item
+        for item in deferred
+        if isinstance(item, dict) and isinstance(item.get("system"), str)
+    ]
     for index, item in enumerate(deferred):
         if item not in named:
             problems.append(f"deferral {index} names no system")
     deferred_keys = [item["system"] for item in named]
-    if not all(isinstance(key, str) for key in priced):
-        problems.append("cost-layer scope prices something that is not a system name")
-        priced = [key for key in priced if isinstance(key, str)]
-    if sorted(priced + deferred_keys) != sorted(
+    if not all(isinstance(key, str) for key in evaluated):
+        problems.append(
+            "cost-layer scope evaluates something that is not a system name"
+        )
+        evaluated = [key for key in evaluated if isinstance(key, str)]
+    if sorted(evaluated + deferred_keys) != sorted(
         key for key in structural if isinstance(key, str)
     ):
         problems.append(
-            f"cost-layer scope {sorted(priced + deferred_keys)} does not "
+            f"cost-layer scope {sorted(evaluated + deferred_keys)} does not "
             f"partition the structural grid {sorted(structural, key=repr)}"
         )
-    if set(priced) & set(deferred_keys):
-        problems.append("a system is both priced and deferred")
-    if sorted(record.get("systems", {})) != sorted(priced):
+    if set(evaluated) & set(deferred_keys):
+        problems.append("a system is both evaluated and deferred")
+    if sorted(record.get("systems", {})) != sorted(evaluated):
         problems.append(
-            "the systems the record carries are not the ones its scope prices"
+            "the systems the record carries are not the ones its scope evaluates"
         )
+
     for item in named:
         key = item["system"]
         if not item.get("reason"):
             problems.append(f"{key}: deferred with no reason")
+        status = item.get("status")
+        if not isinstance(status, str) or not status:
+            problems.append(f"{key}: deferred with no evidence status")
+        if status == "right_censored":
+            if (
+                item.get("search_ceiling_effective_shots_per_setting")
+                != SEARCH_ENDPOINTS[-1]
+            ):
+                problems.append(
+                    f"{key}: right-censored search does not name the frozen "
+                    f"ceiling {SEARCH_ENDPOINTS[-1]}"
+                )
+            if item.get("further_search") != "deferred":
+                problems.append(
+                    f"{key}: right-censored evidence does not record "
+                    "further_search=deferred"
+                )
+
         probe = item.get("scoping_probe")
         if isinstance(probe, dict) and probe.get("is_a_record") is not False:
-            # A reduced-replica probe is how the scope was decided, not
-            # evidence for a cost. It has to say so about itself.
             problems.append(f"{key}: a scoping probe does not disclaim record status")
         if isinstance(probe, dict):
             for field in ("exploratory_replicas", "confirmatory_replicas"):
@@ -420,8 +439,22 @@ def _scope_problems(record: dict) -> list[str]:
                         f"{key}: scoping probe claims {field}={value}, at or above "
                         f"the headline {headline}; that is a record, not a probe"
                     )
+            if status == "right_censored":
+                unresolved = probe.get("single_assignment_cells_unresolved")
+                total = probe.get("single_assignment_cells_total")
+                if (
+                    not isinstance(unresolved, int)
+                    or not isinstance(total, int)
+                    or unresolved <= 0
+                    or unresolved > total
+                ):
+                    problems.append(
+                        f"{key}: right-censoring probe carries no valid unresolved "
+                        "cell count"
+                    )
+        elif status == "right_censored":
+            problems.append(f"{key}: right-censored deferral carries no scoping probe")
     return problems
-
 
 def _qr3_problems(record: dict) -> list[str]:
     """QR3's verdict is re-derived from the record's own costs, not trusted.
@@ -636,31 +669,31 @@ def contract_problems(record: dict) -> list[str]:
 
 
 def _subset_config(keys: tuple[str, ...]) -> dict:
-    """Narrow the config to a rebuildable subset of the systems this layer prices.
+    """Narrow the config to a rebuildable subset of the systems this layer evaluates.
 
     Both lists move together. ``_cost_layer`` requires the cost layer's systems
     to partition the structural ones, so narrowing ``systems`` alone hands the
-    producer a config it rejects. Only priced systems may be named: a deferred
+    producer a config it rejects. Only evaluated systems may be named: a deferred
     system has nothing to rebuild, so asking for one is a mistake worth
     reporting rather than an empty comparison worth running.
     """
     config = load_config(CONFIG)
     layer = config.get("cost_layer") or {"systems": config["systems"], "deferred": []}
-    priceable = list(layer["systems"])
-    unknown = sorted(set(keys) - set(priceable))
+    evaluated = list(layer["systems"])
+    unknown = sorted(set(keys) - set(evaluated))
     if unknown:
         deferred = {
             item["system"] for item in layer.get("deferred", []) if item.get("system")
         }
         detail = sorted(set(unknown) & deferred)
-        hint = f" ({', '.join(detail)} is deferred, not priced)" if detail else ""
+        hint = f" ({', '.join(detail)} is deferred, not evaluated)" if detail else ""
         raise ValueError(f"unknown systems: {unknown}{hint}")
-    subset = [key for key in priceable if key in keys]
+    subset = [key for key in evaluated if key in keys]
     return {
         **config,
         "systems": subset,
         # The subset is its own complete partition: everything it declares is
-        # priced, nothing is deferred. The committed record's scope is not what
+        # evaluated, nothing is deferred. The committed record's scope is not what
         # a subset run compares -- it compares system subtrees -- so narrowing
         # the declaration here costs nothing and keeps the producer's own
         # partition check meaningful rather than bypassed.

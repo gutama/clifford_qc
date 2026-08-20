@@ -1906,8 +1906,8 @@ to measure — `913/533/351/615/405` settings at `k=1` against the frozen bank's
 `eligible_for_cross_instance_comparison` where it recorded
 `insufficient_eligible_instances`.
 
-At the **exact** tier it fails a second gate, and one this plan had not
-separated from the first. The nonlinear shot search resolves a crossing only
+At the **exact** tier it is **right-censored** by a second gate, and one this
+plan had not separated from the first. The nonlinear shot search resolves a crossing only
 inside `SEARCH_ENDPOINTS`, and this bank's crossings do not land there. Its word
 universe is `7926` against BeH₂'s `1814` on the full-width arms and `2047`
 against `511` on the `+2q` arms; four times the words reconstructed from the
@@ -3122,8 +3122,9 @@ not another open accuracy phase.
     grid's three banks into what it prices and what it defers, with a reason on
     each deferral, and the checker fails a record where a system is merely
     absent. `h4` is unpriced because its 3.019 mHa bank bias exceeds the target
-    on every arm; `h4_converged` is deferred because its crossings do not
-    resolve inside `SEARCH_ENDPOINTS`. Every priced cell reproduces the
+    on every arm; `h4_converged` is right-censored at the frozen `65536` search ceiling, while
+    `further_search: deferred` records the separate decision not to extend
+    `SEARCH_ENDPOINTS`. Every priced cell reproduces the
     structural grid's setting count, which is what makes this the cost layer of
     that grid.
 

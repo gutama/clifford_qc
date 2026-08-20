@@ -24,8 +24,9 @@ and the same greedy carried past the budget to its own stopping threshold --
 and fails the *resolution* one. Its word universe is 7926 against BeH2's 1814,
 and four times the words to reconstruct from the same shots is four times the
 pencil variance, which puts its crossings at 16384-65536 against a grid whose
-last point is 65536. So it is deferred rather than priced, by
-``cost_layer_scope`` and with the reason attached there. That distinction is
+last point is 65536. The crossing is therefore right-censored by the declared grid; extending
+grid is separately deferred in ``cost_layer_scope``, with both the evidence
+status and the decision recorded there. That distinction is
 worth keeping: the bias floor is necessary for a price and this record is where
 it becomes visible that it is not sufficient.
 
@@ -640,15 +641,16 @@ def _mapping_cost_spread(system: dict, card_name: str, estimator: str) -> dict:
     }
 
 
+
 def _cost_layer(config: dict) -> dict:
-    """Which systems this layer prices, and why it skips the ones it skips.
+    """Which systems this layer evaluates, and why it defers the others.
 
     The structural grid and the cost grid are not the same experiment and have
     never covered the same systems, so the cost layer reads its own scope
-    rather than inheriting the structural one. Making that explicit is the
-    point: a system added to the structural grid must not silently commit the
-    exact-tier search to it, and a system left out must carry a reason a reader
-    can weigh rather than an absence they have to notice.
+    rather than inheriting the structural one. ``systems`` means evaluated by
+    this layer, not necessarily successfully priced: a bias-floor failure is an
+    evaluated result. A deferred system must carry both its evidentiary status
+    and the decision about further search.
     """
     declared = config.get("cost_layer")
     if declared is None:
@@ -663,14 +665,27 @@ def _cost_layer(config: dict) -> dict:
     missing = sorted(known - covered)
     if missing:
         raise ValueError(
-            f"structural systems {missing} are neither priced nor deferred; a "
+            f"structural systems {missing} are neither evaluated nor deferred; a "
             "system must be one or the other, never merely absent"
         )
     for item in deferred:
+        key = item["system"]
         if not item.get("reason"):
-            raise ValueError(f"deferred system {item['system']!r} carries no reason")
+            raise ValueError(f"deferred system {key!r} carries no reason")
+        if not item.get("status"):
+            raise ValueError(f"deferred system {key!r} carries no evidence status")
+        if item["status"] == "right_censored":
+            if item.get("search_ceiling_effective_shots_per_setting") != SEARCH_ENDPOINTS[-1]:
+                raise ValueError(
+                    f"right-censored system {key!r} does not name the frozen "
+                    f"search ceiling {SEARCH_ENDPOINTS[-1]}"
+                )
+            if item.get("further_search") != "deferred":
+                raise ValueError(
+                    f"right-censored system {key!r} does not record the "
+                    "further-search decision"
+                )
     return {"systems": systems, "deferred": deferred}
-
 
 def _spread_bracket(intervals: Sequence[tuple[float, float, float]]) -> dict:
     """The spread of a set of interval-valued costs, as an interval.
@@ -695,20 +710,67 @@ def _spread_bracket(intervals: Sequence[tuple[float, float, float]]) -> dict:
     }
 
 
+
+
+def _spread_extremum(cells: Sequence[dict], *, extremum: str) -> dict:
+    """Envelope an extremum over interval-valued cell spreads.
+
+    QR3 compares ``max(mapping-cell spread)`` with
+    ``min(instance-cell spread)``. The cell with the largest or smallest point
+    estimate need not support either uncertainty endpoint. Aggregate every
+    endpoint across all cells first; otherwise a different, wider cell can be
+    hidden and an indeterminate comparison can become falsely directional.
+    """
+    if not cells:
+        raise ValueError("a spread extremum needs at least one cell")
+    if extremum not in {"maximum", "minimum"}:
+        raise ValueError(f"unsupported spread extremum {extremum!r}")
+    choose = max if extremum == "maximum" else min
+    fields = ("minimum_possible", "point", "maximum_possible")
+    witnesses = {
+        field: choose(cells, key=lambda cell: cell[field]) for field in fields
+    }
+
+    def identity(cell: dict) -> dict:
+        return {key: value for key, value in cell.items() if key not in fields}
+
+    # Keep the point witness at top level for backward-readable coordinates,
+    # but make explicit that either interval endpoint may be supported by a
+    # different cell.
+    return {
+        **identity(witnesses["point"]),
+        **{field: witnesses[field][field] for field in fields},
+        "aggregation": f"{extremum}_across_cells",
+        "supporting_cells": {
+            field: identity(witnesses[field]) for field in fields
+        },
+    }
+
+
 def _cost_interval(rung: dict, card_name: str, estimator: str):
-    """``(lower, point, upper)`` for one cell, or ``None`` if it is not priced."""
+    """Finite ``(lower, point, upper)`` for one cell, else ``None``.
+
+    An endpoint-marginal crossing at the grid ceiling is right-censored above;
+    a crossing below the first endpoint is right-censored below. Neither
+    licenses a finite ratio, so QR3 excludes that cell instead of coercing
+    ``None`` to a float or treating the lower support as zero.
+    """
     bracket = rung["estimators"][estimator]["cost_bracket"]
     entry = bracket.get("cards", {}).get(card_name)
     if entry is None or not entry.get("admissible"):
         return None
     if not bracket.get("priced"):
         return None
-    return (
-        float(entry["C_time_lower_us"]),
-        float(entry["C_time_epsilon_us"]),
-        float(entry["C_time_upper_us"]),
+    if bracket.get("unbounded_below") or bracket.get("unbounded_above"):
+        return None
+    values = (
+        entry.get("C_time_lower_us"),
+        entry.get("C_time_epsilon_us"),
+        entry.get("C_time_upper_us"),
     )
-
+    if any(value is None for value in values):
+        return None
+    return tuple(float(value) for value in values)
 
 def _instance_cost_spread(systems: dict, cards, priced: Sequence[str]) -> dict:
     """QR3 at the exact tier: mapping effect against instance effect in ``C(eps)``.
@@ -803,8 +865,8 @@ def _instance_cost_spread(systems: dict, cards, priced: Sequence[str]) -> dict:
             ),
         }
 
-    widest_mapping = max(mapping_cells, key=lambda cell: cell["point"])
-    narrowest_instance = min(instance_cells, key=lambda cell: cell["point"])
+    widest_mapping = _spread_extremum(mapping_cells, extremum="maximum")
+    narrowest_instance = _spread_extremum(instance_cells, extremum="minimum")
     if widest_mapping["maximum_possible"] < narrowest_instance["minimum_possible"]:
         verdict = "mapping_spread_smaller_than_instance_spread"
     elif widest_mapping["minimum_possible"] > narrowest_instance["maximum_possible"]:

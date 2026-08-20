@@ -11836,17 +11836,11 @@
       "qwc_settings_matched_greedy": {
         "systems_included": [
           "h4",
-          "h4_converged",
           "beh2",
           "hubbard_2x2"
         ],
         "within_system": {
           "h4": {
-            "minimum": 351.0,
-            "maximum": 913.0,
-            "mapping_spread_factor": 2.601139601139601
-          },
-          "h4_converged": {
             "minimum": 351.0,
             "maximum": 913.0,
             "mapping_spread_factor": 2.601139601139601
@@ -11897,7 +11891,6 @@
       "mean_word_weight": {
         "systems_included": [
           "h4",
-          "h4_converged",
           "beh2",
           "h2o_cas8e6o",
           "hubbard_2x2"
@@ -11907,11 +11900,6 @@
             "minimum": 4.496062992125984,
             "maximum": 6.001899335232668,
             "mapping_spread_factor": 1.3349233197452695
-          },
-          "h4_converged": {
-            "minimum": 4.5,
-            "maximum": 5.996720070644632,
-            "mapping_spread_factor": 1.3326044601432516
           },
           "beh2": {
             "minimum": 3.75,
@@ -11963,6 +11951,12 @@
       }
     },
     "structural_verdict": "mapping_spread_not_smaller_on_every_independent_metric",
+    "subspace_robustness_exclusion": {
+      "systems": [
+        "h4_converged"
+      ],
+      "reason": "h4 and h4_converged are one physical H4 instance at two subspace budgets; h4_converged is retained for subspace-robustness and P5, not counted as another instance in structural QR3"
+    },
     "qwc_exclusion": {
       "systems": [
         "h2o_cas8e6o"
@@ -11985,7 +11979,7 @@
       ],
       "verdict": "eligible_for_cross_instance_comparison"
     },
-    "claim_boundary": "like-for-like ratio comparison on algorithm-independent word weight and matched largest-degree-greedy QWC systems; H2O scalable-cover counts and device-card projections are descriptive only; accuracy-matched QR3 abstains unless at least two complete systems clear the exact bias floor"
+    "claim_boundary": "like-for-like ratio comparison on algorithm-independent word weight and matched largest-degree-greedy QWC physical instances; alternate subspace budgets, H2O scalable-cover counts, and device-card projections are descriptive only; accuracy-matched QR3 abstains unless at least two complete physical instances clear the exact bias floor"
   },
   "claim_boundary": "exact representation and resource counts plus an asymptotic single-assignment shot model; no nonlinear finite-shot mapping search, hardware calibration, optimal-coloring claim, H2O cross-heuristic QWC verdict, independent device-card corroboration, or mapping-by-protocol interaction",
   "provenance": {
