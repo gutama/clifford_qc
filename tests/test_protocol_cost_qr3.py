@@ -290,13 +290,13 @@ def test_a_probe_at_headline_replicas_is_not_a_probe():
     )
 
 
-def test_the_record_must_carry_exactly_the_systems_its_scope_prices():
+def test_the_record_must_carry_exactly_the_systems_its_scope_evaluates():
     from benchmarks.check_protocol_cost import _scope_problems
 
     record = _scoped_record(["beh2"], [{"system": "h4c", "reason": "grid ceiling"}])
     record["systems"]["h4c"] = {"status": "searched"}
     assert any(
-        "not the ones its scope prices" in problem
+        "not the ones its scope evaluates" in problem
         for problem in _scope_problems(record)
     )
 
