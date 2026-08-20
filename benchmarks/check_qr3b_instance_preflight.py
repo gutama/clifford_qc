@@ -12,6 +12,7 @@ try:
     from benchmarks.run_qr3b_instance_preflight import (
         REFERENCE,
         SCHEMA,
+        COST_DERIVATIVE_KEYS,
         build_record,
         load_config,
         resolution_decision,
@@ -20,18 +21,11 @@ except ImportError:  # pragma: no cover
     from run_qr3b_instance_preflight import (
         REFERENCE,
         SCHEMA,
+        COST_DERIVATIVE_KEYS,
         build_record,
         load_config,
         resolution_decision,
     )
-
-
-FORBIDDEN_COST_KEYS = {
-    "cost_bracket",
-    "device_costs",
-    "k_star",
-    "qr3_accuracy_matched",
-}
 
 
 def _walk_keys(value):
@@ -84,11 +78,11 @@ def contract_problems(record: dict) -> list[str]:
     else:
         problems.append("probe carries no sampling evidence")
 
-    forbidden = sorted(set(_walk_keys(probe)) & FORBIDDEN_COST_KEYS)
+    forbidden = sorted(set(_walk_keys(record)) & COST_DERIVATIVE_KEYS)
     if forbidden:
-        problems.append(f"scope probe leaks cost/verdict derivatives: {forbidden}")
-    if any(key.startswith("C_time") for key in _walk_keys(probe)):
-        problems.append("scope probe contains a C_time value")
+        problems.append(f"preflight leaks cost/verdict derivatives: {forbidden}")
+    if any(key.startswith("C_time") for key in _walk_keys(record)):
+        problems.append("preflight contains a C_time value")
 
     selection = record.get("selection", {})
     gates = record.get("acceptance_gates", {})

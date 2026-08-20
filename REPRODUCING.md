@@ -337,11 +337,11 @@ Two tiers run:
 | job | when | contents |
 | --- | --- | --- |
 | `test` | pull request, push to `main` | `ruff`, `pytest --hypothesis-profile=ci`, and the record gates that finish in about a minute: `check_docs`, `check_molecular`, `check_krylov_width`, `check_clifford_hierarchy`, `check_finite_shot_optimization`, `check_warm_start` |
-| `records` | push to `main`, manual dispatch | the four gates that rebuild their records from scratch: `check_finite_shot_rethink`, `check_mapping_axis`, `check_matched_h4`, `check_exact_shot_search` |
+| `records` | push to `main`, manual dispatch | the expensive rebuild gates: `check_finite_shot_rethink`, `check_mapping_axis`, `check_protocol_axis`, `check_protocol_cost`, `check_matched_h4`, `check_exact_shot_search`, `check_qr3b_instance_preflight` |
 
-The split is by cost, not by importance. The four long gates take roughly three,
-three, six, and twelve minutes here, so running them on every push to a pull
-request would repeat the same computation for the same answer on every rebase.
+The split is by cost, not by importance. The exact-tier nonlinear searches
+dominate and can take from minutes to hours, so running them on every push to a
+pull request would repeat the same computation for the same answer on every rebase.
 They run in a matrix with `fail-fast` disabled, because the set of failures is
 the diagnosis; the short gates in `test` run past each other's failures for the
 same reason. To gate a branch on them before merging rather than after, dispatch
@@ -1529,6 +1529,44 @@ uncertainty, as R1 is. These are logical runtimes under declared illustrative
 cards -- not a finite-sample energy certificate, a device-noise simulation, a
 hardware result, or an instance-independent preference for any mapping or block
 size.
+
+## QR3b independent-instance preflight (LiH)
+
+PR #67's H4-converged result remains right-censored at the frozen
+`64…65536` endpoint grid. The separately labelled QR3b extension therefore
+tests a chemically independent candidate instead of extending that grid or
+silently replacing the original H4-versus-BeH2 estimand:
+
+```bash
+# Optional chemistry-extra regeneration of the immutable input.
+python benchmarks/make_lih_fcidump.py
+
+# The only authorized stochastic run: 2 exploratory + 2 confirmatory replicas.
+python benchmarks/run_qr3b_instance_preflight.py --workers 4
+python benchmarks/check_qr3b_instance_preflight.py --workers 4
+```
+
+The committed input is equilibrium LiH at 1.5949 Å in STO-3G, reduced to the
+lowest four RHF canonical spatial orbitals with four active electrons and no
+frozen electron pair. Its PySCF CASCI/FCI energy is `-7.863222550891 Ha`.
+Ordinary reproduction consumes the FCIDUMP and does not require PySCF; the
+builder emits a provenance record binding the geometry, orbital choice,
+independent energy and FCIDUMP digest.
+
+Selection is fixed before mapping costs are inspected. ACASE starts from the
+Hartree–Fock determinant, receives the complete symmetry-preserving rank-at-most-two
+pool under a nonbinding implementation budget, and stops only on its intrinsic
+predicted-lowering threshold. It reproducibly selects 13 basis vectors with
+energy `-7.863222354968 Ha`, an exact-sector bias of `0.000196 mHa`, so all
+five mapping arms clear the `1.6 mHa` bias gate.
+
+The producer then reuses the exact R1/R3 nonlinear search on the five mappings,
+`k in {1,2,4,8}`, and both estimators, but freezes the probe at `2+2`
+replicas. Its record is labelled `scope_decision_only`; inherited fixed-shot
+prices and every accuracy-matched cost bracket or `k*` derivative are stripped,
+so it cannot answer QR3b and always records `full_run_authorized: false`. A
+later `30+100` run would require a separate preregistration even if every
+probe cell resolves strictly before `65536`.
 
 ## R2b raw-pool fermion-mapping axis
 

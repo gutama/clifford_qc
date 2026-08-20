@@ -57,6 +57,12 @@ CONFIG = HERE / "configs" / "qr3b_instance_preflight.json"
 REFERENCE = HERE / "reference_results" / "qr3b_instance_preflight.json"
 SCHEMA = "clifford_qc.qr3b_instance_preflight.v1"
 CONFIG_SCHEMA = "clifford_qc.qr3b_instance_preflight_config.v1"
+COST_DERIVATIVE_KEYS = {
+    "cost_bracket",
+    "device_costs",
+    "k_star",
+    "qr3_accuracy_matched",
+}
 
 
 def _file_sha256(path: Path) -> str:
@@ -208,6 +214,19 @@ def _sanitize_probe(system: dict) -> dict:
     }
 
 
+def _without_cost_derivatives(value):
+    """Remove pricing/verdict fields inherited from reusable structural producers."""
+    if isinstance(value, dict):
+        return {
+            key: _without_cost_derivatives(item)
+            for key, item in value.items()
+            if key not in COST_DERIVATIVE_KEYS and not key.startswith("C_time")
+        }
+    if isinstance(value, list):
+        return [_without_cost_derivatives(item) for item in value]
+    return value
+
+
 def resolution_decision(probe: dict, config: dict) -> dict:
     ceiling = int(
         config["acceptance_gates"]["all_probe_cells_must_resolve_strictly_before"]
@@ -317,8 +336,8 @@ def build_record(*, workers: int = 1, run_probe: bool = True) -> dict:
         "estimand": config["estimand"],
         "claim_boundary": config["claim_boundary"],
         "selection": selection,
-        "mapping_preflight": mapping,
-        "structural_protocol_preflight": structural,
+        "mapping_preflight": _without_cost_derivatives(mapping),
+        "structural_protocol_preflight": _without_cost_derivatives(structural),
         "protocol": config["protocol"],
         "acceptance_gates": config["acceptance_gates"],
     }
