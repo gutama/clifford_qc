@@ -10,10 +10,25 @@ the ``E + 2 sigma`` selected-rank sweep, replica RMSE against the exact sector
 ground energy -- once per ``(mapping arm, k)`` cell, and turns the confirmed
 shot-to-target crossings into ``C_time(epsilon)`` and the ``k*`` of PLAN §6.7.
 
-**BeH2 only, and the record says why.** H4's frozen bank carries a 3.019 mHa
-exact subspace bias against a 1.6 mHa target, so no shot count reaches the
-target on any arm and no arm may be priced. H4 is recorded with that status
-rather than dropped, because "unattainable at this target" is the measurement.
+**Still BeH2 only, and now for two different reasons.** A bank reaches a price
+by clearing two independent gates, and the structural grid's three banks fail
+them in different places.
+
+``h4`` fails the *accuracy* gate. Its budget-8 bank sits at 3.019 mHa against a
+1.6 mHa target, so no shot count reaches the target on any arm. It is recorded
+with that status rather than dropped, because "unattainable at this target" is
+the measurement.
+
+``h4_converged`` passes that gate -- 0.766 mHa, the same Hartree-Fock reference
+and the same greedy carried past the budget to its own stopping threshold --
+and fails the *resolution* one. Its word universe is 7926 against BeH2's 1814,
+and four times the words to reconstruct from the same shots is four times the
+pencil variance, which puts its crossings at 16384-65536 against a grid whose
+last point is 65536. The crossing is therefore right-censored by the declared grid; extending
+grid is separately deferred in ``cost_layer_scope``, with both the evidence
+status and the decision recorded there. That distinction is
+worth keeping: the bias floor is necessary for a price and this record is where
+it becomes visible that it is not sufficient.
 
 **A crossing is a bracket, so a cost is an interval.** The search resolves a
 shot count only to the geometric grid: the true count lies in
@@ -626,6 +641,256 @@ def _mapping_cost_spread(system: dict, card_name: str, estimator: str) -> dict:
     }
 
 
+
+def _cost_layer(config: dict) -> dict:
+    """Which systems this layer evaluates, and why it defers the others.
+
+    The structural grid and the cost grid are not the same experiment and have
+    never covered the same systems, so the cost layer reads its own scope
+    rather than inheriting the structural one. ``systems`` means evaluated by
+    this layer, not necessarily successfully priced: a bias-floor failure is an
+    evaluated result. A deferred system must carry both its evidentiary status
+    and the decision about further search.
+    """
+    declared = config.get("cost_layer")
+    if declared is None:
+        return {"systems": list(config["systems"]), "deferred": []}
+    systems = list(declared["systems"])
+    deferred = list(declared.get("deferred", []))
+    known = set(config["systems"])
+    unknown = sorted((set(systems) | {item["system"] for item in deferred}) - known)
+    if unknown:
+        raise ValueError(f"cost layer names systems the grid does not declare: {unknown}")
+    covered = set(systems) | {item["system"] for item in deferred}
+    missing = sorted(known - covered)
+    if missing:
+        raise ValueError(
+            f"structural systems {missing} are neither evaluated nor deferred; a "
+            "system must be one or the other, never merely absent"
+        )
+    for item in deferred:
+        key = item["system"]
+        if not item.get("reason"):
+            raise ValueError(f"deferred system {key!r} carries no reason")
+        if not item.get("status"):
+            raise ValueError(f"deferred system {key!r} carries no evidence status")
+        if item["status"] == "right_censored":
+            if item.get("search_ceiling_effective_shots_per_setting") != SEARCH_ENDPOINTS[-1]:
+                raise ValueError(
+                    f"right-censored system {key!r} does not name the frozen "
+                    f"search ceiling {SEARCH_ENDPOINTS[-1]}"
+                )
+            if item.get("further_search") != "deferred":
+                raise ValueError(
+                    f"right-censored system {key!r} does not record the "
+                    "further-search decision"
+                )
+    return {"systems": systems, "deferred": deferred}
+
+def _spread_bracket(intervals: Sequence[tuple[float, float, float]]) -> dict:
+    """The spread of a set of interval-valued costs, as an interval.
+
+    A cost here is never a number: it is the bracket ``(C(fail), C(pass)]`` the
+    shot grid licenses. A ratio of brackets is therefore a bracket too, and
+    reporting only the ratio of the point estimates would smuggle the precision
+    §6.7 spends the whole layer refusing to claim.
+
+    For ``spread = max_i C_i / min_j C_j`` with each ``C_i`` free in
+    ``[l_i, u_i]``: the largest it can be is ``max u / min l``, and the
+    smallest is ``max l / min u`` -- clamped at 1, because intervals that all
+    share a point can all be equal.
+    """
+    lowers = [lower for lower, _, _ in intervals]
+    points = [point for _, point, _ in intervals]
+    uppers = [upper for _, _, upper in intervals]
+    return {
+        "minimum_possible": max(1.0, max(lowers) / min(uppers)),
+        "point": max(points) / min(points),
+        "maximum_possible": max(uppers) / min(lowers),
+    }
+
+
+
+
+def _spread_extremum(cells: Sequence[dict], *, extremum: str) -> dict:
+    """Envelope an extremum over interval-valued cell spreads.
+
+    QR3 compares ``max(mapping-cell spread)`` with
+    ``min(instance-cell spread)``. The cell with the largest or smallest point
+    estimate need not support either uncertainty endpoint. Aggregate every
+    endpoint across all cells first; otherwise a different, wider cell can be
+    hidden and an indeterminate comparison can become falsely directional.
+    """
+    if not cells:
+        raise ValueError("a spread extremum needs at least one cell")
+    if extremum not in {"maximum", "minimum"}:
+        raise ValueError(f"unsupported spread extremum {extremum!r}")
+    choose = max if extremum == "maximum" else min
+    fields = ("minimum_possible", "point", "maximum_possible")
+    witnesses = {
+        field: choose(cells, key=lambda cell: cell[field]) for field in fields
+    }
+
+    def identity(cell: dict) -> dict:
+        return {key: value for key, value in cell.items() if key not in fields}
+
+    # Keep the point witness at top level for backward-readable coordinates,
+    # but make explicit that either interval endpoint may be supported by a
+    # different cell.
+    return {
+        **identity(witnesses["point"]),
+        **{field: witnesses[field][field] for field in fields},
+        "aggregation": f"{extremum}_across_cells",
+        "supporting_cells": {
+            field: identity(witnesses[field]) for field in fields
+        },
+    }
+
+
+def _cost_interval(rung: dict, card_name: str, estimator: str):
+    """Finite ``(lower, point, upper)`` for one cell, else ``None``.
+
+    An endpoint-marginal crossing at the grid ceiling is right-censored above;
+    a crossing below the first endpoint is right-censored below. Neither
+    licenses a finite ratio, so QR3 excludes that cell instead of coercing
+    ``None`` to a float or treating the lower support as zero.
+    """
+    bracket = rung["estimators"][estimator]["cost_bracket"]
+    entry = bracket.get("cards", {}).get(card_name)
+    if entry is None or not entry.get("admissible"):
+        return None
+    if not bracket.get("priced"):
+        return None
+    if bracket.get("unbounded_below") or bracket.get("unbounded_above"):
+        return None
+    values = (
+        entry.get("C_time_lower_us"),
+        entry.get("C_time_epsilon_us"),
+        entry.get("C_time_upper_us"),
+    )
+    if any(value is None for value in values):
+        return None
+    return tuple(float(value) for value in values)
+
+def _instance_cost_spread(systems: dict, cards, priced: Sequence[str]) -> dict:
+    """QR3 at the exact tier: mapping effect against instance effect in ``C(eps)``.
+
+    The question weighs the largest spread one mapping choice can produce
+    against the smallest spread simply changing instance produces, so both
+    sides must be measured the same way and on cells the two instances share.
+    A cell here is ``(card, estimator, arm, k)``; it counts only when both
+    priced instances have it admissible, which keeps a rung one instance lost
+    to a fidelity floor from entering as a cost difference.
+
+    The verdict is three-valued on purpose. Point ratios always order, but the
+    brackets they come from often overlap, and an overlap means the grid did
+    not separate the two effects -- which is a finding about resolution, not a
+    mapping result, and §6.7's rule one level up.
+    """
+    if len(priced) < 2:
+        return {
+            "status": "abstains",
+            "priced_instances": list(priced),
+            "reason": (
+                "an accuracy-matched mapping-versus-instance comparison needs "
+                "two priced instances; the mapping spread in C(epsilon) is "
+                "recorded per system, the cross-instance verdict is not. Which "
+                "banks are eligible and which are deferred, with the reason, is "
+                "cost_layer_scope"
+            ),
+        }
+
+    mapping_cells: list[dict] = []
+    instance_cells: list[dict] = []
+    for card in cards:
+        for estimator in ESTIMATORS:
+            # The mapping side, per instance: arms of equal measured width at a
+            # fixed k, which is the comparison the structural record already
+            # makes and the only one that is not a register-size artefact.
+            for key in priced:
+                by_cell: dict[tuple[int, int], list] = {}
+                for arm in systems[key]["arms"]:
+                    for rung in arm["rungs"]:
+                        interval = _cost_interval(rung, card.name, estimator)
+                        if interval is None:
+                            continue
+                        by_cell.setdefault(
+                            (arm["measured_qubits"], rung["block_size"]), []
+                        ).append((arm["mapping"], interval))
+                for (width, block_size), entries in sorted(by_cell.items()):
+                    if len(entries) < 2:
+                        continue
+                    mapping_cells.append({
+                        "system": key,
+                        "card": card.name,
+                        "estimator": estimator,
+                        "measured_qubits": width,
+                        "block_size": block_size,
+                        "arms": [name for name, _ in entries],
+                        **_spread_bracket([value for _, value in entries]),
+                    })
+
+            # The instance side: one arm and one k, the two instances against
+            # each other.
+            shared: dict[tuple[str, int, int], dict[str, tuple]] = {}
+            for key in priced:
+                for arm in systems[key]["arms"]:
+                    for rung in arm["rungs"]:
+                        interval = _cost_interval(rung, card.name, estimator)
+                        if interval is None:
+                            continue
+                        cell = (arm["mapping"], arm["measured_qubits"],
+                                rung["block_size"])
+                        shared.setdefault(cell, {})[key] = interval
+            for (mapping, width, block_size), found in sorted(shared.items()):
+                if len(found) != len(priced):
+                    continue
+                instance_cells.append({
+                    "card": card.name,
+                    "estimator": estimator,
+                    "mapping": mapping,
+                    "measured_qubits": width,
+                    "block_size": block_size,
+                    "systems": list(priced),
+                    **_spread_bracket([found[key] for key in priced]),
+                })
+
+    if not mapping_cells or not instance_cells:
+        return {
+            "status": "abstains",
+            "priced_instances": list(priced),
+            "reason": (
+                "no (card, estimator, arm, k) cell is admissible and priced on "
+                "both instances, so there is nothing to compare like for like"
+            ),
+        }
+
+    widest_mapping = _spread_extremum(mapping_cells, extremum="maximum")
+    narrowest_instance = _spread_extremum(instance_cells, extremum="minimum")
+    if widest_mapping["maximum_possible"] < narrowest_instance["minimum_possible"]:
+        verdict = "mapping_spread_smaller_than_instance_spread"
+    elif widest_mapping["minimum_possible"] > narrowest_instance["maximum_possible"]:
+        verdict = "mapping_spread_not_smaller_than_instance_spread"
+    else:
+        verdict = "indeterminate_at_this_shot_grid"
+    return {
+        "status": "compared",
+        "priced_instances": list(priced),
+        "compared_cells": {
+            "mapping": len(mapping_cells),
+            "instance": len(instance_cells),
+        },
+        "widest_mapping_spread": widest_mapping,
+        "narrowest_instance_spread": narrowest_instance,
+        "verdict": verdict,
+        "claim_boundary": (
+            "one accuracy target, one candidate family, and two instances of "
+            "eight qubits each; a verdict about these two banks under these "
+            "three cards, not about fermion mappings in general"
+        ),
+    }
+
+
 def _system_summary(system: dict, cards) -> dict:
     output = {}
     for card in cards:
@@ -726,9 +991,10 @@ def build_record(
     arms: Sequence[str] = config["mapping_arms"]
     block_sizes = config["protocol"]["block_sizes"]
     frozen = structural_settings()
+    cost_layer = _cost_layer(config)
 
     systems = {}
-    for key in config["systems"]:
+    for key in cost_layer["systems"]:
         arm_records = []
         cells: list[tuple] = []
         for arm_index, mapping in enumerate(arms):
@@ -839,19 +1105,20 @@ def build_record(
         "structural_reference": {
             "path": "benchmarks/reference_results/protocol_axis.json",
             "settings_reproduced": True,
+            # The structural grid is wider than this one, and the difference is
+            # declared rather than left for a reader to spot by comparing the
+            # two records' system lists.
+            "systems_in_structural_grid": list(config["systems"]),
         },
+        "cost_layer_scope": cost_layer,
         "r1_reference": {
             "path": "benchmarks/reference_results/exact_shot_search.json",
         },
-        "qr3_accuracy_matched": {
-            "status": "abstains",
-            "reason": (
-                "an accuracy-matched mapping-versus-instance comparison needs "
-                "two priced instances, and only BeH2 clears its bias floor; the "
-                "mapping spread in C(epsilon) is recorded, the cross-instance "
-                "verdict is not"
-            ),
-        },
+        "qr3_accuracy_matched": _instance_cost_spread(
+            systems,
+            cards,
+            [key for key, value in systems.items() if value["status"] == "searched"],
+        ),
         "device_cards": [
             {"sha256": card.sha256, **card.to_dict()} for card in cards
         ],

@@ -10,8 +10,9 @@ The contracts, in the order a reader should care about them:
 * the setting count of every ``(arm, k)`` cell reproduces the structural R3
   grid -- the condition that makes this the cost layer *of that grid* rather
   than a second, differently-partitioned experiment;
-* H4 is unpriced and says why, since its bank's bias floor already exceeds the
-  target on every arm;
+* every system's priced/unpriced status agrees with its own bias floor -- the
+  budget-8 H4 bank exceeds the target on every arm and must stay unpriced, the
+  converged one clears it and must not;
 * each crossing satisfies R1's own pricing rules -- smallest confirmed pass,
   a confirmed failure below it, monotone confirmation, one retained rank at
   both deciding endpoints, and margins that agree with the marginal flag;
@@ -27,8 +28,10 @@ The contracts, in the order a reader should care about them:
 
 from __future__ import annotations
 
+import argparse
 import json
 import sys
+from types import SimpleNamespace
 
 from clifford_qc.reproducibility import (
     compare_json_records,
@@ -46,9 +49,12 @@ try:  # package import in tests versus direct script execution
         SEARCH_ENDPOINTS,
     )
     from benchmarks.run_protocol_cost import (
+        CONFIG,
         REFERENCE,
         SCHEMA,
+        _instance_cost_spread,
         build_record,
+        load_config,
         r1_crossings,
         structural_settings,
     )
@@ -63,9 +69,12 @@ except ImportError:  # pragma: no cover - direct script execution
         SEARCH_ENDPOINTS,
     )
     from run_protocol_cost import (
+        CONFIG,
         REFERENCE,
         SCHEMA,
+        _instance_cost_spread,
         build_record,
+        load_config,
         r1_crossings,
         structural_settings,
     )
@@ -344,7 +353,144 @@ def _verdict_problems(prefix: str, payload: dict, mapping: str) -> list[str]:
     return problems
 
 
-def contract_problems(record: dict) -> list[str]:
+
+def _scope_problems(record: dict) -> list[str]:
+    """Every structural system is evaluated or deferred, never silently absent.
+
+    ``cost_layer_scope.systems`` is the evaluated set. It includes a bank whose
+    bias floor makes pricing impossible, because that failure is itself the
+    result. A deferred bank separately records the evidence status and the
+    decision not to extend the frozen protocol.
+    """
+    problems: list[str] = []
+    scope = record.get("cost_layer_scope")
+    if not isinstance(scope, dict):
+        return ["the cost layer declares no scope"]
+    structural = record.get("structural_reference", {}).get(
+        "systems_in_structural_grid"
+    )
+    if not isinstance(structural, list) or not structural:
+        return ["the record does not name the structural grid it narrows"]
+
+    evaluated = list(scope.get("systems", []))
+    deferred = list(scope.get("deferred", []))
+    named = [
+        item
+        for item in deferred
+        if isinstance(item, dict) and isinstance(item.get("system"), str)
+    ]
+    for index, item in enumerate(deferred):
+        if item not in named:
+            problems.append(f"deferral {index} names no system")
+    deferred_keys = [item["system"] for item in named]
+    if not all(isinstance(key, str) for key in evaluated):
+        problems.append(
+            "cost-layer scope evaluates something that is not a system name"
+        )
+        evaluated = [key for key in evaluated if isinstance(key, str)]
+    if sorted(evaluated + deferred_keys) != sorted(
+        key for key in structural if isinstance(key, str)
+    ):
+        problems.append(
+            f"cost-layer scope {sorted(evaluated + deferred_keys)} does not "
+            f"partition the structural grid {sorted(structural, key=repr)}"
+        )
+    if set(evaluated) & set(deferred_keys):
+        problems.append("a system is both evaluated and deferred")
+    if sorted(record.get("systems", {})) != sorted(evaluated):
+        problems.append(
+            "the systems the record carries are not the ones its scope evaluates"
+        )
+
+    for item in named:
+        key = item["system"]
+        if not item.get("reason"):
+            problems.append(f"{key}: deferred with no reason")
+        status = item.get("status")
+        if not isinstance(status, str) or not status:
+            problems.append(f"{key}: deferred with no evidence status")
+        if status == "right_censored":
+            if (
+                item.get("search_ceiling_effective_shots_per_setting")
+                != SEARCH_ENDPOINTS[-1]
+            ):
+                problems.append(
+                    f"{key}: right-censored search does not name the frozen "
+                    f"ceiling {SEARCH_ENDPOINTS[-1]}"
+                )
+            if item.get("further_search") != "deferred":
+                problems.append(
+                    f"{key}: right-censored evidence does not record "
+                    "further_search=deferred"
+                )
+
+        probe = item.get("scoping_probe")
+        if isinstance(probe, dict) and probe.get("is_a_record") is not False:
+            problems.append(f"{key}: a scoping probe does not disclaim record status")
+        if isinstance(probe, dict):
+            for field in ("exploratory_replicas", "confirmatory_replicas"):
+                value = probe.get(field)
+                headline = (
+                    EXPLORATORY_REPLICAS if field.startswith("expl")
+                    else CONFIRMATORY_REPLICAS
+                )
+                if isinstance(value, int) and value >= headline:
+                    problems.append(
+                        f"{key}: scoping probe claims {field}={value}, at or above "
+                        f"the headline {headline}; that is a record, not a probe"
+                    )
+            if status == "right_censored":
+                unresolved = probe.get("single_assignment_cells_unresolved")
+                total = probe.get("single_assignment_cells_total")
+                if (
+                    not isinstance(unresolved, int)
+                    or not isinstance(total, int)
+                    or unresolved <= 0
+                    or unresolved > total
+                ):
+                    problems.append(
+                        f"{key}: right-censoring probe carries no valid unresolved "
+                        "cell count"
+                    )
+        elif status == "right_censored":
+            problems.append(f"{key}: right-censored deferral carries no scoping probe")
+    return problems
+
+def _qr3_problems(record: dict) -> list[str]:
+    """QR3's verdict is re-derived from the record's own costs, not trusted.
+
+    This is the contract that most needs re-deriving rather than reading: the
+    verdict is the one field a reader will quote, it is a *conclusion* rather
+    than a measurement, and the producer that wrote it is the code under test.
+    So the check recomputes the whole payload from the priced cells the record
+    itself carries and requires the stored one to match.
+    """
+    problems: list[str] = []
+    stored = record.get("qr3_accuracy_matched")
+    if not isinstance(stored, dict):
+        return ["the accuracy-matched mapping-versus-instance verdict is missing"]
+    systems = record.get("systems", {})
+    priced = [
+        key for key, value in systems.items() if value.get("status") == "searched"
+    ]
+    cards = [
+        SimpleNamespace(name=card.get("name"))
+        for card in record.get("device_cards", [])
+    ]
+    if (stored.get("status") == "abstains") != (len(priced) < 2):
+        problems.append(
+            f"QR3 status {stored.get('status')!r} disagrees with {len(priced)} "
+            "priced instance(s): it abstains if and only if fewer than two are priced"
+        )
+    derived = _instance_cost_spread(systems, cards, priced)
+    problems.extend(
+        f"QR3: {problem}"
+        for problem in compare_json_records(stored, derived, atol=0.0, rtol=1e-12)
+    )
+    return problems
+
+
+def _contract_problems(record: dict) -> list[str]:
     problems: list[str] = []
     if record.get("schema") != SCHEMA:
         problems.append(f"unexpected schema {record.get('schema')!r}")
@@ -366,11 +512,8 @@ def contract_problems(record: dict) -> list[str]:
             "the accuracy target drifted from the one the rest of R1-R3 is "
             "matched at, so these costs are not comparable to their records"
         )
-    if record.get("qr3_accuracy_matched", {}).get("status") != "abstains":
-        problems.append(
-            "the accuracy-matched mapping-versus-instance verdict is not an "
-            "abstention, but only one instance is priced"
-        )
+    problems.extend(_qr3_problems(record))
+    problems.extend(_scope_problems(record))
     card_hashes = {card.get("name"): card.get("sha256") for card in record.get("device_cards", [])}
     if not card_hashes:
         problems.append("no device cards declared")
@@ -510,7 +653,68 @@ def contract_problems(record: dict) -> list[str]:
     return problems
 
 
+def contract_problems(record: dict) -> list[str]:
+    """Reject malformed records with diagnostics rather than a traceback.
+
+    A checker that raises on a broken record tells the reader less than one
+    that names the breakage, and the record it is handed is exactly the thing
+    that might be broken. ``check_mapping_axis.py`` has guarded this way from
+    the start; this module had not, which is how a deferral entry missing its
+    ``system`` key could reach a ``sorted`` call and abort the whole run.
+    """
+    try:
+        return _contract_problems(record)
+    except (AttributeError, KeyError, TypeError, ValueError, OverflowError) as exc:
+        return [f"malformed record reached a guarded checker path: {exc}"]
+
+
+def _subset_config(keys: tuple[str, ...]) -> dict:
+    """Narrow the config to a rebuildable subset of the systems this layer evaluates.
+
+    Both lists move together. ``_cost_layer`` requires the cost layer's systems
+    to partition the structural ones, so narrowing ``systems`` alone hands the
+    producer a config it rejects. Only evaluated systems may be named: a deferred
+    system has nothing to rebuild, so asking for one is a mistake worth
+    reporting rather than an empty comparison worth running.
+    """
+    config = load_config(CONFIG)
+    layer = config.get("cost_layer") or {"systems": config["systems"], "deferred": []}
+    evaluated = list(layer["systems"])
+    unknown = sorted(set(keys) - set(evaluated))
+    if unknown:
+        deferred = {
+            item["system"] for item in layer.get("deferred", []) if item.get("system")
+        }
+        detail = sorted(set(unknown) & deferred)
+        hint = f" ({', '.join(detail)} is deferred, not evaluated)" if detail else ""
+        raise ValueError(f"unknown systems: {unknown}{hint}")
+    subset = [key for key in evaluated if key in keys]
+    return {
+        **config,
+        "systems": subset,
+        # The subset is its own complete partition: everything it declares is
+        # evaluated, nothing is deferred. The committed record's scope is not what
+        # a subset run compares -- it compares system subtrees -- so narrowing
+        # the declaration here costs nothing and keeps the producer's own
+        # partition check meaningful rather than bypassed.
+        "cost_layer": {**layer, "systems": subset, "deferred": []},
+    }
+
+
 def main() -> int:
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument(
+        "--systems",
+        default="",
+        help=(
+            "comma-separated subset to rebuild and compare; omitted means the "
+            "whole record. The record-level contracts are re-derived from the "
+            "committed record either way, so a subset run still gates them -- "
+            "what a subset cannot do is prove the systems it skipped rebuild."
+        ),
+    )
+    args = parser.parse_args()
+    keys = tuple(value for value in args.systems.split(",") if value)
     expected = json.loads(REFERENCE.read_text(encoding="utf-8"))
     # Same reason check_exact_shot_search states: every value here descends from
     # sampled shots fed through an ill-conditioned projected eigensolve, so a
@@ -532,8 +736,27 @@ def main() -> int:
             print("  the committed record still passes every contract check "
                   "that does not require a rebuild")
         return 1
-    actual = build_record(workers=4)
-    problems = compare_json_records(expected, actual, atol=1e-12, rtol=1e-12)
+    if keys:
+        # A subset rebuild is compared subtree by subtree rather than whole:
+        # the record-level summaries are functions of *every* system, so a
+        # partial rebuild would legitimately differ on them and comparing them
+        # would report that as drift. They are re-derived from the committed
+        # record below, which needs no rebuild at all.
+        actual = build_record(workers=4, config=_subset_config(keys))
+        problems = []
+        for key in keys:
+            problems.extend(
+                f"{key}: {problem}"
+                for problem in compare_json_records(
+                    expected["systems"][key],
+                    actual["systems"][key],
+                    atol=1e-12,
+                    rtol=1e-12,
+                )
+            )
+    else:
+        actual = build_record(workers=4)
+        problems = compare_json_records(expected, actual, atol=1e-12, rtol=1e-12)
     problems.extend(contract_problems(expected))
     problems.extend(f"rebuilt record: {problem}" for problem in contract_problems(actual))
     if problems:

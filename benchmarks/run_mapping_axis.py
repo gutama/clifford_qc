@@ -56,6 +56,13 @@ CONFIG = HERE / "configs" / "mapping_axis.json"
 REFERENCE = HERE / "reference_results" / "mapping_axis.json"
 DEVICE_CARDS = HERE / "configs" / "device_cards"
 SCHEMA = "clifford_qc.mapping_axis.v1"
+STRUCTURAL_QR3_EXCLUSIONS = {
+    "h4_converged": (
+        "h4 and h4_converged are one physical H4 instance at two subspace "
+        "budgets; h4_converged is retained for subspace-robustness and P5, "
+        "not counted as another instance in structural QR3"
+    ),
+}
 
 
 def _sha256_bytes(payload: bytes) -> str:
@@ -524,6 +531,10 @@ def build_system_record(
     if grouping_protocol not in ("qwc_groups", "qwc_basis_cover"):
         raise ValueError(f"missing grouping protocol for {spec['key']}")
     model, construction = _build_model(spec)
+    if not spec.get("selection_source") and not spec.get("selection_rule"):
+        raise ValueError(
+            f"{spec['key']} declares neither a selection source nor a selection rule"
+        )
     selection = _selection_row(spec)
     if selection is not None:
         recorded_labels = selection.get("labels") or selection.get("basis_labels")
@@ -545,7 +556,16 @@ def build_system_record(
         int(model.metadata["n_electrons"]),
         float(model.metadata["sz"]),
     )
-    exact_energy = float(backend.ground_state(model.hamiltonian, k=1)[0][0])
+    # ``method='dense'`` rather than the default ``'auto'``. Every energy this
+    # record reports is a difference against this reference in millihartree --
+    # a residue of order 1 against energies of order 1e4 -- so ARPACK's
+    # process-dependent last bit (a measured 5e-14 Ha spread) lands as a
+    # ~1e-10 mHa shift on the whole record at once. ``run_protocol_cost.py``
+    # already takes the dense path for this reason; this closes the same hole
+    # here, where the record is being rebuilt anyway.
+    exact_energy = float(
+        backend.ground_state(model.hamiltonian, k=1, method="dense")[0][0]
+    )
     external = construction.get("external_sector_energy")
     if external is not None and abs(exact_energy - float(external)) > 5e-10:
         raise ValueError(f"sector solve disagrees with external reference for {spec['key']}")
@@ -587,6 +607,12 @@ def build_system_record(
             "source": spec.get("selection_source"),
             "source_row_sha256": spec.get("selection_row_sha256"),
             "source_file_sha256": spec.get("selection_file_sha256"),
+            # A system whose labels come from a frozen record cites the record;
+            # one whose labels come from running the growth rule to its own
+            # stopping threshold cites the rule, and a test re-derives it. Both
+            # are freezes -- what must never happen is a selection that cites
+            # neither, which is why the builder rejects that below.
+            "selection_rule": spec.get("selection_rule"),
         },
         "arms": rows,
     }
@@ -641,15 +667,29 @@ def _spread_summary(systems: Sequence[dict], metric: str) -> dict:
     }
 
 
+
 def _qr3_summary(systems: Sequence[dict], cards: Sequence[DeviceCard]) -> dict:
+    # A second bank on the same Hamiltonian is a subspace-robustness row, not a
+    # second physical instance. Keep it available to the accuracy eligibility
+    # ledger below, where the budget-8 bank fails the bias gate and the converged
+    # bank is the H4 representative, but do not double-count H4 structurally.
+    structural_systems = [
+        system
+        for system in systems
+        if system["system"] not in STRUCTURAL_QR3_EXCLUSIONS
+    ]
     matched_qwc = [
-        system for system in systems if system["grouping_protocol"] == "qwc_groups"
+        system
+        for system in structural_systems
+        if system["grouping_protocol"] == "qwc_groups"
     ]
     structural = {
         "qwc_settings_matched_greedy": _spread_summary(
             matched_qwc, "qwc_settings"
         ),
-        "mean_word_weight": _spread_summary(systems, "mean_word_weight"),
+        "mean_word_weight": _spread_summary(
+            structural_systems, "mean_word_weight"
+        ),
     }
     eligible = [
         system["system"]
@@ -670,10 +710,14 @@ def _qr3_summary(systems: Sequence[dict], cards: Sequence[DeviceCard]) -> dict:
             )
             else "mapping_spread_not_smaller_on_every_independent_metric"
         ),
+        "subspace_robustness_exclusion": {
+            "systems": list(STRUCTURAL_QR3_EXCLUSIONS),
+            "reason": " ".join(STRUCTURAL_QR3_EXCLUSIONS.values()),
+        },
         "qwc_exclusion": {
             "systems": [
                 system["system"]
-                for system in systems
+                for system in structural_systems
                 if system["grouping_protocol"] != "qwc_groups"
             ],
             "reason": (
@@ -700,12 +744,12 @@ def _qr3_summary(systems: Sequence[dict], cards: Sequence[DeviceCard]) -> dict:
         },
         "claim_boundary": (
             "like-for-like ratio comparison on algorithm-independent word weight and "
-            "matched largest-degree-greedy QWC systems; H2O scalable-cover counts and "
-            "device-card projections are descriptive only; accuracy-matched QR3 "
-            "abstains unless at least two complete systems clear the exact bias floor"
+            "matched largest-degree-greedy QWC physical instances; alternate "
+            "subspace budgets, H2O scalable-cover counts, and device-card projections "
+            "are descriptive only; accuracy-matched QR3 abstains unless at least two "
+            "complete physical instances clear the exact bias floor"
         ),
     }
-
 
 def build_record(
     *,

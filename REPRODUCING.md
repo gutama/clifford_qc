@@ -1358,38 +1358,47 @@ python benchmarks/check_protocol_axis.py     # rebuilds and compares, then re-de
 ```
 
 Sweeps the dyadic block-commuting rung `k in {1, 2, 4, 8}` inside each of R2b's
-five mapping arms on H4 and BeH2, discharging the two quantities the R2b record
-listed under `deferred_to_r3`: `G(k)` and coverage across protocol rungs. `k` is
-clamped to the arm's measured register, so a `+2q` arm records `k = 6`.
+five mapping arms on H4, H4-converged and BeH2, discharging the two quantities
+the R2b record listed under `deferred_to_r3`: `G(k)` and coverage across
+protocol rungs. `k` is clamped to the arm's measured register, so a `+2q` arm
+records `k = 6`.
 
 The `k = 1` column reproduces the setting count R2b froze on every arm --
-H4 `913/533/351/615/403`, BeH2 `353/41/27/41/27` -- and the producer raises
-rather than writing a record if it does not. That agreement is what makes the
-grid an extension of the frozen record instead of a separate experiment: one
-grouping rule spans it, `block_commuting_partition` at `k = 1` being exactly
-qubit-wise commutation.
+H4 `913/533/351/615/403`, H4-converged `913/533/351/615/405`,
+BeH2 `353/41/27/41/27` -- and the producer raises rather than writing a record
+if it does not. That agreement is what makes the grid an extension of the
+frozen record instead of a separate experiment: one grouping rule spans it,
+`block_commuting_partition` at `k = 1` being exactly qubit-wise commutation.
 
 Labelled `structural`. It reports group counts, coverage, and the synthesis
 resources a declared card prices at uniform shots; it does **not** price an
-accuracy-matched `C(epsilon)`, which needs R1's exact-tier shot search and which
-only BeH2 clears on its bias floor. That layer is the separate producer below.
+accuracy-matched `C(epsilon)`, which needs R1's exact-tier shot search. That
+layer is the separate producer below.
 
-**Known, unfixed: this record's exact reference is not bit-reproducible.** Its
-`error_millihartree` column carries a loosened `(1e-10, 1e-8)` tolerance whose
-stated reason is cancellation. Cancellation is real, but it is not the whole
-cause. `SectorStatevectorBackend.ground_state` defaults to `method='auto'`,
-which selects ARPACK for `k = 1` below the sector dimension, and ARPACK returns
-a different last bit in every process — three calls on the same BeH2
-Hamiltonian give `-15.566211795095189`, `...217` and `...239`, against
+**Fixed here: this record's exact reference is now bit-reproducible.**
+`SectorStatevectorBackend.ground_state` defaults to `method='auto'`, which
+selects ARPACK for `k = 1` below the sector dimension, and ARPACK returns a
+different last bit in every process -- three calls on the same BeH2 Hamiltonian
+gave `-15.566211795095189`, `...217` and `...239`, against
 `-15.566211795095168` from `method='dense'` every time. Against energies of
-order `1e4` mHa that `5e-14` Ha spread is a `1e-10` mHa shift on the residue,
-which is the scale the tolerance was widened to. `run_protocol_cost.py` takes
-the dense path for exactly this reason and compares at `1e-12` with no
-per-field tolerance at all. Nothing here is wrong — the setting counts this
-record exists to report are integers and unaffected — but the same one-line
-change would let this record tighten too, and `run_mapping_axis.py` shares the
-pattern. Both are left alone deliberately: changing them rewrites frozen floats
-in records this branch was not asked to touch.
+order `1e4` mHa that `5e-14` Ha spread lands as a `1e-10` mHa shift on the
+`error_millihartree` residue, which is part of what the loosened `(1e-10, 1e-8)`
+tolerance was absorbing under the heading of cancellation.
+
+`run_protocol_axis.py` and `run_mapping_axis.py` now both take the dense path,
+which `run_protocol_cost.py` already did. Regenerating both records moved
+exactly the two energy-difference fields and nothing else -- setting counts,
+coverage, weights, synthesis resources, device costs and every digest are bit
+identical to the previous record -- and the two records' `exact_sector_energy`
+now agree with each other exactly, where before each carried its own ARPACK
+draw.
+
+The `(1e-10, 1e-8)` tolerance stays. ARPACK was one cause of the drift, not the
+only one: `check_mapping_axis.py` documents a measured `1.5e-10` mHa spread
+between `OMP_NUM_THREADS=1` and `=8` on the same code path, which the default
+`atol=1e-10` sits directly on top of and which this change does not touch.
+Tightening the gate on the strength of the ARPACK fix alone would trade a
+reproducible record for a flaky one.
 
 ## R3 accuracy-matched `C(epsilon)` and `k*` regions
 
@@ -1414,11 +1423,41 @@ core-hours, and the BeH2 `jw k=1` cell alone -- 353 settings times 130 replicas
 times the nested grid -- is half an hour of it. The `records` CI job's timeout
 is sized for it.
 
-**H4 is not priced, and the record says why.** Its bank's 3.019 mHa exact
-subspace bias exceeds the target on all five arms, so no shot count reaches
-1.6 mHa and no arm may be given a runtime. It is recorded with status
+**Two gates, and the structural grid's three banks fail them in two different
+places.** `cost_layer_scope` partitions that grid into what this record prices
+and what it defers, with a reason on each deferral, and
+`check_protocol_cost.py` fails a record where a system is merely absent from
+both.
+
+*`h4` fails the accuracy gate.* Its budget-8 bank's 3.019 mHa exact subspace
+bias exceeds the target on all five arms, so no shot count reaches 1.6 mHa and
+no arm may be given a runtime. It is recorded with status
 `bias_floor_exceeds_target` and empty cost ledgers rather than omitted:
 unattainable at this target is the measurement.
+
+*`h4_converged` passes that gate and is right-censored by the resolution one.* At 0.766 mHa it
+clears the floor with a factor of two to spare, and that is what makes QR3
+eligible at the asymptotic tier in `mapping_axis.json`. But a crossing is
+resolvable only inside the `64…65536` endpoint grid, and this bank's crossings
+are not. Its word universe is 7926 against BeH2's 1814 on the full-width arms
+and 2047 against 511 on the `+2q` arms; four times the words reconstructed from
+the same shots is four times the pencil variance, which moves the confirmed
+crossings from BeH2's 4096-16384 up to 16384-65536, against a grid whose last
+point is 65536. A reduced-replica scoping probe -- 2 exploratory and 2
+confirmatory, recorded in the config and labelled `is_a_record: false` because
+no number in it may be quoted as a cost -- left 12 of 20 single-assignment
+cells unresolved and put three of the eight that did confirm on the final grid
+point. It also took 49 minutes against the BeH2-only probe's 2, which
+extrapolates to roughly a day of four-core time at the headline replica counts,
+for a record that would still be mostly unpriced.
+
+So the evidence status is `right_censored` at a ceiling of `65536`, while
+`further_search: deferred` records the separate decision not to extend the
+frozen grid. The censoring is on resolution, not accuracy, and the distinction
+is the finding: **clearing the bias floor is necessary for a price and is not
+sufficient.** What would lift it is endpoints above 65536, which
+`SEARCH_ENDPOINTS` pins and `exact_shot_search.json` shares -- a change to R1
+and R3 together, not a scope change to R3.
 
 **A crossing is a bracket, so a cost is an interval.** The search resolves a
 shot count only to the geometric grid -- the true count lies in
@@ -1468,9 +1507,12 @@ two `+2q` arms are priced identically at every rung under single assignment and
 differ only at `k = 6` under pooling, where one grid step of shot count separates
 them by `4.00x`, the largest equal-width spread in the record -- but the
 question asks whether the mapping effect exceeds the *instance* spread, and an
-instance spread needs two priced instances. Only BeH2 clears its bias floor, so
-the record carries `qr3_accuracy_matched: abstains` and the checker fails any
-record that upgrades it.
+instance spread needs two priced instances. A second bank that clears the bias
+floor now exists -- `h4_converged` -- and it is deferred here on resolution
+rather than accuracy, per `cost_layer_scope` above. So the record still carries
+`qr3_accuracy_matched: abstains`; the checker re-derives that verdict from the
+record's own priced cells rather than reading it, and fails any record that
+upgrades it or that drops a structural system without deferring it.
 
 **The `jw` column reprices R1's BeH2 search under an independent stream**, and
 the result is the sharpest corroboration in this record of R1's own marginal
@@ -1540,22 +1582,29 @@ physical scale and stated rather than tuned until the gate passes.
 `benchmarks/configs/mapping_axis.json` pins the five-arm order, selected raw-pool
 labels and source-row hashes, the grouping protocol for each system, 8000 raw shots
 per setting, the single-assignment estimator, the 1.6 mHa target, and all four
-inputs. H₄, BeH₂, and Hubbard use the established largest-degree greedy. H₂O alone
-uses the scalable full-basis-seeded first-fit cover; its setting counts are
+inputs. H₄ (both banks), BeH₂, and Hubbard use the established largest-degree
+greedy. H₂O alone uses the scalable full-basis-seeded first-fit cover; its setting counts are
 constructive upper bounds and are excluded from the cross-instance QWC verdict.
 Neither protocol claims a minimum coloring.
 
 The committed `JW/parity/parity+2q/BK/BK+2q` setting counts are
-`913/533/351/615/403` for H₄, `353/41/27/41/27` for BeH₂,
+`913/533/351/615/403` for H₄, `913/533/351/615/405` for H₄-converged,
+`353/41/27/41/27` for BeH₂,
 `24334/17118/9908/18108/8759` for H₂O, and `1406/798/457/907/478` for Hubbard.
-QR2 passes for every arm. The corrected ratio-versus-ratio QR3 comparison is
-negative: mapping spread is not smaller than instance spread for matched-greedy
+QR2 passes for every arm. Structural QR3 excludes `h4_converged` from the
+cross-instance denominator because it is the same physical H4 instance as `h4`
+at a second subspace budget; it remains in the record as subspace-robustness
+evidence for P5. The corrected ratio-versus-ratio QR3 comparison is negative: mapping spread is not smaller than instance spread for matched-greedy
 QWC settings (`13.074×` versus `3.983×`) or mean word weight (`1.571×` versus
 `1.489×`). Fixed-shot card rows are derived projections, not independent evidence,
-because QWC uses no two-qubit measurement gates. Accuracy-matched QR3 abstains
-because only BeH₂ clears the exact subspace-bias floor in all five arms. Its prices
-remain `asymptotic`; this producer does not replace R1's nonlinear exact-oracle
-shot search.
+because QWC uses no two-qubit measurement gates. **Accuracy-matched QR3 no longer
+abstains at this tier.** `h4_converged` clears the exact subspace-bias floor at
+`0.766 mHa` on all five arms, so `qr3.accuracy_matched` reads
+`eligible_for_cross_instance_comparison` over `[h4_converged, beh2]` where it read
+`insufficient_eligible_instances`. Its prices remain `asymptotic`; this producer
+does not replace R1's nonlinear exact-oracle shot search, and at *that* tier the
+second instance is deferred for a different reason (see the cost-layer section
+above).
 
 The original plan also named `G(k)` and coverage across protocol rungs. They are
 explicitly recorded as a post-registration deferral to R3; this fixed-QWC record

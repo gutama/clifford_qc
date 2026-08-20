@@ -85,20 +85,62 @@ def test_reduced_arms_are_not_compared_against_full_width_arms(record):
             assert {widths[name] for name in payload["arms"]} == {int(width)}
 
 
-def test_unreduced_arms_close_toward_full_commutation(record):
-    """P5's first clause holds for the arms that keep the full register.
+# P5's first clause -- "G(k = n) agrees between mappings within tie-break
+# noise" -- is a claim about a bank, not about a Hamiltonian, and the two H4
+# banks in this record disagree about it. Both are listed so that a change to
+# either is a visible edit rather than a loosened threshold.
+FULL_WIDTH_CLOSURE = {
+    "h4": {"k1": 1.713, "kn": 1.048, "closes_to_noise": True},
+    "h4_converged": {"k1": 1.713, "kn": 1.200, "closes_to_noise": False},
+    "beh2": {"k1": 8.610, "kn": 1.071, "closes_to_noise": True},
+}
+TIE_BREAK_NOISE = 1.1
 
-    H4 goes 1.713 -> 1.048 and BeH2 8.610 -> 1.071 between ``k = 1`` and
-    ``k = n``, which is what "``G(k = n)`` agrees between mappings within
-    tie-break noise" asserts.
+
+def test_unreduced_arms_narrow_toward_full_commutation(record):
+    """Every bank's full-width spread is narrower at ``k = n`` than at ``k = 1``.
+
+    This much of P5's first clause survives everywhere in the record. Whether
+    the endpoint reaches tie-break noise is a separate question, and the test
+    below is where the two H4 banks part company.
     """
     for system in record["systems"]:
-        groups = record["mapping_spread"][system["system"]]
-        payload = groups[str(system["n_qubits"])]
-        by_k = payload["by_block_size"]
-        widest = max(by_k, key=lambda key: int(key))
-        assert by_k[widest]["spread"] < by_k["1"]["spread"]
-        assert by_k[widest]["spread"] < 1.1
+        key = system["system"]
+        by_k = record["mapping_spread"][key][str(system["n_qubits"])]["by_block_size"]
+        widest = max(by_k, key=lambda name: int(name))
+        assert by_k[widest]["spread"] < by_k["1"]["spread"], key
+        assert by_k["1"]["spread"] == pytest.approx(
+            FULL_WIDTH_CLOSURE[key]["k1"], abs=1e-3
+        )
+        assert by_k[widest]["spread"] == pytest.approx(
+            FULL_WIDTH_CLOSURE[key]["kn"], abs=1e-3
+        )
+
+
+def test_the_converged_h4_bank_does_not_close_to_tie_break_noise(record):
+    """The second counter-example, and the one that costs P5 its first clause.
+
+    On the budget-8 H4 bank the full-width arms reach 1.048 at ``k = 8``, which
+    is what "agrees within tie-break noise" means. Carrying the same greedy on
+    the same Hamiltonian to its own stopping threshold does not reproduce that:
+    the converged bank narrows to 1.117 at ``k = 4`` and then *widens* to 1.200
+    at ``k = 8``, missing the endpoint the clause predicts and missing it in the
+    same non-monotone way the reduced arms already did.
+
+    So the clause is not a property of H4. It is a property of one subspace on
+    H4, and this record contains a second subspace on the same Hamiltonian that
+    falsifies it.
+    """
+    for key, expected in FULL_WIDTH_CLOSURE.items():
+        by_k = record["mapping_spread"][key]["8"]["by_block_size"]
+        widest = max(by_k, key=lambda name: int(name))
+        assert (by_k[widest]["spread"] < TIE_BREAK_NOISE) is expected[
+            "closes_to_noise"
+        ], key
+
+    converged = record["mapping_spread"]["h4_converged"]["8"]["by_block_size"]
+    assert converged["4"]["spread"] < converged["2"]["spread"]
+    assert converged["8"]["spread"] > converged["4"]["spread"]
 
 
 def test_reduced_arms_do_not_close_and_h4_widens(record):

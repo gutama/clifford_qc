@@ -40,7 +40,12 @@ def test_contract_gates_serialized_numerical_invariants():
 def test_contract_requires_a_reason_for_an_unmaterialized_dense_oracle():
     record = json.loads(REFERENCE.read_text(encoding="utf-8"))
     broken = copy.deepcopy(record)
-    invariant = broken["systems"][2]["arms"][0]["invariants"]
+    # By key, not by position: the record grows a system whenever one is
+    # declared, and H2O is the rung whose dense oracle is not materialized.
+    h2o = next(
+        system for system in broken["systems"] if system["system"] == "h2o_cas8e6o"
+    )
+    invariant = h2o["arms"][0]["invariants"]
     assert invariant["dense_spectrum_checked"] is False
     invariant["dense_spectrum_reason"] = None
     problems = contract_problems(broken)
@@ -87,6 +92,22 @@ def test_contract_recomputes_qr3_ratio_verdict():
     summary["max_mapping_spread_factor"] = 1.0
     problems = contract_problems(broken)
     assert any(problem.startswith("QR3 structural:") for problem in problems)
+
+
+def test_structural_qr3_does_not_double_count_the_second_h4_bank():
+    record = json.loads(REFERENCE.read_text(encoding="utf-8"))
+    qr3 = record["qr3"]
+    for summary in qr3["structural"].values():
+        assert "h4" in summary["systems_included"]
+        assert "h4_converged" not in summary["systems_included"]
+    assert qr3["subspace_robustness_exclusion"]["systems"] == ["h4_converged"]
+
+    broken = copy.deepcopy(record)
+    broken["qr3"]["subspace_robustness_exclusion"]["systems"] = []
+    assert any(
+        "subspace-robustness exclusion drifted" in problem
+        for problem in contract_problems(broken)
+    )
 
 
 def test_jw_rebuild_preserves_the_h4_physical_bank():

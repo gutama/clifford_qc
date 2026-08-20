@@ -18,7 +18,18 @@ except ImportError:  # pragma: no cover - direct script execution
 
 
 ARMS = ["jw", "parity", "parity+2q", "bk", "bk+2q"]
-SYSTEMS = ["h4", "beh2", "h2o_cas8e6o", "hubbard_2x2"]
+# Stated here rather than read from the config, deliberately: this list is
+# the checker's independent claim about the record's scope, so a config edit
+# alone must not be able to change it silently. The two H4 rows are the same
+# instance at two subspace budgets and are ordered as a pair.
+SYSTEMS = ["h4", "h4_converged", "beh2", "h2o_cas8e6o", "hubbard_2x2"]
+STRUCTURAL_QR3_EXCLUSIONS = {
+    "h4_converged": (
+        "h4 and h4_converged are one physical H4 instance at two subspace "
+        "budgets; h4_converged is retained for subspace-robustness and P5, "
+        "not counted as another instance in structural QR3"
+    ),
+}
 
 # Both fields are (subspace energy - exact energy) in millihartree: a residue of
 # order 1e-3 mHa left by two energies of order 1e4 mHa (BeH2 sits at -15566 mHa),
@@ -34,6 +45,7 @@ ENERGY_DIFFERENCE_TOLERANCES = {
 }
 GROUPING_PROTOCOLS = {
     "h4": "qwc_groups",
+    "h4_converged": "qwc_groups",
     "beh2": "qwc_groups",
     "h2o_cas8e6o": "qwc_basis_cover",
     "hubbard_2x2": "qwc_groups",
@@ -485,12 +497,19 @@ def _contract_problems(record: dict) -> list[str]:
     by_key = {system["system"]: system for system in systems}
     expected_structural = {
         "qwc_settings_matched_greedy": _recompute_spread(
+            # h4_converged is the same physical instance as h4 at a second
+            # subspace budget. It is a robustness row, not another instance.
             [by_key[key] for key in ("h4", "beh2", "hubbard_2x2")],
             "qwc_settings",
             problems=problems,
         ),
         "mean_word_weight": _recompute_spread(
-            systems, "mean_word_weight", problems=problems
+            [
+                by_key[key]
+                for key in ("h4", "beh2", "h2o_cas8e6o", "hubbard_2x2")
+            ],
+            "mean_word_weight",
+            problems=problems,
         ),
     }
     if all(value is not None for value in expected_structural.values()):
@@ -514,6 +533,13 @@ def _contract_problems(record: dict) -> list[str]:
         )
         if qr3.get("structural_verdict") != expected_structural_verdict:
             problems.append("QR3 structural verdict disagrees with recomputed ratios")
+    robustness = qr3.get("subspace_robustness_exclusion", {})
+    if (
+        not isinstance(robustness, dict)
+        or robustness.get("systems") != list(STRUCTURAL_QR3_EXCLUSIONS)
+        or robustness.get("reason") != " ".join(STRUCTURAL_QR3_EXCLUSIONS.values())
+    ):
+        problems.append("QR3 subspace-robustness exclusion drifted")
     exclusion = qr3.get("qwc_exclusion", {})
     if not isinstance(exclusion, dict) or exclusion.get("systems") != ["h2o_cas8e6o"]:
         problems.append("QR3 QWC exclusion drifted")

@@ -328,7 +328,35 @@ def test_contract_catches_an_overstated_qr3_verdict(record):
     """Only BeH2 is priced, so the cross-instance comparison must abstain."""
     broken = copy.deepcopy(record)
     broken["qr3_accuracy_matched"]["status"] = "answered"
-    assert any("abstention" in p for p in contract_problems(broken))
+    problems = contract_problems(broken)
+    assert any("abstains if and only if" in p for p in problems)
+
+
+def test_contract_recomputes_the_qr3_payload_rather_than_reading_it(record):
+    """A verdict is a conclusion, so the checker re-derives it from the costs."""
+    broken = copy.deepcopy(record)
+    broken["qr3_accuracy_matched"]["reason"] = "because I said so"
+    assert any("QR3:" in p for p in contract_problems(broken))
+
+
+def test_contract_catches_a_system_dropped_without_a_deferral(record):
+    """A structural system must be priced or deferred, never merely absent."""
+    broken = copy.deepcopy(record)
+    broken["cost_layer_scope"]["deferred"] = []
+    assert any("does not partition" in p for p in contract_problems(broken))
+
+
+def test_contract_catches_a_deferral_with_no_reason(record):
+    broken = copy.deepcopy(record)
+    broken["cost_layer_scope"]["deferred"][0]["reason"] = ""
+    assert any("deferred with no reason" in p for p in contract_problems(broken))
+
+
+def test_contract_catches_a_scoping_probe_promoted_to_a_record(record):
+    """A reduced-replica probe may never be quoted as a cost."""
+    broken = copy.deepcopy(record)
+    broken["cost_layer_scope"]["deferred"][0]["scoping_probe"]["is_a_record"] = True
+    assert any("disclaim record status" in p for p in contract_problems(broken))
 
 
 def test_contract_catches_a_misquoted_r1_crossing(record):

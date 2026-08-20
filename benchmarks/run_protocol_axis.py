@@ -17,7 +17,8 @@ than the record it claims to extend, and the run stops.
 **What this record may claim.** Group counts, coverage, and the synthesis
 resources a declared device card prices at uniform shots. It is labelled
 ``structural``: no accuracy-matched ``C(epsilon)`` appears, because that needs
-R1's exact-tier shot search, which only BeH2 clears on its bias floor. P5's
+R1's exact-tier shot search, which ``run_protocol_cost.py`` runs separately on
+the banks whose bias floor leaves room under the target. P5's
 second clause -- that the mapping's ``C_time`` gap closes monotonically -- is
 therefore *not* settled here; only its first clause, about ``G(k = n)``, is
 measurable from this record.
@@ -162,7 +163,14 @@ def build_system_record(
         int(model.metadata["n_electrons"]),
         float(model.metadata["sz"]),
     )
-    exact_energy = float(backend.ground_state(model.hamiltonian, k=1)[0][0])
+    # ``method='dense'``, for the reason ``run_protocol_cost.py`` states at
+    # length: ARPACK returns a process-dependent last bit, and every energy
+    # here is a millihartree residue against this reference, so that bit is
+    # visible in the record. It is what ``check_protocol_axis.py``'s loosened
+    # ``error_millihartree`` tolerance was absorbing.
+    exact_energy = float(
+        backend.ground_state(model.hamiltonian, k=1, method="dense")[0][0]
+    )
 
     arm_records = []
     for name in arms:
