@@ -375,11 +375,23 @@ def _scope_problems(record: dict) -> list[str]:
 
     priced = list(scope.get("systems", []))
     deferred = list(scope.get("deferred", []))
-    deferred_keys = [item.get("system") for item in deferred]
-    if sorted(priced + deferred_keys) != sorted(structural):
+    # A deferral that does not name its system cannot take part in the
+    # partition, and sorting it alongside the named ones would raise rather
+    # than report. Name the defect and compare what is left.
+    named = [item for item in deferred if isinstance(item.get("system"), str)]
+    for index, item in enumerate(deferred):
+        if item not in named:
+            problems.append(f"deferral {index} names no system")
+    deferred_keys = [item["system"] for item in named]
+    if not all(isinstance(key, str) for key in priced):
+        problems.append("cost-layer scope prices something that is not a system name")
+        priced = [key for key in priced if isinstance(key, str)]
+    if sorted(priced + deferred_keys) != sorted(
+        key for key in structural if isinstance(key, str)
+    ):
         problems.append(
             f"cost-layer scope {sorted(priced + deferred_keys)} does not "
-            f"partition the structural grid {sorted(structural)}"
+            f"partition the structural grid {sorted(structural, key=repr)}"
         )
     if set(priced) & set(deferred_keys):
         problems.append("a system is both priced and deferred")
@@ -387,8 +399,8 @@ def _scope_problems(record: dict) -> list[str]:
         problems.append(
             "the systems the record carries are not the ones its scope prices"
         )
-    for item in deferred:
-        key = item.get("system")
+    for item in named:
+        key = item["system"]
         if not item.get("reason"):
             problems.append(f"{key}: deferred with no reason")
         probe = item.get("scoping_probe")
@@ -445,7 +457,7 @@ def _qr3_problems(record: dict) -> list[str]:
     return problems
 
 
-def contract_problems(record: dict) -> list[str]:
+def _contract_problems(record: dict) -> list[str]:
     problems: list[str] = []
     if record.get("schema") != SCHEMA:
         problems.append(f"unexpected schema {record.get('schema')!r}")
@@ -608,12 +620,52 @@ def contract_problems(record: dict) -> list[str]:
     return problems
 
 
+def contract_problems(record: dict) -> list[str]:
+    """Reject malformed records with diagnostics rather than a traceback.
+
+    A checker that raises on a broken record tells the reader less than one
+    that names the breakage, and the record it is handed is exactly the thing
+    that might be broken. ``check_mapping_axis.py`` has guarded this way from
+    the start; this module had not, which is how a deferral entry missing its
+    ``system`` key could reach a ``sorted`` call and abort the whole run.
+    """
+    try:
+        return _contract_problems(record)
+    except (AttributeError, KeyError, TypeError, ValueError, OverflowError) as exc:
+        return [f"malformed record reached a guarded checker path: {exc}"]
+
+
 def _subset_config(keys: tuple[str, ...]) -> dict:
+    """Narrow the config to a rebuildable subset of the systems this layer prices.
+
+    Both lists move together. ``_cost_layer`` requires the cost layer's systems
+    to partition the structural ones, so narrowing ``systems`` alone hands the
+    producer a config it rejects. Only priced systems may be named: a deferred
+    system has nothing to rebuild, so asking for one is a mistake worth
+    reporting rather than an empty comparison worth running.
+    """
     config = load_config(CONFIG)
-    unknown = sorted(set(keys) - set(config["systems"]))
+    layer = config.get("cost_layer") or {"systems": config["systems"], "deferred": []}
+    priceable = list(layer["systems"])
+    unknown = sorted(set(keys) - set(priceable))
     if unknown:
-        raise ValueError(f"unknown systems: {unknown}")
-    return {**config, "systems": [key for key in config["systems"] if key in keys]}
+        deferred = {
+            item["system"] for item in layer.get("deferred", []) if item.get("system")
+        }
+        detail = sorted(set(unknown) & deferred)
+        hint = f" ({', '.join(detail)} is deferred, not priced)" if detail else ""
+        raise ValueError(f"unknown systems: {unknown}{hint}")
+    subset = [key for key in priceable if key in keys]
+    return {
+        **config,
+        "systems": subset,
+        # The subset is its own complete partition: everything it declares is
+        # priced, nothing is deferred. The committed record's scope is not what
+        # a subset run compares -- it compares system subtrees -- so narrowing
+        # the declaration here costs nothing and keeps the producer's own
+        # partition check meaningful rather than bypassed.
+        "cost_layer": {**layer, "systems": subset, "deferred": []},
+    }
 
 
 def main() -> int:

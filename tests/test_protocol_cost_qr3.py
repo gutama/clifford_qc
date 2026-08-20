@@ -236,14 +236,33 @@ def test_the_record_must_carry_exactly_the_systems_its_scope_prices():
     )
 
 
-def test_the_checker_subset_filter_narrows_to_declared_systems():
+def test_a_subset_config_is_one_the_producer_accepts():
+    """The contract is round-tripped, not asserted on the intermediate shape.
+
+    An earlier version of this test checked the two system lists separately and
+    passed while the config it described was one ``_cost_layer`` rejected on
+    sight. Asking the consumer is the only version of this test that means
+    anything.
+    """
     from benchmarks.check_protocol_cost import _subset_config
+    from benchmarks.run_protocol_cost import _cost_layer
 
     config = _subset_config(("beh2",))
+    layer = _cost_layer(config)
     assert config["systems"] == ["beh2"]
-    # Narrowing the rebuild must not narrow the scope declaration -- the
-    # deferral ledger is what a partial run still has to reproduce.
-    assert config["cost_layer"]["systems"] == ["h4", "beh2"]
+    assert layer["systems"] == ["beh2"]
+    # A subset is its own complete partition: nothing priced elsewhere, and
+    # nothing left deferred for it to have to explain.
+    assert layer["deferred"] == []
+
+
+def test_the_full_config_is_also_one_the_producer_accepts():
+    from benchmarks.run_protocol_axis import CONFIG, load_config
+    from benchmarks.run_protocol_cost import _cost_layer
+
+    layer = _cost_layer(load_config(CONFIG))
+    assert layer["systems"] == ["h4", "beh2"]
+    assert [item["system"] for item in layer["deferred"]] == ["h4_converged"]
 
 
 def test_the_checker_subset_filter_rejects_an_unknown_system():
@@ -253,3 +272,33 @@ def test_the_checker_subset_filter_rejects_an_unknown_system():
 
     with _pytest.raises(ValueError, match="unknown systems"):
         _subset_config(("nope",))
+
+
+def test_the_checker_subset_filter_rejects_a_deferred_system_by_name():
+    """A deferred system has no subtree to rebuild, so naming one is a mistake."""
+    import pytest as _pytest
+
+    from benchmarks.check_protocol_cost import _subset_config
+
+    with _pytest.raises(ValueError, match="deferred, not priced"):
+        _subset_config(("h4_converged",))
+
+
+def test_scope_problems_reports_a_nameless_deferral_instead_of_raising():
+    from benchmarks.check_protocol_cost import _scope_problems
+
+    record = {
+        "cost_layer_scope": {"systems": ["beh2"], "deferred": [{"reason": "x"}]},
+        "structural_reference": {"systems_in_structural_grid": ["beh2", "h4c"]},
+        "systems": {"beh2": {}},
+    }
+    problems = _scope_problems(record)
+    assert any("names no system" in problem for problem in problems)
+
+
+def test_contract_problems_reports_malformed_records_instead_of_raising():
+    from benchmarks.check_protocol_cost import contract_problems
+
+    problems = contract_problems({"systems": None, "protocol": None})
+    assert problems
+    assert all(isinstance(problem, str) for problem in problems)
