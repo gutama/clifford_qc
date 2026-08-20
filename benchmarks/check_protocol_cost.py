@@ -10,8 +10,9 @@ The contracts, in the order a reader should care about them:
 * the setting count of every ``(arm, k)`` cell reproduces the structural R3
   grid -- the condition that makes this the cost layer *of that grid* rather
   than a second, differently-partitioned experiment;
-* H4 is unpriced and says why, since its bank's bias floor already exceeds the
-  target on every arm;
+* every system's priced/unpriced status agrees with its own bias floor -- the
+  budget-8 H4 bank exceeds the target on every arm and must stay unpriced, the
+  converged one clears it and must not;
 * each crossing satisfies R1's own pricing rules -- smallest confirmed pass,
   a confirmed failure below it, monotone confirmation, one retained rank at
   both deciding endpoints, and margins that agree with the marginal flag;
@@ -27,8 +28,10 @@ The contracts, in the order a reader should care about them:
 
 from __future__ import annotations
 
+import argparse
 import json
 import sys
+from types import SimpleNamespace
 
 from clifford_qc.reproducibility import (
     compare_json_records,
@@ -46,9 +49,12 @@ try:  # package import in tests versus direct script execution
         SEARCH_ENDPOINTS,
     )
     from benchmarks.run_protocol_cost import (
+        CONFIG,
         REFERENCE,
         SCHEMA,
+        _instance_cost_spread,
         build_record,
+        load_config,
         r1_crossings,
         structural_settings,
     )
@@ -63,9 +69,12 @@ except ImportError:  # pragma: no cover - direct script execution
         SEARCH_ENDPOINTS,
     )
     from run_protocol_cost import (
+        CONFIG,
         REFERENCE,
         SCHEMA,
+        _instance_cost_spread,
         build_record,
+        load_config,
         r1_crossings,
         structural_settings,
     )
@@ -344,6 +353,40 @@ def _verdict_problems(prefix: str, payload: dict, mapping: str) -> list[str]:
     return problems
 
 
+def _qr3_problems(record: dict) -> list[str]:
+    """QR3's verdict is re-derived from the record's own costs, not trusted.
+
+    This is the contract that most needs re-deriving rather than reading: the
+    verdict is the one field a reader will quote, it is a *conclusion* rather
+    than a measurement, and the producer that wrote it is the code under test.
+    So the check recomputes the whole payload from the priced cells the record
+    itself carries and requires the stored one to match.
+    """
+    problems: list[str] = []
+    stored = record.get("qr3_accuracy_matched")
+    if not isinstance(stored, dict):
+        return ["the accuracy-matched mapping-versus-instance verdict is missing"]
+    systems = record.get("systems", {})
+    priced = [
+        key for key, value in systems.items() if value.get("status") == "searched"
+    ]
+    cards = [
+        SimpleNamespace(name=card.get("name"))
+        for card in record.get("device_cards", [])
+    ]
+    if (stored.get("status") == "abstains") != (len(priced) < 2):
+        problems.append(
+            f"QR3 status {stored.get('status')!r} disagrees with {len(priced)} "
+            "priced instance(s): it abstains if and only if fewer than two are priced"
+        )
+    derived = _instance_cost_spread(systems, cards, priced)
+    problems.extend(
+        f"QR3: {problem}"
+        for problem in compare_json_records(stored, derived, atol=0.0, rtol=1e-12)
+    )
+    return problems
+
+
 def contract_problems(record: dict) -> list[str]:
     problems: list[str] = []
     if record.get("schema") != SCHEMA:
@@ -366,11 +409,7 @@ def contract_problems(record: dict) -> list[str]:
             "the accuracy target drifted from the one the rest of R1-R3 is "
             "matched at, so these costs are not comparable to their records"
         )
-    if record.get("qr3_accuracy_matched", {}).get("status") != "abstains":
-        problems.append(
-            "the accuracy-matched mapping-versus-instance verdict is not an "
-            "abstention, but only one instance is priced"
-        )
+    problems.extend(_qr3_problems(record))
     card_hashes = {card.get("name"): card.get("sha256") for card in record.get("device_cards", [])}
     if not card_hashes:
         problems.append("no device cards declared")
@@ -510,7 +549,28 @@ def contract_problems(record: dict) -> list[str]:
     return problems
 
 
+def _subset_config(keys: tuple[str, ...]) -> dict:
+    config = load_config(CONFIG)
+    unknown = sorted(set(keys) - set(config["systems"]))
+    if unknown:
+        raise ValueError(f"unknown systems: {unknown}")
+    return {**config, "systems": [key for key in config["systems"] if key in keys]}
+
+
 def main() -> int:
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument(
+        "--systems",
+        default="",
+        help=(
+            "comma-separated subset to rebuild and compare; omitted means the "
+            "whole record. The record-level contracts are re-derived from the "
+            "committed record either way, so a subset run still gates them -- "
+            "what a subset cannot do is prove the systems it skipped rebuild."
+        ),
+    )
+    args = parser.parse_args()
+    keys = tuple(value for value in args.systems.split(",") if value)
     expected = json.loads(REFERENCE.read_text(encoding="utf-8"))
     # Same reason check_exact_shot_search states: every value here descends from
     # sampled shots fed through an ill-conditioned projected eigensolve, so a
@@ -532,8 +592,27 @@ def main() -> int:
             print("  the committed record still passes every contract check "
                   "that does not require a rebuild")
         return 1
-    actual = build_record(workers=4)
-    problems = compare_json_records(expected, actual, atol=1e-12, rtol=1e-12)
+    if keys:
+        # A subset rebuild is compared subtree by subtree rather than whole:
+        # the record-level summaries are functions of *every* system, so a
+        # partial rebuild would legitimately differ on them and comparing them
+        # would report that as drift. They are re-derived from the committed
+        # record below, which needs no rebuild at all.
+        actual = build_record(workers=4, config=_subset_config(keys))
+        problems = []
+        for key in keys:
+            problems.extend(
+                f"{key}: {problem}"
+                for problem in compare_json_records(
+                    expected["systems"][key],
+                    actual["systems"][key],
+                    atol=1e-12,
+                    rtol=1e-12,
+                )
+            )
+    else:
+        actual = build_record(workers=4)
+        problems = compare_json_records(expected, actual, atol=1e-12, rtol=1e-12)
     problems.extend(contract_problems(expected))
     problems.extend(f"rebuilt record: {problem}" for problem in contract_problems(actual))
     if problems:

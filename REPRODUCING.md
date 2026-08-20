@@ -1358,38 +1358,47 @@ python benchmarks/check_protocol_axis.py     # rebuilds and compares, then re-de
 ```
 
 Sweeps the dyadic block-commuting rung `k in {1, 2, 4, 8}` inside each of R2b's
-five mapping arms on H4 and BeH2, discharging the two quantities the R2b record
-listed under `deferred_to_r3`: `G(k)` and coverage across protocol rungs. `k` is
-clamped to the arm's measured register, so a `+2q` arm records `k = 6`.
+five mapping arms on H4, H4-converged and BeH2, discharging the two quantities
+the R2b record listed under `deferred_to_r3`: `G(k)` and coverage across
+protocol rungs. `k` is clamped to the arm's measured register, so a `+2q` arm
+records `k = 6`.
 
 The `k = 1` column reproduces the setting count R2b froze on every arm --
-H4 `913/533/351/615/403`, BeH2 `353/41/27/41/27` -- and the producer raises
-rather than writing a record if it does not. That agreement is what makes the
-grid an extension of the frozen record instead of a separate experiment: one
-grouping rule spans it, `block_commuting_partition` at `k = 1` being exactly
-qubit-wise commutation.
+H4 `913/533/351/615/403`, H4-converged `913/533/351/615/405`,
+BeH2 `353/41/27/41/27` -- and the producer raises rather than writing a record
+if it does not. That agreement is what makes the grid an extension of the
+frozen record instead of a separate experiment: one grouping rule spans it,
+`block_commuting_partition` at `k = 1` being exactly qubit-wise commutation.
 
 Labelled `structural`. It reports group counts, coverage, and the synthesis
 resources a declared card prices at uniform shots; it does **not** price an
-accuracy-matched `C(epsilon)`, which needs R1's exact-tier shot search and which
-only BeH2 clears on its bias floor. That layer is the separate producer below.
+accuracy-matched `C(epsilon)`, which needs R1's exact-tier shot search. That
+layer is the separate producer below.
 
-**Known, unfixed: this record's exact reference is not bit-reproducible.** Its
-`error_millihartree` column carries a loosened `(1e-10, 1e-8)` tolerance whose
-stated reason is cancellation. Cancellation is real, but it is not the whole
-cause. `SectorStatevectorBackend.ground_state` defaults to `method='auto'`,
-which selects ARPACK for `k = 1` below the sector dimension, and ARPACK returns
-a different last bit in every process — three calls on the same BeH2
-Hamiltonian give `-15.566211795095189`, `...217` and `...239`, against
+**Fixed here: this record's exact reference is now bit-reproducible.**
+`SectorStatevectorBackend.ground_state` defaults to `method='auto'`, which
+selects ARPACK for `k = 1` below the sector dimension, and ARPACK returns a
+different last bit in every process -- three calls on the same BeH2 Hamiltonian
+gave `-15.566211795095189`, `...217` and `...239`, against
 `-15.566211795095168` from `method='dense'` every time. Against energies of
-order `1e4` mHa that `5e-14` Ha spread is a `1e-10` mHa shift on the residue,
-which is the scale the tolerance was widened to. `run_protocol_cost.py` takes
-the dense path for exactly this reason and compares at `1e-12` with no
-per-field tolerance at all. Nothing here is wrong — the setting counts this
-record exists to report are integers and unaffected — but the same one-line
-change would let this record tighten too, and `run_mapping_axis.py` shares the
-pattern. Both are left alone deliberately: changing them rewrites frozen floats
-in records this branch was not asked to touch.
+order `1e4` mHa that `5e-14` Ha spread lands as a `1e-10` mHa shift on the
+`error_millihartree` residue, which is part of what the loosened `(1e-10, 1e-8)`
+tolerance was absorbing under the heading of cancellation.
+
+`run_protocol_axis.py` and `run_mapping_axis.py` now both take the dense path,
+which `run_protocol_cost.py` already did. Regenerating both records moved
+exactly the two energy-difference fields and nothing else -- setting counts,
+coverage, weights, synthesis resources, device costs and every digest are bit
+identical to the previous record -- and the two records' `exact_sector_energy`
+now agree with each other exactly, where before each carried its own ARPACK
+draw.
+
+The `(1e-10, 1e-8)` tolerance stays. ARPACK was one cause of the drift, not the
+only one: `check_mapping_axis.py` documents a measured `1.5e-10` mHa spread
+between `OMP_NUM_THREADS=1` and `=8` on the same code path, which the default
+`atol=1e-10` sits directly on top of and which this change does not touch.
+Tightening the gate on the strength of the ARPACK fix alone would trade a
+reproducible record for a flaky one.
 
 ## R3 accuracy-matched `C(epsilon)` and `k*` regions
 

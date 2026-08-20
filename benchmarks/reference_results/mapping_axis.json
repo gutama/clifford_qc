@@ -2,7 +2,7 @@
   "schema": "clifford_qc.mapping_axis.v1",
   "phase": "R2b_raw_pool_mapping_axis",
   "scope": "complete",
-  "config_sha256": "6c646d8857ac39e03cd2c913440041fdf130f8f47c2c3c721f841e128a757ad2",
+  "config_sha256": "5054af8b96670dd9f51b380a674ec977bcf16f6709cf5b222460c5f6e00c1fa6",
   "mapping_arms": [
     "jw",
     "parity",
@@ -14,12 +14,13 @@
     "name": "raw_symmetry_preserving_determinant_excitations",
     "max_excitation_rank": 2,
     "ordering": "determinant_excitations native enumeration order",
-    "selection": "labels frozen by completed raw-pool A-CASE runs before mapping costs",
-    "maximum_basis_size": 9
+    "selection": "labels frozen by completed raw-pool A-CASE runs before mapping costs; a run is complete when the greedy stops on its own lowering threshold, which no declared system reaches by exhausting a budget cap",
+    "maximum_basis_size": 15
   },
   "measurement_contract": {
     "grouping_protocol_by_system": {
       "h4": "qwc_groups",
+      "h4_converged": "qwc_groups",
       "beh2": "qwc_groups",
       "h2o_cas8e6o": "qwc_basis_cover",
       "hubbard_2x2": "qwc_groups"
@@ -120,7 +121,7 @@
       "hamiltonian_terms": 185,
       "hamiltonian_sha256": "9fd29628c8751189c82b7929b233d74720206c6b13a2dc3368517a454a593cc5",
       "reference_sha256": "4728c49308acc16c7d029fd9343649f0a9b9c5540472d906494cc2f769e1257a",
-      "exact_sector_energy": -2.1803166143238437,
+      "exact_sector_energy": -2.180316614323859,
       "raw_pool": {
         "size": 26,
         "sha256": "42834bb59ea24b2ad0ef21fa06374d1c46e0fa8296d4f2d685e6dd2d306eee52",
@@ -142,7 +143,8 @@
         "sha256": "9f36dda910ab45e391709989166c365d8e04aa740a66c03cd88487e57a9f187b",
         "source": "benchmarks/reference_results/acase_ladder.jsonl",
         "source_row_sha256": "33a704d798edfcc8b00a75dcc55d357378849056a8d138e664d1e823f8f9d560",
-        "source_file_sha256": null
+        "source_file_sha256": null,
+        "selection_rule": null
       },
       "arms": [
         {
@@ -218,7 +220,7 @@
             "retained_rank": 9,
             "condition_number": 1.0,
             "ground_energy": -2.177297832980223,
-            "error_millihartree": 3.01878134362088
+            "error_millihartree": 3.018781343635979
           },
           "weights": {
             "hamiltonian_multiset": {
@@ -544,7 +546,7 @@
           },
           "accuracy_matched_cost": {
             "epsilon_millihartree": 1.6,
-            "exact_subspace_bias_millihartree": 3.01878134362088,
+            "exact_subspace_bias_millihartree": 3.018781343635979,
             "estimator": "single_assignment",
             "evidence_tier": "asymptotic",
             "claim_boundary": "exact bias floor plus first-order Ritz-functional variance; not the R1 nonlinear exact-oracle shot search or a finite-sample certificate",
@@ -627,7 +629,7 @@
             "retained_rank": 9,
             "condition_number": 1.0,
             "ground_energy": -2.177297832980223,
-            "error_millihartree": 3.01878134362088
+            "error_millihartree": 3.018781343635979
           },
           "weights": {
             "hamiltonian_multiset": {
@@ -959,7 +961,7 @@
           },
           "accuracy_matched_cost": {
             "epsilon_millihartree": 1.6,
-            "exact_subspace_bias_millihartree": 3.01878134362088,
+            "exact_subspace_bias_millihartree": 3.018781343635979,
             "estimator": "single_assignment",
             "evidence_tier": "asymptotic",
             "claim_boundary": "exact bias floor plus first-order Ritz-functional variance; not the R1 nonlinear exact-oracle shot search or a finite-sample certificate",
@@ -1048,7 +1050,7 @@
             "retained_rank": 9,
             "condition_number": 1.0,
             "ground_energy": -2.177297832980223,
-            "error_millihartree": 3.01878134362088
+            "error_millihartree": 3.018781343635979
           },
           "weights": {
             "hamiltonian_multiset": {
@@ -1373,7 +1375,7 @@
           },
           "accuracy_matched_cost": {
             "epsilon_millihartree": 1.6,
-            "exact_subspace_bias_millihartree": 3.01878134362088,
+            "exact_subspace_bias_millihartree": 3.018781343635979,
             "estimator": "single_assignment",
             "evidence_tier": "asymptotic",
             "claim_boundary": "exact bias floor plus first-order Ritz-functional variance; not the R1 nonlinear exact-oracle shot search or a finite-sample certificate",
@@ -1456,7 +1458,7 @@
             "retained_rank": 9,
             "condition_number": 1.0,
             "ground_energy": -2.177297832980223,
-            "error_millihartree": 3.01878134362088
+            "error_millihartree": 3.018781343635979
           },
           "weights": {
             "hamiltonian_multiset": {
@@ -1786,7 +1788,7 @@
           },
           "accuracy_matched_cost": {
             "epsilon_millihartree": 1.6,
-            "exact_subspace_bias_millihartree": 3.01878134362088,
+            "exact_subspace_bias_millihartree": 3.018781343635979,
             "estimator": "single_assignment",
             "evidence_tier": "asymptotic",
             "claim_boundary": "exact bias floor plus first-order Ritz-functional variance; not the R1 nonlinear exact-oracle shot search or a finite-sample certificate",
@@ -1875,7 +1877,7 @@
             "retained_rank": 9,
             "condition_number": 1.0,
             "ground_energy": -2.177297832980223,
-            "error_millihartree": 3.01878134362088
+            "error_millihartree": 3.018781343635979
           },
           "weights": {
             "hamiltonian_multiset": {
@@ -2200,7 +2202,7 @@
           },
           "accuracy_matched_cost": {
             "epsilon_millihartree": 1.6,
-            "exact_subspace_bias_millihartree": 3.01878134362088,
+            "exact_subspace_bias_millihartree": 3.018781343635979,
             "estimator": "single_assignment",
             "evidence_tier": "asymptotic",
             "claim_boundary": "exact bias floor plus first-order Ritz-functional variance; not the R1 nonlinear exact-oracle shot search or a finite-sample certificate",
@@ -2208,6 +2210,2700 @@
             "linearized_variance_ha2_at_one_shot_per_setting": null,
             "effective_shots_per_setting": null,
             "device_costs": {}
+          }
+        }
+      ]
+    },
+    {
+      "system": "h4_converged",
+      "label": "H4 equilibrium STO-3G, converged DA-CASE",
+      "construction": {
+        "kind": "committed_fcidump",
+        "source": "benchmarks/data/h4_sto3g_r0.9.FCIDUMP",
+        "source_sha256": "bf32568461477cf1ec8e7c4aaae737b0c6c80bcbd83d51f783ec3a3daed5a922",
+        "provenance": "benchmarks/data/h4_sto3g_r0.9.provenance.json",
+        "provenance_sha256": "4b5cc30240ee42709e407f1794b73d9e585bc4032ecc14ff5eef450722868229",
+        "external_sector_energy": -2.180316614323862
+      },
+      "n_qubits": 8,
+      "n_electrons": 4,
+      "sz": 0.0,
+      "spin_ordering": "interleaved",
+      "grouping_protocol": "qwc_groups",
+      "hamiltonian_terms": 185,
+      "hamiltonian_sha256": "9fd29628c8751189c82b7929b233d74720206c6b13a2dc3368517a454a593cc5",
+      "reference_sha256": "4728c49308acc16c7d029fd9343649f0a9b9c5540472d906494cc2f769e1257a",
+      "exact_sector_energy": -2.180316614323859,
+      "raw_pool": {
+        "size": 26,
+        "sha256": "42834bb59ea24b2ad0ef21fa06374d1c46e0fa8296d4f2d685e6dd2d306eee52",
+        "max_excitation_rank": 2
+      },
+      "selected_domain": {
+        "size": 15,
+        "labels": [
+          "I",
+          "E(4,5<-2,3)",
+          "E(4,7<-0,3)",
+          "E(5,6<-1,2)",
+          "E(4,5<-0,1)",
+          "E(6,7<-0,1)",
+          "E(6,7<-2,3)",
+          "E(5,6<-0,3)",
+          "E(4,7<-1,2)",
+          "E(4,6<-0,2)",
+          "E(5,7<-1,3)",
+          "E(4<-0)",
+          "E(5<-1)",
+          "E(6<-2)",
+          "E(7<-3)"
+        ],
+        "sha256": "6e174916ab6001194e5b87a837a535e6181b07ca8624cb4fc021f4472e6a11c2",
+        "source": null,
+        "source_row_sha256": null,
+        "source_file_sha256": null,
+        "selection_rule": "run_acase on the Hartree-Fock reference over the same rank<=2 determinant pool as every other system, with no binding budget cap, stopped by its own predicted-lowering threshold; tests/test_mapping_axis_banks.py re-derives these labels"
+      },
+      "arms": [
+        {
+          "mapping": "jw",
+          "encoding": {
+            "rows": [
+              1,
+              2,
+              4,
+              8,
+              16,
+              32,
+              64,
+              128
+            ],
+            "fixed_qubits": [],
+            "fixed_signs": [],
+            "source_qubits": 8,
+            "measured_qubits": 8,
+            "spin_ordering": "interleaved",
+            "network": {
+              "logical_cnot_count": 0,
+              "logical_cnot_depth": 0,
+              "charged_per_preparation": false,
+              "role": "representation-equivalence witness; encoded determinants are prepared directly"
+            }
+          },
+          "invariants": {
+            "mapping_name": "jw",
+            "source_qubits": 8,
+            "mapped_qubits": 8,
+            "qubits_removed": 0,
+            "basis_size": 15,
+            "word_universe_before": 7927,
+            "word_universe_after": 7927,
+            "effective_rank": 15,
+            "condition_number": 1.0,
+            "max_overlap_matrix_error": 0.0,
+            "overlap_matrix_scale": 1.0,
+            "max_hamiltonian_matrix_error": 0.0,
+            "hamiltonian_matrix_scale": 2.1242597389728113,
+            "max_operator_transport_error": 0.0,
+            "operator_transport_scale": 16.0,
+            "max_ritz_error": 0.0,
+            "ritz_scale": 2.179550752062546,
+            "reference_energy_error": 0.0,
+            "reference_energy_scale": 2.1242597389728113,
+            "max_generator_leakage": 0.0,
+            "word_bijection_checked": true,
+            "dense_spectrum_checked": true,
+            "max_spectrum_error": 0.0,
+            "spectrum_scale": 3.5227349694720638,
+            "dense_spectrum_max_qubits": 10,
+            "dense_spectrum_reason": null,
+            "relative_tolerance": 1e-10,
+            "absolute_tolerance": 1e-12,
+            "leakage_tolerance": 1e-12,
+            "zero_tolerance": 1e-12
+          },
+          "basis": {
+            "size": 15,
+            "labels": [
+              "I",
+              "E(4,5<-2,3)",
+              "E(4,7<-0,3)",
+              "E(5,6<-1,2)",
+              "E(4,5<-0,1)",
+              "E(6,7<-0,1)",
+              "E(6,7<-2,3)",
+              "E(5,6<-0,3)",
+              "E(4,7<-1,2)",
+              "E(4,6<-0,2)",
+              "E(5,7<-1,3)",
+              "E(4<-0)",
+              "E(5<-1)",
+              "E(6<-2)",
+              "E(7<-3)"
+            ],
+            "retained_rank": 15,
+            "condition_number": 1.0,
+            "ground_energy": -2.179550752062546,
+            "error_millihartree": 0.7658622613129218
+          },
+          "weights": {
+            "hamiltonian_multiset": {
+              "term_occurrences": 185,
+              "distinct_words": 185,
+              "mean_weight": 4.583783783783784,
+              "max_weight": 8,
+              "histogram": {
+                "0": 1,
+                "1": 8,
+                "2": 28,
+                "4": 60,
+                "5": 8,
+                "6": 68,
+                "8": 12
+              }
+            },
+            "generator_multiset": {
+              "term_occurrences": 89,
+              "distinct_words": 89,
+              "mean_weight": 5.123595505617978,
+              "max_weight": 8,
+              "histogram": {
+                "0": 1,
+                "4": 40,
+                "5": 8,
+                "6": 32,
+                "8": 8
+              }
+            },
+            "element_operator_multiset": {
+              "term_occurrences": 129954,
+              "distinct_words": 7927,
+              "mean_weight": 6.010619142157994,
+              "max_weight": 8,
+              "histogram": {
+                "0": 84,
+                "1": 344,
+                "2": 1408,
+                "3": 1992,
+                "4": 11510,
+                "5": 27848,
+                "6": 38680,
+                "7": 30096,
+                "8": 17992
+              }
+            },
+            "deduplicated_word_universe": {
+              "term_occurrences": 7927,
+              "distinct_words": 7927,
+              "mean_weight": 5.996720070644632,
+              "max_weight": 8,
+              "histogram": {
+                "0": 1,
+                "1": 8,
+                "2": 44,
+                "3": 152,
+                "4": 614,
+                "5": 1752,
+                "6": 2532,
+                "7": 2016,
+                "8": 808
+              }
+            }
+          },
+          "measurement": {
+            "protocol": "qwc_groups",
+            "settings": 913,
+            "group_size": {
+              "sum": 7926,
+              "mean": 8.681270536692223,
+              "max": 42
+            },
+            "resource_metrics": {
+              "N_1q": {
+                "sum": 7776,
+                "mean": 8.51697699890471,
+                "max": 16
+              },
+              "N_2q": {
+                "sum": 0,
+                "mean": 0.0,
+                "max": 0
+              },
+              "D_1q": {
+                "sum": 1793,
+                "mean": 1.963855421686747,
+                "max": 2
+              },
+              "D_2q": {
+                "sum": 0,
+                "mean": 0.0,
+                "max": 0
+              }
+            },
+            "validity": "PASS: every assigned word is QWC with its shared basis"
+          },
+          "device_costs": {
+            "ion-like": {
+              "device_card_sha256": "9cc7e53e935e4ec3c265efbd9b6218f17a68c51d727d658c5a5bcaf98d34f453",
+              "fixed_uniform_raw_shots": {
+                "schema": "clifford_qc.measurement_cost.v1",
+                "device_card": {
+                  "name": "ion-like",
+                  "sha256": "9cc7e53e935e4ec3c265efbd9b6218f17a68c51d727d658c5a5bcaf98d34f453",
+                  "calibration_status": "illustrative_scenario"
+                },
+                "n_qubits": 8,
+                "settings": 913,
+                "raw_shots": 7304000,
+                "effective_shots": 6166316.522070074,
+                "fixed_shot_time_us": 1604240000.0,
+                "logical_1q_applications": 62208000,
+                "logical_2q_applications": 0,
+                "modeled_2q_applications": 0,
+                "routing": {
+                  "required": false,
+                  "two_qubit_count_multiplier": 1.0,
+                  "two_qubit_depth_multiplier": 1.0,
+                  "model": "declared scalar sensitivity surrogate"
+                },
+                "fidelity": {
+                  "min": 0.9153903547260381,
+                  "mean": 0.9188234919053303,
+                  "max": 0.9227446944279201,
+                  "floor": 0.5
+                },
+                "admissible": true,
+                "inadmissible_settings": 0,
+                "accuracy": {
+                  "epsilon": null,
+                  "evidence_tier": "exact",
+                  "status": "fixed_shot_only",
+                  "C_time_epsilon_us": null
+                }
+              },
+              "equal_effective_shots": {
+                "schema": "clifford_qc.measurement_cost.v1",
+                "device_card": {
+                  "name": "ion-like",
+                  "sha256": "9cc7e53e935e4ec3c265efbd9b6218f17a68c51d727d658c5a5bcaf98d34f453",
+                  "calibration_status": "illustrative_scenario"
+                },
+                "n_qubits": 8,
+                "settings": 913,
+                "raw_shots": 8652192,
+                "effective_shots": 7304453.305908211,
+                "fixed_shot_time_us": 1900369400.0,
+                "logical_1q_applications": 73759860,
+                "logical_2q_applications": 0,
+                "modeled_2q_applications": 0,
+                "routing": {
+                  "required": false,
+                  "two_qubit_count_multiplier": 1.0,
+                  "two_qubit_depth_multiplier": 1.0,
+                  "model": "declared scalar sensitivity surrogate"
+                },
+                "fidelity": {
+                  "min": 0.9153903547260381,
+                  "mean": 0.9188234919053303,
+                  "max": 0.9227446944279201,
+                  "floor": 0.5
+                },
+                "admissible": true,
+                "inadmissible_settings": 0,
+                "accuracy": {
+                  "epsilon": null,
+                  "evidence_tier": "exact",
+                  "status": "fixed_shot_only",
+                  "C_time_epsilon_us": null
+                }
+              }
+            },
+            "logical-alltoall": {
+              "device_card_sha256": "07e9cc637e590668bc89b7d407535f34f509155e08c95d2ecd0f8f931738265b",
+              "fixed_uniform_raw_shots": {
+                "schema": "clifford_qc.measurement_cost.v1",
+                "device_card": {
+                  "name": "logical-alltoall",
+                  "sha256": "07e9cc637e590668bc89b7d407535f34f509155e08c95d2ecd0f8f931738265b",
+                  "calibration_status": "logical_baseline"
+                },
+                "n_qubits": 8,
+                "settings": 913,
+                "raw_shots": 7304000,
+                "effective_shots": 7304000.0,
+                "fixed_shot_time_us": 15325200.0,
+                "logical_1q_applications": 62208000,
+                "logical_2q_applications": 0,
+                "modeled_2q_applications": 0,
+                "routing": {
+                  "required": false,
+                  "two_qubit_count_multiplier": 1.0,
+                  "two_qubit_depth_multiplier": 1.0,
+                  "model": "declared scalar sensitivity surrogate"
+                },
+                "fidelity": {
+                  "min": 1.0,
+                  "mean": 1.0,
+                  "max": 1.0,
+                  "floor": 0.5
+                },
+                "admissible": true,
+                "inadmissible_settings": 0,
+                "accuracy": {
+                  "epsilon": null,
+                  "evidence_tier": "exact",
+                  "status": "fixed_shot_only",
+                  "C_time_epsilon_us": null
+                }
+              },
+              "equal_effective_shots": {
+                "schema": "clifford_qc.measurement_cost.v1",
+                "device_card": {
+                  "name": "logical-alltoall",
+                  "sha256": "07e9cc637e590668bc89b7d407535f34f509155e08c95d2ecd0f8f931738265b",
+                  "calibration_status": "logical_baseline"
+                },
+                "n_qubits": 8,
+                "settings": 913,
+                "raw_shots": 7304000,
+                "effective_shots": 7304000.0,
+                "fixed_shot_time_us": 15325200.0,
+                "logical_1q_applications": 62208000,
+                "logical_2q_applications": 0,
+                "modeled_2q_applications": 0,
+                "routing": {
+                  "required": false,
+                  "two_qubit_count_multiplier": 1.0,
+                  "two_qubit_depth_multiplier": 1.0,
+                  "model": "declared scalar sensitivity surrogate"
+                },
+                "fidelity": {
+                  "min": 1.0,
+                  "mean": 1.0,
+                  "max": 1.0,
+                  "floor": 0.5
+                },
+                "admissible": true,
+                "inadmissible_settings": 0,
+                "accuracy": {
+                  "epsilon": null,
+                  "evidence_tier": "exact",
+                  "status": "fixed_shot_only",
+                  "C_time_epsilon_us": null
+                }
+              }
+            },
+            "superconducting-like": {
+              "device_card_sha256": "cf78e3240ad48839a8113a1570a43e614c230a8428fe8ceda7783e7ff75e1a13",
+              "fixed_uniform_raw_shots": {
+                "schema": "clifford_qc.measurement_cost.v1",
+                "device_card": {
+                  "name": "superconducting-like",
+                  "sha256": "cf78e3240ad48839a8113a1570a43e614c230a8428fe8ceda7783e7ff75e1a13",
+                  "calibration_status": "illustrative_scenario"
+                },
+                "n_qubits": 8,
+                "settings": 913,
+                "raw_shots": 7304000,
+                "effective_shots": 5197368.031476416,
+                "fixed_shot_time_us": 22629200.0,
+                "logical_1q_applications": 62208000,
+                "logical_2q_applications": 0,
+                "modeled_2q_applications": 0,
+                "routing": {
+                  "required": true,
+                  "two_qubit_count_multiplier": 3.0,
+                  "two_qubit_depth_multiplier": 2.0,
+                  "model": "declared scalar sensitivity surrogate"
+                },
+                "fidelity": {
+                  "min": 0.8372524309005734,
+                  "mean": 0.843547643106237,
+                  "max": 0.8507630225817855,
+                  "floor": 0.5
+                },
+                "admissible": true,
+                "inadmissible_settings": 0,
+                "accuracy": {
+                  "epsilon": null,
+                  "evidence_tier": "exact",
+                  "status": "fixed_shot_only",
+                  "C_time_epsilon_us": null
+                }
+              },
+              "equal_effective_shots": {
+                "schema": "clifford_qc.measurement_cost.v1",
+                "device_card": {
+                  "name": "superconducting-like",
+                  "sha256": "cf78e3240ad48839a8113a1570a43e614c230a8428fe8ceda7783e7ff75e1a13",
+                  "calibration_status": "illustrative_scenario"
+                },
+                "n_qubits": 8,
+                "settings": 913,
+                "raw_shots": 10265286,
+                "effective_shots": 7304320.913824651,
+                "fixed_shot_time_us": 31804006.499999996,
+                "logical_1q_applications": 87593676,
+                "logical_2q_applications": 0,
+                "modeled_2q_applications": 0,
+                "routing": {
+                  "required": true,
+                  "two_qubit_count_multiplier": 3.0,
+                  "two_qubit_depth_multiplier": 2.0,
+                  "model": "declared scalar sensitivity surrogate"
+                },
+                "fidelity": {
+                  "min": 0.8372524309005734,
+                  "mean": 0.843547643106237,
+                  "max": 0.8507630225817855,
+                  "floor": 0.5
+                },
+                "admissible": true,
+                "inadmissible_settings": 0,
+                "accuracy": {
+                  "epsilon": null,
+                  "evidence_tier": "exact",
+                  "status": "fixed_shot_only",
+                  "C_time_epsilon_us": null
+                }
+              }
+            }
+          },
+          "accuracy_matched_cost": {
+            "epsilon_millihartree": 1.6,
+            "exact_subspace_bias_millihartree": 0.7658622613129218,
+            "estimator": "single_assignment",
+            "evidence_tier": "asymptotic",
+            "claim_boundary": "exact bias floor plus first-order Ritz-functional variance; not the R1 nonlinear exact-oracle shot search or a finite-sample certificate",
+            "status": "priced",
+            "linearized_variance_ha2_at_one_shot_per_setting": 0.06075948164921977,
+            "effective_shots_per_setting": 30789,
+            "device_costs": {
+              "ion-like": {
+                "schema": "clifford_qc.measurement_cost.v1",
+                "device_card": {
+                  "name": "ion-like",
+                  "sha256": "9cc7e53e935e4ec3c265efbd9b6218f17a68c51d727d658c5a5bcaf98d34f453",
+                  "calibration_status": "illustrative_scenario"
+                },
+                "n_qubits": 8,
+                "settings": 913,
+                "raw_shots": 33297436,
+                "effective_shots": 28110746.08174681,
+                "fixed_shot_time_us": 7313456390.0,
+                "logical_1q_applications": 283859540,
+                "logical_2q_applications": 0,
+                "modeled_2q_applications": 0,
+                "routing": {
+                  "required": false,
+                  "two_qubit_count_multiplier": 1.0,
+                  "two_qubit_depth_multiplier": 1.0,
+                  "model": "declared scalar sensitivity surrogate"
+                },
+                "fidelity": {
+                  "min": 0.9153903547260381,
+                  "mean": 0.9188234919053303,
+                  "max": 0.9227446944279201,
+                  "floor": 0.5
+                },
+                "admissible": true,
+                "inadmissible_settings": 0,
+                "accuracy": {
+                  "epsilon": 0.0016,
+                  "evidence_tier": "asymptotic",
+                  "status": "priced",
+                  "C_time_epsilon_us": 7313456390.0
+                }
+              },
+              "logical-alltoall": {
+                "schema": "clifford_qc.measurement_cost.v1",
+                "device_card": {
+                  "name": "logical-alltoall",
+                  "sha256": "07e9cc637e590668bc89b7d407535f34f509155e08c95d2ecd0f8f931738265b",
+                  "calibration_status": "logical_baseline"
+                },
+                "n_qubits": 8,
+                "settings": 913,
+                "raw_shots": 28110357,
+                "effective_shots": 28110357.0,
+                "fixed_shot_time_us": 58980947.84999998,
+                "logical_1q_applications": 239415264,
+                "logical_2q_applications": 0,
+                "modeled_2q_applications": 0,
+                "routing": {
+                  "required": false,
+                  "two_qubit_count_multiplier": 1.0,
+                  "two_qubit_depth_multiplier": 1.0,
+                  "model": "declared scalar sensitivity surrogate"
+                },
+                "fidelity": {
+                  "min": 1.0,
+                  "mean": 1.0,
+                  "max": 1.0,
+                  "floor": 0.5
+                },
+                "admissible": true,
+                "inadmissible_settings": 0,
+                "accuracy": {
+                  "epsilon": 0.0016,
+                  "evidence_tier": "asymptotic",
+                  "status": "priced",
+                  "C_time_epsilon_us": 58980947.84999998
+                }
+              },
+              "superconducting-like": {
+                "schema": "clifford_qc.measurement_cost.v1",
+                "device_card": {
+                  "name": "superconducting-like",
+                  "sha256": "cf78e3240ad48839a8113a1570a43e614c230a8428fe8ceda7783e7ff75e1a13",
+                  "calibration_status": "illustrative_scenario"
+                },
+                "n_qubits": 8,
+                "settings": 913,
+                "raw_shots": 39505849,
+                "effective_shots": 28110605.439733945,
+                "fixed_shot_time_us": 122397396.55000003,
+                "logical_1q_applications": 337103004,
+                "logical_2q_applications": 0,
+                "modeled_2q_applications": 0,
+                "routing": {
+                  "required": true,
+                  "two_qubit_count_multiplier": 3.0,
+                  "two_qubit_depth_multiplier": 2.0,
+                  "model": "declared scalar sensitivity surrogate"
+                },
+                "fidelity": {
+                  "min": 0.8372524309005734,
+                  "mean": 0.843547643106237,
+                  "max": 0.8507630225817855,
+                  "floor": 0.5
+                },
+                "admissible": true,
+                "inadmissible_settings": 0,
+                "accuracy": {
+                  "epsilon": 0.0016,
+                  "evidence_tier": "asymptotic",
+                  "status": "priced",
+                  "C_time_epsilon_us": 122397396.55000003
+                }
+              }
+            }
+          }
+        },
+        {
+          "mapping": "parity",
+          "encoding": {
+            "rows": [
+              1,
+              3,
+              7,
+              15,
+              31,
+              63,
+              127,
+              255
+            ],
+            "fixed_qubits": [],
+            "fixed_signs": [],
+            "source_qubits": 8,
+            "measured_qubits": 8,
+            "spin_ordering": "interleaved",
+            "network": {
+              "logical_cnot_count": 7,
+              "logical_cnot_depth": 7,
+              "charged_per_preparation": false,
+              "role": "representation-equivalence witness; encoded determinants are prepared directly"
+            }
+          },
+          "invariants": {
+            "mapping_name": "parity",
+            "source_qubits": 8,
+            "mapped_qubits": 8,
+            "qubits_removed": 0,
+            "basis_size": 15,
+            "word_universe_before": 7927,
+            "word_universe_after": 7927,
+            "effective_rank": 15,
+            "condition_number": 1.0,
+            "max_overlap_matrix_error": 0.0,
+            "overlap_matrix_scale": 1.0,
+            "max_hamiltonian_matrix_error": 0.0,
+            "hamiltonian_matrix_scale": 2.1242597389728113,
+            "max_operator_transport_error": 0.0,
+            "operator_transport_scale": 16.0,
+            "max_ritz_error": 0.0,
+            "ritz_scale": 2.179550752062546,
+            "reference_energy_error": 0.0,
+            "reference_energy_scale": 2.1242597389728113,
+            "max_generator_leakage": 0.0,
+            "word_bijection_checked": true,
+            "dense_spectrum_checked": true,
+            "max_spectrum_error": 7.771561172376096e-15,
+            "spectrum_scale": 3.5227349694720638,
+            "dense_spectrum_max_qubits": 10,
+            "dense_spectrum_reason": null,
+            "relative_tolerance": 1e-10,
+            "absolute_tolerance": 1e-12,
+            "leakage_tolerance": 1e-12,
+            "zero_tolerance": 1e-12
+          },
+          "basis": {
+            "size": 15,
+            "labels": [
+              "I",
+              "E(4,5<-2,3)",
+              "E(4,7<-0,3)",
+              "E(5,6<-1,2)",
+              "E(4,5<-0,1)",
+              "E(6,7<-0,1)",
+              "E(6,7<-2,3)",
+              "E(5,6<-0,3)",
+              "E(4,7<-1,2)",
+              "E(4,6<-0,2)",
+              "E(5,7<-1,3)",
+              "E(4<-0)",
+              "E(5<-1)",
+              "E(6<-2)",
+              "E(7<-3)"
+            ],
+            "retained_rank": 15,
+            "condition_number": 1.0,
+            "ground_energy": -2.179550752062546,
+            "error_millihartree": 0.7658622613129218
+          },
+          "weights": {
+            "hamiltonian_multiset": {
+              "term_occurrences": 185,
+              "distinct_words": 185,
+              "mean_weight": 4.691891891891892,
+              "max_weight": 8,
+              "histogram": {
+                "0": 1,
+                "1": 2,
+                "2": 18,
+                "3": 12,
+                "4": 66,
+                "5": 16,
+                "6": 48,
+                "7": 14,
+                "8": 8
+              }
+            },
+            "generator_multiset": {
+              "term_occurrences": 89,
+              "distinct_words": 89,
+              "mean_weight": 4.797752808988764,
+              "max_weight": 8,
+              "histogram": {
+                "0": 1,
+                "2": 2,
+                "3": 20,
+                "4": 9,
+                "5": 33,
+                "6": 8,
+                "7": 14,
+                "8": 2
+              }
+            },
+            "element_operator_multiset": {
+              "term_occurrences": 129954,
+              "distinct_words": 7927,
+              "mean_weight": 5.681179494282592,
+              "max_weight": 8,
+              "histogram": {
+                "0": 84,
+                "1": 116,
+                "2": 1415,
+                "3": 4737,
+                "4": 15797,
+                "5": 31988,
+                "6": 40598,
+                "7": 27333,
+                "8": 7886
+              }
+            },
+            "deduplicated_word_universe": {
+              "term_occurrences": 7927,
+              "distinct_words": 7927,
+              "mean_weight": 5.762331272864892,
+              "max_weight": 8,
+              "histogram": {
+                "0": 1,
+                "1": 5,
+                "2": 58,
+                "3": 256,
+                "4": 855,
+                "5": 1963,
+                "6": 2484,
+                "7": 1790,
+                "8": 515
+              }
+            }
+          },
+          "measurement": {
+            "protocol": "qwc_groups",
+            "settings": 533,
+            "group_size": {
+              "sum": 7926,
+              "mean": 14.870544090056285,
+              "max": 58
+            },
+            "resource_metrics": {
+              "N_1q": {
+                "sum": 3660,
+                "mean": 6.866791744840525,
+                "max": 12
+              },
+              "N_2q": {
+                "sum": 0,
+                "mean": 0.0,
+                "max": 0
+              },
+              "D_1q": {
+                "sum": 1033,
+                "mean": 1.9380863039399625,
+                "max": 2
+              },
+              "D_2q": {
+                "sum": 0,
+                "mean": 0.0,
+                "max": 0
+              }
+            },
+            "validity": "PASS: every assigned word is QWC with its shared basis"
+          },
+          "device_costs": {
+            "ion-like": {
+              "device_card_sha256": "9cc7e53e935e4ec3c265efbd9b6218f17a68c51d727d658c5a5bcaf98d34f453",
+              "fixed_uniform_raw_shots": {
+                "schema": "clifford_qc.measurement_cost.v1",
+                "device_card": {
+                  "name": "ion-like",
+                  "sha256": "9cc7e53e935e4ec3c265efbd9b6218f17a68c51d727d658c5a5bcaf98d34f453",
+                  "calibration_status": "illustrative_scenario"
+                },
+                "n_qubits": 8,
+                "settings": 533,
+                "raw_shots": 4264000,
+                "effective_shots": 3605772.2369053834,
+                "fixed_shot_time_us": 935440000.0,
+                "logical_1q_applications": 29280000,
+                "logical_2q_applications": 0,
+                "modeled_2q_applications": 0,
+                "routing": {
+                  "required": false,
+                  "two_qubit_count_multiplier": 1.0,
+                  "two_qubit_depth_multiplier": 1.0,
+                  "model": "declared scalar sensitivity surrogate"
+                },
+                "fidelity": {
+                  "min": 0.9172234262018567,
+                  "mean": 0.9195816852872966,
+                  "max": 0.9227446944279201,
+                  "floor": 0.5
+                },
+                "admissible": true,
+                "inadmissible_settings": 0,
+                "accuracy": {
+                  "epsilon": null,
+                  "evidence_tier": "exact",
+                  "status": "fixed_shot_only",
+                  "C_time_epsilon_us": null
+                }
+              },
+              "equal_effective_shots": {
+                "schema": "clifford_qc.measurement_cost.v1",
+                "device_card": {
+                  "name": "ion-like",
+                  "sha256": "9cc7e53e935e4ec3c265efbd9b6218f17a68c51d727d658c5a5bcaf98d34f453",
+                  "calibration_status": "illustrative_scenario"
+                },
+                "n_qubits": 8,
+                "settings": 533,
+                "raw_shots": 5042705,
+                "effective_shots": 4264251.16658355,
+                "fixed_shot_time_us": 1106283780.0,
+                "logical_1q_applications": 34649030,
+                "logical_2q_applications": 0,
+                "modeled_2q_applications": 0,
+                "routing": {
+                  "required": false,
+                  "two_qubit_count_multiplier": 1.0,
+                  "two_qubit_depth_multiplier": 1.0,
+                  "model": "declared scalar sensitivity surrogate"
+                },
+                "fidelity": {
+                  "min": 0.9172234262018567,
+                  "mean": 0.9195816852872966,
+                  "max": 0.9227446944279201,
+                  "floor": 0.5
+                },
+                "admissible": true,
+                "inadmissible_settings": 0,
+                "accuracy": {
+                  "epsilon": null,
+                  "evidence_tier": "exact",
+                  "status": "fixed_shot_only",
+                  "C_time_epsilon_us": null
+                }
+              }
+            },
+            "logical-alltoall": {
+              "device_card_sha256": "07e9cc637e590668bc89b7d407535f34f509155e08c95d2ecd0f8f931738265b",
+              "fixed_uniform_raw_shots": {
+                "schema": "clifford_qc.measurement_cost.v1",
+                "device_card": {
+                  "name": "logical-alltoall",
+                  "sha256": "07e9cc637e590668bc89b7d407535f34f509155e08c95d2ecd0f8f931738265b",
+                  "calibration_status": "logical_baseline"
+                },
+                "n_qubits": 8,
+                "settings": 533,
+                "raw_shots": 4264000,
+                "effective_shots": 4264000.0,
+                "fixed_shot_time_us": 8941200.0,
+                "logical_1q_applications": 29280000,
+                "logical_2q_applications": 0,
+                "modeled_2q_applications": 0,
+                "routing": {
+                  "required": false,
+                  "two_qubit_count_multiplier": 1.0,
+                  "two_qubit_depth_multiplier": 1.0,
+                  "model": "declared scalar sensitivity surrogate"
+                },
+                "fidelity": {
+                  "min": 1.0,
+                  "mean": 1.0,
+                  "max": 1.0,
+                  "floor": 0.5
+                },
+                "admissible": true,
+                "inadmissible_settings": 0,
+                "accuracy": {
+                  "epsilon": null,
+                  "evidence_tier": "exact",
+                  "status": "fixed_shot_only",
+                  "C_time_epsilon_us": null
+                }
+              },
+              "equal_effective_shots": {
+                "schema": "clifford_qc.measurement_cost.v1",
+                "device_card": {
+                  "name": "logical-alltoall",
+                  "sha256": "07e9cc637e590668bc89b7d407535f34f509155e08c95d2ecd0f8f931738265b",
+                  "calibration_status": "logical_baseline"
+                },
+                "n_qubits": 8,
+                "settings": 533,
+                "raw_shots": 4264000,
+                "effective_shots": 4264000.0,
+                "fixed_shot_time_us": 8941200.0,
+                "logical_1q_applications": 29280000,
+                "logical_2q_applications": 0,
+                "modeled_2q_applications": 0,
+                "routing": {
+                  "required": false,
+                  "two_qubit_count_multiplier": 1.0,
+                  "two_qubit_depth_multiplier": 1.0,
+                  "model": "declared scalar sensitivity surrogate"
+                },
+                "fidelity": {
+                  "min": 1.0,
+                  "mean": 1.0,
+                  "max": 1.0,
+                  "floor": 0.5
+                },
+                "admissible": true,
+                "inadmissible_settings": 0,
+                "accuracy": {
+                  "epsilon": null,
+                  "evidence_tier": "exact",
+                  "status": "fixed_shot_only",
+                  "C_time_epsilon_us": null
+                }
+              }
+            },
+            "superconducting-like": {
+              "device_card_sha256": "cf78e3240ad48839a8113a1570a43e614c230a8428fe8ceda7783e7ff75e1a13",
+              "fixed_uniform_raw_shots": {
+                "schema": "clifford_qc.measurement_cost.v1",
+                "device_card": {
+                  "name": "superconducting-like",
+                  "sha256": "cf78e3240ad48839a8113a1570a43e614c230a8428fe8ceda7783e7ff75e1a13",
+                  "calibration_status": "illustrative_scenario"
+                },
+                "n_qubits": 8,
+                "settings": 533,
+                "raw_shots": 4264000,
+                "effective_shots": 3044182.9634653674,
+                "fixed_shot_time_us": 13205200.0,
+                "logical_1q_applications": 29280000,
+                "logical_2q_applications": 0,
+                "modeled_2q_applications": 0,
+                "routing": {
+                  "required": true,
+                  "two_qubit_count_multiplier": 3.0,
+                  "two_qubit_depth_multiplier": 2.0,
+                  "model": "declared scalar sensitivity surrogate"
+                },
+                "fidelity": {
+                  "min": 0.8406098299228841,
+                  "mean": 0.844939942129135,
+                  "max": 0.8507630225817855,
+                  "floor": 0.5
+                },
+                "admissible": true,
+                "inadmissible_settings": 0,
+                "accuracy": {
+                  "epsilon": null,
+                  "evidence_tier": "exact",
+                  "status": "fixed_shot_only",
+                  "C_time_epsilon_us": null
+                }
+              },
+              "equal_effective_shots": {
+                "schema": "clifford_qc.measurement_cost.v1",
+                "device_card": {
+                  "name": "superconducting-like",
+                  "sha256": "cf78e3240ad48839a8113a1570a43e614c230a8428fe8ceda7783e7ff75e1a13",
+                  "calibration_status": "illustrative_scenario"
+                },
+                "n_qubits": 8,
+                "settings": 533,
+                "raw_shots": 5972961,
+                "effective_shots": 4264181.985020647,
+                "fixed_shot_time_us": 18497816.75,
+                "logical_1q_applications": 41066652,
+                "logical_2q_applications": 0,
+                "modeled_2q_applications": 0,
+                "routing": {
+                  "required": true,
+                  "two_qubit_count_multiplier": 3.0,
+                  "two_qubit_depth_multiplier": 2.0,
+                  "model": "declared scalar sensitivity surrogate"
+                },
+                "fidelity": {
+                  "min": 0.8406098299228841,
+                  "mean": 0.844939942129135,
+                  "max": 0.8507630225817855,
+                  "floor": 0.5
+                },
+                "admissible": true,
+                "inadmissible_settings": 0,
+                "accuracy": {
+                  "epsilon": null,
+                  "evidence_tier": "exact",
+                  "status": "fixed_shot_only",
+                  "C_time_epsilon_us": null
+                }
+              }
+            }
+          },
+          "accuracy_matched_cost": {
+            "epsilon_millihartree": 1.6,
+            "exact_subspace_bias_millihartree": 0.7658622613129218,
+            "estimator": "single_assignment",
+            "evidence_tier": "asymptotic",
+            "claim_boundary": "exact bias floor plus first-order Ritz-functional variance; not the R1 nonlinear exact-oracle shot search or a finite-sample certificate",
+            "status": "priced",
+            "linearized_variance_ha2_at_one_shot_per_setting": 0.05940370903121071,
+            "effective_shots_per_setting": 30102,
+            "device_costs": {
+              "ion-like": {
+                "schema": "clifford_qc.measurement_cost.v1",
+                "device_card": {
+                  "name": "ion-like",
+                  "sha256": "9cc7e53e935e4ec3c265efbd9b6218f17a68c51d727d658c5a5bcaf98d34f453",
+                  "calibration_status": "illustrative_scenario"
+                },
+                "n_qubits": 8,
+                "settings": 533,
+                "raw_shots": 18973560,
+                "effective_shots": 16044568.700993758,
+                "fixed_shot_time_us": 4162476620.0,
+                "logical_1q_applications": 130369264,
+                "logical_2q_applications": 0,
+                "modeled_2q_applications": 0,
+                "routing": {
+                  "required": false,
+                  "two_qubit_count_multiplier": 1.0,
+                  "two_qubit_depth_multiplier": 1.0,
+                  "model": "declared scalar sensitivity surrogate"
+                },
+                "fidelity": {
+                  "min": 0.9172234262018567,
+                  "mean": 0.9195816852872966,
+                  "max": 0.9227446944279201,
+                  "floor": 0.5
+                },
+                "admissible": true,
+                "inadmissible_settings": 0,
+                "accuracy": {
+                  "epsilon": 0.0016,
+                  "evidence_tier": "asymptotic",
+                  "status": "priced",
+                  "C_time_epsilon_us": 4162476620.0
+                }
+              },
+              "logical-alltoall": {
+                "schema": "clifford_qc.measurement_cost.v1",
+                "device_card": {
+                  "name": "logical-alltoall",
+                  "sha256": "07e9cc637e590668bc89b7d407535f34f509155e08c95d2ecd0f8f931738265b",
+                  "calibration_status": "logical_baseline"
+                },
+                "n_qubits": 8,
+                "settings": 533,
+                "raw_shots": 16044366,
+                "effective_shots": 16044366.0,
+                "fixed_shot_time_us": 33643500.29999999,
+                "logical_1q_applications": 110173320,
+                "logical_2q_applications": 0,
+                "modeled_2q_applications": 0,
+                "routing": {
+                  "required": false,
+                  "two_qubit_count_multiplier": 1.0,
+                  "two_qubit_depth_multiplier": 1.0,
+                  "model": "declared scalar sensitivity surrogate"
+                },
+                "fidelity": {
+                  "min": 1.0,
+                  "mean": 1.0,
+                  "max": 1.0,
+                  "floor": 0.5
+                },
+                "admissible": true,
+                "inadmissible_settings": 0,
+                "accuracy": {
+                  "epsilon": 0.0016,
+                  "evidence_tier": "asymptotic",
+                  "status": "priced",
+                  "C_time_epsilon_us": 33643500.29999999
+                }
+              },
+              "superconducting-like": {
+                "schema": "clifford_qc.measurement_cost.v1",
+                "device_card": {
+                  "name": "superconducting-like",
+                  "sha256": "cf78e3240ad48839a8113a1570a43e614c230a8428fe8ceda7783e7ff75e1a13",
+                  "calibration_status": "illustrative_scenario"
+                },
+                "n_qubits": 8,
+                "settings": 533,
+                "raw_shots": 22474125,
+                "effective_shots": 16044598.562565263,
+                "fixed_shot_time_us": 69600696.80000001,
+                "logical_1q_applications": 154518890,
+                "logical_2q_applications": 0,
+                "modeled_2q_applications": 0,
+                "routing": {
+                  "required": true,
+                  "two_qubit_count_multiplier": 3.0,
+                  "two_qubit_depth_multiplier": 2.0,
+                  "model": "declared scalar sensitivity surrogate"
+                },
+                "fidelity": {
+                  "min": 0.8406098299228841,
+                  "mean": 0.844939942129135,
+                  "max": 0.8507630225817855,
+                  "floor": 0.5
+                },
+                "admissible": true,
+                "inadmissible_settings": 0,
+                "accuracy": {
+                  "epsilon": 0.0016,
+                  "evidence_tier": "asymptotic",
+                  "status": "priced",
+                  "C_time_epsilon_us": 69600696.80000001
+                }
+              }
+            }
+          }
+        },
+        {
+          "mapping": "parity+2q",
+          "encoding": {
+            "rows": [
+              1,
+              3,
+              7,
+              15,
+              31,
+              63,
+              85,
+              255
+            ],
+            "fixed_qubits": [
+              6,
+              7
+            ],
+            "fixed_signs": [
+              1,
+              1
+            ],
+            "source_qubits": 8,
+            "measured_qubits": 6,
+            "spin_ordering": "interleaved",
+            "network": {
+              "logical_cnot_count": 13,
+              "logical_cnot_depth": 13,
+              "charged_per_preparation": false,
+              "role": "representation-equivalence witness; encoded determinants are prepared directly"
+            }
+          },
+          "invariants": {
+            "mapping_name": "parity+2q",
+            "source_qubits": 8,
+            "mapped_qubits": 6,
+            "qubits_removed": 2,
+            "basis_size": 15,
+            "word_universe_before": 7927,
+            "word_universe_after": 2048,
+            "effective_rank": 15,
+            "condition_number": 1.0,
+            "max_overlap_matrix_error": 0.0,
+            "overlap_matrix_scale": 1.0,
+            "max_hamiltonian_matrix_error": 1.5543122344752192e-15,
+            "hamiltonian_matrix_scale": 2.1242597389728113,
+            "max_operator_transport_error": 0.0,
+            "operator_transport_scale": 8.036610090812397,
+            "max_ritz_error": 7.771561172376096e-16,
+            "ritz_scale": 2.179550752062546,
+            "reference_energy_error": 0.0,
+            "reference_energy_scale": 2.1242597389728113,
+            "max_generator_leakage": 0.0,
+            "word_bijection_checked": false,
+            "dense_spectrum_checked": true,
+            "max_spectrum_error": 3.9968028886505635e-15,
+            "spectrum_scale": 3.5227349694720607,
+            "dense_spectrum_max_qubits": 10,
+            "dense_spectrum_reason": null,
+            "relative_tolerance": 1e-10,
+            "absolute_tolerance": 1e-12,
+            "leakage_tolerance": 1e-12,
+            "zero_tolerance": 1e-12
+          },
+          "basis": {
+            "size": 15,
+            "labels": [
+              "I",
+              "E(4,5<-2,3)",
+              "E(4,7<-0,3)",
+              "E(5,6<-1,2)",
+              "E(4,5<-0,1)",
+              "E(6,7<-0,1)",
+              "E(6,7<-2,3)",
+              "E(5,6<-0,3)",
+              "E(4,7<-1,2)",
+              "E(4,6<-0,2)",
+              "E(5,7<-1,3)",
+              "E(4<-0)",
+              "E(5<-1)",
+              "E(6<-2)",
+              "E(7<-3)"
+            ],
+            "retained_rank": 15,
+            "condition_number": 1.0,
+            "ground_energy": -2.1795507520625463,
+            "error_millihartree": 0.7658622613124777
+          },
+          "weights": {
+            "hamiltonian_multiset": {
+              "term_occurrences": 165,
+              "distinct_words": 165,
+              "mean_weight": 4.296969696969697,
+              "max_weight": 6,
+              "histogram": {
+                "0": 1,
+                "1": 3,
+                "2": 17,
+                "3": 14,
+                "4": 55,
+                "5": 40,
+                "6": 35
+              }
+            },
+            "generator_multiset": {
+              "term_occurrences": 81,
+              "distinct_words": 81,
+              "mean_weight": 4.197530864197531,
+              "max_weight": 6,
+              "histogram": {
+                "0": 1,
+                "1": 1,
+                "2": 5,
+                "3": 20,
+                "4": 12,
+                "5": 31,
+                "6": 11
+              }
+            },
+            "element_operator_multiset": {
+              "term_occurrences": 49946,
+              "distinct_words": 2048,
+              "mean_weight": 4.472430224642614,
+              "max_weight": 6,
+              "histogram": {
+                "0": 84,
+                "1": 349,
+                "2": 1827,
+                "3": 6391,
+                "4": 14845,
+                "5": 17876,
+                "6": 8574
+              }
+            },
+            "deduplicated_word_universe": {
+              "term_occurrences": 2048,
+              "distinct_words": 2048,
+              "mean_weight": 4.5,
+              "max_weight": 6,
+              "histogram": {
+                "0": 1,
+                "1": 12,
+                "2": 69,
+                "3": 256,
+                "4": 603,
+                "5": 756,
+                "6": 351
+              }
+            }
+          },
+          "measurement": {
+            "protocol": "qwc_groups",
+            "settings": 351,
+            "group_size": {
+              "sum": 2047,
+              "mean": 5.831908831908832,
+              "max": 32
+            },
+            "resource_metrics": {
+              "N_1q": {
+                "sum": 2025,
+                "mean": 5.769230769230769,
+                "max": 10
+              },
+              "N_2q": {
+                "sum": 0,
+                "mean": 0.0,
+                "max": 0
+              },
+              "D_1q": {
+                "sum": 669,
+                "mean": 1.9059829059829059,
+                "max": 2
+              },
+              "D_2q": {
+                "sum": 0,
+                "mean": 0.0,
+                "max": 0
+              }
+            },
+            "validity": "PASS: every assigned word is QWC with its shared basis"
+          },
+          "device_costs": {
+            "ion-like": {
+              "device_card_sha256": "9cc7e53e935e4ec3c265efbd9b6218f17a68c51d727d658c5a5bcaf98d34f453",
+              "fixed_uniform_raw_shots": {
+                "schema": "clifford_qc.measurement_cost.v1",
+                "device_card": {
+                  "name": "ion-like",
+                  "sha256": "9cc7e53e935e4ec3c265efbd9b6218f17a68c51d727d658c5a5bcaf98d34f453",
+                  "calibration_status": "illustrative_scenario"
+                },
+                "n_qubits": 6,
+                "settings": 351,
+                "raw_shots": 2808000,
+                "effective_shots": 2474650.8952616574,
+                "fixed_shot_time_us": 615120000.0,
+                "logical_1q_applications": 16200000,
+                "logical_2q_applications": 0,
+                "modeled_2q_applications": 0,
+                "routing": {
+                  "required": false,
+                  "two_qubit_count_multiplier": 1.0,
+                  "two_qubit_depth_multiplier": 1.0,
+                  "model": "declared scalar sensitivity surrogate"
+                },
+                "fidelity": {
+                  "min": 0.9367833261958236,
+                  "mean": 0.9387679413726128,
+                  "max": 0.941480149401,
+                  "floor": 0.5
+                },
+                "admissible": true,
+                "inadmissible_settings": 0,
+                "accuracy": {
+                  "epsilon": null,
+                  "evidence_tier": "exact",
+                  "status": "fixed_shot_only",
+                  "C_time_epsilon_us": null
+                }
+              },
+              "equal_effective_shots": {
+                "schema": "clifford_qc.measurement_cost.v1",
+                "device_card": {
+                  "name": "ion-like",
+                  "sha256": "9cc7e53e935e4ec3c265efbd9b6218f17a68c51d727d658c5a5bcaf98d34f453",
+                  "calibration_status": "illustrative_scenario"
+                },
+                "n_qubits": 6,
+                "settings": 351,
+                "raw_shots": 3186369,
+                "effective_shots": 2808093.4820203036,
+                "fixed_shot_time_us": 698013960.0,
+                "logical_1q_applications": 18392754,
+                "logical_2q_applications": 0,
+                "modeled_2q_applications": 0,
+                "routing": {
+                  "required": false,
+                  "two_qubit_count_multiplier": 1.0,
+                  "two_qubit_depth_multiplier": 1.0,
+                  "model": "declared scalar sensitivity surrogate"
+                },
+                "fidelity": {
+                  "min": 0.9367833261958236,
+                  "mean": 0.9387679413726128,
+                  "max": 0.941480149401,
+                  "floor": 0.5
+                },
+                "admissible": true,
+                "inadmissible_settings": 0,
+                "accuracy": {
+                  "epsilon": null,
+                  "evidence_tier": "exact",
+                  "status": "fixed_shot_only",
+                  "C_time_epsilon_us": null
+                }
+              }
+            },
+            "logical-alltoall": {
+              "device_card_sha256": "07e9cc637e590668bc89b7d407535f34f509155e08c95d2ecd0f8f931738265b",
+              "fixed_uniform_raw_shots": {
+                "schema": "clifford_qc.measurement_cost.v1",
+                "device_card": {
+                  "name": "logical-alltoall",
+                  "sha256": "07e9cc637e590668bc89b7d407535f34f509155e08c95d2ecd0f8f931738265b",
+                  "calibration_status": "logical_baseline"
+                },
+                "n_qubits": 6,
+                "settings": 351,
+                "raw_shots": 2808000,
+                "effective_shots": 2808000.0,
+                "fixed_shot_time_us": 5883600.0,
+                "logical_1q_applications": 16200000,
+                "logical_2q_applications": 0,
+                "modeled_2q_applications": 0,
+                "routing": {
+                  "required": false,
+                  "two_qubit_count_multiplier": 1.0,
+                  "two_qubit_depth_multiplier": 1.0,
+                  "model": "declared scalar sensitivity surrogate"
+                },
+                "fidelity": {
+                  "min": 1.0,
+                  "mean": 1.0,
+                  "max": 1.0,
+                  "floor": 0.5
+                },
+                "admissible": true,
+                "inadmissible_settings": 0,
+                "accuracy": {
+                  "epsilon": null,
+                  "evidence_tier": "exact",
+                  "status": "fixed_shot_only",
+                  "C_time_epsilon_us": null
+                }
+              },
+              "equal_effective_shots": {
+                "schema": "clifford_qc.measurement_cost.v1",
+                "device_card": {
+                  "name": "logical-alltoall",
+                  "sha256": "07e9cc637e590668bc89b7d407535f34f509155e08c95d2ecd0f8f931738265b",
+                  "calibration_status": "logical_baseline"
+                },
+                "n_qubits": 6,
+                "settings": 351,
+                "raw_shots": 2808000,
+                "effective_shots": 2808000.0,
+                "fixed_shot_time_us": 5883600.0,
+                "logical_1q_applications": 16200000,
+                "logical_2q_applications": 0,
+                "modeled_2q_applications": 0,
+                "routing": {
+                  "required": false,
+                  "two_qubit_count_multiplier": 1.0,
+                  "two_qubit_depth_multiplier": 1.0,
+                  "model": "declared scalar sensitivity surrogate"
+                },
+                "fidelity": {
+                  "min": 1.0,
+                  "mean": 1.0,
+                  "max": 1.0,
+                  "floor": 0.5
+                },
+                "admissible": true,
+                "inadmissible_settings": 0,
+                "accuracy": {
+                  "epsilon": null,
+                  "evidence_tier": "exact",
+                  "status": "fixed_shot_only",
+                  "C_time_epsilon_us": null
+                }
+              }
+            },
+            "superconducting-like": {
+              "device_card_sha256": "cf78e3240ad48839a8113a1570a43e614c230a8428fe8ceda7783e7ff75e1a13",
+              "fixed_uniform_raw_shots": {
+                "schema": "clifford_qc.measurement_cost.v1",
+                "device_card": {
+                  "name": "superconducting-like",
+                  "sha256": "cf78e3240ad48839a8113a1570a43e614c230a8428fe8ceda7783e7ff75e1a13",
+                  "calibration_status": "illustrative_scenario"
+                },
+                "n_qubits": 6,
+                "settings": 351,
+                "raw_shots": 2808000,
+                "effective_shots": 2178206.807332395,
+                "fixed_shot_time_us": 8691600.0,
+                "logical_1q_applications": 16200000,
+                "logical_2q_applications": 0,
+                "modeled_2q_applications": 0,
+                "routing": {
+                  "required": true,
+                  "two_qubit_count_multiplier": 3.0,
+                  "two_qubit_depth_multiplier": 2.0,
+                  "model": "declared scalar sensitivity surrogate"
+                },
+                "fidelity": {
+                  "min": 0.877023713847217,
+                  "mean": 0.8807452903002003,
+                  "max": 0.8858423808639999,
+                  "floor": 0.5
+                },
+                "admissible": true,
+                "inadmissible_settings": 0,
+                "accuracy": {
+                  "epsilon": null,
+                  "evidence_tier": "exact",
+                  "status": "fixed_shot_only",
+                  "C_time_epsilon_us": null
+                }
+              },
+              "equal_effective_shots": {
+                "schema": "clifford_qc.measurement_cost.v1",
+                "device_card": {
+                  "name": "superconducting-like",
+                  "sha256": "cf78e3240ad48839a8113a1570a43e614c230a8428fe8ceda7783e7ff75e1a13",
+                  "calibration_status": "illustrative_scenario"
+                },
+                "n_qubits": 6,
+                "settings": 351,
+                "raw_shots": 3620102,
+                "effective_shots": 2808131.3708797833,
+                "fixed_shot_time_us": 11205395.649999997,
+                "logical_1q_applications": 20907663,
+                "logical_2q_applications": 0,
+                "modeled_2q_applications": 0,
+                "routing": {
+                  "required": true,
+                  "two_qubit_count_multiplier": 3.0,
+                  "two_qubit_depth_multiplier": 2.0,
+                  "model": "declared scalar sensitivity surrogate"
+                },
+                "fidelity": {
+                  "min": 0.877023713847217,
+                  "mean": 0.8807452903002003,
+                  "max": 0.8858423808639999,
+                  "floor": 0.5
+                },
+                "admissible": true,
+                "inadmissible_settings": 0,
+                "accuracy": {
+                  "epsilon": null,
+                  "evidence_tier": "exact",
+                  "status": "fixed_shot_only",
+                  "C_time_epsilon_us": null
+                }
+              }
+            }
+          },
+          "accuracy_matched_cost": {
+            "epsilon_millihartree": 1.6,
+            "exact_subspace_bias_millihartree": 0.7658622613124777,
+            "estimator": "single_assignment",
+            "evidence_tier": "asymptotic",
+            "claim_boundary": "exact bias floor plus first-order Ritz-functional variance; not the R1 nonlinear exact-oracle shot search or a finite-sample certificate",
+            "status": "priced",
+            "linearized_variance_ha2_at_one_shot_per_setting": 0.062334279604372,
+            "effective_shots_per_setting": 31587,
+            "device_costs": {
+              "ion-like": {
+                "schema": "clifford_qc.measurement_cost.v1",
+                "device_card": {
+                  "name": "ion-like",
+                  "sha256": "9cc7e53e935e4ec3c265efbd9b6218f17a68c51d727d658c5a5bcaf98d34f453",
+                  "calibration_status": "illustrative_scenario"
+                },
+                "n_qubits": 6,
+                "settings": 351,
+                "raw_shots": 12580795,
+                "effective_shots": 11087243.153830063,
+                "fixed_shot_time_us": 2755980680.0,
+                "logical_1q_applications": 72620622,
+                "logical_2q_applications": 0,
+                "modeled_2q_applications": 0,
+                "routing": {
+                  "required": false,
+                  "two_qubit_count_multiplier": 1.0,
+                  "two_qubit_depth_multiplier": 1.0,
+                  "model": "declared scalar sensitivity surrogate"
+                },
+                "fidelity": {
+                  "min": 0.9367833261958236,
+                  "mean": 0.9387679413726128,
+                  "max": 0.941480149401,
+                  "floor": 0.5
+                },
+                "admissible": true,
+                "inadmissible_settings": 0,
+                "accuracy": {
+                  "epsilon": 0.0016,
+                  "evidence_tier": "asymptotic",
+                  "status": "priced",
+                  "C_time_epsilon_us": 2755980680.0
+                }
+              },
+              "logical-alltoall": {
+                "schema": "clifford_qc.measurement_cost.v1",
+                "device_card": {
+                  "name": "logical-alltoall",
+                  "sha256": "07e9cc637e590668bc89b7d407535f34f509155e08c95d2ecd0f8f931738265b",
+                  "calibration_status": "logical_baseline"
+                },
+                "n_qubits": 6,
+                "settings": 351,
+                "raw_shots": 11087037,
+                "effective_shots": 11087037.0,
+                "fixed_shot_time_us": 23230659.149999995,
+                "logical_1q_applications": 63963675,
+                "logical_2q_applications": 0,
+                "modeled_2q_applications": 0,
+                "routing": {
+                  "required": false,
+                  "two_qubit_count_multiplier": 1.0,
+                  "two_qubit_depth_multiplier": 1.0,
+                  "model": "declared scalar sensitivity surrogate"
+                },
+                "fidelity": {
+                  "min": 1.0,
+                  "mean": 1.0,
+                  "max": 1.0,
+                  "floor": 0.5
+                },
+                "admissible": true,
+                "inadmissible_settings": 0,
+                "accuracy": {
+                  "epsilon": 0.0016,
+                  "evidence_tier": "asymptotic",
+                  "status": "priced",
+                  "C_time_epsilon_us": 23230659.149999995
+                }
+              },
+              "superconducting-like": {
+                "schema": "clifford_qc.measurement_cost.v1",
+                "device_card": {
+                  "name": "superconducting-like",
+                  "sha256": "cf78e3240ad48839a8113a1570a43e614c230a8428fe8ceda7783e7ff75e1a13",
+                  "calibration_status": "illustrative_scenario"
+                },
+                "n_qubits": 6,
+                "settings": 351,
+                "raw_shots": 14293029,
+                "effective_shots": 11087174.756406676,
+                "fixed_shot_time_us": 44241583.65000001,
+                "logical_1q_applications": 82548387,
+                "logical_2q_applications": 0,
+                "modeled_2q_applications": 0,
+                "routing": {
+                  "required": true,
+                  "two_qubit_count_multiplier": 3.0,
+                  "two_qubit_depth_multiplier": 2.0,
+                  "model": "declared scalar sensitivity surrogate"
+                },
+                "fidelity": {
+                  "min": 0.877023713847217,
+                  "mean": 0.8807452903002003,
+                  "max": 0.8858423808639999,
+                  "floor": 0.5
+                },
+                "admissible": true,
+                "inadmissible_settings": 0,
+                "accuracy": {
+                  "epsilon": 0.0016,
+                  "evidence_tier": "asymptotic",
+                  "status": "priced",
+                  "C_time_epsilon_us": 44241583.65000001
+                }
+              }
+            }
+          }
+        },
+        {
+          "mapping": "bk",
+          "encoding": {
+            "rows": [
+              1,
+              3,
+              4,
+              15,
+              16,
+              48,
+              64,
+              255
+            ],
+            "fixed_qubits": [],
+            "fixed_signs": [],
+            "source_qubits": 8,
+            "measured_qubits": 8,
+            "spin_ordering": "interleaved",
+            "network": {
+              "logical_cnot_count": 7,
+              "logical_cnot_depth": 6,
+              "charged_per_preparation": false,
+              "role": "representation-equivalence witness; encoded determinants are prepared directly"
+            }
+          },
+          "invariants": {
+            "mapping_name": "bk",
+            "source_qubits": 8,
+            "mapped_qubits": 8,
+            "qubits_removed": 0,
+            "basis_size": 15,
+            "word_universe_before": 7927,
+            "word_universe_after": 7927,
+            "effective_rank": 15,
+            "condition_number": 1.0,
+            "max_overlap_matrix_error": 0.0,
+            "overlap_matrix_scale": 1.0,
+            "max_hamiltonian_matrix_error": 0.0,
+            "hamiltonian_matrix_scale": 2.1242597389728113,
+            "max_operator_transport_error": 0.0,
+            "operator_transport_scale": 16.0,
+            "max_ritz_error": 0.0,
+            "ritz_scale": 2.179550752062546,
+            "reference_energy_error": 0.0,
+            "reference_energy_scale": 2.1242597389728113,
+            "max_generator_leakage": 0.0,
+            "word_bijection_checked": true,
+            "dense_spectrum_checked": true,
+            "max_spectrum_error": 8.215650382226158e-15,
+            "spectrum_scale": 3.5227349694720638,
+            "dense_spectrum_max_qubits": 10,
+            "dense_spectrum_reason": null,
+            "relative_tolerance": 1e-10,
+            "absolute_tolerance": 1e-12,
+            "leakage_tolerance": 1e-12,
+            "zero_tolerance": 1e-12
+          },
+          "basis": {
+            "size": 15,
+            "labels": [
+              "I",
+              "E(4,5<-2,3)",
+              "E(4,7<-0,3)",
+              "E(5,6<-1,2)",
+              "E(4,5<-0,1)",
+              "E(6,7<-0,1)",
+              "E(6,7<-2,3)",
+              "E(5,6<-0,3)",
+              "E(4,7<-1,2)",
+              "E(4,6<-0,2)",
+              "E(5,7<-1,3)",
+              "E(4<-0)",
+              "E(5<-1)",
+              "E(6<-2)",
+              "E(7<-3)"
+            ],
+            "retained_rank": 15,
+            "condition_number": 1.0,
+            "ground_energy": -2.179550752062546,
+            "error_millihartree": 0.7658622613129218
+          },
+          "weights": {
+            "hamiltonian_multiset": {
+              "term_occurrences": 185,
+              "distinct_words": 185,
+              "mean_weight": 4.562162162162162,
+              "max_weight": 7,
+              "histogram": {
+                "0": 1,
+                "1": 6,
+                "2": 10,
+                "3": 26,
+                "4": 26,
+                "5": 72,
+                "6": 32,
+                "7": 12
+              }
+            },
+            "generator_multiset": {
+              "term_occurrences": 89,
+              "distinct_words": 89,
+              "mean_weight": 4.707865168539326,
+              "max_weight": 7,
+              "histogram": {
+                "0": 1,
+                "2": 9,
+                "3": 9,
+                "4": 11,
+                "5": 29,
+                "6": 25,
+                "7": 5
+              }
+            },
+            "element_operator_multiset": {
+              "term_occurrences": 129954,
+              "distinct_words": 7927,
+              "mean_weight": 5.711267063730243,
+              "max_weight": 8,
+              "histogram": {
+                "0": 84,
+                "1": 287,
+                "2": 1474,
+                "3": 5087,
+                "4": 14557,
+                "5": 32010,
+                "6": 39595,
+                "7": 27022,
+                "8": 9838
+              }
+            },
+            "deduplicated_word_universe": {
+              "term_occurrences": 7927,
+              "distinct_words": 7927,
+              "mean_weight": 5.766872713510786,
+              "max_weight": 8,
+              "histogram": {
+                "0": 1,
+                "1": 8,
+                "2": 60,
+                "3": 293,
+                "4": 912,
+                "5": 1873,
+                "6": 2381,
+                "7": 1784,
+                "8": 615
+              }
+            }
+          },
+          "measurement": {
+            "protocol": "qwc_groups",
+            "settings": 615,
+            "group_size": {
+              "sum": 7926,
+              "mean": 12.887804878048781,
+              "max": 84
+            },
+            "resource_metrics": {
+              "N_1q": {
+                "sum": 4611,
+                "mean": 7.4975609756097565,
+                "max": 14
+              },
+              "N_2q": {
+                "sum": 0,
+                "mean": 0.0,
+                "max": 0
+              },
+              "D_1q": {
+                "sum": 1197,
+                "mean": 1.946341463414634,
+                "max": 2
+              },
+              "D_2q": {
+                "sum": 0,
+                "mean": 0.0,
+                "max": 0
+              }
+            },
+            "validity": "PASS: every assigned word is QWC with its shared basis"
+          },
+          "device_costs": {
+            "ion-like": {
+              "device_card_sha256": "9cc7e53e935e4ec3c265efbd9b6218f17a68c51d727d658c5a5bcaf98d34f453",
+              "fixed_uniform_raw_shots": {
+                "schema": "clifford_qc.measurement_cost.v1",
+                "device_card": {
+                  "name": "ion-like",
+                  "sha256": "9cc7e53e935e4ec3c265efbd9b6218f17a68c51d727d658c5a5bcaf98d34f453",
+                  "calibration_status": "illustrative_scenario"
+                },
+                "n_qubits": 8,
+                "settings": 615,
+                "raw_shots": 4920000,
+                "effective_shots": 4157885.204375468,
+                "fixed_shot_time_us": 1079760000.0,
+                "logical_1q_applications": 36888000,
+                "logical_2q_applications": 0,
+                "modeled_2q_applications": 0,
+                "routing": {
+                  "required": false,
+                  "two_qubit_count_multiplier": 1.0,
+                  "two_qubit_depth_multiplier": 1.0,
+                  "model": "declared scalar sensitivity surrogate"
+                },
+                "fidelity": {
+                  "min": 0.9163064320815115,
+                  "mean": 0.9192917982596599,
+                  "max": 0.9227446944279201,
+                  "floor": 0.5
+                },
+                "admissible": true,
+                "inadmissible_settings": 0,
+                "accuracy": {
+                  "epsilon": null,
+                  "evidence_tier": "exact",
+                  "status": "fixed_shot_only",
+                  "C_time_epsilon_us": null
+                }
+              },
+              "equal_effective_shots": {
+                "schema": "clifford_qc.measurement_cost.v1",
+                "device_card": {
+                  "name": "ion-like",
+                  "sha256": "9cc7e53e935e4ec3c265efbd9b6218f17a68c51d727d658c5a5bcaf98d34f453",
+                  "calibration_status": "illustrative_scenario"
+                },
+                "n_qubits": 8,
+                "settings": 615,
+                "raw_shots": 5822192,
+                "effective_shots": 4920298.190411048,
+                "fixed_shot_time_us": 1277770990.0,
+                "logical_1q_applications": 43685631,
+                "logical_2q_applications": 0,
+                "modeled_2q_applications": 0,
+                "routing": {
+                  "required": false,
+                  "two_qubit_count_multiplier": 1.0,
+                  "two_qubit_depth_multiplier": 1.0,
+                  "model": "declared scalar sensitivity surrogate"
+                },
+                "fidelity": {
+                  "min": 0.9163064320815115,
+                  "mean": 0.9192917982596599,
+                  "max": 0.9227446944279201,
+                  "floor": 0.5
+                },
+                "admissible": true,
+                "inadmissible_settings": 0,
+                "accuracy": {
+                  "epsilon": null,
+                  "evidence_tier": "exact",
+                  "status": "fixed_shot_only",
+                  "C_time_epsilon_us": null
+                }
+              }
+            },
+            "logical-alltoall": {
+              "device_card_sha256": "07e9cc637e590668bc89b7d407535f34f509155e08c95d2ecd0f8f931738265b",
+              "fixed_uniform_raw_shots": {
+                "schema": "clifford_qc.measurement_cost.v1",
+                "device_card": {
+                  "name": "logical-alltoall",
+                  "sha256": "07e9cc637e590668bc89b7d407535f34f509155e08c95d2ecd0f8f931738265b",
+                  "calibration_status": "logical_baseline"
+                },
+                "n_qubits": 8,
+                "settings": 615,
+                "raw_shots": 4920000,
+                "effective_shots": 4920000.0,
+                "fixed_shot_time_us": 10318800.0,
+                "logical_1q_applications": 36888000,
+                "logical_2q_applications": 0,
+                "modeled_2q_applications": 0,
+                "routing": {
+                  "required": false,
+                  "two_qubit_count_multiplier": 1.0,
+                  "two_qubit_depth_multiplier": 1.0,
+                  "model": "declared scalar sensitivity surrogate"
+                },
+                "fidelity": {
+                  "min": 1.0,
+                  "mean": 1.0,
+                  "max": 1.0,
+                  "floor": 0.5
+                },
+                "admissible": true,
+                "inadmissible_settings": 0,
+                "accuracy": {
+                  "epsilon": null,
+                  "evidence_tier": "exact",
+                  "status": "fixed_shot_only",
+                  "C_time_epsilon_us": null
+                }
+              },
+              "equal_effective_shots": {
+                "schema": "clifford_qc.measurement_cost.v1",
+                "device_card": {
+                  "name": "logical-alltoall",
+                  "sha256": "07e9cc637e590668bc89b7d407535f34f509155e08c95d2ecd0f8f931738265b",
+                  "calibration_status": "logical_baseline"
+                },
+                "n_qubits": 8,
+                "settings": 615,
+                "raw_shots": 4920000,
+                "effective_shots": 4920000.0,
+                "fixed_shot_time_us": 10318800.0,
+                "logical_1q_applications": 36888000,
+                "logical_2q_applications": 0,
+                "modeled_2q_applications": 0,
+                "routing": {
+                  "required": false,
+                  "two_qubit_count_multiplier": 1.0,
+                  "two_qubit_depth_multiplier": 1.0,
+                  "model": "declared scalar sensitivity surrogate"
+                },
+                "fidelity": {
+                  "min": 1.0,
+                  "mean": 1.0,
+                  "max": 1.0,
+                  "floor": 0.5
+                },
+                "admissible": true,
+                "inadmissible_settings": 0,
+                "accuracy": {
+                  "epsilon": null,
+                  "evidence_tier": "exact",
+                  "status": "fixed_shot_only",
+                  "C_time_epsilon_us": null
+                }
+              }
+            },
+            "superconducting-like": {
+              "device_card_sha256": "cf78e3240ad48839a8113a1570a43e614c230a8428fe8ceda7783e7ff75e1a13",
+              "fixed_uniform_raw_shots": {
+                "schema": "clifford_qc.measurement_cost.v1",
+                "device_card": {
+                  "name": "superconducting-like",
+                  "sha256": "cf78e3240ad48839a8113a1570a43e614c230a8428fe8ceda7783e7ff75e1a13",
+                  "calibration_status": "illustrative_scenario"
+                },
+                "n_qubits": 8,
+                "settings": 615,
+                "raw_shots": 4920000,
+                "effective_shots": 3508098.083849686,
+                "fixed_shot_time_us": 15238800.0,
+                "logical_1q_applications": 36888000,
+                "logical_2q_applications": 0,
+                "modeled_2q_applications": 0,
+                "routing": {
+                  "required": true,
+                  "two_qubit_count_multiplier": 3.0,
+                  "two_qubit_depth_multiplier": 2.0,
+                  "model": "declared scalar sensitivity surrogate"
+                },
+                "fidelity": {
+                  "min": 0.8389294508728683,
+                  "mean": 0.844407475898027,
+                  "max": 0.8507630225817855,
+                  "floor": 0.5
+                },
+                "admissible": true,
+                "inadmissible_settings": 0,
+                "accuracy": {
+                  "epsilon": null,
+                  "evidence_tier": "exact",
+                  "status": "fixed_shot_only",
+                  "C_time_epsilon_us": null
+                }
+              },
+              "equal_effective_shots": {
+                "schema": "clifford_qc.measurement_cost.v1",
+                "device_card": {
+                  "name": "superconducting-like",
+                  "sha256": "cf78e3240ad48839a8113a1570a43e614c230a8428fe8ceda7783e7ff75e1a13",
+                  "calibration_status": "illustrative_scenario"
+                },
+                "n_qubits": 8,
+                "settings": 615,
+                "raw_shots": 6900612,
+                "effective_shots": 4920217.322437052,
+                "fixed_shot_time_us": 21373534.95,
+                "logical_1q_applications": 51816748,
+                "logical_2q_applications": 0,
+                "modeled_2q_applications": 0,
+                "routing": {
+                  "required": true,
+                  "two_qubit_count_multiplier": 3.0,
+                  "two_qubit_depth_multiplier": 2.0,
+                  "model": "declared scalar sensitivity surrogate"
+                },
+                "fidelity": {
+                  "min": 0.8389294508728683,
+                  "mean": 0.844407475898027,
+                  "max": 0.8507630225817855,
+                  "floor": 0.5
+                },
+                "admissible": true,
+                "inadmissible_settings": 0,
+                "accuracy": {
+                  "epsilon": null,
+                  "evidence_tier": "exact",
+                  "status": "fixed_shot_only",
+                  "C_time_epsilon_us": null
+                }
+              }
+            }
+          },
+          "accuracy_matched_cost": {
+            "epsilon_millihartree": 1.6,
+            "exact_subspace_bias_millihartree": 0.7658622613129218,
+            "estimator": "single_assignment",
+            "evidence_tier": "asymptotic",
+            "claim_boundary": "exact bias floor plus first-order Ritz-functional variance; not the R1 nonlinear exact-oracle shot search or a finite-sample certificate",
+            "status": "priced",
+            "linearized_variance_ha2_at_one_shot_per_setting": 0.05634006352667475,
+            "effective_shots_per_setting": 28549,
+            "device_costs": {
+              "ion-like": {
+                "schema": "clifford_qc.measurement_cost.v1",
+                "device_card": {
+                  "name": "ion-like",
+                  "sha256": "9cc7e53e935e4ec3c265efbd9b6218f17a68c51d727d658c5a5bcaf98d34f453",
+                  "calibration_status": "illustrative_scenario"
+                },
+                "n_qubits": 8,
+                "settings": 615,
+                "raw_shots": 20776224,
+                "effective_shots": 17557857.80131894,
+                "fixed_shot_time_us": 4559666760.0,
+                "logical_1q_applications": 155889781,
+                "logical_2q_applications": 0,
+                "modeled_2q_applications": 0,
+                "routing": {
+                  "required": false,
+                  "two_qubit_count_multiplier": 1.0,
+                  "two_qubit_depth_multiplier": 1.0,
+                  "model": "declared scalar sensitivity surrogate"
+                },
+                "fidelity": {
+                  "min": 0.9163064320815115,
+                  "mean": 0.9192917982596599,
+                  "max": 0.9227446944279201,
+                  "floor": 0.5
+                },
+                "admissible": true,
+                "inadmissible_settings": 0,
+                "accuracy": {
+                  "epsilon": 0.0016,
+                  "evidence_tier": "asymptotic",
+                  "status": "priced",
+                  "C_time_epsilon_us": 4559666760.0
+                }
+              },
+              "logical-alltoall": {
+                "schema": "clifford_qc.measurement_cost.v1",
+                "device_card": {
+                  "name": "logical-alltoall",
+                  "sha256": "07e9cc637e590668bc89b7d407535f34f509155e08c95d2ecd0f8f931738265b",
+                  "calibration_status": "logical_baseline"
+                },
+                "n_qubits": 8,
+                "settings": 615,
+                "raw_shots": 17557635,
+                "effective_shots": 17557635.0,
+                "fixed_shot_time_us": 36823927.65000001,
+                "logical_1q_applications": 131639439,
+                "logical_2q_applications": 0,
+                "modeled_2q_applications": 0,
+                "routing": {
+                  "required": false,
+                  "two_qubit_count_multiplier": 1.0,
+                  "two_qubit_depth_multiplier": 1.0,
+                  "model": "declared scalar sensitivity surrogate"
+                },
+                "fidelity": {
+                  "min": 1.0,
+                  "mean": 1.0,
+                  "max": 1.0,
+                  "floor": 0.5
+                },
+                "admissible": true,
+                "inadmissible_settings": 0,
+                "accuracy": {
+                  "epsilon": 0.0016,
+                  "evidence_tier": "asymptotic",
+                  "status": "priced",
+                  "C_time_epsilon_us": 36823927.65000001
+                }
+              },
+              "superconducting-like": {
+                "schema": "clifford_qc.measurement_cost.v1",
+                "device_card": {
+                  "name": "superconducting-like",
+                  "sha256": "cf78e3240ad48839a8113a1570a43e614c230a8428fe8ceda7783e7ff75e1a13",
+                  "calibration_status": "illustrative_scenario"
+                },
+                "n_qubits": 8,
+                "settings": 615,
+                "raw_shots": 24624843,
+                "effective_shots": 17557802.105627924,
+                "fixed_shot_time_us": 76271487.35,
+                "logical_1q_applications": 184908051,
+                "logical_2q_applications": 0,
+                "modeled_2q_applications": 0,
+                "routing": {
+                  "required": true,
+                  "two_qubit_count_multiplier": 3.0,
+                  "two_qubit_depth_multiplier": 2.0,
+                  "model": "declared scalar sensitivity surrogate"
+                },
+                "fidelity": {
+                  "min": 0.8389294508728683,
+                  "mean": 0.844407475898027,
+                  "max": 0.8507630225817855,
+                  "floor": 0.5
+                },
+                "admissible": true,
+                "inadmissible_settings": 0,
+                "accuracy": {
+                  "epsilon": 0.0016,
+                  "evidence_tier": "asymptotic",
+                  "status": "priced",
+                  "C_time_epsilon_us": 76271487.35
+                }
+              }
+            }
+          }
+        },
+        {
+          "mapping": "bk+2q",
+          "encoding": {
+            "rows": [
+              1,
+              3,
+              4,
+              15,
+              16,
+              48,
+              85,
+              255
+            ],
+            "fixed_qubits": [
+              6,
+              7
+            ],
+            "fixed_signs": [
+              1,
+              1
+            ],
+            "source_qubits": 8,
+            "measured_qubits": 6,
+            "spin_ordering": "interleaved",
+            "network": {
+              "logical_cnot_count": 10,
+              "logical_cnot_depth": 9,
+              "charged_per_preparation": false,
+              "role": "representation-equivalence witness; encoded determinants are prepared directly"
+            }
+          },
+          "invariants": {
+            "mapping_name": "bk+2q",
+            "source_qubits": 8,
+            "mapped_qubits": 6,
+            "qubits_removed": 2,
+            "basis_size": 15,
+            "word_universe_before": 7927,
+            "word_universe_after": 2048,
+            "effective_rank": 15,
+            "condition_number": 1.0,
+            "max_overlap_matrix_error": 0.0,
+            "overlap_matrix_scale": 1.0,
+            "max_hamiltonian_matrix_error": 1.5543122344752192e-15,
+            "hamiltonian_matrix_scale": 2.1242597389728113,
+            "max_operator_transport_error": 0.0,
+            "operator_transport_scale": 8.036610090812397,
+            "max_ritz_error": 7.771561172376096e-16,
+            "ritz_scale": 2.179550752062546,
+            "reference_energy_error": 0.0,
+            "reference_energy_scale": 2.1242597389728113,
+            "max_generator_leakage": 0.0,
+            "word_bijection_checked": false,
+            "dense_spectrum_checked": true,
+            "max_spectrum_error": 7.105427357601002e-15,
+            "spectrum_scale": 3.522734969472062,
+            "dense_spectrum_max_qubits": 10,
+            "dense_spectrum_reason": null,
+            "relative_tolerance": 1e-10,
+            "absolute_tolerance": 1e-12,
+            "leakage_tolerance": 1e-12,
+            "zero_tolerance": 1e-12
+          },
+          "basis": {
+            "size": 15,
+            "labels": [
+              "I",
+              "E(4,5<-2,3)",
+              "E(4,7<-0,3)",
+              "E(5,6<-1,2)",
+              "E(4,5<-0,1)",
+              "E(6,7<-0,1)",
+              "E(6,7<-2,3)",
+              "E(5,6<-0,3)",
+              "E(4,7<-1,2)",
+              "E(4,6<-0,2)",
+              "E(5,7<-1,3)",
+              "E(4<-0)",
+              "E(5<-1)",
+              "E(6<-2)",
+              "E(7<-3)"
+            ],
+            "retained_rank": 15,
+            "condition_number": 1.0,
+            "ground_energy": -2.1795507520625463,
+            "error_millihartree": 0.7658622613124777
+          },
+          "weights": {
+            "hamiltonian_multiset": {
+              "term_occurrences": 165,
+              "distinct_words": 165,
+              "mean_weight": 4.151515151515151,
+              "max_weight": 6,
+              "histogram": {
+                "0": 1,
+                "1": 5,
+                "2": 11,
+                "3": 29,
+                "4": 45,
+                "5": 53,
+                "6": 21
+              }
+            },
+            "generator_multiset": {
+              "term_occurrences": 81,
+              "distinct_words": 81,
+              "mean_weight": 4.0246913580246915,
+              "max_weight": 6,
+              "histogram": {
+                "0": 1,
+                "1": 3,
+                "2": 5,
+                "3": 18,
+                "4": 21,
+                "5": 23,
+                "6": 10
+              }
+            },
+            "element_operator_multiset": {
+              "term_occurrences": 49946,
+              "distinct_words": 2048,
+              "mean_weight": 4.463400472510311,
+              "max_weight": 6,
+              "histogram": {
+                "0": 84,
+                "1": 465,
+                "2": 2166,
+                "3": 6835,
+                "4": 14002,
+                "5": 16745,
+                "6": 9649
+              }
+            },
+            "deduplicated_word_universe": {
+              "term_occurrences": 2048,
+              "distinct_words": 2048,
+              "mean_weight": 4.5,
+              "max_weight": 6,
+              "histogram": {
+                "0": 1,
+                "1": 14,
+                "2": 83,
+                "3": 276,
+                "4": 567,
+                "5": 702,
+                "6": 405
+              }
+            }
+          },
+          "measurement": {
+            "protocol": "qwc_groups",
+            "settings": 405,
+            "group_size": {
+              "sum": 2047,
+              "mean": 5.054320987654321,
+              "max": 48
+            },
+            "resource_metrics": {
+              "N_1q": {
+                "sum": 2592,
+                "mean": 6.4,
+                "max": 12
+              },
+              "N_2q": {
+                "sum": 0,
+                "mean": 0.0,
+                "max": 0
+              },
+              "D_1q": {
+                "sum": 777,
+                "mean": 1.9185185185185185,
+                "max": 2
+              },
+              "D_2q": {
+                "sum": 0,
+                "mean": 0.0,
+                "max": 0
+              }
+            },
+            "validity": "PASS: every assigned word is QWC with its shared basis"
+          },
+          "device_costs": {
+            "ion-like": {
+              "device_card_sha256": "9cc7e53e935e4ec3c265efbd9b6218f17a68c51d727d658c5a5bcaf98d34f453",
+              "fixed_uniform_raw_shots": {
+                "schema": "clifford_qc.measurement_cost.v1",
+                "device_card": {
+                  "name": "ion-like",
+                  "sha256": "9cc7e53e935e4ec3c265efbd9b6218f17a68c51d727d658c5a5bcaf98d34f453",
+                  "calibration_status": "illustrative_scenario"
+                },
+                "n_qubits": 6,
+                "settings": 405,
+                "raw_shots": 3240000,
+                "effective_shots": 2853567.465546201,
+                "fixed_shot_time_us": 710160000.0,
+                "logical_1q_applications": 20736000,
+                "logical_2q_applications": 0,
+                "modeled_2q_applications": 0,
+                "routing": {
+                  "required": false,
+                  "two_qubit_count_multiplier": 1.0,
+                  "two_qubit_depth_multiplier": 1.0,
+                  "model": "declared scalar sensitivity surrogate"
+                },
+                "fidelity": {
+                  "min": 0.9358467770654594,
+                  "mean": 0.9384720061093087,
+                  "max": 0.941480149401,
+                  "floor": 0.5
+                },
+                "admissible": true,
+                "inadmissible_settings": 0,
+                "accuracy": {
+                  "epsilon": null,
+                  "evidence_tier": "exact",
+                  "status": "fixed_shot_only",
+                  "C_time_epsilon_us": null
+                }
+              },
+              "equal_effective_shots": {
+                "schema": "clifford_qc.measurement_cost.v1",
+                "device_card": {
+                  "name": "ion-like",
+                  "sha256": "9cc7e53e935e4ec3c265efbd9b6218f17a68c51d727d658c5a5bcaf98d34f453",
+                  "calibration_status": "illustrative_scenario"
+                },
+                "n_qubits": 6,
+                "settings": 405,
+                "raw_shots": 3678924,
+                "effective_shots": 3240126.651814563,
+                "fixed_shot_time_us": 806376060.0,
+                "logical_1q_applications": 23561746,
+                "logical_2q_applications": 0,
+                "modeled_2q_applications": 0,
+                "routing": {
+                  "required": false,
+                  "two_qubit_count_multiplier": 1.0,
+                  "two_qubit_depth_multiplier": 1.0,
+                  "model": "declared scalar sensitivity surrogate"
+                },
+                "fidelity": {
+                  "min": 0.9358467770654594,
+                  "mean": 0.9384720061093087,
+                  "max": 0.941480149401,
+                  "floor": 0.5
+                },
+                "admissible": true,
+                "inadmissible_settings": 0,
+                "accuracy": {
+                  "epsilon": null,
+                  "evidence_tier": "exact",
+                  "status": "fixed_shot_only",
+                  "C_time_epsilon_us": null
+                }
+              }
+            },
+            "logical-alltoall": {
+              "device_card_sha256": "07e9cc637e590668bc89b7d407535f34f509155e08c95d2ecd0f8f931738265b",
+              "fixed_uniform_raw_shots": {
+                "schema": "clifford_qc.measurement_cost.v1",
+                "device_card": {
+                  "name": "logical-alltoall",
+                  "sha256": "07e9cc637e590668bc89b7d407535f34f509155e08c95d2ecd0f8f931738265b",
+                  "calibration_status": "logical_baseline"
+                },
+                "n_qubits": 6,
+                "settings": 405,
+                "raw_shots": 3240000,
+                "effective_shots": 3240000.0,
+                "fixed_shot_time_us": 6790800.0,
+                "logical_1q_applications": 20736000,
+                "logical_2q_applications": 0,
+                "modeled_2q_applications": 0,
+                "routing": {
+                  "required": false,
+                  "two_qubit_count_multiplier": 1.0,
+                  "two_qubit_depth_multiplier": 1.0,
+                  "model": "declared scalar sensitivity surrogate"
+                },
+                "fidelity": {
+                  "min": 1.0,
+                  "mean": 1.0,
+                  "max": 1.0,
+                  "floor": 0.5
+                },
+                "admissible": true,
+                "inadmissible_settings": 0,
+                "accuracy": {
+                  "epsilon": null,
+                  "evidence_tier": "exact",
+                  "status": "fixed_shot_only",
+                  "C_time_epsilon_us": null
+                }
+              },
+              "equal_effective_shots": {
+                "schema": "clifford_qc.measurement_cost.v1",
+                "device_card": {
+                  "name": "logical-alltoall",
+                  "sha256": "07e9cc637e590668bc89b7d407535f34f509155e08c95d2ecd0f8f931738265b",
+                  "calibration_status": "logical_baseline"
+                },
+                "n_qubits": 6,
+                "settings": 405,
+                "raw_shots": 3240000,
+                "effective_shots": 3240000.0,
+                "fixed_shot_time_us": 6790800.0,
+                "logical_1q_applications": 20736000,
+                "logical_2q_applications": 0,
+                "modeled_2q_applications": 0,
+                "routing": {
+                  "required": false,
+                  "two_qubit_count_multiplier": 1.0,
+                  "two_qubit_depth_multiplier": 1.0,
+                  "model": "declared scalar sensitivity surrogate"
+                },
+                "fidelity": {
+                  "min": 1.0,
+                  "mean": 1.0,
+                  "max": 1.0,
+                  "floor": 0.5
+                },
+                "admissible": true,
+                "inadmissible_settings": 0,
+                "accuracy": {
+                  "epsilon": null,
+                  "evidence_tier": "exact",
+                  "status": "fixed_shot_only",
+                  "C_time_epsilon_us": null
+                }
+              }
+            },
+            "superconducting-like": {
+              "device_card_sha256": "cf78e3240ad48839a8113a1570a43e614c230a8428fe8ceda7783e7ff75e1a13",
+              "fixed_uniform_raw_shots": {
+                "schema": "clifford_qc.measurement_cost.v1",
+                "device_card": {
+                  "name": "superconducting-like",
+                  "sha256": "cf78e3240ad48839a8113a1570a43e614c230a8428fe8ceda7783e7ff75e1a13",
+                  "calibration_status": "illustrative_scenario"
+                },
+                "n_qubits": 6,
+                "settings": 405,
+                "raw_shots": 3240000,
+                "effective_shots": 2510152.38529964,
+                "fixed_shot_time_us": 10030800.0,
+                "logical_1q_applications": 20736000,
+                "logical_2q_applications": 0,
+                "modeled_2q_applications": 0,
+                "routing": {
+                  "required": true,
+                  "two_qubit_count_multiplier": 3.0,
+                  "two_qubit_depth_multiplier": 2.0,
+                  "model": "declared scalar sensitivity surrogate"
+                },
+                "fidelity": {
+                  "min": 0.8752705434432363,
+                  "mean": 0.8801902601709459,
+                  "max": 0.8858423808639999,
+                  "floor": 0.5
+                },
+                "admissible": true,
+                "inadmissible_settings": 0,
+                "accuracy": {
+                  "epsilon": null,
+                  "evidence_tier": "exact",
+                  "status": "fixed_shot_only",
+                  "C_time_epsilon_us": null
+                }
+              },
+              "equal_effective_shots": {
+                "schema": "clifford_qc.measurement_cost.v1",
+                "device_card": {
+                  "name": "superconducting-like",
+                  "sha256": "cf78e3240ad48839a8113a1570a43e614c230a8428fe8ceda7783e7ff75e1a13",
+                  "calibration_status": "illustrative_scenario"
+                },
+                "n_qubits": 6,
+                "settings": 405,
+                "raw_shots": 4182341,
+                "effective_shots": 3240161.6240480617,
+                "fixed_shot_time_us": 12948336.549999999,
+                "logical_1q_applications": 26804710,
+                "logical_2q_applications": 0,
+                "modeled_2q_applications": 0,
+                "routing": {
+                  "required": true,
+                  "two_qubit_count_multiplier": 3.0,
+                  "two_qubit_depth_multiplier": 2.0,
+                  "model": "declared scalar sensitivity surrogate"
+                },
+                "fidelity": {
+                  "min": 0.8752705434432363,
+                  "mean": 0.8801902601709459,
+                  "max": 0.8858423808639999,
+                  "floor": 0.5
+                },
+                "admissible": true,
+                "inadmissible_settings": 0,
+                "accuracy": {
+                  "epsilon": null,
+                  "evidence_tier": "exact",
+                  "status": "fixed_shot_only",
+                  "C_time_epsilon_us": null
+                }
+              }
+            }
+          },
+          "accuracy_matched_cost": {
+            "epsilon_millihartree": 1.6,
+            "exact_subspace_bias_millihartree": 0.7658622613124777,
+            "estimator": "single_assignment",
+            "evidence_tier": "asymptotic",
+            "claim_boundary": "exact bias floor plus first-order Ritz-functional variance; not the R1 nonlinear exact-oracle shot search or a finite-sample certificate",
+            "status": "priced",
+            "linearized_variance_ha2_at_one_shot_per_setting": 0.05566052230179192,
+            "effective_shots_per_setting": 28205,
+            "device_costs": {
+              "ion-like": {
+                "schema": "clifford_qc.measurement_cost.v1",
+                "device_card": {
+                  "name": "ion-like",
+                  "sha256": "9cc7e53e935e4ec3c265efbd9b6218f17a68c51d727d658c5a5bcaf98d34f453",
+                  "calibration_status": "illustrative_scenario"
+                },
+                "n_qubits": 6,
+                "settings": 405,
+                "raw_shots": 12970115,
+                "effective_shots": 11423126.83312292,
+                "fixed_shot_time_us": 2842893920.0,
+                "logical_1q_applications": 83067320,
+                "logical_2q_applications": 0,
+                "modeled_2q_applications": 0,
+                "routing": {
+                  "required": false,
+                  "two_qubit_count_multiplier": 1.0,
+                  "two_qubit_depth_multiplier": 1.0,
+                  "model": "declared scalar sensitivity surrogate"
+                },
+                "fidelity": {
+                  "min": 0.9358467770654594,
+                  "mean": 0.9384720061093087,
+                  "max": 0.941480149401,
+                  "floor": 0.5
+                },
+                "admissible": true,
+                "inadmissible_settings": 0,
+                "accuracy": {
+                  "epsilon": 0.0016,
+                  "evidence_tier": "asymptotic",
+                  "status": "priced",
+                  "C_time_epsilon_us": 2842893920.0
+                }
+              },
+              "logical-alltoall": {
+                "schema": "clifford_qc.measurement_cost.v1",
+                "device_card": {
+                  "name": "logical-alltoall",
+                  "sha256": "07e9cc637e590668bc89b7d407535f34f509155e08c95d2ecd0f8f931738265b",
+                  "calibration_status": "logical_baseline"
+                },
+                "n_qubits": 6,
+                "settings": 405,
+                "raw_shots": 11423025,
+                "effective_shots": 11423025.0,
+                "fixed_shot_time_us": 23941814.25,
+                "logical_1q_applications": 73107360,
+                "logical_2q_applications": 0,
+                "modeled_2q_applications": 0,
+                "routing": {
+                  "required": false,
+                  "two_qubit_count_multiplier": 1.0,
+                  "two_qubit_depth_multiplier": 1.0,
+                  "model": "declared scalar sensitivity surrogate"
+                },
+                "fidelity": {
+                  "min": 1.0,
+                  "mean": 1.0,
+                  "max": 1.0,
+                  "floor": 0.5
+                },
+                "admissible": true,
+                "inadmissible_settings": 0,
+                "accuracy": {
+                  "epsilon": 0.0016,
+                  "evidence_tier": "asymptotic",
+                  "status": "priced",
+                  "C_time_epsilon_us": 23941814.25
+                }
+              },
+              "superconducting-like": {
+                "schema": "clifford_qc.measurement_cost.v1",
+                "device_card": {
+                  "name": "superconducting-like",
+                  "sha256": "cf78e3240ad48839a8113a1570a43e614c230a8428fe8ceda7783e7ff75e1a13",
+                  "calibration_status": "illustrative_scenario"
+                },
+                "n_qubits": 6,
+                "settings": 405,
+                "raw_shots": 14744836,
+                "effective_shots": 11423184.449154314,
+                "fixed_shot_time_us": 45649338.4,
+                "logical_1q_applications": 94499818,
+                "logical_2q_applications": 0,
+                "modeled_2q_applications": 0,
+                "routing": {
+                  "required": true,
+                  "two_qubit_count_multiplier": 3.0,
+                  "two_qubit_depth_multiplier": 2.0,
+                  "model": "declared scalar sensitivity surrogate"
+                },
+                "fidelity": {
+                  "min": 0.8752705434432363,
+                  "mean": 0.8801902601709459,
+                  "max": 0.8858423808639999,
+                  "floor": 0.5
+                },
+                "admissible": true,
+                "inadmissible_settings": 0,
+                "accuracy": {
+                  "epsilon": 0.0016,
+                  "evidence_tier": "asymptotic",
+                  "status": "priced",
+                  "C_time_epsilon_us": 45649338.4
+                }
+              }
+            }
           }
         }
       ]
@@ -2231,7 +4927,7 @@
       "hamiltonian_terms": 61,
       "hamiltonian_sha256": "685c5d5d85bc317f4494ac09a56cc200516d35a884ad3165ebe6e6d5b2d136f2",
       "reference_sha256": "4728c49308acc16c7d029fd9343649f0a9b9c5540472d906494cc2f769e1257a",
-      "exact_sector_energy": -15.56621179509511,
+      "exact_sector_energy": -15.566211795095168,
       "raw_pool": {
         "size": 26,
         "sha256": "42834bb59ea24b2ad0ef21fa06374d1c46e0fa8296d4f2d685e6dd2d306eee52",
@@ -2249,7 +4945,8 @@
         "sha256": "fd88e6d3554d1f302820d45ec5382d0c45557d5135af3e77391c1ce767a77608",
         "source": "benchmarks/reference_results/clifford_hierarchy_beh2.json",
         "source_row_sha256": null,
-        "source_file_sha256": "39e0e493629c30982f176f6d964774294b07ca66d8b08da0c7ea97e4f64cddbd"
+        "source_file_sha256": "39e0e493629c30982f176f6d964774294b07ca66d8b08da0c7ea97e4f64cddbd",
+        "selection_rule": null
       },
       "arms": [
         {
@@ -2321,7 +5018,7 @@
             "retained_rank": 5,
             "condition_number": 1.0,
             "ground_energy": -15.566208493595418,
-            "error_millihartree": 0.0033014996922986484
+            "error_millihartree": 0.0033014997491420672
           },
           "weights": {
             "hamiltonian_multiset": {
@@ -2642,7 +5339,7 @@
           },
           "accuracy_matched_cost": {
             "epsilon_millihartree": 1.6,
-            "exact_subspace_bias_millihartree": 0.0033014996922986484,
+            "exact_subspace_bias_millihartree": 0.0033014997491420672,
             "estimator": "single_assignment",
             "evidence_tier": "asymptotic",
             "claim_boundary": "exact bias floor plus first-order Ritz-functional variance; not the R1 nonlinear exact-oracle shot search or a finite-sample certificate",
@@ -2830,7 +5527,7 @@
             "retained_rank": 5,
             "condition_number": 1.0,
             "ground_energy": -15.566208493595418,
-            "error_millihartree": 0.0033014996922986484
+            "error_millihartree": 0.0033014997491420672
           },
           "weights": {
             "hamiltonian_multiset": {
@@ -3155,7 +5852,7 @@
           },
           "accuracy_matched_cost": {
             "epsilon_millihartree": 1.6,
-            "exact_subspace_bias_millihartree": 0.0033014996922986484,
+            "exact_subspace_bias_millihartree": 0.0033014997491420672,
             "estimator": "single_assignment",
             "evidence_tier": "asymptotic",
             "claim_boundary": "exact bias floor plus first-order Ritz-functional variance; not the R1 nonlinear exact-oracle shot search or a finite-sample certificate",
@@ -3349,7 +6046,7 @@
             "retained_rank": 5,
             "condition_number": 1.0,
             "ground_energy": -15.566208493595413,
-            "error_millihartree": 0.003301499697627719
+            "error_millihartree": 0.0033014997544711377
           },
           "weights": {
             "hamiltonian_multiset": {
@@ -3674,7 +6371,7 @@
           },
           "accuracy_matched_cost": {
             "epsilon_millihartree": 1.6,
-            "exact_subspace_bias_millihartree": 0.003301499697627719,
+            "exact_subspace_bias_millihartree": 0.0033014997544711377,
             "estimator": "single_assignment",
             "evidence_tier": "asymptotic",
             "claim_boundary": "exact bias floor plus first-order Ritz-functional variance; not the R1 nonlinear exact-oracle shot search or a finite-sample certificate",
@@ -3862,7 +6559,7 @@
             "retained_rank": 5,
             "condition_number": 1.0,
             "ground_energy": -15.566208493595418,
-            "error_millihartree": 0.0033014996922986484
+            "error_millihartree": 0.0033014997491420672
           },
           "weights": {
             "hamiltonian_multiset": {
@@ -4190,7 +6887,7 @@
           },
           "accuracy_matched_cost": {
             "epsilon_millihartree": 1.6,
-            "exact_subspace_bias_millihartree": 0.0033014996922986484,
+            "exact_subspace_bias_millihartree": 0.0033014997491420672,
             "estimator": "single_assignment",
             "evidence_tier": "asymptotic",
             "claim_boundary": "exact bias floor plus first-order Ritz-functional variance; not the R1 nonlinear exact-oracle shot search or a finite-sample certificate",
@@ -4384,7 +7081,7 @@
             "retained_rank": 5,
             "condition_number": 1.0,
             "ground_energy": -15.566208493595413,
-            "error_millihartree": 0.003301499697627719
+            "error_millihartree": 0.0033014997544711377
           },
           "weights": {
             "hamiltonian_multiset": {
@@ -4708,7 +7405,7 @@
           },
           "accuracy_matched_cost": {
             "epsilon_millihartree": 1.6,
-            "exact_subspace_bias_millihartree": 0.003301499697627719,
+            "exact_subspace_bias_millihartree": 0.0033014997544711377,
             "estimator": "single_assignment",
             "evidence_tier": "asymptotic",
             "claim_boundary": "exact bias floor plus first-order Ritz-functional variance; not the R1 nonlinear exact-oracle shot search or a finite-sample certificate",
@@ -4848,7 +7545,7 @@
       "hamiltonian_terms": 551,
       "hamiltonian_sha256": "b3377e54ee1200db54bd44f5e824aad13ba77b78099284ad9b07657368e60793",
       "reference_sha256": "45acfa41d72fcc11d37df36c744fc8c7229f1b2e9306922e8a510e1f5230a52e",
-      "exact_sector_energy": -75.01268130509861,
+      "exact_sector_energy": -75.0126813050984,
       "raw_pool": {
         "size": 92,
         "sha256": "5a52848b3efebd649681f75550c0cd6ddc0780c5e8a421695c148d2d0b73a3dd",
@@ -4870,7 +7567,8 @@
         "sha256": "0ed2bf82666e3d1655ca5b7aefaf417ad6a288da2ca0b847781e9501d22967ae",
         "source": "benchmarks/reference_results/acase_ladder.jsonl",
         "source_row_sha256": "ca8ae6d0268a6051248e70db7613cfdf7ca4b050ac648e1198b6c4195199cea6",
-        "source_file_sha256": null
+        "source_file_sha256": null,
+        "selection_rule": null
       },
       "arms": [
         {
@@ -4950,7 +7648,7 @@
             "retained_rank": 9,
             "condition_number": 1.0,
             "ground_energy": -74.99845661593258,
-            "error_millihartree": 14.224689166027815
+            "error_millihartree": 14.224689165814652
           },
           "weights": {
             "hamiltonian_multiset": {
@@ -5287,7 +7985,7 @@
           },
           "accuracy_matched_cost": {
             "epsilon_millihartree": 1.6,
-            "exact_subspace_bias_millihartree": 14.224689166027815,
+            "exact_subspace_bias_millihartree": 14.224689165814652,
             "estimator": "single_assignment",
             "evidence_tier": "asymptotic",
             "claim_boundary": "exact bias floor plus first-order Ritz-functional variance; not the R1 nonlinear exact-oracle shot search or a finite-sample certificate",
@@ -5374,7 +8072,7 @@
             "retained_rank": 9,
             "condition_number": 1.0,
             "ground_energy": -74.99845661593258,
-            "error_millihartree": 14.224689166027815
+            "error_millihartree": 14.224689165814652
           },
           "weights": {
             "hamiltonian_multiset": {
@@ -5719,7 +8417,7 @@
           },
           "accuracy_matched_cost": {
             "epsilon_millihartree": 1.6,
-            "exact_subspace_bias_millihartree": 14.224689166027815,
+            "exact_subspace_bias_millihartree": 14.224689165814652,
             "estimator": "single_assignment",
             "evidence_tier": "asymptotic",
             "claim_boundary": "exact bias floor plus first-order Ritz-functional variance; not the R1 nonlinear exact-oracle shot search or a finite-sample certificate",
@@ -5812,7 +8510,7 @@
             "retained_rank": 9,
             "condition_number": 1.0,
             "ground_energy": -74.99845661593258,
-            "error_millihartree": 14.224689166027815
+            "error_millihartree": 14.224689165814652
           },
           "weights": {
             "hamiltonian_multiset": {
@@ -6152,7 +8850,7 @@
           },
           "accuracy_matched_cost": {
             "epsilon_millihartree": 1.6,
-            "exact_subspace_bias_millihartree": 14.224689166027815,
+            "exact_subspace_bias_millihartree": 14.224689165814652,
             "estimator": "single_assignment",
             "evidence_tier": "asymptotic",
             "claim_boundary": "exact bias floor plus first-order Ritz-functional variance; not the R1 nonlinear exact-oracle shot search or a finite-sample certificate",
@@ -6239,7 +8937,7 @@
             "retained_rank": 9,
             "condition_number": 1.0,
             "ground_energy": -74.99845661593258,
-            "error_millihartree": 14.224689166027815
+            "error_millihartree": 14.224689165814652
           },
           "weights": {
             "hamiltonian_multiset": {
@@ -6581,7 +9279,7 @@
           },
           "accuracy_matched_cost": {
             "epsilon_millihartree": 1.6,
-            "exact_subspace_bias_millihartree": 14.224689166027815,
+            "exact_subspace_bias_millihartree": 14.224689165814652,
             "estimator": "single_assignment",
             "evidence_tier": "asymptotic",
             "claim_boundary": "exact bias floor plus first-order Ritz-functional variance; not the R1 nonlinear exact-oracle shot search or a finite-sample certificate",
@@ -6674,7 +9372,7 @@
             "retained_rank": 9,
             "condition_number": 1.0,
             "ground_energy": -74.99845661593258,
-            "error_millihartree": 14.224689166027815
+            "error_millihartree": 14.224689165814652
           },
           "weights": {
             "hamiltonian_multiset": {
@@ -7014,7 +9712,7 @@
           },
           "accuracy_matched_cost": {
             "epsilon_millihartree": 1.6,
-            "exact_subspace_bias_millihartree": 14.224689166027815,
+            "exact_subspace_bias_millihartree": 14.224689165814652,
             "estimator": "single_assignment",
             "evidence_tier": "asymptotic",
             "claim_boundary": "exact bias floor plus first-order Ritz-functional variance; not the R1 nonlinear exact-oracle shot search or a finite-sample certificate",
@@ -7047,7 +9745,7 @@
       "hamiltonian_terms": 21,
       "hamiltonian_sha256": "a9707187f273fe60b952a8f75734575f69a65b2ec035d22633326d872f244a76",
       "reference_sha256": "b62ceccb46ae609c71889216686e399c3210bee183045b236894a3721fc71dc5",
-      "exact_sector_energy": -10.10274848346204,
+      "exact_sector_energy": -10.102748483462076,
       "raw_pool": {
         "size": 26,
         "sha256": "eab9de040b6aeb0f94605b5aae97b5672082802122c7578c876e79abc77f6881",
@@ -7069,7 +9767,8 @@
         "sha256": "729ac306570604f3de89d081d4b6c752e5908155cfac57cb621960dd46778e02",
         "source": "benchmarks/reference_results/acase_ladder.jsonl",
         "source_row_sha256": "3b447a55c91de2d39cb6057574447227f7f6b5e430f135eb6ddf067f511c8552",
-        "source_file_sha256": null
+        "source_file_sha256": null,
+        "selection_rule": null
       },
       "arms": [
         {
@@ -7145,7 +9844,7 @@
             "retained_rank": 9,
             "condition_number": 1.0,
             "ground_energy": -9.239438100571599,
-            "error_millihartree": 863.3103828904414
+            "error_millihartree": 863.310382890477
           },
           "weights": {
             "hamiltonian_multiset": {
@@ -7468,7 +10167,7 @@
           },
           "accuracy_matched_cost": {
             "epsilon_millihartree": 1.6,
-            "exact_subspace_bias_millihartree": 863.3103828904414,
+            "exact_subspace_bias_millihartree": 863.310382890477,
             "estimator": "single_assignment",
             "evidence_tier": "asymptotic",
             "claim_boundary": "exact bias floor plus first-order Ritz-functional variance; not the R1 nonlinear exact-oracle shot search or a finite-sample certificate",
@@ -7551,7 +10250,7 @@
             "retained_rank": 9,
             "condition_number": 1.0,
             "ground_energy": -9.239438100571599,
-            "error_millihartree": 863.3103828904414
+            "error_millihartree": 863.310382890477
           },
           "weights": {
             "hamiltonian_multiset": {
@@ -7880,7 +10579,7 @@
           },
           "accuracy_matched_cost": {
             "epsilon_millihartree": 1.6,
-            "exact_subspace_bias_millihartree": 863.3103828904414,
+            "exact_subspace_bias_millihartree": 863.310382890477,
             "estimator": "single_assignment",
             "evidence_tier": "asymptotic",
             "claim_boundary": "exact bias floor plus first-order Ritz-functional variance; not the R1 nonlinear exact-oracle shot search or a finite-sample certificate",
@@ -7969,7 +10668,7 @@
             "retained_rank": 9,
             "condition_number": 1.0,
             "ground_energy": -9.239438100571599,
-            "error_millihartree": 863.3103828904414
+            "error_millihartree": 863.310382890477
           },
           "weights": {
             "hamiltonian_multiset": {
@@ -8294,7 +10993,7 @@
           },
           "accuracy_matched_cost": {
             "epsilon_millihartree": 1.6,
-            "exact_subspace_bias_millihartree": 863.3103828904414,
+            "exact_subspace_bias_millihartree": 863.310382890477,
             "estimator": "single_assignment",
             "evidence_tier": "asymptotic",
             "claim_boundary": "exact bias floor plus first-order Ritz-functional variance; not the R1 nonlinear exact-oracle shot search or a finite-sample certificate",
@@ -8377,7 +11076,7 @@
             "retained_rank": 9,
             "condition_number": 1.0,
             "ground_energy": -9.239438100571599,
-            "error_millihartree": 863.3103828904414
+            "error_millihartree": 863.310382890477
           },
           "weights": {
             "hamiltonian_multiset": {
@@ -8704,7 +11403,7 @@
           },
           "accuracy_matched_cost": {
             "epsilon_millihartree": 1.6,
-            "exact_subspace_bias_millihartree": 863.3103828904414,
+            "exact_subspace_bias_millihartree": 863.310382890477,
             "estimator": "single_assignment",
             "evidence_tier": "asymptotic",
             "claim_boundary": "exact bias floor plus first-order Ritz-functional variance; not the R1 nonlinear exact-oracle shot search or a finite-sample certificate",
@@ -8793,7 +11492,7 @@
             "retained_rank": 9,
             "condition_number": 1.0,
             "ground_energy": -9.239438100571599,
-            "error_millihartree": 863.3103828904414
+            "error_millihartree": 863.310382890477
           },
           "weights": {
             "hamiltonian_multiset": {
@@ -9118,7 +11817,7 @@
           },
           "accuracy_matched_cost": {
             "epsilon_millihartree": 1.6,
-            "exact_subspace_bias_millihartree": 863.3103828904414,
+            "exact_subspace_bias_millihartree": 863.310382890477,
             "estimator": "single_assignment",
             "evidence_tier": "asymptotic",
             "claim_boundary": "exact bias floor plus first-order Ritz-functional variance; not the R1 nonlinear exact-oracle shot search or a finite-sample certificate",
@@ -9137,11 +11836,17 @@
       "qwc_settings_matched_greedy": {
         "systems_included": [
           "h4",
+          "h4_converged",
           "beh2",
           "hubbard_2x2"
         ],
         "within_system": {
           "h4": {
+            "minimum": 351.0,
+            "maximum": 913.0,
+            "mapping_spread_factor": 2.601139601139601
+          },
+          "h4_converged": {
             "minimum": 351.0,
             "maximum": 913.0,
             "mapping_spread_factor": 2.601139601139601
@@ -9192,6 +11897,7 @@
       "mean_word_weight": {
         "systems_included": [
           "h4",
+          "h4_converged",
           "beh2",
           "h2o_cas8e6o",
           "hubbard_2x2"
@@ -9201,6 +11907,11 @@
             "minimum": 4.496062992125984,
             "maximum": 6.001899335232668,
             "mapping_spread_factor": 1.3349233197452695
+          },
+          "h4_converged": {
+            "minimum": 4.5,
+            "maximum": 5.996720070644632,
+            "mapping_spread_factor": 1.3326044601432516
           },
           "beh2": {
             "minimum": 3.75,
@@ -9269,16 +11980,17 @@
     },
     "accuracy_matched": {
       "eligible_systems": [
+        "h4_converged",
         "beh2"
       ],
-      "verdict": "insufficient_eligible_instances"
+      "verdict": "eligible_for_cross_instance_comparison"
     },
     "claim_boundary": "like-for-like ratio comparison on algorithm-independent word weight and matched largest-degree-greedy QWC systems; H2O scalable-cover counts and device-card projections are descriptive only; accuracy-matched QR3 abstains unless at least two complete systems clear the exact bias floor"
   },
   "claim_boundary": "exact representation and resource counts plus an asymptotic single-assignment shot model; no nonlinear finite-shot mapping search, hardware calibration, optimal-coloring claim, H2O cross-heuristic QWC verdict, independent device-card corroboration, or mapping-by-protocol interaction",
   "provenance": {
     "schema": "clifford_qc.execution_provenance.v1",
-    "git_sha": "1329648030037c9375b2d3aaf47685624d50f8f7",
+    "git_sha": "cba5657dcc9ed9c88f9c71f1a955822ce2b61466",
     "git_dirty": true,
     "clifford_qc": "0.3.0",
     "python": "3.11.15",
@@ -9370,7 +12082,7 @@
         ]
       }
     },
-    "environment_sha256": "51db819cb5ddbf3035e3a2e05aef661c57296a9674529a0c75df188d2cfaf4eb",
-    "utc": "2026-08-14T14:40:00.434270+00:00"
+    "environment_sha256": "28a6fbf6142fed9841f7274c09e3bb6a0e2a17278b266d8419461db51ec246aa",
+    "utc": "2026-08-20T14:07:47.216779+00:00"
   }
 }

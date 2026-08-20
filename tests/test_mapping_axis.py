@@ -40,7 +40,12 @@ def test_contract_gates_serialized_numerical_invariants():
 def test_contract_requires_a_reason_for_an_unmaterialized_dense_oracle():
     record = json.loads(REFERENCE.read_text(encoding="utf-8"))
     broken = copy.deepcopy(record)
-    invariant = broken["systems"][2]["arms"][0]["invariants"]
+    # By key, not by position: the record grows a system whenever one is
+    # declared, and H2O is the rung whose dense oracle is not materialized.
+    h2o = next(
+        system for system in broken["systems"] if system["system"] == "h2o_cas8e6o"
+    )
+    invariant = h2o["arms"][0]["invariants"]
     assert invariant["dense_spectrum_checked"] is False
     invariant["dense_spectrum_reason"] = None
     problems = contract_problems(broken)

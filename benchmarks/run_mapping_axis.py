@@ -524,6 +524,10 @@ def build_system_record(
     if grouping_protocol not in ("qwc_groups", "qwc_basis_cover"):
         raise ValueError(f"missing grouping protocol for {spec['key']}")
     model, construction = _build_model(spec)
+    if not spec.get("selection_source") and not spec.get("selection_rule"):
+        raise ValueError(
+            f"{spec['key']} declares neither a selection source nor a selection rule"
+        )
     selection = _selection_row(spec)
     if selection is not None:
         recorded_labels = selection.get("labels") or selection.get("basis_labels")
@@ -545,7 +549,16 @@ def build_system_record(
         int(model.metadata["n_electrons"]),
         float(model.metadata["sz"]),
     )
-    exact_energy = float(backend.ground_state(model.hamiltonian, k=1)[0][0])
+    # ``method='dense'`` rather than the default ``'auto'``. Every energy this
+    # record reports is a difference against this reference in millihartree --
+    # a residue of order 1 against energies of order 1e4 -- so ARPACK's
+    # process-dependent last bit (a measured 5e-14 Ha spread) lands as a
+    # ~1e-10 mHa shift on the whole record at once. ``run_protocol_cost.py``
+    # already takes the dense path for this reason; this closes the same hole
+    # here, where the record is being rebuilt anyway.
+    exact_energy = float(
+        backend.ground_state(model.hamiltonian, k=1, method="dense")[0][0]
+    )
     external = construction.get("external_sector_energy")
     if external is not None and abs(exact_energy - float(external)) > 5e-10:
         raise ValueError(f"sector solve disagrees with external reference for {spec['key']}")
@@ -587,6 +600,12 @@ def build_system_record(
             "source": spec.get("selection_source"),
             "source_row_sha256": spec.get("selection_row_sha256"),
             "source_file_sha256": spec.get("selection_file_sha256"),
+            # A system whose labels come from a frozen record cites the record;
+            # one whose labels come from running the growth rule to its own
+            # stopping threshold cites the rule, and a test re-derives it. Both
+            # are freezes -- what must never happen is a selection that cites
+            # neither, which is why the builder rejects that below.
+            "selection_rule": spec.get("selection_rule"),
         },
         "arms": rows,
     }

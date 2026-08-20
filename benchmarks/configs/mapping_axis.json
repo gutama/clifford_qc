@@ -5,8 +5,8 @@
     "name": "raw_symmetry_preserving_determinant_excitations",
     "max_excitation_rank": 2,
     "ordering": "determinant_excitations native enumeration order",
-    "selection": "labels frozen by completed raw-pool A-CASE runs before mapping costs",
-    "maximum_basis_size": 9
+    "selection": "labels frozen by completed raw-pool A-CASE runs before mapping costs; a run is complete when the greedy stops on its own lowering threshold, which no declared system reaches by exhausting a budget cap",
+    "maximum_basis_size": 15
   },
   "mapping_arms": [
     "jw",
@@ -18,6 +18,7 @@
   "measurement": {
     "grouping_protocol_by_system": {
       "h4": "qwc_groups",
+      "h4_converged": "qwc_groups",
       "beh2": "qwc_groups",
       "h2o_cas8e6o": "qwc_basis_cover",
       "hubbard_2x2": "qwc_groups"
@@ -49,6 +50,33 @@
         "E(6,7<-2,3)",
         "E(5,6<-0,3)",
         "E(4,7<-1,2)"
+      ]
+    },
+    {
+      "key": "h4_converged",
+      "label": "H4 equilibrium STO-3G, converged DA-CASE",
+      "builder": "fcidump",
+      "source": "benchmarks/data/h4_sto3g_r0.9.FCIDUMP",
+      "provenance": "benchmarks/data/h4_sto3g_r0.9.provenance.json",
+      "selection_rule": "run_acase on the Hartree-Fock reference over the same rank<=2 determinant pool as every other system, with no binding budget cap, stopped by its own predicted-lowering threshold; tests/test_mapping_axis_banks.py re-derives these labels",
+      "expected_selected_energy": -2.179550752062547,
+      "selected_energy_tolerance": 1e-10,
+      "selected_labels": [
+        "I",
+        "E(4,5<-2,3)",
+        "E(4,7<-0,3)",
+        "E(5,6<-1,2)",
+        "E(4,5<-0,1)",
+        "E(6,7<-0,1)",
+        "E(6,7<-2,3)",
+        "E(5,6<-0,3)",
+        "E(4,7<-1,2)",
+        "E(4,6<-0,2)",
+        "E(5,7<-1,3)",
+        "E(4<-0)",
+        "E(5<-1)",
+        "E(6<-2)",
+        "E(7<-3)"
       ]
     },
     {

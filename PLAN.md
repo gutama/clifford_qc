@@ -3085,18 +3085,25 @@ not another open accuracy phase.
     under `logical-alltoall` single assignment, `k = 1` or `2` elsewhere — which
     is exactly the integer §6.7 forbids publishing.
 
-    *One defect found and left alone, deliberately.* Both `run_protocol_axis.py`
-    and `run_mapping_axis.py` take their exact sector reference from
+    *The defect this phase recorded is now fixed.* Both `run_protocol_axis.py`
+    and `run_mapping_axis.py` took their exact sector reference from
     `ground_state(..., k=1)`, whose `method='auto'` selects ARPACK and returns a
     different last bit in every process — a `5e-14` Ha spread, measured, which
-    lands as `1e-10` mHa on a residue of order `1`. That is what the loosened
-    `error_millihartree` tolerance in `check_protocol_axis.py` is actually
-    absorbing, cancellation being only part of the story.
-    `run_protocol_cost.py` uses `method='dense'` and needs no per-field
-    tolerance. The same one-line change would let both older records tighten,
-    but it rewrites frozen floats in records this phase was not asked to
-    revisit, so it is recorded here rather than done — and their setting counts,
-    which are what R3 consumes from them, are integers and unaffected either way.
+    lands as `1e-10` mHa on a residue of order `1`. Both now take
+    `method='dense'`, as `run_protocol_cost.py` already did. The regeneration
+    that the second priced instance required made the change free, which is why
+    it happened here rather than in a phase of its own: rebuilding both records
+    moved exactly the two energy-difference fields and nothing else, and their
+    `exact_sector_energy` values now agree with each other bit for bit instead
+    of each carrying its own draw.
+
+    One expectation recorded here did **not** survive the fix. It said the same
+    change would let both older records tighten their `error_millihartree`
+    tolerance; it does not. ARPACK was one contributor to the drift, and
+    `check_mapping_axis.py` documents another the fix does not touch — a
+    measured `1.5e-10` mHa spread between `OMP_NUM_THREADS=1` and `=8`, which
+    the default `atol=1e-10` sits directly on top of. The `(1e-10, 1e-8)`
+    tolerance therefore stays, now with the right reason attached to it.
 
     *Result on P5.* Its first clause survives on the full-width arms and its
     monotonicity clause does not survive at all. The `JW/parity/BK` spread in
