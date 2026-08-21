@@ -6,7 +6,7 @@ import argparse
 import json
 import sys
 
-from clifford_qc.reproducibility import compare_json_records
+from clifford_qc.reproducibility import compare_json_records, sampling_stream_mismatch
 
 try:
     from benchmarks.run_qr3b_instance_preflight import (
@@ -102,6 +102,18 @@ def main(argv=None) -> int:
     parser.add_argument("--workers", type=int, default=4)
     args = parser.parse_args(argv)
     expected = json.loads(REFERENCE.read_text(encoding="utf-8"))
+    stream = sampling_stream_mismatch(expected)
+    if stream:
+        print("QR3b instance preflight: FAIL (build environment differs)")
+        for problem in stream:
+            print(f"  {problem}")
+        print(
+            "  skipped the rebuild: under a different NumPy the sampled "
+            "projected eigensolves do not verify this record"
+        )
+        for problem in contract_problems(expected):
+            print(f"  committed record: {problem}")
+        return 1
     actual = build_record(workers=args.workers)
     problems = compare_json_records(
         expected,

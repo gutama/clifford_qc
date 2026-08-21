@@ -1568,6 +1568,17 @@ so it cannot answer QR3b and always records `full_run_authorized: false`. A
 later `30+100` run would require a separate preregistration even if every
 probe cell resolves strictly before `65536`.
 
+**Result: rejected on resolution, not accuracy.** The bias gate passes on all
+five arms, but only 18 of 40 mapping/rung/estimator cells confirm a crossing
+inside the frozen grid. Twenty-two remain unresolved; of the 18 that resolve,
+9 land exactly on `65536`, 8 on `16384`, and 1 on `4096`. Thus only 9 of
+40 cells have the endpoint headroom the preregistration requires. The record
+therefore reports `rejected_unresolved_at_frozen_grid`,
+`eligible_for_full_run: false`, and `full_run_authorized: false`. This is a
+negative candidate-screening result, not an accuracy-matched cost or QR3b
+verdict, and it does not alter H4-converged's independently frozen
+right-censoring.
+
 ## R2b raw-pool fermion-mapping axis
 
 The five predeclared mapping arms are constructed in
