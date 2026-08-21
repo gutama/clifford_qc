@@ -114,7 +114,7 @@ Status at a glance:
 | R2a | shared restriction primitive (`subspace/restriction.py`) | **shipped and consumed by the completed R2b record** |
 | R2b | raw-pool mapping axis | **done, negative QR3 result** — QR2 passes, but mapping spread is not smaller than instance spread on either independent fixed-QWC metric |
 | R3 | protocol axis and accuracy-matched cost regions | **done**; the structural and exact-tier records ship, while QR3 abstains because H4-converged is right-censored at the frozen endpoint ceiling |
-| QR3b | chemically independent LiH exact-tier extension preflight | **done, negative scope decision**; the bias gate passes, but 22/40 cells are unresolved and 9 more resolve only at the frozen ceiling, so no full run is authorized |
+| QR3b | chemically independent LiH exact-tier extension preflight | **done, negative scope decision**; the bias gate passes, but 21/40 cells are unresolved and 9 more resolve only at the frozen ceiling, so no full run is authorized |
 | R4 | contextual-subspace comparator | open |
 
 "Shipped" means the module, its tests, and where applicable its benchmark

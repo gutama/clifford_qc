@@ -1569,9 +1569,9 @@ later `30+100` run would require a separate preregistration even if every
 probe cell resolves strictly before `65536`.
 
 **Result: rejected on resolution, not accuracy.** The bias gate passes on all
-five arms, but only 18 of 40 mapping/rung/estimator cells confirm a crossing
-inside the frozen grid. Twenty-two remain unresolved; of the 18 that resolve,
-9 land exactly on `65536`, 8 on `16384`, and 1 on `4096`. Thus only 9 of
+five arms, but only 19 of 40 mapping/rung/estimator cells confirm a crossing
+inside the frozen grid. Twenty-one remain unresolved; of the 19 that resolve,
+9 land exactly on `65536`, 9 on `16384`, and 1 on `4096`. Thus only 10 of
 40 cells have the endpoint headroom the preregistration requires. The record
 therefore reports `rejected_unresolved_at_frozen_grid`,
 `eligible_for_full_run: false`, and `full_run_authorized: false`. This is a
