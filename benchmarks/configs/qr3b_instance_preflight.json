@@ -1,0 +1,98 @@
+{
+  "schema": "clifford_qc.qr3b_instance_preflight_config.v1",
+  "phase": "QR3b_independent_instance_extension_preflight",
+  "parent_lineage": {
+    "repository": "gutama/clifford_qc",
+    "main_commit": "0b29d93f005f0feb53fbcfb9eb0364241863dba5",
+    "merged_pull_request": 67,
+    "preserved_result": "H4-converged remains exact-tier right-censored at the frozen 65536 endpoint; this extension neither replaces nor reclassifies it"
+  },
+  "estimand": {
+    "name": "QR3b_cross_molecule_mapping_versus_instance_spread",
+    "candidate_role": "chemically independent eight-qubit molecular instance",
+    "comparison_if_full_run_is_authorized": [
+      "beh2",
+      "lih_cas4e4o"
+    ],
+    "not_the_original_pair_specific_estimand": "The original H4-versus-BeH2 exact-tier result remains abstaining. A passing candidate would support a separately labelled cross-molecule extension."
+  },
+  "candidate": {
+    "key": "lih_cas4e4o",
+    "label": "LiH equilibrium STO-3G CAS(4e,4o)",
+    "builder": "fcidump",
+    "source": "benchmarks/data/lih_sto3g_r1.5949_cas4e4o.FCIDUMP",
+    "source_sha256": "1163b1c1a79b20b452f429b694e55a1e34db5b636398f541074a2494d73a4130",
+    "provenance": "benchmarks/data/lih_sto3g_r1.5949_cas4e4o.provenance.json",
+    "provenance_sha256": "0da925824d5c4b59c9f7297823b4578cd6504795ffca822d320ed65b07a1899f",
+    "chemical_independence": "LiH is a different molecule from both BeH2 and H4; this is not a second geometry of a previously priced Hamiltonian",
+    "selection_rule": "run_acase on the Hartree-Fock reference over the same rank<=2 symmetry-preserving determinant pool, with an implementation budget larger than the complete pool, stopped only by its own predicted-lowering threshold; tests re-derive the labels",
+    "unbound_implementation_budget": 64,
+    "expected_stopping_reason": "predicted lowering below threshold",
+    "expected_selected_energy": -7.863222354967977,
+    "selected_energy_tolerance": 1e-10,
+    "selected_labels": [
+      "I",
+      "E(6,7<-2,3)",
+      "E(4,5<-2,3)",
+      "E(4,5<-0,1)",
+      "E(6,7<-0,3)",
+      "E(6,7<-1,2)",
+      "E(6,7<-0,1)",
+      "E(4<-2)",
+      "E(5<-3)",
+      "E(4<-0)",
+      "E(5<-1)",
+      "E(4,5<-0,3)",
+      "E(4,5<-1,2)"
+    ]
+  },
+  "mapping_arms": [
+    "jw",
+    "parity",
+    "parity+2q",
+    "bk",
+    "bk+2q"
+  ],
+  "protocol": {
+    "block_sizes": [
+      1,
+      2,
+      4,
+      8
+    ],
+    "estimators": [
+      "single_assignment",
+      "pooled"
+    ],
+    "search_endpoints_effective_shots_per_setting": [
+      64,
+      256,
+      1024,
+      4096,
+      16384,
+      65536
+    ],
+    "search_grid_policy": "identical to frozen R1/R3; no endpoint may be added by this extension",
+    "exploratory_replicas": 2,
+    "confirmatory_replicas": 2,
+    "probe_is_a_cost_record": false,
+    "seed_roots": {
+      "exploratory": 280813000,
+      "confirmatory": 280913000,
+      "bootstrap": 281013000
+    }
+  },
+  "acceptance_gates": {
+    "source_qubits": 8,
+    "accuracy_target_millihartree": 1.6,
+    "word_universe_ceiling": 2048,
+    "word_universe_ceiling_basis": "BeH2 is the only bank that has ever priced inside this grid, at W=1814 on its full-width arms; the ceiling is the next power of two above it. Calibrated on one success, so it is a screen rather than a law -- but both banks rejected so far (h4_converged W=7926, this candidate W=7740) sit about four times above it, and W is what sets the reconstruction variance the shot search has to overcome. Evaluating it costs seconds against the probe's forty cells.",
+    "all_mapping_arms_must_clear_bias_floor": true,
+    "all_probe_cells_must_resolve_strictly_before": 65536,
+    "preferred_headroom_endpoint": 16384,
+    "selection_must_stop_intrinsically": true,
+    "selection_may_not_use_mapping_cost_direction": true,
+    "full_30_plus_100_run_authorized_by_this_config": false
+  },
+  "claim_boundary": "Scope-decision evidence only. The 2+2 probe may accept or reject a candidate for a later preregistered full run; it cannot price C(epsilon), answer QR3b, or alter the frozen H4 censoring decision."
+}

@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import functools
 import math
 import hashlib
 import importlib.metadata
@@ -256,5 +257,33 @@ def sampling_stream_mismatch(
     return problems
 
 
+def guarded_contract_problems(inner):
+    """Wrap a contract function so a malformed record is reported, not raised.
+
+    A checker is handed the one object that might be broken, so it has to
+    survive being handed a broken one: a traceback names a line, while a
+    returned problem names the record. Every checker here had reached the same
+    conclusion separately and written its own copy, which is how a third one
+    could ship without the guard at all -- the convention existed but nothing
+    held it. One decorated definition is what makes it a convention.
+
+    The caught set is deliberately the shapes a wrong-typed record produces --
+    a missing attribute, an absent key, a comparison or membership test across
+    types, an unparseable value, an overflowing float. Anything else is a bug
+    in the contract itself and should still raise.
+    """
+    @functools.wraps(inner)
+    def guarded(record: Any) -> list[str]:
+        try:
+            return inner(record)
+        except (AttributeError, KeyError, TypeError,
+                ValueError, OverflowError) as exc:
+            return [f"malformed record reached a guarded checker path: {exc}"]
+
+    guarded.unguarded = inner
+    return guarded
+
+
 __all__ = ["compare_json_records", "execution_provenance",
-           "sampling_stream_mismatch", "stamp_record"]
+           "guarded_contract_problems", "sampling_stream_mismatch",
+           "stamp_record"]

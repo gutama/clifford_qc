@@ -169,10 +169,10 @@ def r1_crossings() -> dict[tuple[int, str], dict]:
     }
 
 
-_ARM_CACHE: dict[tuple[str, str], dict] = {}
+_ARM_CACHE: dict[tuple[str, str, str | None], dict] = {}
 
 
-def arm_problem(system: str, mapping: str) -> dict:
+def arm_problem(system: str, mapping: str, spec: dict | None = None) -> dict:
     """Build one ``(system, mapping)`` bank, exactly as the structural grid does.
 
     Cached per process so a worker sweeping four rungs of one arm pays the
@@ -181,10 +181,15 @@ def arm_problem(system: str, mapping: str) -> dict:
     counts the structural record's setting counts -- and the grouped word
     sessions drop it again downstream, as R1's search already does.
     """
-    key = (system, mapping)
+    spec_key = (
+        None
+        if spec is None
+        else json.dumps(spec, sort_keys=True, separators=(",", ":"))
+    )
+    key = (system, mapping, spec_key)
     if key in _ARM_CACHE:
         return _ARM_CACHE[key]
-    spec = _system_specs()[system]
+    spec = _system_specs()[system] if spec is None else spec
     model, _ = _build_model(spec)
     _, selected = _selected_generators(model, spec)
     reference = ExactMVBackend().state(model.reference, ())
@@ -327,8 +332,9 @@ def _cost_bracket(
 def _search_cell(arguments) -> dict:
     """One ``(arm, k)`` cell: R1's search, then its cost interval."""
     (system, mapping, arm_index, block_size,
-     exploratory_replicas, confirmatory_replicas, cards) = arguments
-    problem = arm_problem(system, mapping)
+     exploratory_replicas, confirmatory_replicas, cards, *tail) = arguments
+    options = tail[0] if tail else {}
+    problem = arm_problem(system, mapping, options.get("spec"))
     codes = problem["codes"]
     n = problem["n_qubits"]
     bank = problem["bank"]
@@ -341,7 +347,10 @@ def _search_cell(arguments) -> dict:
            for index, setting in enumerate(settings)):
         raise AssertionError("compiled readouts disagree with hierarchy compatibility")
 
-    frozen = structural_settings().get((system, mapping, block_size))
+    frozen_settings = options.get("frozen_settings")
+    frozen = (
+        structural_settings() if frozen_settings is None else frozen_settings
+    ).get((system, mapping, block_size))
     if frozen is not None and row["settings"] != frozen:
         raise ValueError(
             f"{system}/{mapping} k={block_size}: {row['settings']} settings but "
@@ -358,13 +367,18 @@ def _search_cell(arguments) -> dict:
         settings=settings,
         requested=requested,
         replicas=exploratory_replicas,
-        seed=EXPLORATORY_SEED,
+        seed=int(options.get("exploratory_seed", EXPLORATORY_SEED)),
         block_size=block_size,
         namespace=namespace,
     )
     exploration = _summaries(
         exploratory_raw, problem["exact_ground_energy"],
         block_size=block_size, seed_namespace=0, namespace=namespace,
+        **(
+            {"bootstrap_seed": int(options["bootstrap_seed"])}
+            if "bootstrap_seed" in options
+            else {}
+        ),
     )
     confirmation_requested = {
         estimator: _confirmation_endpoints(exploration[estimator])
@@ -377,13 +391,18 @@ def _search_cell(arguments) -> dict:
         settings=settings,
         requested=confirmation_requested,
         replicas=confirmatory_replicas,
-        seed=CONFIRMATORY_SEED,
+        seed=int(options.get("confirmatory_seed", CONFIRMATORY_SEED)),
         block_size=block_size,
         namespace=namespace,
     )
     confirmation = _summaries(
         confirmation_raw, problem["exact_ground_energy"],
         block_size=block_size, seed_namespace=1, namespace=namespace,
+        **(
+            {"bootstrap_seed": int(options["bootstrap_seed"])}
+            if "bootstrap_seed" in options
+            else {}
+        ),
     )
 
     estimators = {}
@@ -979,6 +998,10 @@ def build_record(
     workers: int = 1,
     config: dict | None = None,
     cards=None,
+    system_specs: dict[str, dict] | None = None,
+    frozen_settings: dict[tuple[str, str, int], int] | None = None,
+    seed_roots: dict[str, int] | None = None,
+    r1_cross_check_enabled: bool = True,
 ) -> dict:
     if exploratory_replicas <= 0 or confirmatory_replicas <= 0:
         raise ValueError("replica counts must be positive")
@@ -990,15 +1013,29 @@ def build_record(
         raise ValueError("at least one device card is required")
     arms: Sequence[str] = config["mapping_arms"]
     block_sizes = config["protocol"]["block_sizes"]
-    frozen = structural_settings()
+    specs = _system_specs() if system_specs is None else dict(system_specs)
+    frozen = structural_settings() if frozen_settings is None else dict(frozen_settings)
+    roots = {
+        "exploratory": EXPLORATORY_SEED,
+        "confirmatory": CONFIRMATORY_SEED,
+        "bootstrap": BOOTSTRAP_SEED,
+        **(seed_roots or {}),
+    }
+    if any(not isinstance(value, int) or value < 0 for value in roots.values()):
+        raise ValueError("seed roots must be non-negative integers")
+    if len(set(roots.values())) != len(roots):
+        raise ValueError("exploratory, confirmatory, and bootstrap roots must differ")
     cost_layer = _cost_layer(config)
 
     systems = {}
     for key in cost_layer["systems"]:
+        if key not in specs:
+            raise ValueError(f"cost-layer system {key!r} has no declared specification")
+        spec = specs[key]
         arm_records = []
         cells: list[tuple] = []
         for arm_index, mapping in enumerate(arms):
-            problem = arm_problem(key, mapping)
+            problem = arm_problem(key, mapping, spec)
             n = problem["n_qubits"]
             # k is a block width, so it is clamped to the arm's own register --
             # the same clamp the structural grid applies, and the reason a
@@ -1015,9 +1052,17 @@ def build_record(
                 "exact_subspace_bias_millihartree": problem["bias_millihartree"],
                 "_rungs": rungs,
             })
+            cell_options = {
+                "spec": spec,
+                "frozen_settings": frozen,
+                "exploratory_seed": roots["exploratory"],
+                "confirmatory_seed": roots["confirmatory"],
+            }
+            if seed_roots is not None:
+                cell_options["bootstrap_seed"] = roots["bootstrap"]
             cells.extend(
                 (key, mapping, arm_index, size,
-                 exploratory_replicas, confirmatory_replicas, cards)
+                 exploratory_replicas, confirmatory_replicas, cards, cell_options)
                 for size in rungs
             )
 
@@ -1045,14 +1090,20 @@ def build_record(
 
         system = {
             "system": key,
-            "exact_ground_energy": arm_problem(key, arms[0])["exact_ground_energy"],
+            "exact_ground_energy": arm_problem(
+                key, arms[0], spec
+            )["exact_ground_energy"],
             "max_exact_subspace_bias_millihartree": bias,
             "status": "searched" if searched else "bias_floor_exceeds_target",
             "arms": arm_records,
         }
         if searched:
             system["k_star"] = _system_summary(system, cards)
-            system["r1_cross_check"] = _r1_cross_check(system)
+            system["r1_cross_check"] = (
+                _r1_cross_check(system)
+                if r1_cross_check_enabled
+                else {"status": "not_requested_for_extension"}
+            )
         systems[key] = system
 
     return {
@@ -1093,9 +1144,9 @@ def build_record(
             "nested_endpoints": True,
             "exploratory_replicas": exploratory_replicas,
             "confirmatory_replicas": confirmatory_replicas,
-            "exploratory_seed": EXPLORATORY_SEED,
-            "confirmatory_seed": CONFIRMATORY_SEED,
-            "bootstrap_seed": BOOTSTRAP_SEED,
+            "exploratory_seed": roots["exploratory"],
+            "confirmatory_seed": roots["confirmatory"],
+            "bootstrap_seed": roots["bootstrap"],
             "seed_derivation": (
                 "numpy.SeedSequence(root, spawn_key=(arm_index, ...)) -- one "
                 "disjoint namespace per mapping arm, and disjoint from R1's roots"

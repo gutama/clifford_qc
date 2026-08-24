@@ -57,10 +57,10 @@ jobs:
     name: ${{ matrix.gate }}
     runs-on: ubuntu-latest
     # Sized for the slowest gate rather than the average one.  The two
-    # exact-tier shot searches dominate: each redraws 130 replicas across the
-    # nested 64..65536 endpoint grid, and check_protocol_cost does it once per
-    # (mapping, k) cell.  Its BeH2 jw k=1 cell alone -- 353 settings -- takes
-    # about half an hour of one core on the machine the records were built on.
+    # exact-tier shot searches dominate. The frozen R1/R3 records redraw 130
+    # replicas across the nested 64..65536 endpoint grid; the independently
+    # labelled QR3b candidate preflight is smaller at 2+2 replicas but must
+    # still rebuild every (mapping, k) cell from its committed FCIDUMP.
     timeout-minutes: 120
     strategy:
       # One red gate must not cancel the others; the set of failures is the
@@ -74,6 +74,7 @@ jobs:
           - check_protocol_cost
           - check_matched_h4
           - check_exact_shot_search
+          - check_qr3b_instance_preflight
     steps:
       - uses: actions/checkout@v4
       - uses: ./.github/actions/record-environment

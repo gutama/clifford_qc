@@ -5,7 +5,10 @@ from __future__ import annotations
 import json
 import math
 
-from clifford_qc.reproducibility import compare_json_records
+from clifford_qc.reproducibility import (
+    compare_json_records,
+    guarded_contract_problems,
+)
 
 try:  # package import in tests versus direct script execution
     from benchmarks.run_mapping_axis import (
@@ -264,7 +267,8 @@ def _recompute_spread(
     }
 
 
-def _contract_problems(record: dict) -> list[str]:
+@guarded_contract_problems
+def contract_problems(record: dict) -> list[str]:
     """Return structural, tier, invariant, and recomputed-QR3 violations."""
     problems: list[str] = []
     if not isinstance(record, dict):
@@ -564,12 +568,6 @@ def _contract_problems(record: dict) -> list[str]:
     return problems
 
 
-def contract_problems(record: dict) -> list[str]:
-    """Reject malformed records with diagnostics rather than a traceback."""
-    try:
-        return _contract_problems(record)
-    except (AttributeError, KeyError, TypeError, ValueError, OverflowError) as exc:
-        return [f"malformed record reached a guarded checker path: {exc}"]
 
 
 def main() -> int:
