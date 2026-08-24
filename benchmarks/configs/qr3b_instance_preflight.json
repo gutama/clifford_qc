@@ -85,6 +85,8 @@
   "acceptance_gates": {
     "source_qubits": 8,
     "accuracy_target_millihartree": 1.6,
+    "word_universe_ceiling": 2048,
+    "word_universe_ceiling_basis": "BeH2 is the only bank that has ever priced inside this grid, at W=1814 on its full-width arms; the ceiling is the next power of two above it. Calibrated on one success, so it is a screen rather than a law -- but both banks rejected so far (h4_converged W=7926, this candidate W=7740) sit about four times above it, and W is what sets the reconstruction variance the shot search has to overcome. Evaluating it costs seconds against the probe's forty cells.",
     "all_mapping_arms_must_clear_bias_floor": true,
     "all_probe_cells_must_resolve_strictly_before": 65536,
     "preferred_headroom_endpoint": 16384,

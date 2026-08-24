@@ -6,7 +6,11 @@ import argparse
 import json
 import sys
 
-from clifford_qc.reproducibility import compare_json_records, sampling_stream_mismatch
+from clifford_qc.reproducibility import (
+    compare_json_records,
+    guarded_contract_problems,
+    sampling_stream_mismatch,
+)
 
 try:
     from benchmarks.run_qr3b_instance_preflight import (
@@ -38,6 +42,7 @@ def _walk_keys(value):
             yield from _walk_keys(item)
 
 
+@guarded_contract_problems
 def contract_problems(record: dict) -> list[str]:
     problems: list[str] = []
     if record.get("schema") != SCHEMA:
@@ -94,6 +99,14 @@ def contract_problems(record: dict) -> list[str]:
         "accuracy_target_millihartree", 0.0
     ):
         problems.append("selected LiH bank does not clear the bias gate")
+    if not isinstance(gates.get("word_universe_ceiling"), int):
+        problems.append("acceptance gates declare no word-universe ceiling")
+    elif decision.get("word_universe_ceiling") != gates["word_universe_ceiling"]:
+        problems.append("decision prices a different ceiling than the gates declare")
+    elif decision.get("word_universe_gate_passes") is not (
+        decision.get("maximum_word_universe", 0) <= gates["word_universe_ceiling"]
+    ):
+        problems.append("word-universe verdict disagrees with its own ceiling")
     return problems
 
 
@@ -115,21 +128,19 @@ def main(argv=None) -> int:
             print(f"  committed record: {problem}")
         return 1
     actual = build_record(workers=args.workers)
-    problems = compare_json_records(
-        expected,
-        actual,
-        atol=1e-10,
-        rtol=1e-10,
-        key_tolerances={
-            "error_millihartree": (1e-10, 1e-8),
-            "exact_subspace_bias_millihartree": (1e-10, 1e-8),
-            "bias_millihartree": (1e-10, 1e-8),
-        },
-    )
+    # R1's tolerance, and no per-key widening -- the same choice
+    # check_protocol_cost.py makes and for the same reason. Every millihartree
+    # field here is a difference against an exact sector reference taken from
+    # the dense eigensolve rather than ARPACK, precisely so it reproduces bit
+    # for bit; a per-key 1e-8 would absorb a nondeterministic reference instead
+    # of failing on it, which is the repair this project declines to make.
+    problems = compare_json_records(expected, actual, atol=1e-12, rtol=1e-12)
     problems += contract_problems(expected)
     problems += [f"rebuilt record: {item}" for item in contract_problems(actual)]
-    for problem in problems:
+    for problem in problems[:30]:
         print(f"  {problem}")
+    if len(problems) > 30:
+        print(f"  ... and {len(problems) - 30} more")
     print("QR3b instance preflight:", "FAIL" if problems else "PASS")
     return 1 if problems else 0
 

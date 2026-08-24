@@ -35,6 +35,7 @@ from types import SimpleNamespace
 
 from clifford_qc.reproducibility import (
     compare_json_records,
+    guarded_contract_problems,
     sampling_stream_mismatch,
 )
 
@@ -490,7 +491,8 @@ def _qr3_problems(record: dict) -> list[str]:
     return problems
 
 
-def _contract_problems(record: dict) -> list[str]:
+@guarded_contract_problems
+def contract_problems(record: dict) -> list[str]:
     problems: list[str] = []
     if record.get("schema") != SCHEMA:
         problems.append(f"unexpected schema {record.get('schema')!r}")
@@ -653,19 +655,6 @@ def _contract_problems(record: dict) -> list[str]:
     return problems
 
 
-def contract_problems(record: dict) -> list[str]:
-    """Reject malformed records with diagnostics rather than a traceback.
-
-    A checker that raises on a broken record tells the reader less than one
-    that names the breakage, and the record it is handed is exactly the thing
-    that might be broken. ``check_mapping_axis.py`` has guarded this way from
-    the start; this module had not, which is how a deferral entry missing its
-    ``system`` key could reach a ``sorted`` call and abort the whole run.
-    """
-    try:
-        return _contract_problems(record)
-    except (AttributeError, KeyError, TypeError, ValueError, OverflowError) as exc:
-        return [f"malformed record reached a guarded checker path: {exc}"]
 
 
 def _subset_config(keys: tuple[str, ...]) -> dict:

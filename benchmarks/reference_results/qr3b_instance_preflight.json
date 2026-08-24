@@ -7,10 +7,12 @@
     "preferred_headroom_endpoint": 16384,
     "selection_may_not_use_mapping_cost_direction": true,
     "selection_must_stop_intrinsically": true,
-    "source_qubits": 8
+    "source_qubits": 8,
+    "word_universe_ceiling": 2048,
+    "word_universe_ceiling_basis": "BeH2 is the only bank that has ever priced inside this grid, at W=1814 on its full-width arms; the ceiling is the next power of two above it. Calibrated on one success, so it is a screen rather than a law -- but both banks rejected so far (h4_converged W=7926, this candidate W=7740) sit about four times above it, and W is what sets the reconstruction variance the shot search has to overcome. Evaluating it costs seconds against the probe's forty cells."
   },
   "claim_boundary": "Scope-decision evidence only. The 2+2 probe may accept or reject a candidate for a later preregistered full run; it cannot price C(epsilon), answer QR3b, or alter the frozen H4 censoring decision.",
-  "config_sha256": "dd02a0484f8247bb16b68d535004b9a80bd6fd1b4d1413068adb150520830b70",
+  "config_sha256": "7fb8c5e5b4d321b44073bee0ac4ce216aed4120a6a240411997386c87d45bf04",
   "decision": {
     "bias_gate_passes": true,
     "ceiling_coordinates": [
@@ -83,10 +85,12 @@
     "evaluated_cells": 40,
     "full_run_authorized": false,
     "maximum_confirmed_passing_effective_shots_per_setting": 65536,
+    "maximum_word_universe": 7740,
     "preferred_headroom_gate_passes": false,
     "qr3b_verdict": "not_evaluated_by_preflight",
     "resolution_gate_passes": false,
     "resolved_cells": 19,
+    "screen_would_have_rejected_before_probe": true,
     "selection_used_mapping_cost_direction": false,
     "status": "rejected_unresolved_at_frozen_grid",
     "unresolved_cells": 21,
@@ -238,7 +242,9 @@
         "mapping": "bk+2q",
         "status": "exploratory_crossing_not_confirmed"
       }
-    ]
+    ],
+    "word_universe_ceiling": 2048,
+    "word_universe_gate_passes": false
   },
   "estimand": {
     "candidate_role": "chemically independent eight-qubit molecular instance",
@@ -334,7 +340,7 @@
           "relative_tolerance": 1e-10,
           "ritz_scale": 7.863222354967977,
           "source_qubits": 8,
-          "spectrum_scale": 7.863222550890624,
+          "spectrum_scale": 7.863222550890619,
           "word_bijection_checked": true,
           "word_universe_after": 7741,
           "word_universe_before": 7741,
@@ -512,7 +518,7 @@
           "max_operator_transport_error": 0.0,
           "max_overlap_matrix_error": 0.0,
           "max_ritz_error": 0.0,
-          "max_spectrum_error": 1.9539925233402755e-14,
+          "max_spectrum_error": 2.5757174171303632e-14,
           "operator_transport_scale": 85.340586410382,
           "overlap_matrix_scale": 1.0,
           "qubits_removed": 0,
@@ -521,7 +527,7 @@
           "relative_tolerance": 1e-10,
           "ritz_scale": 7.863222354967977,
           "source_qubits": 8,
-          "spectrum_scale": 7.863222550890624,
+          "spectrum_scale": 7.863222550890619,
           "word_bijection_checked": true,
           "word_universe_after": 7741,
           "word_universe_before": 7741,
@@ -892,7 +898,7 @@
           "max_operator_transport_error": 0.0,
           "max_overlap_matrix_error": 0.0,
           "max_ritz_error": 0.0,
-          "max_spectrum_error": 2.4868995751603507e-14,
+          "max_spectrum_error": 1.5987211554602254e-14,
           "operator_transport_scale": 85.340586410382,
           "overlap_matrix_scale": 1.0,
           "qubits_removed": 0,
@@ -901,7 +907,7 @@
           "relative_tolerance": 1e-10,
           "ritz_scale": 7.863222354967977,
           "source_qubits": 8,
-          "spectrum_scale": 7.863222550890624,
+          "spectrum_scale": 7.863222550890619,
           "word_bijection_checked": true,
           "word_universe_after": 7741,
           "word_universe_before": 7741,
@@ -1351,9 +1357,7 @@
         ],
         "found": [
           "X86_V3",
-          "X86_V4"
-        ],
-        "not found": [
+          "X86_V4",
           "AVX512_ICL",
           "AVX512_SPR"
         ]
@@ -1368,19 +1372,19 @@
       "scipy": "1.17.1",
       "stim": "1.16.0"
     },
-    "environment_sha256": "1bfa7eaa98442094ef9207b131a53e7140d38542075f8cd816163a125510e344",
-    "git_dirty": null,
-    "git_sha": "0fefdd62b2358ddbb4ef842cf87460e73dfbfbe1",
+    "environment_sha256": "9a1fa4f3a56a2567c96deefc1bc4f98b7168a65068461bc6400d26fa1204ce7b",
+    "git_dirty": true,
+    "git_sha": "bba885970efa377c4eb4a3a611a87fe0785e44c3",
     "platform": {
-      "hostname": "e0d7317c7fa4",
+      "hostname": "vm",
       "machine": "x86_64",
       "processor": "x86_64",
-      "release": "6.18.35",
+      "release": "6.18.44-fc-v21",
       "system": "Linux"
     },
     "python": "3.11.15",
     "schema": "clifford_qc.execution_provenance.v1",
-    "utc": "2026-08-21T01:08:39.212634+00:00"
+    "utc": "2026-08-24T13:36:46.891275+00:00"
   },
   "schema": "clifford_qc.qr3b_instance_preflight.v1",
   "scoping_probe": {

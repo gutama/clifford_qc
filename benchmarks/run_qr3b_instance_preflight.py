@@ -114,6 +114,11 @@ def load_config(path: Path = CONFIG) -> dict:
         raise ValueError("the resolution gate must name the frozen search ceiling")
     if gates.get("full_30_plus_100_run_authorized_by_this_config") is not False:
         raise ValueError("the preflight must not authorize a full run")
+    ceiling = gates.get("word_universe_ceiling")
+    if not isinstance(ceiling, int) or ceiling <= 0:
+        raise ValueError("the candidate screen must declare a word-universe ceiling")
+    if not gates.get("word_universe_ceiling_basis"):
+        raise ValueError("the word-universe ceiling must declare what calibrates it")
     return config
 
 
@@ -268,12 +273,21 @@ def resolution_decision(probe: dict, config: dict) -> dict:
         float(arm["exact_subspace_bias_millihartree"]) < target
         for arm in probe["arms"]
     )
+    # The screen the probe's own outcome argues for. W sets the variance of the
+    # reconstructed pencil, so it -- not the bias floor -- is what decides
+    # whether a crossing lands inside the frozen grid: this candidate's bias is
+    # seventeen times better than the one bank that prices, and it still failed
+    # on resolution at four times that bank's W. Reading it costs seconds, and
+    # a candidate that fails it should never reach a forty-cell probe.
+    ceiling = int(config["acceptance_gates"]["word_universe_ceiling"])
+    widest = max(int(arm["word_universe"]) for arm in probe["arms"])
+    word_universe_passes = widest <= ceiling
     resolved_before_ceiling = not unresolved and not at_or_beyond_ceiling
     maximum = max(passing, default=None)
     preferred_headroom = (
         maximum is not None and not unresolved and maximum <= headroom
     )
-    eligible = bias_passes and resolved_before_ceiling
+    eligible = bias_passes and resolved_before_ceiling and word_universe_passes
     if not bias_passes:
         status = "rejected_bias_floor"
     elif unresolved:
@@ -287,6 +301,14 @@ def resolution_decision(probe: dict, config: dict) -> dict:
         "eligible_for_full_run": eligible,
         "bias_gate_passes": bias_passes,
         "resolution_gate_passes": resolved_before_ceiling,
+        "word_universe_gate_passes": word_universe_passes,
+        "maximum_word_universe": widest,
+        "word_universe_ceiling": ceiling,
+        # Deliberately not folded into ``status``: this probe was run before the
+        # screen existed, and the forty cells it drew are the evidence actually
+        # collected, so the recorded reason stays the one the evidence supports.
+        # For the next candidate the screen fires first and no probe is drawn.
+        "screen_would_have_rejected_before_probe": not word_universe_passes,
         "preferred_headroom_gate_passes": preferred_headroom,
         "evaluated_cells": len(rows),
         "resolved_cells": len(rows) - len(unresolved),

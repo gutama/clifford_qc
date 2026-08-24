@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import copy
 import json
 
 import pytest
@@ -16,12 +17,13 @@ from benchmarks.run_qr3b_instance_preflight import (
 )
 
 
-def _probe(endpoint, *, bias=0.1):
+def _probe(endpoint, *, bias=0.1, word_universe=512):
     arms = []
     for mapping in ("jw", "parity", "parity+2q", "bk", "bk+2q"):
         arms.append(
             {
                 "mapping": mapping,
+                "word_universe": word_universe,
                 "exact_subspace_bias_millihartree": bias,
                 "rungs": [
                     {
@@ -125,3 +127,75 @@ def test_custom_bootstrap_root_is_used_by_endpoint_summaries(monkeypatch):
     )
     assert len(seen) == len(ESTIMATORS)
     assert len(set(seen)) == len(ESTIMATORS)
+
+
+
+def test_the_word_universe_screen_is_declared_and_binding():
+    """The gate that would have rejected this candidate before the probe ran.
+
+    LiH's bias is seventeen times better than BeH2's and it still failed on
+    resolution, because W -- not bias -- sets the reconstruction variance the
+    shot search has to overcome. The screen exists so the next candidate is
+    filtered in seconds instead of after forty cells.
+    """
+    gates = load_config()["acceptance_gates"]
+    assert isinstance(gates["word_universe_ceiling"], int)
+    assert gates["word_universe_ceiling_basis"]
+
+    decision = json.loads(REFERENCE.read_text(encoding="utf-8"))["decision"]
+    assert decision["word_universe_ceiling"] == gates["word_universe_ceiling"]
+    assert decision["maximum_word_universe"] > gates["word_universe_ceiling"]
+    assert decision["word_universe_gate_passes"] is False
+    assert decision["screen_would_have_rejected_before_probe"] is True
+    # The recorded reason stays the one the drawn evidence supports; the screen
+    # is reported beside it rather than rewriting it.
+    assert decision["status"] == "rejected_unresolved_at_frozen_grid"
+
+
+def test_a_candidate_inside_the_ceiling_passes_the_screen():
+    config = load_config()
+    ceiling = config["acceptance_gates"]["word_universe_ceiling"]
+    decision = resolution_decision(
+        _probe(4_096, word_universe=ceiling // 2), config
+    )
+    assert decision["word_universe_gate_passes"] is True
+    assert decision["screen_would_have_rejected_before_probe"] is False
+    assert decision["eligible_for_full_run"] is True
+
+
+def test_the_screen_refuses_a_candidate_that_resolves_cleanly():
+    """Resolving inside the grid is not enough on its own, above the ceiling."""
+    config = load_config()
+    ceiling = config["acceptance_gates"]["word_universe_ceiling"]
+    decision = resolution_decision(
+        _probe(4_096, word_universe=ceiling * 4), config
+    )
+    assert decision["resolution_gate_passes"] is True
+    assert decision["bias_gate_passes"] is True
+    assert decision["word_universe_gate_passes"] is False
+    assert decision["eligible_for_full_run"] is False
+
+
+def test_the_checker_rejects_a_ceiling_the_decision_disagrees_with():
+    record = copy.deepcopy(json.loads(REFERENCE.read_text(encoding="utf-8")))
+    record["decision"]["word_universe_gate_passes"] = True
+    assert any(
+        "disagrees with its own ceiling" in problem
+        for problem in contract_problems(record)
+    )
+
+
+def test_the_preflight_contract_survives_a_malformed_record():
+    """The guard #67 added to check_protocol_cost, now shared rather than copied."""
+    for broken in (
+        {"selection": None},
+        {"protocol": None},
+        {"parent_lineage": {"merged_pull_request": 67, "preserved_result": None}},
+        {
+            "selection": {"bias_millihartree": "n/a"},
+            "acceptance_gates": {"accuracy_target_millihartree": 1.6},
+        },
+    ):
+        problems = contract_problems(broken)
+        assert problems
+        assert all(isinstance(problem, str) for problem in problems)
