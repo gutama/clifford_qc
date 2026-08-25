@@ -35,6 +35,14 @@ def main() -> int:
         RECORD.name,
         atol=CROSS_MACHINE_ATOL,
         rtol=CROSS_MACHINE_RTOL,
+        path_tolerances={
+            f"{RECORD.name}.arms.uniform_fixed.median_overlap_threshold": (
+                0.0, 0.0
+            ),
+            f"{RECORD.name}.arms.group_optimal_fixed.median_overlap_threshold": (
+                0.0, 0.0
+            ),
+        },
     )
     for problem in problems[:20]:
         print(f"FAIL {problem}")
