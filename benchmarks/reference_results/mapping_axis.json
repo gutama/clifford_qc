@@ -2,7 +2,7 @@
   "schema": "clifford_qc.mapping_axis.v1",
   "phase": "R2b_raw_pool_mapping_axis",
   "scope": "complete",
-  "config_sha256": "107b6c1f793c450024478ccaac19dfa53815679f2ce1621d21d1fef0044e27a3",
+  "config_sha256": "66ca955aa49db136054a57f0ff195fac7f206d3dd753799f36dd44a510b3e4f3",
   "mapping_arms": [
     "jw",
     "parity",
@@ -4945,7 +4945,7 @@
         "sha256": "fd88e6d3554d1f302820d45ec5382d0c45557d5135af3e77391c1ce767a77608",
         "source": "benchmarks/reference_results/clifford_hierarchy_beh2.json",
         "source_row_sha256": null,
-        "source_file_sha256": "ad5babccb230a9f66e3ac44633062254368c5b08a2103a080f24ba3e686525b5",
+        "source_payload_sha256": "10ea56d30690df4c38196cab32d158872407d7e06d1f989510015ab4b7ac32ce",
         "selection_rule": null
       },
       "arms": [
