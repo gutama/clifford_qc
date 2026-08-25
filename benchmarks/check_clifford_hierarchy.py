@@ -4,7 +4,11 @@ from __future__ import annotations
 
 import json
 
-from clifford_qc.reproducibility import compare_json_records
+from clifford_qc.reproducibility import (
+    CROSS_MACHINE_ATOL,
+    CROSS_MACHINE_RTOL,
+    compare_json_records,
+)
 
 from run_clifford_hierarchy import (
     SYSTEMS,
@@ -97,7 +101,8 @@ def v2_projection_problems(system: str, actual: dict) -> list[str]:
     except (OSError, ValueError) as exc:
         return [f"frozen v2 control is unreadable: {exc}"]
     return compare_json_records(
-        expected_v2, projected, path="$.legacy_v2", atol=1e-12, rtol=1e-12,
+        expected_v2, projected, path="$.legacy_v2",
+        atol=CROSS_MACHINE_ATOL, rtol=CROSS_MACHINE_RTOL,
     )
 
 
@@ -107,7 +112,7 @@ def main() -> int:
         path = record_path(system)
         expected = json.loads(path.read_text(encoding="utf-8"))
         actual = build_record(system)
-        problems = compare_json_records(expected, actual, atol=1e-12, rtol=1e-12)
+        problems = compare_json_records(expected, actual, atol=CROSS_MACHINE_ATOL, rtol=CROSS_MACHINE_RTOL)
         problems.extend(v3_contract_problems(actual))
         problems.extend(
             f"committed record: {problem}"

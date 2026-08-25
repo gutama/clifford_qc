@@ -347,6 +347,45 @@ the diagnosis; the short gates in `test` run past each other's failures for the
 same reason. To gate a branch on them before merging rather than after, dispatch
 the workflow against that branch from the Actions tab.
 
+### What a record gate can and cannot reproduce
+
+The gates compare a committed record against one rebuilt on the spot, and those
+two numbers come from different machines. That distinction is the whole of the
+tolerance story, and it was worth measuring rather than assuming.
+
+*Within one machine these records are bit-exact.* Rebuilding
+`finite_shot_rethink.json` and diffing every compared field against the
+committed one gives a worst drift of exactly `0.0` — no differing field at all
+— and it stays `0.0` at `OMP_NUM_THREADS=1` and `=4` alike. So the position
+these checkers have always taken, that widening is the wrong response because
+nothing here is noisy in the run-to-run sense, is correct and is not being
+retreated from.
+
+*Across machines they are not.* On `main`, the same gates drift by `3.4e-12` to
+`1.0e-11` absolute and up to `9.8e-11` relative, on millihartree quantities of
+order `0.07` to `2.6`. OpenBLAS selects its kernels by instruction set as well
+as by thread count, so a runner with a different CPU sums a reduction in a
+different order. Part of that is closable and now is: `ci.yml` pins
+`OMP_NUM_THREADS=1`, because the same `eigvalsh` call returns four distinct
+last bits across thread counts 1–4 — deterministically within each, spread
+`4.5e-15`, and only on the 256-dimension arms, since the 64-dimension `+2q`
+arms sit below the threading threshold. The instruction-set half is not
+closable from a workflow.
+
+So a committed-versus-rebuilt comparison is a cross-machine comparison, and
+`clifford_qc.reproducibility.CROSS_MACHINE_ATOL` / `_RTOL` is the floor it has
+to clear: `1e-9`, an order above the worst observed drift, seven orders below
+the smallest quantity these records report and nine below the 1.6 mHa accuracy
+target. A change of `1e-8` mHa still fails the gate. Before this floor existed
+those comparisons ran at `1e-12` — inside their own noise — which is why three
+gates were red on `main` across five merges and why `check_exact_shot_search`
+once went red and then green on inputs that had provably not changed.
+
+Re-derivations keep the tight comparison, because they cross no machine
+boundary: `check_protocol_cost.py` recomputes its verdicts from the record's
+own contents at `atol=0.0`, and `check_mapping_axis.py` recomputes the QR3
+summary at `1e-12`. Both run in the process that holds the record.
+
 `check_summaries.py` is deliberately not a gate yet: five `*_summary` pairs
 declared by configs have no committed JSONL, so it fails on `main` today for
 reasons that predate the workflow. `paper/check_manuscript.py` and

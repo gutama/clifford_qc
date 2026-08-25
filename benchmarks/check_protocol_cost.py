@@ -34,6 +34,8 @@ import sys
 from types import SimpleNamespace
 
 from clifford_qc.reproducibility import (
+    CROSS_MACHINE_ATOL,
+    CROSS_MACHINE_RTOL,
     compare_json_records,
     guarded_contract_problems,
     sampling_stream_mismatch,
@@ -86,12 +88,17 @@ COST_RELATIVE_TOLERANCE = 1e-9
 
 # Every millihartree field in this record is an energy *difference* against the
 # exact sector reference, so cancellation would normally argue for a loosened
-# per-field tolerance -- and that argument is declined here, deliberately. The
-# producer takes its reference from the dense eigensolve rather than ARPACK
-# precisely so the difference reproduces bit for bit, and it does: the same
-# fields drift by a constant ~1e-10 mHa under the default 'auto' path and by
-# nothing at all under 'dense'. So the comparison stays at R1's 1e-12, where a
-# nondeterministic reference fails the gate instead of being absorbed by it.
+# per-field tolerance -- and that argument is still declined. The producer takes
+# its reference from the dense eigensolve rather than ARPACK precisely so the
+# difference reproduces bit for bit, and it does: the same fields drift by a
+# constant ~1e-10 mHa under the default 'auto' path and by nothing at all under
+# 'dense'. No per-key widening is granted here for that reason.
+#
+# The record-versus-rebuild comparison below uses CROSS_MACHINE_*, which is a
+# different quantity and not a retreat from the above. Within one machine these
+# fields drift by exactly zero; across machines OpenBLAS picks a different
+# kernel and they drift up to 1e-11, which a 1e-12 gate cannot survive. See the
+# constant's own comment for the measurement.
 
 
 def _close(left: float | None, right: float | None) -> bool:
@@ -739,13 +746,13 @@ def main() -> int:
                 for problem in compare_json_records(
                     expected["systems"][key],
                     actual["systems"][key],
-                    atol=1e-12,
-                    rtol=1e-12,
+                    atol=CROSS_MACHINE_ATOL,
+                    rtol=CROSS_MACHINE_RTOL,
                 )
             )
     else:
         actual = build_record(workers=4)
-        problems = compare_json_records(expected, actual, atol=1e-12, rtol=1e-12)
+        problems = compare_json_records(expected, actual, atol=CROSS_MACHINE_ATOL, rtol=CROSS_MACHINE_RTOL)
     problems.extend(contract_problems(expected))
     problems.extend(f"rebuilt record: {problem}" for problem in contract_problems(actual))
     if problems:

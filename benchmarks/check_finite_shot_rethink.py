@@ -7,7 +7,11 @@ import json
 import sys
 from pathlib import Path
 
-from clifford_qc.reproducibility import compare_json_records
+from clifford_qc.reproducibility import (
+    CROSS_MACHINE_ATOL,
+    CROSS_MACHINE_RTOL,
+    compare_json_records,
+)
 
 from run_finite_shot_rethink import run
 
@@ -29,8 +33,8 @@ def main() -> int:
         committed,
         fresh,
         RECORD.name,
-        atol=1e-12,
-        rtol=1e-12,
+        atol=CROSS_MACHINE_ATOL,
+        rtol=CROSS_MACHINE_RTOL,
     )
     for problem in problems[:20]:
         print(f"FAIL {problem}")

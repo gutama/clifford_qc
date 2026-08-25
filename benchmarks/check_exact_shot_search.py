@@ -5,6 +5,8 @@ from __future__ import annotations
 import json
 
 from clifford_qc.reproducibility import (
+    CROSS_MACHINE_ATOL,
+    CROSS_MACHINE_RTOL,
     compare_json_records,
     sampling_stream_mismatch,
 )
@@ -257,7 +259,7 @@ def main() -> int:
         confirmatory_replicas=CONFIRMATORY_REPLICAS,
         workers=4,
     )
-    problems = compare_json_records(expected, actual, atol=1e-12, rtol=1e-12)
+    problems = compare_json_records(expected, actual, atol=CROSS_MACHINE_ATOL, rtol=CROSS_MACHINE_RTOL)
     problems.extend(contract_problems(expected))
     problems.extend(f"rebuilt record: {problem}" for problem in contract_problems(actual))
     if problems:

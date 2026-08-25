@@ -257,6 +257,38 @@ def sampling_stream_mismatch(
     return problems
 
 
+# The floor a committed-record comparison actually has to clear.
+#
+# These records reproduce bit for bit on one machine. Rebuilding
+# ``finite_shot_rethink.json`` and diffing every compared field against the
+# committed one drifts by exactly zero, at ``OMP_NUM_THREADS`` 1 and 4 alike.
+# So the standing position in these checkers -- that widening is the wrong
+# response because nothing here is noisy in the run-to-run sense -- is correct,
+# and this constant does not contradict it.
+#
+# What it adds is that run-to-run determinism is not machine-to-machine
+# determinism, and a CI gate rebuilding a record committed from a different
+# machine is making the second comparison rather than the first. OpenBLAS
+# selects kernels by instruction set as well as by thread count, so a differing
+# runner sums a reduction in a different order. Measured on ``main`` across five
+# merges, the surviving drift is 3.4e-12 to 1.0e-11 absolute and up to 9.8e-11
+# relative, on millihartree quantities of order 0.07 to 2.6. A gate set at
+# 1e-12 therefore sits inside its own noise floor and resolves on which runner
+# it drew, which is what made three of them red for five merges and one of them
+# flip red to green on unchanged inputs.
+#
+# 1e-9 clears the worst observed drift by an order of magnitude while staying
+# seven orders below the smallest quantity these records report and nine below
+# the 1.6 mHa accuracy target, so a scientifically real change still fails.
+#
+# It is for committed-versus-rebuilt comparisons only. A record re-derived
+# against its own contents in one process crosses no machine boundary and stays
+# exact -- ``check_protocol_cost``'s verdict re-derivation and
+# ``check_mapping_axis``'s QR3 summary both keep their tight comparison.
+CROSS_MACHINE_ATOL = 1e-9
+CROSS_MACHINE_RTOL = 1e-9
+
+
 def guarded_contract_problems(inner):
     """Wrap a contract function so a malformed record is reported, not raised.
 
@@ -284,6 +316,7 @@ def guarded_contract_problems(inner):
     return guarded
 
 
-__all__ = ["compare_json_records", "execution_provenance",
+__all__ = ["CROSS_MACHINE_ATOL", "CROSS_MACHINE_RTOL",
+           "compare_json_records", "execution_provenance",
            "guarded_contract_problems", "sampling_stream_mismatch",
            "stamp_record"]
