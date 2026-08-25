@@ -285,22 +285,22 @@
         "blas": {
           "detection method": "pkgconfig",
           "found": true,
-          "include directory": "/opt/_internal/cpython-3.11.14/lib/python3.11/site-packages/scipy_openblas64/include",
-          "lib directory": "/opt/_internal/cpython-3.11.14/lib/python3.11/site-packages/scipy_openblas64/lib",
+          "include directory": "/opt/_internal/cpython-3.12.13/lib/python3.12/site-packages/scipy_openblas64/include",
+          "lib directory": "/opt/_internal/cpython-3.12.13/lib/python3.12/site-packages/scipy_openblas64/lib",
           "name": "scipy-openblas",
-          "openblas configuration": "OpenBLAS 0.3.31.188.0  USE64BITINT DYNAMIC_ARCH NO_AFFINITY Haswell MAX_THREADS=64",
+          "openblas configuration": "OpenBLAS 0.3.34.0.0  USE64BITINT DYNAMIC_ARCH NO_AFFINITY Haswell MAX_THREADS=64",
           "pc file directory": "/project/.openblas",
-          "version": "0.3.31.188.0"
+          "version": "0.3.34.0.0"
         },
         "lapack": {
           "detection method": "pkgconfig",
           "found": true,
-          "include directory": "/opt/_internal/cpython-3.11.14/lib/python3.11/site-packages/scipy_openblas64/include",
-          "lib directory": "/opt/_internal/cpython-3.11.14/lib/python3.11/site-packages/scipy_openblas64/lib",
+          "include directory": "/opt/_internal/cpython-3.12.13/lib/python3.12/site-packages/scipy_openblas64/include",
+          "lib directory": "/opt/_internal/cpython-3.12.13/lib/python3.12/site-packages/scipy_openblas64/lib",
           "name": "scipy-openblas",
-          "openblas configuration": "OpenBLAS 0.3.31.188.0  USE64BITINT DYNAMIC_ARCH NO_AFFINITY Haswell MAX_THREADS=64",
+          "openblas configuration": "OpenBLAS 0.3.34.0.0  USE64BITINT DYNAMIC_ARCH NO_AFFINITY Haswell MAX_THREADS=64",
           "pc file directory": "/project/.openblas",
-          "version": "0.3.31.188.0"
+          "version": "0.3.34.0.0"
         }
       },
       "Compilers": {
@@ -320,7 +320,7 @@
           "commands": "cython",
           "linker": "cython",
           "name": "cython",
-          "version": "3.2.4"
+          "version": "3.2.9"
         }
       },
       "Machine Information": {
@@ -338,8 +338,8 @@
         }
       },
       "Python Information": {
-        "path": "/tmp/build-env-gjolnpt6/bin/python",
-        "version": "3.11"
+        "path": "/tmp/build-env-jmn5a0j4/bin/python",
+        "version": "3.12"
       },
       "SIMD Extensions": {
         "baseline": [
@@ -355,26 +355,26 @@
     },
     "clifford_qc": "0.3.0",
     "dependencies": {
-      "numpy": "2.4.6",
+      "numpy": "2.5.2",
       "openfermion": null,
       "openfermionpyscf": null,
       "pyscf": null,
-      "scipy": "1.17.1",
+      "scipy": "1.18.0",
       "stim": "1.16.0"
     },
-    "environment_sha256": "28a6fbf6142fed9841f7274c09e3bb6a0e2a17278b266d8419461db51ec246aa",
+    "environment_sha256": "6cd504632dc3eeccee6cf7eddf06972acd077730e5cb4288bf114fe00d4397b0",
     "git_dirty": true,
-    "git_sha": "cba5657dcc9ed9c88f9c71f1a955822ce2b61466",
+    "git_sha": "b30e8fa899efd72bc2f16e14cd55736354eb7524",
     "platform": {
       "hostname": "vm",
       "machine": "x86_64",
       "processor": "x86_64",
-      "release": "6.18.5-fc-v20",
+      "release": "6.18.44-fc-v21",
       "system": "Linux"
     },
-    "python": "3.11.15",
+    "python": "3.12.3",
     "schema": "clifford_qc.execution_provenance.v1",
-    "utc": "2026-08-20T14:12:17.548710+00:00"
+    "utc": "2026-08-25T08:37:28.435968+00:00"
   },
   "schema": "clifford_qc.protocol_axis.v1",
   "systems": [
@@ -393,7 +393,7 @@
               "block_size": 1,
               "coverage": {
                 "max_fraction_of_words_read": 0.029579375848032566,
-                "mean_fraction_of_words_read": 0.00442188143222944,
+                "mean_fraction_of_words_read": 0.004421881432229473,
                 "min_fraction_of_words_read": 0.0033921302578018998
               },
               "device_costs": {
@@ -721,7 +721,7 @@
               "block_size": 2,
               "coverage": {
                 "max_fraction_of_words_read": 0.029579375848032566,
-                "mean_fraction_of_words_read": 0.005807830315892802,
+                "mean_fraction_of_words_read": 0.005807830315892785,
                 "min_fraction_of_words_read": 0.0031207598371777476
               },
               "device_costs": {
@@ -1051,7 +1051,7 @@
               "block_size": 4,
               "coverage": {
                 "max_fraction_of_words_read": 0.03175033921302578,
-                "mean_fraction_of_words_read": 0.011741331539400018,
+                "mean_fraction_of_words_read": 0.01174133153940002,
                 "min_fraction_of_words_read": 0.0031207598371777476
               },
               "device_costs": {
@@ -1381,7 +1381,7 @@
               "block_size": 8,
               "coverage": {
                 "max_fraction_of_words_read": 0.0344640434192673,
-                "mean_fraction_of_words_read": 0.03210651289009497,
+                "mean_fraction_of_words_read": 0.03210651289009498,
                 "min_fraction_of_words_read": 0.025780189959294438
               },
               "device_costs": {
@@ -1723,7 +1723,7 @@
               "block_size": 1,
               "coverage": {
                 "max_fraction_of_words_read": 0.029579375848032566,
-                "mean_fraction_of_words_read": 0.008112091766988008,
+                "mean_fraction_of_words_read": 0.008112091766988018,
                 "min_fraction_of_words_read": 0.006512890094979647
               },
               "device_costs": {
@@ -2051,7 +2051,7 @@
               "block_size": 2,
               "coverage": {
                 "max_fraction_of_words_read": 0.029579375848032566,
-                "mean_fraction_of_words_read": 0.007816975727423498,
+                "mean_fraction_of_words_read": 0.007816975727423488,
                 "min_fraction_of_words_read": 0.006105834464043419
               },
               "device_costs": {
@@ -2381,7 +2381,7 @@
               "block_size": 4,
               "coverage": {
                 "max_fraction_of_words_read": 0.03283582089552239,
-                "mean_fraction_of_words_read": 0.012764661540780944,
+                "mean_fraction_of_words_read": 0.012764661540780943,
                 "min_fraction_of_words_read": 0.006648575305291723
               },
               "device_costs": {
@@ -2711,7 +2711,7 @@
               "block_size": 8,
               "coverage": {
                 "max_fraction_of_words_read": 0.0344640434192673,
-                "mean_fraction_of_words_read": 0.03200526294149088,
+                "mean_fraction_of_words_read": 0.03200526294149089,
                 "min_fraction_of_words_read": 0.025780189959294438
               },
               "device_costs": {
@@ -3053,7 +3053,7 @@
               "block_size": 1,
               "coverage": {
                 "max_fraction_of_words_read": 0.0310192023633678,
-                "mean_fraction_of_words_read": 0.016408068106738595,
+                "mean_fraction_of_words_read": 0.016408068106738713,
                 "min_fraction_of_words_read": 0.013786312161496799
               },
               "device_costs": {
@@ -3381,7 +3381,7 @@
               "block_size": 2,
               "coverage": {
                 "max_fraction_of_words_read": 0.0310192023633678,
-                "mean_fraction_of_words_read": 0.015873430848398436,
+                "mean_fraction_of_words_read": 0.015873430848398498,
                 "min_fraction_of_words_read": 0.014278680452978828
               },
               "device_costs": {
@@ -3711,7 +3711,7 @@
               "block_size": 4,
               "coverage": {
                 "max_fraction_of_words_read": 0.0310192023633678,
-                "mean_fraction_of_words_read": 0.018589415086566335,
+                "mean_fraction_of_words_read": 0.018589415086566384,
                 "min_fraction_of_words_read": 0.013293943870014771
               },
               "device_costs": {
@@ -4041,7 +4041,7 @@
               "block_size": 6,
               "coverage": {
                 "max_fraction_of_words_read": 0.0310192023633678,
-                "mean_fraction_of_words_read": 0.03077591450169434,
+                "mean_fraction_of_words_read": 0.03077591450169433,
                 "min_fraction_of_words_read": 0.023141309699655343
               },
               "device_costs": {
@@ -4383,7 +4383,7 @@
               "block_size": 1,
               "coverage": {
                 "max_fraction_of_words_read": 0.029579375848032566,
-                "mean_fraction_of_words_read": 0.008949046342566528,
+                "mean_fraction_of_words_read": 0.008949046342566547,
                 "min_fraction_of_words_read": 0.006377204884667571
               },
               "device_costs": {
@@ -4711,7 +4711,7 @@
               "block_size": 2,
               "coverage": {
                 "max_fraction_of_words_read": 0.029579375848032566,
-                "mean_fraction_of_words_read": 0.008909380124731936,
+                "mean_fraction_of_words_read": 0.008909380124731938,
                 "min_fraction_of_words_read": 0.006377204884667571
               },
               "device_costs": {
@@ -5041,7 +5041,7 @@
               "block_size": 4,
               "coverage": {
                 "max_fraction_of_words_read": 0.033921302578018994,
-                "mean_fraction_of_words_read": 0.015119954672193469,
+                "mean_fraction_of_words_read": 0.01511995467219348,
                 "min_fraction_of_words_read": 0.006919945725915875
               },
               "device_costs": {
@@ -5371,7 +5371,7 @@
               "block_size": 8,
               "coverage": {
                 "max_fraction_of_words_read": 0.0344640434192673,
-                "mean_fraction_of_words_read": 0.03199586483168571,
+                "mean_fraction_of_words_read": 0.031995864831685726,
                 "min_fraction_of_words_read": 0.025780189959294438
               },
               "device_costs": {
@@ -5713,7 +5713,7 @@
               "block_size": 1,
               "coverage": {
                 "max_fraction_of_words_read": 0.0310192023633678,
-                "mean_fraction_of_words_read": 0.01836423769048714,
+                "mean_fraction_of_words_read": 0.018364237690487274,
                 "min_fraction_of_words_read": 0.014278680452978828
               },
               "device_costs": {
@@ -6041,7 +6041,7 @@
               "block_size": 2,
               "coverage": {
                 "max_fraction_of_words_read": 0.0310192023633678,
-                "mean_fraction_of_words_read": 0.018913311335983743,
+                "mean_fraction_of_words_read": 0.01891331133598379,
                 "min_fraction_of_words_read": 0.014278680452978828
               },
               "device_costs": {
@@ -6371,7 +6371,7 @@
               "block_size": 4,
               "coverage": {
                 "max_fraction_of_words_read": 0.0310192023633678,
-                "mean_fraction_of_words_read": 0.018611521418020634,
+                "mean_fraction_of_words_read": 0.01861152141802068,
                 "min_fraction_of_words_read": 0.012309207287050714
               },
               "device_costs": {
@@ -6701,7 +6701,7 @@
               "block_size": 6,
               "coverage": {
                 "max_fraction_of_words_read": 0.0310192023633678,
-                "mean_fraction_of_words_read": 0.030752502872148355,
+                "mean_fraction_of_words_read": 0.03075250287214837,
                 "min_fraction_of_words_read": 0.023141309699655343
               },
               "device_costs": {
@@ -7059,7 +7059,7 @@
               "block_size": 1,
               "coverage": {
                 "max_fraction_of_words_read": 0.0290184203885945,
-                "mean_fraction_of_words_read": 0.0044538487029115725,
+                "mean_fraction_of_words_read": 0.004453848702911571,
                 "min_fraction_of_words_read": 0.0035326772646984608
               },
               "device_costs": {
@@ -7387,7 +7387,7 @@
               "block_size": 2,
               "coverage": {
                 "max_fraction_of_words_read": 0.0290184203885945,
-                "mean_fraction_of_words_read": 0.006209493181052242,
+                "mean_fraction_of_words_read": 0.00620949318105225,
                 "min_fraction_of_words_read": 0.0035326772646984608
               },
               "device_costs": {
@@ -7717,7 +7717,7 @@
               "block_size": 4,
               "coverage": {
                 "max_fraction_of_words_read": 0.031037093111279335,
-                "mean_fraction_of_words_read": 0.012406237517666221,
+                "mean_fraction_of_words_read": 0.012406237517666216,
                 "min_fraction_of_words_read": 0.0034065102195306586
               },
               "device_costs": {
@@ -8047,7 +8047,7 @@
               "block_size": 8,
               "coverage": {
                 "max_fraction_of_words_read": 0.03204642947262175,
-                "mean_fraction_of_words_read": 0.031270016886973714,
+                "mean_fraction_of_words_read": 0.031270016886973735,
                 "min_fraction_of_words_read": 0.0290184203885945
               },
               "device_costs": {
@@ -8389,7 +8389,7 @@
               "block_size": 1,
               "coverage": {
                 "max_fraction_of_words_read": 0.0290184203885945,
-                "mean_fraction_of_words_read": 0.00793408446516768,
+                "mean_fraction_of_words_read": 0.007934084465167716,
                 "min_fraction_of_words_read": 0.006560686348725713
               },
               "device_costs": {
@@ -8717,7 +8717,7 @@
               "block_size": 2,
               "coverage": {
                 "max_fraction_of_words_read": 0.0290184203885945,
-                "mean_fraction_of_words_read": 0.007753230794813673,
+                "mean_fraction_of_words_read": 0.007753230794813713,
                 "min_fraction_of_words_read": 0.006560686348725713
               },
               "device_costs": {
@@ -9047,7 +9047,7 @@
               "block_size": 4,
               "coverage": {
                 "max_fraction_of_words_read": 0.03128942720161494,
-                "mean_fraction_of_words_read": 0.01184485906398895,
+                "mean_fraction_of_words_read": 0.011844859063988956,
                 "min_fraction_of_words_read": 0.006560686348725713
               },
               "device_costs": {
@@ -9377,7 +9377,7 @@
               "block_size": 8,
               "coverage": {
                 "max_fraction_of_words_read": 0.03204642947262175,
-                "mean_fraction_of_words_read": 0.03124436754262642,
+                "mean_fraction_of_words_read": 0.031244367542626435,
                 "min_fraction_of_words_read": 0.0290184203885945
               },
               "device_costs": {
@@ -9719,7 +9719,7 @@
               "block_size": 1,
               "coverage": {
                 "max_fraction_of_words_read": 0.030776746458231558,
-                "mean_fraction_of_words_read": 0.01634662357671642,
+                "mean_fraction_of_words_read": 0.016346623576716394,
                 "min_fraction_of_words_read": 0.015144113336590131
               },
               "device_costs": {
@@ -10047,7 +10047,7 @@
               "block_size": 2,
               "coverage": {
                 "max_fraction_of_words_read": 0.030776746458231558,
-                "mean_fraction_of_words_read": 0.017144497669691193,
+                "mean_fraction_of_words_read": 0.01714449766969117,
                 "min_fraction_of_words_read": 0.015144113336590131
               },
               "device_costs": {
@@ -10377,7 +10377,7 @@
               "block_size": 4,
               "coverage": {
                 "max_fraction_of_words_read": 0.030776746458231558,
-                "mean_fraction_of_words_read": 0.02013325156690125,
+                "mean_fraction_of_words_read": 0.020133251566901225,
                 "min_fraction_of_words_read": 0.015144113336590131
               },
               "device_costs": {
@@ -10707,7 +10707,7 @@
               "block_size": 6,
               "coverage": {
                 "max_fraction_of_words_read": 0.030776746458231558,
-                "mean_fraction_of_words_read": 0.03077674645823158,
+                "mean_fraction_of_words_read": 0.030776746458231558,
                 "min_fraction_of_words_read": 0.030776746458231558
               },
               "device_costs": {
@@ -11049,7 +11049,7 @@
               "block_size": 1,
               "coverage": {
                 "max_fraction_of_words_read": 0.030532424930608124,
-                "mean_fraction_of_words_read": 0.00884974633243677,
+                "mean_fraction_of_words_read": 0.00884974633243683,
                 "min_fraction_of_words_read": 0.006560686348725713
               },
               "device_costs": {
@@ -11377,7 +11377,7 @@
               "block_size": 2,
               "coverage": {
                 "max_fraction_of_words_read": 0.030532424930608124,
-                "mean_fraction_of_words_read": 0.00881800910044809,
+                "mean_fraction_of_words_read": 0.008818009100448125,
                 "min_fraction_of_words_read": 0.006560686348725713
               },
               "device_costs": {
@@ -11707,7 +11707,7 @@
               "block_size": 4,
               "coverage": {
                 "max_fraction_of_words_read": 0.03141559424678274,
-                "mean_fraction_of_words_read": 0.01200613708936173,
+                "mean_fraction_of_words_read": 0.012006137089361737,
                 "min_fraction_of_words_read": 0.006813020439061317
               },
               "device_costs": {
@@ -12379,7 +12379,7 @@
               "block_size": 1,
               "coverage": {
                 "max_fraction_of_words_read": 0.030776746458231558,
-                "mean_fraction_of_words_read": 0.018270639960918444,
+                "mean_fraction_of_words_read": 0.018270639960918416,
                 "min_fraction_of_words_read": 0.015144113336590131
               },
               "device_costs": {
@@ -12707,7 +12707,7 @@
               "block_size": 2,
               "coverage": {
                 "max_fraction_of_words_read": 0.030776746458231558,
-                "mean_fraction_of_words_read": 0.02077186126038107,
+                "mean_fraction_of_words_read": 0.020771861260381046,
                 "min_fraction_of_words_read": 0.015144113336590131
               },
               "device_costs": {
@@ -13037,7 +13037,7 @@
               "block_size": 4,
               "coverage": {
                 "max_fraction_of_words_read": 0.030776746458231558,
-                "mean_fraction_of_words_read": 0.022076846286187658,
+                "mean_fraction_of_words_read": 0.022076846286187633,
                 "min_fraction_of_words_read": 0.015144113336590131
               },
               "device_costs": {
@@ -13367,7 +13367,7 @@
               "block_size": 6,
               "coverage": {
                 "max_fraction_of_words_read": 0.030776746458231558,
-                "mean_fraction_of_words_read": 0.03077674645823158,
+                "mean_fraction_of_words_read": 0.03077674645823156,
                 "min_fraction_of_words_read": 0.030776746458231558
               },
               "device_costs": {
@@ -13725,7 +13725,7 @@
               "block_size": 1,
               "coverage": {
                 "max_fraction_of_words_read": 0.10915104740904079,
-                "mean_fraction_of_words_read": 0.007480377673180904,
+                "mean_fraction_of_words_read": 0.007480377673180894,
                 "min_fraction_of_words_read": 0.003858875413450937
               },
               "device_costs": {
@@ -14053,7 +14053,7 @@
               "block_size": 2,
               "coverage": {
                 "max_fraction_of_words_read": 0.10915104740904079,
-                "mean_fraction_of_words_read": 0.06246806679753679,
+                "mean_fraction_of_words_read": 0.06246806679753677,
                 "min_fraction_of_words_read": 0.05622932745314223
               },
               "device_costs": {
@@ -14713,7 +14713,7 @@
               "block_size": 8,
               "coverage": {
                 "max_fraction_of_words_read": 0.14002205071664828,
-                "mean_fraction_of_words_read": 0.1293117026303355,
+                "mean_fraction_of_words_read": 0.12931170263033548,
                 "min_fraction_of_words_read": 0.10474090407938258
               },
               "device_costs": {
@@ -15055,7 +15055,7 @@
               "block_size": 1,
               "coverage": {
                 "max_fraction_of_words_read": 0.10915104740904079,
-                "mean_fraction_of_words_read": 0.06246806679753679,
+                "mean_fraction_of_words_read": 0.06246806679753677,
                 "min_fraction_of_words_read": 0.05622932745314223
               },
               "device_costs": {
@@ -15383,7 +15383,7 @@
               "block_size": 2,
               "coverage": {
                 "max_fraction_of_words_read": 0.10915104740904079,
-                "mean_fraction_of_words_read": 0.06246806679753679,
+                "mean_fraction_of_words_read": 0.06246806679753677,
                 "min_fraction_of_words_read": 0.05622932745314223
               },
               "device_costs": {
@@ -16385,7 +16385,7 @@
               "block_size": 1,
               "coverage": {
                 "max_fraction_of_words_read": 0.1232876712328767,
-                "mean_fraction_of_words_read": 0.12328767123287675,
+                "mean_fraction_of_words_read": 0.1232876712328767,
                 "min_fraction_of_words_read": 0.1232876712328767
               },
               "device_costs": {
@@ -16713,7 +16713,7 @@
               "block_size": 2,
               "coverage": {
                 "max_fraction_of_words_read": 0.1232876712328767,
-                "mean_fraction_of_words_read": 0.12328767123287675,
+                "mean_fraction_of_words_read": 0.1232876712328767,
                 "min_fraction_of_words_read": 0.1232876712328767
               },
               "device_costs": {
@@ -17042,7 +17042,7 @@
               "block_size": 4,
               "coverage": {
                 "max_fraction_of_words_read": 0.1232876712328767,
-                "mean_fraction_of_words_read": 0.12328767123287673,
+                "mean_fraction_of_words_read": 0.12328767123287669,
                 "min_fraction_of_words_read": 0.1232876712328767
               },
               "device_costs": {
@@ -17372,7 +17372,7 @@
               "block_size": 6,
               "coverage": {
                 "max_fraction_of_words_read": 0.1232876712328767,
-                "mean_fraction_of_words_read": 0.12328767123287673,
+                "mean_fraction_of_words_read": 0.1232876712328767,
                 "min_fraction_of_words_read": 0.1232876712328767
               },
               "device_costs": {
@@ -17714,7 +17714,7 @@
               "block_size": 1,
               "coverage": {
                 "max_fraction_of_words_read": 0.10915104740904079,
-                "mean_fraction_of_words_read": 0.06246806679753679,
+                "mean_fraction_of_words_read": 0.06246806679753677,
                 "min_fraction_of_words_read": 0.05622932745314223
               },
               "device_costs": {
@@ -18042,7 +18042,7 @@
               "block_size": 2,
               "coverage": {
                 "max_fraction_of_words_read": 0.10915104740904079,
-                "mean_fraction_of_words_read": 0.06246806679753679,
+                "mean_fraction_of_words_read": 0.06246806679753677,
                 "min_fraction_of_words_read": 0.05622932745314223
               },
               "device_costs": {
@@ -19044,7 +19044,7 @@
               "block_size": 1,
               "coverage": {
                 "max_fraction_of_words_read": 0.1232876712328767,
-                "mean_fraction_of_words_read": 0.12328767123287675,
+                "mean_fraction_of_words_read": 0.1232876712328767,
                 "min_fraction_of_words_read": 0.1232876712328767
               },
               "device_costs": {
@@ -19372,7 +19372,7 @@
               "block_size": 2,
               "coverage": {
                 "max_fraction_of_words_read": 0.1232876712328767,
-                "mean_fraction_of_words_read": 0.12328767123287675,
+                "mean_fraction_of_words_read": 0.1232876712328767,
                 "min_fraction_of_words_read": 0.1232876712328767
               },
               "device_costs": {
@@ -19701,7 +19701,7 @@
               "block_size": 4,
               "coverage": {
                 "max_fraction_of_words_read": 0.1232876712328767,
-                "mean_fraction_of_words_read": 0.12328767123287673,
+                "mean_fraction_of_words_read": 0.12328767123287669,
                 "min_fraction_of_words_read": 0.1232876712328767
               },
               "device_costs": {
@@ -20031,7 +20031,7 @@
               "block_size": 6,
               "coverage": {
                 "max_fraction_of_words_read": 0.1232876712328767,
-                "mean_fraction_of_words_read": 0.12328767123287673,
+                "mean_fraction_of_words_read": 0.1232876712328767,
                 "min_fraction_of_words_read": 0.1232876712328767
               },
               "device_costs": {
