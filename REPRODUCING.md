@@ -350,9 +350,11 @@ the workflow against that branch from the Actions tab.
 ### The python 3.12 / numpy 2.5.2 / scipy 1.18.0 migration
 
 Every stamped record was rebuilt on this stack, which is why
-`check_record_environment.py --constraints` now emits it. No pin was written by
-hand: the pins are read out of the records, so migrating the stack *is*
-regenerating the evidence, and the constraint file follows.
+`check_record_environment.py --constraints` now emits it. SciPy 1.18.0 is the
+accepted target for this migration; moving to 1.18.1 is intentionally out of
+scope. No pin was written by hand: the pins are read out of the records, so
+migrating the stack *is* regenerating the evidence, and the constraint file
+follows.
 
 What moved is worth stating precisely, because the two halves behave
 differently and a reader comparing figures across this boundary needs to know
@@ -366,8 +368,11 @@ every environment-marginal flag. Every resource count is identical: `W`,
 setting counts on all twenty-five mapping-axis arms, group counts, basis sizes,
 retained selections. Both negative verdicts stand — QR3 still abstains at the
 exact tier, and the LiH candidate is still
-`rejected_unresolved_at_frozen_grid`. Three records —
-`protocol_axis.json` and both `clifford_hierarchy_*.json` — are byte-identical.
+`rejected_unresolved_at_frozen_grid`. The two `clifford_hierarchy_*.json`
+records preserve their scientific payload but carry regenerated provenance;
+`protocol_axis.json` preserves its discrete decisions and resource counts while
+small floating diagnostics move in the last bits. None of those three files is
+byte-identical.
 
 **The replica statistics underneath them did move.**
 `numpy.random.Generator` carries no cross-version bit-stream guarantee (NEP 19
@@ -388,20 +393,19 @@ count or a verdict is.** The distributional statistics describe a different
 draw; the decisions taken on them are the same decisions.
 
 The exact-arithmetic records confirm the split from the other side. No integer
-moved in any of them, and the largest float movements are last-bit: 8.0e-12 Ha
-on `matched_h4`'s `error_hartree` and 7.0e-6 microseconds on a
+moved in any of them, and the largest float movements are last-bit: 8.0e-15 Ha
+(8.0e-12 mHa) on `matched_h4`'s `error_hartree` and 7.0e-6 microseconds on a
 `fixed_shot_time_us` of 1.0e9. Those two are the reason
 `CROSS_MACHINE_ATOL`/`_RTOL` needs both legs — the first clears only on the
 absolute one, the second only on the relative one, and they are seventeen
 orders of magnitude apart.
 
-One dependency the migration forced. `configs/mapping_axis.json` pins a
-whole-file `selection_file_sha256` over `clifford_hierarchy_beh2.json`, and
-that digest changed while the record's scientific content stayed byte-identical,
-because its provenance block moved. The producer refused to run, correctly, and
-the pin was updated. It covers volatile provenance rather than scientific
-content, so it will break again on any regeneration including a no-op one; the
-`h4` row hashes a row out of the ladder instead and has no such problem.
+One dependency the migration exposed is now fixed. For BeH2,
+`configs/mapping_axis.json` pins `selection_payload_sha256`, the digest of a
+canonical selection payload containing the record schema, system, selected
+labels, selected ground energy, and bank provenance. Regenerated top-level
+provenance therefore does not invalidate an unchanged bank, while a changed
+selection does. The `h4` row continues to hash its selected ladder row.
 
 ### What a record gate can and cannot reproduce
 
@@ -430,12 +434,15 @@ closable from a workflow.
 
 So a committed-versus-rebuilt comparison is a cross-machine comparison, and
 `clifford_qc.reproducibility.CROSS_MACHINE_ATOL` / `_RTOL` is the floor it has
-to clear: `1e-9`, an order above the worst observed drift, seven orders below
-the smallest quantity these records report and nine below the 1.6 mHa accuracy
-target. A change of `1e-8` mHa still fails the gate. Before this floor existed
-those comparisons ran at `1e-12` — inside their own noise — which is why three
-gates were red on `main` across five merges and why `check_exact_shot_search`
-once went red and then green on inputs that had provably not changed.
+to clear: `1e-9`, an order above the worst observed drift. On the measured
+energy-difference fields of order `0.07` to `2.6` mHa, a change of `1e-8` mHa
+still fails the gate and the floor remains nine orders below the 1.6 mHa target.
+Fixed numerical contracts do not inherit that blanket allowance: their checkers
+use exact path or key overrides, including the finite-shot overlap threshold and
+the QR3b invariant tolerances. Before this floor existed the cross-machine
+comparisons ran at `1e-12` — inside their own noise — which is why three gates
+were red on `main` across five merges and why `check_exact_shot_search` once
+went red and then green on inputs that had provably not changed.
 
 Re-derivations keep the tight comparison, because they cross no machine
 boundary: `check_protocol_cost.py` recomputes its verdicts from the record's
