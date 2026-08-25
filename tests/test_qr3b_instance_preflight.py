@@ -185,6 +185,15 @@ def test_the_checker_rejects_a_ceiling_the_decision_disagrees_with():
     )
 
 
+def test_the_checker_keeps_numeric_acceptance_gates_exact():
+    record = copy.deepcopy(json.loads(REFERENCE.read_text(encoding="utf-8")))
+    record["acceptance_gates"]["accuracy_target_millihartree"] += 1e-10
+    assert any(
+        "$.acceptance_gates.accuracy_target_millihartree" in problem
+        for problem in contract_problems(record)
+    )
+
+
 def test_the_preflight_contract_survives_a_malformed_record():
     """The guard #67 added to check_protocol_cost, now shared rather than copied."""
     for broken in (
