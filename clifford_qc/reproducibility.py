@@ -111,6 +111,7 @@ def compare_json_records(
         rtol: float = 1e-11,
         ignored_keys: frozenset[str] = frozenset({"provenance"}),
         key_tolerances: Mapping[str, tuple[float, float]] | None = None,
+        path_tolerances: Mapping[str, tuple[float, float]] | None = None,
 ) -> list[str]:
     """Compare JSON-like values with exact discrete and tolerant float fields.
 
@@ -125,11 +126,20 @@ def compare_json_records(
     the arithmetic that produced it can honour.  Such a field needs an absolute
     tolerance set by the energies it came from, not by the residue.  Naming the
     field explicitly keeps every other float on the tight default.
+
+    ``path_tolerances`` maps a complete comparison path to its own
+    ``(rtol, atol)`` and takes precedence over ``key_tolerances``. It is
+    for mixed records in which regenerated numerical outputs need a
+    cross-machine floor while fixed numerical contracts with the same terminal
+    key must remain exact.
     """
     problems: list[str] = []
     overrides = dict(key_tolerances or {})
+    path_overrides = dict(path_tolerances or {})
 
     def tolerances(here: str) -> tuple[float, float]:
+        if here in path_overrides:
+            return path_overrides[here]
         key = here.rsplit(".", 1)[-1]
         return overrides.get(key, (rtol, atol))
 
@@ -277,9 +287,11 @@ def sampling_stream_mismatch(
 # it drew, which is what made three of them red for five merges and one of them
 # flip red to green on unchanged inputs.
 #
-# 1e-9 clears the worst observed drift by an order of magnitude while staying
-# seven orders below the smallest quantity these records report and nine below
-# the 1.6 mHa accuracy target, so a scientifically real change still fails.
+# 1e-9 clears the worst observed drift by an order of magnitude. On the
+# measured 0.07--2.6 mHa energy-difference fields it still rejects a 1e-8 mHa
+# change. That statement is deliberately local, not a blanket guarantee:
+# math.isclose's relative leg scales with large-valued fields. Fixed numerical
+# contracts therefore use exact key/path overrides at the checker call sites.
 #
 # It is for committed-versus-rebuilt comparisons only. A record re-derived
 # against its own contents in one process crosses no machine boundary and stays
