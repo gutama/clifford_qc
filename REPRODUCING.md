@@ -313,8 +313,8 @@ wall-clock profiles are machine-dependent diagnostics, not scientific records.
 hand-written pin:
 
 ```bash
-python benchmarks/check_record_environment.py --python       # -> 3.11
-python benchmarks/check_record_environment.py --constraints  # -> numpy==2.4.6, ...
+python benchmarks/check_record_environment.py --python       # -> 3.12
+python benchmarks/check_record_environment.py --constraints  # -> numpy==2.5.2, ...
 python benchmarks/check_record_environment.py                # check this machine
 ```
 
@@ -346,6 +346,62 @@ They run in a matrix with `fail-fast` disabled, because the set of failures is
 the diagnosis; the short gates in `test` run past each other's failures for the
 same reason. To gate a branch on them before merging rather than after, dispatch
 the workflow against that branch from the Actions tab.
+
+### The python 3.12 / numpy 2.5.2 / scipy 1.18.0 migration
+
+Every stamped record was rebuilt on this stack, which is why
+`check_record_environment.py --constraints` now emits it. No pin was written by
+hand: the pins are read out of the records, so migrating the stack *is*
+regenerating the evidence, and the constraint file follows.
+
+What moved is worth stating precisely, because the two halves behave
+differently and a reader comparing figures across this boundary needs to know
+which half they are looking at.
+
+**Nothing this project publishes moved.** All thirty `k*` regions in
+`protocol_cost.json` are identical and none moved. All sixteen confirmed
+shot-to-target crossings in `exact_shot_search.json` are identical — every
+`confirmed_passing_effective_shots_per_setting`, every `confirmed_failing`,
+every environment-marginal flag. Every resource count is identical: `W`,
+setting counts on all twenty-five mapping-axis arms, group counts, basis sizes,
+retained selections. Both negative verdicts stand — QR3 still abstains at the
+exact tier, and the LiH candidate is still
+`rejected_unresolved_at_frozen_grid`. Three records —
+`protocol_axis.json` and both `clifford_hierarchy_*.json` — are byte-identical.
+
+**The replica statistics underneath them did move.**
+`numpy.random.Generator` carries no cross-version bit-stream guarantee (NEP 19
+froze `RandomState` for exactly this purpose), so the draws differ, a few
+replicas out of two hundred land on a different selected rank, and the
+aggregates follow. In `exact_shot_search.json` that is 489 floats and nine
+`below_exact_count` integers, moving the millihartree statistics by roughly one
+to three percent. In `finite_shot_rethink.json` it is eleven integers and 103
+floats, including a 423 mHa move in the `pooled_ridge` arm — an arm that record
+exists to characterise as a catastrophic failure mode, so the size of that move
+is a property of the arm and not of the migration. The QR3b preflight moved one
+cell from resolved to unresolved, 19 to 18, which reinforces its rejection
+rather than threatening it.
+
+So: **a bias, an RMSE or a percentile read from a pre-migration record is not
+comparable with the same field read after it. A crossing, a `k*`, a setting
+count or a verdict is.** The distributional statistics describe a different
+draw; the decisions taken on them are the same decisions.
+
+The exact-arithmetic records confirm the split from the other side. No integer
+moved in any of them, and the largest float movements are last-bit: 8.0e-12 Ha
+on `matched_h4`'s `error_hartree` and 7.0e-6 microseconds on a
+`fixed_shot_time_us` of 1.0e9. Those two are the reason
+`CROSS_MACHINE_ATOL`/`_RTOL` needs both legs — the first clears only on the
+absolute one, the second only on the relative one, and they are seventeen
+orders of magnitude apart.
+
+One dependency the migration forced. `configs/mapping_axis.json` pins a
+whole-file `selection_file_sha256` over `clifford_hierarchy_beh2.json`, and
+that digest changed while the record's scientific content stayed byte-identical,
+because its provenance block moved. The producer refused to run, correctly, and
+the pin was updated. It covers volatile provenance rather than scientific
+content, so it will break again on any regeneration including a no-op one; the
+`h4` row hashes a row out of the ladder instead and has no such problem.
 
 ### What a record gate can and cannot reproduce
 
