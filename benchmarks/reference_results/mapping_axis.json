@@ -143,7 +143,7 @@
         "sha256": "9f36dda910ab45e391709989166c365d8e04aa740a66c03cd88487e57a9f187b",
         "source": "benchmarks/reference_results/acase_ladder.jsonl",
         "source_row_sha256": "33a704d798edfcc8b00a75dcc55d357378849056a8d138e664d1e823f8f9d560",
-        "source_file_sha256": null,
+        "source_payload_sha256": null,
         "selection_rule": null
       },
       "arms": [
@@ -2261,7 +2261,7 @@
         "sha256": "6e174916ab6001194e5b87a837a535e6181b07ca8624cb4fc021f4472e6a11c2",
         "source": null,
         "source_row_sha256": null,
-        "source_file_sha256": null,
+        "source_payload_sha256": null,
         "selection_rule": "run_acase on the Hartree-Fock reference over the same rank<=2 determinant pool as every other system, with no binding budget cap, stopped by its own predicted-lowering threshold; tests/test_mapping_axis_banks.py re-derives these labels"
       },
       "arms": [
@@ -7567,7 +7567,7 @@
         "sha256": "0ed2bf82666e3d1655ca5b7aefaf417ad6a288da2ca0b847781e9501d22967ae",
         "source": "benchmarks/reference_results/acase_ladder.jsonl",
         "source_row_sha256": "ca8ae6d0268a6051248e70db7613cfdf7ca4b050ac648e1198b6c4195199cea6",
-        "source_file_sha256": null,
+        "source_payload_sha256": null,
         "selection_rule": null
       },
       "arms": [
@@ -9767,7 +9767,7 @@
         "sha256": "729ac306570604f3de89d081d4b6c752e5908155cfac57cb621960dd46778e02",
         "source": "benchmarks/reference_results/acase_ladder.jsonl",
         "source_row_sha256": "3b447a55c91de2d39cb6057574447227f7f6b5e430f135eb6ddf067f511c8552",
-        "source_file_sha256": null,
+        "source_payload_sha256": null,
         "selection_rule": null
       },
       "arms": [
