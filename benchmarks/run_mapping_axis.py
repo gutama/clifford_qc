@@ -80,6 +80,22 @@ def _canonical_sha256(value) -> str:
     return _sha256_bytes(payload)
 
 
+def _selection_payload(record: dict) -> dict:
+    """Return the scientific selection identity, excluding run provenance."""
+    labels = record.get("labels") or record.get("basis_labels")
+    if not labels:
+        raise ValueError("JSON selection source declares no selected labels")
+    payload = {"labels": list(labels)}
+    for key in ("schema", "system", "ground_energy", "bank_provenance"):
+        if key in record:
+            payload[key] = record[key]
+    return payload
+
+
+def _selection_payload_sha256(record: dict) -> str:
+    return _canonical_sha256(_selection_payload(record))
+
+
 def _mv_payload(operator: MV) -> list[list[float | int]]:
     return [
         [int(code), float(complex(value).real), float(complex(value).imag)]
@@ -129,9 +145,6 @@ def _selection_row(spec: dict) -> dict | None:
     source = HERE.parent / source_name
     if not source.exists():
         raise FileNotFoundError(f"selection source is missing: {source_name}")
-    expected_file = spec.get("selection_file_sha256")
-    if expected_file and _file_sha256(source) != expected_file:
-        raise ValueError(f"selection file hash drifted for {spec['key']}")
     if source.suffix == ".jsonl":
         rows = [
             json.loads(line)
@@ -152,7 +165,15 @@ def _selection_row(spec: dict) -> dict | None:
             raise ValueError(f"selection row hash drifted for {spec['key']}")
         return row
     if source.suffix == ".json":
-        return json.loads(source.read_text(encoding="utf-8"))
+        row = json.loads(source.read_text(encoding="utf-8"))
+        expected = spec.get("selection_payload_sha256")
+        if not expected:
+            raise ValueError(
+                f"JSON selection source has no canonical payload hash for {spec['key']}"
+            )
+        if _selection_payload_sha256(row) != expected:
+            raise ValueError(f"selection payload hash drifted for {spec['key']}")
+        return row
     raise ValueError(f"unsupported selection source {source_name!r}")
 
 
@@ -606,7 +627,7 @@ def build_system_record(
             "sha256": _generator_domain_sha256(selected),
             "source": spec.get("selection_source"),
             "source_row_sha256": spec.get("selection_row_sha256"),
-            "source_file_sha256": spec.get("selection_file_sha256"),
+            "source_payload_sha256": spec.get("selection_payload_sha256"),
             # A system whose labels come from a frozen record cites the record;
             # one whose labels come from running the growth rule to its own
             # stopping threshold cites the rule, and a test re-derives it. Both
