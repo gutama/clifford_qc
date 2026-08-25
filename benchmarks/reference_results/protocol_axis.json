@@ -363,8 +363,8 @@
       "stim": "1.16.0"
     },
     "environment_sha256": "6cd504632dc3eeccee6cf7eddf06972acd077730e5cb4288bf114fe00d4397b0",
-    "git_dirty": true,
-    "git_sha": "b30e8fa899efd72bc2f16e14cd55736354eb7524",
+    "git_dirty": false,
+    "git_sha": "638fabea573c875af3c6893c99eb954da4f34b2b",
     "platform": {
       "hostname": "vm",
       "machine": "x86_64",
@@ -374,7 +374,7 @@
     },
     "python": "3.12.3",
     "schema": "clifford_qc.execution_provenance.v1",
-    "utc": "2026-08-25T08:37:28.435968+00:00"
+    "utc": "2026-08-25T08:43:54.120323+00:00"
   },
   "schema": "clifford_qc.protocol_axis.v1",
   "systems": [
