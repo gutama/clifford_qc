@@ -204,6 +204,32 @@ def test_gate_tolerates_the_cross_blas_drift_that_failed_ci(
     assert _gate_with(monkeypatch, fresh) == 0
 
 
+def test_gate_accepts_measured_millihartree_cross_machine_drift(
+        monkeypatch, committed_record):
+    """The shared floor covers the drift observed by the records matrix."""
+    fresh = copy.deepcopy(committed_record)
+    row = _row(fresh, "Krylov")
+    row["ground_energy"] += 1.2e-14
+    row["error_hartree"] += 1.2e-14
+    row["error_millihartree"] += 1.2e-11
+    assert _gate_with(monkeypatch, fresh) == 0
+
+
+def test_gate_keeps_fixed_float_contracts_exact(monkeypatch, committed_record):
+    """The cross-machine floor must not loosen declared algorithm settings."""
+    changed = copy.deepcopy(committed_record)
+    changed["chemical_accuracy_hartree"] += 5e-10
+    assert _gate_with(monkeypatch, changed) == 1
+
+    changed = copy.deepcopy(committed_record)
+    _row(changed, "ADAPT-GCIM (4 iter., M=8)")["overlap_threshold"] = 0.0
+    assert _gate_with(monkeypatch, changed) == 1
+
+    changed = copy.deepcopy(committed_record)
+    _row(changed, "ADAPT-GCIM (4 iter., M=8)")["theta"] += 5e-10
+    assert _gate_with(monkeypatch, changed) == 1
+
+
 def test_gate_scales_condition_tolerance_to_the_condition_number(
         monkeypatch, committed_record):
     """kappa is only accurate to kappa*eps, and the gate asks for exactly that.
