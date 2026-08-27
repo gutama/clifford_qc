@@ -10,7 +10,7 @@ permissions:
   contents: read
 
 concurrency:
-  group: ${{ github.workflow }}-${{ github.ref }}-${{ github.sha }}
+  group: ${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
 
 # Every record here is a float compared against a committed float, and threaded
@@ -66,7 +66,7 @@ jobs:
     # cost is paid once per merge, rather than on every push to a pull request
     # where a rebase would repeat the same computation for the same answer. To
     # gate a branch before merging, dispatch the workflow against it.
-    if: github.event_name != 'pull_request' || github.head_ref == 'claude/next-priorities-tjeqlh'
+    if: github.event_name != 'pull_request'
     name: ${{ matrix.gate }}
     runs-on: ubuntu-latest
     # Per gate rather than one blanket ceiling. The old single 120-minute value
