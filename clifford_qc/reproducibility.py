@@ -111,6 +111,7 @@ def compare_json_records(
         rtol: float = 1e-11,
         ignored_keys: frozenset[str] = frozenset({"provenance"}),
         key_tolerances: Mapping[str, tuple[float, float]] | None = None,
+        path_tolerances: Mapping[str, tuple[float, float]] | None = None,
 ) -> list[str]:
     """Compare JSON-like values with exact discrete and tolerant float fields.
 
@@ -125,11 +126,20 @@ def compare_json_records(
     the arithmetic that produced it can honour.  Such a field needs an absolute
     tolerance set by the energies it came from, not by the residue.  Naming the
     field explicitly keeps every other float on the tight default.
+
+    ``path_tolerances`` maps a complete comparison path to its own
+    ``(rtol, atol)`` and takes precedence over ``key_tolerances``. It is
+    for mixed records in which regenerated numerical outputs need a
+    cross-machine floor while fixed numerical contracts with the same terminal
+    key must remain exact.
     """
     problems: list[str] = []
     overrides = dict(key_tolerances or {})
+    path_overrides = dict(path_tolerances or {})
 
     def tolerances(here: str) -> tuple[float, float]:
+        if here in path_overrides:
+            return path_overrides[here]
         key = here.rsplit(".", 1)[-1]
         return overrides.get(key, (rtol, atol))
 
@@ -257,6 +267,40 @@ def sampling_stream_mismatch(
     return problems
 
 
+# The floor a committed-record comparison actually has to clear.
+#
+# These records reproduce bit for bit on one machine. Rebuilding
+# ``finite_shot_rethink.json`` and diffing every compared field against the
+# committed one drifts by exactly zero, at ``OMP_NUM_THREADS`` 1 and 4 alike.
+# So the standing position in these checkers -- that widening is the wrong
+# response because nothing here is noisy in the run-to-run sense -- is correct,
+# and this constant does not contradict it.
+#
+# What it adds is that run-to-run determinism is not machine-to-machine
+# determinism, and a CI gate rebuilding a record committed from a different
+# machine is making the second comparison rather than the first. OpenBLAS
+# selects kernels by instruction set as well as by thread count, so a differing
+# runner sums a reduction in a different order. Measured on ``main`` across five
+# merges, the surviving drift is 3.4e-12 to 1.0e-11 absolute and up to 9.8e-11
+# relative, on millihartree quantities of order 0.07 to 2.6. A gate set at
+# 1e-12 therefore sits inside its own noise floor and resolves on which runner
+# it drew, which is what made three of them red for five merges and one of them
+# flip red to green on unchanged inputs.
+#
+# 1e-9 clears the worst observed drift by an order of magnitude. On the
+# measured 0.07--2.6 mHa energy-difference fields it still rejects a 1e-8 mHa
+# change. That statement is deliberately local, not a blanket guarantee:
+# math.isclose's relative leg scales with large-valued fields. Fixed numerical
+# contracts therefore use exact key/path overrides at the checker call sites.
+#
+# It is for committed-versus-rebuilt comparisons only. A record re-derived
+# against its own contents in one process crosses no machine boundary and stays
+# exact -- ``check_protocol_cost``'s verdict re-derivation and
+# ``check_mapping_axis``'s QR3 summary both keep their tight comparison.
+CROSS_MACHINE_ATOL = 1e-9
+CROSS_MACHINE_RTOL = 1e-9
+
+
 def guarded_contract_problems(inner):
     """Wrap a contract function so a malformed record is reported, not raised.
 
@@ -284,6 +328,7 @@ def guarded_contract_problems(inner):
     return guarded
 
 
-__all__ = ["compare_json_records", "execution_provenance",
+__all__ = ["CROSS_MACHINE_ATOL", "CROSS_MACHINE_RTOL",
+           "compare_json_records", "execution_provenance",
            "guarded_contract_problems", "sampling_stream_mismatch",
            "stamp_record"]

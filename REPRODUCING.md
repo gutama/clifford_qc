@@ -313,8 +313,8 @@ wall-clock profiles are machine-dependent diagnostics, not scientific records.
 hand-written pin:
 
 ```bash
-python benchmarks/check_record_environment.py --python       # -> 3.11
-python benchmarks/check_record_environment.py --constraints  # -> numpy==2.4.6, ...
+python benchmarks/check_record_environment.py --python       # -> 3.12
+python benchmarks/check_record_environment.py --constraints  # -> numpy==2.5.2, ...
 python benchmarks/check_record_environment.py                # check this machine
 ```
 
@@ -346,6 +346,108 @@ They run in a matrix with `fail-fast` disabled, because the set of failures is
 the diagnosis; the short gates in `test` run past each other's failures for the
 same reason. To gate a branch on them before merging rather than after, dispatch
 the workflow against that branch from the Actions tab.
+
+### The python 3.12 / numpy 2.5.2 / scipy 1.18.0 migration
+
+Every stamped record was rebuilt on this stack, which is why
+`check_record_environment.py --constraints` now emits it. SciPy 1.18.0 is the
+accepted target for this migration; moving to 1.18.1 is intentionally out of
+scope. No pin was written by hand: the pins are read out of the records, so
+migrating the stack *is* regenerating the evidence, and the constraint file
+follows.
+
+What moved is worth stating precisely, because the two halves behave
+differently and a reader comparing figures across this boundary needs to know
+which half they are looking at.
+
+**Nothing this project publishes moved.** All thirty `k*` regions in
+`protocol_cost.json` are identical and none moved. All sixteen confirmed
+shot-to-target crossings in `exact_shot_search.json` are identical — every
+`confirmed_passing_effective_shots_per_setting`, every `confirmed_failing`,
+every environment-marginal flag. Every resource count is identical: `W`,
+setting counts on all twenty-five mapping-axis arms, group counts, basis sizes,
+retained selections. Both negative verdicts stand — QR3 still abstains at the
+exact tier, and the LiH candidate is still
+`rejected_unresolved_at_frozen_grid`. The two `clifford_hierarchy_*.json`
+records preserve their scientific payload but carry regenerated provenance;
+`protocol_axis.json` preserves its discrete decisions and resource counts while
+small floating diagnostics move in the last bits. None of those three files is
+byte-identical.
+
+**The replica statistics underneath them did move.**
+`numpy.random.Generator` carries no cross-version bit-stream guarantee (NEP 19
+froze `RandomState` for exactly this purpose), so the draws differ, a few
+replicas out of two hundred land on a different selected rank, and the
+aggregates follow. In `exact_shot_search.json` that is 489 floats and nine
+`below_exact_count` integers, moving the millihartree statistics by roughly one
+to three percent. In `finite_shot_rethink.json` it is eleven integers and 103
+floats, including a 423 mHa move in the `pooled_ridge` arm — an arm that record
+exists to characterise as a catastrophic failure mode, so the size of that move
+is a property of the arm and not of the migration. The QR3b preflight moved one
+cell from resolved to unresolved, 19 to 18, which reinforces its rejection
+rather than threatening it.
+
+So: **a bias, an RMSE or a percentile read from a pre-migration record is not
+comparable with the same field read after it. A crossing, a `k*`, a setting
+count or a verdict is.** The distributional statistics describe a different
+draw; the decisions taken on them are the same decisions.
+
+The exact-arithmetic records confirm the split from the other side. No integer
+moved in any of them, and the largest float movements are last-bit: 8.0e-15 Ha
+(8.0e-12 mHa) on `matched_h4`'s `error_hartree` and 7.0e-6 microseconds on a
+`fixed_shot_time_us` of 1.0e9. Those two are the reason
+`CROSS_MACHINE_ATOL`/`_RTOL` needs both legs — the first clears only on the
+absolute one, the second only on the relative one, and they are seventeen
+orders of magnitude apart.
+
+One dependency the migration exposed is now fixed. For BeH2,
+`configs/mapping_axis.json` pins `selection_payload_sha256`, the digest of a
+canonical selection payload containing the record schema, system, selected
+labels, selected ground energy, and bank provenance. Regenerated top-level
+provenance therefore does not invalidate an unchanged bank, while a changed
+selection does. The `h4` row continues to hash its selected ladder row.
+
+### What a record gate can and cannot reproduce
+
+The gates compare a committed record against one rebuilt on the spot, and those
+two numbers come from different machines. That distinction is the whole of the
+tolerance story, and it was worth measuring rather than assuming.
+
+*Within one machine these records are bit-exact.* Rebuilding
+`finite_shot_rethink.json` and diffing every compared field against the
+committed one gives a worst drift of exactly `0.0` — no differing field at all
+— and it stays `0.0` at `OMP_NUM_THREADS=1` and `=4` alike. So the position
+these checkers have always taken, that widening is the wrong response because
+nothing here is noisy in the run-to-run sense, is correct and is not being
+retreated from.
+
+*Across machines they are not.* On `main`, the same gates drift by `3.4e-12` to
+`1.0e-11` absolute and up to `9.8e-11` relative, on millihartree quantities of
+order `0.07` to `2.6`. OpenBLAS selects its kernels by instruction set as well
+as by thread count, so a runner with a different CPU sums a reduction in a
+different order. Part of that is closable and now is: `ci.yml` pins
+`OMP_NUM_THREADS=1`, because the same `eigvalsh` call returns four distinct
+last bits across thread counts 1–4 — deterministically within each, spread
+`4.5e-15`, and only on the 256-dimension arms, since the 64-dimension `+2q`
+arms sit below the threading threshold. The instruction-set half is not
+closable from a workflow.
+
+So a committed-versus-rebuilt comparison is a cross-machine comparison, and
+`clifford_qc.reproducibility.CROSS_MACHINE_ATOL` / `_RTOL` is the floor it has
+to clear: `1e-9`, an order above the worst observed drift. On the measured
+energy-difference fields of order `0.07` to `2.6` mHa, a change of `1e-8` mHa
+still fails the gate and the floor remains nine orders below the 1.6 mHa target.
+Fixed numerical contracts do not inherit that blanket allowance: their checkers
+use exact path or key overrides, including the finite-shot overlap threshold and
+the QR3b invariant tolerances. Before this floor existed the cross-machine
+comparisons ran at `1e-12` — inside their own noise — which is why three gates
+were red on `main` across five merges and why `check_exact_shot_search` once
+went red and then green on inputs that had provably not changed.
+
+Re-derivations keep the tight comparison, because they cross no machine
+boundary: `check_protocol_cost.py` recomputes its verdicts from the record's
+own contents at `atol=0.0`, and `check_mapping_axis.py` recomputes the QR3
+summary at `1e-12`. Both run in the process that holds the record.
 
 `check_summaries.py` is deliberately not a gate yet: five `*_summary` pairs
 declared by configs have no committed JSONL, so it fails on `main` today for

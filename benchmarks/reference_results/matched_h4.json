@@ -39,22 +39,22 @@
         "blas": {
           "detection method": "pkgconfig",
           "found": true,
-          "include directory": "/opt/_internal/cpython-3.11.14/lib/python3.11/site-packages/scipy_openblas64/include",
-          "lib directory": "/opt/_internal/cpython-3.11.14/lib/python3.11/site-packages/scipy_openblas64/lib",
+          "include directory": "/opt/_internal/cpython-3.12.13/lib/python3.12/site-packages/scipy_openblas64/include",
+          "lib directory": "/opt/_internal/cpython-3.12.13/lib/python3.12/site-packages/scipy_openblas64/lib",
           "name": "scipy-openblas",
-          "openblas configuration": "OpenBLAS 0.3.31.188.0  USE64BITINT DYNAMIC_ARCH NO_AFFINITY Haswell MAX_THREADS=64",
+          "openblas configuration": "OpenBLAS 0.3.34.0.0  USE64BITINT DYNAMIC_ARCH NO_AFFINITY Haswell MAX_THREADS=64",
           "pc file directory": "/project/.openblas",
-          "version": "0.3.31.188.0"
+          "version": "0.3.34.0.0"
         },
         "lapack": {
           "detection method": "pkgconfig",
           "found": true,
-          "include directory": "/opt/_internal/cpython-3.11.14/lib/python3.11/site-packages/scipy_openblas64/include",
-          "lib directory": "/opt/_internal/cpython-3.11.14/lib/python3.11/site-packages/scipy_openblas64/lib",
+          "include directory": "/opt/_internal/cpython-3.12.13/lib/python3.12/site-packages/scipy_openblas64/include",
+          "lib directory": "/opt/_internal/cpython-3.12.13/lib/python3.12/site-packages/scipy_openblas64/lib",
           "name": "scipy-openblas",
-          "openblas configuration": "OpenBLAS 0.3.31.188.0  USE64BITINT DYNAMIC_ARCH NO_AFFINITY Haswell MAX_THREADS=64",
+          "openblas configuration": "OpenBLAS 0.3.34.0.0  USE64BITINT DYNAMIC_ARCH NO_AFFINITY Haswell MAX_THREADS=64",
           "pc file directory": "/project/.openblas",
-          "version": "0.3.31.188.0"
+          "version": "0.3.34.0.0"
         }
       },
       "Compilers": {
@@ -74,7 +74,7 @@
           "commands": "cython",
           "linker": "cython",
           "name": "cython",
-          "version": "3.2.4"
+          "version": "3.2.9"
         }
       },
       "Machine Information": {
@@ -92,8 +92,8 @@
         }
       },
       "Python Information": {
-        "path": "/tmp/build-env-gjolnpt6/bin/python",
-        "version": "3.11"
+        "path": "/tmp/build-env-jmn5a0j4/bin/python",
+        "version": "3.12"
       },
       "SIMD Extensions": {
         "baseline": [
@@ -101,9 +101,7 @@
         ],
         "found": [
           "X86_V3",
-          "X86_V4"
-        ],
-        "not found": [
+          "X86_V4",
           "AVX512_ICL",
           "AVX512_SPR"
         ]
@@ -111,26 +109,26 @@
     },
     "clifford_qc": "0.3.0",
     "dependencies": {
-      "numpy": "2.4.6",
+      "numpy": "2.5.2",
       "openfermion": null,
       "openfermionpyscf": null,
       "pyscf": null,
-      "scipy": "1.17.1",
-      "stim": null
+      "scipy": "1.18.0",
+      "stim": "1.16.0"
     },
-    "environment_sha256": "48a7633d32e3d2d83cba0c7d2da36b48d92d03b47f7f9af03ce61bd5ca70c272",
-    "git_dirty": true,
-    "git_sha": "2264c129d2a833a9e53b0221edf000aa47f10142",
+    "environment_sha256": "6cd504632dc3eeccee6cf7eddf06972acd077730e5cb4288bf114fe00d4397b0",
+    "git_dirty": false,
+    "git_sha": "71548f201cc193a1e2a96b546b2138bc6646ad72",
     "platform": {
       "hostname": "vm",
       "machine": "x86_64",
       "processor": "x86_64",
-      "release": "6.18.5-fc-v20",
+      "release": "6.18.44-fc-v21",
       "system": "Linux"
     },
-    "python": "3.11.15",
+    "python": "3.12.3",
     "schema": "clifford_qc.execution_provenance.v1",
-    "utc": "2026-08-09T11:51:51.504302+00:00"
+    "utc": "2026-08-25T08:30:12.420449+00:00"
   },
   "reference_energy": -2.180316614323859,
   "rows": [
@@ -175,11 +173,11 @@
       "chemical_accuracy": true,
       "condition_number": 65664634699.02181,
       "effective_rank": 9,
-      "error_hartree": 1.0495885049977005e-08,
-      "error_millihartree": 1.0495885049977005e-05,
+      "error_hartree": 1.0495893043582782e-08,
+      "error_millihartree": 1.0495893043582782e-05,
       "final_qwc_groups": null,
       "final_words": null,
-      "ground_energy": -2.1803166038279738,
+      "ground_energy": -2.1803166038279658,
       "labels": [
         "I",
         "H^1",
@@ -245,11 +243,11 @@
       "condition_cap": null,
       "condition_number": 32.87814347545524,
       "effective_rank": 6,
-      "error_hartree": 0.013364382708263456,
-      "error_millihartree": 13.364382708263456,
+      "error_hartree": 0.0133643827082639,
+      "error_millihartree": 13.3643827082639,
       "final_qwc_groups": null,
       "final_words": null,
-      "ground_energy": -2.1669522316155954,
+      "ground_energy": -2.166952231615595,
       "hamiltonian_matrix_pairs": 36,
       "iterations": 4,
       "labels": [
@@ -359,7 +357,7 @@
           "condition_number": 39.90935530390824,
           "effective_rank": 5,
           "gradient": -0.28486157392853473,
-          "ground_energy": -2.157742804401219,
+          "ground_energy": -2.1577428044012184,
           "iteration": 3,
           "selected_index": 11,
           "selected_label": "E(6,7<-0,1)"
@@ -380,7 +378,7 @@
           "condition_number": 32.87814347545524,
           "effective_rank": 6,
           "gradient": 0.7155996288137232,
-          "ground_energy": -2.1669522316155954,
+          "ground_energy": -2.166952231615595,
           "iteration": 4,
           "selected_index": 19,
           "selected_label": "E(5,6<-1,2)"
@@ -427,7 +425,7 @@
       "overlap_offdiagonal_pairs": 120,
       "overlap_threshold": 1e-13,
       "pool": "determinant excitations",
-      "sector_weight": 1.0,
+      "sector_weight": 1.0000000000000002,
       "selected_labels": [
         "E(4,5<-2,3)",
         "E(4,7<-0,3)",
@@ -550,7 +548,7 @@
           "condition_number": 39.90935530390824,
           "effective_rank": 5,
           "gradient": -0.28486157392853473,
-          "ground_energy": -2.157742804401219,
+          "ground_energy": -2.1577428044012184,
           "iteration": 3,
           "selected_index": 11,
           "selected_label": "E(6,7<-0,1)"
@@ -571,7 +569,7 @@
           "condition_number": 32.87814347545524,
           "effective_rank": 6,
           "gradient": 0.7155996288137232,
-          "ground_energy": -2.1669522316155954,
+          "ground_energy": -2.166952231615595,
           "iteration": 4,
           "selected_index": 19,
           "selected_label": "E(5,6<-1,2)"
@@ -594,7 +592,7 @@
           "condition_number": 47.98597615924259,
           "effective_rank": 8,
           "gradient": -0.08473701810803518,
-          "ground_energy": -2.169381233558081,
+          "ground_energy": -2.1693812335580804,
           "iteration": 5,
           "selected_index": 18,
           "selected_label": "E(4,7<-1,2)"
@@ -646,7 +644,7 @@
           "condition_number": 86.14057023583406,
           "effective_rank": 10,
           "gradient": 0.027496977585203076,
-          "ground_energy": -2.1695300725009528,
+          "ground_energy": -2.1695300725009536,
           "iteration": 7,
           "selected_index": 0,
           "selected_label": "E(4<-0)"
@@ -942,7 +940,7 @@
         "state_evaluation_contexts": 17
       },
       "sector_certificate": null,
-      "sector_weight": 0.9998820842064666,
+      "sector_weight": 0.9998820842064668,
       "selection_evaluations": 499,
       "selection_qwc_group_evaluations": 2589,
       "selection_qwc_groups": 1685,

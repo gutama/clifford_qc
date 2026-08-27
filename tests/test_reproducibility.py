@@ -63,6 +63,32 @@ def test_key_tolerances_default_leaves_comparison_unchanged():
                                 key_tolerances={"z": (1.0, 1.0)})
 
 
+def test_path_tolerances_keep_one_fixed_float_exact():
+    expected = {
+        "arms": {
+            "fixed": {"median_overlap_threshold": 1e-10},
+            "calibrated": {"median_overlap_threshold": 0.07},
+        }
+    }
+    actual = {
+        "arms": {
+            "fixed": {"median_overlap_threshold": 0.0},
+            "calibrated": {"median_overlap_threshold": 0.0700000005},
+        }
+    }
+    problems = compare_json_records(
+        expected,
+        actual,
+        atol=1e-9,
+        rtol=1e-9,
+        path_tolerances={
+            "$.arms.fixed.median_overlap_threshold": (0.0, 0.0),
+        },
+    )
+    assert len(problems) == 1
+    assert "arms.fixed.median_overlap_threshold" in problems[0]
+
+
 def test_sampling_stream_mismatch_names_the_environment_not_the_arithmetic():
     import importlib.metadata
     installed = importlib.metadata.version("numpy")

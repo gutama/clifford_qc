@@ -14,15 +14,18 @@ cap that produced it leaves the BeH2 bank untouched, so BeH2's existing prices
 still describe the bank they were measured on.
 """
 
+import copy
 import json
 
 import pytest
+from pathlib import Path
 
 from benchmarks.run_clifford_hierarchy import ACCURACY_TARGET_MILLIHARTREE
 from benchmarks.run_mapping_axis import (
     _build_model,
     _raw_pool,
     _selected_generators,
+    _selection_payload_sha256,
     load_config,
 )
 from clifford_qc.backends import ExactMVBackend, SectorStatevectorBackend
@@ -127,6 +130,25 @@ def test_lifting_the_budget_leaves_the_beh2_bank_untouched():
 def test_every_declared_system_cites_a_selection_source_or_a_rule():
     for spec in load_config()["systems"]:
         assert spec.get("selection_source") or spec.get("selection_rule"), spec["key"]
+
+
+def test_beh2_selection_digest_excludes_volatile_provenance():
+    spec = _spec("beh2")
+    source = json.loads(
+        (Path(__file__).resolve().parents[1] / spec["selection_source"]).read_text(
+            encoding="utf-8"
+        )
+    )
+    digest = _selection_payload_sha256(source)
+    assert digest == spec["selection_payload_sha256"]
+
+    provenance_only = copy.deepcopy(source)
+    provenance_only.setdefault("provenance", {})["utc"] = "later"
+    assert _selection_payload_sha256(provenance_only) == digest
+
+    changed_selection = copy.deepcopy(source)
+    changed_selection["basis_labels"][1] = "different generator"
+    assert _selection_payload_sha256(changed_selection) != digest
 
 
 def test_the_protocol_axis_grid_prices_the_systems_the_mapping_axis_declares():

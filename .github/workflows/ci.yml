@@ -13,6 +13,20 @@ concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
 
+# Every record here is a float compared against a committed float, and threaded
+# BLAS reductions sum in an order that depends on the thread count: the same
+# `eigvalsh` call returns four different last bits across OMP_NUM_THREADS 1..4,
+# deterministically within each. Pinning one thread removes that degree of
+# freedom from every job at once. It does not make the records portable across
+# CPU microarchitectures -- OpenBLAS also picks kernels by instruction set, and
+# `REPRODUCING.md` records the floor that leaves -- but it is the one source a
+# workflow can close, and it costs nothing here: the eigensolves are on small
+# projected pencils, and the expensive gates are shot-sampling bound.
+env:
+  OMP_NUM_THREADS: "1"
+  OPENBLAS_NUM_THREADS: "1"
+  MKL_NUM_THREADS: "1"
+
 jobs:
   test:
     name: tests, lint, and the short record gates
@@ -25,9 +39,9 @@ jobs:
       - run: ruff check clifford_qc tests benchmarks
       - run: python -m pytest --hypothesis-profile=ci
 
-      # Record gates that finish in about a minute.  Each one runs even after an
-      # earlier failure: a drift suite that stops at the first mismatch reports
-      # one symptom of what is usually a shared cause.
+      # One step per gate so the Actions view names the failure, and each runs
+      # even after an earlier one fails: a drift suite that stops at the first
+      # mismatch reports one symptom of what is usually a shared cause.
       - name: documentation drift
         if: ${{ !cancelled() }}
         run: python benchmarks/check_docs.py
@@ -48,33 +62,38 @@ jobs:
         run: python benchmarks/check_warm_start.py
 
   records:
-    # The remaining gates rebuild their records from scratch and take minutes
-    # each.  They gate main, where the cost is paid once per merge, rather than
-    # every push to a pull request, where a rebase would repeat the same
-    # computation for the same answer.  Run them on a branch before merging with
-    # the workflow's "Run workflow" button, which dispatches against any ref.
+    # Gates that rebuild their record from scratch. They run on main, where the
+    # cost is paid once per merge, rather than on every push to a pull request
+    # where a rebase would repeat the same computation for the same answer. To
+    # gate a branch before merging, dispatch the workflow against it.
     if: github.event_name != 'pull_request'
     name: ${{ matrix.gate }}
     runs-on: ubuntu-latest
-    # Sized for the slowest gate rather than the average one.  The two
-    # exact-tier shot searches dominate. The frozen R1/R3 records redraw 130
-    # replicas across the nested 64..65536 endpoint grid; the independently
-    # labelled QR3b candidate preflight is smaller at 2+2 replicas but must
-    # still rebuild every (mapping, k) cell from its committed FCIDUMP.
-    timeout-minutes: 120
+    # Per gate rather than one blanket ceiling. The old single 120-minute value
+    # was three orders too generous for the cheap gates -- a hung two-minute
+    # rebuild burned two hours before reporting -- and only ten minutes clear of
+    # check_protocol_cost, which measured 1h50m on main.
+    timeout-minutes: ${{ matrix.timeout }}
     strategy:
       # One red gate must not cancel the others; the set of failures is the
       # diagnosis.
       fail-fast: false
       matrix:
-        gate:
-          - check_finite_shot_rethink
-          - check_mapping_axis
-          - check_protocol_axis
-          - check_protocol_cost
-          - check_matched_h4
-          - check_exact_shot_search
-          - check_qr3b_instance_preflight
+        include:
+          - gate: check_mapping_axis
+            timeout: 20
+          - gate: check_protocol_axis
+            timeout: 20
+          - gate: check_finite_shot_rethink
+            timeout: 20
+          - gate: check_matched_h4
+            timeout: 30
+          - gate: check_qr3b_instance_preflight
+            timeout: 90
+          - gate: check_exact_shot_search
+            timeout: 120
+          - gate: check_protocol_cost
+            timeout: 210
     steps:
       - uses: actions/checkout@v4
       - uses: ./.github/actions/record-environment

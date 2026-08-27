@@ -27,15 +27,24 @@ import math
 import sys
 from pathlib import Path
 
-from clifford_qc.reproducibility import compare_json_records
+from clifford_qc.reproducibility import (
+    CROSS_MACHINE_ATOL,
+    CROSS_MACHINE_RTOL,
+    compare_json_records,
+)
 
 from run_matched_h4 import build_record
 
 HERE = Path(__file__).resolve().parent
 RECORD = HERE / "reference_results" / "matched_h4.json"
-ATOL = 1e-11
-RTOL = 1e-11
+ATOL = CROSS_MACHINE_ATOL
+RTOL = CROSS_MACHINE_RTOL
 MAX_REPORTED_PROBLEMS = 20
+EXACT_CONTRACT_KEYS = frozenset({
+    "chemical_accuracy_hartree",
+    "overlap_threshold",
+    "theta",
+})
 # A computed condition number carries relative error of order kappa*eps: it is
 # the ratio of extreme singular values, and the smallest of them is what the
 # conditioning is large *because of*. The Krylov arm's kappa_S is 6.6e10, so
@@ -102,6 +111,9 @@ def main() -> int:
         RECORD.name,
         atol=ATOL,
         rtol=RTOL,
+        key_tolerances={
+            key: (0.0, 0.0) for key in EXACT_CONTRACT_KEYS
+        },
     )
     for problem in problems[:MAX_REPORTED_PROBLEMS]:
         print(f"FAIL {problem}")
