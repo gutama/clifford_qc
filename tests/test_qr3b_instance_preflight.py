@@ -104,6 +104,13 @@ def test_committed_record_contains_no_cost_or_qr3b_verdict_derivatives():
     assert contract_problems(record) == []
 
 
+def test_committed_mapping_preflight_uses_canonical_selection_metadata_key():
+    record = json.loads(REFERENCE.read_text(encoding="utf-8"))
+    selected = record["mapping_preflight"]["selected_domain"]
+    assert "source_payload_sha256" in selected
+    assert "source_file_sha256" not in selected
+
+
 def test_custom_bootstrap_root_is_used_by_endpoint_summaries(monkeypatch):
     import benchmarks.run_exact_shot_search as search
 
