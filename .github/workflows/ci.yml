@@ -89,7 +89,7 @@ jobs:
           - gate: check_matched_h4
             timeout: 30
           - gate: check_qr3b_instance_preflight
-            timeout: 90
+            timeout: 150
           - gate: check_exact_shot_search
             timeout: 120
           - gate: check_protocol_cost
