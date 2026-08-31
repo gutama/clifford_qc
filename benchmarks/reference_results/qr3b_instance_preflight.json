@@ -1253,7 +1253,7 @@
       "sha256": "836360b00febe0333412c26449eceab06f40c5c6f536e5437bba59306ef118a5",
       "size": 13,
       "source": null,
-      "source_file_sha256": null,
+      "source_payload_sha256": null,
       "source_row_sha256": null
     },
     "spin_ordering": "interleaved",
