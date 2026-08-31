@@ -99,7 +99,7 @@ jobs:
       - uses: ./.github/actions/record-environment
       - run: python benchmarks/${{ matrix.gate }}.py
 
-qr3b_rerun:
+  qr3b_rerun:
     if: github.event_name == 'pull_request'
     name: check_qr3b_instance_preflight (150-minute rerun)
     runs-on: ubuntu-latest
