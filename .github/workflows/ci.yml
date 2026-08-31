@@ -1,9 +1,14 @@
 name: CI
 
+# TEMPORARILY DEACTIVATED. The automatic triggers below are commented out so
+# no run starts on a push to main or on a pull request; `workflow_dispatch`
+# stays live, so the same jobs can still be started by hand from the Actions
+# tab against any branch. To reactivate, delete the three comment markers on
+# the `push`/`branches`/`pull_request` lines and this note.
 on:
-  push:
-    branches: [main]
-  pull_request:
+  # push:
+  #   branches: [main]
+  # pull_request:
   workflow_dispatch:
 
 permissions:
