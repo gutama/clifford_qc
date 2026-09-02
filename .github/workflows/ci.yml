@@ -89,9 +89,11 @@ jobs:
             timeout: 20
           - gate: check_protocol_axis
             timeout: 20
-          # Structural and by far the cheapest rebuild here: no sampling at
-          # all, ~20s locally. Ten minutes is headroom, not an estimate.
+          # Structural and by far the cheapest rebuilds here: no sampling at
+          # all, ~20s and ~1.3s locally. Ten minutes is headroom, not an estimate.
           - gate: check_priceability_screen
+            timeout: 10
+          - gate: check_r3b_preregistration
             timeout: 10
           - gate: check_finite_shot_rethink
             timeout: 20

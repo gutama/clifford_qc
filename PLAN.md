@@ -116,7 +116,7 @@ Status at a glance:
 | R3 | protocol axis and accuracy-matched cost regions | **done**; the structural and exact-tier records ship, while QR3 abstains because H4-converged is right-censored at the frozen endpoint ceiling — R3S below is the route to a second priced instance that does not widen the grid |
 | QR3b | chemically independent LiH exact-tier extension preflight | **done, negative scope decision** *for the intrinsic-stop bank* (`M = 13`, `W = 7740`); the bias gate passes, but 21/40 cells are unresolved and 9 more resolve only at the frozen ceiling, so no full run is authorized on that bank. The screened `M = 2` bank is a separate candidate — R3b |
 | R3S | priceability screen — which candidates a declared screen admits for a probe | **done, positive**; under a stopping rule that reserves the accuracy target for shot noise, LiH is admissible at a two-generator prefix (`W = 1439` against BeH₂'s `1814`), so QR3b rejected the greedy's stopping point rather than the instance |
-| R3b | LiH `margin_stop` probe — the QR3b 2+2 preflight re-run on the bank R3S admitted | **next** (§13, step 13b); the preregistration lands as its own commit before any sampling |
+| R3b | LiH `margin_stop` probe — the QR3b 2+2 preflight re-run on the bank R3S admitted | **preregistered, not yet run** (§13, step 13b); the config and its checker are committed, no sampling has happened under them, and the run is the next commit |
 | R4 | contextual-subspace comparator | open |
 
 "Shipped" means the module, its tests, and where applicable its benchmark
@@ -3300,13 +3300,22 @@ not another open accuracy phase.
     priceable. *Gate:* the screen authorizes or withholds a probe and prices
     nothing — `check_priceability_screen.py` fails a record carrying any cost
     field. *Next:* step 13b.
-13b. R3b — the LiH `margin_stop` probe. **Next.** The frozen QR3b 2+2 scoping
+13b. R3b — the LiH `margin_stop` probe. **Preregistered; the run is next.**
+    The preregistration ships (`benchmarks/configs/r3b_margin_stop_probe.json`,
+    `check_r3b_preregistration.py`, `tests/test_r3b_preregistration.py`) and no
+    sampling has happened under it. Its checker re-runs the R3S margin rule over
+    the frozen ordering and requires it to select exactly the declared prefix,
+    then rebuilds the bank through all five arms — so a prefix chosen for
+    cheapness rather than by the accuracy target fails before any shot is spent.
+    The frozen QR3b 2+2 scoping
     probe (`run_qr3b_instance_preflight.py`), re-run on the bank R3S admitted —
     LiH CAS(4e,4o) at `M = 2`, labels `I`, `E(6,7<-2,3)`, bias `0.370` mHa,
     binding `W = 1439` — under the unchanged `SEARCH_ENDPOINTS`, estimators, and
     block sizes. *Preregistration first, as its own commit:* the candidate config
-    (labels, digests, gates, seed roots) lands on `main` before any sampling, so
-    this record can call its rule preregistered where R3S could not. *Gates,
+    (labels, digests, gates, seed roots) landed before any sampling, so this
+    record can call its rule preregistered where R3S could not — the rule itself
+    stays R3S's `declared_here_not_preregistered`, and this is its first
+    preregistered use. *Gates,
     unchanged from QR3b:* every probe cell resolves strictly before `65536`, with
     `16384` the preferred headroom endpoint; the bias gate passes on all five
     arms; the probe is a scope decision and not a cost record, so its output

@@ -337,7 +337,7 @@ Two tiers run:
 | job | when | contents |
 | --- | --- | --- |
 | `test` | pull request, push to `main` | `ruff`, `pytest --hypothesis-profile=ci`, and the record gates that finish in about a minute: `check_docs`, `check_molecular`, `check_krylov_width`, `check_clifford_hierarchy`, `check_finite_shot_optimization`, `check_warm_start` |
-| `records` | push to `main`, manual dispatch | the expensive rebuild gates: `check_finite_shot_rethink`, `check_mapping_axis`, `check_protocol_axis`, `check_protocol_cost`, `check_matched_h4`, `check_exact_shot_search`, `check_qr3b_instance_preflight`, `check_priceability_screen` |
+| `records` | push to `main`, manual dispatch | the expensive rebuild gates: `check_finite_shot_rethink`, `check_mapping_axis`, `check_protocol_axis`, `check_protocol_cost`, `check_matched_h4`, `check_exact_shot_search`, `check_qr3b_instance_preflight`, `check_priceability_screen`, `check_r3b_preregistration` |
 
 The split is by cost, not by importance. The exact-tier nonlinear searches
 dominate and can take from minutes to hours, so running them on every push to a
@@ -1794,6 +1794,65 @@ from BeH₂'s rank-5. So an admission is not a demonstration that a bank will
 resolve, and a rejection is not a demonstration that it cannot. Deciding that is
 what a probe is for, and `check_priceability_screen.py` fails any record that
 grows a cost field.
+
+## R3b margin-stop probe — preregistration
+
+R3S admitted the LiH margin-stop bank; this is the preregistration for the probe
+that tests it, and it is deliberately a separate commit from the run:
+
+```bash
+python benchmarks/check_r3b_preregistration.py
+```
+
+No sampling happens here and none has happened under this config. The commit
+carries `benchmarks/configs/r3b_margin_stop_probe.json` and its checker, nothing
+else, because **preregistration is a property of commit order** (`PLAN.md` §13):
+a rule is preregistered with respect to a result only if the commit declaring it
+precedes the commit reporting that result. R3S could not meet that for its margin
+factor and says so in its own record. This config is that rule's first
+preregistered *use* — the rule is frozen upstream, and here the bank, gates and
+seeds are fixed before any shot is spent.
+
+**What is frozen.** LiH CAS(4e,4o) at `M = 2`, labels `I` and `E(6,7<-2,3)`,
+exact subspace bias `0.3698 mHa`, binding `W = 1439` against BeH₂'s `1814` — the
+one bank this repository has priced inside the grid. QR3b's protocol is inherited
+endpoint for endpoint: the `64…65536` grid, `k ∈ {1,2,4,8}`, both estimators,
+`2+2` replicas, and the scope-decision-not-cost-record contract. Seed roots are
+fresh (`130813000` / `130913000` / `131013000`, the `13` naming execution step
+13b) so the two probes' replica and bootstrap streams cannot alias.
+
+**The one substantive difference from QR3b**, declared rather than silent:
+`selection_must_stop_intrinsically` is `false`. QR3b required the A-CASE greedy's
+own predicted-lowering threshold; this bank comes from the R3S margin rule
+instead, because the intrinsic rule is accuracy-maximizing while the exact-tier
+price is resolution-limited, and on this instance the two conflict — the greedy
+spends four orders of magnitude of bias headroom to buy `5.4×` the word universe.
+The gate carries its reason in `selection_must_stop_intrinsically_basis`.
+
+**What the checker proves, in deterministic double-precision with nothing
+sampled.** The committed FCIDUMP and provenance still hash to the declared
+digests and the provenance still binds the FCIDUMP; the lineage digests still
+bind the R3S record and config and the QR3b config; the declared labels really
+are a prefix of QR3b's frozen ordering, so this is a shorter draw from a decided
+ordering rather than a fresh selection; the protocol is QR3b's field by field
+with non-aliasing seeds; and no result, verdict, or cost field is present — a
+`provenance` *object* would make this a record, though the `provenance` *path*
+it legitimately carries would not.
+
+The load-bearing one is the last: the checker re-runs the R3S margin rule over
+the frozen ordering and requires that it select exactly the declared prefix, then
+rebuilds the bank through all five arms and compares bias, per-arm `W`, per-arm
+settings, and the binding `W` against both the declared values and the R3S
+record. A prefix chosen because it is cheap to measure rather than because the
+accuracy target selects it fails there. `tests/test_r3b_preregistration.py` pins
+that with a hand-picked `M = 3`, which is *more* accurate and still rejected.
+
+**What it does not do.** It authorizes no run — `full_30_plus_100_run_authorized_by_this_config`
+is `false`, as in QR3b. When the probe runs it will be scope-decision evidence
+only: it may accept or reject this bank for a later preregistered `30+100` run,
+and it may not price `C(epsilon)`, answer QR3 or QR3b, or alter any frozen
+censoring decision. A pass buys eligibility; a failure is a result about the
+`2048` ceiling, which would then be recalibrated on two points rather than one.
 
 ## R2b raw-pool fermion-mapping axis
 
