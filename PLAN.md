@@ -113,9 +113,10 @@ Status at a glance:
 | R1 | hardware-aware cost model and pooled-estimator ledger | **done**; asymptotic and exact-oracle nonlinear shot-search tiers are recorded |
 | R2a | shared restriction primitive (`subspace/restriction.py`) | **shipped and consumed by the completed R2b record** |
 | R2b | raw-pool mapping axis | **done, negative QR3 result** — QR2 passes, but mapping spread is not smaller than instance spread on either independent fixed-QWC metric |
-| R3 | protocol axis and accuracy-matched cost regions | **done**; the structural and exact-tier records ship, while QR3 abstains because H4-converged is right-censored at the frozen endpoint ceiling |
-| QR3b | chemically independent LiH exact-tier extension preflight | **done, negative scope decision**; the bias gate passes, but 21/40 cells are unresolved and 9 more resolve only at the frozen ceiling, so no full run is authorized |
+| R3 | protocol axis and accuracy-matched cost regions | **done**; the structural and exact-tier records ship, while QR3 abstains because H4-converged is right-censored at the frozen endpoint ceiling — R3S below is the route to a second priced instance that does not widen the grid |
+| QR3b | chemically independent LiH exact-tier extension preflight | **done, negative scope decision** *for the intrinsic-stop bank* (`M = 13`, `W = 7740`); the bias gate passes, but 21/40 cells are unresolved and 9 more resolve only at the frozen ceiling, so no full run is authorized on that bank. The screened `M = 2` bank is a separate candidate — R3b |
 | R3S | priceability screen — which candidates a declared screen admits for a probe | **done, positive**; under a stopping rule that reserves the accuracy target for shot noise, LiH is admissible at a two-generator prefix (`W = 1439` against BeH₂'s `1814`), so QR3b rejected the greedy's stopping point rather than the instance |
+| R3b | LiH `margin_stop` probe — the QR3b 2+2 preflight re-run on the bank R3S admitted | **next** (§13, step 13b); the preregistration lands as its own commit before any sampling |
 | R4 | contextual-subspace comparator | open |
 
 "Shipped" means the module, its tests, and where applicable its benchmark
@@ -2048,6 +2049,20 @@ second that means "one mechanism did all the work".
 `M` or `W`. A drop in `M` that leaves the accuracy-matched cost flat is exactly the
 reading §6 exists to block — the ladder has already produced one such case (§7).
 
+*Every arm passes the screen before it is sampled.* R3S made the failure mode
+concrete: the exact-tier price is resolution-limited, and the full-QSE baseline
+`C₀` is the widest of the four arms, so it is the one most likely to censor at
+the frozen grid — while `Δ` needs all three ratios finite. So R4a declares, per
+arm and before any shot is spent: the stopping rule (the margin rule R3S froze,
+so that "matched candidate family" means matched *rule*, not matched `M`), the
+`(bias, binding W)` pair from `run_priceability_screen.py`, and the arm's
+admission under the declared ceiling. A censored arm does not report
+`C(ε) = ∞` — that label is reserved for a bias floor above the target — it
+reports `right_censored` with its last confirmed failing endpoint, and `Δ` is
+then recorded as **undetermined**, with `r_CS` and `r_A` given as one-sided
+bounds where the censoring direction allows. That fifth outcome is declared here
+so it cannot later be reclassified as one of the four in the table.
+
 **One primitive serves R2 and R4.** BK/parity change-of-encoding, `Z₂` tapering, and
 contextual-subspace restriction are the same two-step object: a Clifford rotation,
 then fixing a set of commuting stabilizer qubits to `±1`.
@@ -2147,6 +2162,7 @@ tier is a required field of every cost row:
 |---|---|---|---|
 | `exact` (default for R1–R4) | replica RMSE of the nonlinear estimate's absolute error against the rung's exact reference, which §7.3 supplies for every rung but HCl | yes | the accuracy-matched shot search in R1–R4 |
 | `asymptotic` | half-width of the delta-method Ritz interval at declared nominal coverage | yes, uncertified | reported beside the `exact` tier as the estimator's own view |
+| `structural` | no accuracy claim: counts, biases against an exact reference, and synthesis resources in deterministic double-precision arithmetic, nothing sampled | yes | the R3 structural layer (`protocol_axis.json`) and the R3S screen (`priceability_screen.json`); a structural record may authorize or withhold a sampled run and may not price one |
 | `finite_sample` | half-width of a finite-sample Ritz-energy certificate | **no** | nothing, until such a certificate exists |
 
 The default tier is an **oracle** target: it uses the exact answer, which a device run
@@ -2323,6 +2339,17 @@ This is a tunable logical trade, not a preferred block size, and the instance sp
 is the reason: the `k = 2` break-even ratio is `0.084` on H₄ and `1.857` on BeH₂ — 22×
 under an identical logical model, before any device enters. Connectivity, routing,
 device noise, and error mitigation are excluded.
+
+**Two word-universe conventions are in the tree, and they differ by one.**
+`mapping_axis.json` counts the identity word (`word_universe_after`: BeH₂
+full-width `1815`); `protocol_axis.json`, the QR3b probe and the R3S screen do
+not (`1814`). Every gate calibrated on a word count — the `2048` ceiling above
+all — was calibrated in the second convention, and the identity is the one word
+a shot budget never buys, so the second is canonical for gates. A producer that
+compares counts across the two records is off by exactly one on every arm and
+learns nothing from it. Until `mapping_axis` is regenerated under the canonical
+convention, every new consumer states which convention it counts in, as
+`priceability_screen.json` does through `word_universe_convention`.
 
 ### 6.7 `k*`, defined
 
@@ -2550,7 +2577,8 @@ non-adaptive and adaptive arms ran:
 | rung | `n` (JW) | exact reference | frozen artifact | role |
 |---|---:|---|---|---|
 | H₄ `r = 0.9` | 8 | yes | `matched_h4.json`, `clifford_hierarchy_h4.json` | primary; the frozen bank both cost axes reuse |
-| BeH₂ CAS(4e,4o) | 8 | yes | `clifford_hierarchy_beh2.json` | second instance; the 22× break-even spread |
+| BeH₂ CAS(4e,4o) | 8 | yes | `clifford_hierarchy_beh2.json` | second instance; the 22× break-even spread; the one bank priced inside the frozen grid |
+| LiH CAS(4e,4o) | 8 | yes | `qr3b_instance_preflight.json`, `priceability_screen.json` | chemically independent second instance; rejected at its intrinsic stop (`W = 7740`), admissible at `M = 2` (`W = 1439`) under the R3S screen; probe pending (§13, 13b) |
 | H₂O CAS(4e,4o) stretched | 8 | yes | ladder | strong-correlation control |
 | H₂O CAS(8e,6o) | 12 | yes | ladder | size stress for `W` and grouping |
 | Hubbard 2×2 / 2×3 | 8 / 12 | yes | ladder | strongly correlated control, non-molecular weight profile |
@@ -2976,6 +3004,10 @@ A-CASE's.
   abstention now rests on **resolution**, not accuracy, and `protocol_cost.json` says which
   through `cost_layer_scope`. `check_protocol_cost.py` fails any record that upgrades the
   verdict, and equally any record that drops a structural system without deferring it.
+  R3S then showed the resolution barrier is a property of the frozen stopping rule, not
+  of the candidate set: LiH at the margin-rule prefix sits at `W = 1439`, under the one
+  priced bank, so the route to a second priced instance is the step-13b probe rather
+  than a wider grid. QR3 stays abstaining until that probe prices.
 - **QR4 (pooling × protocol).** Does the coverage fraction `f_w` change the `k*` chosen under
   the pooled estimator relative to the single-assignment one? *Falsifier:* identical `k*`
   under both, which retires the concern. **The falsifier fires on the R3 grid**
@@ -3119,6 +3151,14 @@ Track A must not wait for Tracks B or C. Within each track the order is dependen
 between tracks, R1 is cheap and its result can reorder Track B's protocol conclusions, so it
 comes early.
 
+**Immediate order, as of the R3S merge.** (1) Step 13b — the LiH `margin_stop`
+probe, with its preregistration committed first; it is the cheapest action that can
+give the exact tier a second priced instance. (2) Restore the record gates in tiered
+form (end of this section), so the next merge is not the second to land without CI.
+(3) Phase 13, the X-rank invariant — no sampling, and it gates Phase 14. (4) R4a,
+only once 13b has priced, since its baseline arm inherits 13b's resolution risk.
+Paper A's submission stays schedulable at any time and blocks nothing.
+
 **Paper A — the one item outside the tracks.** Its software, data, go/no-go decisions,
 and manuscript are complete (§9.6, §9.6.1) but it is not submitted. Nothing below
 depends on it, and it depends on nothing below, so submission is schedulable at any
@@ -3250,7 +3290,8 @@ not another open accuracy phase.
     factor is labelled `declared_here_not_preregistered` because it arrives with
     its first result; each candidate's `margin_sensitivity` records the range of
     margins over which its verdict is unchanged. The walk's early exit rests on
-    two monotonicities the checker re-derives per candidate rather than assuming: bias non-increasing along the prefix (a Ritz value cannot rise
+    two monotonicities the checker re-derives per candidate rather than
+    assuming: bias non-increasing along the prefix (a Ritz value cannot rise
     as the span grows) and `W` non-decreasing (a longer prefix adds
     matrix-element pairs and removes none). *Result:* LiH is admissible at
     `M = 2`, `W = 1439`, under BeH₂'s `1814`; `h4_converged`, H₂O and Hubbard are
@@ -3258,9 +3299,28 @@ not another open accuracy phase.
     candidates for probe spending rather than establishing which instances are
     priceable. *Gate:* the screen authorizes or withholds a probe and prices
     nothing — `check_priceability_screen.py` fails a record carrying any cost
-    field. *Next:* re-run the frozen 2+2 QR3b probe on the LiH
-    `margin_stop` bank under its own preregistration, which is what would make
-    QR3b answerable without touching `SEARCH_ENDPOINTS`.
+    field. *Next:* step 13b.
+13b. R3b — the LiH `margin_stop` probe. **Next.** The frozen QR3b 2+2 scoping
+    probe (`run_qr3b_instance_preflight.py`), re-run on the bank R3S admitted —
+    LiH CAS(4e,4o) at `M = 2`, labels `I`, `E(6,7<-2,3)`, bias `0.370` mHa,
+    binding `W = 1439` — under the unchanged `SEARCH_ENDPOINTS`, estimators, and
+    block sizes. *Preregistration first, as its own commit:* the candidate config
+    (labels, digests, gates, seed roots) lands on `main` before any sampling, so
+    this record can call its rule preregistered where R3S could not. *Gates,
+    unchanged from QR3b:* every probe cell resolves strictly before `65536`, with
+    `16384` the preferred headroom endpoint; the bias gate passes on all five
+    arms; the probe is a scope decision and not a cost record, so its output
+    strips every `C(ε)`/`k*` derivative and always records
+    `full_run_authorized: false`. *What a pass buys:* a separately preregistered
+    `30+100` run on this bank — the exact tier's second priced instance, which is
+    what makes QR3 and QR3b answerable. *What a failure means:* the screen's
+    ceiling is a proxy this bank falsifies; report it as the screen's first
+    negative and record the unresolved cells' `W`, so the ceiling is recalibrated
+    on two points rather than one. *Sensitivity, from the record:* LiH's admission
+    holds for every margin factor in `[1, 4.33]`, so the probe is not a test of
+    the number `3`. *Cost:* the QR3b gate took 150 CI-minutes at `W = 7740`; at a
+    fifth of the words the same probe should be materially cheaper, and it is not
+    scheduled in CI until the gates are tiered.
 14. R4a — contextual-subspace comparator arms with bias floors. *Gate:* QR5 answered.
 15. R4b — CS-preconditioned A-CASE, built only on a complementary QR5.
 
@@ -3298,6 +3358,32 @@ Each phase ships the project's standard triple: a `run_*.py` producer, a stamped
 `reference_results/*.json` record with an explicit `schema` string, and a `check_*.py` that
 regenerates and compares it — plus its `REPRODUCING.md` entry and its evidence labels.
 
+**Preregistration is a property of the commit history, not of the word.** A gate,
+threshold, margin, or stopping rule is preregistered with respect to a result only
+if the commit that declares it precedes the commit that first reports a result
+under it. R3S could not meet that — its config and its first verdicts entered
+together — and its record carries `margin_factor_status:
+declared_here_not_preregistered`, with the checker refusing an upgrade. That is the
+template: a declared-not-preregistered parameter is labelled as such in the record
+and the docs, ships with a sensitivity range showing whether any verdict turns on
+it, and is frozen from that commit so the *next* use is the preregistered one.
+Producers that consume a preregistration read it from the config that owns it
+rather than redeclaring it, as `candidate_specs()` does.
+
+**The record gates are not currently running.** Every claim above rests on
+`check_*.py` regenerating its record on every merge, and since `529e6da` the
+workflow's `push` and `pull_request` triggers are commented out: the `records`
+matrix runs only on a manual dispatch, and #72 merged with no CI run at all. The
+reason is cost — the seven sampled gates total roughly ten runner-hours per merge —
+and the remedy is tiering, not re-enabling as-is. The structural gates
+(`check_docs`, the unit suite, `check_mapping_axis`, `check_protocol_axis`,
+`check_priceability_screen`) are minutes and belong back on `pull_request`; the
+sampled gates (`check_exact_shot_search`, `check_protocol_cost`,
+`check_qr3b_instance_preflight`, `check_matched_h4`, `check_finite_shot_rethink`)
+belong on a schedule or on dispatch, with the rule that a merge to `main` names the
+dispatch run that covered its head. Until that lands, "verified" in a PR body means
+verified locally, and the body says so.
+
 ---
 
 ## 14. What this plan does not claim
@@ -3325,6 +3411,16 @@ tapering, or idempotent/ideal formulations of quantum mechanics; §11's P-BK,
 P-ENC, P-IDEM, P-GAGATE rows record who does own them and, in two cases, what they
 do *not* establish. Until Phase G1 reports per-filter marginals, the section has
 no quantitative content whatsoever.
+
+**On the priceability screen (R3S).** It is not a price, and it does not establish
+which instances are priceable. Its ceiling is an operational admission threshold
+calibrated on one priced bank, not a demonstrated necessary condition; coefficient
+magnitudes, grouping, estimator variance and pencil conditioning all bear on whether
+a bank resolves, so an admission is not a demonstration that a bank will resolve and
+a rejection is not a demonstration that it cannot. Its margin factor is declared, not
+preregistered, and the record says so. Its quantities are deterministic
+double-precision compared to tolerance, not exact arithmetic. No wording that
+upgrades any of these may survive review.
 
 **On this project's own prior work.** P1 and P2 (§1.2) are public arXiv preprints. Their results
 — exact-arithmetic subspace compactness, the `7371 → 2240` word bank, the
