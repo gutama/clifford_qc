@@ -1,0 +1,62 @@
+{
+  "schema": "clifford_qc.priceability_screen_config.v1",
+  "phase": "R3S_priceability_screen",
+  "parent_lineage": {
+    "repository": "gutama/clifford_qc",
+    "preserved_results": [
+      "The frozen R3 cost layer is untouched: BeH2 remains the only bank this repository has priced, and h4_converged remains exact-tier right-censored at the 65536 endpoint.",
+      "The QR3b preflight's rejection of LiH at its intrinsic stopping point stands as recorded. This screen does not overturn it; it reports that the same instance is admissible under a different, separately declared stopping rule."
+    ]
+  },
+  "estimand": {
+    "name": "R3S_instance_priceability_under_the_frozen_search_grid",
+    "question": "Which candidate instances can clear the accuracy target with margin at a word universe the frozen R1/R3 shot-search grid has been shown to resolve?",
+    "why_it_exists": "The QR3b preflight recorded screen_would_have_rejected_before_probe: true -- its word-universe gate was evaluated after the 2+2 probe had already run all forty cells. This producer evaluates the same gate before any sampling, over every declared candidate, so that a probe is spent only on a candidate that can pass it."
+  },
+  "selection_rule": {
+    "name": "smallest_prefix_clearing_the_accuracy_margin",
+    "statement": "Walk the frozen A-CASE greedy ordering from its shortest non-trivial prefix and stop at the smallest prefix whose exact subspace bias is at or below accuracy_target_millihartree / margin_factor. The rule is a function of the accuracy target alone.",
+    "contrast_rule": "intrinsic_stop -- the greedy's own predicted-lowering threshold, which is the rule the frozen R2b/R3/QR3b records used.",
+    "minimum_prefix_size": 2,
+    "minimum_prefix_size_basis": "A one-generator prefix is the identity alone, so its Ritz value is the Hartree-Fock reference energy and its span is not a subspace. It is excluded by declaration rather than by outcome; on LiH it would otherwise clear the unmargined target at W=193.",
+    "mapping_neutrality": "The prefix is chosen from the source-side bias only, which the linear encoding family leaves invariant (section 6.2). No mapping, arm, word universe, or setting count enters the choice; the record reports the per-arm bias agreement at the chosen prefix so that the claim is checked rather than asserted.",
+    "ordering_provenance": "The greedy ordering is not re-derived here. It is read from the frozen selected_labels each candidate's own preregistration already fixed, so a prefix of it is a prefix of the recorded run."
+  },
+  "acceptance_gates": {
+    "accuracy_target_millihartree": 1.6,
+    "margin_factor": 3.0,
+    "margin_factor_basis": "The shot-search pass rule bounds replica RMSE against the exact reference, and RMSE combines bank bias with sampling scatter in quadrature. A bank sitting at the target has no allowance left for shot noise at any endpoint. Reserving the target for the statistical component is the point of the margin: at margin 3 the bias consumes 0.533 mHa, leaving sqrt(1.6^2 - 0.533^2) = 1.5085 mHa of statistical allowance, so the bank costs 5.7 percent of the shot-noise budget rather than all of it.",
+    "word_universe_ceiling": 2048,
+    "word_universe_ceiling_basis": "Carried forward in intent from the QR3b preregistration: BeH2 is the only bank that has ever priced inside this grid, at W=1814 on its full-width arms, and the ceiling is the next power of two above it. Calibrated on one success, so it is a screen rather than a law. W is what sets the reconstruction variance the shot search has to overcome, and both banks rejected so far -- h4_converged W=7926, LiH at its intrinsic stop W=7740 -- sit about four times above it.",
+    "binding_arm_rule": "max over the declared mapping arms. A candidate passes only if its widest arm fits; the reduced +2q arms have been strictly smaller on every committed instance, but that is an observation, not a guarantee, so the maximum is taken rather than assumed.",
+    "selection_may_not_use_mapping_cost_direction": true,
+    "screen_authorizes_a_probe_not_a_price": true,
+    "word_universe_convention": "non_identity_words_only",
+    "word_universe_convention_basis": "The tree carries two conventions differing by one: mapping_axis counts the identity word (BeH2 full-width 1815), protocol_axis and the QR3b probe do not (1814). The ceiling was calibrated in the second, and the identity is the one word a shot budget never buys -- its expectation is fixed by normalization -- so it contributes nothing to the reconstruction variance the ceiling stands in for. The screen counts as protocol_axis does, and check_priceability_screen.py calibrates against that record rather than mapping_axis."
+  },
+  "mapping_arms": [
+    "jw",
+    "parity",
+    "parity+2q",
+    "bk",
+    "bk+2q"
+  ],
+  "grouping_protocol_by_system": {
+    "h4_converged": "qwc_groups",
+    "beh2": "qwc_groups",
+    "lih_cas4e4o": "qwc_groups",
+    "hubbard_2x2": "qwc_groups",
+    "h2o_cas8e6o": "qwc_basis_cover"
+  },
+  "candidates": [
+    "h4_converged",
+    "beh2",
+    "lih_cas4e4o",
+    "hubbard_2x2",
+    "h2o_cas8e6o"
+  ],
+  "omitted_candidates": {
+    "h4": "The frozen budget-8 H4 bank's labels are the first nine of h4_converged's, so over any shared prefix the two banks are the same object and h4_converged's walked rows are h4's own. That walk leaves the ceiling at M=3, inside h4's ordering and without having cleared the margin, and W is non-decreasing along a prefix, so every h4 prefix from M=3 on is above the ceiling whatever its bias does. Screening h4 separately would re-walk the same rows to the same verdict. check_priceability_screen.py re-derives all of that from the frozen label lists and the walked rows rather than taking it on trust."
+  },
+  "claim_boundary": "Structural scope-decision evidence only. Every quantity here is a bias or a word count computed in exact arithmetic; nothing is sampled. The screen may authorize or withhold a sampling probe on a candidate. It may not price C(epsilon), answer QR3 or QR3b, reclassify any frozen censoring decision, or establish that an admissible candidate will in fact resolve -- a word universe under the ceiling is necessary for a price and, as the frozen R3 cost layer already records, not sufficient."
+}
