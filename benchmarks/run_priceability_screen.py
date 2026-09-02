@@ -1,4 +1,4 @@
-"""R3S -- which instances the frozen shot-search grid can price at all.
+"""R3S -- which candidates a declared screen admits for a sampling probe.
 
 The R3 cost layer prices one bank.  ``h4_converged`` is right-censored at the
 frozen ``65536`` endpoint and the QR3b LiH candidate was rejected for the same
@@ -35,10 +35,23 @@ the ceiling with the bias gate still unmet, no longer prefix can pass either and
 the walk stops there with its reason recorded.
 
 **What this record may claim.**  It is ``structural``: biases and word counts in
-exact arithmetic, nothing sampled.  It can authorize or withhold a probe.  It
-cannot price ``C(epsilon)``, answer QR3b, or reclassify a frozen censoring
-decision -- a word universe under the ceiling is necessary for a price and, as
-the R3 cost layer already records, not sufficient.
+deterministic double-precision arithmetic -- dense eigensolves, reproducible run
+to run on fixed BLAS threading, but floating-point and compared to tolerance by
+the checker rather than exact.  Nothing is sampled.  It can authorize or
+withhold a probe.  It cannot price ``C(epsilon)``, answer QR3b, or reclassify a
+frozen censoring decision.  Candidates are admitted or rejected *under this
+declared screen*: the ceiling is an operational threshold calibrated on one
+priced bank, not a demonstrated necessary condition, so an admission is not a
+demonstration that a bank will resolve and a rejection is not a demonstration
+that it cannot.
+
+**The margin factor is declared here, not preregistered.**  This producer and
+the first result it reports land in the same commit, so factor 3 is exploratory
+with respect to this run.  Each candidate therefore carries a
+``margin_sensitivity`` range, re-derived from its own walked rows, showing over
+which margin factors its verdict is unchanged -- which is what says whether the
+number is load-bearing.  The rule is frozen from here; the preregistered use is
+the next candidate screened under it.
 
     python benchmarks/run_priceability_screen.py
     python benchmarks/check_priceability_screen.py
@@ -53,7 +66,7 @@ from pathlib import Path
 from typing import Sequence
 
 from clifford_qc.backends import ExactMVBackend, SectorStatevectorBackend
-from clifford_qc.fermion_mapping import fermion_encoding
+from clifford_qc.fermion_mapping import FERMION_ENCODINGS, fermion_encoding
 from clifford_qc.ir import PauliWord
 from clifford_qc.measurement import qwc_basis_cover, qwc_groups
 from clifford_qc.reproducibility import stamp_record
@@ -117,8 +130,66 @@ def load_config(path: Path = CONFIG) -> dict:
         )
     if not rule.get("minimum_prefix_size_basis"):
         raise ValueError("the minimum prefix size must declare its reason")
-    if not config.get("candidates"):
+    if gates.get("word_universe_convention") != WORD_UNIVERSE_CONVENTION:
+        raise ValueError(
+            "the ceiling is calibrated on the "
+            f"{WORD_UNIVERSE_CONVENTION!r} word count; the config declares "
+            f"{gates.get('word_universe_convention')!r}"
+        )
+    if not gates.get("word_universe_convention_basis"):
+        raise ValueError("the word-universe convention must declare its reason")
+    if not gates.get("margin_factor_status_basis"):
+        raise ValueError("the margin factor must declare its evidence status")
+
+    # Everything below is consumed by ``build_record`` and ``_arm_rows`` by
+    # direct indexing. Left unchecked it surfaces as a KeyError or a TypeError
+    # somewhere inside a candidate walk, which names neither the field nor the
+    # file that carries it -- so the config boundary rejects it here instead.
+    target = gates.get("accuracy_target_millihartree")
+    if not isinstance(target, (int, float)) or isinstance(target, bool):
+        raise ValueError("accuracy_target_millihartree must be a number")
+    if not math.isfinite(float(target)) or float(target) <= 0.0:
+        raise ValueError("accuracy_target_millihartree must be finite and positive")
+
+    arms = config.get("mapping_arms")
+    if not isinstance(arms, list) or not arms:
+        raise ValueError("the screen must declare a non-empty mapping_arms list")
+    if len(set(arms)) != len(arms):
+        raise ValueError("mapping_arms contains a duplicate")
+    unknown = sorted(set(arms) - FERMION_ENCODINGS)
+    if unknown:
+        raise ValueError(
+            f"unsupported mapping arms {unknown}; choose from {sorted(FERMION_ENCODINGS)}"
+        )
+
+    candidates = config.get("candidates")
+    if not isinstance(candidates, list) or not candidates:
         raise ValueError("the screen must declare at least one candidate")
+    if len(set(candidates)) != len(candidates):
+        raise ValueError("candidates contains a duplicate")
+    known = set(candidate_specs())
+    missing = sorted(set(candidates) - known)
+    if missing:
+        raise ValueError(
+            f"candidates {missing} have no frozen spec; known keys are {sorted(known)}"
+        )
+
+    grouping = config.get("grouping_protocol_by_system")
+    if not isinstance(grouping, dict):
+        raise ValueError("grouping_protocol_by_system must be an object")
+    ungrouped = sorted(key for key in candidates if key not in grouping)
+    if ungrouped:
+        raise ValueError(f"candidates {ungrouped} declare no grouping protocol")
+    bad = sorted(
+        f"{key}={grouping[key]!r}" for key in candidates if grouping[key] not in GROUPERS
+    )
+    if bad:
+        raise ValueError(
+            f"unsupported grouping protocol for {bad}; choose from {sorted(GROUPERS)}"
+        )
+
+    if not isinstance(config.get("omitted_candidates"), dict):
+        raise ValueError("omitted_candidates must be an object, empty if nothing is omitted")
     return config
 
 
@@ -255,11 +326,66 @@ def _arm_rows(
     return rows
 
 
+def _margin_sensitivity(
+    rows: Sequence[dict],
+    chosen: int | None,
+    *,
+    target: float,
+    ceiling: int,
+    margin: float,
+) -> dict:
+    """Over which margin factors the recorded verdict survives.
+
+    The margin is declared, not derived, so the useful question is not whether
+    3 is the right number but whether the verdict turns on it. Both ends are
+    re-derived from the walked rows alone, which is what lets
+    ``check_priceability_screen.py`` recompute them.
+
+    For an admitted candidate the upper end is where the chosen prefix stops
+    clearing; it is a *lower bound* on the true upper end, because a stricter
+    margin may still be met by a longer prefix the walk never needed to reach --
+    one that carries more words and may or may not stay under the ceiling. For a
+    rejected candidate the upper end is unbounded: a stricter margin only
+    rejects more.
+    """
+    if chosen is not None:
+        stop = rows[-1]
+        upper = target / stop["bias_millihartree"]
+        earlier = [row for row in rows[:-1] if row["bias_millihartree"] <= target]
+        basis = (
+            "admitted; the upper end is where the chosen prefix stops clearing and "
+            "a longer prefix may extend it"
+        )
+    else:
+        upper = None
+        earlier = [
+            row
+            for row in rows
+            if row["bias_millihartree"] <= target
+            and row["source_word_universe"] <= ceiling
+        ]
+        basis = (
+            "rejected; a stricter margin only rejects more, so the upper end is "
+            "unbounded"
+        )
+    lower = (
+        target / min(row["bias_millihartree"] for row in earlier) if earlier else 1.0
+    )
+    return {
+        "declared_margin_factor": margin,
+        "verdict_unchanged_from_margin_factor": lower,
+        "verdict_unchanged_to_margin_factor": upper,
+        "basis": basis,
+    }
+
+
 def build_candidate_record(
     spec: dict,
     *,
     arms: Sequence[str],
     grouping: str,
+    target: float,
+    margin: float,
     admissible_bias: float,
     ceiling: int,
     minimum_prefix: int,
@@ -337,6 +463,9 @@ def build_candidate_record(
         "frozen_ordering_size": len(selected),
         "prefix_walk": rows,
         "walk_terminated_because": reason,
+        "margin_sensitivity": _margin_sensitivity(
+            rows, chosen, target=target, ceiling=ceiling, margin=margin
+        ),
         "margin_stop": margin_stop,
         "intrinsic_stop": {
             "basis_size": len(selected),
@@ -374,6 +503,8 @@ def build_record(config: dict | None = None) -> dict:
             specs[key],
             arms=config["mapping_arms"],
             grouping=grouping[key],
+            target=target,
+            margin=margin,
             admissible_bias=admissible_bias,
             ceiling=ceiling,
             minimum_prefix=minimum_prefix,
@@ -386,6 +517,7 @@ def build_record(config: dict | None = None) -> dict:
         "schema": SCHEMA,
         "phase": config["phase"],
         "evidence_tier": "structural",
+        "margin_factor_status": gates["margin_factor_status"],
         "word_universe_convention": WORD_UNIVERSE_CONVENTION,
         "estimand": config["estimand"],
         "selection_rule": config["selection_rule"],
@@ -395,10 +527,22 @@ def build_record(config: dict | None = None) -> dict:
             "statistical_allowance_millihartree": math.sqrt(
                 max(target**2 - admissible_bias**2, 0.0)
             ),
+            # Two different fractions, easy to conflate and previously conflated
+            # here. RMSE combines bias and sampling scatter in quadrature, so a
+            # bank at the admissible bias takes (bias/target)^2 = 1/margin^2 of
+            # the *MSE* budget -- 11.1% at margin 3. What is left for the
+            # statistical component is an RMSE, and it falls from the target by
+            # only 5.7%, because the square root pulls the two much closer
+            # together than the MSE share suggests.
+            "bias_share_of_mse_budget": (admissible_bias / target) ** 2,
+            "statistical_allowance_reduction_fraction": 1.0
+            - math.sqrt(max(target**2 - admissible_bias**2, 0.0)) / target,
             "statistical_allowance_note": (
-                "RMSE combines bank bias and sampling scatter in quadrature, so "
-                "this is what the target leaves for shot noise once a bank at "
-                "the admissible bias has taken its share."
+                "The bank's share of the MSE budget is "
+                "bias_share_of_mse_budget; the reduction it forces in the "
+                "remaining statistical RMSE allowance is "
+                "statistical_allowance_reduction_fraction. The second is the "
+                "smaller number and is not a fraction of a shot budget consumed."
             ),
         },
         "mapping_arms": list(config["mapping_arms"]),

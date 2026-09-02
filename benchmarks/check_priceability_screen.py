@@ -4,9 +4,15 @@ Two independent jobs, as the project's other checkers do. The record is rebuilt
 from scratch and compared field by field, and the contracts it must satisfy are
 re-derived from the record's own contents rather than trusted:
 
-* the two monotonicities the early exit rests on -- bias non-increasing and the
-  word universe non-decreasing along the greedy prefix -- hold on every walk, so
-  a walk that stopped short really had nothing left to find;
+* the two monotonicities the early exit rests on -- bias non-increasing to
+  within ``BIAS_MONOTONICITY_SLACK_MILLIHARTREE`` and the word universe
+  non-decreasing along the greedy prefix -- hold on every walk, so a walk that
+  stopped short really had nothing left to find;
+* each candidate's ``margin_sensitivity`` range is the one its own walked rows
+  give, so a reader can see whether a verdict turns on the declared margin;
+* the record does not describe that margin as preregistered, and reports the
+  MSE share and the RMSE-allowance reduction as the two different fractions
+  they are;
 * ``margin_stop`` is the *smallest* clearing prefix: the last walked row clears
   the margin and no earlier one does;
 * the per-arm biases at ``margin_stop`` agree, which is what makes the claim
@@ -63,6 +69,12 @@ ENERGY_DIFFERENCE_TOLERANCES = {"bias_millihartree": (1e-10, 1e-8)}
 # makes this a real check rather than a formality.
 ARM_BIAS_AGREEMENT_MILLIHARTREE = 1e-8
 
+# How far the bias may rise between consecutive prefixes before the walk's
+# monotonicity is a real violation rather than eigensolver last-bit drift.
+# Exported so tests assert the same contract instead of a stricter private one:
+# a standalone exact-order check would fail on drift this deliberately tolerates.
+BIAS_MONOTONICITY_SLACK_MILLIHARTREE = 1e-9
+
 # Fields that would make this a cost record. The tier is structural; if one of
 # these ever appears the record has quietly changed what it claims.
 COST_RECORD_KEYS = {
@@ -100,11 +112,14 @@ def contract_problems(record: dict) -> list[str]:
 
     gates = record.get("acceptance_gates", {})
     target = float(gates.get("accuracy_target_millihartree", 0.0))
-    margin = float(gates.get("margin_factor", 0.0))
+    margin = gates.get("margin_factor")
     ceiling = int(gates.get("word_universe_ceiling", 0))
     derived = record.get("derived_gates", {})
     admissible_bias = float(derived.get("admissible_bias_millihartree", -1.0))
-    if not margin or abs(admissible_bias - target / margin) > 1e-12:
+    if not isinstance(margin, (int, float)) or isinstance(margin, bool) or not margin:
+        problems.append(f"margin_factor {margin!r} is not a usable number")
+        margin = None
+    elif abs(admissible_bias - target / float(margin)) > 1e-12:
         problems.append(
             f"admissible bias {admissible_bias} is not the declared "
             f"{target}/{margin}"
@@ -112,6 +127,41 @@ def contract_problems(record: dict) -> list[str]:
     allowance = math.sqrt(max(target**2 - admissible_bias**2, 0.0))
     if abs(float(derived.get("statistical_allowance_millihartree", -1.0)) - allowance) > 1e-12:
         problems.append("the statistical allowance is not the quadrature remainder")
+    # The two fractions this record previously conflated. The MSE share is
+    # (bias/target)^2; the RMSE-allowance reduction is 1 - sqrt(1 - that), and
+    # is the smaller of the two. Keeping both named and both derived is what
+    # stops the smaller one being reported as the larger one's meaning.
+    if target > 0:
+        share = (admissible_bias / target) ** 2
+        reduction = 1.0 - allowance / target
+        if abs(float(derived.get("bias_share_of_mse_budget", -1.0)) - share) > 1e-12:
+            problems.append("bias_share_of_mse_budget is not (bias/target)^2")
+        if (
+            abs(
+                float(derived.get("statistical_allowance_reduction_fraction", -1.0))
+                - reduction
+            )
+            > 1e-12
+        ):
+            problems.append(
+                "statistical_allowance_reduction_fraction is not the RMSE shortfall"
+            )
+        if reduction >= share:
+            problems.append(
+                f"the RMSE-allowance reduction {reduction} is not below the MSE "
+                f"share {share}; one of the two is being computed as the other"
+            )
+
+    # The margin is declared in the same commit as its first result, so the
+    # record may not describe it as preregistered.
+    status = record.get("margin_factor_status")
+    if status != "declared_here_not_preregistered":
+        problems.append(
+            f"margin_factor_status is {status!r}; this rule and its first result "
+            "entered together, so the record may not upgrade it"
+        )
+    if status != gates.get("margin_factor_status"):
+        problems.append("the record's margin status disagrees with its config")
 
     for candidate in record.get("candidates", []):
         key = candidate["candidate"]
@@ -125,7 +175,10 @@ def contract_problems(record: dict) -> list[str]:
             problems.append(f"{key}: prefix walk is not contiguous: {sizes}")
 
         biases = [row["bias_millihartree"] for row in walk]
-        if any(b - a > 1e-9 for a, b in zip(biases, biases[1:])):
+        if any(
+            b - a > BIAS_MONOTONICITY_SLACK_MILLIHARTREE
+            for a, b in zip(biases, biases[1:])
+        ):
             problems.append(
                 f"{key}: bias rose along the greedy prefix ({biases}); a Ritz "
                 "value cannot rise as the span grows, and the walk's early exit "
@@ -224,6 +277,71 @@ def contract_problems(record: dict) -> list[str]:
         intrinsic_binding = max(arm["word_universe"] for arm in intrinsic["arms"])
         if intrinsic["binding_word_universe"] != intrinsic_binding:
             problems.append(f"{key}: intrinsic binding word universe is not the maximum")
+
+        sensitivity = candidate.get("margin_sensitivity")
+        if not isinstance(sensitivity, dict):
+            problems.append(f"{key}: no margin_sensitivity recorded")
+        else:
+            if sensitivity.get("declared_margin_factor") != margin:
+                problems.append(f"{key}: margin_sensitivity cites a different margin")
+            if stop is not None:
+                expected_upper = target / walk[-1]["bias_millihartree"]
+                earlier = [
+                    row for row in walk[:-1] if row["bias_millihartree"] <= target
+                ]
+            else:
+                expected_upper = None
+                earlier = [
+                    row
+                    for row in walk
+                    if row["bias_millihartree"] <= target
+                    and row["source_word_universe"] <= ceiling
+                ]
+            # A malformed record can carry a zero or negative bias, and this
+            # function must return problems rather than raise on one -- the
+            # same guard the QR3b checker documents.
+            binding_bias = (
+                min(row["bias_millihartree"] for row in earlier) if earlier else 0.0
+            )
+            if binding_bias > 0.0:
+                expected_lower = target / binding_bias
+            else:
+                if earlier:
+                    problems.append(
+                        f"{key}: a walked row carries a non-positive bias "
+                        f"{binding_bias}, which no subspace above the exact "
+                        "ground energy can have"
+                    )
+                expected_lower = 1.0
+            recorded_upper = sensitivity.get("verdict_unchanged_to_margin_factor")
+            if expected_upper is None:
+                if recorded_upper is not None:
+                    problems.append(
+                        f"{key}: a rejected candidate's margin range is bounded above; "
+                        "a stricter margin only rejects more"
+                    )
+            elif (
+                recorded_upper is None
+                or abs(float(recorded_upper) - expected_upper) > 1e-9
+            ):
+                problems.append(
+                    f"{key}: margin_sensitivity upper end {recorded_upper} is not "
+                    f"the {expected_upper} the walked rows give"
+                )
+            recorded_lower = sensitivity.get("verdict_unchanged_from_margin_factor")
+            if (
+                recorded_lower is None
+                or abs(float(recorded_lower) - expected_lower) > 1e-9
+            ):
+                problems.append(
+                    f"{key}: margin_sensitivity lower end {recorded_lower} is not "
+                    f"the {expected_lower} the walked rows give"
+                )
+            if recorded_lower is not None and float(recorded_lower) < 1.0:
+                problems.append(
+                    f"{key}: margin_sensitivity claims a range below margin 1, which "
+                    "the config forbids"
+                )
 
         verdict = candidate["verdict"]
         expected = stop is not None and stop["within_ceiling"]

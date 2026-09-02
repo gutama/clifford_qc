@@ -115,7 +115,7 @@ Status at a glance:
 | R2b | raw-pool mapping axis | **done, negative QR3 result** — QR2 passes, but mapping spread is not smaller than instance spread on either independent fixed-QWC metric |
 | R3 | protocol axis and accuracy-matched cost regions | **done**; the structural and exact-tier records ship, while QR3 abstains because H4-converged is right-censored at the frozen endpoint ceiling |
 | QR3b | chemically independent LiH exact-tier extension preflight | **done, negative scope decision**; the bias gate passes, but 21/40 cells are unresolved and 9 more resolve only at the frozen ceiling, so no full run is authorized |
-| R3S | priceability screen — which instances the frozen grid can price at all | **done, positive**; under a stopping rule that reserves the accuracy target for shot noise, LiH is admissible at a two-generator prefix (`W = 1439` against BeH₂'s `1814`), so QR3b rejected the greedy's stopping point rather than the instance |
+| R3S | priceability screen — which candidates a declared screen admits for a probe | **done, positive**; under a stopping rule that reserves the accuracy target for shot noise, LiH is admissible at a two-generator prefix (`W = 1439` against BeH₂'s `1814`), so QR3b rejected the greedy's stopping point rather than the instance |
 | R4 | contextual-subspace comparator | open |
 
 "Shipped" means the module, its tests, and where applicable its benchmark
@@ -1939,7 +1939,9 @@ checks it — a word-universe ceiling, and the admission
 `screen_would_have_rejected_before_probe: true`, meaning the gate was evaluated
 *after* the probe had spent all forty of its cells.
 `run_priceability_screen.py` evaluates it first, over every declared candidate,
-in exact arithmetic.
+in deterministic double-precision arithmetic — dense eigensolves, reproducible
+run to run on fixed BLAS threading, but floating-point and compared to tolerance
+by the checker rather than exact.
 
 The premise does not survive. The frozen selection rule runs the A-CASE greedy
 to its own predicted-lowering threshold; that rule is accuracy-maximizing while
@@ -1952,19 +1954,35 @@ BeH₂'s `1814`, the one bank this repository has ever priced inside the grid. S
 QR3b rejected a stopping rule and not an instance, and a second priceable
 candidate is reachable with `SEARCH_ENDPOINTS` untouched.
 
-*The margin is a reason, not a round number.* The shot search's pass rule bounds
-replica RMSE, and RMSE combines bank bias with sampling scatter in quadrature, so
-a bank sitting at the target has no allowance left for shot noise at any
-endpoint. At margin `3` the bias takes `0.533` mHa and
-`sqrt(1.6² − 0.533²) = 1.5085` mHa remains for the statistical component — the
-bank costs 5.7% of the shot-noise budget rather than all of it.
+*The margin has a reason, and the reason has a limit.* The shot search's pass
+rule bounds replica RMSE, and RMSE combines bank bias with sampling scatter in
+quadrature, so a bank sitting at the target has no allowance left for shot noise
+at any endpoint. At margin `3` the bias takes `0.533` mHa, which is `(1/3)² =
+11.1%` of the *MSE* budget, and the statistical *RMSE* allowance falls from
+`1.600` to `sqrt(1.6² − 0.533²) = 1.5085` mHa — a `5.7%` reduction. Those are two
+different fractions and the smaller one is not a share of a shot budget consumed.
+What the argument does is motivate having a margin; what it does not do is pick
+`3` out of `2` or `5`.
 
-*Two things the screen is not.* It is not a price: `W` under the ceiling is
-necessary and not sufficient, on a ceiling calibrated on a single success, and a
-rank-2 pencil may condition differently from BeH₂'s rank-5. That is what the
-2+2 probe is for, and this phase authorizes one rather than replacing it. And the
-margin rule is not licence to pick a prefix that is cheap to measure, which is
-the cost-direction selection QR3b's own gate forbids: it is a function of the
+*So the margin factor is labelled declared, not preregistered.* This rule and the
+first result it produces enter the repository in the same commit, which makes the
+LiH admission exploratory evidence for the rule rather than a test of it, and the
+record says so in `margin_factor_status`. Two things limit what that costs. Every
+candidate carries a `margin_sensitivity` range re-derived from its own walked
+rows: LiH is admitted for every margin from `1` to about `4.33`, and the three
+rejected candidates stay rejected at every margin at or above `1`, so no verdict
+in this record turns on the number. And the rule is frozen from this commit — the
+preregistered use is the next candidate screened under it.
+
+*Two things the screen is not.* It is not a price, and the ceiling is not a
+necessary condition: it is an operational admission threshold calibrated on a
+single priced bank, while coefficient magnitudes, grouping, estimator variance
+and pencil conditioning all bear on whether a bank resolves — a rank-2 pencil may
+condition differently from BeH₂'s rank-5. Candidates here are admitted or
+rejected *under this declared screen*, and deciding the rest is what the 2+2
+probe is for; this phase authorizes one rather than replacing it. And the margin
+rule is not licence to pick a prefix that is cheap to measure, which is the
+cost-direction selection QR3b's own gate forbids: it is a function of the
 accuracy target alone, evaluated on the source-side bias the linear encoding
 family leaves invariant, and the record carries the per-arm bias agreement at the
 chosen prefix so the checker confirms the choice was encoding-blind instead of
@@ -3228,15 +3246,19 @@ not another open accuracy phase.
     `check_priceability_screen.py`): every declared candidate is walked along its
     frozen greedy ordering and gated on two structural quantities — bias against
     the accuracy target with a declared margin, and the binding word universe
-    against the ceiling QR3b calibrated. Nothing is sampled. The walk's early
-    exit rests on two monotonicities the checker re-derives per candidate rather
-    than assuming: bias non-increasing along the prefix (a Ritz value cannot rise
+    against the ceiling QR3b calibrated. Nothing is sampled, and the margin
+    factor is labelled `declared_here_not_preregistered` because it arrives with
+    its first result; each candidate's `margin_sensitivity` records the range of
+    margins over which its verdict is unchanged. The walk's early exit rests on
+    two monotonicities the checker re-derives per candidate rather than assuming: bias non-increasing along the prefix (a Ritz value cannot rise
     as the span grows) and `W` non-decreasing (a longer prefix adds
     matrix-element pairs and removes none). *Result:* LiH is admissible at
     `M = 2`, `W = 1439`, under BeH₂'s `1814`; `h4_converged`, H₂O and Hubbard are
-    rejected on the ceiling. *Gate:* the screen authorizes or withholds a probe
-    and prices nothing — `check_priceability_screen.py` fails a record carrying
-    any cost field. *Next:* re-run the frozen 2+2 QR3b probe on the LiH
+    rejected on the ceiling — all under this declared screen, which ranks
+    candidates for probe spending rather than establishing which instances are
+    priceable. *Gate:* the screen authorizes or withholds a probe and prices
+    nothing — `check_priceability_screen.py` fails a record carrying any cost
+    field. *Next:* re-run the frozen 2+2 QR3b probe on the LiH
     `margin_stop` bank under its own preregistration, which is what would make
     QR3b answerable without touching `SEARCH_ENDPOINTS`.
 14. R4a — contextual-subspace comparator arms with bias floors. *Gate:* QR5 answered.

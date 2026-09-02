@@ -14,7 +14,10 @@ import json
 
 import pytest
 
+from clifford_qc.fermion_mapping import fermion_encoding
+
 from benchmarks.check_priceability_screen import (
+    BIAS_MONOTONICITY_SLACK_MILLIHARTREE,
     calibration_problems,
     contract_problems,
     omission_problems,
@@ -76,7 +79,10 @@ def test_the_selection_rule_is_a_function_of_the_accuracy_target_alone():
         {"acceptance_gates": {"screen_authorizes_a_probe_not_a_price": False}},
         {"acceptance_gates": {"margin_factor": 0.5}},
         {"acceptance_gates": {"margin_factor_basis": ""}},
+        {"acceptance_gates": {"margin_factor_status_basis": ""}},
         {"acceptance_gates": {"word_universe_ceiling_basis": ""}},
+        {"acceptance_gates": {"word_universe_convention": "all_words"}},
+        {"acceptance_gates": {"word_universe_convention_basis": ""}},
         {"selection_rule": {"minimum_prefix_size": 1}},
         {"selection_rule": {"minimum_prefix_size_basis": ""}},
         {"candidates": []},
@@ -90,6 +96,52 @@ def test_a_relaxed_preregistration_is_refused_at_load(tmp_path, mutation):
         else:
             config[section] = values
     with pytest.raises(ValueError):
+        load_config(_write(tmp_path, config))
+
+
+@pytest.mark.parametrize(
+    ("path", "value"),
+    [
+        (("acceptance_gates", "accuracy_target_millihartree"), "1.6"),
+        (("acceptance_gates", "accuracy_target_millihartree"), 0.0),
+        (("acceptance_gates", "accuracy_target_millihartree"), -1.0),
+        (("acceptance_gates", "accuracy_target_millihartree"), float("inf")),
+        (("acceptance_gates", "accuracy_target_millihartree"), float("nan")),
+        (("mapping_arms",), []),
+        (("mapping_arms",), "jw"),
+        (("mapping_arms",), ["jw", "jw"]),
+        (("mapping_arms",), ["jw", "not-an-encoding"]),
+        (("candidates",), ["beh2", "beh2"]),
+        (("candidates",), ["beh2", "no_such_instance"]),
+        (("candidates",), "beh2"),
+        (("grouping_protocol_by_system",), {}),
+        (("grouping_protocol_by_system",), {"beh2": "shuffle"}),
+        (("grouping_protocol_by_system",), ["beh2"]),
+        (("omitted_candidates",), None),
+        (("omitted_candidates",), []),
+    ],
+)
+def test_a_malformed_required_field_is_refused_at_load(tmp_path, path, value):
+    """Fields ``build_record`` indexes directly are rejected at the boundary.
+
+    Unvalidated they surface as a ``KeyError`` or ``TypeError`` from inside a
+    candidate walk, naming neither the field nor the file that carries it. The
+    path is applied as a replacement, not a merge, so a case that empties a
+    field really empties it.
+    """
+    config = json.loads(CONFIG.read_text(encoding="utf-8"))
+    node = config
+    for key in path[:-1]:
+        node = node[key]
+    node[path[-1]] = value
+    with pytest.raises(ValueError):
+        load_config(_write(tmp_path, config))
+
+
+def test_a_candidate_without_a_grouping_protocol_is_refused(tmp_path):
+    config = json.loads(CONFIG.read_text(encoding="utf-8"))
+    config["grouping_protocol_by_system"].pop("beh2")
+    with pytest.raises(ValueError, match="grouping"):
         load_config(_write(tmp_path, config))
 
 
@@ -163,12 +215,37 @@ def test_beh2_stops_earlier_under_the_margin_rule_than_the_greedy_did(record):
 
 
 def test_every_walk_is_monotone_in_both_gated_quantities(record):
+    """Asserted at the checker's own tolerance, not a stricter private one.
+
+    ``contract_problems`` allows the bias to rise by
+    ``BIAS_MONOTONICITY_SLACK_MILLIHARTREE`` between prefixes, because the
+    eigensolves that produce it drift in the last bits. An exact sorted-order
+    assertion here would be a second, undeclared contract that a record
+    satisfying the declared one could still fail.
+    """
     for candidate in record["candidates"]:
         walk = candidate["prefix_walk"]
         biases = [row["bias_millihartree"] for row in walk]
         words = [row["source_word_universe"] for row in walk]
-        assert biases == sorted(biases, reverse=True), candidate["candidate"]
+        assert all(
+            b - a <= BIAS_MONOTONICITY_SLACK_MILLIHARTREE
+            for a, b in zip(biases, biases[1:])
+        ), candidate["candidate"]
         assert words == sorted(words), candidate["candidate"]
+
+
+def test_the_monotonicity_slack_is_shared_with_the_checker():
+    """The mismatch this pair of assertions exists to prevent, pinned.
+
+    A drift inside the checker's slack must pass both. If the test ever
+    re-tightens to exact ordering, this fails first and names why.
+    """
+    drifting = [1.0, 1.0 + BIAS_MONOTONICITY_SLACK_MILLIHARTREE / 2]
+    assert drifting != sorted(drifting, reverse=True)
+    assert all(
+        b - a <= BIAS_MONOTONICITY_SLACK_MILLIHARTREE
+        for a, b in zip(drifting, drifting[1:])
+    )
 
 
 def test_a_hand_written_verdict_is_caught(record):
@@ -305,3 +382,134 @@ def test_the_walk_and_the_verdict_gate_on_the_same_word_count(record):
     stop["binding_word_universe"] = 7
     stop["binding_arms"] = sorted(a["mapping"] for a in stop["arms"])
     assert any("must be the same quantity" in p for p in contract_problems(broken))
+
+
+def test_the_margin_is_not_described_as_preregistered(record):
+    """The rule and its first result entered together; the record says so.
+
+    Calling this preregistered would be a claim the repository's own history
+    contradicts, and the checker refuses a record that upgrades it.
+    """
+    assert record["margin_factor_status"] == "declared_here_not_preregistered"
+    assert record["acceptance_gates"]["margin_factor_status_basis"]
+
+    broken = copy.deepcopy(record)
+    broken["margin_factor_status"] = "preregistered"
+    assert any("may not upgrade it" in p for p in contract_problems(broken))
+
+
+def test_the_two_quadrature_fractions_are_reported_as_different_numbers(record):
+    """The MSE share and the RMSE-allowance reduction are not interchangeable.
+
+    At margin 3 the bias takes (1/3)^2 = 11.1% of the MSE budget while the
+    statistical RMSE allowance falls by only 5.7%. Reporting the second as the
+    first's meaning is the error this pins.
+    """
+    derived = record["derived_gates"]
+    assert derived["bias_share_of_mse_budget"] == pytest.approx(1 / 9, abs=1e-12)
+    assert derived["statistical_allowance_reduction_fraction"] == pytest.approx(
+        0.0572, abs=1e-4
+    )
+    assert (
+        derived["statistical_allowance_reduction_fraction"]
+        < derived["bias_share_of_mse_budget"]
+    )
+
+    broken = copy.deepcopy(record)
+    broken["derived_gates"]["statistical_allowance_reduction_fraction"] = broken[
+        "derived_gates"
+    ]["bias_share_of_mse_budget"]
+    assert any("is not the RMSE shortfall" in p for p in contract_problems(broken))
+
+
+def test_the_lih_verdict_does_not_turn_on_the_declared_margin(record):
+    """What answers 'why 3 and not 2 or 5' without pretending 3 was calibrated.
+
+    LiH is admitted for every margin factor from 1 up to about 4.3, so the
+    number would have to move outside that range before the finding changed.
+    """
+    sensitivity = _candidate(record, "lih_cas4e4o")["margin_sensitivity"]
+    assert sensitivity["verdict_unchanged_from_margin_factor"] == pytest.approx(1.0)
+    assert sensitivity["verdict_unchanged_to_margin_factor"] == pytest.approx(
+        4.33, abs=0.02
+    )
+    assert (
+        sensitivity["verdict_unchanged_from_margin_factor"]
+        <= record["acceptance_gates"]["margin_factor"]
+        <= sensitivity["verdict_unchanged_to_margin_factor"]
+    )
+
+
+def test_a_rejected_candidate_stays_rejected_at_every_declared_margin(record):
+    for key in ("h4_converged", "hubbard_2x2", "h2o_cas8e6o"):
+        sensitivity = _candidate(record, key)["margin_sensitivity"]
+        assert sensitivity["verdict_unchanged_from_margin_factor"] == pytest.approx(1.0)
+        # A stricter margin only rejects more, so the range is unbounded above.
+        assert sensitivity["verdict_unchanged_to_margin_factor"] is None, key
+
+
+def test_a_fabricated_margin_range_is_caught(record):
+    broken = copy.deepcopy(record)
+    _candidate(broken, "lih_cas4e4o")["margin_sensitivity"][
+        "verdict_unchanged_to_margin_factor"
+    ] = 99.0
+    assert any("is not the" in p for p in contract_problems(broken))
+
+    bounded = copy.deepcopy(record)
+    _candidate(bounded, "h4_converged")["margin_sensitivity"][
+        "verdict_unchanged_to_margin_factor"
+    ] = 2.0
+    assert any("only rejects more" in p for p in contract_problems(bounded))
+
+
+def test_the_claim_boundary_does_not_overstate_the_arithmetic_or_the_ceiling(record):
+    boundary = record["claim_boundary"]
+    assert "deterministic double-precision" in boundary
+    assert "not exact arithmetic" in boundary
+    assert "under this declared screen" in boundary
+    assert "operational threshold" in boundary
+
+
+def test_the_contract_returns_problems_rather_than_raising(record):
+    """A checker that raises on a malformed record reports nothing about it.
+
+    The same guard `check_protocol_cost` and the QR3b checker carry, applied to
+    the fields this screen added: a zero bias would divide by zero in the margin
+    range, and a missing section would index into ``None``.
+    """
+    broken = copy.deepcopy(record)
+    beh2 = _candidate(broken, "beh2")
+    beh2["prefix_walk"][0]["bias_millihartree"] = 0.0
+    beh2["prefix_walk"][0]["clears_margin"] = True
+    problems = contract_problems(broken)
+    assert problems
+    assert all(isinstance(problem, str) for problem in problems)
+
+    for mutation in (
+        {"acceptance_gates": {}},
+        {"derived_gates": {}},
+        {"candidates": []},
+        {"acceptance_gates": {"margin_factor": None}},
+        {"acceptance_gates": {"margin_factor": 0}},
+    ):
+        partial = copy.deepcopy(record)
+        partial.update(mutation)
+        problems = contract_problems(partial)
+        assert all(isinstance(problem, str) for problem in problems)
+
+
+def test_a_negative_bias_row_is_named_rather_than_dividing_by_zero(record):
+    broken = copy.deepcopy(record)
+    walk = _candidate(broken, "beh2")["prefix_walk"]
+    walk[0]["bias_millihartree"] = 0.0
+    walk[0]["clears_margin"] = True
+    assert any("non-positive bias" in p for p in contract_problems(broken))
+
+
+def test_the_arm_validator_tracks_what_the_constructor_accepts():
+    """Validating against a private copy of the encoding names would drift."""
+    from clifford_qc.fermion_mapping import FERMION_ENCODINGS
+
+    assert set(load_config()["mapping_arms"]) <= FERMION_ENCODINGS
+    with pytest.raises(ValueError, match="unknown fermion encoding"):
+        fermion_encoding("not-an-encoding", 8)

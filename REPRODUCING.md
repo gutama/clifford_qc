@@ -1694,7 +1694,10 @@ python benchmarks/run_priceability_screen.py
 python benchmarks/check_priceability_screen.py
 ```
 
-Nothing here is sampled and no chemistry extra is needed. Each candidate is
+Nothing here is sampled and no chemistry extra is needed. Every quantity is a
+bias or a word count in deterministic double-precision arithmetic — dense
+eigensolves, reproducible run to run on fixed BLAS threading, but floating-point
+and compared to tolerance by the checker rather than exact. Each candidate is
 walked along the greedy ordering its own preregistration already froze — the
 four R2b banks keep their `mapping_axis` labels, LiH keeps the QR3b ones, and no
 ordering is re-derived — and two structural quantities are recorded at every
@@ -1721,10 +1724,24 @@ instead at the smallest prefix whose bias is at or below
 `accuracy_target / margin_factor`, a function of the accuracy target alone. The
 margin is `3` because the shot search's pass rule bounds replica RMSE and RMSE
 combines bank bias with sampling scatter in quadrature: at margin `3` the bias
-takes `0.533 mHa` and `1.5085 mHa` remains for the statistical component, so the
-bank costs 5.7% of the shot-noise budget rather than all of it. A one-generator
-prefix is excluded by declaration — it is the identity alone, so its Ritz value
-is the Hartree–Fock energy and its span is not a subspace.
+takes `0.533 mHa`, which is `(1/3)² = 11.1%` of the *MSE* budget, and the
+statistical *RMSE* allowance falls from `1.600` to `1.5085 mHa`, a `5.7%`
+reduction. Those are two different fractions, and the smaller is not a share of a
+shot budget consumed. A one-generator prefix is excluded by declaration — it is
+the identity alone, so its Ritz value is the Hartree–Fock energy and its span is
+not a subspace.
+
+**The margin factor is `declared_here_not_preregistered`.** The quadrature
+argument motivates having a margin; it does not pick `3` out of `2` or `5`, and
+this config arrives in the same commit as the first result it produces, so the
+LiH admission is exploratory evidence for the rule rather than a test of it. The
+record says so rather than claiming a preregistration the history does not
+support, and every candidate carries a `margin_sensitivity` range re-derived from
+its own walked rows so a reader can see whether a verdict turns on the number:
+LiH is admitted for every margin from `1` to about `4.33`, and the three rejected
+candidates stay rejected at every margin at or above `1`. None does. The rule is
+frozen from this commit; the preregistered use is the next candidate screened
+under it.
 
 Selecting a prefix on measurement cost is exactly what QR3b's
 `selection_may_not_use_mapping_cost_direction` gate forbids, so the rule may not
@@ -1766,14 +1783,17 @@ banks are the same object, and the shared walk leaves the ceiling at `M = 3`,
 inside `h4`'s own ordering and without having cleared the margin. The checker
 re-derives that from the two frozen label lists and the walked rows.
 
-Labelled `structural`. Every quantity is a bias or a word count in exact
-arithmetic. The screen may authorize or withhold a sampling probe; it may not
-price `C(epsilon)`, answer QR3 or QR3b, or reclassify any frozen censoring
-decision. A word universe under the ceiling is necessary for a price and — on a
-ceiling calibrated on a single success, and with a rank-2 pencil that may
-condition differently from BeH₂'s rank-5 — not sufficient. Deciding that is what
-a probe is for, and `check_priceability_screen.py` fails any record that grows a
-cost field.
+Labelled `structural`. The screen may authorize or withhold a sampling probe; it
+may not price `C(epsilon)`, answer QR3 or QR3b, or reclassify any frozen
+censoring decision. Candidates are admitted or rejected **under this declared
+screen**: the `2048` ceiling is an operational admission threshold calibrated on
+one priced bank, not a demonstrated necessary condition for priceability —
+coefficient magnitudes, grouping, estimator variance and pencil conditioning all
+bear on whether a bank resolves, and a rank-2 pencil may condition differently
+from BeH₂'s rank-5. So an admission is not a demonstration that a bank will
+resolve, and a rejection is not a demonstration that it cannot. Deciding that is
+what a probe is for, and `check_priceability_screen.py` fails any record that
+grows a cost field.
 
 ## R2b raw-pool fermion-mapping axis
 

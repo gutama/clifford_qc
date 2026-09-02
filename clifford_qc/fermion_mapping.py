@@ -33,6 +33,7 @@ from .ir import Program
 
 
 __all__ = [
+    "FERMION_ENCODINGS",
     "FermionEncoding",
     "fermion_encoding",
 ]
@@ -40,6 +41,10 @@ __all__ = [
 
 _BASE_ENCODINGS = {"jw", "parity", "bk"}
 _REDUCED_ENCODINGS = {"parity+2q", "bk+2q"}
+
+#: Every name ``fermion_encoding`` accepts. Public so a caller validating an
+#: arm list against it cannot drift from what the constructor will take.
+FERMION_ENCODINGS = frozenset(_BASE_ENCODINGS | _REDUCED_ENCODINGS)
 
 
 def _gf2_rank(rows: Sequence[int], n: int) -> int:
