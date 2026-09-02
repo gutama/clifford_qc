@@ -1,0 +1,705 @@
+{
+  "acceptance_gates": {
+    "accuracy_target_millihartree": 1.6,
+    "binding_arm_rule": "max over the declared mapping arms. A candidate passes only if its widest arm fits; the reduced +2q arms have been strictly smaller on every committed instance, but that is an observation, not a guarantee, so the maximum is taken rather than assumed.",
+    "margin_factor": 3.0,
+    "margin_factor_basis": "The shot-search pass rule bounds replica RMSE against the exact reference, and RMSE combines bank bias with sampling scatter in quadrature. A bank sitting at the target has no allowance left for shot noise at any endpoint, so the margin exists to reserve the target for the statistical component. At margin 3 the bias takes 0.533 mHa, which is (1/3)^2 = 11.1 percent of the MSE budget, and the statistical RMSE allowance falls from 1.6 to 1.5085 mHa -- a 5.7 percent reduction. Those are two different fractions and the smaller one is not a share of a shot budget consumed. Note what this argument does and does not do: it motivates having a margin, and it does not pick 3 out of 2 or 5. See margin_factor_status.",
+    "margin_factor_status": "declared_here_not_preregistered",
+    "margin_factor_status_basis": "This config and the first result it produces enter the repository in the same commit, so factor 3 is not preregistered with respect to this run and the LiH admission is exploratory evidence for the rule rather than a test of it. Recording that plainly is cheaper than the alternative, which would be to claim a preregistration the history does not support. Two things limit the damage. Every candidate's margin_sensitivity records the range of margin factors over which its verdict is unchanged, re-derived from the walked rows, so a reader can see whether the verdict turns on the number at all. And the rule is frozen from this commit onward: the preregistered use is the next candidate screened under it.",
+    "screen_authorizes_a_probe_not_a_price": true,
+    "selection_may_not_use_mapping_cost_direction": true,
+    "word_universe_ceiling": 2048,
+    "word_universe_ceiling_basis": "Carried forward in intent from the QR3b preregistration: BeH2 is the only bank that has ever priced inside this grid, at W=1814 on its full-width arms, and the ceiling is the next power of two above it. This is an operational admission threshold calibrated on one success, not a demonstrated necessary condition for priceability -- coefficient magnitudes, grouping, estimator variance and pencil conditioning all bear on whether a bank resolves, and W is a proxy for the reconstruction variance the shot search has to overcome rather than that variance itself. What supports it is that both banks rejected so far, h4_converged at W=7926 and LiH at its intrinsic stop at W=7740, sit about four times above it.",
+    "word_universe_convention": "non_identity_words_only",
+    "word_universe_convention_basis": "The tree carries two conventions differing by one: mapping_axis counts the identity word (BeH2 full-width 1815), protocol_axis and the QR3b probe do not (1814). The ceiling was calibrated in the second, and the identity is the one word a shot budget never buys -- its expectation is fixed by normalization -- so it contributes nothing to the reconstruction variance the ceiling stands in for. The screen counts as protocol_axis does, and check_priceability_screen.py calibrates against that record rather than mapping_axis."
+  },
+  "candidates": [
+    {
+      "candidate": "h4_converged",
+      "construction": {
+        "external_sector_energy": -2.180316614323862,
+        "kind": "committed_fcidump",
+        "provenance": "benchmarks/data/h4_sto3g_r0.9.provenance.json",
+        "provenance_sha256": "4b5cc30240ee42709e407f1794b73d9e585bc4032ecc14ff5eef450722868229",
+        "source": "benchmarks/data/h4_sto3g_r0.9.FCIDUMP",
+        "source_sha256": "bf32568461477cf1ec8e7c4aaae737b0c6c80bcbd83d51f783ec3a3daed5a922"
+      },
+      "exact_sector_energy": -2.180316614323859,
+      "frozen_ordering_size": 15,
+      "intrinsic_stop": {
+        "arms": [
+          {
+            "bias_millihartree": 0.7658622613129218,
+            "mapping": "jw",
+            "measured_qubits": 8,
+            "word_universe": 7926
+          },
+          {
+            "bias_millihartree": 0.7658622613129218,
+            "mapping": "parity",
+            "measured_qubits": 8,
+            "word_universe": 7926
+          },
+          {
+            "bias_millihartree": 0.7658622613124777,
+            "mapping": "parity+2q",
+            "measured_qubits": 6,
+            "word_universe": 2047
+          },
+          {
+            "bias_millihartree": 0.7658622613129218,
+            "mapping": "bk",
+            "measured_qubits": 8,
+            "word_universe": 7926
+          },
+          {
+            "bias_millihartree": 0.7658622613124777,
+            "mapping": "bk+2q",
+            "measured_qubits": 6,
+            "word_universe": 2047
+          }
+        ],
+        "basis_size": 15,
+        "bias_millihartree": 0.7658622613129218,
+        "binding_word_universe": 7926,
+        "within_ceiling": false
+      },
+      "label": "H4 equilibrium STO-3G, converged DA-CASE",
+      "margin_sensitivity": {
+        "basis": "rejected; a stricter margin only rejects more, so the upper end is unbounded",
+        "declared_margin_factor": 3.0,
+        "verdict_unchanged_from_margin_factor": 1.0,
+        "verdict_unchanged_to_margin_factor": null
+      },
+      "margin_stop": null,
+      "n_qubits": 8,
+      "prefix_walk": [
+        {
+          "basis_size": 2,
+          "bias_millihartree": 35.06085009241522,
+          "clears_margin": false,
+          "source_word_universe": 1299,
+          "within_ceiling": true
+        },
+        {
+          "basis_size": 3,
+          "bias_millihartree": 26.945078607662598,
+          "clears_margin": false,
+          "source_word_universe": 3051,
+          "within_ceiling": false
+        }
+      ],
+      "verdict": {
+        "admissible_for_a_probe": false,
+        "reason": "word_universe_exceeded_before_bias_cleared",
+        "rule_change_is_what_admits_it": false
+      },
+      "walk_terminated_because": "word_universe_exceeded_before_bias_cleared"
+    },
+    {
+      "candidate": "beh2",
+      "construction": {
+        "external_sector_energy": -15.566211795095155,
+        "kind": "committed_fcidump",
+        "provenance": "benchmarks/data/beh2_sto3g_r1.3264.provenance.json",
+        "provenance_sha256": "fd4eb5de5bf94e2555f8d3d512e7918146224f49b84f8b890527ad5b8a25c73c",
+        "source": "benchmarks/data/beh2_sto3g_r1.3264.FCIDUMP",
+        "source_sha256": "01ef4422b2e9e7f711895ae897a94ea11c1b0fae5a5fd91c3396fbd4d69fba76"
+      },
+      "exact_sector_energy": -15.566211795095168,
+      "frozen_ordering_size": 5,
+      "intrinsic_stop": {
+        "arms": [
+          {
+            "bias_millihartree": 0.0033014997491420672,
+            "mapping": "jw",
+            "measured_qubits": 8,
+            "word_universe": 1814
+          },
+          {
+            "bias_millihartree": 0.0033014997491420672,
+            "mapping": "parity",
+            "measured_qubits": 8,
+            "word_universe": 1814
+          },
+          {
+            "bias_millihartree": 0.0033014997544711377,
+            "mapping": "parity+2q",
+            "measured_qubits": 6,
+            "word_universe": 511
+          },
+          {
+            "bias_millihartree": 0.0033014997491420672,
+            "mapping": "bk",
+            "measured_qubits": 8,
+            "word_universe": 1814
+          },
+          {
+            "bias_millihartree": 0.0033014997544711377,
+            "mapping": "bk+2q",
+            "measured_qubits": 6,
+            "word_universe": 511
+          }
+        ],
+        "basis_size": 5,
+        "bias_millihartree": 0.0033014997491420672,
+        "binding_word_universe": 1814,
+        "within_ceiling": true
+      },
+      "label": "BeH2 equilibrium STO-3G CAS(4e,4o)",
+      "margin_sensitivity": {
+        "basis": "admitted; the upper end is where the chosen prefix stops clearing and a longer prefix may extend it",
+        "declared_margin_factor": 3.0,
+        "verdict_unchanged_from_margin_factor": 1.0,
+        "verdict_unchanged_to_margin_factor": 23.020372770031695
+      },
+      "margin_stop": {
+        "arms": [
+          {
+            "bias_millihartree": 0.06950365295921301,
+            "grouping_protocol": "qwc_groups",
+            "mapping": "jw",
+            "measured_qubits": 8,
+            "settings": 281,
+            "word_universe": 1223
+          },
+          {
+            "bias_millihartree": 0.06950365295921301,
+            "grouping_protocol": "qwc_groups",
+            "mapping": "parity",
+            "measured_qubits": 8,
+            "settings": 37,
+            "word_universe": 1223
+          },
+          {
+            "bias_millihartree": 0.06950365296454208,
+            "grouping_protocol": "qwc_groups",
+            "mapping": "parity+2q",
+            "measured_qubits": 6,
+            "settings": 24,
+            "word_universe": 463
+          },
+          {
+            "bias_millihartree": 0.06950365295921301,
+            "grouping_protocol": "qwc_groups",
+            "mapping": "bk",
+            "measured_qubits": 8,
+            "settings": 37,
+            "word_universe": 1223
+          },
+          {
+            "bias_millihartree": 0.06950365296454208,
+            "grouping_protocol": "qwc_groups",
+            "mapping": "bk+2q",
+            "measured_qubits": 6,
+            "settings": 24,
+            "word_universe": 463
+          }
+        ],
+        "basis_size": 3,
+        "bias_millihartree": 0.06950365295921301,
+        "binding_arms": [
+          "jw",
+          "parity",
+          "bk"
+        ],
+        "binding_word_universe": 1223,
+        "labels": [
+          "I",
+          "E(4,5<-0,1)",
+          "E(6,7<-0,1)"
+        ],
+        "within_ceiling": true
+      },
+      "n_qubits": 8,
+      "prefix_walk": [
+        {
+          "basis_size": 2,
+          "bias_millihartree": 2.8874148152127077,
+          "clears_margin": false,
+          "source_word_universe": 463,
+          "within_ceiling": true
+        },
+        {
+          "basis_size": 3,
+          "bias_millihartree": 0.06950365295921301,
+          "clears_margin": true,
+          "source_word_universe": 1223,
+          "within_ceiling": true
+        }
+      ],
+      "verdict": {
+        "admissible_for_a_probe": true,
+        "reason": "clears the margin at a binding word universe within the ceiling",
+        "rule_change_is_what_admits_it": false
+      },
+      "walk_terminated_because": "margin_cleared"
+    },
+    {
+      "candidate": "lih_cas4e4o",
+      "construction": {
+        "external_sector_energy": -7.863222550890625,
+        "kind": "committed_fcidump",
+        "provenance": "benchmarks/data/lih_sto3g_r1.5949_cas4e4o.provenance.json",
+        "provenance_sha256": "0da925824d5c4b59c9f7297823b4578cd6504795ffca822d320ed65b07a1899f",
+        "source": "benchmarks/data/lih_sto3g_r1.5949_cas4e4o.FCIDUMP",
+        "source_sha256": "1163b1c1a79b20b452f429b694e55a1e34db5b636398f541074a2494d73a4130"
+      },
+      "exact_sector_energy": -7.863222550890624,
+      "frozen_ordering_size": 13,
+      "intrinsic_stop": {
+        "arms": [
+          {
+            "bias_millihartree": 0.00019592264699497264,
+            "mapping": "jw",
+            "measured_qubits": 8,
+            "word_universe": 7740
+          },
+          {
+            "bias_millihartree": 0.00019592264699497264,
+            "mapping": "parity",
+            "measured_qubits": 8,
+            "word_universe": 7740
+          },
+          {
+            "bias_millihartree": 0.00019592264433043738,
+            "mapping": "parity+2q",
+            "measured_qubits": 6,
+            "word_universe": 2047
+          },
+          {
+            "bias_millihartree": 0.00019592264699497264,
+            "mapping": "bk",
+            "measured_qubits": 8,
+            "word_universe": 7740
+          },
+          {
+            "bias_millihartree": 0.00019592264433043738,
+            "mapping": "bk+2q",
+            "measured_qubits": 6,
+            "word_universe": 2047
+          }
+        ],
+        "basis_size": 13,
+        "bias_millihartree": 0.00019592264699497264,
+        "binding_word_universe": 7740,
+        "within_ceiling": false
+      },
+      "label": "LiH equilibrium STO-3G CAS(4e,4o)",
+      "margin_sensitivity": {
+        "basis": "admitted; the upper end is where the chosen prefix stops clearing and a longer prefix may extend it",
+        "declared_margin_factor": 3.0,
+        "verdict_unchanged_from_margin_factor": 1.0,
+        "verdict_unchanged_to_margin_factor": 4.326896638157364
+      },
+      "margin_stop": {
+        "arms": [
+          {
+            "bias_millihartree": 0.3697800372419735,
+            "grouping_protocol": "qwc_groups",
+            "mapping": "jw",
+            "measured_qubits": 8,
+            "settings": 349,
+            "word_universe": 1439
+          },
+          {
+            "bias_millihartree": 0.3697800372419735,
+            "grouping_protocol": "qwc_groups",
+            "mapping": "parity",
+            "measured_qubits": 8,
+            "settings": 175,
+            "word_universe": 1439
+          },
+          {
+            "bias_millihartree": 0.3697800372384208,
+            "grouping_protocol": "qwc_groups",
+            "mapping": "parity+2q",
+            "measured_qubits": 6,
+            "settings": 122,
+            "word_universe": 887
+          },
+          {
+            "bias_millihartree": 0.3697800372419735,
+            "grouping_protocol": "qwc_groups",
+            "mapping": "bk",
+            "measured_qubits": 8,
+            "settings": 283,
+            "word_universe": 1439
+          },
+          {
+            "bias_millihartree": 0.3697800372384208,
+            "grouping_protocol": "qwc_groups",
+            "mapping": "bk+2q",
+            "measured_qubits": 6,
+            "settings": 187,
+            "word_universe": 887
+          }
+        ],
+        "basis_size": 2,
+        "bias_millihartree": 0.3697800372419735,
+        "binding_arms": [
+          "jw",
+          "parity",
+          "bk"
+        ],
+        "binding_word_universe": 1439,
+        "labels": [
+          "I",
+          "E(6,7<-2,3)"
+        ],
+        "within_ceiling": true
+      },
+      "n_qubits": 8,
+      "prefix_walk": [
+        {
+          "basis_size": 2,
+          "bias_millihartree": 0.3697800372419735,
+          "clears_margin": true,
+          "source_word_universe": 1439,
+          "within_ceiling": true
+        }
+      ],
+      "verdict": {
+        "admissible_for_a_probe": true,
+        "reason": "clears the margin at a binding word universe within the ceiling",
+        "rule_change_is_what_admits_it": true
+      },
+      "walk_terminated_because": "margin_cleared"
+    },
+    {
+      "candidate": "hubbard_2x2",
+      "construction": {
+        "U": 4.0,
+        "kind": "native_hubbard",
+        "periodic": false,
+        "shape": [
+          2,
+          2
+        ],
+        "t": 1.0
+      },
+      "exact_sector_energy": -10.102748483462076,
+      "frozen_ordering_size": 9,
+      "intrinsic_stop": {
+        "arms": [
+          {
+            "bias_millihartree": 863.310382890477,
+            "mapping": "jw",
+            "measured_qubits": 8,
+            "word_universe": 5536
+          },
+          {
+            "bias_millihartree": 863.310382890477,
+            "mapping": "parity",
+            "measured_qubits": 8,
+            "word_universe": 5536
+          },
+          {
+            "bias_millihartree": 863.310382890477,
+            "mapping": "parity+2q",
+            "measured_qubits": 6,
+            "word_universe": 2439
+          },
+          {
+            "bias_millihartree": 863.310382890477,
+            "mapping": "bk",
+            "measured_qubits": 8,
+            "word_universe": 5536
+          },
+          {
+            "bias_millihartree": 863.310382890477,
+            "mapping": "bk+2q",
+            "measured_qubits": 6,
+            "word_universe": 2439
+          }
+        ],
+        "basis_size": 9,
+        "bias_millihartree": 863.310382890477,
+        "binding_word_universe": 5536,
+        "within_ceiling": false
+      },
+      "label": "Hubbard 2x2 open boundary U/t=4",
+      "margin_sensitivity": {
+        "basis": "rejected; a stricter margin only rejects more, so the upper end is unbounded",
+        "declared_margin_factor": 3.0,
+        "verdict_unchanged_from_margin_factor": 1.0,
+        "verdict_unchanged_to_margin_factor": null
+      },
+      "margin_stop": null,
+      "n_qubits": 8,
+      "prefix_walk": [
+        {
+          "basis_size": 2,
+          "bias_millihartree": 1866.680505962286,
+          "clears_margin": false,
+          "source_word_universe": 75,
+          "within_ceiling": true
+        },
+        {
+          "basis_size": 3,
+          "bias_millihartree": 1653.258740678897,
+          "clears_margin": false,
+          "source_word_universe": 200,
+          "within_ceiling": true
+        },
+        {
+          "basis_size": 4,
+          "bias_millihartree": 1274.3213587158878,
+          "clears_margin": false,
+          "source_word_universe": 507,
+          "within_ceiling": true
+        },
+        {
+          "basis_size": 5,
+          "bias_millihartree": 1176.7353575843345,
+          "clears_margin": false,
+          "source_word_universe": 914,
+          "within_ceiling": true
+        },
+        {
+          "basis_size": 6,
+          "bias_millihartree": 1063.6584917869704,
+          "clears_margin": false,
+          "source_word_universe": 1375,
+          "within_ceiling": true
+        },
+        {
+          "basis_size": 7,
+          "bias_millihartree": 940.4708232936975,
+          "clears_margin": false,
+          "source_word_universe": 2518,
+          "within_ceiling": false
+        }
+      ],
+      "verdict": {
+        "admissible_for_a_probe": false,
+        "reason": "word_universe_exceeded_before_bias_cleared",
+        "rule_change_is_what_admits_it": false
+      },
+      "walk_terminated_because": "word_universe_exceeded_before_bias_cleared"
+    },
+    {
+      "candidate": "h2o_cas8e6o",
+      "construction": {
+        "external_sector_energy": -75.01268130509854,
+        "kind": "committed_fcidump",
+        "provenance": "benchmarks/data/h2o_sto3g_cas8e6o.provenance.json",
+        "provenance_sha256": "2431c4399676d1a78abfc59d9b0ebe400625193a45d43adcea63c70c6250bb47",
+        "source": "benchmarks/data/h2o_sto3g_cas8e6o.FCIDUMP",
+        "source_sha256": "2f68b1d3f9f77e9c1483cb1b879bac2a67a9d8204ce2e9e985697c10029c6103"
+      },
+      "exact_sector_energy": -75.0126813050984,
+      "frozen_ordering_size": 9,
+      "intrinsic_stop": {
+        "arms": [
+          {
+            "bias_millihartree": 14.224689165814652,
+            "mapping": "jw",
+            "measured_qubits": 12,
+            "word_universe": 143116
+          },
+          {
+            "bias_millihartree": 14.224689165814652,
+            "mapping": "parity",
+            "measured_qubits": 12,
+            "word_universe": 143116
+          },
+          {
+            "bias_millihartree": 14.224689165814652,
+            "mapping": "parity+2q",
+            "measured_qubits": 10,
+            "word_universe": 105640
+          },
+          {
+            "bias_millihartree": 14.224689165814652,
+            "mapping": "bk",
+            "measured_qubits": 12,
+            "word_universe": 143116
+          },
+          {
+            "bias_millihartree": 14.224689165814652,
+            "mapping": "bk+2q",
+            "measured_qubits": 10,
+            "word_universe": 105640
+          }
+        ],
+        "basis_size": 9,
+        "bias_millihartree": 14.224689165814652,
+        "binding_word_universe": 143116,
+        "within_ceiling": false
+      },
+      "label": "H2O equilibrium STO-3G CAS(8e,6o)",
+      "margin_sensitivity": {
+        "basis": "rejected; a stricter margin only rejects more, so the upper end is unbounded",
+        "declared_margin_factor": 3.0,
+        "verdict_unchanged_from_margin_factor": 1.0,
+        "verdict_unchanged_to_margin_factor": null
+      },
+      "margin_stop": null,
+      "n_qubits": 12,
+      "prefix_walk": [
+        {
+          "basis_size": 2,
+          "bias_millihartree": 36.94000599222136,
+          "clears_margin": false,
+          "source_word_universe": 5403,
+          "within_ceiling": false
+        }
+      ],
+      "verdict": {
+        "admissible_for_a_probe": false,
+        "reason": "word_universe_exceeded_before_bias_cleared",
+        "rule_change_is_what_admits_it": false
+      },
+      "walk_terminated_because": "word_universe_exceeded_before_bias_cleared"
+    }
+  ],
+  "claim_boundary": "Structural scope-decision evidence only. Every quantity here is a bias or a word count computed in deterministic double-precision arithmetic -- dense eigensolves and exact operator algebra, reproducible run to run on fixed BLAS threading, but floating-point and compared to tolerance by the checker, not exact arithmetic. Nothing is sampled. The screen may authorize or withhold a sampling probe on a candidate. It may not price C(epsilon), answer QR3 or QR3b, or reclassify any frozen censoring decision. Candidates are admitted or rejected *under this declared screen*: admission is not a demonstration that a bank will resolve, and rejection is not a demonstration that it cannot -- the ceiling is an operational threshold calibrated on a single priced bank, and the frozen R3 cost layer already records that clearing a gate is necessary for a price without being sufficient for one.",
+  "derived_gates": {
+    "admissible_bias_millihartree": 0.5333333333333333,
+    "bias_share_of_mse_budget": 0.1111111111111111,
+    "statistical_allowance_millihartree": 1.5084944665313016,
+    "statistical_allowance_note": "The bank's share of the MSE budget is bias_share_of_mse_budget; the reduction it forces in the remaining statistical RMSE allowance is statistical_allowance_reduction_fraction. The second is the smaller number and is not a fraction of a shot budget consumed.",
+    "statistical_allowance_reduction_fraction": 0.05719095841793653
+  },
+  "estimand": {
+    "name": "R3S_candidate_admission_under_a_declared_priceability_screen",
+    "question": "Which candidate instances does this declared screen admit for a sampling probe -- that is, which clear the accuracy target with the declared margin at a word universe below the ceiling QR3b calibrated? The screen ranks candidates for probe spending; it does not determine which instances are priceable.",
+    "why_it_exists": "The QR3b preflight recorded screen_would_have_rejected_before_probe: true -- its word-universe gate was evaluated after the 2+2 probe had already run all forty cells. This producer evaluates the same gate before any sampling, over every declared candidate, so that a probe is spent only on a candidate that can pass it."
+  },
+  "evidence_tier": "structural",
+  "mapping_arms": [
+    "jw",
+    "parity",
+    "parity+2q",
+    "bk",
+    "bk+2q"
+  ],
+  "margin_factor_status": "declared_here_not_preregistered",
+  "omitted_candidates": {
+    "h4": "The frozen budget-8 H4 bank's labels are the first nine of h4_converged's, so over any shared prefix the two banks are the same object and h4_converged's walked rows are h4's own. That walk leaves the ceiling at M=3, inside h4's ordering and without having cleared the margin, and W is non-decreasing along a prefix, so every h4 prefix from M=3 on is above the ceiling whatever its bias does. Screening h4 separately would re-walk the same rows to the same verdict. check_priceability_screen.py re-derives all of that from the frozen label lists and the walked rows rather than taking it on trust."
+  },
+  "phase": "R3S_priceability_screen",
+  "provenance": {
+    "blas_lapack": {
+      "Build Dependencies": {
+        "blas": {
+          "detection method": "pkgconfig",
+          "found": true,
+          "include directory": "/opt/_internal/cpython-3.11.14/lib/python3.11/site-packages/scipy_openblas64/include",
+          "lib directory": "/opt/_internal/cpython-3.11.14/lib/python3.11/site-packages/scipy_openblas64/lib",
+          "name": "scipy-openblas",
+          "openblas configuration": "OpenBLAS 0.3.31.188.0  USE64BITINT DYNAMIC_ARCH NO_AFFINITY Haswell MAX_THREADS=64",
+          "pc file directory": "/project/.openblas",
+          "version": "0.3.31.188.0"
+        },
+        "lapack": {
+          "detection method": "pkgconfig",
+          "found": true,
+          "include directory": "/opt/_internal/cpython-3.11.14/lib/python3.11/site-packages/scipy_openblas64/include",
+          "lib directory": "/opt/_internal/cpython-3.11.14/lib/python3.11/site-packages/scipy_openblas64/lib",
+          "name": "scipy-openblas",
+          "openblas configuration": "OpenBLAS 0.3.31.188.0  USE64BITINT DYNAMIC_ARCH NO_AFFINITY Haswell MAX_THREADS=64",
+          "pc file directory": "/project/.openblas",
+          "version": "0.3.31.188.0"
+        }
+      },
+      "Compilers": {
+        "c": {
+          "commands": "cc",
+          "linker": "ld.bfd",
+          "name": "gcc",
+          "version": "14.2.1"
+        },
+        "c++": {
+          "commands": "c++",
+          "linker": "ld.bfd",
+          "name": "gcc",
+          "version": "14.2.1"
+        },
+        "cython": {
+          "commands": "cython",
+          "linker": "cython",
+          "name": "cython",
+          "version": "3.2.4"
+        }
+      },
+      "Machine Information": {
+        "build": {
+          "cpu": "x86_64",
+          "endian": "little",
+          "family": "x86_64",
+          "system": "linux"
+        },
+        "host": {
+          "cpu": "x86_64",
+          "endian": "little",
+          "family": "x86_64",
+          "system": "linux"
+        }
+      },
+      "Python Information": {
+        "path": "/tmp/build-env-gjolnpt6/bin/python",
+        "version": "3.11"
+      },
+      "SIMD Extensions": {
+        "baseline": [
+          "X86_V2"
+        ],
+        "found": [
+          "X86_V3",
+          "X86_V4",
+          "AVX512_ICL",
+          "AVX512_SPR"
+        ]
+      }
+    },
+    "clifford_qc": "0.3.0",
+    "dependencies": {
+      "numpy": "2.4.6",
+      "openfermion": null,
+      "openfermionpyscf": null,
+      "pyscf": null,
+      "scipy": "1.17.1",
+      "stim": "1.16.0"
+    },
+    "environment_sha256": "4788a63858b9c790bb659fef47bbfcb14f7a341094a9195b80af322063dd992a",
+    "git_dirty": true,
+    "git_sha": "c64b463d9f93bbd282a560054f8cbbfd8ecf4ee8",
+    "platform": {
+      "hostname": "vm",
+      "machine": "x86_64",
+      "processor": "x86_64",
+      "release": "6.18.44-fc-v22",
+      "system": "Linux"
+    },
+    "python": "3.11.15",
+    "schema": "clifford_qc.execution_provenance.v1",
+    "utc": "2026-09-02T13:34:03.707612+00:00"
+  },
+  "schema": "clifford_qc.priceability_screen.v1",
+  "selection_rule": {
+    "contrast_rule": "intrinsic_stop -- the greedy's own predicted-lowering threshold, which is the rule the frozen R2b/R3/QR3b records used.",
+    "mapping_neutrality": "The prefix is chosen from the source-side bias only, which the linear encoding family leaves invariant (section 6.2). No mapping, arm, word universe, or setting count enters the choice; the record reports the per-arm bias agreement at the chosen prefix so that the claim is checked rather than asserted.",
+    "minimum_prefix_size": 2,
+    "minimum_prefix_size_basis": "A one-generator prefix is the identity alone, so its Ritz value is the Hartree-Fock reference energy and its span is not a subspace. It is excluded by declaration rather than by outcome; on LiH it would otherwise clear the unmargined target at W=193.",
+    "name": "smallest_prefix_clearing_the_accuracy_margin",
+    "ordering_provenance": "The greedy ordering is not re-derived here. It is read from the frozen selected_labels each candidate's own preregistration already fixed, so a prefix of it is a prefix of the recorded run.",
+    "statement": "Walk the frozen A-CASE greedy ordering from its shortest non-trivial prefix and stop at the smallest prefix whose exact subspace bias is at or below accuracy_target_millihartree / margin_factor. The rule is a function of the accuracy target alone."
+  },
+  "summary": {
+    "admissible_for_a_probe": [
+      "beh2",
+      "lih_cas4e4o"
+    ],
+    "admitted_only_by_the_rule_change": [
+      "lih_cas4e4o"
+    ],
+    "rejected": {
+      "h2o_cas8e6o": "word_universe_exceeded_before_bias_cleared",
+      "h4_converged": "word_universe_exceeded_before_bias_cleared",
+      "hubbard_2x2": "word_universe_exceeded_before_bias_cleared"
+    }
+  },
+  "word_universe_convention": "non_identity_words_only"
+}

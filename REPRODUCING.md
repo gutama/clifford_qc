@@ -337,7 +337,7 @@ Two tiers run:
 | job | when | contents |
 | --- | --- | --- |
 | `test` | pull request, push to `main` | `ruff`, `pytest --hypothesis-profile=ci`, and the record gates that finish in about a minute: `check_docs`, `check_molecular`, `check_krylov_width`, `check_clifford_hierarchy`, `check_finite_shot_optimization`, `check_warm_start` |
-| `records` | push to `main`, manual dispatch | the expensive rebuild gates: `check_finite_shot_rethink`, `check_mapping_axis`, `check_protocol_axis`, `check_protocol_cost`, `check_matched_h4`, `check_exact_shot_search`, `check_qr3b_instance_preflight` |
+| `records` | push to `main`, manual dispatch | the expensive rebuild gates: `check_finite_shot_rethink`, `check_mapping_axis`, `check_protocol_axis`, `check_protocol_cost`, `check_matched_h4`, `check_exact_shot_search`, `check_qr3b_instance_preflight`, `check_priceability_screen` |
 
 The split is by cost, not by importance. The exact-tier nonlinear searches
 dominate and can take from minutes to hours, so running them on every push to a
@@ -1680,6 +1680,120 @@ therefore reports `rejected_unresolved_at_frozen_grid`,
 negative candidate-screening result, not an accuracy-matched cost or QR3b
 verdict, and it does not alter H4-converged's independently frozen
 right-censoring.
+
+## R3S priceability screen
+
+The QR3b preflight spent forty sampled cells to reach a verdict its own
+acceptance gates could have reached in seconds: its record carries
+`screen_would_have_rejected_before_probe: true`, meaning the word-universe
+ceiling was evaluated *after* the probe rather than before it. This phase runs
+that gate first, across every declared candidate:
+
+```bash
+python benchmarks/run_priceability_screen.py
+python benchmarks/check_priceability_screen.py
+```
+
+Nothing here is sampled and no chemistry extra is needed. Every quantity is a
+bias or a word count in deterministic double-precision arithmetic — dense
+eigensolves, reproducible run to run on fixed BLAS threading, but floating-point
+and compared to tolerance by the checker rather than exact. Each candidate is
+walked along the greedy ordering its own preregistration already froze — the
+four R2b banks keep their `mapping_axis` labels, LiH keeps the QR3b ones, and no
+ordering is re-derived — and two structural quantities are recorded at every
+prefix: the exact subspace bias against the `1.6 mHa` target, and the word
+universe. A candidate is admissible when some prefix clears the target with the
+declared margin at a binding word universe within the ceiling.
+
+**The screen counts words as `protocol_axis` and the QR3b probe do, excluding
+the identity.** Two conventions are in the tree and they differ by one:
+`mapping_axis` includes the identity word (BeH₂ full-width `1815`), the other
+two records do not (`1814`). The `2048` ceiling was calibrated in the second, and
+the identity is the one word a shot budget never buys — its expectation is fixed
+by normalization — so it contributes nothing to the reconstruction variance the
+ceiling stands in for. `check_priceability_screen.py` calibrates against
+`protocol_axis.json` for the same reason; comparing across the two conventions
+would fail by exactly one on every arm and say nothing about the gate.
+
+**The stopping rule is the phase's one methodological change, and it is declared
+rather than fitted.** The frozen rule runs A-CASE to its own predicted-lowering
+threshold. That is accuracy-maximizing, while the exact-tier price is
+resolution-limited, so the two pull apart: on LiH the greedy spends four orders
+of magnitude of bias headroom to buy `5.4×` the word universe. The screen stops
+instead at the smallest prefix whose bias is at or below
+`accuracy_target / margin_factor`, a function of the accuracy target alone. The
+margin is `3` because the shot search's pass rule bounds replica RMSE and RMSE
+combines bank bias with sampling scatter in quadrature: at margin `3` the bias
+takes `0.533 mHa`, which is `(1/3)² = 11.1%` of the *MSE* budget, and the
+statistical *RMSE* allowance falls from `1.600` to `1.5085 mHa`, a `5.7%`
+reduction. Those are two different fractions, and the smaller is not a share of a
+shot budget consumed. A one-generator prefix is excluded by declaration — it is
+the identity alone, so its Ritz value is the Hartree–Fock energy and its span is
+not a subspace.
+
+**The margin factor is `declared_here_not_preregistered`.** The quadrature
+argument motivates having a margin; it does not pick `3` out of `2` or `5`, and
+this config arrives in the same commit as the first result it produces, so the
+LiH admission is exploratory evidence for the rule rather than a test of it. The
+record says so rather than claiming a preregistration the history does not
+support, and every candidate carries a `margin_sensitivity` range re-derived from
+its own walked rows so a reader can see whether a verdict turns on the number:
+LiH is admitted for every margin from `1` to about `4.33`, and the three rejected
+candidates stay rejected at every margin at or above `1`. None does. The rule is
+frozen from this commit; the preregistered use is the next candidate screened
+under it.
+
+Selecting a prefix on measurement cost is exactly what QR3b's
+`selection_may_not_use_mapping_cost_direction` gate forbids, so the rule may not
+see a mapping, an arm, or a word count. It is evaluated on the source-side bias,
+which the linear encoding family leaves invariant, and the record carries the
+per-arm bias at the chosen prefix so the checker can confirm the arms agree to
+rounding rather than take the declaration on trust.
+
+**Result.**
+
+| candidate | margin stop | binding `W` | intrinsic stop | intrinsic `W` | verdict |
+|---|---|---|---|---|---|
+| `lih_cas4e4o` | `M = 2`, `0.370 mHa` | `1439` | `M = 13`, `0.0002 mHa` | `7740` | **admissible** |
+| `beh2` | `M = 3`, `0.0695 mHa` | `1223` | `M = 5`, `0.0033 mHa` | `1814` | **admissible** |
+| `h4_converged` | none | — | `M = 15`, `0.766 mHa` | `7926` | rejected on the ceiling |
+| `hubbard_2x2` | none | — | `M = 9`, `863 mHa` | `5536` | rejected on the ceiling |
+| `h2o_cas8e6o` | none | — | `M = 9`, `14.2 mHa` | `143116` | rejected on the ceiling |
+
+LiH is admissible at a binding word universe *below* BeH₂'s `1814` — the one
+bank this repository has ever priced inside the frozen `64…65536` grid — while
+the same instance at the greedy's own stopping point sits four times above the
+ceiling. So the QR3b rejection was of a stopping rule, not of an instance, and a
+second priceable candidate is reachable with `SEARCH_ENDPOINTS` untouched.
+`h4_converged` is rejected under both rules and its deferral stands: its bias
+never reaches the margin anywhere in the frozen ordering. The binding-arm rule is
+what carries it — its two `+2q` arms sit at `2047`, one word under the gate, so a
+screen reading any single reduced arm would have admitted a bank the frozen grid
+has already failed to resolve.
+
+**Why the walk may stop early.** Two monotonicities, both re-derived per
+candidate by the checker rather than assumed: bias is non-increasing along the
+greedy prefix, since a Ritz value cannot rise as the span grows, so the first
+clearing prefix is the unique smallest one; and the word universe is
+non-decreasing, since a longer prefix adds matrix-element pairs and removes none,
+so once `W` passes the ceiling with the bias gate unmet, no longer prefix can
+pass either. `h4` is not screened separately for the same reason: its frozen
+labels are the first nine of `h4_converged`'s, so over a shared prefix the two
+banks are the same object, and the shared walk leaves the ceiling at `M = 3`,
+inside `h4`'s own ordering and without having cleared the margin. The checker
+re-derives that from the two frozen label lists and the walked rows.
+
+Labelled `structural`. The screen may authorize or withhold a sampling probe; it
+may not price `C(epsilon)`, answer QR3 or QR3b, or reclassify any frozen
+censoring decision. Candidates are admitted or rejected **under this declared
+screen**: the `2048` ceiling is an operational admission threshold calibrated on
+one priced bank, not a demonstrated necessary condition for priceability —
+coefficient magnitudes, grouping, estimator variance and pencil conditioning all
+bear on whether a bank resolves, and a rank-2 pencil may condition differently
+from BeH₂'s rank-5. So an admission is not a demonstration that a bank will
+resolve, and a rejection is not a demonstration that it cannot. Deciding that is
+what a probe is for, and `check_priceability_screen.py` fails any record that
+grows a cost field.
 
 ## R2b raw-pool fermion-mapping axis
 
