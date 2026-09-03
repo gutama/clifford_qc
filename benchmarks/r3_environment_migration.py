@@ -73,7 +73,7 @@ def _minor(version: object) -> object:
 
 def load_manifest(path: Path = MANIFEST) -> dict:
     payload = _read(path)
-    if payload.get("schema") != SCHEMA:
+    if not isinstance(payload, dict) or payload.get("schema") != SCHEMA:
         raise ValueError("unsupported R3 environment-migration manifest schema")
     return payload
 
@@ -87,18 +87,34 @@ def record_successor_problems(
 ) -> list[str]:
     """Verify that a live record is the declared successor of a frozen one."""
     problems: list[str] = []
-    manifest = load_manifest() if manifest is None else manifest
-    entry = manifest.get("records", {}).get(name)
+    if manifest is None:
+        try:
+            manifest = load_manifest()
+        except (OSError, ValueError) as exc:
+            return [f"migration manifest is unreadable ({exc})"]
+    if not isinstance(manifest, dict):
+        return ["migration manifest must be an object"]
+    records = manifest.get("records")
+    if not isinstance(records, dict):
+        return ["migration records must be an object"]
+    entry = records.get(name)
     anchors = RECORD_ANCHORS.get(name)
     if not isinstance(entry, dict) or not isinstance(anchors, dict):
         return [f"migration has no unambiguous record entry for {name!r}"]
 
-    before = entry.get("before", {})
-    after = entry.get("after", {})
+    sides: dict[str, dict] = {}
     for side in ("before", "after"):
-        declared = entry.get(side, {})
-        if {key: declared.get(key) for key in ("sha256", "git_blob_sha1")} != anchors[side]:
+        declared = entry.get(side)
+        if not isinstance(declared, dict):
+            problems.append(f"{name} {side} migration entry must be an object")
+            declared = {}
+        elif {
+            key: declared.get(key) for key in ("sha256", "git_blob_sha1")
+        } != anchors[side]:
             problems.append(f"{name} {side} anchor differs from the reviewed migration")
+        sides[side] = declared
+    before = sides["before"]
+    after = sides["after"]
     if historical_sha256 is not None and before.get("sha256") != historical_sha256:
         problems.append(f"{name} historical SHA-256 no longer matches its preregistration")
     if (
@@ -175,7 +191,13 @@ def r3b_findings(record: dict) -> tuple[dict, dict]:
 def migration_problems(manifest: dict | None = None) -> list[str]:
     """Validate hashes, environments, and the scientific migration boundary."""
     problems: list[str] = []
-    manifest = load_manifest() if manifest is None else manifest
+    if manifest is None:
+        try:
+            manifest = load_manifest()
+        except (OSError, ValueError) as exc:
+            return [f"migration manifest is unreadable ({exc})"]
+    if not isinstance(manifest, dict):
+        return ["migration manifest must be an object"]
     if manifest.get("status") != "completed_rebuild_not_relabel":
         problems.append("migration does not declare a completed genuine rebuild")
     if manifest.get("source_main_commit") != SOURCE_MAIN_COMMIT:
@@ -183,45 +205,73 @@ def migration_problems(manifest: dict | None = None) -> list[str]:
     if manifest.get("target_environment") != TARGET_ENVIRONMENT:
         problems.append("migration target environment drifted")
 
-    configs = manifest.get("frozen_configs", {})
+    configs = manifest.get("frozen_configs")
+    if not isinstance(configs, dict):
+        problems.append("migration frozen_configs must be an object")
+        configs = {}
     for name, expected in FROZEN_CONFIG_SHA256.items():
-        entry = configs.get(name, {})
+        entry = configs.get(name)
+        if not isinstance(entry, dict):
+            problems.append(f"{name} manifest config entry must be an object")
+            continue
         if entry.get("sha256") != expected:
             problems.append(f"{name} manifest config anchor drifted")
             continue
         path_value = entry.get("path")
-        if not isinstance(path_value, str) or _sha256(ROOT / path_value) != expected:
+        if not isinstance(path_value, str):
+            problems.append(f"{name} frozen config path is missing")
+            continue
+        path = ROOT / path_value
+        if not path.is_file():
+            problems.append(f"{name} frozen config is missing at {path_value}")
+        elif _sha256(path) != expected:
             problems.append(f"{name} frozen config changed during the migration")
 
+    entries = manifest.get("records")
+    if not isinstance(entries, dict):
+        problems.append("migration records must be an object")
+        entries = {}
     for name in RECORD_ANCHORS:
         problems += record_successor_problems(name, manifest=manifest)
-        entry = manifest.get("records", {}).get(name, {})
+        entry = entries.get(name)
+        if not isinstance(entry, dict):
+            continue
         path_value = entry.get("path")
         if isinstance(path_value, str) and (ROOT / path_value).is_file():
             record = _read(ROOT / path_value)
             if _record_environment(record) != TARGET_ENVIRONMENT:
                 problems.append(f"{name} was not rebuilt under the target environment")
 
-    entries = manifest.get("records", {})
-    screen_entry = entries.get("priceability_screen", {})
+    screen_entry = entries.get("priceability_screen")
+    if not isinstance(screen_entry, dict):
+        screen_entry = {}
     screen_path = screen_entry.get("path")
     if isinstance(screen_path, str) and (ROOT / screen_path).is_file():
         screen = _read(ROOT / screen_path)
         current = _priceability_summary(screen)
-        if current != screen_entry.get("after", {}).get("summary"):
+        after = screen_entry.get("after")
+        before = screen_entry.get("before")
+        if not isinstance(after, dict) or current != after.get("summary"):
             problems.append("priceability-screen verdicts differ from the migration record")
-        if screen_entry.get("before", {}).get("summary") != current:
+        if not isinstance(before, dict) or before.get("summary") != current:
             problems.append("priceability-screen scientific summary moved across migration")
 
-    r3b_entry = entries.get("r3b_margin_stop_probe", {})
+    r3b_entry = entries.get("r3b_margin_stop_probe")
+    if not isinstance(r3b_entry, dict):
+        r3b_entry = {}
     r3b_path = r3b_entry.get("path")
     if isinstance(r3b_path, str) and (ROOT / r3b_path).is_file():
         r3b = _read(ROOT / r3b_path)
-        if _r3b_decision(r3b) != r3b_entry.get("after", {}).get("decision"):
+        after = r3b_entry.get("after")
+        before = r3b_entry.get("before")
+        if not isinstance(after, dict):
+            after = {}
+        if not isinstance(before, dict):
+            before = {}
+        if _r3b_decision(r3b) != after.get("decision"):
             problems.append("R3b migrated decision differs from the recorded redraw")
-        if _r3b_diagnosis(r3b) != r3b_entry.get("after", {}).get("diagnosis"):
+        if _r3b_diagnosis(r3b) != after.get("diagnosis"):
             problems.append("R3b migrated diagnosis differs from the recorded redraw")
-        before = r3b_entry.get("before", {})
         if before.get("decision", {}).get("status") != "rejected_unresolved_at_frozen_grid":
             problems.append("R3b historical rejection is not preserved")
         if before.get("diagnosis", {}).get("grid_fit_failures") != 0:

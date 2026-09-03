@@ -44,3 +44,19 @@ def test_a_preregistration_cannot_name_a_different_history():
         "r3b_margin_stop_probe", historical_git_blob_sha1="0" * 40
     )
     assert any("historical Git blob" in problem for problem in problems)
+
+
+def test_a_malformed_record_side_is_reported_instead_of_raising():
+    broken = copy.deepcopy(migration.load_manifest())
+    broken["records"]["r3b_margin_stop_probe"]["before"] = []
+    problems = migration.migration_problems(broken)
+    assert any("before migration entry must be an object" in p for p in problems)
+
+
+def test_a_missing_frozen_config_is_reported_instead_of_raising():
+    broken = copy.deepcopy(migration.load_manifest())
+    broken["frozen_configs"]["priceability_screen"]["path"] = (
+        "benchmarks/configs/does_not_exist.json"
+    )
+    problems = migration.migration_problems(broken)
+    assert any("frozen config is missing" in p for p in problems)
