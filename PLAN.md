@@ -116,7 +116,7 @@ Status at a glance:
 | R3 | protocol axis and accuracy-matched cost regions | **done**; the structural and exact-tier records ship, while QR3 abstains because H4-converged is right-censored at the frozen endpoint ceiling — R3S below is the route to a second priced instance that does not widen the grid |
 | QR3b | chemically independent LiH exact-tier extension preflight | **done, negative scope decision** *for the intrinsic-stop bank* (`M = 13`, `W = 7740`); the bias gate passes, but 21/40 cells are unresolved and 9 more resolve only at the frozen ceiling, so no full run is authorized on that bank. The screened `M = 2` bank is a separate candidate — R3b |
 | R3S | priceability screen — which candidates a declared screen admits for a probe | **done, positive**; under a stopping rule that reserves the accuracy target for shot noise, LiH is admissible at a two-generator prefix (`W = 1439` against BeH₂'s `1814`), so QR3b rejected the greedy's stopping point rather than the instance |
-| R3b | LiH `margin_stop` probe — the QR3b 2+2 preflight re-run on the bank R3S admitted | **preregistered, not yet run** (§13, step 13b); the config and its checker are committed, no sampling has happened under them, and the run is the next commit |
+| R3b | LiH `margin_stop` probe — the QR3b 2+2 preflight re-run on the bank R3S admitted | **done, mixed**; the bank is rejected (30/40 cells resolve, the gate needs 40) so no full run is authorized and there is still one priced instance — but the grid-fit failure mode QR3b died on went `15 → 0` cells, and what remains is the `2+2` probe's confirmation power, not `W` |
 | R4 | contextual-subspace comparator | open |
 
 "Shipped" means the module, its tests, and where applicable its benchmark
@@ -2162,7 +2162,7 @@ tier is a required field of every cost row:
 |---|---|---|---|
 | `exact` (default for R1–R4) | replica RMSE of the nonlinear estimate's absolute error against the rung's exact reference, which §7.3 supplies for every rung but HCl | yes | the accuracy-matched shot search in R1–R4 |
 | `asymptotic` | half-width of the delta-method Ritz interval at declared nominal coverage | yes, uncertified | reported beside the `exact` tier as the estimator's own view |
-| `structural` | no accuracy claim: counts, biases against an exact reference, and synthesis resources in deterministic double-precision arithmetic, nothing sampled | yes | the R3 structural layer (`protocol_axis.json`) and the R3S screen (`priceability_screen.json`); a structural record may authorize or withhold a sampled run and may not price one |
+| `structural` | no accuracy claim: counts, biases against an exact reference, and synthesis resources in deterministic double-precision arithmetic, nothing sampled | yes | the R3 structural layer (`protocol_axis.json`) and the R3S screen (`priceability_screen.json`); a structural record may authorize or withhold a sampled run and may not price one. The QR3b and R3b probes sample, so they are `exact`-tier evidence with a `scope_decision_only` role: they resolve or fail to resolve a crossing without pricing it |
 | `finite_sample` | half-width of a finite-sample Ritz-energy certificate | **no** | nothing, until such a certificate exists |
 
 The default tier is an **oracle** target: it uses the exact answer, which a device run
@@ -3004,10 +3004,14 @@ A-CASE's.
   abstention now rests on **resolution**, not accuracy, and `protocol_cost.json` says which
   through `cost_layer_scope`. `check_protocol_cost.py` fails any record that upgrades the
   verdict, and equally any record that drops a structural system without deferring it.
-  R3S then showed the resolution barrier is a property of the frozen stopping rule, not
-  of the candidate set: LiH at the margin-rule prefix sits at `W = 1439`, under the one
-  priced bank, so the route to a second priced instance is the step-13b probe rather
-  than a wider grid. QR3 stays abstaining until that probe prices.
+  R3S then showed part of the barrier is a property of the frozen stopping rule: LiH
+  at the margin-rule prefix sits at `W = 1439`, under the one priced bank. The 13b
+  probe tested that and **did not price it** — 30 of 40 cells resolve against a gate
+  needing 40. The half that held is the one `W` governs: `not_bracketed_within_search_grid`
+  went from 15 cells to none, so the crossings are inside the grid now. The half that
+  did not is the probe's own confirmation power. QR3 therefore stays abstaining, and
+  the reason has moved once more — from accuracy, to grid resolution, to whether a
+  `2+2` scope probe can confirm a crossing it has already located.
 - **QR4 (pooling × protocol).** Does the coverage fraction `f_w` change the `k*` chosen under
   the pooled estimator relative to the single-assignment one? *Falsifier:* identical `k*`
   under both, which retires the concern. **The falsifier fires on the R3 grid**
@@ -3151,13 +3155,17 @@ Track A must not wait for Tracks B or C. Within each track the order is dependen
 between tracks, R1 is cheap and its result can reorder Track B's protocol conclusions, so it
 comes early.
 
-**Immediate order, as of the R3S merge.** (1) Step 13b — the LiH `margin_stop`
-probe, with its preregistration committed first; it is the cheapest action that can
-give the exact tier a second priced instance. (2) Restore the record gates in tiered
-form (end of this section), so the next merge is not the second to land without CI.
-(3) Phase 13, the X-rank invariant — no sampling, and it gates Phase 14. (4) R4a,
-only once 13b has priced, since its baseline arm inherits 13b's resolution risk.
-Paper A's submission stays schedulable at any time and blocks nothing.
+**Immediate order, as of the R3b probe.** Step 13b is done and did not price:
+the exact tier still has one priced instance, and the binding constraint has moved
+from the search grid to the `2+2` probe's confirmation power. So (1) decide, in a
+fresh preregistration, whether the scope-decision probe should be re-sized —
+QR3b's `2+2` was sized against grid-fit failures, which no longer occur, and the
+answer may be that a scope probe cannot settle confirmation-limited cells at all.
+(2) Restore the record gates in tiered form (end of this section), so the next
+merge is not the third to land without CI. (3) Phase 13, the X-rank invariant — no
+sampling, and it gates Phase 14. (4) R4a is *not* unblocked: it still needs a
+second priced instance, and its widest arm inherits exactly the confirmation risk
+13b just measured. Paper A's submission stays schedulable and blocks nothing.
 
 **Paper A — the one item outside the tracks.** Its software, data, go/no-go decisions,
 and manuscript are complete (§9.6, §9.6.1) but it is not submitted. Nothing below
@@ -3300,36 +3308,50 @@ not another open accuracy phase.
     priceable. *Gate:* the screen authorizes or withholds a probe and prices
     nothing — `check_priceability_screen.py` fails a record carrying any cost
     field. *Next:* step 13b.
-13b. R3b — the LiH `margin_stop` probe. **Preregistered; the run is next.**
-    The preregistration ships (`benchmarks/configs/r3b_margin_stop_probe.json`,
-    `check_r3b_preregistration.py`, `tests/test_r3b_preregistration.py`) and no
-    sampling has happened under it. Its checker re-runs the R3S margin rule over
-    the frozen ordering and requires it to select exactly the declared prefix,
-    then rebuilds the bank through all five arms — so a prefix chosen for
-    cheapness rather than by the accuracy target fails before any shot is spent.
-    The frozen QR3b 2+2 scoping
-    probe (`run_qr3b_instance_preflight.py`), re-run on the bank R3S admitted —
-    LiH CAS(4e,4o) at `M = 2`, labels `I`, `E(6,7<-2,3)`, bias `0.370` mHa,
-    binding `W = 1439` — under the unchanged `SEARCH_ENDPOINTS`, estimators, and
-    block sizes. *Preregistration first, as its own commit:* the candidate config
-    (labels, digests, gates, seed roots) landed before any sampling, so this
-    record can call its rule preregistered where R3S could not — the rule itself
-    stays R3S's `declared_here_not_preregistered`, and this is its first
-    preregistered use. *Gates,
-    unchanged from QR3b:* every probe cell resolves strictly before `65536`, with
-    `16384` the preferred headroom endpoint; the bias gate passes on all five
-    arms; the probe is a scope decision and not a cost record, so its output
-    strips every `C(ε)`/`k*` derivative and always records
-    `full_run_authorized: false`. *What a pass buys:* a separately preregistered
-    `30+100` run on this bank — the exact tier's second priced instance, which is
-    what makes QR3 and QR3b answerable. *What a failure means:* the screen's
-    ceiling is a proxy this bank falsifies; report it as the screen's first
-    negative and record the unresolved cells' `W`, so the ceiling is recalibrated
-    on two points rather than one. *Sensitivity, from the record:* LiH's admission
-    holds for every margin factor in `[1, 4.33]`, so the probe is not a test of
-    the number `3`. *Cost:* the QR3b gate took 150 CI-minutes at `W = 7740`; at a
-    fifth of the words the same probe should be materially cheaper, and it is not
-    scheduled in CI until the gates are tiered.
+13b. R3b — the LiH `margin_stop` probe. **Done, mixed.**
+    *Preregistration first, in its own commit*
+    (`benchmarks/configs/r3b_margin_stop_probe.json`,
+    `check_r3b_preregistration.py`): the bank, gates and seed roots landed before
+    any sampling, which is what lets this record call its rule preregistered
+    where R3S could not — the margin rule itself keeps R3S's
+    `declared_here_not_preregistered` label, and this is its first preregistered
+    *use*. The checker re-runs that rule over the frozen QR3b ordering and
+    requires it to select exactly the declared prefix, so a prefix chosen for
+    cheapness fails before a shot is spent.
+    *The run* (`run_r3b_margin_stop_probe.py`,
+    `reference_results/r3b_margin_stop_probe.json`,
+    `check_r3b_margin_stop_probe.py`): the frozen QR3b `2+2` scoping probe on
+    LiH CAS(4e,4o) at `M = 2`, labels `I` and `E(6,7<-2,3)`, bias `0.370` mHa,
+    binding `W = 1439`, under QR3b's grid, estimators and block sizes unchanged,
+    so the two records differ in the bank and nothing else. Three minutes on four
+    workers against QR3b's 150 CI-minutes.
+
+    *Result: the bank is rejected and no full run is authorized.* 30 of 40 cells
+    resolve; the preregistered gate needs all 40 to resolve strictly before
+    `65536`. So the exact tier still has one priced instance, and the expectation
+    this step rested on — that the margin bank would supply the second — is not
+    borne out.
+
+    *What changed is the failure mode, and that is the finding.*
+    `not_bracketed_within_search_grid`, the failure the word-universe ceiling is
+    a proxy for, accounted for 15 of QR3b's 22 unresolved cells and **none** of
+    R3b's; the passing endpoints fell about two grid steps, modal `65536 →
+    16384`. The ten remaining failures are nine exploratory crossings the two
+    confirmatory replicas did not reproduce, one nonmonotone confirmation, and
+    one cell bracketing only at the last grid point. Those are the probe's
+    replica count and its headroom, not `W`. So the ceiling is corroborated on
+    what it actually predicts, and the binding constraint has moved from the grid
+    to the instrument. The record's verdict is
+    `corroborated_on_grid_fit_headroom_marginal`, and the split behind it is
+    labelled `post_hoc_diagnostic_not_preregistered`: the preregistration
+    declared a corroborate/falsify binary and the drawn cells showed it conflates
+    two mechanisms. The preregistered gate, its inputs and its rejection are
+    untouched by that relabelling.
+
+    *Not licensed by this result.* A probe re-sized after seeing which cells
+    failed — that is the move preregistration exists to prevent, and re-sizing
+    needs its own declaration. A wider `SEARCH_ENDPOINTS` — the grid was never
+    the binding constraint here. And no `30+100` run on this bank.
 14. R4a — contextual-subspace comparator arms with bias floors. *Gate:* QR5 answered.
 15. R4b — CS-preconditioned A-CASE, built only on a complementary QR5.
 

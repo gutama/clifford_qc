@@ -337,7 +337,7 @@ Two tiers run:
 | job | when | contents |
 | --- | --- | --- |
 | `test` | pull request, push to `main` | `ruff`, `pytest --hypothesis-profile=ci`, and the record gates that finish in about a minute: `check_docs`, `check_molecular`, `check_krylov_width`, `check_clifford_hierarchy`, `check_finite_shot_optimization`, `check_warm_start` |
-| `records` | push to `main`, manual dispatch | the expensive rebuild gates: `check_finite_shot_rethink`, `check_mapping_axis`, `check_protocol_axis`, `check_protocol_cost`, `check_matched_h4`, `check_exact_shot_search`, `check_qr3b_instance_preflight`, `check_priceability_screen`, `check_r3b_preregistration` |
+| `records` | push to `main`, manual dispatch | the expensive rebuild gates: `check_finite_shot_rethink`, `check_mapping_axis`, `check_protocol_axis`, `check_protocol_cost`, `check_matched_h4`, `check_exact_shot_search`, `check_qr3b_instance_preflight`, `check_priceability_screen`, `check_r3b_preregistration`, `check_r3b_margin_stop_probe` |
 
 The split is by cost, not by importance. The exact-tier nonlinear searches
 dominate and can take from minutes to hours, so running them on every push to a
@@ -1853,6 +1853,74 @@ only: it may accept or reject this bank for a later preregistered `30+100` run,
 and it may not price `C(epsilon)`, answer QR3 or QR3b, or alter any frozen
 censoring decision. A pass buys eligibility; a failure is a result about the
 `2048` ceiling, which would then be recalibrated on two points rather than one.
+
+## R3b margin-stop probe — the run
+
+The preregistration's other half. The bank it froze has now been probed:
+
+```bash
+python benchmarks/run_r3b_margin_stop_probe.py --workers 4
+python benchmarks/check_r3b_margin_stop_probe.py --workers 4
+```
+
+Everything the probe could vary is QR3b's, unchanged — the `64…65536` grid,
+`k ∈ {1,2,4,8}`, both estimators, `2+2` replicas, the same
+scope-decision-not-cost-record contract — so the two records differ in the bank
+and nothing else, and comparing them is like for like. About three minutes on
+four workers, against QR3b's 150 CI-minutes.
+
+**Result: the bank is rejected, and the gate is not relaxed.**
+`rejected_unresolved_at_frozen_grid`, `eligible_for_full_run: false`,
+`full_run_authorized: false`. 30 of
+40 cells resolved and 10 did not,
+and the preregistration requires every cell to resolve strictly before `65536`.
+So no `30+100` run is authorized on this bank, and the earlier expectation that
+the margin-stop bank would deliver the exact tier's second priced instance is
+**not** borne out.
+
+**But the failure mode changed completely, and that is the finding.**
+
+| | QR3b — intrinsic stop, `W = 7740` | R3b — margin stop, `W = 1439` |
+|---|---|---|
+| resolved | 18 / 40 | **30 / 40** |
+| `not_bracketed_within_search_grid` | **15** | **0** |
+| confirmation failures | 7 | 10 |
+| cells at/over the `65536` ceiling | 9 | 1 |
+| modal passing endpoint | `65536` | `16384`, then `4096` |
+
+`not_bracketed_within_search_grid` means no crossing was found anywhere inside
+the grid — the failure the word-universe ceiling is a proxy for, since `W` sets
+the reconstruction variance the search has to overcome. It accounted for 15 of
+QR3b's 22 unresolved cells and **none** of R3b's. Every crossing this bank has
+lies inside the grid, and the passing endpoints fell by roughly two grid steps.
+
+What remains is a different mechanism. Nine cells found an exploratory crossing
+the two confirmatory replicas did not reproduce, one was nonmonotone, and one
+bracketed only at the last grid point. The first two are the `2+2` probe's
+replica count; the third is headroom. Neither is a statement about `W`.
+
+**So the record's verdict is
+`corroborated_on_grid_fit_headroom_marginal`**, and the split behind it is
+labelled `post_hoc_diagnostic_not_preregistered`: the preregistration declared a
+corroborate/falsify binary, and the drawn cells showed that binary conflates two
+mechanisms with different remedies. Refining it after the draw is legitimate
+only because it is labelled and because it leaves the preregistered decision
+untouched — the gate, its inputs and its rejection are exactly as frozen, and
+the new field only says which mechanism produced the rejection.
+
+**What this does not license.** Not a relaxed gate. A `2+2` probe was sized
+against grid-fit failures, and whether it is the right instrument for
+confirmation failures is a real question — but answering it by widening the
+probe *after* seeing which cells failed is precisely the move the preregistration
+discipline exists to prevent. That question needs its own preregistration. Nor
+does it license widening `SEARCH_ENDPOINTS`: the grid was never the binding
+constraint here.
+
+`check_r3b_margin_stop_probe.py` rebuilds the record, re-derives the decision
+from the probe's own cells, re-derives `screen_prediction` from the resolution
+gate and the failure-mode counts, and separately asserts that QR3b's record
+still carries its own rejection unchanged — this phase extends that record and
+may not reopen it.
 
 ## R2b raw-pool fermion-mapping axis
 
