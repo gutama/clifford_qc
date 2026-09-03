@@ -182,3 +182,18 @@ def test_the_committed_set_is_surveyed_once_per_process(tmp_path, monkeypatch):
     for _ in range(5):
         stamp_record({"schema": "example.v1"})
     assert len(surveys) == 1
+
+
+@pytest.fixture(scope="module")
+def stamped_before_any_function_scoped_fixture():
+    """Stamp from a module-scoped fixture, which is the case that regressed.
+
+    The suite's opt-out from the producer environment guard has to be in place
+    before fixtures of every scope, not just the function-scoped ones a
+    ``monkeypatch`` fixture can reach.
+    """
+    return stamp_record({"schema": "example.v1"})
+
+
+def test_a_module_scoped_fixture_may_stamp(stamped_before_any_function_scoped_fixture):
+    assert stamped_before_any_function_scoped_fixture["provenance"]["clifford_qc"]
