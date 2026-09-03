@@ -94,7 +94,32 @@ def _canonical_sha256(payload: dict) -> str:
 def _git_blob_sha1(path: Path) -> str:
     data = path.read_bytes()
     header = f"blob {len(data)}\0".encode()
-    return hashlib.sha1(header + data).hexdigest()
+    return hashlib.sha1(header + data, usedforsecurity=False).hexdigest()
+
+
+def _card_hashes(rows, label: str, problems: list[str]) -> dict[str, str]:
+    """Return an unambiguous name-to-digest map without trusting the payload."""
+    cards: dict[str, str] = {}
+    if not isinstance(rows, list):
+        problems.append(f"{label} device_cards must be a list")
+        return cards
+    for index, row in enumerate(rows):
+        if not isinstance(row, dict):
+            problems.append(f"{label} device_cards[{index}] must be an object")
+            continue
+        name = row.get("name")
+        digest = row.get("sha256")
+        if not isinstance(name, str) or not name:
+            problems.append(f"{label} device_cards[{index}] has no valid name")
+            continue
+        if name in cards:
+            problems.append(f"{label} device_cards contains duplicate name {name!r}")
+            continue
+        if not isinstance(digest, str) or len(digest) != 64:
+            problems.append(f"{label} device card {name!r} has no valid SHA-256")
+            continue
+        cards[name] = digest
+    return cards
 
 
 def load_config(path: Path = CONFIG) -> dict:
@@ -268,8 +293,8 @@ def protocol_problems(config: dict) -> list[str]:
     if protocol.get("execution_environment") != frozen_environment:
         problems.append("R3c execution environment differs from the exact-tier baseline")
 
-    cards = {row["name"]: row["sha256"] for row in protocol.get("device_cards", [])}
-    frozen_cards = {row["name"]: row["sha256"] for row in cost_record["device_cards"]}
+    cards = _card_hashes(protocol.get("device_cards"), "R3c", problems)
+    frozen_cards = _card_hashes(cost_record.get("device_cards"), "protocol_cost", problems)
     if cards != frozen_cards:
         problems.append("R3c device-card names or hashes differ from protocol_cost")
     return problems

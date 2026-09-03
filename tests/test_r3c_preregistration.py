@@ -107,6 +107,16 @@ def test_device_card_hashes_are_the_existing_cost_layer_cards(config):
     broken["protocol"]["device_cards"][0]["sha256"] = "0" * 64
     assert any("device-card" in p for p in r3c.protocol_problems(broken))
 
+    duplicate = copy.deepcopy(config)
+    duplicate["protocol"]["device_cards"].append(
+        copy.deepcopy(duplicate["protocol"]["device_cards"][0])
+    )
+    assert any("duplicate name" in p for p in r3c.protocol_problems(duplicate))
+
+    malformed = copy.deepcopy(config)
+    del malformed["protocol"]["device_cards"][0]["sha256"]
+    assert any("valid SHA-256" in p for p in r3c.protocol_problems(malformed))
+
 
 def test_pass_censoring_and_separate_result_commit_are_frozen(config):
     assert r3c.rule_problems(config) == []
