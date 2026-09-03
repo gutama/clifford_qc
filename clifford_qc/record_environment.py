@@ -28,6 +28,7 @@ place that costs a rebuild rather than a retraction.
 
 from __future__ import annotations
 
+import hashlib
 import importlib.metadata
 import json
 import os
@@ -85,6 +86,41 @@ def pending(path: Path | None = None) -> dict[str, dict]:
     except (OSError, ValueError, AttributeError):
         return {}
     return listed if isinstance(listed, dict) else {}
+
+
+def exemption_problems(data: Path | None = None) -> list[str]:
+    """Check that every outstanding record is still the one that was exempted.
+
+    A pending entry is a decision about a specific file, so it is anchored to
+    that file's digest.  Exempting a *name* would mean the record could be
+    deleted, corrupted, or re-stamped to any environment at all and the gate
+    would keep passing, because the survey never opens a file it is skipping.
+    Absence, unreadability and drift are therefore failures, and an entry with
+    no digest cannot exempt anything.
+    """
+    directory = DEFAULT_DATA if data is None else data
+    problems = []
+    for name, entry in sorted(pending().items()):
+        expected = entry.get("sha256") if isinstance(entry, dict) else None
+        if not isinstance(expected, str):
+            problems.append(
+                f"{name}: listed as awaiting migration with no sha256, so the "
+                "exemption is anchored to nothing; add the record's digest")
+            continue
+        try:
+            actual = hashlib.sha256((directory / name).read_bytes()).hexdigest()
+        except OSError as exc:
+            problems.append(
+                f"{name}: listed as awaiting migration but cannot be read "
+                f"({exc}); an entry cannot outlive its record")
+            continue
+        if actual != expected:
+            problems.append(
+                f"{name}: changed since it was listed as awaiting migration "
+                f"({actual[:12]}... is not the exempted {expected[:12]}...). A "
+                "record is exempt as reviewed, not as a name: rebuild it and "
+                "delete the entry, or re-anchor the entry to what it now is")
+    return problems
 
 
 def _provenance_blocks(path: Path) -> tuple[list[dict], str | None]:

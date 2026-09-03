@@ -77,6 +77,7 @@ _contract = _load_contract()
 
 agreed = _contract.agreed
 constraints = _contract.constraints
+exemption_problems = _contract.exemption_problems
 pending = _contract.pending
 survey = _contract.survey
 verify = _contract.verify
@@ -144,6 +145,17 @@ def main(argv: list[str] | None = None) -> int:
               file=sys.stderr)
 
     declarations, problems = survey(DATA, args.records)
+    problems.extend(exemption_problems(DATA))
+
+    # A selector naming an outstanding record would otherwise survey to nothing
+    # and emit an empty pin set with a zero exit, which the composite action
+    # installs against and then reports as a match.
+    for name in sorted(set(args.records or ()) & set(pending())):
+        problems.append(
+            f"{name}: selected, but its environment migration is outstanding, "
+            "so it declares nothing the gate will stand behind. Rebuild it and "
+            "delete its entry, or select a record that is up to date")
+
     versions = agreed(declarations, problems)
     if not emitting:
         verify(versions, problems)

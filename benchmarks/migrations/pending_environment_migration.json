@@ -1,6 +1,6 @@
 {
   "schema": "clifford_qc.pending_environment_migration.v1",
-  "purpose": "Records that still declare a superseded environment, named one by one so the gap is tracked rather than invisible. A listed record is passed over by the default survey, so it neither sets the pin nor widens what the producer guard accepts, and the gate reports it on every run by reading back what it declares. This file says why a record is outstanding; it never says what the record declares, because a version written down twice can disagree with itself. Removing an entry is the last step of rebuilding its record, never a way to quiet the report.",
+  "purpose": "Records that still declare a superseded environment, named one by one so the gap is tracked rather than invisible. A listed record is passed over by the default survey, so it neither sets the pin nor widens what the producer guard accepts, and the gate reports it on every run by reading back what it declares. This file says why a record is outstanding; it never says what the record declares, because a version written down twice can disagree with itself. Each entry is anchored to its record's sha256: the exemption covers the file that was reviewed, not the name, so absence, unreadability or any change to the record fails the gate. Removing an entry is the last step of rebuilding its record, never a way to quiet the report.",
   "target_environment": {
     "python_minor": "3.12",
     "numpy": "2.5.2",
@@ -9,6 +9,7 @@
   },
   "records": {
     "acase_ladder.jsonl": {
+      "sha256": "927dad58e7fe395ca1d0cf2b0ad41b5202f865e84d4f429d65263b8f260a35c5",
       "rows": "20 of 92 rows carry provenance, all of them the qsci family added in #39; the other 72 predate execution stamping and claim nothing.",
       "produced": "2026-08-06, before the Python 3.12 migration in #69 rebuilt the JSON records.",
       "why_it_is_not_rebuilt_here": "The ladder is manuscript evidence, not a value-gated record: no check_*.py rebuilds it, and paper_acase and paper_a_case_subspaces read it for figures and tables. Regenerating it moves published inputs across all five families, not only the 20 stamped rows, so it is an authorship decision rather than a reproducibility repair.",

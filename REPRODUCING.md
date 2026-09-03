@@ -106,7 +106,7 @@ No figure or table value in the manuscript is transcribed by hand, and
 ```bash
 python -m venv .venv && source .venv/bin/activate
 pip install -e .[test,research,chemistry]   # numpy + scipy + openfermion/pyscf
-pytest                                      # 1321 passed, 27 skipped
+pytest                                      # 1328 passed, 27 skipped
 ```
 
 That install is the reference environment for the quoted pair. The count
@@ -128,7 +128,7 @@ the remaining `27 - 13 = 14` skips are per-test and *are* collected:
 
 ```text
 collected == passed + (skipped - files dropped at collection)
-1335      == 1321   + (27      -  13)
+1342      == 1328   + (27      -  13)
 ```
 
 Both sides are computed from the tree, so a drift in either quoted number
@@ -392,6 +392,15 @@ value-gated record: no `check_*.py` rebuilds it, `paper_acase` and
 `paper_a_case_subspaces` read it for figures and tables, and regenerating it
 moves published inputs across all five families rather than only the stamped
 rows. That is an authorship decision.
+
+Each entry is anchored to its record's SHA-256, because the survey never opens
+a file it is skipping: exempting a *name* would let the record be deleted,
+corrupted, or re-stamped to any environment at all while the gate kept passing.
+Absence, unreadability and drift are failures, and an entry carrying no digest
+exempts nothing. Naming an outstanding record with `--record` is a failure too,
+in every mode: it would otherwise survey to nothing and emit a constraints file
+with no pins at all, which the composite action installs against and then
+reports as a match.
 
 A listed record is passed over by the default survey, so its declaration does
 not set the pin and does not widen what the producer guard accepts — which is
