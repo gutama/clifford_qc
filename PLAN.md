@@ -3160,12 +3160,15 @@ comes early.
 the exact tier still has one priced instance, and the binding constraint moved
 from grid fit to the `2+2` probe's confirmation power. R3c therefore freezes the
 headline 30+100 protocol — the target instrument, not another resized scope
-probe — in a result-free commit. The record gates now run in tiers. So (1) execute
-R3c exactly once and land its producer, checker and sampled record in a separate
-commit; (2) implement Phase 13's X-rank invariant, which is deterministic and
-gates Phase 14; (3) keep R4a blocked unless R3c supplies the second priced
-instance, because its widest arm inherits the confirmation risk 13b measured.
-Paper A's submission stays schedulable and blocks nothing.
+probe — in a result-free commit. Restoring the record gates also exposed that
+PR #73's two records were stamped on the older 3.11 / NumPy 2.4.6 stack while
+the other ten use 3.12 / 2.5.2. So (1) rebuild those two records, without
+relabeling their provenance or relaxing their decisions, in a separate evidence
+migration; (2) execute R3c exactly once under its frozen 3.12 / 2.5.2
+environment and land its producer, checker and sampled record separately;
+(3) implement Phase 13's deterministic X-rank invariant; (4) keep R4a blocked
+unless R3c supplies the second priced instance. Paper A's submission stays
+schedulable and blocks nothing.
 
 **Paper A — the one item outside the tracks.** Its software, data, go/no-go decisions,
 and manuscript are complete (§9.6, §9.6.1) but it is not submitted. Nothing below
@@ -3361,8 +3364,11 @@ not another open accuracy phase.
     arms, `k ∈ {1,2,4,8}`, both estimators, the unchanged `64…65536` grid,
     30 exploratory plus 100 confirmatory replicas, the zero-failure and one-sided
     95% bootstrap-RMSE rule, fresh disjoint seed roots, and the three existing
-    device-card hashes. The claim boundary is tenseless: this config carries no
-    sampled result, and a later record is limited to those frozen choices.
+    device-card hashes. The execution environment is also frozen at Python 3.12,
+    NumPy 2.5.2, SciPy 1.18.0 and Stim 1.16.0, because seed roots do not define
+    the same stream across NumPy releases. The claim boundary is tenseless: this
+    config carries no sampled result, and a later record is limited to those
+    frozen choices.
 
     This is not a re-sized scope probe. R3b's 2+2 instrument answered its own
     preregistered gate negatively and remains immutable; its labelled post-hoc
@@ -3451,6 +3457,12 @@ a sampled producer, config or record names the dispatch run against its exact
 head before merge; a result-free structural preregistration does not spend that
 matrix. This restores automatic claim and lineage protection without silently
 turning every rebase into a full benchmark campaign.
+
+Each value gate installs from its own named record stamp. That is not a majority
+resolution of a split: the manual `environment-consistency` job still requires
+all records to agree and currently names the two PR #73 records that need a
+separate evidence migration. Record-local execution lets every other gate remain
+diagnostic while that cross-record failure stays visible.
 
 ---
 

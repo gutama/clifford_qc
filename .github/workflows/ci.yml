@@ -38,6 +38,8 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - uses: ./.github/actions/record-environment
+        with:
+          reference-record: protocol_cost.json
 
       - run: ruff check clifford_qc tests benchmarks
       - run: python -m pytest --hypothesis-profile=ci
@@ -74,18 +76,35 @@ jobs:
         include:
           - gate: check_mapping_axis
             timeout: 20
+            environment_record: mapping_axis.json
           - gate: check_protocol_axis
             timeout: 20
+            environment_record: protocol_axis.json
           - gate: check_priceability_screen
             timeout: 10
+            environment_record: priceability_screen.json
           - gate: check_r3b_preregistration
             timeout: 10
+            environment_record: priceability_screen.json
           - gate: check_r3c_preregistration
             timeout: 10
+            environment_record: r3b_margin_stop_probe.json
     steps:
       - uses: actions/checkout@v4
       - uses: ./.github/actions/record-environment
+        with:
+          reference-record: ${{ matrix.environment_record }}
       - run: python benchmarks/${{ matrix.gate }}.py
+
+  environment-consistency:
+    # Keep the cross-record contract visible without preventing record-local
+    # gates from naming exactly which evidence needs an environment migration.
+    if: github.event_name == 'workflow_dispatch'
+    name: all records agree on one environment
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - run: python3 benchmarks/check_record_environment.py
 
   sampled-records:
     # These gates draw replicas or rebuild records from sampled evidence. Run
@@ -101,17 +120,25 @@ jobs:
         include:
           - gate: check_r3b_margin_stop_probe
             timeout: 30
+            environment_record: r3b_margin_stop_probe.json
           - gate: check_finite_shot_rethink
             timeout: 20
+            environment_record: finite_shot_rethink.json
           - gate: check_matched_h4
             timeout: 30
+            environment_record: matched_h4.json
           - gate: check_qr3b_instance_preflight
             timeout: 150
+            environment_record: qr3b_instance_preflight.json
           - gate: check_exact_shot_search
             timeout: 120
+            environment_record: exact_shot_search.json
           - gate: check_protocol_cost
             timeout: 210
+            environment_record: protocol_cost.json
     steps:
       - uses: actions/checkout@v4
       - uses: ./.github/actions/record-environment
+        with:
+          reference-record: ${{ matrix.environment_record }}
       - run: python benchmarks/${{ matrix.gate }}.py

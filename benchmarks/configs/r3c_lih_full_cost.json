@@ -115,6 +115,13 @@
       "bootstrap": 133013000
     },
     "seed_derivation": "numpy.SeedSequence(root, spawn_key=(arm_index, ...)); one namespace per mapping arm and disjoint roots for exploration, confirmation, and bootstrap",
+    "execution_environment": {
+      "python_minor": "3.12",
+      "numpy": "2.5.2",
+      "scipy": "1.18.0",
+      "stim": "1.16.0",
+      "reference_record": "benchmarks/reference_results/protocol_cost.json"
+    },
     "device_cards": [
       {
         "name": "ion-like",

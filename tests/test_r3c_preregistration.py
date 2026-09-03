@@ -81,6 +81,7 @@ def test_the_headline_protocol_is_30_plus_100_on_the_frozen_grid(config):
     assert protocol["exploratory_replicas"] == EXPLORATORY_REPLICAS == 30
     assert protocol["confirmatory_replicas"] == CONFIRMATORY_REPLICAS == 100
     assert protocol["search_endpoints_effective_shots_per_setting"] == list(SEARCH_ENDPOINTS)
+    assert protocol["execution_environment"]["numpy"] == "2.5.2"
 
     broken = copy.deepcopy(config)
     broken["protocol"]["search_endpoints_effective_shots_per_setting"].append(262144)

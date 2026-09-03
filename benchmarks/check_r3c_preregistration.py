@@ -255,10 +255,21 @@ def protocol_problems(config: dict) -> list[str]:
     if not protocol.get("seed_derivation"):
         problems.append("R3c must declare how seed roots derive disjoint streams")
 
-    cards = {row["name"]: row["sha256"] for row in protocol.get("device_cards", [])}
-    frozen_cards = {
-        row["name"]: row["sha256"] for row in _read(PROTOCOL_COST_RECORD)["device_cards"]
+    cost_record = _read(PROTOCOL_COST_RECORD)
+    provenance = cost_record["provenance"]
+    dependencies = provenance["dependencies"]
+    frozen_environment = {
+        "python_minor": ".".join(provenance["python"].split(".")[:2]),
+        "numpy": dependencies["numpy"],
+        "scipy": dependencies["scipy"],
+        "stim": dependencies["stim"],
+        "reference_record": "benchmarks/reference_results/protocol_cost.json",
     }
+    if protocol.get("execution_environment") != frozen_environment:
+        problems.append("R3c execution environment differs from the exact-tier baseline")
+
+    cards = {row["name"]: row["sha256"] for row in protocol.get("device_cards", [])}
+    frozen_cards = {row["name"]: row["sha256"] for row in cost_record["device_cards"]}
     if cards != frozen_cards:
         problems.append("R3c device-card names or hashes differ from protocol_cost")
     return problems
