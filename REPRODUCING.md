@@ -37,7 +37,10 @@ selection, and resource fields remain value-gated. The versions in it are not
 inert, though: `benchmarks/check_record_environment.py` reads them back out,
 requires the committed records to agree on one environment, and emits the
 interpreter and the pip constraints that CI installs against, so every gate
-runs under the versions its own record was produced under.
+runs under the versions its own record was produced under. The same versions
+are checked before the block is written, too: `stamp_record` refuses to stamp
+under an interpreter or library version no committed record declares, so a
+producer cannot quietly start the split that check exists to catch.
 
 ```bash
 python paper/make_figures.py       # -> paper/paper_assets/*.pdf
@@ -103,7 +106,7 @@ No figure or table value in the manuscript is transcribed by hand, and
 ```bash
 python -m venv .venv && source .venv/bin/activate
 pip install -e .[test,research,chemistry]   # numpy + scipy + openfermion/pyscf
-pytest                                      # 1280 passed, 27 skipped
+pytest                                      # 1303 passed, 27 skipped
 ```
 
 That install is the reference environment for the quoted pair. The count
@@ -125,7 +128,7 @@ the remaining `27 - 13 = 14` skips are per-test and *are* collected:
 
 ```text
 collected == passed + (skipped - files dropped at collection)
-1294      == 1280   + (27      -  13)
+1317      == 1303   + (27      -  13)
 ```
 
 Both sides are computed from the tree, so a drift in either quoted number
@@ -337,6 +340,38 @@ came to be committed under `numpy 2.5.2` while the other eight records were
 built under `2.4.6`, which read as scientific drift for as long as the versions
 were treated as metadata.
 
+A gate can only report a split after it is committed, so the same contract is
+enforced where a split starts. `stamp_record` refuses to stamp a record under
+an interpreter or library version that no committed record declares, and every
+producer stamps:
+
+```text
+UndeclaredEnvironment: this environment produces records nothing else in the
+repository can reproduce:
+  numpy 2.4.6 is declared by no committed record; they were built under
+  2.5.2 (clifford_hierarchy_beh2.json, clifford_hierarchy_h4.json, ...)
+```
+
+Membership, not agreement, is what it tests, so a repository already split can
+still be repaired: a rebuild runs under one of the versions in the split, and
+demanding agreement would refuse the only run that ends it. What it refuses is
+a *third* environment, which is how a split starts. The committed set is
+surveyed once per process, so a producer writing ten thousand JSONL rows pays
+for one directory read. Outside a checkout — an installed wheel — there are no
+committed records to disagree with and the guard stands down.
+
+Migrating the whole set is the one legitimate way to introduce a version no
+record declares yet, and it is spelled out rather than inferred:
+
+```bash
+CLIFFORD_QC_ALLOW_ENVIRONMENT_MIGRATION=1 \
+    python benchmarks/run_protocol_cost.py --workers 4
+```
+
+That authorizes one run. It does not migrate the set — the records left behind
+still declare the old stack, and `check_record_environment.py` keeps failing
+until every one of them is rebuilt.
+
 Three cost-aware tiers run:
 
 | job | when | contents |
@@ -363,14 +398,23 @@ spend the sampled matrix.
 ### The python 3.12 / numpy 2.5.2 / scipy 1.18.0 migration
 
 The migration rebuilt every record that existed at the time on this stack.
-PR #73 subsequently added `priceability_screen.json` and
-`r3b_margin_stop_probe.json` under Python 3.11 / NumPy 2.4.6 / SciPy 1.17.1,
-so the repository is split again and the default all-record check correctly
-fails. Those two records remain individually reproducible under their own
-stamps; they must be rebuilt, not relabelled, before the global check returns
-green. SciPy 1.18.0 remains the accepted target; moving to 1.18.1 is out of
-scope. No pin is chosen by majority: record-local jobs read one named stamp,
-while the global check refuses the split.
+`priceability_screen.json` (PR #72) and `r3b_margin_stop_probe.json` (PR #73)
+were then produced under Python 3.11 / NumPy 2.4.6 / SciPy 1.17.1 — the stack
+this repository used *before* the migration, and the default of the containers
+the runs happened in — so the repository is split again and the default
+all-record check correctly fails. Nothing chose the older libraries: NumPy
+2.5.2 and SciPy 1.18.0 both require Python >= 3.12, so an interpreter one minor
+version back resolves the newest releases that still support it. Those two
+records remain individually reproducible under their own stamps; they must be
+rebuilt, not relabelled, before the global check returns green. SciPy 1.18.0
+remains the accepted target; moving to 1.18.1 is out of scope. No pin is chosen
+by majority: record-local jobs read one named stamp, while the global check
+refuses the split.
+
+A repeat is what the producer guard above now prevents: run under an
+undeclared interpreter today and the run refuses to stamp, naming the versions
+the committed records were built under, instead of writing a twelfth record
+that reproduces beside none of them.
 
 What moved is worth stating precisely, because the two halves behave
 differently and a reader comparing figures across this boundary needs to know

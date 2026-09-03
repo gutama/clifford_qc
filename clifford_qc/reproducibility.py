@@ -88,11 +88,47 @@ def execution_provenance() -> dict[str, Any]:
     }
 
 
+_environment_guarded = False
+
+
+def _guard_environment(allow_environment_migration: bool) -> None:
+    """Refuse to stamp under an environment the committed records disown.
+
+    Surveyed once per process: a producer that stamps ten thousand JSONL rows
+    reads the committed set once, and neither that set nor the installed
+    versions move while it runs.  A run that is authorized to migrate is not
+    memoized, so an unauthorized stamp later in the same process is still
+    checked.
+    """
+    global _environment_guarded
+    if _environment_guarded or allow_environment_migration:
+        return
+    from . import record_environment
+    if record_environment.migration_allowed():
+        return
+    record_environment.guard()
+    _environment_guarded = True
+
+
 def stamp_record(record: dict[str, Any],
-                 provenance: dict[str, Any] | None = None) -> dict[str, Any]:
-    """Return a shallow copy of one record with execution provenance attached."""
+                 provenance: dict[str, Any] | None = None,
+                 *,
+                 allow_environment_migration: bool = False) -> dict[str, Any]:
+    """Return a shallow copy of one record with execution provenance attached.
+
+    The stamp is where the environment contract is enforced, because it is the
+    one boundary every producer crosses.  A record built under a Python or
+    library version no committed record declares cannot be reproduced beside
+    its siblings, so stamping it raises
+    :class:`clifford_qc.record_environment.UndeclaredEnvironment` here -- a
+    rebuild -- rather than being discovered by a cross-record gate once it is
+    committed -- a retraction.  Pass ``allow_environment_migration``, or set
+    ``CLIFFORD_QC_ALLOW_ENVIRONMENT_MIGRATION=1``, when the run is a deliberate
+    migration of the whole record set.
+    """
     if not isinstance(record, dict):
         raise TypeError("record must be a mapping object")
+    _guard_environment(allow_environment_migration)
     stamped = dict(record)
     stamped["provenance"] = (execution_provenance() if provenance is None
                              else provenance)

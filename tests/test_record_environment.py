@@ -7,6 +7,7 @@ import platform
 import pytest
 
 import benchmarks.check_record_environment as gate
+import clifford_qc.record_environment as gate_environment
 from benchmarks.check_record_environment import (
     agreed,
     constraints,
@@ -185,3 +186,118 @@ def test_a_disagreement_stops_the_build_before_anything_is_installed(
     # Nothing on stdout: the caller redirects it into a file the install reads.
     assert captured.out == ""
     assert "numpy: the committed records disagree" in captured.err
+
+
+# The producer-side half of the same contract: check_record_environment reports
+# a split that already exists, and the guard below is what stops one starting.
+
+
+def _declarations(**by_package):
+    return {name: dict(versions) for name, versions in by_package.items()}
+
+
+def test_a_version_every_record_declares_is_not_reported(monkeypatch):
+    monkeypatch.setattr(platform, "python_version", lambda: "3.12.4")
+    monkeypatch.setattr(importlib.metadata, "version", lambda name: "2.5.2")
+    declarations = _declarations(python={"3.12": ["a.json"]},
+                                 numpy={"2.5.2": ["a.json"]})
+    assert gate_environment.undeclared(declarations) == []
+
+
+def test_a_version_no_record_declares_is_reported_with_the_records(monkeypatch):
+    monkeypatch.setattr(platform, "python_version", lambda: "3.11.15")
+    monkeypatch.setattr(importlib.metadata, "version", lambda name: "2.4.6")
+    declarations = _declarations(python={"3.12": ["a.json", "b.json"]},
+                                 numpy={"2.5.2": ["a.json", "b.json"]})
+    reports = gate_environment.undeclared(declarations)
+    assert len(reports) == 2
+    assert "python 3.11 is declared by no committed record" in reports[1]
+    assert "3.12 (a.json, b.json)" in reports[1]
+    assert "numpy 2.4.6 is declared by no committed record" in reports[0]
+
+
+def test_only_a_few_records_are_named_before_the_count(monkeypatch):
+    monkeypatch.setattr(platform, "python_version", lambda: "3.11.15")
+    records = [f"r{index}.json" for index in range(7)]
+    reports = gate_environment.undeclared(_declarations(python={"3.12": records}))
+    assert "r0.json, r1.json, r2.json, and 4 more" in reports[0]
+
+
+def test_either_side_of_an_existing_split_can_still_rebuild(monkeypatch):
+    # The repair for a split is rebuilding the odd records out, and that run
+    # happens under one of the versions in the split. Demanding agreement here
+    # would refuse the only run that ends it.
+    monkeypatch.setattr(platform, "python_version", lambda: "3.11.15")
+    split = _declarations(python={"3.11": ["old.json"], "3.12": ["new.json"]})
+    assert gate_environment.undeclared(split) == []
+    monkeypatch.setattr(platform, "python_version", lambda: "3.12.4")
+    assert gate_environment.undeclared(split) == []
+
+
+def test_a_third_environment_is_refused_even_during_a_split(monkeypatch):
+    monkeypatch.setattr(platform, "python_version", lambda: "3.13.2")
+    split = _declarations(python={"3.11": ["old.json"], "3.12": ["new.json"]})
+    reports = gate_environment.undeclared(split)
+    assert len(reports) == 1
+    assert "3.11 (old.json); 3.12 (new.json)" in reports[0]
+
+
+def test_an_uninstalled_optional_package_is_not_undeclared(monkeypatch):
+    def missing(name):
+        raise importlib.metadata.PackageNotFoundError(name)
+
+    monkeypatch.setattr(importlib.metadata, "version", missing)
+    monkeypatch.setattr(platform, "python_version", lambda: "3.12.4")
+    declarations = _declarations(python={"3.12": ["a.json"]},
+                                 pyscf={"2.14.0": ["a.json"]})
+    assert gate_environment.undeclared(declarations) == []
+
+
+def test_the_guard_raises_and_names_how_to_proceed(tmp_path, monkeypatch):
+    _write(tmp_path, "a.json", "3.12.4", {"numpy": "2.5.2"})
+    monkeypatch.setattr(platform, "python_version", lambda: "3.11.15")
+    monkeypatch.setattr(importlib.metadata, "version", lambda name: "2.4.6")
+    with pytest.raises(gate_environment.UndeclaredEnvironment) as raised:
+        gate_environment.guard(tmp_path)
+    message = str(raised.value)
+    assert "numpy 2.4.6" in message and "python 3.11" in message
+    assert gate_environment.ALLOW_MIGRATION_ENV in message
+    assert "--constraints" in message
+
+
+def test_the_guard_passes_the_environment_that_produced_the_records(
+        tmp_path, monkeypatch):
+    _write(tmp_path, "a.json", "3.12.4", {"numpy": "2.5.2"})
+    monkeypatch.setattr(platform, "python_version", lambda: "3.12.4")
+    monkeypatch.setattr(importlib.metadata, "version", lambda name: "2.5.2")
+    gate_environment.guard(tmp_path)
+
+
+def test_the_guard_stands_down_where_there_are_no_records(tmp_path, monkeypatch):
+    monkeypatch.setattr(platform, "python_version", lambda: "3.11.15")
+    # An installed wheel has no committed record set to disagree with.
+    gate_environment.guard(tmp_path / "absent")
+    # Neither has an empty one, or a set that stamps nothing.
+    gate_environment.guard(tmp_path)
+    _write(tmp_path, "legacy.json", energies=[1.0])
+    gate_environment.guard(tmp_path)
+
+
+def test_an_unreadable_record_does_not_stall_the_bench(tmp_path, monkeypatch):
+    (tmp_path / "broken.json").write_text("{oops", encoding="utf-8")
+    monkeypatch.setattr(platform, "python_version", lambda: "3.11.15")
+    gate_environment.guard(tmp_path)
+
+
+@pytest.mark.parametrize("value,allowed", [
+    ("1", True), ("true", True), ("YES", True), ("on", True),
+    ("0", False), ("false", False), ("", False), ("  ", False),
+])
+def test_the_migration_variable_is_read_strictly(value, allowed):
+    environ = {gate_environment.ALLOW_MIGRATION_ENV: value}
+    assert gate_environment.migration_allowed(environ) is allowed
+
+
+def test_migration_is_not_allowed_by_default(monkeypatch):
+    monkeypatch.delenv(gate_environment.ALLOW_MIGRATION_ENV, raising=False)
+    assert gate_environment.migration_allowed() is False

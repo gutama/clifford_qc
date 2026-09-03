@@ -23,143 +23,48 @@ selects and installs against, so no pin is written down a second time where it
 could drift away from the records that justify it.
 
 Standard library only, by necessity: both emitting modes have to run before
-``pip install``.  The per-record equivalent for use *inside* a gate, once the
-package is importable, is
+``pip install``.  That is also why the contract itself --
+``clifford_qc/record_environment.py``, which this file is the command line for
+-- is loaded from its path rather than imported: importing the package would
+pull in NumPy, which is not installed yet.  The same contract is enforced at
+the other end of a record's life by
+:func:`clifford_qc.reproducibility.stamp_record`, which refuses to stamp a
+record under an environment no committed record declares, so a producer cannot
+quietly start a split that only this gate would notice.  The per-record
+equivalent for use *inside* a gate, once the package is importable, is
 :func:`clifford_qc.reproducibility.sampling_stream_mismatch`.
 """
 
 from __future__ import annotations
 
 import argparse
-import importlib.metadata
-import json
-import platform
+import importlib.util
 import sys
 from pathlib import Path
-from typing import Sequence
+
+CONTRACT = (Path(__file__).resolve().parent.parent
+            / "clifford_qc" / "record_environment.py")
+
+
+def _load_contract():
+    """Load the shared contract without importing (or installing) the package."""
+    spec = importlib.util.spec_from_file_location(
+        "clifford_qc_record_environment", CONTRACT)
+    if spec is None or spec.loader is None:  # pragma: no cover - packaging error
+        raise SystemExit(f"cannot load the record environment contract: {CONTRACT}")
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    return module
+
+
+_contract = _load_contract()
+
+agreed = _contract.agreed
+constraints = _contract.constraints
+survey = _contract.survey
+verify = _contract.verify
 
 DATA = Path(__file__).resolve().parent / "reference_results"
-
-# Python patch releases do not move floating-point results; NumPy and SciPy
-# releases do, through the sampling stream and the bundled BLAS/LAPACK.  So the
-# interpreter is matched on its minor version and the libraries exactly.
-PYTHON_PARTS = 2
-
-
-def _minor(version: object) -> object:
-    """Truncate a Python version to the granularity that affects results."""
-    if not isinstance(version, str):
-        return version
-    return ".".join(version.split(".")[:PYTHON_PARTS])
-
-
-def survey(
-    data: Path = DATA,
-    record_names: Sequence[str] | None = None,
-) -> tuple[dict[str, dict[str, list[str]]], list[str]]:
-    """Map package -> version -> the records declaring it, plus any read errors.
-
-    ``python`` is folded in as one more package, truncated first, so agreement
-    and comparison need only one code path.  A record with no provenance block
-    makes no claim about its environment and is passed over; a record that
-    declares ``null`` for a package was built without it.
-
-    ``record_names`` deliberately narrows the survey to named basenames. It is
-    for running one value gate under the environment stamped on its own record
-    while a separately reported cross-record inconsistency awaits regeneration;
-    it is not a replacement for the default all-record consistency check.
-    """
-    declarations: dict[str, dict[str, list[str]]] = {}
-    problems: list[str] = []
-    if record_names:
-        paths = []
-        for name in record_names:
-            if Path(name).name != name:
-                problems.append(f"{name}: record selectors must be basenames")
-                continue
-            path = data / name
-            if not path.is_file():
-                problems.append(f"{name}: selected record does not exist")
-                continue
-            paths.append(path)
-    else:
-        paths = sorted(data.glob("*.json"))
-    for path in paths:
-        try:
-            record = json.loads(path.read_text(encoding="utf-8"))
-        except (OSError, ValueError) as exc:
-            problems.append(f"{path.name}: unreadable ({exc})")
-            continue
-        provenance = record.get("provenance") if isinstance(record, dict) else None
-        if not isinstance(provenance, dict):
-            continue
-        stamped: dict[str, object] = {"python": _minor(provenance.get("python"))}
-        dependencies = provenance.get("dependencies")
-        if isinstance(dependencies, dict):
-            stamped.update(dependencies)
-        for name, version in stamped.items():
-            if not isinstance(version, str):
-                continue
-            declarations.setdefault(name, {}).setdefault(version, []).append(path.name)
-    return declarations, problems
-
-
-def agreed(declarations: dict[str, dict[str, list[str]]],
-           problems: list[str]) -> dict[str, str]:
-    """Return the one version per package the records agree on.
-
-    A package the records disagree about has no reproducible pin, so it is
-    reported and left out rather than resolved by a majority vote.
-    """
-    versions: dict[str, str] = {}
-    for name, by_version in sorted(declarations.items()):
-        if len(by_version) == 1:
-            versions[name] = next(iter(by_version))
-            continue
-        detail = "; ".join(f"{version} ({', '.join(sorted(records))})"
-                           for version, records in sorted(by_version.items()))
-        problems.append(
-            f"{name}: the committed records disagree -- {detail}. No single "
-            "environment reproduces all of them, so rebuild the odd ones out "
-            "rather than pinning to one side of the split")
-    return versions
-
-
-def _installed(name: str) -> str | None:
-    if name == "python":
-        return str(_minor(platform.python_version()))
-    try:
-        return importlib.metadata.version(name)
-    except importlib.metadata.PackageNotFoundError:
-        return None
-
-
-def verify(versions: dict[str, str], problems: list[str]) -> None:
-    """Compare the running environment against the agreed versions.
-
-    An absent package is not a mismatch: the chemistry and bridge extras are
-    optional, and the gates that need one say so themselves.  A *different*
-    version is, because it silently answers a different question.
-    """
-    for name, expected in sorted(versions.items()):
-        actual = _installed(name)
-        if actual is not None and actual != expected:
-            problems.append(
-                f"{name} {actual} differs from the {expected} the committed "
-                "records were produced under; a rebuild here verifies nothing")
-
-
-def constraints(versions: dict[str, str]) -> str:
-    """Render the agreed versions as a pip constraints file."""
-    lines = [
-        "# Generated by benchmarks/check_record_environment.py --constraints.",
-        "# Versions declared by the selected stamped record set.",
-        "# Rebuild a record to change a pin, not this file.",
-        f"# python=={versions.get('python', 'unknown')}",
-    ]
-    lines += [f"{name}=={version}"
-              for name, version in sorted(versions.items()) if name != "python"]
-    return "\n".join(lines) + "\n"
 
 
 def main(argv: list[str] | None = None) -> int:
