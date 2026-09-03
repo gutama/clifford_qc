@@ -149,6 +149,31 @@ def test_the_emitted_interpreter_is_the_one_the_records_name(tmp_path,
     assert capsys.readouterr().out == "3.11\n"
 
 
+def test_a_named_record_selects_its_own_reproducible_environment(tmp_path):
+    _write(tmp_path, "old.json", "3.11.15", {"numpy": "2.4.6"})
+    _write(tmp_path, "new.json", "3.12.4", {"numpy": "2.5.2"})
+    declarations, problems = survey(tmp_path, ["new.json"])
+    versions = agreed(declarations, problems)
+    assert problems == []
+    assert versions == {"python": "3.12", "numpy": "2.5.2"}
+
+
+def test_a_bad_record_selector_is_reported_without_reading_outside_data(tmp_path):
+    declarations, problems = survey(tmp_path, ["../outside.json", "missing.json"])
+    assert declarations == {}
+    assert len(problems) == 2
+    assert "basenames" in problems[0]
+    assert "does not exist" in problems[1]
+
+
+def test_the_cli_can_emit_one_named_records_interpreter(tmp_path, monkeypatch, capsys):
+    _write(tmp_path, "old.json", "3.11.15", {"numpy": "2.4.6"})
+    _write(tmp_path, "new.json", "3.12.4", {"numpy": "2.5.2"})
+    monkeypatch.setattr(gate, "DATA", tmp_path)
+    assert main(["--python", "--record", "new.json"]) == 0
+    assert capsys.readouterr().out == "3.12\n"
+
+
 @pytest.mark.parametrize("mode", ["--python", "--constraints"])
 def test_a_disagreement_stops_the_build_before_anything_is_installed(
         tmp_path, monkeypatch, capsys, mode):

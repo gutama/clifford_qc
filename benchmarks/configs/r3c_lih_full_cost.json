@@ -1,0 +1,167 @@
+{
+  "schema": "clifford_qc.r3c_lih_full_cost_config.v1",
+  "phase": "R3c_lih_margin_stop_full_cost",
+  "status": "preregistration_only_no_run_yet",
+  "parent_lineage": {
+    "repository": "gutama/clifford_qc",
+    "admitted_by": {
+      "phase": "R3S",
+      "merged_pull_request": 72,
+      "merge_commit": "8d6857e041cbbf27cb013d07bfd3c1aaee7e8931",
+      "record": "benchmarks/reference_results/priceability_screen.json",
+      "record_sha256": "06669c5047fbe16e56ab829e98cc9325b0ad52f94dd89be8eb33f373239477d9",
+      "config": "benchmarks/configs/priceability_screen.json",
+      "config_sha256": "f43fac4ad8386ecdfa279cfbf5e61661c7a24f3459c7f2f229ad10b0b7f9ec3e"
+    },
+    "extends": {
+      "phase": "QR3b",
+      "config": "benchmarks/configs/qr3b_instance_preflight.json",
+      "config_sha256": "c09d79b10c340f8b4793228a4128994a0ae39845ffe2e0bdefc8c06d96ea0cde",
+      "preserved_result": "The QR3b probe's rejection stands exactly as recorded, and this preregistration does not reopen it. That probe evaluated the intrinsic-stop bank -- M=13, binding W=7740 -- and rejected it on resolution. This is a different bank of the same instance, admitted by R3S under a different stopping rule, and it is a separate candidate rather than a re-run of a decided one."
+    },
+    "pilot": {
+      "phase": "R3b",
+      "merged_pull_request": 73,
+      "merge_commit": "09c8d68a2e9249d3ae3fed33675cf462310be230",
+      "config": "benchmarks/configs/r3b_margin_stop_probe.json",
+      "config_canonical_sha256": "cfc1037c3067e942c0cd5e004a7aa61acfee4deb3d210db7dad4287edb4a6ca5",
+      "record": "benchmarks/reference_results/r3b_margin_stop_probe.json",
+      "record_git_blob_sha1": "7c7eb9b22990ceab972ce8d5dc5580df63e5ab30",
+      "preserved_finding": "The 2+2 pilot remains rejected: 30 of 40 cells resolved, zero cells failed to bracket anywhere in the frozen grid, ten cells failed confirmation, and one resolved only at the 65536 ceiling. It authorizes no full run. R3c is a new declaration motivated by that labelled post-hoc split, not an upgrade of the pilot."
+    }
+  },
+  "estimand": {
+    "name": "R3c_lih_margin_stop_accuracy_matched_logical_cost",
+    "question": "Under the frozen exact-tier protocol at its headline 30 exploratory plus 100 confirmatory replicas, which LiH margin-stop mapping-by-block-size cells have a confirmed crossing inside the frozen endpoint grid, what logical-runtime intervals follow under each declared device card, and does a second priced instance make QR3 identifiable?",
+    "why_a_full_protocol_instead_of_another_probe": "R3b eliminated grid fit as its failure mode but its 2+2 confirmation instrument rejected ten cells. Re-sizing another probe after seeing those cells would be post-hoc and would still not estimate the target quantity. The headline 30+100 protocol is the target instrument; this declaration freezes it before one future execution.",
+    "possible_readouts": [
+      "priced_second_instance: finite confirmed brackets support the declared LiH logical-cost comparison and the pre-existing QR3 derivation may be re-run",
+      "right_censored_at_frozen_grid: unresolved cells remain censored, QR3 remains undetermined, and the endpoint grid does not move"
+    ],
+    "exclusions": "No mapping, bank, block size, estimator, endpoint, pass rule, seed root, device card, or earlier QR3b/R3b finding may be selected or rewritten in response to the future draw."
+  },
+  "candidate": {
+    "key": "lih_cas4e4o_margin_stop",
+    "label": "LiH equilibrium STO-3G CAS(4e,4o), R3S margin-stop bank",
+    "builder": "fcidump",
+    "source": "benchmarks/data/lih_sto3g_r1.5949_cas4e4o.FCIDUMP",
+    "source_sha256": "1163b1c1a79b20b452f429b694e55a1e34db5b636398f541074a2494d73a4130",
+    "provenance": "benchmarks/data/lih_sto3g_r1.5949_cas4e4o.provenance.json",
+    "provenance_sha256": "0da925824d5c4b59c9f7297823b4578cd6504795ffca822d320ed65b07a1899f",
+    "chemical_independence": "LiH is a different molecule from both BeH2 and H4; this is not a second geometry of a previously priced Hamiltonian. The instance is the one QR3b froze -- only the bank drawn from it differs.",
+    "selection_rule": "R3S margin rule: the smallest prefix of the frozen QR3b greedy ordering whose exact subspace bias is at or below accuracy_target_millihartree / margin_factor. It is a function of the accuracy target alone and is evaluated on the source-side bias, which the linear encoding family leaves invariant; no mapping, arm, or word count enters the choice.",
+    "selection_rule_is_preregistered_here": false,
+    "selection_rule_preregistration_note": "The margin rule itself was declared in R3S (merge 8d6857e) and is labelled declared_here_not_preregistered in that record, because its config and its first verdicts entered together. This config is the rule's first preregistered *use*: the rule is frozen upstream and this commit fixes the bank, gates and seeds before any sampling. So the rule is preregistered with respect to this probe's result, and the R3S label is not upgraded by that.",
+    "selected_labels": [
+      "I",
+      "E(6,7<-2,3)"
+    ],
+    "selected_labels_are_a_prefix_of": "benchmarks/configs/qr3b_instance_preflight.json candidate.selected_labels",
+    "expected_basis_size": 2,
+    "expected_bias_millihartree": 0.3697800372419735,
+    "bias_tolerance_millihartree": 1e-9,
+    "expected_binding_word_universe": 1439,
+    "expected_arm_word_universe": {
+      "jw": 1439,
+      "parity": 1439,
+      "parity+2q": 887,
+      "bk": 1439,
+      "bk+2q": 887
+    },
+    "expected_arm_settings": {
+      "jw": 349,
+      "parity": 175,
+      "parity+2q": 122,
+      "bk": 283,
+      "bk+2q": 187
+    },
+    "word_universe_convention": "non_identity_words_only"
+  },
+  "mapping_arms": [
+    "jw",
+    "parity",
+    "parity+2q",
+    "bk",
+    "bk+2q"
+  ],
+  "protocol": {
+    "block_sizes": [
+      1,
+      2,
+      4,
+      8
+    ],
+    "estimators": [
+      "single_assignment",
+      "pooled"
+    ],
+    "search_endpoints_effective_shots_per_setting": [
+      64,
+      256,
+      1024,
+      4096,
+      16384,
+      65536
+    ],
+    "search_grid_policy": "identical to frozen R1/R3; no endpoint may be added by this extension",
+    "exploratory_replicas": 30,
+    "confirmatory_replicas": 100,
+    "nested_endpoints": true,
+    "bootstrap_replicates": 10000,
+    "one_sided_delta": 0.05,
+    "seed_roots": {
+      "exploratory": 132813000,
+      "confirmatory": 132913000,
+      "bootstrap": 133013000
+    },
+    "seed_derivation": "numpy.SeedSequence(root, spawn_key=(arm_index, ...)); one namespace per mapping arm and disjoint roots for exploration, confirmation, and bootstrap",
+    "execution_environment": {
+      "python_minor": "3.12",
+      "numpy": "2.5.2",
+      "scipy": "1.18.0",
+      "stim": "1.16.0",
+      "reference_record": "benchmarks/reference_results/protocol_cost.json"
+    },
+    "device_cards": [
+      {
+        "name": "ion-like",
+        "sha256": "9cc7e53e935e4ec3c265efbd9b6218f17a68c51d727d658c5a5bcaf98d34f453"
+      },
+      {
+        "name": "logical-alltoall",
+        "sha256": "07e9cc637e590668bc89b7d407535f34f509155e08c95d2ecd0f8f931738265b"
+      },
+      {
+        "name": "superconducting-like",
+        "sha256": "cf78e3240ad48839a8113a1570a43e614c230a8428fe8ceda7783e7ff75e1a13"
+      }
+    ]
+  },
+  "acceptance_rule": {
+    "accuracy_target_millihartree": 1.6,
+    "zero_failure_gate": true,
+    "statistic": "one-sided bootstrap upper confidence bound on replica RMSE",
+    "one_sided_confidence": 0.95,
+    "passes_when": "all 100 confirmatory solves succeed and the one-sided 95% bootstrap RMSE upper bound is at most 1.6 mHa",
+    "crossing_policy": "the first exploratory passing endpoint is confirmed together with its predecessor; a finite interval requires a confirmed failing predecessor and confirmed passing endpoint",
+    "censoring_policy": "a cell without a confirmed finite interval at 65536 is right-censored; it is not assigned infinite cost and does not license a wider grid"
+  },
+  "structural_gates": {
+    "source_qubits": 8,
+    "all_mapping_arms_must_clear_bias_floor": true,
+    "word_universe_ceiling": 2048,
+    "selection_may_not_use_mapping_cost_direction": true,
+    "full_30_plus_100_run_authorized_by_this_config": true
+  },
+  "reporting_contract": {
+    "evidence_tier": "exact",
+    "evidence_tier_basis": "Oracle-reference benchmark comparison with heuristic Monte Carlo search uncertainty; not a finite-sample energy certificate, device-noise simulation, or hardware result.",
+    "full_run_is_a_cost_record": true,
+    "result_commit_must_be_separate": true,
+    "producer_to_land_with_record": "benchmarks/run_r3c_lih_full_cost.py",
+    "checker_to_land_with_record": "benchmarks/check_r3c_lih_full_cost.py",
+    "existing_records_are_immutable": true,
+    "scope": "accuracy-matched logical runtime under the declared illustrative device cards, on the frozen LiH margin-stop bank at one target; no instance-independent mapping or block-size preference"
+  },
+  "claim_boundary": "This config carries no sampled result, verdict, cost bracket, C(epsilon), or k-star field. A later record may report only the frozen LiH margin-stop bank under the declared 30+100 exact-tier protocol and illustrative device cards; it may not alter the bank, grid, estimators, replica counts, pass rule, seed roots, or the existing R3b and QR3b findings."
+}
