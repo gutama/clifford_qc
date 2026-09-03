@@ -1,5 +1,8 @@
 import json
 
+import pytest
+
+from clifford_qc import record_environment, reproducibility
 from clifford_qc.reproducibility import (
     compare_json_records, execution_provenance, sampling_stream_mismatch,
     stamp_record,
@@ -124,3 +127,58 @@ def test_a_named_package_that_is_missing_here_is_as_disqualifying_as_a_bump():
     problems = sampling_stream_mismatch(record, packages=("nonexistent-package",))
     assert len(problems) == 1
     assert "is not installed" in problems[0] and "1.2.3" in problems[0]
+
+
+def test_stamping_is_refused_under_an_environment_no_record_declares(
+        tmp_path, monkeypatch):
+    # The producer boundary, not a later cross-record gate, is where an
+    # unreproducible environment costs a rebuild instead of a retraction.
+    (tmp_path / "committed.json").write_text(json.dumps(
+        {"provenance": {"python": "3.12.4",
+                        "dependencies": {"numpy": "9.9.9"}}}), encoding="utf-8")
+    monkeypatch.delenv(record_environment.ALLOW_MIGRATION_ENV, raising=False)
+    monkeypatch.setattr(record_environment, "DEFAULT_DATA", tmp_path)
+    monkeypatch.setattr(reproducibility, "_environment_guarded", False)
+    with pytest.raises(record_environment.UndeclaredEnvironment):
+        stamp_record({"schema": "example.v1"})
+
+
+def test_a_deliberate_migration_may_stamp_outside_the_declared_set(
+        tmp_path, monkeypatch):
+    (tmp_path / "committed.json").write_text(json.dumps(
+        {"provenance": {"python": "3.12.4",
+                        "dependencies": {"numpy": "9.9.9"}}}), encoding="utf-8")
+    monkeypatch.delenv(record_environment.ALLOW_MIGRATION_ENV, raising=False)
+    monkeypatch.setattr(record_environment, "DEFAULT_DATA", tmp_path)
+    monkeypatch.setattr(reproducibility, "_environment_guarded", False)
+    assert stamp_record({"schema": "example.v1"},
+                        allow_environment_migration=True)["provenance"]
+    monkeypatch.setenv(record_environment.ALLOW_MIGRATION_ENV, "1")
+    assert stamp_record({"schema": "example.v1"})["provenance"]
+
+
+def test_an_authorized_stamp_does_not_excuse_the_next_one(tmp_path, monkeypatch):
+    # Memoizing the survey must not memoize the authorization with it.
+    (tmp_path / "committed.json").write_text(json.dumps(
+        {"provenance": {"python": "3.12.4",
+                        "dependencies": {"numpy": "9.9.9"}}}), encoding="utf-8")
+    monkeypatch.delenv(record_environment.ALLOW_MIGRATION_ENV, raising=False)
+    monkeypatch.setattr(record_environment, "DEFAULT_DATA", tmp_path)
+    monkeypatch.setattr(reproducibility, "_environment_guarded", False)
+    stamp_record({"schema": "example.v1"}, allow_environment_migration=True)
+    with pytest.raises(record_environment.UndeclaredEnvironment):
+        stamp_record({"schema": "example.v1"})
+
+
+def test_the_committed_set_is_surveyed_once_per_process(tmp_path, monkeypatch):
+    # A JSONL producer stamps every row; the guard must not re-read the whole
+    # record directory ten thousand times to say the same thing.
+    surveys = []
+    monkeypatch.delenv(record_environment.ALLOW_MIGRATION_ENV, raising=False)
+    monkeypatch.setattr(record_environment, "DEFAULT_DATA", tmp_path)
+    monkeypatch.setattr(reproducibility, "_environment_guarded", False)
+    monkeypatch.setattr(record_environment, "guard",
+                        lambda *args, **kwargs: surveys.append(1))
+    for _ in range(5):
+        stamp_record({"schema": "example.v1"})
+    assert len(surveys) == 1
