@@ -1,0 +1,120 @@
+{
+  "schema": "clifford_qc.r3b_margin_stop_probe_config.v1",
+  "phase": "R3b_lih_margin_stop_probe",
+  "status": "preregistration_only_no_run_yet",
+  "parent_lineage": {
+    "repository": "gutama/clifford_qc",
+    "admitted_by": {
+      "phase": "R3S",
+      "merged_pull_request": 72,
+      "merge_commit": "8d6857e041cbbf27cb013d07bfd3c1aaee7e8931",
+      "record": "benchmarks/reference_results/priceability_screen.json",
+      "record_sha256": "06669c5047fbe16e56ab829e98cc9325b0ad52f94dd89be8eb33f373239477d9",
+      "config": "benchmarks/configs/priceability_screen.json",
+      "config_sha256": "f43fac4ad8386ecdfa279cfbf5e61661c7a24f3459c7f2f229ad10b0b7f9ec3e"
+    },
+    "extends": {
+      "phase": "QR3b",
+      "config": "benchmarks/configs/qr3b_instance_preflight.json",
+      "config_sha256": "c09d79b10c340f8b4793228a4128994a0ae39845ffe2e0bdefc8c06d96ea0cde",
+      "preserved_result": "The QR3b probe's rejection stands exactly as recorded, and this preregistration does not reopen it. That probe evaluated the intrinsic-stop bank -- M=13, binding W=7740 -- and rejected it on resolution. This is a different bank of the same instance, admitted by R3S under a different stopping rule, and it is a separate candidate rather than a re-run of a decided one."
+    }
+  },
+  "estimand": {
+    "name": "R3b_lih_margin_stop_resolution_scope_decision",
+    "question": "Does the LiH margin-stop bank resolve a crossing strictly inside the frozen R1/R3 search grid on every probe cell, with one endpoint of headroom?",
+    "why_this_bank": "R3S admitted it: at M=2 its binding word universe is 1439, below BeH2's 1814 -- the only bank this repository has ever priced inside the grid -- while the same instance at its intrinsic stop sits at 7740, about four times the ceiling. If the word universe is the quantity that governs resolution, this bank should resolve where the intrinsic-stop bank did not. That is the proposition the probe tests.",
+    "what_a_pass_buys": "Eligibility for a separately preregistered 30+100 run on this bank. That run, not this probe, would be the exact tier's second priced instance, which is what makes QR3 and QR3b answerable without widening SEARCH_ENDPOINTS.",
+    "what_a_failure_means": "The word-universe ceiling is a proxy this bank falsifies. Report it as the screen's first negative, record the unresolved cells' W, and recalibrate the ceiling on two points rather than one. A failure is a result about the screen, not a reason to widen the grid by default."
+  },
+  "candidate": {
+    "key": "lih_cas4e4o_margin_stop",
+    "label": "LiH equilibrium STO-3G CAS(4e,4o), R3S margin-stop bank",
+    "builder": "fcidump",
+    "source": "benchmarks/data/lih_sto3g_r1.5949_cas4e4o.FCIDUMP",
+    "source_sha256": "1163b1c1a79b20b452f429b694e55a1e34db5b636398f541074a2494d73a4130",
+    "provenance": "benchmarks/data/lih_sto3g_r1.5949_cas4e4o.provenance.json",
+    "provenance_sha256": "0da925824d5c4b59c9f7297823b4578cd6504795ffca822d320ed65b07a1899f",
+    "chemical_independence": "LiH is a different molecule from both BeH2 and H4; this is not a second geometry of a previously priced Hamiltonian. The instance is the one QR3b froze -- only the bank drawn from it differs.",
+    "selection_rule": "R3S margin rule: the smallest prefix of the frozen QR3b greedy ordering whose exact subspace bias is at or below accuracy_target_millihartree / margin_factor. It is a function of the accuracy target alone and is evaluated on the source-side bias, which the linear encoding family leaves invariant; no mapping, arm, or word count enters the choice.",
+    "selection_rule_is_preregistered_here": false,
+    "selection_rule_preregistration_note": "The margin rule itself was declared in R3S (merge 8d6857e) and is labelled declared_here_not_preregistered in that record, because its config and its first verdicts entered together. This config is the rule's first preregistered *use*: the rule is frozen upstream and this commit fixes the bank, gates and seeds before any sampling. So the rule is preregistered with respect to this probe's result, and the R3S label is not upgraded by that.",
+    "selected_labels": [
+      "I",
+      "E(6,7<-2,3)"
+    ],
+    "selected_labels_are_a_prefix_of": "benchmarks/configs/qr3b_instance_preflight.json candidate.selected_labels",
+    "expected_basis_size": 2,
+    "expected_bias_millihartree": 0.3697800372419735,
+    "bias_tolerance_millihartree": 1e-09,
+    "expected_binding_word_universe": 1439,
+    "expected_arm_word_universe": {
+      "jw": 1439,
+      "parity": 1439,
+      "parity+2q": 887,
+      "bk": 1439,
+      "bk+2q": 887
+    },
+    "expected_arm_settings": {
+      "jw": 349,
+      "parity": 175,
+      "parity+2q": 122,
+      "bk": 283,
+      "bk+2q": 187
+    },
+    "word_universe_convention": "non_identity_words_only"
+  },
+  "mapping_arms": [
+    "jw",
+    "parity",
+    "parity+2q",
+    "bk",
+    "bk+2q"
+  ],
+  "protocol": {
+    "inherits_from": "QR3b, unchanged",
+    "block_sizes": [
+      1,
+      2,
+      4,
+      8
+    ],
+    "estimators": [
+      "single_assignment",
+      "pooled"
+    ],
+    "search_endpoints_effective_shots_per_setting": [
+      64,
+      256,
+      1024,
+      4096,
+      16384,
+      65536
+    ],
+    "search_grid_policy": "identical to frozen R1/R3; no endpoint may be added by this extension",
+    "exploratory_replicas": 2,
+    "confirmatory_replicas": 2,
+    "probe_is_a_cost_record": false,
+    "seed_roots": {
+      "exploratory": 130813000,
+      "confirmatory": 130913000,
+      "bootstrap": 131013000
+    },
+    "seed_roots_basis": "Fresh roots, distinct from QR3b's 2808/2809/2810 series, so the two probes' replica and bootstrap streams cannot alias. The 13 prefix names execution-order step 13b. Reusing QR3b's roots would be defensible on a different bank, but distinct streams cost nothing and remove the question."
+  },
+  "acceptance_gates": {
+    "inherits_from": "QR3b, unchanged except where a row says otherwise",
+    "source_qubits": 8,
+    "accuracy_target_millihartree": 1.6,
+    "all_mapping_arms_must_clear_bias_floor": true,
+    "all_probe_cells_must_resolve_strictly_before": 65536,
+    "preferred_headroom_endpoint": 16384,
+    "word_universe_ceiling": 2048,
+    "word_universe_ceiling_basis": "Carried forward unchanged from QR3b and R3S: BeH2 is the only bank ever priced inside this grid, at W=1814 on its full-width arms, and the ceiling is the next power of two above it. It is an operational admission threshold calibrated on one success, not a demonstrated necessary condition for priceability -- coefficient magnitudes, grouping, estimator variance and pencil conditioning all bear on whether a bank resolves. This probe is the first test of that proxy on a bank it admits rather than rejects.",
+    "selection_must_stop_intrinsically": false,
+    "selection_must_stop_intrinsically_basis": "QR3b required the intrinsic stopping rule and this probe deliberately does not, which is the single substantive difference between the two preregistrations. The intrinsic rule is accuracy-maximizing while the exact-tier price is resolution-limited, and on this instance the two conflict: the greedy spends four orders of magnitude of bias headroom to buy 5.4x the word universe. The replacement is not weaker discipline but a different declared rule, gated the same way.",
+    "selection_may_not_use_mapping_cost_direction": true,
+    "full_30_plus_100_run_authorized_by_this_config": false
+  },
+  "claim_boundary": "Preregistration only. No sampling has been performed under this config and it contains no result, verdict, or cost field; check_r3b_preregistration.py fails a copy that grows one. When the probe runs it will be scope-decision evidence exactly as QR3b was: it may accept or reject this bank for a later preregistered full run, and it may not price C(epsilon), answer QR3 or QR3b, or alter any frozen censoring decision."
+}
