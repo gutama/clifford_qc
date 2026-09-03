@@ -49,11 +49,15 @@ def test_a_config_claiming_record_status_is_refused(tmp_path, config):
         r3c.load_config(_write(tmp_path, broken))
 
 
-def test_the_r3b_config_and_record_are_cryptographically_bound(config):
+def test_the_r3b_config_and_historical_record_are_cryptographically_bound(config):
     assert r3c._canonical_sha256(json.loads(r3c.R3B_CONFIG.read_text())) == (
         r3c.R3B_CONFIG_CANONICAL_SHA256
     )
-    assert r3c._git_blob_sha1(r3c.R3B_RECORD) == r3c.R3B_RECORD_GIT_BLOB_SHA1
+    assert r3c._git_blob_sha1(r3c.R3B_RECORD) != r3c.R3B_RECORD_GIT_BLOB_SHA1
+    assert r3c.record_successor_problems(
+        "r3b_margin_stop_probe",
+        historical_git_blob_sha1=r3c.R3B_RECORD_GIT_BLOB_SHA1,
+    ) == []
 
     broken = copy.deepcopy(config)
     broken["parent_lineage"]["pilot"]["record_git_blob_sha1"] = "0" * 40

@@ -1,0 +1,102 @@
+{
+  "schema": "clifford_qc.record_environment_migration.v1",
+  "status": "completed_rebuild_not_relabel",
+  "source_main_commit": "44cd16fb8ea6263901deb81eb5ba4c2af1de6283",
+  "target_environment": {
+    "python_minor": "3.12",
+    "numpy": "2.5.2",
+    "scipy": "1.18.0",
+    "stim": "1.16.0"
+  },
+  "frozen_configs": {
+    "priceability_screen": {
+      "path": "benchmarks/configs/priceability_screen.json",
+      "sha256": "f43fac4ad8386ecdfa279cfbf5e61661c7a24f3459c7f2f229ad10b0b7f9ec3e"
+    },
+    "r3b_margin_stop_probe": {
+      "path": "benchmarks/configs/r3b_margin_stop_probe.json",
+      "sha256": "319af3cfd047d336b0d01fea21fe5a980e8bff84777b7ba9e67dffb439da8ef1"
+    },
+    "r3c_lih_full_cost": {
+      "path": "benchmarks/configs/r3c_lih_full_cost.json",
+      "sha256": "cfbc97f3225ebdf8bdd8bcbddd2141214649664ef238a7cc98188db6f4160daa"
+    }
+  },
+  "records": {
+    "priceability_screen": {
+      "path": "benchmarks/reference_results/priceability_screen.json",
+      "before": {
+        "sha256": "06669c5047fbe16e56ab829e98cc9325b0ad52f94dd89be8eb33f373239477d9",
+        "git_blob_sha1": "8ac3a1b62b2aef4560ff4d0dc81c692820a39bcd",
+        "environment": {
+          "python_minor": "3.11",
+          "numpy": "2.4.6",
+          "scipy": "1.17.1",
+          "stim": "1.16.0"
+        },
+        "summary": {
+          "admissible_for_a_probe": ["beh2", "lih_cas4e4o"],
+          "admitted_only_by_the_rule_change": ["lih_cas4e4o"],
+          "rejected": ["h2o_cas8e6o", "h4_converged", "hubbard_2x2"]
+        }
+      },
+      "after": {
+        "sha256": "61ee716540b9aad7be49193255dac12a097a1c46000f6b0f8534139a646a175d",
+        "git_blob_sha1": "bf648f05ce60a0e5213d00f3bffae256090b6b7d",
+        "summary": {
+          "admissible_for_a_probe": ["beh2", "lih_cas4e4o"],
+          "admitted_only_by_the_rule_change": ["lih_cas4e4o"],
+          "rejected": ["h2o_cas8e6o", "h4_converged", "hubbard_2x2"]
+        }
+      }
+    },
+    "r3b_margin_stop_probe": {
+      "path": "benchmarks/reference_results/r3b_margin_stop_probe.json",
+      "before": {
+        "sha256": "f68213315b203420db6947711fcd94bef93ec202dc2734ef4c7c94f38a9c7623",
+        "git_blob_sha1": "7c7eb9b22990ceab972ce8d5dc5580df63e5ab30",
+        "environment": {
+          "python_minor": "3.11",
+          "numpy": "2.4.6",
+          "scipy": "1.17.1",
+          "stim": "1.16.0"
+        },
+        "decision": {
+          "status": "rejected_unresolved_at_frozen_grid",
+          "evaluated_cells": 40,
+          "resolved_cells": 30,
+          "unresolved_cells": 10,
+          "cells_at_or_beyond_ceiling": 1,
+          "full_run_authorized": false,
+          "eligible_for_full_run": false
+        },
+        "diagnosis": {
+          "grid_fit_failures": 0,
+          "confirmation_failures": 10,
+          "unclassified_failures": 0,
+          "verdict": "corroborated_on_grid_fit_headroom_marginal"
+        }
+      },
+      "after": {
+        "sha256": "108dde4e95d2df08aa6ebca01f3fe179b628f4d080feb800bf6eeeb9bbff8b83",
+        "git_blob_sha1": "8d28b6187d1213e5294f3dd82c279bade403196a",
+        "decision": {
+          "status": "rejected_unresolved_at_frozen_grid",
+          "evaluated_cells": 40,
+          "resolved_cells": 29,
+          "unresolved_cells": 11,
+          "cells_at_or_beyond_ceiling": 1,
+          "full_run_authorized": false,
+          "eligible_for_full_run": false
+        },
+        "diagnosis": {
+          "grid_fit_failures": 0,
+          "confirmation_failures": 11,
+          "unclassified_failures": 0,
+          "verdict": "corroborated_on_grid_fit_headroom_marginal"
+        }
+      }
+    }
+  },
+  "claim_boundary": "This manifest records a reproducibility migration from genuinely rebuilt records. It preserves the frozen R3S and R3b historical anchors, distinguishes their pre-migration findings from the target-environment redraw, and changes neither the result-free R3c config nor its authorization. It contains no R3c sample, price, cost bracket, C(epsilon), or k-star result."
+}

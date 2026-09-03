@@ -106,7 +106,7 @@ No figure or table value in the manuscript is transcribed by hand, and
 ```bash
 python -m venv .venv && source .venv/bin/activate
 pip install -e .[test,research,chemistry]   # numpy + scipy + openfermion/pyscf
-pytest                                      # 1303 passed, 27 skipped
+pytest                                      # 1309 passed, 27 skipped
 ```
 
 That install is the reference environment for the quoted pair. The count
@@ -128,7 +128,7 @@ the remaining `27 - 13 = 14` skips are per-test and *are* collected:
 
 ```text
 collected == passed + (skipped - files dropped at collection)
-1317      == 1303   + (27      -  13)
+1323      == 1309   + (27      -  13)
 ```
 
 Both sides are computed from the tree, so a drift in either quoted number
@@ -377,7 +377,7 @@ Three cost-aware tiers run:
 | job | when | contents |
 | --- | --- | --- |
 | `test` | pull request, push to `main`, manual dispatch | `ruff`, `pytest --hypothesis-profile=ci`, and the short record gates: `check_docs`, `check_molecular`, `check_krylov_width`, `check_clifford_hierarchy`, `check_finite_shot_optimization`, `check_warm_start` |
-| `structural-records` | pull request, push to `main`, manual dispatch | deterministic rebuild and lineage gates: `check_mapping_axis`, `check_protocol_axis`, `check_priceability_screen`, `check_r3b_preregistration`, `check_r3c_preregistration` |
+| `structural-records` | pull request, push to `main`, manual dispatch | deterministic rebuild and lineage gates: `check_mapping_axis`, `check_protocol_axis`, `check_priceability_screen`, `check_r3_environment_migration`, `check_r3b_preregistration`, `check_r3c_preregistration` |
 | `sampled-records` | manual dispatch only | replica-drawing rebuild gates, each under its own record stamp: `check_r3b_margin_stop_probe`, `check_finite_shot_rethink`, `check_matched_h4`, `check_qr3b_instance_preflight`, `check_exact_shot_search`, `check_protocol_cost` |
 
 The same dispatch also runs `environment-consistency`, which requires every
@@ -397,26 +397,41 @@ spend the sampled matrix.
 
 ### The python 3.12 / numpy 2.5.2 / scipy 1.18.0 migration
 
-The migration rebuilt every record that existed at the time on this stack.
+The earlier migration rebuilt every record that existed at the time on this stack.
 `priceability_screen.json` (PR #72) and `r3b_margin_stop_probe.json` (PR #73)
 were then produced under Python 3.11 / NumPy 2.4.6 / SciPy 1.17.1 — the stack
 this repository used *before* the migration, and the default of the containers
-the runs happened in — so the repository is split again and the default
-all-record check correctly fails. Nothing chose the older libraries: NumPy
+the runs happened in — so the repository became split again and the default
+all-record check correctly failed. Nothing chose the older libraries: NumPy
 2.5.2 and SciPy 1.18.0 both require Python >= 3.12, so an interpreter one minor
 version back resolves the newest releases that still support it. Those two
-records remain individually reproducible under their own stamps; they must be
-rebuilt, not relabelled, before the global check returns green. SciPy 1.18.0
-remains the accepted target; moving to 1.18.1 is out of scope. No pin is chosen
-by majority: record-local jobs read one named stamp, while the global check
-refuses the split.
+records have now been genuinely rebuilt rather than relabelled, so the global
+check is green again. SciPy 1.18.0 remains the accepted target; moving to 1.18.1
+is out of scope. No pin is chosen by majority: record-local jobs read one named
+stamp, while the global check refuses any split.
+
+The repair is itself gated:
+
+```bash
+python benchmarks/check_r3_environment_migration.py
+python benchmarks/check_record_environment.py
+```
+
+`benchmarks/migrations/r3_environment_3_12.json` binds the old and new SHA-256
+and Git-blob identities, the frozen configs, the exact source `main` commit and
+the target environment. The R3c config remains byte-for-byte unchanged. Its
+historical rationale therefore still names the 3.11 draw (30 resolved, 10
+confirmation failures), while the live target-environment R3b record reports
+29 resolved and 11 confirmation failures. Both reject the bank, both have zero
+grid-fit failures and one ceiling cell, and neither authorizes a full run.
 
 A repeat is what the producer guard above now prevents: run under an
 undeclared interpreter today and the run refuses to stamp, naming the versions
 the committed records were built under, instead of writing a twelfth record
 that reproduces beside none of them.
 
-What moved is worth stating precisely, because the two halves behave
+What moved in the earlier whole-set migration is worth stating precisely,
+because the two halves behave
 differently and a reader comparing figures across this boundary needs to know
 which half they are looking at.
 
@@ -1931,8 +1946,8 @@ four workers, against QR3b's 150 CI-minutes.
 
 **Result: the bank is rejected, and the gate is not relaxed.**
 `rejected_unresolved_at_frozen_grid`, `eligible_for_full_run: false`,
-`full_run_authorized: false`. 30 of
-40 cells resolved and 10 did not,
+`full_run_authorized: false`. In the target-environment redraw, 29 of
+40 cells resolved and 11 did not,
 and the preregistration requires every cell to resolve strictly before `65536`.
 So no `30+100` run is authorized on this bank, and the earlier expectation that
 the margin-stop bank would deliver the exact tier's second priced instance is
@@ -1942,9 +1957,9 @@ the margin-stop bank would deliver the exact tier's second priced instance is
 
 | | QR3b — intrinsic stop, `W = 7740` | R3b — margin stop, `W = 1439` |
 |---|---|---|
-| resolved | 18 / 40 | **30 / 40** |
+| resolved | 18 / 40 | **29 / 40** (30 / 40 historical) |
 | `not_bracketed_within_search_grid` | **15** | **0** |
-| confirmation failures | 7 | 10 |
+| confirmation failures | 7 | 11 (10 historical) |
 | cells at/over the `65536` ceiling | 9 | 1 |
 | modal passing endpoint | `65536` | `16384`, then `4096` |
 
@@ -1954,10 +1969,12 @@ the reconstruction variance the search has to overcome. It accounted for 15 of
 QR3b's 22 unresolved cells and **none** of R3b's. Every crossing this bank has
 lies inside the grid, and the passing endpoints fell by roughly two grid steps.
 
-What remains is a different mechanism. Nine cells found an exploratory crossing
-the two confirmatory replicas did not reproduce, one was nonmonotone, and one
-bracketed only at the last grid point. The first two are the `2+2` probe's
-replica count; the third is headroom. Neither is a statement about `W`.
+What remains is a different mechanism. In the target-environment redraw,
+eleven cells found an exploratory crossing the two confirmatory replicas did
+not reproduce, and one cell bracketed only at the last grid point. The
+historical 3.11 draw had nine unconfirmed exploratory crossings and one
+nonmonotone confirmation, with the same one ceiling cell. These are the `2+2`
+probe's replica count and its headroom, not statements about `W`.
 
 **So the record's verdict is
 `corroborated_on_grid_fit_headroom_marginal`**, and the split behind it is
@@ -1992,12 +2009,15 @@ undo the thing landing it first exists to establish.
 
 ## R3c LiH full-cost run — preregistration
 
-R3b remains a rejected 2+2 scope probe: 30 of 40 cells resolved, zero failed
-to bracket anywhere in the grid, ten failed confirmation, and one resolved only
-at the `65536` ceiling. Its `eligible_for_full_run: false` and
-`full_run_authorized: false` fields are immutable. R3c does not rewrite that
-finding. It is a new declaration, motivated by the probe's explicitly labelled
-post-hoc failure-mode split, for one execution of the target instrument:
+R3c was preregistered against the historical rejected 2+2 scope probe: 30 of
+40 cells resolved, zero failed to bracket anywhere in the grid, ten failed
+confirmation, and one resolved only at the `65536` ceiling. The later genuine
+target-environment redraw reports 29 resolved and eleven confirmation failures,
+while preserving zero grid-fit failures, one ceiling cell, and rejection. In
+both records `eligible_for_full_run: false` and `full_run_authorized: false` are
+immutable. R3c does not rewrite either finding. It is a new declaration,
+motivated by the probe's explicitly labelled post-hoc failure-mode split, for
+one execution of the target instrument:
 
 ```bash
 python benchmarks/check_r3c_preregistration.py
@@ -2020,13 +2040,14 @@ passing endpoint. A cell without one at `65536` is right-censored; it is not
 assigned infinite cost and does not license a wider grid. Logical time may be
 reported only under the three existing device cards, pinned by name and SHA-256.
 
-The checker binds the current R3b config by canonical SHA-256 and its sampled
-record by Git blob SHA-1, preserves the 2+2 rejection and its diagnostic counts,
-reuses R3b's deterministic bank reconstruction, rejects any candidate or
-protocol drift, checks every random root against the prior streams, and refuses
-any result, verdict, execution stamp, or cost field. Its claim boundary is
-deliberately tenseless: this config carries no sampled result; a later record
-may report only the frozen run.
+The checker binds the current R3b config by canonical SHA-256 and its historical
+sampled record by Git blob SHA-1, then follows the declared migration manifest
+to the live rebuilt successor. It preserves both 2+2 rejections and their
+respective diagnostic counts, reuses R3b's deterministic bank reconstruction,
+rejects any candidate or protocol drift, checks every random root against the
+prior streams, and refuses any result, verdict, execution stamp, or cost field.
+Its claim boundary is deliberately tenseless: this config carries no sampled
+result; a later record may report only the frozen run.
 
 No producer or sampled record lands with this preregistration. The future
 `run_r3c_lih_full_cost.py`, its record, and

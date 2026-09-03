@@ -116,7 +116,7 @@ Status at a glance:
 | R3 | protocol axis and accuracy-matched cost regions | **done**; the structural and exact-tier records ship, while QR3 abstains because H4-converged is right-censored at the frozen endpoint ceiling — R3S below is the route to a second priced instance that does not widen the grid |
 | QR3b | chemically independent LiH exact-tier extension preflight | **done, negative scope decision** *for the intrinsic-stop bank* (`M = 13`, `W = 7740`); the bias gate passes, but 21/40 cells are unresolved and 9 more resolve only at the frozen ceiling, so no full run is authorized on that bank. The screened `M = 2` bank is a separate candidate — R3b |
 | R3S | priceability screen — which candidates a declared screen admits for a probe | **done, positive**; under a stopping rule that reserves the accuracy target for shot noise, LiH is admissible at a two-generator prefix (`W = 1439` against BeH₂'s `1814`), so QR3b rejected the greedy's stopping point rather than the instance |
-| R3b | LiH `margin_stop` probe — the QR3b 2+2 preflight re-run on the bank R3S admitted | **done, mixed**; the bank is rejected (30/40 cells resolve, the gate needs 40) so no full run is authorized and there is still one priced instance — but the grid-fit failure mode QR3b died on went `15 → 0` cells, and what remains is the `2+2` probe's confirmation power, not `W` |
+| R3b | LiH `margin_stop` probe — the QR3b 2+2 preflight re-run on the bank R3S admitted | **done, mixed**; the target-environment redraw rejects the bank (29/40 cells resolve, versus 30/40 in the historical 3.11 draw; the gate needs 40), so no full run is authorized and there is still one priced instance — but both draws reduce QR3b's grid-fit failures `15 → 0`, leaving the `2+2` probe's confirmation power rather than `W` |
 | R3c | LiH `margin_stop` headline exact-tier cost run | **preregistered, not run**; the bank, frozen grid, 30+100 replicas, pass rule, fresh streams, device cards and right-censoring outcome are fixed in a result-free config. The sampled record must land separately |
 | R4 | contextual-subspace comparator | open |
 
@@ -2579,7 +2579,7 @@ non-adaptive and adaptive arms ran:
 |---|---:|---|---|---|
 | H₄ `r = 0.9` | 8 | yes | `matched_h4.json`, `clifford_hierarchy_h4.json` | primary; the frozen bank both cost axes reuse |
 | BeH₂ CAS(4e,4o) | 8 | yes | `clifford_hierarchy_beh2.json` | second instance; the 22× break-even spread; the one bank priced inside the frozen grid |
-| LiH CAS(4e,4o) | 8 | yes | `qr3b_instance_preflight.json`, `priceability_screen.json`, `r3b_margin_stop_probe.json` | chemically independent second instance; rejected at its intrinsic stop (`W = 7740`); the `M = 2` bank (`W = 1439`) resolved 30/40 cells in the completed 2+2 probe, and its separate 30+100 cost run is preregistered but carries no result (§13, 13b–c) |
+| LiH CAS(4e,4o) | 8 | yes | `qr3b_instance_preflight.json`, `priceability_screen.json`, `r3b_margin_stop_probe.json` | chemically independent second instance; rejected at its intrinsic stop (`W = 7740`); the `M = 2` bank (`W = 1439`) resolves 29/40 cells in the target-environment 2+2 redraw (30/40 historically), and its separate 30+100 cost run is preregistered but carries no result (§13, 13b–c) |
 | H₂O CAS(4e,4o) stretched | 8 | yes | ladder | strong-correlation control |
 | H₂O CAS(8e,6o) | 12 | yes | ladder | size stress for `W` and grouping |
 | Hubbard 2×2 / 2×3 | 8 / 12 | yes | ladder | strongly correlated control, non-molecular weight profile |
@@ -3007,8 +3007,9 @@ A-CASE's.
   verdict, and equally any record that drops a structural system without deferring it.
   R3S then showed part of the barrier is a property of the frozen stopping rule: LiH
   at the margin-rule prefix sits at `W = 1439`, under the one priced bank. The 13b
-  probe tested that and **did not price it** — 30 of 40 cells resolve against a gate
-  needing 40. The half that held is the one `W` governs: `not_bracketed_within_search_grid`
+  probe tested that and **did not price it** — the target-environment redraw resolves
+  29 of 40 cells (30 historically) against a gate needing 40. The half that held is
+  the one `W` governs: `not_bracketed_within_search_grid`
   went from 15 cells to none, so the crossings are inside the grid now. The half that
   did not is the probe's own confirmation power. QR3 therefore stays abstaining, and
   the reason has moved once more — from accuracy, to grid resolution, to whether a
@@ -3156,17 +3157,20 @@ Track A must not wait for Tracks B or C. Within each track the order is dependen
 between tracks, R1 is cheap and its result can reorder Track B's protocol conclusions, so it
 comes early.
 
-**Immediate order, as of the R3c preregistration.** Step 13b did not price:
+**Immediate order, after the R3 environment migration.** Step 13b did not price:
 the exact tier still has one priced instance, and the binding constraint moved
 from grid fit to the `2+2` probe's confirmation power. R3c therefore freezes the
 headline 30+100 protocol — the target instrument, not another resized scope
 probe — in a result-free commit. Restoring the record gates also exposed that
 PR #73's two records were stamped on the older 3.11 / NumPy 2.4.6 stack while
-the other ten use 3.12 / 2.5.2. So (1) rebuild those two records, without
-relabeling their provenance or relaxing their decisions, in a separate evidence
-migration; (2) execute R3c exactly once under its frozen 3.12 / 2.5.2
-environment and land its producer, checker and sampled record separately;
-(3) implement Phase 13's deterministic X-rank invariant; (4) keep R4a blocked
+the other ten use 3.12 / 2.5.2. That split is now repaired by a genuine rebuild,
+with the old and new record identities connected by
+`migrations/r3_environment_3_12.json`: R3S keeps the same verdicts, while R3b
+moves from 30/40 to 29/40 resolved cells without changing its rejection, zero
+grid-fit failures, or one ceiling cell. So (1) execute R3c exactly once under
+its frozen 3.12 / 2.5.2 environment and land its producer, checker and sampled
+record separately; (2) implement Phase 13's deterministic X-rank invariant;
+(3) keep R4a blocked
 unless R3c supplies the second priced instance. Paper A's submission stays
 schedulable and blocks nothing.
 
@@ -3329,20 +3333,21 @@ not another open accuracy phase.
     so the two records differ in the bank and nothing else. Three minutes on four
     workers against QR3b's 150 CI-minutes.
 
-    *Result: the bank is rejected and no full run is authorized.* 30 of 40 cells
-    resolve; the preregistered gate needs all 40 to resolve strictly before
-    `65536`. So the exact tier still has one priced instance, and the expectation
-    this step rested on — that the margin bank would supply the second — is not
-    borne out.
+    *Result: the bank is rejected and no full run is authorized.* The record
+    originally resolved 30 of 40 cells under Python 3.11 / NumPy 2.4.6. Its
+    genuine target-environment redraw resolves 29 of 40 under Python 3.12 /
+    NumPy 2.5.2; the preregistered gate needs all 40 to resolve strictly before
+    `65536`. Both draws therefore leave the exact tier with one priced instance.
 
     *What changed is the failure mode, and that is the finding.*
     `not_bracketed_within_search_grid`, the failure the word-universe ceiling is
     a proxy for, accounted for 15 of QR3b's 22 unresolved cells and **none** of
     R3b's; the passing endpoints fell about two grid steps, modal `65536 →
-    16384`. The ten remaining failures are nine exploratory crossings the two
-    confirmatory replicas did not reproduce, one nonmonotone confirmation, and
-    one cell bracketing only at the last grid point. Those are the probe's
-    replica count and its headroom, not `W`. So the ceiling is corroborated on
+    16384`. The historical draw had nine unconfirmed exploratory crossings and
+    one nonmonotone confirmation; the target-environment redraw has eleven
+    unconfirmed exploratory crossings. Both have one cell bracketing only at
+    the last grid point. Those are the probe's replica count and its headroom,
+    not `W`. So the ceiling is corroborated on
     what it actually predicts, and the binding constraint has moved from the grid
     to the instrument. The record's verdict is
     `corroborated_on_grid_fit_headroom_marginal`, and the split behind it is
@@ -3450,8 +3455,9 @@ the boundary without contradicting the sampling it reports.
 **The record gates run in three cost-aware tiers.** The `test` job and the
 deterministic `structural-records` matrix run on every pull request, push to
 `main`, and manual dispatch. The latter covers `check_mapping_axis`,
-`check_protocol_axis`, `check_priceability_screen`, and both result-free
-preregistration checkers. The replica-drawing `sampled-records` matrix runs only
+`check_protocol_axis`, `check_priceability_screen`, the R3 environment-migration
+lineage gate, and both result-free preregistration checkers. The replica-drawing
+`sampled-records` matrix runs only
 on explicit dispatch because it costs roughly ten runner-hours. A PR that changes
 a sampled producer, config or record names the dispatch run against its exact
 head before merge; a result-free structural preregistration does not spend that
@@ -3459,10 +3465,10 @@ matrix. This restores automatic claim and lineage protection without silently
 turning every rebase into a full benchmark campaign.
 
 Each value gate installs from its own named record stamp. That is not a majority
-resolution of a split: the manual `environment-consistency` job still requires
-all records to agree and currently names the two PR #73 records that need a
-separate evidence migration. Record-local execution lets every other gate remain
-diagnostic while that cross-record failure stays visible.
+resolution: the manual `environment-consistency` job still requires every record
+to agree, and it is green only because both PR #73 records were genuinely rebuilt
+under the common stack. `check_r3_environment_migration.py` separately preserves
+their historical identities and the R3c evidence boundary.
 
 ---
 

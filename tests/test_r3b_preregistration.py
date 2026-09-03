@@ -15,6 +15,7 @@ import pytest
 
 from benchmarks.check_r3b_preregistration import (
     CONFIG,
+    _sha256,
     _result_key_paths,
     digest_problems,
     gate_problems,
@@ -23,6 +24,7 @@ from benchmarks.check_r3b_preregistration import (
     protocol_problems,
     rederivation_problems,
 )
+from benchmarks.r3_environment_migration import record_successor_problems
 from benchmarks.run_exact_shot_search import ESTIMATORS, SEARCH_ENDPOINTS
 from benchmarks.run_priceability_screen import REFERENCE as SCREEN_RECORD
 
@@ -94,6 +96,14 @@ def test_a_drifted_lineage_digest_is_caught(config):
         broken = copy.deepcopy(config)
         broken["parent_lineage"][path[0]][path[1]] = "0" * 64
         assert any("no longer binds" in p for p in digest_problems(broken))
+
+
+def test_the_historical_r3s_digest_resolves_through_the_migration(config):
+    historical = config["parent_lineage"]["admitted_by"]["record_sha256"]
+    assert historical != _sha256(SCREEN_RECORD)
+    assert record_successor_problems(
+        "priceability_screen", historical_sha256=historical
+    ) == []
 
 
 def test_the_frozen_search_grid_may_not_move(config):
