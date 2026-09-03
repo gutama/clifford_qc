@@ -103,7 +103,7 @@ No figure or table value in the manuscript is transcribed by hand, and
 ```bash
 python -m venv .venv && source .venv/bin/activate
 pip install -e .[test,research,chemistry]   # numpy + scipy + openfermion/pyscf
-pytest                                      # 1265 passed, 27 skipped
+pytest                                      # 1277 passed, 27 skipped
 ```
 
 That install is the reference environment for the quoted pair. The count
@@ -125,7 +125,7 @@ the remaining `27 - 13 = 14` skips are per-test and *are* collected:
 
 ```text
 collected == passed + (skipped - files dropped at collection)
-1279      == 1265   + (27      -  13)
+1291      == 1277   + (27      -  13)
 ```
 
 Both sides are computed from the tree, so a drift in either quoted number
@@ -332,20 +332,23 @@ came to be committed under `numpy 2.5.2` while the other eight records were
 built under `2.4.6`, which read as scientific drift for as long as the versions
 were treated as metadata.
 
-Two tiers run:
+Three cost-aware tiers run:
 
 | job | when | contents |
 | --- | --- | --- |
-| `test` | pull request, push to `main` | `ruff`, `pytest --hypothesis-profile=ci`, and the record gates that finish in about a minute: `check_docs`, `check_molecular`, `check_krylov_width`, `check_clifford_hierarchy`, `check_finite_shot_optimization`, `check_warm_start` |
-| `records` | push to `main`, manual dispatch | the expensive rebuild gates: `check_finite_shot_rethink`, `check_mapping_axis`, `check_protocol_axis`, `check_protocol_cost`, `check_matched_h4`, `check_exact_shot_search`, `check_qr3b_instance_preflight`, `check_priceability_screen`, `check_r3b_preregistration`, `check_r3b_margin_stop_probe` |
+| `test` | pull request, push to `main`, manual dispatch | `ruff`, `pytest --hypothesis-profile=ci`, and the short record gates: `check_docs`, `check_molecular`, `check_krylov_width`, `check_clifford_hierarchy`, `check_finite_shot_optimization`, `check_warm_start` |
+| `structural-records` | pull request, push to `main`, manual dispatch | deterministic rebuild and lineage gates: `check_mapping_axis`, `check_protocol_axis`, `check_priceability_screen`, `check_r3b_preregistration`, `check_r3c_preregistration` |
+| `sampled-records` | manual dispatch only | replica-drawing rebuild gates: `check_r3b_margin_stop_probe`, `check_finite_shot_rethink`, `check_matched_h4`, `check_qr3b_instance_preflight`, `check_exact_shot_search`, `check_protocol_cost` |
 
 The split is by cost, not by importance. The exact-tier nonlinear searches
-dominate and can take from minutes to hours, so running them on every push to a
-pull request would repeat the same computation for the same answer on every rebase.
-They run in a matrix with `fail-fast` disabled, because the set of failures is
-the diagnosis; the short gates in `test` run past each other's failures for the
-same reason. To gate a branch on them before merging rather than after, dispatch
-the workflow against that branch from the Actions tab.
+dominate and can take from minutes to hours, so running them on every pull-request
+update would repeat the same computation for the same answer on every rebase.
+Both matrices have `fail-fast` disabled, because the set of failures is the
+diagnosis; the short gates in `test` run past each other's failures for the same
+reason. A pull request that changes a sampled producer, config, or record must
+name a manual dispatch against its exact branch head before merge. A
+structural-only preregistration is covered by the automatic jobs and does not
+spend the sampled matrix.
 
 ### The python 3.12 / numpy 2.5.2 / scipy 1.18.0 migration
 
@@ -1929,6 +1932,49 @@ cells — so the record states its own boundary and quotes the config's under
 `preregistration.config_claim_boundary_at_landing`, where it remains a true
 statement about what it describes. Editing the preregistration instead would
 undo the thing landing it first exists to establish.
+
+## R3c LiH full-cost run — preregistration
+
+R3b remains a rejected 2+2 scope probe: 30 of 40 cells resolved, zero failed
+to bracket anywhere in the grid, ten failed confirmation, and one resolved only
+at the `65536` ceiling. Its `eligible_for_full_run: false` and
+`full_run_authorized: false` fields are immutable. R3c does not rewrite that
+finding. It is a new declaration, motivated by the probe's explicitly labelled
+post-hoc failure-mode split, for one execution of the target instrument:
+
+```bash
+python benchmarks/check_r3c_preregistration.py
+```
+
+That command is deterministic and samples nothing. The result-free
+`benchmarks/configs/r3c_lih_full_cost.json` freezes the exact bank R3b piloted
+(`M = 2`, binding `W = 1439`), all five mapping arms,
+`k ∈ {1,2,4,8}`, both estimators, the unchanged `64…65536` endpoint grid,
+30 exploratory and 100 confirmatory replicas, nested endpoints, 10,000
+bootstrap replicates, one-sided `delta = 0.05`, and fresh roots
+`132813000 / 132913000 / 133013000`. Those roots are disjoint from QR3b,
+R3b, the R1 exact search, and the existing R3 cost record.
+
+The crossing rule is unchanged: every confirmatory solve must succeed and the
+one-sided 95% bootstrap upper bound on replica RMSE must be at most `1.6 mHa`.
+A finite interval requires a confirmed failing predecessor and confirmed
+passing endpoint. A cell without one at `65536` is right-censored; it is not
+assigned infinite cost and does not license a wider grid. Logical time may be
+reported only under the three existing device cards, pinned by name and SHA-256.
+
+The checker binds the current R3b config by canonical SHA-256 and its sampled
+record by Git blob SHA-1, preserves the 2+2 rejection and its diagnostic counts,
+reuses R3b's deterministic bank reconstruction, rejects any candidate or
+protocol drift, checks every random root against the prior streams, and refuses
+any result, verdict, execution stamp, or cost field. Its claim boundary is
+deliberately tenseless: this config carries no sampled result; a later record
+may report only the frozen run.
+
+No producer or sampled record lands with this preregistration. The future
+`run_r3c_lih_full_cost.py`, its record, and
+`check_r3c_lih_full_cost.py` must land in a separate commit. Only that record
+can show whether LiH becomes the second priced instance; otherwise QR3 remains
+undetermined.
 
 ## R2b raw-pool fermion-mapping axis
 

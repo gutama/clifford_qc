@@ -1,14 +1,12 @@
 name: CI
 
-# TEMPORARILY DEACTIVATED. The automatic triggers below are commented out so
-# no run starts on a push to main or on a pull request; `workflow_dispatch`
-# stays live, so the same jobs can still be started by hand from the Actions
-# tab against any branch. To reactivate, delete the three comment markers on
-# the `push`/`branches`/`pull_request` lines and this note.
+# Cheap deterministic checks protect every pull request and main update.
+# Sampled record rebuilds stay available by explicit dispatch because the full
+# matrix costs roughly ten runner-hours. See REPRODUCING.md for the merge rule.
 on:
-  # push:
-  #   branches: [main]
-  # pull_request:
+  push:
+    branches: [main]
+  pull_request:
   workflow_dispatch:
 
 permissions:
@@ -66,22 +64,11 @@ jobs:
         if: ${{ !cancelled() }}
         run: python benchmarks/check_warm_start.py
 
-  records:
-    # Gates that rebuild their record from scratch. They run on main, where the
-    # cost is paid once per merge, rather than on every push to a pull request
-    # where a rebase would repeat the same computation for the same answer. To
-    # gate a branch before merging, dispatch the workflow against it.
-    if: github.event_name != 'pull_request'
-    name: ${{ matrix.gate }}
+  structural-records:
+    name: ${{ matrix.gate }} (structural)
     runs-on: ubuntu-latest
-    # Per gate rather than one blanket ceiling. The old single 120-minute value
-    # was three orders too generous for the cheap gates -- a hung two-minute
-    # rebuild burned two hours before reporting -- and only ten minutes clear of
-    # check_protocol_cost, which measured 1h50m on main.
     timeout-minutes: ${{ matrix.timeout }}
     strategy:
-      # One red gate must not cancel the others; the set of failures is the
-      # diagnosis.
       fail-fast: false
       matrix:
         include:
@@ -89,13 +76,29 @@ jobs:
             timeout: 20
           - gate: check_protocol_axis
             timeout: 20
-          # Structural and by far the cheapest rebuilds here: no sampling at
-          # all, ~20s and ~1.3s locally. Ten minutes is headroom, not an estimate.
           - gate: check_priceability_screen
             timeout: 10
           - gate: check_r3b_preregistration
             timeout: 10
-          # Sampled: a 2+2 probe over 40 cells, ~3 minutes locally on 4 workers.
+          - gate: check_r3c_preregistration
+            timeout: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: ./.github/actions/record-environment
+      - run: python benchmarks/${{ matrix.gate }}.py
+
+  sampled-records:
+    # These gates draw replicas or rebuild records from sampled evidence. Run
+    # them against the exact branch head before merging and name that dispatch
+    # run in the PR. They never run implicitly on a pull request or main push.
+    if: github.event_name == 'workflow_dispatch'
+    name: ${{ matrix.gate }} (sampled, manual)
+    runs-on: ubuntu-latest
+    timeout-minutes: ${{ matrix.timeout }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
           - gate: check_r3b_margin_stop_probe
             timeout: 30
           - gate: check_finite_shot_rethink

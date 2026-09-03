@@ -117,6 +117,7 @@ Status at a glance:
 | QR3b | chemically independent LiH exact-tier extension preflight | **done, negative scope decision** *for the intrinsic-stop bank* (`M = 13`, `W = 7740`); the bias gate passes, but 21/40 cells are unresolved and 9 more resolve only at the frozen ceiling, so no full run is authorized on that bank. The screened `M = 2` bank is a separate candidate — R3b |
 | R3S | priceability screen — which candidates a declared screen admits for a probe | **done, positive**; under a stopping rule that reserves the accuracy target for shot noise, LiH is admissible at a two-generator prefix (`W = 1439` against BeH₂'s `1814`), so QR3b rejected the greedy's stopping point rather than the instance |
 | R3b | LiH `margin_stop` probe — the QR3b 2+2 preflight re-run on the bank R3S admitted | **done, mixed**; the bank is rejected (30/40 cells resolve, the gate needs 40) so no full run is authorized and there is still one priced instance — but the grid-fit failure mode QR3b died on went `15 → 0` cells, and what remains is the `2+2` probe's confirmation power, not `W` |
+| R3c | LiH `margin_stop` headline exact-tier cost run | **preregistered, not run**; the bank, frozen grid, 30+100 replicas, pass rule, fresh streams, device cards and right-censoring outcome are fixed in a result-free config. The sampled record must land separately |
 | R4 | contextual-subspace comparator | open |
 
 "Shipped" means the module, its tests, and where applicable its benchmark
@@ -2578,7 +2579,7 @@ non-adaptive and adaptive arms ran:
 |---|---:|---|---|---|
 | H₄ `r = 0.9` | 8 | yes | `matched_h4.json`, `clifford_hierarchy_h4.json` | primary; the frozen bank both cost axes reuse |
 | BeH₂ CAS(4e,4o) | 8 | yes | `clifford_hierarchy_beh2.json` | second instance; the 22× break-even spread; the one bank priced inside the frozen grid |
-| LiH CAS(4e,4o) | 8 | yes | `qr3b_instance_preflight.json`, `priceability_screen.json` | chemically independent second instance; rejected at its intrinsic stop (`W = 7740`), admissible at `M = 2` (`W = 1439`) under the R3S screen; probe pending (§13, 13b) |
+| LiH CAS(4e,4o) | 8 | yes | `qr3b_instance_preflight.json`, `priceability_screen.json`, `r3b_margin_stop_probe.json` | chemically independent second instance; rejected at its intrinsic stop (`W = 7740`); the `M = 2` bank (`W = 1439`) resolved 30/40 cells in the completed 2+2 probe, and its separate 30+100 cost run is preregistered but carries no result (§13, 13b–c) |
 | H₂O CAS(4e,4o) stretched | 8 | yes | ladder | strong-correlation control |
 | H₂O CAS(8e,6o) | 12 | yes | ladder | size stress for `W` and grouping |
 | Hubbard 2×2 / 2×3 | 8 / 12 | yes | ladder | strongly correlated control, non-molecular weight profile |
@@ -3155,17 +3156,16 @@ Track A must not wait for Tracks B or C. Within each track the order is dependen
 between tracks, R1 is cheap and its result can reorder Track B's protocol conclusions, so it
 comes early.
 
-**Immediate order, as of the R3b probe.** Step 13b is done and did not price:
-the exact tier still has one priced instance, and the binding constraint has moved
-from the search grid to the `2+2` probe's confirmation power. So (1) decide, in a
-fresh preregistration, whether the scope-decision probe should be re-sized —
-QR3b's `2+2` was sized against grid-fit failures, which no longer occur, and the
-answer may be that a scope probe cannot settle confirmation-limited cells at all.
-(2) Restore the record gates in tiered form (end of this section), so the next
-merge is not the third to land without CI. (3) Phase 13, the X-rank invariant — no
-sampling, and it gates Phase 14. (4) R4a is *not* unblocked: it still needs a
-second priced instance, and its widest arm inherits exactly the confirmation risk
-13b just measured. Paper A's submission stays schedulable and blocks nothing.
+**Immediate order, as of the R3c preregistration.** Step 13b did not price:
+the exact tier still has one priced instance, and the binding constraint moved
+from grid fit to the `2+2` probe's confirmation power. R3c therefore freezes the
+headline 30+100 protocol — the target instrument, not another resized scope
+probe — in a result-free commit. The record gates now run in tiers. So (1) execute
+R3c exactly once and land its producer, checker and sampled record in a separate
+commit; (2) implement Phase 13's X-rank invariant, which is deterministic and
+gates Phase 14; (3) keep R4a blocked unless R3c supplies the second priced
+instance, because its widest arm inherits the confirmation risk 13b measured.
+Paper A's submission stays schedulable and blocks nothing.
 
 **Paper A — the one item outside the tracks.** Its software, data, go/no-go decisions,
 and manuscript are complete (§9.6, §9.6.1) but it is not submitted. Nothing below
@@ -3351,7 +3351,30 @@ not another open accuracy phase.
     *Not licensed by this result.* A probe re-sized after seeing which cells
     failed — that is the move preregistration exists to prevent, and re-sizing
     needs its own declaration. A wider `SEARCH_ENDPOINTS` — the grid was never
-    the binding constraint here. And no `30+100` run on this bank.
+    the binding constraint here. And no `30+100` run on this bank is authorized
+    *by R3b*. R3c below is a new, result-free declaration motivated by the
+    explicitly post-hoc failure-mode split; it does not turn R3b's rejection into
+    a pass or upgrade that probe's evidence.
+13c. R3c — the LiH `margin_stop` headline cost run. **Preregistered, not run.**
+    `benchmarks/configs/r3c_lih_full_cost.json` and
+    `check_r3c_preregistration.py` freeze the exact R3b bank, all five mapping
+    arms, `k ∈ {1,2,4,8}`, both estimators, the unchanged `64…65536` grid,
+    30 exploratory plus 100 confirmatory replicas, the zero-failure and one-sided
+    95% bootstrap-RMSE rule, fresh disjoint seed roots, and the three existing
+    device-card hashes. The claim boundary is tenseless: this config carries no
+    sampled result, and a later record is limited to those frozen choices.
+
+    This is not a re-sized scope probe. R3b's 2+2 instrument answered its own
+    preregistered gate negatively and remains immutable; its labelled post-hoc
+    diagnosis motivates testing the target 30+100 instrument directly. This
+    config independently authorizes one future full run while preserving the
+    earlier `full_run_authorized: false` finding as a fact about R3b.
+
+    *Gate:* the producer, sampled record and result checker land in a later
+    commit. Each cell either supplies a confirmed finite interval or remains
+    right-censored at `65536`; censoring is not infinite cost and does not
+    license a wider grid. QR3 is re-derived only if the record supplies a second
+    priced instance.
 14. R4a — contextual-subspace comparator arms with bias floors. *Gate:* QR5 answered.
 15. R4b — CS-preconditioned A-CASE, built only on a complementary QR5.
 
@@ -3413,24 +3436,21 @@ to prevent: the record states its own boundary and quotes the config's under
 `preregistration.config_claim_boundary_at_landing`, where it stays true of what it
 describes, and `check_r3b_margin_stop_probe.py` fails a record that inherits a
 boundary asserting nothing was sampled while `scoping_probe.executed` is true.
-The forward fix belongs in the *next* preregistration, which should state its
-boundary tenselessly from the start — "this config carries no result, verdict or
-cost field" rather than "no sampling has been performed" — so its record can
-inherit it the way every other producer here does.
+The forward fix is R3c's preregistration, which states its boundary tenselessly
+from the start — "this config carries no sampled result" and "a later record may
+report" rather than "no sampling has been performed" — so its record can inherit
+the boundary without contradicting the sampling it reports.
 
-**The record gates are not currently running.** Every claim above rests on
-`check_*.py` regenerating its record on every merge, and since `529e6da` the
-workflow's `push` and `pull_request` triggers are commented out: the `records`
-matrix runs only on a manual dispatch, and #72 merged with no CI run at all. The
-reason is cost — the seven sampled gates total roughly ten runner-hours per merge —
-and the remedy is tiering, not re-enabling as-is. The structural gates
-(`check_docs`, the unit suite, `check_mapping_axis`, `check_protocol_axis`,
-`check_priceability_screen`) are minutes and belong back on `pull_request`; the
-sampled gates (`check_exact_shot_search`, `check_protocol_cost`,
-`check_qr3b_instance_preflight`, `check_matched_h4`, `check_finite_shot_rethink`)
-belong on a schedule or on dispatch, with the rule that a merge to `main` names the
-dispatch run that covered its head. Until that lands, "verified" in a PR body means
-verified locally, and the body says so.
+**The record gates run in three cost-aware tiers.** The `test` job and the
+deterministic `structural-records` matrix run on every pull request, push to
+`main`, and manual dispatch. The latter covers `check_mapping_axis`,
+`check_protocol_axis`, `check_priceability_screen`, and both result-free
+preregistration checkers. The replica-drawing `sampled-records` matrix runs only
+on explicit dispatch because it costs roughly ten runner-hours. A PR that changes
+a sampled producer, config or record names the dispatch run against its exact
+head before merge; a result-free structural preregistration does not spend that
+matrix. This restores automatic claim and lineage protection without silently
+turning every rebase into a full benchmark campaign.
 
 ---
 
