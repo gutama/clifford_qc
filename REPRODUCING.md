@@ -106,7 +106,7 @@ No figure or table value in the manuscript is transcribed by hand, and
 ```bash
 python -m venv .venv && source .venv/bin/activate
 pip install -e .[test,research,chemistry]   # numpy + scipy + openfermion/pyscf
-pytest                                      # 1312 passed, 27 skipped
+pytest                                      # 1320 passed, 27 skipped
 ```
 
 That install is the reference environment for the quoted pair. The count
@@ -128,7 +128,7 @@ the remaining `27 - 13 = 14` skips are per-test and *are* collected:
 
 ```text
 collected == passed + (skipped - files dropped at collection)
-1326      == 1312   + (27      -  13)
+1334      == 1320   + (27      -  13)
 ```
 
 Both sides are computed from the tree, so a drift in either quoted number
@@ -371,6 +371,36 @@ CLIFFORD_QC_ALLOW_ENVIRONMENT_MIGRATION=1 \
 That authorizes one run. It does not migrate the set — the records left behind
 still declare the old stack, and `check_record_environment.py` keeps failing
 until every one of them is rebuilt.
+
+### What the survey covers, and what it is still owed
+
+Both record shapes are surveyed. Reading only `*.json` was a silent
+under-count rather than a policy: a JSONL record stamps its rows exactly as a
+JSON record stamps its document, so one that had drifted off the agreed
+environment was invisible to the gate *and* uncounted by the producer guard.
+Every stamped row is read, because a bench that writes rows as it runs can
+straddle a version change; a record contributes its name once however many rows
+it has.
+
+Closing that gap exposed one record, and it is named rather than excused.
+`benchmarks/migrations/pending_environment_migration.json` lists
+`acase_ladder.jsonl`, whose twenty `qsci` rows were produced on 2026-08-06
+under Python 3.11 / NumPy 2.4.6 / SciPy 1.17.1 — before the migration in #69 —
+while its other seventy-two rows predate execution stamping and claim nothing.
+It is not rebuilt here because it is manuscript evidence rather than a
+value-gated record: no `check_*.py` rebuilds it, `paper_acase` and
+`paper_a_case_subspaces` read it for figures and tables, and regenerating it
+moves published inputs across all five families rather than only the stamped
+rows. That is an authorship decision.
+
+A listed record is surveyed and named on stderr on every gate run, but its
+declaration does not set the pin and does not widen what the producer guard
+accepts — which is the point of listing it. Were the entry simply dropped
+without a rebuild, `3.11` would become a version the committed set declares,
+and a producer run under it would be authorized again by exactly the guard that
+exists to refuse it. Deleting an entry is the last step of rebuilding its
+record, never a way to quiet the report; losing the manifest exempts nothing,
+since a manifest that cannot be read lists no records.
 
 Three cost-aware tiers run:
 

@@ -47,7 +47,20 @@ CONTRACT = (Path(__file__).resolve().parent.parent
 
 
 def _load_contract():
-    """Load the shared contract without importing (or installing) the package."""
+    """Return the shared contract, importing it normally where that works.
+
+    Path-loading exists only because the two emitting modes run before ``pip
+    install``, when ``import clifford_qc`` cannot succeed -- its package
+    imports NumPy.  Wherever the package *is* importable, importing it is what
+    keeps one module object in play: a second copy loaded by path would carry
+    its own module state, so the gate and the producer guard could read
+    different manifests and disagree about the same repository.
+    """
+    try:
+        from clifford_qc import record_environment
+        return record_environment
+    except Exception:  # pragma: no cover - the pre-install path CI relies on
+        pass
     spec = importlib.util.spec_from_file_location(
         "clifford_qc_record_environment", CONTRACT)
     if spec is None or spec.loader is None:  # pragma: no cover - packaging error
@@ -61,6 +74,7 @@ _contract = _load_contract()
 
 agreed = _contract.agreed
 constraints = _contract.constraints
+pending = _contract.pending
 survey = _contract.survey
 verify = _contract.verify
 
@@ -89,6 +103,18 @@ def main(argv: list[str] | None = None) -> int:
     )
     args = parser.parse_args(argv)
     emitting = args.constraints or args.python
+
+    # Always, and on stderr: stdout is redirected into the files the install
+    # reads, and an outstanding migration that only printed on failure would go
+    # unmentioned for exactly as long as nothing else was wrong.
+    for name, entry in sorted(pending().items()):
+        declares = entry.get("declares", {}) if isinstance(entry, dict) else {}
+        summary = ", ".join(f"{package} {version}"
+                            for package, version in sorted(declares.items()))
+        print(f"NOTE {name} still declares {summary or 'a superseded environment'}"
+              " and is not counted; its migration is outstanding, see "
+              "benchmarks/migrations/pending_environment_migration.json",
+              file=sys.stderr)
 
     declarations, problems = survey(DATA, args.records)
     versions = agreed(declarations, problems)

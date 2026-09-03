@@ -301,3 +301,129 @@ def test_the_migration_variable_is_read_strictly(value, allowed):
 def test_migration_is_not_allowed_by_default(monkeypatch):
     monkeypatch.delenv(gate_environment.ALLOW_MIGRATION_ENV, raising=False)
     assert gate_environment.migration_allowed() is False
+
+
+# JSONL records stamp their rows exactly as JSON records stamp their document.
+# Surveying only *.json was a silent under-count, and a record it could not see
+# could neither fail the gate nor be counted by the producer guard.
+
+
+def _write_rows(directory, name, rows):
+    lines = [json.dumps(row) for row in rows]
+    (directory / name).write_text("\n".join(lines) + "\n", encoding="utf-8")
+
+
+def _row(python=None, dependencies=None, **extra):
+    provenance = {}
+    if python is not None:
+        provenance["python"] = python
+    if dependencies is not None:
+        provenance["dependencies"] = dependencies
+    row = dict(extra)
+    if provenance:
+        row["provenance"] = provenance
+    return row
+
+
+def _empty_manifest(tmp_path, monkeypatch):
+    monkeypatch.setattr(gate_environment, "PENDING", tmp_path / "absent.json")
+
+
+def test_a_jsonl_records_rows_are_surveyed(tmp_path, monkeypatch):
+    _empty_manifest(tmp_path, monkeypatch)
+    _write_rows(tmp_path, "ladder.jsonl", [
+        _row("3.12.4", {"numpy": "2.5.2"}, energy=-1.0),
+        _row("3.12.4", {"numpy": "2.5.2"}, energy=-2.0),
+    ])
+    versions, problems = _agreed(tmp_path)
+    assert problems == []
+    assert versions == {"python": "3.12", "numpy": "2.5.2"}
+
+
+def test_a_jsonl_record_declares_once_however_many_rows_it_has(tmp_path,
+                                                               monkeypatch):
+    _empty_manifest(tmp_path, monkeypatch)
+    _write_rows(tmp_path, "ladder.jsonl",
+                [_row("3.12.4", {"numpy": "2.5.2"}) for _ in range(50)])
+    declarations, _ = survey(tmp_path)
+    assert declarations["numpy"]["2.5.2"] == ["ladder.jsonl"]
+
+
+def test_a_jsonl_record_off_the_agreed_environment_is_reported(tmp_path,
+                                                               monkeypatch):
+    # The case the *.json glob could not see at all.
+    _empty_manifest(tmp_path, monkeypatch)
+    _write(tmp_path, "current.json", "3.12.4", {"numpy": "2.5.2"})
+    _write_rows(tmp_path, "ladder.jsonl", [_row("3.11.15", {"numpy": "2.4.6"})])
+    versions, problems = _agreed(tmp_path)
+    assert "numpy" not in versions and "python" not in versions
+    assert any("ladder.jsonl" in problem for problem in problems)
+
+
+def test_unstamped_and_malformed_rows_do_not_abort_the_survey(tmp_path,
+                                                              monkeypatch):
+    _empty_manifest(tmp_path, monkeypatch)
+    _write_rows(tmp_path, "legacy.jsonl", [_row(energy=-1.0), _row(energy=-2.0)])
+    (tmp_path / "broken.jsonl").write_text('{"provenance": {}\n', encoding="utf-8")
+    _write(tmp_path, "good.json", "3.12.4", {"numpy": "2.5.2"})
+    versions, problems = _agreed(tmp_path)
+    assert versions == {"python": "3.12", "numpy": "2.5.2"}
+    assert len(problems) == 1 and problems[0].startswith("broken.jsonl: unreadable")
+
+
+def test_a_pending_record_is_passed_over_but_still_readable(tmp_path, monkeypatch):
+    _write(tmp_path, "current.json", "3.12.4", {"numpy": "2.5.2"})
+    _write_rows(tmp_path, "old.jsonl", [_row("3.11.15", {"numpy": "2.4.6"})])
+    manifest = tmp_path / "pending.json"
+    manifest.write_text(json.dumps({"records": {"old.jsonl": {"declares": {}}}}),
+                        encoding="utf-8")
+    monkeypatch.setattr(gate_environment, "PENDING", manifest)
+
+    versions, problems = _agreed(tmp_path)
+    assert problems == [] and versions == {"python": "3.12", "numpy": "2.5.2"}
+
+    # Passed over is not hidden: the gate lists it by asking for it.
+    declarations, _ = survey(tmp_path, include_pending=True)
+    assert declarations["numpy"]["2.4.6"] == ["old.jsonl"]
+    assert set(gate_environment.pending(manifest)) == {"old.jsonl"}
+
+
+def test_a_missing_manifest_exempts_nothing(tmp_path, monkeypatch):
+    # Losing the manifest must not silently excuse the records it named.
+    monkeypatch.setattr(gate_environment, "PENDING", tmp_path / "gone.json")
+    assert gate_environment.pending() == {}
+    _write(tmp_path, "current.json", "3.12.4", {"numpy": "2.5.2"})
+    _write_rows(tmp_path, "old.jsonl", [_row("3.11.15", {"numpy": "2.4.6"})])
+    _, problems = _agreed(tmp_path)
+    assert len(problems) == 2
+
+
+def test_the_guard_does_not_count_a_pending_records_declaration(tmp_path,
+                                                                monkeypatch):
+    # The property the manifest exists for: a superseded record must not
+    # re-authorize the environment the guard is there to refuse.
+    _write(tmp_path, "current.json", "3.12.4", {"numpy": "2.5.2"})
+    _write_rows(tmp_path, "old.jsonl", [_row("3.11.15", {"numpy": "2.4.6"})])
+    manifest = tmp_path / "pending.json"
+    manifest.write_text(json.dumps({"records": {"old.jsonl": {}}}), encoding="utf-8")
+    monkeypatch.setattr(gate_environment, "PENDING", manifest)
+    monkeypatch.setattr(platform, "python_version", lambda: "3.11.15")
+    monkeypatch.setattr(importlib.metadata, "version", lambda name: "2.4.6")
+    with pytest.raises(gate_environment.UndeclaredEnvironment):
+        gate_environment.guard(tmp_path)
+
+
+def test_the_outstanding_record_is_named_on_stderr_not_stdout(tmp_path,
+                                                              monkeypatch, capsys):
+    _write(tmp_path, "a.json", "3.12.4", {"numpy": "2.5.2"})
+    manifest = tmp_path / "pending.json"
+    manifest.write_text(json.dumps(
+        {"records": {"old.jsonl": {"declares": {"python_minor": "3.11"}}}}),
+        encoding="utf-8")
+    monkeypatch.setattr(gate_environment, "PENDING", manifest)
+    monkeypatch.setattr(gate, "DATA", tmp_path)
+    assert main(["--python"]) == 0
+    captured = capsys.readouterr()
+    # stdout is redirected into the file the install reads: it stays the pin.
+    assert captured.out == "3.12\n"
+    assert "old.jsonl" in captured.err and "python_minor 3.11" in captured.err
