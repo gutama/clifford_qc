@@ -45,11 +45,11 @@ DEFAULT_DATA = Path(__file__).resolve().parent.parent / "benchmarks" / "referenc
 ALLOW_MIGRATION_ENV = "CLIFFORD_QC_ALLOW_ENVIRONMENT_MIGRATION"
 
 # Records whose migration to the current environment is outstanding, named one
-# by one with a reason.  A record listed here still declares an environment,
-# and that declaration is still read and reported -- it is simply not counted
-# as one the repository currently stands behind, so it neither sets the pin nor
-# widens what the producer guard will accept.  Naming is the point: the
-# alternative this replaces was a survey that could not see the record at all.
+# by one with a reason.  A record listed here is passed over by the default
+# survey, so it neither sets the pin nor widens what the producer guard will
+# accept, but it stays readable through ``include_pending`` and the gate reports
+# it on every run.  Naming is the point: the alternative this replaces was a
+# survey that could not see the record at all.
 PENDING = (Path(__file__).resolve().parent.parent / "benchmarks" / "migrations"
            / "pending_environment_migration.json")
 
@@ -125,7 +125,8 @@ def survey(
     environment could not be seen by the gate or by the producer guard.
 
     Records named in the outstanding-migration manifest are passed over unless
-    ``include_pending``, which is how the gate lists them.  ``record_names``
+    ``include_pending``, which is how the gate reads back what an outstanding
+    record declares in order to report it.  ``record_names``
     deliberately narrows the survey to named basenames. It is for running one
     value gate under the environment stamped on its own record while a
     separately reported cross-record inconsistency awaits regeneration; it is

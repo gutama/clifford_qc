@@ -416,14 +416,27 @@ def test_the_guard_does_not_count_a_pending_records_declaration(tmp_path,
 def test_the_outstanding_record_is_named_on_stderr_not_stdout(tmp_path,
                                                               monkeypatch, capsys):
     _write(tmp_path, "a.json", "3.12.4", {"numpy": "2.5.2"})
+    _write_rows(tmp_path, "old.jsonl", [_row("3.11.15", {"numpy": "2.4.6"})])
+    # The manifest says nothing about versions, so the note can only be right
+    # by reading them back out of the record.
     manifest = tmp_path / "pending.json"
-    manifest.write_text(json.dumps(
-        {"records": {"old.jsonl": {"declares": {"python_minor": "3.11"}}}}),
-        encoding="utf-8")
+    manifest.write_text(json.dumps({"records": {"old.jsonl": {}}}), encoding="utf-8")
     monkeypatch.setattr(gate_environment, "PENDING", manifest)
     monkeypatch.setattr(gate, "DATA", tmp_path)
     assert main(["--python"]) == 0
     captured = capsys.readouterr()
     # stdout is redirected into the file the install reads: it stays the pin.
     assert captured.out == "3.12\n"
-    assert "old.jsonl" in captured.err and "python_minor 3.11" in captured.err
+    assert "old.jsonl" in captured.err
+    assert "numpy 2.4.6" in captured.err and "python 3.11" in captured.err
+
+
+def test_an_outstanding_record_that_straddles_versions_reports_both(tmp_path,
+                                                                    monkeypatch):
+    _write_rows(tmp_path, "old.jsonl", [_row("3.11.15", {"numpy": "2.4.6"}),
+                                        _row("3.11.15", {"numpy": "2.4.5"})])
+    manifest = tmp_path / "pending.json"
+    manifest.write_text(json.dumps({"records": {"old.jsonl": {}}}), encoding="utf-8")
+    monkeypatch.setattr(gate_environment, "PENDING", manifest)
+    assert gate.outstanding(tmp_path) == {
+        "old.jsonl": {"numpy": ["2.4.5", "2.4.6"], "python": ["3.11"]}}

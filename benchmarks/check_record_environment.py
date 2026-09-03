@@ -59,7 +59,10 @@ def _load_contract():
     try:
         from clifford_qc import record_environment
         return record_environment
-    except Exception:  # pragma: no cover - the pre-install path CI relies on
+    except ImportError:  # pragma: no cover - the pre-install path CI relies on
+        # Only an import failure, which is what "not installed yet" looks like.
+        # A package that is present but broken must raise here rather than be
+        # quietly replaced by a second copy of one of its own modules.
         pass
     spec = importlib.util.spec_from_file_location(
         "clifford_qc_record_environment", CONTRACT)
@@ -79,6 +82,28 @@ survey = _contract.survey
 verify = _contract.verify
 
 DATA = Path(__file__).resolve().parent / "reference_results"
+
+
+def outstanding(data: Path = DATA) -> dict[str, dict[str, list[str]]]:
+    """Map each record awaiting migration to the versions it really declares.
+
+    Read back out of the records rather than out of the manifest: a version
+    written down twice can disagree with itself, and the copy in a hand-edited
+    file is the one that goes stale.
+    """
+    listed = pending()
+    if not listed:
+        return {}
+    declarations, _ = survey(data, include_pending=True)
+    found: dict[str, dict[str, list[str]]] = {name: {} for name in listed}
+    for package, by_version in declarations.items():
+        for version, records in by_version.items():
+            for name in records:
+                if name in found:
+                    found[name].setdefault(package, []).append(version)
+    return {name: {package: sorted(versions)
+                   for package, versions in sorted(declares.items())}
+            for name, declares in found.items()}
 
 
 def main(argv: list[str] | None = None) -> int:
@@ -106,12 +131,14 @@ def main(argv: list[str] | None = None) -> int:
 
     # Always, and on stderr: stdout is redirected into the files the install
     # reads, and an outstanding migration that only printed on failure would go
-    # unmentioned for exactly as long as nothing else was wrong.
-    for name, entry in sorted(pending().items()):
-        declares = entry.get("declares", {}) if isinstance(entry, dict) else {}
-        summary = ", ".join(f"{package} {version}"
-                            for package, version in sorted(declares.items()))
-        print(f"NOTE {name} still declares {summary or 'a superseded environment'}"
+    # unmentioned for exactly as long as nothing else was wrong.  The versions
+    # come from the record rather than from the manifest, so the note cannot
+    # drift away from what the record actually stamps -- the manifest says why
+    # a record is outstanding, never what it declares.
+    for name, declares in sorted(outstanding(DATA).items()):
+        summary = ", ".join(f"{package} {'/'.join(versions)}"
+                            for package, versions in sorted(declares.items()))
+        print(f"NOTE {name} still declares {summary or 'nothing it can be held to'}"
               " and is not counted; its migration is outstanding, see "
               "benchmarks/migrations/pending_environment_migration.json",
               file=sys.stderr)

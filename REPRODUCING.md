@@ -106,7 +106,7 @@ No figure or table value in the manuscript is transcribed by hand, and
 ```bash
 python -m venv .venv && source .venv/bin/activate
 pip install -e .[test,research,chemistry]   # numpy + scipy + openfermion/pyscf
-pytest                                      # 1320 passed, 27 skipped
+pytest                                      # 1321 passed, 27 skipped
 ```
 
 That install is the reference environment for the quoted pair. The count
@@ -128,7 +128,7 @@ the remaining `27 - 13 = 14` skips are per-test and *are* collected:
 
 ```text
 collected == passed + (skipped - files dropped at collection)
-1334      == 1320   + (27      -  13)
+1335      == 1321   + (27      -  13)
 ```
 
 Both sides are computed from the tree, so a drift in either quoted number
@@ -393,9 +393,12 @@ value-gated record: no `check_*.py` rebuilds it, `paper_acase` and
 moves published inputs across all five families rather than only the stamped
 rows. That is an authorship decision.
 
-A listed record is surveyed and named on stderr on every gate run, but its
-declaration does not set the pin and does not widen what the producer guard
-accepts — which is the point of listing it. Were the entry simply dropped
+A listed record is passed over by the default survey, so its declaration does
+not set the pin and does not widen what the producer guard accepts — which is
+the point of listing it. It stays readable, and the gate names it on stderr on
+every run, reading the versions back out of the record itself: the manifest
+says why a record is outstanding and never what it declares, since a version
+written down twice is a version that can disagree with itself. Were the entry simply dropped
 without a rebuild, `3.11` would become a version the committed set declares,
 and a producer run under it would be authorized again by exactly the guard that
 exists to refuse it. Deleting an entry is the last step of rebuilding its
