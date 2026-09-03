@@ -586,22 +586,22 @@
         "blas": {
           "detection method": "pkgconfig",
           "found": true,
-          "include directory": "/opt/_internal/cpython-3.11.14/lib/python3.11/site-packages/scipy_openblas64/include",
-          "lib directory": "/opt/_internal/cpython-3.11.14/lib/python3.11/site-packages/scipy_openblas64/lib",
+          "include directory": "/opt/_internal/cpython-3.12.13/lib/python3.12/site-packages/scipy_openblas64/include",
+          "lib directory": "/opt/_internal/cpython-3.12.13/lib/python3.12/site-packages/scipy_openblas64/lib",
           "name": "scipy-openblas",
-          "openblas configuration": "OpenBLAS 0.3.31.188.0  USE64BITINT DYNAMIC_ARCH NO_AFFINITY Haswell MAX_THREADS=64",
+          "openblas configuration": "OpenBLAS 0.3.34.0.0  USE64BITINT DYNAMIC_ARCH NO_AFFINITY Haswell MAX_THREADS=64",
           "pc file directory": "/project/.openblas",
-          "version": "0.3.31.188.0"
+          "version": "0.3.34.0.0"
         },
         "lapack": {
           "detection method": "pkgconfig",
           "found": true,
-          "include directory": "/opt/_internal/cpython-3.11.14/lib/python3.11/site-packages/scipy_openblas64/include",
-          "lib directory": "/opt/_internal/cpython-3.11.14/lib/python3.11/site-packages/scipy_openblas64/lib",
+          "include directory": "/opt/_internal/cpython-3.12.13/lib/python3.12/site-packages/scipy_openblas64/include",
+          "lib directory": "/opt/_internal/cpython-3.12.13/lib/python3.12/site-packages/scipy_openblas64/lib",
           "name": "scipy-openblas",
-          "openblas configuration": "OpenBLAS 0.3.31.188.0  USE64BITINT DYNAMIC_ARCH NO_AFFINITY Haswell MAX_THREADS=64",
+          "openblas configuration": "OpenBLAS 0.3.34.0.0  USE64BITINT DYNAMIC_ARCH NO_AFFINITY Haswell MAX_THREADS=64",
           "pc file directory": "/project/.openblas",
-          "version": "0.3.31.188.0"
+          "version": "0.3.34.0.0"
         }
       },
       "Compilers": {
@@ -621,7 +621,7 @@
           "commands": "cython",
           "linker": "cython",
           "name": "cython",
-          "version": "3.2.4"
+          "version": "3.2.9"
         }
       },
       "Machine Information": {
@@ -639,8 +639,8 @@
         }
       },
       "Python Information": {
-        "path": "/tmp/build-env-gjolnpt6/bin/python",
-        "version": "3.11"
+        "path": "/tmp/build-env-jmn5a0j4/bin/python",
+        "version": "3.12"
       },
       "SIMD Extensions": {
         "baseline": [
@@ -648,7 +648,9 @@
         ],
         "found": [
           "X86_V3",
-          "X86_V4",
+          "X86_V4"
+        ],
+        "not found": [
           "AVX512_ICL",
           "AVX512_SPR"
         ]
@@ -656,26 +658,26 @@
     },
     "clifford_qc": "0.3.0",
     "dependencies": {
-      "numpy": "2.4.6",
+      "numpy": "2.5.2",
       "openfermion": null,
       "openfermionpyscf": null,
       "pyscf": null,
-      "scipy": "1.17.1",
+      "scipy": "1.18.0",
       "stim": "1.16.0"
     },
-    "environment_sha256": "4788a63858b9c790bb659fef47bbfcb14f7a341094a9195b80af322063dd992a",
+    "environment_sha256": "9c2841a6965578ae9c8ed92c44fa52259a32a13f356e78e0a3f09a7ddc3f1991",
     "git_dirty": true,
-    "git_sha": "c64b463d9f93bbd282a560054f8cbbfd8ecf4ee8",
+    "git_sha": "44cd16fb8ea6263901deb81eb5ba4c2af1de6283",
     "platform": {
-      "hostname": "vm",
+      "hostname": "localhost",
       "machine": "x86_64",
       "processor": "x86_64",
-      "release": "6.18.44-fc-v22",
+      "release": "6.18.35",
       "system": "Linux"
     },
-    "python": "3.11.15",
+    "python": "3.12.13",
     "schema": "clifford_qc.execution_provenance.v1",
-    "utc": "2026-09-02T13:34:03.707612+00:00"
+    "utc": "2026-09-03T14:04:40.004734+00:00"
   },
   "schema": "clifford_qc.priceability_screen.v1",
   "selection_rule": {

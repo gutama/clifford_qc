@@ -18,6 +18,11 @@ import sys
 from pathlib import Path
 
 try:  # package import in tests versus direct script execution
+    from benchmarks.r3_environment_migration import (
+        load_manifest as load_migration_manifest,
+        r3b_findings,
+        record_successor_problems,
+    )
     from benchmarks.check_r3b_preregistration import (
         _result_key_paths,
         digest_problems as r3b_digest_problems,
@@ -36,6 +41,11 @@ try:  # package import in tests versus direct script execution
         BOOTSTRAP_SEED,
     )
 except ImportError:  # pragma: no cover - direct script execution
+    from r3_environment_migration import (
+        load_manifest as load_migration_manifest,
+        r3b_findings,
+        record_successor_problems,
+    )
     from check_r3b_preregistration import (
         _result_key_paths,
         digest_problems as r3b_digest_problems,
@@ -162,7 +172,13 @@ def lineage_problems(config: dict) -> list[str]:
     if config_digest != pilot.get("config_canonical_sha256"):
         problems.append("R3c does not bind the canonical R3b config payload")
     if _git_blob_sha1(R3B_RECORD) != pilot.get("record_git_blob_sha1"):
-        problems.append("the R3b sampled record Git blob drifted from R3c's lineage")
+        problems += [
+            f"R3b record migration: {problem}"
+            for problem in record_successor_problems(
+                "r3b_margin_stop_probe",
+                historical_git_blob_sha1=pilot.get("record_git_blob_sha1"),
+            )
+        ]
 
     # The R3S and QR3b lineage fields are copied so the existing deterministic
     # R3b digest checker can continue to validate the bank's full ancestry.
@@ -176,32 +192,47 @@ def lineage_problems(config: dict) -> list[str]:
 
 
 def pilot_problems(config: dict) -> list[str]:
-    """Keep the rejected 2+2 pilot a fact rather than retroactive authorization."""
+    """Keep both the historical pilot and its migrated redraw explicit."""
     problems: list[str] = []
     record = _read(R3B_RECORD)
-    prior = record["decision"]
-    prediction = record["screen_prediction"]
+    current_decision, current_diagnosis = r3b_findings(record)
+    migration = load_migration_manifest()["records"]["r3b_margin_stop_probe"]
+    historical_decision = migration["before"]["decision"]
+    historical_diagnosis = migration["before"]["diagnosis"]
 
-    expected_prior = {
+    expected_historical_decision = {
+        "status": "rejected_unresolved_at_frozen_grid",
         "evaluated_cells": 40,
         "resolved_cells": 30,
         "unresolved_cells": 10,
         "cells_at_or_beyond_ceiling": 1,
         "full_run_authorized": False,
         "eligible_for_full_run": False,
-        "maximum_word_universe": 1439,
     }
-    for field, value in expected_prior.items():
-        if prior.get(field) != value:
-            problems.append(f"R3b pilot {field} drifted from the preserved finding")
-    expected_prediction = {
+    for field, value in expected_historical_decision.items():
+        if historical_decision.get(field) != value:
+            problems.append(f"historical R3b pilot {field} drifted from R3c's basis")
+    expected_historical_diagnosis = {
         "grid_fit_failures": 0,
         "confirmation_failures": 10,
         "unclassified_failures": 0,
     }
-    for field, value in expected_prediction.items():
-        if prediction.get(field) != value:
-            problems.append(f"R3b pilot {field} drifted from the preserved diagnosis")
+    for field, value in expected_historical_diagnosis.items():
+        if historical_diagnosis.get(field) != value:
+            problems.append(f"historical R3b pilot {field} drifted from R3c's basis")
+
+    if current_decision != migration["after"]["decision"]:
+        problems.append("the live R3b decision differs from its migrated redraw")
+    if current_diagnosis != migration["after"]["diagnosis"]:
+        problems.append("the live R3b diagnosis differs from its migrated redraw")
+    if current_decision.get("status") != "rejected_unresolved_at_frozen_grid":
+        problems.append("the migrated R3b record no longer rejects the 2+2 probe")
+    if current_decision.get("full_run_authorized") is not False:
+        problems.append("the migrated R3b record authorizes a full run")
+    if current_decision.get("eligible_for_full_run") is not False:
+        problems.append("the migrated R3b record makes the bank eligible")
+    if current_diagnosis.get("grid_fit_failures") != 0:
+        problems.append("the migrated R3b record reintroduces a grid-fit failure")
     if record["protocol"].get("exploratory_replicas") != 2:
         problems.append("R3b pilot exploratory replica count is no longer 2")
     if record["protocol"].get("confirmatory_replicas") != 2:

@@ -83,6 +83,9 @@ jobs:
           - gate: check_priceability_screen
             timeout: 10
             environment_record: priceability_screen.json
+          - gate: check_r3_environment_migration
+            timeout: 10
+            environment_record: priceability_screen.json
           - gate: check_r3b_preregistration
             timeout: 10
             environment_record: priceability_screen.json

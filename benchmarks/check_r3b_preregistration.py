@@ -35,6 +35,7 @@ import sys
 from pathlib import Path
 
 try:  # package import in tests versus direct script execution
+    from benchmarks.r3_environment_migration import record_successor_problems
     from benchmarks.run_exact_shot_search import ESTIMATORS, SEARCH_ENDPOINTS
     from benchmarks.run_priceability_screen import (
         WORD_UNIVERSE_CONVENTION,
@@ -46,6 +47,7 @@ try:  # package import in tests versus direct script execution
     from benchmarks.run_priceability_screen import CONFIG as SCREEN_CONFIG
     from benchmarks.run_priceability_screen import REFERENCE as SCREEN_RECORD
 except ImportError:  # pragma: no cover - direct script execution
+    from r3_environment_migration import record_successor_problems
     from run_exact_shot_search import ESTIMATORS, SEARCH_ENDPOINTS
     from run_priceability_screen import (
         CONFIG as SCREEN_CONFIG,
@@ -131,8 +133,21 @@ def digest_problems(config: dict) -> list[str]:
         problems.append("LiH provenance does not bind the committed FCIDUMP")
 
     lineage = config["parent_lineage"]
+    historical_screen = lineage["admitted_by"]["record_sha256"]
+    if _sha256(SCREEN_RECORD) != historical_screen:
+        migration = [
+            f"R3S record migration: {problem}"
+            for problem in record_successor_problems(
+                "priceability_screen", historical_sha256=historical_screen
+            )
+        ]
+        if migration:
+            problems.append(
+                "R3S record digest drifted; this preregistration no longer binds "
+                "the historical artifact or its declared migrated successor"
+            )
+            problems += migration
     for declared, actual, what in (
-        (lineage["admitted_by"]["record_sha256"], SCREEN_RECORD, "R3S record"),
         (lineage["admitted_by"]["config_sha256"], SCREEN_CONFIG, "R3S config"),
         (lineage["extends"]["config_sha256"], QR3B_CONFIG, "QR3b config"),
     ):
