@@ -22,6 +22,7 @@ from benchmarks.check_r3b_margin_stop_probe import (
 from benchmarks.check_r3b_preregistration import load_config
 from benchmarks.run_r3b_margin_stop_probe import (
     QR3B_RECORD,
+    RECORD_CLAIM_BOUNDARY,
     REFERENCE,
     screen_prediction,
 )
@@ -224,3 +225,40 @@ def test_the_record_carries_no_cost_derivative(record):
     assert contract_problems(record) == []
     for forbidden in ("k_star", "cost_bracket", "device_costs", "C_time"):
         assert forbidden not in json.dumps(record)
+
+
+def test_the_record_states_its_own_claim_boundary_not_the_configs():
+    """A boundary bounds the artifact it sits in.
+
+    The config's was written for a commit that had sampled nothing, so it opens
+    "No sampling has been performed under this config". Inheriting it -- which
+    is what most producers in this tree rightly do -- would have this record
+    deny the forty cells it reports. The preregistration is not edited to fix
+    that; the record states its own and quotes the config's where it is still
+    true of what it describes.
+    """
+    record = json.loads(REFERENCE.read_text(encoding="utf-8"))
+    config = load_config()
+    assert record["claim_boundary"] == RECORD_CLAIM_BOUNDARY
+    assert record["claim_boundary"] != config["claim_boundary"]
+    assert "no sampling has been performed" not in record["claim_boundary"].lower()
+    assert record["scoping_probe"]["executed"] is True
+    quoted = record["preregistration"]["config_claim_boundary_at_landing"]
+    assert quoted == config["claim_boundary"]
+
+
+def test_an_executed_probe_may_not_claim_nothing_was_sampled(record):
+    broken = copy.deepcopy(record)
+    broken["claim_boundary"] = load_config()["claim_boundary"]
+    problems = contract_problems(broken)
+    assert any("inherited the preregistration" in p for p in problems)
+    assert any("claims no sampling has been performed" in p for p in problems)
+
+
+def test_the_quoted_preregistration_boundary_must_be_verbatim(record):
+    broken = copy.deepcopy(record)
+    broken["preregistration"]["config_claim_boundary_at_landing"] = "paraphrased"
+    assert any(
+        "quote the preregistration's boundary verbatim" in p
+        for p in contract_problems(broken)
+    )

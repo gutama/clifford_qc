@@ -5,6 +5,8 @@ and compare it field by field, and re-derive its contracts from its own contents
 rather than trusting them. The contracts specific to this phase:
 
 * it is preregistered, and says which config fixed it before any sampling;
+* it states its own claim boundary rather than inheriting the config's, which
+  bounds a commit that had sampled nothing and would contradict this record;
 * the bank is the one the R3S margin rule selects, re-derived here -- a prefix
   chosen for cheapness fails in the producer before a shot is spent;
 * the protocol is QR3b's, endpoint for endpoint, so the two records differ in
@@ -39,6 +41,7 @@ try:
     )
     from benchmarks.run_r3b_margin_stop_probe import (
         QR3B_RECORD,
+        RECORD_CLAIM_BOUNDARY,
         REFERENCE,
         SCHEMA,
         build_record,
@@ -49,6 +52,7 @@ except ImportError:  # pragma: no cover - direct script execution
     from run_qr3b_instance_preflight import COST_DERIVATIVE_KEYS, resolution_decision
     from run_r3b_margin_stop_probe import (
         QR3B_RECORD,
+        RECORD_CLAIM_BOUNDARY,
         REFERENCE,
         SCHEMA,
         build_record,
@@ -81,6 +85,29 @@ def contract_problems(record: dict) -> list[str]:
         problems.append("the record does not claim a preregistration")
     if prereg.get("config") != "benchmarks/configs/r3b_margin_stop_probe.json":
         problems.append("the record names the wrong preregistration config")
+    if prereg.get("config_claim_boundary_at_landing") != config["claim_boundary"]:
+        problems.append(
+            "the record does not quote the preregistration's boundary verbatim"
+        )
+
+    # A boundary has to bound the artifact it sits in. The config's says no
+    # sampling has been performed, which was true of the commit that landed it
+    # and is false of a record that ran the probe; inheriting it would have the
+    # record deny its own contents. It states its own instead, and the
+    # preregistration stays unedited -- editing it after the result is known is
+    # exactly what landing it first exists to prevent.
+    boundary = record.get("claim_boundary", "")
+    if boundary != RECORD_CLAIM_BOUNDARY:
+        problems.append("the record's claim boundary is not the declared one")
+    if boundary == config["claim_boundary"]:
+        problems.append(
+            "the record inherited the preregistration's boundary, which asserts "
+            "that nothing has been sampled"
+        )
+    if record.get("scoping_probe", {}).get("executed") and (
+        "no sampling has been performed" in boundary.lower()
+    ):
+        problems.append("an executed probe claims no sampling has been performed")
 
     # The bank, and the rule that picked it.
     selection = record.get("selection", {})

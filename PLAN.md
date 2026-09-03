@@ -3401,6 +3401,23 @@ it, and is frozen from that commit so the *next* use is the preregistered one.
 Producers that consume a preregistration read it from the config that owns it
 rather than redeclaring it, as `candidate_specs()` does.
 
+**A claim boundary bounds the artifact it sits in, so a record does not inherit a
+preregistration's.** Most producers here copy `config["claim_boundary"]` into the
+record and should: the config's sentence is a statement about the phase, true of
+both files. A preregistration-only config is the exception. Its boundary says no
+sampling has been performed — true of the commit that landed it, false of the
+record that ran the probe — and R3b's record inherited it, so a file reporting a
+rejection over forty sampled cells opened by denying that any cell was sampled.
+The fix is not to edit the config, which is the one thing landing it first exists
+to prevent: the record states its own boundary and quotes the config's under
+`preregistration.config_claim_boundary_at_landing`, where it stays true of what it
+describes, and `check_r3b_margin_stop_probe.py` fails a record that inherits a
+boundary asserting nothing was sampled while `scoping_probe.executed` is true.
+The forward fix belongs in the *next* preregistration, which should state its
+boundary tenselessly from the start — "this config carries no result, verdict or
+cost field" rather than "no sampling has been performed" — so its record can
+inherit it the way every other producer here does.
+
 **The record gates are not currently running.** Every claim above rests on
 `check_*.py` regenerating its record on every merge, and since `529e6da` the
 workflow's `push` and `pull_request` triggers are commented out: the `records`

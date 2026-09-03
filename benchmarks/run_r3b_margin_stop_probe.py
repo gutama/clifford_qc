@@ -22,11 +22,11 @@ usual decision: resolution here corroborates the proxy, and failure falsifies it
 on its first admission and sends the ceiling back to be recalibrated on two
 points rather than one. Either way that is a result about the screen.
 
-**Preregistered.** ``configs/r3b_margin_stop_probe.json`` and its checker landed
-in an earlier commit, before any sampling, which is what lets this record call
-its rule preregistered where R3S could not. The producer re-derives the margin
-rule over the frozen ordering and refuses to run on a prefix the rule does not
-select.
+**Preregistered.** ``benchmarks/configs/r3b_margin_stop_probe.json`` and its
+checker landed in an earlier commit, before any sampling, which is what lets
+this record call its rule preregistered where R3S could not. The producer
+re-derives the margin rule over the frozen ordering and refuses to run on a
+prefix the rule does not select.
 
 **What this record may claim.** Scope-decision evidence only, exactly as QR3b:
 it may accept or reject this bank for a later separately preregistered
@@ -95,6 +95,34 @@ HERE = Path(__file__).resolve().parent
 REFERENCE = HERE / "reference_results" / "r3b_margin_stop_probe.json"
 SCHEMA = "clifford_qc.r3b_margin_stop_probe.v1"
 QR3B_RECORD = HERE / "reference_results" / "qr3b_instance_preflight.json"
+
+#: What *this record* may claim -- deliberately not the config's boundary.
+#:
+#: The other producers in this tree copy ``config["claim_boundary"]`` into the
+#: record, and that is right where the config's sentence is a statement about
+#: the phase. This config's is not: it was written to bound a commit that had
+#: run nothing, so it opens "Preregistration only. No sampling has been
+#: performed under this config", and a record carrying ``executed: true`` and a
+#: rejection alongside that sentence contradicts itself. The preregistration is
+#: not editable after the fact -- that is the whole point of landing it first --
+#: so the record states its own boundary instead, and keeps the config's under
+#: ``preregistration.config_claim_boundary_at_landing`` where it stays a true
+#: statement about the commit it describes. The scope clause is the same one,
+#: word for word, minus the tense.
+#:
+#: It states no outcome, which is the same discipline: ``decision.status`` says
+#: what happened, and a boundary that reported it would be false under
+#: ``--skip-probe`` for exactly the reason the config's is false here.
+RECORD_CLAIM_BOUNDARY = (
+    "Scope-decision evidence only, under the rule "
+    "benchmarks/configs/r3b_margin_stop_probe.json fixed before any sampling. "
+    "The 2+2 probe may accept or reject this bank for a later preregistered "
+    "full run, and it may not price C(epsilon), answer QR3 or QR3b, or alter "
+    "any frozen censoring decision. Where this record reports a failure-mode "
+    "split under screen_prediction, that split is a post-hoc diagnostic: the "
+    "taxonomy was not preregistered, so it describes where this probe's shots "
+    "went and is not a test the screen passed."
+)
 
 
 def derive_selection(config: dict) -> dict:
@@ -198,7 +226,7 @@ def screen_prediction(decision: dict, selection: dict) -> dict:
     failure that implicates it. A cell whose exploratory crossing the
     confirmatory replicas do not reproduce is a statement about the probe's
     ``2+2`` replica count, which the ceiling neither predicts nor claims to.
-    Collapsing the two would let a underpowered probe read as a refuted screen.
+    Collapsing the two would let an underpowered probe read as a refuted screen.
     """
     unresolved = decision.get("unresolved_coordinates", [])
     grid_fit = [row for row in unresolved if row.get("status") in GRID_FIT_FAILURES]
@@ -342,10 +370,13 @@ def build_record(*, workers: int = 1, run_probe: bool = True) -> dict:
             "config": "benchmarks/configs/r3b_margin_stop_probe.json",
             "landed_before_any_sampling": True,
             "checker": "benchmarks/check_r3b_preregistration.py",
+            # Quoted, not inherited: it bounds the commit that landed the config,
+            # which had run nothing. See RECORD_CLAIM_BOUNDARY.
+            "config_claim_boundary_at_landing": config["claim_boundary"],
         },
         "parent_lineage": config["parent_lineage"],
         "estimand": config["estimand"],
-        "claim_boundary": config["claim_boundary"],
+        "claim_boundary": RECORD_CLAIM_BOUNDARY,
         "selection": selection,
         "mapping_preflight": _without_cost_derivatives(mapping),
         "structural_protocol_preflight": _without_cost_derivatives(structural),

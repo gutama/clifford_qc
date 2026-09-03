@@ -13,7 +13,7 @@
     "word_universe_ceiling": 2048,
     "word_universe_ceiling_basis": "Carried forward unchanged from QR3b and R3S: BeH2 is the only bank ever priced inside this grid, at W=1814 on its full-width arms, and the ceiling is the next power of two above it. It is an operational admission threshold calibrated on one success, not a demonstrated necessary condition for priceability -- coefficient magnitudes, grouping, estimator variance and pencil conditioning all bear on whether a bank resolves. This probe is the first test of that proxy on a bank it admits rather than rejects."
   },
-  "claim_boundary": "Preregistration only. No sampling has been performed under this config and it contains no result, verdict, or cost field; check_r3b_preregistration.py fails a copy that grows one. When the probe runs it will be scope-decision evidence exactly as QR3b was: it may accept or reject this bank for a later preregistered full run, and it may not price C(epsilon), answer QR3 or QR3b, or alter any frozen censoring decision.",
+  "claim_boundary": "Scope-decision evidence only, under the rule benchmarks/configs/r3b_margin_stop_probe.json fixed before any sampling. The 2+2 probe may accept or reject this bank for a later preregistered full run, and it may not price C(epsilon), answer QR3 or QR3b, or alter any frozen censoring decision. Where this record reports a failure-mode split under screen_prediction, that split is a post-hoc diagnostic: the taxonomy was not preregistered, so it describes where this probe's shots went and is not a test the screen passed.",
   "config_sha256": "cfc1037c3067e942c0cd5e004a7aa61acfee4deb3d210db7dad4287edb4a6ca5",
   "decision": {
     "bias_gate_passes": true,
@@ -195,7 +195,7 @@
           "relative_tolerance": 1e-10,
           "ritz_scale": 7.862852770853382,
           "source_qubits": 8,
-          "spectrum_scale": 7.863222550890624,
+          "spectrum_scale": 7.863222550890619,
           "word_bijection_checked": true,
           "word_universe_after": 1440,
           "word_universe_before": 1440,
@@ -359,7 +359,7 @@
           "max_operator_transport_error": 0.0,
           "max_overlap_matrix_error": 0.0,
           "max_ritz_error": 0.0,
-          "max_spectrum_error": 1.9539925233402755e-14,
+          "max_spectrum_error": 2.5757174171303632e-14,
           "operator_transport_scale": 85.340586410382,
           "overlap_matrix_scale": 1.0,
           "qubits_removed": 0,
@@ -368,7 +368,7 @@
           "relative_tolerance": 1e-10,
           "ritz_scale": 7.862852770853382,
           "source_qubits": 8,
-          "spectrum_scale": 7.863222550890624,
+          "spectrum_scale": 7.863222550890619,
           "word_bijection_checked": true,
           "word_universe_after": 1440,
           "word_universe_before": 1440,
@@ -712,7 +712,7 @@
           "max_operator_transport_error": 0.0,
           "max_overlap_matrix_error": 0.0,
           "max_ritz_error": 0.0,
-          "max_spectrum_error": 2.4868995751603507e-14,
+          "max_spectrum_error": 1.5987211554602254e-14,
           "operator_transport_scale": 85.340586410382,
           "overlap_matrix_scale": 1.0,
           "qubits_removed": 0,
@@ -721,7 +721,7 @@
           "relative_tolerance": 1e-10,
           "ritz_scale": 7.862852770853382,
           "source_qubits": 8,
-          "spectrum_scale": 7.863222550890624,
+          "spectrum_scale": 7.863222550890619,
           "word_bijection_checked": true,
           "word_universe_after": 1440,
           "word_universe_before": 1440,
@@ -1061,6 +1061,7 @@
   "preregistration": {
     "checker": "benchmarks/check_r3b_preregistration.py",
     "config": "benchmarks/configs/r3b_margin_stop_probe.json",
+    "config_claim_boundary_at_landing": "Preregistration only. No sampling has been performed under this config and it contains no result, verdict, or cost field; check_r3b_preregistration.py fails a copy that grows one. When the probe runs it will be scope-decision evidence exactly as QR3b was: it may accept or reject this bank for a later preregistered full run, and it may not price C(epsilon), answer QR3 or QR3b, or alter any frozen censoring decision.",
     "landed_before_any_sampling": true
   },
   "protocol": {
@@ -1181,7 +1182,7 @@
     },
     "environment_sha256": "4788a63858b9c790bb659fef47bbfcb14f7a341094a9195b80af322063dd992a",
     "git_dirty": true,
-    "git_sha": "7882a10c17b2f4eeb7fd37956a454e362c006cd3",
+    "git_sha": "386b0d10e13688b9b0b6d4e7df0252817db92a07",
     "platform": {
       "hostname": "vm",
       "machine": "x86_64",
@@ -1191,7 +1192,7 @@
     },
     "python": "3.11.15",
     "schema": "clifford_qc.execution_provenance.v1",
-    "utc": "2026-09-03T00:13:14.695183+00:00"
+    "utc": "2026-09-03T04:28:16.331191+00:00"
   },
   "schema": "clifford_qc.r3b_margin_stop_probe.v1",
   "scoping_probe": {

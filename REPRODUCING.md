@@ -1922,6 +1922,14 @@ gate and the failure-mode counts, and separately asserts that QR3b's record
 still carries its own rejection unchanged — this phase extends that record and
 may not reopen it.
 
+It also refuses a record that inherits the preregistration's claim boundary. The
+config's boundary opens *"No sampling has been performed under this config"* —
+true of the commit that landed it, false of a record reporting forty sampled
+cells — so the record states its own boundary and quotes the config's under
+`preregistration.config_claim_boundary_at_landing`, where it remains a true
+statement about what it describes. Editing the preregistration instead would
+undo the thing landing it first exists to establish.
+
 ## R2b raw-pool fermion-mapping axis
 
 The five predeclared mapping arms are constructed in
