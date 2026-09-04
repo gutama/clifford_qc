@@ -124,7 +124,14 @@ FIRST_PRICED_INSTANCE = "beh2"
 #: crossing anywhere in the grid; a crossing whose passing endpoint R1 flagged
 #: environment-marginal at the last grid point, which has no finite upper bound;
 #: and a crossing at the first endpoint tested, which has no confirmed failing
-#: predecessor and so no lower bound. Only the first is censoring *by the grid*.
+#: predecessor and so no lower bound.
+#:
+#: The first two are right-censored: neither has a finite upper bound inside the
+#: grid, which is what the rule's "without a confirmed finite interval at 65536"
+#: names. They are still distinguished, because only the first says the grid
+#: never located a crossing at all, while the second located one and lost its
+#: upper bound to R1's marginal flag at the last endpoint. The third is censored
+#: on the *other* side and is counted separately for that reason.
 FINITE_INTERVAL = "finite_interval"
 NO_CONFIRMED_CROSSING = "right_censored_no_confirmed_crossing_in_grid"
 OPEN_ABOVE = "open_above_marginal_at_grid_ceiling"
@@ -489,7 +496,15 @@ def pricing_decision(system: dict, config: dict) -> dict:
                 })
 
     finite = [cell for cell in cells if cell["interval"] == FINITE_INTERVAL]
-    censored = [cell for cell in cells if cell["interval"] == NO_CONFIRMED_CROSSING]
+    # Right-censored is "no finite upper bound inside the grid", which is what
+    # the rule's "without a confirmed finite interval at 65536" names: a cell
+    # that never bracketed, and a cell whose passing endpoint at the ceiling
+    # lost its upper bound to R1's marginal flag. A cell open only *below* is
+    # censored on the other side and is counted separately.
+    censored = [
+        cell for cell in cells
+        if cell["interval"] in (NO_CONFIRMED_CROSSING, OPEN_ABOVE, OPEN_BOTH)
+    ]
     by_status: dict[str, int] = {}
     for cell in censored:
         key = str(cell["search_status"])

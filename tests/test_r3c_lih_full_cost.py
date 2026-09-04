@@ -311,6 +311,42 @@ def test_a_censored_draw_prices_nothing_and_does_not_widen_the_grid(config, pric
     assert pricing["wider_grid_licensed_by_this_record"] is False
 
 
+def test_a_crossing_that_loses_its_upper_bound_is_right_censored(config, priced_system):
+    """Right-censored is "no finite upper bound inside the grid", not only
+    "never bracketed".
+
+    A cell whose passing endpoint sits at the ceiling and carries R1's marginal
+    flag has no finite upper endpoint, so it has no confirmed finite interval at
+    65536 either -- which is exactly what the frozen censoring policy names. It
+    is still distinguished from a cell that never located a crossing, because
+    the two say different things about the grid.
+    """
+    opened = copy.deepcopy(priced_system)
+    bracket = opened["arms"][0]["rungs"][0]["estimators"]["pooled"]["cost_bracket"]
+    bracket["unbounded_above"] = True
+    bracket["upper_effective_shots_per_setting"] = None
+    bracket["widened_sides"] = ["passing"]
+    pricing = pricing_decision(opened, config)
+    assert pricing["cells_with_a_finite_interval"] == 39
+    assert pricing["cells_open_above_at_the_grid_ceiling"] == 1
+    assert pricing["right_censored_cells"] == 1
+    assert pricing["right_censored_by_search_status"] == {"confirmed_bracket": 1}
+    # And the two censoring directions stay apart.
+    assert pricing["cells_open_below_without_a_confirmed_failure"] == 0
+
+
+def test_a_cell_open_only_below_is_not_counted_as_right_censored(config, priced_system):
+    """It is censored on the other side, and the record says which."""
+    opened = copy.deepcopy(priced_system)
+    bracket = opened["arms"][0]["rungs"][0]["estimators"]["pooled"]["cost_bracket"]
+    bracket["unbounded_below"] = True
+    bracket["lower_effective_shots_per_setting"] = None
+    pricing = pricing_decision(opened, config)
+    assert pricing["cells_open_below_without_a_confirmed_failure"] == 1
+    assert pricing["right_censored_cells"] == 0
+    assert pricing["cells_without_a_finite_interval"] == 1
+
+
 def test_a_cell_priced_on_no_card_is_not_a_priced_instance(config, priced_system):
     """The readout is about logical times, which only exist on an admissible card."""
     unusable = copy.deepcopy(priced_system)

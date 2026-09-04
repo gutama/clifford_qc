@@ -106,7 +106,7 @@ No figure or table value in the manuscript is transcribed by hand, and
 ```bash
 python -m venv .venv && source .venv/bin/activate
 pip install -e .[test,research,chemistry]   # numpy + scipy + openfermion/pyscf
-pytest                                      # 1379 passed, 27 skipped
+pytest                                      # 1381 passed, 27 skipped
 ```
 
 That install is the reference environment for the quoted pair. The count
@@ -2099,10 +2099,11 @@ undetermined.
 
 ## R3c LiH full-cost run — the producer
 
-`benchmarks/run_r3c_lih_full_cost.py` is the first half of that separate
-commit. It draws the authorized run and no record lands with it: the sampled
-`r3c_lih_full_cost.json` and `check_r3c_lih_full_cost.py` are still outstanding,
-as is the `sampled-records` matrix entry that would gate them.
+`benchmarks/run_r3c_lih_full_cost.py` draws the authorized run. It landed
+without a record, ahead of the run; the sampled `r3c_lih_full_cost.json`, its
+checker and the `sampled-records` matrix entry that gates them followed, and
+*the result* below reports what the run found. This section is about the
+producer and the gates it applies before it spends a shot.
 
 ```bash
 python benchmarks/run_r3c_lih_full_cost.py --skip-run   # structural half, no replicas
