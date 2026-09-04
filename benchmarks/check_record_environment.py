@@ -47,7 +47,23 @@ CONTRACT = (Path(__file__).resolve().parent.parent
 
 
 def _load_contract():
-    """Load the shared contract without importing (or installing) the package."""
+    """Return the shared contract, importing it normally where that works.
+
+    Path-loading exists only because the two emitting modes run before ``pip
+    install``, when ``import clifford_qc`` cannot succeed -- its package
+    imports NumPy.  Wherever the package *is* importable, importing it is what
+    keeps one module object in play: a second copy loaded by path would carry
+    its own module state, so the gate and the producer guard could read
+    different manifests and disagree about the same repository.
+    """
+    try:
+        from clifford_qc import record_environment
+        return record_environment
+    except ImportError:  # pragma: no cover - the pre-install path CI relies on
+        # Only an import failure, which is what "not installed yet" looks like.
+        # A package that is present but broken must raise here rather than be
+        # quietly replaced by a second copy of one of its own modules.
+        pass
     spec = importlib.util.spec_from_file_location(
         "clifford_qc_record_environment", CONTRACT)
     if spec is None or spec.loader is None:  # pragma: no cover - packaging error
@@ -61,10 +77,34 @@ _contract = _load_contract()
 
 agreed = _contract.agreed
 constraints = _contract.constraints
+exemption_problems = _contract.exemption_problems
+pending = _contract.pending
 survey = _contract.survey
 verify = _contract.verify
 
 DATA = Path(__file__).resolve().parent / "reference_results"
+
+
+def outstanding(data: Path = DATA) -> dict[str, dict[str, list[str]]]:
+    """Map each record awaiting migration to the versions it really declares.
+
+    Read back out of the records rather than out of the manifest: a version
+    written down twice can disagree with itself, and the copy in a hand-edited
+    file is the one that goes stale.
+    """
+    listed = pending()
+    if not listed:
+        return {}
+    declarations, _ = survey(data, include_pending=True)
+    found: dict[str, dict[str, list[str]]] = {name: {} for name in listed}
+    for package, by_version in declarations.items():
+        for version, records in by_version.items():
+            for name in records:
+                if name in found:
+                    found[name].setdefault(package, []).append(version)
+    return {name: {package: sorted(versions)
+                   for package, versions in sorted(declares.items())}
+            for name, declares in found.items()}
 
 
 def main(argv: list[str] | None = None) -> int:
@@ -90,7 +130,32 @@ def main(argv: list[str] | None = None) -> int:
     args = parser.parse_args(argv)
     emitting = args.constraints or args.python
 
+    # Always, and on stderr: stdout is redirected into the files the install
+    # reads, and an outstanding migration that only printed on failure would go
+    # unmentioned for exactly as long as nothing else was wrong.  The versions
+    # come from the record rather than from the manifest, so the note cannot
+    # drift away from what the record actually stamps -- the manifest says why
+    # a record is outstanding, never what it declares.
+    for name, declares in sorted(outstanding(DATA).items()):
+        summary = ", ".join(f"{package} {'/'.join(versions)}"
+                            for package, versions in sorted(declares.items()))
+        print(f"NOTE {name} still declares {summary or 'nothing it can be held to'}"
+              " and is not counted; its migration is outstanding, see "
+              "benchmarks/migrations/pending_environment_migration.json",
+              file=sys.stderr)
+
     declarations, problems = survey(DATA, args.records)
+    problems.extend(exemption_problems(DATA))
+
+    # A selector naming an outstanding record would otherwise survey to nothing
+    # and emit an empty pin set with a zero exit, which the composite action
+    # installs against and then reports as a match.
+    for name in sorted(set(args.records or ()) & set(pending())):
+        problems.append(
+            f"{name}: selected, but its environment migration is outstanding, "
+            "so it declares nothing the gate will stand behind. Rebuild it and "
+            "delete its entry, or select a record that is up to date")
+
     versions = agreed(declarations, problems)
     if not emitting:
         verify(versions, problems)

@@ -1,5 +1,6 @@
 """Contract checks for the environment gate that fronts the record gates."""
 
+import hashlib
 import importlib.metadata
 import json
 import platform
@@ -15,6 +16,30 @@ from benchmarks.check_record_environment import (
     survey,
     verify,
 )
+
+
+@pytest.fixture(autouse=True)
+def _no_inherited_exemptions(tmp_path_factory, monkeypatch):
+    """Start every test from an empty outstanding-migration list.
+
+    The repository's own manifest names a record these tests do not have, and
+    an exemption is anchored to its file, so inheriting the list would fail the
+    gate in every test that points the record directory at a temporary one.
+    Tests that exercise the manifest set their own.
+    """
+    monkeypatch.setattr(gate_environment, "PENDING",
+                        tmp_path_factory.mktemp("pending") / "none.json")
+
+
+def _pending_manifest(tmp_path, monkeypatch, entry, name="old.jsonl"):
+    manifest = tmp_path / "pending.json"
+    manifest.write_text(json.dumps({"records": {name: entry}}), encoding="utf-8")
+    monkeypatch.setattr(gate_environment, "PENDING", manifest)
+    return manifest
+
+
+def _digest(path):
+    return hashlib.sha256(path.read_bytes()).hexdigest()
 
 
 def _write(directory, name, python=None, dependencies=None, **extra):
@@ -301,3 +326,189 @@ def test_the_migration_variable_is_read_strictly(value, allowed):
 def test_migration_is_not_allowed_by_default(monkeypatch):
     monkeypatch.delenv(gate_environment.ALLOW_MIGRATION_ENV, raising=False)
     assert gate_environment.migration_allowed() is False
+
+
+# JSONL records stamp their rows exactly as JSON records stamp their document.
+# Surveying only *.json was a silent under-count, and a record it could not see
+# could neither fail the gate nor be counted by the producer guard.
+
+
+def _write_rows(directory, name, rows):
+    lines = [json.dumps(row) for row in rows]
+    (directory / name).write_text("\n".join(lines) + "\n", encoding="utf-8")
+
+
+def _row(python=None, dependencies=None, **extra):
+    provenance = {}
+    if python is not None:
+        provenance["python"] = python
+    if dependencies is not None:
+        provenance["dependencies"] = dependencies
+    row = dict(extra)
+    if provenance:
+        row["provenance"] = provenance
+    return row
+
+
+def _empty_manifest(tmp_path, monkeypatch):
+    monkeypatch.setattr(gate_environment, "PENDING", tmp_path / "absent.json")
+
+
+def test_a_jsonl_records_rows_are_surveyed(tmp_path, monkeypatch):
+    _empty_manifest(tmp_path, monkeypatch)
+    _write_rows(tmp_path, "ladder.jsonl", [
+        _row("3.12.4", {"numpy": "2.5.2"}, energy=-1.0),
+        _row("3.12.4", {"numpy": "2.5.2"}, energy=-2.0),
+    ])
+    versions, problems = _agreed(tmp_path)
+    assert problems == []
+    assert versions == {"python": "3.12", "numpy": "2.5.2"}
+
+
+def test_a_jsonl_record_declares_once_however_many_rows_it_has(tmp_path,
+                                                               monkeypatch):
+    _empty_manifest(tmp_path, monkeypatch)
+    _write_rows(tmp_path, "ladder.jsonl",
+                [_row("3.12.4", {"numpy": "2.5.2"}) for _ in range(50)])
+    declarations, _ = survey(tmp_path)
+    assert declarations["numpy"]["2.5.2"] == ["ladder.jsonl"]
+
+
+def test_a_jsonl_record_off_the_agreed_environment_is_reported(tmp_path,
+                                                               monkeypatch):
+    # The case the *.json glob could not see at all.
+    _empty_manifest(tmp_path, monkeypatch)
+    _write(tmp_path, "current.json", "3.12.4", {"numpy": "2.5.2"})
+    _write_rows(tmp_path, "ladder.jsonl", [_row("3.11.15", {"numpy": "2.4.6"})])
+    versions, problems = _agreed(tmp_path)
+    assert "numpy" not in versions and "python" not in versions
+    assert any("ladder.jsonl" in problem for problem in problems)
+
+
+def test_unstamped_and_malformed_rows_do_not_abort_the_survey(tmp_path,
+                                                              monkeypatch):
+    _empty_manifest(tmp_path, monkeypatch)
+    _write_rows(tmp_path, "legacy.jsonl", [_row(energy=-1.0), _row(energy=-2.0)])
+    (tmp_path / "broken.jsonl").write_text('{"provenance": {}\n', encoding="utf-8")
+    _write(tmp_path, "good.json", "3.12.4", {"numpy": "2.5.2"})
+    versions, problems = _agreed(tmp_path)
+    assert versions == {"python": "3.12", "numpy": "2.5.2"}
+    assert len(problems) == 1 and problems[0].startswith("broken.jsonl: unreadable")
+
+
+def test_a_pending_record_is_passed_over_but_still_readable(tmp_path, monkeypatch):
+    _write(tmp_path, "current.json", "3.12.4", {"numpy": "2.5.2"})
+    _write_rows(tmp_path, "old.jsonl", [_row("3.11.15", {"numpy": "2.4.6"})])
+    manifest = _pending_manifest(tmp_path, monkeypatch,
+                                 {"sha256": _digest(tmp_path / "old.jsonl")})
+
+    versions, problems = _agreed(tmp_path)
+    assert problems == [] and versions == {"python": "3.12", "numpy": "2.5.2"}
+
+    # Passed over is not hidden: the gate lists it by asking for it.
+    declarations, _ = survey(tmp_path, include_pending=True)
+    assert declarations["numpy"]["2.4.6"] == ["old.jsonl"]
+    assert set(gate_environment.pending(manifest)) == {"old.jsonl"}
+
+
+def test_a_missing_manifest_exempts_nothing(tmp_path, monkeypatch):
+    # Losing the manifest must not silently excuse the records it named.
+    monkeypatch.setattr(gate_environment, "PENDING", tmp_path / "gone.json")
+    assert gate_environment.pending() == {}
+    _write(tmp_path, "current.json", "3.12.4", {"numpy": "2.5.2"})
+    _write_rows(tmp_path, "old.jsonl", [_row("3.11.15", {"numpy": "2.4.6"})])
+    _, problems = _agreed(tmp_path)
+    assert len(problems) == 2
+
+
+def test_the_guard_does_not_count_a_pending_records_declaration(tmp_path,
+                                                                monkeypatch):
+    # The property the manifest exists for: a superseded record must not
+    # re-authorize the environment the guard is there to refuse.
+    _write(tmp_path, "current.json", "3.12.4", {"numpy": "2.5.2"})
+    _write_rows(tmp_path, "old.jsonl", [_row("3.11.15", {"numpy": "2.4.6"})])
+    _pending_manifest(tmp_path, monkeypatch,
+                      {"sha256": _digest(tmp_path / "old.jsonl")})
+    monkeypatch.setattr(platform, "python_version", lambda: "3.11.15")
+    monkeypatch.setattr(importlib.metadata, "version", lambda name: "2.4.6")
+    with pytest.raises(gate_environment.UndeclaredEnvironment):
+        gate_environment.guard(tmp_path)
+
+
+def test_the_outstanding_record_is_named_on_stderr_not_stdout(tmp_path,
+                                                              monkeypatch, capsys):
+    _write(tmp_path, "a.json", "3.12.4", {"numpy": "2.5.2"})
+    _write_rows(tmp_path, "old.jsonl", [_row("3.11.15", {"numpy": "2.4.6"})])
+    # The entry carries only the anchor, never the versions, so the note can
+    # only be right by reading them back out of the record.
+    _pending_manifest(tmp_path, monkeypatch,
+                      {"sha256": _digest(tmp_path / "old.jsonl")})
+    monkeypatch.setattr(gate, "DATA", tmp_path)
+    assert main(["--python"]) == 0
+    captured = capsys.readouterr()
+    # stdout is redirected into the file the install reads: it stays the pin.
+    assert captured.out == "3.12\n"
+    assert "old.jsonl" in captured.err
+    assert "numpy 2.4.6" in captured.err and "python 3.11" in captured.err
+
+
+def test_an_outstanding_record_that_straddles_versions_reports_both(tmp_path,
+                                                                    monkeypatch):
+    _write_rows(tmp_path, "old.jsonl", [_row("3.11.15", {"numpy": "2.4.6"}),
+                                        _row("3.11.15", {"numpy": "2.4.5"})])
+    _pending_manifest(tmp_path, monkeypatch,
+                      {"sha256": _digest(tmp_path / "old.jsonl")})
+    assert gate.outstanding(tmp_path) == {
+        "old.jsonl": {"numpy": ["2.4.5", "2.4.6"], "python": ["3.11"]}}
+
+
+# An exemption is a decision about a file, so it is anchored to that file. The
+# survey never opens a record it skips, so without the anchor the record could
+# be deleted or re-stamped to anything and the gate would still pass.
+
+
+def test_an_anchored_record_that_has_not_moved_is_no_problem(tmp_path, monkeypatch):
+    _write_rows(tmp_path, "old.jsonl", [_row("3.11.15", {"numpy": "2.4.6"})])
+    _pending_manifest(tmp_path, monkeypatch,
+                      {"sha256": _digest(tmp_path / "old.jsonl")})
+    assert gate_environment.exemption_problems(tmp_path) == []
+
+
+def test_a_pending_record_restamped_to_anything_fails_the_gate(tmp_path,
+                                                               monkeypatch):
+    _write_rows(tmp_path, "old.jsonl", [_row("3.11.15", {"numpy": "2.4.6"})])
+    _pending_manifest(tmp_path, monkeypatch,
+                      {"sha256": _digest(tmp_path / "old.jsonl")})
+    _write_rows(tmp_path, "old.jsonl", [_row("3.13.9", {"numpy": "9.9.9"})])
+    problems = gate_environment.exemption_problems(tmp_path)
+    assert len(problems) == 1
+    assert "changed since it was listed" in problems[0]
+
+
+def test_a_pending_record_that_vanishes_fails_the_gate(tmp_path, monkeypatch):
+    _pending_manifest(tmp_path, monkeypatch, {"sha256": "0" * 64})
+    problems = gate_environment.exemption_problems(tmp_path)
+    assert len(problems) == 1 and "cannot be read" in problems[0]
+
+
+def test_an_entry_without_a_digest_exempts_nothing(tmp_path, monkeypatch):
+    _write_rows(tmp_path, "old.jsonl", [_row("3.11.15", {"numpy": "2.4.6"})])
+    _pending_manifest(tmp_path, monkeypatch, {"why": "no digest here"})
+    problems = gate_environment.exemption_problems(tmp_path)
+    assert len(problems) == 1 and "anchored to nothing" in problems[0]
+
+
+@pytest.mark.parametrize("argv", [["--constraints"], ["--python"], []])
+def test_selecting_an_outstanding_record_fails_every_mode(tmp_path, monkeypatch,
+                                                          capsys, argv):
+    # Skipped even when named, this emitted an empty pin set and exited 0, and
+    # the composite action installs whatever that file does not pin.
+    _write_rows(tmp_path, "old.jsonl", [_row("3.11.15", {"numpy": "2.4.6"})])
+    _pending_manifest(tmp_path, monkeypatch,
+                      {"sha256": _digest(tmp_path / "old.jsonl")})
+    monkeypatch.setattr(gate, "DATA", tmp_path)
+    assert main([*argv, "--record", "old.jsonl"]) == 1
+    captured = capsys.readouterr()
+    assert captured.out == ""
+    assert "old.jsonl: selected, but its environment migration is outstanding" \
+        in captured.err

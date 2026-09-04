@@ -28,6 +28,7 @@ place that costs a rebuild rather than a retraction.
 
 from __future__ import annotations
 
+import hashlib
 import importlib.metadata
 import json
 import os
@@ -43,6 +44,15 @@ DEFAULT_DATA = Path(__file__).resolve().parent.parent / "benchmarks" / "referenc
 # Set to 1 to stamp under an environment the committed records do not declare.
 # It authorizes a migration of the whole set, not one record: see REPRODUCING.md.
 ALLOW_MIGRATION_ENV = "CLIFFORD_QC_ALLOW_ENVIRONMENT_MIGRATION"
+
+# Records whose migration to the current environment is outstanding, named one
+# by one with a reason.  A record listed here is passed over by the default
+# survey, so it neither sets the pin nor widens what the producer guard will
+# accept, but it stays readable through ``include_pending`` and the gate reports
+# it on every run.  Naming is the point: the alternative this replaces was a
+# survey that could not see the record at all.
+PENDING = (Path(__file__).resolve().parent.parent / "benchmarks" / "migrations"
+           / "pending_environment_migration.json")
 
 # Python patch releases do not move floating-point results; NumPy and SciPy
 # releases do, through the sampling stream and the bundled BLAS/LAPACK.  So the
@@ -64,9 +74,79 @@ def _minor(version: object) -> object:
     return ".".join(version.split(".")[:PYTHON_PARTS])
 
 
+def pending(path: Path | None = None) -> dict[str, dict]:
+    """Read the outstanding-migration manifest, keyed by record basename.
+
+    Absent or unreadable, it lists nothing: the manifest records a decision
+    about specific records, and losing it must not silently exempt them.
+    """
+    manifest = PENDING if path is None else path
+    try:
+        listed = json.loads(manifest.read_text(encoding="utf-8")).get("records")
+    except (OSError, ValueError, AttributeError):
+        return {}
+    return listed if isinstance(listed, dict) else {}
+
+
+def exemption_problems(data: Path | None = None) -> list[str]:
+    """Check that every outstanding record is still the one that was exempted.
+
+    A pending entry is a decision about a specific file, so it is anchored to
+    that file's digest.  Exempting a *name* would mean the record could be
+    deleted, corrupted, or re-stamped to any environment at all and the gate
+    would keep passing, because the survey never opens a file it is skipping.
+    Absence, unreadability and drift are therefore failures, and an entry with
+    no digest cannot exempt anything.
+    """
+    directory = DEFAULT_DATA if data is None else data
+    problems = []
+    for name, entry in sorted(pending().items()):
+        expected = entry.get("sha256") if isinstance(entry, dict) else None
+        if not isinstance(expected, str):
+            problems.append(
+                f"{name}: listed as awaiting migration with no sha256, so the "
+                "exemption is anchored to nothing; add the record's digest")
+            continue
+        try:
+            actual = hashlib.sha256((directory / name).read_bytes()).hexdigest()
+        except OSError as exc:
+            problems.append(
+                f"{name}: listed as awaiting migration but cannot be read "
+                f"({exc}); an entry cannot outlive its record")
+            continue
+        if actual != expected:
+            problems.append(
+                f"{name}: changed since it was listed as awaiting migration "
+                f"({actual[:12]}... is not the exempted {expected[:12]}...). A "
+                "record is exempt as reviewed, not as a name: rebuild it and "
+                "delete the entry, or re-anchor the entry to what it now is")
+    return problems
+
+
+def _provenance_blocks(path: Path) -> tuple[list[dict], str | None]:
+    """Every provenance block in one record, or the error that stopped reading.
+
+    A JSONL record is a sequence of rows rather than one document, and each row
+    carries its own stamp, so every row is read: a bench that writes rows as it
+    runs can straddle a version change, and one row is not the record.
+    """
+    try:
+        text = path.read_text(encoding="utf-8")
+        if path.suffix == ".jsonl":
+            documents = [json.loads(line) for line in text.splitlines() if line.strip()]
+        else:
+            documents = [json.loads(text)]
+    except (OSError, ValueError) as exc:
+        return [], f"{path.name}: unreadable ({exc})"
+    return [document["provenance"] for document in documents
+            if isinstance(document, dict)
+            and isinstance(document.get("provenance"), dict)], None
+
+
 def survey(
     data: Path = DEFAULT_DATA,
     record_names: Sequence[str] | None = None,
+    include_pending: bool = False,
 ) -> tuple[dict[str, dict[str, list[str]]], list[str]]:
     """Map package -> version -> the records declaring it, plus any read errors.
 
@@ -75,10 +155,18 @@ def survey(
     makes no claim about its environment and is passed over; a record that
     declares ``null`` for a package was built without it.
 
-    ``record_names`` deliberately narrows the survey to named basenames. It is
-    for running one value gate under the environment stamped on its own record
-    while a separately reported cross-record inconsistency awaits regeneration;
-    it is not a replacement for the default all-record consistency check.
+    Both record shapes are surveyed.  Reading only ``*.json`` was a silent
+    under-count rather than a policy: a JSONL record stamps its rows exactly as
+    a JSON record stamps its document, and one that had drifted off the agreed
+    environment could not be seen by the gate or by the producer guard.
+
+    Records named in the outstanding-migration manifest are passed over unless
+    ``include_pending``, which is how the gate reads back what an outstanding
+    record declares in order to report it.  ``record_names``
+    deliberately narrows the survey to named basenames. It is for running one
+    value gate under the environment stamped on its own record while a
+    separately reported cross-record inconsistency awaits regeneration; it is
+    not a replacement for the default all-record consistency check.
     """
     declarations: dict[str, dict[str, list[str]]] = {}
     problems: list[str] = []
@@ -94,24 +182,27 @@ def survey(
                 continue
             paths.append(path)
     else:
-        paths = sorted(data.glob("*.json"))
+        paths = sorted(list(data.glob("*.json")) + list(data.glob("*.jsonl")))
+    outstanding = () if include_pending else tuple(pending())
     for path in paths:
-        try:
-            record = json.loads(path.read_text(encoding="utf-8"))
-        except (OSError, ValueError) as exc:
-            problems.append(f"{path.name}: unreadable ({exc})")
+        if path.name in outstanding:
             continue
-        provenance = record.get("provenance") if isinstance(record, dict) else None
-        if not isinstance(provenance, dict):
+        blocks, error = _provenance_blocks(path)
+        if error is not None:
+            problems.append(error)
             continue
-        stamped: dict[str, object] = {"python": _minor(provenance.get("python"))}
-        dependencies = provenance.get("dependencies")
-        if isinstance(dependencies, dict):
-            stamped.update(dependencies)
-        for name, version in stamped.items():
-            if not isinstance(version, str):
-                continue
-            declarations.setdefault(name, {}).setdefault(version, []).append(path.name)
+        for provenance in blocks:
+            stamped: dict[str, object] = {"python": _minor(provenance.get("python"))}
+            dependencies = provenance.get("dependencies")
+            if isinstance(dependencies, dict):
+                stamped.update(dependencies)
+            for name, version in stamped.items():
+                if not isinstance(version, str):
+                    continue
+                # Rows of one JSONL record are one declaration, not hundreds.
+                records = declarations.setdefault(name, {}).setdefault(version, [])
+                if path.name not in records:
+                    records.append(path.name)
     return declarations, problems
 
 
