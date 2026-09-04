@@ -139,6 +139,12 @@ jobs:
           - gate: check_protocol_cost
             timeout: 210
             environment_record: protocol_cost.json
+          # The one authorized R3c execution, rebuilt and compared. About 26
+          # minutes on four local workers; the ceiling is set for a slower
+          # runner rather than from that measurement.
+          - gate: check_r3c_lih_full_cost
+            timeout: 180
+            environment_record: r3c_lih_full_cost.json
     steps:
       - uses: actions/checkout@v4
       - uses: ./.github/actions/record-environment

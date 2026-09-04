@@ -1,16 +1,18 @@
-"""Contracts for the R3c LiH full-cost producer, before its record exists.
+"""Contracts for the R3c LiH full-cost producer, its record, and its checker.
 
-The producer lands ahead of the run it draws, so there is no committed record to
-compare against yet and these tests hold the two things that do not need one:
-that every gate standing between the preregistration and forty priced cells
-actually refuses what it claims to refuse, and that the pricing and QR3 layers
-read the frozen rules out of the config rather than restating them.
+Two halves. The first holds every gate standing between the preregistration and
+forty priced cells, and that the pricing and QR3 layers read the frozen rules out
+of the config rather than restating them. Those tests were written before the run
+and use the BeH2 system in ``protocol_cost.json`` as a stand-in for sampled
+evidence: it is the bank this repository had already priced at the exact tier,
+drawn by the same producer over the same grid at the same 30+100 replicas, so it
+has exactly the shape R3c's own system record has -- and its 40 finite intervals
+and its 6 cells inadmissible on one card exercise both sides of the pricing
+table.
 
-The BeH2 system in ``protocol_cost.json`` stands in for the sampled evidence.
-It is the one bank this repository has priced at the exact tier, drawn by the
-same producer over the same grid at the same 30+100 replicas, so it has exactly
-the shape R3c's own system record will have -- and its 40 finite intervals and
-its 6 cells inadmissible on one card exercise both sides of the pricing table.
+The second holds the committed record and the checker that gates it. Each of
+those tests breaks the record in one way the checker claims to catch, because a
+checker nothing has ever falsified is a checker nobody knows is wired up.
 """
 
 from __future__ import annotations
@@ -20,6 +22,11 @@ import json
 
 import pytest
 
+import benchmarks.check_r3c_lih_full_cost as checker
+from benchmarks.check_r3c_lih_full_cost import (
+    contract_problems,
+    frozen_records_untouched_problems,
+)
 from benchmarks.check_r3c_preregistration import load_config
 from benchmarks.run_mapping_axis import load_device_cards
 import benchmarks.run_r3c_lih_full_cost as producer
@@ -32,6 +39,7 @@ from benchmarks.run_r3c_lih_full_cost import (
     OPEN_BOTH,
     PROTOCOL_COST_RECORD,
     R3B_RECORD,
+    REFERENCE,
     SCHEMA,
     _classify,
     bank_problems,
@@ -427,3 +435,180 @@ def test_the_structural_half_carries_no_exact_tier_price(structural_record):
     assert not [key for key in keys if key.startswith("C_time")]
     assert "cost_bracket" not in keys
     assert "device_costs" not in keys
+
+
+# --- the committed record, and the checker that gates it ---------------------
+
+
+@pytest.fixture(scope="module")
+def record() -> dict:
+    return json.loads(REFERENCE.read_text(encoding="utf-8"))
+
+
+def test_the_committed_record_satisfies_every_contract(record):
+    assert contract_problems(record) == []
+    assert frozen_records_untouched_problems() == []
+
+
+def test_the_run_priced_the_second_instance(record):
+    """The readout, and the arithmetic behind it."""
+    pricing = record["pricing"]
+    assert pricing["status"] == "priced_second_instance"
+    assert pricing["evaluated_cells"] == 40
+    assert pricing["cells_with_a_finite_interval"] == 38
+    assert pricing["right_censored_cells"] == 2
+    assert (
+        pricing["cells_with_a_finite_interval"] + pricing["cells_without_a_finite_interval"]
+        == pricing["evaluated_cells"]
+    )
+    # Every finite interval has both endpoints: nothing leaned on the ceiling
+    # or on the first endpoint tested.
+    assert pricing["cells_open_above_at_the_grid_ceiling"] == 0
+    assert pricing["cells_open_below_without_a_confirmed_failure"] == 0
+    assert pricing["confirmatory_solve_failures"] == 0
+
+
+def test_the_censored_cells_do_not_widen_the_grid(record):
+    """Censoring is not infinite cost, and the preregistration says so."""
+    pricing = record["pricing"]
+    assert pricing["wider_grid_licensed_by_this_record"] is False
+    assert pricing["grid_ceiling_effective_shots_per_setting"] == 65536
+    assert pricing["right_censored_by_search_status"] == {
+        "exploratory_crossing_not_confirmed": 2
+    }
+    censored = [
+        (cell["mapping"], cell["block_size"], cell["estimator"])
+        for cell in pricing["cells"]
+        if cell["interval"] != FINITE_INTERVAL
+    ]
+    assert sorted(censored) == [
+        ("bk", 2, "single_assignment"),
+        ("parity", 4, "single_assignment"),
+    ]
+    # The failure mode W is a proxy for stayed absent, as it was in R3b.
+    assert not [
+        cell for cell in pricing["cells"]
+        if cell["search_status"] == "not_bracketed_within_search_grid"
+    ]
+
+
+def test_qr3_is_compared_on_two_instances_and_unresolved(record):
+    """Available, not answered: the brackets overlap and §6.7 says so."""
+    qr3 = record["qr3_second_instance"]
+    assert qr3["status"] == "re_derived"
+    comparison = qr3["comparison"]
+    assert comparison["status"] == "compared"
+    assert comparison["priced_instances"] == [
+        FIRST_PRICED_INSTANCE,
+        "lih_cas4e4o_margin_stop",
+    ]
+    assert comparison["verdict"] == "indeterminate_at_this_shot_grid"
+    mapping = comparison["widest_mapping_spread"]
+    instance = comparison["narrowest_instance_spread"]
+    # The point estimates order; the intervals they come from do not.
+    assert mapping["point"] > instance["point"]
+    assert mapping["minimum_possible"] <= instance["maximum_possible"]
+
+
+def test_the_record_leaves_both_records_it_extends_alone(record):
+    """R3c adds a second price in its own file, and edits neither earlier one."""
+    frozen = json.loads(PROTOCOL_COST_RECORD.read_text(encoding="utf-8"))
+    assert frozen["qr3_accuracy_matched"]["status"] == "abstains"
+    assert frozen["qr3_accuracy_matched"]["priced_instances"] == [FIRST_PRICED_INSTANCE]
+    pilot = json.loads(R3B_RECORD.read_text(encoding="utf-8"))["decision"]
+    assert pilot["status"] == "rejected_unresolved_at_frozen_grid"
+    assert pilot["full_run_authorized"] is False
+    assert record["qr3_second_instance"]["first_instance"]["left_unchanged"] is True
+
+
+def test_the_record_carries_no_scope_probe_field(record):
+    """It prices the run those probes were deciding about, and re-decides nothing."""
+
+    def walk(value):
+        if isinstance(value, dict):
+            for key, item in value.items():
+                yield key
+                yield from walk(item)
+        elif isinstance(value, list):
+            for item in value:
+                yield from walk(item)
+
+    assert not set(walk(record)) & checker.PROBE_ONLY_KEYS
+
+
+def test_the_record_was_drawn_by_the_frozen_instrument(record, config):
+    run = record["full_cost_run"]
+    assert run["executed"] is True
+    assert run["is_a_cost_record"] is True
+    assert run["exploratory_replicas"] == 30
+    assert run["confirmatory_replicas"] == 100
+    assert run["seed_roots"] == config["protocol"]["seed_roots"]
+    assert instrument_problems(run["sampling_evidence"], config) == []
+    dependencies = record["provenance"]["dependencies"]
+    assert dependencies["numpy"] == config["protocol"]["execution_environment"]["numpy"]
+    assert dependencies["scipy"] == config["protocol"]["execution_environment"]["scipy"]
+
+
+@pytest.mark.parametrize(
+    "mutate, expected",
+    [
+        pytest.param(
+            lambda r: r.update(claim_boundary="Scope-decision evidence only."),
+            "tenseless and is meant to be inherited",
+            id="restated_boundary",
+        ),
+        pytest.param(
+            lambda r: r["preregistration"].update(authorized_by_this_config=False),
+            "does not carry the authorization its config gives",
+            id="unauthorized",
+        ),
+        pytest.param(
+            lambda r: r.update(config_file_sha256="0" * 64),
+            "not the committed file's",
+            id="config_moved",
+        ),
+        pytest.param(
+            lambda r: r["pricing"].update(status="right_censored_at_frozen_grid"),
+            "does not re-derive from the drawn cells",
+            id="readout_rewritten",
+        ),
+        pytest.param(
+            lambda r: r["pricing"].update(wider_grid_licensed_by_this_record=True),
+            "licenses a wider endpoint grid",
+            id="grid_widened",
+        ),
+        pytest.param(
+            lambda r: r["full_cost_run"].update(confirmatory_replicas=2),
+            "not the preregistered count",
+            id="replicas_reduced",
+        ),
+        pytest.param(
+            lambda r: r["provenance"]["dependencies"].update(numpy="2.4.6"),
+            "these seed roots name a different stream there",
+            id="stamped_elsewhere",
+        ),
+        pytest.param(
+            lambda r: r["full_cost_run"]["sampling_evidence"].update(
+                r1_cross_check={"status": "compared"}
+            ),
+            "no column of R1's to agree with",
+            id="cross_checked_against_another_bank",
+        ),
+        pytest.param(
+            lambda r: r.update(evidence_role="scope_decision_only"),
+            "not labelled an accuracy-matched cost record",
+            id="mislabelled_role",
+        ),
+        pytest.param(
+            lambda r: r["selection"].update(basis_size=13),
+            "drifted from the preregistration",
+            id="another_bank",
+        ),
+    ],
+)
+def test_the_checker_catches_a_broken_record(record, mutate, expected):
+    """One break each. A checker nothing falsifies is one nobody has wired up."""
+    broken = copy.deepcopy(record)
+    mutate(broken)
+    problems = contract_problems(broken)
+    assert any(expected in problem for problem in problems), problems[:5]

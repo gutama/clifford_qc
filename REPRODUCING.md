@@ -106,7 +106,7 @@ No figure or table value in the manuscript is transcribed by hand, and
 ```bash
 python -m venv .venv && source .venv/bin/activate
 pip install -e .[test,research,chemistry]   # numpy + scipy + openfermion/pyscf
-pytest                                      # 1362 passed, 27 skipped
+pytest                                      # 1379 passed, 27 skipped
 ```
 
 That install is the reference environment for the quoted pair. The count
@@ -2199,6 +2199,103 @@ against BeH2's 864, concentrated where BeH2 collapses to a few dozen and LiH
 does not (`bk` k=2: 202 against 41). `check_protocol_cost`'s 210-minute
 timeout is a CI ceiling for that sweep, not a measurement of it, so it is not
 the number to scale from in either direction.
+
+## R3c LiH full-cost run — the result
+
+The run has been executed once, under the frozen stack, and its record and
+checker land with it:
+
+```bash
+python benchmarks/run_r3c_lih_full_cost.py --workers 4
+python benchmarks/check_r3c_lih_full_cost.py --workers 4
+```
+
+About 26 minutes on four workers — close to the two core-hours the single-cell
+anchor projected.
+
+**Result: the bank prices, and LiH is the exact tier's second priced instance.**
+`pricing.status: priced_second_instance`. Thirty-eight of the forty
+`(arm, k, estimator)` cells supply a confirmed finite interval; two are
+right-censored. All 19,300 confirmatory solves succeeded, so the zero-failure
+gate never bit. No cell is open above at the `65536` ceiling and none is open
+below the first endpoint, so every one of the thirty-eight intervals has both a
+confirmed failing predecessor and a confirmed passing endpoint, which is what
+the preregistration requires of a finite one.
+
+| | R3b — the `2+2` probe | R3c — the `30+100` protocol |
+|---|---|---|
+| cells with a confirmed crossing | 29 / 40 | **38 / 40** |
+| `not_bracketed_within_search_grid` | 0 | **0** |
+| `exploratory_crossing_not_confirmed` | 11 | **2** |
+| modal passing endpoint | `16384`, then `4096` | `16384` (19), then `4096` (16) |
+
+The two records draw the same forty cells on the same bank over the same grid
+and differ in the replica counts and the seed roots. **This is an observation,
+not a preregistered test.** R3c's gate was the pricing, and its estimand named
+the 30+100 protocol as the target instrument rather than as an experiment on
+R3b's failure-mode split. What the table shows is that the split R3b labelled
+`post_hoc_diagnostic_not_preregistered` pointed the right way: the failures that
+survived a fourfold-plus increase in confirmation power are two, not eleven, and
+grid fit was never the binding constraint on this bank in either record.
+
+The two survivors are `parity` k=4 and `bk` k=2, both single-assignment, both
+`exploratory_crossing_not_confirmed`. They stay right-censored. Censoring is not
+infinite cost, and `wider_grid_licensed_by_this_record` is `false`: three cells
+crossed at `65536` and confirmed there against a failing predecessor at `16384`,
+so the grid held for them too.
+
+Pricing is per card, because admissibility is: `ion-like` 38, `logical-alltoall`
+38, `superconducting-like` 23. The fifteen cells the superconducting card drops
+carry no runtime on it and are reported as inadmissible rather than folded into
+a minimum they cannot attain.
+
+**QR3, re-derived and indeterminate.** The preregistration ties the
+re-derivation to a second priced instance, and it now has one, so the record
+puts LiH's cells beside the frozen BeH2 cells under one instrument — 88 mapping
+cells and 99 instance cells that both banks have admissible and priced. The
+result is three-valued and lands in the middle:
+
+- widest mapping spread — `ion-like`, pooled, `k = 4`, the three full-width
+  arms — point `17.52×`, bracket `[1.36, 70.08]`;
+- narrowest instance spread — `superconducting-like`, single-assignment,
+  `k = 2`, `parity` — point `1.02×`, bracket `[1.00, 4.08]`;
+- verdict `indeterminate_at_this_shot_grid`.
+
+The point estimates order emphatically — a seventeen-fold mapping effect against
+a two-percent instance effect — and the record declines to report that as the
+answer, because the brackets overlap and a cost here is never a number but the
+interval `(C(confirmed_fail), C(confirmed_pass)]` the geometric grid licenses.
+PLAN §6.7's rule is that an overlap is a finding about resolution rather than a
+mapping result. So QR3's reason for not answering has moved once more: from
+accuracy, to grid resolution, to the `2+2` probe's confirmation power, and now
+to the width of the brackets the two effects are compared across. What has
+changed is that it is no longer *abstaining* — it is compared, on two priced
+instances, and unresolved.
+
+`protocol_cost.json` is read and not rewritten. Its own
+`qr3_accuracy_matched: abstains` over `[beh2]` stays a true statement about the
+record that carries it; the comparison that needed two instances lives here, and
+`check_r3c_lih_full_cost.py` fails a run that reaches back and relabels either
+that record or R3b's rejection.
+
+**What the checker gates.** Most of the pricing contract is imported from
+`check_protocol_cost` rather than restated, so these cells face the rules BeH2's
+faced: smallest confirmed pass with a confirmed failure below it, monotone
+confirmation, one retained rank across both deciding endpoints, margins agreeing
+with the marginal flag, an interval widened exactly on the sides R1 flagged, and
+a `k*` region accounting for every rung once. The rank-stability rule was the
+one genuinely at risk — `M = 2` makes the pencil `2x2`, so a deciding panel
+could split its retained rank where BeH2's never did — and it holds on all
+thirty-eight priced cells.
+
+On top of that the checker requires what is specific to this phase: the record
+inherits the preregistration's claim boundary verbatim, which is the one place
+in this tree where inheritance is required rather than refused; the config is
+still the file that landed, by frozen digest, and still passes the whole
+result-free checker; the pricing table and the QR3 statement re-derive from the
+drawn cells; the stamped stack is the frozen one; and no probe-only field —
+`full_run_authorized`, `screen_prediction`, `eligible_for_full_run` — appears in
+a record that prices the run those probes were deciding about.
 
 ## R2b raw-pool fermion-mapping axis
 
