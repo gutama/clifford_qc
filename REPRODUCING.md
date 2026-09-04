@@ -2178,14 +2178,27 @@ forty-cell record deny its own contents — so it had to state its own and quote
 the config's beside it. R3c's config says what the *config* carries and what a
 record may report, and both stay true once the run exists.
 
-The structural half takes about a minute. **Do not budget the run itself
-against `check_protocol_cost`'s 210 CI-minutes.** It draws the same forty cells
-at 30+100 replicas over the same grid, and this bank's binding `W = 1439` is
-below BeH2's `1814` — but the shot budget is spent per *setting*, and the
-qwc setting counts are not close: 2506 across LiH's twenty `(arm, k)` cells
-against BeH2's 864, a factor of 2.9, concentrated in the rungs where BeH2
-collapses to a few dozen settings and LiH does not (`bk` k=2: 202 against 41).
-So the run is several times the BeH2 sweep, not comparable to it.
+The structural half takes about a minute. The run has one measured anchor:
+`jw` `k = 1` — 349 settings, the widest of the twenty rungs — took **977 s on
+one core** at the full 30+100 replicas, drawn as a timing measurement.
+
+Extrapolating from it needs the two phases separately. Exploration tests all
+six endpoints on every cell whatever its crossing, so it costs a fixed
+`30 x 87364` shot-units per setting and scales with the setting count alone;
+the twenty cells total 2506 settings against that one cell's 349. Confirmation
+adds 100 replicas at two endpoints and scales with *where* the crossing lands,
+which is what the run is measuring, so it is bounded rather than known: at most
+`100 x (16384 + 65536)` per setting, roughly two and a half times what this cell
+paid. That puts the whole run near two core-hours and under four — well inside
+one session on four workers, and not a `--workers 1` job.
+
+The setting counts are worth stating on their own, because they are the reason
+the two banks do not scale together: this bank's binding `W = 1439` is *below*
+BeH2's `1814`, but shots are spent per setting and LiH needs 2506 of them
+against BeH2's 864, concentrated where BeH2 collapses to a few dozen and LiH
+does not (`bk` k=2: 202 against 41). `check_protocol_cost`'s 210-minute
+timeout is a CI ceiling for that sweep, not a measurement of it, so it is not
+the number to scale from in either direction.
 
 ## R2b raw-pool fermion-mapping axis
 
