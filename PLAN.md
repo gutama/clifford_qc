@@ -117,7 +117,7 @@ Status at a glance:
 | QR3b | chemically independent LiH exact-tier extension preflight | **done, negative scope decision** *for the intrinsic-stop bank* (`M = 13`, `W = 7740`); the bias gate passes, but 21/40 cells are unresolved and 9 more resolve only at the frozen ceiling, so no full run is authorized on that bank. The screened `M = 2` bank is a separate candidate — R3b |
 | R3S | priceability screen — which candidates a declared screen admits for a probe | **done, positive**; under a stopping rule that reserves the accuracy target for shot noise, LiH is admissible at a two-generator prefix (`W = 1439` against BeH₂'s `1814`), so QR3b rejected the greedy's stopping point rather than the instance |
 | R3b | LiH `margin_stop` probe — the QR3b 2+2 preflight re-run on the bank R3S admitted | **done, mixed**; the target-environment redraw rejects the bank (29/40 cells resolve, versus 30/40 in the historical 3.11 draw; the gate needs 40), so no full run is authorized and there is still one priced instance — but both draws reduce QR3b's grid-fit failures `15 → 0`, leaving the `2+2` probe's confirmation power rather than `W` |
-| R3c | LiH `margin_stop` headline exact-tier cost run | **preregistered, not run**; the bank, frozen grid, 30+100 replicas, pass rule, fresh streams, device cards and right-censoring outcome are fixed in a result-free config. The sampled record must land separately |
+| R3c | LiH `margin_stop` headline exact-tier cost run | **preregistered and built, not run**; the bank, frozen grid, 30+100 replicas, pass rule, fresh streams, device cards and right-censoring outcome are fixed in a result-free config, and `run_r3c_lih_full_cost.py` now draws them. The sampled record and its checker must land separately |
 | R4 | contextual-subspace comparator | open |
 
 "Shipped" means the module, its tests, and where applicable its benchmark
@@ -3168,8 +3168,8 @@ with the old and new record identities connected by
 `migrations/r3_environment_3_12.json`: R3S keeps the same verdicts, while R3b
 moves from 30/40 to 29/40 resolved cells without changing its rejection, zero
 grid-fit failures, or one ceiling cell. So (1) execute R3c exactly once under
-its frozen 3.12 / 2.5.2 environment and land its producer, checker and sampled
-record separately; (2) implement Phase 13's deterministic X-rank invariant;
+its frozen 3.12 / 2.5.2 environment -- its producer has landed and is
+result-free; the sampled record and its checker follow; (2) implement Phase 13's deterministic X-rank invariant;
 (3) keep R4a blocked
 unless R3c supplies the second priced instance. Paper A's submission stays
 schedulable and blocks nothing.
@@ -3382,7 +3382,14 @@ not another open accuracy phase.
     earlier `full_run_authorized: false` finding as a fact about R3b.
 
     *Gate:* the producer, sampled record and result checker land in a later
-    commit. Each cell either supplies a confirmed finite interval or remains
+    commit than the preregistration. `run_r3c_lih_full_cost.py` has landed and
+    draws nothing until it is run: it re-runs the result-free checker over the
+    config it is about to consume, binds that config's bytes to the digest the
+    migration manifest froze, refuses a stack other than the frozen one, refuses
+    a pilot record that has stopped rejecting the bank, and refuses a first
+    priced instance drawn by another instrument -- all before a shot. The
+    sampled record and `check_r3c_lih_full_cost.py` are still outstanding, as is
+    the `sampled-records` matrix entry that would gate them. Each cell either supplies a confirmed finite interval or remains
     right-censored at `65536`; censoring is not infinite cost and does not
     license a wider grid. QR3 is re-derived only if the record supplies a second
     priced instance.

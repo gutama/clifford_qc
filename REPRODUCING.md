@@ -106,7 +106,7 @@ No figure or table value in the manuscript is transcribed by hand, and
 ```bash
 python -m venv .venv && source .venv/bin/activate
 pip install -e .[test,research,chemistry]   # numpy + scipy + openfermion/pyscf
-pytest                                      # 1328 passed, 27 skipped
+pytest                                      # 1362 passed, 27 skipped
 ```
 
 That install is the reference environment for the quoted pair. The count
@@ -2096,6 +2096,96 @@ No producer or sampled record lands with this preregistration. The future
 `check_r3c_lih_full_cost.py` must land in a separate commit. Only that record
 can show whether LiH becomes the second priced instance; otherwise QR3 remains
 undetermined.
+
+## R3c LiH full-cost run — the producer
+
+`benchmarks/run_r3c_lih_full_cost.py` is the first half of that separate
+commit. It draws the authorized run and no record lands with it: the sampled
+`r3c_lih_full_cost.json` and `check_r3c_lih_full_cost.py` are still outstanding,
+as is the `sampled-records` matrix entry that would gate them.
+
+```bash
+python benchmarks/run_r3c_lih_full_cost.py --skip-run   # structural half, no replicas
+python benchmarks/run_r3c_lih_full_cost.py --workers 4
+```
+
+Replica counts are not command-line arguments. They come from the config, as do
+the arms, the block sizes, the estimators, the endpoint grid, the bootstrap
+replicates, the pass rule and the three seed roots — a producer that accepted
+`--confirmatory-replicas` would accept a record drawn at a count the
+preregistration did not freeze. `--skip-run` builds the structural half and
+writes a record whose `full_cost_run.executed` is `false`; it is a preview, and
+the committed evidence is the run.
+
+**Every gate that can fail runs before a shot is drawn**, in this order, because
+the run costs hours and a lineage failure found at the stamp costs all of them:
+
+1. the whole result-free checker, re-run on the config the producer is about to
+   consume, plus the config file's SHA-256 against the digest the migration
+   manifest froze when it landed — `static_problems` validates whatever config
+   it is handed, so only the digest says the preregistration was not edited
+   after the fact;
+2. the execution stack against the frozen Python 3.12 / NumPy 2.5.2 /
+   SciPy 1.18.0 / Stim 1.16.0. This is stricter than `stamp_record`'s guard and
+   asks a different question: not whether the run belongs to the repository's
+   record set, but whether it is the stack these seed roots name a stream under.
+   Under another NumPy the same roots draw different shots;
+3. the three device cards by name and SHA-256;
+4. R3b's record, which must still carry `full_run_authorized: false`. R3c's
+   authorization is its own config's `full_30_plus_100_run_authorized_by_this_config`,
+   and the two only stay distinguishable while the pilot keeps saying what it
+   said;
+5. `protocol_cost.json` as the other half of a QR3 comparison — same replica
+   counts, endpoint grid, estimators, cards and stack, disjoint seed roots, and
+   BeH2 still `searched`. Two prices are comparable only if one instrument
+   measured both;
+6. the bank: the R3S margin rule re-derived over the frozen QR3b ordering
+   through R3b's own implementation, then each arm's word universe and qwc
+   setting count against the preregistered per-arm values, and every arm's bias
+   against the 1.6 mHa floor.
+
+**The readout is the config's own.** Each of the forty `(arm, k, estimator)`
+cells is classified by the frozen crossing rule: a finite interval needs a
+confirmed failing predecessor and a confirmed passing endpoint. Three distinct
+things fall short and the record names them separately rather than pooling
+them — no confirmed crossing anywhere in the grid, which is censoring by the
+grid; a passing endpoint R1 flagged environment-marginal at `65536`, which has
+no finite upper bound; and a crossing at the first endpoint tested, which has no
+confirmed failing predecessor. `pricing.status` is then
+`priced_second_instance` when finite intervals survive on a declared card and
+`right_censored_at_frozen_grid` when none does. Censoring is not infinite cost
+and licenses no wider grid, and the record says so in the field
+`wider_grid_licensed_by_this_record`.
+
+The censored cells are also tabulated by their search status. That table is
+data and no gate reads it. R3b's split of grid fit from confirmation power was
+labelled `post_hoc_diagnostic_not_preregistered`, and reporting the same counts
+here does not promote it into a test.
+
+**QR3 is re-derived only on a second priced instance**, which is the
+preregistration's gate. When the LiH bank prices, the producer puts its cells
+beside the frozen BeH2 cells under one instrument and reports the three-valued
+mapping-versus-instance verdict; when it does not, the record says
+`not_re_derived` with the reason and QR3 stays undetermined. Either way
+`protocol_cost.json` is read and not rewritten: its own
+`qr3_accuracy_matched: abstains` remains a true statement about the record that
+carries it, and the combination lives in the new record.
+
+**The claim boundary is inherited from the config**, which is what R3c's
+tenseless wording was for. R3b's record could not inherit its config's — that
+one opens *"No sampling has been performed under this config"* and would have a
+forty-cell record deny its own contents — so it had to state its own and quote
+the config's beside it. R3c's config says what the *config* carries and what a
+record may report, and both stay true once the run exists.
+
+The structural half takes about a minute. **Do not budget the run itself
+against `check_protocol_cost`'s 210 CI-minutes.** It draws the same forty cells
+at 30+100 replicas over the same grid, and this bank's binding `W = 1439` is
+below BeH2's `1814` — but the shot budget is spent per *setting*, and the
+qwc setting counts are not close: 2506 across LiH's twenty `(arm, k)` cells
+against BeH2's 864, a factor of 2.9, concentrated in the rungs where BeH2
+collapses to a few dozen settings and LiH does not (`bk` k=2: 202 against 41).
+So the run is several times the BeH2 sweep, not comparable to it.
 
 ## R2b raw-pool fermion-mapping axis
 
