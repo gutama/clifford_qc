@@ -113,11 +113,11 @@ Status at a glance:
 | R1 | hardware-aware cost model and pooled-estimator ledger | **done**; asymptotic and exact-oracle nonlinear shot-search tiers are recorded |
 | R2a | shared restriction primitive (`subspace/restriction.py`) | **shipped and consumed by the completed R2b record** |
 | R2b | raw-pool mapping axis | **done, negative QR3 result** — QR2 passes, but mapping spread is not smaller than instance spread on either independent fixed-QWC metric |
-| R3 | protocol axis and accuracy-matched cost regions | **done**; the structural and exact-tier records ship, while QR3 abstains because H4-converged is right-censored at the frozen endpoint ceiling — R3S below is the route to a second priced instance that does not widen the grid |
+| R3 | protocol axis and accuracy-matched cost regions | **done**; the structural and exact-tier records ship, and `protocol_cost.json` abstains on QR3 because H4-converged is right-censored at the frozen endpoint ceiling. That abstention stands as a statement about that record; R3S opened the route to a second priced instance without widening the grid, and R3c walked it |
 | QR3b | chemically independent LiH exact-tier extension preflight | **done, negative scope decision** *for the intrinsic-stop bank* (`M = 13`, `W = 7740`); the bias gate passes, but 21/40 cells are unresolved and 9 more resolve only at the frozen ceiling, so no full run is authorized on that bank. The screened `M = 2` bank is a separate candidate — R3b |
 | R3S | priceability screen — which candidates a declared screen admits for a probe | **done, positive**; under a stopping rule that reserves the accuracy target for shot noise, LiH is admissible at a two-generator prefix (`W = 1439` against BeH₂'s `1814`), so QR3b rejected the greedy's stopping point rather than the instance |
-| R3b | LiH `margin_stop` probe — the QR3b 2+2 preflight re-run on the bank R3S admitted | **done, mixed**; the target-environment redraw rejects the bank (29/40 cells resolve, versus 30/40 in the historical 3.11 draw; the gate needs 40), so no full run is authorized and there is still one priced instance — but both draws reduce QR3b's grid-fit failures `15 → 0`, leaving the `2+2` probe's confirmation power rather than `W` |
-| R3c | LiH `margin_stop` headline exact-tier cost run | **preregistered, not run**; the bank, frozen grid, 30+100 replicas, pass rule, fresh streams, device cards and right-censoring outcome are fixed in a result-free config. The sampled record must land separately |
+| R3b | LiH `margin_stop` probe — the QR3b 2+2 preflight re-run on the bank R3S admitted | **done, mixed**; the target-environment redraw rejects the bank (29/40 cells resolve, versus 30/40 in the historical 3.11 draw; the gate needs 40), so that probe authorized no full run and left the exact tier with one priced instance — but both draws reduce QR3b's grid-fit failures `15 → 0`, leaving the `2+2` probe's confirmation power rather than `W`, which is what R3c went on to test directly |
+| R3c | LiH `margin_stop` headline exact-tier cost run | **done, positive**; executed once under the frozen 3.12 / 2.5.2 stack. 38 of 40 cells supply a confirmed finite interval and 2 stay right-censored, so LiH is the exact tier's second priced instance. QR3 is re-derived on two instances and comes back `indeterminate_at_this_shot_grid`: the point estimates order 17.5x against 1.02x, and the cost brackets overlap |
 | R4 | contextual-subspace comparator | open |
 
 "Shipped" means the module, its tests, and where applicable its benchmark
@@ -3011,9 +3011,29 @@ A-CASE's.
   29 of 40 cells (30 historically) against a gate needing 40. The half that held is
   the one `W` governs: `not_bracketed_within_search_grid`
   went from 15 cells to none, so the crossings are inside the grid now. The half that
-  did not is the probe's own confirmation power. QR3 therefore stays abstaining, and
-  the reason has moved once more — from accuracy, to grid resolution, to whether a
-  `2+2` scope probe can confirm a crossing it has already located.
+  did not is the probe's own confirmation power.
+
+  **R3c then answered that, and QR3 is no longer abstaining.** The preregistered
+  `30+100` run on the same forty cells prices thirty-eight of them with confirmed
+  finite intervals, so the exact tier has its second instance and the comparison
+  this question needs is now *available*. Re-derived over the 88 mapping and 99
+  instance cells both banks have admissible and priced, it returns
+  `indeterminate_at_this_shot_grid`. The point estimates order emphatically —
+  widest mapping spread `17.52×`, narrowest instance spread `1.02×`, which if
+  read as numbers would answer the question affirmatively and retire the
+  falsifier — but a cost here is the bracket
+  `(C(confirmed_fail), C(confirmed_pass)]` the geometric grid licenses, and those
+  brackets overlap: `[1.36, 70.08]` against `[1.00, 4.08]`. §6.7's rule is that
+  an overlap is a finding about resolution, not a mapping result, so the record
+  reports the overlap rather than the ratio. The reason for not answering has
+  therefore moved once more — from accuracy, to grid resolution, to whether a
+  `2+2` scope probe can confirm a crossing it has already located, and now to the
+  width of the intervals the two effects are compared across. What would separate
+  them is finer resolution *between* existing endpoints, not endpoints above
+  `65536`; the grid's ceiling was not the binding constraint on either bank here,
+  and `r3c_lih_full_cost.json` records `wider_grid_licensed_by_this_record:
+  false`. `protocol_cost.json`'s own abstention is untouched and stays true of
+  the record that carries it.
 - **QR4 (pooling × protocol).** Does the coverage fraction `f_w` change the `k*` chosen under
   the pooled estimator relative to the single-assignment one? *Falsifier:* identical `k*`
   under both, which retires the concern. **The falsifier fires on the R3 grid**
@@ -3158,21 +3178,27 @@ between tracks, R1 is cheap and its result can reorder Track B's protocol conclu
 comes early.
 
 **Immediate order, after the R3 environment migration.** Step 13b did not price:
-the exact tier still has one priced instance, and the binding constraint moved
-from grid fit to the `2+2` probe's confirmation power. R3c therefore freezes the
+it left the exact tier with one priced instance, and the binding constraint moved
+from grid fit to the `2+2` probe's confirmation power. R3c therefore froze the
 headline 30+100 protocol — the target instrument, not another resized scope
-probe — in a result-free commit. Restoring the record gates also exposed that
+probe — in a result-free commit, and then ran it: thirty-eight of the same forty
+cells price, and the exact tier has its second instance. Restoring the record gates also exposed that
 PR #73's two records were stamped on the older 3.11 / NumPy 2.4.6 stack while
 the other ten use 3.12 / 2.5.2. That split is now repaired by a genuine rebuild,
 with the old and new record identities connected by
 `migrations/r3_environment_3_12.json`: R3S keeps the same verdicts, while R3b
 moves from 30/40 to 29/40 resolved cells without changing its rejection, zero
-grid-fit failures, or one ceiling cell. So (1) execute R3c exactly once under
-its frozen 3.12 / 2.5.2 environment and land its producer, checker and sampled
-record separately; (2) implement Phase 13's deterministic X-rank invariant;
-(3) keep R4a blocked
-unless R3c supplies the second priced instance. Paper A's submission stays
-schedulable and blocks nothing.
+grid-fit failures, or one ceiling cell. So (1) R3c has been executed exactly
+once under its frozen 3.12 / 2.5.2 environment, and its producer, record and
+checker have landed; (2) implement Phase 13's deterministic X-rank invariant;
+(3) R4a's exact-tier blocker is lifted on its own terms — R3c supplied the
+second priced instance — though its declared gate remains QR5, which is
+unanswered, so it does not start here. QR3 itself is now compared rather than
+abstaining, and unresolved: separating a `17.52×` mapping spread from a `1.02×`
+instance spread needs narrower cost brackets, which means resolution *between*
+the existing endpoints rather than endpoints above `65536`. That is a new
+question and needs its own declaration. Paper A's submission stays schedulable
+and blocks nothing.
 
 **Paper A — the one item outside the tracks.** Its software, data, go/no-go decisions,
 and manuscript are complete (§9.6, §9.6.1) but it is not submitted. Nothing below
@@ -3381,8 +3407,20 @@ not another open accuracy phase.
     config independently authorizes one future full run while preserving the
     earlier `full_run_authorized: false` finding as a fact about R3b.
 
-    *Gate:* the producer, sampled record and result checker land in a later
-    commit. Each cell either supplies a confirmed finite interval or remains
+    *Gate, discharged.* The producer, sampled record and result checker landed
+    after the preregistration and the run was executed once under the frozen
+    stack. `run_r3c_lih_full_cost.py` refuses before a shot is drawn: it re-runs
+    the result-free checker over the config it is about to consume, binds that
+    config's bytes to the digest the migration manifest froze, refuses a stack
+    other than the frozen one, refuses a pilot record that has stopped rejecting
+    the bank, and refuses a first priced instance drawn by another instrument.
+    Thirty-eight of forty cells supply a confirmed finite interval and two —
+    `parity` k=4 and `bk` k=2, both single-assignment — stay right-censored on
+    unconfirmed exploratory crossings; censoring is not infinite cost and the
+    record licenses no wider grid. `check_r3c_lih_full_cost.py` imports
+    `check_protocol_cost`'s per-cell rules rather than restating them, so the
+    crossing, bracket, rank-stability and `k*` contracts that gate BeH2 gate
+    these cells too, and it runs in the `sampled-records` matrix. Each cell either supplies a confirmed finite interval or remains
     right-censored at `65536`; censoring is not infinite cost and does not
     license a wider grid. QR3 is re-derived only if the record supplies a second
     priced instance.
