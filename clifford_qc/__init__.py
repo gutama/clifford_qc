@@ -19,6 +19,8 @@ from .channels import check_kraus, apply_channel, depolarizing, dephasing, ampli
 from .dense_reference import (code_to_matrix, to_matrix, from_matrix,
                               density_from_statevector, expm_matrix, exact_ground)
 from .pauli_action import PauliLinearOperator, apply_pauli_sum, matrix_free_ground
+from .pauli_structure import (gf2_rank, spin_conserving_x_rank_ceiling,
+                              validate_spin_conserving_x_rank, x_mask_rank)
 from .sparse import to_sparse, sparse_ground, sparse_ground_in_sector, sector_indices, spectral_bound
 from .diagnostics import (
     negativity, vn_entropy, fidelity_pure, trace_cyclicity_error,
