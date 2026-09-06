@@ -106,7 +106,7 @@ No figure or table value in the manuscript is transcribed by hand, and
 ```bash
 python -m venv .venv && source .venv/bin/activate
 pip install -e .[test,research,chemistry]   # numpy + scipy + openfermion/pyscf
-pytest                                      # 1381 passed, 27 skipped
+pytest                                      # 1393 passed, 27 skipped
 ```
 
 That install is the reference environment for the quoted pair. The count
@@ -128,7 +128,7 @@ the remaining `27 - 13 = 14` skips are per-test and *are* collected:
 
 ```text
 collected == passed + (skipped - files dropped at collection)
-1342      == 1328   + (27      -  13)
+1407      == 1393   + (27      -  13)
 ```
 
 Both sides are computed from the tree, so a drift in either quoted number
@@ -216,6 +216,31 @@ result.
 The tableau elimination remains a constructive synthesis rather than a
 CX-minimizing compiler. Mitigation and calibrated topology routing remain outside
 this experiment.
+
+### Phase 14b QWC-versus-fully-commuting preregistration
+
+Phase 14b is split across commits so the comparison cannot be redesigned after
+seeing its draw. The first commit is result-free:
+
+```bash
+python benchmarks/check_phase14b_preregistration.py
+```
+
+The checker validates `configs/phase14b_qwc_vs_fc.json` against the exact Phase 14a
+merge, the committed BeH2 hierarchy and protocol-axis records, the FCIDUMP and its
+provenance, and all three device cards. It freezes 1,814 measured words with the
+identity analytic, QWC (`k=1`, 353 settings) against fully commuting (`k=8`, 14
+settings), the same deterministic coefficient-range allocator, familywise
+`delta=0.05` over both protocols and 17 fixed total-shot endpoints, the 1.6 mHa
+criterion, fresh streams, and card-specific cost reporting.
+
+No Phase 14b producer or sampled record ships with this declaration. The one
+authorized later execution must add `run_phase14b_qwc_vs_fc.py`, the stamped
+`reference_results/phase14b_qwc_vs_fc.json`, and a regenerating sampled checker in
+a separate commit. Its blocking gates are exact `S` and `H` reconstruction within
+`5e-13` and a 1,000-replica assigned/pooled covariance audit whose four empirical-
+to-predicted variance ratios all lie in `[0.8, 1.2]`. Until that record passes,
+Phase 14b makes no shot-efficiency or device-cost claim.
 
 ### R1 exact-oracle nonlinear shot search
 
@@ -419,7 +444,7 @@ Three cost-aware tiers run:
 | job | when | contents |
 | --- | --- | --- |
 | `test` | pull request, push to `main`, manual dispatch | `ruff`, `pytest --hypothesis-profile=ci`, and the short record gates: `check_docs`, `check_molecular`, `check_krylov_width`, `check_clifford_hierarchy`, `check_finite_shot_optimization`, `check_warm_start` |
-| `structural-records` | pull request, push to `main`, manual dispatch | deterministic rebuild and lineage gates: `check_mapping_axis`, `check_protocol_axis`, `check_priceability_screen`, `check_r3_environment_migration`, `check_r3b_preregistration`, `check_r3c_preregistration` |
+| `structural-records` | pull request, push to `main`, manual dispatch | deterministic rebuild and lineage gates: `check_mapping_axis`, `check_protocol_axis`, `check_priceability_screen`, `check_r3_environment_migration`, `check_r3b_preregistration`, `check_r3c_preregistration`, `check_phase14b_preregistration` |
 | `sampled-records` | manual dispatch only | replica-drawing rebuild gates, each under its own record stamp: `check_r3b_margin_stop_probe`, `check_finite_shot_rethink`, `check_matched_h4`, `check_qr3b_instance_preflight`, `check_exact_shot_search`, `check_protocol_cost` |
 
 The same dispatch also runs `environment-consistency`, which requires every

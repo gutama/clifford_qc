@@ -1554,10 +1554,23 @@ duplicating the coefficient across capable settings. Existing exact-shot and pro
 cost producers now consume the library compiler instead of a benchmark-private copy.
 This is a deterministic library/test change: it creates no sampled record.
 
-**Phase 14b remains open.** Freeze and run the QWC-versus-fully-commuting comparison
-at one word universe, allocator, confidence target, device/connectivity assumptions,
-and accuracy criterion; Q9 is not answered by Phase 14a alone. This track supports
-Paper A or a separate measurement paper and must not block Track A.
+**Phase 14b — preregistered, not run.**
+`benchmarks/configs/phase14b_qwc_vs_fc.json` freezes the BeH2/JW five-vector bank,
+the 1,814 measured-word universe (identity analytic), the `k=1` QWC and `k=8`
+fully commuting endpoints, one outcome-independent coefficient-range Neyman
+allocator, familywise `delta=0.05` over both protocols and 17 independent total-
+shot endpoints, the 1.6 mHa criterion, all three existing device cards, and fresh
+seed namespaces. The primary comparison uses single-assignment covariance-aware
+Ritz reconstruction; a crossed assigned/pooled 1,000-replica audit is a blocking
+check against inflated or duplicated multiply-readable-word variance. Exact `S`
+and `H` reconstruction must agree within `5e-13`, and every card is reported
+separately rather than collapsed into a hardware-universal winner.
+
+This commit contains only the config, structural checker, tests, CI gate, and this
+declaration. It carries no sample, radius, crossing, cost, or verdict. The one
+authorized producer and sampled record must land after the preregistration merge,
+so Q9 remains unanswered at this boundary. This track supports Paper A or a
+separate measurement paper and must not block Track A.
 
 ### Phase 15 — second-moment bank (Track C, open)
 
