@@ -107,7 +107,7 @@ Status at a glance:
 | 8–12 | QSCI baseline, selected-CI controls, hybrid, overlap/multiresolution selection, Paper B ladder | **done and read**; the result motivated the PRD programme below |
 | PRD | orthogonal-residual regression, Davidson/preconditioned expansion, packet pricing, matched A-CASE, exact and finite-shot suites | **done and read**; exact compactness is positive, complete-bank QWC finite-shot energy accuracy is negative |
 | 13 | parity/X-rank invariant | **done**; one shared GF(2) implementation is tested across every declared spin-conserving JW construction path before grouping |
-| 14 | fully commuting grouping | partial — the dyadic hierarchy and compiled joint-readout sampler run; a general grouping/synthesis library API remains open |
+| 14 | fully commuting grouping | **Phase 14a done** — the public compiled-plan boundary now joins grouping, verified Clifford settings, signed readouts, covariance metadata, and resources; the frozen Phase 14b comparison remains open |
 | 15–18 | second moments, time-evolved inputs, mapping breadth, embedding | Track C, open (Phase 18's versioned effective-Hamiltonian schema ships in `models/effective.py`; the fragment-solver callback does not) |
 | G1–G3 | GA structural preconditioner, mapping-invariance test on the restricted pool, PRD/WISE integration with a cost decomposition | **design only** (§3.5, §5); nothing built, no results |
 | R1 | hardware-aware cost model and pooled-estimator ledger | **done**; asymptotic and exact-oracle nonlinear shot-search tiers are recorded |
@@ -1514,9 +1514,10 @@ H2O `8/10`; Hubbard `6/6`, extended Hubbard `6/6`, Kanamori `5/6`, Anderson
 spin-nonconserving counterexample reaches `3/2` and is refused, so the gate is not
 a vacuous range check. Passing is necessary rather than sufficient evidence of spin
 conservation; any future test-matrix violation still stops Phase 14 grouping work.
-The generic constructors do not enforce a spin-conservation claim, and the grouping
-API that will consume the validator does not exist until Phase 14. This phase is
-deterministic and carries no sampled record.
+The generic constructors do not enforce a spin-conservation claim. The Phase 14a
+compiler invokes the validator only when its caller explicitly supplies a Hamiltonian
+through `spin_conserving_jw_hamiltonian=`; it never infers the claim from a generic
+word universe. This phase is deterministic and carries no sampled record.
 
 ### Phase 14 — QWC plus fully commuting groups
 
@@ -1532,8 +1533,31 @@ The dyadic block-commuting hierarchy already covers both endpoints and their
 interior (§6.6); the device card, accuracy-matched shot counts, fidelity term, and
 pooled re-measurement that were missing here are Phases R1 and R3, and both have
 now shipped them — `protocol_cost.json` carries all four across the `mapping × k`
-grid. This track supports Paper A or a separate measurement paper and must not
-block Track A.
+grid.
+
+**Phase 14a — public compiled-plan boundary (done).**
+`clifford_qc.measurement.compile_block_measurement_plan` now freezes a distinct word
+universe and block size into one exact-once partition, executable `CompiledSetting`
+objects, signed Z-parity readouts, the full setting-by-word compatibility matrix, and
+the matched synthesis-resource ledger. Supplied partitions are independently checked
+for block-wise commutation and complete assignment; every compiled readable word is
+rechecked against the global Clifford tableau. The sampled Clifford is built from the
+same reduced circuit whose gates and depths are priced. The compiler remains generic
+unless the caller explicitly supplies `spin_conserving_jw_hamiltonian=`, which runs
+the Phase 13 gate before grouping.
+
+`tests/test_measurement_planning.py` pins the `k=1` QWC and `k>=n` fully commuting
+endpoints, signed Bell readouts, the declared-JW validator hook, invalid supplied
+partitions, and the multiply-readable-word failure mode. In the last case pooled
+weights sum to one and the covariance prediction agrees with Monte Carlo rather than
+duplicating the coefficient across capable settings. Existing exact-shot and protocol-
+cost producers now consume the library compiler instead of a benchmark-private copy.
+This is a deterministic library/test change: it creates no sampled record.
+
+**Phase 14b remains open.** Freeze and run the QWC-versus-fully-commuting comparison
+at one word universe, allocator, confidence target, device/connectivity assumptions,
+and accuracy criterion; Q9 is not answered by Phase 14a alone. This track supports
+Paper A or a separate measurement paper and must not block Track A.
 
 ### Phase 15 — second-moment bank (Track C, open)
 
@@ -2981,7 +3005,8 @@ A-CASE's.
 - **Q10 — parity ceiling:** does `r_X <= 2(N - 1)` hold across every declared
   spin-conserving Jordan–Wigner Hamiltonian construction path? *Status:* yes on the
   current native, FCIDUMP, fermionic-lattice, and effective-ingestion matrix; the
-  test matrix blocks Phase 14 on a violation; the validator is its future runtime hook.
+  test matrix blocks Phase 14 on a violation; the Phase 14a compiler now calls the
+  validator whenever its caller explicitly declares a spin-conserving JW source.
 - **Q11 — packet gain:** do Haar-stage policies survive ordering ablations and improve the
   final Pareto frontier rather than one finite instance only?
 - **Q12 — spin sampled subspaces:** is computational-basis sampled diagonalization
@@ -3207,8 +3232,9 @@ moves from 30/40 to 29/40 resolved cells without changing its rejection, zero
 grid-fit failures, or one ceiling cell. So (1) R3c has been executed exactly
 once under its frozen 3.12 / 2.5.2 environment, and its producer, record and
 checker have landed; (2) Phase 13's deterministic X-rank invariant now ships
-and Q10 passes on the current construction matrix; (3) Phase 14's general fully commuting grouping and
-Clifford simultaneous diagonalization is the next Track B implementation. R4a's
+and Q10 passes on the current construction matrix; (3) Phase 14a's public compiled
+measurement-plan boundary now ships without a sampled record, and Phase 14b's frozen
+QWC-versus-fully-commuting comparison is the next Track B implementation. R4a's
 exact-tier blocker is lifted on its own terms — R3c supplied the
 second priced instance — though its declared gate remains QR5, which is
 unanswered, so it does not start here. QR3 itself is now compared rather than
@@ -3254,7 +3280,8 @@ not another open accuracy phase.
 
 **Track B — measurement.**
 
-9. Explicit X-rank invariant (Phase 13), then fully commuting grouping (Phase 14).
+9. Explicit X-rank invariant (Phase 13) and the compiled-plan boundary (Phase 14a)
+   are done; the frozen QWC-versus-fully-commuting comparison (Phase 14b) is next.
 
 **Resource accounting** (interleaves with Track B; R1 first).
 

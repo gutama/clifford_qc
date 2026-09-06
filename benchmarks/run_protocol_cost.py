@@ -57,6 +57,7 @@ from typing import Sequence
 
 from clifford_qc.backends import ExactMVBackend, SectorStatevectorBackend
 from clifford_qc.measurement.block_commuting import block_commuting_partition
+from clifford_qc.measurement.planning import compile_block_measurement_plan
 from clifford_qc.reproducibility import stamp_record
 from clifford_qc.subspace import Generator
 from clifford_qc.subspace.contracts import as_multivector
@@ -65,7 +66,6 @@ from clifford_qc.subspace.elements import MatrixElementBank
 try:  # package import in tests versus direct ``python benchmarks/...`` execution
     from benchmarks.run_clifford_hierarchy import (
         ACCURACY_TARGET_MILLIHARTREE,
-        _compiled_settings,
         _synthesize,
     )
     from benchmarks.run_exact_shot_search import (
@@ -89,7 +89,6 @@ try:  # package import in tests versus direct ``python benchmarks/...`` executio
 except ImportError:  # pragma: no cover - direct script execution
     from run_clifford_hierarchy import (
         ACCURACY_TARGET_MILLIHARTREE,
-        _compiled_settings,
         _synthesize,
     )
     from run_exact_shot_search import (
@@ -341,8 +340,13 @@ def _search_cell(arguments) -> dict:
     result = problem["result"]
 
     groups = block_commuting_partition(n, codes, block_size)
-    row, resources, compatibility, _ = _synthesize(n, codes, groups, block_size)
-    settings = _compiled_settings(n, codes, groups, block_size)
+    plan = compile_block_measurement_plan(
+        n, codes, block_size, groups=groups
+    )
+    row, resources, compatibility, _ = _synthesize(
+        n, codes, groups, block_size, synthesis=plan.synthesis
+    )
+    settings = plan.settings
     if any(len(setting.readouts) != int(compatibility[index].sum())
            for index, setting in enumerate(settings)):
         raise AssertionError("compiled readouts disagree with hierarchy compatibility")

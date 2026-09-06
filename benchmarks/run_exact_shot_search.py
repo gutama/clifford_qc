@@ -32,6 +32,7 @@ from clifford_qc.measurement.cost import (
     cost_schedule,
     inflate_shots_for_fidelity,
 )
+from clifford_qc.measurement.planning import compile_block_measurement_plan
 from clifford_qc.measurement.session import SharedMeasurement
 from clifford_qc.reproducibility import stamp_record
 
@@ -40,7 +41,6 @@ try:  # package import in tests versus direct ``python benchmarks/...`` executio
         ACCURACY_TARGET_MILLIHARTREE,
         BLOCK_SIZES,
         SYSTEMS,
-        _compiled_settings,
         _ordering_verdict,
         _synthesize,
         load_device_cards,
@@ -50,7 +50,6 @@ except ImportError:  # pragma: no cover - direct script execution
         ACCURACY_TARGET_MILLIHARTREE,
         BLOCK_SIZES,
         SYSTEMS,
-        _compiled_settings,
         _ordering_verdict,
         _synthesize,
         load_device_cards,
@@ -377,10 +376,14 @@ def _search_rung(arguments) -> dict:
     result = problem["_result"]
     exact_energy = problem["_exact_ground_energy"]
     groups = block_commuting_partition(problem["n_qubits"], codes, block_size)
-    row, resources, compatibility, _ = _synthesize(
-        problem["n_qubits"], codes, groups, block_size
+    plan = compile_block_measurement_plan(
+        problem["n_qubits"], codes, block_size, groups=groups
     )
-    settings = _compiled_settings(problem["n_qubits"], codes, groups, block_size)
+    row, resources, compatibility, _ = _synthesize(
+        problem["n_qubits"], codes, groups, block_size,
+        synthesis=plan.synthesis,
+    )
+    settings = plan.settings
     if any(len(setting.readouts) != int(compatibility[index].sum())
            for index, setting in enumerate(settings)):
         raise AssertionError("compiled readouts disagree with hierarchy compatibility")

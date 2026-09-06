@@ -34,16 +34,10 @@ from pathlib import Path
 import numpy as np
 
 from clifford_qc.backends import ExactMVBackend, SectorStatevectorBackend
-from clifford_qc.bridges.stim_bridge import CliffordMap
-from clifford_qc.ir import PauliWord
 from clifford_qc.measurement.block_commuting import block_commuting_partition
 from clifford_qc.measurement.block_synthesis import (
-    block_diagonalizer,
-    local_code,
-    stim_label,
     synthesize_block_settings,
 )
-from clifford_qc.measurement.compiled import CompiledSetting
 from clifford_qc.measurement.cost import (
     DeviceCard,
     SettingResources,
@@ -102,14 +96,18 @@ def _popcount_u64(values: np.ndarray) -> np.ndarray:
 
 
 def _synthesize(n: int, codes: list[int], groups: list[list[int]],
-                block_size: int) -> tuple[dict, list[SettingResources], np.ndarray, list[int]]:
+                block_size: int, *, synthesis=None
+                ) -> tuple[dict, list[SettingResources], np.ndarray, list[int]]:
     """The v2/v3 record row for one ``k`` rung, over the shared synthesis.
 
     The synthesis itself is protocol-level and lives in the library; what stays
     here is the record's own shape -- the uniform-shot projections and the
     column names the frozen ledger commits to.
     """
-    synthesis = synthesize_block_settings(n, codes, groups, block_size)
+    if synthesis is None:
+        synthesis = synthesize_block_settings(n, codes, groups, block_size)
+    elif synthesis.block_size != block_size:
+        raise ValueError("supplied synthesis uses a different block size")
     settings = synthesis.n_settings
     cx = synthesis.logical_cx_per_sweep
     depth_sum = sum(synthesis.cx_depth_per_setting)
@@ -129,75 +127,6 @@ def _synthesize(n: int, codes: list[int], groups: list[list[int]],
         "z_only_restrictions_checked": synthesis.z_only_restrictions_checked,
     }
     return row, synthesis.settings, synthesis.compatibility, synthesis.assignment
-
-
-def _compiled_settings(n: int, codes: list[int], groups: list[list[int]],
-                       block_size: int) -> tuple[CompiledSetting, ...]:
-    """Compile the hierarchy grouping into signed joint-readout settings.
-
-    The structural ledger only needed a Boolean compatibility matrix.  The
-    exact-tier shot search needs the stronger object behind that matrix: the
-    actual Clifford applied before measurement and the signed Z parity of
-    every bank word it reads.  This routine independently rechecks those
-    readouts against the global Stim tableau so a block-offset or phase error
-    cannot enter the nonlinear estimator silently.
-    """
-    compiled = []
-    for setting_index, members in enumerate(groups):
-        circuit = stim.Circuit()
-        readouts = {code: [1, []] for code in codes}
-        readable = {code: True for code in codes}
-        for start in range(0, n, block_size):
-            size = min(block_size, n - start)
-            local_members = [local_code(codes[index], start, size) for index in members]
-            diagonalizer = block_diagonalizer(local_members, size)
-
-            for instruction in diagonalizer.to_circuit("elimination"):
-                targets = [start + target.value for target in instruction.targets_copy()]
-                circuit.append(instruction.name, targets)
-
-            for code in codes:
-                local = local_code(code, start, size)
-                transformed = diagonalizer(stim.PauliString(stim_label(local, size)))
-                x_bits, z_bits = transformed.to_numpy()
-                if bool(x_bits.any()):
-                    readable[code] = False
-                    continue
-                phase = complex(transformed.sign)
-                if abs(phase.imag) > 1e-12 or round(phase.real) not in (-1, 1):
-                    raise AssertionError("Hermitian Pauli acquired a non-real readout phase")
-                readouts[code][0] *= int(round(phase.real))
-                readouts[code][1].extend(
-                    start + qubit for qubit, present in enumerate(z_bits) if present
-                )
-
-        # Force the tableau to retain idle trailing qubits without changing it.
-        circuit.append("I", range(n))
-        clifford = CliffordMap(n, circuit.to_tableau())
-        explicit = {
-            code: (int(readouts[code][0]), tuple(readouts[code][1]))
-            for code in codes if readable[code]
-        }
-        assigned_codes = tuple(codes[index] for index in members)
-        if any(code not in explicit for code in assigned_codes):
-            raise AssertionError("an assigned word lacks a compiled readout")
-
-        for code, expected in explicit.items():
-            phase, image = clifford.conjugate(PauliWord(n, code))
-            if any(image.letter(qubit) not in ("I", "Z") for qubit in range(n)):
-                raise AssertionError("global compiled readout is not Z-only")
-            actual_sign = int(round(complex(phase).real))
-            actual_positions = tuple(image.support())
-            if abs(complex(phase).imag) > 1e-12 or (actual_sign, actual_positions) != expected:
-                raise AssertionError("block readout disagrees with the global Clifford tableau")
-
-        compiled.append(CompiledSetting(
-            key=("dyadic-block", block_size, setting_index),
-            clifford=clifford,
-            assigned_word_codes=assigned_codes,
-            readouts=explicit,
-        ))
-    return tuple(compiled)
 
 
 def _h4_bank() -> dict:

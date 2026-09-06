@@ -441,7 +441,10 @@ def synthesize_block_settings(
             d_1q=depth_1q,
             d_2q=depth_2q,
         ))
-        if not bool(setting_reads[members].all()):
+        # ``members`` is any Sequence by contract.  NumPy interprets a tuple
+        # as multi-axis indexing, so normalize it for one-dimensional fancy
+        # indexing instead of requiring callers to provide mutable lists.
+        if not bool(setting_reads[list(members)].all()):
             raise AssertionError("an assigned word is not read by its setting")
         compatibility[setting_index] = setting_reads
 
