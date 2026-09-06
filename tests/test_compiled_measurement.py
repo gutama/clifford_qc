@@ -7,10 +7,10 @@ import pytest
 
 pytest.importorskip("stim")
 
-from benchmarks.run_clifford_hierarchy import _compiled_settings
 from clifford_qc.ir import PauliWord
 from clifford_qc.measurement.cache import GroupedWordCache
 from clifford_qc.measurement.compiled import CompiledMeasurementSampler
+from clifford_qc.measurement.planning import compile_block_measurement_plan
 from clifford_qc.states import bell_density
 
 
@@ -35,7 +35,9 @@ def test_importing_measurement_does_not_eagerly_load_subspace():
 def test_compiled_bell_setting_preserves_joint_pauli_outcomes():
     words = [PauliWord.from_label(label) for label in ("XX", "YY", "ZZ")]
     codes = sorted(word.code for word in words)
-    settings = _compiled_settings(2, codes, [list(range(len(codes)))], 2)
+    settings = compile_block_measurement_plan(
+        2, codes, 2, groups=[list(range(len(codes)))]
+    ).settings
     assert len(settings) == 1
     setting = settings[0]
     assert set(setting.readouts) == set(codes)
@@ -57,7 +59,9 @@ def test_compiled_pooling_reuses_compatible_setting_histograms():
     zz = PauliWord.from_label("ZZ")
     # Both single-word settings happen to diagonalize ZZ, but only the second
     # owns it.  Pooled reconstruction must use both joint histograms.
-    settings = _compiled_settings(2, sorted([xx.code, zz.code]), [[0], [1]], 2)
+    settings = compile_block_measurement_plan(
+        2, sorted([xx.code, zz.code]), 2, groups=[[0], [1]]
+    ).settings
     cache = GroupedWordCache(2, pooling="shots")
     cache.add_batch(CompiledMeasurementSampler(4).sample_from_state(
         bell_density(), settings, 25

@@ -188,7 +188,13 @@ assert np.allclose(to_matrix(A * A), to_matrix(A) @ to_matrix(A))
   diagonalized by a stim-synthesized block-local Clifford circuit, trading
   settings for entangling depth — 913 settings to 64 on the H4 bank, at 2006
   logical CX and two-qubit depth 42. The trade is instance-dependent and is
-  reported as a break-even ratio, not as a preferred block size
+  reported as a break-even ratio, not as a preferred block size. The public
+  `compile_block_measurement_plan` boundary freezes a word universe into its
+  groups, executable `CompiledSetting` objects, signed Z-parity readouts,
+  assignment/compatibility matrix, and matched circuit-resource ledger. Passing
+  `spin_conserving_jw_hamiltonian=` explicitly applies the Phase 13 X-rank gate;
+  generic Pauli grouping makes no such claim. Stim remains optional until this
+  compiler is called
 
 ### Smallest end-to-end correlated-materials showcase
 
