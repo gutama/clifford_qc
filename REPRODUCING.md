@@ -217,10 +217,10 @@ The tableau elimination remains a constructive synthesis rather than a
 CX-minimizing compiler. Mitigation and calibrated topology routing remain outside
 this experiment.
 
-### Phase 14b QWC-versus-fully-commuting preregistration
+### Phase 14b QWC-versus-fully-commuting sampled record
 
-Phase 14b is split across commits so the comparison cannot be redesigned after
-seeing its draw. The first commit is result-free:
+Phase 14b was split across commits so the comparison could not be redesigned
+after seeing its draw. The result-free declaration remains independently gated:
 
 ```bash
 python benchmarks/check_phase14b_preregistration.py
@@ -234,13 +234,26 @@ settings), the same deterministic coefficient-range allocator, familywise
 `delta=0.05` over both protocols and 17 fixed total-shot endpoints, the 1.6 mHa
 criterion, fresh streams, and card-specific cost reporting.
 
-No Phase 14b producer or sampled record ships with this declaration. The one
-authorized later execution must add `run_phase14b_qwc_vs_fc.py`, the stamped
-`reference_results/phase14b_qwc_vs_fc.json`, and a regenerating sampled checker in
-a separate commit. Its blocking gates are exact `S` and `H` reconstruction within
-`5e-13` and a 1,000-replica assigned/pooled covariance audit whose four empirical-
-to-predicted variance ratios all lie in `[0.8, 1.2]`. Until that record passes,
-Phase 14b makes no shot-efficiency or device-cost claim.
+That declaration merged as `bb7a76a` before the sampled producer existed. Rebuild
+the one registered execution and compare its complete deterministic record with:
+
+```bash
+python benchmarks/run_phase14b_qwc_vs_fc.py
+python benchmarks/check_phase14b_qwc_vs_fc.py
+```
+
+The producer records every endpoint and audit seed, integer shot vector, empirical-
+Bernstein radius, estimate error, compiled resource ledger, exact reconstruction
+error, covariance cell, and card-specific cost. The checker re-derives the first-
+passing endpoints and verdict from the stored fields before replaying the exact
+seeded streams. The run passes all blocking gates: QWC certifies at `2^29` total
+shots and fully commuting at `2^24`, so the `1/32` ratio passes the frozen `<= 1/2`
+rule. The four assigned/pooled empirical-to-predicted variance ratios are `1.0042`,
+`1.0114`, `1.0471`, and `1.0320`; both matrices reconstruct with zero observed
+maximum error. Ion-like and logical-all-to-all card projections favor fully
+commuting, while that endpoint is inadmissible under the superconducting-like
+card's fidelity floor. These are exact-state oracle measurement results on one
+frozen BeH2/JW bank, not calibrated-device or instance-independent evidence.
 
 ### R1 exact-oracle nonlinear shot search
 
@@ -445,7 +458,7 @@ Three cost-aware tiers run:
 | --- | --- | --- |
 | `test` | pull request, push to `main`, manual dispatch | `ruff`, `pytest --hypothesis-profile=ci`, and the short record gates: `check_docs`, `check_molecular`, `check_krylov_width`, `check_clifford_hierarchy`, `check_finite_shot_optimization`, `check_warm_start` |
 | `structural-records` | pull request, push to `main`, manual dispatch | deterministic rebuild and lineage gates: `check_mapping_axis`, `check_protocol_axis`, `check_priceability_screen`, `check_r3_environment_migration`, `check_r3b_preregistration`, `check_r3c_preregistration`, `check_phase14b_preregistration` |
-| `sampled-records` | manual dispatch only | replica-drawing rebuild gates, each under its own record stamp: `check_r3b_margin_stop_probe`, `check_finite_shot_rethink`, `check_matched_h4`, `check_qr3b_instance_preflight`, `check_exact_shot_search`, `check_protocol_cost` |
+| `sampled-records` | manual dispatch only | replica-drawing rebuild gates, each under its own record stamp: `check_r3b_margin_stop_probe`, `check_finite_shot_rethink`, `check_matched_h4`, `check_qr3b_instance_preflight`, `check_exact_shot_search`, `check_protocol_cost`, `check_r3c_lih_full_cost`, `check_phase14b_qwc_vs_fc` |
 
 The same dispatch also runs `environment-consistency`, which requires every
 stamped record to name one common environment. It is deliberately separate

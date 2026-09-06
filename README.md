@@ -194,7 +194,12 @@ assert np.allclose(to_matrix(A * A), to_matrix(A) @ to_matrix(A))
   assignment/compatibility matrix, and matched circuit-resource ledger. Passing
   `spin_conserving_jw_hamiltonian=` explicitly applies the Phase 13 X-rank gate;
   generic Pauli grouping makes no such claim. Stim remains optional until this
-  compiler is called
+  compiler is called. The preregistered Phase 14b BeH2/JW comparison uses this
+  exact boundary and finds the fully commuting plan's first certified total-shot
+  endpoint at `2^24`, versus QWC at `2^29`; all four assigned/pooled covariance
+  audit cells pass. The `1/32` shot ratio is a one-bank exact-state-oracle result,
+  with device-card outcomes reported separately rather than promoted to a
+  hardware-universal claim
 
 ### Smallest end-to-end correlated-materials showcase
 
