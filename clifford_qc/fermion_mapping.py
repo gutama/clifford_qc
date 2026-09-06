@@ -30,6 +30,7 @@ import math
 from typing import Sequence
 
 from .ir import Program
+from .pauli_structure import gf2_rank
 
 
 __all__ = [
@@ -45,28 +46,6 @@ _REDUCED_ENCODINGS = {"parity+2q", "bk+2q"}
 #: Every name ``fermion_encoding`` accepts. Public so a caller validating an
 #: arm list against it cannot drift from what the constructor will take.
 FERMION_ENCODINGS = frozenset(_BASE_ENCODINGS | _REDUCED_ENCODINGS)
-
-
-def _gf2_rank(rows: Sequence[int], n: int) -> int:
-    """Rank of packed binary rows, using an independent integer elimination."""
-    work = [int(row) for row in rows if row]
-    rank = 0
-    for column in range(n):
-        pivot = next(
-            (index for index in range(rank, len(work))
-             if (work[index] >> column) & 1),
-            None,
-        )
-        if pivot is None:
-            continue
-        work[rank], work[pivot] = work[pivot], work[rank]
-        for index in range(len(work)):
-            if index != rank and ((work[index] >> column) & 1):
-                work[index] ^= work[rank]
-        rank += 1
-        if rank == len(work):
-            break
-    return rank
 
 
 def _extend_gf2_basis(pivots: dict[int, int], row: int) -> bool:
@@ -155,7 +134,7 @@ def _fixed_parity_basis(
         if len(free) == n - 2:
             break
     rows = tuple([*free, spin_up, total])
-    if len(rows) != n or _gf2_rank(rows, n) != n:
+    if len(rows) != n or gf2_rank(rows, n) != n:
         raise AssertionError("failed to complete the parity symmetries to an encoding basis")
     return rows, tuple(free_indices)
 
@@ -352,7 +331,7 @@ class FermionEncoding:
         limit = 1 << self.n
         if any(not isinstance(row, int) or not 0 <= row < limit for row in self.rows):
             raise ValueError("encoding rows must be n-bit non-negative integers")
-        if _gf2_rank(self.rows, self.n) != self.n:
+        if gf2_rank(self.rows, self.n) != self.n:
             raise ValueError("encoding matrix must be invertible over GF(2)")
         if len(self.fixed_qubits) != len(self.signs):
             raise ValueError("fixed_qubits and signs must have equal length")

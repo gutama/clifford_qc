@@ -106,7 +106,7 @@ Status at a glance:
 | 4R | pooled reconstruction and rank selection | **done**, off by default |
 | 8–12 | QSCI baseline, selected-CI controls, hybrid, overlap/multiresolution selection, Paper B ladder | **done and read**; the result motivated the PRD programme below |
 | PRD | orthogonal-residual regression, Davidson/preconditioned expansion, packet pricing, matched A-CASE, exact and finite-shot suites | **done and read**; exact compactness is positive, complete-bank QWC finite-shot energy accuracy is negative |
-| 13 | parity/X-rank invariant | Track B, open |
+| 13 | parity/X-rank invariant | **done**; one shared GF(2) implementation is tested across every declared spin-conserving JW construction path before grouping |
 | 14 | fully commuting grouping | partial — the dyadic hierarchy and compiled joint-readout sampler run; a general grouping/synthesis library API remains open |
 | 15–18 | second moments, time-evolved inputs, mapping breadth, embedding | Track C, open (Phase 18's versioned effective-Hamiltonian schema ships in `models/effective.py`; the fragment-solver callback does not) |
 | G1–G3 | GA structural preconditioner, mapping-invariance test on the restricted pool, PRD/WISE integration with a cost decomposition | **design only** (§3.5, §5); nothing built, no results |
@@ -1496,13 +1496,27 @@ price and reduce word/group width, then optimize a centered energy/Ritz function
 under a newly frozen protocol. R1 is the first accounting step and does not repair or
 supersede the finite-shot negative result.
 
-### Phase 13 — structural invariant first (Track B, open)
+### Phase 13 — structural invariant first (Track B, done)
 
-Implement GF(2) rank of Hamiltonian X masks using `word_masks`. Test the explicit
-parity/X-rank ceiling `r_X <= 2(N - 1)` across spin-conserving Jordan–Wigner
-Hamiltonians, FCIDUMP models, lattice models, and effective-Hamiltonian ingestion.
-Any violation stops the grouping work until the theorem/model construction mismatch
-is understood.
+`clifford_qc.pauli_structure` now computes the GF(2) rank of Hamiltonian X masks
+through `word_masks` and provides an explicit validator that rejects an operator the
+caller declares spin conserving when `r_X > 2(N - 1) = n_qubits - 2`. The elimination routine is the same one that
+validates the fermion-encoding matrices; the phase does not keep a second binary
+algebra implementation that can drift.
+
+`tests/test_pauli_structure.py` applies the invariant to the native fermion
+construction, all four
+committed FCIDUMPs, Hubbard, extended-Hubbard, Kanamori and Anderson-impurity
+lattices, and versioned effective-Hamiltonian JSON ingestion. Their pinned
+`(r_X / ceiling)` values are respectively `2/4`; H4 `5/6`, BeH2 `3/6`, LiH `5/6`,
+H2O `8/10`; Hubbard `6/6`, extended Hubbard `6/6`, Kanamori `5/6`, Anderson
+`4/4`; and the effective dimer `2/2`. A total-parity-preserving but
+spin-nonconserving counterexample reaches `3/2` and is refused, so the gate is not
+a vacuous range check. Passing is necessary rather than sufficient evidence of spin
+conservation; any future test-matrix violation still stops Phase 14 grouping work.
+The generic constructors do not enforce a spin-conservation claim, and the grouping
+API that will consume the validator does not exist until Phase 14. This phase is
+deterministic and carries no sampled record.
 
 ### Phase 14 — QWC plus fully commuting groups
 
@@ -2965,7 +2979,9 @@ A-CASE's.
 - **Q9 — Clifford grouping:** does fully commuting grouping reduce certified leading shot
   cost with covariance and circuit overhead accounted for?
 - **Q10 — parity ceiling:** does `r_X <= 2(N - 1)` hold across every declared
-  spin-conserving Jordan–Wigner Hamiltonian construction path?
+  spin-conserving Jordan–Wigner Hamiltonian construction path? *Status:* yes on the
+  current native, FCIDUMP, fermionic-lattice, and effective-ingestion matrix; the
+  test matrix blocks Phase 14 on a violation; the validator is its future runtime hook.
 - **Q11 — packet gain:** do Haar-stage policies survive ordering ablations and improve the
   final Pareto frontier rather than one finite instance only?
 - **Q12 — spin sampled subspaces:** is computational-basis sampled diagonalization
@@ -3190,8 +3206,10 @@ with the old and new record identities connected by
 moves from 30/40 to 29/40 resolved cells without changing its rejection, zero
 grid-fit failures, or one ceiling cell. So (1) R3c has been executed exactly
 once under its frozen 3.12 / 2.5.2 environment, and its producer, record and
-checker have landed; (2) implement Phase 13's deterministic X-rank invariant;
-(3) R4a's exact-tier blocker is lifted on its own terms — R3c supplied the
+checker have landed; (2) Phase 13's deterministic X-rank invariant now ships
+and Q10 passes on the current construction matrix; (3) Phase 14's general fully commuting grouping and
+Clifford simultaneous diagonalization is the next Track B implementation. R4a's
+exact-tier blocker is lifted on its own terms — R3c supplied the
 second priced instance — though its declared gate remains QR5, which is
 unanswered, so it does not start here. QR3 itself is now compared rather than
 abstaining, and unresolved: separating a `17.52×` mapping spread from a `1.02×`
