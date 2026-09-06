@@ -1,0 +1,232 @@
+{
+  "schema": "clifford_qc.phase14b_qwc_vs_fc_config.v1",
+  "phase": "14b_qwc_vs_fully_commuting",
+  "status": "preregistration_only_no_run_yet",
+  "authorization": {
+    "exactly_one_later_sampled_execution": true,
+    "producer": "benchmarks/run_phase14b_qwc_vs_fc.py",
+    "record": "benchmarks/reference_results/phase14b_qwc_vs_fc.json",
+    "checker": "benchmarks/check_phase14b_qwc_vs_fc.py",
+    "temporal_order": "The sampled producer, record, and regenerating checker belong to a commit after this preregistration is merged."
+  },
+  "parent_lineage": {
+    "phase14a_merge_commit": "6eee8a39d25bb4a43aa809cb0b0e024164f4b4a0",
+    "files": [
+      {
+        "path": "benchmarks/configs/protocol_axis.json",
+        "git_blob_sha1": "6e0f99791e4cb418adae490572002805850fb027",
+        "sha256": "908dba85bd8755526682d5c58bf8b41df55583aded2764415fb1a38963bbc7b9"
+      },
+      {
+        "path": "benchmarks/reference_results/protocol_axis.json",
+        "git_blob_sha1": "55d9ec92fac9a35406b31d0f787f4d0adce524f7",
+        "sha256": "d262a4abc3d7cf5dea65e60c5d7bc35142b504444d8594f2a1fc4f5eecd59e92"
+      },
+      {
+        "path": "benchmarks/reference_results/clifford_hierarchy_beh2.json",
+        "git_blob_sha1": "417c559ec3ccbf41dccc18ecee6256a284452660",
+        "sha256": "ad5babccb230a9f66e3ac44633062254368c5b08a2103a080f24ba3e686525b5"
+      },
+      {
+        "path": "benchmarks/data/beh2_sto3g_r1.3264.FCIDUMP",
+        "git_blob_sha1": "7f2b73022cd7b40108e4765aeab5d6ee9230d0a4",
+        "sha256": "01ef4422b2e9e7f711895ae897a94ea11c1b0fae5a5fd91c3396fbd4d69fba76"
+      },
+      {
+        "path": "benchmarks/data/beh2_sto3g_r1.3264.provenance.json",
+        "git_blob_sha1": "4a514949dbff443bcfd00ba0fd0d6f98e5415989",
+        "sha256": "fd4eb5de5bf94e2555f8d3d512e7918146224f49b84f8b890527ad5b8a25c73c"
+      },
+      {
+        "path": "benchmarks/configs/device_cards/ion-like.json",
+        "git_blob_sha1": "45ab9fd9b59638d2b5d0a94dafe3a5bcb311cb26",
+        "sha256": "1ac47a1a80b621bfeb3d5cc36dd9ab859bf94dc782da4c6fee8aebfb3d9c53c2"
+      },
+      {
+        "path": "benchmarks/configs/device_cards/logical-alltoall.json",
+        "git_blob_sha1": "21fab44375442ce632d12c2d6f3ba9bdad3815f7",
+        "sha256": "5eb4668daa124b4f8f375d37839ab4eeb31f10f8cf27612869e2aebcb9f30fe3"
+      },
+      {
+        "path": "benchmarks/configs/device_cards/superconducting-like.json",
+        "git_blob_sha1": "befb3fb9f09087174f7d07f59d2e1f4e8e4f7316",
+        "sha256": "99fac3de98a34324f31dd734918bc6448ce48dd315752c12dbcc503b1d82e248"
+      }
+    ]
+  },
+  "system": {
+    "system": "beh2",
+    "label": "linear BeH2 STO-3G CAS(4e,4o)",
+    "mapping": "jw",
+    "n_qubits": 8,
+    "basis_size": 5,
+    "retained_rank": 5,
+    "basis_labels": [
+      "I",
+      "E(4,5<-0,1)",
+      "E(6,7<-0,1)",
+      "E(4,5<-2,3)",
+      "E(6,7<-2,3)"
+    ],
+    "total_pauli_words_including_identity": 1815,
+    "measured_word_universe": 1814,
+    "ritz_functional_measured_support": 966,
+    "identity_treatment": "analytic exact value one; zero shots and zero confidence radius",
+    "inherited_exact_subspace_bias_millihartree": 0.0033014997491420672
+  },
+  "comparison": {
+    "question": "Does the fixed fully commuting endpoint materially reduce certified leading shot cost relative to QWC on the same BeH2/JW word universe and Ritz functional?",
+    "fixed_grouping": "largest-conflict-degree greedy coloring under dyadic block commutativity",
+    "fixed_synthesis": "block-local Clifford diagonalizer; reduced circuit is both sampled and priced; exact signed Z-parity readouts",
+    "endpoints": [
+      {
+        "name": "qwc",
+        "block_size": 1,
+        "settings": 353,
+        "ritz_touched_assigned_settings": 179,
+        "resource_sums": {
+          "N_1q": 3648,
+          "D_1q": 697,
+          "N_2q": 0,
+          "D_2q": 0
+        }
+      },
+      {
+        "name": "fully_commuting",
+        "block_size": 8,
+        "settings": 14,
+        "ritz_touched_assigned_settings": 7,
+        "resource_sums": {
+          "N_1q": 297,
+          "D_1q": 145,
+          "N_2q": 296,
+          "D_2q": 283
+        }
+      }
+    ]
+  },
+  "protocol": {
+    "primary_estimand": "first-order Ritz energy functional B'(H-E)B about the exact retained five-vector pencil",
+    "primary_estimator": "single_assignment covariance-aware grouped reconstruction",
+    "pooled_estimator_role": "mandatory covariance regression only; it cannot determine the headline shot-cost verdict",
+    "allocator": {
+      "name": "coefficient_range_neyman",
+      "outcome_independent": true,
+      "group_score": "L_g = sum of absolute Ritz coefficients assigned to setting g",
+      "allocation_rule": "two shots per compiled setting, then largest-remainder apportionment of the remaining total physical-shot budget proportional to L_g; zero-score settings receive only the two-shot floor",
+      "same_rule_for_both_endpoints": true,
+      "min_shots_per_setting": 2
+    },
+    "accuracy": {
+      "total_target_millihartree": 1.6,
+      "stochastic_radius_hartree": 0.0015999965937774387,
+      "derivation": "sqrt((1.6e-3)^2 - (inherited_exact_subspace_bias_millihartree*1e-3)^2)"
+    },
+    "confidence": {
+      "bound": "two-sided empirical Bernstein, summed over independent compiled settings",
+      "implementation": "WordFunctional.radius(..., delta=0.05, family=2, bound='eb', rounds=17, method='bonferroni')",
+      "delta": 0.05,
+      "family": 2,
+      "rounds": 17,
+      "group_budget": "delta / (family * rounds * number_of_touched_groups_for_that_protocol)"
+    },
+    "total_physical_shot_endpoints": [
+      65536,
+      131072,
+      262144,
+      524288,
+      1048576,
+      2097152,
+      4194304,
+      8388608,
+      16777216,
+      33554432,
+      67108864,
+      134217728,
+      268435456,
+      536870912,
+      1073741824,
+      2147483648,
+      4294967296
+    ],
+    "endpoint_sampling": "independent fixed schedules, not cumulative; every schedule is determined before its outcomes",
+    "seed_roots": {
+      "headline": 140814000,
+      "covariance_audit": 140914000
+    },
+    "seed_derivation": "numpy.random.SeedSequence(root, spawn_key=(protocol_index, endpoint_or_replica_index)); namespaces and roots are disjoint",
+    "matrix_reconstruction": {
+      "source": "exact Pauli means passed through each compiled setting's signed readout map",
+      "max_absolute_entry_error_tolerance": 5e-13,
+      "matrices": [
+        "S",
+        "H"
+      ]
+    },
+    "covariance_audit": {
+      "replicas": 1000,
+      "total_physical_shots": 4194304,
+      "estimators": [
+        "single_assignment",
+        "pooled"
+      ],
+      "cells": "both estimators crossed with both protocol endpoints",
+      "prediction": "mean covariance-aware WordFunctional.variance from the grouped caches",
+      "empirical": "ddof=1 variance of the 1000 Ritz-functional estimates",
+      "acceptable_empirical_to_predicted_interval": [
+        0.8,
+        1.2
+      ]
+    },
+    "device_cards": [
+      {
+        "name": "ion-like",
+        "sha256": "9cc7e53e935e4ec3c265efbd9b6218f17a68c51d727d658c5a5bcaf98d34f453",
+        "connectivity": "all-to-all",
+        "routing": false,
+        "status": "illustrative_scenario"
+      },
+      {
+        "name": "logical-alltoall",
+        "sha256": "07e9cc637e590668bc89b7d407535f34f509155e08c95d2ecd0f8f931738265b",
+        "connectivity": "all-to-all",
+        "routing": false,
+        "status": "logical_baseline"
+      },
+      {
+        "name": "superconducting-like",
+        "sha256": "cf78e3240ad48839a8113a1570a43e614c230a8428fe8ceda7783e7ff75e1a13",
+        "connectivity": "sparse-nearest-neighbor",
+        "routing": true,
+        "status": "illustrative_scenario"
+      }
+    ],
+    "device_costing": "At a certified effective-shot endpoint, apply each frozen card's fidelity inflation and routing multipliers to the compiled per-setting resource vector, then report logical runtime separately per card."
+  },
+  "acceptance": {
+    "blocking_gates": [
+      "both endpoint plans reproduce the frozen partition, signed readouts, setting counts, and resource sums",
+      "both exact S and H reconstructions satisfy the 5e-13 maximum-entry tolerance",
+      "every sampled schedule equals the preregistered coefficient-range allocation and total budget",
+      "every pooled word's setting weights sum to one, every reported variance is nonnegative, and all four covariance-audit ratios lie in [0.8, 1.2]"
+    ],
+    "certified_endpoint_rule": "first preregistered total-shot endpoint whose empirical-Bernstein Ritz radius is no larger than the frozen stochastic radius; otherwise right-censored above 4294967296",
+    "material_shot_reduction_fraction": 0.5,
+    "shot_efficiency_go_rule": "fully_commuting certified endpoint is finite and no greater than 0.5 times the QWC certified endpoint",
+    "device_reporting_rule": "report logical runtime separately per card for the same comparison; no cross-card or hardware-universal winner",
+    "failure_rule": "any blocking-gate failure suppresses the efficiency verdict and records a protocol failure"
+  },
+  "reporting": {
+    "required": [
+      "frozen inputs and lineage hashes",
+      "per-endpoint shot vector, empirical-Bernstein radius, estimate error, and censoring status",
+      "certified endpoint and total physical shots per protocol",
+      "compiled gate and depth ledgers plus per-card inflated runtime",
+      "all four predicted and empirical covariance-audit variances and their ratios",
+      "maximum exact S and H reconstruction errors",
+      "shot-efficiency and card-specific decisions with failures kept visible"
+    ],
+    "evidence_boundary": "oracle-sampled exact-state measurement capability on one frozen BeH2/JW bank; not state-preparation, hardware, noise-model, mitigation, mapping, or instance-independent evidence"
+  },
+  "claim_boundary": "This configuration contains no Phase 14b sample, radius, cost, crossing, decision, or covariance ratio. A later record may report only the frozen BeH2/JW QWC-versus-fully-commuting comparison under this allocator, confidence family, endpoint grid, covariance audit, reconstruction gate, and illustrative device cards. It may not change the word universe, functional, grouping, synthesis, accuracy target, delta, schedules, seeds, acceptance rules, or inherited Phase 14a and R3 evidence."
+}
