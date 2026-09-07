@@ -107,7 +107,7 @@ Status at a glance:
 | 8–12 | QSCI baseline, selected-CI controls, hybrid, overlap/multiresolution selection, Paper B ladder | **done and read**; the result motivated the PRD programme below |
 | PRD | orthogonal-residual regression, Davidson/preconditioned expansion, packet pricing, matched A-CASE, exact and finite-shot suites | **done and read**; exact compactness is positive, complete-bank QWC finite-shot energy accuracy is negative |
 | 13 | parity/X-rank invariant | **done**; one shared GF(2) implementation is tested across every declared spin-conserving JW construction path before grouping |
-| 14 | fully commuting grouping | **Phase 14a done** — the public compiled-plan boundary now joins grouping, verified Clifford settings, signed readouts, covariance metadata, and resources; the frozen Phase 14b comparison remains open |
+| 14 | fully commuting grouping | **done on the frozen BeH₂/JW comparison** — the public compiled-plan API, exact joint sampler, preregistered finite-sample record, covariance audit, and device-card costing ship; Q9 is positive within the declared one-bank oracle boundary |
 | 15–18 | second moments, time-evolved inputs, mapping breadth, embedding | Track C, open (Phase 18's versioned effective-Hamiltonian schema ships in `models/effective.py`; the fragment-solver callback does not) |
 | G1–G3 | GA structural preconditioner, mapping-invariance test on the restricted pool, PRD/WISE integration with a cost decomposition | **design only** (§3.5, §5); nothing built, no results |
 | R1 | hardware-aware cost model and pooled-estimator ledger | **done**; asymptotic and exact-oracle nonlinear shot-search tiers are recorded |
@@ -1554,7 +1554,7 @@ duplicating the coefficient across capable settings. Existing exact-shot and pro
 cost producers now consume the library compiler instead of a benchmark-private copy.
 This is a deterministic library/test change: it creates no sampled record.
 
-**Phase 14b — preregistered, not run.**
+**Phase 14b — done; preregistered protocol executed once.**
 `benchmarks/configs/phase14b_qwc_vs_fc.json` freezes the BeH2/JW five-vector bank,
 the 1,814 measured-word universe (identity analytic), the `k=1` QWC and `k=8`
 fully commuting endpoints, one outcome-independent coefficient-range Neyman
@@ -1566,11 +1566,25 @@ check against inflated or duplicated multiply-readable-word variance. Exact `S`
 and `H` reconstruction must agree within `5e-13`, and every card is reported
 separately rather than collapsed into a hardware-universal winner.
 
-This commit contains only the config, structural checker, tests, CI gate, and this
-declaration. It carries no sample, radius, crossing, cost, or verdict. The one
-authorized producer and sampled record must land after the preregistration merge,
-so Q9 remains unanswered at this boundary. This track supports Paper A or a
-separate measurement paper and must not block Track A.
+The result-free declaration merged first as `bb7a76a`; the separate sampled
+producer then executed its fixed streams without changing that config. All four
+covariance-audit ratios pass (`1.0042`, `1.0114`, `1.0471`, `1.0320`) and exact
+signed-readout reconstruction gives zero observed maximum error for both `S` and
+`H`. QWC first certifies at `2^29 = 536,870,912` total physical shots, while the
+fully commuting endpoint first certifies at `2^24 = 16,777,216`, a `1/32` ratio
+that passes the preregistered `<= 1/2` material-reduction rule. At matched
+shots, the covariance-aware variance is only 2.22 times lower for fully
+commuting; most of the 32-fold certified-endpoint gap comes from the frozen
+empirical-Bernstein certificate's per-group union bound over 179 touched QWC
+groups versus 7 fully commuting groups. The audit validates the covariance
+variance model, not empirical coverage of that radius. Ion-like and
+logical-all-to-all card projections also favor the fully commuting endpoint;
+the superconducting-like fully commuting plan is inadmissible under that card's
+fidelity floor and therefore carries no runtime winner. The sampled state is the
+Hartree-Fock computational-basis determinant `|11110000>`, whose stabilizer
+variance structure is a special case. This is a positive Q9 answer only for
+oracle-sampled measurement of that state on this frozen BeH2/JW bank, not a
+state-preparation, hardware, noise, mapping, or cross-instance claim.
 
 ### Phase 15 — second-moment bank (Track C, open)
 
@@ -3014,7 +3028,14 @@ A-CASE's.
   fixed-Krylov accuracy at a `kappa(S)` and propagation error budget a finite-shot
   calculation could survive?
 - **Q9 — Clifford grouping:** does fully commuting grouping reduce certified leading shot
-  cost with covariance and circuit overhead accounted for?
+  cost with covariance and circuit overhead accounted for? **Answered yes on the
+  preregistered BeH2/JW bank**: the certified endpoints are `2^24` versus `2^29`
+  total physical shots, all four covariance gates pass, and card-specific runtime
+  reporting preserves one inadmissible fully commuting hardware scenario. The
+  covariance-aware variance advantage itself is 2.22-fold; most of the endpoint
+  gap is the frozen per-group union-bound penalty. The sampled state is the
+  Hartree-Fock determinant `|11110000>`; the result is not instance-independent
+  or hardware evidence.
 - **Q10 — parity ceiling:** does `r_X <= 2(N - 1)` hold across every declared
   spin-conserving Jordan–Wigner Hamiltonian construction path? *Status:* yes on the
   current native, FCIDUMP, fermionic-lattice, and effective-ingestion matrix; the
