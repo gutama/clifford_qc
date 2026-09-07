@@ -18,7 +18,8 @@ restriction API:
 * a stabilizer tableau maps those signed words to +Z on the first fixed
   qubits; and
 * contextual transport records the Hilbert--Schmidt fraction removed from the
-  Hamiltonian instead of silently pretending the projection is exact.
+  non-identity Hamiltonian instead of silently pretending the projection is
+  exact or letting an arbitrary scalar energy shift dilute the diagnostic.
 
 This is the narrow, reference-conditioned construction frozen for R4a. It is
 not a general implementation of every noncontextual-Hamiltonian heuristic.
@@ -28,10 +29,10 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 import math
-from typing import Iterable
 
 from ..ir import PauliWord
 from ..multivector import MV
+from ..pauli_structure import gf2_rank
 from .contracts import as_multivector, check_reference
 from .generator_core import as_generators
 from .restriction import RestrictedProblem, Restriction
@@ -164,19 +165,6 @@ def _symplectic_vector(word: PauliWord) -> int:
     return x | (z << word.n)
 
 
-def _gf2_rank(rows: Iterable[int]) -> int:
-    basis: dict[int, int] = {}
-    for value in rows:
-        row = int(value)
-        while row:
-            pivot = row.bit_length() - 1
-            if pivot not in basis:
-                basis[pivot] = row
-                break
-            row ^= basis[pivot]
-    return len(basis)
-
-
 def _commutes(left: PauliWord, right: PauliWord) -> bool:
     if left.n != right.n:
         raise ValueError("commutation operands act on different qubit counts")
@@ -255,7 +243,7 @@ def select_contextual_stabilizers(
             skipped["anticommuting"] += 1
             continue
         vector = _symplectic_vector(word)
-        if _gf2_rank([*vectors, vector]) == len(vectors):
+        if gf2_rank([*vectors, vector], 2 * H.n) == len(vectors):
             skipped["dependent"] += 1
             continue
         selected.append(
@@ -356,8 +344,11 @@ def project_contextual_problem(
 
     Unlike Restriction.transport, this function intentionally permits
     Hamiltonian terms that anticommute with the artificial stabilizers. Their
-    norm fraction is returned as a required field. Exact symmetry tapering
-    continues to use Restriction.transport and retains its strict refusal.
+    norm fraction, normalized by the non-identity Hamiltonian norm, is returned
+    as a required field. Excluding the identity makes this diagnostic invariant
+    to scalar energy shifts; the full Hamiltonian is still projected unchanged.
+    Exact symmetry tapering continues to use Restriction.transport and retains
+    its strict refusal.
     """
     H = as_multivector(hamiltonian)
     if H.n != plan.selection.n:
@@ -372,6 +363,9 @@ def project_contextual_problem(
     generator_rows = tuple(as_generators(generators))
     observable_rows = tuple(as_multivector(item) for item in observables)
     restriction = plan.restriction
+    non_identity_hamiltonian = MV(
+        H.n, {code: value for code, value in H.terms.items() if code != 0}
+    )
     problem = RestrictedProblem(
         restriction=restriction,
         hamiltonian=restriction.operator(H, require_commuting=False),
@@ -383,5 +377,7 @@ def project_contextual_problem(
     return ContextualProblem(
         plan=plan,
         problem=problem,
-        hamiltonian_removed_hs_fraction=restriction.leakage(H),
+        hamiltonian_removed_hs_fraction=restriction.leakage(
+            non_identity_hamiltonian
+        ),
     )

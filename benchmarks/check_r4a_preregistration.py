@@ -303,6 +303,11 @@ def contextual_problems(config: dict) -> list[str]:
         "exact_symmetry_boundary", ""
     ):
         problems.append("R4a may not weaken exact restriction transport")
+    projection_rule = contextual.get("projection_rule", "")
+    if "non-identity Hamiltonian Hilbert-Schmidt norm" not in projection_rule:
+        problems.append("the contextual Hamiltonian leakage denominator drifted")
+    if "full Hamiltonian is projected unchanged" not in projection_rule:
+        problems.append("the contextual projection may not discard the identity shift")
 
     from clifford_qc.subspace.contextual import (
         compile_contextual_restriction,
@@ -339,6 +344,11 @@ def structural_screen_problems(config: dict) -> list[str]:
         problems.append("the inherited word-universe ceiling drifted")
     if screen.get("word_universe_convention") != "non_identity_words_only":
         problems.append("the priceability word convention drifted")
+    if screen.get("hamiltonian_removed_hs_fraction_denominator") != (
+        "Hilbert-Schmidt norm of the non-identity Hamiltonian; "
+        "identity energy shifts are excluded"
+    ):
+        problems.append("the structural Hamiltonian leakage denominator drifted")
     if screen.get("block_sizes") != EXPECTED_BLOCK_SIZES:
         problems.append("the structural grouping grid drifted")
     if set(screen.get("required_per_arm_fields", [])) != EXPECTED_STRUCTURAL_FIELDS:

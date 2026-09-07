@@ -2216,7 +2216,8 @@ reference, generator pool, and observables together through
 `Restriction.transport`, returning a `RestrictedProblem` that also reports per-generator
 sector leakage. R4a's shipped `subspace/contextual.py` adds the frozen deterministic
 selection and compilation boundary, while `project_contextual_problem` records the
-Hamiltonian Hilbert–Schmidt fraction removed by an artificial contextual stabilizer;
+non-identity Hamiltonian Hilbert–Schmidt fraction removed by an artificial contextual
+stabilizer, invariant to scalar energy shifts;
 it does not weaken exact `Restriction.transport`. `CliffordMap.conjugate`
 (`bridges/stim_bridge.py`) provides the word
 action; the module adds the fixing step and the bookkeeping that keeps the four objects

@@ -2469,7 +2469,8 @@ python -m pytest tests/test_contextual_restriction.py \
 tests require the `stim` extra because `compile_contextual_restriction` builds
 and verifies the stabilizer tableau. Exact symmetry use continues through the
 strict `Restriction.transport`; only the explicitly named contextual projection
-may remove Hamiltonian terms, and it reports their Hilbert–Schmidt norm fraction.
+may remove Hamiltonian terms, and it reports their fraction of the non-identity
+Hamiltonian Hilbert–Schmidt norm so a scalar energy shift cannot dilute the diagnostic.
 
 ## G1 pre-encoding structural preconditioner (numpy only)
 

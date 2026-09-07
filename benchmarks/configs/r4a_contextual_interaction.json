@@ -147,7 +147,7 @@
     "commutation_rule": "admit only words commuting with every earlier selected stabilizer",
     "independence_rule": "GF(2) symplectic rank must increase by exactly one",
     "tableau_rule": "compile the signed independent stabilizers in selected order to +Z on fixed qubits 0 through count-1; arbitrary completion acts only on the unfixed complement",
-    "projection_rule": "the full Hamiltonian, reference, and candidate family move through one congruent rotation; Hamiltonian terms anticommuting with an artificial stabilizer are projected away and their Hilbert-Schmidt norm fraction is mandatory structural output",
+    "projection_rule": "the full Hamiltonian, reference, and candidate family move through one congruent rotation; Hamiltonian terms anticommuting with an artificial stabilizer are projected away and their fraction of the non-identity Hamiltonian Hilbert-Schmidt norm is mandatory structural output; the full Hamiltonian is projected unchanged, but its identity energy shift is excluded from this diagnostic denominator",
     "exact_symmetry_boundary": "Restriction.transport remains strict and is not weakened; only project_contextual_problem may project a Hamiltonian that breaks an artificial stabilizer",
     "tolerance": 1e-09,
     "fixed_qubit_ladder": [
@@ -169,6 +169,7 @@
     "admissible_bias_millihartree": 0.5333333333333333,
     "word_universe_ceiling": 2048,
     "word_universe_convention": "non_identity_words_only",
+    "hamiltonian_removed_hs_fraction_denominator": "Hilbert-Schmidt norm of the non-identity Hamiltonian; identity energy shifts are excluded",
     "grouping_rule": "largest-conflict-degree greedy coloring under dyadic block commutativity",
     "block_sizes": [
       1,

@@ -103,6 +103,16 @@ def test_contextual_projection_exposes_what_exact_transport_must_refuse():
     assert contextual.annihilated_indices == (2,)
     assert contextual.problem.reference.trace() == pytest.approx(1.0)
 
+    shifted = project_contextual_problem(
+        plan,
+        hamiltonian=hamiltonian + 1_000_000.0 * I(3),
+        reference=reference,
+        generators=generators,
+    )
+    assert shifted.hamiltonian_removed_hs_fraction == pytest.approx(
+        contextual.hamiltonian_removed_hs_fraction
+    )
+
 
 def test_contextual_projection_is_exact_when_the_hamiltonian_preserves_the_sector():
     pytest.importorskip("stim")

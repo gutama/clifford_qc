@@ -109,6 +109,10 @@ def test_structural_gate_requires_every_arm_to_pass_before_sampling(config):
     assert screen["admissible_bias_millihartree"] == pytest.approx(1.6 / 3.0)
     assert screen["word_universe_ceiling"] == 2048
     assert screen["block_sizes"] == [1, 2, 4, 8]
+    assert screen["hamiltonian_removed_hs_fraction_denominator"] == (
+        "Hilbert-Schmidt norm of the non-identity Hamiltonian; "
+        "identity energy shifts are excluded"
+    )
     assert screen["all_arms_must_clear_bias_margin"] is True
     assert screen["all_arms_must_clear_word_universe_ceiling"] is True
     assert r4a.structural_screen_problems(config) == []
