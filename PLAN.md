@@ -3268,10 +3268,13 @@ once under its frozen 3.12 / 2.5.2 environment, and its producer, record and
 checker have landed; (2) Phase 13's deterministic X-rank invariant now ships
 and Q10 passes on the current construction matrix; (3) Phase 14a's public compiled
 measurement-plan boundary now ships without a sampled record, and Phase 14b's frozen
-QWC-versus-fully-commuting comparison is the next Track B implementation. R4a's
+QWC-versus-fully-commuting comparison has since executed once against it, which
+closes Track B's step 9 and answers Q9 on that bank. R4a's
 exact-tier blocker is lifted on its own terms — R3c supplied the
-second priced instance — though its declared gate remains QR5, which is
-unanswered, so it does not start here. QR3 itself is now compared rather than
+second priced instance — and its gate is restated below, because "QR5 answered"
+was circular: R4a's four arms are what measure QR5. The next unbuilt phase whose
+gate is already discharged is therefore G1, whose `Restriction` dependency
+(step 11) shipped with R2a. QR3 itself is now compared rather than
 abstaining, and unresolved: separating a `17.52×` mapping spread from a `1.02×`
 instance spread needs narrower cost brackets, which means resolution *between*
 the existing endpoints rather than endpoints above `65536`. That is a new
@@ -3314,8 +3317,10 @@ not another open accuracy phase.
 
 **Track B — measurement.**
 
-9. Explicit X-rank invariant (Phase 13) and the compiled-plan boundary (Phase 14a)
-   are done; the frozen QWC-versus-fully-commuting comparison (Phase 14b) is next.
+9. Explicit X-rank invariant (Phase 13), the compiled-plan boundary (Phase 14a),
+   and the frozen QWC-versus-fully-commuting comparison (Phase 14b) are all done.
+   Track B has no open step; Q9 is answered on the preregistered BeH2/JW bank and
+   nowhere wider.
 
 **Resource accounting** (interleaves with Track B; R1 first).
 
@@ -3503,8 +3508,17 @@ not another open accuracy phase.
     right-censored at `65536`; censoring is not infinite cost and does not
     license a wider grid. QR3 is re-derived only if the record supplies a second
     priced instance.
-14. R4a — contextual-subspace comparator arms with bias floors. *Gate:* QR5 answered.
-15. R4b — CS-preconditioned A-CASE, built only on a complementary QR5.
+14. R4a — contextual-subspace comparator arms with bias floors. *Gate:* every arm
+    admitted by `run_priceability_screen.py` under its declared ceiling, since `Δ`
+    needs three finite cost ratios and the full-QSE baseline `C₀` is the widest of
+    the four arms (§5, Phase R4). The gate is **not** "QR5 answered": R4a's four
+    arms are precisely what supply `r_CS`, `r_A` and `r_joint`, so R4a is the phase
+    that *measures* QR5 and cannot wait on its own output. That wording stood at
+    this line while the R3 sequence was the binding constraint and no one reached
+    it; it is corrected here rather than carried, because a gate no phase can
+    discharge is indistinguishable from a phase nobody scheduled.
+15. R4b — CS-preconditioned A-CASE, built only on a complementary QR5. This is the
+    step QR5 genuinely gates, and it already said so.
 
 **Track G — structural restriction before encoding** (§3.5). Independent of Track A;
 it shares the `Restriction` primitive with R2a, so it starts no earlier than step 11.
