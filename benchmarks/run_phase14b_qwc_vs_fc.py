@@ -289,6 +289,7 @@ def _headline_rows(
             "endpoint_index": endpoint_index,
             "total_physical_shots": int(total),
             "shot_vector": list(schedule),
+            "shot_vector_sha256": _canonical_sha256(list(schedule)),
             "seed": seed,
             "ritz_estimate_hartree": estimate,
             "ritz_exact_hartree": float(exact_value),
@@ -378,6 +379,7 @@ def _audit(
     return {
         "total_physical_shots_per_replica": total_shots,
         "shot_vector": list(schedule),
+        "shot_vector_sha256": _canonical_sha256(list(schedule)),
         "replica_seeds": seeds,
         "max_pooled_weight_sum_error": float(max_weight_error),
         "estimators": cells,
@@ -430,13 +432,21 @@ def _decision(protocols: dict, config: dict, blocking_failures: Sequence[str]) -
             "blocking_failures": list(blocking_failures),
             "card_specific": {},
         }
-    qwc = protocols["qwc"]["certification"]["certified_total_physical_shots"]
+    qwc_certification = protocols["qwc"]["certification"]
+    qwc = qwc_certification["certified_total_physical_shots"]
     full = protocols["fully_commuting"]["certification"][
         "certified_total_physical_shots"
     ]
     threshold = float(config["acceptance"]["material_shot_reduction_fraction"])
     ratio = None if qwc is None or full is None else full / qwc
-    go = full is not None and qwc is not None and full <= threshold * qwc
+    qwc_comparison_floor = (
+        qwc if qwc is not None else qwc_certification["right_censored_above"]
+    )
+    go = (
+        full is not None
+        and qwc_comparison_floor is not None
+        and full <= threshold * qwc_comparison_floor
+    )
     card_specific = {}
     for card in (row["name"] for row in config["protocol"]["device_cards"]):
         qwc_cost = protocols["qwc"]["device_costs"][card]

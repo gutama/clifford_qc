@@ -12,6 +12,8 @@ import benchmarks.check_phase14b_qwc_vs_fc as checker
 from benchmarks.run_phase14b_qwc_vs_fc import (
     PREREGISTRATION_MERGE_COMMIT,
     REFERENCE,
+    _decision,
+    build_record,
     coefficient_range_neyman_schedule,
     derived_seed,
 )
@@ -65,9 +67,62 @@ def test_seed_sequence_namespace_is_stable_and_disjoint():
     }) == 4
 
 
+def test_fast_build_record_override_exercises_end_to_end_producer():
+    built = build_record(endpoints=(65_536, 131_072), audit_replicas=3)
+    assert built["protocol"]["total_physical_shot_endpoints"] == [65_536, 131_072]
+    assert {"status", "shot_efficiency_go", "card_specific"} <= set(built["decision"])
+    for protocol_index, name in enumerate(("qwc", "fully_commuting")):
+        protocol = built["protocols"][name]
+        settings = protocol["compiled_plan"]["settings"]
+        for endpoint_index, row in enumerate(protocol["headline"]):
+            assert len(row["shot_vector"]) == settings
+            assert min(row["shot_vector"]) >= 2
+            assert sum(row["shot_vector"]) == row["total_physical_shots"]
+            assert row["seed"]["spawn_key"] == [protocol_index, endpoint_index]
+        first = next(
+            (row for row in protocol["headline"] if row["passes_stochastic_radius"]),
+            None,
+        )
+        certified = protocol["certification"]["certified_total_physical_shots"]
+        assert certified == (None if first is None else first["total_physical_shots"])
+
+
+def test_right_censored_qwc_can_establish_shot_efficiency_go():
+    protocols = {
+        "qwc": {
+            "certification": {
+                "certified_total_physical_shots": None,
+                "right_censored_above": 2**32,
+            },
+            "device_costs": {},
+        },
+        "fully_commuting": {
+            "certification": {
+                "certified_total_physical_shots": 2**31,
+                "right_censored_above": None,
+            },
+            "device_costs": {},
+        },
+    }
+    config = {
+        "acceptance": {"material_shot_reduction_fraction": 0.5},
+        "protocol": {"device_cards": []},
+    }
+    decision = _decision(protocols, config, [])
+    assert decision["status"] == "go"
+    assert decision["shot_efficiency_go"] is True
+    assert decision["fully_commuting_to_qwc_certified_shot_ratio"] is None
+
+
 def test_committed_sampled_record_passes_every_internal_contract(record):
     assert checker.contract_problems(record) == []
     assert record["preregistration"]["merge_commit"] == PREREGISTRATION_MERGE_COMMIT
+
+
+def _redistribute_headline_shots(row):
+    schedule = row["protocols"]["qwc"]["headline"][0]["shot_vector"]
+    schedule[0] += 1
+    schedule[1] -= 1
 
 
 @pytest.mark.parametrize(
@@ -88,10 +143,8 @@ def test_committed_sampled_record_passes_every_internal_contract(record):
             "sampled seed",
         ),
         (
-            lambda row: row["protocols"]["qwc"]["headline"][0]["shot_vector"].__setitem__(
-                0, 1
-            ),
-            "shot vector",
+            _redistribute_headline_shots,
+            "shot vector digest",
         ),
         (
             lambda row: row["protocols"]["qwc"]["certification"].__setitem__(

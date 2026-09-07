@@ -1572,12 +1572,19 @@ covariance-audit ratios pass (`1.0042`, `1.0114`, `1.0471`, `1.0320`) and exact
 signed-readout reconstruction gives zero observed maximum error for both `S` and
 `H`. QWC first certifies at `2^29 = 536,870,912` total physical shots, while the
 fully commuting endpoint first certifies at `2^24 = 16,777,216`, a `1/32` ratio
-that passes the preregistered `<= 1/2` material-reduction rule. Ion-like and
+that passes the preregistered `<= 1/2` material-reduction rule. At matched
+shots, the covariance-aware variance is only 2.22 times lower for fully
+commuting; most of the 32-fold certified-endpoint gap comes from the frozen
+empirical-Bernstein certificate's per-group union bound over 179 touched QWC
+groups versus 7 fully commuting groups. The audit validates the covariance
+variance model, not empirical coverage of that radius. Ion-like and
 logical-all-to-all card projections also favor the fully commuting endpoint;
 the superconducting-like fully commuting plan is inadmissible under that card's
-fidelity floor and therefore carries no runtime winner. This is a positive Q9
-answer only for oracle-sampled exact-state measurement on this frozen BeH2/JW
-bank, not a state-preparation, hardware, noise, mapping, or cross-instance claim.
+fidelity floor and therefore carries no runtime winner. The sampled state is the
+Hartree-Fock computational-basis determinant `|11110000>`, whose stabilizer
+variance structure is a special case. This is a positive Q9 answer only for
+oracle-sampled measurement of that state on this frozen BeH2/JW bank, not a
+state-preparation, hardware, noise, mapping, or cross-instance claim.
 
 ### Phase 15 — second-moment bank (Track C, open)
 
@@ -3025,7 +3032,10 @@ A-CASE's.
   preregistered BeH2/JW bank**: the certified endpoints are `2^24` versus `2^29`
   total physical shots, all four covariance gates pass, and card-specific runtime
   reporting preserves one inadmissible fully commuting hardware scenario. The
-  result is not instance-independent or hardware evidence.
+  covariance-aware variance advantage itself is 2.22-fold; most of the endpoint
+  gap is the frozen per-group union-bound penalty. The sampled state is the
+  Hartree-Fock determinant `|11110000>`; the result is not instance-independent
+  or hardware evidence.
 - **Q10 — parity ceiling:** does `r_X <= 2(N - 1)` hold across every declared
   spin-conserving Jordan–Wigner Hamiltonian construction path? *Status:* yes on the
   current native, FCIDUMP, fermionic-lattice, and effective-ingestion matrix; the

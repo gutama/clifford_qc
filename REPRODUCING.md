@@ -242,18 +242,26 @@ python benchmarks/run_phase14b_qwc_vs_fc.py
 python benchmarks/check_phase14b_qwc_vs_fc.py
 ```
 
-The producer records every endpoint and audit seed, integer shot vector, empirical-
-Bernstein radius, estimate error, compiled resource ledger, exact reconstruction
-error, covariance cell, and card-specific cost. The checker re-derives the first-
-passing endpoints and verdict from the stored fields before replaying the exact
-seeded streams. The run passes all blocking gates: QWC certifies at `2^29` total
-shots and fully commuting at `2^24`, so the `1/32` ratio passes the frozen `<= 1/2`
-rule. The four assigned/pooled empirical-to-predicted variance ratios are `1.0042`,
-`1.0114`, `1.0471`, and `1.0320`; both matrices reconstruct with zero observed
-maximum error. Ion-like and logical-all-to-all card projections favor fully
-commuting, while that endpoint is inadmissible under the superconducting-like
-card's fidelity floor. These are exact-state oracle measurement results on one
-frozen BeH2/JW bank, not calibrated-device or instance-independent evidence.
+The producer records every endpoint and audit seed, integer shot vector and digest,
+empirical-Bernstein radius, estimate error, compiled resource ledger, exact
+reconstruction error, covariance cell, and card-specific cost. The checker
+independently validates stored fields and first-passing endpoints, re-applies the
+shared frozen decision and seed rules, and then replays the exact seeded streams.
+The run passes all blocking gates: QWC certifies at `2^29` total shots and fully
+commuting at `2^24`, so the `1/32` ratio passes the frozen `<= 1/2` rule. At
+matched shots, fully commuting has a 2.22-fold covariance-aware variance advantage;
+most of the 32-fold certified-endpoint gap comes from the empirical-Bernstein
+certificate's per-group union bound over 179 touched QWC groups versus 7 fully
+commuting groups. The four assigned/pooled empirical-to-predicted variance ratios
+are `1.0042`, `1.0114`, `1.0471`, and `1.0320`; they validate the covariance
+variance model, not empirical coverage of the radius that sets the endpoint. Both
+matrices reconstruct with zero observed maximum error. Ion-like and
+logical-all-to-all card projections favor fully commuting, while that endpoint is
+inadmissible under the superconducting-like card's fidelity floor. The sampled
+state is the Hartree-Fock computational-basis determinant `|11110000>`, whose
+stabilizer variance structure is a special case. These are oracle measurement
+results on one frozen BeH2/JW bank, not calibrated-device or instance-independent
+evidence.
 
 ### R1 exact-oracle nonlinear shot search
 

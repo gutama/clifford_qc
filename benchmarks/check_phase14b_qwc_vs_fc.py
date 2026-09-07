@@ -1,10 +1,11 @@
 #!/usr/bin/env python3
 """Regenerate and gate the sampled Phase 14b QWC-versus-FC record.
 
-The checker first re-derives every acceptance decision from the committed
-record, then repeats the exact seeded execution and compares every scientific,
-schedule, seed, resource, and decision field. Provenance metadata is retained
-for auditability and ignored by the value comparison.
+The checker independently validates stored fields and first-passing endpoints,
+re-applies the shared frozen decision and seed rules, then repeats the exact
+seeded execution and compares every scientific, schedule, seed, resource, and
+decision field. Provenance metadata is retained for auditability and ignored by
+the value comparison.
 
     python benchmarks/check_phase14b_qwc_vs_fc.py
 """
@@ -38,6 +39,7 @@ try:  # package import in tests versus direct script execution
         PROTOCOL_NAMES,
         REFERENCE,
         SCHEMA,
+        _canonical_sha256,
         _decision,
         build_record,
         derived_seed,
@@ -55,6 +57,7 @@ except ImportError:  # pragma: no cover - direct script execution
         PROTOCOL_NAMES,
         REFERENCE,
         SCHEMA,
+        _canonical_sha256,
         _decision,
         build_record,
         derived_seed,
@@ -118,6 +121,8 @@ def _row_problems(
                   and value >= 2 for value in schedule)
           or sum(schedule) != endpoint):
         problems.append(f"{prefix}: shot vector violates its floor or total")
+    if row.get("shot_vector_sha256") != _canonical_sha256(schedule):
+        problems.append(f"{prefix}: shot vector digest drifted")
     seed = row.get("seed", {})
     expected_seed = {
         "root": seed_root,
@@ -186,6 +191,8 @@ def _audit_problems(
     schedule = audit.get("shot_vector", [])
     if len(schedule) != settings or sum(schedule) != total_shots or min(schedule, default=0) < 2:
         problems.append(f"{prefix}: covariance-audit schedule is invalid")
+    if audit.get("shot_vector_sha256") != _canonical_sha256(schedule):
+        problems.append(f"{prefix}: covariance-audit shot vector digest drifted")
     seeds = audit.get("replica_seeds", [])
     if len(seeds) != replicas:
         problems.append(f"{prefix}: covariance-audit seed count drifted")
