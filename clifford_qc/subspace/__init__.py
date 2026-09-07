@@ -43,6 +43,11 @@ from .symmetry import (
 from .restriction import (
     RestrictedProblem, Restriction, restricted_sector_operators,
 )
+from .contextual import (
+    ContextualProblem, ContextualRestrictionPlan, ContextualStabilizer,
+    ContextualStabilizerSelection, compile_contextual_restriction,
+    project_contextual_problem, select_contextual_stabilizers,
+)
 from .mapping_invariants import (
     MappingInvariantReport, assert_mapping_invariants,
 )
@@ -107,6 +112,9 @@ __all__ = [
     "reference_sector_leakage", "subspace_sector_certificate",
     "project_reference_to_sector",
     "RestrictedProblem", "Restriction", "restricted_sector_operators",
+    "ContextualProblem", "ContextualRestrictionPlan", "ContextualStabilizer",
+    "ContextualStabilizerSelection", "compile_contextual_restriction",
+    "project_contextual_problem", "select_contextual_stabilizers",
     "MappingInvariantReport", "assert_mapping_invariants",
     "ConfigurationOrdering", "HaarPacketNode", "MultiresolutionResult",
     "configuration_ordering", "configuration_packet_hierarchy",

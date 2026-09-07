@@ -121,7 +121,7 @@ Status at a glance:
 | R3S | priceability screen — which candidates a declared screen admits for a probe | **done, positive**; under a stopping rule that reserves the accuracy target for shot noise, LiH is admissible at a two-generator prefix (`W = 1439` against BeH₂'s `1814`), so QR3b rejected the greedy's stopping point rather than the instance |
 | R3b | LiH `margin_stop` probe — the QR3b 2+2 preflight re-run on the bank R3S admitted | **done, mixed**; the target-environment redraw rejects the bank (29/40 cells resolve, versus 30/40 in the historical 3.11 draw; the gate needs 40), so that probe authorized no full run and left the exact tier with one priced instance — but both draws reduce QR3b's grid-fit failures `15 → 0`, leaving the `2+2` probe's confirmation power rather than `W`, which is what R3c went on to test directly |
 | R3c | LiH `margin_stop` headline exact-tier cost run | **done, positive**; executed once under the frozen 3.12 / 2.5.2 stack. 38 of 40 cells supply a confirmed finite interval and 2 stay right-censored, so LiH is the exact tier's second priced instance. QR3 is re-derived on two instances and comes back `indeterminate_at_this_shot_grid`: the point estimates order 17.5x against 1.02x, and the cost brackets overlap |
-| R4 | contextual-subspace comparator | open |
+| R4 | contextual-subspace comparator | **R4a result-free preregistration shipped**; the separately committed structural screen and any conditionally authorized sampled result remain open |
 
 "Shipped" means the module, its tests, and where applicable its benchmark
 producer exist. It does not mean the phase's go/no-go has been read: those
@@ -2130,6 +2130,16 @@ resolve.
 **R4 — contextual subspace as comparator, then preconditioner.** Arms, at matched
 accuracy target and matched candidate family: full QSE, CS-QSE, A-CASE, CS + A-CASE.
 
+**R4a is preregistered, without an outcome.**
+`benchmarks/configs/r4a_contextual_interaction.json` freezes the BeH₂/JW bank,
+the four ordered arms, the reference-conditioned stabilizer constructor, its
+canonical coefficient/code tie-break, the fixed-qubit ladder, the structural
+bias/word-universe gate, and the conditional exact-tier sampling protocol.
+`benchmarks/check_r4a_preregistration.py` validates that declaration without
+selecting a contextual rung or running the structural or sampled experiment.
+This commit authorizes one later structural execution only. Sampling remains
+unauthorized unless the separately committed screen admits every arm.
+
 *Report the bias floor, not only the compression.* The contextual restriction is an
 approximation whose error is not variationally controlled by the restricted solve; a
 rung where the restriction's own floor exceeds the accuracy target cannot be
@@ -2204,7 +2214,11 @@ So both phases share `clifford_qc/subspace/restriction.py` — **shipped** — e
 `Restriction` carrying `(clifford, fixed_qubits, signs)` that transports Hamiltonian,
 reference, generator pool, and observables together through
 `Restriction.transport`, returning a `RestrictedProblem` that also reports per-generator
-sector leakage. `CliffordMap.conjugate` (`bridges/stim_bridge.py`) provides the word
+sector leakage. R4a's shipped `subspace/contextual.py` adds the frozen deterministic
+selection and compilation boundary, while `project_contextual_problem` records the
+Hamiltonian Hilbert–Schmidt fraction removed by an artificial contextual stabilizer;
+it does not weaken exact `Restriction.transport`. `CliffordMap.conjugate`
+(`bridges/stim_bridge.py`) provides the word
 action; the module adds the fixing step and the bookkeeping that keeps the four objects
 consistent. The three oracle checks are in `tests/test_restriction.py`:
 `⟨HF_B|H_B|HF_B⟩ = ⟨HF_JW|H_JW|HF_JW⟩`, spectrum equality against the dense sector
@@ -3361,10 +3375,11 @@ scheduling them: filters A–D reproduce the existing post-encoding filters
 exactly, filter E has content on the Majorana pool §3.5 specifies and none on the
 excitation pool the mapping records use, and at the matched degree cap the two
 pools reach the identical determinant set. Track G therefore has no open step
-either. **What that leaves is R4a and one undeclared question.** R4a is now
-unblocked on both counts — its exact-tier blocker was lifted by R3c and its gate
-is no longer self-referential — and is the only remaining phase in the numbered
-order with work in it. QR3 itself is now compared rather than
+either. **What that leaves is R4a's declared execution and one undeclared
+question.** R4a's result-free protocol and contextual constructor now ship; its
+one authorized structural screen has not run, and sampling is not yet authorized.
+R4a remains the only numbered phase with open experimental work. QR3 itself is
+now compared rather than
 abstaining, and unresolved: separating a `17.52×` mapping spread from a `1.02×`
 instance spread needs narrower cost brackets, which means resolution *between*
 the existing endpoints rather than endpoints above `65536`. That is a new
@@ -3598,12 +3613,16 @@ not another open accuracy phase.
     right-censored at `65536`; censoring is not infinite cost and does not
     license a wider grid. QR3 is re-derived only if the record supplies a second
     priced instance.
-14. R4a — contextual-subspace comparator arms with bias floors. *Gate:* every arm
+14. R4a — contextual-subspace comparator arms with bias floors. **The result-free
+    declaration and deterministic contextual restriction API ship; no rung has
+    been selected and no R4a structural or sampled result exists.** The declaration
+    authorizes one later structural execution. *Gate:* every arm
     admitted by `run_priceability_screen.py` under its declared ceiling, since `Δ`
     needs three finite cost ratios and the full-QSE baseline `C₀` is the widest of
     the four arms (§5, Phase R4). The gate is **not** "QR5 answered": R4a's four
     arms are precisely what supply `r_CS`, `r_A` and `r_joint`, so R4a is the phase
-    that *measures* QR5 and cannot wait on its own output. That wording stood at
+    that *measures* QR5 and cannot wait on its own output. Sampling remains
+    unauthorized until the separate structural record clears this gate. That wording stood at
     this line while the R3 sequence was the binding constraint and no one reached
     it; it is corrected here rather than carried, because a gate no phase can
     discharge is indistinguishable from a phase nobody scheduled.

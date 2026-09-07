@@ -1,0 +1,261 @@
+{
+  "schema": "clifford_qc.r4a_contextual_interaction_config.v1",
+  "phase": "R4a_contextual_subspace_interaction",
+  "status": "preregistration_only_no_structural_or_sampled_run_yet",
+  "authorization": {
+    "exactly_one_later_structural_execution": true,
+    "structural_producer": "benchmarks/run_r4a_contextual_screen.py",
+    "structural_record": "benchmarks/reference_results/r4a_contextual_screen.json",
+    "structural_checker": "benchmarks/check_r4a_contextual_screen.py",
+    "sampled_execution_authorized_by_this_config": false,
+    "sampled_authorization_rule": "A later commit may authorize exactly one sampled execution only if the separately committed structural record admits all four arms. A failed structural gate stops R4a without sampling and leaves QR5 undetermined.",
+    "temporal_order": "This result-free declaration lands first; the structural producer, record, and regenerating checker belong to a later commit, and any sampled producer and record belong to a commit after the structural gate."
+  },
+  "parent_lineage": {
+    "repository": "gutama/clifford_qc",
+    "base_commit": "9abe407852c83bd96b3b70d789b831bff37a7b31",
+    "base_commit_role": "Phase G1 is complete, G2-G3 are retired, Track B is complete, and R4a is the only open numbered phase.",
+    "files": [
+      {
+        "path": "benchmarks/configs/priceability_screen.json",
+        "git_blob_sha1": "5a803b8812d50ab3af70cb1916da16de466b3e45",
+        "sha256": "f43fac4ad8386ecdfa279cfbf5e61661c7a24f3459c7f2f229ad10b0b7f9ec3e"
+      },
+      {
+        "path": "benchmarks/reference_results/priceability_screen.json",
+        "git_blob_sha1": "bf648f05ce60a0e5213d00f3bffae256090b6b7d",
+        "sha256": "61ee716540b9aad7be49193255dac12a097a1c46000f6b0f8534139a646a175d"
+      },
+      {
+        "path": "benchmarks/reference_results/protocol_axis.json",
+        "git_blob_sha1": "55d9ec92fac9a35406b31d0f787f4d0adce524f7",
+        "sha256": "d262a4abc3d7cf5dea65e60c5d7bc35142b504444d8594f2a1fc4f5eecd59e92"
+      },
+      {
+        "path": "benchmarks/data/beh2_sto3g_r1.3264.FCIDUMP",
+        "git_blob_sha1": "7f2b73022cd7b40108e4765aeab5d6ee9230d0a4",
+        "sha256": "01ef4422b2e9e7f711895ae897a94ea11c1b0fae5a5fd91c3396fbd4d69fba76"
+      },
+      {
+        "path": "benchmarks/data/beh2_sto3g_r1.3264.provenance.json",
+        "git_blob_sha1": "4a514949dbff443bcfd00ba0fd0d6f98e5415989",
+        "sha256": "fd4eb5de5bf94e2555f8d3d512e7918146224f49b84f8b890527ad5b8a25c73c"
+      },
+      {
+        "path": "benchmarks/configs/device_cards/ion-like.json",
+        "git_blob_sha1": "45ab9fd9b59638d2b5d0a94dafe3a5bcb311cb26",
+        "sha256": "1ac47a1a80b621bfeb3d5cc36dd9ab859bf94dc782da4c6fee8aebfb3d9c53c2"
+      },
+      {
+        "path": "benchmarks/configs/device_cards/logical-alltoall.json",
+        "git_blob_sha1": "21fab44375442ce632d12c2d6f3ba9bdad3815f7",
+        "sha256": "5eb4668daa124b4f8f375d37839ab4eeb31f10f8cf27612869e2aebcb9f30fe3"
+      },
+      {
+        "path": "benchmarks/configs/device_cards/superconducting-like.json",
+        "git_blob_sha1": "befb3fb9f09087174f7d07f59d2e1f4e8e4f7316",
+        "sha256": "99fac3de98a34324f31dd734918bc6448ce48dd315752c12dbcc503b1d82e248"
+      }
+    ]
+  },
+  "estimand": {
+    "name": "R4a_contextual_and_adaptive_compression_interaction",
+    "question": "At one frozen BeH2/JW accuracy target and under one common cost protocol, is the joint contextual-subspace plus A-CASE gain complementary, multiplicative, redundant, or antagonistic relative to the two standalone gains?",
+    "structural_stage": "Determine whether every one of the four fixed arms has a bias floor below the declared margin and a measured word universe at or below the inherited priceability ceiling before spending any shots.",
+    "sampled_stage_if_later_authorized": "Estimate r_CS = C0/C_CS, r_A = C0/C_ACASE, r_joint = C0/C_CS+ACASE, and Delta = log(r_joint) - log(r_CS) - log(r_A), propagating the frozen shot-search uncertainty.",
+    "exclusions": "The structural stage cannot price C(epsilon), report a cost ratio, classify QR5, select a device-wide winner, or alter the frozen Phase 14b and R3 findings."
+  },
+  "system": {
+    "system": "beh2",
+    "label": "linear BeH2 STO-3G CAS(4e,4o)",
+    "mapping": "jw",
+    "n_qubits": 8,
+    "reference": "the frozen Hartree-Fock determinant supplied by the committed FCIDUMP model",
+    "exact_reference": "dense ground state in the frozen N=4, Sz=0 sector",
+    "candidate_family": {
+      "name": "complete symmetry-preserving determinant singles and doubles",
+      "constructor": "determinant_excitations(n_qubits=8, occupied=occupied_spin_orbitals(model), max_rank=2, conserve_sz=True)",
+      "basis_order": "identity first, followed by the constructor's canonical occupied-virtual loop order",
+      "full_qse_uses_every_candidate": true
+    },
+    "acase_bank": {
+      "selection_rule": "R3S margin rule: the smallest prefix of the frozen BeH2 greedy ordering whose exact subspace bias is at most accuracy_target_millihartree / margin_factor",
+      "selection_source": "benchmarks/reference_results/priceability_screen.json candidate beh2.margin_stop",
+      "basis_size": 3,
+      "basis_labels": [
+        "I",
+        "E(4,5<-0,1)",
+        "E(6,7<-0,1)"
+      ],
+      "inherited_bias_millihartree": 0.06950365295921301,
+      "inherited_word_universe": 1223,
+      "selection_may_not_be_reopened": true
+    }
+  },
+  "comparison": {
+    "arms": [
+      {
+        "name": "full_qse",
+        "cost_symbol": "C0",
+        "contextual_restriction": false,
+        "adaptive_compression": false,
+        "basis": "identity plus the complete declared candidate family"
+      },
+      {
+        "name": "cs_qse",
+        "cost_symbol": "C_CS",
+        "contextual_restriction": true,
+        "adaptive_compression": false,
+        "basis": "the complete declared candidate family transported through the selected contextual restriction"
+      },
+      {
+        "name": "acase",
+        "cost_symbol": "C_ACASE",
+        "contextual_restriction": false,
+        "adaptive_compression": true,
+        "basis": "the frozen three-vector R3S BeH2 margin-stop bank"
+      },
+      {
+        "name": "cs_acase",
+        "cost_symbol": "C_CS+ACASE",
+        "contextual_restriction": true,
+        "adaptive_compression": true,
+        "basis": "the frozen three-vector R3S bank transported through the selected contextual restriction"
+      }
+    ],
+    "matched_rules": [
+      "all arms use the same FCIDUMP, Jordan-Wigner Hamiltonian, Hartree-Fock reference, exact sector energy, accuracy target, identity treatment, device cards, grouping grid, estimators, shot endpoints, and pass rule",
+      "the two QSE arms share the complete candidate family and the two A-CASE arms share the frozen R3S basis",
+      "the two contextual arms share one selected contextual rung and one compiled Restriction",
+      "annihilated or duplicate projected candidates remain reported and may not be silently replaced"
+    ],
+    "future_classification": {
+      "complementary": "Delta is positive beyond propagated uncertainty",
+      "multiplicative": "Delta contains zero and the joint ratio is distinguishable from both standalone ratios",
+      "redundant": "the joint ratio is indistinguishable from max(r_CS, r_A)",
+      "antagonistic": "the joint ratio is below max(r_CS, r_A)",
+      "undetermined": "any required cost is structurally inadmissible or remains right-censored"
+    }
+  },
+  "contextual_restriction": {
+    "implementation": "clifford_qc.subspace.contextual.compile_contextual_restriction",
+    "scope": "reference-conditioned commuting stabilizer subset; not a general implementation of every CS-VQE noncontextual-Hamiltonian heuristic",
+    "candidate_source": "non-identity Pauli words appearing in the frozen Jordan-Wigner Hamiltonian",
+    "term_order": "descending absolute real coefficient, then ascending packed Pauli-word code",
+    "sign_rule": "the coefficient-minimising sign: -1 for a positive coefficient and +1 for a negative coefficient",
+    "reference_rule": "admit only a word whose Hartree-Fock expectation is within tolerance of the coefficient-minimising sign; a non-extremal expectation or the opposite sign is rejected",
+    "commutation_rule": "admit only words commuting with every earlier selected stabilizer",
+    "independence_rule": "GF(2) symplectic rank must increase by exactly one",
+    "tableau_rule": "compile the signed independent stabilizers in selected order to +Z on fixed qubits 0 through count-1; arbitrary completion acts only on the unfixed complement",
+    "projection_rule": "the full Hamiltonian, reference, and candidate family move through one congruent rotation; Hamiltonian terms anticommuting with an artificial stabilizer are projected away and their Hilbert-Schmidt norm fraction is mandatory structural output",
+    "exact_symmetry_boundary": "Restriction.transport remains strict and is not weakened; only project_contextual_problem may project a Hamiltonian that breaks an artificial stabilizer",
+    "tolerance": 1e-09,
+    "fixed_qubit_ladder": [
+      1,
+      2,
+      3,
+      4,
+      5,
+      6,
+      7
+    ],
+    "rung_rule": "Select the largest fixed-qubit count for which every one of the four arms clears both structural gates. If no rung clears, stop without sampling.",
+    "citation": "Weaving et al., A Stabilizer Framework for Contextual Subspace VQE and the Noncontextual Projection Ansatz, arXiv:2204.02150"
+  },
+  "structural_screen": {
+    "evidence_tier": "structural",
+    "accuracy_target_millihartree": 1.6,
+    "margin_factor": 3.0,
+    "admissible_bias_millihartree": 0.5333333333333333,
+    "word_universe_ceiling": 2048,
+    "word_universe_convention": "non_identity_words_only",
+    "grouping_rule": "largest-conflict-degree greedy coloring under dyadic block commutativity",
+    "block_sizes": [
+      1,
+      2,
+      4,
+      8
+    ],
+    "required_per_arm_fields": [
+      "basis_size_before_deduplication",
+      "basis_size_after_deduplication",
+      "annihilated_candidate_indices",
+      "duplicate_projected_candidate_indices",
+      "active_qubits",
+      "bias_millihartree",
+      "hamiltonian_removed_hs_fraction",
+      "word_universe",
+      "settings_by_block_size"
+    ],
+    "all_arms_must_clear_bias_margin": true,
+    "all_arms_must_clear_word_universe_ceiling": true,
+    "failure_rule": "If any arm at every contextual rung fails either gate, the structural record stops R4a without sampling and records which gate failed. It does not label a screen rejection as infinite cost.",
+    "infinite_cost_rule": "C(epsilon) may be labelled infinite only when an arm's exact bias floor exceeds epsilon; an operational word-universe rejection or a sampled right-censor is not infinite cost."
+  },
+  "conditional_sampled_protocol": {
+    "authorized_by_this_config": false,
+    "evidence_tier": "exact",
+    "block_sizes": [
+      1,
+      2,
+      4,
+      8
+    ],
+    "estimators": [
+      "single_assignment",
+      "pooled"
+    ],
+    "search_endpoints_effective_shots_per_setting": [
+      64,
+      256,
+      1024,
+      4096,
+      16384,
+      65536
+    ],
+    "exploratory_replicas": 30,
+    "confirmatory_replicas": 100,
+    "nested_endpoints": true,
+    "bootstrap_replicates": 10000,
+    "one_sided_delta": 0.05,
+    "seed_roots": {
+      "exploratory": 150814000,
+      "confirmatory": 150914000,
+      "bootstrap": 151014000
+    },
+    "seed_derivation": "numpy.SeedSequence(root, spawn_key=(arm_index, contextual_rung_index, block_size_index, replica_index)); roots and namespaces are disjoint",
+    "pass_rule": "all 100 confirmatory solves succeed and the one-sided 95% bootstrap RMSE upper bound against the frozen exact sector energy is at most 1.6 mHa",
+    "crossing_rule": "confirm the first exploratory passing endpoint and its predecessor; a finite interval requires a confirmed failing predecessor and confirmed passing endpoint",
+    "censoring_rule": "a cell without a confirmed finite interval at 65536 is right-censored; it is not assigned infinite cost and does not license a wider grid",
+    "interaction_uncertainty": "derive interval bounds for each ratio from its two finite cost brackets and combine the three log-ratio intervals conservatively; no midpoint-only QR5 classification",
+    "device_cards": [
+      {
+        "name": "ion-like",
+        "sha256": "9cc7e53e935e4ec3c265efbd9b6218f17a68c51d727d658c5a5bcaf98d34f453"
+      },
+      {
+        "name": "logical-alltoall",
+        "sha256": "07e9cc637e590668bc89b7d407535f34f509155e08c95d2ecd0f8f931738265b"
+      },
+      {
+        "name": "superconducting-like",
+        "sha256": "cf78e3240ad48839a8113a1570a43e614c230a8428fe8ceda7783e7ff75e1a13"
+      }
+    ],
+    "execution_environment": {
+      "python_minor": "3.12",
+      "numpy": "2.5.2",
+      "scipy": "1.18.0",
+      "stim": "1.16.0"
+    }
+  },
+  "reporting_contract": {
+    "structural_record_is_not_a_cost_record": true,
+    "existing_records_are_immutable": true,
+    "structural_result_commit_must_be_separate": true,
+    "sampled_result_commit_must_be_separate": true,
+    "qr5_is_answered_only_by_the_sampled_four_arm_cost_interaction": true,
+    "scope": "one BeH2/JW bank under the frozen constructor, structural screen, oracle exact-tier protocol, and illustrative device cards; no instance-independent contextual-subspace or A-CASE advantage"
+  },
+  "claim_boundary": "This configuration contains no R4a contextual stabilizer selection, structural-screen result, selected contextual rung, bias floor, word universe, setting count, sample, cost bracket, ratio, Delta, or QR5 classification. A later structural record may report only the frozen BeH2/JW four-arm admission screen. Sampling remains unauthorized unless that record admits every arm under the declared bias and word-universe gates; any sampled execution, if authorized by a later commit, must preserve this bank, constructor, rung rule, measurement grid, estimators, endpoints, seeds, pass rule, and device cards."
+}
