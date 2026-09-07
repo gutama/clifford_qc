@@ -479,6 +479,10 @@ def structural_preconditioner(
     ``restriction`` is the object filter C evaluates through.  Passing ``None``
     runs the chain with C recorded as a zero-marginal stage whose detail says it
     was not supplied, rather than silently dropping a filter from the ledger.
+    Supplying one *without* ``hamiltonian`` and ``reference_state`` is refused:
+    filter C evaluates through ``Restriction.transport``, which moves all three
+    objects together, and that congruence is the whole reason C runs through the
+    shipped primitive rather than a private projection.
     """
     if not pool:
         raise ValueError("the candidate pool is empty")
@@ -488,6 +492,21 @@ def structural_preconditioner(
     labels = [candidate.label for candidate in pool]
     if len(set(labels)) != len(labels):
         raise ValueError("pool contains duplicate labels")
+    if restriction is not None:
+        missing = [
+            name for name, value in (("hamiltonian", hamiltonian),
+                                     ("reference_state", reference_state))
+            if value is None
+        ]
+        if missing:
+            raise ValueError(
+                f"filter C was given a restriction but not {' and '.join(missing)}. "
+                "Section 3.5C is evaluated through Restriction.transport, which "
+                "carries the Hamiltonian, the reference and the candidates together; "
+                "transporting the candidates alone is exactly the incongruent "
+                "projection that primitive exists to prevent. Pass both, or pass "
+                "restriction=None to record C as not evaluated."
+            )
     operators = {candidate.label: candidate.mv for candidate in pool}
 
     index = determinant_index(n, reference_occupied)

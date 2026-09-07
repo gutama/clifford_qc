@@ -21,7 +21,6 @@ from __future__ import annotations
 import numpy as np
 import pytest
 
-from clifford_qc.backends import ExactMVBackend
 from clifford_qc.dense_reference import to_matrix
 from clifford_qc.fermion import total_number_op, total_sz_op
 from clifford_qc.multivector import MV
@@ -247,6 +246,28 @@ def test_filter_c_runs_through_the_restriction_primitive():
     stage = next(s for s in report.stages if s.key == "C")
     assert stage.removed == 0
     assert stage.detail["qubits_removed"] == 0
+
+
+@pytest.mark.parametrize("supplied, missing", [
+    ({}, "hamiltonian and reference_state"),
+    ({"hamiltonian": True}, "reference_state"),
+    ({"reference_state": True}, "hamiltonian"),
+])
+def test_a_restriction_without_its_congruent_inputs_is_refused(supplied, missing):
+    """The incongruent-projection call has to fail by name, not deep inside.
+
+    ``Restriction.transport`` moves the Hamiltonian, the reference and the
+    candidates together; handing it a restriction and no Hamiltonian used to
+    surface as ``TypeError: expected a multivector, got NoneType`` from inside
+    the primitive, naming neither the argument nor the filter. Transporting the
+    candidates alone is precisely the incongruent projection section 3.5's
+    congruence rule exists to prevent, so it is refused at the boundary.
+    """
+    reference = _reference_density(N, OCCUPIED)
+    kwargs = {"hamiltonian": total_number_op(N), "reference_state": reference}
+    passed = {name: kwargs[name] for name in supplied}
+    with pytest.raises(ValueError, match=f"not {missing}\\."):
+        _chain(restriction=Restriction.identity(N), **passed)
 
 
 def test_filter_c_records_that_it_was_not_evaluated_without_a_restriction():
