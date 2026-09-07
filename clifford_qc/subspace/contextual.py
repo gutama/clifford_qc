@@ -345,10 +345,10 @@ def project_contextual_problem(
     Unlike Restriction.transport, this function intentionally permits
     Hamiltonian terms that anticommute with the artificial stabilizers. Their
     norm fraction, normalized by the non-identity Hamiltonian norm, is returned
-    as a required field. Excluding the identity makes this diagnostic invariant
-    to scalar energy shifts; the full Hamiltonian is still projected unchanged.
-    Exact symmetry tapering continues to use Restriction.transport and retains
-    its strict refusal.
+    as a required field. The complete Hamiltonian, including its identity term,
+    is supplied to the contextual projector; only the diagnostic denominator
+    uses the identity-stripped copy. Exact symmetry tapering continues to use
+    Restriction.transport and retains its strict refusal.
     """
     H = as_multivector(hamiltonian)
     if H.n != plan.selection.n:

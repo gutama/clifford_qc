@@ -312,7 +312,7 @@ def contextual_problems(config: dict) -> list[str]:
     projection_rule = contextual.get("projection_rule", "")
     if "non-identity Hamiltonian Hilbert-Schmidt norm" not in projection_rule:
         problems.append("the contextual Hamiltonian leakage denominator drifted")
-    if "full Hamiltonian is projected unchanged" not in projection_rule:
+    if "complete Hamiltonian, including its identity term" not in projection_rule:
         problems.append("the contextual projection may not discard the identity shift")
 
     from clifford_qc.subspace.contextual import (
