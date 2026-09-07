@@ -518,7 +518,9 @@ clifford_qc/
                    # certificates, Lehmann response, support-pruned
                    # configuration Haar tier, dense cross-check;
                    # QSCI/SQD, classical selected-CI controls, the
-                   # QSCI x A-CASE hybrid, and coarse-to-fine packet selection
+                   # QSCI x A-CASE hybrid, coarse-to-fine packet selection,
+                   # the Clifford-rotate-then-fix restriction primitive, and
+                   # the pre-encoding Majorana filter chain (ga_restriction.py)
 ```
 
 ## Project Notes

@@ -2434,3 +2434,118 @@ python benchmarks/make_h2o_fcidump.py
 The emitted provenance pins the geometry, active space, PySCF version, independent
 CASCI energy, and FCIDUMP SHA-256. A changed orbital gauge changes the digest and
 must be reviewed as a new benchmark input, not accepted as harmless record drift.
+
+## G1 pre-encoding structural preconditioner (numpy only)
+
+`PLAN.md` §3.5 declares five filters that restrict a candidate pool *before* a
+fermion-to-qubit encoding is chosen, and §14 records that the section has "no
+quantitative content whatsoever" until this record exists. QG1 is the question
+that decides whether Track G exists: does pre-encoding algebraic restriction
+remove candidates the package's existing post-encoding filters keep?
+
+```bash
+python benchmarks/run_g1_structural_preconditioner.py
+python benchmarks/check_g1_structural_preconditioner.py
+```
+
+Nothing is sampled, no energy is computed, and no chemistry extra is needed. The
+whole record is candidate counts and exact actions on a computational
+determinant: a Pauli word maps a basis state to one other basis state times a
+unit-modulus phase, so the action layer is exact up to the candidates' own
+coefficients, with no eigensolve, no projector, and no `2^n` intermediate.
+Roughly 70 seconds on one core.
+
+**The deliverable is the marginal in the order applied, per pool — never an
+aggregate.** Filters A–D have post-encoding analogues in
+`clifford_qc.subspace.symmetry` that the package has applied since Phase 4, so
+counting their removals as new content double-counts shipped machinery. The
+chain runs `A, B → D → C → E` and each stage records what entered, what
+survived, and which labels it removed.
+
+**Two pools, because a marginal is a property of a pool.** The Majorana monomial
+pool (Hermitian monomials of degree `0..4` over the `2n` generators) is §3.5's
+own, and it is wide enough that A and B have something to remove. The
+determinant-excitation pool is the one the mapping and cost records are built
+on. Reporting a marginal from the wide pool as though it applied to the narrow
+one is the central error available here, so both are measured and every
+statement names its pool. The config refuses an excitation pool built with
+`conserve_sz` already applied: that would report a vacuous filter as a measured
+zero marginal.
+
+**Gate 1 — filters A–D reproduce the existing post-encoding filters.** On every
+pool and instance, the survivors of A, B, D and C are exactly the set
+`reference_sector_leakage` accepts, with the annihilated-reference exception
+counted as a rejection. The checker requires an *empty symmetric difference* in
+both directions, not equal counts. On the excitation pool a second, independent
+form of the same gate holds: A–D land on exactly the set
+`determinant_excitations(conserve_sz=True)` keeps — the pool every mapping and
+cost record uses. Disagreement is a bug in one of the two paths and blocks the
+phase; it is not a finding.
+
+**Gate 2 — filter E's marginal is reported separately**, because it is the only
+filter with no post-encoding analogue. The record carries the number of distinct
+Pauli words entering E under the package's own `scalar_free_key` identity, so a
+removal cannot be explained as deduplication.
+
+**Filter C runs through the shipped `Restriction`**, not a second implementation
+of `P_s A P_s`. `Restriction.transport` moves the Hamiltonian, the reference and
+the candidates together, so §3.5's congruence rule holds by construction, and R4's
+contextual-subspace comparator shares the one implementation. The declared arm is
+`parity+2q`, which fixes two stabilizer qubits; an identity restriction would make
+C vacuous by construction rather than by measurement.
+
+**Filter B is reference-conditioned, and the record measures why that matters.**
+Global commutation `[A,Q] = 0` is sufficient for sector preservation and not
+necessary; the condition A-CASE needs is `(Q − q_target) A ψ_ref = 0`. On the
+Majorana pool the global commutant admits `37` candidates against the
+reference-conditioned `549`, so a filter B written as the global test would
+reject `512` candidates the shipped reference-aware path accepts — failing gate 1
+outright — and would foreclose §7.4's excited-state track on the way past. The
+`(γ_2p γ_2p+1)² = −1` witnesses are computed per register for the same reason:
+§3.5's argument that the real `Cl(2n,0)` branch is vacuous for these stabilizers
+rests on that square, so the record carries it as a number rather than a claim.
+
+**The result, on BeH₂, H₄ and Hubbard 2×2 at 8 qubits.** Filters A–D reproduce
+the existing accept set exactly on both pools and all three instances — that is
+the required agreement, not a finding. Filter E's marginal splits by pool: it
+removes `522` of the `549` candidates reaching it on the Majorana pool, over
+entrants that are all distinct Pauli words, and it removes **nothing** on the
+excitation pool. At the matched degree cap the `27` surviving Majorana classes
+reach exactly the determinants `{identity} ∪` the `26` rank-≤2 excitations reach —
+same set, no candidate on either side the other misses. So the chain
+*reconstructs* the pool the package already builds rather than producing a
+different or smaller one.
+
+QG1's falsifier is the conjunction "A–D agree **and** E removes nothing", and it
+does not fire: E has content on the pool §3.5 specifies. But the content is
+pool-dependent, and the checker re-derives the verdict from the measured fields
+so it cannot be written by hand.
+
+**What the record does not license.** No resource claim of any kind, and no
+statement that either pool is cheaper to measure. E's marginal on the Majorana
+pool removes redundancy the excitation builder never creates, so it may not be
+reported as a reduction of the pool the mapping records use. The filters are
+pre-encoding in the sense that none of them consults the encoding — each is a
+function of the Majorana index data, the declared conserved quantities and the
+reference. They are *not* computed in an encoding-free representation: this
+package's only arithmetic substrate is the Jordan–Wigner Pauli image, as
+`CONVENTIONS.md` states.
+
+**The degree sweep bounds the correspondence.** On BeH₂ the Majorana pool's
+action-equivalence class count runs `9 → 27 → 35 → 36` at degree caps
+`2, 4, 6, 8`, against the `36`-dimensional `(N=4, S_z=0)` sector. The excitation
+reach is matched at degree `4` and nowhere else, and the checker requires exactly
+that: a match above the cap would mean the cap is not what makes the comparison
+valid, and a mismatch at it would invalidate the comparison. A wider pool reaching
+more determinants is the pool being wider, not a filter finding more.
+
+**The character probe records an interaction worth knowing before §7.4.** §3.5B
+requires the target character to be a parameter from the first commit. Run under
+a declared `(N=4, S_z=1)` character, filter B admits `240` candidates instead of
+`549` — the parameter is live at the filter that owns it. But the declared
+restriction arm fixes its stabilizer signs from the *reference* sector, so filter
+C then annihilates all `240` and the chain returns an empty admissible pool
+rather than an error; without a restriction, `12` survive. The character and the
+restriction arm are therefore not independent declarations: §7.4's track needs
+both moved together, and a G1 that let them drift would close that track at
+filter C while §3.5B's requirement at filter B still looked satisfied.

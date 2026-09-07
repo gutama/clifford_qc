@@ -8,7 +8,9 @@ resource accounting of §6 and Phases R1–R4 is **new design work**, introduced
 branch (briefly as a separate `RESOURCE_ACCOUNTING_PLAN.md`, then merged here); it has
 no provenance in the base tree and should be reviewed as new rather than as carried
 over. The **GA structural preconditioner** of §3.5 and Phases G1–G3 is likewise new
-design work and carries no results yet. Phase numbers, question numbers, and the
+design work; G1 now carries a measured result and G2–G3 are retired on it (§5),
+so §3.5 should be read as a contract whose first phase has reported rather than
+as an unbuilt proposal. Phase numbers, question numbers, and the
 section numbers cited from code docstrings are unchanged, so existing references still
 resolve; Paper A's own phases are relabelled A0–A5 to keep them distinct from the
 Phases 0–18 of §5.
@@ -109,7 +111,8 @@ Status at a glance:
 | 13 | parity/X-rank invariant | **done**; one shared GF(2) implementation is tested across every declared spin-conserving JW construction path before grouping |
 | 14 | fully commuting grouping | **done on the frozen BeH₂/JW comparison** — the public compiled-plan API, exact joint sampler, preregistered finite-sample record, covariance audit, and device-card costing ship; Q9 is positive within the declared one-bank oracle boundary |
 | 15–18 | second moments, time-evolved inputs, mapping breadth, embedding | Track C, open (Phase 18's versioned effective-Hamiltonian schema ships in `models/effective.py`; the fragment-solver callback does not) |
-| G1–G3 | GA structural preconditioner, mapping-invariance test on the restricted pool, PRD/WISE integration with a cost decomposition | **design only** (§3.5, §5); nothing built, no results |
+| G1 | GA structural preconditioner: Majorana pool and filters A–E | **done**; both gates pass and QG1's falsifier does not fire, but E's content is pool-dependent — `522` of `549` removed on the §3.5 Majorana pool, `0` on the excitation pool the mapping records use |
+| G2–G3 | mapping-invariance test on the restricted pool, PRD/WISE integration with a cost decomposition | **retired by G1's own result**; the G1-admissible pool reconstructs the pool R2b already builds, so QG2's falsifier holds by construction rather than by measurement (§5, Phase G2) |
 | R1 | hardware-aware cost model and pooled-estimator ledger | **done**; asymptotic and exact-oracle nonlinear shot-search tiers are recorded |
 | R2a | shared restriction primitive (`subspace/restriction.py`) | **shipped and consumed by the completed R2b record** |
 | R2b | raw-pool mapping axis | **done, negative QR3 result** — QR2 passes, but mapping spread is not smaller than instance spread on either independent fixed-QWC metric |
@@ -256,9 +259,12 @@ per section:**
    unaffected by the two publications except that it may now cite them as
    companion work rather than as forthcoming.
 5. **The GA structural preconditioner (§3.5) is the first newly proposed
-   scientific direction in this plan after P2.** It is design only. Nothing in
-   §3.5 or Phases G1–G3 has been built or measured, and no part of it may be
-   described as a result.
+   scientific direction in this plan after P2.** Phase G1 is now built and
+   measured (`g1_structural_preconditioner.json`); G2 and G3 are not, and are
+   retired rather than pending. What G1 established is a structural agreement
+   and one pool-dependent marginal, not a resource result: nothing in §3.5 has
+   been shown to reduce any cost, any word universe, or any Hilbert space, and
+   no part of it may be described as one.
 6. **"Paper B" is a manuscript line, not a manuscript.** It named the A-CASE/QSCI
    work of §1–§8; P1 and P2 are its public arXiv outputs. The label survives in
    Phase 12, §7, and the committed records, so it is not renamed — but where the
@@ -423,14 +429,16 @@ Checked in tests, not prose:
   this in Majorana language, where it is the same statement about products of
   creation and annihilation operators mixing Clifford grades.
 
-### 3.5 The GA structural preconditioner (design; nothing built)
+### 3.5 The GA structural preconditioner (contract; G1 measured, G2–G3 retired)
 
 The filters below run **before** the fermion-to-qubit encoding. That placement is
 the whole point: after JW or BK, the restrictions become encoded Pauli/symmetry
 conditions and action equivalence is less transparent and usually more expensive
 to test, whereas before encoding both are direct algebraic conditions on a few
 hundred abstract operators. This
-section is a contract, not a result — see §1.2(5).
+section is the contract Phase G1 was built against; its measured outcome is in
+§5 (Phases G1–G3) and §10 (QG1), and the boundary on what that outcome licenses
+is §1.2(5) and §14.
 
 **Where the algebra actually lives.** For `n` fermionic modes introduce `2n`
 Majorana generators with
@@ -1628,16 +1636,19 @@ effective-Hamiltonian schema and a fragment-solver callback returning energy plu
 one- and two-particle density matrices. QSCI, selected CI, and the hybrid should
 implement the same callback.
 
-### Phases G1–G3 — GA structural preconditioner (design only)
+### Phases G1–G3 — GA structural preconditioner (G1 done; G2–G3 retired)
 
 The contract is §3.5. These are labelled **G**1–G3, not R1–R3, because Phases
 R1–R4 already exist and R1 is shipped; where an external note called these
 "R1–R3", read G1–G3.
 
-**Nothing here is built.** No module, no record, no result. Each phase ships the
-project's standard triple (producer, stamped record with an explicit `schema`,
-regenerating checker) plus its `REPRODUCING.md` entry, and none may report a
-number before that triple exists.
+**G1 is built; G2 and G3 are retired by its result.** G1 ships the project's
+standard triple — `clifford_qc/subspace/ga_restriction.py`,
+`run_g1_structural_preconditioner.py`,
+`reference_results/g1_structural_preconditioner.json`,
+`check_g1_structural_preconditioner.py` — plus its `REPRODUCING.md` entry, and it
+runs in the deterministic `structural-records` matrix. It samples nothing and
+prices nothing; the checker fails a record carrying any cost field.
 
 **G1 — the structural preconditioner.** Build the fermionic/Majorana candidate
 pool in `Cl(2n,ℂ)` (§3.5) and implement filters A–E. Output: surviving abstract
@@ -1663,7 +1674,56 @@ method, and G2/G3 do not run. That outcome is publishable as a short negative �
 exhausted by post-encoding symmetry filtering" — and it is cheaper to discover
 here than after building the mapping experiment on top of it.
 
-**G2 — mapping invariance on the restricted pool.** Encode exactly the G1 pool
+*Result — both gates pass, and the falsifier does not fire.* On BeH₂, H₄ and
+Hubbard 2×2 at 8 qubits, over the Hermitian Majorana monomial pool of degree
+`0..4` (`2517` candidates) and the rank-≤2 excitation pool built without its
+`conserve_sz` argument (`52`):
+
+- **Gate 1 holds with an empty symmetric difference**, both directions, on every
+  pool and instance: filters A–D admit exactly the `549` (Majorana) and `26`
+  (excitation) candidates the shipped `reference_sector_leakage` accepts. A
+  second, independent form holds on the excitation pool — A–D land on exactly
+  the set `determinant_excitations(conserve_sz=True)` keeps, which is the pool
+  R2b, R3 and every cost record are built on.
+- **Gate 2, E's marginal, reported separately and split by pool.** E removes
+  `522` of the `549` reaching it on the Majorana pool and **nothing** on the
+  excitation pool. All `549` entrants are distinct Pauli words under the
+  package's own `scalar_free_key`, so no removal is deduplication — which is the
+  measurement §3.5E's claim actually needs.
+- **The two pools coincide at the matched cap.** The `27` surviving Majorana
+  classes reach exactly the determinants `{identity}` plus the `26` excitations
+  reach: same set, nothing on either side the other misses. The chain
+  *reconstructs* the excitation pool rather than producing a different or smaller
+  one. A degree sweep (`9 → 27 → 35 → 36` classes at caps `2, 4, 6, 8`, against
+  the `36`-dimensional sector) shows the match is at the matched cap and nowhere
+  else; a wider pool reaching more determinants is the pool being wider.
+
+*Two things the record measured that the design did not anticipate.* First,
+§3.5B's reference-conditioned form is load-bearing by `512` candidates: the
+global commutant admits `37` where the reference-conditioned test admits `549`,
+so a filter B written as `[A,Q]=0` would fail gate 1 outright. Second, the target
+character and the restriction arm are **not independent declarations**. Under a
+declared `(N=4, S_z=1)` character filter B admits `240` candidates — the
+parameter is live — but filter C, carrying stabilizer signs fixed from the
+*reference* sector, then annihilates all `240` and the chain returns an empty
+admissible pool rather than an error. §7.4's excited-state track needs both moved
+together; a G1 that let them drift would close that track at filter C while
+§3.5B's requirement at filter B still looked satisfied.
+
+**G2 — retired, on G1's result rather than on a schedule.** The paragraph below
+is the design as written. It does not run, and the reason is G1's matched-cap
+correspondence: G2 exists to give JW and BK the same *physical operator domain*,
+but on this instance family that domain is the pool R2b already maps. QG2's
+falsifier — "identical mapping conclusions from both pools" — therefore holds by
+construction, and rerunning the mapping producer would reproduce the frozen
+record rather than test anything. G3's `raw → GA` arrow is zero for the same
+reason: the two pools span the same directions, so the arrow's interval covers
+zero before any cost is measured. Both stay written here because the retirement
+is a *result about this pool family at this cap*, not a judgment that the design
+was wrong — a candidate family the excitation builder does not already exhaust
+would put them back in scope, and would need its own declaration.
+
+**G2 — the design as written, retained for the record.** Encode exactly the G1 pool
 through JW and BK independently. Verify energies and subspace actions agree;
 record the mapping-*dependent* quantities separately: `W`, the three weight
 multisets, QWC structure, `G(k)`, `N_1q`/`N_2q`/`D_2q`.
@@ -3130,16 +3190,39 @@ A-CASE's.
   filters keep? *Falsifier:* filters A–D agree with the existing filters, as required
   by G1's gate, **and** the action-equivalence quotient E removes nothing — in which
   case §3.5 is a reformulation and Track G stops. This is the question that decides
-  whether the track exists.
+  whether the track exists. **Answered, and the falsifier does not fire — but the
+  content is pool-dependent, which is the more useful half.** A–D reproduce the
+  existing accept set exactly on every declared pool and instance (the gate, not a
+  finding). E removes `522` of `549` on the Majorana pool §3.5 specifies, over
+  entrants that are all distinct Pauli words, and `0` on the excitation pool the
+  mapping and cost records are built on. At the matched degree cap the surviving
+  Majorana classes reach exactly the determinants the excitation pool reaches, so
+  what E removes is redundancy that the excitation builder never creates. The
+  answer is therefore that §3.5 has independent *derivational* content — a
+  quotient no existing code path performs — and no independent *selective*
+  content on the family the project actually measures. The checker re-derives
+  this verdict from the measured fields, so it cannot be written by hand, and it
+  fails any record carrying a cost field.
 - **QG2 (encoding cleanliness).** Does giving JW and BK the same GA-admissible
   operator domain change the measured mapping comparison relative to running both on
   the raw pool? *Falsifier:* identical mapping conclusions from both pools, meaning
   the confound G2 exists to remove was never material at these sizes.
+  **Closed without running G2, on G1's matched-cap correspondence.** The
+  GA-admissible domain *is* the raw pool on this instance family, so the two
+  pools are the same object and the falsifier holds by construction. That is a
+  weaker discharge than a measurement and is labelled as one: it says the
+  confound is absent here, not that it would be absent on a candidate family the
+  excitation builder does not already exhaust.
 - **QG3 (attribution).** In the `raw → GA → GA+PRD → GA+PRD+WISE` decomposition at
   fixed accuracy under a named card, does the GA arrow carry a margin excluding zero?
   *Falsifier:* it does not — GA is then an architectural convenience with no measured
   resource contribution, which is a reportable result and not a reason to suppress
-  the decomposition.
+  the decomposition. **Not run, and its answer is forced by QG2's.** Identical
+  pools span identical directions, so the `raw → GA` arrow is exactly zero
+  before any cost is measured — the falsifier's own outcome, reached
+  structurally rather than by spending the decomposition. GA is an
+  architectural convenience on this family, which is reportable and is
+  reported.
 
 ---
 
@@ -3268,10 +3351,20 @@ once under its frozen 3.12 / 2.5.2 environment, and its producer, record and
 checker have landed; (2) Phase 13's deterministic X-rank invariant now ships
 and Q10 passes on the current construction matrix; (3) Phase 14a's public compiled
 measurement-plan boundary now ships without a sampled record, and Phase 14b's frozen
-QWC-versus-fully-commuting comparison is the next Track B implementation. R4a's
+QWC-versus-fully-commuting comparison has since executed once against it, which
+closes Track B's step 9 and answers Q9 on that bank. R4a's
 exact-tier blocker is lifted on its own terms — R3c supplied the
-second priced instance — though its declared gate remains QR5, which is
-unanswered, so it does not start here. QR3 itself is now compared rather than
+second priced instance — and its gate is restated below, because "QR5 answered"
+was circular: R4a's four arms are what measure QR5. (4) G1 has since been built
+and measured against that opening, and its result retires G2 and G3 rather than
+scheduling them: filters A–D reproduce the existing post-encoding filters
+exactly, filter E has content on the Majorana pool §3.5 specifies and none on the
+excitation pool the mapping records use, and at the matched degree cap the two
+pools reach the identical determinant set. Track G therefore has no open step
+either. **What that leaves is R4a and one undeclared question.** R4a is now
+unblocked on both counts — its exact-tier blocker was lifted by R3c and its gate
+is no longer self-referential — and is the only remaining phase in the numbered
+order with work in it. QR3 itself is now compared rather than
 abstaining, and unresolved: separating a `17.52×` mapping spread from a `1.02×`
 instance spread needs narrower cost brackets, which means resolution *between*
 the existing endpoints rather than endpoints above `65536`. That is a new
@@ -3314,8 +3407,10 @@ not another open accuracy phase.
 
 **Track B — measurement.**
 
-9. Explicit X-rank invariant (Phase 13) and the compiled-plan boundary (Phase 14a)
-   are done; the frozen QWC-versus-fully-commuting comparison (Phase 14b) is next.
+9. Explicit X-rank invariant (Phase 13), the compiled-plan boundary (Phase 14a),
+   and the frozen QWC-versus-fully-commuting comparison (Phase 14b) are all done.
+   Track B has no open step; Q9 is answered on the preregistered BeH2/JW bank and
+   nowhere wider.
 
 **Resource accounting** (interleaves with Track B; R1 first).
 
@@ -3503,29 +3598,55 @@ not another open accuracy phase.
     right-censored at `65536`; censoring is not infinite cost and does not
     license a wider grid. QR3 is re-derived only if the record supplies a second
     priced instance.
-14. R4a — contextual-subspace comparator arms with bias floors. *Gate:* QR5 answered.
-15. R4b — CS-preconditioned A-CASE, built only on a complementary QR5.
+14. R4a — contextual-subspace comparator arms with bias floors. *Gate:* every arm
+    admitted by `run_priceability_screen.py` under its declared ceiling, since `Δ`
+    needs three finite cost ratios and the full-QSE baseline `C₀` is the widest of
+    the four arms (§5, Phase R4). The gate is **not** "QR5 answered": R4a's four
+    arms are precisely what supply `r_CS`, `r_A` and `r_joint`, so R4a is the phase
+    that *measures* QR5 and cannot wait on its own output. That wording stood at
+    this line while the R3 sequence was the binding constraint and no one reached
+    it; it is corrected here rather than carried, because a gate no phase can
+    discharge is indistinguishable from a phase nobody scheduled.
+15. R4b — CS-preconditioned A-CASE, built only on a complementary QR5. This is the
+    step QR5 genuinely gates, and it already said so.
 
 **Track G — structural restriction before encoding** (§3.5). Independent of Track A;
 it shares the `Restriction` primitive with R2a, so it starts no earlier than step 11.
 
-16. G1 — the preconditioner and its per-filter marginals. *Gate:* A–D reproduce the
-    existing Pauli-side filters exactly; E's marginal is reported separately. *Stop
-    condition:* if E removes nothing, publish the short negative and do not run
-    G2/G3.
-17. G2 — rerun the R2b producer on the G1-admissible pool if G1 survives. This is
-    a second labelled record beside the raw-pool result, not a replacement for it.
-18. G3 — PRD and WISE on the admissible pool, reporting the
-    `raw → GA → GA+PRD → GA+PRD+WISE` decomposition at fixed accuracy under a named
-    card. *Gate:* every arrow carries its own propagated margin.
+16. G1 — the preconditioner and its per-filter marginals. **Done.** Both gates
+    pass: A–D reproduce the existing Pauli-side filters with an empty symmetric
+    difference on every pool and instance, and E's marginal is reported
+    separately. The stop condition was written for the case where E removes
+    nothing; what happened is narrower and needed the second pool to see. E
+    removes `522` of `549` on the Majorana pool §3.5 specifies and `0` on the
+    excitation pool the mapping records use, and at the matched cap the two
+    pools reach the identical determinant set — so the chain reconstructs R2b's
+    pool rather than restricting it.
+17. G2 — **retired, not scheduled.** It exists to give JW and BK the same
+    physical operator domain, and step 16 measured that domain to be the pool
+    R2b already maps. Rerunning the mapping producer on it would reproduce the
+    frozen record, so QG2's falsifier holds by construction. Recorded as the
+    weaker discharge it is: the confound is absent on this family, which is not
+    a claim about a family the excitation builder does not exhaust.
+18. G3 — **retired with G2**, and for the same reason: identical pools span
+    identical directions, so the `raw → GA` arrow is zero before any cost is
+    measured. That is QG3's own falsifier reached structurally instead of by
+    spending the decomposition, and it is reported rather than suppressed.
 
-Two orderings are defensible and the choice is deliberate. G1 before R2b gives the
+Two orderings were defensible and the choice was deliberate. G1 before R2b gives the
 cleaner mapping experiment (§5, Phase G2) at the cost of delaying R2. R2b first
 gets the mapping result out on the raw pool and treats the G pool as a later
-refinement. **The plan takes the second**, because R1's exact-tier gate is already
-the binding constraint on R2 and G1's own falsifier may retire the G track
+refinement. **The plan took the second**, because R1's exact-tier gate was already
+the binding constraint on R2 and G1's own falsifier might retire the G track
 entirely; spending the mapping experiment's schedule on an unbuilt preconditioner
-would be betting the near-term result on the more speculative branch.
+would have been betting the near-term result on the more speculative branch.
+
+*That ordering is now settled by its own outcome, and it was the right one.* G1
+did not retire the track on the falsifier as written, but it retired G2 and G3 on
+something the first ordering could not have shown: the two pools coincide. Had G1
+run first, the "cleaner mapping experiment" it was supposed to buy would have been
+the same experiment R2b already ran, and the schedule spent reaching it would have
+bought a duplicate record.
 
 **Track C — longer horizon.**
 
@@ -3612,8 +3733,18 @@ Working in a Majorana generating set does not change the algebra — it is the s
 representations of fermionic algebras, contextual-subspace projection, symmetry
 tapering, or idempotent/ideal formulations of quantum mechanics; §11's P-BK,
 P-ENC, P-IDEM, P-GAGATE rows record who does own them and, in two cases, what they
-do *not* establish. Until Phase G1 reports per-filter marginals, the section has
-no quantitative content whatsoever.
+do *not* establish. Phase G1 has now reported the per-filter marginals, and they
+bound the section rather than releasing it. Filters A–D reproduce the existing
+post-encoding accept set exactly, which §5 makes a *gate* — agreement is the
+condition for proceeding, not a discovery, and it may not be reported as one.
+Filter E's marginal is real but pool-dependent: it removes `522` of `549`
+candidates on the wide Majorana pool and nothing at all on the excitation pool
+every mapping and cost record is built on, and at the matched degree cap the two
+pools reach the identical set of determinants. So the defensible statement is
+that the pre-encoding chain *reconstructs* the pool the package already builds.
+Wording that reports E's Majorana-pool marginal as a reduction of the pool R2b
+uses, or as any resource quantity at all, is the specific error this paragraph
+exists to block.
 
 **On the priceability screen (R3S).** It is not a price, and it does not establish
 which instances are priceable. Its ceiling is an operational admission threshold

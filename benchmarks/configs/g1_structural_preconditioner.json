@@ -1,0 +1,65 @@
+{
+  "schema": "clifford_qc.g1_structural_preconditioner_config.v1",
+  "phase": "G1_structural_preconditioner",
+  "parent_lineage": {
+    "repository": "gutama/clifford_qc",
+    "preserved_results": [
+      "Nothing in the frozen R2b/R3 mapping and cost records is touched. This phase measures which candidates a pre-encoding filter chain admits; it prices nothing and re-derives no cost, setting or shot quantity.",
+      "The raw generator pool the mapping records were built on -- determinant_excitations at max_rank 2 with conserve_sz True -- keeps its meaning. Where this record compares against that pool it reads the same builder, it does not redefine it."
+    ]
+  },
+  "estimand": {
+    "name": "G1_per_filter_marginal_of_the_pre_encoding_restriction_chain",
+    "question": "Applied in the declared order A, B -> D -> C -> E, how many candidates does each filter of PLAN.md section 3.5 remove, and does filter E -- the one filter with no post-encoding analogue -- remove anything the package's existing post-encoding filters keep?",
+    "why_it_exists": "Section 3.5 is a contract with no quantitative content until this record exists, and section 14 says so. QG1 asks whether pre-encoding algebraic restriction has independent content or is a reformulation of filtering the package already performs. The falsifier for the whole G programme is that filters A-D reproduce the existing filters AND E removes nothing, and it is cheaper to test that here than after G2 has been built on top of it."
+  },
+  "candidate_pools": {
+    "majorana_monomials": {
+      "builder": "clifford_qc.subspace.ga_restriction.majorana_monomial_pool",
+      "max_degree": 4,
+      "statement": "Hermitian Majorana monomials of degree 0..4 over the 2n generators, in index order. This is section 3.5's own 'Majorana-generated candidate pool' taken literally.",
+      "max_degree_basis": "Degree 4 is the cap matched to the rank-2 excitation family every mapping record uses: a rank-r determinant excitation is a combination of Majorana monomials of degree up to 2r. The record reports a degree sweep beside it so the dependence on this cap is visible rather than assumed, and any statement comparing the two pools is made only at the matched cap.",
+      "why_not_the_excitation_pool_alone": "A pool that has parity, particle number and S_z imposed at construction cannot measure what filters A and B remove: it would report zero marginals, and a reader could not tell a vacuous filter from a pre-filtered pool. The wide pool is what makes A and B measurable at all."
+    },
+    "determinant_excitations": {
+      "builder": "clifford_qc.subspace.fermionic_generators.determinant_excitations",
+      "max_rank": 2,
+      "conserve_sz": false,
+      "statement": "Anti-Hermitian singles and doubles against the reference determinant, built WITHOUT the conserve_sz argument the mapping records pass, so that filter B has something to remove and its agreement with the builder's own exclusion is measurable.",
+      "comparison_pool": "The same builder with conserve_sz true -- the pool R2b, R3 and every mapping record are built on. Filters A-D are required to reproduce exactly the set that builder keeps."
+    }
+  },
+  "systems": [
+    "beh2",
+    "h4",
+    "hubbard_2x2"
+  ],
+  "systems_basis": "The three declared instances that build from committed inputs with no optional extra installed: two FCIDUMP molecules and one native lattice. hubbard_2x2 is kept because its reference determinant fills orbitals (0,3,4,7) rather than a prefix, which is the case occupied_spin_orbitals exists for and the one where a filter chain that assumed a prefix-filled reference would return plausible wrong numbers. h2o_cas8e6o is omitted: at 12 qubits the degree-8 arm of the sweep enumerates 2.7e6 monomials, which buys no new structure at a cost this deterministic gate should not carry on every pull request.",
+  "restriction_arm": {
+    "encoding": "parity+2q",
+    "basis": "Filter C is evaluated through the shipped Restriction primitive rather than a second implementation of P_s A P_s, which is G1's third gate. parity+2q is the declared arm that actually fixes stabilizer qubits -- two of them -- so the filter has a non-empty fixing set to act through; an identity restriction would make C vacuous by construction rather than by measurement."
+  },
+  "target_character": {
+    "mode": "reference",
+    "statement": "Filter B requires (Q - q_target) A psi_ref = 0 for Q in {N, S_z}, with q_target defaulting to the reference determinant's own character.",
+    "parameter_basis": "Section 3.5B requires this to be a parameter from the first commit, because an implementation that hard-codes the ground-state character -- or the stronger global condition [A,Q]=0 -- forecloses the excited-state track of section 7.4. excited_character_probe below exercises a different declared character on the same pool so the parameter is demonstrated live rather than asserted."
+  },
+  "excited_character_probe": {
+    "particle_number": 4,
+    "sz": 1.0,
+    "basis": "One non-reference character, run on the same pool, whose survivor set must differ from the ground-state one. This does not target an excited state or claim anything about section 7.4's track; it demonstrates that the character is a live parameter and that B is not a hard-coded ground-state test."
+  },
+  "degree_sweep": [2, 4, 6, 8],
+  "degree_sweep_basis": "The Majorana pool's action-equivalence class count against its degree cap, on beh2 only. It bounds what the matched-cap comparison does and does not say: the pools coincide at the matched cap, and the Majorana pool reaches strictly more determinants above it because it is a wider pool, not because a filter found something.",
+  "gates": {
+    "abcd_reproduce_the_existing_pauli_filters": true,
+    "abcd_gate_statement": "On the same pool and instance, the survivors of A, B, D and C must be exactly the set the package's existing post-encoding machinery accepts: a candidate is accepted there when reference_sector_leakage returns zero target-sector leakage and does not raise on an annihilated reference. Disagreement in either direction is a bug in one of the two paths and blocks the phase; it is not a finding.",
+    "e_marginal_reported_separately": true,
+    "e_marginal_gate_statement": "Filter E is the only filter with no post-encoding analogue, so its marginal is never folded into an aggregate. The record also carries the number of distinct Pauli words entering E, under the package's own scalar_free_key identity, so that a removal cannot be explained by duplicate words.",
+    "restriction_primitive_is_reused": true,
+    "restriction_gate_statement": "Filter C runs through clifford_qc.subspace.restriction.Restriction.transport, which moves the Hamiltonian, the reference and the candidates together. The congruence rule of section 3.5 then holds by construction rather than by review, and R4's contextual-subspace comparator shares the one implementation.",
+    "no_cost_fields": true,
+    "no_cost_fields_statement": "This tier prices nothing. A record carrying a shot count, a device cost, a C(epsilon) or a k* has changed what it claims and the checker fails it."
+  },
+  "claim_boundary": "Structural scope-decision evidence only, on three declared instances at one degree cap, one reference determinant each, and one restriction arm. Every quantity is a candidate count or an exact action on a computational determinant -- Pauli words applied to basis states, so the action layer is exact up to the candidates' own coefficients -- compared to tolerance by the checker rather than in exact arithmetic. Nothing is sampled, no energy is computed, and no resource quantity is produced. The filters are pre-encoding in the sense that none of them consults the fermion-to-qubit encoding: each is a function of the Majorana index data, the declared conserved quantities and the reference. They are NOT computed in some encoding-free representation -- this package's only arithmetic substrate is the Jordan-Wigner Pauli image, as CONVENTIONS.md states -- and no wording upgrading that may survive review. A marginal reported here is a property of the declared pool: a filter that removes nothing from a pool built with that filter already applied has measured the pool, not the filter, and the record pairs every marginal with the pool it was taken on. This record may retire or sustain the G programme's falsifier; it may not establish that any pool is cheaper to measure, that GA contributes to any resource quantity, or that a smaller Hilbert space exists."
+}
