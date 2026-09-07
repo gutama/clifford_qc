@@ -97,6 +97,11 @@ def test_contextual_constructor_and_ladder_are_frozen(config):
     contextual = config["contextual_restriction"]
     assert contextual["fixed_qubit_ladder"] == list(range(1, 8))
     assert contextual["tolerance"] == 1e-9
+    assert contextual["tolerance_scope"] == (
+        "reference expectation and compiled-image checks only; every represented "
+        "non-identity Hamiltonian word remains a selection candidate regardless of "
+        "coefficient magnitude"
+    )
     assert "packed Pauli-word code" in contextual["term_order"]
     assert "GF(2) symplectic rank" in contextual["independence_rule"]
     assert "largest fixed-qubit count" in contextual["rung_rule"]

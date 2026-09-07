@@ -297,6 +297,12 @@ def contextual_problems(config: dict) -> list[str]:
         problems.append("the eight-qubit contextual ladder must remain 1 through 7")
     if contextual.get("tolerance") != 1e-9:
         problems.append("the contextual comparison tolerance drifted")
+    if contextual.get("tolerance_scope") != (
+        "reference expectation and compiled-image checks only; every represented "
+        "non-identity Hamiltonian word remains a selection candidate regardless of "
+        "coefficient magnitude"
+    ):
+        problems.append("the contextual tolerance scope drifted")
     if "largest fixed-qubit count" not in contextual.get("rung_rule", ""):
         problems.append("the contextual rung-selection rule drifted")
     if "Restriction.transport remains strict" not in contextual.get(

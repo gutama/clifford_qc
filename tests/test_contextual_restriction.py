@@ -38,6 +38,19 @@ def test_selection_requires_reference_eigenstate_and_energy_lowering_sign():
     assert selected.skipped_reference_sign_mismatch == 1
 
 
+def test_selection_does_not_use_reference_tolerance_as_a_coefficient_cutoff():
+    reference = ket_density(2, "00")
+    hamiltonian = -1e-10 * Z(2, 0)
+
+    selected = select_contextual_stabilizers(
+        hamiltonian, reference, 1, tol=1e-9
+    )
+
+    assert selected.stabilizers[0].word == next_word(Z(2, 0))
+    assert selected.stabilizers[0].coefficient == pytest.approx(-1e-10)
+    assert selected.visited_terms == 1
+
+
 def test_dependent_hamiltonian_words_do_not_consume_fixed_qubits():
     reference = ket_density(4, "0000")
     hamiltonian = (

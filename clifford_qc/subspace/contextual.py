@@ -212,7 +212,7 @@ def select_contextual_stabilizers(
         (
             (code, float(complex(coefficient).real))
             for code, coefficient in H.terms.items()
-            if code != 0 and abs(complex(coefficient)) > tol
+            if code != 0
         ),
         key=lambda row: (-abs(row[1]), row[0]),
     )
