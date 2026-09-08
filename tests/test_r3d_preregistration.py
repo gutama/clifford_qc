@@ -69,6 +69,9 @@ def test_exactly_five_parent_cells_and_seven_midpoints_are_declared(config):
 
 
 def test_every_inherited_interval_is_rederived_from_its_parent(config):
+    r3d._systems.cache_clear()
+    assert r3d._systems() is r3d._systems()
+
     broken = copy.deepcopy(config)
     broken["refinement"]["target_cells"][1]["inherited_endpoint_interval"]["upper"] = 4096
     assert any("inherited endpoint interval drifted" in p for p in r3d.target_problems(broken))

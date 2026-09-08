@@ -316,7 +316,9 @@ def trigger_problems(config: dict) -> list[str]:
     return problems
 
 
+@functools.lru_cache(maxsize=1)
 def _systems() -> dict[str, dict]:
+    """Load the two immutable parent system payloads once per checker process."""
     r3c = _read(R3C_RECORD)
     cost = _read(PROTOCOL_COST_RECORD)
     return {
