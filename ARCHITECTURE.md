@@ -96,14 +96,14 @@ package import.
 
 | Layer | Location | Lines | Owns |
 |---|---|---:|---|
-| Algebra kernel | `clifford_qc/*.py` | 4,214 | `MV`, packed word codes, the three pairings, JW generators, CAR operators, dense/sparse references |
-| Program IR | `ir.py`, `qasm3.py`, `fermion_mapping.py` | (in the above) | Pauli-rotor programs, parameters, gradients, QASM3 export, encoding choice |
+| Algebra kernel | `multivector.py`, `pauli_kernel.py`, `pauli.py`, `clifford.py`, `gates.py`, `states.py`, `fermion.py`, `channels.py`, `dense_reference.py`, `sparse.py`, `pauli_action.py`, `pauli_structure.py`, `diagnostics.py`, `matrix.py`, `selection.py` | 1,970 | `MV`, packed word codes, the three pairings, JW generators, CAR operators, dense/sparse references, the evidence vocabulary |
+| Program IR | `ir.py`, `qasm3.py`, `fermion_mapping.py` | 1,209 | Pauli-rotor programs, parameters, gradients, QASM3 export, encoding choice |
 | Execution | `backends/` | 1,058 | The `Backend` / `SamplingBackend` protocol and its five implementations |
 | Measurement | `measurement/` | 3,924 | QWC and block-commuting grouping, shot allocation, cumulative caches, confidence bounds, device cost |
 | Models | `models/` | 2,338 | Hamiltonians and observables from lattices, FCIDUMP records, Wannier/embedding JSON, orbital bases |
 | Algorithms | `algorithms/` | 1,428 | Fixed-depth VQE, ADAPT-VQE with certified selection, pools, Clifford-point seeding |
 | Subspace solvers | `subspace/` | 8,866 | A-CASE, QSCI/SQD, classical selected-CI controls, hybrid arms, response spectra, growth certificates |
-| Evidence | `benchmarks/`, `reproducibility.py` | — | Record producers, drift gates, environment provenance |
+| Evidence | `benchmarks/`, `verify.py`, `reproducibility.py`, `record_environment.py` | 966 + benchmarks | Record producers, drift gates, environment provenance |
 
 ---
 
