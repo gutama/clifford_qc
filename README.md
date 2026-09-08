@@ -520,7 +520,9 @@ clifford_qc/
                    # QSCI/SQD, classical selected-CI controls, the
                    # QSCI x A-CASE hybrid, coarse-to-fine packet selection,
                    # the Clifford-rotate-then-fix restriction primitive, and
-                   # the pre-encoding Majorana filter chain (ga_restriction.py)
+                   # deterministic reference-conditioned contextual selection
+                   # and projection, and the pre-encoding Majorana filter chain
+                   # (ga_restriction.py)
 ```
 
 ## Project Notes

@@ -106,7 +106,7 @@ No figure or table value in the manuscript is transcribed by hand, and
 ```bash
 python -m venv .venv && source .venv/bin/activate
 pip install -e .[test,research,chemistry]   # numpy + scipy + openfermion/pyscf
-pytest                                      # 1393 passed, 27 skipped
+pytest                                      # 1412 passed, 30 skipped
 ```
 
 That install is the reference environment for the quoted pair. The count
@@ -118,17 +118,18 @@ count. Thirteen files are dropped that way here — `stim` (ten of them:
 `test_clifford_hierarchy_cost`, `test_compiled_measurement`, `test_exact_shot_search`,
 `test_phase4`, `test_restriction`, `test_stim_clifford_rotors`), plus `pennylane`,
 `pytket`, and `pyzx`. The
-remaining fourteen skips are per-test rather than per-file: `test_fermion_mapping`
+remaining seventeen skips are per-test rather than per-file: `test_fermion_mapping`
 and `test_mapping_axis` guard only the individual tests that reach the stim
-bridge, so those files still run.
+bridge, and `test_contextual_restriction` guards the three tableau-compilation
+tests, so those files still run.
 
 `check_docs.py` enforces the pair through the identity relating them. Each of
 the thirteen dropped files contributes exactly one skip and no collected tests, so
-the remaining `27 - 13 = 14` skips are per-test and *are* collected:
+the remaining `30 - 13 = 17` skips are per-test and *are* collected:
 
 ```text
 collected == passed + (skipped - files dropped at collection)
-1407      == 1393   + (27      -  13)
+1429      == 1412   + (30      -  13)
 ```
 
 Both sides are computed from the tree, so a drift in either quoted number
@@ -465,7 +466,7 @@ Three cost-aware tiers run:
 | job | when | contents |
 | --- | --- | --- |
 | `test` | pull request, push to `main`, manual dispatch | `ruff`, `pytest --hypothesis-profile=ci`, and the short record gates: `check_docs`, `check_molecular`, `check_krylov_width`, `check_clifford_hierarchy`, `check_finite_shot_optimization`, `check_warm_start` |
-| `structural-records` | pull request, push to `main`, manual dispatch | deterministic rebuild and lineage gates: `check_mapping_axis`, `check_protocol_axis`, `check_priceability_screen`, `check_r3_environment_migration`, `check_r3b_preregistration`, `check_r3c_preregistration`, `check_phase14b_preregistration` |
+| `structural-records` | pull request, push to `main`, manual dispatch | deterministic rebuild and lineage gates: `check_mapping_axis`, `check_protocol_axis`, `check_priceability_screen`, `check_r3_environment_migration`, `check_r3b_preregistration`, `check_r3c_preregistration`, `check_phase14b_preregistration`, `check_g1_structural_preconditioner`, `check_r4a_preregistration` |
 | `sampled-records` | manual dispatch only | replica-drawing rebuild gates, each under its own record stamp: `check_r3b_margin_stop_probe`, `check_finite_shot_rethink`, `check_matched_h4`, `check_qr3b_instance_preflight`, `check_exact_shot_search`, `check_protocol_cost`, `check_r3c_lih_full_cost`, `check_phase14b_qwc_vs_fc` |
 
 The same dispatch also runs `environment-consistency`, which requires every
@@ -2434,6 +2435,42 @@ python benchmarks/make_h2o_fcidump.py
 The emitted provenance pins the geometry, active space, PySCF version, independent
 CASCI energy, and FCIDUMP SHA-256. A changed orbital gauge changes the digest and
 must be reviewed as a new benchmark input, not accepted as harmless record drift.
+
+## R4a contextual-interaction preregistration (result-free)
+
+R4a begins with a declaration, not an experiment:
+
+```bash
+python benchmarks/check_r4a_preregistration.py
+```
+
+The checker binds the reviewed BeH₂/JW input and R3S margin-stop bank to four
+ordered arms (`C0`, `C_CS`, `C_ACASE`, `C_CS+ACASE`). It also freezes the
+reference-conditioned contextual-stabilizer selection rule, canonical
+coefficient/code tie-break, signs, independence and commutation gates,
+fixed-qubit ladder, structural admission thresholds, measurement grid, future
+seed namespaces, accuracy/censoring rules, and three device cards.
+
+This command is static. It hashes already-reviewed inputs and validates the API
+and declaration; it does not select stabilizers for BeH₂, solve a projected
+bank, draw samples, report a cost ratio, or classify QR5. The declaration
+authorizes exactly one later structural screen, whose record must land in a
+separate commit. It authorizes no sampled execution: every arm must first pass
+the frozen `0.533333…` mHa bias-margin and `2048` nonidentity-word gates.
+
+The selection API itself is covered independently:
+
+```bash
+python -m pytest tests/test_contextual_restriction.py \
+    tests/test_r4a_preregistration.py -q
+```
+
+`select_contextual_stabilizers` is NumPy-only. The compilation and projection
+tests require the `stim` extra because `compile_contextual_restriction` builds
+and verifies the stabilizer tableau. Exact symmetry use continues through the
+strict `Restriction.transport`; only the explicitly named contextual projection
+may remove Hamiltonian terms, and it reports their fraction of the non-identity
+Hamiltonian Hilbert–Schmidt norm so a scalar energy shift cannot dilute the diagnostic.
 
 ## G1 pre-encoding structural preconditioner (numpy only)
 
