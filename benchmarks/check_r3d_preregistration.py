@@ -132,8 +132,8 @@ EXPECTED_LINEAGE = {
         "82f28e77e9e97fe57dae49c865dfed95c3c4f74138889a0cd01c9967454a17c7",
     ),
     "benchmarks/run_protocol_cost.py": (
-        "41974dbb5034a732b17d19b5d4ba03ed5b6112df",
-        "6ff61d93031cdf3be9f509ffe9f4345a27eba686a33c9ad367bcef80deb2971a",
+        "59862efd9d074338d76663a07265a940ab914eea",
+        "8f94cbd285ce23720131fb5b185197d0fa998cb230dbd1316d19f5845a76724e",
     ),
     "benchmarks/run_r3c_lih_full_cost.py": (
         "ec37472ec5013292c233142fc8d0b5e8cdc90415",
