@@ -103,3 +103,22 @@ def test_sampled_or_cost_fields_are_rejected(record):
     assert any(
         "sampled/cost field" in row for row in checker.contract_problems(broken)
     )
+
+
+@pytest.mark.parametrize(
+    ("field", "value", "message"),
+    [
+        ("annihilated_candidate_indices", [True], "index lies outside"),
+        ("word_universe", True, "invalid non-identity word universe"),
+        ("settings_by_block_size", {"1": True, "2": 1, "4": 1, "8": 1},
+         "setting counts must be non-negative integers"),
+        ("retained_overlap_rank", True, "retained overlap rank"),
+    ],
+)
+def test_boolean_values_are_rejected_for_integer_contracts(
+    record, field, value, message
+):
+    broken = copy.deepcopy(record)
+    broken["contextual_rungs"][0]["arms"][0][field] = value
+
+    assert any(message in row for row in checker.contract_problems(broken))

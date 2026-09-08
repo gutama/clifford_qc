@@ -27,7 +27,6 @@ import sys
 from typing import Sequence
 
 from clifford_qc.backends import ExactMVBackend, SectorStatevectorBackend
-from clifford_qc.ir import PauliWord
 from clifford_qc.measurement import block_commuting_partition
 from clifford_qc.reproducibility import stamp_record
 from clifford_qc.subspace import (

@@ -94,6 +94,10 @@ def _arm_map(rung: dict) -> dict[str, dict]:
     return {row["name"]: row for row in rung.get("arms", [])}
 
 
+def _is_plain_int(value) -> bool:
+    return isinstance(value, int) and not isinstance(value, bool)
+
+
 def _arm_problems(
     arm: dict, *, gates: dict, source_qubits: int, fixed_qubits: int
 ) -> list[str]:
@@ -107,12 +111,19 @@ def _arm_problems(
 
     before = arm["basis_size_before_deduplication"]
     after = arm["basis_size_after_deduplication"]
+    if (
+        not _is_plain_int(before)
+        or not _is_plain_int(after)
+        or not 1 <= after <= before
+    ):
+        problems.append(f"{name}: basis sizes must be positive integer counts")
+        return problems
     annihilated = arm["annihilated_candidate_indices"]
     duplicates = arm["duplicate_projected_candidate_indices"]
     for label, indices in (("annihilated", annihilated), ("duplicate", duplicates)):
         if indices != sorted(set(indices)):
             problems.append(f"{name}: {label} indices are not sorted and unique")
-        if any(not isinstance(index, int) or not 0 <= index < before for index in indices):
+        if any(not _is_plain_int(index) or not 0 <= index < before for index in indices):
             problems.append(f"{name}: {label} index lies outside the source basis")
         if 0 in indices:
             problems.append(f"{name}: identity at candidate index 0 may not be removed")
@@ -136,7 +147,7 @@ def _arm_problems(
 
     contextual = name.startswith("cs_")
     expected_qubits = source_qubits - fixed_qubits if contextual else source_qubits
-    if arm["active_qubits"] != expected_qubits:
+    if not _is_plain_int(arm["active_qubits"]) or arm["active_qubits"] != expected_qubits:
         problems.append(
             f"{name}: active_qubits={arm['active_qubits']}, expected {expected_qubits}"
         )
@@ -159,7 +170,7 @@ def _arm_problems(
         problems.append(f"{name}: an unrestricted control reports Hamiltonian removal")
 
     words = arm["word_universe"]
-    if not isinstance(words, int) or not 0 <= words <= 4 ** arm["active_qubits"] - 1:
+    if not _is_plain_int(words) or not 0 <= words <= 4 ** arm["active_qubits"] - 1:
         problems.append(f"{name}: invalid non-identity word universe {words!r}")
     if arm.get("word_universe_convention") != "non_identity_words_only":
         problems.append(f"{name}: word-universe convention drifted")
@@ -169,7 +180,7 @@ def _arm_problems(
         problems.append(f"{name}: setting grid differs from {expected_blocks}")
     else:
         counts = [settings[key] for key in expected_blocks]
-        if any(not isinstance(value, int) or value < 0 for value in counts):
+        if any(not _is_plain_int(value) or value < 0 for value in counts):
             problems.append(f"{name}: setting counts must be non-negative integers")
         if words and any(not 1 <= value <= words for value in counts):
             problems.append(f"{name}: a setting count lies outside [1, word_universe]")
@@ -183,7 +194,7 @@ def _arm_problems(
     if arm.get("admissible") != (clears_bias and clears_words):
         problems.append(f"{name}: admissible flag is not the conjunction of both gates")
     rank = arm.get("retained_overlap_rank")
-    if not isinstance(rank, int) or not 1 <= rank <= after:
+    if not _is_plain_int(rank) or not 1 <= rank <= after:
         problems.append(f"{name}: retained overlap rank is outside its basis size")
     return problems
 
