@@ -98,6 +98,9 @@ jobs:
           - gate: check_r4a_preregistration
             timeout: 10
             environment_record: priceability_screen.json
+          - gate: check_r4a_contextual_screen
+            timeout: 20
+            environment_record: r4a_contextual_screen.json
           - gate: check_g1_structural_preconditioner
             timeout: 15
             environment_record: g1_structural_preconditioner.json

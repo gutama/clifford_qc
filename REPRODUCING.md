@@ -106,7 +106,7 @@ No figure or table value in the manuscript is transcribed by hand, and
 ```bash
 python -m venv .venv && source .venv/bin/activate
 pip install -e .[test,research,chemistry]   # numpy + scipy + openfermion/pyscf
-pytest                                      # 1412 passed, 30 skipped
+pytest                                      # 1419 passed, 30 skipped
 ```
 
 That install is the reference environment for the quoted pair. The count
@@ -129,7 +129,7 @@ the remaining `30 - 13 = 17` skips are per-test and *are* collected:
 
 ```text
 collected == passed + (skipped - files dropped at collection)
-1429      == 1412   + (30      -  13)
+1436      == 1419   + (30      -  13)
 ```
 
 Both sides are computed from the tree, so a drift in either quoted number
@@ -466,7 +466,7 @@ Three cost-aware tiers run:
 | job | when | contents |
 | --- | --- | --- |
 | `test` | pull request, push to `main`, manual dispatch | `ruff`, `pytest --hypothesis-profile=ci`, and the short record gates: `check_docs`, `check_molecular`, `check_krylov_width`, `check_clifford_hierarchy`, `check_finite_shot_optimization`, `check_warm_start` |
-| `structural-records` | pull request, push to `main`, manual dispatch | deterministic rebuild and lineage gates: `check_mapping_axis`, `check_protocol_axis`, `check_priceability_screen`, `check_r3_environment_migration`, `check_r3b_preregistration`, `check_r3c_preregistration`, `check_phase14b_preregistration`, `check_g1_structural_preconditioner`, `check_r4a_preregistration` |
+| `structural-records` | pull request, push to `main`, manual dispatch | deterministic rebuild and lineage gates: `check_mapping_axis`, `check_protocol_axis`, `check_priceability_screen`, `check_r3_environment_migration`, `check_r3b_preregistration`, `check_r3c_preregistration`, `check_phase14b_preregistration`, `check_g1_structural_preconditioner`, `check_r4a_preregistration`, `check_r4a_contextual_screen` |
 | `sampled-records` | manual dispatch only | replica-drawing rebuild gates, each under its own record stamp: `check_r3b_margin_stop_probe`, `check_finite_shot_rethink`, `check_matched_h4`, `check_qr3b_instance_preflight`, `check_exact_shot_search`, `check_protocol_cost`, `check_r3c_lih_full_cost`, `check_phase14b_qwc_vs_fc` |
 
 The same dispatch also runs `environment-consistency`, which requires every
@@ -2471,6 +2471,41 @@ and verifies the stabilizer tableau. Exact symmetry use continues through the
 strict `Restriction.transport`; only the explicitly named contextual projection
 may remove Hamiltonian terms, and it reports their fraction of the non-identity
 Hamiltonian Hilbert–Schmidt norm so a scalar energy shift cannot dilute the diagnostic.
+
+## R4a contextual structural screen (completed; no sampling)
+
+The one structural execution authorized above is reproduced and gated by:
+
+```bash
+python benchmarks/run_r4a_contextual_screen.py
+python benchmarks/check_r4a_contextual_screen.py
+python -m pytest tests/test_r4a_contextual_screen.py -q
+```
+
+The producer walks all seven frozen contextual rungs and reports each of the
+four arms in the preregistered order. Every row includes the basis size before
+and after scalar-free projected deduplication, annihilated and duplicate source
+indices, active qubits, absolute bias against the common dense sector energy,
+the non-identity-normalized Hamiltonian removal fraction, non-identity word
+universe, and constructive block-commuting setting counts for `k = 1, 2, 4, 8`.
+The checker regenerates every value and derives every gate flag and the
+largest-passing-rung decision rather than trusting the stored summary.
+
+The screen is negative: no contextual rung admits all four arms. The complete
+27-vector full-QSE control has `0.0033015` mHa bias but `14,350` non-identity
+words, above the frozen `2,048` operational ceiling. A-CASE alone passes both
+gates (`0.0695037` mHa, `1,223` words). The contextual QSE arm compresses to
+`997` words at rung 2 and fewer thereafter, but its best bias is `5.3452775`
+mHa; the contextual A-CASE arm annihilates both nonidentity bank directions
+already at rung 1 and has `5.8994523` mHa bias. Both contextual biases exceed
+the preregistered `0.5333333` mHa margin.
+
+Accordingly `selected_contextual_rung` is null and R4a stops without sampling.
+The full-QSE ceiling failure is an operational screen rejection, not infinite
+cost or proof that the bank cannot be priced. The contextual bias floors are
+above the `1.6` mHa accuracy target as well as the stricter margin, but this
+structural record still reports no `C(epsilon)`, ratio, `Delta`, or QR5
+classification.
 
 ## G1 pre-encoding structural preconditioner (numpy only)
 
