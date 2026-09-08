@@ -1,0 +1,312 @@
+{
+  "schema": "clifford_qc.r3d_qr3_refinement_config.v1",
+  "phase": "R3d_qr3_within_grid_refinement",
+  "status": "preregistration_only_no_refinement_run_yet",
+  "authorization": {
+    "exactly_one_later_refinement_execution": true,
+    "producer": "benchmarks/run_r3d_qr3_refinement.py",
+    "record": "benchmarks/reference_results/r3d_qr3_refinement.json",
+    "checker": "benchmarks/check_r3d_qr3_refinement.py",
+    "temporal_order": "This result-free declaration lands first. The producer, sampled record, regenerating checker, and sampled CI row belong to a later commit.",
+    "no_sampling_in_this_change": true
+  },
+  "parent_lineage": {
+    "repository": "gutama/clifford_qc",
+    "base_commit": "eaddbb454cdf867c013839a97f6541600b07a6c2",
+    "r3c_result_merge": {
+      "pull_request": 79,
+      "commit": "4d664e2857c57452e9e06c0f15ab6396e115e540"
+    },
+    "files": [
+      {
+        "path": "benchmarks/configs/r3c_lih_full_cost.json",
+        "git_blob_sha1": "ad59b2f997d85e3856adb106ee2f808c45484a39",
+        "sha256": "cfbc97f3225ebdf8bdd8bcbddd2141214649664ef238a7cc98188db6f4160daa"
+      },
+      {
+        "path": "benchmarks/reference_results/r3c_lih_full_cost.json",
+        "git_blob_sha1": "5f2faba83d1533d5a8ac4e40432cc294d9aff676",
+        "sha256": "b3d302ae2bc8717658145022c8757d32543b51993e4ca2265d6d66c5ae9be673"
+      },
+      {
+        "path": "benchmarks/reference_results/protocol_cost.json",
+        "git_blob_sha1": "5466fda9e083c2d55b388446e03670b7026f5eec",
+        "sha256": "a1b5bea91d5924ae6c6878baf83e9d8b6b10ad107f4c3a2ab1644ddee1adff59"
+      },
+      {
+        "path": "benchmarks/run_exact_shot_search.py",
+        "git_blob_sha1": "0e2c93a28ab5c9b3517c3e21c0186dff510e8c36",
+        "sha256": "82f28e77e9e97fe57dae49c865dfed95c3c4f74138889a0cd01c9967454a17c7"
+      },
+      {
+        "path": "benchmarks/run_protocol_cost.py",
+        "git_blob_sha1": "41974dbb5034a732b17d19b5d4ba03ed5b6112df",
+        "sha256": "6ff61d93031cdf3be9f509ffe9f4345a27eba686a33c9ad367bcef80deb2971a"
+      },
+      {
+        "path": "benchmarks/run_r3c_lih_full_cost.py",
+        "git_blob_sha1": "ec37472ec5013292c233142fc8d0b5e8cdc90415",
+        "sha256": "1a2ee7380115b67f687ae1919900f8f6e56e012819daf98b0185070abf4fed9c"
+      },
+      {
+        "path": "benchmarks/configs/device_cards/ion-like.json",
+        "git_blob_sha1": "45ab9fd9b59638d2b5d0a94dafe3a5bcb311cb26",
+        "sha256": "1ac47a1a80b621bfeb3d5cc36dd9ab859bf94dc782da4c6fee8aebfb3d9c53c2"
+      },
+      {
+        "path": "benchmarks/configs/device_cards/logical-alltoall.json",
+        "git_blob_sha1": "21fab44375442ce632d12c2d6f3ba9bdad3815f7",
+        "sha256": "5eb4668daa124b4f8f375d37839ab4eeb31f10f8cf27612869e2aebcb9f30fe3"
+      },
+      {
+        "path": "benchmarks/configs/device_cards/superconducting-like.json",
+        "git_blob_sha1": "befb3fb9f09087174f7d07f59d2e1f4e8e4f7316",
+        "sha256": "99fac3de98a34324f31dd734918bc6448ce48dd315752c12dbcc503b1d82e248"
+      }
+    ]
+  },
+  "r3c_trigger": {
+    "comparison_status": "compared",
+    "parent_readout": "indeterminate_at_this_shot_grid",
+    "priced_instances": [
+      "beh2",
+      "lih_cas4e4o_margin_stop"
+    ],
+    "widest_mapping_point_support": {
+      "system": "lih_cas4e4o_margin_stop",
+      "card": "ion-like",
+      "estimator": "pooled",
+      "measured_qubits": 8,
+      "block_size": 4,
+      "arms": [
+        "jw",
+        "parity",
+        "bk"
+      ],
+      "minimum_possible": 1.3565453773281353,
+      "point": 17.523996431440562,
+      "maximum_possible": 70.07705618406148
+    },
+    "narrowest_instance_point_support": {
+      "card": "superconducting-like",
+      "estimator": "single_assignment",
+      "mapping": "parity",
+      "measured_qubits": 8,
+      "block_size": 2,
+      "systems": [
+        "beh2",
+        "lih_cas4e4o_margin_stop"
+      ],
+      "minimum_possible": 1.0,
+      "point": 1.0194094267289762,
+      "maximum_possible": 4.0768582907689614
+    },
+    "selection_role": "These are the R3c point-estimate support cells, selected after R3c and therefore not a prospective test of which cells are extremal. Their coordinates and all R3d endpoints are frozen before any R3d sample is drawn."
+  },
+  "estimand": {
+    "name": "qr3_direction_on_preregistered_r3c_point_support",
+    "question": "After adding only the frozen geometric midpoints inside the inherited conservative intervals, is the minimum possible mapping spread on R3c's widest point-support cell strictly greater than the maximum possible instance spread on R3c's narrowest point-support cell?",
+    "directional_scope": "A strict separation establishes that a mapping spread is larger than an instance spread on these preregistered supports and therefore establishes the positive QR3 direction within the frozen two-instance exact-tier boundary.",
+    "asymmetric_limitation": "Failure to separate cannot establish the opposite QR3 direction because R3d targets R3c's point-support cells rather than refining all 187 cells entering the global extrema. Every non-separating outcome is indeterminate_after_refinement.",
+    "evidence_tier": "exact",
+    "evidence_tier_basis": "Oracle-reference benchmark comparison with heuristic Monte Carlo search uncertainty; not a finite-sample energy certificate, device-noise simulation, or hardware result."
+  },
+  "refinement": {
+    "parent_grid_effective_shots_per_setting": [
+      64,
+      256,
+      1024,
+      4096,
+      16384,
+      65536
+    ],
+    "global_geometric_midpoints_effective_shots_per_setting": [
+      128,
+      512,
+      2048,
+      8192,
+      32768
+    ],
+    "combined_grid_effective_shots_per_setting": [
+      64,
+      128,
+      256,
+      512,
+      1024,
+      2048,
+      4096,
+      8192,
+      16384,
+      32768,
+      65536
+    ],
+    "endpoint_rule": "For each target cell, sample every global geometric midpoint strictly inside that cell's inherited conservative endpoint interval and no other endpoint.",
+    "ceiling_policy": "No endpoint above 65536 is licensed. R3d refines resolution between existing endpoints and is not a wider-grid search.",
+    "target_cells": [
+      {
+        "support": "mapping",
+        "parent_record": "benchmarks/reference_results/r3c_lih_full_cost.json",
+        "system": "lih_cas4e4o_margin_stop",
+        "mapping": "jw",
+        "measured_qubits": 8,
+        "block_size": 4,
+        "estimator": "pooled",
+        "card": "ion-like",
+        "inherited_endpoint_interval": {
+          "lower": 16384,
+          "point": 65536,
+          "upper": 65536,
+          "widened_sides": []
+        },
+        "new_endpoints_effective_shots_per_setting": [
+          32768
+        ]
+      },
+      {
+        "support": "mapping",
+        "parent_record": "benchmarks/reference_results/r3c_lih_full_cost.json",
+        "system": "lih_cas4e4o_margin_stop",
+        "mapping": "parity",
+        "measured_qubits": 8,
+        "block_size": 4,
+        "estimator": "pooled",
+        "card": "ion-like",
+        "inherited_endpoint_interval": {
+          "lower": 1024,
+          "point": 4096,
+          "upper": 16384,
+          "widened_sides": [
+            "passing"
+          ]
+        },
+        "new_endpoints_effective_shots_per_setting": [
+          2048,
+          8192
+        ]
+      },
+      {
+        "support": "mapping",
+        "parent_record": "benchmarks/reference_results/r3c_lih_full_cost.json",
+        "system": "lih_cas4e4o_margin_stop",
+        "mapping": "bk",
+        "measured_qubits": 8,
+        "block_size": 4,
+        "estimator": "pooled",
+        "card": "ion-like",
+        "inherited_endpoint_interval": {
+          "lower": 1024,
+          "point": 4096,
+          "upper": 16384,
+          "widened_sides": [
+            "passing"
+          ]
+        },
+        "new_endpoints_effective_shots_per_setting": [
+          2048,
+          8192
+        ]
+      },
+      {
+        "support": "instance",
+        "parent_record": "benchmarks/reference_results/protocol_cost.json",
+        "system": "beh2",
+        "mapping": "parity",
+        "measured_qubits": 8,
+        "block_size": 2,
+        "estimator": "single_assignment",
+        "card": "superconducting-like",
+        "inherited_endpoint_interval": {
+          "lower": 4096,
+          "point": 16384,
+          "upper": 16384,
+          "widened_sides": []
+        },
+        "new_endpoints_effective_shots_per_setting": [
+          8192
+        ]
+      },
+      {
+        "support": "instance",
+        "parent_record": "benchmarks/reference_results/r3c_lih_full_cost.json",
+        "system": "lih_cas4e4o_margin_stop",
+        "mapping": "parity",
+        "measured_qubits": 8,
+        "block_size": 2,
+        "estimator": "single_assignment",
+        "card": "superconducting-like",
+        "inherited_endpoint_interval": {
+          "lower": 1024,
+          "point": 4096,
+          "upper": 4096,
+          "widened_sides": []
+        },
+        "new_endpoints_effective_shots_per_setting": [
+          2048
+        ]
+      }
+    ],
+    "target_cell_count": 5,
+    "new_endpoint_cell_count": 7,
+    "parent_evidence_policy": "The two parent records and their endpoint decisions are immutable and read-only. R3d does not redraw, overwrite, pool replicas with, or reinterpret a parent endpoint. It begins from each parent's already-conservative interval.",
+    "new_evidence_policy": "Every declared midpoint receives its own R3d exploratory and confirmatory blocks. Only the confirmatory block can tighten an inherited interval; exploration is reported as a protocol diagnostic and cannot select or suppress an endpoint.",
+    "interval_update_rule": "Start from the inherited conservative (lower, upper] endpoint interval. A non-marginal confirmed R3d failure raises lower to max(lower, endpoint); a non-marginal confirmed R3d pass lowers upper to min(upper, endpoint). An environment-marginal R3d endpoint is reported but does not tighten either side. Parent intervals may only narrow, never widen.",
+    "invalid_refinement_rule": "If an endpoint is missing, a required statistic is non-finite, the combined non-marginal decisions are nonmonotone, or the updated lower is not strictly below the updated upper, that support is invalid and the only allowed readout is indeterminate_after_refinement."
+  },
+  "protocol": {
+    "accuracy_target_millihartree": 1.6,
+    "exploratory_replicas_per_new_endpoint": 30,
+    "confirmatory_replicas_per_new_endpoint": 100,
+    "bootstrap_replicates": 10000,
+    "one_sided_delta": 0.05,
+    "environment_marginal_target_fraction": 0.1,
+    "nested_new_endpoints_within_cell_and_phase": true,
+    "parent_and_r3d_streams_are_disjoint": true,
+    "seed_roots": {
+      "exploratory": 160814000,
+      "confirmatory": 160914000,
+      "bootstrap": 161014000
+    },
+    "seed_derivation": "For exploratory and confirmatory sampling use numpy.SeedSequence(root, spawn_key=(target_cell_index, replica_index)); larger R3d endpoints reuse the prefix shots of the same cell/phase/replica stream. For bootstrap use spawn_key=(target_cell_index, phase_index, endpoint_index, estimator_index). Target-cell order is the array order above. Parent samples are never part of an R3d stream.",
+    "pass_rule": "A new endpoint passes only when all 100 confirmatory solves succeed and the one-sided 95% bootstrap upper confidence bound on replica RMSE is at most 1.6 mHa.",
+    "environment_marginal_rule": "When the confirmatory RMSE upper bound is finite and abs(UCB - 1.6 mHa) / 1.6 mHa is at most 0.10, label that R3d endpoint environment-marginal and do not use it to tighten either interval side.",
+    "execution_environment": {
+      "python_minor": "3.12",
+      "numpy": "2.5.2",
+      "scipy": "1.18.0",
+      "stim": "1.16.0"
+    },
+    "device_cards": [
+      {
+        "name": "ion-like",
+        "sha256": "9cc7e53e935e4ec3c265efbd9b6218f17a68c51d727d658c5a5bcaf98d34f453"
+      },
+      {
+        "name": "logical-alltoall",
+        "sha256": "07e9cc637e590668bc89b7d407535f34f509155e08c95d2ecd0f8f931738265b"
+      },
+      {
+        "name": "superconducting-like",
+        "sha256": "cf78e3240ad48839a8113a1570a43e614c230a8428fe8ceda7783e7ff75e1a13"
+      }
+    ]
+  },
+  "future_readout": {
+    "mapping_support_minimum_formula": "max(mapping-cell lower costs) / min(mapping-cell upper costs), clamped below at 1",
+    "instance_support_maximum_formula": "max(instance-cell upper costs) / min(instance-cell lower costs)",
+    "positive": "qr3_mapping_spread_larger_on_preregistered_support, if and only if both supports are valid and mapping_support_minimum is strictly greater than instance_support_maximum",
+    "otherwise": "indeterminate_after_refinement, including overlap, equality, marginal-only non-resolution, missing evidence, nonmonotonicity, or an invalid interval",
+    "negative_readout_allowed": false,
+    "point_estimates_are_decisive": false,
+    "global_extrema_may_not_be_reselected_after_r3d": true
+  },
+  "reporting_contract": {
+    "result_commit_must_be_separate": true,
+    "existing_configs_and_records_are_immutable": true,
+    "r3d_record_must_include_all_seven_endpoint_cells": true,
+    "r3d_record_must_report_exploratory_and_confirmatory_blocks": true,
+    "r3d_record_must_rederive_every_interval_and_spread": true,
+    "sampled_ci_is_manual_dispatch_only": true,
+    "scope": "one accuracy target, one candidate family, two eight-qubit instances, the two frozen R3c point-support comparisons, and their named illustrative device cards; not an instance-independent mapping claim"
+  },
+  "claim_boundary": "This configuration contains historical R3c support coordinates and inherited parent endpoint intervals, but no R3d sample, endpoint classification, refined interval, refined spread, execution stamp, or QR3 classification. A later record may report only the seven frozen within-grid endpoint cells under the declared 30+100 protocol. It may establish the positive QR3 direction on the preregistered supports or remain indeterminate; it may not report a negative QR3 direction, widen the grid, reselect an extremal cell, or alter either parent record."
+}

@@ -92,6 +92,9 @@ jobs:
           - gate: check_r3c_preregistration
             timeout: 10
             environment_record: r3b_margin_stop_probe.json
+          - gate: check_r3d_preregistration
+            timeout: 10
+            environment_record: r3c_lih_full_cost.json
           - gate: check_phase14b_preregistration
             timeout: 10
             environment_record: protocol_axis.json
