@@ -16,6 +16,7 @@ import argparse
 import functools
 import json
 import math
+import subprocess
 import sys
 
 from clifford_qc.reproducibility import (
@@ -292,13 +293,30 @@ def contract_problems(record: dict) -> list[str]:
     return problems
 
 
+def ancestry_problems() -> list[str]:
+    """Check result ordering when the preregistration commit is available."""
+    known = subprocess.run(
+        ["git", "cat-file", "-e", f"{PREREGISTRATION_MERGE}^{{commit}}"],
+        capture_output=True,
+    )
+    if known.returncode:
+        return []
+    ancestor = subprocess.run(
+        ["git", "merge-base", "--is-ancestor", PREREGISTRATION_MERGE, "HEAD"],
+        capture_output=True,
+    )
+    return [] if ancestor.returncode == 0 else [
+        "the sampled implementation does not descend from the R3d preregistration merge"
+    ]
+
+
 def main(argv=None) -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--workers", type=int, default=4)
     parser.add_argument("--skip-rebuild", action="store_true")
     args = parser.parse_args(argv)
     expected = json.loads(REFERENCE.read_text(encoding="utf-8"))
-    problems = contract_problems(expected)
+    problems = contract_problems(expected) + ancestry_problems()
     if not args.skip_rebuild:
         stream = sampling_stream_mismatch(expected)
         if stream:

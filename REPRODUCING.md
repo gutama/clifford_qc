@@ -125,7 +125,7 @@ bridge, and `test_contextual_restriction` guards the three tableau-compilation
 tests, so those files still run.
 
 `check_docs.py` enforces the pair through the identity relating them. Each of
-the fourteen dropped files contributes exactly one skip and no collected tests, so
+the fourteen dropped files contribute exactly one skip and no collected tests, so
 the remaining `31 - 14 = 17` skips are per-test and *are* collected:
 
 ```text

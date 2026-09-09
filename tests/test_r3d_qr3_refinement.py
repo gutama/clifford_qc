@@ -27,11 +27,13 @@ def test_the_committed_record_passes_every_static_contract(record):
     assert check.contract_problems(record) == []
 
 
-def test_result_is_separate_from_the_landed_preregistration(record):
+def test_result_is_separate_from_the_landed_preregistration(monkeypatch, record):
     preregistration = record["preregistration"]
     assert preregistration["merge_commit"] == r3d.PREREGISTRATION_MERGE
     assert preregistration["result_commit_is_separate"] is True
     assert record["config_file_sha256"] == r3d.PREREGISTRATION_SHA256
+    monkeypatch.setenv("GITHUB_SHA", r3d.PREREGISTRATION_MERGE)
+    assert any("merge itself" in problem for problem in r3d.source_order_problems())
 
 
 def test_exactly_five_parent_cells_and_seven_new_endpoints_are_reported(record):

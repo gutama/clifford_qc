@@ -19,8 +19,10 @@ import hashlib
 import importlib.metadata
 import json
 import math
+import os
 import platform
 from pathlib import Path
+import subprocess
 from typing import Sequence
 
 import numpy as np
@@ -138,6 +140,35 @@ def environment_problems(config: dict) -> list[str]:
     ]
 
 
+def source_order_problems() -> list[str]:
+    """Best-effort proof that the sampled source follows the declaration."""
+    current = (
+        os.environ.get("GITHUB_SHA")
+        or os.environ.get("CI_COMMIT_SHA")
+    )
+    if current is None:
+        resolved = subprocess.run(
+            ["git", "rev-parse", "HEAD"], capture_output=True, text=True
+        )
+        current = resolved.stdout.strip() if resolved.returncode == 0 else None
+    if current == PREREGISTRATION_MERGE:
+        return ["R3d sampling source is the preregistration merge itself"]
+
+    known = subprocess.run(
+        ["git", "cat-file", "-e", f"{PREREGISTRATION_MERGE}^{{commit}}"],
+        capture_output=True,
+    )
+    if known.returncode or current is None:
+        return []
+    ancestor = subprocess.run(
+        ["git", "merge-base", "--is-ancestor", PREREGISTRATION_MERGE, current],
+        capture_output=True,
+    )
+    return [] if ancestor.returncode == 0 else [
+        "R3d sampling source does not descend from the preregistration merge"
+    ]
+
+
 def preregistration_problems(config: dict) -> list[str]:
     problems = [f"preregistration: {item}" for item in static_problems(config)]
     actual = _file_sha256(CONFIG)
@@ -145,8 +176,7 @@ def preregistration_problems(config: dict) -> list[str]:
         problems.append(
             f"the landed R3d config digest is {actual}, not {PREREGISTRATION_SHA256}"
         )
-    if config.get("parent_lineage", {}).get("base_commit") == PREREGISTRATION_MERGE:
-        problems.append("the result was not separated from the preregistration commit")
+    problems.extend(source_order_problems())
     return problems
 
 
