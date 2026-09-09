@@ -106,7 +106,7 @@ No figure or table value in the manuscript is transcribed by hand, and
 ```bash
 python -m venv .venv && source .venv/bin/activate
 pip install -e .[test,research,chemistry]   # numpy + scipy + openfermion/pyscf
-pytest                                      # 1423 passed, 30 skipped
+pytest                                      # 1436 passed, 30 skipped
 ```
 
 That install is the reference environment for the quoted pair. The count
@@ -129,7 +129,7 @@ the remaining `30 - 13 = 17` skips are per-test and *are* collected:
 
 ```text
 collected == passed + (skipped - files dropped at collection)
-1440      == 1423   + (30      -  13)
+1453      == 1436   + (30      -  13)
 ```
 
 Both sides are computed from the tree, so a drift in either quoted number
@@ -466,7 +466,7 @@ Three cost-aware tiers run:
 | job | when | contents |
 | --- | --- | --- |
 | `test` | pull request, push to `main`, manual dispatch | `ruff`, `pytest --hypothesis-profile=ci`, and the short record gates: `check_docs`, `check_molecular`, `check_krylov_width`, `check_clifford_hierarchy`, `check_finite_shot_optimization`, `check_warm_start` |
-| `structural-records` | pull request, push to `main`, manual dispatch | deterministic rebuild and lineage gates: `check_mapping_axis`, `check_protocol_axis`, `check_priceability_screen`, `check_r3_environment_migration`, `check_r3b_preregistration`, `check_r3c_preregistration`, `check_phase14b_preregistration`, `check_g1_structural_preconditioner`, `check_r4a_preregistration`, `check_r4a_contextual_screen` |
+| `structural-records` | pull request, push to `main`, manual dispatch | deterministic rebuild and lineage gates: `check_mapping_axis`, `check_protocol_axis`, `check_priceability_screen`, `check_r3_environment_migration`, `check_r3b_preregistration`, `check_r3c_preregistration`, `check_r3d_preregistration`, `check_phase14b_preregistration`, `check_g1_structural_preconditioner`, `check_r4a_preregistration`, `check_r4a_contextual_screen` |
 | `sampled-records` | manual dispatch only | replica-drawing rebuild gates, each under its own record stamp: `check_r3b_margin_stop_probe`, `check_finite_shot_rethink`, `check_matched_h4`, `check_qr3b_instance_preflight`, `check_exact_shot_search`, `check_protocol_cost`, `check_r3c_lih_full_cost`, `check_phase14b_qwc_vs_fc` |
 
 The same dispatch also runs `environment-consistency`, which requires every
@@ -2344,6 +2344,62 @@ result-free checker; the pricing table and the QR3 statement re-derive from the
 drawn cells; the stamped stack is the frozen one; and no probe-only field —
 `full_run_authorized`, `screen_prediction`, `eligible_for_full_run` — appears in
 a record that prices the run those probes were deciding about.
+
+## R3d QR3 within-grid refinement — preregistration
+
+R3d declares the resolution experiment motivated by R3c's overlapping QR3
+brackets. Run its structural checker with:
+
+```bash
+python benchmarks/check_r3d_preregistration.py
+```
+
+The command reads committed files and samples nothing. The result-free config
+cryptographically binds both parent cost records, the R3c config and producer,
+the shared shot-search and cost implementations, all three device-card files,
+and the post-R4a `main` head from which the declaration descends. It freezes the
+Python 3.12 / NumPy 2.5.2 / SciPy 1.18.0 / Stim 1.16.0 execution stack, target
+30 exploratory plus 100 confirmatory replica blocks, 10,000 bootstrap
+replicates, one-sided 95% RMSE upper bound, zero-failure gate, and three fresh
+seed roots.
+
+The target coordinates come directly from R3c's two point-estimate supports.
+They are a post-R3c choice, which the config labels; every coordinate and
+endpoint is nevertheless fixed before any R3d draw:
+
+| support | parent cell | inherited endpoint interval | new endpoints |
+| --- | --- | --- | --- |
+| mapping | LiH / `jw` / `k=4` / pooled / ion-like | `(16384, 65536]` | `32768` |
+| mapping | LiH / `parity` / `k=4` / pooled / ion-like | `(1024, 16384]` | `2048, 8192` |
+| mapping | LiH / `bk` / `k=4` / pooled / ion-like | `(1024, 16384]` | `2048, 8192` |
+| instance | BeH2 / `parity` / `k=2` / single-assignment / superconducting-like | `(4096, 16384]` | `8192` |
+| instance | LiH / `parity` / `k=2` / single-assignment / superconducting-like | `(1024, 4096]` | `2048` |
+
+Those are seven endpoint cells. They are geometric midpoints inside the
+already-conservative parent intervals; no endpoint above the existing `65536`
+ceiling is declared. Every endpoint is sampled rather than selected by its
+exploratory block. Only the confirmatory block can tighten a parent interval:
+a non-marginal failure raises its lower endpoint and a non-marginal pass lowers
+its upper endpoint. An endpoint whose RMSE upper bound lies within 10% of the
+1.6 mHa target is environment-marginal and therefore non-informative for
+tightening. The parent rows are never redrawn, pooled with R3d, or reinterpreted.
+Any missing endpoint, non-finite statistic, nonmonotone combined sequence, or
+invalid interval makes the refinement indeterminate.
+
+The future readout is deliberately one-directional. From the three mapping
+intervals, form the conservative mapping-spread lower bound
+`max(lower costs) / min(upper costs)`, clamped at one. From the two instance
+intervals, form the conservative instance-spread upper bound
+`max(upper costs) / min(lower costs)`. Only a strict first-greater-than-second
+inequality permits `qr3_mapping_spread_larger_on_preregistered_support`.
+Equality, overlap, or a failed refinement reports
+`indeterminate_after_refinement`. The targeted point-support design cannot
+establish a negative QR3 direction, cannot reselect global extrema after the
+draw, and cannot support a mapping-wide claim.
+
+No R3d producer, sampled record, regenerating checker, or sampled CI row lands
+with this declaration. They must be a later commit and must include all seven
+endpoint cells. The existing R3c and `protocol_cost` records remain immutable.
 
 ## R2b raw-pool fermion-mapping axis
 
