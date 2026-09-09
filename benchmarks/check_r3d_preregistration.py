@@ -458,7 +458,15 @@ def _historical_seed_roots() -> frozenset[int]:
         *sorted((HERE / "reference_results").rglob("*.json")),
     ]
     for path in paths:
-        if path == CONFIG:
+        # Once the authorized result exists it carries these exact roots by
+        # construction.  It is the output of this declaration, not a
+        # historical stream the declaration had to avoid.  Continuing to scan
+        # it would make the result retroactively invalidate its own frozen
+        # seeds while still detecting every pre-R3d source as before.
+        if path in {
+            CONFIG,
+            HERE / "reference_results" / "r3d_qr3_refinement.json",
+        }:
             continue
         try:
             payload = _read(path)

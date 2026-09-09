@@ -160,6 +160,12 @@ jobs:
           - gate: check_r3c_lih_full_cost
             timeout: 180
             environment_record: r3c_lih_full_cost.json
+          # R3d draws seven targeted within-grid endpoint cells rather than
+          # replaying the full R3c grid. Keep it manual because it still
+          # executes the frozen 30+100 sampled instrument end to end.
+          - gate: check_r3d_qr3_refinement
+            timeout: 120
+            environment_record: r3d_qr3_refinement.json
           - gate: check_phase14b_qwc_vs_fc
             timeout: 30
             environment_record: phase14b_qwc_vs_fc.json
