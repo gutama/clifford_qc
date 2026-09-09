@@ -156,7 +156,7 @@
     "result_commit_is_separate": true,
     "supports_and_endpoints_selected_before_every_r3d_draw": true
   },
-  "producer_sha256": "149c813e4a1d376421489bb05e8805f5e2fc38021a687fae148a6c45b7cb2c5d",
+  "producer_sha256": "aa030b4b773be58849b10b10c1669e3f05c0ca9e5dce4622652cdf15f8a3cfc1",
   "protocol": {
     "accuracy_target_millihartree": 1.6,
     "bootstrap_replicates": 10000,
@@ -281,8 +281,8 @@
       "stim": "1.16.0"
     },
     "environment_sha256": "5ada534c90e7346990dfaffdfb5fd514ad5226ae1a6d3417fa207322b2273a60",
-    "git_dirty": false,
-    "git_sha": "f88a58b06cb7bd87861c3715513d4cd57600a19d",
+    "git_dirty": true,
+    "git_sha": "87b67894d94fed0b3b1d0d8c4585040f0c22451a",
     "platform": {
       "hostname": "localhost",
       "machine": "x86_64",
@@ -292,7 +292,7 @@
     },
     "python": "3.12.14",
     "schema": "clifford_qc.execution_provenance.v1",
-    "utc": "2026-09-09T01:34:38.595113+00:00"
+    "utc": "2026-09-09T02:07:09.958277+00:00"
   },
   "readout": {
     "classification": "indeterminate_after_refinement",
