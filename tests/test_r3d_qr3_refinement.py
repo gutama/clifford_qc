@@ -7,6 +7,8 @@ import json
 
 import pytest
 
+pytest.importorskip("stim")
+
 import benchmarks.check_r3d_qr3_refinement as check
 import benchmarks.run_r3d_qr3_refinement as r3d
 
@@ -166,7 +168,7 @@ def test_mutating_a_result_field_is_detected(record):
     broken = copy.deepcopy(record)
     broken["refinement_run"]["cells"][0]["endpoint_decisions"][0][
         "classification"
-    ] = "confirmed_pass"
+    ] = "confirmed_fail"
     assert any("endpoint decisions do not re-derive" in p for p in check.contract_problems(broken))
 
 

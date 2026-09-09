@@ -106,30 +106,31 @@ No figure or table value in the manuscript is transcribed by hand, and
 ```bash
 python -m venv .venv && source .venv/bin/activate
 pip install -e .[test,research,chemistry]   # numpy + scipy + openfermion/pyscf
-pytest                                      # 1436 passed, 30 skipped
+pytest                                      # 1436 passed, 31 skipped
 ```
 
 That install is the reference environment for the quoted pair. The count
 depends on it: a missing
 optional module makes pytest drop the whole test file at collection, so
 each absent extra moves one file from the passed count to the skipped
-count. Thirteen files are dropped that way here — `stim` (ten of them:
+count. Fourteen files are dropped that way here — `stim` (eleven of them:
 `test_block_synthesis`, `test_protocol_axis`, `test_protocol_cost`, `test_bridge_stim`,
 `test_clifford_hierarchy_cost`, `test_compiled_measurement`, `test_exact_shot_search`,
-`test_phase4`, `test_restriction`, `test_stim_clifford_rotors`), plus `pennylane`,
+`test_phase4`, `test_r3d_qr3_refinement`, `test_restriction`,
+`test_stim_clifford_rotors`), plus `pennylane`,
 `pytket`, and `pyzx`. The
-remaining seventeen skips are per-test rather than per-file: `test_fermion_mapping`
+remaining `31 - 14 = 17` skips are per-test rather than per-file: `test_fermion_mapping`
 and `test_mapping_axis` guard only the individual tests that reach the stim
 bridge, and `test_contextual_restriction` guards the three tableau-compilation
 tests, so those files still run.
 
 `check_docs.py` enforces the pair through the identity relating them. Each of
-the thirteen dropped files contributes exactly one skip and no collected tests, so
-the remaining `30 - 13 = 17` skips are per-test and *are* collected:
+the fourteen dropped files contributes exactly one skip and no collected tests, so
+the remaining `31 - 14 = 17` skips are per-test and *are* collected:
 
 ```text
 collected == passed + (skipped - files dropped at collection)
-1453      == 1436   + (30      -  13)
+1453      == 1436   + (31      -  14)
 ```
 
 Both sides are computed from the tree, so a drift in either quoted number
@@ -467,7 +468,7 @@ Three cost-aware tiers run:
 | --- | --- | --- |
 | `test` | pull request, push to `main`, manual dispatch | `ruff`, `pytest --hypothesis-profile=ci`, and the short record gates: `check_docs`, `check_molecular`, `check_krylov_width`, `check_clifford_hierarchy`, `check_finite_shot_optimization`, `check_warm_start` |
 | `structural-records` | pull request, push to `main`, manual dispatch | deterministic rebuild and lineage gates: `check_mapping_axis`, `check_protocol_axis`, `check_priceability_screen`, `check_r3_environment_migration`, `check_r3b_preregistration`, `check_r3c_preregistration`, `check_r3d_preregistration`, `check_phase14b_preregistration`, `check_g1_structural_preconditioner`, `check_r4a_preregistration`, `check_r4a_contextual_screen` |
-| `sampled-records` | manual dispatch only | replica-drawing rebuild gates, each under its own record stamp: `check_r3b_margin_stop_probe`, `check_finite_shot_rethink`, `check_matched_h4`, `check_qr3b_instance_preflight`, `check_exact_shot_search`, `check_protocol_cost`, `check_r3c_lih_full_cost`, `check_phase14b_qwc_vs_fc` |
+| `sampled-records` | manual dispatch only | replica-drawing rebuild gates, each under its own record stamp: `check_r3b_margin_stop_probe`, `check_finite_shot_rethink`, `check_matched_h4`, `check_qr3b_instance_preflight`, `check_exact_shot_search`, `check_protocol_cost`, `check_r3c_lih_full_cost`, `check_r3d_qr3_refinement`, `check_phase14b_qwc_vs_fc` |
 
 The same dispatch also runs `environment-consistency`, which requires every
 stamped record to name one common environment. It is deliberately separate
@@ -2345,7 +2346,7 @@ drawn cells; the stamped stack is the frozen one; and no probe-only field —
 `full_run_authorized`, `screen_prediction`, `eligible_for_full_run` — appears in
 a record that prices the run those probes were deciding about.
 
-## R3d QR3 within-grid refinement — preregistration
+## R3d QR3 within-grid refinement — preregistration and result
 
 R3d declares the resolution experiment motivated by R3c's overlapping QR3
 brackets. Run its structural checker with:
@@ -2397,9 +2398,31 @@ Equality, overlap, or a failed refinement reports
 establish a negative QR3 direction, cannot reselect global extrema after the
 draw, and cannot support a mapping-wide claim.
 
-No R3d producer, sampled record, regenerating checker, or sampled CI row lands
-with this declaration. They must be a later commit and must include all seven
-endpoint cells. The existing R3c and `protocol_cost` records remain immutable.
+The declaration landed result-free in merge commit `c9fe494`. The producer was
+then frozen separately before the one authorized execution. Reproduce the
+sampled record and its independent contract audit with:
+
+```bash
+python benchmarks/run_r3d_qr3_refinement.py --workers 4
+python benchmarks/check_r3d_qr3_refinement.py --workers 4
+```
+
+The run reports all seven cells under the frozen stack and leaves both parent
+records immutable:
+
+| parent cell | confirmatory midpoint result | refined interval |
+| --- | --- | --- |
+| LiH / `jw` / `k=4` / pooled | `32768`: UCB `0.819173` mHa, pass | `(16384, 32768]` |
+| LiH / `parity` / `k=4` / pooled | `2048`: `2.194747`, fail; `8192`: `0.876929`, pass | `(2048, 8192]` |
+| LiH / `bk` / `k=4` / pooled | `2048`: `2.044669`, fail; `8192`: `1.044007`, pass | `(2048, 8192]` |
+| BeH2 / `parity` / `k=2` / single-assignment | `8192`: `1.702140`, environment-marginal | unchanged `(4096, 16384]` |
+| LiH / `parity` / `k=2` / single-assignment | `2048`: `2.936853`, fail | `(2048, 4096]` |
+
+The mapping-support minimum is `2.1906417x`; the instance-support maximum is
+`3.9997993x`. Because the former is not strictly greater than the latter, the
+preregistered result is `indeterminate_after_refinement`. That overlap does not
+license the negative direction: R3d did not refine all 187 global-extremum
+cells and cannot reselect supports after observing the draw.
 
 ## R2b raw-pool fermion-mapping axis
 

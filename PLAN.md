@@ -121,7 +121,7 @@ Status at a glance:
 | R3S | priceability screen — which candidates a declared screen admits for a probe | **done, positive**; under a stopping rule that reserves the accuracy target for shot noise, LiH is admissible at a two-generator prefix (`W = 1439` against BeH₂'s `1814`), so QR3b rejected the greedy's stopping point rather than the instance |
 | R3b | LiH `margin_stop` probe — the QR3b 2+2 preflight re-run on the bank R3S admitted | **done, mixed**; the target-environment redraw rejects the bank (29/40 cells resolve, versus 30/40 in the historical 3.11 draw; the gate needs 40), so that probe authorized no full run and left the exact tier with one priced instance — but both draws reduce QR3b's grid-fit failures `15 → 0`, leaving the `2+2` probe's confirmation power rather than `W`, which is what R3c went on to test directly |
 | R3c | LiH `margin_stop` headline exact-tier cost run | **done, positive**; executed once under the frozen 3.12 / 2.5.2 stack. 38 of 40 cells supply a confirmed finite interval and 2 stay right-censored, so LiH is the exact tier's second priced instance. QR3 is re-derived on two instances and comes back `indeterminate_at_this_shot_grid`: the point estimates order 17.5x against 1.02x, and the cost brackets overlap |
-| R3d | QR3 within-grid resolution | **result-free preregistration shipped; not run**. Five R3c point-support cells and seven geometric-midpoint endpoint cells are frozen inside the existing `64…65536` grid. A later execution may establish only the positive QR3 direction on those supports or remain indeterminate; no negative or mapping-wide readout is licensed |
+| R3d | QR3 within-grid resolution | **done, indeterminate**. The one frozen 30+100 execution narrows four of five parent cells; BeH2's `8192` midpoint is environment-marginal and cannot tighten. The mapping-support minimum is `2.1906x` against an instance-support maximum of `3.9998x`, so strict positive separation fails. The targeted design licenses no negative or mapping-wide readout |
 | R4 | contextual-subspace comparator | **R4a structural screen complete, negative**; no contextual rung admits all four arms, so the frozen rule stops R4a without sampling and leaves QR5 undetermined |
 
 "Shipped" means the module, its tests, and where applicable its benchmark
@@ -3396,14 +3396,14 @@ contextual rung admits all four arms under the frozen bias and word-universe
 gates: the full-QSE control misses only the word ceiling, standalone ACASE passes,
 and both contextual arms miss the accuracy gate. The derived selection is null,
 sampled execution remains unauthorized, R4b is unscheduled, and QR5 is
-undetermined. **The remaining QR3 resolution question is now declared by R3d,
-result-free, and has not run.** QR3 itself is compared rather than abstaining,
-and unresolved: R3d freezes seven midpoint endpoint cells on the two R3c
-point-support comparisons, all *between* existing endpoints and none above
-`65536`. A later execution may establish the positive QR3 direction on those
-supports; overlap, invalid refinement, or any other non-separating outcome stays
-indeterminate, and the targeted design cannot support a negative or mapping-wide
-claim. Paper A's submission stays schedulable and blocks nothing.
+undetermined. **The remaining declared QR3 resolution experiment, R3d, has now
+run and remains indeterminate.** Its seven midpoint cells narrow four of five
+parent intervals; the BeH2 midpoint is environment-marginal and therefore
+non-informative. The resulting mapping-support minimum (`2.1906x`) does not
+strictly exceed the instance-support maximum (`3.9998x`). That failed positive
+separation is not a negative result: the targeted design did not refine all 187
+cells entering the global extrema and cannot reselect them after the draw.
+Paper A's submission stays schedulable and blocks nothing.
 
 **Paper A — the one item outside the tracks.** Its software, data, go/no-go decisions,
 and manuscript are complete (§9.6, §9.6.1) but it is not submitted. Nothing below
@@ -3632,7 +3632,7 @@ not another open accuracy phase.
     right-censored at `65536`; censoring is not infinite cost and does not
     license a wider grid. QR3 is re-derived only if the record supplies a second
     priced instance.
-13d. R3d — targeted within-grid QR3 resolution. **Preregistered, not run.**
+13d. R3d — targeted within-grid QR3 resolution. **Done, indeterminate.**
     `benchmarks/configs/r3d_qr3_refinement.json` and
     `check_r3d_preregistration.py` bind the immutable R3c and BeH2 cost records,
     their exact sampler implementations, execution stack, and device cards.
@@ -3655,8 +3655,18 @@ not another open accuracy phase.
     strictly greater than the refined instance-spread upper bound. Every other
     outcome remains indeterminate. Because the design targets point-support cells
     rather than all 187 cells entering the global extrema, it cannot establish a
-    negative QR3 direction or reselect new extrema after the draw. The producer,
-    record, regenerating checker, and sampled CI row must land later.
+    negative QR3 direction or reselect new extrema after the draw.
+
+    The one authorized 30+100 execution reports every frozen midpoint. LiH/JW
+    `k=4` passes at `32768`, narrowing to `(16384,32768]`; LiH parity and BK
+    `k=4` fail at `2048` and pass at `8192`, narrowing both to `(2048,8192]`;
+    LiH parity `k=2` fails at `2048`, narrowing to `(2048,4096]`. BeH2 parity
+    `k=2` returns a `1.702140` mHa UCB at `8192`, inside the frozen 10% marginal
+    band, so its `(4096,16384]` interval stays unchanged. The refined mapping
+    minimum is `2.1906417x`, below the instance maximum `3.9997993x`; therefore
+    the licensed readout is `indeterminate_after_refinement` and no negative
+    or mapping-wide QR3 claim follows. The regenerating checker and manual
+    sampled CI row cover the sealed record.
 14. R4a — contextual-subspace comparator arms with bias floors. **Done at the
     structural gate, negative.** The one authorized structural execution finds no
     rung where all four arms clear both gates. Full QSE has `0.0033` mHa bias but

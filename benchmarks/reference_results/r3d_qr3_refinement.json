@@ -1,0 +1,913 @@
+{
+  "claim_boundary": "This record reports only the seven midpoint cells frozen by R3d under the declared 30+100 protocol and re-derives the two support spreads without altering either parent record. It may establish only qr3_mapping_spread_larger_on_preregistered_support or remain indeterminate_after_refinement; it cannot establish a negative or mapping-wide QR3 direction, widen the grid, or reselect an extremal cell.",
+  "config_file_sha256": "26bd9c2ca025112cba44163f331229c3ddb11cac18c6afd70db42921aad1791e",
+  "config_sha256": "55205931f1de0dce30fca154a79d9e5cfc56dd7f42448bda73e156f652a4c6e9",
+  "device_cards": [
+    {
+      "calibration_status": "illustrative_scenario",
+      "connectivity": "all-to-all",
+      "description": "Slow-gate, all-to-all design scenario for sensitivity analysis.",
+      "eps_1q": 0.0005,
+      "eps_2q": 0.005,
+      "eps_readout": 0.01,
+      "fidelity_floor": 0.5,
+      "name": "ion-like",
+      "routing": false,
+      "routing_2q_multiplier": 1.0,
+      "routing_depth_multiplier": 1.0,
+      "schema": "clifford_qc.device_card.v1",
+      "sha256": "9cc7e53e935e4ec3c265efbd9b6218f17a68c51d727d658c5a5bcaf98d34f453",
+      "source": "Illustrative project scenario; not vendor data or a current-device claim.",
+      "t_1q_us": 10.0,
+      "t_2q_us": 200.0,
+      "t_prep_us": 50.0,
+      "t_readout_us": 100.0,
+      "t_reset_us": 50.0
+    },
+    {
+      "calibration_status": "logical_baseline",
+      "connectivity": "all-to-all",
+      "description": "All-to-all logical accounting baseline with zero surrogate error.",
+      "eps_1q": 0.0,
+      "eps_2q": 0.0,
+      "eps_readout": 0.0,
+      "fidelity_floor": 0.5,
+      "name": "logical-alltoall",
+      "routing": false,
+      "routing_2q_multiplier": 1.0,
+      "routing_depth_multiplier": 1.0,
+      "schema": "clifford_qc.device_card.v1",
+      "sha256": "07e9cc637e590668bc89b7d407535f34f509155e08c95d2ecd0f8f931738265b",
+      "source": "Project-defined logical scenario; not a hardware calibration.",
+      "t_1q_us": 0.05,
+      "t_2q_us": 0.3,
+      "t_prep_us": 0.0,
+      "t_readout_us": 1.0,
+      "t_reset_us": 1.0
+    },
+    {
+      "calibration_status": "illustrative_scenario",
+      "connectivity": "sparse-nearest-neighbor",
+      "description": "Fast-gate, sparse-connectivity design scenario for sensitivity analysis.",
+      "eps_1q": 0.001,
+      "eps_2q": 0.01,
+      "eps_readout": 0.02,
+      "fidelity_floor": 0.5,
+      "name": "superconducting-like",
+      "routing": true,
+      "routing_2q_multiplier": 3.0,
+      "routing_depth_multiplier": 2.0,
+      "schema": "clifford_qc.device_card.v1",
+      "sha256": "cf78e3240ad48839a8113a1570a43e614c230a8428fe8ceda7783e7ff75e1a13",
+      "source": "Illustrative project scenario; not vendor data or a current-device claim.",
+      "t_1q_us": 0.05,
+      "t_2q_us": 0.3,
+      "t_prep_us": 1.0,
+      "t_readout_us": 1.0,
+      "t_reset_us": 1.0
+    }
+  ],
+  "estimand": {
+    "asymmetric_limitation": "Failure to separate cannot establish the opposite QR3 direction because R3d targets R3c's point-support cells rather than refining all 187 cells entering the global extrema. Every non-separating outcome is indeterminate_after_refinement.",
+    "directional_scope": "A strict separation establishes that a mapping spread is larger than an instance spread on these preregistered supports and therefore establishes the positive QR3 direction within the frozen two-instance exact-tier boundary.",
+    "evidence_tier": "exact",
+    "evidence_tier_basis": "Oracle-reference benchmark comparison with heuristic Monte Carlo search uncertainty; not a finite-sample energy certificate, device-noise simulation, or hardware result.",
+    "name": "qr3_direction_on_preregistered_r3c_point_support",
+    "question": "After adding only the frozen geometric midpoints inside the inherited conservative intervals, is the minimum possible mapping spread on R3c's widest point-support cell strictly greater than the maximum possible instance spread on R3c's narrowest point-support cell?"
+  },
+  "evidence_role": "targeted_accuracy_matched_cost_refinement",
+  "evidence_tier": "exact",
+  "execution_environment": {
+    "matches_preregistration": true,
+    "numpy": "2.5.2",
+    "problems": [],
+    "python_minor": "3.12",
+    "scipy": "1.18.0",
+    "stim": "1.16.0"
+  },
+  "future_readout_contract": {
+    "global_extrema_may_not_be_reselected_after_r3d": true,
+    "instance_support_maximum_formula": "max(instance-cell upper costs) / min(instance-cell lower costs)",
+    "mapping_support_minimum_formula": "max(mapping-cell lower costs) / min(mapping-cell upper costs), clamped below at 1",
+    "negative_readout_allowed": false,
+    "otherwise": "indeterminate_after_refinement, including overlap, equality, marginal-only non-resolution, missing evidence, nonmonotonicity, or an invalid interval",
+    "point_estimates_are_decisive": false,
+    "positive": "qr3_mapping_spread_larger_on_preregistered_support, if and only if both supports are valid and mapping_support_minimum is strictly greater than instance_support_maximum"
+  },
+  "parent_lineage": {
+    "base_commit": "eaddbb454cdf867c013839a97f6541600b07a6c2",
+    "files": [
+      {
+        "git_blob_sha1": "ad59b2f997d85e3856adb106ee2f808c45484a39",
+        "path": "benchmarks/configs/r3c_lih_full_cost.json",
+        "sha256": "cfbc97f3225ebdf8bdd8bcbddd2141214649664ef238a7cc98188db6f4160daa"
+      },
+      {
+        "git_blob_sha1": "5f2faba83d1533d5a8ac4e40432cc294d9aff676",
+        "path": "benchmarks/reference_results/r3c_lih_full_cost.json",
+        "sha256": "b3d302ae2bc8717658145022c8757d32543b51993e4ca2265d6d66c5ae9be673"
+      },
+      {
+        "git_blob_sha1": "5466fda9e083c2d55b388446e03670b7026f5eec",
+        "path": "benchmarks/reference_results/protocol_cost.json",
+        "sha256": "a1b5bea91d5924ae6c6878baf83e9d8b6b10ad107f4c3a2ab1644ddee1adff59"
+      },
+      {
+        "git_blob_sha1": "0e2c93a28ab5c9b3517c3e21c0186dff510e8c36",
+        "path": "benchmarks/run_exact_shot_search.py",
+        "sha256": "82f28e77e9e97fe57dae49c865dfed95c3c4f74138889a0cd01c9967454a17c7"
+      },
+      {
+        "git_blob_sha1": "59862efd9d074338d76663a07265a940ab914eea",
+        "path": "benchmarks/run_protocol_cost.py",
+        "sha256": "8f94cbd285ce23720131fb5b185197d0fa998cb230dbd1316d19f5845a76724e"
+      },
+      {
+        "git_blob_sha1": "ec37472ec5013292c233142fc8d0b5e8cdc90415",
+        "path": "benchmarks/run_r3c_lih_full_cost.py",
+        "sha256": "1a2ee7380115b67f687ae1919900f8f6e56e012819daf98b0185070abf4fed9c"
+      },
+      {
+        "git_blob_sha1": "45ab9fd9b59638d2b5d0a94dafe3a5bcb311cb26",
+        "path": "benchmarks/configs/device_cards/ion-like.json",
+        "sha256": "1ac47a1a80b621bfeb3d5cc36dd9ab859bf94dc782da4c6fee8aebfb3d9c53c2"
+      },
+      {
+        "git_blob_sha1": "21fab44375442ce632d12c2d6f3ba9bdad3815f7",
+        "path": "benchmarks/configs/device_cards/logical-alltoall.json",
+        "sha256": "5eb4668daa124b4f8f375d37839ab4eeb31f10f8cf27612869e2aebcb9f30fe3"
+      },
+      {
+        "git_blob_sha1": "befb3fb9f09087174f7d07f59d2e1f4e8e4f7316",
+        "path": "benchmarks/configs/device_cards/superconducting-like.json",
+        "sha256": "99fac3de98a34324f31dd734918bc6448ce48dd315752c12dbcc503b1d82e248"
+      }
+    ],
+    "r3c_result_merge": {
+      "commit": "4d664e2857c57452e9e06c0f15ab6396e115e540",
+      "pull_request": 79
+    },
+    "repository": "gutama/clifford_qc"
+  },
+  "phase": "R3d_qr3_within_grid_refinement",
+  "preregistration": {
+    "config": "benchmarks/configs/r3d_qr3_refinement.json",
+    "merge_commit": "c9fe494f98a4994380a1fb50cf13bb7783ea4f9c",
+    "result_commit_is_separate": true,
+    "supports_and_endpoints_selected_before_every_r3d_draw": true
+  },
+  "producer_sha256": "149c813e4a1d376421489bb05e8805f5e2fc38021a687fae148a6c45b7cb2c5d",
+  "protocol": {
+    "accuracy_target_millihartree": 1.6,
+    "bootstrap_replicates": 10000,
+    "confirmatory_replicas_per_new_endpoint": 100,
+    "device_cards": [
+      {
+        "name": "ion-like",
+        "sha256": "9cc7e53e935e4ec3c265efbd9b6218f17a68c51d727d658c5a5bcaf98d34f453"
+      },
+      {
+        "name": "logical-alltoall",
+        "sha256": "07e9cc637e590668bc89b7d407535f34f509155e08c95d2ecd0f8f931738265b"
+      },
+      {
+        "name": "superconducting-like",
+        "sha256": "cf78e3240ad48839a8113a1570a43e614c230a8428fe8ceda7783e7ff75e1a13"
+      }
+    ],
+    "environment_marginal_rule": "When the confirmatory RMSE upper bound is finite and abs(UCB - 1.6 mHa) / 1.6 mHa is at most 0.10, label that R3d endpoint environment-marginal and do not use it to tighten either interval side.",
+    "environment_marginal_target_fraction": 0.1,
+    "execution_environment": {
+      "numpy": "2.5.2",
+      "python_minor": "3.12",
+      "scipy": "1.18.0",
+      "stim": "1.16.0"
+    },
+    "exploratory_replicas_per_new_endpoint": 30,
+    "nested_new_endpoints_within_cell_and_phase": true,
+    "one_sided_delta": 0.05,
+    "parent_and_r3d_streams_are_disjoint": true,
+    "pass_rule": "A new endpoint passes only when all 100 confirmatory solves succeed and the one-sided 95% bootstrap upper confidence bound on replica RMSE is at most 1.6 mHa.",
+    "seed_derivation": "For exploratory and confirmatory sampling use numpy.SeedSequence(root, spawn_key=(target_cell_index, replica_index)); larger R3d endpoints reuse the prefix shots of the same cell/phase/replica stream. For bootstrap use spawn_key=(target_cell_index, phase_index, endpoint_index, estimator_index). Target-cell order is the array order above. Parent samples are never part of an R3d stream.",
+    "seed_roots": {
+      "bootstrap": 161014000,
+      "confirmatory": 160914000,
+      "exploratory": 160814000
+    }
+  },
+  "provenance": {
+    "blas_lapack": {
+      "Build Dependencies": {
+        "blas": {
+          "detection method": "pkgconfig",
+          "found": true,
+          "include directory": "/opt/_internal/cpython-3.12.13/lib/python3.12/site-packages/scipy_openblas64/include",
+          "lib directory": "/opt/_internal/cpython-3.12.13/lib/python3.12/site-packages/scipy_openblas64/lib",
+          "name": "scipy-openblas",
+          "openblas configuration": "OpenBLAS 0.3.34.0.0  USE64BITINT DYNAMIC_ARCH NO_AFFINITY Haswell MAX_THREADS=64",
+          "pc file directory": "/project/.openblas",
+          "version": "0.3.34.0.0"
+        },
+        "lapack": {
+          "detection method": "pkgconfig",
+          "found": true,
+          "include directory": "/opt/_internal/cpython-3.12.13/lib/python3.12/site-packages/scipy_openblas64/include",
+          "lib directory": "/opt/_internal/cpython-3.12.13/lib/python3.12/site-packages/scipy_openblas64/lib",
+          "name": "scipy-openblas",
+          "openblas configuration": "OpenBLAS 0.3.34.0.0  USE64BITINT DYNAMIC_ARCH NO_AFFINITY Haswell MAX_THREADS=64",
+          "pc file directory": "/project/.openblas",
+          "version": "0.3.34.0.0"
+        }
+      },
+      "Compilers": {
+        "c": {
+          "commands": "cc",
+          "linker": "ld.bfd",
+          "name": "gcc",
+          "version": "14.2.1"
+        },
+        "c++": {
+          "commands": "c++",
+          "linker": "ld.bfd",
+          "name": "gcc",
+          "version": "14.2.1"
+        },
+        "cython": {
+          "commands": "cython",
+          "linker": "cython",
+          "name": "cython",
+          "version": "3.2.9"
+        }
+      },
+      "Machine Information": {
+        "build": {
+          "cpu": "x86_64",
+          "endian": "little",
+          "family": "x86_64",
+          "system": "linux"
+        },
+        "host": {
+          "cpu": "x86_64",
+          "endian": "little",
+          "family": "x86_64",
+          "system": "linux"
+        }
+      },
+      "Python Information": {
+        "path": "/tmp/build-env-jmn5a0j4/bin/python",
+        "version": "3.12"
+      },
+      "SIMD Extensions": {
+        "baseline": [
+          "X86_V2"
+        ],
+        "found": [
+          "X86_V3",
+          "X86_V4",
+          "AVX512_ICL"
+        ],
+        "not found": [
+          "AVX512_SPR"
+        ]
+      }
+    },
+    "clifford_qc": "0.3.0",
+    "dependencies": {
+      "numpy": "2.5.2",
+      "openfermion": null,
+      "openfermionpyscf": null,
+      "pyscf": null,
+      "scipy": "1.18.0",
+      "stim": "1.16.0"
+    },
+    "environment_sha256": "5ada534c90e7346990dfaffdfb5fd514ad5226ae1a6d3417fa207322b2273a60",
+    "git_dirty": false,
+    "git_sha": "f88a58b06cb7bd87861c3715513d4cd57600a19d",
+    "platform": {
+      "hostname": "localhost",
+      "machine": "x86_64",
+      "processor": "x86_64",
+      "release": "6.18.35",
+      "system": "Linux"
+    },
+    "python": "3.12.14",
+    "schema": "clifford_qc.execution_provenance.v1",
+    "utc": "2026-09-09T01:34:38.595113+00:00"
+  },
+  "readout": {
+    "classification": "indeterminate_after_refinement",
+    "global_extrema_reselected": false,
+    "instance_support_maximum": 3.999799349634663,
+    "mapping_support_minimum": 2.1906416999649165,
+    "negative_readout_allowed": false,
+    "status": "compared",
+    "strict_separation": false
+  },
+  "refinement_run": {
+    "cells": [
+      {
+        "block_size": 4,
+        "card": "ion-like",
+        "confirmation": [
+          {
+            "below_exact_count": 45,
+            "bias_millihartree": -0.06374197485649269,
+            "chemical_accuracy_fraction": 0.97,
+            "effective_shots_per_setting": 32768,
+            "failures": {},
+            "max_absolute_error_millihartree": 3.2703159742908383,
+            "median_absolute_error_millihartree": 0.36107094232340486,
+            "p95_absolute_error_millihartree": 1.3041789305909375,
+            "passes_target": true,
+            "rank_histogram": {
+              "2": 100
+            },
+            "replicas": 100,
+            "rmse_millihartree": 0.6744472798290044,
+            "rmse_one_sided_95pct_upper_millihartree": 0.8191725798354251,
+            "successful_solves": 100,
+            "zero_failure_gate": true
+          }
+        ],
+        "endpoint_decisions": [
+          {
+            "classification": "confirmed_pass",
+            "effective_shots_per_setting": 32768,
+            "environment_marginal": false,
+            "informative_for_interval": true,
+            "passes_target": true,
+            "valid": true
+          }
+        ],
+        "estimator": "pooled",
+        "exploration": [
+          {
+            "below_exact_count": 12,
+            "bias_millihartree": -0.06085359866068174,
+            "chemical_accuracy_fraction": 0.9666666666666667,
+            "effective_shots_per_setting": 32768,
+            "failures": {},
+            "max_absolute_error_millihartree": 6.06366752305032,
+            "median_absolute_error_millihartree": 0.2623199153157785,
+            "p95_absolute_error_millihartree": 0.5852205810129794,
+            "passes_target": false,
+            "rank_histogram": {
+              "2": 30
+            },
+            "replicas": 30,
+            "rmse_millihartree": 1.1484139063270706,
+            "rmse_one_sided_95pct_upper_millihartree": 1.9398603604971432,
+            "successful_solves": 30,
+            "zero_failure_gate": true
+          }
+        ],
+        "inherited_cost_interval": {
+          "C_time_lower_us": 4095701030.0,
+          "C_time_upper_us": 16382564440.0,
+          "device_card": "ion-like"
+        },
+        "inherited_endpoint_interval": {
+          "lower": 16384,
+          "point": 65536,
+          "upper": 65536,
+          "widened_sides": []
+        },
+        "mapping": "jw",
+        "measured_qubits": 8,
+        "new_endpoints_effective_shots_per_setting": [
+          32768
+        ],
+        "parent_record": "benchmarks/reference_results/r3c_lih_full_cost.json",
+        "refined_cost_interval": {
+          "C_time_lower_us": 4095701030.0,
+          "C_time_upper_us": 8191321180.0,
+          "device_card": "ion-like",
+          "device_card_sha256": "9cc7e53e935e4ec3c265efbd9b6218f17a68c51d727d658c5a5bcaf98d34f453"
+        },
+        "refined_endpoint_interval": {
+          "lower_effective_shots_per_setting": 16384,
+          "parent_interval_only_narrowed": true,
+          "problems": [],
+          "upper_effective_shots_per_setting": 32768,
+          "valid": true
+        },
+        "structural_instrument": {
+          "compatible_readouts": 3558,
+          "exact_ground_energy": -7.863222550890624,
+          "mean_reader_count": 2.472550382209868,
+          "retained_rank": 2,
+          "settings": 88,
+          "word_universe": 1439
+        },
+        "support": "mapping",
+        "system": "lih_cas4e4o_margin_stop",
+        "target_cell_index": 0
+      },
+      {
+        "block_size": 4,
+        "card": "ion-like",
+        "confirmation": [
+          {
+            "below_exact_count": 57,
+            "bias_millihartree": -0.5262785026312766,
+            "chemical_accuracy_fraction": 0.63,
+            "effective_shots_per_setting": 2048,
+            "failures": {},
+            "max_absolute_error_millihartree": 5.871321982624522,
+            "median_absolute_error_millihartree": 1.272398621591897,
+            "p95_absolute_error_millihartree": 3.766295882316938,
+            "passes_target": false,
+            "rank_histogram": {
+              "2": 100
+            },
+            "replicas": 100,
+            "rmse_millihartree": 1.9437035991511178,
+            "rmse_one_sided_95pct_upper_millihartree": 2.194747460509386,
+            "successful_solves": 100,
+            "zero_failure_gate": true
+          },
+          {
+            "below_exact_count": 48,
+            "bias_millihartree": -0.0306559543121665,
+            "chemical_accuracy_fraction": 0.97,
+            "effective_shots_per_setting": 8192,
+            "failures": {},
+            "max_absolute_error_millihartree": 2.071771951984047,
+            "median_absolute_error_millihartree": 0.612104961331017,
+            "p95_absolute_error_millihartree": 1.5022128837014925,
+            "passes_target": true,
+            "rank_histogram": {
+              "2": 100
+            },
+            "replicas": 100,
+            "rmse_millihartree": 0.7959469954744104,
+            "rmse_one_sided_95pct_upper_millihartree": 0.8769289348026811,
+            "successful_solves": 100,
+            "zero_failure_gate": true
+          }
+        ],
+        "endpoint_decisions": [
+          {
+            "classification": "confirmed_fail",
+            "effective_shots_per_setting": 2048,
+            "environment_marginal": false,
+            "informative_for_interval": true,
+            "passes_target": false,
+            "valid": true
+          },
+          {
+            "classification": "confirmed_pass",
+            "effective_shots_per_setting": 8192,
+            "environment_marginal": false,
+            "informative_for_interval": true,
+            "passes_target": true,
+            "valid": true
+          }
+        ],
+        "estimator": "pooled",
+        "exploration": [
+          {
+            "below_exact_count": 20,
+            "bias_millihartree": -1.2664137757719907,
+            "chemical_accuracy_fraction": 0.3333333333333333,
+            "effective_shots_per_setting": 2048,
+            "failures": {},
+            "max_absolute_error_millihartree": 7.126751892492678,
+            "median_absolute_error_millihartree": 1.9315826709545014,
+            "p95_absolute_error_millihartree": 5.025666769347477,
+            "passes_target": false,
+            "rank_histogram": {
+              "2": 30
+            },
+            "replicas": 30,
+            "rmse_millihartree": 2.842207099766368,
+            "rmse_one_sided_95pct_upper_millihartree": 3.4052154508043393,
+            "successful_solves": 30,
+            "zero_failure_gate": true
+          },
+          {
+            "below_exact_count": 11,
+            "bias_millihartree": 0.1527029372375329,
+            "chemical_accuracy_fraction": 0.9666666666666667,
+            "effective_shots_per_setting": 8192,
+            "failures": {},
+            "max_absolute_error_millihartree": 1.6562535286750446,
+            "median_absolute_error_millihartree": 0.4460430254114023,
+            "p95_absolute_error_millihartree": 1.3042977869203385,
+            "passes_target": true,
+            "rank_histogram": {
+              "2": 30
+            },
+            "replicas": 30,
+            "rmse_millihartree": 0.6703765521064543,
+            "rmse_one_sided_95pct_upper_millihartree": 0.809657262506079,
+            "successful_solves": 30,
+            "zero_failure_gate": true
+          }
+        ],
+        "inherited_cost_interval": {
+          "C_time_lower_us": 233779290.0,
+          "C_time_upper_us": 3739174730.0,
+          "device_card": "ion-like"
+        },
+        "inherited_endpoint_interval": {
+          "lower": 1024,
+          "point": 4096,
+          "upper": 16384,
+          "widened_sides": [
+            "passing"
+          ]
+        },
+        "mapping": "parity",
+        "measured_qubits": 8,
+        "new_endpoints_effective_shots_per_setting": [
+          2048,
+          8192
+        ],
+        "parent_record": "benchmarks/reference_results/r3c_lih_full_cost.json",
+        "refined_cost_interval": {
+          "C_time_lower_us": 467477600.0,
+          "C_time_upper_us": 1869635290.0,
+          "device_card": "ion-like",
+          "device_card_sha256": "9cc7e53e935e4ec3c265efbd9b6218f17a68c51d727d658c5a5bcaf98d34f453"
+        },
+        "refined_endpoint_interval": {
+          "lower_effective_shots_per_setting": 2048,
+          "parent_interval_only_narrowed": true,
+          "problems": [],
+          "upper_effective_shots_per_setting": 8192,
+          "valid": true
+        },
+        "structural_instrument": {
+          "compatible_readouts": 3290,
+          "exact_ground_energy": -7.863222550890624,
+          "mean_reader_count": 2.286309937456567,
+          "retained_rank": 2,
+          "settings": 89,
+          "word_universe": 1439
+        },
+        "support": "mapping",
+        "system": "lih_cas4e4o_margin_stop",
+        "target_cell_index": 1
+      },
+      {
+        "block_size": 4,
+        "card": "ion-like",
+        "confirmation": [
+          {
+            "below_exact_count": 52,
+            "bias_millihartree": 0.24056773502658224,
+            "chemical_accuracy_fraction": 0.61,
+            "effective_shots_per_setting": 2048,
+            "failures": {},
+            "max_absolute_error_millihartree": 5.002782048356025,
+            "median_absolute_error_millihartree": 1.1365581186644214,
+            "p95_absolute_error_millihartree": 3.986850830187594,
+            "passes_target": false,
+            "rank_histogram": {
+              "2": 100
+            },
+            "replicas": 100,
+            "rmse_millihartree": 1.8215808001465874,
+            "rmse_one_sided_95pct_upper_millihartree": 2.0446693055963427,
+            "successful_solves": 100,
+            "zero_failure_gate": true
+          },
+          {
+            "below_exact_count": 40,
+            "bias_millihartree": 0.21739685260969033,
+            "chemical_accuracy_fraction": 0.92,
+            "effective_shots_per_setting": 8192,
+            "failures": {},
+            "max_absolute_error_millihartree": 3.181859551430577,
+            "median_absolute_error_millihartree": 0.608924677277578,
+            "p95_absolute_error_millihartree": 1.7294881390084613,
+            "passes_target": true,
+            "rank_histogram": {
+              "2": 100
+            },
+            "replicas": 100,
+            "rmse_millihartree": 0.9241185409892533,
+            "rmse_one_sided_95pct_upper_millihartree": 1.0440065970115109,
+            "successful_solves": 100,
+            "zero_failure_gate": true
+          }
+        ],
+        "endpoint_decisions": [
+          {
+            "classification": "confirmed_fail",
+            "effective_shots_per_setting": 2048,
+            "environment_marginal": false,
+            "informative_for_interval": true,
+            "passes_target": false,
+            "valid": true
+          },
+          {
+            "classification": "confirmed_pass",
+            "effective_shots_per_setting": 8192,
+            "environment_marginal": false,
+            "informative_for_interval": true,
+            "passes_target": true,
+            "valid": true
+          }
+        ],
+        "estimator": "pooled",
+        "exploration": [
+          {
+            "below_exact_count": 19,
+            "bias_millihartree": -0.4384239815035625,
+            "chemical_accuracy_fraction": 0.5333333333333333,
+            "effective_shots_per_setting": 2048,
+            "failures": {},
+            "max_absolute_error_millihartree": 4.479474961785357,
+            "median_absolute_error_millihartree": 1.4611380327900214,
+            "p95_absolute_error_millihartree": 3.060228248527562,
+            "passes_target": false,
+            "rank_histogram": {
+              "2": 30
+            },
+            "replicas": 30,
+            "rmse_millihartree": 1.8608562154747759,
+            "rmse_one_sided_95pct_upper_millihartree": 2.183256656858776,
+            "successful_solves": 30,
+            "zero_failure_gate": true
+          },
+          {
+            "below_exact_count": 11,
+            "bias_millihartree": 0.3538115710531346,
+            "chemical_accuracy_fraction": 0.9333333333333333,
+            "effective_shots_per_setting": 8192,
+            "failures": {},
+            "max_absolute_error_millihartree": 2.2219815508996987,
+            "median_absolute_error_millihartree": 0.8756461746615152,
+            "p95_absolute_error_millihartree": 1.8873831297937276,
+            "passes_target": true,
+            "rank_histogram": {
+              "2": 30
+            },
+            "replicas": 30,
+            "rmse_millihartree": 1.0308405763459554,
+            "rmse_one_sided_95pct_upper_millihartree": 1.2005127380525087,
+            "successful_solves": 30,
+            "zero_failure_gate": true
+          }
+        ],
+        "inherited_cost_interval": {
+          "C_time_lower_us": 391188780.0,
+          "C_time_upper_us": 6257077620.0,
+          "device_card": "ion-like"
+        },
+        "inherited_endpoint_interval": {
+          "lower": 1024,
+          "point": 4096,
+          "upper": 16384,
+          "widened_sides": [
+            "passing"
+          ]
+        },
+        "mapping": "bk",
+        "measured_qubits": 8,
+        "new_endpoints_effective_shots_per_setting": [
+          2048,
+          8192
+        ],
+        "parent_record": "benchmarks/reference_results/r3c_lih_full_cost.json",
+        "refined_cost_interval": {
+          "C_time_lower_us": 782244630.0,
+          "C_time_upper_us": 3128607960.0,
+          "device_card": "ion-like",
+          "device_card_sha256": "9cc7e53e935e4ec3c265efbd9b6218f17a68c51d727d658c5a5bcaf98d34f453"
+        },
+        "refined_endpoint_interval": {
+          "lower_effective_shots_per_setting": 2048,
+          "parent_interval_only_narrowed": true,
+          "problems": [],
+          "upper_effective_shots_per_setting": 8192,
+          "valid": true
+        },
+        "structural_instrument": {
+          "compatible_readouts": 3498,
+          "exact_ground_energy": -7.863222550890624,
+          "mean_reader_count": 2.4308547602501736,
+          "retained_rank": 2,
+          "settings": 135,
+          "word_universe": 1439
+        },
+        "support": "mapping",
+        "system": "lih_cas4e4o_margin_stop",
+        "target_cell_index": 2
+      },
+      {
+        "block_size": 2,
+        "card": "superconducting-like",
+        "confirmation": [
+          {
+            "below_exact_count": 63,
+            "bias_millihartree": -0.5622899532596115,
+            "chemical_accuracy_fraction": 0.66,
+            "effective_shots_per_setting": 8192,
+            "failures": {},
+            "max_absolute_error_millihartree": 3.4472347246037316,
+            "median_absolute_error_millihartree": 1.202164762041491,
+            "p95_absolute_error_millihartree": 2.902735944077328,
+            "passes_target": false,
+            "rank_histogram": {
+              "5": 100
+            },
+            "replicas": 100,
+            "rmse_millihartree": 1.5672686811969765,
+            "rmse_one_sided_95pct_upper_millihartree": 1.7021404377086966,
+            "successful_solves": 100,
+            "zero_failure_gate": true
+          }
+        ],
+        "endpoint_decisions": [
+          {
+            "classification": "environment_marginal",
+            "effective_shots_per_setting": 8192,
+            "environment_marginal": true,
+            "informative_for_interval": false,
+            "passes_target": false,
+            "valid": true
+          }
+        ],
+        "estimator": "single_assignment",
+        "exploration": [
+          {
+            "below_exact_count": 19,
+            "bias_millihartree": -0.25041452367844386,
+            "chemical_accuracy_fraction": 0.9,
+            "effective_shots_per_setting": 8192,
+            "failures": {},
+            "max_absolute_error_millihartree": 2.858549174829861,
+            "median_absolute_error_millihartree": 0.6883024633639323,
+            "p95_absolute_error_millihartree": 1.992151774591821,
+            "passes_target": true,
+            "rank_histogram": {
+              "5": 30
+            },
+            "replicas": 30,
+            "rmse_millihartree": 1.1127075680813832,
+            "rmse_one_sided_95pct_upper_millihartree": 1.3378811502604981,
+            "successful_solves": 30,
+            "zero_failure_gate": true
+          }
+        ],
+        "inherited_cost_interval": {
+          "C_time_lower_us": 945176.4500000001,
+          "C_time_upper_us": 3780516.15,
+          "device_card": "superconducting-like"
+        },
+        "inherited_endpoint_interval": {
+          "lower": 4096,
+          "point": 16384,
+          "upper": 16384,
+          "widened_sides": []
+        },
+        "mapping": "parity",
+        "measured_qubits": 8,
+        "new_endpoints_effective_shots_per_setting": [
+          8192
+        ],
+        "parent_record": "benchmarks/reference_results/protocol_cost.json",
+        "refined_cost_interval": {
+          "C_time_lower_us": 945176.4500000001,
+          "C_time_upper_us": 3780516.15,
+          "device_card": "superconducting-like",
+          "device_card_sha256": "cf78e3240ad48839a8113a1570a43e614c230a8428fe8ceda7783e7ff75e1a13"
+        },
+        "refined_endpoint_interval": {
+          "lower_effective_shots_per_setting": 4096,
+          "parent_interval_only_narrowed": true,
+          "problems": [],
+          "upper_effective_shots_per_setting": 16384,
+          "valid": true
+        },
+        "structural_instrument": {
+          "compatible_readouts": 4646,
+          "exact_ground_energy": -15.566211795095168,
+          "mean_reader_count": 2.5611907386990076,
+          "retained_rank": 5,
+          "settings": 41,
+          "word_universe": 1814
+        },
+        "support": "instance",
+        "system": "beh2",
+        "target_cell_index": 3
+      },
+      {
+        "block_size": 2,
+        "card": "superconducting-like",
+        "confirmation": [
+          {
+            "below_exact_count": 64,
+            "bias_millihartree": -1.108227406011295,
+            "chemical_accuracy_fraction": 0.66,
+            "effective_shots_per_setting": 2048,
+            "failures": {},
+            "max_absolute_error_millihartree": 9.798085249947519,
+            "median_absolute_error_millihartree": 1.085332143950346,
+            "p95_absolute_error_millihartree": 5.7082583028025695,
+            "passes_target": false,
+            "rank_histogram": {
+              "2": 100
+            },
+            "replicas": 100,
+            "rmse_millihartree": 2.4859807867156034,
+            "rmse_one_sided_95pct_upper_millihartree": 2.93685285560355,
+            "successful_solves": 100,
+            "zero_failure_gate": true
+          }
+        ],
+        "endpoint_decisions": [
+          {
+            "classification": "confirmed_fail",
+            "effective_shots_per_setting": 2048,
+            "environment_marginal": false,
+            "informative_for_interval": true,
+            "passes_target": false,
+            "valid": true
+          }
+        ],
+        "estimator": "single_assignment",
+        "exploration": [
+          {
+            "below_exact_count": 20,
+            "bias_millihartree": -0.7980562202412204,
+            "chemical_accuracy_fraction": 0.8333333333333334,
+            "effective_shots_per_setting": 2048,
+            "failures": {},
+            "max_absolute_error_millihartree": 4.839654827217821,
+            "median_absolute_error_millihartree": 0.8681370940366584,
+            "p95_absolute_error_millihartree": 3.631573778842241,
+            "passes_target": false,
+            "rank_histogram": {
+              "2": 30
+            },
+            "replicas": 30,
+            "rmse_millihartree": 1.6506754786498212,
+            "rmse_one_sided_95pct_upper_millihartree": 2.1037624078238726,
+            "successful_solves": 30,
+            "zero_failure_gate": true
+          }
+        ],
+        "inherited_cost_interval": {
+          "C_time_lower_us": 927311.1499999999,
+          "C_time_upper_us": 3708535.6,
+          "device_card": "superconducting-like"
+        },
+        "inherited_endpoint_interval": {
+          "lower": 1024,
+          "point": 4096,
+          "upper": 4096,
+          "widened_sides": []
+        },
+        "mapping": "parity",
+        "measured_qubits": 8,
+        "new_endpoints_effective_shots_per_setting": [
+          2048
+        ],
+        "parent_record": "benchmarks/reference_results/r3c_lih_full_cost.json",
+        "refined_cost_interval": {
+          "C_time_lower_us": 1854383.5500000003,
+          "C_time_upper_us": 3708535.6,
+          "device_card": "superconducting-like",
+          "device_card_sha256": "cf78e3240ad48839a8113a1570a43e614c230a8428fe8ceda7783e7ff75e1a13"
+        },
+        "refined_endpoint_interval": {
+          "lower_effective_shots_per_setting": 2048,
+          "parent_interval_only_narrowed": true,
+          "problems": [],
+          "upper_effective_shots_per_setting": 4096,
+          "valid": true
+        },
+        "structural_instrument": {
+          "compatible_readouts": 4573,
+          "exact_ground_energy": -7.863222550890624,
+          "mean_reader_count": 3.177901320361362,
+          "retained_rank": 2,
+          "settings": 122,
+          "word_universe": 1439
+        },
+        "support": "instance",
+        "system": "lih_cas4e4o_margin_stop",
+        "target_cell_index": 4
+      }
+    ],
+    "executed": true,
+    "new_endpoint_cell_count": 7,
+    "parent_evidence_reused_as_samples": false,
+    "target_cell_count": 5
+  },
+  "reporting_contract": {
+    "existing_configs_and_records_are_immutable": true,
+    "r3d_record_must_include_all_seven_endpoint_cells": true,
+    "r3d_record_must_rederive_every_interval_and_spread": true,
+    "r3d_record_must_report_exploratory_and_confirmatory_blocks": true,
+    "result_commit_must_be_separate": true,
+    "sampled_ci_is_manual_dispatch_only": true,
+    "scope": "one accuracy target, one candidate family, two eight-qubit instances, the two frozen R3c point-support comparisons, and their named illustrative device cards; not an instance-independent mapping claim"
+  },
+  "schema": "clifford_qc.r3d_qr3_refinement.v1",
+  "search_uncertainty_evidence": "heuristic"
+}

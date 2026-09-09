@@ -13,6 +13,7 @@ field with the committed evidence.
 from __future__ import annotations
 
 import argparse
+import functools
 import json
 import math
 import sys
@@ -35,10 +36,13 @@ try:  # package import in tests versus direct benchmark execution
         SCHEMA,
         _file_sha256,
         _parent_rung,
+        _prepare_cell,
+        _scalar_cost,
         build_record,
         declared_environment,
         derive_readout,
         endpoint_decision,
+        load_device_cards,
         refined_shot_interval,
     )
 except ImportError:  # pragma: no cover - direct script execution
@@ -52,10 +56,13 @@ except ImportError:  # pragma: no cover - direct script execution
         SCHEMA,
         _file_sha256,
         _parent_rung,
+        _prepare_cell,
+        _scalar_cost,
         build_record,
         declared_environment,
         derive_readout,
         endpoint_decision,
+        load_device_cards,
         refined_shot_interval,
     )
 
@@ -85,8 +92,22 @@ def _same_float(actual, expected) -> bool:
     )
 
 
-def _expected_cost(parent_cost: float, parent_shots: int, new_shots: int) -> float:
-    return float(parent_cost) * int(new_shots) / int(parent_shots)
+@functools.lru_cache(maxsize=16)
+def _rebuilt_costs(index: int, lower: int, upper: int) -> tuple[float | None, float | None]:
+    """Reprice an interval through the bound instrument, including rounding.
+
+    Fidelity inflation rounds raw shots per setting, so device cost is nearly
+    but not exactly linear in effective shots.  Rebuilding the resources is the
+    only exact audit; a ratio extrapolated from a parent endpoint is not.
+    """
+    target = load_config()["refinement"]["target_cells"][index]
+    problem, _, resources, _ = _prepare_cell(target)
+    cards = load_device_cards()
+    card = target["card"]
+    return (
+        _scalar_cost(cards, resources, problem["n_qubits"], lower, card),
+        _scalar_cost(cards, resources, problem["n_qubits"], upper, card),
+    )
 
 
 def _cell_problems(record: dict, config: dict) -> list[str]:
@@ -127,11 +148,13 @@ def _cell_problems(record: dict, config: dict) -> list[str]:
         if structural.get("settings") != parent["settings"]:
             problems.append(f"{label}: setting count differs from the parent cell")
         parent_estimator = parent["estimators"][target["estimator"]]
-        if structural.get("retained_rank") not in {
-            row.get("rank_histogram", {}).get(str(structural.get("retained_rank")))
-            and structural.get("retained_rank")
+        parent_ranks = {
+            int(rank)
             for row in parent_estimator["confirmation"]
-        }:
+            for rank, count in row.get("rank_histogram", {}).items()
+            if count
+        }
+        if structural.get("retained_rank") not in parent_ranks:
             problems.append(f"{label}: retained rank is absent from parent confirmations")
 
         for phase, expected_replicas in (
@@ -175,12 +198,10 @@ def _cell_problems(record: dict, config: dict) -> list[str]:
         refined_cost = cell.get("refined_cost_interval", {})
         if refined_cost.get("device_card") != target["card"]:
             problems.append(f"{label}: refined interval uses another device card")
-        parent_lower = target["inherited_endpoint_interval"]["lower"]
         lower = expected_interval["lower_effective_shots_per_setting"]
         upper = expected_interval["upper_effective_shots_per_setting"]
-        cost_per_shot_anchor = parent_card["C_time_lower_us"]
-        for side, shots in (("lower", lower), ("upper", upper)):
-            expected_cost = _expected_cost(cost_per_shot_anchor, parent_lower, shots)
+        rebuilt = _rebuilt_costs(index, lower, upper)
+        for side, expected_cost in zip(("lower", "upper"), rebuilt):
             if not _same_float(refined_cost.get(f"C_time_{side}_us"), expected_cost):
                 problems.append(f"{label}: refined {side} cost does not re-derive")
     return problems
