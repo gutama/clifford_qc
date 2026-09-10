@@ -2,7 +2,7 @@
 
 The current shape of the package, derived from the source on this branch
 rather than from intent: 92 modules and ~22.5k lines under `clifford_qc/`,
-97 test modules and ~21.9k lines under `tests/`, 41 record producers and 27
+99 test modules and ~22.3k lines under `tests/`, 42 record producers and 29
 record gates under `benchmarks/`.
 
 Two things explain most of the layout.
@@ -28,7 +28,7 @@ Arrows are runtime `import` dependencies, and they only point downward.
 ```mermaid
 flowchart TD
     subgraph L6["Evidence & reproduction"]
-        BENCH["benchmarks/<br/>41 run_*.py producers<br/>27 check_*.py gates"]
+        BENCH["benchmarks/<br/>42 run_*.py producers<br/>29 check_*.py gates"]
         REPRO["reproducibility.py<br/>record_environment.py<br/>verify.py"]
     end
 
@@ -249,9 +249,9 @@ pairing is the architecture:
 ```mermaid
 flowchart LR
     CFG["benchmarks/configs/*.json<br/>predeclared parameters,<br/>device cards"]
-    RUN["benchmarks/run_*.py<br/>41 producers"]
-    REC["benchmarks/reference_results/<br/>45 committed records<br/>+ execution provenance"]
-    CHK["benchmarks/check_*.py<br/>27 gates"]
+    RUN["benchmarks/run_*.py<br/>42 producers"]
+    REC["benchmarks/reference_results/<br/>46 committed records<br/>+ execution provenance"]
+    CHK["benchmarks/check_*.py<br/>29 gates"]
     SUM["benchmarks/summarize*.py<br/>CSV + Markdown"]
     PAPER["paper/, paper_acase/,<br/>paper_a_case_subspaces/<br/>make_tables.py, make_figures.py"]
     CI["CI &mdash; ruff, pytest,<br/>named per-gate steps,<br/>OMP_NUM_THREADS=1"]
