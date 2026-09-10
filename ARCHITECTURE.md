@@ -167,6 +167,45 @@ flowchart TD
     ORACLE --> LADDER
 ```
 
+
+### Where computational-space reduction happens
+
+`models/` constructs the problem; it does **not** silently reduce the
+computational space. Reduction is explicit, and the repository uses the word
+"subspace" for several operations with different mathematical and resource
+meanings:
+
+```mermaid
+flowchart TD
+    FULL["Full model<br/>n qubits; ambient dimension 2^n"]
+    SECTOR["Exact sector representation<br/>fixed N and S_z; dimension d_(N,S_z)"]
+    RESTRICT["Restriction<br/>Clifford rotate + fix r qubits;<br/>active dimension 2^(n-r)"]
+    ACASE["A-CASE projection<br/>M virtual operator directions;<br/>M x M generalized eigenproblem"]
+    DET["QSCI / selected CI<br/>K determinants;<br/>K x K projected matrix"]
+
+    FULL --> SECTOR
+    FULL --> RESTRICT
+    FULL --> ACASE
+    SECTOR --> DET
+    RESTRICT --> ACASE
+```
+
+| Mechanism | Code path | What becomes smaller | Evidence boundary |
+|---|---|---|---|
+| Fixed-`(N, S_z)` sector representation | `backends/sector_statevector.py` | The statevector and exact eigensolver use only the sector basis: for the standard two-spin ordering, `d_(N,S_z) = C(n/2,N_up) C(n/2,N_down)` instead of `2^n` | Exact. It compresses storage and linear algebra but does not remove qubits from the `Model` |
+| Symmetry tapering / reduced fermion encoding | `fermion_mapping.py` → `subspace/restriction.py` | A Clifford rotation exposes `r` fixed parity qubits, then `Restriction` deletes them: `n_active = n-r` | Exact when every fixed stabilizer is a symmetry of the full Hamiltonian. The `parity+2q` and `BK+2q` arms remove two qubits this way |
+| Contextual restriction | `subspace/contextual.py` → `subspace/restriction.py` | The same rotate-then-fix primitive produces an `(n-r)`-qubit problem, while terms anticommuting with the selected contextual stabilizers are projected away | Approximate. The record carries the removed Hamiltonian Hilbert--Schmidt fraction; this must not be presented as exact symmetry tapering |
+| A-CASE projection | `subspace/projection.py`, `subspace/adaptive.py` | Rayleigh--Ritz is solved in `span{A_i psi}`, giving an `M x M` generalized eigenproblem `Hc = ESc` | Variational. The `A_i psi` directions remain virtual expectation-value constructions; this does not shrink the logical qubit register |
+| QSCI / selected-CI projection | `subspace/qsci.py`, `subspace/selected_ci.py` | The Hamiltonian is restricted to `K` sampled or selected determinants and solved as a `K x K` matrix | Truncated variational subspace, normally inside the exact sector representation |
+| Generator preconditioning | `subspace/ga_restriction.py` | The candidate-generator pool and subsequent measurement/search work | **Not** a Hilbert-space reduction by itself; it changes which directions may enter a later projected solve |
+
+These mechanisms are composable but not interchangeable. In the R4a path,
+`compile_contextual_restriction` selects and rotates the contextual
+stabilizers, then `project_contextual_problem` transports the Hamiltonian,
+reference, generators, and observables through one shared `Restriction`.
+A-CASE subsequently builds its smaller generalized eigenproblem from that
+already reduced problem.
+
 ---
 
 ## 3. Finite-shot data path
@@ -344,6 +383,10 @@ For someone new to the codebase:
 3. `ir.py` — the interchange layer everything above speaks.
 4. `backends/protocol.py` — the execution seam, and the `GroupSample` docstring
    for why grouped measurement is shaped the way it is.
-5. `subspace/adaptive.py` and `subspace/projection.py` — A-CASE proper.
-6. `selection.py` — short, and it explains the evidence vocabulary that the
+5. `backends/sector_statevector.py`, `fermion_mapping.py`, and
+   `subspace/restriction.py` — sector compression, encoding-aware tapering,
+   and the distinction between fewer stored amplitudes and fewer active qubits.
+6. `subspace/adaptive.py` and `subspace/projection.py` — A-CASE proper and
+   its separate `M`-dimensional projected solve.
+7. `selection.py` — short, and it explains the evidence vocabulary that the
    records, the ladder, and the manuscripts all use.
