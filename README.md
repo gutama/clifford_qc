@@ -271,6 +271,11 @@ coverage certificate.
 
 ## System Architecture & Methodological Framework
 
+`ARCHITECTURE.md` carries the full picture: the layer stack and its
+dependency rules, the seams between layers, the finite-shot data path,
+and the producer/gate structure of `benchmarks/`. The pipeline below is
+the scientific summary of it.
+
 ```text
             +-------------------------------------------------------+
             | DFT / Wannier downfolding / chemistry FCIDUMP records |
