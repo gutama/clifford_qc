@@ -23,13 +23,24 @@ Two things explain most of the layout.
 
 ## 1. Layer stack
 
-Arrows are runtime `import` dependencies, and they only point downward.
+Arrows are **import-time** dependencies: the edges that execute when the module
+is first loaded. Those point downward only, and that is the invariant the
+package actually enforces — no layer's package initialization reaches upward,
+so importing a lower layer never drags a higher one in.
+
+Deferred imports are a different graph. A function-scope import is still a real
+runtime import; it just runs at call time rather than at load time, and several
+of those *do* point upward — `measurement/` into `subspace/`, the kernel into
+`backends/`. Collapsed to the package level, the call-time graph therefore has
+upward and bidirectional edges and is not acyclic. Section 5 lists every one of
+them.
 
 ```mermaid
 flowchart TD
     subgraph L6["Evidence & reproduction"]
         BENCH["benchmarks/<br/>42 run_*.py producers<br/>29 check_*.py gates"]
-        REPRO["reproducibility.py<br/>record_environment.py<br/>verify.py"]
+        REPRO["reproducibility.py<br/>record_environment.py"]
+        VERIFY["verify.py &mdash; self-check<br/>imports the solver layer"]
     end
 
     subgraph L5["Solvers"]
@@ -66,7 +77,10 @@ flowchart TD
     BENCH --> ALGOS
     BENCH --> MODELS
     BENCH --> MEAS
-    REPRO --> BENCH
+    BENCH --> REPRO
+    VERIFY --> SUBSPACE
+    VERIFY --> MODELS
+    VERIFY --> BACKENDS
     SUBSPACE --> MEAS
     SUBSPACE --> BACKENDS
     SUBSPACE --> MODELS
@@ -88,9 +102,15 @@ flowchart TD
     MEAS -.-> BRIDGES
 ```
 
-Dotted edges are optional: `stim` is imported only when
-`compile_block_measurement_plan` or the stabilizer backend is called, never at
-package import.
+Dotted edges are optional. The invariant is about *when*, not *how many*: no
+ordinary package import eagerly loads `stim`. It is pulled in at call time by
+`compile_block_measurement_plan`, by `compile_contextual_restriction` in
+`subspace/contextual.py`, and by `EncodingMap.restriction` in
+`fermion_mapping.py` (through `bridges.stim_bridge`); `backends/stabilizer.py`
+and `measurement/block_synthesis.py` import it at module level but are not
+re-exported, so reaching them means naming them. Those are entry paths, not an
+exhaustive count — the property to rely on is that `import clifford_qc` does
+not need the extra installed.
 
 ### Layer inventory
 
@@ -207,23 +227,31 @@ cross-cutting change; changing anything else is local.
 
 ## 5. Dependency rules and their recorded exceptions
 
-The runtime import graph is acyclic across layers. The upward references that
-exist are deliberate and are all deferred:
+The **import-time** graph is acyclic across layers: nothing a package executes
+while initializing reaches upward. The call-time graph is not, and the
+difference is the whole design. Each upward edge below is deferred by one of
+three mechanisms, and each still executes when its code path runs.
 
-- **`measurement/` never imports `subspace/` at runtime.** `functionals.py` and
-  `session.py` reference `MatrixElementBank` and `SubspaceResult` under
-  `TYPE_CHECKING` only, and pull `subspace.linalg` inside the function bodies
-  that need it. `session.py` goes further and *restates* the canonical
-  `linalg` tolerances with a comment saying why, rather than importing the
-  higher layer during its own initialization.
+- **`measurement/` never imports `subspace/` *while initializing*.** It does
+  import it at call time: `session.py` pulls `subspace.linalg` inside three
+  methods, and `compiled.py` pulls `subspace.restriction` inside one.
+  `functionals.py` and `session.py` additionally reference `MatrixElementBank`
+  and `SubspaceResult` under `TYPE_CHECKING`, which never executes at all.
+  `session.py` goes further and *restates* the canonical `linalg` tolerances
+  with a comment saying why, rather than importing the higher layer during its
+  own initialization — which is the point: the deferral buys initialization
+  order, not independence.
 - **`subspace/projection.py` pulls `measurement.grouping` inside a method**, so
   costing a word universe does not make the solver depend on the measurement
   package at import.
 - **`workflows.py` exists precisely to keep `algorithms/` and `subspace/`
   apart.** It imports `algorithms.adapt` at call time so importing either
   numerical package does not eagerly initialize the other.
-- **`fermion.py` and `pauli_action.py` reach into
-  `backends/sector_statevector.py` from function scope** for sector helpers.
+- **The kernel reaches upward into `backends/` at call time.** `fermion.py` and
+  `pauli_action.py` pull `backends/sector_statevector.py` from function scope
+  for sector helpers, and `fermion_mapping.py` pulls `subspace.restriction` the
+  same way. These are genuine upward runtime edges; only their timing is
+  constrained.
 - **`multivector.py` pulls `dense_reference.to_matrix` inside a method**, so the
   kernel does not depend on the dense bridge at import.
 - **Optional dependencies are kept out of every package `__init__`**, by one of
@@ -264,11 +292,33 @@ flowchart LR
     ENV["record_environment.py<br/>reproducibility.execution_provenance"] --> REC
 ```
 
-Three properties of this layer are load-bearing:
+Four properties of this layer are load-bearing:
 
-- **Producer/gate pairing.** A `run_X.py` writes a record; a `check_X.py`
-  re-derives it and fails on drift. CI runs each gate as its own named step
-  with `if: !cancelled()`, so a drift suite reports every symptom rather than
+- **Producer/gate pairing, where it applies.** The 42 producers and 29 checkers
+  are not two views of one list: only 18 share a stem. Read the checkers by
+  what they actually assert, because "every record is re-derived" is a promise
+  the repository deliberately does not make:
+
+  | Class | Count | What it asserts |
+  |---|---:|---|
+  | Value-rebuilt | 18 | Same-stem `check_X` recomputes `run_X`'s record and fails on numeric drift |
+  | Preregistration | 5 | A predeclared plan matches the committed constants — no rebuild |
+  | Lineage / environment | 3 | Provenance stamping, environment migration, regeneration identity |
+  | Documentation | 1 | `check_docs.py` on `REPRODUCING.md` |
+  | Cross-artifact | 2 | `check_molecular.py` (against the root pipeline), `check_summaries.py` |
+
+  The other 24 producers write manuscript evidence, paper-suite drivers, or
+  exploratory output with no value gate. `REPRODUCING.md` names the notable
+  case rather than excusing it: `acase_ladder.jsonl` is manuscript evidence, so
+  no `check_*.py` rebuilds it — regenerating it would move published inputs
+  across all five families. And `check_summaries.py` is deliberately not a gate
+  yet, because five `*_summary` pairs declared by configs have no committed
+  JSONL, so it fails on `main` today for reasons that predate the workflow.
+  27 of the 29 checkers run in CI; `check_summaries.py` and
+  `check_regenerated_record.py` are the two that do not.
+
+- **One named step per gate.** CI runs each as its own step with
+  `if: !cancelled()`, so a drift suite reports every symptom rather than
   stopping at the first.
 - **Thread pinning.** CI sets `OMP_NUM_THREADS=1` because threaded BLAS
   reductions sum in a thread-count-dependent order — `eigvalsh` returns four
