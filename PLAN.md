@@ -112,7 +112,7 @@ Status at a glance:
 | 13 | parity/X-rank invariant | **done**; one shared GF(2) implementation is tested across every declared spin-conserving JW construction path before grouping |
 | 14 | fully commuting grouping | **done on the frozen BeH₂/JW comparison** — the public compiled-plan API, exact joint sampler, preregistered finite-sample record, covariance audit, and device-card costing ship; Q9 is positive within the declared one-bank oracle boundary |
 | 15–18 | second moments, time-evolved inputs, mapping breadth, embedding | Track C, open (Phase 18's versioned effective-Hamiltonian schema ships in `models/effective.py`; the fragment-solver callback does not) |
-| 19 | anticommuting-clique (spin-factor) partitioning | **proposed, unexecuted**; the algebra is §3.6 and the scope is §5, Phase 19. An in-session structural probe supplies the sizing numbers and is explicitly **not** a committed record — no producer, config, record or checker exists, so nothing there licenses a rung, a price, or an arm |
+| 19 | anticommuting-clique (spin-factor) partitioning | **proposed, unexecuted**; the algebra is §3.6 and the scope is §5, Phase 19. Lever 1 is scoped to a fixed-coefficient Hamiltonian-energy estimand, *not* to Phase 14b's matrix-element word bank; lever 2 needs a non-Clifford transport primitive that does not exist yet. An in-session structural probe supplies the sizing numbers and is explicitly **not** a committed record — no producer, config, record or checker exists, so nothing there licenses a rung, a price, or an arm |
 | G1 | GA structural preconditioner: Majorana pool and filters A–E | **done**; both gates pass and QG1's falsifier does not fire, but E's content is pool-dependent — `522` of `549` removed on the §3.5 Majorana pool, `0` on the excitation pool the mapping records use |
 | G2–G3 | mapping-invariance test on the restricted pool, PRD/WISE integration with a cost decomposition | **retired by G1's own result**; the G1-admissible pool reconstructs the pool R2b already builds, so QG2's falsifier holds by construction rather than by measurement (§5, Phase G2) |
 | R1 | hardware-aware cost model and pooled-estimator ledger | **done**; asymptotic and exact-oracle nonlinear shot-search tiers are recorded |
@@ -603,18 +603,33 @@ no-go below.
 Three facts follow, and Phase 19 uses each for a different thing.
 
 **(i) Closure — one setting per clique.** For real `|c| = 1`,
-`(Σ_i c_i A_i)² = 1`: the combination is *itself* a Hermitian involution, and a
-product of `m − 1` rotors with generators `i A_1 A_k` carries it to `A_1`.
+`(Σ_i c_i A_i)² = 1`: the combination is *itself* a Hermitian involution, and for
+`m ≥ 2` a product of `m − 1` rotors with generators `i A_1 A_k` carries it to
+`A_1`.
 
 ```text
-V (Σ_i c_i A_i) V†  =  A_1,        V = Π_k rotor(i A_1 A_k, θ_k)
+V (Σ_i c_i A_i) V†  =  A_1,        V = Π_k rotor(i A_1 A_k, θ_k),   m ≥ 2
 ```
+
+The `m ≥ 2` precondition is not decoration. At `m = 1` the product is empty and
+the identity is simply false for `c_1 = −1`: `V(−A_1)V† = −A_1 ≠ A_1`. A singleton
+clique is not rotated at all — it carries its sign in the measured coefficient, and
+an implementation that assumes `+A_1` reports the negated mean. For `m ≥ 2` a
+Givens sequence whose accumulated first component is taken as `+√(c_1² + c_k²)`
+lands on `+A_1` for every sign pattern, including `c = (−1, 0, …)`, because the
+`θ = π` rotation still fires. Which convention is in force is part of the
+estimator contract, not an implementation detail.
 
 This needs no new primitive. `clifford_qc.rotor` *is* the rotor, and `i A_1 A_k`
 is Hermitian with square `1` by construction. Verified in-session at `m = 7`,
 `n = 3` against the dense bridge to `1e-9`. The rotors are **Pauli rotations, not
-Clifford**, and that cost is real: `m − 1` of them enter `SettingResources.d_2q`
-and are priced by the §6.4 card like any other depth.
+Clifford**, and their cost may not be read off `m`. `SettingResources` carries
+two-qubit *count* (`n_2q`) and *critical-path depth* (`d_2q`) as separate fields,
+each rotation's contribution depends on its Pauli support and on the synthesis
+used, and independent rotations may partly parallelise — so `m − 1` bounds the
+number of rotations and nothing else. The per-setting resource is synthesised and
+measured like any other compiled setting (§6.4), never inferred from the clique
+size.
 
 **(ii) The ball bound — an exact variance floor.** `Σ_i ⟨A_i⟩² ≤ 1` on every
 state — this is `|x| ≤ 1` in the ball, the Brukner–Zeilinger invariant — so
@@ -623,11 +638,20 @@ state — this is `|x| ≤ 1` in the ball, the Brukner–Zeilinger invariant —
 Σ_i Var(A_i)  =  m − Σ_i ⟨A_i⟩²  ≥  m − 1
 ```
 
-exactly, for every state and every estimator. Unlike the intervals in
-`subspace/uncertainty.py` this is not asymptotic in the shot count: it is an
-algebraic identity plus one inequality. Its contrapositive is a cheap consistency
-gate — a reconstruction returning `Σ_i ⟨A_i⟩² > 1` is inconsistent whatever it
-was estimating.
+exactly, for every state. Two things this is not. It is a statement about the
+**intrinsic** `Var_ρ(A_i)`, not about the sampling variance of any estimator of
+it; and it is therefore a floor on what a perfect estimator faces, not a floor on
+what a finite-shot record reports. Unlike the intervals in
+`subspace/uncertainty.py` it is not asymptotic in the shot count — it is an
+algebraic identity plus one inequality — but that exactness transfers only to
+**exact** reconstructions.
+
+Its contrapositive is a consistency gate on that same boundary: a reconstruction
+in exact arithmetic returning `Σ_i ⟨A_i⟩² > 1` is inconsistent whatever it was
+estimating, and belongs with the structural checks. A finite-shot estimate may
+exceed `1` from statistical noise alone and must be gated against a declared
+tolerance derived from its own shot count and confidence family, never against
+`1` itself — a hard gate there would reject valid noisy data.
 
 **(iii) The ceiling — `2n+1`, already constructible in the package.** On `n`
 qubits the largest anticommuting set has `2n+1` members, and the package builds
@@ -637,21 +661,37 @@ anticommuting Hermitian involutions for `n = 1, 2, 3`, and verified *maximal* at
 `n = 2` by exhaustion over all sixteen Pauli words; for general `n` the
 maximality is the `2q+1` result of §11, row 18, not an in-repo measurement. The
 same exhaustion shows the four Majoranas alone extend by exactly one word — `ZZ`,
-which is `parity_operator(2)` — so a four-question restriction is not expressible
-here at all: it always completes to five. This is also why
-`hermitian_majorana_monomial` carries `i^{k(k−1)/2}`. That is the reversion sign
+which is `parity_operator(2)`. The four-word set is of course perfectly
+expressible; what that extension rules out is a *closed* four-question theory,
+because the fifth question is the product of the four and is therefore already
+present in any algebra containing them. A four-question model must forbid
+products, not merely omit the fifth — which is what makes §11 row 18's hyperbit a
+foundations construction rather than something a Pauli algebra can host.
+
+This is also why `hermitian_majorana_monomial` carries `i^{k(k−1)/2}`. That is the reversion sign
 of §3.2, and a bare `k`-fold Majorana product is Hermitian iff `k ≡ 0, 1 (mod 4)`.
 
-**The no-go, which bounds every use above.** The `m`-ball is a state space for the
-questions, and on this package's problems it is empty. Odd-grade Majorana
-monomials anticommute with parity, so every parity-commuting state — every
-physical state of a fermionic problem — has `⟨γ_i⟩ = 0` and sits at the centre of
-the ball. Verified: `max |⟨γ_i⟩| = 0` over 200 random parity-commuting two-mode
-states, and both `hubbard(1×3)` and `kitaev_honeycomb(2×2)` carry **zero** terms
-of odd Majorana grade, so no such question appears in a Hamiltonian this package
-builds. Any wording that treats the hyperbit or the `m`-ball as a *state* space
-here is false by construction, and §14 blocks it. What survives is the operator
-content: (i), (ii), (iii).
+**The no-go, which bounds every use above.** The `m`-ball is the state space of
+the questions, and the image of this package's *fermionic* states in it is the
+single centre point. Odd-grade Majorana monomials anticommute with parity, so
+every parity-commuting state — every physical state of a fermionic problem — has
+`⟨γ_i⟩ = 0`. Verified: `max |⟨γ_i⟩| = 0` over 200 random parity-commuting
+two-mode states, and `hubbard(1×3)` carries **zero** terms of odd Majorana grade,
+so no such question appears in a fermionic Hamiltonian this package builds.
+
+The scope of that sentence is exactly the fermionic models, and stating it
+loosely would be wrong in two directions. `kitaev_honeycomb` also carries no
+odd-grade term, but it is a **direct spin model with no Jordan–Wigner
+transformation at all** (`models/lattice.py`), so its even blade grades are a
+property of how it was written down and witness nothing about parity
+superselection; it is not evidence here. In the other direction the spin builders
+`tfim` and `random_ising` carry single-qubit `X_i` field terms, which *are*
+odd — four of seven terms at `n = 4` in both — so "no odd-grade term" is false of
+the package as a whole and true only of its parity-conserving fermionic sector.
+
+Within that sector the reading is settled: the hyperbit and the `m`-ball are not
+a state space of anything this package computes, and §14 blocks wording that
+treats them as one. What survives is the operator content: (i), (ii), (iii).
 
 ## 4. The method
 
@@ -1710,22 +1750,63 @@ implement the same callback.
 ### Phase 19 — anticommuting-clique (spin-factor) partitioning — proposed, unexecuted
 
 The contract is §3.6. Two levers share one algebraic fact and sit in two different
-compression classes (§6.8), so they are scoped, measured and reported separately.
+compression classes (§6.8), so they are scoped, measured and reported separately —
+and they are at different readiness, lever 1 needing a cover and its synthesis
+priced, lever 2 needing a primitive the package does not have.
 
-**Lever 1 — a third measurement arm (Track B).** Phase 14 compares QWC (`k = 1`)
-against fully commuting (`k ≥ n`), both of which partition into *commuting* sets.
-A clique cover partitions into *anticommuting* sets and reads each one in a single
-setting through §3.6(i). It is not a strictly better protocol and it is not on the
-dyadic block-commuting hierarchy's interior (§6.6): it buys settings and pays
-`m − 1` Pauli rotations of depth, which is precisely the trade §6.3 forbids
-assuming.
+**Lever 1 — a clique cover for a Hamiltonian-energy estimand (Track B).** Phase 14
+compares QWC (`k = 1`) against fully commuting (`k ≥ n`), both of which partition
+into *commuting* sets. A clique cover partitions into *anticommuting* sets and
+reads each one in a single setting through §3.6(i). It is not a strictly better
+protocol and it is not on the dyadic block-commuting hierarchy's interior (§6.6):
+it buys settings and pays up to `m − 1` Pauli rotations, which is precisely the
+trade §6.3 forbids assuming.
 
-**Lever 2 — one more removed qubit in a contextual restriction.**
-`subspace/contextual.py` admits only mutually commuting stabilizers and projects
-away everything anticommuting with them. The method family that R4a's contextual
-arms belong to (§11, rows 15–16) also carries one anticommuting clique, reduced
-by §3.6(i) into a further stabilizer. The honest statement of that gain is **one more
-removed qubit per clique**, not less removed Hamiltonian weight.
+**Its estimand is narrower than Phase 14's, and that is a scoping fact, not a
+detail.** A rotated clique yields one number — the mean of the single weighted
+observable `Σ_i c_i A_i` — and the individual `⟨A_i⟩` are *not* recoverable from
+it. Phase 14b is declared on a `1,814`-word universe with a `966`-word Ritz
+functional support (`benchmarks/configs/phase14b_qwc_vs_fc.json`), i.e. on
+per-word means that many different functionals — every `S_ij` and `H_ij` built
+from `supp(A_i† H A_j)` — reconstruct from and re-use. A cover whose coefficients
+are frozen into the setting cannot serve that bank: it would need one cover per
+functional, which is a different and probably worse protocol.
+
+So lever 1 is scoped to a **fixed linear functional with fixed coefficients**, and
+the natural one is the Hamiltonian energy. Calling it a third Phase 14 arm on the
+declared bank is not licensed and is not claimed here. Widening it to the
+matrix-element bank would first require defining a clique-compatible
+matrix-element estimator and a word-coverage contract, and validating both against
+the §6.6 pooled/assigned reconstruction; that is a separate deliverable, not an
+extension of this one.
+
+**Lever 2 — a candidate further removed qubit in a contextual restriction, and two
+things that have to be built first.** `subspace/contextual.py` admits only
+mutually commuting stabilizers and projects away everything anticommuting with
+them. The method family that R4a's contextual arms belong to (§11, rows 15–16)
+also carries one anticommuting clique, reduced by §3.6(i) and then fixed as a
+further stabilizer. If that works here the gain is **one more removed qubit per
+clique**, not less removed Hamiltonian weight — but "if" is carrying real weight
+in that sentence, and the phase may not be written as though the qubit were
+already available.
+
+*The transport primitive does not exist.* `Restriction` takes a
+`bridges.stim_bridge.CliffordMap`, which sends each Pauli word to a single Pauli
+word; §3.6's `V` is a product of Pauli rotations and is generally **not**
+Clifford, so it sends a word to a *sum* of words. Neither `Restriction` nor
+`compile_contextual_restriction` can carry it. Lever 2 therefore needs a new
+non-Clifford transport and projection primitive, with its own correctness
+contract and its own cost, and that primitive — not the qubit count — is the
+first thing to build and price.
+
+*The contextual admission conditions are not automatic after the rotation.*
+`select_contextual_stabilizers` requires more than commutation: the reference
+expectation must be within `tol` of `±1`, and that sign must minimise the
+candidate word's Hamiltonian coefficient (§5, R4a; `subspace/contextual.py`).
+Closure of a clique into an involution establishes none of that about the rotated
+`A_1` in the rotated frame. Phase 19 must verify both conditions *after* the
+rotation, on the transported Hamiltonian and the transported reference, before
+any removed qubit is counted.
 
 **Sizing, from an in-session structural probe — this is not a committed record.**
 No producer, config, record or checker exists for the numbers below. They were
@@ -1752,24 +1833,45 @@ phase exists, and because the setting-count ordering between the two arms
 — which is what makes the comparison worth freezing rather than guessing.
 
 **The lever-2 sizing is discouraging on the bank that matters, and that is
-reported here rather than discovered later.** Read as removed Hilbert–Schmidt
-fraction against removed qubits, BeH₂ moves `0.0234 → 0.0241` from one to five
-stabilizers, so trading one commuting stabilizer for a clique recovers about
-`0.0004` of HS weight. H₄ moves `0.0334 → 0.0817` and LiH `0.0018 → 0.0040`, so
-the same trade is worth roughly `0.5–2%` there. R4a stopped on the **accuracy**
-gate — contextual bias floors of `5.345` and `5.899` mHa against a `1.6` mHa
-target — and a lever worth `0.0004` of HS weight on that bank is not a candidate
-to move a floor of that size. Lever 2 is therefore scoped as a compression
-mechanism to be measured on its own terms and explicitly **not** as a route to
-reopening R4a.
+reported here rather than discovered later.** The quantity to read is *not* the
+span of the ladder but its largest single-rung **marginal**, because what lever 2
+trades is one commuting stabilizer for one clique — i.e. it reaches `k` removed
+qubits from `k − 1` commuting stabilizers instead of `k`, and what it saves is the
+weight the `k`-th stabilizer would have dropped. Removed Hilbert–Schmidt fraction
+across one to five stabilizers, with the per-rung marginals under it:
+
+```text
+BeH₂  0.02339  0.02339  0.02371  0.02371  0.02414    marginals ≤ 0.00043
+H₄    0.03345  0.05339  0.06993  0.07651  0.08172    marginals ≤ 0.01994
+LiH   0.00181  0.00355  0.00373  0.00386  0.00396    marginals ≤ 0.00175
+```
+
+So the trade is worth at most `0.043%` of HS weight on BeH₂, `1.99%` on H₄ and
+`0.175%` on LiH — and on BeH₂ two of the four rungs save exactly nothing. R4a
+stopped on the **accuracy** gate — contextual bias floors of `5.345` and `5.899`
+mHa against a `1.6` mHa target — and a lever worth `0.00043` of HS weight on that
+bank is not a candidate to move a floor of that size. Lever 2 is therefore scoped
+as a compression mechanism to be measured on its own terms and explicitly **not**
+as a route to reopening R4a.
 
 **Gate, before any producer is written.** The §3.6 invariants ship as tests first:
-`(Σ_i c_i A_i)² = 1`; `V(Σ_i c_i A_i)V† = A_1` against the dense reference; the
-`2n+1` construction and its `n = 2` maximality; `Σ_i ⟨A_i⟩² ≤ 1`; and the
-odd-grade absence in every lattice and chemistry Hamiltonian the package builds.
-A clique arm whose settings look cheaper only because the rotation depth went
+`(Σ_i c_i A_i)² = 1`; `V(Σ_i c_i A_i)V† = A_1` for `m ≥ 2` against the dense
+reference, with the singleton and `c_1 < 0` sign cases pinned explicitly; the
+`2n+1` construction and its `n = 2` maximality; and `Σ_i ⟨A_i⟩² ≤ 1` in exact
+arithmetic.
+
+The odd-grade invariant is scoped to the **parity-conserving fermionic** models
+and must be written that way. A package-wide version fails on shipped builders,
+not hypothetically: `tfim` and `random_ising` carry single-qubit `X_i` field
+terms, four of seven at `n = 4` in both, and those are odd. `kitaev_honeycomb`
+passes but proves nothing, being a direct spin model with no Jordan–Wigner
+transformation. A test that asserts the invariant over every lattice model in the
+package would be red on arrival.
+
+A clique arm whose settings look cheaper only because the rotation resources went
 unpriced is the same failure mode as Phase 14's multiply-capable-word variance
-bug, and it blocks the phase on the same terms.
+bug, and it blocks the phase on the same terms — with the §3.6(i) refinement that
+those resources are synthesised and measured per setting, not derived from `m`.
 
 **First deliverable** is a result-free preregistration in the Phase 14b shape —
 frozen bank, frozen cover, allocator, confidence target, all three device cards,
@@ -2693,12 +2795,17 @@ counts instead of accuracy-matched cost would reproduce exactly the error §6.1
 forbids — and P2 already reports the count reductions on this bank (§1.2(1)).
 
 The anticommuting cliques of §3.6 are the sharpest case of why the classes stay
-separate, because there one algebraic fact — `(Σ_i c_i A_i)² = 1` — acts in two
-of them. In the **first** class a clique becomes one more fixed stabilizer, so one
-more qubit leaves the register; in the **third** it becomes one measurement
-setting, at `m − 1` Pauli rotations of added depth. Those are not the same gain,
-they do not add, and a table reporting "clique partitioning saved X" without
-naming the class has already made the error this subsection exists to block.
+separate, because there one algebraic fact — `(Σ_i c_i A_i)² = 1` — is claimed in
+two of them. In the **first** class a clique would become one more fixed
+stabilizer, so one more qubit leaves the register; in the **third** it becomes one
+measurement setting of a fixed linear functional, at up to `m − 1` Pauli rotations
+of synthesised cost. The two are at different readiness: the third is available
+once a cover and its synthesis are priced, while the first is conditional on a
+non-Clifford transport primitive the package does not have and on contextual
+admission conditions that must be rechecked after the rotation (§5, Phase 19).
+They are not the same gain, they do not add, and a table reporting "clique
+partitioning saved X" without naming the class has already made the error this
+subsection exists to block.
 
 ---
 
@@ -3283,16 +3390,20 @@ A-CASE's.
   noncompact on Kitaev, rather than nonexistent?
 - **Q13 — mapping invariance:** do JW, BK, and parity reproduce exact energies and equivalent
   fermionic gradients under consistent transforms?
-- **Q14 — anticommuting-clique grouping:** does a clique cover (§3.6, Phase 19)
-  reduce certified leading shot cost against the Phase 14 endpoints *after* the
-  `m − 1` Pauli rotations per setting are priced through the same three device
-  cards? *Falsifier:* the rotation depth cancels or reverses the setting-count
-  advantage on every card, in which case the anticommuting axis is a curiosity and
-  §3.6 keeps only its variance floor and its ceiling — itself a reportable result.
-  *Status:* unmeasured. Phase 19 carries a structural sizing probe with no
-  committed record, and the ceiling caps any affirmative answer in advance: no
-  clique cover can save more than a factor `2n+1` against term-by-term
-  measurement.
+- **Q14 — anticommuting-clique grouping:** on a **fixed-coefficient
+  Hamiltonian-energy estimand**, does a clique cover (§3.6, Phase 19) reduce
+  certified leading shot cost against QWC and fully commuting covers of the same
+  estimand, *after* each setting's Pauli rotations are synthesised and priced
+  through the same three device cards? The estimand is part of the question, not a
+  simplification of it: a clique setting returns one weighted mean and cannot
+  supply the per-word means Phase 14b's `1,814`-word bank reconstructs, so this is
+  not a re-run of Q9 on a third rung. *Falsifier:* the rotation resources cancel or
+  reverse the setting-count advantage on every card, in which case the
+  anticommuting axis is a curiosity and §3.6 keeps only its variance floor and its
+  ceiling — itself a reportable result. *Status:* unmeasured. Phase 19 carries a
+  structural sizing probe with no committed record, and the ceiling caps any
+  affirmative answer in advance: no clique cover can save more than a factor
+  `2n+1` against term-by-term measurement.
 
 **Resource accounting (QR1–QR6).**
 
@@ -3603,12 +3714,15 @@ not another open accuracy phase.
 
 9. Explicit X-rank invariant (Phase 13), the compiled-plan boundary (Phase 14a),
    and the frozen QWC-versus-fully-commuting comparison (Phase 14b) are all done.
-   Every declared Track B step is closed; Q9 is answered on the preregistered
-   BeH2/JW bank and nowhere wider.
-9b. Phase 19's anticommuting-clique arm is **proposed and unscheduled** — the one
-   Track B item that is not built. It depends on nothing above, its algebra is
-   already in the package (§3.6), and it opens with a result-free preregistration
-   and the §3.6 invariant tests rather than with a run.
+   Step 9 is closed, and every Track B step declared before Phase 19 is closed
+   with it; Q9 is answered on the preregistered BeH2/JW bank and nowhere wider.
+9b. Phase 19's clique cover is a **later proposal, unscheduled and not built** —
+   added after step 9 closed, so it does not reopen it. It depends on nothing
+   above, its algebra is already in the package (§3.6), and it opens with a
+   result-free preregistration and the §3.6 invariant tests rather than with a
+   run. Note what it is scoped to before it is counted as measurement work: a
+   fixed-coefficient Hamiltonian-energy estimand, not Phase 14b's matrix-element
+   word bank (§5, Phase 19, lever 1).
 
 **Resource accounting** (interleaves with Track B; R1 first).
 
@@ -3980,14 +4094,23 @@ uses, or as any resource quantity at all, is the specific error this paragraph
 exists to block.
 
 **On anticommuting cliques and the hyperbit (§3.6).** The `m`-ball is the state
-space of a set of unbiased questions, and on this package's problems it is empty:
-every parity-commuting state sits at its centre, and no Hamiltonian the package
-builds contains such a question at all. No wording that treats the hyperbit, the
-`m`-ball, or a spin factor as a state space, a representation, or a compression of
-anything computed here may survive review. What §3.6 claims is three operator
-facts — closure under unit combination, an exact variance floor, and a `2n+1`
-ceiling — and the ceiling is a *limit* on the measurement lever, not evidence for
-it. No claim to originate unitary partitioning, contextual-subspace projection,
+space of a set of unbiased questions. It is a perfectly good state space; what is
+degenerate is its *image* under this package's physics. Every parity-commuting
+state — every physical state of a fermionic problem — maps to the single centre
+point, and no fermionic Hamiltonian the package builds contains such a question at
+all, so the ball carries one point of physical content and no structure. That is
+the claim, and the loose version of it ("the ball is empty") is wrong twice over:
+the centre *is* reachable, and the package's non-fermionic spin builders do carry
+odd-grade terms, so the statement is scoped to the parity-conserving fermionic
+sector and nowhere else. No wording that treats the hyperbit, the `m`-ball, or a
+spin factor as a state space of this package's systems, a representation, or a
+compression of anything computed here may survive review.
+
+What §3.6 does claim is three operator facts — closure under unit combination for
+`m ≥ 2`, an exact floor on the *intrinsic* variance, and a `2n+1` ceiling — and
+the ceiling is a *limit* on the measurement lever, not evidence for it. The
+variance floor is not a bound on any estimator's sampling variance and may not be
+used to gate finite-shot data against `1`. No claim to originate unitary partitioning, contextual-subspace projection,
 anticommuting-set measurement reduction, or the maximality of anticommuting sets;
 §11 rows 15–18 record who owns each. Phase 19's sizing numbers are an in-session
 probe with no committed producer, config, record or checker, and may not be cited
