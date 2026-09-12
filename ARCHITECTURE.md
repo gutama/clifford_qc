@@ -355,7 +355,8 @@ Four properties of this layer are load-bearing:
   yet, because five `*_summary` pairs declared by configs have no committed
   JSONL, so it fails on `main` today for reasons that predate the workflow.
   The workflow names 28 of the 30 checkers: 18 run on every pull request and
-  10 are manual sampled dispatches. `check_summaries.py` and
+  10 require manual dispatch --- nine sampled-record gates plus the separate
+  environment-consistency audit. `check_summaries.py` and
   `check_regenerated_record.py` are the two absent from the workflow.
 
 - **One named step per gate.** CI runs each as its own step with

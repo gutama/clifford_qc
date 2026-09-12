@@ -49,9 +49,9 @@ python paper/check_manuscript.py   # balance, refs, bib keys, column counts,
                                    # and figures older than their source record
 python paper_architecture/make_tables.py   # -> tables/*.tex + data/source_census.json
 python paper_architecture/make_figures.py  # -> paper_assets/*.pdf (needs matplotlib)
-python paper_architecture/check_manuscript.py  # the above, plus: no number typed
-                                   # by hand anywhere in the manuscript, and the
-                                   # source census still equals the repository
+python paper_architecture/check_manuscript.py  # the above, plus: no result numeral
+                                   # outside the conceptual-notation allowlist,
+                                   # and the source census still matches the tree
 python benchmarks/check_summaries.py  # *_summary.{csv,md} vs their JSONL
 python benchmarks/check_docs.py       # this file vs the code it describes
 python benchmarks/check_phase_status.py  # PHASE_STATUS.json vs PLAN/README
@@ -109,7 +109,7 @@ No figure or table value in the manuscript is transcribed by hand, and
 ```bash
 python -m venv .venv && source .venv/bin/activate
 pip install -e .[test,research,chemistry]   # numpy + scipy + openfermion/pyscf
-pytest                                      # 1444 passed, 31 skipped
+pytest                                      # 1461 passed, 31 skipped
 ```
 
 That install is the reference environment for the quoted pair. The count
@@ -133,7 +133,7 @@ the remaining `31 - 14 = 17` skips are per-test and *are* collected:
 
 ```text
 collected == passed + (skipped - files dropped at collection)
-1461      == 1444   + (31      -  14)
+1478      == 1461   + (31      -  14)
 ```
 
 Both sides are computed from the tree, so a drift in either quoted number

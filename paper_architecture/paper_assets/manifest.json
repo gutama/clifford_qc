@@ -21,13 +21,13 @@
       "architecture_sources_sha256": "c55ceed7b954f818ebc385619e376efc937cb3a2406f000a28448a77361a1f88",
       "sources": {
         "paper_architecture/data/source_census.json": "7a0c83598ec2438bd16f0e0ea222723d5892d09fef6ec58a6f9ad1eaaf69c3c2",
-        "paper_architecture/make_tables.py": "815a97ee70ef7f38ac6b42f8fcc156f033a8128eea0fac13699c59fab18ac124"
+        "paper_architecture/make_tables.py": "e8624ceb3952e17618f4ff76f0a91b3587ff9b05ab3458ac79a4dddc71e927f1"
       }
     }
   },
   "generator": {
     "path": "paper_architecture/make_figures.py",
-    "sha256": "f7489b00f18f84a3187df26c5f978c37899ee508e7acf7ff3d8066ae36bbc28f"
+    "sha256": "7f48cebaef930d01fd07a0d046c520963a98da2013ba3b185a01d2a151a9aa95"
   },
   "schema": "clifford_qc.architecture_figure_manifest.v1"
 }

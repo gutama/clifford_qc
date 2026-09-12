@@ -384,8 +384,9 @@ the pairing is the architecture.  \cqcProducers{} producers write records.
 \cqcGates{} gates read them.  \cqcGatesInWorkflow{} are named in the
 continuous-integration workflow, and the distinction inside that number
 matters: \cqcGatesAutomatic{} run on every pull request, while
-\cqcGatesDispatch{} run only when dispatched by hand, because they draw
-replicas and cost runner-hours.  \cqcGatesAbsent{} exist in the repository but
+\cqcGatesDispatch{} run only when dispatched by hand.  All but the separate
+environment-consistency audit draw replicas and cost runner-hours.
+\cqcGatesAbsent{} exist in the repository but
 in no workflow at all.  Each gate that does run is its own named step, and each
 executes even after an earlier one fails, so that a drift suite reports every
 symptom rather than the first.

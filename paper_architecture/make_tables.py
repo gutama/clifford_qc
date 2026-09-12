@@ -601,7 +601,7 @@ def phase14b_table() -> None:
         f"{ratio(resource(full, 'N_1q'), resource(qwc, 'N_1q'))} \\\\",
         f"Two-qubit gates, summed over settings & "
         f"{_int(resource(qwc, 'N_2q'))} & {_int(resource(full, 'N_2q'))} & "
-        "--- \\\\",
+        f"{ratio(resource(full, 'N_2q'), resource(qwc, 'N_2q'))} \\\\",
         f"Certified total physical shots & "
         f"{_pow2(qwc['certification']['certified_total_physical_shots'])} & "
         f"{_pow2(full['certification']['certified_total_physical_shots'])} & "

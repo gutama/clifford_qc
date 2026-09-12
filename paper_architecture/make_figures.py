@@ -249,7 +249,7 @@ def layer_stack() -> None:
     right.set_xlim(0, 10)
     right.set_ylim(-0.75, 7.6)
     right.axis("off")
-    right.set_title("(b) Import and deferred edges", loc="left")
+    right.set_title("(b) Selected dependency edges", loc="left")
     # Boxes occupy the middle; the two gutters carry the deferred upward edges,
     # so no arrow crosses a box it does not touch.
     tiers = [
@@ -274,8 +274,6 @@ def layer_stack() -> None:
         ((3.0, 6.05), (3.0, 5.67)),
         ((6.8, 6.05), (6.8, 5.67)),
         ((2.6, 4.85), (2.6, 4.47)),
-        ((5.6, 4.85), (5.6, 4.47)),
-        ((7.2, 4.85), (7.2, 4.47)),
         ((2.6, 3.65), (2.6, 3.27)),
         ((6.8, 3.65), (6.8, 3.27)),
         ((4.9, 2.45), (4.9, 2.07)),
