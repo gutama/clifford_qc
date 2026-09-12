@@ -17,7 +17,7 @@ only worth making if something enforces them, so this gate checks:
       produces right now, so a value edited by hand into a fragment fails here
       rather than typesetting;
   9.  each referenced figure exists and its manifest entry still matches the
-      digests of its generator and its inputs;
+      digests of its generator, its inputs, and the committed asset;
  10.  the committed source census still equals a census recomputed now, so a
       module without a layer, a gate without a class, or a record whose
       evidence declaration changed fails here rather than typesetting;
@@ -168,6 +168,12 @@ def _source_digest(path: Path) -> str:
     return hashlib.sha256(text.encode("utf-8")).hexdigest()
 
 
+def _strip_conceptual_numerals(text: str) -> str:
+    for pattern in CONCEPTUAL_NUMERALS:
+        text = re.sub(pattern, " ", text)
+    return text
+
+
 def _git_blob_sha(path: Path) -> str:
     data = path.read_bytes()
     header = f"blob {len(data)}\0".encode()
@@ -191,9 +197,7 @@ def _prose(text: str) -> str:
     # A tabular preamble is typesetting, not a result: p{0.52\columnwidth} is
     # a column width and must not be read as a hand-typed number.
     body = re.sub(r"\\begin\{tabular\}\s*\{(?:[^{}]|\{[^{}]*\})*\}", " ", body)
-    for pattern in CONCEPTUAL_NUMERALS:
-        body = re.sub(pattern, " ", body)
-    return body
+    return _strip_conceptual_numerals(body)
 
 
 def prose_numerals(text: str) -> list[tuple[str, str]]:
@@ -281,7 +285,8 @@ def main() -> int:
             if not line.endswith(r"\\") or line.startswith("%"):
                 continue
             for cell in line.rstrip("\\").split("&")[1:]:
-                bare = re.sub(r"\\[A-Za-z]+|[{}$\\^_~,]", " ", cell)
+                bare = _strip_conceptual_numerals(cell)
+                bare = re.sub(r"\\[A-Za-z]+|[{}$\\^_~,]", " ", bare)
                 if re.search(r"\d", bare):
                     problems.append(
                         "numeric table cell is typed into the manuscript "
@@ -366,7 +371,7 @@ def main() -> int:
                 problems.append("figure manifest has a stale generator digest "
                                 "(run paper_architecture/make_figures.py)")
             figures = manifest.get("figures", {})
-            for name, _ in referenced:
+            for name, asset in referenced:
                 if name not in figures:
                     problems.append(f"{name} is absent from the figure manifest")
                     continue
@@ -381,6 +386,12 @@ def main() -> int:
                 if figures[name].get("sources", {}) != expected:
                     problems.append(
                         f"{name} manifest has stale source digests "
+                        "(run paper_architecture/make_figures.py)")
+                if (asset.exists() and
+                        figures[name].get("asset_git_blob_sha") !=
+                        _git_blob_sha(asset)):
+                    problems.append(
+                        f"{name} does not match its manifest asset digest "
                         "(run paper_architecture/make_figures.py)")
                 if (name == "layer_stack.pdf" and
                         figures[name].get("architecture_sources_sha256") !=
@@ -398,16 +409,20 @@ def main() -> int:
                         "(run paper_architecture/make_tables.py)")
     else:
         committed = json.loads(CENSUS.read_text(encoding="utf-8"))
-        current = {
-            "source": layer_census(),
-            "gates": gate_census(),
-            "records": record_census(),
-        }
-        for section, value in current.items():
-            if committed.get(section) != value:
-                problems.append(
-                    f"the committed {section} census no longer matches the "
-                    "repository (run paper_architecture/make_tables.py)")
+        try:
+            current = {
+                "source": layer_census(),
+                "gates": gate_census(),
+                "records": record_census(),
+            }
+        except SystemExit as failure:
+            problems.append(f"the live census refuses to run: {failure}")
+        else:
+            for section, value in current.items():
+                if committed.get(section) != value:
+                    problems.append(
+                        f"the committed {section} census no longer matches the "
+                        "repository (run paper_architecture/make_tables.py)")
 
     comment_stripped_body = _prose(text)
     for phrase in REQUIRED_PHRASES:

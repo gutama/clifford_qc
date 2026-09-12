@@ -1,33 +1,38 @@
 {
   "figures": {
     "architecture_flow.pdf": {
+      "asset_git_blob_sha": "d78a1ccb64fb1656f60f96bb79585f2915f6511b",
       "sources": {}
     },
     "cost_bracket.pdf": {
+      "asset_git_blob_sha": "28c9705876d867ec2c9f3fce78ad04d100efb659",
       "sources": {
         "benchmarks/reference_results/protocol_cost.json": "a1b5bea91d5924ae6c6878baf83e9d8b6b10ad107f4c3a2ab1644ddee1adff59"
       }
     },
     "evidence_path.pdf": {
+      "asset_git_blob_sha": "1b3924dd554094ee7445ad75da323ff654d5935d",
       "sources": {}
     },
     "hierarchy_tradeoff.pdf": {
+      "asset_git_blob_sha": "ec790ae1f7b3bf13a03d3f8774713a045c91bf4c",
       "sources": {
         "benchmarks/reference_results/clifford_hierarchy_beh2_v2.json": "18d64f3e2e1bf3a22edadf58418a3103db734459735f7ecc9e6217f9c596bd4d",
         "benchmarks/reference_results/clifford_hierarchy_h4_v2.json": "adc81de5120986377f18735d3166f73348b67e2271c9d715d054568d391ce4bb"
       }
     },
     "layer_stack.pdf": {
+      "asset_git_blob_sha": "f3e856eeed7407b37878c59f11f8cbf5a06334bb",
       "architecture_sources_sha256": "c55ceed7b954f818ebc385619e376efc937cb3a2406f000a28448a77361a1f88",
       "sources": {
         "paper_architecture/data/source_census.json": "7a0c83598ec2438bd16f0e0ea222723d5892d09fef6ec58a6f9ad1eaaf69c3c2",
-        "paper_architecture/make_tables.py": "e8624ceb3952e17618f4ff76f0a91b3587ff9b05ab3458ac79a4dddc71e927f1"
+        "paper_architecture/make_tables.py": "a2b3f190bc0b2e1f04ca5201626f0cdf3547642d3b1bcde417bdaa589252360f"
       }
     }
   },
   "generator": {
     "path": "paper_architecture/make_figures.py",
-    "sha256": "7f48cebaef930d01fd07a0d046c520963a98da2013ba3b185a01d2a151a9aa95"
+    "sha256": "3ae3d40444ddfc819477b0303271d79b50044e7191e22d702e4b2e3a697c7f75"
   },
   "schema": "clifford_qc.architecture_figure_manifest.v1"
 }

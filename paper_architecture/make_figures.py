@@ -1,10 +1,11 @@
 """Generate the vector figures for the architecture paper.
 
 Three of the five figures plot a committed record or the source census; the
-other two are schematics and plot nothing.  ``manifest.json`` binds each figure to
-its generator and its exact inputs, because PDF streams differ across
-Matplotlib and font builds even when they draw the same paths, so a byte
-comparison is the wrong drift gate and a digest of the inputs is the right one.
+other two are schematics and plot nothing.  ``manifest.json`` binds each figure
+to its generator and exact inputs, and records a checksum of the generated
+asset so a replaced PDF is detected.  The checker does not compare a fresh
+render byte for byte because PDF streams differ across Matplotlib and font
+builds even when they draw the same paths.
 """
 
 from __future__ import annotations
@@ -104,6 +105,7 @@ FIGURE_SOURCES: dict[str, tuple[Path, ...]] = {
 def _write_manifest() -> None:
     figures = {
         name: {
+            "asset_git_blob_sha": _git_blob_sha(ASSETS / name),
             "sources": {
                 str(path.resolve().relative_to(ROOT)): _source_digest(path)
                 for path in paths
@@ -270,21 +272,26 @@ def layer_stack() -> None:
     for x, y, w, h, title, subtitle, color in tiers:
         _box(right, x, y, w, h, title, subtitle, color,
              title_size=6.4, subtitle_size=5.2)
-    down = [
+    selected_imports = [
         ((3.0, 6.05), (3.0, 5.67)),
         ((6.8, 6.05), (6.8, 5.67)),
         ((2.6, 4.85), (2.6, 4.47)),
         ((2.6, 3.65), (2.6, 3.27)),
         ((6.8, 3.65), (6.8, 3.27)),
         ((4.9, 2.45), (4.9, 2.07)),
+        # models/chemistry.py -> algorithms/pools.py at module scope
+        ((5.05, 5.26), (4.75, 5.26)),
     ]
-    for start, end in down:
+    for start, end in selected_imports:
         _arrow(right, start, end)
     # The upward edges are real; only their timing is constrained.  They are
     # unlabelled in the gutter and named once below, which is legible at column
     # width where three rotated captions are not.
-    # measurement -> subspace, routed through the left gutter
-    _arrow(right, (1.05, 3.95), (1.05, 5.15), dashed=True, color="#b71c1c")
+    # measurement -> subspace, routed boundary-to-boundary through the gutter
+    right.plot([1.25, 1.05, 1.05], [4.06, 4.06, 5.26],
+               linestyle="--", linewidth=0.8, color="#b71c1c")
+    _arrow(right, (1.05, 5.26), (1.25, 5.26),
+           dashed=True, color="#b71c1c")
     # kernel -> execution, routed through the right gutter into that box
     right.plot([8.55, 8.95, 8.95], [1.66, 1.66, 4.06],
                linestyle="--", linewidth=0.8, color="#b71c1c")

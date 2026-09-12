@@ -144,8 +144,9 @@ We defend that claim in three steps.
   (Sec.~\ref{sec:architecture}).  Every module of the package is assigned to
   exactly one layer, and the assignment is checked against the source tree when
   this manuscript is built, so Table~\ref{tab:layers} cannot drift from the code
-  it describes.  Import-time dependencies point downward only; the upward edges
-  that exist are deferred to call time and are named individually.
+  it describes.  Most import-time dependencies point downward; the
+  module-scope chemistry-to-pool exception and the upward edges deferred to
+  call time are named individually.
 
   \item \textbf{The evidence contract} (Secs.~\ref{sec:evidence} and
   \ref{sec:gates}).  An evidence vocabulary threads from the measurement layer
@@ -227,12 +228,12 @@ rather than as a resource saving.
   \caption{The package as measured.  (a) Physical lines per declared layer,
   annotated with lines and module count; the census is recomputed from the
   source tree whenever this manuscript is rebuilt.  (b) The layer stack.  Solid
-  arrows are import-time dependencies, which point downward only: no package
-  initialization reaches upward, so importing a lower layer never drags a
-  higher one in.  Red dashed arrows are genuine upward runtime edges deferred
-  to call time; the blue dashed arrow is a downward call into an optional
-  bridge.  The deferral buys initialization order, not independence, and
-  Sec.~\ref{sec:architecture} states them individually rather than claiming an
+  arrows are selected import-time dependencies.  Most point downward; the
+  horizontal problem-to-solver arrow records the module-scope chemistry-to-pool
+  exception.  Red dashed arrows are genuine upward runtime edges deferred to
+  call time; the blue dashed arrow is a downward call into an optional bridge.
+  The deferral buys initialization order, not independence, and
+  Sec.~\ref{sec:architecture} states the exceptions rather than claiming an
   acyclic runtime graph.}
   \label{fig:layers}
 \end{figure*}
@@ -290,6 +291,8 @@ estimators without pretending they were measured qubit-wise.
 The upward edges deserve their own sentence, because a paper claiming an
 acyclic architecture while shipping function-scope imports upward would be
 making exactly the kind of unfalsifiable claim this paper is about.  The
+chemistry model also imports the algorithm pool at module scope, so the
+import-time graph itself is not strictly layered.  Separately, the
 measurement layer imports the subspace layer inside methods; the kernel reaches
 into the execution layer from function scope for sector helpers; and the
 optional bridges are kept out of every package initializer, either by
@@ -384,8 +387,9 @@ the pairing is the architecture.  \cqcProducers{} producers write records.
 \cqcGates{} gates read them.  \cqcGatesInWorkflow{} are named in the
 continuous-integration workflow, and the distinction inside that number
 matters: \cqcGatesAutomatic{} run on every pull request, while
-\cqcGatesDispatch{} run only when dispatched by hand.  All but the separate
-environment-consistency audit draw replicas and cost runner-hours.
+\cqcGatesDispatch{} require a manual dispatch.  Of that dispatch-only set, all
+but the separate environment-consistency audit are sampled gates that draw
+replicas and cost runner-hours.
 \cqcGatesAbsent{} exist in the repository but
 in no workflow at all.  Each gate that does run is its own named step, and each
 executes even after an earlier one fails, so that a drift suite reports every
@@ -858,9 +862,11 @@ subscript, the dimension of the algebra.  The generated fragments are checked
 by regenerating them during the check and comparing byte for byte, which is
 stronger than the content hashes they also carry: a hash over the inputs
 catches a record regenerated without rerunning the generator, but only
-regeneration catches a value edited into a fragment by hand.  Figures are bound the same way through a manifest
-of input digests, because vector output is not byte-reproducible across plotting
-and font builds while the digest of its inputs is.
+regeneration catches a value edited into a fragment by hand.  A figure manifest
+binds each committed vector asset to its generator and input digests and also
+records the asset's own checksum, so a replaced PDF fails the gate.  The gate
+does not compare a scratch render byte for byte because plotting and font builds
+need not serialize the same paths identically.
 
 Two checks exist specifically to keep this paper honest about the architecture
 it describes.  The layer census fails if any module of the package is not

@@ -24,10 +24,11 @@ Two things explain most of the layout.
 
 ## 1. Layer stack
 
-Arrows are **import-time** dependencies: the edges that execute when the module
-is first loaded. Those point downward only, and that is the invariant the
-package actually enforces — no layer's package initialization reaches upward,
-so importing a lower layer never drags a higher one in.
+Solid arrows are selected **import-time** dependencies: edges executed when a
+module is first loaded. Most point downward, but the optional chemistry module
+is a named exception: `models/chemistry.py` imports
+`algorithms/pools.py`. The figure records that edge instead of claiming a
+strictly layered initialization graph.
 
 Deferred imports are a different graph. A function-scope import is still a real
 runtime import; it just runs at call time rather than at load time, and several
@@ -89,6 +90,7 @@ flowchart TD
     ALGOS --> BACKENDS
     WORKFLOWS --> ALGOS
     WORKFLOWS --> BACKENDS
+    MODELS --> ALGOS
     MODELS --> IR
     MODELS --> PAULI
     BACKENDS --> IR
@@ -267,10 +269,11 @@ cross-cutting change; changing anything else is local.
 
 ## 5. Dependency rules and their recorded exceptions
 
-The **import-time** graph is acyclic across layers: nothing a package executes
-while initializing reaches upward. The call-time graph is not, and the
-difference is the whole design. Each upward edge below is deferred by one of
-three mechanisms, and each still executes when its code path runs.
+The import-time graph is **not strictly layered**. Most dependencies point
+downward, but the chemistry extra has one explicit module-scope exception:
+`models/chemistry.py` imports `algorithms/pools.py` to construct its ADAPT
+candidate pool. The call-time graph has additional upward edges. Each deferred
+edge below still executes when its code path runs.
 
 - **`measurement/` never imports `subspace/` *while initializing*.** It does
   import it at call time: `session.py` pulls `subspace.linalg` inside three

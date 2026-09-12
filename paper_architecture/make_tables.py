@@ -37,6 +37,7 @@ BENCHMARKS = ROOT / "benchmarks"
 RECORDS = BENCHMARKS / "reference_results"
 
 CENSUS = DATA / "source_census.json"
+DEFAULT_CENSUS = CENSUS
 PHASE_STATUS = ROOT / "PHASE_STATUS.json"
 HIER_H4 = RECORDS / "clifford_hierarchy_h4_v2.json"
 HIER_BEH2 = RECORDS / "clifford_hierarchy_beh2_v2.json"
@@ -220,7 +221,11 @@ def _git_blob_sha(path: Path) -> str:
 def _write(name: str, rows: list[str]) -> None:
     """Write one table fragment with its source and generator bindings."""
     TABLES.mkdir(parents=True, exist_ok=True)  # noqa: F821 (rebound by main)
-    sources = TABLE_SOURCES[name]
+    # TABLE_SOURCES is declared at import time, while main() may rebind CENSUS
+    # to a scratch destination.  Bind census-backed fragments to the census
+    # actually used for this generation, not to the default committed path.
+    sources = tuple(CENSUS if path == DEFAULT_CENSUS else path
+                    for path in TABLE_SOURCES[name])
     header = [f"% source-git-blob-sha: {_git_blob_sha(path)}" for path in sources]
     header.append(f"% generator-git-blob-sha: {_git_blob_sha(Path(__file__).resolve())}")
     (TABLES / name).write_text("\n".join(header + rows) + "\n", encoding="utf-8")
