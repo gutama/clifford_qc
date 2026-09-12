@@ -335,6 +335,11 @@ def main() -> int:
         except SystemExit as failure:            # a census refusal, not a crash
             problems.append(f"the table generator refuses to run: {failure}")
         else:
+            generated_names = {path.name for path in tables.iterdir()}
+            for missing in sorted(set(TABLE_SOURCES) - generated_names):
+                problems.append(
+                    f"{missing} is registered but the table generator no "
+                    "longer emits it (run paper_architecture/make_tables.py)")
             for regenerated in sorted(tables.iterdir()):
                 committed = HERE / "tables" / regenerated.name
                 if not committed.exists():
@@ -347,11 +352,19 @@ def main() -> int:
                         "produces now -- a hand edit, a stale record, or a "
                         "stale generator run "
                         "(run paper_architecture/make_tables.py)")
-            committed_census = CENSUS.read_bytes() if CENSUS.exists() else b""
-            if committed_census != (data / CENSUS.name).read_bytes():
+            generated_census = data / CENSUS.name
+            if not generated_census.exists():
                 problems.append(
-                    "data/source_census.json does not match a census taken now "
+                    "the table generator no longer emits "
+                    "data/source_census.json "
                     "(run paper_architecture/make_tables.py)")
+            else:
+                committed_census = (
+                    CENSUS.read_bytes() if CENSUS.exists() else b"")
+                if committed_census != generated_census.read_bytes():
+                    problems.append(
+                        "data/source_census.json does not match a census "
+                        "taken now (run paper_architecture/make_tables.py)")
 
     referenced: list[tuple[str, Path]] = []
     for match in re.finditer(r"\\includegraphics(?:\[[^\]]*\])?\{([^}]+)\}", text):
