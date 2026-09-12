@@ -206,7 +206,7 @@ qubit, with multiplication implemented as exclusive-or, and-mask and
 population count modulo four.  States, gates, Kraus channels, Jordan--Wigner
 Clifford generators and fermionic creation and annihilation operators lower to
 this type.  The public program intermediate representation also exposes a
-distinct immutable \texttt{PauliSum} container for Hamiltonians and
+distinct \texttt{PauliSum} container for Hamiltonians and
 observables.  Its \texttt{to\_mv} and \texttt{from\_mv} boundary is exact and
 uses the same packed word codes; it is a real container conversion, but not a
 change of algebraic basis or operator semantics.  Benchmarks therefore need

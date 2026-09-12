@@ -53,7 +53,9 @@ import make_tables  # noqa: E402
 from make_tables import (  # noqa: E402
     CENSUS, TABLE_SOURCES, gate_census, layer_census, record_census,
 )
-from make_figures import FIGURE_SOURCES  # noqa: E402
+from make_figures import (  # noqa: E402
+    FIGURE_SOURCES, architecture_sources_digest,
+)
 
 # Notation the body prose may carry digits for.  Each is a name or an algebraic
 # form, never a measured quantity: a block size the text is discussing, a
@@ -246,6 +248,15 @@ def main() -> int:
         if not target.exists() and not target.with_suffix(".tex").exists():
             problems.append(f"missing input: {match.group(1)} "
                             "(run paper_architecture/make_tables.py)")
+        resolved = target if target.suffix else target.with_suffix(".tex")
+        if resolved.parent == HERE / "tables" and resolved.name not in TABLE_SOURCES:
+            problems.append(
+                f"unregistered generated table input: {match.group(1)}")
+
+    for fragment in sorted((HERE / "tables").glob("*.tex")):
+        if fragment.name not in TABLE_SOURCES:
+            problems.append(
+                f"unregistered committed table fragment: {fragment.name}")
 
     for preamble, body in _tabulars(text):
         ncol = _column_count(preamble)
@@ -371,6 +382,12 @@ def main() -> int:
                     problems.append(
                         f"{name} manifest has stale source digests "
                         "(run paper_architecture/make_figures.py)")
+                if (name == "layer_stack.pdf" and
+                        figures[name].get("architecture_sources_sha256") !=
+                        architecture_sources_digest()):
+                    problems.append(
+                        "layer_stack.pdf manifest has a stale package-source "
+                        "digest (run paper_architecture/make_figures.py)")
 
     # The architecture tables describe code, and no experiment rebuilds them,
     # so the census is compared section by section as well: the regeneration

@@ -31,6 +31,7 @@ except ImportError:  # pragma: no cover - exercised by the documented CLI
 
 HERE = Path(__file__).resolve().parent
 ROOT = HERE.parent
+PACKAGE = ROOT / "clifford_qc"
 ASSETS = HERE / "paper_assets"
 CENSUS = HERE / "data" / "source_census.json"
 TABLE_GENERATOR = HERE / "make_tables.py"
@@ -75,6 +76,22 @@ def _source_digest(path: Path) -> str:
     return hashlib.sha256(text.encode("utf-8")).hexdigest()
 
 
+def _git_blob_sha(path: Path) -> str:
+    data = path.read_bytes()
+    header = f"blob {len(data)}\0".encode()
+    return hashlib.sha1(header + data, usedforsecurity=False).hexdigest()
+
+
+def architecture_sources_digest() -> str:
+    """Bind the layer diagram to every package source that can change an edge."""
+    entries = [
+        f"{path.relative_to(ROOT).as_posix()}:{_git_blob_sha(path)}"
+        for path in sorted(PACKAGE.rglob("*.py"))
+    ]
+    payload = "\n".join(entries) + "\n"
+    return hashlib.sha256(payload.encode("utf-8")).hexdigest()
+
+
 FIGURE_SOURCES: dict[str, tuple[Path, ...]] = {
     "architecture_flow.pdf": (),
     "layer_stack.pdf": (CENSUS, TABLE_GENERATOR),
@@ -85,21 +102,24 @@ FIGURE_SOURCES: dict[str, tuple[Path, ...]] = {
 
 
 def _write_manifest() -> None:
+    figures = {
+        name: {
+            "sources": {
+                str(path.resolve().relative_to(ROOT)): _source_digest(path)
+                for path in paths
+            },
+        }
+        for name, paths in FIGURE_SOURCES.items()
+    }
+    figures["layer_stack.pdf"][
+        "architecture_sources_sha256"] = architecture_sources_digest()
     manifest = {
         "schema": "clifford_qc.architecture_figure_manifest.v1",
         "generator": {
             "path": str(Path(__file__).resolve().relative_to(ROOT)),
             "sha256": _source_digest(Path(__file__).resolve()),
         },
-        "figures": {
-            name: {
-                "sources": {
-                    str(path.resolve().relative_to(ROOT)): _source_digest(path)
-                    for path in paths
-                },
-            }
-            for name, paths in FIGURE_SOURCES.items()
-        },
+        "figures": figures,
     }
     (ASSETS / "manifest.json").write_text(
         json.dumps(manifest, indent=2, sort_keys=True) + "\n", encoding="utf-8")
@@ -265,11 +285,14 @@ def layer_stack() -> None:
     # The upward edges are real; only their timing is constrained.  They are
     # unlabelled in the gutter and named once below, which is legible at column
     # width where three rotated captions are not.
+    # measurement -> subspace, routed through the left gutter
     _arrow(right, (1.05, 3.95), (1.05, 5.15), dashed=True, color="#b71c1c")
+    # kernel -> execution, routed through the right gutter into that box
     right.plot([8.55, 8.95, 8.95], [1.66, 1.66, 4.06],
                linestyle="--", linewidth=0.8, color="#b71c1c")
     _arrow(right, (8.95, 4.06), (8.55, 4.06),
            dashed=True, color="#b71c1c")
+    # Program IR -> optional bridges, a separate downward deferred call
     right.plot([8.55, 9.5, 9.5], [2.86, 2.86, 0.49],
                linestyle="--", linewidth=0.8, color="#1565c0")
     _arrow(right, (9.5, 0.49), (8.55, 0.49),

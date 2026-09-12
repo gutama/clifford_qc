@@ -18,6 +18,7 @@
       }
     },
     "layer_stack.pdf": {
+      "architecture_sources_sha256": "c55ceed7b954f818ebc385619e376efc937cb3a2406f000a28448a77361a1f88",
       "sources": {
         "paper_architecture/data/source_census.json": "be4c40c71fe1423ee98c9592cf729b3b3c7e4eb8221c2a2a68e471521133ddab",
         "paper_architecture/make_tables.py": "815a97ee70ef7f38ac6b42f8fcc156f033a8128eea0fac13699c59fab18ac124"
@@ -26,7 +27,7 @@
   },
   "generator": {
     "path": "paper_architecture/make_figures.py",
-    "sha256": "2344b47a4c79722f36e505f2c811f92f2a026ac933ee1d82edefa898ef3e0022"
+    "sha256": "f7489b00f18f84a3187df26c5f978c37899ee508e7acf7ff3d8066ae36bbc28f"
   },
   "schema": "clifford_qc.architecture_figure_manifest.v1"
 }

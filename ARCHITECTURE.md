@@ -8,7 +8,7 @@ record gates under `benchmarks/`.
 Two things explain most of the layout.
 
 1. **One algebra across an explicit IR boundary.** The numerical kernel uses
-   the sparse Pauli-word object `MV`; models and programs expose the immutable
+   the sparse Pauli-word object `MV`; models and programs expose the public
    `PauliSum` container and lower it exactly with `to_mv()`. The boundary changes
    containers, not word codes, algebraic basis, or operator semantics.
 2. **Typed paths carry what kind of number they produce.** `EvidenceLevel`
