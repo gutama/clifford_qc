@@ -987,7 +987,7 @@ selection pair counts, maximum live frontier rows, evicted rows, recomputed rows
 spill bytes, and policy-labelled peak RSS. Recover `T_coeff` for existing records
 from `cached_operator_bytes/24`; do not rerun or relabel their scientific results.
 Report retained-pair fraction separately: the committed molecular rows retain only
-`M(M+1)/2 = 3.0--8.4%` of the pairs they built, so 91.6--97.0% are frontier or
+`M(M+1)/2 = 3.0--8.8%` of the pairs they built, so 91.2--97.0% are frontier or
 rejected-pair storage. That ratio is eviction headroom, not an achieved speedup.
 
 **2M-B — packed CSR/SoA coefficient bank.** Introduce one canonical global word
