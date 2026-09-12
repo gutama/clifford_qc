@@ -228,8 +228,11 @@ rather than as a resource saving.
   \includegraphics[width=\textwidth]{paper_assets/layer_stack.pdf}
   \caption{The package as measured.  (a) Physical lines per declared layer,
   annotated with lines and module count; the census is recomputed from the
-  source tree whenever this manuscript is rebuilt.  (b) The layer stack.  Solid
-  arrows are selected import-time dependencies.  Most point downward; the
+  source tree whenever this manuscript is rebuilt.  (b) A partial dependency
+  view whose box titles come from the declared layer map; algorithms and
+  subspace solvers are grouped, while the package surface and cross-layer
+  orchestration are omitted from this selected-edge view.  Solid arrows are
+  selected import-time dependencies.  Most point downward; the
   horizontal problem-to-solver arrow records the module-scope chemistry-to-pool
   exception.  Red dashed arrows are genuine upward runtime edges deferred to
   call time; the blue dashed arrow is a downward call into an optional bridge.
@@ -739,12 +742,13 @@ None of the \cqcRFourARungs{} rungs admits all four arms; \cqcRFourAPassing{}
 rungs pass.  The failure is structural and it comes from both ends.  The
 unrestricted quantum-subspace-expansion reference arm overruns the
 word-universe ceiling several times over, at \cqcRFourAFullWords{} words.  The
-two contextually restricted arms come in far under the ceiling, some at a
-handful of words, but they remove \cqcRFourARemovedFraction{} of the
-Hamiltonian's non-identity Hilbert--Schmidt norm.  The CS-QSE arm carries a
-bias of \cqcRFourACSBias{}~mHa and the CS-A-CASE arm carries
-\cqcRFourACSACaseBias{}~mHa, both an order of magnitude past the admissible
-budget.  The
+  two contextually restricted arms come in far under the ceiling, some at a
+  handful of words.  At the first listed rung they remove
+  \cqcRFourARemovedFraction{} of the Hamiltonian's non-identity
+  Hilbert--Schmidt norm; there the CS-QSE arm carries a bias of
+  \cqcRFourACSBias{}~mHa and the CS-A-CASE arm carries
+  \cqcRFourACSACaseBias{}~mHa, both an order of magnitude past the admissible
+  budget.  The
 unrestricted operator-response arm is the only one admissible at every rung, at
 \cqcRFourAACaseBias{}~mHa over \cqcRFourAACaseWords{} words, and one admissible
 arm does not make a rung: the screen compares four arms or it compares nothing.

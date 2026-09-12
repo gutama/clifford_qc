@@ -57,10 +57,10 @@ def test_a_record_with_no_evidence_field_is_unlabelled():
 
 
 # --- the census has to notice a declaration changing -----------------------
-def test_digest_notices_an_evidence_tier_basis_changing():
-    before = make_tables._declaration_digest({"evidence_tier_basis": "oracle"})
-    after = make_tables._declaration_digest({"evidence_tier_basis": "sampled"})
-    assert before != after
+def test_digest_notices_shared_and_producer_specific_evidence_labels():
+    for key in (*make_tables.EVIDENCE_KEYS, "search_uncertainty_evidence",
+                "reported_evidence_tier"):
+        assert make_tables._declaration_digest({key: "oracle"}) != make_tables._declaration_digest({key: "sampled"})
 
 
 def test_digest_notices_one_entry_of_a_per_quantity_map_changing():

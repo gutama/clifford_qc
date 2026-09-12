@@ -367,6 +367,12 @@ EVIDENCE_KEYS = (
 )
 
 
+def _is_evidence_declaration_key(key: str) -> bool:
+    """Recognize the shared fields and producer-specific evidence labels."""
+    return (key in EVIDENCE_KEYS or key.endswith("_evidence") or
+            key.endswith("_evidence_tier"))
+
+
 def _declaration_form(payload: object) -> str:
     """How one committed record declares the evidence its numbers carry.
 
@@ -420,7 +426,7 @@ def _declaration_digest(payload: object) -> str:
         if isinstance(node, dict):
             for key, value in node.items():
                 here = f"{path}.{key}" if path else key
-                if key in EVIDENCE_KEYS:
+                if _is_evidence_declaration_key(key):
                     # A per-quantity map is a declaration too, and recording
                     # only scalars would miss one of its entries changing.
                     found[here] = value
@@ -824,7 +830,9 @@ def numbers_macros(census: dict) -> None:
     beh2 = cost["systems"]["beh2"]
     sc_full = p14b["protocols"]["fully_commuting"]["device_costs"][
         "superconducting-like"]["ledger"]
-    r4a_arms = {arm["name"]: arm for arm in r4a["contextual_rungs"][0]["arms"]}
+    r4a_first_rung_arms = {
+        arm["name"]: arm for arm in r4a["contextual_rungs"][0]["arms"]
+    }
     jw_ion = beh2["k_star"]["ion-like"]["single_assignment"]["by_arm"]["jw"]
     jw_logical = beh2["k_star"]["logical-alltoall"]["single_assignment"][
         "by_arm"]["jw"]
@@ -929,16 +937,20 @@ def numbers_macros(census: dict) -> None:
         "cqcRFourARungs": _int(len(r4a["contextual_rungs"])),
         "cqcRFourAPassing": _int(len(r4a["structural_gate"]["passing_contextual_rungs"])),
         "cqcRFourARemovedFraction": _pct(
-            r4a_arms["cs_qse"]["hamiltonian_removed_hs_fraction"]),
-        "cqcRFourACSBias": _num(r4a_arms["cs_qse"]["bias_millihartree"], 2),
+            r4a_first_rung_arms["cs_qse"]["hamiltonian_removed_hs_fraction"]),
+        "cqcRFourACSBias": _num(
+            r4a_first_rung_arms["cs_qse"]["bias_millihartree"], 2),
         "cqcRFourACSACaseBias": _num(
-            r4a_arms["cs_acase"]["bias_millihartree"], 2),
-        "cqcRFourAACaseBias": _num(r4a_arms["acase"]["bias_millihartree"], 4),
-        "cqcRFourAACaseWords": _int(r4a_arms["acase"]["word_universe"]),
+            r4a_first_rung_arms["cs_acase"]["bias_millihartree"], 2),
+        "cqcRFourAACaseBias": _num(
+            r4a_first_rung_arms["acase"]["bias_millihartree"], 4),
+        "cqcRFourAACaseWords": _int(
+            r4a_first_rung_arms["acase"]["word_universe"]),
         "cqcRFourAAdmissibleBias": _num(
             r4a["gates"]["admissible_bias_millihartree"], 3),
         "cqcRFourACeiling": _int(r4a["gates"]["word_universe_ceiling"]),
-        "cqcRFourAFullWords": _int(r4a_arms["full_qse"]["word_universe"]),
+        "cqcRFourAFullWords": _int(
+            r4a_first_rung_arms["full_qse"]["word_universe"]),
         "cqcGOneMajorana": _int(
             g1["gate_outcomes"]["e_marginal_by_pool"]["majorana_monomials"][0]),
         "cqcGOneExcitation": _int(

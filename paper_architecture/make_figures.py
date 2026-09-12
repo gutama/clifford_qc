@@ -251,27 +251,33 @@ def layer_stack() -> None:
     right.set_xlim(0, 10)
     right.set_ylim(-0.75, 7.6)
     right.axis("off")
-    right.set_title("(b) Selected dependency edges", loc="left")
+    right.set_title("(b) Selected dependency edges (partial)", loc="left")
+    layer_title = {key: title for title, key in LAYERS}
+    solver_title = (
+        f"{layer_title['algorithms']} / "
+        f"{layer_title['subspace'].removeprefix('Subspace ')}"
+    )
     # Boxes occupy the middle; the two gutters carry the deferred upward edges,
     # so no arrow crosses a box it does not touch.
     tiers = [
-        (1.25, 6.05, 7.3, 0.82, "Evidence and reproduction",
+        (1.25, 6.05, 7.3, 0.82, layer_title["evidence"],
          "benchmarks/, verify.py, reproducibility.py", "#eceff1"),
-        (1.25, 4.85, 3.5, 0.82, "Solvers",
+        (1.25, 4.85, 3.5, 0.82, solver_title,
          "subspace/, algorithms/", "#f3e5f5"),
-        (5.05, 4.85, 3.5, 0.82, "Problem definition", "models/", "#e8f5e9"),
-        (1.25, 3.65, 3.5, 0.82, "Measurement", "measurement/", "#fff3cd"),
-        (5.05, 3.65, 3.5, 0.82, "Execution", "backends/", "#fff3cd"),
-        (1.25, 2.45, 7.3, 0.82, "Program IR",
+        (5.05, 4.85, 3.5, 0.82, layer_title["models"], "models/", "#e8f5e9"),
+        (1.25, 3.65, 3.5, 0.82, layer_title["measurement"], "measurement/", "#fff3cd"),
+        (5.05, 3.65, 3.5, 0.82, layer_title["backends"], "backends/", "#fff3cd"),
+        (1.25, 2.45, 7.3, 0.82, layer_title["ir"],
          "ir.py, qasm3.py, fermion_mapping.py", "#d9edf7"),
-        (1.25, 1.25, 7.3, 0.82, "Algebra kernel",
+        (1.25, 1.25, 7.3, 0.82, layer_title["kernel"],
          "multivector.py, pauli_kernel.py, ...", "#d9edf7"),
-        (1.25, 0.15, 7.3, 0.68, "Optional bridges",
+        (1.25, 0.15, 7.3, 0.68, layer_title["bridges"],
          "stim, OpenFermion, pytket, PennyLane, PyZX", "#ffffff"),
     ]
     for x, y, w, h, title, subtitle, color in tiers:
         _box(right, x, y, w, h, title, subtitle, color,
-             title_size=6.4, subtitle_size=5.2)
+             title_size=5.6 if title == solver_title else 6.4,
+             subtitle_size=5.2)
     selected_imports = [
         ((3.0, 6.05), (3.0, 5.67)),
         ((6.8, 6.05), (6.8, 5.67)),
