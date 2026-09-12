@@ -926,6 +926,118 @@ not the products — while H₄'s is 6×. The cost side is memory, and it is not
 small: H₄'s 378 cached element operators hold 15 847 distinct words and ~10.6 MB.
 That figure is the §6 metric to watch as Phase 3 grows bases, not a footnote.
 
+### Phase 2M — memory-bounded matrix-element bank (adjunct, proposed)
+
+Phase 2 made repeated adaptive solves computationally credible by retaining every
+built pair. The larger molecular records expose the other side of that decision:
+the retained Python-object bank, rather than the numerical `H` and `S` pencils or
+the fixed A-CASE reference, is now the dominant classical-memory allocation. Phase
+2M changes only storage and lifetime policy; it may not change the generator family,
+selection rule, measurement estimand, or scientific evidence category.
+
+**Evidence and claim boundary.** The committed molecular records provide one
+measured anchor and two independent OOM failure witnesses.
+
+- Stretched BeH2 at 14 qubits, candidate pool 204 and final `M = 31` built 5,890
+  cached pairs and reached `11,543,863,296` bytes = 10.75 GiB peak RSS
+  (`adaptive_peak_rss_bytes`) with a 9.98 GiB adaptive delta
+  (`adaptive_peak_rss_delta_bytes`). Its
+  `cached_operator_bytes = 2,306,582,856` corresponds exactly to
+  `T_coeff = 96,107,619` stored nonzero coefficient occurrences under the current
+  24-byte payload estimator.
+- The attempted stretched-H2O `M = 31` endpoint was killed by the OOM reaper on a
+  15 GiB machine. This is a calibrated extrapolation, not a measured endpoint:
+  H2O carries 1,086 Hamiltonian words against BeH2's 666, and
+  `(1086/666) * 10.75 GiB = 17.5 GiB`, consistent with the approximately 18 GiB
+  requirement recorded in `run_molecular_pipeline.py`.
+- A separate sequential run retained BeH2's 11.2 GiB bank as H2O's starting point
+  and was also killed on the 15 GiB machine. The producer now writes each molecule
+  before continuing and explicitly deletes the preceding bank and runs garbage
+  collection. That operational fix is evidence that bank lifetime, not merely
+  Hamiltonian input size, controls the process peak.
+
+The A-CASE reference in these runs is not the exponential culprit:
+`rho0 = ExactMVBackend().state(model.reference, ())` is a fixed Clifford-stabilizer
+density operator with exactly `2^n` Pauli terms and is never evolved during A-CASE
+growth. A possible `4^n` density-multivector support belongs only to exact classical
+arms with non-Clifford rotor evolution, such as simulated VQE or ADAPT-VQE.
+
+**Two distinct storage currencies.** For the cached element-operator family
+`O_alpha in {A_i^dagger A_j, A_i^dagger H A_j}`, define
+
+`W = | union_alpha supp(O_alpha) |`,
+
+`T_coeff = sum_alpha nnz(O_alpha)`, and
+
+`R_reuse = T_coeff / W`.
+
+`W` prices the distinct Pauli expectations; `T_coeff` prices their nonzero
+coefficients across matrix-element functionals. `R_reuse` is cross-element word
+reuse multiplicity, not removable duplication: the same word normally has a
+different coefficient for every pair. Packed storage removes representation
+overhead around those intrinsic nonzeros; it does not claim a `T_coeff/W`
+deduplication gain. Under the current code `cached_operator_bytes = 24*T_coeff`
+exactly, but that estimate excludes Python dictionary, integer, complex-object and
+allocator overhead. The working 116-to-24 byte comparison is a packing hypothesis
+to measure, not a promised RSS ratio.
+
+**2M-A — storage ledger and frozen baseline.** Extend the bank resource record with
+`T_coeff`, actual resident/storage bytes, bytes per coefficient, retained and
+selection pair counts, maximum live frontier rows, evicted rows, recomputed rows,
+spill bytes, and policy-labelled peak RSS. Recover `T_coeff` for existing records
+from `cached_operator_bytes/24`; do not rerun or relabel their scientific results.
+Report retained-pair fraction separately: the committed molecular rows retain only
+`M(M+1)/2 = 3.0--8.4%` of the pairs they built, so 91.6--97.0% are frontier or
+rejected-pair storage. That ratio is eviction headroom, not an achieved speedup.
+
+**2M-B — packed CSR/SoA coefficient bank.** Introduce one canonical global word
+table and packed row storage for the overlap and Hamiltonian functionals:
+`indptr`, word indices/codes, and contiguous coefficient data; benchmark interleaved
+complex data against structure-of-arrays real/imaginary storage. Preserve row
+identity, upper-triangle Hermitian ownership, canonical word order, and the product
+and accumulation order required by the current reproducibility contract. The
+`MatrixElementBank` public semantics remain unchanged.
+
+**2M-C — explicit frontier lifetime policies.** Implement and compare three named
+policies under one interface:
+
+| policy | retained data | intended use |
+|---|---|---|
+| `retain_all` | every materialized operator row | current baseline; minimum recomputation |
+| `stream_recompute` | scalar `S,H` entries, retained-basis rows, and one bounded candidate batch | exact selection when memory is binding |
+| `disk_backed_csr` | packed functionals in an mmap/spill store plus the active batch | finite-shot compilation or repeated reconstruction beyond RAM |
+
+For exact selection, an operator may be discarded after its scalar entry, support
+ledger and canonical packed row have served the chosen policy. For finite-shot
+selection it may be discarded only after its word functional is durably compiled;
+measurement reconstruction still needs every intrinsic coefficient. Eviction must
+therefore expose recomputation and I/O as costs rather than present memory reduction
+as free.
+
+**2M-D — equivalence and performance matrix.** On H4, equilibrium and stretched
+BeH2, and equilibrium and stretched H2O, compare all policies at identical candidate
+ordering and basis budget. Require exact equality of `W`, `T_coeff`, pair ownership,
+selected labels, rejection decisions, stopping reason, evidence label and resource
+scope. Require bitwise `S`, `H` and energies where canonical accumulation order is
+preserved; otherwise use a declared tight tolerance and record the first source of
+rounding-order divergence. Report bank-build time, recomputation time, spill I/O,
+peak and delta RSS, packed bytes and actual bytes per coefficient.
+
+**Go/no-go.** The packed representation must reduce retained coefficient-storage
+bytes by at least 3x at unchanged `T_coeff`. A streaming policy must bound live
+operator rows by the retained block plus its declared candidate batch, rather than
+by all historically scored candidates. The primary end-to-end feasibility test is
+the previously failing stretched-H2O `M = 31` configuration completing below 15 GiB
+without shrinking its candidate pool, word universe, or basis budget. Packing and
+eviction effects are reported separately and together; no multiplicative
+`4.8x * 12x` or approximately 58x claim is allowed until the combined implementation
+is measured.
+
+Phase 15 may run its `H^2` support/cost preflight in parallel, but full
+`SecondMomentBank` construction is gated on Phase 2M passing or on an explicit
+small-system exception: otherwise it would knowingly multiply the allocation that
+already caused the two OOM failures.
+
 ### Phase 3 — done (`subspace/adaptive.py`)
 
 `run_acase` grows the basis one generator at a time on top of the bank:
@@ -1732,9 +1844,11 @@ state-preparation, hardware, noise, mapping, or cross-instance claim.
 Add a `SecondMomentBank` for `K_ij = <psi|A_i^dagger H^2 A_j|psi>`. Before building
 the full bank, add a support/cost preflight for `H^2`; if the estimated word
 universe is prohibitive, keep dense or matrix-free residual oracles for validation
-and restrict the measured implementation to declared small systems. Uses: true Ritz
-residual norms; energy variance and variance extrapolation; folded-spectrum roots;
-an independent convergence criterion.
+and restrict the measured implementation to declared small systems. Full bank
+construction additionally requires the Phase 2M memory-bounded storage gate or an
+explicit small-system exception; the preflight itself may proceed independently.
+Uses: true Ritz residual norms; energy variance and variance extrapolation;
+folded-spectrum roots; an independent convergence criterion.
 
 ### Phase 16 — time-evolved inputs, split by method
 
