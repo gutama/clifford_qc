@@ -387,11 +387,11 @@ def _declaration_form(payload: object) -> str:
     """
     if not isinstance(payload, dict):
         return "none"
-    for key in ("evidence_tier", "evidence"):
+    for key in EVIDENCE_LABEL_KEYS:
         value = payload.get(key)
         if isinstance(value, str):
             return "top_level_tier"
-        if isinstance(value, dict):
+        if key == "evidence" and isinstance(value, dict):
             return "per_quantity_mapping"
 
     def contains_declaration(node: object, keys: tuple[str, ...]) -> bool:
@@ -467,7 +467,7 @@ def record_census() -> dict:
         forms[form].append(path.name)
         declarations[path.name] = _declaration_digest(payload)
         if form == "top_level_tier" and isinstance(payload, dict):
-            for key in ("evidence_tier", "evidence"):
+            for key in EVIDENCE_LABEL_KEYS:
                 value = payload.get(key)
                 if isinstance(value, str):
                     tiers[value] = tiers.get(value, 0) + 1

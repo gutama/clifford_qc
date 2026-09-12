@@ -109,7 +109,7 @@ No figure or table value in the manuscript is transcribed by hand, and
 ```bash
 python -m venv .venv && source .venv/bin/activate
 pip install -e .[test,research,chemistry]   # numpy + scipy + openfermion/pyscf
-pytest                                      # 1461 passed, 31 skipped
+pytest                                      # 1462 passed, 31 skipped
 ```
 
 That install is the reference environment for the quoted pair. The count
@@ -133,7 +133,7 @@ the remaining `31 - 14 = 17` skips are per-test and *are* collected:
 
 ```text
 collected == passed + (skipped - files dropped at collection)
-1478      == 1461   + (31      -  14)
+1479      == 1462   + (31      -  14)
 ```
 
 Both sides are computed from the tree, so a drift in either quoted number

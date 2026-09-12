@@ -21,8 +21,8 @@ import make_tables  # noqa: E402
 
 # --- an evidence role is not an evidence tier ------------------------------
 def test_a_top_level_tier_is_a_tier():
-    assert make_tables._declaration_form({"evidence_tier": "exact"}) == "top_level_tier"
-
+    for key in ("evidence_tier", "search_uncertainty_evidence"):
+        assert make_tables._declaration_form({key: "exact"}) == "top_level_tier"
 
 def test_a_role_is_not_counted_as_a_tier():
     """`evidence_role` says what a record is for, not what its numbers are.
