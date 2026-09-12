@@ -373,9 +373,8 @@ defines the selection vocabulary, but measurement and subspace result types
 carry their evidence labels as strings and their constructors do not validate
 enum membership.  Those typed numerical paths therefore follow a convention;
 they do not enforce the vocabulary.  Newer records preserve evidence at the
-top level, but the broader record-label vocabulary is not normalized and is not
-enforced by a schema over the record set: nothing today rejects a new record
-that omits the field.  The
+top level, but the broader record-label vocabulary is not normalized; it is not enforced by a schema over the
+record set, so nothing today rejects a new record that omits the field.  The
 census that produced Table~\ref{tab:evidence} is recomputed whenever this
 manuscript is rebuilt, so the number cannot silently improve or decay, but a
 census is a measurement, not a gate.  Closing that gap --- a required tier field
