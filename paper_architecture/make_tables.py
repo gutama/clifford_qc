@@ -172,7 +172,7 @@ GATE_CLASSES: tuple[tuple[str, str, tuple[str, ...]], ...] = (
     ),
     (
         "Cross-artifact",
-        "a record against an artifact produced outside benchmarks/",
+        "compares separately produced repository artifacts rather than a same-stem rebuild",
         ("check_molecular", "check_summaries"),
     ),
 )
@@ -355,7 +355,9 @@ def gate_census() -> dict:
         },
         "named_in_workflow": len(named),
         "run_on_every_pull_request": len(automatic),
+        "automatic_gates": sorted(automatic),
         "manual_dispatch_only": len(dispatch),
+        "dispatch_gates": sorted(dispatch),
         "absent_from_workflow": sorted(set(gates) - named),
     }
 

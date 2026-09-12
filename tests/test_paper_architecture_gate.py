@@ -111,7 +111,7 @@ def test_prose_scan_ignores_citation_and_label_digits():
 
 
 # --- the CI split is read from the workflow, not declared ------------------
-def test_ci_gate_sets_separates_dispatch_from_automatic(tmp_path, monkeypatch):
+def test_ci_gate_sets_detects_a_same_size_policy_swap(tmp_path, monkeypatch):
     workflow = tmp_path / "ci.yml"
     workflow.write_text(
         "jobs:\n"

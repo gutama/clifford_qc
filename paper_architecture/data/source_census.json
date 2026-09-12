@@ -4,6 +4,26 @@
       "check_regenerated_record",
       "check_summaries"
     ],
+    "automatic_gates": [
+      "check_clifford_hierarchy",
+      "check_docs",
+      "check_finite_shot_optimization",
+      "check_g1_structural_preconditioner",
+      "check_krylov_width",
+      "check_mapping_axis",
+      "check_molecular",
+      "check_phase14b_preregistration",
+      "check_phase_status",
+      "check_priceability_screen",
+      "check_protocol_axis",
+      "check_r3_environment_migration",
+      "check_r3b_preregistration",
+      "check_r3c_preregistration",
+      "check_r3d_preregistration",
+      "check_r4a_contextual_screen",
+      "check_r4a_preregistration",
+      "check_warm_start"
+    ],
     "classes": {
       "Cross-artifact": 2,
       "Documentation": 1,
@@ -12,6 +32,18 @@
       "Preregistration": 5,
       "Value-rebuilt": 18
     },
+    "dispatch_gates": [
+      "check_exact_shot_search",
+      "check_finite_shot_rethink",
+      "check_matched_h4",
+      "check_phase14b_qwc_vs_fc",
+      "check_protocol_cost",
+      "check_qr3b_instance_preflight",
+      "check_r3b_margin_stop_probe",
+      "check_r3c_lih_full_cost",
+      "check_r3d_qr3_refinement",
+      "check_record_environment"
+    ],
     "gates": 30,
     "manual_dispatch_only": 10,
     "named_in_workflow": 28,
