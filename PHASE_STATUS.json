@@ -1,0 +1,257 @@
+{
+  "schema": "clifford_qc.phase_status.v1",
+  "plan_document": "PLAN.md",
+  "score_scope": {
+    "description": "Primary numbered research phases 0 through 19. Adjunct Paper A, 4R, PRD, G, and R programmes are tracked separately and do not change this denominator.",
+    "phase_ids": [
+      "0", "1", "2", "3", "4", "5", "6", "7", "8", "9",
+      "10", "11", "12", "13", "14", "15", "16", "17", "18", "19"
+    ]
+  },
+  "status_vocabulary": {
+    "complete": "All declared deliverables for the numbered phase ship.",
+    "partial": "At least one declared deliverable ships and at least one remains.",
+    "open": "The phase is accepted into the plan but none of its phase-specific deliverables ship.",
+    "proposed": "The phase is scoped but has not passed its first implementation gate.",
+    "retired": "A prior result or falsifier makes implementation unnecessary for the declared scope.",
+    "closed_negative": "The declared gate executed and stopped the downstream implementation.",
+    "not_authorized": "A conditional phase cannot start because its prerequisite gate did not authorize it."
+  },
+  "summary": {
+    "numbered_phase_count": 20,
+    "complete_phase_count": 15,
+    "strict_complete_fraction": 0.75,
+    "progress_weighted_points": 16.25,
+    "progress_weighted_fraction": 0.8125
+  },
+  "numbered_phases": [
+    {
+      "id": "0",
+      "title": "Exterior-algebra foundation",
+      "status": "complete",
+      "implementation_fraction": 1.0,
+      "evidence": ["clifford_qc/multivector.py"]
+    },
+    {
+      "id": "1",
+      "title": "Operator-response subspace solver",
+      "status": "complete",
+      "implementation_fraction": 1.0,
+      "evidence": ["clifford_qc/subspace/solver.py"]
+    },
+    {
+      "id": "2",
+      "title": "Cached matrix-element bank",
+      "status": "complete",
+      "implementation_fraction": 1.0,
+      "evidence": ["clifford_qc/subspace/elements.py"]
+    },
+    {
+      "id": "3",
+      "title": "Adaptive subspace growth",
+      "status": "complete",
+      "implementation_fraction": 1.0,
+      "evidence": ["clifford_qc/subspace/adaptive.py"]
+    },
+    {
+      "id": "4",
+      "title": "Finite-shot measurement and certification",
+      "status": "complete",
+      "implementation_fraction": 1.0,
+      "evidence": ["clifford_qc/subspace/measured.py"]
+    },
+    {
+      "id": "5",
+      "title": "Lattice models and material observables",
+      "status": "complete",
+      "implementation_fraction": 1.0,
+      "evidence": ["clifford_qc/models/lattice.py"]
+    },
+    {
+      "id": "6",
+      "title": "Sector-restricted statevector backend",
+      "status": "complete",
+      "implementation_fraction": 1.0,
+      "evidence": ["clifford_qc/backends/sector_statevector.py"]
+    },
+    {
+      "id": "7",
+      "title": "Validation ladder",
+      "status": "complete",
+      "implementation_fraction": 1.0,
+      "evidence": ["benchmarks/run_acase_ladder.py"]
+    },
+    {
+      "id": "8",
+      "title": "Trusted sampled-subspace baseline",
+      "status": "complete",
+      "implementation_fraction": 1.0,
+      "evidence": ["clifford_qc/subspace/qsci.py"]
+    },
+    {
+      "id": "9",
+      "title": "Classical selected-CI controls",
+      "status": "complete",
+      "implementation_fraction": 1.0,
+      "evidence": ["clifford_qc/subspace/selected_ci.py"]
+    },
+    {
+      "id": "10",
+      "title": "QSCI x A-CASE hybrid",
+      "status": "complete",
+      "implementation_fraction": 1.0,
+      "evidence": ["clifford_qc/subspace/hybrid.py"]
+    },
+    {
+      "id": "11",
+      "title": "Overlap-targeted and multiresolution selection",
+      "status": "complete",
+      "implementation_fraction": 1.0,
+      "evidence": ["clifford_qc/subspace/multiresolution.py"]
+    },
+    {
+      "id": "12",
+      "title": "Integrated Paper B ladder",
+      "status": "complete",
+      "implementation_fraction": 1.0,
+      "evidence": ["benchmarks/run_phase12_paper_b.py"]
+    },
+    {
+      "id": "13",
+      "title": "Parity/X-rank structural invariant",
+      "status": "complete",
+      "implementation_fraction": 1.0,
+      "evidence": ["clifford_qc/pauli_structure.py"]
+    },
+    {
+      "id": "14",
+      "title": "Fully commuting measurement grouping",
+      "status": "complete",
+      "implementation_fraction": 1.0,
+      "evidence": [
+        "clifford_qc/measurement/planning.py",
+        "benchmarks/reference_results/phase14b_qwc_vs_fc.json"
+      ]
+    },
+    {
+      "id": "15",
+      "title": "Second-moment bank",
+      "status": "open",
+      "implementation_fraction": 0.0,
+      "remaining": ["H-squared support/cost preflight", "SecondMomentBank"]
+    },
+    {
+      "id": "16",
+      "title": "Time-evolved inputs",
+      "status": "open",
+      "implementation_fraction": 0.0,
+      "remaining": ["QSCI time-evolved input", "Circuit-native or explicitly truncated A-CASE real-time family"]
+    },
+    {
+      "id": "17",
+      "title": "Mapping validation and breadth",
+      "status": "partial",
+      "implementation_fraction": 0.75,
+      "evidence": [
+        "clifford_qc/fermion_mapping.py",
+        "benchmarks/reference_results/mapping_axis.json"
+      ],
+      "remaining": ["CEO pool benchmark", "Dedicated MORE-ADAPT breadth benchmark"]
+    },
+    {
+      "id": "18",
+      "title": "Embedding boundary",
+      "status": "partial",
+      "implementation_fraction": 0.5,
+      "evidence": ["clifford_qc/models/effective.py"],
+      "remaining": ["Common fragment-solver callback returning energy and one- and two-particle density matrices"]
+    },
+    {
+      "id": "19",
+      "title": "Anticommuting-clique partitioning",
+      "status": "proposed",
+      "implementation_fraction": 0.0,
+      "remaining": [
+        "Algebraic invariant tests",
+        "Fixed-energy clique-cover implementation",
+        "Result-free preregistration",
+        "Producer, record, and checker"
+      ]
+    }
+  ],
+  "adjunct_programs": [
+    {
+      "id": "A0-A5",
+      "title": "Paper A programme",
+      "status": "complete",
+      "outcome": "implemented_and_manuscript_checked",
+      "evidence": ["paper/manuscript.tex"]
+    },
+    {
+      "id": "4R",
+      "title": "Pooled reconstruction and rank selection",
+      "status": "complete",
+      "outcome": "implemented_off_by_default",
+      "evidence": ["clifford_qc/subspace/measured.py"]
+    },
+    {
+      "id": "PRD",
+      "title": "Preconditioned residual Davidson and WISE split",
+      "status": "complete",
+      "outcome": "exact_positive_finite_shot_negative",
+      "evidence": ["benchmarks/run_prd_case_paper_suite.py"]
+    },
+    {
+      "id": "G1",
+      "title": "GA structural preconditioner",
+      "status": "complete",
+      "outcome": "pool_dependent_content",
+      "evidence": ["benchmarks/reference_results/g1_structural_preconditioner.json"]
+    },
+    {
+      "id": "G2-G3",
+      "title": "GA mapping and cost decomposition",
+      "status": "retired",
+      "outcome": "g1_pools_coincide_at_matched_cap",
+      "evidence": ["benchmarks/reference_results/g1_structural_preconditioner.json"]
+    },
+    {
+      "id": "R1",
+      "title": "Hardware-aware cost infrastructure",
+      "status": "complete",
+      "outcome": "implemented_and_priced",
+      "evidence": ["clifford_qc/measurement/cost.py"]
+    },
+    {
+      "id": "R2a-R2b",
+      "title": "Restriction primitive and mapping axis",
+      "status": "complete",
+      "outcome": "qr2_passes_qr3_fixed_qwc_negative",
+      "evidence": ["benchmarks/reference_results/mapping_axis.json"]
+    },
+    {
+      "id": "R3-R3d",
+      "title": "Protocol-cost and QR3 refinement programme",
+      "status": "complete",
+      "outcome": "second_instance_priced_qr3_indeterminate",
+      "evidence": [
+        "benchmarks/reference_results/protocol_cost.json",
+        "benchmarks/reference_results/r3c_lih_full_cost.json",
+        "benchmarks/reference_results/r3d_qr3_refinement.json"
+      ]
+    },
+    {
+      "id": "R4a",
+      "title": "Contextual-subspace structural comparator",
+      "status": "closed_negative",
+      "outcome": "no_jointly_admissible_rung",
+      "evidence": ["benchmarks/reference_results/r4a_contextual_screen.json"]
+    },
+    {
+      "id": "R4b",
+      "title": "CS-preconditioned A-CASE",
+      "status": "not_authorized",
+      "outcome": "r4a_did_not_authorize_sampling_or_preconditioner_build"
+    }
+  ]
+}

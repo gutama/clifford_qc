@@ -49,18 +49,16 @@ python paper/check_manuscript.py   # balance, refs, bib keys, column counts,
                                    # and figures older than their source record
 python benchmarks/check_summaries.py  # *_summary.{csv,md} vs their JSONL
 python benchmarks/check_docs.py       # this file vs the code it describes
+python benchmarks/check_phase_status.py  # PHASE_STATUS.json vs PLAN/README
 ```
 
-That last one exists because this document drifted three times while the
-numbers themselves stayed correct: the per-matrix `summarize.py` commands
-regenerated only the CSV (which is *how* the Markdown summaries went stale),
-the predeclared-parameter section quoted one global `delta` while five
-certification experiments used their own, and the environment check
-understated the test count. Artifact checkers cannot see prose, so
-`check_docs.py` verifies that every documented command names a real script,
-that every flag it passes is one the script accepts, that the delta/eps table
-matches the constants in each script, and that no benchmark or committed
-record is left undocumented.
+These documentation gates exist because prose drifted while the numbers stayed
+correct. `check_docs.py` verifies that every documented command names a real
+script, every flag is accepted, the delta/eps table matches the code, and no
+benchmark or committed record is left undocumented. `check_phase_status.py`
+separately validates the lifecycle vocabulary, numbered 0–19 denominator,
+implementation-score arithmetic, evidence paths, and the generated summary
+blocks in `PLAN.md` and `README.md`.
 
 Building the manuscript itself needs revtex4-2 and the packages the preamble
 loads; on Debian/Ubuntu:
@@ -106,7 +104,7 @@ No figure or table value in the manuscript is transcribed by hand, and
 ```bash
 python -m venv .venv && source .venv/bin/activate
 pip install -e .[test,research,chemistry]   # numpy + scipy + openfermion/pyscf
-pytest                                      # 1436 passed, 31 skipped
+pytest                                      # 1444 passed, 31 skipped
 ```
 
 That install is the reference environment for the quoted pair. The count
@@ -130,7 +128,7 @@ the remaining `31 - 14 = 17` skips are per-test and *are* collected:
 
 ```text
 collected == passed + (skipped - files dropped at collection)
-1453      == 1436   + (31      -  14)
+1461      == 1444   + (31      -  14)
 ```
 
 Both sides are computed from the tree, so a drift in either quoted number
@@ -466,7 +464,7 @@ Three cost-aware tiers run:
 
 | job | when | contents |
 | --- | --- | --- |
-| `test` | pull request, push to `main`, manual dispatch | `ruff`, `pytest --hypothesis-profile=ci`, and the short record gates: `check_docs`, `check_molecular`, `check_krylov_width`, `check_clifford_hierarchy`, `check_finite_shot_optimization`, `check_warm_start` |
+| `test` | pull request, push to `main`, manual dispatch | `ruff`, `pytest --hypothesis-profile=ci`, and the short record gates: `check_docs`, `check_phase_status`, `check_molecular`, `check_krylov_width`, `check_clifford_hierarchy`, `check_finite_shot_optimization`, `check_warm_start` |
 | `structural-records` | pull request, push to `main`, manual dispatch | deterministic rebuild and lineage gates: `check_mapping_axis`, `check_protocol_axis`, `check_priceability_screen`, `check_r3_environment_migration`, `check_r3b_preregistration`, `check_r3c_preregistration`, `check_r3d_preregistration`, `check_phase14b_preregistration`, `check_g1_structural_preconditioner`, `check_r4a_preregistration`, `check_r4a_contextual_screen` |
 | `sampled-records` | manual dispatch only | replica-drawing rebuild gates, each under its own record stamp: `check_r3b_margin_stop_probe`, `check_finite_shot_rethink`, `check_matched_h4`, `check_qr3b_instance_preflight`, `check_exact_shot_search`, `check_protocol_cost`, `check_r3c_lih_full_cost`, `check_r3d_qr3_refinement`, `check_phase14b_qwc_vs_fc` |
 

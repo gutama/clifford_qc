@@ -532,6 +532,21 @@ clifford_qc/
 
 ## Project Notes
 
+<!-- PHASE-STATUS-SUMMARY:START -->
+| numbered phase scope | lifecycle | implementation |
+|---|---|---:|
+| Phases 0--14 | complete | 15 / 15 |
+| Phase 15: Second-moment bank | open | 0% |
+| Phase 16: Time-evolved inputs | open | 0% |
+| Phase 17: Mapping validation and breadth | partial | 75% |
+| Phase 18: Embedding boundary | partial | 50% |
+| Phase 19: Anticommuting-clique partitioning | proposed | 0% |
+
+Strict complete-phase score: **15 / 20 = 75.00%**.
+Progress-weighted score: **16.25 / 20 = 81.25%**.
+Retired and conditional adjunct phases are tracked separately and do not change this denominator. Source: `PHASE_STATUS.json`; validate with `python benchmarks/check_phase_status.py`.
+<!-- PHASE-STATUS-SUMMARY:END -->
+
 - The project is currently alpha (`0.3.0`).
 - `PLAN.md` is the single research plan — one document, consolidating the four
   former roadmaps plus newly integrated hardware-aware resource accounting. It is
@@ -541,16 +556,18 @@ clifford_qc/
   | § | contents |
   |---|---|
   | 1–4 | scope, repository facts, the algebra contract and standing invariants, the method |
-  | 5 | the phase ledger: Phases 0–7 and 8–12 shipped, 13–18 open, R1–R4 for hardware-aware costing |
+  | 5 | the phase ledger: Phases 0–14 complete; 15–16 open; 17 partially implemented; 18 schema-only; 19 proposed; G/R outcomes tracked separately |
   | 6 | resource accounting — word universe, supports, conditioning, and the device-card cost model |
   | 7 | the validation ladder, what it does and does not support, and the benchmark inventory |
   | 9 | Paper A: confidence-certified, measurement-efficient ADAPT-VQE (phases A0–A5, all complete; the manuscript's findings are quoted there from `paper/manuscript.tex`) |
-  | 10–11 | falsifiable questions Q1–Q13 and QR1–QR6; the fifteen-paper literature index |
+  | 10–11 | falsifiable questions Q1–Q14 and QR1–QR6; the eighteen-entry primary literature index |
   | 14 | what the plan does not claim |
 
   It records the comparisons the project expects to lose — A-CASE does not beat
   fixed Krylov on energy, or ADAPT-VQE on stretched geometries — and confines
   wavelets to the implemented configuration-space Haar staging experiment.
+- `PHASE_STATUS.json` is the machine-readable implementation ledger. Its score
+  excludes adjunct and retired programmes from the numbered 0–19 denominator.
 - `REPRODUCING.md` is the reproduction contract: the command, record, and
   drift check for every committed benchmark.
 - `MIGRATION.md` maps the old single-file API onto this package.
