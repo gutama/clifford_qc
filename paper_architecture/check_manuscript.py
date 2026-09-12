@@ -10,8 +10,9 @@ only worth making if something enforces them, so this gate checks:
   4.  every ``\\input`` target exists, so the table generator has been run;
   5.  every table row has the column count its preamble declares;
   6.  no numeric cell is typed into the manuscript instead of generated;
-  7.  no bare decimal or four-digit integer appears in the body prose, and
-      every ``\\cqc`` macro used is defined and every one defined is used;
+  7.  no numeral appears in the body prose outside the short allowlist of
+      conceptual notation, and every ``\\cqc`` macro used is defined and
+      every one defined is used;
   8.  every generated fragment is byte-identical to what the generator
       produces right now, so a value edited by hand into a fragment fails here
       rather than typesetting;

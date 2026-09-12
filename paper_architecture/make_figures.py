@@ -1,7 +1,7 @@
 """Generate the vector figures for the architecture paper.
 
-Three of the four figures plot a committed record or the source census; the
-fourth is a schematic and plots nothing.  ``manifest.json`` binds each figure to
+Three of the five figures plot a committed record or the source census; the
+other two are schematics and plot nothing.  ``manifest.json`` binds each figure to
 its generator and its exact inputs, because PDF streams differ across
 Matplotlib and font builds even when they draw the same paths, so a byte
 comparison is the wrong drift gate and a digest of the inputs is the right one.
@@ -70,6 +70,7 @@ def _source_digest(path: Path) -> str:
 
 
 FIGURE_SOURCES: dict[str, tuple[Path, ...]] = {
+    "architecture_flow.pdf": (),
     "layer_stack.pdf": (CENSUS,),
     "evidence_path.pdf": (),
     "hierarchy_tradeoff.pdf": (HIER_H4, HIER_BEH2),
@@ -117,6 +118,78 @@ def _arrow(ax, start, end, *, dashed=False, color="#263238"):
         start, end, arrowstyle="-|>", mutation_scale=7, linewidth=0.7,
         color=color, linestyle="--" if dashed else "-",
         shrinkA=1.0, shrinkB=1.0))
+
+
+def architecture_flow() -> None:
+    """The numerical path and the claim path, joined by typed contracts."""
+    plt = _pyplot()
+    fig, ax = plt.subplots(figsize=(7.1, 3.2))
+    ax.set_xlim(0, 10)
+    ax.set_ylim(0, 5.05)
+    ax.axis("off")
+
+    ax.text(0.05, 4.72, "scientific path", fontsize=7.1, fontweight="bold",
+            color="#263238", va="center")
+    scientific = [
+        (0.05, 3.35, 1.55, 1.0, "Model",
+         "$H$, observables,\nreference state", "#e8f5e9"),
+        (1.88, 3.35, 2.15, 1.0, "Reduction policy",
+         "pass through\nsector storage / tapering: exact\ncontextual: approximate",
+         "#d9edf7"),
+        (4.31, 3.35, 2.15, 1.0, "Solver policy",
+         "A-CASE | QSCI / selected CI\nADAPT-VQE | hybrid", "#f3e5f5"),
+        (6.74, 3.35, 3.16, 1.0, "Estimator and cost",
+         "exact oracle or compiled measurement\nplan + backend + cumulative cache",
+         "#fff3cd"),
+    ]
+    for x, y, w, h, title, subtitle, color in scientific:
+        _box(ax, x, y, w, h, title, subtitle, color,
+             title_size=7.1, subtitle_size=5.8)
+    for left, right in zip(scientific, scientific[1:]):
+        _arrow(ax, (left[0] + left[2], left[1] + left[3] / 2),
+               (right[0], right[1] + right[3] / 2))
+
+    ax.text(0.05, 2.86, "claim path", fontsize=7.1, fontweight="bold",
+            color="#263238", va="center")
+    claim = [
+        (0.05, 1.55, 1.55, 0.92, "Preregistered plan",
+         "question + acceptance rule", "#eceff1"),
+        (1.88, 1.55, 2.15, 0.92, "Labelled result",
+         "value + uncertainty + evidence", "#ffe0b2"),
+        (4.31, 1.55, 2.15, 0.92, "Versioned record",
+         "inputs + provenance + outcome", "#eceff1"),
+        (6.74, 1.55, 1.35, 0.92, "Gate",
+         "rebuild | audit", "#ffebee"),
+        (8.37, 1.55, 1.53, 0.92, "Disposition",
+         "admit | refuse |\nindeterminate", "#ffebee"),
+    ]
+    for x, y, w, h, title, subtitle, color in claim:
+        _box(ax, x, y, w, h, title, subtitle, color,
+             title_size=6.4, subtitle_size=5.4)
+    for left, right in zip(claim, claim[1:]):
+        _arrow(ax, (left[0] + left[2], left[1] + left[3] / 2),
+               (right[0], right[1] + right[3] / 2))
+    ax.plot([8.32, 8.32, 3.0], [3.35, 2.78, 2.78],
+            linewidth=0.7, color="#b71c1c")
+    _arrow(ax, (3.0, 2.78), (3.0, 2.47), color="#b71c1c")
+    ax.text(5.65, 2.94, "measurement decides the evidence label",
+            fontsize=5.8, color="#b71c1c", ha="center", va="center")
+
+    from matplotlib.patches import FancyBboxPatch
+    ax.add_patch(FancyBboxPatch(
+        (0.05, 0.25), 9.85, 0.62,
+        boxstyle="round,pad=0.03,rounding_size=0.08",
+        linewidth=0.7, edgecolor="#37474f", facecolor="#f5f7f8"))
+    ax.text(4.975, 0.56,
+            "shared contracts: MV | Program / PauliSum | Backend | Restriction | "
+            "CompiledMeasurementPlan | EvidenceLevel",
+            ha="center", va="center", fontsize=6.1, color="#263238")
+    ax.text(2.96, 3.17,
+            "generator filtering changes the candidate pool, not Hilbert-space width",
+            ha="center", va="top", fontsize=5.5, color="#455a64")
+
+    fig.tight_layout(pad=0.25)
+    _save(fig, "architecture_flow.pdf")
 
 
 def layer_stack() -> None:
@@ -350,6 +423,7 @@ def cost_bracket() -> None:
 def main() -> None:
     _style()
     ASSETS.mkdir(parents=True, exist_ok=True)
+    architecture_flow()
     layer_stack()
     evidence_path()
     hierarchy_tradeoff()

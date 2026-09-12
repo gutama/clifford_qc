@@ -171,6 +171,31 @@ card, and every card in the records carries a field saying so.
 \section{One representation, and the seams around it}
 \label{sec:architecture}
 
+\subsection{The end-to-end contract}
+
+\begin{figure*}
+  \includegraphics[width=\textwidth]{paper_assets/architecture_flow.pdf}
+  \caption{The end-to-end architecture, separating a scientific result from a
+  publishable claim.  The scientific path constructs a model, applies only
+  explicit reductions, selects a solver policy, and evaluates an exact or
+  measured estimator.  The claim path attaches evidence, writes provenance,
+  and lets a declared gate admit, refuse, or leave the result indeterminate.
+  The band at the foot names the typed contracts shared across both paths.
+  Generator filtering changes the candidate pool; it is not shown as a
+  Hilbert-space reduction.}
+  \label{fig:architecture-flow}
+\end{figure*}
+
+Figure~\ref{fig:architecture-flow} makes explicit a distinction that a layer
+inventory alone cannot show.  Sector representation compresses exact storage;
+symmetry tapering reduces the active register exactly; contextual restriction
+reduces it approximately and carries the removed Hamiltonian fraction as a
+bias source; and A-CASE or determinant projection reduces only the subsequent
+generalized eigenproblem.  Generator filtering changes which directions may
+enter that projected solve, not the Hilbert space itself.  Those operations
+therefore remain separate policies even though they meet at one restriction
+and solver interface.
+
 \subsection{The kernel}
 
 The package has one operator type.  A multivector \texttt{MV} is a sparse map
@@ -852,6 +877,23 @@ tables in Secs.~\ref{sec:architecture} and \ref{sec:gates} are recomputed on
 every build, and the one that most needed that treatment was the unflattering
 one in Sec.~\ref{sec:evidence}, which we would not have quantified at all if the
 architecture had not been asked to measure itself.
+
+\paragraph{Streamlining options.}
+The same diagram suggests three smaller operational profiles, none of which is
+a result of the present benchmarks.  The lowest-risk simplification is a
+five-contract spine --- model, restriction, solver, estimator and evidence
+record --- with the existing implementations selected as policies behind those
+interfaces.  This preserves every comparator while removing orchestration from
+the scientific contracts.  A method-centred profile would make A-CASE the only
+production solver, retain QSCI and selected CI as validation controls, and use
+ADAPT-VQE only as an optional warm start; that yields the clearest method story
+but narrows the production surface.  An execution-centred profile would split
+offline bank construction and measurement-plan compilation from online
+sampling and cumulative-cache updates; it reduces repeated work without
+changing the solver family.  The interface spine is the natural first move,
+because it also gives exact and measured response one estimator path instead
+of parallel implementations.  These are design alternatives, not performance
+claims.
 
 The obvious next step is the gap this paper names: a required evidence tier,
 schema-validated over every committed record, so that the contract enforced in

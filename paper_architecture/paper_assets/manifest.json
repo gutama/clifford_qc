@@ -1,5 +1,8 @@
 {
   "figures": {
+    "architecture_flow.pdf": {
+      "sources": {}
+    },
     "cost_bracket.pdf": {
       "sources": {
         "benchmarks/reference_results/protocol_cost.json": "a1b5bea91d5924ae6c6878baf83e9d8b6b10ad107f4c3a2ab1644ddee1adff59"
@@ -22,7 +25,7 @@
   },
   "generator": {
     "path": "paper_architecture/make_figures.py",
-    "sha256": "d93302440ab4f927baf566952441d346f1c85e223dd1668f7fa6b9a16a49cdfe"
+    "sha256": "8f220af76481dcd97813c77dadc96c949f6ebad61ad2b979e8791b1f90bc5430"
   },
   "schema": "clifford_qc.architecture_figure_manifest.v1"
 }
