@@ -322,8 +322,10 @@ flattering table in this paper.  Of \cqcJsonRecords{} committed JSON records,
 \cqcDistinctTiers{} distinct tier strings; \cqcRecordsPerQuantity{} declare a
 per-quantity mapping instead, because their producers report several quantities
 at different tiers in one file; \cqcRecordsNested{} nests the tier inside a
-sub-object; and \cqcRecordsUnlabelled{} carry no record-level evidence field at
-all.  A further \cqcSeriesFiles{} series files --- line-delimited JSON, CSV and
+sub-object; \cqcRecordsRoleOnly{} declare an evidence \emph{role} --- what the
+record is for --- with no tier at all, which is a different statement and is
+not counted as one here; and \cqcRecordsUnlabelled{} carry no record-level
+evidence field whatsoever.  A further \cqcSeriesFiles{} series files --- line-delimited JSON, CSV and
 Markdown summaries --- carry no record-level field by construction.
 
 This is a real gap and it is worth stating precisely.  The evidence vocabulary
@@ -342,9 +344,14 @@ can identify to the contract described here.
 
 The benchmark directory is not a scratch space; it is a two-part contract, and
 the pairing is the architecture.  \cqcProducers{} producers write records.
-\cqcGates{} gates read them, of which \cqcGatesInCI{} run in continuous
-integration, each as its own named step that executes even after an earlier one
-fails, so that a drift suite reports every symptom rather than the first.
+\cqcGates{} gates read them.  \cqcGatesInWorkflow{} are named in the
+continuous-integration workflow, and the distinction inside that number
+matters: \cqcGatesAutomatic{} run on every pull request, while
+\cqcGatesDispatch{} run only when dispatched by hand, because they draw
+replicas and cost runner-hours.  \cqcGatesAbsent{} exist in the repository but
+in no workflow at all.  Each gate that does run is its own named step, and each
+executes even after an earlier one fails, so that a drift suite reports every
+symptom rather than the first.
 
 \begin{table}
   \caption{What each class of benchmark gate asserts.  Counts are recomputed
@@ -806,11 +813,13 @@ design makes difficult to over-claim, not about relative capability or speed.
 Every number in this manuscript, in the body text as well as in the tables, is
 generated from a committed record or from a live census of the source tree.
 The prose quantities are macros written by the table generator, and the
-manuscript checker rejects a bare decimal or a four-digit integer typed into the
-body.  Each generated table fragment carries content hashes of its source
-records and of its generator, which the checker re-derives, so a record
-regenerated without rerunning the generator fails the build rather than
-typesetting a stale number.  Figures are bound the same way through a manifest
+manuscript checker rejects any numeral typed into the body outside a short
+allowlist of conceptual notation --- a block size under discussion, a chemical
+subscript, the dimension of the algebra.  The generated fragments are checked
+by regenerating them during the check and comparing byte for byte, which is
+stronger than the content hashes they also carry: a hash over the inputs
+catches a record regenerated without rerunning the generator, but only
+regeneration catches a value edited into a fragment by hand.  Figures are bound the same way through a manifest
 of input digests, because vector output is not byte-reproducible across plotting
 and font builds while the digest of its inputs is.
 

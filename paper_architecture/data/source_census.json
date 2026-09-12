@@ -1,5 +1,9 @@
 {
   "gates": {
+    "absent_from_workflow": [
+      "check_regenerated_record",
+      "check_summaries"
+    ],
     "classes": {
       "Cross-artifact": 2,
       "Documentation": 1,
@@ -9,28 +13,55 @@
       "Value-rebuilt": 18
     },
     "gates": 30,
-    "gates_run_in_ci": 28,
+    "manual_dispatch_only": 10,
+    "named_in_workflow": 28,
     "producers": 42,
     "producers_without_gate": 24,
-    "same_stem_pairs": 18,
-    "ungated_in_ci": [
-      "check_summaries",
-      "check_regenerated_record"
-    ]
+    "run_on_every_pull_request": 18,
+    "same_stem_pairs": 18
   },
   "records": {
-    "distinct_top_level_tiers": 6,
+    "declarations": {
+      "clifford_hierarchy_beh2.json": "320430ba3ce8c859",
+      "clifford_hierarchy_beh2_v2.json": "44136fa355b3678a",
+      "clifford_hierarchy_h4.json": "f29b56d481ddd453",
+      "clifford_hierarchy_h4_v2.json": "44136fa355b3678a",
+      "configuration_packets.json": "9ed644e4c7a1018e",
+      "exact_shot_search.json": "e666ae563f6448c2",
+      "fcidump_h4.json": "94662552eea471aa",
+      "finite_shot_optimization.json": "6829464abc77bc54",
+      "finite_shot_rethink.json": "6829464abc77bc54",
+      "g1_structural_preconditioner.json": "f6a33f1aa225c4dd",
+      "h4_exact_trajectory.json": "44136fa355b3678a",
+      "krylov_width.json": "44136fa355b3678a",
+      "mapping_axis.json": "7e73e7c8a9cb7bb7",
+      "matched_h4.json": "d82558e8baf9548f",
+      "orbital_basis.json": "44136fa355b3678a",
+      "phase14b_qwc_vs_fc.json": "7eea7d72de38ea0e",
+      "priceability_screen.json": "f6a33f1aa225c4dd",
+      "protocol_axis.json": "75a2ec249c533fed",
+      "protocol_cost.json": "778eeeaed1ead49e",
+      "qr3b_instance_preflight.json": "392bef0978fe1bad",
+      "r3b_margin_stop_probe.json": "392bef0978fe1bad",
+      "r3c_lih_full_cost.json": "fe9deeebdc362a5c",
+      "r3d_qr3_refinement.json": "5509aa8b44de12a0",
+      "r4a_contextual_screen.json": "f6a33f1aa225c4dd",
+      "warm_start_h4.json": "a3981028c447b11d"
+    },
+    "distinct_top_level_tiers": 5,
     "examples": {
       "nested_in_subobject": "protocol_axis.json",
       "none": "clifford_hierarchy_beh2.json",
       "per_quantity_mapping": "fcidump_h4.json",
-      "top_level_string": "configuration_packets.json"
+      "role_only": "qr3b_instance_preflight.json",
+      "top_level_tier": "configuration_packets.json"
     },
     "forms": {
       "nested_in_subobject": 1,
       "none": 8,
       "per_quantity_mapping": 3,
-      "top_level_string": 13
+      "role_only": 2,
+      "top_level_tier": 11
     },
     "json_records": 25,
     "series_files": 21,
@@ -39,7 +70,6 @@
       "exact numerical benchmark": 1,
       "exact_oracle_finite_sample": 1,
       "heuristic": 2,
-      "scope_decision_only": 2,
       "structural": 3
     }
   },
@@ -93,7 +123,7 @@
     },
     "package_lines": 22495,
     "package_modules": 92,
-    "test_lines": 22345,
-    "test_modules": 100
+    "test_lines": 22488,
+    "test_modules": 101
   }
 }

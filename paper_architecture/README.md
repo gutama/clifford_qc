@@ -78,25 +78,37 @@ preconditioner — appears in no other manuscript.
 
 `check_manuscript.py` fails, rather than typesetting, when:
 
-1. a generated table is stale against the record or the generator that produced
-   it (blob hashes are embedded in each fragment and re-derived);
+1. a generated fragment differs by a single byte from what the generator
+   produces right now — the fragments are regenerated into a scratch tree
+   during the check and compared. The provenance hashes each fragment carries
+   digest its source records and the generator, so they catch a record
+   regenerated without rerunning the generator; only regeneration catches a
+   value edited into a fragment by hand;
 2. a figure's manifest no longer matches its generator or its input digests —
    digests rather than bytes, because vector output is not reproducible across
    plotting and font builds while the digest of its inputs is;
-3. a number is typed into a table cell or into the body prose instead of being
-   generated into `tables/`;
+3. any numeral appears in a table cell or in the body prose, outside a short
+   allowlist of conceptual notation (a block size under discussion, a chemical
+   subscript, the dimension of the algebra). There is no digit-count threshold:
+   a three-digit setting count typed into a paragraph fails;
 4. a generated macro is used without being defined, or defined without being
    used;
 5. the committed source census no longer equals a census recomputed now — a
    module added without a layer, a benchmark gate added without a declared
-   class, or a record whose evidence declaration changed;
+   class, a gate added to or dropped from the CI workflow, or a record whose
+   evidence declaration changed anywhere in the file, nested values and
+   per-quantity maps included;
 6. a citation, label, reference, input or table column count is broken;
 7. one of the paper's evidence-language invariants has been edited out.
 
-Points 3 and 5 are the ones specific to this paper. Point 3 is what makes
-"every number is generated" checkable rather than aspirational, and point 5 is
-what keeps the architecture tables honest, since no experiment rebuilds them.
+Points 1, 3 and 5 are the ones specific to this paper. Points 1 and 3 are what
+make "every number is generated" checkable rather than aspirational, and point
+5 is what keeps the architecture tables honest, since no experiment rebuilds
+them.
 
-Fault-injection is the way to confirm the gate still works: rename a module
-without assigning it a layer, add a `benchmarks/check_*.py` without a class, or
-type a decimal into a paragraph, and the checker names it.
+`tests/test_paper_architecture_gate.py` pins the parts of this that have
+already been wrong once: an evidence *role* counted as a tier, a nested tier
+change that moved nothing the census compared, and a hand-edited fragment that
+passed a check over its inputs. Fault injection is still the quickest
+confirmation by hand: rename a module without assigning it a layer, drop a gate
+from the workflow, or type a number into a paragraph, and the checker names it.

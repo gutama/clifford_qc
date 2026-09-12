@@ -22,6 +22,7 @@ from __future__ import annotations
 import hashlib
 import json
 import math
+import re
 from pathlib import Path
 
 HERE = Path(__file__).resolve().parent
@@ -174,9 +175,38 @@ GATE_CLASSES: tuple[tuple[str, str, tuple[str, ...]], ...] = (
     ),
 )
 
-# The two gates CI does not run.  Sec. IV quotes the in-CI count, which this
-# tuple is what subtracts from the total.
-UNGATED_IN_CI = ("check_summaries", "check_regenerated_record")
+CI_WORKFLOW = ROOT / ".github" / "workflows" / "ci.yml"
+
+# Which jobs run without being asked for.  Everything else in the workflow sits
+# behind `workflow_dispatch`, and Sec. IV distinguishes the two rather than
+# calling both "in CI".
+DISPATCH_GUARD = "github.event_name == 'workflow_dispatch'"
+
+
+def ci_gate_sets() -> tuple[set[str], set[str]]:
+    """Gates the workflow names, split into automatic and dispatch-only.
+
+    Parsed from the workflow text rather than declared here: a hard-coded pair
+    subtracted from the total keeps reporting the same number after a gate is
+    added to the repository or dropped from the workflow, which is exactly the
+    drift this paper claims to catch.  Jobs are found by their two-space
+    indent, and a job carrying the dispatch guard contributes to the manual
+    set.
+    """
+    text = CI_WORKFLOW.read_text(encoding="utf-8")
+    starts = [(m.start(), m.group(1))
+              for m in re.finditer(r"(?m)^  ([a-z][\w-]*):$", text)]
+    automatic: set[str] = set()
+    dispatch: set[str] = set()
+    for index, (offset, _name) in enumerate(starts):
+        end = starts[index + 1][0] if index + 1 < len(starts) else len(text)
+        block = text[offset:end]
+        gates = set(re.findall(r"benchmarks/(check_\w+)\.py", block))
+        gates |= set(re.findall(r"gate:\s*(check_\w+)", block))
+        if not gates:
+            continue
+        (dispatch if DISPATCH_GUARD in block else automatic).update(gates)
+    return automatic, dispatch - automatic
 
 
 def _git_blob_sha(path: Path) -> str:
@@ -188,7 +218,7 @@ def _git_blob_sha(path: Path) -> str:
 
 def _write(name: str, rows: list[str]) -> None:
     """Write one table fragment with its source and generator bindings."""
-    TABLES.mkdir(parents=True, exist_ok=True)
+    TABLES.mkdir(parents=True, exist_ok=True)  # noqa: F821 (rebound by main)
     sources = TABLE_SOURCES[name]
     header = [f"% source-git-blob-sha: {_git_blob_sha(path)}" for path in sources]
     header.append(f"% generator-git-blob-sha: {_git_blob_sha(Path(__file__).resolve())}")
@@ -299,6 +329,12 @@ def gate_census() -> dict:
     duplicates = sorted({stem for stem in declared if declared.count(stem) > 1})
     if duplicates:
         raise SystemExit("gate classified twice: " + ", ".join(duplicates))
+    automatic, dispatch = ci_gate_sets()
+    named = automatic | dispatch
+    unknown = sorted(named - set(gates))
+    if unknown:
+        raise SystemExit(
+            "the CI workflow names gates that do not exist: " + ", ".join(unknown))
     # A producer is value-rebuilt only if a same-stem checker exists.
     paired = sorted(
         stem for stem in producers
@@ -311,38 +347,79 @@ def gate_census() -> dict:
         "classes": {
             name: len(stems) for name, _, stems in GATE_CLASSES
         },
-        "ungated_in_ci": list(UNGATED_IN_CI),
-        "gates_run_in_ci": len(gates) - len(UNGATED_IN_CI),
+        "named_in_workflow": len(named),
+        "run_on_every_pull_request": len(automatic),
+        "manual_dispatch_only": len(dispatch),
+        "absent_from_workflow": sorted(set(gates) - named),
     }
 
 
+EVIDENCE_KEYS = ("evidence_tier", "evidence", "evidence_role")
+
+
 def _declaration_form(payload: object) -> str:
-    """How one committed record declares the evidence its numbers carry."""
+    """How one committed record declares the evidence its numbers carry.
+
+    ``evidence_role`` is not a tier: it says what a record is for, not what
+    kind of number it holds.  Counting it as a tier inflates the coverage this
+    paper reports on itself, so it gets its own category.
+    """
     if not isinstance(payload, dict):
         return "none"
-    for key in ("evidence_tier", "evidence", "evidence_role"):
+    for key in ("evidence_tier", "evidence"):
         value = payload.get(key)
         if isinstance(value, str):
-            return "top_level_string"
+            return "top_level_tier"
         if isinstance(value, dict):
             return "per_quantity_mapping"
+    if isinstance(payload.get("evidence_role"), str):
+        return "role_only"
     for value in payload.values():
-        if isinstance(value, dict) and (
-                "evidence_tier" in value or "evidence" in value):
+        if isinstance(value, dict) and any(k in value for k in EVIDENCE_KEYS):
             return "nested_in_subobject"
     return "none"
+
+
+def _declaration_digest(payload: object) -> str:
+    """Digest of every evidence declaration in a record, at any depth.
+
+    The form alone is too coarse to back the guarantee this paper makes.  A
+    record can keep its form while a nested tier or one entry of a per-quantity
+    map changes, and the census would not move.  Walking the whole record and
+    digesting every evidence-keyed value, with its path, closes that.
+    """
+    found: dict[str, object] = {}
+
+    def walk(node: object, path: str) -> None:
+        if isinstance(node, dict):
+            for key, value in node.items():
+                here = f"{path}.{key}" if path else key
+                if key in EVIDENCE_KEYS:
+                    # A per-quantity map is a declaration too, and recording
+                    # only scalars would miss one of its entries changing.
+                    found[here] = value
+                walk(value, here)
+        elif isinstance(node, list):
+            for index, value in enumerate(node):
+                walk(value, f"{path}[{index}]")
+
+    walk(payload, "")
+    canonical = json.dumps(found, sort_keys=True, separators=(",", ":"))
+    return hashlib.sha256(canonical.encode("utf-8")).hexdigest()[:16]
 
 
 def record_census() -> dict:
     """Evidence-label coverage over the committed record set."""
     forms: dict[str, list[str]] = {
-        "top_level_string": [],
+        "top_level_tier": [],
         "per_quantity_mapping": [],
+        "role_only": [],
         "nested_in_subobject": [],
         "none": [],
     }
     series: list[str] = []
     tiers: dict[str, int] = {}
+    declarations: dict[str, str] = {}
     for path in sorted(RECORDS.iterdir()):
         if path.suffix != ".json":
             series.append(path.name)
@@ -350,8 +427,9 @@ def record_census() -> dict:
         payload = json.loads(path.read_text(encoding="utf-8"))
         form = _declaration_form(payload)
         forms[form].append(path.name)
-        if form == "top_level_string" and isinstance(payload, dict):
-            for key in ("evidence_tier", "evidence", "evidence_role"):
+        declarations[path.name] = _declaration_digest(payload)
+        if form == "top_level_tier" and isinstance(payload, dict):
+            for key in ("evidence_tier", "evidence"):
                 value = payload.get(key)
                 if isinstance(value, str):
                     tiers[value] = tiers.get(value, 0) + 1
@@ -365,6 +443,7 @@ def record_census() -> dict:
         },
         "distinct_top_level_tiers": len(tiers),
         "top_level_tiers": dict(sorted(tiers.items())),
+        "declarations": declarations,
     }
 
 
@@ -409,8 +488,9 @@ def layers_table(census: dict) -> None:
 def evidence_coverage_table(census: dict) -> None:
     records = census["records"]
     labels = {
-        "top_level_string": "Top-level tier",
+        "top_level_tier": "Top-level tier",
         "per_quantity_mapping": "Per-quantity mapping",
+        "role_only": "Role, not a tier",
         "nested_in_subobject": "Nested in sub-object",
         "none": "No evidence",
     }
@@ -439,7 +519,11 @@ def gate_classes_table(census: dict) -> None:
     rows.append(r"\colrule")
     rows.append(
         f"Gates, all classes & {_int(gates['gates'])} & "
-        f"{_int(gates['gates_run_in_ci'])} run in CI \\\\")
+        f"{_int(gates['named_in_workflow'])} named in the CI workflow \\\\")
+    rows.append(
+        f"Run on every pull request & "
+        f"{_int(gates['run_on_every_pull_request'])} & "
+        f"{_int(gates['manual_dispatch_only'])} more by manual dispatch \\\\")
     rows.append(
         f"Producers & {_int(gates['producers'])} & "
         f"{_int(gates['same_stem_pairs'])} have a same-stem gate \\\\")
@@ -731,10 +815,14 @@ def numbers_macros(census: dict) -> None:
         "cqcGates": _int(gates["gates"]),
         "cqcSameStemPairs": _int(gates["same_stem_pairs"]),
         "cqcProducersWithoutGate": _int(gates["producers_without_gate"]),
-        "cqcGatesInCI": _int(gates["gates_run_in_ci"]),
+        "cqcGatesInWorkflow": _int(gates["named_in_workflow"]),
+        "cqcGatesAutomatic": _int(gates["run_on_every_pull_request"]),
+        "cqcGatesDispatch": _int(gates["manual_dispatch_only"]),
+        "cqcGatesAbsent": _int(len(gates["absent_from_workflow"])),
         "cqcJsonRecords": _int(records["json_records"]),
         "cqcSeriesFiles": _int(records["series_files"]),
-        "cqcRecordsLabelled": _int(records["forms"]["top_level_string"]),
+        "cqcRecordsLabelled": _int(records["forms"]["top_level_tier"]),
+        "cqcRecordsRoleOnly": _int(records["forms"]["role_only"]),
         "cqcRecordsUnlabelled": _int(records["forms"]["none"]),
         "cqcRecordsPerQuantity": _int(records["forms"]["per_quantity_mapping"]),
         "cqcRecordsNested": _int(records["forms"]["nested_in_subobject"]),
@@ -838,7 +926,19 @@ def numbers_macros(census: dict) -> None:
     _write("numbers.tex", rows)
 
 
-def main() -> None:
+def main(tables: Path | None = None, data: Path | None = None) -> Path:
+    """Generate every fragment, optionally into a scratch tree.
+
+    ``check_manuscript.py`` passes a temporary directory and compares what
+    comes out against what is committed.  Without that, a hand-edited value in
+    a fragment passes every check: the provenance headers digest the generator
+    and the source records, neither of which a hand edit touches.
+    """
+    global TABLES, DATA, CENSUS
+    if tables is not None:
+        TABLES = tables
+    if data is not None:
+        DATA, CENSUS = data, data / CENSUS.name
     census = write_census()
     layers_table(census)
     evidence_coverage_table(census)
@@ -850,8 +950,8 @@ def main() -> None:
     r4a_table()
     ledger_table()
     numbers_macros(census)
-    print(TABLES)
+    return TABLES
 
 
 if __name__ == "__main__":
-    main()
+    print(main())

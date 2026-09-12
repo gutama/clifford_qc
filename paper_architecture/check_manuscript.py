@@ -12,8 +12,9 @@ only worth making if something enforces them, so this gate checks:
   6.  no numeric cell is typed into the manuscript instead of generated;
   7.  no bare decimal or four-digit integer appears in the body prose, and
       every ``\\cqc`` macro used is defined and every one defined is used;
-  8.  each generated fragment still matches the content hashes of the records
-      and the generator it was produced from;
+  8.  every generated fragment is byte-identical to what the generator
+      produces right now, so a value edited by hand into a fragment fails here
+      rather than typesetting;
   9.  each referenced figure exists and its manifest entry still matches the
       digests of its generator and its inputs;
  10.  the committed source census still equals a census recomputed now, so a
@@ -35,6 +36,7 @@ import hashlib
 import json
 import re
 import sys
+import tempfile
 from pathlib import Path
 
 HERE = Path(__file__).resolve().parent
@@ -46,14 +48,26 @@ TABLE_GENERATOR = HERE / "make_tables.py"
 FIGURE_GENERATOR = HERE / "make_figures.py"
 
 sys.path.insert(0, str(HERE))
+import make_tables  # noqa: E402
 from make_tables import (  # noqa: E402
     CENSUS, TABLE_SOURCES, gate_census, layer_census, record_census,
 )
 from make_figures import FIGURE_SOURCES  # noqa: E402
 
-# Literal numerals the body prose may carry without a macro.  Kept to the
-# typesetting stack itself: everything else is a result and must be generated.
-ALLOWED_PROSE_NUMERALS = ("4.2",)
+# Notation the body prose may carry digits for.  Each is a name or an algebraic
+# form, never a measured quantity: a block size the text is discussing, a
+# chemical subscript, the dimension of the algebra, the document class.  The
+# scan below rejects every other digit, so a three-digit result typed into a
+# paragraph fails here rather than passing under a four-digit threshold.
+CONCEPTUAL_NUMERALS = (
+    r"\$_\{?\d\}?\$",             # chemical subscripts: H$_4$, BeH$_2$
+    r"\$k\s*=\s*[\dn]\$",          # a named block size: $k=1$, $k=n$
+    r"2\^n",                        # dimension of the representation
+    r"Cl\}?\(2n",                   # the algebra itself, plain or \mathrm
+    r"M\(2\^n",
+    r"P/2\)",                       # the rotor half-angle
+    r"revtex4-2",
+)
 
 # Statements the paper's argument depends on.  Losing one in an edit would
 # leave a claim in the abstract that the body no longer supports.
@@ -174,9 +188,25 @@ def _prose(text: str) -> str:
     # A tabular preamble is typesetting, not a result: p{0.52\columnwidth} is
     # a column width and must not be read as a hand-typed number.
     body = re.sub(r"\\begin\{tabular\}\s*\{(?:[^{}]|\{[^{}]*\})*\}", " ", body)
-    for literal in ALLOWED_PROSE_NUMERALS:
-        body = body.replace(literal, " ")
+    for pattern in CONCEPTUAL_NUMERALS:
+        body = re.sub(pattern, " ", body)
     return body
+
+
+def prose_numerals(text: str) -> list[tuple[str, str]]:
+    """Every numeral in the body prose, with its context.
+
+    Sec. VIII claims every number is generated, prose included, so the scan is
+    for any numeral at all.  A threshold on digit count would let a three-digit
+    setting count or a shot budget through, and those are exactly the
+    quantities this manuscript quotes.
+    """
+    prose = _prose(text)
+    found = []
+    for match in re.finditer(r"\d+", prose):
+        context = prose[max(0, match.start() - 40):match.end() + 20]
+        found.append((match.group(0), " ".join(context.split())))
+    return found
 
 
 def main() -> int:
@@ -247,13 +277,10 @@ def main() -> int:
                         f"(run paper_architecture/make_tables.py): {line[:60]}")
                     break
 
-    # Sec. VIII claims every number is generated, prose included.
-    prose = _prose(text)
-    for match in re.finditer(r"(?<![\\A-Za-z])\d+\.\d+|(?<![\\A-Za-z0-9])\d{4,}",
-                             prose):
+    for numeral, context in prose_numerals(text):
         problems.append(
             "numeral typed into the body prose rather than generated into "
-            f"tables/numbers.tex: {match.group(0)}")
+            f"tables/numbers.tex: {numeral!r} in {context!r}")
 
     numbers = HERE / "tables" / "numbers.tex"
     if not numbers.exists():
@@ -270,22 +297,44 @@ def main() -> int:
                 f"generated macro is never used: \\{name} "
                 "(drop it from make_tables.py or use it)")
 
-    for name, sources in sorted(TABLE_SOURCES.items()):
-        table = HERE / "tables" / name
-        if not table.exists():
-            problems.append(f"missing generated table: {name}")
-            continue
-        if f"tables/{name}" not in text and f"tables/{Path(name).stem}" not in text:
-            continue
-        expected = [f"% source-git-blob-sha: {_git_blob_sha(path)}"
-                    for path in sources]
-        expected.append(
-            f"% generator-git-blob-sha: {_git_blob_sha(TABLE_GENERATOR)}")
-        headers = table.read_text(encoding="utf-8").splitlines()[:len(expected)]
-        if headers != expected:
-            problems.append(
-                f"{name} is stale against its record or its generator "
-                "(run paper_architecture/make_tables.py)")
+    # Regenerate every fragment into a scratch tree and compare byte for byte.
+    # The provenance headers each fragment carries digest the generator and the
+    # source records, so they catch a record regenerated without rerunning the
+    # generator -- but a value edited by hand into a fragment changes neither,
+    # and the header check alone would pass it.  This is the check that makes
+    # "no number in this paper is typed by hand" true of the tables as well as
+    # of the prose.
+    for name in sorted(TABLE_SOURCES):
+        if not (HERE / "tables" / name).exists():
+            problems.append(f"missing generated table: {name} "
+                            "(run paper_architecture/make_tables.py)")
+    with tempfile.TemporaryDirectory() as scratch:
+        tables = Path(scratch) / "tables"
+        data = Path(scratch) / "data"
+        tables.mkdir(parents=True)
+        data.mkdir(parents=True)
+        try:
+            make_tables.main(tables=tables, data=data)
+        except SystemExit as failure:            # a census refusal, not a crash
+            problems.append(f"the table generator refuses to run: {failure}")
+        else:
+            for regenerated in sorted(tables.iterdir()):
+                committed = HERE / "tables" / regenerated.name
+                if not committed.exists():
+                    problems.append(
+                        f"{regenerated.name} is generated but not committed "
+                        "(run paper_architecture/make_tables.py)")
+                elif committed.read_bytes() != regenerated.read_bytes():
+                    problems.append(
+                        f"{regenerated.name} does not match what the generator "
+                        "produces now -- a hand edit, a stale record, or a "
+                        "stale generator run "
+                        "(run paper_architecture/make_tables.py)")
+            committed_census = CENSUS.read_bytes() if CENSUS.exists() else b""
+            if committed_census != (data / CENSUS.name).read_bytes():
+                problems.append(
+                    "data/source_census.json does not match a census taken now "
+                    "(run paper_architecture/make_tables.py)")
 
     referenced: list[tuple[str, Path]] = []
     for match in re.finditer(r"\\includegraphics(?:\[[^\]]*\])?\{([^}]+)\}", text):
@@ -318,7 +367,10 @@ def main() -> int:
                         f"{name} manifest has stale source digests "
                         "(run paper_architecture/make_figures.py)")
 
-    # The architecture tables describe code, and no experiment rebuilds them.
+    # The architecture tables describe code, and no experiment rebuilds them,
+    # so the census is compared section by section as well: the regeneration
+    # above would catch the same drift, but not name which part of the
+    # repository moved.
     if not CENSUS.exists():
         problems.append("missing data/source_census.json "
                         "(run paper_architecture/make_tables.py)")
