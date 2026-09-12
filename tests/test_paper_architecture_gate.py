@@ -52,14 +52,18 @@ def test_a_tier_basis_without_a_tier_is_its_own_form():
         {"evidence_tier_basis": "oracle comparison"}) == "basis_only"
 
 
+def test_a_nested_producer_specific_tier_is_labelled():
+    payload = {"measurement_contract": {"accuracy_evidence_tier": "exact"}}
+    assert make_tables._declaration_form(payload) == "nested_in_subobject"
+
+
 def test_a_record_with_no_evidence_field_is_unlabelled():
     assert make_tables._declaration_form({"schema": "x"}) == "none"
 
 
 # --- the census has to notice a declaration changing -----------------------
 def test_digest_notices_shared_and_producer_specific_evidence_labels():
-    for key in (*make_tables.EVIDENCE_KEYS, "search_uncertainty_evidence",
-                "reported_evidence_tier"):
+    for key in make_tables.EVIDENCE_KEYS:
         assert make_tables._declaration_digest({key: "oracle"}) != make_tables._declaration_digest({key: "sampled"})
 
 
@@ -74,9 +78,11 @@ def test_digest_notices_one_entry_of_a_per_quantity_map_changing():
 def test_digest_ignores_everything_that_is_not_a_declaration():
     """Otherwise the census would move whenever any record was regenerated."""
     before = make_tables._declaration_digest(
-        {"evidence_tier": "exact", "energy": -1.5})
+        {"evidence_tier": "exact", "sampling_evidence": {"energy": -1.5},
+         "independent_evidence": True})
     after = make_tables._declaration_digest(
-        {"evidence_tier": "exact", "energy": -2.5})
+        {"evidence_tier": "exact", "sampling_evidence": {"energy": -2.5},
+         "independent_evidence": False})
     assert before == after
 
 

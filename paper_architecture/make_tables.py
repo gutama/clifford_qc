@@ -362,15 +362,19 @@ def gate_census() -> dict:
     }
 
 
-EVIDENCE_KEYS = (
-    "evidence_tier", "evidence", "evidence_role", "evidence_tier_basis",
+EVIDENCE_LABEL_KEYS = (
+    "evidence_tier", "evidence", "search_uncertainty_evidence",
+    "default_evidence_tier", "reported_evidence_tier",
+    "accuracy_evidence_tier",
+)
+EVIDENCE_KEYS = EVIDENCE_LABEL_KEYS + (
+    "evidence_role", "evidence_tier_basis",
 )
 
 
 def _is_evidence_declaration_key(key: str) -> bool:
-    """Recognize the shared fields and producer-specific evidence labels."""
-    return (key in EVIDENCE_KEYS or key.endswith("_evidence") or
-            key.endswith("_evidence_tier"))
+    """Recognize explicit labels and metadata, not evidence data containers."""
+    return key in EVIDENCE_KEYS
 
 
 def _declaration_form(payload: object) -> str:
@@ -400,7 +404,7 @@ def _declaration_form(payload: object) -> str:
 
     nested_values = list(payload.values())
     nested_tier = any(contains_declaration(
-        value, ("evidence_tier", "evidence")) for value in nested_values)
+        value, EVIDENCE_LABEL_KEYS) for value in nested_values)
     nested_declaration = any(contains_declaration(
         value, EVIDENCE_KEYS) for value in nested_values)
     if isinstance(payload.get("evidence_role"), str):

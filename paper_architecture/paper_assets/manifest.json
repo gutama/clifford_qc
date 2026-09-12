@@ -25,8 +25,8 @@
       "asset_git_blob_sha": "e125a689bff2802c955cfad873895e8788653c5d",
       "architecture_sources_sha256": "c55ceed7b954f818ebc385619e376efc937cb3a2406f000a28448a77361a1f88",
       "sources": {
-        "paper_architecture/data/source_census.json": "7e53a730aab8f67dcac62ad41a8f11efcfc101e2ea2fc7536cb4d13ad46fb50b",
-        "paper_architecture/make_tables.py": "c675a15a4255fdb0b5e8cef8f2d8a94c3407f735d61151537a90917e240f3afb"
+        "paper_architecture/data/source_census.json": "c3ffa0c60ab39e3d7815d79a4af60a1c1e957751ea31e4b3d1c8e921eca6e0c7",
+        "paper_architecture/make_tables.py": "5fb8a0c38df94821668858e248b471c02c977e034406a3f51df67c4319e9a98a"
       }
     }
   },
