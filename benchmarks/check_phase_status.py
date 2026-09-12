@@ -13,6 +13,7 @@ Exits nonzero on any drift.
 from __future__ import annotations
 
 import json
+import math
 import sys
 from pathlib import Path
 
@@ -32,6 +33,25 @@ ADJUNCT_STATUSES = NUMBERED_STATUSES | {
 
 def load_ledger() -> dict:
     return json.loads(LEDGER.read_text())
+
+
+def check_evidence_path(owner: str, evidence: object, problems: list[str]) -> None:
+    if not isinstance(evidence, str) or not evidence:
+        problems.append(f"{owner}: evidence path must be a nonempty string")
+        return
+    relative = Path(evidence)
+    if relative.is_absolute():
+        problems.append(f"{owner}: evidence path must be repository-relative: {evidence}")
+        return
+    root = ROOT.resolve()
+    resolved = (root / relative).resolve()
+    try:
+        resolved.relative_to(root)
+    except ValueError:
+        problems.append(f"{owner}: evidence path escapes the repository: {evidence}")
+        return
+    if not resolved.is_file():
+        problems.append(f"{owner}: missing evidence path {evidence}")
 
 
 def validate(data: dict) -> list[str]:
@@ -75,8 +95,7 @@ def validate(data: dict) -> list[str]:
         if status == "partial" and not 0.0 < fraction < 1.0:
             problems.append(f"phase {phase_id}: partial requires a fraction inside (0,1)")
         for evidence in row.get("evidence", ()):
-            if not (ROOT / evidence).is_file():
-                problems.append(f"phase {phase_id}: missing evidence path {evidence}")
+            check_evidence_path(f"phase {phase_id}", evidence, problems)
 
     adjunct_ids: set[str] = set()
     for row in data.get("adjunct_programs", ()):
@@ -88,8 +107,7 @@ def validate(data: dict) -> list[str]:
         if status not in ADJUNCT_STATUSES:
             problems.append(f"adjunct {phase_id}: invalid status {status!r}")
         for evidence in row.get("evidence", ()):
-            if not (ROOT / evidence).is_file():
-                problems.append(f"adjunct {phase_id}: missing evidence path {evidence}")
+            check_evidence_path(f"adjunct {phase_id}", evidence, problems)
 
     summary = data.get("summary", {})
     complete = sum(value == 1.0 for value in fractions)
@@ -102,21 +120,44 @@ def validate(data: dict) -> list[str]:
         "progress_weighted_fraction": points / len(EXPECTED_IDS),
     }
     for key, value in expected.items():
-        if summary.get(key) != value:
+        actual = summary.get(key)
+        equal = actual == value
+        if isinstance(value, float):
+            equal = (
+                isinstance(actual, (int, float))
+                and not isinstance(actual, bool)
+                and math.isclose(float(actual), value, rel_tol=1e-12, abs_tol=1e-12)
+            )
+        if not equal:
             problems.append(
-                f"summary.{key} is {summary.get(key)!r}; computed value is {value!r}"
+                f"summary.{key} is {actual!r}; computed value is {value!r}"
             )
     return problems
+
+
+def format_points(value: float) -> str:
+    return str(int(value)) if value.is_integer() else f"{value:.2f}"
 
 
 def render_summary(data: dict) -> str:
     phases = {row["id"]: row for row in data["numbered_phases"]}
     summary = data["summary"]
+    core = [phases[str(i)] for i in range(15)]
+    core_points = sum(float(row["implementation_fraction"]) for row in core)
+    if all(row["status"] == "complete" for row in core):
+        core_status = "complete"
+    elif core_points == 0.0:
+        core_status = "open"
+    else:
+        core_status = "partial"
     rows = [
         START,
         "| numbered phase scope | lifecycle | implementation |",
         "|---|---|---:|",
-        "| Phases 0--14 | complete | 15 / 15 |",
+        (
+            f"| Phases 0--14 | {core_status} | "
+            f"{format_points(core_points)} / {len(core)} |"
+        ),
     ]
     for phase_id in ("15", "16", "17", "18", "19"):
         row = phases[phase_id]
@@ -165,13 +206,16 @@ def check_docs(data: dict) -> list[str]:
         "README.md": (
             "13--18 open",
             "13–18 open",
+            "15–16 and 19 open",
             "Q1--Q13",
             "Q1–Q13",
             "fifteen-paper",
         ),
         "PLAN.md": (
+            "Phases 0–18 of §5",
             "Preregistered, not run.",
             "Still abstaining at the accuracy-matched tier.",
+            "preregistered but carries no result",
         ),
     }
     for path in DOCS:

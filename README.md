@@ -556,7 +556,7 @@ Retired and conditional adjunct phases are tracked separately and do not change 
   | § | contents |
   |---|---|
   | 1–4 | scope, repository facts, the algebra contract and standing invariants, the method |
-  | 5 | the phase ledger: Phases 0–14 complete; 15–16 and 19 open; 17 partially implemented; 18 schema-only; G/R outcomes tracked separately |
+  | 5 | the phase ledger: Phases 0–14 complete; 15–16 open; 17 partially implemented; 18 schema-only; 19 proposed; G/R outcomes tracked separately |
   | 6 | resource accounting — word universe, supports, conditioning, and the device-card cost model |
   | 7 | the validation ladder, what it does and does not support, and the benchmark inventory |
   | 9 | Paper A: confidence-certified, measurement-efficient ADAPT-VQE (phases A0–A5, all complete; the manuscript's findings are quoted there from `paper/manuscript.tex`) |

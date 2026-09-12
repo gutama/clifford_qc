@@ -13,7 +13,7 @@ so §3.5 should be read as a contract whose first phase has reported rather than
 as an unbuilt proposal. Phase numbers, question numbers, and the
 section numbers cited from code docstrings are unchanged, so existing references still
 resolve; Paper A's own phases are relabelled A0–A5 to keep them distinct from the
-Phases 0–18 of §5.
+Phases 0–19 of §5.
 
 **Two papers are public as arXiv preprints** (§1.2). Everything they report is now prior art
 *for this project's own future claims*: the plan may extend or contradict them, but it
@@ -3009,7 +3009,7 @@ non-adaptive and adaptive arms ran:
 |---|---:|---|---|---|
 | H₄ `r = 0.9` | 8 | yes | `matched_h4.json`, `clifford_hierarchy_h4.json` | primary; the frozen bank both cost axes reuse |
 | BeH₂ CAS(4e,4o) | 8 | yes | `clifford_hierarchy_beh2.json` | second instance; the 22× break-even spread; the one bank priced inside the frozen grid |
-| LiH CAS(4e,4o) | 8 | yes | `qr3b_instance_preflight.json`, `priceability_screen.json`, `r3b_margin_stop_probe.json` | chemically independent second instance; rejected at its intrinsic stop (`W = 7740`); the `M = 2` bank (`W = 1439`) resolves 29/40 cells in the target-environment 2+2 redraw (30/40 historically), and its separate 30+100 cost run is preregistered but carries no result (§13, 13b–c) |
+| LiH CAS(4e,4o) | 8 | yes | `qr3b_instance_preflight.json`, `priceability_screen.json`, `r3b_margin_stop_probe.json` | chemically independent second instance; rejected at its intrinsic stop (`W = 7740`); the `M = 2` bank (`W = 1439`) resolves 29/40 cells in the target-environment 2+2 redraw (30/40 historically), and its separate 30+100 cost run prices 38/40 cells, making LiH the second exact-tier priced instance; QR3 remains indeterminate after R3d (§13, 13b–d) |
 | H₂O CAS(4e,4o) stretched | 8 | yes | ladder | strong-correlation control |
 | H₂O CAS(8e,6o) | 12 | yes | ladder | size stress for `W` and grouping |
 | Hubbard 2×2 / 2×3 | 8 / 12 | yes | ladder | strongly correlated control, non-molecular weight profile |
@@ -3076,7 +3076,7 @@ data are complete, and its manuscript is written and drift-checked (§9.6.1) but
 B — stabilizer-seeded residual ADAPT" of the old Paper A plan is **retired**: its
 go/no-go returned NO-GO (§9.7) and it became a negative-result section of Paper A.
 (2) Paper A's phases are relabelled **A0–A5** here, so they cannot be confused with
-the Phases 0–18 of §5. (3) "Paper B" is now a **manuscript line, not a manuscript**:
+the Phases 0–19 of §5. (3) "Paper B" is now a **manuscript line, not a manuscript**:
 it named the A-CASE/QSCI work of §1–§8, and that line has already produced two
 public preprints, P1 and P2 (§1.2). Where the text below says "Paper B", read *the
 unwritten successor in that line* — the QSCI and classical-selected-CI confrontation
