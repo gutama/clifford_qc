@@ -47,9 +47,9 @@ def test_a_per_quantity_mapping_is_its_own_form():
         {"evidence": {"energies": "exact"}}) == "per_quantity_mapping"
 
 
-def test_a_nested_tier_is_its_own_form():
+def test_a_tier_basis_without_a_tier_is_its_own_form():
     assert make_tables._declaration_form(
-        {"protocol": {"evidence_tier": "structural"}}) == "nested_in_subobject"
+        {"evidence_tier_basis": "oracle comparison"}) == "basis_only"
 
 
 def test_a_record_with_no_evidence_field_is_unlabelled():
@@ -57,9 +57,9 @@ def test_a_record_with_no_evidence_field_is_unlabelled():
 
 
 # --- the census has to notice a declaration changing -----------------------
-def test_digest_notices_a_nested_tier_changing():
-    before = make_tables._declaration_digest({"protocol": {"evidence_tier": "exact"}})
-    after = make_tables._declaration_digest({"protocol": {"evidence_tier": "heuristic"}})
+def test_digest_notices_an_evidence_tier_basis_changing():
+    before = make_tables._declaration_digest({"evidence_tier_basis": "oracle"})
+    after = make_tables._declaration_digest({"evidence_tier_basis": "sampled"})
     assert before != after
 
 
@@ -99,7 +99,7 @@ def test_prose_scan_rejects_a_two_digit_result():
 
 
 def test_prose_scan_allows_conceptual_notation():
-    body = ("On the BeH$_2$ bank at $k=8$, in $\\mathrm{Cl}(2n,\\mathbb{C})"
+    body = ("On BeH$_2$ and H$_{12}$ at $k=8$ and $k=10$, in $\\mathrm{Cl}(2n,\\mathbb{C})"
             "\\cong M(2^n,\\mathbb{C})$, with rotors "
             "$\\exp(-\\mathrm{i}\\theta P/2)$ and H$_4$ beside it.")
     assert check_manuscript.prose_numerals(_manuscript(body)) == []

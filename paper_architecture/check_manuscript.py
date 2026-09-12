@@ -63,8 +63,8 @@ from make_figures import (  # noqa: E402
 # scan below rejects every other digit, so a result typed into a paragraph
 # fails regardless of how many digits it contains.
 CONCEPTUAL_NUMERALS = (
-    r"\$_\{?\d\}?\$",             # chemical subscripts: H$_4$, BeH$_2$
-    r"\$k\s*=\s*[\dn]\$",          # a named block size: $k=1$, $k=n$
+    r"\$_\{?\d+\}?\$",            # chemical subscripts: H$_4$, H$_{12}$
+    r"\$k\s*=\s*(?:\d+|n)\$",      # a named block size: $k=1$, $k=10$
     r"2\^n",                        # dimension of the representation
     r"Cl\}?\(2n",                   # the algebra itself, plain or \mathrm
     r"M\(2\^n",

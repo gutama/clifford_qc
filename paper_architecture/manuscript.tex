@@ -369,11 +369,13 @@ evidence field whatsoever.  A further \cqcSeriesFiles{} non-JSON series files
 inspected for per-row declarations by this census.
 
 This is a real gap and it is worth stating precisely.  \texttt{EvidenceLevel}
-is enforced in typed numerical paths, where one selection module defines it
-and the measurement and subspace layers carry it in their return types.  Newer
-records preserve evidence at the top level, but the broader record-label
-vocabulary is not normalized and is not enforced by a schema over the
-record set: nothing today rejects a new record that omits the field.  The
+defines the selection vocabulary, but measurement and subspace result types
+carry their evidence labels as strings and their constructors do not validate
+enum membership.  Those typed numerical paths therefore follow a convention;
+they do not enforce the vocabulary.  Newer records preserve evidence at the
+top level, but the broader record-label vocabulary is not normalized and is not
+enforced by a schema over the record set: nothing today rejects a new record
+that omits the field.  The
 census that produced Table~\ref{tab:evidence} is recomputed whenever this
 manuscript is rebuilt, so the number cannot silently improve or decay, but a
 census is a measurement, not a gate.  Closing that gap --- a required tier field
