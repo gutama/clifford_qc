@@ -19,6 +19,38 @@
 \newcommand{\Ctime}{C_{\mathrm{time}}(\epsilon)}
 \renewcommand{\labelitemi}{\(\bullet\)}
 
+% Float placement.  Ten of this paper's thirteen floats span both columns, and
+% REVTeX can only set those at the top of a page, so the stock settings leave
+% white chasms in the text and drift tables pages away from the sentences that
+% read them.  Three adjustments, each fixing one of those:
+%
+% 1. Under the class default (\flushbottom) the text left on a float-heavy page
+%    is stretched to fill the column, opening gaps between paragraphs rather
+%    than leaving the slack at the foot of the page.
+\raggedbottom
+%
+% 2. A page given over to floats is set with infinitely stretchable glue above,
+%    between and below them, which shares the leftover space out as gaps
+%    between the floats.  Pin that glue to the foot instead.
+\makeatletter
+\setlength{\@fptop}{0pt}
+\setlength{\@fpsep}{14pt plus 0fil}
+\setlength{\@fpbot}{0pt plus 1fil}
+\setlength{\@dblfptop}{0pt}
+\setlength{\@dblfpsep}{14pt plus 0fil}
+\setlength{\@dblfpbot}{0pt plus 1fil}
+\makeatother
+%
+% 3. Keep a page's top from being given over to floats entirely, and make a
+%    float-only page earn itself by being almost full: otherwise two wide
+%    floats claim a page between them and the reader gets a half-empty spread
+%    with the discussion overleaf.
+\renewcommand{\dbltopfraction}{0.68}
+\renewcommand{\topfraction}{0.8}
+\renewcommand{\textfraction}{0.1}
+\renewcommand{\dblfloatpagefraction}{0.99}
+\renewcommand{\floatpagefraction}{0.85}
+
 % Every quantity quoted in the body text is generated from a committed record
 % or from a live census of the source tree; see Sec. VIII.
 \input{tables/numbers.tex}
@@ -160,25 +192,6 @@ rather than as a resource saving.
 
 \subsection{Layers as a partition, not a picture}
 
-Figure~\ref{fig:layers} and Table~\ref{tab:layers} report the package as it is
-on the branch that produced this manuscript: \cqcModules{} modules and
-\cqcLines{} physical lines, against a test suite of \cqcTestModules{} modules
-and \cqcTestLines{} lines.  The distribution is lopsided on purpose.  The
-algebra kernel is \cqcKernelLines{} lines; the subspace solvers are
-\cqcSubspaceLines{}, and the measurement layer is \cqcMeasurementLines{}.  A
-framework whose kernel is under a tenth of its body is one where the
-interesting work is in the layers that decide what a measurement costs and what
-a number means.  That solver layer carries the operator-response subspace
-eigensolver of the companion manuscripts beside sampled-determinant and
-adaptive variational arms \cite{peruzzo2014vqe,grimsley2019adapt,kanno2026qsci},
-classical selected-configuration-interaction controls, and their hybrids, each
-scored against the same oracles.
-
-The layer assignment in Table~\ref{tab:layers} is a declared partition.  The
-generator refuses to emit the table unless every module in the package lands in
-exactly one layer, so a module added without an architectural decision fails
-the build of this manuscript rather than quietly widening a row.
-
 \begin{figure*}
   \includegraphics[width=\textwidth]{paper_assets/layer_stack.pdf}
   \caption{The package as measured.  (a) Physical lines per declared layer,
@@ -206,6 +219,25 @@ the build of this manuscript rather than quietly widening a row.
   \end{tabular}
   \end{ruledtabular}
 \end{table}
+
+Figure~\ref{fig:layers} and Table~\ref{tab:layers} report the package as it is
+on the branch that produced this manuscript: \cqcModules{} modules and
+\cqcLines{} physical lines, against a test suite of \cqcTestModules{} modules
+and \cqcTestLines{} lines.  The distribution is lopsided on purpose.  The
+algebra kernel is \cqcKernelLines{} lines; the subspace solvers are
+\cqcSubspaceLines{}, and the measurement layer is \cqcMeasurementLines{}.  A
+framework whose kernel is under a tenth of its body is one where the
+interesting work is in the layers that decide what a measurement costs and what
+a number means.  That solver layer carries the operator-response subspace
+eigensolver of the companion manuscripts beside sampled-determinant and
+adaptive variational arms \cite{peruzzo2014vqe,grimsley2019adapt,kanno2026qsci},
+classical selected-configuration-interaction controls, and their hybrids, each
+scored against the same oracles.
+
+The layer assignment in Table~\ref{tab:layers} is a declared partition.  The
+generator refuses to emit the table unless every module in the package lands in
+exactly one layer, so a module added without an architectural decision fails
+the build of this manuscript rather than quietly widening a row.
 
 \subsection{The seams}
 
@@ -238,6 +270,16 @@ about how many.
 \section{Where a number acquires its label}
 \label{sec:evidence}
 
+\begin{figure*}
+  \includegraphics[width=\textwidth]{paper_assets/evidence_path.pdf}
+  \caption{One pass from a word universe to a labelled interval.  The label is
+  decided in the measurement layer, not at the solver: an oracle-evaluated
+  expectation and a sampled one traverse different boxes and arrive carrying
+  different evidence, which is what allows the benchmark gates of
+  Sec.~\ref{sec:gates} to compare like with like.}
+  \label{fig:evidence}
+\end{figure*}
+
 The measurement layer is the largest non-solver layer because it is where an
 expectation value stops being a float and becomes a claim.
 Figure~\ref{fig:evidence} shows one pass.  A word universe is grouped, either
@@ -250,16 +292,6 @@ setting; a cumulative cache pays for a shared word once across observables; a
 linear functional reads the cache; and a confidence bound turns the read into
 an interval with a stated family and failure probability.
 
-\begin{figure*}
-  \includegraphics[width=\textwidth]{paper_assets/evidence_path.pdf}
-  \caption{One pass from a word universe to a labelled interval.  The label is
-  decided in the measurement layer, not at the solver: an oracle-evaluated
-  expectation and a sampled one traverse different boxes and arrive carrying
-  different evidence, which is what allows the benchmark gates of
-  Sec.~\ref{sec:gates} to compare like with like.}
-  \label{fig:evidence}
-\end{figure*}
-
 The vocabulary itself is small: a quantity is exact, asymptotic, finite-sample,
 heuristic, or unlabelled.  Its purpose is not taxonomy but prevention.  An
 exact-tier subspace bias and a finite-sample statistical radius have the same
@@ -268,6 +300,21 @@ and a Pareto front computed across both would be meaningless.  In this
 architecture the front is computed only inside one evidence category.
 
 \subsection{Where the contract is convention rather than invariant}
+
+\begin{table}
+  \caption{How the committed record set declares the evidence its numbers
+  carry.  Counts are recomputed from
+  \texttt{benchmarks/reference\_results/} at manuscript build time.}
+  \label{tab:evidence}
+  \scriptsize
+  \begin{ruledtabular}
+  \begin{tabular}{@{}lrl@{}}
+  Declaration form & Records & Example \\
+  \colrule
+  \input{tables/evidence_coverage.tex}
+  \end{tabular}
+  \end{ruledtabular}
+\end{table}
 
 Table~\ref{tab:evidence} reports the coverage honestly, and it is the least
 flattering table in this paper.  Of \cqcJsonRecords{} committed JSON records,
@@ -290,21 +337,6 @@ census is a measurement, not a gate.  Closing that gap --- a required tier field
 validated for every committed record --- is the single most valuable change we
 can identify to the contract described here.
 
-\begin{table}
-  \caption{How the committed record set declares the evidence its numbers
-  carry.  Counts are recomputed from
-  \texttt{benchmarks/reference\_results/} at manuscript build time.}
-  \label{tab:evidence}
-  \scriptsize
-  \begin{ruledtabular}
-  \begin{tabular}{@{}lrl@{}}
-  Declaration form & Records & Example \\
-  \colrule
-  \input{tables/evidence_coverage.tex}
-  \end{tabular}
-  \end{ruledtabular}
-\end{table}
-
 \section{Producers, gates, and preregistration}
 \label{sec:gates}
 
@@ -313,6 +345,21 @@ the pairing is the architecture.  \cqcProducers{} producers write records.
 \cqcGates{} gates read them, of which \cqcGatesInCI{} run in continuous
 integration, each as its own named step that executes even after an earlier one
 fails, so that a drift suite reports every symptom rather than the first.
+
+\begin{table}
+  \caption{What each class of benchmark gate asserts.  Counts are recomputed
+  from \texttt{benchmarks/} at manuscript build time, and the generator refuses
+  to emit the table unless every gate on disk has a declared class.}
+  \label{tab:gates}
+  \footnotesize
+  \begin{ruledtabular}
+  \begin{tabular}{lrp{0.42\columnwidth}}
+  Class & Gates & Asserts \\
+  \colrule
+  \input{tables/gate_classes.tex}
+  \end{tabular}
+  \end{ruledtabular}
+\end{table}
 
 The temptation in a paper like this one is to write that every record is
 re-derived.  It is not, and Table~\ref{tab:gates} says so.  Only
@@ -337,21 +384,6 @@ further gates check lineage and environment rather than values, one checks the
 plan ledger against the source tree, one checks that the reproduction
 documentation still describes the code it claims to reproduce, and two compare
 records against artifacts produced outside the benchmark directory.
-
-\begin{table}
-  \caption{What each class of benchmark gate asserts.  Counts are recomputed
-  from \texttt{benchmarks/} at manuscript build time, and the generator refuses
-  to emit the table unless every gate on disk has a declared class.}
-  \label{tab:gates}
-  \footnotesize
-  \begin{ruledtabular}
-  \begin{tabular}{lrp{0.42\columnwidth}}
-  Class & Gates & Asserts \\
-  \colrule
-  \input{tables/gate_classes.tex}
-  \end{tabular}
-  \end{ruledtabular}
-\end{table}
 
 Two properties of the execution environment are load-bearing and are worth
 recording because they bound what reproduction means here.  Continuous
@@ -383,19 +415,6 @@ On the H$_4$ bank, compiled settings fall from \cqcHFourSettingsQWC{} to
 On the BeH$_2$ bank they fall from \cqcBeHSettingsQWC{} to
 \cqcBeHSettingsFull{}, a reduction of \cqcBeHPrepReduction{}.
 
-What the ledger adds is the other half of the trade, and it does not point the
-same way on both instances.  Table~\ref{tab:hierarchy} and
-Fig.~\ref{fig:hierarchy} report, at each rung, the added logical entangling
-cost against the avoided preparation cost.  On H$_4$ that ratio stays below one
-at every rung, reaching \cqcHFourCXRatio{} at full commutation: the trade pays
-under an all-to-all logical model, at \cqcHFourCXAvoided{} logical entangling
-applications per avoided preparation.  On BeH$_2$ the ratio exceeds one at every
-rung above qubit-wise, reaching \cqcBeHCXRatioWorst{} at $k=2$ and falling only
-to \cqcBeHCXRatio{} at full commutation: the same protocol on a different bank
-costs more entangling depth than it saves in preparations.  A framework that
-reported settings alone would have reported these two instances as the same
-result.
-
 \begin{table*}
   \caption{The dyadic block-commuting hierarchy on two committed banks.  The
   last column is the added logical entangling cost divided by the avoided
@@ -423,7 +442,36 @@ result.
   \label{fig:hierarchy}
 \end{figure*}
 
+What the ledger adds is the other half of the trade, and it does not point the
+same way on both instances.  Table~\ref{tab:hierarchy} and
+Fig.~\ref{fig:hierarchy} report, at each rung, the added logical entangling
+cost against the avoided preparation cost.  On H$_4$ that ratio stays below one
+at every rung, reaching \cqcHFourCXRatio{} at full commutation: the trade pays
+under an all-to-all logical model, at \cqcHFourCXAvoided{} logical entangling
+applications per avoided preparation.  On BeH$_2$ the ratio exceeds one at every
+rung above qubit-wise, reaching \cqcBeHCXRatioWorst{} at $k=2$ and falling only
+to \cqcBeHCXRatio{} at full commutation: the same protocol on a different bank
+costs more entangling depth than it saves in preparations.  A framework that
+reported settings alone would have reported these two instances as the same
+result.
+
 \subsection{A certified shot reduction, and a card that refuses it}
+
+\begin{table*}
+  \caption{Qubit-wise against fully commuting measurement on one frozen
+  BeH$_2$ bank, from the preregistered comparison.  The ratio column is the
+  fully commuting value over the qubit-wise value.  Runtimes are
+  accuracy-matched logical accounting under illustrative device cards, not
+  hardware measurements.}
+  \label{tab:phase14b}
+  \begin{ruledtabular}
+  \begin{tabular}{lrrr}
+  Quantity & QWC ($k=1$) & Full ($k=8$) & Ratio \\
+  \colrule
+  \input{tables/phase14b.tex}
+  \end{tabular}
+  \end{ruledtabular}
+\end{table*}
 
 The setting count is not the estimand.  The preregistered comparison of
 Table~\ref{tab:phase14b} fixes one BeH$_2$ bank of \cqcBankWords{} measured
@@ -462,22 +510,6 @@ would have been a runtime for a protocol the card cannot execute at the stated
 fidelity.  Refusing to price is the correct output, and it is only available
 because admissibility is part of the cost type rather than a caveat in prose.
 
-\begin{table*}
-  \caption{Qubit-wise against fully commuting measurement on one frozen
-  BeH$_2$ bank, from the preregistered comparison.  The ratio column is the
-  fully commuting value over the qubit-wise value.  Runtimes are
-  accuracy-matched logical accounting under illustrative device cards, not
-  hardware measurements.}
-  \label{tab:phase14b}
-  \begin{ruledtabular}
-  \begin{tabular}{lrrr}
-  Quantity & QWC ($k=1$) & Full ($k=8$) & Ratio \\
-  \colrule
-  \input{tables/phase14b.tex}
-  \end{tabular}
-  \end{ruledtabular}
-\end{table*}
-
 \subsection{The accuracy-matched block size belongs to the card, not to the
 Hamiltonian}
 
@@ -488,28 +520,6 @@ each (mapping, block size) cell by bracketing the shot budget at which the
 replica root-mean-square error of the selected-rank Ritz energy clears the
 target, with a zero-failure gate and a one-sided bootstrap bound
 \cite{efron1979bootstrap}.
-
-Table~\ref{tab:cost} and Fig.~\ref{fig:cost} report the priced BeH$_2$ instance
-along the Jordan--Wigner arm.  Three readings matter architecturally.  First,
-the optimal rung moves with the card and the estimator: it is $k=\cqcKStarIon{}$
-on the slow-gate card under single-assignment estimation and
-$k=\cqcKStarLogical{}$ on the logical baseline.  Every cell resolves to a region
-rather than a point --- the slow-gate cell to $k \in \{\cqcKStarIonRegion\}$ ---
-and the record reports that status rather than collapsing it to an argmin.  Second, the mapping axis is not small: at the
-qubit-wise rung the spread between the cheapest and dearest fermionic encoding
-is \cqcMappingSpreadKOne{} on this one instance, and Table~\ref{tab:cost}
-reports it again at each card's own $k^*$.  Third, the sparse-connectivity
-card refuses the full-commutation rung here too, and a refused rung is absent
-from the bracket rather than assigned an infinite cost.
-
-The search itself is labelled.  The record declares its search uncertainty as
-heuristic --- it is a Monte Carlo bracketing on a fixed shot grid, not a
-certificate --- and separately declares the benchmark comparison as exact-tier
-against an oracle reference.  Those two labels sit in the same file and are not
-merged.  A cross-check against the independently produced shot-search record
-agrees on \cqcCrossAgreeing{} of \cqcCrossChecked{} compared crossings, and the
-record classifies each disagreement as environment-marginal rather than
-substantive.
 
 \begin{table*}
   \caption{Accuracy-matched cost of the priced BeH$_2$ instance on the
@@ -540,6 +550,28 @@ substantive.
   \label{fig:cost}
 \end{figure*}
 
+Table~\ref{tab:cost} and Fig.~\ref{fig:cost} report the priced BeH$_2$ instance
+along the Jordan--Wigner arm.  Three readings matter architecturally.  First,
+the optimal rung moves with the card and the estimator: it is $k=\cqcKStarIon{}$
+on the slow-gate card under single-assignment estimation and
+$k=\cqcKStarLogical{}$ on the logical baseline.  Every cell resolves to a region
+rather than a point --- the slow-gate cell to $k \in \{\cqcKStarIonRegion\}$ ---
+and the record reports that status rather than collapsing it to an argmin.  Second, the mapping axis is not small: at the
+qubit-wise rung the spread between the cheapest and dearest fermionic encoding
+is \cqcMappingSpreadKOne{} on this one instance, and Table~\ref{tab:cost}
+reports it again at each card's own $k^*$.  Third, the sparse-connectivity
+card refuses the full-commutation rung here too, and a refused rung is absent
+from the bracket rather than assigned an infinite cost.
+
+The search itself is labelled.  The record declares its search uncertainty as
+heuristic --- it is a Monte Carlo bracketing on a fixed shot grid, not a
+certificate --- and separately declares the benchmark comparison as exact-tier
+against an oracle reference.  Those two labels sit in the same file and are not
+merged.  A cross-check against the independently produced shot-search record
+agrees on \cqcCrossAgreeing{} of \cqcCrossChecked{} compared crossings, and the
+record classifies each disagreement as environment-marginal rather than
+substantive.
+
 \section{What the architecture stopped}
 \label{sec:stopped}
 
@@ -569,6 +601,21 @@ the finite-sample radius at the type level is what turns it into a refusal.
 
 \subsection{Mapping spread against instance spread: negative, then
 indeterminate}
+
+\begin{table*}
+  \caption{Mapping spread against instance spread, on every tier that measured
+  it.  The aggregation column is not decoration: the three readouts combine
+  cells differently, and their numbers are not comparable across rows.}
+  \label{tab:qr3}
+  \footnotesize
+  \begin{ruledtabular}
+  \begin{tabular}{llp{0.20\textwidth}rrp{0.22\textwidth}}
+  Readout & Tier & Aggregation & Mapping & Instance & Verdict \\
+  \colrule
+  \input{tables/qr3.tex}
+  \end{tabular}
+  \end{ruledtabular}
+\end{table*}
 
 A natural design question for a framework that supports several fermionic
 encodings is whether the encoding choice matters more than the problem
@@ -608,22 +655,24 @@ written up as evidence for the converse would have produced a publishable claim
 from this data.  This one produced \emph{indeterminate}, twice, and the
 encoding-selection layer was not built.
 
+\subsection{A screen that stopped before drawing a sample}
+
 \begin{table*}
-  \caption{Mapping spread against instance spread, on every tier that measured
-  it.  The aggregation column is not decoration: the three readouts combine
-  cells differently, and their numbers are not comparable across rows.}
-  \label{tab:qr3}
+  \caption{The contextual-restriction admission screen on one BeH$_2$ bank.
+  Rows are restriction rungs indexed by the number of fixed qubits.  Bias and
+  word universe are given for the two contextually restricted arms; the two
+  unrestricted arms are rung-independent and are stated in the last line.  The
+  last column counts how many of the four arms are admissible, out of four.}
+  \label{tab:r4a}
   \footnotesize
   \begin{ruledtabular}
-  \begin{tabular}{llp{0.20\textwidth}rrp{0.22\textwidth}}
-  Readout & Tier & Aggregation & Mapping & Instance & Verdict \\
+  \begin{tabular}{rrrrrrrr}
+  Fixed & Active & CS-QSE bias (mHa) & CS-QSE words & CS-A-CASE bias (mHa) & CS-A-CASE words & $H$ removed & Arms admitted \\
   \colrule
-  \input{tables/qr3.tex}
+  \input{tables/r4a.tex}
   \end{tabular}
   \end{ruledtabular}
 \end{table*}
-
-\subsection{A screen that stopped before drawing a sample}
 
 Contextual subspace methods restrict a Hamiltonian onto a stabilizer sector
 chosen for the correlation it retains rather than for an exact symmetry
@@ -658,23 +707,6 @@ for the sampling campaign that would otherwise have followed.  That is the
 economic argument for this architecture, and it is the only one in this paper
 that needs no device card.
 
-\begin{table*}
-  \caption{The contextual-restriction admission screen on one BeH$_2$ bank.
-  Rows are restriction rungs indexed by the number of fixed qubits.  Bias and
-  word universe are given for the two contextually restricted arms; the two
-  unrestricted arms are rung-independent and are stated in the last line.  The
-  last column counts how many of the four arms are admissible, out of four.}
-  \label{tab:r4a}
-  \footnotesize
-  \begin{ruledtabular}
-  \begin{tabular}{rrrrrrrr}
-  Fixed & Active & CS-QSE bias (mHa) & CS-QSE words & CS-A-CASE bias (mHa) & CS-A-CASE words & $H$ removed & Arms admitted \\
-  \colrule
-  \input{tables/r4a.tex}
-  \end{tabular}
-  \end{ruledtabular}
-\end{table*}
-
 \subsection{A reformulation that reproduced its predecessor}
 
 A geometric-algebra structural preconditioner was proposed as a pre-encoding
@@ -696,20 +728,6 @@ nothing in it licenses a resource claim of any kind.
 
 \subsection{The ledger}
 
-Table~\ref{tab:ledger} is the plan status file, which is machine-readable and
-gated in continuous integration against the plan document and the source tree.
-Of \cqcNumberedPhases{} numbered phases, \cqcCompletePhases{} are complete:
-\cqcStrictFraction{} strictly, or \cqcWeightedFraction{} weighted by partial
-implementation.  Of the \cqcAdjunctPrograms{} adjunct programmes,
-\cqcNegativePrograms{} ended in retirement, a closed-negative verdict, or a
-phase that was never authorized, and one more is recorded as positive at the
-exact tier and negative under finite shots.
-
-We include this table because a research framework's plan is itself a claim,
-and an ungated plan drifts toward describing the work that succeeded.  Gating
-it means a phase cannot quietly change status between the commit that made it
-and the paper that reports it.
-
 \begin{table*}
   \caption{The adjunct-programme ledger, read from the gated plan status file.
   Status and outcome are the file's own fields.}
@@ -723,6 +741,20 @@ and the paper that reports it.
   \end{tabular}
   \end{ruledtabular}
 \end{table*}
+
+Table~\ref{tab:ledger} is the plan status file, which is machine-readable and
+gated in continuous integration against the plan document and the source tree.
+Of \cqcNumberedPhases{} numbered phases, \cqcCompletePhases{} are complete:
+\cqcStrictFraction{} strictly, or \cqcWeightedFraction{} weighted by partial
+implementation.  Of the \cqcAdjunctPrograms{} adjunct programmes,
+\cqcNegativePrograms{} ended in retirement, a closed-negative verdict, or a
+phase that was never authorized, and one more is recorded as positive at the
+exact tier and negative under finite shots.
+
+We include this table because a research framework's plan is itself a claim,
+and an ungated plan drifts toward describing the work that succeeded.  Gating
+it means a phase cannot quietly change status between the commit that made it
+and the paper that reports it.
 
 \section{Scope and limitations}
 \label{sec:limits}
