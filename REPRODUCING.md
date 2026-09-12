@@ -47,6 +47,11 @@ python paper/make_figures.py       # -> paper/paper_assets/*.pdf
 python paper/make_tables.py        # -> paper/tables/*.tex  (\input by the .tex)
 python paper/check_manuscript.py   # balance, refs, bib keys, column counts,
                                    # and figures older than their source record
+python paper_architecture/make_tables.py   # -> tables/*.tex + data/source_census.json
+python paper_architecture/make_figures.py  # -> paper_assets/*.pdf (needs matplotlib)
+python paper_architecture/check_manuscript.py  # the above, plus: no result numeral
+                                   # outside the conceptual-notation allowlist,
+                                   # and the source census still matches the tree
 python benchmarks/check_summaries.py  # *_summary.{csv,md} vs their JSONL
 python benchmarks/check_docs.py       # this file vs the code it describes
 python benchmarks/check_phase_status.py  # PHASE_STATUS.json vs PLAN/README
@@ -104,7 +109,7 @@ No figure or table value in the manuscript is transcribed by hand, and
 ```bash
 python -m venv .venv && source .venv/bin/activate
 pip install -e .[test,research,chemistry]   # numpy + scipy + openfermion/pyscf
-pytest                                      # 1444 passed, 31 skipped
+pytest                                      # 1462 passed, 31 skipped
 ```
 
 That install is the reference environment for the quoted pair. The count
@@ -128,7 +133,7 @@ the remaining `31 - 14 = 17` skips are per-test and *are* collected:
 
 ```text
 collected == passed + (skipped - files dropped at collection)
-1461      == 1444   + (31      -  14)
+1479      == 1462   + (31      -  14)
 ```
 
 Both sides are computed from the tree, so a drift in either quoted number
@@ -464,7 +469,7 @@ Three cost-aware tiers run:
 
 | job | when | contents |
 | --- | --- | --- |
-| `test` | pull request, push to `main`, manual dispatch | `ruff`, `pytest --hypothesis-profile=ci`, and the short record gates: `check_docs`, `check_phase_status`, `check_molecular`, `check_krylov_width`, `check_clifford_hierarchy`, `check_finite_shot_optimization`, `check_warm_start` |
+| `test` | pull request, push to `main`, manual dispatch | `ruff`, `pytest --hypothesis-profile=ci`, the architecture-manuscript gate, and the short record gates: `check_docs`, `check_phase_status`, `check_molecular`, `check_krylov_width`, `check_clifford_hierarchy`, `check_finite_shot_optimization`, `check_warm_start` |
 | `structural-records` | pull request, push to `main`, manual dispatch | deterministic rebuild and lineage gates: `check_mapping_axis`, `check_protocol_axis`, `check_priceability_screen`, `check_r3_environment_migration`, `check_r3b_preregistration`, `check_r3c_preregistration`, `check_r3d_preregistration`, `check_phase14b_preregistration`, `check_g1_structural_preconditioner`, `check_r4a_preregistration`, `check_r4a_contextual_screen` |
 | `sampled-records` | manual dispatch only | replica-drawing rebuild gates, each under its own record stamp: `check_r3b_margin_stop_probe`, `check_finite_shot_rethink`, `check_matched_h4`, `check_qr3b_instance_preflight`, `check_exact_shot_search`, `check_protocol_cost`, `check_r3c_lih_full_cost`, `check_r3d_qr3_refinement`, `check_phase14b_qwc_vs_fc` |
 
@@ -617,6 +622,15 @@ declared by configs have no committed JSONL, so it fails on `main` today for
 reasons that predate the workflow. `paper/check_manuscript.py` and
 `paper_a_case_subspaces/check_manuscript.py` stay out for the reason given
 above — they need a REVTeX installation.
+
+`paper_architecture/check_manuscript.py` does run in CI, because it needs
+neither REVTeX nor a plotting stack: it reads the manuscript as text, the
+committed records as JSON, and the source tree as a census. That last part is
+why it is worth a CI step rather than a release step. The architecture tables
+in that paper describe the package itself, and no experiment rebuilds them, so
+a module added without a layer assignment or a `check_*.py` added without a
+declared gate class would otherwise age the paper silently. It fails the build
+instead.
 
 ## Spin-model matrices (Phase 3)
 

@@ -579,6 +579,13 @@ Retired and conditional adjunct phases are tracked separately and do not change 
   reusable measurements for adaptive quantum subspaces", the dyadic-measurement
   variant of the method this README calls A-CASE. Each public snapshot has its
   own drift checker and provenance boundary.
+- `paper_architecture/` holds the unsubmitted architecture manuscript, "Making
+  a simulation framework falsifiable". It describes this package as a layer
+  stack, an evidence contract, and a producer/gate pairing, and its results are
+  the evidence that contract produced — including the preregistered screens
+  that returned no result and a census of where the contract is not yet
+  enforced. Its tables are generated from committed records and from a live
+  census of this source tree, and its checker runs in CI.
 - **Public preprints.** Two papers from this repository are on arXiv:
   [arXiv:2608.00560](https://arxiv.org/abs/2608.00560), *Adaptive
   operator-generated subspaces for effective many-body Hamiltonians* (A-CASE), and

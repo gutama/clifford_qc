@@ -2,20 +2,21 @@
 
 The current shape of the package, derived from the source on this branch
 rather than from intent: 92 modules and ~22.5k lines under `clifford_qc/`,
-99 test modules and ~22.3k lines under `tests/`, 42 record producers and 29
+101 test modules and ~22.5k lines under `tests/`, 42 record producers and 30
 record gates under `benchmarks/`.
 
 Two things explain most of the layout.
 
-1. **One representation all the way down.** States, gates, observables,
-   channels, Jordan-Wigner Clifford generators, and CAR operators are all the
-   same sparse Pauli-word object `MV`. There is no conversion boundary between
-   "circuit land" and "operator land", so the layers above are free to move
-   between them.
-2. **Every number carries what kind of number it is.** `EvidenceLevel`
+1. **One algebra across an explicit IR boundary.** The numerical kernel uses
+   the sparse Pauli-word object `MV`; models and programs expose the public
+   `PauliSum` container and lower it exactly with `to_mv()`. The boundary changes
+   containers, not word codes, algebraic basis, or operator semantics.
+2. **Typed paths carry what kind of number they produce.** `EvidenceLevel`
    (`exact` / `asymptotic` / `finite_sample` / `heuristic` / `none`) threads
-   from the measurement layer through the solvers into the committed records,
-   and the benchmark gates compare against it. Much of the layering exists to
+   from the measurement layer through the solvers into newer committed
+   records, and the benchmark gates compare against it where declared. The
+   architecture-paper census exposes legacy records where this is not yet an
+   enforced invariant. Much of the layering exists to
    keep an oracle-fed quantity from being reported beside a measured one
    without a label.
 
@@ -23,10 +24,11 @@ Two things explain most of the layout.
 
 ## 1. Layer stack
 
-Arrows are **import-time** dependencies: the edges that execute when the module
-is first loaded. Those point downward only, and that is the invariant the
-package actually enforces — no layer's package initialization reaches upward,
-so importing a lower layer never drags a higher one in.
+Solid arrows are selected **import-time** dependencies: edges executed when a
+module is first loaded. Most point downward, but the optional chemistry module
+is a named exception: `models/chemistry.py` imports
+`algorithms/pools.py`. The figure records that edge instead of claiming a
+strictly layered initialization graph.
 
 Deferred imports are a different graph. A function-scope import is still a real
 runtime import; it just runs at call time rather than at load time, and several
@@ -38,7 +40,7 @@ them.
 ```mermaid
 flowchart TD
     subgraph L6["Evidence & reproduction"]
-        BENCH["benchmarks/<br/>42 run_*.py producers<br/>29 check_*.py gates"]
+        BENCH["benchmarks/<br/>42 run_*.py producers<br/>30 check_*.py gates"]
         REPRO["reproducibility.py<br/>record_environment.py"]
         VERIFY["verify.py &mdash; self-check<br/>imports the solver layer"]
     end
@@ -88,6 +90,7 @@ flowchart TD
     ALGOS --> BACKENDS
     WORKFLOWS --> ALGOS
     WORKFLOWS --> BACKENDS
+    MODELS --> ALGOS
     MODELS --> IR
     MODELS --> PAULI
     BACKENDS --> IR
@@ -266,10 +269,11 @@ cross-cutting change; changing anything else is local.
 
 ## 5. Dependency rules and their recorded exceptions
 
-The **import-time** graph is acyclic across layers: nothing a package executes
-while initializing reaches upward. The call-time graph is not, and the
-difference is the whole design. Each upward edge below is deferred by one of
-three mechanisms, and each still executes when its code path runs.
+The import-time graph is **not strictly layered**. Most dependencies point
+downward, but the chemistry extra has one explicit module-scope exception:
+`models/chemistry.py` imports `algorithms/pools.py` to construct its ADAPT
+candidate pool. The call-time graph has additional upward edges. Each deferred
+edge below still executes when its code path runs.
 
 - **`measurement/` never imports `subspace/` *while initializing*.** It does
   import it at call time: `session.py` pulls `subspace.linalg` inside three
@@ -318,7 +322,7 @@ flowchart LR
     CFG["benchmarks/configs/*.json<br/>predeclared parameters,<br/>device cards"]
     RUN["benchmarks/run_*.py<br/>42 producers"]
     REC["benchmarks/reference_results/<br/>46 committed records<br/>+ execution provenance"]
-    CHK["benchmarks/check_*.py<br/>29 gates"]
+    CHK["benchmarks/check_*.py<br/>30 gates"]
     SUM["benchmarks/summarize*.py<br/>CSV + Markdown"]
     PAPER["paper/, paper_acase/,<br/>paper_a_case_subspaces/<br/>make_tables.py, make_figures.py"]
     CI["CI &mdash; ruff, pytest,<br/>named per-gate steps,<br/>OMP_NUM_THREADS=1"]
@@ -333,7 +337,7 @@ flowchart LR
 
 Four properties of this layer are load-bearing:
 
-- **Producer/gate pairing, where it applies.** The 42 producers and 29 checkers
+- **Producer/gate pairing, where it applies.** The 42 producers and 30 checkers
   are not two views of one list: only 18 share a stem. Read the checkers by
   what they actually assert, because "every record is re-derived" is a promise
   the repository deliberately does not make:
@@ -353,12 +357,15 @@ Four properties of this layer are load-bearing:
   across all five families. And `check_summaries.py` is deliberately not a gate
   yet, because five `*_summary` pairs declared by configs have no committed
   JSONL, so it fails on `main` today for reasons that predate the workflow.
-  27 of the 29 checkers run in CI; `check_summaries.py` and
-  `check_regenerated_record.py` are the two that do not.
+  The workflow names 28 of the 30 checkers: 18 run on every pull request and
+  10 require manual dispatch --- nine sampled-record gates plus the separate
+  environment-consistency audit. `check_summaries.py` and
+  `check_regenerated_record.py` are the two absent from the workflow.
 
-- **One named step per gate.** CI runs each as its own step with
-  `if: !cancelled()`, so a drift suite reports every symptom rather than
-  stopping at the first.
+- **One visible unit per gate.** The short automatic gates are individual named
+  steps with `if: !cancelled()`. Structural and sampled gates are separately
+  named matrix jobs with `fail-fast: false`, so a drift suite reports every
+  symptom rather than stopping at the first within either execution class.
 - **Thread pinning.** CI sets `OMP_NUM_THREADS=1` because threaded BLAS
   reductions sum in a thread-count-dependent order — `eigvalsh` returns four
   different last bits across `OMP_NUM_THREADS` 1..4. This closes the one source

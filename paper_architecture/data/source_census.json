@@ -1,0 +1,165 @@
+{
+  "gates": {
+    "absent_from_workflow": [
+      "check_regenerated_record",
+      "check_summaries"
+    ],
+    "automatic_gates": [
+      "check_clifford_hierarchy",
+      "check_docs",
+      "check_finite_shot_optimization",
+      "check_g1_structural_preconditioner",
+      "check_krylov_width",
+      "check_mapping_axis",
+      "check_molecular",
+      "check_phase14b_preregistration",
+      "check_phase_status",
+      "check_priceability_screen",
+      "check_protocol_axis",
+      "check_r3_environment_migration",
+      "check_r3b_preregistration",
+      "check_r3c_preregistration",
+      "check_r3d_preregistration",
+      "check_r4a_contextual_screen",
+      "check_r4a_preregistration",
+      "check_warm_start"
+    ],
+    "classes": {
+      "Cross-artifact": 2,
+      "Documentation": 1,
+      "Lineage and environment": 3,
+      "Plan ledger": 1,
+      "Preregistration": 5,
+      "Value-rebuilt": 18
+    },
+    "dispatch_gates": [
+      "check_exact_shot_search",
+      "check_finite_shot_rethink",
+      "check_matched_h4",
+      "check_phase14b_qwc_vs_fc",
+      "check_protocol_cost",
+      "check_qr3b_instance_preflight",
+      "check_r3b_margin_stop_probe",
+      "check_r3c_lih_full_cost",
+      "check_r3d_qr3_refinement",
+      "check_record_environment"
+    ],
+    "gates": 30,
+    "manual_dispatch_only": 10,
+    "named_in_workflow": 28,
+    "producers": 42,
+    "producers_without_gate": 24,
+    "run_on_every_pull_request": 18,
+    "same_stem_pairs": 18
+  },
+  "records": {
+    "declarations": {
+      "clifford_hierarchy_beh2.json": "b6ce42a8d9054785",
+      "clifford_hierarchy_beh2_v2.json": "44136fa355b3678a",
+      "clifford_hierarchy_h4.json": "ed4ccce86097b99f",
+      "clifford_hierarchy_h4_v2.json": "44136fa355b3678a",
+      "configuration_packets.json": "9ed644e4c7a1018e",
+      "exact_shot_search.json": "d318294d7ba2811e",
+      "fcidump_h4.json": "94662552eea471aa",
+      "finite_shot_optimization.json": "6829464abc77bc54",
+      "finite_shot_rethink.json": "6829464abc77bc54",
+      "g1_structural_preconditioner.json": "f6a33f1aa225c4dd",
+      "h4_exact_trajectory.json": "44136fa355b3678a",
+      "krylov_width.json": "44136fa355b3678a",
+      "mapping_axis.json": "743c8d31eee9f441",
+      "matched_h4.json": "d82558e8baf9548f",
+      "orbital_basis.json": "44136fa355b3678a",
+      "phase14b_qwc_vs_fc.json": "7eea7d72de38ea0e",
+      "priceability_screen.json": "f6a33f1aa225c4dd",
+      "protocol_axis.json": "75a2ec249c533fed",
+      "protocol_cost.json": "e1e5d86171f1d317",
+      "qr3b_instance_preflight.json": "392bef0978fe1bad",
+      "r3b_margin_stop_probe.json": "392bef0978fe1bad",
+      "r3c_lih_full_cost.json": "feec7a29e148f8fe",
+      "r3d_qr3_refinement.json": "63a5cd4d094d0517",
+      "r4a_contextual_screen.json": "f6a33f1aa225c4dd",
+      "warm_start_h4.json": "a3981028c447b11d"
+    },
+    "distinct_top_level_tiers": 5,
+    "examples": {
+      "basis_only": null,
+      "nested_in_subobject": "clifford_hierarchy_beh2.json",
+      "none": "clifford_hierarchy_beh2_v2.json",
+      "per_quantity_mapping": "fcidump_h4.json",
+      "role_only": null,
+      "role_with_nested_tier": "qr3b_instance_preflight.json",
+      "top_level_tier": "configuration_packets.json"
+    },
+    "forms": {
+      "basis_only": 0,
+      "nested_in_subobject": 4,
+      "none": 5,
+      "per_quantity_mapping": 3,
+      "role_only": 0,
+      "role_with_nested_tier": 2,
+      "top_level_tier": 11
+    },
+    "json_records": 25,
+    "series_files": 21,
+    "top_level_tiers": {
+      "exact": 4,
+      "exact numerical benchmark": 1,
+      "exact_oracle_finite_sample": 1,
+      "heuristic": 2,
+      "structural": 3
+    }
+  },
+  "schema": "clifford_qc.architecture_paper_census.v1",
+  "source": {
+    "layers": {
+      "algorithms": {
+        "lines": 1428,
+        "modules": 8
+      },
+      "backends": {
+        "lines": 1058,
+        "modules": 7
+      },
+      "bridges": {
+        "lines": 667,
+        "modules": 6
+      },
+      "evidence": {
+        "lines": 966,
+        "modules": 3
+      },
+      "ir": {
+        "lines": 1209,
+        "modules": 3
+      },
+      "kernel": {
+        "lines": 1970,
+        "modules": 15
+      },
+      "measurement": {
+        "lines": 3924,
+        "modules": 13
+      },
+      "models": {
+        "lines": 2338,
+        "modules": 8
+      },
+      "orchestration": {
+        "lines": 31,
+        "modules": 1
+      },
+      "subspace": {
+        "lines": 8866,
+        "modules": 27
+      },
+      "surface": {
+        "lines": 38,
+        "modules": 1
+      }
+    },
+    "package_lines": 22495,
+    "package_modules": 92,
+    "test_lines": 22549,
+    "test_modules": 101
+  }
+}
