@@ -47,6 +47,9 @@ jobs:
       # One step per gate so the Actions view names the failure, and each runs
       # even after an earlier one fails: a drift suite that stops at the first
       # mismatch reports one symptom of what is usually a shared cause.
+      - name: phase status ledger
+        if: ${{ !cancelled() }}
+        run: python benchmarks/check_phase_status.py
       - name: documentation drift
         if: ${{ !cancelled() }}
         run: python benchmarks/check_docs.py

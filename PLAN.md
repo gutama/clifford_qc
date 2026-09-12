@@ -90,8 +90,8 @@ generic case. Compound generators need not be versors.
 | **the GA structural preconditioner (new)** | §3.5 |
 | **anticommuting cliques as spin factors (new)** | §3.6 |
 | the method itself | §4 |
-| **status: what is built, and what it measured** | §5, Phases 0–12 and PRD |
-| **the forward program** | §5, Phases 13–19, G1–G3, R1–R4 |
+| **status: what is built, and what it measured** | §5, Phases 0–14 and PRD |
+| **post-core programmes and remaining work** | §5, Phases 15–19, G1–G3, R1–R4 |
 | how cost is counted, and the device model | §6 |
 | the validation ladder and benchmark inventory | §7 |
 | **Paper A — certified ADAPT-VQE, written but unpublished** | §9 |
@@ -99,6 +99,25 @@ generic case. Compound generators need not be versors.
 | what is deliberately not claimed | §14 |
 
 Status at a glance:
+
+<!-- PHASE-STATUS-SUMMARY:START -->
+| numbered phase scope | lifecycle | implementation |
+|---|---|---:|
+| Phases 0--14 | complete | 15 / 15 |
+| Phase 15: Second-moment bank | open | 0% |
+| Phase 16: Time-evolved inputs | open | 0% |
+| Phase 17: Mapping validation and breadth | partial | 75% |
+| Phase 18: Embedding boundary | partial | 50% |
+| Phase 19: Anticommuting-clique partitioning | proposed | 0% |
+
+Strict complete-phase score: **15 / 20 = 75.00%**.
+Progress-weighted score: **16.25 / 20 = 81.25%**.
+Retired and conditional adjunct phases are tracked separately and do not change this denominator. Source: `PHASE_STATUS.json`; validate with `python benchmarks/check_phase_status.py`.
+<!-- PHASE-STATUS-SUMMARY:END -->
+
+The machine-readable block above reports implementation progress only. The detailed
+ledger below preserves scientific outcomes, evidence boundaries, retired work, and
+conditional phases.
 
 | phase | subject | status |
 |---|---|---|
@@ -111,7 +130,10 @@ Status at a glance:
 | PRD | orthogonal-residual regression, Davidson/preconditioned expansion, packet pricing, matched A-CASE, exact and finite-shot suites | **done and read**; exact compactness is positive, complete-bank QWC finite-shot energy accuracy is negative |
 | 13 | parity/X-rank invariant | **done**; one shared GF(2) implementation is tested across every declared spin-conserving JW construction path before grouping |
 | 14 | fully commuting grouping | **done on the frozen BeH₂/JW comparison** — the public compiled-plan API, exact joint sampler, preregistered finite-sample record, covariance audit, and device-card costing ship; Q9 is positive within the declared one-bank oracle boundary |
-| 15–18 | second moments, time-evolved inputs, mapping breadth, embedding | Track C, open (Phase 18's versioned effective-Hamiltonian schema ships in `models/effective.py`; the fragment-solver callback does not) |
+| 15 | second-moment bank | **open, unimplemented**; no `SecondMomentBank` or H-squared support/cost preflight ships |
+| 16 | time-evolved inputs | **open, unimplemented**; matrix-free action exists, but neither the QSCI time-evolved input nor a circuit-native/truncated A-CASE real-time family ships |
+| 17 | mapping validation and breadth | **partially implemented (75%)**; the JW/BK/parity transformation, invariance gates, and mapping-axis records ship through R2, while the CEO-pool and dedicated MORE-ADAPT breadth benchmarks remain open |
+| 18 | embedding boundary | **partially implemented (50%)**; the versioned effective-Hamiltonian schema ships in `models/effective.py`, while the common fragment-solver callback returning energy and one- and two-particle density matrices does not |
 | 19 | anticommuting-clique (spin-factor) partitioning | **proposed, unexecuted**; the algebra is §3.6 and the scope is §5, Phase 19. Lever 1 is scoped to a fixed-coefficient Hamiltonian-energy estimand, *not* to Phase 14b's matrix-element word bank; lever 2 needs a non-Clifford transport primitive that does not exist yet. An in-session structural probe supplies the sizing numbers and is explicitly **not** a committed record — no producer, config, record or checker exists, so nothing there licenses a rung, a price, or an arm |
 | G1 | GA structural preconditioner: Majorana pool and filters A–E | **done**; both gates pass and QG1's falsifier does not fire, but E's content is pool-dependent — `522` of `549` removed on the §3.5 Majorana pool, `0` on the excitation pool the mapping records use |
 | G2–G3 | mapping-invariance test on the restricted pool, PRD/WISE integration with a cost decomposition | **retired by G1's own result**; the G1-admissible pool reconstructs the pool R2b already builds, so QG2's falsifier holds by construction rather than by measurement (§5, Phase G2) |
@@ -3423,7 +3445,7 @@ A-CASE's.
   changes `C(ε)` by more than the instance-to-instance spread already present between H₄ and
   BeH₂? *Falsifier:* the mapping effect is smaller than the instance effect everywhere —
   which would demote fermion mapping from an optimization dimension to a footnote, itself a
-  useful result. **Still abstaining at the accuracy-matched tier.** R3 records the mapping
+  useful result. **The original R3 record abstains at the accuracy-matched tier.** It records the mapping
   spread in `C(ε)` — `3.87×` among the three full-width arms, and `4.00×` between the two
   `+2q` arms at `k = 6` under pooling, the largest at equal measured width — but the question
   weighs that against an *instance* spread, and there is still one priced instance. The reason
@@ -3875,7 +3897,7 @@ not another open accuracy phase.
     *by R3b*. R3c below is a new, result-free declaration motivated by the
     explicitly post-hoc failure-mode split; it does not turn R3b's rejection into
     a pass or upgrade that probe's evidence.
-13c. R3c — the LiH `margin_stop` headline cost run. **Preregistered, not run.**
+13c. R3c — the LiH `margin_stop` headline cost run. **Done; second instance priced, QR3 indeterminate.**
     `benchmarks/configs/r3c_lih_full_cost.json` and
     `check_r3c_preregistration.py` freeze the exact R3b bank, all five mapping
     arms, `k ∈ {1,2,4,8}`, both estimators, the unchanged `64…65536` grid,
@@ -3889,9 +3911,9 @@ not another open accuracy phase.
 
     This is not a re-sized scope probe. R3b's 2+2 instrument answered its own
     preregistered gate negatively and remains immutable; its labelled post-hoc
-    diagnosis motivates testing the target 30+100 instrument directly. This
-    config independently authorizes one future full run while preserving the
-    earlier `full_run_authorized: false` finding as a fact about R3b.
+    diagnosis motivates testing the target 30+100 instrument directly. That
+    config independently authorized the one full run discharged below while
+    preserving the earlier `full_run_authorized: false` finding as a fact about R3b.
 
     *Gate, discharged.* The producer, sampled record and result checker landed
     after the preregistration and the run was executed once under the frozen
