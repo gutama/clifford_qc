@@ -1,0 +1,28 @@
+{
+  "figures": {
+    "cost_bracket.pdf": {
+      "sources": {
+        "benchmarks/reference_results/protocol_cost.json": "a1b5bea91d5924ae6c6878baf83e9d8b6b10ad107f4c3a2ab1644ddee1adff59"
+      }
+    },
+    "evidence_path.pdf": {
+      "sources": {}
+    },
+    "hierarchy_tradeoff.pdf": {
+      "sources": {
+        "benchmarks/reference_results/clifford_hierarchy_beh2_v2.json": "18d64f3e2e1bf3a22edadf58418a3103db734459735f7ecc9e6217f9c596bd4d",
+        "benchmarks/reference_results/clifford_hierarchy_h4_v2.json": "adc81de5120986377f18735d3166f73348b67e2271c9d715d054568d391ce4bb"
+      }
+    },
+    "layer_stack.pdf": {
+      "sources": {
+        "paper_architecture/data/source_census.json": "a477ca52d20171931678c3bd57441f8a622137ce414a1fd93be4122a1ecc0330"
+      }
+    }
+  },
+  "generator": {
+    "path": "paper_architecture/make_figures.py",
+    "sha256": "d93302440ab4f927baf566952441d346f1c85e223dd1668f7fa6b9a16a49cdfe"
+  },
+  "schema": "clifford_qc.architecture_figure_manifest.v1"
+}

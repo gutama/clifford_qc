@@ -68,6 +68,15 @@ jobs:
       - name: warm start
         if: ${{ !cancelled() }}
         run: python benchmarks/check_warm_start.py
+      # The architecture manuscript reads committed records and a live census of
+      # the source tree, so its gate is deterministic and belongs here: a module
+      # added without a layer, or a gate added without a declared class, fails
+      # the paper rather than ageing a table nobody rebuilds. It imports the
+      # figure generator for its source map only, which is why that module keeps
+      # matplotlib out of import time.
+      - name: architecture manuscript
+        if: ${{ !cancelled() }}
+        run: python paper_architecture/check_manuscript.py
 
   structural-records:
     name: ${{ matrix.gate }} (structural)

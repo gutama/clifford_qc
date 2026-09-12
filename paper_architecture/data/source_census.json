@@ -1,0 +1,99 @@
+{
+  "gates": {
+    "classes": {
+      "Cross-artifact": 2,
+      "Documentation": 1,
+      "Lineage and environment": 3,
+      "Plan ledger": 1,
+      "Preregistration": 5,
+      "Value-rebuilt": 18
+    },
+    "gates": 30,
+    "gates_run_in_ci": 28,
+    "producers": 42,
+    "producers_without_gate": 24,
+    "same_stem_pairs": 18,
+    "ungated_in_ci": [
+      "check_summaries",
+      "check_regenerated_record"
+    ]
+  },
+  "records": {
+    "distinct_top_level_tiers": 6,
+    "examples": {
+      "nested_in_subobject": "protocol_axis.json",
+      "none": "clifford_hierarchy_beh2.json",
+      "per_quantity_mapping": "fcidump_h4.json",
+      "top_level_string": "configuration_packets.json"
+    },
+    "forms": {
+      "nested_in_subobject": 1,
+      "none": 8,
+      "per_quantity_mapping": 3,
+      "top_level_string": 13
+    },
+    "json_records": 25,
+    "series_files": 21,
+    "top_level_tiers": {
+      "exact": 4,
+      "exact numerical benchmark": 1,
+      "exact_oracle_finite_sample": 1,
+      "heuristic": 2,
+      "scope_decision_only": 2,
+      "structural": 3
+    }
+  },
+  "schema": "clifford_qc.architecture_paper_census.v1",
+  "source": {
+    "layers": {
+      "algorithms": {
+        "lines": 1428,
+        "modules": 8
+      },
+      "backends": {
+        "lines": 1058,
+        "modules": 7
+      },
+      "bridges": {
+        "lines": 667,
+        "modules": 6
+      },
+      "evidence": {
+        "lines": 966,
+        "modules": 3
+      },
+      "ir": {
+        "lines": 1209,
+        "modules": 3
+      },
+      "kernel": {
+        "lines": 1970,
+        "modules": 15
+      },
+      "measurement": {
+        "lines": 3924,
+        "modules": 13
+      },
+      "models": {
+        "lines": 2338,
+        "modules": 8
+      },
+      "orchestration": {
+        "lines": 31,
+        "modules": 1
+      },
+      "subspace": {
+        "lines": 8866,
+        "modules": 27
+      },
+      "surface": {
+        "lines": 38,
+        "modules": 1
+      }
+    },
+    "package_lines": 22495,
+    "package_modules": 92,
+    "test_lines": 22345,
+    "test_modules": 100
+  }
+}

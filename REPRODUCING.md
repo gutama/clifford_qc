@@ -47,6 +47,11 @@ python paper/make_figures.py       # -> paper/paper_assets/*.pdf
 python paper/make_tables.py        # -> paper/tables/*.tex  (\input by the .tex)
 python paper/check_manuscript.py   # balance, refs, bib keys, column counts,
                                    # and figures older than their source record
+python paper_architecture/make_tables.py   # -> tables/*.tex + data/source_census.json
+python paper_architecture/make_figures.py  # -> paper_assets/*.pdf (needs matplotlib)
+python paper_architecture/check_manuscript.py  # the above, plus: no number typed
+                                   # by hand anywhere in the manuscript, and the
+                                   # source census still equals the repository
 python benchmarks/check_summaries.py  # *_summary.{csv,md} vs their JSONL
 python benchmarks/check_docs.py       # this file vs the code it describes
 python benchmarks/check_phase_status.py  # PHASE_STATUS.json vs PLAN/README
@@ -617,6 +622,15 @@ declared by configs have no committed JSONL, so it fails on `main` today for
 reasons that predate the workflow. `paper/check_manuscript.py` and
 `paper_a_case_subspaces/check_manuscript.py` stay out for the reason given
 above — they need a REVTeX installation.
+
+`paper_architecture/check_manuscript.py` does run in CI, because it needs
+neither REVTeX nor a plotting stack: it reads the manuscript as text, the
+committed records as JSON, and the source tree as a census. That last part is
+why it is worth a CI step rather than a release step. The architecture tables
+in that paper describe the package itself, and no experiment rebuilds them, so
+a module added without a layer assignment or a `check_*.py` added without a
+declared gate class would otherwise age the paper silently. It fails the build
+instead.
 
 ## Spin-model matrices (Phase 3)
 
