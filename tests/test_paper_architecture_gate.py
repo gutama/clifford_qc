@@ -154,3 +154,45 @@ def test_scratch_generation_restores_default_destinations(tmp_path):
     original = make_tables.TABLES, make_tables.DATA, make_tables.CENSUS
     make_tables.main(tables=tmp_path / "tables", data=tmp_path / "data")
     assert (make_tables.TABLES, make_tables.DATA, make_tables.CENSUS) == original
+
+
+def test_checker_rejects_a_hand_edited_fragment(tmp_path, monkeypatch, capsys):
+    paper = tmp_path / "paper"
+    tables = paper / "tables"
+    tables.mkdir(parents=True)
+    clean_fragment = "generated value: one\n"
+    (tables / "numbers.tex").write_text(
+        "generated value: two\n", encoding="utf-8")
+    census = {"source": {}, "gates": {}, "records": {}}
+    census_text = json.dumps(census)
+    census_path = paper / "source_census.json"
+    census_path.write_text(census_text, encoding="utf-8")
+    manuscript = paper / "manuscript.tex"
+    manuscript.write_text(
+        "\\begin{document}\n"
+        + "\n".join(check_manuscript.REQUIRED_PHRASES)
+        + "\n\\end{document}\n",
+        encoding="utf-8")
+    bibliography = paper / "references.bib"
+    bibliography.write_text("", encoding="utf-8")
+
+    def generate(*, tables, data):
+        (tables / "numbers.tex").write_text(
+            clean_fragment, encoding="utf-8")
+        (data / census_path.name).write_text(
+            census_text, encoding="utf-8")
+
+    monkeypatch.setattr(check_manuscript, "HERE", paper)
+    monkeypatch.setattr(check_manuscript, "TEX", manuscript)
+    monkeypatch.setattr(check_manuscript, "BIB", bibliography)
+    monkeypatch.setattr(check_manuscript, "CENSUS", census_path)
+    monkeypatch.setattr(
+        check_manuscript, "TABLE_SOURCES", {"numbers.tex": ()})
+    monkeypatch.setattr(check_manuscript, "layer_census", lambda: {})
+    monkeypatch.setattr(check_manuscript, "gate_census", lambda: {})
+    monkeypatch.setattr(check_manuscript, "record_census", lambda: {})
+    monkeypatch.setattr(check_manuscript.make_tables, "main", generate)
+
+    assert check_manuscript.main() == 1
+    assert "numbers.tex does not match what the generator produces now" in (
+        capsys.readouterr().out)

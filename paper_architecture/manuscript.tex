@@ -88,9 +88,9 @@ block-commuting hierarchy reduces a BeH$_2$ bank from \cqcBeHSettingsQWC{} to
 \cqcBeHSettingsFull{} compiled settings and certifies the same Ritz functional
 at \cqcShotRatio{} of the qubit-wise-commuting shot budget, while a
 sparse-connectivity device card refuses \cqcSCInadmissibleSettings{} of those
-\cqcSCSettings{} settings outright and prices nothing.  The accuracy-matched
-block size is a property of the card and the estimator rather than of the
-Hamiltonian, and an H$_4$ bank is never priced at all because its own subspace
+\cqcSCSettings{} settings outright and prices nothing.  On the one priced
+instance, the accuracy-matched block size varies with the card and estimator;
+an H$_4$ bank is never priced at all because its own subspace
 bias of \cqcHFourBias{}~mHa exceeds the \cqcTargetMilliHartree{}~mHa target.
 Two preregistered screens returned no result: mapping spread is not smaller
 than instance spread structurally and stays indeterminate after refinement, and
@@ -323,8 +323,12 @@ setting; a cumulative cache pays for a shared word once across observables; a
 linear functional reads the cache; and a confidence bound turns the read into
 an interval with a stated family and failure probability.
 
-The vocabulary itself is small: a quantity is exact, asymptotic, finite-sample,
-heuristic, or unlabelled.  Its purpose is not taxonomy but prevention.  An
+Typed numerical paths use the small \texttt{EvidenceLevel} vocabulary: exact,
+asymptotic, finite-sample, heuristic, or none.  Committed records do not yet
+share that closed enum: some use producer-specific scope or composite labels,
+including structural and exact-oracle/finite-sample labels, and the census
+reports those strings rather than normalizing them.  The purpose of the typed
+vocabulary is not taxonomy but prevention.  An
 exact-tier subspace bias and a finite-sample statistical radius have the same
 units and combine into one accuracy target, but they are not the same evidence,
 and a Pareto front computed across both would be meaningless.  In this
@@ -356,13 +360,15 @@ at different tiers in one file; \cqcRecordsNested{} nests the tier inside a
 sub-object; \cqcRecordsRoleWithNested{} declare an evidence \emph{role} at the
 top level and tiers inside sub-objects; \cqcRecordsRoleOnly{} carry a role with
 no tier at all; and \cqcRecordsUnlabelled{} carry no record-level
-evidence field whatsoever.  A further \cqcSeriesFiles{} series files --- line-delimited JSON, CSV and
-Markdown summaries --- carry no record-level field by construction.
+evidence field whatsoever.  A further \cqcSeriesFiles{} non-JSON series files
+--- line-delimited JSON, CSV and Markdown summaries --- are counted but not
+inspected for per-row declarations by this census.
 
-This is a real gap and it is worth stating precisely.  The evidence vocabulary
-is enforced in code, where one selection module defines it and the measurement
-and subspace layers carry it in their return types, and it is enforced in the
-newer records, whose producers write it at the top level.  It is not enforced by a schema over the
+This is a real gap and it is worth stating precisely.  \texttt{EvidenceLevel}
+is enforced in typed numerical paths, where one selection module defines it
+and the measurement and subspace layers carry it in their return types.  Newer
+records preserve evidence at the top level, but the broader record-label
+vocabulary is not normalized and is not enforced by a schema over the
 record set: nothing today rejects a new record that omits the field.  The
 census that produced Table~\ref{tab:evidence} is recomputed whenever this
 manuscript is rebuilt, so the number cannot silently improve or decay, but a
@@ -548,8 +554,7 @@ would have been a runtime for a protocol the card cannot execute at the stated
 fidelity.  Refusing to price is the correct output, and it is only available
 because admissibility is part of the cost type rather than a caveat in prose.
 
-\subsection{The accuracy-matched block size belongs to the card, not to the
-Hamiltonian}
+\subsection{The accuracy-matched block size depends on the card and estimator}
 
 The deeper cost question is not which protocol uses fewer settings but which
 one reaches a stated accuracy for the least device time.  Writing $\Ctime$ for

@@ -10,7 +10,7 @@ sparse Pauli-word algebra shared by the numerical `MV` kernel and an explicit
 measurement and solver paths into committed records where declared — and the paper's evidence is
 what the second commitment returned when it was applied: a certified shot
 reduction that one device card refuses to price, an accuracy-matched optimum
-that belongs to the card rather than the Hamiltonian, a bank that is never
+that changes with the card and estimator on the priced instance, a bank that is never
 priced because its own bias exceeds the target, two preregistered screens that
 returned no result, a reformulation retired against its own falsifier, and a
 coverage census showing where the contract is not yet enforced.
@@ -42,9 +42,10 @@ cd paper_architecture
 pdflatex manuscript && bibtex manuscript && pdflatex manuscript && pdflatex manuscript
 ```
 
-`check_manuscript.py` runs in CI; the two generators do not, because a figure
-rebuild needs a plotting stack and a table rebuild is what the gate is checking
-against.
+`check_manuscript.py` runs in CI and invokes `make_tables.py` into a scratch
+tree so the committed fragments can be compared byte for byte.  The figure
+generator does not run in CI because it needs a plotting stack; figure drift is
+checked through the committed input manifest instead.
 
 ## Data → manuscript map
 

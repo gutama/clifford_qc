@@ -359,9 +359,13 @@ def main() -> int:
                 if name not in figures:
                     problems.append(f"{name} is absent from the figure manifest")
                     continue
+                if name not in FIGURE_SOURCES:
+                    problems.append(
+                        f"{name} is not declared by make_figures.py")
+                    continue
                 expected = {
                     str(path.resolve().relative_to(ROOT)): _source_digest(path)
-                    for path in FIGURE_SOURCES.get(name, ())
+                    for path in FIGURE_SOURCES[name]
                 }
                 if figures[name].get("sources", {}) != expected:
                     problems.append(
@@ -388,8 +392,9 @@ def main() -> int:
                     f"the committed {section} census no longer matches the "
                     "repository (run paper_architecture/make_tables.py)")
 
+    comment_stripped_body = _prose(text)
     for phrase in REQUIRED_PHRASES:
-        if phrase not in text:
+        if phrase not in comment_stripped_body:
             problems.append(f"required evidence-language phrase is missing: "
                             f"{phrase!r}")
 

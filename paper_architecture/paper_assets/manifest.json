@@ -19,8 +19,8 @@
     },
     "layer_stack.pdf": {
       "sources": {
-        "paper_architecture/data/source_census.json": "66a04d5d57e355209612d191fbe288f894d8eb38ad52797ecd198bf47b0dce1c",
-        "paper_architecture/make_tables.py": "4ef07b187b3efee2b3dacd7c87b66538d602161b9edf9b110fe71b79d98274b2"
+        "paper_architecture/data/source_census.json": "be4c40c71fe1423ee98c9592cf729b3b3c7e4eb8221c2a2a68e471521133ddab",
+        "paper_architecture/make_tables.py": "815a97ee70ef7f38ac6b42f8fcc156f033a8128eea0fac13699c59fab18ac124"
       }
     }
   },

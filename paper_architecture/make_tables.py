@@ -423,7 +423,7 @@ def _declaration_digest(payload: object) -> str:
 
 
 def record_census() -> dict:
-    """Evidence-label coverage over the committed record set."""
+    """Classify JSON evidence declarations and count other series files."""
     forms: dict[str, list[str]] = {
         "top_level_tier": [],
         "per_quantity_mapping": [],
@@ -523,7 +523,7 @@ def evidence_coverage_table(census: dict) -> None:
         f"{_int(records['distinct_top_level_tiers'])} tier strings \\\\")
     rows.append(
         f"Series files (JSONL, CSV, MD) & "
-        f"{_int(records['series_files'])} & no such field \\\\")
+        f"{_int(records['series_files'])} & not inspected here \\\\")
     _write("evidence_coverage.tex", rows)
 
 
@@ -924,8 +924,7 @@ def numbers_macros(census: dict) -> None:
         "cqcRFourAAdmissibleBias": _num(
             r4a["gates"]["admissible_bias_millihartree"], 3),
         "cqcRFourACeiling": _int(r4a["gates"]["word_universe_ceiling"]),
-        "cqcRFourAFullWords": _int(
-            r4a["contextual_rungs"][0]["arms"][0]["word_universe"]),
+        "cqcRFourAFullWords": _int(r4a_arms["full_qse"]["word_universe"]),
         "cqcGOneMajorana": _int(
             g1["gate_outcomes"]["e_marginal_by_pool"]["majorana_monomials"][0]),
         "cqcGOneExcitation": _int(
