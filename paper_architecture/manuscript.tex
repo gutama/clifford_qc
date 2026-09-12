@@ -1,6 +1,7 @@
 \documentclass[aps,pra,reprint,superscriptaddress,nofootinbib,floatfix]{revtex4-2}
 
 \usepackage{amsmath,amssymb,bm}
+\usepackage{graphicx}
 \usepackage{microtype}
 \usepackage{xcolor}
 \usepackage[colorlinks=true,linkcolor=blue,citecolor=blue,urlcolor=blue]{hyperref}
@@ -294,8 +295,9 @@ can identify to the contract described here.
   carry.  Counts are recomputed from
   \texttt{benchmarks/reference\_results/} at manuscript build time.}
   \label{tab:evidence}
+  \scriptsize
   \begin{ruledtabular}
-  \begin{tabular}{lrl}
+  \begin{tabular}{@{}lrl@{}}
   Declaration form & Records & Example \\
   \colrule
   \input{tables/evidence_coverage.tex}
@@ -341,8 +343,9 @@ records against artifacts produced outside the benchmark directory.
   from \texttt{benchmarks/} at manuscript build time, and the generator refuses
   to emit the table unless every gate on disk has a declared class.}
   \label{tab:gates}
+  \footnotesize
   \begin{ruledtabular}
-  \begin{tabular}{lrp{0.52\columnwidth}}
+  \begin{tabular}{lrp{0.42\columnwidth}}
   Class & Gates & Asserts \\
   \colrule
   \input{tables/gate_classes.tex}
@@ -459,7 +462,7 @@ would have been a runtime for a protocol the card cannot execute at the stated
 fidelity.  Refusing to price is the correct output, and it is only available
 because admissibility is part of the cost type rather than a caveat in prose.
 
-\begin{table}
+\begin{table*}
   \caption{Qubit-wise against fully commuting measurement on one frozen
   BeH$_2$ bank, from the preregistered comparison.  The ratio column is the
   fully commuting value over the qubit-wise value.  Runtimes are
@@ -473,7 +476,7 @@ because admissibility is part of the cost type rather than a caveat in prose.
   \input{tables/phase14b.tex}
   \end{tabular}
   \end{ruledtabular}
-\end{table}
+\end{table*}
 
 \subsection{The accuracy-matched block size belongs to the card, not to the
 Hamiltonian}
@@ -492,9 +495,10 @@ the optimal rung moves with the card and the estimator: it is $k=\cqcKStarIon{}$
 on the slow-gate card under single-assignment estimation and
 $k=\cqcKStarLogical{}$ on the logical baseline.  Every cell resolves to a region
 rather than a point --- the slow-gate cell to $k \in \{\cqcKStarIonRegion\}$ ---
-and the record reports that status rather than collapsing it to an argmin.  Second, the mapping axis is not small: the spread
-between the cheapest and dearest fermionic encoding at a fixed rung reaches
-\cqcMappingSpreadKOne{} on the same instance.  Third, the sparse-connectivity
+and the record reports that status rather than collapsing it to an argmin.  Second, the mapping axis is not small: at the
+qubit-wise rung the spread between the cheapest and dearest fermionic encoding
+is \cqcMappingSpreadKOne{} on this one instance, and Table~\ref{tab:cost}
+reports it again at each card's own $k^*$.  Third, the sparse-connectivity
 card refuses the full-commutation rung here too, and a refused rung is absent
 from the bracket rather than assigned an infinite cost.
 
@@ -514,6 +518,7 @@ substantive.
   column is the record's own resolution state.  The spread column is over all
   five mapping arms at the same rung.}
   \label{tab:cost}
+  \footnotesize
   \begin{ruledtabular}
   \begin{tabular}{llrllrlr}
   Device card & Estimator & $k^*$ point & $k^*$ region & Status & $\Ctime$ at $k^*$ (s) & Cheapest mapping & Mapping spread \\
@@ -608,8 +613,9 @@ encoding-selection layer was not built.
   it.  The aggregation column is not decoration: the three readouts combine
   cells differently, and their numbers are not comparable across rows.}
   \label{tab:qr3}
+  \footnotesize
   \begin{ruledtabular}
-  \begin{tabular}{lllrrl}
+  \begin{tabular}{llp{0.20\textwidth}rrp{0.22\textwidth}}
   Readout & Tier & Aggregation & Mapping & Instance & Verdict \\
   \colrule
   \input{tables/qr3.tex}
@@ -659,6 +665,7 @@ that needs no device card.
   unrestricted arms are rung-independent and are stated in the last line.  The
   last column counts how many of the four arms are admissible, out of four.}
   \label{tab:r4a}
+  \footnotesize
   \begin{ruledtabular}
   \begin{tabular}{rrrrrrrr}
   Fixed & Active & CS-QSE bias (mHa) & CS-QSE words & CS-A-CASE bias (mHa) & CS-A-CASE words & $H$ removed & Arms admitted \\
@@ -707,6 +714,7 @@ and the paper that reports it.
   \caption{The adjunct-programme ledger, read from the gated plan status file.
   Status and outcome are the file's own fields.}
   \label{tab:ledger}
+  \footnotesize
   \begin{ruledtabular}
   \begin{tabular}{llll}
   Programme & Title & Status & Recorded outcome \\

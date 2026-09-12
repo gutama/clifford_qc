@@ -409,24 +409,25 @@ def layers_table(census: dict) -> None:
 def evidence_coverage_table(census: dict) -> None:
     records = census["records"]
     labels = {
-        "top_level_string": "One top-level tier string",
-        "per_quantity_mapping": "A per-quantity tier mapping",
-        "nested_in_subobject": "A tier nested in a sub-object",
-        "none": "No evidence field",
+        "top_level_string": "Top-level tier",
+        "per_quantity_mapping": "Per-quantity mapping",
+        "nested_in_subobject": "Nested in sub-object",
+        "none": "No evidence",
     }
     rows = []
     for key, label in labels.items():
         example = records["examples"][key]
-        shown = rf"\texttt{{{example.replace('_', '-')}}}" if example else "---"
+        stem = Path(example).stem.replace("_", "-") if example else None
+        shown = rf"\texttt{{{stem}}}" if stem else "---"
         rows.append(
             f"{label} & {_int(records['forms'][key])} & {shown} \\\\")
     rows.append(r"\colrule")
     rows.append(
         f"JSON records & {_int(records['json_records'])} & "
-        f"{_int(records['distinct_top_level_tiers'])} distinct tier strings \\\\")
+        f"{_int(records['distinct_top_level_tiers'])} tier strings \\\\")
     rows.append(
-        f"Series files (JSONL, CSV, Markdown) & "
-        f"{_int(records['series_files'])} & no record-level field \\\\")
+        f"Series files (JSONL, CSV, MD) & "
+        f"{_int(records['series_files'])} & no such field \\\\")
     _write("evidence_coverage.tex", rows)
 
 
@@ -563,7 +564,8 @@ def cost_table() -> None:
     })
     rows.append(r"\colrule")
     rows.append(
-        rf"\multicolumn{{8}}{{l}}{{Rungs the superconducting-like card refuses "
+        rf"\multicolumn{{8}}{{p{{0.96\textwidth}}}}{{Rungs the "
+        rf"superconducting-like card refuses "
         rf"to price: $k={{{', '.join(str(k) for k in inadmissible)}}}$. "
         rf"Accuracy target {_num(record['accuracy_target_millihartree'], 1)} mHa; "
         rf"H$_4$ is not priced at all, its own subspace bias being "
@@ -643,7 +645,8 @@ def r4a_table() -> None:
     rows.append(r"\colrule")
     unrestricted = {arm["name"]: arm for arm in record["contextual_rungs"][0]["arms"]}
     rows.append(
-        rf"\multicolumn{{8}}{{l}}{{Unrestricted arms, identical at every rung: "
+        rf"\multicolumn{{8}}{{p{{0.96\textwidth}}}}{{Unrestricted arms, "
+        rf"identical at every rung: "
         rf"\texttt{{full\_qse}} bias {_num(unrestricted['full_qse']['bias_millihartree'], 4)} mHa, "
         rf"word universe {_int(unrestricted['full_qse']['word_universe'])} "
         rf"(ceiling {_int(ceiling)}); "
@@ -669,7 +672,7 @@ def ledger_table() -> None:
         if phase["status"] != "complete"
     ]
     rows.append(
-        rf"\multicolumn{{4}}{{l}}{{Numbered phases: "
+        rf"\multicolumn{{4}}{{p{{0.96\textwidth}}}}{{Numbered phases: "
         rf"{_int(summary['complete_phase_count'])} of "
         rf"{_int(summary['numbered_phase_count'])} complete "
         rf"({_pct(summary['strict_complete_fraction'])} strict, "
