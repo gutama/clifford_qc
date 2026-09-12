@@ -266,8 +266,14 @@ def layer_stack() -> None:
     # unlabelled in the gutter and named once below, which is legible at column
     # width where three rotated captions are not.
     _arrow(right, (1.05, 3.95), (1.05, 5.15), dashed=True, color="#b71c1c")
-    _arrow(right, (1.05, 1.75), (1.05, 3.35), dashed=True, color="#b71c1c")
-    _arrow(right, (8.75, 2.75), (8.75, 0.75), dashed=True, color="#1565c0")
+    right.plot([8.55, 8.95, 8.95], [1.66, 1.66, 4.06],
+               linestyle="--", linewidth=0.8, color="#b71c1c")
+    _arrow(right, (8.95, 4.06), (8.55, 4.06),
+           dashed=True, color="#b71c1c")
+    right.plot([8.55, 9.5, 9.5], [2.86, 2.86, 0.49],
+               linestyle="--", linewidth=0.8, color="#1565c0")
+    _arrow(right, (9.5, 0.49), (8.55, 0.49),
+           dashed=True, color="#1565c0")
     right.text(
         1.25, -0.32,
         "red upward: measurement $\\to$ subspace; kernel $\\to$ backends",
@@ -299,10 +305,13 @@ def evidence_path() -> None:
         (7.5, 2.25, 2.4, 0.95, "Sampling backend", "GroupSample per setting", "#fff3cd"),
     ]
     lower = [
-        (0.1, 0.5, 1.9, 0.95, "Cumulative cache", "a shared word is\npaid for once", "#fff3cd"),
-        (2.2, 0.5, 1.75, 0.95, "Word functional", "linear read of\ncached words", "#f3e5f5"),
-        (4.15, 0.5, 1.9, 0.95, "Confidence bound", "empirical Bernstein,\nSidak, Jeffreys", "#f3e5f5"),
-        (6.25, 0.5, 3.65, 0.95, "Labelled interval",
+        (7.5, 0.5, 2.4, 0.95, "Cumulative cache",
+         "a shared word is\npaid for once", "#fff3cd"),
+        (5.5, 0.5, 1.75, 0.95, "Word functional",
+         "linear read of\ncached words", "#f3e5f5"),
+        (3.4, 0.5, 1.85, 0.95, "Confidence bound",
+         "empirical Bernstein,\nSidak, Jeffreys", "#f3e5f5"),
+        (0.1, 0.5, 3.05, 0.95, "Labelled interval",
          "exact | asymptotic | finite sample | heuristic", "#ffe0b2"),
     ]
     for x, y, w, h, title, subtitle, color in row + lower:
@@ -310,13 +319,14 @@ def evidence_path() -> None:
     for index in range(len(row) - 1):
         x, y, w, h = row[index][0], row[index][1], row[index][2], row[index][3]
         _arrow(ax, (x + w, y + h / 2), (row[index + 1][0], y + h / 2))
-    _arrow(ax, (8.7, 2.25), (8.1, 1.45))
+    _arrow(ax, (8.7, 2.25), (8.7, 1.45))
     for index in range(len(lower) - 1):
         x, y, w, h = lower[index][0], lower[index][1], lower[index][2], lower[index][3]
-        _arrow(ax, (x + w, y + h / 2), (lower[index + 1][0], y + h / 2))
-    ax.plot([1.05, 6.45], [1.78, 1.78], linestyle="--", linewidth=0.7,
+        next_x = lower[index + 1][0] + lower[index + 1][2]
+        _arrow(ax, (x, y + h / 2), (next_x, y + h / 2))
+    ax.plot([8.7, 6.45], [1.78, 1.78], linestyle="--", linewidth=0.7,
             color="#1565c0")
-    ax.plot([1.05, 1.05], [1.45, 1.78], linestyle="--", linewidth=0.7,
+    ax.plot([8.7, 8.7], [1.45, 1.78], linestyle="--", linewidth=0.7,
             color="#1565c0")
     _arrow(ax, (6.45, 1.78), (6.5, 2.25), dashed=True, color="#1565c0")
     ax.text(3.75, 1.87, "covariance-aware variance feeds the allocator",
