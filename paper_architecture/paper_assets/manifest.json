@@ -20,7 +20,7 @@
     "layer_stack.pdf": {
       "architecture_sources_sha256": "c55ceed7b954f818ebc385619e376efc937cb3a2406f000a28448a77361a1f88",
       "sources": {
-        "paper_architecture/data/source_census.json": "be4c40c71fe1423ee98c9592cf729b3b3c7e4eb8221c2a2a68e471521133ddab",
+        "paper_architecture/data/source_census.json": "7a0c83598ec2438bd16f0e0ea222723d5892d09fef6ec58a6f9ad1eaaf69c3c2",
         "paper_architecture/make_tables.py": "815a97ee70ef7f38ac6b42f8fcc156f033a8128eea0fac13699c59fab18ac124"
       }
     }
