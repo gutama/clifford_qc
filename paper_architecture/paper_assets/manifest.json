@@ -1,0 +1,38 @@
+{
+  "figures": {
+    "architecture_flow.pdf": {
+      "asset_git_blob_sha": "d78a1ccb64fb1656f60f96bb79585f2915f6511b",
+      "sources": {}
+    },
+    "cost_bracket.pdf": {
+      "asset_git_blob_sha": "28c9705876d867ec2c9f3fce78ad04d100efb659",
+      "sources": {
+        "benchmarks/reference_results/protocol_cost.json": "a1b5bea91d5924ae6c6878baf83e9d8b6b10ad107f4c3a2ab1644ddee1adff59"
+      }
+    },
+    "evidence_path.pdf": {
+      "asset_git_blob_sha": "1b3924dd554094ee7445ad75da323ff654d5935d",
+      "sources": {}
+    },
+    "hierarchy_tradeoff.pdf": {
+      "asset_git_blob_sha": "ec790ae1f7b3bf13a03d3f8774713a045c91bf4c",
+      "sources": {
+        "benchmarks/reference_results/clifford_hierarchy_beh2_v2.json": "18d64f3e2e1bf3a22edadf58418a3103db734459735f7ecc9e6217f9c596bd4d",
+        "benchmarks/reference_results/clifford_hierarchy_h4_v2.json": "adc81de5120986377f18735d3166f73348b67e2271c9d715d054568d391ce4bb"
+      }
+    },
+    "layer_stack.pdf": {
+      "asset_git_blob_sha": "e125a689bff2802c955cfad873895e8788653c5d",
+      "architecture_sources_sha256": "c55ceed7b954f818ebc385619e376efc937cb3a2406f000a28448a77361a1f88",
+      "sources": {
+        "paper_architecture/data/source_census.json": "c3ffa0c60ab39e3d7815d79a4af60a1c1e957751ea31e4b3d1c8e921eca6e0c7",
+        "paper_architecture/make_tables.py": "724dbe9ec8693d17ea497bf4029dd114a0ea9a332355b1e810e13f3fdf29cf7a"
+      }
+    }
+  },
+  "generator": {
+    "path": "paper_architecture/make_figures.py",
+    "sha256": "da2c3f4063864b156ec2cc5339d9c161f0a846173d00563a689dbba77c9d0644"
+  },
+  "schema": "clifford_qc.architecture_figure_manifest.v1"
+}
