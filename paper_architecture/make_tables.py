@@ -360,15 +360,18 @@ def gate_census() -> dict:
     }
 
 
-EVIDENCE_KEYS = ("evidence_tier", "evidence", "evidence_role")
+EVIDENCE_KEYS = (
+    "evidence_tier", "evidence", "evidence_role", "evidence_tier_basis",
+)
 
 
 def _declaration_form(payload: object) -> str:
     """How one committed record declares the evidence its numbers carry.
 
     ``evidence_role`` is not a tier: it says what a record is for, not what
-    kind of number it holds.  Counting it as a tier inflates the coverage this
-    paper reports on itself, so it gets its own category.
+    kind of number it holds.  ``evidence_tier_basis`` explains a declaration
+    but is likewise not a tier by itself.  Both are digested; neither inflates
+    the tier coverage this paper reports on itself.
     """
     if not isinstance(payload, dict):
         return "none"
@@ -396,6 +399,8 @@ def _declaration_form(payload: object) -> str:
         return "role_with_nested_tier" if nested_tier else "role_only"
     if nested_declaration:
         return "nested_in_subobject"
+    if isinstance(payload.get("evidence_tier_basis"), str):
+        return "basis_only"
     return "none"
 
 
@@ -434,6 +439,7 @@ def record_census() -> dict:
         "per_quantity_mapping": [],
         "role_with_nested_tier": [],
         "role_only": [],
+        "basis_only": [],
         "nested_in_subobject": [],
         "none": [],
     }
@@ -512,6 +518,7 @@ def evidence_coverage_table(census: dict) -> None:
         "per_quantity_mapping": "Per-quantity mapping",
         "role_with_nested_tier": "Role plus nested tier",
         "role_only": "Role, not a tier",
+        "basis_only": "Tier basis, not a tier",
         "nested_in_subobject": "Nested in sub-object",
         "none": "No evidence",
     }

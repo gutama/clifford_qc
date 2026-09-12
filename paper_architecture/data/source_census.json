@@ -43,13 +43,14 @@
       "protocol_cost.json": "778eeeaed1ead49e",
       "qr3b_instance_preflight.json": "392bef0978fe1bad",
       "r3b_margin_stop_probe.json": "392bef0978fe1bad",
-      "r3c_lih_full_cost.json": "fe9deeebdc362a5c",
-      "r3d_qr3_refinement.json": "5509aa8b44de12a0",
+      "r3c_lih_full_cost.json": "3241539b72da4e6a",
+      "r3d_qr3_refinement.json": "bc59e8f47d6eb37c",
       "r4a_contextual_screen.json": "f6a33f1aa225c4dd",
       "warm_start_h4.json": "a3981028c447b11d"
     },
     "distinct_top_level_tiers": 5,
     "examples": {
+      "basis_only": null,
       "nested_in_subobject": "clifford_hierarchy_beh2.json",
       "none": "clifford_hierarchy_beh2_v2.json",
       "per_quantity_mapping": "fcidump_h4.json",
@@ -58,6 +59,7 @@
       "top_level_tier": "configuration_packets.json"
     },
     "forms": {
+      "basis_only": 0,
       "nested_in_subobject": 4,
       "none": 5,
       "per_quantity_mapping": 3,

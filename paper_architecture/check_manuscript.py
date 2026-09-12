@@ -276,10 +276,10 @@ def main() -> int:
                         f"{ncol}: {line[:60]}")
 
     # A hand-typed label column is fine; a hand-typed number is what goes stale.
+    # Header rows stay in the scan: conceptual notation such as $k=1$ is
+    # removed by the allowlist, while a result typed into a header must fail.
     for _, body in _tabulars(text):
         inline = re.sub(r"\\input\{[^}]+\}", "", body)
-        if r"\colrule" in inline:
-            inline = inline.split(r"\colrule", 1)[1]
         for line in inline.splitlines():
             line = line.strip()
             if not line.endswith(r"\\") or line.startswith("%"):

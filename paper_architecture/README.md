@@ -11,8 +11,9 @@ measurement and solver paths into committed records where declared — and the p
 what the second commitment returned when it was applied: a certified shot
 reduction that one device card refuses to price, an accuracy-matched optimum
 that changes with the card and estimator on the priced instance, a bank that is never
-priced because its own bias exceeds the target, two preregistered screens that
-returned no result, a reformulation retired against its own falsifier, and a
+priced because its own bias exceeds the target, a value-rebuilt mapping screen
+and a preregistered contextual screen that returned no result, a reformulation
+retired against its own falsifier, and a
 coverage census showing where the contract is not yet enforced.
 
 There is no advantage claim in this paper, and every device cost in it is

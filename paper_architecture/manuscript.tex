@@ -92,10 +92,11 @@ sparse-connectivity device card refuses \cqcSCInadmissibleSettings{} of those
 instance, the accuracy-matched block size varies with the card and estimator;
 an H$_4$ bank is never priced at all because its own subspace
 bias of \cqcHFourBias{}~mHa exceeds the \cqcTargetMilliHartree{}~mHa target.
-Two preregistered screens returned no result: mapping spread is not smaller
-than instance spread structurally and stays indeterminate after refinement, and
-a contextual-restriction screen admitted none of its \cqcRFourARungs{} rungs and
-stopped before drawing a sample.  We also report where the contract is not yet
+Two screens returned no result: the value-rebuilt mapping comparison found no
+structural separation and stayed indeterminate after refinement, while the
+preregistered contextual-restriction screen admitted none of its
+\cqcRFourARungs{} rungs and stopped before drawing a sample.  We also report
+where the contract is not yet
 enforced: only \cqcRecordsLabelled{} of \cqcJsonRecords{} committed JSON records
 carry a single top-level evidence tier.  None of this is a hardware result, a
 scaling result, or an advantage claim.  The contribution is an architecture in
@@ -390,10 +391,11 @@ matters: \cqcGatesAutomatic{} run on every pull request, while
 \cqcGatesDispatch{} require a manual dispatch.  Of that dispatch-only set, all
 but the separate environment-consistency audit are sampled gates that draw
 replicas and cost runner-hours.
-\cqcGatesAbsent{} exist in the repository but
-in no workflow at all.  Each gate that does run is its own named step, and each
-executes even after an earlier one fails, so that a drift suite reports every
-symptom rather than the first.
+\cqcGatesAbsent{} exist in the repository but in no workflow at all.  The short
+automatic gates are individual named steps and use continuation guards.
+Structural and sampled gates are separately named matrix jobs whose matrices
+disable fail-fast.  Thus a drift suite reports every symptom rather than the
+first within each execution class.
 
 \begin{table}
   \caption{What each class of benchmark gate asserts.  Counts are recomputed
@@ -933,8 +935,9 @@ result could otherwise be chosen after the fact.  The evidence we offer for the
 architecture is the evidence it produced, including a certified shot reduction
 that one device card refuses to price, an accuracy-matched optimum that belongs
 to the card rather than the Hamiltonian, a bank that is never priced because its
-own bias exceeds the target, two preregistered screens that returned no result,
-a reformulation retired against its own falsifier, and a coverage census that
+own bias exceeds the target, a value-rebuilt mapping screen and a
+preregistered contextual screen that returned no result, a reformulation
+retired against its own falsifier, and a coverage census that
 shows where the contract is not yet enforced.  Not one of these is an advantage
 claim, and that is the point: the architecture's value is measured by what it
 would not let us say.

@@ -362,9 +362,10 @@ Four properties of this layer are load-bearing:
   environment-consistency audit. `check_summaries.py` and
   `check_regenerated_record.py` are the two absent from the workflow.
 
-- **One named step per gate.** CI runs each as its own step with
-  `if: !cancelled()`, so a drift suite reports every symptom rather than
-  stopping at the first.
+- **One visible unit per gate.** The short automatic gates are individual named
+  steps with `if: !cancelled()`. Structural and sampled gates are separately
+  named matrix jobs with `fail-fast: false`, so a drift suite reports every
+  symptom rather than stopping at the first within either execution class.
 - **Thread pinning.** CI sets `OMP_NUM_THREADS=1` because threaded BLAS
   reductions sum in a thread-count-dependent order — `eigvalsh` returns four
   different last bits across `OMP_NUM_THREADS` 1..4. This closes the one source
