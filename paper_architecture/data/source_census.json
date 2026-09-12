@@ -53,14 +53,16 @@
       "nested_in_subobject": "protocol_axis.json",
       "none": "clifford_hierarchy_beh2.json",
       "per_quantity_mapping": "fcidump_h4.json",
-      "role_only": "qr3b_instance_preflight.json",
+      "role_only": null,
+      "role_with_nested_tier": "qr3b_instance_preflight.json",
       "top_level_tier": "configuration_packets.json"
     },
     "forms": {
       "nested_in_subobject": 1,
       "none": 8,
       "per_quantity_mapping": 3,
-      "role_only": 2,
+      "role_only": 0,
+      "role_with_nested_tier": 2,
       "top_level_tier": 11
     },
     "json_records": 25,
@@ -123,7 +125,7 @@
     },
     "package_lines": 22495,
     "package_modules": 92,
-    "test_lines": 22488,
+    "test_lines": 22501,
     "test_modules": 101
   }
 }

@@ -19,13 +19,14 @@
     },
     "layer_stack.pdf": {
       "sources": {
-        "paper_architecture/data/source_census.json": "87c63ba911664cb56d41b9861b4e54077e4f46c018758dfe042317cd225a0c61"
+        "paper_architecture/data/source_census.json": "66a04d5d57e355209612d191fbe288f894d8eb38ad52797ecd198bf47b0dce1c",
+        "paper_architecture/make_tables.py": "4ef07b187b3efee2b3dacd7c87b66538d602161b9edf9b110fe71b79d98274b2"
       }
     }
   },
   "generator": {
     "path": "paper_architecture/make_figures.py",
-    "sha256": "225eaeb1ba0b1febd8408a453b92e10e4d2cc0040232236639abd068e342daff"
+    "sha256": "a43f33a7318425c2ca97192f42b145bc5f4ab0f3b8f6be723a5c506304cf86dc"
   },
   "schema": "clifford_qc.architecture_figure_manifest.v1"
 }

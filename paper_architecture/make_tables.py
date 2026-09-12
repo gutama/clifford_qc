@@ -10,9 +10,10 @@ subject:
    layer, the producer/gate pairing, and how each committed record declares its
    evidence tier.  The census is written to ``data/source_census.json`` and
    ``check_manuscript.py`` re-derives it from the tree, so a module added
-   without a layer assignment, a checker added without a declared class, or a
-   record added without an evidence label fails the paper gate rather than
-   silently ageing a table.
+   without a layer assignment or a checker added without a declared class
+   fails the paper gate rather than silently ageing a table.  Records without
+   an evidence declaration are counted and exposed in the coverage table; the
+   current architecture does not reject them.
 
 Run ``python paper_architecture/make_tables.py`` after any change to either.
 """
@@ -372,11 +373,24 @@ def _declaration_form(payload: object) -> str:
             return "top_level_tier"
         if isinstance(value, dict):
             return "per_quantity_mapping"
+
+    def contains_declaration(node: object, keys: tuple[str, ...]) -> bool:
+        if isinstance(node, dict):
+            return any(key in keys for key in node) or any(
+                contains_declaration(value, keys) for value in node.values())
+        if isinstance(node, list):
+            return any(contains_declaration(value, keys) for value in node)
+        return False
+
+    nested_values = list(payload.values())
+    nested_tier = any(contains_declaration(
+        value, ("evidence_tier", "evidence")) for value in nested_values)
+    nested_declaration = any(contains_declaration(
+        value, EVIDENCE_KEYS) for value in nested_values)
     if isinstance(payload.get("evidence_role"), str):
-        return "role_only"
-    for value in payload.values():
-        if isinstance(value, dict) and any(k in value for k in EVIDENCE_KEYS):
-            return "nested_in_subobject"
+        return "role_with_nested_tier" if nested_tier else "role_only"
+    if nested_declaration:
+        return "nested_in_subobject"
     return "none"
 
 
@@ -413,6 +427,7 @@ def record_census() -> dict:
     forms: dict[str, list[str]] = {
         "top_level_tier": [],
         "per_quantity_mapping": [],
+        "role_with_nested_tier": [],
         "role_only": [],
         "nested_in_subobject": [],
         "none": [],
@@ -490,6 +505,7 @@ def evidence_coverage_table(census: dict) -> None:
     labels = {
         "top_level_tier": "Top-level tier",
         "per_quantity_mapping": "Per-quantity mapping",
+        "role_with_nested_tier": "Role plus nested tier",
         "role_only": "Role, not a tier",
         "nested_in_subobject": "Nested in sub-object",
         "none": "No evidence",
@@ -773,8 +789,8 @@ def numbers_macros(census: dict) -> None:
 
     Sec. VIII claims that no number in this manuscript is typed by hand.  That
     claim is only checkable if the prose quantities are generated too, so each
-    one is defined here and ``check_manuscript.py`` rejects a bare decimal or a
-    four-digit integer anywhere in the body text.
+    one is defined here and ``check_manuscript.py`` rejects every body numeral
+    outside the short allowlist of conceptual notation.
     """
     source = census["source"]
     gates = census["gates"]
@@ -822,6 +838,8 @@ def numbers_macros(census: dict) -> None:
         "cqcJsonRecords": _int(records["json_records"]),
         "cqcSeriesFiles": _int(records["series_files"]),
         "cqcRecordsLabelled": _int(records["forms"]["top_level_tier"]),
+        "cqcRecordsRoleWithNested": _int(
+            records["forms"]["role_with_nested_tier"]),
         "cqcRecordsRoleOnly": _int(records["forms"]["role_only"]),
         "cqcRecordsUnlabelled": _int(records["forms"]["none"]),
         "cqcRecordsPerQuantity": _int(records["forms"]["per_quantity_mapping"]),
@@ -899,6 +917,8 @@ def numbers_macros(census: dict) -> None:
         "cqcRFourARemovedFraction": _pct(
             r4a_arms["cs_qse"]["hamiltonian_removed_hs_fraction"]),
         "cqcRFourACSBias": _num(r4a_arms["cs_qse"]["bias_millihartree"], 2),
+        "cqcRFourACSACaseBias": _num(
+            r4a_arms["cs_acase"]["bias_millihartree"], 2),
         "cqcRFourAACaseBias": _num(r4a_arms["acase"]["bias_millihartree"], 4),
         "cqcRFourAACaseWords": _int(r4a_arms["acase"]["word_universe"]),
         "cqcRFourAAdmissibleBias": _num(
@@ -935,22 +955,27 @@ def main(tables: Path | None = None, data: Path | None = None) -> Path:
     and the source records, neither of which a hand edit touches.
     """
     global TABLES, DATA, CENSUS
-    if tables is not None:
-        TABLES = tables
-    if data is not None:
-        DATA, CENSUS = data, data / CENSUS.name
-    census = write_census()
-    layers_table(census)
-    evidence_coverage_table(census)
-    gate_classes_table(census)
-    hierarchy_table()
-    phase14b_table()
-    cost_table()
-    qr3_table()
-    r4a_table()
-    ledger_table()
-    numbers_macros(census)
-    return TABLES
+    original = TABLES, DATA, CENSUS
+    target_tables = tables if tables is not None else TABLES
+    target_data = data if data is not None else DATA
+    try:
+        TABLES = target_tables
+        DATA = target_data
+        CENSUS = target_data / original[2].name
+        census = write_census()
+        layers_table(census)
+        evidence_coverage_table(census)
+        gate_classes_table(census)
+        hierarchy_table()
+        phase14b_table()
+        cost_table()
+        qr3_table()
+        r4a_table()
+        ledger_table()
+        numbers_macros(census)
+        return target_tables
+    finally:
+        TABLES, DATA, CENSUS = original
 
 
 if __name__ == "__main__":

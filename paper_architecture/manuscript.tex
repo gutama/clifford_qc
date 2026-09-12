@@ -57,8 +57,8 @@
 
 \begin{document}
 
-\title{Making a simulation framework falsifiable: one operator\\
-representation, labelled evidence, and preregistered gates}
+\title{Making a simulation framework falsifiable: one Pauli-word\\
+algebra, labelled evidence, and preregistered gates}
 
 \author{Ginanjar Utama}
 \email{ginanjar.utama@gmail.com}
@@ -75,14 +75,15 @@ Bandung, Indonesia}
 \begin{abstract}
 Quantum simulation software is normally presented through what it can compute.
 We present \pkg{} through what it is built to refuse.  Two architectural
-commitments carry the design.  First, one sparse Pauli-word operator type
-represents states, gates, observables, channels, Jordan--Wigner generators and
-fermionic ladder operators alike, so there is no conversion boundary between
-circuit and operator descriptions; the package is \cqcModules{} modules and
+commitments carry the design.  First, one sparse Pauli-word algebra underlies
+the numerical \texttt{MV} type and the public \texttt{PauliSum}/program
+intermediate representation; conversion changes the container exactly, not
+the algebraic basis.  The package is \cqcModules{} modules and
 \cqcLines{} physical lines against \cqcTestLines{} lines of tests.  Second,
-every number carries the kind of evidence it is, from the measurement layer
-through the solvers into committed records, and benchmark gates compare against
-that label.  We report what the second commitment produced.  A dyadic
+typed numerical paths carry the kind of evidence they produce from the
+measurement layer through the solvers, and newer committed records preserve
+that label for benchmark gates.  We report what the second commitment
+produced.  A dyadic
 block-commuting hierarchy reduces a BeH$_2$ bank from \cqcBeHSettingsQWC{} to
 \cqcBeHSettingsFull{} compiled settings and certifies the same Ritz functional
 at \cqcShotRatio{} of the qubit-wise-commuting shot budget, while a
@@ -130,8 +131,9 @@ Clifford algebra $\mathrm{Cl}(2n,\mathbb{C}) \cong M(2^n,\mathbb{C})$, and it
 takes the second half of the pipeline as its subject.  The representation and
 the solvers are described in companion manuscripts
 \cite{utama2026operatorcentric}; here they are the setting, not the claim.  The
-claim is that two architectural commitments --- one representation with no
-conversion boundary, and an evidence label attached to every number --- make a
+claim is that two architectural commitments --- one algebra shared across an
+explicit intermediate-representation boundary, and evidence labels carried by
+the typed numerical paths --- make a
 particular class of over-claim structurally difficult, and that the resulting
 evidence record is unusually full of results that did not work.
 
@@ -168,7 +170,7 @@ PennyLane, \textsc{pytket}, OpenFermion or PyZX, which \pkg{} reaches through
 this paper is a logical accounting under an explicitly illustrative device
 card, and every card in the records carries a field saying so.
 
-\section{One representation, and the seams around it}
+\section{One algebra, and the seams around it}
 \label{sec:architecture}
 
 \subsection{The end-to-end contract}
@@ -198,15 +200,18 @@ and solver interface.
 
 \subsection{The kernel}
 
-The package has one operator type.  A multivector \texttt{MV} is a sparse map
-from packed Pauli-word codes to complex coefficients, two bits per qubit, with
-multiplication implemented as exclusive-or, and-mask and population count
-modulo four.  States, gates, observables, Kraus channels, Jordan--Wigner
-Clifford generators and fermionic creation and annihilation operators are all
-this one type.  The consequence that matters architecturally is negative: there
-is no conversion boundary between ``circuit land'' and ``operator land'', so no
-layer above the kernel has to own a translation, and no benchmark has to
-declare which side of a translation it measured.
+The numerical kernel's canonical operator type is the multivector \texttt{MV}, a
+sparse map from packed Pauli-word codes to complex coefficients, two bits per
+qubit, with multiplication implemented as exclusive-or, and-mask and
+population count modulo four.  States, gates, Kraus channels, Jordan--Wigner
+Clifford generators and fermionic creation and annihilation operators lower to
+this type.  The public program intermediate representation also exposes a
+distinct immutable \texttt{PauliSum} container for Hamiltonians and
+observables.  Its \texttt{to\_mv} and \texttt{from\_mv} boundary is exact and
+uses the same packed word codes; it is a real container conversion, but not a
+change of algebraic basis or operator semantics.  Benchmarks therefore need
+not own a basis-translation convention, while the architecture still names
+the boundary that the public API actually has.
 
 Three distinct pairings are defined on \texttt{MV} and are deliberately not
 interchangeable; the reference-state pairing used to reconstruct projected
@@ -224,8 +229,9 @@ rather than as a resource saving.
   source tree whenever this manuscript is rebuilt.  (b) The layer stack.  Solid
   arrows are import-time dependencies, which point downward only: no package
   initialization reaches upward, so importing a lower layer never drags a
-  higher one in.  Dashed arrows are genuine upward runtime edges deferred to
-  call time.  The deferral buys initialization order, not independence, and
+  higher one in.  Red dashed arrows are genuine upward runtime edges deferred
+  to call time; the blue dashed arrow is a downward call into an optional
+  bridge.  The deferral buys initialization order, not independence, and
   Sec.~\ref{sec:architecture} states them individually rather than claiming an
   acyclic runtime graph.}
   \label{fig:layers}
@@ -347,9 +353,9 @@ flattering table in this paper.  Of \cqcJsonRecords{} committed JSON records,
 \cqcDistinctTiers{} distinct tier strings; \cqcRecordsPerQuantity{} declare a
 per-quantity mapping instead, because their producers report several quantities
 at different tiers in one file; \cqcRecordsNested{} nests the tier inside a
-sub-object; \cqcRecordsRoleOnly{} declare an evidence \emph{role} --- what the
-record is for --- with no tier at all, which is a different statement and is
-not counted as one here; and \cqcRecordsUnlabelled{} carry no record-level
+sub-object; \cqcRecordsRoleWithNested{} declare an evidence \emph{role} at the
+top level and tiers inside sub-objects; \cqcRecordsRoleOnly{} carry a role with
+no tier at all; and \cqcRecordsUnlabelled{} carry no record-level
 evidence field whatsoever.  A further \cqcSeriesFiles{} series files --- line-delimited JSON, CSV and
 Markdown summaries --- carry no record-level field by construction.
 
@@ -722,8 +728,10 @@ unrestricted quantum-subspace-expansion reference arm overruns the
 word-universe ceiling several times over, at \cqcRFourAFullWords{} words.  The
 two contextually restricted arms come in far under the ceiling, some at a
 handful of words, but they remove \cqcRFourARemovedFraction{} of the
-Hamiltonian's non-identity Hilbert--Schmidt norm and carry a bias of
-\cqcRFourACSBias{}~mHa, an order of magnitude past the admissible budget.  The
+Hamiltonian's non-identity Hilbert--Schmidt norm.  The CS-QSE arm carries a
+bias of \cqcRFourACSBias{}~mHa and the CS-A-CASE arm carries
+\cqcRFourACSACaseBias{}~mHa, both an order of magnitude past the admissible
+budget.  The
 unrestricted operator-response arm is the only one admissible at every rung, at
 \cqcRFourAACaseBias{}~mHa over \cqcRFourAACaseWords{} words, and one admissible
 arm does not make a rung: the screen compares four arms or it compares nothing.
@@ -905,8 +913,9 @@ evidence of Table~\ref{tab:evidence} it is the most valuable one available.
 \label{sec:conclusion}
 
 We have described \pkg{} as an architecture rather than as a capability list:
-one sparse Pauli-word operator type with no conversion boundary, an evidence
-label carried from the measurement layer into committed records, and a
+one sparse Pauli-word algebra shared by a numerical kernel and an explicit
+program-IR container, evidence labels carried from the measurement layer into
+committed records where declared, and a
 benchmark layer of paired producers and gates with preregistration where a
 result could otherwise be chosen after the fact.  The evidence we offer for the
 architecture is the evidence it produced, including a certified shot reduction

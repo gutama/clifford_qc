@@ -18,6 +18,11 @@ os.environ.setdefault("MPLCONFIGDIR", "/tmp/clifford-qc-mpl")
 
 import numpy as np
 
+try:  # package import in tests/tools versus direct script execution
+    from .make_tables import LAYERS
+except ImportError:  # pragma: no cover - exercised by the documented CLI
+    from make_tables import LAYERS
+
 # Matplotlib is a figure-time dependency, not an import-time one.  The package
 # keeps optional dependencies out of every module initializer for the same
 # reason, and check_manuscript.py imports this module for FIGURE_SOURCES alone:
@@ -28,6 +33,7 @@ HERE = Path(__file__).resolve().parent
 ROOT = HERE.parent
 ASSETS = HERE / "paper_assets"
 CENSUS = HERE / "data" / "source_census.json"
+TABLE_GENERATOR = HERE / "make_tables.py"
 RECORDS = ROOT / "benchmarks" / "reference_results"
 HIER_H4 = RECORDS / "clifford_hierarchy_h4_v2.json"
 HIER_BEH2 = RECORDS / "clifford_hierarchy_beh2_v2.json"
@@ -71,7 +77,7 @@ def _source_digest(path: Path) -> str:
 
 FIGURE_SOURCES: dict[str, tuple[Path, ...]] = {
     "architecture_flow.pdf": (),
-    "layer_stack.pdf": (CENSUS,),
+    "layer_stack.pdf": (CENSUS, TABLE_GENERATOR),
     "evidence_path.pdf": (),
     "hierarchy_tradeoff.pdf": (HIER_H4, HIER_BEH2),
     "cost_bracket.pdf": (PROTOCOL_COST,),
@@ -197,24 +203,15 @@ def layer_stack() -> None:
     """Measured size of every layer, beside the edges that cross them."""
     plt = _pyplot()
     census = json.loads(CENSUS.read_text(encoding="utf-8"))["source"]
-    labels = [
-        ("Subspace solvers", "subspace"),
-        ("Measurement", "measurement"),
-        ("Problem definition", "models"),
-        ("Algebra kernel", "kernel"),
-        ("Algorithms", "algorithms"),
-        ("Program IR", "ir"),
-        ("Execution", "backends"),
-        ("Evidence and reproduction", "evidence"),
-        ("Optional bridges", "bridges"),
-        ("Orchestration", "orchestration"),
-        ("Package surface", "surface"),
-    ]
+    labels = sorted(
+        LAYERS, key=lambda item: census["layers"][item[1]]["lines"],
+        reverse=True)
     lines = [census["layers"][key]["lines"] for _, key in labels]
     modules = [census["layers"][key]["modules"] for _, key in labels]
 
     fig, (left, right) = plt.subplots(
-        1, 2, figsize=(7.1, 2.95), gridspec_kw={"width_ratios": [1.0, 1.12]})
+        1, 2, figsize=(7.1, 3.15),
+        gridspec_kw={"width_ratios": [0.92, 1.18]})
 
     position = np.arange(len(labels))[::-1]
     left.barh(position, lines, height=0.66, color="#90a4ae",
@@ -227,12 +224,12 @@ def layer_stack() -> None:
     left.set_xlabel("physical lines (annotated: lines / modules)")
     left.set_xlim(0, max(lines) * 1.28)
     left.spines[["top", "right"]].set_visible(False)
-    left.set_title("(a) Size of each declared layer", loc="left")
+    left.set_title("(a) Declared-layer size", loc="left")
 
     right.set_xlim(0, 10)
     right.set_ylim(-0.75, 7.6)
     right.axis("off")
-    right.set_title("(b) Import-time edges, and the deferred ones", loc="left")
+    right.set_title("(b) Import and deferred edges", loc="left")
     # Boxes occupy the middle; the two gutters carry the deferred upward edges,
     # so no arrow crosses a box it does not touch.
     tiers = [
@@ -270,14 +267,18 @@ def layer_stack() -> None:
     # width where three rotated captions are not.
     _arrow(right, (1.05, 3.95), (1.05, 5.15), dashed=True, color="#b71c1c")
     _arrow(right, (1.05, 1.75), (1.05, 3.35), dashed=True, color="#b71c1c")
-    _arrow(right, (8.75, 2.75), (8.75, 0.75), dashed=True, color="#b71c1c")
+    _arrow(right, (8.75, 2.75), (8.75, 0.75), dashed=True, color="#1565c0")
     right.text(
-        1.25, -0.45,
-        "deferred upward edges: measurement $\\to$ subspace, kernel $\\to$ "
-        "backends,\noptional bridges reached only by naming the module",
-        fontsize=5.8, color="#b71c1c", va="top")
+        1.25, -0.32,
+        "red upward: measurement $\\to$ subspace; kernel $\\to$ backends",
+        fontsize=5.6, color="#b71c1c", va="top")
+    right.text(
+        1.25, -0.62,
+        "blue downward: Program IR $\\to$ optional bridges (deferred)",
+        fontsize=5.6, color="#1565c0", va="top")
     right.text(1.25, 7.25,
-               "solid: executes at import      dashed: deferred to call time",
+               "solid: import-time    red dashed: upward runtime    "
+               "blue dashed: optional bridge",
                fontsize=6.0, color="#37474f")
     fig.tight_layout()
     _save(fig, "layer_stack.pdf")

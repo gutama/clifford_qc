@@ -5,9 +5,9 @@ constraints that stop it over-claiming, and the record of what those
 constraints produced.
 
 The thesis is architectural, not a scoreboard. Two commitments carry it — one
-sparse Pauli-word operator type with no conversion boundary between circuit and
-operator descriptions, and an evidence label attached to every number from the
-measurement layer through to the committed records — and the paper's evidence is
+sparse Pauli-word algebra shared by the numerical `MV` kernel and an explicit
+`PauliSum`/program-IR container, and evidence labels carried by the typed
+measurement and solver paths into committed records where declared — and the paper's evidence is
 what the second commitment returned when it was applied: a certified shot
 reduction that one device card refuses to price, an accuracy-matched optimum
 that belongs to the card rather than the Hamiltonian, a bank that is never

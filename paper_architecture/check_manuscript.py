@@ -58,8 +58,8 @@ from make_figures import FIGURE_SOURCES  # noqa: E402
 # Notation the body prose may carry digits for.  Each is a name or an algebraic
 # form, never a measured quantity: a block size the text is discussing, a
 # chemical subscript, the dimension of the algebra, the document class.  The
-# scan below rejects every other digit, so a three-digit result typed into a
-# paragraph fails here rather than passing under a four-digit threshold.
+# scan below rejects every other digit, so a result typed into a paragraph
+# fails regardless of how many digits it contains.
 CONCEPTUAL_NUMERALS = (
     r"\$_\{?\d\}?\$",             # chemical subscripts: H$_4$, BeH$_2$
     r"\$k\s*=\s*[\dn]\$",          # a named block size: $k=1$, $k=n$

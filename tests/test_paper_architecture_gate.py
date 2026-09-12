@@ -1,10 +1,9 @@
 """The architecture manuscript's gate, at the points where it can go quiet.
 
-A checker that cannot fail protects nothing, and three of these checks were
-added because they were absent: the census counted an evidence *role* as a
-tier, a changed nested tier moved nothing the census compared, and a value
-edited by hand into a generated fragment passed a check that only re-derived
-the hashes of that fragment's inputs.  Each test below pins one of those.
+A checker that cannot fail protects nothing.  These tests pin failures already
+found in review: roles confused with tiers, nested declarations omitted from a
+census, scratch destinations leaking between generator calls, and hand-edited
+fragments accepted by a check that only re-derived their input hashes.
 """
 
 import json
@@ -33,6 +32,14 @@ def test_a_role_is_not_counted_as_a_tier():
     """
     assert make_tables._declaration_form(
         {"evidence_role": "scope_decision_only"}) == "role_only"
+
+
+def test_a_role_with_a_nested_tier_reports_both():
+    payload = {
+        "evidence_role": "scope_decision_only",
+        "protocol": {"evidence_tier": "asymptotic"},
+    }
+    assert make_tables._declaration_form(payload) == "role_with_nested_tier"
 
 
 def test_a_per_quantity_mapping_is_its_own_form():
@@ -141,3 +148,9 @@ def test_committed_fragments_match_a_fresh_generation():
                                       .read_text(encoding="utf-8"))
         fresh = json.loads((data / "source_census.json").read_text(encoding="utf-8"))
         assert committed_census == fresh
+
+
+def test_scratch_generation_restores_default_destinations(tmp_path):
+    original = make_tables.TABLES, make_tables.DATA, make_tables.CENSUS
+    make_tables.main(tables=tmp_path / "tables", data=tmp_path / "data")
+    assert (make_tables.TABLES, make_tables.DATA, make_tables.CENSUS) == original
