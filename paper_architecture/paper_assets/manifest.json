@@ -25,7 +25,7 @@
   },
   "generator": {
     "path": "paper_architecture/make_figures.py",
-    "sha256": "8f220af76481dcd97813c77dadc96c949f6ebad61ad2b979e8791b1f90bc5430"
+    "sha256": "225eaeb1ba0b1febd8408a453b92e10e4d2cc0040232236639abd068e342daff"
   },
   "schema": "clifford_qc.architecture_figure_manifest.v1"
 }

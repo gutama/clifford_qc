@@ -152,8 +152,9 @@ def architecture_flow() -> None:
     ax.text(0.05, 2.86, "claim path", fontsize=7.1, fontweight="bold",
             color="#263238", va="center")
     claim = [
-        (0.05, 1.55, 1.55, 0.92, "Preregistered plan",
-         "question + acceptance rule", "#eceff1"),
+        (0.05, 1.55, 1.55, 0.92, "Config / plan",
+         "acceptance rule\npreregistered when declared",
+         "#eceff1"),
         (1.88, 1.55, 2.15, 0.92, "Labelled result",
          "value + uncertainty + evidence", "#ffe0b2"),
         (4.31, 1.55, 2.15, 0.92, "Versioned record",
