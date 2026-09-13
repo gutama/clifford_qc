@@ -200,12 +200,18 @@ def _price(key: str, kind: str, model, generators) -> dict:
     }
     for layout, bank in packed.items():
         measured = bank.measured_storage_bytes()
-        rows_bytes = sum(store.nbytes() for store in bank._packed.values())
-        table_bytes = bank._word_table.nbytes()
+        table_bytes = measured["word_table_bytes"]
+        rows_bytes = measured["measured_container_bytes"] - table_bytes
+        # Three terms, not two. The packed buffers and the word table are pure
+        # numpy; the third is the distinct word-code integers, which this
+        # backend does not reference but which stay resident through the bank's
+        # own universe under either backend -- so both sides charge them once
+        # and the comparison stays like-for-like.
         row["layouts"][layout] = {
             "total_bytes": measured["measured_operator_bytes"],
             "row_bytes": rows_bytes,
             "word_table_bytes": table_bytes,
+            "shared_word_code_bytes": measured["measured_boxed_bytes"],
             "reserved_bytes": measured["reserved_operator_bytes"],
             "row_bytes_per_coefficient": rows_bytes / occurrences,
             "word_table_bytes_per_word": table_bytes / universe,

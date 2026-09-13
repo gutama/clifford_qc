@@ -57,78 +57,127 @@ PACKED_BYTES_PER_COEFFICIENT = 24
 
 
 class GlobalWordTable:
-    """The one canonical code-to-index map every packed row shares.
+    """The one canonical code-to-index map every packed row shares, on numpy.
 
     A Pauli word that appears in forty rows is one entry here and forty
-    four-byte indices there, where the object store holds one shared boxed
-    integer and forty dict slots pointing at it. The table is append-only:
-    indices are handed out in first-seen order and never move, because a row
-    already packed holds them.
+    four-byte indices there. The table is append-only: indices are handed out in
+    first-seen order and never move, because a row already packed holds them.
+
+    **It holds no Python objects, and that is the point.** The obvious
+    implementation -- a ``list`` of codes beside a ``dict`` mapping code to
+    index -- measured at ``101.4`` bytes per word: ``8.5`` of list pointers,
+    ``36.9`` of dict slots, ``28.0`` of boxed code integers and ``28.0`` of
+    boxed *index* integers, since every assigned index above CPython's
+    small-integer cache is its own object. Three of those four are avoidable,
+    and at the low-reuse end of the ladder they were enough to make the packed
+    representation cost *more* than the dictionaries it replaced.
+
+    What replaces them is an int64 array of codes in assignment order and an
+    open-addressed int32 slot array holding ``index + 1``, empty being zero.
+    Eight bytes of code and eight of slot -- the table runs at half load -- is
+    ``16`` bytes per word against ``101.4``.
+
+    The boxed code integers are not counted here any more, and that is a
+    statement about where they live rather than a saving: they are the same
+    objects ``MatrixElementBank._universe`` holds, which both storage backends
+    keep, so :meth:`MatrixElementBank.measured_storage_bytes` charges them once
+    at the bank level on either side. Dropping them from this table's own total
+    without charging them there would credit packing with an allocation it never
+    removed.
     """
 
-    __slots__ = ("_codes", "_index")
+    __slots__ = ("_codes", "_count", "_slots", "_shift")
 
-    def __init__(self) -> None:
-        self._codes: list[int] = []
-        self._index: dict[int, int] = {}
+    # Knuth's multiplicative constant, 2**64 / phi. Pauli word codes are dense
+    # small integers whose low bits carry the leading qubits' letters, so the
+    # identity hash a dict would use clusters badly under a power-of-two mask;
+    # multiplying and reading the *high* bits spreads them.
+    _MIX = 0x9E3779B97F4A7C15
+    _MASK64 = (1 << 64) - 1
+
+    def __init__(self, capacity: int = 1024) -> None:
+        shift = max(4, (capacity - 1).bit_length())
+        self._codes = np.empty(capacity, dtype=np.int64)
+        self._count = 0
+        self._slots = np.zeros(1 << shift, dtype=INDEX_DTYPE)
+        self._shift = shift
 
     def __len__(self) -> int:
-        return len(self._codes)
+        return self._count
+
+    def _probe(self, code: int) -> int:
+        """First slot for ``code``: its entry, or the empty one it would take."""
+        slots = self._slots
+        codes = self._codes
+        mask = len(slots) - 1
+        position = ((code * self._MIX) & self._MASK64) >> (64 - self._shift)
+        while True:
+            occupant = slots[position]
+            if occupant == 0 or codes[occupant - 1] == code:
+                return position
+            position = (position + 1) & mask
+
+    def _grow(self) -> None:
+        """Double the slot array and rehash; assigned indices do not move."""
+        self._shift += 1
+        self._slots = np.zeros(1 << self._shift, dtype=INDEX_DTYPE)
+        for index in range(self._count):
+            self._slots[self._probe(int(self._codes[index]))] = index + 1
 
     def intern(self, code: int) -> int:
         """Return this word's index, assigning the next one if it is new."""
-        existing = self._index.get(code)
-        if existing is not None:
-            return existing
-        if len(self._codes) >= MAX_WORDS:
+        position = self._probe(code)
+        occupant = self._slots[position]
+        if occupant != 0:
+            return int(occupant) - 1
+        if self._count >= MAX_WORDS:
             raise OverflowError(
                 f"the packed word table is limited to {MAX_WORDS} words by its "
                 f"{np.dtype(INDEX_DTYPE).name} index")
-        assigned = len(self._codes)
-        self._codes.append(code)
-        self._index[code] = assigned
+        if self._count == len(self._codes):
+            grown = np.empty(2 * len(self._codes), dtype=np.int64)
+            grown[:self._count] = self._codes[:self._count]
+            self._codes = grown
+        assigned = self._count
+        self._codes[assigned] = code
+        self._count += 1
+        # Half load. Open addressing with linear probing degrades sharply past
+        # about two thirds, and the slot array is four bytes a word, so buying
+        # the headroom is cheaper than paying the probe chains.
+        if 2 * self._count > len(self._slots):
+            self._grow()
+        else:
+            self._slots[position] = assigned + 1
         return assigned
 
     def lookup(self, code: int) -> int | None:
         """This word's index, or ``None`` when the table has never seen it."""
-        return self._index.get(code)
+        occupant = self._slots[self._probe(code)]
+        return int(occupant) - 1 if occupant != 0 else None
 
     def code(self, index: int) -> int:
-        return self._codes[index]
+        return int(self._codes[index])
 
     def codes(self, indices: Iterable[int]) -> list[int]:
-        return [self._codes[i] for i in indices]
+        return [int(self._codes[i]) for i in indices]
 
     def nbytes(self) -> int:
-        """What the table itself costs, containers and boxed objects together.
+        """The table's own arrays. No boxed object is counted, or held.
 
-        Reported separately from the rows because it scales differently: the
-        table is paid once per distinct *word*, the rows once per *occurrence*,
-        and on the committed molecular banks those differ by a factor of sixty
-        to a hundred and fifty. That ratio -- coefficient reuse -- is what
-        decides how much of the per-coefficient packing survives into the total.
-
-        Four populations, and the fourth is the one easy to miss: the mapping's
-        boxed *values*. Every assigned index above CPython's small-integer cache
-        is its own object, and omitting them understated this table by 1.42x in
-        the direction that flatters the packed backend. The boxed *keys* are
-        counted once here and are the same objects the bank's own ``_universe``
-        holds, which both backends pay for, so charging them here keeps the two
-        measurements on the same footing rather than crediting packing with an
-        allocation it never removed.
+        Excludes the boxed code integers deliberately: this table no longer
+        references them, and they remain resident through the bank's own word
+        universe under either storage backend, so the bank charges them once on
+        each side rather than this table charging them on one.
         """
-        import sys
-        total = sys.getsizeof(self._codes) + sys.getsizeof(self._index)
-        seen: set[int] = set()
-        for boxed in (*self._codes, *self._index.values()):
-            if id(boxed) in seen:
-                continue
-            seen.add(id(boxed))
-            total += sys.getsizeof(boxed)
-        return total
+        return self._codes.nbytes + self._slots.nbytes
+
+    def live_bytes(self) -> int:
+        """Bytes the live entries occupy, excluding growth slack."""
+        return (self._count * self._codes.dtype.itemsize
+                + len(self._slots) * self._slots.dtype.itemsize)
 
     def bytes_per_word(self) -> float:
-        return (self.nbytes() / len(self._codes)) if self._codes else 0.0
+        return (self.live_bytes() / self._count) if self._count else 0.0
 
 
 class _Buffer:

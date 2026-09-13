@@ -642,13 +642,28 @@ class MatrixElementBank:
                 boxed_bytes += sys.getsizeof(box)
         if self._storage == "packed":
             # The materialized rows above were built to be measured and are
-            # about to be dropped; what this bank retains is the packed
-            # buffers plus the word table they index into.
-            container_bytes = sum(store.nbytes() for store in self._packed.values())
-            reserved = sum(store.reserved_bytes() for store in self._packed.values())
-            boxed_bytes = self._word_table.nbytes()
-            shared_boxes = 0
+            # about to be dropped; what this bank retains is the packed buffers
+            # plus the word table they index into, neither of which holds a
+            # Python object.
+            container_bytes = (sum(store.nbytes() for store in self._packed.values())
+                               + self._word_table.live_bytes())
+            reserved = (sum(store.reserved_bytes() for store in self._packed.values())
+                        + self._word_table.nbytes())
+            # The distinct word-code integers, charged once. They are not in the
+            # packed table -- it is pure numpy -- but they are resident either
+            # way, because ``_universe`` holds them under both backends and so
+            # does the memoized word product. The object backend's walk above
+            # charges them once through its row keys, so charging them here
+            # keeps the two measurements on the same footing; omitting them
+            # would credit packing with an allocation it never removed.
             seen = set()
+            boxed_bytes = 0
+            for code in self._universe:
+                if id(code) in seen:
+                    continue
+                seen.add(id(code))
+                boxed_bytes += sys.getsizeof(code)
+            shared_boxes = 0
         measured = container_bytes + boxed_bytes
         # Through ``memory_estimate`` rather than a literal, so the packed model
         # this quotient is taken against cannot drift away from the one
@@ -669,6 +684,8 @@ class MatrixElementBank:
             "measured_container_bytes": container_bytes,
             "measured_boxed_bytes": boxed_bytes,
             "word_table_words": (len(self._word_table)
+                                 if self._word_table is not None else 0),
+            "word_table_bytes": (self._word_table.live_bytes()
                                  if self._word_table is not None else 0),
             "shared_boxed_slots": shared_boxes,
             "distinct_boxed_objects": len(seen),

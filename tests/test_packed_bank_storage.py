@@ -4,9 +4,11 @@ The quiet failures here are all ways of reporting a reduction that is not one.
 A byte ratio taken from a bank whose matrix elements moved measures a different
 bank. A ratio graded on the five convenient banks -- reuse 1.5 to 2.5, against
 the 35 to 155 of the banks that actually ran out of memory -- understates the
-gate by more than a factor of two. A record that dropped the bank where packing
-*costs* memory would describe a different phase. And a verdict written by hand
-would turn one graded clause of a three-clause go/no-go into "Phase 2M passes".
+gate by more than a factor of two. A net-loss list that stopped tracking the
+measurement, in either direction, would describe a different phase. A packed
+side that skipped an allocation the object side is charged for would report a
+reduction that is an accounting artifact. And a verdict written by hand would
+turn one graded clause of a three-clause go/no-go into "Phase 2M passes".
 
 These tests read the committed record rather than rebuilding it -- the producer
 prices ten banks under three backends and takes minutes -- and pin the contract
@@ -137,17 +139,35 @@ def test_the_threshold_is_separated(record):
             > model["highest_reuse_failing_threshold"])
 
 
-def test_the_bank_where_packing_costs_more_is_reported(record):
-    """Below some reuse the shared word table outweighs the slots it replaced.
+def test_net_loss_banks_are_reported_exactly(record):
+    """A bank where packing costs more must be named, and one that does not must not.
 
-    Reported rather than dropped: a record carrying only the wins would be
-    describing a different phase.
+    The list was non-empty before the word table moved off Python objects --
+    ``hubbard_2x2`` at reuse 1.51 measured 0.94x, worse than what it replaced.
+    It is empty now. The contract is that the list tracks the measurements
+    either way: a record carrying only the wins would be describing a different
+    phase, and one inventing a loss would be describing a different measurement.
     """
-    losses = record["reduction_model"]["banks_where_packing_costs_more"]
-    assert losses, "the measured ladder should reach a bank where packing is a loss"
-    by_bank = {row["bank"]: row for row in record["banks"]}
-    for bank in losses:
-        assert by_bank[bank]["layouts"]["interleaved"]["reduction"] < 1.0
+    reported = record["reduction_model"]["banks_where_packing_costs_more"]
+    measured = [row["bank"] for row in record["banks"]
+                if row["layouts"]["interleaved"]["reduction"] < 1.0]
+    assert reported == measured
+
+
+def test_no_bank_is_a_net_loss_after_the_table_moved_off_python_objects(record):
+    """What shrinking the word table bought at the bottom of the ladder."""
+    for row in record["banks"]:
+        for layout, priced in row["layouts"].items():
+            assert priced["reduction"] > 1.0, f"{row['bank']}/{layout}"
+
+
+def test_the_shared_word_code_integers_are_charged_on_the_packed_side(record):
+    """They are resident under either backend, so both must pay for them once."""
+    for row in record["banks"]:
+        for layout, priced in row["layouts"].items():
+            assert priced["shared_word_code_bytes"] > 0, f"{row['bank']}/{layout}"
+            assert (priced["row_bytes"] + priced["word_table_bytes"]
+                    + priced["shared_word_code_bytes"]) == priced["total_bytes"]
 
 
 def test_the_committed_banks_all_exceed_the_threshold(record):
@@ -199,8 +219,13 @@ def test_the_verdict_does_not_claim_phase_2m_passes(record):
     ("a faked layout byte-equality verdict",
      lambda r: r["layout_comparison"].update(byte_identical_on_every_bank=False),
      layout_problems),
-    ("a hidden net-loss bank",
-     lambda r: r["reduction_model"].update(banks_where_packing_costs_more=[]),
+    # Inventing a loss rather than hiding one: the measured list is empty now
+    # that the word table is numpy-backed, so clearing it would be a no-op and
+    # would test nothing. The contract is that the list tracks the measurement
+    # in both directions.
+    ("an invented net-loss bank",
+     lambda r: r["reduction_model"].update(
+         banks_where_packing_costs_more=["h4_M53_full"]),
      model_problems),
     ("an understated reuse span",
      lambda r: r["reduction_model"].update(reuse_span_factor=1.0),

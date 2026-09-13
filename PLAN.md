@@ -1077,17 +1077,29 @@ priced row whose equivalence check fails.
 
 *The reduction is a function of coefficient reuse, and that is the finding.* Packed
 rows cost exactly `24.00` bytes per coefficient on every bank — row-only that is
-`3.55`–`4.01x`. The shared word table costs `101.6`–`117.5` bytes per distinct
-*word*, so the total is `24 + table/reuse` with reuse `= T_coeff/W`. Measured over
-ten banks spanning `33.8x` in reuse, the total runs `0.94x` at reuse `1.51` to
-`3.56x` at reuse `50.88`. **At the bottom of that ladder packing is a net loss**:
-on `hubbard_2x2` the table costs more than the dict slots it replaced.
+`3.55`–`4.01x`. The rest is paid per distinct *word*, so the total is
+`24 + (table + shared codes)/reuse` with reuse `= T_coeff/W`. Measured over ten
+banks spanning `33.8x` in reuse, the total runs `1.72x` at reuse `1.51` to `3.73x`
+at reuse `50.88`.
+
+*The word table holds no Python objects, and shrinking it moved the threshold.*
+A `list` of codes beside a `dict` mapping code to index measured `101.4` bytes per
+word — `8.5` of list pointers, `36.9` of dict slots, `28.0` of boxed codes and
+`28.0` of boxed *index* integers. An int64 code array beside an open-addressed
+int32 slot array at half load measures `16.3`–`22.7`. Before that change
+`hubbard_2x2` at reuse `1.51` came out at `0.94x` — packing cost *more* than the
+dictionaries it replaced — and the lowest reuse clearing `3x` was `17.49`. After
+it, no bank is a net loss and the threshold falls to `9.60`. Retained bytes now
+decompose into three terms rather than two: the packed rows, the numpy table, and
+the distinct word-code integers, which the table no longer references but which
+stay resident through `_universe` under either backend — so both sides charge them
+once, and the checker fails a record reporting zero for them.
 
 *Which population the gate is read on is itself a scoping decision.* The five frozen
 mapping-axis banks sit at reuse `1.5`–`16.4`; the committed molecular banks that
 actually ran out of memory sit at `35.1`–`154.9`. Grading `3x` on the convenient
-banks would understate it by more than a factor of two. The measured threshold is
-separated — lowest reuse clearing `3x` is `17.49`, highest failing is `16.39` — and
+banks would understate it. The measured threshold is separated — lowest reuse
+clearing `3x` is `9.60`, highest failing is `7.16` — and
 every committed bank exceeds it, so the graded outcome is
 `reached_above_a_measured_reuse_threshold_committed_banks_exceed_it`. The committed
 banks are quoted from 2M-A rather than rebuilt, and their ratio is resident
@@ -1098,9 +1110,11 @@ reuse.
 It does not grade 2M-C's streaming bound — no eviction policy exists — and it does
 not grade the stretched-H₂O `M = 31` end-to-end test, which stays 2M-D's. **Nothing
 in it licenses a claim that Phase 2M passes.** Two costs are recorded rather than
-smoothed over: an uncached re-solve is ~20x slower and a build ~1.4x, because every
-coefficient crosses a numpy-to-Python boundary to keep the arithmetic bit-identical;
-and the word table, now the dominant per-word overhead, is untouched by row packing.
+smoothed over: an uncached re-solve is ~20x slower, because every coefficient
+crosses a numpy-to-Python boundary to keep the arithmetic bit-identical; and the
+numpy table's probe is a Python loop where a `dict` lookup was C, measuring `922` ns
+against `138` on a path that runs once per coefficient occurrence — about `15%` on a
+packed bank build. Vectorising that probe over a whole row is the obvious follow-up.
 `interleaved` and `soa` hold identical bytes on every bank — checked, not assumed —
 with `soa` marginally slower, so `interleaved` is the default.
 

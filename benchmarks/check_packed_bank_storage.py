@@ -8,10 +8,14 @@ re-derived from its own contents rather than trusted:
   ``H`` bitwise equal, identical labels, and no mismatched structural field. A
   byte reduction quoted from a bank whose answers moved is worth nothing, so
   this is checked before any byte comparison is believed;
-* every byte figure closes against its own parts -- rows plus word table is the
-  total, per-coefficient and per-word rates are the quotients they claim to be,
-  reserved bytes never understate live bytes, and the packed rows land on
-  exactly the modelled bytes per coefficient;
+* every byte figure closes against its own parts -- packed rows, word table and
+  the shared word-code integers sum to the total, per-coefficient and per-word
+  rates are the quotients they claim to be, reserved bytes never understate live
+  bytes, and the packed rows land on exactly the modelled bytes per coefficient;
+* the shared word-code integers are charged on the packed side too. The numpy
+  table does not reference them, but they stay resident through the bank's own
+  word universe under either backend and the object side charges them, so
+  omitting them here would credit packing with an allocation it never removed;
 * the two layouts hold identical bytes on every bank, which is what makes the
   reduction unambiguous about which representation produced it;
 * the priced set spans the declared factor in coefficient reuse, and the
@@ -94,6 +98,7 @@ INTERPRETER_DEPENDENT_FIELDS = frozenset({
     "reserved_bytes",
     "reuse_span_factor",
     "row_only_reduction",
+    "shared_word_code_bytes",
     "total_bytes",
     "total_bytes_per_coefficient",
     "word_table_bytes",
@@ -213,9 +218,19 @@ def byte_problems(record: dict) -> list[str]:
             problems.append(f"{row['bank']}: object bytes per coefficient is not the quotient")
         for layout, priced in row["layouts"].items():
             where = f"{row['bank']}/{layout}"
-            if priced["row_bytes"] + priced["word_table_bytes"] != priced["total_bytes"]:
+            parts = (priced["row_bytes"] + priced["word_table_bytes"]
+                     + priced["shared_word_code_bytes"])
+            if parts != priced["total_bytes"]:
                 problems.append(
-                    f"{where}: rows plus word table is not the reported total")
+                    f"{where}: packed rows, word table and shared word-code "
+                    f"integers sum to {parts}, not the reported "
+                    f"{priced['total_bytes']}")
+            if priced["shared_word_code_bytes"] <= 0:
+                problems.append(
+                    f"{where}: no shared word-code integers are charged. They are "
+                    "resident under either backend and the object side charges "
+                    "them, so omitting them here credits packing with an "
+                    "allocation it never removed")
             if priced["row_bytes"] != PACKED_BYTES_PER_COEFFICIENT * occurrences:
                 problems.append(
                     f"{where}: packed rows are {priced['row_bytes']} bytes, not "

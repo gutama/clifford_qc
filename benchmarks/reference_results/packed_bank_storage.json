@@ -25,27 +25,29 @@
       "layouts": {
         "interleaved": {
           "clears_threshold": false,
-          "reduction": 2.212790313444109,
-          "reserved_bytes": 2388624,
+          "reduction": 2.816156720994676,
+          "reserved_bytes": 1959476,
           "row_bytes": 1267056,
           "row_bytes_per_coefficient": 24.0,
           "row_only_reduction": 3.5515967723604955,
-          "total_bytes": 2033664,
-          "total_bytes_per_coefficient": 38.520740993294694,
-          "word_table_bytes": 766608,
-          "word_table_bytes_per_word": 104.003256003256
+          "shared_word_code_bytes": 206388,
+          "total_bytes": 1597948,
+          "total_bytes_per_coefficient": 30.267606167367504,
+          "word_table_bytes": 124504,
+          "word_table_bytes_per_word": 16.891059557726223
         },
         "soa": {
           "clears_threshold": false,
-          "reduction": 2.212790313444109,
-          "reserved_bytes": 2388624,
+          "reduction": 2.816156720994676,
+          "reserved_bytes": 1959476,
           "row_bytes": 1267056,
           "row_bytes_per_coefficient": 24.0,
           "row_only_reduction": 3.5515967723604955,
-          "total_bytes": 2033664,
-          "total_bytes_per_coefficient": 38.520740993294694,
-          "word_table_bytes": 766608,
-          "word_table_bytes_per_word": 104.003256003256
+          "shared_word_code_bytes": 206388,
+          "total_bytes": 1597948,
+          "total_bytes_per_coefficient": 30.267606167367504,
+          "word_table_bytes": 124504,
+          "word_table_bytes_per_word": 16.891059557726223
         }
       },
       "n_qubits": 8,
@@ -78,28 +80,30 @@
       "kind": "frozen_mapping_axis",
       "layouts": {
         "interleaved": {
-          "clears_threshold": false,
-          "reduction": 2.8954814929584356,
-          "reserved_bytes": 4049264,
+          "clears_threshold": true,
+          "reduction": 3.274605712599328,
+          "reserved_bytes": 3597060,
           "row_bytes": 3118896,
           "row_bytes_per_coefficient": 24.0,
           "row_only_reduction": 3.6430326628396714,
-          "total_bytes": 3924128,
-          "total_bytes_per_coefficient": 30.19628483925081,
-          "word_table_bytes": 805232,
-          "word_table_bytes_per_word": 101.58092594928725
+          "shared_word_code_bytes": 221956,
+          "total_bytes": 3469804,
+          "total_bytes_per_coefficient": 26.700247779983687,
+          "word_table_bytes": 128952,
+          "word_table_bytes_per_word": 16.267440393591524
         },
         "soa": {
-          "clears_threshold": false,
-          "reduction": 2.8954814929584356,
-          "reserved_bytes": 4049264,
+          "clears_threshold": true,
+          "reduction": 3.274605712599328,
+          "reserved_bytes": 3597060,
           "row_bytes": 3118896,
           "row_bytes_per_coefficient": 24.0,
           "row_only_reduction": 3.6430326628396714,
-          "total_bytes": 3924128,
-          "total_bytes_per_coefficient": 30.19628483925081,
-          "word_table_bytes": 805232,
-          "word_table_bytes_per_word": 101.58092594928725
+          "shared_word_code_bytes": 221956,
+          "total_bytes": 3469804,
+          "total_bytes_per_coefficient": 26.700247779983687,
+          "word_table_bytes": 128952,
+          "word_table_bytes_per_word": 16.267440393591524
         }
       },
       "n_qubits": 8,
@@ -133,27 +137,29 @@
       "layouts": {
         "interleaved": {
           "clears_threshold": false,
-          "reduction": 1.8397926994141505,
-          "reserved_bytes": 411920,
+          "reduction": 2.6549823597314126,
+          "reserved_bytes": 304772,
           "row_bytes": 164304,
           "row_bytes_per_coefficient": 24.0,
           "row_only_reduction": 3.975557503164865,
-          "total_bytes": 355040,
-          "total_bytes_per_coefficient": 51.86094069529652,
-          "word_table_bytes": 190736,
-          "word_table_bytes_per_word": 105.08870523415978
+          "shared_word_code_bytes": 50820,
+          "total_bytes": 246028,
+          "total_bytes_per_coefficient": 35.93748174116272,
+          "word_table_bytes": 30904,
+          "word_table_bytes_per_word": 17.026997245179064
         },
         "soa": {
           "clears_threshold": false,
-          "reduction": 1.8397926994141505,
-          "reserved_bytes": 411920,
+          "reduction": 2.6549823597314126,
+          "reserved_bytes": 304772,
           "row_bytes": 164304,
           "row_bytes_per_coefficient": 24.0,
           "row_only_reduction": 3.975557503164865,
-          "total_bytes": 355040,
-          "total_bytes_per_coefficient": 51.86094069529652,
-          "word_table_bytes": 190736,
-          "word_table_bytes_per_word": 105.08870523415978
+          "shared_word_code_bytes": 50820,
+          "total_bytes": 246028,
+          "total_bytes_per_coefficient": 35.93748174116272,
+          "word_table_bytes": 30904,
+          "word_table_bytes_per_word": 17.026997245179064
         }
       },
       "n_qubits": 8,
@@ -187,27 +193,29 @@
       "layouts": {
         "interleaved": {
           "clears_threshold": false,
-          "reduction": 1.4062147300042638,
-          "reserved_bytes": 26873856,
+          "reduction": 2.0602306152794423,
+          "reserved_bytes": 20535660,
           "row_bytes": 8425920,
           "row_bytes_per_coefficient": 24.0,
           "row_only_reduction": 3.8327802779993165,
-          "total_bytes": 22965696,
-          "total_bytes_per_coefficient": 65.41442406289165,
-          "word_table_bytes": 14539776,
-          "word_table_bytes_per_word": 101.59363318124332
+          "shared_word_code_bytes": 4007276,
+          "total_bytes": 15675284,
+          "total_bytes_per_coefficient": 44.6487524211006,
+          "word_table_bytes": 3242088,
+          "word_table_bytes_per_word": 22.6534094482137
         },
         "soa": {
           "clears_threshold": false,
-          "reduction": 1.4062147300042638,
-          "reserved_bytes": 26873856,
+          "reduction": 2.0602306152794423,
+          "reserved_bytes": 20535660,
           "row_bytes": 8425920,
           "row_bytes_per_coefficient": 24.0,
           "row_only_reduction": 3.8327802779993165,
-          "total_bytes": 22965696,
-          "total_bytes_per_coefficient": 65.41442406289165,
-          "word_table_bytes": 14539776,
-          "word_table_bytes_per_word": 101.59363318124332
+          "shared_word_code_bytes": 4007276,
+          "total_bytes": 15675284,
+          "total_bytes_per_coefficient": 44.6487524211006,
+          "word_table_bytes": 3242088,
+          "word_table_bytes_per_word": 22.6534094482137
         }
       },
       "n_qubits": 12,
@@ -241,27 +249,29 @@
       "layouts": {
         "interleaved": {
           "clears_threshold": false,
-          "reduction": 0.942585554907531,
-          "reserved_bytes": 871616,
+          "reduction": 1.7243441374622486,
+          "reserved_bytes": 507292,
           "row_bytes": 200016,
           "row_bytes_per_coefficient": 24.0,
           "row_only_reduction": 4.007779377649788,
-          "total_bytes": 850448,
-          "total_bytes_per_coefficient": 102.04559635229181,
-          "word_table_bytes": 650432,
-          "word_table_bytes_per_word": 117.470110167961
+          "shared_word_code_bytes": 155036,
+          "total_bytes": 464884,
+          "total_bytes_per_coefficient": 55.78161747060235,
+          "word_table_bytes": 109832,
+          "word_table_bytes_per_word": 19.8360122810186
         },
         "soa": {
           "clears_threshold": false,
-          "reduction": 0.942585554907531,
-          "reserved_bytes": 871616,
+          "reduction": 1.7243441374622486,
+          "reserved_bytes": 507292,
           "row_bytes": 200016,
           "row_bytes_per_coefficient": 24.0,
           "row_only_reduction": 4.007779377649788,
-          "total_bytes": 850448,
-          "total_bytes_per_coefficient": 102.04559635229181,
-          "word_table_bytes": 650432,
-          "word_table_bytes_per_word": 117.470110167961
+          "shared_word_code_bytes": 155036,
+          "total_bytes": 464884,
+          "total_bytes_per_coefficient": 55.78161747060235,
+          "word_table_bytes": 109832,
+          "word_table_bytes_per_word": 19.8360122810186
         }
       },
       "n_qubits": 8,
@@ -295,27 +305,29 @@
       "layouts": {
         "interleaved": {
           "clears_threshold": true,
-          "reduction": 3.1357611680024955,
-          "reserved_bytes": 14391704,
+          "reduction": 3.387402757768363,
+          "reserved_bytes": 13485380,
           "row_bytes": 10645872,
           "row_bytes_per_coefficient": 24.0,
           "row_only_reduction": 3.6106329288948804,
-          "total_bytes": 12258056,
-          "total_bytes_per_coefficient": 27.63449945669082,
-          "word_table_bytes": 1612184,
-          "word_table_bytes_per_word": 101.7343345743674
+          "shared_word_code_bytes": 443716,
+          "total_bytes": 11347436,
+          "total_bytes_per_coefficient": 25.581602333749643,
+          "word_table_bytes": 257848,
+          "word_table_bytes_per_word": 16.27109232031299
         },
         "soa": {
           "clears_threshold": true,
-          "reduction": 3.1357611680024955,
-          "reserved_bytes": 14391704,
+          "reduction": 3.387402757768363,
+          "reserved_bytes": 13485380,
           "row_bytes": 10645872,
           "row_bytes_per_coefficient": 24.0,
           "row_only_reduction": 3.6106329288948804,
-          "total_bytes": 12258056,
-          "total_bytes_per_coefficient": 27.63449945669082,
-          "word_table_bytes": 1612184,
-          "word_table_bytes_per_word": 101.7343345743674
+          "shared_word_code_bytes": 443716,
+          "total_bytes": 11347436,
+          "total_bytes_per_coefficient": 25.581602333749643,
+          "word_table_bytes": 257848,
+          "word_table_bytes_per_word": 16.27109232031299
         }
       },
       "n_qubits": 8,
@@ -348,28 +360,30 @@
       "kind": "extended_pool",
       "layouts": {
         "interleaved": {
-          "clears_threshold": false,
-          "reduction": 2.6789429032970355,
-          "reserved_bytes": 4855544,
+          "clears_threshold": true,
+          "reduction": 3.265471529916026,
+          "reserved_bytes": 4006308,
           "row_bytes": 3305424,
           "row_bytes_per_coefficient": 24.0,
           "row_only_reduction": 3.905350720512709,
-          "total_bytes": 4818632,
-          "total_bytes_per_coefficient": 34.98709030974543,
-          "word_table_bytes": 1513208,
-          "word_table_bytes_per_word": 105.44268692077208
+          "shared_word_code_bytes": 401828,
+          "total_bytes": 3953132,
+          "total_bytes_per_coefficient": 28.702873821936308,
+          "word_table_bytes": 245880,
+          "word_table_bytes_per_word": 17.133300815274197
         },
         "soa": {
-          "clears_threshold": false,
-          "reduction": 2.6789429032970355,
-          "reserved_bytes": 4855544,
+          "clears_threshold": true,
+          "reduction": 3.265471529916026,
+          "reserved_bytes": 4006308,
           "row_bytes": 3305424,
           "row_bytes_per_coefficient": 24.0,
           "row_only_reduction": 3.905350720512709,
-          "total_bytes": 4818632,
-          "total_bytes_per_coefficient": 34.98709030974543,
-          "word_table_bytes": 1513208,
-          "word_table_bytes_per_word": 105.44268692077208
+          "shared_word_code_bytes": 401828,
+          "total_bytes": 3953132,
+          "total_bytes_per_coefficient": 28.702873821936308,
+          "word_table_bytes": 245880,
+          "word_table_bytes_per_word": 17.133300815274197
         }
       },
       "n_qubits": 8,
@@ -403,27 +417,29 @@
       "layouts": {
         "interleaved": {
           "clears_threshold": true,
-          "reduction": 3.1311224201551795,
-          "reserved_bytes": 14391704,
+          "reduction": 3.3749852464181727,
+          "reserved_bytes": 13485380,
           "row_bytes": 10990512,
           "row_bytes_per_coefficient": 24.0,
           "row_only_reduction": 3.5904227209796957,
-          "total_bytes": 12602696,
-          "total_bytes_per_coefficient": 27.520528979905578,
-          "word_table_bytes": 1612184,
-          "word_table_bytes_per_word": 101.7343345743674
+          "shared_word_code_bytes": 443716,
+          "total_bytes": 11692076,
+          "total_bytes_per_coefficient": 25.532006516165943,
+          "word_table_bytes": 257848,
+          "word_table_bytes_per_word": 16.27109232031299
         },
         "soa": {
           "clears_threshold": true,
-          "reduction": 3.1311224201551795,
-          "reserved_bytes": 14391704,
+          "reduction": 3.3749852464181727,
+          "reserved_bytes": 13485380,
           "row_bytes": 10990512,
           "row_bytes_per_coefficient": 24.0,
           "row_only_reduction": 3.5904227209796957,
-          "total_bytes": 12602696,
-          "total_bytes_per_coefficient": 27.520528979905578,
-          "word_table_bytes": 1612184,
-          "word_table_bytes_per_word": 101.7343345743674
+          "shared_word_code_bytes": 443716,
+          "total_bytes": 11692076,
+          "total_bytes_per_coefficient": 25.532006516165943,
+          "word_table_bytes": 257848,
+          "word_table_bytes_per_word": 16.27109232031299
         }
       },
       "n_qubits": 8,
@@ -457,27 +473,29 @@
       "layouts": {
         "interleaved": {
           "clears_threshold": true,
-          "reduction": 3.140291520645097,
-          "reserved_bytes": 16554160,
+          "reduction": 3.574973255333349,
+          "reserved_bytes": 14709188,
           "row_bytes": 12228432,
           "row_bytes_per_coefficient": 24.0,
           "row_only_reduction": 3.958160130423917,
-          "total_bytes": 15413248,
-          "total_bytes_per_coefficient": 30.25064472697726,
-          "word_table_bytes": 3184816,
-          "word_table_bytes_per_word": 109.34239708861195
+          "shared_word_code_bytes": 815556,
+          "total_bytes": 13539148,
+          "total_bytes_per_coefficient": 26.57246260191004,
+          "word_table_bytes": 495160,
+          "word_table_bytes_per_word": 17.000034332406358
         },
         "soa": {
           "clears_threshold": true,
-          "reduction": 3.140291520645097,
-          "reserved_bytes": 16554160,
+          "reduction": 3.574973255333349,
+          "reserved_bytes": 14709188,
           "row_bytes": 12228432,
           "row_bytes_per_coefficient": 24.0,
           "row_only_reduction": 3.958160130423917,
-          "total_bytes": 15413248,
-          "total_bytes_per_coefficient": 30.25064472697726,
-          "word_table_bytes": 3184816,
-          "word_table_bytes_per_word": 109.34239708861195
+          "shared_word_code_bytes": 815556,
+          "total_bytes": 13539148,
+          "total_bytes_per_coefficient": 26.57246260191004,
+          "word_table_bytes": 495160,
+          "word_table_bytes_per_word": 17.000034332406358
         }
       },
       "n_qubits": 8,
@@ -511,27 +529,29 @@
       "layouts": {
         "interleaved": {
           "clears_threshold": true,
-          "reduction": 3.559812086975626,
-          "reserved_bytes": 54478896,
+          "reduction": 3.7333601079088474,
+          "reserved_bytes": 52530500,
           "row_bytes": 38733552,
           "row_bytes_per_coefficient": 24.0,
           "row_only_reduction": 3.8686883144618394,
-          "total_bytes": 42094368,
-          "total_bytes_per_coefficient": 26.082421565675155,
-          "word_table_bytes": 3360816,
-          "word_table_bytes_per_word": 105.95592547053816
+          "shared_word_code_bytes": 888132,
+          "total_bytes": 40137580,
+          "total_bytes_per_coefficient": 24.869960802975157,
+          "word_table_bytes": 515896,
+          "word_table_bytes_per_word": 16.264573284151457
         },
         "soa": {
           "clears_threshold": true,
-          "reduction": 3.559812086975626,
-          "reserved_bytes": 54478896,
+          "reduction": 3.7333601079088474,
+          "reserved_bytes": 52530500,
           "row_bytes": 38733552,
           "row_bytes_per_coefficient": 24.0,
           "row_only_reduction": 3.8686883144618394,
-          "total_bytes": 42094368,
-          "total_bytes_per_coefficient": 26.082421565675155,
-          "word_table_bytes": 3360816,
-          "word_table_bytes_per_word": 105.95592547053816
+          "shared_word_code_bytes": 888132,
+          "total_bytes": 40137580,
+          "total_bytes_per_coefficient": 24.869960802975157,
+          "word_table_bytes": 515896,
+          "word_table_bytes_per_word": 16.264573284151457
         }
       },
       "n_qubits": 8,
@@ -610,8 +630,8 @@
   "go_no_go": {
     "committed_bank_ratio_floor": 35.112119493287956,
     "graded_clause": "packed_storage_reduction_at_least_3x",
-    "highest_reuse_failing_threshold": 16.393843824902234,
-    "lowest_reuse_clearing_threshold": 17.492979022899714,
+    "highest_reuse_failing_threshold": 7.162393162393163,
+    "lowest_reuse_clearing_threshold": 9.596961884189255,
     "outcome": "reached_above_a_measured_reuse_threshold_committed_banks_exceed_it",
     "threshold": 3.0,
     "ungraded_clauses": {
@@ -633,7 +653,7 @@
   "packed_bytes_per_coefficient": 24,
   "packed_model_statement": "Four bytes of ascending word index, four of the generation-order permutation, and sixteen of complex coefficient. That is the same 24 bytes MV.memory_estimate has always modelled and cached_operator_bytes has always reported; the permutation is not overhead added to the model, it is what lets the model be reached without moving an answer.",
   "phase": "2M-B_packed_csr_soa_coefficient_bank",
-  "producer_seconds": 116.66027289399995,
+  "producer_seconds": 126.64225048900005,
   "provenance": {
     "blas_lapack": {
       "Build Dependencies": {
@@ -719,7 +739,7 @@
     },
     "environment_sha256": "541d3e5f197734d233c2ea9b721222dc9bdef7db3e43a363d7aeffadadd27306",
     "git_dirty": true,
-    "git_sha": "4863ca62c2e62ca9833c992b9574d193248648f2",
+    "git_sha": "3a7971d8c8d7adc96a6847f0b03512e17d5ac19b",
     "platform": {
       "hostname": "vm",
       "machine": "x86_64",
@@ -729,77 +749,75 @@
     },
     "python": "3.12.3",
     "schema": "clifford_qc.execution_provenance.v1",
-    "utc": "2026-09-13T08:17:15.864919+00:00"
+    "utc": "2026-09-13T09:09:31.777665+00:00"
   },
   "reduction_model": {
-    "banks_where_packing_costs_more": [
-      "hubbard_2x2"
-    ],
-    "highest_reuse_failing_threshold": 16.393843824902234,
+    "banks_where_packing_costs_more": [],
+    "highest_reuse_failing_threshold": 7.162393162393163,
     "ladder": [
       {
         "bank": "hubbard_2x2",
         "clears_threshold": false,
         "coefficient_reuse": 1.5051471916200108,
-        "reduction": 0.942585554907531
+        "reduction": 1.7243441374622486
       },
       {
         "bank": "h2o_cas8e6o",
         "clears_threshold": false,
         "coefficient_reuse": 2.4530978150743796,
-        "reduction": 1.4062147300042638
+        "reduction": 2.0602306152794423
       },
       {
         "bank": "beh2",
         "clears_threshold": false,
         "coefficient_reuse": 3.7719008264462808,
-        "reduction": 1.8397926994141505
+        "reduction": 2.6549823597314126
       },
       {
         "bank": "h4",
         "clears_threshold": false,
         "coefficient_reuse": 7.162393162393163,
-        "reduction": 2.212790313444109
+        "reduction": 2.816156720994676
       },
       {
         "bank": "beh2_M27_sz",
-        "clears_threshold": false,
+        "clears_threshold": true,
         "coefficient_reuse": 9.596961884189255,
-        "reduction": 2.6789429032970355
+        "reduction": 3.265471529916026
       },
       {
         "bank": "h4_converged",
-        "clears_threshold": false,
+        "clears_threshold": true,
         "coefficient_reuse": 16.393843824902234,
-        "reduction": 2.8954814929584356
+        "reduction": 3.274605712599328
       },
       {
         "bank": "beh2_M53_full",
         "clears_threshold": true,
         "coefficient_reuse": 17.492979022899714,
-        "reduction": 3.140291520645097
+        "reduction": 3.574973255333349
       },
       {
         "bank": "h4_M27_sz",
         "clears_threshold": true,
         "coefficient_reuse": 27.991291727140784,
-        "reduction": 3.1357611680024955
+        "reduction": 3.387402757768363
       },
       {
         "bank": "lih_M27_sz",
         "clears_threshold": true,
         "coefficient_reuse": 28.897456931911403,
-        "reduction": 3.1311224201551795
+        "reduction": 3.3749852464181727
       },
       {
         "bank": "h4_M53_full",
         "clears_threshold": true,
         "coefficient_reuse": 50.88111226709543,
-        "reduction": 3.559812086975626
+        "reduction": 3.7333601079088474
       }
     ],
-    "largest_monotonicity_violation": 0.004638747847315994,
-    "lowest_reuse_clearing_threshold": 17.492979022899714,
+    "largest_monotonicity_violation": 0.18757049756498612,
+    "lowest_reuse_clearing_threshold": 9.596961884189255,
     "measured_reuse_range": [
       1.5051471916200108,
       50.88111226709543
@@ -808,8 +826,8 @@
     "reuse_span_factor": 33.80474185540046,
     "statement": "Packed rows cost exactly the modelled bytes per coefficient on every bank; the shared word table costs its own bytes per distinct word. So the total per coefficient is the row cost plus the table cost divided by coefficient reuse, and the reduction rises with reuse rather than being a property of the representation alone. At the bottom of the measured ladder that sum exceeds what it replaces and packing is a net loss, which is the same mechanism read from the other end rather than a separate effect.",
     "word_table_bytes_per_word_range": [
-      101.58092594928725,
-      117.470110167961
+      16.264573284151457,
+      22.6534094482137
     ]
   },
   "schema": "clifford_qc.packed_bank_storage.v1",

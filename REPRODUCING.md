@@ -109,7 +109,7 @@ No figure or table value in the manuscript is transcribed by hand, and
 ```bash
 python -m venv .venv && source .venv/bin/activate
 pip install -e .[test,research,chemistry]   # numpy + scipy + openfermion/pyscf
-pytest                                      # 1564 passed, 31 skipped
+pytest                                      # 1566 passed, 31 skipped
 ```
 
 That install is the reference environment for the quoted pair. The count
@@ -133,7 +133,7 @@ the remaining `31 - 14 = 17` skips are per-test and *are* collected:
 
 ```text
 collected == passed + (skipped - files dropped at collection)
-1581      == 1564   + (31      -  14)
+1583      == 1566   + (31      -  14)
 ```
 
 Both sides are computed from the tree, so a drift in either quoted number
@@ -2864,34 +2864,51 @@ identical labels, and eight structural fields — and the producer *refuses to e
 a row that fails*. A byte reduction quoted from a bank whose answers moved is
 worth nothing.
 
+**The word table holds no Python objects.** The obvious implementation — a `list`
+of codes beside a `dict` mapping code to index — measured at `101.4` bytes per
+word: `8.5` of list pointers, `36.9` of dict slots, `28.0` of boxed code
+integers and `28.0` of boxed *index* integers, since every assigned index above
+CPython's small-integer cache is its own object. What replaces them is an int64
+array of codes in assignment order and an open-addressed int32 slot array at half
+load — `16.3`–`22.7` bytes per word as measured across the priced banks.
+
+**Retained bytes decompose into three terms, not two.** Packed rows and the word
+table are pure numpy; the third term is the distinct word-code integers. The
+numpy table does not reference them, but they stay resident through the bank's
+own `_universe` under *either* backend, and the object backend's walk charges
+them once — so the packed side charges them once too. Omitting them would credit
+packing with an allocation it never removed, and the checker fails a record that
+reports zero for them.
+
 **The reduction is a function of coefficient reuse, not a constant.** Packed rows
-cost exactly `24.00` bytes per coefficient on every bank; the shared word table
-costs `101.6`–`117.5` bytes per distinct *word*. So the total is
-`24 + table/reuse`, where reuse is `T_coeff/W`:
+cost exactly `24.00` bytes per coefficient on every bank; the shared table and
+word-code terms are paid per distinct *word*. So the total is
+`24 + (table + shared)/reuse`, where reuse is `T_coeff/W`:
 
 | bank | n | M | reuse | object B/coef | packed B/coef | reduction |
 |---|---|---|---|---|---|---|
-| `hubbard_2x2` | 8 | 9 | 1.51 | 96.19 | 102.05 | **0.94×** |
-| `h2o_cas8e6o` | 12 | 9 | 2.45 | 91.99 | 65.41 | 1.41× |
-| `beh2` | 8 | 5 | 3.77 | 95.41 | 51.86 | 1.84× |
-| `h4` | 8 | 9 | 7.16 | 85.24 | 38.52 | 2.21× |
-| `beh2_M27_sz` | 8 | 27 | 9.60 | 93.73 | 34.99 | 2.68× |
-| `h4_converged` | 8 | 15 | 16.39 | 87.43 | 30.20 | 2.90× |
-| `beh2_M53_full` | 8 | 53 | 17.49 | 95.00 | 30.25 | **3.14×** |
-| `h4_M27_sz` | 8 | 27 | 27.99 | 86.66 | 27.63 | **3.14×** |
-| `lih_M27_sz` | 8 | 27 | 28.90 | 86.17 | 27.52 | **3.13×** |
-| `h4_M53_full` | 8 | 53 | 50.88 | 92.85 | 26.08 | **3.56×** |
+| `hubbard_2x2` | 8 | 9 | 1.51 | 96.19 | 55.78 | 1.72× |
+| `h2o_cas8e6o` | 12 | 9 | 2.45 | 91.99 | 44.65 | 2.06× |
+| `beh2` | 8 | 5 | 3.77 | 95.41 | 35.94 | 2.65× |
+| `h4` | 8 | 9 | 7.16 | 85.24 | 30.27 | 2.82× |
+| `beh2_M27_sz` | 8 | 27 | 9.60 | 93.73 | 28.70 | **3.27×** |
+| `h4_converged` | 8 | 15 | 16.39 | 87.43 | 26.70 | **3.27×** |
+| `beh2_M53_full` | 8 | 53 | 17.49 | 95.00 | 26.57 | **3.57×** |
+| `h4_M27_sz` | 8 | 27 | 27.99 | 86.66 | 25.58 | **3.39×** |
+| `lih_M27_sz` | 8 | 27 | 28.90 | 86.17 | 25.53 | **3.37×** |
+| `h4_M53_full` | 8 | 53 | 50.88 | 92.85 | 24.87 | **3.73×** |
 
 Two readings matter and they are different numbers. Row-only, the representation
 reaches `3.55`–`4.01×` on every bank — that is a property of the packing. The
-*total*, which is what the process holds, is graded instead, because the table is
-real resident memory and grading on rows alone would be the flattering reading of
-a gate that exists to be failed.
+*total*, which is what the process holds, is graded instead, because grading on
+rows alone would be the flattering reading of a gate that exists to be failed.
 
-**At the bottom of the ladder packing is a net loss.** On `hubbard_2x2` at reuse
-`1.51` the shared table costs more than the dict slots it replaced, and the
-representation is `0.94×` — *worse* than what it replaces. That is the same
-mechanism read from the other end, and it is reported rather than dropped.
+**No bank is a net loss, and that changed.** Before the word table moved off
+Python objects, `hubbard_2x2` at reuse `1.51` measured `0.94×` — packing cost
+*more* than the dictionaries it replaced. It now measures `1.72×`, and the
+lowest reuse clearing the `3×` gate fell from `17.49` to `9.60`. The record still
+carries a `banks_where_packing_costs_more` list, now empty, and the checker fails
+a record whose list disagrees with its own measurements in either direction.
 
 **Where the gate crosses, and why the bank set had to span reuse.** The five
 frozen mapping-axis banks sit at reuse `1.5`–`16.4`; the committed molecular banks
@@ -2900,10 +2917,10 @@ prefixes at a declared basis size, built only to raise reuse — the `conserve_s
 false` rows carry `S_z`-violating excitations and are storage instances, not
 physics, so no energy of theirs is reported. Together they span `33.8×` in reuse,
 and the threshold they locate is *separated*: the lowest reuse clearing `3×` is
-`17.49`, the highest failing is `16.39`. Every committed bank exceeds `17.49`.
-The ladder is not strictly monotone in reuse — the object backend's own bytes per
-coefficient vary across banks too — but the largest violation is `0.0046×`, so
-the record reports its magnitude rather than only the boolean.
+`9.60`, the highest failing is `7.16`. Every committed bank exceeds `9.60`. The
+ladder is not strictly monotone in reuse — the object backend's own bytes per
+coefficient vary across banks too — so the record reports the largest violation's
+magnitude rather than only the boolean.
 
 **What is graded, and what is not.** Phase 2M's go/no-go has three clauses. This
 record grades the first — at least a `3×` reduction in retained coefficient
@@ -2917,11 +2934,14 @@ rebuilt, and their ratio is resident coefficients per *selected-subspace* word �
 an upper bound on true reuse, not reuse — which the record states rather than
 assumes away.
 
-**Costs recorded rather than smoothed over.** The read path is slower: an
-uncached re-solve costs ~20× the object backend and a build about `1.4×`, because
-every coefficient crosses a numpy-to-Python boundary to keep the arithmetic
-bit-identical. Pricing that time against the memory is 2M-D's job. `interleaved`
-and `soa` hold identical bytes on every bank — checked, not assumed — and `soa`
-measured marginally slower, so `interleaved` is the default. The word table, at
-~100–120 bytes per word, is now the dominant overhead that row packing does not
-touch, and is the obvious next target.
+**Costs recorded rather than smoothed over.** The numpy table's probe is a Python
+loop where a `dict` lookup was C, and it runs once per coefficient occurrence:
+interning measures `922` ns against a plain dict's `138`, which is about `15%` on
+a packed bank build and `8%` on the whole producer. That buys the `4.8×` table
+reduction above, and vectorising the probe over a whole row is the obvious
+follow-up. The read path is separately slower — an uncached re-solve costs ~20×
+the object backend — because every coefficient crosses a numpy-to-Python boundary
+to keep the arithmetic bit-identical. Pricing that time against the memory is
+2M-D's job. `interleaved` and `soa` hold identical bytes on every bank — checked,
+not assumed — and `soa` measured marginally slower, so `interleaved` is the
+default.
