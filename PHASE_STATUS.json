@@ -138,7 +138,11 @@
       "title": "Second-moment bank",
       "status": "open",
       "implementation_fraction": 0.0,
-      "remaining": ["H-squared support/cost preflight", "SecondMomentBank"]
+      "remaining": [
+        "H-squared support/cost preflight",
+        "SecondMomentBank",
+        "Phase 2M storage gate or explicit small-system exception before full SecondMomentBank construction"
+      ]
     },
     {
       "id": "16",
@@ -186,6 +190,20 @@
       "status": "complete",
       "outcome": "implemented_and_manuscript_checked",
       "evidence": ["paper/manuscript.tex"]
+    },
+    {
+      "id": "2M",
+      "title": "Memory-bounded matrix-element bank",
+      "status": "proposed",
+      "outcome": "accepted_into_plan_implementation_not_started",
+      "remaining": [
+        "Storage ledger with T_coeff, actual bytes per coefficient, pair lifetime, and peak RSS",
+        "Packed global-word-table CSR/SoA coefficient representation",
+        "Retain-all, stream/recompute, and disk-backed frontier policies",
+        "Equivalence matrix on H4, BeH2, and H2O",
+        "At least 3x retained coefficient-storage reduction",
+        "Stretched-H2O M=31 completion below 15 GiB without scope reduction"
+      ]
     },
     {
       "id": "4R",
