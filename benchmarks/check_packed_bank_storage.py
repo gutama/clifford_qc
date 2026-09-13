@@ -92,7 +92,6 @@ INTERPRETER_DEPENDENT_FIELDS = frozenset({
     "monotone_in_reuse",
     "object_bytes",
     "object_bytes_per_coefficient",
-    "producer_seconds",
     "ratio_range",
     "reduction",
     "reserved_bytes",
@@ -105,6 +104,17 @@ INTERPRETER_DEPENDENT_FIELDS = frozenset({
     "word_table_bytes_per_word",
     "word_table_bytes_per_word_range",
 })
+
+# Metadata that is not a measurement of anything this record claims, and is
+# therefore compared under no tolerance at all. ``producer_seconds`` is wall
+# clock: it belongs in the record because it says what the gate costs to run,
+# but it is a property of the machine and its load rather than of the packed
+# representation, so gating on it would make the check resolve on which runner
+# drew it -- the failure mode ``CROSS_MACHINE_ATOL`` exists to document. It was
+# briefly in the interpreter-tolerance set below and failed the gate on a 2.3%
+# rerun difference, which is the right outcome for a byte count and the wrong
+# question to ask of a stopwatch.
+VOLATILE_FIELDS = frozenset({"provenance", "producer_seconds"})
 
 # What a CPython patch release may move a live-object byte count by before the
 # gate calls it a regression. Same 2% Phase 2M-A declared, for the same reason
@@ -146,6 +156,8 @@ def _numbers(node, path: str = "$") -> dict[str, float]:
     if isinstance(node, dict):
         for key, value in node.items():
             here = f"{path}.{key}"
+            if key in VOLATILE_FIELDS:
+                continue
             if key in INTERPRETER_DEPENDENT_FIELDS:
                 out.update(_leaves(value, here))
             else:
@@ -451,7 +463,7 @@ def main() -> int:
     actual = build_record()
     problems = compare_json_records(
         expected, actual, atol=1e-12, rtol=1e-12,
-        ignored_keys=frozenset({"provenance"}) | INTERPRETER_DEPENDENT_FIELDS)
+        ignored_keys=VOLATILE_FIELDS | INTERPRETER_DEPENDENT_FIELDS)
     problems += interpreter_field_problems(expected, actual)
     problems += contract_problems(expected)
     problems += [f"rebuilt record: {p}" for p in contract_problems(actual)]

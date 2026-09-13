@@ -17,6 +17,8 @@ packing the go/no-go is stated against.
 
 from __future__ import annotations
 
+import random
+
 import numpy as np
 import pytest
 
@@ -87,6 +89,61 @@ def test_packed_indices_are_ascending_even_though_replay_is_not(layout):
     store.add((0, 0), operator)
     indices = store.word_indices((0, 0))
     assert list(indices) == sorted(indices)
+
+
+def test_bulk_intern_agrees_with_the_scalar_probe():
+    """The fast path must resolve exactly what the slow one would, batch by batch.
+
+    Two tables walk the same code sequence, one through ``intern_many`` and one
+    through ``intern``, across batches that straddle several table growths. A
+    bulk path that disagreed anywhere would assign a row a word index belonging
+    to some other word, which no later check would catch.
+    """
+    rng = random.Random(11)
+    codes = [rng.randrange(4 ** 12) for _ in range(20000)]
+    bulk, scalar = GlobalWordTable(), GlobalWordTable()
+    position = 0
+    while position < len(codes):
+        batch = codes[position:position + rng.randrange(1, 400)]
+        position += len(batch)
+        assert bulk.intern_many(batch) == [scalar.intern(code) for code in batch]
+    assert len(bulk) == len(scalar)
+    assert ([bulk.code(i) for i in range(len(bulk))]
+            == [scalar.code(i) for i in range(len(scalar))])
+
+
+def test_bulk_intern_handles_duplicates_inside_one_batch():
+    """Including a code that is new *and* repeated, which only the fallback sees."""
+    table = GlobalWordTable()
+    fresh, known = 12345, 7
+    got = table.intern_many([fresh, known, fresh, known, fresh])
+    assert got == [got[0], got[1], got[0], got[1], got[0]]
+    assert table.code(got[0]) == fresh
+    assert table.code(got[1]) == known
+    assert all(type(value) is int for value in got), "must return Python ints"
+
+
+def test_bulk_intern_survives_a_growth_inside_the_batch():
+    """The first probe is read against the pre-batch slots; indices never move."""
+    table = GlobalWordTable(capacity=16)
+    codes = list(range(100_000, 105_000))
+    assert table.intern_many(codes) == list(range(len(codes)))
+    assert all(table.lookup(code) == index for index, code in enumerate(codes))
+
+
+def test_bulk_intern_accepts_an_empty_batch():
+    assert GlobalWordTable().intern_many([]) == []
+
+
+def test_bulk_and_scalar_intern_interleave():
+    table = GlobalWordTable()
+    rng = random.Random(5)
+    seen: dict[int, int] = {}
+    for step in range(2000):
+        code = rng.randrange(4 ** 10)
+        index = table.intern(code) if step % 3 else table.intern_many([code])[0]
+        assert seen.setdefault(code, index) == index
+    assert all(table.lookup(code) == index for code, index in seen.items())
 
 
 def test_a_row_is_immutable_once_packed():

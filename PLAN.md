@@ -1112,9 +1112,11 @@ not grade the stretched-H₂O `M = 31` end-to-end test, which stays 2M-D's. **No
 in it licenses a claim that Phase 2M passes.** Two costs are recorded rather than
 smoothed over: an uncached re-solve is ~20x slower, because every coefficient
 crosses a numpy-to-Python boundary to keep the arithmetic bit-identical; and the
-numpy table's probe is a Python loop where a `dict` lookup was C, measuring `922` ns
-against `138` on a path that runs once per coefficient occurrence — about `15%` on a
-packed bank build. Vectorising that probe over a whole row is the obvious follow-up.
+numpy table's probe is a Python loop where a `dict` lookup was C. That probe is now
+vectorised over a whole row — `intern_many` settles the first probe for the batch in
+numpy and falls back to the scalar path only on an empty slot or a collision —
+measuring `289` ns a word against the scalar `859` and a dict's `94`, which brings a
+packed bank build to `1.48x` the object backend from `1.58x`.
 `interleaved` and `soa` hold identical bytes on every bank — checked, not assumed —
 with `soa` marginally slower, so `interleaved` is the default.
 

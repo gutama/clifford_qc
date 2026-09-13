@@ -33,7 +33,7 @@ bytes per coefficient and differ only in access pattern.
 
 from __future__ import annotations
 
-from typing import Iterable, Iterator
+from typing import Iterable, Iterator, Sequence
 
 import numpy as np
 
@@ -123,6 +123,42 @@ class GlobalWordTable:
         self._slots = np.zeros(1 << self._shift, dtype=INDEX_DTYPE)
         for index in range(self._count):
             self._slots[self._probe(int(self._codes[index]))] = index + 1
+
+    def intern_many(self, codes: Sequence[int]) -> list[int]:
+        """Intern a whole row's codes, resolving the common case in numpy.
+
+        The scalar probe is a Python loop where a ``dict`` lookup used to be C,
+        and it runs once per coefficient occurrence -- measured at ``922`` ns a
+        word against a dict's ``138``. Most of those calls are *hits*: a bank
+        with coefficient reuse of fifty sees each word about fifty times and
+        assigns it once. So the first probe is computed for the whole row at
+        once, and only the entries it does not resolve -- an empty slot, or a
+        collision landing on some other word -- fall back to the scalar path.
+
+        Resolving hits against the slot array as it stands at entry is safe
+        even though the fallback may grow the table underneath: assigned indices
+        never move, so an index read before a rehash is still that word's index
+        after one.
+        """
+        if not codes:
+            return []
+        wanted = np.array(codes, dtype=np.int64)
+        positions = ((wanted.astype(np.uint64) * np.uint64(self._MIX))
+                     >> np.uint64(64 - self._shift)).astype(np.intp)
+        occupants = self._slots[positions]
+        # -1 marks "the first probe did not settle this one": either the slot
+        # was empty or it holds a different word. Both go to the scalar path.
+        out = np.full(len(wanted), -1, dtype=np.int64)
+        occupied = np.flatnonzero(occupants)
+        if occupied.size:
+            indices = occupants[occupied].astype(np.intp) - 1
+            hit = self._codes[indices] == wanted[occupied]
+            out[occupied[hit]] = indices[hit]
+        resolved = out.tolist()
+        if (out < 0).any():
+            for position in np.flatnonzero(out < 0):
+                resolved[position] = self.intern(int(wanted[position]))
+        return resolved
 
     def intern(self, code: int) -> int:
         """Return this word's index, assigning the next one if it is new."""
@@ -281,8 +317,10 @@ class PackedRowStore:
             raise KeyError(f"row {key} is already packed; rows are immutable")
         if operator.n != self.n:
             raise ValueError("operator lives in a different algebra")
-        emitted = [(self._table.intern(code), coefficient)
-                   for code, coefficient in operator.terms.items()]
+        terms = list(operator.terms.items())
+        interned = self._table.intern_many([code for code, _ in terms])
+        emitted = [(index, coefficient)
+                   for index, (_, coefficient) in zip(interned, terms)]
         order = sorted(range(len(emitted)), key=lambda p: emitted[p][0])
         # ``generation[p]`` is the ascending slot the p-th emitted term landed
         # in, so walking p in order replays the emission sequence.

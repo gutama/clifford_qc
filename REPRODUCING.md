@@ -109,7 +109,7 @@ No figure or table value in the manuscript is transcribed by hand, and
 ```bash
 python -m venv .venv && source .venv/bin/activate
 pip install -e .[test,research,chemistry]   # numpy + scipy + openfermion/pyscf
-pytest                                      # 1566 passed, 31 skipped
+pytest                                      # 1571 passed, 31 skipped
 ```
 
 That install is the reference environment for the quoted pair. The count
@@ -133,7 +133,7 @@ the remaining `31 - 14 = 17` skips are per-test and *are* collected:
 
 ```text
 collected == passed + (skipped - files dropped at collection)
-1583      == 1566   + (31      -  14)
+1588      == 1571   + (31      -  14)
 ```
 
 Both sides are computed from the tree, so a drift in either quoted number
@@ -2934,14 +2934,28 @@ rebuilt, and their ratio is resident coefficients per *selected-subspace* word �
 an upper bound on true reuse, not reuse — which the record states rather than
 assumes away.
 
-**Costs recorded rather than smoothed over.** The numpy table's probe is a Python
-loop where a `dict` lookup was C, and it runs once per coefficient occurrence:
-interning measures `922` ns against a plain dict's `138`, which is about `15%` on
-a packed bank build and `8%` on the whole producer. That buys the `4.8×` table
-reduction above, and vectorising the probe over a whole row is the obvious
-follow-up. The read path is separately slower — an uncached re-solve costs ~20×
-the object backend — because every coefficient crosses a numpy-to-Python boundary
-to keep the arithmetic bit-identical. Pricing that time against the memory is
-2M-D's job. `interleaved` and `soa` hold identical bytes on every bank — checked,
-not assumed — and `soa` measured marginally slower, so `interleaved` is the
-default.
+**The intern probe is vectorised over a whole row.** A numpy open-addressing probe
+is a Python loop where a `dict` lookup was C, and it runs once per coefficient
+occurrence — `859` ns a word against a dict's `94`. Most of those calls are hits:
+a bank at reuse fifty sees each word about fifty times and assigns it once. So
+`intern_many` computes the first probe for an entire row in numpy and falls back
+to the scalar path only for entries it does not settle — an empty slot, or a
+collision landing on some other word. That measures `289` ns a word, `3.0×` faster
+than the scalar probe and `3.1×` slower than a dict that costs six times the
+memory. End to end a packed bank build is `1.48×` the object backend, down from
+`1.58×`.
+
+Resolving hits against the slot array as it stands when the batch starts is safe
+even though the fallback may grow the table underneath: assigned indices never
+move, so an index read before a rehash is still that word's index after one.
+`tests/test_packed_bank.py` walks the same code sequence through both paths
+across several growths and requires them to agree batch by batch — a bulk path
+that disagreed anywhere would hand a row the index of some *other* word, which no
+later check would catch.
+
+**Costs still recorded rather than smoothed over.** The read path remains slower —
+an uncached re-solve costs ~20× the object backend — because every coefficient
+crosses a numpy-to-Python boundary to keep the arithmetic bit-identical. Pricing
+that time against the memory is 2M-D's job. `interleaved` and `soa` hold identical
+bytes on every bank — checked, not assumed — and `soa` measured marginally slower,
+so `interleaved` is the default.
