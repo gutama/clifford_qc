@@ -119,6 +119,9 @@ jobs:
           - gate: check_g1_structural_preconditioner
             timeout: 15
             environment_record: g1_structural_preconditioner.json
+          - gate: check_bank_storage_ledger
+            timeout: 15
+            environment_record: bank_storage_ledger.json
     steps:
       - uses: actions/checkout@v4
       - uses: ./.github/actions/record-environment

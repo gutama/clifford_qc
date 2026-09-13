@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import sys
 import time
 from dataclasses import dataclass
 from typing import Any, Iterable, Sequence
@@ -147,6 +148,15 @@ def solve_subspace(rho: MV, hamiltonian, generators: Sequence, *,
                            rel_tau=rel_tau, max_condition=max_condition,
                            norm_floor=norm_floor, resources=resources)
 
+
+# The Phase 2M-A baseline policy: every materialized operator row is kept for
+# the life of the bank. Phase 2M-C introduces ``stream_recompute`` and
+# ``disk_backed_csr`` beside it; until then the eviction, recomputation and
+# spill counters below are structurally zero rather than merely unobserved, and
+# the ledger says which of the two it is by naming the policy that produced it.
+STORAGE_POLICY = "retain_all"
+
+
 def _identity_key(mv: MV) -> tuple:
     """Exact identity of a generator: its Pauli-word coefficient map.
 
@@ -205,6 +215,13 @@ class MatrixElementBank:
         self._pairs_built = 0
         self._cache_hits = 0
         self._seconds = 0.0
+        # Counted rather than derived. Under ``retain_all`` the resident row
+        # count never falls, so the peak is the current value and this counter
+        # is redundant -- but it is the quantity Phase 2M-C's streaming and
+        # disk-backed policies have to report against, and a field that starts
+        # out derived from "nothing is ever freed" would quietly keep answering
+        # for a policy that frees things.
+        self._peak_resident_rows = 0
         self.extend(generators)
 
     # ------------------------------------------------------------- structure
@@ -307,6 +324,8 @@ class MatrixElementBank:
         self._account(j, overlap_op)
         self._account(j, element_op)
         self._pairs_built += 1
+        self._peak_resident_rows = max(self._peak_resident_rows,
+                                       self._resident_row_count())
 
     def _pair(self, i: int, j: int) -> tuple[MV, MV]:
         key = (i, j) if i <= j else (j, i)
@@ -392,6 +411,8 @@ class MatrixElementBank:
         if (i, j) not in cache:
             cache[(i, j)] = self._adjoints[i] * acted[j]
             record["universe"].update(cache[(i, j)].terms)
+            self._peak_resident_rows = max(self._peak_resident_rows,
+                                           self._resident_row_count())
         operator = cache[(i, j)]
         self._seconds += time.perf_counter() - started
         return operator
@@ -457,6 +478,79 @@ class MatrixElementBank:
         """The word universe as sorted ``PauliWord``s -- the measurement plan's input."""
         return tuple(PauliWord(self.n, code) for code in sorted(self.word_set(indices)))
 
+    # ------------------------------------------------------- storage ledger
+
+    def _resident_operators(self) -> list[MV]:
+        """Every operator row the bank is holding, in one canonical order.
+
+        The overlap and Hamiltonian rows of every pair ever built -- rejected candidates
+        included under ``retain_all`` -- plus projected-observable rows. This is the set
+        ``cached_operator_bytes`` has always priced; naming it once keeps byte estimates,
+        coefficient counts and the measured walk on the same population.
+        """
+        return (list(self._overlap_ops.values()) + list(self._element_ops.values())
+                + [op for record in self._observables.values()
+                   for op in record["operators"].values()])
+
+    def _resident_row_count(self) -> int:
+        return (len(self._overlap_ops) + len(self._element_ops)
+                + sum(len(record["operators"]) for record in self._observables.values()))
+
+    def measured_storage_bytes(self) -> dict[str, Any]:
+        """What the resident rows actually cost this interpreter, against the packed model.
+
+        ``cached_operator_bytes`` prices Phase 2M-B's target representation and
+        is exactly ``24 * coefficient_occurrences``; this walks the live objects
+        and reports what the ``dict[int, complex]`` in front of that costs now.
+        The quotient is the measured packing headroom 2M-B's go/no-go uses; PLAN.md
+        section 5 records its earlier working figure as a hypothesis for this reason.
+
+        Boxed keys and coefficients are deduplicated by identity. The word-code
+        integers are shared across rows because ``_word_mul_unchecked`` is
+        memoized, so a per-row sum counts one allocation many times and
+        overstates what resident memory would actually recover.
+
+        Not part of :meth:`resources`, like :meth:`qwc_group_count`: it is linear in the
+        coefficient count with an identity set beside it, reaches tens of millions of
+        entries on committed molecular banks, and ``resources`` runs every adaptive step.
+        """
+        rows = self._resident_operators()
+        seen: set[int] = set()
+        container_bytes = 0
+        boxed_bytes = 0
+        shared_boxes = 0
+        occurrences = 0
+        for row in rows:
+            row_bytes, boxes = row.boxed_storage()
+            container_bytes += row_bytes
+            occurrences += row.nnz()
+            for box in boxes:
+                if id(box) in seen:
+                    shared_boxes += 1
+                    continue
+                seen.add(id(box))
+                boxed_bytes += sys.getsizeof(box)
+        measured = container_bytes + boxed_bytes
+        # Through ``memory_estimate`` rather than a literal, so the packed model
+        # this quotient is taken against cannot drift away from the one
+        # ``cached_operator_bytes`` reports and the committed records were
+        # back-filled through.
+        packed = sum(row.memory_estimate() for row in rows)
+        return {
+            "storage_policy": STORAGE_POLICY,
+            "resident_operator_rows": len(rows),
+            "coefficient_occurrences": occurrences,
+            "packed_operator_bytes": packed,
+            "measured_operator_bytes": measured,
+            "measured_container_bytes": container_bytes,
+            "measured_boxed_bytes": boxed_bytes,
+            "shared_boxed_slots": shared_boxes,
+            "distinct_boxed_objects": len(seen),
+            "measured_bytes_per_coefficient": (measured / occurrences
+                                               if occurrences else 0.0),
+            "packing_headroom": (measured / packed) if packed else 0.0,
+        }
+
     def qwc_group_count(self) -> int:
         """Circuits one exhaustive measurement of the universe would cost.
 
@@ -475,15 +569,22 @@ class MatrixElementBank:
                 if key[0] in wanted and key[1] in wanted]
         overlap_ops = [self._overlap_ops[key] for key in keys]
         element_ops = [self._element_ops[key] for key in keys]
-        # A proper subset owns a smaller universe than the cache does, and a
-        # record that quoted the cache's would overstate the subset's
-        # measurement cost -- which matters most during adaptive growth, where
-        # the cache also holds every rejected candidate's row.
+        # A proper subset owns a smaller universe than the cache; quoting the cache's
+        # would overstate measurement cost, especially with rejected candidate rows.
         universe = (len(self._universe) if len(order) == len(self._generators)
                     else len(self.word_set(order)))
-        cached = (list(self._overlap_ops.values()) + list(self._element_ops.values())
-                  + [op for record in self._observables.values()
-                     for op in record["operators"].values()])
+        cached = self._resident_operators()
+        occurrences = sum(op.nnz() for op in cached)
+        resident_universe = len(self._universe)
+        if self._observables:
+            resident_universe = len(set(self._universe).union(
+                *(record["universe"] for record in self._observables.values())))
+        # The retained block is what a converged solve keeps; every other built
+        # pair is frontier or rejected-candidate storage. Counting the pairs
+        # actually materialized rather than the M(M+1)/2 the block would need
+        # keeps the fraction below one on a bank whose block is still filling.
+        retained_pairs = len(keys)
+        complete_block_pairs = len(order) * (len(order) + 1) // 2
         observables = {
             record["label"]: {
                 "words": len(record["universe"]),
@@ -510,6 +611,28 @@ class MatrixElementBank:
                 (self._generators[i].label, self._new_words[i], self._reused_words[i])
                 for i in order),
             "cached_operator_bytes": sum(op.memory_estimate() for op in cached),
+            # Phase 2M-A's storage ledger. Counts below describe the whole resident
+            # cache; ``word_universe`` remains the selected subspace's measurement cost.
+            # ``cached_operator_bytes`` is exactly 24 * ``coefficient_occurrences``.
+            "coefficient_occurrences": occurrences,
+            "resident_word_universe": resident_universe,
+            "coefficient_reuse": occurrences / resident_universe if resident_universe else 0.0,
+            "coefficient_occurrences_per_selected_element_word": (
+                occurrences / universe if universe else 0.0),
+            "storage_policy": STORAGE_POLICY,
+            "resident_operator_rows": len(cached),
+            "peak_resident_operator_rows": self._peak_resident_rows,
+            "retained_block_pairs": retained_pairs,
+            "complete_block_pairs": complete_block_pairs,
+            "selection_pairs": self._pairs_built - retained_pairs,
+            "retained_pair_fraction": (retained_pairs / self._pairs_built
+                                       if self._pairs_built else 0.0),
+            # Structurally zero under ``retain_all``: the bank has no eviction
+            # path, so these are the baseline Phase 2M-C's policies report
+            # against rather than quantities that went unobserved.
+            "evicted_rows": 0,
+            "recomputed_rows": 0,
+            "spill_bytes": 0,
             "assemble_seconds": self._seconds,
             "projected_observables": observables,
         }

@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import math
+import sys
 from functools import lru_cache
 from numbers import Number
 from typing import Dict, Iterable
@@ -217,6 +218,38 @@ class MV:
     def memory_estimate(self) -> int:
         """Rough byte estimate for sparse term storage, excluding Python dict overhead."""
         return self.nnz() * (8 + 16)
+
+    def boxed_storage(self) -> tuple[int, list[object]]:
+        """Bytes this term store occupies, and the boxed objects behind its slots.
+
+        :meth:`memory_estimate` prices the packed representation Phase 2M-B is
+        aiming at -- eight bytes of word index beside sixteen of complex
+        coefficient, contiguous, with nothing in front of them. This prices what
+        the ``dict[int, complex]`` in front of that costs today: the object
+        header, the hash table including the slack its growth policy leaves, and
+        the boxed key and value behind every occupied slot. The ratio between
+        the two is 2M-B's packing hypothesis, which PLAN.md section 5 records as
+        a figure to measure rather than a promised reduction.
+
+        The boxed objects come back rather than being summed here because they
+        are *shared*: ``_word_mul_unchecked`` is memoized, so the same word-code
+        integer is the same object in every row that carries that word, and a
+        caller summing per-row totals counts those boxes once per row. Resident
+        memory counts each allocation once, so a bank-level ledger has to
+        deduplicate by identity before it can claim a bytes-per-coefficient
+        figure -- which is :meth:`MatrixElementBank.measured_storage_bytes`.
+
+        Deterministic for a given interpreter build: a term dict is only ever
+        built by insertion into a fresh mapping, so its capacity is a function
+        of its final length rather than of a deletion history. It is not
+        portable across interpreters, which is why a record carrying it declares
+        the one that measured it.
+        """
+        boxes: list[object] = []
+        for code, coefficient in self.terms.items():
+            boxes.append(code)
+            boxes.append(coefficient)
+        return sys.getsizeof(self) + sys.getsizeof(self.terms), boxes
 
     def word_letters(self, code: int) -> str:
         return code_to_label(self.n, code)
