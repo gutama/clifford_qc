@@ -151,17 +151,17 @@
         "modules": 1
       },
       "subspace": {
-        "lines": 8989,
-        "modules": 27
+        "lines": 9475,
+        "modules": 28
       },
       "surface": {
         "lines": 38,
         "modules": 1
       }
     },
-    "package_lines": 22651,
-    "package_modules": 92,
-    "test_lines": 22929,
-    "test_modules": 102
+    "package_lines": 23137,
+    "package_modules": 93,
+    "test_lines": 23182,
+    "test_modules": 103
   }
 }

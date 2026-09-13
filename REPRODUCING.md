@@ -109,7 +109,7 @@ No figure or table value in the manuscript is transcribed by hand, and
 ```bash
 python -m venv .venv && source .venv/bin/activate
 pip install -e .[test,research,chemistry]   # numpy + scipy + openfermion/pyscf
-pytest                                      # 1501 passed, 31 skipped
+pytest                                      # 1530 passed, 31 skipped
 ```
 
 That install is the reference environment for the quoted pair. The count
@@ -133,7 +133,7 @@ the remaining `31 - 14 = 17` skips are per-test and *are* collected:
 
 ```text
 collected == passed + (skipped - files dropped at collection)
-1518      == 1501   + (31      -  14)
+1547      == 1530   + (31      -  14)
 ```
 
 Both sides are computed from the tree, so a drift in either quoted number
@@ -2823,3 +2823,61 @@ measured-byte fields under a declared `2%` relative tolerance — wide enough fo
 an object-layout drift, far tighter than the tens of percent a change in the
 retained representation would move them — while every count, pair and packed
 byte stays exact.
+
+## Phase 2M-B packed CSR/SoA row store (in progress, not yet graded)
+
+Phase 2M-A measured the baseline; this is the packed representation it exists to
+grade. `clifford_qc/subspace/packed.py` holds one canonical global word table
+and CSR rows over it, and `MatrixElementBank` selects it with
+`storage="packed"` (plus `layout="interleaved"` or `"soa"`).
+
+**The object backend stays the default, deliberately.** 2M-A's committed record
+prices it, 2M-D's equivalence matrix has to rebuild it, and a phase that changed
+the default before its own gate was graded would invalidate its own baseline.
+
+```bash
+python -m pytest tests/test_packed_bank.py -q
+```
+
+**Generation order is part of the contract.** `MV.trace_pairing` iterates the
+*smaller* operand's dict in insertion order, and 54–84% of resident rows are
+smaller than the reference, so the row drives the summation for most entries.
+Storing a row's words ascending — the natural CSR choice — moves 4–17% of `S`
+and `H` entries by up to `3.1e-13`, which breaks `_build_pair`'s promise that
+the bank reproduces `solver.projected_matrices` "to the last bit". Each row
+therefore carries ascending `indices` for binary-search probes *and* a
+`generation` permutation that replays the emission order. Four bytes of index,
+four of permutation and sixteen of coefficient is the same `24` bytes
+`MV.memory_estimate` has always modelled.
+
+Both backends agree **bitwise** on `S`, `H`, entries, materialized operators,
+`W`, `T_coeff` and selected labels, on fixed-label banks and through adaptive
+selection, under both layouts.
+
+**What the packing buys, and what it does not.** Rows land at exactly `24.00`
+bytes per coefficient against the object backend's `86`–`97`. The shared word
+table costs a further `~104` bytes per distinct *word*, so the total reduction
+is `24 + 104/reuse` against `~91`, where reuse is `T_coeff/W`:
+
+| bank | reuse | total reduction |
+|---|---|---|
+| h4 `M=9` | 3.31 | 1.54× |
+| beh2 `M=27` | 9.60 | 2.68× |
+| h4 `M=27` | 27.99 | 3.14× |
+| lih `M=27` | 28.90 | 3.13× |
+
+The five frozen mapping-axis banks have reuse `1.4`–`29`; the committed
+molecular banks that actually ran out of memory have reuse `60.7`–`154.9`. So
+the gate must be read at the reuse of the banks that failed, where the same
+model projects `3.54`–`3.69×`. Grading 2M-B's `3×` go/no-go on the low-reuse
+banks would understate it by more than a factor of two.
+
+**Not yet done, and not claimed:** no producer, record or checker exists for
+this phase, so nothing above is a committed measurement and the go/no-go is
+ungraded. The read path is also slower — an uncached re-solve costs ~20× the
+object backend, and a build about 1.4× — because every coefficient crosses a
+numpy-to-Python boundary to keep the arithmetic bit-identical. `interleaved`
+and `soa` store identical bytes; `soa` measured marginally slower, so
+`interleaved` is the default. Pricing that time against the memory is 2M-D's
+job, and the word table — now the dominant per-word overhead, untouched by row
+packing — is the obvious next target.
