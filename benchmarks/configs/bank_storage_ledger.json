@@ -1,0 +1,77 @@
+{
+  "schema": "clifford_qc.bank_storage_ledger_config.v1",
+  "phase": "2M-A_storage_ledger_and_frozen_baseline",
+  "parent_lineage": {
+    "repository": "gutama/clifford_qc",
+    "preserved_results": [
+      "Nothing in the committed molecular records is rerun, recomputed or relabelled. PLAN.md section 5 (Phase 2M-A) says to recover T_coeff for them from cached_operator_bytes/24, and that is the only thing this record takes from those files besides quantities they already state. Their energies, errors, evidence labels and scientific conclusions are read-only here and are not restated.",
+      "The measured banks are the frozen mapping-axis instances, taken through the same _build_model and _selected_generators the R2b mapping record is built on, at the same selected_labels. This phase changes storage accounting only; it introduces no instance, pool, budget or selection rule of its own, so a later 2M-B or 2M-C comparison is against a bank the project already trusts rather than one invented for the comparison."
+    ]
+  },
+  "estimand": {
+    "name": "2M-A_retained_coefficient_storage_of_the_matrix_element_bank",
+    "question": "For the cached element-operator family, what does one retained nonzero coefficient actually cost in resident memory, how much of the bank is retained block against frontier and rejected-candidate storage, and does the committed molecular peak RSS follow from those two numbers?",
+    "why_it_exists": "Phase 2 retained every built pair, and the larger molecular records then produced two OOM failures whose cause was recorded as a calibrated extrapolation rather than a measurement. 2M-B proposes packing and 2M-C proposes eviction, and neither can be gated without the baseline they are supposed to beat. The specific quantity PLAN.md carries as a hypothesis is the byte ratio between the packed representation and the dict-of-complex in front of it; it is written there as a figure to measure, and measuring it is this record's job."
+  },
+  "packed_bytes_per_coefficient": 24,
+  "packed_model_statement": "Eight bytes of word index beside sixteen of complex coefficient, contiguous, with no per-entry Python object. This is what MV.memory_estimate already returns and therefore what cached_operator_bytes has always meant, which is the identity cached_operator_bytes == 24 * coefficient_occurrences that lets the committed records be back-filled without being rerun. It is the representation 2M-B targets, not a measurement of the current one.",
+  "storage_policy": "retain_all",
+  "storage_policy_statement": "Every materialized operator row is kept for the life of the bank. The bank has no eviction path at all, so this record's evicted_rows, recomputed_rows and spill_bytes are structurally zero rather than unobserved, and the checker requires them to be zero under this policy. 2M-C introduces stream_recompute and disk_backed_csr beside it and reports into these same fields.",
+  "measured_banks": {
+    "source_config": "benchmarks/configs/mapping_axis.json",
+    "systems": [
+      "h4",
+      "h4_converged",
+      "beh2",
+      "h2o_cas8e6o",
+      "hubbard_2x2"
+    ],
+    "systems_basis": "Every declared mapping-axis instance, at its frozen selected_labels, with no optional extra installed. The five span 8 and 12 qubits and roughly two decades of coefficient occurrences, which is what makes the bytes-per-coefficient rate a measured range rather than a single point. The whole set rebuilds in under ten seconds, so the gate is affordable on every pull request.",
+    "statement": "A fixed label list builds only retained-block pairs, so these banks measure the byte rate and cannot exercise the frontier arithmetic. That is what the adaptive arms below are for."
+  },
+  "adaptive_arms": {
+    "systems": [
+      "h4",
+      "beh2"
+    ],
+    "max_size": 6,
+    "pool": "clifford_qc.subspace.fermionic_generators.determinant_excitations at max_rank 2, through benchmarks.run_mapping_axis._raw_pool -- the same raw pool the mapping record enumerates",
+    "basis": "A bank grown by exact A-CASE selection retains M(M+1)/2 pairs and keeps every rejected candidate's row beside them, which is the ratio 2M-C exists to act on. Without at least one such arm every frontier field in this record would be zero on every row, and a ledger whose frontier fields are never nonzero is one nothing has tested. max_size 6 is the smallest budget that leaves the selection rows dominant while keeping both arms inside three seconds.",
+    "not_claimed": "These arms are a storage measurement. Their energies and selected labels are not reported as a scientific result, they do not restate or revise any committed A-CASE record, and the budget is chosen for the gate's runtime rather than for convergence."
+  },
+  "committed_records": {
+    "directory": "molecular_results",
+    "records": [
+      "beh2_results.json",
+      "beh2_stretched_results.json",
+      "h2o_results.json",
+      "h2o_stretched_results.json",
+      "hf_results.json",
+      "lih_results.json",
+      "lih_stretched_results.json"
+    ],
+    "read_only_fields": [
+      "adaptive_cached_operator_bytes",
+      "adaptive_pairs_built",
+      "subspace_size_m",
+      "element_word_universe",
+      "adaptive_peak_rss_bytes",
+      "adaptive_peak_rss_delta_bytes"
+    ],
+    "statement": "Read, never rewritten. T_coeff is recovered by exact integer division of adaptive_cached_operator_bytes by 24 and the checker fails a nonzero remainder, because a remainder would mean the record was produced under a different packed model and the recovery is invalid rather than approximate.",
+    "retained_pair_fraction_basis": "M(M+1)/2 over adaptive_pairs_built, with M read from subspace_size_m. PLAN.md quotes this as 3.0--8.8% across these rows; the checker re-derives it per record rather than comparing against the quoted span, so a new row is priced by the same rule instead of being fitted to the sentence."
+  },
+  "gates": {
+    "packed_identity_is_exact": true,
+    "packed_identity_statement": "cached_operator_bytes == 24 * coefficient_occurrences exactly, on every measured bank. This is the identity the committed back-fill depends on; if it ever fails, the back-filled T_coeff values are wrong and the record must not be published.",
+    "measured_rate_is_deduplicated": true,
+    "measured_rate_statement": "Word-code integers are shared across rows because the word product is memoized, so bytes per coefficient is computed over boxed objects deduplicated by identity. A per-row sum counts one allocation once per row that carries it and overstates what packing could recover; the record carries the shared-slot count so the size of that correction is visible rather than asserted.",
+    "frontier_fields_are_exercised": true,
+    "frontier_statement": "At least one measured row must have selection_pairs greater than zero, so the retained-against-frontier arithmetic is measured on a live frontier rather than defined into existence on banks that never reject a candidate.",
+    "no_cost_fields": true,
+    "no_cost_fields_statement": "This tier prices nothing. A record carrying a shot count, a device cost, a C(epsilon) or a k* has changed what it claims and the checker fails it. Word universes and byte counts are structural quantities and are not cost fields.",
+    "no_go_no_go_verdict": true,
+    "no_go_no_go_statement": "2M's go/no-go is a property of the packed implementation, which does not exist yet. This record establishes the baseline that gate will be read against and records the headroom available to it; it may not record a pass, a fail, or an achieved reduction."
+  },
+  "claim_boundary": "Structural storage-accounting evidence only. Every measured quantity is a byte count, an object count or a coefficient count taken from live objects in one interpreter; nothing is sampled, no energy is reported as a result, and no resource price of any kind is produced. The bytes-per-coefficient rate is a property of the CPython build that measured it -- dict capacity, integer boxing and object headers are interpreter implementation details, not portable constants -- so the record declares its interpreter and the checker compares the rate under a declared tolerance rather than bit for bit. Applying that rate to the committed molecular rows is an attribution, not a measurement of those runs: it says how much of an already-recorded peak RSS the retained coefficient rows account for, and it cannot separate the remainder into allocator slack, transient product storage, or the run's own non-bank allocations. The packing headroom reported here is the ratio between the current representation and the packed model 2M-B targets; it bounds what that phase could recover and establishes nothing about what it will, because no packed implementation has been built or measured. Nothing here licenses a combined packing-and-eviction claim, and no multiplicative composition of the two levers is authorized by this record."
+}

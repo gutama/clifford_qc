@@ -926,7 +926,7 @@ not the products — while H₄'s is 6×. The cost side is memory, and it is not
 small: H₄'s 378 cached element operators hold 15 847 distinct words and ~10.6 MB.
 That figure is the §6 metric to watch as Phase 3 grows bases, not a footnote.
 
-### Phase 2M — memory-bounded matrix-element bank (adjunct, proposed)
+### Phase 2M — memory-bounded matrix-element bank (adjunct; 2M-A done, B--D open)
 
 Phase 2 made repeated adaptive solves computationally credible by retaining every
 built pair. The larger molecular records expose the other side of that decision:
@@ -978,17 +978,67 @@ different coefficient for every pair. Packed storage removes representation
 overhead around those intrinsic nonzeros; it does not claim a `T_coeff/W`
 deduplication gain. Under the current code `cached_operator_bytes = 24*T_coeff`
 exactly, but that estimate excludes Python dictionary, integer, complex-object and
-allocator overhead. The working 116-to-24 byte comparison is a packing hypothesis
-to measure, not a promised RSS ratio.
+allocator overhead. The 116-to-24 comparison entered this plan as a packing
+hypothesis rather than a promised RSS ratio, and 2M-A has since measured it: one
+retained coefficient costs `85.24`--`96.19` bytes, `89.92` pooled, so the headroom
+is `3.75x` and not the `4.8x` that estimate implied. The measured figure is the one
+2M-B is gated against.
 
-**2M-A — storage ledger and frozen baseline.** Extend the bank resource record with
-`T_coeff`, actual resident/storage bytes, bytes per coefficient, retained and
-selection pair counts, maximum live frontier rows, evicted rows, recomputed rows,
-spill bytes, and policy-labelled peak RSS. Recover `T_coeff` for existing records
-from `cached_operator_bytes/24`; do not rerun or relabel their scientific results.
-Report retained-pair fraction separately: the committed molecular rows retain only
+**2M-A — storage ledger and frozen baseline. Done.** The declared extension ships
+(`clifford_qc/subspace/projection.py`): `resources()` carries `T_coeff` as
+`coefficient_occurrences`, its reuse multiplicity, the retained and selection pair
+counts with their fraction, resident and peak frontier rows, the policy label, and
+the evicted/recomputed/spill counters — structurally zero under `retain_all`,
+which the checker requires rather than assumes. Measured bytes are deliberately
+*not* in `resources()`: the walk is linear in `T_coeff` with an identity set
+beside it, and `resources()` runs once per adaptive step, so
+`measured_storage_bytes()` is opt-in on the same grounds `qwc_group_count()`
+already is. The triple is `run_bank_storage_ledger.py`,
+`reference_results/bank_storage_ledger.json` and `check_bank_storage_ledger.py`,
+on the five frozen mapping-axis banks, two small exact-A-CASE arms, and the seven
+committed molecular records read rather than rerun.
+
+*Three results, one of which corrects this plan.* First, the packing hypothesis
+measures **3.75x pooled** (`85.24`--`96.19` bytes per retained coefficient against
+the packed `24`, so `3.552`--`4.008x` per bank), not the `116`-to-`24` figure
+below: it clears 2M-B's `3x` go/no-go with less margin than that estimate implied,
+and the working number is now a measurement. Second, the rate is deduplicated by
+object identity — the memoized word product hands every row carrying a word the
+same integer object, and a per-row sum overstates the recoverable bytes by `4.7%`,
+in the direction that flatters the phase. Third, applying the conservative
+(minimum) rate to each committed row's recovered `T_coeff` attributes
+`63.4%`--`72.4%` of recorded peak RSS to the retained rows on all four large banks.
+So 2M's premise is measured rather than extrapolated: the bank, not the pencils
+and not the fixed A-CASE reference, is the allocation that failed. The three small
+rows do not dominate and are reported separately — `hf` carries a `2.94` GiB peak
+against `0.06` GiB of rows — because a per-run baseline sets their peak.
+
+*Peak, not delta, is the denominator that carries that claim.*
+`adaptive_peak_rss_delta_bytes` subtracts the resident size at the start of the
+adaptive block, so a process that had already allocated and freed memory hands the
+bank pages the allocator still holds and the delta understates it. That is the
+sequential-run mechanism recorded above, not a hypothetical, so the delta fraction
+is a lower bound whose denominator depends on run history.
+
+*And one allocation neither remaining lever reaches.* `_word_mul_unchecked` is
+memoized at `maxsize=1_000_000`, a ceiling of at least `0.246` GiB that 2M-B's
+packing and 2M-C's eviction both leave in place. On the small banks it exceeds the
+rows themselves; on the committed molecular banks it is a constant beside rows one
+to three decades bigger, so it is not a competing explanation for the two OOM
+failures — but a packed bank meeting its `3x` target still carries it, and the
+end-to-end 15 GiB test is where that shows up.
+
+Recovering `T_coeff` for the existing records from `cached_operator_bytes/24` is
+exact — the checker fails a nonzero remainder rather than rounding — and none of
+their scientific results is rerun or relabelled. Retained-pair fraction is reported
+separately and re-derived per row: the committed molecular rows retain
 `M(M+1)/2 = 3.0--8.8%` of the pairs they built, so 91.2--97.0% are frontier or
-rejected-pair storage. That ratio is eviction headroom, not an achieved speedup.
+rejected-pair storage, and the two adaptive arms reproduce the effect at `16.7%`
+and `10.2%` on a live frontier. That ratio is eviction headroom, not an achieved
+speedup. The record carries no go/no-go outcome at all — its verdict is
+`baseline_only_no_go_no_go_evaluated` and the checker fails any other value —
+because 2M's gate asks for a measured reduction from an implementation that does
+not exist yet.
 
 **2M-B — packed CSR/SoA coefficient bank.** Introduce one canonical global word
 table and packed row storage for the overlap and Hamiltonian functionals:

@@ -132,7 +132,8 @@ GATE_CLASSES: tuple[tuple[str, str, tuple[str, ...]], ...] = (
         "Value-rebuilt",
         "recomputes its same-stem producer's record and fails on numeric drift",
         (
-            "check_clifford_hierarchy", "check_exact_shot_search",
+            "check_bank_storage_ledger", "check_clifford_hierarchy",
+            "check_exact_shot_search",
             "check_finite_shot_optimization", "check_finite_shot_rethink",
             "check_g1_structural_preconditioner", "check_krylov_width",
             "check_mapping_axis", "check_matched_h4",
