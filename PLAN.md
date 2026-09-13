@@ -926,7 +926,7 @@ not the products — while H₄'s is 6×. The cost side is memory, and it is not
 small: H₄'s 378 cached element operators hold 15 847 distinct words and ~10.6 MB.
 That figure is the §6 metric to watch as Phase 3 grows bases, not a footnote.
 
-### Phase 2M — memory-bounded matrix-element bank (adjunct; 2M-A done, B--D open)
+### Phase 2M — memory-bounded matrix-element bank (adjunct; 2M-A/2M-B done, C--D open)
 
 Phase 2 made repeated adaptive solves computationally credible by retaining every
 built pair. The larger molecular records expose the other side of that decision:
@@ -1051,13 +1051,58 @@ speedup. The record carries no go/no-go outcome at all — its verdict is
 because 2M's gate asks for a measured reduction from an implementation that does
 not exist yet.
 
-**2M-B — packed CSR/SoA coefficient bank.** Introduce one canonical global word
-table and packed row storage for the overlap and Hamiltonian functionals:
-`indptr`, word indices/codes, and contiguous coefficient data; benchmark interleaved
-complex data against structure-of-arrays real/imaginary storage. Preserve row
-identity, upper-triangle Hermitian ownership, canonical word order, and the product
-and accumulation order required by the current reproducibility contract. The
-`MatrixElementBank` public semantics remain unchanged.
+**2M-B — packed CSR/SoA coefficient bank. Done; first go/no-go clause graded.**
+`clifford_qc/subspace/packed.py` ships one canonical global word table and CSR rows
+over it — `indptr`, word indices, contiguous coefficient data — in both an
+interleaved `complex128` layout and a structure-of-arrays real/imaginary one.
+`MatrixElementBank` selects it with `storage="packed"`; the triple is
+`run_packed_bank_storage.py`, `reference_results/packed_bank_storage.json` and
+`check_packed_bank_storage.py`. The `MatrixElementBank` public semantics are
+unchanged, and the **object backend stays the default**: 2M-A's committed record
+prices it and 2M-D has to rebuild it, so changing the default before this phase
+was graded would have invalidated the baseline it is graded against.
+
+*"Canonical word order" had to mean generation order, and that is a correction to
+the sentence above.* `MV.trace_pairing` iterates the *smaller* operand's dict in
+insertion order, and 54–84% of resident rows are smaller than the reference, so the
+row drives the summation for most matrix entries. Storing a row's words ascending —
+the natural CSR reading of "canonical" — moves 4–17% of `S`/`H` entries by up to
+`3.1e-13`, which breaks Phase 2's promise that the bank reproduces
+`solver.projected_matrices` to the last bit. Each row therefore carries ascending
+`indices` for binary-search probes *and* a `generation` permutation replaying
+emission order; `4 + 4 + 16` is the same `24` bytes `MV.memory_estimate` already
+modelled. Both backends agree bitwise on `S`, `H`, every entry, materialized
+operators, `W`, `T_coeff` and selected labels, and the producer refuses to emit a
+priced row whose equivalence check fails.
+
+*The reduction is a function of coefficient reuse, and that is the finding.* Packed
+rows cost exactly `24.00` bytes per coefficient on every bank — row-only that is
+`3.55`–`4.01x`. The shared word table costs `101.6`–`117.5` bytes per distinct
+*word*, so the total is `24 + table/reuse` with reuse `= T_coeff/W`. Measured over
+ten banks spanning `33.8x` in reuse, the total runs `0.94x` at reuse `1.51` to
+`3.56x` at reuse `50.88`. **At the bottom of that ladder packing is a net loss**:
+on `hubbard_2x2` the table costs more than the dict slots it replaced.
+
+*Which population the gate is read on is itself a scoping decision.* The five frozen
+mapping-axis banks sit at reuse `1.5`–`16.4`; the committed molecular banks that
+actually ran out of memory sit at `35.1`–`154.9`. Grading `3x` on the convenient
+banks would understate it by more than a factor of two. The measured threshold is
+separated — lowest reuse clearing `3x` is `17.49`, highest failing is `16.39` — and
+every committed bank exceeds it, so the graded outcome is
+`reached_above_a_measured_reuse_threshold_committed_banks_exceed_it`. The committed
+banks are quoted from 2M-A rather than rebuilt, and their ratio is resident
+coefficients per *selected-subspace* word, an upper bound on reuse rather than
+reuse.
+
+*Graded: one clause of three.* This record grades the `3x` storage reduction only.
+It does not grade 2M-C's streaming bound — no eviction policy exists — and it does
+not grade the stretched-H₂O `M = 31` end-to-end test, which stays 2M-D's. **Nothing
+in it licenses a claim that Phase 2M passes.** Two costs are recorded rather than
+smoothed over: an uncached re-solve is ~20x slower and a build ~1.4x, because every
+coefficient crosses a numpy-to-Python boundary to keep the arithmetic bit-identical;
+and the word table, now the dominant per-word overhead, is untouched by row packing.
+`interleaved` and `soa` hold identical bytes on every bank — checked, not assumed —
+with `soa` marginally slower, so `interleaved` is the default.
 
 **2M-C — explicit frontier lifetime policies.** Implement and compare three named
 policies under one interface:
