@@ -946,10 +946,17 @@ measured anchor and two independent OOM failure witnesses.
   `T_coeff = 96,107,619` stored nonzero coefficient occurrences under the current
   24-byte payload estimator.
 - The attempted stretched-H2O `M = 31` endpoint was killed by the OOM reaper on a
-  15 GiB machine. This is a calibrated extrapolation, not a measured endpoint:
-  H2O carries 1,086 Hamiltonian words against BeH2's 666, and
-  `(1086/666) * 10.75 GiB = 17.5 GiB`, consistent with the approximately 18 GiB
-  requirement recorded in `run_molecular_pipeline.py`.
+  15 GiB machine. **The 17.5 GiB this bullet used to attribute that to was wrong,
+  and Phase 2M-D has now measured the endpoint instead of extrapolating it.** The
+  old arithmetic scaled BeH2's `M = 31` peak by the Hamiltonian word ratio,
+  `(1086/666) * 10.75 GiB = 17.5 GiB`; but H2O's own committed `M = 21` run
+  already carries its larger word count, so multiplying by the ratio counts it
+  twice. Scaling that run's own `6.53` GiB linearly in `M` predicts `9.64` GiB,
+  and `run_packed_h2o_feasibility.py` measures `9.69` GiB on a clean process --
+  agreement to `0.5%`. So the `M = 31` configuration *fits* under 15 GiB on the
+  object backend, and the kill had a different cause. The bullet below is the
+  candidate: `11.2 + 9.7` does not fit, and that is the defect the producer's
+  explicit inter-molecule delete already repaired.
 - A separate sequential run retained BeH2's 11.2 GiB bank as H2O's starting point
   and was also killed on the 15 GiB machine. The producer now writes each molecule
   before continuing and explicitly deletes the preceding bank and runs garbage
@@ -1144,6 +1151,28 @@ scope. Require bitwise `S`, `H` and energies where canonical accumulation order 
 preserved; otherwise use a declared tight tolerance and record the first source of
 rounding-order divergence. Report bank-build time, recomputation time, spill I/O,
 peak and delta RSS, packed bytes and actual bytes per coefficient.
+
+*The end-to-end feasibility clause has run, and it passes without discriminating.*
+`run_packed_h2o_feasibility.py` and `reference_results/packed_h2o_feasibility.json`
+execute the stretched-H2O `M = 31` configuration under a 15 GiB ceiling enforced by
+a sampling thread rather than by the OOM killer, from the FCIDUMP the failing run
+wrote, at the pipeline's own uncapped 140-candidate pool and unchanged basis budget.
+**Both backends complete.** Object peaks at `9.69` GiB in `31.6` minutes, packed at
+`5.56` GiB in `140.9` minutes; both reach `M = 31`, build the same `3,906` pairs and
+the same `T_coeff = 91,969,227`, and return *bitwise identical* ground energies and
+basis labels — the strongest equivalence evidence in the phase, and at production
+scale rather than on a test bank.
+
+So the clause is satisfied, and it is also **not a discriminating test**: its premise
+was that this configuration fails on a 15 GiB machine, and on a clean single-molecule
+process it does not. A gate both arms pass cannot measure what packing contributed.
+What packing did contribute is measured beside it — peak `9.69 -> 5.56` GiB
+(`1.74x`), and adaptive delta `9.54 -> 1.76` GiB (`5.4x`) — with two caveats stated
+rather than smoothed: the two arms shared one process and the packed arm ran second,
+so its *peak* carries the allocator's retained pages from the object arm while its
+*delta* does not, which makes `1.74x` an understatement and `5.4x` the cleaner
+figure; and the packed arm is `4.46x` slower here against `1.48x` at `n = 8`, a
+scaling regression this phase has measured but not diagnosed.
 
 **Go/no-go.** The packed representation must reduce resident coefficient-storage
 bytes by at least 3x at unchanged `T_coeff`. A streaming policy must bound live

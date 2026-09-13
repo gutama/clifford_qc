@@ -1,0 +1,242 @@
+{
+  "arms": [
+    {
+      "baseline_rss_bytes": 152223744,
+      "basis_labels": [
+        "I",
+        "E(10,11<-8,9)",
+        "E(12,13<-6,7)",
+        "E(10,13<-6,9)",
+        "E(11,12<-7,8)",
+        "E(10,11<-2,9)",
+        "E(10,11<-3,8)",
+        "E(10<-8)",
+        "E(12,13<-2,3)",
+        "E(11,12<-2,7)",
+        "E(10,13<-3,6)",
+        "E(13<-7)",
+        "E(10,11<-2,3)",
+        "E(11<-3)",
+        "E(11<-9)",
+        "E(10<-2)",
+        "E(10,13<-7,8)",
+        "E(11,12<-6,9)",
+        "E(12,13<-8,9)",
+        "E(12<-6)",
+        "E(10,11<-6,7)",
+        "E(10,11<-4,5)",
+        "E(12,13<-4,5)",
+        "E(12,13<-2,9)",
+        "E(12,13<-3,8)",
+        "E(10,12<-6,8)",
+        "E(11,13<-7,9)",
+        "E(10,13<-2,7)",
+        "E(10,12<-2,6)",
+        "E(11,12<-3,6)",
+        "E(11,13<-3,7)"
+      ],
+      "basis_size": 31,
+      "candidate_pool_size": 140,
+      "coefficient_occurrences": 91969227,
+      "coefficient_reuse": 11.735849294962641,
+      "completed": true,
+      "crossed_ceiling": false,
+      "ground_energy": -74.71718383506138,
+      "hamiltonian_pauli_terms": 1086,
+      "n_qubits": 14,
+      "pairs_built": 3906,
+      "peak_rss_bytes": 10400845824,
+      "peak_rss_delta_bytes": 10248622080,
+      "registered_generators": 141,
+      "resident_word_universe": 7836606,
+      "selected_word_universe": 1569011,
+      "stopped_reason": "basis budget reached",
+      "storage_backend": "object",
+      "wall_seconds": 1893.562073865
+    },
+    {
+      "baseline_rss_bytes": 4080926720,
+      "basis_labels": [
+        "I",
+        "E(10,11<-8,9)",
+        "E(12,13<-6,7)",
+        "E(10,13<-6,9)",
+        "E(11,12<-7,8)",
+        "E(10,11<-2,9)",
+        "E(10,11<-3,8)",
+        "E(10<-8)",
+        "E(12,13<-2,3)",
+        "E(11,12<-2,7)",
+        "E(10,13<-3,6)",
+        "E(13<-7)",
+        "E(10,11<-2,3)",
+        "E(11<-3)",
+        "E(11<-9)",
+        "E(10<-2)",
+        "E(10,13<-7,8)",
+        "E(11,12<-6,9)",
+        "E(12,13<-8,9)",
+        "E(12<-6)",
+        "E(10,11<-6,7)",
+        "E(10,11<-4,5)",
+        "E(12,13<-4,5)",
+        "E(12,13<-2,9)",
+        "E(12,13<-3,8)",
+        "E(10,12<-6,8)",
+        "E(11,13<-7,9)",
+        "E(10,13<-2,7)",
+        "E(10,12<-2,6)",
+        "E(11,12<-3,6)",
+        "E(11,13<-3,7)"
+      ],
+      "basis_size": 31,
+      "candidate_pool_size": 140,
+      "coefficient_occurrences": 91969227,
+      "coefficient_reuse": 11.735849294962641,
+      "completed": true,
+      "crossed_ceiling": false,
+      "ground_energy": -74.71718383506138,
+      "hamiltonian_pauli_terms": 1086,
+      "n_qubits": 14,
+      "pairs_built": 3906,
+      "peak_rss_bytes": 5974581248,
+      "peak_rss_delta_bytes": 1893654528,
+      "registered_generators": 141,
+      "resident_word_universe": 7836606,
+      "selected_word_universe": 1569011,
+      "stopped_reason": "basis budget reached",
+      "storage_backend": "packed",
+      "wall_seconds": 8454.165053038
+    }
+  ],
+  "ceiling_bytes": 16106127360,
+  "ceiling_statement": "Enforced by a sampling thread that interrupts the main thread when resident memory crosses it, not by the OOM killer. A run the kernel kills reports neither the peak it reached nor how far it got, and cannot say whether it died at the ceiling or at whatever the host happened to have.",
+  "claim_boundary": "Structural feasibility evidence on one configuration, one machine and one interpreter. Nothing is sampled and no resource price is produced. The peak reported for an arm is that arm's resident set on this host: resident memory depends on the allocator's behaviour and the interpreter's object layout as well as on the storage representation, so it is evidence that the configuration fits under the declared ceiling here rather than a portable bound. An arm that crossed the ceiling was stopped at the crossing, so its peak is the ceiling and not the peak it would have reached; what it reports is where it stopped, not how much it would have needed. The exact ground energy feeding the oracle stop is read from the committed record and is not re-derived here.",
+  "configuration": {
+    "candidate_pool_cap": null,
+    "committed_basis_size": 21,
+    "committed_peak_rss_bytes": 7008837632,
+    "exact_ground_energy": -74.77176966699481,
+    "exact_ground_energy_source": "h2o_stretched_results.json",
+    "fcidump": "molecular_results/h2o_stretched.fcidump",
+    "fcidump_sha256": "7defd58c24020a1ffbd9ebe3d08c15e32b5636376a676df01451f94b1d2afa36",
+    "leakage_tol": 1e-10,
+    "max_rank": 2,
+    "max_size": 30,
+    "statement": "The candidate pool, word universe and basis budget are the pipeline's own: determinant excitations at rank 2 with no cap, the full Hamiltonian, and max_size 30 for M = 31. The exact ground energy feeds the oracle stop and is read from the committed record rather than recomputed, because it is an input to the stopping rule and not a result this test produces.",
+    "target_basis_size": 31,
+    "target_error_mha": 1.5936
+  },
+  "declared_test": true,
+  "evidence_tier": "structural",
+  "go_no_go": {
+    "ceiling_bytes": 16106127360,
+    "clause": "stretched_h2o_m31_below_15_gib",
+    "object_control_failed": false,
+    "outcome": "packed_completes_under_the_ceiling_control_also_completed",
+    "packed_completed_at_target": true,
+    "target_basis_size": 31,
+    "what_this_does_not_establish": "Not that Phase 2M passes. Its go/no-go has three clauses: this is the end-to-end feasibility one, 2M-B graded the storage reduction, and the streaming-policy clause belongs to 2M-C, which does not exist -- no eviction policy was built or measured, and this run is entirely retain_all. Nor is a peak measured on one machine a portable bound: resident memory depends on the allocator and the interpreter as well as on the representation, and the ceiling here is enforced rather than predicted."
+  },
+  "phase": "2M-D_stretched_h2o_m31_feasibility",
+  "provenance": {
+    "blas_lapack": {
+      "Build Dependencies": {
+        "blas": {
+          "detection method": "pkgconfig",
+          "found": true,
+          "include directory": "/opt/_internal/cpython-3.12.13/lib/python3.12/site-packages/scipy_openblas64/include",
+          "lib directory": "/opt/_internal/cpython-3.12.13/lib/python3.12/site-packages/scipy_openblas64/lib",
+          "name": "scipy-openblas",
+          "openblas configuration": "OpenBLAS 0.3.34.0.0  USE64BITINT DYNAMIC_ARCH NO_AFFINITY Haswell MAX_THREADS=64",
+          "pc file directory": "/project/.openblas",
+          "version": "0.3.34.0.0"
+        },
+        "lapack": {
+          "detection method": "pkgconfig",
+          "found": true,
+          "include directory": "/opt/_internal/cpython-3.12.13/lib/python3.12/site-packages/scipy_openblas64/include",
+          "lib directory": "/opt/_internal/cpython-3.12.13/lib/python3.12/site-packages/scipy_openblas64/lib",
+          "name": "scipy-openblas",
+          "openblas configuration": "OpenBLAS 0.3.34.0.0  USE64BITINT DYNAMIC_ARCH NO_AFFINITY Haswell MAX_THREADS=64",
+          "pc file directory": "/project/.openblas",
+          "version": "0.3.34.0.0"
+        }
+      },
+      "Compilers": {
+        "c": {
+          "commands": "cc",
+          "linker": "ld.bfd",
+          "name": "gcc",
+          "version": "14.2.1"
+        },
+        "c++": {
+          "commands": "c++",
+          "linker": "ld.bfd",
+          "name": "gcc",
+          "version": "14.2.1"
+        },
+        "cython": {
+          "commands": "cython",
+          "linker": "cython",
+          "name": "cython",
+          "version": "3.2.9"
+        }
+      },
+      "Machine Information": {
+        "build": {
+          "cpu": "x86_64",
+          "endian": "little",
+          "family": "x86_64",
+          "system": "linux"
+        },
+        "host": {
+          "cpu": "x86_64",
+          "endian": "little",
+          "family": "x86_64",
+          "system": "linux"
+        }
+      },
+      "Python Information": {
+        "path": "/tmp/build-env-jmn5a0j4/bin/python",
+        "version": "3.12"
+      },
+      "SIMD Extensions": {
+        "baseline": [
+          "X86_V2"
+        ],
+        "found": [
+          "X86_V3",
+          "X86_V4"
+        ],
+        "not found": [
+          "AVX512_ICL",
+          "AVX512_SPR"
+        ]
+      }
+    },
+    "clifford_qc": "0.3.0",
+    "dependencies": {
+      "numpy": "2.5.2",
+      "openfermion": null,
+      "openfermionpyscf": null,
+      "pyscf": null,
+      "scipy": "1.18.0",
+      "stim": "1.16.0"
+    },
+    "environment_sha256": "541d3e5f197734d233c2ea9b721222dc9bdef7db3e43a363d7aeffadadd27306",
+    "git_dirty": true,
+    "git_sha": "e1f95d56d1e72a76989378fdbbd87bb4e99e6faa",
+    "platform": {
+      "hostname": "vm",
+      "machine": "x86_64",
+      "processor": "x86_64",
+      "release": "6.18.44-fc-v24",
+      "system": "Linux"
+    },
+    "python": "3.12.3",
+    "schema": "clifford_qc.execution_provenance.v1",
+    "utc": "2026-09-13T13:48:15.064612+00:00"
+  },
+  "schema": "clifford_qc.packed_h2o_feasibility.v1"
+}

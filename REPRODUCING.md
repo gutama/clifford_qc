@@ -2959,3 +2959,74 @@ crosses a numpy-to-Python boundary to keep the arithmetic bit-identical. Pricing
 that time against the memory is 2M-D's job. `interleaved` and `soa` hold identical
 bytes on every bank — checked, not assumed — and `soa` measured marginally slower,
 so `interleaved` is the default.
+
+## Phase 2M-D stretched-H₂O `M = 31` under a 15 GiB ceiling (numpy only)
+
+Phase 2M's go/no-go names one end-to-end test: the previously failing
+stretched-H₂O `M = 31` configuration completing below 15 GiB without shrinking its
+candidate pool, word universe, or basis budget. This is that configuration, run.
+
+```bash
+python benchmarks/run_packed_h2o_feasibility.py
+```
+
+Roughly three hours on one core and needs ~10 GiB of RAM, so it is a manual run
+rather than a CI gate. No chemistry extra is needed: the integrals come from the
+FCIDUMP the failing run itself wrote, checked by digest.
+
+**Nothing is shrunk.** The candidate pool is the pipeline's own
+`determinant_excitations` at rank 2 with no cap — 140 candidates against a
+1,086-word Hamiltonian at 14 qubits. The budget is `max_size = 30`, which is
+`M = 31` once the identity is counted. The exact ground energy feeding the oracle
+stop is read from the committed record rather than recomputed, because it is an
+input to the stopping rule and not a result this test produces.
+
+**The ceiling is enforced, not observed.** A sampling thread watches
+`/proc/self/statm` and interrupts the main thread the moment resident memory
+crosses 15 GiB. A run the kernel kills reports neither the peak it reached nor how
+far it got, and cannot say whether it died at the ceiling or at whatever the host
+happened to have.
+
+**Result — both backends complete.**
+
+| arm | M | peak RSS | adaptive delta | pairs | `T_coeff` | wall |
+|---|---|---|---|---|---|---|
+| object | 31 | 9.69 GiB | 9.54 GiB | 3,906 | 91,969,227 | 31.6 min |
+| packed | 31 | 5.56 GiB | 1.76 GiB | 3,906 | 91,969,227 | 140.9 min |
+
+Both return **bitwise identical** ground energies (`-74.717183835061`) and identical
+basis labels, on the same pairs and the same `T_coeff` — the strongest equivalence
+evidence in the phase, and at production scale rather than on a test bank.
+
+**The clause passes, and it does not discriminate.** Its premise was that this
+configuration fails on a 15 GiB machine. On a clean single-molecule process it does
+not: the object backend — the representation the failure was attributed to — fits
+with 5.3 GiB to spare. A gate both arms pass cannot measure what packing
+contributed.
+
+**The ~18 GiB figure that premise rested on was wrong.** It scaled BeH₂'s `M = 31`
+peak by the Hamiltonian word ratio, `(1086/666) × 10.75 = 17.5` GiB. But H₂O's own
+committed `M = 21` run already carries its larger word count, so multiplying by the
+ratio counts it twice. Scaling that run's own 6.53 GiB linearly in `M` predicts
+9.64 GiB against the 9.69 measured — agreement to 0.5%. `PLAN.md` §5 and the
+comment in `run_molecular_pipeline.py` are both corrected.
+
+**So what did kill it?** `PLAN.md` §5 already records the candidate and it is not
+the bank's representation: a sequential run held BeH₂'s 11.2 GiB bank as H₂O's
+starting point, and `11.2 + 9.7` does not fit in 15. That is the defect the
+producer's explicit inter-molecule delete and `gc.collect()` already repaired, and
+this measurement is what turns that from the more likely of two explanations into
+the only one left standing.
+
+**Two caveats, stated rather than smoothed.** The two arms share one process and
+the packed arm runs second, so its *peak* carries allocator pages the object arm
+freed but did not return, while its *delta* does not — which makes `1.74×` an
+understatement of the peak reduction and `5.4×` on delta the cleaner figure.
+Running each arm in a fresh process is the fix, and it has not been done. And the
+packed arm is **4.46× slower** here against `1.48×` at `n = 8` — a scaling
+regression this phase has measured but not diagnosed.
+
+**What this does not establish.** Not that Phase 2M passes. Its go/no-go has three
+clauses: 2M-B graded the storage reduction, this is the end-to-end one, and the
+streaming-policy clause belongs to 2M-C, which does not exist — no eviction policy
+was built or measured, and this run is entirely `retain_all`.

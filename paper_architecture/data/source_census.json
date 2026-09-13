@@ -49,8 +49,8 @@
     "gates": 32,
     "manual_dispatch_only": 10,
     "named_in_workflow": 30,
-    "producers": 44,
-    "producers_without_gate": 24,
+    "producers": 45,
+    "producers_without_gate": 25,
     "run_on_every_pull_request": 20,
     "same_stem_pairs": 20
   },
@@ -73,6 +73,7 @@
       "matched_h4.json": "d82558e8baf9548f",
       "orbital_basis.json": "44136fa355b3678a",
       "packed_bank_storage.json": "f6a33f1aa225c4dd",
+      "packed_h2o_feasibility.json": "f6a33f1aa225c4dd",
       "phase14b_qwc_vs_fc.json": "7eea7d72de38ea0e",
       "priceability_screen.json": "f6a33f1aa225c4dd",
       "protocol_axis.json": "75a2ec249c533fed",
@@ -101,16 +102,16 @@
       "per_quantity_mapping": 3,
       "role_only": 0,
       "role_with_nested_tier": 2,
-      "top_level_tier": 13
+      "top_level_tier": 14
     },
-    "json_records": 27,
+    "json_records": 28,
     "series_files": 21,
     "top_level_tiers": {
       "exact": 4,
       "exact numerical benchmark": 1,
       "exact_oracle_finite_sample": 1,
       "heuristic": 2,
-      "structural": 5
+      "structural": 6
     }
   },
   "schema": "clifford_qc.architecture_paper_census.v1",
