@@ -411,6 +411,8 @@ class MatrixElementBank:
         if (i, j) not in cache:
             cache[(i, j)] = self._adjoints[i] * acted[j]
             record["universe"].update(cache[(i, j)].terms)
+            self._peak_resident_rows = max(self._peak_resident_rows,
+                                           self._resident_row_count())
         operator = cache[(i, j)]
         self._seconds += time.perf_counter() - started
         return operator
@@ -481,12 +483,10 @@ class MatrixElementBank:
     def _resident_operators(self) -> list[MV]:
         """Every operator row the bank is holding, in one canonical order.
 
-        The overlap and Hamiltonian rows of every pair ever built -- rejected
-        candidates included, because ``retain_all`` keeps them -- plus any
-        projected-observable rows. This is the set ``cached_operator_bytes`` has
-        always priced; naming it once keeps the byte estimate, the coefficient
-        count and the measured walk from drifting onto different populations,
-        which is the defect that would make a packing ratio meaningless.
+        The overlap and Hamiltonian rows of every pair ever built -- rejected candidates
+        included under ``retain_all`` -- plus projected-observable rows. This is the set
+        ``cached_operator_bytes`` has always priced; naming it once keeps byte estimates,
+        coefficient counts and the measured walk on the same population.
         """
         return (list(self._overlap_ops.values()) + list(self._element_ops.values())
                 + [op for record in self._observables.values()
@@ -497,25 +497,22 @@ class MatrixElementBank:
                 + sum(len(record["operators"]) for record in self._observables.values()))
 
     def measured_storage_bytes(self) -> dict[str, Any]:
-        """What the retained rows actually cost this interpreter, against the packed model.
+        """What the resident rows actually cost this interpreter, against the packed model.
 
         ``cached_operator_bytes`` prices Phase 2M-B's target representation and
         is exactly ``24 * coefficient_occurrences``; this walks the live objects
         and reports what the ``dict[int, complex]`` in front of that costs now.
-        The quotient is the packing headroom 2M-B's go/no-go is stated against,
-        measured rather than assumed -- PLAN.md section 5 records its working
-        figure as a hypothesis for exactly this reason.
+        The quotient is the measured packing headroom 2M-B's go/no-go uses; PLAN.md
+        section 5 records its earlier working figure as a hypothesis for this reason.
 
         Boxed keys and coefficients are deduplicated by identity. The word-code
         integers are shared across rows because ``_word_mul_unchecked`` is
         memoized, so a per-row sum counts one allocation many times and
         overstates what resident memory would actually recover.
 
-        Not part of :meth:`resources`, on the same grounds as
-        :meth:`qwc_group_count`: it is linear in the coefficient count with an
-        identity set beside it, which on the committed molecular banks is tens
-        of millions of entries, and ``resources`` is called once per adaptive
-        step.
+        Not part of :meth:`resources`, like :meth:`qwc_group_count`: it is linear in the
+        coefficient count with an identity set beside it, reaches tens of millions of
+        entries on committed molecular banks, and ``resources`` runs every adaptive step.
         """
         rows = self._resident_operators()
         seen: set[int] = set()
@@ -572,14 +569,15 @@ class MatrixElementBank:
                 if key[0] in wanted and key[1] in wanted]
         overlap_ops = [self._overlap_ops[key] for key in keys]
         element_ops = [self._element_ops[key] for key in keys]
-        # A proper subset owns a smaller universe than the cache does, and a
-        # record that quoted the cache's would overstate the subset's
-        # measurement cost -- which matters most during adaptive growth, where
-        # the cache also holds every rejected candidate's row.
+        # A proper subset owns a smaller universe than the cache; quoting the cache's
+        # would overstate measurement cost, especially with rejected candidate rows.
         universe = (len(self._universe) if len(order) == len(self._generators)
                     else len(self.word_set(order)))
         cached = self._resident_operators()
         occurrences = sum(op.nnz() for op in cached)
+        resident_words = set(self._universe).union(
+            *(record["universe"] for record in self._observables.values()))
+        resident_universe = len(resident_words)
         # The retained block is what a converged solve keeps; every other built
         # pair is frontier or rejected-candidate storage. Counting the pairs
         # actually materialized rather than the M(M+1)/2 the block would need
@@ -613,12 +611,14 @@ class MatrixElementBank:
                 for i in order),
             "cached_operator_bytes": sum(op.memory_estimate() for op in cached),
             # Phase 2M-A's storage ledger. ``cached_operator_bytes`` is exactly
-            # 24 * ``coefficient_occurrences`` by construction, which is what
-            # lets the committed molecular records recover T_coeff without being
-            # rerun. The measured counterpart is deliberately absent: see
-            # ``measured_storage_bytes``.
+            # 24 * ``coefficient_occurrences`` by construction. The count and
+            # reuse denominator describe the whole resident cache; ``word_universe``
+            # above remains the selected subspace's measurement cost.
             "coefficient_occurrences": occurrences,
-            "coefficient_reuse": (occurrences / universe) if universe else 0.0,
+            "resident_word_universe": resident_universe,
+            "coefficient_reuse": occurrences / resident_universe if resident_universe else 0.0,
+            "coefficient_occurrences_per_selected_element_word": (
+                occurrences / universe if universe else 0.0),
             "storage_policy": STORAGE_POLICY,
             "resident_operator_rows": len(cached),
             "peak_resident_operator_rows": self._peak_resident_rows,

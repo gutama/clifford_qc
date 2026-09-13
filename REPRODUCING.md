@@ -2745,7 +2745,7 @@ re-reads every quoted field from `molecular_results/` rather than trusting it as
 transcribed.
 
 **The packing hypothesis measures 3.75×, not the plan's working 4.8×.** Pooled,
-one retained nonzero coefficient costs `89.92` bytes against the packed model's
+one resident nonzero coefficient costs `89.92` bytes against the packed model's
 `24`; per bank the rate runs `85.24`–`96.19` bytes, so the headroom available to
 2M-B is `3.552`–`4.008×`. That clears 2M's `3×` go/no-go with less margin than
 the plan's `116`-to-`24` figure implied, and the difference is not noise: the
@@ -2759,16 +2759,25 @@ phase. The record carries `shared_boxed_slots` beside `distinct_boxed_objects`
 so the size of the correction is visible, and the checker requires the two to
 account for exactly two boxes per coefficient.
 
-**Phase 2M's premise, measured rather than extrapolated.** Applying the
-*minimum* measured rate — the conservative end, since the committed banks are
-one to three decades larger and so amortize their shared boxes further — to each
-committed row's recovered `T_coeff` attributes `63.4%`–`72.4%` of recorded peak
-RSS to the retained coefficient rows on the four large banks (both BeH₂ rows and
-both H₂O rows). So the bank, not the projected pencils and not the fixed A-CASE
-reference, is the allocation that failed. The three small rows do not dominate
-and are reported separately rather than averaged in: `hf` carries a `2.94` GiB
-peak against `0.06` GiB of attributed rows, which is a per-run baseline that has
-nothing to do with the bank.
+**Reuse uses one population.** `coefficient_occurrences` counts every resident
+row, including rejected/frontier rows held by `retain_all`, while `word_universe`
+is the selected-subspace measurement cost. The record therefore adds
+`resident_word_universe` and defines `coefficient_reuse` as
+`T_coeff/resident_word_universe`; the mixed `T_coeff/word_universe` quotient is
+named `coefficient_occurrences_per_selected_element_word`. The old molecular records do
+not preserve rejected-row word unions, so their true reuse multiplicity is left
+unavailable rather than inferred from mismatched populations.
+
+**A measurement-calibrated attribution, not a direct large-bank measurement.**
+Applying the minimum observed small-bank rate to each committed row's recovered
+`T_coeff` attributes `63.4%`–`72.4%` of recorded peak RSS to resident coefficient
+payload on the four large banks (both BeH₂ rows and both H₂O rows). That rate is a
+low-rate sensitivity point, not a proven lower bound: CPython dictionary capacity
+is discontinuous. Together with the two independent OOM witnesses in §5, the
+stable majority attribution supports the diagnosis that the bank dominated the
+failed runs. The three small rows are reported separately rather than averaged in:
+`hf` carries a `2.94` GiB peak against `0.06` GiB of attributed payload, which is a
+per-run baseline unrelated to the bank.
 
 Peak is the denominator that carries the claim and delta is reported beside it.
 `adaptive_peak_rss_delta_bytes` subtracts the resident size at the *start* of the
@@ -2786,12 +2795,14 @@ recomputation or I/O for them, and 2M-C is required to report that cost rather
 than present the freed bytes alone.
 
 **One allocation neither lever reaches.** `_word_mul_unchecked` is memoized at
-`maxsize=1_000_000`, a ceiling of at least `0.246` GiB that 2M-B's packing and
-2M-C's eviction both leave in place — a packed bank meeting its `3×` target
-still carries it. The record prices the *ceiling* rather than the current fill,
+`maxsize=1_000_000`. Counting only each entry's key and value tuple containers
+gives a `120,000,000`-byte = `0.112` GiB floor; boxed referents are excluded
+because they may be shared, as are the cache hash table and LRU nodes. 2M-B's
+packing and 2M-C's eviction leave that cache in place — a packed bank meeting its
+`3×` target still carries it. The record prices the *ceiling* rather than the current fill,
 because hits, misses and live entries are cumulative over the process: measured
 here at `1.50M` against `1.54M` hits for the same banks with and without an
-unrelated warm-up. On the small banks the ceiling exceeds the rows themselves;
+unrelated warm-up. On the small banks the floor exceeds the resident payload;
 on the committed molecular banks it is a constant beside rows one to three
 decades bigger, so it is not a competing explanation for the OOM failures.
 

@@ -1,17 +1,10 @@
 """Contracts for the Phase 2M-A bank storage ledger.
 
-2M-A's failure modes are specific and all quiet. A packed-byte identity that
-stops holding silently invalidates the committed back-fill, because that
-recovery is a division by the same constant. A ledger whose frontier fields are
-zero on every row looks complete and has measured nothing, because a bank built
-from a fixed label list never rejects a candidate. A measured byte rate taken
-without deduplicating shared word-code boxes overstates what packing could
-recover, in the direction that flatters the phase. And a baseline that grades
-its own go/no-go turns "here is what 2M-B must beat" into "2M-B passes".
-
-These tests pin the ledger's arithmetic on a live bank, the policy's
-consequences, the identity the back-fill depends on, and the checker's ability
-to catch each of those going wrong.
+The quiet failures are a broken packed-byte identity, an unexercised frontier,
+double-counted shared boxes, mixed resident-T and selected-W populations, or a
+baseline that grades its own future go/no-go. These tests pin the ledger's live
+arithmetic, policy consequences, committed-record back-fill and checker failures.
+The record remains structural and carries no implementation verdict.
 """
 
 from __future__ import annotations
@@ -83,9 +76,7 @@ def adaptive_bank():
     return result.bank, result.indices
 
 
-# --------------------------------------------------------------------------
-# The ledger on a live bank
-# --------------------------------------------------------------------------
+# --- The ledger on a live bank
 
 def test_resources_carries_every_declared_ledger_field(fixed_bank):
     resources = fixed_bank.resources()
@@ -107,11 +98,7 @@ def test_coefficient_occurrences_is_the_summed_support(fixed_bank):
 
 
 def test_a_fixed_label_bank_has_no_frontier(fixed_bank):
-    """Every pair it builds is a retained-block pair, so the fraction is one.
-
-    This is why the record cannot measure eviction headroom on these banks and
-    carries adaptive arms beside them.
-    """
+    """Fixed labels need adaptive arms beside them to exercise frontier fields."""
     resources = fixed_bank.resources()
     assert resources["selection_pairs"] == 0
     assert resources["retained_pair_fraction"] == 1.0
@@ -126,6 +113,13 @@ def test_an_adaptive_bank_retains_a_minority_of_what_it_builds(adaptive_bank):
     assert resources["retained_pair_fraction"] < 1.0
     assert (resources["retained_block_pairs"] + resources["selection_pairs"]
             == resources["pairs_built"])
+    assert resources["resident_word_universe"] >= resources["word_universe"]
+    assert resources["coefficient_reuse"] == (
+        resources["coefficient_occurrences"] / resources["resident_word_universe"])
+    assert resources["coefficient_occurrences_per_selected_element_word"] == (
+        resources["coefficient_occurrences"] / resources["word_universe"])
+    assert (bank.measured_storage_bytes()["coefficient_occurrences"]
+            == resources["coefficient_occurrences"])
 
 
 def test_retain_all_never_frees_a_row(fixed_bank):
@@ -150,6 +144,11 @@ def test_peak_resident_rows_is_counted_not_derived():
     bank.matrices()
     grown = bank.resources()["peak_resident_operator_rows"]
     assert grown == bank.resources()["resident_operator_rows"] > 0
+    bank.project_observable(model.hamiltonian)
+    with_observable = bank.resources()
+    assert with_observable["resident_operator_rows"] > grown
+    assert (with_observable["peak_resident_operator_rows"]
+            == with_observable["resident_operator_rows"])
 
 
 def test_measured_bytes_exceed_the_packed_model(fixed_bank):
@@ -192,15 +191,14 @@ def test_boxed_storage_reports_two_boxes_per_term():
     assert len(boxes) == 2 * mv.nnz()
 
 
-# --------------------------------------------------------------------------
-# The declaration
-# --------------------------------------------------------------------------
+# --- The declaration
 
 def test_config_declares_every_gate_with_its_statement():
     gates = load_config()["gates"]
     for gate, statement in (
             ("packed_identity_is_exact", "packed_identity_statement"),
             ("measured_rate_is_deduplicated", "measured_rate_statement"),
+            ("reuse_populations_are_aligned", "reuse_population_statement"),
             ("frontier_fields_are_exercised", "frontier_statement"),
             ("no_cost_fields", "no_cost_fields_statement"),
             ("no_go_no_go_verdict", "no_go_no_go_statement")):
@@ -246,11 +244,14 @@ def test_committed_rows_retain_a_small_minority_of_their_pairs(record):
         basis = row["subspace_size_m"]
         assert row["retained_block_pairs"] == basis * (basis + 1) // 2
         assert 0.0 < row["retained_pair_fraction"] < 0.1
+        assert row["resident_word_universe"] is None
+        assert row["coefficient_reuse"] is None
+        assert row["reuse_recovery_boundary"].strip()
 
 
-def test_the_bank_dominates_peak_on_the_large_committed_rows(record):
-    """Phase 2M's premise: the bank is the allocation that failed."""
-    dominated = record["peak_rss_attribution"]["records_where_the_bank_dominates_peak"]
+def test_attribution_is_a_majority_on_the_large_committed_rows(record):
+    """The low-rate calibrated attribution is a majority on the large rows."""
+    dominated = record["peak_rss_attribution"]["records_with_attributed_majority_of_peak"]
     assert "beh2_stretched_results.json" in dominated
     assert "h2o_results.json" in dominated
     for row in record["peak_rss_attribution"]["rows"]:
@@ -258,8 +259,8 @@ def test_the_bank_dominates_peak_on_the_large_committed_rows(record):
             assert row["attributed_fraction_of_peak"] >= BANK_DOMINANCE_FRACTION
 
 
-def test_attribution_uses_the_conservative_rate(record):
-    """The minimum, because the committed banks are larger than any measured here."""
+def test_attribution_uses_the_minimum_observed_rate(record):
+    """The declared low-rate calibration point, without calling it a bound."""
     rate = record["measured_rate"]
     assert (record["peak_rss_attribution"]["bytes_per_coefficient_used"]
             == rate["minimum_bytes_per_coefficient"])
@@ -277,9 +278,7 @@ def test_word_product_cache_prices_its_ceiling_not_its_fill(record):
     assert not {"hits", "misses", "live_entries"} & set(cache)
 
 
-# --------------------------------------------------------------------------
-# The checker catches each failure
-# --------------------------------------------------------------------------
+# --- The checker catches each failure
 
 def _broken(record: dict, mutate) -> dict:
     copied = copy.deepcopy(record)
@@ -294,6 +293,9 @@ def _broken(record: dict, mutate) -> dict:
      measured_bank_problems),
     ("pair arithmetic",
      lambda r: r["measured_banks"][0].update(selection_pairs=7),
+     measured_bank_problems),
+    ("mixed reuse populations",
+     lambda r: r["measured_banks"][0].update(resident_word_universe=1),
      measured_bank_problems),
     ("eviction under retain_all",
      lambda r: r["measured_banks"][0].update(evicted_rows=1),
@@ -317,7 +319,7 @@ def _broken(record: dict, mutate) -> dict:
      lambda r: r["peak_rss_attribution"].update(bytes_per_coefficient_used=1e4),
      attribution_problems),
     ("a dominance verdict written by hand",
-     lambda r: r["peak_rss_attribution"]["rows"][-1].update(bank_dominates_peak=True),
+     lambda r: r["peak_rss_attribution"]["rows"][-1].update(attributed_majority_of_peak=True),
      attribution_problems),
     ("a baseline that grades itself",
      lambda r: r["baseline"].update(verdict="go"),
@@ -355,9 +357,7 @@ def test_checker_survives_a_malformed_record(record):
     assert any("malformed record" in problem for problem in problems)
 
 
-# --------------------------------------------------------------------------
-# The interpreter tolerance
-# --------------------------------------------------------------------------
+# --- The interpreter tolerance
 
 def test_measured_bytes_are_excluded_from_the_exact_comparison():
     """Every published measured-byte field is declared interpreter-dependent."""

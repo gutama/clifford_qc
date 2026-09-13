@@ -23,12 +23,14 @@ re-derived from its own contents rather than trusted:
 * the measured bytes decompose -- containers plus boxed objects -- and the
   boxed slots account for exactly two per coefficient, deduplicated plus
   shared, so no allocation is double-counted or dropped;
+* coefficient reuse divides resident occurrences by the word universe of those
+  same rows; selected-subspace ``W`` is carried separately, and old records that
+  did not preserve rejected-row ``W`` leave true reuse unavailable;
 * the committed rows still say what the record says they say: every back-filled
   field is re-read from ``molecular_results/`` rather than trusted as
   transcribed;
-* the attribution is re-derived from the measured rate, the dominance verdict
-  follows mechanically from the declared threshold, and no verdict is writable
-  by hand;
+* the calibrated attribution is re-derived from the minimum observed rate, its
+  threshold verdict follows mechanically, and no verdict is writable by hand;
 * the record carries no go/no-go outcome: 2M's gate is a property of an
   implementation that does not exist yet, and a baseline that quietly graded
   itself would be the failure this phase exists to prevent;
@@ -96,7 +98,7 @@ INTERPRETER_DEPENDENT_FIELDS = frozenset({
     "attributed_fraction_of_peak",
     "bytes_per_coefficient_used",
     "distinct_boxed_objects",
-    "dominated_fraction_range",
+    "majority_attribution_fraction_range",
     "lower_bound_bytes_per_entry",
     "lower_bound_ceiling_bytes",
     "maximum_bytes_per_coefficient",
@@ -228,10 +230,18 @@ def measured_bank_problems(record: dict) -> list[str]:
             problems.append(
                 f"{where}: retained_pair_fraction {row['retained_pair_fraction']} "
                 f"is not {retained}/{built}")
-        if row["word_universe"] and not _close(
-                row["coefficient_reuse"], occurrences / row["word_universe"]):
+        resident_universe = row["resident_word_universe"]
+        if resident_universe and not _close(
+                row["coefficient_reuse"], occurrences / resident_universe):
             problems.append(
-                f"{where}: coefficient_reuse is not T_coeff/W")
+                f"{where}: coefficient_reuse is not T_coeff/resident_W")
+        selected_universe = row["word_universe"]
+        if selected_universe and not _close(
+                row["coefficient_occurrences_per_selected_element_word"],
+                occurrences / selected_universe):
+            problems.append(
+                f"{where}: resident coefficients per selected word is not "
+                "T_coeff/W_selected")
         if row["storage_policy"] != policy:
             problems.append(
                 f"{where}: row policy {row['storage_policy']!r} disagrees with the "
@@ -249,15 +259,14 @@ def measured_bank_problems(record: dict) -> list[str]:
                 f"{policy!r} the resident count never falls, so the two are equal "
                 "by construction; a difference means rows are being freed and the "
                 "policy label no longer describes the bank")
-        # The measured walk prices the whole resident cache, which for an
-        # adaptive arm is more than the retained subset, so it has its own
-        # occurrence count and the two are checked against each other.
+        # Both paths price the same resident rows; only selected-subspace W is
+        # subset-scoped. A mismatch here means the byte quotient mixes populations.
         measured_occurrences = row["measured_coefficient_occurrences"]
-        if measured_occurrences < occurrences:
+        if measured_occurrences != occurrences:
             problems.append(
                 f"{where}: the measured walk saw {measured_occurrences} "
-                f"coefficients, fewer than the {occurrences} the subset ledger "
-                "reports; the walk must cover at least what the subset does")
+                f"coefficients against {occurrences} in resources(); both must "
+                "cover the same resident cache")
         if (row["measured_container_bytes"] + row["measured_boxed_bytes"]
                 != row["measured_operator_bytes"]):
             problems.append(
@@ -335,9 +344,15 @@ def committed_row_problems(record: dict) -> list[str]:
             problems.append(f"{name}: selection pairs do not close against built")
         if not _close(row["retained_pair_fraction"], retained / built):
             problems.append(f"{name}: retained_pair_fraction is not the quotient")
-        if not _close(row["coefficient_reuse"],
+        if row["resident_word_universe"] is not None or row["coefficient_reuse"] is not None:
+            problems.append(
+                f"{name}: claims resident-W reuse although rejected-row W was not recorded")
+        if not _close(row["coefficient_occurrences_per_selected_element_word"],
                       occurrences / payload["element_word_universe"]):
-            problems.append(f"{name}: coefficient_reuse is not T_coeff/W")
+            problems.append(
+                f"{name}: resident coefficients per selected word is not T_coeff/W_selected")
+        if not row.get("reuse_recovery_boundary"):
+            problems.append(f"{name}: does not state why true reuse cannot be recovered")
     return problems
 
 
@@ -384,13 +399,12 @@ def attribution_problems(record: dict) -> list[str]:
     if not _close(used, rate["minimum_bytes_per_coefficient"]):
         problems.append(
             f"the attribution uses {used} bytes per coefficient, not the minimum "
-            f"{rate['minimum_bytes_per_coefficient']} it declares as its basis. "
-            "The committed banks are larger than every bank measured here and so "
-            "cost less per coefficient, which is what makes the minimum the "
-            "conservative choice rather than a convenient one")
-    if attribution["dominance_fraction"] != BANK_DOMINANCE_FRACTION:
+            f"{rate['minimum_bytes_per_coefficient']} it declares as its "
+            "low-rate calibration point")
+    if attribution["attributed_majority_fraction"] != BANK_DOMINANCE_FRACTION:
         problems.append(
-            f"the dominance threshold is {attribution['dominance_fraction']}, not "
+            "the attributed-majority threshold is "
+            f"{attribution['attributed_majority_fraction']}, not "
             f"the declared {BANK_DOMINANCE_FRACTION}")
     committed = {row["record"]: row for row in record["committed_records"]}
     dominated = []
@@ -418,17 +432,17 @@ def attribution_problems(record: dict) -> list[str]:
         elif not _close(row["attributed_fraction_of_delta"], expected_delta):
             problems.append(f"{name}: the delta fraction is not the quotient")
         dominates = (attributed / peak) >= BANK_DOMINANCE_FRACTION
-        if row["bank_dominates_peak"] != dominates:
+        if row["attributed_majority_of_peak"] != dominates:
             problems.append(
-                f"{name}: records bank_dominates_peak="
-                f"{row['bank_dominates_peak']}, but its measured fraction gives "
+                f"{name}: records attributed_majority_of_peak="
+                f"{row['attributed_majority_of_peak']}, but its calibrated fraction gives "
                 f"{dominates}. The verdict follows from the threshold and is not "
                 "writable by hand")
         if dominates:
             dominated.append(name)
-    if attribution["records_where_the_bank_dominates_peak"] != dominated:
+    if attribution["records_with_attributed_majority_of_peak"] != dominated:
         problems.append(
-            "the dominated-record list disagrees with the per-row verdicts")
+            "the majority-attribution record list disagrees with the row verdicts")
     if not attribution.get("what_this_does_not_establish"):
         problems.append(
             "the attribution records no boundary; a fraction of peak RSS is the "

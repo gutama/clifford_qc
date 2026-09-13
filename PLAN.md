@@ -930,7 +930,7 @@ That figure is the §6 metric to watch as Phase 3 grows bases, not a footnote.
 
 Phase 2 made repeated adaptive solves computationally credible by retaining every
 built pair. The larger molecular records expose the other side of that decision:
-the retained Python-object bank, rather than the numerical `H` and `S` pencils or
+the resident Python-object bank, rather than the numerical `H` and `S` pencils or
 the fixed A-CASE reference, is now the dominant classical-memory allocation. Phase
 2M changes only storage and lifetime policy; it may not change the generator family,
 selection rule, measurement estimand, or scientific evidence category.
@@ -962,32 +962,38 @@ density operator with exactly `2^n` Pauli terms and is never evolved during A-CA
 growth. A possible `4^n` density-multivector support belongs only to exact classical
 arms with non-Clifford rotor evolution, such as simulated VQE or ADAPT-VQE.
 
-**Two distinct storage currencies.** For the cached element-operator family
+**Aligned storage currencies.** For the cached element-operator family
 `O_alpha in {A_i^dagger A_j, A_i^dagger H A_j}`, define
 
-`W = | union_alpha supp(O_alpha) |`,
+`W_res = | union_(resident alpha) supp(O_alpha) |`,
 
-`T_coeff = sum_alpha nnz(O_alpha)`, and
+`T_coeff = sum_(resident alpha) nnz(O_alpha)`, and
 
-`R_reuse = T_coeff / W`.
+`R_reuse = T_coeff / W_res`.
 
-`W` prices the distinct Pauli expectations; `T_coeff` prices their nonzero
-coefficients across matrix-element functionals. `R_reuse` is cross-element word
-reuse multiplicity, not removable duplication: the same word normally has a
-different coefficient for every pair. Packed storage removes representation
-overhead around those intrinsic nonzeros; it does not claim a `T_coeff/W`
-deduplication gain. Under the current code `cached_operator_bytes = 24*T_coeff`
-exactly, but that estimate excludes Python dictionary, integer, complex-object and
+`W_sel` remains the distinct Pauli expectations needed by the selected subspace.
+`T_coeff` prices every resident nonzero, including rejected/frontier rows kept by
+`retain_all`. `R_reuse` is therefore cross-element word reuse over the *same*
+resident population, not removable duplication: the same word normally has a
+different coefficient for every pair. The mixed ratio `T_coeff/W_sel` is reported
+separately as resident coefficients per selected word; it is not called reuse.
+The seven old molecular records preserve `W_sel` but not `W_res`, so their true
+reuse multiplicity cannot be recovered without rerunning them. Packed storage
+removes representation overhead around intrinsic nonzeros; it does not claim a
+reuse-factor deduplication gain. Under the current code
+`cached_operator_bytes = 24*T_coeff` exactly, but that estimate excludes Python
+dictionary, integer, complex-object and
 allocator overhead. The 116-to-24 comparison entered this plan as a packing
 hypothesis rather than a promised RSS ratio, and 2M-A has since measured it: one
-retained coefficient costs `85.24`--`96.19` bytes, `89.92` pooled, so the headroom
+resident coefficient costs `85.24`--`96.19` bytes, `89.92` pooled, so the headroom
 is `3.75x` and not the `4.8x` that estimate implied. The measured figure is the one
 2M-B is gated against.
 
 **2M-A — storage ledger and frozen baseline. Done.** The declared extension ships
 (`clifford_qc/subspace/projection.py`): `resources()` carries `T_coeff` as
-`coefficient_occurrences`, its reuse multiplicity, the retained and selection pair
-counts with their fraction, resident and peak frontier rows, the policy label, and
+`coefficient_occurrences`, `resident_word_universe`, their aligned reuse
+multiplicity, the separate coefficients-per-selected-word ratio, retained and
+selection pair counts with their fraction, resident and peak rows, the policy label, and
 the evicted/recomputed/spill counters — structurally zero under `retain_all`,
 which the checker requires rather than assumes. Measured bytes are deliberately
 *not* in `resources()`: the walk is linear in `T_coeff` with an identity set
@@ -999,21 +1005,23 @@ on the five frozen mapping-axis banks, two small exact-A-CASE arms, and the seve
 committed molecular records read rather than rerun.
 
 *Three results, one of which corrects this plan.* First, the packing hypothesis
-measures **3.75x pooled** (`85.24`--`96.19` bytes per retained coefficient against
+measures **3.75x pooled** (`85.24`--`96.19` bytes per resident coefficient against
 the packed `24`, so `3.552`--`4.008x` per bank), not the `116`-to-`24` figure
 below: it clears 2M-B's `3x` go/no-go with less margin than that estimate implied,
 and the working number is now a measurement. Second, the rate is deduplicated by
 object identity — the memoized word product hands every row carrying a word the
 same integer object, and a per-row sum overstates the recoverable bytes by `4.7%`,
-in the direction that flatters the phase. Third, applying the conservative
-(minimum) rate to each committed row's recovered `T_coeff` attributes
-`63.4%`--`72.4%` of recorded peak RSS to the retained rows on all four large banks.
-So 2M's premise is measured rather than extrapolated: the bank, not the pencils
-and not the fixed A-CASE reference, is the allocation that failed. The three small
-rows do not dominate and are reported separately — `hf` carries a `2.94` GiB peak
-against `0.06` GiB of rows — because a per-run baseline sets their peak.
+in the direction that flatters the phase. Third, applying the minimum *observed*
+small-bank rate to each committed row's recovered `T_coeff` attributes
+`63.4%`--`72.4%` of recorded peak RSS to resident coefficient payload on all four
+large banks. This is a measurement-calibrated extrapolation, not a direct
+measurement and not a proven lower bound for a larger CPython dictionary. Read
+beside the two independent OOM witnesses above, it supports the diagnosis that the
+bank, not the pencils or fixed A-CASE reference, dominated the failed runs. The
+three small rows are reported separately — `hf` carries a `2.94` GiB peak against
+`0.06` GiB of attributed payload — because a per-run baseline sets their peak.
 
-*Peak, not delta, is the denominator that carries that claim.*
+*Peak, not delta, is the denominator used by that attribution.*
 `adaptive_peak_rss_delta_bytes` subtracts the resident size at the start of the
 adaptive block, so a process that had already allocated and freed memory hands the
 bank pages the allocator still holds and the delta understates it. That is the
@@ -1021,9 +1029,12 @@ sequential-run mechanism recorded above, not a hypothetical, so the delta fracti
 is a lower bound whose denominator depends on run history.
 
 *And one allocation neither remaining lever reaches.* `_word_mul_unchecked` is
-memoized at `maxsize=1_000_000`, a ceiling of at least `0.246` GiB that 2M-B's
+memoized at `maxsize=1_000_000`. Counting only the per-entry key and value tuple
+containers gives a `120,000,000`-byte = `0.112` GiB floor; boxed referents are
+excluded because they may be shared, as are the cache hash table and LRU nodes.
+That allocation is a ceiling of at least `0.112` GiB that 2M-B's
 packing and 2M-C's eviction both leave in place. On the small banks it exceeds the
-rows themselves; on the committed molecular banks it is a constant beside rows one
+resident coefficient payload; on the committed molecular banks it is a constant beside rows one
 to three decades bigger, so it is not a competing explanation for the two OOM
 failures — but a packed bank meeting its `3x` target still carries it, and the
 end-to-end 15 GiB test is where that shows up.
@@ -1066,14 +1077,14 @@ as free.
 
 **2M-D — equivalence and performance matrix.** On H4, equilibrium and stretched
 BeH2, and equilibrium and stretched H2O, compare all policies at identical candidate
-ordering and basis budget. Require exact equality of `W`, `T_coeff`, pair ownership,
+ordering and basis budget. Require exact equality of `W_sel`, `W_res`, `T_coeff`, pair ownership,
 selected labels, rejection decisions, stopping reason, evidence label and resource
 scope. Require bitwise `S`, `H` and energies where canonical accumulation order is
 preserved; otherwise use a declared tight tolerance and record the first source of
 rounding-order divergence. Report bank-build time, recomputation time, spill I/O,
 peak and delta RSS, packed bytes and actual bytes per coefficient.
 
-**Go/no-go.** The packed representation must reduce retained coefficient-storage
+**Go/no-go.** The packed representation must reduce resident coefficient-storage
 bytes by at least 3x at unchanged `T_coeff`. A streaming policy must bound live
 operator rows by the retained block plus its declared candidate batch, rather than
 by all historically scored candidates. The primary end-to-end feasibility test is

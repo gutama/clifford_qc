@@ -19,11 +19,10 @@ rather than rerun: ``T_coeff`` comes back from ``cached_operator_bytes / 24``,
 exactly as the plan specifies, and nothing else about them is touched.
 
 **What the record is for.**  The measured rate applied to a committed row's
-recovered ``T_coeff`` says how much of that row's already-recorded peak RSS the
-retained coefficient rows account for.  That attribution is what makes 2M's
-go/no-go readable: a packing lever that reaches 90% of the growth is worth
-building, and one that reaches 10% is not, and until this record existed the
-project could not tell those apart.
+recovered ``T_coeff`` calibrates how much of that row's already-recorded peak
+RSS may be attributed to resident coefficient payload. It is an extrapolation
+from smaller live banks, interpreted beside the independent OOM witnesses, not
+a direct object-graph measurement of the large run.
 
     python benchmarks/run_bank_storage_ledger.py
     python benchmarks/check_bank_storage_ledger.py
@@ -84,7 +83,9 @@ BANK_DOMINANCE_FRACTION = 0.5
 
 REQUIRED_LEDGER_FIELDS = (
     "coefficient_occurrences",
+    "resident_word_universe",
     "coefficient_reuse",
+    "coefficient_occurrences_per_selected_element_word",
     "storage_policy",
     "resident_operator_rows",
     "peak_resident_operator_rows",
@@ -128,6 +129,7 @@ def load_config(path: Path | None = None) -> dict:
     for gate, statement in (
             ("packed_identity_is_exact", "packed_identity_statement"),
             ("measured_rate_is_deduplicated", "measured_rate_statement"),
+            ("reuse_populations_are_aligned", "reuse_population_statement"),
             ("frontier_fields_are_exercised", "frontier_statement"),
             ("no_cost_fields", "no_cost_fields_statement"),
             ("no_go_no_go_verdict", "no_go_no_go_statement")):
@@ -170,11 +172,10 @@ def _measured_row(key: str, kind: str, n_qubits: int, bank: MatrixElementBank,
     measured = bank.measured_storage_bytes()
     row = {"system": key, "kind": kind, "n_qubits": n_qubits}
     row.update(_ledger(resources))
-    # measured_storage_bytes prices the whole resident cache, which for an
-    # adaptive arm includes every rejected candidate's row. That is the right
-    # population -- it is what occupies memory -- but it means the measured
-    # occurrence count is the cache's, not the retained subset's, and the two
-    # differ exactly where the frontier is nonempty.
+    # Both paths price the whole resident cache, rejected-candidate rows included.
+    # ``word_universe`` alone remains subset-scoped because it is measurement cost.
+    if measured["coefficient_occurrences"] != resources["coefficient_occurrences"]:
+        raise ValueError("the measured walk and resources() price different rows")
     row.update({
         "measured_operator_bytes": measured["measured_operator_bytes"],
         "measured_container_bytes": measured["measured_container_bytes"],
@@ -258,12 +259,20 @@ def _committed_rows(config: dict) -> list[dict]:
             "selection_pairs": pairs_built - retained,
             "retained_pair_fraction": retained / pairs_built,
             "word_universe": universe,
+            "resident_word_universe": None,
             "packed_operator_bytes": packed,
             "coefficient_occurrences": occurrences,
-            "coefficient_reuse": occurrences / universe,
+            "coefficient_reuse": None,
+            "coefficient_occurrences_per_selected_element_word": occurrences / universe,
             "peak_rss_bytes": payload["adaptive_peak_rss_bytes"],
             "peak_rss_delta_bytes": payload["adaptive_peak_rss_delta_bytes"],
             "recovery": "cached_operator_bytes / 24, exact",
+            "reuse_recovery_boundary": (
+                "The record preserves selected-subspace W but not the word union "
+                "of every rejected row still resident in the cache. T_coeff/W is "
+                "therefore reported as resident coefficients per selected word, "
+                "not as cross-row coefficient reuse; true reuse is unavailable "
+                "without rerunning the bank."),
         })
     return rows
 
@@ -299,8 +308,9 @@ def _measured_rate(rows: list[dict]) -> dict:
             "coefficients over a comparable word universe therefore amortizes "
             "those boxes further and costs less per coefficient. The committed "
             "rows below have coefficient counts one to three decades above every "
-            "bank measured here, so the low end of this range is the conservative "
-            "choice for attributing their storage and is the one used."),
+            "bank measured here. The low end of the observed range is used as a "
+            "deliberately low-rate calibration point, not as a proven lower bound "
+            "on a larger CPython dictionary."),
     }
 
 
@@ -339,31 +349,32 @@ def _attribution(rate: dict, committed: list[dict]) -> dict:
             "attributed_fraction_of_peak": attributed / peak,
             "peak_rss_delta_bytes": delta,
             "attributed_fraction_of_delta": (attributed / delta) if delta else None,
-            "bank_dominates_peak": (attributed / peak) >= BANK_DOMINANCE_FRACTION,
+            "attributed_majority_of_peak": (
+                attributed / peak) >= BANK_DOMINANCE_FRACTION,
         })
-    dominated = [row["record"] for row in rows if row["bank_dominates_peak"]]
+    dominated = [row["record"] for row in rows if row["attributed_majority_of_peak"]]
     fractions = [row["attributed_fraction_of_peak"] for row in rows
-                 if row["bank_dominates_peak"]]
+                 if row["attributed_majority_of_peak"]]
     return {
         "bytes_per_coefficient_used": per_coefficient,
         "basis": (
-            "the minimum measured rate, which is the conservative end: the "
+            "the minimum observed rate, used as the low-rate sensitivity case: the "
             "committed banks carry one to three decades more coefficients than "
-            "any bank measured here and so amortize their shared word-code "
-            "boxes further, which lowers the per-coefficient cost"),
-        "dominance_fraction": BANK_DOMINANCE_FRACTION,
+            "any bank measured here, but CPython dict capacity is discontinuous, "
+            "so this extrapolated rate is not claimed as a mathematical bound"),
+        "attributed_majority_fraction": BANK_DOMINANCE_FRACTION,
         "rows": rows,
-        "records_where_the_bank_dominates_peak": dominated,
-        "dominated_fraction_range": ([min(fractions), max(fractions)]
-                                     if fractions else None),
+        "records_with_attributed_majority_of_peak": dominated,
+        "majority_attribution_fraction_range": ([min(fractions), max(fractions)]
+                                                if fractions else None),
         "reading": (
             "On every committed row whose bank is large enough to matter, the "
-            "retained coefficient rows account for the majority of the recorded "
-            "peak, and they do so at a strikingly stable fraction of it. That is "
-            "Phase 2M's premise measured rather than extrapolated: the bank, not "
-            "the projected pencils and not the fixed A-CASE reference, is the "
-            "allocation that produced the two OOM failures. The rows where it "
-            "does not dominate are the small ones, where a per-run baseline "
+            "resident coefficient payload is attributed a majority of the recorded "
+            "peak, at a strikingly stable fraction. This is a measurement-calibrated "
+            "attribution, consistent with the two independent OOM witnesses that "
+            "identify the bank as dominant; it is not a direct measurement of the "
+            "large banks' object graphs. The rows where it does not dominate are "
+            "the small ones, where a per-run baseline "
             "unrelated to the bank sets the peak -- hf carries a 2.9 GiB peak "
             "against 0.06 GiB of attributed rows -- so they are reported "
             "separately rather than averaged in, and they are not evidence "
@@ -399,20 +410,20 @@ def _word_product_cache() -> dict:
     these banks already saturate it.
     """
     maxsize = _word_mul_unchecked.cache_info().maxsize
-    # One entry is a 3-int key tuple and a (complex, int) value tuple. Sizing a
-    # representative keeps this O(1) and independent of the current fill; every
-    # entry has the same shape, and the ints are word codes of like magnitude.
+    # One entry owns a 3-item key tuple and a 2-item value tuple. Count only those
+    # containers: their referents may be shared with bank rows or other entries,
+    # so multiplying their boxed sizes would not be a defensible lower bound.
     key = (8, 1 << 15, 1 << 15)
     value = (1 + 0j, 1 << 15)
-    per_entry = (sys.getsizeof(key) + sum(sys.getsizeof(x) for x in key)
-                 + sys.getsizeof(value) + sum(sys.getsizeof(x) for x in value))
+    per_entry = sys.getsizeof(key) + sys.getsizeof(value)
     return {
         "function": "clifford_qc.pauli_kernel._word_mul_unchecked",
         "maxsize": maxsize,
         "lower_bound_bytes_per_entry": per_entry,
         "lower_bound_ceiling_bytes": per_entry * maxsize,
         "excluded_from_the_bound": (
-            "the cache's own hash table and its one LRU list node per entry"),
+            "the cache's own hash table, its one LRU list node per entry, and all "
+            "boxed key/value referents because those objects may be shared"),
         "fill_is_not_recorded": (
             "Hits, misses and live entries are cumulative over the process and "
             "depend on what ran before this record was built, so they are "
@@ -421,8 +432,9 @@ def _word_product_cache() -> dict:
         "why_it_is_here": (
             "2M-B packs operator rows and 2M-C evicts them; neither lever "
             "touches this cache, whose ceiling is a fixed allocation of roughly "
-            "a quarter of a gigabyte. On the small banks measured here that is "
-            "larger than the retained rows themselves; on the committed "
+            "0.11 GiB before hash/LRU metadata. On the small banks measured here "
+            "that floor is larger than the resident coefficient payload itself; "
+            "on the committed "
             "molecular banks it is a constant beside rows one to three decades "
             "bigger. So it is not a competing explanation for the two OOM "
             "failures, and it is also not something the two proposed levers "
@@ -455,7 +467,7 @@ def _baseline(rate: dict, measured: list[dict], committed: list[dict]) -> dict:
         "frontier_exercised_on": [row["system"] for row in frontier],
         "verdict": "baseline_only_no_go_no_go_evaluated",
         "why_no_verdict": (
-            "2M's go/no-go asks for a 3x reduction in retained coefficient "
+            "2M's go/no-go asks for a 3x reduction in resident coefficient "
             "storage at unchanged T_coeff, a streaming policy that bounds live "
             "rows by the retained block plus its batch, and the stretched-H2O "
             "M=31 configuration completing below 15 GiB. None of the three can "
@@ -531,9 +543,9 @@ def main() -> None:
               f"{row['retained_pair_fraction']:8.1%} "
               f"{priced['attributed_row_bytes'] / 2**30:10.2f}G "
               f"{priced['attributed_fraction_of_peak']:12.2f}"
-              f"{'  *' if priced['bank_dominates_peak'] else ''}")
-    print(f"\n  * retained rows are the majority of peak RSS, on "
-          f"{len(attribution['records_where_the_bank_dominates_peak'])} of "
+              f"{'  *' if priced['attributed_majority_of_peak'] else ''}")
+    print(f"\n  * calibrated resident-row attribution exceeds half of peak RSS, on "
+          f"{len(attribution['records_with_attributed_majority_of_peak'])} of "
           f"{len(attribution['rows'])} committed rows")
     print(f"\n{record['baseline']['verdict']}")
     print(f"wrote {args.out}")
