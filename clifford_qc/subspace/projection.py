@@ -575,9 +575,10 @@ class MatrixElementBank:
                     else len(self.word_set(order)))
         cached = self._resident_operators()
         occurrences = sum(op.nnz() for op in cached)
-        resident_words = set(self._universe).union(
-            *(record["universe"] for record in self._observables.values()))
-        resident_universe = len(resident_words)
+        resident_universe = len(self._universe)
+        if self._observables:
+            resident_universe = len(set(self._universe).union(
+                *(record["universe"] for record in self._observables.values())))
         # The retained block is what a converged solve keeps; every other built
         # pair is frontier or rejected-candidate storage. Counting the pairs
         # actually materialized rather than the M(M+1)/2 the block would need
@@ -610,10 +611,9 @@ class MatrixElementBank:
                 (self._generators[i].label, self._new_words[i], self._reused_words[i])
                 for i in order),
             "cached_operator_bytes": sum(op.memory_estimate() for op in cached),
-            # Phase 2M-A's storage ledger. ``cached_operator_bytes`` is exactly
-            # 24 * ``coefficient_occurrences`` by construction. The count and
-            # reuse denominator describe the whole resident cache; ``word_universe``
-            # above remains the selected subspace's measurement cost.
+            # Phase 2M-A's storage ledger. Counts below describe the whole resident
+            # cache; ``word_universe`` remains the selected subspace's measurement cost.
+            # ``cached_operator_bytes`` is exactly 24 * ``coefficient_occurrences``.
             "coefficient_occurrences": occurrences,
             "resident_word_universe": resident_universe,
             "coefficient_reuse": occurrences / resident_universe if resident_universe else 0.0,
