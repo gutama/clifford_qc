@@ -253,17 +253,19 @@
       "id": "2M",
       "title": "Memory-bounded matrix-element bank",
       "status": "partial",
-      "outcome": "storage_ledger_shipped_packing_measured_at_3_75x",
+      "outcome": "ledger_packed_store_and_end_to_end_feasibility_shipped_3x_clause_graded_15gib_clause_passes_without_discriminating",
       "remaining": [
-        "Packed global-word-table CSR/SoA coefficient representation",
         "Retain-all, stream/recompute, and disk-backed frontier policies",
         "Equivalence matrix on H4, BeH2, and H2O",
-        "At least 3x retained coefficient-storage reduction",
-        "Stretched-H2O M=31 completion below 15 GiB without scope reduction"
+        "Per-arm process isolation for the feasibility peaks",
+        "Diagnose the packed backend's 4.46x slowdown at n=14"
       ],
       "evidence": [
         "clifford_qc/subspace/projection.py",
-        "benchmarks/reference_results/bank_storage_ledger.json"
+        "clifford_qc/subspace/packed.py",
+        "benchmarks/reference_results/bank_storage_ledger.json",
+        "benchmarks/reference_results/packed_bank_storage.json",
+        "benchmarks/reference_results/packed_h2o_feasibility.json"
       ]
     },
     {

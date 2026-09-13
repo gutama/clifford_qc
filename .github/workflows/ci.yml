@@ -122,6 +122,9 @@ jobs:
           - gate: check_bank_storage_ledger
             timeout: 15
             environment_record: bank_storage_ledger.json
+          - gate: check_packed_bank_storage
+            timeout: 25
+            environment_record: packed_bank_storage.json
     steps:
       - uses: actions/checkout@v4
       - uses: ./.github/actions/record-environment

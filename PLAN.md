@@ -926,7 +926,7 @@ not the products — while H₄'s is 6×. The cost side is memory, and it is not
 small: H₄'s 378 cached element operators hold 15 847 distinct words and ~10.6 MB.
 That figure is the §6 metric to watch as Phase 3 grows bases, not a footnote.
 
-### Phase 2M — memory-bounded matrix-element bank (adjunct; 2M-A done, B--D open)
+### Phase 2M — memory-bounded matrix-element bank (adjunct; 2M-A/2M-B done, C--D open)
 
 Phase 2 made repeated adaptive solves computationally credible by retaining every
 built pair. The larger molecular records expose the other side of that decision:
@@ -946,10 +946,17 @@ measured anchor and two independent OOM failure witnesses.
   `T_coeff = 96,107,619` stored nonzero coefficient occurrences under the current
   24-byte payload estimator.
 - The attempted stretched-H2O `M = 31` endpoint was killed by the OOM reaper on a
-  15 GiB machine. This is a calibrated extrapolation, not a measured endpoint:
-  H2O carries 1,086 Hamiltonian words against BeH2's 666, and
-  `(1086/666) * 10.75 GiB = 17.5 GiB`, consistent with the approximately 18 GiB
-  requirement recorded in `run_molecular_pipeline.py`.
+  15 GiB machine. **The 17.5 GiB this bullet used to attribute that to was wrong,
+  and Phase 2M-D has now measured the endpoint instead of extrapolating it.** The
+  old arithmetic scaled BeH2's `M = 31` peak by the Hamiltonian word ratio,
+  `(1086/666) * 10.75 GiB = 17.5 GiB`; but H2O's own committed `M = 21` run
+  already carries its larger word count, so multiplying by the ratio counts it
+  twice. Scaling that run's own `6.53` GiB linearly in `M` predicts `9.64` GiB,
+  and `run_packed_h2o_feasibility.py` measures `9.69` GiB on a clean process --
+  agreement to `0.5%`. So the `M = 31` configuration *fits* under 15 GiB on the
+  object backend, and the kill had a different cause. The bullet below is the
+  candidate: `11.2 + 9.7` does not fit, and that is the defect the producer's
+  explicit inter-molecule delete already repaired.
 - A separate sequential run retained BeH2's 11.2 GiB bank as H2O's starting point
   and was also killed on the 15 GiB machine. The producer now writes each molecule
   before continuing and explicitly deletes the preceding bank and runs garbage
@@ -1051,13 +1058,74 @@ speedup. The record carries no go/no-go outcome at all — its verdict is
 because 2M's gate asks for a measured reduction from an implementation that does
 not exist yet.
 
-**2M-B — packed CSR/SoA coefficient bank.** Introduce one canonical global word
-table and packed row storage for the overlap and Hamiltonian functionals:
-`indptr`, word indices/codes, and contiguous coefficient data; benchmark interleaved
-complex data against structure-of-arrays real/imaginary storage. Preserve row
-identity, upper-triangle Hermitian ownership, canonical word order, and the product
-and accumulation order required by the current reproducibility contract. The
-`MatrixElementBank` public semantics remain unchanged.
+**2M-B — packed CSR/SoA coefficient bank. Done; first go/no-go clause graded.**
+`clifford_qc/subspace/packed.py` ships one canonical global word table and CSR rows
+over it — `indptr`, word indices, contiguous coefficient data — in both an
+interleaved `complex128` layout and a structure-of-arrays real/imaginary one.
+`MatrixElementBank` selects it with `storage="packed"`; the triple is
+`run_packed_bank_storage.py`, `reference_results/packed_bank_storage.json` and
+`check_packed_bank_storage.py`. The `MatrixElementBank` public semantics are
+unchanged, and the **object backend stays the default**: 2M-A's committed record
+prices it and 2M-D has to rebuild it, so changing the default before this phase
+was graded would have invalidated the baseline it is graded against.
+
+*"Canonical word order" had to mean generation order, and that is a correction to
+the sentence above.* `MV.trace_pairing` iterates the *smaller* operand's dict in
+insertion order, and 54–84% of resident rows are smaller than the reference, so the
+row drives the summation for most matrix entries. Storing a row's words ascending —
+the natural CSR reading of "canonical" — moves 4–17% of `S`/`H` entries by up to
+`3.1e-13`, which breaks Phase 2's promise that the bank reproduces
+`solver.projected_matrices` to the last bit. Each row therefore carries ascending
+`indices` for binary-search probes *and* a `generation` permutation replaying
+emission order; `4 + 4 + 16` is the same `24` bytes `MV.memory_estimate` already
+modelled. Both backends agree bitwise on `S`, `H`, every entry, materialized
+operators, `W`, `T_coeff` and selected labels, and the producer refuses to emit a
+priced row whose equivalence check fails.
+
+*The reduction is a function of coefficient reuse, and that is the finding.* Packed
+rows cost exactly `24.00` bytes per coefficient on every bank — row-only that is
+`3.55`–`4.01x`. The rest is paid per distinct *word*, so the total is
+`24 + (table + shared codes)/reuse` with reuse `= T_coeff/W`. Measured over ten
+banks spanning `33.8x` in reuse, the total runs `1.72x` at reuse `1.51` to `3.73x`
+at reuse `50.88`.
+
+*The word table holds no Python objects, and shrinking it moved the threshold.*
+A `list` of codes beside a `dict` mapping code to index measured `101.4` bytes per
+word — `8.5` of list pointers, `36.9` of dict slots, `28.0` of boxed codes and
+`28.0` of boxed *index* integers. An int64 code array beside an open-addressed
+int32 slot array at half load measures `16.3`–`22.7`. Before that change
+`hubbard_2x2` at reuse `1.51` came out at `0.94x` — packing cost *more* than the
+dictionaries it replaced — and the lowest reuse clearing `3x` was `17.49`. After
+it, no bank is a net loss and the threshold falls to `9.60`. Retained bytes now
+decompose into three terms rather than two: the packed rows, the numpy table, and
+the distinct word-code integers, which the table no longer references but which
+stay resident through `_universe` under either backend — so both sides charge them
+once, and the checker fails a record reporting zero for them.
+
+*Which population the gate is read on is itself a scoping decision.* The five frozen
+mapping-axis banks sit at reuse `1.5`–`16.4`; the committed molecular banks that
+actually ran out of memory sit at `35.1`–`154.9`. Grading `3x` on the convenient
+banks would understate it. The measured threshold is separated — lowest reuse
+clearing `3x` is `9.60`, highest failing is `7.16` — and
+every committed bank exceeds it, so the graded outcome is
+`reached_above_a_measured_reuse_threshold_committed_banks_exceed_it`. The committed
+banks are quoted from 2M-A rather than rebuilt, and their ratio is resident
+coefficients per *selected-subspace* word, an upper bound on reuse rather than
+reuse.
+
+*Graded: one clause of three.* This record grades the `3x` storage reduction only.
+It does not grade 2M-C's streaming bound — no eviction policy exists — and it does
+not grade the stretched-H₂O `M = 31` end-to-end test, which stays 2M-D's. **Nothing
+in it licenses a claim that Phase 2M passes.** Two costs are recorded rather than
+smoothed over: an uncached re-solve is ~20x slower, because every coefficient
+crosses a numpy-to-Python boundary to keep the arithmetic bit-identical; and the
+numpy table's probe is a Python loop where a `dict` lookup was C. That probe is now
+vectorised over a whole row — `intern_many` settles the first probe for the batch in
+numpy and falls back to the scalar path only on an empty slot or a collision —
+measuring `289` ns a word against the scalar `859` and a dict's `94`, which brings a
+packed bank build to `1.48x` the object backend from `1.58x`.
+`interleaved` and `soa` hold identical bytes on every bank — checked, not assumed —
+with `soa` marginally slower, so `interleaved` is the default.
 
 **2M-C — explicit frontier lifetime policies.** Implement and compare three named
 policies under one interface:
@@ -1083,6 +1151,28 @@ scope. Require bitwise `S`, `H` and energies where canonical accumulation order 
 preserved; otherwise use a declared tight tolerance and record the first source of
 rounding-order divergence. Report bank-build time, recomputation time, spill I/O,
 peak and delta RSS, packed bytes and actual bytes per coefficient.
+
+*The end-to-end feasibility clause has run, and it passes without discriminating.*
+`run_packed_h2o_feasibility.py` and `reference_results/packed_h2o_feasibility.json`
+execute the stretched-H2O `M = 31` configuration under a 15 GiB ceiling enforced by
+a sampling thread rather than by the OOM killer, from the FCIDUMP the failing run
+wrote, at the pipeline's own uncapped 140-candidate pool and unchanged basis budget.
+**Both backends complete.** Object peaks at `9.69` GiB in `31.6` minutes, packed at
+`5.56` GiB in `140.9` minutes; both reach `M = 31`, build the same `3,906` pairs and
+the same `T_coeff = 91,969,227`, and return *bitwise identical* ground energies and
+basis labels — the strongest equivalence evidence in the phase, and at production
+scale rather than on a test bank.
+
+So the clause is satisfied, and it is also **not a discriminating test**: its premise
+was that this configuration fails on a 15 GiB machine, and on a clean single-molecule
+process it does not. A gate both arms pass cannot measure what packing contributed.
+What packing did contribute is measured beside it — peak `9.69 -> 5.56` GiB
+(`1.74x`), and adaptive delta `9.54 -> 1.76` GiB (`5.4x`) — with two caveats stated
+rather than smoothed: the two arms shared one process and the packed arm ran second,
+so its *peak* carries the allocator's retained pages from the object arm while its
+*delta* does not, which makes `1.74x` an understatement and `5.4x` the cleaner
+figure; and the packed arm is `4.46x` slower here against `1.48x` at `n = 8`, a
+scaling regression this phase has measured but not diagnosed.
 
 **Go/no-go.** The packed representation must reduce resident coefficient-storage
 bytes by at least 3x at unchanged `T_coeff`. A streaming policy must bound live

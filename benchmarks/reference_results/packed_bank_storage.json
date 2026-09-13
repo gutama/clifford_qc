@@ -1,0 +1,838 @@
+{
+  "banks": [
+    {
+      "bank": "h4",
+      "basis_size": 9,
+      "coefficient_occurrences": 52794,
+      "coefficient_reuse": 7.162393162393163,
+      "equivalence": {
+        "basis_labels_equal": true,
+        "hamiltonian_matrix_bitwise_equal": true,
+        "mismatched_fields": [],
+        "overlap_matrix_bitwise_equal": true,
+        "structural_fields_compared": [
+          "word_universe",
+          "resident_word_universe",
+          "coefficient_occurrences",
+          "cached_operator_bytes",
+          "pairs_built",
+          "resident_operator_rows",
+          "max_overlap_element_support",
+          "max_hamiltonian_element_support"
+        ]
+      },
+      "kind": "frozen_mapping_axis",
+      "layouts": {
+        "interleaved": {
+          "clears_threshold": false,
+          "reduction": 2.816156720994676,
+          "reserved_bytes": 1959476,
+          "row_bytes": 1267056,
+          "row_bytes_per_coefficient": 24.0,
+          "row_only_reduction": 3.5515967723604955,
+          "shared_word_code_bytes": 206388,
+          "total_bytes": 1597948,
+          "total_bytes_per_coefficient": 30.267606167367504,
+          "word_table_bytes": 124504,
+          "word_table_bytes_per_word": 16.891059557726223
+        },
+        "soa": {
+          "clears_threshold": false,
+          "reduction": 2.816156720994676,
+          "reserved_bytes": 1959476,
+          "row_bytes": 1267056,
+          "row_bytes_per_coefficient": 24.0,
+          "row_only_reduction": 3.5515967723604955,
+          "shared_word_code_bytes": 206388,
+          "total_bytes": 1597948,
+          "total_bytes_per_coefficient": 30.267606167367504,
+          "word_table_bytes": 124504,
+          "word_table_bytes_per_word": 16.891059557726223
+        }
+      },
+      "n_qubits": 8,
+      "object_bytes": 4500072,
+      "object_bytes_per_coefficient": 85.23832253665189,
+      "pairs_built": 45,
+      "resident_word_universe": 7371
+    },
+    {
+      "bank": "h4_converged",
+      "basis_size": 15,
+      "coefficient_occurrences": 129954,
+      "coefficient_reuse": 16.393843824902234,
+      "equivalence": {
+        "basis_labels_equal": true,
+        "hamiltonian_matrix_bitwise_equal": true,
+        "mismatched_fields": [],
+        "overlap_matrix_bitwise_equal": true,
+        "structural_fields_compared": [
+          "word_universe",
+          "resident_word_universe",
+          "coefficient_occurrences",
+          "cached_operator_bytes",
+          "pairs_built",
+          "resident_operator_rows",
+          "max_overlap_element_support",
+          "max_hamiltonian_element_support"
+        ]
+      },
+      "kind": "frozen_mapping_axis",
+      "layouts": {
+        "interleaved": {
+          "clears_threshold": true,
+          "reduction": 3.274605712599328,
+          "reserved_bytes": 3597060,
+          "row_bytes": 3118896,
+          "row_bytes_per_coefficient": 24.0,
+          "row_only_reduction": 3.6430326628396714,
+          "shared_word_code_bytes": 221956,
+          "total_bytes": 3469804,
+          "total_bytes_per_coefficient": 26.700247779983687,
+          "word_table_bytes": 128952,
+          "word_table_bytes_per_word": 16.267440393591524
+        },
+        "soa": {
+          "clears_threshold": true,
+          "reduction": 3.274605712599328,
+          "reserved_bytes": 3597060,
+          "row_bytes": 3118896,
+          "row_bytes_per_coefficient": 24.0,
+          "row_only_reduction": 3.6430326628396714,
+          "shared_word_code_bytes": 221956,
+          "total_bytes": 3469804,
+          "total_bytes_per_coefficient": 26.700247779983687,
+          "word_table_bytes": 128952,
+          "word_table_bytes_per_word": 16.267440393591524
+        }
+      },
+      "n_qubits": 8,
+      "object_bytes": 11362240,
+      "object_bytes_per_coefficient": 87.43278390815212,
+      "pairs_built": 120,
+      "resident_word_universe": 7927
+    },
+    {
+      "bank": "beh2",
+      "basis_size": 5,
+      "coefficient_occurrences": 6846,
+      "coefficient_reuse": 3.7719008264462808,
+      "equivalence": {
+        "basis_labels_equal": true,
+        "hamiltonian_matrix_bitwise_equal": true,
+        "mismatched_fields": [],
+        "overlap_matrix_bitwise_equal": true,
+        "structural_fields_compared": [
+          "word_universe",
+          "resident_word_universe",
+          "coefficient_occurrences",
+          "cached_operator_bytes",
+          "pairs_built",
+          "resident_operator_rows",
+          "max_overlap_element_support",
+          "max_hamiltonian_element_support"
+        ]
+      },
+      "kind": "frozen_mapping_axis",
+      "layouts": {
+        "interleaved": {
+          "clears_threshold": false,
+          "reduction": 2.6549823597314126,
+          "reserved_bytes": 304772,
+          "row_bytes": 164304,
+          "row_bytes_per_coefficient": 24.0,
+          "row_only_reduction": 3.975557503164865,
+          "shared_word_code_bytes": 50820,
+          "total_bytes": 246028,
+          "total_bytes_per_coefficient": 35.93748174116272,
+          "word_table_bytes": 30904,
+          "word_table_bytes_per_word": 17.026997245179064
+        },
+        "soa": {
+          "clears_threshold": false,
+          "reduction": 2.6549823597314126,
+          "reserved_bytes": 304772,
+          "row_bytes": 164304,
+          "row_bytes_per_coefficient": 24.0,
+          "row_only_reduction": 3.975557503164865,
+          "shared_word_code_bytes": 50820,
+          "total_bytes": 246028,
+          "total_bytes_per_coefficient": 35.93748174116272,
+          "word_table_bytes": 30904,
+          "word_table_bytes_per_word": 17.026997245179064
+        }
+      },
+      "n_qubits": 8,
+      "object_bytes": 653200,
+      "object_bytes_per_coefficient": 95.41338007595677,
+      "pairs_built": 15,
+      "resident_word_universe": 1815
+    },
+    {
+      "bank": "h2o_cas8e6o",
+      "basis_size": 9,
+      "coefficient_occurrences": 351080,
+      "coefficient_reuse": 2.4530978150743796,
+      "equivalence": {
+        "basis_labels_equal": true,
+        "hamiltonian_matrix_bitwise_equal": true,
+        "mismatched_fields": [],
+        "overlap_matrix_bitwise_equal": true,
+        "structural_fields_compared": [
+          "word_universe",
+          "resident_word_universe",
+          "coefficient_occurrences",
+          "cached_operator_bytes",
+          "pairs_built",
+          "resident_operator_rows",
+          "max_overlap_element_support",
+          "max_hamiltonian_element_support"
+        ]
+      },
+      "kind": "frozen_mapping_axis",
+      "layouts": {
+        "interleaved": {
+          "clears_threshold": false,
+          "reduction": 2.0602306152794423,
+          "reserved_bytes": 20535660,
+          "row_bytes": 8425920,
+          "row_bytes_per_coefficient": 24.0,
+          "row_only_reduction": 3.8327802779993165,
+          "shared_word_code_bytes": 4007276,
+          "total_bytes": 15675284,
+          "total_bytes_per_coefficient": 44.6487524211006,
+          "word_table_bytes": 3242088,
+          "word_table_bytes_per_word": 22.6534094482137
+        },
+        "soa": {
+          "clears_threshold": false,
+          "reduction": 2.0602306152794423,
+          "reserved_bytes": 20535660,
+          "row_bytes": 8425920,
+          "row_bytes_per_coefficient": 24.0,
+          "row_only_reduction": 3.8327802779993165,
+          "shared_word_code_bytes": 4007276,
+          "total_bytes": 15675284,
+          "total_bytes_per_coefficient": 44.6487524211006,
+          "word_table_bytes": 3242088,
+          "word_table_bytes_per_word": 22.6534094482137
+        }
+      },
+      "n_qubits": 12,
+      "object_bytes": 32294700,
+      "object_bytes_per_coefficient": 91.98672667198359,
+      "pairs_built": 45,
+      "resident_word_universe": 143117
+    },
+    {
+      "bank": "hubbard_2x2",
+      "basis_size": 9,
+      "coefficient_occurrences": 8334,
+      "coefficient_reuse": 1.5051471916200108,
+      "equivalence": {
+        "basis_labels_equal": true,
+        "hamiltonian_matrix_bitwise_equal": true,
+        "mismatched_fields": [],
+        "overlap_matrix_bitwise_equal": true,
+        "structural_fields_compared": [
+          "word_universe",
+          "resident_word_universe",
+          "coefficient_occurrences",
+          "cached_operator_bytes",
+          "pairs_built",
+          "resident_operator_rows",
+          "max_overlap_element_support",
+          "max_hamiltonian_element_support"
+        ]
+      },
+      "kind": "frozen_mapping_axis",
+      "layouts": {
+        "interleaved": {
+          "clears_threshold": false,
+          "reduction": 1.7243441374622486,
+          "reserved_bytes": 507292,
+          "row_bytes": 200016,
+          "row_bytes_per_coefficient": 24.0,
+          "row_only_reduction": 4.007779377649788,
+          "shared_word_code_bytes": 155036,
+          "total_bytes": 464884,
+          "total_bytes_per_coefficient": 55.78161747060235,
+          "word_table_bytes": 109832,
+          "word_table_bytes_per_word": 19.8360122810186
+        },
+        "soa": {
+          "clears_threshold": false,
+          "reduction": 1.7243441374622486,
+          "reserved_bytes": 507292,
+          "row_bytes": 200016,
+          "row_bytes_per_coefficient": 24.0,
+          "row_only_reduction": 4.007779377649788,
+          "shared_word_code_bytes": 155036,
+          "total_bytes": 464884,
+          "total_bytes_per_coefficient": 55.78161747060235,
+          "word_table_bytes": 109832,
+          "word_table_bytes_per_word": 19.8360122810186
+        }
+      },
+      "n_qubits": 8,
+      "object_bytes": 801620,
+      "object_bytes_per_coefficient": 96.18670506359491,
+      "pairs_built": 45,
+      "resident_word_universe": 5537
+    },
+    {
+      "bank": "h4_M27_sz",
+      "basis_size": 27,
+      "coefficient_occurrences": 443578,
+      "coefficient_reuse": 27.991291727140784,
+      "equivalence": {
+        "basis_labels_equal": true,
+        "hamiltonian_matrix_bitwise_equal": true,
+        "mismatched_fields": [],
+        "overlap_matrix_bitwise_equal": true,
+        "structural_fields_compared": [
+          "word_universe",
+          "resident_word_universe",
+          "coefficient_occurrences",
+          "cached_operator_bytes",
+          "pairs_built",
+          "resident_operator_rows",
+          "max_overlap_element_support",
+          "max_hamiltonian_element_support"
+        ]
+      },
+      "kind": "extended_pool",
+      "layouts": {
+        "interleaved": {
+          "clears_threshold": true,
+          "reduction": 3.387402757768363,
+          "reserved_bytes": 13485380,
+          "row_bytes": 10645872,
+          "row_bytes_per_coefficient": 24.0,
+          "row_only_reduction": 3.6106329288948804,
+          "shared_word_code_bytes": 443716,
+          "total_bytes": 11347436,
+          "total_bytes_per_coefficient": 25.581602333749643,
+          "word_table_bytes": 257848,
+          "word_table_bytes_per_word": 16.27109232031299
+        },
+        "soa": {
+          "clears_threshold": true,
+          "reduction": 3.387402757768363,
+          "reserved_bytes": 13485380,
+          "row_bytes": 10645872,
+          "row_bytes_per_coefficient": 24.0,
+          "row_only_reduction": 3.6106329288948804,
+          "shared_word_code_bytes": 443716,
+          "total_bytes": 11347436,
+          "total_bytes_per_coefficient": 25.581602333749643,
+          "word_table_bytes": 257848,
+          "word_table_bytes_per_word": 16.27109232031299
+        }
+      },
+      "n_qubits": 8,
+      "object_bytes": 38438336,
+      "object_bytes_per_coefficient": 86.65519029347713,
+      "pairs_built": 378,
+      "resident_word_universe": 15847
+    },
+    {
+      "bank": "beh2_M27_sz",
+      "basis_size": 27,
+      "coefficient_occurrences": 137726,
+      "coefficient_reuse": 9.596961884189255,
+      "equivalence": {
+        "basis_labels_equal": true,
+        "hamiltonian_matrix_bitwise_equal": true,
+        "mismatched_fields": [],
+        "overlap_matrix_bitwise_equal": true,
+        "structural_fields_compared": [
+          "word_universe",
+          "resident_word_universe",
+          "coefficient_occurrences",
+          "cached_operator_bytes",
+          "pairs_built",
+          "resident_operator_rows",
+          "max_overlap_element_support",
+          "max_hamiltonian_element_support"
+        ]
+      },
+      "kind": "extended_pool",
+      "layouts": {
+        "interleaved": {
+          "clears_threshold": true,
+          "reduction": 3.265471529916026,
+          "reserved_bytes": 4006308,
+          "row_bytes": 3305424,
+          "row_bytes_per_coefficient": 24.0,
+          "row_only_reduction": 3.905350720512709,
+          "shared_word_code_bytes": 401828,
+          "total_bytes": 3953132,
+          "total_bytes_per_coefficient": 28.702873821936308,
+          "word_table_bytes": 245880,
+          "word_table_bytes_per_word": 17.133300815274197
+        },
+        "soa": {
+          "clears_threshold": true,
+          "reduction": 3.265471529916026,
+          "reserved_bytes": 4006308,
+          "row_bytes": 3305424,
+          "row_bytes_per_coefficient": 24.0,
+          "row_only_reduction": 3.905350720512709,
+          "shared_word_code_bytes": 401828,
+          "total_bytes": 3953132,
+          "total_bytes_per_coefficient": 28.702873821936308,
+          "word_table_bytes": 245880,
+          "word_table_bytes_per_word": 17.133300815274197
+        }
+      },
+      "n_qubits": 8,
+      "object_bytes": 12908840,
+      "object_bytes_per_coefficient": 93.72841729230501,
+      "pairs_built": 378,
+      "resident_word_universe": 14351
+    },
+    {
+      "bank": "lih_M27_sz",
+      "basis_size": 27,
+      "coefficient_occurrences": 457938,
+      "coefficient_reuse": 28.897456931911403,
+      "equivalence": {
+        "basis_labels_equal": true,
+        "hamiltonian_matrix_bitwise_equal": true,
+        "mismatched_fields": [],
+        "overlap_matrix_bitwise_equal": true,
+        "structural_fields_compared": [
+          "word_universe",
+          "resident_word_universe",
+          "coefficient_occurrences",
+          "cached_operator_bytes",
+          "pairs_built",
+          "resident_operator_rows",
+          "max_overlap_element_support",
+          "max_hamiltonian_element_support"
+        ]
+      },
+      "kind": "extended_pool",
+      "layouts": {
+        "interleaved": {
+          "clears_threshold": true,
+          "reduction": 3.3749852464181727,
+          "reserved_bytes": 13485380,
+          "row_bytes": 10990512,
+          "row_bytes_per_coefficient": 24.0,
+          "row_only_reduction": 3.5904227209796957,
+          "shared_word_code_bytes": 443716,
+          "total_bytes": 11692076,
+          "total_bytes_per_coefficient": 25.532006516165943,
+          "word_table_bytes": 257848,
+          "word_table_bytes_per_word": 16.27109232031299
+        },
+        "soa": {
+          "clears_threshold": true,
+          "reduction": 3.3749852464181727,
+          "reserved_bytes": 13485380,
+          "row_bytes": 10990512,
+          "row_bytes_per_coefficient": 24.0,
+          "row_only_reduction": 3.5904227209796957,
+          "shared_word_code_bytes": 443716,
+          "total_bytes": 11692076,
+          "total_bytes_per_coefficient": 25.532006516165943,
+          "word_table_bytes": 257848,
+          "word_table_bytes_per_word": 16.27109232031299
+        }
+      },
+      "n_qubits": 8,
+      "object_bytes": 39460584,
+      "object_bytes_per_coefficient": 86.1701453035127,
+      "pairs_built": 378,
+      "resident_word_universe": 15847
+    },
+    {
+      "bank": "beh2_M53_full",
+      "basis_size": 53,
+      "coefficient_occurrences": 509518,
+      "coefficient_reuse": 17.492979022899714,
+      "equivalence": {
+        "basis_labels_equal": true,
+        "hamiltonian_matrix_bitwise_equal": true,
+        "mismatched_fields": [],
+        "overlap_matrix_bitwise_equal": true,
+        "structural_fields_compared": [
+          "word_universe",
+          "resident_word_universe",
+          "coefficient_occurrences",
+          "cached_operator_bytes",
+          "pairs_built",
+          "resident_operator_rows",
+          "max_overlap_element_support",
+          "max_hamiltonian_element_support"
+        ]
+      },
+      "kind": "extended_pool",
+      "layouts": {
+        "interleaved": {
+          "clears_threshold": true,
+          "reduction": 3.574973255333349,
+          "reserved_bytes": 14709188,
+          "row_bytes": 12228432,
+          "row_bytes_per_coefficient": 24.0,
+          "row_only_reduction": 3.958160130423917,
+          "shared_word_code_bytes": 815556,
+          "total_bytes": 13539148,
+          "total_bytes_per_coefficient": 26.57246260191004,
+          "word_table_bytes": 495160,
+          "word_table_bytes_per_word": 17.000034332406358
+        },
+        "soa": {
+          "clears_threshold": true,
+          "reduction": 3.574973255333349,
+          "reserved_bytes": 14709188,
+          "row_bytes": 12228432,
+          "row_bytes_per_coefficient": 24.0,
+          "row_only_reduction": 3.958160130423917,
+          "shared_word_code_bytes": 815556,
+          "total_bytes": 13539148,
+          "total_bytes_per_coefficient": 26.57246260191004,
+          "word_table_bytes": 495160,
+          "word_table_bytes_per_word": 17.000034332406358
+        }
+      },
+      "n_qubits": 8,
+      "object_bytes": 48402092,
+      "object_bytes_per_coefficient": 94.99584313017401,
+      "pairs_built": 1431,
+      "resident_word_universe": 29127
+    },
+    {
+      "bank": "h4_M53_full",
+      "basis_size": 53,
+      "coefficient_occurrences": 1613898,
+      "coefficient_reuse": 50.88111226709543,
+      "equivalence": {
+        "basis_labels_equal": true,
+        "hamiltonian_matrix_bitwise_equal": true,
+        "mismatched_fields": [],
+        "overlap_matrix_bitwise_equal": true,
+        "structural_fields_compared": [
+          "word_universe",
+          "resident_word_universe",
+          "coefficient_occurrences",
+          "cached_operator_bytes",
+          "pairs_built",
+          "resident_operator_rows",
+          "max_overlap_element_support",
+          "max_hamiltonian_element_support"
+        ]
+      },
+      "kind": "extended_pool",
+      "layouts": {
+        "interleaved": {
+          "clears_threshold": true,
+          "reduction": 3.7333601079088474,
+          "reserved_bytes": 52530500,
+          "row_bytes": 38733552,
+          "row_bytes_per_coefficient": 24.0,
+          "row_only_reduction": 3.8686883144618394,
+          "shared_word_code_bytes": 888132,
+          "total_bytes": 40137580,
+          "total_bytes_per_coefficient": 24.869960802975157,
+          "word_table_bytes": 515896,
+          "word_table_bytes_per_word": 16.264573284151457
+        },
+        "soa": {
+          "clears_threshold": true,
+          "reduction": 3.7333601079088474,
+          "reserved_bytes": 52530500,
+          "row_bytes": 38733552,
+          "row_bytes_per_coefficient": 24.0,
+          "row_only_reduction": 3.8686883144618394,
+          "shared_word_code_bytes": 888132,
+          "total_bytes": 40137580,
+          "total_bytes_per_coefficient": 24.869960802975157,
+          "word_table_bytes": 515896,
+          "word_table_bytes_per_word": 16.264573284151457
+        }
+      },
+      "n_qubits": 8,
+      "object_bytes": 149848040,
+      "object_bytes_per_coefficient": 92.84851954708414,
+      "pairs_built": 1431,
+      "resident_word_universe": 31719
+    }
+  ],
+  "claim_boundary": "Structural storage-accounting evidence only, on declared banks in one interpreter. Nothing is sampled, no energy is reported as a result, and no resource price of any kind is produced. Byte counts of live Python objects are a property of the CPython build that measured them, so the record declares its interpreter and the checker compares them under a declared tolerance while every count, pair and packed byte stays exact. The reduction reported for a bank is that bank's; the record establishes that the reduction rises with coefficient reuse and locates where it crosses 3x on the measured ladder, and it may not be read as a reduction for a bank outside the measured reuse range without saying so. The committed molecular banks are not rebuilt here -- their reuse is read from Phase 2M-A's record and compared against the measured threshold, which is a comparison of one number against another and not a measurement of those runs. This record grades one clause of Phase 2M's go/no-go and explicitly not the other two: no streaming policy exists to bound live rows, and no end-to-end run under a memory ceiling has been performed, so no statement here licenses a claim that Phase 2M passes.",
+  "committed_bank_reuse": {
+    "caveat": "These are resident coefficients per *selected-subspace* word, not true coefficient reuse: the committed records preserved the selected subspace's W and not the word union of the rejected rows still in their caches, as Phase 2M-A's own reuse_recovery_boundary records. The resident universe is the larger of the two, so true reuse is no greater than the ratio quoted here. That direction matters: it means these numbers may overstate where those banks sit on the ladder, and the comparison below is made with that stated rather than assumed away.",
+    "ratio_range": [
+      35.112119493287956,
+      154.86022576361222
+    ],
+    "rows": [
+      {
+        "coefficient_occurrences": 35005011,
+        "coefficient_occurrences_per_selected_element_word": 99.95834047219272,
+        "record": "beh2_results.json",
+        "selected_word_universe": 350196
+      },
+      {
+        "coefficient_occurrences": 96107619,
+        "coefficient_occurrences_per_selected_element_word": 82.44888874400235,
+        "record": "beh2_stretched_results.json",
+        "selected_word_universe": 1165663
+      },
+      {
+        "coefficient_occurrences": 70902895,
+        "coefficient_occurrences_per_selected_element_word": 60.69040000958681,
+        "record": "h2o_results.json",
+        "selected_word_universe": 1168272
+      },
+      {
+        "coefficient_occurrences": 58480107,
+        "coefficient_occurrences_per_selected_element_word": 66.86520420262133,
+        "record": "h2o_stretched_results.json",
+        "selected_word_universe": 874597
+      },
+      {
+        "coefficient_occurrences": 742832,
+        "coefficient_occurrences_per_selected_element_word": 35.112119493287956,
+        "record": "hf_results.json",
+        "selected_word_universe": 21156
+      },
+      {
+        "coefficient_occurrences": 4824376,
+        "coefficient_occurrences_per_selected_element_word": 126.127477124183,
+        "record": "lih_results.json",
+        "selected_word_universe": 38250
+      },
+      {
+        "coefficient_occurrences": 3731512,
+        "coefficient_occurrences_per_selected_element_word": 154.86022576361222,
+        "record": "lih_stretched_results.json",
+        "selected_word_universe": 24096
+      }
+    ],
+    "source_record": "bank_storage_ledger.json"
+  },
+  "default_backend_statement": "The object backend stays the package default. Phase 2M-A's committed record prices it and Phase 2M-D's equivalence matrix has to rebuild it, so a phase that changed the default before its own gate was graded would invalidate the baseline it is graded against.",
+  "default_storage_backend": "object",
+  "equivalence_gate": {
+    "required": true,
+    "statement": "Every priced bank is built under both backends and compared before any byte is reported: S and H bitwise equal via numpy array_equal, identical word universe, identical T_coeff, identical basis labels. A storage change that moved a matrix element would not be a storage change, and a byte reduction quoted from a bank whose answers drifted is worthless. The producer refuses to emit a row that fails this.",
+    "why_bitwise": "MV.trace_pairing iterates the smaller operand's dict in insertion order, and 54--84% of resident rows are smaller than the reference, so the row drives the summation for most entries. Storing a row's words ascending -- the natural CSR choice -- moves 4--17% of S/H entries by up to 3.1e-13. MatrixElementBank._build_pair promises those entries reproduce solver.projected_matrices to the last bit, so tolerance is not the standard here; equality is."
+  },
+  "estimand": {
+    "name": "2M-B_retained_storage_reduction_of_the_packed_row_representation",
+    "question": "At unchanged T_coeff and bitwise-unchanged matrix elements, how many bytes does the packed CSR/SoA representation retain against the dict-of-complex one, and on which banks does that reduction reach the 3x Phase 2M's go/no-go asks for?",
+    "why_it_exists": "2M-A measured the baseline and found 85.24--96.19 bytes per retained coefficient against a packed model of 24. That established headroom, not a reduction. This record measures the reduction an implementation actually delivers, and separates the part that is a property of the row representation from the part that depends on the bank."
+  },
+  "evidence_tier": "structural",
+  "go_no_go": {
+    "committed_bank_ratio_floor": 35.112119493287956,
+    "graded_clause": "packed_storage_reduction_at_least_3x",
+    "highest_reuse_failing_threshold": 7.162393162393163,
+    "lowest_reuse_clearing_threshold": 9.596961884189255,
+    "outcome": "reached_above_a_measured_reuse_threshold_committed_banks_exceed_it",
+    "threshold": 3.0,
+    "ungraded_clauses": {
+      "streaming_policy_bounds_live_rows": "Phase 2M-C. No eviction policy exists; this record is entirely retain_all.",
+      "stretched_h2o_m31_below_15_gib": "Phase 2M-D. An end-to-end feasibility run, not a storage measurement, and nothing here may stand in for it."
+    },
+    "what_this_does_not_establish": "Not that Phase 2M passes. Its go/no-go has three clauses and this record reaches one: no streaming policy exists to bound live operator rows, and no end-to-end run has completed the stretched-H2O M=31 configuration under a memory ceiling. A storage ratio measured on declared banks is also not a process-level reduction: it prices the retained rows, not the transient allocation a build passes through, and 2M-D's feasibility test stays the test precisely because no ratio can stand in for it."
+  },
+  "interpreter_dependence": "Byte counts of live Python objects are a property of the CPython build that measured them -- dict capacity, integer boxing and object headers are implementation details, not portable constants. The record declares its interpreter in provenance and the checker compares those fields under a declared relative tolerance, while every count, pair and packed byte stays exact.",
+  "layout_comparison": {
+    "banks_where_bytes_differ": [],
+    "byte_identical_on_every_bank": true,
+    "layouts": [
+      "interleaved",
+      "soa"
+    ],
+    "statement": "Interleaved keeps one complex128 array and structure-of-arrays keeps separate float64 real and imaginary arrays; both are sixteen bytes per coefficient, so the choice between them is one of access cost and not of size. The byte equality is checked here rather than assumed, because a layout that silently changed the footprint would make every reduction below ambiguous about which representation produced it."
+  },
+  "packed_bytes_per_coefficient": 24,
+  "packed_model_statement": "Four bytes of ascending word index, four of the generation-order permutation, and sixteen of complex coefficient. That is the same 24 bytes MV.memory_estimate has always modelled and cached_operator_bytes has always reported; the permutation is not overhead added to the model, it is what lets the model be reached without moving an answer.",
+  "phase": "2M-B_packed_csr_soa_coefficient_bank",
+  "producer_seconds": 123.25725676100001,
+  "provenance": {
+    "blas_lapack": {
+      "Build Dependencies": {
+        "blas": {
+          "detection method": "pkgconfig",
+          "found": true,
+          "include directory": "/opt/_internal/cpython-3.12.13/lib/python3.12/site-packages/scipy_openblas64/include",
+          "lib directory": "/opt/_internal/cpython-3.12.13/lib/python3.12/site-packages/scipy_openblas64/lib",
+          "name": "scipy-openblas",
+          "openblas configuration": "OpenBLAS 0.3.34.0.0  USE64BITINT DYNAMIC_ARCH NO_AFFINITY Haswell MAX_THREADS=64",
+          "pc file directory": "/project/.openblas",
+          "version": "0.3.34.0.0"
+        },
+        "lapack": {
+          "detection method": "pkgconfig",
+          "found": true,
+          "include directory": "/opt/_internal/cpython-3.12.13/lib/python3.12/site-packages/scipy_openblas64/include",
+          "lib directory": "/opt/_internal/cpython-3.12.13/lib/python3.12/site-packages/scipy_openblas64/lib",
+          "name": "scipy-openblas",
+          "openblas configuration": "OpenBLAS 0.3.34.0.0  USE64BITINT DYNAMIC_ARCH NO_AFFINITY Haswell MAX_THREADS=64",
+          "pc file directory": "/project/.openblas",
+          "version": "0.3.34.0.0"
+        }
+      },
+      "Compilers": {
+        "c": {
+          "commands": "cc",
+          "linker": "ld.bfd",
+          "name": "gcc",
+          "version": "14.2.1"
+        },
+        "c++": {
+          "commands": "c++",
+          "linker": "ld.bfd",
+          "name": "gcc",
+          "version": "14.2.1"
+        },
+        "cython": {
+          "commands": "cython",
+          "linker": "cython",
+          "name": "cython",
+          "version": "3.2.9"
+        }
+      },
+      "Machine Information": {
+        "build": {
+          "cpu": "x86_64",
+          "endian": "little",
+          "family": "x86_64",
+          "system": "linux"
+        },
+        "host": {
+          "cpu": "x86_64",
+          "endian": "little",
+          "family": "x86_64",
+          "system": "linux"
+        }
+      },
+      "Python Information": {
+        "path": "/tmp/build-env-jmn5a0j4/bin/python",
+        "version": "3.12"
+      },
+      "SIMD Extensions": {
+        "baseline": [
+          "X86_V2"
+        ],
+        "found": [
+          "X86_V3",
+          "X86_V4",
+          "AVX512_ICL",
+          "AVX512_SPR"
+        ]
+      }
+    },
+    "clifford_qc": "0.3.0",
+    "dependencies": {
+      "numpy": "2.5.2",
+      "openfermion": null,
+      "openfermionpyscf": null,
+      "pyscf": null,
+      "scipy": "1.18.0",
+      "stim": "1.16.0"
+    },
+    "environment_sha256": "541d3e5f197734d233c2ea9b721222dc9bdef7db3e43a363d7aeffadadd27306",
+    "git_dirty": true,
+    "git_sha": "9f67276fd2d1c3d04b0d5fcb103c18273a4ee574",
+    "platform": {
+      "hostname": "vm",
+      "machine": "x86_64",
+      "processor": "x86_64",
+      "release": "6.18.44-fc-v24",
+      "system": "Linux"
+    },
+    "python": "3.12.3",
+    "schema": "clifford_qc.execution_provenance.v1",
+    "utc": "2026-09-13T09:27:46.137838+00:00"
+  },
+  "reduction_model": {
+    "banks_where_packing_costs_more": [],
+    "highest_reuse_failing_threshold": 7.162393162393163,
+    "ladder": [
+      {
+        "bank": "hubbard_2x2",
+        "clears_threshold": false,
+        "coefficient_reuse": 1.5051471916200108,
+        "reduction": 1.7243441374622486
+      },
+      {
+        "bank": "h2o_cas8e6o",
+        "clears_threshold": false,
+        "coefficient_reuse": 2.4530978150743796,
+        "reduction": 2.0602306152794423
+      },
+      {
+        "bank": "beh2",
+        "clears_threshold": false,
+        "coefficient_reuse": 3.7719008264462808,
+        "reduction": 2.6549823597314126
+      },
+      {
+        "bank": "h4",
+        "clears_threshold": false,
+        "coefficient_reuse": 7.162393162393163,
+        "reduction": 2.816156720994676
+      },
+      {
+        "bank": "beh2_M27_sz",
+        "clears_threshold": true,
+        "coefficient_reuse": 9.596961884189255,
+        "reduction": 3.265471529916026
+      },
+      {
+        "bank": "h4_converged",
+        "clears_threshold": true,
+        "coefficient_reuse": 16.393843824902234,
+        "reduction": 3.274605712599328
+      },
+      {
+        "bank": "beh2_M53_full",
+        "clears_threshold": true,
+        "coefficient_reuse": 17.492979022899714,
+        "reduction": 3.574973255333349
+      },
+      {
+        "bank": "h4_M27_sz",
+        "clears_threshold": true,
+        "coefficient_reuse": 27.991291727140784,
+        "reduction": 3.387402757768363
+      },
+      {
+        "bank": "lih_M27_sz",
+        "clears_threshold": true,
+        "coefficient_reuse": 28.897456931911403,
+        "reduction": 3.3749852464181727
+      },
+      {
+        "bank": "h4_M53_full",
+        "clears_threshold": true,
+        "coefficient_reuse": 50.88111226709543,
+        "reduction": 3.7333601079088474
+      }
+    ],
+    "largest_monotonicity_violation": 0.18757049756498612,
+    "lowest_reuse_clearing_threshold": 9.596961884189255,
+    "measured_reuse_range": [
+      1.5051471916200108,
+      50.88111226709543
+    ],
+    "monotone_in_reuse": false,
+    "reuse_span_factor": 33.80474185540046,
+    "statement": "Packed rows cost exactly the modelled bytes per coefficient on every bank; the shared word table costs its own bytes per distinct word. So the total per coefficient is the row cost plus the table cost divided by coefficient reuse, and the reduction rises with reuse rather than being a property of the representation alone. At the bottom of the measured ladder that sum exceeds what it replaces and packing is a net loss, which is the same mechanism read from the other end rather than a separate effect.",
+    "word_table_bytes_per_word_range": [
+      16.264573284151457,
+      22.6534094482137
+    ]
+  },
+  "schema": "clifford_qc.packed_bank_storage.v1",
+  "storage_backends": [
+    "object",
+    "packed"
+  ]
+}

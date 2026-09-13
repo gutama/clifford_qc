@@ -13,6 +13,7 @@
       "check_krylov_width",
       "check_mapping_axis",
       "check_molecular",
+      "check_packed_bank_storage",
       "check_phase14b_preregistration",
       "check_phase_status",
       "check_priceability_screen",
@@ -31,7 +32,7 @@
       "Lineage and environment": 3,
       "Plan ledger": 1,
       "Preregistration": 5,
-      "Value-rebuilt": 19
+      "Value-rebuilt": 20
     },
     "dispatch_gates": [
       "check_exact_shot_search",
@@ -45,13 +46,13 @@
       "check_r3d_qr3_refinement",
       "check_record_environment"
     ],
-    "gates": 31,
+    "gates": 32,
     "manual_dispatch_only": 10,
-    "named_in_workflow": 29,
-    "producers": 43,
-    "producers_without_gate": 24,
-    "run_on_every_pull_request": 19,
-    "same_stem_pairs": 19
+    "named_in_workflow": 30,
+    "producers": 45,
+    "producers_without_gate": 25,
+    "run_on_every_pull_request": 20,
+    "same_stem_pairs": 20
   },
   "records": {
     "declarations": {
@@ -71,6 +72,8 @@
       "mapping_axis.json": "743c8d31eee9f441",
       "matched_h4.json": "d82558e8baf9548f",
       "orbital_basis.json": "44136fa355b3678a",
+      "packed_bank_storage.json": "f6a33f1aa225c4dd",
+      "packed_h2o_feasibility.json": "f6a33f1aa225c4dd",
       "phase14b_qwc_vs_fc.json": "7eea7d72de38ea0e",
       "priceability_screen.json": "f6a33f1aa225c4dd",
       "protocol_axis.json": "75a2ec249c533fed",
@@ -99,16 +102,16 @@
       "per_quantity_mapping": 3,
       "role_only": 0,
       "role_with_nested_tier": 2,
-      "top_level_tier": 12
+      "top_level_tier": 14
     },
-    "json_records": 26,
+    "json_records": 28,
     "series_files": 21,
     "top_level_tiers": {
       "exact": 4,
       "exact numerical benchmark": 1,
       "exact_oracle_finite_sample": 1,
       "heuristic": 2,
-      "structural": 4
+      "structural": 6
     }
   },
   "schema": "clifford_qc.architecture_paper_census.v1",
@@ -151,17 +154,17 @@
         "modules": 1
       },
       "subspace": {
-        "lines": 8989,
-        "modules": 27
+        "lines": 9579,
+        "modules": 28
       },
       "surface": {
         "lines": 38,
         "modules": 1
       }
     },
-    "package_lines": 22651,
-    "package_modules": 92,
-    "test_lines": 22929,
-    "test_modules": 102
+    "package_lines": 23241,
+    "package_modules": 93,
+    "test_lines": 23530,
+    "test_modules": 104
   }
 }

@@ -133,9 +133,18 @@ MOLECULES = {
         "charge": 0,
         "spin": 0,
         "complete_sd": False,
-        # 30 was killed by the OOM reaper: H2O carries 1086 Pauli words against
-        # BeH2's 666, so its element operators are ~1.6x larger and M=31 needs
-        # ~18 GiB on a 15 GiB machine.
+        # 30 was killed by the OOM reaper, and the ~18 GiB this comment used to
+        # attribute that to was wrong. It scaled BeH2's M=31 peak by the
+        # Hamiltonian word ratio (1086/666), but this molecule's own M=21 run
+        # already carries its larger word count, so multiplying by the ratio
+        # counts it twice. Scaling this row's own 6.53 GiB linearly in M predicts
+        # 9.64 GiB, and benchmarks/run_packed_h2o_feasibility.py measures 9.69 on
+        # a clean 15 GiB process -- so M=31 fits, and the kill had another cause.
+        # The likely one is recorded in PLAN.md section 5: a sequential run held
+        # BeH2's 11.2 GiB bank as this molecule's starting point, and 11.2 + 9.7
+        # does not fit. That is the defect the explicit delete and gc below fixed.
+        # The cap stays at 20 because raising it is a scope decision about what
+        # the committed row reports, not a memory question any more.
         "max_subspace": 20,
         "regime": "stretched",
     },

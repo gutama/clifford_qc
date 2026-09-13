@@ -12,6 +12,11 @@ import numpy as np
 from ..ir import PauliWord
 from ..multivector import MV
 from .contracts import as_multivector, check_reference
+from .packed import (
+    PACKED_BYTES_PER_COEFFICIENT,
+    GlobalWordTable,
+    PackedRowStore,
+)
 from .generator_core import Generator, as_generators
 from .linalg import (
     DEFAULT_MAX_CONDITION,
@@ -156,6 +161,15 @@ def solve_subspace(rho: MV, hamiltonian, generators: Sequence, *,
 # the ledger says which of the two it is by naming the policy that produced it.
 STORAGE_POLICY = "retain_all"
 
+# How a materialized row is kept. ``object`` is the ``dict[int, complex]`` the
+# bank has always used and stays the default: Phase 2M-A's committed baseline
+# prices it, and 2M-D's equivalence matrix has to be able to rebuild it.
+# ``packed`` is Phase 2M-B's CSR/SoA store. Both answer every public method
+# identically -- bitwise, not to tolerance -- which is what the backend
+# equivalence tests exist to hold.
+STORAGE_BACKENDS = ("object", "packed")
+DEFAULT_STORAGE_BACKEND = "object"
+
 
 def _identity_key(mv: MV) -> tuple:
     """Exact identity of a generator: its Pauli-word coefficient map.
@@ -181,7 +195,14 @@ class MatrixElementBank:
     scored costs nothing.
     """
 
-    def __init__(self, rho: MV, hamiltonian, generators: Iterable = ()):
+    def __init__(self, rho: MV, hamiltonian, generators: Iterable = (), *,
+                 storage: str = DEFAULT_STORAGE_BACKEND,
+                 layout: str = "interleaved"):
+        if storage not in STORAGE_BACKENDS:
+            raise ValueError(
+                f"storage must be one of {STORAGE_BACKENDS}, got {storage!r}")
+        self._storage = storage
+        self._layout = layout
         self._rho = rho
         self._H = as_multivector(hamiltonian)
         if not self._H.is_hermitian():
@@ -197,8 +218,20 @@ class MatrixElementBank:
         self._by_label: dict[str, int] = {}
         self._by_terms: dict[tuple, int] = {}
 
+        # Exactly one of these two pairs is live, chosen by ``storage``. The
+        # object dicts keep the representation Phase 2M-A priced; the packed
+        # stores are Phase 2M-B's. ``_rows`` is whichever one the read helpers
+        # below go through, so no caller has to know which is in use.
         self._overlap_ops: dict[tuple[int, int], MV] = {}
         self._element_ops: dict[tuple[int, int], MV] = {}
+        self._word_table: GlobalWordTable | None = None
+        self._packed: dict[str, PackedRowStore] = {}
+        if storage == "packed":
+            self._word_table = GlobalWordTable()
+            self._packed = {
+                kind: PackedRowStore(rho.n, self._word_table, layout=layout)
+                for kind in ("overlap", "element")
+            }
         self._entries: dict[tuple[int, int], tuple[complex, complex]] = {}
         self._universe: set[int] = set()
         self._new_words: list[int] = []
@@ -319,21 +352,67 @@ class MatrixElementBank:
         overlap_op = self._adjoints[i] * self._generators[j].mv
         element_op = self._adjoints[i] * self._h_acted[j]
         self._seconds += time.perf_counter() - started
-        self._overlap_ops[(i, j)] = overlap_op
-        self._element_ops[(i, j)] = element_op
+        # Accounting runs on the freshly built operators, before storage gets a
+        # say, so the word ledger is identical under either backend.
         self._account(j, overlap_op)
         self._account(j, element_op)
+        if self._storage == "packed":
+            self._packed["overlap"].add((i, j), overlap_op)
+            self._packed["element"].add((i, j), element_op)
+        else:
+            self._overlap_ops[(i, j)] = overlap_op
+            self._element_ops[(i, j)] = element_op
         self._pairs_built += 1
         self._peak_resident_rows = max(self._peak_resident_rows,
                                        self._resident_row_count())
 
-    def _pair(self, i: int, j: int) -> tuple[MV, MV]:
-        key = (i, j) if i <= j else (j, i)
-        if key not in self._overlap_ops:
+    # -------------------------------------------------- storage-neutral rows
+
+    def _has_pair(self, key: tuple[int, int]) -> bool:
+        if self._storage == "packed":
+            return key in self._packed["overlap"]
+        return key in self._overlap_ops
+
+    def _ensure_pair(self, key: tuple[int, int]) -> None:
+        if not self._has_pair(key):
             self._build_pair(*key)
         else:
             self._cache_hits += 1
-        return self._overlap_ops[key], self._element_ops[key]
+
+    def _row(self, kind: str, key: tuple[int, int]) -> MV:
+        """One stored row as an ``MV``.
+
+        The packed backend rebuilds it, in its original insertion order, which
+        is why this is not the path :meth:`entry` takes: an entry needs one
+        scalar, and materializing a dict to get it would hand back exactly the
+        allocation Phase 2M-B exists to stop retaining.
+        """
+        if self._storage == "packed":
+            return self._packed[kind].materialize(key)
+        return (self._overlap_ops if kind == "overlap" else self._element_ops)[key]
+
+    def _row_nnz(self, kind: str, key: tuple[int, int]) -> int:
+        if self._storage == "packed":
+            return self._packed[kind].row_length(key)
+        return (self._overlap_ops if kind == "overlap" else self._element_ops)[key].nnz()
+
+    def _row_codes(self, kind: str, key: tuple[int, int]) -> Iterable[int]:
+        if self._storage == "packed":
+            store = self._packed[kind]
+            return store._table.codes(int(i) for i in store.word_indices(key))
+        return (self._overlap_ops if kind == "overlap" else self._element_ops)[key].terms
+
+    def _row_pairing(self, kind: str, key: tuple[int, int]) -> complex:
+        """``Tr(row * rho) / 2^n``, in ``MV.trace_pairing``'s summation order."""
+        if self._storage == "packed":
+            return self._packed[kind].trace_pairing(key, self._rho)
+        operator = (self._overlap_ops if kind == "overlap" else self._element_ops)[key]
+        return operator.trace_pairing(self._rho)
+
+    def _pair(self, i: int, j: int) -> tuple[MV, MV]:
+        key = (i, j) if i <= j else (j, i)
+        self._ensure_pair(key)
+        return self._row("overlap", key), self._row("element", key)
 
     def overlap_operator(self, i: int, j: int) -> MV:
         """``O^S_ij = A_i' A_j`` (stored for ``i <= j``; the transpose is its adjoint)."""
@@ -350,9 +429,9 @@ class MatrixElementBank:
         key = (i, j) if i <= j else (j, i)
         value = self._entries.get(key)
         if value is None:
-            overlap_op, element_op = self._pair(i, j)
-            value = (self._scale * overlap_op.trace_pairing(self._rho),
-                     self._scale * element_op.trace_pairing(self._rho))
+            self._ensure_pair(key)
+            value = (self._scale * self._row_pairing("overlap", key),
+                     self._scale * self._row_pairing("element", key))
             self._entries[key] = value
         else:
             self._cache_hits += 1
@@ -468,10 +547,10 @@ class MatrixElementBank:
             return frozenset(self._universe)
         wanted = set(self._resolve(indices))
         out: set[int] = set()
-        for (i, j), operator in self._overlap_ops.items():
+        for i, j in self._pair_keys():
             if i in wanted and j in wanted:
-                out.update(operator.terms)
-                out.update(self._element_ops[(i, j)].terms)
+                out.update(self._row_codes("overlap", (i, j)))
+                out.update(self._row_codes("element", (i, j)))
         return frozenset(out)
 
     def words(self, indices: Sequence[int] | None = None) -> tuple[PauliWord, ...]:
@@ -479,6 +558,28 @@ class MatrixElementBank:
         return tuple(PauliWord(self.n, code) for code in sorted(self.word_set(indices)))
 
     # ------------------------------------------------------- storage ledger
+
+    def _pair_keys(self) -> list[tuple[int, int]]:
+        """Every built pair's key, under either backend."""
+        if self._storage == "packed":
+            return list(self._packed["overlap"].keys())
+        return list(self._overlap_ops)
+
+    def _resident_coefficients(self) -> int:
+        """Total nonzero coefficient occurrences the bank is holding.
+
+        Counted from row lengths rather than by walking operators, because
+        ``resources`` calls this once per adaptive step and the packed backend
+        would otherwise have to rebuild every row to count what it already
+        knows.
+        """
+        if self._storage == "packed":
+            rows = sum(store.total_coefficients() for store in self._packed.values())
+        else:
+            rows = sum(op.nnz() for op in
+                       list(self._overlap_ops.values()) + list(self._element_ops.values()))
+        return rows + sum(op.nnz() for record in self._observables.values()
+                          for op in record["operators"].values())
 
     def _resident_operators(self) -> list[MV]:
         """Every operator row the bank is holding, in one canonical order.
@@ -488,13 +589,22 @@ class MatrixElementBank:
         ``cached_operator_bytes`` has always priced; naming it once keeps byte estimates,
         coefficient counts and the measured walk on the same population.
         """
-        return (list(self._overlap_ops.values()) + list(self._element_ops.values())
-                + [op for record in self._observables.values()
-                   for op in record["operators"].values()])
+        if self._storage == "packed":
+            rows = [self._packed[kind].materialize(key)
+                    for kind in ("overlap", "element")
+                    for key in self._packed[kind].keys()]
+        else:
+            rows = list(self._overlap_ops.values()) + list(self._element_ops.values())
+        return rows + [op for record in self._observables.values()
+                       for op in record["operators"].values()]
 
     def _resident_row_count(self) -> int:
-        return (len(self._overlap_ops) + len(self._element_ops)
-                + sum(len(record["operators"]) for record in self._observables.values()))
+        if self._storage == "packed":
+            rows = sum(len(store) for store in self._packed.values())
+        else:
+            rows = len(self._overlap_ops) + len(self._element_ops)
+        return rows + sum(len(record["operators"])
+                          for record in self._observables.values())
 
     def measured_storage_bytes(self) -> dict[str, Any]:
         """What the resident rows actually cost this interpreter, against the packed model.
@@ -530,6 +640,30 @@ class MatrixElementBank:
                     continue
                 seen.add(id(box))
                 boxed_bytes += sys.getsizeof(box)
+        if self._storage == "packed":
+            # The materialized rows above were built to be measured and are
+            # about to be dropped; what this bank retains is the packed buffers
+            # plus the word table they index into, neither of which holds a
+            # Python object.
+            container_bytes = (sum(store.nbytes() for store in self._packed.values())
+                               + self._word_table.live_bytes())
+            reserved = (sum(store.reserved_bytes() for store in self._packed.values())
+                        + self._word_table.nbytes())
+            # The distinct word-code integers, charged once. They are not in the
+            # packed table -- it is pure numpy -- but they are resident either
+            # way, because ``_universe`` holds them under both backends and so
+            # does the memoized word product. The object backend's walk above
+            # charges them once through its row keys, so charging them here
+            # keeps the two measurements on the same footing; omitting them
+            # would credit packing with an allocation it never removed.
+            seen = set()
+            boxed_bytes = 0
+            for code in self._universe:
+                if id(code) in seen:
+                    continue
+                seen.add(id(code))
+                boxed_bytes += sys.getsizeof(code)
+            shared_boxes = 0
         measured = container_bytes + boxed_bytes
         # Through ``memory_estimate`` rather than a literal, so the packed model
         # this quotient is taken against cannot drift away from the one
@@ -538,12 +672,21 @@ class MatrixElementBank:
         packed = sum(row.memory_estimate() for row in rows)
         return {
             "storage_policy": STORAGE_POLICY,
+            "storage_backend": self._storage,
+            "coefficient_layout": (self._layout if self._storage == "packed"
+                                   else "python_dict"),
             "resident_operator_rows": len(rows),
             "coefficient_occurrences": occurrences,
             "packed_operator_bytes": packed,
+            "reserved_operator_bytes": (
+                reserved + boxed_bytes if self._storage == "packed" else measured),
             "measured_operator_bytes": measured,
             "measured_container_bytes": container_bytes,
             "measured_boxed_bytes": boxed_bytes,
+            "word_table_words": (len(self._word_table)
+                                 if self._word_table is not None else 0),
+            "word_table_bytes": (self._word_table.live_bytes()
+                                 if self._word_table is not None else 0),
             "shared_boxed_slots": shared_boxes,
             "distinct_boxed_objects": len(seen),
             "measured_bytes_per_coefficient": (measured / occurrences
@@ -565,16 +708,19 @@ class MatrixElementBank:
         """The §6 accounting for the current cache state."""
         order = self._resolve(indices)
         wanted = set(order)
-        keys = [key for key in self._overlap_ops
+        keys = [key for key in self._pair_keys()
                 if key[0] in wanted and key[1] in wanted]
-        overlap_ops = [self._overlap_ops[key] for key in keys]
-        element_ops = [self._element_ops[key] for key in keys]
+        overlap_support = [self._row_nnz("overlap", key) for key in keys]
+        element_support = [self._row_nnz("element", key) for key in keys]
         # A proper subset owns a smaller universe than the cache; quoting the cache's
         # would overstate measurement cost, especially with rejected candidate rows.
         universe = (len(self._universe) if len(order) == len(self._generators)
                     else len(self.word_set(order)))
-        cached = self._resident_operators()
-        occurrences = sum(op.nnz() for op in cached)
+        # Counted from row lengths, never by materializing rows: this runs once
+        # per adaptive step, and under the packed backend rebuilding every row
+        # to count it would cost more than the storage it saves.
+        occurrences = self._resident_coefficients()
+        resident_rows = self._resident_row_count()
         resident_universe = len(self._universe)
         if self._observables:
             resident_universe = len(set(self._universe).union(
@@ -600,8 +746,8 @@ class MatrixElementBank:
             "word_universe": universe,
             "max_generator_support": max((self._generators[i].support() for i in order),
                                          default=0),
-            "max_overlap_element_support": max((op.nnz() for op in overlap_ops), default=0),
-            "max_hamiltonian_element_support": max((op.nnz() for op in element_ops), default=0),
+            "max_overlap_element_support": max(overlap_support, default=0),
+            "max_hamiltonian_element_support": max(element_support, default=0),
             "hamiltonian_support": self._H.nnz(),
             "reference_purity": self._purity,
             "pairs_built": self._pairs_built,
@@ -610,7 +756,10 @@ class MatrixElementBank:
             "new_words_per_generator": tuple(
                 (self._generators[i].label, self._new_words[i], self._reused_words[i])
                 for i in order),
-            "cached_operator_bytes": sum(op.memory_estimate() for op in cached),
+            # 24 bytes per coefficient, which is what ``MV.memory_estimate``
+            # returns per row and therefore what this field has always meant.
+            # Phase 2M-A's committed back-fill inverts exactly this identity.
+            "cached_operator_bytes": PACKED_BYTES_PER_COEFFICIENT * occurrences,
             # Phase 2M-A's storage ledger. Counts below describe the whole resident
             # cache; ``word_universe`` remains the selected subspace's measurement cost.
             # ``cached_operator_bytes`` is exactly 24 * ``coefficient_occurrences``.
@@ -620,7 +769,8 @@ class MatrixElementBank:
             "coefficient_occurrences_per_selected_element_word": (
                 occurrences / universe if universe else 0.0),
             "storage_policy": STORAGE_POLICY,
-            "resident_operator_rows": len(cached),
+            "storage_backend": self._storage,
+            "resident_operator_rows": resident_rows,
             "peak_resident_operator_rows": self._peak_resident_rows,
             "retained_block_pairs": retained_pairs,
             "complete_block_pairs": complete_block_pairs,

@@ -109,7 +109,7 @@ No figure or table value in the manuscript is transcribed by hand, and
 ```bash
 python -m venv .venv && source .venv/bin/activate
 pip install -e .[test,research,chemistry]   # numpy + scipy + openfermion/pyscf
-pytest                                      # 1501 passed, 31 skipped
+pytest                                      # 1571 passed, 31 skipped
 ```
 
 That install is the reference environment for the quoted pair. The count
@@ -133,7 +133,7 @@ the remaining `31 - 14 = 17` skips are per-test and *are* collected:
 
 ```text
 collected == passed + (skipped - files dropped at collection)
-1518      == 1501   + (31      -  14)
+1588      == 1571   + (31      -  14)
 ```
 
 Both sides are computed from the tree, so a drift in either quoted number
@@ -470,7 +470,7 @@ Three cost-aware tiers run:
 | job | when | contents |
 | --- | --- | --- |
 | `test` | pull request, push to `main`, manual dispatch | `ruff`, `pytest --hypothesis-profile=ci`, the architecture-manuscript gate, and the short record gates: `check_docs`, `check_phase_status`, `check_molecular`, `check_krylov_width`, `check_clifford_hierarchy`, `check_finite_shot_optimization`, `check_warm_start` |
-| `structural-records` | pull request, push to `main`, manual dispatch | deterministic rebuild and lineage gates: `check_mapping_axis`, `check_protocol_axis`, `check_priceability_screen`, `check_r3_environment_migration`, `check_r3b_preregistration`, `check_r3c_preregistration`, `check_r3d_preregistration`, `check_phase14b_preregistration`, `check_g1_structural_preconditioner`, `check_r4a_preregistration`, `check_r4a_contextual_screen`, `check_bank_storage_ledger` |
+| `structural-records` | pull request, push to `main`, manual dispatch | deterministic rebuild and lineage gates: `check_mapping_axis`, `check_protocol_axis`, `check_priceability_screen`, `check_r3_environment_migration`, `check_r3b_preregistration`, `check_r3c_preregistration`, `check_r3d_preregistration`, `check_phase14b_preregistration`, `check_g1_structural_preconditioner`, `check_r4a_preregistration`, `check_r4a_contextual_screen`, `check_bank_storage_ledger`, `check_packed_bank_storage` |
 | `sampled-records` | manual dispatch only | replica-drawing rebuild gates, each under its own record stamp: `check_r3b_margin_stop_probe`, `check_finite_shot_rethink`, `check_matched_h4`, `check_qr3b_instance_preflight`, `check_exact_shot_search`, `check_protocol_cost`, `check_r3c_lih_full_cost`, `check_r3d_qr3_refinement`, `check_phase14b_qwc_vs_fc` |
 
 The same dispatch also runs `environment-consistency`, which requires every
@@ -2823,3 +2823,210 @@ measured-byte fields under a declared `2%` relative tolerance — wide enough fo
 an object-layout drift, far tighter than the tens of percent a change in the
 retained representation would move them — while every count, pair and packed
 byte stays exact.
+
+## Phase 2M-B packed CSR/SoA row store (numpy only)
+
+Phase 2M-A measured the baseline: `85.24`–`96.19` bytes per retained coefficient
+as a `dict[int, complex]` entry against a packed model of `24`. That established
+headroom. This record measures the reduction an implementation delivers.
+
+`clifford_qc/subspace/packed.py` holds one canonical global word table and CSR
+rows over it; `MatrixElementBank` selects it with `storage="packed"` plus
+`layout="interleaved"` or `"soa"`.
+
+```bash
+python benchmarks/run_packed_bank_storage.py
+python benchmarks/check_packed_bank_storage.py
+python -m pytest tests/test_packed_bank.py tests/test_packed_bank_storage.py -q
+```
+
+Nothing is sampled, no energy is reported as a result, and no chemistry extra is
+needed. About two minutes on one core — ten banks under three backends.
+
+**The object backend stays the package default, deliberately.** 2M-A's committed
+record prices it and 2M-D's equivalence matrix has to rebuild it, so a phase that
+changed the default before its own gate was graded would invalidate the baseline
+it is graded against. `check_bank_storage_ledger` passes beside this record.
+
+**Generation order is part of the contract.** `MV.trace_pairing` iterates the
+*smaller* operand's dict in insertion order, and 54–84% of resident rows are
+smaller than the reference, so the row drives the summation for most entries.
+Storing a row's words ascending — the natural CSR choice — moves 4–17% of `S` and
+`H` entries by up to `3.1e-13`, breaking `_build_pair`'s promise that the bank
+reproduces `solver.projected_matrices` "to the last bit". Each row therefore
+carries ascending `indices` for binary-search probes *and* a `generation`
+permutation replaying emission order: `4 + 4 + 16` is the same `24` bytes
+`MV.memory_estimate` has always modelled.
+
+**Equivalence is checked before any byte is believed.** Every priced bank is
+built under both backends and compared — `S` and `H` bitwise via `array_equal`,
+identical labels, and eight structural fields — and the producer *refuses to emit
+a row that fails*. A byte reduction quoted from a bank whose answers moved is
+worth nothing.
+
+**The word table holds no Python objects.** The obvious implementation — a `list`
+of codes beside a `dict` mapping code to index — measured at `101.4` bytes per
+word: `8.5` of list pointers, `36.9` of dict slots, `28.0` of boxed code
+integers and `28.0` of boxed *index* integers, since every assigned index above
+CPython's small-integer cache is its own object. What replaces them is an int64
+array of codes in assignment order and an open-addressed int32 slot array at half
+load — `16.3`–`22.7` bytes per word as measured across the priced banks.
+
+**Retained bytes decompose into three terms, not two.** Packed rows and the word
+table are pure numpy; the third term is the distinct word-code integers. The
+numpy table does not reference them, but they stay resident through the bank's
+own `_universe` under *either* backend, and the object backend's walk charges
+them once — so the packed side charges them once too. Omitting them would credit
+packing with an allocation it never removed, and the checker fails a record that
+reports zero for them.
+
+**The reduction is a function of coefficient reuse, not a constant.** Packed rows
+cost exactly `24.00` bytes per coefficient on every bank; the shared table and
+word-code terms are paid per distinct *word*. So the total is
+`24 + (table + shared)/reuse`, where reuse is `T_coeff/W`:
+
+| bank | n | M | reuse | object B/coef | packed B/coef | reduction |
+|---|---|---|---|---|---|---|
+| `hubbard_2x2` | 8 | 9 | 1.51 | 96.19 | 55.78 | 1.72× |
+| `h2o_cas8e6o` | 12 | 9 | 2.45 | 91.99 | 44.65 | 2.06× |
+| `beh2` | 8 | 5 | 3.77 | 95.41 | 35.94 | 2.65× |
+| `h4` | 8 | 9 | 7.16 | 85.24 | 30.27 | 2.82× |
+| `beh2_M27_sz` | 8 | 27 | 9.60 | 93.73 | 28.70 | **3.27×** |
+| `h4_converged` | 8 | 15 | 16.39 | 87.43 | 26.70 | **3.27×** |
+| `beh2_M53_full` | 8 | 53 | 17.49 | 95.00 | 26.57 | **3.57×** |
+| `h4_M27_sz` | 8 | 27 | 27.99 | 86.66 | 25.58 | **3.39×** |
+| `lih_M27_sz` | 8 | 27 | 28.90 | 86.17 | 25.53 | **3.37×** |
+| `h4_M53_full` | 8 | 53 | 50.88 | 92.85 | 24.87 | **3.73×** |
+
+Two readings matter and they are different numbers. Row-only, the representation
+reaches `3.55`–`4.01×` on every bank — that is a property of the packing. The
+*total*, which is what the process holds, is graded instead, because grading on
+rows alone would be the flattering reading of a gate that exists to be failed.
+
+**No bank is a net loss, and that changed.** Before the word table moved off
+Python objects, `hubbard_2x2` at reuse `1.51` measured `0.94×` — packing cost
+*more* than the dictionaries it replaced. It now measures `1.72×`, and the
+lowest reuse clearing the `3×` gate fell from `17.49` to `9.60`. The record still
+carries a `banks_where_packing_costs_more` list, now empty, and the checker fails
+a record whose list disagrees with its own measurements in either direction.
+
+**Where the gate crosses, and why the bank set had to span reuse.** The five
+frozen mapping-axis banks sit at reuse `1.5`–`16.4`; the committed molecular banks
+that actually ran out of memory sit at `35.1`–`154.9`. The extended banks are pool
+prefixes at a declared basis size, built only to raise reuse — the `conserve_sz:
+false` rows carry `S_z`-violating excitations and are storage instances, not
+physics, so no energy of theirs is reported. Together they span `33.8×` in reuse,
+and the threshold they locate is *separated*: the lowest reuse clearing `3×` is
+`9.60`, the highest failing is `7.16`. Every committed bank exceeds `9.60`. The
+ladder is not strictly monotone in reuse — the object backend's own bytes per
+coefficient vary across banks too — so the record reports the largest violation's
+magnitude rather than only the boolean.
+
+**What is graded, and what is not.** Phase 2M's go/no-go has three clauses. This
+record grades the first — at least a `3×` reduction in retained coefficient
+storage at unchanged `T_coeff` — and returns
+`reached_above_a_measured_reuse_threshold_committed_banks_exceed_it`. It grades
+neither of the others: no streaming policy exists to bound live operator rows
+(2M-C), and no end-to-end run has completed the stretched-H₂O `M = 31`
+configuration under a memory ceiling (2M-D). **Nothing here licenses a claim that
+Phase 2M passes.** The committed banks are quoted from 2M-A's record rather than
+rebuilt, and their ratio is resident coefficients per *selected-subspace* word —
+an upper bound on true reuse, not reuse — which the record states rather than
+assumes away.
+
+**The intern probe is vectorised over a whole row.** A numpy open-addressing probe
+is a Python loop where a `dict` lookup was C, and it runs once per coefficient
+occurrence — `859` ns a word against a dict's `94`. Most of those calls are hits:
+a bank at reuse fifty sees each word about fifty times and assigns it once. So
+`intern_many` computes the first probe for an entire row in numpy and falls back
+to the scalar path only for entries it does not settle — an empty slot, or a
+collision landing on some other word. That measures `289` ns a word, `3.0×` faster
+than the scalar probe and `3.1×` slower than a dict that costs six times the
+memory. End to end a packed bank build is `1.48×` the object backend, down from
+`1.58×`.
+
+Resolving hits against the slot array as it stands when the batch starts is safe
+even though the fallback may grow the table underneath: assigned indices never
+move, so an index read before a rehash is still that word's index after one.
+`tests/test_packed_bank.py` walks the same code sequence through both paths
+across several growths and requires them to agree batch by batch — a bulk path
+that disagreed anywhere would hand a row the index of some *other* word, which no
+later check would catch.
+
+**Costs still recorded rather than smoothed over.** The read path remains slower —
+an uncached re-solve costs ~20× the object backend — because every coefficient
+crosses a numpy-to-Python boundary to keep the arithmetic bit-identical. Pricing
+that time against the memory is 2M-D's job. `interleaved` and `soa` hold identical
+bytes on every bank — checked, not assumed — and `soa` measured marginally slower,
+so `interleaved` is the default.
+
+## Phase 2M-D stretched-H₂O `M = 31` under a 15 GiB ceiling (numpy only)
+
+Phase 2M's go/no-go names one end-to-end test: the previously failing
+stretched-H₂O `M = 31` configuration completing below 15 GiB without shrinking its
+candidate pool, word universe, or basis budget. This is that configuration, run.
+
+```bash
+python benchmarks/run_packed_h2o_feasibility.py
+```
+
+Roughly three hours on one core and needs ~10 GiB of RAM, so it is a manual run
+rather than a CI gate. No chemistry extra is needed: the integrals come from the
+FCIDUMP the failing run itself wrote, checked by digest.
+
+**Nothing is shrunk.** The candidate pool is the pipeline's own
+`determinant_excitations` at rank 2 with no cap — 140 candidates against a
+1,086-word Hamiltonian at 14 qubits. The budget is `max_size = 30`, which is
+`M = 31` once the identity is counted. The exact ground energy feeding the oracle
+stop is read from the committed record rather than recomputed, because it is an
+input to the stopping rule and not a result this test produces.
+
+**The ceiling is enforced, not observed.** A sampling thread watches
+`/proc/self/statm` and interrupts the main thread the moment resident memory
+crosses 15 GiB. A run the kernel kills reports neither the peak it reached nor how
+far it got, and cannot say whether it died at the ceiling or at whatever the host
+happened to have.
+
+**Result — both backends complete.**
+
+| arm | M | peak RSS | adaptive delta | pairs | `T_coeff` | wall |
+|---|---|---|---|---|---|---|
+| object | 31 | 9.69 GiB | 9.54 GiB | 3,906 | 91,969,227 | 31.6 min |
+| packed | 31 | 5.56 GiB | 1.76 GiB | 3,906 | 91,969,227 | 140.9 min |
+
+Both return **bitwise identical** ground energies (`-74.717183835061`) and identical
+basis labels, on the same pairs and the same `T_coeff` — the strongest equivalence
+evidence in the phase, and at production scale rather than on a test bank.
+
+**The clause passes, and it does not discriminate.** Its premise was that this
+configuration fails on a 15 GiB machine. On a clean single-molecule process it does
+not: the object backend — the representation the failure was attributed to — fits
+with 5.3 GiB to spare. A gate both arms pass cannot measure what packing
+contributed.
+
+**The ~18 GiB figure that premise rested on was wrong.** It scaled BeH₂'s `M = 31`
+peak by the Hamiltonian word ratio, `(1086/666) × 10.75 = 17.5` GiB. But H₂O's own
+committed `M = 21` run already carries its larger word count, so multiplying by the
+ratio counts it twice. Scaling that run's own 6.53 GiB linearly in `M` predicts
+9.64 GiB against the 9.69 measured — agreement to 0.5%. `PLAN.md` §5 and the
+comment in `run_molecular_pipeline.py` are both corrected.
+
+**So what did kill it?** `PLAN.md` §5 already records the candidate and it is not
+the bank's representation: a sequential run held BeH₂'s 11.2 GiB bank as H₂O's
+starting point, and `11.2 + 9.7` does not fit in 15. That is the defect the
+producer's explicit inter-molecule delete and `gc.collect()` already repaired, and
+this measurement is what turns that from the more likely of two explanations into
+the only one left standing.
+
+**Two caveats, stated rather than smoothed.** The two arms share one process and
+the packed arm runs second, so its *peak* carries allocator pages the object arm
+freed but did not return, while its *delta* does not — which makes `1.74×` an
+understatement of the peak reduction and `5.4×` on delta the cleaner figure.
+Running each arm in a fresh process is the fix, and it has not been done. And the
+packed arm is **4.46× slower** here against `1.48×` at `n = 8` — a scaling
+regression this phase has measured but not diagnosed.
+
+**What this does not establish.** Not that Phase 2M passes. Its go/no-go has three
+clauses: 2M-B graded the storage reduction, this is the end-to-end one, and the
+streaming-policy clause belongs to 2M-C, which does not exist — no eviction policy
+was built or measured, and this run is entirely `retain_all`.
