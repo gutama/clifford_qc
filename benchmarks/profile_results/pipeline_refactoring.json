@@ -1,0 +1,383 @@
+{
+  "scope": "Diagnostic TFIM(6), five additions; three fresh processes per arm. Not a molecular performance gate.",
+  "baseline_commit": "64b06bcf9265494df277f1bf39bf77005d010e88",
+  "python": "3.12.14",
+  "numpy": "2.3.5",
+  "scipy": "1.17.0",
+  "blas_threads": 1,
+  "profile_script_sha256": "35d4f85d1404c92169c8cd242acefeac6f1d50a16e35e4e0e57aeb924bdaf03d",
+  "command": "python benchmarks/profile_pipeline.py --storage STORAGE --policy POLICY",
+  "samples": [
+    {
+      "checkout": "baseline",
+      "storage": "object",
+      "policy": "retain_all",
+      "median_seconds": 0.027720579000060752,
+      "samples": [
+        {
+          "scope": "TFIM smoke profile; process RSS includes interpreter and setup",
+          "python": "3.12.14",
+          "options": {
+            "storage": "object",
+            "policy": "retain_all",
+            "n": 6,
+            "max_size": 5,
+            "frontier_pairs": 4
+          },
+          "solve_seconds": 0.02744080600007237,
+          "materialize_calls_during_solve": 0,
+          "max_rss_bytes": 37715968,
+          "numerical_sha256": "aec7477feb2f4b81e88d081e46c046830a5fa87fd9ae93ab7b355d859af76c37",
+          "resources": {
+            "pairs_built": 279,
+            "resident_operator_rows": 558,
+            "coefficient_occurrences": 6456,
+            "evicted_rows": 0,
+            "recomputed_rows": 0
+          }
+        },
+        {
+          "scope": "TFIM smoke profile; process RSS includes interpreter and setup",
+          "python": "3.12.14",
+          "options": {
+            "storage": "object",
+            "policy": "retain_all",
+            "n": 6,
+            "max_size": 5,
+            "frontier_pairs": 4
+          },
+          "solve_seconds": 0.029538066999975854,
+          "materialize_calls_during_solve": 0,
+          "max_rss_bytes": 36171776,
+          "numerical_sha256": "aec7477feb2f4b81e88d081e46c046830a5fa87fd9ae93ab7b355d859af76c37",
+          "resources": {
+            "pairs_built": 279,
+            "resident_operator_rows": 558,
+            "coefficient_occurrences": 6456,
+            "evicted_rows": 0,
+            "recomputed_rows": 0
+          }
+        },
+        {
+          "scope": "TFIM smoke profile; process RSS includes interpreter and setup",
+          "python": "3.12.14",
+          "options": {
+            "storage": "object",
+            "policy": "retain_all",
+            "n": 6,
+            "max_size": 5,
+            "frontier_pairs": 4
+          },
+          "solve_seconds": 0.027720579000060752,
+          "materialize_calls_during_solve": 0,
+          "max_rss_bytes": 36163584,
+          "numerical_sha256": "aec7477feb2f4b81e88d081e46c046830a5fa87fd9ae93ab7b355d859af76c37",
+          "resources": {
+            "pairs_built": 279,
+            "resident_operator_rows": 558,
+            "coefficient_occurrences": 6456,
+            "evicted_rows": 0,
+            "recomputed_rows": 0
+          }
+        }
+      ]
+    },
+    {
+      "checkout": "baseline",
+      "storage": "packed",
+      "policy": "retain_all",
+      "median_seconds": 0.11711610399993333,
+      "samples": [
+        {
+          "scope": "TFIM smoke profile; process RSS includes interpreter and setup",
+          "python": "3.12.14",
+          "options": {
+            "storage": "packed",
+            "policy": "retain_all",
+            "n": 6,
+            "max_size": 5,
+            "frontier_pairs": 4
+          },
+          "solve_seconds": 0.11028194099992561,
+          "materialize_calls_during_solve": 3640,
+          "max_rss_bytes": 36032512,
+          "numerical_sha256": "aec7477feb2f4b81e88d081e46c046830a5fa87fd9ae93ab7b355d859af76c37",
+          "resources": {
+            "pairs_built": 279,
+            "resident_operator_rows": 558,
+            "coefficient_occurrences": 6456,
+            "evicted_rows": 0,
+            "recomputed_rows": 0
+          }
+        },
+        {
+          "scope": "TFIM smoke profile; process RSS includes interpreter and setup",
+          "python": "3.12.14",
+          "options": {
+            "storage": "packed",
+            "policy": "retain_all",
+            "n": 6,
+            "max_size": 5,
+            "frontier_pairs": 4
+          },
+          "solve_seconds": 0.11711610399993333,
+          "materialize_calls_during_solve": 3640,
+          "max_rss_bytes": 36036608,
+          "numerical_sha256": "aec7477feb2f4b81e88d081e46c046830a5fa87fd9ae93ab7b355d859af76c37",
+          "resources": {
+            "pairs_built": 279,
+            "resident_operator_rows": 558,
+            "coefficient_occurrences": 6456,
+            "evicted_rows": 0,
+            "recomputed_rows": 0
+          }
+        },
+        {
+          "scope": "TFIM smoke profile; process RSS includes interpreter and setup",
+          "python": "3.12.14",
+          "options": {
+            "storage": "packed",
+            "policy": "retain_all",
+            "n": 6,
+            "max_size": 5,
+            "frontier_pairs": 4
+          },
+          "solve_seconds": 0.1275468380000575,
+          "materialize_calls_during_solve": 3640,
+          "max_rss_bytes": 36040704,
+          "numerical_sha256": "aec7477feb2f4b81e88d081e46c046830a5fa87fd9ae93ab7b355d859af76c37",
+          "resources": {
+            "pairs_built": 279,
+            "resident_operator_rows": 558,
+            "coefficient_occurrences": 6456,
+            "evicted_rows": 0,
+            "recomputed_rows": 0
+          }
+        }
+      ]
+    },
+    {
+      "checkout": "clifford_qc",
+      "storage": "object",
+      "policy": "retain_all",
+      "median_seconds": 0.02697701199997482,
+      "samples": [
+        {
+          "scope": "TFIM smoke profile; process RSS includes interpreter and setup",
+          "python": "3.12.14",
+          "options": {
+            "storage": "object",
+            "policy": "retain_all",
+            "n": 6,
+            "max_size": 5,
+            "frontier_pairs": 4
+          },
+          "solve_seconds": 0.02697701199997482,
+          "materialize_calls_during_solve": 0,
+          "max_rss_bytes": 36429824,
+          "numerical_sha256": "aec7477feb2f4b81e88d081e46c046830a5fa87fd9ae93ab7b355d859af76c37",
+          "resources": {
+            "pairs_built": 279,
+            "resident_operator_rows": 558,
+            "coefficient_occurrences": 6456,
+            "evicted_rows": 0,
+            "recomputed_rows": 0
+          }
+        },
+        {
+          "scope": "TFIM smoke profile; process RSS includes interpreter and setup",
+          "python": "3.12.14",
+          "options": {
+            "storage": "object",
+            "policy": "retain_all",
+            "n": 6,
+            "max_size": 5,
+            "frontier_pairs": 4
+          },
+          "solve_seconds": 0.025022943000067244,
+          "materialize_calls_during_solve": 0,
+          "max_rss_bytes": 36425728,
+          "numerical_sha256": "aec7477feb2f4b81e88d081e46c046830a5fa87fd9ae93ab7b355d859af76c37",
+          "resources": {
+            "pairs_built": 279,
+            "resident_operator_rows": 558,
+            "coefficient_occurrences": 6456,
+            "evicted_rows": 0,
+            "recomputed_rows": 0
+          }
+        },
+        {
+          "scope": "TFIM smoke profile; process RSS includes interpreter and setup",
+          "python": "3.12.14",
+          "options": {
+            "storage": "object",
+            "policy": "retain_all",
+            "n": 6,
+            "max_size": 5,
+            "frontier_pairs": 4
+          },
+          "solve_seconds": 0.03581340200003069,
+          "materialize_calls_during_solve": 0,
+          "max_rss_bytes": 36425728,
+          "numerical_sha256": "aec7477feb2f4b81e88d081e46c046830a5fa87fd9ae93ab7b355d859af76c37",
+          "resources": {
+            "pairs_built": 279,
+            "resident_operator_rows": 558,
+            "coefficient_occurrences": 6456,
+            "evicted_rows": 0,
+            "recomputed_rows": 0
+          }
+        }
+      ]
+    },
+    {
+      "checkout": "clifford_qc",
+      "storage": "packed",
+      "policy": "retain_all",
+      "median_seconds": 0.05422014800001307,
+      "samples": [
+        {
+          "scope": "TFIM smoke profile; process RSS includes interpreter and setup",
+          "python": "3.12.14",
+          "options": {
+            "storage": "packed",
+            "policy": "retain_all",
+            "n": 6,
+            "max_size": 5,
+            "frontier_pairs": 4
+          },
+          "solve_seconds": 0.05422014800001307,
+          "materialize_calls_during_solve": 0,
+          "max_rss_bytes": 36159488,
+          "numerical_sha256": "aec7477feb2f4b81e88d081e46c046830a5fa87fd9ae93ab7b355d859af76c37",
+          "resources": {
+            "pairs_built": 279,
+            "resident_operator_rows": 558,
+            "coefficient_occurrences": 6456,
+            "evicted_rows": 0,
+            "recomputed_rows": 0
+          }
+        },
+        {
+          "scope": "TFIM smoke profile; process RSS includes interpreter and setup",
+          "python": "3.12.14",
+          "options": {
+            "storage": "packed",
+            "policy": "retain_all",
+            "n": 6,
+            "max_size": 5,
+            "frontier_pairs": 4
+          },
+          "solve_seconds": 0.06550402000004851,
+          "materialize_calls_during_solve": 0,
+          "max_rss_bytes": 36163584,
+          "numerical_sha256": "aec7477feb2f4b81e88d081e46c046830a5fa87fd9ae93ab7b355d859af76c37",
+          "resources": {
+            "pairs_built": 279,
+            "resident_operator_rows": 558,
+            "coefficient_occurrences": 6456,
+            "evicted_rows": 0,
+            "recomputed_rows": 0
+          }
+        },
+        {
+          "scope": "TFIM smoke profile; process RSS includes interpreter and setup",
+          "python": "3.12.14",
+          "options": {
+            "storage": "packed",
+            "policy": "retain_all",
+            "n": 6,
+            "max_size": 5,
+            "frontier_pairs": 4
+          },
+          "solve_seconds": 0.054019562999997106,
+          "materialize_calls_during_solve": 0,
+          "max_rss_bytes": 36163584,
+          "numerical_sha256": "aec7477feb2f4b81e88d081e46c046830a5fa87fd9ae93ab7b355d859af76c37",
+          "resources": {
+            "pairs_built": 279,
+            "resident_operator_rows": 558,
+            "coefficient_occurrences": 6456,
+            "evicted_rows": 0,
+            "recomputed_rows": 0
+          }
+        }
+      ]
+    },
+    {
+      "checkout": "clifford_qc",
+      "storage": "packed",
+      "policy": "stream_recompute",
+      "median_seconds": 0.059882824000055734,
+      "samples": [
+        {
+          "scope": "TFIM smoke profile; process RSS includes interpreter and setup",
+          "python": "3.12.14",
+          "options": {
+            "storage": "packed",
+            "policy": "stream_recompute",
+            "n": 6,
+            "max_size": 5,
+            "frontier_pairs": 4
+          },
+          "solve_seconds": 0.05885140399993816,
+          "materialize_calls_during_solve": 0,
+          "max_rss_bytes": 36163584,
+          "numerical_sha256": "aec7477feb2f4b81e88d081e46c046830a5fa87fd9ae93ab7b355d859af76c37",
+          "resources": {
+            "pairs_built": 279,
+            "resident_operator_rows": 50,
+            "coefficient_occurrences": 369,
+            "evicted_rows": 548,
+            "recomputed_rows": 40
+          }
+        },
+        {
+          "scope": "TFIM smoke profile; process RSS includes interpreter and setup",
+          "python": "3.12.14",
+          "options": {
+            "storage": "packed",
+            "policy": "stream_recompute",
+            "n": 6,
+            "max_size": 5,
+            "frontier_pairs": 4
+          },
+          "solve_seconds": 0.06379114399999253,
+          "materialize_calls_during_solve": 0,
+          "max_rss_bytes": 36163584,
+          "numerical_sha256": "aec7477feb2f4b81e88d081e46c046830a5fa87fd9ae93ab7b355d859af76c37",
+          "resources": {
+            "pairs_built": 279,
+            "resident_operator_rows": 50,
+            "coefficient_occurrences": 369,
+            "evicted_rows": 548,
+            "recomputed_rows": 40
+          }
+        },
+        {
+          "scope": "TFIM smoke profile; process RSS includes interpreter and setup",
+          "python": "3.12.14",
+          "options": {
+            "storage": "packed",
+            "policy": "stream_recompute",
+            "n": 6,
+            "max_size": 5,
+            "frontier_pairs": 4
+          },
+          "solve_seconds": 0.059882824000055734,
+          "materialize_calls_during_solve": 0,
+          "max_rss_bytes": 36163584,
+          "numerical_sha256": "aec7477feb2f4b81e88d081e46c046830a5fa87fd9ae93ab7b355d859af76c37",
+          "resources": {
+            "pairs_built": 279,
+            "resident_operator_rows": 50,
+            "coefficient_occurrences": 369,
+            "evicted_rows": 548,
+            "recomputed_rows": 40
+          }
+        }
+      ]
+    }
+  ],
+  "interpretation": "All numerical hashes agree. Timing differences are diagnostic small-system measurements, not production speedup or total-RSS reduction guarantees."
+}

@@ -1,9 +1,15 @@
 # `clifford_qc` architecture
 
-The current shape of the package, derived from the source on this branch
-rather than from intent: 92 modules and ~22.5k lines under `clifford_qc/`,
-101 test modules and ~22.5k lines under `tests/`, 42 record producers and 30
-record gates under `benchmarks/`.
+The package separates algebra, problem definition, execution, measurement,
+solvers, orchestration, and evidence. The generated
+[architecture census](paper_architecture/data/source_census.json) contains the
+current module and line counts; the older diagrams below are scoped snapshots.
+
+[PIPELINE.md](PIPELINE.md) documents the new `prepared.py` and `pipeline.py`
+orchestration boundary: reusable FCIDUMP preparation feeds independent solves
+and optional validation. `subspace/streaming.py` supplies coefficient lifetime
+policy beneath A-CASE; `measurement/functionals.py` compiles independent ordered
+snapshots. Neither a storage policy nor a cache changes the physical model.
 
 Two things explain most of the layout.
 

@@ -65,6 +65,10 @@ third-party dependencies only when those modules are imported.
 
 ## Quick Start
 
+For repeated FCIDUMP experiments, [PIPELINE.md](PIPELINE.md) describes cached
+preparation, independent solves, optional reference validation, and opt-in
+streaming coefficient storage.
+
 ```python
 from clifford_qc import *
 

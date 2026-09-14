@@ -368,19 +368,15 @@ def verdict_problems(record: dict) -> list[str]:
     lowest = model["lowest_reuse_clearing_threshold"]
     highest = model["highest_reuse_failing_threshold"]
     floor = min(record["committed_bank_reuse"]["ratio_range"])
-    if lowest is None:
-        expected = "not_reached_on_any_measured_bank"
-    elif highest is not None and highest > lowest:
-        expected = "indeterminate_threshold_not_separated"
-    elif floor >= lowest:
-        expected = "reached_above_a_measured_reuse_threshold_committed_banks_exceed_it"
-    else:
-        expected = "reached_only_above_the_committed_banks_reuse"
+    expected = ("not_reached_on_any_measured_bank" if lowest is None else
+                "reached_on_measured_banks_historical_banks_ungraded")
+    if verdict.get("historical_banks_status") != "ungraded_resident_word_universe_unknown":
+        problems.append("historical upper bounds cannot grade resident reuse")
     if verdict["outcome"] != expected:
         problems.append(
             f"the record records outcome {verdict['outcome']!r}, but the measured "
             f"ladder gives {expected!r}. The verdict follows from the threshold "
-            "and the committed banks' reuse, and is not writable by hand")
+            "on directly measured banks; historical upper bounds cannot establish it")
     if not _close(verdict["committed_bank_ratio_floor"], floor):
         problems.append("the committed ratio floor is not the minimum it quotes")
     ungraded = verdict.get("ungraded_clauses") or {}

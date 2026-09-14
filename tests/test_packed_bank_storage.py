@@ -170,10 +170,12 @@ def test_the_shared_word_code_integers_are_charged_on_the_packed_side(record):
                     + priced["shared_word_code_bytes"]) == priced["total_bytes"]
 
 
-def test_the_committed_banks_all_exceed_the_threshold(record):
-    model = record["reduction_model"]
-    floor = min(record["committed_bank_reuse"]["ratio_range"])
-    assert floor >= model["lowest_reuse_clearing_threshold"]
+def test_historical_upper_bounds_do_not_grade_resident_reuse(record):
+    assert record["go_no_go"]["historical_banks_status"] == (
+        "ungraded_resident_word_universe_unknown")
+    mutated = copy.deepcopy(record)
+    mutated["go_no_go"]["historical_banks_status"] = "all_banks_clear_3x"
+    assert verdict_problems(mutated)
 
 
 def test_the_committed_rows_are_quoted_with_their_caveat(record):
@@ -193,8 +195,8 @@ def test_exactly_one_go_no_go_clause_is_graded(record):
 
 def test_the_verdict_does_not_claim_phase_2m_passes(record):
     assert record["go_no_go"]["outcome"] == (
-        "reached_above_a_measured_reuse_threshold_committed_banks_exceed_it")
-    assert "Not that Phase 2M passes" in record["go_no_go"][
+        "reached_on_measured_banks_historical_banks_ungraded")
+    assert "Only the directly measured banks" in record["go_no_go"][
         "what_this_does_not_establish"]
 
 

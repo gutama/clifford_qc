@@ -1102,19 +1102,15 @@ the distinct word-code integers, which the table no longer references but which
 stay resident through `_universe` under either backend — so both sides charge them
 once, and the checker fails a record reporting zero for them.
 
-*Which population the gate is read on is itself a scoping decision.* The five frozen
-mapping-axis banks sit at reuse `1.5`–`16.4`; the committed molecular banks that
-actually ran out of memory sit at `35.1`–`154.9`. Grading `3x` on the convenient
-banks would understate it. The measured threshold is separated — lowest reuse
-clearing `3x` is `9.60`, highest failing is `7.16` — and
-every committed bank exceeds it, so the graded outcome is
-`reached_above_a_measured_reuse_threshold_committed_banks_exceed_it`. The committed
-banks are quoted from 2M-A rather than rebuilt, and their ratio is resident
-coefficients per *selected-subspace* word, an upper bound on reuse rather than
-reuse.
+The measured ladder separates its observed 3x crossings: lowest clearing reuse
+is `9.60`, highest failing is `7.16`. The historical molecular ratios
+`35.1`–`154.9` use selected-subspace words, so they are **upper bounds** on
+resident reuse. They cannot establish that those banks clear 3x. The corrected
+outcome is `reached_on_measured_banks_historical_banks_ungraded`; historical
+measurements are preserved, and only their interpretation changes.
 
 *Graded: one clause of three.* This record grades the `3x` storage reduction only.
-It does not grade 2M-C's streaming bound — no eviction policy exists — and it does
+It does not grade 2M-C's separately tested streaming bound, and it does
 not grade the stretched-H₂O `M = 31` end-to-end test, which stays 2M-D's. **Nothing
 in it licenses a claim that Phase 2M passes.** Two costs are recorded rather than
 smoothed over: an uncached re-solve is ~20x slower, because every coefficient
@@ -1127,8 +1123,16 @@ packed bank build to `1.48x` the object backend from `1.58x`.
 `interleaved` and `soa` hold identical bytes on every bank — checked, not assumed —
 with `soa` marginally slower, so `interleaved` is the default.
 
-**2M-C — explicit frontier lifetime policies.** Implement and compare three named
-policies under one interface:
+**2M-C — explicit frontier lifetime policies.** `retain_all` and opt-in
+`stream_recompute` now ship with object or packed rows. Streaming retains compact
+support/scalar history and a selected block plus a bounded pair frontier. Packed
+segments release array capacity on eviction. Small-system tests preserve matrices,
+adaptive decisions and sampled reconstruction; the full molecular performance
+matrix remains open. Disk-backed storage is deferred until a measured workload
+requires it. See [PIPELINE.md](PIPELINE.md) for the separated preparation, solve
+and optional validation commands and the exact memory boundary.
+
+The intended policy interface is:
 
 | policy | retained data | intended use |
 |---|---|---|
@@ -1145,9 +1149,11 @@ as free.
 
 **2M-D — equivalence and performance matrix.** On H4, equilibrium and stretched
 BeH2, and equilibrium and stretched H2O, compare all policies at identical candidate
-ordering and basis budget. Require exact equality of `W_sel`, `W_res`, `T_coeff`, pair ownership,
-selected labels, rejection decisions, stopping reason, evidence label and resource
-scope. Require bitwise `S`, `H` and energies where canonical accumulation order is
+ordering and basis budget. Require exact equality of `W_sel`, cumulative logical
+coefficient occurrences and pair ownership, selected labels, rejection decisions,
+stopping reason, evidence label and resource scope. Resident `W_res`, `T_coeff`
+and rows may differ under eviction; compare them as storage outcomes, not
+numerical invariants. Require bitwise `S`, `H` and energies where canonical accumulation order is
 preserved; otherwise use a declared tight tolerance and record the first source of
 rounding-order divergence. Report bank-build time, recomputation time, spill I/O,
 peak and delta RSS, packed bytes and actual bytes per coefficient.
