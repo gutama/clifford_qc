@@ -108,32 +108,23 @@ No figure or table value in the manuscript is transcribed by hand, and
 
 ```bash
 python -m venv .venv && source .venv/bin/activate
-pip install -e .[test,research,chemistry]   # numpy + scipy + openfermion/pyscf
-pytest                                      # 1571 passed, 31 skipped
+pip install -e .[test,research,stim]       # automatic CI extras
+pytest                                      # 2011 passed, 8 skipped
 ```
 
-That install is the reference environment for the quoted pair. The count
-depends on it: a missing
-optional module makes pytest drop the whole test file at collection, so
-each absent extra moves one file from the passed count to the skipped
-count. Fourteen files are dropped that way here — `stim` (eleven of them:
-`test_block_synthesis`, `test_protocol_axis`, `test_protocol_cost`, `test_bridge_stim`,
-`test_clifford_hierarchy_cost`, `test_compiled_measurement`, `test_exact_shot_search`,
-`test_phase4`, `test_r3d_qr3_refinement`, `test_restriction`,
-`test_stim_clifford_rotors`), plus `pennylane`,
-`pytket`, and `pyzx`. The
-remaining `31 - 14 = 17` skips are per-test rather than per-file: `test_fermion_mapping`
-and `test_mapping_axis` guard only the individual tests that reach the stim
-bridge, and `test_contextual_restriction` guards the three tableau-compilation
-tests, so those files still run.
+This is the automatic CI dependency set; record gates additionally pin NumPy
+and SciPy through `check_record_environment.py`. Six optional test modules are
+dropped without OpenFermion, PennyLane, pytket and PyZX; two individual tests
+also skip OpenFermion. Chemistry builders remain optional: install
+`.[chemistry]` when running those workflows, which changes collection totals.
 
 `check_docs.py` enforces the pair through the identity relating them. Each of
-the fourteen dropped files contribute exactly one skip and no collected tests, so
-the remaining `31 - 14 = 17` skips are per-test and *are* collected:
+the six dropped files contribute exactly one skip and no collected tests, so
+the remaining `8 - 6 = 2` skips are per-test and *are* collected:
 
 ```text
 collected == passed + (skipped - files dropped at collection)
-1588      == 1571   + (31      -  14)
+2013      == 2011   + (8       -   6)
 ```
 
 Both sides are computed from the tree, so a drift in either quoted number
@@ -147,7 +138,7 @@ Adding the remaining extras therefore *changes both numbers*, which is
 expected rather than a failure:
 
 ```bash
-pip install -e .[stim]               # stabilizer backend / Phase 4
+pip install -e .[chemistry]          # optional molecular model builders
 pip install -e .[bridges]            # stim + pytket + pennylane + pyzx + openfermion
 ```
 
@@ -2912,12 +2903,13 @@ a record whose list disagrees with its own measurements in either direction.
 
 **Where the gate crosses, and why the bank set had to span reuse.** The five
 frozen mapping-axis banks sit at reuse `1.5`–`16.4`; the committed molecular banks
-that actually ran out of memory sit at `35.1`–`154.9`. The extended banks are pool
+carry selected-word ratios `35.1`–`154.9`, whose resident reuse is unknown. The extended banks are pool
 prefixes at a declared basis size, built only to raise reuse — the `conserve_sz:
 false` rows carry `S_z`-violating excitations and are storage instances, not
 physics, so no energy of theirs is reported. Together they span `33.8×` in reuse,
 and the threshold they locate is *separated*: the lowest reuse clearing `3×` is
-`9.60`, the highest failing is `7.16`. Every committed bank exceeds `9.60`. The
+`9.60`, the highest failing is `7.16`. Historical molecular ratios are upper
+bounds on resident reuse and cannot establish that those banks exceed `9.60`. The
 ladder is not strictly monotone in reuse — the object backend's own bytes per
 coefficient vary across banks too — so the record reports the largest violation's
 magnitude rather than only the boolean.
@@ -2925,14 +2917,11 @@ magnitude rather than only the boolean.
 **What is graded, and what is not.** Phase 2M's go/no-go has three clauses. This
 record grades the first — at least a `3×` reduction in retained coefficient
 storage at unchanged `T_coeff` — and returns
-`reached_above_a_measured_reuse_threshold_committed_banks_exceed_it`. It grades
-neither of the others: no streaming policy exists to bound live operator rows
-(2M-C), and no end-to-end run has completed the stretched-H₂O `M = 31`
-configuration under a memory ceiling (2M-D). **Nothing here licenses a claim that
-Phase 2M passes.** The committed banks are quoted from 2M-A's record rather than
-rebuilt, and their ratio is resident coefficients per *selected-subspace* word —
-an upper bound on true reuse, not reuse — which the record states rather than
-assumes away.
+`reached_on_measured_banks_historical_banks_ungraded`. Streaming and process
+feasibility are assessed separately. **Nothing here licenses a claim that
+Phase 2M passes.** The historical measurements remain unchanged. Their ratio
+is resident coefficients per selected-subspace word, an upper bound on true
+resident reuse that cannot establish a 3x saving.
 
 **The intern probe is vectorised over a whole row.** A numpy open-addressing probe
 is a Python loop where a `dict` lookup was C, and it runs once per coefficient
@@ -3028,5 +3017,13 @@ regression this phase has measured but not diagnosed.
 
 **What this does not establish.** Not that Phase 2M passes. Its go/no-go has three
 clauses: 2M-B graded the storage reduction, this is the end-to-end one, and the
-streaming-policy clause belongs to 2M-C, which does not exist — no eviction policy
-was built or measured, and this run is entirely `retain_all`.
+streaming-policy clause belongs to 2M-C and is tested separately. This historical
+run is entirely `retain_all` and does not measure the new eviction policy.
+
+## Reusable preparation and streaming selection
+
+See [PIPELINE.md](PIPELINE.md) for the independent `prepare`, `solve`, and optional
+`validate` commands, cache identity, coefficient lifetime boundary, and numerical
+regressions. `benchmarks/profile_pipeline.py` runs a small TFIM profile in one
+process; run separate processes for each storage/policy arm. It is diagnostic
+performance evidence and does not replace the molecular acceptance matrix.

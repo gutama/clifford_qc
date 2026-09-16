@@ -268,22 +268,22 @@ class PackedRowStore:
     """
 
     def __init__(self, n: int, table: GlobalWordTable, *,
-                 layout: str = "interleaved") -> None:
+                 layout: str = "interleaved", capacity: int = 1024) -> None:
         if layout not in LAYOUTS:
             raise ValueError(f"layout must be one of {LAYOUTS}, got {layout!r}")
         self.n = n
         self.layout = layout
         self._table = table
         self._rows: dict[tuple[int, int], tuple[int, int]] = {}
-        self._indices = _Buffer(INDEX_DTYPE)
-        self._generation = _Buffer(INDEX_DTYPE)
+        self._indices = _Buffer(INDEX_DTYPE, capacity)
+        self._generation = _Buffer(INDEX_DTYPE, capacity)
         if layout == "interleaved":
-            self._data = _Buffer(np.complex128)
+            self._data = _Buffer(np.complex128, capacity)
             self._real = self._imag = None
         else:
             self._data = None
-            self._real = _Buffer(np.float64)
-            self._imag = _Buffer(np.float64)
+            self._real = _Buffer(np.float64, capacity)
+            self._imag = _Buffer(np.float64, capacity)
 
     # ----------------------------------------------------------- structure
 
@@ -357,14 +357,18 @@ class PackedRowStore:
         return complex(float(self._real.view(position, position + 1)[0]),
                        float(self._imag.view(position, position + 1)[0]))
 
-    def terms(self, key: tuple[int, int]) -> list[tuple[int, complex]]:
-        """``(code, coefficient)`` in emission order -- the dict's own order."""
+    def iter_terms(self, key: tuple[int, int]) -> Iterator[tuple[int, complex]]:
+        """Replay generation order without allocating a list of boxed tuples."""
         start, stop = self._rows[key]
         generation = self._generation.view(start, stop)
         indices = self._indices.view(start, stop)
-        return [(self._table.code(int(indices[slot])),
-                 self._coefficient(start + int(slot)))
-                for slot in generation]
+        for slot in generation:
+            yield (self._table.code(int(indices[slot])),
+                   self._coefficient(start + int(slot)))
+
+    def terms(self, key: tuple[int, int]) -> list[tuple[int, complex]]:
+        """Compatibility list of coefficients in their original emission order."""
+        return list(self.iter_terms(key))
 
     def word_indices(self, key: tuple[int, int]) -> np.ndarray:
         """The row's global word indices, ascending. Zero-copy."""
@@ -377,7 +381,7 @@ class PackedRowStore:
         The order matters even here: an ``MV`` handed back to a caller may be
         paired, and ``trace_pairing`` would then iterate this dict.
         """
-        return MV(self.n, dict(self.terms(key)))
+        return MV(self.n, dict(self.iter_terms(key)))
 
     def trace_pairing(self, key: tuple[int, int], other: MV) -> complex:
         """``Tr(row * other) / 2^n``, summed in ``MV.trace_pairing``'s order.
@@ -392,7 +396,7 @@ class PackedRowStore:
         right = other.terms
         total = 0j
         if length <= len(right):
-            for code, coefficient in self.terms(key):
+            for code, coefficient in self.iter_terms(key):
                 partner = right.get(code)
                 if partner is None:
                     continue
@@ -438,3 +442,63 @@ class PackedRowStore:
     def bytes_per_coefficient(self) -> float:
         total = self.total_coefficients()
         return (self.nbytes() / total) if total else 0.0
+
+
+class SegmentedPackedRowStore:
+    """Independently owned, tightly sized rows that can actually be released.
+
+    The append-only CSR store remains preferable for retain_all. A streaming
+    bank instead pays small per-row metadata to avoid retaining dead capacity.
+    The shared intern table has a separate, cumulative lifetime.
+    """
+
+    def __init__(self, n, table, *, layout="interleaved"):
+        self.n, self._table, self.layout = n, table, layout
+        self._segments = {}
+
+    def __len__(self):
+        return len(self._segments)
+
+    def __contains__(self, key):
+        return key in self._segments
+
+    def keys(self):
+        return iter(self._segments)
+
+    def add(self, key, operator):
+        if key in self._segments:
+            raise KeyError(f"row {key} is already packed")
+        segment = PackedRowStore(self.n, self._table, layout=self.layout,
+                                 capacity=operator.nnz())
+        segment.add(key, operator)
+        self._segments[key] = segment
+
+    def remove(self, key):
+        del self._segments[key]
+
+    def row_length(self, key):
+        return self._segments[key].row_length(key)
+
+    def total_coefficients(self):
+        return sum(segment.total_coefficients() for segment in self._segments.values())
+
+    def iter_terms(self, key):
+        return self._segments[key].iter_terms(key)
+
+    def terms(self, key):
+        return list(self.iter_terms(key))
+
+    def word_indices(self, key):
+        return self._segments[key].word_indices(key)
+
+    def materialize(self, key):
+        return self._segments[key].materialize(key)
+
+    def trace_pairing(self, key, other):
+        return self._segments[key].trace_pairing(key, other)
+
+    def nbytes(self):
+        return sum(segment.nbytes() for segment in self._segments.values())
+
+    def reserved_bytes(self):
+        return sum(segment.reserved_bytes() for segment in self._segments.values())

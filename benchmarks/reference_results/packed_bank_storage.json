@@ -561,9 +561,9 @@
       "resident_word_universe": 31719
     }
   ],
-  "claim_boundary": "Structural storage-accounting evidence only, on declared banks in one interpreter. Nothing is sampled, no energy is reported as a result, and no resource price of any kind is produced. Byte counts of live Python objects are a property of the CPython build that measured them, so the record declares its interpreter and the checker compares them under a declared tolerance while every count, pair and packed byte stays exact. The reduction reported for a bank is that bank's; the record establishes that the reduction rises with coefficient reuse and locates where it crosses 3x on the measured ladder, and it may not be read as a reduction for a bank outside the measured reuse range without saying so. The committed molecular banks are not rebuilt here -- their reuse is read from Phase 2M-A's record and compared against the measured threshold, which is a comparison of one number against another and not a measurement of those runs. This record grades one clause of Phase 2M's go/no-go and explicitly not the other two: no streaming policy exists to bound live rows, and no end-to-end run under a memory ceiling has been performed, so no statement here licenses a claim that Phase 2M passes.",
+  "claim_boundary": "Structural storage-accounting evidence on declared banks in one interpreter. Byte counts depend on the CPython build and use the declared interpreter tolerance; counts and packed bytes remain exact. The measured ladder locates observed 3x crossings but does not establish a universal reuse threshold. Historical molecular records preserve T_coeff/W_selected, an upper bound on resident reuse, and cannot establish savings on those banks. This record does not grade streaming or process feasibility, or establish that Phase 2M passes.",
   "committed_bank_reuse": {
-    "caveat": "These are resident coefficients per *selected-subspace* word, not true coefficient reuse: the committed records preserved the selected subspace's W and not the word union of the rejected rows still in their caches, as Phase 2M-A's own reuse_recovery_boundary records. The resident universe is the larger of the two, so true reuse is no greater than the ratio quoted here. That direction matters: it means these numbers may overstate where those banks sit on the ladder, and the comparison below is made with that stated rather than assumed away.",
+    "caveat": "These are resident coefficients per *selected-subspace* word, not true coefficient reuse: the committed records preserved the selected subspace's W and not the word union of the rejected rows still in their caches, as Phase 2M-A's own reuse_recovery_boundary records. The resident universe is the larger of the two, so true reuse is no greater than the ratio quoted here. That direction matters: it means these numbers may overstate where those banks sit on the ladder. They cannot establish that any historical bank clears 3x.",
     "ratio_range": [
       35.112119493287956,
       154.86022576361222
@@ -628,17 +628,18 @@
   },
   "evidence_tier": "structural",
   "go_no_go": {
-    "committed_bank_ratio_floor": 35.112119493287956,
     "graded_clause": "packed_storage_reduction_at_least_3x",
-    "highest_reuse_failing_threshold": 7.162393162393163,
-    "lowest_reuse_clearing_threshold": 9.596961884189255,
-    "outcome": "reached_above_a_measured_reuse_threshold_committed_banks_exceed_it",
     "threshold": 3.0,
+    "outcome": "reached_on_measured_banks_historical_banks_ungraded",
+    "historical_banks_status": "ungraded_resident_word_universe_unknown",
+    "lowest_reuse_clearing_threshold": 9.596961884189255,
+    "highest_reuse_failing_threshold": 7.162393162393163,
+    "committed_bank_ratio_floor": 35.112119493287956,
     "ungraded_clauses": {
-      "streaming_policy_bounds_live_rows": "Phase 2M-C. No eviction policy exists; this record is entirely retain_all.",
-      "stretched_h2o_m31_below_15_gib": "Phase 2M-D. An end-to-end feasibility run, not a storage measurement, and nothing here may stand in for it."
+      "streaming_policy_bounds_live_rows": "Phase 2M-C is tested separately; this historical record measures retain_all only.",
+      "stretched_h2o_m31_below_15_gib": "Process feasibility is measured separately in packed_h2o_feasibility.json; this record grades storage bytes only."
     },
-    "what_this_does_not_establish": "Not that Phase 2M passes. Its go/no-go has three clauses and this record reaches one: no streaming policy exists to bound live operator rows, and no end-to-end run has completed the stretched-H2O M=31 configuration under a memory ceiling. A storage ratio measured on declared banks is also not a process-level reduction: it prices the retained rows, not the transient allocation a build passes through, and 2M-D's feasibility test stays the test precisely because no ratio can stand in for it."
+    "what_this_does_not_establish": "Only the directly measured banks are graded. Historical T_coeff/W_selected is an upper bound on resident reuse and cannot establish a 3x saving. The observed ladder is not a universal reuse threshold. This record does not grade streaming or process feasibility; those require their own matched experiments, including reserved capacity and transient RSS."
   },
   "interpreter_dependence": "Byte counts of live Python objects are a property of the CPython build that measured them -- dict capacity, integer boxing and object headers are implementation details, not portable constants. The record declares its interpreter in provenance and the checker compares those fields under a declared relative tolerance, while every count, pair and packed byte stays exact.",
   "layout_comparison": {
@@ -824,7 +825,7 @@
     ],
     "monotone_in_reuse": false,
     "reuse_span_factor": 33.80474185540046,
-    "statement": "Packed rows cost exactly the modelled bytes per coefficient on every bank; the shared word table costs its own bytes per distinct word. So the total per coefficient is the row cost plus the table cost divided by coefficient reuse, and the reduction rises with reuse rather than being a property of the representation alone. At the bottom of the measured ladder that sum exceeds what it replaces and packing is a net loss, which is the same mechanism read from the other end rather than a separate effect.",
+    "statement": "Packed rows cost exactly the modelled bytes per coefficient on every bank; the shared word table costs its own bytes per distinct word. So the total per coefficient is the row cost plus the table cost divided by coefficient reuse, and the reduction rises with reuse rather than being a property of the representation alone. At low reuse, table overhead can outweigh row savings; the ladder and net-loss list report which measured banks save bytes and which reach 3x.",
     "word_table_bytes_per_word_range": [
       16.264573284151457,
       22.6534094482137

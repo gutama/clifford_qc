@@ -253,19 +253,21 @@
       "id": "2M",
       "title": "Memory-bounded matrix-element bank",
       "status": "partial",
-      "outcome": "ledger_packed_store_and_end_to_end_feasibility_shipped_3x_clause_graded_15gib_clause_passes_without_discriminating",
+      "outcome": "packed_and_stream_recompute_shipped_small_system_equivalence_tested_full_molecular_matrix_open",
       "remaining": [
-        "Retain-all, stream/recompute, and disk-backed frontier policies",
+        "Disk-backed frontier policy if justified by measured finite-shot workload",
         "Equivalence matrix on H4, BeH2, and H2O",
         "Per-arm process isolation for the feasibility peaks",
-        "Diagnose the packed backend's 4.46x slowdown at n=14"
+        "Remeasure packed end-to-end runtime after removing scoring materialization"
       ],
       "evidence": [
         "clifford_qc/subspace/projection.py",
         "clifford_qc/subspace/packed.py",
         "benchmarks/reference_results/bank_storage_ledger.json",
         "benchmarks/reference_results/packed_bank_storage.json",
-        "benchmarks/reference_results/packed_h2o_feasibility.json"
+        "benchmarks/reference_results/packed_h2o_feasibility.json",
+        "clifford_qc/subspace/streaming.py",
+        "tests/test_pipeline_refactoring.py"
       ]
     },
     {

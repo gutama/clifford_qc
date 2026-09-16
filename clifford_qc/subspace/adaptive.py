@@ -564,8 +564,7 @@ def score_candidate(bank: MatrixElementBank, basis: Sequence[int],
         basis_words = bank.word_set(basis)
     row_words: set[int] = set()
     for i in tuple(basis) + (candidate,):
-        row_words.update(bank.overlap_operator(i, candidate).terms)
-        row_words.update(bank.element_operator(i, candidate).terms)
+        bank.update_pair_support(row_words, i, candidate)
     new_words = len(row_words - basis_words)
 
     if orthogonal_fraction < min_orthogonality:
@@ -797,6 +796,7 @@ def _evaluate_acase_step(bank: MatrixElementBank, state: ACASEState,
             if score.rejected and score.rejected.startswith("sector"))
 
     new_basis = state.basis + (best.index,)
+    bank.retain_basis(new_basis)
     solved = bank.solve(
         new_basis, tau_s=config.tau_s, rel_tau=config.rel_tau,
         max_condition=config.max_condition,
@@ -814,7 +814,7 @@ def _evaluate_acase_step(bank: MatrixElementBank, state: ACASEState,
         rejected_conditioning=rejected_conditioning,
         rejected_sector=rejected_sector,
         new_words=best.new_words,
-        word_universe=bank.resources(new_basis)["word_universe"],
+        word_universe=solved.resources["word_universe"],
         selection_word_universe=len(bank.word_set()),
         step_seconds=time.perf_counter() - step_started,
         leakage=best.leakage, root_energies=root_energies,
@@ -901,6 +901,7 @@ def run_acase(rho: MV, hamiltonian, candidates: Sequence, *,
     if not pool:
         raise ValueError("no candidate generators outside the initial basis")
 
+    bank.retain_basis(basis)
     solved = bank.solve(
         basis, tau_s=config.tau_s, rel_tau=config.rel_tau,
         max_condition=config.max_condition,
@@ -939,6 +940,9 @@ def run_acase(rho: MV, hamiltonian, candidates: Sequence, *,
             / max(abs(config.exact_ground_energy), 1e-12)
         )
     resources = dict(state.result.resources)
+    # A stopping pass can build/evict rows without producing another solve.
+    # Keep solver diagnostics, but report the actual final bank state.
+    resources.update(bank.resources(state.basis))
     resources.update({
         "candidate_pool_size": len(state.pool),
         "growth_seconds": time.perf_counter() - started,

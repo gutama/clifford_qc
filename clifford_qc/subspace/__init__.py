@@ -21,6 +21,7 @@ from .adapt_gcim import (
     AdaptGCIMIteration, AdaptGCIMResult, adapt_gcim_gradient, run_adapt_gcim,
 )
 from .elements import MatrixElementBank
+from .streaming import StreamingMatrixElementBank
 from .measured import (
     ASYMPTOTIC, EXACT, FINITE_SAMPLE, HEURISTIC, CertifiedGrowthRecord,
     CertifiedResult, CouplingBound, Interval, SharedMeasurement, WordFunctional,
@@ -126,7 +127,7 @@ __all__ = [
     "SharedMeasurement", "WordFunctional", "bootstrap_ritz", "certify_couplings",
     "coupling_functional", "entry_functionals", "ritz_functional",
     "ritz_uncertainty", "run_certified_acase",
-    "Generator", "MatrixElementBank", "as_generators", "commutator_response",
+    "Generator", "MatrixElementBank", "StreamingMatrixElementBank", "as_generators", "commutator_response",
     "compound_response", "configuration_generator", "configuration_generators",
     "configuration_haar_packets", "determinant_excitations", "determinant_program",
     "fermionic_excitation_generators", "identity_generator", "krylov_response",

@@ -452,8 +452,8 @@ class SectorStatevectorBackend:
         return self.operator(hamiltonian, validate_sector=False).expectation(psi)
 
     def ground_state(self, hamiltonian, k: int = 1, *, method: str = "auto",
-                     precompute: bool = True, **kwargs
-                     ) -> tuple[np.ndarray, np.ndarray]:
+                     precompute: bool = True, return_operator: bool = False, **kwargs
+                     ) -> tuple[np.ndarray, np.ndarray] | tuple[np.ndarray, np.ndarray, SectorOperator]:
         """Lowest ``k`` eigenpairs, matrix-free.
 
         ``method='eigsh'`` uses ARPACK through a ``LinearOperator`` (shifted, for
@@ -462,12 +462,18 @@ class SectorStatevectorBackend:
         numpy-only fallback. ``'auto'`` prefers ARPACK when SciPy is installed
         and the sector is large enough for it, and otherwise falls back --
         including the small-sector case ARPACK refuses.
+        ``return_operator=True`` also returns the validated operator used by
+        the solve, allowing residual checks without repeating its construction.
         """
         mv = hamiltonian.to_mv() if isinstance(hamiltonian, PauliSum) else hamiltonian
         if not mv.is_hermitian(1e-9):
             raise ValueError("ground_state requires a Hermitian Hamiltonian")
         operator = self.operator(hamiltonian, precompute=precompute,
                                  validate_sector=True)
+
+        def result(values, vectors):
+            return (values, vectors, operator) if return_operator else (values, vectors)
+
         if method == "auto":
             try:
                 import scipy.sparse.linalg  # noqa: F401
@@ -480,9 +486,9 @@ class SectorStatevectorBackend:
             matrix = np.column_stack([operator.matvec(columns[:, i])
                                       for i in range(self.dimension)])
             values, vectors = np.linalg.eigh(0.5 * (matrix + matrix.conj().T))
-            return values[:k], vectors[:, :k]
+            return result(values[:k], vectors[:, :k])
         if method == "lanczos":
-            return lanczos_ground(operator.matvec, self.dimension, k=k, **kwargs)
+            return result(*lanczos_ground(operator.matvec, self.dimension, k=k, **kwargs))
         if method == "eigsh":
             from scipy.sparse.linalg import LinearOperator, eigsh
 
@@ -494,7 +500,7 @@ class SectorStatevectorBackend:
                 matvec=lambda v: operator.matvec(v) - shift * v)
             values, vectors = eigsh(shifted, k=k, which="LM", **kwargs)
             order = np.argsort(values)
-            return values[order].real + shift, vectors[:, order]
+            return result(values[order].real + shift, vectors[:, order])
         raise ValueError("method must be 'auto', 'eigsh', 'lanczos', or 'dense'")
 
     def to_dense(self, psi: np.ndarray) -> np.ndarray:

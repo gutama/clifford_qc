@@ -306,10 +306,8 @@ def _reduction_model(rows: list[dict]) -> dict:
             (a["reduction"] - b["reduction"]
              for a, b in zip(ladder, ladder[1:]) if a["reduction"] > b["reduction"]),
             default=0.0),
-        # Below some reuse the shared word table costs more than the dict slots
-        # packing removed, and the representation is a net loss. Naming those
-        # banks is the point: a record that reported only the wins would be
-        # describing a different phase.
+        # Explicitly report losses if any occur; the current measured ladder
+        # has none after replacing the Python word table with numpy arrays.
         "banks_where_packing_costs_more": [
             entry["bank"] for entry in ladder if entry["reduction"] < 1.0],
         "word_table_bytes_per_word_range": [
@@ -322,20 +320,17 @@ def _reduction_model(rows: list[dict]) -> dict:
             "bank; the shared word table costs its own bytes per distinct word. So "
             "the total per coefficient is the row cost plus the table cost divided "
             "by coefficient reuse, and the reduction rises with reuse rather than "
-            "being a property of the representation alone. At the bottom of the "
-            "measured ladder that sum exceeds what it replaces and packing is a "
-            "net loss, which is the same mechanism read from the other end rather "
-            "than a separate effect."),
+            "being a property of the representation alone. At low reuse, table "
+            "overhead can outweigh row savings; the ladder and net-loss list "
+            "report which measured banks save bytes and which reach 3x."),
     }
 
 
 def _committed_bank_reuse() -> dict:
-    """Where the banks that actually failed sit on that ladder.
+    """Quote historical upper bounds without grading their resident reuse.
 
-    Read from Phase 2M-A's committed record rather than rebuilt. Those runs
-    reached 10.75 GiB and two of them died; re-running them to measure a
-    storage ratio is neither affordable nor necessary, because reuse is already
-    recorded there and reuse is what the threshold is read against.
+    Phase 2M-A preserved selected-subspace words, not resident word unions.
+    Fresh measurements are needed to locate those banks on a resident ladder.
     """
     ledger = json.loads(LEDGER_REFERENCE.read_text(encoding="utf-8"))
     rows = []
@@ -360,9 +355,8 @@ def _committed_bank_reuse() -> dict:
             "their caches, as Phase 2M-A's own reuse_recovery_boundary records. "
             "The resident universe is the larger of the two, so true reuse is no "
             "greater than the ratio quoted here. That direction matters: it means "
-            "these numbers may overstate where those banks sit on the ladder, and "
-            "the comparison below is made with that stated rather than assumed "
-            "away."),
+            "these numbers may overstate where those banks sit on the ladder. "
+            "They cannot establish that any historical bank clears 3x."),
     }
 
 
@@ -373,29 +367,25 @@ def _verdict(config: dict, model: dict, committed: dict) -> dict:
     committed_low = min(committed["ratio_range"])
     if lowest_clearing is None:
         outcome = "not_reached_on_any_measured_bank"
-    elif highest_failing is not None and highest_failing > lowest_clearing:
+    elif highest_failing is not None and highest_failing >= lowest_clearing:
         outcome = "indeterminate_threshold_not_separated"
-    elif committed_low >= lowest_clearing:
-        outcome = "reached_above_a_measured_reuse_threshold_committed_banks_exceed_it"
     else:
-        outcome = "reached_only_above_the_committed_banks_reuse"
+        outcome = "reached_on_measured_banks_historical_banks_ungraded"
     return {
         "graded_clause": GRADED_CLAUSE,
         "threshold": GO_NO_GO_THRESHOLD,
         "outcome": outcome,
+        "historical_banks_status": "ungraded_resident_word_universe_unknown",
         "lowest_reuse_clearing_threshold": lowest_clearing,
         "highest_reuse_failing_threshold": highest_failing,
         "committed_bank_ratio_floor": committed_low,
         "ungraded_clauses": config["go_no_go"]["ungraded_clauses"],
         "what_this_does_not_establish": (
-            "Not that Phase 2M passes. Its go/no-go has three clauses and this "
-            "record reaches one: no streaming policy exists to bound live operator "
-            "rows, and no end-to-end run has completed the stretched-H2O M=31 "
-            "configuration under a memory ceiling. A storage ratio measured on "
-            "declared banks is also not a process-level reduction: it prices the "
-            "retained rows, not the transient allocation a build passes through, "
-            "and 2M-D's feasibility test stays the test precisely because no ratio "
-            "can stand in for it."),
+            "Only the directly measured banks are graded. Historical T_coeff/W_selected "
+            "is an upper bound on resident reuse and cannot establish a 3x saving. "
+            "The observed ladder is not a universal reuse threshold. This record "
+            "does not grade streaming or process feasibility; those require their "
+            "own matched experiments, including reserved capacity and transient RSS."),
     }
 
 

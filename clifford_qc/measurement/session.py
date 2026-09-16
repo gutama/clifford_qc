@@ -67,14 +67,16 @@ class SharedMeasurement:
 
     def __init__(self, bank: MatrixElementBank, indices: Sequence[int] | None = None,
                  *, groups: Sequence[Sequence[PauliWord]] | None = None,
-                 pooling: str = "assigned"):
+                 pooling: str = "assigned", coefficient_storage: str = "object"):
         if pooling not in ("assigned", "shots"):
             raise ValueError("pooling must be 'assigned' or 'shots'")
+        if coefficient_storage not in ("object", "packed"):
+            raise ValueError("coefficient_storage must be object or packed")
+        self.coefficient_storage = coefficient_storage
         self.pooling = pooling
         self.bank = bank
         self.indices = bank.resolve(indices)
-        bank.matrices(self.indices)  # force every pair, so the universe is complete
-        self._pairs = {(i, j): entry_functionals(bank, i, j)
+        self._pairs = {(i, j): entry_functionals(bank, i, j, storage=coefficient_storage)
                        for a, i in enumerate(self.indices)
                        for j in self.indices[a:]}
         codes = sorted({code

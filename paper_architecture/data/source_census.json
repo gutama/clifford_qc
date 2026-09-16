@@ -122,7 +122,7 @@
         "modules": 8
       },
       "backends": {
-        "lines": 1058,
+        "lines": 1064,
         "modules": 7
       },
       "bridges": {
@@ -142,7 +142,7 @@
         "modules": 15
       },
       "measurement": {
-        "lines": 3924,
+        "lines": 3991,
         "modules": 13
       },
       "models": {
@@ -150,21 +150,21 @@
         "modules": 8
       },
       "orchestration": {
-        "lines": 31,
-        "modules": 1
+        "lines": 280,
+        "modules": 3
       },
       "subspace": {
-        "lines": 9579,
-        "modules": 28
+        "lines": 9896,
+        "modules": 29
       },
       "surface": {
         "lines": 38,
         "modules": 1
       }
     },
-    "package_lines": 23241,
-    "package_modules": 93,
-    "test_lines": 23530,
-    "test_modules": 104
+    "package_lines": 23880,
+    "package_modules": 96,
+    "test_lines": 23965,
+    "test_modules": 106
   }
 }

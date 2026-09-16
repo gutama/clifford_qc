@@ -3,6 +3,8 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
+from collections.abc import ItemsView, Mapping, ValuesView
+import sys
 from typing import TYPE_CHECKING, Sequence
 
 import numpy as np
@@ -17,6 +19,64 @@ if TYPE_CHECKING:
 
 IDENTITY_CODE = 0
 
+
+class _PackedItemsView(ItemsView):
+    def __iter__(self):
+        return ((int(code), float(value)) for code, value in
+                zip(self._mapping._codes, self._mapping._values))
+
+
+class _PackedValuesView(ValuesView):
+    def __iter__(self):
+        return (float(value) for value in self._mapping._values)
+
+
+class PackedCoefficients(Mapping):
+    """Immutable, ordered real coefficients independent of bank row lifetime.
+
+    Iteration preserves emission order. A sorted permutation supports lookup
+    without a Python dictionary. Larger-than-int64 codes retain Python ints.
+    """
+
+    def __init__(self, coefficients):
+        pairs = list(coefficients.items())
+        codes = [code for code, _ in pairs]
+        dtype = np.int64 if all(0 <= code < 2**63 for code in codes) else object
+        self._codes = np.array(codes, dtype=dtype)
+        self._values = np.array([value for _, value in pairs], dtype=np.float64)
+        self._order = np.argsort(self._codes, kind="stable")
+        self._sorted = self._codes[self._order]
+        # The sorted array shares the same boxed integers; charge each once.
+        self._boxed_bytes = (sum(sys.getsizeof(code) for code in self._codes)
+                             if dtype is object else 0)
+        for array in (self._codes, self._values, self._order, self._sorted):
+            array.flags.writeable = False
+
+    def __len__(self):
+        return len(self._codes)
+
+    def __iter__(self):
+        return (int(code) for code in self._codes)
+
+    def __getitem__(self, code):
+        position = int(np.searchsorted(self._sorted, code))
+        if position >= len(self) or self._sorted[position] != code:
+            raise KeyError(code)
+        return float(self._values[self._order[position]])
+
+    def items(self):
+        return _PackedItemsView(self)
+
+    def values(self):
+        return _PackedValuesView(self)
+
+    @property
+    def nbytes(self):
+        """Array payload plus owned boxed codes; excludes array/object headers."""
+        return self._boxed_bytes + sum(
+            array.nbytes for array in (self._codes, self._values, self._order, self._sorted))
+
+
 @dataclass(frozen=True)
 class WordFunctional:
     """``f(mu) = constant + sum_w c_w mu_w``: the only shape shots enter through.
@@ -28,7 +88,7 @@ class WordFunctional:
     no variance, which loosens the bound for no reason.
     """
 
-    coefficients: dict[int, float]
+    coefficients: Mapping[int, float]
     constant: float = 0.0
 
     @property
@@ -181,7 +241,7 @@ def _combined_value(bits: str, entries) -> float:
     return total
 
 
-def split_complex_coefficients(coefficients: dict[int, complex]) -> tuple[WordFunctional, WordFunctional]:
+def split_complex_coefficients(coefficients, *, storage="object") -> tuple[WordFunctional, WordFunctional]:
     """A complex functional as its real and imaginary real-valued parts.
 
     Element operators are non-Hermitian, so their word coefficients are complex
@@ -189,10 +249,13 @@ def split_complex_coefficients(coefficients: dict[int, complex]) -> tuple[WordFu
     the honest decomposition; bounding a modulus then means bounding a rectangle
     and taking the union bound over its two sides.
     """
+    if storage not in ("object", "packed"):
+        raise ValueError("coefficient storage must be object or packed")
     real_c: dict[int, float] = {}
     imag_c: dict[int, float] = {}
     real_const = imag_const = 0.0
-    for code, value in coefficients.items():
+    terms = coefficients.items() if isinstance(coefficients, Mapping) else coefficients
+    for code, value in terms:
         z = complex(value)
         if code == IDENTITY_CODE:
             real_const += z.real
@@ -202,16 +265,18 @@ def split_complex_coefficients(coefficients: dict[int, complex]) -> tuple[WordFu
             real_c[code] = real_c.get(code, 0.0) + z.real
         if z.imag != 0.0:
             imag_c[code] = imag_c.get(code, 0.0) + z.imag
+    if storage == "packed":
+        real_c, imag_c = PackedCoefficients(real_c), PackedCoefficients(imag_c)
     return (WordFunctional(real_c, real_const), WordFunctional(imag_c, imag_const))
 
 
-def entry_functionals(bank: MatrixElementBank, i: int, j: int
+def entry_functionals(bank: MatrixElementBank, i: int, j: int, *, storage="object"
                       ) -> tuple[tuple[WordFunctional, WordFunctional],
                                  tuple[WordFunctional, WordFunctional]]:
     """``(S_ij, H_ij)`` as (real, imaginary) functional pairs of word means."""
-    overlap = bank.overlap_operator(i, j)
-    element = bank.element_operator(i, j)
-    return split_complex_coefficients(overlap.terms), _split_complex(element.terms)
+    return tuple(split_complex_coefficients(bank.iter_operator_terms(kind, i, j),
+                                             storage=storage)
+                 for kind in ("overlap", "element"))
 
 
 def ritz_functional(bank: MatrixElementBank, indices: Sequence[int],
