@@ -268,22 +268,22 @@ class PackedRowStore:
     """
 
     def __init__(self, n: int, table: GlobalWordTable, *,
-                 layout: str = "interleaved") -> None:
+                 layout: str = "interleaved", capacity: int = 1024) -> None:
         if layout not in LAYOUTS:
             raise ValueError(f"layout must be one of {LAYOUTS}, got {layout!r}")
         self.n = n
         self.layout = layout
         self._table = table
         self._rows: dict[tuple[int, int], tuple[int, int]] = {}
-        self._indices = _Buffer(INDEX_DTYPE)
-        self._generation = _Buffer(INDEX_DTYPE)
+        self._indices = _Buffer(INDEX_DTYPE, capacity)
+        self._generation = _Buffer(INDEX_DTYPE, capacity)
         if layout == "interleaved":
-            self._data = _Buffer(np.complex128)
+            self._data = _Buffer(np.complex128, capacity)
             self._real = self._imag = None
         else:
             self._data = None
-            self._real = _Buffer(np.float64)
-            self._imag = _Buffer(np.float64)
+            self._real = _Buffer(np.float64, capacity)
+            self._imag = _Buffer(np.float64, capacity)
 
     # ----------------------------------------------------------- structure
 
@@ -468,12 +468,9 @@ class SegmentedPackedRowStore:
     def add(self, key, operator):
         if key in self._segments:
             raise KeyError(f"row {key} is already packed")
-        segment = PackedRowStore(self.n, self._table, layout=self.layout)
+        segment = PackedRowStore(self.n, self._table, layout=self.layout,
+                                 capacity=operator.nnz())
         segment.add(key, operator)
-        for name in ("_indices", "_generation", "_data", "_real", "_imag"):
-            buffer = getattr(segment, name)
-            if buffer is not None:
-                buffer._array = buffer._array[:len(buffer)].copy()
         self._segments[key] = segment
 
     def remove(self, key):

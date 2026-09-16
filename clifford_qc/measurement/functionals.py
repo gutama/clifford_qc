@@ -3,7 +3,8 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from collections.abc import Mapping
+from collections.abc import ItemsView, Mapping, ValuesView
+import sys
 from typing import TYPE_CHECKING, Sequence
 
 import numpy as np
@@ -17,6 +18,18 @@ if TYPE_CHECKING:
     from ..subspace.projection import MatrixElementBank
 
 IDENTITY_CODE = 0
+
+
+class _PackedItemsView(ItemsView):
+    def __iter__(self):
+        return ((int(code), float(value)) for code, value in
+                zip(self._mapping._codes, self._mapping._values))
+
+
+class _PackedValuesView(ValuesView):
+    def __iter__(self):
+        return (float(value) for value in self._mapping._values)
+
 
 class PackedCoefficients(Mapping):
     """Immutable, ordered real coefficients independent of bank row lifetime.
@@ -33,6 +46,9 @@ class PackedCoefficients(Mapping):
         self._values = np.array([value for _, value in pairs], dtype=np.float64)
         self._order = np.argsort(self._codes, kind="stable")
         self._sorted = self._codes[self._order]
+        # The sorted array shares the same boxed integers; charge each once.
+        self._boxed_bytes = (sum(sys.getsizeof(code) for code in self._codes)
+                             if dtype is object else 0)
         for array in (self._codes, self._values, self._order, self._sorted):
             array.flags.writeable = False
 
@@ -49,14 +65,16 @@ class PackedCoefficients(Mapping):
         return float(self._values[self._order[position]])
 
     def items(self):
-        return ((int(code), float(value)) for code, value in zip(self._codes, self._values))
+        return _PackedItemsView(self)
 
     def values(self):
-        return (float(value) for value in self._values)
+        return _PackedValuesView(self)
 
     @property
     def nbytes(self):
-        return sum(array.nbytes for array in (self._codes, self._values, self._order, self._sorted))
+        """Array payload plus owned boxed codes; excludes array/object headers."""
+        return self._boxed_bytes + sum(
+            array.nbytes for array in (self._codes, self._values, self._order, self._sorted))
 
 
 @dataclass(frozen=True)

@@ -1,7 +1,7 @@
 """Bounded exact-selection coefficient rows with persistent scalar/support history."""
 from __future__ import annotations
 
-from collections import OrderedDict
+from collections import Counter, OrderedDict
 import sys
 import time
 
@@ -29,6 +29,9 @@ class StreamingMatrixElementBank(MatrixElementBank):
         self._supports = {}
         self._recent = OrderedDict()
         self._retained = frozenset()
+        self._retained_words = set()
+        self._resident_word_counts = Counter()
+        self._history_payload_bytes = self._history_container_bytes = 0
         self._evicted_rows = self._recomputed_rows = 0
         self._physical_builds = self._processed_coefficients = 0
         self._cumulative_coefficients = 0
@@ -40,7 +43,15 @@ class StreamingMatrixElementBank(MatrixElementBank):
 
     def retain_basis(self, indices):
         """Declare which block is exempt from the frontier row limit."""
+        previous = self._retained
         self._retained = frozenset(self.resolve(indices))
+        if not previous.issubset(self._retained):
+            self._retained_words.clear()
+            previous = frozenset()
+        for key, pair in self._supports.items():
+            if self._is_retained(key) and not (key[0] in previous and key[1] in previous):
+                for codes in pair:
+                    self._retained_words.update(int(code) for code in codes)
         self._evict()
         # A selected pair may have left the frontier before it was chosen.
         # Cached scalar entries alone would let solve() skip rebuilding it.
@@ -57,6 +68,14 @@ class StreamingMatrixElementBank(MatrixElementBank):
     def _evict(self):
         frontier = [key for key in self._recent if not self._is_retained(key)]
         for key in frontier[:-self.frontier_pairs]:
+            for codes in self._supports[key]:
+                for code in codes:
+                    code = int(code)
+                    count = self._resident_word_counts[code] - 1
+                    if count:
+                        self._resident_word_counts[code] = count
+                    else:
+                        del self._resident_word_counts[code]
             if self._storage == "packed":
                 for store in self._packed.values():
                     store.remove(key)
@@ -80,8 +99,17 @@ class StreamingMatrixElementBank(MatrixElementBank):
             dtype = np.int64 if self.n <= 31 else object
             self._supports[key] = tuple(np.array(list(op.terms), dtype=dtype)
                                         for op in (overlap, element))
+            pair = self._supports[key]
+            self._history_payload_bytes += sum(codes.nbytes for codes in pair)
+            if dtype is object:
+                self._history_payload_bytes += sum(
+                    sys.getsizeof(code) for codes in pair for code in codes)
+            self._history_container_bytes += sys.getsizeof(key) + sys.getsizeof(pair) + sum(
+                sys.getsizeof(codes) - codes.nbytes for codes in pair)
             for op in (overlap, element):
                 self._account(j, op)
+                if self._is_retained(key):
+                    self._retained_words.update(op.terms)
             self._pairs_built += 1
             self._cumulative_coefficients += count
         else:
@@ -94,6 +122,8 @@ class StreamingMatrixElementBank(MatrixElementBank):
             self._packed["element"].add(key, element)
         else:
             self._overlap_ops[key], self._element_ops[key] = overlap, element
+        for op in (overlap, element):
+            self._resident_word_counts.update(op.terms.keys())
         self._recent[key] = None
         self._evict()
         # One pair of product temporaries exists during construction in addition
@@ -125,29 +155,32 @@ class StreamingMatrixElementBank(MatrixElementBank):
         result["storage_policy"] = "stream_recompute"
         return result
 
+    def _account_observable(self, operator):
+        self._resident_word_counts.update(operator.terms.keys())
+
+    def _resident_word_universe_size(self):
+        return len(self._resident_word_counts)
+
+    def _word_universe_size(self, order):
+        if frozenset(order) == self._retained:
+            return len(self._retained_words)
+        return super()._word_universe_size(order)
+
+    def word_set(self, indices=None):
+        if indices is not None and frozenset(self.resolve(indices)) == self._retained:
+            return frozenset(self._retained_words)
+        return super().word_set(indices)
+
     def resources(self, indices=None):
         result = super().resources(indices)
         order = set(self.resolve(indices))
-        resident_words = set()
-        for key in self._recent:
-            for codes in self._supports[key]:
-                resident_words.update(int(code) for code in codes)
-        for record in self._observables.values():
-            resident_words.update(record["universe"])
-        resident = len(resident_words)
         kept = sum(i in order and j in order for i, j in self._recent)
-        history_bytes = sum(codes.nbytes for pair in self._supports.values() for codes in pair)
-        if self.n > 31:
-            history_bytes += sum(sys.getsizeof(code) for pair in self._supports.values()
-                                 for codes in pair for code in codes)
         result.update({
             "storage_policy": "stream_recompute",
-            "resident_word_universe": resident,
-            "coefficient_reuse": result["coefficient_occurrences"] / resident if resident else 0.0,
-            "retained_block_pairs": kept,
-            "selection_pairs": self._pairs_built - sum(
-                i in order and j in order for i, j in self._supports),
-            "retained_pair_fraction": kept / self._pairs_built if self._pairs_built else 0.0,
+            # Inherited ownership counts partition logical history. Residency
+            # is separate, including when measurement has not retained a block.
+            "resident_retained_block_pairs": kept,
+            "resident_selection_pairs": len(self._recent) - kept,
             "evicted_rows": self._evicted_rows,
             "recomputed_rows": self._recomputed_rows,
             "physical_pair_builds": self._physical_builds,
@@ -155,17 +188,18 @@ class StreamingMatrixElementBank(MatrixElementBank):
             "cumulative_coefficient_occurrences": self._cumulative_coefficients,
             "processed_coefficient_occurrences": self._processed_coefficients,
             "cumulative_word_universe": len(self._universe),
-            "support_history_payload_bytes": history_bytes,
-            "support_history_container_bytes": sys.getsizeof(self._supports) + sum(
-                sys.getsizeof(key) + sys.getsizeof(pair)
-                + sum(sys.getsizeof(codes) - codes.nbytes for codes in pair)
-                for key, pair in self._supports.items()),
+            "support_history_payload_bytes": self._history_payload_bytes,
+            "support_history_container_bytes": (
+                sys.getsizeof(self._supports) + self._history_container_bytes),
+            "resident_word_index_shallow_bytes": sys.getsizeof(self._resident_word_counts),
+            "retained_word_set_shallow_bytes": sys.getsizeof(self._retained_words),
             "scalar_cache_shallow_bytes": sys.getsizeof(self._entries) + sum(
                 sys.getsizeof(key) + sys.getsizeof(values) + sum(map(sys.getsizeof, values))
                 for key, values in self._entries.items()),
             "hamiltonian_action_payload_bytes": sum(op.memory_estimate() for op in self._h_acted),
             "word_history_set_bytes": sys.getsizeof(self._universe),
-            "word_table_reserved_bytes": self._word_table.nbytes() if self._word_table else 0,
+            "word_table_reserved_bytes": (self._word_table.nbytes()
+                                          if self._word_table is not None else 0),
             "frontier_pair_limit": self.frontier_pairs,
             "resident_sh_rows": 2 * len(self._recent),
             "resident_sh_row_limit": 2 * (len(self._retained) * (len(self._retained) + 1) // 2

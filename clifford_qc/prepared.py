@@ -1,7 +1,9 @@
 """Content-addressed preparation for repeated FCIDUMP solver experiments."""
 from __future__ import annotations
 
-from dataclasses import dataclass
+from copy import deepcopy
+from dataclasses import dataclass, field
+from functools import lru_cache
 import hashlib
 import json
 import os
@@ -24,8 +26,9 @@ def _digest(value):
     return hashlib.sha256(_canonical(value).encode()).hexdigest()
 
 
+@lru_cache(maxsize=1)
 def implementation_fingerprint():
-    """Conservatively invalidate preparation after any package source change."""
+    """Hash package sources once per process; restart after source changes."""
     root = Path(__file__).parent
     digest = hashlib.sha256()
     for path in sorted(root.rglob("*.py")):
@@ -56,6 +59,13 @@ class PreparedProblem:
 
     payload: str
     fingerprint: str
+    _data: dict = field(init=False, repr=False, compare=False)
+
+    def __post_init__(self):
+        data = json.loads(self.payload)
+        if data.get("schema") != SCHEMA or _digest(data) != self.fingerprint:
+            raise ValueError("prepared problem schema or content digest mismatch")
+        object.__setattr__(self, "_data", data)
 
     @classmethod
     def from_model(cls, model, *, preparation):
@@ -72,30 +82,26 @@ class PreparedProblem:
         return cls(_canonical(data), _digest(data))
 
     def model(self):
-        data = json.loads(self.payload)
-        if data.get("schema") != SCHEMA or _digest(data) != self.fingerprint:
-            raise ValueError("prepared problem schema or content digest mismatch")
+        data = self._data
         n = data["n"]
         return Model(data["name"], n,
                      PauliSum(n, {int(code): complex(real, imag)
                                   for code, real, imag in data["hamiltonian"]}),
-                     Program.from_dict(data["reference"]),
+                     Program.from_dict(deepcopy(data["reference"])),
                      tuple((label, tuple(PauliWord(n, code) for code in words))
-                           for label, words in data["hva_layers"]), data["metadata"])
+                           for label, words in data["hva_layers"]), deepcopy(data["metadata"]))
 
     @property
     def preparation(self):
-        return json.loads(self.payload)["preparation"]
+        return deepcopy(self._data["preparation"])
 
     def save(self, path):
-        self.model()  # validate before replacing a file
-        _atomic_json(path, {"fingerprint": self.fingerprint, "problem": json.loads(self.payload)})
+        _atomic_json(path, {"fingerprint": self.fingerprint, "problem": self._data})
 
     @classmethod
     def load(cls, path, *, expected_preparation=None):
         data = json.loads(Path(path).read_text())
         result = cls(_canonical(data["problem"]), data["fingerprint"])
-        result.model()
         if expected_preparation is not None and result.preparation != expected_preparation:
             raise ValueError("prepared problem does not match requested source/options/implementation")
         return result

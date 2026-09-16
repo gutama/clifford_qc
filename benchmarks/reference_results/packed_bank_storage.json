@@ -825,7 +825,7 @@
     ],
     "monotone_in_reuse": false,
     "reuse_span_factor": 33.80474185540046,
-    "statement": "Packed rows cost exactly the modelled bytes per coefficient on every bank; the shared word table costs its own bytes per distinct word. So the total per coefficient is the row cost plus the table cost divided by coefficient reuse, and the reduction rises with reuse rather than being a property of the representation alone. The current measured ladder has no net losses, but its lowest-reuse banks do not reach 3x.",
+    "statement": "Packed rows cost exactly the modelled bytes per coefficient on every bank; the shared word table costs its own bytes per distinct word. So the total per coefficient is the row cost plus the table cost divided by coefficient reuse, and the reduction rises with reuse rather than being a property of the representation alone. At low reuse, table overhead can outweigh row savings; the ladder and net-loss list report which measured banks save bytes and which reach 3x.",
     "word_table_bytes_per_word_range": [
       16.264573284151457,
       22.6534094482137

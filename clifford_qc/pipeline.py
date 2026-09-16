@@ -53,8 +53,8 @@ def validate_prepared(prepared, *, method="auto", roots=1):
     if isinstance(roots, bool) or int(roots) != roots or not 1 <= roots <= backend.dimension:
         raise ValueError("roots must be an integer between 1 and the sector dimension")
     roots = int(roots)
-    values, vectors = backend.ground_state(model.hamiltonian, k=roots, method=method)
-    operator = backend.operator(model.hamiltonian)
+    values, vectors, operator = backend.ground_state(
+        model.hamiltonian, k=roots, method=method, return_operator=True)
     residuals = [float(np.linalg.norm(operator.matvec(vectors[:, i]) - value * vectors[:, i]))
                  for i, value in enumerate(values)]
     return {"schema": "clifford_qc.prepared_validation.v1",

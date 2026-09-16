@@ -320,8 +320,9 @@ def _reduction_model(rows: list[dict]) -> dict:
             "bank; the shared word table costs its own bytes per distinct word. So "
             "the total per coefficient is the row cost plus the table cost divided "
             "by coefficient reuse, and the reduction rises with reuse rather than "
-            "being a property of the representation alone. The current measured "
-            "ladder has no net losses, but its lowest-reuse banks do not reach 3x."),
+            "being a property of the representation alone. At low reuse, table "
+            "overhead can outweigh row savings; the ladder and net-loss list "
+            "report which measured banks save bytes and which reach 3x."),
     }
 
 
@@ -364,8 +365,12 @@ def _verdict(config: dict, model: dict, committed: dict) -> dict:
     lowest_clearing = model["lowest_reuse_clearing_threshold"]
     highest_failing = model["highest_reuse_failing_threshold"]
     committed_low = min(committed["ratio_range"])
-    outcome = ("not_reached_on_any_measured_bank" if lowest_clearing is None else
-               "reached_on_measured_banks_historical_banks_ungraded")
+    if lowest_clearing is None:
+        outcome = "not_reached_on_any_measured_bank"
+    elif highest_failing is not None and highest_failing >= lowest_clearing:
+        outcome = "indeterminate_threshold_not_separated"
+    else:
+        outcome = "reached_on_measured_banks_historical_banks_ungraded"
     return {
         "graded_clause": GRADED_CLAUSE,
         "threshold": GO_NO_GO_THRESHOLD,

@@ -20,8 +20,11 @@ Preparation does no FCI solve. Its immutable JSON includes ordered Hamiltonian
 terms, reference program, model metadata, and a digest. The cache key covers
 FCIDUMP bytes (including the orbital/active-space choice), sector overrides,
 integral tolerance, model name, encoding, package source and NumPy version.
-Writes are atomic; a cache hit validates the digest and requested preparation
-before skipping parsing and mapping. Each consumer receives fresh model objects.
+The implementation fingerprint is memoized per process; restart Python after
+source changes (or explicitly clear `implementation_fingerprint.cache_clear()`
+in development). Writes are atomic; a cache hit validates the digest and requested preparation
+before skipping FCIDUMP parsing and mapping. The decoded payload is validated
+once per prepared object; each consumer receives fresh model and metadata objects.
 `prepare_fcidump` exposes sector/name overrides in Python.
 
 Solve defaults to object storage with `retain_all`, preserving the existing
@@ -46,6 +49,15 @@ scalar and word histories grow cumulatively; this is **not a total-process RSS
 bound**. Resource output separates resident/cumulative coefficients, physical
 builds, recomputations, support payload, shallow containers and word-table
 capacity. These components are scoped diagnostics, not an additive RSS estimate.
+Resident-word reference counts are updated on row construction/eviction, and
+support-history byte totals are accumulated once at first construction. Selected
+word support is updated when the retained block changes. Normal resource queries
+do not rescan coefficient occurrences. The extra word-index/set containers are
+reported as shallow bytes; they add O(distinct words) bookkeeping. Arbitrary
+nonretained subset queries still derive their selected word support on demand.
+`retained_block_pairs + selection_pairs == pairs_built` partitions logical
+history; `resident_retained_block_pairs` and `resident_selection_pairs` separately
+partition live S/H pairs, including measurement-only sessions.
 
 Object rows release dictionary references on eviction. Packed rows use independent
 segments that release their NumPy buffer capacity when removed. Selection keeps
@@ -83,7 +95,8 @@ been replaced. Historical `T_coeff/W_selected` ratios cannot establish a storage
 saving based on `T_coeff/W_resident`, so the packed-storage verdict leaves those
 historical banks ungraded while preserving their measured numbers.
 
-A [three-process-per-arm TFIM(6) smoke profile](benchmarks/profile_results/pipeline_refactoring.json)
+The initial implementation at `eb5077e` has a
+[three-process-per-arm TFIM(6) smoke profile](benchmarks/profile_results/pipeline_refactoring.json)
 against main `64b06bc` measured median packed solve time `117.1 -> 54.2 ms`
 (2.16x speedup) and packed materializations `3640 -> 0`. Streaming measured
 `59.9 ms`, with persistent S/H rows `558 -> 50` and coefficients `6456 -> 369`.

@@ -418,11 +418,6 @@ class MatrixElementBank:
         operator = (self._overlap_ops if kind == "overlap" else self._element_ops)[key]
         return operator.trace_pairing(self._rho)
 
-    def _pair(self, i: int, j: int) -> tuple[MV, MV]:
-        key = (i, j) if i <= j else (j, i)
-        self._ensure_pair(key)
-        return self._row("overlap", key), self._row("element", key)
-
     def _canonical_pair(self, i: int, j: int) -> tuple[int, int]:
         for index in (i, j):
             if not isinstance(index, (int, np.integer)) or not 0 <= index < len(self):
@@ -441,13 +436,6 @@ class MatrixElementBank:
         words: set[int] = set()
         self.update_pair_support(words, i, j)
         return frozenset(words)
-
-    def prepare_pairs(self, indices: Sequence[int] | None = None) -> None:
-        """Build coefficient rows without evaluating exact reference pairings."""
-        order = self.resolve(indices)
-        for b, j in enumerate(order):
-            for i in order[:b + 1]:
-                self._ensure_pair(self._canonical_pair(i, j))
 
     def iter_operator_terms(self, kind: str, i: int, j: int):
         """Ordered coefficients, without creating a compatibility MV or dict."""
@@ -478,7 +466,7 @@ class MatrixElementBank:
 
     def entry(self, i: int, j: int) -> tuple[complex, complex]:
         """``(S_ij, H_ij)`` -- the conjugate of the stored pair when ``i > j``."""
-        key = (i, j) if i <= j else (j, i)
+        key = self._canonical_pair(i, j)
         value = self._entries.get(key)
         if value is None:
             self._ensure_pair(key, evaluate=True)
@@ -544,6 +532,7 @@ class MatrixElementBank:
         if (i, j) not in cache:
             cache[(i, j)] = self._adjoints[i] * acted[j]
             record["universe"].update(cache[(i, j)].terms)
+            self._account_observable(cache[(i, j)])
             self._peak_resident_rows = max(self._peak_resident_rows,
                                            self._resident_row_count())
         operator = cache[(i, j)]
@@ -743,6 +732,19 @@ class MatrixElementBank:
         from ..measurement.grouping import qwc_groups
         return len(qwc_groups(self.words()))
 
+    def _account_observable(self, operator: MV) -> None:
+        """Lifetime-policy hook for a newly resident observable row."""
+
+    def _word_universe_size(self, order) -> int:
+        return (len(self._universe) if len(order) == len(self._generators)
+                else len(self.word_set(order)))
+
+    def _resident_word_universe_size(self) -> int:
+        if not self._observables:
+            return len(self._universe)
+        return len(set(self._universe).union(
+            *(record["universe"] for record in self._observables.values())))
+
     def resources(self, indices: Sequence[int] | None = None) -> dict[str, Any]:
         """The §6 accounting for the current cache state."""
         order = self._resolve(indices)
@@ -753,17 +755,13 @@ class MatrixElementBank:
         element_support = [self._row_nnz("element", key) for key in keys]
         # A proper subset owns a smaller universe than the cache; quoting the cache's
         # would overstate measurement cost, especially with rejected candidate rows.
-        universe = (len(self._universe) if len(order) == len(self._generators)
-                    else len(self.word_set(order)))
+        universe = self._word_universe_size(order)
         # Counted from row lengths, never by materializing rows: this runs once
         # per adaptive step, and under the packed backend rebuilding every row
         # to count it would cost more than the storage it saves.
         occurrences = self._resident_coefficients()
         resident_rows = self._resident_row_count()
-        resident_universe = len(self._universe)
-        if self._observables:
-            resident_universe = len(set(self._universe).union(
-                *(record["universe"] for record in self._observables.values())))
+        resident_universe = self._resident_word_universe_size()
         # The retained block is what a converged solve keeps; every other built
         # pair is frontier or rejected-candidate storage. Counting the pairs
         # actually materialized rather than the M(M+1)/2 the block would need

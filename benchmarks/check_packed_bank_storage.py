@@ -368,8 +368,12 @@ def verdict_problems(record: dict) -> list[str]:
     lowest = model["lowest_reuse_clearing_threshold"]
     highest = model["highest_reuse_failing_threshold"]
     floor = min(record["committed_bank_reuse"]["ratio_range"])
-    expected = ("not_reached_on_any_measured_bank" if lowest is None else
-                "reached_on_measured_banks_historical_banks_ungraded")
+    if lowest is None:
+        expected = "not_reached_on_any_measured_bank"
+    elif highest is not None and highest >= lowest:
+        expected = "indeterminate_threshold_not_separated"
+    else:
+        expected = "reached_on_measured_banks_historical_banks_ungraded"
     if verdict.get("historical_banks_status") != "ungraded_resident_word_universe_unknown":
         problems.append("historical upper bounds cannot grade resident reuse")
     if verdict["outcome"] != expected:

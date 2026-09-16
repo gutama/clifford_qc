@@ -108,32 +108,23 @@ No figure or table value in the manuscript is transcribed by hand, and
 
 ```bash
 python -m venv .venv && source .venv/bin/activate
-pip install -e .[test,research,chemistry]   # numpy + scipy + openfermion/pyscf
-pytest                                      # 1571 passed, 31 skipped
+pip install -e .[test,research,stim]       # automatic CI extras
+pytest                                      # 2011 passed, 8 skipped
 ```
 
-That install is the reference environment for the quoted pair. The count
-depends on it: a missing
-optional module makes pytest drop the whole test file at collection, so
-each absent extra moves one file from the passed count to the skipped
-count. Fourteen files are dropped that way here — `stim` (eleven of them:
-`test_block_synthesis`, `test_protocol_axis`, `test_protocol_cost`, `test_bridge_stim`,
-`test_clifford_hierarchy_cost`, `test_compiled_measurement`, `test_exact_shot_search`,
-`test_phase4`, `test_r3d_qr3_refinement`, `test_restriction`,
-`test_stim_clifford_rotors`), plus `pennylane`,
-`pytket`, and `pyzx`. The
-remaining `31 - 14 = 17` skips are per-test rather than per-file: `test_fermion_mapping`
-and `test_mapping_axis` guard only the individual tests that reach the stim
-bridge, and `test_contextual_restriction` guards the three tableau-compilation
-tests, so those files still run.
+This is the automatic CI dependency set; record gates additionally pin NumPy
+and SciPy through `check_record_environment.py`. Six optional test modules are
+dropped without OpenFermion, PennyLane, pytket and PyZX; two individual tests
+also skip OpenFermion. Chemistry builders remain optional: install
+`.[chemistry]` when running those workflows, which changes collection totals.
 
 `check_docs.py` enforces the pair through the identity relating them. Each of
-the fourteen dropped files contribute exactly one skip and no collected tests, so
-the remaining `31 - 14 = 17` skips are per-test and *are* collected:
+the six dropped files contribute exactly one skip and no collected tests, so
+the remaining `8 - 6 = 2` skips are per-test and *are* collected:
 
 ```text
 collected == passed + (skipped - files dropped at collection)
-1588      == 1571   + (31      -  14)
+2013      == 2011   + (8       -   6)
 ```
 
 Both sides are computed from the tree, so a drift in either quoted number
@@ -147,7 +138,7 @@ Adding the remaining extras therefore *changes both numbers*, which is
 expected rather than a failure:
 
 ```bash
-pip install -e .[stim]               # stabilizer backend / Phase 4
+pip install -e .[chemistry]          # optional molecular model builders
 pip install -e .[bridges]            # stim + pytket + pennylane + pyzx + openfermion
 ```
 
