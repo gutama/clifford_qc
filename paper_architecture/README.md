@@ -1,23 +1,41 @@
-# Paper C — Making a simulation framework falsifiable
+# Paper C — Declared scope as an architectural primitive
 
-Manuscript source for the architecture paper: `clifford_qc` described by the
-constraints that stop it over-claiming, and the record of what those
-constraints produced.
+Manuscript source for the architecture paper: `clifford_qc` described through
+the one pattern that recurs across it, and the record of what that pattern
+produced.
 
-The thesis is architectural, not a scoreboard. Two commitments carry it — one
-sparse Pauli-word algebra shared by the numerical `MV` kernel and an explicit
-`PauliSum`/program-IR container, and evidence labels carried by the typed
-measurement and solver paths into committed records where declared — and the paper's evidence is
-what the second commitment returned when it was applied: a certified shot
-reduction that one device card refuses to price, an accuracy-matched optimum
-that changes with the card and estimator on the priced instance, a bank that is never
-priced because its own bias exceeds the target, a value-rebuilt mapping screen
-and a preregistered contextual screen that returned no result, a reformulation
-retired against its own falsifier, and a
-coverage census showing where the contract is not yet enforced.
+The thesis is architectural, not a scoreboard. Wherever a type in the package
+returns a number, it also carries a statement of what that number excludes, and
+something mechanical checks the statement. The pattern appears three times, in
+parts of the package built years apart that share no code:
+
+- **Evidence scope** — the measurement layer decides what kind of number it has
+  produced before a solver sees it, so an exact-tier subspace bias and a
+  finite-sample radius never combine into one error bar.
+- **Device scope** — admissibility lives in the cost type, so a protocol a card
+  cannot execute returns `inadmissible` rather than a runtime.
+- **Resource scope** — the coefficient-lifetime policy bounds persistent
+  operator rows and states, in the same interface, that it is not a
+  total-process memory bound; components are reported separately and are not
+  additive.
+
+The paper's evidence is what that pattern returned: a certified shot reduction
+one device card refuses to price, an accuracy-matched optimum that belongs to
+the card rather than the Hamiltonian, a bank never priced because its own bias
+exceeds the target, a value-rebuilt mapping screen and a preregistered
+contextual screen that returned no result, a reformulation retired against its
+own falsifier, and a coverage census showing where the pattern is not yet
+enforced.
 
 There is no advantage claim in this paper, and every device cost in it is
 logical accounting under an explicitly illustrative device card.
+
+**The development plan is not a source.** A roadmap is a statement of intent,
+and intent drifts toward the work that succeeded. `PHASE_STATUS.json` and
+`PLAN.md` feed nothing here: every number comes from the source tree as it
+stands or from a committed measurement. The repository still gates its own
+status file in CI, and that gate appears in the gate-class census as a fact
+about the repository — but the paper does not read it.
 
 ## Files
 
@@ -65,9 +83,12 @@ outside a short allowlist of conceptual notation.
 | Table VI, Fig. 5 (accuracy-matched cost) | `protocol_cost.json` |
 | Table VII (mapping vs instance) | `mapping_axis.json`, `r3c_lih_full_cost.json`, `r3d_qr3_refinement.json` |
 | Table VIII (contextual screen) | `r4a_contextual_screen.json` |
-| Table IX (programme ledger) | `PHASE_STATUS.json` |
-| Sec. VI E (preconditioner) | `g1_structural_preconditioner.json` |
+| Sec. VI D (preconditioner) | `g1_structural_preconditioner.json` |
 | `tables/numbers.tex` (all prose quantities) | all of the above |
+
+Sec. III D (resource scope) quotes no measured quantity: the lifetime policy is
+described from the interface it exposes, and the profile numbers behind it are
+small-system smoke measurements that establish no production result.
 
 Records without a path prefix live under `benchmarks/reference_results/`. Of
 these, only the block-commuting hierarchy overlaps a companion manuscript, and
@@ -102,7 +123,10 @@ preconditioner — appears in no other manuscript.
    evidence declaration changed anywhere in the file, nested values and
    per-quantity maps included;
 6. a citation, label, reference, input or table column count is broken;
-7. one of the paper's evidence-language invariants has been edited out.
+7. one of the paper's evidence-language invariants has been edited out —
+   including the statement that the lifetime bound is not a total-process one,
+   so a later edit cannot leave the abstract asserting a discipline the body
+   has dropped.
 
 Points 1, 3 and 5 are the ones specific to this paper. Points 1 and 3 are what
 make "every number is generated" checkable rather than aspirational, and point
