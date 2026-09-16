@@ -84,6 +84,10 @@ REQUIRED_PHRASES = (
     "bias floor",
     "preregistered",
     "is not enforced by a schema",
+    # Resource scope: the lifetime bound covers coefficient rows and is not a
+    # process-level memory bound.  Losing this sentence would leave the paper
+    # quoting a bound the implementation does not make.
+    "not a total-process",
 )
 
 

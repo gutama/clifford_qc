@@ -26,7 +26,7 @@
       "asset_git_blob_sha": "9cce276dc96be887a6c29f4911255ba54260173b",
       "sources": {
         "paper_architecture/data/source_census.json": "6552563c0f99a39d0990455eeb7f6d76dadc05486789efbbed9415263e8f23a9",
-        "paper_architecture/make_tables.py": "9b831a595f4b98d778d0e9a302566b8434d890b78089f1168532d7138df179d2"
+        "paper_architecture/make_tables.py": "024d31ce8ca08563ef7f68c42a2b0da928010049562628d3405650076f218159"
       }
     }
   },

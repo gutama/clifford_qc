@@ -3,9 +3,12 @@
 Two kinds of source feed this module, and the difference is the paper's
 subject:
 
-1. **Committed records** under ``benchmarks/reference_results/`` and
-   ``PHASE_STATUS.json``.  These are read exactly as the benchmark gates
-   committed them; nothing here recomputes a result.
+1. **Committed records** under ``benchmarks/reference_results/``.  These are
+   read exactly as the benchmark gates committed them; nothing here recomputes
+   a result.  The development plan and its status file are deliberately not
+   among them: this paper describes the package that exists, so every number in
+   it comes from the source tree or from a committed measurement, never from a
+   statement of intent about future work.
 2. **A live census of the repository itself** -- module and line counts per
    layer, the producer/gate pairing, and how each committed record declares its
    evidence tier.  The census is written to ``data/source_census.json`` and
@@ -38,7 +41,6 @@ RECORDS = BENCHMARKS / "reference_results"
 
 CENSUS = DATA / "source_census.json"
 DEFAULT_CENSUS = CENSUS
-PHASE_STATUS = ROOT / "PHASE_STATUS.json"
 HIER_H4 = RECORDS / "clifford_hierarchy_h4_v2.json"
 HIER_BEH2 = RECORDS / "clifford_hierarchy_beh2_v2.json"
 PHASE14B = RECORDS / "phase14b_qwc_vs_fc.json"
@@ -58,9 +60,8 @@ TABLE_SOURCES: dict[str, tuple[Path, ...]] = {
     "cost.tex": (PROTOCOL_COST,),
     "qr3.tex": (MAPPING_AXIS, R3C, R3D),
     "r4a.tex": (R4A,),
-    "ledger.tex": (PHASE_STATUS,),
     "numbers.tex": (
-        CENSUS, PHASE_STATUS, HIER_H4, HIER_BEH2, PHASE14B, PROTOCOL_COST,
+        CENSUS, HIER_H4, HIER_BEH2, PHASE14B, PROTOCOL_COST,
         MAPPING_AXIS, R3C, R3D, R4A, G1,
     ),
 }
@@ -782,31 +783,6 @@ def r4a_table() -> None:
     _write("r4a.tex", rows)
 
 
-def ledger_table() -> None:
-    status = json.loads(PHASE_STATUS.read_text(encoding="utf-8"))
-    rows = []
-    for program in status["adjunct_programs"]:
-        outcome = program.get("outcome", "---").replace("_", " ")
-        rows.append(
-            rf"\texttt{{{program['id'].replace('_', '-')}}} & "
-            f"{program['title']} & "
-            f"{program['status'].replace('_', ' ')} & {outcome} \\\\")
-    rows.append(r"\colrule")
-    summary = status["summary"]
-    open_or_partial = [
-        phase for phase in status["numbered_phases"]
-        if phase["status"] != "complete"
-    ]
-    rows.append(
-        rf"\multicolumn{{4}}{{p{{0.96\textwidth}}}}{{Numbered phases: "
-        rf"{_int(summary['complete_phase_count'])} of "
-        rf"{_int(summary['numbered_phase_count'])} complete "
-        rf"({_pct(summary['strict_complete_fraction'])} strict, "
-        rf"{_pct(summary['progress_weighted_fraction'])} progress-weighted); "
-        rf"{_int(len(open_or_partial))} open, partial, or proposed.}} \\")
-    _write("ledger.tex", rows)
-
-
 # ---------------------------------------------------------------------------
 # Inline numbers
 # ---------------------------------------------------------------------------
@@ -830,7 +806,6 @@ def numbers_macros(census: dict) -> None:
     r3d = json.loads(R3D.read_text(encoding="utf-8"))
     r4a = json.loads(R4A.read_text(encoding="utf-8"))
     g1 = json.loads(G1.read_text(encoding="utf-8"))
-    status = json.loads(PHASE_STATUS.read_text(encoding="utf-8"))
 
     h4 = cost["systems"]["h4"]
     beh2 = cost["systems"]["beh2"]
@@ -961,16 +936,6 @@ def numbers_macros(census: dict) -> None:
             g1["gate_outcomes"]["e_marginal_by_pool"]["majorana_monomials"][0]),
         "cqcGOneExcitation": _int(
             g1["gate_outcomes"]["e_marginal_by_pool"]["determinant_excitations"][0]),
-        # Sec. VI E -- the ledger
-        "cqcNumberedPhases": _int(status["summary"]["numbered_phase_count"]),
-        "cqcCompletePhases": _int(status["summary"]["complete_phase_count"]),
-        "cqcStrictFraction": _pct(status["summary"]["strict_complete_fraction"]),
-        "cqcWeightedFraction": _pct(
-            status["summary"]["progress_weighted_fraction"]),
-        "cqcAdjunctPrograms": _int(len(status["adjunct_programs"])),
-        "cqcNegativePrograms": _int(sum(
-            1 for program in status["adjunct_programs"]
-            if program["status"] in ("closed_negative", "retired", "not_authorized"))),
     }
     rows = [rf"\newcommand{{\{name}}}{{{value}}}"
             for name, value in sorted(macros.items())]
@@ -1002,7 +967,6 @@ def main(tables: Path | None = None, data: Path | None = None) -> Path:
         cost_table()
         qr3_table()
         r4a_table()
-        ledger_table()
         numbers_macros(census)
         return target_tables
     finally:
