@@ -1,6 +1,6 @@
 cff-version: 1.2.0
 message: "If you use this software, please cite it using the metadata below."
-title: "clifford_qc: Operator-centric quantum computing in Clifford algebra"
+title: "clifford_qc: A Python Toolkit for Quantum Simulation"
 type: software
 authors:
   - family-names: Utama

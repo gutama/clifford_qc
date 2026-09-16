@@ -1,25 +1,32 @@
 # Reproducing the benchmark artifacts
 
-Every file under `benchmarks/reference_results/` regenerates from a clean
-environment with the commands below. All experiments are seeded; JSONL
-rows should match up to floating-point noise in wall-clock fields, and the
-summary tables should match exactly.
+This guide maps the committed scientific records to their inputs, numerical
+environments, producers, and validation checks. Start with the [README](README.md)
+for package use and [PIPELINE.md](PIPELINE.md) for new repeated molecular solves.
+Historical experiments should be reproduced with the producer and source
+snapshot documented for their records.
 
-## Access and review policy
+Seeded experiments still depend on the numerical stack and processor. Numerical
+comparisons use each gate's declared tolerances; wall times and process-memory
+measurements are machine-dependent. Some gates rebuild values, while others
+check configuration, provenance, or documentation. Not every committed record
+has a numerical rebuild gate.
 
-This document is the executable reproducibility contract for a private
-development repository. Private status changes distribution, not the evidence
-standard: frozen inputs, raw records, generators, tests, environment
-requirements, and semantic drift gates remain versioned together.
+## Source versions and access
 
-During framework development, editors and referees can receive an
-access-controlled frozen review snapshot from the authors on request. The
-snapshot must identify its exact source revision and include everything needed
-to run the commands in this document; a moving development branch is not
-itself treated as the review artifact. A tagged archival release with a
-persistent identifier is intended after the operator, measurement, subspace,
-and backend interfaces stabilize. Until that release exists, neither this
-document nor the manuscript claims anonymous public download access.
+The package is alpha research software preparing for public distribution.
+These instructions assume access to a source checkout; they do not claim an
+existing package-index release or archival identifier. Review snapshots and
+reproductions should identify the exact source revision, include the required
+inputs, and record the dependency environment. A moving branch alone is not a
+reproducibility reference.
+
+A tagged archival release with a persistent identifier is intended. Until one
+is available, preserve the source commit alongside the method citation in
+[CITATION.cff](CITATION.cff). The [architecture paper](paper_architecture/README.md)
+describes the implemented features and the limits of the evidence they produce.
+
+## Code, records, and environments
 
 **Records and code move together.** A record produced before a change to the
 estimator, the selector, or the confidence construction is not comparable with

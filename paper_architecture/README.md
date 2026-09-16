@@ -18,6 +18,11 @@ certificate of total ground-state error. Evidence-schema coverage remains
 incomplete, and the streaming coefficient-row bound is not a process-memory
 bound.
 
+For package installation and runnable examples, start with the root
+[README](../README.md). The [architecture guide](../ARCHITECTURE.md) describes
+implementation boundaries, and the [pipeline guide](../PIPELINE.md) documents
+repeated molecular calculations.
+
 ## Files
 
 - `manuscript.tex` — REVTeX 4.2 (`aps,pra`) source.
@@ -50,7 +55,8 @@ checked through the committed input manifest instead.
 ## Data → manuscript map
 
 Every quantitative table and measured quantity in the body prose is generated.
-The qualitative feature table is maintained against the source interfaces, and `check_manuscript.py` rejects every numeral in the body text
+The qualitative feature table is maintained against the source interfaces.
+`check_manuscript.py` rejects every numeral in the body text
 outside a short allowlist of conceptual notation.
 
 | Manuscript element | Source |
