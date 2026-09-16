@@ -6,7 +6,7 @@
 \usepackage{xcolor}
 \usepackage[colorlinks=true,linkcolor=blue,citecolor=blue,urlcolor=blue]{hyperref}
 \hypersetup{
-  pdftitle={Declared scope as an architectural primitive},
+  pdftitle={clifford\_qc: A Python Toolkit for Quantum Simulation},
   pdfauthor={Ginanjar Utama and Hermawan Kresno Dipojono},
   pdfsubject={Software architecture, evidence labelling, admissibility and
     resource lifetimes for operator-centric quantum simulation}
@@ -57,8 +57,7 @@
 
 \begin{document}
 
-\title{Declared scope as an architectural primitive: one Pauli-word algebra,\\
-typed evidence, and bounded operator lifetimes}
+\title{\pkg{}: A Python Toolkit for Quantum Simulation}
 
 \author{Ginanjar Utama}
 \email{ginanjar.utama@gmail.com}
@@ -73,33 +72,25 @@ Bandung, Indonesia}
 \date{September 16, 2026}
 
 \begin{abstract}
-Every number a simulation framework emits has a scope: a set of conditions
-outside which it means nothing.  Scope is normally carried in prose, where it
-is free to go missing between a function and the figure that quotes it.  In
-\pkg{} it is carried in types, and this paper is about what that costs and what
-it returns.  The framework is an operator-centric package of \cqcModules{}
-modules and \cqcLines{} physical lines against \cqcTestLines{} lines of tests,
-built on one sparse Pauli-word algebra whose \texttt{PauliSum}-to-\texttt{MV}
-boundary changes the container and not the algebraic basis.  On that base, three
-independent kinds of scope are declared rather than described.  Evidence scope
-separates an oracle-evaluated quantity from a sampled one, so an exact subspace
-bias and a finite-sample radius never combine into one error bar.  Device scope
-puts admissibility inside the cost type, so a protocol a card cannot execute
-returns \emph{inadmissible} rather than a runtime.  Resource scope bounds the
-lifetime of coefficient rows while stating, in the same interface, that it is
-not a total-process memory bound.  The pattern is the same in all three: the
-type names what it does not cover, and a gate checks the naming.  What this
-produced is a record dominated by refusals.  A dyadic block-commuting hierarchy
-cuts a BeH$_2$ bank from \cqcBeHSettingsQWC{} to \cqcBeHSettingsFull{} compiled
-settings and certifies the same Ritz functional at \cqcShotRatio{} of the
-qubit-wise shot budget, yet a sparse-connectivity card refuses
-\cqcSCInadmissibleSettings{} of those \cqcSCSettings{} settings and prices
-nothing; an H$_4$ bank is never priced because its own bias of
-\cqcHFourBias{}~mHa exceeds the \cqcTargetMilliHartree{}~mHa target; two
-preregistered screens returned no result.  We also report where the pattern is
-not yet enforced: only \cqcRecordsLabelled{} of \cqcJsonRecords{} committed
-records carry a single top-level evidence tier.  None of this is a hardware
-result, a scaling result, or an advantage claim.
+\pkg{} is a Python research toolkit for building quantum models, testing
+variational and subspace eigensolvers, and estimating measurement resources.
+A shared sparse Pauli representation connects operator algebra, circuit
+programs, fermionic models, and exact or sampled calculations. The package
+provides spin and lattice models, molecular integral import, adaptive
+operator-response subspaces, sampled-determinant methods, shared measurement
+caches, and optional interfaces to other quantum software. Repeated molecular
+experiments can reuse a prepared model, run independent solves, and request
+classical validation separately. Object and packed coefficient storage offer
+explicit memory--recomputation choices. We explain these features through their
+interfaces and evaluate the measurement and cost layers using committed
+small-system records. Fully commuting measurement reduces the shot budget for
+a fixed Ritz functional, but its benefit depends on circuit cost and device
+assumptions. Other records identify bias floors and inconclusive comparisons.
+Evidence labels, resource reports, and reproducibility checks make these limits
+visible, although evidence labels are not yet validated uniformly across all
+records. The package is intended for method development and reproducible
+comparisons; the results establish neither hardware performance nor a general
+simulation speedup.
 \end{abstract}
 
 \maketitle
@@ -107,94 +98,148 @@ result, a scaling result, or an advantage claim.
 \section{Introduction}
 \label{sec:introduction}
 
-A research framework for quantum simulation is a claim-generating machine.  It
-turns a Hamiltonian into numbers, the numbers into figures, and the figures into
-statements about methods.  At every one of those steps a quantity loses context.
-The function that computed it knew whether it came from an oracle or a sample,
-whether the device model it assumed can actually run the circuit, and which
-parts of the memory it accounts for.  By the time it reaches a caption, that
-knowledge survives only if someone wrote it down.
+Developing a quantum simulation method requires more than an energy estimate.
+Researchers need to construct a Hamiltonian, choose a reference state, compare
+algorithms, account for measurements, and check results against a classical
+calculation. These steps often use different representations and independently
+written bookkeeping. A shared implementation helps make comparisons consistent
+and lets a useful component be reused outside the experiment that introduced it.
 
-This is not a hypothetical failure mode in this field.  Quantum subspace methods
-are compared by basis dimension and energy error, while their dominant
-experimental cost sits in state preparations, measurement settings and shot
-allocation \cite{mcclean2017qse,huggins2020nonorthogonal,stair2020krylov}.
-Finite-shot perturbation of a near-singular overlap matrix is amplified in ways
-a converged exact-simulation table does not show
-\cite{epperly2022theory,lee2024sampling,zhang2024measurement}.  An
-oracle-evaluated expectation value and a sampled one have the same units and the
-same number of digits.  Nothing in a JSON file distinguishes them unless
-something upstream made the distinction and carried it.
+\pkg{} provides that implementation around sparse Pauli-word operators. Its
+main use is small-system research on quantum algorithms for spin, lattice, and
+molecular models. Users can work directly with the operator algebra, execute a
+circuit program, or build a projected eigensolver on a common model. The same
+measurement data can support several observables and projected matrix elements.
+Explicit storage policies and reusable model preparation address the classical
+cost of repeated experiments.
 
-We describe \pkg{}, an operator-centric framework in the complexified Clifford
-algebra $\mathrm{Cl}(2n,\mathbb{C}) \cong M(2^n,\mathbb{C})$.  The
-representation and the solvers are described in companion manuscripts
-\cite{utama2026operatorcentric}; here they are the setting.  Our subject is a
-design pattern that recurs across the package and that we had not set out to
-impose: wherever a type in \pkg{} produces a number, it also carries a statement
-of what that number excludes, and something mechanical checks the statement.  We
-call this a \emph{declared scope}, and the claim of this paper is that declaring
-scope in types rather than in prose changes which results a framework is capable
-of reporting.
+Subspace methods are a particular focus. Quantum subspace expansion,
+nonorthogonal variational methods, and Krylov methods reconstruct a small
+eigenproblem from expectation values
+\cite{mcclean2017qse,huggins2020nonorthogonal,stair2020krylov}.
+Their accuracy depends on both the chosen subspace and the stability of its
+overlap matrix. Finite sampling can amplify errors in a poorly conditioned
+basis \cite{epperly2022theory,lee2024sampling,zhang2024measurement}.
+Consequently, the package records basis size, conditioning, measurement support,
+and uncertainty alongside energy. The underlying operator formulation is developed
+in a companion manuscript \cite{utama2026operatorcentric}; this paper explains
+the software that supports it and the other implemented methods.
 
-The pattern appears three times, in parts of the package that were built years
-apart and share no code.
+The contribution is the integration of reusable components: one operator
+algebra, explicit execution interfaces, shared measurement data, configurable
+coefficient storage, and benchmark records with stated assumptions. Existing
+quantum software remains useful through optional bridges, including
+OpenFermion \cite{mcclean2020openfermion}. We make no advantage claim over those
+packages and provide no comparative benchmark against them.
 
-\begin{enumerate}
-  \item \textbf{Evidence scope.}  The measurement layer decides what kind of
-  number it has produced before any solver sees it, so an exact-tier subspace
-  bias and a finite-sample statistical radius cannot be added into one error
-  bar (Sec.~\ref{sec:scopes}).
+Section~\ref{sec:features} introduces the capabilities and a typical workflow.
+Section~\ref{sec:architecture} explains the representation and interfaces.
+Section~\ref{sec:scopes} describes uncertainty, device cost, and storage limits.
+Sections~\ref{sec:gates}--\ref{sec:refused} connect these mechanisms to the
+committed evidence. The final sections discuss limitations and reproducibility.
 
-  \item \textbf{Device scope.}  Admissibility lives inside the cost type.  A
-  protocol whose settings fall below a card's fidelity floor yields
-  \emph{inadmissible}, not a large runtime (Sec.~\ref{sec:scopes}).
+\section{Capabilities and workflow}
+\label{sec:features}
 
-  \item \textbf{Resource scope.}  The coefficient-lifetime policy beneath the
-  subspace solver bounds persistent operator rows and says, in the same
-  interface that reports the bound, that it is not a total-process memory
-  bound; each component of storage is reported under its own name rather than
-  summed (Sec.~\ref{sec:scopes}).
-\end{enumerate}
+Table~\ref{tab:features} groups the implemented features by the task they help a
+user perform. These capabilities can be used independently: an operator-algebra
+experiment does not require the subspace solvers, and importing the core package
+does not load optional quantum software. The core runtime dependency is NumPy;
+SciPy and the chemistry and bridge packages are installed as separate extras.
 
-None of the three is deep.  Each is the kind of thing that a framework without
-somewhere to put the qualification converts into a published number.  What makes
-them worth a paper is the joint consequence, which we report in
-Secs.~\ref{sec:admitted} and \ref{sec:refused}: the evidence record this design
-produced is unusually full of results that did not work, and in each case the
-refusal is traceable to a scope that a type made unavoidable.
+\begin{table*}
+  \caption{Implemented capabilities and their intended use. Entry points refer
+  to modules or public objects in the package. This is a capability map, not a
+  performance comparison.}
+  \label{tab:features}
+  \footnotesize
+  \begin{ruledtabular}
+  \begin{tabular}{p{0.16\textwidth}p{0.43\textwidth}p{0.34\textwidth}}
+Task & Available features & Entry points and scope\\
+\colrule Operator calculations & Pauli and fermionic operators; gates; density operators; Kraus channels; partial traces, entropy, and entanglement diagnostics & \texttt{MV}, \texttt{pauli}, \texttt{fermion}, \texttt{states}, \texttt{channels}; sparse support can grow during execution\\
+Model construction & Spin chains; Hubbard and other lattice models; FCIDUMP integral import; effective-Hamiltonian JSON; orbital rotations & \texttt{models}; chemistry generation has optional dependencies\\
+Circuit experiments & Parameterized Pauli rotors and named Clifford gates; versioned program serialization; gradients; OpenQASM export & \texttt{ir}; exporters and bridges support defined subsets\\
+Numerical execution & Exact operator and dense statevector paths; particle/spin-sector calculations; finite-shot simulation; stabilizer execution & \texttt{backends}; sector and stabilizer paths have their own state and operation restrictions\\
+Eigensolver comparisons & VQE and ADAPT-VQE; fixed and adaptive operator-response subspaces; sampled determinants; selected-CI controls; hybrid bases and projected observables & \texttt{algorithms}, \texttt{subspace}; a converged projected solve need not reach the full ground state\\
+Measurement studies & Qubit-wise and block-commuting grouping; Clifford readout circuits; shared outcome caches; allocation, covariance, and uncertainty estimates & \texttt{measurement}; interval guarantees depend on the estimator and declared assumptions\\
+Repeated experiments & Cached model preparation; independent solves; optional reference validation; object or packed coefficients; streaming with recomputation & \texttt{prepared}, \texttt{pipeline}, \texttt{subspace}; the streaming row bound excludes other process memory\\
+Interoperability & Stim, OpenFermion, pytket, PennyLane, and PyZX adapters & \texttt{bridges}; optional dependencies and conversion-specific checks\\
+  \end{tabular}
+  \end{ruledtabular}
+\end{table*}
 
-We defend this in four steps.  Section~\ref{sec:architecture} establishes the
-base the pattern needs --- one algebra, one explicit container boundary, and a
-layer partition checked against the source tree when this manuscript is built,
-so Table~\ref{tab:layers} cannot drift from the code it describes.
-Section~\ref{sec:scopes} sets out the three scopes and measures how completely
-each is enforced, including the one that is still a convention.
-Section~\ref{sec:gates} describes the benchmark layer that checks them.
-Sections~\ref{sec:admitted} and \ref{sec:refused} report what came out.
+\subsection{From a model to a subspace calculation}
 
-What this paper is not: it is not a performance comparison against Qiskit,
-PennyLane, \textsc{pytket}, OpenFermion or PyZX, which \pkg{} reaches through
-\cqcBridgeModules{} optional bridge modules rather than competing with
-\cite{mcclean2020openfermion}; it is not a hardware study; and it contains
-no advantage claim of any kind.  Every device cost is logical accounting under
-an explicitly illustrative device card, and every card in the records carries a
-field saying so.
+A model contains a Hamiltonian, a reference program, and metadata such as the
+particle sector. A backend evaluates the reference. A subspace calculation then
+chooses operators $A_i$ and forms the virtual basis
+$\ket{\phi_i}=A_i\ket{\psi}$. Its overlap and Hamiltonian matrices are
+\begin{align}
+ S_{ij} &= \avg{\psi|A_i^\dagger A_j|\psi}, \\
+ H_{ij} &= \avg{\psi|A_i^\dagger H A_j|\psi},
+ \qquad Hc=ESc.
+ \label{eq:projected}
+\end{align}
+The basis states need not be prepared separately: all matrix elements are
+expectations on the same reference. A matrix-element bank caches the operator
+products and their values. Fixed constructions expose the effect of a chosen
+basis; adaptive growth selects additional directions while reporting energy
+changes, overlap conditioning, and new measurement support. Projected
+observables use the same basis and can return expectations or transitions
+without constructing a full Ritz state.
 
-We also exclude the project's own development plan.  A framework's roadmap is a
-statement of intent, and intent drifts toward the work that succeeded; nothing
-in this paper is read from it.  Every quantity below comes from the source tree
-as it stands or from a committed measurement.
+The Adaptive Clifford-Algebra Subspace Eigensolver (A-CASE) is the adaptive
+operator-response solver. Its candidate families include
+Pauli, commutator, Krylov, and configuration directions. VQE and ADAPT-VQE
+provide circuit-based comparisons \cite{peruzzo2014vqe,grimsley2019adapt}.
+Quantum-selected configuration interaction (QSCI) and sample-based quantum
+diagonalization (SQD) instead select determinants and build their projected
+Hamiltonian classically \cite{kanno2026qsci}. Selected-CI controls and hybrid
+bases help distinguish the benefit of sampling from that of basis construction.
+For determinant methods, zero measured matrix-element words does not mean zero
+cost: state preparation, sampling yield, matrix construction, and diagonalization
+still matter.
 
-\section{One algebra, and the boundary it does not cross}
+The repository examples provide entry points for exact algebra, adaptive
+subspaces, finite-shot reconstruction, sector execution, and effective models.
+A useful first experiment is to hold the model and reference fixed, compare
+fixed and adaptive bases, then sample their matrix elements. This separates
+subspace error from measurement error before introducing a device cost model.
+
+\subsection{Reusing preparation across experiments}
+
+The command-line pipeline separates \texttt{prepare}, \texttt{solve}, and
+\texttt{validate}, each available through \texttt{python -m clifford\_qc.pipeline}.
+Preparation reads an FCIDUMP file and caches a serialized Hamiltonian, reference
+program, and metadata. Its key includes the source bytes, sector and tolerance
+options, encoding, package implementation, and NumPy version. Cache hits validate
+the stored content before reuse; each consumer receives fresh model objects.
+The implementation fingerprint is cached per process, so a process must be
+restarted after source changes.
+
+A solve consumes that artifact and records its configuration, energy history,
+resource report, and elapsed time. It performs exact projected arithmetic but
+does not compute a ground-state reference by default. Validation is a separate,
+optional sector eigensolve that reports eigenpair residuals. Its cost is outside
+the solve record. This separation avoids repeating integral parsing and mapping
+across parameter sweeps and avoids calculating a reference that an experiment
+does not need. It also lets preparation, the matrix-element bank, and reference
+validation occupy memory in different processes.
+
+The current command-line solve path uses FCIDUMP models and exact A-CASE with a
+determinant-excitation pool. Other algorithms and finite-shot workflows remain
+Python interfaces and repository examples; they are not all exposed by this
+command.
+
+
+\section{Architecture}
 \label{sec:architecture}
 
-Declaring scope is only meaningful if there is something stable to declare it
-against.  This section describes that base: a single operator representation, one
-explicit container boundary, and a layer partition that the paper's own build
-re-derives from the source tree.
+The architecture separates model construction, execution, solvers, measurement,
+and experiment records. A shared algebra keeps operator conventions consistent,
+while explicit interfaces let these layers evolve at different rates.
 
-\subsection{The end-to-end contract}
+\subsection{Composing calculations}
 
 \begin{figure*}
   \includegraphics[width=\textwidth]{paper_assets/architecture_flow.pdf}
@@ -236,15 +281,13 @@ change of algebraic basis or operator semantics.  Benchmarks therefore need not
 own a basis-translation convention, while the architecture still names the
 boundary the public interface actually has.
 
-Three distinct pairings are defined on \texttt{MV} and are deliberately not
-interchangeable.  The reference-state pairing used to reconstruct projected
-matrix elements is not the Hilbert--Schmidt pairing used to measure how much of
-a Hamiltonian a restriction removed.  Keeping them apart is what later lets
-Sec.~\ref{sec:refused} report a removed Hamiltonian fraction as a bias source
-rather than as a resource saving --- the same quantity, under the wrong pairing,
-would have read as an economy.
+The reference-state pairing in Eq.~\eqref{eq:projected} serves a different
+purpose from the Hilbert--Schmidt pairing used to measure removed Hamiltonian
+norm. A small projected energy error does not follow from a small operator norm
+fraction alone. The restriction and validation records keep these quantities
+separate.
 
-\subsection{Layers as a partition, not a picture}
+\subsection{Package layers}
 
 \begin{figure*}
   \includegraphics[width=\textwidth]{paper_assets/layer_stack.pdf}
@@ -278,58 +321,38 @@ would have read as an economy.
   \end{ruledtabular}
 \end{table}
 
-Figure~\ref{fig:layers} and Table~\ref{tab:layers} report the package as it
-stands on the branch that produced this manuscript: \cqcModules{} modules and
-\cqcLines{} physical lines, against a test suite of \cqcTestModules{} modules
-and \cqcTestLines{} lines.  The distribution is lopsided on purpose.  The
-algebra kernel is \cqcKernelLines{} lines; the subspace solvers are
-\cqcSubspaceLines{} and the measurement layer \cqcMeasurementLines{}.  A
-framework whose kernel is under a tenth of its body is one where the interesting
-work sits in the layers that decide what a measurement costs and what a number
-means --- which is to say, in the layers where scope is assigned.  That solver
-layer carries the operator-response subspace eigensolver of the companion
-manuscripts beside sampled-determinant and adaptive variational arms
-\cite{peruzzo2014vqe,grimsley2019adapt,kanno2026qsci}, classical
-selected-configuration-interaction controls, and their hybrids, each scored
-against the same oracles.
+Figure~\ref{fig:layers} and Table~\ref{tab:layers} summarize the current
+implementation: \cqcModules{} modules and \cqcLines{} physical lines, with
+\cqcTestModules{} test modules and \cqcTestLines{} test lines. The kernel
+contains \cqcKernelLines{} lines, the subspace layer \cqcSubspaceLines{}, and
+the measurement layer \cqcMeasurementLines{}. These counts describe the code's
+distribution; they do not measure correctness or software quality.
 
-The layer assignment is a declared partition, not a reading of the tree.  The
-generator refuses to emit Table~\ref{tab:layers} unless every module in the
-package lands in exactly one layer, so a module added without an architectural
-decision fails the build of this manuscript rather than quietly widening a row.
-This is the smallest instance of the paper's own pattern: the table declares
-what it covers, and the cover is checked.
+The layer map is maintained explicitly. The table generator checks that every
+package module belongs to exactly one declared layer and fails on an unassigned
+module. This keeps the inventory current, but it does not prove that all imports
+obey the diagram.
 
-\subsection{The seams}
+\subsection{Interfaces and dependencies}
 
-Replaceability lives in a small number of typed interfaces: the operator
-\texttt{MV}; the program intermediate representation, whose Pauli rotors
-$\exp(-\mathrm{i}\theta P/2)$ and named Cliffords lower exactly to \texttt{MV};
-the backend protocol, which is the only way the algorithm layer reaches
-execution; the group-sample contract, which carries either a qubit-wise
-commuting setting identified by its per-qubit basis or a Clifford-diagonalized
-setting with an explicit key and signed readout map; the frozen model type; the
-labelled basis direction; the compiled measurement plan; and the symmetry
-restriction.  Changing one of these is a cross-cutting change; changing anything
-else is local.  That is the whole architectural content of the layer diagram,
-and it is why the group-sample contract in particular is shaped as it is:
-without one type carrying both measurement forms, the block-commuting results of
-Sec.~\ref{sec:admitted} could not feed the same estimators without pretending
-they had been measured qubit-wise.
+The main interfaces are \texttt{MV}, the program intermediate representation,
+backend protocols, grouped samples, models, labelled basis directions, compiled
+measurement plans, and symmetry restrictions. The program representation uses
+Pauli rotors $\exp(-\mathrm{i}\theta P/2)$ and named Cliffords. The grouped-sample
+contract represents both qubit-wise settings and Clifford-diagonalized settings
+with explicit keys and signed readout maps, allowing both forms of measurement
+to feed shared estimators. Sector execution uses a specialized statevector API;
+it is not a drop-in replacement for every density-operator path.
 
-The upward edges deserve their own sentence, because a paper claiming an acyclic
-architecture while shipping function-scope imports upward would be making
-exactly the kind of unfalsifiable claim this paper is against.  The chemistry
-model imports the algorithm pool at module scope, so the import-time graph is
-not strictly layered.  Separately, the measurement layer imports the subspace
-layer inside methods; the kernel reaches into the execution layer from function
-scope for sector helpers; and the optional bridges are kept out of every package
-initializer, either by function-scope import or by not being re-exported, so
-that reaching them requires naming them.  Collapsed to the package level, the
-call-time graph is not acyclic.  The invariant the package enforces is about
-when, not about how many.
+Dependencies are mostly layered, with explicit exceptions. Chemistry model
+construction imports an algorithm-pool helper at module scope. Some measurement
+methods call subspace code, and kernel sector helpers call execution code,
+through function-scope imports. These deferred imports manage initialization;
+they do not make the runtime dependency graph acyclic. Optional adapters are
+imported by name rather than loaded by the package initializer. There are
+\cqcBridgeModules{} bridge modules, including their package initializer.
 
-\section{Three scopes, one pattern}
+\section{Uncertainty, device cost, and memory}
 \label{sec:scopes}
 
 \begin{figure*}
@@ -342,16 +365,13 @@ when, not about how many.
   \label{fig:evidence}
 \end{figure*}
 
-The three scopes below govern different quantities, were written at different
-times, and share no implementation.  What they share is a shape.  In each, a
-type that returns a number also returns the conditions under which the number is
-meaningless, and a mechanical check confirms the conditions are still stated.
-We take them in the order a quantity meets them.
+Three kinds of information accompany numerical results: how they were estimated,
+which device assumptions a cost uses, and which allocations a memory report
+covers. The following interfaces preserve this context, with different levels of
+enforcement.
 
-\subsection{Evidence scope: what kind of number this is}
+\subsection{Shared measurements and uncertainty}
 
-The measurement layer is the largest non-solver layer because it is where an
-expectation value stops being a float and becomes a claim.
 Figure~\ref{fig:evidence} shows one pass.  A word universe is grouped, either
 qubit-wise or under dyadic block commutativity; the grouping is frozen into a
 compiled plan with signed parity readouts, a matched resource ledger, and
@@ -363,16 +383,20 @@ linear functional reads the cache; and a confidence bound turns the read into an
 interval with a stated family and failure probability
 \cite{maurer2009empirical,sidak1967rectangular}.
 
-Typed numerical paths use a small closed vocabulary --- exact, asymptotic,
-finite-sample, heuristic, or none.  Its purpose is not taxonomy but prevention.
-An exact-tier subspace bias and a finite-sample statistical radius have the same
-units and will combine into a single accuracy target if nothing stops them, yet
-they are not the same evidence, and a Pareto front computed across both would be
-meaningless.  In this architecture the front is computed only inside one evidence
-category.  Section~\ref{sec:refused} reports the case where this distinction, and
-nothing else, is what turned a cost into a refusal.
+The main evidence categories are exact, asymptotic, finite-sample, heuristic,
+and none. Here ``exact'' means a calculation without shot noise, within its
+stated numerical and model assumptions. It does not certify that a selected
+subspace contains the full ground state. A finite-sample bound applies to its
+specified functional and sampling conditions; it is not automatically a bound
+on the nonlinear Ritz eigenvalue.
 
-\subsection{Where evidence scope is convention rather than invariant}
+Subspace bias and sampling uncertainty can contribute to the same accuracy
+budget, but their origins and guarantees must remain explicit. Cost comparisons
+therefore retain evidence categories and distinguish an oracle comparison from
+a statistical certificate. Some result labels are conventions rather than
+constructor-validated values, as the record census below documents.
+
+\subsection{Evidence coverage}
 
 \begin{table}
   \caption{How the committed record set declares the evidence its numbers
@@ -389,9 +413,7 @@ nothing else, is what turned a cost into a refusal.
   \end{ruledtabular}
 \end{table}
 
-A paper arguing that scope should be typed owes the reader the places where this
-one has not typed it.  Table~\ref{tab:evidence} is that accounting, and it is
-the least flattering table here.  Of \cqcJsonRecords{} committed JSON records,
+Table~\ref{tab:evidence} measures the current coverage. Of \cqcJsonRecords{} committed JSON records,
 \cqcRecordsLabelled{} declare a single top-level evidence tier, drawn from
 \cqcDistinctTiers{} distinct tier strings; \cqcRecordsPerQuantity{} declare a
 per-quantity mapping instead, because their producers report several quantities
@@ -403,7 +425,7 @@ whatsoever.  A further \cqcSeriesFiles{} non-JSON series files --- line-delimite
 JSON, CSV and Markdown summaries --- are counted but not inspected for per-row
 declarations by this census.
 
-The gap is precise and worth stating precisely.  The selection vocabulary is a
+The selection vocabulary is a
 closed enumeration in code, but measurement and subspace result types carry
 their evidence labels as strings and their constructors do not validate
 membership.  Those paths therefore follow a convention; they do not enforce the
@@ -412,70 +434,53 @@ record-label vocabulary is not normalized, and it is not enforced by a schema
 over the record set, so nothing today rejects a new record that omits the field.
 The census is recomputed whenever this manuscript is rebuilt, so the number
 cannot silently improve or decay --- but a census is a measurement, not a gate.
-Closing this is the single most valuable change we can identify to the design
-described here.
+A common validated record schema would make this convention enforceable.
 
-\subsection{Device scope: whether this number may exist}
+\subsection{Device cost and admissibility}
 
-The second scope governs cost.  A device card in \pkg{} declares a connectivity
-model, a gate-time model, a fidelity floor and a calibration status, and the
-cost path prices already-synthesized measurement settings against it.  What
-makes it a scope rather than a parameter set is the return type.  When the
-settings of a protocol fall below the card's fidelity floor once the routing
-surrogate is applied, the ledger does not return a large runtime.  It returns
-\emph{inadmissible}, and the cost is absent rather than infinite.
+Device cards specify connectivity, gate times, a fidelity floor, and calibration
+status. The cost path evaluates already-synthesized measurement settings under
+these assumptions. If a required setting falls below the fidelity floor after
+applying the routing surrogate, the ledger marks the protocol
+\emph{inadmissible} and leaves its runtime absent. Downstream comparisons must
+respect that status.
 
-This matters because the alternative is silent and plausible.  A cost model that
-can only return numbers will return one for a protocol the device cannot
-execute, and that number will be a runtime for something that never runs.  It
-will then be compared against runtimes for protocols that do run.  Putting
-admissibility in the type makes that comparison unavailable rather than merely
-discouraged; Sec.~\ref{sec:admitted} reports the cell where it fired.
+The module prices settings; it does not choose a subspace or allocate shots to
+an accuracy target. Its independent-error fidelity model and scalar routing
+surrogate are accounting assumptions, not a hardware calibration. The
+non-baseline cards explicitly identify themselves as illustrative project
+scenarios. Section~\ref{sec:admitted} shows how these assumptions change the
+interpretation of a measured shot reduction.
 
-The cost module declares its own limits in the same way.  It prices settings; it
-does not choose a subspace, does not allocate shots to an accuracy target, and
-does not turn its independent-error fidelity surrogate into a hardware
-calibration claim.  Each card carries a calibration-status field, and the
-non-baseline cards declare themselves illustrative project scenarios rather than
-vendor data.
+\subsection{Coefficient storage and recomputation}
 
-\subsection{Resource scope: what this bound covers}
+Matrix-element banks offer object and packed coefficient representations.
+Packing changes storage, not the operator basis. Direct support queries and
+exact contractions avoid reconstructing multivectors merely to score a
+candidate or report storage. Measurement functionals can own packed snapshots
+that remain usable after bank rows are evicted.
 
-The third scope is the newest and, for our purposes, the clearest, because it
-was written after the pattern had been named and could state its boundary
-deliberately.
+The default policy retains every constructed pair. The opt-in streaming policy
+retains the selected block and a bounded frontier of other pairs, rebuilding
+rows when needed. Persistent overlap and Hamiltonian coefficient rows are
+bounded by twice the retained-block pair count plus twice the frontier limit.
+Two additional product rows can exist temporarily during construction. Packed
+streaming rows own independent buffers, so eviction releases their capacity.
 
-The subspace solver builds a bank of projected matrix elements, and the
-coefficient rows of that bank dominate its memory.  A lifetime policy beneath
-the solver keeps the selected block plus a bounded frontier of other pairs and
-releases the rest, so persistent rows are bounded by twice the number of pairs
-in the retained block plus the frontier limit.  Packed rows own their buffers
-independently, so eviction releases capacity rather than only dictionary keys.
-
-The interesting part is the second half of the interface.  The same resource
-report that gives the bound states that it is not a total-process memory bound,
-and it refuses to sum its own components.  Support histories, the interned word
-table, generator products, the reference, scalar caches and explicitly requested
-observables each have separate lifetimes and are reported under separate names.
-Two further product rows can exist transiently during construction, and the
-report says so.  The policy bounds coefficient rows; it does not bound resident
-set size, and a reader who wanted the latter cannot obtain it by adding the
-fields up.
-
-A framework willing to report one memory number would have reported one here,
-and it would have been wrong in a direction no reviewer could detect --- too
-small, by whichever component the author forgot.  The refusal to aggregate is
-what makes the bound checkable.  It is also what keeps the policy honest about
-its cost: recomputation is real, so streaming is opt-in and the retain-all
-policy remains the default rather than being quietly replaced by the one with
-the better-sounding bound.
+This is not a total-process memory bound. Support histories, interned words,
+scalar caches, generator products, the reference state, and explicitly requested
+observables have other lifetimes. Resource output reports resident and cumulative
+quantities separately; its component diagnostics are not an additive estimate
+of process resident memory. Streaming can reduce resident coefficient storage at
+the cost of recomputation. Neither packing nor streaming is a universal speed
+improvement, and the retain-all object path remains the default. The committed
+small-system profiling record supports testing these options, but does not
+establish production molecular speedups or a process-memory reduction.
 
 \section{Producers, gates, and preregistration}
 \label{sec:gates}
 
-A declared scope that nothing checks decays into a comment.  The benchmark
-directory is where the checking happens, and it is not a scratch space: it is a
-two-part contract, and the pairing is the architecture.  \cqcProducers{}
+The benchmark directory separates record generation from validation. \cqcProducers{}
 producers write records.  \cqcGates{} gates read them.  \cqcGatesInWorkflow{}
 are named in the continuous-integration workflow, and the distinction inside
 that number matters: \cqcGatesAutomatic{} run on every pull request, while
@@ -502,8 +507,8 @@ symptom rather than the first within each execution class.
   \end{ruledtabular}
 \end{table}
 
-The temptation in a paper like this one is to write that every record is
-re-derived.  It is not, and Table~\ref{tab:gates} says so.  Only
+Not every record is regenerated by a gate. Table~\ref{tab:gates} distinguishes
+checks of values, provenance, and structure. Only
 \cqcSameStemPairs{} producers have a same-stem gate that recomputes their record
 and fails on numeric drift.  The other \cqcProducersWithoutGate{} write
 manuscript evidence, paper-suite drivers, or exploratory output with no value
@@ -513,7 +518,7 @@ companion paper, and regenerating it would move published inputs across all its
 families, so no gate rebuilds it.
 
 The remaining classes determine how the results of Sec.~\ref{sec:refused} should
-be read.  Five are preregistration gates: they compare a plan declared before
+be read.  Five are preregistration gates: they compare an experimental configuration committed before
 any sampling against the constants committed with the result, and they rebuild
 nothing.  This is the mechanism that makes a null result reportable.  A screen
 whose acceptance rule, accuracy target, margin factor, word-universe ceiling and
@@ -527,26 +532,25 @@ one checks that the reproduction documentation still describes the code it
 claims to reproduce; and two compare records against artifacts produced outside
 the benchmark directory.
 
-Two properties of the execution environment are load-bearing and bound what
-reproduction means here.  Continuous integration pins one thread for the
+Reproduction also depends on the numerical environment.  Continuous integration pins one thread for the
 numerical libraries, because threaded basic-linear-algebra reductions sum in a
 thread-count-dependent order and the same symmetric eigensolve returns different
-last bits across thread counts.  That closes the one source of nondeterminism a
-workflow can close.  It does not make records portable across processor
+last bits across thread counts.  This controls one source of numerical variation.  It does not make records portable across processor
 microarchitectures, because kernel selection by instruction set remains, and the
 reproduction documentation records that floor rather than claiming bit-exact
 portability \cite{peng2011reproducible,wilson2017practices}.
 
-\section{What the scopes admitted}
+\section{Measurement and cost results}
 \label{sec:admitted}
 
-This section reports the positive results.  Each is structural or
-cost-structural, each is on small instances, and each is stated with the axis
-along which it does not generalize --- which is the same discipline as the
-previous section, applied to a conclusion instead of a type.
+The following studies exercise grouping, shot allocation, and device cost on
+small molecular banks. They show why a setting count, a shot count, and a runtime
+answer different questions. For orientation, QWC denotes qubit-wise commuting
+measurement, full commutation allows entangling readout circuits, CX denotes a
+controlled-NOT gate, and mHa denotes millihartree. A rung is one allowed block
+size in the grouping hierarchy.
 
-\subsection{The block-commuting hierarchy is a real trade, and it is
-instance-dependent}
+\subsection{Grouping trades settings for circuit depth}
 
 Commuting-group measurement is usually presented as a setting-count reduction.
 Under the dyadic hierarchy --- two words are compatible when their restrictions
@@ -584,8 +588,7 @@ On the BeH$_2$ bank they fall from \cqcBeHSettingsQWC{} to
   \label{fig:hierarchy}
 \end{figure*}
 
-A setting count alone is a quantity with an undeclared scope, and
-Table~\ref{tab:hierarchy} and Fig.~\ref{fig:hierarchy} supply the missing half.
+Table~\ref{tab:hierarchy} and Fig.~\ref{fig:hierarchy} also report circuit cost.
 At each rung they report the added logical entangling cost against the avoided
 preparation cost, and it does not point the same way on the two instances.  On
 H$_4$ the ratio stays below one at every rung, reaching \cqcHFourCXRatio{} at
@@ -594,10 +597,9 @@ full commutation: the trade pays under an all-to-all logical model, at
 On BeH$_2$ the ratio exceeds one at every rung above qubit-wise, reaching
 \cqcBeHCXRatioWorst{} at $k=2$ and falling only to \cqcBeHCXRatio{} at full
 commutation: the same protocol on a different bank costs more entangling depth
-than it saves in preparations.  A framework that reported settings alone would
-have reported these two instances as the same result.
+than it saves in preparations.  Setting reduction alone therefore does not establish a net cost saving.
 
-\subsection{A certified shot reduction, and a card that refuses it}
+\subsection{Shot reduction for a fixed energy functional}
 
 \begin{table*}
   \caption{Qubit-wise against fully commuting measurement on one frozen
@@ -615,7 +617,7 @@ have reported these two instances as the same result.
   \end{ruledtabular}
 \end{table*}
 
-The setting count is not the estimand.  The preregistered comparison of
+The preregistered comparison in
 Table~\ref{tab:phase14b} fixes one BeH$_2$ bank of \cqcBankWords{} measured
 words supporting a \cqcBankBasis{}-vector subspace, and asks for the total
 physical shots at which the first-order Ritz energy functional is certified
@@ -625,13 +627,12 @@ arms.
 
 The fully commuting arm is certified at \cqcFullCertifiedShots{} total physical
 shots against \cqcQWCCertifiedShots{} for the qubit-wise arm: a ratio of
-\cqcShotRatio{}, or one part in \cqcShotRatioInverse{}.  That is a larger effect
-than the setting-count reduction alone would suggest, because the Ritz
-functional touches only part of the bank --- its measured support is
-\cqcRitzSupport{} of the \cqcBankWords{} assigned words, concentrated on
-\cqcSCSettings{} compiled settings rather than spread over
-\cqcBeHSettingsQWC{} --- and concentration is what lets the allocator buy the
-variance down with fewer shots.
+\cqcShotRatio{}, or one part in \cqcShotRatioInverse{}. The Ritz functional has measured support on
+\cqcRitzSupport{} of the \cqcBankWords{} assigned words. Its support and
+within-setting covariance determine the allocation; the bank's total setting
+count alone does not predict the shot ratio. Table~\ref{tab:phase14b}
+distinguishes settings compiled for the whole bank from settings the functional
+actually touches.
 
 Then the device cards are applied, and the result splits.  On the all-to-all
 logical baseline the fully commuting arm costs \cqcLogicalRuntimeRatio{} of the
@@ -645,15 +646,12 @@ once the routing surrogate is applied --- mean setting fidelity
 \cqcSCMeanFidelity{} against a floor of \cqcSCFidelityFloor{} --- so the ledger
 returns \emph{inadmissible} rather than a number.
 
-This is device scope doing the only thing it exists to do, and we draw attention
-to the cell rather than burying it.  An architecture that priced everything would
-have reported a runtime for that card, and it would have been a runtime for a
-protocol the card cannot execute at the stated fidelity.  Refusing to price is
-the correct output, and it is available only because admissibility is part of
-the cost type rather than a caveat in prose.
+The finite-sample result concerns the fixed first-order functional under the
+recorded sampling assumptions. It is not a certificate of total ground-state
+error or a demonstration on hardware. The device ledger adds a separate test of
+whether the assumed circuit fidelity is acceptable.
 
-\subsection{The accuracy-matched block size belongs to the card, not the
-Hamiltonian}
+\subsection{Cost at a matched accuracy target}
 
 The deeper cost question is not which protocol uses fewer settings but which
 reaches a stated accuracy for the least device time.  Writing $\Ctime$ for the
@@ -685,19 +683,16 @@ a zero-failure gate and a one-sided bootstrap bound \cite{efron1979bootstrap}.
   Jordan--Wigner arm, single-assignment estimator.  Grey bars span the
   confirmed-failing to confirmed-passing interval; the open circle marks
   membership in the $k^*$ region.  Each panel has its own vertical scale: the
-  three cards differ by orders of magnitude in gate time, which is the point of
-  pricing under a card rather than counting settings.  A rung the card refuses
+  three cards differ by orders of magnitude in gate time, so a setting count cannot substitute for the cost model.  A rung the card refuses
   carries no cost at all and is marked at the top of its panel.}
   \label{fig:cost}
 \end{figure*}
 
 Table~\ref{tab:cost} and Fig.~\ref{fig:cost} report the priced BeH$_2$ instance
-along the Jordan--Wigner arm, and three readings matter architecturally.  First,
+along the Jordan--Wigner arm, with three practical observations.  First,
 the optimal rung moves with the card and the estimator: it is $k=\cqcKStarIon{}$
 on the slow-gate card under single-assignment estimation and
-$k=\cqcKStarLogical{}$ on the logical baseline.  The optimum is therefore a
-property of the accounting, not of the molecule, and a paper reporting one
-number would have attributed it to the Hamiltonian.  Every cell resolves to a
+$k=\cqcKStarLogical{}$ on the logical baseline.  The optimum depends on the cost model as well as the Hamiltonian.  Every cell resolves to a
 region rather than a point --- the slow-gate cell to $k \in
 \{\cqcKStarIonRegion\}$ --- and the record reports that status rather than
 collapsing it to an argmin.  Second, the mapping axis is not small: at the
@@ -715,17 +710,15 @@ A cross-check against the independently produced shot-search record agrees on
 \cqcCrossAgreeing{} of \cqcCrossChecked{} compared crossings, and the record
 classifies each disagreement as environment-marginal rather than substantive.
 
-\section{What the scopes refused}
+\section{Limits identified by the benchmarks}
 \label{sec:refused}
 
-The results here are the reason the paper exists.  Each began as a
-preregistered question with a declared gate, and each returned an answer that
-stopped or narrowed the work rather than extending it.  In a framework without
-declared scope, most would have been reported as something else, or not at all.
-We give them the same space as the positive results, because in this design they
-are the same kind of object.
+These studies identify conditions under which a proposed comparison cannot
+support a conclusion. A rejected or indeterminate comparison is useful when its
+acceptance rule and inputs are preserved: it shows which assumption failed and
+which conclusions remain open.
 
-\subsection{A bank whose own bias exceeds the target is never priced}
+\subsection{Subspace bias can make an accuracy target unreachable}
 
 The accuracy-matched search of the previous section covers two systems, and only
 one of them is priced.  The H$_4$ bank carries an exact subspace bias of
@@ -736,13 +729,10 @@ cost or a censored interval but \emph{bias floor exceeds target}, and no cost is
 reported for it anywhere.  The priced BeH$_2$ bank clears the same floor with
 room to spare, at \cqcBeHBias{}~mHa, which is why it has a price at all.
 
-This is the smallest possible demonstration of evidence scope, and the easiest
-thing in this paper to have got wrong.  The same pipeline, with the bias and the
-statistical radius merged into one error bar, would have returned a number --- a
-large one, but a number --- and it would have entered a cost comparison as
-though it were a price.  Separating an exact-tier bias from a finite-sample
-radius at the type level is the whole of what turns it into a refusal.  Nothing
-about the physics changed; only the type did.
+Increasing the shot budget reduces sampling noise but does not remove the
+fixed bank's bias. The cost search checks this bias floor before spending effort
+on shot allocation. This conclusion comes from the separate bias calculation
+and the admission rule, not from the evidence label alone.
 
 \subsection{Mapping spread against instance spread: negative, then
 indeterminate}
@@ -773,8 +763,8 @@ one grouping protocol, the widest mapping spread within a system is
 \cqcStructuralInstance{}; the declared margin is \cqcStructuralMargin{}, and the
 recorded verdict is that mapping spread is not smaller than instance spread.
 The same comparison on algorithm-independent word weight returns the same
-verdict.  The structural readout is therefore negative in the direction that
-would have justified the layer.
+verdict.  This rejects the tested hypothesis that mapping spread is smaller. It does
+not establish that an automatic encoding selector improves accuracy-matched cost.
 
 Accuracy-matched, a second instance was priced specifically to make the
 comparison possible: \cqcRThreeCCells{} cells evaluated, \cqcRThreeCFinite{}
@@ -791,16 +781,12 @@ supports still overlap: minimum possible mapping spread
 \cqcRThreeDMappingSupport{} against maximum possible instance spread
 \cqcRThreeDInstanceSupport{}, classified \emph{indeterminate after refinement}.
 
-The refinement record states its own asymmetry, and that is the part we most
-want to preserve.  Because it targeted the parent record's point-support cells
-rather than refining every cell entering the global extrema, a failure to
-separate cannot establish the opposite direction.  It can only fail to establish
-this one.  An architecture that allowed a non-separating outcome to be written up
-as evidence for the converse would have produced a publishable claim from this
-data.  This one produced \emph{indeterminate}, twice, and the
-encoding-selection layer was not built.
+The refinement targeted the parent record's point-support cells rather than
+all cells entering the global extrema. Its overlapping supports establish
+neither ordering. Both records therefore remain indeterminate; point estimates
+alone do not justify an encoding-selection rule.
 
-\subsection{A screen that stopped before drawing a sample}
+\subsection{Screening approximate restrictions before sampling}
 
 \begin{table*}
   \caption{The contextual-restriction admission screen on one BeH$_2$ bank.
@@ -821,11 +807,9 @@ encoding-selection layer was not built.
 
 Contextual subspace methods restrict a Hamiltonian onto a stabilizer sector
 chosen for the correlation it retains rather than for an exact symmetry
-\cite{kirby2021contextual}, which makes them a natural preconditioner for an
-operator-response subspace solver, and a dangerous one: the restriction is
-approximate where symmetry tapering \cite{bravyi2017tapering} is exact.  That
-difference is a scope difference, and it is why the two are separate policies in
-Fig.~\ref{fig:architecture-flow} rather than two settings of one reduction.  The
+\cite{kirby2021contextual}, and can be tested as a preconditioner for an
+operator-response subspace solver. This restriction is approximate, whereas symmetry tapering \cite{bravyi2017tapering} is exact.  The two operations therefore use separate policies in
+Fig.~\ref{fig:architecture-flow}.  The
 screen in Table~\ref{tab:r4a} asks whether any restriction rung admits all four
 comparison arms at once under gates fixed in advance --- an admissible bias
 budget of \cqcRFourAAdmissibleBias{}~mHa, a word-universe ceiling of
@@ -846,15 +830,12 @@ admissible at every rung, at \cqcRFourAACaseBias{}~mHa over
 screen compares four arms or it compares nothing.  There is no rung where the
 cheap arms are accurate enough and the accurate arm is cheap enough.
 
-The record's status is \emph{structural screen complete, no samples}, and its
-authorization field records that sampled execution was not authorized.  The
-screen draws no samples at all: it is deterministic linear algebra over the same
-restriction primitive the exact tapering path uses, and it stood in for the
-sampling campaign that would otherwise have followed.  That is the economic
-argument for this architecture, and it is the only one here that needs no device
-card.
+The record reports \emph{structural screen complete, no samples}. The
+comparison stopped after deterministic admission checks, avoiding a sampled
+campaign whose required arms already failed the stated conditions. This is a
+useful way to control experimental cost without weakening the comparison.
 
-\subsection{A reformulation that reproduced its predecessor}
+\subsection{Pool filtering can duplicate an existing construction}
 
 A geometric-algebra structural preconditioner was proposed as a pre-encoding
 filter chain.  Its falsifier was declared before the measurement: if the filters
@@ -862,8 +843,7 @@ reproduce the existing post-encoding filters and the action-equivalence quotient
 removes nothing, the proposal is a reformulation and the work scoped behind it
 does not proceed.
 
-The measured outcome is split by candidate pool, and the record says so rather
-than choosing the flattering half.  The quotient removes \cqcGOneMajorana{}
+The outcome depends on the candidate pool.  The quotient removes \cqcGOneMajorana{}
 candidates from the wide Majorana-monomial pool and \cqcGOneExcitation{} from
 the determinant-excitation pool that every mapping and cost record is actually
 built on.  At the matched degree cap the surviving Majorana classes reach
@@ -873,14 +853,12 @@ falsified, but the content is pool-dependent'', the dependent work was retired
 against it, and the record carries an explicit statement that nothing in it
 licenses a resource claim of any kind.
 
-Reporting the Majorana-pool number alone would have been true and useless.  The
-scope that makes it useless --- which pool --- is carried in the record beside
-the number, which is why the two cannot be separated in a later reading.
+This result shows why a filter must be evaluated on the pool used by the
+solver. Removing redundant candidates from a wider pool does not establish a
+saving against an already compact excitation pool.
 
 \section{Scope and limitations}
 \label{sec:limits}
-
-A paper about declared scope has no excuse for leaving its own undeclared.
 
 \paragraph{Instance scale.}  Every quantitative result here is on a small active
 space, constructed from committed integral files
@@ -909,17 +887,20 @@ that no rung of this screen admitted all four arms.  The
 mapping-versus-instance refinement establishes nothing in the converse
 direction, by its own recorded asymmetry.
 
-\paragraph{Two of the three scopes are enforced unevenly.}  Device scope is a
-return type and cannot be bypassed.  Resource scope is reported by the interface
-that owns the data.  Evidence scope, the one this paper leans on hardest, is a
-convention at the record boundary: Sec.~\ref{sec:scopes} quantifies it, and
-\cqcRecordsUnlabelled{} committed records carry no record-level evidence field.
-The census makes that visible on every rebuild; it does not prevent it.
+\paragraph{Evidence validation is incomplete.} Device ledgers explicitly
+represent inadmissibility, and storage reports state the allocations they cover.
+Evidence labels are not uniformly validated at the record boundary:
+\cqcRecordsUnlabelled{} records carry no record-level evidence field. The census
+reports this gap but does not prevent it. Downstream code must still honor each
+result's status and assumptions.
 
-\paragraph{Not a comparison against other frameworks.}  \pkg{} bridges to the
-external ecosystem rather than competing with it, and no benchmark here measures
-another package.  The architectural claim is about what this design makes
-difficult to over-claim, not about relative capability or speed.
+\paragraph{Simulation and interoperability limits.} Sparse operator support can
+grow rapidly, and dense statevector methods retain exponential storage cost.
+Sector restriction helps only when the selected operations preserve that sector;
+stabilizer execution supports its Clifford subset. Optional bridges have
+different supported operations and do not imply universal circuit portability.
+No benchmark here establishes relative speed or capability against another
+framework.
 
 \section{Reproducibility}
 \label{sec:reproducibility}
@@ -949,70 +930,47 @@ indeterminate verdicts, and the statement that the lifetime bound is not a
 total-process one --- to still be present in the body, so that a later edit
 cannot leave the abstract asserting a discipline the text has dropped.
 
-\section{Discussion}
+\section{Use and distribution}
 \label{sec:discussion}
 
-The refusals in Sec.~\ref{sec:refused} have a common shape.  In each, something
-that looks like a number --- a cost, a spread, a reduction, a memory footprint
---- turns out to be a number only under conditions that a less strict
-architecture would never have made explicit: a bias floor that must be cleared
-before a price exists; a fidelity floor that makes a protocol unpriceable rather
-than expensive; supports that overlap even when point estimates separate; a
-restriction that buys width by removing Hamiltonian norm; a bound that covers
-coefficient rows and not the process.  None of these is a deep result.  All are
-the kind of thing that becomes a published claim when the pipeline producing it
-has nowhere to record the qualification.
+The package is useful as a research toolkit in three settings: developing
+operator and subspace methods, comparing estimators on shared measurement data,
+and testing resource tradeoffs under explicit assumptions. A common model and
+matrix-element bank reduce duplicated implementation across these tasks.
+Prepared inputs make repeated solves cheaper to organize, while separate
+reference validation keeps its cost visible. These are practical software
+benefits even when a particular algorithmic comparison is inconclusive.
 
-We would draw three transferable conclusions.
+The source includes an Apache license, package metadata, runnable examples,
+optional dependency groups, and versioned tests and benchmark records. At this
+manuscript revision it remains an alpha research package; a public archival
+release is intended. The repository address is
+\url{https://github.com/gutama/clifford_qc}. This statement does not assert that
+a public package-index release or an archival identifier already exists.
+For a source checkout, installation instructions and examples are in
+\texttt{README.md}, repeated molecular workflows in \texttt{PIPELINE.md}, and
+benchmark environments in \texttt{REPRODUCING.md}.
 
-First, scope belongs in the return type, not in the docstring.  The difference
-between \emph{inadmissible} and a very large runtime is not emphasis; it is
-whether a downstream comparison can be written at all.  Every refusal in this
-paper traces to a type that had somewhere to put the refusal, and the one place
-where our own discipline is weakest --- the record boundary, where evidence tier
-is a string --- is exactly where the coverage table is worst.  That correlation
-is the paper's main internal evidence for its own thesis.
-
-Second, a bound should name what it excludes, and should decline to be summed.
-The lifetime policy could have reported a single memory number.  It reports
-components under separate names and states that they are not additive, which is
-less satisfying and considerably harder to misuse.  We would now regard any
-single-number resource claim in a framework of this kind as unreviewable, our
-own earlier ones included.
-
-Third, a census beats a description.  The architecture tables here are recomputed
-on every build, and the one that most needed that treatment was the unflattering
-one, which we would not have quantified at all if the build had not been asked
-to measure itself.  Preregistration plays the same role for results that a
-census plays for structure: a configuration file with a content hash and a merge
-commit, landed before sampling, costs one pull request and converts a null
-result from an embarrassment into an artifact.
-
-The obvious next step is the gap this paper names.  A required evidence tier,
-schema-validated over every committed record, would move evidence scope from
-convention to invariant and put it on the same footing as the other two.  On the
-evidence of Table~\ref{tab:evidence} it is the most valuable change available to
-this design.
+Users should identify the source version and dependency environment used in an
+experiment. The library API is broader than the command-line pipeline, and
+research interfaces can still change. A stable public release would benefit
+from validated evidence records, a documented compatibility policy, and a
+persistent citation for the released source. These are distribution and
+maintenance needs, not evidence that the implemented algorithms scale to larger
+problems.
 
 \section{Conclusion}
 \label{sec:conclusion}
 
-We have described \pkg{} through a pattern rather than a capability list.  One
-sparse Pauli-word algebra gives the package a stable base and one explicit
-container boundary that changes containers and not the algebraic basis.  On that
-base, three independent scopes are declared in types: what kind of number this
-is, whether a device may produce it, and what a resource bound covers.  Each
-names its own exclusions, and a gate checks that the naming survives.
-
-The evidence we offer is the evidence the pattern produced: a certified shot
-reduction that one device card refuses to price, an accuracy-matched optimum
-belonging to the card rather than the Hamiltonian, a bank never priced because
-its own bias exceeds the target, a value-rebuilt mapping screen and a
-preregistered contextual screen that returned no result, a reformulation retired
-against its own falsifier, a memory bound that declines to be a process bound,
-and a coverage census showing where the pattern is not yet enforced.  Not one is
-an advantage claim, and that is the point: the value of this design is measured
-by what it would not let us say.
+\pkg{} connects sparse operator algebra, quantum models, eigensolvers, and
+measurement analysis through reusable Python interfaces. Its useful features
+include virtual operator-response bases, shared measurement caches, independent
+preparation and validation, and configurable coefficient storage. The benchmark
+records demonstrate how these components support controlled comparisons and
+identify accuracy or cost assumptions that fail. Small-system evidence,
+illustrative device cards, and incomplete evidence-schema coverage limit the
+claims. Within those limits, the package provides a working foundation for
+reproducible quantum simulation research.
 
 \begin{acknowledgments}
 We thank the maintainers of the open-source quantum software ecosystem that
