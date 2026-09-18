@@ -35,6 +35,7 @@ from pathlib import Path
 from typing import Sequence
 
 from clifford_qc.backends import ExactMVBackend, SectorStatevectorBackend
+from clifford_qc.models.metadata import spin_convention
 from clifford_qc.fermion_mapping import fermion_encoding
 from clifford_qc.measurement.block_commuting import block_commuting_partition
 from clifford_qc.measurement.block_synthesis import (
@@ -98,7 +99,7 @@ def _mapped_bank(name: str, model, reference):
         model.n,
         n_electrons=int(model.metadata["n_electrons"]) if reduced else None,
         sz=float(model.metadata["sz"]) if reduced else None,
-        spin_ordering=model.metadata.get("spin_convention", "interleaved"),
+        spin_ordering=spin_convention(model),
     )
     return encoding, encoding.restriction()
 

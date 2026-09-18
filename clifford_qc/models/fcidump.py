@@ -37,6 +37,7 @@ import numpy as np
 from ..fermion import c_op, cdag_op
 from ..ir import PauliSum, Program
 from ..multivector import MV
+from .metadata import MOLECULAR, model_metadata
 from .spin import Model
 
 _HEADER_START = re.compile(r"^\s*&(FCI|FCIDUMP)\b", re.IGNORECASE)
@@ -346,25 +347,25 @@ def model_from_fcidump(data: FCIDump, *, name: str | None = None,
     label = name or f"fcidump({Path(data.source_path).name})"
     if not isinstance(label, str) or not label.strip():
         raise ValueError("name must be a non-empty string")
-    metadata = {
-        "kind": "molecular",
-        "source": "fcidump",
-        "source_kind": "fcidump",
-        "path": data.source_path,
-        "source_sha256": data.source_sha256,
-        "n_spatial_orbitals": data.n_orbitals,
-        "spin_orbitals": n_qubits,
-        "spin_convention": "interleaved",
-        "n_electrons": electrons,
-        "ms2": spin_twice,
-        "sz": 0.5 * spin_twice,
-        "core_energy": data.core_energy,
-        "orbsym": list(data.orbsym),
-        "isym": data.isym,
-        "energy_unit": "hartree",
-        "reference_occupied_spin_orbitals": list(sorted(occupied)),
-        "integral_tolerance": integral_tolerance,
-    }
+    metadata = model_metadata(
+        MOLECULAR,
+        spin_orbitals=n_qubits,
+        n_spatial_orbitals=data.n_orbitals,
+        n_electrons=electrons,
+        sz=0.5 * spin_twice,
+        spin_convention="interleaved",
+        source="fcidump",
+        source_kind="fcidump",
+        path=data.source_path,
+        source_sha256=data.source_sha256,
+        ms2=spin_twice,
+        core_energy=data.core_energy,
+        orbsym=list(data.orbsym),
+        isym=data.isym,
+        energy_unit="hartree",
+        reference_occupied_spin_orbitals=list(sorted(occupied)),
+        integral_tolerance=integral_tolerance,
+    )
     return Model(
         name=label.strip(),
         n=n_qubits,

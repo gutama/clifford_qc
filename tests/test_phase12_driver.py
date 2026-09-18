@@ -94,7 +94,7 @@ def test_finite_adapt_reports_size_and_real_execution_accounting(monkeypatch):
 
     monkeypatch.setattr(phase12.ladder, "run_method", fake_run_method)
     row = phase12._ladder_row(
-        "adapt_vqe_finite", {"kind": "adapt_shot"}, None, "molecular", {},
+        "adapt_vqe_finite", {"kind": "adapt_shot"}, None, {},
         exact_energy=-2.0, seed=4)
 
     assert row["M"] == 2

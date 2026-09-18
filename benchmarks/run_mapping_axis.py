@@ -37,6 +37,7 @@ from clifford_qc.measurement.cost import (
 )
 from clifford_qc.measurement.functionals import ritz_functional
 from clifford_qc.models import fcidump_model
+from clifford_qc.models.metadata import spin_convention
 from clifford_qc.models.lattice import hubbard
 from clifford_qc.multivector import MV
 from clifford_qc.reproducibility import stamp_record
@@ -469,7 +470,7 @@ def _build_arm(
         model.n,
         n_electrons=int(model.metadata["n_electrons"]) if reduced else None,
         sz=float(model.metadata["sz"]) if reduced else None,
-        spin_ordering=model.metadata.get("spin_convention", "interleaved"),
+        spin_ordering=spin_convention(model),
     )
     restriction = encoding.restriction()
     invariant = assert_mapping_invariants(
@@ -610,7 +611,7 @@ def build_system_record(
         "n_qubits": model.n,
         "n_electrons": int(model.metadata["n_electrons"]),
         "sz": float(model.metadata["sz"]),
-        "spin_ordering": model.metadata.get("spin_convention", "interleaved"),
+        "spin_ordering": spin_convention(model),
         "grouping_protocol": grouping_protocol,
         "hamiltonian_terms": len(model.hamiltonian.terms),
         "hamiltonian_sha256": _mv_sha256(as_multivector(model.hamiltonian)),

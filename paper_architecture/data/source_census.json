@@ -146,8 +146,8 @@
         "modules": 13
       },
       "models": {
-        "lines": 2338,
-        "modules": 8
+        "lines": 2728,
+        "modules": 9
       },
       "orchestration": {
         "lines": 280,
@@ -162,9 +162,9 @@
         "modules": 1
       }
     },
-    "package_lines": 23880,
-    "package_modules": 96,
-    "test_lines": 24212,
-    "test_modules": 107
+    "package_lines": 24270,
+    "package_modules": 97,
+    "test_lines": 24619,
+    "test_modules": 108
   }
 }
