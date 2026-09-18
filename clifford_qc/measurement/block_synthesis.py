@@ -22,6 +22,10 @@ from functools import lru_cache
 from typing import Sequence
 
 import numpy as np
+from ..capabilities import require
+
+require('compiled_clifford_measurement', feature='clifford_qc.measurement.block_synthesis')
+
 import stim
 
 from .block_commuting import block_ranges

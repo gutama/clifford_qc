@@ -9,6 +9,10 @@ Gottesman-Knill / blade-preservation claims.
 
 from __future__ import annotations
 
+from ..capabilities import require
+
+require('stabilizer_backend', feature='clifford_qc.bridges.stim_bridge')
+
 import stim
 
 from ..ir import PauliWord, Program, Rotor, clifford_angle_index

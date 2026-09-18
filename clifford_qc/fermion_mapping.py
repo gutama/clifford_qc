@@ -393,7 +393,15 @@ class FermionEncoding:
 
         Stim remains an optional dependency, so the bridge import is local and
         the binary encoding matrices can be constructed and tested without it.
+        The requirement is stated here rather than left to the bridge: nothing
+        in this signature suggests a stabilizer backend, and the bare
+        ``ModuleNotFoundError`` it used to raise surfaced four frames down.
         """
+        from .capabilities import require
+
+        require("contextual_restriction",
+                feature="building an encoding's restriction")
+
         from .bridges.stim_bridge import CliffordMap
         from .subspace.restriction import Restriction
 

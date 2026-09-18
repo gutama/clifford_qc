@@ -122,19 +122,19 @@
         "modules": 8
       },
       "backends": {
-        "lines": 1064,
+        "lines": 1068,
         "modules": 7
       },
       "bridges": {
-        "lines": 667,
+        "lines": 687,
         "modules": 6
       },
       "evidence": {
-        "lines": 966,
-        "modules": 3
+        "lines": 1256,
+        "modules": 4
       },
       "ir": {
-        "lines": 1209,
+        "lines": 1217,
         "modules": 3
       },
       "kernel": {
@@ -142,11 +142,11 @@
         "modules": 15
       },
       "measurement": {
-        "lines": 3991,
+        "lines": 3995,
         "modules": 13
       },
       "models": {
-        "lines": 2649,
+        "lines": 2653,
         "modules": 9
       },
       "orchestration": {
@@ -162,9 +162,9 @@
         "modules": 1
       }
     },
-    "package_lines": 24191,
-    "package_modules": 97,
-    "test_lines": 24477,
-    "test_modules": 108
+    "package_lines": 24521,
+    "package_modules": 98,
+    "test_lines": 24697,
+    "test_modules": 109
   }
 }

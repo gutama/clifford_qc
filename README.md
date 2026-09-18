@@ -80,6 +80,25 @@ Bridge modules are imported explicitly from `clifford_qc.bridges`. Each has a
 supported operation subset; installing a bridge does not make arbitrary
 circuits portable between frameworks.
 
+To see which capabilities an installation has — without importing any of them,
+so the check is fast and side-effect free:
+
+```bash
+python -m clifford_qc.capabilities
+```
+
+```
+  [yes] sparse_linalg                  extra=research
+  [no ] pyzx_bridge                    extra=pyzx  (pip install -e '.[pyzx]')
+```
+
+`--require NAME` exits non-zero when a named capability is absent, so a CI job
+or a script can state the environment it expects instead of discovering the
+answer through a failure further in. `clifford_qc.capabilities.capabilities()`
+returns the same report as a dict, and `python -m clifford_qc.verify` prints it
+alongside the smoke check. Every entry names the extra that supplies it, and so
+does the `ImportError` raised by a feature whose extra is missing.
+
 ## Quick start
 
 ### Operator calculations

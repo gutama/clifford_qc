@@ -15,6 +15,10 @@ sector leakage rather than calling the qubit pool symmetry preserving.
 from __future__ import annotations
 
 import numpy as np
+from ..capabilities import require
+
+require('molecular_input', feature='clifford_qc.models.chemistry')
+
 from openfermion.chem import MolecularData
 from openfermion.ops import FermionOperator
 from openfermion.transforms import jordan_wigner

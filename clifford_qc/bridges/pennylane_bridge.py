@@ -10,6 +10,10 @@ from __future__ import annotations
 
 from functools import reduce
 
+from ..capabilities import require
+
+require('pennylane_bridge', feature='clifford_qc.bridges.pennylane_bridge')
+
 import pennylane as qml
 
 from ..ir import Parameter, PauliSum, Program, Rotor

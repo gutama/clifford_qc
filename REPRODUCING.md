@@ -116,7 +116,7 @@ No figure or table value in the manuscript is transcribed by hand, and
 ```bash
 python -m venv .venv && source .venv/bin/activate
 pip install -e .[test,research,stim]       # automatic CI extras
-pytest                                      # 2073 passed, 8 skipped
+pytest                                      # 2094 passed, 8 skipped
 ```
 
 This is the automatic CI dependency set; record gates additionally pin NumPy

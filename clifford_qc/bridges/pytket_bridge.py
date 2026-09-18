@@ -11,6 +11,10 @@ from __future__ import annotations
 
 import math
 
+from ..capabilities import require
+
+require('pytket_bridge', feature='clifford_qc.bridges.pytket_bridge')
+
 from pytket import Circuit, OpType
 from pytket.circuit import PauliExpBox
 from pytket.pauli import Pauli

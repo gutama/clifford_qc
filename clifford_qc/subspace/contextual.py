@@ -287,12 +287,12 @@ def compile_contextual_restriction(
     selection = select_contextual_stabilizers(
         hamiltonian, reference, count, tol=tol
     )
-    try:
-        import stim
-    except ImportError as exc:  # pragma: no cover - exercised without the extra
-        raise ImportError(
-            "compile_contextual_restriction requires the 'stim' optional dependency"
-        ) from exc
+    from ..capabilities import require
+
+    require("contextual_restriction",
+            feature="compile_contextual_restriction")
+
+    import stim
 
     from ..bridges.stim_bridge import CliffordMap
 
