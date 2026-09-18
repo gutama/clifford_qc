@@ -97,6 +97,35 @@ It verifies
 c_j^\dagger c_j=\frac12(1-Z_j).
 \]
 
+## Model metadata
+
+A `Model` states the conventions its Pauli sum is read under, and
+`models/metadata.py` enforces that in `Model.__post_init__`. Every model
+declares:
+
+```python
+metadata["metadata_schema"] == "clifford_qc.model_metadata.v1"
+metadata["kind"] in MODEL_KINDS   # fermionic_lattice, fermionic_orbital_basis,
+                                  # anderson_impurity, molecular, spin_lattice
+```
+
+A fermionic `kind` additionally declares `spin_convention` (`"interleaved"` or
+`"blocked"`), `spin_orbitals`, `n_spatial_orbitals`, `n_electrons`, and `sz`.
+A spin `kind` declares none of those and is refused if it tries: a spin
+Hamiltonian has no spin-orbital ordering, and a convention nothing honours is
+worse than an absent one. Build the dict with `model_metadata()`.
+
+`n` and the Pauli-word count are **not** required — the `Model` already carries
+them, and a second copy can drift. They are instead *checked* when present.
+
+Read `spin_convention` with `models.metadata.spin_convention(model)`, which
+raises rather than defaulting. There is no defensible default: under the wrong
+ordering the two-qubit reduction of the 2-site Hubbard dimer returns
+`-4.000000000000` instead of `-4.828427124746`, with no exception and a
+plausible one-word Hamiltonian, because `_spin_parity_rows` tapers a different
+row. `metadata_schema` is distinct from `schema`, which `models/effective.py`
+uses for the schema of the input payload a model was downfolded from.
+
 ## Rotor convention
 
 For a Hermitian Pauli-word generator `P` with `P*P = I`,

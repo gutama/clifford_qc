@@ -348,7 +348,12 @@ def test_spin_observables_are_rejected_on_the_wrong_model_kind():
         double_occupancy(spin_model, 0)
     with pytest.raises(ValueError, match="spin lattice"):
         link_correlations(hubbard(2))
-    with pytest.raises(ValueError, match="no lattice metadata"):
+    # `tfim` used to reach `observables` with no `kind` at all and was rejected
+    # for carrying no lattice metadata. Under the metadata contract it declares
+    # `spin_lattice`, so it now gets the same specific rejection as any other
+    # spin model -- the generic "no metadata" path is no longer reachable from a
+    # builder, which is the point of the contract.
+    with pytest.raises(ValueError, match="fermionic-lattice observable"):
         occupation(tfim(2), 0)
 
 

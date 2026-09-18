@@ -19,16 +19,33 @@ from dataclasses import dataclass, field
 import numpy as np
 
 from ..ir import PauliSum, PauliWord, Program
+from .metadata import SPIN_LATTICE, model_metadata, validate_model_metadata
 
 
 @dataclass(frozen=True)
 class Model:
+    """A Hamiltonian, its reference state, and the conventions both are read under.
+
+    ``metadata`` is a contract, not a free-form dict: it is validated against
+    :data:`~clifford_qc.models.metadata.MODEL_METADATA_SCHEMA` at construction.
+    A model whose spin ordering or sector cannot be read is one whose energies
+    cannot be compared with another model's, and the failure would otherwise
+    arrive as a plausible number rather than as an exception --- see
+    ``models/metadata.py`` for the 0.83 Ha worked example.  Build the dict with
+    :func:`~clifford_qc.models.metadata.model_metadata`.
+    """
+
     name: str
     n: int
     hamiltonian: PauliSum
     reference: Program
     hva_layers: tuple[tuple[str, tuple[PauliWord, ...]], ...]
     metadata: dict = field(default_factory=dict)
+
+    def __post_init__(self) -> None:
+        validate_model_metadata(self.metadata, n_qubits=self.n,
+                                model_name=self.name,
+                                pauli_words=len(self.hamiltonian.terms))
 
 
 def _word(n: int, factors: dict[int, str]) -> PauliWord:
@@ -66,7 +83,9 @@ def tfim(n: int, J: float = 1.0, h: float = 1.0, *, periodic: bool = False) -> M
         hamiltonian=PauliSum(n, terms),
         reference=ref,
         hva_layers=(("zz", bonds), ("x", fields)),
-        metadata={"J": float(J), "h": float(h), "periodic": bool(periodic)},
+        metadata=model_metadata(SPIN_LATTICE, J=float(J), h=float(h),
+                                periodic=bool(periodic), sites=n,
+                                lattice="chain"),
     )
 
 
@@ -96,7 +115,9 @@ def xxz(n: int, J: float = 1.0, delta: float = 1.0, *, periodic: bool = False) -
         hamiltonian=PauliSum(n, terms),
         reference=ref,
         hva_layers=(("xx", xx), ("yy", yy), ("zz", zz)),
-        metadata={"J": float(J), "delta": float(delta), "periodic": bool(periodic)},
+        metadata=model_metadata(SPIN_LATTICE, J=float(J), delta=float(delta),
+                                periodic=bool(periodic), sites=n,
+                                lattice="chain"),
     )
 
 
@@ -131,8 +152,10 @@ def random_ising(n: int, seed: int, J: float = 1.0, h: float = 1.0, *,
         hamiltonian=PauliSum(n, terms),
         reference=ref,
         hva_layers=(("zz", bonds), ("x", fields)),
-        metadata={"J": float(J), "h": float(h), "seed": int(seed),
-                  "spread": float(spread), "periodic": bool(periodic),
-                  "bond_couplings": [float(x) for x in Js],
-                  "field_couplings": [float(x) for x in hs]},
+        metadata=model_metadata(SPIN_LATTICE, J=float(J), h=float(h),
+                                seed=int(seed), spread=float(spread),
+                                periodic=bool(periodic), sites=n,
+                                lattice="chain",
+                                bond_couplings=[float(x) for x in Js],
+                                field_couplings=[float(x) for x in hs]),
     )

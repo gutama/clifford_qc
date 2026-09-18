@@ -35,6 +35,7 @@ from ..fermion import c_op, cdag_op
 from ..ir import PauliSum, Program
 from ..multivector import MV
 from .lattice import SPIN_DOWN, SPIN_UP, spin_orbital
+from .metadata import FERMIONIC_LATTICE, model_metadata
 from .spin import Model
 
 EFFECTIVE_HAMILTONIAN_SCHEMA = "clifford_qc.effective_hamiltonian.v1"
@@ -206,26 +207,29 @@ def effective_hamiltonian(payload: Mapping[str, Any]) -> Model:
     if not isinstance(source, Mapping):
         raise TypeError("source must be a mapping")
 
-    metadata = {
-        "kind": "fermionic_lattice",
-        "source_kind": "effective_hamiltonian",
-        "schema": EFFECTIVE_HAMILTONIAN_SCHEMA,
-        "sites": sites,
-        "rows": 1,
-        "cols": sites,
-        "n_orbitals": 1,
-        "spin_orbitals": n_qubits,
-        "spin_convention": "interleaved",
-        "bonds": bonds,
-        "n_electrons": n_electrons,
-        "sz": sz,
-        "one_body": _serializable_complex_matrix(matrix),
-        "onsite_u": list(onsite_u),
-        "chemical_potential": chemical_potential,
-        "energy_unit": energy_unit,
-        "source": dict(source),
-        "reference_occupied_spin_orbitals": list(occupied),
-    }
+    # ``schema`` here is the schema of the *input payload*; the metadata
+    # contract's own version travels as ``metadata_schema``.
+    metadata = model_metadata(
+        FERMIONIC_LATTICE,
+        spin_orbitals=n_qubits,
+        n_spatial_orbitals=sites,
+        n_electrons=n_electrons,
+        sz=sz,
+        spin_convention="interleaved",
+        source_kind="effective_hamiltonian",
+        schema=EFFECTIVE_HAMILTONIAN_SCHEMA,
+        sites=sites,
+        rows=1,
+        cols=sites,
+        n_orbitals=1,
+        bonds=bonds,
+        one_body=_serializable_complex_matrix(matrix),
+        onsite_u=list(onsite_u),
+        chemical_potential=chemical_potential,
+        energy_unit=energy_unit,
+        source=dict(source),
+        reference_occupied_spin_orbitals=list(occupied),
+    )
     return Model(name=name.strip(), n=n_qubits, hamiltonian=hamiltonian,
                  reference=reference, hva_layers=(), metadata=metadata)
 

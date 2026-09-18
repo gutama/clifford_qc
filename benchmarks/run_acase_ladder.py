@@ -46,40 +46,52 @@ def _water_geometry(scale: float):
             ("H", (-bond * math.sin(angle / 2), 0.0, bond * math.cos(angle / 2)))]
 
 
+def _with_kind(model):
+    """``(model, kind)``, with the kind taken from the model's own metadata."""
+    return model, model.metadata["kind"]
+
+
 def build_system(spec: dict):
-    """``(model, kind)`` for one ladder rung; chemistry imports stay lazy."""
+    """``(model, kind)`` for one ladder rung; chemistry imports stay lazy.
+
+    ``kind`` is read back off the model rather than restated here. It used to be
+    written out beside each builder call, which meant this function asserted a
+    model's kind independently of the model -- and for the builders that already
+    declared one, the two could disagree silently. Under the metadata contract
+    every ``Model`` states its own kind, so this reads it.
+    """
     spec = dict(spec)
     kind = spec.pop("type")
     if kind in ("h2", "h4", "lih", "water"):
         from clifford_qc.models import chemistry
 
         if kind == "h2":
-            return chemistry.h2(**spec), "molecular"
+            return _with_kind(chemistry.h2(**spec))
         if kind == "h4":
-            return chemistry.h4_chain(**spec), "molecular"
+            return _with_kind(chemistry.h4_chain(**spec))
         if kind == "lih":
-            return chemistry.lih(**spec), "molecular"
+            return _with_kind(chemistry.lih(**spec))
         scale = spec.pop("scale", 1.0)
         active = spec.pop("active", "4e4o")
         frozen = [0, 1, 2] if active == "4e4o" else [0]
         orbitals = [3, 4, 5, 6] if active == "4e4o" else [1, 2, 3, 4, 5, 6]
-        return chemistry.molecule_model(
+        return _with_kind(chemistry.molecule_model(
             _water_geometry(scale), name=f"h2o_{active}(scale={scale})",
-            occupied_indices=frozen, active_indices=orbitals, **spec), "molecular"
+            occupied_indices=frozen, active_indices=orbitals, **spec))
     if kind == "hubbard":
         from clifford_qc.models.lattice import hubbard
 
         shape = spec.pop("shape")
-        return hubbard(tuple(shape) if isinstance(shape, list) else shape,
-                       **spec), "fermionic_lattice"
+        return _with_kind(hubbard(tuple(shape) if isinstance(shape, list)
+                                  else shape, **spec))
     if kind == "kitaev":
         from clifford_qc.models.lattice import kitaev_honeycomb
 
-        return kitaev_honeycomb(**spec), "spin_lattice"
+        return _with_kind(kitaev_honeycomb(**spec))
     if kind == "tfim":
         from clifford_qc.models.spin import tfim
 
-        return tfim(**spec), "spin_lattice"
+        return _with_kind(tfim(**spec))
     raise ValueError(f"unknown system type {kind!r}")
 
 

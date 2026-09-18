@@ -16,6 +16,9 @@ from .orbital import (OrbitalBasis, as_basis, givens_network, givens_rotation,
                       momentum_basis, natural_orbital_basis,
                       orbital_rotation_program, rotate_model, rotate_one_body,
                       site_basis, wavelet_basis)
+from .metadata import (FERMIONIC_KINDS, MODEL_KINDS, MODEL_METADATA_SCHEMA,
+                       SPIN_KINDS, model_metadata, spin_convention,
+                       validate_model_metadata)
 from .observables import (double_occupancy, link_correlations, magnetization,
                           occupation, spin_correlation, spin_operators,
                           structure_factor, total_spin_squared)
@@ -35,4 +38,6 @@ __all__ = [
     "wavelet_basis", "natural_orbital_basis", "rotate_one_body",
     "rotate_model", "givens_rotation", "givens_network",
     "orbital_rotation_program",
+    "MODEL_METADATA_SCHEMA", "MODEL_KINDS", "FERMIONIC_KINDS", "SPIN_KINDS",
+    "model_metadata", "validate_model_metadata", "spin_convention",
 ]

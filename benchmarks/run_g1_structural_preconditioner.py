@@ -35,6 +35,7 @@ from pathlib import Path
 from typing import Sequence
 
 from clifford_qc.backends import ExactMVBackend
+from clifford_qc.models.metadata import spin_convention
 from clifford_qc.fermion_mapping import fermion_encoding
 from clifford_qc.reproducibility import stamp_record
 from clifford_qc.subspace.contracts import as_multivector
@@ -164,7 +165,7 @@ def _restriction_for(model, arm: str):
         model.n,
         n_electrons=int(model.metadata["n_electrons"]),
         sz=float(model.metadata["sz"]),
-        spin_ordering=model.metadata.get("spin_convention", "interleaved"),
+        spin_ordering=spin_convention(model),
     )
     return encoding.restriction()
 
@@ -319,7 +320,7 @@ def build_pool_record(
 
 def build_system_record(spec: dict, config: dict) -> dict:
     model, construction, occupied, reference = _instance(spec)
-    spin_ordering = model.metadata.get("spin_convention", "interleaved")
+    spin_ordering = spin_convention(model)
     restriction = _restriction_for(model, config["restriction_arm"]["encoding"])
     pools = config["candidate_pools"]
     index = determinant_index(model.n, occupied)
@@ -426,7 +427,7 @@ def build_degree_sweep(spec: dict, config: dict) -> dict:
     reader to read a trend into it.
     """
     model, _, occupied, reference = _instance(spec)
-    spin_ordering = model.metadata.get("spin_convention", "interleaved")
+    spin_ordering = spin_convention(model)
     restriction = _restriction_for(model, config["restriction_arm"]["encoding"])
     index = determinant_index(model.n, occupied)
     pools = config["candidate_pools"]
@@ -483,7 +484,7 @@ def build_character_probe(spec: dict, config: dict) -> dict:
     by whoever opens section 7.4's track.
     """
     model, _, occupied, reference = _instance(spec)
-    spin_ordering = model.metadata.get("spin_convention", "interleaved")
+    spin_ordering = spin_convention(model)
     restriction = _restriction_for(model, config["restriction_arm"]["encoding"])
     pool = majorana_monomial_pool(
         model.n, max_degree=int(config["candidate_pools"]["majorana_monomials"]["max_degree"]))
