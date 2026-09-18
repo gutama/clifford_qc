@@ -27,13 +27,24 @@ repeated molecular calculations.
 
 - `manuscript.tex` — REVTeX 4.2 (`aps,pra`) source.
 - `references.bib` — bibliography. Entries shared with the companion
-  manuscripts are copied verbatim from theirs.
+  manuscripts are copied verbatim from theirs, with one documented exception:
+  the companion preprint is entered as `@misc` with an `eprint` field, because
+  the `@article` form the others use makes `apsrev4-2` print the identifier
+  twice. `paper_a_case_subspaces/` is a frozen published snapshot and is not
+  edited to match.
 - `make_tables.py` — regenerates `tables/*.tex` and `data/source_census.json`.
 - `make_figures.py` — regenerates `paper_assets/*.pdf` and their manifest.
   Matplotlib is imported at call time, so the manuscript gate runs in an
   environment without a plotting stack.
 - `check_manuscript.py` — the gate: structure, citations, table column counts,
   generated-number coverage, artifact freshness, and the source census.
+- `make_arxiv.py` — assembles the arXiv submission package and rebuilds it the
+  way arXiv will, with `pdflatex` alone and no `references.bib` in reach. Its
+  `--check` mode needs no TeX and also guards the bibliography against a
+  comment BibTeX would read as an entry.
+- `ARXIV.md` — the submission itself: form fields, categories, what the archive
+  holds and what it deliberately leaves out, and the decisions the script
+  cannot make.
 - `data/source_census.json` — the committed census of the package, the
   benchmark gates, and the evidence declarations of the record set.
 
@@ -51,6 +62,19 @@ pdflatex manuscript && bibtex manuscript && pdflatex manuscript && pdflatex manu
 tree so the committed fragments can be compared byte for byte.  The figure
 generator does not run in CI because it needs a plotting stack; figure drift is
 checked through the committed input manifest instead.
+
+For the submission package:
+
+```bash
+python paper_architecture/make_arxiv.py --check   # structural, no TeX needed
+python paper_architecture/make_arxiv.py           # stage, archive, verify
+```
+
+The structural half runs in CI beside the manuscript gate.  The full build
+stages only the files the manuscript reads, then rebuilds that staging tree
+with `pdflatex` alone — no BibTeX, no `references.bib` — because that is what
+arXiv does, and a submission that silently drops its bibliography compiles
+perfectly well locally.  See [ARXIV.md](ARXIV.md).
 
 ## Data → manuscript map
 
@@ -123,7 +147,14 @@ them.
 
 `tests/test_paper_architecture_gate.py` pins the parts of this that have
 already been wrong once: an evidence *role* counted as a tier, a nested tier
-change that moved nothing the census compared, and a hand-edited fragment that
-passed a check over its inputs. Fault injection is still the quickest
-confirmation by hand: rename a module without assigning it a layer, drop a gate
-from the workflow, or type a number into a paragraph, and the checker names it.
+change that moved nothing the census compared, a hand-edited fragment that
+passed a check over its inputs, and a rewrapped paragraph reported as a dropped
+evidence commitment. Fault injection is still the quickest confirmation by
+hand: rename a module without assigning it a layer, drop a gate from the
+workflow, or type a number into a paragraph, and the checker names it.
+
+`tests/test_paper_architecture_arxiv.py` does the same for the submission
+package, where the failures are ones a local build cannot produce: a `.bbl`
+left out of an upload arXiv will not rebuild, a `\pdfoutput` too far down the
+preamble for arXiv to read, and a path that resolves here through a directory
+the archive does not carry.

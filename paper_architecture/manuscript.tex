@@ -1,4 +1,14 @@
-\documentclass[aps,pra,reprint,superscriptaddress,nofootinbib,floatfix]{revtex4-2}
+% arXiv decides between latex+dvips and pdflatex by scanning the first few
+% lines of the source.  Every figure in this paper is a committed PDF, so the
+% choice has to be pdflatex and is pinned here rather than left to inference.
+\pdfoutput=1
+
+% ``showkeys'' prints the keyword list under the abstract.  The journal
+% style drops keywords silently, and REVTeX warns about it on every run;
+% on a preprint they are worth showing, and the warning is worth not
+% training a reader of the log to ignore.
+\documentclass[aps,pra,reprint,superscriptaddress,nofootinbib,floatfix,
+  showkeys]{revtex4-2}
 
 \usepackage{amsmath,amssymb,bm}
 \usepackage{graphicx}
@@ -69,29 +79,38 @@ Bandung, Indonesia}
 \affiliation{Department of Engineering Physics, Institut Teknologi Bandung,
 Bandung, Indonesia}
 
-\date{September 16, 2026}
+\date{September 18, 2026}
 
 \begin{abstract}
 \pkg{} is a Python research toolkit for building quantum models, testing
-variational and subspace eigensolvers, and estimating measurement resources.
-A shared sparse Pauli representation connects operator algebra, circuit
+variational and subspace eigensolvers, and estimating measurement resources. A
+shared sparse Pauli representation connects operator algebra, circuit
 programs, fermionic models, and exact or sampled calculations. The package
 provides spin and lattice models, molecular integral import, adaptive
 operator-response subspaces, sampled-determinant methods, shared measurement
 caches, and optional interfaces to other quantum software. Repeated molecular
-experiments can reuse a prepared model, run independent solves, and request
-classical validation separately. Object and packed coefficient storage offer
-explicit memory--recomputation choices. We explain these features through their
-interfaces and evaluate the measurement and cost layers using committed
-small-system records. Fully commuting measurement reduces the shot budget for
-a fixed Ritz functional, but its benefit depends on circuit cost and device
-assumptions. Other records identify bias floors and inconclusive comparisons.
-Evidence labels, resource reports, and reproducibility checks make these limits
-visible, although evidence labels are not yet validated uniformly across all
-records. The package is intended for method development and reproducible
-comparisons; the results establish neither hardware performance nor a general
-simulation speedup.
+experiments reuse a prepared model, solve independently, and validate
+separately; object or packed coefficient storage exposes an explicit
+memory--recomputation choice. We explain these features through their
+interfaces and evaluate the measurement and cost layers on committed
+small-system records. Fully commuting measurement certifies a fixed Ritz
+functional at a small fraction of the qubit-wise shot budget, but whether the
+saving survives depends on the device: a slow-gate card spends most of it on
+two-qubit gate time, and a sparse-connectivity card refuses the protocol as
+inadmissible. The same block-size trade reverses between two eight-qubit
+banks. Further records report a subspace bias floor no shot budget can clear,
+an encoding-versus-instance comparison still indeterminate after a targeted
+refinement, and a preregistered screen where no restriction rung admits all
+four arms. Evidence labels, resource reports, and reproducibility checks make
+these limits visible, although evidence labels are not yet validated uniformly
+across all records. The package is intended for method development and
+reproducible comparisons; the results establish neither hardware performance
+nor a general simulation speedup.
 \end{abstract}
+
+\keywords{quantum simulation software; variational quantum eigensolver;
+quantum subspace methods; Pauli operator algebra; measurement grouping;
+shot allocation; reproducible research}
 
 \maketitle
 
@@ -127,10 +146,23 @@ the software that supports it and the other implemented methods.
 
 The contribution is the integration of reusable components: one operator
 algebra, explicit execution interfaces, shared measurement data, configurable
-coefficient storage, and benchmark records with stated assumptions. Existing
-quantum software remains useful through optional bridges, including
-OpenFermion \cite{mcclean2020openfermion}. We make no advantage claim over those
-packages and provide no comparative benchmark against them.
+coefficient storage, and benchmark records with stated assumptions.
+
+\pkg{} is not a replacement for the established quantum software stack; it is
+built to sit beside it. General-purpose frameworks such as Qiskit
+\cite{javadiabhari2024qiskit} and PennyLane \cite{bergholm2018pennylane} cover
+circuit construction, differentiation, and hardware execution; OpenFermion
+\cite{mcclean2020openfermion} and Tequila \cite{kottmann2021tequila} cover
+electronic-structure workflows and algorithm prototyping; pytket
+\cite{sivarajah2020tket} compiles and routes, PyZX \cite{kissinger2020pyzx}
+rewrites circuit diagrams, and Stim \cite{gidney2021stim} specializes in
+stabilizer simulation. \pkg{} occupies a narrower position: one sparse operator
+type shared by algebra, circuits, models, and estimators; measurement data
+reused across observables and projected matrix elements; and result records
+that carry the evidence category and the device assumptions behind each number.
+Optional bridges keep the other tools reachable from the same model. We make no
+advantage claim over those packages and provide no comparative benchmark
+against them.
 
 Section~\ref{sec:features} introduces the capabilities and a typical workflow.
 Section~\ref{sec:architecture} explains the representation and interfaces.
@@ -144,8 +176,9 @@ committed evidence. The final sections discuss limitations and reproducibility.
 Table~\ref{tab:features} groups the implemented features by the task they help a
 user perform. These capabilities can be used independently: an operator-algebra
 experiment does not require the subspace solvers, and importing the core package
-does not load optional quantum software. The core runtime dependency is NumPy;
-SciPy and the chemistry and bridge packages are installed as separate extras.
+does not load optional quantum software. The core runtime dependency is NumPy
+\cite{harris2020numpy}; SciPy \cite{virtanen2020scipy} and the chemistry and
+bridge packages are installed as separate extras.
 
 \begin{table*}
   \caption{Implemented capabilities and their intended use. Entry points refer
@@ -194,8 +227,9 @@ Pauli, commutator, Krylov, and configuration directions. VQE and ADAPT-VQE
 provide circuit-based comparisons \cite{peruzzo2014vqe,grimsley2019adapt}.
 Quantum-selected configuration interaction (QSCI) and sample-based quantum
 diagonalization (SQD) instead select determinants and build their projected
-Hamiltonian classically \cite{kanno2026qsci}. Selected-CI controls and hybrid
-bases help distinguish the benefit of sampling from that of basis construction.
+Hamiltonian classically \cite{kanno2026qsci,robledomoreno2025sqd}. Selected-CI
+controls \cite{huron1973cipsi} and hybrid bases help distinguish the benefit of
+sampling from that of basis construction.
 For determinant methods, zero measured matrix-element words does not mean zero
 cost: state preparation, sampling yield, matrix construction, and diagonalization
 still matter.
@@ -271,10 +305,11 @@ which is the first place scope would be lost.
 The numerical kernel's canonical operator type is the multivector \texttt{MV}, a
 sparse map from packed Pauli-word codes to complex coefficients, two bits per
 qubit, with multiplication implemented as exclusive-or, and-mask and population
-count modulo four.  States, gates, Kraus channels, Jordan--Wigner Clifford
-generators and fermionic creation and annihilation operators all lower to this
-type.  The public program intermediate representation exposes a distinct
-\texttt{PauliSum} container for Hamiltonians and observables; its
+count modulo four.  States, gates, Kraus channels, Jordan--Wigner
+\cite{jordan1928} Clifford generators and fermionic creation and annihilation
+operators all lower to this type.  The public program intermediate
+representation exposes a distinct \texttt{PauliSum} container for Hamiltonians
+and observables; its
 \texttt{to\_mv} and \texttt{from\_mv} boundary is exact and uses the same packed
 word codes.  It is a real container conversion, and it is deliberately not a
 change of algebraic basis or operator semantics.  Benchmarks therefore need not
@@ -710,7 +745,7 @@ A cross-check against the independently produced shot-search record agrees on
 \cqcCrossAgreeing{} of \cqcCrossChecked{} compared crossings, and the record
 classifies each disagreement as environment-marginal rather than substantive.
 
-\section{Limits identified by the benchmarks}
+\section{Negative and indeterminate results}
 \label{sec:refused}
 
 These studies identify conditions under which a proposed comparison cannot
@@ -752,8 +787,9 @@ indeterminate}
   \end{ruledtabular}
 \end{table*}
 
-A natural design question for a framework supporting several fermionic encodings
-is whether the encoding choice matters more than the problem instance.  If it
+A natural design question for a framework supporting several fermionic
+encodings \cite{jordan1928,bravyi2002fermionic,seeley2012bravyikitaev} is
+whether the encoding choice matters more than the problem instance.  If it
 does, an encoding-selection layer is worth building.  The question was asked on
 three tiers and Table~\ref{tab:qr3} reports all of them.
 
@@ -971,6 +1007,19 @@ identify accuracy or cost assumptions that fail. Small-system evidence,
 illustrative device cards, and incomplete evidence-schema coverage limit the
 claims. Within those limits, the package provides a working foundation for
 reproducible quantum simulation research.
+
+\section*{Code and data availability}
+
+The package source, the committed records behind every number in this paper,
+the generators that turn those records into its tables and figures, and the
+checker that gates the manuscript against them are versioned together in one
+Apache-licensed repository at
+\url{https://github.com/gutama/clifford_qc}. The manuscript sources are under
+\texttt{paper\_architecture/}; \texttt{REPRODUCING.md} records the environment
+each record was produced in, and \texttt{CITATION.cff} carries the citation
+metadata for the source itself. Rebuilding the paper requires no data outside
+that repository. As Sec.~\ref{sec:discussion} states, no archival identifier or
+package-index release exists yet.
 
 \begin{acknowledgments}
 We thank the maintainers of the open-source quantum software ecosystem that

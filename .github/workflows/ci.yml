@@ -77,6 +77,14 @@ jobs:
       - name: architecture manuscript
         if: ${{ !cancelled() }}
         run: python paper_architecture/check_manuscript.py
+      # The submission package is what arXiv builds, and it differs from a
+      # local build in ways a local build cannot show: no BibTeX run, a
+      # toolchain chosen from the opening lines, one flat directory. The
+      # structural half of that contract needs no TeX installation, so it runs
+      # here; the full staged rebuild needs pdflatex and stays a local step.
+      - name: arxiv submission package
+        if: ${{ !cancelled() }}
+        run: python paper_architecture/make_arxiv.py --check
 
   structural-records:
     name: ${{ matrix.gate }} (structural)

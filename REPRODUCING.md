@@ -116,7 +116,7 @@ No figure or table value in the manuscript is transcribed by hand, and
 ```bash
 python -m venv .venv && source .venv/bin/activate
 pip install -e .[test,research,stim]       # automatic CI extras
-pytest                                      # 2011 passed, 8 skipped
+pytest                                      # 2032 passed, 8 skipped
 ```
 
 This is the automatic CI dependency set; record gates additionally pin NumPy
@@ -131,7 +131,7 @@ the remaining `8 - 6 = 2` skips are per-test and *are* collected:
 
 ```text
 collected == passed + (skipped - files dropped at collection)
-2013      == 2011   + (8       -   6)
+2034      == 2032   + (8       -   6)
 ```
 
 Both sides are computed from the tree, so a drift in either quoted number

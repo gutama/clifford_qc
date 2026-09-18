@@ -441,9 +441,15 @@ def main() -> int:
                         f"the committed {section} census no longer matches the "
                         "repository (run paper_architecture/make_tables.py)")
 
-    comment_stripped_body = _prose(text)
+    # Whitespace is collapsed on both sides before the search.  The invariant
+    # is the statement, not its line breaks: LaTeX source rewraps freely, and a
+    # phrase that a reflow split across two source lines is still present in
+    # the paper.  Matching the raw text made the gate report a missing
+    # commitment whenever a paragraph was rewrapped, which is a false alarm
+    # that teaches an author to stop trusting the check.
+    comment_stripped_body = " ".join(_prose(text).split())
     for phrase in REQUIRED_PHRASES:
-        if phrase not in comment_stripped_body:
+        if " ".join(phrase.split()) not in comment_stripped_body:
             problems.append(f"required evidence-language phrase is missing: "
                             f"{phrase!r}")
 
