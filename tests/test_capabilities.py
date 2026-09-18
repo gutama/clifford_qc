@@ -110,15 +110,33 @@ def test_declared_extras_cover_every_optional_dependency_in_pyproject():
 
 
 # ------------------------------------------------------------ report shape
-def test_the_report_covers_every_capability_without_importing_anything():
-    before = set(sys.modules)
+def test_the_report_covers_every_capability_without_importing_anything(monkeypatch):
+    """No capability module is executed to answer whether it is installed.
+
+    Snapshotting ``sys.modules`` is not enough on its own: by the time this
+    file runs, the modules that *are* installed have usually been imported by
+    an earlier test, and the ones that are not cannot be loaded by any
+    implementation -- so the test passes whatever ``_importable`` does. The
+    probe is therefore pointed at a module that is importable, definitely not
+    yet imported, and cheap: a standard-library one, unloaded for the duration.
+    """
     report = caps.capabilities()
     assert set(report) == set(caps.CAPABILITIES)
-    # find_spec locates without executing, so no capability module is now loaded
-    # that was not loaded before. (Import machinery may add its own entries.)
-    newly_loaded = {name for name in set(sys.modules) - before
-                    if name in caps.optional_modules()}
-    assert newly_loaded == set()
+
+    canary = "wave"  # stdlib, importable, not pulled in by this package
+    monkeypatch.delitem(sys.modules, canary, raising=False)
+    monkeypatch.setattr(caps, "CAPABILITIES", dict(
+        caps.CAPABILITIES,
+        _canary=caps.Capability("_canary", (canary,), "research", "probe", ("x",)),
+    ))
+    caps._importable.cache_clear()
+    try:
+        assert caps.capabilities()["_canary"]["available"] is True
+        assert canary not in sys.modules, (
+            f"capabilities() imported {canary!r} to find out whether it exists; "
+            "the report must locate modules without executing them")
+    finally:
+        caps._importable.cache_clear()
 
 
 @pytest.mark.parametrize("capability", sorted(caps.CAPABILITIES))
@@ -218,3 +236,168 @@ def test_a_deep_entry_point_states_its_own_requirement():
         return
     with pytest.raises(ImportError, match="stim"):  # pragma: no cover
         encoding.restriction()
+
+
+def _module_scope_optional_imports(tree, optional) -> set[str]:
+    """Optional dependencies imported at a module's top level, not in a function."""
+    names: set[str] = set()
+    for node in tree.body:  # direct children only: module scope by definition
+        if isinstance(node, ast.Import):
+            found = [alias.name.split(".")[0] for alias in node.names]
+        elif isinstance(node, ast.ImportFrom):
+            found = [] if node.level else [(node.module or "").split(".")[0]]
+        else:
+            continue
+        names.update(name for name in found if name in optional)
+    return names
+
+
+def _calls_require_at_module_scope(tree) -> bool:
+    for node in tree.body:
+        if not isinstance(node, ast.Expr) or not isinstance(node.value, ast.Call):
+            continue
+        func = node.value.func
+        name = func.attr if isinstance(func, ast.Attribute) else getattr(func, "id", "")
+        if name == "require":
+            return True
+    return False
+
+
+def test_every_module_scope_optional_import_is_guarded():
+    """The invariant the table exists to enforce, not just to describe.
+
+    ``test_every_optional_import_in_the_tree_is_claimed`` checks that a
+    dependency is *named* in the table. It does not check that the module
+    importing it says so before the interpreter does -- so deleting any
+    ``require()`` call, or adding a ninth unguarded module-scope ``import
+    stim``, passed the whole suite and quietly restored the bare
+    four-frames-down ``ModuleNotFoundError`` this module removes.
+    """
+    optional = set(caps.optional_modules())
+    unguarded = {}
+    for path in sorted(PACKAGE.rglob("*.py")):
+        tree = ast.parse(path.read_text(encoding="utf-8"))
+        imports = _module_scope_optional_imports(tree, optional)
+        if imports and not _calls_require_at_module_scope(tree):
+            unguarded[str(path.relative_to(ROOT))] = sorted(imports)
+    assert unguarded == {}, (
+        "these modules import an optional dependency at module scope without a "
+        f"module-scope require(): {unguarded}")
+
+
+def test_the_guard_check_is_not_vacuous(tmp_path):
+    """A negative control: the check above must actually fire."""
+    optional = set(caps.optional_modules())
+    guarded = ast.parse("from .capabilities import require\n"
+                        "require('stabilizer_backend')\n"
+                        "import stim\n")
+    bare = ast.parse("import stim\n")
+    assert _module_scope_optional_imports(bare, optional) == {"stim"}
+    assert not _calls_require_at_module_scope(bare)
+    assert _calls_require_at_module_scope(guarded)
+    # An import inside a function is not module scope and needs no guard.
+    lazy = ast.parse("def f():\n    import stim\n    return stim\n")
+    assert _module_scope_optional_imports(lazy, optional) == set()
+
+
+def test_every_entry_point_resolves_to_something_in_the_tree():
+    """`entry_points` is documentation, and undocumented drift is how it rots.
+
+    The field tells a reader where a capability is actually used; nothing
+    checked it, so a renamed or deleted entry point stayed listed. Each entry
+    is a dotted path under ``clifford_qc``; its longest module prefix must be a
+    real file, and any remaining attributes must exist in that file's AST.
+    """
+    unresolved = {}
+    for name, record in caps.CAPABILITIES.items():
+        for entry in record.entry_points:
+            parts = entry.split(".")
+            for cut in range(len(parts), 0, -1):
+                module = PACKAGE.joinpath(*parts[:cut])
+                candidate = module.with_suffix(".py")
+                if candidate.exists():
+                    break
+                if (module / "__init__.py").exists():
+                    candidate = module / "__init__.py"
+                    break
+            else:
+                unresolved[f"{name}:{entry}"] = "no module prefix exists"
+                continue
+            tree = ast.parse(candidate.read_text(encoding="utf-8"))
+            defined = {node.name for node in ast.walk(tree)
+                       if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef,
+                                            ast.ClassDef))}
+            for attribute in parts[cut:]:
+                if attribute not in defined:
+                    unresolved[f"{name}:{entry}"] = f"{attribute!r} not in {candidate.name}"
+    assert unresolved == {}, f"capability entry points that do not resolve: {unresolved}"
+
+
+# ------------------------------------------------------------------- the CLI
+def test_the_cli_reports_every_capability(capsys):
+    assert caps._main([]) == 0
+    printed = capsys.readouterr().out
+    for name in caps.CAPABILITIES:
+        assert name in printed
+    assert "clifford_qc optional capabilities" in printed
+
+
+def test_require_flag_decides_the_exit_code(capsys):
+    """The contract a CI job leans on, which nothing exercised.
+
+    `--require` is the reason this module has a command line at all: a job says
+    which environment it believes it is in and fails loudly when it is wrong.
+    An unconditional `return 0` would have shipped silently.
+    """
+    present = [n for n in caps.CAPABILITIES if caps.available(n)]
+    absent = [n for n in caps.CAPABILITIES if not caps.available(n)]
+    if present:
+        assert caps._main(["--require", present[0]]) == 0
+        assert "REQUIRED but absent" not in capsys.readouterr().out
+    if absent:
+        assert caps._main(["--require", absent[0]]) == 1
+        out = capsys.readouterr().out
+        assert f"REQUIRED but absent: {absent[0]}" in out
+        assert caps.install_hint(absent[0]) in out
+    if present and absent:
+        # One unmet requirement is enough to fail the whole invocation.
+        assert caps._main(["--require", present[0], "--require", absent[0]]) == 1
+
+
+def test_an_unknown_required_capability_is_a_usage_error():
+    with pytest.raises(SystemExit) as raised:
+        caps._main(["--require", "teleportation"])
+    assert raised.value.code == 2  # argparse usage error, not a silent pass
+
+
+# --------------------------------------------------------- exported surface
+def test_the_public_surface_rejects_unknown_names_consistently():
+    """One catchable error type across the exported functions."""
+    for function in (caps.available, caps.missing_modules, caps.install_hint):
+        with pytest.raises(ValueError, match="unknown capability"):
+            function("bogus")
+
+
+def test_format_report_handles_an_empty_report():
+    """`report` is a parameter, so a caller may filter it down to nothing."""
+    assert caps.format_report({}) == ""
+
+
+def test_a_namespace_package_does_not_count_as_available(tmp_path, monkeypatch):
+    """A bare directory on sys.path is not the dependency it is named after.
+
+    `find_spec` synthesises a namespace-package spec with no loader for any
+    directory carrying the right name, so without the loader check a stray
+    `pyzx/` in the working directory reports the bridge as available and the
+    caller meets `No module named 'pyzx.circuit'` further in.
+    """
+    victim = next(iter(caps.CAPABILITIES["pyzx_bridge"].modules))
+    (tmp_path / victim).mkdir()
+    monkeypatch.syspath_prepend(str(tmp_path))
+    caps._importable.cache_clear()
+    try:
+        import importlib.util
+        assert importlib.util.find_spec(victim) is not None  # the trap
+        assert not caps._importable(victim)  # ... which we do not fall into
+    finally:
+        caps._importable.cache_clear()

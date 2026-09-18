@@ -261,10 +261,12 @@ def run_verification() -> None:
     print("\n-- optional capabilities --")
     # Reported, never asserted: the core install is numpy-only by design, so a
     # missing extra is a fact about this environment and not a failure.
-    from .capabilities import CAPABILITIES, format_report, missing_capabilities
+    from .capabilities import (CAPABILITIES, capabilities, format_report,
+                               missing_capabilities)
 
-    print(format_report())
-    absent = missing_capabilities()
+    report = capabilities()
+    print(format_report(report))
+    absent = missing_capabilities(report)
     print(f"  {len(CAPABILITIES) - len(absent)}/{len(CAPABILITIES)} available"
           + (f"; absent: {', '.join(absent)}" if absent else ""))
 

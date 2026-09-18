@@ -94,8 +94,8 @@ python -m clifford_qc.capabilities
 
 `--require NAME` exits non-zero when a named capability is absent, so a CI job
 or a script can state the environment it expects instead of discovering the
-answer through a failure further in. `clifford_qc.capabilities.capabilities()`
-returns the same report as a dict, and `python -m clifford_qc.verify` prints it
+answer through a failure further in. `from clifford_qc import capabilities;
+capabilities.capabilities()` returns the same report as a dict, and `python -m clifford_qc.verify` prints it
 alongside the smoke check. Every entry names the extra that supplies it, and so
 does the `ImportError` raised by a feature whose extra is missing.
 

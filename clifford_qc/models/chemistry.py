@@ -17,7 +17,7 @@ from __future__ import annotations
 import numpy as np
 from ..capabilities import require
 
-require('molecular_input', feature='clifford_qc.models.chemistry')
+require('fermionic_operators', feature='clifford_qc.models.chemistry')
 
 from openfermion.chem import MolecularData
 from openfermion.ops import FermionOperator
@@ -58,6 +58,8 @@ def molecule_model(geometry, basis: str = "sto-3g", multiplicity: int = 1,
     energy lands in the Hamiltonian's identity term, so ``exact_ground``
     of the returned Hamiltonian matches the active-space FCI energy.
     """
+    require('molecular_input', feature='molecule_model')
+
     from openfermionpyscf import run_pyscf
 
     molecule = run_pyscf(MolecularData(geometry, basis, multiplicity, charge,

@@ -33,6 +33,7 @@ from becoming the stale list it replaces.
 
 from __future__ import annotations
 
+import functools
 import importlib.util
 from typing import Iterable, NamedTuple
 
@@ -74,10 +75,14 @@ CAPABILITIES: dict[str, Capability] = {
              "algorithms.initialization"),
         ),
         Capability(
-            "molecular_input", ("openfermion", "openfermionpyscf", "pyscf"),
-            "chemistry",
-            "PySCF/OpenFermion molecular model generation (FCIDUMP needs none of it)",
-            ("models.chemistry",),
+            "fermionic_operators", ("openfermion",), "openfermion",
+            "JW excitation generators and pools (FCIDUMP needs none of it)",
+            ("models.chemistry", "subspace.fermionic_generators"),
+        ),
+        Capability(
+            "molecular_input", ("openfermionpyscf", "pyscf"), "chemistry",
+            "PySCF molecular structure input -- the SCF run behind a Model",
+            ("models.chemistry.molecule_model",),
         ),
         Capability(
             "openfermion_bridge", ("openfermion",), "openfermion",
@@ -103,17 +108,31 @@ CAPABILITIES: dict[str, Capability] = {
 }
 
 
+@functools.lru_cache(maxsize=None)
 def _importable(module: str) -> bool:
     """Is ``module`` importable, without importing it.
 
     ``find_spec`` raises rather than returning ``None`` when an ancestor
     package is itself missing or broken, and a broken install should read as
     unavailable rather than as a crash in the capability report.
+
+    A spec with no loader is a *namespace* package -- what Python synthesises
+    for any directory on ``sys.path`` that happens to carry the right name. A
+    stray ``pyzx/`` in the working directory would otherwise be reported as the
+    real thing, and the caller would meet ``No module named 'pyzx.circuit'``
+    further in, which is the failure shape this module exists to remove. A real
+    optional dependency always has a loader, so requiring one costs nothing and
+    is still no import.
+
+    Cached because three capabilities claim ``stim`` and two claim
+    ``openfermion``: one report would otherwise walk ``sys.path`` through every
+    meta-path finder several times for the same answer.
     """
     try:
-        return importlib.util.find_spec(module) is not None
+        spec = importlib.util.find_spec(module)
     except (ImportError, ValueError):
         return False
+    return spec is not None and spec.loader is not None
 
 
 def missing_modules(capability: str) -> tuple[str, ...]:
@@ -133,8 +152,21 @@ def available(capability: str) -> bool:
 
 
 def install_hint(capability: str) -> str:
-    """The pip command that supplies a capability's extra."""
-    return f"pip install -e '.[{CAPABILITIES[capability].extra}]'"
+    """The pip command that supplies a capability's extra.
+
+    Phrased against the published distribution rather than an editable
+    checkout: this string is the only guidance emitted at every ``require()``
+    site and in the CLI, and someone who ran ``pip install clifford-qc`` has no
+    ``.`` to install from. ``clifford_qc/bridges/__init__.py`` already documents
+    this form.
+    """
+    try:
+        record = CAPABILITIES[capability]
+    except KeyError:
+        raise ValueError(
+            f"unknown capability {capability!r}; expected one of "
+            f"{sorted(CAPABILITIES)}") from None
+    return f"pip install 'clifford-qc[{record.extra}]'"
 
 
 def capabilities() -> dict[str, dict]:
@@ -194,6 +226,8 @@ def require(capability: str, *, feature: str | None = None) -> None:
 def format_report(report: dict[str, dict] | None = None) -> str:
     """The capability report as aligned text, for ``verify`` and the CLI."""
     report = capabilities() if report is None else report
+    if not report:
+        return ""
     width = max(len(name) for name in report)
     lines = []
     for name in sorted(report):
@@ -242,9 +276,10 @@ def _main(argv: Iterable[str] | None = None) -> int:
         parser.error(f"unknown capability {unknown}; expected one of "
                      f"{sorted(CAPABILITIES)}")
 
+    report = capabilities()
     print("clifford_qc optional capabilities\n")
-    print(format_report())
-    absent = missing_capabilities()
+    print(format_report(report))
+    absent = missing_capabilities(report)
     print()
     if absent:
         print(f"{len(absent)} of {len(CAPABILITIES)} unavailable: "
@@ -252,7 +287,7 @@ def _main(argv: Iterable[str] | None = None) -> int:
     else:
         print(f"all {len(CAPABILITIES)} capabilities available")
 
-    unmet = [name for name in arguments.require if not available(name)]
+    unmet = [name for name in arguments.require if not report[name]["available"]]
     if unmet:
         print()
         for name in unmet:

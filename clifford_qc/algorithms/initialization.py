@@ -217,6 +217,10 @@ def stabilizer_ground_program(approx: StabilizerApprox) -> Program:
     """Clifford Program preparing a joint eigenstate with <w> = sign_w for
     every generator (stim tableau synthesis; requires the ``stim`` extra).
     Underconstrained groups are completed arbitrarily by stim."""
+    from ..capabilities import require
+
+    require("contextual_restriction", feature="stabilizer_ground_program")
+
     import stim
 
     stabilizers = [stim.PauliString(("+" if sign > 0 else "-") + word.label)
