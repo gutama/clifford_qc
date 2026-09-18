@@ -218,15 +218,15 @@ def test_a_spin_lattice_rung_still_grows_under_a_requested_leakage_tolerance():
     pytest.importorskip("scipy")
     from clifford_qc.backends import ExactMVBackend
 
-    model, kind = run_acase_ladder.build_system({"type": "kitaev", "rows": 2, "cols": 2})
-    reference, _ = run_acase_ladder.reference_energy(model, kind)
+    model = run_acase_ladder.build_system({"type": "kitaev", "rows": 2, "cols": 2})
+    reference, _ = run_acase_ladder.reference_energy(model)
     context = {"rho": ExactMVBackend().state(model.reference, ()), "observables": {},
                "reference": reference,
-               "candidates": run_acase_ladder.build_candidates(model, kind, 8),
-               "pool": run_acase_ladder.word_pool(model, kind)}
+               "candidates": run_acase_ladder.build_candidates(model, 8),
+               "pool": run_acase_ladder.word_pool(model)}
     row = run_acase_ladder.run_method(
         "acase_exact", {"kind": "acase_exact", "max_size": 8, "leakage_tol": 1e-9},
-        model, kind, context)
+        model, context)
     assert "no fermionic sector" in row["leakage_filter"]
     assert row["energy"] == pytest.approx(reference, abs=1e-8)
     assert row["basis_size"] > 1
@@ -275,25 +275,25 @@ def test_both_fixed_arms_choose_their_slice_and_record_it():
     """
     from clifford_qc.backends import ExactMVBackend
 
-    model, kind = run_acase_ladder.build_system({"type": "tfim", "n": 4})
+    model = run_acase_ladder.build_system({"type": "tfim", "n": 4})
     context = {"rho": ExactMVBackend().state(model.reference, ()), "observables": {},
-               "candidates": run_acase_ladder.build_candidates(model, kind, 3),
-               "pool": run_acase_ladder.word_pool(model, kind)}
+               "candidates": run_acase_ladder.build_candidates(model, 3),
+               "pool": run_acase_ladder.word_pool(model)}
     for method, family in (("generator_coordinate", "candidates"), ("qse", "pool")):
         spec = {"kind": method, "size": 4}
         assert len(context[family]) > 4  # otherwise the two slices coincide
         prefix = run_acase_ladder.run_method(method, spec | {"selection": "prefix"},
-                                            model, kind, context)
+                                            model, context)
         stride = run_acase_ladder.run_method(method, spec | {"selection": "stride"},
-                                            model, kind, context)
+                                            model, context)
         assert prefix["selection"] == "prefix" and stride["selection"] == "stride"
         assert prefix["labels"] != stride["labels"], method
         # stride is the default, so the committed config's choice is not a trap
-        assert run_acase_ladder.run_method(method, spec, model, kind,
+        assert run_acase_ladder.run_method(method, spec, model,
                                           context)["labels"] == stride["labels"]
     with pytest.raises(ValueError, match="unknown fixed-subspace selection"):
         run_acase_ladder.run_method("qse", {"kind": "qse", "selection": "middle"},
-                                    model, kind, context)
+                                    model, context)
 
 
 def test_the_krylov_arm_has_no_slice_to_choose():
@@ -302,17 +302,17 @@ def test_the_krylov_arm_has_no_slice_to_choose():
     one. The row records ``selection: null`` so the column cannot be misread."""
     from clifford_qc.backends import ExactMVBackend
 
-    model, kind = run_acase_ladder.build_system({"type": "tfim", "n": 4})
+    model = run_acase_ladder.build_system({"type": "tfim", "n": 4})
     context = {"rho": ExactMVBackend().state(model.reference, ()), "observables": {},
                "candidates": (), "pool": ()}
     row = run_acase_ladder.run_method("krylov", {"kind": "krylov", "size": 3},
-                                      model, kind, context)
+                                      model, context)
     assert row["selection"] is None
 
 
 def test_unknown_systems_and_methods_are_rejected():
     with pytest.raises(ValueError, match="unknown system type"):
         run_acase_ladder.build_system({"type": "graphene"})
-    model, kind = run_acase_ladder.build_system({"type": "tfim", "n": 3})
+    model = run_acase_ladder.build_system({"type": "tfim", "n": 3})
     with pytest.raises(ValueError, match="unknown method kind"):
-        run_acase_ladder.run_method("x", {"kind": "telepathy"}, model, kind, {})
+        run_acase_ladder.run_method("x", {"kind": "telepathy"}, model, {})

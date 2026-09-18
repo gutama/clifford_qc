@@ -27,7 +27,8 @@ from clifford_qc.models.observables import (double_occupancy, link_correlations,
                                             magnetization, occupation,
                                             spin_correlation, structure_factor,
                                             total_spin_squared)
-from clifford_qc.models.spin import tfim
+from clifford_qc.models.orbital import rotate_model
+from clifford_qc.models.spin import random_ising, tfim, xxz
 from clifford_qc.pauli import P, comm
 from clifford_qc.sparse import (sector_indices, sparse_ground,
                                 sparse_ground_in_sector, spectral_bound,
@@ -351,10 +352,30 @@ def test_spin_observables_are_rejected_on_the_wrong_model_kind():
     # `tfim` used to reach `observables` with no `kind` at all and was rejected
     # for carrying no lattice metadata. Under the metadata contract it declares
     # `spin_lattice`, so it now gets the same specific rejection as any other
-    # spin model -- the generic "no metadata" path is no longer reachable from a
-    # builder, which is the point of the contract.
+    # spin model.
     with pytest.raises(ValueError, match="fermionic-lattice observable"):
         occupation(tfim(2), 0)
+    # The generic rejection is still reachable, though: it is the answer for a
+    # fermionic model that is not on a lattice at all, and `rotate_model` is a
+    # public builder that produces one. Keeping an assertion on it means that
+    # branch and its message stay covered.
+    rotated = rotate_model(np.array([[0.0, -1.0], [-1.0, 0.0]]), 4.0, "site")
+    assert rotated.metadata["kind"] == "fermionic_orbital_basis"
+    with pytest.raises(ValueError, match="no lattice metadata"):
+        occupation(rotated, 0)
+
+
+def test_link_correlations_need_typed_links_not_just_a_spin_lattice():
+    """A chain spin model clears the `spin_lattice` guard but has no links.
+
+    Before the metadata contract these builders declared no `kind` and were
+    turned away by `_kind`; once they declare `spin_lattice` the guard passes
+    and only an explicit check stands between the caller and a bare
+    `KeyError: 'links'`.
+    """
+    for model in (tfim(4), xxz(4), random_ising(4, seed=0)):
+        with pytest.raises(ValueError, match="no typed links"):
+            link_correlations(model)
 
 
 def test_projected_observables_on_a_materials_cluster():

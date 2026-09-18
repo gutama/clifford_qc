@@ -113,7 +113,10 @@ A fermionic `kind` additionally declares `spin_convention` (`"interleaved"` or
 `"blocked"`), `spin_orbitals`, `n_spatial_orbitals`, `n_electrons`, and `sz`.
 A spin `kind` declares none of those and is refused if it tries: a spin
 Hamiltonian has no spin-orbital ordering, and a convention nothing honours is
-worse than an absent one. Build the dict with `model_metadata()`.
+worse than an absent one. Build the dict with `model_metadata()`, which takes
+`spin_convention` as a required keyword: a default there would only move the
+silent default from the readers to the one writer, where the validator can no
+longer see the omission.
 
 `n` and the Pauli-word count are **not** required — the `Model` already carries
 them, and a second copy can drift. They are instead *checked* when present.

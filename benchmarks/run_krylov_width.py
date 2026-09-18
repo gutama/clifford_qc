@@ -175,11 +175,11 @@ def systems():
         if "krylov" not in rung["methods"]:
             continue
         try:
-            model, kind = ladder.build_system(rung["system"])
+            model = ladder.build_system(rung["system"])
         except ImportError as exc:
             yield rung["name"], kind_of(rung), None, order, str(exc)
             continue
-        yield rung["name"], kind, model, order, None
+        yield rung["name"], model.metadata["kind"], model, order, None
 
 
 def kind_of(rung: dict) -> str:

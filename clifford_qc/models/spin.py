@@ -14,7 +14,7 @@ terms), which is what the odd-Y pool-restriction theorem needs.
 
 from __future__ import annotations
 
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 
 import numpy as np
 
@@ -40,7 +40,16 @@ class Model:
     hamiltonian: PauliSum
     reference: Program
     hva_layers: tuple[tuple[str, tuple[PauliWord, ...]], ...]
-    metadata: dict = field(default_factory=dict)
+    #: No default: under the contract the empty dict is exactly what
+    #: ``__post_init__`` refuses, so a default would advertise an optional
+    #: field that cannot be used. The signature states the requirement the
+    #: validator enforces.
+    metadata: dict
+
+    def __post_init__(self) -> None:
+        validate_model_metadata(self.metadata, n_qubits=self.n,
+                                model_name=self.name,
+                                pauli_words=len(self.hamiltonian.terms))
 
     def __post_init__(self) -> None:
         validate_model_metadata(self.metadata, n_qubits=self.n,

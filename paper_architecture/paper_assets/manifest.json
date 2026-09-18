@@ -1,32 +1,32 @@
 {
   "figures": {
     "architecture_flow.pdf": {
-      "asset_git_blob_sha": "5a70248410980fc6ada428ae6efff9b2a58b6a52",
+      "asset_git_blob_sha": "769cb53244eaaffb22c42c196e96bdc8d0df5cd7",
       "sources": {}
     },
     "cost_bracket.pdf": {
-      "asset_git_blob_sha": "75a4ab8d8ed6934fe45ee41541b0ab57e76a6f95",
+      "asset_git_blob_sha": "cbb5167f158e999329b858ad7d1524b409446e3a",
       "sources": {
         "benchmarks/reference_results/protocol_cost.json": "a1b5bea91d5924ae6c6878baf83e9d8b6b10ad107f4c3a2ab1644ddee1adff59"
       }
     },
     "evidence_path.pdf": {
-      "asset_git_blob_sha": "958e6d29aa00ef9597b375e40e359860dd96c075",
+      "asset_git_blob_sha": "d017628f0eb6a667ce500349ccbe9d9ab53d53a7",
       "sources": {}
     },
     "hierarchy_tradeoff.pdf": {
-      "asset_git_blob_sha": "3270a5792f538566b0478715e5f42495d256854a",
+      "asset_git_blob_sha": "7c98b37893fe146bb4e2c597ced9c5553d791fb0",
       "sources": {
         "benchmarks/reference_results/clifford_hierarchy_beh2_v2.json": "18d64f3e2e1bf3a22edadf58418a3103db734459735f7ecc9e6217f9c596bd4d",
         "benchmarks/reference_results/clifford_hierarchy_h4_v2.json": "adc81de5120986377f18735d3166f73348b67e2271c9d715d054568d391ce4bb"
       }
     },
     "layer_stack.pdf": {
-      "architecture_sources_sha256": "7bde6da20fc32d58d8ee8f8c86a4fb107a735e148c855522d7ee1222e7d2a7c1",
-      "asset_git_blob_sha": "459f1be1f637e4ff4e77d7ed3366280201c40fb7",
+      "architecture_sources_sha256": "ec7379be145075a1c3671a1d3d4f28624cc9aecf2785b6f21c72d2da9b41242c",
+      "asset_git_blob_sha": "9bbe746f6955d8f5e389c82e7f0490eadaaaadc5",
       "sources": {
-        "paper_architecture/data/source_census.json": "60103248f676d702d26fbe9786ebb946b9acf2a313e5cfc63b25a637612a5f4b",
-        "paper_architecture/make_tables.py": "c9d1f8be3b3aa58d2129de9db44b8d209f25ce2336092ed9e3c2a035c02facd2"
+        "paper_architecture/data/source_census.json": "0cfdd19f513437056e37518ddaec40c257c69d66bc849031f5f38373db2d18db",
+        "paper_architecture/make_tables.py": "024d31ce8ca08563ef7f68c42a2b0da928010049562628d3405650076f218159"
       }
     }
   },
