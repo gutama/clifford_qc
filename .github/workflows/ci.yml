@@ -41,7 +41,7 @@ jobs:
         with:
           reference-record: protocol_cost.json
 
-      - run: ruff check clifford_qc tests benchmarks
+      - run: ruff check clifford_qc molecular tests benchmarks
       - run: python -m pytest --hypothesis-profile=ci
 
       # One step per gate so the Actions view names the failure, and each runs

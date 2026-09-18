@@ -15,7 +15,7 @@ Install from source; interfaces may change. The committed studies support
 small-system comparisons, and a public archival release is intended.
 
 [Install](#install-from-source) · [Quick start](#quick-start) ·
-[Choose a solver](#choosing-a-solver) · [Molecular pipeline](PIPELINE.md) ·
+[Choose a solver](#choosing-a-solver) · [Molecular pipeline](molecular/PIPELINE.md) ·
 [Architecture](ARCHITECTURE.md) · [Reproduce results](REPRODUCING.md)
 
 ## What you can do
@@ -27,7 +27,7 @@ small-system comparisons, and a public archival release is intended.
 | Run circuits | Parameterized Pauli rotors and Clifford gates, JSON serialization, gradients, OpenQASM 3 export | [Circuit example](#circuit-programs), `clifford_qc.ir` |
 | Compare eigensolvers | VQE, ADAPT-VQE, fixed and adaptive operator-response subspaces, QSCI/SQD, selected-CI controls, hybrid bases | [Solver guide](#choosing-a-solver), [subspace example](#adaptive-subspaces) |
 | Reuse measurements | QWC and block-commuting grouping, compiled Clifford readouts, shared caches, covariance, allocation, uncertainty estimates | [Finite-shot examples](#examples), [architecture](ARCHITECTURE.md#measurement-and-evidence) |
-| Control classical costs | Cached preparation, optional reference validation, object or packed coefficients, streaming with recomputation | [Pipeline guide](PIPELINE.md) |
+| Control classical costs | Cached preparation, optional reference validation, object or packed coefficients, streaming with recomputation | [Pipeline guide](molecular/PIPELINE.md) |
 | Use other quantum software | Optional Stim, OpenFermion, pytket, PennyLane, and PyZX bridges | [Optional dependencies](#optional-dependencies) |
 
 The core representation is a sparse operator `MV` in the Pauli-word basis of
@@ -151,10 +151,17 @@ This example uses exact classical expectations; finite-shot workflows have
 separate examples below. An exact projected solve does not certify convergence
 to the full ground state.
 
-For repeated molecular experiments, [PIPELINE.md](PIPELINE.md) separates
+For repeated molecular experiments, [molecular/PIPELINE.md](molecular/PIPELINE.md) separates
 FCIDUMP preparation, independent A-CASE solves, and optional sector validation.
 Object storage with `retain_all` is the default. Packed storage and
 `stream_recompute` are explicit alternatives with different memory/time costs.
+
+The complete [molecular simulation suite](molecular/README.md) lives in
+`molecular/`, with its catalog, cached PySCF preparation, isolated per-molecule
+workers, resumable runs, historical results, and reports. Install
+`python -m pip install -e '.[molecular]'` and start with
+`python -m molecular.run --molecules lih --max-additions 2 --complete-sd off`.
+New runs write to `molecular/runs/`; committed evidence remains in `molecular/results/`.
 
 ## Choosing a solver
 
@@ -172,7 +179,7 @@ start can supply that reference through `workflows.adapt_warm_start`.
 Compare total selection, measurement, optimization, and classical costs at a
 matched accuracy target; no method is uniformly preferable.
 
-The [molecular CLI](PIPELINE.md) currently exposes exact A-CASE with
+The [prepared-input CLI](molecular/PIPELINE.md) currently exposes exact A-CASE with
 determinant-excitation candidates. Other methods use Python APIs and examples.
 Its `prepare`, `solve`, and optional `validate` commands have separate outputs,
 so repeated solves can reuse one prepared input without repeating a reference
@@ -247,7 +254,7 @@ rebuild gate, and expensive sampled gates require manual CI dispatch.
 | Document | Purpose |
 |---|---|
 | [ARCHITECTURE.md](ARCHITECTURE.md) | Layers, interfaces, execution paths, and reduction semantics |
-| [PIPELINE.md](PIPELINE.md) | Reusable molecular preparation, solve/validate commands, and storage choices |
+| [molecular/PIPELINE.md](molecular/PIPELINE.md) | Reusable molecular preparation, solve/validate commands, and storage choices |
 | [CONVENTIONS.md](CONVENTIONS.md) | Mathematical and representation conventions |
 | [REPRODUCING.md](REPRODUCING.md) | Frozen environments, benchmark commands, and checks |
 | [Architecture paper](paper_architecture/README.md) | *clifford_qc: A Python Toolkit for Quantum Simulation*; features, architecture, and evidence |

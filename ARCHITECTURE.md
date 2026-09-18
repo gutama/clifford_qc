@@ -36,7 +36,16 @@ uses `SectorStatevectorBackend`. A sector-restricted validation does not make
 the A-CASE solve use a sector statevector. Other algorithms and sampled
 workflows use Python interfaces. Validation remains a separate optional
 calculation; its cost is not charged to the solver record. See
-[PIPELINE.md](PIPELINE.md) for commands, defaults, and artifact contents.
+[molecular/PIPELINE.md](molecular/PIPELINE.md) for commands, defaults, and artifact contents.
+
+The repository's comparative experiment is organized separately in `molecular/`:
+`catalog.py` declares geometries, `chemistry.py` caches PySCF baselines and
+FCIDUMP bytes, `simulation.py` consumes the reusable preparation/solve APIs,
+and `run.py` isolates each molecule in a subprocess. The driver verifies resume
+provenance and writes per-molecule records and recovered summaries atomically.
+Historical evidence lives in `molecular/results/`; new runs default to
+`molecular/runs/`. The suite computes classical references for comparisons;
+the installed solve API continues to make those references optional.
 
 ## Layers and responsibilities
 

@@ -1,10 +1,10 @@
 """Verify the molecular records are internally consistent and honestly labelled.
 
-``run_molecular_pipeline.py`` writes one JSON per molecule plus a master
-summary, and ``molecular_simulation_report.{md,tex}`` is derived from them. A
+``molecular/run.py`` writes one JSON per molecule plus a master
+summary, and ``molecular/report.{md,tex}`` is derived from them. A
 hand-edit to that record reached a submission-adjacent report and none of the
 existing gates saw it: ``check_summaries.py`` covers ``benchmarks/reference_results``
-and ``check_docs.py`` covers ``REPRODUCING.md``, so ``molecular_results/`` had
+and ``check_docs.py`` covers ``REPRODUCING.md``, so ``molecular/results/`` had
 no checker at all.
 
 The specific failure is worth naming, because every check below is derived from
@@ -47,7 +47,7 @@ import sys
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
-RESULTS = ROOT / "molecular_results"
+RESULTS = ROOT / "molecular/results"
 SUMMARY = RESULTS / "results_summary.json"
 
 CHEMICAL_ACCURACY_MHA = 1.5936
@@ -324,7 +324,7 @@ def check_record(key: str, record: dict, errors: list[str]) -> None:
 def main() -> int:
     if not SUMMARY.exists():
         print(f"missing {SUMMARY.relative_to(ROOT)}; run "
-              f"`python run_molecular_pipeline.py`", file=sys.stderr)
+              f"`python -m molecular.run --output-directory molecular/results`", file=sys.stderr)
         return 1
 
     summary = json.loads(SUMMARY.read_text())
@@ -356,7 +356,7 @@ def main() -> int:
         for error in errors:
             print(f"  - {error}", file=sys.stderr)
         print(f"\n{len(errors)} problem(s). Regenerate with "
-              f"`python run_molecular_pipeline.py` rather than editing the "
+              f"`python -m molecular.run --output-directory molecular/results` rather than editing the "
               f"JSON: the fields are consistency partners and updating one by "
               f"hand is what these checks exist to catch.", file=sys.stderr)
         return 1

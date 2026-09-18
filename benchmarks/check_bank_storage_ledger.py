@@ -27,7 +27,7 @@ re-derived from its own contents rather than trusted:
   same rows; selected-subspace ``W`` is carried separately, and old records that
   did not preserve rejected-row ``W`` leave true reuse unavailable;
 * the committed rows still say what the record says they say: every back-filled
-  field is re-read from ``molecular_results/`` rather than trusted as
+  field is re-read from ``molecular/results/`` rather than trusted as
   transcribed;
 * the calibrated attribution is re-derived from the minimum observed rate, its
   threshold verdict follows mechanically, and no verdict is writable by hand;
