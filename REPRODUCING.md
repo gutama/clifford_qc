@@ -116,7 +116,7 @@ No figure or table value in the manuscript is transcribed by hand, and
 ```bash
 python -m venv .venv && source .venv/bin/activate
 pip install -e .[test,research,stim]       # automatic CI extras
-pytest                                      # 2094 passed, 8 skipped
+pytest                                      # 2107 passed, 8 skipped
 ```
 
 This is the automatic CI dependency set; record gates additionally pin NumPy
@@ -1316,6 +1316,13 @@ The arms answer different questions and must not be read as a single ranking:
   Every accuracy statement is reported against it, because its repeated ties
   with A-CASE in the Phase 12 ledger mean the operator construction has not yet
   demonstrated greater energy compactness than classical determinant selection.
+- `random` is the floor of that family: `M` determinants drawn uniformly from
+  the operator's space, consulting the sampled set's size and nothing else. It
+  needs an explicit `seed`, does no selection work, and answers the weaker
+  question — does the arm beat *chance* on this budget — that has to be settled
+  before beating `matched_selected_ci` means anything. Its record reports
+  `overlap_with_sample`, since a draw that happens to land on much of the
+  sample explains a small advantage without any claim about the sampling.
 
 The reference-policy audit runs `model.reference`, the lowest-diagonal
 determinant, a fixed physics-informed determinant where the lattice admits one,

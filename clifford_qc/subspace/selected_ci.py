@@ -440,7 +440,7 @@ def run_control(operator, sampled, *, name: str, kind: str, n: int | None = None
                 score: str = "epstein_nesbet",
                 diagonal: np.ndarray | None = None,
                 max_rank: int = 2, conserve_sz: bool = True,
-                generators=None) -> ControlResult:
+                generators=None, seed: int | None = None) -> ControlResult:
     """One Phase 9 control over a sampled determinant set.
 
     ``kind`` is one of ``qsci``, ``family_closure``, ``excitation_closure``,
@@ -454,6 +454,14 @@ def run_control(operator, sampled, *, name: str, kind: str, n: int | None = None
     budget-matched control with no declared budget is just the unbudgeted one
     under a different name, and silently accepting that would put a mislabelled
     row in the comparison.
+
+    ``random`` is the floor of the family: ``M`` determinants drawn uniformly
+    from the operator's space, ignoring the sampled set's contents and matching
+    only its size.  ``matched_selected_ci`` answers "does the quantum sample
+    beat *smart* classical selection on this budget"; ``random`` answers "does
+    it beat *chance* on this budget", which is the weaker question the arm has
+    to pass before the stronger one means anything.  It needs ``seed``, since a
+    control whose draw cannot be reproduced is not a control.
     """
     dimension, basis = _operator_space(operator)
     sampled = np.asarray(sampled, dtype=np.int64).reshape(-1)
@@ -539,6 +547,36 @@ def run_control(operator, sampled, *, name: str, kind: str, n: int | None = None
                 "reference determinant plus the highest-scoring determinants "
                 "under one criterion, chosen without reference to the sampled "
                 "set; the quantum sample informs neither the pool nor the order"),
+        })
+
+    elif kind == "random":
+        # The null arm. It scores nothing and consults nothing: the sampled set
+        # contributes its *size* and not one of its determinants, so any
+        # advantage an arm shows over this row is attributable to which
+        # configurations it found rather than how many.
+        if seed is None:
+            raise ValueError("the random control needs an explicit seed; an "
+                             "unreproducible draw is not a control")
+        budget = (np.unique(sampled).size if max_determinants is None
+                  else max(1, int(max_determinants)))
+        if budget > dimension:
+            raise ValueError(
+                f"cannot draw {budget} distinct determinants from a space of "
+                f"{dimension}; a control larger than the space it samples is "
+                "the full space under another name")
+        generator = np.random.default_rng(seed)
+        indices = np.sort(generator.choice(dimension, size=budget,
+                                          replace=False)).astype(np.int64)
+        metadata.update({
+            "seed": int(seed),
+            "sample_independent": True,
+            "drawn_from": int(dimension),
+            "overlap_with_sample": int(
+                np.intersect1d(indices, np.unique(sampled)).size),
+            "budget_semantics": (
+                "determinants drawn uniformly without replacement from the "
+                "operator's space; the quantum sample sets the count and "
+                "nothing else"),
         })
 
     elif kind in ("selected_ci", "budget_matched"):
@@ -631,8 +669,8 @@ def run_control(operator, sampled, *, name: str, kind: str, n: int | None = None
                 "of ranking them first")
     else:
         raise ValueError("kind must be qsci, family_closure, "
-                         "excitation_closure, selected_ci, budget_matched, or "
-                         "matched_selected_ci")
+                         "excitation_closure, selected_ci, budget_matched, "
+                         "matched_selected_ci, or random")
 
     # Three phases, three clocks. Folding the eigensolve into `build_seconds`
     # and then naming the variance matvec `solve_seconds` would put the
