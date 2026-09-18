@@ -10,10 +10,11 @@ This guide describes the implementation boundaries used by those workflows.
 
 ```mermaid
 flowchart TD
-    INPUT["Spin, lattice, or integral input"] --> MODEL["Model and reference program"]
-    MODEL --> PREP["Prepared molecular artifact"]
-    PREP --> SOLVE["Exact A-CASE solve"]
-    PREP --> VALIDATE["Optional sector validation"]
+    INPUT["Spin, lattice, or molecular model builder"] --> MODEL["Model and reference program"]
+    FCIDUMP["Restricted real FCIDUMP"] --> PREP["Cached model preparation"]
+    PREP --> ARTIFACT["PreparedProblem JSON"]
+    ARTIFACT --> SOLVE["A-CASE with exact MV expectations"]
+    ARTIFACT --> VALIDATE["Optional sector reference solve"]
     MODEL --> PYTHON["Python solver workflows"]
     PYTHON --> VAR["VQE and ADAPT-VQE"]
     PYTHON --> SUB["Operator-response subspaces"]
@@ -29,11 +30,19 @@ flowchart TD
 
 This is a data-flow diagram, not an import graph. The command-line pipeline
 currently exposes prepared FCIDUMP inputs and exact A-CASE solves with a
-determinant-excitation pool. Other algorithms and sampled workflows use the
-Python interfaces. Validation remains a separate optional calculation; its
-cost is not charged to the solver record. See [PIPELINE.md](PIPELINE.md).
+determinant-excitation pool. `solve_prepared` reconstructs the model and builds
+its reference density through `ExactMVBackend`; `validate_prepared` instead
+uses `SectorStatevectorBackend`. A sector-restricted validation does not make
+the A-CASE solve use a sector statevector. Other algorithms and sampled
+workflows use Python interfaces. Validation remains a separate optional
+calculation; its cost is not charged to the solver record. See
+[PIPELINE.md](PIPELINE.md) for commands, defaults, and artifact contents.
 
 ## Layers and responsibilities
+
+Package paths below are relative to `clifford_qc/`; `benchmarks/` is at the
+repository root. Examples and manuscripts consume the package rather than
+providing another runtime implementation.
 
 | Layer | Main locations | Responsibility |
 |---|---|---|
@@ -72,6 +81,12 @@ and metadata. Its dataclass is frozen, but contained objects are not generally
 immutable. `PreparedProblem` instead preserves a serialized snapshot with a
 content digest and gives each consumer fresh model and metadata objects.
 
+`prepared.py` owns cache identity and artifact validation. `pipeline.py` owns
+the molecular command-line stages. `workflows.py` composes Python-level
+algorithms, including warm starts. Solver configuration and state transitions
+remain in their algorithm modules; orchestration does not merge A-CASE's
+generalized eigenproblem with ADAPT-VQE's parameter optimization.
+
 ## Execution interfaces
 
 `Backend` supplies program state and expectation evaluation. `SamplingBackend`
@@ -100,6 +115,14 @@ checks. `Generator` names a direction; `MatrixElementBank` caches projected
 operator rows, exact values, and support information. Adaptive selection can
 account for new measured words. Projected observables reuse the basis for
 expectations and transitions without materializing a full Ritz state.
+
+Energy-based candidate scoring uses a generalized two-dimensional problem
+containing a current Ritz state and the candidate. It also reports the
+magnitude of `<chi|(H - E)|Psi>` normalized by the candidate norm. The overlap
+matrix is retained, and candidates nearly dependent on the whole retained
+subspace are rejected. This residual coupling samples
+one direction of the residual. It is not the full residual norm, and a
+candidate-pool stopping rule does not certify the full ground-state error.
 
 QSCI/SQD constructs a determinant subspace from computational-basis samples and
 builds its projected Hamiltonian classically. Selected-CI controls expose what
@@ -130,6 +153,23 @@ products, and projected observables; it is not a process-memory bound.
 implement different uses of the rotate-and-fix boundary. A restriction must
 transport the Hamiltonian, reference, generators, and observables consistently.
 These operations can be composed, but their accuracy implications differ.
+
+### Projectors and idempotents
+
+`states.ket_density` builds a computational-state projector as a product of
+commuting factors `(I +/- Z_j)/2`. `states.measure` uses projectors for outcome
+probabilities and conditional density operators. A primitive rank-one
+idempotent can also generate a minimal left ideal representing all kets;
+choosing that ideal alone does not restrict the physical state space.
+
+A physical-sector projector instead selects allowed particle/spin or symmetry
+sectors. The sector backend stores only their occupation-basis amplitudes and
+checks the combined operator action for invariance. Its explicit
+`sector_projector` helper is for small-system validation, not the execution
+representation. `Restriction.operator` implements `P O P` on a smaller
+register after rotation and fixing; this compression preserves products only
+for sector-preserving operands. `subspace.ga_restriction` also uses supplied
+restrictions to discard candidate operators whose compressed image vanishes.
 
 ## Measurement and evidence
 
