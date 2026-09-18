@@ -7,8 +7,20 @@ own process. The historical benchmark producers remain the entry points for
 reproducing their recorded experiments.
 
 The CLI currently accepts restricted real FCIDUMP inputs and uses exact A-CASE
-with determinant-excitation candidates. Other solvers and finite-shot methods
-use the Python interfaces described in the [README](README.md).
+with determinant-excitation candidates and Jordan-Wigner encoding. It does not
+perform the upstream orbital, active-space, or integral calculation. Other
+solvers and finite-shot methods use the Python interfaces described in the
+[README](README.md).
+
+| Stage | Input | Output | Reuse |
+|---|---|---|---|
+| `prepare` | FCIDUMP file and preparation options | Cached `PreparedProblem` JSON; stdout gives its path, fingerprint, and cache-hit status | Reuse for solver configurations with the same prepared model |
+| `solve` | Prepared artifact and A-CASE/storage options | Run JSON with energy history, selected labels, stopping reason, and resource diagnostics | Run independently for each configuration |
+| `validate` (optional) | Prepared artifact and reference-solver options | Reference energies, eigenpair residuals, and sector dimension | Reuse for unchanged model, sector, and reference settings |
+
+`solve` currently uses `ExactMVBackend` and a density multivector. The sector
+statevector backend is used by `validate`; choosing packed or streaming bank
+storage does not switch the solver's reference-state representation.
 
 ## Run a small example
 
@@ -23,8 +35,6 @@ python -m clifford_qc.pipeline prepare benchmarks/data/h4_sto3g_r0.9.FCIDUMP \
 prepared_path=$(python -c 'import json; print(json.load(open("/tmp/clifford-demo/preparation.json"))["prepared"])')
 python -m clifford_qc.pipeline solve "$prepared_path" \
   --output /tmp/clifford-demo/solve.json --max-additions 2
-python -m clifford_qc.pipeline validate "$prepared_path" \
-  --output /tmp/clifford-demo/validation.json --method dense --roots 1
 ```
 
 The preparation response includes the artifact path, fingerprint, and cache-hit
@@ -32,12 +42,41 @@ status. Repeating the preparation command with unchanged inputs reuses the cache
 The two-addition solve is a small demonstration, not an accuracy target.
 `--max-additions` counts additions beyond the identity direction;
 `--max-rank` controls candidate excitation rank, not the number of eigenstates.
-`--roots` belongs to reference validation.
+`--roots` belongs to reference validation. The solve/validate commands print
+the output path; read the JSON at that path for the numerical result.
+
+Request a classical reference separately when you need one:
+
+```bash
+python -m clifford_qc.pipeline validate "$prepared_path" \
+  --output /tmp/clifford-demo/validation.json --method dense --roots 1
+```
 
 Dense validation is appropriate for this small fixture. For larger sectors,
 choose a matrix-free method such as `lanczos`, or install the `research` extra
 for `eigsh`; consult `python -m clifford_qc.pipeline validate --help` for choices.
 Validation can still be expensive and is not needed for every solve.
+
+### CLI options
+
+| Command | Option | Default / meaning |
+|---|---|---|
+| `prepare` | `--cache-directory` | Required; directory for content-addressed artifacts |
+| `prepare` | `--integral-tolerance` | `1e-12`; integral cutoff used to build the model |
+| `solve` | `--output` | Required; run-record JSON path |
+| `solve` | `--max-additions` | `10`; maximum additions after the initial identity direction |
+| `solve` | `--max-rank` | `2`; maximum determinant-excitation rank |
+| `solve` | `--storage` | `object`; alternative: `packed` |
+| `solve` | `--policy` | `retain_all`; alternative: `stream_recompute` |
+| `solve` | `--frontier-pairs` | `32`; nonretained pair capacity when streaming |
+| `validate` | `--output` | Required; reference-record JSON path |
+| `validate` | `--method` | `auto`; alternatives: `dense`, `eigsh`, `lanczos` |
+| `validate` | `--roots` | `1`; number of reference eigenpairs |
+
+Use `python -m clifford_qc.pipeline <command> --help` for the installed
+revision's options. The CLI does not expose every `ACASEConfig` field; use the
+Python interface for multi-root adaptation, word-cost scoring, or other solver
+configuration.
 
 To try packed streaming storage on the same input:
 
@@ -53,20 +92,28 @@ Preparation does no FCI solve. Its immutable JSON includes ordered Hamiltonian
 terms, reference program, model metadata, and a digest. The cache key covers
 FCIDUMP bytes (including the orbital/active-space choice), sector overrides,
 integral tolerance, model name, encoding, package source and NumPy version.
-The implementation fingerprint is memoized per process; restart Python after
-source changes (or explicitly clear `implementation_fingerprint.cache_clear()`
-in development). Writes are atomic; a cache hit validates the digest and requested preparation
-before skipping FCIDUMP parsing and mapping. The decoded payload is validated
-once per prepared object; each consumer receives fresh model and metadata objects.
+Encoding is currently fixed to `jw` by `prepare_fcidump`; it is recorded in
+the key, not exposed as a selectable CLI option. The implementation fingerprint
+is memoized per process; restart Python after source changes (or explicitly
+clear `implementation_fingerprint.cache_clear()`
+in development). Writes are atomic; a cache hit validates the digest and
+requested preparation before skipping FCIDUMP parsing and mapping. The decoded
+payload is validated once per prepared object; each consumer receives fresh
+model and metadata objects.
 `prepare_fcidump` exposes sector/name overrides in Python.
 
 Solve defaults to object storage with `retain_all`, preserving the existing
 numerical path. It records candidate and solver configuration, preparation and
 implementation fingerprints, energy history, resource scope, and wall time.
-It does not calculate an exact ground-state oracle. Exact projected arithmetic
-does not certify convergence to the full ground state. Validation is a separate,
+The CLI does not calculate or use an exact ground-state oracle. Python callers
+can explicitly supply oracle-based stopping through `ACASEConfig`; the record's
+`stopping_uses_oracle` field reports whether that stopping rule is active.
+Exact projected arithmetic does not certify convergence to the full ground
+state. Validation is a separate,
 optional sector reference calculation and reports eigenpair residuals; its cost
-is not included in the solver record.
+is not included in the solver record. Residuals describe the returned reference
+eigenpairs, not the A-CASE state's full-space residual. Validation JSON does not
+record wall time; measure that command separately when reporting end-to-end cost.
 
 ## Choosing storage and lifetime policies
 
@@ -124,6 +171,33 @@ flag. `PreparedProblem.model()` returns a fresh model for each consumer.
 record; `pipeline.validate_prepared` returns reference energies and residuals.
 Python preparation also supports sector and name overrides. These are alpha
 interfaces; identify the source revision when building downstream workflows.
+
+```python
+from clifford_qc.prepared import prepare_fcidump
+from clifford_qc.pipeline import solve_prepared
+from clifford_qc.subspace.adaptive import ACASEConfig
+
+prepared, artifact_path, cache_hit = prepare_fcidump(
+    "benchmarks/data/h4_sto3g_r0.9.FCIDUMP",
+    "/tmp/clifford-demo/python-cache",
+)
+result, record = solve_prepared(
+    prepared,
+    config=ACASEConfig(max_size=2),
+    max_rank=2,
+    storage="packed",
+    policy="stream_recompute",
+    frontier_pairs=4,
+)
+print(result.energy, record["stopping_uses_oracle"])
+```
+
+`max_size` is the Python counterpart of CLI `--max-additions`, not a cap on
+the total basis size. `solve_prepared` returns the record without writing it;
+the CLI handles writing its `--output` file. Loading an artifact with
+`PreparedProblem.load(path)` checks its schema and content digest. Re-running
+`prepare_fcidump` also matches the current source/options/implementation to the
+cache key; loading an old artifact alone does not reprepare it.
 
 ## Verification and performance scope
 

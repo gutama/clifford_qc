@@ -1,17 +1,22 @@
 # clifford_qc
 
-**A Python toolkit for quantum simulation.** Build spin, lattice, and molecular
-models; compare variational and subspace eigensolvers; and study measurement
-and classical storage costs using a shared sparse Pauli representation.
+**Quantum simulation with sparse Pauli operators and adaptive eigensolvers.**
+`clifford_qc` is a Python research toolkit for building spin, lattice, and
+molecular models; comparing VQE, ADAPT-VQE, and subspace methods; and accounting
+for their measurement and classical storage costs.
 
-The package is intended for researchers developing algorithms and reproducing
-small-system comparisons. Its strengths are reusable operator calculations,
-virtual subspace bases, shared measurement data, and explicit resource reports.
+Its main subspace method, **A-CASE** (Adaptive Clifford-Algebra Subspace
+Eigensolver), grows virtual directions around a reference state and solves a
+small generalized eigenproblem. Shared operator calculations and measurement
+caches let researchers compare methods using the same Hamiltonian and data.
 
-`clifford_qc` is an **alpha research package**. Interfaces can still change.
-A public archival release is intended; these instructions install a source
-checkout and do not assume an existing package-index release. For reproducible
-work, record the source revision and dependency environment.
+**Python 3.10+ · NumPy core · Apache-2.0 · Alpha research software.**
+Install from source; interfaces may change. The committed studies support
+small-system comparisons, and a public archival release is intended.
+
+[Install](#install-from-source) · [Quick start](#quick-start) ·
+[Choose a solver](#choosing-a-solver) · [Molecular pipeline](PIPELINE.md) ·
+[Architecture](ARCHITECTURE.md) · [Reproduce results](REPRODUCING.md)
 
 ## What you can do
 
@@ -20,7 +25,7 @@ work, record the source revision and dependency environment.
 | Work with operators | Sparse Pauli and fermionic operators, gates, density operators, channels, traces, and entanglement diagnostics | [Operator example](#operator-calculations), [conventions](CONVENTIONS.md) |
 | Build models | Spin chains, Hubbard and other lattice models, restricted real FCIDUMP import, effective-Hamiltonian JSON, orbital rotations | [Model examples](#examples), `clifford_qc.models` |
 | Run circuits | Parameterized Pauli rotors and Clifford gates, JSON serialization, gradients, OpenQASM 3 export | [Circuit example](#circuit-programs), `clifford_qc.ir` |
-| Compare eigensolvers | VQE, ADAPT-VQE, fixed and adaptive operator-response subspaces, QSCI/SQD, selected-CI controls, hybrid bases | [Subspace example](#adaptive-subspaces), `algorithms/`, `subspace/` |
+| Compare eigensolvers | VQE, ADAPT-VQE, fixed and adaptive operator-response subspaces, QSCI/SQD, selected-CI controls, hybrid bases | [Solver guide](#choosing-a-solver), [subspace example](#adaptive-subspaces) |
 | Reuse measurements | QWC and block-commuting grouping, compiled Clifford readouts, shared caches, covariance, allocation, uncertainty estimates | [Finite-shot examples](#examples), [architecture](ARCHITECTURE.md#measurement-and-evidence) |
 | Control classical costs | Cached preparation, optional reference validation, object or packed coefficients, streaming with recomputation | [Pipeline guide](PIPELINE.md) |
 | Use other quantum software | Optional Stim, OpenFermion, pytket, PennyLane, and PyZX bridges | [Optional dependencies](#optional-dependencies) |
@@ -37,15 +42,19 @@ representation is not a general speedup over matrix methods.
 
 ## Install from source
 
-Use Python 3.10 or newer. From a checked-out repository:
+Clone the repository, then install the package into your Python environment:
 
 ```bash
+git clone https://github.com/gutama/clifford_qc.git
+cd clifford_qc
 python -m pip install -e .
 python -m clifford_qc.verify
 ```
 
 NumPy is the only core runtime dependency. The smoke check validates the
-installation; it does not reproduce the full benchmark suite.
+installation; it does not reproduce the full benchmark suite. If you already
+have a checkout, run the last two commands from its root. For reproducible
+experiments, record `git rev-parse HEAD` and the dependency environment.
 
 ### Optional dependencies
 
@@ -133,16 +142,41 @@ print(result.stopped_reason)
 print(result.resources)
 ```
 
-A-CASE (Adaptive Clifford-Algebra Subspace Eigensolver) forms virtual directions
-`A_i |psi>` and solves `Hc = ESc`. Every projected matrix element is an
-expectation on the reference; the basis states need not be prepared separately.
+A-CASE forms virtual directions `A_i |psi>` and solves `Hc = ESc`.
+Every projected matrix element is an expectation on the reference; the basis
+states need not be prepared separately.
 The example uses a deliberately small candidate pool and no ground-state oracle.
-An exact projected solve does not certify convergence to the full ground state.
+`max_size=3` allows up to three additions beyond the initial identity direction.
+This example uses exact classical expectations; finite-shot workflows have
+separate examples below. An exact projected solve does not certify convergence
+to the full ground state.
 
 For repeated molecular experiments, [PIPELINE.md](PIPELINE.md) separates
 FCIDUMP preparation, independent A-CASE solves, and optional sector validation.
 Object storage with `retain_all` is the default. Packed storage and
 `stream_recompute` are explicit alternatives with different memory/time costs.
+
+## Choosing a solver
+
+| Workflow | What changes during the calculation | Main tradeoff |
+|---|---|---|
+| VQE | Parameters of a fixed circuit | Repeated objective and gradient evaluations |
+| ADAPT-VQE | Circuit generators and their optimized parameters | Pool screening, optimization, and growing circuit depth |
+| A-CASE | A basis of virtual operator-response directions | Projected matrix construction, overlap conditioning, and subspace bias |
+| QSCI/SQD | Determinants retained from computational-basis samples | Sampling coverage and classical projected diagonalization |
+| Selected CI | Determinants selected classically | A classical control for separating selection effects from quantum sampling |
+
+Use A-CASE when you want to expand around an existing reference without
+preparing a separate circuit for every basis direction. An ADAPT-VQE warm
+start can supply that reference through `workflows.adapt_warm_start`.
+Compare total selection, measurement, optimization, and classical costs at a
+matched accuracy target; no method is uniformly preferable.
+
+The [molecular CLI](PIPELINE.md) currently exposes exact A-CASE with
+determinant-excitation candidates. Other methods use Python APIs and examples.
+Its `prepare`, `solve`, and optional `validate` commands have separate outputs,
+so repeated solves can reuse one prepared input without repeating a reference
+eigensolve.
 
 ## Examples
 
@@ -215,16 +249,17 @@ rebuild gate, and expensive sampled gates require manual CI dispatch.
 | [ARCHITECTURE.md](ARCHITECTURE.md) | Layers, interfaces, execution paths, and reduction semantics |
 | [PIPELINE.md](PIPELINE.md) | Reusable molecular preparation, solve/validate commands, and storage choices |
 | [CONVENTIONS.md](CONVENTIONS.md) | Mathematical and representation conventions |
-| [MIGRATION.md](MIGRATION.md) | Legacy API mapping and adopting the preparation pipeline |
 | [REPRODUCING.md](REPRODUCING.md) | Frozen environments, benchmark commands, and checks |
 | [Architecture paper](paper_architecture/README.md) | *clifford_qc: A Python Toolkit for Quantum Simulation*; features, architecture, and evidence |
 | [CITATION.cff](CITATION.cff) | Software metadata and research citations |
 
-The repository also contains the [operator/ADAPT manuscript](paper/README.md),
+The repository also contains the [measurement/ADAPT manuscript](paper/README.md),
 the [historical A-CASE source snapshot](paper_a_case_subspaces/README.md), and
 the [DA-CASE manuscript](paper_acase/README.md). Each has its own provenance and
 validation boundary. Cite the method used and identify the software revision;
-a paper citation does not identify a particular code snapshot.
+a paper citation does not identify a particular code snapshot. Use
+[CITATION.cff](CITATION.cff) for the software citation and include the commit
+used for your experiment.
 
 Licensed under [Apache-2.0](LICENSE).
 
