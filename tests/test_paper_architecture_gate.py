@@ -202,3 +202,71 @@ def test_checker_rejects_a_hand_edited_fragment(tmp_path, monkeypatch, capsys):
     assert check_manuscript.main() == 1
     assert "numbers.tex does not match what the generator produces now" in (
         capsys.readouterr().out)
+
+
+# --- the evidence-language invariants survive a reflow ---------------------
+def _stub_paper(tmp_path, monkeypatch, body: str):
+    """A minimal paper tree where only the manuscript body varies.
+
+    Everything the gate compares against itself -- the fragment, the census --
+    is made to agree, so the only thing left that can fail is the check under
+    test.
+    """
+    paper = tmp_path / "paper"
+    tables = paper / "tables"
+    tables.mkdir(parents=True)
+    fragment = "generated value: one\n"
+    (tables / "numbers.tex").write_text(fragment, encoding="utf-8")
+    census_text = json.dumps({"source": {}, "gates": {}, "records": {}})
+    census_path = paper / "source_census.json"
+    census_path.write_text(census_text, encoding="utf-8")
+    manuscript = paper / "manuscript.tex"
+    manuscript.write_text(
+        "\\begin{document}\n" + body + "\n\\end{document}\n", encoding="utf-8")
+    bibliography = paper / "references.bib"
+    bibliography.write_text("", encoding="utf-8")
+
+    def generate(*, tables, data):
+        (tables / "numbers.tex").write_text(fragment, encoding="utf-8")
+        (data / census_path.name).write_text(census_text, encoding="utf-8")
+
+    monkeypatch.setattr(check_manuscript, "HERE", paper)
+    monkeypatch.setattr(check_manuscript, "TEX", manuscript)
+    monkeypatch.setattr(check_manuscript, "BIB", bibliography)
+    monkeypatch.setattr(check_manuscript, "CENSUS", census_path)
+    monkeypatch.setattr(
+        check_manuscript, "TABLE_SOURCES", {"numbers.tex": ()})
+    monkeypatch.setattr(check_manuscript, "layer_census", lambda: {})
+    monkeypatch.setattr(check_manuscript, "gate_census", lambda: {})
+    monkeypatch.setattr(check_manuscript, "record_census", lambda: {})
+    monkeypatch.setattr(check_manuscript.make_tables, "main", generate)
+
+
+def test_required_phrase_survives_a_line_break(tmp_path, monkeypatch):
+    """A rewrapped paragraph is not a dropped commitment.
+
+    Matching the raw source made the gate fail whenever a paragraph was
+    rewrapped across the phrase, and a check that cries wolf on a reflow is one
+    an author learns to silence.
+    """
+    reflowed = []
+    for index, phrase in enumerate(check_manuscript.REQUIRED_PHRASES):
+        words = phrase.split()
+        # Break each phrase at a different word so no single split position is
+        # the only one covered.
+        cut = 1 + index % max(1, len(words) - 1)
+        reflowed.append(" ".join(words[:cut]) + "\n" + " ".join(words[cut:]))
+    _stub_paper(tmp_path, monkeypatch, "\n".join(reflowed))
+
+    assert check_manuscript.main() == 0
+
+
+def test_a_deleted_commitment_still_fails(tmp_path, monkeypatch, capsys):
+    """Whitespace tolerance must not become phrase tolerance."""
+    dropped, *kept = check_manuscript.REQUIRED_PHRASES
+    _stub_paper(tmp_path, monkeypatch, "\n".join(kept))
+
+    assert check_manuscript.main() == 1
+    output = capsys.readouterr().out
+    assert "required evidence-language phrase is missing" in output
+    assert repr(dropped) in output

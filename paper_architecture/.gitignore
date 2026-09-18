@@ -8,3 +8,11 @@
 /manuscript.log
 /manuscript.out
 /manuscript.synctex.gz
+
+# REVTeX writes this alongside the bibliography during the BibTeX run.
+/manuscriptNotes.bib
+
+# The arXiv submission package, rebuilt by make_arxiv.py from committed
+# sources. The archive is a build product: what is versioned is the tree it is
+# assembled from.
+/arxiv/
