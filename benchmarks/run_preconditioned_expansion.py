@@ -38,6 +38,16 @@ What the arms are for
     energy compactness than classical determinant selection, so every accuracy
     claim here is reported against it.
 
+``random``
+    The floor of the same family: the same number of determinants drawn
+    uniformly from the sector, scoring nothing.  ``matched_selected_ci`` asks
+    whether an arm beats *smart* classical selection at its budget; this asks
+    whether it beats *chance* at that budget, which has to be settled first --
+    otherwise "this subspace is good" and "a subspace of this size is good" are
+    the same number and the arm takes credit for the second.  Its seed is
+    derived from the record's own seed, so the row moves with the run and is
+    reproducible within it; ``draw_sha256`` pins the draw itself.
+
 Claim boundaries
 ----------------
 
@@ -100,6 +110,7 @@ REQUIRED_ARMS = (
     "orthogonal_residual",
     "davidson",
     "matched_selected_ci",
+    "random",
 )
 
 # Every row carries every field.  A field may be ``None`` where the quantity is
@@ -938,6 +949,38 @@ def run_system(name: str, *, seed: int = 0, total_directions: int = 7,
         "matvecs": 0,
         "build_seconds": float(control.build_seconds),
         "solve_seconds": float(control.solve_seconds),
+        "wall_seconds": time.perf_counter() - started})
+    rows.append(row)
+
+    # --- the floor of that family: the same budget, drawn without scoring.
+    # Reported beside `matched_selected_ci` rather than instead of it: the
+    # matched control is the ceiling an arm has to beat to claim a selection
+    # advantage, and this is the floor it has to clear to claim anything at all.
+    started = time.perf_counter()
+    floor = run_control(operator, np.array([primary["position"]], dtype=np.int64),
+                        name="random", kind="random",
+                        max_determinants=total_directions,
+                        seed=seed, exact_energy=exact_energy)
+    row = _blank_row("random", "classical_control", seed)
+    row.update({
+        "reference_policy": "model_reference",
+        "reference_identity": primary["identity"],
+        "reference_block_size": 1,
+        "declared_total_directions": total_directions,
+        "implementable": True,
+        "M": int(floor.determinant_count),
+        "energy": float(floor.energy),
+        "energy_error": float(floor.energy) - exact_energy,
+        "absolute_error": abs(float(floor.energy) - exact_energy),
+        "variance": float(floor.variance),
+        "kappa_S": 1.0,
+        "retained_rank": int(floor.determinant_count),
+        "realized_total_directions": int(floor.determinant_count),
+        "stopped_reason": "determinant_budget",
+        "selection_work": int(floor.selection_work),
+        "matvecs": 0,
+        "build_seconds": float(floor.build_seconds),
+        "solve_seconds": float(floor.solve_seconds),
         "wall_seconds": time.perf_counter() - started})
     rows.append(row)
 
