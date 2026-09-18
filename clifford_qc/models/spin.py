@@ -51,6 +51,11 @@ class Model:
                                 model_name=self.name,
                                 pauli_words=len(self.hamiltonian.terms))
 
+    def __post_init__(self) -> None:
+        validate_model_metadata(self.metadata, n_qubits=self.n,
+                                model_name=self.name,
+                                pauli_words=len(self.hamiltonian.terms))
+
 
 def _word(n: int, factors: dict[int, str]) -> PauliWord:
     letters = ["I"] * n

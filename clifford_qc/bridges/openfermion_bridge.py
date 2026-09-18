@@ -9,6 +9,10 @@ the same convention as OpenFermion's ``jordan_wigner`` transform
 
 from __future__ import annotations
 
+from ..capabilities import require
+
+require('openfermion_bridge', feature='clifford_qc.bridges.openfermion_bridge')
+
 from openfermion import FermionOperator, QubitOperator
 
 from ..fermion import c_op, cdag_op

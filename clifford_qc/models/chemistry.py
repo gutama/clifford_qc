@@ -15,6 +15,10 @@ sector leakage rather than calling the qubit pool symmetry preserving.
 from __future__ import annotations
 
 import numpy as np
+from ..capabilities import require
+
+require('fermionic_operators', feature='clifford_qc.models.chemistry')
+
 from openfermion.chem import MolecularData
 from openfermion.ops import FermionOperator
 from openfermion.transforms import jordan_wigner
@@ -54,6 +58,8 @@ def molecule_model(geometry, basis: str = "sto-3g", multiplicity: int = 1,
     energy lands in the Hamiltonian's identity term, so ``exact_ground``
     of the returned Hamiltonian matches the active-space FCI energy.
     """
+    require('molecular_input', feature='molecule_model')
+
     from openfermionpyscf import run_pyscf
 
     molecule = run_pyscf(MolecularData(geometry, basis, multiplicity, charge,

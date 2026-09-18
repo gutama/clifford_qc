@@ -83,7 +83,8 @@ KERNEL_MODULES = (
     "matrix.py", "selection.py",
 )
 IR_MODULES = ("ir.py", "qasm3.py", "fermion_mapping.py")
-EVIDENCE_MODULES = ("verify.py", "reproducibility.py", "record_environment.py")
+EVIDENCE_MODULES = ("verify.py", "reproducibility.py", "record_environment.py",
+                    "capabilities.py")
 ORCHESTRATION_MODULES = ("workflows.py", "prepared.py", "pipeline.py")
 SURFACE_MODULES = ("__init__.py",)
 

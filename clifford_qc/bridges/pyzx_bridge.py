@@ -37,6 +37,10 @@ from fractions import Fraction
 from math import pi
 from typing import Union
 
+from ..capabilities import require
+
+require('pyzx_bridge', feature='clifford_qc.bridges.pyzx_bridge')
+
 import pyzx as zx
 from pyzx.circuit import Circuit
 from pyzx.circuit.gates import (
