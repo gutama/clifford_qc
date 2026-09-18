@@ -16,8 +16,11 @@ from .orbital import (OrbitalBasis, as_basis, givens_network, givens_rotation,
                       momentum_basis, natural_orbital_basis,
                       orbital_rotation_program, rotate_model, rotate_one_body,
                       site_basis, wavelet_basis)
-from .metadata import (FERMIONIC_KINDS, MODEL_KINDS, MODEL_METADATA_SCHEMA,
-                       SPIN_KINDS, model_metadata, spin_convention,
+from .metadata import (ANDERSON_IMPURITY, FERMIONIC_KINDS, FERMIONIC_LATTICE,
+                       FERMIONIC_ORBITAL_BASIS, MODEL_KINDS,
+                       MODEL_METADATA_SCHEMA, MOLECULAR, SPIN_KINDS,
+                       SPIN_LATTICE, SPIN_ORDERINGS, model_metadata,
+                       sector_parity_matches, spin_convention,
                        validate_model_metadata)
 from .observables import (double_occupancy, link_correlations, magnetization,
                           occupation, spin_correlation, spin_operators,
@@ -39,5 +42,12 @@ __all__ = [
     "rotate_model", "givens_rotation", "givens_network",
     "orbital_rotation_program",
     "MODEL_METADATA_SCHEMA", "MODEL_KINDS", "FERMIONIC_KINDS", "SPIN_KINDS",
+    "SPIN_ORDERINGS",
+    # The individual kinds too: a consumer that can only compare against the
+    # set still has to write the string literal to name one member of it, which
+    # is the grep-the-vocabulary problem this module exists to end.
+    "FERMIONIC_LATTICE", "FERMIONIC_ORBITAL_BASIS", "ANDERSON_IMPURITY",
+    "MOLECULAR", "SPIN_LATTICE",
     "model_metadata", "validate_model_metadata", "spin_convention",
+    "sector_parity_matches",
 ]

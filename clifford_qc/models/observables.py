@@ -23,20 +23,35 @@ from ..ir import PauliSum
 from ..multivector import MV
 from ..pauli import X, Y, Z
 from .lattice import SPIN_DOWN, SPIN_UP, spin_orbital
+from .metadata import ANDERSON_IMPURITY, FERMIONIC_LATTICE, SPIN_LATTICE
 
-FERMIONIC = "fermionic_lattice"
-SPIN = "spin_lattice"
+#: The two operator families these builders distinguish. They are the kind
+#: constants themselves rather than copies of the strings, so the vocabulary
+#: has one definition -- adding a kind is an edit to ``models.metadata``, not a
+#: grep across the modules that consume it.
+FERMIONIC = FERMIONIC_LATTICE
+SPIN = SPIN_LATTICE
+
+#: Kinds that carry site/orbital metadata, mapped to the family whose operators
+#: apply to them. A kind absent from this table is a fermionic or spin model
+#: that is simply not on a lattice -- ``molecular``, ``fermionic_orbital_basis``
+#: -- and has no site index for a caller to ask about.
+_LATTICE_KINDS = {
+    FERMIONIC_LATTICE: FERMIONIC,
+    ANDERSON_IMPURITY: FERMIONIC,
+    SPIN_LATTICE: SPIN,
+}
 
 
 def _kind(model) -> str:
     kind = model.metadata.get("kind", "")
-    if kind in ("anderson_impurity",):
-        return FERMIONIC
-    if kind in (FERMIONIC, SPIN):
-        return kind
-    raise ValueError(
-        f"model {model.name!r} carries no lattice metadata; observables need "
-        "'kind', 'sites', and (for fermionic models) 'n_orbitals'")
+    try:
+        return _LATTICE_KINDS[kind]
+    except KeyError:
+        raise ValueError(
+            f"model {model.name!r} carries no lattice metadata; observables "
+            f"need 'kind' in {sorted(_LATTICE_KINDS)}, 'sites', and (for "
+            f"fermionic models) 'n_orbitals', but kind is {kind!r}") from None
 
 
 def _as_sum(mv: MV) -> PauliSum:
@@ -180,6 +195,16 @@ def link_correlations(model) -> dict[str, PauliSum]:
     """
     if _kind(model) != SPIN:
         raise ValueError("link correlations are defined for the spin lattice models")
+    # A chain spin model is a spin lattice and clears the guard above, but it
+    # has no typed links -- only a Kitaev cluster labels its bonds x/y/z. Before
+    # the metadata contract, tfim/xxz/random_ising carried no ``kind`` at all
+    # and were turned away by ``_kind``; now that they declare one, this is the
+    # check that has to say so, rather than letting a bare KeyError out.
+    if "links" not in model.metadata:
+        raise ValueError(
+            f"model {model.name!r} is a {model.metadata.get('lattice')!r} "
+            "spin lattice with no typed links; link correlations need the "
+            "per-link x/y/z labelling that kitaev_honeycomb records")
     letters = {"x": X, "y": Y, "z": Z}
     grouped: dict[str, MV] = {}
     counts: dict[str, int] = {}

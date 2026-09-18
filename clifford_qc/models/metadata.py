@@ -23,11 +23,13 @@ tree before this contract:
    the wrong shape for a value like that.
 
 2. **A consumer carrying the model's identity in a parallel variable.**
-   ``benchmarks/run_acase_ladder.py`` builds ``(model, kind)`` tuples and
-   threads ``kind`` through a dozen call sites, because ``spin.tfim`` did not
+   ``benchmarks/run_acase_ladder.py`` built ``(model, kind)`` tuples and
+   threaded ``kind`` through a dozen call sites, because ``spin.tfim`` did not
    state its own ``kind``.  For ``hubbard`` and ``kitaev_honeycomb``, which do,
    the parallel value duplicated metadata that already existed and could
-   silently disagree with it.
+   silently disagree with it -- and two replication scripts went further,
+   recovering the kind from a *model name prefix*.  Those call sites now read
+   ``model.metadata["kind"]``, and the parallel parameter is gone.
 
 3. **A whole builder family unusable with a sibling module.**
    ``models.observables`` refuses any model without ``kind``, so every
@@ -86,10 +88,10 @@ _FERMIONIC_KEYS = ("spin_convention", "spin_orbitals", "n_spatial_orbitals",
                    "n_electrons", "sz")
 
 
-def model_metadata(kind: str, *, spin_orbitals: int | None = None,
+def model_metadata(kind: str, *, spin_convention: str | None = None,
+                   spin_orbitals: int | None = None,
                    n_spatial_orbitals: int | None = None,
                    n_electrons: int | None = None, sz: float | None = None,
-                   spin_convention: str = "interleaved",
                    **extra: Any) -> dict:
     """Assemble a contract-satisfying metadata dict for a model builder.
 
@@ -101,6 +103,11 @@ def model_metadata(kind: str, *, spin_orbitals: int | None = None,
     For a spin kind, the fermionic arguments must all be omitted -- a spin
     Hamiltonian has no spin-orbital ordering, and accepting one would let a
     caller declare a convention that nothing honours.
+
+    ``spin_convention`` has no default.  Defaulting it here would only move the
+    silent default this contract exists to remove from the eight reader sites
+    to this single writer, where a builder that forgets the argument would be
+    handed ``"interleaved"`` and pass validation with a convention nobody chose.
     """
     if kind not in MODEL_KINDS:
         raise ValueError(f"kind must be one of {sorted(MODEL_KINDS)}, got {kind!r}")
@@ -109,6 +116,7 @@ def model_metadata(kind: str, *, spin_orbitals: int | None = None,
         "kind": kind,
     }
     fermionic_arguments = {
+        "spin_convention": spin_convention,
         "spin_orbitals": spin_orbitals,
         "n_spatial_orbitals": n_spatial_orbitals,
         "n_electrons": n_electrons,
@@ -123,6 +131,9 @@ def model_metadata(kind: str, *, spin_orbitals: int | None = None,
         missing = sorted(k for k, v in fermionic_arguments.items() if v is None)
         if missing:
             raise ValueError(f"fermionic kind {kind!r} needs {missing}")
+        if spin_convention not in SPIN_ORDERINGS:
+            raise ValueError(f"spin_convention must be one of "
+                             f"{list(SPIN_ORDERINGS)}, got {spin_convention!r}")
         metadata.update({
             "spin_convention": spin_convention,
             "spin_orbitals": int(spin_orbitals),
@@ -134,12 +145,43 @@ def model_metadata(kind: str, *, spin_orbitals: int | None = None,
     return metadata
 
 
+def sector_parity_matches(sz: float, electrons: int, *,
+                          tolerance: float = 1e-9) -> bool:
+    """Whether ``2*S_z`` and ``N`` share a parity, so the sector is non-empty.
+
+    For any determinant, flipping one spin moves ``2*S_z`` by 2, so the two
+    always agree; a mismatch means the sector is empty, which is the error that
+    previously reached a backend as an unbuildable subspace.
+
+    The distance has to be measured on the circle of circumference 2, not by a
+    bare modulo: ``sz`` is a float, and ``2*sz`` a hair *below* an even integer
+    has a remainder just below 2.0 rather than just above 0.0.  Comparing that
+    remainder directly rejects, say, ``sz=0.9999999999999999`` with ``N=2`` --
+    a perfectly good ``S_z=1`` sector reached by ordinary float arithmetic --
+    while the negative of the same value passes.  Wrapping removes both the
+    false rejection and the asymmetry.  Exported so that callers which need the
+    same question answered ask it here rather than restating the expression.
+    """
+    offset = (2.0 * sz - electrons) % 2.0
+    return min(offset, 2.0 - offset) <= tolerance
+
+
 def _require_int(metadata: Mapping[str, Any], key: str, *, model: str) -> int:
+    """The value at ``key`` as an ``int``, accepting any exact integer type.
+
+    ``numpy.int64`` does not subclass ``int`` the way ``numpy.float64``
+    subclasses ``float``, so an ``isinstance(value, int)`` test rejects counts
+    that came out of array shape arithmetic.  The builders escape it by
+    coercing, but this validator is documented for use on a payload that has
+    not been through a builder, which is exactly the numpy-carrying case.
+    ``__index__`` is the protocol for "losslessly an integer", which is the
+    property actually wanted here; ``bool`` satisfies it and is still refused.
+    """
     value = metadata[key]
-    if isinstance(value, bool) or not isinstance(value, int):
+    if isinstance(value, bool) or not hasattr(value, "__index__"):
         raise TypeError(f"model {model!r}: metadata[{key!r}] must be an int, "
                         f"got {type(value).__name__}")
-    return value
+    return int(value)
 
 
 def validate_model_metadata(metadata: Mapping[str, Any], *, n_qubits: int,
@@ -219,10 +261,7 @@ def validate_model_metadata(metadata: Mapping[str, Any], *, n_qubits: int,
     if abs(2.0 * sz) > electrons:
         raise ValueError(f"model {model_name!r}: |2*sz|={abs(2.0*sz)} exceeds "
                          f"n_electrons={electrons}")
-    # 2*S_z and N have the same parity for any determinant: flipping one spin
-    # moves 2*S_z by 2. A mismatch means the sector is empty, which is the
-    # error that previously reached a backend as an unbuildable subspace.
-    if abs((2.0 * sz) % 2.0 - electrons % 2) > 1e-9:
+    if not sector_parity_matches(sz, electrons):
         raise ValueError(f"model {model_name!r}: sz={sz} and n_electrons="
                          f"{electrons} have mismatched parity, so the sector is "
                          "empty")
@@ -259,6 +298,7 @@ __all__ = [
     "SPIN_LATTICE",
     "SPIN_ORDERINGS",
     "model_metadata",
+    "sector_parity_matches",
     "spin_convention",
     "validate_model_metadata",
 ]

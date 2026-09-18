@@ -510,7 +510,7 @@ def competing_orders(model) -> dict[str, tuple[int, ...]]:
     built at that filling are omitted rather than returned at the wrong sector.
     """
     metadata = model.metadata
-    if metadata.get("kind") != "fermionic_lattice":
+    if metadata.get("kind") != FERMIONIC_LATTICE:
         raise ValueError("competing orders are defined for fermionic lattices")
     if int(metadata.get("n_orbitals", 1)) != 1:
         raise ValueError("competing orders are implemented for single-orbital models")

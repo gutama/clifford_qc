@@ -249,14 +249,13 @@ def run_system(name: str, *, additions: int = ADAPTIVE_ADDITIONS,
         raise ValueError(f"unknown primary system {name!r}")
 
     model, construction = phase10.build_system(name)
-    kind = "fermionic_lattice" if name.startswith("hubbard_") else "molecular"
     backend = SectorStatevectorBackend(
         model.n, int(model.metadata["n_electrons"]), float(model.metadata["sz"]))
     exact_energy = float(backend.ground_state(model.hamiltonian, k=1)[0][0])
     target = _sector_ground_vector(backend, model, exact_energy)
 
-    candidates = ladder.build_candidates(model, kind)
-    pool = ladder.word_pool(model, kind)
+    candidates = ladder.build_candidates(model)
+    pool = ladder.word_pool(model)
 
     started = time.perf_counter()
     cold_rho = ExactMVBackend().state(model.reference, ())
