@@ -15,6 +15,21 @@ import pytest
 from benchmarks import run_preconditioned_expansion as pe
 
 
+def test_fcidump_h4_default_packet_ladder_writes_a_certified_record(tmp_path):
+    """Issue #105: exercise the real producer and its gate without PySCF."""
+    output = tmp_path / "preconditioned_expansion.json"
+    pe.main(["--systems", "fcidump_h4_equilibrium", "--output", str(output)])
+    document = json.loads(output.read_text(encoding="utf-8"))
+    record, = document["systems"]
+    pe.check_invariants(record)
+    assert {row["method"] for row in record["arms"]} >= set(pe.REQUIRED_ARMS)
+    packets = record["packet_program"]["pricing"]
+    assert [packet["K"] for packet in packets] == list(pe.DEFAULT_PACKET_K)
+    for packet in packets:
+        assert packet["structural_sector_certificate"]["in_sector"] is True
+        assert packet["reference_conditioned_certificate"]["max_sector_leakage"] == 0.0
+
+
 def _toy():
     """A small real symmetric Hamiltonian with a non-degenerate ground state."""
     rng = np.random.default_rng(11)
