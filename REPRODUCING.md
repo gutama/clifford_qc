@@ -116,23 +116,23 @@ No figure or table value in the manuscript is transcribed by hand, and
 ```bash
 python -m venv .venv && source .venv/bin/activate
 pip install -e .[test,research,stim]       # automatic CI extras
-pytest                                      # 2156 passed, 12 skipped
+pytest                                      # 2157 passed, 11 skipped
 ```
 
 This is the automatic CI dependency set; record gates additionally pin NumPy
 and SciPy through `check_record_environment.py`. Six optional test modules are
-dropped without OpenFermion, PennyLane, pytket and PyZX; six individual tests
-also skip -- three on OpenFermion and three on PySCF. Chemistry builders remain
+dropped without OpenFermion, PennyLane, pytket and PyZX; five individual tests
+also skip -- two on OpenFermion and three on PySCF. Chemistry builders remain
 optional: install `.[chemistry]` when running those workflows, which changes
 collection totals.
 
 `check_docs.py` enforces the pair through the identity relating them. Each of
 the six dropped files contributes exactly one skip and no collected tests, so
-the remaining `12 - 6 = 6` skips are per-test and *are* collected:
+the remaining `11 - 6 = 5` skips are per-test and *are* collected:
 
 ```text
 collected == passed + (skipped - files dropped at collection)
-2162      == 2156   + (12      -   6)
+2162      == 2157   + (11      -   6)
 ```
 
 Both sides are computed from the tree, so a drift in either quoted number
