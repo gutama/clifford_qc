@@ -10,12 +10,13 @@ already synthesizes, and the ``k`` axis keeps its meaning.
 
 Three levers, in increasing order of what they assume:
 
-**Re-colouring.** :func:`dsatur_partition` re-decides the order after every
-placement instead of fixing it once, and :func:`iterated_greedy` re-runs first fit in an order that
-presents the current groups consecutively. Culberson's argument gives the
-monotonicity for free -- such an order can never need more groups than the
-colouring it was read from -- so the pass is safe to iterate and the result is
-never worse than its seed.
+**Re-colouring.** The shipped greedy fixes its order once, from the conflict
+degrees of the whole bank. :func:`dsatur_partition` re-decides after every
+placement instead, and :func:`iterated_greedy` re-runs first fit in an order
+that presents the current groups consecutively. Culberson's argument gives the
+monotonicity of the second for free -- such an order can never need more groups
+than the colouring it was read from -- so that pass is safe to iterate and its
+result is never worse than its seed.
 
 **Span closure.** A setting's diagonalizer sends every member of its group to a
 ``Z``-only word, and the block-restricted symplectic form is bilinear and
