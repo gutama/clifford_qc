@@ -6,11 +6,14 @@ and makes classical reference validation optional. Each command can run in its
 own process. The historical benchmark producers remain the entry points for
 reproducing their recorded experiments.
 
+For the complete PySCF comparison suite, start with the [molecular guide](README.md).
+The reusable package APIs below remain at `clifford_qc.prepared` and `clifford_qc.pipeline`.
+
 The CLI currently accepts restricted real FCIDUMP inputs and uses exact A-CASE
 with determinant-excitation candidates and Jordan-Wigner encoding. It does not
 perform the upstream orbital, active-space, or integral calculation. Other
 solvers and finite-shot methods use the Python interfaces described in the
-[README](README.md).
+[README](../README.md).
 
 | Stage | Input | Output | Reuse |
 |---|---|---|---|
@@ -65,6 +68,7 @@ Validation can still be expensive and is not needed for every solve.
 | `prepare` | `--integral-tolerance` | `1e-12`; integral cutoff used to build the model |
 | `solve` | `--output` | Required; run-record JSON path |
 | `solve` | `--max-additions` | `10`; maximum additions after the initial identity direction |
+| `solve` | `--max-candidates` | `0`; use all candidates, or cap the pool at a positive count |
 | `solve` | `--max-rank` | `2`; maximum determinant-excitation rank |
 | `solve` | `--storage` | `object`; alternative: `packed` |
 | `solve` | `--policy` | `retain_all`; alternative: `stream_recompute` |
@@ -112,8 +116,8 @@ Exact projected arithmetic does not certify convergence to the full ground
 state. Validation is a separate,
 optional sector reference calculation and reports eigenpair residuals; its cost
 is not included in the solver record. Residuals describe the returned reference
-eigenpairs, not the A-CASE state's full-space residual. Validation JSON does not
-record wall time; measure that command separately when reporting end-to-end cost.
+eigenpairs, not the A-CASE state's full-space residual. Validation JSON records its own `wall_seconds`; account for it separately
+when reporting end-to-end cost.
 
 ## Choosing storage and lifetime policies
 
@@ -220,7 +224,7 @@ saving based on `T_coeff/W_resident`, so the packed-storage verdict leaves those
 historical banks ungraded while preserving their measured numbers.
 
 The initial implementation at `eb5077e` has a
-[three-process-per-arm TFIM(6) smoke profile](benchmarks/profile_results/pipeline_refactoring.json)
+[three-process-per-arm TFIM(6) smoke profile](../benchmarks/profile_results/pipeline_refactoring.json)
 against main `64b06bc` measured median packed solve time `117.1 -> 54.2 ms`
 (2.16x speedup) and packed materializations `3640 -> 0`. Streaming measured
 `59.9 ms`, with persistent S/H rows `558 -> 50` and coefficients `6456 -> 369`.

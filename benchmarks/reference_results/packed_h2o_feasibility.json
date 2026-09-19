@@ -118,7 +118,7 @@
     "committed_peak_rss_bytes": 7008837632,
     "exact_ground_energy": -74.77176966699481,
     "exact_ground_energy_source": "h2o_stretched_results.json",
-    "fcidump": "molecular_results/h2o_stretched.fcidump",
+    "fcidump": "molecular/results/h2o_stretched.fcidump",
     "fcidump_sha256": "7defd58c24020a1ffbd9ebe3d08c15e32b5636376a676df01451f94b1d2afa36",
     "leakage_tol": 1e-10,
     "max_rank": 2,

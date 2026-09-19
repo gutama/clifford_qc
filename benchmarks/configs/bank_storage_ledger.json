@@ -40,7 +40,7 @@
     "not_claimed": "These arms are a storage measurement. Their energies and selected labels are not reported as a scientific result, they do not restate or revise any committed A-CASE record, and the budget is chosen for the gate's runtime rather than for convergence."
   },
   "committed_records": {
-    "directory": "molecular_results",
+    "directory": "molecular/results",
     "records": [
       "beh2_results.json",
       "beh2_stretched_results.json",

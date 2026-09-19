@@ -35,11 +35,12 @@ from clifford_qc import capabilities as caps
 
 ROOT = pathlib.Path(__file__).resolve().parents[1]
 PACKAGE = ROOT / "clifford_qc"
+PACKAGES = (PACKAGE, ROOT / "molecular")
 
 #: Modules that are core (numpy), part of the package, or in the standard
 #: library. Anything else imported under ``clifford_qc/`` is an optional
 #: dependency and must be declared in the capability table.
-CORE_MODULES = frozenset({"numpy", "clifford_qc"})
+CORE_MODULES = frozenset({"numpy", *(package.name for package in PACKAGES)})
 
 
 def _toml():
@@ -53,7 +54,7 @@ def _toml():
 def _third_party_imports() -> dict[str, set[str]]:
     """``{top-level import name: {files that import it}}`` across the package."""
     found: dict[str, set[str]] = {}
-    for path in sorted(PACKAGE.rglob("*.py")):
+    for path in sorted(path for package in PACKAGES for path in package.rglob("*.py")):
         tree = ast.parse(path.read_text(encoding="utf-8"))
         for node in ast.walk(tree):
             if isinstance(node, ast.Import):
@@ -92,9 +93,7 @@ def test_every_optional_import_in_the_tree_is_claimed():
 def test_every_claimed_module_is_actually_imported_somewhere():
     """The reverse: a capability claiming a module nobody imports is dead."""
     imported = set(_third_party_imports())
-    # pyscf reaches the tree through openfermionpyscf rather than directly.
-    indirect = {"pyscf"}
-    unused = sorted(caps.optional_modules() - imported - indirect)
+    unused = sorted(caps.optional_modules() - imported)
     assert unused == [], f"capability table claims unimported modules: {unused}"
 
 
@@ -275,7 +274,7 @@ def test_every_module_scope_optional_import_is_guarded():
     """
     optional = set(caps.optional_modules())
     unguarded = {}
-    for path in sorted(PACKAGE.rglob("*.py")):
+    for path in sorted(path for package in PACKAGES for path in package.rglob("*.py")):
         tree = ast.parse(path.read_text(encoding="utf-8"))
         imports = _module_scope_optional_imports(tree, optional)
         if imports and not _calls_require_at_module_scope(tree):
@@ -305,15 +304,17 @@ def test_every_entry_point_resolves_to_something_in_the_tree():
 
     The field tells a reader where a capability is actually used; nothing
     checked it, so a renamed or deleted entry point stayed listed. Each entry
-    is a dotted path under ``clifford_qc``; its longest module prefix must be a
+    is a dotted path under ``clifford_qc`` or a package-qualified path such as
+    ``molecular.run.main``; its longest module prefix must be a
     real file, and any remaining attributes must exist in that file's AST.
     """
     unresolved = {}
     for name, record in caps.CAPABILITIES.items():
         for entry in record.entry_points:
             parts = entry.split(".")
+            root = ROOT if parts[0] in {package.name for package in PACKAGES} else PACKAGE
             for cut in range(len(parts), 0, -1):
-                module = PACKAGE.joinpath(*parts[:cut])
+                module = root.joinpath(*parts[:cut])
                 candidate = module.with_suffix(".py")
                 if candidate.exists():
                     break

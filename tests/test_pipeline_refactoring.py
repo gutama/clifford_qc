@@ -201,6 +201,7 @@ class TestPreparedProblem(unittest.TestCase):
             pipeline_main(['validate', str(prepared), '--output', str(validation),
                            '--method', 'dense'])
             checked = json.loads(validation.read_text())
+            self.assertGreater(checked['wall_seconds'], 0)
             self.assertEqual(checked['problem_fingerprint'], record['problem_fingerprint'])
             self.assertLess(max(checked['residual_norms']), 1e-10)
             self.assertLessEqual(checked['energies'][0], record['energy'] + 1e-10)

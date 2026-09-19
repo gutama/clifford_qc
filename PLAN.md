@@ -1129,7 +1129,7 @@ support/scalar history and a selected block plus a bounded pair frontier. Packed
 segments release array capacity on eviction. Small-system tests preserve matrices,
 adaptive decisions and sampled reconstruction; the full molecular performance
 matrix remains open. Disk-backed storage is deferred until a measured workload
-requires it. See [PIPELINE.md](PIPELINE.md) for the separated preparation, solve
+requires it. See [molecular/PIPELINE.md](molecular/PIPELINE.md) for the separated preparation, solve
 and optional validation commands and the exact memory boundary.
 
 The intended policy interface is:

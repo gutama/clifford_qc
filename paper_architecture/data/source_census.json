@@ -130,7 +130,7 @@
         "modules": 6
       },
       "evidence": {
-        "lines": 1293,
+        "lines": 1298,
         "modules": 4
       },
       "ir": {
@@ -150,7 +150,7 @@
         "modules": 9
       },
       "orchestration": {
-        "lines": 280,
+        "lines": 299,
         "modules": 3
       },
       "subspace": {
@@ -162,9 +162,9 @@
         "modules": 1
       }
     },
-    "package_lines": 24870,
+    "package_lines": 24894,
     "package_modules": 98,
-    "test_lines": 25366,
-    "test_modules": 110
+    "test_lines": 25561,
+    "test_modules": 111
   }
 }

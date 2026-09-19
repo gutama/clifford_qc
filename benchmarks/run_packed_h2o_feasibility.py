@@ -2,7 +2,7 @@
 
 Phase 2M's go/no-go names one end-to-end test: "the previously failing
 stretched-H2O ``M = 31`` configuration completing below 15 GiB without shrinking
-its candidate pool, word universe, or basis budget". ``run_molecular_pipeline``
+its candidate pool, word universe, or basis budget". ``molecular.simulation``
 carries the failure in a comment beside the configuration that caused it --
 ``max_subspace`` is pinned at 20 because 30 "was killed by the OOM reaper" and
 "M=31 needs ~18 GiB on a 15 GiB machine". This is that configuration, run.
@@ -63,13 +63,13 @@ SCHEMA = "clifford_qc.packed_h2o_feasibility.v1"
 # the machine size PLAN.md records the original run being killed on.
 CEILING_BYTES = 15 * 2 ** 30
 
-# The failing configuration, verbatim from ``run_molecular_pipeline.MOLECULES``
+# The failing configuration, verbatim from ``molecular.catalog.MOLECULES``
 # and its ``run_pipeline`` defaults. Restated here rather than imported because
 # that module needs PySCF at import time to rebuild integrals this test reads
 # from the FCIDUMP the failing run already wrote.
-SOURCE = ROOT / "molecular_results" / "h2o_stretched.fcidump"
+SOURCE = ROOT / "molecular/results" / "h2o_stretched.fcidump"
 SOURCE_SHA256 = "7defd58c24020a1ffbd9ebe3d08c15e32b5636376a676df01451f94b1d2afa36"
-COMMITTED_RECORD = ROOT / "molecular_results" / "h2o_stretched_results.json"
+COMMITTED_RECORD = ROOT / "molecular/results" / "h2o_stretched_results.json"
 MAX_SIZE = 30           # M = 31 once the identity generator is counted
 MAX_RANK = 2
 LEAKAGE_TOL = 1e-10
@@ -94,7 +94,7 @@ def _rss() -> int:
 class ResidentCeiling:
     """Sample resident memory, and interrupt the main thread if it crosses.
 
-    ``PeakRSS`` in ``run_molecular_pipeline`` samples for reporting; this also
+    ``PeakRSS`` in ``molecular.simulation`` samples for reporting; this also
     enforces. The distinction matters because the quantity under test *is* a
     ceiling: a run the kernel kills reports nothing, and one that merely records
     its peak after finishing cannot tell you that it would have finished on a

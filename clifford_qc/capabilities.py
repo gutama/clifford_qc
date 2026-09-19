@@ -1,6 +1,6 @@
 r"""Which optional capabilities this installation has, without importing them.
 
-NumPy is the only core runtime dependency; nine extras gate everything else.
+NumPy is the only core runtime dependency; optional extras gate everything else.
 The problem this module solves is that the way to *discover* an extra was to
 trip over it, and the trip could happen a long way from the call:
 ``FermionEncoding.restriction()`` raises ``ModuleNotFoundError: stim`` from
@@ -26,7 +26,7 @@ have side effects on the interpreter it is reporting about.
 The capability table is checked against ``pyproject.toml`` by
 ``tests/test_capabilities.py``, in both directions: every extra a capability
 claims must exist, and every optional dependency imported anywhere under
-``clifford_qc/`` must be claimed by some capability.  A new optional import
+``clifford_qc/`` or ``molecular/`` must be claimed by some capability. A new optional import
 therefore fails the suite until it is declared, which is what keeps this file
 from becoming the stale list it replaces.
 """
@@ -83,6 +83,11 @@ CAPABILITIES: dict[str, Capability] = {
             "molecular_input", ("openfermionpyscf", "pyscf"), "chemistry",
             "PySCF molecular structure input -- the SCF run behind a Model",
             ("models.chemistry.molecule_model",),
+        ),
+        Capability(
+            "molecular_comparison", ("pyscf", "scipy"), "molecular",
+            "cached RHF/CISD/CCSD preparation and molecular A-CASE comparisons",
+            ("molecular.chemistry.prepare_chemistry", "molecular.run.main"),
         ),
         Capability(
             "openfermion_bridge", ("openfermion",), "openfermion",

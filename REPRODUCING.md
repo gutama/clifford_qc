@@ -2,7 +2,7 @@
 
 This guide maps the committed scientific records to their inputs, numerical
 environments, producers, and validation checks. Start with the [README](README.md)
-for package use and [PIPELINE.md](PIPELINE.md) for new repeated molecular solves.
+for package use and [molecular/PIPELINE.md](molecular/PIPELINE.md) for new repeated molecular solves.
 Historical experiments should be reproduced with the producer and source
 snapshot documented for their records.
 
@@ -116,23 +116,23 @@ No figure or table value in the manuscript is transcribed by hand, and
 ```bash
 python -m venv .venv && source .venv/bin/activate
 pip install -e .[test,research,stim]       # automatic CI extras
-pytest                                      # 2139 passed, 9 skipped
+pytest                                      # 2157 passed, 11 skipped
 ```
 
 This is the automatic CI dependency set; record gates additionally pin NumPy
 and SciPy through `check_record_environment.py`. Six optional test modules are
-dropped without OpenFermion, PennyLane, pytket and PyZX; three individual
-tests also skip -- two on OpenFermion and one on PySCF. Chemistry builders
-remain optional: install
-`.[chemistry]` when running those workflows, which changes collection totals.
+dropped without OpenFermion, PennyLane, pytket and PyZX; five individual tests
+also skip -- two on OpenFermion and three on PySCF. Chemistry builders remain
+optional: install `.[chemistry]` when running those workflows, which changes
+collection totals.
 
 `check_docs.py` enforces the pair through the identity relating them. Each of
-the six dropped files contribute exactly one skip and no collected tests, so
-the remaining `9 - 6 = 3` skips are per-test and *are* collected:
+the six dropped files contributes exactly one skip and no collected tests, so
+the remaining `11 - 6 = 5` skips are per-test and *are* collected:
 
 ```text
 collected == passed + (skipped - files dropped at collection)
-2116      == 2113   + (9       -   6)
+2162      == 2157   + (11      -   6)
 ```
 
 Both sides are computed from the tree, so a drift in either quoted number
@@ -2754,7 +2754,7 @@ retained-against-frontier ratio, which a fixed label list cannot produce because
 it never rejects a candidate. The seven committed molecular records supply the
 scale that actually failed, and they are **read, not rerun**: `T_coeff` comes
 back from `cached_operator_bytes / 24` exactly as §5 specifies, and the checker
-re-reads every quoted field from `molecular_results/` rather than trusting it as
+re-reads every quoted field from `molecular/results/` rather than trusting it as
 transcribed.
 
 **The packing hypothesis measures 3.75×, not the plan's working 4.8×.** Pooled,
@@ -3020,7 +3020,7 @@ peak by the Hamiltonian word ratio, `(1086/666) × 10.75 = 17.5` GiB. But H₂O'
 committed `M = 21` run already carries its larger word count, so multiplying by the
 ratio counts it twice. Scaling that run's own 6.53 GiB linearly in `M` predicts
 9.64 GiB against the 9.69 measured — agreement to 0.5%. `PLAN.md` §5 and the
-comment in `run_molecular_pipeline.py` are both corrected.
+comment in `molecular/run.py` are both corrected.
 
 **So what did kill it?** `PLAN.md` §5 already records the candidate and it is not
 the bank's representation: a sequential run held BeH₂'s 11.2 GiB bank as H₂O's
@@ -3044,7 +3044,7 @@ run is entirely `retain_all` and does not measure the new eviction policy.
 
 ## Reusable preparation and streaming selection
 
-See [PIPELINE.md](PIPELINE.md) for the independent `prepare`, `solve`, and optional
+See [molecular/PIPELINE.md](molecular/PIPELINE.md) for the independent `prepare`, `solve`, and optional
 `validate` commands, cache identity, coefficient lifetime boundary, and numerical
 regressions. `benchmarks/profile_pipeline.py` runs a small TFIM profile in one
 process; run separate processes for each storage/policy arm. It is diagnostic

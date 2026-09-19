@@ -6,37 +6,19 @@ This plan establishes an end-to-end electronic structure and operator-subspace s
 
 ## 1. Pipeline Architecture
 
-```text
-+-------------------------------------------------------------------------------+
-|                       Upstream Electronic Structure                           |
-|  - PySCF (RHF / STO-3G) -> 1-body & 2-body Integrals                          |
-|  - Restricted FCIDUMP Ingestion (IUHF=0, chemist (pq|rs) notation)           |
-+-------------------------------------------------------------------------------+
-                                        |
-                                        v
-+-------------------------------------------------------------------------------+
-|                        clifford_qc Ingestion & Mapping                        |
-|  - Load FCIDUMP via strict NumPy adapter (clifford_qc.models.fcidump)        |
-|  - Map integrals to JW multivectors via fermion CAR operators (c_j, c_j†)    |
-|  - Identify reference Hartree-Fock state |psi_0> & excitation generator pool  |
-+-------------------------------------------------------------------------------+
-                                        |
-                                        v
-+-------------------------------------------------------------------------------+
-|                         A-CASE Subspace Eigensolver                           |
-|  - Rayleigh-Ritz in operator-response subspace basis {A_i |psi_0>}           |
-|  - Evaluate matrix elements H_ij and overlap S_ij via single reference        |
-|  - Solve generalized eigenvalue problem H c = E S c                          |
-+-------------------------------------------------------------------------------+
-                                        |
-                                        v
-+-------------------------------------------------------------------------------+
-|                       Observables & Response Analysis                         |
-|  - Exact sector ground state reference (SectorStatevectorBackend)            |
-|  - Ground state energy E0, double occupancy <d>, spin correlations <S_0.S_1> |
-|  - Lehmann response spectrum & static susceptibility chi(0)                   |
-+-------------------------------------------------------------------------------+
-```
+The suite passes each molecule through four stages:
+
+| Stage | Responsibility |
+|---|---|
+| Chemistry | Cached PySCF RHF/CISD/CCSD and restricted FCIDUMP export |
+| Preparation | FCIDUMP ingestion, Jordan-Wigner mapping, and determinant reference |
+| Simulation | Adaptive operator-response Rayleigh-Ritz solve and separate sector/CISD references |
+| Reporting | Selected-space observables, response diagnostics, and atomic result records |
+
+The current implementation and command options are described in [README.md](README.md).
+The catalog includes the four equilibrium molecules below and three stretched controls.
+New experiments default to `molecular/runs/`; `molecular/results/` holds historical evidence.
+
 
 ---
 
@@ -54,12 +36,12 @@ This plan establishes an end-to-end electronic structure and operator-subspace s
 ## 3. Workflow Steps
 
 1. **Environment Setup & Verification:**
-   - Install `pyscf`, `openfermion`, `openfermionpyscf`.
-   - Run `check_env.py` and `verify.py`.
+   - Install `python -m pip install -e ".[molecular]"`; this suite uses PySCF directly.
+   - Run the regression checks documented in [README.md](README.md).
 
 2. **FCIDUMP Generation:**
    - Compute Hartree-Fock STO-3G integrals using PySCF for LiH, BeH₂, HF, and H₂O.
-   - Dump restricted FCIDUMP files into `molecular_results/`.
+   - Cache and export restricted FCIDUMP files under the selected output directory.
 
 3. **`clifford_qc` A-CASE Execution:**
    - Ingest each FCIDUMP with `fcidump_model`.
@@ -68,17 +50,17 @@ This plan establishes an end-to-end electronic structure and operator-subspace s
    - Evaluate matrix element bank (`MatrixElementBank`), projected observables ($\langle d \rangle$, $\langle S_0 \cdot S_1 \rangle$, $\langle S^2 \rangle$), and Lehmann response spectrum.
 
 4. **Results Aggregation & Reporting:**
-   - Save all JSON records and summary files in `molecular_results/`.
+   - Save JSON records and summaries atomically under the selected output directory.
    - Generate a full Markdown report summarizing energies, errors, basis sizes, correlation functions, and resource metrics.
 
 ---
 
 ## 4. Multiresolution status: what is and is not wired in
 
-Steps 1–4 above describe the pipeline **as committed**. No wavelet or
-multiresolution stage is part of it. `run_molecular_pipeline.py` contains no
+Steps 1–4 above describe the molecular comparison workflow. No wavelet or
+multiresolution stage is part of it. `molecular/run.py` contains no
 reference to Haar packets, configuration packets, or orbital bases, and the
-committed records in `molecular_results/` carry no packet fields. The two
+committed records in `molecular/results/` carry no packet fields. The two
 multiresolution capabilities the repository does own sit at different distances
 from this pipeline, and they must not be described as one capability.
 

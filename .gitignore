@@ -231,3 +231,8 @@ paper/manuscript.pdf
 # Written by benchmarks/check_record_environment.py --constraints; derived from
 # the records' provenance, so it is regenerated rather than committed.
 constraints.txt
+
+# Local molecular experiments and reusable chemistry/preparation caches
+molecular/runs/
+molecular/results/cache/
+molecular/results/.run.lock

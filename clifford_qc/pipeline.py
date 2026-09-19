@@ -14,7 +14,7 @@ from .prepared import PreparedProblem, prepare_fcidump, _atomic_json, implementa
 
 
 def solve_prepared(prepared, *, config=None, storage="object", policy="retain_all",
-                   frontier_pairs=32, max_rank=2):
+                   frontier_pairs=32, max_rank=2, max_candidates=0):
     from .backends import ExactMVBackend
     from .subspace.adaptive import ACASEConfig, run_acase
     from .subspace.fermionic_generators import determinant_excitations, occupied_spin_orbitals
@@ -23,11 +23,24 @@ def solve_prepared(prepared, *, config=None, storage="object", policy="retain_al
 
     if policy not in ("retain_all", "stream_recompute"):
         raise ValueError("policy must be retain_all or stream_recompute")
+    if storage not in ("object", "packed"):
+        raise ValueError("storage must be object or packed")
+    if isinstance(max_rank, bool) or max_rank not in (1, 2):
+        raise ValueError("max_rank must be 1 or 2")
+    for name, value, minimum in (("max_candidates", max_candidates, 0),
+                                  ("frontier_pairs", frontier_pairs, 1)):
+        if isinstance(value, bool) or not isinstance(value, int) or value < minimum:
+            raise ValueError(f"{name} must be an integer >= {minimum}")
+    cfg = config if config is not None else ACASEConfig()
+    if isinstance(cfg.max_size, bool) or not isinstance(cfg.max_size, int) or cfg.max_size < 0:
+        raise ValueError("max_size must be a nonnegative integer")
     started = time.perf_counter()
     model = prepared.model()
-    rho = ExactMVBackend().state(model.reference, ())
     candidates = determinant_excitations(model.n, occupied_spin_orbitals(model), max_rank=max_rank)
-    cfg = config if config is not None else ACASEConfig()
+    available_candidates = len(candidates)
+    if max_candidates:
+        candidates = candidates[:max_candidates]
+    rho = ExactMVBackend().state(model.reference, ())
     bank = (MatrixElementBank(rho, model.hamiltonian, storage=storage)
             if policy == "retain_all" else StreamingMatrixElementBank(
                 rho, model.hamiltonian, storage=storage, frontier_pairs=frontier_pairs))
@@ -37,6 +50,7 @@ def solve_prepared(prepared, *, config=None, storage="object", policy="retain_al
         "implementation": implementation_fingerprint(), "method": "acase", "evidence_tier": "exact",
         "stopping_uses_oracle": cfg.exact_ground_energy is not None and cfg.target_error is not None,
         "config": asdict(cfg), "max_rank": max_rank, "candidate_count": len(candidates),
+        "max_candidates": max_candidates, "available_candidates": available_candidates,
         "labels": result.labels, "energy": result.energy, "energy_history": result.energy_history,
         "stopped_reason": result.stopped_reason, "resources": result.resources,
         "wall_seconds": time.perf_counter() - started,
@@ -48,6 +62,7 @@ def solve_prepared(prepared, *, config=None, storage="object", policy="retain_al
 def validate_prepared(prepared, *, method="auto", roots=1):
     from .backends import SectorStatevectorBackend
     import numpy as np
+    started = time.perf_counter()
     model = prepared.model()
     backend = SectorStatevectorBackend(model.n, model.metadata["n_electrons"], model.metadata["sz"])
     if isinstance(roots, bool) or int(roots) != roots or not 1 <= roots <= backend.dimension:
@@ -61,6 +76,7 @@ def validate_prepared(prepared, *, method="auto", roots=1):
             "problem_fingerprint": prepared.fingerprint, "method": method,
             "implementation": implementation_fingerprint(), "energies": values.tolist(),
             "residual_norms": residuals, "sector_dimension": backend.dimension,
+            "wall_seconds": time.perf_counter() - started,
             "scope": "optional classical reference; not charged to the solver record"}
 
 
@@ -81,6 +97,8 @@ def main(argv=None):
             command.add_argument("--frontier-pairs", type=int, default=32)
             command.add_argument("--max-additions", type=int, default=10)
             command.add_argument("--max-rank", type=int, default=2)
+            command.add_argument("--max-candidates", type=int, default=0,
+                                 help="0 uses the full candidate pool")
         else:
             command.add_argument("--method", choices=("auto", "dense", "eigsh", "lanczos"), default="auto")
             command.add_argument("--roots", type=int, default=1)
@@ -95,7 +113,8 @@ def main(argv=None):
             from .subspace.adaptive import ACASEConfig
             _, record = solve_prepared(prepared, config=ACASEConfig(max_size=args.max_additions),
                                        storage=args.storage, policy=args.policy,
-                                       frontier_pairs=args.frontier_pairs, max_rank=args.max_rank)
+                                       frontier_pairs=args.frontier_pairs, max_rank=args.max_rank,
+                                       max_candidates=args.max_candidates)
         else:
             record = validate_prepared(prepared, method=args.method, roots=args.roots)
         _atomic_json(args.output, record)
