@@ -373,3 +373,41 @@ def test_first_fit_partition_respects_the_order_it_is_given():
 
 def test_first_fit_partition_handles_an_empty_bank():
     assert first_fit_partition([], []) == []
+
+
+# ---------------------------------------------------------------------------
+# Refinement budget and seed guard
+
+
+def test_patience_stops_a_plateaued_refinement_at_the_same_answer():
+    """The plateau stop is a budget, not a different search."""
+    n, codes = 4, _bank(4, 90, 59)
+    base = block_commuting_partition(n, codes, 2)
+    patient = iterated_greedy(n, codes, 2, base, rounds=200, seed=0,
+                              patience=200)
+    stopped = iterated_greedy(n, codes, 2, base, rounds=200, seed=0, patience=8)
+    assert len(stopped) <= len(base)
+    assert len(stopped) >= len(patient)
+
+
+def test_patience_zero_runs_the_whole_budget():
+    n, codes = 4, _bank(4, 60, 61)
+    base = block_commuting_partition(n, codes, 2)
+    assert (iterated_greedy(n, codes, 2, base, rounds=40, seed=0, patience=0)
+            == iterated_greedy(n, codes, 2, base, rounds=40, seed=0, patience=40))
+
+
+def test_reduce_settings_tolerance_of_one_still_returns_a_valid_partition():
+    """Dropping every non-optimal seed must not drop the answer with them."""
+    n, codes = 4, _bank(4, 80, 67)
+    reduced = reduce_settings(n, codes, 2, rounds=16, seed=0, tolerance=1.0)
+    assert reduced.n_settings <= len(block_commuting_partition(n, codes, 2))
+    _assert_partition(reduced.codes, reduced.groups)
+    _assert_block_commuting(n, list(reduced.codes), reduced.groups, 2)
+
+
+def test_reduce_settings_admits_more_seeds_as_tolerance_grows():
+    n, codes = 4, _bank(4, 80, 71)
+    tight = reduce_settings(n, codes, 4, rounds=16, seed=0, tolerance=1.0)
+    loose = reduce_settings(n, codes, 4, rounds=16, seed=0, tolerance=10.0)
+    assert loose.n_settings <= tight.n_settings

@@ -141,6 +141,7 @@ def iterated_greedy(
     *,
     rounds: int = 64,
     seed: int = 0,
+    patience: int = 24,
     conflicts: Sequence[int] | np.ndarray | None = None,
 ) -> list[list[int]]:
     """Re-colour repeatedly in group order; never returns more groups.
@@ -151,6 +152,12 @@ def iterated_greedy(
     the only question a round settles is whether it is strictly better. Four
     schedules alternate -- smallest group first, largest first, reversed, and a
     seeded shuffle -- because a fixed one stalls on its own fixed point.
+
+    A round costs one scan of every open group per word, so a partition with
+    many settings is the expensive one to refine and also the one that plateaus
+    soonest. ``patience`` stops after that many consecutive rounds without a
+    strict improvement; it is six full schedule cycles by default. Set it to
+    ``rounds`` to run the whole budget.
     """
     codes = list(codes)
     if not codes:
@@ -163,7 +170,10 @@ def iterated_greedy(
         conflicts = packed_conflicts(conflicts, len(codes))
     best = [list(group) for group in groups]
     rng = np.random.default_rng(seed)
+    stale = 0
     for step in range(rounds):
+        if patience and stale >= patience:
+            break
         blocks = [list(group) for group in best]
         schedule = step % 4
         if schedule == 0:
@@ -182,6 +192,9 @@ def iterated_greedy(
                 "first fit cannot do")
         if len(trial) < len(best):
             best = trial
+            stale = 0
+        else:
+            stale += 1
     return best
 
 
@@ -431,14 +444,21 @@ def reduce_settings(
     seed: int = 0,
     search_frames: bool = True,
     shortlist: int = 3,
+    tolerance: float = 1.25,
 ) -> Regrouping:
     """The best partition these strategies find, with the frame that carries it.
 
-    Runs, per shortlisted block assignment: the shipped greedy, then iterated
-    greedy, then span recovery, then iterated greedy again, and -- because it
-    wins at the wide end -- an isotropic cover refined the same way. The best
-    setting count wins; ties keep the earlier frame, so the identity frame is
-    preferred whenever a relabelling buys nothing.
+    Runs, per shortlisted block assignment: the shipped greedy, DSATUR and an
+    isotropic cover as seeds, each refined by iterated greedy, span recovery
+    and iterated greedy again. The best setting count wins; ties keep the
+    earlier frame, so the identity frame is preferred whenever a relabelling
+    buys nothing.
+
+    A seed far worse than the best one is dropped rather than refined.
+    Refinement is monotone but not a rescue -- on H4's QWC rung the isotropic
+    cover opens 1 492 settings against the greedy's 913, and refining it costs
+    more than every other seed together while never catching them. ``tolerance``
+    is the factor over the best seed a seed must stay within to be refined.
     """
     codes = list(codes)
     if not codes:
@@ -462,7 +482,10 @@ def reduce_settings(
         planes = packed_conflicts(conflicts, len(moved))
         if n <= MAX_SPAN_QUBITS:
             seeds["isotropic cover"] = isotropic_cover(n, moved, block_size)
+        floor = min(len(groups) for groups in seeds.values())
         for name, groups in seeds.items():
+            if len(groups) > tolerance * floor:
+                continue
             refined = iterated_greedy(n, moved, block_size, groups,
                                       rounds=rounds, seed=seed,
                                       conflicts=planes)
