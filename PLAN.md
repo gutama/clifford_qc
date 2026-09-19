@@ -1761,6 +1761,14 @@ ordinary determinant-space expansion. For each sampled determinant set `D`:
    perturbative-style score.
 4. **Budget-matched selected CI:** stop at the same determinant count or classical
    matrix cost as the hybrid.
+5. **Matched selected CI:** the same score at the same budget, ranked from the
+   reference determinant rather than the sample, so the row is what classical
+   selection reaches without ever seeing the quantum draw.
+6. **Chance floor:** the same number of determinants drawn uniformly from the
+   arm's own symmetry sector, scoring nothing. (1)–(5) ask whether the sample
+   beats classical selection; this asks whether it beats chance at its size,
+   which has to be settled first — without it, "this subspace is good" and "a
+   subspace of this size is good" are the same number.
 
 Record determinant count, Hamiltonian nonzeros, classical selection work, energy,
 variance, and memory.

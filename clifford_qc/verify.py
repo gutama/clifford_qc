@@ -258,6 +258,18 @@ def run_verification() -> None:
            f"({bigger.memory_estimate()['sector_bytes'] // 1024} KiB)",
            bigger.dimension == 4900)
 
+    print("\n-- optional capabilities --")
+    # Reported, never asserted: the core install is numpy-only by design, so a
+    # missing extra is a fact about this environment and not a failure.
+    from .capabilities import (CAPABILITIES, capabilities, format_report,
+                               missing_capabilities)
+
+    report = capabilities()
+    print(format_report(report))
+    absent = missing_capabilities(report)
+    print(f"  {len(CAPABILITIES) - len(absent)}/{len(CAPABILITIES)} available"
+          + (f"; absent: {', '.join(absent)}" if absent else ""))
+
     print("\n-- structural report --")
     print(f"  Bell: {bell.nnz()}/16 words | GHZ: {ghz.nnz()}/64 words | Toffoli: {TOFFOLI(3,0,1,2).nnz()}/64 words")
     print(f"  RZ grades: {sorted(RZ(2,0,0.8).grades())}; CNOT grades: {sorted(CNOT(2,0,1).grades())}")

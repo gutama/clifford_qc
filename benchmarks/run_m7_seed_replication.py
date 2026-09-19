@@ -167,8 +167,7 @@ def run_cell(name: str, model, backend, operator, rho, exact_energy: float, *,
             "sample_independent": control.metadata.get("sample_independent"),
         })
 
-    kind = "fermionic_lattice" if name.startswith("hubbard_") else "molecular"
-    candidates = ladder.build_candidates(model, kind)
+    candidates = ladder.build_candidates(model)
     bare = run_acase(rho, model.hamiltonian, candidates,
                      max_size=max_size, exact_ground_energy=exact_energy)
     record("acase", bare.energy, bare.basis_size)

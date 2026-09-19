@@ -404,11 +404,11 @@ def _krylov_depth_metadata(max_size: int, krylov_depth: int) -> dict:
     }
 
 
-def _ladder_row(method: str, spec: dict, model, kind: str, context: dict,
+def _ladder_row(method: str, spec: dict, model, context: dict,
                 exact_energy: float, seed: int,
                 extra_metadata: dict | None = None) -> dict:
     raw, wall, peak = _observed(
-        lambda: ladder.run_method(method, spec, model, kind, context))
+        lambda: ladder.run_method(method, spec, model, context))
     evidence = ("finite_sample" if raw.get("evidence") == "finite_sample"
                 else "exact_simulation")
     row = _blank_record(method, evidence, seed)
@@ -659,8 +659,8 @@ def run_system(name: str, *, shots: int = 128, seed: int = 0,
     exact_values, _ = exact_solution
     exact_energy = float(exact_values[0])
     rho = ExactMVBackend().state(model.reference, ())
-    pool = ladder.word_pool(model, kind)
-    candidates = ladder.build_candidates(model, kind)
+    pool = ladder.word_pool(model)
+    candidates = ladder.build_candidates(model)
     context = {
         "rho": rho,
         "reference": exact_energy,
@@ -680,20 +680,20 @@ def run_system(name: str, *, shots: int = 128, seed: int = 0,
         _ladder_row(
             "fixed_qse", {"kind": "qse", "size": max_size,
                            "selection": "stride", "seed": seed},
-            model, kind, context, exact_energy, seed),
+            model, context, exact_energy, seed),
         _ladder_row(
             "fixed_krylov", {"kind": "krylov", "size": krylov_depth,
                               "max_tracked_support": 512, "seed": seed},
-            model, kind, context, exact_energy, seed,
+            model, context, exact_energy, seed,
             extra_metadata=_krylov_depth_metadata(max_size, krylov_depth)),
         _ladder_row(
             "adapt_vqe", {"kind": "adapt_exact", "max_operators": max_size,
                            "seed": seed},
-            model, kind, context, exact_energy, seed),
+            model, context, exact_energy, seed),
         _ladder_row(
             "acase", {"kind": "acase_exact", "max_size": max_size,
                        "leakage_tol": 1e-9, "seed": seed},
-            model, kind, context, exact_energy, seed),
+            model, context, exact_energy, seed),
     ]
 
     state = _sampling_state(
@@ -797,14 +797,14 @@ def run_system(name: str, *, shots: int = 128, seed: int = 0,
                 "adapt_vqe_finite",
                 {"kind": "adapt_shot", "max_operators": max_size,
                  "base": 256, "max_factor": 16, "seed": seed},
-                model, kind, context, exact_energy, seed),
+                model, context, exact_energy, seed),
             _ladder_row(
                 "acase_certified",
                 {"kind": "acase_certified", "max_size": min(max_size, 4),
                  "construction_shots": 2000, "certification_shots": 2000,
                  "delta": 0.05, "threshold": 0.05,
                  "leakage_tol": 1e-9, "seed": seed},
-                model, kind, context, exact_energy, seed),
+                model, context, exact_energy, seed),
         ])
 
     present = {row["method"] for row in rows}

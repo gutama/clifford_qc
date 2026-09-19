@@ -55,8 +55,6 @@ def determinant_ci_energy(hamiltonian, model, n, occupied, n_electrons, sz,
     kept = np.flatnonzero(rank <= max_rank)
     block = backend.operator(hamiltonian, precompute=False).restrict(kept)
     block = (block + block.conj().T) / 2.0
-    energies, vectors = np.linalg.eigh(block)
-
     # Select by multiplicity, not by energy. The determinant block spans every
     # spin state at this S_z, and at stretched geometries the lowest root is
     # not the singlet: at H2O 2.5x it is a quintet 55.2 mHa below the lowest
@@ -66,14 +64,23 @@ def determinant_ci_energy(hamiltonian, model, n, occupied, n_electrons, sz,
     spin_block = backend.operator(
         total_spin_squared(model).to_mv(), precompute=False).restrict(kept)
     spin_block = (spin_block + spin_block.conj().T) / 2.0
-    s2 = np.real(np.einsum("ij,jk,ki->i", vectors.conj().T, spin_block, vectors))
+    # Resolve spin before energy: degenerate H eigenvectors can be arbitrary
+    # singlet/triplet mixtures, so filtering their <S^2> can miss valid roots.
+    s2, spin_vectors = np.linalg.eigh(spin_block)
     match = np.flatnonzero(np.abs(s2 - target_s2) < s2_tol)
     if match.size == 0:
         raise RuntimeError(
             f"no root of the rank-{max_rank} determinant block has "
             f"<S^2> = {target_s2}; the lowest few are {s2[:4]}")
-    index = int(match[0])
-    return float(energies[index]), int(kept.size), float(s2[index])
+    spin_vectors = spin_vectors[:, match]
+    h_spin = spin_vectors.conj().T @ block @ spin_vectors
+    leakage = block @ spin_vectors - spin_vectors @ h_spin
+    if np.linalg.norm(leakage) > 1e-10 * max(1.0, np.linalg.norm(block)):
+        raise ValueError("target spin subspace is not invariant under the determinant Hamiltonian")
+    energies, vectors = np.linalg.eigh((h_spin + h_spin.conj().T) / 2.0)
+    ground = spin_vectors @ vectors[:, 0]
+    ground_s2 = float(np.vdot(ground, spin_block @ ground).real)
+    return float(energies[0]), int(kept.size), ground_s2
 
 
 class PeakRSS:
@@ -436,8 +443,8 @@ def simulate(key: str, spec: dict, out_dir: Path, *, max_candidates=0,
         e_sd = err_sd_mha = None
         t_sd_elapsed = None
         sd_rss = None
-        print("  Complete SD Subspace: skipped (reproduces PySCF CISD "
-              f"exactly; CISD error {(e_cisd - e_exact) * 1000.0:+.4f} mHa)")
+        print("  Complete SD Subspace: skipped; spin-checked determinant CISD "
+              f"error {(e_cisd_det - e_exact) * 1000.0:+.4f} mHa")
 
     record.update({
         "e_sd_complete": e_sd,

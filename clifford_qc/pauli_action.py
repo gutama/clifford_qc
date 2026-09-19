@@ -210,6 +210,11 @@ class PauliLinearOperator:
         if not isinstance(k, int) or not (1 <= k <= self.dimension):
             raise ValueError(f"k must be in [1, {self.dimension}]")
         if method == "auto":
+            # Deliberately an import probe rather than `available(
+            # "sparse_linalg")`: the choice here needs `scipy.sparse.linalg`
+            # specifically, and the capability table declares `scipy`. Asking
+            # find_spec about the submodule would import `scipy` as a side
+            # effect, which is the property the report exists to keep.
             try:
                 import scipy.sparse.linalg  # noqa: F401
             except ImportError:  # pragma: no cover - scipy is a research extra

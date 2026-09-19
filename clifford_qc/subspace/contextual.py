@@ -284,15 +284,20 @@ def compile_contextual_restriction(
     label: str | None = None,
 ) -> ContextualRestrictionPlan:
     """Compile the selected signed stabilizers to +Z fixed qubits."""
+    # Stated before the selection, not after it: the selection is a full pass
+    # over the Hamiltonian's terms with GF(2) independence checks, and making a
+    # stim-less caller wait that out only to be told to install stim is the
+    # same "discover it through a failure further in" this module is fixing.
+    from ..capabilities import require
+
+    require("contextual_restriction",
+            feature="compile_contextual_restriction")
+
     selection = select_contextual_stabilizers(
         hamiltonian, reference, count, tol=tol
     )
-    try:
-        import stim
-    except ImportError as exc:  # pragma: no cover - exercised without the extra
-        raise ImportError(
-            "compile_contextual_restriction requires the 'stim' optional dependency"
-        ) from exc
+
+    import stim
 
     from ..bridges.stim_bridge import CliffordMap
 

@@ -17,11 +17,18 @@ Controls over one sampled determinant set ``D``:
    strictly larger classical control, not a substitute for (2);
 4. ``selected_ci`` -- add determinants by a declared classical score, one pass;
 5. ``budget_matched`` -- the same score, stopped at a declared determinant count
-   or measured matrix-nonzero budget.
+   or measured matrix-nonzero budget;
+6. ``matched_selected_ci`` -- the same score at a declared budget, ranked from
+   the reference determinant instead of the sample, so the row is what a
+   laptop reaches without ever seeing the quantum draw;
+7. ``random`` -- the floor: the same number of determinants drawn uniformly
+   from the arm's own symmetry sector, scoring nothing.
 
-Controls 2-5 are strictly classical.  Every determinant they add is one a
+Controls 2-6 are strictly classical.  Every determinant they add is one a
 laptop could have found, so any advantage the hybrid claims has to survive
-them.
+them.  (7) is the other end of the same comparison: a subspace that does not
+beat chance at its own size is evidence about how many configurations the arm
+found, not about which.
 
 Keeping (2) and (3) apart matters more than it looks.  A fixed pool built
 relative to the reference determinant annihilates many sampled determinants and
@@ -41,6 +48,7 @@ are reported alongside but cannot decide it on their own.
 
 from __future__ import annotations
 
+import hashlib
 import time
 from dataclasses import dataclass, field
 from itertools import combinations
@@ -277,6 +285,93 @@ def family_closure(words, generators, *, backend=None, n: int | None = None,
     return np.array(sorted(reached), dtype=np.int64)
 
 
+def _popcount(words: np.ndarray) -> np.ndarray:
+    """Set bits per word, without assuming ``np.bitwise_count``.
+
+    Added in NumPy 2.0; the package supports older runtimes, and the fallback
+    is exact rather than approximate, so the two agree bit for bit.
+    """
+    words = np.asarray(words, dtype=np.int64)
+    counter = getattr(np, "bitwise_count", None)
+    if counter is not None:
+        return counter(words).astype(np.int64)
+    counts = np.zeros(words.shape, dtype=np.int64)
+    remaining = words.copy()
+    while np.any(remaining):
+        counts += (remaining & 1).astype(np.int64)
+        remaining >>= 1
+    return counts
+
+
+def _up_mask(n: int) -> int:
+    """Bits of the spin-up orbitals, under the convention of :func:`_spin`.
+
+    Orbital ``j`` occupies bit ``n - 1 - j``, and even ``j`` is spin up, so the
+    mask is read off the same rule the closures use rather than re-derived.
+    The down mask is its complement within the word and is never needed: a word
+    with a known electron count and a known up count has its down count too.
+    """
+    return sum(1 << (n - 1 - j) for j in range(n) if _spin(j) == 0)
+
+
+def _sector_pool(words: np.ndarray, *, n: int,
+                 conserve_sz: bool = True) -> np.ndarray:
+    """Full-space words sharing the sampled set's symmetry sector.
+
+    The uniform control's pool.  A draw over the whole ``2**n`` Fock space is
+    not matched to an arm that lives in one particle-number sector: most of its
+    determinants land where the Hamiltonian has no coupling to the arm's
+    subspace at all, so the resulting "chance floor" is the energy of a
+    multi-sector junk subspace and any margin over it measures symmetry
+    conservation rather than configuration selection.
+
+    A sampled set that already spans sectors has no matched pool, and guessing
+    one would put a mislabelled row in the comparison -- the same reason
+    :func:`run_control`'s closure kinds refuse a reach that leaves the sector.
+    """
+    words = np.asarray(words, dtype=np.int64).reshape(-1)
+    up_mask = _up_mask(n)
+    electrons = np.unique(_popcount(words))
+    if electrons.size != 1:
+        raise ValueError(
+            "the sampled set spans several particle-number sectors "
+            f"({electrons.tolist()}); a uniform control matched to it has no "
+            "single sector to draw from")
+    space = np.arange(2 ** n, dtype=np.int64)
+    keep = _popcount(space) == electrons[0]
+    if conserve_sz:
+        up = np.unique(_popcount(words & up_mask))
+        if up.size != 1:
+            raise ValueError(
+                f"the sampled set spans several S_z sectors (n_up in "
+                f"{up.tolist()}); a uniform control matched to it has no "
+                "single sector to draw from")
+        keep &= (_popcount(space & up_mask) == up[0])
+    return space[keep]
+
+
+def _seed_label(seed) -> int | str:
+    """A JSON-safe stamp of whatever ``default_rng`` accepted.
+
+    ``int(seed)`` is wrong here: ``default_rng`` also takes a ``SeedSequence``,
+    a sequence of ints, or a ``BitGenerator``, and coercing one of those raises
+    *after* the draw has already succeeded -- a crash in the record-keeping
+    rather than in the control.
+    """
+    try:
+        return int(seed)
+    except (TypeError, ValueError):
+        return repr(seed)
+
+
+def _index_digest(indices: np.ndarray) -> str:
+    """Stable digest of a determinant set, for records that omit the set."""
+    ordered = np.sort(np.asarray(indices, dtype=np.int64))
+    return hashlib.sha256(
+        ",".join(str(int(value)) for value in ordered).encode("utf-8")
+    ).hexdigest()
+
+
 def _operator_space(operator):
     """``(dimension, index_to_word)`` for either operator flavour."""
     if isinstance(operator, SectorOperator):
@@ -440,11 +535,12 @@ def run_control(operator, sampled, *, name: str, kind: str, n: int | None = None
                 score: str = "epstein_nesbet",
                 diagonal: np.ndarray | None = None,
                 max_rank: int = 2, conserve_sz: bool = True,
-                generators=None) -> ControlResult:
+                generators=None, seed: int | None = None) -> ControlResult:
     """One Phase 9 control over a sampled determinant set.
 
     ``kind`` is one of ``qsci``, ``family_closure``, ``excitation_closure``,
-    ``selected_ci``, or ``budget_matched``.  ``family_closure`` requires
+    ``selected_ci``, ``budget_matched``, ``matched_selected_ci``, or
+    ``random``.  ``family_closure`` requires
     ``generators`` -- it measures a declared family's reach, and there is no
     such thing without the family.  ``sampled`` are indices into the operator's own space
     -- sector positions for a :class:`SectorOperator`, computational-basis words
@@ -454,7 +550,29 @@ def run_control(operator, sampled, *, name: str, kind: str, n: int | None = None
     budget-matched control with no declared budget is just the unbudgeted one
     under a different name, and silently accepting that would put a mislabelled
     row in the comparison.
+
+    ``random`` is the floor of the family: ``M`` determinants drawn uniformly
+    from the arm's own symmetry sector, ignoring the sampled set's contents and
+    matching only its size.  ``matched_selected_ci`` answers "does the quantum
+    sample beat *smart* classical selection on this budget"; ``random`` answers
+    "does it beat *chance* on this budget", which is the weaker question the arm
+    has to pass before the stronger one means anything.  It needs ``seed``,
+    since a control whose draw cannot be reproduced is not a control, and over a
+    :class:`PauliLinearOperator` it needs ``n`` as well -- the draw is held to
+    the sampled set's particle-number (and, under ``conserve_sz``, ``S_z``)
+    sector, because a null drawn from the whole Fock space measures symmetry
+    conservation rather than which configurations the arm found.  ``seed``
+    belongs to that kind alone and is refused elsewhere.
     """
+    if seed is not None and kind != "random":
+        # Silently dropping it would mislabel the row: a caller that means
+        # kind="random" but writes another kind, or a driver threading one
+        # experiment seed through every control, would get a control that
+        # reports a seed it never used -- the failure budget_matched and
+        # matched_selected_ci already refuse for their own missing arguments.
+        raise ValueError(f"seed is only used by the random control, not by "
+                         f"{kind!r}; a seed that reaches a kind which cannot "
+                         "draw with it is a mislabelled row, not a no-op")
     dimension, basis = _operator_space(operator)
     sampled = np.asarray(sampled, dtype=np.int64).reshape(-1)
     if sampled.size == 0:
@@ -539,6 +657,88 @@ def run_control(operator, sampled, *, name: str, kind: str, n: int | None = None
                 "reference determinant plus the highest-scoring determinants "
                 "under one criterion, chosen without reference to the sampled "
                 "set; the quantum sample informs neither the pool nor the order"),
+        })
+
+    elif kind == "random":
+        # The null arm. It scores nothing and consults nothing: the sampled set
+        # contributes its *size* and not one of its determinants, so any
+        # advantage an arm shows over this row is attributable to which
+        # configurations it found rather than how many.
+        if seed is None:
+            raise ValueError("the random control needs an explicit seed; an "
+                             "unreproducible draw is not a control")
+        base = np.unique(sampled)
+        # The pool the draw is uniform *over*. A SectorOperator is already the
+        # sector, so its whole space is the pool. A PauliLinearOperator is the
+        # full 2^n Fock space, and drawing from that would put most of the
+        # control's determinants in particle-number sectors the Hamiltonian
+        # never couples to the arm's subspace -- the row would then measure
+        # symmetry conservation rather than which configurations the arm found,
+        # and every margin over it would be overstated. The other full-space
+        # kinds guard the same boundary by refusing a closure that leaves the
+        # sector; here the boundary has to be imposed on the pool instead,
+        # because a uniform draw has nothing to leave.
+        if basis is None:
+            if n is None:
+                raise ValueError("a full-space random control needs the qubit "
+                                 "count n; without it the draw cannot be held "
+                                 "to the sampled set's symmetry sector")
+            pool = _sector_pool(base, n=n, conserve_sz=conserve_sz)
+            sector_semantics = ("the sampled set's particle-number"
+                                + (" and S_z" if conserve_sz else "")
+                                + " sector of the full space")
+        else:
+            pool = np.arange(dimension, dtype=np.int64)
+            sector_semantics = "the operator's sector"
+        budget = (base.size if max_determinants is None
+                  else max(1, int(max_determinants)))
+        if budget > pool.size:
+            raise ValueError(
+                f"cannot draw {budget} distinct determinants from a space of "
+                f"{pool.size}; a control larger than the space it samples is "
+                "the full space under another name")
+        rng = np.random.default_rng(seed)
+        # Drawn order, not sorted order: a nonzero budget trims a *prefix*
+        # below, and trimming a prefix of sorted indices would bias the control
+        # toward the low end of the space instead of shrinking the draw.
+        drawn = pool[rng.choice(pool.size, size=budget, replace=False)]
+        if max_nonzeros is not None:
+            # Same rule budget_matched uses: nonzeros are monotone in the
+            # prefix length, so the largest admissible prefix is a binary
+            # search. A null that silently ignores the budget it is supposed to
+            # be matched to is the one arm that must not.
+            low, high = 1, drawn.size
+            while low < high:
+                middle = (low + high + 1) // 2
+                if np.count_nonzero(
+                        operator.restrict(np.unique(drawn[:middle]))) <= max_nonzeros:
+                    low = middle
+                else:
+                    high = middle - 1
+            drawn = drawn[:low]
+            metadata["nonzero_budget"] = int(max_nonzeros)
+        indices = np.unique(drawn)
+        metadata.update({
+            "seed": _seed_label(seed),
+            # Deliberately *not* ``sample_independent``: that flag is read as
+            # "does not move with the draw" (see summarize_m7_replication.py),
+            # and this arm moves with its own seed. It is the sample's
+            # *contents* it never consults.
+            "sample_contents_independent": True,
+            "draw_dependent": True,
+            "drawn_from": int(pool.size),
+            # A seed alone does not pin the draw: numpy guarantees no
+            # cross-version bit stream for ``Generator`` (see
+            # ``clifford_qc.reproducibility.sampling_stream_mismatch``), and
+            # ``choice(replace=False)`` in particular switches algorithms on a
+            # heuristic. The digest lets a reader rebuilding this record detect
+            # a changed draw instead of silently comparing a different control.
+            "draw_sha256": _index_digest(indices),
+            "overlap_with_sample": int(np.intersect1d(indices, base).size),
+            "budget_semantics": (
+                "determinants drawn uniformly without replacement from "
+                f"{sector_semantics}; the quantum sample sets the count and "
+                "nothing else"),
         })
 
     elif kind in ("selected_ci", "budget_matched"):
@@ -631,8 +831,8 @@ def run_control(operator, sampled, *, name: str, kind: str, n: int | None = None
                 "of ranking them first")
     else:
         raise ValueError("kind must be qsci, family_closure, "
-                         "excitation_closure, selected_ci, budget_matched, or "
-                         "matched_selected_ci")
+                         "excitation_closure, selected_ci, budget_matched, "
+                         "matched_selected_ci, or random")
 
     # Three phases, three clocks. Folding the eigensolve into `build_seconds`
     # and then naming the variance matvec `solve_seconds` would put the

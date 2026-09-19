@@ -9,6 +9,7 @@ import pytest
 
 from clifford_qc.backends import SectorStatevectorBackend
 from clifford_qc.models.fcidump import fcidump_model
+from clifford_qc.models.lattice import hubbard
 from clifford_qc.pipeline import solve_prepared
 from clifford_qc.prepared import _atomic_json, prepare_fcidump
 from clifford_qc.sparse import to_sparse
@@ -36,6 +37,30 @@ def test_determinant_restriction_matches_full_register_reference():
     assert energy == pytest.approx(expected, abs=1e-10)
     assert count == len(kept)
     assert spin == pytest.approx(0, abs=1e-10)
+
+
+@pytest.mark.parametrize("target_s2", [0.0, 2.0])
+def test_determinant_ci_resolves_spin_degenerate_ground_space(target_s2):
+    # At zero hopping the singly occupied determinants have energy zero.
+    # Each has <S^2>=1, although their singlet/triplet combinations have
+    # S^2=0/2. Filtering eigenvectors of H by spin expectation misses both.
+    model = hubbard(2, t=0, U=1, mu=0)
+    energy, count, spin = determinant_ci_energy(
+        model.hamiltonian, model, model.n, occupied_spin_orbitals(model),
+        2, 0, target_s2=target_s2)
+    assert energy == pytest.approx(0, abs=1e-12)
+    assert count == 4
+    assert spin == pytest.approx(target_s2, abs=1e-12)
+
+
+def test_determinant_ci_rejects_missing_spin_and_spin_mixing():
+    from clifford_qc.pauli import Z
+    model = hubbard(2, t=0, U=1, mu=0)
+    args = (model, model.n, occupied_spin_orbitals(model), 2, 0)
+    with pytest.raises(RuntimeError, match="no root"):
+        determinant_ci_energy(model.hamiltonian, *args, target_s2=6)
+    with pytest.raises(ValueError, match="not invariant"):
+        determinant_ci_energy(Z(model.n, 0), *args)
 
 
 def test_candidate_budget_and_storage_preserve_scientific_result(tmp_path):

@@ -51,6 +51,7 @@ from ..fermion import c_op, cdag_op
 from ..ir import PauliSum, Program
 from ..multivector import MV
 from .lattice import SPIN_DOWN, SPIN_UP, spin_orbital
+from .metadata import FERMIONIC_ORBITAL_BASIS, model_metadata
 from .spin import Model
 
 __all__ = [
@@ -377,20 +378,21 @@ def rotate_model(one_body: np.ndarray, onsite_u, basis, *,
         hamiltonian=hamiltonian,
         reference=reference,
         hva_layers=(),
-        metadata={
-            "kind": "fermionic_orbital_basis",
-            "sites": sites,
-            "n_orbitals": 1,
-            "spin_orbitals": 2 * sites,
-            "spin_convention": "interleaved",
-            "basis": orbital_basis.name,
-            "basis_metadata": dict(orbital_basis.metadata),
-            "pauli_words": len(hamiltonian.terms),
-            "n_electrons": electrons,
-            "sz": float(sz),
-            "mu": mu,
-            "U": u.tolist(),
-        })
+        metadata=model_metadata(
+            FERMIONIC_ORBITAL_BASIS,
+            spin_orbitals=2 * sites,
+            n_spatial_orbitals=sites,
+            n_electrons=electrons,
+            sz=float(sz),
+            spin_convention="interleaved",
+            sites=sites,
+            n_orbitals=1,
+            basis=orbital_basis.name,
+            basis_metadata=dict(orbital_basis.metadata),
+            pauli_words=len(hamiltonian.terms),
+            mu=mu,
+            U=u.tolist(),
+        ))
 
 
 # --------------------------------------------------------------- circuits

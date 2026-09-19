@@ -31,6 +31,8 @@ from typing import Sequence
 from ..fermion import c_op, cdag_op
 from ..ir import PauliSum, Program
 from ..multivector import MV
+from .metadata import (ANDERSON_IMPURITY, FERMIONIC_LATTICE, SPIN_LATTICE,
+                       model_metadata)
 from .spin import Model
 
 SPIN_UP, SPIN_DOWN = 0, 1
@@ -134,21 +136,29 @@ def reference_sector(program: Program) -> tuple[int, float]:
 
 def _fermionic_metadata(rows: int, cols: int, bonds, n_orbitals: int,
                         couplings: dict, reference: Program) -> dict:
+    """Contract-satisfying metadata for a fermionic lattice builder.
+
+    ``n_orbitals`` is the count *per site*, so the total spatial-orbital count
+    the contract asks for is ``sites * n_orbitals``.  Both are recorded: the
+    per-site number is what ``spin_orbital`` needs to compute an index, and the
+    total is what a consumer comparing against a molecular model needs.
+    """
     sites = rows * cols
     electrons, sz = reference_sector(reference)
-    return {
-        "kind": "fermionic_lattice",
-        "sites": sites,
-        "rows": rows,
-        "cols": cols,
-        "n_orbitals": n_orbitals,
-        "spin_orbitals": 2 * sites * n_orbitals,
-        "spin_convention": "interleaved",  # 2*(site*n_orbitals+orbital)+spin
-        "bonds": [tuple(bond) for bond in bonds],
-        "n_electrons": electrons,
-        "sz": sz,
+    return model_metadata(
+        FERMIONIC_LATTICE,
+        spin_orbitals=2 * sites * n_orbitals,
+        n_spatial_orbitals=sites * n_orbitals,
+        n_electrons=electrons,
+        sz=sz,
+        spin_convention="interleaved",  # 2*(site*n_orbitals+orbital)+spin
+        sites=sites,
+        rows=rows,
+        cols=cols,
+        n_orbitals=n_orbitals,
+        bonds=[tuple(bond) for bond in bonds],
         **couplings,
-    }
+    )
 
 
 def hubbard(shape=4, t: float = 1.0, U: float = 4.0, *, periodic: bool = False,
@@ -379,7 +389,7 @@ def anderson_impurity(n_bath: int = 2, U: float = 4.0, V: float = 1.0,
                                    {"U": float(U), "V": float(V),
                                     "bath_energies": energies,
                                     "impurity_energy": eps_impurity}, reference)
-    metadata.update({"kind": "anderson_impurity", "impurity_site": 0,
+    metadata.update({"kind": ANDERSON_IMPURITY, "impurity_site": 0,
                      "bath_sites": list(range(1, sites))})
     return Model(name=f"anderson(bath={n_bath},U={U},V={V})", n=n,
                  hamiltonian=_hermitize(n, hop, diagonal), reference=reference,
@@ -442,10 +452,10 @@ def kitaev_honeycomb(rows: int = 2, cols: int = 2, kx: float = 1.0,
         n=n, hamiltonian=PauliSum(n, terms), reference=reference,
         hva_layers=tuple((kind, tuple(words)) for kind, words in grouped.items()
                          if words),
-        metadata={"kind": "spin_lattice", "lattice": "honeycomb", "sites": n,
-                  "rows": rows, "cols": cols, "periodic": bool(periodic),
-                  "links": [(kind, i, j) for kind, i, j in links],
-                  "couplings": couplings})
+        metadata=model_metadata(SPIN_LATTICE, lattice="honeycomb", sites=n,
+                                rows=rows, cols=cols, periodic=bool(periodic),
+                                links=[(kind, i, j) for kind, i, j in links],
+                                couplings=couplings))
 
 
 def bipartition(metadata) -> tuple[tuple[int, ...], tuple[int, ...]]:
@@ -500,7 +510,7 @@ def competing_orders(model) -> dict[str, tuple[int, ...]]:
     built at that filling are omitted rather than returned at the wrong sector.
     """
     metadata = model.metadata
-    if metadata.get("kind") != "fermionic_lattice":
+    if metadata.get("kind") != FERMIONIC_LATTICE:
         raise ValueError("competing orders are defined for fermionic lattices")
     if int(metadata.get("n_orbitals", 1)) != 1:
         raise ValueError("competing orders are implemented for single-orbital models")

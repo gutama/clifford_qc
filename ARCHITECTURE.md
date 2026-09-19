@@ -64,7 +64,7 @@ providing another runtime implementation.
 | Subspaces | `subspace/` | Projection, adaptive growth, sampled determinants, classical controls, hybrids, response, and restrictions |
 | Orchestration | `workflows.py`, `prepared.py`, `pipeline.py` | Cross-layer workflows and reusable preparation/solve/validation |
 | Interoperability | `bridges/` | Explicit optional adapters for external quantum software |
-| Evidence | `benchmarks/`, `verify.py`, `reproducibility.py`, `record_environment.py` | Smoke checks, records, validation gates, and environment provenance |
+| Evidence | `benchmarks/`, `verify.py`, `reproducibility.py`, `record_environment.py`, `capabilities.py` | Smoke checks, records, validation gates, and environment provenance |
 
 This task-oriented map groups reference calculations with execution. The
 paper's formal module partition assigns the root reference helpers to the

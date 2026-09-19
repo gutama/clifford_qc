@@ -116,23 +116,23 @@ No figure or table value in the manuscript is transcribed by hand, and
 ```bash
 python -m venv .venv && source .venv/bin/activate
 pip install -e .[test,research,stim]       # automatic CI extras
-pytest                                      # 2046 passed, 10 skipped
+pytest                                      # 2156 passed, 12 skipped
 ```
 
 This is the automatic CI dependency set; record gates additionally pin NumPy
 and SciPy through `check_record_environment.py`. Six optional test modules are
-dropped without OpenFermion, PennyLane, pytket and PyZX; two individual tests
-also skip OpenFermion, and two molecular chemistry tests skip PySCF. Chemistry
-builders remain optional: install
-`.[chemistry]` when running those workflows, which changes collection totals.
+dropped without OpenFermion, PennyLane, pytket and PyZX; six individual tests
+also skip -- three on OpenFermion and three on PySCF. Chemistry builders remain
+optional: install `.[chemistry]` when running those workflows, which changes
+collection totals.
 
 `check_docs.py` enforces the pair through the identity relating them. Each of
-the six dropped files contribute exactly one skip and no collected tests, so
-the remaining `10 - 6 = 4` skips are per-test and *are* collected:
+the six dropped files contributes exactly one skip and no collected tests, so
+the remaining `12 - 6 = 6` skips are per-test and *are* collected:
 
 ```text
 collected == passed + (skipped - files dropped at collection)
-2050      == 2046   + (10      -   6)
+2162      == 2156   + (12      -   6)
 ```
 
 Both sides are computed from the tree, so a drift in either quoted number
@@ -1317,6 +1317,20 @@ The arms answer different questions and must not be read as a single ranking:
   Every accuracy statement is reported against it, because its repeated ties
   with A-CASE in the Phase 12 ledger mean the operator construction has not yet
   demonstrated greater energy compactness than classical determinant selection.
+- `random` is the floor of that same family: the same number of determinants
+  drawn uniformly from the arm's **own symmetry sector**, consulting the
+  sampled set's size and nothing else. It does no selection work and answers
+  the weaker question — does the arm beat *chance* at this budget — that has to
+  be settled before beating `matched_selected_ci` means anything. Drawing from
+  the whole Fock space instead would put most of the row's determinants in
+  particle-number sectors the Hamiltonian never couples to the arm's subspace,
+  and the margin over it would then report symmetry conservation rather than
+  which configurations were found; over a `PauliLinearOperator` the arm
+  therefore requires `n`. Its record reports `overlap_with_sample`, since a
+  draw that happens to land on much of the sample explains a small advantage
+  without any claim about the sampling, and `draw_sha256`, because
+  `numpy.random.Generator` carries no cross-version bit-stream guarantee and a
+  seed alone does not pin the draw.
 
 The reference-policy audit runs `model.reference`, the lowest-diagonal
 determinant, a fixed physics-informed determinant where the lattice admits one,

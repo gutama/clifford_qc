@@ -15,6 +15,10 @@ sector leakage rather than calling the qubit pool symmetry preserving.
 from __future__ import annotations
 
 import numpy as np
+from ..capabilities import require
+
+require('fermionic_operators', feature='clifford_qc.models.chemistry')
+
 from openfermion.chem import MolecularData
 from openfermion.ops import FermionOperator
 from openfermion.transforms import jordan_wigner
@@ -22,6 +26,7 @@ from openfermion.transforms import jordan_wigner
 from ..ir import PauliSum, Program
 from ..bridges.openfermion_bridge import qubit_operator_to_pauli_sum
 from ..algorithms.pools import PoolOperator, is_odd_y
+from .metadata import MOLECULAR, model_metadata
 from .spin import Model
 
 
@@ -53,6 +58,8 @@ def molecule_model(geometry, basis: str = "sto-3g", multiplicity: int = 1,
     energy lands in the Hamiltonian's identity term, so ``exact_ground``
     of the returned Hamiltonian matches the active-space FCI energy.
     """
+    require('molecular_input', feature='molecule_model')
+
     from openfermionpyscf import run_pyscf
 
     molecule = run_pyscf(MolecularData(geometry, basis, multiplicity, charge,
@@ -72,21 +79,22 @@ def molecule_model(geometry, basis: str = "sto-3g", multiplicity: int = 1,
         hamiltonian=pauli_sum,
         reference=_hf_reference(n_qubits, n_active_electrons, ms2),
         hva_layers=(),
-        metadata={
-            "kind": "molecular",
-            "source": "pyscf",
-            "basis": basis,
-            "n_electrons": int(n_active_electrons),
-            "n_spatial_orbitals": n_qubits // 2,
-            "spin_orbitals": n_qubits,
-            "spin_convention": "interleaved",
-            "sz": 0.5 * ms2,
-            "multiplicity": int(multiplicity),
-            "hf_energy": float(molecule.hf_energy),
-            "fci_energy": float(molecule.fci_energy) if run_fci else None,
-            "frozen_spatial_orbitals": list(occupied_indices or ()),
-            "active_spatial_orbitals": list(active_indices) if active_indices else None,
-        },
+        metadata=model_metadata(
+            MOLECULAR,
+            spin_orbitals=n_qubits,
+            n_spatial_orbitals=n_qubits // 2,
+            n_electrons=int(n_active_electrons),
+            sz=0.5 * ms2,
+            spin_convention="interleaved",
+            source="pyscf",
+            basis=basis,
+            multiplicity=int(multiplicity),
+            hf_energy=float(molecule.hf_energy),
+            fci_energy=float(molecule.fci_energy) if run_fci else None,
+            frozen_spatial_orbitals=list(occupied_indices or ()),
+            active_spatial_orbitals=(list(active_indices) if active_indices
+                                     else None),
+        ),
     )
 
 

@@ -14,6 +14,10 @@ alone.
 
 from __future__ import annotations
 
+from ..capabilities import require
+
+require('stabilizer_backend', feature='clifford_qc.backends.stabilizer')
+
 import stim
 
 from ..ir import PauliSum, PauliWord, Program

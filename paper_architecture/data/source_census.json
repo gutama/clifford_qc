@@ -118,43 +118,43 @@
   "source": {
     "layers": {
       "algorithms": {
-        "lines": 1428,
+        "lines": 1432,
         "modules": 8
       },
       "backends": {
-        "lines": 1064,
+        "lines": 1073,
         "modules": 7
       },
       "bridges": {
-        "lines": 667,
+        "lines": 687,
         "modules": 6
       },
       "evidence": {
-        "lines": 966,
-        "modules": 3
+        "lines": 1298,
+        "modules": 4
       },
       "ir": {
-        "lines": 1209,
+        "lines": 1224,
         "modules": 3
       },
       "kernel": {
-        "lines": 2003,
+        "lines": 2008,
         "modules": 15
       },
       "measurement": {
-        "lines": 3991,
+        "lines": 3995,
         "modules": 13
       },
       "models": {
-        "lines": 2338,
-        "modules": 8
+        "lines": 2739,
+        "modules": 9
       },
       "orchestration": {
         "lines": 299,
         "modules": 3
       },
       "subspace": {
-        "lines": 9896,
+        "lines": 10101,
         "modules": 29
       },
       "surface": {
@@ -162,9 +162,9 @@
         "modules": 1
       }
     },
-    "package_lines": 23899,
-    "package_modules": 96,
-    "test_lines": 24381,
-    "test_modules": 108
+    "package_lines": 24894,
+    "package_modules": 98,
+    "test_lines": 25561,
+    "test_modules": 111
   }
 }

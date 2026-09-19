@@ -31,6 +31,7 @@ import math
 import time
 from pathlib import Path
 
+from clifford_qc.models import (FERMIONIC_LATTICE, MOLECULAR, SPIN_LATTICE)
 from clifford_qc.reproducibility import execution_provenance, stamp_record
 
 CHEMICAL_ACCURACY = 1.6e-3  # Hartree
@@ -47,49 +48,56 @@ def _water_geometry(scale: float):
 
 
 def build_system(spec: dict):
-    """``(model, kind)`` for one ladder rung; chemistry imports stay lazy."""
+    """The ``Model`` for one ladder rung; chemistry imports stay lazy.
+
+    This used to return ``(model, kind)`` with the kind written out beside each
+    builder call, which meant the function asserted a model's kind
+    independently of the model -- and for the builders that already declared
+    one, the two could disagree silently. Under the metadata contract every
+    ``Model`` states its own kind, so there is nothing left to return alongside
+    it: the consumers below read ``model.metadata["kind"]``.
+    """
     spec = dict(spec)
-    kind = spec.pop("type")
-    if kind in ("h2", "h4", "lih", "water"):
+    system = spec.pop("type")
+    if system in ("h2", "h4", "lih", "water"):
         from clifford_qc.models import chemistry
 
-        if kind == "h2":
-            return chemistry.h2(**spec), "molecular"
-        if kind == "h4":
-            return chemistry.h4_chain(**spec), "molecular"
-        if kind == "lih":
-            return chemistry.lih(**spec), "molecular"
+        if system == "h2":
+            return chemistry.h2(**spec)
+        if system == "h4":
+            return chemistry.h4_chain(**spec)
+        if system == "lih":
+            return chemistry.lih(**spec)
         scale = spec.pop("scale", 1.0)
         active = spec.pop("active", "4e4o")
         frozen = [0, 1, 2] if active == "4e4o" else [0]
         orbitals = [3, 4, 5, 6] if active == "4e4o" else [1, 2, 3, 4, 5, 6]
         return chemistry.molecule_model(
             _water_geometry(scale), name=f"h2o_{active}(scale={scale})",
-            occupied_indices=frozen, active_indices=orbitals, **spec), "molecular"
-    if kind == "hubbard":
+            occupied_indices=frozen, active_indices=orbitals, **spec)
+    if system == "hubbard":
         from clifford_qc.models.lattice import hubbard
 
         shape = spec.pop("shape")
-        return hubbard(tuple(shape) if isinstance(shape, list) else shape,
-                       **spec), "fermionic_lattice"
-    if kind == "kitaev":
+        return hubbard(tuple(shape) if isinstance(shape, list) else shape, **spec)
+    if system == "kitaev":
         from clifford_qc.models.lattice import kitaev_honeycomb
 
-        return kitaev_honeycomb(**spec), "spin_lattice"
-    if kind == "tfim":
+        return kitaev_honeycomb(**spec)
+    if system == "tfim":
         from clifford_qc.models.spin import tfim
 
-        return tfim(**spec), "spin_lattice"
-    raise ValueError(f"unknown system type {kind!r}")
+        return tfim(**spec)
+    raise ValueError(f"unknown system type {system!r}")
 
 
-def occupied_orbitals(model, kind: str):
+def occupied_orbitals(model):
     from clifford_qc.subspace import occupied_spin_orbitals
 
-    return occupied_spin_orbitals(model) if kind != "spin_lattice" else ()
+    return () if model.metadata["kind"] == SPIN_LATTICE else occupied_spin_orbitals(model)
 
 
-def build_candidates(model, kind: str, krylov_order: int = 6, *, level4: bool = False):
+def build_candidates(model, krylov_order: int = 6, *, level4: bool = False):
     """A-CASE candidate generators: symmetry-preserving where a symmetry exists.
 
     ``level4`` appends the §4.2 level-4 family: for a fermionic lattice, the
@@ -102,8 +110,9 @@ def build_candidates(model, kind: str, krylov_order: int = 6, *, level4: bool = 
                                       determinant_excitations, krylov_response,
                                       pauli_orbit)
 
-    if kind == "spin_lattice":
-        words = [op.word for op in word_pool(model, kind)]
+    kind = model.metadata["kind"]
+    if kind == SPIN_LATTICE:
+        words = [op.word for op in word_pool(model)]
         base = (pauli_orbit(words) + commutator_response(model.hamiltonian, words)
                 + krylov_response(model.hamiltonian, krylov_order))
         if level4:
@@ -112,8 +121,8 @@ def build_candidates(model, kind: str, krylov_order: int = 6, *, level4: bool = 
                                             max_support=64)
         return base
 
-    base = determinant_excitations(model.n, occupied_orbitals(model, kind))
-    if not level4 or kind != "fermionic_lattice":
+    base = determinant_excitations(model.n, occupied_orbitals(model))
+    if not level4 or kind != FERMIONIC_LATTICE:
         # Competing orders are a lattice notion: a molecule has no sublattice to
         # order on, so the molecular rungs stay at levels 0-3.
         return base
@@ -124,7 +133,7 @@ def build_candidates(model, kind: str, krylov_order: int = 6, *, level4: bool = 
                                                      max_support=64)
 
 
-def word_pool(model, kind: str):
+def word_pool(model):
     """Word-level qubit-ADAPT pool: what ADAPT-VQE and plain QSE consume.
 
     For a molecule this is the chemistry module's odd-Y split of the JW
@@ -135,9 +144,10 @@ def word_pool(model, kind: str):
     """
     from clifford_qc.algorithms.pools import PoolOperator, is_odd_y, local_pool, odd_y_filter
 
-    if kind == "spin_lattice":
+    kind = model.metadata["kind"]
+    if kind == SPIN_LATTICE:
         return odd_y_filter(local_pool(model.n))
-    if kind == "molecular":
+    if kind == MOLECULAR:
         from clifford_qc.models.chemistry import excitation_pool
 
         return excitation_pool(model.n, model.metadata["n_electrons"])
@@ -145,7 +155,7 @@ def word_pool(model, kind: str):
     from clifford_qc.subspace import determinant_excitations
 
     pool: dict[int, PoolOperator] = {}
-    for generator in determinant_excitations(model.n, occupied_orbitals(model, kind)):
+    for generator in determinant_excitations(model.n, occupied_orbitals(model)):
         for code in sorted(generator.mv.terms):
             word = PauliWord(model.n, code)
             if code and is_odd_y(word) and code not in pool:
@@ -153,7 +163,7 @@ def word_pool(model, kind: str):
     return list(pool.values())
 
 
-def reference_energy(model, kind: str):
+def reference_energy(model):
     """Exact energy in the reference's own symmetry sector.
 
     The sector, not the whole space: A-CASE stays where its reference lives, and
@@ -163,7 +173,7 @@ def reference_energy(model, kind: str):
     """
     from clifford_qc.sparse import sparse_ground
 
-    if kind == "spin_lattice":
+    if model.metadata["kind"] == SPIN_LATTICE:
         return float(sparse_ground(model.hamiltonian, k=1)[0][0]), "whole space"
     from clifford_qc.backends import SectorStatevectorBackend
 
@@ -173,14 +183,15 @@ def reference_energy(model, kind: str):
     return float(value), f"N={model.metadata['n_electrons']},Sz={model.metadata['sz']}"
 
 
-def observable_set(model, kind: str) -> dict:
+def observable_set(model) -> dict:
     """The material observables §7 asks the lattice rungs to report."""
-    if kind == "spin_lattice" and model.metadata.get("lattice") == "honeycomb":
+    kind = model.metadata["kind"]
+    if kind == SPIN_LATTICE and model.metadata.get("lattice") == "honeycomb":
         from clifford_qc.models.observables import link_correlations
 
         return {f"link_{name}": operator
                 for name, operator in sorted(link_correlations(model).items())}
-    if kind == "fermionic_lattice":
+    if kind == FERMIONIC_LATTICE:
         from clifford_qc.models.observables import (double_occupancy,
                                                     spin_correlation,
                                                     structure_factor,
@@ -265,12 +276,12 @@ def leakage_tolerance(spec: dict, kind: str) -> tuple[float | None, str]:
     tol = spec.pop("leakage_tol", None)
     if tol is None:
         return None, "not requested"
-    if kind == "spin_lattice":
+    if kind == SPIN_LATTICE:
         return None, "dropped: no fermionic sector to leak out of"
     return float(tol), f"applied at {float(tol):g}"
 
 
-def run_method(name: str, spec: dict, model, kind: str, context: dict) -> dict:
+def run_method(name: str, spec: dict, model, context: dict) -> dict:
     """One (system, method) run, as a record row without the shared fields."""
     from clifford_qc.backends import ExactMVBackend, FiniteShotBackend
     from clifford_qc.subspace import (MatrixElementBank, identity_generator,
@@ -333,7 +344,7 @@ def run_method(name: str, spec: dict, model, kind: str, context: dict) -> dict:
         return row
 
     if method == "acase_exact":
-        tol, leakage_note = leakage_tolerance(spec, kind)
+        tol, leakage_note = leakage_tolerance(spec, model.metadata["kind"])
         wants_level4 = bool(spec.pop("level4", False))
         candidates = (context["candidates_level4"] if wants_level4
                       else context["candidates"])
@@ -355,7 +366,7 @@ def run_method(name: str, spec: dict, model, kind: str, context: dict) -> dict:
         return row
 
     if method == "acase_certified":
-        tol, leakage_note = leakage_tolerance(spec, kind)
+        tol, leakage_note = leakage_tolerance(spec, model.metadata["kind"])
         result = run_certified_acase(
             rho, model.hamiltonian, context["candidates"],
             FiniteShotBackend(seed=seed),
@@ -459,16 +470,17 @@ def run_rung(rung: dict, methods: dict) -> list[dict]:
     from clifford_qc.backends import ExactMVBackend
     from clifford_qc.sparse import to_sparse
 
-    model, kind = build_system(rung["system"])
-    reference, sector = reference_energy(model, kind)
+    model = build_system(rung["system"])
+    kind = model.metadata["kind"]
+    reference, sector = reference_energy(model)
     rho = ExactMVBackend().state(model.reference, ())
-    observables = observable_set(model, kind)
+    observables = observable_set(model)
 
     exact_observables = {}
     if observables:
         from clifford_qc.sparse import sparse_ground, sparse_ground_in_sector
 
-        if kind == "spin_lattice":
+        if kind == SPIN_LATTICE:
             psi = sparse_ground(model.hamiltonian, k=1)[1][:, 0]
         else:
             psi = sparse_ground_in_sector(model.hamiltonian,
@@ -485,7 +497,7 @@ def run_rung(rung: dict, methods: dict) -> list[dict]:
     # rungs that never sample should not pay for it.
     sector_backend = sampling_operator = None
     if any(methods[name].get("kind") == "qsci" for name in rung["methods"]):
-        if kind == "spin_lattice":
+        if kind == SPIN_LATTICE:
             from clifford_qc.pauli_action import PauliLinearOperator
 
             sampling_operator = PauliLinearOperator(model.hamiltonian)
@@ -501,10 +513,10 @@ def run_rung(rung: dict, methods: dict) -> list[dict]:
                "sector_backend": sector_backend,
                "sampling_operator": sampling_operator,
                "observables": observables, "exact_observables": exact_observables,
-               "pool": word_pool(model, kind),
-               "candidates": build_candidates(model, kind,
+               "pool": word_pool(model),
+               "candidates": build_candidates(model,
                                               rung.get("krylov_order", 6)),
-               "candidates_level4": build_candidates(model, kind,
+               "candidates_level4": build_candidates(model,
                                                      rung.get("krylov_order", 6),
                                                      level4=True)
                if wants_level4 else None}
@@ -513,7 +525,7 @@ def run_rung(rung: dict, methods: dict) -> list[dict]:
     for name in rung["methods"]:
         spec = methods[name]
         started = time.perf_counter()
-        row = run_method(name, spec, model, kind, context)
+        row = run_method(name, spec, model, context)
         row.update({
             "system": model.name, "rung": rung.get("rung", 0), "n": model.n,
             "method": name, "family": spec.get("family", name.split("_")[0]),

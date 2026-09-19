@@ -393,14 +393,29 @@ class FermionEncoding:
 
         Stim remains an optional dependency, so the bridge import is local and
         the binary encoding matrices can be constructed and tested without it.
+        The requirement is stated here rather than left to the bridge: nothing
+        in this signature suggests a stabilizer backend, and the bare
+        ``ModuleNotFoundError`` it used to raise surfaced four frames down.
         """
-        from .bridges.stim_bridge import CliffordMap
         from .subspace.restriction import Restriction
 
+        # Plain JW with nothing fixed is the identity restriction: no Clifford
+        # is built and stim is never reached, so the requirement is stated
+        # below this return rather than above it. Demanding an extra that the
+        # taken path does not use is the same error as not stating one, and a
+        # module whose job is accurate requirements should not commit it.
         if self.rows == _base_rows("jw", self.n) and not self.fixed_qubits:
             return Restriction.identity(
                 self.n, label=self.name, spin_ordering=self.spin_ordering
             )
+
+        from .capabilities import require
+
+        require("contextual_restriction",
+                feature="building an encoding's restriction")
+
+        from .bridges.stim_bridge import CliffordMap
+
         clifford = CliffordMap.from_program(self.program())
         if not self.fixed_qubits:
             return Restriction.encoding(

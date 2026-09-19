@@ -23,7 +23,7 @@ small-system comparisons, and a public archival release is intended.
 | Task | Implemented features | Start here |
 |---|---|---|
 | Work with operators | Sparse Pauli and fermionic operators, gates, density operators, channels, traces, and entanglement diagnostics | [Operator example](#operator-calculations), [conventions](CONVENTIONS.md) |
-| Build models | Spin chains, Hubbard and other lattice models, restricted real FCIDUMP import, effective-Hamiltonian JSON, orbital rotations | [Model examples](#examples), `clifford_qc.models` |
+| Build models | Spin chains, Hubbard and other lattice models, restricted real FCIDUMP import, effective-Hamiltonian JSON, orbital rotations — every model declares its encoding and sector under a validated metadata contract | [Model examples](#examples), [conventions](CONVENTIONS.md#model-metadata), `clifford_qc.models` |
 | Run circuits | Parameterized Pauli rotors and Clifford gates, JSON serialization, gradients, OpenQASM 3 export | [Circuit example](#circuit-programs), `clifford_qc.ir` |
 | Compare eigensolvers | VQE, ADAPT-VQE, fixed and adaptive operator-response subspaces, QSCI/SQD, selected-CI controls, hybrid bases | [Solver guide](#choosing-a-solver), [subspace example](#adaptive-subspaces) |
 | Reuse measurements | QWC and block-commuting grouping, compiled Clifford readouts, shared caches, covariance, allocation, uncertainty estimates | [Finite-shot examples](#examples), [architecture](ARCHITECTURE.md#measurement-and-evidence) |
@@ -79,6 +79,25 @@ python -m pip install -e '.[research,stim]'
 Bridge modules are imported explicitly from `clifford_qc.bridges`. Each has a
 supported operation subset; installing a bridge does not make arbitrary
 circuits portable between frameworks.
+
+To see which capabilities an installation has — without importing any of them,
+so the check is fast and side-effect free:
+
+```bash
+python -m clifford_qc.capabilities
+```
+
+```
+  [yes] sparse_linalg                  extra=research
+  [no ] pyzx_bridge                    extra=pyzx  (pip install -e '.[pyzx]')
+```
+
+`--require NAME` exits non-zero when a named capability is absent, so a CI job
+or a script can state the environment it expects instead of discovering the
+answer through a failure further in. `from clifford_qc import capabilities;
+capabilities.capabilities()` returns the same report as a dict, and `python -m clifford_qc.verify` prints it
+alongside the smoke check. Every entry names the extra that supplies it, and so
+does the `ImportError` raised by a feature whose extra is missing.
 
 ## Quick start
 

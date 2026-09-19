@@ -55,6 +55,8 @@ cached separately under `cache/prepared/`.
 Each molecule runs in a fresh process; the adaptive result is released before
 complete SD starts. Determinant CISD restricts sector operators directly to its
 selected block instead of building a full `2^n` sparse matrix.
+It resolves the requested total-spin eigenspace before diagonalizing its
+Hamiltonian, so degeneracies between spin multiplets cannot hide the singlet.
 
 Each completed record is written atomically before the summary. Restarting
 recovers the summary from per-molecule files, including records written just
