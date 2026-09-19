@@ -694,9 +694,9 @@ def price_packet_basis(model, backend, reference_entry, retained_masks,
 
     # (3) sector certificates.  Structural first, because it is a proof: every
     #     packet part reaches one sector basis determinant, so no combination
-    #     of them can leave the sector.  The numeric certificate builds the
-    #     explicit sector projector -- a small-n object -- so it runs only as a
-    #     cross-check where it is affordable.
+    #     of them can leave the sector.  The numeric certificate resolves the
+    #     generator action on the determinant and orthonormalizes that span;
+    #     it remains a small-n cross-check where certification is affordable.
     stray = sorted({mask for mask in all_masks if mask not in sector_masks})
     result["structural_sector_certificate"] = {
         "packet_determinants": len(all_masks),
@@ -720,8 +720,8 @@ def price_packet_basis(model, backend, reference_entry, retained_masks,
     else:
         result["reference_conditioned_certificate"] = {
             "skipped": f"n={n} exceeds numeric_certificate_max_qubits="
-                       f"{numeric_certificate_max_qubits}; the explicit sector "
-                       "projector is a small-n object and the structural "
+                       f"{numeric_certificate_max_qubits}; numeric sector "
+                       "certification is a small-n check and the structural "
                        "certificate already decides this case"}
     return result
 

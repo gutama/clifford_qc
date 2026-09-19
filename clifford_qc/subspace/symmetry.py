@@ -160,41 +160,53 @@ def subspace_sector_certificate(reference_state: MV, generators, *,
     of ``(L,S)`` is the maximum leakage attainable by a normalized linear
     combination.  This closes the gap left by checking candidate vectors one
     at a time when a nonzero leakage tolerance is allowed.
+
+    For a computational determinant, orthonormalize the action amplitudes
+    directly and measure their outside-sector rows.  Forming ``L`` by
+    subtracting two independently evaluated Gram matrices can amplify sparse
+    product pruning into spurious leakage on nearly dependent directions.
     """
     gens = as_generators(generators)
     if not gens:
         raise ValueError("sector certification needs at least one generator")
+    if any(generator.mv.n != reference_state.n for generator in gens):
+        raise ValueError("generator and reference act on different qubit counts")
     target = (infer_reference_sector(reference_state, spin_ordering=spin_ordering)
               if sector_target is None else sector_target)
     size = len(gens)
-    overlap = np.zeros((size, size), dtype=complex)
-    leakage = np.zeros((size, size), dtype=complex)
-    projected = _determinant_projected_basis(
+    action = _determinant_action_basis(
         reference_state, gens, target, spin_ordering)
-    complement = None
-    if projected is None:
+    if action is not None:
+        basis, outside = action
+        vectors, singular_values, _ = np.linalg.svd(basis, full_matrices=False)
+        values = singular_values**2
+        largest = float(values[0]) if values.size else 0.0
+        keep = values > max(tau_s, tau_s * max(largest, 1.0))
+        outside_basis = vectors[outside][:, keep]
+        reduced = outside_basis.conj().T @ outside_basis
+    else:
+        overlap = np.zeros((size, size), dtype=complex)
+        leakage = np.zeros((size, size), dtype=complex)
         projector = _target_projector(reference_state.n, int(target[0]),
                                       float(target[1]), spin_ordering)
         complement = MV.scalar(reference_state.n, 1.0) - projector
-    for i, left in enumerate(gens):
-        for j, right in enumerate(gens[i:], start=i):
-            s_ij = (left.mv.dagger() * right.mv * reference_state).trace()
-            l_ij = (s_ij - np.vdot(projected[:, i], projected[:, j])
-                    if projected is not None else
-                    (left.mv.dagger() * complement * right.mv
-                     * reference_state).trace())
-            overlap[i, j] = s_ij
-            leakage[i, j] = l_ij
-            if i != j:
-                overlap[j, i] = np.conjugate(s_ij)
-                leakage[j, i] = np.conjugate(l_ij)
-    values, vectors = np.linalg.eigh(0.5 * (overlap + overlap.conj().T))
-    largest = float(values[-1])
-    keep = values > max(tau_s, tau_s * max(largest, 1.0))
+        for i, left in enumerate(gens):
+            for j, right in enumerate(gens[i:], start=i):
+                s_ij = (left.mv.dagger() * right.mv * reference_state).trace()
+                l_ij = (left.mv.dagger() * complement * right.mv
+                        * reference_state).trace()
+                overlap[i, j] = s_ij
+                leakage[i, j] = l_ij
+                if i != j:
+                    overlap[j, i] = np.conjugate(s_ij)
+                    leakage[j, i] = np.conjugate(l_ij)
+        values, vectors = np.linalg.eigh(0.5 * (overlap + overlap.conj().T))
+        largest = float(values[-1])
+        keep = values > max(tau_s, tau_s * max(largest, 1.0))
+        whitening = vectors[:, keep] / np.sqrt(values[keep])
+        reduced = whitening.conj().T @ (0.5 * (leakage + leakage.conj().T)) @ whitening
     if not keep.any():
         raise ValueError("generator span has zero norm on the reference state")
-    whitening = vectors[:, keep] / np.sqrt(values[keep])
-    reduced = whitening.conj().T @ (0.5 * (leakage + leakage.conj().T)) @ whitening
     worst = float(np.linalg.eigvalsh(0.5 * (reduced + reduced.conj().T))[-1])
     worst = 0.0 if abs(worst) <= 1e-13 else min(1.0, max(0.0, worst))
     return {
@@ -209,33 +221,49 @@ def subspace_sector_certificate(reference_state: MV, generators, *,
     }
 
 
-def _determinant_projected_basis(reference_state: MV, generators, target,
-                                 spin_ordering):
-    """Exact target-sector columns for a computational determinant, if one.
+def _determinant_action_basis(reference_state: MV, generators, target,
+                              spin_ordering):
+    """Action columns and outside-sector rows for an exact determinant.
 
-    ``S - (P B)^dagger(P B)`` is the leakage Gram matrix.  This route avoids
-    constructing the exponentially wide projector multivector while retaining
-    the same generalized-eigenvalue certificate.  Non-determinant references
-    fall back to the explicit projector above.
+    Only reached occupation words become rows.  Accumulate Pauli amplitudes
+    before inspecting sector membership, preserving interference and avoiding
+    MV product pruning.  Other references use the explicit projector above.
     """
     from ..backends import SectorStatevectorBackend
-    from ..states import computational_probabilities
+    from ..pauli_action import word_masks
+    from ..states import ket_density
 
-    probabilities = computational_probabilities(reference_state)
-    bits, weight = max(probabilities.items(), key=lambda item: item[1])
-    if weight < 1.0 - 1e-10:
+    trace = reference_state.trace()
+    if trace.imag != 0.0 or trace.real <= 0.0:
+        return None
+    n = reference_state.n
+    bits = "".join("1" if reference_state.terms.get(3 << (2 * j), 0).real < 0
+                   else "0" for j in range(n))
+    # A nearly pure determinant is not an exact one: its small remaining
+    # components must still be included in the projector certificate.
+    determinant = ket_density(n, bits)
+    if reference_state.terms != {
+            code: trace.real * coefficient
+            for code, coefficient in determinant.terms.items()}:
         return None
     backend = SectorStatevectorBackend(
-        reference_state.n, int(target[0]), float(target[1]),
+        n, int(target[0]), float(target[1]),
         spin_ordering=spin_ordering)
-    try:
-        reference = backend.occupation_state(bits)
-    except KeyError:
-        return None
-    return np.column_stack([
-        backend.operator(generator.mv, validate_sector=False).matvec(reference)
-        for generator in generators
-    ])
+    source = int(bits or "0", 2)
+    rows = {}
+    for column, generator in enumerate(generators):
+        for code, coefficient in generator.mv.terms.items():
+            x_mask, z_mask, y_count = word_masks(n, code)
+            destination = source ^ x_mask
+            if destination not in rows:
+                rows[destination] = np.zeros(len(generators), dtype=complex)
+            phase = (1j)**y_count * (-1)**((source & z_mask).bit_count())
+            rows[destination][column] += coefficient * phase
+    basis = np.asarray(list(rows.values()), dtype=complex).reshape(-1, len(generators))
+    basis *= np.sqrt(trace.real)
+    sector = set(backend.basis.tolist())
+    outside = np.asarray([word not in sector for word in rows], dtype=bool)
+    return basis, outside
 
 
 def project_reference_to_sector(reference_state: MV, *,

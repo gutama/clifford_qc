@@ -116,7 +116,7 @@ No figure or table value in the manuscript is transcribed by hand, and
 ```bash
 python -m venv .venv && source .venv/bin/activate
 pip install -e .[test,research,stim]       # automatic CI extras
-pytest                                      # 2157 passed, 11 skipped
+pytest                                      # 2164 passed, 11 skipped
 ```
 
 This is the automatic CI dependency set; record gates additionally pin NumPy
@@ -132,7 +132,7 @@ the remaining `11 - 6 = 5` skips are per-test and *are* collected:
 
 ```text
 collected == passed + (skipped - files dropped at collection)
-2162      == 2157   + (11      -   6)
+2169      == 2164   + (11      -   6)
 ```
 
 Both sides are computed from the tree, so a drift in either quoted number
@@ -1277,7 +1277,7 @@ FCIDUMP rungs remain available for the matching checks.
 
 ```bash
 python benchmarks/run_preconditioned_expansion.py \
-    --systems hubbard_2x2,hubbard_2x3,h4_equilibrium,h4_stretched \
+    --systems hubbard_2x2,hubbard_2x3,h4_equilibrium,h4_stretched,fcidump_h4_equilibrium \
     --total-directions 7 --seed 0 \
     --output benchmarks/results/preconditioned_expansion.json
 ```
@@ -1286,6 +1286,15 @@ python benchmarks/run_preconditioned_expansion.py \
 hierarchy on the Phase 12 primary systems at a matched direction budget. It
 writes `benchmarks/results/preconditioned_expansion.json` and refuses to write
 at all if its invariants fail.
+
+The determinant span certificate accumulates each generator's Pauli action,
+orthonormalizes the resulting amplitude columns by SVD, and measures their
+outside-sector weight. It uses the existing overlap-rank cutoff and leakage
+tolerance. Subtracting an independently computed projected Gram matrix from a
+sparse-product overlap matrix previously amplified discarded small terms into
+false leakage for the H$_4$ equilibrium packet at `K=16` (issue #105).
+`tests/test_preconditioned_expansion.py` runs the full default packet ladder
+through the FCIDUMP producer and its write gate, without chemistry extras.
 
 The arms answer different questions and must not be read as a single ranking:
 
