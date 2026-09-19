@@ -600,7 +600,7 @@ def test_reference_leakage_and_certificate_respect_the_ordering():
 ])
 def test_determinant_fast_certificate_matches_explicit_projector(
         monkeypatch, spin_ordering, target):
-    """The sector-statevector shortcut is the explicit projector in disguise.
+    """The determinant action agrees with the explicit projector.
 
     A mixed I + X_0 direction has exactly half of its norm in the determinant's
     sector, which avoids a saturated zero/one comparison while exercising both
@@ -615,7 +615,7 @@ def test_determinant_fast_certificate_matches_explicit_projector(
         rho, [mixed], sector_target=target, spin_ordering=spin_ordering)
 
     monkeypatch.setattr(
-        symmetry, "_determinant_projected_basis",
+        symmetry, "_determinant_action_basis",
         lambda *_args, **_kwargs: None)
     explicit = symmetry.subspace_sector_certificate(
         rho, [mixed], sector_target=target, spin_ordering=spin_ordering)
@@ -626,6 +626,49 @@ def test_determinant_fast_certificate_matches_explicit_projector(
     assert fast["min_sector_weight"] == pytest.approx(
         explicit["min_sector_weight"], abs=1e-13)
     assert fast["overlap_rank"] == explicit["overlap_rank"] == 1
+
+
+@pytest.mark.parametrize("outside_amplitude", [0.0, 0.3, 1.0])
+def test_sector_certificate_resolves_nearly_parallel_directions(outside_amplitude):
+    """Small retained directions must neither lose rank nor invent leakage."""
+    from clifford_qc.subspace.symmetry import subspace_sector_certificate
+
+    identity = identity_generator(4).mv
+    safe = X(4, 1) * X(4, 3)  # |1100> -> |1001>, still (N=2, Sz=0)
+    perturbation = safe + outside_amplitude * X(4, 0)
+    certificate = subspace_sector_certificate(
+        ket_density(4, "1100"),
+        [Generator("I", identity),
+         Generator("almost I", identity + 4e-6 * perturbation)])
+
+    assert certificate["overlap_rank"] == 2
+    assert certificate["max_sector_leakage"] == pytest.approx(
+        outside_amplitude**2 / (1.0 + outside_amplitude**2), abs=1e-10)
+
+
+@pytest.mark.parametrize("scale", [1.0, 0.25])
+def test_sector_certificate_retains_a_small_nonzero_packet(scale):
+    """MV product pruning used to erase this norm above the rank cutoff."""
+    from clifford_qc.subspace.symmetry import subspace_sector_certificate
+
+    certificate = subspace_sector_certificate(
+        scale * ket_density(8, "11110000"),
+        [Generator("small hop", 1e-5 * X(8, 3) * X(8, 5))])
+
+    assert certificate["overlap_rank"] == 1
+    assert certificate["max_sector_leakage"] == 0.0
+
+
+def test_sector_certificate_accumulates_complex_pauli_interference():
+    from clifford_qc.subspace.symmetry import subspace_sector_certificate
+
+    # X - iY annihilates an occupied qubit; counting each word separately
+    # would falsely assign outside-sector weight to this direction.
+    generator = identity_generator(4).mv + X(4, 0) - 1j * Y(4, 0)
+    certificate = subspace_sector_certificate(
+        ket_density(4, "1100"), [Generator("interference", generator)])
+    assert certificate["overlap_rank"] == 1
+    assert certificate["max_sector_leakage"] == 0.0
 
 
 def test_fast_reference_leakage_refuses_an_annihilating_generator():

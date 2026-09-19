@@ -100,6 +100,124 @@ def block_wise_commute(a: PauliWord, b: PauliWord, block_size: int) -> bool:
     return True
 
 
+def conflict_masks(
+    n: int, codes: Sequence[int], block_size: int
+) -> tuple[list[int], np.ndarray]:
+    """Per-word conflict bitmasks and conflict degrees.
+
+    ``conflicts[i]`` has bit ``j`` set exactly when words ``i`` and ``j`` may
+    not share a setting under the ``block_size`` rule, packed into one Python
+    integer so a whole group is tested with a single ``&``. Callers that build
+    or refine a partition need the same bit planes, and recomputing them is the
+    expensive half of every such pass, so the rule is computed once here rather
+    than once per strategy.
+    """
+    if block_size < 1:
+        raise ValueError("block size must be at least 1")
+    codes = list(codes)
+    width = len(codes)
+    if not width:
+        return [], np.zeros(0, dtype=np.int32)
+    # No ``n and`` guard: on zero qubits the only representable code is 0, so
+    # skipping the check there would let a non-zero code through the one case
+    # where nothing can be valid.
+    if max(codes) >= 1 << (2 * n):
+        raise ValueError("a code carries letters beyond the declared qubit count")
+    if n > 64:
+        raise ValueError("block-commuting partition requires at most 64 qubits")
+
+    xs = np.asarray([_xz(n, code)[0] for code in codes], dtype=np.uint64)
+    zs = np.asarray([_xz(n, code)[1] for code in codes], dtype=np.uint64)
+    masks = [
+        np.uint64(((1 << size) - 1) << start)
+        for start, size in block_ranges(n, block_size)
+    ]
+
+    degrees = np.empty(width, dtype=np.int32)
+    conflicts: list[int] = []
+    for i in range(width):
+        # One bit per qubit marks a local anticommutation contribution.
+        cross = (xs[i] & zs) ^ (zs[i] & xs)
+        bad = np.zeros(width, dtype=bool)
+        for mask in masks:
+            bad |= _parity_u64(cross & mask)
+        degrees[i] = int(bad.sum())
+        packed = np.packbits(bad, bitorder="little")
+        conflicts.append(int.from_bytes(packed.tobytes(), "little"))
+    return conflicts, degrees
+
+
+def packed_conflicts(conflicts: Sequence[int], width: int | None = None
+                     ) -> np.ndarray:
+    """The conflict planes as a ``[W, ceil(W/64)]`` array of ``uint64`` lanes.
+
+    :func:`conflict_masks` returns one Python integer per word, which tests a
+    whole group in a single ``&`` and is the right shape for a partition built
+    once. A refinement pass rebuilds the partition tens of times, and there the
+    per-word integer is the bottleneck: the scan for a word's first legal group
+    touches every open group, and at H4's 913 QWC settings that is millions of
+    7371-bit integer ANDs per pass. Lane form turns the same scan into one
+    vectorized reduction over all open groups at once.
+    """
+    conflicts = list(conflicts)
+    if width is None:
+        width = len(conflicts)
+    lanes = (width + 63) // 64
+    out = np.zeros((len(conflicts), lanes), dtype=np.uint64)
+    for index, mask in enumerate(conflicts):
+        raw = int(mask).to_bytes(lanes * 8, "little")
+        out[index] = np.frombuffer(raw, dtype="<u8")
+    return out
+
+
+def first_fit_partition(conflicts, order: Sequence[int]) -> list[list[int]]:
+    """Place each word, in ``order``, into the first group it may join.
+
+    The colouring primitive both the shipped greedy and every refinement in
+    :mod:`clifford_qc.measurement.regrouping` are built from: they differ only
+    in the order they hand it. ``conflicts`` is either the integer masks
+    :func:`conflict_masks` returns or the lane form of
+    :func:`packed_conflicts`; a caller that reuses one partition's planes
+    across many passes should pack once and pass the array.
+    """
+    if not isinstance(conflicts, np.ndarray):
+        conflicts = packed_conflicts(conflicts)
+    width, lanes = conflicts.shape
+    if not width:
+        return []
+
+    groups: list[list[int]] = []
+    capacity = 8
+    masks = np.zeros((capacity, lanes), dtype=np.uint64)
+    open_groups = 0
+    for i in order:
+        conflict = conflicts[i]
+        if open_groups:
+            blocked = np.bitwise_and(masks[:open_groups], conflict).any(axis=1)
+            chosen = -1 if bool(blocked.all()) else int(np.argmin(blocked))
+        else:
+            chosen = -1
+        if chosen < 0:
+            if open_groups == capacity:
+                capacity *= 2
+                grown = np.zeros((capacity, lanes), dtype=np.uint64)
+                grown[:open_groups] = masks[:open_groups]
+                masks = grown
+            chosen = open_groups
+            open_groups += 1
+            groups.append([])
+        groups[chosen].append(i)
+        masks[chosen, i >> 6] |= np.uint64(1) << np.uint64(i & 63)
+
+    # Independent grouping invariant: no member conflicts with its group mask.
+    for index, members in enumerate(groups):
+        member_mask = masks[index]
+        for i in members:
+            if bool(np.bitwise_and(conflicts[i], member_mask).any()):
+                raise AssertionError("block-commuting partition invariant failed")
+    return groups
+
+
 def block_commuting_partition(
     n: int, codes: Sequence[int], block_size: int
 ) -> list[list[int]]:
@@ -115,60 +233,15 @@ def block_commuting_partition(
     constructive upper bound on the chromatic number of the incompatibility
     graph, not a proof of the minimum setting count -- exact coloring is
     NP-hard, and no result derived from this partition may claim a minimum.
+    :mod:`clifford_qc.measurement.regrouping` lowers that bound on both frozen
+    instances without touching the rule this module owns.
     """
-    if block_size < 1:
-        raise ValueError("block size must be at least 1")
     codes = list(codes)
-    width = len(codes)
-    if not width:
+    if not codes:
         return []
-    # No ``n and`` guard: on zero qubits the only representable code is 0, so
-    # skipping the check there would let a non-zero code through the one case
-    # where nothing can be valid.
-    if max(codes) >= 1 << (2 * n):
-        raise ValueError("a code carries letters beyond the declared qubit count")
-    if n > 64:
-        raise ValueError("block-commuting partition requires at most 64 qubits")
-
-    xs = np.asarray([_xz(n, code)[0] for code in codes], dtype=np.uint64)
-    zs = np.asarray([_xz(n, code)[1] for code in codes], dtype=np.uint64)
-    block_masks = [
-        np.uint64(((1 << size) - 1) << start)
-        for start, size in block_ranges(n, block_size)
-    ]
-
-    degrees = np.empty(width, dtype=np.int32)
-    conflicts: list[int] = []
-    for i in range(width):
-        # One bit per qubit marks a local anticommutation contribution.
-        cross = (xs[i] & zs) ^ (zs[i] & xs)
-        bad = np.zeros(width, dtype=bool)
-        for mask in block_masks:
-            bad |= _parity_u64(cross & mask)
-        degrees[i] = int(bad.sum())
-        packed = np.packbits(bad, bitorder="little")
-        conflicts.append(int.from_bytes(packed.tobytes(), "little"))
-
-    order = sorted(range(width), key=lambda i: (-int(degrees[i]), codes[i]))
-    groups: list[list[int]] = []
-    group_masks: list[int] = []
-    for i in order:
-        conflict = conflicts[i]
-        for group_index, member_mask in enumerate(group_masks):
-            if conflict & member_mask == 0:
-                groups[group_index].append(i)
-                group_masks[group_index] = member_mask | (1 << i)
-                break
-        else:
-            groups.append([i])
-            group_masks.append(1 << i)
-
-    # Independent grouping invariant: no member conflicts with its group mask.
-    for members, member_mask in zip(groups, group_masks):
-        for i in members:
-            if conflicts[i] & member_mask:
-                raise AssertionError("block-commuting partition invariant failed")
-    return groups
+    conflicts, degrees = conflict_masks(n, codes, block_size)
+    order = sorted(range(len(codes)), key=lambda i: (-int(degrees[i]), codes[i]))
+    return first_fit_partition(conflicts, order)
 
 
 def block_commuting_groups(

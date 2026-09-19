@@ -107,7 +107,7 @@ def test_prose_scan_rejects_a_two_digit_result():
 def test_prose_scan_allows_conceptual_notation():
     body = ("On BeH$_2$ and H$_{12}$ at $k=8$ and $k=10$, in $\\mathrm{Cl}(2n,\\mathbb{C})"
             "\\cong M(2^n,\\mathbb{C})$, with rotors "
-            "$\\exp(-\\mathrm{i}\\theta P/2)$ and H$_4$ beside it.")
+            "$\\exp(-\\mathrm{i}\\theta P/2)$, $E_P'(0)$ and $-\\frac{\\mathrm{i}}{2}[H,P]$ beside H$_4$.")
     assert check_manuscript.prose_numerals(_manuscript(body)) == []
 
 

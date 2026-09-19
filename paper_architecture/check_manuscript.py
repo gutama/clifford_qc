@@ -25,7 +25,7 @@ only worth making if something enforces them, so this gate checks:
 
 Checks 7 and 10 are the ones specific to this manuscript: check 7 is what makes
 "every number is generated" a statement rather than an intention, and check 10
-is what keeps Tables I and III honest, since no experiment rebuilds them.
+keeps the source and gate census tables current, since no experiment rebuilds them.
 
 Exits nonzero on any failure so it can gate a release.
 """
@@ -69,6 +69,8 @@ CONCEPTUAL_NUMERALS = (
     r"Cl\}?\(2n",                   # the algebra itself, plain or \mathrm
     r"M\(2\^n",
     r"P/2\)",                       # the rotor half-angle
+    r"\\frac\{\\mathrm\{i\}\}\{2\}",   # its exact commutator normalization
+    r"E_P'\(0\)",                    # derivative at the initial angle
     r"revtex4-2",
 )
 
@@ -207,7 +209,7 @@ def _prose(text: str) -> str:
 def prose_numerals(text: str) -> list[tuple[str, str]]:
     """Every numeral in the body prose, with its context.
 
-    The reproducibility section claims every number is generated, prose
+    The reproducibility section claims every empirical quantity is generated, prose
     included, so the scan is for any numeral at all.  A threshold on digit
     count would let a three-digit setting count or a shot budget through, and
     those are exactly the quantities this manuscript quotes.
