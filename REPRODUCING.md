@@ -241,10 +241,11 @@ declared all-to-all logical model makes free. Every partition it reports is
 re-synthesized by `synthesize_block_settings`, so it passes the same `Z`-only
 invariant and its CX columns are the record's own quantities.
 `benchmarks/GROUPING_REDUCTION.md` writes up what the probe finds: the QWC rung
-is within ~10-16% of a hard floor and is close to done, while the interior rungs
-lose roughly a factor of two to the colouring and the frame together. H4 at
-`k = 4` is the sharpest case — the spin-split frame costs fewer settings *and*
-fewer gates *and* less depth than the contiguous one.
+is within 10-16% of a hard floor and is close to done, while H4's interior rungs
+lose a factor of 2.2 to 2.6 to the colouring and the frame together — and take
+fewer gates and no more depth for it, so the ladder's interior was not sitting
+on a trade. BeH2 improves at `k = 4` and `k = 8` only, and ends the wide rung at
+9 settings against a packing floor of 8.
 
 This is a probe, not a producer. It freezes no record, gates nothing, and
 changes no committed number: `block_commuting_partition` still returns its
