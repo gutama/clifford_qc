@@ -62,7 +62,9 @@
 \renewcommand{\floatpagefraction}{0.85}
 
 % Every quantity quoted in the body text is generated from a committed record
-% or from a live census of the source tree; see Sec. VIII.
+% or from a live census of the source tree; see the reproducibility section,
+% named rather than numbered because a comment is not checked against the
+% numbering and a new section renumbers it.
 \input{tables/numbers.tex}
 
 \begin{document}
@@ -84,7 +86,8 @@ Bandung, Indonesia}
 \begin{abstract}
 \pkg{} is a Python research toolkit for building quantum models, testing
 variational and subspace eigensolvers, and estimating measurement resources. A
-shared sparse Pauli representation connects operator algebra, circuit
+shared sparse Pauli representation carries states, gates, observables, and
+selection gradients in one container, and connects operator algebra, circuit
 programs, fermionic models, and exact or sampled calculations. The package
 provides spin and lattice models, molecular integral import, adaptive
 operator-response subspaces, sampled-determinant methods, shared measurement
@@ -141,8 +144,10 @@ overlap matrix. Finite sampling can amplify errors in a poorly conditioned
 basis \cite{epperly2022theory,lee2024sampling,zhang2024measurement}.
 Consequently, the package records basis size, conditioning, measurement support,
 and uncertainty alongside energy. The underlying operator formulation is developed
-in a companion manuscript \cite{utama2026operatorcentric}; this paper explains
-the software that supports it and the other implemented methods.
+in a companion manuscript \cite{utama2026operatorcentric};
+Sec.~\ref{sec:operator} introduces the part of it a user of the software meets,
+and the rest of this paper explains the software that supports it and the other
+implemented methods.
 
 The contribution is the integration of reusable components: one operator
 algebra, explicit execution interfaces, shared measurement data, configurable
@@ -164,11 +169,129 @@ Optional bridges keep the other tools reachable from the same model. We make no
 advantage claim over those packages and provide no comparative benchmark
 against them.
 
-Section~\ref{sec:features} introduces the capabilities and a typical workflow.
-Section~\ref{sec:architecture} explains the representation and interfaces.
+Section~\ref{sec:operator} introduces the operator-centric representation and
+works a small example through it.
+Section~\ref{sec:features} introduces the capabilities, a typical workflow, and
+a molecular run through the pipeline.
+Section~\ref{sec:architecture} explains how that representation is implemented
+and what the interfaces are.
 Section~\ref{sec:scopes} describes uncertainty, device cost, and storage limits.
 Sections~\ref{sec:gates}--\ref{sec:refused} connect these mechanisms to the
 committed evidence. The final sections discuss limitations and reproducibility.
+
+\section{The operator-centric representation}
+\label{sec:operator}
+
+Everything that follows rests on one representational choice: the states,
+gates, observables, channels and selection gradients of a calculation are
+elements of a single algebra and instances of a single sparse container,
+rather than separately typed objects joined by conversions. This section
+states that choice, works a small example through it, and marks what it does
+not buy. Its formal development --- the phase-consistent Pauli-word
+dictionary, the rotor conventions, and the parity rule quoted below --- is the
+subject of a companion manuscript \cite{utama2026operatorcentric}; what
+follows is the part a user of the software meets directly.
+
+\subsection{One algebra, one container}
+\label{sec:operator-algebra}
+
+An $n$-qubit operator is expanded in the Hermitian Pauli-word basis
+$\mathcal{P}_n=\{I,X,Y,Z\}^{\otimes n}$,
+\begin{equation}
+ A=\sum_{W\in\mathcal{P}_n}a_W\,W,
+ \label{eq:expansion}
+\end{equation}
+the standard irreducible realization of the complex Clifford algebra,
+$\mathrm{Cl}(2n,\mathbb{C})\cong M(2^n,\mathbb{C})$
+\cite{somaroo1998operations,hrdina2022clifford,silva2025operator}. Fermionic
+models enter the same expansion through the Jordan--Wigner strings, which
+carry anticommuting Clifford generators to local Pauli words
+\cite{jordan1928}; parity and Bravyi--Kitaev encodings are also available
+\cite{bravyi2002fermionic,seeley2012bravyikitaev}. A density operator, a
+unitary, a Hermitian observable, a Kraus element, and the gradient that ranks
+a candidate rotation are then all instances of Eq.~\eqref{eq:expansion},
+stored as a sparse map from a packed word code to a complex coefficient.
+
+The claim here is narrow, and worth separating from a stronger one it
+resembles. The isomorphism above is an isomorphism: nothing becomes
+expressible that a dense matrix formulation cannot express, and the storage is
+sparse in the Pauli basis, which is not sparsity in every basis. What the
+choice buys is uniformity. A candidate's exact gradient, its finite-shot
+estimator, and its uncertainty are one type, so an estimator written for an
+observable also serves a projected matrix element; structure shared between
+two operators is visible as a shared Pauli word instead of being inferred
+across a conversion; and the measurement layer of Sec.~\ref{sec:scopes} sees
+one universe of words to group rather than one per consumer.
+
+\subsection{A worked example}
+\label{sec:operator-example}
+
+Two Pauli words multiply to a single Pauli word. In the packed encoding, two
+bits per qubit, the product's code is the exclusive-or of the operands' codes,
+and its phase is a power of the imaginary unit fixed by population counts of
+and-masks taken modulo four. Two words therefore either commute or
+anticommute, and their commutator is either zero or twice their product. This
+is what makes an operator-response calculation readable by eye.
+
+Take a transverse-field Ising Hamiltonian on two neighbouring sites $p$ and
+$q$,
+\begin{equation}
+ H = Z_pZ_q + X_p + X_q,
+ \label{eq:tfim}
+\end{equation}
+and rank candidate rotations $R_P(\theta)=\exp(-\mathrm{i}\theta P/2)$ on a
+reference $\rho$ by the initial energy slope each would produce. That slope is
+the expectation of an operator living in the same algebra as $H$,
+\begin{equation}
+ G_P=-\mathrm{i}\,[H,P],\qquad g_P=\mathrm{Tr}(G_P\,\rho),
+ \label{eq:score}
+\end{equation}
+where $g_P$ is the slope up to the factor of one half contributed by the
+rotor's half-angle convention. That factor is common to every candidate, so it
+does not enter the ranking. Reading Eq.~\eqref{eq:score} needs no
+candidate-specific circuit: it needs the reference and the expectations of the
+words appearing in the observables $\{G_P\}$. For the Hamiltonian of
+Eq.~\eqref{eq:tfim}, three of the candidates carrying an odd number of $Y$
+factors give
+\begin{align}
+ G_{Y_p} &\propto Z_p - X_pZ_q, \nonumber\\
+ G_{Y_pZ_q} &\propto Z_pZ_q - X_p - Y_pY_q, \label{eq:gradients}\\
+ G_{Z_pY_q} &\propto Z_pZ_q - X_q - Y_pY_q, \nonumber
+\end{align}
+each proportionality hiding the same factor of two that every such commutator
+carries.
+
+Three things are visible in Eq.~\eqref{eq:gradients} that a formulation
+without a shared operator type would leave implicit. First, the words that
+rank the pool are the Hamiltonian's own words together with products of them,
+so one cumulative cache prices the energy and the ranking at once rather than
+funding two measurement campaigns. Second, candidates share words: $Z_pZ_q$
+and $Y_pY_q$ each appear in two of the three rows, and a shot spent on either
+is spent for both, which is why measurement reuse in \pkg{} is a property of
+the data structure rather than a per-experiment optimization. Third, $Z_pZ_q$
+and $Y_pY_q$ commute but do not commute qubit-wise, so the grouping the
+measurement layer chooses changes what this word universe costs in settings
+and in circuit depth --- the trade Sec.~\ref{sec:admitted} measures on the
+committed banks.
+
+The same algebra also prunes the pool before any shot is taken. Transposition
+in the computational basis is diagonal on Pauli words, with a sign set by the
+parity of the number of $Y$ factors, and for a real Hamiltonian and a real
+reference every even-parity candidate therefore scores zero at every step
+\cite{utama2026operatorcentric}. Restricting the pool to odd-parity words ---
+the rows of Eq.~\eqref{eq:gradients} are three of them --- leaves the exact
+trajectory unchanged while shrinking the candidate and observable count. The
+package applies this restriction when it builds qubit-ADAPT and
+determinant-derived pools.
+
+None of this is a performance claim. Sparse support can grow during execution,
+and a word set that starts small need not stay small; Sec.~\ref{sec:limits}
+states that limit, and the bank storage policies of Sec.~\ref{sec:storage}
+exist because it binds in practice. What the representation fixes is where
+that growth is visible and what it costs to look: support, conditioning, and
+measurement demand are properties of one object, readable without leaving the
+representation. Section~\ref{sec:architecture} describes how the object is
+implemented and where its public container boundary sits.
 
 \section{Capabilities and workflow}
 \label{sec:features}
@@ -244,26 +367,85 @@ subspace error from measurement error before introducing a device cost model.
 
 The command-line pipeline separates \texttt{prepare}, \texttt{solve}, and
 \texttt{validate}, each available through \texttt{python -m clifford\_qc.pipeline}.
-Preparation reads an FCIDUMP file and caches a serialized Hamiltonian, reference
-program, and metadata. Its key includes the source bytes, sector and tolerance
-options, encoding, package implementation, and NumPy version. Cache hits validate
-the stored content before reuse; each consumer receives fresh model objects.
-The implementation fingerprint is cached per process, so a process must be
-restarted after source changes.
+The separation is the point. Preparation is the part a parameter sweep should
+pay for once; a solve is the part that differs between arms; reference
+validation is the part many experiments do not need at all. A single command
+would fold all three costs into every arm's record, recompute an integral parse
+and a fermionic mapping that did not change, and price a classical reference
+that nothing asked for.
 
-A solve consumes that artifact and records its configuration, energy history,
-resource report, and elapsed time. It performs exact projected arithmetic but
-does not compute a ground-state reference by default. Validation is a separate,
-optional sector eigensolve that reports eigenpair residuals. Its cost is outside
-the solve record. This separation avoids repeating integral parsing and mapping
-across parameter sweeps and avoids calculating a reference that an experiment
-does not need. It also lets preparation, the matrix-element bank, and reference
-validation occupy memory in different processes.
+Splitting them also lets preparation, the matrix-element bank, and reference
+validation occupy memory in different processes, which matters once the bank is
+the largest object in the calculation.
 
-The current command-line solve path uses FCIDUMP models and exact A-CASE with a
-determinant-excitation pool. Other algorithms and finite-shot workflows remain
-Python interfaces and repository examples; they are not all exposed by this
-command.
+\subsection{A molecular run through the pipeline}
+\label{sec:molecular}
+
+Table~\ref{tab:pipeline} traces that separation end to end on the kind of
+input the command-line path accepts today: a restricted real FCIDUMP file
+\cite{knowles1989fcidump} for a small active space, such as the
+minimal-basis H$_4$ fixture committed with the repository. The upstream
+orbital, active-space and integral calculation is not part of the pipeline. It
+is done by an electronic-structure package \cite{sun2018pyscf} and enters here
+as that file, which means the active-space decision is an input to the
+workflow rather than something it can be blamed for or credited with.
+
+\begin{table*}
+  \caption{One molecular run through the command-line pipeline. Each stage is a
+  separate invocation and may occupy its own process. The table describes
+  interfaces and reuse scope; it reports no measurement.}
+  \label{tab:pipeline}
+  \footnotesize
+  \begin{ruledtabular}
+  \begin{tabular}{@{}p{0.10\textwidth}p{0.47\textwidth}p{0.37\textwidth}@{}}
+ Stage & Reads and writes & Reused across \\
+ \colrule
+ \texttt{prepare} & Integral file and preparation options; writes a content-addressed artifact holding the ordered Hamiltonian terms, the reference program, model metadata, and a digest & Every solve whose preparation key matches: source bytes, sector overrides, integral tolerance, model name, encoding, package implementation, and NumPy version \\
+ \texttt{solve} & The artifact and a solver configuration; writes a run record carrying candidate and solver settings, energy history, selected labels, stopping reason, resource diagnostics, elapsed time, and both fingerprints & Nothing; one record per configuration, each choosing its own coefficient storage and lifetime policy \\
+ \texttt{validate} & The artifact and reference-solver options; writes reference energies, eigenpair residuals, the sector dimension, and its own elapsed time & Every solve sharing the same model, sector, and reference settings \\
+  \end{tabular}
+  \end{ruledtabular}
+\end{table*}
+
+Preparation runs no eigensolver. It parses the integrals under the declared
+tolerance, maps them to Pauli words, and writes an immutable artifact. A cache
+hit revalidates the stored digest and the requested preparation before
+skipping the parse and the mapping, and each consumer is handed fresh model
+objects rather than a shared one. Because the key covers the source bytes, the
+active-space choice sits inside it: a different active space is a different
+artifact, not a silently reused one. The implementation fingerprint is
+memoized per process, so a source change is seen only after a restart.
+
+A solve reads that artifact, builds a determinant-excitation candidate pool,
+runs A-CASE with exact projected arithmetic, and writes its own record. The
+solve computes no ground-state oracle by default, and the record says which
+regime it ran in: a field reports whether an oracle-based stopping rule was
+active, because a rule that consults the answer is not one a device could
+follow. Exact projected arithmetic is exact about the projected eigenproblem
+alone; it does not certify that the selected basis contains the ground state.
+
+A parameter sweep is organized at this stage. Each configuration is a separate
+invocation reading the same artifact, so the integral parse and the mapping
+are paid once for the whole sweep instead of once per arm, and the
+coefficient-storage and lifetime choices of Sec.~\ref{sec:storage} are made
+per solve. A memory-bounded streaming arm and the retain-all default can
+therefore be run against a byte-identical prepared model and compared without
+the preparation difference that would otherwise sit inside the comparison.
+
+Validation stays outside that loop. It is a separate sector eigensolve on the
+same artifact, reporting reference energies and eigenpair residuals, and its
+cost is recorded in its own file rather than folded into the solve record: an
+experiment that needs no classical reference does not pay for one, and an
+experiment that does can see what it paid. The residuals describe the returned
+reference eigenpairs; they are not a full-space residual for the A-CASE state.
+
+What this path does not do is worth stating beside what it does. The
+command-line solve is exact A-CASE with Jordan--Wigner encoding and a
+determinant-excitation pool; finite-shot workflows, the other eigensolvers,
+and multi-root adaptation are Python interfaces rather than subcommands. The
+committed profiling of the storage policies is a small-system smoke
+measurement. It supports keeping both policies available and establishes
+neither a production molecular speedup nor a process-memory reduction.
 
 
 \section{Architecture}
@@ -302,12 +484,11 @@ which is the first place scope would be lost.
 
 \subsection{The kernel}
 
-The numerical kernel's canonical operator type is the multivector \texttt{MV}, a
-sparse map from packed Pauli-word codes to complex coefficients, two bits per
-qubit, with multiplication implemented as exclusive-or, and-mask and population
-count modulo four.  States, gates, Kraus channels, Jordan--Wigner
-\cite{jordan1928} Clifford generators and fermionic creation and annihilation
-operators all lower to this type.  The public program intermediate
+The numerical kernel's canonical operator type is the multivector \texttt{MV}:
+the sparse container of Sec.~\ref{sec:operator}, a map from packed Pauli-word
+codes to complex coefficients carrying the exclusive-or product described
+there.  States, gates, Kraus channels, Jordan--Wigner Clifford generators and
+fermionic creation and annihilation operators all lower to this type.  The public program intermediate
 representation exposes a distinct \texttt{PauliSum} container for Hamiltonians
 and observables; its
 \texttt{to\_mv} and \texttt{from\_mv} boundary is exact and uses the same packed
@@ -488,6 +669,7 @@ scenarios. Section~\ref{sec:admitted} shows how these assumptions change the
 interpretation of a measured shot reduction.
 
 \subsection{Coefficient storage and recomputation}
+\label{sec:storage}
 
 Matrix-element banks offer object and packed coefficient representations.
 Packing changes storage, not the operator basis. Direct support queries and

@@ -207,10 +207,10 @@ def _prose(text: str) -> str:
 def prose_numerals(text: str) -> list[tuple[str, str]]:
     """Every numeral in the body prose, with its context.
 
-    Sec. VIII claims every number is generated, prose included, so the scan is
-    for any numeral at all.  A threshold on digit count would let a three-digit
-    setting count or a shot budget through, and those are exactly the
-    quantities this manuscript quotes.
+    The reproducibility section claims every number is generated, prose
+    included, so the scan is for any numeral at all.  A threshold on digit
+    count would let a three-digit setting count or a shot budget through, and
+    those are exactly the quantities this manuscript quotes.
     """
     prose = _prose(text)
     found = []
