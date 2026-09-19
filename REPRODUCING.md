@@ -116,7 +116,7 @@ No figure or table value in the manuscript is transcribed by hand, and
 ```bash
 python -m venv .venv && source .venv/bin/activate
 pip install -e .[test,research,stim]       # automatic CI extras
-pytest                                      # 2164 passed, 11 skipped
+pytest                                      # 2229 passed, 11 skipped
 ```
 
 This is the automatic CI dependency set; record gates additionally pin NumPy
@@ -132,7 +132,7 @@ the remaining `11 - 6 = 5` skips are per-test and *are* collected:
 
 ```text
 collected == passed + (skipped - files dropped at collection)
-2169      == 2164   + (11      -   6)
+2234      == 2229   + (11      -   6)
 ```
 
 Both sides are computed from the tree, so a drift in either quoted number
@@ -220,6 +220,39 @@ result.
 The tableau elimination remains a constructive synthesis rather than a
 CX-minimizing compiler. Mitigation and calibrated topology routing remain outside
 this experiment.
+
+#### How much of each rung is the colouring rather than the rule
+
+Every rung above is priced over one constructive colouring of the compatibility
+rule, laid out over *contiguous* blocks. Both are choices the rule does not
+make, and `benchmarks/probe_grouping_refinement.py` measures what they cost by
+varying only them:
+
+```bash
+python benchmarks/probe_grouping_refinement.py
+python benchmarks/probe_grouping_refinement.py --system h4 --block-size 4
+python benchmarks/probe_grouping_refinement.py --output results/grouping_refinement.json
+```
+
+The probe reproduces the frozen setting counts first, then re-groups the same
+banks with `clifford_qc.measurement.regrouping` — DSATUR, iterated greedy, span
+recovery and an isotropic cover — and searches the block assignments, which the
+declared all-to-all logical model makes free. Every partition it reports is
+re-synthesized by `synthesize_block_settings`, so it passes the same `Z`-only
+invariant and its CX columns are the record's own quantities.
+`benchmarks/GROUPING_REDUCTION.md` writes up what the probe finds: the QWC rung
+is within 10-16% of a hard floor and is close to done, while H4's interior rungs
+lose a factor of 2.2 to 2.6 to the colouring and the frame together — and take
+fewer gates and no more depth for it, so the ladder's interior was not sitting
+on a trade. BeH2 improves at `k = 4` and `k = 8` only, and ends the wide rung at
+9 settings against a packing floor of 8.
+
+This is a probe, not a producer. It freezes no record, gates nothing, and
+changes no committed number: `block_commuting_partition` still returns its
+committed colouring and `check_clifford_hierarchy.py` still regenerates the
+frozen records digit for digit. Nothing in the probe licenses a rung, a price,
+or a claim of minimality — exact colouring and exact set cover are both NP-hard,
+and the only floor it states is a counting bound.
 
 ### Phase 14b QWC-versus-fully-commuting sampled record
 

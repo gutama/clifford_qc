@@ -3024,16 +3024,20 @@ schema-v2 controls these columns are gated against sit beside them with the
 | system | `k` | `G` | `W/G` | `N_CX` | mean `D_CX` | max `D_CX` | preps (10⁶) | `c_CX/c_prep` |
 |---|---|---:|---:|---:|---:|---:|---:|---:|
 | H₄ (`M=9`, `W=7 371`) | 1 (QWC) | 913 | 8.07 | 0 | 0.00 | 0 | 7.304 | — |
-| | 2 | 647 | 11.39 | 3185 | 2.55 | 4 | 5.176 | 0.084 |
-| | 4 | 238 | 30.97 | 3688 | 8.90 | 17 | 1.904 | 0.183 |
-| | 8 (full) | 64 | 115.17 | 2006 | 25.72 | 42 | 0.512 | 0.423 |
+| | 2 | 647 | 11.39 | 2803 | 2.25 | 4 | 5.176 | 0.095 |
+| | 4 | 238 | 30.97 | 3277 | 7.91 | 14 | 1.904 | 0.206 |
+| | 8 (full) | 64 | 115.17 | 1886 | 24.16 | 35 | 0.512 | 0.450 |
 | BeH₂ (`M=5`, `W=1 815`) | 1 (QWC) | 353 | 5.14 | 0 | 0.00 | 0 | 2.824 | — |
-| | 2 | 41 | 44.27 | 168 | 1.78 | 2 | 0.328 | 1.857 |
-| | 4 | 26 | 69.81 | 234 | 5.12 | 10 | 0.208 | 1.397 |
-| | 8 (full) | 14 | 129.64 | 332 | 19.00 | 27 | 0.112 | 1.021 |
+| | 2 | 41 | 44.27 | 112 | 0.98 | 1 | 0.328 | 2.786 |
+| | 4 | 26 | 69.81 | 193 | 4.46 | 10 | 0.208 | 1.694 |
+| | 8 (full) | 14 | 129.64 | 296 | 17.86 | 23 | 0.112 | 1.145 |
+
+Every column above is a field of those two records, so the table is a transcription
+and not a separate calculation; it drifted once by being copied from a generated
+fragment that predated the records rather than from the records themselves.
 
 This is a tunable logical trade, not a preferred block size, and the instance spread
-is the reason: the `k = 2` break-even ratio is `0.084` on H₄ and `1.857` on BeH₂ — 22×
+is the reason: the `k = 2` break-even ratio is `0.095` on H₄ and `2.786` on BeH₂ — 29×
 under an identical logical model, before any device enters. Connectivity, routing,
 device noise, and error mitigation are excluded.
 
@@ -3287,7 +3291,7 @@ non-adaptive and adaptive arms ran:
 | rung | `n` (JW) | exact reference | frozen artifact | role |
 |---|---:|---|---|---|
 | H₄ `r = 0.9` | 8 | yes | `matched_h4.json`, `clifford_hierarchy_h4.json` | primary; the frozen bank both cost axes reuse |
-| BeH₂ CAS(4e,4o) | 8 | yes | `clifford_hierarchy_beh2.json` | second instance; the 22× break-even spread; the one bank priced inside the frozen grid |
+| BeH₂ CAS(4e,4o) | 8 | yes | `clifford_hierarchy_beh2.json` | second instance; the 29× break-even spread; the one bank priced inside the frozen grid |
 | LiH CAS(4e,4o) | 8 | yes | `qr3b_instance_preflight.json`, `priceability_screen.json`, `r3b_margin_stop_probe.json` | chemically independent second instance; rejected at its intrinsic stop (`W = 7740`); the `M = 2` bank (`W = 1439`) resolves 29/40 cells in the target-environment 2+2 redraw (30/40 historically), and its separate 30+100 cost run prices 38/40 cells, making LiH the second exact-tier priced instance; QR3 remains indeterminate after R3d (§13, 13b–d) |
 | H₂O CAS(4e,4o) stretched | 8 | yes | ladder | strong-correlation control |
 | H₂O CAS(8e,6o) | 12 | yes | ladder | size stress for `W` and grouping |

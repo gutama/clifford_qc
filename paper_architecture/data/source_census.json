@@ -142,8 +142,8 @@
         "modules": 15
       },
       "measurement": {
-        "lines": 3995,
-        "modules": 13
+        "lines": 4634,
+        "modules": 14
       },
       "models": {
         "lines": 2739,
@@ -162,9 +162,9 @@
         "modules": 1
       }
     },
-    "package_lines": 24922,
-    "package_modules": 98,
-    "test_lines": 25619,
-    "test_modules": 111
+    "package_lines": 25561,
+    "package_modules": 99,
+    "test_lines": 26032,
+    "test_modules": 112
   }
 }
