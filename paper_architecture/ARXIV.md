@@ -51,8 +51,8 @@ moved. Regenerating them fixed it; the scan keeps it fixed.
 
 The archive holds `manuscript.tex`, `manuscript.bbl`, the nine generated
 `tables/*.tex` fragments the manuscript inputs, and the five
-`paper_assets/*.pdf` figures it includes. Sixteen files, about 230 kB
-uncompressed and 135 kB in the archive — far under arXiv's upload limit, which
+`paper_assets/*.pdf` figures it includes. Sixteen files, about 268 kB
+uncompressed and 164 kB in the archive — far under arXiv's upload limit, which
 `make_arxiv.py` checks anyway in case a raster figure ever arrives.
 
 `references.bib` is **not** shipped. arXiv does not run BibTeX, so the `.bib`
@@ -79,7 +79,7 @@ Both at the Department of Engineering Physics, Institut Teknologi Bandung.
 
 **Abstract** — paste `arxiv/abstract.txt` verbatim. It is derived from the
 manuscript, so it cannot drift from the typeset one. It is currently about
-1750 characters against arXiv's 1920-character limit, and `make_arxiv.py`
+1620 characters against arXiv's 1920-character limit, and `make_arxiv.py`
 fails if a revision pushes it over.
 
 **Categories**
@@ -94,7 +94,7 @@ fails if a revision pushes it over.
 **Comments**
 
 ```
-14 pages, 5 figures, 9 tables. Companion to arXiv:2607.17443. Source,
+15 pages, 5 figures, 10 tables. Companion to arXiv:2607.17443. Source,
 records and manuscript gate at https://github.com/gutama/clifford_qc
 ```
 
@@ -105,8 +105,8 @@ count of the build it verified.
 **MSC class** — `81P68; 81-04; 65-04`
 
 **Journal reference / DOI** — leave empty. No archival identifier or
-package-index release exists yet, and Sec. X of the manuscript says so; adding
-one here would contradict it.
+package-index release exists yet, as the manuscript's Use and distribution
+section explains; adding one here would contradict it.
 
 **Report number** — none.
 
