@@ -1,318 +1,345 @@
-# Phase 16B feasibility: is a real-time Krylov pencil shot-survivable?
+# Phase 16B feasibility: real-time Krylov under estimator noise
 
-This specifies one experiment, at one scale, to answer one question before any
-architecture is committed to it. `PLAN.md` §Phase 16B scopes a circuit-native
-real-time generator family and states that it "requires a different
-matrix-element backend and resource model — architecture research". That is the
-right diagnosis, and it is also expensive. This document defines the cheap
-experiment that decides whether the expensive one is worth starting.
+This design asks whether a circuit-native real-time family merits the separate
+matrix-element backend scoped by `PLAN.md` Phase 16B and Q8. The pilot below
+tests numerical structure and sizes a future experiment; it does not authorize
+a backend or establish a measurement saving.
 
-Everything below is preregistration. No arm here has been run except the pilot
-in Section 3, which is a sizing probe and gates nothing.
+**Status: design specification, not completed preregistration.** This PR contains
+the pilot and its regression tests. The result-free config, preregistration
+checker, experiment producer, and result checker in Section 9 remain future
+work. Their parameters and cost contracts must be committed and checked before
+the decision experiment runs. The pilot was observed before this design and is
+explicitly exploratory.
 
-## 1. What this decides
+## 1. Question and scope
 
-**Go/no-go on building the Phase 16B matrix-element backend.**
+On the **same Hamiltonian, reference, energy target, and estimator cost model**,
+can a real-time Krylov family tolerate noise and reduce modeled total shots by
+at least 10x relative to A-CASE? Both noise tolerance and cost matter. A small
+number of scalar outputs is not by itself a small measurement budget.
 
-The backend is not a module, it is a second execution path: `MatrixElementBank`
-assembles rows as sparse Pauli operators and reads every entry as an expectation
-on the reference, and a real-time family satisfies neither assumption. Ancilla
-registers, controlled time evolution, and an estimator whose variance is not a
-word-variance are a different machine. That is weeks of work, and it invalidates
-the resource model that `resources()` currently reports.
+`MatrixElementBank` currently builds sparse Pauli rows and measures their
+expectations on one reference. Controlled propagation and off-diagonal ancilla
+estimators would require a separate execution and resource path. Dense pilot
+calculations can test necessary numerical conditions before that work begins.
 
-Before paying that, one question has to be answered, and it can be answered at
-four qubits in dense arithmetic with no new backend at all:
+All noise evidence here is `heuristic`, not `finite_sample`. No hardware,
+compiled-circuit cost, quantum advantage, or scaling conclusion follows. Records
+must carry `quantum_advantage_claim: false`. A NO-GO is restricted to the frozen
+instances, grid, regularizers, and variance model, not real-time Krylov generally.
 
-> **Q8 (operational form).** On a predeclared instance, does the real-time family
-> reach a target energy error at an overlap-noise level a finite-shot calculation
-> could actually deliver — and does it do so at a *lower total estimand count*
-> than the operator-response family already in the package?
+## 2. Structure, estimator counts, and phase branches
 
-Two clauses, both necessary. The first is about conditioning: a basis that only
-works in exact arithmetic is not a method. The second is about cost: if
-real-time buys accuracy at the same 10⁶-word measurement universe A-CASE already
-pays (`molecular/results/results_summary.json`: 350 196 words at m = 11, 1 165 663
-at m = 31), it has bought nothing.
+For a Hermitian H and uniform grid, let `A_k = exp(-i H k dt)`. Then
 
-## 2. Why the real-time family is structurally different
-
-This is the entire reason the phase is worth pricing, so it goes first and it is
-checked numerically rather than asserted.
-
-For `A_k = e^{-iH t_k}` on a **uniform** grid `t_k = k·dt`, and Hermitian `H`
-which commutes with its own propagator:
-
-```
-S_ij = <psi| e^{+iH i dt}   e^{-iH j dt} |psi>  = c(j - i)
-H_ij = <psi| e^{+iH i dt} H e^{-iH j dt} |psi>  = d(j - i)
+```text
+c(k) = <psi|exp(-i H k dt)|psi>
+d(k) = <psi|H exp(-i H k dt)|psi>
+S_ij = c(j-i),  H_ij = d(j-i),  i,j = 0,...,m-1.
 ```
 
-Both matrices are **Toeplitz**. The whole `m × m` pencil is `2m - 1` values of
-each of two scalar functions of a single time argument. Contrast the two families
-the package already has:
+Both matrices are Toeplitz because H commutes with its propagator. Negative
+lags are conjugates of positive lags, `c(0)=1` is known for a normalized state,
+and `d(0)` is real. Count **real scalar components requiring estimation**:
 
-| family | distinct estimands for an `m`-dimensional pencil | grows with `|H|`? |
+| Family | Data for an m-dimensional pencil | Measurement qualification |
 |---|---|---|
-| operator response (`A-CASE`) | `O(m²)` operator rows over a word universe `O(m²·|H|)` | yes |
-| power Krylov (`krylov_response`) | union of `supp(H^k)`, `k ≤ 2m+1` (`run_krylov_width.py`) | yes, and superlinearly |
-| **real-time (16B)** | **`2m` scalars** (`c`, `d` on `k ≥ 0`; negatives by Hermiticity) | **no** |
+| A-CASE | O(m²) operator rows, with overlapping Pauli supports | Count actual word union, settings, covariance, and coefficient weights |
+| Power Krylov | moments of H through power 2m-1 | `krylov_response(H, m-1)` plus identity; support growth is instance-dependent |
+| Exact real-time Hermitian | 2(m-1) components of c plus 2m-1 of d: **4m-3** | d is Hamiltonian-weighted, not a bounded unitary expectation |
+| Exact real-time unitary | c(1),...,c(m): **2m** | Each real/imaginary part is a bounded unitary expectation |
 
-`benchmarks/probe_realtime_krylov.py` confirms the Toeplitz identity holds to
-exactly zero residual in double precision at `m = 4, 6, 8, 10`.
+The `order` argument in `run_krylov_width.py` counts powers after identity, so
+its size is `order+1`; do not equate that argument with m. An O(m) scalar count
+for real-time pencils does not remove Hamiltonian-dependent propagation or
+measurement cost. At m=10 the counts above are 37 and 20, not exactly a factor
+of two.
 
-There is a stronger variant. The **unitary (Prony) pencil** replaces the
-Hamiltonian matrix entirely: with `S⁰_ij = c(j-i)` and `S¹_ij = c(j-i+1)`, the
-generalized eigenvalues of `S¹ v = λ S⁰ v` are `λ = e^{-iE·dt}`, so energies come
-from `arg(λ)` and **`d` is never measured**. The Hamiltonian enters only through
-the propagator that the circuit implements anyway. This is the lineage of
-quantum filter diagonalization and unitary quantum Krylov (Parrish–McMahon 2019;
-Klymko et al. 2022; Stair et al. 2020); the package should position against it
-rather than rediscover it.
+The pilot checks the Toeplitz construction against independently propagated
+columns `V_k = exp(-i H k dt)|psi>`, comparing to `V†V` and `V†HV`. Checking
+adjacent diagonals of a matrix already built from c(j-i) would be tautological.
 
-That is the upside. Section 3 is the downside.
+The unitary pencil uses `S0_ij=c(j-i)` and `S1_ij=c(j-i+1)`. Its generalized
+roots are exact eigenphases `exp(-i E dt)` **when the retained subspace is
+invariant under the propagator**, for example when the supported distinct
+energies are resolved. A finite, truncated subspace gives compressed roots,
+which need not lie on the unit circle or equal exact phases.
 
-## 3. Pilot: the conditioning wall, quantified
+Energy is determined only modulo `2π/dt`. Choose a declared enclosure [L,U],
+set `E_shift=(L+U)/2`, and decode the rephased c values on the branch centered
+there, restoring `E_shift` afterward. Require `(U-L)*dt < 2π`, strictly. A span
+alone cannot fix aliasing under an additive identity shift. At fixed dt the
+decoded energies lie in a bounded branch; large errors are not literally
+unbounded. Both noisy pencils can violate the true ground-energy bound.
 
-Producer: `benchmarks/probe_realtime_krylov.py` (a probe — no committed record,
-gates nothing). Instance: TFIM `n = 4`, `J = h = 1` at criticality, product-state
-reference `|0000>`, `dt = π/(E_max - E_min) = 0.330084`. Noise model: i.i.d.
-complex Gaussian of width `eps` on each Toeplitz scalar, Hermiticity restored,
-hard truncation of the normalized overlap spectrum at `eps`. Chemical accuracy
-`1.6e-3 Ha`. 40 replicas.
+Relevant prior work includes Parrish and McMahon's
+[quantum filter diagonalization (2019)](https://arxiv.org/abs/1909.08925),
+Stair, Huang, and Evangelista's
+[multireference quantum Krylov method (2020)](https://doi.org/10.1021/acs.jctc.9b01125),
+and Klymko et al.'s
+[VQPE and unitary formulation (2022)](https://doi.org/10.1103/PRXQuantum.3.020323).
+These are related methods, not a claim that every formulation uses the same pencil.
 
-**Exact arithmetic — accuracy and conditioning rise together:**
+## 3. Corrected exploratory pilot
 
-| `m` | `cond(S)` | rank | energy error |
+Run from an installed research environment, with single-thread BLAS:
+
+```bash
+OMP_NUM_THREADS=1 OPENBLAS_NUM_THREADS=1 MKL_NUM_THREADS=1 \
+  python benchmarks/probe_realtime_krylov.py --replicas 40 --seed 20260922
+```
+
+Instance: open-chain `tfim(4,J=1,h=1)`, explicit `|0000>` reference,
+`dt=π/(E_max-E_min)=0.330084`, and energy shift at the spectral midpoint.
+The model builder normally supplies `|++++>`; the pilot intentionally overrides
+that reference. Errors are in **TFIM J=1 energy units**, not Hartree. The numeric
+target is 1.6e-3; only the molecular instance uses chemical accuracy in Ha.
+
+Each independent positive-lag real/imaginary component has Gaussian standard
+deviation eps; negative lags reuse its conjugate. `c(0)` remains exact, `d(0)`
+gets real noise, and both arms share each c draw. d has noise eps in energy
+units. This is an absolute-error stress test, **not equal shot budgets**.
+The relative truncation threshold is `max(eps,1e-13)*lambda_max(S)`, a heuristic
+cutoff rather than a calibrated per-mode noise floor. Median uses all replicas;
+p90 uses the empirical upper order statistic (`method="higher"`). A failed
+eigensolve or vanished unitary root has infinite error, not a dropped NaN.
+
+The initial version independently perturbed positive and negative lags in the
+Hermitian arm and then averaged them, halving off-diagonal component variance;
+the unitary arm did not do this. These paired results replace that comparison.
+
+| m | cond(S) | retained rank | exact Hermitian error |
 |---:|---:|---:|---:|
-| 4 | 1.96e+02 | 4 | 3.06e-01 |
-| 6 | 5.75e+03 | 6 | 2.70e-02 |
-| 8 | 3.38e+06 | 8 | 2.51e-04 |
-| 10 | 5.32e+09 | 10 | 2.40e-14 |
+| 4 | 1.96e2 | 4 | 3.056e-1 |
+| 6 | 5.75e3 | 6 | 2.700e-2 |
+| 8 | 3.38e6 | 8 | 2.511e-4 |
+| 10 | 5.32e9 | 10 | <1e-10 |
 
-The basis that reaches chemical accuracy (`m = 8`) is the one whose overlap
-spectrum already spans six decades. This is not a defect of the instance; it is
-what real-time Krylov bases do.
+The direct-pencil residual is below 1e-13 in this run. This example couples
+improved accuracy with poor conditioning; it is not a universal conditioning
+law for real-time bases.
 
-**Under noise — Hermitian pencil (`c` and `d`), median error over 40 replicas:**
-
-| `eps` \ `m` | 4 | 6 | 8 | 10 | best resolvable rank |
+| eps, m | Hermitian median | Hermitian p90 | Unitary median | Unitary p90 | median retained rank |
 |---|---:|---:|---:|---:|---:|
-| 0 | 3.06e-01 | 2.70e-02 | **2.51e-04** | **2.40e-14** | 10 |
-| 1e-5 | 3.06e-01 | 2.22e-02 | 3.08e-03 | **1.23e-03** | 8 |
-| 1e-4 | 3.06e-01 | 8.73e-02 | 2.20e-02 | 1.22e-02 | 7 |
-| 1e-3 | 3.02e-01 | 2.57e-01 | 8.18e-02 | 1.82e-02 | 7 |
-| 1e-2 | 5.20e-01 | 3.84e-01 | 3.16e-01 | 1.85e-01 | 6 |
+| 1e-5, 8 | 3.151e-3 | 6.698e-3 | 2.493e-3 | 4.801e-3 | 7 |
+| 1e-5, 10 | 1.104e-3 | 2.569e-3 | 7.196e-4 | 1.197e-3 | 8 |
+| 1e-4, 10 | 1.112e-2 | 1.539e-2 | 8.817e-3 | 2.482e0 | 7 |
+| 1e-3, 10 | 2.273e-2 | 5.263e-2 | 8.023e-3 | 1.923e-2 | 7 |
+| 1e-2, 10 | 1.720e-1 | 2.890e-1 | 1.261e-1 | 1.795e0 | 6 |
 
-**Unitary (Prony) pencil (`c` only)** is *better* in the median — `6.17e-04`
-against `1.23e-03` at `eps = 1e-5, m = 10` — and needs half the estimands, since
-`d` is never measured. But it is a non-Hermitian eigenproblem with no variational
-floor, and its tail is far worse:
+No solves failed in these rows. Printed last digits may depend on the numerical
+environment (verified with Python 3.12.14 under both NumPy 2.3.5/SciPy 1.17.0
+and the CI library pins NumPy 2.5.2/SciPy 1.18.0).
+At eps=1e-5,m=10 both medians pass; the Hermitian p90 does not. At larger noise
+the unitary tails can be much worse. Neither arm dominates across the grid.
+Ridge or per-mode truncation may improve stability but can also introduce bias
+or remove useful directions; improvement must be measured.
 
-| `eps`, `m` | Prony median | Prony p90 | Hermitian p90 |
-|---|---:|---:|---:|
-| 1e-5, 10 | 6.17e-04 | 1.02e-03 | 2.17e-03 |
-| 1e-4, 10 | 8.39e-03 | **1.87e+00** | 1.46e-02 |
-| 1e-3, 8 | 6.00e-02 | **3.13e+00** | 1.26e-01 |
-| 1e-2, 10 | 1.24e-01 | **2.49e+00** | 2.72e-01 |
+The reference has weight >1e-6 in **10 distinct energy eigenspaces**, grouping
+degeneracies at atol=1e-10, rtol=1e-12. Counting individual eigenvectors gave 11
+and depends on the arbitrary basis in a degenerate space. Exact Krylov rank is
+bounded by the number of distinct energies with nonzero support (and phase
+aliasing can lower it); thresholded support is only a diagnostic.
 
-A p90 of `1.87 Ha` on a spectrum of width `9.5 Ha` is not an inaccurate answer,
-it is a wrong root: without a variational floor a noisy replica can return a
-phase belonging to a different eigenvalue. Cheaper estimand, unbounded outliers.
-Both are arms; neither is the obvious winner, and the choice between them is a
-risk decision the experiment should inform rather than assume.
+## 4. Cost model to freeze before execution
 
-**Three readings, all of which the real experiment must confirm or overturn:**
+For a Hadamard-test outcome X in {-1,+1}, `Var(mean X)=(1-mu²)/N <= 1/N`.
+A real or imaginary component of c therefore has worst-case standard error
+at most `1/sqrt(N)`. The conservative allocation `ceil(1/eps²)` is sufficient
+under that bound, not a measured requirement or a lower bound.
 
-1. **Chemical accuracy needs `eps ≈ 1e-5`.** For a Hadamard test the ancilla bit
-   is Bernoulli, so the standard error on one estimand is `≤ 1/√N` and
-   `N ≈ 1/eps² = 1e10` shots *per estimand*. With `~4m = 40` estimands at
-   `m = 10`, that is `~4e11` shots. At 10 kHz, roughly a year of device time —
-   for a four-qubit problem a laptop solves exactly.
-2. **Rank saturates.** At `eps = 1e-3`, `m = 10` resolves only 7 modes. Adding
-   time points past the noise floor buys nothing. The resolvable-mode count, not
-   `m`, is the real basis dimension, and it is set by the noise.
-3. **But the estimand count is 4–5 orders of magnitude below A-CASE's.** 40
-   scalars against 350 196 Pauli words. Shots-per-estimand is worse; estimand
-   count is dramatically better. **Which wins is exactly what has not been
-   measured, and is the whole point of the experiment.**
+For `H=sum_l h_l P_l`, d(k) is a weighted sum of overlaps with `P_l U^k`.
+Under independent term sampling and coefficient-proportional allocation, a
+component has variance bounded by `Lambda²/N`, with `Lambda=sum_l |h_l|`.
+Equivalently, a declared normalized LCU estimator for d/Lambda needs its own
+circuit assumptions. Reaching absolute d error eps_d costs up to
+`ceil(Lambda²/eps_d²)` in this model. Separate any identity term analytically
+and retain its covariance with c. Do not price d as a single ±1 observable.
 
-Reading 3 is why this is a go/no-go and not a refutation. The pilot's crude
-regularizer (hard truncation at `eps`) is also the weakest available; the package
-already ships `overlap_ridge` and per-mode `overlap_noise_floor` in
-`solve_projected`, and either can only improve these rows.
+For the traceless TFIM pilot, Lambda=7 and the simple uniform-component bound
+at m=10, eps_c=eps_d=1e-5 gives:
 
-## 4. Scope boundary
+```text
+unitary:    20 / eps_c²                             = 2.00e11 shots
+Hermitian:  18 / eps_c² + 19 Lambda² / eps_d²       = 9.49e12 shots
+```
 
-What this experiment is **not**, stated before the design so no result can be
-read past it:
+These are illustrative allocations; they omit gate depth, state preparation,
+and hardware throughput. They cannot establish savings against A-CASE. Its
+350,196-word molecular example is a different instance, and Pauli word counts
+are not directly comparable with these scalar counts.
 
-- **Not a hardware claim.** No device, no calibration, no error model beyond the
-  declared estimator variance. Device cards remain illustrative accounting.
-- **Not a quantum-advantage claim, and cannot become one.** The reference state
-  is classically preparable and the instances are exactly diagonalizable. A pass
-  here establishes a *necessary* condition (the basis survives shot noise), never
-  a sufficient one. The asymptotic argument for real-time Krylov — `poly(n)`
-  circuit depth for `e^{-iHt}` against exponential classical propagation — is not
-  tested by this experiment and must not be asserted from it. Records carry
-  `"quantum_advantage_claim": false`.
-- **Not a scaling claim.** Four and six qubits. Section 8's rungs exist to detect
-  a trend, not to extrapolate one.
-- **Not a Trotter-resource claim.** The Trotterized arm prices propagation error
-  against basis error; it does not cost out a compiled circuit.
+The decision experiment must use a common total-shot grid and a declared
+allocation for each arm. For A-CASE and power Krylov, perturb **shared underlying
+Pauli estimands**, rebuild the pencil with its coefficients, and propagate QWC
+covariance if grouped measurements are priced. Include adaptive construction
+and selection costs, or freeze every basis using exact arithmetic and label
+the entire comparison as fixed-basis estimation only. Exact-target stopping
+cannot be used silently. The chosen contract, pools, stopping policy, budgets,
+and covariance rules belong in the result-free config.
 
-## 5. Instances (predeclared)
+"Shots-to-target" means the smallest **tested** budget meeting the declared
+error statistic. No interpolation or extrapolation beyond that grid. Record
+the component standard errors as well as budgets: a single eps cannot describe
+both bounded c and unnormalized d measurements. Treat an unpriced control or
+a target beyond the tested budget range as censored, not an infinite saving.
 
-Three at `n = 4`, one confirmation rung at `n = 6`. All exactly diagonalizable,
-so every arm has ground truth.
+## 5. Instances and reference matching
 
-| id | model | reference | why |
-|---|---|---|---|
-| `tfim4_crit` | `tfim(4, J=1, h=1)` | `\|0000>` | critical, worst conditioning, pilot instance |
-| `tfim4_para` | `tfim(4, J=1, h=3)` | `\|0000>` | gapped control — should be easy; if it is not, the method is dead |
-| `h2_sto3g` | H₂/STO-3G FCIDUMP (`benchmarks/configs/acase_ladder.json` molecular rung) | RHF determinant | chemistry, and the instance `run_krylov_width.py` already prices |
-| `tfim6_crit` | `tfim(6, J=1, h=1)` | `\|000000>` | one rung, for trend only |
+| ID | Hamiltonian and reference | Role |
+|---|---|---|
+| `tfim4_crit` | open-chain `tfim(4,J=1,h=1)`, `|0000>` | required decision instance |
+| `tfim4_para` | open-chain `tfim(4,J=1,h=3)`, `|0000>` | gapped diagnostic |
+| `h2_sto3g` | `chemistry.h2(bond_length=0.7414)`, RHF determinant | required decision instance; STO-3G, Angstrom geometry, JW mapping |
+| `tfim6_crit` | open-chain `tfim(6,J=1,h=1)`, `|000000>` | confirmation rung only |
 
-Reference-state spectral support is reported per instance (the pilot's
-`|0000>` on `tfim4_crit` carries weight `> 1e-6` on 11 of 16 eigenstates). This
-is the quantity that bounds resolvable rank and it must be in every record: a
-reference with support on 3 eigenstates makes any Krylov method look good and
-says nothing.
+The H2 ladder uses a molecular builder, **not a committed FCIDUMP**. Freeze the
+generated Hamiltonian/digest, nuclear-energy convention, chemistry dependency
+versions, particle sector, and reference bit ordering before execution. Exact
+truth must use the same accessible sector. H2 can have very small spectral
+support; report it rather than treating a pass as broad chemistry evidence.
 
-## 6. Arms
+Every control must use the explicit reference in this table, overriding the
+TFIM builder's default `|+...+>`. Report distinct-energy support, ground-space
+weight, and the zero-noise basis error separately from noisy performance. A
+larger gap does not guarantee success from this reference. A noisy failure on
+`tfim4_para` is a result, not proof of an implementation bug.
 
-Five, sharing one instance, one grid rule, and one noise model.
+## 6. Arms and numerical contracts
 
-| arm | basis | estimands | notes |
-|---|---|---|---|
-| `exact_diag` | — | — | ground truth |
-| `rt_hermitian` | `e^{-iHkΔt}`, exact propagation | `c`, `d` | Section 2 pencil |
-| `rt_unitary` | `e^{-iHkΔt}`, exact propagation | `c` only | Prony pencil; non-variational |
-| `rt_trotter` | `trotter2_unitary` at declared step count | `c`, `d` | separates propagation error from basis error |
-| `acase_control` | operator response, existing `run_acase` | Pauli words | the incumbent, matched on accuracy |
-| `power_krylov_control` | `krylov_response(H, m)` | `supp(H^k)` | the family `run_krylov_width.py` already prices |
+Five solver arms plus exact diagonalization:
 
-**Grid rule (predeclared):** `Δt = π/(E_max - E_min)` from the exact spectrum for
-`n = 4`, and from a declared norm bound at `n = 6`. A grid chosen per-instance
-after seeing results is a tuned result, not a measured one. A secondary sweep
-`Δt ∈ {0.5, 1, 2} × π/span` is reported separately and labelled as a sweep.
+| Arm | Basis and pencil | Eligibility |
+|---|---|---|
+| `exact_diag` | exact spectrum in the declared sector | ground truth |
+| `rt_hermitian` | exact uniform real-time basis; c,d Toeplitz pencil | primary decision candidate |
+| `rt_unitary` | same basis; S0,S1 from c | primary decision candidate with declared phase branch |
+| `rt_trotter` | powers of one fixed `trotter2_unitary` step | propagation diagnostic |
+| `acase_control` | `run_acase` with frozen pool and cost policy | matched incumbent |
+| `power_krylov_control` | identity plus `krylov_response(H,m-1)` | diagnostic control |
 
-**Regularization arms**, crossed with the above: hard truncation at the noise
-floor (pilot), per-mode `overlap_noise_floor`, and `overlap_ridge`. All three are
-already in `solve_projected`; the experiment supplies the vector-valued floor
-derived from the *same* normalized overlap matrix, per that function's contract.
+For Trotter powers `V_k=U_T^k psi`, S is Toeplitz but `V†HV` is generally
+**not**: `U_T` need not commute with H. Construct and price the full Hermitian
+Hamiltonian pencil. Do not reuse the exact d(j-i) shortcut. Independently
+approximating each total time with a fixed step count can lose even S's Toeplitz
+structure. Declare the repeated-step rule and microstep counts in the config.
+Report state fidelity `|<psi_exact|psi_trotter>|²`, not its unsquared amplitude.
 
-**Noise model.** Additive complex Gaussian of width `eps` per estimand, with
-`eps` swept over `{0, 1e-6, 1e-5, 1e-4, 1e-3, 1e-2}`, 200 replicas, declared
-seeds. This is a stand-in for shots and is labelled `heuristic` in the evidence
-vocabulary, **not** `finite_sample`. A genuine finite-sample arm needs the
-ancilla estimator that does not exist yet — which is precisely what a `go`
-verdict authorizes building. Converting `eps` to shots uses the stated Bernoulli
-bound `N ≈ 1/eps²` and is reported as an arithmetic consequence of the model, not
-a measurement.
+For n=4, the proposed primary grid is `dt=π/(U-L)` with exact extremal bounds;
+for n=6 use the Pauli coefficient bound about the identity shift. Pair this with
+the midpoint branch in Section 2. The pilot's candidate sizes are {4,6,8,10};
+the decision grid must be frozen separately. A secondary {0.5,1,2} multiplier
+sweep is diagnostic only; multiplier 2 can put enclosure endpoints on an
+aliasing boundary and must be marked inadmissible when the strict condition
+fails. Never choose the primary grid after inspecting energies.
 
-## 7. Metrics
+Cross Hermitian solver arms with hard truncation, per-mode noise floors, and
+ridge only after freezing each cutoff, condition cap, and ridge coefficient.
+`solve_projected` normalizes by generator norms and takes absolute per-mode
+floors in that normalized spectrum. The pilot uses a relative cutoff; those
+parameters cannot be substituted unchanged. A per-mode floor requires an
+explicit covariance propagation or independent calibration, not just a call
+to the solver. `solve_projected` does **not** solve the non-Hermitian unitary
+pencil; that arm requires its own declared whitening/eigenvalue policy.
 
-Per (instance, arm, `m`, `eps`, regularizer, replica):
+The proposed exploratory eps grid is {0,1e-6,1e-5,1e-4,1e-3,1e-2}, with 200
+replicas per noisy cell and named independent seed streams. Couple shared c
+draws between real-time arms, retain exact normalization, and reuse conjugate
+lags. This stress grid complements, but cannot replace, the budget/covariance
+experiment in Section 4. No finite-sample inference is licensed by Gaussian
+draws. A classical Bernoulli simulator is possible without hardware; it still
+needs a specified ancilla estimator and resource contract.
 
-- ground-energy error against exact diagonalization; median and p90 (the Prony
-  tail is the reason p90 is mandatory, not decorative);
-- `cond(S)`, `effective_rank`, full overlap spectrum before truncation;
-- **resolvable-mode count**: modes above their own noise floor — the headline
-  diagnostic, since Section 3 reading 2 says this and not `m` is the basis size;
-- **distinct estimand count** and, for the control arms, word universe and QWC
-  setting count, so the cost comparison is like-for-like;
-- **shots-to-target** under the declared variance bound, for each arm, at a fixed
-  accuracy target — the number the go/no-go turns on;
-- propagation fidelity `|<exact|trotter>|` for `rt_trotter`;
-- wall time and peak RSS, for parity with the molecular records.
+## 7. Metrics and failure handling
 
-## 8. Decision rule (preregistered)
+Record each replica's energy error, failure reason, retained rank, overlap
+spectrum and conditioning; aggregate median, upper-order-statistic p90, target
+success fraction, and failure fraction. Failed solves count as infinite error;
+encode them as null plus an explicit failure flag in strict JSON. Do not remove
+them with `nanmedian` or `nanpercentile`.
 
-Fix the target at chemical accuracy, `1.6e-3 Ha`, median over replicas.
+Also record modeled shots, allocations, c/d component errors, words and QWC
+settings where applicable, basis-construction costs, propagation fidelity,
+wall time, and peak RSS. Distinguish numerically retained rank from modes
+resolved under a calibrated noise floor. Report p90 even though the proposed
+primary target is median error; a median pass does not establish tail safety.
 
-**GO** — build the backend — if on `tfim4_crit` **and** `h2_sto3g`, some
-real-time arm reaches the target at `eps ≥ 1e-5` **and** its shots-to-target is
-at least **10×** below the matched `acase_control` on the same instance at the
-same target.
+## 8. Proposed decision rule and precedence
 
-**NO-GO** — do not build it — if no real-time arm reaches the target at any
-`eps ≥ 1e-6`, **or** if shots-to-target is within 10× of `acase_control`. The
-first says the basis cannot survive noise; the second says it survives but buys
-nothing, which for the package's purposes is the same verdict.
+The target is median absolute error <=1.6e-3 in each model's declared units
+(Ha for H2; J=1 units for TFIM). Use paired candidates on the same instance and
+cost contract. A **qualifying comparison** reaches that target and has modeled
+shot ratio `N_acase/N_rt >= 10`, inclusive, on the tested budget grid.
 
-**CONDITIONAL** — anything between, including a pass on `tfim4_crit` but not
-`h2_sto3g`, or a pass only under `overlap_ridge`. A conditional result publishes
-as a negative-with-caveat and authorizes *one* follow-up: the estimator-variance
-refinement in Section 10, not the backend.
+First, failed deterministic checks (independent pencil identity, phase branch,
+reference/sector consistency, or required data/provenance) give **INVALID**,
+not NO-GO. Ordinary noisy solve failures remain in the statistics.
 
-The `tfim4_para` gapped control is a **sanity gate, not a decision input**: if the
-easy instance fails, the implementation is wrong and no other row is readable.
+Then assign each required instance exactly one status, in this order:
 
-Committing this rule before results is the point. The repo already enforces this
-ordering elsewhere (`check_r3b_preregistration.py`: "a preregistration earns its
-name from commit order, not from the word"), and the molecular suite's
-`adaptive_oracle_stop_used: true` is the standing example of what happens without
-it — every one of those rows consumed the FCI answer through the stopping rule.
+1. **PASS:** an exact-propagation real-time arm with a non-ridge regularizer has
+   a qualifying comparison at c-component noise >=1e-5.
+2. **MARGINAL:** no PASS, but a qualifying comparison exists at c noise >=1e-6,
+   including a ridge-only comparison.
+3. **UNDETERMINED:** neither above, and a required cost comparison is censored
+   or unpriceable within the grid.
+4. **FAIL:** otherwise; all comparisons are complete but no qualifying candidate
+   exists at c noise >=1e-6.
 
-## 9. Implementation
+Combine the statuses for `tfim4_crit` and `h2_sto3g`:
 
-Nothing here needs the new backend. That is the design constraint that makes the
-experiment cheap.
+| Required-instance outcomes | Verdict | Next work |
+|---|---|---|
+| PASS and PASS | GO | prototype the estimator/backend under the declared model |
+| FAIL and FAIL | NO-GO | stop backend work for this design |
+| any other combination | CONDITIONAL | at most the prespecified refinement below |
 
-| file | status | ~LOC | content |
-|---|---|---|---|
-| `benchmarks/probe_realtime_krylov.py` | **written** | 170 | pilot; Section 3 |
-| `benchmarks/configs/phase16b_feasibility.json` | new | — | instances, grid rule, `eps` grid, seeds, decision thresholds, **no results** |
-| `benchmarks/run_phase16b_feasibility.py` | new | ~400 | producer; writes `reference_results/phase16b_feasibility.json` |
-| `benchmarks/check_phase16b_preregistration.py` | new | ~150 | gates the config before any result commit |
-| `benchmarks/check_phase16b_feasibility.py` | new | ~200 | rebuilds the record; verifies the decision rule was applied as written |
+This precedence makes the 10x boundary, ridge-only outcomes, mixed-instance
+results, and missing comparisons disjoint. The Trotter, gapped, and n=6 arms
+are diagnostics; they cannot turn a failed primary comparison into GO.
+Freeze this rule and table in the config and test all boundaries before
+execution. No verdict is computed from the exploratory pilot in Section 3.
 
-Reused unchanged: `solve_projected` (including `overlap_noise_floor` and
-`overlap_ridge`, which is why the regularization arms cost nothing to add),
-`SectorStatevectorBackend.as_linear_operator()` with `scipy.sparse.linalg.expm_multiply`
-for matrix-free propagation at `n = 6`, `trotter2_unitary`, `krylov_response`,
-`run_acase` for the control arm, `stamp_record` for provenance, and the
-`EvidenceLevel` vocabulary.
+## 9. Implementation and preregistration order
 
-New primitives needed: none. Dense `expm` at `n = 4` and matrix-free
-`expm_multiply` at `n = 6` are the ground-truth propagators, and both exist.
+| File | Status | Purpose |
+|---|---|---|
+| `benchmarks/probe_realtime_krylov.py` | present | exploratory numerical probe |
+| `tests/test_realtime_krylov_probe.py` | present | independent pencil, variance, phase, support, and failure regressions |
+| `benchmarks/configs/phase16b_feasibility.json` | planned | all inputs, estimator contracts, grids, seeds, decision rule; no results |
+| `benchmarks/check_phase16b_preregistration.py` | planned | validate completeness, absence of results, and commit ordering |
+| `benchmarks/run_phase16b_feasibility.py` | planned | execute the frozen experiment |
+| `benchmarks/check_phase16b_feasibility.py` | planned | verify records and decision-rule evaluation |
 
-**Record schema** `clifford_qc.phase16b_feasibility.v1`, stamped via
-`stamp_record`, carrying `quantum_advantage_claim: false`, the evidence label
-`heuristic` on every noise row, the config digest, and the decision-rule
-evaluation as a field rather than as prose.
+Commit config plus preregistration checker first and pass it before running or
+committing the decision experiment. This document alone does not satisfy that
+gate. Freeze the Section 4 comparison contract and all unresolved parameters in
+Sections 5-6 rather than selecting them while writing the producer.
 
-**Commit order, and it matters:** config + preregistration gate first, in their
-own commit; producer and record second. The gate must pass against a config
-carrying no results.
+Reuse dense `expm`, `solve_projected` for Hermitian pencils, `trotter2_unitary`,
+`krylov_response`, `run_acase`, and `stamp_record` as appropriate. Six-qubit TFIM
+can use dense propagation too. Any matrix-free implementation must use a
+**full-space** Pauli action with the adjoint required by `expm_multiply`; TFIM
+does not conserve particle number and cannot use a fixed-particle sector.
+`SectorStatevectorBackend` is appropriate only for a verified invariant sector.
 
-## 10. If it says no
+The future schema `clifford_qc.phase16b_feasibility.v1` must include the config
+digest, environment, evidence labels, complete failures, modeled cost details,
+and the decision evaluation. No phase-completion claim or status-ledger update
+is justified by this pilot.
 
-A NO-GO is the good outcome to get cheaply, and it is publishable. "Real-time
-quantum Krylov does not survive realistic overlap noise at four qubits, measured
-against a matched operator-response control under a preregistered decision rule"
-is a stronger contribution than most of what the subspace-method literature
-currently reports — and the package is unusually well set up to say it, because
-`selected_ci.py`'s controls and the evidence vocabulary already exist to make the
-comparison honest.
+## 10. Prespecified follow-up
 
-It also closes Q8 with evidence instead of leaving it open at 0%, and it protects
-the several weeks the backend would have cost.
+Before running the primary experiment, specify whether a NO-GO or CONDITIONAL
+result permits one estimator-variance refinement. Publish the primary verdict
+unchanged alongside any separately labeled refinement; never move thresholds
+after observing results.
 
-The one follow-up a NO-GO or CONDITIONAL authorizes is narrowing the noise model:
-the Gaussian stand-in ignores that a Hadamard test's variance depends on the
-estimand's own magnitude (`(1 - Re<U>²)/N`), and `c(τ)` decays with `τ`, so late
-grid points are *cheaper* per unit precision than the flat model assumes. If the
-verdict lands within 10× of a threshold, that correction is worth making before
-the verdict is final. Beyond that, do not re-litigate: the decision rule is the
-decision.
-
-## 11. Effort
-
-Roughly one week: two days for producer and config, one for the preregistration
-gate, one to run the sweep, one to write the record and the verdict. The pilot is
-already done.
-
-Phase 16B stays at 0% in `PHASE_STATUS.json` until the record is committed and
-its gate passes. This document is a specification, not progress.
+For bounded outcomes, variance `(1-mu²)/N` is **largest near mu=0**. If an
+overlap component decays toward zero, its cost approaches the worst-case bound;
+it does not become cheaper. Components near ±1 can require fewer shots. Real
+and imaginary components need separate treatment, and d retains Hamiltonian
+coefficient weights. Such refinement could change an allocation estimate but
+is not guaranteed to rescue the method. No second follow-up or backend follows
+automatically from an inconclusive result.
