@@ -2528,6 +2528,41 @@ hole the gate exists to close.
 
 The producer, record, and result checker for this declaration are future work.
 
+## Phase 16B second experiment — the run
+
+```bash
+OMP_NUM_THREADS=1 OPENBLAS_NUM_THREADS=1 MKL_NUM_THREADS=1 \
+  python benchmarks/run_phase16b_v2_feasibility.py
+python benchmarks/check_phase16b_v2_feasibility.py
+```
+
+The producer runs the same two sweeps as v1 against the v2 declaration, with
+three implementation differences the record documents:
+
+* **Estimands are arrays, and the incumbent's pencil is one matrix-vector
+  product** against coefficient matrices built once per basis. A-CASE on
+  `h4_chain` carries a 7 927-word universe, and a per-replica Python loop over
+  its terms would put the budget sweep out of reach.
+* **The Trotter step is built densely**, not in the `MV` basis. It is the same
+  object: the same `rotor` factors in the same order. The `MV` construction
+  costs about five minutes per 8-qubit instance because a Trotterized
+  propagator's Pauli support fills in. `verify_trotter_step` measures the two
+  against each other and records the residual beside both unitarity defects;
+  the tolerance is scaled to the reference's own defect, because the two cannot
+  be required to agree more tightly than the reference agrees with itself. On
+  `h4_chain` the `MV` path's defect is about 9e-10 and the dense path's about
+  6e-14, so the dense construction is the more accurate of the two. The
+  identity is a property of the construction, so it is checked once per
+  (qubit count, microstep count) and reused.
+* **Per-arm basis grids**, so arms are compared at matched accuracy rather than
+  matched basis size.
+
+`check_phase16b_v2_feasibility.py` re-derives every status and the verdict from
+the record's per-cell medians under the frozen rule. It additionally requires
+that admission still held at execution on every required instance, and that the
+recorded Trotter verification is inside its tolerance with the dense path the
+more accurate one.
+
 ## Phase 16B real-time Krylov feasibility — preregistration (result-free)
 
 Phase 16B begins with a declaration, not an experiment:

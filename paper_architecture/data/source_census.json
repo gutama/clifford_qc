@@ -3,6 +3,7 @@
     "absent_from_workflow": [
       "check_phase16b_feasibility",
       "check_phase16b_preregistration",
+      "check_phase16b_v2_feasibility",
       "check_phase16b_v2_preregistration",
       "check_regenerated_record",
       "check_summaries"
@@ -30,7 +31,7 @@
       "check_warm_start"
     ],
     "classes": {
-      "Cross-artifact": 3,
+      "Cross-artifact": 4,
       "Documentation": 1,
       "Lineage and environment": 3,
       "Plan ledger": 1,
@@ -49,13 +50,13 @@
       "check_r3d_qr3_refinement",
       "check_record_environment"
     ],
-    "gates": 35,
+    "gates": 36,
     "manual_dispatch_only": 10,
     "named_in_workflow": 30,
-    "producers": 46,
+    "producers": 47,
     "producers_without_gate": 25,
     "run_on_every_pull_request": 20,
-    "same_stem_pairs": 21
+    "same_stem_pairs": 22
   },
   "records": {
     "declarations": {
@@ -79,6 +80,7 @@
       "packed_h2o_feasibility.json": "f6a33f1aa225c4dd",
       "phase14b_qwc_vs_fc.json": "7eea7d72de38ea0e",
       "phase16b_feasibility.json": "6829464abc77bc54",
+      "phase16b_v2_feasibility.json": "6829464abc77bc54",
       "priceability_screen.json": "f6a33f1aa225c4dd",
       "protocol_axis.json": "75a2ec249c533fed",
       "protocol_cost.json": "e1e5d86171f1d317",
@@ -106,15 +108,15 @@
       "per_quantity_mapping": 3,
       "role_only": 0,
       "role_with_nested_tier": 2,
-      "top_level_tier": 15
+      "top_level_tier": 16
     },
-    "json_records": 29,
+    "json_records": 30,
     "series_files": 21,
     "top_level_tiers": {
       "exact": 4,
       "exact numerical benchmark": 1,
       "exact_oracle_finite_sample": 1,
-      "heuristic": 3,
+      "heuristic": 4,
       "structural": 6
     }
   },

@@ -179,7 +179,8 @@ GATE_CLASSES: tuple[tuple[str, str, tuple[str, ...]], ...] = (
     (
         "Cross-artifact",
         "compares separately produced repository artifacts rather than a same-stem rebuild",
-        ("check_molecular", "check_phase16b_feasibility", "check_summaries"),
+        ("check_molecular", "check_phase16b_feasibility",
+         "check_phase16b_v2_feasibility", "check_summaries"),
     ),
 )
 
