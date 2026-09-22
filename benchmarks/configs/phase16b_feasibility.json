@@ -1,0 +1,171 @@
+{
+  "schema": "clifford_qc.phase16b_feasibility_config.v1",
+  "design_document": "benchmarks/PHASE16B_FEASIBILITY.md",
+  "purpose": "Frozen inputs for the Phase 16B real-time Krylov decision experiment. This file is preregistration: it carries no results, costs, verdicts, or observed values, and is committed and gated before the producer runs.",
+  "contains_results": false,
+
+  "target": {
+    "statistic": "median_absolute_energy_error",
+    "value": 1.6e-3,
+    "units_by_instance": {
+      "tfim4_crit": "TFIM J=1 energy units",
+      "tfim4_para": "TFIM J=1 energy units",
+      "tfim6_crit": "TFIM J=1 energy units",
+      "h2_sto3g": "Hartree"
+    },
+    "note": "The numeric value is shared; only h2_sto3g interprets it as chemical accuracy in Ha."
+  },
+
+  "instances": {
+    "tfim4_crit": {
+      "builder": "clifford_qc.models.tfim", "args": {"n": 4, "J": 1.0, "h": 1.0},
+      "reference_bitstring": "0000", "role": "required_decision",
+      "reference_override": "The tfim builder's default |+...+> reference is overridden by this explicit computational-basis reference."
+    },
+    "tfim4_para": {
+      "builder": "clifford_qc.models.tfim", "args": {"n": 4, "J": 1.0, "h": 3.0},
+      "reference_bitstring": "0000", "role": "gapped_diagnostic",
+      "reference_override": "As above."
+    },
+    "h2_sto3g": {
+      "builder": "clifford_qc.models.chemistry.h2", "args": {"bond_length": 0.7414},
+      "reference": "model.reference (RHF determinant from the builder)",
+      "role": "required_decision",
+      "basis": "sto-3g", "geometry_units": "angstrom", "mapping": "jordan_wigner",
+      "spin_convention": "interleaved", "n_electrons": 2, "sz": 0.0,
+      "nuclear_repulsion_convention": "included in the Hamiltonian identity term",
+      "declared_risk": "Preregistered before execution: this reference is expected to have very small distinct-energy support, so a PASS here is weak chemistry evidence. The producer must report measured support; the design document Section 5 already requires this."
+    },
+    "tfim6_crit": {
+      "builder": "clifford_qc.models.tfim", "args": {"n": 6, "J": 1.0, "h": 1.0},
+      "reference_bitstring": "000000", "role": "confirmation_rung",
+      "reference_override": "As above."
+    }
+  },
+  "required_decision_instances": ["tfim4_crit", "h2_sto3g"],
+  "diagnostic_instances": ["tfim4_para", "tfim6_crit"],
+
+  "arms": {
+    "exact_diag": {"role": "ground_truth", "priceable": false},
+    "rt_hermitian": {
+      "role": "primary_candidate", "propagation": "exact_dense_expm",
+      "pencil": "Toeplitz c,d", "estimands": "2(m-1) real components of c plus 2m-1 of d = 4m-3"
+    },
+    "rt_unitary": {
+      "role": "primary_candidate", "propagation": "exact_dense_expm",
+      "pencil": "S0,S1 from c only", "estimands": "2m real components of c(1..m)",
+      "phase_branch": "midpoint of the declared enclosure; see grid_rule"
+    },
+    "rt_trotter": {
+      "role": "propagation_diagnostic", "propagation": "repeated fixed trotter2_unitary step",
+      "pencil": "full Hermitian V^dag H V; the exact d(j-i) shortcut is forbidden because U_T need not commute with H",
+      "microsteps_per_dt": 8,
+      "step_rule": "One fixed step U_T = trotter2_unitary(H_terms, dt, microsteps_per_dt); basis column k is U_T^k applied to the reference. Total times are never independently re-approximated."
+    },
+    "acase_control": {
+      "role": "matched_incumbent",
+      "basis_construction": "run_acase in exact arithmetic to the frozen size, then frozen",
+      "pencil_rebuild": "S_ij and H_ij are rebuilt from perturbed shared Pauli word expectations using bank.iter_operator_terms coefficients",
+      "estimands": "the bank word universe over the retained basis, bank.word_set(indices)"
+    },
+    "power_krylov_control": {
+      "role": "diagnostic_control",
+      "basis": "identity plus krylov_response(H, m-1)",
+      "note": "run_krylov_width.py's order argument counts powers after identity; size is order+1."
+    }
+  },
+  "primary_candidate_arms": ["rt_hermitian", "rt_unitary"],
+  "exact_propagation_arms": ["rt_hermitian", "rt_unitary"],
+
+  "acase_pool": {
+    "tfim4_crit": {"rule": "pauli_orbit over the distinct Pauli words of the instance Hamiltonian"},
+    "tfim4_para": {"rule": "pauli_orbit over the distinct Pauli words of the instance Hamiltonian"},
+    "tfim6_crit": {"rule": "pauli_orbit over the distinct Pauli words of the instance Hamiltonian"},
+    "h2_sto3g": {"rule": "clifford_qc.models.chemistry.excitation_pool(n_qubits, n_electrons)"},
+    "growth": {"max_size": 10, "criterion": "lowering", "exact_ground_energy": null,
+               "target_error": null,
+               "note": "exact_ground_energy and target_error are null so no oracle stopping is used; growth runs to max_size."}
+  },
+
+  "basis_sizes": [2, 3, 4, 6, 8, 10],
+
+  "grid_rule": {
+    "dt": "pi / (U - L)",
+    "enclosure_n4": "exact extremal eigenvalues of the dense Hamiltonian",
+    "enclosure_n6": "sum of absolute Pauli coefficients about the identity shift",
+    "energy_shift": "(L + U) / 2",
+    "strict_condition": "(U - L) * dt < 2*pi, checked strictly; a violation is INVALID, not FAIL",
+    "secondary_multiplier_sweep": [0.5, 1.0, 2.0],
+    "secondary_sweep_role": "diagnostic only; a multiplier whose strict condition fails is marked inadmissible",
+    "never_chosen_after_inspecting_energies": true
+  },
+
+  "noise_model": {
+    "kind": "gaussian_component_stress",
+    "evidence_label": "heuristic",
+    "description": "Each independent positive-lag real/imaginary component receives Gaussian noise of standard deviation eps. Negative lags reuse conjugates, c(0)=1 stays exact, d(0) is real.",
+    "paired_across_arms": true,
+    "paired_rule": "rt_hermitian and rt_unitary consume the same c draw for a given (instance, cell, m, replica).",
+    "eps_grid": [0.0, 1e-6, 1e-5, 1e-4, 1e-3, 1e-2],
+    "replicas": 200,
+    "seed_root": 20260922,
+    "seed_stream_rule": "numpy SeedSequence([seed_root, instance_index, cell_index, m]) spawned per estimand family",
+    "no_finite_sample_inference": true
+  },
+
+  "cost_model": {
+    "contract": "fixed_basis_estimation_only",
+    "contract_note": "Every basis is frozen by exact arithmetic before noise is applied. Adaptive construction and selection costs are therefore NOT priced, and the entire comparison is labelled fixed-basis estimation only, as the design document Section 4 permits.",
+    "bounded_component_variance": "Var(mean X) = (1-mu^2)/N <= 1/N for X in {-1,+1}; shots per component = ceil(1/eps^2) is sufficient under that bound, not a measured requirement.",
+    "d_component_variance": "bounded by Lambda^2/N with Lambda = sum_l |h_l| over the traceless part; shots = ceil(Lambda^2/eps_d^2)",
+    "acase_word_variance": "each Pauli word expectation on the reference is real and bounded in [-1,1], so it uses the same bounded-component bound as c",
+    "allocation": "uniform_per_component",
+    "allocation_rule": "A total budget N_total is split equally across that arm's independent real components. eps for a bounded component is sqrt(n_components / N_total); eps_d for a Hamiltonian-weighted component is Lambda * sqrt(n_components / N_total).",
+    "budget_grid_decades": [4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20],
+    "budget_grid_note": "N_total = 10^d for each decade d listed.",
+    "shots_to_target": "the smallest TESTED budget whose median absolute error meets the target; no interpolation or extrapolation beyond this grid; censored when no tested budget qualifies",
+    "excluded_from_model": ["gate depth", "state preparation", "hardware throughput", "circuit compilation", "QWC grouping and covariance"],
+    "excluded_note": "Grouping is excluded for every arm alike, so the ratio is a component-count comparison under one bound, not a device-time comparison."
+  },
+
+  "regularizers": {
+    "hard_truncation": {"relative_cutoff": "max(eps, 1e-13) * lambda_max(S)", "is_ridge": false},
+    "per_mode_floor": {"rule": "absolute per-mode floor in the norm-normalized overlap spectrum via solve_projected(overlap_noise_floor=...)", "is_ridge": false},
+    "ridge": {"coefficient": 1e-8, "rule": "solve_projected(overlap_ridge=...)", "is_ridge": true}
+  },
+  "non_ridge_regularizers": ["hard_truncation", "per_mode_floor"],
+
+  "decision_rule": {
+    "qualifying_comparison": "reaches the target AND has modeled shot ratio N_acase / N_rt >= 10, inclusive, on the tested budget grid",
+    "invalid_precedence": "A failed deterministic check (independent pencil identity, strict phase-branch condition, reference/sector consistency, or missing provenance) gives INVALID for that instance, not NO-GO. Ordinary noisy solve failures remain in the statistics.",
+    "instance_status_order": [
+      {"status": "PASS", "condition": "an exact-propagation real-time arm with a non-ridge regularizer has a qualifying comparison at c-component noise >= 1e-5"},
+      {"status": "MARGINAL", "condition": "no PASS, but a qualifying comparison exists at c noise >= 1e-6, including a ridge-only comparison"},
+      {"status": "UNDETERMINED", "condition": "neither above, and a required cost comparison is censored or unpriceable within the grid"},
+      {"status": "FAIL", "condition": "otherwise; all comparisons complete but no qualifying candidate at c noise >= 1e-6"}
+    ],
+    "combination": [
+      {"outcomes": ["PASS", "PASS"], "verdict": "GO"},
+      {"outcomes": ["FAIL", "FAIL"], "verdict": "NO_GO"},
+      {"outcomes": "any_other_combination", "verdict": "CONDITIONAL"}
+    ],
+    "invalid_combination": "If either required instance is INVALID the overall verdict is INVALID.",
+    "diagnostics_cannot_promote": ["rt_trotter", "tfim4_para", "tfim6_crit", "power_krylov_control"],
+    "diagnostics_note": "Diagnostic arms and instances are reported but cannot turn a failed primary comparison into GO."
+  },
+
+  "prespecified_followup": {
+    "permitted_on_no_go_or_conditional": "exactly one estimator-variance refinement, replacing the flat bounded-component bound with the magnitude-dependent (1 - mu^2)/N using each component's own modeled magnitude",
+    "publication_rule": "the primary verdict is published unchanged alongside any separately labelled refinement; thresholds are never moved after observing results"
+  },
+
+  "record_requirements": {
+    "schema": "clifford_qc.phase16b_feasibility.v1",
+    "must_include": ["config_digest", "provenance", "evidence labels", "complete failure accounting",
+                     "modeled cost details", "decision evaluation", "measured distinct-energy support per instance",
+                     "zero-noise basis error per arm", "propagation fidelity for rt_trotter"],
+    "must_carry": {"quantum_advantage_claim": false},
+    "no_phase_completion_claim": true,
+    "status_ledger_update_forbidden": true
+  }
+}
