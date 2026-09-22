@@ -3,6 +3,7 @@
     "absent_from_workflow": [
       "check_phase16b_feasibility",
       "check_phase16b_preregistration",
+      "check_phase16b_v2_preregistration",
       "check_regenerated_record",
       "check_summaries"
     ],
@@ -33,7 +34,7 @@
       "Documentation": 1,
       "Lineage and environment": 3,
       "Plan ledger": 1,
-      "Preregistration": 6,
+      "Preregistration": 7,
       "Value-rebuilt": 20
     },
     "dispatch_gates": [
@@ -48,7 +49,7 @@
       "check_r3d_qr3_refinement",
       "check_record_environment"
     ],
-    "gates": 34,
+    "gates": 35,
     "manual_dispatch_only": 10,
     "named_in_workflow": 30,
     "producers": 46,

@@ -2491,6 +2491,43 @@ preregistered result is `indeterminate_after_refinement`. That overlap does not
 license the negative direction: R3d did not refine all 187 global-extremum
 cells and cannot reselect supports after observing the draw.
 
+## Phase 16B second preregistration — stronger incumbent (result-free)
+
+The first decision experiment returned CONDITIONAL, and its own evidence says
+the verdict was not about real-time Krylov: on every TFIM instance the incumbent
+never reached the target in exact arithmetic, so the cost comparison was
+censored. `benchmarks/PHASE16B_V2_PREREGISTRATION.md` records why, and this is
+the second, independent declaration that answers it. The v1 config and record
+stay exactly as committed.
+
+```bash
+python benchmarks/check_phase16b_v2_preregistration.py
+```
+
+The cause was structural rather than a tuning miss. For a computational-basis
+reference `|b>` and a Pauli word `P`, `P|b> = (phase) |b XOR x(P)>`, so a
+weight-≤`k` Pauli pool spans exactly the Hamming ball of radius `k` around `b`
+and nothing else. On `tfim(4,J=1,h=1)` with `|0000>` the measured basis sizes
+are 11, 15 and 16 at `k = 2, 3, 4` against predicted ball sizes 11, 15 and 16,
+and the target is reached only at `k = 4` where the ball is the whole space.
+
+The v2 declaration therefore runs the incumbent in its design regime: molecular
+instances with an RHF reference and a singles-and-doubles excitation pool. The
+required set is the `h4_chain` geometries that admit — 0.75, 0.9 and 1.0 Å,
+each 8 qubits with reference support on 11 or 12 distinct energies.
+
+Beyond the v1 checks the gate enforces an **admission criterion**: for every
+required instance it recomputes, in exact arithmetic, that the incumbent *and*
+at least one exact-propagation real-time arm reach the target within their
+declared caps. It reads zero-noise reachability only — never a noisy
+comparison, a shot count, or a ratio. Promoting an inadmissible instance to
+required is refused, which is precisely what v1 could not detect. Where the
+chemistry extra is absent the check reports a loud SKIP and fails any required
+instance it could not verify, because an unenforced admission criterion is the
+hole the gate exists to close.
+
+The producer, record, and result checker for this declaration are future work.
+
 ## Phase 16B real-time Krylov feasibility — preregistration (result-free)
 
 Phase 16B begins with a declaration, not an experiment:
