@@ -116,7 +116,7 @@ No figure or table value in the manuscript is transcribed by hand, and
 ```bash
 python -m venv .venv && source .venv/bin/activate
 pip install -e .[test,research,stim]       # automatic CI extras
-pytest                                      # 2229 passed, 11 skipped
+pytest                                      # 2241 passed, 11 skipped
 ```
 
 This is the automatic CI dependency set; record gates additionally pin NumPy
@@ -132,7 +132,7 @@ the remaining `11 - 6 = 5` skips are per-test and *are* collected:
 
 ```text
 collected == passed + (skipped - files dropped at collection)
-2234      == 2229   + (11      -   6)
+2246      == 2241   + (11      -   6)
 ```
 
 Both sides are computed from the tree, so a drift in either quoted number
@@ -2490,6 +2490,73 @@ The mapping-support minimum is `2.1906417x`; the instance-support maximum is
 preregistered result is `indeterminate_after_refinement`. That overlap does not
 license the negative direction: R3d did not refine all 187 global-extremum
 cells and cannot reselect supports after observing the draw.
+
+## Phase 16B real-time Krylov feasibility — preregistration (result-free)
+
+Phase 16B begins with a declaration, not an experiment:
+
+```bash
+python benchmarks/check_phase16b_preregistration.py
+```
+
+The checker validates `benchmarks/configs/phase16b_feasibility.json`: schema and
+completeness, the absence of any result-shaped value, resolution of every named
+builder, pool rule, arm and regularizer, and the strict phase-branch condition
+`(U-L)*dt < 2*pi` on each instance under that instance's declared enclosure rule
+(exact extremal eigenvalues at `n = 4`, the Pauli one-norm about the identity
+shift beyond it), including that the enclosure actually contains the spectrum.
+
+Two structural properties matter more than completeness and are re-derived
+rather than trusted: the instance-status ladder is exhaustive and mutually
+exclusive over its reachable predicate cube, and the combination table assigns
+exactly one verdict to all sixteen ordered status pairs. The config also pins
+`acase_pool.growth.exact_ground_energy` and `target_error` to null, so the
+incumbent control cannot stop on the answer it is being compared against.
+
+This command is static: it hashes and validates a declaration, draws no sample,
+and computes no verdict. Its commit-order check is asked of git rather than of
+the working tree — once the record exists, the declaring commit must be a strict
+ancestor of the commit that introduced it. A shallow or absent checkout skips
+that one check with a note instead of failing on it.
+
+## Phase 16B real-time Krylov feasibility — the run
+
+```bash
+OMP_NUM_THREADS=1 OPENBLAS_NUM_THREADS=1 MKL_NUM_THREADS=1 \
+  python benchmarks/run_phase16b_feasibility.py
+python benchmarks/check_phase16b_feasibility.py
+```
+
+The producer runs six arms on four instances under two separate sweeps: an
+absolute-error stress sweep over the `eps` grid, and a budget sweep mapping each
+total-shot decade to per-component `eps` through the config's declared variance
+bounds. `shots_to_target` is read only off tested budgets, never interpolated.
+Real-time arms share standard-normal variates so their comparison is paired.
+The run needs the `chemistry` extra for `h2_sto3g`; without it that instance is
+skipped and the verdict is reported incomplete rather than guessed.
+
+The committed record is `benchmarks/reference_results/phase16b_feasibility.json`
+(schema `clifford_qc.phase16b_feasibility.v1`, 200 replicas per noisy cell,
+`quantum_advantage_claim: false`, evidence `heuristic` throughout).
+
+`check_phase16b_feasibility.py` does not resample. It re-derives every instance
+status and the overall verdict from the record's own per-cell medians under the
+frozen rule and fails if the recorded verdict is not the one that rule produces.
+It also checks that no cell dropped a replica, that a censored incumbent cost
+produced `UNDETERMINED` rather than standing in for a promotion, and that the
+record claims no advantage, phase completion, or status-ledger update.
+
+**Reading the result.** The verdict is `CONDITIONAL`: `h2_sto3g` is `PASS` and
+`tfim4_crit` is `UNDETERMINED`. Both readings are limited, and the limits are
+the finding rather than a caveat on it. The `h2_sto3g` reference carries weight
+on only **two** distinct energies, a risk the config declared in writing before
+execution, so a pass there is weak chemistry evidence. On every TFIM instance
+the preregistered A-CASE pool never reaches the target even in exact arithmetic,
+so its cost is censored and there is no matched incumbent to price against — the
+real-time arms reach the target there, but against nothing. Changing that pool
+now would be a new preregistration, not a rerun of this one; the prespecified
+follow-up in the design document permits one estimator-variance refinement and
+nothing else.
 
 ## R2b raw-pool fermion-mapping axis
 
