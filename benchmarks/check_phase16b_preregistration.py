@@ -20,11 +20,15 @@ What it re-derives, with nothing sampled:
      design document claims and the one a post-hoc reading could quietly lose;
   5. the combination table assigns exactly one verdict to all 16 ordered status
      pairs, and no diagnostic arm or instance appears among the promoters;
-  6. no record for this experiment exists yet.
+  6. the config was committed **before** the record, if the record exists.
 
-Check (6) is the commit-order check. It fails once a record is committed, which
-is intended: after that point this gate has already done its job and the result
-checker is the live one.
+Check (6) is the commit-order check, and it is asked of git rather than of the
+working tree. An earlier draft of this gate simply failed once a record
+existed, which would have made it useless as a standing gate the moment it did
+its job -- every later push would fail it. What actually has to hold is that
+the declaring commit precedes the declared experiment, and that is a property
+of history, so history is what gets asked. A shallow or absent checkout skips
+that one check with a note rather than failing on it.
 
     python benchmarks/check_phase16b_preregistration.py
 
@@ -79,10 +83,53 @@ def check_no_results(config, problems):
             problems.append(f"config carries a result-shaped key {path}.{key} = {value!r}")
     if config.get("contains_results") is not False:
         problems.append("contains_results must be literally false")
-    if RECORD.exists():
-        problems.append(
-            f"{RECORD.relative_to(ROOT.parent)} already exists: the preregistration "
-            "gate must run before any record is committed")
+
+
+
+def first_commit(path):
+    """The commit that introduced a path, or None when history cannot answer."""
+    import subprocess
+    try:
+        out = subprocess.run(
+            ["git", "log", "--follow", "--diff-filter=A", "--format=%H", "--", str(path)],
+            cwd=ROOT.parent, capture_output=True, text=True, timeout=30)
+    except (OSError, subprocess.SubprocessError):
+        return None
+    if out.returncode != 0:
+        return None
+    commits = [line.strip() for line in out.stdout.splitlines() if line.strip()]
+    return commits[-1] if commits else None
+
+
+def check_commit_order(problems, notes):
+    """The declaring commit must strictly precede the declared experiment."""
+    import subprocess
+    if not RECORD.exists():
+        notes.append("  commit order: no record yet, nothing to order against")
+        return
+    config_commit = first_commit(CONFIG)
+    record_commit = first_commit(RECORD)
+    if config_commit is None or record_commit is None:
+        notes.append("  commit order: SKIP (one of the paths is not committed yet, "
+                     "or git history is unavailable)")
+        return
+    if config_commit == record_commit:
+        problems.append("the config and the record entered the repository in the same commit; "
+                        "the declaration must be committed before the experiment it declares")
+        return
+    try:
+        ancestor = subprocess.run(
+            ["git", "merge-base", "--is-ancestor", config_commit, record_commit],
+            cwd=ROOT.parent, capture_output=True, timeout=30)
+    except (OSError, subprocess.SubprocessError):
+        notes.append("  commit order: SKIP (git unavailable)")
+        return
+    if ancestor.returncode != 0:
+        problems.append(f"config commit {config_commit[:12]} is not an ancestor of record "
+                        f"commit {record_commit[:12]}: the declaration does not precede the experiment")
+    else:
+        notes.append(f"  commit order: config {config_commit[:12]} precedes "
+                     f"record {record_commit[:12]}")
 
 
 def status_of(has_pass, has_marginal, censored):
@@ -201,8 +248,19 @@ def check_instances_build(config, problems, notes):
         H = to_matrix(model.hamiltonian.to_mv())
         H = 0.5 * (H + H.conj().T)
         values = np.linalg.eigvalsh(H)
-        lower, upper = float(values[0]), float(values[-1])
+        mv = model.hamiltonian.to_mv()
+        identity = float(np.real(mv.terms.get(0, 0.0)))
+        one_norm = float(sum(abs(v) for code, v in mv.terms.items() if code != 0))
+        if model.hamiltonian.n <= 4:
+            lower, upper = float(values[0]), float(values[-1])
+            rule = "exact extremal eigenvalues"
+        else:
+            lower, upper = identity - one_norm, identity + one_norm
+            rule = "Pauli one-norm about the identity shift"
         dt = math.pi / (upper - lower)
+        if lower > values[0] + 1e-9 or upper < values[-1] - 1e-9:
+            problems.append(f"{name}: declared enclosure [{lower}, {upper}] does not contain "
+                            f"the true spectrum [{values[0]}, {values[-1]}]")
         if not (upper - lower) * dt < 2 * math.pi:
             problems.append(f"{name}: strict phase-branch condition fails on the primary grid")
         expected_qubits = spec["args"].get("n", model.hamiltonian.n)
@@ -216,8 +274,9 @@ def check_instances_build(config, problems, notes):
             for key in ("n_electrons", "sz", "basis", "spin_convention"):
                 if key in spec and meta.get(key) != spec[key]:
                     problems.append(f"{name}: metadata {key}={meta.get(key)!r} != config {spec[key]!r}")
-        notes.append(f"  {name}: {model.hamiltonian.n} qubits, spectrum "
-                     f"[{lower:.6f}, {upper:.6f}], dt={dt:.6f}, branch condition ok")
+        notes.append(f"  {name}: {model.hamiltonian.n} qubits, enclosure "
+                     f"[{lower:.6f}, {upper:.6f}] by {rule}, dt={dt:.6f}, "
+                     "branch condition ok, enclosure contains the spectrum")
 
 
 def main() -> int:
@@ -239,6 +298,7 @@ def main() -> int:
         check_combination(config, problems)
         check_references(config, problems)
         check_instances_build(config, problems, notes)
+        check_commit_order(problems, notes)
 
     for note in notes:
         print(note)
