@@ -83,6 +83,7 @@
       "phase14b_qwc_vs_fc.json": "7eea7d72de38ea0e",
       "phase16b_feasibility.json": "6829464abc77bc54",
       "phase16b_v2_feasibility.json": "6829464abc77bc54",
+      "phase16b_v3_feasibility.json": "6829464abc77bc54",
       "priceability_screen.json": "f6a33f1aa225c4dd",
       "protocol_axis.json": "75a2ec249c533fed",
       "protocol_cost.json": "e1e5d86171f1d317",
@@ -110,15 +111,15 @@
       "per_quantity_mapping": 3,
       "role_only": 0,
       "role_with_nested_tier": 2,
-      "top_level_tier": 16
+      "top_level_tier": 17
     },
-    "json_records": 30,
+    "json_records": 31,
     "series_files": 21,
     "top_level_tiers": {
       "exact": 4,
       "exact numerical benchmark": 1,
       "exact_oracle_finite_sample": 1,
-      "heuristic": 4,
+      "heuristic": 5,
       "structural": 6
     }
   },
@@ -172,7 +173,7 @@
     },
     "package_lines": 25561,
     "package_modules": 99,
-    "test_lines": 26439,
+    "test_lines": 26524,
     "test_modules": 115
   }
 }
