@@ -2491,6 +2491,55 @@ preregistered result is `indeterminate_after_refinement`. That overlap does not
 license the negative direction: R3d did not refine all 187 global-extremum
 cells and cannot reselect supports after observing the draw.
 
+## Phase 16B third preregistration — grouping-aware (result-free)
+
+The v2 experiment returned GO, and its own description names the largest
+exclusion in its cost model: measurement grouping. That exclusion is symmetric
+in the rules and asymmetric in effect — the incumbent's Pauli words collapse
+into far fewer settings, while each real-time component needs its own circuit —
+and the merged v2 description reports a post-hoc sensitivity in which
+`h4_chain_100` falls to 0.87 and the verdict would become CONDITIONAL.
+
+Post-hoc arithmetic on a frozen record is not an experiment.
+`benchmarks/PHASE16B_V3_PREREGISTRATION.md` is the third, independent
+declaration that asks the question properly. The v1 and v2 configs and records
+stay exactly as committed.
+
+```bash
+python benchmarks/check_phase16b_v3_preregistration.py
+```
+
+Two things this gate checks that no earlier one needed.
+
+**The covariance precondition.** Grouping makes within-group correlation
+material: words sharing a setting are read from the same shots, and every pencil
+entry is a linear combination of word expectations. This design carries that
+covariance exactly rather than assuming it away — per setting it draws the
+shot budget of bitstrings from the reference's exact product distribution in
+that setting's shared basis, and estimates every word in the group as a parity
+mean of the same draws. The argument works only because the reference is a
+computational basis state, whose distribution in any product basis factorises
+over qubits. The gate verifies that precondition on every required instance
+(purity and amplitude support, `|11110000>` on all three) and refuses the
+declaration otherwise, because for a superposition the honest treatment needs
+the full joint distribution and this design does not supply one.
+
+**The declared group counts.** What one setting costs is the exchange rate
+between the two cost models, so the gate re-derives every number in
+`measured_before_freezing` from the instance rather than reading it back: the
+A-CASE word universe under no grouping, QWC, block-commuting at `k = 2` and
+`k = 4`, and fully commuting (7 927 → 913 → 596 → 223 → 65), and the
+Hamiltonian's traceless terms under the same partitions (184 → 68 → 9). The
+`rt_hermitian` setting model charges `d` at `m * G_H`, so `G_H` is a priced
+quantity and not background.
+
+Everything the v2 gate checked still applies, the admission criterion included:
+for every required instance the incumbent *and* at least one exact-propagation
+real-time arm must reach the target in exact arithmetic within their declared
+caps, read from zero-noise reachability alone.
+
+The producer, record, and result checker for this declaration are future work.
+
 ## Phase 16B second preregistration — stronger incumbent (result-free)
 
 The first decision experiment returned CONDITIONAL, and its own evidence says

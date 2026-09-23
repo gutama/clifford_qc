@@ -1,0 +1,165 @@
+{
+  "schema": "clifford_qc.phase16b_v3_feasibility_config.v1",
+  "design_document": "benchmarks/PHASE16B_V3_PREREGISTRATION.md",
+  "independent_declaration": "The v1 and v2 configs and records stay exactly as committed; nothing here changes how either is read.",
+  "purpose": "Re-ask the v2 question with the incumbent priced under measurement grouping, with within-group covariance carried by simulated readouts rather than assumed away.",
+  "contains_results": false,
+
+  "question": "Priced with grouping, does an exact-propagation real-time arm still reduce modelled shots by at least 10x against A-CASE at the same accuracy target?",
+
+  "target": {"statistic": "median_absolute_energy_error", "value": 1.6e-3, "units": "Hartree"},
+
+  "measured_before_freezing": {
+    "note": "Group counts on this experiment's own banks, recorded so the design is auditable. These are inputs, not results.",
+    "acase_word_universe_h4_chain": {"ungrouped": 7927, "qwc": 913, "block_k2": 596, "block_k4": 223, "fully_commuting": 65},
+    "hamiltonian_traceless_terms": {"ungrouped": 184, "qwc": 68, "fully_commuting": 9},
+    "v2_borrowed_estimate": "7371 -> 913 -> 64 from benchmarks/GROUPING_REDUCTION.md, a different bank on the same molecule; close to the measured values, but an estimate, which this experiment replaces."
+  },
+
+  "instances": {
+    "h4_chain_075": {"builder": "clifford_qc.models.chemistry.h4_chain", "args": {"spacing": 0.75}, "role": "required_decision"},
+    "h4_chain_090": {"builder": "clifford_qc.models.chemistry.h4_chain", "args": {"spacing": 0.9}, "role": "required_decision"},
+    "h4_chain_100": {"builder": "clifford_qc.models.chemistry.h4_chain", "args": {"spacing": 1.0}, "role": "required_decision"},
+    "h4_chain_110": {"builder": "clifford_qc.models.chemistry.h4_chain", "args": {"spacing": 1.1}, "role": "diagnostic",
+                     "declared_expectation": "Does not admit; the incumbent is expected to be censored."},
+    "h2_sto3g": {"builder": "clifford_qc.models.chemistry.h2", "args": {"bond_length": 0.7414}, "role": "diagnostic",
+                 "declared_expectation": "Reference support is 2; trivially passes and decides nothing."}
+  },
+  "required_decision_instances": ["h4_chain_075", "h4_chain_090", "h4_chain_100"],
+  "diagnostic_instances": ["h4_chain_110", "h2_sto3g"],
+
+  "reference_precondition": {
+    "rule": "Every required instance's reference must be a computational basis state.",
+    "why": "The readout simulation in Section 2 factorises over qubits only for a basis state. For a superposition the honest treatment needs the full joint distribution, which this design does not provide.",
+    "enforced_by": "benchmarks/check_phase16b_v3_preregistration.py, before any producer runs",
+    "verified_value": "|11110000> on all three required instances, purity 1.0, one nonzero amplitude"
+  },
+
+  "covariance_treatment": {
+    "method": "simulated_group_readouts",
+    "rule": "Per setting, draw its shot budget of bitstrings from the exact product distribution of the reference in that setting's shared basis; estimate every word in the group as a parity mean of the same draws.",
+    "carries": "true within-group covariance for this reference",
+    "replaces": "the v2 per-word variance bound, which charged each word independently",
+    "applies_to": ["acase_control", "power_krylov_control"],
+    "not_applicable_to": "real-time arms, whose estimands are overlaps measured by Hadamard tests rather than Pauli expectations on the reference"
+  },
+
+  "grouping_schemes": {
+    "ungrouped": {"partition": "none; one setting per word", "role": "v2 baseline, retained for continuity"},
+    "qwc": {"partition": "clifford_qc.measurement.grouping.qwc_groups", "role": "primary"},
+    "fully_commuting": {"partition": "clifford_qc.measurement.block_commuting.block_commuting_groups at k = n_qubits", "role": "primary"}
+  },
+  "continuity_check": {
+    "rule": "Under the ungrouped scheme this experiment must reproduce v2's qualifying ordering.",
+    "on_disagreement": "a defect in this producer, not a finding"
+  },
+
+  "setting_model": {
+    "acase_control": "one setting per group of the retained bank's word universe",
+    "power_krylov_control": "one setting per group of the union of supp(H^p)",
+    "rt_unitary": "2m settings: real and imaginary parts of c(1..m); no grouping, because each (lag, part) is a distinct controlled-evolution circuit with its own ancilla basis",
+    "rt_hermitian": "2(m-1) settings for c as above, plus m * G_H for d, where G_H is the group count of H's traceless part under the active scheme",
+    "rt_trotter": "2(m-1) for S plus the full Hermitian pencil priced as d",
+    "declared_concession": "Charging d at m * G_H rather than m * |H| gives the candidate the only grouping any real-time arm receives. It is declared in advance and is deliberate.",
+    "allocation": "uniform_per_setting",
+    "allocation_rule": "A total budget N splits equally across an arm's settings. A bounded ancilla observable then has standard error at most sqrt(settings / N); a sampled group's words inherit the precision of their N / settings shots."
+  },
+
+  "arms": {
+    "exact_diag": {"role": "ground_truth", "priceable": false},
+    "rt_hermitian": {"role": "primary_candidate", "propagation": "exact_dense_expm"},
+    "rt_unitary": {"role": "primary_candidate", "propagation": "exact_dense_expm"},
+    "rt_trotter": {"role": "propagation_diagnostic", "microsteps_per_dt": 8},
+    "acase_control": {"role": "matched_incumbent"},
+    "power_krylov_control": {"role": "diagnostic_control"}
+  },
+  "primary_candidate_arms": ["rt_hermitian", "rt_unitary"],
+  "exact_propagation_arms": ["rt_hermitian", "rt_unitary"],
+  "incumbent_arm": "acase_control",
+
+  "acase_pool": {
+    "rule": "clifford_qc.models.chemistry.excitation_multivectors(n_qubits, n_electrons)",
+    "growth": {"caps": [4, 8, 12, 16], "criterion": "lowering", "exact_ground_energy": null, "target_error": null,
+               "note": "Oracle fields null so the incumbent cannot stop on the answer it is compared against."}
+  },
+
+  "basis_sizes_by_arm": {
+    "rt_hermitian": [2, 3, 4, 6, 8, 10, 12],
+    "rt_unitary": [2, 3, 4, 6, 8, 10, 12],
+    "rt_trotter": [2, 3, 4, 6, 8, 10, 12],
+    "power_krylov_control": [2, 3, 4, 6, 8, 10, 12],
+    "acase_control": [4, 8, 12, 16]
+  },
+
+  "admission_criterion": {
+    "rule": "For every required instance the incumbent AND at least one exact-propagation real-time arm must reach the target in EXACT arithmetic within their declared caps.",
+    "reads_only": "zero-noise reachability",
+    "never_reads": ["any noisy comparison", "any shot count", "any cost ratio", "any group count"],
+    "declared_bias": "Keeps instances where the incumbent works, which makes the candidate's job harder."
+  },
+
+  "grid_rule": {
+    "dt": "pi / (U - L)", "enclosure": "exact extremal eigenvalues",
+    "energy_shift": "(L + U) / 2",
+    "strict_condition": "(U - L) * dt < 2*pi, checked strictly; a violation is INVALID",
+    "enclosure_must_contain_spectrum": true
+  },
+
+  "noise_model": {
+    "kind": "simulated_group_readouts_plus_bounded_ancilla",
+    "evidence_label": "heuristic",
+    "replicas": 200,
+    "seed_root": 20260923,
+    "seed_stream_rule": "numpy SeedSequence([seed_root, instance_index, scheme_index, sweep_index, cell_index, m, regularizer_index]); shared real-time variates drawn as one (replicas, lags, 2) block from a single advancing generator",
+    "replica_independence_required": true,
+    "no_finite_sample_inference": true
+  },
+
+  "cost_model": {
+    "contract": "fixed_basis_estimation_only",
+    "contract_note": "Every basis is frozen by exact arithmetic before noise; adaptive construction and selection are not priced. Unchanged from v2.",
+    "budget_grid_decades": [4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20],
+    "shots_to_target": "the smallest TESTED budget whose median absolute error meets the target; no interpolation; censored when no tested budget qualifies",
+    "excluded_from_model": ["gate depth", "state preparation", "circuit compilation", "hardware throughput", "ancilla overhead of a Hadamard test beyond its shot count"],
+    "excluded_note": "Excluded for every arm alike. Grouping is no longer excluded; that is the change this experiment makes."
+  },
+
+  "regularizers": {
+    "hard_truncation": {"relative_cutoff": "max(eps, 1e-13) * lambda_max(S)", "is_ridge": false},
+    "per_mode_floor": {"rule": "absolute per-mode floor in the norm-normalized overlap spectrum", "is_ridge": false},
+    "ridge": {"coefficient": 1e-8, "is_ridge": true}
+  },
+  "non_ridge_regularizers": ["hard_truncation", "per_mode_floor"],
+
+  "decision_rule": {
+    "qualifying_comparison": "reaches the target AND has modeled shot ratio N_acase / N_rt >= 10, inclusive, on the tested budget grid, under the scheme being evaluated",
+    "primary_schemes": ["qwc", "fully_commuting"],
+    "verdict_scheme_rule": "The overall verdict is taken under the LEAST favourable primary scheme for the candidate, so a GO must survive the incumbent's best grouping.",
+    "instance_status_order": [
+      {"status": "PASS", "condition": "an exact-propagation real-time arm with a non-ridge regularizer has a qualifying comparison at effective c-component noise >= 1e-5"},
+      {"status": "MARGINAL", "condition": "no PASS, but a qualifying comparison exists at >= 1e-6, including ridge-only"},
+      {"status": "UNDETERMINED", "condition": "neither above, and a required cost comparison is censored or unpriceable within the grid"},
+      {"status": "FAIL", "condition": "otherwise; all comparisons complete but no qualifying candidate at >= 1e-6"}
+    ],
+    "combination_rule": "all required instances PASS gives GO; all FAIL gives NO_GO; anything else is CONDITIONAL",
+    "invalid_combination": "If any required instance is INVALID the overall verdict is INVALID.",
+    "undetermined_on_required_is_not_a_pass": "A censored incumbent cost must never read as a promotion.",
+    "diagnostics_cannot_promote": ["rt_trotter", "power_krylov_control", "h4_chain_110", "h2_sto3g"]
+  },
+
+  "prespecified_followup": {
+    "permitted_on_no_go_or_conditional": "exactly one estimator-variance refinement, replacing the flat bounded-ancilla bound with the magnitude-dependent (1 - mu^2)/N",
+    "publication_rule": "the primary verdict is published unchanged alongside any separately labelled refinement; thresholds are never moved after observing results"
+  },
+
+  "record_requirements": {
+    "schema": "clifford_qc.phase16b_v3_feasibility.v1",
+    "must_include": ["config_digest", "provenance", "evidence labels", "complete failure accounting",
+                     "per-scheme group counts", "settings per arm per scheme", "admission verification",
+                     "reference precondition verification", "continuity check against v2 ordering",
+                     "decision evaluation under each primary scheme"],
+    "must_carry": {"quantum_advantage_claim": false},
+    "no_phase_completion_claim": true,
+    "status_ledger_update_forbidden": true
+  }
+}
