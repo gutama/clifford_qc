@@ -132,7 +132,7 @@ the remaining `11 - 6 = 5` skips are per-test and *are* collected:
 
 ```text
 collected == passed + (skipped - files dropped at collection)
-2246      == 2241   + (11      -   6)
+2255      == 2250   + (11      -   6)
 ```
 
 Both sides are computed from the tree, so a drift in either quoted number
