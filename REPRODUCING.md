@@ -116,7 +116,7 @@ No figure or table value in the manuscript is transcribed by hand, and
 ```bash
 python -m venv .venv && source .venv/bin/activate
 pip install -e .[test,research,stim]       # automatic CI extras
-pytest                                      # 2273 passed, 11 skipped
+pytest                                      # 2310 passed, 11 skipped
 ```
 
 This is the automatic CI dependency set; record gates additionally pin NumPy
@@ -132,7 +132,7 @@ the remaining `11 - 6 = 5` skips are per-test and *are* collected:
 
 ```text
 collected == passed + (skipped - files dropped at collection)
-2278      == 2273   + (11      -   6)
+2315      == 2310   + (11      -   6)
 ```
 
 Both sides are computed from the tree, so a drift in either quoted number
@@ -2588,10 +2588,24 @@ Two readings the frozen text admits are recorded rather than resolved silently.
 entries at `G_H` settings each; `rt_trotter` is a diagnostic and cannot promote,
 so the reading does not reach a verdict. And under the `ungrouped` scheme the
 per-arm setting model still applies, so `rt_hermitian` pays `m * |H|` settings
-for `d` where v2 charged `d(k)` as a single estimand — the config's continuity
-clause calls an `ungrouped` disagreement a producer defect, but it did not
-anticipate its own setting model repricing the candidate. The record reports the
-comparison with that cause named instead of deciding it by fiat.
+for `d` where v2 charged `d(k)` as a single estimand, which reprices the
+candidate and not only the incumbent.
+
+The config's continuity clause calls any `ungrouped` disagreement with v2 a
+defect in this producer. It has already earned that: the first run of this
+module returned NO-GO under every scheme, `ungrouped` included, because `whiten`
+and `solve_unitary` had been rewritten from memory rather than carried over from
+v2. `whiten` intersected an eigenvector mask with a basis mask, and
+`solve_unitary` dropped the rotation of the correlators by the energy shift and
+built an `(m-1)` pencil instead of an `m` one — together putting `rt_unitary`'s
+*zero-noise* error at 0.67 Hartree against v2's 6e-10, so the candidate never
+reached the target at any budget. Nothing in the noise model or the grouping was
+involved. All three solvers are now v2's unchanged, and
+`tests/test_phase16b_v3_readouts.py` requires `whiten`, `solve_hermitian` and
+`solve_unitary` to agree with the v2 producer's bit for bit, with a planted
+spectrum as a correctness anchor so the two cannot be wrong together. The record
+carries both readings of a residual disagreement; which one it supports is read
+from it rather than predicted.
 
 `check_phase16b_v3_feasibility.py` re-derives every per-scheme status, every
 per-scheme verdict, and the overall verdict from the record's own medians under

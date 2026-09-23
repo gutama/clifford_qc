@@ -53,10 +53,15 @@ frozen text admits more than one:
 * Under the `ungrouped` scheme the per-arm setting model still applies, so
   `rt_hermitian` pays `m * |H|` settings for `d` where v2 charged `d(k)` as a
   single estimand. The continuity clause in the config expects `ungrouped` to
-  reproduce v2's ordering and calls a disagreement a producer defect; that
-  clause did not anticipate its own setting model changing the candidate's
-  price too. The record reports the comparison and names the cause instead of
-  resolving it by fiat.
+  reproduce v2's ordering and calls any disagreement a producer defect. That
+  reading is too narrow -- the declared setting model reprices the candidate as
+  well as the incumbent -- but it is not wrong either: the first run of this
+  module disagreed under `ungrouped` because `whiten` and `solve_unitary` had
+  been rewritten from memory instead of carried over, and rt_unitary's
+  *zero-noise* error was 0.67 Hartree. Both now come from v2 unchanged, and
+  `tests/test_phase16b_v3_readouts.py` pins them there. The record reports the
+  comparison; what a residual disagreement means is read from it, not
+  predicted here.
 
     python benchmarks/run_phase16b_v3_feasibility.py
     python benchmarks/run_phase16b_v3_feasibility.py --replicas 20 --out draft.json
@@ -406,9 +411,11 @@ class Estimands:
         return int(self.complexity.sum() * 2 + (~self.complexity).sum())
 
     def draw(self, rng):
+        """Standard normals, one pair per estimand; imaginary parts unused if real."""
         return rng.standard_normal((self.values.size, 2))
 
     def perturb(self, variates, eps_scale):
+        """`eps_scale` is a scalar multiplier applied to each estimand's weight."""
         eps = self.weights * eps_scale
         out = self.values + eps * variates[:, 0]
         out = out + 1j * eps * variates[:, 1] * self.complexity
@@ -471,46 +478,45 @@ def whiten(S, cutoff_relative=0.0, floor_absolute=0.0, ridge=0.0):
     if not live.any():
         return None, 0
     scale = np.where(live, norms, 1.0)
-    normalized = S / np.outer(scale, scale)
-    normalized = 0.5 * (normalized + normalized.conj().T)
+    bar = (S / scale[:, None]) / scale[None, :]
+    index = np.flatnonzero(live)
+    bar = bar[np.ix_(index, index)]
+    bar = 0.5 * (bar + bar.conj().T)
+    values, vectors = np.linalg.eigh(bar)
     if ridge:
-        normalized = normalized + ridge * np.eye(normalized.shape[0])
-    w, v = np.linalg.eigh(normalized)
-    keep = w > max(cutoff_relative * max(w[-1], 0.0), floor_absolute, 0.0)
-    keep &= live
+        values = values + ridge
+    largest = max(float(values[-1]), 1e-300)
+    keep = values > max(cutoff_relative * largest, floor_absolute, 1e-300)
     if not keep.any():
         return None, 0
-    X = v[:, keep] / np.sqrt(w[keep])
-    return X / scale[:, None], int(keep.sum())
+    transform = np.zeros((S.shape[0], int(keep.sum())), dtype=complex)
+    transform[index, :] = vectors[:, keep] / np.sqrt(values[keep])
+    return transform / scale[:, None], int(keep.sum())
 
 
 def solve_hermitian(S, Hm, **policy):
     X, rank = whiten(S, **policy)
     if X is None:
         return float("nan"), 0
-    projected = X.conj().T @ Hm @ X
-    projected = 0.5 * (projected + projected.conj().T)
-    try:
-        return float(np.linalg.eigvalsh(projected)[0]), rank
-    except np.linalg.LinAlgError:
+    reduced = X.conj().T @ Hm @ X
+    reduced = 0.5 * (reduced + reduced.conj().T)
+    if not np.all(np.isfinite(reduced)):
         return float("nan"), rank
+    return float(np.linalg.eigvalsh(reduced)[0]), rank
 
 
 def solve_unitary(c, m, dt, energy_shift, **policy):
-    S0 = np.array([[c[j - i] for j in range(m - 1)] for i in range(m - 1)])
-    S1 = np.array([[c[j - i + 1] for j in range(m - 1)] for i in range(m - 1)])
-    X, rank = whiten(0.5 * (S0 + S0.conj().T), **policy)
+    shifted = {k: value * np.exp(1j * energy_shift * k * dt) for k, value in c.items()}
+    S0 = np.array([[shifted[j - i] for j in range(m)] for i in range(m)])
+    S1 = np.array([[shifted[j - i + 1] for j in range(m)] for i in range(m)])
+    S0 = 0.5 * (S0 + S0.conj().T)
+    X, rank = whiten(S0, **policy)
     if X is None:
         return float("nan"), 0
-    try:
-        eigenvalues = np.linalg.eigvals(X.conj().T @ S1 @ X)
-    except np.linalg.LinAlgError:
+    lam = np.linalg.eigvals(X.conj().T @ S1 @ X)
+    if not np.all(np.isfinite(lam)) or np.any(np.abs(lam) <= 1e-12):
         return float("nan"), rank
-    eigenvalues = eigenvalues[np.abs(eigenvalues) > 1e-300]
-    if eigenvalues.size == 0:
-        return float("nan"), rank
-    energies = energy_shift - np.angle(eigenvalues) / dt
-    return float(np.min(energies)), rank
+    return float(energy_shift + np.min(-np.angle(lam) / dt)), rank
 
 
 # ------------------------------------------------------------------- arms
@@ -530,7 +536,16 @@ def exact_lags(inst, max_lag):
 
 
 def trotter2_step_matrix(inst, microsteps):
-    """Dense image of ``gates.trotter2_unitary(terms, dt, microsteps)``."""
+    """Dense image of ``gates.trotter2_unitary(terms, dt, microsteps)``.
+
+    Identical object, different arithmetic. Building it in the ``MV`` basis
+    costs about five minutes per 8-qubit instance, because a Trotterized
+    propagator's Pauli support fills in; the same product of
+    ``rotor(P, theta) = cos(theta/2) I - i sin(theta/2) P`` factors in dense
+    256x256 arithmetic takes under a second. `verify_trotter_step` checks the
+    two against each other on a small instance so the substitution is a
+    measured identity rather than an assumption.
+    """
     n = inst["mv"].n
     dimension = 1 << n
     dt = inst["dt"] / microsteps
@@ -549,6 +564,9 @@ def trotter2_step_matrix(inst, microsteps):
     step = half
     for coefficient, code in reversed(terms):
         step = step @ rotor_matrix(coefficient, code)
+    # Sequential, not matrix_power: the reference multiplies the step in one
+    # by one, and binary squaring accumulates round-off differently. Matching
+    # its order is what keeps the identity check at round-off instead of 1e-9.
     total = identity
     for _ in range(microsteps):
         total = total @ step
@@ -556,7 +574,17 @@ def trotter2_step_matrix(inst, microsteps):
 
 
 def verify_trotter_step(inst, microsteps, floor=1e-12, slack=10.0):
-    """Check the dense step against the MV construction it stands in for."""
+    """Check the dense step against the MV construction it stands in for.
+
+    The two cannot be required to agree more tightly than the reference agrees
+    with itself. On `h4_chain` the MV path's own unitarity defect is about
+    9e-10 after 184 terms x 2 x 8 microsteps of sparse products, while the
+    dense path's is about 6e-14 -- so the gap between them is the reference's
+    accumulated round-off, and the dense construction is the more accurate of
+    the two. The admissible gap is therefore scaled to the reference's measured
+    defect rather than fixed, and both defects go into the record so the
+    substitution is a reported measurement, not a silent swap.
+    """
     from clifford_qc.gates import trotter2_unitary
     terms = [(float(np.real(v)), MV(inst["mv"].n, {code: 1.0}))
              for code, v in inst["mv"].terms.items() if code != 0]
@@ -841,7 +869,20 @@ def readout_plan(inst, codes, scheme, cache, seed_root=0):
 # ---------------------------------------------------------------- sweeps
 
 def shared_variates(entropy, replicas, max_lag):
-    """Paired c-variates for the real-time arms: one draw per replica."""
+    """Paired c-variates for the real-time arms: one draw per replica.
+
+    The first version of this built a fresh generator from the same
+    ``SeedSequence`` inside a per-replica comprehension, so all ``replicas``
+    entries were the identical array and every real-time cell recorded one
+    realization two hundred times. The tell was in the record and went unread:
+    median and p90 were bit-identical in every winning cell.
+
+    One generator, advanced once, drawn as a single ``(replicas, lags, 2)``
+    block. Pairing across arms is preserved because both real-time arms index
+    into the same block for the lags they share; it is the pairing that has to
+    be common between arms, not the draw that has to be common between
+    replicas.
+    """
     if replicas < 1:
         raise ValueError("replicas must be positive")
     rng = np.random.default_rng(np.random.SeedSequence(list(entropy)))
@@ -1015,13 +1056,16 @@ def hamiltonian_group_count(inst, scheme, cache):
 def continuity_against_v2(record, config):
     """Compare the ungrouped scheme against the committed v2 ordering.
 
-    The config calls a disagreement here a defect in this producer. That clause
-    was written expecting `ungrouped` to restore v2's cost model, but the per-arm
-    setting model in Section 3 applies under every scheme, and under `ungrouped`
-    it charges `rt_hermitian` `m * |H|` settings for `d` where v2 charged `d(k)`
-    as one estimand. So a disagreement confined to `rt_hermitian` is the declared
-    setting model doing what it says, not a defect. The comparison is reported
-    with that reading named; nothing here changes a verdict.
+    The config calls a disagreement here a defect in this producer. That is the
+    right instinct and it has already earned its keep: the first run of this
+    module disagreed under `ungrouped`, and the cause was a defect -- two
+    solvers rewritten from memory rather than carried over from v2, one of which
+    put rt_unitary's zero-noise error at 0.67 Hartree. The clause is still too
+    narrow, because the per-arm setting model in Section 3 applies under every
+    scheme and charges `rt_hermitian` `m * |H|` settings for `d` where v2 charged
+    `d(k)` once, so some repricing of the candidate is expected. Both readings
+    are recorded. Which one a disagreement supports is decided by looking, not
+    by this docstring, and nothing here changes a verdict.
     """
     path = ROOT / "reference_results" / "phase16b_v2_feasibility.json"
     if not path.exists():
@@ -1047,12 +1091,18 @@ def continuity_against_v2(record, config):
             "v2_status": v2_entry.get("status"), "v3_ungrouped_status": v3_entry.get("status"),
         }
     out["orderings_agree"] = bool(agree)
-    out["reading"] = (
-        "Under `ungrouped` the per-arm setting model still applies, so rt_hermitian pays "
-        "m * |H| settings for d where v2 charged d(k) once. A disagreement confined to "
-        "rt_hermitian follows from the declared setting model, not from a producer defect; "
-        "the config's on_disagreement clause did not anticipate its own model repricing "
-        "the candidate.")
+    out["readings"] = {
+        "producer_defect": (
+            "The config's own clause. It caught one: the first run of this producer "
+            "disagreed under ungrouped because whiten and solve_unitary had been "
+            "rewritten instead of carried over from v2, leaving rt_unitary's zero-noise "
+            "error at 0.67 Ha. Both are now v2's unchanged and pinned by regressions."),
+        "declared_setting_model": (
+            "Under ungrouped the per-arm setting model still applies, so rt_hermitian "
+            "pays m * |H| settings for d where v2 charged d(k) once. Repricing of the "
+            "candidate under ungrouped is therefore expected and is not a defect."),
+        "note": "Which reading a residual disagreement supports is read from this record.",
+    }
     return out
 
 

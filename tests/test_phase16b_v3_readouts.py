@@ -204,3 +204,88 @@ def test_least_favourable_scheme_decides_the_verdict():
     assert least_favourable({"qwc": "NO_GO", "fully_commuting": "CONDITIONAL"}) == (
         "qwc", "NO_GO")
     assert least_favourable({"qwc": "GO", "fully_commuting": "GO"})[1] == "GO"
+
+
+# --------------------------------------------------------------------------
+# The v3 producer reuses v2's solvers unchanged. It did not, at first: three of
+# them were rewritten from memory, and two of the rewrites were wrong. `whiten`
+# intersected an eigenvector mask with a basis mask, and `solve_unitary` dropped
+# the rotation of the correlators by the energy shift and built an (m-1) pencil
+# instead of an m one. The cost was not subtle -- rt_unitary's *zero-noise*
+# error went from 6e-10 to 0.67 Hartree, so the candidate never reached the
+# target and the first v3 run returned NO_GO everywhere, ungrouped baseline
+# included.
+#
+# What caught it was the continuity check against v2, which is why the design
+# keeps an ungrouped scheme it has no other use for. These tests catch it
+# earlier and without a two-hour run: the shared solvers must agree with v2's
+# bit for bit on the same input.
+# --------------------------------------------------------------------------
+
+from benchmarks import run_phase16b_v2_feasibility as v2  # noqa: E402
+from benchmarks import run_phase16b_v3_feasibility as v3  # noqa: E402
+
+
+def _pencil(seed, size, rank=None):
+    rng = np.random.default_rng(seed)
+    A = rng.standard_normal((size, size)) + 1j * rng.standard_normal((size, size))
+    if rank is not None:
+        A[:, rank:] = A[:, :1]
+    S = A.conj().T @ A
+    B = rng.standard_normal((size, size)) + 1j * rng.standard_normal((size, size))
+    H = 0.5 * (B + B.conj().T)
+    return S, H
+
+
+@pytest.mark.parametrize("seed", range(6))
+@pytest.mark.parametrize("policy", [
+    {"cutoff_relative": 1e-13}, {"cutoff_relative": 1e-6},
+    {"floor_absolute": 1e-8}, {"cutoff_relative": 1e-13, "ridge": 1e-8}])
+def test_whiten_matches_the_v2_producer(seed, policy):
+    S, _ = _pencil(seed, 6, rank=4 if seed % 2 else None)
+    want, want_rank = v2.whiten(S, **policy)
+    got, got_rank = v3.whiten(S, **policy)
+    assert got_rank == want_rank
+    assert (got is None) == (want is None)
+    if want is not None:
+        assert np.allclose(got, want, rtol=0, atol=0)
+
+
+@pytest.mark.parametrize("seed", range(6))
+def test_solve_hermitian_matches_the_v2_producer(seed):
+    S, H = _pencil(seed, 6, rank=4 if seed % 2 else None)
+    assert v3.solve_hermitian(S, H, cutoff_relative=1e-13) == v2.solve_hermitian(
+        S, H, cutoff_relative=1e-13)
+
+
+@pytest.mark.parametrize("seed", range(6))
+def test_solve_unitary_matches_the_v2_producer(seed):
+    rng = np.random.default_rng(seed)
+    m, dt, shift = 6, 0.55, 0.67
+    phases = rng.uniform(-1.0, 1.0, size=4)
+    weights = rng.uniform(0.1, 1.0, size=4)
+    weights /= weights.sum()
+    c = {0: complex(1.0)}
+    for k in range(1, m + 2):
+        c[k] = complex(sum(w * np.exp(-1j * p * k * dt) for w, p in zip(weights, phases)))
+        c[-k] = c[k].conjugate()
+    want = v2.solve_unitary(c, m, dt, shift, cutoff_relative=1e-13)
+    got = v3.solve_unitary(c, m, dt, shift, cutoff_relative=1e-13)
+    assert got == want
+
+
+def test_solve_unitary_recovers_a_planted_ground_energy():
+    """A correctness anchor, not just agreement: the two could be wrong together."""
+    m, dt, shift = 8, 0.55, 0.67
+    energies = np.array([-2.18, -1.4, 0.3, 1.9])
+    weights = np.array([0.4, 0.3, 0.2, 0.1])
+    c = {0: complex(1.0)}
+    for k in range(1, m + 2):
+        # The correlator carries the unshifted energies, as `exact_lags`
+        # produces it; `solve_unitary` is what rotates by the shift.
+        c[k] = complex(sum(w * np.exp(-1j * e * k * dt)
+                           for w, e in zip(weights, energies)))
+        c[-k] = c[k].conjugate()
+    energy, rank = v3.solve_unitary(c, m, dt, shift, cutoff_relative=1e-13)
+    assert rank >= len(energies)
+    assert energy == pytest.approx(energies.min(), abs=1e-8)
