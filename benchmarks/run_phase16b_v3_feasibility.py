@@ -1106,6 +1106,66 @@ def continuity_against_v2(record, config):
     return out
 
 
+def protocol_conformance(record, config):
+    """Whether this run satisfied the frozen continuity rule, stated plainly.
+
+    The config freezes two things that cannot both hold. Section 3's per-arm
+    setting model applies under every scheme, so under `ungrouped` it charges
+    `rt_hermitian` `m * G_H` settings for `d` -- 184 without grouping -- where v2
+    charged `d(k)` as one estimand. And `continuity_check` requires `ungrouped`
+    to reproduce v2's qualifying ordering. The first makes the second
+    unreachable for `rt_hermitian`, and that was true of the declaration before
+    the experiment ran; it should have been caught then and was not.
+
+    An explanation of why a preregistered check failed does not convert it into
+    a check that passed. So this run is labelled as deviating from its own
+    protocol rather than reinterpreted to fit, the deviation travels with the
+    record, and the result gate refuses the conforming stamp while it stands.
+    The primary decision does not read the `ungrouped` scheme -- it is taken
+    under `qwc` and `fully_commuting` -- but the label belongs on the record
+    whatever the decision reads.
+    """
+    continuity = record.get("continuity_check", {})
+    if not continuity.get("available"):
+        return {"continuity_rule": config["continuity_check"]["rule"],
+                "continuity_rule_satisfied": None,
+                "status": "unverifiable",
+                "reason": continuity.get("reason", "no v2 record to compare against")}
+    satisfied = bool(continuity.get("orderings_agree"))
+    conformance = {
+        "continuity_rule": config["continuity_check"]["rule"],
+        "continuity_rule_on_disagreement": config["continuity_check"]["on_disagreement"],
+        "continuity_rule_satisfied": satisfied,
+        "status": "conforming" if satisfied else "deviating",
+    }
+    if not satisfied:
+        disagreeing = sorted(name for name, row in continuity["instances"].items()
+                             if not row["agree"])
+        conformance["deviation"] = {
+            "what_failed": ("The frozen continuity rule requires the ungrouped scheme to "
+                            "reproduce v2's qualifying ordering. It does not, on "
+                            f"{len(disagreeing)} required instances: {disagreeing}."),
+            "observed": "v2 qualifies rt_hermitian and rt_unitary; this run qualifies rt_unitary.",
+            "cause": ("The declaration is internally inconsistent. Its own per-arm setting "
+                      "model applies under every scheme and prices rt_hermitian's d at "
+                      "m * G_H, which is m * 184 ungrouped, where v2 charged d(k) once. No "
+                      "run of this design could have satisfied the rule for rt_hermitian."),
+            "detectable_before_the_run": True,
+            "not_a_reinterpretation": ("The rule is recorded as failed, not as satisfied under "
+                                       "a different reading. The explanation is why it failed."),
+            "scope": ("The decision rule reads only the primary schemes, qwc and "
+                      "fully_commuting; it never reads ungrouped. The verdict is therefore "
+                      "unaffected, and is still labelled by this deviation."),
+            "also_observed": ("Under ungrouped, rt_unitary is the cheapest arm in both v2 and "
+                              "this run. That is a fact about the record, not a second "
+                              "conformance test, and it is not claimed as one."),
+            "carry_forward": ("A later declaration must not freeze a cross-check its own cost "
+                              "model makes unreachable, and its preregistration gate should "
+                              "test the frozen clauses against each other."),
+        }
+    return conformance
+
+
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--replicas", type=int, default=None)
@@ -1299,7 +1359,11 @@ def main() -> int:
         "rule": "frozen in the config; see decision_rule and verdict_scheme_rule",
     }
     record["continuity_check"] = continuity_against_v2(record, config)
+    record["protocol_conformance"] = protocol_conformance(record, config)
     print(f"\nVERDICT: {worst} (least favourable primary scheme: {worst_scheme})")
+    if record["protocol_conformance"]["status"] != "conforming":
+        print(f"PROTOCOL: {record['protocol_conformance']['status'].upper()} -- "
+              "the frozen continuity rule was not satisfied; see protocol_conformance")
 
     record["elapsed_seconds"] = time.time() - started
     args.out.parent.mkdir(parents=True, exist_ok=True)

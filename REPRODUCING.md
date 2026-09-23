@@ -116,7 +116,7 @@ No figure or table value in the manuscript is transcribed by hand, and
 ```bash
 python -m venv .venv && source .venv/bin/activate
 pip install -e .[test,research,stim]       # automatic CI extras
-pytest                                      # 2310 passed, 11 skipped
+pytest                                      # 2322 passed, 11 skipped
 ```
 
 This is the automatic CI dependency set; record gates additionally pin NumPy
@@ -132,7 +132,7 @@ the remaining `11 - 6 = 5` skips are per-test and *are* collected:
 
 ```text
 collected == passed + (skipped - files dropped at collection)
-2315      == 2310   + (11      -   6)
+2327      == 2322   + (11      -   6)
 ```
 
 Both sides are computed from the tree, so a drift in either quoted number
@@ -2591,11 +2591,39 @@ per-arm setting model still applies, so `rt_hermitian` pays `m * |H|` settings
 for `d` where v2 charged `d(k)` as a single estimand, which reprices the
 candidate and not only the incumbent.
 
+### This run did not satisfy its own continuity rule
+
+The config freezes, before the experiment ran, that under the `ungrouped` scheme
+this producer **must** reproduce v2's qualifying ordering. It does not: v2
+qualifies `rt_hermitian` and `rt_unitary`, this run qualifies `rt_unitary`
+alone, on all three required instances. The committed record therefore carries
+`protocol_conformance.status = "deviating"`, and
+`check_phase16b_v3_feasibility.py` withholds its conforming stamp, printing
+`OK BUT DEVIATING` instead. **The evidence from this run is not that of a
+protocol-conforming run**, and nothing below converts it into one.
+
+The cause is that the declaration is internally inconsistent, and was so before
+any of it ran. Section 3's per-arm setting model applies under every scheme, so
+under `ungrouped` it prices `rt_hermitian`'s `d` at `m * G_H` — `m * 184` with no
+grouping — where v2 charged `d(k)` as a single estimand. No run of this design
+could have satisfied the continuity rule for `rt_hermitian`. That should have
+been caught when the config was frozen and was not; a later declaration must not
+freeze a cross-check its own cost model makes unreachable, and its
+preregistration gate should test the frozen clauses against each other.
+
+An explanation of why a preregistered check failed is not that check passing.
+The rule is recorded as failed rather than reread into agreement, and the gate
+derives that from the comparisons in the record rather than from the record's
+own summary flag, so a record cannot exempt itself by asserting conformance. The
+decision rule reads only the primary schemes, `qwc` and `fully_commuting`, and
+never reads `ungrouped`, so the verdict itself is unaffected — but it is still
+labelled by this deviation.
+
 The config's continuity clause calls any `ungrouped` disagreement with v2 a
-defect in this producer. It has already earned that: the first run of this
-module returned NO-GO under every scheme, `ungrouped` included, because `whiten`
-and `solve_unitary` had been rewritten from memory rather than carried over from
-v2. `whiten` intersected an eigenvector mask with a basis mask, and
+defect in this producer. It has already earned that reading once: the first run
+of this module returned NO-GO under every scheme, `ungrouped` included, because
+`whiten` and `solve_unitary` had been rewritten from memory rather than carried
+over from v2. `whiten` intersected an eigenvector mask with a basis mask, and
 `solve_unitary` dropped the rotation of the correlators by the energy shift and
 built an `(m-1)` pencil instead of an `m` one — together putting `rt_unitary`'s
 *zero-noise* error at 0.67 Hartree against v2's 6e-10, so the candidate never
@@ -2609,7 +2637,13 @@ from it rather than predicted.
 
 `check_phase16b_v3_feasibility.py` re-derives every per-scheme status, every
 per-scheme verdict, and the overall verdict from the record's own medians under
-the frozen rule. Beyond the v2 gate it requires that the incumbent's recorded
+the frozen rule. It first checks that the record carries the **whole declared
+sweep** — the Cartesian product of priceable arms, their basis sizes, the three
+regularizers and the seventeen budget decades — because a gate that audits only
+the cells a record happens to carry establishes nothing about the ones it does
+not, and deleting a single budget cell once left a record passing as complete.
+It then holds the record to the frozen continuity rule as described above.
+Beyond the v2 gate it requires that the incumbent's recorded
 setting count actually falls under each primary scheme (a record that prices
 grouping and then charges one setting per word is the v2 experiment relabelled),
 that every arm's setting count recomputes from the declared model against the

@@ -84,6 +84,115 @@ def declared_settings(arm_name, m, g_h):
     return None
 
 
+def priceable_arms(config):
+    """Arms the cost model prices; `exact_diag` is ground truth and is not one."""
+    return sorted(name for name, spec in config["arms"].items()
+                  if spec.get("priceable") is not False)
+
+
+def expected_cells(config):
+    """Every (arm, size, regularizer, budget) key the frozen config declares.
+
+    The gate used to audit whatever cells the record happened to carry, which
+    establishes that the present ones are well formed and nothing at all about
+    the ones that are not. Deleting a single budget cell from a record left it
+    passing as complete. The declared sweep is a Cartesian product and it is
+    written down, so the comparison is against that product.
+    """
+    budgets = {f"1e{int(decade)}" for decade in config["cost_model"]["budget_grid_decades"]}
+    regularizers = set(config["regularizers"])
+    cells = set()
+    for arm in priceable_arms(config):
+        for size in config["basis_sizes_by_arm"][arm]:
+            for regularizer in regularizers:
+                for budget in budgets:
+                    cells.add((arm, str(size), regularizer, budget))
+    return cells
+
+
+def recorded_cells(scheme_entry):
+    cells = set()
+    for arm, entry in scheme_entry.get("arms", {}).items():
+        for regularizer, sizes in entry.get("budget", {}).items():
+            for size, budgets in sizes.items():
+                for budget in budgets:
+                    cells.add((arm, str(size), regularizer, budget))
+    return cells
+
+
+def check_coverage(config, name, scheme, scheme_entry, problems):
+    """The record must carry the whole declared sweep, not a subset of it."""
+    declared = expected_cells(config)
+    present = recorded_cells(scheme_entry)
+    missing = sorted(declared - present)
+    extra = sorted(present - declared)
+    if missing:
+        shown = ", ".join("/".join(cell) for cell in missing[:5])
+        problems.append(f"{name}/{scheme}: {len(missing)} declared budget cells are absent from "
+                        f"the record (e.g. {shown}); an incomplete sweep cannot pass the "
+                        "canonical result gate")
+    if extra:
+        shown = ", ".join("/".join(cell) for cell in extra[:5])
+        problems.append(f"{name}/{scheme}: {len(extra)} recorded cells are outside the declared "
+                        f"sweep (e.g. {shown})")
+    for arm in priceable_arms(config):
+        sizes = {str(size) for size in config["basis_sizes_by_arm"][arm]}
+        recorded = set(scheme_entry.get("arms", {}).get(arm, {}).get("sizes", {}))
+        if sizes - recorded:
+            problems.append(f"{name}/{scheme}/{arm}: no per-size record for basis sizes "
+                            f"{sorted(sizes - recorded)}")
+
+
+def check_conformance(record, config, problems):
+    """Recompute whether the frozen continuity rule held, and hold the record to it.
+
+    Derived from the per-instance comparison the record carries, never read back
+    off its own summary flag: a record that failed the rule and said otherwise
+    would pass a gate that trusted the flag. A run that failed it must say so.
+    An explanation of the failure is not a pass, so the gate withholds the
+    conforming stamp while the deviation stands.
+
+    Returns the status so `main` can label its own result with it.
+    """
+    continuity = record.get("continuity_check")
+    conformance = record.get("protocol_conformance")
+    if conformance is None:
+        problems.append("the record carries no protocol_conformance block, so it makes no "
+                        "statement about whether it satisfied its own frozen continuity rule")
+        return "unstated"
+    if not continuity or not continuity.get("available"):
+        if conformance.get("status") != "unverifiable":
+            problems.append("no v2 comparison is available, so conformance is unverifiable, "
+                            f"but the record claims {conformance.get('status')!r}")
+        return conformance.get("status", "unverifiable")
+
+    derived = all(row["v2_qualifying_arms"] == row["v3_ungrouped_qualifying_arms"]
+                  for row in continuity["instances"].values())
+    for name, row in continuity["instances"].items():
+        if row.get("agree") != (row["v2_qualifying_arms"] == row["v3_ungrouped_qualifying_arms"]):
+            problems.append(f"continuity_check/{name}: the recorded agree flag disagrees with "
+                            "the qualifying arms recorded beside it")
+    if bool(continuity.get("orderings_agree")) != derived:
+        problems.append("continuity_check.orderings_agree disagrees with the per-instance "
+                        "comparisons recorded beside it")
+    if conformance.get("continuity_rule") != config["continuity_check"]["rule"]:
+        problems.append("the record's stated continuity rule is not the frozen one")
+    if conformance.get("continuity_rule_satisfied") is not derived:
+        problems.append(f"the record states the continuity rule was satisfied="
+                        f"{conformance.get('continuity_rule_satisfied')!r}, but the comparisons "
+                        f"it carries give {derived!r}")
+    expected_status = "conforming" if derived else "deviating"
+    if conformance.get("status") != expected_status:
+        problems.append(f"the record's protocol status is {conformance.get('status')!r} but its "
+                        f"own continuity comparisons give {expected_status!r}")
+    if not derived:
+        deviation = conformance.get("deviation")
+        if not isinstance(deviation, dict) or not deviation.get("cause"):
+            problems.append("the continuity rule was not satisfied, so the record must carry a "
+                            "deviation naming what failed and why; it does not")
+    return expected_status
+
+
 def main() -> int:
     if not RECORD.exists():
         print(f"FAIL missing record {RECORD}")
@@ -141,6 +250,13 @@ def main() -> int:
     if set(schemes) - set(config["grouping_schemes"]):
         problems.append(f"the record runs undeclared schemes "
                         f"{sorted(set(schemes) - set(config['grouping_schemes']))}")
+    # `ungrouped` is not a primary scheme, but the frozen continuity rule is
+    # stated over it, so a record that skipped it cannot be held to that rule.
+    unrun = sorted(set(config["grouping_schemes"]) - set(schemes))
+    if unrun:
+        problems.append(f"declared grouping schemes {unrun} were not run; the frozen continuity "
+                        "rule is stated over the ungrouped scheme and cannot be checked without "
+                        "every declared scheme present")
 
     present = {name for name, entry in record["instances"].items() if "skipped" not in entry}
     missing = sorted(required - present)
@@ -204,6 +320,11 @@ def main() -> int:
                         f"{name}: admission does not hold at execution (incumbent "
                         f"{incumbent_seen:.3e}, candidate {candidate_seen:.3e}, "
                         f"target {target:.1e})")
+
+        absent = [scheme for scheme in schemes if scheme not in entry.get("schemes", {})]
+        if absent and entry.get("status") != "INVALID":
+            problems.append(f"{name}: the record declares schemes {schemes} but carries no "
+                            f"results for {absent}")
 
         if entry.get("status") == "INVALID" or not entry.get("schemes"):
             for scheme in schemes:
@@ -287,6 +408,7 @@ def main() -> int:
                 if scheme in ("qwc", "ungrouped") and not report.get("literal_words_checked"):
                     problems.append(f"{name}/{scheme}/{label}: a product-basis setting was not "
                                     "checked shot for shot against literal readouts")
+            check_coverage(config, name, scheme, scheme_entry, problems)
             for arm_name in config["covariance_treatment"]["applies_to"]:
                 if not any(key.startswith(f"{arm_name}@")
                            for key in scheme_entry.get("verifications", {})):
@@ -333,16 +455,29 @@ def main() -> int:
                         f"{record['decision'].get('least_favourable_scheme')!r} but the rule "
                         f"gives {overall_scheme!r}")
 
+    conformance = check_conformance(record, config, problems)
+
     for scheme in schemes:
         marker = "primary" if scheme in primary else "baseline"
         print(f"  [{scheme}] {verdicts[scheme]:12} ({marker})  "
               + "  ".join(f"{k}={v}" for k, v in sorted(per_scheme_statuses[scheme].items())))
     print(f"  verdict: {overall} under {overall_scheme}")
+    print(f"  protocol: {conformance}")
 
     if problems:
         for problem in problems:
             print(f"FAIL {problem}")
         return 1
+    if conformance != "conforming":
+        # Everything the gate can check is sound, and the run still did not
+        # satisfy a rule frozen before it ran. Stamping that "OK record is
+        # complete" would launder the deviation, so the stamp says what it is.
+        print(f"OK BUT {conformance.upper()}: the record is complete, the incumbent was priced "
+              "with its grouping, covariance was verified, and the verdict follows the frozen "
+              "decision rule -- but this run did NOT satisfy the frozen continuity rule, and "
+              "its evidence is not that of a protocol-conforming run. See "
+              "protocol_conformance.deviation in the record.")
+        return 0
     print("OK record is complete, the incumbent was priced with its grouping, covariance was "
           "verified, and the verdict follows the frozen rule")
     return 0
