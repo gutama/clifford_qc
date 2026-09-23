@@ -116,7 +116,7 @@ No figure or table value in the manuscript is transcribed by hand, and
 ```bash
 python -m venv .venv && source .venv/bin/activate
 pip install -e .[test,research,stim]       # automatic CI extras
-pytest                                      # 2250 passed, 11 skipped
+pytest                                      # 2273 passed, 11 skipped
 ```
 
 This is the automatic CI dependency set; record gates additionally pin NumPy
@@ -132,7 +132,7 @@ the remaining `11 - 6 = 5` skips are per-test and *are* collected:
 
 ```text
 collected == passed + (skipped - files dropped at collection)
-2255      == 2250   + (11      -   6)
+2278      == 2273   + (11      -   6)
 ```
 
 Both sides are computed from the tree, so a drift in either quoted number
@@ -2538,7 +2538,71 @@ for every required instance the incumbent *and* at least one exact-propagation
 real-time arm must reach the target in exact arithmetic within their declared
 caps, read from zero-noise reachability alone.
 
-The producer, record, and result checker for this declaration are future work.
+The producer and result checker follow in the next section; the record is
+written by the run documented there.
+
+## Phase 16B third experiment — the run
+
+```bash
+OMP_NUM_THREADS=1 OPENBLAS_NUM_THREADS=1 MKL_NUM_THREADS=1 \
+  python benchmarks/run_phase16b_v3_feasibility.py
+python benchmarks/check_phase16b_v3_feasibility.py
+```
+
+The producer runs the budget sweep of v2 three times, once per grouping scheme,
+and changes two things.
+
+**Settings, not components.** A total budget is split across an arm's
+*settings* under the active scheme rather than across its independent real
+components, from the per-arm model in Section 3 of the design. The incumbent's
+7 926 words become 913 QWC settings or 65 fully commuting ones; `rt_unitary`
+still pays `2m`, because each `(lag, part)` is a distinct controlled-evolution
+circuit with its own ancilla basis and two lags cannot share one setting.
+
+**Covariance carried, not bounded.** Words sharing a setting are read from the
+same shots, so v2's per-word variance bound is an unlabelled approximation once
+grouping is on. Here the readouts are simulated, and the simulation is exact
+rather than asymptotic because the reference is a computational basis state.
+For a jointly measured commuting group, take the words' symplectic x-parts; a
+maximal GF(2)-independent subset of them gives `k` words whose per-shot signs
+are independent fair coins, since every nonempty product of them still has a
+nonzero x-part and so has expectation zero on a basis state. Every other word's
+sign is then `c_P` times a product of those coins, with `c_P = <b|P Q|b> = ±1`
+for the Z-type operator `Q` that completes it. That identity holds per shot, so
+the `n`-shot sample means of a whole group follow from Walsh-transforming one
+`Multinomial(n, uniform on 2^k)` draw — `k ≤ n_qubits`, so a budget of `1e20`
+shots is drawn as honestly as one of `1e4`, and a multinomial split keeps the
+transform inside `int64` at the top of the grid. Two words correlate perfectly
+when their x-parts agree and not at all otherwise; that is the true within-group
+covariance of this reference, in closed form.
+
+Nothing about that is asserted. Before any sampling, `verify_group_construction`
+checks the closed-form pairwise identity — within an x-class, `c_P c_Q` must
+equal the exact `<PQ>` — on every group of every partition. On QWC and ungrouped
+settings, where a setting really is a per-qubit product basis, it additionally
+draws literal bitstrings and requires the construction's predicted sign to match
+the drawn one *shot for shot*, not on average.
+
+Two readings the frozen text admits are recorded rather than resolved silently.
+`rt_trotter`'s "full Hermitian pencil priced as `d`" is taken as `m(m+1)/2`
+entries at `G_H` settings each; `rt_trotter` is a diagnostic and cannot promote,
+so the reading does not reach a verdict. And under the `ungrouped` scheme the
+per-arm setting model still applies, so `rt_hermitian` pays `m * |H|` settings
+for `d` where v2 charged `d(k)` as a single estimand — the config's continuity
+clause calls an `ungrouped` disagreement a producer defect, but it did not
+anticipate its own setting model repricing the candidate. The record reports the
+comparison with that cause named instead of deciding it by fiat.
+
+`check_phase16b_v3_feasibility.py` re-derives every per-scheme status, every
+per-scheme verdict, and the overall verdict from the record's own medians under
+the frozen rule. Beyond the v2 gate it requires that the incumbent's recorded
+setting count actually falls under each primary scheme (a record that prices
+grouping and then charges one setting per word is the v2 experiment relabelled),
+that every arm's setting count recomputes from the declared model against the
+`G_H` the record carries, that every readout arm carries a verification with
+zero mismatches and a shot-for-shot literal check wherever a product basis
+exists, and that the overall verdict is the least favourable primary scheme with
+`ungrouped` excluded from that set.
 
 ## Phase 16B second preregistration — stronger incumbent (result-free)
 

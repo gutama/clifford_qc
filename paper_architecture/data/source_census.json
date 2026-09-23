@@ -5,6 +5,7 @@
       "check_phase16b_preregistration",
       "check_phase16b_v2_feasibility",
       "check_phase16b_v2_preregistration",
+      "check_phase16b_v3_feasibility",
       "check_phase16b_v3_preregistration",
       "check_regenerated_record",
       "check_summaries"
@@ -32,7 +33,7 @@
       "check_warm_start"
     ],
     "classes": {
-      "Cross-artifact": 4,
+      "Cross-artifact": 5,
       "Documentation": 1,
       "Lineage and environment": 3,
       "Plan ledger": 1,
@@ -51,13 +52,13 @@
       "check_r3d_qr3_refinement",
       "check_record_environment"
     ],
-    "gates": 37,
+    "gates": 38,
     "manual_dispatch_only": 10,
     "named_in_workflow": 30,
-    "producers": 47,
+    "producers": 48,
     "producers_without_gate": 25,
     "run_on_every_pull_request": 20,
-    "same_stem_pairs": 22
+    "same_stem_pairs": 23
   },
   "records": {
     "declarations": {
@@ -171,7 +172,7 @@
     },
     "package_lines": 25561,
     "package_modules": 99,
-    "test_lines": 26233,
-    "test_modules": 114
+    "test_lines": 26439,
+    "test_modules": 115
   }
 }
