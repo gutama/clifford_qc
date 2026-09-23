@@ -431,6 +431,30 @@ def arm_acase(inst, cap, cache):
 
 # ------------------------------------------------------------------ sweeps
 
+def shared_variates(entropy, replicas, max_lag):
+    """Paired c-variates for the real-time arms: one draw per replica.
+
+    The first version of this built a fresh generator from the same
+    ``SeedSequence`` inside a per-replica comprehension, so all ``replicas``
+    entries were the identical array and every real-time cell recorded one
+    realization two hundred times. The tell was in the record and went unread:
+    median and p90 were bit-identical in every winning cell.
+
+    One generator, advanced once, drawn as a single ``(replicas, lags, 2)``
+    block. Pairing across arms is preserved because both real-time arms index
+    into the same block for the lags they share; it is the pairing that has to
+    be common between arms, not the draw that has to be common between
+    replicas.
+    """
+    if replicas < 1:
+        raise ValueError("replicas must be positive")
+    rng = np.random.default_rng(np.random.SeedSequence(list(entropy)))
+    block = rng.standard_normal((replicas, max_lag + 1, 2))
+    if replicas > 1 and np.all(block == block[0]):
+        raise RuntimeError("shared variates are identical across replicas")
+    return block
+
+
 def evaluate(arm, noisy, inst, m, policy):
     kind, data = arm["assemble"](noisy)
     if kind == "unitary":
@@ -657,9 +681,8 @@ def main() -> int:
                     rng = np.random.default_rng(
                         np.random.SeedSequence([seed_root, position, 1, cell, m]))
                     reps = 1 if eps == 0 else replicas
-                    shared = ([np.random.default_rng(
-                        np.random.SeedSequence([seed_root, position, 1, cell, m, 99])
-                    ).standard_normal((max_lag + 1, 2)) for _ in range(reps)]
+                    shared = (shared_variates(
+                        [seed_root, position, 1, cell, m, 99], reps, max_lag)
                         if "c_slots" in built else None)
                     arm_entry["stress"].setdefault(str(m), {})[repr(eps)] = run_cell(
                         built, inst, m, eps, policy_map["hard_truncation"], eps, reps,
@@ -670,9 +693,9 @@ def main() -> int:
                     for reg_index, (reg_name, policy_fn) in enumerate(policy_map.items()):
                         rng = np.random.default_rng(np.random.SeedSequence(
                             [seed_root, position, 2, cell, m, reg_index]))
-                        shared = ([np.random.default_rng(np.random.SeedSequence(
-                            [seed_root, position, 2, cell, m, reg_index, 99])
-                        ).standard_normal((max_lag + 1, 2)) for _ in range(replicas)]
+                        shared = (shared_variates(
+                            [seed_root, position, 2, cell, m, reg_index, 99],
+                            replicas, max_lag)
                             if "c_slots" in built else None)
                         stats = run_cell(built, inst, m, scale, policy_fn, scale,
                                          replicas, rng, shared)

@@ -26,6 +26,7 @@ from __future__ import annotations
 
 import hashlib
 import json
+import math
 import sys
 from pathlib import Path
 
@@ -35,6 +36,15 @@ CONFIG = ROOT / "configs" / "phase16b_v2_feasibility.json"
 RECORD = ROOT / "reference_results" / "phase16b_v2_feasibility.json"
 SCHEMA = "clifford_qc.phase16b_v2_feasibility.v1"
 PENCIL_TOL = 1e-10
+
+
+def zero_noise_minimum(entry, arm_names):
+    """Smallest recorded exact-arithmetic error across the named arms."""
+    values = [info["zero_noise_error"]
+              for arm_name in arm_names
+              for info in entry["arms"].get(arm_name, {}).get("sizes", {}).values()
+              if info.get("zero_noise_error") is not None]
+    return min(values) if values else float("inf")
 
 
 ROUND_OFF_FLOOR = 1e-12
@@ -87,9 +97,31 @@ def main() -> int:
 
     from run_phase16b_v2_feasibility import combine, instance_status
 
-    target = float(record["target"])
-    declared_replicas = int(record["replicas"])
+    # The frozen config is the authority, never the record's own copy of it.
+    # Taking these from the record only established internal consistency: a
+    # one-replica draft whose cells also said one, or a record whose target had
+    # been relaxed and statuses re-evaluated against it, both passed.
+    target = float(config["target"]["value"])
+    declared_replicas = int(config["noise_model"]["replicas"])
+    if float(record.get("target", float("nan"))) != target:
+        problems.append(f"record target {record.get('target')!r} does not match the frozen "
+                        f"config target {target!r}")
+    if int(record.get("replicas", -1)) != declared_replicas:
+        problems.append(f"record replicas {record.get('replicas')!r} does not match the frozen "
+                        f"config replicas {declared_replicas!r}")
     required = set(config["required_decision_instances"])
+
+    # P2.3: coverage before verdict. A partial run must not be validated as the
+    # preregistered record, and --instances makes partial runs easy to produce.
+    present = {name for name, entry in record["instances"].items() if "skipped" not in entry}
+    missing = sorted(required - present)
+    if missing:
+        problems.append(f"required instances absent from the record: {missing}; a partial run "
+                        "cannot pass the canonical result gate")
+    if record["decision"].get("verdict") == "INCOMPLETE":
+        problems.append("recorded verdict is INCOMPLETE; the canonical result gate rejects "
+                        "partial experiments unconditionally")
+
     statuses = {}
 
     for name, entry in record["instances"].items():
@@ -109,13 +141,33 @@ def main() -> int:
             admission = entry.get("admission")
             if not admission:
                 problems.append(f"{name} is required but records no admission verification")
-            elif not admission.get("admits"):
-                problems.append(
-                    f"{name}: admission does not hold at execution "
-                    f"(incumbent {admission.get('incumbent_zero_noise_error')}, "
-                    f"candidate {admission.get('candidate_zero_noise_error')}, "
-                    f"target {target}). A required instance whose control cannot reach the "
-                    "target in exact arithmetic reproduces the v1 censored comparison")
+            else:
+                # Recomputed from the per-size zero-noise errors, not read off the
+                # producer's flag: setting every incumbent zero_noise_error to 1 Ha
+                # while leaving admits true previously passed.
+                incumbent_seen = zero_noise_minimum(entry, [config["incumbent_arm"]])
+                candidate_seen = zero_noise_minimum(entry, config["exact_propagation_arms"])
+                for label, derived, stored in (
+                        ("incumbent", incumbent_seen,
+                         admission.get("incumbent_zero_noise_error")),
+                        ("candidate", candidate_seen,
+                         admission.get("candidate_zero_noise_error"))):
+                    if stored is None or not math.isclose(float(stored), derived,
+                                                          rel_tol=1e-9, abs_tol=1e-15):
+                        problems.append(
+                            f"{name}: stored {label} zero-noise error {stored!r} disagrees with "
+                            f"{derived!r} derived from the per-size records")
+                derived_admits = incumbent_seen <= target and candidate_seen <= target
+                if derived_admits != bool(admission.get("admits")):
+                    problems.append(
+                        f"{name}: admission flag is {admission.get('admits')!r} but the recorded "
+                        f"zero-noise errors give {derived_admits!r}")
+                if not derived_admits:
+                    problems.append(
+                        f"{name}: admission does not hold at execution (incumbent "
+                        f"{incumbent_seen:.3e}, candidate {candidate_seen:.3e}, target {target:.1e}). "
+                        "A required instance whose control cannot reach the target in exact "
+                        "arithmetic reproduces the v1 censored comparison")
 
         for arm_name, arm in entry["arms"].items():
             for report in distinct_verifications(arm):
@@ -136,6 +188,13 @@ def main() -> int:
                         f"{name}/{arm_name}: the dense Trotter step's unitarity defect "
                         f"{report['dense_unitarity_defect']:.3e} exceeds the reference's "
                         f"{allowed:.3e}; the substitution is not justified")
+            for size_key, cells in arm.get("stress", {}).items():
+                for eps_key, stats in cells.items():
+                    expected = 1 if float(eps_key) == 0.0 else declared_replicas
+                    if stats["replicas"] != expected:
+                        problems.append(
+                            f"{name}/{arm_name}/stress/{size_key}/{eps_key}: "
+                            f"{stats['replicas']} replicas, expected {expected}")
             for reg, sizes in arm.get("budget", {}).items():
                 for size_key, budgets in sizes.items():
                     for budget_key, stats in budgets.items():
