@@ -116,7 +116,7 @@ No figure or table value in the manuscript is transcribed by hand, and
 ```bash
 python -m venv .venv && source .venv/bin/activate
 pip install -e .[test,research,stim]       # automatic CI extras
-pytest                                      # 2241 passed, 11 skipped
+pytest                                      # 2250 passed, 11 skipped
 ```
 
 This is the automatic CI dependency set; record gates additionally pin NumPy
@@ -132,7 +132,7 @@ the remaining `11 - 6 = 5` skips are per-test and *are* collected:
 
 ```text
 collected == passed + (skipped - files dropped at collection)
-2246      == 2241   + (11      -   6)
+2255      == 2250   + (11      -   6)
 ```
 
 Both sides are computed from the tree, so a drift in either quoted number
@@ -2490,6 +2490,78 @@ The mapping-support minimum is `2.1906417x`; the instance-support maximum is
 preregistered result is `indeterminate_after_refinement`. That overlap does not
 license the negative direction: R3d did not refine all 187 global-extremum
 cells and cannot reselect supports after observing the draw.
+
+## Phase 16B second preregistration — stronger incumbent (result-free)
+
+The first decision experiment returned CONDITIONAL, and its own evidence says
+the verdict was not about real-time Krylov: on every TFIM instance the incumbent
+never reached the target in exact arithmetic, so the cost comparison was
+censored. `benchmarks/PHASE16B_V2_PREREGISTRATION.md` records why, and this is
+the second, independent declaration that answers it. The v1 config and record
+stay exactly as committed.
+
+```bash
+python benchmarks/check_phase16b_v2_preregistration.py
+```
+
+The cause was structural rather than a tuning miss. For a computational-basis
+reference `|b>` and a Pauli word `P`, `P|b> = (phase) |b XOR x(P)>`, so a
+weight-≤`k` Pauli pool spans exactly the Hamming ball of radius `k` around `b`
+and nothing else. On `tfim(4,J=1,h=1)` with `|0000>` the measured basis sizes
+are 11, 15 and 16 at `k = 2, 3, 4` against predicted ball sizes 11, 15 and 16,
+and the target is reached only at `k = 4` where the ball is the whole space.
+
+The v2 declaration therefore runs the incumbent in its design regime: molecular
+instances with an RHF reference and a singles-and-doubles excitation pool. The
+required set is the `h4_chain` geometries that admit — 0.75, 0.9 and 1.0 Å,
+each 8 qubits with reference support on 11 or 12 distinct energies.
+
+Beyond the v1 checks the gate enforces an **admission criterion**: for every
+required instance it recomputes, in exact arithmetic, that the incumbent *and*
+at least one exact-propagation real-time arm reach the target within their
+declared caps. It reads zero-noise reachability only — never a noisy
+comparison, a shot count, or a ratio. Promoting an inadmissible instance to
+required is refused, which is precisely what v1 could not detect. Where the
+chemistry extra is absent the check reports a loud SKIP and fails any required
+instance it could not verify, because an unenforced admission criterion is the
+hole the gate exists to close.
+
+The producer, record, and result checker for this declaration are future work.
+
+## Phase 16B second experiment — the run
+
+```bash
+OMP_NUM_THREADS=1 OPENBLAS_NUM_THREADS=1 MKL_NUM_THREADS=1 \
+  python benchmarks/run_phase16b_v2_feasibility.py
+python benchmarks/check_phase16b_v2_feasibility.py
+```
+
+The producer runs the same two sweeps as v1 against the v2 declaration, with
+three implementation differences the record documents:
+
+* **Estimands are arrays, and the incumbent's pencil is one matrix-vector
+  product** against coefficient matrices built once per basis. A-CASE on
+  `h4_chain` carries a 7 927-word universe, and a per-replica Python loop over
+  its terms would put the budget sweep out of reach.
+* **The Trotter step is built densely**, not in the `MV` basis. It is the same
+  object: the same `rotor` factors in the same order. The `MV` construction
+  costs about five minutes per 8-qubit instance because a Trotterized
+  propagator's Pauli support fills in. `verify_trotter_step` measures the two
+  against each other and records the residual beside both unitarity defects;
+  the tolerance is scaled to the reference's own defect, because the two cannot
+  be required to agree more tightly than the reference agrees with itself. On
+  `h4_chain` the `MV` path's defect is about 9e-10 and the dense path's about
+  6e-14, so the dense construction is the more accurate of the two. The
+  identity is a property of the construction, so it is checked once per
+  (qubit count, microstep count) and reused.
+* **Per-arm basis grids**, so arms are compared at matched accuracy rather than
+  matched basis size.
+
+`check_phase16b_v2_feasibility.py` re-derives every status and the verdict from
+the record's per-cell medians under the frozen rule. It additionally requires
+that admission still held at execution on every required instance, and that the
+recorded Trotter verification is inside its tolerance with the dense path the
+more accurate one.
 
 ## Phase 16B real-time Krylov feasibility — preregistration (result-free)
 

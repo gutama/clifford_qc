@@ -1,0 +1,194 @@
+{
+  "schema": "clifford_qc.phase16b_v2_feasibility_config.v1",
+  "design_document": "benchmarks/PHASE16B_V2_PREREGISTRATION.md",
+  "supersedes_nothing": "This is a second, independent declaration. The v1 config benchmarks/configs/phase16b_feasibility.json and its record stay exactly as committed; nothing here changes how v1 is read.",
+  "purpose": "Frozen inputs for the second Phase 16B decision experiment, whose incumbent control is run in its design regime so the cost comparison is not censored.",
+  "contains_results": false,
+
+  "target": {
+    "statistic": "median_absolute_energy_error",
+    "value": 1.6e-3,
+    "units": "Hartree",
+    "note": "Every instance in this declaration is molecular, so the target is chemical accuracy in Ha throughout. The v1 mixed-units caveat does not apply."
+  },
+
+  "v1_finding_this_design_answers": {
+    "summary": "A weight-<=k Pauli pool on a computational-basis reference spans exactly the Hamming ball of radius k, because P|b> = phase * |b XOR x(P)> and Z letters only contribute phase.",
+    "consequence": "On tfim(4,J=1,h=1) with |0000>, the pool reaches the target only at k=4, where the ball is the whole 16-dimensional space. That is full diagonalization, not a control.",
+    "measured_before_freezing": {"k2": {"ball": 11, "basis": 11}, "k3": {"ball": 15, "basis": 15}, "k4": {"ball": 16, "basis": 16}},
+    "fix": "Run the incumbent on molecular instances with an RHF reference and a singles-and-doubles excitation pool, which is the regime A-CASE is built for."
+  },
+
+  "instances": {
+    "h4_chain_075": {
+      "builder": "clifford_qc.models.chemistry.h4_chain", "args": {"spacing": 0.75},
+      "reference": "model.reference (RHF determinant from the builder)",
+      "role": "required_decision", "geometry_units": "angstrom", "basis": "sto-3g",
+      "mapping": "jordan_wigner", "spin_convention": "interleaved"
+    },
+    "h4_chain_090": {
+      "builder": "clifford_qc.models.chemistry.h4_chain", "args": {"spacing": 0.9},
+      "reference": "model.reference (RHF determinant from the builder)",
+      "role": "required_decision", "geometry_units": "angstrom", "basis": "sto-3g",
+      "mapping": "jordan_wigner", "spin_convention": "interleaved"
+    },
+    "h4_chain_100": {
+      "builder": "clifford_qc.models.chemistry.h4_chain", "args": {"spacing": 1.0},
+      "reference": "model.reference (RHF determinant from the builder)",
+      "role": "required_decision", "geometry_units": "angstrom", "basis": "sto-3g",
+      "mapping": "jordan_wigner", "spin_convention": "interleaved",
+      "declared_note": "Admits by a small margin. It is required anyway: dropping an admissible instance because its margin looks thin would select on an outcome this experiment has not measured."
+    },
+    "h4_chain_110": {
+      "builder": "clifford_qc.models.chemistry.h4_chain", "args": {"spacing": 1.1},
+      "reference": "model.reference (RHF determinant from the builder)",
+      "role": "diagnostic", "geometry_units": "angstrom", "basis": "sto-3g",
+      "mapping": "jordan_wigner", "spin_convention": "interleaved",
+      "declared_expectation": "Does not admit; the incumbent is expected to be censored. Retained to show where the SD pool stops reaching."
+    },
+    "h4_chain_150": {
+      "builder": "clifford_qc.models.chemistry.h4_chain", "args": {"spacing": 1.5},
+      "reference": "model.reference (RHF determinant from the builder)",
+      "role": "diagnostic", "geometry_units": "angstrom", "basis": "sto-3g",
+      "mapping": "jordan_wigner", "spin_convention": "interleaved",
+      "declared_expectation": "Does not admit. The SD pool saturates at a basis of 15 at every cap from 16 to 26; this is the ordinary static-correlation limit, not a defect of the run."
+    },
+    "h2_sto3g": {
+      "builder": "clifford_qc.models.chemistry.h2", "args": {"bond_length": 0.7414},
+      "reference": "model.reference (RHF determinant from the builder)",
+      "role": "diagnostic", "geometry_units": "angstrom", "basis": "sto-3g",
+      "mapping": "jordan_wigner", "spin_convention": "interleaved",
+      "declared_expectation": "Reference support is 2 at any geometry, so m=2 spans the answer exactly. Demoted from required in v1; a trivial instance cannot decide anything."
+    }
+  },
+  "required_decision_instances": ["h4_chain_075", "h4_chain_090", "h4_chain_100"],
+  "diagnostic_instances": ["h4_chain_110", "h4_chain_150", "h2_sto3g"],
+
+  "admission_criterion": {
+    "rule": "For every required decision instance, the incumbent arm AND at least one exact-propagation real-time arm must reach the target in EXACT arithmetic within their declared caps.",
+    "enforced_by": "benchmarks/check_phase16b_v2_preregistration.py, before any producer runs",
+    "reads_only": "zero-noise reachability",
+    "never_reads": ["any noisy comparison", "any shot count", "any cost ratio"],
+    "rationale": "A control must be able to reach the target before it is worth asking what it costs to. v1's verdict was censored precisely because this was never checked.",
+    "declared_bias": "This keeps instances where the incumbent works and drops instances where it does not, which makes the candidate's job harder, not easier. Selecting instances where the candidate wins would be the bias to avoid; nothing here does that.",
+    "failure_is_not_a_verdict": "An instance that fails admission cannot be preregistered as required. It is excluded before execution, never reported as a FAIL."
+  },
+
+  "arms": {
+    "exact_diag": {"role": "ground_truth", "priceable": false},
+    "rt_hermitian": {"role": "primary_candidate", "propagation": "exact_dense_expm",
+                     "pencil": "Toeplitz c,d", "estimands": "4m-3 real components"},
+    "rt_unitary": {"role": "primary_candidate", "propagation": "exact_dense_expm",
+                   "pencil": "S0,S1 from c only", "estimands": "2m real components",
+                   "phase_branch": "midpoint of the declared enclosure"},
+    "rt_trotter": {"role": "propagation_diagnostic",
+                   "propagation": "repeated fixed trotter2_unitary step",
+                   "microsteps_per_dt": 8,
+                   "pencil": "full Hermitian V^dag H V; the exact d(j-i) shortcut is forbidden",
+                   "step_rule": "One fixed step U_T = trotter2_unitary(H_terms, dt, microsteps_per_dt); column k is U_T^k applied to the reference."},
+    "acase_control": {"role": "matched_incumbent",
+                      "basis_construction": "run_acase in exact arithmetic to the frozen cap, then frozen",
+                      "pencil_rebuild": "S_ij and H_ij rebuilt from perturbed shared Pauli word expectations via bank.iter_operator_terms coefficients",
+                      "estimands": "the bank word universe over the retained basis"},
+    "power_krylov_control": {"role": "diagnostic_control",
+                             "basis": "identity plus krylov_response(H, m-1)"}
+  },
+  "primary_candidate_arms": ["rt_hermitian", "rt_unitary"],
+  "exact_propagation_arms": ["rt_hermitian", "rt_unitary"],
+  "incumbent_arm": "acase_control",
+
+  "acase_pool": {
+    "rule": "clifford_qc.models.chemistry.excitation_multivectors(n_qubits, n_electrons) -- singles and doubles on the RHF determinant",
+    "applies_to": "every instance in this declaration",
+    "growth": {"caps": [4, 8, 12, 16], "criterion": "lowering",
+               "exact_ground_energy": null, "target_error": null,
+               "note": "Both oracle fields are null so the incumbent cannot stop on the answer it is being compared against."}
+  },
+
+  "basis_sizes_by_arm": {
+    "rt_hermitian": [2, 3, 4, 6, 8, 10, 12],
+    "rt_unitary": [2, 3, 4, 6, 8, 10, 12],
+    "rt_trotter": [2, 3, 4, 6, 8, 10, 12],
+    "power_krylov_control": [2, 3, 4, 6, 8, 10, 12],
+    "acase_control": [4, 8, 12, 16]
+  },
+  "matching_note": "v1 applied one basis-size grid to every arm, which priced arms at equal basis size rather than equal accuracy. Each arm now uses the grid its own construction needs, and the comparison is total modelled shots at the same target.",
+
+  "grid_rule": {
+    "dt": "pi / (U - L)",
+    "enclosure": "exact extremal eigenvalues of the dense Hamiltonian",
+    "enclosure_note": "Every instance here is 8 qubits or fewer and densely diagonalizable, so the v1 Pauli one-norm fallback is not used.",
+    "energy_shift": "(L + U) / 2",
+    "strict_condition": "(U - L) * dt < 2*pi, checked strictly; a violation is INVALID, not FAIL",
+    "enclosure_must_contain_spectrum": true,
+    "secondary_multiplier_sweep": [0.5, 1.0, 2.0],
+    "secondary_sweep_role": "diagnostic only",
+    "never_chosen_after_inspecting_energies": true
+  },
+
+  "noise_model": {
+    "kind": "gaussian_component_stress",
+    "evidence_label": "heuristic",
+    "description": "Each independent positive-lag real/imaginary component receives Gaussian noise of standard deviation eps. Negative lags reuse conjugates, c(0)=1 stays exact, d(0) is real.",
+    "paired_across_arms": true,
+    "paired_rule": "Real-time arms share standard-normal variates for a given (instance, cell, m, replica), scaled by each arm's own eps.",
+    "eps_grid": [0.0, 1e-6, 1e-5, 1e-4, 1e-3, 1e-2],
+    "replicas": 200,
+    "seed_root": 20260922,
+    "seed_stream_rule": "numpy SeedSequence([seed_root, instance_index, sweep_index, cell_index, m, regularizer_index]); never a randomized string hash",
+    "no_finite_sample_inference": true
+  },
+
+  "cost_model": {
+    "contract": "fixed_basis_estimation_only",
+    "contract_note": "Every basis is frozen by exact arithmetic before noise is applied, so adaptive construction and selection costs are NOT priced. Carried over from v1 unchanged.",
+    "bounded_component_variance": "Var(mean X) = (1-mu^2)/N <= 1/N for X in {-1,+1}; shots per component = ceil(1/eps^2) is sufficient under that bound.",
+    "d_component_variance": "bounded by Lambda^2/N with Lambda = sum_l |h_l| over the traceless part",
+    "acase_word_variance": "each Pauli word expectation on the reference is real and bounded in [-1,1], so it uses the same bounded-component bound as c",
+    "allocation": "uniform_per_component",
+    "allocation_rule": "A total budget N_total splits equally across that arm's independent real components. eps for a bounded component is sqrt(n_components / N_total); eps_d for a Hamiltonian-weighted component is Lambda * sqrt(n_components / N_total).",
+    "budget_grid_decades": [4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20],
+    "shots_to_target": "the smallest TESTED budget whose median absolute error meets the target; no interpolation or extrapolation; censored when no tested budget qualifies",
+    "excluded_from_model": ["gate depth", "state preparation", "hardware throughput", "circuit compilation", "QWC grouping and covariance"],
+    "excluded_note": "Excluded for every arm alike, so the ratio is a component-count comparison under one bound, not a device-time comparison."
+  },
+
+  "regularizers": {
+    "hard_truncation": {"relative_cutoff": "max(eps, 1e-13) * lambda_max(S)", "is_ridge": false},
+    "per_mode_floor": {"rule": "absolute per-mode floor in the norm-normalized overlap spectrum", "is_ridge": false},
+    "ridge": {"coefficient": 1e-8, "rule": "additive shift of the normalized overlap spectrum", "is_ridge": true}
+  },
+  "non_ridge_regularizers": ["hard_truncation", "per_mode_floor"],
+
+  "decision_rule": {
+    "qualifying_comparison": "reaches the target AND has modeled shot ratio N_acase / N_rt >= 10, inclusive, on the tested budget grid",
+    "invalid_precedence": "A failed deterministic check (independent pencil identity, strict phase-branch condition, reference/sector consistency, or missing provenance) gives INVALID for that instance, not NO_GO. Ordinary noisy solve failures remain in the statistics.",
+    "instance_status_order": [
+      {"status": "PASS", "condition": "an exact-propagation real-time arm with a non-ridge regularizer has a qualifying comparison at c-component noise >= 1e-5"},
+      {"status": "MARGINAL", "condition": "no PASS, but a qualifying comparison exists at c noise >= 1e-6, including a ridge-only comparison"},
+      {"status": "UNDETERMINED", "condition": "neither above, and a required cost comparison is censored or unpriceable within the grid"},
+      {"status": "FAIL", "condition": "otherwise; all comparisons complete but no qualifying candidate at c noise >= 1e-6"}
+    ],
+    "combination_rule": "all required instances PASS gives GO; all FAIL gives NO_GO; anything else is CONDITIONAL",
+    "combination_generalization_note": "v1's two-instance table is the special case of this rule at two required instances.",
+    "invalid_combination": "If any required instance is INVALID the overall verdict is INVALID.",
+    "undetermined_on_required_is_not_a_pass": "A censored incumbent cost must never read as a promotion, whatever the ratio would have been.",
+    "diagnostics_cannot_promote": ["rt_trotter", "power_krylov_control", "h4_chain_110", "h4_chain_150", "h2_sto3g"]
+  },
+
+  "prespecified_followup": {
+    "permitted_on_no_go_or_conditional": "exactly one estimator-variance refinement, replacing the flat bounded-component bound with the magnitude-dependent (1 - mu^2)/N using each component's own modeled magnitude",
+    "publication_rule": "the primary verdict is published unchanged alongside any separately labelled refinement; thresholds are never moved after observing results"
+  },
+
+  "record_requirements": {
+    "schema": "clifford_qc.phase16b_v2_feasibility.v1",
+    "must_include": ["config_digest", "provenance", "evidence labels", "complete failure accounting",
+                     "modeled cost details", "decision evaluation", "measured distinct-energy support per instance",
+                     "zero-noise basis error per arm", "admission verification per required instance",
+                     "propagation fidelity for rt_trotter"],
+    "must_carry": {"quantum_advantage_claim": false},
+    "no_phase_completion_claim": true,
+    "status_ledger_update_forbidden": true
+  }
+}
