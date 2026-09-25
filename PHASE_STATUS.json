@@ -37,10 +37,10 @@
   },
   "summary": {
     "numbered_phase_count": 20,
-    "complete_phase_count": 15,
-    "strict_complete_fraction": 0.75,
-    "progress_weighted_points": 16.25,
-    "progress_weighted_fraction": 0.8125
+    "complete_phase_count": 16,
+    "strict_complete_fraction": 0.8,
+    "progress_weighted_points": 16.75,
+    "progress_weighted_fraction": 0.8375
   },
   "numbered_phases": [
     {
@@ -222,13 +222,12 @@
     {
       "id": "18",
       "title": "Embedding boundary",
-      "status": "partial",
-      "implementation_fraction": 0.5,
+      "status": "complete",
+      "implementation_fraction": 1.0,
       "evidence": [
-        "clifford_qc/models/effective.py"
-      ],
-      "remaining": [
-        "Common fragment-solver callback returning energy and one- and two-particle density matrices"
+        "clifford_qc/models/effective.py",
+        "clifford_qc/subspace/fragment.py",
+        "tests/test_fragment_solver.py"
       ]
     },
     {

@@ -116,7 +116,7 @@ No figure or table value in the manuscript is transcribed by hand, and
 ```bash
 python -m venv .venv && source .venv/bin/activate
 pip install -e .[test,research,stim]       # automatic CI extras
-pytest                                      # 2323 passed, 11 skipped
+pytest                                      # 2346 passed, 11 skipped
 ```
 
 This is the automatic CI dependency set; record gates additionally pin NumPy
@@ -132,7 +132,7 @@ the remaining `11 - 6 = 5` skips are per-test and *are* collected:
 
 ```text
 collected == passed + (skipped - files dropped at collection)
-2328      == 2323   + (11      -   6)
+2351      == 2346   + (11      -   6)
 ```
 
 Both sides are computed from the tree, so a drift in either quoted number
@@ -2790,6 +2790,25 @@ real-time arms reach the target there, but against nothing. Changing that pool
 now would be a new preregistration, not a rerun of this one; the prespecified
 follow-up in the design document permits one estimator-variance refinement and
 nothing else.
+
+## Phase 18 fragment-solver callback
+
+The embedding boundary ships as an interface, not as a record: there is no
+producer, and nothing here is a benchmark result. Its correctness is the test
+module:
+
+```bash
+python -m pytest tests/test_fragment_solver.py -q
+```
+
+It needs no optional extra; the molecular fragments are the committed H₄ and
+LiH CAS(4e,4o) FCIDUMPs. The density matrices are checked entry by entry
+against `⟨a†a⟩` built from the package's own fermion operators, on a random
+complex state that conserves nothing. Each solver's spin-summed RDMs,
+contracted with the FCIDUMP integrals, must recover that solver's own energy to
+`1e-10`. The hybrid's reconstructed-state RDMs must agree with the projected
+route, which never forms the state. The RDM index and ordering conventions are
+in `CONVENTIONS.md` under *Density matrices*.
 
 ## R2b raw-pool fermion-mapping axis
 

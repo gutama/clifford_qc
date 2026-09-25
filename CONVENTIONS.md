@@ -97,6 +97,25 @@ It verifies
 c_j^\dagger c_j=\frac12(1-Z_j).
 \]
 
+## Density matrices
+
+Fragment solvers (`subspace/fragment.py`, Phase 18) return spin-orbital
+density matrices indexed by the model's qubit order. Occupied is `|1>`, and
+an occupation word carries qubit `p` at bit `n-1-p`, as the sector backend
+does:
+
+```text
+rdm1[p, q]       = <c+_p c_q>
+rdm2[p, q, r, s] = <c+_p c+_q c_r c_s>
+```
+
+`spatial_rdms` spin-sums them into the chemist order the FCIDUMP reader
+assembles, `D1[p, q] = sum_s <c+_ps c_qs>` and
+`D2[p, q, r, s] = sum_(s,t) <c+_ps c+_rt c_st c_qs>`. Then
+`E = E_core + sum h_pq D1_pq + 1/2 sum (pq|rs) D2_pqrs` with no reindexing.
+The spin sum reads the model's declared `spin_convention` and never assumes
+one.
+
 ## Model metadata
 
 A `Model` states the conventions its Pauli sum is read under, and

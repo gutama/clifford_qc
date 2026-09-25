@@ -107,11 +107,11 @@ Status at a glance:
 | Phase 15: Second-moment bank | open | 0% |
 | Phase 16: Time-evolved inputs | open | 0% |
 | Phase 17: Mapping validation and breadth | partial | 75% |
-| Phase 18: Embedding boundary | partial | 50% |
+| Phase 18: Embedding boundary | complete | 100% |
 | Phase 19: Anticommuting-clique partitioning | proposed | 0% |
 
-Strict complete-phase score: **15 / 20 = 75.00%**.
-Progress-weighted score: **16.25 / 20 = 81.25%**.
+Strict complete-phase score: **16 / 20 = 80.00%**.
+Progress-weighted score: **16.75 / 20 = 83.75%**.
 Retired and conditional adjunct phases are tracked separately and do not change this denominator. Source: `PHASE_STATUS.json`; validate with `python benchmarks/check_phase_status.py`.
 <!-- PHASE-STATUS-SUMMARY:END -->
 
@@ -133,7 +133,7 @@ conditional phases.
 | 15 | second-moment bank | **open, unimplemented**; no `SecondMomentBank` or H-squared support/cost preflight ships |
 | 16 | time-evolved inputs | **open, unimplemented**; matrix-free action exists, but neither the QSCI time-evolved input nor a circuit-native/truncated A-CASE real-time family ships. 16B's three preregistered decision experiments have run — v1 `CONDITIONAL`, v2 `GO` under per-word pricing, v3 `CONDITIONAL` once the incumbent is priced with its own grouping — and the programme ends there: the real-time backend is **not authorized** (§5, Phase 16) |
 | 17 | mapping validation and breadth | **partially implemented (75%)**; the JW/BK/parity transformation, invariance gates, and mapping-axis records ship through R2, while the CEO-pool and dedicated MORE-ADAPT breadth benchmarks remain open |
-| 18 | embedding boundary | **partially implemented (50%)**; the versioned effective-Hamiltonian schema ships in `models/effective.py`, while the common fragment-solver callback returning energy and one- and two-particle density matrices does not |
+| 18 | embedding boundary | **done**; the versioned effective-Hamiltonian schema ships in `models/effective.py`, and the common fragment-solver callback returning energy and one- and two-particle density matrices ships in `subspace/fragment.py`, implemented by QSCI, selected CI, the hybrid, and a sector-FCI reference. The embedding loop itself stays outside the package |
 | 19 | anticommuting-clique (spin-factor) partitioning | **proposed, unexecuted**; the algebra is §3.6 and the scope is §5, Phase 19. Lever 1 is scoped to a fixed-coefficient Hamiltonian-energy estimand, *not* to Phase 14b's matrix-element word bank; lever 2 needs a non-Clifford transport primitive that does not exist yet. An in-session structural probe supplies the sizing numbers and is explicitly **not** a committed record — no producer, config, record or checker exists, so nothing there licenses a rung, a price, or an arm |
 | G1 | GA structural preconditioner: Majorana pool and filters A–E | **done**; both gates pass and QG1's falsifier does not fire, but E's content is pool-dependent — `522` of `549` removed on the §3.5 Majorana pool, `0` on the excitation pool the mapping records use |
 | G2–G3 | mapping-invariance test on the restricted pool, PRD/WISE integration with a cost decomposition | **retired by G1's own result**; the G1-admissible pool reconstructs the pool R2b already builds, so QG2's falsifier holds by construction rather than by measurement (§5, Phase G2) |
@@ -170,7 +170,9 @@ It does not compute band structures, forces, phonons, or geometry optimization;
 established DFT codes own that layer. `clifford_qc` solves the small-but-hard
 correlated subproblem (active spaces, Hubbard/Kanamori clusters, impurity
 models, spin lattices) that downfolding or embedding produces, and returns
-energies, low-lying spectra, and material observables.
+energies, low-lying spectra, and material observables — and, through the
+Phase 18 fragment-solver callback, the one- and two-particle density matrices
+an embedding loop consumes.
 
 **Method stack (three tiers).**
 
@@ -2137,6 +2139,41 @@ Keep DMET and projection-based embedding outside the package. Provide a versione
 effective-Hamiltonian schema and a fragment-solver callback returning energy plus
 one- and two-particle density matrices. QSCI, selected CI, and the hybrid should
 implement the same callback.
+
+**Done.** The schema is `models/effective.py`. The callback is
+`subspace/fragment.py`: a `FragmentSolver` takes a fermionic `Model` and
+returns a `FragmentSolution` (`clifford_qc.fragment_solution.v1`). That
+carries the solver's energy, spin-orbital `rdm1[p,q] = ⟨a†_p a_q⟩` and
+`rdm2[p,q,r,s] = ⟨a†_p a†_q a_r a_s⟩`, a spin-summed chemist-ordered spatial
+pair for restricted embedding codes, and the input's evidence category.
+`QSCIFragmentSolver`, `SelectedCIFragmentSolver` and `HybridFragmentSolver`
+implement it over `run_qsci`, `run_control` and `run_hybrid`, and
+`ExactFragmentSolver` (sector FCI) is the reference implementation. The
+matrices are Gram matrices of one- and two-hole vectors, so one kernel serves
+a sector eigenvector, a sampled-subspace Ritz vector and a reconstructed
+A-CASE Ritz state.
+
+*What is tested, and how independently.* `tests/test_fragment_solver.py`
+checks every RDM entry against `⟨a†a⟩` built from the package's own
+`cdag_op`/`c_op`, on a random complex state that conserves nothing, and a
+mutation of either Jordan–Wigner sign fails it. Every solver's spatial RDMs,
+contracted with the FCIDUMP integrals, must return that solver's own energy
+to `1e-10`: on H₄, and on LiH CAS(4e,4o) for the hybrid. The Hubbard and effective-Hamiltonian
+models are checked through their hopping and double-occupancy terms. A
+full-sector QSCI sample must reproduce the exact RDMs. The hybrid's
+reconstructed-state RDMs must agree with the projected route,
+`SubspaceResult.transition`, which never forms that state. Each solution also
+carries `state_energy`, `⟨Ψ|H|Ψ⟩` on the state its RDMs came from, and its
+`diagnostics()` report the trace, partial-trace, `S_z` and hermiticity
+residuals.
+
+*What it does not claim.* RDMs are read from a state vector, so this is a
+small-fragment interface. The hybrid's Ritz state is materialized here, and the
+measured A-CASE route never forms it. A sampled solver's RDMs are those of its
+Ritz vector, with no finite-shot uncertainty attached. A degenerate ground
+state has no unique RDMs; the exact solver reports its gap. No embedding
+driver, DMET self-consistency or fragment-energy partition ships, and none is
+claimed.
 
 ### Phase 19 — anticommuting-clique (spin-factor) partitioning — proposed, unexecuted
 
@@ -4409,6 +4446,12 @@ bought a duplicate record.
     permitted estimator-variance refinement is sized and left unspent (§5,
     Phase 16). No 16B step is scheduled. Phase 16's open work is 16A, which
     this result does not touch.
+19b. Phase 18's fragment-solver callback — **done.** One `FragmentSolver`
+    contract returns energy plus spin-orbital one- and two-particle density
+    matrices. QSCI, selected CI and the hybrid implement it, beside a sector-FCI
+    reference. Each solver's RDMs recover its own energy from the integrals,
+    and that closes Phase 18 (§5). The embedding loop stays outside the
+    package by design.
 20. CEO and MORE-ADAPT benchmarks after the critical comparison is stable.
 21. The excited-state track, after the certificate question of §7.4 has an answer. Note
     that §3.5B's transformation-character parameter is what keeps this track reachable

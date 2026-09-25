@@ -93,8 +93,18 @@ from .multiresolution import (
     configuration_ordering, configuration_packet_hierarchy,
     run_coarse_to_fine_acase,
 )
+from .fragment import (
+    FRAGMENT_SOLUTION_SCHEMA, ExactFragmentSolver, FragmentSolution,
+    FragmentSolver, HybridFragmentSolver, QSCIFragmentSolver,
+    SelectedCIFragmentSolver, energy_from_spatial_rdms, spatial_rdms,
+    spin_orbital_rdms,
+)
 
 __all__ = [
+    "FRAGMENT_SOLUTION_SCHEMA", "ExactFragmentSolver", "FragmentSolution",
+    "FragmentSolver", "HybridFragmentSolver", "QSCIFragmentSolver",
+    "SelectedCIFragmentSolver", "energy_from_spatial_rdms", "spatial_rdms",
+    "spin_orbital_rdms",
     "FamilyReport", "HybridArm", "configuration_generators_from_words",
     "dressed_family", "family_projection_report", "run_hybrid",
     "ControlResult", "SpanComparison", "containment_residual",

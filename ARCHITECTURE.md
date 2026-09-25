@@ -61,7 +61,7 @@ providing another runtime implementation.
 | Execution | `backends/`, `dense_reference.py`, `sparse.py`, `pauli_action.py` | Exact, sampled, stabilizer, dense, sparse, and sector calculations |
 | Measurement | `measurement/` | Grouping, readout compilation, caches, functionals, covariance, allocation, confidence, and device cost |
 | Algorithms | `algorithms/` | VQE, ADAPT-VQE, optimizers, candidate pools, and initialization |
-| Subspaces | `subspace/` | Projection, adaptive growth, sampled determinants, classical controls, hybrids, response, and restrictions |
+| Subspaces | `subspace/` | Projection, adaptive growth, sampled determinants, classical controls, hybrids, response, restrictions, and the fragment-solver callback an external embedding loop calls |
 | Orchestration | `workflows.py`, `prepared.py`, `pipeline.py` | Cross-layer workflows and reusable preparation/solve/validation |
 | Interoperability | `bridges/` | Explicit optional adapters for external quantum software |
 | Evidence | `benchmarks/`, `verify.py`, `reproducibility.py`, `record_environment.py`, `capabilities.py` | Smoke checks, records, validation gates, and environment provenance |

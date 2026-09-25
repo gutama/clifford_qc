@@ -51,6 +51,7 @@ from .elements import MatrixElementBank
 from .generator_core import Generator, as_generators
 from .generators import commutator_response, compound_response, identity_generator
 from .fermionic_generators import determinant_excitations, occupied_spin_orbitals
+from .solver import SubspaceResult
 
 __all__ = [
     "FamilyReport",
@@ -281,6 +282,13 @@ class HybridArm:
     seconds: float
     exact_energy: float | None = None
     metadata: dict = field(default_factory=dict)
+    # The arm's final solve, carrying its bank and generator indices. Kept out
+    # of ``to_record`` for the reason ``ControlResult.coefficients`` is: the
+    # Phase 18 fragment solver reads the Ritz vector in memory, and benchmark
+    # JSON should not grow with the subspace. Excluded from equality because it
+    # holds arrays, and from repr because it holds the whole bank.
+    subspace: SubspaceResult | None = field(default=None, compare=False,
+                                            repr=False)
 
     @property
     def error(self) -> float | None:
@@ -353,7 +361,7 @@ def _fixed_basis_arm(name, rho, hamiltonian, generators, *, exact_energy,
                               if label.startswith("cfgH") and "*" not in label),
         stopped_reason="fixed basis: nothing to grow", labels=labels,
         seconds=seconds, exact_energy=exact_energy,
-        metadata=dict(metadata or {}))
+        metadata=dict(metadata or {}), subspace=solved)
 
 
 def _arm_from_result(name, result, *, candidate_pool, exact_energy, seconds,
@@ -382,7 +390,8 @@ def _arm_from_result(name, result, *, candidate_pool, exact_energy, seconds,
         configuration_directions=configurations,
         dressed_directions=dressed, packet_directions=packets,
         stopped_reason=result.stopped_reason, labels=labels, seconds=seconds,
-        exact_energy=exact_energy, metadata=dict(metadata or {}))
+        exact_energy=exact_energy, metadata=dict(metadata or {}),
+        subspace=result.result)
 
 
 def run_hybrid(rho, model, words, *, max_size: int = 12,
