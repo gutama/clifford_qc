@@ -131,7 +131,7 @@ conditional phases.
 | 13 | parity/X-rank invariant | **done**; one shared GF(2) implementation is tested across every declared spin-conserving JW construction path before grouping |
 | 14 | fully commuting grouping | **done on the frozen BeH₂/JW comparison** — the public compiled-plan API, exact joint sampler, preregistered finite-sample record, covariance audit, and device-card costing ship; Q9 is positive within the declared one-bank oracle boundary |
 | 15 | second-moment bank | **open, unimplemented**; no `SecondMomentBank` or H-squared support/cost preflight ships |
-| 16 | time-evolved inputs | **open, unimplemented**; matrix-free action exists, but neither the QSCI time-evolved input nor a circuit-native/truncated A-CASE real-time family ships |
+| 16 | time-evolved inputs | **open, unimplemented**; matrix-free action exists, but neither the QSCI time-evolved input nor a circuit-native/truncated A-CASE real-time family ships. 16B's three preregistered decision experiments have run — v1 `CONDITIONAL`, v2 `GO` under per-word pricing, v3 `CONDITIONAL` once the incumbent is priced with its own grouping — and the programme ends there: the real-time backend is **not authorized** (§5, Phase 16) |
 | 17 | mapping validation and breadth | **partially implemented (75%)**; the JW/BK/parity transformation, invariance gates, and mapping-axis records ship through R2, while the CEO-pool and dedicated MORE-ADAPT breadth benchmarks remain open |
 | 18 | embedding boundary | **partially implemented (50%)**; the versioned effective-Hamiltonian schema ships in `models/effective.py`, while the common fragment-solver callback returning energy and one- and two-particle density matrices does not |
 | 19 | anticommuting-clique (spin-factor) partitioning | **proposed, unexecuted**; the algebra is §3.6 and the scope is §5, Phase 19. Lever 1 is scoped to a fixed-coefficient Hamiltonian-energy estimand, *not* to Phase 14b's matrix-element word bank; lever 2 needs a non-Clifford transport primitive that does not exist yet. An in-session structural probe supplies the sizing numbers and is explicitly **not** a committed record — no producer, config, record or checker exists, so nothing there licenses a rung, a price, or an arm |
@@ -333,7 +333,8 @@ solves without materializing dense operators: exact QSCI sampling-state oracles
 on small and medium systems, restriction to sampled index sets, propagation
 diagnostics, residual and variance checks. They do **not** make real-time
 operators sparse in the multivector generator bank; circuit-native real-time
-A-CASE remains a separate architectural problem (Phase 16B).
+A-CASE remains a separate architectural problem (Phase 16B), and 16B's
+decision programme did not authorize building it (§5, Phase 16).
 
 ### 2.3 Adaptive workflows have clean extension seams
 
@@ -2030,6 +2031,95 @@ short-time polynomial response may be tested only with explicit truncation, norm
 fidelity, energy-error, and conditioning budgets against matrix-free propagation.
 This phase owns Q8.
 
+**16B decision programme — executed, `CONDITIONAL`; the backend is not
+authorized.** Before building a second matrix-element backend, 16B asked whether
+a real-time Krylov family earns one: on the same Hamiltonian, reference, target
+(`1.6e-3` in each model's units) and cost model, does an exact-propagation
+real-time arm reach the target on at least `10×` fewer modelled shots than
+A-CASE? `benchmarks/PHASE16B_FEASIBILITY.md` is the design. Three independent
+preregistrations followed, each committed and gated before its producer ran,
+and each record is heuristic-tier and carries `quantum_advantage_claim: false`.
+
+| declaration | required instances | shot budget split across | verdict |
+|---|---|---|---|
+| v1 (`phase16b_feasibility.json`) | `tfim4_crit`, `h2_sto3g` | estimands: Pauli words, real components | `CONDITIONAL` |
+| v2 (`phase16b_v2_feasibility.json`) | `h4_chain` at 0.75, 0.9, 1.0 Å | estimands: Pauli words, real components | `GO` |
+| v3 (`phase16b_v3_feasibility.json`) | the same three | measurement settings, under QWC and fully commuting grouping | `CONDITIONAL` |
+
+*v1*'s verdict was not about real-time Krylov. `h2_sto3g` passed on a reference with
+weight on only two distinct energies, a risk the config declared before it ran,
+and on every TFIM instance the incumbent never reached the target even in exact
+arithmetic, so its cost was censored and `tfim4_crit` was `UNDETERMINED`. The
+cause is structural: on a computational-basis reference a weight-`≤k` Pauli pool
+spans exactly the Hamming ball of radius `k`, so the control was full
+diagonalization or nothing (`PHASE16B_V2_PREREGISTRATION.md`, §1).
+
+*v2* moved the incumbent into its design regime — RHF references, the
+singles-and-doubles excitation pool — and added an admission gate: a required
+instance must be reachable in exact arithmetic by the incumbent *and* by one
+real-time arm before anything noisy is drawn. All three admitted `h4_chain`
+geometries passed, and after the replica-sampling fix the best qualifying
+ratios are `10²` at 1.0 Å and `10⁵` at 0.75 and 0.9 Å. That model charged
+every Pauli word its own shots, which is its largest exclusion, and it is
+asymmetric in effect: the incumbent's `7 927` words collapse into far fewer
+settings while every real-time `(lag, part)` needs its own controlled circuit.
+
+*v3* priced that exclusion rather than estimating it. Each arm's budget is split
+across its settings under the active scheme (for the incumbent at its
+shots-to-target basis, `913` QWC or `69`–`70` fully commuting settings; `2m`
+for `rt_unitary`, which cannot group). Within-group covariance is carried by
+simulated readouts, exact here because all three references are the basis
+state `|11110000⟩`. The verdict is taken under the least favourable primary
+scheme:
+
+| instance | QWC | fully commuting |
+|---|---|---|
+| `h4_chain_075` | `PASS` (`100×`) | `PASS` (`100×`) |
+| `h4_chain_090` | `PASS` (`10×`) | `FAIL` (`1×`) |
+| `h4_chain_100` | `FAIL` (`1×`) | `FAIL` (`0.1×`) |
+
+Ratios are best `N_acase/N_rt` on the decade budget grid; `rt_unitary` is the only
+arm that qualifies anywhere, and `rt_hermitian` never does once its `d(k)` terms
+pay `m · G_H` settings. So the `GO` in v2 was a property of per-word pricing:
+given its own grouping, the incumbent matches or beats the real-time family on
+two of the three instances v2 promoted. The v3 record is also labelled
+`protocol_conformance: deviating`. Its frozen continuity rule required the
+`ungrouped` scheme to reproduce v2's qualifying ordering, and the same config's
+setting model made that unreachable for `rt_hermitian`. The decision rule never
+reads `ungrouped`, so the verdict stands with that label on it (the
+preregistration lesson is recorded in §13).
+
+*The one permitted refinement is not spent.* On `NO_GO` or `CONDITIONAL` all
+three configs permit exactly one estimator-variance refinement, replacing the
+flat bounded-ancilla bound `1/N` with `(1−μ²)/N`. It can only lower the
+candidate's variance, so it is the one remaining move that could favour it, and
+its size decides whether it is worth a run. **Sizing, from an in-session
+calculation — not a committed record; no producer, config, record or checker
+exists for it.** It evaluated `1−μ²` for the real and imaginary parts of `c(k)`,
+`k = 1…m`, at the qualifying basis sizes `m ∈ {10, 12}` on the three required
+instances. It used the v2 producer's own `build_instance` and `exact_lags`,
+with and without the energy-shift rotation in the circuit. The component mean
+is `0.53`–`0.57` everywhere, an average variance cut of under `2×`. Moving the
+verdict needs roughly `10×` on `h4_chain_090` (one budget decade) and `100×` on
+`h4_chain_100` (two) under fully commuting grouping. The smallest single
+component is lower (`0.014`–`0.118` across instances and phase conventions), so
+this is an estimate and not a bound: a pencil whose
+error is carried by a few near-`±1` components could gain more than the mean
+suggests. It gives no reason to expect a flip. The refinement stays available
+and unspent, and if it is ever run it is published beside the primary verdict,
+never in place of it.
+
+*What this closes and what it does not.* Per the design's precedence
+(`PHASE16B_FEASIBILITY.md`, §§8, 10), `CONDITIONAL` authorizes at most that
+refinement and no backend, so 16B's circuit-native family stays unbuilt and
+Phase 16 stays `open` in `PHASE_STATUS.json`. The result is about three
+geometries of one molecule, an 8-qubit register, a logical shot model with no
+gate depth, controlled-evolution cost or state preparation, and the two
+declared grouping schemes. It is not a finding about real-time Krylov in
+general, and not a negative result about hardware. 16A is untouched by it:
+sampling a time-evolved state needs neither a controlled evolution nor an
+ancilla, which is the per-circuit cost v3 found decisive.
+
 ### Phase 17 — mapping validation and breadth
 
 Before using BK or parity in scientific records: transform Hamiltonian, reference,
@@ -3674,7 +3764,13 @@ A-CASE's.
   lowering-only growth misses on `hubbard_2x3`?
 - **Q8 — real-time family:** can a real-time or controlled short-time family recover
   fixed-Krylov accuracy at a `kappa(S)` and propagation error budget a finite-shot
-  calculation could survive?
+  calculation could survive? *Status:* the cost half was asked by 16B's three
+  preregistered decision experiments and ends `CONDITIONAL` (§5, Phase 16).
+  Exact-propagation `rt_unitary` reaches the target under noise on all three
+  admitted `h4_chain` geometries. Its `≥10×` modelled-shot advantage over A-CASE
+  survives per-word pricing (v2) but not the incumbent's own grouping (v3), where
+  it holds on 0.75 Å only under both schemes. No backend is authorized, and the
+  answer is scoped to that instance set and logical shot model.
 - **Q9 — Clifford grouping:** does fully commuting grouping reduce certified leading shot
   cost with covariance and circuit overhead accounted for? **Answered yes on the
   preregistered BeH2/JW bank**: the certified endpoints are `2^24` versus `2^29`
@@ -3891,7 +3987,7 @@ cost, and compiled circuits (R2, §5).
 dedicated comparison waits for the QSCI/ext-SQD ladder. FLDC barren plateaus: positioning for
 finite-depth ADAPT circuits only — A-CASE solves a generalized eigenproblem and has no
 variational trainability landscape. Circuit-native real-time A-CASE: Q8 and Phase 16B, not an
-incremental generator.
+incremental generator; 16B's decision programme ended `CONDITIONAL` and did not authorize it.
 
 ---
 
@@ -4304,6 +4400,15 @@ bought a duplicate record.
 
 19. Second moments, time-evolved inputs, mapping breadth, and embedding (Phases 15–18) after
     the successor-manuscript result is known.
+19a. Phase 16B's decision programme — **done, `CONDITIONAL`; the backend is not
+    authorized.** Three result-free preregistrations, each gated before its
+    producer ran, give `CONDITIONAL` (v1, incumbent censored on TFIM), `GO` (v2,
+    per-word pricing on `h4_chain`) and `CONDITIONAL` (v3, the incumbent priced
+    with its own QWC and fully commuting grouping). Under the least favourable
+    scheme only `h4_chain_075` keeps a `≥10×` modelled-shot advantage. The one
+    permitted estimator-variance refinement is sized and left unspent (§5,
+    Phase 16). No 16B step is scheduled. Phase 16's open work is 16A, which
+    this result does not touch.
 20. CEO and MORE-ADAPT benchmarks after the critical comparison is stable.
 21. The excited-state track, after the certificate question of §7.4 has an answer. Note
     that §3.5B's transformation-character parameter is what keeps this track reachable
@@ -4341,6 +4446,20 @@ The forward fix is R3c's preregistration, which states its boundary tenselessly
 from the start — "this config carries no sampled result" and "a later record may
 report" rather than "no sampling has been performed" — so its record can inherit
 the boundary without contradicting the sampling it reports.
+
+**A preregistration's clauses must be jointly satisfiable, and its gate checks
+that.** Phase 16B's v3 config froze a continuity rule (the `ungrouped` scheme
+must reproduce v2's qualifying ordering) beside a per-arm setting model that
+prices `rt_hermitian`'s `d(k)` at `m · G_H` settings under every scheme,
+`ungrouped` included. Under that model no run could satisfy the rule for
+`rt_hermitian`, and the conflict was detectable before anything ran. The record
+reports the rule as failed and carries `protocol_conformance: deviating`, and
+`check_phase16b_v3_feasibility.py` derives that from the comparisons rather
+than from the record's own flag. It is not reread into agreement. The forward
+rule is that a result-free gate evaluates its frozen cross-checks against the
+same config's cost model and decision rule. A clause the config itself makes
+unreachable is a defect of the declaration, and has to be caught before the
+result that exposes it.
 
 **The record gates run in three cost-aware tiers.** The `test` job and the
 deterministic `structural-records` matrix run on every pull request, push to
@@ -4430,6 +4549,15 @@ a rejection is not a demonstration that it cannot. Its margin factor is declared
 preregistered, and the record says so. Its quantities are deterministic
 double-precision compared to tolerance, not exact arithmetic. No wording that
 upgrades any of these may survive review.
+
+**On Phase 16B.** v2's `GO` was earned under a cost model that charged every
+Pauli word its own shots. It is not a standing result that real-time Krylov
+saves `10×` against A-CASE, and no wording may quote it without v3's
+`CONDITIONAL` beside it. Nor does v3 establish the converse: it is a
+logical-shot comparison on three `h4_chain` geometries, with no gate depth,
+controlled-evolution cost or state preparation, and it is labelled `deviating`
+for a failed continuity rule. The refinement sizing in §5 is an in-session
+estimate, not a bound and not a record.
 
 **On this project's own prior work.** P1 and P2 (§1.2) are public arXiv preprints. Their results
 — exact-arithmetic subspace compactness, the `7371 → 2240` word bank, the

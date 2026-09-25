@@ -67,6 +67,16 @@ def test_parent_evidence_path_is_rejected():
     assert any("escapes the repository" in problem for problem in status.validate(data))
 
 
+def test_missing_decision_record_is_rejected():
+    data = ledger()
+    row = next(row for row in data["numbered_phases"] if row["id"] == "16")
+    row["decision_records"] = ["benchmarks/reference_results/not_a_record.json"]
+    assert any(
+        "phase 16 decision record: missing evidence path" in problem
+        for problem in status.validate(data)
+    )
+
+
 def test_grouped_core_row_is_derived_from_phase_rows():
     data = ledger()
     data["numbered_phases"][0]["status"] = "partial"

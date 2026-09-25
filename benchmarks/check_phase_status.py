@@ -96,6 +96,11 @@ def validate(data: dict) -> list[str]:
             problems.append(f"phase {phase_id}: partial requires a fraction inside (0,1)")
         for evidence in row.get("evidence", ()):
             check_evidence_path(f"phase {phase_id}", evidence, problems)
+        # A decision record is a committed result that read a phase's go/no-go
+        # without shipping its deliverable, so it cites a file like evidence
+        # does but never moves implementation_fraction.
+        for record in row.get("decision_records", ()):
+            check_evidence_path(f"phase {phase_id} decision record", record, problems)
 
     adjunct_ids: set[str] = set()
     for row in data.get("adjunct_programs", ()):
