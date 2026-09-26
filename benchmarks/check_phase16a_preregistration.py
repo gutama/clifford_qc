@@ -517,6 +517,24 @@ def _first_commit(path: Path):
     return commits[-1] if commits else None
 
 
+def _shallow_boundary() -> set[str]:
+    """Commits whose parents a shallow clone cut off.
+
+    At such a commit git reports every path as added, so it cannot say when
+    anything entered. CI's depth-1 checkout is one boundary commit holding
+    both the config and the record.
+    """
+    try:
+        out = subprocess.run(["git", "rev-parse", "--git-path", "shallow"],
+                             cwd=ROOT, capture_output=True, text=True, timeout=30)
+    except (OSError, subprocess.SubprocessError):
+        return set()
+    shallow = ROOT / out.stdout.strip() if out.returncode == 0 else None
+    if shallow is None or not shallow.is_file():
+        return set()
+    return {line.strip() for line in shallow.read_text().splitlines() if line.strip()}
+
+
 def _last_commit(path: Path):
     try:
         out = subprocess.run(["git", "log", "-1", "--format=%H", "--", str(path)],
@@ -535,6 +553,10 @@ def commit_order_problems(notes: list[str]) -> list[str]:
     config_commit, record_commit = _last_commit(CONFIG), _first_commit(RECORD)
     if config_commit is None or record_commit is None:
         notes.append("  commit order: SKIP (not committed yet, or no git history)")
+        return []
+    if {config_commit, record_commit} & _shallow_boundary():
+        notes.append("  commit order: SKIP (the clone is too shallow to reach "
+                     "the commits that order them)")
         return []
     if config_commit == record_commit:
         return ["the config's last change and the record share a commit"]

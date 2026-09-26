@@ -207,6 +207,26 @@ def test_a_changed_config_breaks_the_digest(toy):
         config, record, raw + b" "))
 
 
+# ------------------------------------------------------------------ the record
+
+def test_the_committed_record_re_derives_under_the_frozen_rule():
+    """The one declared run, re-read without a draw: seeds, freeze and rule."""
+    config = gate.load_config()
+    record = json.loads(producer.RECORD.read_text(encoding="utf-8"))
+    problems = (checker.declaration_problems(config, record, gate.CONFIG.read_bytes())
+                + checker.completeness_problems(config, record))
+    assert problems == []
+    assert checker.freeze_problems(config, record) == []
+    assert checker.statistic_problems(config, record) == []
+    assert record["provenance"]["git_dirty"] is False
+    assert record["decision"]["verdict"] == "NO_GO"
+
+
+def test_the_producer_will_not_rerun_over_the_committed_record(capsys):
+    assert producer.main([]) == 1
+    assert "runs once" in capsys.readouterr().out
+
+
 # ------------------------------------------------------------------ refusals
 
 def test_the_producer_refuses_a_reduced_run_on_the_committed_path(capsys):

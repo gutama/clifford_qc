@@ -116,7 +116,7 @@ No figure or table value in the manuscript is transcribed by hand, and
 ```bash
 python -m venv .venv && source .venv/bin/activate
 pip install -e .[test,research,stim]       # automatic CI extras
-pytest                                      # 2427 passed, 11 skipped
+pytest                                      # 2431 passed, 11 skipped
 ```
 
 This is the automatic CI dependency set; record gates additionally pin NumPy
@@ -132,7 +132,7 @@ the remaining `11 - 6 = 5` skips are per-test and *are* collected:
 
 ```text
 collected == passed + (skipped - files dropped at collection)
-2432      == 2427   + (11      -   6)
+2436      == 2431   + (11      -   6)
 ```
 
 Both sides are computed from the tree, so a drift in either quoted number
@@ -2839,18 +2839,41 @@ structural CI matrix. `tests/test_phase16a_preregistration.py` holds each
 clause against a deliberate mutation of the config. The producer below must
 pass this gate before it draws.
 
-## Phase 16A producer and result checker (not yet run)
+## Phase 16A time-evolved QSCI comparison (executed once, `NO_GO`)
 
-The producer and checker ship before the record, so the code that runs the
-declared experiment is itself committed before any shot is drawn.
+The producer and checker were committed before the record, so the code that
+ran the declared experiment was fixed before any shot was drawn. The record
+`benchmarks/reference_results/phase16a_te_qsci.json` comes from the one
+declared run.
 
 ```bash
-OMP_NUM_THREADS=1 OPENBLAS_NUM_THREADS=1 MKL_NUM_THREADS=1 \
-  python benchmarks/run_phase16a_te_qsci.py        # writes benchmarks/reference_results/phase16a_te_qsci.json
 python benchmarks/check_phase16a_te_qsci.py        # replays replica 0 of every cell
 python benchmarks/check_phase16a_te_qsci.py --replay-all   # every replica
 python benchmarks/check_phase16a_te_qsci.py --no-replay    # rules and controls only
+OMP_NUM_THREADS=1 OPENBLAS_NUM_THREADS=1 MKL_NUM_THREADS=1 \
+  python benchmarks/run_phase16a_te_qsci.py --out /tmp/phase16a.json   # a rerun elsewhere
 ```
+
+**Verdict `NO_GO`.** Both required instances are FAIL.
+
+| instance | shots to `1.6e-3` Ha | median M | candidate | iterated selected CI | paired median | candidate lower |
+|---|---|---|---|---|---|---|
+| H₂O CAS(8e,6o) | 2,048 | 28 | `1.06e-3` | `3.1e-4` | `+7.0e-4` | 0 of 100 |
+| BeH₂ | 512 | 4 | `3.5e-5` | `3.5e-5` | `-1.8e-15` (tie) | 0 of 100 (85 ties) |
+| H₄ (diagnostic) | 1,024 | 16 | `1.2e-3` | `4.2e-5` | `+1.2e-3` | 0 of 100 |
+
+Errors are medians over 100 replicas, in Ha above the sector ground state, at
+the candidate's first on-target budget. Exact propagation reaches the target at
+the same budget as the Trotter circuit on every instance. Exact ground-state
+sampling reaches it later on H₂O and H₄, and at the same budget on BeH₂. The
+run took about a minute of sampling after the gate's forty seconds, and the
+checker replays every replica in under two minutes. It sits in the manual
+sampled matrix because it draws, like the other result checkers.
+
+`check_phase16a_preregistration.py` now finds a record, so it also checks that
+the config's last change precedes it. A clone whose history is cut off at
+either commit (CI's depth-1 checkout) cannot answer that, so the check is
+skipped with a note rather than failed.
 
 The producer refuses before its first shot unless:
 
@@ -2880,7 +2903,9 @@ requires the config's last change to precede the record's commit.
 `tests/test_phase16a_te_qsci.py` runs the whole pipeline on the Hubbard dimer,
 which is outside the experiment. It holds producer and checker to the same
 decision on random synthetic cells, and catches each tampered field with the
-check written for it. No test samples a declared instance.
+check written for it. It also re-derives the committed record's statistics
+and verdict, which costs no draw, so the automatic test job guards the record
+between manual dispatches.
 
 ## Phase 18 fragment-solver callback
 
