@@ -116,7 +116,7 @@ No figure or table value in the manuscript is transcribed by hand, and
 ```bash
 python -m venv .venv && source .venv/bin/activate
 pip install -e .[test,research,stim]       # automatic CI extras
-pytest                                      # 2346 passed, 11 skipped
+pytest                                      # 2367 passed, 11 skipped
 ```
 
 This is the automatic CI dependency set; record gates additionally pin NumPy
@@ -132,7 +132,7 @@ the remaining `11 - 6 = 5` skips are per-test and *are* collected:
 
 ```text
 collected == passed + (skipped - files dropped at collection)
-2351      == 2346   + (11      -   6)
+2372      == 2367   + (11      -   6)
 ```
 
 Both sides are computed from the tree, so a drift in either quoted number
@@ -2790,6 +2790,24 @@ real-time arms reach the target there, but against nothing. Changing that pool
 now would be a new preregistration, not a rerun of this one; the prespecified
 follow-up in the design document permits one estimator-variance refinement and
 nothing else.
+
+## Phase 16A time-evolved QSCI input
+
+Like Phase 18, this ships an input rather than a result, so there is no
+producer or record. Its correctness is the test module:
+
+```bash
+python -m pytest tests/test_time_evolution.py -q
+```
+
+Exact propagation (`expm_multiply` with the trace supplied, and the numpy-only
+Lanczos route) is held to dense `scipy.linalg.expm` in the sector and the full
+space. The test fails if the trace is left for SciPy to estimate. The Trotter
+circuit is held to the `gates` product-formula unitaries exactly, and to its
+declared error order. Pooled multi-time sampling must account for every shot,
+and pooling a single state must reproduce `sample_state_input` draw for draw.
+No test asserts that a time-evolved input helps QSCI; that comparison needs its
+own preregistration.
 
 ## Phase 18 fragment-solver callback
 

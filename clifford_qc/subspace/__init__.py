@@ -85,8 +85,11 @@ from .qsci import (
     IMPLEMENTABLE, ORACLE, QSCIResult, SamplingRecord, StateInput,
     adapt_vqe_state, assert_single_evidence_category, exact_ground_state_oracle,
     recover_configurations, reference_determinant_state, run_qsci,
-    sample_configurations, sample_state_input, sampling_set_stability,
-    sampling_stop_ready,
+    sample_configurations, sample_state_input, sample_state_inputs,
+    sampling_set_stability, sampling_stop_ready,
+)
+from .time_evolution import (
+    apply_program, propagate, time_evolved_state, trotter_program,
 )
 from .multiresolution import (
     ConfigurationOrdering, HaarPacketNode, MultiresolutionResult,
@@ -114,7 +117,9 @@ __all__ = [
     "adapt_vqe_state", "assert_single_evidence_category",
     "exact_ground_state_oracle", "recover_configurations",
     "reference_determinant_state", "run_qsci", "sample_configurations",
-    "sample_state_input", "sampling_set_stability", "sampling_stop_ready",
+    "sample_state_input", "sample_state_inputs", "sampling_set_stability",
+    "sampling_stop_ready",
+    "apply_program", "propagate", "time_evolved_state", "trotter_program",
     "ACASEConfig", "ACASEState", "ACASEStepOutcome", "AdaptiveResult",
     "CandidateScore", "GrowthRecord", "OverlapTarget", "TargetOverlapScore",
     "adapt_warm_start", "acase_step", "run_acase", "score_candidate",

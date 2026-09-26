@@ -159,8 +159,10 @@ class SectorOperator:
         if mv.n != backend.n:
             raise ValueError("operator and sector act on different qubit counts")
         self.backend = backend
+        self.mv = mv
         self.n = mv.n
         self.precompute = bool(precompute)
+        self._adjoint: SectorOperator | None = None
         groups: dict[int, list[tuple[int, int, complex]]] = {}
         for code, coeff in mv.terms.items():
             x_mask, z_mask, y_count = word_masks(mv.n, code)
@@ -316,11 +318,39 @@ class SectorOperator:
             np.add.at(out, (rows[keep], columns[keep]), coefficients[keep])
         return out
 
+    def trace(self) -> complex:
+        """``Tr(P H P)``: the diagonal summed over this sector, never over ``2^n``.
+
+        Only X-free words reach the diagonal, and each contributes its
+        coefficient times ``sum_b (-1)^popcount(z & b)`` over the sector words.
+        """
+        basis = self.backend.basis
+        total = 0.0 + 0.0j
+        for x_mask, entries in self._groups:
+            if x_mask:
+                continue
+            for z_mask, y_count, coeff in entries:
+                signs = 1.0 - 2.0 * parity(basis, z_mask)
+                total += coeff * _PHASE4[y_count & 3] * float(signs.sum())
+        return complex(total)
+
+    def adjoint(self) -> "SectorOperator":
+        """``P H' P``; ``self`` when ``H`` is exactly Hermitian."""
+        if self._adjoint is None:
+            dagger = self.mv.dagger()
+            self._adjoint = (self if dagger.terms == self.mv.terms
+                             else SectorOperator(self.backend, dagger,
+                                                 precompute=self.precompute,
+                                                 validate_sector=False))
+        return self._adjoint
+
     def as_linear_operator(self):
+        """SciPy view with the adjoint action ``expm_multiply`` needs (see
+        ``PauliLinearOperator.as_linear_operator``)."""
         from scipy.sparse.linalg import LinearOperator
 
         return LinearOperator((self.dimension, self.dimension), matvec=self.matvec,
-                              dtype=complex)
+                              rmatvec=self.adjoint().matvec, dtype=complex)
 
 
 def lanczos_ground(matvec, dimension: int, *, k: int = 1, max_iter: int = 300,

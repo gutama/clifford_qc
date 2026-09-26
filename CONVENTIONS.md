@@ -164,6 +164,11 @@ R = rotor(P("ZZ"), theta)
 rho2 = evolve(rho, R)
 ```
 
+Time evolution uses the same sign, `|psi(t)> = exp(-iHt)|psi(0)>`, with
+`hbar = 1` and `t` in inverse units of the model's energy. A Trotter circuit
+from `subspace.time_evolution.trotter_program` is a list of these rotors whose
+unitary equals `gates.trotter_unitary` / `gates.trotter2_unitary`.
+
 ## Dense matrix bridge
 
 The matrix backend is for validation and small-system exact targets, not the

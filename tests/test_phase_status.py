@@ -44,9 +44,9 @@ def test_summary_arithmetic_drift_is_rejected():
 def test_decimal_partial_fractions_use_tolerant_arithmetic():
     data = ledger()
     before = data["summary"]["progress_weighted_points"]
-    for phase_id, fraction in (("15", 0.1), ("16", 0.2)):
-        row = next(row for row in data["numbered_phases"] if row["id"] == phase_id)
-        assert row["implementation_fraction"] == 0.0
+    unstarted = [row for row in data["numbered_phases"]
+                 if row["implementation_fraction"] == 0.0]
+    for row, fraction in zip(unstarted[:2], (0.1, 0.2), strict=True):
         row["status"] = "partial"
         row["implementation_fraction"] = fraction
     set_summary(data)

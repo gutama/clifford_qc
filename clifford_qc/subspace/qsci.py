@@ -52,6 +52,7 @@ __all__ = [
     "reference_determinant_state",
     "sample_configurations",
     "sample_state_input",
+    "sample_state_inputs",
     "recover_configurations",
     "run_qsci",
     "sampling_set_stability",
@@ -557,6 +558,108 @@ def sample_state_input(state: StateInput, *, shots: int, seed: int | None = 0,
         record, input_category=state.category,
         state_preparations=state.preparations,
         state_preparation_executions=executions)
+
+
+def sample_state_inputs(states, *, shots, seed: int | None = 0,
+                        stability_bootstrap: int | None = 128
+                        ) -> tuple[np.ndarray, SamplingRecord]:
+    """Sample several inputs and pool the accepted draws into one subspace.
+
+    The multi-time protocol of time-evolved QSCI (Phase 16A): prepare each
+    declared state for its share of the shots, keep what post-selection
+    accepts, and diagonalize on the union.  ``shots`` is one count for every
+    state or one count per state.  All states must share one evidence
+    category and address one operator: the same sector basis (restricted and
+    post-selected states may mix, since both return its positions) or none,
+    because a union of indices means nothing across two index spaces.
+
+    Diagnostics are computed on the pooled accepted draws, so duplicates and
+    Good-Turing singletons count across states.  ``retained_probability`` is
+    the union's weight under the shot-weighted mixture of the states.
+    ``state_preparations`` sums the distinct circuits, and every shot is one
+    execution.  Occupancy recovery is not offered here.
+    """
+    states = list(states)
+    if not states:
+        raise ValueError("need at least one state to sample")
+    for state in states:
+        if not isinstance(state, StateInput):
+            raise TypeError("every pooled input must be a StateInput")
+    category = assert_single_evidence_category(states)
+    first = states[0]
+    specs = [state.post_selection for state in states
+             if state.post_selection is not None]
+    for state in states[1:]:
+        same_basis = ((state.basis is None and first.basis is None)
+                      or (state.basis is not None and first.basis is not None
+                          and np.array_equal(state.basis, first.basis)))
+        # A restricted sector state and a post-selected one both return sector
+        # positions of the same basis, so they pool; two different
+        # post-selection specs would not.
+        if not same_basis or any(spec != specs[0] for spec in specs):
+            raise ValueError("pooled inputs must address one operator: the "
+                             "same basis and one post-selection spec")
+    counts = ([shots] * len(states) if isinstance(shots, (int, np.integer))
+              else list(shots))
+    if len(counts) != len(states):
+        raise ValueError(f"{len(counts)} shot counts for {len(states)} states")
+    if any(isinstance(c, bool) or not isinstance(c, (int, np.integer)) or c <= 0
+           for c in counts):
+        raise ValueError("every shot count must be a positive integer")
+
+    rng = np.random.default_rng(seed)
+    pooled, distributions = [], []
+    raw = discarded = 0
+    for state, count in zip(states, counts):
+        probabilities = _probabilities(state.amplitudes)
+        if (state.basis is not None and state.post_selection is None
+                and probabilities.size != state.basis.size):
+            raise ValueError(f"input {state.label!r}: basis and state have "
+                             "different lengths")
+        distributions.append(probabilities)
+        draws = rng.choice(probabilities.size, size=int(count), p=probabilities)
+        raw += int(count)
+        if state.post_selection is None:
+            pooled.append(draws.astype(np.int64))
+            continue
+        spec = state.post_selection
+        words = draws.astype(np.int64)
+        inside = _sector_membership(words, spec["n"], spec["n_electrons"],
+                                    spec["sz"], spec["spin_ordering"])
+        discarded += int((~inside).sum())
+        slots = np.searchsorted(state.basis, words[inside])
+        safe = np.where(slots < state.basis.size, slots, 0)
+        if not np.array_equal(state.basis[safe], words[inside]):
+            raise ValueError("post-selected configurations are not in the "
+                             "sector basis they were selected against")
+        pooled.append(safe)
+    accepted = np.concatenate(pooled)
+    if accepted.size == 0:
+        raise ValueError("every sampled configuration fell outside the requested "
+                         "sector; the states and the sector disagree")
+    unique, multiplicity = np.unique(accepted, return_counts=True)
+    union_mass = []
+    for state, probabilities in zip(states, distributions):
+        keys = unique if state.post_selection is None else state.basis[unique]
+        union_mass.append(float(probabilities[keys].sum()))
+    retained = float(np.dot(counts, union_mass) / sum(counts))
+    stability = None
+    if stability_bootstrap not in (None, 0):
+        stability = sampling_set_stability(
+            accepted, replicates=stability_bootstrap,
+            seed=None if seed is None else int(seed) ^ 0x5EED)
+    implementable = category == IMPLEMENTABLE
+    return unique, SamplingRecord(
+        raw_shots=raw, accepted_shots=int(accepted.size),
+        discarded_shots=discarded, repaired_shots=0,
+        unique_configurations=int(unique.size), retained_probability=retained,
+        input_label="pooled[" + ",".join(state.label for state in states) + "]",
+        seed=seed, recovery="none", input_category=category,
+        state_preparations=(sum(int(state.preparations) for state in states)
+                            if implementable else None),
+        state_preparation_executions=raw if implementable else None,
+        singleton_configurations=int(np.count_nonzero(multiplicity == 1)),
+        bootstrap_set_stability=stability)
 
 
 def _probabilities(psi: np.ndarray) -> np.ndarray:

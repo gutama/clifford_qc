@@ -105,13 +105,13 @@ Status at a glance:
 |---|---|---:|
 | Phases 0--14 | complete | 15 / 15 |
 | Phase 15: Second-moment bank | open | 0% |
-| Phase 16: Time-evolved inputs | open | 0% |
+| Phase 16: Time-evolved inputs | partial | 50% |
 | Phase 17: Mapping validation and breadth | partial | 75% |
 | Phase 18: Embedding boundary | complete | 100% |
 | Phase 19: Anticommuting-clique partitioning | proposed | 0% |
 
 Strict complete-phase score: **16 / 20 = 80.00%**.
-Progress-weighted score: **16.75 / 20 = 83.75%**.
+Progress-weighted score: **17.25 / 20 = 86.25%**.
 Retired and conditional adjunct phases are tracked separately and do not change this denominator. Source: `PHASE_STATUS.json`; validate with `python benchmarks/check_phase_status.py`.
 <!-- PHASE-STATUS-SUMMARY:END -->
 
@@ -131,7 +131,7 @@ conditional phases.
 | 13 | parity/X-rank invariant | **done**; one shared GF(2) implementation is tested across every declared spin-conserving JW construction path before grouping |
 | 14 | fully commuting grouping | **done on the frozen BeH₂/JW comparison** — the public compiled-plan API, exact joint sampler, preregistered finite-sample record, covariance audit, and device-card costing ship; Q9 is positive within the declared one-bank oracle boundary |
 | 15 | second-moment bank | **open, unimplemented**; no `SecondMomentBank` or H-squared support/cost preflight ships |
-| 16 | time-evolved inputs | **open, unimplemented**; matrix-free action exists, but neither the QSCI time-evolved input nor a circuit-native/truncated A-CASE real-time family ships. 16B's three preregistered decision experiments have run — v1 `CONDITIONAL`, v2 `GO` under per-word pricing, v3 `CONDITIONAL` once the incumbent is priced with its own grouping — and the programme ends there: the real-time backend is **not authorized** (§5, Phase 16) |
+| 16 | time-evolved inputs | **partially implemented (50%)**; the 16A QSCI time-evolved input ships in `subspace/time_evolution.py` (exact matrix-free propagation as an `oracle` input, a validated Trotter circuit as an `implementable` one, and pooled multi-time sampling), with no comparison run on it yet. No circuit-native/truncated A-CASE real-time family ships. 16B's three preregistered decision experiments have run — v1 `CONDITIONAL`, v2 `GO` under per-word pricing, v3 `CONDITIONAL` once the incumbent is priced with its own grouping — and the programme ends there: the real-time backend is **not authorized** (§5, Phase 16) |
 | 17 | mapping validation and breadth | **partially implemented (75%)**; the JW/BK/parity transformation, invariance gates, and mapping-axis records ship through R2, while the CEO-pool and dedicated MORE-ADAPT breadth benchmarks remain open |
 | 18 | embedding boundary | **done**; the versioned effective-Hamiltonian schema ships in `models/effective.py`, and the common fragment-solver callback returning energy and one- and two-particle density matrices ships in `subspace/fragment.py`, implemented by QSCI, selected CI, the hybrid, and a sector-FCI reference. The embedding loop itself stays outside the package |
 | 19 | anticommuting-clique (spin-factor) partitioning | **proposed, unexecuted**; the algebra is §3.6 and the scope is §5, Phase 19. Lever 1 is scoped to a fixed-coefficient Hamiltonian-energy estimand, *not* to Phase 14b's matrix-element word bank; lever 2 needs a non-Clifford transport primitive that does not exist yet. An in-session structural probe supplies the sizing numbers and is explicitly **not** a committed record — no producer, config, record or checker exists, so nothing there licenses a rung, a price, or an arm |
@@ -2026,6 +2026,42 @@ Trotter circuit to generate time-evolved sampling states. SciPy is a `research`
 extra; when `expm_multiply` receives a `LinearOperator`, supply the analytically
 known `traceA` rather than asking SciPy to estimate it from a matrix-free object.
 
+*16A shipped.* `subspace/time_evolution.py` supplies
+`time_evolved_state(backend, model, t)`, a `StateInput` for
+`exp(-iHt)|reference⟩` with `ħ = 1` and `t` in inverse model energy units.
+There are two propagation routes and one circuit.
+
+- *Exact, `oracle`.* `expm_multiply` runs through the operator's
+  `LinearOperator` view with `traceA` passed exactly from the new
+  `SectorOperator.trace()` / `PauliLinearOperator.trace()`. A numpy-only
+  adaptive Lanczos propagator with an a-posteriori step error is the second
+  route. Exact propagation is labelled `oracle` because no finite circuit
+  prepares it.
+- *Trotter circuit, `implementable`.* `trotter_program` builds a first- or
+  second-order product formula as an IR `Program` whose unitary is exactly
+  `gates.trotter_unitary` / `gates.trotter2_unitary`. It runs matrix-free
+  through `apply_program`, is labelled `implementable` with one preparation,
+  and is *validated*: its fidelity to exact propagation, energy drift and
+  sector leakage are recorded on the input, and `min_fidelity` can refuse it.
+  Single Pauli rotors break particle number even when their sum does not, so
+  the circuit runs in the full space and a leaking state is post-selected.
+- *Multi-time pooling.* `sample_state_inputs` implements the multi-time
+  protocol: several inputs, one union of accepted draws, one sampling record
+  whose diagnostics count across states.
+
+Two plan requirements needed small operator changes. SciPy's `onenormest`
+calls `A.H`, which the old `as_linear_operator()` views did not supply, so
+both views now carry the adjoint. Exactly Hermitian operators reuse `matvec`;
+others compile the dagger.
+
+`tests/test_time_evolution.py` holds both propagators to dense `expm` at
+`1e-10`, including negative and long times. It holds the Trotter program to the
+`gates` unitaries exactly, and its infidelity to the declared order (`>100×`
+per 4× steps at second order). It fails if `traceA` is dropped. *Not claimed:*
+that any time grid, or time evolution at all, improves QSCI against another
+input. That is an experiment, and it needs its own result-free declaration
+before it runs.
+
 **16B — A-CASE real-time generators.** Do not represent `exp(-iHt)` as an `MV` by
 default: Pauli support can become dense. A circuit-native generator requires a
 different matrix-element backend and resource model — architecture research. A
@@ -2114,7 +2150,8 @@ never in place of it.
 *What this closes and what it does not.* Per the design's precedence
 (`PHASE16B_FEASIBILITY.md`, §§8, 10), `CONDITIONAL` authorizes at most that
 refinement and no backend, so 16B's circuit-native family stays unbuilt and
-Phase 16 stays `open` in `PHASE_STATUS.json`. The result is about three
+counts for nothing in `PHASE_STATUS.json`; Phase 16's shipped half is 16A.
+The result is about three
 geometries of one molecule, an 8-qubit register, a logical shot model with no
 gate depth, controlled-evolution cost or state preparation, and the two
 declared grouping schemes. It is not a finding about real-time Krylov in
@@ -3970,7 +4007,7 @@ A-CASE's.
 | 3 | 2407.08696 | CEO-ADAPT-VQE | Constrains Paper A framing; pool benchmark deferred until after Track A. |
 | 4 | 2409.03747 | Oscillator-qubit | Qumode layer declined; retain symmetry-post-selection accounting only. |
 | 5 | 2301.10196 | Overlap-ADAPT-VQE | Motivates overlap-targeted A-CASE selection; Phase 11. |
-| 6 | 2412.13839 | Time-evolved QSCI | Time-evolved QSCI input; Phase 16A. |
+| 6 | 2412.13839 | Time-evolved QSCI | Time-evolved QSCI input; Phase 16A, shipped as an input with no comparison run. |
 | 7 | 2302.03052 | Projection-based embedding | Interface boundary only; Phase 18. |
 | 8 | 2606.30551 | Generative-ML QSCI | Withdrawn; do not cite. Use paper 14 instead. |
 | 9 | 2501.14968 | Measurement review | Fully commuting grouping context; Track B. |
@@ -4444,14 +4481,22 @@ bought a duplicate record.
     with its own QWC and fully commuting grouping). Under the least favourable
     scheme only `h4_chain_075` keeps a `≥10×` modelled-shot advantage. The one
     permitted estimator-variance refinement is sized and left unspent (§5,
-    Phase 16). No 16B step is scheduled. Phase 16's open work is 16A, which
-    this result does not touch.
+    Phase 16). No 16B step is scheduled. Phase 16's open work was 16A, which
+    this result does not touch (step 19c).
 19b. Phase 18's fragment-solver callback — **done.** One `FragmentSolver`
     contract returns energy plus spin-orbital one- and two-particle density
     matrices. QSCI, selected CI and the hybrid implement it, beside a sector-FCI
     reference. Each solver's RDMs recover its own energy from the integrals,
     and that closes Phase 18 (§5). The embedding loop stays outside the
     package by design.
+19c. Phase 16A's time-evolved QSCI input — **shipped; no comparison run.**
+    `time_evolved_state` gives exact-propagation (`oracle`) and validated
+    Trotter-circuit (`implementable`) sampling inputs, and
+    `sample_state_inputs` pools several times into one QSCI subspace (§5,
+    Phase 16). Whether time-evolved sampling beats the reference, ADAPT or
+    oracle inputs at matched shots is a separate experiment. It opens with a
+    result-free preregistration: frozen instances, time grid, shot budget,
+    comparators and decision rule.
 20. CEO and MORE-ADAPT benchmarks after the critical comparison is stable.
 21. The excited-state track, after the certificate question of §7.4 has an answer. Note
     that §3.5B's transformation-character parameter is what keeps this track reachable
