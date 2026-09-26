@@ -550,3 +550,49 @@ def test_matched_selected_ci_is_sample_independent():
     with pytest.raises(ValueError, match="needs max_determinants"):
         run_control(operator, np.arange(4, dtype=np.int64), name="m",
                     kind="matched_selected_ci", n=model.n, exact_energy=exact)
+
+
+# ------------------------------------------------------------ iterated selection
+
+def test_iterated_selected_ci_is_sample_independent_and_prefix_closed(h4_case):
+    """Greedy one-at-a-time selection: the set at M is a prefix of the set at M+k."""
+    backend, operator, exact, model = h4_case
+    sets = []
+    for budget in (2, 5, 9, 14):
+        control = run_control(operator, _sample(backend, 6, seed=budget),
+                              name="it", kind="iterated_selected_ci",
+                              exact_energy=exact, max_determinants=budget)
+        again = run_control(operator, _sample(backend, 3, seed=99), name="it",
+                            kind="iterated_selected_ci", exact_energy=exact,
+                            max_determinants=budget)
+        np.testing.assert_array_equal(control.determinants, again.determinants)
+        assert control.determinant_count == budget
+        assert control.energy >= exact - 1e-9
+        assert control.metadata["sample_independent"] is True
+        assert control.metadata["iterations"] == budget - 1
+        sets.append(set(control.determinants.tolist()))
+    assert all(small <= large for small, large in zip(sets, sets[1:]))
+
+
+def test_iterated_selection_is_never_weaker_than_one_round(h4_case):
+    """Re-solving after each addition must not lose to ranking once."""
+    backend, operator, exact, _ = h4_case
+    for budget in (4, 8, 16):
+        iterated = run_control(operator, [0], name="it", kind="iterated_selected_ci",
+                               exact_energy=exact, max_determinants=budget)
+        one_round = run_control(operator, [0], name="mt",
+                                kind="matched_selected_ci", exact_energy=exact,
+                                max_determinants=budget)
+        assert iterated.energy <= one_round.energy + 1e-12
+
+
+def test_iterated_selection_closes_at_the_coupled_support(h4_case):
+    """Beyond the determinants H couples to the ground state there is nothing to add."""
+    backend, operator, exact, _ = h4_case
+    control = run_control(operator, [0], name="it", kind="iterated_selected_ci",
+                          exact_energy=exact, max_determinants=backend.dimension)
+    assert control.metadata["closed_before_budget"] is True
+    assert control.determinant_count < backend.dimension
+    assert control.energy == pytest.approx(exact, abs=1e-10)
+    with pytest.raises(ValueError, match="needs max_determinants"):
+        run_control(operator, [0], name="it", kind="iterated_selected_ci")

@@ -116,7 +116,7 @@ No figure or table value in the manuscript is transcribed by hand, and
 ```bash
 python -m venv .venv && source .venv/bin/activate
 pip install -e .[test,research,stim]       # automatic CI extras
-pytest                                      # 2346 passed, 11 skipped
+pytest                                      # 2427 passed, 11 skipped
 ```
 
 This is the automatic CI dependency set; record gates additionally pin NumPy
@@ -132,7 +132,7 @@ the remaining `11 - 6 = 5` skips are per-test and *are* collected:
 
 ```text
 collected == passed + (skipped - files dropped at collection)
-2351      == 2346   + (11      -   6)
+2432      == 2427   + (11      -   6)
 ```
 
 Both sides are computed from the tree, so a drift in either quoted number
@@ -2790,6 +2790,97 @@ real-time arms reach the target there, but against nothing. Changing that pool
 now would be a new preregistration, not a rerun of this one; the prespecified
 follow-up in the design document permits one estimator-variance refinement and
 nothing else.
+
+## Phase 16A time-evolved QSCI input
+
+Like Phase 18, this ships an input rather than a result, so there is no
+producer or record. Its correctness is the test module:
+
+```bash
+python -m pytest tests/test_time_evolution.py -q
+```
+
+Exact propagation (`expm_multiply` with the trace supplied, and the numpy-only
+Lanczos route) is held to dense `scipy.linalg.expm` in the sector and the full
+space. The test fails if the trace is left for SciPy to estimate. The Trotter
+circuit is held to the `gates` product-formula unitaries exactly, and to its
+declared error order. Pooled multi-time sampling must account for every shot,
+and pooling a single state must reproduce `sample_state_input` draw for draw.
+No test asserts that a time-evolved input helps QSCI; that comparison needs its
+own preregistration.
+
+## Phase 16A preregistration: time-evolved QSCI against matched selection (result-free)
+
+The 16A input answers no question by itself. `benchmarks/PHASE16A_PREREGISTRATION.md`
+declares the one comparison that decides whether it earns a place. Pooled
+Trotter-circuit time-evolved QSCI must reach `1.6e-3` Ha within `2^6 … 2^16`
+shots, and at that budget its determinant set must beat sample-independent
+iterated selected CI of the same size (`run_control(kind="iterated_selected_ci")`).
+H₂O CAS(8e,6o) and BeH₂ are required and H₄ is a diagnostic, all committed
+FCIDUMPs.
+
+```bash
+python benchmarks/check_phase16a_preregistration.py
+```
+
+The gate draws nothing. It checks completeness and the absence of results,
+and binds the FCIDUMPs, their provenance and `time_evolution.py` by SHA-256.
+It enforces a total status ladder in which a censored instance never yields
+GO. It also tests the declaration's clauses against each other, the Phase 16B
+v3 lesson: the budgets split evenly over the time grid, admission is read at
+the grid's top, and the tie tolerance sits far below the target. It then
+recomputes every number in `measured_before_freezing` from the committed
+inputs: the time grid, the Trotter step counts the fidelity rule selects, and
+the three admission clauses. It refuses any threshold a platform could flip.
+It also checks the revision log, and once a record exists it requires the
+config's *last* change to precede it.
+This takes about forty seconds, mostly H₂O's Trotter circuits, and runs in the
+structural CI matrix. `tests/test_phase16a_preregistration.py` holds each
+clause against a deliberate mutation of the config. The producer below must
+pass this gate before it draws.
+
+## Phase 16A producer and result checker (not yet run)
+
+The producer and checker ship before the record, so the code that runs the
+declared experiment is itself committed before any shot is drawn.
+
+```bash
+OMP_NUM_THREADS=1 OPENBLAS_NUM_THREADS=1 MKL_NUM_THREADS=1 \
+  python benchmarks/run_phase16a_te_qsci.py        # writes benchmarks/reference_results/phase16a_te_qsci.json
+python benchmarks/check_phase16a_te_qsci.py        # replays replica 0 of every cell
+python benchmarks/check_phase16a_te_qsci.py --replay-all   # every replica
+python benchmarks/check_phase16a_te_qsci.py --no-replay    # rules and controls only
+```
+
+The producer refuses before its first shot unless:
+
+* the preregistration gate passes, including its admission recomputation;
+* the run is the declared one: `--replicas` and `--instances` are for reduced
+  runs to another `--out` path, never the committed one;
+* no record exists yet, since the experiment runs once (`--overwrite` exists
+  for a deliberate regeneration);
+* the working tree is clean;
+* the environment is one the committed records declare.
+
+It then derives the time grid and Trotter step counts again and compares them
+with `measured_before_freezing`; a mismatch makes that instance INVALID rather
+than stopping the run. Every (instance, arm, budget, replica) cell is drawn
+from its declared `SeedSequence` stream, which makes 9,900 QSCI solves: three
+instances, three sampled arms, eleven budgets and 100 replicas. Both
+sample-blind controls are evaluated at each candidate replica's configuration
+count.
+
+The checker trusts no summary field. It re-derives every median, p90,
+shots-to-target, paired difference, status and the verdict from the
+per-replica arrays, with a separate implementation of the frozen rule, and
+recomputes both controls from the committed FCIDUMPs. It checks every seed
+against the declared stream and every frozen number against the freeze. It
+replays sampled cells from their seeds, and for the committed record path it
+requires the config's last change to precede the record's commit.
+`tests/test_phase16a_te_qsci.py` runs the whole pipeline on the Hubbard dimer,
+which is outside the experiment. It holds producer and checker to the same
+decision on random synthetic cells, and catches each tampered field with the
+check written for it. No test samples a declared instance.
 
 ## Phase 18 fragment-solver callback
 

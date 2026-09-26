@@ -39,8 +39,8 @@
     "numbered_phase_count": 20,
     "complete_phase_count": 16,
     "strict_complete_fraction": 0.8,
-    "progress_weighted_points": 16.75,
-    "progress_weighted_fraction": 0.8375
+    "progress_weighted_points": 17.25,
+    "progress_weighted_fraction": 0.8625
   },
   "numbered_phases": [
     {
@@ -193,10 +193,13 @@
     {
       "id": "16",
       "title": "Time-evolved inputs",
-      "status": "open",
-      "implementation_fraction": 0.0,
+      "status": "partial",
+      "implementation_fraction": 0.5,
+      "evidence": [
+        "clifford_qc/subspace/time_evolution.py",
+        "tests/test_time_evolution.py"
+      ],
       "remaining": [
-        "QSCI time-evolved input (16A)",
         "Circuit-native or explicitly truncated A-CASE real-time family (16B); not authorized: the preregistered decision programme ended CONDITIONAL"
       ],
       "decision_records": [

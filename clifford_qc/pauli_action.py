@@ -85,6 +85,7 @@ class PauliLinearOperator:
                              for x_mask, entries in sorted(groups.items()))
         self.words = len(self.mv.terms)
         self.groups = len(self._groups)
+        self._adjoint: PauliLinearOperator | None = None
 
     def _vector(self, psi) -> np.ndarray:
         vector = np.asarray(psi, dtype=complex).reshape(-1)
@@ -129,11 +130,30 @@ class PauliLinearOperator:
             raise ValueError("cannot take the expectation of a zero state")
         return complex(np.vdot(vector, self.matvec(vector))) / norm
 
+    def trace(self) -> complex:
+        """``Tr H`` over the full space: ``2^n`` times the identity coefficient."""
+        return complex(self.mv.terms.get(0, 0.0)) * self.dimension
+
+    def adjoint(self) -> "PauliLinearOperator":
+        """The compiled ``H'``; ``self`` when ``H`` is exactly Hermitian."""
+        if self._adjoint is None:
+            dagger = self.mv.dagger()
+            self._adjoint = (self if dagger.terms == self.mv.terms
+                             else PauliLinearOperator(dagger))
+        return self._adjoint
+
     def as_linear_operator(self):
-        """SciPy ``LinearOperator`` view, still without a stored matrix."""
+        """SciPy ``LinearOperator`` view, still without a stored matrix.
+
+        The adjoint action is supplied too.  SciPy's ``expm_multiply`` and
+        ``onenormest`` call ``A.H`` on a ``LinearOperator``, and a view that
+        omits it fails there rather than falling back.
+        """
         from scipy.sparse.linalg import LinearOperator
 
+        adjoint = self.adjoint()
         return LinearOperator(self.shape, matvec=self.matvec, matmat=self.matmat,
+                              rmatvec=adjoint.matvec, rmatmat=adjoint.matmat,
                               dtype=complex)
 
     def restrict(self, indices) -> np.ndarray:
