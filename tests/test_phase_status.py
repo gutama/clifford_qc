@@ -43,13 +43,18 @@ def test_summary_arithmetic_drift_is_rejected():
 
 def test_decimal_partial_fractions_use_tolerant_arithmetic():
     data = ledger()
+    before = data["summary"]["progress_weighted_points"]
     for phase_id, fraction in (("15", 0.1), ("16", 0.2)):
         row = next(row for row in data["numbered_phases"] if row["id"] == phase_id)
+        assert row["implementation_fraction"] == 0.0
         row["status"] = "partial"
         row["implementation_fraction"] = fraction
     set_summary(data)
-    data["summary"]["progress_weighted_points"] = 16.55
-    data["summary"]["progress_weighted_fraction"] = 0.8275
+    # Written as a decimal literal, as a person would type it into the ledger;
+    # the gate must accept it whatever bits the float sum of 0.1 and 0.2 lands on.
+    points = round(before + 0.3, 2)
+    data["summary"]["progress_weighted_points"] = points
+    data["summary"]["progress_weighted_fraction"] = round(points / 20, 4)
     assert status.validate(data) == []
 
 
@@ -67,6 +72,16 @@ def test_parent_evidence_path_is_rejected():
     assert any("escapes the repository" in problem for problem in status.validate(data))
 
 
+def test_missing_decision_record_is_rejected():
+    data = ledger()
+    row = next(row for row in data["numbered_phases"] if row["id"] == "16")
+    row["decision_records"] = ["benchmarks/reference_results/not_a_record.json"]
+    assert any(
+        "phase 16 decision record: missing evidence path" in problem
+        for problem in status.validate(data)
+    )
+
+
 def test_grouped_core_row_is_derived_from_phase_rows():
     data = ledger()
     data["numbered_phases"][0]["status"] = "partial"
@@ -81,7 +96,9 @@ def test_document_summary_drift_is_rejected(tmp_path, monkeypatch):
     plan = tmp_path / "PLAN.md"
     readme = tmp_path / "README.md"
     plan.write_text(block)
-    readme.write_text(block.replace("81.25%", "80.00%"))
+    weighted = f"{100 * data['summary']['progress_weighted_fraction']:.2f}%"
+    assert weighted in block
+    readme.write_text(block.replace(weighted, "12.34%"))
     monkeypatch.setattr(status, "DOCS", (plan, readme))
     assert status.check_docs(data) == ["README.md: generated phase-status summary drifted"]
 
