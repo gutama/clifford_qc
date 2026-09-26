@@ -4,7 +4,8 @@ The committed declaration must pass every static clause, and each clause must
 reject a deliberate mutation of the config aimed at it: a result smuggled in,
 a clause the rest of the declaration cannot satisfy (the Phase 16B v3
 failure), an oracle arm allowed to promote, a drifted input. The two 8-qubit
-instances are recomputed here in full; H2O's recomputation is the CI gate's.
+instances (BeH2 required, H4 diagnostic) are recomputed here in full; H2O's
+recomputation is the CI gate's.
 """
 
 from __future__ import annotations
@@ -72,8 +73,30 @@ MUTATIONS = {
         (lambda c: c["arms"]["te_trotter_pooled"].__setitem__("category", "oracle"),
          "implementable input"),
     "a sampled control":
-        (lambda c: c["arms"]["matched_selected_ci"].__setitem__(
+        (lambda c: c["arms"]["iterated_selected_ci"].__setitem__(
             "category", "implementable"), "control must be classical"),
+    "a control that reads the sample":
+        (lambda c: c["arms"]["iterated_selected_ci"].__setitem__(
+            "sample_independent", False), "sample-independent selection"),
+    "an unbound control implementation":
+        (lambda c: c["implementation_lineage"].__setitem__("files", [
+            row for row in c["implementation_lineage"]["files"]
+            if row["path"] != "clifford_qc/subspace/selected_ci.py"]), "must be bound"),
+    "the diagnostic one-round control allowed to promote":
+        (lambda c: c["decision_rule"]["diagnostics_cannot_promote"].remove(
+            "matched_selected_ci"), "no declared role"),
+    "the diagnostic instance promoted to required":
+        (lambda c: c["required_decision_instances"].append("h4_r09"),
+         "both required and diagnostic"),
+    "an instance with no role":
+        (lambda c: c["instances"].__setitem__("lih", {"role": "required_decision"}),
+         "no role"),
+    "a revision made after a result":
+        (lambda c: c["revisions"][1].__setitem__(
+            "sampled_quantities_at_revision", "the H2O draw at 4096 shots"),
+         "does not state"),
+    "misnumbered revisions":
+        (lambda c: c["revisions"][1].__setitem__("revision", 5), "numbered 0, 1, 2"),
     "two arms on one seed stream":
         (lambda c: c["seeds"]["arm_indices"].__setitem__("te_exact_pooled", 0),
          "share a seed stream"),
@@ -81,7 +104,7 @@ MUTATIONS = {
         (lambda c: c["seeds"]["arm_indices"].pop("exact_ground_oracle"),
          "cover exactly the sampled arms"),
     "a required instance in another unit":
-        (lambda c: c["instances"]["h4_r09"].__setitem__("energy_unit", "eV"),
+        (lambda c: c["instances"]["beh2_r13264"].__setitem__("energy_unit", "eV"),
          "target's units"),
     "a moved status ladder":
         (lambda c: c["decision_rule"]["instance_status_order"].reverse(),

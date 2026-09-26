@@ -1,12 +1,12 @@
 {
   "schema": "clifford_qc.phase16a_te_qsci_config.v1",
   "design_document": "benchmarks/PHASE16A_PREREGISTRATION.md",
-  "purpose": "Frozen inputs for the Phase 16A decision experiment: pooled Trotter-circuit time-evolved QSCI against sample-independent classical selected CI at the same determinant count.",
+  "purpose": "Frozen inputs for the Phase 16A decision experiment: pooled Trotter-circuit time-evolved QSCI against sample-independent iterated selected CI at the same determinant count.",
   "contains_results": false,
-  "claim_boundary": "This configuration carries no sampled draw, no QSCI solve on sampled configurations, no control solve, no instance status and no verdict. A later record may report only the comparison frozen here: the pooled Trotter-circuit time-evolved QSCI arm against sample-independent matched selected CI on the three required active spaces, under the frozen time grid, Trotter rule, shot grid, replicas, seeds and decision rule, with the oracle-tier arms as diagnostics that cannot promote.",
+  "claim_boundary": "This configuration carries no sampled draw, no QSCI solve on sampled configurations, no control solve, no instance status and no verdict. A later record may report only the comparison frozen here: the pooled Trotter-circuit time-evolved QSCI arm against sample-independent iterated selected CI on the two required active spaces, under the frozen time grid, Trotter rule, shot grid, replicas, seeds and decision rule, with the diagnostic instance and the diagnostic arms reported but unable to promote.",
   "question": {
     "id": "Q15",
-    "text": "On an active space where the reference determinant misses chemical accuracy, does QSCI on configurations pooled from Trotter-circuit time-evolved reference states reach the target within the frozen shot grid, and at the first budget where it does, is its determinant set better than the one sample-independent selected CI picks at the same size?"
+    "text": "On an active space where the reference determinant misses chemical accuracy, does QSCI on configurations pooled from Trotter-circuit time-evolved reference states reach the target within the frozen shot grid, and at the first budget where it does, is its determinant set better than the one sample-independent iterated selected CI picks at the same size?"
   },
   "target": {
     "statistic": "median_absolute_energy_error",
@@ -36,7 +36,7 @@
       "mapping": "jordan_wigner",
       "spin_convention": "interleaved",
       "energy_unit": "hartree",
-      "role": "required_decision"
+      "role": "diagnostic"
     },
     "beh2_r13264": {
       "description": "BeH2 STO-3G, 1.3264 angstrom, 4e in 4 orbitals, Be 1s frozen",
@@ -53,8 +53,10 @@
   },
   "required_decision_instances": [
     "h2o_cas8e6o",
-    "h4_r09",
     "beh2_r13264"
+  ],
+  "diagnostic_instances": [
+    "h4_r09"
   ],
   "screened_and_not_admitted": {
     "lih_cas4e4o": {
@@ -66,7 +68,7 @@
       "reason": "the candidate's expected pooled support at the top budget (337 of 400 configurations) reaches only 0.149 t in exact arithmetic, so the comparison would be censored by construction; its energies are also not in hartree"
     }
   },
-  "exploratory_disclosure": "While Phase 16A was implemented, pooled time-evolved QSCI was smoke-tested on H4 (0.9 angstrom) and hubbard(4): exact and Trotter inputs at t in {0.5, 1, 2} per hartree, 200 shots per time, one seed, no control. H4 gave 10 configurations at about 2e-3 hartree and hubbard(4) 31 configurations at about 0.15 t. Those runs used another time grid, no replicas and no matched control, so none of the quantities the decision rule reads was observed. H4 stays a required instance on the v1 precedent for disclosed exploratory pilots.",
+  "exploratory_disclosure": "While Phase 16A was implemented, pooled time-evolved QSCI was smoke-tested on H4 (0.9 angstrom) and hubbard(4): exact and Trotter inputs at t in {0.5, 1, 2} per hartree, 200 shots per time, one seed, no control. H4 gave 10 configurations at about 2e-3 hartree and hubbard(4) 31 configurations at about 0.15 t. Those runs used another time grid, no replicas and no matched control, so none of the quantities the decision rule reads was observed. Revision 1 nevertheless makes H4 a diagnostic instance, so no instance touched during development can decide the verdict.",
   "time_grid": {
     "rule": "t_k = c_k * tau with tau = 1 / sigma_ref and sigma_ref^2 = <ref|H^2|ref> - <ref|H|ref>^2 on the declared sector",
     "multipliers": [
@@ -119,8 +121,8 @@
     "rule": "int(numpy.random.SeedSequence(root, spawn_key=(instance_index, arm_index, budget_index, replica)).generate_state(1)[0])",
     "instance_order": [
       "h2o_cas8e6o",
-      "h4_r09",
-      "beh2_r13264"
+      "beh2_r13264",
+      "h4_r09"
     ],
     "arm_indices": {
       "te_trotter_pooled": 0,
@@ -139,14 +141,26 @@
       "solver": "run_qsci on the model's SectorOperator; energy is the lowest Ritz value",
       "preparations": "K distinct circuits; every shot is one execution"
     },
-    "matched_selected_ci": {
+    "iterated_selected_ci": {
       "role": "primary_control",
       "category": "classical",
       "sampled": false,
-      "rule": "run_control(operator, candidate_indices, name='matched_selected_ci', kind='matched_selected_ci', max_determinants=M_r, score='epstein_nesbet')",
+      "kind": "iterated_selected_ci",
+      "rule": "run_control(operator, candidate_indices, name='iterated_selected_ci', kind='iterated_selected_ci', max_determinants=M_r, score='epstein_nesbet')",
       "matching": "per replica, M_r is the candidate's unique configuration count in that (instance, budget, replica)",
       "sample_independent": true,
-      "saturation": "If fewer than M_r determinants are reachable from the reference, the control uses all it reaches. Its size is recorded, and it never uses more than M_r."
+      "selection": "from the lowest-diagonal determinant, one determinant per iteration by Epstein-Nesbet score against the re-solved Ritz vector; ties go to the lowest index",
+      "prefix_property": "the set at M is a prefix of the set at M + 1, so one trajectory per instance serves every replica",
+      "saturation": "The loop stops when nothing outside couples to the current set, which on a symmetry-restricted ground state is its exact support. It then uses fewer than M_r determinants and never more."
+    },
+    "matched_selected_ci": {
+      "role": "diagnostic",
+      "category": "classical",
+      "sampled": false,
+      "kind": "matched_selected_ci",
+      "rule": "run_control(operator, candidate_indices, name='matched_selected_ci', kind='matched_selected_ci', max_determinants=M_r, score='epstein_nesbet')",
+      "sample_independent": true,
+      "purpose": "the one-round selection that was the primary control before revision 1, reported to show how much the iterated loop strengthens the bar"
     },
     "te_exact_pooled": {
       "role": "diagnostic",
@@ -171,7 +185,7 @@
     }
   },
   "primary_candidate_arm": "te_trotter_pooled",
-  "primary_control_arm": "matched_selected_ci",
+  "primary_control_arm": "iterated_selected_ci",
   "admission_criterion": {
     "clauses": [
       "the reference determinant misses the target: reference_error > target",
@@ -279,7 +293,7 @@
   },
   "decision_rule": {
     "shots_to_target": "the smallest tested total budget at which the candidate's median error over replicas is <= target; no interpolation or extrapolation",
-    "paired_difference": "at that budget, per replica r: error(candidate, r) - error(control at M_r)",
+    "paired_difference": "at that budget, per replica r: error(candidate, r) - error(iterated control at M_r)",
     "statistic": "median over replicas of the paired difference",
     "tie_tolerance": 1e-10,
     "instance_status_order": [
@@ -300,15 +314,17 @@
     "combination_rule": "all required PASS gives GO; all FAIL gives NO_GO; anything else is CONDITIONAL",
     "undetermined_on_required_is_not_a_pass": "A censored candidate never reads as a promotion.",
     "diagnostics_cannot_promote": [
+      "matched_selected_ci",
       "te_exact_pooled",
       "exact_ground_oracle",
       "reference_determinant"
-    ]
+    ],
+    "diagnostic_instances_cannot_promote": "h4_r09 is sampled and reported under every arm, but its status enters no verdict."
   },
   "evidence": {
     "sampling": "draws from the declared states' exact probabilities; no device noise, readout error or drift",
     "label": "finite_sample on exact probabilities",
-    "categories": "te_trotter_pooled is implementable; te_exact_pooled and exact_ground_oracle are oracle; matched_selected_ci is classical. Oracle and implementable arms are reported in separate tables and never on one resource axis."
+    "categories": "te_trotter_pooled is implementable; te_exact_pooled and exact_ground_oracle are oracle; iterated_selected_ci and matched_selected_ci are classical. Oracle and implementable arms are reported in separate tables and never on one resource axis."
   },
   "excluded_from_cost": [
     "gate depth and two-qubit counts of the Trotter circuits (rotor counts are recorded, not priced)",
@@ -350,9 +366,13 @@
       {
         "path": "clifford_qc/subspace/time_evolution.py",
         "sha256": "84947eb9a167060bace07c7f46ae3b0601c007fa0c6aa2d94e99677b3972777b"
+      },
+      {
+        "path": "clifford_qc/subspace/selected_ci.py",
+        "sha256": "fdc2d353ad0cd5f94db9b4e211099147a5edf6cab1ac561b7ac231261f071e86"
       }
     ],
-    "note": "The producer re-runs this gate and refuses to draw if it fails, so a changed input or 16A implementation cannot reach a record under this declaration."
+    "note": "The producer re-runs this gate and refuses to draw if it fails, so a changed input, 16A implementation or control implementation cannot reach a record under this declaration."
   },
   "record_requirements": {
     "schema": "clifford_qc.phase16a_te_qsci.v1",
@@ -362,14 +382,32 @@
     "must_include": [
       "config_digest and provenance",
       "per (instance, arm, budget, replica): unique configurations and energy error",
-      "per candidate replica: the matched control's size and energy error",
+      "per candidate replica: the iterated control's size, energy error and closure flag, and the one-round control's as a diagnostic",
       "median and p90 per cell",
       "the recomputed measured_before_freezing block and admission at execution",
       "Trotter circuit resources per time and post-selected discards",
-      "the decision evaluation under the frozen rule"
+      "the decision evaluation under the frozen rule, over the required instances only"
     ],
     "must_carry": {
       "quantum_advantage_claim": false
     }
-  }
+  },
+  "revisions": [
+    {
+      "revision": 0,
+      "commit_subject": "Preregister the Phase 16A time-evolved QSCI comparison, result-free",
+      "content": "first declaration: one-round matched selected CI as the primary control; H2O, H4 and BeH2 required"
+    },
+    {
+      "revision": 1,
+      "commit_subject": "Revise the Phase 16A preregistration before any draw",
+      "changes": [
+        "primary control: iterated selected CI (a new run_control kind), which re-solves after every addition; the one-round control becomes a diagnostic",
+        "H4 becomes a diagnostic instance because of the disclosed development smoke test; H2O and BeH2 are the required instances",
+        "the control implementation (selected_ci.py) is bound by SHA-256 beside time_evolution.py"
+      ],
+      "why": "chosen by the design owner after review of revision 0",
+      "sampled_quantities_at_revision": "none: no producer, draw, control solve on a sample, or record existed"
+    }
+  ]
 }

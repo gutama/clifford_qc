@@ -57,6 +57,7 @@ import numpy as np
 
 from ..backends.sector_statevector import SectorOperator
 from ..pauli_action import PauliLinearOperator
+from ..selection import TIE_ATOL, TIE_RTOL
 
 __all__ = [
     "ControlResult",
@@ -539,8 +540,11 @@ def run_control(operator, sampled, *, name: str, kind: str, n: int | None = None
     """One Phase 9 control over a sampled determinant set.
 
     ``kind`` is one of ``qsci``, ``family_closure``, ``excitation_closure``,
-    ``selected_ci``, ``budget_matched``, ``matched_selected_ci``, or
-    ``random``.  ``family_closure`` requires
+    ``selected_ci``, ``budget_matched``, ``matched_selected_ci``,
+    ``iterated_selected_ci``, or ``random``.  ``iterated_selected_ci`` is the
+    CIPSI-style sample-independent comparator: from the reference it adds one
+    determinant per iteration, by the declared score against the re-solved
+    Ritz vector, up to ``max_determinants``.  ``family_closure`` requires
     ``generators`` -- it measures a declared family's reach, and there is no
     such thing without the family.  ``sampled`` are indices into the operator's own space
     -- sector positions for a :class:`SectorOperator`, computational-basis words
@@ -657,6 +661,52 @@ def run_control(operator, sampled, *, name: str, kind: str, n: int | None = None
                 "reference determinant plus the highest-scoring determinants "
                 "under one criterion, chosen without reference to the sampled "
                 "set; the quantum sample informs neither the pool nor the order"),
+        })
+
+    elif kind == "iterated_selected_ci":
+        # The stronger sample-independent comparator: a CIPSI-style loop that
+        # re-solves after every addition, where `matched_selected_ci` ranks
+        # once against the reference and can therefore only see what couples to
+        # it. One determinant per iteration, taken greedily by the declared
+        # score against the current Ritz vector, so the set for budget M is a
+        # prefix of the set for M + 1 and a caller can compute one trajectory
+        # for every budget. Ties -- spin partners score identically -- go to
+        # the lowest index, the rule `canonical_argmax` applies elsewhere.
+        if max_determinants is None:
+            raise ValueError(
+                "iterated_selected_ci needs max_determinants: the loop has no "
+                "natural stopping size, and an unbudgeted one is full CI")
+        limit = max(1, int(max_determinants))
+        if diagonal is None:
+            diagonal = _diagonal(operator, dimension)
+        current = _reference_anchor(operator, np.unique(sampled), None, n=n)
+        anchor = int(current[0])
+        iterations = 0
+        while current.size < limit:
+            energy_now, vector_now, _ = _solve(operator, current)
+            ranked, values, scored = score_candidates(
+                operator, current, vector_now, energy=energy_now, score=score,
+                diagonal=diagonal)
+            work += scored
+            if ranked.size == 0 or values[0] <= 0.0:
+                break  # nothing outside couples to the current space
+            best = float(values[0])
+            tied = ranked[values >= best - (TIE_ATOL + TIE_RTOL * abs(best))]
+            current = np.unique(np.append(current, int(tied.min())))
+            iterations += 1
+        indices = current
+        metadata.update({
+            "score": score,
+            "anchor_determinant": anchor,
+            "iterations": int(iterations),
+            "selected_added": int(indices.size - 1),
+            "candidates_scored": int(work),
+            "closed_before_budget": bool(indices.size < limit),
+            "sample_independent": True,
+            "budget_semantics": (
+                "reference determinant, then one determinant per iteration by "
+                "the declared score against the re-solved Ritz vector, until the "
+                "budget; the quantum sample informs neither the pool nor the order"),
         })
 
     elif kind == "random":
@@ -832,7 +882,7 @@ def run_control(operator, sampled, *, name: str, kind: str, n: int | None = None
     else:
         raise ValueError("kind must be qsci, family_closure, "
                          "excitation_closure, selected_ci, budget_matched, "
-                         "matched_selected_ci, or random")
+                         "matched_selected_ci, iterated_selected_ci, or random")
 
     # Three phases, three clocks. Folding the eigensolve into `build_seconds`
     # and then naming the variance matvec `solve_seconds` would put the

@@ -116,7 +116,7 @@ No figure or table value in the manuscript is transcribed by hand, and
 ```bash
 python -m venv .venv && source .venv/bin/activate
 pip install -e .[test,research,stim]       # automatic CI extras
-pytest                                      # 2393 passed, 11 skipped
+pytest                                      # 2403 passed, 11 skipped
 ```
 
 This is the automatic CI dependency set; record gates additionally pin NumPy
@@ -132,7 +132,7 @@ the remaining `11 - 6 = 5` skips are per-test and *are* collected:
 
 ```text
 collected == passed + (skipped - files dropped at collection)
-2398      == 2393   + (11      -   6)
+2408      == 2403   + (11      -   6)
 ```
 
 Both sides are computed from the tree, so a drift in either quoted number
@@ -2815,8 +2815,9 @@ The 16A input answers no question by itself. `benchmarks/PHASE16A_PREREGISTRATIO
 declares the one comparison that decides whether it earns a place. Pooled
 Trotter-circuit time-evolved QSCI must reach `1.6e-3` Ha within `2^6 … 2^16`
 shots, and at that budget its determinant set must beat sample-independent
-selected CI of the same size. The instances are H₂O CAS(8e,6o), H₄ and BeH₂,
-all committed FCIDUMPs.
+iterated selected CI of the same size (`run_control(kind="iterated_selected_ci")`).
+H₂O CAS(8e,6o) and BeH₂ are required and H₄ is a diagnostic, all committed
+FCIDUMPs.
 
 ```bash
 python benchmarks/check_phase16a_preregistration.py
@@ -2831,6 +2832,8 @@ the grid's top, and the tie tolerance sits far below the target. It then
 recomputes every number in `measured_before_freezing` from the committed
 inputs: the time grid, the Trotter step counts the fidelity rule selects, and
 the three admission clauses. It refuses any threshold a platform could flip.
+It also checks the revision log, and once a record exists it requires the
+config's *last* change to precede it.
 This takes about forty seconds, mostly H₂O's Trotter circuits, and runs in the
 structural CI matrix. `tests/test_phase16a_preregistration.py` holds each
 clause against a deliberate mutation of the config. The producer and result

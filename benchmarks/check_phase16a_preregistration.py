@@ -26,7 +26,11 @@ existed:
   top budget reaches it in exact arithmetic, and that support leaves part of
   the sector unselected. Each threshold must be cleared by a margin a platform
   cannot flip;
-* commit order, from git history, once a record exists.
+* commit order, from git history, once a record exists. The config's *last*
+  change must strictly precede the record, not merely its first appearance: a
+  declaration revised after its result is not a preregistration of it.
+* the revision log. Every revision after the first must state that no sampled
+  quantity existed when it was made.
 
 It draws no sample, solves no sampled subspace, runs no control, and computes
 no status or verdict.
@@ -58,12 +62,16 @@ SCHEMA = "clifford_qc.phase16a_te_qsci_config.v1"
 REQUIRED_TOP = (
     "schema", "design_document", "purpose", "contains_results", "claim_boundary",
     "question", "target", "instances", "required_decision_instances",
-    "screened_and_not_admitted", "exploratory_disclosure", "time_grid", "trotter",
+    "diagnostic_instances", "screened_and_not_admitted", "exploratory_disclosure", "time_grid", "trotter",
     "shot_grid", "replicas", "seeds", "arms", "primary_candidate_arm",
     "primary_control_arm", "admission_criterion", "robustness",
     "measured_before_freezing", "decision_rule", "evidence", "excluded_from_cost",
     "prespecified_followup", "implementation_lineage", "record_requirements",
+    "revisions",
 )
+CONTROL_KINDS = {"iterated_selected_ci", "matched_selected_ci"}
+BOUND_IMPLEMENTATIONS = ("clifford_qc/subspace/time_evolution.py",
+                         "clifford_qc/subspace/selected_ci.py")
 RESULT_KEYS = frozenset({
     "verdict", "verdicts", "result", "results", "observed", "status_observed",
     "instance_status", "instance_statuses", "median_error", "p90_error",
@@ -151,11 +159,19 @@ def reference_problems(config: dict) -> list[str]:
     problems = []
     instances, arms = config["instances"], config["arms"]
     required = config["required_decision_instances"]
-    for name in required:
-        if name not in instances:
-            problems.append(f"required instance {name} is not declared")
-        elif instances[name].get("role") != "required_decision":
-            problems.append(f"required instance {name} is not declared with that role")
+    diagnostic = config["diagnostic_instances"]
+    for names, role in ((required, "required_decision"), (diagnostic, "diagnostic")):
+        for name in names:
+            if name not in instances:
+                problems.append(f"instance {name} is not declared")
+            elif instances[name].get("role") != role:
+                problems.append(f"instance {name} is not declared with role {role}")
+    if set(required) & set(diagnostic):
+        problems.append(f"an instance is both required and diagnostic: "
+                        f"{sorted(set(required) & set(diagnostic))}")
+    unclassified = set(instances) - set(required) - set(diagnostic)
+    if unclassified:
+        problems.append(f"declared instances with no role: {sorted(unclassified)}")
     overlap = set(required) & set(config["screened_and_not_admitted"])
     if overlap:
         problems.append(f"an instance is both required and screened out: {sorted(overlap)}")
@@ -170,6 +186,9 @@ def reference_problems(config: dict) -> list[str]:
         problems.append("the primary control must be classical: it consumes no "
                         "sampling input, which is what lets it sit beside an "
                         "implementable one without breaking the §8D split")
+    if control.get("kind") not in CONTROL_KINDS or control.get("sample_independent") is not True:
+        problems.append("the primary control must be a sample-independent selection "
+                        f"kind from {sorted(CONTROL_KINDS)}")
     for name, arm in arms.items():
         if arm.get("category") not in CATEGORIES:
             problems.append(f"arm {name} has category {arm.get('category')!r}")
@@ -225,8 +244,11 @@ def consistency_problems(config: dict) -> list[str]:
         problems.append(f"seed streams must cover exactly the sampled arms {sorted(sampled)}")
     if len(set(indices.values())) != len(indices):
         problems.append("two sampled arms share a seed stream")
-    if seeds["instance_order"] != config["required_decision_instances"]:
-        problems.append("the seed instance order must be the required-instance order")
+    sampled_instances = (config["required_decision_instances"]
+                         + config["diagnostic_instances"])
+    if seeds["instance_order"] != sampled_instances:
+        problems.append("the seed instance order must be the required then the "
+                        "diagnostic instances, in declared order")
     units = config["target"]["units"]
     for name in config["required_decision_instances"]:
         if config["instances"][name].get("energy_unit") != units:
@@ -262,11 +284,31 @@ def lineage_problems(config: dict) -> list[str]:
             if key in spec and not (ROOT / spec[key]).is_file():
                 problems.append(f"{name}: {key} {spec[key]} is missing")
     declared = {row["path"] for row in config["implementation_lineage"]["files"]}
-    for name in config["required_decision_instances"]:
+    for path in BOUND_IMPLEMENTATIONS:
+        if path not in declared:
+            problems.append(f"implementation {path} must be bound in implementation_lineage")
+    for name in config["required_decision_instances"] + config["diagnostic_instances"]:
         spec = config["instances"][name]
         for key in ("source", "provenance"):
             if spec.get(key) not in declared:
                 problems.append(f"{name}: {key} is not bound in implementation_lineage")
+    return problems
+
+
+def revision_problems(config: dict) -> list[str]:
+    """Revisions are numbered from zero, and none after the first saw a result."""
+    problems = []
+    revisions = config["revisions"]
+    if not revisions or [row.get("revision") for row in revisions] != list(
+            range(len(revisions))):
+        return ["revisions must be numbered 0, 1, 2, ... in order"]
+    for row in revisions[1:]:
+        stated = str(row.get("sampled_quantities_at_revision", ""))
+        if not stated.startswith("none"):
+            problems.append(f"revision {row['revision']} does not state that no "
+                            "sampled quantity existed when it was made")
+        if not row.get("changes"):
+            problems.append(f"revision {row['revision']} lists no changes")
     return problems
 
 
@@ -278,7 +320,7 @@ def static_problems(config: dict) -> list[str]:
     if missing:
         return problems + [f"missing required keys {missing}"]
     for check in (ladder_problems, reference_problems, consistency_problems,
-                  claim_problems, lineage_problems):
+                  claim_problems, lineage_problems, revision_problems):
         problems.extend(check(config))
     return problems
 
@@ -400,7 +442,8 @@ def admission_problems(config: dict, notes: list[str] | None = None) -> list[str
     target = float(config["target"]["value"])
     robust = config["robustness"]
     declared_all = config["measured_before_freezing"]
-    for name in config["required_decision_instances"]:
+    required = set(config["required_decision_instances"])
+    for name in config["required_decision_instances"] + config["diagnostic_instances"]:
         spec = config["instances"][name]
         declared = declared_all.get(name)
         if declared is None:
@@ -422,6 +465,10 @@ def admission_problems(config: dict, notes: list[str] | None = None) -> list[str
         if got["energy_unit"] != config["target"]["units"].lower():
             problems.append(f"{name}: model energy unit {got['energy_unit']!r} is not "
                             "the target's")
+        if name not in required:
+            notes.append(f"  {name}: diagnostic -- frozen numbers recomputed; admission "
+                         "is not required of it")
+            continue
         if got["reference_error"] <= target:
             problems.append(f"{name}: ADMISSION FAILS -- the reference determinant is "
                             f"already within the target ({got['reference_error']:.3e})")
@@ -462,24 +509,35 @@ def _first_commit(path: Path):
     return commits[-1] if commits else None
 
 
+def _last_commit(path: Path):
+    try:
+        out = subprocess.run(["git", "log", "-1", "--format=%H", "--", str(path)],
+                             cwd=ROOT, capture_output=True, text=True, timeout=30)
+    except (OSError, subprocess.SubprocessError):
+        return None
+    commit = out.stdout.strip() if out.returncode == 0 else ""
+    return commit or None
+
+
 def commit_order_problems(notes: list[str]) -> list[str]:
+    """The config's last change must strictly precede the record's first commit."""
     if not RECORD.exists():
         notes.append("  commit order: no record yet, nothing to order against")
         return []
-    config_commit, record_commit = _first_commit(CONFIG), _first_commit(RECORD)
+    config_commit, record_commit = _last_commit(CONFIG), _first_commit(RECORD)
     if config_commit is None or record_commit is None:
         notes.append("  commit order: SKIP (not committed yet, or no git history)")
         return []
     if config_commit == record_commit:
-        return ["the config and the record entered the repository in the same commit"]
+        return ["the config's last change and the record share a commit"]
     ancestor = subprocess.run(
         ["git", "merge-base", "--is-ancestor", config_commit, record_commit],
         cwd=ROOT, capture_output=True, timeout=30)
     if ancestor.returncode != 0:
         return [f"config commit {config_commit[:12]} is not an ancestor of record "
                 f"commit {record_commit[:12]}"]
-    notes.append(f"  commit order: config {config_commit[:12]} precedes record "
-                 f"{record_commit[:12]}")
+    notes.append(f"  commit order: config's last change {config_commit[:12]} precedes "
+                 f"record {record_commit[:12]}")
     return []
 
 

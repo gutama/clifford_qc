@@ -3888,13 +3888,15 @@ A-CASE's.
   determinant misses chemical accuracy, does QSCI on configurations pooled from
   Trotter-circuit time-evolved reference states reach `1.6e-3` Ha within a
   frozen shot grid? And at the first budget where it does, is its determinant
-  set better than the one sample-independent selected CI picks at the same
-  size? *Falsifier:* it reaches the target but matched selection does as well,
-  so time evolution only rediscovers what classical selection chooses.
-  *Status:* preregistered, not run (`benchmarks/PHASE16A_PREREGISTRATION.md`,
-  §5 Phase 16). Its required instances are H₂O CAS(8e,6o), H₄ and BeH₂, all
-  admitted by a zero-noise criterion. ADAPT-VQE inputs are not the comparator,
-  because the package's exact ADAPT is too slow at 12 qubits.
+  set better than the one sample-independent *iterated* selected CI picks at
+  the same size? *Falsifier:* it reaches the target but the iterated selection
+  does as well, so time evolution only rediscovers what classical selection
+  chooses. *Status:* preregistered (revision 1), not run
+  (`benchmarks/PHASE16A_PREREGISTRATION.md`, §5 Phase 16). The required
+  instances are H₂O CAS(8e,6o) and BeH₂, both admitted by a zero-noise
+  criterion. H₄ admits too but is a diagnostic, because development touched
+  it. ADAPT-VQE inputs are not the comparator, because the package's exact
+  ADAPT is too slow at 12 qubits.
 
 **Resource accounting (QR1–QR6).**
 
@@ -4510,8 +4512,9 @@ bought a duplicate record.
     (`oracle`) and validated Trotter-circuit (`implementable`) sampling inputs,
     and `sample_state_inputs` pools several times into one QSCI subspace (§5,
     Phase 16). The deciding comparison is Q15: pooled Trotter-circuit
-    time-evolved QSCI against sample-independent selected CI of the same size,
-    on H₂O CAS(8e,6o), H₄ and BeH₂. Its result-free declaration
+    time-evolved QSCI against sample-independent iterated selected CI of the
+    same size. H₂O CAS(8e,6o) and BeH₂ are required, and H₄ is a diagnostic.
+    Its result-free declaration, now at revision 1,
     (`PHASE16A_PREREGISTRATION.md`, `configs/phase16a_te_qsci.json`,
     `check_phase16a_preregistration.py`) has landed. Next are the producer and
     result checker, and the producer must pass that gate before it draws.
