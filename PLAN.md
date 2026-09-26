@@ -2064,8 +2064,9 @@ before it runs. That declaration is
 `benchmarks/PHASE16A_PREREGISTRATION.md` (Q15, §10). It freezes the question,
 the instances, the time grid, the Trotter rule, the shot grid, the seeds and
 the decision rule. Its gate, `check_phase16a_preregistration.py`, recomputes
-every frozen number and runs in the structural CI matrix. No producer exists
-yet.
+every frozen number and runs in the structural CI matrix. The producer
+(`run_phase16a_te_qsci.py`) and result checker (`check_phase16a_te_qsci.py`)
+are committed and tested off-instance; the experiment has not been run.
 
 **16B — A-CASE real-time generators.** Do not represent `exp(-iHt)` as an `MV` by
 default: Pauli support can become dense. A circuit-native generator requires a
@@ -3891,8 +3892,8 @@ A-CASE's.
   set better than the one sample-independent *iterated* selected CI picks at
   the same size? *Falsifier:* it reaches the target but the iterated selection
   does as well, so time evolution only rediscovers what classical selection
-  chooses. *Status:* preregistered (revision 1), not run
-  (`benchmarks/PHASE16A_PREREGISTRATION.md`, §5 Phase 16). The required
+  chooses. *Status:* preregistered (revision 1), producer and checker
+  committed, not run (`benchmarks/PHASE16A_PREREGISTRATION.md`, §5 Phase 16). The required
   instances are H₂O CAS(8e,6o) and BeH₂, both admitted by a zero-noise
   criterion. H₄ admits too but is a diagnostic, because development touched
   it. ADAPT-VQE inputs are not the comparator, because the package's exact
@@ -4516,8 +4517,12 @@ bought a duplicate record.
     same size. H₂O CAS(8e,6o) and BeH₂ are required, and H₄ is a diagnostic.
     Its result-free declaration, now at revision 1,
     (`PHASE16A_PREREGISTRATION.md`, `configs/phase16a_te_qsci.json`,
-    `check_phase16a_preregistration.py`) has landed. Next are the producer and
-    result checker, and the producer must pass that gate before it draws.
+    `check_phase16a_preregistration.py`) has landed. The producer
+    (`run_phase16a_te_qsci.py`) and result checker (`check_phase16a_te_qsci.py`)
+    are committed after it and tested only off-instance. The producer refuses
+    to draw unless the gate passes, and the checker re-derives the verdict
+    independently. Next is the single declared run, which writes the record the
+    checker then enters the CI matrix to protect.
 20. CEO and MORE-ADAPT benchmarks after the critical comparison is stable.
 21. The excited-state track, after the certificate question of §7.4 has an answer. Note
     that §3.5B's transformation-character parameter is what keeps this track reachable

@@ -116,7 +116,7 @@ No figure or table value in the manuscript is transcribed by hand, and
 ```bash
 python -m venv .venv && source .venv/bin/activate
 pip install -e .[test,research,stim]       # automatic CI extras
-pytest                                      # 2403 passed, 11 skipped
+pytest                                      # 2427 passed, 11 skipped
 ```
 
 This is the automatic CI dependency set; record gates additionally pin NumPy
@@ -132,7 +132,7 @@ the remaining `11 - 6 = 5` skips are per-test and *are* collected:
 
 ```text
 collected == passed + (skipped - files dropped at collection)
-2408      == 2403   + (11      -   6)
+2432      == 2427   + (11      -   6)
 ```
 
 Both sides are computed from the tree, so a drift in either quoted number
@@ -2836,8 +2836,51 @@ It also checks the revision log, and once a record exists it requires the
 config's *last* change to precede it.
 This takes about forty seconds, mostly H₂O's Trotter circuits, and runs in the
 structural CI matrix. `tests/test_phase16a_preregistration.py` holds each
-clause against a deliberate mutation of the config. The producer and result
-checker come later, and the producer must pass this gate before it draws.
+clause against a deliberate mutation of the config. The producer below must
+pass this gate before it draws.
+
+## Phase 16A producer and result checker (not yet run)
+
+The producer and checker ship before the record, so the code that runs the
+declared experiment is itself committed before any shot is drawn.
+
+```bash
+OMP_NUM_THREADS=1 OPENBLAS_NUM_THREADS=1 MKL_NUM_THREADS=1 \
+  python benchmarks/run_phase16a_te_qsci.py        # writes benchmarks/reference_results/phase16a_te_qsci.json
+python benchmarks/check_phase16a_te_qsci.py        # replays replica 0 of every cell
+python benchmarks/check_phase16a_te_qsci.py --replay-all   # every replica
+python benchmarks/check_phase16a_te_qsci.py --no-replay    # rules and controls only
+```
+
+The producer refuses before its first shot unless:
+
+* the preregistration gate passes, including its admission recomputation;
+* the run is the declared one: `--replicas` and `--instances` are for reduced
+  runs to another `--out` path, never the committed one;
+* no record exists yet, since the experiment runs once (`--overwrite` exists
+  for a deliberate regeneration);
+* the working tree is clean;
+* the environment is one the committed records declare.
+
+It then derives the time grid and Trotter step counts again and compares them
+with `measured_before_freezing`; a mismatch makes that instance INVALID rather
+than stopping the run. Every (instance, arm, budget, replica) cell is drawn
+from its declared `SeedSequence` stream, which makes 9,900 QSCI solves: three
+instances, three sampled arms, eleven budgets and 100 replicas. Both
+sample-blind controls are evaluated at each candidate replica's configuration
+count.
+
+The checker trusts no summary field. It re-derives every median, p90,
+shots-to-target, paired difference, status and the verdict from the
+per-replica arrays, with a separate implementation of the frozen rule, and
+recomputes both controls from the committed FCIDUMPs. It checks every seed
+against the declared stream and every frozen number against the freeze. It
+replays sampled cells from their seeds, and for the committed record path it
+requires the config's last change to precede the record's commit.
+`tests/test_phase16a_te_qsci.py` runs the whole pipeline on the Hubbard dimer,
+which is outside the experiment. It holds producer and checker to the same
+decision on random synthetic cells, and catches each tampered field with the
+check written for it. No test samples a declared instance.
 
 ## Phase 18 fragment-solver callback
 

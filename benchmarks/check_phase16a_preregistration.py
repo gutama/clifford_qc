@@ -336,14 +336,15 @@ def build_instance(spec: dict):
     return fcidump_model(ROOT / spec["source"])
 
 
-def structural_quantities(config: dict, spec: dict) -> dict:
+def structural_quantities(config: dict, spec: dict, *, model=None) -> dict:
     """Every frozen number of one instance, recomputed from its inputs.
 
     The candidate's pooled distribution is the equal-shot mixture of its
     Trotter states, so the expected number of draws of configuration ``c``
     over the pooled top budget is ``N_max * mean_k p_k(c)``, counting raw
     shots before post-selection. That is the support the admission criterion
-    reads.
+    reads. ``model`` replaces building one from ``spec``; the producer's tests
+    use it to run the pipeline on a system outside the experiment.
     """
     import numpy as np
 
@@ -354,7 +355,7 @@ def structural_quantities(config: dict, spec: dict) -> dict:
     )
     from clifford_qc.subspace.qsci import _determinant_amplitudes
 
-    model = build_instance(spec)
+    model = build_instance(spec) if model is None else model
     metadata = model.metadata
     backend = SectorStatevectorBackend(model.n, metadata["n_electrons"],
                                        metadata["sz"],
@@ -435,8 +436,13 @@ def _close(a: float, b: float) -> bool:
     return math.isclose(a, b, rel_tol=1e-7, abs_tol=1e-9)
 
 
-def admission_problems(config: dict, notes: list[str] | None = None) -> list[str]:
-    """Recompute and compare every frozen number, then apply the criterion."""
+def admission_problems(config: dict, notes: list[str] | None = None,
+                       computed: dict | None = None) -> list[str]:
+    """Recompute and compare every frozen number, then apply the criterion.
+
+    ``computed``, when given, receives each instance's recomputed quantities,
+    so the producer reuses them instead of repeating the Trotter work.
+    """
     notes = [] if notes is None else notes
     problems = []
     target = float(config["target"]["value"])
@@ -450,6 +456,8 @@ def admission_problems(config: dict, notes: list[str] | None = None) -> list[str
             problems.append(f"{name}: no measured_before_freezing entry")
             continue
         got = structural_quantities(config, spec)
+        if computed is not None:
+            computed[name] = got
         for key in _INT_FIELDS + _LIST_INT_FIELDS:
             if declared.get(key) != got[key]:
                 problems.append(f"{name}: {key} declared {declared.get(key)!r}, "

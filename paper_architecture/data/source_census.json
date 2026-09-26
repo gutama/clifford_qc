@@ -1,6 +1,7 @@
 {
   "gates": {
     "absent_from_workflow": [
+      "check_phase16a_te_qsci",
       "check_phase16b_feasibility",
       "check_phase16b_preregistration",
       "check_phase16b_v2_feasibility",
@@ -39,7 +40,7 @@
       "Lineage and environment": 3,
       "Plan ledger": 1,
       "Preregistration": 9,
-      "Value-rebuilt": 20
+      "Value-rebuilt": 21
     },
     "dispatch_gates": [
       "check_exact_shot_search",
@@ -53,13 +54,13 @@
       "check_r3d_qr3_refinement",
       "check_record_environment"
     ],
-    "gates": 39,
+    "gates": 40,
     "manual_dispatch_only": 10,
     "named_in_workflow": 31,
-    "producers": 48,
+    "producers": 49,
     "producers_without_gate": 25,
     "run_on_every_pull_request": 21,
-    "same_stem_pairs": 23
+    "same_stem_pairs": 24
   },
   "records": {
     "declarations": {
@@ -174,7 +175,7 @@
     },
     "package_lines": 26843,
     "package_modules": 101,
-    "test_lines": 27528,
-    "test_modules": 119
+    "test_lines": 27756,
+    "test_modules": 120
   }
 }
