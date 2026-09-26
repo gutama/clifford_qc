@@ -131,7 +131,7 @@ conditional phases.
 | 13 | parity/X-rank invariant | **done**; one shared GF(2) implementation is tested across every declared spin-conserving JW construction path before grouping |
 | 14 | fully commuting grouping | **done on the frozen BeH₂/JW comparison** — the public compiled-plan API, exact joint sampler, preregistered finite-sample record, covariance audit, and device-card costing ship; Q9 is positive within the declared one-bank oracle boundary |
 | 15 | second-moment bank | **open, unimplemented**; no `SecondMomentBank` or H-squared support/cost preflight ships |
-| 16 | time-evolved inputs | **partially implemented (50%)**; the 16A QSCI time-evolved input ships in `subspace/time_evolution.py` (exact matrix-free propagation as an `oracle` input, a validated Trotter circuit as an `implementable` one, and pooled multi-time sampling), with no comparison run on it yet. No circuit-native/truncated A-CASE real-time family ships. 16B's three preregistered decision experiments have run — v1 `CONDITIONAL`, v2 `GO` under per-word pricing, v3 `CONDITIONAL` once the incumbent is priced with its own grouping — and the programme ends there: the real-time backend is **not authorized** (§5, Phase 16) |
+| 16 | time-evolved inputs | **partially implemented (50%)**; the 16A QSCI time-evolved input ships in `subspace/time_evolution.py` (exact matrix-free propagation as an `oracle` input, a validated Trotter circuit as an `implementable` one, and pooled multi-time sampling). Its decision comparison, Q15, is preregistered and not yet run. No circuit-native/truncated A-CASE real-time family ships. 16B's three preregistered decision experiments have run — v1 `CONDITIONAL`, v2 `GO` under per-word pricing, v3 `CONDITIONAL` once the incumbent is priced with its own grouping — and the programme ends there: the real-time backend is **not authorized** (§5, Phase 16) |
 | 17 | mapping validation and breadth | **partially implemented (75%)**; the JW/BK/parity transformation, invariance gates, and mapping-axis records ship through R2, while the CEO-pool and dedicated MORE-ADAPT breadth benchmarks remain open |
 | 18 | embedding boundary | **done**; the versioned effective-Hamiltonian schema ships in `models/effective.py`, and the common fragment-solver callback returning energy and one- and two-particle density matrices ships in `subspace/fragment.py`, implemented by QSCI, selected CI, the hybrid, and a sector-FCI reference. The embedding loop itself stays outside the package |
 | 19 | anticommuting-clique (spin-factor) partitioning | **proposed, unexecuted**; the algebra is §3.6 and the scope is §5, Phase 19. Lever 1 is scoped to a fixed-coefficient Hamiltonian-energy estimand, *not* to Phase 14b's matrix-element word bank; lever 2 needs a non-Clifford transport primitive that does not exist yet. An in-session structural probe supplies the sizing numbers and is explicitly **not** a committed record — no producer, config, record or checker exists, so nothing there licenses a rung, a price, or an arm |
@@ -2060,7 +2060,12 @@ others compile the dagger.
 per 4× steps at second order). It fails if `traceA` is dropped. *Not claimed:*
 that any time grid, or time evolution at all, improves QSCI against another
 input. That is an experiment, and it needs its own result-free declaration
-before it runs.
+before it runs. That declaration is
+`benchmarks/PHASE16A_PREREGISTRATION.md` (Q15, §10). It freezes the question,
+the instances, the time grid, the Trotter rule, the shot grid, the seeds and
+the decision rule. Its gate, `check_phase16a_preregistration.py`, recomputes
+every frozen number and runs in the structural CI matrix. No producer exists
+yet.
 
 **16B — A-CASE real-time generators.** Do not represent `exp(-iHt)` as an `MV` by
 default: Pauli support can become dense. A circuit-native generator requires a
@@ -3879,6 +3884,17 @@ A-CASE's.
   structural sizing probe with no committed record, and the ceiling caps any
   affirmative answer in advance: no clique cover can save more than a factor
   `2n+1` against term-by-term measurement.
+- **Q15 — time-evolved QSCI input:** on an active space where the reference
+  determinant misses chemical accuracy, does QSCI on configurations pooled from
+  Trotter-circuit time-evolved reference states reach `1.6e-3` Ha within a
+  frozen shot grid? And at the first budget where it does, is its determinant
+  set better than the one sample-independent selected CI picks at the same
+  size? *Falsifier:* it reaches the target but matched selection does as well,
+  so time evolution only rediscovers what classical selection chooses.
+  *Status:* preregistered, not run (`benchmarks/PHASE16A_PREREGISTRATION.md`,
+  §5 Phase 16). Its required instances are H₂O CAS(8e,6o), H₄ and BeH₂, all
+  admitted by a zero-noise criterion. ADAPT-VQE inputs are not the comparator,
+  because the package's exact ADAPT is too slow at 12 qubits.
 
 **Resource accounting (QR1–QR6).**
 
@@ -4489,14 +4505,16 @@ bought a duplicate record.
     reference. Each solver's RDMs recover its own energy from the integrals,
     and that closes Phase 18 (§5). The embedding loop stays outside the
     package by design.
-19c. Phase 16A's time-evolved QSCI input — **shipped; no comparison run.**
-    `time_evolved_state` gives exact-propagation (`oracle`) and validated
-    Trotter-circuit (`implementable`) sampling inputs, and
-    `sample_state_inputs` pools several times into one QSCI subspace (§5,
-    Phase 16). Whether time-evolved sampling beats the reference, ADAPT or
-    oracle inputs at matched shots is a separate experiment. It opens with a
-    result-free preregistration: frozen instances, time grid, shot budget,
-    comparators and decision rule.
+19c. Phase 16A's time-evolved QSCI input — **shipped; its comparison is
+    preregistered, not run.** `time_evolved_state` gives exact-propagation
+    (`oracle`) and validated Trotter-circuit (`implementable`) sampling inputs,
+    and `sample_state_inputs` pools several times into one QSCI subspace (§5,
+    Phase 16). The deciding comparison is Q15: pooled Trotter-circuit
+    time-evolved QSCI against sample-independent selected CI of the same size,
+    on H₂O CAS(8e,6o), H₄ and BeH₂. Its result-free declaration
+    (`PHASE16A_PREREGISTRATION.md`, `configs/phase16a_te_qsci.json`,
+    `check_phase16a_preregistration.py`) has landed. Next are the producer and
+    result checker, and the producer must pass that gate before it draws.
 20. CEO and MORE-ADAPT benchmarks after the critical comparison is stable.
 21. The excited-state track, after the certificate question of §7.4 has an answer. Note
     that §3.5B's transformation-character parameter is what keeps this track reachable

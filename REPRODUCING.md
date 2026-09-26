@@ -116,7 +116,7 @@ No figure or table value in the manuscript is transcribed by hand, and
 ```bash
 python -m venv .venv && source .venv/bin/activate
 pip install -e .[test,research,stim]       # automatic CI extras
-pytest                                      # 2367 passed, 11 skipped
+pytest                                      # 2393 passed, 11 skipped
 ```
 
 This is the automatic CI dependency set; record gates additionally pin NumPy
@@ -132,7 +132,7 @@ the remaining `11 - 6 = 5` skips are per-test and *are* collected:
 
 ```text
 collected == passed + (skipped - files dropped at collection)
-2372      == 2367   + (11      -   6)
+2398      == 2393   + (11      -   6)
 ```
 
 Both sides are computed from the tree, so a drift in either quoted number
@@ -2808,6 +2808,33 @@ declared error order. Pooled multi-time sampling must account for every shot,
 and pooling a single state must reproduce `sample_state_input` draw for draw.
 No test asserts that a time-evolved input helps QSCI; that comparison needs its
 own preregistration.
+
+## Phase 16A preregistration: time-evolved QSCI against matched selection (result-free)
+
+The 16A input answers no question by itself. `benchmarks/PHASE16A_PREREGISTRATION.md`
+declares the one comparison that decides whether it earns a place. Pooled
+Trotter-circuit time-evolved QSCI must reach `1.6e-3` Ha within `2^6 … 2^16`
+shots, and at that budget its determinant set must beat sample-independent
+selected CI of the same size. The instances are H₂O CAS(8e,6o), H₄ and BeH₂,
+all committed FCIDUMPs.
+
+```bash
+python benchmarks/check_phase16a_preregistration.py
+```
+
+The gate draws nothing. It checks completeness and the absence of results,
+and binds the FCIDUMPs, their provenance and `time_evolution.py` by SHA-256.
+It enforces a total status ladder in which a censored instance never yields
+GO. It also tests the declaration's clauses against each other, the Phase 16B
+v3 lesson: the budgets split evenly over the time grid, admission is read at
+the grid's top, and the tie tolerance sits far below the target. It then
+recomputes every number in `measured_before_freezing` from the committed
+inputs: the time grid, the Trotter step counts the fidelity rule selects, and
+the three admission clauses. It refuses any threshold a platform could flip.
+This takes about forty seconds, mostly H₂O's Trotter circuits, and runs in the
+structural CI matrix. `tests/test_phase16a_preregistration.py` holds each
+clause against a deliberate mutation of the config. The producer and result
+checker come later, and the producer must pass this gate before it draws.
 
 ## Phase 18 fragment-solver callback
 

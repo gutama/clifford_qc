@@ -21,6 +21,7 @@
       "check_molecular",
       "check_packed_bank_storage",
       "check_phase14b_preregistration",
+      "check_phase16a_preregistration",
       "check_phase_status",
       "check_priceability_screen",
       "check_protocol_axis",
@@ -37,7 +38,7 @@
       "Documentation": 1,
       "Lineage and environment": 3,
       "Plan ledger": 1,
-      "Preregistration": 8,
+      "Preregistration": 9,
       "Value-rebuilt": 20
     },
     "dispatch_gates": [
@@ -52,12 +53,12 @@
       "check_r3d_qr3_refinement",
       "check_record_environment"
     ],
-    "gates": 38,
+    "gates": 39,
     "manual_dispatch_only": 10,
-    "named_in_workflow": 30,
+    "named_in_workflow": 31,
     "producers": 48,
     "producers_without_gate": 25,
-    "run_on_every_pull_request": 20,
+    "run_on_every_pull_request": 21,
     "same_stem_pairs": 23
   },
   "records": {
@@ -173,7 +174,7 @@
     },
     "package_lines": 26793,
     "package_modules": 101,
-    "test_lines": 27317,
-    "test_modules": 118
+    "test_lines": 27459,
+    "test_modules": 119
   }
 }

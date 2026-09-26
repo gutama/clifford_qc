@@ -1,0 +1,375 @@
+{
+  "schema": "clifford_qc.phase16a_te_qsci_config.v1",
+  "design_document": "benchmarks/PHASE16A_PREREGISTRATION.md",
+  "purpose": "Frozen inputs for the Phase 16A decision experiment: pooled Trotter-circuit time-evolved QSCI against sample-independent classical selected CI at the same determinant count.",
+  "contains_results": false,
+  "claim_boundary": "This configuration carries no sampled draw, no QSCI solve on sampled configurations, no control solve, no instance status and no verdict. A later record may report only the comparison frozen here: the pooled Trotter-circuit time-evolved QSCI arm against sample-independent matched selected CI on the three required active spaces, under the frozen time grid, Trotter rule, shot grid, replicas, seeds and decision rule, with the oracle-tier arms as diagnostics that cannot promote.",
+  "question": {
+    "id": "Q15",
+    "text": "On an active space where the reference determinant misses chemical accuracy, does QSCI on configurations pooled from Trotter-circuit time-evolved reference states reach the target within the frozen shot grid, and at the first budget where it does, is its determinant set better than the one sample-independent selected CI picks at the same size?"
+  },
+  "target": {
+    "statistic": "median_absolute_energy_error",
+    "value": 0.0016,
+    "units": "hartree"
+  },
+  "instances": {
+    "h2o_cas8e6o": {
+      "description": "H2O STO-3G CAS(8e,6o), lowest canonical RHF orbital frozen",
+      "builder": "clifford_qc.models.fcidump.fcidump_model",
+      "source": "benchmarks/data/h2o_sto3g_cas8e6o.FCIDUMP",
+      "provenance": "benchmarks/data/h2o_sto3g_cas8e6o.provenance.json",
+      "reference": "model.reference: the RHF determinant the FCIDUMP header declares",
+      "sector": "(N, S_z) from the FCIDUMP header (NELEC, MS2)",
+      "mapping": "jordan_wigner",
+      "spin_convention": "interleaved",
+      "energy_unit": "hartree",
+      "role": "required_decision"
+    },
+    "h4_r09": {
+      "description": "H4 chain STO-3G, 0.9 angstrom spacing, 4e in 4 orbitals",
+      "builder": "clifford_qc.models.fcidump.fcidump_model",
+      "source": "benchmarks/data/h4_sto3g_r0.9.FCIDUMP",
+      "provenance": "benchmarks/data/h4_sto3g_r0.9.provenance.json",
+      "reference": "model.reference: the RHF determinant the FCIDUMP header declares",
+      "sector": "(N, S_z) from the FCIDUMP header (NELEC, MS2)",
+      "mapping": "jordan_wigner",
+      "spin_convention": "interleaved",
+      "energy_unit": "hartree",
+      "role": "required_decision"
+    },
+    "beh2_r13264": {
+      "description": "BeH2 STO-3G, 1.3264 angstrom, 4e in 4 orbitals, Be 1s frozen",
+      "builder": "clifford_qc.models.fcidump.fcidump_model",
+      "source": "benchmarks/data/beh2_sto3g_r1.3264.FCIDUMP",
+      "provenance": "benchmarks/data/beh2_sto3g_r1.3264.provenance.json",
+      "reference": "model.reference: the RHF determinant the FCIDUMP header declares",
+      "sector": "(N, S_z) from the FCIDUMP header (NELEC, MS2)",
+      "mapping": "jordan_wigner",
+      "spin_convention": "interleaved",
+      "energy_unit": "hartree",
+      "role": "required_decision"
+    }
+  },
+  "required_decision_instances": [
+    "h2o_cas8e6o",
+    "h4_r09",
+    "beh2_r13264"
+  ],
+  "screened_and_not_admitted": {
+    "lih_cas4e4o": {
+      "source": "benchmarks/data/lih_sto3g_r1.5949_cas4e4o.FCIDUMP",
+      "reason": "the reference determinant is already within the target (reference_error 1.1956e-3 hartree), so every arm reaches it with one configuration"
+    },
+    "hubbard_2x3_u4": {
+      "builder": "clifford_qc.models.lattice.hubbard((2, 3), t=1.0, U=4.0)",
+      "reason": "the candidate's expected pooled support at the top budget (337 of 400 configurations) reaches only 0.149 t in exact arithmetic, so the comparison would be censored by construction; its energies are also not in hartree"
+    }
+  },
+  "exploratory_disclosure": "While Phase 16A was implemented, pooled time-evolved QSCI was smoke-tested on H4 (0.9 angstrom) and hubbard(4): exact and Trotter inputs at t in {0.5, 1, 2} per hartree, 200 shots per time, one seed, no control. H4 gave 10 configurations at about 2e-3 hartree and hubbard(4) 31 configurations at about 0.15 t. Those runs used another time grid, no replicas and no matched control, so none of the quantities the decision rule reads was observed. H4 stays a required instance on the v1 precedent for disclosed exploratory pilots.",
+  "time_grid": {
+    "rule": "t_k = c_k * tau with tau = 1 / sigma_ref and sigma_ref^2 = <ref|H^2|ref> - <ref|H|ref>^2 on the declared sector",
+    "multipliers": [
+      0.25,
+      0.5,
+      1.0,
+      2.0
+    ],
+    "units": "inverse hartree (hbar = 1); exp(-iHt)",
+    "why": "First-order weight leaving the reference is sigma_ref^2 t^2: 1/16 at the first time and 1/4 at the second, and the last two lie past the perturbative regime. The grid follows from that argument, not from any sampled draw."
+  },
+  "trotter": {
+    "order": 2,
+    "step_grid": [
+      1,
+      2,
+      4,
+      8,
+      16,
+      32,
+      64,
+      128,
+      256
+    ],
+    "min_fidelity": 0.999,
+    "rule": "per time, the smallest step count in step_grid whose circuit state reaches min_fidelity with exact propagation of the same reference",
+    "term_order": "Pauli-code order, as trotter_program builds it",
+    "space": "full 2^n register; sector leakage is post-selected by sample_state_inputs"
+  },
+  "shot_grid": {
+    "total_shots": [
+      64,
+      128,
+      256,
+      512,
+      1024,
+      2048,
+      4096,
+      8192,
+      16384,
+      32768,
+      65536
+    ],
+    "split": "equal: total / K shots per time, K = len(time_grid.multipliers)",
+    "note": "Shots are raw executions; post-selected discards count against the budget."
+  },
+  "replicas": 100,
+  "seeds": {
+    "root": 20260926,
+    "rule": "int(numpy.random.SeedSequence(root, spawn_key=(instance_index, arm_index, budget_index, replica)).generate_state(1)[0])",
+    "instance_order": [
+      "h2o_cas8e6o",
+      "h4_r09",
+      "beh2_r13264"
+    ],
+    "arm_indices": {
+      "te_trotter_pooled": 0,
+      "te_exact_pooled": 1,
+      "exact_ground_oracle": 2
+    },
+    "budget_index": "position in shot_grid.total_shots"
+  },
+  "arms": {
+    "te_trotter_pooled": {
+      "role": "primary_candidate",
+      "category": "implementable",
+      "sampled": true,
+      "input": "time_evolved_state(backend, model, t_k, method='trotter', trotter_steps=<measured_before_freezing>, trotter_order=2) for every t_k",
+      "sampling": "sample_state_inputs(states, shots=total / K, seed=<stream>)",
+      "solver": "run_qsci on the model's SectorOperator; energy is the lowest Ritz value",
+      "preparations": "K distinct circuits; every shot is one execution"
+    },
+    "matched_selected_ci": {
+      "role": "primary_control",
+      "category": "classical",
+      "sampled": false,
+      "rule": "run_control(operator, candidate_indices, name='matched_selected_ci', kind='matched_selected_ci', max_determinants=M_r, score='epstein_nesbet')",
+      "matching": "per replica, M_r is the candidate's unique configuration count in that (instance, budget, replica)",
+      "sample_independent": true,
+      "saturation": "If fewer than M_r determinants are reachable from the reference, the control uses all it reaches. Its size is recorded, and it never uses more than M_r."
+    },
+    "te_exact_pooled": {
+      "role": "diagnostic",
+      "category": "oracle",
+      "sampled": true,
+      "input": "time_evolved_state(backend, model, t_k, method='expm_multiply') at the same times",
+      "purpose": "separates Trotter error from the sampling method"
+    },
+    "exact_ground_oracle": {
+      "role": "diagnostic",
+      "category": "oracle",
+      "sampled": true,
+      "input": "exact_ground_state_oracle(backend, model.hamiltonian), all shots on one state",
+      "purpose": "the ceiling any sampled QSCI input reaches at a budget"
+    },
+    "reference_determinant": {
+      "role": "floor",
+      "category": "implementable",
+      "sampled": false,
+      "rule": "deterministic: one configuration, error equal to reference_error",
+      "purpose": "the floor every input must clear; admission requires it to miss the target"
+    }
+  },
+  "primary_candidate_arm": "te_trotter_pooled",
+  "primary_control_arm": "matched_selected_ci",
+  "admission_criterion": {
+    "clauses": [
+      "the reference determinant misses the target: reference_error > target",
+      "zero-noise reachability: with p the equal-shot mixture of the candidate's Trotter states, the configurations whose expected raw count top_budget * p(c) is at least one give a QSCI error within the target in exact arithmetic",
+      "non-saturation: that expected support is smaller than the sector, so a matched selection still has to choose"
+    ],
+    "top_budget": 65536,
+    "reads_only": "zero-noise quantities: the exact sector spectrum, the declared states' exact probabilities, and one exact solve on the expected support",
+    "never_reads": [
+      "a sampled draw",
+      "the control",
+      "any paired comparison"
+    ],
+    "enforced_by": "benchmarks/check_phase16a_preregistration.py, before any producer runs",
+    "revision_after_structural_screen": "The non-saturation clause was first written as 'sector dimension >= 100', which would have left H2O alone. After the structural screen, and before any sampled draw, it was replaced by the support clause above, which admits H4 and BeH2 (expected support 20 and 6 of 36). The replacement is labelled declared_after_structural_screen; no sampled quantity informed it."
+  },
+  "robustness": {
+    "min_fidelity_margin": 1e-06,
+    "min_support_margin": 1e-06,
+    "why": "A step choice or support count that sits on its threshold could flip between platforms. The gate refuses one closer than these margins."
+  },
+  "measured_before_freezing": {
+    "h2o_cas8e6o": {
+      "n_qubits": 12,
+      "sector_dimension": 225,
+      "reference_error": 0.049561443489920975,
+      "sigma_ref": 0.3137170364670278,
+      "tau": 3.187585893522559,
+      "times": [
+        0.7968964733806397,
+        1.5937929467612795,
+        3.187585893522559,
+        6.375171787045118
+      ],
+      "trotter_steps": [
+        2,
+        4,
+        8,
+        16
+      ],
+      "rotor_counts": [
+        2197,
+        4393,
+        8785,
+        17569
+      ],
+      "expected_support_at_top_budget": 59,
+      "support_zero_noise_error": 9.179297634887007e-06
+    },
+    "h4_r09": {
+      "n_qubits": 8,
+      "sector_dimension": 36,
+      "reference_error": 0.05605687535104664,
+      "sigma_ref": 0.27880054147601363,
+      "tau": 3.586793607737789,
+      "times": [
+        0.8966984019344473,
+        1.7933968038688946,
+        3.586793607737789,
+        7.173587215475578
+      ],
+      "trotter_steps": [
+        1,
+        2,
+        4,
+        8
+      ],
+      "rotor_counts": [
+        367,
+        733,
+        1465,
+        2929
+      ],
+      "expected_support_at_top_budget": 20,
+      "support_zero_noise_error": -1.3322676295501878e-15
+    },
+    "beh2_r13264": {
+      "n_qubits": 8,
+      "sector_dimension": 36,
+      "reference_error": 0.005899452283246731,
+      "sigma_ref": 0.07300036213482139,
+      "tau": 13.698562181830562,
+      "times": [
+        3.4246405454576405,
+        6.849281090915281,
+        13.698562181830562,
+        27.397124363661124
+      ],
+      "trotter_steps": [
+        2,
+        2,
+        4,
+        16
+      ],
+      "rotor_counts": [
+        237,
+        237,
+        473,
+        1889
+      ],
+      "expected_support_at_top_budget": 6,
+      "support_zero_noise_error": 7.105427357601002e-15
+    },
+    "computed_by": "structural_quantities in benchmarks/check_phase16a_preregistration.py, from the committed inputs"
+  },
+  "decision_rule": {
+    "shots_to_target": "the smallest tested total budget at which the candidate's median error over replicas is <= target; no interpolation or extrapolation",
+    "paired_difference": "at that budget, per replica r: error(candidate, r) - error(control at M_r)",
+    "statistic": "median over replicas of the paired difference",
+    "tie_tolerance": 1e-10,
+    "instance_status_order": [
+      {
+        "status": "PASS",
+        "condition": "shots-to-target exists AND the median paired difference < -tie_tolerance"
+      },
+      {
+        "status": "FAIL",
+        "condition": "shots-to-target exists AND the median paired difference >= -tie_tolerance"
+      },
+      {
+        "status": "UNDETERMINED",
+        "condition": "no tested budget reaches the target"
+      }
+    ],
+    "invalid_precedence": "A failed deterministic check makes that instance INVALID, and any INVALID required instance makes the verdict INVALID: admission no longer holding at execution, a Trotter step count or expected support differing from measured_before_freezing, a sampled configuration outside the sector, a missing replica, or missing provenance. Ordinary sampling outcomes stay in the statistics.",
+    "combination_rule": "all required PASS gives GO; all FAIL gives NO_GO; anything else is CONDITIONAL",
+    "undetermined_on_required_is_not_a_pass": "A censored candidate never reads as a promotion.",
+    "diagnostics_cannot_promote": [
+      "te_exact_pooled",
+      "exact_ground_oracle",
+      "reference_determinant"
+    ]
+  },
+  "evidence": {
+    "sampling": "draws from the declared states' exact probabilities; no device noise, readout error or drift",
+    "label": "finite_sample on exact probabilities",
+    "categories": "te_trotter_pooled is implementable; te_exact_pooled and exact_ground_oracle are oracle; matched_selected_ci is classical. Oracle and implementable arms are reported in separate tables and never on one resource axis."
+  },
+  "excluded_from_cost": [
+    "gate depth and two-qubit counts of the Trotter circuits (rotor counts are recorded, not priced)",
+    "classical cost of the control and of the QSCI eigensolves (recorded, not priced)",
+    "readout error, device noise and mitigation",
+    "the classical simulation that selects Trotter step counts"
+  ],
+  "prespecified_followup": {
+    "permitted": "none",
+    "rule": "A CONDITIONAL or NO_GO authorizes no re-run under another time grid, shot grid, replica count, control or instance set; each would be a new declaration.",
+    "publication_rule": "The verdict is published unchanged; thresholds are never moved after observing results."
+  },
+  "implementation_lineage": {
+    "files": [
+      {
+        "path": "benchmarks/data/h2o_sto3g_cas8e6o.FCIDUMP",
+        "sha256": "2f68b1d3f9f77e9c1483cb1b879bac2a67a9d8204ce2e9e985697c10029c6103"
+      },
+      {
+        "path": "benchmarks/data/h2o_sto3g_cas8e6o.provenance.json",
+        "sha256": "2431c4399676d1a78abfc59d9b0ebe400625193a45d43adcea63c70c6250bb47"
+      },
+      {
+        "path": "benchmarks/data/h4_sto3g_r0.9.FCIDUMP",
+        "sha256": "bf32568461477cf1ec8e7c4aaae737b0c6c80bcbd83d51f783ec3a3daed5a922"
+      },
+      {
+        "path": "benchmarks/data/h4_sto3g_r0.9.provenance.json",
+        "sha256": "4b5cc30240ee42709e407f1794b73d9e585bc4032ecc14ff5eef450722868229"
+      },
+      {
+        "path": "benchmarks/data/beh2_sto3g_r1.3264.FCIDUMP",
+        "sha256": "01ef4422b2e9e7f711895ae897a94ea11c1b0fae5a5fd91c3396fbd4d69fba76"
+      },
+      {
+        "path": "benchmarks/data/beh2_sto3g_r1.3264.provenance.json",
+        "sha256": "fd4eb5de5bf94e2555f8d3d512e7918146224f49b84f8b890527ad5b8a25c73c"
+      },
+      {
+        "path": "clifford_qc/subspace/time_evolution.py",
+        "sha256": "84947eb9a167060bace07c7f46ae3b0601c007fa0c6aa2d94e99677b3972777b"
+      }
+    ],
+    "note": "The producer re-runs this gate and refuses to draw if it fails, so a changed input or 16A implementation cannot reach a record under this declaration."
+  },
+  "record_requirements": {
+    "schema": "clifford_qc.phase16a_te_qsci.v1",
+    "producer": "benchmarks/run_phase16a_te_qsci.py",
+    "checker": "benchmarks/check_phase16a_te_qsci.py",
+    "record": "benchmarks/reference_results/phase16a_te_qsci.json",
+    "must_include": [
+      "config_digest and provenance",
+      "per (instance, arm, budget, replica): unique configurations and energy error",
+      "per candidate replica: the matched control's size and energy error",
+      "median and p90 per cell",
+      "the recomputed measured_before_freezing block and admission at execution",
+      "Trotter circuit resources per time and post-selected discards",
+      "the decision evaluation under the frozen rule"
+    ],
+    "must_carry": {
+      "quantum_advantage_claim": false
+    }
+  }
+}

@@ -121,6 +121,9 @@ jobs:
           - gate: check_r4a_preregistration
             timeout: 10
             environment_record: priceability_screen.json
+          - gate: check_phase16a_preregistration
+            timeout: 15
+            environment_record: protocol_axis.json
           - gate: check_r4a_contextual_screen
             timeout: 20
             environment_record: r4a_contextual_screen.json
