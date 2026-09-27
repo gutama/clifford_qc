@@ -203,6 +203,7 @@
         "Circuit-native or explicitly truncated A-CASE real-time family (16B); not authorized: the preregistered decision programme ended CONDITIONAL"
       ],
       "decision_records": [
+        "benchmarks/reference_results/phase16a_te_qsci.json",
         "benchmarks/reference_results/phase16b_feasibility.json",
         "benchmarks/reference_results/phase16b_v2_feasibility.json",
         "benchmarks/reference_results/phase16b_v3_feasibility.json"

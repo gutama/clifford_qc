@@ -1,7 +1,6 @@
 {
   "gates": {
     "absent_from_workflow": [
-      "check_phase16a_te_qsci",
       "check_phase16b_feasibility",
       "check_phase16b_preregistration",
       "check_phase16b_v2_feasibility",
@@ -47,6 +46,7 @@
       "check_finite_shot_rethink",
       "check_matched_h4",
       "check_phase14b_qwc_vs_fc",
+      "check_phase16a_te_qsci",
       "check_protocol_cost",
       "check_qr3b_instance_preflight",
       "check_r3b_margin_stop_probe",
@@ -55,8 +55,8 @@
       "check_record_environment"
     ],
     "gates": 40,
-    "manual_dispatch_only": 10,
-    "named_in_workflow": 31,
+    "manual_dispatch_only": 11,
+    "named_in_workflow": 32,
     "producers": 49,
     "producers_without_gate": 25,
     "run_on_every_pull_request": 21,
@@ -83,6 +83,7 @@
       "packed_bank_storage.json": "f6a33f1aa225c4dd",
       "packed_h2o_feasibility.json": "f6a33f1aa225c4dd",
       "phase14b_qwc_vs_fc.json": "7eea7d72de38ea0e",
+      "phase16a_te_qsci.json": "965c18646df21c36",
       "phase16b_feasibility.json": "6829464abc77bc54",
       "phase16b_v2_feasibility.json": "6829464abc77bc54",
       "phase16b_v3_feasibility.json": "6829464abc77bc54",
@@ -110,12 +111,12 @@
       "basis_only": 0,
       "nested_in_subobject": 4,
       "none": 5,
-      "per_quantity_mapping": 3,
+      "per_quantity_mapping": 4,
       "role_only": 0,
       "role_with_nested_tier": 2,
       "top_level_tier": 17
     },
-    "json_records": 31,
+    "json_records": 32,
     "series_files": 21,
     "top_level_tiers": {
       "exact": 4,
@@ -175,7 +176,7 @@
     },
     "package_lines": 26843,
     "package_modules": 101,
-    "test_lines": 27756,
+    "test_lines": 27799,
     "test_modules": 120
   }
 }

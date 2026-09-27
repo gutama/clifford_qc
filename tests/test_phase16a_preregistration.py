@@ -163,3 +163,26 @@ def test_the_small_instances_recompute_their_frozen_numbers(config, name):
     assert got["support_zero_noise_error"] <= config["target"]["value"]
     assert got["expected_support_at_top_budget"] < got["sector_dimension"]
     assert got["minimum_fidelity_margin"] >= config["robustness"]["min_fidelity_margin"]
+
+
+def _one_commit(monkeypatch, tmp_path, boundary):
+    """Config and record both traced to one commit, as a depth-1 clone shows."""
+    record = tmp_path / "record.json"
+    record.write_text("{}", encoding="utf-8")
+    monkeypatch.setattr(gate, "RECORD", record)
+    monkeypatch.setattr(gate, "_last_commit", lambda path: "a" * 40)
+    monkeypatch.setattr(gate, "_first_commit", lambda path: "a" * 40)
+    monkeypatch.setattr(gate, "_shallow_boundary", lambda: boundary)
+
+
+def test_commit_order_skips_a_commit_on_the_shallow_boundary(tmp_path, monkeypatch):
+    """At a cut-off commit git reports every path as added; it cannot order them."""
+    _one_commit(monkeypatch, tmp_path, {"a" * 40})
+    notes: list[str] = []
+    assert gate.commit_order_problems(notes) == []
+    assert any("too shallow" in note for note in notes)
+
+
+def test_commit_order_refuses_a_record_sharing_the_config_commit(tmp_path, monkeypatch):
+    _one_commit(monkeypatch, tmp_path, {"b" * 40})
+    assert any("share a commit" in p for p in gate.commit_order_problems([]))

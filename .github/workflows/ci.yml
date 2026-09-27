@@ -198,6 +198,12 @@ jobs:
           - gate: check_phase14b_qwc_vs_fc
             timeout: 30
             environment_record: phase14b_qwc_vs_fc.json
+          # The one declared Phase 16A run. The checker replays replica 0 of
+          # every cell and recomputes both controls: about a minute and a half
+          # locally, plus the environment install.
+          - gate: check_phase16a_te_qsci
+            timeout: 20
+            environment_record: phase16a_te_qsci.json
     steps:
       - uses: actions/checkout@v4
       - uses: ./.github/actions/record-environment
