@@ -116,7 +116,7 @@ No figure or table value in the manuscript is transcribed by hand, and
 ```bash
 python -m venv .venv && source .venv/bin/activate
 pip install -e .[test,research,stim]       # automatic CI extras
-pytest                                      # 2431 passed, 11 skipped
+pytest                                      # 2474 passed, 11 skipped
 ```
 
 This is the automatic CI dependency set; record gates additionally pin NumPy
@@ -132,7 +132,7 @@ the remaining `11 - 6 = 5` skips are per-test and *are* collected:
 
 ```text
 collected == passed + (skipped - files dropped at collection)
-2436      == 2431   + (11      -   6)
+2479      == 2474   + (11      -   6)
 ```
 
 Both sides are computed from the tree, so a drift in either quoted number
@@ -2906,6 +2906,49 @@ decision on random synthetic cells, and catches each tampered field with the
 check written for it. It also re-derives the committed record's statistics
 and verdict, which costs no draw, so the automatic test job guards the record
 between manual dispatches.
+
+## Phase 15 preregistration: the H² support/cost preflight (count-free)
+
+Phase 15's `SecondMomentBank` would hold the rows `K_ij = A_i† H² A_j` that
+residual norms and energy variances need. Before any such row is formed,
+`benchmarks/PHASE15_PREFLIGHT_PREREGISTRATION.md` (Q16) declares the preflight
+that decides where the bank may be built.
+
+```bash
+python benchmarks/check_phase15_preregistration.py
+```
+
+The five banks are the frozen mapping-axis banks at their committed labels, the
+same ones both Phase 2M records price. A bank is eligible when two clauses
+hold:
+
+* adding the second-moment rows keeps its word universe within ten times the
+  `(S, H)` universe;
+* its first- and second-moment coefficients together stay within 96,107,619,
+  the largest count a committed run has held.
+
+Both clauses are read again after pruning coefficients at `1e-9`, and a bank
+whose status moves under that is not eligible.
+
+The gate forms no `H²` and no second-moment row. It rebuilds each `(S, H)`
+bank and requires the word universe, coefficient count and block to equal the
+committed Phase 2M-A ledger. It checks that the storage anchor is the ledger's
+largest committed count. It checks the premise of the symmetry ceiling word by
+word: `H`, every generator and the whole `(S, H)` universe commute with both
+spin-block parities, so no second-moment word can leave a sector of `4ⁿ/4`
+words. From that ceiling it derives that no 8-qubit bank can fail either
+clause, that H₂O CAS(8e,6o) is the one decisive bank, and that the reachable
+verdicts are FULL and RESTRICTED. The config must say the same. The FCIDUMPs,
+the mapping-axis config and the ledger are bound by SHA-256. The multivector
+product and the Pauli kernel, which define what a row's support is, are bound
+until a record exists.
+
+This takes about twelve seconds and runs in the structural CI matrix.
+`tests/test_phase15_preregistration.py` holds each clause against a deliberate
+mutation of the config. It checks the sector predicate against an independent
+Pauli product over every word on two and four qubits, and its closure under
+products on the Hubbard dimer, which is not declared. The producer and result
+checker come later.
 
 ## Phase 18 fragment-solver callback
 
