@@ -104,14 +104,14 @@ Status at a glance:
 | numbered phase scope | lifecycle | implementation |
 |---|---|---:|
 | Phases 0--14 | complete | 15 / 15 |
-| Phase 15: Second-moment bank | open | 0% |
+| Phase 15: Second-moment bank | partial | 50% |
 | Phase 16: Time-evolved inputs | partial | 50% |
 | Phase 17: Mapping validation and breadth | partial | 75% |
 | Phase 18: Embedding boundary | complete | 100% |
 | Phase 19: Anticommuting-clique partitioning | proposed | 0% |
 
 Strict complete-phase score: **16 / 20 = 80.00%**.
-Progress-weighted score: **17.25 / 20 = 86.25%**.
+Progress-weighted score: **17.75 / 20 = 88.75%**.
 Retired and conditional adjunct phases are tracked separately and do not change this denominator. Source: `PHASE_STATUS.json`; validate with `python benchmarks/check_phase_status.py`.
 <!-- PHASE-STATUS-SUMMARY:END -->
 
@@ -130,7 +130,7 @@ conditional phases.
 | PRD | orthogonal-residual regression, Davidson/preconditioned expansion, packet pricing, matched A-CASE, exact and finite-shot suites | **done and read**; exact compactness is positive, complete-bank QWC finite-shot energy accuracy is negative |
 | 13 | parity/X-rank invariant | **done**; one shared GF(2) implementation is tested across every declared spin-conserving JW construction path before grouping |
 | 14 | fully commuting grouping | **done on the frozen BeH₂/JW comparison** — the public compiled-plan API, exact joint sampler, preregistered finite-sample record, covariance audit, and device-card costing ship; Q9 is positive within the declared one-bank oracle boundary |
-| 15 | second-moment bank | **open, unimplemented**; no `SecondMomentBank` or H-squared support/cost preflight ships. The preflight is preregistered (Q16) and not run |
+| 15 | second-moment bank | **partially implemented (50%)**; the H-squared support/cost preflight ran once and reads `FULL` (Q16), and `SecondMomentBank` ships with exact second moments and true Ritz residual norms, validated on all five licensed banks against a dense oracle. Finite-shot estimation of the block, variance extrapolation, folded-spectrum roots and banks outside the five remain |
 | 16 | time-evolved inputs | **partially implemented (50%)**; the 16A QSCI time-evolved input ships in `subspace/time_evolution.py` (exact matrix-free propagation as an `oracle` input, a validated Trotter circuit as an `implementable` one, and pooled multi-time sampling). Its decision comparison, Q15, ran once and reads `NO_GO`: iterated selected CI of the same size matches or beats it on both required instances. No circuit-native/truncated A-CASE real-time family ships. 16B's three preregistered decision experiments have run — v1 `CONDITIONAL`, v2 `GO` under per-word pricing, v3 `CONDITIONAL` once the incumbent is priced with its own grouping — and the programme ends there: the real-time backend is **not authorized** (§5, Phase 16) |
 | 17 | mapping validation and breadth | **partially implemented (75%)**; the JW/BK/parity transformation, invariance gates, and mapping-axis records ship through R2, while the CEO-pool and dedicated MORE-ADAPT breadth benchmarks remain open |
 | 18 | embedding boundary | **done**; the versioned effective-Hamiltonian schema ships in `models/effective.py`, and the common fragment-solver callback returning energy and one- and two-particle density matrices ships in `subspace/fragment.py`, implemented by QSCI, selected CI, the hybrid, and a sector-FCI reference. The embedding loop itself stays outside the package |
@@ -815,8 +815,8 @@ criterion rather than of the family.
 The true Ritz residual `‖(H−E)|Ψ⟩‖² = (c†Kc)/(c†Sc) − E²` requires
 `K_ij = ⟨ψ|A_i†H²A_j|ψ⟩`, which the projected `(H,S)` pair cannot supply and whose
 Pauli support can be much larger. Policy: `residual_norms` is **optional** —
-computed either from a later `SecondMomentBank` (Phase 15) or, in small exact
-runs, from a dense reconstructed state. Never expose the *projected* residual
+computed either from the Phase 15 `SecondMomentBank`, which now ships with exact
+pairings, or, in small exact runs, from a dense reconstructed state. Never expose the *projected* residual
 under that name: it is zero by construction for a solved Ritz pair and says
 nothing about error outside the subspace.
 
@@ -2018,7 +2018,7 @@ explicit small-system exception; the preflight itself may proceed independently.
 Uses: true Ritz residual norms; energy variance and variance extrapolation;
 folded-spectrum roots; an independent convergence criterion.
 
-**The preflight is preregistered, count-free, and not run.**
+**The preflight was preregistered count-free, then run once.**
 `benchmarks/PHASE15_PREFLIGHT_PREREGISTRATION.md` (Q16, §10) fixes the preflight
 before any second-moment row exists. It prices the rows
 `K_ij = A_i† (H² A_j)` over each retained block of the five frozen
@@ -2039,8 +2039,62 @@ name and H₂O keeps dense residual oracles. The gate,
 `check_phase15_preregistration.py`, recomputes every frozen number from the
 committed inputs, requires it to match the Phase 2M-A ledger, and runs in the
 structural CI matrix. The producer (`run_phase15_h2_preflight.py`) and result
-checker (`check_phase15_h2_preflight.py`) are committed and tested only on the
-undeclared Hubbard dimer; no row has been formed on a declared bank.
+checker (`check_phase15_h2_preflight.py`) were committed and tested on the
+undeclared Hubbard dimer before the one declared run.
+
+**Preflight verdict — `FULL`.** The record
+(`benchmarks/reference_results/phase15_h2_preflight.json`) comes from clean tree
+`18e99c2`, and the config's last change precedes it. Every bank is ELIGIBLE.
+
+| bank | `\|U_SH\|` | `\|U_SH ∪ U_K\|` | ratio | `T_SH + T_K` | share of anchor |
+|---|---|---|---|---|---|
+| h4 | 7,371 | 8,192 | 1.11 | 218,921 | 0.2% |
+| h4_converged | 7,927 | 8,192 | 1.03 | 612,601 | 0.6% |
+| beh2 | 1,815 | 2,048 | 1.13 | 25,765 | 0.03% |
+| h2o_cas8e6o | 143,117 | 868,150 | 6.07 | 7,719,726 | 8.0% |
+| hubbard_2x2 | 5,537 | 13,940 | 2.52 | 45,561 | 0.05% |
+
+On H₂O, the one decisive bank, `H²` has 24,902 words against `H`'s 551. The
+second moments add 725,033 words to the measured universe, 6.07 times the
+`(S, H)` one against a limit of 10, and the largest single row has 438,976
+terms. Storage is the looser clause: first and second moments together hold
+8.0% of the anchor. No coefficient in `H²` or any row lies in `(1e-12, 1e-9]`,
+so no status depends on the pruning convention. Every row reproduces the dense
+second moments to `1.1e-14`, and every block is positive semidefinite. The
+H₄ banks stop at exactly half the spin-parity ceiling (8,192 of 16,384 words)
+and BeH₂ at an eighth, so the ceiling, which uses only the two spin parities,
+is loose there. That settled nothing the preflight had to decide.
+
+The consequence is the one the verdict declares. Phase 15 builds
+`SecondMomentBank` for the retained block and validates it on all five banks
+against a dense residual oracle. A bank outside the five still needs the
+Phase 2M storage gate or its own preflight. The verdict prices words and
+stored coefficients only; it says nothing about grouping the new universe or
+the shots a measured residual needs, and FULL is not a claim that those are
+affordable.
+
+**`SecondMomentBank` ships, exact, and validated on the five banks.**
+`clifford_qc/subspace/second_moment.py` registers `H2 = H * H` as one projected
+observable of a `MatrixElementBank`, so its rows are the bank's own
+`A_i.dagger() * (H2 * A_j)`: the rows the preflight priced. From the block it
+gives each Ritz root's true residual `||(H − E)|Ψ⟩||²/⟨Ψ|Ψ⟩` (§4.4) and the
+energy variance of any state in the span. The variance is a difference of two
+numbers of order `⟨H²⟩`, so it is reported signed. A root is `resolved` only
+when that variance stands above `1e-12` of the magnitude it cancels.
+`run_second_moment_validation.py` refuses any bank the preflight record does
+not license. On all five banks, the block matches a matrix-free dense Gram
+matrix of `H A_j|ψ⟩` to `1.1e-14`, and every root's variance matches the
+reconstructed state's residual within `7.3e-15` of its scale. The counts and
+word-set digest equal the preflight record's
+(`reference_results/second_moment_validation.json`).
+
+These are the first true residual norms of the frozen bases. The ground roots
+are 7.6e-2 Ha on H₄, 5.0e-2 on converged H₄, 2.3e-3 on BeH₂ and 0.15 Ha on
+H₂O CAS(8e,6o), and 1.52 t on Hubbard 2×2. *Not claimed:* a finite-shot
+estimate of the block. Grouping a universe of 868,150 words is the cost the
+preflight excluded, so the measured implementation remains. So do variance
+extrapolation, folded-spectrum roots and an independent convergence
+criterion built on the block, and any bank outside the five.
 
 ### Phase 16 — time-evolved inputs, split by method
 
@@ -3960,11 +4014,12 @@ A-CASE's.
   universe within ten times the `(S, H)` universe? And do they keep the bank's
   coefficients within the largest count a committed run has held? *Falsifier:*
   a bank fails either clause, and its residual norms then come from dense or
-  matrix-free oracles rather than a measured bank. *Status:* preregistered,
-  producer and checker committed, not run
-  (`benchmarks/PHASE15_PREFLIGHT_PREREGISTRATION.md`, §5 Phase 15).
-  The spin-parity sector ceiling makes H₂O CAS(8e,6o) the only bank either
-  clause can bind.
+  matrix-free oracles rather than a measured bank. *Status:* executed once,
+  **`FULL`** (`benchmarks/reference_results/phase15_h2_preflight.json`, §5
+  Phase 15). The spin-parity sector ceiling made H₂O CAS(8e,6o) the only bank
+  either clause could bind. There the second moments multiply the measured word
+  universe by 6.07, and the bank holds 8.0% of the anchor's coefficients. The
+  falsifier does not hold on any bank.
 
 **Resource accounting (QR1–QR6).**
 
@@ -4593,16 +4648,25 @@ bought a duplicate record.
     stays as a validated sampling input. The preregistration permits no
     follow-up, so any further time-evolved QSCI comparison is a new
     declaration.
-19d. Phase 15's H² support/cost preflight — **preregistered, not run.** The
+19d. Phase 15's H² support/cost preflight — **done, `FULL`.** The
     count-free declaration (`PHASE15_PREFLIGHT_PREREGISTRATION.md`,
     `configs/phase15_h2_preflight.json`, `check_phase15_preregistration.py`)
     comes first, as PLAN permits the preflight to run ahead of the Phase 2M
     storage gate. The producer (`run_phase15_h2_preflight.py`) and result
     checker (`check_phase15_h2_preflight.py`) follow it, tested only on the
-    undeclared Hubbard dimer. The producer refuses to form `H²` unless the gate
-    passes, and the checker recounts every row and re-derives the verdict
-    independently. Next is the single declared run. Its verdict decides which
-    banks the `SecondMomentBank` is built on.
+    undeclared Hubbard dimer. The one declared run came last
+    (`reference_results/phase15_h2_preflight.json`). All five banks are
+    eligible. On H₂O, the decisive bank, the word universe grows 6.07 times
+    against a limit of 10, and the bank holds 8.0% of the storage anchor.
+    Next is the `SecondMomentBank` itself, built for the retained block and
+    validated on the five banks against a dense residual oracle.
+19e. Phase 15's `SecondMomentBank` — **done, exact.** It reuses the bank's
+    projected-observable rows for `H * H` and gives true Ritz residual norms and
+    energy variances. `run_second_moment_validation.py` validates it on the
+    five licensed banks against matrix-free dense residuals
+    (`reference_results/second_moment_validation.json`). Finite-shot estimation
+    of the block remains, together with the uses that build on it: variance
+    extrapolation, folded-spectrum roots and a convergence criterion.
 20. CEO and MORE-ADAPT benchmarks after the critical comparison is stable.
 21. The excited-state track, after the certificate question of §7.4 has an answer. Note
     that §3.5B's transformation-character parameter is what keeps this track reachable

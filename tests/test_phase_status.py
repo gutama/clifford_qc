@@ -44,15 +44,18 @@ def test_summary_arithmetic_drift_is_rejected():
 def test_decimal_partial_fractions_use_tolerant_arithmetic():
     data = ledger()
     before = data["summary"]["progress_weighted_points"]
-    unstarted = [row for row in data["numbered_phases"]
-                 if row["implementation_fraction"] == 0.0]
-    for row, fraction in zip(unstarted[:2], (0.1, 0.2), strict=True):
+    # Any two unfinished phases will do; the ledger's own progress moves which
+    # ones are unstarted, so the fractions they give up are subtracted back.
+    unfinished = [row for row in data["numbered_phases"] if row["status"] != "complete"]
+    replaced = 0.0
+    for row, fraction in zip(unfinished[:2], (0.1, 0.2), strict=True):
+        replaced += row["implementation_fraction"]
         row["status"] = "partial"
         row["implementation_fraction"] = fraction
     set_summary(data)
     # Written as a decimal literal, as a person would type it into the ledger;
     # the gate must accept it whatever bits the float sum of 0.1 and 0.2 lands on.
-    points = round(before + 0.3, 2)
+    points = round(before - replaced + 0.3, 2)
     data["summary"]["progress_weighted_points"] = points
     data["summary"]["progress_weighted_fraction"] = round(points / 20, 4)
     assert status.validate(data) == []

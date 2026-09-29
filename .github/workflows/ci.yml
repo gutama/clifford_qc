@@ -127,6 +127,16 @@ jobs:
           - gate: check_phase15_preregistration
             timeout: 10
             environment_record: bank_storage_ledger.json
+          # Recounts every second-moment row of the five banks: about two
+          # minutes locally, most of it H2O, at under 1 GiB.
+          - gate: check_phase15_h2_preflight
+            timeout: 20
+            environment_record: phase15_h2_preflight.json
+          # Rebuilds SecondMomentBank on the five licensed banks and compares it
+          # with dense statevectors: about three minutes locally, most of it H2O.
+          - gate: check_second_moment_validation
+            timeout: 25
+            environment_record: second_moment_validation.json
           - gate: check_r4a_contextual_screen
             timeout: 20
             environment_record: r4a_contextual_screen.json
