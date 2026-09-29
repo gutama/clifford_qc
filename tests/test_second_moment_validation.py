@@ -105,6 +105,17 @@ def test_a_changed_preflight_breaks_the_digest(toy):
                checker.declaration_problems(record, preflight, raw + b" "))
 
 
+def test_the_committed_record_re_derives_its_checks():
+    """The five-bank record, re-read without rebuilding a bank."""
+    record = json.loads(producer.RECORD.read_text(encoding="utf-8"))
+    preflight_bytes = producer.PREFLIGHT.read_bytes()
+    preflight = json.loads(preflight_bytes)
+    assert checker.declaration_problems(record, preflight, preflight_bytes) == []
+    assert checker.derived_problems(record, preflight) == []
+    assert record["summary"]["all_validated"] is True
+    assert record["provenance"]["git_dirty"] is False
+
+
 def test_the_producer_refuses_a_subset_on_the_committed_path(capsys):
     assert producer.main(["--banks", "h4"]) == 1
     assert "bank subset" in capsys.readouterr().out

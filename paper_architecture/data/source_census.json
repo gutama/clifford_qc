@@ -33,6 +33,7 @@
       "check_r3d_preregistration",
       "check_r4a_contextual_screen",
       "check_r4a_preregistration",
+      "check_second_moment_validation",
       "check_warm_start"
     ],
     "classes": {
@@ -41,7 +42,7 @@
       "Lineage and environment": 3,
       "Plan ledger": 1,
       "Preregistration": 10,
-      "Value-rebuilt": 22
+      "Value-rebuilt": 23
     },
     "dispatch_gates": [
       "check_exact_shot_search",
@@ -56,13 +57,13 @@
       "check_r3d_qr3_refinement",
       "check_record_environment"
     ],
-    "gates": 42,
+    "gates": 43,
     "manual_dispatch_only": 11,
-    "named_in_workflow": 34,
-    "producers": 50,
+    "named_in_workflow": 35,
+    "producers": 51,
     "producers_without_gate": 25,
-    "run_on_every_pull_request": 23,
-    "same_stem_pairs": 25
+    "run_on_every_pull_request": 24,
+    "same_stem_pairs": 26
   },
   "records": {
     "declarations": {
@@ -98,6 +99,7 @@
       "r3c_lih_full_cost.json": "feec7a29e148f8fe",
       "r3d_qr3_refinement.json": "63a5cd4d094d0517",
       "r4a_contextual_screen.json": "f6a33f1aa225c4dd",
+      "second_moment_validation.json": "24572fd441b3622a",
       "warm_start_h4.json": "a3981028c447b11d"
     },
     "distinct_top_level_tiers": 5,
@@ -114,12 +116,12 @@
       "basis_only": 0,
       "nested_in_subobject": 4,
       "none": 5,
-      "per_quantity_mapping": 5,
+      "per_quantity_mapping": 6,
       "role_only": 0,
       "role_with_nested_tier": 2,
       "top_level_tier": 17
     },
-    "json_records": 33,
+    "json_records": 34,
     "series_files": 21,
     "top_level_tiers": {
       "exact": 4,
@@ -169,17 +171,17 @@
         "modules": 3
       },
       "subspace": {
-        "lines": 11361,
-        "modules": 31
+        "lines": 11570,
+        "modules": 32
       },
       "surface": {
         "lines": 38,
         "modules": 1
       }
     },
-    "package_lines": 26843,
-    "package_modules": 101,
-    "test_lines": 28340,
-    "test_modules": 122
+    "package_lines": 27052,
+    "package_modules": 102,
+    "test_lines": 28615,
+    "test_modules": 124
   }
 }

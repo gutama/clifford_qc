@@ -26,6 +26,7 @@ small-system comparisons, and a public archival release is intended.
 | Build models | Spin chains, Hubbard and other lattice models, restricted real FCIDUMP import, effective-Hamiltonian JSON, orbital rotations — every model declares its encoding and sector under a validated metadata contract | [Model examples](#examples), [conventions](CONVENTIONS.md#model-metadata), `clifford_qc.models` |
 | Run circuits | Parameterized Pauli rotors and Clifford gates, JSON serialization, gradients, OpenQASM 3 export | [Circuit example](#circuit-programs), `clifford_qc.ir` |
 | Compare eigensolvers | VQE, ADAPT-VQE, fixed and adaptive operator-response subspaces, QSCI/SQD (with reference, ADAPT-VQE, and exact or Trotter time-evolved sampling inputs), selected-CI controls, hybrid bases | [Solver guide](#choosing-a-solver), [subspace example](#adaptive-subspaces) |
+| Check a Ritz state against an eigenstate | True Ritz residual norms and energy variances from the second-moment block `⟨A_i†H²A_j⟩`, exact pairings over a matrix-element bank; validated on the five banks the Phase 15 preflight licensed | `clifford_qc.subspace.SecondMomentBank`, [reproducing](REPRODUCING.md#phase-15-secondmomentbank-and-its-validation) |
 | Solve embedding fragments | One callback returning energy plus one- and two-particle density matrices, implemented by sector FCI, QSCI, selected CI, and the QSCI × A-CASE hybrid; the embedding loop itself stays outside the package | `clifford_qc.subspace.fragment`, [conventions](CONVENTIONS.md#density-matrices) |
 | Reuse measurements | QWC and block-commuting grouping, compiled Clifford readouts, shared caches, covariance, allocation, uncertainty estimates | [Finite-shot examples](#examples), [architecture](ARCHITECTURE.md#measurement-and-evidence) |
 | Control classical costs | Cached preparation, optional reference validation, object or packed coefficients, streaming with recomputation | [Pipeline guide](molecular/PIPELINE.md) |
@@ -300,13 +301,13 @@ programme; it is not a package-readiness or scientific-advantage score.
 | numbered phase scope | lifecycle | implementation |
 |---|---|---:|
 | Phases 0--14 | complete | 15 / 15 |
-| Phase 15: Second-moment bank | partial | 25% |
+| Phase 15: Second-moment bank | partial | 50% |
 | Phase 16: Time-evolved inputs | partial | 50% |
 | Phase 17: Mapping validation and breadth | partial | 75% |
 | Phase 18: Embedding boundary | complete | 100% |
 | Phase 19: Anticommuting-clique partitioning | proposed | 0% |
 
 Strict complete-phase score: **16 / 20 = 80.00%**.
-Progress-weighted score: **17.50 / 20 = 87.50%**.
+Progress-weighted score: **17.75 / 20 = 88.75%**.
 Retired and conditional adjunct phases are tracked separately and do not change this denominator. Source: `PHASE_STATUS.json`; validate with `python benchmarks/check_phase_status.py`.
 <!-- PHASE-STATUS-SUMMARY:END -->

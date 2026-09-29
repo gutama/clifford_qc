@@ -39,8 +39,8 @@
     "numbered_phase_count": 20,
     "complete_phase_count": 16,
     "strict_complete_fraction": 0.8,
-    "progress_weighted_points": 17.5,
-    "progress_weighted_fraction": 0.875
+    "progress_weighted_points": 17.75,
+    "progress_weighted_fraction": 0.8875
   },
   "numbered_phases": [
     {
@@ -183,14 +183,18 @@
       "id": "15",
       "title": "Second-moment bank",
       "status": "partial",
-      "implementation_fraction": 0.25,
+      "implementation_fraction": 0.5,
       "evidence": [
         "benchmarks/run_phase15_h2_preflight.py",
         "benchmarks/check_phase15_h2_preflight.py",
-        "benchmarks/reference_results/phase15_h2_preflight.json"
+        "benchmarks/reference_results/phase15_h2_preflight.json",
+        "clifford_qc/subspace/second_moment.py",
+        "tests/test_second_moment.py",
+        "benchmarks/reference_results/second_moment_validation.json"
       ],
       "remaining": [
-        "SecondMomentBank for the retained block, built and validated on the five preflight banks against a dense residual oracle (the preflight's FULL verdict)",
+        "Finite-shot estimation of the second-moment block (the measured implementation), with a grouping the preflight did not price",
+        "Variance extrapolation, folded-spectrum roots and an independent convergence criterion built on the block",
         "Phase 2M storage gate or a preflight of its own before SecondMomentBank construction on any bank outside the five"
       ]
     },

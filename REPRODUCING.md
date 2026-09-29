@@ -116,7 +116,7 @@ No figure or table value in the manuscript is transcribed by hand, and
 ```bash
 python -m venv .venv && source .venv/bin/activate
 pip install -e .[test,research,stim]       # automatic CI extras
-pytest                                      # 2499 passed, 11 skipped
+pytest                                      # 2524 passed, 11 skipped
 ```
 
 This is the automatic CI dependency set; record gates additionally pin NumPy
@@ -132,7 +132,7 @@ the remaining `11 - 6 = 5` skips are per-test and *are* collected:
 
 ```text
 collected == passed + (skipped - files dropped at collection)
-2504      == 2499   + (11      -   6)
+2529      == 2524   + (11      -   6)
 ```
 
 Both sides are computed from the tree, so a drift in either quoted number
@@ -3020,6 +3020,58 @@ checker must agree on every clause outcome, and each tampered field must be
 caught by the check written for it. No test forms `H²` on a declared bank.
 It also re-derives the committed record's sums, statuses and verdict without a
 recount, and checks that the producer will not overwrite the record.
+
+## Phase 15 SecondMomentBank and its validation
+
+The preflight's FULL verdict licenses `SecondMomentBank`
+(`clifford_qc/subspace/second_moment.py`) on the five banks. It registers
+`H2 = H * H` as one projected observable of a `MatrixElementBank`, so each row
+is the bank's own `A_i.dagger() * (H2 * A_j)`: the row the preflight priced.
+From the block it gives every Ritz root's true residual
+`||(H − E)|Ψ⟩||² / ⟨Ψ|Ψ⟩`, the quantity PLAN.md §4.4 reserves the name
+"residual norm" for, and the energy variance of any state in the span. The
+variance is reported signed. A root is `resolved` only when its variance
+exceeds `1e-12` times the magnitude it cancels. The values are exact
+pairings; no finite-shot estimator of the block is offered.
+
+```bash
+python -m pytest tests/test_second_moment.py tests/test_second_moment_validation.py -q
+OMP_NUM_THREADS=1 OPENBLAS_NUM_THREADS=1 MKL_NUM_THREADS=1 \
+  python benchmarks/run_second_moment_validation.py      # writes benchmarks/reference_results/second_moment_validation.json
+python benchmarks/check_second_moment_validation.py      # re-derives every check and recomputes every bank
+python benchmarks/check_second_moment_validation.py --no-recompute   # checks and summary only
+python benchmarks/check_second_moment_validation.py --banks h4 beh2  # recompute a subset
+```
+
+The producer refuses any bank the preflight record does not list as eligible.
+On each licensed bank it checks three routes against one another:
+
+* the block against the Gram matrix of `H A_j|ψ⟩`, computed from dense
+  statevectors through `PauliLinearOperator` with no multivector product;
+* every root's variance against the residual of the reconstructed state,
+  computed the same way;
+* the rows' word universe, coefficient counts and word-set digest against the
+  preflight record.
+
+| bank | roots (resolved) | worst variance disagreement / scale | ground residual |
+|---|---|---|---|
+| h4 | 9 (9) | 3.0e-15 | 7.56e-2 Ha |
+| h4_converged | 15 (14) | 2.8e-15 | 4.98e-2 Ha |
+| beh2 | 5 (3) | 2.8e-15 | 2.34e-3 Ha |
+| h2o_cas8e6o | 9 (9) | 7.3e-15 | 0.152 Ha |
+| hubbard_2x2 | 9 (9) | 9.4e-16 | 1.52 t |
+
+The worst disagreement is at least 137 times inside the resolution, and each
+block matches its dense Gram matrix to `1.1e-14`. The run takes about three
+minutes, 180 seconds of it on H₂O, and the checker's recomputation costs the
+same. It runs in the structural CI matrix.
+
+`tests/test_second_moment.py` holds the block to a dense `B†H²B` and every
+residual to `reference.dense_residual_norm` on the Hubbard dimer. It checks
+that a complete basis has no resolved residual. On the declared H₄, BeH₂ and
+Hubbard 2×2 banks, the counts and word-set digest must equal the committed
+preflight record. `tests/test_second_moment_validation.py` runs the producer
+and checker on the dimer, and catches each tampered field.
 
 ## Phase 18 fragment-solver callback
 
