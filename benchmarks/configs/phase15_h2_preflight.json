@@ -1,0 +1,268 @@
+{
+ "schema": "clifford_qc.phase15_h2_preflight_config.v1",
+ "design_document": "benchmarks/PHASE15_PREFLIGHT_PREREGISTRATION.md",
+ "question_id": "Q16",
+ "purpose": "Decide, before any SecondMomentBank exists, which frozen banks may carry measured second-moment rows. PLAN.md section 5 Phase 15 asks for an H-squared support/cost preflight first, keeps dense or matrix-free residual oracles for validation if the word universe is prohibitive, and confines the measured implementation to declared small systems. This declaration fixes what prohibitive means, on which banks it is read, and what each outcome licenses.",
+ "contains_results": false,
+ "claim_boundary": "This config declares the Phase 15 H-squared support/cost preflight: which of the five frozen mapping-axis banks may carry a measured second-moment bank, read from exact word and coefficient counts of A_i^dagger H^2 A_j over each retained block. It holds no count of any second-moment row. The counts it declares are structural: they price the words a measured bank must estimate and the coefficients it must hold, not shots, grouping, circuits, wall time or hardware, and they bound nothing outside the five declared banks.",
+ "question": "On each of the five frozen mapping-axis banks, with the second-moment rows K_ij = A_i^dagger H^2 A_j added over the retained block, does the measured word universe stay within ten times the (S, H) universe the bank already measures, and do the bank's resident coefficients stay within the largest count a committed run has held?",
+ "row_definition": {
+  "hamiltonian_square": "H2 = H * H, formed once by the multivector product from the bank's own Hamiltonian (MatrixElementBank.hamiltonian), identity term included",
+  "row": "K_ij = A_i.dagger() * (H2 * A_j), for i <= j over the frozen basis, in that product order: the second-moment analogue of MatrixElementBank._build_pair's A_i^dagger (H A_j)",
+  "support": "the keys of the row's multivector after the product's own pruning, |c| > 1e-12",
+  "pairs": "the retained block only: every i <= j over the frozen selected basis, M(M + 1)/2 rows. A Ritz residual norm reads the Ritz vector's block and nothing else, so rejected-candidate rows are outside the question.",
+  "universes": "U_SH is the (S, H) bank's word universe over the same block, U_K the union of the K rows' supports, and the measured universe with second moments is U_SH | U_K."
+ },
+ "banks": {
+  "source_config": "benchmarks/configs/mapping_axis.json",
+  "systems": [
+   "h4",
+   "h4_converged",
+   "beh2",
+   "h2o_cas8e6o",
+   "hubbard_2x2"
+  ],
+  "basis": "Each bank at its frozen selected_labels, through the same _build_model and _selected_generators the mapping-axis record and both Phase 2M records use. These are the banks the project already prices storage on, so a second-moment price sits beside a committed first-moment one on the same block.",
+  "not_declared": "The committed 14-qubit molecular banks (stretched BeH2 at M = 31 among them) record no frozen basis, and rebuilding them means rerunning adaptive growth. They are outside this preflight; a scaling preflight on them would be its own declaration."
+ },
+ "baseline": {
+  "record": "benchmarks/reference_results/bank_storage_ledger.json",
+  "fields": "word_universe and coefficient_occurrences of each fixed_label_bank row, which this gate recomputes and must match exactly",
+  "statement": "The (S, H) bank is the denominator. T_SH counts both its overlap and element rows over the block; the second-moment bank adds T_K on top."
+ },
+ "clauses": {
+  "word": {
+   "statistic": "|U_SH | U_K| / |U_SH|",
+   "max_ratio": 10,
+   "rationale": "A decade is the unit this repository reads as material, as in Phase 16B's 10x modelled-shot rule. Second moments that stay within one decade of the words the bank already measures extend an existing measurement; beyond it they are a different measurement. The ratio is of integers and is compared exactly."
+  },
+  "storage": {
+   "statistic": "T_SH + T_K, resident coefficient occurrences over the block",
+   "max_coefficient_occurrences": 96107619,
+   "anchor_record": "beh2_stretched_results.json",
+   "rationale": "The largest coefficient count any committed run has held: the stretched-BeH2 M = 31 bank, recovered exactly as cached_operator_bytes / 24 in the Phase 2M-A ledger, which completed at 10.75 GiB peak RSS on the object backend. A bank at or below it is one the package has demonstrably carried; above it, full construction waits for the Phase 2M storage gate, as PLAN.md already requires."
+  }
+ },
+ "pruning": {
+  "declared_tolerance": 1e-12,
+  "strict_tolerance": 1e-09,
+  "rule": "Both clauses are evaluated with the product's own pruning and again with every coefficient of magnitude at most 1e-9 removed from H2 and from each K row. The arithmetic is pure-Python IEEE float in a fixed order, so the counts are reproducible, but a word whose coefficient is rounding residue from an exact cancellation can sit just above 1e-12. Strict pruning only removes words, so it can only turn a failing clause into a passing one. A bank whose status differs between the two is CONVENTION_SENSITIVE and is not eligible.",
+  "why_1e-9": "Three decades above the product's threshold, and below every declared Hamiltonian's smallest coefficient (2.05e-4 on H2O), so it cannot remove a Hamiltonian word."
+ },
+ "symmetry_ceiling": {
+  "statement": "Every declared Hamiltonian and generator conserves N_up and N_down, so each commutes with the parity Z-string over each spin block, and so does every product of them. A Pauli word commutes with a block's Z-string exactly when it has an even number of X or Y letters on that block. Under the interleaved convention (up spins on even qubits) that leaves 4^n / 4 words: 16,384 on 8 qubits and 4,194,304 on 12.",
+  "consequence": "A clause can bind a bank only if the ceiling leaves room to fail it: the word clause when 4^n / 4 > 10 |U_SH|, the storage clause when T_SH + (M(M+1)/2)(4^n / 4) > the anchor. The gate checks the premise word by word on H, the generators and U_SH, and derives both flags from committed numbers."
+ },
+ "decision_rule": {
+  "bank_status_order": [
+   {
+    "status": "ELIGIBLE",
+    "condition": "both clauses pass at both tolerances"
+   },
+   {
+    "status": "WORD_PROHIBITIVE",
+    "condition": "the word clause fails and the storage clause passes, at both tolerances"
+   },
+   {
+    "status": "STORAGE_PROHIBITIVE",
+    "condition": "the storage clause fails and the word clause passes, at both tolerances"
+   },
+   {
+    "status": "BOTH_PROHIBITIVE",
+    "condition": "both clauses fail at both tolerances"
+   },
+   {
+    "status": "CONVENTION_SENSITIVE",
+    "condition": "a clause fails at 1e-12 and passes at 1e-9"
+   }
+  ],
+  "invalid_precedence": "A failed deterministic check makes that bank INVALID, and any INVALID bank makes the verdict INVALID.",
+  "combination_rule": "every bank ELIGIBLE gives FULL; no bank ELIGIBLE gives NONE; anything else is RESTRICTED; any INVALID bank gives INVALID"
+ },
+ "consequences": {
+  "FULL": "Phase 15 builds SecondMomentBank for the retained block and validates it on all five banks against a dense residual oracle. A bank outside the five still needs the Phase 2M storage gate or its own preflight before construction.",
+  "RESTRICTED": "SecondMomentBank is built and validated only on the eligible banks, which become Phase 15's explicit small-system exception by name. Residual norms on the other banks come from dense or matrix-free oracles, and extending the measured bank to them needs a new declaration.",
+  "NONE": "No measured SecondMomentBank; Phase 15 ships dense and matrix-free residual oracles only. Unreachable on this population, because no 8-qubit bank can fail either clause.",
+  "INVALID": "No verdict. The record names the failed check, and no status is read from that run."
+ },
+ "measured_before_freezing": {
+  "h4": {
+   "n_qubits": 8,
+   "basis_size": 9,
+   "block_pairs": 45,
+   "hamiltonian_terms": 185,
+   "max_generator_terms": 8,
+   "sh_word_universe": 7371,
+   "sh_coefficient_occurrences": 52794,
+   "sector_word_ceiling": 16384,
+   "operator_sector_violations": 0,
+   "sh_sector_violations": 0,
+   "word_clause_can_bind": false,
+   "storage_clause_can_bind": false,
+   "min_abs_hamiltonian_coefficient": 0.0018493698141189775
+  },
+  "h4_converged": {
+   "n_qubits": 8,
+   "basis_size": 15,
+   "block_pairs": 120,
+   "hamiltonian_terms": 185,
+   "max_generator_terms": 8,
+   "sh_word_universe": 7927,
+   "sh_coefficient_occurrences": 129954,
+   "sector_word_ceiling": 16384,
+   "operator_sector_violations": 0,
+   "sh_sector_violations": 0,
+   "word_clause_can_bind": false,
+   "storage_clause_can_bind": false,
+   "min_abs_hamiltonian_coefficient": 0.0018493698141189775
+  },
+  "beh2": {
+   "n_qubits": 8,
+   "basis_size": 5,
+   "block_pairs": 15,
+   "hamiltonian_terms": 61,
+   "max_generator_terms": 8,
+   "sh_word_universe": 1815,
+   "sh_coefficient_occurrences": 6846,
+   "sector_word_ceiling": 16384,
+   "operator_sector_violations": 0,
+   "sh_sector_violations": 0,
+   "word_clause_can_bind": false,
+   "storage_clause_can_bind": false,
+   "min_abs_hamiltonian_coefficient": 0.0036751602870138808
+  },
+  "h2o_cas8e6o": {
+   "n_qubits": 12,
+   "basis_size": 9,
+   "block_pairs": 45,
+   "hamiltonian_terms": 551,
+   "max_generator_terms": 8,
+   "sh_word_universe": 143117,
+   "sh_coefficient_occurrences": 351080,
+   "sector_word_ceiling": 4194304,
+   "operator_sector_violations": 0,
+   "sh_sector_violations": 0,
+   "word_clause_can_bind": true,
+   "storage_clause_can_bind": true,
+   "min_abs_hamiltonian_coefficient": 0.00020496779998914819
+  },
+  "hubbard_2x2": {
+   "n_qubits": 8,
+   "basis_size": 9,
+   "block_pairs": 45,
+   "hamiltonian_terms": 21,
+   "max_generator_terms": 8,
+   "sh_word_universe": 5537,
+   "sh_coefficient_occurrences": 8334,
+   "sector_word_ceiling": 16384,
+   "operator_sector_violations": 0,
+   "sh_sector_violations": 0,
+   "word_clause_can_bind": false,
+   "storage_clause_can_bind": false,
+   "min_abs_hamiltonian_coefficient": 0.5
+  }
+ },
+ "decisive_banks": [
+  "h2o_cas8e6o"
+ ],
+ "reachable_verdicts": [
+  "FULL",
+  "RESTRICTED"
+ ],
+ "deterministic_checks": [
+  "baseline_matches_ledger: U_SH and T_SH rebuilt at execution equal the ledger and measured_before_freezing",
+  "sector_closed: every word of H2 and of every K row lies in the spin-parity sector",
+  "rows_reproduce_dense_second_moments: each K row paired with the reference equals <psi|A_i^dagger H^2 A_j|psi> from dense statevectors within 1e-8 (1 + |value|)",
+  "gram_psd: the block of those pairings, completed by Hermiticity, has no eigenvalue below -1e-8 times its largest magnitude, since it is the Gram matrix of H A_j |psi>",
+  "strict_not_above_declared: every strict count is at most its declared-tolerance count",
+  "provenance: the record is stamped with a clean git tree"
+ ],
+ "evidence": {
+  "label": "structural",
+  "statement": "Exact integer counts of words and stored coefficients from exact multivector products. No sampling, no estimator, no seed."
+ },
+ "excluded_from_cost": [
+  "measurement grouping (QWC or fully commuting settings) of the new universe: the greedy partition is quadratic in a universe that can reach millions of words",
+  "shots, estimator variance and any certified cost",
+  "circuits, depth and hardware",
+  "wall time and peak RSS, which the record reports as diagnostics but no clause reads",
+  "rejected-candidate rows and every bank outside the five"
+ ],
+ "exploratory_disclosure": "Before freezing, only (S, H) quantities were computed on the declared banks: the numbers in measured_before_freezing, which the committed ledger already carried, and the sector premise. No H-squared product and no second-moment row was formed on any declared bank. The row and sector code is exercised in tests on the Hubbard dimer, which is not declared.",
+ "prespecified_followup": {
+  "permitted": "none",
+  "statement": "The thresholds, tolerances, banks and row definition are fixed. Another threshold, bank set or row definition would be a new declaration. The consequence each verdict names is what follows."
+ },
+ "implementation_lineage": {
+  "inputs": [
+   {
+    "path": "benchmarks/configs/mapping_axis.json",
+    "sha256": "25adcb3aedd4d70f3b7e84f91fe3c11672c5d646a416e4851025424f2cb01ea3"
+   },
+   {
+    "path": "benchmarks/reference_results/bank_storage_ledger.json",
+    "sha256": "cb9d6d1fd7ea1d9a5b5179817321850f271060fc60789fc55dbd5cc9a8a2c7d6"
+   },
+   {
+    "path": "benchmarks/data/h4_sto3g_r0.9.FCIDUMP",
+    "sha256": "bf32568461477cf1ec8e7c4aaae737b0c6c80bcbd83d51f783ec3a3daed5a922"
+   },
+   {
+    "path": "benchmarks/data/h4_sto3g_r0.9.provenance.json",
+    "sha256": "4b5cc30240ee42709e407f1794b73d9e585bc4032ecc14ff5eef450722868229"
+   },
+   {
+    "path": "benchmarks/data/beh2_sto3g_r1.3264.FCIDUMP",
+    "sha256": "01ef4422b2e9e7f711895ae897a94ea11c1b0fae5a5fd91c3396fbd4d69fba76"
+   },
+   {
+    "path": "benchmarks/data/beh2_sto3g_r1.3264.provenance.json",
+    "sha256": "fd4eb5de5bf94e2555f8d3d512e7918146224f49b84f8b890527ad5b8a25c73c"
+   },
+   {
+    "path": "benchmarks/data/h2o_sto3g_cas8e6o.FCIDUMP",
+    "sha256": "2f68b1d3f9f77e9c1483cb1b879bac2a67a9d8204ce2e9e985697c10029c6103"
+   },
+   {
+    "path": "benchmarks/data/h2o_sto3g_cas8e6o.provenance.json",
+    "sha256": "2431c4399676d1a78abfc59d9b0ebe400625193a45d43adcea63c70c6250bb47"
+   }
+  ],
+  "implementation": [
+   {
+    "path": "clifford_qc/multivector.py",
+    "sha256": "50483e03aeca9050d1d06ec1eae587313ed3efd728146ee26e98c42b993b2ddd"
+   },
+   {
+    "path": "clifford_qc/pauli_kernel.py",
+    "sha256": "c7512dc6ad68e7ccdf676b2fa1fe309c16a21ec5c820e55e7ac45bc8689c937d"
+   }
+  ],
+  "note": "Inputs stay bound for the life of the record. The multivector product and the Pauli kernel define what a row's support is, so they are bound until the record exists; after that the record's provenance names the commit that produced it, and a later edit to either file does not reopen this declaration."
+ },
+ "record_requirements": {
+  "schema": "clifford_qc.phase15_h2_preflight.v1",
+  "producer": "benchmarks/run_phase15_h2_preflight.py",
+  "checker": "benchmarks/check_phase15_h2_preflight.py",
+  "record": "benchmarks/reference_results/phase15_h2_preflight.json",
+  "must_include": [
+   "config_digest and provenance",
+   "per bank: |H|, |H2|, |U_K|, |U_SH | U_K|, T_K and T_SH + T_K, at both tolerances",
+   "per bank: the largest K row, the count of H2 and K coefficients in (1e-12, 1e-9], and both clause outcomes at both tolerances",
+   "per bank: every deterministic check and its value",
+   "the recomputed measured_before_freezing block",
+   "per-bank status and the verdict, with the verdict's consequence quoted"
+  ],
+  "must_carry": {
+   "quantum_advantage_claim": false,
+   "claim_boundary": "its own, not this config's"
+  }
+ },
+ "revisions": [
+  {
+   "revision": 0,
+   "commit_subject": "Preregister the Phase 15 H-squared support/cost preflight, count-free",
+   "content": "Initial declaration."
+  }
+ ]
+}

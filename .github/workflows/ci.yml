@@ -124,6 +124,9 @@ jobs:
           - gate: check_phase16a_preregistration
             timeout: 15
             environment_record: protocol_axis.json
+          - gate: check_phase15_preregistration
+            timeout: 10
+            environment_record: bank_storage_ledger.json
           - gate: check_r4a_contextual_screen
             timeout: 20
             environment_record: r4a_contextual_screen.json

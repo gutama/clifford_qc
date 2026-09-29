@@ -130,7 +130,7 @@ conditional phases.
 | PRD | orthogonal-residual regression, Davidson/preconditioned expansion, packet pricing, matched A-CASE, exact and finite-shot suites | **done and read**; exact compactness is positive, complete-bank QWC finite-shot energy accuracy is negative |
 | 13 | parity/X-rank invariant | **done**; one shared GF(2) implementation is tested across every declared spin-conserving JW construction path before grouping |
 | 14 | fully commuting grouping | **done on the frozen BeH₂/JW comparison** — the public compiled-plan API, exact joint sampler, preregistered finite-sample record, covariance audit, and device-card costing ship; Q9 is positive within the declared one-bank oracle boundary |
-| 15 | second-moment bank | **open, unimplemented**; no `SecondMomentBank` or H-squared support/cost preflight ships |
+| 15 | second-moment bank | **open, unimplemented**; no `SecondMomentBank` or H-squared support/cost preflight ships. The preflight is preregistered (Q16) and not run |
 | 16 | time-evolved inputs | **partially implemented (50%)**; the 16A QSCI time-evolved input ships in `subspace/time_evolution.py` (exact matrix-free propagation as an `oracle` input, a validated Trotter circuit as an `implementable` one, and pooled multi-time sampling). Its decision comparison, Q15, ran once and reads `NO_GO`: iterated selected CI of the same size matches or beats it on both required instances. No circuit-native/truncated A-CASE real-time family ships. 16B's three preregistered decision experiments have run — v1 `CONDITIONAL`, v2 `GO` under per-word pricing, v3 `CONDITIONAL` once the incumbent is priced with its own grouping — and the programme ends there: the real-time backend is **not authorized** (§5, Phase 16) |
 | 17 | mapping validation and breadth | **partially implemented (75%)**; the JW/BK/parity transformation, invariance gates, and mapping-axis records ship through R2, while the CEO-pool and dedicated MORE-ADAPT breadth benchmarks remain open |
 | 18 | embedding boundary | **done**; the versioned effective-Hamiltonian schema ships in `models/effective.py`, and the common fragment-solver callback returning energy and one- and two-particle density matrices ships in `subspace/fragment.py`, implemented by QSCI, selected CI, the hybrid, and a sector-FCI reference. The embedding loop itself stays outside the package |
@@ -2017,6 +2017,30 @@ construction additionally requires the Phase 2M memory-bounded storage gate or a
 explicit small-system exception; the preflight itself may proceed independently.
 Uses: true Ritz residual norms; energy variance and variance extrapolation;
 folded-spectrum roots; an independent convergence criterion.
+
+**The preflight is preregistered, count-free, and not run.**
+`benchmarks/PHASE15_PREFLIGHT_PREREGISTRATION.md` (Q16, §10) fixes the preflight
+before any second-moment row exists. It prices the rows
+`K_ij = A_i† (H² A_j)` over each retained block of the five frozen
+mapping-axis banks, the same banks both Phase 2M records price. A bank is
+eligible for a measured `SecondMomentBank` when two clauses hold:
+
+- the measured word universe stays within ten times the `(S, H)` universe;
+- first and second moments together hold no more coefficients than the
+  largest committed run, stretched BeH₂ at `M = 31` (96,107,619).
+
+Both clauses are also read after pruning coefficients at `1e-9`, and a status
+that moves under that is not eligibility. Every declared operator conserves
+`N↑` and `N↓`, so no word can leave a sector of `4ⁿ/4`. That ceiling settles
+the 8-qubit banks in advance: none can fail either clause, so H₂O CAS(8e,6o) is
+the one decisive bank. The outcome is therefore FULL, where the measured bank
+is built on all five, or RESTRICTED, where it is built on the 8-qubit banks by
+name and H₂O keeps dense residual oracles. The gate,
+`check_phase15_preregistration.py`, recomputes every frozen number from the
+committed inputs, requires it to match the Phase 2M-A ledger, and runs in the
+structural CI matrix. The producer (`run_phase15_h2_preflight.py`) and result
+checker (`check_phase15_h2_preflight.py`) are committed and tested only on the
+undeclared Hubbard dimer; no row has been formed on a declared bank.
 
 ### Phase 16 — time-evolved inputs, split by method
 
@@ -3931,6 +3955,16 @@ A-CASE's.
   criterion. H₄ admits too but is a diagnostic, because development touched
   it. ADAPT-VQE inputs are not the comparator, because the package's exact
   ADAPT is too slow at 12 qubits.
+- **Q16 — second-moment support:** on the five frozen mapping-axis banks, do
+  the rows `A_i† H² A_j` over the retained block keep the measured word
+  universe within ten times the `(S, H)` universe? And do they keep the bank's
+  coefficients within the largest count a committed run has held? *Falsifier:*
+  a bank fails either clause, and its residual norms then come from dense or
+  matrix-free oracles rather than a measured bank. *Status:* preregistered,
+  producer and checker committed, not run
+  (`benchmarks/PHASE15_PREFLIGHT_PREREGISTRATION.md`, §5 Phase 15).
+  The spin-parity sector ceiling makes H₂O CAS(8e,6o) the only bank either
+  clause can bind.
 
 **Resource accounting (QR1–QR6).**
 
@@ -4559,6 +4593,16 @@ bought a duplicate record.
     stays as a validated sampling input. The preregistration permits no
     follow-up, so any further time-evolved QSCI comparison is a new
     declaration.
+19d. Phase 15's H² support/cost preflight — **preregistered, not run.** The
+    count-free declaration (`PHASE15_PREFLIGHT_PREREGISTRATION.md`,
+    `configs/phase15_h2_preflight.json`, `check_phase15_preregistration.py`)
+    comes first, as PLAN permits the preflight to run ahead of the Phase 2M
+    storage gate. The producer (`run_phase15_h2_preflight.py`) and result
+    checker (`check_phase15_h2_preflight.py`) follow it, tested only on the
+    undeclared Hubbard dimer. The producer refuses to form `H²` unless the gate
+    passes, and the checker recounts every row and re-derives the verdict
+    independently. Next is the single declared run. Its verdict decides which
+    banks the `SecondMomentBank` is built on.
 20. CEO and MORE-ADAPT benchmarks after the critical comparison is stable.
 21. The excited-state track, after the certificate question of §7.4 has an answer. Note
     that §3.5B's transformation-character parameter is what keeps this track reachable
