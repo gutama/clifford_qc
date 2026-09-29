@@ -116,7 +116,7 @@ No figure or table value in the manuscript is transcribed by hand, and
 ```bash
 python -m venv .venv && source .venv/bin/activate
 pip install -e .[test,research,stim]       # automatic CI extras
-pytest                                      # 2497 passed, 11 skipped
+pytest                                      # 2499 passed, 11 skipped
 ```
 
 This is the automatic CI dependency set; record gates additionally pin NumPy
@@ -132,7 +132,7 @@ the remaining `11 - 6 = 5` skips are per-test and *are* collected:
 
 ```text
 collected == passed + (skipped - files dropped at collection)
-2502      == 2497   + (11      -   6)
+2504      == 2499   + (11      -   6)
 ```
 
 Both sides are computed from the tree, so a drift in either quoted number
@@ -2950,18 +2950,38 @@ Pauli product over every word on two and four qubits, and its closure under
 products on the Hubbard dimer, which is not declared. The producer below must
 pass this gate before it forms `H²`.
 
-## Phase 15 preflight producer and result checker (not yet run)
+## Phase 15 H² support/cost preflight (executed once, `FULL`)
 
-The producer and checker ship before the record, so the code that counts the
-declared rows is committed before any row is formed.
+The producer and checker were committed before the record, so the code that
+counted the declared rows was fixed before any row was formed. The record
+`benchmarks/reference_results/phase15_h2_preflight.json` comes from the one
+declared run.
 
 ```bash
-OMP_NUM_THREADS=1 OPENBLAS_NUM_THREADS=1 MKL_NUM_THREADS=1 \
-  python benchmarks/run_phase15_h2_preflight.py      # writes benchmarks/reference_results/phase15_h2_preflight.json
 python benchmarks/check_phase15_h2_preflight.py      # recounts every row of every bank
 python benchmarks/check_phase15_h2_preflight.py --banks h4 beh2   # recount a subset
 python benchmarks/check_phase15_h2_preflight.py --no-recount      # rules, arithmetic, dense check
+OMP_NUM_THREADS=1 OPENBLAS_NUM_THREADS=1 MKL_NUM_THREADS=1 \
+  python benchmarks/run_phase15_h2_preflight.py --out /tmp/phase15.json   # a rerun elsewhere
 ```
+
+**Verdict `FULL`.** Every bank is ELIGIBLE.
+
+| bank | `\|U_SH\|` | `\|U_SH ∪ U_K\|` | word ratio | `T_SH + T_K` | share of anchor |
+|---|---|---|---|---|---|
+| h4 | 7,371 | 8,192 | 1.11 | 218,921 | 0.2% |
+| h4_converged | 7,927 | 8,192 | 1.03 | 612,601 | 0.6% |
+| beh2 | 1,815 | 2,048 | 1.13 | 25,765 | 0.03% |
+| h2o_cas8e6o | 143,117 | 868,150 | 6.07 | 7,719,726 | 8.0% |
+| hubbard_2x2 | 5,537 | 13,940 | 2.52 | 45,561 | 0.05% |
+
+H₂O CAS(8e,6o) was the one bank either clause could bind. Its `H²` has 24,902
+words against `H`'s 551, and its largest row has 438,976 terms. No coefficient
+anywhere lies in `(1e-12, 1e-9]`, so every status reads the same at both
+thresholds. Every row reproduces the dense second moments to `1.1e-14`. The
+run took about two minutes, 114 seconds of it on H₂O, at a process peak of
+765 MiB. The checker's full recount costs the same and runs in the structural
+CI matrix; `--no-recount` takes under two seconds.
 
 The producer refuses before it forms `H²` unless:
 
@@ -2998,6 +3018,8 @@ counts to an independent dense Pauli decomposition, and drives one bank over a
 lowered anchor to exercise RESTRICTED end to end. The producer, gate and
 checker must agree on every clause outcome, and each tampered field must be
 caught by the check written for it. No test forms `H²` on a declared bank.
+It also re-derives the committed record's sums, statuses and verdict without a
+recount, and checks that the producer will not overwrite the record.
 
 ## Phase 18 fragment-solver callback
 
