@@ -116,7 +116,7 @@ No figure or table value in the manuscript is transcribed by hand, and
 ```bash
 python -m venv .venv && source .venv/bin/activate
 pip install -e .[test,research,stim]       # automatic CI extras
-pytest                                      # 2474 passed, 11 skipped
+pytest                                      # 2497 passed, 11 skipped
 ```
 
 This is the automatic CI dependency set; record gates additionally pin NumPy
@@ -132,7 +132,7 @@ the remaining `11 - 6 = 5` skips are per-test and *are* collected:
 
 ```text
 collected == passed + (skipped - files dropped at collection)
-2479      == 2474   + (11      -   6)
+2502      == 2497   + (11      -   6)
 ```
 
 Both sides are computed from the tree, so a drift in either quoted number
@@ -2947,8 +2947,57 @@ This takes about twelve seconds and runs in the structural CI matrix.
 `tests/test_phase15_preregistration.py` holds each clause against a deliberate
 mutation of the config. It checks the sector predicate against an independent
 Pauli product over every word on two and four qubits, and its closure under
-products on the Hubbard dimer, which is not declared. The producer and result
-checker come later.
+products on the Hubbard dimer, which is not declared. The producer below must
+pass this gate before it forms `H²`.
+
+## Phase 15 preflight producer and result checker (not yet run)
+
+The producer and checker ship before the record, so the code that counts the
+declared rows is committed before any row is formed.
+
+```bash
+OMP_NUM_THREADS=1 OPENBLAS_NUM_THREADS=1 MKL_NUM_THREADS=1 \
+  python benchmarks/run_phase15_h2_preflight.py      # writes benchmarks/reference_results/phase15_h2_preflight.json
+python benchmarks/check_phase15_h2_preflight.py      # recounts every row of every bank
+python benchmarks/check_phase15_h2_preflight.py --banks h4 beh2   # recount a subset
+python benchmarks/check_phase15_h2_preflight.py --no-recount      # rules, arithmetic, dense check
+```
+
+The producer refuses before it forms `H²` unless:
+
+* the preregistration gate passes, including its recomputation of every frozen
+  number;
+* the run is the declared one: `--banks` is for runs to another `--out` path,
+  never the committed one;
+* no record exists yet, since the preflight runs once (`--overwrite` exists for
+  a deliberate regeneration);
+* the working tree is clean;
+* the environment is one the committed records declare.
+
+For each bank it forms `H2 = H * H` once. Then, one column at a time, it forms
+each row `A_i.dagger() * (H2 * A_j)`, counts it and discards it, so memory
+holds one column and the word sets rather than the second-moment bank. The
+strict counts drop, from those same objects, every coefficient at or below
+`1e-9`. Each row, paired with the reference, must reproduce
+`⟨ψ|A_i†H²A_j|ψ⟩`. The check value comes from dense statevectors as the Gram
+matrix of `H A_j|ψ⟩`, with no multivector product. The block must be positive
+semidefinite, and every word must lie in the spin-parity sector.
+
+The checker trusts no summary field. It re-derives every total from the
+per-row counts and checks each union against the bounds of its two sets. It
+re-derives both clauses at both thresholds, each status, the eligible banks,
+the verdict and its quoted consequence, with its own implementation of the
+rule. It recompares every pairing against the dense second moments. By
+default it also recounts every row through the declared products, and each
+count and word-set digest must match exactly. For the committed record, it
+requires the config's last change to precede the record's commit.
+
+`tests/test_phase15_h2_preflight.py` runs the pipeline on two banks built on
+the Hubbard dimer, which is outside the declaration. It holds the support
+counts to an independent dense Pauli decomposition, and drives one bank over a
+lowered anchor to exercise RESTRICTED end to end. The producer, gate and
+checker must agree on every clause outcome, and each tampered field must be
+caught by the check written for it. No test forms `H²` on a declared bank.
 
 ## Phase 18 fragment-solver callback
 

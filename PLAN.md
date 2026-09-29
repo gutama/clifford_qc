@@ -2038,7 +2038,9 @@ is built on all five, or RESTRICTED, where it is built on the 8-qubit banks by
 name and H₂O keeps dense residual oracles. The gate,
 `check_phase15_preregistration.py`, recomputes every frozen number from the
 committed inputs, requires it to match the Phase 2M-A ledger, and runs in the
-structural CI matrix. No producer exists yet.
+structural CI matrix. The producer (`run_phase15_h2_preflight.py`) and result
+checker (`check_phase15_h2_preflight.py`) are committed and tested only on the
+undeclared Hubbard dimer; no row has been formed on a declared bank.
 
 ### Phase 16 — time-evolved inputs, split by method
 
@@ -3959,7 +3961,8 @@ A-CASE's.
   coefficients within the largest count a committed run has held? *Falsifier:*
   a bank fails either clause, and its residual norms then come from dense or
   matrix-free oracles rather than a measured bank. *Status:* preregistered,
-  not run (`benchmarks/PHASE15_PREFLIGHT_PREREGISTRATION.md`, §5 Phase 15).
+  producer and checker committed, not run
+  (`benchmarks/PHASE15_PREFLIGHT_PREREGISTRATION.md`, §5 Phase 15).
   The spin-parity sector ceiling makes H₂O CAS(8e,6o) the only bank either
   clause can bind.
 
@@ -4594,9 +4597,12 @@ bought a duplicate record.
     count-free declaration (`PHASE15_PREFLIGHT_PREREGISTRATION.md`,
     `configs/phase15_h2_preflight.json`, `check_phase15_preregistration.py`)
     comes first, as PLAN permits the preflight to run ahead of the Phase 2M
-    storage gate. The producer and result checker come next, and the producer
-    must pass that gate before it forms a second-moment row. Its verdict decides
-    which banks the `SecondMomentBank` is built on.
+    storage gate. The producer (`run_phase15_h2_preflight.py`) and result
+    checker (`check_phase15_h2_preflight.py`) follow it, tested only on the
+    undeclared Hubbard dimer. The producer refuses to form `H²` unless the gate
+    passes, and the checker recounts every row and re-derives the verdict
+    independently. Next is the single declared run. Its verdict decides which
+    banks the `SecondMomentBank` is built on.
 20. CEO and MORE-ADAPT benchmarks after the critical comparison is stable.
 21. The excited-state track, after the certificate question of §7.4 has an answer. Note
     that §3.5B's transformation-character parameter is what keeps this track reachable

@@ -427,11 +427,8 @@ def sector_ceiling(n: int) -> int:
     return 4 ** n // 4
 
 
-def structural_quantities(config: dict, name: str) -> dict:
-    """Every frozen number of one bank, recomputed from committed inputs."""
-    from clifford_qc.backends import ExactMVBackend
-    from clifford_qc.subspace.elements import MatrixElementBank
-
+def bank_inputs(name: str):
+    """One declared bank's model and frozen basis, from committed inputs only."""
     try:
         from benchmarks.run_mapping_axis import _build_model, _selected_generators
         from benchmarks.run_mapping_axis import load_config as load_mapping
@@ -441,12 +438,31 @@ def structural_quantities(config: dict, name: str) -> dict:
 
     spec = next(s for s in load_mapping()["systems"] if s["key"] == name)
     model, _ = _build_model(spec)
-    if model.metadata.get("spin_convention") != "interleaved":
-        raise ValueError(f"{name}: the sector ceiling assumes the interleaved convention")
     _, selected = _selected_generators(model, spec)
+    return model, selected
+
+
+def first_moment_bank(model, selected):
+    """The ``(S, H)`` bank over a basis, built as the Phase 2M records build it."""
+    from clifford_qc.backends import ExactMVBackend
+    from clifford_qc.subspace.elements import MatrixElementBank
+
+    if model.metadata.get("spin_convention") != "interleaved":
+        raise ValueError("the sector ceiling assumes the interleaved spin convention")
     rho = ExactMVBackend().state(model.reference, ())
     bank = MatrixElementBank(rho, model.hamiltonian, selected)
     bank.matrices()
+    return bank
+
+
+def structural_quantities(config: dict, name: str) -> dict:
+    """Every frozen number of one bank, recomputed from committed inputs."""
+    return quantities_for(config, *bank_inputs(name))
+
+
+def quantities_for(config: dict, model, selected) -> dict:
+    """The frozen numbers of any bank; the producer's tests use an undeclared one."""
+    bank = first_moment_bank(model, selected)
     resources = bank.resources()
     n = model.n
     hamiltonian = bank.hamiltonian
