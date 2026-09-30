@@ -28,8 +28,9 @@ Naming discipline (§4.4): what the selector uses is the *residual coupling*
 ``<chi_a|(H - E_m)|Psi_m>``, a projected quantity. It is never called a
 residual norm. The true Ritz residual needs the second-moment matrix
 ``<psi|A_i' H^2 A_j|psi>``, which the projected ``(H, S)`` pair cannot supply;
-``reference.dense_residual_norm`` computes it densely for small validation
-runs, and nothing else claims to.
+``SecondMomentBank`` supplies it through exact pairings. Optional convergence
+reporting evaluates that retained block once, after growth has stopped; it
+does not change the candidate scores or stopping policy.
 """
 
 from __future__ import annotations
@@ -47,6 +48,7 @@ from .elements import MatrixElementBank
 from .generator_core import Generator, as_generators
 from .generators import identity_generator
 from .contracts import as_multivector
+from .convergence import ConvergenceConfig, ConvergenceReport, convergence_report
 from .solver import (DEFAULT_MAX_CONDITION, DEFAULT_NORM_FLOOR, DEFAULT_TAU_S,
                      SubspaceResult)
 from .symmetry import (
@@ -229,6 +231,7 @@ class AdaptiveResult:
     # Ritz value for a single root, the average of the tracked roots for a
     # state-averaged run. ``root_energies`` is the final per-root spectrum.
     root_energies: tuple[float, ...] = ()
+    convergence_reports: tuple[ConvergenceReport, ...] = ()
 
     @property
     def basis_size(self) -> int:
@@ -261,6 +264,7 @@ class ACASEConfig:
     tau_s: float = DEFAULT_TAU_S
     rel_tau: float = 0.0
     max_condition: float = DEFAULT_MAX_CONDITION
+    convergence: ConvergenceConfig | None = None
 
     def __post_init__(self):
         if self.max_size < 0:
@@ -301,6 +305,8 @@ class ACASEConfig:
             raise ValueError("overlap thresholds must be nonnegative")
         if self.max_condition <= 0.0:
             raise ValueError("max_condition must be positive")
+        if self.convergence is not None and not isinstance(self.convergence, ConvergenceConfig):
+            raise TypeError("convergence must be a ConvergenceConfig")
 
 
 @dataclass(frozen=True)
@@ -856,6 +862,7 @@ def run_acase(rho: MV, hamiltonian, candidates: Sequence, *,
               target_error: float | None = None,
               tau_s: float = DEFAULT_TAU_S, rel_tau: float = 0.0,
               max_condition: float = DEFAULT_MAX_CONDITION,
+              convergence: ConvergenceConfig | None = None,
               config: ACASEConfig | None = None) -> AdaptiveResult:
     """Grow a subspace one generator at a time.
 
@@ -868,6 +875,10 @@ def run_acase(rho: MV, hamiltonian, candidates: Sequence, *,
     while acase_step is the pure state transition. This keeps A-CASE's Ritz
     semantics independent of ADAPT-VQE's optimizer even though both workflows
     expose a similar orchestration boundary.
+
+    ``convergence`` opts into exact H-squared reporting on the final retained
+    block. It adds storage and runtime but changes no stopping decision.
+    Larger banks require their own second-moment storage preflight.
     """
     legacy_config = ACASEConfig(
         max_size=max_size, roots=roots, aggregation=aggregation,
@@ -877,6 +888,7 @@ def run_acase(rho: MV, hamiltonian, candidates: Sequence, *,
         sector_target=sector_target, spin_ordering=spin_ordering,
         exact_ground_energy=exact_ground_energy, target_error=target_error,
         tau_s=tau_s, rel_tau=rel_tau, max_condition=max_condition,
+        convergence=convergence,
     )
     if config is None:
         config = legacy_config
@@ -939,13 +951,30 @@ def run_acase(rho: MV, hamiltonian, candidates: Sequence, *,
             abs(state.result.ground_energy - config.exact_ground_energy)
             / max(abs(config.exact_ground_energy), 1e-12)
         )
+    growth_seconds = time.perf_counter() - started
+    reports: tuple[ConvergenceReport, ...] = ()
+    reporting_seconds = 0.0
+    if config.convergence is not None:
+        from .second_moment import SecondMomentBank
+
+        report_started = time.perf_counter()
+        moments = SecondMomentBank(bank)
+        previous = (state.records[-2].root_energies if len(state.records) > 1
+                    else root_energies)
+        reports = tuple(convergence_report(
+            state.result, config.convergence, root=root, moments=moments,
+            energy_change=(previous[root] - state.root_energies[root]
+                           if state.records and root < len(previous) else None),
+            stopped_reason=state.stopped_reason,
+        ) for root in range(min(config.roots, len(state.result.energies))))
+        reporting_seconds = time.perf_counter() - report_started
     resources = dict(state.result.resources)
     # A stopping pass can build/evict rows without producing another solve.
     # Keep solver diagnostics, but report the actual final bank state.
     resources.update(bank.resources(state.basis))
     resources.update({
         "candidate_pool_size": len(state.pool),
-        "growth_seconds": time.perf_counter() - started,
+        "growth_seconds": growth_seconds,
         "initialization_seconds": initialization_seconds,
         "registered_generators": len(bank),
         "roots": config.roots,
@@ -956,6 +985,11 @@ def run_acase(rho: MV, hamiltonian, candidates: Sequence, *,
         "sector_target": config.sector_target,
         "spin_ordering": config.spin_ordering,
     })
+    if config.convergence is not None:
+        resources["convergence_reporting"] = {
+            "evidence": "exact", "roots": len(reports),
+            "basis_size": len(state.basis), "seconds": reporting_seconds,
+        }
     if config.leakage_tol is not None and config.leakage_mode != "operator":
         certificate = subspace_sector_certificate(
             bank.reference, [bank.generator(index) for index in state.basis],
@@ -975,4 +1009,5 @@ def run_acase(rho: MV, hamiltonian, candidates: Sequence, *,
         exact_ground_energy=config.exact_ground_energy,
         relative_error=relative, resources=resources,
         root_energies=state.root_energies,
+        convergence_reports=reports,
     )

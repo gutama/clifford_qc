@@ -116,7 +116,7 @@ No figure or table value in the manuscript is transcribed by hand, and
 ```bash
 python -m venv .venv && source .venv/bin/activate
 pip install -e .[test,research,stim]       # automatic CI extras
-pytest                                      # 2616 passed, 11 skipped
+pytest                                      # 2644 passed, 11 skipped
 ```
 
 This is the automatic CI dependency set; record gates additionally pin NumPy
@@ -132,7 +132,7 @@ the remaining `11 - 6 = 5` skips are per-test and *are* collected:
 
 ```text
 collected == passed + (skipped - files dropped at collection)
-2621      == 2616   + (11      -   6)
+2649      == 2644   + (11      -   6)
 ```
 
 Both sides are computed from the tree, so a drift in either quoted number
@@ -3193,6 +3193,63 @@ outside the domain and does fit. The tests check that the two statements of
 the fit, the ladder and the verdict agree, and that each tampered record
 field is caught. They also re-derive the committed record without a rebuild,
 and check that the producer refuses to overwrite it.
+
+## Phase 15 exact convergence reporting
+
+`clifford_qc/subspace/convergence.py` ships a reporting interface over the
+already validated exact second moments. It introduces no new experiment or
+benchmark outcome. Its executable validation is:
+
+```bash
+python examples/acase_convergence.py
+python -m pytest tests/test_convergence.py -q
+```
+
+The example is a bounded two-qubit toy. `run_acase` accepts
+`convergence=ConvergenceConfig(residual_tolerance=...)`, also available as
+`ACASEConfig.convergence`. At termination it shares one `SecondMomentBank`
+across the tracked roots and reports only their retained block. Selection,
+growth and the stopping reason are unchanged. Reporting is off by default,
+its runtime is separate from `growth_seconds`, and its observable rows and
+coefficients are included in the final resource ledger. It does not construct
+the candidate frontier's second moments. Outside the five frozen Phase 15
+bases, a larger block still needs its own storage preflight.
+
+`convergence_report(result, ConvergenceConfig(...))` also works on a fixed
+bank solve. The versioned `ConvergenceReport.as_dict()` carries the root's
+Ritz and Rayleigh energies, signed variance, true residual norm, cancellation
+scale, variance-resolution floor, basis size, effective rank, conditioning,
+last energy change when supplied, and stopping reason. `residual_status`
+reads `within_tolerance`, `above_tolerance`, `unresolved`, or `invalid`.
+Variances at or below their numerical floor are unresolved; a variance below
+minus that floor is invalid. Clipping the norm of a negative or rounded-zero
+variance does not produce a successful residual assessment. The floor is a
+numerical convention, not a confidence bound, and the tolerance is in the
+Hamiltonian's units rather than a universal ground-energy target.
+
+Ground-state dominance is a separate assessment. Without a
+`GroundStateReference(E0, E1, source)` it reads `not_assessed`, even for an
+exact excited eigenstate. When an independently established spectrum is
+supplied, the ground-weight lower bound is
+`max(0, 1 - (E_Rayleigh - E0)/(E1 - E0))`, capped at one for rounding.
+A bound strictly above one half reads `ground_dominated`; otherwise dominance
+is `not_established`. A Rayleigh energy significantly below `E0` reads
+`inconsistent_reference`. The caller must establish that the spectrum belongs
+to this Hamiltonian and contains the state; a sector spectrum needs a sector
+check, and projected Ritz roots do not qualify. The interface performs no FCI
+solve, establishes no sector membership, and is not a measured certificate.
+
+`variance_extrapolation_diagnostic(prefix_residuals)` exposes Q17's frozen
+last-three-prefix straight line, with positive-slope and resolved,
+distinguishable-variance requirements. It consumes existing ground-root
+`RitzResidual` values and builds no rows. Its output names the frozen `h4`
+and `h2o_cas8e6o` banks as the scope of the committed improvement evidence;
+other bases inherit no improvement claim. It is labelled nonvariational and
+not an estimator, and never enters a stopping decision. Tests reproduce all
+five committed fits without recomputing a prefix variance, and independently
+check dense residuals, stalled growth, excited eigenstates, numerical
+cancellation, multiple roots, and retained-block storage under object,
+packed and streaming backends.
 
 ## Phase 18 fragment-solver callback
 

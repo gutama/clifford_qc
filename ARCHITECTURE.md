@@ -199,6 +199,17 @@ bootstrap response intervals remain heuristic. Subspace bias and sampling
 uncertainty may enter one accuracy budget, provided their sources and
 guarantees remain explicit.
 
+`subspace/convergence.py` attaches an exact `SecondMomentBank` residual to
+each tracked root, independently of the adaptive stopping reason. Optional
+`ACASEConfig.convergence` reporting builds only the final retained block;
+its time and resident observable rows enter the bank's resource ledger.
+Unresolved variances remain unresolved, including a rounded zero. A separate
+caller-supplied ground/first-excited spectrum can bound ground-state weight
+using the Rayleigh energy; the caller establishes spectral scope and sector
+membership. Q17's fixed three-prefix fit is a standalone diagnostic with its
+limited improvement evidence named in the output. These interfaces neither
+change adaptive stopping nor supply finite-shot certificates.
+
 Device cards evaluate compiled settings under connectivity, duration, and
 fidelity assumptions. Inadmissible protocols have no reported runtime. The
 cards are illustrative logical accounting, not calibrated hardware predictions.

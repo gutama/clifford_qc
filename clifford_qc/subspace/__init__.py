@@ -103,6 +103,11 @@ from .fragment import (
     spin_orbital_rdms,
 )
 from .second_moment import SECOND_MOMENT_LABEL, RitzResidual, SecondMomentBank
+from .convergence import (
+    CONVERGENCE_SCHEMA, EXTRAPOLATION_SCHEMA, ConvergenceConfig, ConvergenceReport,
+    GroundStateReference, VarianceExtrapolationDiagnostic, convergence_report,
+    variance_extrapolation_diagnostic,
+)
 
 __all__ = [
     "FRAGMENT_SOLUTION_SCHEMA", "ExactFragmentSolver", "FragmentSolution",
@@ -110,6 +115,9 @@ __all__ = [
     "SelectedCIFragmentSolver", "energy_from_spatial_rdms", "spatial_rdms",
     "spin_orbital_rdms",
     "SECOND_MOMENT_LABEL", "RitzResidual", "SecondMomentBank",
+    "CONVERGENCE_SCHEMA", "EXTRAPOLATION_SCHEMA", "ConvergenceConfig", "ConvergenceReport",
+    "GroundStateReference", "VarianceExtrapolationDiagnostic", "convergence_report",
+    "variance_extrapolation_diagnostic",
     "FamilyReport", "HybridArm", "configuration_generators_from_words",
     "dressed_family", "family_projection_report", "run_hybrid",
     "ControlResult", "SpanComparison", "containment_residual",

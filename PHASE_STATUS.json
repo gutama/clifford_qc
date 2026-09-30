@@ -191,11 +191,14 @@
         "clifford_qc/subspace/second_moment.py",
         "tests/test_second_moment.py",
         "benchmarks/reference_results/second_moment_validation.json",
-        "benchmarks/reference_results/phase15_variance_extrapolation.json"
+        "benchmarks/reference_results/phase15_variance_extrapolation.json",
+        "clifford_qc/subspace/convergence.py",
+        "tests/test_convergence.py",
+        "examples/acase_convergence.py"
       ],
       "remaining": [
         "Finite-shot estimation of the second-moment block (the measured implementation), with a grouping the preflight did not price",
-        "The variance-extrapolation diagnostic Q17's CONDITIONAL permits (never an estimator), folded-spectrum roots and an independent convergence criterion built on the block",
+        "Folded-spectrum roots and finite-shot convergence reporting built on the measured second-moment block",
         "Phase 2M storage gate or a preflight of its own before SecondMomentBank construction on any bank outside the five"
       ]
     },

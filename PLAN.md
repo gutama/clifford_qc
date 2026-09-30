@@ -130,7 +130,7 @@ conditional phases.
 | PRD | orthogonal-residual regression, Davidson/preconditioned expansion, packet pricing, matched A-CASE, exact and finite-shot suites | **done and read**; exact compactness is positive, complete-bank QWC finite-shot energy accuracy is negative |
 | 13 | parity/X-rank invariant | **done**; one shared GF(2) implementation is tested across every declared spin-conserving JW construction path before grouping |
 | 14 | fully commuting grouping | **done on the frozen BeH₂/JW comparison** — the public compiled-plan API, exact joint sampler, preregistered finite-sample record, covariance audit, and device-card costing ship; Q9 is positive within the declared one-bank oracle boundary |
-| 15 | second-moment bank | **partially implemented (50%)**; the H-squared support/cost preflight ran once and reads `FULL` (Q16), and `SecondMomentBank` ships with exact second moments and true Ritz residual norms, validated on all five licensed banks against a dense oracle. Variance extrapolation ran once and reads `CONDITIONAL` (Q17): it improves on H₄ and H₂O and worsens on converged H₄ and BeH₂, so it may ship as a diagnostic only. Finite-shot estimation of the block, that diagnostic, folded-spectrum roots and banks outside the five remain |
+| 15 | second-moment bank | **partially implemented (50%)**; the H-squared preflight reads `FULL` (Q16), and `SecondMomentBank` ships with exact second moments and true Ritz residual norms validated on all five licensed banks. Opt-in exact convergence reporting ships at adaptive termination, with numerical resolution and separate ground-state evidence. Q17's `CONDITIONAL` permits the shipped three-prefix extrapolation diagnostic, with improvement evidence confined to the frozen H₄ and H₂O bases. Finite-shot estimation and reporting, folded-spectrum roots and banks outside the five remain |
 | 16 | time-evolved inputs | **partially implemented (50%)**; the 16A QSCI time-evolved input ships in `subspace/time_evolution.py` (exact matrix-free propagation as an `oracle` input, a validated Trotter circuit as an `implementable` one, and pooled multi-time sampling). Its decision comparison, Q15, ran once and reads `NO_GO`: iterated selected CI of the same size matches or beats it on both required instances. No circuit-native/truncated A-CASE real-time family ships. 16B's three preregistered decision experiments have run — v1 `CONDITIONAL`, v2 `GO` under per-word pricing, v3 `CONDITIONAL` once the incumbent is priced with its own grouping — and the programme ends there: the real-time backend is **not authorized** (§5, Phase 16) |
 | 17 | mapping validation and breadth | **partially implemented (75%)**; the JW/BK/parity transformation, invariance gates, and mapping-axis records ship through R2, while the CEO-pool and dedicated MORE-ADAPT breadth benchmarks remain open |
 | 18 | embedding boundary | **done**; the versioned effective-Hamiltonian schema ships in `models/effective.py`, and the common fragment-solver callback returning energy and one- and two-particle density matrices ships in `subspace/fragment.py`, implemented by QSCI, selected CI, the hybrid, and a sector-FCI reference. The embedding loop itself stays outside the package |
@@ -2007,7 +2007,7 @@ variance structure is a special case. This is a positive Q9 answer only for
 oracle-sampled measurement of that state on this frozen BeH2/JW bank, not a
 state-preparation, hardware, noise, mapping, or cross-instance claim.
 
-### Phase 15 — second-moment bank (Track C, open)
+### Phase 15 — second-moment bank (Track C, partially implemented)
 
 Add a `SecondMomentBank` for `K_ij = <psi|A_i^dagger H^2 A_j|psi>`. Before building
 the full bank, add a support/cost preflight for `H^2`; if the estimated word
@@ -2092,9 +2092,32 @@ These are the first true residual norms of the frozen bases. The ground roots
 are 7.6e-2 Ha on H₄, 5.0e-2 on converged H₄, 2.3e-3 on BeH₂ and 0.15 Ha on
 H₂O CAS(8e,6o), and 1.52 t on Hubbard 2×2. *Not claimed:* a finite-shot
 estimate of the block. Grouping a universe of 868,150 words is the cost the
-preflight excluded, so the measured implementation remains. So do variance
-extrapolation, folded-spectrum roots and an independent convergence
-criterion built on the block, and any bank outside the five.
+preflight excluded, so the measured implementation remains. Folded-spectrum
+roots and banks outside the five remain. Exact convergence reporting and
+Q17's limited extrapolation diagnostic now ship as described below.
+
+**Exact convergence reporting ships, opt-in and independent of growth.**
+`subspace/convergence.py` exposes `convergence_report` for a bank solve and
+`ConvergenceConfig` for `run_acase` or `ACASEConfig`. At adaptive termination,
+one second-moment bank supplies reports for every tracked root over only the
+retained block. The report includes the true residual, signed variance,
+numerical-resolution floor, rank, conditioning, last root-specific energy
+change and the original stopping reason. Reporting is off by default, builds
+no candidate-frontier second moments, and records its time separately while
+including its resident rows in the resource ledger.
+
+The residual assessment distinguishes resolved values within or above the
+requested tolerance, unresolved cancellation and significantly negative
+variance. It is independent of candidate-pool exhaustion or a small energy
+lowering. Ground-state dominance is assessed separately only with a
+caller-supplied `GroundStateReference` for the same Hamiltonian and a space
+containing the state: `p₀ ≥ 1 − (E_Rayleigh − E₀)/(E₁ − E₀)`. The caller
+establishes spectral scope and sector membership; no spectrum is computed.
+Numerical-resolution flags are not finite-shot confidence statements, and
+reporting changes no stopping decision. `tests/test_convergence.py` validates
+dense residuals, stalled growth, excited eigenstates, cancellation and
+retained-block behavior with object, packed and streaming storage. The
+bounded example is `examples/acase_convergence.py`.
 
 **Variance extrapolation ran once and reads `CONDITIONAL` (Q17).**
 `benchmarks/PHASE15_EXTRAPOLATION_PREREGISTRATION.md` (§10) asked whether
@@ -2132,8 +2155,11 @@ this, with errors against the exact sector ground energy:
 Every deterministic check holds on every bank: monotone energies, Weinstein's
 interval at every prefix, window variances equal to the dense residuals, and
 the final prefix equal to the validation record. So the rule ships as a
-diagnostic only, named for H₄ and H₂O, and not as an estimator. That
-diagnostic is not built yet.
+diagnostic only, named for H₄ and H₂O, and not as an estimator.
+`variance_extrapolation_diagnostic` now exposes that fixed three-point fit
+from existing ground-root prefix residuals. It computes no new trajectory,
+changes no stopping decision, and names those two frozen bases as the scope
+of the improvement evidence. Its tests reproduce all five committed fits.
 
 The reading is bounded, and the record supports three limits on it.
 
@@ -4735,8 +4761,8 @@ bought a duplicate record.
     energy variances. `run_second_moment_validation.py` validates it on the
     five licensed banks against matrix-free dense residuals
     (`reference_results/second_moment_validation.json`). Finite-shot estimation
-    of the block remains, together with the uses that build on it: variance
-    extrapolation, folded-spectrum roots and a convergence criterion.
+    of the block remains, together with folded-spectrum roots and measured
+    convergence reporting. The exact reporting interface ships in 19g below.
 19f. Phase 15's variance extrapolation — **executed once, `CONDITIONAL`.**
     The declaration (`PHASE15_EXTRAPOLATION_PREREGISTRATION.md`, revision 1)
     fixed the window, the halving bar and the Temple-regime domain before any
@@ -4744,7 +4770,15 @@ bought a duplicate record.
     (`reference_results/phase15_variance_extrapolation.json`) improves on H₄
     and H₂O and worsens on converged H₄ and BeH₂, and every deterministic
     check holds. The rule may ship as a diagnostic named for those two banks,
-    never as an estimator; that diagnostic is not built.
+    never as an estimator; `variance_extrapolation_diagnostic` now exposes it
+    from existing prefix residuals, without changing the record or the rule.
+19g. Phase 15's exact convergence report — **shipped, opt-in.** It attaches
+    true residuals and numerical-resolution status to a fixed solve or the
+    final retained adaptive block. Ground-state evidence needs a separate
+    spectral reference, and the original stopping policy remains. The
+    correctness evidence is `tests/test_convergence.py`, not a new benchmark
+    verdict. The measured implementation and folded-spectrum roots remain,
+    so Phase 15 stays partial at 50%.
 20. CEO and MORE-ADAPT benchmarks after the critical comparison is stable.
 21. The excited-state track, after the certificate question of §7.4 has an answer. Note
     that §3.5B's transformation-character parameter is what keeps this track reachable

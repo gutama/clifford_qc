@@ -27,6 +27,7 @@ small-system comparisons, and a public archival release is intended.
 | Run circuits | Parameterized Pauli rotors and Clifford gates, JSON serialization, gradients, OpenQASM 3 export | [Circuit example](#circuit-programs), `clifford_qc.ir` |
 | Compare eigensolvers | VQE, ADAPT-VQE, fixed and adaptive operator-response subspaces, QSCI/SQD (with reference, ADAPT-VQE, and exact or Trotter time-evolved sampling inputs), selected-CI controls, hybrid bases | [Solver guide](#choosing-a-solver), [subspace example](#adaptive-subspaces) |
 | Check a Ritz state against an eigenstate | True Ritz residual norms and energy variances from the second-moment block `⟨A_i†H²A_j⟩`, exact pairings over a matrix-element bank; validated on the five banks the Phase 15 preflight licensed | `clifford_qc.subspace.SecondMomentBank`, [reproducing](REPRODUCING.md#phase-15-secondmomentbank-and-its-validation) |
+| Assess why adaptive growth stopped | Opt-in exact convergence reports over the final retained block, with numerical-resolution and ground-state evidence reported separately; Q17 extrapolation is a diagnostic only | `ConvergenceConfig`, `convergence_report`, [example](examples/acase_convergence.py), [contract](REPRODUCING.md#phase-15-exact-convergence-reporting) |
 | Solve embedding fragments | One callback returning energy plus one- and two-particle density matrices, implemented by sector FCI, QSCI, selected CI, and the QSCI × A-CASE hybrid; the embedding loop itself stays outside the package | `clifford_qc.subspace.fragment`, [conventions](CONVENTIONS.md#density-matrices) |
 | Reuse measurements | QWC and block-commuting grouping, compiled Clifford readouts, shared caches, covariance, allocation, uncertainty estimates | [Finite-shot examples](#examples), [architecture](ARCHITECTURE.md#measurement-and-evidence) |
 | Control classical costs | Cached preparation, optional reference validation, object or packed coefficients, streaming with recomputation | [Pipeline guide](molecular/PIPELINE.md) |
@@ -171,6 +172,18 @@ The example uses a deliberately small candidate pool and no ground-state oracle.
 This example uses exact classical expectations; finite-shot workflows have
 separate examples below. An exact projected solve does not certify convergence
 to the full ground state.
+
+For a bounded example of full residual reporting, run
+`python examples/acase_convergence.py`. Pass
+`convergence=ConvergenceConfig(residual_tolerance=...)` to `run_acase`, or
+call `convergence_report` on an existing bank solve. The returned
+`convergence_reports` keep the growth stopping reason beside each tracked
+root's true residual, numerical-resolution status and optional ground-state
+assessment. Reporting is off by default and adds the retained `H²` block;
+larger banks need a storage preflight. A supplied `GroundStateReference`
+must describe an independently established spectrum in the state's space.
+Neither a small residual nor a Q17 extrapolated energy alone establishes
+ground-state convergence. See the [reporting contract](REPRODUCING.md#phase-15-exact-convergence-reporting).
 
 For repeated molecular experiments, [molecular/PIPELINE.md](molecular/PIPELINE.md) separates
 FCIDUMP preparation, independent A-CASE solves, and optional sector validation.
