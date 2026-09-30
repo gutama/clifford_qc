@@ -140,6 +140,11 @@ jobs:
           - gate: check_second_moment_validation
             timeout: 25
             environment_record: second_moment_validation.json
+          # Rebuilds every prefix trajectory of the five frozen bases and refits
+          # every window: about three minutes locally, most of it H2O.
+          - gate: check_phase15_variance_extrapolation
+            timeout: 25
+            environment_record: phase15_variance_extrapolation.json
           - gate: check_r4a_contextual_screen
             timeout: 20
             environment_record: r4a_contextual_screen.json

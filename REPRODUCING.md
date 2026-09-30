@@ -116,7 +116,7 @@ No figure or table value in the manuscript is transcribed by hand, and
 ```bash
 python -m venv .venv && source .venv/bin/activate
 pip install -e .[test,research,stim]       # automatic CI extras
-pytest                                      # 2589 passed, 11 skipped
+pytest                                      # 2591 passed, 11 skipped
 ```
 
 This is the automatic CI dependency set; record gates additionally pin NumPy
@@ -132,7 +132,7 @@ the remaining `11 - 6 = 5` skips are per-test and *are* collected:
 
 ```text
 collected == passed + (skipped - files dropped at collection)
-2594      == 2589   + (11      -   6)
+2596      == 2591   + (11      -   6)
 ```
 
 Both sides are computed from the tree, so a drift in either quoted number
@@ -3106,20 +3106,44 @@ This takes about eight seconds and runs in the structural CI matrix.
 `tests/test_phase15_extrapolation_preregistration.py` holds each clause
 against a mutation of the config. It checks the fit on synthetic lines, on the
 two-level contamination picture its rationale rests on, and on a real
-trajectory on the undeclared Hubbard dimer. The producer and result checker
-are the next section.
+trajectory on the undeclared Hubbard dimer. The next section gives the
+executed test.
 
-## Phase 15 variance-extrapolation producer and result checker (not yet run)
+## Phase 15 variance extrapolation (executed once, `CONDITIONAL`)
 
-`benchmarks/run_phase15_variance_extrapolation.py` runs the declared test once
-and writes `benchmarks/reference_results/phase15_variance_extrapolation.json`.
-No such record exists yet, and no prefix variance has been computed on a
-declared bank.
+`benchmarks/run_phase15_variance_extrapolation.py` ran the declared test once
+and wrote `benchmarks/reference_results/phase15_variance_extrapolation.json`.
+The record reads **`CONDITIONAL`**. Errors are against the exact sector ground
+energy, and the gain is the final Ritz error over the extrapolated one:
+
+| bank | role | final Ritz error | extrapolated error | gain | status |
+|---|---|---|---|---|---|
+| `h4` | required | 3.0e-3 Ha | −1.5e-3 Ha | 2.01 | IMPROVES |
+| `h4_converged` | required | 7.7e-4 Ha | −1.6e-3 Ha | 0.48 | WORSENS |
+| `beh2` | required | 3.3e-6 Ha | −3.9e-6 Ha | 0.84 | WORSENS |
+| `h2o_cas8e6o` | required | 1.4e-2 Ha | 2.8e-3 Ha | 5.03 | IMPROVES |
+| `hubbard_2x2` | diagnostic | 0.86 t | −2.1 t | 0.41 | WORSENS |
+
+Every deterministic check holds on every bank. Under the frozen consequence,
+the rule may ship as a diagnostic named for H₄ and H₂O, never as an
+estimator. H₄ clears the bar of 2 by 0.3%, and it is a prefix of converged H₄.
+On three required banks the extrapolated energy lies below the exact ground
+energy. `PLAN.md` §5 Phase 15 gives the bounded reading.
+
+The checker re-derives the committed record and rebuilds every bank in about
+three minutes, most of it H₂O. It runs in the structural CI matrix:
+
+```bash
+python benchmarks/check_phase15_variance_extrapolation.py
+python benchmarks/check_phase15_variance_extrapolation.py --no-recompute   # seconds
+```
+
+Regenerating the record is deliberate, and the producer refuses it without
+`--overwrite`:
 
 ```bash
 OMP_NUM_THREADS=1 OPENBLAS_NUM_THREADS=1 MKL_NUM_THREADS=1 \
-  python benchmarks/run_phase15_variance_extrapolation.py
-python benchmarks/check_phase15_variance_extrapolation.py
+  python benchmarks/run_phase15_variance_extrapolation.py --overwrite
 ```
 
 The producer re-runs the preregistration gate, recomputation included, and
@@ -3152,7 +3176,8 @@ differ only by rounding. That is the case revision 1 exists for, and the
 window must not extrapolate. The Hubbard dimer with three generators falls
 outside the domain and does fit. The tests check that the two statements of
 the fit, the ladder and the verdict agree, and that each tampered record
-field is caught.
+field is caught. They also re-derive the committed record without a rebuild,
+and check that the producer refuses to overwrite it.
 
 ## Phase 18 fragment-solver callback
 

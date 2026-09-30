@@ -130,7 +130,7 @@ conditional phases.
 | PRD | orthogonal-residual regression, Davidson/preconditioned expansion, packet pricing, matched A-CASE, exact and finite-shot suites | **done and read**; exact compactness is positive, complete-bank QWC finite-shot energy accuracy is negative |
 | 13 | parity/X-rank invariant | **done**; one shared GF(2) implementation is tested across every declared spin-conserving JW construction path before grouping |
 | 14 | fully commuting grouping | **done on the frozen BeH₂/JW comparison** — the public compiled-plan API, exact joint sampler, preregistered finite-sample record, covariance audit, and device-card costing ship; Q9 is positive within the declared one-bank oracle boundary |
-| 15 | second-moment bank | **partially implemented (50%)**; the H-squared support/cost preflight ran once and reads `FULL` (Q16), and `SecondMomentBank` ships with exact second moments and true Ritz residual norms, validated on all five licensed banks against a dense oracle. Finite-shot estimation of the block, variance extrapolation, folded-spectrum roots and banks outside the five remain |
+| 15 | second-moment bank | **partially implemented (50%)**; the H-squared support/cost preflight ran once and reads `FULL` (Q16), and `SecondMomentBank` ships with exact second moments and true Ritz residual norms, validated on all five licensed banks against a dense oracle. Variance extrapolation ran once and reads `CONDITIONAL` (Q17): it improves on H₄ and H₂O and worsens on converged H₄ and BeH₂, so it may ship as a diagnostic only. Finite-shot estimation of the block, that diagnostic, folded-spectrum roots and banks outside the five remain |
 | 16 | time-evolved inputs | **partially implemented (50%)**; the 16A QSCI time-evolved input ships in `subspace/time_evolution.py` (exact matrix-free propagation as an `oracle` input, a validated Trotter circuit as an `implementable` one, and pooled multi-time sampling). Its decision comparison, Q15, ran once and reads `NO_GO`: iterated selected CI of the same size matches or beats it on both required instances. No circuit-native/truncated A-CASE real-time family ships. 16B's three preregistered decision experiments have run — v1 `CONDITIONAL`, v2 `GO` under per-word pricing, v3 `CONDITIONAL` once the incumbent is priced with its own grouping — and the programme ends there: the real-time backend is **not authorized** (§5, Phase 16) |
 | 17 | mapping validation and breadth | **partially implemented (75%)**; the JW/BK/parity transformation, invariance gates, and mapping-axis records ship through R2, while the CEO-pool and dedicated MORE-ADAPT breadth benchmarks remain open |
 | 18 | embedding boundary | **done**; the versioned effective-Hamiltonian schema ships in `models/effective.py`, and the common fragment-solver callback returning energy and one- and two-particle density matrices ships in `subspace/fragment.py`, implemented by QSCI, selected CI, the hybrid, and a sector-FCI reference. The embedding loop itself stays outside the package |
@@ -2096,8 +2096,8 @@ preflight excluded, so the measured implementation remains. So do variance
 extrapolation, folded-spectrum roots and an independent convergence
 criterion built on the block, and any bank outside the five.
 
-**Variance extrapolation is preregistered, fit-free, and not run.**
-`benchmarks/PHASE15_EXTRAPOLATION_PREREGISTRATION.md` (Q17, §10) asks whether
+**Variance extrapolation ran once and reads `CONDITIONAL` (Q17).**
+`benchmarks/PHASE15_EXTRAPOLATION_PREREGISTRATION.md` (§10) asked whether
 extrapolating each frozen basis's prefix trajectory `(σ²_M, E_M)` to zero
 variance earns a place beside the Ritz energy. Revision 1, made before any
 prefix variance existed on a declared bank, also refuses a window whose
@@ -2112,16 +2112,42 @@ variances differ only by rounding.
   H₂O the required banks, and Hubbard 2×2 (`σ_f = 1.52 t`, gap `0.30 t`) a
   diagnostic.
 
-GO ships the rule as an estimator reported beside the Ritz energy, labelled
-extrapolated. CONDITIONAL ships it as a diagnostic, and NO_GO does not ship
-it. The gate, `check_phase15_extrapolation_preregistration.py`, computes no
-prefix variance. It recomputes the exact spectrum and the final Ritz energy,
-reads the final variance from the validation record, re-derives the domain,
-and runs in the structural CI matrix. The producer,
-`run_phase15_variance_extrapolation.py`, and the result checker,
-`check_phase15_variance_extrapolation.py`, are committed and tested only on
-undeclared toys (LiH CAS(4e,4o) and the Hubbard dimer). Neither has run on a
-declared bank.
+The record (`reference_results/phase15_variance_extrapolation.json`) gives
+this, with errors against the exact sector ground energy:
+
+| bank | final Ritz error | extrapolated error | gain | status |
+|---|---|---|---|---|
+| H₄ | 3.0e-3 Ha | −1.5e-3 Ha | 2.01 | IMPROVES |
+| converged H₄ | 7.7e-4 Ha | −1.6e-3 Ha | 0.48 | WORSENS |
+| BeH₂ | 3.3e-6 Ha | −3.9e-6 Ha | 0.84 | WORSENS |
+| H₂O CAS(8e,6o) | 1.4e-2 Ha | 2.8e-3 Ha | 5.03 | IMPROVES |
+| Hubbard 2×2 (diagnostic) | 0.86 t | −2.1 t | 0.41 | WORSENS |
+
+Every deterministic check holds on every bank: monotone energies, Weinstein's
+interval at every prefix, window variances equal to the dense residuals, and
+the final prefix equal to the validation record. So the rule ships as a
+diagnostic only, named for H₄ and H₂O, and not as an estimator. That
+diagnostic is not built yet.
+
+The reading is bounded, and the record supports three limits on it.
+
+- *H₄ passes at the bar.* Its gain of 2.01 clears the required 2 by 0.3%.
+  H₄ is also a prefix of converged H₄, so the two are not independent.
+- *The limit is not `E₀`.* Along H₄'s trajectory, the windows ending at
+  prefixes 9 and 15 extrapolate to within 1e-4 Ha of each other, both about
+  1.5e-3 Ha below `E₀`. Converged H₄'s Ritz error, 7.7e-4 Ha, is already
+  smaller than that offset. On three of the four required banks, the
+  extrapolated energy lies below `E₀`, so it is not variational.
+- *The rationale's picture does not hold.* One dominant contamination
+  predicts a slope near `1/gap`. The fitted slopes are 0.19 to 0.39 of
+  that, so the contamination is spread over higher states.
+
+The two- and four-prefix windows and the all-prefix fit decide nothing. They
+change no required bank's status except H₄'s all-prefix fit, which reads
+NO_GAIN. `check_phase15_variance_extrapolation.py` refits every window with
+its own regression, re-derives every status and the verdict, rebuilds every
+bank, and runs in the structural CI matrix. *Not claimed:* anything about
+finite-shot variances, other windows, or bases outside the five.
 
 ### Phase 16 — time-evolved inputs, split by method
 
@@ -4052,11 +4078,12 @@ A-CASE's.
   trajectory `(σ²_M, E_M)`, read at `σ² = 0`, at least halve the final Ritz
   energy's error against the exact sector ground energy? *Falsifier:* no
   required bank improves by that factor, so extrapolation adds a number
-  without adding accuracy. *Status:* preregistered (revision 1), producer
-  and checker committed, not run
-  (`benchmarks/PHASE15_EXTRAPOLATION_PREREGISTRATION.md`, §5 Phase 15). The
-  required banks are H₄, converged H₄, BeH₂ and H₂O CAS(8e,6o). Hubbard 2×2
-  falls outside the domain and is a diagnostic.
+  without adding accuracy. *Status:* executed once (revision 1),
+  **`CONDITIONAL`** (`benchmarks/reference_results/phase15_variance_extrapolation.json`,
+  §5 Phase 15). The falsifier does not hold: H₄ improves with a gain of 2.01,
+  at the bar, and H₂O CAS(8e,6o) with 5.03. Converged H₄ (0.48) and BeH₂
+  (0.84) worsen, so the rule may ship as a diagnostic only. The Hubbard 2×2
+  diagnostic, outside the domain, worsens.
 
 **Resource accounting (QR1–QR6).**
 
@@ -4704,13 +4731,14 @@ bought a duplicate record.
     (`reference_results/second_moment_validation.json`). Finite-shot estimation
     of the block remains, together with the uses that build on it: variance
     extrapolation, folded-spectrum roots and a convergence criterion.
-19f. Phase 15's variance extrapolation — **preregistered, not run.** The
-    fit-free declaration (`PHASE15_EXTRAPOLATION_PREREGISTRATION.md`,
-    `configs/phase15_variance_extrapolation.json`,
-    `check_phase15_extrapolation_preregistration.py`) fixes the window, the
-    halving bar and the Temple-regime domain before any prefix variance
-    exists. The producer and result checker are committed and tested only
-    on undeclared toys; the declared run comes next.
+19f. Phase 15's variance extrapolation — **executed once, `CONDITIONAL`.**
+    The declaration (`PHASE15_EXTRAPOLATION_PREREGISTRATION.md`, revision 1)
+    fixed the window, the halving bar and the Temple-regime domain before any
+    prefix variance existed. The record
+    (`reference_results/phase15_variance_extrapolation.json`) improves on H₄
+    and H₂O and worsens on converged H₄ and BeH₂, and every deterministic
+    check holds. The rule may ship as a diagnostic named for those two banks,
+    never as an estimator; that diagnostic is not built.
 20. CEO and MORE-ADAPT benchmarks after the critical comparison is stable.
 21. The excited-state track, after the certificate question of §7.4 has an answer. Note
     that §3.5B's transformation-character parameter is what keeps this track reachable

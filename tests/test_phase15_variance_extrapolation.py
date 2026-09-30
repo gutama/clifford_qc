@@ -206,6 +206,24 @@ def test_a_changed_config_breaks_the_digest(toy):
     assert any("digest" in p for p in checker.declaration_problems(config, record, raw + b" "))
 
 
+# ------------------------------------------------------------------ the committed record
+
+def test_the_committed_record_re_derives_without_a_rebuild():
+    """The five-bank record, re-read without rebuilding a bank."""
+    config = gate.load_config()
+    record = json.loads(producer.RECORD.read_text(encoding="utf-8"))
+    validation = json.loads(gate.VALIDATION.read_text(encoding="utf-8"))
+    assert _all_problems(config, gate.CONFIG.read_bytes(), validation, record, None,
+                         recompute=False) == []
+    assert record["provenance"]["git_dirty"] is False
+    assert record["decision"]["verdict"] == "CONDITIONAL"
+
+
+def test_the_producer_refuses_to_overwrite_the_committed_record(capsys):
+    assert producer.main([]) == 1
+    assert "runs once" in capsys.readouterr().out
+
+
 # ------------------------------------------------------------------ refusals
 
 def test_the_producer_refuses_a_subset_on_the_committed_path(capsys):
