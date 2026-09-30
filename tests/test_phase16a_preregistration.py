@@ -186,3 +186,17 @@ def test_commit_order_skips_a_commit_on_the_shallow_boundary(tmp_path, monkeypat
 def test_commit_order_refuses_a_record_sharing_the_config_commit(tmp_path, monkeypatch):
     _one_commit(monkeypatch, tmp_path, {"b" * 40})
     assert any("share a commit" in p for p in gate.commit_order_problems([]))
+
+
+def test_the_implementation_binding_lapses_once_a_record_exists(config):
+    """Inputs stay bound for good; the 16A and control code only until the record."""
+    drifted = copy.deepcopy(config)
+    for row in drifted["implementation_lineage"]["files"]:
+        if row["path"] in gate.BOUND_IMPLEMENTATIONS:
+            row["sha256"] = "0" * 64
+    assert any("drifted" in p for p in gate.lineage_problems(drifted, record_exists=False))
+    assert gate.lineage_problems(drifted, record_exists=True) == []
+    fcidump = next(row for row in drifted["implementation_lineage"]["files"]
+                   if row["path"].endswith(".FCIDUMP"))
+    fcidump["sha256"] = "0" * 64
+    assert any(fcidump["path"] in p for p in gate.lineage_problems(drifted, record_exists=True))

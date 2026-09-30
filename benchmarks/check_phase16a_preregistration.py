@@ -271,9 +271,21 @@ def claim_problems(config: dict) -> list[str]:
     return problems
 
 
-def lineage_problems(config: dict) -> list[str]:
+def lineage_problems(config: dict, *, record_exists: bool | None = None) -> list[str]:
+    """Inputs stay bound; the implementation is bound until a record names it.
+
+    The implementation hashes protect the run: no changed algorithm may reach
+    a record under this declaration. Once the record exists, its provenance
+    names the commit that produced it, and a later edit to either file must
+    not fail this gate on every pull request. The FCIDUMPs and their
+    provenance stay bound for good, and the structural recomputation below
+    still requires every frozen number to reproduce.
+    """
     problems = []
+    record_exists = RECORD.exists() if record_exists is None else record_exists
     for row in config["implementation_lineage"]["files"]:
+        if record_exists and row["path"] in BOUND_IMPLEMENTATIONS:
+            continue
         path = ROOT / row["path"]
         if not path.is_file():
             problems.append(f"lineage file missing: {row['path']}")

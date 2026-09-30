@@ -116,7 +116,7 @@ No figure or table value in the manuscript is transcribed by hand, and
 ```bash
 python -m venv .venv && source .venv/bin/activate
 pip install -e .[test,research,stim]       # automatic CI extras
-pytest                                      # 2524 passed, 11 skipped
+pytest                                      # 2525 passed, 11 skipped
 ```
 
 This is the automatic CI dependency set; record gates additionally pin NumPy
@@ -132,7 +132,7 @@ the remaining `11 - 6 = 5` skips are per-test and *are* collected:
 
 ```text
 collected == passed + (skipped - files dropped at collection)
-2529      == 2524   + (11      -   6)
+2530      == 2525   + (11      -   6)
 ```
 
 Both sides are computed from the tree, so a drift in either quoted number
@@ -2823,8 +2823,11 @@ FCIDUMPs.
 python benchmarks/check_phase16a_preregistration.py
 ```
 
-The gate draws nothing. It checks completeness and the absence of results,
-and binds the FCIDUMPs, their provenance and `time_evolution.py` by SHA-256.
+The gate draws nothing. It checks completeness and the absence of results.
+It binds the FCIDUMPs and their provenance by SHA-256 for good, and
+`time_evolution.py` and `selected_ci.py` only until the record exists. After
+that, the record's provenance names the code that ran, and a later edit to
+either file does not fail this gate.
 It enforces a total status ladder in which a censored instance never yields
 GO. It also tests the declaration's clauses against each other, the Phase 16B
 v3 lesson: the budgets split evenly over the time grid, admission is read at
