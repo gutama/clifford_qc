@@ -116,7 +116,7 @@ No figure or table value in the manuscript is transcribed by hand, and
 ```bash
 python -m venv .venv && source .venv/bin/activate
 pip install -e .[test,research,stim]       # automatic CI extras
-pytest                                      # 2562 passed, 11 skipped
+pytest                                      # 2589 passed, 11 skipped
 ```
 
 This is the automatic CI dependency set; record gates additionally pin NumPy
@@ -132,7 +132,7 @@ the remaining `11 - 6 = 5` skips are per-test and *are* collected:
 
 ```text
 collected == passed + (skipped - files dropped at collection)
-2567      == 2562   + (11      -   6)
+2594      == 2589   + (11      -   6)
 ```
 
 Both sides are computed from the tree, so a drift in either quoted number
@@ -3107,7 +3107,52 @@ This takes about eight seconds and runs in the structural CI matrix.
 against a mutation of the config. It checks the fit on synthetic lines, on the
 two-level contamination picture its rationale rests on, and on a real
 trajectory on the undeclared Hubbard dimer. The producer and result checker
-come later.
+are the next section.
+
+## Phase 15 variance-extrapolation producer and result checker (not yet run)
+
+`benchmarks/run_phase15_variance_extrapolation.py` runs the declared test once
+and writes `benchmarks/reference_results/phase15_variance_extrapolation.json`.
+No such record exists yet, and no prefix variance has been computed on a
+declared bank.
+
+```bash
+OMP_NUM_THREADS=1 OPENBLAS_NUM_THREADS=1 MKL_NUM_THREADS=1 \
+  python benchmarks/run_phase15_variance_extrapolation.py
+python benchmarks/check_phase15_variance_extrapolation.py
+```
+
+The producer re-runs the preregistration gate, recomputation included, and
+refuses before any prefix variance if it fails. It also refuses a dirty tree,
+an environment no committed record declares, an existing record without
+`--overwrite`, and a `--banks` subset aimed at the committed path; `--out`
+writes elsewhere. Per bank it builds one `SecondMomentBank` over the full
+frozen basis and solves each prefix as a top-left corner. The record holds
+`E_M`, `σ²_M` and the resolved flag for every prefix, the window fit read off
+the gate's own rule and ladder, and the declared deterministic checks. A
+failed check makes the bank INVALID, and the verdict reads the required banks
+only. Fits over two- and four-prefix windows and over every resolved prefix,
+and the oracle Temple bound, are diagnostics.
+
+The checker trusts none of the record's summary fields. It requires the config
+unchanged since the run and each bank's frozen numbers equal to the config's.
+Every fit is refitted from the recorded trajectory with its own closed-form
+regression, and the statuses, verdict and quoted consequence follow under its
+own statement of the rule. Each deterministic check is re-derived from the
+values it rests on. It then rebuilds every bank and requires the trajectory,
+checks and status to reproduce; `--no-recompute` skips the rebuild and
+`--banks` restricts it. `--record` names another record. On the committed
+path it also requires, through the gate, that the config's last change
+strictly precede the record's commit.
+
+`tests/test_phase15_variance_extrapolation.py` runs both on two undeclared
+toys. LiH CAS(4e,4o) with five generators falls inside the domain, and its
+singles leave the Hartree–Fock Ritz state unchanged, so its window variances
+differ only by rounding. That is the case revision 1 exists for, and the
+window must not extrapolate. The Hubbard dimer with three generators falls
+outside the domain and does fit. The tests check that the two statements of
+the fit, the ladder and the verdict agree, and that each tampered record
+field is caught.
 
 ## Phase 18 fragment-solver callback
 

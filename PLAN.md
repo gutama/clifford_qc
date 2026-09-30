@@ -2117,7 +2117,11 @@ extrapolated. CONDITIONAL ships it as a diagnostic, and NO_GO does not ship
 it. The gate, `check_phase15_extrapolation_preregistration.py`, computes no
 prefix variance. It recomputes the exact spectrum and the final Ritz energy,
 reads the final variance from the validation record, re-derives the domain,
-and runs in the structural CI matrix. No producer exists yet.
+and runs in the structural CI matrix. The producer,
+`run_phase15_variance_extrapolation.py`, and the result checker,
+`check_phase15_variance_extrapolation.py`, are committed and tested only on
+undeclared toys (LiH CAS(4e,4o) and the Hubbard dimer). Neither has run on a
+declared bank.
 
 ### Phase 16 — time-evolved inputs, split by method
 
@@ -4048,7 +4052,8 @@ A-CASE's.
   trajectory `(σ²_M, E_M)`, read at `σ² = 0`, at least halve the final Ritz
   energy's error against the exact sector ground energy? *Falsifier:* no
   required bank improves by that factor, so extrapolation adds a number
-  without adding accuracy. *Status:* preregistered (revision 1), not run
+  without adding accuracy. *Status:* preregistered (revision 1), producer
+  and checker committed, not run
   (`benchmarks/PHASE15_EXTRAPOLATION_PREREGISTRATION.md`, §5 Phase 15). The
   required banks are H₄, converged H₄, BeH₂ and H₂O CAS(8e,6o). Hubbard 2×2
   falls outside the domain and is a diagnostic.
@@ -4704,7 +4709,8 @@ bought a duplicate record.
     `configs/phase15_variance_extrapolation.json`,
     `check_phase15_extrapolation_preregistration.py`) fixes the window, the
     halving bar and the Temple-regime domain before any prefix variance
-    exists. The producer and result checker come next.
+    exists. The producer and result checker are committed and tested only
+    on undeclared toys; the declared run comes next.
 20. CEO and MORE-ADAPT benchmarks after the critical comparison is stable.
 21. The excited-state track, after the certificate question of §7.4 has an answer. Note
     that §3.5B's transformation-character parameter is what keeps this track reachable
