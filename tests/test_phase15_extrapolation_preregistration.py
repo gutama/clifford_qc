@@ -17,8 +17,10 @@ import pytest
 import benchmarks.check_phase15_extrapolation_preregistration as gate
 from benchmarks.run_mapping_axis import _raw_pool
 from clifford_qc.backends import ExactMVBackend
+from clifford_qc.ir import PauliWord
 from clifford_qc.models.lattice import hubbard
 from clifford_qc.subspace import MatrixElementBank, SecondMomentBank
+from clifford_qc.subspace.generator_core import Generator
 from clifford_qc.subspace.generators import identity_generator
 
 
@@ -220,6 +222,72 @@ def test_the_domain_reads_half_the_gap(recomputed):
     for row in computed.values():
         assert row["in_domain"] == (row["final_residual"] <= 0.5 * row["exact_gap"])
         assert row["final_residual"] == pytest.approx(math.sqrt(row["final_variance"]))
+
+
+# ------------------------------------------------------------------ the clarification
+
+def test_the_cutoff_alone_does_not_imply_ground_state_dominance():
+    """The PR #117 review's counterexample, and what the energy bound reads there.
+
+    Two levels, E_0 = 0 and gap 0.3. A state with 99% excited weight passes
+    sigma <= gap/2 exactly as its mirror with 99% ground weight does; only the
+    energy bound tells them apart.
+    """
+    gap = 0.3
+    for ground_weight in (0.01, 0.99):
+        excited = 1.0 - ground_weight
+        sigma = math.sqrt(ground_weight * excited) * gap
+        assert sigma <= gap / 2
+        bound = gate.ground_weight_lower_bound(excited * gap, gap)
+        assert bound == pytest.approx(ground_weight)
+    assert gate.ground_weight_lower_bound(0.99 * gap, gap) < 0.5
+
+
+def test_the_committed_clarification_passes(config):
+    assert gate.clarification_problems(config) == []
+
+
+def test_every_final_ritz_state_stays_in_its_sector(recomputed):
+    _, computed = recomputed
+    for row in computed.values():
+        assert row["final_state_sector_leak"] <= gate.SECTOR_LEAK_TOLERANCE
+
+
+def test_a_state_outside_the_sector_is_caught():
+    model = hubbard(2)
+    flip = PauliWord.from_label("X" + "I" * (model.n - 1)).to_mv()
+    mixed = Generator("mixed", identity_generator(model.n).mv + flip)
+    assert gate.final_state_sector_leak(model, [mixed]) > 0.5
+
+
+def _clarification():
+    return json.loads(gate.CLARIFICATION.read_text(encoding="utf-8"))
+
+
+CLARIFICATION_MUTATIONS = {
+    "a stale config digest": (
+        lambda c, k: c["clarifies"].__setitem__("config_sha256", "0" * 64), "digest"),
+    "a paraphrased rationale": (
+        lambda c, k: c.__setitem__("frozen_text", c["frozen_text"][:-1]), "verbatim"),
+    "a moved rule": (lambda c, k: c.__setitem__("changes_the_rule", True), "changes_the_rule"),
+    "no provenance": (lambda c, k: c.__setitem__("provenance", ""), "provenance"),
+    "a moved bound": (
+        lambda c, k: c["ground_weight_lower_bounds"].__setitem__("h4", 0.5), "h4: ground-weight"),
+    "a missing bank": (
+        lambda c, k: c["ground_weight_lower_bounds"].pop("beh2"), "cover exactly"),
+    "a required bank the energy bound does not cover": (
+        lambda c, k: k["measured_before_freezing"]["beh2"].__setitem__("final_error", 0.2),
+        "premise fails"),
+}
+
+
+@pytest.mark.parametrize("name", sorted(CLARIFICATION_MUTATIONS))
+def test_each_clarification_clause_rejects_its_mutation(config, name):
+    clarification, broken = _clarification(), copy.deepcopy(config)
+    mutate, expected = CLARIFICATION_MUTATIONS[name]
+    mutate(clarification, broken)
+    problems = gate.clarification_problems(broken, clarification)
+    assert any(expected in problem for problem in problems), problems
 
 
 # ------------------------------------------------------------------ lineage and order

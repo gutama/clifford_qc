@@ -25,7 +25,14 @@ answer existed:
   which must match the validation record; and the final variance, read from
   that record. It then applies the domain criterion, ``sigma_f <= gap / 2``,
   which decides the required banks;
-* commit order once a record exists, and the revision log.
+* commit order once a record exists, and the revision log;
+* the clarification written after the record
+  (``configs/phase15_variance_extrapolation_clarification.json``). The frozen
+  rationale read the cutoff as ground-state dominance, and that does not
+  follow. The clarification binds the config by SHA-256, changes no rule, and
+  carries each bank's energy bound ``p_0 >= 1 - (E_f - E_0)/gap``. The gate
+  requires the bound above one half on every required bank, and the final
+  Ritz state inside the ``(N, S_z)`` sector the gap is measured in.
 
 It forms no prefix second moment, computes no intermediate variance, fits
 nothing, and computes no status or verdict.
@@ -59,7 +66,10 @@ CONFIG = HERE / "configs" / "phase15_variance_extrapolation.json"
 RECORD = HERE / "reference_results" / "phase15_variance_extrapolation.json"
 VALIDATION = HERE / "reference_results" / "second_moment_validation.json"
 MAPPING = HERE / "configs" / "mapping_axis.json"
+CLARIFICATION = HERE / "configs" / "phase15_variance_extrapolation_clarification.json"
 SCHEMA = "clifford_qc.phase15_variance_extrapolation_config.v1"
+CLARIFICATION_SCHEMA = "clifford_qc.phase15_variance_extrapolation_clarification.v1"
+SECTOR_LEAK_TOLERANCE = 1e-10
 
 REQUIRED_TOP = (
     "schema", "design_document", "question_id", "purpose", "contains_results",
@@ -377,6 +387,34 @@ def quantities_for(name: str, model, selected, validation_root: dict,
     }
 
 
+def final_state_sector_leak(model, selected) -> float:
+    """How far the final Ritz state is from an ``(N, S_z)`` eigenstate.
+
+    The sector gap bounds the state's ground weight only if the state lies in
+    that sector, so the clarification's energy bound rests on this being zero.
+    """
+    import numpy as np
+
+    from clifford_qc.fermion import total_number_op, total_sz_op
+    from clifford_qc.pauli_action import PauliLinearOperator
+
+    try:
+        from benchmarks.run_phase15_h2_preflight import reference_vector
+    except ImportError:  # pragma: no cover - script execution
+        from run_phase15_h2_preflight import reference_vector
+
+    metadata = model.metadata
+    psi = reference_vector(model)
+    result = preflight_gate.first_moment_bank(model, selected).solve()
+    basis = np.column_stack([PauliLinearOperator(g.mv).matvec(psi) for g in selected])
+    state = basis[:, list(result.indices)] @ result.coefficients[:, 0]
+    state = state / np.linalg.norm(state)
+    number = PauliLinearOperator(total_number_op(model.n))
+    spin = PauliLinearOperator(total_sz_op(model.n, spin_ordering=metadata["spin_convention"]))
+    return max(float(np.linalg.norm(number.matvec(state) - metadata["n_electrons"] * state)),
+               float(np.linalg.norm(spin.matvec(state) - metadata["sz"] * state)))
+
+
 def structural_quantities(name: str) -> dict:
     model, selected = preflight_gate.bank_inputs(name)
     validation = json.loads(VALIDATION.read_text(encoding="utf-8"))
@@ -386,7 +424,10 @@ def structural_quantities(name: str) -> dict:
     if spec.get("provenance"):
         provenance = json.loads((ROOT / spec["provenance"]).read_text(encoding="utf-8"))
         fci = float(provenance["reference_energies"]["fci"])
-    return quantities_for(name, model, selected, validation["banks"][name]["roots"][0], fci)
+    quantities = quantities_for(name, model, selected,
+                                validation["banks"][name]["roots"][0], fci)
+    quantities["final_state_sector_leak"] = final_state_sector_leak(model, selected)
+    return quantities
 
 
 def structural_problems(config: dict, notes: list[str] | None = None,
@@ -410,9 +451,74 @@ def structural_problems(config: dict, notes: list[str] | None = None,
             problems.append(f"{name}: the sector ground energy is not the provenance FCI")
         if not got["final_matches_validation"]:
             problems.append(f"{name}: the final Ritz energy is not the validation record's")
+        leak = got.get("final_state_sector_leak", 0.0)
+        if leak > SECTOR_LEAK_TOLERANCE:
+            problems.append(f"{name}: the final Ritz state leaves the (N, S_z) sector by "
+                            f"{leak:.3g}, so the sector gap bounds nothing about it")
+        bound = ground_weight_lower_bound(got["final_error"], got["exact_gap"])
+        weight = f"ground weight >= {bound:.4f}" if bound > 0 else "no ground-weight bound"
         notes.append(f"  {name}: M={got['basis_size']} gap={got['exact_gap']:.4g} "
                      f"sigma_f={got['final_residual']:.4g} "
-                     f"{'in' if got['in_domain'] else 'outside'} the domain")
+                     f"{'in' if got['in_domain'] else 'outside'} the domain; {weight}")
+    return problems
+
+
+# ------------------------------------------------------------------ clarification
+
+def ground_weight_lower_bound(final_error: float, gap: float) -> float:
+    """``p_0 >= 1 - (E_f - E_0)/gap`` for a state in the sector.
+
+    ``E_f - E_0 = sum_k p_k (E_k - E_0) >= (1 - p_0) gap``. Above one half it
+    says the ground state carries most of the state; at or below zero it says
+    nothing.
+    """
+    return 1.0 - final_error / gap
+
+
+def clarification_problems(config: dict, clarification: dict | None = None) -> list[str]:
+    """The post-record clarification of the domain's rationale.
+
+    It must quote the frozen rationale verbatim, bind the config it clarifies
+    by SHA-256, change nothing, and carry each bank's energy bound on its
+    ground weight as the frozen numbers give it. Every required bank's bound
+    must exceed one half: that, not the frozen cutoff, is what shows the
+    ground state dominates its final Ritz state.
+    """
+    if clarification is None:
+        if not CLARIFICATION.exists():
+            return [f"{CLARIFICATION.name} is missing"]
+        clarification = json.loads(CLARIFICATION.read_text(encoding="utf-8"))
+    problems = []
+    if clarification.get("schema") != CLARIFICATION_SCHEMA:
+        problems.append(f"clarification schema is {clarification.get('schema')!r}")
+    clarifies = clarification.get("clarifies", {})
+    if clarifies.get("config") != str(CONFIG.relative_to(ROOT)):
+        problems.append("the clarification does not name the config it clarifies")
+    if clarifies.get("config_sha256") != _sha256(CONFIG):
+        problems.append("the config changed since the clarification: its digest no "
+                        "longer matches")
+    if clarifies.get("field") != "domain.rationale":
+        problems.append("the clarification must clarify domain.rationale")
+    if clarification.get("frozen_text") != config["domain"]["rationale"]:
+        problems.append("the clarification does not quote the frozen rationale verbatim")
+    for key in ("provenance", "defect", "reading", "changes"):
+        if not str(clarification.get(key, "")).strip():
+            problems.append(f"the clarification does not state its {key}")
+    if clarification.get("changes_the_rule") is not False:
+        problems.append("changes_the_rule must be false: a clarification after the "
+                        "record may not move the rule")
+    bounds = clarification.get("ground_weight_lower_bounds", {})
+    if sorted(bounds) != sorted(config["banks"]["systems"]):
+        problems.append("the ground-weight bounds must cover exactly the declared banks")
+    for name in config["banks"]["systems"]:
+        frozen = config["measured_before_freezing"][name]
+        bound = ground_weight_lower_bound(frozen["final_error"], frozen["exact_gap"])
+        if name in bounds and not _close(bounds[name], bound, rel=1e-9, abs_=1e-12):
+            problems.append(f"{name}: ground-weight bound {bounds[name]!r} is not the "
+                            f"frozen numbers' {bound!r}")
+        if name in config["required_banks"] and not bound > 0.5:
+            problems.append(f"{name}: the energy bound gives ground weight {bound:.4g}, "
+                            "not above one half; the domain's premise fails there")
     return problems
 
 
@@ -457,6 +563,7 @@ def main() -> int:
     if not problems:
         problems.extend(structural_problems(config, notes))
         problems.extend(commit_order_problems(notes))
+        problems.extend(clarification_problems(config))
     for note in notes:
         print(note)
     for problem in problems:

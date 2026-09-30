@@ -13,14 +13,20 @@ gate trusts none of the record's summary fields.
    ``measured_before_freezing``.
 4. **Re-derivation.** Every fit (the window and the diagnostic ones) is
    refitted from the recorded trajectory with a closed-form regression written
-   here, not the gate's. The errors, the gain, each status, the verdict and its
+   here, not the gate's, and every fitted field must agree, the residual RMS
+   included. The errors, the gain, each status, the verdict and its
    quoted consequence follow under an independent statement of the rule. Every
    deterministic check is re-derived from the values it rests on: the
    monotone energies, Weinstein's interval against the recorded spectrum, the
    dense window residuals and the final prefix against the validation record.
-5. **Recomputation.** Every bank is rebuilt, and its spectrum, trajectory and
-   checks must reproduce (``--no-recompute`` skips this, ``--banks``
-   restricts it).
+   So is each row's residual norm, resolved flag, nearest-eigenvalue distance
+   and Weinstein flag. Without a rebuild a cancellation scale is only bounded
+   below, by its own second moment.
+5. **Recomputation.** Every bank is rebuilt, and its spectrum, units, every
+   field of every trajectory row, the dense window residuals, the checks and
+   the status must reproduce. Every tolerance comes from the rebuilt
+   cancellation scale, so a record cannot widen its own (``--no-recompute``
+   skips this, ``--banks`` restricts it).
 6. **Order.** Through the preregistration gate, the config's last change must
    strictly precede the record's commit.
 
@@ -110,14 +116,27 @@ def derive_verdict(statuses: list[str]) -> str:
 
 
 def _fits_agree(recorded: dict | None, derived: dict | None) -> bool:
+    """Every field of a fit: the flag, the reason, and each fitted number."""
     if recorded is None or derived is None:
         return recorded is derived
-    if recorded["extrapolable"] != derived["extrapolable"]:
+    if sorted(recorded) != sorted(derived):
+        return False
+    if (recorded["extrapolable"] != derived["extrapolable"]
+            or recorded["reason"] != derived["reason"]):
         return False
     if "intercept" in derived:
-        return (_close(recorded.get("intercept"), derived["intercept"], rel=1e-9, abs_=1e-10)
-                and _close(recorded.get("slope"), derived["slope"], rel=1e-7, abs_=1e-10))
+        return (_close(recorded["intercept"], derived["intercept"], rel=1e-9, abs_=1e-10)
+                and _close(recorded["slope"], derived["slope"], rel=1e-7, abs_=1e-10)
+                and _close(recorded["residual_rms"], derived["residual_rms"],
+                           rel=1e-6, abs_=1e-11))
     return True
+
+
+def derive_gain(final_error: float, extrapolated_error: float | None) -> float | None:
+    """The final Ritz error over the extrapolated one; none without an extrapolation."""
+    if extrapolated_error is None or extrapolated_error == 0.0:
+        return None
+    return abs(final_error) / abs(extrapolated_error)
 
 
 # ------------------------------------------------------------------ checks
@@ -205,6 +224,45 @@ def derived_checks(entry: dict, validation_root: dict, resolution: float) -> dic
     }
 
 
+def row_problems(name: str, entry: dict, resolution: float) -> list[str]:
+    """Each recorded row's derived fields, from the values they rest on.
+
+    Without a rebuild the cancellation scale can only be bounded below: it is
+    ``|c|^T |K| |c| / c^H S c``, at least the second moment ``sigma^2 + E^2``.
+    Only the rebuild bounds it above.
+    """
+    problems = []
+    spectrum = entry["exact_spectrum"]
+    for row in entry["trajectory"]:
+        label = f"{name}: prefix {row['prefix']}"
+        variance, energy, scale = row["variance"], row["energy"], row["cancellation_scale"]
+        if not scale >= (variance + energy * energy) * (1 - 1e-9):
+            problems.append(f"{label}: cancellation scale {scale!r} is below its own "
+                            "second moment")
+        if not _close(row["residual_norm"], math.sqrt(max(variance, 0.0)), rel=1e-12, abs_=0.0):
+            problems.append(f"{label}: residual_norm is not the root of its variance")
+        if row["resolved"] != (variance > resolution * scale):
+            problems.append(f"{label}: the resolved flag contradicts its variance and scale")
+        nearest = min(abs(value - energy) for value in spectrum)
+        if not _close(row["nearest_eigenvalue_distance"], nearest, rel=1e-12, abs_=1e-15):
+            problems.append(f"{label}: the nearest-eigenvalue distance is not the "
+                            "spectrum's")
+        floor = math.sqrt(resolution * scale)
+        if row["weinstein_holds"] != (nearest <= max(row["residual_norm"], floor) * (1 + 1e-9)):
+            problems.append(f"{label}: the Weinstein flag contradicts its values")
+    window_rows = entry["trajectory"][-len(entry["window"]["prefixes"]):]
+    dense = entry["window"]["dense"]
+    if [d["prefix"] for d in dense] != entry["window"]["prefixes"]:
+        problems.append(f"{name}: the dense residuals are not the window's prefixes")
+    for d, row in zip(dense, window_rows):
+        difference = row["variance"] - d["dense_residual_norm"] ** 2
+        if not _close(d["variance_minus_dense"], difference, rel=1e-12,
+                      abs_=1e-15 * row["cancellation_scale"]):
+            problems.append(f"{name}: prefix {d['prefix']} variance_minus_dense is not its "
+                            "variance less the dense residual squared")
+    return problems
+
+
 def rederivation_problems(config: dict, record: dict, validation: dict) -> list[str]:
     from clifford_qc.subspace.second_moment import RESOLUTION
 
@@ -214,6 +272,7 @@ def rederivation_problems(config: dict, record: dict, validation: dict) -> list[
     for name, entry in record["banks"].items():
         rows = entry["trajectory"]
         ground = entry["exact_spectrum"][0]
+        problems += row_problems(name, entry, RESOLUTION)
         fit = derive_fit(rows[-window:])
         if not _fits_agree(entry["window"]["fit"], fit):
             problems.append(f"{name}: the window fit refits to {fit}")
@@ -229,6 +288,9 @@ def rederivation_problems(config: dict, record: dict, validation: dict) -> list[
                 problems.append(f"{name}: extrapolated_energy drifted")
         elif entry["extrapolated_energy"] is not None or entry["extrapolated_error"] is not None:
             problems.append(f"{name}: an unextrapolable window reports an extrapolated energy")
+        gain = derive_gain(final_error, fit.get("extrapolated_error"))
+        if not _close(entry.get("gain"), gain, rel=1e-6, abs_=0.0):
+            problems.append(f"{name}: gain {entry.get('gain')!r} is not the derived {gain!r}")
         checks = derived_checks(entry, validation["banks"][name]["roots"][0], RESOLUTION)
         if entry["deterministic_checks"] != checks:
             problems.append(f"{name}: recorded deterministic checks are not what their "
@@ -274,9 +336,36 @@ def rederivation_problems(config: dict, record: dict, validation: dict) -> list[
     return problems
 
 
+def _row_disagreements(mine: dict, theirs: dict, resolution: float) -> list[str]:
+    """Fields of a recorded row that the rebuilt row does not reproduce.
+
+    Every tolerance is set by the rebuilt cancellation scale, never the
+    recorded one, so a record cannot widen its own acceptance threshold.
+    """
+    scale = mine["cancellation_scale"]
+    squares = resolution * scale
+    agree = {
+        "prefix": mine["prefix"] == theirs["prefix"],
+        "energy": _close(mine["energy"], theirs["energy"], rel=1e-10, abs_=1e-12),
+        "cancellation_scale": _close(scale, theirs["cancellation_scale"], rel=1e-8),
+        "variance": abs(mine["variance"] - theirs["variance"]) <= squares,
+        "residual_norm": abs(mine["residual_norm"] ** 2 - theirs["residual_norm"] ** 2)
+        <= squares,
+        "resolved": mine["resolved"] == theirs["resolved"],
+        "nearest_eigenvalue_distance": _close(mine["nearest_eigenvalue_distance"],
+                                              theirs["nearest_eigenvalue_distance"],
+                                              abs_=1e-9),
+        "weinstein_holds": mine["weinstein_holds"] == theirs["weinstein_holds"],
+    }
+    return [key for key, ok in agree.items() if not ok]
+
+
 def recompute_problems(config: dict, record: dict, validation: dict, *, banks=None,
                        inputs=None) -> list[str]:
-    """Every bank rebuilt: spectrum, trajectory and checks must reproduce."""
+    """Every bank rebuilt: spectrum, every trajectory field, the dense window
+    residuals, the units, the checks and the status must reproduce."""
+    from clifford_qc.subspace.second_moment import RESOLUTION
+
     inputs = producer.preflight_gate.bank_inputs if inputs is None else inputs
     problems = []
     for name in (record["banks"] if banks is None else banks):
@@ -289,14 +378,27 @@ def recompute_problems(config: dict, record: dict, validation: dict, *, banks=No
                 _close(a, b, abs_=1e-9) for a, b in zip(got["exact_spectrum"],
                                                         entry["exact_spectrum"])):
             problems.append(f"{name}: the exact spectrum recomputes differently")
+        if got["units"] != entry["units"]:
+            problems.append(f"{name}: units recompute to {got['units']!r}")
+        if len(got["trajectory"]) != len(entry["trajectory"]):
+            problems.append(f"{name}: the trajectory recomputes to "
+                            f"{len(got['trajectory'])} prefixes")
         for mine, theirs in zip(got["trajectory"], entry["trajectory"]):
-            scale = theirs["cancellation_scale"]
-            if not (_close(mine["energy"], theirs["energy"], rel=1e-10, abs_=1e-12)
-                    and abs(mine["variance"] - theirs["variance"]) <= 1e-12 * scale
-                    and mine["resolved"] == theirs["resolved"]):
-                problems.append(f"{name}: prefix {theirs['prefix']} recomputes to "
-                                f"E={mine['energy']}, var={mine['variance']}")
-                break
+            fields = _row_disagreements(mine, theirs, RESOLUTION)
+            if fields:
+                rebuilt = {key: mine[key] for key in fields}
+                problems.append(f"{name}: prefix {theirs['prefix']} {', '.join(fields)} "
+                                f"recomputes to {rebuilt}")
+        for mine, theirs, row in zip(got["window"]["dense"], entry["window"]["dense"],
+                                     got["trajectory"][-len(got["window"]["dense"]):]):
+            squares = RESOLUTION * row["cancellation_scale"]
+            if not (mine["prefix"] == theirs["prefix"]
+                    and abs(mine["dense_residual_norm"] ** 2
+                            - theirs["dense_residual_norm"] ** 2) <= squares
+                    and abs(mine["variance_minus_dense"]
+                            - theirs["variance_minus_dense"]) <= squares):
+                problems.append(f"{name}: prefix {theirs['prefix']}'s dense residual "
+                                f"recomputes to {mine['dense_residual_norm']}")
         if got["deterministic_checks"] != entry["deterministic_checks"]:
             problems.append(f"{name}: the checks recompute to {got['deterministic_checks']}")
         if got["status"] != entry["status"]:

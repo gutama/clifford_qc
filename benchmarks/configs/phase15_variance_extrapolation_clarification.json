@@ -1,0 +1,22 @@
+{
+ "schema": "clifford_qc.phase15_variance_extrapolation_clarification.v1",
+ "clarifies": {
+  "config": "benchmarks/configs/phase15_variance_extrapolation.json",
+  "config_sha256": "4b553d9d1ad53a88f1a483c8b188e2192c922cdaa9c8004aa88188f901c54c91",
+  "field": "domain.rationale",
+  "record": "benchmarks/reference_results/phase15_variance_extrapolation.json"
+ },
+ "provenance": "Raised in the repository owner's review of pull request #117 on 2026-09-30, after the record's commit 9673971. This clarification was written after the record existed. It is not a revision: the config, whose digest the record binds, is untouched.",
+ "frozen_text": "The linear model assumes the Ritz state is close to the ground state. Temple's regime is the principled version: when the residual is below half the gap, the Ritz state is dominated by the ground state and the contamination picture holds. Outside it the model has no footing, and a bank there can only be a diagnostic.",
+ "defect": "A residual below half the gap does not imply that the ground state dominates the Ritz state. In a two-level system with E_0 = 0 and gap 0.3, a state with 99% excited weight has E = 0.297 and sigma = sqrt(0.99 * 0.01) * 0.3 = 0.0298, inside sigma <= gap/2 with 1% ground weight; the cutoff admits the mirror state, with 99% ground weight, equally. Temple's lower bound needs the Rayleigh quotient below E_1, a spectral placement the cutoff does not supply (Zhu, Argentati and Knyazev, SIAM J. Matrix Anal. Appl. 34(1), 244-256, eqs. 2.3-2.4).",
+ "reading": "The cutoff sigma_f <= gap/2 stands exactly as frozen. It is an empirical filter: it chose the required banks and establishes nothing about their ground-state weight. That weight is established separately, from energy. For a state in the (N, S_z) sector with Rayleigh quotient E_f, E_f - E_0 >= (1 - p_0) gap, so p_0 >= 1 - (E_f - E_0)/gap, which exceeds one half when E_f - E_0 < gap/2. Every required bank's final Ritz state lies in its sector, and its bound exceeds one half; Hubbard 2x2, a diagnostic, gets no bound.",
+ "changes": "No rule, cutoff, window, improvement factor, bank, status or verdict changes. The config and the record are untouched, and their digests and commit order still hold.",
+ "changes_the_rule": false,
+ "ground_weight_lower_bounds": {
+  "h4": 0.9895437704356197,
+  "h4_converged": 0.9973472634459404,
+  "beh2": 0.9999882173590824,
+  "h2o_cas8e6o": 0.9642045297979653,
+  "hubbard_2x2": -1.9133939292036342
+ }
+}

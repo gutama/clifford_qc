@@ -116,7 +116,7 @@ No figure or table value in the manuscript is transcribed by hand, and
 ```bash
 python -m venv .venv && source .venv/bin/activate
 pip install -e .[test,research,stim]       # automatic CI extras
-pytest                                      # 2591 passed, 11 skipped
+pytest                                      # 2616 passed, 11 skipped
 ```
 
 This is the automatic CI dependency set; record gates additionally pin NumPy
@@ -132,7 +132,7 @@ the remaining `11 - 6 = 5` skips are per-test and *are* collected:
 
 ```text
 collected == passed + (skipped - files dropped at collection)
-2596      == 2591   + (11      -   6)
+2621      == 2616   + (11      -   6)
 ```
 
 Both sides are computed from the tree, so a drift in either quoted number
@@ -3084,7 +3084,7 @@ frozen basis is grown in a fixed order, so its prefixes form a trajectory
 `(σ²_M, E_M)`. A straight line through the last three points is read at
 `σ² = 0`, and a bank IMPROVES when that at least halves the final Ritz error
 against the exact sector ground energy. The rule is required only in its
-domain, `σ_f ≤ gap/2` (Temple's regime): H₄, converged H₄, BeH₂ and H₂O.
+domain, the frozen filter `σ_f ≤ gap/2`: H₄, converged H₄, BeH₂ and H₂O.
 Hubbard 2×2 is a diagnostic.
 
 ```bash
@@ -3102,12 +3102,22 @@ basis, every required bank has an error to improve, and the claimed
 reachable verdicts are the reachable ones. The inputs are bound by SHA-256,
 and `second_moment.py` and `linalg.py` only until a record exists.
 
-This takes about eight seconds and runs in the structural CI matrix.
+The config's rationale read the cutoff as ground-state dominance, and that
+does not follow: a two-level state with 99% excited weight passes it. The
+config cannot change after the record, so
+`benchmarks/configs/phase15_variance_extrapolation_clarification.json`
+corrects the reading with its provenance. It quotes the rationale verbatim,
+binds the config by SHA-256, and changes no rule. It carries each bank's
+energy bound `p₀ ≥ 1 − (E_f − E₀)/gap`. The gate requires that bound above one
+half on every required bank, and each final Ritz state inside its
+`(N, S_z)` sector. The bounds are 0.990, 0.997, 1.000 and 0.964.
+
+This takes about nine seconds and runs in the structural CI matrix.
 `tests/test_phase15_extrapolation_preregistration.py` holds each clause
-against a mutation of the config. It checks the fit on synthetic lines, on the
-two-level contamination picture its rationale rests on, and on a real
-trajectory on the undeclared Hubbard dimer. The next section gives the
-executed test.
+against a mutation of the config or the clarification. It checks the fit on
+synthetic lines, on the two-level contamination picture its rationale rests
+on, and on a real trajectory on the undeclared Hubbard dimer. The next section
+gives the executed test.
 
 ## Phase 15 variance extrapolation (executed once, `CONDITIONAL`)
 
@@ -3161,10 +3171,15 @@ and the oracle Temple bound, are diagnostics.
 The checker trusts none of the record's summary fields. It requires the config
 unchanged since the run and each bank's frozen numbers equal to the config's.
 Every fit is refitted from the recorded trajectory with its own closed-form
-regression, and the statuses, verdict and quoted consequence follow under its
-own statement of the rule. Each deterministic check is re-derived from the
-values it rests on. It then rebuilds every bank and requires the trajectory,
-checks and status to reproduce; `--no-recompute` skips the rebuild and
+regression, and every fitted field must agree, the residual RMS included. The
+errors, gains, statuses, verdict and quoted consequence follow under its own
+statement of the rule. Each deterministic check, and each row's residual norm,
+resolved flag, nearest-eigenvalue distance and Weinstein flag, is re-derived
+from the values it rests on. It then rebuilds every bank and requires every
+field of every row, the dense window residuals, the units, the checks and the
+status to reproduce. Every rebuild tolerance comes from the rebuilt
+cancellation scale, so a record cannot widen its own; without the rebuild the
+scale is bounded only below. `--no-recompute` skips the rebuild and
 `--banks` restricts it. `--record` names another record. On the committed
 path it also requires, through the gate, that the config's last change
 strictly precede the record's commit.

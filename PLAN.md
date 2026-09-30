@@ -2107,10 +2107,16 @@ variances differ only by rounding.
   `σ² = 0`.
 - *The bar.* The extrapolated energy must at least halve the final Ritz
   error against the exact sector energy.
-- *The domain.* The rule applies where the linear model has footing:
-  `σ_f ≤ gap/2`, Temple's regime. That makes H₄, converged H₄, BeH₂ and
-  H₂O the required banks, and Hubbard 2×2 (`σ_f = 1.52 t`, gap `0.30 t`) a
-  diagnostic.
+- *The domain.* The frozen filter `σ_f ≤ gap/2`. That makes H₄,
+  converged H₄, BeH₂ and H₂O the required banks, and Hubbard 2×2
+  (`σ_f = 1.52 t`, gap `0.30 t`) a diagnostic. The declaration called this
+  Temple's regime and read it as ground-state dominance. That does not
+  follow: a two-level state with 99% excited weight passes the filter. A
+  clarification written after the record
+  (`configs/phase15_variance_extrapolation_clarification.json`, from the
+  review of PR #117) keeps the filter and changes no rule. It shows
+  dominance from energy instead, `p₀ ≥ 1 − (E_f − E₀)/gap`. That bound is at
+  least 0.964 on every required bank, and the gate checks it.
 
 The record (`reference_results/phase15_variance_extrapolation.json`) gives
 this, with errors against the exact sector ground energy:

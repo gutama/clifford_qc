@@ -12,6 +12,7 @@ from __future__ import annotations
 import copy
 import itertools
 import json
+import math
 
 import numpy as np
 import pytest
@@ -144,6 +145,10 @@ def _lih(record):
     return record["banks"]["lih_toy"]
 
 
+def _dimer(record):
+    return record["banks"]["dimer_toy"]
+
+
 TAMPERS = {
     "a prefix energy": (lambda r: _lih(r)["trajectory"][-1].__setitem__("energy", -9.0),
                         "final_error drifted"),
@@ -179,6 +184,29 @@ TAMPERS = {
         "reaches_chemical_accuracy_where_final_does_not",
         not _lih(r)["diagnostics"]["reaches_chemical_accuracy_where_final_does_not"]),
         "chemical-accuracy"),
+    # Fields the PR #117 review found unchecked.
+    "a gain": (lambda r: _dimer(r).__setitem__("gain", 1e6), "gain"),
+    "a gain without an extrapolation": (lambda r: _lih(r).__setitem__("gain", 2.0), "gain"),
+    "a window residual RMS": (lambda r: _dimer(r)["window"]["fit"].__setitem__(
+        "residual_rms", 1e6), "window fit refits"),
+    "a diagnostic residual RMS": (lambda r: _dimer(r)["diagnostics"]["window_2"].__setitem__(
+        "residual_rms", 1e6), "diagnostic window_2 refits differently"),
+    "a fit reason": (lambda r: _lih(r)["window"]["fit"].__setitem__(
+        "reason", "the slope is not positive"), "window fit refits"),
+    "a residual norm": (lambda r: _lih(r)["trajectory"][0].__setitem__(
+        "residual_norm", 2 * _lih(r)["trajectory"][0]["residual_norm"]), "residual_norm"),
+    "a resolved flag": (lambda r: _lih(r)["trajectory"][0].__setitem__(
+        "resolved", not _lih(r)["trajectory"][0]["resolved"]), "resolved flag"),
+    "a nearest-eigenvalue distance": (lambda r: _lih(r)["trajectory"][0].__setitem__(
+        "nearest_eigenvalue_distance", 0.1), "nearest-eigenvalue distance"),
+    "a Weinstein flag": (lambda r: _lih(r)["trajectory"][0].__setitem__(
+        "weinstein_holds", False), "Weinstein flag"),
+    "a shrunken cancellation scale": (lambda r: _lih(r)["trajectory"][0].__setitem__(
+        "cancellation_scale", 1e-9), "below its own second moment"),
+    "a dense difference": (lambda r: _lih(r)["window"]["dense"][0].__setitem__(
+        "variance_minus_dense", 1.0), "variance_minus_dense"),
+    "a dense prefix": (lambda r: _lih(r)["window"]["dense"][0].__setitem__("prefix", 99),
+                       "dense residuals are not the window's"),
 }
 
 
@@ -198,6 +226,47 @@ def test_a_trajectory_that_does_not_recompute_is_caught(toy, toys):
     broken = copy.deepcopy(record)
     broken["banks"]["dimer_toy"]["trajectory"][0]["energy"] += 1e-6
     assert any("recomputes to" in p for p in checker.recompute_problems(
+        config, broken, validation, inputs=toys.__getitem__))
+
+
+def _widen_a_scale(record):
+    """The PR #117 review's attack on the toy: a wrong prefix-1 variance, hidden
+    behind a cancellation scale widened until the old rebuild tolerance
+    ``1e-12 * scale`` covered it, with every derived field made consistent.
+    The widened scale also unresolves the row, so the all-prefix diagnostic
+    drops it."""
+    from clifford_qc.subspace.second_moment import RESOLUTION
+
+    entry = _lih(record)
+    row = entry["trajectory"][0]
+    row["variance"] += 0.01
+    row["cancellation_scale"] = 1e11
+    row["residual_norm"] = math.sqrt(row["variance"])
+    row["resolved"] = row["variance"] > RESOLUTION * row["cancellation_scale"]
+    floor = math.sqrt(RESOLUTION * row["cancellation_scale"])
+    row["weinstein_holds"] = (row["nearest_eigenvalue_distance"]
+                              <= max(row["residual_norm"], floor) * (1 + 1e-9))
+    entry["diagnostics"]["all_resolved"] = producer._all_resolved(entry["trajectory"])
+
+
+def test_a_widened_scale_cannot_hide_a_wrong_variance_from_the_rebuild(toy, toys):
+    config, raw, validation, record = toy
+    broken = copy.deepcopy(record)
+    _widen_a_scale(broken)
+    assert _all_problems(config, raw, validation, broken, toys.__getitem__,
+                         recompute=False) == []  # only the rebuild can see it
+    problems = checker.recompute_problems(config, broken, validation,
+                                          inputs=toys.__getitem__)
+    assert any("prefix 1 cancellation_scale, variance" in p for p in problems), problems
+
+
+def test_units_that_do_not_recompute_are_caught(toy, toys):
+    config, raw, validation, record = toy
+    broken = copy.deepcopy(record)
+    _lih(broken)["units"] = "model"
+    assert _all_problems(config, raw, validation, broken, toys.__getitem__,
+                         recompute=False) == []
+    assert any("units recompute" in p for p in checker.recompute_problems(
         config, broken, validation, inputs=toys.__getitem__))
 
 

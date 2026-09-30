@@ -67,6 +67,24 @@ validation record and `gap = E₁ − E₀` from the exact `(N, S_z)` sector. Th
 gate recomputes both, and a bank outside the domain is a diagnostic that
 cannot promote.
 
+> **Clarification after the record** (not a revision; raised in the review of
+> pull request #117). The paragraph above, and the config's `domain.rationale`
+> it follows, stand as frozen, but their inference is false. A residual below
+> half the gap does not make the ground state dominate. Take two levels with
+> `E₀ = 0` and gap `0.3`. A state with 99% excited weight has `E = 0.297` and
+> `σ = √(0.99·0.01)·0.3 = 0.030`, inside the cutoff with 1% ground weight.
+> Temple's lower bound needs the Rayleigh quotient below `E₁`, a placement the
+> cutoff does not supply.
+>
+> The cutoff `σ_f ≤ gap/2` is kept exactly, as an empirical filter: it chose
+> the required banks and says nothing about their ground weight. That weight
+> comes from energy instead. For a state in the sector,
+> `E_f − E₀ ≥ (1 − p₀)·gap`, so `p₀ ≥ 1 − (E_f − E₀)/gap`. The bound is
+> 0.990 on H₄, 0.997 on converged H₄, 1.000 on BeH₂ and 0.964 on H₂O, and
+> every final Ritz state lies in its sector. Hubbard 2×2 gets no bound. The
+> clarification lives in `configs/phase15_variance_extrapolation_clarification.json`,
+> which binds the config by SHA-256, and the gate checks both conditions.
+
 | bank | M | gap | σ_f | final error | role |
 |---|---|---|---|---|---|
 | h4 | 9 | 0.289 | 0.076 | 3.0e-3 Ha | required |
@@ -159,3 +177,12 @@ second-moment and eigensolver code only until the record exists. A later
 revision must state that no prefix variance existed when it was made. No
 follow-up is permitted: another window, model, factor, domain or bank set
 would be a new declaration.
+
+**Clarification after the record.** The review of pull request #117 found the
+domain's rationale false (§4). A revision could not correct it: the record
+binds the config's digest, and a revision must predate any prefix variance.
+So the config is untouched, and a separate clarification file quotes its
+rationale verbatim, binds its SHA-256, and states its provenance. It changes no
+rule, cutoff, window, factor, bank, status or verdict. It replaces the false
+inference with the energy bound on ground weight, which holds on every required
+bank.
