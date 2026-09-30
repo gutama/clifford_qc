@@ -116,7 +116,7 @@ No figure or table value in the manuscript is transcribed by hand, and
 ```bash
 python -m venv .venv && source .venv/bin/activate
 pip install -e .[test,research,stim]       # automatic CI extras
-pytest                                      # 2525 passed, 11 skipped
+pytest                                      # 2561 passed, 11 skipped
 ```
 
 This is the automatic CI dependency set; record gates additionally pin NumPy
@@ -132,7 +132,7 @@ the remaining `11 - 6 = 5` skips are per-test and *are* collected:
 
 ```text
 collected == passed + (skipped - files dropped at collection)
-2530      == 2525   + (11      -   6)
+2566      == 2561   + (11      -   6)
 ```
 
 Both sides are computed from the tree, so a drift in either quoted number
@@ -3075,6 +3075,39 @@ that a complete basis has no resolved residual. On the declared H₄, BeH₂ and
 Hubbard 2×2 banks, the counts and word-set digest must equal the committed
 preflight record. `tests/test_second_moment_validation.py` runs the producer
 and checker on the dimer, and catches each tampered field.
+
+## Phase 15 preregistration: variance extrapolation (fit-free)
+
+`benchmarks/PHASE15_EXTRAPOLATION_PREREGISTRATION.md` (Q17) declares whether
+energy-variance extrapolation earns a place beside the Ritz energy. Each
+frozen basis is grown in a fixed order, so its prefixes form a trajectory
+`(σ²_M, E_M)`. A straight line through the last three points is read at
+`σ² = 0`, and a bank IMPROVES when that at least halves the final Ritz error
+against the exact sector ground energy. The rule is required only in its
+domain, `σ_f ≤ gap/2` (Temple's regime): H₄, converged H₄, BeH₂ and H₂O.
+Hubbard 2×2 is a diagnostic.
+
+```bash
+python benchmarks/check_phase15_extrapolation_preregistration.py
+```
+
+The gate computes no prefix variance and fits nothing. It recomputes each
+bank's exact sector ground and first excited energies, and requires the
+ground energy to equal the FCIDUMP's provenance FCI. It recomputes the final
+Ritz energy from `(S, H)` and requires it to equal the SecondMomentBank
+validation record's, reads the final variance from that record, and
+re-derives the domain and so the required banks. It also checks the
+declaration's clauses against each other: the window fits every required
+basis, every required bank has an error to improve, and the claimed
+reachable verdicts are the reachable ones. The inputs are bound by SHA-256,
+and `second_moment.py` and `linalg.py` only until a record exists.
+
+This takes about eight seconds and runs in the structural CI matrix.
+`tests/test_phase15_extrapolation_preregistration.py` holds each clause
+against a mutation of the config. It checks the fit on synthetic lines, on the
+two-level contamination picture its rationale rests on, and on a real
+trajectory on the undeclared Hubbard dimer. The producer and result checker
+come later.
 
 ## Phase 18 fragment-solver callback
 

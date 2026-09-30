@@ -2096,6 +2096,27 @@ preflight excluded, so the measured implementation remains. So do variance
 extrapolation, folded-spectrum roots and an independent convergence
 criterion built on the block, and any bank outside the five.
 
+**Variance extrapolation is preregistered, fit-free, and not run.**
+`benchmarks/PHASE15_EXTRAPOLATION_PREREGISTRATION.md` (Q17, §10) asks whether
+extrapolating each frozen basis's prefix trajectory `(σ²_M, E_M)` to zero
+variance earns a place beside the Ritz energy.
+
+- *The rule.* A straight line through the last three prefixes, read at
+  `σ² = 0`.
+- *The bar.* The extrapolated energy must at least halve the final Ritz
+  error against the exact sector energy.
+- *The domain.* The rule applies where the linear model has footing:
+  `σ_f ≤ gap/2`, Temple's regime. That makes H₄, converged H₄, BeH₂ and
+  H₂O the required banks, and Hubbard 2×2 (`σ_f = 1.52 t`, gap `0.30 t`) a
+  diagnostic.
+
+GO ships the rule as an estimator reported beside the Ritz energy, labelled
+extrapolated. CONDITIONAL ships it as a diagnostic, and NO_GO does not ship
+it. The gate, `check_phase15_extrapolation_preregistration.py`, computes no
+prefix variance. It recomputes the exact spectrum and the final Ritz energy,
+reads the final variance from the validation record, re-derives the domain,
+and runs in the structural CI matrix. No producer exists yet.
+
 ### Phase 16 — time-evolved inputs, split by method
 
 **16A — QSCI input.** Use `PauliLinearOperator.as_linear_operator()` with
@@ -4020,6 +4041,15 @@ A-CASE's.
   either clause could bind. There the second moments multiply the measured word
   universe by 6.07, and the bank holds 8.0% of the anchor's coefficients. The
   falsifier does not hold on any bank.
+- **Q17 — variance extrapolation:** on each frozen basis with
+  `σ_f ≤ gap/2`, does a line through the last three points of the prefix
+  trajectory `(σ²_M, E_M)`, read at `σ² = 0`, at least halve the final Ritz
+  energy's error against the exact sector ground energy? *Falsifier:* no
+  required bank improves by that factor, so extrapolation adds a number
+  without adding accuracy. *Status:* preregistered, not run
+  (`benchmarks/PHASE15_EXTRAPOLATION_PREREGISTRATION.md`, §5 Phase 15). The
+  required banks are H₄, converged H₄, BeH₂ and H₂O CAS(8e,6o). Hubbard 2×2
+  falls outside the domain and is a diagnostic.
 
 **Resource accounting (QR1–QR6).**
 
@@ -4667,6 +4697,12 @@ bought a duplicate record.
     (`reference_results/second_moment_validation.json`). Finite-shot estimation
     of the block remains, together with the uses that build on it: variance
     extrapolation, folded-spectrum roots and a convergence criterion.
+19f. Phase 15's variance extrapolation — **preregistered, not run.** The
+    fit-free declaration (`PHASE15_EXTRAPOLATION_PREREGISTRATION.md`,
+    `configs/phase15_variance_extrapolation.json`,
+    `check_phase15_extrapolation_preregistration.py`) fixes the window, the
+    halving bar and the Temple-regime domain before any prefix variance
+    exists. The producer and result checker come next.
 20. CEO and MORE-ADAPT benchmarks after the critical comparison is stable.
 21. The excited-state track, after the certificate question of §7.4 has an answer. Note
     that §3.5B's transformation-character parameter is what keeps this track reachable
