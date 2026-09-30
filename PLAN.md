@@ -2099,7 +2099,9 @@ criterion built on the block, and any bank outside the five.
 **Variance extrapolation is preregistered, fit-free, and not run.**
 `benchmarks/PHASE15_EXTRAPOLATION_PREREGISTRATION.md` (Q17, §10) asks whether
 extrapolating each frozen basis's prefix trajectory `(σ²_M, E_M)` to zero
-variance earns a place beside the Ritz energy.
+variance earns a place beside the Ritz energy. Revision 1, made before any
+prefix variance existed on a declared bank, also refuses a window whose
+variances differ only by rounding.
 
 - *The rule.* A straight line through the last three prefixes, read at
   `σ² = 0`.
@@ -4046,7 +4048,7 @@ A-CASE's.
   trajectory `(σ²_M, E_M)`, read at `σ² = 0`, at least halve the final Ritz
   energy's error against the exact sector ground energy? *Falsifier:* no
   required bank improves by that factor, so extrapolation adds a number
-  without adding accuracy. *Status:* preregistered, not run
+  without adding accuracy. *Status:* preregistered (revision 1), not run
   (`benchmarks/PHASE15_EXTRAPOLATION_PREREGISTRATION.md`, §5 Phase 15). The
   required banks are H₄, converged H₄, BeH₂ and H₂O CAS(8e,6o). Hubbard 2×2
   falls outside the domain and is a diagnostic.

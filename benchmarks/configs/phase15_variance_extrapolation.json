@@ -17,10 +17,11 @@
   "window": 3,
   "window_points": "the last three prefixes, M_f - 2, M_f - 1 and M_f",
   "model": "ordinary least squares E = a + b sigma^2 over the window; the extrapolated energy is a",
-  "extrapolable_when": "every window variance is resolved, the window variances are not all equal, and b > 0",
+  "extrapolable_when": "every window variance is resolved, the window variances are distinguishable (their spread exceeds the SecondMomentBank resolution, 1e-12, times the largest cancellation scale among them), and b > 0",
   "rationale": "Near convergence, with one dominant excited contamination of weight w, E - E_0 ~ w gap and sigma^2 ~ w gap^2, so E ~ E_0 + sigma^2/gap: a line whose intercept is E_0 and whose slope is positive. The last three prefixes are the most converged, where that holds best, and a third point leaves the line a residual to report. A non-positive slope contradicts the model, which is a legitimate outcome, not an error.",
   "improvement_factor": 0.5,
-  "improvement_rationale": "An estimator that ships beside the Ritz energy should at least halve its error where it applies; anything less is not worth a second number with a weaker guarantee than the variational one."
+  "improvement_rationale": "An estimator that ships beside the Ritz energy should at least halve its error where it applies; anything less is not worth a second number with a weaker guarantee than the variational one.",
+  "distinguishability_rationale": "Each variance carries rounding of about the resolution times its cancellation scale. A window whose spread is no larger has a slope made of rounding, and a line fitted to it extrapolates noise. That is the case when the last generators leave the Ritz state unchanged."
  },
  "domain": {
   "criterion": "sigma_f <= gap / 2, with sigma_f the final Ritz state's residual norm and gap = E_1 - E_0 of the exact (N, S_z) sector",
@@ -43,7 +44,7 @@
    },
    {
     "status": "NOT_EXTRAPOLABLE",
-    "condition": "a window variance is unresolved, the window variances are all equal, or the slope is not positive"
+    "condition": "a window variance is unresolved, the window variances differ only by rounding, or the slope is not positive"
    }
   ],
   "invalid_precedence": "A failed deterministic check makes that bank INVALID, and any INVALID required bank makes the verdict INVALID.",
@@ -250,6 +251,16 @@
    "revision": 0,
    "commit_subject": "Preregister the Phase 15 variance-extrapolation test, fit-free",
    "content": "Initial declaration."
+  },
+  {
+   "revision": 1,
+   "commit_subject": "Revise the Phase 15 extrapolation rule: indistinguishable variances do not extrapolate",
+   "changes": [
+    "The extrapolable condition 'the window variances are not all equal' becomes 'their spread exceeds the resolution times the largest cancellation scale among them'.",
+    "The NOT_EXTRAPOLABLE condition says the same."
+   ],
+   "reason": "Writing the producer, its tests ran the rule on the undeclared LiH CAS(4e,4o) toy. There the first single excitations leave the Hartree-Fock Ritz state unchanged (Brillouin's theorem), so the window variances differed only at 1e-13, below their own rounding of 6e-11. The frozen test passed them as not equal, and the fit was rounding noise that two correct implementations extrapolated differently. The revision makes that case NOT_EXTRAPOLABLE, which can only turn a fitted status into NOT_EXTRAPOLABLE, never the reverse.",
+   "prefix_variances_at_revision": "none on any declared bank; the defect surfaced on the undeclared LiH toy"
   }
  ]
 }

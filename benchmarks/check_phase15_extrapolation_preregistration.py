@@ -125,22 +125,29 @@ def _close(a, b, rel=1e-9, abs_=1e-12) -> bool:
 
 # ------------------------------------------------------------------ the rule
 
-def extrapolate(variances, energies, *, resolved) -> dict:
+def extrapolate(variances, energies, *, resolved, scales=None) -> dict:
     """The frozen fit: least squares ``E = a + b sigma^2`` over the window.
 
     Extrapolable only when every window variance is resolved, the variances
-    are not all equal, and the slope is positive, as ``E - E_0 ~ sigma^2/gap``
-    requires. Anything else is a legitimate outcome, NOT_EXTRAPOLABLE, not an
-    error.
+    are distinguishable, and the slope is positive, as
+    ``E - E_0 ~ sigma^2/gap`` requires. "Distinguishable" means their spread
+    exceeds the resolution times the largest cancellation scale among them
+    (revision 1). Each variance carries rounding of about that size, so a
+    smaller spread yields a slope made of rounding. Anything else is a
+    legitimate outcome, NOT_EXTRAPOLABLE, not an error.
     """
     import numpy as np
+
+    from clifford_qc.subspace.second_moment import RESOLUTION
 
     x = np.asarray(variances, dtype=float)
     y = np.asarray(energies, dtype=float)
     if not all(resolved):
         return {"extrapolable": False, "reason": "a window variance is not resolved"}
-    if float(np.max(x) - np.min(x)) <= 0.0:
-        return {"extrapolable": False, "reason": "the window variances are all equal"}
+    floor = RESOLUTION * max(scales) if scales else 0.0
+    if float(np.max(x) - np.min(x)) <= floor:
+        return {"extrapolable": False,
+                "reason": "the window variances differ only by rounding"}
     design = np.column_stack([np.ones_like(x), x])
     (intercept, slope), *_ = np.linalg.lstsq(design, y, rcond=None)
     fitted = intercept + slope * x

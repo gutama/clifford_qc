@@ -8,7 +8,8 @@ Ritz energy with a weaker guarantee, so it should earn its place first. This
 declaration fixes, before any intermediate variance is computed, the one test
 that decides whether it does. Its config is
 `benchmarks/configs/phase15_variance_extrapolation.json`, and its gate is
-`benchmarks/check_phase15_extrapolation_preregistration.py`.
+`benchmarks/check_phase15_extrapolation_preregistration.py`. This is revision
+1; §8 says what changed from revision 0 and why.
 
 ## 1. Question (Q17)
 
@@ -44,9 +45,13 @@ prefixes are the most converged, where that picture holds best, and a third
 point leaves the line a residual to report.
 
 The fit is **extrapolable** only when all three window variances are
-resolved, they are not all equal, and `b > 0`. A non-positive slope
-contradicts the model. That is a legitimate outcome, NOT_EXTRAPOLABLE, and
-not an error.
+resolved, they are distinguishable, and `b > 0`. Distinguishable means their
+spread exceeds the SecondMomentBank resolution (`1e-12`) times the largest
+cancellation scale among them. Each variance carries rounding of about that
+size, so a smaller spread gives a slope made of rounding. That happens when
+the last generators leave the Ritz state unchanged. A non-positive slope
+contradicts the model. Either case is a legitimate outcome,
+NOT_EXTRAPOLABLE, and not an error.
 
 The improvement factor is **one half**. An estimator reported beside the Ritz
 energy should at least halve its error where it applies; anything less is not
@@ -83,7 +88,7 @@ provenance FCI, and that the final Ritz energy equals the validation record's.
 | IMPROVES | extrapolable and `\|E_x − E₀\| ≤ ½ \|E_f − E₀\|` |
 | NO_GAIN | extrapolable and `½ \|E_f − E₀\| < \|E_x − E₀\| ≤ \|E_f − E₀\|` |
 | WORSENS | extrapolable and `\|E_x − E₀\| > \|E_f − E₀\|` |
-| NOT_EXTRAPOLABLE | an unresolved window variance, equal window variances, or `b ≤ 0` |
+| NOT_EXTRAPOLABLE | an unresolved window variance, window variances that differ only by rounding, or `b ≤ 0` |
 
 A failed deterministic check makes that bank INVALID. The checks are:
 
@@ -132,7 +137,19 @@ exercised in tests on the Hubbard dimer, which is not declared.
 
 ## 8. Revisions and order
 
-**Revision 0** is this declaration. The producer
+**Revision 0** required only that the window variances not be all equal.
+
+**Revision 1** (this one) requires their spread to exceed the rounding they
+carry. The producer's tests ran the rule on the undeclared LiH CAS(4e,4o)
+toy. There the first single excitations leave the Hartree–Fock Ritz state
+unchanged (Brillouin's theorem), so the window variances differed at `1e-13`,
+below their own rounding of `6e-11`. Revision 0 passed them as unequal, and the
+fit was rounding noise that two correct implementations extrapolated
+differently. The change can only turn a fitted status into NOT_EXTRAPOLABLE,
+never the reverse. No prefix variance existed on any declared bank at either
+revision.
+
+The producer
 (`run_phase15_variance_extrapolation.py`) and result checker
 (`check_phase15_variance_extrapolation.py`) come after it, and the producer
 must re-run this gate and refuse to compute a prefix variance if it fails.

@@ -66,7 +66,7 @@ def test_a_straight_line_recovers_its_intercept():
 
 @pytest.mark.parametrize("variances, energies, resolved, reason", [
     ([0.3, 0.2, 0.1], [1.1, 1.2, 1.3], [True] * 3, "slope"),
-    ([0.2, 0.2, 0.2], [1.3, 1.2, 1.1], [True] * 3, "all equal"),
+    ([0.2, 0.2, 0.2], [1.3, 1.2, 1.1], [True] * 3, "only by rounding"),
     ([0.3, 0.2, 0.1], [1.3, 1.2, 1.1], [True, True, False], "not resolved"),
 ])
 def test_the_fit_refuses_what_the_model_cannot_explain(variances, energies, resolved,
@@ -74,6 +74,17 @@ def test_the_fit_refuses_what_the_model_cannot_explain(variances, energies, reso
     fit = gate.extrapolate(variances, energies, resolved=resolved)
     assert not fit["extrapolable"]
     assert reason in fit["reason"]
+
+
+def test_variances_that_differ_only_by_rounding_do_not_extrapolate():
+    """Revision 1: the undeclared LiH toy's Brillouin case, where singles leave the
+    Hartree-Fock Ritz state unchanged and the variances differ at 1e-13."""
+    variances = [0.0013969672737914607, 0.0013969672735782979, 0.001396967273365135]
+    energies = [-7.862026959394136, -7.862026959394136, -7.862026959394137]
+    fit = gate.extrapolate(variances, energies, resolved=[True] * 3, scales=[61.8] * 3)
+    assert not fit["extrapolable"] and "only by rounding" in fit["reason"]
+    unguarded = gate.extrapolate(variances, energies, resolved=[True] * 3)
+    assert "intercept" in unguarded  # without the floor the noise would be fitted
 
 
 def test_the_rationale_holds_on_a_two_level_contamination():
@@ -164,7 +175,8 @@ MUTATIONS = {
         _set(["record_requirements", "must_carry", "quantum_advantage_claim"], True),
         "quantum_advantage_claim"),
     "a revision with no statement": (
-        lambda c: c["revisions"].append({"revision": 1, "changes": ["x"]}), "does not state"),
+        lambda c: c["revisions"].append({"revision": len(c["revisions"]), "changes": ["x"]}),
+        "does not state"),
     "a moved combination rule": (
         _set(["decision_rule", "combination_rule"], "all IMPROVES gives GO"),
         "combination_rule"),
