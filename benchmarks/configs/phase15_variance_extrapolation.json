@@ -1,0 +1,266 @@
+{
+ "schema": "clifford_qc.phase15_variance_extrapolation_config.v1",
+ "design_document": "benchmarks/PHASE15_EXTRAPOLATION_PREREGISTRATION.md",
+ "question_id": "Q17",
+ "purpose": "Decide whether energy-variance extrapolation earns a place beside the Ritz energy as a Phase 15 estimator. PLAN.md section 5 Phase 15 lists variance extrapolation among the uses of the second-moment bank; SecondMomentBank now gives exact variances, so the question can be asked before any estimator ships.",
+ "contains_results": false,
+ "claim_boundary": "This config declares the Phase 15 variance-extrapolation test: on each frozen mapping-axis basis in its domain, whether a straight line through the last three points of the prefix trajectory (sigma^2_M, E_M), read at sigma^2 = 0, at least halves the final Ritz energy's error against the exact sector ground energy. It holds no prefix variance, fit or extrapolated energy. The verdict reads exact energies no device run has, so it tests the rule, not a measured estimator; it prices no shots and bounds no basis outside the declared ones.",
+ "question": "On each frozen basis whose final Ritz state satisfies sigma_f <= gap/2, does the variance-extrapolated energy from the last three prefixes have at most half the final Ritz energy's absolute error against the exact sector ground energy?",
+ "trajectory": {
+  "order": "the frozen selected_labels order of benchmarks/configs/mapping_axis.json, identity first; for the rows the A-CASE ladder supplies this is the order A-CASE selected them in",
+  "prefixes": "M = 1, ..., M_f: the first M generators of the frozen basis",
+  "energy": "E_M = MatrixElementBank.solve(indices=range(M)).energies[0], with the solver's default thresholds",
+  "variance": "sigma^2_M = SecondMomentBank.residual(result, 0).variance for that solve, with its resolved flag",
+  "nesting": "every prefix block is the top-left corner of the full block, so one bank per basis serves the whole trajectory"
+ },
+ "fit": {
+  "window": 3,
+  "window_points": "the last three prefixes, M_f - 2, M_f - 1 and M_f",
+  "model": "ordinary least squares E = a + b sigma^2 over the window; the extrapolated energy is a",
+  "extrapolable_when": "every window variance is resolved, the window variances are distinguishable (their spread exceeds the SecondMomentBank resolution, 1e-12, times the largest cancellation scale among them), and b > 0",
+  "rationale": "Near convergence, with one dominant excited contamination of weight w, E - E_0 ~ w gap and sigma^2 ~ w gap^2, so E ~ E_0 + sigma^2/gap: a line whose intercept is E_0 and whose slope is positive. The last three prefixes are the most converged, where that holds best, and a third point leaves the line a residual to report. A non-positive slope contradicts the model, which is a legitimate outcome, not an error.",
+  "improvement_factor": 0.5,
+  "improvement_rationale": "An estimator that ships beside the Ritz energy should at least halve its error where it applies; anything less is not worth a second number with a weaker guarantee than the variational one.",
+  "distinguishability_rationale": "Each variance carries rounding of about the resolution times its cancellation scale. A window whose spread is no larger has a slope made of rounding, and a line fitted to it extrapolates noise. That is the case when the last generators leave the Ritz state unchanged."
+ },
+ "domain": {
+  "criterion": "sigma_f <= gap / 2, with sigma_f the final Ritz state's residual norm and gap = E_1 - E_0 of the exact (N, S_z) sector",
+  "rationale": "The linear model assumes the Ritz state is close to the ground state. Temple's regime is the principled version: when the residual is below half the gap, the Ritz state is dominated by the ground state and the contamination picture holds. Outside it the model has no footing, and a bank there can only be a diagnostic.",
+  "source_of_sigma_f": "benchmarks/reference_results/second_moment_validation.json, ground root of each bank"
+ },
+ "decision_rule": {
+  "bank_status_order": [
+   {
+    "status": "IMPROVES",
+    "condition": "extrapolable and |E_x - E_0| <= 0.5 |E_f - E_0|"
+   },
+   {
+    "status": "NO_GAIN",
+    "condition": "extrapolable and 0.5 |E_f - E_0| < |E_x - E_0| <= |E_f - E_0|"
+   },
+   {
+    "status": "WORSENS",
+    "condition": "extrapolable and |E_x - E_0| > |E_f - E_0|"
+   },
+   {
+    "status": "NOT_EXTRAPOLABLE",
+    "condition": "a window variance is unresolved, the window variances differ only by rounding, or the slope is not positive"
+   }
+  ],
+  "invalid_precedence": "A failed deterministic check makes that bank INVALID, and any INVALID required bank makes the verdict INVALID.",
+  "combination_rule": "every required bank IMPROVES gives GO; no required bank IMPROVES gives NO_GO; anything else is CONDITIONAL; any INVALID required bank gives INVALID",
+  "diagnostic_banks_cannot_promote": "hubbard_2x2 is fitted and reported, but its status enters no verdict."
+ },
+ "consequences": {
+  "GO": "Phase 15 ships this rule as a supported estimator for bases in the domain: reported beside the Ritz energy, never replacing it, and labelled extrapolated rather than variational.",
+  "NO_GO": "The rule does not ship as an estimator; residual norms and variances stay diagnostics.",
+  "CONDITIONAL": "The rule ships as a diagnostic only, with the banks where it improved named; it is not an estimator.",
+  "INVALID": "No verdict. The record names the failed check."
+ },
+ "banks": {
+  "source_config": "benchmarks/configs/mapping_axis.json",
+  "systems": [
+   "h4",
+   "h4_converged",
+   "beh2",
+   "h2o_cas8e6o",
+   "hubbard_2x2"
+  ],
+  "basis": "The five banks SecondMomentBank is validated on, at their frozen labels.",
+  "dependence": "h4 is a prefix of h4_converged: the two share a trajectory and fit different windows (prefixes 7-9 against 13-15). They are not independent evidence, and the record says so."
+ },
+ "measured_before_freezing": {
+  "h4": {
+   "n_qubits": 8,
+   "basis_size": 9,
+   "sector_dimension": 36,
+   "exact_ground_energy": -2.180316614323858,
+   "exact_first_excited_energy": -1.8916101236095841,
+   "exact_gap": 0.2887064907142738,
+   "final_ritz_energy": -2.177297832980223,
+   "final_error": 0.0030187813436350908,
+   "final_variance": 0.0057080970367273665,
+   "final_residual": 0.07555194925829092,
+   "in_domain": true,
+   "exact_matches_provenance": true,
+   "final_matches_validation": true
+  },
+  "h4_converged": {
+   "n_qubits": 8,
+   "basis_size": 15,
+   "sector_dimension": 36,
+   "exact_ground_energy": -2.180316614323858,
+   "exact_first_excited_energy": -1.8916101236095841,
+   "exact_gap": 0.2887064907142738,
+   "final_ritz_energy": -2.179550752062546,
+   "final_error": 0.0007658622613120336,
+   "final_variance": 0.0024773229215186987,
+   "final_residual": 0.049772712619654345,
+   "in_domain": true,
+   "exact_matches_provenance": true,
+   "final_matches_validation": true
+  },
+  "beh2": {
+   "n_qubits": 8,
+   "basis_size": 5,
+   "sector_dimension": 36,
+   "exact_ground_energy": -15.56621179509517,
+   "exact_first_excited_energy": -15.28601147548802,
+   "exact_gap": 0.28020031960714853,
+   "final_ritz_energy": -15.566208493595418,
+   "final_error": 3.301499750918424e-06,
+   "final_variance": 5.494887460599784e-06,
+   "final_residual": 0.002344117629428989,
+   "in_domain": true,
+   "exact_matches_provenance": true,
+   "final_matches_validation": true
+  },
+  "h2o_cas8e6o": {
+   "n_qubits": 12,
+   "basis_size": 9,
+   "sector_dimension": 225,
+   "exact_ground_energy": -75.01268130509835,
+   "exact_first_excited_energy": -74.615293337138,
+   "exact_gap": 0.3973879679603556,
+   "final_ritz_energy": -74.99845661593258,
+   "final_error": 0.01422468916577202,
+   "final_variance": 0.023086767486347526,
+   "final_residual": 0.15194330352584653,
+   "in_domain": true,
+   "exact_matches_provenance": true,
+   "final_matches_validation": true
+  },
+  "hubbard_2x2": {
+   "n_qubits": 8,
+   "basis_size": 9,
+   "sector_dimension": 36,
+   "exact_ground_energy": -10.10274848346208,
+   "exact_first_excited_energy": -9.806423851823109,
+   "exact_gap": 0.2963246316389707,
+   "final_ritz_energy": -9.239438100571599,
+   "final_error": 0.8633103828904805,
+   "final_variance": 2.309897112752509,
+   "final_residual": 1.5198345675607292,
+   "in_domain": false,
+   "exact_matches_provenance": true,
+   "final_matches_validation": true
+  }
+ },
+ "required_banks": [
+  "beh2",
+  "h2o_cas8e6o",
+  "h4",
+  "h4_converged"
+ ],
+ "diagnostic_banks": [
+  "hubbard_2x2"
+ ],
+ "reachable_verdicts": [
+  "CONDITIONAL",
+  "GO",
+  "NO_GO"
+ ],
+ "deterministic_checks": [
+  "final_prefix_matches_validation: E_{M_f} and sigma^2_{M_f} equal the validation record's ground root",
+  "energies_monotone: E_M is non-increasing in M to 1e-10, as nested subspaces require",
+  "window_variances_match_dense: each window variance equals the matrix-free reconstructed residual within the resolution times its cancellation scale",
+  "weinstein_interval: some exact sector eigenvalue lies within sigma_M of E_M for every prefix, a theorem whose failure is a bug",
+  "exact_matches_provenance: the sector ground energy equals the provenance FCI where one exists",
+  "provenance: the record is stamped with a clean git tree"
+ ],
+ "evidence": {
+  "label": "exact_oracle",
+  "statement": "Exact Ritz energies and variances, judged against exact sector energies. No sampling."
+ },
+ "excluded": [
+  "finite-shot estimates of the variance, which a measured estimator would need",
+  "any basis outside the five, and any fit window or model other than the declared one",
+  "the Temple lower bound and fits over other windows, which the record reports as diagnostics that promote nothing"
+ ],
+ "exploratory_disclosure": "Before freezing, the final Ritz energy and variance of every bank were known: both are committed in the SecondMomentBank validation record, and the domain criterion reads them. The H4 energy history along its growth (E_M for M = 1..9) is committed in acase_ladder.jsonl and was displayed while confirming the growth order. No intermediate variance sigma^2_M for M < M_f and no fit was computed on any declared bank.",
+ "prespecified_followup": {
+  "permitted": "none",
+  "statement": "The window, model, improvement factor, domain and banks are fixed. Any other would be a new declaration."
+ },
+ "implementation_lineage": {
+  "inputs": [
+   {
+    "path": "benchmarks/configs/mapping_axis.json",
+    "sha256": "25adcb3aedd4d70f3b7e84f91fe3c11672c5d646a416e4851025424f2cb01ea3"
+   },
+   {
+    "path": "benchmarks/reference_results/second_moment_validation.json",
+    "sha256": "dbdbf65a3903dd6def5f5f9fb97663211df80ed7a71663b230479be4864c9f5c"
+   },
+   {
+    "path": "benchmarks/data/h4_sto3g_r0.9.FCIDUMP",
+    "sha256": "bf32568461477cf1ec8e7c4aaae737b0c6c80bcbd83d51f783ec3a3daed5a922"
+   },
+   {
+    "path": "benchmarks/data/h4_sto3g_r0.9.provenance.json",
+    "sha256": "4b5cc30240ee42709e407f1794b73d9e585bc4032ecc14ff5eef450722868229"
+   },
+   {
+    "path": "benchmarks/data/beh2_sto3g_r1.3264.FCIDUMP",
+    "sha256": "01ef4422b2e9e7f711895ae897a94ea11c1b0fae5a5fd91c3396fbd4d69fba76"
+   },
+   {
+    "path": "benchmarks/data/beh2_sto3g_r1.3264.provenance.json",
+    "sha256": "fd4eb5de5bf94e2555f8d3d512e7918146224f49b84f8b890527ad5b8a25c73c"
+   },
+   {
+    "path": "benchmarks/data/h2o_sto3g_cas8e6o.FCIDUMP",
+    "sha256": "2f68b1d3f9f77e9c1483cb1b879bac2a67a9d8204ce2e9e985697c10029c6103"
+   },
+   {
+    "path": "benchmarks/data/h2o_sto3g_cas8e6o.provenance.json",
+    "sha256": "2431c4399676d1a78abfc59d9b0ebe400625193a45d43adcea63c70c6250bb47"
+   }
+  ],
+  "implementation": [
+   {
+    "path": "clifford_qc/subspace/second_moment.py",
+    "sha256": "2c6dd24badc829b09d6b28b94967f37300a7a254456b8f649cfb0186b81e4492"
+   },
+   {
+    "path": "clifford_qc/subspace/linalg.py",
+    "sha256": "c64bb5dca07d3f3fba23b2f257132075914df0e374ec3f91ec5a6f8b5ccbc4b3"
+   }
+  ],
+  "note": "Inputs stay bound for good. The second-moment and eigensolver code are bound until the record exists; after that the record's provenance names the commit that produced it."
+ },
+ "record_requirements": {
+  "schema": "clifford_qc.phase15_variance_extrapolation.v1",
+  "producer": "benchmarks/run_phase15_variance_extrapolation.py",
+  "checker": "benchmarks/check_phase15_variance_extrapolation.py",
+  "record": "benchmarks/reference_results/phase15_variance_extrapolation.json",
+  "must_include": [
+   "config_digest and provenance",
+   "per bank and prefix: E_M, sigma^2_M, the resolved flag and the cancellation scale",
+   "per bank: the window fit (intercept, slope, residual), E_x, both errors, the gain |E_f - E_0| / |E_x - E_0| and the status",
+   "per bank, as diagnostics: fits over windows of 2 and 4 and over all resolved prefixes, the Temple bound, and whether E_x reaches 1.6e-3 Ha where E_f does not",
+   "every deterministic check and its value, the recomputed measured_before_freezing block, and the verdict with its consequence quoted"
+  ],
+  "must_carry": {
+   "quantum_advantage_claim": false,
+   "claim_boundary": "its own, not this config's"
+  }
+ },
+ "revisions": [
+  {
+   "revision": 0,
+   "commit_subject": "Preregister the Phase 15 variance-extrapolation test, fit-free",
+   "content": "Initial declaration."
+  },
+  {
+   "revision": 1,
+   "commit_subject": "Revise the Phase 15 extrapolation rule: indistinguishable variances do not extrapolate",
+   "changes": [
+    "The extrapolable condition 'the window variances are not all equal' becomes 'their spread exceeds the resolution times the largest cancellation scale among them'.",
+    "The NOT_EXTRAPOLABLE condition says the same."
+   ],
+   "reason": "Writing the producer, its tests ran the rule on the undeclared LiH CAS(4e,4o) toy. There the first single excitations leave the Hartree-Fock Ritz state unchanged (Brillouin's theorem), so the window variances differed only at 1e-13, below their own rounding of 6e-11. The frozen test passed them as not equal, and the fit was rounding noise that two correct implementations extrapolated differently. The revision makes that case NOT_EXTRAPOLABLE, which can only turn a fitted status into NOT_EXTRAPOLABLE, never the reverse.",
+   "prefix_variances_at_revision": "none on any declared bank; the defect surfaced on the undeclared LiH toy"
+  }
+ ]
+}

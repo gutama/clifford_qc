@@ -116,7 +116,7 @@ No figure or table value in the manuscript is transcribed by hand, and
 ```bash
 python -m venv .venv && source .venv/bin/activate
 pip install -e .[test,research,stim]       # automatic CI extras
-pytest                                      # 2524 passed, 11 skipped
+pytest                                      # 2616 passed, 11 skipped
 ```
 
 This is the automatic CI dependency set; record gates additionally pin NumPy
@@ -132,7 +132,7 @@ the remaining `11 - 6 = 5` skips are per-test and *are* collected:
 
 ```text
 collected == passed + (skipped - files dropped at collection)
-2529      == 2524   + (11      -   6)
+2621      == 2616   + (11      -   6)
 ```
 
 Both sides are computed from the tree, so a drift in either quoted number
@@ -2823,8 +2823,11 @@ FCIDUMPs.
 python benchmarks/check_phase16a_preregistration.py
 ```
 
-The gate draws nothing. It checks completeness and the absence of results,
-and binds the FCIDUMPs, their provenance and `time_evolution.py` by SHA-256.
+The gate draws nothing. It checks completeness and the absence of results.
+It binds the FCIDUMPs and their provenance by SHA-256 for good, and
+`time_evolution.py` and `selected_ci.py` only until the record exists. After
+that, the record's provenance names the code that ran, and a later edit to
+either file does not fail this gate.
 It enforces a total status ladder in which a censored instance never yields
 GO. It also tests the declaration's clauses against each other, the Phase 16B
 v3 lesson: the budgets split evenly over the time grid, admission is read at
@@ -3072,6 +3075,124 @@ that a complete basis has no resolved residual. On the declared H₄, BeH₂ and
 Hubbard 2×2 banks, the counts and word-set digest must equal the committed
 preflight record. `tests/test_second_moment_validation.py` runs the producer
 and checker on the dimer, and catches each tampered field.
+
+## Phase 15 preregistration: variance extrapolation (fit-free)
+
+`benchmarks/PHASE15_EXTRAPOLATION_PREREGISTRATION.md` (Q17) declares whether
+energy-variance extrapolation earns a place beside the Ritz energy. Each
+frozen basis is grown in a fixed order, so its prefixes form a trajectory
+`(σ²_M, E_M)`. A straight line through the last three points is read at
+`σ² = 0`, and a bank IMPROVES when that at least halves the final Ritz error
+against the exact sector ground energy. The rule is required only in its
+domain, the frozen filter `σ_f ≤ gap/2`: H₄, converged H₄, BeH₂ and H₂O.
+Hubbard 2×2 is a diagnostic.
+
+```bash
+python benchmarks/check_phase15_extrapolation_preregistration.py
+```
+
+The gate computes no prefix variance and fits nothing. It recomputes each
+bank's exact sector ground and first excited energies, and requires the
+ground energy to equal the FCIDUMP's provenance FCI. It recomputes the final
+Ritz energy from `(S, H)` and requires it to equal the SecondMomentBank
+validation record's, reads the final variance from that record, and
+re-derives the domain and so the required banks. It also checks the
+declaration's clauses against each other: the window fits every required
+basis, every required bank has an error to improve, and the claimed
+reachable verdicts are the reachable ones. The inputs are bound by SHA-256,
+and `second_moment.py` and `linalg.py` only until a record exists.
+
+The config's rationale read the cutoff as ground-state dominance, and that
+does not follow: a two-level state with 99% excited weight passes it. The
+config cannot change after the record, so
+`benchmarks/configs/phase15_variance_extrapolation_clarification.json`
+corrects the reading with its provenance. It quotes the rationale verbatim,
+binds the config by SHA-256, and changes no rule. It carries each bank's
+energy bound `p₀ ≥ 1 − (E_f − E₀)/gap`. The gate requires that bound above one
+half on every required bank, and each final Ritz state inside its
+`(N, S_z)` sector. The bounds are 0.990, 0.997, 1.000 and 0.964.
+
+This takes about nine seconds and runs in the structural CI matrix.
+`tests/test_phase15_extrapolation_preregistration.py` holds each clause
+against a mutation of the config or the clarification. It checks the fit on
+synthetic lines, on the two-level contamination picture its rationale rests
+on, and on a real trajectory on the undeclared Hubbard dimer. The next section
+gives the executed test.
+
+## Phase 15 variance extrapolation (executed once, `CONDITIONAL`)
+
+`benchmarks/run_phase15_variance_extrapolation.py` ran the declared test once
+and wrote `benchmarks/reference_results/phase15_variance_extrapolation.json`.
+The record reads **`CONDITIONAL`**. Errors are against the exact sector ground
+energy, and the gain is the final Ritz error over the extrapolated one:
+
+| bank | role | final Ritz error | extrapolated error | gain | status |
+|---|---|---|---|---|---|
+| `h4` | required | 3.0e-3 Ha | −1.5e-3 Ha | 2.01 | IMPROVES |
+| `h4_converged` | required | 7.7e-4 Ha | −1.6e-3 Ha | 0.48 | WORSENS |
+| `beh2` | required | 3.3e-6 Ha | −3.9e-6 Ha | 0.84 | WORSENS |
+| `h2o_cas8e6o` | required | 1.4e-2 Ha | 2.8e-3 Ha | 5.03 | IMPROVES |
+| `hubbard_2x2` | diagnostic | 0.86 t | −2.1 t | 0.41 | WORSENS |
+
+Every deterministic check holds on every bank. Under the frozen consequence,
+the rule may ship as a diagnostic named for H₄ and H₂O, never as an
+estimator. H₄ clears the bar of 2 by 0.3%, and it is a prefix of converged H₄.
+On three required banks the extrapolated energy lies below the exact ground
+energy. `PLAN.md` §5 Phase 15 gives the bounded reading.
+
+The checker re-derives the committed record and rebuilds every bank in about
+three minutes, most of it H₂O. It runs in the structural CI matrix:
+
+```bash
+python benchmarks/check_phase15_variance_extrapolation.py
+python benchmarks/check_phase15_variance_extrapolation.py --no-recompute   # seconds
+```
+
+Regenerating the record is deliberate, and the producer refuses it without
+`--overwrite`:
+
+```bash
+OMP_NUM_THREADS=1 OPENBLAS_NUM_THREADS=1 MKL_NUM_THREADS=1 \
+  python benchmarks/run_phase15_variance_extrapolation.py --overwrite
+```
+
+The producer re-runs the preregistration gate, recomputation included, and
+refuses before any prefix variance if it fails. It also refuses a dirty tree,
+an environment no committed record declares, an existing record without
+`--overwrite`, and a `--banks` subset aimed at the committed path; `--out`
+writes elsewhere. Per bank it builds one `SecondMomentBank` over the full
+frozen basis and solves each prefix as a top-left corner. The record holds
+`E_M`, `σ²_M` and the resolved flag for every prefix, the window fit read off
+the gate's own rule and ladder, and the declared deterministic checks. A
+failed check makes the bank INVALID, and the verdict reads the required banks
+only. Fits over two- and four-prefix windows and over every resolved prefix,
+and the oracle Temple bound, are diagnostics.
+
+The checker trusts none of the record's summary fields. It requires the config
+unchanged since the run and each bank's frozen numbers equal to the config's.
+Every fit is refitted from the recorded trajectory with its own closed-form
+regression, and every fitted field must agree, the residual RMS included. The
+errors, gains, statuses, verdict and quoted consequence follow under its own
+statement of the rule. Each deterministic check, and each row's residual norm,
+resolved flag, nearest-eigenvalue distance and Weinstein flag, is re-derived
+from the values it rests on. It then rebuilds every bank and requires every
+field of every row, the dense window residuals, the units, the checks and the
+status to reproduce. Every rebuild tolerance comes from the rebuilt
+cancellation scale, so a record cannot widen its own; without the rebuild the
+scale is bounded only below. `--no-recompute` skips the rebuild and
+`--banks` restricts it. `--record` names another record. On the committed
+path it also requires, through the gate, that the config's last change
+strictly precede the record's commit.
+
+`tests/test_phase15_variance_extrapolation.py` runs both on two undeclared
+toys. LiH CAS(4e,4o) with five generators falls inside the domain, and its
+singles leave the Hartree–Fock Ritz state unchanged, so its window variances
+differ only by rounding. That is the case revision 1 exists for, and the
+window must not extrapolate. The Hubbard dimer with three generators falls
+outside the domain and does fit. The tests check that the two statements of
+the fit, the ladder and the verdict agree, and that each tampered record
+field is caught. They also re-derive the committed record without a rebuild,
+and check that the producer refuses to overwrite it.
 
 ## Phase 18 fragment-solver callback
 

@@ -140,6 +140,7 @@ GATE_CLASSES: tuple[tuple[str, str, tuple[str, ...]], ...] = (
             "check_g1_structural_preconditioner", "check_krylov_width",
             "check_mapping_axis", "check_matched_h4",
             "check_phase14b_qwc_vs_fc", "check_phase15_h2_preflight",
+            "check_phase15_variance_extrapolation",
             "check_phase16a_te_qsci",
             "check_priceability_screen",
             "check_protocol_axis", "check_protocol_cost",
@@ -154,7 +155,8 @@ GATE_CLASSES: tuple[tuple[str, str, tuple[str, ...]], ...] = (
         "Preregistration",
         "compares a predeclared plan against committed constants; no rebuild",
         (
-            "check_phase14b_preregistration", "check_phase15_preregistration",
+            "check_phase14b_preregistration",
+            "check_phase15_extrapolation_preregistration", "check_phase15_preregistration",
             "check_phase16a_preregistration",
             "check_phase16b_preregistration",
             "check_phase16b_v2_preregistration",
