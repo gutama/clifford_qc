@@ -174,17 +174,17 @@
         "modules": 3
       },
       "subspace": {
-        "lines": 11570,
-        "modules": 32
+        "lines": 11832,
+        "modules": 33
       },
       "surface": {
         "lines": 38,
         "modules": 1
       }
     },
-    "package_lines": 27052,
-    "package_modules": 102,
-    "test_lines": 29262,
-    "test_modules": 126
+    "package_lines": 27314,
+    "package_modules": 103,
+    "test_lines": 29483,
+    "test_modules": 127
   }
 }
