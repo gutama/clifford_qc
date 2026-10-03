@@ -78,6 +78,15 @@ The engine can recover Clifford grade from a Pauli word by inverse JW decoding:
 P("IXI").grades()
 ```
 
+Grade-dependent operations (`grade`, `grades`, `reverse`, `wedge`,
+`scalar_product`, and `is_blade`) always use this fixed JW generator frame:
+on parity- or BK-encoded operators they describe the JW pre-image of the stored
+Pauli words, not the transported fermionic structure. For a fermionic
+grade/blade interpretation, use the operator's JW image before encoding or
+register reduction; `MV` does not track or transport the encoding's generator
+frame. Operator products, adjoints, and trace pairings remain valid in each
+encoding.
+
 ## Fermions
 
 The Witt/CAR layer is

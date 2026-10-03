@@ -41,32 +41,35 @@ matched comparator; it is no longer presented as the strongest accuracy engine.
 DA-CASE is the published name of the dyadic measurement hierarchy (§1.2), and
 historical source identifiers and record labels are not renamed in place.
 
-**The architecture the plan is being restructured onto.** Structural admissibility
-moves *before* the fermion-to-qubit encoding, so that what JW or BK receives is
-already a symmetry-, reference-, and redundancy-reduced operator domain:
+**Conceptual contract and implemented paths.** Geometric algebra supplies the
+specification language for structural admissibility (§3.5). Candidate builders,
+reference-aware Pauli checks, and the shared `Restriction` primitive enforce the
+corresponding conditions on encoded operators. JW, parity, and BK provide qubit
+representations of the same fermionic problem (§6.2); the shipped solvers and
+pipeline do not invoke a separate GA structural-preconditioner stage.
 
-```text
-fermionic problem
-  → GA structural restriction        (§3.5, Phases G1–G3)  — mapping-independent
-  → JW / BK encoding                 (§6.2, Phase R2)      — mapping choice enters here
-  → A-CASE / PRD basis selection     (§4)
-  → WISE measurement and inference   (§6)                  — cost inherits encoded locality
-```
+| Responsibility | Specification or implementation |
+|---|---|
+| Structural admissibility | Stated in GA through parity, sectors, reference action, and action equivalence (§3.5) |
+| Encoded admissibility checks | Pauli candidate construction, reference-aware leakage checks, and congruent restrictions |
+| Dynamical usefulness | A-CASE / PRD numerical basis selection (§4) |
+| Measurement and inference | Shared Pauli-word calculations and WISE (§6); cost depends on encoded locality |
 
-The division of labour that makes this worth doing is **GA = structural
-admissibility, PRD = dynamical usefulness**. A candidate that is forbidden by
-symmetry, leaks the sector, annihilates the reference, or duplicates another
-candidate's physical action is not a question for a residual score to settle
-statistically; it should never reach the ranking. Conversely GA says nothing about
-which admissible direction lowers the energy — that is PRD's job and only PRD's.
+The division of labour is **admissibility stated in GA and checked in Pauli;
+dynamical usefulness ranked numerically**. Sector membership and nonzero reference
+action are algebraic conditions, not questions for a residual score to settle
+statistically. Their specification does not decide which admissible direction
+lowers the energy.
 
-This is *not* a claim that geometric algebra finds a smaller Hilbert space. It
-restricts the candidate operator domain while leaving the Hilbert-space dimension
-unchanged. What it supplies is a compact algebraic language for symmetry sectors,
-ideals, parity, annihilated directions, and equivalence classes **before they
-expand into Pauli words**. Action equivalence (§3.5E) is especially direct in this
-language, although an equivalent projected-action test remains possible after
-encoding.
+The G1 benchmark starts from JW Pauli images; "pre-encoding" describes the
+representation-independent specification, not every implementation step. Filter C
+executes through the declared `parity+2q` arm using `Restriction.transport`, which
+applies the chosen encoding and sector compression. Filter E removes redundancy
+from the broad Majorana pool but removes nothing from the excitation pool the
+package already builds.
+At the matched cap the chain reconstructs that pool, so G2–G3 are retired (§5).
+These results establish neither an additional solver stage nor a resource saving
+or a smaller Hilbert space (§1.2(5), §14).
 
 The method is A-CASE, never "ACSE": in quantum chemistry ACSE is the
 anti-Hermitian contracted Schrödinger equation (Mazziotti and successors), still
@@ -404,12 +407,14 @@ The Witt/minimal-left-ideal representation is the GA-native name for the
 "symmetry-restricted determinant basis": computational determinants are the
 occupation words `(c†)^{x₁}…(c†)^{xₙ}·P₀`, particle-number and `S_z` sectors are
 subspaces of the ideal spanned by fixed-weight occupation words, and
-Jordan–Wigner dressing is built into the Witt basis rather than bolted on. Adding
-it is not a departure from the operator-centric identity; it is the minimal left
-ideal of the same algebra, and it removes the `4^n` density-word blow-up for
-strongly correlated pure states. Its engineering surface is nevertheless plain
-(`SectorStatevectorBackend`); the ideal language belongs to the theory sections,
-not the API.
+Jordan–Wigner dressing is built into the Witt basis rather than bolted on. This
+is the minimal left ideal of the same algebra, consistent with the operator-centric
+identity. The storage saving comes from representing a pure state by `2^n`
+amplitudes, or `C(n,k)` amplitudes in a preserved particle sector, instead of
+expanding its density operator into up to `4^n` Pauli words. Choosing a primitive
+idempotent alone does not provide that saving. The engineering surface is plain
+(`SectorStatevectorBackend`); the ideal language describes the representation in
+the theory sections, not the API.
 
 ### 3.2 The three pairings
 
@@ -432,7 +437,10 @@ one scalar.
 
 - Pauli words: blades (up to phase) under the JW correspondence; the exterior
   layer (`reverse`, `wedge`, `scalar_product`, `is_blade`) makes grade/blade
-  structure first-class.
+  structure first-class in that fixed JW frame. These operations do not transport
+  the fermionic generator frame through parity or BK encoding; use the JW image
+  before encoding or register reduction for fermionic grade/blade interpretation
+  ([CONVENTIONS.md](CONVENTIONS.md#jordan-wigner-clifford-generators)).
 - A-CASE generators `A_i`: multivectors from the hierarchy in §4.2. Stabilizer
   configurations (genuine Clifford-group orbits of `|0…0⟩`) admit tableau-cheap
   overlaps through the Stim bridge; they are the "competing mean-field /
@@ -459,14 +467,17 @@ Checked in tests, not prose:
 
 ### 3.5 The GA structural preconditioner (contract; G1 measured, G2–G3 retired)
 
-The filters below run **before** the fermion-to-qubit encoding. That placement is
-the whole point: after JW or BK, the restrictions become encoded Pauli/symmetry
-conditions and action equivalence is less transparent and usually more expensive
-to test, whereas before encoding both are direct algebraic conditions on a few
-hundred abstract operators. This
-section is the contract Phase G1 was built against; its measured outcome is in
-§5 (Phases G1–G3) and §10 (QG1), and the boundary on what that outcome licenses
-is §1.2(5) and §14.
+The filters below specify conditions on abstract Majorana candidates and the
+reference without consulting a fermion-to-qubit encoding. This is the conceptual
+meaning of **before encoding**. G1 starts from JW Pauli words, and filter C uses
+the declared `parity+2q` restriction to transport the Hamiltonian, reference, and
+candidates through the chosen encoding and sector compression. Its execution is
+encoding-backed. The benchmark and tests call
+`structural_preconditioner`; no shipped solver or pipeline calls it as an
+execution stage. This section is the contract Phase G1 was built against; its
+measured outcome is in §5 (Phases G1–G3) and §10 (QG1), and the boundary on what
+that outcome licenses is §1.2(5) and §14. It establishes no comparison of the
+cost of checking admissibility before versus after encoding.
 
 **Where the algebra actually lives.** For `n` fermionic modes introduce `2n`
 Majorana generators with
@@ -568,25 +579,24 @@ A ∼ B   iff   P_phys A ψ_ref = λ P_phys B ψ_ref ,   λ ≠ 0
 and carry one canonical representative of `𝒜_candidate / ∼`. This is **not**
 Pauli-word deduplication: it removes candidates whose *physical action on the
 reference* coincides. The equivalence is representation-invariant and can also be
-tested after encoding by comparing projected actions; GA exposes it before Pauli
-expansion, and no existing code path performs that quotient. It is the one proposed
-filter in this section with no current analogue in the codebase. If any
-part of §3.5 justifies the work, it is this one — so G1 reports its marginal
-contribution separately from A–D (§5, Phase G1).
+tested after encoding by comparing projected actions. The G1 benchmark implements
+this quotient on JW Pauli images; the existing solver path has no additional
+quotient stage. G1 therefore reports its marginal separately from A–D (§5, Phase
+G1): it removes redundant actions on the broad Majorana pool and removes nothing
+on the excitation pool used by the mapping and cost records.
 
-**The ordering, and what each stage removes:**
+**G1's benchmark filter order:**
 
-```text
-𝒜_raw
-  → A, B   symmetry / parity              → 𝒜_sym
-  → D      reference ideal                → 𝒜_ref
-  → C      sector projection              → 𝒜_phys
-  → E      action-equivalence quotient    → 𝒜_unique
-  → PRD    residual ranking               → 𝒜_selected
-```
+| Stage | Condition | Surviving domain |
+|---|---|---|
+| A, B | Symmetry / parity | `𝒜_sym` |
+| D | Reference ideal | `𝒜_ref` |
+| C | Sector projection | `𝒜_phys` |
+| E | Action-equivalence quotient | `𝒜_unique` |
 
-PRD then spends no residual evaluations on candidates that are forbidden,
-sector-leaking, annihilating, or redundant.
+The benchmark stops at `𝒜_unique` and records per-filter marginals. PRD ranks
+candidate usefulness in its own solver path; G1 does not establish a saving in
+its residual evaluations.
 
 **The congruence rule, inherited from CS-QSE and non-negotiable.** Whatever
 restriction is introduced must be applied congruently to the Hamiltonian, the
@@ -595,11 +605,13 @@ projection generates symmetry contamination and spurious or ill-conditioned
 directions — this is exactly the failure mode §5's `Restriction` object exists to
 prevent for R2/R4, and G1 uses the same object rather than a second one.
 
-**The leakage certificate exists on both sides of the mapping.** The GA filter is
-the structural certificate *before* encoding; the existing Pauli reference-aware
-test becomes a **regression** certificate that the encoding preserved it. Neither
-replaces the other, and disagreement between them is a bug in the transport, not a
-finding.
+**Specification and regression certificate.** The GA conditions state the
+structural property without choosing an encoding. G1 evaluates them on JW Pauli
+inputs, with filter C using the declared encoding-backed restriction, and compares
+the accept set against the existing Pauli reference-aware test; agreement is its
+**regression** certificate for the same admissibility property. This is not a
+second encoding-free execution path. Disagreement is a bug in the implementation
+or transport, not a finding.
 
 **Deliberately out of scope here.** Pauli words are blades up to phase and Clifford
 transformations have a clean GA description (P-GAGATE, §11), which could eventually
@@ -612,7 +624,7 @@ make both harder to defend. Measurement grouping stays in §6 and Phase 14.
 
 ### 3.6 Anticommuting cliques are spin factors (contract; Phase 19)
 
-§3.5 asks which *candidates* survive before encoding. This subsection is about a
+§3.5 specifies which abstract *candidates* are admissible. This subsection is about a
 different structure in the same algebra: what a set of **pairwise anticommuting**
 Pauli words is, and what may and may not be concluded from it.
 
@@ -2557,7 +2569,10 @@ prices nothing; the checker fails a record carrying any cost field.
 
 **G1 — the structural preconditioner.** Build the fermionic/Majorana candidate
 pool in `Cl(2n,ℂ)` (§3.5) and implement filters A–E. Output: surviving abstract
-operators, before any encoding.
+candidate identities and per-filter marginals, computed on their JW Pauli images.
+The structural conditions are representation-independent, but filter C executes
+through the declared `parity+2q` encoding-backed restriction. This is not
+encoding-free arithmetic or an additional shipped solver stage.
 
 *Deliverables.* A Majorana-generated candidate pool; the five filters; and a
 record that reports, per filter and **in the order applied**, how many candidates
@@ -4208,7 +4223,7 @@ A-CASE's.
   Majorana classes reach exactly the determinants the excitation pool reaches, so
   what E removes is redundancy that the excitation builder never creates. The
   answer is therefore that §3.5 has independent *derivational* content — a
-  quotient no existing code path performs — and no independent *selective*
+  quotient no existing solver path performs — and no independent *selective*
   content on the family the project actually measures. The checker re-derives
   this verdict from the measured fields, so it cannot be written by hand, and it
   fails any record carrying a cost field.
@@ -4331,14 +4346,14 @@ covariance-aware allocation — all already reported in P2 (§1.2(1)–(2)).
    are invariant by construction across the linear encoding family (§6.2); only the
    measurement-compilation layer is mapping-dependent, and only it may carry an empirical
    mapping claim.
-9. **Geometric algebra is a structural language, not a compression result.** §3.5 may
-   be presented as an architecture — admissibility decided before encoding, so that
-   the encoding comparison is clean and PRD ranks only surviving candidates. It may
-   **not** be presented as finding a smaller Hilbert space, and its filters A–D
-   largely re-express restrictions the package already applies after encoding. The
-   only part that can carry an independent quantitative claim is the
-   action-equivalence quotient (§3.5E), and only against the per-filter marginals
-   Phase G1 is required to report.
+9. **Geometric algebra specifies admissibility; Pauli checks implement it.** §3.5
+   describes a conceptual contract and the G1 benchmark, not a structural stage
+   invoked by the shipped solvers or pipeline. Filters A–D reproduce existing
+   restrictions; E's marginal is pool-dependent and zero on the excitation pool
+   used by the mapping and cost records. G2–G3 are retired because the pools
+   coincide at the matched cap. Claims are limited to G1's per-filter structural
+   results (§1.2(5), §14); they establish neither a resource saving nor a smaller
+   Hilbert space.
 
 ---
 

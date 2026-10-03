@@ -80,6 +80,8 @@ class MV:
     The object represents an element of the complexified Clifford algebra
     ``Cl(2n,C)`` through the Jordan-Wigner image of its blades. Multiplication
     is the geometric/operator product, implemented as Pauli-word multiplication.
+    Grade-dependent methods use that fixed JW frame; ``MV`` does not record or
+    transport a fermion encoding's generator frame.
     """
 
     __slots__ = ("n", "terms")
@@ -281,6 +283,11 @@ class MV:
         return blade_mask(self.n, code).bit_count()
 
     def grade(self, g: int) -> "MV":
+        """Project onto grade ``g`` in the fixed Jordan-Wigner generator frame.
+
+        On parity/BK-encoded operands this is not the transported fermionic grade;
+        use the operator's JW image before encoding or register reduction.
+        """
         return MV(self.n, {k: v for k, v in self.terms.items()
                            if blade_mask(self.n, k).bit_count() == g})
 
