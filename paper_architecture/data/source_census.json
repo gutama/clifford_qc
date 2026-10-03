@@ -23,6 +23,7 @@
       "check_phase14b_preregistration",
       "check_phase15_extrapolation_preregistration",
       "check_phase15_h2_preflight",
+      "check_phase15_measured_residual_preregistration",
       "check_phase15_preregistration",
       "check_phase15_variance_extrapolation",
       "check_phase16a_preregistration",
@@ -43,7 +44,7 @@
       "Documentation": 1,
       "Lineage and environment": 3,
       "Plan ledger": 1,
-      "Preregistration": 11,
+      "Preregistration": 12,
       "Value-rebuilt": 24
     },
     "dispatch_gates": [
@@ -59,12 +60,12 @@
       "check_r3d_qr3_refinement",
       "check_record_environment"
     ],
-    "gates": 45,
+    "gates": 46,
     "manual_dispatch_only": 11,
-    "named_in_workflow": 37,
+    "named_in_workflow": 38,
     "producers": 52,
     "producers_without_gate": 25,
-    "run_on_every_pull_request": 26,
+    "run_on_every_pull_request": 27,
     "same_stem_pairs": 27
   },
   "records": {
@@ -184,7 +185,7 @@
     },
     "package_lines": 27322,
     "package_modules": 103,
-    "test_lines": 29483,
-    "test_modules": 127
+    "test_lines": 29817,
+    "test_modules": 128
   }
 }
