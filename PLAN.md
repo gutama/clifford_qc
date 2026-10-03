@@ -2193,6 +2193,35 @@ its own regression, re-derives every status and the verdict, rebuilds every
 bank, and runs in the structural CI matrix. *Not claimed:* anything about
 finite-shot variances, other windows, or bases outside the five.
 
+**The measured residual's cost is preregistered, ratio-free, and not run.**
+`benchmarks/PHASE15_MEASURED_RESIDUAL_PREREGISTRATION.md` (Q18, §10) prices
+what the H² preflight excluded, grouping and shots, before any finite-shot
+second-moment estimator exists. On each of the five licensed banks it asks
+what a residual norm costs against its own energy at one matched standard
+error:
+
+```text
+R = (G_U · V_σ²) / (4 σ² · G_SH · V_E)
+```
+
+- *The estimator.* Every `S`, `H` and `K` entry comes from one set of shared
+  QWC word means, and `σ² = c†Kc − E²` is read at the measured Ritz vector.
+  Its first-order weights carry the Ritz vector's own movement, since `σ²` is
+  not stationary in `c`. A constant shift of `H` changes no weight, so
+  measuring `(H − c)²` instead is not a choice.
+- *The cost.* Single-assignment QWC settings with uniform shots, and
+  per-setting variances from the exact reference. The energy side reproduces
+  the mapping-axis record's committed setting counts.
+- *The bar.* `R ≤ 10` is AFFORDABLE, under the mapping-axis protocol and, on
+  the 8-qubit banks, under the scalable cover too. A disagreement between
+  them is GROUPING_SENSITIVE.
+
+FULL builds the finite-shot estimator on all five banks, RESTRICTED on the
+affordable ones by name, and NONE closes Phase 15's finite-shot item negative
+on these banks. Every verdict is reachable. The gate,
+`check_phase15_measured_residual_preregistration.py`, computes no ratio and
+runs in the structural CI matrix. No producer exists yet.
+
 ### Phase 16 — time-evolved inputs, split by method
 
 **16A — QSCI input.** Use `PauliLinearOperator.as_linear_operator()` with
@@ -4131,6 +4160,14 @@ A-CASE's.
   at the bar, and H₂O CAS(8e,6o) with 5.03. Converged H₄ (0.48) and BeH₂
   (0.84) worsen, so the rule may ship as a diagnostic only. The Hubbard 2×2
   diagnostic, outside the domain, worsens.
+- **Q18 — measured-residual cost:** on each of the five licensed banks, does
+  estimating the ground Ritz root's residual norm `σ` from shared QWC word
+  means, to the same standard error as its energy, cost at most ten times the
+  energy's shots? *Falsifier:* no bank is AFFORDABLE, so a residual known as
+  well as the energy is a measurement of its own rather than a by-product of
+  the energy's. *Status:* preregistered, not run
+  (`benchmarks/PHASE15_MEASURED_RESIDUAL_PREREGISTRATION.md`, §5 Phase 15).
+  The ratio is first-order and asymptotic, from exact reference variances.
 
 **Resource accounting (QR1–QR6).**
 
@@ -4794,6 +4831,15 @@ bought a duplicate record.
     correctness evidence is `tests/test_convergence.py`, not a new benchmark
     verdict. The measured implementation and folded-spectrum roots remain,
     so Phase 15 stays partial at 50%.
+19h. Phase 15's measured-residual cost preflight — **preregistered, not
+    run.** The ratio-free declaration
+    (`PHASE15_MEASURED_RESIDUAL_PREREGISTRATION.md`,
+    `configs/phase15_measured_residual_preflight.json`,
+    `check_phase15_measured_residual_preregistration.py`) fixes the
+    estimator, its linearization, the grouping protocols and the tenfold bar
+    before any residual functional or grouping of a combined universe exists.
+    The producer and result checker come next, and the verdict decides
+    whether the finite-shot estimator is built.
 20. CEO and MORE-ADAPT benchmarks after the critical comparison is stable.
 21. The excited-state track, after the certificate question of §7.4 has an answer. Note
     that §3.5B's transformation-character parameter is what keeps this track reachable
