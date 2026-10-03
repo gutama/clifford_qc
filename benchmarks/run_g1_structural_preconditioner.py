@@ -1,17 +1,17 @@
 """G1 -- the per-filter marginals of PLAN.md section 3.5's pre-encoding chain.
 
-Section 3.5 declares five filters that run before a fermion-to-qubit encoding is
-chosen, and section 14 records that the whole section has "no quantitative
-content whatsoever" until this record exists.  QG1 asks the question that
-decides whether Track G exists at all: does pre-encoding algebraic restriction
+Section 3.5 specifies representation-independent structural conditions. The pool
+uses JW Pauli images, and filter C executes through the declared parity+2q
+restriction arm. Section 14 bounds the claims licensed by this record. QG1 asks
+the question that decides whether Track G exists at all: does structural restriction
 remove candidates the package's existing post-encoding filters keep?
 
 **The deliverable is the marginal, in the order applied, per pool.**  An
 aggregate is not interpretable here.  Filters A-D have post-encoding analogues
 in ``clifford_qc.subspace.symmetry`` that the package has applied since Phase 4,
 so counting their removals as new content double-counts shipped machinery.
-Filter E has no analogue anywhere in the tree, so it is reported separately and
-is the only filter whose marginal can carry the section.
+Filter E has no counterpart in the existing solver path, so it is reported
+separately and is the only filter whose marginal can carry the section.
 
 **Two pools, because a marginal is a property of a pool.**  The Majorana
 monomial pool is section 3.5's own, and it is wide enough that A and B have
@@ -688,8 +688,9 @@ def _qg1_verdict(*, gate_one: bool, e_on_majorana: bool, e_on_excitations: bool,
             "of that pool: it removes redundancy the excitation builder never "
             "creates, so it may not be reported as a reduction of the pool the "
             "mapping records use. Nothing here establishes a smaller Hilbert "
-            "space, and the pre-encoding claim is only that no filter consults "
-            "the encoding."
+            "space. The structural conditions are representation-independent, "
+            "but filter C uses the declared encoding-backed restriction; no "
+            "encoding-free execution is established."
         ),
     }
 

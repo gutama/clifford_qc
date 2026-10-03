@@ -61,10 +61,12 @@ action are algebraic conditions, not questions for a residual score to settle
 statistically. Their specification does not decide which admissible direction
 lowers the energy.
 
-The G1 benchmark evaluates the conceptual filter chain on JW Pauli images;
-"pre-encoding" means its rules do not consult the encoding, not that its
-arithmetic runs without one. Filter E removes redundancy from the broad Majorana
-pool but removes nothing from the excitation pool the package already builds.
+The G1 benchmark starts from JW Pauli images; "pre-encoding" describes the
+representation-independent specification, not every implementation step. Filter C
+executes through the declared `parity+2q` arm using `Restriction.transport`, which
+applies the chosen encoding and sector compression. Filter E removes redundancy
+from the broad Majorana pool but removes nothing from the excitation pool the
+package already builds.
 At the matched cap the chain reconstructs that pool, so G2–G3 are retired (§5).
 These results establish neither an additional solver stage nor a resource saving
 or a smaller Hilbert space (§1.2(5), §14).
@@ -467,8 +469,10 @@ Checked in tests, not prose:
 
 The filters below specify conditions on abstract Majorana candidates and the
 reference without consulting a fermion-to-qubit encoding. This is the conceptual
-meaning of **before encoding**. G1 checks those conditions on JW Pauli words;
-its arithmetic is not encoding-free. The benchmark and tests call
+meaning of **before encoding**. G1 starts from JW Pauli words, and filter C uses
+the declared `parity+2q` restriction to transport the Hamiltonian, reference, and
+candidates through the chosen encoding and sector compression. Its execution is
+encoding-backed. The benchmark and tests call
 `structural_preconditioner`; no shipped solver or pipeline calls it as an
 execution stage. This section is the contract Phase G1 was built against; its
 measured outcome is in §5 (Phases G1–G3) and §10 (QG1), and the boundary on what
@@ -602,8 +606,9 @@ directions — this is exactly the failure mode §5's `Restriction` object exist
 prevent for R2/R4, and G1 uses the same object rather than a second one.
 
 **Specification and regression certificate.** The GA conditions state the
-structural property without choosing an encoding. G1 checks them on JW Pauli
-images against the existing Pauli reference-aware test; agreement is its
+structural property without choosing an encoding. G1 evaluates them on JW Pauli
+inputs, with filter C using the declared encoding-backed restriction, and compares
+the accept set against the existing Pauli reference-aware test; agreement is its
 **regression** certificate for the same admissibility property. This is not a
 second encoding-free execution path. Disagreement is a bug in the implementation
 or transport, not a finding.
@@ -2565,8 +2570,9 @@ prices nothing; the checker fails a record carrying any cost field.
 **G1 — the structural preconditioner.** Build the fermionic/Majorana candidate
 pool in `Cl(2n,ℂ)` (§3.5) and implement filters A–E. Output: surviving abstract
 candidate identities and per-filter marginals, computed on their JW Pauli images.
-The filter rules do not consult the encoding; this is not encoding-free arithmetic
-or an additional shipped solver stage.
+The structural conditions are representation-independent, but filter C executes
+through the declared `parity+2q` encoding-backed restriction. This is not
+encoding-free arithmetic or an additional shipped solver stage.
 
 *Deliverables.* A Majorana-generated candidate pool; the five filters; and a
 record that reports, per filter and **in the order applied**, how many candidates

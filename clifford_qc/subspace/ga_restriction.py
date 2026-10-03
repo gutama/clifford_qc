@@ -1,7 +1,8 @@
 """Phase G1 -- the pre-encoding structural preconditioner of PLAN.md section 3.5.
 
-Five filters run over an abstract candidate pool *before* a fermion-to-qubit
-encoding is chosen, and the deliverable is not the survivor count but the
+Five filters evaluate structural conditions on an abstract candidate pool. Their
+specification is representation-independent; filter C executes through a supplied
+encoding-backed restriction. The deliverable is not the survivor count but the
 **per-filter marginal in the order applied**:
 
     A_raw
@@ -20,14 +21,14 @@ independent content at all (QG1).
 
 **What "before encoding" does and does not mean here.**  The candidates are
 Majorana monomials, and a monomial is fixed by its index tuple
-``(mu_1, ..., mu_k)`` -- representation-independent data.  Every filter below is
-a function of that data, the declared conserved quantities, and the reference
-determinant.  But this package's only concrete arithmetic substrate is the
-Jordan-Wigner Pauli image (``CONVENTIONS.md``), so that is what the operators
-are *computed* in.  The record must say so: these results are pre-encoding in
-the sense that no filter consults the encoding, not in the sense that the
-arithmetic ran in some encoding-free representation.  A claim of the second
-kind would not survive review.
+``(mu_1, ..., mu_k)`` -- representation-independent data. The pool and reference
+actions use Jordan-Wigner Pauli images (``CONVENTIONS.md``). Filter C additionally
+calls ``Restriction.transport`` with the supplied restriction; the frozen G1
+benchmark declares a ``parity+2q`` arm that applies its encoding and sector
+compression congruently. The structural condition is representation-independent,
+but this implementation step uses the selected encoding. "Before encoding"
+describes the conceptual specification, not encoding-free execution or a claim
+that no filter consults an encoding.
 
 **The algebra is complex, and not by preference.**  The ``2n`` Majorana
 generators generate the real ``Cl(2n,0)``, but the sector stabilizers this
