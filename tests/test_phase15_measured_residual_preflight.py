@@ -276,6 +276,8 @@ TAMPERS = {
     "boundary": (lambda r: r.__setitem__("claim_boundary", r["preregistration"][
         "config_claim_boundary_at_landing"]), "inherits"),
     "denial": (_edit(("claim_boundary",), lambda b: b + " It holds no ratio."), "denies"),
+    "boundary_replaced": (_edit(("claim_boundary",), "These ratios license any reading."),
+                          "word for word"),
     "digest_config": (_edit(("config_digest",), "0" * 64), "digest no longer matches"),
     "statistic": (_edit(("statistic", "max_ratio"), 100), "statistic is not"),
     "protocol_role": (_edit(("banks", "toy", "protocols", "qwc_basis_cover", "role"),
@@ -310,6 +312,19 @@ def test_recomputation_catches_a_consistent_forgery(toy, dimer):
                          recompute=False) == []
     problems = checker.recompute_problems(config, bad, validation, inputs=dimer.__getitem__)
     assert any("residual_variance_one_shot" in p for p in problems), problems
+
+
+@pytest.mark.parametrize("field", ["numeric", "analytic"])
+def test_recomputation_catches_a_moved_finite_difference_value(toy, dimer, field):
+    """Half a tolerance moves no outcome, so only the rebuild can see it."""
+    config, raw, record, validation = toy
+    bad = copy.deepcopy(record)
+    row = bad["banks"]["toy"]["finite_differences"]["functional"]
+    row[field] += 0.5 * row["tolerance"]
+    assert _all_problems(config, raw, bad, validation, dimer.__getitem__,
+                         recompute=False) == []
+    problems = checker.recompute_problems(config, bad, validation, inputs=dimer.__getitem__)
+    assert any("functional finite difference recomputes" in p for p in problems), problems
 
 
 def test_the_checker_refuses_an_unclean_record(tmp_path, toy, capsys):
@@ -349,9 +364,10 @@ def test_the_producer_refuses_to_overwrite_the_committed_record(capsys):
 
 
 def test_the_hubbard_miss_is_truncation_at_the_frozen_step():
-    """Post-hoc, not preregistered: the failed check's discrepancy scales as
-    the step squared, so the analytic linearization is correct and the frozen
-    step is too coarse on this bank. Halving it passes the frozen tolerance."""
+    """Post-hoc, not preregistered: the six-step sweep PLAN.md and
+    REPRODUCING.md quote. The failed check's discrepancy scales as the step
+    squared, so the analytic linearization is correct and the frozen step is
+    too coarse on this bank; every step at or below half of it passes."""
     from clifford_qc.subspace.second_moment import RESOLUTION
 
     config = gate.load_config()
@@ -367,14 +383,21 @@ def test_the_hubbard_miss_is_truncation_at_the_frozen_step():
     direction = gate.check_directions(weights, set(bank.word_set()),
                                       seed=int(rule["seed"]))["functional"]
     scale = record["banks"]["hubbard_2x2"]["estimator"]["cancellation_scale"]
-    misses = []
-    for step in (float(rule["step"]), float(rule["step"]) / 2):
+    # step: (documented discrepancy, passes)
+    documented = {2e-3: (1.41e-4, False), 1e-3: (3.53e-5, False), 5e-4: (8.82e-6, True),
+                  2.5e-4: (2.20e-6, True), 1.25e-4: (5.51e-7, True), 6.25e-5: (1.37e-7, True)}
+    assert float(rule["step"]) in documented
+    misses = {}
+    for step, (discrepancy, passes) in documented.items():
         row = gate.finite_difference_check(
             rows, len(selected), means, weights, direction, step=step,
             relative_tolerance=float(rule["relative_tolerance"]),
             cancellation_scale=scale, resolution=RESOLUTION)
-        misses.append((abs(row["numeric"] - row["analytic"]), row["passes"]))
-    assert misses[0][0] == pytest.approx(
+        misses[step] = abs(row["numeric"] - row["analytic"])
+        assert misses[step] == pytest.approx(discrepancy, rel=5e-3), step
+        assert row["passes"] is passes, step
+    assert misses[float(rule["step"])] == pytest.approx(
         abs(recorded["numeric"] - recorded["analytic"]), rel=1e-3)
-    assert misses[0][1] is False and misses[1][1] is True
-    assert misses[0][0] / misses[1][0] == pytest.approx(4.0, rel=0.01)
+    steps = sorted(documented, reverse=True)
+    for coarse, fine in zip(steps, steps[1:]):
+        assert misses[coarse] / misses[fine] == pytest.approx(4.0, rel=0.01), (coarse, fine)

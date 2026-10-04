@@ -116,7 +116,7 @@ No figure or table value in the manuscript is transcribed by hand, and
 ```bash
 python -m venv .venv && source .venv/bin/activate
 pip install -e .[test,research,stim]       # automatic CI extras
-pytest                                      # 2737 passed, 11 skipped
+pytest                                      # 2740 passed, 11 skipped
 ```
 
 This is the automatic CI dependency set; record gates additionally pin NumPy
@@ -132,7 +132,7 @@ the remaining `11 - 6 = 5` skips are per-test and *are* collected:
 
 ```text
 collected == passed + (skipped - files dropped at collection)
-2742      == 2737   + (11      -   6)
+2745      == 2740   + (11      -   6)
 ```
 
 Both sides are computed from the tree, so a drift in either quoted number
@@ -3346,9 +3346,9 @@ and so the RESTRICTED verdict. It holds the per-setting variances to a dense
 computation with no multivector product. It also draws word means with each
 setting's exact covariance at 10⁶ shots and re-solves the measured pencil:
 the spread of the nonlinear `σ̂²` matches the linearized `V/N` to within its
-sampling error. Each of 26 tampered fields is caught by the check written for
-it, and a forgery whose numbers agree with each other is caught only by the
-rebuild. The next section gives the declared run.
+sampling error. Each of 27 tampered fields is caught by the check written for
+it. A forgery whose numbers agree with each other, and a finite-difference
+value moved by half its tolerance, are caught only by the rebuild. The next section gives the declared run.
 
 ## Phase 15 measured-residual cost preflight (executed once, `INVALID`)
 
@@ -3406,7 +3406,8 @@ The discrepancy is the step's own `O(h²)` truncation error, and the analytic
 linearization is correct. The frozen step was calibrated on the dimer alone,
 and it is too coarse for the frozen tolerance on the bank whose residual is
 largest against its gap. `tests/test_phase15_measured_residual_preflight.py`
-reproduces the sweep's scaling. It also re-derives the committed record
+reproduces all six steps of the sweep, their outcomes and their ratios. It
+also re-derives the committed record
 without a rebuild, and checks that the producer refuses to overwrite it.
 
 The preregistration permits no follow-up. The finite-shot second-moment

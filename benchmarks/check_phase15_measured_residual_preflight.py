@@ -5,8 +5,8 @@
 gate trusts none of the record's summary fields.
 
 1. **Declaration.** The record names the config by digest, and the config is
-   unchanged since the run. It carries its own claim boundary, quotes the
-   config's, makes no advantage claim, and copies the config's statistic,
+   unchanged since the run. It carries the producer's claim boundary word for
+   word, quotes the config's, makes no advantage claim, and copies the config's statistic,
    grouping and finite-difference rule unchanged.
 2. **Completeness.** Every declared bank is present, priced under exactly its
    declared protocol and its alternative where one is declared, with both
@@ -20,8 +20,10 @@ gate trusts none of the record's summary fields.
    values it rests on, each status, the verdict and its quoted consequence.
    The variance, cancellation scale and energy-variance reference are read
    from the committed validation and mapping-axis records, not the record.
-5. **Recomputation.** Every bank is rebuilt and every field must reproduce
-   (``--no-recompute`` skips this, ``--banks`` restricts it).
+5. **Recomputation.** Every bank is rebuilt and every field must reproduce,
+   each finite-difference value included: ``numeric`` within its own rounding
+   floor, never within the acceptance tolerance (``--no-recompute`` skips
+   this, ``--banks`` restricts it).
 6. **Order.** Through the preregistration gate, the config's last change must
    strictly precede the record's commit.
 
@@ -126,6 +128,8 @@ def declaration_problems(config: dict, record: dict, config_bytes: bytes) -> lis
     if record.get("config_digest") != hashlib.sha256(config_bytes).hexdigest():
         problems.append("the config changed after the run: its digest no longer matches")
     boundary = str(record.get("claim_boundary", ""))
+    if boundary != producer.CLAIM_BOUNDARY:
+        problems.append("the record's claim boundary is not the producer's, word for word")
     if boundary == config["claim_boundary"]:
         problems.append("the record inherits the config's claim boundary instead of "
                         "stating its own")
@@ -325,6 +329,35 @@ def _disagreements(mine, theirs, path="") -> list[str]:
     return [] if mine == theirs else [path]
 
 
+def finite_difference_disagreements(name: str, mine: dict, theirs: dict, *, scale: float,
+                                    step: float) -> list[str]:
+    """Every recorded finite-difference field against its rebuilt value.
+
+    ``analytic`` and ``tolerance`` are smooth sums and must agree to 1e-9
+    relative. ``numeric`` is a difference quotient, so a rebuild on another
+    platform can move it by its own rounding, ``RESOLUTION * scale / step``,
+    the floor the frozen tolerance already carries; it gets that much and
+    1e-9 relative, and nothing of the acceptance tolerance itself.
+    """
+    from clifford_qc.subspace.second_moment import RESOLUTION
+
+    problems = []
+    if sorted(mine) != sorted(theirs):
+        return [f"{name}: the finite-difference directions do not recompute"]
+    floor = RESOLUTION * scale / step
+    for key in mine:
+        a, b = mine[key], theirs[key]
+        agree = (
+            a["passes"] == b.get("passes")
+            and _close(a["analytic"], b.get("analytic"), rel=1e-9, abs_=1e-12)
+            and _close(a["tolerance"], b.get("tolerance"), rel=1e-9, abs_=1e-15)
+            and b.get("numeric") is not None
+            and abs(a["numeric"] - b["numeric"]) <= 1e-9 * max(1.0, abs(a["numeric"])) + floor)
+        if not agree:
+            problems.append(f"{name}: the {key} finite difference recomputes to {a}")
+    return problems
+
+
 def recompute_problems(config: dict, record: dict, validation: dict, *, banks=None,
                        inputs=None) -> list[str]:
     """Every bank rebuilt; every recorded field must reproduce."""
@@ -338,13 +371,10 @@ def recompute_problems(config: dict, record: dict, validation: dict, *, banks=No
                                      validation["banks"][name]["roots"][0])
         theirs = {key: value for key, value in entry.items()
                   if key != "measured_at_execution"}
-        # The finite-difference numerics carry rounding of the tolerance's own floor.
         mine_fd, their_fd = got.pop("finite_differences"), theirs.pop("finite_differences")
-        for key in mine_fd:
-            a, b = mine_fd[key], their_fd.get(key, {})
-            if a["passes"] != b.get("passes") or not _close(
-                    a["analytic"], b.get("analytic"), rel=1e-9, abs_=a["tolerance"]):
-                problems.append(f"{name}: the {key} finite difference recomputes to {a}")
+        problems += finite_difference_disagreements(
+            name, mine_fd, their_fd, scale=float(entry["estimator"]["cancellation_scale"]),
+            step=float(config["linearization"]["finite_difference"]["step"]))
         for path in _disagreements(got, theirs):
             problems.append(f"{name}: {path.lstrip('.')} does not recompute")
     return problems
