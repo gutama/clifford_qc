@@ -56,13 +56,37 @@ def test_the_committed_numbers_recompute_and_every_premise_holds(recomputed):
         assert row["energy_settings_match_mapping_axis"]
 
 
-def test_a_result_field_is_refused_at_load(tmp_path, config):
+def test_raw_universes_carry_the_identity_and_partitions_drop_it(config, recomputed):
+    """The committed counts and digest are raw; every grouping is of the measured set."""
+    _, computed = recomputed
+    for name, row in computed.items():
+        assert row["identity_in_raw_universes"], name
+        assert row["measured_sh_words"] == row["raw_sh_word_universe"] - 1
+        assert row["measured_combined_words"] == row["raw_combined_word_universe"] - 1
+        assert row["energy_partition_covers_measured_words"], name
+    convention = config["grouping"]["universe_convention"]
+    assert "include the identity" in convention and "minus the identity" in convention
+
+
+@pytest.mark.parametrize("key, value", [
+    ("cost_ratio", 3.0),
+    ("verdict", "FULL"),
+    ("bank_status", "AFFORDABLE"),
+    ("conclusion", None),
+    ("result", True),
+])
+def test_every_result_shaped_key_is_refused_at_load(tmp_path, config, key, value):
+    """A string, boolean or null outcome is still an outcome."""
     bad = copy.deepcopy(config)
-    bad["measured_before_freezing"]["beh2"]["cost_ratio"] = 3.0
+    bad["measured_before_freezing"]["beh2"][key] = value
     path = tmp_path / "config.json"
     path.write_text(json.dumps(bad), encoding="utf-8")
     with pytest.raises(ValueError, match="result field"):
         gate.load_config(path)
+
+
+def test_contains_results_must_be_literally_false(tmp_path, config):
+    path = tmp_path / "config.json"
     honest = copy.deepcopy(config)
     honest["contains_results"] = True
     path.write_text(json.dumps(honest), encoding="utf-8")
@@ -289,10 +313,14 @@ MUTATIONS = {
     "followup": (_set(("prespecified_followup", "permitted"), "one rerun"), "follow-up"),
     "population": (_set(("banks", "systems"), ["h4", "beh2"]), "validated"),
     "lineage": (lambda c: c["implementation_lineage"]["inputs"].pop(0), "must be bound"),
+    "gate_binding": (lambda c: c["implementation_lineage"]["implementation"].pop(),
+                     "must be bound"),
     "drift": (_set(("implementation_lineage", "implementation", 0, "sha256"), "0" * 64),
               "drifted"),
-    "revision": (lambda c: c["revisions"].append({"revision": 1, "changes": ["x"]}),
-                 "no ratio existed"),
+    "revision": (lambda c: c["revisions"].append(
+        {"revision": len(c["revisions"]), "changes": ["x"]}), "no ratio existed"),
+    "renumbered": (lambda c: c["revisions"].append({"revision": 0, "changes": ["x"]}),
+                   "numbered"),
     "schema": (_set(("schema",), "v0"), "schema"),
 }
 

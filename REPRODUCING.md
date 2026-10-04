@@ -116,7 +116,7 @@ No figure or table value in the manuscript is transcribed by hand, and
 ```bash
 python -m venv .venv && source .venv/bin/activate
 pip install -e .[test,research,stim]       # automatic CI extras
-pytest                                      # 2689 passed, 11 skipped
+pytest                                      # 2697 passed, 11 skipped
 ```
 
 This is the automatic CI dependency set; record gates additionally pin NumPy
@@ -132,7 +132,7 @@ the remaining `11 - 6 = 5` skips are per-test and *are* collected:
 
 ```text
 collected == passed + (skipped - files dropped at collection)
-2694      == 2689   + (11      -   6)
+2702      == 2697   + (11      -   6)
 ```
 
 Both sides are computed from the tree, so a drift in either quoted number
@@ -3277,14 +3277,17 @@ The gate forms no second-moment row and no residual functional, groups no
 combined universe and computes no group variance. It recomputes each bank's
 basis, rank, Ritz gap and ground energy from `(S, H)`, and requires the
 energy to equal the SecondMomentBank validation record's. It requires each
-`(S, H)` universe to match the Phase 2M-A ledger and the H² preflight record.
-It regroups that universe under its declared protocol, and requires the
-setting count to equal the mapping-axis JW arm's: 913, 913, 353, 24,334 and
-1,406. It reads `σ²`, the cancellation scale and the combined universe's
-size and SHA-256 from their committed records. It checks the clauses against
-each other and the claimed reachable verdicts. The inputs are bound by SHA-256.
-The product, bank, second-moment, solver, grouping and mapping-axis code stay
-bound only until a record exists.
+raw `(S, H)` universe, identity included, to match the Phase 2M-A ledger and
+the H² preflight record. It regroups the measured universe, the raw one
+without the identity, under its declared protocol. The setting count must
+equal the mapping-axis JW arm's: 913, 913, 353, 24,334 and 1,406. It reads
+`σ²`, the cancellation scale and the raw combined universe's size and
+SHA-256 from their committed records. It checks the clauses against each
+other and the claimed reachable verdicts, and refuses any result-shaped key
+in the config. The inputs are bound by SHA-256. The product, bank,
+second-moment, solver, grouping, energy-functional and mapping-axis code, the
+Phase 15 gate that builds the banks, and this gate itself stay bound only
+until a record exists.
 
 The gate also holds the declared estimator, which the producer imports:
 `residual_functional`, the first-order weights of `σ²` including the Ritz

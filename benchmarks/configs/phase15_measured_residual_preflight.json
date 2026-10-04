@@ -38,8 +38,9 @@
  "grouping": {
   "estimator": "single_assignment",
   "allocation": "uniform",
-  "energy_universe": "U_SH minus the identity: the (S, H) bank's words over the retained block, listed in ascending code order, exactly as the mapping-axis producer lists its JW arm",
-  "residual_universe": "U = U_SH | U_K minus the identity: every word a measured second-moment bank estimates, whose SHA-256 the H-squared preflight record committed",
+  "energy_universe": "the measured (S, H) universe: the raw U_SH, the (S, H) bank's words over the retained block, minus the identity, listed in ascending code order exactly as the mapping-axis producer lists its JW arm",
+  "residual_universe": "the measured combined universe: the raw U = U_SH | U_K minus the identity. The raw U is every word a measured second-moment bank's rows carry, and the H-squared preflight record committed its size and SHA-256",
+  "universe_convention": "Raw universes include the identity, as the Phase 2M-A ledger, the H-squared preflight record and the mapping-axis record count and hash them; every frozen basis starts with I, so S_00 carries it. Measured universes are the raw ones minus the identity, whose mean is 1 and is never measured. Every count and digest in measured_before_freezing whose name starts with raw_ is a raw quantity; measured_sh_words and measured_combined_words are one fewer, and every grouping partitions a measured universe",
   "declared_protocol_by_system": {
    "h4": "qwc_groups",
    "h4_converged": "qwc_groups",
@@ -108,8 +109,10 @@
    "n_qubits": 8,
    "basis_size": 9,
    "effective_rank": 9,
-   "sh_word_universe": 7371,
-   "combined_word_universe": 8192,
+   "raw_sh_word_universe": 7371,
+   "raw_combined_word_universe": 8192,
+   "measured_sh_words": 7370,
+   "measured_combined_words": 8191,
    "energy_settings": 913,
    "ground_energy": -2.177297832980223,
    "subspace_gap": 0.8523659748149472,
@@ -118,22 +121,26 @@
    "cancellation_scale": 4.765720693496393,
    "matched_precision_half": 0.01888798731457273,
    "energy_grouping_protocol": "qwc_groups",
-   "combined_words_sha256": "e2df4fda6370e5495a7bcb5a859104faab04887b1859b6ea4715b7d881f3701d",
+   "raw_combined_words_sha256": "e2df4fda6370e5495a7bcb5a859104faab04887b1859b6ea4715b7d881f3701d",
    "alternative_protocol": "qwc_basis_cover",
    "mapping_axis_linearized_energy_variance": null,
    "full_rank": true,
    "ground_root_nondegenerate": true,
    "variance_resolved": true,
+   "identity_in_raw_universes": true,
    "ground_energy_matches_validation": true,
    "sh_universe_matches_records": true,
-   "energy_settings_match_mapping_axis": true
+   "energy_settings_match_mapping_axis": true,
+   "energy_partition_covers_measured_words": true
   },
   "h4_converged": {
    "n_qubits": 8,
    "basis_size": 15,
    "effective_rank": 15,
-   "sh_word_universe": 7927,
-   "combined_word_universe": 8192,
+   "raw_sh_word_universe": 7927,
+   "raw_combined_word_universe": 8192,
+   "measured_sh_words": 7926,
+   "measured_combined_words": 8191,
    "energy_settings": 913,
    "ground_energy": -2.179550752062546,
    "subspace_gap": 0.558229303474147,
@@ -142,22 +149,26 @@
    "cancellation_scale": 4.779374474443765,
    "matched_precision_half": 0.012443178154913586,
    "energy_grouping_protocol": "qwc_groups",
-   "combined_words_sha256": "e2df4fda6370e5495a7bcb5a859104faab04887b1859b6ea4715b7d881f3701d",
+   "raw_combined_words_sha256": "e2df4fda6370e5495a7bcb5a859104faab04887b1859b6ea4715b7d881f3701d",
    "alternative_protocol": "qwc_basis_cover",
    "mapping_axis_linearized_energy_variance": 0.060759481649219814,
    "full_rank": true,
    "ground_root_nondegenerate": true,
    "variance_resolved": true,
+   "identity_in_raw_universes": true,
    "ground_energy_matches_validation": true,
    "sh_universe_matches_records": true,
-   "energy_settings_match_mapping_axis": true
+   "energy_settings_match_mapping_axis": true,
+   "energy_partition_covers_measured_words": true
   },
   "beh2": {
    "n_qubits": 8,
    "basis_size": 5,
    "effective_rank": 5,
-   "sh_word_universe": 1815,
-   "combined_word_universe": 2048,
+   "raw_sh_word_universe": 1815,
+   "raw_combined_word_universe": 2048,
+   "measured_sh_words": 1814,
+   "measured_combined_words": 2047,
    "energy_settings": 353,
    "ground_energy": -15.566208493595418,
    "subspace_gap": 0.5973704104277058,
@@ -166,22 +177,26 @@
    "cancellation_scale": 242.33117699940044,
    "matched_precision_half": 0.0005860294073572473,
    "energy_grouping_protocol": "qwc_groups",
-   "combined_words_sha256": "1b4d9edd311445f9dadd38aaaf59d703de9ce0898eb9318f8f5679004d160a44",
+   "raw_combined_words_sha256": "1b4d9edd311445f9dadd38aaaf59d703de9ce0898eb9318f8f5679004d160a44",
    "alternative_protocol": "qwc_basis_cover",
    "mapping_axis_linearized_energy_variance": 0.007548955076120861,
    "full_rank": true,
    "ground_root_nondegenerate": true,
    "variance_resolved": true,
+   "identity_in_raw_universes": true,
    "ground_energy_matches_validation": true,
    "sh_universe_matches_records": true,
-   "energy_settings_match_mapping_axis": true
+   "energy_settings_match_mapping_axis": true,
+   "energy_partition_covers_measured_words": true
   },
   "h2o_cas8e6o": {
    "n_qubits": 12,
    "basis_size": 9,
    "effective_rank": 9,
-   "sh_word_universe": 143117,
-   "combined_word_universe": 868150,
+   "raw_sh_word_universe": 143117,
+   "raw_combined_word_universe": 868150,
+   "measured_sh_words": 143116,
+   "measured_combined_words": 868149,
    "energy_settings": 24334,
    "ground_energy": -74.99845661593258,
    "subspace_gap": 1.4023946805968421,
@@ -190,22 +205,26 @@
    "cancellation_scale": 5625.431956639506,
    "matched_precision_half": 0.037985825881461634,
    "energy_grouping_protocol": "qwc_basis_cover",
-   "combined_words_sha256": "fd29a296b182dfdd91e95620e89e418646eac221bb6c8ba4b8eb6aad4feb603b",
+   "raw_combined_words_sha256": "fd29a296b182dfdd91e95620e89e418646eac221bb6c8ba4b8eb6aad4feb603b",
    "alternative_protocol": null,
    "mapping_axis_linearized_energy_variance": null,
    "full_rank": true,
    "ground_root_nondegenerate": true,
    "variance_resolved": true,
+   "identity_in_raw_universes": true,
    "ground_energy_matches_validation": true,
    "sh_universe_matches_records": true,
-   "energy_settings_match_mapping_axis": true
+   "energy_settings_match_mapping_axis": true,
+   "energy_partition_covers_measured_words": true
   },
   "hubbard_2x2": {
    "n_qubits": 8,
    "basis_size": 9,
    "effective_rank": 9,
-   "sh_word_universe": 5537,
-   "combined_word_universe": 13940,
+   "raw_sh_word_universe": 5537,
+   "raw_combined_word_universe": 13940,
+   "measured_sh_words": 5536,
+   "measured_combined_words": 13939,
    "energy_settings": 1406,
    "ground_energy": -9.239438100571599,
    "subspace_gap": 0.5729954771171286,
@@ -214,15 +233,17 @@
    "cancellation_scale": 87.97377669339312,
    "matched_precision_half": 0.3799586418901823,
    "energy_grouping_protocol": "qwc_groups",
-   "combined_words_sha256": "6a54f8897b6ac50ef4e55131428b0cd59ba502b9d1bb9ccf3e1a6eac98a91782",
+   "raw_combined_words_sha256": "6a54f8897b6ac50ef4e55131428b0cd59ba502b9d1bb9ccf3e1a6eac98a91782",
    "alternative_protocol": "qwc_basis_cover",
    "mapping_axis_linearized_energy_variance": null,
    "full_rank": true,
    "ground_root_nondegenerate": true,
    "variance_resolved": true,
+   "identity_in_raw_universes": true,
    "ground_energy_matches_validation": true,
    "sh_universe_matches_records": true,
-   "energy_settings_match_mapping_axis": true
+   "energy_settings_match_mapping_axis": true,
+   "energy_partition_covers_measured_words": true
   }
  },
  "reachable_verdicts": [
@@ -232,10 +253,10 @@
  ],
  "deterministic_checks": [
   "baseline_matches_freeze: every measured_before_freezing value recomputes at execution, and every premise flag in it holds",
-  "combined_universe_matches_preflight: U rebuilt from SecondMomentBank rows has the committed size and SHA-256",
+  "combined_universe_matches_preflight: the raw U, rebuilt as U_SH | U_K from SecondMomentBank rows, has the committed size and SHA-256, and contains the identity; the measured U is that set minus the identity",
   "energy_settings_reproduce_mapping_axis: G_SH under the declared protocol equals the mapping-axis JW arm's committed settings",
   "energy_variance_reproduces_mapping_axis: where the mapping-axis record committed V_E (h4_converged, beh2), the recomputed V_E equals it within 1e-9 relative",
-  "partitions_valid: each grouping assigns every non-identity word of its universe to exactly one setting, and every setting is qubit-wise commuting",
+  "partitions_valid: each grouping assigns every word of its measured universe to exactly one setting, so the energy partition holds raw_sh_word_universe - 1 words and the residual partition raw_combined_word_universe - 1, and every setting is qubit-wise commuting",
   "residual_functional_reproduces_variance: the residual pipeline at the exact means returns the validation record's sigma^2 within 1e-9 (1 + cancellation_scale) absolute",
   "residual_functional_mean_zero: |<psi|G|psi>| <= 1e-9 (1 + cancellation_scale)",
   "linearization_matches_finite_differences: both frozen directions pass the finite-difference rule",
@@ -334,9 +355,21 @@
    {
     "path": "benchmarks/run_mapping_axis.py",
     "sha256": "e47b3a318ad6c63f185cf0c3e874558e8ba3f1b885a0ffe76ca0096cd0dd32a0"
+   },
+   {
+    "path": "clifford_qc/measurement/functionals.py",
+    "sha256": "a1a06d2afe6cb96ee6081fc48214cd9252e2eaed58cde053a7cb5dd1c6faac59"
+   },
+   {
+    "path": "benchmarks/check_phase15_preregistration.py",
+    "sha256": "a686af04fdc55c490eda1b2c0fe781a8888488d754ce971a0e69d6ab22431c51"
+   },
+   {
+    "path": "benchmarks/check_phase15_measured_residual_preregistration.py",
+    "sha256": "6c10d3d5f50dfd033009ab1a03fcb009ec9c9311a8657f1c91acb279a37ec1c1"
    }
   ],
-  "note": "Inputs stay bound for the life of the record. The product, the bank, the second-moment rows, the projected solve, the QWC partitions and the group variance define every number the ratio reads, so they are bound until the record exists; after that the record's provenance names the commit that produced it."
+  "note": "Inputs stay bound for the life of the record. The product, the bank, the second-moment rows, the projected solve, the QWC partitions, the energy functional, the group variance, the bank builder and this declaration's own gate, whose residual_functional and finite-difference rule the producer imports, define every number the ratio reads. They are bound until the record exists; after that the record's provenance names the commit that produced it."
  },
  "record_requirements": {
   "schema": "clifford_qc.phase15_measured_residual_preflight.v1",
@@ -345,6 +378,7 @@
   "record": "benchmarks/reference_results/phase15_measured_residual_preflight.json",
   "must_include": [
    "config_digest and provenance",
+   "per bank: the raw and measured sizes of both universes, and the raw combined SHA-256",
    "per bank and protocol: G_SH, V_E, G_U, V_sigma2, R and the Neyman ratio",
    "per bank: sigma, matched_precision_half, the functional's word count and ||g||_2, and both finite-difference rows",
    "per bank: every deterministic check and its value",
@@ -361,6 +395,17 @@
    "revision": 0,
    "commit_subject": "Preregister the Phase 15 measured-residual cost preflight, ratio-free",
    "content": "Initial declaration."
+  },
+  {
+   "revision": 1,
+   "commit_subject": "Separate raw and measured universes, bind the estimator, refuse every result key",
+   "ratios_at_revision": "none: no residual functional, no grouping of a combined universe, no group variance and no ratio existed on any declared bank when this revision was made",
+   "changes": [
+    "Raw universes (identity included, as committed) and measured universes (identity excluded, as grouped) are named apart. The frozen fields sh_word_universe, combined_word_universe and combined_words_sha256 become raw_sh_word_universe, raw_combined_word_universe and raw_combined_words_sha256 with unchanged values; measured_sh_words, measured_combined_words, identity_in_raw_universes and energy_partition_covers_measured_words are added",
+    "The gate itself, check_phase15_preregistration.py (the bank builder it calls) and clifford_qc/measurement/functionals.py (the energy functional behind V_E) are bound until a record exists",
+    "load_config refuses every occurrence of a result-shaped key, whatever its value"
+   ],
+   "rule_changes": "none: the estimand, linearization, grouping protocols, statistic, threshold, ladder, verdicts and banks are unchanged"
   }
  ]
 }

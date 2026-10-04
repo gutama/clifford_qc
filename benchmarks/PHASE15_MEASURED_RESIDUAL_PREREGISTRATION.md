@@ -79,7 +79,7 @@ validation covers, each at the `selected_labels` that
 `benchmarks/configs/mapping_axis.json` freezes. Every number below is
 committed or recomputed from first moments, and the gate recomputes it.
 
-| bank | qubits | M | Ritz gap | `σ` | `\|U_SH\|` | `\|U\|` | `G_SH` | protocol |
+| bank | qubits | M | Ritz gap | `σ` | raw `\|U_SH\|` | raw `\|U\|` | `G_SH` | protocol |
 |---|---|---|---|---|---|---|---|---|
 | h4 | 8 | 9 | 0.852 | 0.0756 | 7,371 | 8,192 | 913 | greedy |
 | h4_converged | 8 | 15 | 0.558 | 0.0498 | 7,927 | 8,192 | 913 | greedy |
@@ -88,7 +88,9 @@ committed or recomputed from first moments, and the gate recomputes it.
 | hubbard_2x2 | 8 | 9 | 0.573 | 1.52 *t* | 5,537 | 13,940 | 1,406 | greedy |
 
 Energies and `σ` are in hartree, and in *t* for Hubbard. The Ritz gap is the
-distance from the ground root to the next root of the same pencil. Every block
+distance from the ground root to the next root of the same pencil. The
+universe sizes are raw, identity included, as the committed records count
+them; §5 defines the measured universes, one word smaller. Every block
 is full rank, every gap is far from zero, and every variance is resolved: the
 three premises of the linearization. `G_SH` regroups each bank's `(S, H)`
 universe under its declared protocol and equals the mapping-axis record's
@@ -97,9 +99,18 @@ and it is decided like the rest.
 
 ## 5. Grouping and variance
 
-The energy is measured on `U_SH` and the residual on `U = U_SH ∪ U_K`, each
-without the identity. `U` is every word a measured second-moment bank
-estimates. Both universes are listed in ascending code order, as the
+**Raw and measured universes.** The Phase 2M-A ledger, the H² preflight
+record and the mapping-axis record count and hash *raw* universes, identity
+included. Every frozen basis starts with `I`, so `S₀₀` carries the identity.
+The *measured* universe is the raw one minus the identity, whose mean is 1
+and is never measured. Every frozen count and digest whose name starts with
+`raw_` is a raw quantity, and every grouping partitions a measured universe.
+The gate checks that the identity is in each raw universe, and that the
+energy partition covers exactly `raw − 1` words.
+
+The energy is measured on the measured `U_SH`, and the residual on the
+measured `U = U_SH ∪ U_K`: every word a measured second-moment bank's rows
+carry, except the identity. Both are listed in ascending code order, as the
 mapping-axis producer lists its JW arm.
 
 - **Declared protocol.** The mapping-axis record's protocol for that system:
@@ -169,13 +180,13 @@ reachable.
 A bank is INVALID unless all of these hold:
 
 - every number in §4 recomputes, and every premise flag holds;
-- `U`, rebuilt from `SecondMomentBank` rows, has the committed size and
-  SHA-256;
+- the raw `U`, rebuilt from `SecondMomentBank` rows, has the committed size
+  and SHA-256, and contains the identity;
 - `G_SH` under the declared protocol equals the mapping-axis JW arm's count;
 - where the mapping-axis record committed `V_E` (converged H₄ and BeH₂), the
   recomputed value equals it within `10⁻⁹` relative;
-- each grouping assigns every non-identity word to exactly one setting, and
-  every setting is qubit-wise commuting;
+- each grouping assigns every word of its measured universe to exactly one
+  setting, and every setting is qubit-wise commuting;
 - the pipeline at the exact means returns the validation record's `σ²`, and
   `|⟨ψ|G|ψ⟩|` is at most `10⁻⁹ (1 + κ)`;
 - both finite-difference directions pass;
@@ -227,8 +238,15 @@ must re-run this gate and refuse to run if it fails. Once a record exists,
 the gate requires the config's last change to strictly precede the record's
 first commit.
 
-The inputs stay bound by SHA-256 for good. The package code that defines a
-row, a solve, a grouping and a group variance stays bound until the record
-exists. A revision after this one must state that no ratio existed when it was
+The inputs stay bound by SHA-256 for good. The code that defines a row, a
+solve, a grouping, a functional and a group variance stays bound until the
+record exists. That includes the gate itself, whose estimator the producer
+imports, and the Phase 15 gate it builds banks with.
+
+**Revision 1** was made before any ratio existed, after review of the
+declaration. It changes no rule. It names raw and measured universes apart
+and renames the frozen counts and digest `raw_…` with unchanged values. It
+binds the gate, the bank builder and the energy functional, and it makes the
+gate refuse every result-shaped key, whatever its value. A revision after this one must state that no ratio existed when it was
 made. No follow-up is permitted: another threshold, protocol, allocation or
 bank set would be a new declaration.

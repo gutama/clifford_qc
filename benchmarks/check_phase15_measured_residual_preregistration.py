@@ -12,19 +12,22 @@ one shot per setting. This gate checks that the declaration can answer that
 as frozen, and that it was frozen before any answer existed:
 
 * completeness, and the absence of any result-shaped value;
-* the SHA-256 of every input the run reads, and of the package code that
-  defines a row, a grouping, a Ritz solve and a group variance, until a record
-  names its own commit;
+* the SHA-256 of every input the run reads, and of the code that defines a
+  row, a grouping, a Ritz solve, a functional and a group variance, until a
+  record names its own commit. That code includes this file, whose estimator
+  the producer imports, and the Phase 15 gate it builds banks with;
 * an exhaustive status ladder and a total verdict rule;
 * the clauses against each other: a threshold above one, a protocol for every
   bank, an alternative protocol exactly where the declared one is the
   quadratic greedy, and the reachable verdicts the config claims;
 * a recomputation, from committed inputs, of every number in
   ``measured_before_freezing``. That covers the basis, its rank and Ritz gap,
-  the ground energy, which must equal the validation record's, and the
-  ``(S, H)`` word universe. It regroups that universe under the declared
-  protocol, and requires the setting count to equal the mapping-axis record's.
-  It reads the variance and the combined word universe from their committed
+  the ground energy, which must equal the validation record's, and the raw
+  ``(S, H)`` word universe, identity included as the committed records count
+  it. It regroups the measured universe, the raw one without the identity,
+  under the declared protocol, and requires the setting count to equal the
+  mapping-axis record's and the partition to cover every measured word. It
+  reads the variance and the raw combined universe from their committed
   records;
 * commit order once a record exists, and the revision log.
 
@@ -91,7 +94,10 @@ BOUND_IMPLEMENTATIONS = (
     "clifford_qc/subspace/second_moment.py",
     "clifford_qc/subspace/linalg.py",
     "clifford_qc/measurement/grouping.py",
+    "clifford_qc/measurement/functionals.py",
     "benchmarks/run_mapping_axis.py",
+    "benchmarks/check_phase15_preregistration.py",
+    "benchmarks/check_phase15_measured_residual_preregistration.py",
 )
 RESULT_KEYS = frozenset({
     "verdict", "verdicts", "result", "results", "observed", "bank_status",
@@ -107,15 +113,17 @@ COMBINATION_RULE = (
     "every bank AFFORDABLE gives FULL; no bank AFFORDABLE gives NONE; anything "
     "else is RESTRICTED; any INVALID bank gives INVALID")
 
-_INT_FIELDS = ("n_qubits", "basis_size", "effective_rank", "sh_word_universe",
-               "combined_word_universe", "energy_settings")
+_INT_FIELDS = ("n_qubits", "basis_size", "effective_rank", "raw_sh_word_universe",
+               "raw_combined_word_universe", "measured_sh_words",
+               "measured_combined_words", "energy_settings")
 _FLOAT_FIELDS = ("ground_energy", "subspace_gap", "variance", "residual_norm",
                  "cancellation_scale", "matched_precision_half")
-_STR_FIELDS = ("energy_grouping_protocol", "combined_words_sha256")
+_STR_FIELDS = ("energy_grouping_protocol", "raw_combined_words_sha256")
 _OPTIONAL_FIELDS = ("alternative_protocol", "mapping_axis_linearized_energy_variance")
 _BOOL_FIELDS = ("full_rank", "ground_root_nondegenerate", "variance_resolved",
-                "ground_energy_matches_validation", "sh_universe_matches_records",
-                "energy_settings_match_mapping_axis")
+                "identity_in_raw_universes", "ground_energy_matches_validation",
+                "sh_universe_matches_records", "energy_settings_match_mapping_axis",
+                "energy_partition_covers_measured_words")
 MEASURED_FIELDS = (_INT_FIELDS + _FLOAT_FIELDS + _STR_FIELDS + _OPTIONAL_FIELDS
                    + _BOOL_FIELDS)
 
@@ -127,10 +135,15 @@ GAP_FLOOR = 1e-6
 # ------------------------------------------------------------------ loading
 
 def load_config(path: Path = CONFIG) -> dict:
-    """Read the declaration, refusing one that carries a result."""
+    """Read the declaration, refusing one that carries a result.
+
+    Every occurrence of a result-shaped key is refused, whatever its value: a
+    string ``"verdict": "FULL"`` is as much an outcome as a number, and the
+    declaration has no legitimate placeholder under any of these names.
+    """
     config = json.loads(Path(path).read_text(encoding="utf-8"))
-    for where, key, value in preflight_gate._walk(config):
-        if key in RESULT_KEYS and not isinstance(value, (str, bool, type(None))):
+    for where, key, _ in preflight_gate._walk(config):
+        if key in RESULT_KEYS:
             raise ValueError(f"config carries a result field {where}.{key}")
     if config.get("contains_results") is not False:
         raise ValueError("contains_results must be literally false")
@@ -592,8 +605,8 @@ def committed_rows(name: str) -> dict:
         "variance_resolved": bool(root["resolved"]),
         "preflight_sh_word_universe": int(preflight["sh_word_universe"]),
         "ledger_sh_word_universe": int(ledger["word_universe"]),
-        "combined_word_universe": int(preflight["combined_word_universe"]),
-        "combined_words_sha256": digests["combined_words_sha256"],
+        "raw_combined_word_universe": int(preflight["combined_word_universe"]),
+        "raw_combined_words_sha256": digests["combined_words_sha256"],
         "mapping_protocol": mapping["grouping_protocol"],
         "mapping_settings": int(jw["measurement"]["settings"]),
         "mapping_energy_variance": jw["accuracy_matched_cost"].get(
@@ -604,22 +617,35 @@ def committed_rows(name: str) -> dict:
 def quantities_for(model, selected, committed: dict, protocol: str,
                    alternative: str | None) -> dict:
     """Every frozen number of one bank. First moments only: no second-moment
-    row, no residual functional, no grouping of the combined universe."""
+    row, no residual functional, no grouping of the combined universe.
+
+    The committed counts and digest describe *raw* universes, identity
+    included, as the ledger, the H-squared preflight and the mapping-axis
+    record keep them. Every grouping partitions the raw universe minus the
+    identity, the *measured* universe. The identity is in each raw universe
+    because every frozen basis starts with ``I``, so ``S_00`` carries it; the
+    combined universe contains ``U_SH`` by construction.
+    """
     bank = preflight_gate.first_moment_bank(model, selected)
     result = bank.solve()
     energies = [float(value) for value in result.energies]
     ground = energies[0]
     gap = energies[1] - ground if len(energies) > 1 else math.inf
     sh_words = bank.word_set()
-    settings = len(group_words(sh_words, protocol, model.n))
+    groups = group_words(sh_words, protocol, model.n)
+    settings = len(groups)
+    partitioned = sum(len(group) for group in groups)
+    identity_in = 0 in sh_words
     variance = committed["variance"]
     residual = math.sqrt(max(variance, 0.0))
     return {
         "n_qubits": model.n,
         "basis_size": len(selected),
         "effective_rank": int(result.effective_rank),
-        "sh_word_universe": len(sh_words),
-        "combined_word_universe": committed["combined_word_universe"],
+        "raw_sh_word_universe": len(sh_words),
+        "raw_combined_word_universe": committed["raw_combined_word_universe"],
+        "measured_sh_words": len(sh_words) - int(identity_in),
+        "measured_combined_words": committed["raw_combined_word_universe"] - int(identity_in),
         "energy_settings": settings,
         "ground_energy": ground,
         "subspace_gap": gap,
@@ -628,12 +654,13 @@ def quantities_for(model, selected, committed: dict, protocol: str,
         "cancellation_scale": committed["cancellation_scale"],
         "matched_precision_half": residual / 4.0,
         "energy_grouping_protocol": protocol,
-        "combined_words_sha256": committed["combined_words_sha256"],
+        "raw_combined_words_sha256": committed["raw_combined_words_sha256"],
         "alternative_protocol": alternative,
         "mapping_axis_linearized_energy_variance": committed["mapping_energy_variance"],
         "full_rank": int(result.effective_rank) == len(selected),
         "ground_root_nondegenerate": gap > GAP_FLOOR * max(1.0, abs(ground)),
         "variance_resolved": committed["variance_resolved"],
+        "identity_in_raw_universes": identity_in,
         "ground_energy_matches_validation": _close(ground, committed["validation_energy"],
                                                    abs_=1e-10),
         "sh_universe_matches_records": (
@@ -642,6 +669,7 @@ def quantities_for(model, selected, committed: dict, protocol: str,
         "energy_settings_match_mapping_axis": (
             protocol == committed["mapping_protocol"]
             and settings == committed["mapping_settings"]),
+        "energy_partition_covers_measured_words": partitioned == len(sh_words) - int(identity_in),
     }
 
 
@@ -682,13 +710,15 @@ def structural_problems(config: dict, notes: list[str] | None = None,
         problems.extend(f"{name}: {problem}"
                         for problem in compare(config["measured_before_freezing"][name], got))
         for key in ("full_rank", "ground_root_nondegenerate", "variance_resolved",
-                    "ground_energy_matches_validation", "sh_universe_matches_records",
-                    "energy_settings_match_mapping_axis"):
+                    "identity_in_raw_universes", "ground_energy_matches_validation",
+                    "sh_universe_matches_records", "energy_settings_match_mapping_axis",
+                    "energy_partition_covers_measured_words"):
             if not got[key]:
                 problems.append(f"{name}: premise {key} fails")
         notes.append(f"  {name}: n={got['n_qubits']} M={got['basis_size']} "
                      f"gap={got['subspace_gap']:.4g} sigma={got['residual_norm']:.4g} "
-                     f"|U_SH|={got['sh_word_universe']} |U|={got['combined_word_universe']} "
+                     f"raw |U_SH|={got['raw_sh_word_universe']} "
+                     f"raw |U|={got['raw_combined_word_universe']} "
                      f"G_SH={got['energy_settings']} ({got['energy_grouping_protocol']})")
     return problems
 
