@@ -150,6 +150,11 @@ jobs:
           - gate: check_phase15_variance_extrapolation
             timeout: 25
             environment_record: phase15_variance_extrapolation.json
+          # Rebuilds every bank's second-moment rows, both functionals and every
+          # grouping: about seven minutes locally, most of it H2O.
+          - gate: check_phase15_measured_residual_preflight
+            timeout: 25
+            environment_record: phase15_measured_residual_preflight.json
           - gate: check_r4a_contextual_screen
             timeout: 20
             environment_record: r4a_contextual_screen.json

@@ -13,6 +13,7 @@ from __future__ import annotations
 
 import copy
 import json
+
 import numpy as np
 import pytest
 
@@ -323,3 +324,57 @@ def test_the_checker_refuses_an_unclean_record(tmp_path, toy, capsys):
 def test_the_checker_refuses_a_missing_record(tmp_path, capsys):
     assert checker.main(["--record", str(tmp_path / "absent.json")]) == 1
     assert "missing record" in capsys.readouterr().out
+
+
+# ------------------------------------------------------------------ the committed record
+
+def test_the_committed_record_re_derives_without_a_rebuild():
+    """The five-bank record, re-read under the checker without rebuilding a bank."""
+    config = gate.load_config()
+    record = json.loads(producer.RECORD.read_text(encoding="utf-8"))
+    validation = json.loads(gate.VALIDATION.read_text(encoding="utf-8"))
+    assert _all_problems(config, gate.CONFIG.read_bytes(), record, validation, None,
+                         recompute=False) == []
+    assert record["provenance"]["git_dirty"] is False
+    assert record["decision"]["verdict"] == "INVALID"
+    failed = {name: [check for check, ok in entry["deterministic_checks"].items() if not ok]
+              for name, entry in record["banks"].items()}
+    assert failed == {"h4": [], "h4_converged": [], "beh2": [], "h2o_cas8e6o": [],
+                      "hubbard_2x2": ["linearization_matches_finite_differences"]}
+
+
+def test_the_producer_refuses_to_overwrite_the_committed_record(capsys):
+    assert producer.main([]) == 1
+    assert "runs once" in capsys.readouterr().out
+
+
+def test_the_hubbard_miss_is_truncation_at_the_frozen_step():
+    """Post-hoc, not preregistered: the failed check's discrepancy scales as
+    the step squared, so the analytic linearization is correct and the frozen
+    step is too coarse on this bank. Halving it passes the frozen tolerance."""
+    from clifford_qc.subspace.second_moment import RESOLUTION
+
+    config = gate.load_config()
+    rule = config["linearization"]["finite_difference"]
+    record = json.loads(producer.RECORD.read_text(encoding="utf-8"))
+    recorded = record["banks"]["hubbard_2x2"]["finite_differences"]["functional"]
+    model, selected = preflight_gate.bank_inputs("hubbard_2x2")
+    bank = preflight_gate.first_moment_bank(model, selected)
+    rows = gate.block_rows(bank, SecondMomentBank(bank), list(range(len(selected))))
+    means = gate.reference_means(bank.reference, gate.row_words(rows))
+    weights, _ = gate.residual_functional(rows, len(selected), means)
+    weights = {int(word): float(value) for word, value in weights.items()}
+    direction = gate.check_directions(weights, set(bank.word_set()),
+                                      seed=int(rule["seed"]))["functional"]
+    scale = record["banks"]["hubbard_2x2"]["estimator"]["cancellation_scale"]
+    misses = []
+    for step in (float(rule["step"]), float(rule["step"]) / 2):
+        row = gate.finite_difference_check(
+            rows, len(selected), means, weights, direction, step=step,
+            relative_tolerance=float(rule["relative_tolerance"]),
+            cancellation_scale=scale, resolution=RESOLUTION)
+        misses.append((abs(row["numeric"] - row["analytic"]), row["passes"]))
+    assert misses[0][0] == pytest.approx(
+        abs(recorded["numeric"] - recorded["analytic"]), rel=1e-3)
+    assert misses[0][1] is False and misses[1][1] is True
+    assert misses[0][0] / misses[1][0] == pytest.approx(4.0, rel=0.01)

@@ -133,7 +133,7 @@ conditional phases.
 | PRD | orthogonal-residual regression, Davidson/preconditioned expansion, packet pricing, matched A-CASE, exact and finite-shot suites | **done and read**; exact compactness is positive, complete-bank QWC finite-shot energy accuracy is negative |
 | 13 | parity/X-rank invariant | **done**; one shared GF(2) implementation is tested across every declared spin-conserving JW construction path before grouping |
 | 14 | fully commuting grouping | **done on the frozen BeH₂/JW comparison** — the public compiled-plan API, exact joint sampler, preregistered finite-sample record, covariance audit, and device-card costing ship; Q9 is positive within the declared one-bank oracle boundary |
-| 15 | second-moment bank | **partially implemented (50%)**; the H-squared preflight reads `FULL` (Q16), and `SecondMomentBank` ships with exact second moments and true Ritz residual norms validated on all five licensed banks. Opt-in exact convergence reporting ships at adaptive termination, with numerical resolution and separate ground-state evidence. Q17's `CONDITIONAL` permits the shipped three-prefix extrapolation diagnostic, with improvement evidence confined to the frozen H₄ and H₂O bases. Finite-shot estimation and reporting, folded-spectrum roots and banks outside the five remain |
+| 15 | second-moment bank | **partially implemented (50%)**; the H-squared preflight reads `FULL` (Q16), and `SecondMomentBank` ships with exact second moments and true Ritz residual norms validated on all five licensed banks. Opt-in exact convergence reporting ships at adaptive termination, with numerical resolution and separate ground-state evidence. Q17's `CONDITIONAL` permits the shipped three-prefix extrapolation diagnostic, with improvement evidence confined to the frozen H₄ and H₂O bases. Q18's measured-residual cost preflight ran once and reads `INVALID`: the Hubbard 2×2 finite-difference check failed at its frozen step, so no finite-shot estimator is licensed or closed. Finite-shot estimation and reporting, folded-spectrum roots and banks outside the five remain |
 | 16 | time-evolved inputs | **partially implemented (50%)**; the 16A QSCI time-evolved input ships in `subspace/time_evolution.py` (exact matrix-free propagation as an `oracle` input, a validated Trotter circuit as an `implementable` one, and pooled multi-time sampling). Its decision comparison, Q15, ran once and reads `NO_GO`: iterated selected CI of the same size matches or beats it on both required instances. No circuit-native/truncated A-CASE real-time family ships. 16B's three preregistered decision experiments have run — v1 `CONDITIONAL`, v2 `GO` under per-word pricing, v3 `CONDITIONAL` once the incumbent is priced with its own grouping — and the programme ends there: the real-time backend is **not authorized** (§5, Phase 16) |
 | 17 | mapping validation and breadth | **partially implemented (75%)**; the JW/BK/parity transformation, invariance gates, and mapping-axis records ship through R2, while the CEO-pool and dedicated MORE-ADAPT breadth benchmarks remain open |
 | 18 | embedding boundary | **done**; the versioned effective-Hamiltonian schema ships in `models/effective.py`, and the common fragment-solver callback returning energy and one- and two-particle density matrices ships in `subspace/fragment.py`, implemented by QSCI, selected CI, the hybrid, and a sector-FCI reference. The embedding loop itself stays outside the package |
@@ -2193,10 +2193,10 @@ its own regression, re-derives every status and the verdict, rebuilds every
 bank, and runs in the structural CI matrix. *Not claimed:* anything about
 finite-shot variances, other windows, or bases outside the five.
 
-**The measured residual's cost is preregistered, ratio-free, and not run.**
-`benchmarks/PHASE15_MEASURED_RESIDUAL_PREREGISTRATION.md` (Q18, §10) prices
-what the H² preflight excluded, grouping and shots, before any finite-shot
-second-moment estimator exists. On each of the five licensed banks it asks
+**The measured residual's cost ran once and reads `INVALID` (Q18).**
+`benchmarks/PHASE15_MEASURED_RESIDUAL_PREREGISTRATION.md` (§10) priced what
+the H² preflight excluded, grouping and shots, before any finite-shot
+second-moment estimator existed. On each of the five licensed banks it asked
 what a residual norm costs against its own energy at one matched standard
 error:
 
@@ -2213,19 +2213,56 @@ R = (G_U · V_σ²) / (4 σ² · G_SH · V_E)
   per-setting variances from the exact reference. The energy side reproduces
   the mapping-axis record's committed setting counts.
 - *The bar.* `R ≤ 10` is AFFORDABLE, under the mapping-axis protocol and, on
-  the 8-qubit banks, under the scalable cover too. A disagreement between
-  them is GROUPING_SENSITIVE.
+  the 8-qubit banks, under the scalable cover too.
 
-FULL builds the finite-shot estimator on all five banks, RESTRICTED on the
-affordable ones by name, and NONE closes Phase 15's finite-shot item negative
-on these banks. Every verdict is reachable. The gate,
-`check_phase15_measured_residual_preregistration.py`, computes no ratio and
-runs in the structural CI matrix. The producer
-(`run_phase15_measured_residual_preflight.py`) and result checker
-(`check_phase15_measured_residual_preflight.py`) are committed and tested
-only on the undeclared Hubbard dimer; no ratio has been computed on a declared
-bank. There a Monte Carlo of the full nonlinear estimator reproduces the
-linearized residual variance to 3%.
+The declaration, its revision 1, the producer and the result checker each
+landed before the run. The record
+(`benchmarks/reference_results/phase15_measured_residual_preflight.json`)
+comes from clean tree `4916944` under Python 3.12 and NumPy 2.5.2, and the
+config's last change precedes it. **The verdict is `INVALID`.** Hubbard 2×2
+fails one deterministic check. Along the `functional` direction, the central
+difference of the nonlinear pipeline misses the analytic derivative by
+`3.53e-5`, against a frozen tolerance of `2.07e-5`. Its other direction agrees
+to `7.8e-11`. Under the frozen rule one INVALID bank makes the verdict INVALID,
+and no status is read from the run. So Q18 is unanswered, and this run
+neither licenses nor closes the finite-shot estimator.
+
+The four other banks pass every check. Their recorded ratios are below, and no
+clause reads them now.
+
+| bank | `σ` | `R`, mapping-axis protocol | `R`, alternative |
+|---|---|---|---|
+| H₄ | 0.0756 Ha | 567 | 563 |
+| converged H₄ | 0.0498 Ha | 1,311 | 1,322 |
+| BeH₂ | 0.00234 Ha | 184,358 | 184,358 |
+| H₂O CAS(8e,6o) | 0.152 Ha | 1,579 | none declared |
+| Hubbard 2×2 (INVALID) | 1.52 t | 21.0 | 17.2 |
+
+Three readings are bounded by the record itself.
+
+- *Variance, not settings, drives `R`.* On the three 8-qubit molecular banks
+  the residual needs no more settings than the energy (881 against 913 on H₄,
+  353 against 353 on BeH₂). H₂O needs 1.7 times as many, and Hubbard 2×2 1.2
+  times. So `R` is mostly `V_σ²/(4σ²V_E)`. Its explicit `1/σ²` makes the
+  best-converged basis, BeH₂, the most expensive.
+- *The failure is the check's step, not the linearization.* A post-hoc sweep,
+  not preregistered and not in the record, repeats the Hubbard check at six
+  steps. The discrepancy falls by `4.00×` at every halving, from `1.4e-4` at
+  `2e-3` to `1.4e-7` at `6.25e-5`: pure `O(h²)` truncation. It passes at
+  `5e-4` and below. The step was calibrated on the dimer alone, and Hubbard
+  2×2 has the largest residual against its gap of the five.
+  `tests/test_phase15_measured_residual_preflight.py` reproduces the sweep.
+- *No verdict follows.* Every recorded ratio exceeds ten under every
+  protocol. A declaration that repaired only the finite-difference rule would
+  therefore almost certainly read NONE. It would be written after every ratio
+  was seen, so it would carry the weight of a post-hoc reading, and none is
+  made.
+
+`check_phase15_measured_residual_preflight.py` re-derives every ratio, check,
+status and the verdict under its own statement of the rule. It rebuilds every
+bank and runs in the structural CI matrix. *Not claimed:* a NONE verdict, an
+affordability reading for any bank, anything about finite-sample intervals,
+device time, other groupings or allocations, and any bank outside the five.
 
 ### Phase 16 — time-evolved inputs, split by method
 
@@ -4170,9 +4207,13 @@ A-CASE's.
   means, to the same standard error as its energy, cost at most ten times the
   energy's shots? *Falsifier:* no bank is AFFORDABLE, so a residual known as
   well as the energy is a measurement of its own rather than a by-product of
-  the energy's. *Status:* preregistered; producer and checker committed, not
-  run (`benchmarks/PHASE15_MEASURED_RESIDUAL_PREREGISTRATION.md`, §5 Phase 15).
-  The ratio is first-order and asymptotic, from exact reference variances.
+  the energy's. *Status:* executed once, **`INVALID`**
+  (`benchmarks/reference_results/phase15_measured_residual_preflight.json`,
+  §5 Phase 15). Hubbard 2×2's finite-difference check missed its frozen
+  tolerance by a factor of 1.7, so the run gives no verdict and the falsifier
+  is not evaluated. A post-hoc step sweep, not preregistered, traces the miss
+  to `O(h²)` truncation at the frozen step. The other four banks pass every
+  check, and their recorded ratios run from 563 to 184,358.
 
 **Resource accounting (QR1–QR6).**
 
@@ -4836,8 +4877,8 @@ bought a duplicate record.
     correctness evidence is `tests/test_convergence.py`, not a new benchmark
     verdict. The measured implementation and folded-spectrum roots remain,
     so Phase 15 stays partial at 50%.
-19h. Phase 15's measured-residual cost preflight — **preregistered, not
-    run.** The ratio-free declaration
+19h. Phase 15's measured-residual cost preflight — **executed once,
+    `INVALID`.** The ratio-free declaration
     (`PHASE15_MEASURED_RESIDUAL_PREREGISTRATION.md`,
     `configs/phase15_measured_residual_preflight.json`,
     `check_phase15_measured_residual_preregistration.py`) fixes the
@@ -4847,9 +4888,12 @@ bought a duplicate record.
     checker (`check_phase15_measured_residual_preflight.py`) follow it, tested
     only on the undeclared Hubbard dimer. The producer refuses to form a
     second-moment row unless the gate passes, and the checker re-derives every
-    ratio, status and the verdict independently and rebuilds every bank. Next
-    is the single declared run. Its verdict decides whether the finite-shot
-    estimator is built.
+    ratio, status and the verdict independently and rebuilds every bank. The
+    one declared run (`reference_results/phase15_measured_residual_preflight.json`)
+    reads INVALID: Hubbard 2×2's finite-difference check failed at its frozen
+    step. No status is read, so the finite-shot estimator is neither licensed
+    nor closed. The preregistration permits no follow-up, and deciding it
+    needs a new declaration.
 20. CEO and MORE-ADAPT benchmarks after the critical comparison is stable.
 21. The excited-state track, after the certificate question of §7.4 has an answer. Note
     that §3.5B's transformation-character parameter is what keeps this track reachable

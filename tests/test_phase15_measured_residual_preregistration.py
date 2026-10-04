@@ -315,7 +315,9 @@ MUTATIONS = {
     "lineage": (lambda c: c["implementation_lineage"]["inputs"].pop(0), "must be bound"),
     "gate_binding": (lambda c: c["implementation_lineage"]["implementation"].pop(),
                      "must be bound"),
-    "drift": (_set(("implementation_lineage", "implementation", 0, "sha256"), "0" * 64),
+    # Inputs stay bound for good; implementation bindings lapse once the record
+    # exists, which test_the_implementation_binding_lapses_once_a_record_exists covers.
+    "drift": (_set(("implementation_lineage", "inputs", 0, "sha256"), "0" * 64),
               "drifted"),
     "revision": (lambda c: c["revisions"].append(
         {"revision": len(c["revisions"]), "changes": ["x"]}), "no ratio existed"),
@@ -354,9 +356,10 @@ def test_the_implementation_binding_lapses_once_a_record_exists(config):
     assert any("drifted" in p for p in gate.lineage_problems(bad, record_exists=True))
 
 
-def test_commit_order_waits_for_a_record():
+def test_the_config_precedes_the_record():
+    """Before a record there is nothing to order; after it, the config's last
+    change must strictly precede the record's first commit."""
     notes: list[str] = []
-    if gate.RECORD.exists():  # pragma: no cover - after the producer lands
-        pytest.skip("a record exists; its order is checked by the gate itself")
     assert gate.commit_order_problems(notes) == []
-    assert any("no record yet" in note for note in notes)
+    assert any(phrase in note for note in notes
+               for phrase in ("no record yet", "precedes record", "SKIP"))
