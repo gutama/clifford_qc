@@ -2264,6 +2264,17 @@ bank and runs in the structural CI matrix. *Not claimed:* a NONE verdict, an
 affordability reading for any bank, anything about finite-sample intervals,
 device time, other groupings or allocations, and any bank outside the five.
 
+**Q18-S1 is separately declared, post-hoc and not yet executed.**
+`benchmarks/PHASE15_RESIDUAL_SUCCESSOR_DECLARATION.md` and its gated config
+keep Q18's five banks, uniform QWC statistic, protocols and tenfold bar. A fixed
+four-step Richardson validator replaces the single-step check, with both final
+pairs required to agree and all endpoints required to retain the declared domain.
+The original INVALID record stays immutable. Integer oracle allocation charges
+shot floors and an unperformed pilot as a diagnostic only; no clause reads it.
+The declaration is post-hoc because every predecessor ratio and the Hubbard sweep
+were inspected. Its commit order protects identity, not preregistered inference.
+
+
 ### Phase 16 — time-evolved inputs, split by method
 
 **16A — QSCI input.** Use `PauliLinearOperator.as_linear_operator()` with

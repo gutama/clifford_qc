@@ -116,7 +116,7 @@ No figure or table value in the manuscript is transcribed by hand, and
 ```bash
 python -m venv .venv && source .venv/bin/activate
 pip install -e .[test,research,stim]       # automatic CI extras
-pytest                                      # 2742 passed, 11 skipped
+pytest                                      # 2783 passed, 11 skipped
 ```
 
 This is the automatic CI dependency set; record gates additionally pin NumPy
@@ -132,7 +132,7 @@ the remaining `11 - 6 = 5` skips are per-test and *are* collected:
 
 ```text
 collected == passed + (skipped - files dropped at collection)
-2747      == 2742   + (11      -   6)
+2788      == 2783   + (11      -   6)
 ```
 
 Both sides are computed from the tree, so a drift in either quoted number
@@ -4041,3 +4041,36 @@ See [molecular/PIPELINE.md](molecular/PIPELINE.md) for the independent `prepare`
 regressions. `benchmarks/profile_pipeline.py` runs a small TFIM profile in one
 process; run separate processes for each storage/policy arm. It is diagnostic
 performance evidence and does not replace the molecular acceptance matrix.
+
+
+## Q18-S1: separate post-hoc residual-cost successor
+
+The original Q18 INVALID record and config are immutable. The separately declared
+successor keeps the five banks, uniform QWC protocols, matched-standard-error
+ratio and tenfold bar; its derivative check uses all four fixed steps and requires
+both final Richardson estimates and their stability. It is post-hoc on these
+banks because the original ratios and Hubbard sweep were already inspected.
+
+```bash
+python benchmarks/check_phase15_residual_successor_declaration.py
+# After committing the declaration and code, from a clean pinned environment:
+OMP_NUM_THREADS=1 OPENBLAS_NUM_THREADS=1 MKL_NUM_THREADS=1 \
+  python benchmarks/run_phase15_residual_successor.py
+# After a successor record exists:
+python benchmarks/check_phase15_residual_successor.py
+python benchmarks/check_phase15_residual_successor.py --no-recompute
+```
+
+The producer writes only its own declared path and refuses an existing record;
+the checker supplies regeneration without replacing it. The record is committed
+alone after the declaration and code. The independent checker restates the
+Richardson rule, cost arithmetic, allocation counts and decision, and rebuilds
+every endpoint, function and per-setting variance. Integer allocation uses exact
+variances, charges 64 unperformed pilot shots per setting and a positive production
+floor, and reads at sigma/100 precision on both sides. It is an oracle diagnostic
+with no estimator licence, sampled pilot, coverage claim or device-time claim.
+
+`tests/test_phase15_residual_successor.py` validates an undeclared dimer against
+an independent dense density perturbation and SciPy generalized eigensolve,
+rejects a dropped Ritz-vector response, checks floors and overhead, and catches
+forged summaries and a self-consistent endpoint forgery on rebuild.

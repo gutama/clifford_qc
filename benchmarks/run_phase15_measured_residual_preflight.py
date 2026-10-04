@@ -104,7 +104,8 @@ def _norm(weights) -> float:
 
 
 def price_protocol(reference, protocol: str, n: int, sh_words, combined_words,
-                   energy_weights, residual_weights, variance: float) -> dict:
+                   energy_weights, residual_weights, variance: float, *,
+                   include_setting_variances: bool = False) -> dict:
     """Both groupings under one protocol, their one-shot variances and R."""
     energy_groups = gate.group_words(sh_words, protocol, n)
     residual_groups = gate.group_words(combined_words, protocol, n)
@@ -129,7 +130,7 @@ def price_protocol(reference, protocol: str, n: int, sh_words, combined_words,
              if priced else None)
     neyman = (residual_neyman ** 2 / (4.0 * variance * energy_neyman ** 2)
               if priced and energy_neyman > 0.0 else None)
-    return {
+    price = {
         "energy_settings": len(energy_groups),
         "energy_partitioned_words": sum(len(group) for group in energy_groups),
         "energy_variance_one_shot": energy_variance,
@@ -143,10 +144,15 @@ def price_protocol(reference, protocol: str, n: int, sh_words, combined_words,
         "partition_problems": problems,
         "variances_nonnegative": nonnegative,
     }
+    if include_setting_variances:
+        price["energy_setting_variances"] = [float(v) for v in energy_variances]
+        price["residual_setting_variances"] = [float(v) for v in residual_variances]
+    return price
 
 
 def evaluate_bank(config: dict, name: str, model, selected, frozen: dict,
-                  validation_root: dict, *, progress=None) -> dict:
+                  validation_root: dict, *, progress=None, derivative_check=None,
+                  protocol_pricer=None) -> dict:
     """The rows, functionals, checks, prices and status of one bank."""
     from clifford_qc.measurement.functionals import ritz_functional
     from clifford_qc.subspace import SecondMomentBank
@@ -186,12 +192,11 @@ def evaluate_bank(config: dict, name: str, model, selected, frozen: dict,
     directions = gate.check_directions(residual_weights, sh_words, seed=int(check["seed"]))
     finite = {}
     for key in check["directions"]:
-        row = gate.finite_difference_check(
+        row = (derivative_check or gate.finite_difference_check)(
             rows, size, means, residual_weights, directions[key], step=float(check["step"]),
             relative_tolerance=float(check["relative_tolerance"]),
             cancellation_scale=scale, resolution=RESOLUTION)
-        finite[key] = {"numeric": float(row["numeric"]), "analytic": float(row["analytic"]),
-                       "tolerance": float(row["tolerance"]), "passes": bool(row["passes"])}
+        finite[key] = row
     say("finite differences " + ", ".join(
         f"{key}={'pass' if value['passes'] else 'FAIL'}" for key, value in finite.items()))
 
@@ -201,8 +206,9 @@ def evaluate_bank(config: dict, name: str, model, selected, frozen: dict,
     for role, protocol in (("declared", declared), ("alternative", alternative)):
         if protocol is None:
             continue
-        priced = price_protocol(bank.reference, protocol, model.n, sh_words, combined,
-                                energy_weights, measured_residual, variance)
+        priced = (protocol_pricer or price_protocol)(
+            bank.reference, protocol, model.n, sh_words, combined,
+            energy_weights, measured_residual, variance)
         protocols[protocol] = {"role": role, **priced}
         say(f"{protocol}: G_SH={priced['energy_settings']} G_U={priced['residual_settings']} "
             f"R={priced['cost_ratio']}")
@@ -275,7 +281,7 @@ def evaluate_bank(config: dict, name: str, model, selected, frozen: dict,
 
 def run_preflight(config: dict, *, config_bytes: bytes, banks=None, inputs=None,
                   validation: dict | None = None, structural: dict | None = None,
-                  progress=None) -> dict:
+                  progress=None, evaluator=None) -> dict:
     """The declared preflight as a record (unstamped). ``inputs`` is for tests."""
     inputs = preflight_gate.bank_inputs if inputs is None else inputs
     if validation is None:
@@ -306,8 +312,9 @@ def run_preflight(config: dict, *, config_bytes: bytes, banks=None, inputs=None,
         measured = (structural or {}).get(name, frozen)
         if progress is not None:
             progress(f"{name}: n={model.n} M={len(selected)}")
-        entry = evaluate_bank(config, name, model, selected, frozen,
-                              validation["banks"][name]["roots"][0], progress=progress)
+        entry = (evaluator or evaluate_bank)(
+            config, name, model, selected, frozen,
+            validation["banks"][name]["roots"][0], progress=progress)
         entry["measured_at_execution"] = {k: measured[k] for k in gate.MEASURED_FIELDS}
         record["banks"][name] = entry
         if progress is not None:
