@@ -1,0 +1,717 @@
+{
+ "schema": "clifford_qc.phase15_measured_residual_preflight.v1",
+ "config_path": "benchmarks/configs/phase15_measured_residual_preflight.json",
+ "config_digest": "b9b2eb38bb769d4b5e5e5454106f257264ee785df05a2a477beea38f410054aa",
+ "claim_boundary": "This record reports the one measured-residual cost preflight benchmarks/configs/phase15_measured_residual_preflight.json froze. On each of the five licensed banks it records, under each declared grouping protocol, the single-assignment QWC settings and one-shot linearized variances of the ground Ritz root's energy and residual-norm estimators, their ratio R at one matched standard error, the status the frozen ladder gives, and the verdict. The ratios are first-order and asymptotic, read from exact reference variances with uniform shots per setting. They say nothing about finite-sample intervals, device time, other groupings or allocations, or any bank outside the five.",
+ "preregistration": {
+  "gate": "benchmarks/check_phase15_measured_residual_preregistration.py",
+  "revision": 1,
+  "config_claim_boundary_at_landing": "This config declares the Phase 15 measured-residual cost preflight: on the five banks the H-squared preflight licensed, the ratio of the asymptotic shots that estimate the ground Ritz root's residual norm to those that estimate its energy, at one matched standard error, under single-assignment QWC grouping with uniform shots per setting. It holds no ratio, no residual functional, no grouping of a combined word universe and no group variance. The ratio it declares is first-order and asymptotic, read from exact reference variances: it is not a finite-sample statement, a coverage claim, a device time, or a statement about any bank outside the five."
+ },
+ "quantum_advantage_claim": false,
+ "evidence": {
+  "label": "asymptotic",
+  "statement": "First-order (delta-method) variances at large shot counts, computed exactly from the reference state and the frozen bases. No sampling, no seed beyond the finite-difference direction, no finite-sample statement."
+ },
+ "statistic": {
+  "name": "R",
+  "definition": "R = (G_U * V_sigma2) / (4 * sigma^2 * G_SH * V_E)",
+  "derivation": "Uniform shots make a linearized estimator's variance V / N at N shots per setting, so a standard error s costs G * V / s^2 shots. sigma is read from sigma^2 through d sigma = d sigma^2 / (2 sigma). Matching the two standard errors at s, the s^2 cancels: R is the residual's shots over the energy's at any one matched precision, to first order",
+  "max_ratio": 10,
+  "rationale": "A decade is the unit this repository reads as material, as in Q16's word clause and Phase 16B's 10x modelled-shot rule. A residual within a decade of its energy's shots is a by-product of measuring that energy well; beyond it, it is a measurement of its own. A ratio exactly at ten is affordable",
+  "matched_precision": "Matching the standard errors of E and sigma makes both ends of the measured Weinstein interval [E - sigma, E + sigma] carry the two sources equally",
+  "linear_regime": "d sigma = d sigma^2 / (2 sigma) holds while the standard error of sigma^2 is small against sigma^2. At a matched precision s that error is 2 sigma s, so the record reports matched_precision_half = sigma / 4, the s at which it reaches one half of sigma^2. Finer precisions are where R describes the cost; coarser ones do not resolve sigma from zero. No clause reads it",
+  "diagnostics": "the record also reports the Neyman ratio, both sides at variance-optimal allocation across settings, (sum_g sqrt v_g)^2 in place of G * V. No clause reads it"
+ },
+ "grouping": {
+  "estimator": "single_assignment",
+  "allocation": "uniform",
+  "energy_universe": "the measured (S, H) universe: the raw U_SH, the (S, H) bank's words over the retained block, minus the identity, listed in ascending code order exactly as the mapping-axis producer lists its JW arm",
+  "residual_universe": "the measured combined universe: the raw U = U_SH | U_K minus the identity. The raw U is every word a measured second-moment bank's rows carry, and the H-squared preflight record committed its size and SHA-256",
+  "universe_convention": "Raw universes include the identity, as the Phase 2M-A ledger, the H-squared preflight record and the mapping-axis record count and hash them; every frozen basis starts with I, so S_00 carries it. Measured universes are the raw ones minus the identity, whose mean is 1 and is never measured. Every count and digest in measured_before_freezing whose name starts with raw_ is a raw quantity; measured_sh_words and measured_combined_words are one fewer, and every grouping partitions a measured universe",
+  "declared_protocol_by_system": {
+   "h4": "qwc_groups",
+   "h4_converged": "qwc_groups",
+   "beh2": "qwc_groups",
+   "h2o_cas8e6o": "qwc_basis_cover",
+   "hubbard_2x2": "qwc_groups"
+  },
+  "alternative_protocol_by_system": {
+   "h4": "qwc_basis_cover",
+   "h4_converged": "qwc_basis_cover",
+   "beh2": "qwc_basis_cover",
+   "h2o_cas8e6o": null,
+   "hubbard_2x2": "qwc_basis_cover"
+  },
+  "rationale": "The declared protocol is the mapping-axis record's, per system, so the energy denominator reproduces a committed setting count. On the 8-qubit banks the greedy and the scalable cover are both feasible, and a status must not rest on one heuristic. On H2O the greedy is quadratic in 868,150 words, so the cover is the only protocol and no alternative is declared",
+  "variance": "per setting, Var_psi(sum_{w in g} f_w P_w) on the exact reference, by run_mapping_axis._functional_variance, the function behind the committed mapping-axis energy variances. V is their sum: the estimator's variance at one shot per setting"
+ },
+ "finite_difference": {
+  "directions": [
+   "functional",
+   "sh_gaussian"
+  ],
+  "direction_definitions": {
+   "functional": "the residual functional's own non-identity weights, normalized to unit length: the derivative along it is ||g||_2",
+   "sh_gaussian": "a seeded standard normal draw over the non-identity (S, H) words, normalized: those words carry the Ritz-vector term"
+  },
+  "seed": 20261003,
+  "step": 0.001,
+  "relative_tolerance": 1e-06,
+  "rounding_floor": "RESOLUTION * cancellation_scale / step, with RESOLUTION = 1e-12 from clifford_qc.subspace.second_moment and the cancellation scale the validation record's",
+  "rule": "|central difference of the nonlinear pipeline - g . d| <= relative_tolerance * ||g||_2 + rounding_floor, for both directions",
+  "calibration": "On the undeclared Hubbard dimer the step leaves the truncation error near 5e-9 of ||g||_2, with and without a -75 Ha constant added to H to reproduce H2O's cancellation scale. A dropped Ritz-vector term fails it by orders of magnitude"
+ },
+ "banks": {
+  "h4": {
+   "n_qubits": 8,
+   "basis_size": 9,
+   "universes": {
+    "raw_sh_word_universe": 7371,
+    "raw_combined_word_universe": 8192,
+    "measured_sh_words": 7370,
+    "measured_combined_words": 8191,
+    "raw_combined_words_sha256": "e2df4fda6370e5495a7bcb5a859104faab04887b1859b6ea4715b7d881f3701d"
+   },
+   "estimator": {
+    "ground_energy": -2.177297832980223,
+    "variance": 0.0057080970367229256,
+    "residual_norm": 0.07555194925826153,
+    "matched_precision_half": 0.018887987314565383,
+    "cancellation_scale": 4.765720693496393,
+    "residual_functional_words": 8191,
+    "residual_functional_norm": 4.449078941656512,
+    "residual_identity_weight": 5.190733514168933,
+    "residual_reference_mean": 1.3890224369062518e-14,
+    "energy_functional_words": 3674,
+    "energy_functional_norm": 0.9155767595330991
+   },
+   "finite_differences": {
+    "functional": {
+     "numeric": 4.449078696967312,
+     "analytic": 4.449078941656511,
+     "tolerance": 4.453844662350008e-06,
+     "passes": true
+    },
+    "sh_gaussian": {
+     "numeric": -0.07109420009188128,
+     "analytic": -0.07109420007847608,
+     "tolerance": 4.453844662350008e-06,
+     "passes": true
+    }
+   },
+   "protocols": {
+    "qwc_groups": {
+     "role": "declared",
+     "energy_settings": 913,
+     "energy_partitioned_words": 7370,
+     "energy_variance_one_shot": 0.06246470471908434,
+     "energy_neyman_sum": 2.5369003957591176,
+     "residual_settings": 881,
+     "residual_partitioned_words": 8191,
+     "residual_variance_one_shot": 0.8383192699756983,
+     "residual_neyman_sum": 10.16939972593081,
+     "cost_ratio": 567.189979936796,
+     "neyman_ratio": 703.7727800775157,
+     "partition_problems": [],
+     "variances_nonnegative": true
+    },
+    "qwc_basis_cover": {
+     "role": "alternative",
+     "energy_settings": 915,
+     "energy_partitioned_words": 7370,
+     "energy_variance_one_shot": 0.0628324511946936,
+     "energy_neyman_sum": 2.526623093492481,
+     "residual_settings": 881,
+     "residual_partitioned_words": 8191,
+     "residual_variance_one_shot": 0.8383192699756987,
+     "residual_neyman_sum": 10.169399725934847,
+     "cost_ratio": 562.6378206152922,
+     "neyman_ratio": 709.5097622689107,
+     "partition_problems": [],
+     "variances_nonnegative": true
+    }
+   },
+   "mapping_axis_energy_variance": null,
+   "deterministic_checks": {
+    "combined_universe_matches_preflight": true,
+    "energy_settings_reproduce_mapping_axis": true,
+    "energy_variance_reproduces_mapping_axis": true,
+    "partitions_valid": true,
+    "residual_functional_reproduces_variance": true,
+    "residual_functional_mean_zero": true,
+    "linearization_matches_finite_differences": true,
+    "group_variances_nonnegative": true
+   },
+   "status": "PROHIBITIVE",
+   "seconds": 7.75,
+   "measured_at_execution": {
+    "n_qubits": 8,
+    "basis_size": 9,
+    "effective_rank": 9,
+    "raw_sh_word_universe": 7371,
+    "raw_combined_word_universe": 8192,
+    "measured_sh_words": 7370,
+    "measured_combined_words": 8191,
+    "energy_settings": 913,
+    "ground_energy": -2.177297832980223,
+    "subspace_gap": 0.8523659748149472,
+    "variance": 0.0057080970367273665,
+    "residual_norm": 0.07555194925829092,
+    "cancellation_scale": 4.765720693496393,
+    "matched_precision_half": 0.01888798731457273,
+    "energy_grouping_protocol": "qwc_groups",
+    "raw_combined_words_sha256": "e2df4fda6370e5495a7bcb5a859104faab04887b1859b6ea4715b7d881f3701d",
+    "alternative_protocol": "qwc_basis_cover",
+    "mapping_axis_linearized_energy_variance": null,
+    "full_rank": true,
+    "ground_root_nondegenerate": true,
+    "variance_resolved": true,
+    "identity_in_raw_universes": true,
+    "ground_energy_matches_validation": true,
+    "sh_universe_matches_records": true,
+    "energy_settings_match_mapping_axis": true,
+    "energy_partition_covers_measured_words": true
+   }
+  },
+  "h4_converged": {
+   "n_qubits": 8,
+   "basis_size": 15,
+   "universes": {
+    "raw_sh_word_universe": 7927,
+    "raw_combined_word_universe": 8192,
+    "measured_sh_words": 7926,
+    "measured_combined_words": 8191,
+    "raw_combined_words_sha256": "e2df4fda6370e5495a7bcb5a859104faab04887b1859b6ea4715b7d881f3701d"
+   },
+   "estimator": {
+    "ground_energy": -2.179550752062546,
+    "variance": 0.002477322921516034,
+    "residual_norm": 0.049772712619627575,
+    "matched_precision_half": 0.012443178154906894,
+    "cancellation_scale": 4.779374474443765,
+    "residual_functional_words": 8191,
+    "residual_functional_norm": 4.445046683910129,
+    "residual_identity_weight": 5.19451612157536,
+    "residual_reference_mean": -8.757416043421798e-15,
+    "energy_functional_words": 4190,
+    "energy_functional_norm": 0.9139844434635261
+   },
+   "finite_differences": {
+    "functional": {
+     "numeric": 4.445046387340668,
+     "analytic": 4.44504668391013,
+     "tolerance": 4.449826058384573e-06,
+     "passes": true
+    },
+    "sh_gaussian": {
+     "numeric": -0.007333160923828075,
+     "analytic": -0.007333160997335434,
+     "tolerance": 4.449826058384573e-06,
+     "passes": true
+    }
+   },
+   "protocols": {
+    "qwc_groups": {
+     "role": "declared",
+     "energy_settings": 913,
+     "energy_partitioned_words": 7926,
+     "energy_variance_one_shot": 0.0607594816492198,
+     "energy_neyman_sum": 2.4820338310326773,
+     "residual_settings": 881,
+     "residual_partitioned_words": 8191,
+     "residual_variance_one_shot": 0.8179524912228219,
+     "residual_neyman_sum": 10.040269358147638,
+     "cost_ratio": 1310.9210521110433,
+     "neyman_ratio": 1651.325632858383,
+     "partition_problems": [],
+     "variances_nonnegative": true
+    },
+    "qwc_basis_cover": {
+     "role": "alternative",
+     "energy_settings": 905,
+     "energy_partitioned_words": 7926,
+     "energy_variance_one_shot": 0.06076395492106659,
+     "energy_neyman_sum": 2.4823012458393485,
+     "residual_settings": 881,
+     "residual_partitioned_words": 8191,
+     "residual_variance_one_shot": 0.8179524912228182,
+     "residual_neyman_sum": 10.040269358148345,
+     "cost_ratio": 1322.4119450815883,
+     "neyman_ratio": 1650.9698620675183,
+     "partition_problems": [],
+     "variances_nonnegative": true
+    }
+   },
+   "mapping_axis_energy_variance": 0.060759481649219814,
+   "deterministic_checks": {
+    "combined_universe_matches_preflight": true,
+    "energy_settings_reproduce_mapping_axis": true,
+    "energy_variance_reproduces_mapping_axis": true,
+    "partitions_valid": true,
+    "residual_functional_reproduces_variance": true,
+    "residual_functional_mean_zero": true,
+    "linearization_matches_finite_differences": true,
+    "group_variances_nonnegative": true
+   },
+   "status": "PROHIBITIVE",
+   "seconds": 8.1,
+   "measured_at_execution": {
+    "n_qubits": 8,
+    "basis_size": 15,
+    "effective_rank": 15,
+    "raw_sh_word_universe": 7927,
+    "raw_combined_word_universe": 8192,
+    "measured_sh_words": 7926,
+    "measured_combined_words": 8191,
+    "energy_settings": 913,
+    "ground_energy": -2.179550752062546,
+    "subspace_gap": 0.558229303474147,
+    "variance": 0.0024773229215186987,
+    "residual_norm": 0.049772712619654345,
+    "cancellation_scale": 4.779374474443765,
+    "matched_precision_half": 0.012443178154913586,
+    "energy_grouping_protocol": "qwc_groups",
+    "raw_combined_words_sha256": "e2df4fda6370e5495a7bcb5a859104faab04887b1859b6ea4715b7d881f3701d",
+    "alternative_protocol": "qwc_basis_cover",
+    "mapping_axis_linearized_energy_variance": 0.060759481649219814,
+    "full_rank": true,
+    "ground_root_nondegenerate": true,
+    "variance_resolved": true,
+    "identity_in_raw_universes": true,
+    "ground_energy_matches_validation": true,
+    "sh_universe_matches_records": true,
+    "energy_settings_match_mapping_axis": true,
+    "energy_partition_covers_measured_words": true
+   }
+  },
+  "beh2": {
+   "n_qubits": 8,
+   "basis_size": 5,
+   "universes": {
+    "raw_sh_word_universe": 1815,
+    "raw_combined_word_universe": 2048,
+    "measured_sh_words": 1814,
+    "measured_combined_words": 2047,
+    "raw_combined_words_sha256": "1b4d9edd311445f9dadd38aaaf59d703de9ce0898eb9318f8f5679004d160a44"
+   },
+   "estimator": {
+    "ground_energy": -15.566208493595418,
+    "variance": 5.494887489021494e-06,
+    "residual_norm": 0.0023441176354913364,
+    "matched_precision_half": 0.0005860294088728341,
+    "cancellation_scale": 242.33117699940044,
+    "residual_functional_words": 2047,
+    "residual_functional_norm": 1.7746409236561533,
+    "residual_identity_weight": 1.4864375397172185,
+    "residual_reference_mean": 3.09130799895671e-13,
+    "energy_functional_words": 966,
+    "energy_functional_norm": 0.5808235554232316
+   },
+   "finite_differences": {
+    "functional": {
+     "numeric": 1.774640914973702,
+     "analytic": 1.7746409236561533,
+     "tolerance": 2.016972100655554e-06,
+     "passes": true
+    },
+    "sh_gaussian": {
+     "numeric": -0.10253012216310253,
+     "analytic": -0.10253012168548285,
+     "tolerance": 2.016972100655554e-06,
+     "passes": true
+    }
+   },
+   "protocols": {
+    "qwc_groups": {
+     "role": "declared",
+     "energy_settings": 353,
+     "energy_partitioned_words": 1814,
+     "energy_variance_one_shot": 0.007548955076120846,
+     "energy_neyman_sum": 0.30597799048379415,
+     "residual_settings": 353,
+     "residual_partitioned_words": 2047,
+     "residual_variance_one_shot": 0.03058914413719922,
+     "residual_neyman_sum": 0.7869317188372996,
+     "cost_ratio": 184357.8731626554,
+     "neyman_ratio": 300936.5443300081,
+     "partition_problems": [],
+     "variances_nonnegative": true
+    },
+    "qwc_basis_cover": {
+     "role": "alternative",
+     "energy_settings": 353,
+     "energy_partitioned_words": 1814,
+     "energy_variance_one_shot": 0.00754895507612112,
+     "energy_neyman_sum": 0.3059779799512796,
+     "residual_settings": 353,
+     "residual_partitioned_words": 2047,
+     "residual_variance_one_shot": 0.03058914413719754,
+     "residual_neyman_sum": 0.7869317188356229,
+     "cost_ratio": 184357.87316263857,
+     "neyman_ratio": 300936.56504667783,
+     "partition_problems": [],
+     "variances_nonnegative": true
+    }
+   },
+   "mapping_axis_energy_variance": 0.007548955076120861,
+   "deterministic_checks": {
+    "combined_universe_matches_preflight": true,
+    "energy_settings_reproduce_mapping_axis": true,
+    "energy_variance_reproduces_mapping_axis": true,
+    "partitions_valid": true,
+    "residual_functional_reproduces_variance": true,
+    "residual_functional_mean_zero": true,
+    "linearization_matches_finite_differences": true,
+    "group_variances_nonnegative": true
+   },
+   "status": "PROHIBITIVE",
+   "seconds": 0.81,
+   "measured_at_execution": {
+    "n_qubits": 8,
+    "basis_size": 5,
+    "effective_rank": 5,
+    "raw_sh_word_universe": 1815,
+    "raw_combined_word_universe": 2048,
+    "measured_sh_words": 1814,
+    "measured_combined_words": 2047,
+    "energy_settings": 353,
+    "ground_energy": -15.566208493595418,
+    "subspace_gap": 0.5973704104277058,
+    "variance": 5.494887460599784e-06,
+    "residual_norm": 0.002344117629428989,
+    "cancellation_scale": 242.33117699940044,
+    "matched_precision_half": 0.0005860294073572473,
+    "energy_grouping_protocol": "qwc_groups",
+    "raw_combined_words_sha256": "1b4d9edd311445f9dadd38aaaf59d703de9ce0898eb9318f8f5679004d160a44",
+    "alternative_protocol": "qwc_basis_cover",
+    "mapping_axis_linearized_energy_variance": 0.007548955076120861,
+    "full_rank": true,
+    "ground_root_nondegenerate": true,
+    "variance_resolved": true,
+    "identity_in_raw_universes": true,
+    "ground_energy_matches_validation": true,
+    "sh_universe_matches_records": true,
+    "energy_settings_match_mapping_axis": true,
+    "energy_partition_covers_measured_words": true
+   }
+  },
+  "h2o_cas8e6o": {
+   "n_qubits": 12,
+   "basis_size": 9,
+   "universes": {
+    "raw_sh_word_universe": 143117,
+    "raw_combined_word_universe": 868150,
+    "measured_sh_words": 143116,
+    "measured_combined_words": 868149,
+    "raw_combined_words_sha256": "fd29a296b182dfdd91e95620e89e418646eac221bb6c8ba4b8eb6aad4feb603b"
+   },
+   "estimator": {
+    "ground_energy": -74.99845661593258,
+    "variance": 0.023086767482709547,
+    "residual_norm": 0.15194330351387503,
+    "matched_precision_half": 0.03798582587846876,
+    "cancellation_scale": 5625.431956639506,
+    "residual_functional_words": 868149,
+    "residual_functional_norm": 44.551446844191844,
+    "residual_identity_weight": 33.004522806960864,
+    "residual_reference_mean": -7.587335223552374e-12,
+    "energy_functional_words": 70568,
+    "energy_functional_norm": 2.9928678287906143
+   },
+   "finite_differences": {
+    "functional": {
+     "numeric": 44.551442463671265,
+     "analytic": 44.551446844191844,
+     "tolerance": 5.017687880083135e-05,
+     "passes": true
+    },
+    "sh_gaussian": {
+     "numeric": -0.238978681863955,
+     "analytic": -0.2389786984847481,
+     "tolerance": 5.017687880083135e-05,
+     "passes": true
+    }
+   },
+   "protocols": {
+    "qwc_basis_cover": {
+     "role": "declared",
+     "energy_settings": 24334,
+     "energy_partitioned_words": 143116,
+     "energy_variance_one_shot": 0.1102299104817209,
+     "energy_neyman_sum": 5.427202640338805,
+     "residual_settings": 41774,
+     "residual_partitioned_words": 868149,
+     "residual_variance_one_shot": 9.36566625322638,
+     "residual_neyman_sum": 81.24096293132949,
+     "cost_ratio": 1579.4601069360815,
+     "neyman_ratio": 2426.4700174843133,
+     "partition_problems": [],
+     "variances_nonnegative": true
+    }
+   },
+   "mapping_axis_energy_variance": null,
+   "deterministic_checks": {
+    "combined_universe_matches_preflight": true,
+    "energy_settings_reproduce_mapping_axis": true,
+    "energy_variance_reproduces_mapping_axis": true,
+    "partitions_valid": true,
+    "residual_functional_reproduces_variance": true,
+    "residual_functional_mean_zero": true,
+    "linearization_matches_finite_differences": true,
+    "group_variances_nonnegative": true
+   },
+   "status": "PROHIBITIVE",
+   "seconds": 378.69,
+   "measured_at_execution": {
+    "n_qubits": 12,
+    "basis_size": 9,
+    "effective_rank": 9,
+    "raw_sh_word_universe": 143117,
+    "raw_combined_word_universe": 868150,
+    "measured_sh_words": 143116,
+    "measured_combined_words": 868149,
+    "energy_settings": 24334,
+    "ground_energy": -74.99845661593258,
+    "subspace_gap": 1.4023946805968421,
+    "variance": 0.023086767486347526,
+    "residual_norm": 0.15194330352584653,
+    "cancellation_scale": 5625.431956639506,
+    "matched_precision_half": 0.037985825881461634,
+    "energy_grouping_protocol": "qwc_basis_cover",
+    "raw_combined_words_sha256": "fd29a296b182dfdd91e95620e89e418646eac221bb6c8ba4b8eb6aad4feb603b",
+    "alternative_protocol": null,
+    "mapping_axis_linearized_energy_variance": null,
+    "full_rank": true,
+    "ground_root_nondegenerate": true,
+    "variance_resolved": true,
+    "identity_in_raw_universes": true,
+    "ground_energy_matches_validation": true,
+    "sh_universe_matches_records": true,
+    "energy_settings_match_mapping_axis": true,
+    "energy_partition_covers_measured_words": true
+   }
+  },
+  "hubbard_2x2": {
+   "n_qubits": 8,
+   "basis_size": 9,
+   "universes": {
+    "raw_sh_word_universe": 5537,
+    "raw_combined_word_universe": 13940,
+    "measured_sh_words": 5536,
+    "measured_combined_words": 13939,
+    "raw_combined_words_sha256": "6a54f8897b6ac50ef4e55131428b0cd59ba502b9d1bb9ccf3e1a6eac98a91782"
+   },
+   "estimator": {
+    "ground_energy": -9.239438100571599,
+    "variance": 2.309897112752438,
+    "residual_norm": 1.519834567560706,
+    "matched_precision_half": 0.3799586418901765,
+    "cancellation_scale": 87.97377669339312,
+    "residual_functional_words": 13939,
+    "residual_functional_norm": 20.63033984584218,
+    "residual_identity_weight": 25.83341149447199,
+    "residual_reference_mean": -2.338407245616736e-15,
+    "energy_functional_words": 2696,
+    "energy_functional_norm": 1.5277518023540708
+   },
+   "finite_differences": {
+    "functional": {
+     "numeric": 20.63030458270987,
+     "analytic": 20.630339845842176,
+     "tolerance": 2.0718313622535572e-05,
+     "passes": false
+    },
+    "sh_gaussian": {
+     "numeric": -0.04008327768900699,
+     "analytic": -0.040083277766598084,
+     "tolerance": 2.0718313622535572e-05,
+     "passes": true
+    }
+   },
+   "protocols": {
+    "qwc_groups": {
+     "role": "declared",
+     "energy_settings": 1406,
+     "energy_partitioned_words": 5536,
+     "energy_variance_one_shot": 1.2144771641276264,
+     "energy_neyman_sum": 15.786176732308295,
+     "residual_settings": 1709,
+     "residual_partitioned_words": 13939,
+     "residual_variance_one_shot": 193.78545872677344,
+     "residual_neyman_sum": 144.21298498615565,
+     "cost_ratio": 20.99113621667853,
+     "neyman_ratio": 9.032379654084266,
+     "partition_problems": [],
+     "variances_nonnegative": true
+    },
+    "qwc_basis_cover": {
+     "role": "alternative",
+     "energy_settings": 1451,
+     "energy_partitioned_words": 5536,
+     "energy_variance_one_shot": 1.3501571052067685,
+     "energy_neyman_sum": 15.512152499463989,
+     "residual_settings": 1819,
+     "residual_partitioned_words": 13939,
+     "residual_variance_one_shot": 170.9300271298438,
+     "residual_neyman_sum": 139.3943257417439,
+     "cost_ratio": 17.176976227597606,
+     "neyman_ratio": 8.739637760358033,
+     "partition_problems": [],
+     "variances_nonnegative": true
+    }
+   },
+   "mapping_axis_energy_variance": null,
+   "deterministic_checks": {
+    "combined_universe_matches_preflight": true,
+    "energy_settings_reproduce_mapping_axis": true,
+    "energy_variance_reproduces_mapping_axis": true,
+    "partitions_valid": true,
+    "residual_functional_reproduces_variance": true,
+    "residual_functional_mean_zero": true,
+    "linearization_matches_finite_differences": false,
+    "group_variances_nonnegative": true
+   },
+   "status": "INVALID",
+   "seconds": 7.77,
+   "measured_at_execution": {
+    "n_qubits": 8,
+    "basis_size": 9,
+    "effective_rank": 9,
+    "raw_sh_word_universe": 5537,
+    "raw_combined_word_universe": 13940,
+    "measured_sh_words": 5536,
+    "measured_combined_words": 13939,
+    "energy_settings": 1406,
+    "ground_energy": -9.239438100571599,
+    "subspace_gap": 0.5729954771171286,
+    "variance": 2.309897112752509,
+    "residual_norm": 1.5198345675607292,
+    "cancellation_scale": 87.97377669339312,
+    "matched_precision_half": 0.3799586418901823,
+    "energy_grouping_protocol": "qwc_groups",
+    "raw_combined_words_sha256": "6a54f8897b6ac50ef4e55131428b0cd59ba502b9d1bb9ccf3e1a6eac98a91782",
+    "alternative_protocol": "qwc_basis_cover",
+    "mapping_axis_linearized_energy_variance": null,
+    "full_rank": true,
+    "ground_root_nondegenerate": true,
+    "variance_resolved": true,
+    "identity_in_raw_universes": true,
+    "ground_energy_matches_validation": true,
+    "sh_universe_matches_records": true,
+    "energy_settings_match_mapping_axis": true,
+    "energy_partition_covers_measured_words": true
+   }
+  }
+ },
+ "decision": {
+  "statuses": {
+   "h4": "PROHIBITIVE",
+   "h4_converged": "PROHIBITIVE",
+   "beh2": "PROHIBITIVE",
+   "h2o_cas8e6o": "PROHIBITIVE",
+   "hubbard_2x2": "INVALID"
+  },
+  "verdict": "INVALID",
+  "consequence": "No verdict. The record names the failed check, and no status is read from that run.",
+  "rule": "frozen in the config; see decision_rule"
+ },
+ "elapsed_seconds": 404.7,
+ "provenance": {
+  "schema": "clifford_qc.execution_provenance.v1",
+  "git_sha": "4916944b5adf9137642c021012e04c1838266ca5",
+  "git_dirty": false,
+  "clifford_qc": "0.3.0",
+  "python": "3.12.3",
+  "dependencies": {
+   "numpy": "2.5.2",
+   "scipy": "1.18.0",
+   "pyscf": null,
+   "openfermion": null,
+   "openfermionpyscf": null,
+   "stim": "1.16.0"
+  },
+  "platform": {
+   "system": "Linux",
+   "release": "6.18.44-fc-v64",
+   "machine": "x86_64",
+   "processor": "x86_64",
+   "hostname": "vm"
+  },
+  "blas_lapack": {
+   "Compilers": {
+    "c": {
+     "name": "gcc",
+     "linker": "ld.bfd",
+     "version": "14.2.1",
+     "commands": "cc"
+    },
+    "cython": {
+     "name": "cython",
+     "linker": "cython",
+     "version": "3.2.9",
+     "commands": "cython"
+    },
+    "c++": {
+     "name": "gcc",
+     "linker": "ld.bfd",
+     "version": "14.2.1",
+     "commands": "c++"
+    }
+   },
+   "Machine Information": {
+    "host": {
+     "cpu": "x86_64",
+     "family": "x86_64",
+     "endian": "little",
+     "system": "linux"
+    },
+    "build": {
+     "cpu": "x86_64",
+     "family": "x86_64",
+     "endian": "little",
+     "system": "linux"
+    }
+   },
+   "Build Dependencies": {
+    "blas": {
+     "name": "scipy-openblas",
+     "found": true,
+     "version": "0.3.34.0.0",
+     "detection method": "pkgconfig",
+     "include directory": "/opt/_internal/cpython-3.12.13/lib/python3.12/site-packages/scipy_openblas64/include",
+     "lib directory": "/opt/_internal/cpython-3.12.13/lib/python3.12/site-packages/scipy_openblas64/lib",
+     "openblas configuration": "OpenBLAS 0.3.34.0.0  USE64BITINT DYNAMIC_ARCH NO_AFFINITY Haswell MAX_THREADS=64",
+     "pc file directory": "/project/.openblas"
+    },
+    "lapack": {
+     "name": "scipy-openblas",
+     "found": true,
+     "version": "0.3.34.0.0",
+     "detection method": "pkgconfig",
+     "include directory": "/opt/_internal/cpython-3.12.13/lib/python3.12/site-packages/scipy_openblas64/include",
+     "lib directory": "/opt/_internal/cpython-3.12.13/lib/python3.12/site-packages/scipy_openblas64/lib",
+     "openblas configuration": "OpenBLAS 0.3.34.0.0  USE64BITINT DYNAMIC_ARCH NO_AFFINITY Haswell MAX_THREADS=64",
+     "pc file directory": "/project/.openblas"
+    }
+   },
+   "Python Information": {
+    "path": "/tmp/build-env-jmn5a0j4/bin/python",
+    "version": "3.12"
+   },
+   "SIMD Extensions": {
+    "baseline": [
+     "X86_V2"
+    ],
+    "found": [
+     "X86_V3",
+     "X86_V4",
+     "AVX512_ICL",
+     "AVX512_SPR"
+    ]
+   }
+  },
+  "environment_sha256": "fa9e06c1f88bdd398fd7e553cbe93549aeac802ff675cac0ccbd4ce823cb4a83",
+  "utc": "2026-10-04T05:21:56.700285+00:00"
+ }
+}
