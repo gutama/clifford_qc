@@ -2220,7 +2220,12 @@ FULL builds the finite-shot estimator on all five banks, RESTRICTED on the
 affordable ones by name, and NONE closes Phase 15's finite-shot item negative
 on these banks. Every verdict is reachable. The gate,
 `check_phase15_measured_residual_preregistration.py`, computes no ratio and
-runs in the structural CI matrix. No producer exists yet.
+runs in the structural CI matrix. The producer
+(`run_phase15_measured_residual_preflight.py`) and result checker
+(`check_phase15_measured_residual_preflight.py`) are committed and tested
+only on the undeclared Hubbard dimer; no ratio has been computed on a declared
+bank. There a Monte Carlo of the full nonlinear estimator reproduces the
+linearized residual variance to 3%.
 
 ### Phase 16 — time-evolved inputs, split by method
 
@@ -4165,8 +4170,8 @@ A-CASE's.
   means, to the same standard error as its energy, cost at most ten times the
   energy's shots? *Falsifier:* no bank is AFFORDABLE, so a residual known as
   well as the energy is a measurement of its own rather than a by-product of
-  the energy's. *Status:* preregistered, not run
-  (`benchmarks/PHASE15_MEASURED_RESIDUAL_PREREGISTRATION.md`, §5 Phase 15).
+  the energy's. *Status:* preregistered; producer and checker committed, not
+  run (`benchmarks/PHASE15_MEASURED_RESIDUAL_PREREGISTRATION.md`, §5 Phase 15).
   The ratio is first-order and asymptotic, from exact reference variances.
 
 **Resource accounting (QR1–QR6).**
@@ -4838,8 +4843,13 @@ bought a duplicate record.
     `check_phase15_measured_residual_preregistration.py`) fixes the
     estimator, its linearization, the grouping protocols and the tenfold bar
     before any residual functional or grouping of a combined universe exists.
-    The producer and result checker come next, and the verdict decides
-    whether the finite-shot estimator is built.
+    The producer (`run_phase15_measured_residual_preflight.py`) and result
+    checker (`check_phase15_measured_residual_preflight.py`) follow it, tested
+    only on the undeclared Hubbard dimer. The producer refuses to form a
+    second-moment row unless the gate passes, and the checker re-derives every
+    ratio, status and the verdict independently and rebuilds every bank. Next
+    is the single declared run. Its verdict decides whether the finite-shot
+    estimator is built.
 20. CEO and MORE-ADAPT benchmarks after the critical comparison is stable.
 21. The excited-state track, after the certificate question of §7.4 has an answer. Note
     that §3.5B's transformation-character parameter is what keeps this track reachable

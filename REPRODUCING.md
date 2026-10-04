@@ -116,7 +116,7 @@ No figure or table value in the manuscript is transcribed by hand, and
 ```bash
 python -m venv .venv && source .venv/bin/activate
 pip install -e .[test,research,stim]       # automatic CI extras
-pytest                                      # 2697 passed, 11 skipped
+pytest                                      # 2734 passed, 11 skipped
 ```
 
 This is the automatic CI dependency set; record gates additionally pin NumPy
@@ -132,7 +132,7 @@ the remaining `11 - 6 = 5` skips are per-test and *are* collected:
 
 ```text
 collected == passed + (skipped - files dropped at collection)
-2702      == 2697   + (11      -   6)
+2739      == 2734   + (11      -   6)
 ```
 
 Both sides are computed from the tree, so a drift in either quoted number
@@ -3297,8 +3297,58 @@ the undeclared Hubbard dimer. There it matches finite differences, has zero
 reference mean, and is unchanged by a constant shift of `H`. Dropping the
 Ritz-vector term fails the rule. The tests also hold each clause of the gate
 against a mutation of the config. The gate takes about half a minute, most of
-it regrouping H₂O, and runs in the structural CI matrix. No producer exists
-yet.
+it regrouping H₂O, and runs in the structural CI matrix. The producer below
+must pass this gate before it forms a second-moment row.
+
+## Phase 15 measured-residual producer and result checker (not yet run)
+
+The producer and checker ship before the record, so the code that prices the
+declared banks is committed before any ratio exists.
+
+```bash
+OMP_NUM_THREADS=1 OPENBLAS_NUM_THREADS=1 MKL_NUM_THREADS=1 \
+  python benchmarks/run_phase15_measured_residual_preflight.py   # writes benchmarks/reference_results/phase15_measured_residual_preflight.json
+python benchmarks/check_phase15_measured_residual_preflight.py   # re-derives and rebuilds every bank
+python benchmarks/check_phase15_measured_residual_preflight.py --banks h4 beh2   # rebuild a subset
+python benchmarks/check_phase15_measured_residual_preflight.py --no-recompute    # rules and arithmetic only
+```
+
+The producer refuses before it forms a second-moment row unless:
+
+- the preregistration gate passes, including every frozen number and the
+  lineage of every bound file;
+- the run is the declared one: no bank subset writes the committed path;
+- no record exists yet, since the preflight runs once;
+- the working tree is clean;
+- the environment is one the committed records declare.
+
+For each bank it rebuilds the `S`, `H` and `K` rows over the retained block,
+and requires the raw combined universe to reproduce the H² preflight's size
+and SHA-256. It forms the energy functional (`ritz_functional`) and the
+residual functional (the gate's `residual_functional`) at the exact
+reference means, and checks the latter against finite differences along the
+two frozen directions. Under each declared protocol it partitions both
+measured universes, sums the exact per-setting variances, and reads `R`, the
+status and the verdict with the gate's own rule.
+
+The checker trusts no summary field. Under its own statement of the rule it
+re-derives every ratio and Neyman ratio from the recorded settings and
+variances, checks each Neyman sum against its Cauchy–Schwarz bound, and
+re-derives each finite-difference outcome, deterministic check, status, the
+verdict and its quoted consequence. It reads the variance, the cancellation
+scale and the energy-variance reference from the committed validation and
+mapping-axis records rather than from the record. By default it then rebuilds
+every bank, and every field must reproduce.
+
+`tests/test_phase15_measured_residual_preflight.py` runs both on two banks
+built on the undeclared Hubbard dimer, which reach PROHIBITIVE and AFFORDABLE
+and so the RESTRICTED verdict. It holds the per-setting variances to a dense
+computation with no multivector product. It also draws word means with each
+setting's exact covariance at 10⁶ shots and re-solves the measured pencil:
+the spread of the nonlinear `σ̂²` matches the linearized `V/N` to within its
+sampling error. Each of 26 tampered fields is caught by the check written for
+it, and a forgery whose numbers agree with each other is caught only by the
+rebuild. The record and the checker's CI row arrive with the declared run.
 
 ## Phase 18 fragment-solver callback
 
