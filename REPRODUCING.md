@@ -116,7 +116,7 @@ No figure or table value in the manuscript is transcribed by hand, and
 ```bash
 python -m venv .venv && source .venv/bin/activate
 pip install -e .[test,research,stim]       # automatic CI extras
-pytest                                      # 2644 passed, 11 skipped
+pytest                                      # 2697 passed, 11 skipped
 ```
 
 This is the automatic CI dependency set; record gates additionally pin NumPy
@@ -132,7 +132,7 @@ the remaining `11 - 6 = 5` skips are per-test and *are* collected:
 
 ```text
 collected == passed + (skipped - files dropped at collection)
-2649      == 2644   + (11      -   6)
+2702      == 2697   + (11      -   6)
 ```
 
 Both sides are computed from the tree, so a drift in either quoted number
@@ -3250,6 +3250,55 @@ five committed fits without recomputing a prefix variance, and independently
 check dense residuals, stalled growth, excited eigenstates, numerical
 cancellation, multiple roots, and retained-block storage under object,
 packed and streaming backends.
+
+## Phase 15 preregistration: the measured-residual cost (ratio-free)
+
+`benchmarks/PHASE15_MEASURED_RESIDUAL_PREREGISTRATION.md` (Q18) declares
+whether a finite-shot second-moment estimator is worth building on the five
+licensed banks. The H² preflight priced its words and coefficients and
+excluded grouping and shots. This declaration prices those. Its statistic is
+the residual norm's asymptotic shots over the energy's, at one matched
+standard error:
+
+```text
+R = (G_U · V_σ²) / (4 σ² · G_SH · V_E)
+```
+
+`G` counts single-assignment QWC settings, and `V` is a linearized
+estimator's variance at one uniform shot per setting, from exact reference
+variances. A bank is AFFORDABLE when `R ≤ 10`, under the mapping-axis
+protocol and, on the 8-qubit banks, under the scalable cover as well.
+
+```bash
+python benchmarks/check_phase15_measured_residual_preregistration.py
+```
+
+The gate forms no second-moment row and no residual functional, groups no
+combined universe and computes no group variance. It recomputes each bank's
+basis, rank, Ritz gap and ground energy from `(S, H)`, and requires the
+energy to equal the SecondMomentBank validation record's. It requires each
+raw `(S, H)` universe, identity included, to match the Phase 2M-A ledger and
+the H² preflight record. It regroups the measured universe, the raw one
+without the identity, under its declared protocol. The setting count must
+equal the mapping-axis JW arm's: 913, 913, 353, 24,334 and 1,406. It reads
+`σ²`, the cancellation scale and the raw combined universe's size and
+SHA-256 from their committed records. It checks the clauses against each
+other and the claimed reachable verdicts, and refuses any result-shaped key
+in the config. The inputs are bound by SHA-256. The product, bank,
+second-moment, solver, grouping, energy-functional and mapping-axis code, the
+Phase 15 gate that builds the banks, and this gate itself stay bound only
+until a record exists.
+
+The gate also holds the declared estimator, which the producer imports:
+`residual_functional`, the first-order weights of `σ²` including the Ritz
+vector's own movement, and the frozen finite-difference rule.
+`tests/test_phase15_measured_residual_preregistration.py` exercises it on
+the undeclared Hubbard dimer. There it matches finite differences, has zero
+reference mean, and is unchanged by a constant shift of `H`. Dropping the
+Ritz-vector term fails the rule. The tests also hold each clause of the gate
+against a mutation of the config. The gate takes about half a minute, most of
+it regrouping H₂O, and runs in the structural CI matrix. No producer exists
+yet.
 
 ## Phase 18 fragment-solver callback
 

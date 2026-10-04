@@ -156,7 +156,9 @@ GATE_CLASSES: tuple[tuple[str, str, tuple[str, ...]], ...] = (
         "compares a predeclared plan against committed constants; no rebuild",
         (
             "check_phase14b_preregistration",
-            "check_phase15_extrapolation_preregistration", "check_phase15_preregistration",
+            "check_phase15_extrapolation_preregistration",
+            "check_phase15_measured_residual_preregistration",
+            "check_phase15_preregistration",
             "check_phase16a_preregistration",
             "check_phase16b_preregistration",
             "check_phase16b_v2_preregistration",

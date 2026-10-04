@@ -1,0 +1,411 @@
+{
+ "schema": "clifford_qc.phase15_measured_residual_preflight_config.v1",
+ "design_document": "benchmarks/PHASE15_MEASURED_RESIDUAL_PREREGISTRATION.md",
+ "question_id": "Q18",
+ "purpose": "Decide, before any finite-shot second-moment estimator exists, on which licensed banks a measured residual norm is worth building. Phase 15's H-squared preflight priced the words and coefficients a measured second-moment bank must carry and excluded grouping and shots. This declaration prices those: the shots a residual norm needs, against the shots its own energy needs, at one matched standard error.",
+ "contains_results": false,
+ "claim_boundary": "This config declares the Phase 15 measured-residual cost preflight: on the five banks the H-squared preflight licensed, the ratio of the asymptotic shots that estimate the ground Ritz root's residual norm to those that estimate its energy, at one matched standard error, under single-assignment QWC grouping with uniform shots per setting. It holds no ratio, no residual functional, no grouping of a combined word universe and no group variance. The ratio it declares is first-order and asymptotic, read from exact reference variances: it is not a finite-sample statement, a coverage claim, a device time, or a statement about any bank outside the five.",
+ "question": "On each of the five licensed banks, does estimating the ground Ritz root's residual norm sigma from shared QWC word means, to the same standard error as its energy, cost at most ten times the energy's shots?",
+ "estimand": {
+  "root": "the ground root of the retained block's (S, H) pencil, solved by the package's default thresholds, normalized c'Sc = 1",
+  "variance": "sigma^2 = c'Kc - E^2, with K the SecondMomentBank block A_i^dagger (H^2 A_j) paired with the reference. It equals ||(H - E)|Psi>||^2 / <Psi|Psi>, the squared residual norm PLAN.md section 4.4 names",
+  "residual_norm": "sigma = sqrt(sigma^2), in the energy's own units: Weinstein's theorem puts an eigenvalue within sigma of E, so (E, sigma) is the measured pair a residual reports",
+  "estimator": "every S, H and K entry is reconstructed from one set of shared word means; the measured pencil is solved and sigma^2 read from the measured K at the measured Ritz vector. Nothing is re-measured per entry",
+  "shift": "Measuring (H - c)^2 instead of H^2 changes nothing here. Its rows are combinations of the same S, H and K rows, so with shared word means the reconstruction is algebraically the same function of the same means, and so is its linearization. The gate's tests check this to rounding on the Hubbard dimer"
+ },
+ "linearization": {
+  "energy": "the existing ritz_functional: the word expansion of B'(H - E)B with B = sum c_i A_i. The energy is stationary in c, so no Ritz-vector term enters",
+  "residual": "the word expansion of G = B'(H - E)^2 B - sigma^2 B'B - [V'(H - E)B + B'(H - E)V], with V = sum v_i A_i and v = sum_{k>0} c_k (c_k'(K - QS)c) / (E_k - E), Q = c'Kc. sigma^2 is not stationary in c, so the last term, the Ritz vector's own movement, is required: on the Hubbard dimer it is 3.7% of the weights",
+  "implementation": "residual_functional in benchmarks/check_phase15_measured_residual_preregistration.py, which the producer imports rather than restates",
+  "properties": "G has zero reference expectation, and its weights are invariant under a constant shift of H; both are deterministic checks",
+  "finite_difference": {
+   "directions": [
+    "functional",
+    "sh_gaussian"
+   ],
+   "direction_definitions": {
+    "functional": "the residual functional's own non-identity weights, normalized to unit length: the derivative along it is ||g||_2",
+    "sh_gaussian": "a seeded standard normal draw over the non-identity (S, H) words, normalized: those words carry the Ritz-vector term"
+   },
+   "seed": 20261003,
+   "step": 0.001,
+   "relative_tolerance": 1e-06,
+   "rounding_floor": "RESOLUTION * cancellation_scale / step, with RESOLUTION = 1e-12 from clifford_qc.subspace.second_moment and the cancellation scale the validation record's",
+   "rule": "|central difference of the nonlinear pipeline - g . d| <= relative_tolerance * ||g||_2 + rounding_floor, for both directions",
+   "calibration": "On the undeclared Hubbard dimer the step leaves the truncation error near 5e-9 of ||g||_2, with and without a -75 Ha constant added to H to reproduce H2O's cancellation scale. A dropped Ritz-vector term fails it by orders of magnitude"
+  }
+ },
+ "grouping": {
+  "estimator": "single_assignment",
+  "allocation": "uniform",
+  "energy_universe": "the measured (S, H) universe: the raw U_SH, the (S, H) bank's words over the retained block, minus the identity, listed in ascending code order exactly as the mapping-axis producer lists its JW arm",
+  "residual_universe": "the measured combined universe: the raw U = U_SH | U_K minus the identity. The raw U is every word a measured second-moment bank's rows carry, and the H-squared preflight record committed its size and SHA-256",
+  "universe_convention": "Raw universes include the identity, as the Phase 2M-A ledger, the H-squared preflight record and the mapping-axis record count and hash them; every frozen basis starts with I, so S_00 carries it. Measured universes are the raw ones minus the identity, whose mean is 1 and is never measured. Every count and digest in measured_before_freezing whose name starts with raw_ is a raw quantity; measured_sh_words and measured_combined_words are one fewer, and every grouping partitions a measured universe",
+  "declared_protocol_by_system": {
+   "h4": "qwc_groups",
+   "h4_converged": "qwc_groups",
+   "beh2": "qwc_groups",
+   "h2o_cas8e6o": "qwc_basis_cover",
+   "hubbard_2x2": "qwc_groups"
+  },
+  "alternative_protocol_by_system": {
+   "h4": "qwc_basis_cover",
+   "h4_converged": "qwc_basis_cover",
+   "beh2": "qwc_basis_cover",
+   "h2o_cas8e6o": null,
+   "hubbard_2x2": "qwc_basis_cover"
+  },
+  "rationale": "The declared protocol is the mapping-axis record's, per system, so the energy denominator reproduces a committed setting count. On the 8-qubit banks the greedy and the scalable cover are both feasible, and a status must not rest on one heuristic. On H2O the greedy is quadratic in 868,150 words, so the cover is the only protocol and no alternative is declared",
+  "variance": "per setting, Var_psi(sum_{w in g} f_w P_w) on the exact reference, by run_mapping_axis._functional_variance, the function behind the committed mapping-axis energy variances. V is their sum: the estimator's variance at one shot per setting"
+ },
+ "statistic": {
+  "name": "R",
+  "definition": "R = (G_U * V_sigma2) / (4 * sigma^2 * G_SH * V_E)",
+  "derivation": "Uniform shots make a linearized estimator's variance V / N at N shots per setting, so a standard error s costs G * V / s^2 shots. sigma is read from sigma^2 through d sigma = d sigma^2 / (2 sigma). Matching the two standard errors at s, the s^2 cancels: R is the residual's shots over the energy's at any one matched precision, to first order",
+  "max_ratio": 10,
+  "rationale": "A decade is the unit this repository reads as material, as in Q16's word clause and Phase 16B's 10x modelled-shot rule. A residual within a decade of its energy's shots is a by-product of measuring that energy well; beyond it, it is a measurement of its own. A ratio exactly at ten is affordable",
+  "matched_precision": "Matching the standard errors of E and sigma makes both ends of the measured Weinstein interval [E - sigma, E + sigma] carry the two sources equally",
+  "linear_regime": "d sigma = d sigma^2 / (2 sigma) holds while the standard error of sigma^2 is small against sigma^2. At a matched precision s that error is 2 sigma s, so the record reports matched_precision_half = sigma / 4, the s at which it reaches one half of sigma^2. Finer precisions are where R describes the cost; coarser ones do not resolve sigma from zero. No clause reads it",
+  "diagnostics": "the record also reports the Neyman ratio, both sides at variance-optimal allocation across settings, (sum_g sqrt v_g)^2 in place of G * V. No clause reads it"
+ },
+ "decision_rule": {
+  "bank_status_order": [
+   {
+    "status": "AFFORDABLE",
+    "condition": "R <= 10 under the declared protocol, and under the alternative where one is declared"
+   },
+   {
+    "status": "PROHIBITIVE",
+    "condition": "R > 10 under the declared protocol, and under the alternative where one is declared"
+   },
+   {
+    "status": "GROUPING_SENSITIVE",
+    "condition": "the declared and alternative protocols put R on opposite sides of 10"
+   }
+  ],
+  "invalid_precedence": "A failed deterministic check makes that bank INVALID, and any INVALID bank makes the verdict INVALID.",
+  "combination_rule": "every bank AFFORDABLE gives FULL; no bank AFFORDABLE gives NONE; anything else is RESTRICTED; any INVALID bank gives INVALID"
+ },
+ "consequences": {
+  "FULL": "Phase 15 builds the finite-shot estimator of the second-moment block on all five banks: sampled K over the declared grouping, and sigma with a delta-method interval labelled asymptotic and cross-checked by the grouped bootstrap. Its sampled validation is a new preregistration that freezes seeds, budgets and coverage targets. This verdict licenses building it, not any sampled claim.",
+  "RESTRICTED": "The estimator is built and validated only on the AFFORDABLE banks, which become its scope by name. Residuals elsewhere stay exact or matrix-free, and extending the measured estimator to them needs a new declaration.",
+  "NONE": "No finite-shot second-moment estimator is built. On these banks a residual norm known as well as the energy costs more than a decade beyond the energy, so Phase 15's finite-shot item closes negative for them. Exact residuals, convergence reports and anything else built on exact second moments are unaffected.",
+  "INVALID": "No verdict. The record names the failed check, and no status is read from that run."
+ },
+ "banks": {
+  "source_config": "benchmarks/configs/mapping_axis.json",
+  "systems": [
+   "h4",
+   "h4_converged",
+   "beh2",
+   "h2o_cas8e6o",
+   "hubbard_2x2"
+  ],
+  "basis": "Each bank at its frozen selected_labels, through the same _build_model and _selected_generators the mapping-axis record, both Phase 2M records and both Phase 15 records use. They are the five banks the H-squared preflight licensed and the SecondMomentBank validation covers.",
+  "not_declared": "Every bank outside the five, including the 14-qubit molecular banks, which the H-squared preflight left to the Phase 2M storage gate or a preflight of their own."
+ },
+ "measured_before_freezing": {
+  "h4": {
+   "n_qubits": 8,
+   "basis_size": 9,
+   "effective_rank": 9,
+   "raw_sh_word_universe": 7371,
+   "raw_combined_word_universe": 8192,
+   "measured_sh_words": 7370,
+   "measured_combined_words": 8191,
+   "energy_settings": 913,
+   "ground_energy": -2.177297832980223,
+   "subspace_gap": 0.8523659748149472,
+   "variance": 0.0057080970367273665,
+   "residual_norm": 0.07555194925829092,
+   "cancellation_scale": 4.765720693496393,
+   "matched_precision_half": 0.01888798731457273,
+   "energy_grouping_protocol": "qwc_groups",
+   "raw_combined_words_sha256": "e2df4fda6370e5495a7bcb5a859104faab04887b1859b6ea4715b7d881f3701d",
+   "alternative_protocol": "qwc_basis_cover",
+   "mapping_axis_linearized_energy_variance": null,
+   "full_rank": true,
+   "ground_root_nondegenerate": true,
+   "variance_resolved": true,
+   "identity_in_raw_universes": true,
+   "ground_energy_matches_validation": true,
+   "sh_universe_matches_records": true,
+   "energy_settings_match_mapping_axis": true,
+   "energy_partition_covers_measured_words": true
+  },
+  "h4_converged": {
+   "n_qubits": 8,
+   "basis_size": 15,
+   "effective_rank": 15,
+   "raw_sh_word_universe": 7927,
+   "raw_combined_word_universe": 8192,
+   "measured_sh_words": 7926,
+   "measured_combined_words": 8191,
+   "energy_settings": 913,
+   "ground_energy": -2.179550752062546,
+   "subspace_gap": 0.558229303474147,
+   "variance": 0.0024773229215186987,
+   "residual_norm": 0.049772712619654345,
+   "cancellation_scale": 4.779374474443765,
+   "matched_precision_half": 0.012443178154913586,
+   "energy_grouping_protocol": "qwc_groups",
+   "raw_combined_words_sha256": "e2df4fda6370e5495a7bcb5a859104faab04887b1859b6ea4715b7d881f3701d",
+   "alternative_protocol": "qwc_basis_cover",
+   "mapping_axis_linearized_energy_variance": 0.060759481649219814,
+   "full_rank": true,
+   "ground_root_nondegenerate": true,
+   "variance_resolved": true,
+   "identity_in_raw_universes": true,
+   "ground_energy_matches_validation": true,
+   "sh_universe_matches_records": true,
+   "energy_settings_match_mapping_axis": true,
+   "energy_partition_covers_measured_words": true
+  },
+  "beh2": {
+   "n_qubits": 8,
+   "basis_size": 5,
+   "effective_rank": 5,
+   "raw_sh_word_universe": 1815,
+   "raw_combined_word_universe": 2048,
+   "measured_sh_words": 1814,
+   "measured_combined_words": 2047,
+   "energy_settings": 353,
+   "ground_energy": -15.566208493595418,
+   "subspace_gap": 0.5973704104277058,
+   "variance": 5.494887460599784e-06,
+   "residual_norm": 0.002344117629428989,
+   "cancellation_scale": 242.33117699940044,
+   "matched_precision_half": 0.0005860294073572473,
+   "energy_grouping_protocol": "qwc_groups",
+   "raw_combined_words_sha256": "1b4d9edd311445f9dadd38aaaf59d703de9ce0898eb9318f8f5679004d160a44",
+   "alternative_protocol": "qwc_basis_cover",
+   "mapping_axis_linearized_energy_variance": 0.007548955076120861,
+   "full_rank": true,
+   "ground_root_nondegenerate": true,
+   "variance_resolved": true,
+   "identity_in_raw_universes": true,
+   "ground_energy_matches_validation": true,
+   "sh_universe_matches_records": true,
+   "energy_settings_match_mapping_axis": true,
+   "energy_partition_covers_measured_words": true
+  },
+  "h2o_cas8e6o": {
+   "n_qubits": 12,
+   "basis_size": 9,
+   "effective_rank": 9,
+   "raw_sh_word_universe": 143117,
+   "raw_combined_word_universe": 868150,
+   "measured_sh_words": 143116,
+   "measured_combined_words": 868149,
+   "energy_settings": 24334,
+   "ground_energy": -74.99845661593258,
+   "subspace_gap": 1.4023946805968421,
+   "variance": 0.023086767486347526,
+   "residual_norm": 0.15194330352584653,
+   "cancellation_scale": 5625.431956639506,
+   "matched_precision_half": 0.037985825881461634,
+   "energy_grouping_protocol": "qwc_basis_cover",
+   "raw_combined_words_sha256": "fd29a296b182dfdd91e95620e89e418646eac221bb6c8ba4b8eb6aad4feb603b",
+   "alternative_protocol": null,
+   "mapping_axis_linearized_energy_variance": null,
+   "full_rank": true,
+   "ground_root_nondegenerate": true,
+   "variance_resolved": true,
+   "identity_in_raw_universes": true,
+   "ground_energy_matches_validation": true,
+   "sh_universe_matches_records": true,
+   "energy_settings_match_mapping_axis": true,
+   "energy_partition_covers_measured_words": true
+  },
+  "hubbard_2x2": {
+   "n_qubits": 8,
+   "basis_size": 9,
+   "effective_rank": 9,
+   "raw_sh_word_universe": 5537,
+   "raw_combined_word_universe": 13940,
+   "measured_sh_words": 5536,
+   "measured_combined_words": 13939,
+   "energy_settings": 1406,
+   "ground_energy": -9.239438100571599,
+   "subspace_gap": 0.5729954771171286,
+   "variance": 2.309897112752509,
+   "residual_norm": 1.5198345675607292,
+   "cancellation_scale": 87.97377669339312,
+   "matched_precision_half": 0.3799586418901823,
+   "energy_grouping_protocol": "qwc_groups",
+   "raw_combined_words_sha256": "6a54f8897b6ac50ef4e55131428b0cd59ba502b9d1bb9ccf3e1a6eac98a91782",
+   "alternative_protocol": "qwc_basis_cover",
+   "mapping_axis_linearized_energy_variance": null,
+   "full_rank": true,
+   "ground_root_nondegenerate": true,
+   "variance_resolved": true,
+   "identity_in_raw_universes": true,
+   "ground_energy_matches_validation": true,
+   "sh_universe_matches_records": true,
+   "energy_settings_match_mapping_axis": true,
+   "energy_partition_covers_measured_words": true
+  }
+ },
+ "reachable_verdicts": [
+  "FULL",
+  "NONE",
+  "RESTRICTED"
+ ],
+ "deterministic_checks": [
+  "baseline_matches_freeze: every measured_before_freezing value recomputes at execution, and every premise flag in it holds",
+  "combined_universe_matches_preflight: the raw U, rebuilt as U_SH | U_K from SecondMomentBank rows, has the committed size and SHA-256, and contains the identity; the measured U is that set minus the identity",
+  "energy_settings_reproduce_mapping_axis: G_SH under the declared protocol equals the mapping-axis JW arm's committed settings",
+  "energy_variance_reproduces_mapping_axis: where the mapping-axis record committed V_E (h4_converged, beh2), the recomputed V_E equals it within 1e-9 relative",
+  "partitions_valid: each grouping assigns every word of its measured universe to exactly one setting, so the energy partition holds raw_sh_word_universe - 1 words and the residual partition raw_combined_word_universe - 1, and every setting is qubit-wise commuting",
+  "residual_functional_reproduces_variance: the residual pipeline at the exact means returns the validation record's sigma^2 within 1e-9 (1 + cancellation_scale) absolute",
+  "residual_functional_mean_zero: |<psi|G|psi>| <= 1e-9 (1 + cancellation_scale)",
+  "linearization_matches_finite_differences: both frozen directions pass the finite-difference rule",
+  "group_variances_nonnegative: every per-setting variance is at least -1e-10 times its scale",
+  "provenance: the record is stamped with a clean git tree"
+ ],
+ "evidence": {
+  "label": "asymptotic",
+  "statement": "First-order (delta-method) variances at large shot counts, computed exactly from the reference state and the frozen bases. No sampling, no seed beyond the finite-difference direction, no finite-sample statement."
+ },
+ "excluded_from_cost": [
+  "fully commuting or block-commuting grouping, which would change both sides and is not priced here",
+  "variance-optimal allocation, reported only as the Neyman diagnostic",
+  "device-card time: QWC settings carry single-qubit rotations only, so the cards would differ only by per-setting single-qubit depth and readout, and the record prices shots",
+  "the plug-in bias of sigma^2 and every second-order effect, including the retained eigenspace's nonlinear response",
+  "finite-sample intervals, bootstrap coverage and sampled validation",
+  "excited roots, folded-spectrum roots and every bank outside the five"
+ ],
+ "exploratory_disclosure": "Before freezing, only first moments and committed values were computed on the declared banks: the numbers in measured_before_freezing. Among them, G_SH regroups each bank's (S, H) universe under its declared protocol and reproduces the mapping-axis record's committed count; V_E was not computed on any bank, and the two committed V_E values are read from that record. No second-moment row, residual functional, grouping of a combined universe or group variance was formed on a declared bank. The linearization, its shift invariance, its zero mean and the finite-difference rule were developed and calibrated on the undeclared Hubbard dimer. The groupings' feasibility was timed on synthetic universes of random spin-parity-sector words with the declared banks' sizes: 13,939 words on 8 qubits under qwc_groups (7.2 s) and 868,150 words on 12 qubits under qwc_basis_cover (257 s). No declared word set was used in either.",
+ "prespecified_followup": {
+  "permitted": "none",
+  "statement": "The estimand, linearization, grouping protocols, threshold and banks are fixed. Another threshold, protocol, allocation or bank set would be a new declaration. The consequence each verdict names is what follows."
+ },
+ "implementation_lineage": {
+  "inputs": [
+   {
+    "path": "benchmarks/configs/mapping_axis.json",
+    "sha256": "25adcb3aedd4d70f3b7e84f91fe3c11672c5d646a416e4851025424f2cb01ea3"
+   },
+   {
+    "path": "benchmarks/reference_results/mapping_axis.json",
+    "sha256": "a7ad865d5adcd8e5b1bc5406e88eeb43fe42ca4be1066137d2351ed8a1f358f8"
+   },
+   {
+    "path": "benchmarks/reference_results/second_moment_validation.json",
+    "sha256": "dbdbf65a3903dd6def5f5f9fb97663211df80ed7a71663b230479be4864c9f5c"
+   },
+   {
+    "path": "benchmarks/reference_results/phase15_h2_preflight.json",
+    "sha256": "8e2949dde593f560caeff5bc51e2bb75688fb09d8a06f0eebc5c0a9d688508c9"
+   },
+   {
+    "path": "benchmarks/reference_results/bank_storage_ledger.json",
+    "sha256": "cb9d6d1fd7ea1d9a5b5179817321850f271060fc60789fc55dbd5cc9a8a2c7d6"
+   },
+   {
+    "path": "benchmarks/data/h4_sto3g_r0.9.FCIDUMP",
+    "sha256": "bf32568461477cf1ec8e7c4aaae737b0c6c80bcbd83d51f783ec3a3daed5a922"
+   },
+   {
+    "path": "benchmarks/data/h4_sto3g_r0.9.provenance.json",
+    "sha256": "4b5cc30240ee42709e407f1794b73d9e585bc4032ecc14ff5eef450722868229"
+   },
+   {
+    "path": "benchmarks/data/beh2_sto3g_r1.3264.FCIDUMP",
+    "sha256": "01ef4422b2e9e7f711895ae897a94ea11c1b0fae5a5fd91c3396fbd4d69fba76"
+   },
+   {
+    "path": "benchmarks/data/beh2_sto3g_r1.3264.provenance.json",
+    "sha256": "fd4eb5de5bf94e2555f8d3d512e7918146224f49b84f8b890527ad5b8a25c73c"
+   },
+   {
+    "path": "benchmarks/data/h2o_sto3g_cas8e6o.FCIDUMP",
+    "sha256": "2f68b1d3f9f77e9c1483cb1b879bac2a67a9d8204ce2e9e985697c10029c6103"
+   },
+   {
+    "path": "benchmarks/data/h2o_sto3g_cas8e6o.provenance.json",
+    "sha256": "2431c4399676d1a78abfc59d9b0ebe400625193a45d43adcea63c70c6250bb47"
+   }
+  ],
+  "implementation": [
+   {
+    "path": "clifford_qc/multivector.py",
+    "sha256": "9b8f15685dde7f3c1a65e456e3647fade7a1f393c3f2b392de945232a72024b1"
+   },
+   {
+    "path": "clifford_qc/pauli_kernel.py",
+    "sha256": "c7512dc6ad68e7ccdf676b2fa1fe309c16a21ec5c820e55e7ac45bc8689c937d"
+   },
+   {
+    "path": "clifford_qc/subspace/projection.py",
+    "sha256": "1137aaa945d3b2919d1820501d24fa5406d950241f7d8e3307ede93e2b8b1254"
+   },
+   {
+    "path": "clifford_qc/subspace/second_moment.py",
+    "sha256": "2c6dd24badc829b09d6b28b94967f37300a7a254456b8f649cfb0186b81e4492"
+   },
+   {
+    "path": "clifford_qc/subspace/linalg.py",
+    "sha256": "c64bb5dca07d3f3fba23b2f257132075914df0e374ec3f91ec5a6f8b5ccbc4b3"
+   },
+   {
+    "path": "clifford_qc/measurement/grouping.py",
+    "sha256": "0053af3a451ae201520ee5c6ec4a45bf211d910087d66bd624c9d911d162c356"
+   },
+   {
+    "path": "benchmarks/run_mapping_axis.py",
+    "sha256": "e47b3a318ad6c63f185cf0c3e874558e8ba3f1b885a0ffe76ca0096cd0dd32a0"
+   },
+   {
+    "path": "clifford_qc/measurement/functionals.py",
+    "sha256": "a1a06d2afe6cb96ee6081fc48214cd9252e2eaed58cde053a7cb5dd1c6faac59"
+   },
+   {
+    "path": "benchmarks/check_phase15_preregistration.py",
+    "sha256": "a686af04fdc55c490eda1b2c0fe781a8888488d754ce971a0e69d6ab22431c51"
+   },
+   {
+    "path": "benchmarks/check_phase15_measured_residual_preregistration.py",
+    "sha256": "6c10d3d5f50dfd033009ab1a03fcb009ec9c9311a8657f1c91acb279a37ec1c1"
+   }
+  ],
+  "note": "Inputs stay bound for the life of the record. The product, the bank, the second-moment rows, the projected solve, the QWC partitions, the energy functional, the group variance, the bank builder and this declaration's own gate, whose residual_functional and finite-difference rule the producer imports, define every number the ratio reads. They are bound until the record exists; after that the record's provenance names the commit that produced it."
+ },
+ "record_requirements": {
+  "schema": "clifford_qc.phase15_measured_residual_preflight.v1",
+  "producer": "benchmarks/run_phase15_measured_residual_preflight.py",
+  "checker": "benchmarks/check_phase15_measured_residual_preflight.py",
+  "record": "benchmarks/reference_results/phase15_measured_residual_preflight.json",
+  "must_include": [
+   "config_digest and provenance",
+   "per bank: the raw and measured sizes of both universes, and the raw combined SHA-256",
+   "per bank and protocol: G_SH, V_E, G_U, V_sigma2, R and the Neyman ratio",
+   "per bank: sigma, matched_precision_half, the functional's word count and ||g||_2, and both finite-difference rows",
+   "per bank: every deterministic check and its value",
+   "the recomputed measured_before_freezing block",
+   "per-bank status and the verdict, with the verdict's consequence quoted"
+  ],
+  "must_carry": {
+   "quantum_advantage_claim": false,
+   "claim_boundary": "its own, not this config's"
+  }
+ },
+ "revisions": [
+  {
+   "revision": 0,
+   "commit_subject": "Preregister the Phase 15 measured-residual cost preflight, ratio-free",
+   "content": "Initial declaration."
+  },
+  {
+   "revision": 1,
+   "commit_subject": "Separate raw and measured universes, bind the estimator, refuse every result key",
+   "ratios_at_revision": "none: no residual functional, no grouping of a combined universe, no group variance and no ratio existed on any declared bank when this revision was made",
+   "changes": [
+    "Raw universes (identity included, as committed) and measured universes (identity excluded, as grouped) are named apart. The frozen fields sh_word_universe, combined_word_universe and combined_words_sha256 become raw_sh_word_universe, raw_combined_word_universe and raw_combined_words_sha256 with unchanged values; measured_sh_words, measured_combined_words, identity_in_raw_universes and energy_partition_covers_measured_words are added",
+    "The gate itself, check_phase15_preregistration.py (the bank builder it calls) and clifford_qc/measurement/functionals.py (the energy functional behind V_E) are bound until a record exists",
+    "load_config refuses every occurrence of a result-shaped key, whatever its value"
+   ],
+   "rule_changes": "none: the estimand, linearization, grouping protocols, statistic, threshold, ladder, verdicts and banks are unchanged"
+  }
+ ]
+}
