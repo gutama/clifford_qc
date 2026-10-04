@@ -22,8 +22,9 @@ gate trusts none of the record's summary fields.
    from the committed validation and mapping-axis records, not the record.
 5. **Recomputation.** Every bank is rebuilt and every field must reproduce,
    each finite-difference value included: ``numeric`` within its own rounding
-   floor, never within the acceptance tolerance (``--no-recompute`` skips
-   this, ``--banks`` restricts it).
+   floor, never within the acceptance tolerance. The Neyman diagnostics, sums
+   of roots of rounding-level variances, are compared to 1e-3 relative
+   (``--no-recompute`` skips this, ``--banks`` restricts it).
 6. **Order.** Through the preregistration gate, the config's last change must
    strictly precede the record's commit.
 
@@ -53,6 +54,14 @@ except ImportError:  # pragma: no cover - script execution
     import run_phase15_measured_residual_preflight as producer
 
 DENIALS = ("holds no ratio", "no ratio has", "computes no ratio")
+# A Neyman sum adds sqrt(v) over settings. A setting whose variance is exactly
+# zero computes as rounding of its own second moment, and the root of that is
+# not small: bounding each such setting by 1e3 ulps of its second moment, the
+# five banks' exposure reaches 3.3e-4 of a sum (H2O's energy side, 3,851
+# settings at rounding level). These are diagnostics no clause reads, so on a
+# rebuild they are compared to this tolerance; every other float keeps 1e-9.
+NEYMAN_FIELDS = frozenset({"energy_neyman_sum", "residual_neyman_sum", "neyman_ratio"})
+NEYMAN_RELATIVE = 1e-3
 
 
 def _close(a, b, rel=1e-9, abs_=1e-12) -> bool:
@@ -305,7 +314,8 @@ def rederivation_problems(config: dict, record: dict, validation: dict) -> list[
 
 def _disagreements(mine, theirs, path="") -> list[str]:
     """Paths where a rebuilt entry differs: exact for everything but floats,
-    which must agree to 1e-9 relative (variances are sums of many terms)."""
+    which must agree to 1e-9 relative (variances are sums of many terms), and
+    the Neyman fields, which carry the roots of rounding (``NEYMAN_RELATIVE``)."""
     if isinstance(mine, dict) and isinstance(theirs, dict):
         if sorted(mine) != sorted(theirs):
             return [f"{path or '.'} keys"]
@@ -325,7 +335,8 @@ def _disagreements(mine, theirs, path="") -> list[str]:
     if isinstance(mine, float) or isinstance(theirs, float):
         if isinstance(mine, bool) or isinstance(theirs, bool):
             return [] if mine == theirs else [path]
-        return [] if _close(mine, theirs, rel=1e-9, abs_=1e-12) else [path]
+        rel = NEYMAN_RELATIVE if path.rsplit(".", 1)[-1] in NEYMAN_FIELDS else 1e-9
+        return [] if _close(mine, theirs, rel=rel, abs_=1e-12) else [path]
     return [] if mine == theirs else [path]
 
 

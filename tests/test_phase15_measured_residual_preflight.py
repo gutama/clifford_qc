@@ -327,6 +327,20 @@ def test_recomputation_catches_a_moved_finite_difference_value(toy, dimer, field
     assert any("functional finite difference recomputes" in p for p in problems), problems
 
 
+@pytest.mark.parametrize("factor, caught", [(1 + 1e-6, False), (1 + 1e-2, True)])
+def test_neyman_diagnostics_recompute_to_their_own_tolerance(toy, dimer, factor, caught):
+    """Roots of rounding-level variances are not reproducible to 1e-9 across
+    platforms; the rebuild admits them to 1e-3 and no further."""
+    config, raw, record, validation = toy
+    bad = copy.deepcopy(record)
+    price = bad["banks"]["toy"]["protocols"]["qwc_groups"]
+    for key in ("energy_neyman_sum", "residual_neyman_sum", "neyman_ratio"):
+        price[key] *= factor
+    problems = checker.recompute_problems(config, bad, validation, inputs=dimer.__getitem__)
+    assert any("neyman" in p for p in problems) is caught, problems
+    assert checker.NEYMAN_RELATIVE == 1e-3
+
+
 def test_the_checker_refuses_an_unclean_record(tmp_path, toy, capsys):
     _, _, record, _ = toy
     path = tmp_path / "record.json"

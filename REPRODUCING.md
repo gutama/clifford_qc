@@ -116,7 +116,7 @@ No figure or table value in the manuscript is transcribed by hand, and
 ```bash
 python -m venv .venv && source .venv/bin/activate
 pip install -e .[test,research,stim]       # automatic CI extras
-pytest                                      # 2740 passed, 11 skipped
+pytest                                      # 2742 passed, 11 skipped
 ```
 
 This is the automatic CI dependency set; record gates additionally pin NumPy
@@ -132,7 +132,7 @@ the remaining `11 - 6 = 5` skips are per-test and *are* collected:
 
 ```text
 collected == passed + (skipped - files dropped at collection)
-2745      == 2740   + (11      -   6)
+2747      == 2742   + (11      -   6)
 ```
 
 Both sides are computed from the tree, so a drift in either quoted number
@@ -3338,7 +3338,13 @@ re-derives each finite-difference outcome, deterministic check, status, the
 verdict and its quoted consequence. It reads the variance, the cancellation
 scale and the energy-variance reference from the committed validation and
 mapping-axis records rather than from the record. By default it then rebuilds
-every bank, and every field must reproduce.
+every bank, and every field must reproduce to 1e-9 relative. The exceptions
+are each finite-difference `numeric` value, which may move by its own
+rounding floor, and the Neyman diagnostics, which may move by 1e-3 relative.
+A Neyman sum adds the roots of per-setting variances. A setting whose
+variance is exactly zero computes as rounding, and its root is not small:
+bounded at 10³ ulps per such setting, this reaches 3.3e-4 of H₂O's energy
+sum, so these sums are not reproducible to 1e-9 across platforms.
 
 `tests/test_phase15_measured_residual_preflight.py` runs both on two banks
 built on the undeclared Hubbard dimer, which reach PROHIBITIVE and AFFORDABLE
