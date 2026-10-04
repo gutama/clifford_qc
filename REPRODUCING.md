@@ -116,7 +116,7 @@ No figure or table value in the manuscript is transcribed by hand, and
 ```bash
 python -m venv .venv && source .venv/bin/activate
 pip install -e .[test,research,stim]       # automatic CI extras
-pytest                                      # 2697 passed, 11 skipped
+pytest                                      # 2742 passed, 11 skipped
 ```
 
 This is the automatic CI dependency set; record gates additionally pin NumPy
@@ -132,7 +132,7 @@ the remaining `11 - 6 = 5` skips are per-test and *are* collected:
 
 ```text
 collected == passed + (skipped - files dropped at collection)
-2702      == 2697   + (11      -   6)
+2747      == 2742   + (11      -   6)
 ```
 
 Both sides are computed from the tree, so a drift in either quoted number
@@ -3297,8 +3297,130 @@ the undeclared Hubbard dimer. There it matches finite differences, has zero
 reference mean, and is unchanged by a constant shift of `H`. Dropping the
 Ritz-vector term fails the rule. The tests also hold each clause of the gate
 against a mutation of the config. The gate takes about half a minute, most of
-it regrouping H₂O, and runs in the structural CI matrix. No producer exists
-yet.
+it regrouping H₂O, and runs in the structural CI matrix. The producer below
+must pass this gate before it forms a second-moment row.
+
+## Phase 15 measured-residual producer and result checker
+
+The producer and checker ship before the record, so the code that prices the
+declared banks is committed before any ratio exists.
+
+```bash
+OMP_NUM_THREADS=1 OPENBLAS_NUM_THREADS=1 MKL_NUM_THREADS=1 \
+  python benchmarks/run_phase15_measured_residual_preflight.py   # writes benchmarks/reference_results/phase15_measured_residual_preflight.json
+python benchmarks/check_phase15_measured_residual_preflight.py   # re-derives and rebuilds every bank
+python benchmarks/check_phase15_measured_residual_preflight.py --banks h4 beh2   # rebuild a subset
+python benchmarks/check_phase15_measured_residual_preflight.py --no-recompute    # rules and arithmetic only
+```
+
+The producer refuses before it forms a second-moment row unless:
+
+- the preregistration gate passes, including every frozen number and the
+  lineage of every bound file;
+- the run is the declared one: no bank subset writes the committed path;
+- no record exists yet, since the preflight runs once;
+- the working tree is clean;
+- the environment is one the committed records declare.
+
+For each bank it rebuilds the `S`, `H` and `K` rows over the retained block,
+and requires the raw combined universe to reproduce the H² preflight's size
+and SHA-256. It forms the energy functional (`ritz_functional`) and the
+residual functional (the gate's `residual_functional`) at the exact
+reference means, and checks the latter against finite differences along the
+two frozen directions. Under each declared protocol it partitions both
+measured universes, sums the exact per-setting variances, and reads `R`, the
+status and the verdict with the gate's own rule.
+
+The checker trusts no summary field. Under its own statement of the rule it
+re-derives every ratio and Neyman ratio from the recorded settings and
+variances, checks each Neyman sum against its Cauchy–Schwarz bound, and
+re-derives each finite-difference outcome, deterministic check, status, the
+verdict and its quoted consequence. It reads the variance, the cancellation
+scale and the energy-variance reference from the committed validation and
+mapping-axis records rather than from the record. By default it then rebuilds
+every bank, and every field must reproduce to 1e-9 relative. The exceptions
+are each finite-difference `numeric` value, which may move by its own
+rounding floor, and the Neyman diagnostics, which may move by 1e-3 relative.
+A Neyman sum adds the roots of per-setting variances. A setting whose
+variance is exactly zero computes as rounding, and its root is not small:
+bounded at 10³ ulps per such setting, this reaches 3.3e-4 of H₂O's energy
+sum, so these sums are not reproducible to 1e-9 across platforms.
+
+`tests/test_phase15_measured_residual_preflight.py` runs both on two banks
+built on the undeclared Hubbard dimer, which reach PROHIBITIVE and AFFORDABLE
+and so the RESTRICTED verdict. It holds the per-setting variances to a dense
+computation with no multivector product. It also draws word means with each
+setting's exact covariance at 10⁶ shots and re-solves the measured pencil:
+the spread of the nonlinear `σ̂²` matches the linearized `V/N` to within its
+sampling error. Each of 27 tampered fields is caught by the check written for
+it. A forgery whose numbers agree with each other, and a finite-difference
+value moved by half its tolerance, are caught only by the rebuild. The next section gives the declared run.
+
+## Phase 15 measured-residual cost preflight (executed once, `INVALID`)
+
+`benchmarks/run_phase15_measured_residual_preflight.py` ran the declared
+preflight once. It ran from clean tree `4916944`, which already carried the
+declaration, its revision 1, the producer and the checker. The environment
+was the one `check_record_environment.py --constraints` derives: Python
+3.12.3, NumPy 2.5.2, SciPy 1.18.0 and Stim 1.16.0, with single-threaded BLAS.
+The run took 405 s at 1.98 GiB peak RSS, 379 s of it on H₂O. The record,
+`benchmarks/reference_results/phase15_measured_residual_preflight.json`, was
+committed alone.
+
+```bash
+python benchmarks/check_phase15_measured_residual_preflight.py                 # re-derive and rebuild every bank
+python benchmarks/check_phase15_measured_residual_preflight.py --no-recompute  # re-derive only
+```
+
+**Verdict: `INVALID`.** Hubbard 2×2 fails
+`linearization_matches_finite_differences`. Along the `functional` direction
+the central difference of the nonlinear pipeline gives `20.63030458`; the
+analytic derivative is `20.63033985`. The difference, `3.53e-5`, exceeds the
+frozen tolerance `2.07e-5`. Along `sh_gaussian` the two agree to `7.8e-11`.
+One INVALID bank makes the verdict INVALID, and no status is read from the
+run.
+
+The other four banks pass every check, including the reproduction of the
+mapping-axis energy settings and, on converged H₄ and BeH₂, its committed
+energy variances. Their recorded ratios, which no clause reads now:
+
+| bank | `G_SH` | `V_E` | `G_U` | `V_σ²` | `R` | `R` (alternative) |
+|---|---|---|---|---|---|---|
+| H₄ | 913 | 0.0625 | 881 | 0.838 | 567 | 563 |
+| converged H₄ | 913 | 0.0608 | 881 | 0.818 | 1,311 | 1,322 |
+| BeH₂ | 353 | 0.00755 | 353 | 0.0306 | 184,358 | 184,358 |
+| H₂O CAS(8e,6o) | 24,334 | 0.110 | 41,774 | 9.37 | 1,579 | none declared |
+| Hubbard 2×2 (INVALID) | 1,406 | 1.21 | 1,709 | 194 | 21.0 | 17.2 |
+
+The settings and variances are under the mapping-axis protocol. `V` is in
+Ha² (`V_E`) and Ha⁴ (`V_σ²`) at one shot per setting, and in *t* units for
+Hubbard.
+
+A post-hoc sweep, not preregistered and not in the record, repeats the failed
+Hubbard check at six steps:
+
+| step | `\|difference − g·d\|` | tolerance | ratio to the previous step |
+|---|---|---|---|
+| `2e-3` | `1.41e-4` | `2.07e-5` | |
+| `1e-3` (frozen) | `3.53e-5` | `2.07e-5` | 4.00 |
+| `5e-4` | `8.82e-6` | `2.08e-5` | 4.00 |
+| `2.5e-4` | `2.20e-6` | `2.10e-5` | 4.00 |
+| `1.25e-4` | `5.51e-7` | `2.13e-5` | 4.00 |
+| `6.25e-5` | `1.37e-7` | `2.20e-5` | 4.02 |
+
+The discrepancy is the step's own `O(h²)` truncation error, and the analytic
+linearization is correct. The frozen step was calibrated on the dimer alone,
+and it is too coarse for the frozen tolerance on the bank whose residual is
+largest against its gap. `tests/test_phase15_measured_residual_preflight.py`
+reproduces all six steps of the sweep, their outcomes and their ratios. It
+also re-derives the committed record
+without a rebuild, and checks that the producer refuses to overwrite it.
+
+The preregistration permits no follow-up. The finite-shot second-moment
+estimator is therefore neither licensed nor closed by this run. A new
+declaration would be needed to decide it, and it would be written after
+every ratio was seen. The checker rebuilds every bank in about seven minutes
+and runs in the structural CI matrix.
 
 ## Phase 18 fragment-solver callback
 

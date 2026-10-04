@@ -140,6 +140,7 @@ GATE_CLASSES: tuple[tuple[str, str, tuple[str, ...]], ...] = (
             "check_g1_structural_preconditioner", "check_krylov_width",
             "check_mapping_axis", "check_matched_h4",
             "check_phase14b_qwc_vs_fc", "check_phase15_h2_preflight",
+            "check_phase15_measured_residual_preflight",
             "check_phase15_variance_extrapolation",
             "check_phase16a_te_qsci",
             "check_priceability_screen",

@@ -194,10 +194,13 @@
         "benchmarks/reference_results/phase15_variance_extrapolation.json",
         "clifford_qc/subspace/convergence.py",
         "tests/test_convergence.py",
-        "examples/acase_convergence.py"
+        "examples/acase_convergence.py",
+        "benchmarks/run_phase15_measured_residual_preflight.py",
+        "benchmarks/check_phase15_measured_residual_preflight.py",
+        "benchmarks/reference_results/phase15_measured_residual_preflight.json"
       ],
       "remaining": [
-        "Finite-shot estimation of the second-moment block (the measured implementation), with a grouping the preflight did not price",
+        "Finite-shot estimation of the second-moment block (the measured implementation). Q18's cost preflight ran once and reads INVALID (the Hubbard 2x2 finite-difference check failed at its frozen step), so the estimator is neither licensed nor closed; deciding it needs a new declaration",
         "Folded-spectrum roots and finite-shot convergence reporting built on the measured second-moment block",
         "Phase 2M storage gate or a preflight of its own before SecondMomentBank construction on any bank outside the five"
       ]

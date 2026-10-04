@@ -23,6 +23,7 @@
       "check_phase14b_preregistration",
       "check_phase15_extrapolation_preregistration",
       "check_phase15_h2_preflight",
+      "check_phase15_measured_residual_preflight",
       "check_phase15_measured_residual_preregistration",
       "check_phase15_preregistration",
       "check_phase15_variance_extrapolation",
@@ -45,7 +46,7 @@
       "Lineage and environment": 3,
       "Plan ledger": 1,
       "Preregistration": 12,
-      "Value-rebuilt": 24
+      "Value-rebuilt": 25
     },
     "dispatch_gates": [
       "check_exact_shot_search",
@@ -60,13 +61,13 @@
       "check_r3d_qr3_refinement",
       "check_record_environment"
     ],
-    "gates": 46,
+    "gates": 47,
     "manual_dispatch_only": 11,
-    "named_in_workflow": 38,
-    "producers": 52,
+    "named_in_workflow": 39,
+    "producers": 53,
     "producers_without_gate": 25,
-    "run_on_every_pull_request": 27,
-    "same_stem_pairs": 27
+    "run_on_every_pull_request": 28,
+    "same_stem_pairs": 28
   },
   "records": {
     "declarations": {
@@ -90,6 +91,7 @@
       "packed_h2o_feasibility.json": "f6a33f1aa225c4dd",
       "phase14b_qwc_vs_fc.json": "7eea7d72de38ea0e",
       "phase15_h2_preflight.json": "8073d71314d9fa75",
+      "phase15_measured_residual_preflight.json": "3827fc7445745dbf",
       "phase15_variance_extrapolation.json": "99e61ba58ebeb000",
       "phase16a_te_qsci.json": "965c18646df21c36",
       "phase16b_feasibility.json": "6829464abc77bc54",
@@ -120,12 +122,12 @@
       "basis_only": 0,
       "nested_in_subobject": 4,
       "none": 5,
-      "per_quantity_mapping": 7,
+      "per_quantity_mapping": 8,
       "role_only": 0,
       "role_with_nested_tier": 2,
       "top_level_tier": 17
     },
-    "json_records": 35,
+    "json_records": 36,
     "series_files": 21,
     "top_level_tiers": {
       "exact": 4,
@@ -185,7 +187,7 @@
     },
     "package_lines": 27322,
     "package_modules": 103,
-    "test_lines": 29845,
-    "test_modules": 128
+    "test_lines": 30265,
+    "test_modules": 129
   }
 }
