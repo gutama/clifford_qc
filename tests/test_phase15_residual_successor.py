@@ -257,3 +257,18 @@ def test_declaration_loader_rejects_result_fields(tmp_path):
     path.write_text(json.dumps(config))
     with pytest.raises(ValueError, match="result field"):
         declaration.load_config(path)
+
+
+def test_committed_post_hoc_uniform_none_and_unlicensed_allocation():
+    config = declaration.load_config()
+    record = json.loads(declaration.RECORD.read_text())
+    validation = json.loads(original.VALIDATION.read_text())
+    assert checker.rederivation_problems(config, record, declaration.CONFIG.read_bytes(),
+                                        validation) == []
+    assert record["decision"]["verdict"] == "NONE"
+    assert set(record["decision"]["statuses"].values()) == {"PROHIBITIVE"}
+    for entry in record["banks"].values():
+        assert all(entry["deterministic_checks"].values())
+        for price in entry["protocols"].values():
+            assert price["allocation_diagnostic"]["estimator_licensed"] is False
+    assert json.loads(original.RECORD.read_text())["decision"]["verdict"] == "INVALID"

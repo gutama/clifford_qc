@@ -116,7 +116,7 @@ No figure or table value in the manuscript is transcribed by hand, and
 ```bash
 python -m venv .venv && source .venv/bin/activate
 pip install -e .[test,research,stim]       # automatic CI extras
-pytest                                      # 2783 passed, 11 skipped
+pytest                                      # 2784 passed, 11 skipped
 ```
 
 This is the automatic CI dependency set; record gates additionally pin NumPy
@@ -132,7 +132,7 @@ the remaining `11 - 6 = 5` skips are per-test and *are* collected:
 
 ```text
 collected == passed + (skipped - files dropped at collection)
-2788      == 2783   + (11      -   6)
+2789      == 2784   + (11      -   6)
 ```
 
 Both sides are computed from the tree, so a drift in either quoted number
@@ -4074,3 +4074,19 @@ with no estimator licence, sampled pilot, coverage claim or device-time claim.
 an independent dense density perturbation and SciPy generalized eigensolve,
 rejects a dropped Ritz-vector response, checks floors and overhead, and catches
 forged summaries and a self-consistent endpoint forgery on rebuild.
+
+The one declared successor execution took 383.7 s under Python 3.12.14,
+NumPy 2.5.2, SciPy 1.18.0 and Stim 1.16.0, from clean published commit
+`ebf44ff`. Its record was committed alone after that declaration. Every bank
+passes every deterministic check; all are PROHIBITIVE under both declared QWC
+heuristics where feasible, giving **post-hoc NONE under uniform QWC only**.
+The recorded ratios are 567.190/562.638 (H4), 1310.921/1322.412 (converged H4),
+184357.873/184357.873 (BeH2), 1579.460 (H2O, no alternative) and
+20.991/17.177 (Hubbard 2x2). The original INVALID record rebuilds unchanged.
+
+Integer oracle allocation reports Hubbard ratios 8.425/8.121 after charging
+unperformed pilot overhead; every molecular ratio exceeds 700. These are
+exact-variance diagnostics, not a sampled pilot protocol or estimator licence.
+A practical allocation study needs a separate declaration specifying how pilots
+estimate both functional weights and setting variances, seeds, budgets and
+coverage validation. Phase 15 remains partial at 50%.

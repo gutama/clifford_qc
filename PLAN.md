@@ -133,7 +133,7 @@ conditional phases.
 | PRD | orthogonal-residual regression, Davidson/preconditioned expansion, packet pricing, matched A-CASE, exact and finite-shot suites | **done and read**; exact compactness is positive, complete-bank QWC finite-shot energy accuracy is negative |
 | 13 | parity/X-rank invariant | **done**; one shared GF(2) implementation is tested across every declared spin-conserving JW construction path before grouping |
 | 14 | fully commuting grouping | **done on the frozen BeH₂/JW comparison** — the public compiled-plan API, exact joint sampler, preregistered finite-sample record, covariance audit, and device-card costing ship; Q9 is positive within the declared one-bank oracle boundary |
-| 15 | second-moment bank | **partially implemented (50%)**; the H-squared preflight reads `FULL` (Q16), and `SecondMomentBank` ships with exact second moments and true Ritz residual norms validated on all five licensed banks. Opt-in exact convergence reporting ships at adaptive termination, with numerical resolution and separate ground-state evidence. Q17's `CONDITIONAL` permits the shipped three-prefix extrapolation diagnostic, with improvement evidence confined to the frozen H₄ and H₂O bases. Q18's measured-residual cost preflight ran once and reads `INVALID`: the Hubbard 2×2 finite-difference check failed at its frozen step, so no finite-shot estimator is licensed or closed. Finite-shot estimation and reporting, folded-spectrum roots and banks outside the five remain |
+| 15 | second-moment bank | **partially implemented (50%)**; the H-squared preflight reads `FULL` (Q16), and `SecondMomentBank` ships with exact second moments and true Ritz residual norms validated on all five licensed banks. Opt-in exact convergence reporting ships at adaptive termination, with numerical resolution and separate ground-state evidence. Q17's `CONDITIONAL` permits the shipped three-prefix extrapolation diagnostic, with improvement evidence confined to the frozen H₄ and H₂O bases. Q18's predecessor remains `INVALID`. Its separately declared Q18-S1 successor reports post-hoc `NONE` for uniform QWC on the five banks after all derivative checks pass. Practical nonuniform allocation, finite-shot reporting, folded-spectrum roots and banks outside the five remain |
 | 16 | time-evolved inputs | **partially implemented (50%)**; the 16A QSCI time-evolved input ships in `subspace/time_evolution.py` (exact matrix-free propagation as an `oracle` input, a validated Trotter circuit as an `implementable` one, and pooled multi-time sampling). Its decision comparison, Q15, ran once and reads `NO_GO`: iterated selected CI of the same size matches or beats it on both required instances. No circuit-native/truncated A-CASE real-time family ships. 16B's three preregistered decision experiments have run — v1 `CONDITIONAL`, v2 `GO` under per-word pricing, v3 `CONDITIONAL` once the incumbent is priced with its own grouping — and the programme ends there: the real-time backend is **not authorized** (§5, Phase 16) |
 | 17 | mapping validation and breadth | **partially implemented (75%)**; the JW/BK/parity transformation, invariance gates, and mapping-axis records ship through R2, while the CEO-pool and dedicated MORE-ADAPT breadth benchmarks remain open |
 | 18 | embedding boundary | **done**; the versioned effective-Hamiltonian schema ships in `models/effective.py`, and the common fragment-solver callback returning energy and one- and two-particle density matrices ships in `subspace/fragment.py`, implemented by QSCI, selected CI, the hybrid, and a sector-FCI reference. The embedding loop itself stays outside the package |
@@ -2264,15 +2264,39 @@ bank and runs in the structural CI matrix. *Not claimed:* a NONE verdict, an
 affordability reading for any bank, anything about finite-sample intervals,
 device time, other groupings or allocations, and any bank outside the five.
 
-**Q18-S1 is separately declared, post-hoc and not yet executed.**
+**Q18-S1 ran once and reads `NONE`, post-hoc under uniform QWC only.**
 `benchmarks/PHASE15_RESIDUAL_SUCCESSOR_DECLARATION.md` and its gated config
-keep Q18's five banks, uniform QWC statistic, protocols and tenfold bar. A fixed
-four-step Richardson validator replaces the single-step check, with both final
-pairs required to agree and all endpoints required to retain the declared domain.
-The original INVALID record stays immutable. Integer oracle allocation charges
-shot floors and an unperformed pilot as a diagnostic only; no clause reads it.
-The declaration is post-hoc because every predecessor ratio and the Hubbard sweep
-were inspected. Its commit order protects identity, not preregistered inference.
+keep Q18's five banks, uniform statistic, protocols and tenfold bar. A fixed
+four-step Richardson validator requires both final estimates, their agreement,
+and the full-rank nondegenerate ground root at every endpoint. All five banks
+pass every deterministic check. The separate record
+(`benchmarks/reference_results/phase15_residual_successor.json`) comes from clean
+published tree `ebf44ff`; its declaration strictly precedes its record.
+
+| bank | R, mapping-axis protocol | R, alternative | status |
+|---|---|---|---|
+| H₄ | 567.190 | 562.638 | PROHIBITIVE |
+| converged H₄ | 1,310.921 | 1,322.412 | PROHIBITIVE |
+| BeH₂ | 184,357.873 | 184,357.873 | PROHIBITIVE |
+| H₂O CAS(8e,6o) | 1,579.460 | none declared | PROHIBITIVE |
+| Hubbard 2×2 | 20.991 | 17.177 | PROHIBITIVE |
+
+The successor closes the uniform-QWC implementation negative on these five banks.
+It does not reinterpret Q18's original INVALID record, which stays byte-for-byte
+intact. The design is post-hoc because all predecessor ratios and the Hubbard
+sweep were inspected; commit order protects identity, not preregistered inference.
+Exact second moments and convergence reports remain available.
+
+A separate oracle allocation diagnostic uses integer counts, a positive shot
+floor and 64 charged but unperformed pilot shots per setting on each side, at
+matched standard error `sigma/100`. Its Hubbard ratios are 8.425 and 8.121; every
+molecular-bank ratio exceeds 700. No decision clause reads those diagnostics and
+no allocation estimator is licensed. A practical allocation study must separately
+declare how it estimates functional weights and setting variances from pilots,
+with seeds, budgets and sampled validation. These first-order oracle costs supply
+no nonlinear-estimator coverage or device-time result. Phase 15 stays partial at
+50% while that allocation question, folded-spectrum roots and other bank scopes
+remain open.
 
 
 ### Phase 16 — time-evolved inputs, split by method
@@ -4225,6 +4249,10 @@ A-CASE's.
   is not evaluated. A post-hoc step sweep, not preregistered, traces the miss
   to `O(h²)` truncation at the frozen step. The other four banks pass every
   check, and their recorded ratios run from 563 to 184,358.
+  **Separate successor Q18-S1:** post-hoc uniform `NONE`; all five banks pass
+  the fixed Richardson checks and remain PROHIBITIVE. This closes only the
+  uniform-QWC implementation on these banks; the original record stays INVALID.
+  The oracle integer-allocation diagnostic licenses no practical estimator.
 
 **Resource accounting (QR1–QR6).**
 
@@ -4905,6 +4933,14 @@ bought a duplicate record.
     step. No status is read, so the finite-shot estimator is neither licensed
     nor closed. The preregistration permits no follow-up, and deciding it
     needs a new declaration.
+19i. Phase 15's Q18-S1 successor — **executed once, post-hoc `NONE` under
+    uniform QWC only.** Its separate declaration, producer, record and independent
+    checker preserve the original five-bank question and tenfold bar, replace the
+    single-step derivative check with fixed Richardson validation, and pass every
+    deterministic check. All banks are PROHIBITIVE. The predecessor remains INVALID.
+    Integer oracle allocation charges an unperformed pilot and shot floors as a
+    diagnostic, with no estimator licence. A practical pilot experiment needs its
+    own declaration and sampled validation; it is not executed here.
 20. CEO and MORE-ADAPT benchmarks after the critical comparison is stable.
 21. The excited-state track, after the certificate question of §7.4 has an answer. Note
     that §3.5B's transformation-character parameter is what keeps this track reachable

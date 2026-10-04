@@ -158,6 +158,11 @@ jobs:
           - gate: check_phase15_measured_residual_preflight
             timeout: 25
             environment_record: phase15_measured_residual_preflight.json
+          # Rebuilds the post-hoc successor's endpoints and per-setting variances;
+          # the oracle allocation remains outside its uniform-only decision.
+          - gate: check_phase15_residual_successor
+            timeout: 25
+            environment_record: phase15_residual_successor.json
           - gate: check_r4a_contextual_screen
             timeout: 20
             environment_record: r4a_contextual_screen.json

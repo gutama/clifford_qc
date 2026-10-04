@@ -1,7 +1,6 @@
 {
   "gates": {
     "absent_from_workflow": [
-      "check_phase15_residual_successor",
       "check_phase16b_feasibility",
       "check_phase16b_preregistration",
       "check_phase16b_v2_feasibility",
@@ -27,6 +26,7 @@
       "check_phase15_measured_residual_preflight",
       "check_phase15_measured_residual_preregistration",
       "check_phase15_preregistration",
+      "check_phase15_residual_successor",
       "check_phase15_residual_successor_declaration",
       "check_phase15_variance_extrapolation",
       "check_phase16a_preregistration",
@@ -66,10 +66,10 @@
     ],
     "gates": 49,
     "manual_dispatch_only": 11,
-    "named_in_workflow": 40,
+    "named_in_workflow": 41,
     "producers": 54,
     "producers_without_gate": 25,
-    "run_on_every_pull_request": 29,
+    "run_on_every_pull_request": 30,
     "same_stem_pairs": 29
   },
   "records": {
@@ -95,6 +95,7 @@
       "phase14b_qwc_vs_fc.json": "7eea7d72de38ea0e",
       "phase15_h2_preflight.json": "8073d71314d9fa75",
       "phase15_measured_residual_preflight.json": "3827fc7445745dbf",
+      "phase15_residual_successor.json": "c347385b908cd04b",
       "phase15_variance_extrapolation.json": "99e61ba58ebeb000",
       "phase16a_te_qsci.json": "965c18646df21c36",
       "phase16b_feasibility.json": "6829464abc77bc54",
@@ -125,12 +126,12 @@
       "basis_only": 0,
       "nested_in_subobject": 4,
       "none": 5,
-      "per_quantity_mapping": 8,
+      "per_quantity_mapping": 9,
       "role_only": 0,
       "role_with_nested_tier": 2,
       "top_level_tier": 17
     },
-    "json_records": 36,
+    "json_records": 37,
     "series_files": 21,
     "top_level_tiers": {
       "exact": 4,
@@ -190,7 +191,7 @@
     },
     "package_lines": 27322,
     "package_modules": 103,
-    "test_lines": 30524,
+    "test_lines": 30539,
     "test_modules": 130
   }
 }

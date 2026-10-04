@@ -197,12 +197,19 @@
         "examples/acase_convergence.py",
         "benchmarks/run_phase15_measured_residual_preflight.py",
         "benchmarks/check_phase15_measured_residual_preflight.py",
-        "benchmarks/reference_results/phase15_measured_residual_preflight.json"
+        "benchmarks/reference_results/phase15_measured_residual_preflight.json",
+        "benchmarks/check_phase15_residual_successor_declaration.py",
+        "benchmarks/run_phase15_residual_successor.py",
+        "benchmarks/check_phase15_residual_successor.py",
+        "tests/test_phase15_residual_successor.py"
       ],
       "remaining": [
-        "Finite-shot estimation of the second-moment block (the measured implementation). Q18's cost preflight ran once and reads INVALID (the Hubbard 2x2 finite-difference check failed at its frozen step), so the estimator is neither licensed nor closed; deciding it needs a new declaration",
+        "Finite-shot estimation beyond uniform QWC. The separate post-hoc Q18-S1 successor reads NONE and closes the uniform protocol negative on the five banks after every derivative check passes; the original Q18 record remains INVALID. Practical nonuniform allocation needs a separate pilot-estimation declaration and sampled validation; oracle allocation diagnostics license no estimator",
         "Folded-spectrum roots and finite-shot convergence reporting built on the measured second-moment block",
         "Phase 2M storage gate or a preflight of its own before SecondMomentBank construction on any bank outside the five"
+      ],
+      "decision_records": [
+        "benchmarks/reference_results/phase15_residual_successor.json"
       ]
     },
     {
