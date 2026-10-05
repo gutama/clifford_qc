@@ -89,6 +89,18 @@ def allocation_problems(price, variance, rule):
 
 def rederivation_problems(config, record, config_bytes, validation):
     problems = []
+    if len(config["revisions"]) > 1:
+        correction = declaration.METADATA_CORRECTION
+        if record.get("metadata_correction") != correction:
+            problems.append("record must disclose the artifact-path metadata correction")
+        executed = copy.deepcopy(record)
+        executed.pop("metadata_correction", None)
+        executed["config_digest"] = correction["execution_config_digest"]
+        digest = hashlib.sha256((json.dumps(executed, indent=1) + "\n").encode()).hexdigest()
+        if digest != correction["execution_record_sha256"]:
+            problems.append("metadata correction changes the executed record beyond its config digest")
+    elif "metadata_correction" in record:
+        problems.append("record carries an undeclared metadata correction")
     for key, value in {
         "schema": producer.SCHEMA, "config_path": str(declaration.CONFIG.relative_to(ROOT)),
         "config_digest": hashlib.sha256(config_bytes).hexdigest(),

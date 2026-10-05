@@ -406,9 +406,9 @@
  },
  "record_requirements": {
   "schema": "clifford_qc.phase15_residual_successor.v1",
-  "producer": "benchmarks/run_phase15_measured_residual_preflight.py",
-  "checker": "benchmarks/check_phase15_measured_residual_preflight.py",
-  "record": "benchmarks/reference_results/phase15_measured_residual_preflight.json",
+  "producer": "benchmarks/run_phase15_residual_successor.py",
+  "checker": "benchmarks/check_phase15_residual_successor.py",
+  "record": "benchmarks/reference_results/phase15_residual_successor.json",
   "must_include": [
    "config_digest and provenance",
    "per bank: the raw and measured sizes of both universes, and the raw combined SHA-256",
@@ -427,6 +427,18 @@
   {
    "revision": 0,
    "changes": "Separate successor after the original INVALID record; original declaration and record are immutable. No successor execution is present."
+  },
+  {
+   "revision": 1,
+   "changes": "Correct record_requirements artifact paths after execution; measurements and execution provenance are unchanged.",
+   "scope": "record_artifact_paths_only",
+   "execution_config_digest": "6402dc6cce0037f757fc0b79fa9c4f1ecf12937f3fcdc51b5e914ef6a261c4b0",
+   "execution_record_sha256": "8061bc790f03322d2eaf8605343de2da6b56864ff78edb42cb11445c596c575d",
+   "original_artifact_paths": {
+    "producer": "benchmarks/run_phase15_measured_residual_preflight.py",
+    "checker": "benchmarks/check_phase15_measured_residual_preflight.py",
+    "record": "benchmarks/reference_results/phase15_measured_residual_preflight.json"
+   }
   }
  ],
  "successor": {

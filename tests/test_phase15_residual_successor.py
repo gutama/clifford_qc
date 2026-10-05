@@ -6,6 +6,7 @@ import copy
 import hashlib
 import json
 import math
+from types import SimpleNamespace
 
 import numpy as np
 import pytest
@@ -31,6 +32,8 @@ def toy():
     model = hubbard(2)
     selected = [identity_generator(model.n), *_raw_pool(model)[:2]]
     config = copy.deepcopy(declaration.load_config())
+    # A fresh toy execution has no post-execution metadata correction.
+    config["revisions"] = config["revisions"][:1]
     bank = preflight.first_moment_bank(model, selected)
     second = SecondMomentBank(bank)
     root = second.residual(bank.solve(), 0)
@@ -236,6 +239,53 @@ def test_new_declaration_is_valid_and_predecessor_is_still_invalid():
     assert hashlib.sha256(original.RECORD.read_bytes()).hexdigest() == config["successor"][
         "predecessor_sha256"]
     assert json.loads(original.RECORD.read_text())["decision"]["verdict"] == "INVALID"
+
+
+@pytest.mark.parametrize("key", ["schema", "producer", "checker", "record"])
+def test_record_contract_rejects_predecessor_artifacts(key):
+    config = declaration.load_config()
+    config["record_requirements"][key] = original.load_config()["record_requirements"][key]
+    assert any(f"record_requirements {key}" in p for p in declaration.static_problems(config))
+
+
+def test_metadata_repair_cannot_change_a_numerical_declaration():
+    config = declaration.load_config()
+    config["derivative_validation"]["steps"] = [0.004, 0.002, 0.001, 0.0005]
+    assert declaration.metadata_correction_problems(config)
+
+
+@pytest.mark.parametrize("path,value", [
+    (("metadata_correction", "execution_config_digest"), "0" * 64),
+    (("metadata_correction", "execution_record_sha256"), "0" * 64),
+    (("elapsed_seconds",), 1.0),
+    (("provenance", "git_sha"), "0" * 40),
+])
+def test_metadata_repair_rejects_changes_to_executed_record(path, value):
+    config = declaration.load_config()
+    record = _mutate(json.loads(declaration.RECORD.read_text()), path, value)
+    validation = json.loads(original.VALIDATION.read_text())
+    assert checker.rederivation_problems(config, record, declaration.CONFIG.read_bytes(), validation)
+
+
+@pytest.mark.parametrize("first_config,first_record,last_config,last_record,bad_pair", [
+    ("declaration", "execution", "correction", "corrected_record", None),
+    ("same", "same", "correction", "corrected_record", None),
+    ("declaration", "execution", "same", "same", None),
+    ("declaration", "execution", "correction", "corrected_record",
+     ("correction", "corrected_record")),
+])
+def test_execution_and_metadata_repair_each_require_prior_declarations(
+        monkeypatch, first_config, first_record, last_config, last_record, bad_pair):
+    monkeypatch.setattr(preflight, "_first_commit", lambda path:
+                        first_config if path == declaration.CONFIG else first_record)
+    monkeypatch.setattr(preflight, "_last_commit", lambda path:
+                        last_config if path == declaration.CONFIG else last_record)
+    monkeypatch.setattr(preflight, "_shallow_boundary", lambda: set())
+    monkeypatch.setattr(declaration.subprocess, "run", lambda args, **kwargs:
+                        SimpleNamespace(returncode=int(tuple(args[-2:]) == bad_pair)))
+    problems = declaration.commit_order_problems([])
+    assert bool(problems) == (first_config == first_record or last_config == last_record
+                              or bad_pair is not None)
 
 
 def test_producer_refuses_original_and_alternative_output_paths(tmp_path):

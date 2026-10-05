@@ -8,6 +8,7 @@ so commit order protects execution identity, not a preregistered inference.
 from __future__ import annotations
 
 import copy
+import hashlib
 import json
 import math
 import subprocess
@@ -24,6 +25,27 @@ from benchmarks import check_phase15_preregistration as lineage
 CONFIG = HERE / "configs" / "phase15_residual_successor.json"
 RECORD = HERE / "reference_results" / "phase15_residual_successor.json"
 SCHEMA = "clifford_qc.phase15_residual_successor_config.v1"
+ARTIFACT_PATHS = {
+    "schema": "clifford_qc.phase15_residual_successor.v1",
+    "producer": "benchmarks/run_phase15_residual_successor.py",
+    "checker": "benchmarks/check_phase15_residual_successor.py",
+    "record": str(RECORD.relative_to(ROOT)),
+}
+# A bounded, post-execution metadata repair. These hashes anchor the executed
+# declaration and record; reconstructing them forbids any scientific revision.
+METADATA_CORRECTION = {
+    "revision": 1,
+    "changes": "Correct record_requirements artifact paths after execution; "
+               "measurements and execution provenance are unchanged.",
+    "scope": "record_artifact_paths_only",
+    "execution_config_digest": "6402dc6cce0037f757fc0b79fa9c4f1ecf12937f3fcdc51b5e914ef6a261c4b0",
+    "execution_record_sha256": "8061bc790f03322d2eaf8605343de2da6b56864ff78edb42cb11445c596c575d",
+    "original_artifact_paths": {
+        "producer": "benchmarks/run_phase15_measured_residual_preflight.py",
+        "checker": "benchmarks/check_phase15_measured_residual_preflight.py",
+        "record": str(original.RECORD.relative_to(ROOT)),
+    },
+}
 BOUND_IMPLEMENTATIONS = (
     *original.BOUND_IMPLEMENTATIONS,
     "benchmarks/run_phase15_measured_residual_preflight.py",
@@ -39,12 +61,32 @@ def load_config(path=CONFIG):
     return original.load_config(path)
 
 
+def metadata_correction_problems(config):
+    revisions = config.get("revisions", [])
+    if len(revisions) != 2 or revisions[-1] != METADATA_CORRECTION:
+        return ["successor must disclose its bounded artifact-path metadata correction"]
+    executed = copy.deepcopy(config)
+    executed["revisions"].pop()
+    executed["record_requirements"].update(METADATA_CORRECTION["original_artifact_paths"])
+    digest = hashlib.sha256((json.dumps(executed, indent=1) + "\n").encode()).hexdigest()
+    if digest != METADATA_CORRECTION["execution_config_digest"]:
+        return ["metadata correction changes the executed declaration beyond artifact paths"]
+    return []
+
+
 def static_problems(config, *, record_exists=None):
     projected = copy.deepcopy(config)
     projected["schema"] = original.SCHEMA
+    # The predecessor forbids post-execution revisions. This successor's
+    # metadata repair is checked separately against the exact execution hashes.
+    projected["revisions"] = projected["revisions"][:1]
     problems = original.static_problems(projected)
     if config.get("schema") != SCHEMA:
         problems.append("wrong successor config schema")
+    for key, value in ARTIFACT_PATHS.items():
+        if config.get("record_requirements", {}).get(key) != value:
+            problems.append(f"successor record_requirements {key} must name its own artifact")
+    problems += metadata_correction_problems(config)
     predecessor = original.load_config()
     # This is a numerical-validator successor, not a change of scientific question.
     for key in ("banks", "grouping", "statistic", "decision_rule", "measured_before_freezing"):
@@ -117,19 +159,26 @@ def commit_order_problems(notes, *, require_config=False):
     if not RECORD.exists():
         notes.append("  successor record absent; declaration carries no new result")
         return []
-    record_commit = lineage._first_commit(RECORD)
+    record_commit = lineage._last_commit(RECORD)
     if record_commit is None:
         notes.append("  successor record not committed yet")
         return []
-    if {config_commit, record_commit} & lineage._shallow_boundary():
+    first_config, first_record = lineage._first_commit(CONFIG), lineage._first_commit(RECORD)
+    if first_config is None or first_record is None:
+        notes.append("  commit order: SKIP (execution history unavailable)")
+        return []
+    if {config_commit, record_commit, first_config, first_record} & lineage._shallow_boundary():
         notes.append("  commit order: SKIP (shallow history)")
         return []
-    if config_commit == record_commit or subprocess.run(
-            ["git", "merge-base", "--is-ancestor", config_commit, record_commit],
-            cwd=ROOT, capture_output=True, timeout=30).returncode:
-        return ["successor declaration must strictly precede its record"]
-    notes.append(f"  declaration {config_commit[:12]} precedes record {record_commit[:12]}; "
-                 "design remains post_hoc")
+    for before, after, label in (
+            (first_config, first_record, "execution declaration"),
+            (config_commit, record_commit, "metadata correction declaration")):
+        if before == after or subprocess.run(
+                ["git", "merge-base", "--is-ancestor", before, after],
+                cwd=ROOT, capture_output=True, timeout=30).returncode:
+            return [f"successor {label} must strictly precede its record"]
+        notes.append(f"  {label} {before[:12]} precedes record {after[:12]}")
+    notes.append("  design remains post_hoc; execution hashes bind the metadata-only repair")
     return []
 
 

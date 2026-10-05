@@ -26,7 +26,18 @@ The declaration binds the predecessor's config and INVALID record, all source
 inputs and every implementation used by its producer and checker. Input hashes
 remain binding after the run. Implementation bindings lapse once the successor
 record exists, which names its own clean source commit. The declaration's last
-commit must strictly precede the record's first commit.
+commit before execution strictly precedes the record's first commit.
+
+Revision 1 corrects only the `record_requirements` producer, checker and record
+paths, which accidentally named the predecessor. This is an explicit
+post-execution metadata correction. The corrected contract names
+`run_phase15_residual_successor.py`, `check_phase15_residual_successor.py` and
+`reference_results/phase15_residual_successor.json`. The record's config digest
+is updated and its `metadata_correction` block retains the executed config digest
+and original record hash. Reconstructing both original hashes rejects any change
+to scientific declarations, measured values, timing or execution provenance.
+The correction declaration must separately precede the corrected record commit;
+the original declaration-before-execution order remains checked.
 
 ## Numerical validator
 
