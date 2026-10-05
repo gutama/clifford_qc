@@ -141,6 +141,7 @@ GATE_CLASSES: tuple[tuple[str, str, tuple[str, ...]], ...] = (
             "check_mapping_axis", "check_matched_h4",
             "check_phase14b_qwc_vs_fc", "check_phase15_h2_preflight",
             "check_phase15_measured_residual_preflight",
+            "check_phase15_residual_successor",
             "check_phase15_variance_extrapolation",
             "check_phase16a_te_qsci",
             "check_priceability_screen",
@@ -168,6 +169,11 @@ GATE_CLASSES: tuple[tuple[str, str, tuple[str, ...]], ...] = (
             "check_r3c_preregistration", "check_r3d_preregistration",
             "check_r4a_preregistration",
         ),
+    ),
+    (
+        "Post-hoc declaration",
+        "freezes a disclosed post-hoc design; commit order protects identity, not preregistration",
+        ("check_phase15_residual_successor_declaration",),
     ),
     (
         "Lineage and environment",

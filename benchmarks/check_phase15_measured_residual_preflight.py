@@ -190,7 +190,8 @@ def freeze_problems(config: dict, record: dict) -> list[str]:
     return problems
 
 
-def derived_checks(config: dict, name: str, entry: dict, validation_root: dict) -> dict:
+def derived_checks(config: dict, name: str, entry: dict, validation_root: dict, *,
+                   finite_ok: bool | None = None) -> dict:
     """Every deterministic check, from the values it rests on."""
     from clifford_qc.subspace.second_moment import RESOLUTION
 
@@ -200,11 +201,12 @@ def derived_checks(config: dict, name: str, entry: dict, validation_root: dict) 
     declared = config["grouping"]["declared_protocol_by_system"][name]
     reference = committed_energy_variance(name)
     rule = config["linearization"]["finite_difference"]
-    finite_ok = True
-    for row in entry["finite_differences"].values():
-        tolerance = (float(rule["relative_tolerance"]) * estimator["residual_functional_norm"]
-                     + RESOLUTION * scale / float(rule["step"]))
-        finite_ok &= abs(row["numeric"] - row["analytic"]) <= tolerance
+    if finite_ok is None:
+        finite_ok = True
+        for row in entry["finite_differences"].values():
+            tolerance = (float(rule["relative_tolerance"]) * estimator["residual_functional_norm"]
+                         + RESOLUTION * scale / float(rule["step"]))
+            finite_ok &= abs(row["numeric"] - row["analytic"]) <= tolerance
     partitions_ok = True
     for price in entry["protocols"].values():
         partitions_ok &= (not price["partition_problems"]

@@ -116,7 +116,7 @@ No figure or table value in the manuscript is transcribed by hand, and
 ```bash
 python -m venv .venv && source .venv/bin/activate
 pip install -e .[test,research,stim]       # automatic CI extras
-pytest                                      # 2742 passed, 11 skipped
+pytest                                      # 2797 passed, 11 skipped
 ```
 
 This is the automatic CI dependency set; record gates additionally pin NumPy
@@ -132,7 +132,7 @@ the remaining `11 - 6 = 5` skips are per-test and *are* collected:
 
 ```text
 collected == passed + (skipped - files dropped at collection)
-2747      == 2742   + (11      -   6)
+2802      == 2797   + (11      -   6)
 ```
 
 Both sides are computed from the tree, so a drift in either quoted number
@@ -4041,3 +4041,57 @@ See [molecular/PIPELINE.md](molecular/PIPELINE.md) for the independent `prepare`
 regressions. `benchmarks/profile_pipeline.py` runs a small TFIM profile in one
 process; run separate processes for each storage/policy arm. It is diagnostic
 performance evidence and does not replace the molecular acceptance matrix.
+
+
+## Q18-S1: separate post-hoc residual-cost successor
+
+The original Q18 INVALID record and config are immutable. The separately declared
+successor keeps the five banks, uniform QWC protocols, matched-standard-error
+ratio and tenfold bar; its derivative check uses all four fixed steps and requires
+both final Richardson estimates and their stability. It is post-hoc on these
+banks because the original ratios and Hubbard sweep were already inspected.
+
+```bash
+python benchmarks/check_phase15_residual_successor_declaration.py
+# After committing the declaration and code, from a clean pinned environment:
+OMP_NUM_THREADS=1 OPENBLAS_NUM_THREADS=1 MKL_NUM_THREADS=1 \
+  python benchmarks/run_phase15_residual_successor.py
+# After a successor record exists:
+python benchmarks/check_phase15_residual_successor.py
+python benchmarks/check_phase15_residual_successor.py --no-recompute
+```
+
+The producer writes only its own declared path and refuses an existing record;
+the checker supplies regeneration without replacing it. The record is committed
+alone after the declaration and code. The independent checker restates the
+Richardson rule, cost arithmetic, allocation counts and decision, and rebuilds
+every endpoint, function and per-setting variance. Integer allocation uses exact
+variances, charges 64 unperformed pilot shots per setting and a positive production
+floor, and reads at sigma/100 precision on both sides. It is an oracle diagnostic
+with no estimator licence, sampled pilot, coverage claim or device-time claim.
+
+`tests/test_phase15_residual_successor.py` validates an undeclared dimer against
+an independent dense density perturbation and SciPy generalized eigensolve,
+rejects a dropped Ritz-vector response, checks floors and overhead, and catches
+forged summaries and a self-consistent endpoint forgery on rebuild.
+
+The one declared successor execution took 383.7 s under Python 3.12.14,
+NumPy 2.5.2, SciPy 1.18.0 and Stim 1.16.0, from clean published commit
+`ebf44ff`. Its record was committed alone after that declaration.
+Revision 1 corrects the copied artifact paths in `record_requirements` after
+execution. Its corrected declaration precedes the record metadata update. The
+record carries the executed config digest and original record hash; the gates
+reconstruct both hashes, permitting only those three paths and the config digest
+to change. All measured values, timing and execution provenance remain intact. Every bank
+passes every deterministic check; all are PROHIBITIVE under both declared QWC
+heuristics where feasible, giving **post-hoc NONE under uniform QWC only**.
+The recorded ratios are 567.190/562.638 (H4), 1310.921/1322.412 (converged H4),
+184357.873/184357.873 (BeH2), 1579.460 (H2O, no alternative) and
+20.991/17.177 (Hubbard 2x2). The original INVALID record rebuilds unchanged.
+
+Integer oracle allocation reports Hubbard ratios 8.425/8.121 after charging
+unperformed pilot overhead; every molecular ratio exceeds 700. These are
+exact-variance diagnostics, not a sampled pilot protocol or estimator licence.
+A practical allocation study needs a separate declaration specifying how pilots
+estimate both functional weights and setting variances, seeds, budgets and
+coverage validation. Phase 15 remains partial at 50%.
