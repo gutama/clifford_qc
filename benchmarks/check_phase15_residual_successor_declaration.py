@@ -152,6 +152,12 @@ def static_problems(config, *, record_exists=None):
     return problems
 
 
+def _execution_commit():
+    # --follow may attribute a copied config to the predecessor's history.
+    # The hash-bound original record names the actual successor execution.
+    return json.loads(RECORD.read_text()).get("provenance", {}).get("git_sha")
+
+
 def commit_order_problems(notes, *, require_config=False):
     config_commit = lineage._last_commit(CONFIG)
     if config_commit is None:
@@ -163,7 +169,7 @@ def commit_order_problems(notes, *, require_config=False):
     if record_commit is None:
         notes.append("  successor record not committed yet")
         return []
-    first_config, first_record = lineage._first_commit(CONFIG), lineage._first_commit(RECORD)
+    first_config, first_record = _execution_commit(), lineage._first_commit(RECORD)
     if first_config is None or first_record is None:
         notes.append("  commit order: SKIP (execution history unavailable)")
         return []

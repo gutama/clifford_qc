@@ -116,7 +116,7 @@ No figure or table value in the manuscript is transcribed by hand, and
 ```bash
 python -m venv .venv && source .venv/bin/activate
 pip install -e .[test,research,stim]       # automatic CI extras
-pytest                                      # 2784 passed, 11 skipped
+pytest                                      # 2797 passed, 11 skipped
 ```
 
 This is the automatic CI dependency set; record gates additionally pin NumPy
@@ -132,7 +132,7 @@ the remaining `11 - 6 = 5` skips are per-test and *are* collected:
 
 ```text
 collected == passed + (skipped - files dropped at collection)
-2789      == 2784   + (11      -   6)
+2802      == 2797   + (11      -   6)
 ```
 
 Both sides are computed from the tree, so a drift in either quoted number
@@ -4077,7 +4077,12 @@ forged summaries and a self-consistent endpoint forgery on rebuild.
 
 The one declared successor execution took 383.7 s under Python 3.12.14,
 NumPy 2.5.2, SciPy 1.18.0 and Stim 1.16.0, from clean published commit
-`ebf44ff`. Its record was committed alone after that declaration. Every bank
+`ebf44ff`. Its record was committed alone after that declaration.
+Revision 1 corrects the copied artifact paths in `record_requirements` after
+execution. Its corrected declaration precedes the record metadata update. The
+record carries the executed config digest and original record hash; the gates
+reconstruct both hashes, permitting only those three paths and the config digest
+to change. All measured values, timing and execution provenance remain intact. Every bank
 passes every deterministic check; all are PROHIBITIVE under both declared QWC
 heuristics where feasible, giving **post-hoc NONE under uniform QWC only**.
 The recorded ratios are 567.190/562.638 (H4), 1310.921/1322.412 (converged H4),

@@ -276,8 +276,8 @@ def test_metadata_repair_rejects_changes_to_executed_record(path, value):
 ])
 def test_execution_and_metadata_repair_each_require_prior_declarations(
         monkeypatch, first_config, first_record, last_config, last_record, bad_pair):
-    monkeypatch.setattr(preflight, "_first_commit", lambda path:
-                        first_config if path == declaration.CONFIG else first_record)
+    monkeypatch.setattr(declaration, "_execution_commit", lambda: first_config)
+    monkeypatch.setattr(preflight, "_first_commit", lambda path: first_record)
     monkeypatch.setattr(preflight, "_last_commit", lambda path:
                         last_config if path == declaration.CONFIG else last_record)
     monkeypatch.setattr(preflight, "_shallow_boundary", lambda: set())
