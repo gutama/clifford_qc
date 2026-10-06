@@ -173,6 +173,11 @@ jobs:
           - gate: check_phase15_certifying_screen
             timeout: 25
             environment_record: phase15_certifying_screen.json
+          # Rebuilds only frozen coefficients, covers, rotors and resources.
+          # Draws no Phase 19 outcomes; after a record, also checks commit order.
+          - gate: check_phase19_preregistration
+            timeout: 10
+            environment_record: protocol_cost.json
           - gate: check_r4a_contextual_screen
             timeout: 20
             environment_record: r4a_contextual_screen.json

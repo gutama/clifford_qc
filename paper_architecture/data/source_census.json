@@ -32,6 +32,7 @@
       "check_phase15_residual_successor_declaration",
       "check_phase15_variance_extrapolation",
       "check_phase16a_preregistration",
+      "check_phase19_preregistration",
       "check_phase_status",
       "check_priceability_screen",
       "check_protocol_axis",
@@ -50,7 +51,7 @@
       "Lineage and environment": 3,
       "Plan ledger": 1,
       "Post-hoc declaration": 2,
-      "Preregistration": 12,
+      "Preregistration": 13,
       "Value-rebuilt": 27
     },
     "dispatch_gates": [
@@ -66,12 +67,12 @@
       "check_r3d_qr3_refinement",
       "check_record_environment"
     ],
-    "gates": 51,
+    "gates": 52,
     "manual_dispatch_only": 11,
-    "named_in_workflow": 43,
+    "named_in_workflow": 44,
     "producers": 55,
     "producers_without_gate": 25,
-    "run_on_every_pull_request": 32,
+    "run_on_every_pull_request": 33,
     "same_stem_pairs": 30
   },
   "records": {
@@ -194,7 +195,7 @@
     },
     "package_lines": 27570,
     "package_modules": 104,
-    "test_lines": 31543,
-    "test_modules": 132
+    "test_lines": 31807,
+    "test_modules": 133
   }
 }
