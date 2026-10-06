@@ -6,12 +6,19 @@ variance and spectral reference, the Richardson rule from the recorded
 endpoints, every ratio and integer-allocation total from the recorded
 per-setting variances, every deterministic check from its inputs, the
 frozen-prefix lineage from the config's own tolerances, each prefix status,
-and the verdict. Every key set in the record is closed, so a field the
-producer never writes is a failure rather than a passenger. A prefix outside
-the declared regime -- an energy below the exact ground energy, or a variance
-below minus its resolution floor -- fails the record, because the frozen
-verdict rule has no status for it. The rebuild then recomputes every prefix
-from committed inputs and compares it with the record.
+and the verdict. Every key set in the record is closed, provenance included,
+and timings must be non-negative numbers, so a field the producer never writes
+is a failure rather than a passenger; a record with a duplicated JSON key or a
+non-finite constant is refused. Booleans and integers are compared by type.
+
+Two sanity rules are stricter than the declaration, and are the checker's,
+not the frozen rule's. An unresolved prefix whose energy lies below the exact
+ground energy fails the record: the frozen rule would only leave it unpriced,
+while a priced one goes INVALID through its declared check. A variance below
+minus its resolution floor fails the record too, where the frozen rule would
+call it UNRESOLVED. Either one means the spectral reference or the
+second-moment pencil is broken. The rebuild then recomputes every prefix from
+committed inputs and compares it with the record.
 
     python benchmarks/check_phase15_certifying_screen.py [--no-recompute]
 """
@@ -23,6 +30,7 @@ import copy
 import hashlib
 import json
 import math
+import re
 import sys
 from pathlib import Path
 
@@ -68,6 +76,38 @@ LINEAGE_FIELDS = (
     "residual_partitioned_words", "energy_variance_one_shot", "residual_variance_one_shot",
     "energy_neyman_sum", "residual_neyman_sum", "cost_ratio", "neyman_ratio")
 NEYMAN_LINEAGE_FIELDS = frozenset({"energy_neyman_sum", "residual_neyman_sum", "neyman_ratio"})
+PROVENANCE_KEYS = frozenset({
+    "schema", "git_sha", "git_dirty", "clifford_qc", "python", "dependencies", "platform",
+    "blas_lapack", "environment_sha256", "utc"})
+
+
+def _strict_equal(a, b) -> bool:
+    """Equality that does not let ``1`` stand for ``True`` or ``25.0`` for ``25``."""
+    if isinstance(a, dict) and isinstance(b, dict):
+        return a.keys() == b.keys() and all(_strict_equal(a[k], b[k]) for k in a)
+    if isinstance(a, list) and isinstance(b, list):
+        return len(a) == len(b) and all(_strict_equal(x, y) for x, y in zip(a, b))
+    return type(a) is type(b) and a == b
+
+
+def _duration(value) -> bool:
+    return (isinstance(value, (int, float)) and not isinstance(value, bool)
+            and math.isfinite(value) and value >= 0)
+
+
+def _reject_duplicates(pairs):
+    keys = [key for key, _ in pairs]
+    if len(keys) != len(set(keys)):
+        raise ValueError(f"duplicated JSON keys {sorted(k for k in set(keys) if keys.count(k) > 1)}")
+    return dict(pairs)
+
+
+def load_record(path):
+    """The record, refusing duplicated keys and non-finite constants."""
+    def refuse(constant):
+        raise ValueError(f"non-finite JSON constant {constant}")
+    return json.loads(Path(path).read_text(encoding="utf-8"),
+                      object_pairs_hook=_reject_duplicates, parse_constant=refuse)
 CHECK_KEYS = ("full_rank", "ground_root_nondegenerate", "energy_reproduces_ladder",
               "energy_consistent_with_spectrum", "residual_functional_reproduces_variance",
               "residual_functional_mean_zero", "linearization_validated", "partitions_valid",
@@ -159,15 +199,16 @@ def prefix_problems(config, method, size, entry, spectrum, history
     ground, first = spectrum["ground_energy"], spectrum["first_excited_energy"]
     sigma = math.sqrt(max(variance, 0.0))
     resolved = variance > RESOLUTION * scale
-    # The frozen rule has no status for these: either one means the spectral
-    # reference or the second-moment pencil is wrong, not that the prefix
-    # quietly leaves the domain.
-    if energy < ground - _rounding(energy, ground):
-        problems.append(f"{label}: energy below the exact ground energy, outside the "
-                        "declared regime")
+    # Checker-side sanity rules, stricter than the declaration (see the module
+    # docstring). A priced prefix below E0 is left to its declared check.
+    if not resolved and energy < ground - _rounding(energy, ground):
+        problems.append(f"{label}: unresolved energy below the exact ground energy "
+                        "(checker sanity rule)")
     if variance < -RESOLUTION * scale:
-        problems.append(f"{label}: variance below minus its resolution floor, outside the "
-                        "declared regime")
+        problems.append(f"{label}: variance below minus its resolution floor "
+                        "(checker sanity rule)")
+    if not _duration(entry.get("seconds")):
+        problems.append(f"{label}: seconds must be a non-negative number")
     if set(entry) != (PRICED_KEYS if resolved else PREFIX_KEYS):
         problems.append(f"{label}: prefix fields differ from the record schema")
         return problems, "INVALID", False
@@ -210,7 +251,12 @@ def prefix_problems(config, method, size, entry, spectrum, history
         problems.append(f"{label}: matched precision does not derive")
     finite_ok = True
     for direction, row in entry["finite_differences"].items():
-        if any(set(evaluation) != EVALUATION_KEYS for evaluation in row.get("evaluations", [])):
+        if not isinstance(row, dict) or not isinstance(row.get("evaluations"), list):
+            problems.append(f"{label}/{direction}: malformed derivative row")
+            finite_ok = False
+            continue
+        if any(not isinstance(evaluation, dict) or set(evaluation) != EVALUATION_KEYS
+               for evaluation in row["evaluations"]):
             problems.append(f"{label}/{direction}: evaluation fields differ from the schema")
         issues, passes = q18s1.derivative_problems(
             row, config["derivative_validation"], estimator["residual_functional_norm"], scale)
@@ -284,7 +330,7 @@ def prefix_problems(config, method, size, entry, spectrum, history
         "partitions_valid": partitions_ok,
         "group_variances_nonnegative": variances_ok,
     }
-    if entry["deterministic_checks"] != checks or tuple(checks) != CHECK_KEYS:
+    if not _strict_equal(entry["deterministic_checks"], checks) or tuple(checks) != CHECK_KEYS:
         problems.append(f"{label}: deterministic checks do not derive")
     threshold = config["statistic"]["max_ratio"]
     if not all(checks.values()) or any(value is None for value in ratios.values()):
@@ -307,6 +353,14 @@ def rederivation_problems(config, record, config_bytes, predecessor) -> list[str
     if set(record) != TOP_KEYS:
         problems.append("record fields differ from the record schema: "
                         f"{sorted(set(record) ^ TOP_KEYS)}")
+    provenance = record.get("provenance")
+    if not isinstance(provenance, dict) or set(provenance) != PROVENANCE_KEYS:
+        problems.append("provenance fields differ from execution_provenance's schema")
+    elif not isinstance(provenance["git_sha"], str) or not re.fullmatch(
+            r"[0-9a-f]{40}", provenance["git_sha"]):
+        problems.append("provenance must name a full execution commit SHA")
+    if not _duration(record.get("elapsed_seconds")):
+        problems.append("elapsed_seconds must be a non-negative number")
     for key, value in {
         "schema": producer.SCHEMA, "config_path": str(declaration.CONFIG.relative_to(ROOT)),
         "config_digest": hashlib.sha256(config_bytes).hexdigest(),
@@ -324,9 +378,12 @@ def rederivation_problems(config, record, config_bytes, predecessor) -> list[str
             problems.append(f"record {key} differs from the declaration")
     frozen = config["measured_before_freezing"]
     spectrum = record["spectral_reference"]
-    if declaration._compare(frozen["spectrum"], spectrum):
+    if declaration._compare(frozen["spectrum"], spectrum) or any(
+            type(spectrum.get(k)) is not type(v) for k, v in frozen["spectrum"].items()):
         problems.append("spectral reference differs from the frozen one")
-    if declaration._compare(frozen["premises"], record["premises"]):
+    if declaration._compare(frozen["premises"], record["premises"]) or any(
+            type(record["premises"].get(k)) is not type(v)
+            for k, v in frozen["premises"].items()):
         problems.append("premises differ from the frozen ones")
     if sorted(record["trajectories"]) != sorted(config["trajectories"]["rows"]):
         return problems + ["trajectories differ from the declaration"]
@@ -355,7 +412,7 @@ def rederivation_problems(config, record, config_bytes, predecessor) -> list[str
         record["trajectories"][method]["prefixes"][str(declaration.FROZEN_BANK_SIZE)],
         predecessor, config["lineage_check"]) for method in record["trajectories"]}
     lineage["passes"] = all(all(checks.values()) for checks in lineage.values())
-    if record["lineage"] != lineage:
+    if not _strict_equal(record["lineage"], lineage):
         problems.append("the frozen-prefix lineage does not derive")
     in_domain = [statuses[key] for key in domain]
     if not lineage["passes"] or "INVALID" in in_domain:
@@ -371,9 +428,9 @@ def rederivation_problems(config, record, config_bytes, predecessor) -> list[str
     expected = {"domain": domain, "statuses": statuses, "verdict": verdict,
                 "consequence": config["consequences"][verdict],
                 "rule": "frozen in the config; see decision_rule"}
-    if record["decision"] != expected:
+    if not _strict_equal(record["decision"], expected):
         problems.append("the decision does not derive")
-    if record.get("provenance", {}).get("git_dirty") is not False:
+    if not isinstance(provenance, dict) or provenance.get("git_dirty") is not False:
         problems.append("the record must carry clean execution provenance")
     return problems
 
@@ -430,8 +487,11 @@ def recompute_problems(config, record, *, model=None, inputs=None, predecessor=N
                                     "does not rebuild")
             for prices in (rebuilt.get("protocols", {}), stored.get("protocols", {})):
                 for price in prices.values():
-                    # Ceilings can move by one shot across architectures; the totals
-                    # are rederived exactly from the rebuilt variances instead.
+                    # Ceilings can move by one shot across architectures, so the
+                    # totals are not compared here. The rederivation restates them
+                    # exactly from the recorded setting variances, which this rebuild
+                    # pins to 1e-9 relative, so each side's production_shots is
+                    # defined only to within its setting count.
                     price.pop("allocation_diagnostic", None)
             problems += [f"{method}/{size}{path} does not rebuild"
                          for path in q18._disagreements(rebuilt, stored)]
@@ -450,7 +510,7 @@ def main(argv=None) -> int:
     notes: list[str] = []
     try:
         config = declaration.load_config()
-        record = json.loads(declaration.RECORD.read_text(encoding="utf-8"))
+        record = load_record(declaration.RECORD)
         predecessor = json.loads(producer.PREDECESSOR.read_text(encoding="utf-8"))["banks"][
             declaration.SYSTEM]
         problems = declaration.static_problems(config)
@@ -459,7 +519,8 @@ def main(argv=None) -> int:
         if not problems and not args.no_recompute:
             problems += recompute_problems(config, record)
         problems += declaration.commit_order_problems(notes)
-    except (OSError, ValueError, KeyError, TypeError, ZeroDivisionError) as exc:
+    except (OSError, ValueError, KeyError, TypeError, AttributeError,
+            ZeroDivisionError) as exc:
         print(f"FAIL malformed Q18-S2 record: {exc}")
         return 1
     for note in notes:

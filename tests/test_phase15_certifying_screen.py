@@ -77,7 +77,8 @@ def toy_record(toy, monkeypatch):
     monkeypatch.setattr(declaration, "FROZEN_BANK_SIZE", LINEAGE_SIZE)
     record = producer.run_screen(toy["config"], config_bytes=toy["raw"], model=toy["model"],
                                  inputs=toy["inputs"], predecessor=toy["predecessor"])
-    record["provenance"] = {"git_dirty": False}
+    record["provenance"] = {key: None for key in checker.PROVENANCE_KEYS}
+    record["provenance"].update(git_sha="0" * 40, git_dirty=False)
     return record
 
 
@@ -366,10 +367,21 @@ def test_every_key_set_is_closed(toy, toy_record, where):
 
 
 @pytest.mark.parametrize("key, value", [("variance", -1e-6), ("ground_energy", -100.0)])
-def test_a_prefix_outside_the_declared_regime_fails_the_record(toy, toy_record, key, value):
+def test_the_checker_sanity_rules_fail_a_broken_unresolved_prefix(toy, toy_record, key, value):
     forged = copy.deepcopy(toy_record)
     _unresolved(forged)[key] = value
-    assert any("outside the declared regime" in p for p in _rederive(toy, forged))
+    assert any("checker sanity rule" in p for p in _rederive(toy, forged))
+
+
+def test_a_priced_prefix_below_e0_is_left_to_its_declared_check(toy, toy_record):
+    entry = copy.deepcopy(toy_record["trajectories"]["toy"]["prefixes"]["3"])
+    spectrum = toy_record["spectral_reference"]
+    entry["ground_energy"] = spectrum["ground_energy"] - 1.0
+    spec = toy["config"]["trajectories"]["rows"]["toy"]
+    problems, _, _ = checker.prefix_problems(toy["config"], "toy", 3, entry, spectrum,
+                                             spec["energy_history"])
+    assert not any("checker sanity rule" in p for p in problems)
+    assert any("deterministic checks do not derive" in p for p in problems)
 
 
 @pytest.mark.parametrize("key, value", [("role", "alternative"),
@@ -431,9 +443,91 @@ def test_rebuild_tolerates_the_sign_of_a_rounding_level_variance(toy, toy_record
 ])
 def test_execution_commit_sits_between_declaration_and_record(execution, expected):
     order = ["before", "declared", "between", "record"]
+    sha = {name: f"{index + 1:x}" * 40 for index, name in enumerate(order)}
+    rank = {value: order.index(name) for name, value in sha.items()}
 
     def is_ancestor(older, newer):
-        return order.index(older) <= order.index(newer)
+        return rank[older] <= rank[newer]
 
-    assert declaration.execution_order_problems("declared", execution, "record",
-                                                is_ancestor=is_ancestor) == expected
+    assert declaration.execution_order_problems(
+        sha["declared"], sha.get(execution, execution), sha["record"],
+        is_ancestor=is_ancestor) == expected
+
+
+@pytest.mark.parametrize("where, value", [
+    ("provenance", "OPEN"), ("elapsed_seconds", {"verdict": "OPEN"}),
+    ("seconds", {"status": "AFFORDABLE"}), ("elapsed_seconds", True)])
+def test_metadata_slots_carry_no_passengers(toy, toy_record, where, value):
+    forged = copy.deepcopy(toy_record)
+    if where == "provenance":
+        forged["provenance"]["verdict"] = value
+    elif where == "seconds":
+        forged["trajectories"]["toy"]["prefixes"]["2"]["seconds"] = value
+    else:
+        forged[where] = value
+    assert _rederive(toy, forged)
+
+
+def test_a_duplicated_key_or_non_finite_constant_is_refused(tmp_path):
+    path = tmp_path / "record.json"
+    path.write_text('{"decision": {"verdict": "OPEN", "verdict": "UNREACHED"}}')
+    with pytest.raises(ValueError, match="duplicated"):
+        checker.load_record(path)
+    path.write_text('{"elapsed_seconds": NaN}')
+    with pytest.raises(ValueError, match="non-finite"):
+        checker.load_record(path)
+
+
+def test_booleans_do_not_pass_for_integers_or_back(toy, toy_record):
+    forged = copy.deepcopy(toy_record)
+    forged["lineage"]["toy"]["ground_energy"] = 1
+    assert _rederive(toy, forged)
+
+
+def test_rederivation_restates_lineage_rather_than_calling_the_producer(
+        toy, toy_record, monkeypatch):
+    def refuse(*args, **kwargs):
+        raise AssertionError("the checker must not reuse the producer's lineage")
+
+    monkeypatch.setattr(producer, "lineage_entry", refuse)
+    assert _rederive(toy, toy_record) == []
+
+
+@pytest.mark.parametrize("execution", ["record"[:4], "HEAD", ":/Record Q18-S2"])
+def test_an_abbreviated_or_symbolic_execution_commit_is_refused(execution):
+    assert declaration.execution_order_problems(
+        "a" * 40, execution, "b" * 40, is_ancestor=lambda older, newer: True) == [
+        "the record's execution commit is not a full commit SHA"]
+
+
+def test_post_record_krylov_basis_certifies_outside_the_screen():
+    """PLAN's post-record check: the ladder's fixed Krylov basis certifies.
+
+    {H^k|psi>, k <= 8} on the hubbard_2x2 rung, solved at the package's default
+    thresholds. Outside the Q18-S2 screen; it is why the ledger scopes UNREACHED
+    to the screened trajectories.
+    """
+    from clifford_qc.subspace.linalg import solve_projected
+
+    model = declaration.system_model()
+    spectrum = screen.sector_spectrum(model)
+    from benchmarks.run_phase15_h2_preflight import reference_vector
+    from clifford_qc.pauli_action import PauliLinearOperator
+
+    hamiltonian = PauliLinearOperator(model.hamiltonian.to_mv())
+    vectors = [reference_vector(model)]
+    for _ in range(8):
+        vectors.append(hamiltonian.matvec(vectors[-1]))
+    basis = np.column_stack(vectors)
+    images = np.column_stack([hamiltonian.matvec(v) for v in vectors])
+    overlap = basis.conj().T @ basis
+    projected = basis.conj().T @ images
+    result = solve_projected(0.5 * (overlap + overlap.conj().T),
+                             0.5 * (projected + projected.conj().T))
+    state = basis @ result.coefficients[:, 0]
+    state = state / np.linalg.norm(state)
+    energy = float(np.vdot(state, hamiltonian.matvec(state)).real)
+    sigma = float(np.linalg.norm(hamiltonian.matvec(state) - energy * state))
+    assert energy == pytest.approx(-10.100105016587381, abs=1e-8)
+    assert sigma == pytest.approx(0.0856, abs=1e-4)
+    assert energy + sigma - spectrum["first_excited_energy"] == pytest.approx(-0.2081, abs=1e-4)

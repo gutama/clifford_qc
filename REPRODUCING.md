@@ -116,7 +116,7 @@ No figure or table value in the manuscript is transcribed by hand, and
 ```bash
 python -m venv .venv && source .venv/bin/activate
 pip install -e .[test,research,stim]       # automatic CI extras
-pytest                                      # 2858 passed, 11 skipped
+pytest                                      # 2870 passed, 11 skipped
 ```
 
 This is the automatic CI dependency set; record gates additionally pin NumPy
@@ -132,7 +132,7 @@ the remaining `11 - 6 = 5` skips are per-test and *are* collected:
 
 ```text
 collected == passed + (skipped - files dropped at collection)
-2863      == 2858   + (11      -   6)
+2875      == 2870   + (11      -   6)
 ```
 
 Both sides are computed from the tree, so a drift in either quoted number
@@ -4147,14 +4147,24 @@ ground-dominated prefixes (`acase_level4`, `M = 23, 24, 25`) have Neyman ratios
 13.3/15.2, 23.6/26.0 and 47.5/51.7. As declared, no pilot allocation experiment
 is authorized on these prefixes. The screen covers only these two trajectories.
 After the record, a check found that the ladder's fixed Krylov basis
-(`{H^k|ψ⟩, k ≤ 8}`) certifies: `σ = 0.086 t` and `E + σ − E₁ = −0.21 t`. Pricing
-`σ` on such a basis needs a new declaration.
+(`{H^k|ψ⟩, k ≤ 8}`) certifies: `σ = 0.086 t` and `E + σ − E₁ = −0.21 t`.
+`test_post_record_krylov_basis_certifies_outside_the_screen` reproduces it.
+Pricing `σ` on such a basis needs a new declaration.
 
-The checker also closes every key set in the record, restates the frozen-prefix
-lineage from the config's tolerances, and fails a prefix outside the declared
-regime: an energy below `E₀`, or a variance below minus its resolution floor. It
-compares the unresolved prefix's variance-derived fields to the resolution floor,
-not to the last bit, so the rebuild does not depend on the BLAS kernel's rounding
-sign. The gate and checker require the record's provenance commit to contain the
-declaration and to strictly precede the record's first commit. This history is
-lost on a squash merge, so merge with a merge commit.
+The checker closes every key set in the record, provenance included. It requires
+timings to be non-negative numbers, refuses duplicated JSON keys and non-finite
+constants, and compares booleans and integers by type. It restates the
+frozen-prefix lineage from the config's tolerances without calling the producer.
+Two sanity rules are the checker's and are stricter than the declaration: an
+unresolved prefix with an energy below `E₀`, and any variance below minus its
+resolution floor, fail the record. The frozen rule would have left these unpriced
+or UNRESOLVED. A priced prefix below `E₀` still goes INVALID through its declared
+check. The rebuild compares the unresolved prefix's variance-derived fields to the
+resolution floor, not to the last bit, so it does not depend on the BLAS kernel's
+rounding sign. It does not compare the integer-allocation totals: the
+rederivation restates them from the recorded setting variances, which the rebuild
+pins to `1e-9` relative, so each total is defined only to within its setting
+count. The gate and checker require the record's provenance to name a full commit
+SHA. That commit must contain the declaration and strictly precede the record's
+first commit. A squash or rebase merge loses this history, so merge with a merge
+commit.

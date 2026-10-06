@@ -133,7 +133,7 @@ conditional phases.
 | PRD | orthogonal-residual regression, Davidson/preconditioned expansion, packet pricing, matched A-CASE, exact and finite-shot suites | **done and read**; exact compactness is positive, complete-bank QWC finite-shot energy accuracy is negative |
 | 13 | parity/X-rank invariant | **done**; one shared GF(2) implementation is tested across every declared spin-conserving JW construction path before grouping |
 | 14 | fully commuting grouping | **done on the frozen BeH₂/JW comparison** — the public compiled-plan API, exact joint sampler, preregistered finite-sample record, covariance audit, and device-card costing ship; Q9 is positive within the declared one-bank oracle boundary |
-| 15 | second-moment bank | **partially implemented (50%)**; the H-squared preflight reads `FULL` (Q16), and `SecondMomentBank` ships with exact second moments and true Ritz residual norms validated on all five licensed banks. Opt-in exact convergence reporting ships at adaptive termination, with numerical resolution and separate ground-state evidence. Q17's `CONDITIONAL` permits the shipped three-prefix extrapolation diagnostic, with improvement evidence confined to the frozen H₄ and H₂O bases. Q18's predecessor remains `INVALID`. Its separately declared Q18-S1 successor reports post-hoc `NONE` for uniform QWC on the five banks after all derivative checks pass. Q18-S2 reads `UNREACHED`: no prefix with a resolved variance on the two committed Hubbard 2×2 A-CASE trajectories that extend the frozen bank certifies the ground state, so no pilot allocation experiment is authorized on those prefixes. Their exact final prefix certifies but cannot be priced, and the ladder's fixed Krylov basis, outside the screen, certifies too. Practical nonuniform allocation on a certifying basis, finite-shot reporting, folded-spectrum roots and banks outside the five remain |
+| 15 | second-moment bank | **partially implemented (50%)**; the H-squared preflight reads `FULL` (Q16), and `SecondMomentBank` ships with exact second moments and true Ritz residual norms validated on all five licensed banks. Opt-in exact convergence reporting ships at adaptive termination, with numerical resolution and separate ground-state evidence. Q17's `CONDITIONAL` permits the shipped three-prefix extrapolation diagnostic, with improvement evidence confined to the frozen H₄ and H₂O bases. Q18's predecessor remains `INVALID`. Its separately declared Q18-S1 successor reports post-hoc `NONE` for uniform QWC on the five banks after all derivative checks pass. Q18-S2 reads `UNREACHED`: no prefix with a resolved variance on the two committed Hubbard 2×2 A-CASE trajectories that extend the frozen bank certifies the ground state, so no pilot allocation experiment is authorized on those prefixes. The exact final `acase_level4` prefix (`M = 26`) has `E + σ < E₁` for any `σ` below the resolution floor, but is unresolved, unpriced and not `certifying` in the record. The ladder's fixed Krylov basis, outside the screen, certifies too. Practical nonuniform allocation on a certifying basis, finite-shot reporting, folded-spectrum roots and banks outside the five remain |
 | 16 | time-evolved inputs | **partially implemented (50%)**; the 16A QSCI time-evolved input ships in `subspace/time_evolution.py` (exact matrix-free propagation as an `oracle` input, a validated Trotter circuit as an `implementable` one, and pooled multi-time sampling). Its decision comparison, Q15, ran once and reads `NO_GO`: iterated selected CI of the same size matches or beats it on both required instances. No circuit-native/truncated A-CASE real-time family ships. 16B's three preregistered decision experiments have run — v1 `CONDITIONAL`, v2 `GO` under per-word pricing, v3 `CONDITIONAL` once the incumbent is priced with its own grouping — and the programme ends there: the real-time backend is **not authorized** (§5, Phase 16) |
 | 17 | mapping validation and breadth | **partially implemented (75%)**; the JW/BK/parity transformation, invariance gates, and mapping-axis records ship through R2, while the CEO-pool and dedicated MORE-ADAPT breadth benchmarks remain open |
 | 18 | embedding boundary | **done**; the versioned effective-Hamiltonian schema ships in `models/effective.py`, and the common fragment-solver callback returning energy and one- and two-particle density matrices ships in `subspace/fragment.py`, implemented by QSCI, selected CI, the hybrid, and a sector-FCI reference. The embedding loop itself stays outside the package |
@@ -2301,9 +2301,10 @@ remain open.
 **Q18-S2 ran once and reads `UNREACHED`: no resolved prefix of the screened
 Hubbard 2×2 trajectories certifies the ground state.** Before a pilot experiment
 on Hubbard 2×2, `benchmarks/PHASE15_CERTIFYING_SCREEN_DECLARATION.md` asked
-whether any committed Hubbard 2×2 basis whose exact Weinstein interval certifies
-the sector ground state (`E + σ < E₁`) could measure `σ` for at most ten times the
-energy's shots under *any* allocation. The frozen bank cannot: it lies above `E₁`
+whether any prefix of the two committed Hubbard 2×2 A-CASE trajectories that
+extend the frozen bank, with an exact Weinstein interval that certifies the sector
+ground state (`E + σ < E₁`), could measure `σ` for at most ten times the energy's
+shots under *any* allocation. The frozen bank itself cannot: it lies above `E₁`
 and its interval holds the six lowest sector eigenvalues (five distinct levels).
 The screen read every prefix from `M = 9` of the two committed ladder trajectories
 that extend that bank, 33 in all. It kept Q18-S1's estimator, groupings,
@@ -2343,7 +2344,8 @@ reporting." The declared domain requires a resolved variance, and "committed
 basis" there means the screened prefixes. Read that way, it holds. Read more
 widely, it does not. The exact `M = 26` prefix certifies but is unpriced. The
 ladder's fixed Krylov basis `{H^k|ψ⟩, k ≤ 8}` lies outside the screen and also
-certifies: in a post-record check, `σ = 0.086 t` and `E + σ − E₁ = −0.21 t`.
+certifies: in a post-record check, `σ = 0.086 t` and `E + σ − E₁ = −0.21 t`
+(`tests/test_phase15_certifying_screen.py` reproduces it).
 Whether `σ` is affordable on such a basis is unanswered. Answering it needs a new
 declaration. *Not claimed:* anything about other bases, groupings, pooled
 estimators, shared campaigns, finite-sample behaviour or other systems. Phase 15
@@ -4307,9 +4309,10 @@ A-CASE's.
   **Separate screen Q18-S2:** `UNREACHED`
   (`benchmarks/reference_results/phase15_certifying_screen.json`). No prefix
   with a resolved variance on the two screened Hubbard 2×2 trajectories
-  certifies the ground state. The exact final prefix certifies but is unpriced;
-  other committed bases, such as the ladder's Krylov basis, lie outside the
-  screen. Every priced ground-dominated prefix has Neyman ratios above 13, and
+  certifies the ground state. The exact final `acase_level4` prefix (`M = 26`)
+  has `E + σ < E₁` but is unresolved and unpriced, so the record does not flag
+  it `certifying`. Other committed bases, such as the ladder's Krylov basis, lie
+  outside the screen. Every priced ground-dominated prefix has Neyman ratios above 13, and
   every prefix with both ratios at or under ten has `σ ≥ 1.11 t`.
 
 **Resource accounting (QR1–QR6).**

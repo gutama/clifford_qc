@@ -28,6 +28,7 @@ from __future__ import annotations
 
 import json
 import math
+import re
 import subprocess
 import sys
 from pathlib import Path
@@ -84,13 +85,24 @@ BOUND_IMPLEMENTATIONS = (
     "benchmarks/run_phase15_certifying_screen.py",
     "benchmarks/check_phase15_certifying_screen.py",
 )
-# Q18's result keys, plus every outcome-bearing key this screen's record writes.
+# Q18's result keys, plus every outcome-bearing key this screen's record writes
+# and its config never uses (the config shares names such as "domain" and
+# "deterministic_checks", which therefore cannot be scanned).
 RESULT_KEYS = q18.RESULT_KEYS | frozenset({
-    "status", "statuses", "certifying", "in_domain", "weinstein_upper",
-    "temple_lower_bound", "ground_dominated", "ground_weight_lower_bound", "decision", "role",
-    "finite_differences", "energy_setting_variances", "residual_setting_variances",
-    "energy_neyman_sum", "residual_neyman_sum", "production_ratio", "total_cost_ratio",
-    "variance_resolved", "lineage",
+    "status", "statuses", "verdict", "decision", "role", "certifying", "in_domain",
+    "weinstein_upper", "temple_lower_bound", "ground_dominated", "ground_weight_lower_bound",
+    "variance_resolved", "variance_resolution", "error", "ladder_energy", "subspace_gap",
+    "functional_variance", "matched_precision_half", "residual_reference_mean",
+    "finite_differences", "richardson", "analytic", "passes", "stable",
+    "energy_setting_variances", "residual_setting_variances", "energy_neyman_sum",
+    "residual_neyman_sum", "partition_problems", "variances_nonnegative",
+    "production_shots", "pilot_shots", "total_shots", "achieved_variance", "target_variance",
+    "target_met", "production_ratio", "total_cost_ratio", "estimator_licensed",
+    "full_rank", "ground_root_nondegenerate", "energy_reproduces_ladder",
+    "energy_consistent_with_spectrum", "residual_functional_reproduces_variance",
+    "residual_functional_mean_zero", "linearization_validated", "partitions_valid",
+    "group_variances_nonnegative", "lineage", "functional_endpoints",
+    "sh_gaussian_endpoints", "qwc_groups_prices", "qwc_basis_cover_prices",
 })
 UNTENSED = q18.UNTENSED
 DECISION_STATUSES = list(screen.STATUSES)
@@ -433,8 +445,12 @@ def execution_order_problems(config_commit: str, execution_commit: str | None,
     the declaration's last commit itself, and it must strictly precede the
     commit that first adds the record.
     """
-    if not execution_commit:
+    if not isinstance(execution_commit, str) or not execution_commit:
         return ["the record names no execution commit"]
+    if not re.fullmatch(r"[0-9a-f]{40}", execution_commit):
+        # A revision expression or an abbreviation could name the record's own
+        # commit and pass the string comparison below.
+        return ["the record's execution commit is not a full commit SHA"]
     after_declaration = is_ancestor(config_commit, execution_commit)
     before_record = is_ancestor(execution_commit, record_commit)
     if after_declaration is None or before_record is None:
@@ -464,7 +480,13 @@ def commit_order_problems(notes: list[str], *, require_config: bool = False) -> 
     if record_commit is None:
         notes.append("  record not committed yet")
         return []
-    execution = json.loads(RECORD.read_text(encoding="utf-8")).get("provenance", {}).get("git_sha")
+    try:
+        provenance = json.loads(RECORD.read_text(encoding="utf-8")).get("provenance")
+    except (OSError, ValueError, AttributeError):
+        return ["the record cannot be read for its execution commit"]
+    execution = provenance.get("git_sha") if isinstance(provenance, dict) else None
+    if not isinstance(execution, str):
+        return ["the record names no execution commit"]
     if {config_commit, record_commit, execution} & lineage._shallow_boundary():
         notes.append("  commit order: SKIP (shallow history)")
         return []
