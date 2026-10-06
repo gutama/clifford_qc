@@ -77,9 +77,16 @@ def toy_record(toy, monkeypatch):
     monkeypatch.setattr(declaration, "FROZEN_BANK_SIZE", LINEAGE_SIZE)
     record = producer.run_screen(toy["config"], config_bytes=toy["raw"], model=toy["model"],
                                  inputs=toy["inputs"], predecessor=toy["predecessor"])
-    record["provenance"] = {key: None for key in checker.PROVENANCE_KEYS}
-    record["provenance"].update(git_sha="0" * 40, git_dirty=False)
+    record["provenance"] = _provenance()
     return record
+
+
+def _provenance():
+    from clifford_qc.reproducibility import execution_provenance
+
+    provenance = execution_provenance()
+    provenance.update(git_sha="0" * 40, git_dirty=False)
+    return json.loads(json.dumps(provenance))
 
 
 def _rederive(toy, record):
@@ -531,3 +538,45 @@ def test_post_record_krylov_basis_certifies_outside_the_screen():
     assert energy == pytest.approx(-10.100105016587381, abs=1e-8)
     assert sigma == pytest.approx(0.0856, abs=1e-4)
     assert energy + sigma - spectrum["first_excited_energy"] == pytest.approx(-0.2081, abs=1e-4)
+
+
+@pytest.mark.parametrize("path, value", [
+    (("estimator_licensed",), 0),
+    (("residual", "production_shots"), 0.5),
+    (("residual", "target_met"), 1),
+])
+def test_allocation_counts_and_flags_keep_their_types(toy, toy_record, path, value):
+    forged = copy.deepcopy(toy_record)
+    target = forged["trajectories"]["toy"]["prefixes"]["3"]["protocols"]["qwc_groups"][
+        "allocation_diagnostic"]
+    for key in path[:-1]:
+        target = target[key]
+    if path[-1] == "production_shots":
+        value = target["production_shots"] + value
+    target[path[-1]] = value
+    assert _rederive(toy, forged)
+
+
+@pytest.mark.parametrize("path, value", [
+    (("python",), {"verdict": "OPEN"}),
+    (("clifford_qc",), {"verdict": "OPEN"}),
+    (("platform", "verdict"), "OPEN"),
+    (("dependencies", "verdict"), "OPEN"),
+    (("dependencies", "numpy"), {"status": "AFFORDABLE"}),
+    (("blas_lapack", "status"), "AFFORDABLE"),
+    (("blas_lapack", "Compilers"), {"c": {"verdict": "OPEN"}}),
+    (("environment_sha256",), "abc"),
+    (("schema",), "something.else"),
+])
+def test_nested_provenance_carries_no_payload(toy, toy_record, path, value):
+    forged = copy.deepcopy(toy_record)
+    target = forged["provenance"]
+    for key in path[:-1]:
+        target = target[key]
+    target[path[-1]] = value
+    assert _rederive(toy, forged)
+
+
+def test_the_committed_provenance_meets_the_nested_schema():
+    record = json.loads(declaration.RECORD.read_text())
+    assert checker.provenance_problems(record["provenance"]) == []

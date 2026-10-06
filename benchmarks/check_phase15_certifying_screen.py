@@ -6,10 +6,13 @@ variance and spectral reference, the Richardson rule from the recorded
 endpoints, every ratio and integer-allocation total from the recorded
 per-setting variances, every deterministic check from its inputs, the
 frozen-prefix lineage from the config's own tolerances, each prefix status,
-and the verdict. Every key set in the record is closed, provenance included,
-and timings must be non-negative numbers, so a field the producer never writes
+and the verdict. Every key set in the record is closed, provenance included
+down to its dependency and platform blocks, and timings must be non-negative
+numbers, so a field the producer never writes
 is a failure rather than a passenger; a record with a duplicated JSON key or a
-non-finite constant is refused. Booleans and integers are compared by type.
+non-finite constant is refused. Every comparison, rederived or rebuilt, keeps
+types exact: a count stays an integer and a flag a boolean, and only floats
+get tolerances.
 
 Two sanity rules are stricter than the declaration, and are the checker's,
 not the frozen rule's. An unresolved prefix whose energy lies below the exact
@@ -88,6 +91,85 @@ def _strict_equal(a, b) -> bool:
     if isinstance(a, list) and isinstance(b, list):
         return len(a) == len(b) and all(_strict_equal(x, y) for x, y in zip(a, b))
     return type(a) is type(b) and a == b
+
+
+def _typed_disagreements(mine, theirs, path="") -> list[str]:
+    """``q18._disagreements`` with exact types: a count must stay an ``int`` and
+    a flag a ``bool``, and only floats get tolerances (``1e-9`` relative, or
+    Q18's Neyman tolerance on its Neyman fields). ``seconds`` is skipped."""
+    if isinstance(mine, dict) and isinstance(theirs, dict):
+        if sorted(mine) != sorted(theirs):
+            return [f"{path or '.'} keys"]
+        out = []
+        for key in mine:
+            if key != "seconds":
+                out += _typed_disagreements(mine[key], theirs[key], f"{path}.{key}")
+        return out
+    if isinstance(mine, list) and isinstance(theirs, list):
+        if len(mine) != len(theirs):
+            return [f"{path} length"]
+        out = []
+        for index, (a, b) in enumerate(zip(mine, theirs)):
+            out += _typed_disagreements(a, b, f"{path}[{index}]")
+        return out
+    if type(mine) is not type(theirs):
+        return [f"{path} type"]
+    if isinstance(mine, float):
+        rel = q18.NEYMAN_RELATIVE if path.rsplit(".", 1)[-1] in q18.NEYMAN_FIELDS else 1e-9
+        return [] if q18._close(mine, theirs, rel=rel, abs_=1e-12) else [path]
+    return [] if mine == theirs else [path]
+
+
+PLATFORM_KEYS = frozenset({"system", "release", "machine", "processor", "hostname"})
+DEPENDENCY_KEYS = frozenset({"numpy", "scipy", "pyscf", "openfermion", "openfermionpyscf",
+                             "stim"})
+
+
+def _scalar_tree(value, forbidden) -> bool:
+    """A configuration dump: string keys, scalar leaves, no outcome-shaped key."""
+    if isinstance(value, dict):
+        return all(isinstance(key, str) and key not in forbidden
+                   and _scalar_tree(item, forbidden) for key, item in value.items())
+    if isinstance(value, list):
+        return all(_scalar_tree(item, forbidden) for item in value)
+    return value is None or isinstance(value, (str, bool, int, float))
+
+
+def provenance_problems(provenance) -> list[str]:
+    """``execution_provenance``'s schema, nested blocks included.
+
+    Provenance is metadata, so nothing here is compared against a rebuild; it is
+    closed so that it cannot carry outcome-shaped values either.
+    """
+    if not isinstance(provenance, dict) or set(provenance) != PROVENANCE_KEYS:
+        return ["provenance fields differ from execution_provenance's schema"]
+    problems = []
+    if provenance["schema"] != "clifford_qc.execution_provenance.v1":
+        problems.append("provenance schema is not execution_provenance's")
+    if not isinstance(provenance["git_sha"], str) or not re.fullmatch(
+            r"[0-9a-f]{40}", provenance["git_sha"]):
+        problems.append("provenance must name a full execution commit SHA")
+    if provenance["git_dirty"] is not False:
+        problems.append("the record must carry clean execution provenance")
+    for key in ("clifford_qc", "python", "utc"):
+        if not isinstance(provenance[key], str):
+            problems.append(f"provenance {key} must be a string")
+    if not isinstance(provenance["environment_sha256"], str) or not re.fullmatch(
+            r"[0-9a-f]{64}", provenance["environment_sha256"]):
+        problems.append("provenance environment_sha256 must be a SHA-256 digest")
+    dependencies = provenance["dependencies"]
+    if (not isinstance(dependencies, dict) or set(dependencies) != DEPENDENCY_KEYS
+            or any(v is not None and not isinstance(v, str) for v in dependencies.values())):
+        problems.append("provenance dependencies differ from execution_provenance's schema")
+    platform = provenance["platform"]
+    if (not isinstance(platform, dict) or set(platform) != PLATFORM_KEYS
+            or any(not isinstance(v, str) for v in platform.values())):
+        problems.append("provenance platform differs from execution_provenance's schema")
+    if not isinstance(provenance["blas_lapack"], dict) or not _scalar_tree(
+            provenance["blas_lapack"], declaration.RESULT_KEYS):
+        problems.append("provenance blas_lapack must be a configuration dump with scalar "
+                        "leaves and no outcome-shaped key")
+    return problems
 
 
 def _duration(value) -> bool:
@@ -314,7 +396,7 @@ def prefix_problems(config, method, size, entry, spectrum, history
         ratios[protocol] = neyman
         got = allocation_totals(price, functional_variance, config["allocation_diagnostic"])
         problems += [f"{label}/{protocol}: allocation {path} does not derive"
-                     for path in q18._disagreements(got, price["allocation_diagnostic"])]
+                     for path in _typed_disagreements(got, price["allocation_diagnostic"])]
     gap_floor = declaration.q18.GAP_FLOOR
     checks = {
         "full_rank": entry["effective_rank"] == size,
@@ -354,11 +436,7 @@ def rederivation_problems(config, record, config_bytes, predecessor) -> list[str
         problems.append("record fields differ from the record schema: "
                         f"{sorted(set(record) ^ TOP_KEYS)}")
     provenance = record.get("provenance")
-    if not isinstance(provenance, dict) or set(provenance) != PROVENANCE_KEYS:
-        problems.append("provenance fields differ from execution_provenance's schema")
-    elif not isinstance(provenance["git_sha"], str) or not re.fullmatch(
-            r"[0-9a-f]{40}", provenance["git_sha"]):
-        problems.append("provenance must name a full execution commit SHA")
+    problems += provenance_problems(provenance)
     if not _duration(record.get("elapsed_seconds")):
         problems.append("elapsed_seconds must be a non-negative number")
     for key, value in {
@@ -430,8 +508,7 @@ def rederivation_problems(config, record, config_bytes, predecessor) -> list[str
                 "rule": "frozen in the config; see decision_rule"}
     if not _strict_equal(record["decision"], expected):
         problems.append("the decision does not derive")
-    if not isinstance(provenance, dict) or provenance.get("git_dirty") is not False:
-        problems.append("the record must carry clean execution provenance")
+
     return problems
 
 
@@ -439,12 +516,14 @@ def recompute_problems(config, record, *, model=None, inputs=None, predecessor=N
     """Rebuild every prefix from committed inputs and compare."""
     from clifford_qc.subspace.second_moment import RESOLUTION
 
-    mine = producer.run_screen(config, config_bytes=b"", model=model, inputs=inputs,
-                               predecessor=predecessor)
+    # Round-trip through JSON so the rebuild carries the record's own types.
+    mine = json.loads(json.dumps(producer.run_screen(
+        config, config_bytes=b"", model=model, inputs=inputs, predecessor=predecessor),
+        allow_nan=False))
     problems = []
     for key in ("spectral_reference", "premises", "lineage"):
         problems += [f"{key}{path} does not rebuild"
-                     for path in q18._disagreements(mine[key], record[key])]
+                     for path in _typed_disagreements(mine[key], record[key])]
     for method, block in mine["trajectories"].items():
         for size, rebuilt in block["prefixes"].items():
             stored = copy.deepcopy(record["trajectories"][method]["prefixes"][size])
@@ -494,7 +573,7 @@ def recompute_problems(config, record, *, model=None, inputs=None, predecessor=N
                     # defined only to within its setting count.
                     price.pop("allocation_diagnostic", None)
             problems += [f"{method}/{size}{path} does not rebuild"
-                         for path in q18._disagreements(rebuilt, stored)]
+                         for path in _typed_disagreements(rebuilt, stored)]
     return problems
 
 

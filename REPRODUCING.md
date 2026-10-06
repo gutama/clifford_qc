@@ -116,7 +116,7 @@ No figure or table value in the manuscript is transcribed by hand, and
 ```bash
 python -m venv .venv && source .venv/bin/activate
 pip install -e .[test,research,stim]       # automatic CI extras
-pytest                                      # 2870 passed, 11 skipped
+pytest                                      # 2883 passed, 11 skipped
 ```
 
 This is the automatic CI dependency set; record gates additionally pin NumPy
@@ -132,7 +132,7 @@ the remaining `11 - 6 = 5` skips are per-test and *are* collected:
 
 ```text
 collected == passed + (skipped - files dropped at collection)
-2875      == 2870   + (11      -   6)
+2888      == 2883   + (11      -   6)
 ```
 
 Both sides are computed from the tree, so a drift in either quoted number
@@ -4151,9 +4151,12 @@ After the record, a check found that the ladder's fixed Krylov basis
 `test_post_record_krylov_basis_certifies_outside_the_screen` reproduces it.
 Pricing `σ` on such a basis needs a new declaration.
 
-The checker closes every key set in the record, provenance included. It requires
-timings to be non-negative numbers, refuses duplicated JSON keys and non-finite
-constants, and compares booleans and integers by type. It restates the
+The checker closes every key set in the record, provenance included down to its
+dependency and platform blocks, and the numerical-library dump may hold only
+scalar leaves with no outcome-shaped key. It requires timings to be non-negative
+numbers and refuses duplicated JSON keys and non-finite constants. Every
+comparison, rederived or rebuilt, keeps types exact: a shot count stays an
+integer and a flag a boolean, and only floats get tolerances. It restates the
 frozen-prefix lineage from the config's tolerances without calling the producer.
 Two sanity rules are the checker's and are stricter than the declaration: an
 unresolved prefix with an energy below `E₀`, and any variance below minus its
@@ -4167,4 +4170,6 @@ pins to `1e-9` relative, so each total is defined only to within its setting
 count. The gate and checker require the record's provenance to name a full commit
 SHA. That commit must contain the declaration and strictly precede the record's
 first commit. A squash or rebase merge loses this history, so merge with a merge
-commit.
+commit. The structural CI job checks out full history (`fetch-depth: 0`), so these
+ancestry checks run in CI instead of skipping at a shallow boundary, and a merge
+that erased the order fails there.

@@ -186,7 +186,13 @@ jobs:
             timeout: 25
             environment_record: packed_bank_storage.json
     steps:
+      # Full history: the preregistration gates check that a declaration's
+      # last commit precedes its record's first. A depth-1 checkout puts both
+      # on the shallow boundary, where every such check SKIPs, and a squash
+      # or rebase merge that erased the order would pass unnoticed.
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
       - uses: ./.github/actions/record-environment
         with:
           reference-record: ${{ matrix.environment_record }}
