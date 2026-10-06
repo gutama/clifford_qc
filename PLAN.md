@@ -2298,6 +2298,18 @@ no nonlinear-estimator coverage or device-time result. Phase 15 stays partial at
 50% while that allocation question, folded-spectrum roots and other bank scopes
 remain open.
 
+**Q18-S2 is declared and not yet executed.** Before a pilot experiment on Hubbard
+2×2, `benchmarks/PHASE15_CERTIFYING_SCREEN_DECLARATION.md` asks whether any
+committed Hubbard 2×2 basis whose exact Weinstein interval certifies the sector
+ground state (`E + σ < E₁`) could measure `σ` for at most ten times the energy's
+shots under *any* allocation. The frozen bank cannot: it lies above `E₁` and its
+interval holds the six lowest levels. The screen reads every prefix from `M = 9`
+of the two committed ladder trajectories that extend that bank. It keeps Q18-S1's
+estimator, groupings, Richardson validator and tenfold bar, and decides on the
+Neyman ratio, a first-order lower bound for every practical allocator. The system
+is selected post hoc from Q18-S1's oracle diagnostic. The committed energies
+already place the possible certifying prefixes at `M = 23–26` of `acase_level4`.
+
 
 ### Phase 16 — time-evolved inputs, split by method
 

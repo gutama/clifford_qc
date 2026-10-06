@@ -116,7 +116,7 @@ No figure or table value in the manuscript is transcribed by hand, and
 ```bash
 python -m venv .venv && source .venv/bin/activate
 pip install -e .[test,research,stim]       # automatic CI extras
-pytest                                      # 2797 passed, 11 skipped
+pytest                                      # 2838 passed, 11 skipped
 ```
 
 This is the automatic CI dependency set; record gates additionally pin NumPy
@@ -132,7 +132,7 @@ the remaining `11 - 6 = 5` skips are per-test and *are* collected:
 
 ```text
 collected == passed + (skipped - files dropped at collection)
-2802      == 2797   + (11      -   6)
+2843      == 2838   + (11      -   6)
 ```
 
 Both sides are computed from the tree, so a drift in either quoted number
@@ -4095,3 +4095,38 @@ exact-variance diagnostics, not a sampled pilot protocol or estimator licence.
 A practical allocation study needs a separate declaration specifying how pilots
 estimate both functional weights and setting variances, seeds, budgets and
 coverage validation. Phase 15 remains partial at 50%.
+
+
+## Q18-S2: oracle allocation screen on certifying Hubbard 2×2 bases
+
+Q18-S1's oracle allocation left Hubbard 2×2 as the one bank under the tenfold
+bar. Its frozen Ritz root, though, is `0.86 t` above the sector ground state with
+`σ = 1.52 t`, so its Weinstein interval certifies nothing. Before any pilot
+experiment, Q18-S2 asks whether a committed Hubbard 2×2 basis that *does*
+certify the ground state could pass under any allocation. It reads every prefix
+`M ≥ 9` of the two committed ladder trajectories that extend the frozen bank
+(`acase_exact_m25`, `acase_level4`). The decision reads the Neyman ratio, both
+sides at their exact-variance optimum, on prefixes with `E + σ < E₁`. The
+estimator, groupings, Richardson validator, integer diagnostic and threshold are
+Q18-S1's. The system is selected post hoc; the declaration precedes its run.
+
+```bash
+python benchmarks/check_phase15_certifying_screen_declaration.py
+# After committing the declaration and code, from a clean pinned environment:
+OMP_NUM_THREADS=1 OPENBLAS_NUM_THREADS=1 MKL_NUM_THREADS=1 \
+  python benchmarks/run_phase15_certifying_screen.py
+# After the record exists:
+python benchmarks/check_phase15_certifying_screen.py
+python benchmarks/check_phase15_certifying_screen.py --no-recompute
+```
+
+The gate recomputes the exact sector spectrum and premises and both trajectories'
+`(S, H)` energies, and forms no second-moment row. The producer writes only its
+declared path, refuses an existing record, and requires its `M = 9` prefixes to
+reproduce Q18-S1's committed Hubbard entry. The checker restates the certifying
+predicate, the Richardson rule, every ratio and allocation total, each prefix
+status and the verdict, then rebuilds every prefix.
+`tests/test_phase15_certifying_screen.py` runs the whole path on the undeclared
+Hubbard dimer, holds the vectorized pencil to Q18's evaluation and the lineage to
+Q18-S1's own producer, and catches forged fields and a self-consistent variance
+forgery on rebuild.

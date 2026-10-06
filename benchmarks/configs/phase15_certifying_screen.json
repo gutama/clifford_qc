@@ -1,0 +1,497 @@
+{
+ "schema": "clifford_qc.phase15_certifying_screen_config.v1",
+ "design_document": "benchmarks/PHASE15_CERTIFYING_SCREEN_DECLARATION.md",
+ "question_id": "Q18-S2",
+ "purpose": "Decide, before any sampled allocation experiment, whether a committed Hubbard 2x2 basis whose exact Weinstein interval certifies the ground state could measure its residual norm for at most ten times the energy's shots under any allocation.",
+ "contains_results": false,
+ "claim_boundary": "This config declares the Q18-S2 oracle screen and carries no screen result. The system is selected post hoc from Q18-S1's oracle diagnostic. The estimator, groupings, derivative validator, integer-allocation diagnostic and tenfold bar are Q18-S1's. The decision reads Neyman ratios, from exact reference variances, on prefixes of two committed trajectories whose exact interval certifies the sector ground state. A later record may report that decision; it licenses no estimator, finite-sample interval or device-time claim.",
+ "question": "Along the two committed Hubbard 2x2 A-CASE trajectories that extend the frozen bank, is there a prefix whose exact Weinstein interval certifies the sector ground state and on which estimating sigma from shared QWC word means, at the energy's standard error, costs at most ten times the energy's shots with both sides at their exact-variance optimal allocation?",
+ "disclosure": {
+  "system_selection": "Hubbard 2x2 is examined because Q18-S1's oracle integer allocation gave it 8.43 and 8.12 against the tenfold bar, and every molecular bank above 700.",
+  "known_before_declaration": [
+   "Q18-S1's complete Hubbard 2x2 entry: E = -9.2394 t, sigma = 1.5198 t, Neyman ratios 9.03 (qwc_groups) and 8.74 (qwc_basis_cover)",
+   "the exact (N, S_z) sector spectrum, already frozen in benchmarks/configs/phase15_variance_extrapolation.json",
+   "the committed energy histories of both trajectories in benchmarks/reference_results/acase_ladder.jsonl",
+   "an informal extrapolation holding Q18-S1's per-shot variances fixed and scaling its Neyman ratio as 1/sigma^2, which predicted ratios in the hundreds wherever sigma resolves the gap; no clause reads it"
+  ],
+  "not_computed_before_declaration": "No second-moment row, sigma, residual functional, grouping of a combined universe or cost ratio on any prefix other than the frozen nine-generator bank",
+  "structural_work_before_declaration": "Both trajectories rebuilt from their labels; their (S, H) ground energies reproduce the committed histories and their first nine generators are the frozen bank's"
+ },
+ "evidence": {
+  "label": "asymptotic_oracle",
+  "statement": "First-order (delta-method) variances at large shot counts, computed exactly from the reference state on committed bases. No sampling, no pilot, no finite-sample statement.",
+  "design_status": "declared_before_execution",
+  "system_selection": "post_hoc"
+ },
+ "system": {
+  "key": "hubbard_2x2",
+  "source_config": "benchmarks/configs/mapping_axis.json",
+  "description": "open 2x2 Hubbard, t = 1, U = 4, mu = U/2, interleaved Jordan-Wigner, reference occupying (0, 3, 4, 7), built by run_mapping_axis._build_model",
+  "spectral_reference": "the exact ground and first distinct excited energies of the reference's (N, S_z) sector, by dense diagonalization of the sector operator (check_phase15_extrapolation_preregistration.sector_spectrum); two levels are one when closer than degeneracy_tolerance * max(1, |E0|)"
+ },
+ "trajectories": {
+  "source": "benchmarks/reference_results/acase_ladder.jsonl",
+  "selection": "the two committed ladder rows on the hubbard_2x2 rung whose first nine labels are the frozen mapping-axis bank's; generators are looked up by label in run_acase_ladder.build_candidates' own pool",
+  "rows": {
+   "acase_exact_m25": {
+    "level4": false,
+    "candidate_family": "levels 0-3",
+    "stopped_reason": "predicted lowering below threshold",
+    "labels": [
+     "I",
+     "E(2<-0)",
+     "E(1<-3)",
+     "E(1,2<-0,3)",
+     "E(6<-4)",
+     "E(5<-7)",
+     "E(5,6<-4,7)",
+     "E(1,6<-0,3)",
+     "E(2,5<-0,3)",
+     "E(1,2<-0,7)",
+     "E(1,2<-3,4)",
+     "E(1,6<-0,7)",
+     "E(2,5<-3,4)",
+     "E(5,6<-0,7)",
+     "E(1,6<-4,7)",
+     "E(5,6<-3,4)",
+     "E(2,5<-4,7)",
+     "E(5,6<-0,3)",
+     "E(1,2<-4,7)",
+     "E(2,5<-0,7)",
+     "E(1,6<-3,4)",
+     "E(2,6<-0,4)",
+     "E(1,5<-3,7)"
+    ],
+    "energy_history": [
+     -8.0,
+     -8.23606797749979,
+     -8.449489742783179,
+     -8.828427124746188,
+     -8.926013125877741,
+     -9.039089991675105,
+     -9.162277660168378,
+     -9.193974379706143,
+     -9.239438100571599,
+     -9.30295564096098,
+     -9.385867926416763,
+     -9.45146206743392,
+     -9.512858234152365,
+     -9.54282337247129,
+     -9.600331735852128,
+     -9.653212736169342,
+     -9.74165738677394,
+     -9.775742733811118,
+     -9.809354240236082,
+     -9.822155680118927,
+     -9.835716398413368,
+     -9.841573246706805,
+     -9.847539685253672
+    ],
+    "prefixes": [
+     9,
+     10,
+     11,
+     12,
+     13,
+     14,
+     15,
+     16,
+     17,
+     18,
+     19,
+     20,
+     21,
+     22,
+     23
+    ]
+   },
+   "acase_level4": {
+    "level4": true,
+    "candidate_family": "levels 0-4",
+    "stopped_reason": "basis budget reached",
+    "labels": [
+     "I",
+     "E(2<-0)",
+     "E(1<-3)",
+     "E(1,2<-0,3)",
+     "E(6<-4)",
+     "E(5<-7)",
+     "E(5,6<-4,7)",
+     "E(1,6<-0,3)",
+     "E(2,5<-0,3)",
+     "E(1,2<-0,7)",
+     "E(1,2<-3,4)",
+     "afm_flipped*E(6<-4)",
+     "afm_flipped*E(5<-7)",
+     "E(1,6<-0,7)",
+     "E(2,5<-3,4)",
+     "afm*E(1,2<-0,3)",
+     "E(2,6<-0,4)",
+     "E(1,5<-3,7)",
+     "afm*E(2<-0)",
+     "afm*E(1<-3)",
+     "E(5,6<-0,7)",
+     "E(1,6<-4,7)",
+     "E(5,6<-3,4)",
+     "E(2,5<-4,7)",
+     "E(5,6<-0,3)",
+     "E(1,2<-4,7)"
+    ],
+    "energy_history": [
+     -8.0,
+     -8.23606797749979,
+     -8.449489742783179,
+     -8.828427124746188,
+     -8.926013125877741,
+     -9.039089991675105,
+     -9.162277660168378,
+     -9.193974379706143,
+     -9.239438100571599,
+     -9.30295564096098,
+     -9.385867926416763,
+     -9.48494651189349,
+     -9.594580606974548,
+     -9.656649814425984,
+     -9.712968489819698,
+     -9.764606273609894,
+     -9.782150824155561,
+     -9.79975072082381,
+     -9.821590479301257,
+     -9.85951702533885,
+     -9.887492342053637,
+     -9.93419979658101,
+     -9.981176979481704,
+     -10.053305682348437,
+     -10.078051711019688,
+     -10.102748483462076
+    ],
+    "prefixes": [
+     9,
+     10,
+     11,
+     12,
+     13,
+     14,
+     15,
+     16,
+     17,
+     18,
+     19,
+     20,
+     21,
+     22,
+     23,
+     24,
+     25,
+     26
+    ]
+   }
+  }
+ },
+ "domain": {
+  "name": "certifying",
+  "definition": "a prefix is certifying when its variance is resolved and its exact ground Ritz pair satisfies E + sigma < E1 and E >= E0 - rounding, with sigma^2 = c'Kc - E^2 from SecondMomentBank and E0, E1 the exact sector ground and first distinct excited energies",
+  "rationale": "Weinstein puts an eigenvalue within sigma of E. Variationality and the first clause leave E0 as the only level the interval can hold, so the measured pair brackets it as [E - sigma, E]. Since sigma^2 >= (E - E0)(E1 - E) for a sector state with E0 <= E <= E1, a certifying prefix is ground-dominated and lies below (E0 + E1)/2",
+  "rounding_ulps": 100.0,
+  "degeneracy_tolerance": 1e-09,
+  "unresolved": "a prefix whose variance does not exceed RESOLUTION * cancellation_scale (SecondMomentBank's floor) is UNRESOLVED, unpriced and outside the domain: the linearization d sigma = d sigma^2 / (2 sigma) has no regime there and the statistic's 1/sigma^2 diverges",
+  "sector_premise": "the Hamiltonian commutes with N and S_z and every generator maps the reference into its (N, S_z) sector, so each Ritz state lies in that sector and the sector spectrum is its reference. Level-4 configuration generators are not sector-conserving as operators; operator leakage is reported and is not the premise"
+ },
+ "statistic": {
+  "name": "neyman_ratio",
+  "definition": "N = (sum_g sqrt v_g^U)^2 / (4 sigma^2 (sum_g sqrt v_g^SH)^2), from the exact per-setting variances of the energy's and the residual's first-order functionals under single assignment",
+  "derivation": "With exact-variance optimal allocation a standard error s costs (sum_g sqrt v_g)^2 / s^2 shots; sigma is read from sigma^2 through d sigma = d sigma^2 / (2 sigma). Matching the two standard errors, s^2 cancels: N is the residual's production shots over the energy's at any one matched precision, both at their optimum, to first order",
+  "lower_bound": "Under the same partition no allocation of residual shots costs less than its Neyman optimum, so against the energy's own optimal cost N is a first-order lower bound for every practical allocator. A pilot is a fixed charge that does not scale with the precision and is excluded from the decision",
+  "max_ratio": 10,
+  "threshold": "N <= 10 is affordable, as Q18's R <= 10 is",
+  "uniform_definition": "R = (G_U * V_sigma2) / (4 * sigma^2 * G_SH * V_E)",
+  "reported_not_read": "Q18's uniform R and Q18-S1's integer allocation with charged, unperformed pilots are reported beside N; no clause reads them"
+ },
+ "grouping": {
+  "estimator": "single_assignment",
+  "declared_protocol": "qwc_groups",
+  "alternative_protocol": "qwc_basis_cover",
+  "energy_universe": "the measured (S, H) universe: the raw U_SH, the (S, H) bank's words over the retained block, minus the identity, listed in ascending code order exactly as the mapping-axis producer lists its JW arm",
+  "residual_universe": "the measured combined universe: the raw U = U_SH | U_K minus the identity. The raw U is every word a measured second-moment bank's rows carry, and the H-squared preflight record committed its size and SHA-256",
+  "universe_convention": "Raw universes include the identity, as the Phase 2M-A ledger, the H-squared preflight record and the mapping-axis record count and hash them; every frozen basis starts with I, so S_00 carries it. Measured universes are the raw ones minus the identity, whose mean is 1 and is never measured. Every count and digest in measured_before_freezing whose name starts with raw_ is a raw quantity; measured_sh_words and measured_combined_words are one fewer, and every grouping partitions a measured universe",
+  "variance": "per setting, Var_psi(sum_{w in g} f_w P_w) on the exact reference, by run_mapping_axis._functional_variance, the function behind the committed mapping-axis energy variances. V is their sum: the estimator's variance at one shot per setting"
+ },
+ "estimator": {
+  "estimand": {
+   "root": "the ground root of the retained block's (S, H) pencil, solved by the package's default thresholds, normalized c'Sc = 1",
+   "variance": "sigma^2 = c'Kc - E^2, with K the SecondMomentBank block A_i^dagger (H^2 A_j) paired with the reference. It equals ||(H - E)|Psi>||^2 / <Psi|Psi>, the squared residual norm PLAN.md section 4.4 names",
+   "residual_norm": "sigma = sqrt(sigma^2), in the energy's own units: Weinstein's theorem puts an eigenvalue within sigma of E, so (E, sigma) is the measured pair a residual reports",
+   "estimator": "every S, H and K entry is reconstructed from one set of shared word means; the measured pencil is solved and sigma^2 read from the measured K at the measured Ritz vector. Nothing is re-measured per entry",
+   "shift": "Measuring (H - c)^2 instead of H^2 changes nothing here. Its rows are combinations of the same S, H and K rows, so with shared word means the reconstruction is algebraically the same function of the same means, and so is its linearization. The gate's tests check this to rounding on the Hubbard dimer"
+  },
+  "linearization": {
+   "energy": "the existing ritz_functional: the word expansion of B'(H - E)B with B = sum c_i A_i. The energy is stationary in c, so no Ritz-vector term enters",
+   "residual": "the word expansion of G = B'(H - E)^2 B - sigma^2 B'B - [V'(H - E)B + B'(H - E)V], with V = sum v_i A_i and v = sum_{k>0} c_k (c_k'(K - QS)c) / (E_k - E), Q = c'Kc. sigma^2 is not stationary in c, so the last term, the Ritz vector's own movement, is required: on the Hubbard dimer it is 3.7% of the weights",
+   "implementation": "residual_functional in benchmarks/check_phase15_measured_residual_preregistration.py, which the producer imports rather than restates",
+   "properties": "G has zero reference expectation, and its weights are invariant under a constant shift of H; both are deterministic checks"
+  }
+ },
+ "derivative_validation": {
+  "steps": [
+   0.002,
+   0.001,
+   0.0005,
+   0.00025
+  ],
+  "relative_tolerance": 1e-06,
+  "required_pairs": "last_two",
+  "require_endpoint_domain": true,
+  "rule": "Evaluate all four central differences. Richardson R(h)=(4 D(h/2)-D(h))/3. Both final pairs must match the analytic derivative within relative_tolerance*||g|| + propagated RESOLUTION*cancellation_scale/h; they must also agree within the relative term plus both propagated floors. Every endpoint retains full rank and the declared nondegenerate ground root. No step is selected based on its discrepancy.",
+  "directions": [
+   "functional",
+   "sh_gaussian"
+  ],
+  "seed": 20261003,
+  "direction_definitions": {
+   "functional": "the residual functional's own non-identity weights, normalized to unit length: the derivative along it is ||g||_2",
+   "sh_gaussian": "a seeded standard normal draw over the non-identity (S, H) words, normalized: those words carry the Ritz-vector term"
+  }
+ },
+ "allocation_diagnostic": {
+  "variance_source": "exact_oracle",
+  "decision_role": "diagnostic_only",
+  "standard_error_fraction_of_sigma": 0.01,
+  "pilot_shots_per_setting": 64,
+  "minimum_shots_per_setting": 1,
+  "rule": "Allocate ceil(sqrt(v_g)*sum sqrt(v)/s^2), with a positive floor on every setting. Energy and sigma use one matched s=sigma/100. Charge 64 pilot shots per setting on each side; exclude pilot outcomes from production. Variances are exact and no pilot is performed. This is neither a realizable pilot protocol nor an estimator licence."
+ },
+ "deterministic_checks": {
+  "history_tolerance": 1e-09,
+  "per_priced_prefix": [
+   "full_rank: the solve retains the whole prefix",
+   "ground_root_nondegenerate: the next Ritz root stands GAP_FLOOR * max(1, |E|) clear, as Q18 requires",
+   "energy_reproduces_ladder: |E - committed history| <= history_tolerance",
+   "energy_consistent_with_spectrum: E >= E0 - rounding",
+   "residual_functional_reproduces_variance: the residual pipeline at the exact means returns SecondMomentBank's sigma^2 within 1e-9 (1 + cancellation_scale)",
+   "residual_functional_mean_zero: |<psi|G|psi>| <= 1e-9 (1 + cancellation_scale)",
+   "linearization_validated: both Richardson directions pass Q18-S1's rule",
+   "partitions_valid: every grouping assigns every measured word once, in QWC settings",
+   "group_variances_nonnegative: every per-setting variance is at least -1e-10 times its scale"
+  ],
+  "consequence": "a failed check makes that prefix INVALID"
+ },
+ "lineage_check": {
+  "statement": "On both trajectories, M = 9 must reproduce Q18-S1's committed hubbard_2x2 entry: the energy, sigma^2, both universes, every setting count, one-shot variance, per-setting variance, uniform and Neyman ratio under both protocols, and every Richardson endpoint",
+  "relative_tolerance": 1e-09,
+  "neyman_relative_tolerance": 0.001,
+  "endpoint_tolerance": "RESOLUTION * cancellation_scale, absolute",
+  "consequence": "a failed lineage check makes the verdict INVALID"
+ },
+ "decision_rule": {
+  "prefix_statuses": [
+   "AFFORDABLE",
+   "PROHIBITIVE",
+   "GROUPING_SENSITIVE"
+  ],
+  "prefix_ladder": "AFFORDABLE when N <= 10 under both protocols, PROHIBITIVE when N > 10 under both, GROUPING_SENSITIVE otherwise; INVALID when a deterministic check fails; UNRESOLVED prefixes are unpriced",
+  "verdict_ladder": [
+   "OPEN",
+   "CLOSED",
+   "GROUPING_SENSITIVE",
+   "UNREACHED",
+   "INVALID"
+  ],
+  "verdict_rule": "INVALID if the lineage fails or any certifying prefix is INVALID; else UNREACHED if no prefix certifies; else OPEN if a certifying prefix is AFFORDABLE; else CLOSED if every certifying prefix is PROHIBITIVE; else GROUPING_SENSITIVE",
+  "diagnostic_prefixes": "prefixes outside the domain are priced and reported and cannot move the verdict"
+ },
+ "consequences": {
+  "OPEN": "A pilot-driven allocation experiment may be declared, scoped by name to the AFFORDABLE certifying prefixes, with its own seeds, budgets, replication, coverage targets and sampled validation, and with the energy side measured through the same pilot pipeline. This screen licenses no estimator.",
+  "CLOSED": "Under these partitions and Q18's matched-precision statistic, no shot allocation measures sigma for ten times the energy's optimal cost on any committed Hubbard 2x2 basis whose interval certifies the ground state. The pilot-driven Hubbard experiment is not authorized as support for convergence reporting; on the frozen bank it could only test the cost of a residual that certifies nothing. Phase 15's finite-shot residual line stays negative on the five banks and on these trajectories; exact residuals remain available.",
+  "GROUPING_SENSITIVE": "No experiment is authorized until a later declaration fixes one grouping and one prefix before any sampling.",
+  "UNREACHED": "No committed basis certifies the ground state, so the question is unanswered for certifying bases. A new trajectory needs a new declaration; the frozen-bank experiment is not authorized for convergence reporting.",
+  "INVALID": "No verdict. The record names the failed check."
+ },
+ "excluded": [
+  "fully or block-commuting grouping, which would change both sides",
+  "pooled or multiply-assigned estimators",
+  "shared shots between the energy and residual campaigns",
+  "finite-sample intervals, bootstrap coverage and sampled validation",
+  "the plug-in bias of sigma^2 and every second-order effect",
+  "device time, other systems, other trajectories and excited roots"
+ ],
+ "prespecified_followup": {
+  "permitted": "none",
+  "statement": "Another threshold, protocol, domain, trajectory or system is a new declaration. The consequence each verdict names is what follows."
+ },
+ "measured_before_freezing": {
+  "spectrum": {
+   "sector_dimension": 36,
+   "ground_energy": -10.10274848346208,
+   "first_excited_energy": -9.806423851823109,
+   "gap": 0.2963246316389707,
+   "ground_degeneracy": 1,
+   "midpoint": -9.954586167642594
+  },
+  "premises": {
+   "distinct_generators": 28,
+   "reference_image_sector_leakage": 0.0,
+   "generator_operator_sector_leakage": 2.0,
+   "hamiltonian_sector_leakage": 0.0,
+   "spin_parity_sector_violations": 0,
+   "sector_word_ceiling": 16384,
+   "largest_basis": 26,
+   "coefficient_occurrence_bound": 17252352
+  },
+  "trajectories": {
+   "acase_exact_m25": {
+    "pool_size": 26,
+    "final_basis_size": 23,
+    "first_nine_are_frozen_bank": true,
+    "history_reproduces": true,
+    "prefixes_below_midpoint": []
+   },
+   "acase_level4": {
+    "pool_size": 161,
+    "final_basis_size": 26,
+    "first_nine_are_frozen_bank": true,
+    "history_reproduces": true,
+    "prefixes_below_midpoint": [
+     23,
+     24,
+     25,
+     26
+    ]
+   }
+  }
+ },
+ "implementation_lineage": {
+  "inputs": [
+   {
+    "path": "benchmarks/configs/mapping_axis.json",
+    "sha256": "25adcb3aedd4d70f3b7e84f91fe3c11672c5d646a416e4851025424f2cb01ea3"
+   },
+   {
+    "path": "benchmarks/configs/phase15_h2_preflight.json",
+    "sha256": "f2bbccc80efa19f1c4b95aeabe0251e295a56263bd1a72b1976f94ac85f078e3"
+   },
+   {
+    "path": "benchmarks/configs/phase15_residual_successor.json",
+    "sha256": "be2bb992427983d10517056f3ec52944489223d8eaedb9d9928e9fdb87998b26"
+   },
+   {
+    "path": "benchmarks/reference_results/phase15_residual_successor.json",
+    "sha256": "b59a3a21d309a69bfd88bceadaca199ef59af6957ced53c6c4e0d06289565f9c"
+   }
+  ],
+  "implementation": [
+   {
+    "path": "clifford_qc/multivector.py",
+    "sha256": "9b8f15685dde7f3c1a65e456e3647fade7a1f393c3f2b392de945232a72024b1"
+   },
+   {
+    "path": "clifford_qc/pauli_kernel.py",
+    "sha256": "c7512dc6ad68e7ccdf676b2fa1fe309c16a21ec5c820e55e7ac45bc8689c937d"
+   },
+   {
+    "path": "clifford_qc/subspace/projection.py",
+    "sha256": "1137aaa945d3b2919d1820501d24fa5406d950241f7d8e3307ede93e2b8b1254"
+   },
+   {
+    "path": "clifford_qc/subspace/second_moment.py",
+    "sha256": "2c6dd24badc829b09d6b28b94967f37300a7a254456b8f649cfb0186b81e4492"
+   },
+   {
+    "path": "clifford_qc/subspace/linalg.py",
+    "sha256": "c64bb5dca07d3f3fba23b2f257132075914df0e374ec3f91ec5a6f8b5ccbc4b3"
+   },
+   {
+    "path": "clifford_qc/measurement/grouping.py",
+    "sha256": "0053af3a451ae201520ee5c6ec4a45bf211d910087d66bd624c9d911d162c356"
+   },
+   {
+    "path": "clifford_qc/measurement/functionals.py",
+    "sha256": "a1a06d2afe6cb96ee6081fc48214cd9252e2eaed58cde053a7cb5dd1c6faac59"
+   },
+   {
+    "path": "benchmarks/run_mapping_axis.py",
+    "sha256": "e47b3a318ad6c63f185cf0c3e874558e8ba3f1b885a0ffe76ca0096cd0dd32a0"
+   },
+   {
+    "path": "benchmarks/check_phase15_preregistration.py",
+    "sha256": "a686af04fdc55c490eda1b2c0fe781a8888488d754ce971a0e69d6ab22431c51"
+   },
+   {
+    "path": "benchmarks/check_phase15_measured_residual_preregistration.py",
+    "sha256": "6c10d3d5f50dfd033009ab1a03fcb009ec9c9311a8657f1c91acb279a37ec1c1"
+   },
+   {
+    "path": "clifford_qc/subspace/symmetry.py",
+    "sha256": "64589f8a8c220923b9e088bdcd8d3018ce89e2875ea4f593ac872811cd7f9594"
+   },
+   {
+    "path": "clifford_qc/subspace/generators.py",
+    "sha256": "8772fbb35ca93bb99d2d8fb7d5a0eb7be7bdb2ac0987ad85506b0af9514a3a58"
+   },
+   {
+    "path": "clifford_qc/backends/sector_statevector.py",
+    "sha256": "526abd31c73bc1a1db2f894e985983ff978220f5c34fae131a7829bea01ebbbc"
+   },
+   {
+    "path": "benchmarks/run_acase_ladder.py",
+    "sha256": "ce024e3ae11609a9bce8cffce6b651100e3bf38012489b629933d0070af535ff"
+   },
+   {
+    "path": "benchmarks/run_phase15_measured_residual_preflight.py",
+    "sha256": "1217178db3c6571caa126d2509d6049cfec536ab24ddaf3348e0382f0554c86e"
+   },
+   {
+    "path": "benchmarks/run_phase15_h2_preflight.py",
+    "sha256": "d1b391352f3b6a1644ceadab175a80c98acf0148f64e8e7c39d6f190f54c025c"
+   },
+   {
+    "path": "benchmarks/phase15_residual_successor.py",
+    "sha256": "3b8e0b6f02979153a8d1022d0722de6bd89988f7cb47d53da32a41eda505b474"
+   },
+   {
+    "path": "benchmarks/check_phase15_extrapolation_preregistration.py",
+    "sha256": "bee0acc40867f03e4b824e85529849a500f097ff9a9274255fc25447c5f8a1c7"
+   },
+   {
+    "path": "benchmarks/phase15_certifying_screen.py",
+    "sha256": "1bc08e81b05bb7f96c4d440db417f6c5d1006cea5fd567c98075e5bd0ce3064a"
+   },
+   {
+    "path": "benchmarks/check_phase15_certifying_screen_declaration.py",
+    "sha256": "126bf9d836a648a6213f66f41e5f6f162b1dff7e9945a76ec2878cc649fcd8f4"
+   },
+   {
+    "path": "benchmarks/run_phase15_certifying_screen.py",
+    "sha256": "f56aff76eb3915711a65eb7d65b8eba14494f45842de5a322704935e6ce16c28"
+   },
+   {
+    "path": "benchmarks/check_phase15_certifying_screen.py",
+    "sha256": "87413f42a856f8f1873885a17057ff6789a9e52412641b7c5edf5165adb08652"
+   }
+  ],
+  "rule": "Input hashes remain binding after execution; implementation hashes lapse once the record exists, which names its own clean commit"
+ },
+ "record_requirements": {
+  "schema": "clifford_qc.phase15_certifying_screen.v1",
+  "producer": "benchmarks/run_phase15_certifying_screen.py",
+  "checker": "benchmarks/check_phase15_certifying_screen.py",
+  "record": "benchmarks/reference_results/phase15_certifying_screen.json",
+  "must_include": [
+   "config_digest and provenance",
+   "the spectral reference and the sector premises",
+   "per prefix: E, sigma^2, sigma, resolution, the Weinstein upper end, Temple's bound, the certifying flag and role",
+   "per priced prefix: both universes, both Richardson rows, every deterministic check, and per protocol G, V, Neyman sums, per-setting variances, R, N and the integer allocation totals",
+   "the frozen-prefix lineage checks",
+   "every prefix status, the certifying prefixes and the verdict, with its consequence quoted"
+  ],
+  "must_carry": {
+   "quantum_advantage_claim": false,
+   "claim_boundary": "its own, not this config's"
+  }
+ },
+ "revisions": [
+  {
+   "revision": 0,
+   "changes": "Initial declaration. No screen result exists."
+  }
+ ]
+}
