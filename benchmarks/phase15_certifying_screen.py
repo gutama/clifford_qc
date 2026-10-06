@@ -2,9 +2,9 @@
 
 Q18-S1 priced the residual norm on the frozen Hubbard 2x2 bank, whose Ritz
 root sits 0.86 t above the exact sector ground state with ``sigma = 1.52 t``.
-Its Weinstein interval ``[E - sigma, E + sigma]`` contains the four lowest
-sector levels, so a measured ``sigma`` there certifies nothing about the
-ground state. This module asks the question one step earlier than a pilot
+Its Weinstein interval ``[E - sigma, E + sigma]`` contains the six lowest
+sector eigenvalues (five distinct levels), so a measured ``sigma`` there
+certifies nothing about the ground state. This module asks the question one step earlier than a pilot
 experiment would: along the two committed A-CASE trajectories that extend that
 bank, is there a basis whose exact interval does certify the ground state, and
 there, could *any* shot allocation under the declared QWC partitions measure

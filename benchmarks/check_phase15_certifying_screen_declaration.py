@@ -8,8 +8,8 @@ its question as frozen, and that nothing outcome-bearing was frozen with it:
   boundary;
 * that the estimator, groupings, derivative validator, allocation diagnostic
   and threshold are Q18-S1's own, unchanged;
-* the decision ladder and verdict rule, exactly as the helper module states
-  them;
+* the decision ladder's status and verdict names, exactly as the helper module
+  states them, and Q18's ``permitted: none`` follow-up and evidence label;
 * both trajectories: labels, energy histories and prefixes frozen in the config
   and still carried by the committed ladder rows;
 * a recomputation of every frozen structural number from committed inputs:
@@ -17,7 +17,9 @@ its question as frozen, and that nothing outcome-bearing was frozen with it:
   trajectory's rebuilt ``(S, H)`` energies. No second-moment row and no ratio
   is formed;
 * input hashes always, implementation hashes until the record names its own
-  commit, and commit order once a record exists.
+  commit, and, once a record exists, commit order: the declaration's last
+  commit precedes or is the commit the record names as its execution, which
+  strictly precedes the record's first commit.
 
     python benchmarks/check_phase15_certifying_screen_declaration.py
 """
@@ -82,9 +84,13 @@ BOUND_IMPLEMENTATIONS = (
     "benchmarks/run_phase15_certifying_screen.py",
     "benchmarks/check_phase15_certifying_screen.py",
 )
+# Q18's result keys, plus every outcome-bearing key this screen's record writes.
 RESULT_KEYS = q18.RESULT_KEYS | frozenset({
-    "status", "statuses", "certifying_prefixes", "domain_prefixes", "neyman_ratios",
-    "residual_norms", "sigma", "prefix_results", "lineage_result",
+    "status", "statuses", "certifying", "in_domain", "weinstein_upper",
+    "temple_lower_bound", "ground_dominated", "ground_weight_lower_bound", "decision", "role",
+    "finite_differences", "energy_setting_variances", "residual_setting_variances",
+    "energy_neyman_sum", "residual_neyman_sum", "production_ratio", "total_cost_ratio",
+    "variance_resolved", "lineage",
 })
 UNTENSED = q18.UNTENSED
 DECISION_STATUSES = list(screen.STATUSES)
@@ -278,6 +284,10 @@ def static_problems(config: dict, *, record_exists: bool | None = None,
     if evidence.get("design_status") != "declared_before_execution" or evidence.get(
             "system_selection") != "post_hoc":
         problems.append("evidence must label a pre-execution declaration with post-hoc selection")
+    if evidence.get("label") != "asymptotic_oracle":
+        problems.append("evidence label must be asymptotic_oracle")
+    if config["prespecified_followup"].get("permitted") != "none":
+        problems.append("the declaration permits no follow-up")
     if config["system"].get("key") != SYSTEM or config["system"].get(
             "source_config") != "benchmarks/configs/mapping_axis.json":
         problems.append("the system must be the mapping-axis Hubbard 2x2")
@@ -405,11 +415,48 @@ def structural_problems(config: dict, notes: list[str] | None = None,
 
 # ------------------------------------------------------------------ order
 
+def _is_ancestor(older: str, newer: str) -> bool | None:
+    """``older`` is ``newer`` or an ancestor of it; None when git cannot say."""
+    try:
+        out = subprocess.run(["git", "merge-base", "--is-ancestor", older, newer],
+                             cwd=ROOT, capture_output=True, timeout=30)
+    except (OSError, subprocess.SubprocessError):
+        return None
+    return {0: True, 1: False}.get(out.returncode)
+
+
+def execution_order_problems(config_commit: str, execution_commit: str | None,
+                             record_commit: str, is_ancestor=_is_ancestor) -> list[str]:
+    """Declaration, then execution, then the record, by the record's own provenance.
+
+    The execution commit is the one the record's provenance names. It may be
+    the declaration's last commit itself, and it must strictly precede the
+    commit that first adds the record.
+    """
+    if not execution_commit:
+        return ["the record names no execution commit"]
+    after_declaration = is_ancestor(config_commit, execution_commit)
+    before_record = is_ancestor(execution_commit, record_commit)
+    if after_declaration is None or before_record is None:
+        return ["the record's execution commit is not in this history"]
+    problems = []
+    if not after_declaration:
+        problems.append("the record was executed at a commit that does not contain the "
+                        "declaration's last change")
+    if not before_record or execution_commit == record_commit:
+        problems.append("the record's execution commit must strictly precede its first commit")
+    return problems
+
+
 def commit_order_problems(notes: list[str], *, require_config: bool = False) -> list[str]:
-    """The config's last commit must strictly precede the record's first."""
+    """The config's last commit must strictly precede the record's first, and the
+    record's own execution commit must sit between them."""
     config_commit = lineage._last_commit(CONFIG)
     if config_commit is None:
-        return ["commit the declaration before executing it"] if require_config else []
+        if require_config:
+            return ["commit the declaration before executing it"]
+        notes.append("  commit order: SKIP (declaration not committed, or no git history)")
+        return []
     if not RECORD.exists():
         notes.append("  record absent; the declaration carries no result")
         return []
@@ -417,15 +464,17 @@ def commit_order_problems(notes: list[str], *, require_config: bool = False) -> 
     if record_commit is None:
         notes.append("  record not committed yet")
         return []
-    if {config_commit, record_commit} & lineage._shallow_boundary():
+    execution = json.loads(RECORD.read_text(encoding="utf-8")).get("provenance", {}).get("git_sha")
+    if {config_commit, record_commit, execution} & lineage._shallow_boundary():
         notes.append("  commit order: SKIP (shallow history)")
         return []
-    if config_commit == record_commit or subprocess.run(
-            ["git", "merge-base", "--is-ancestor", config_commit, record_commit],
-            cwd=ROOT, capture_output=True, timeout=30).returncode:
+    if config_commit == record_commit or not _is_ancestor(config_commit, record_commit):
         return ["the declaration's last commit must strictly precede the record's first"]
-    notes.append(f"  declaration {config_commit[:12]} precedes record {record_commit[:12]}")
-    return []
+    problems = execution_order_problems(config_commit, execution, record_commit)
+    if not problems:
+        notes.append(f"  declaration {config_commit[:12]} <= execution {execution[:12]} "
+                     f"< record {record_commit[:12]}")
+    return problems
 
 
 def main() -> int:

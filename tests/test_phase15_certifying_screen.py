@@ -335,3 +335,105 @@ def test_committed_screen_is_unreached_and_rederives():
         assert all(entry["deterministic_checks"].values())
         for price in entry["protocols"].values():
             assert price["allocation_diagnostic"]["estimator_licensed"] is False
+
+
+# ------------------------------------------------------------------ checker hardening
+
+def _unresolved(record):
+    return record["trajectories"]["toy"]["prefixes"]["4"]
+
+
+@pytest.mark.parametrize("key, value", [
+    ("finite_differences", {"functional": {"passes": True}}),
+    ("estimator", {"functional_variance": 0.0}),
+    ("universes", {}),
+])
+def test_an_unresolved_prefix_cannot_carry_priced_fields(toy, toy_record, key, value):
+    forged = copy.deepcopy(toy_record)
+    _unresolved(forged)[key] = value
+    assert _rederive(toy, forged)
+
+
+@pytest.mark.parametrize("where", ["top", "block", "evaluation", "price"])
+def test_every_key_set_is_closed(toy, toy_record, where):
+    forged = copy.deepcopy(toy_record)
+    certifying = forged["trajectories"]["toy"]["prefixes"]["3"]
+    target = {"top": forged, "block": forged["trajectories"]["toy"],
+              "evaluation": certifying["finite_differences"]["functional"]["evaluations"][0],
+              "price": certifying["protocols"]["qwc_groups"]}[where]
+    target["summary"] = {"verdict": "OPEN"}
+    assert _rederive(toy, forged)
+
+
+@pytest.mark.parametrize("key, value", [("variance", -1e-6), ("ground_energy", -100.0)])
+def test_a_prefix_outside_the_declared_regime_fails_the_record(toy, toy_record, key, value):
+    forged = copy.deepcopy(toy_record)
+    _unresolved(forged)[key] = value
+    assert any("outside the declared regime" in p for p in _rederive(toy, forged))
+
+
+@pytest.mark.parametrize("key, value", [("role", "alternative"),
+                                        ("energy_partitioned_words", 1)])
+def test_protocol_role_and_partition_size_are_restated(toy, toy_record, key, value):
+    forged = copy.deepcopy(toy_record)
+    forged["trajectories"]["toy"]["prefixes"]["3"]["protocols"]["qwc_groups"][key] = value
+    assert _rederive(toy, forged)
+
+
+def test_the_checker_restates_lineage_without_the_producer(toy, toy_record):
+    entry = toy_record["trajectories"]["toy"]["prefixes"][str(LINEAGE_SIZE)]
+    rule = toy["config"]["lineage_check"]
+    assert checker.restate_lineage(entry, toy["predecessor"], rule) == producer.lineage_entry(
+        entry, toy["predecessor"])
+    forged = copy.deepcopy(toy["predecessor"])
+    forged["protocols"]["qwc_basis_cover"]["neyman_ratio"] *= 1.01
+    assert not checker.restate_lineage(entry, forged, rule)["qwc_basis_cover_prices"]
+
+
+def test_a_negative_group_variance_is_derived_as_invalid_not_rejected(toy, toy_record):
+    entry = copy.deepcopy(toy_record["trajectories"]["toy"]["prefixes"]["3"])
+    price = entry["protocols"]["qwc_basis_cover"]
+    price.update(energy_setting_variances=[], residual_setting_variances=[],
+                 energy_variance_one_shot=0.0, residual_variance_one_shot=0.0,
+                 energy_neyman_sum=0.0, residual_neyman_sum=0.0, cost_ratio=None,
+                 neyman_ratio=None, variances_nonnegative=False, allocation_diagnostic=None)
+    entry["deterministic_checks"]["group_variances_nonnegative"] = False
+    entry["status"] = "INVALID"
+    spec = toy["config"]["trajectories"]["rows"]["toy"]
+    problems, status, certifying = checker.prefix_problems(
+        toy["config"], "toy", 3, entry, toy_record["spectral_reference"], spec["energy_history"])
+    assert problems == [] and status == "INVALID" and certifying
+
+
+def test_rebuild_tolerates_the_sign_of_a_rounding_level_variance(toy, toy_record):
+    forged = copy.deepcopy(toy_record)
+    entry = _unresolved(forged)
+    entry["variance"] = abs(entry["variance"]) + 4e-14
+    entry["residual_norm"] = math.sqrt(entry["variance"])
+    entry["weinstein_upper"] = entry["ground_energy"] + entry["residual_norm"]
+    first = forged["spectral_reference"]["first_excited_energy"]
+    entry["temple_lower_bound"] = entry["ground_energy"] - entry["variance"] / (
+        first - entry["ground_energy"])
+    assert checker.recompute_problems(toy["config"], forged, model=toy["model"],
+                                      inputs=toy["inputs"], predecessor=toy["predecessor"]) == []
+    entry["residual_norm"] = 1e-3
+    assert checker.recompute_problems(toy["config"], forged, model=toy["model"],
+                                      inputs=toy["inputs"], predecessor=toy["predecessor"])
+
+
+@pytest.mark.parametrize("execution, expected", [
+    ("declared", []),
+    ("between", []),
+    ("before", ["the record was executed at a commit that does not contain the "
+                "declaration's last change"]),
+    ("record", ["the record's execution commit must strictly precede its first commit"]),
+    (None, ["the record names no execution commit"]),
+])
+def test_execution_commit_sits_between_declaration_and_record(execution, expected):
+    order = ["before", "declared", "between", "record"]
+
+    def is_ancestor(older, newer):
+        return order.index(older) <= order.index(newer)
+
+    assert declaration.execution_order_problems("declared", execution, "record",
+                                                is_ancestor=is_ancestor) == expected

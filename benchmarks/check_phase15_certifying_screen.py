@@ -4,8 +4,13 @@ Two layers, as for Q18-S1. The rederivation trusts no outcome flag in the
 record. It restates the certifying predicate from the recorded energy,
 variance and spectral reference, the Richardson rule from the recorded
 endpoints, every ratio and integer-allocation total from the recorded
-per-setting variances, every deterministic check from its inputs, each
-prefix status, and the verdict. The rebuild then recomputes every prefix
+per-setting variances, every deterministic check from its inputs, the
+frozen-prefix lineage from the config's own tolerances, each prefix status,
+and the verdict. Every key set in the record is closed, so a field the
+producer never writes is a failure rather than a passenger. A prefix outside
+the declared regime -- an energy below the exact ground energy, or a variance
+below minus its resolution floor -- fails the record, because the frozen
+verdict rule has no status for it. The rebuild then recomputes every prefix
 from committed inputs and compares it with the record.
 
     python benchmarks/check_phase15_certifying_screen.py [--no-recompute]
@@ -32,6 +37,37 @@ from benchmarks import check_phase15_residual_successor as q18s1
 from benchmarks import run_phase15_certifying_screen as producer
 
 ROUNDING_ULPS = 100.0
+TOP_KEYS = frozenset({
+    "schema", "config_path", "config_digest", "claim_boundary", "quantum_advantage_claim",
+    "question", "evidence", "statistic", "domain", "grouping", "derivative_validation",
+    "allocation_diagnostic", "spectral_reference", "premises", "trajectories", "lineage",
+    "decision", "declaration", "elapsed_seconds", "provenance"})
+BLOCK_KEYS = frozenset({"candidate_family", "pool_size", "labels", "prefixes"})
+PREFIX_KEYS = frozenset({
+    "basis_size", "ground_energy", "ladder_energy", "error", "variance", "residual_norm",
+    "variance_resolved", "cancellation_scale", "variance_resolution", "weinstein_upper",
+    "ground_weight_lower_bound", "temple_lower_bound", "certifying", "effective_rank",
+    "subspace_gap", "ground_dominated", "in_domain", "role", "status", "protocols",
+    "deterministic_checks", "seconds"})
+PRICED_KEYS = PREFIX_KEYS | {"universes", "estimator", "finite_differences"}
+UNIVERSE_KEYS = frozenset({"raw_sh_word_universe", "raw_combined_word_universe",
+                           "measured_sh_words", "measured_combined_words"})
+ESTIMATOR_KEYS = frozenset({
+    "functional_variance", "matched_precision_half", "residual_functional_words",
+    "residual_functional_norm", "residual_identity_weight", "residual_reference_mean",
+    "energy_functional_words", "energy_functional_norm"})
+PRICE_KEYS = frozenset({
+    "role", "energy_settings", "energy_partitioned_words", "energy_variance_one_shot",
+    "energy_neyman_sum", "residual_settings", "residual_partitioned_words",
+    "residual_variance_one_shot", "residual_neyman_sum", "cost_ratio", "neyman_ratio",
+    "partition_problems", "variances_nonnegative", "energy_setting_variances",
+    "residual_setting_variances", "allocation_diagnostic"})
+EVALUATION_KEYS = frozenset({"step", "plus", "minus", "numeric", "domain_valid"})
+LINEAGE_FIELDS = (
+    "energy_settings", "residual_settings", "energy_partitioned_words",
+    "residual_partitioned_words", "energy_variance_one_shot", "residual_variance_one_shot",
+    "energy_neyman_sum", "residual_neyman_sum", "cost_ratio", "neyman_ratio")
+NEYMAN_LINEAGE_FIELDS = frozenset({"energy_neyman_sum", "residual_neyman_sum", "neyman_ratio"})
 CHECK_KEYS = ("full_rank", "ground_root_nondegenerate", "energy_reproduces_ladder",
               "energy_consistent_with_spectrum", "residual_functional_reproduces_variance",
               "residual_functional_mean_zero", "linearization_validated", "partitions_valid",
@@ -66,6 +102,51 @@ def allocation_totals(price, variance, rule) -> dict:
     return out
 
 
+def _lineage_close(a, b, rel) -> bool:
+    if isinstance(a, bool) or isinstance(b, bool) or a is None or b is None:
+        return a == b and type(a) is type(b)
+    if isinstance(a, int) and isinstance(b, int):
+        return a == b
+    return math.isclose(float(a), float(b), rel_tol=rel, abs_tol=1e-12)
+
+
+def restate_lineage(entry, predecessor, rule) -> dict:
+    """The frozen-prefix lineage, restated from the config's own tolerances."""
+    from clifford_qc.subspace.second_moment import RESOLUTION
+
+    rel, neyman_rel = rule["relative_tolerance"], rule["neyman_relative_tolerance"]
+    out = {
+        "ground_energy": _lineage_close(entry["ground_energy"],
+                                        predecessor["estimator"]["ground_energy"], rel),
+        "variance": _lineage_close(entry["variance"], predecessor["estimator"]["variance"], rel),
+        "universes": all(entry.get("universes", {}).get(key) == predecessor["universes"][key]
+                         for key in sorted(UNIVERSE_KEYS)),
+    }
+    for protocol, theirs in predecessor["protocols"].items():
+        mine = entry.get("protocols", {}).get(protocol)
+        ok = mine is not None
+        if ok:
+            for key in LINEAGE_FIELDS:
+                ok &= _lineage_close(mine[key], theirs[key],
+                                     neyman_rel if key in NEYMAN_LINEAGE_FIELDS else rel)
+            for side in ("energy", "residual"):
+                a, b = mine[f"{side}_setting_variances"], theirs[f"{side}_setting_variances"]
+                ok &= len(a) == len(b) and all(abs(x - y) <= 1e-12 + rel * abs(y)
+                                               for x, y in zip(a, b))
+        out[f"{protocol}_prices"] = bool(ok)
+    floor = RESOLUTION * float(entry["cancellation_scale"])
+    for direction, theirs in predecessor["finite_differences"].items():
+        mine = entry.get("finite_differences", {}).get(direction)
+        ok = (mine is not None and len(mine["evaluations"]) == len(theirs["evaluations"])
+              and _lineage_close(mine["analytic"], theirs["analytic"], rel))
+        if ok:
+            for a, b in zip(mine["evaluations"], theirs["evaluations"]):
+                ok &= a["step"] == b["step"] and all(abs(a[key] - b[key]) <= floor
+                                                     for key in ("plus", "minus"))
+        out[f"{direction}_endpoints"] = bool(ok)
+    return out
+
+
 def prefix_problems(config, method, size, entry, spectrum, history
                     ) -> tuple[list[str], str, bool]:
     """Restate one prefix from its recorded inputs: problems, status, domain."""
@@ -78,6 +159,18 @@ def prefix_problems(config, method, size, entry, spectrum, history
     ground, first = spectrum["ground_energy"], spectrum["first_excited_energy"]
     sigma = math.sqrt(max(variance, 0.0))
     resolved = variance > RESOLUTION * scale
+    # The frozen rule has no status for these: either one means the spectral
+    # reference or the second-moment pencil is wrong, not that the prefix
+    # quietly leaves the domain.
+    if energy < ground - _rounding(energy, ground):
+        problems.append(f"{label}: energy below the exact ground energy, outside the "
+                        "declared regime")
+    if variance < -RESOLUTION * scale:
+        problems.append(f"{label}: variance below minus its resolution floor, outside the "
+                        "declared regime")
+    if set(entry) != (PRICED_KEYS if resolved else PREFIX_KEYS):
+        problems.append(f"{label}: prefix fields differ from the record schema")
+        return problems, "INVALID", False
     certifying = resolved and energy + sigma < first and energy >= ground - _rounding(
         energy, ground)
     weight = max(0.0, min(1.0, 1.0 - max(energy - ground, 0.0) / (first - ground)))
@@ -105,11 +198,20 @@ def prefix_problems(config, method, size, entry, spectrum, history
         return problems, "UNRESOLVED", False
 
     estimator = entry["estimator"]
+    universes = entry["universes"]
+    if set(estimator) != ESTIMATOR_KEYS or set(universes) != UNIVERSE_KEYS:
+        problems.append(f"{label}: estimator or universe fields differ from the record schema")
+        return problems, "INVALID", certifying
+    if (universes["measured_sh_words"] != universes["raw_sh_word_universe"] - 1
+            or universes["measured_combined_words"] != universes["raw_combined_word_universe"] - 1):
+        problems.append(f"{label}: measured universes are not the raw ones minus the identity")
     functional_variance = estimator["functional_variance"]
     if not math.isclose(estimator["matched_precision_half"], sigma / 4.0, rel_tol=1e-12):
         problems.append(f"{label}: matched precision does not derive")
     finite_ok = True
     for direction, row in entry["finite_differences"].items():
+        if any(set(evaluation) != EVALUATION_KEYS for evaluation in row.get("evaluations", [])):
+            problems.append(f"{label}/{direction}: evaluation fields differ from the schema")
         issues, passes = q18s1.derivative_problems(
             row, config["derivative_validation"], estimator["residual_functional_norm"], scale)
         problems += [f"{label}/{direction}: {issue}" for issue in issues]
@@ -122,7 +224,29 @@ def prefix_problems(config, method, size, entry, spectrum, history
         problems.append(f"{label}: protocols differ from the declaration")
         return problems, "INVALID", certifying
     ratios, partitions_ok, variances_ok = {}, True, True
+    roles = {declared: "declared", alternative: "alternative"}
     for protocol, price in entry["protocols"].items():
+        if set(price) != PRICE_KEYS or price["role"] != roles[protocol]:
+            problems.append(f"{label}/{protocol}: price fields or role differ from the schema")
+            return problems, "INVALID", certifying
+        partitions_ok &= (not price["partition_problems"]
+                          and price["energy_partitioned_words"] == universes["measured_sh_words"]
+                          and price["residual_partitioned_words"]
+                          == universes["measured_combined_words"])
+        populated = all(len(price[f"{side}_setting_variances"]) == price[f"{side}_settings"]
+                        for side in ("energy", "residual"))
+        if price["variances_nonnegative"] is not populated:
+            problems.append(f"{label}/{protocol}: variances_nonnegative contradicts its data")
+        if not populated:
+            # A negative group variance: price_protocol keeps no setting
+            # variances and no ratio, and the prefix is INVALID by its check.
+            variances_ok = False
+            if (price["cost_ratio"] is not None or price["neyman_ratio"] is not None
+                    or price["allocation_diagnostic"] is not None
+                    or price["energy_setting_variances"] or price["residual_setting_variances"]):
+                problems.append(f"{label}/{protocol}: unpriced variances carry a price")
+            ratios[protocol] = None
+            continue
         for side in ("energy", "residual"):
             values = price[f"{side}_setting_variances"]
             if len(values) != price[f"{side}_settings"]:
@@ -142,14 +266,9 @@ def prefix_problems(config, method, size, entry, spectrum, history
         if not q18._close(neyman, price["neyman_ratio"], rel=1e-12, abs_=0):
             problems.append(f"{label}/{protocol}: Neyman ratio does not derive")
         ratios[protocol] = neyman
-        partitions_ok &= not price["partition_problems"]
-        variances_ok &= price["variances_nonnegative"] is True
-        if price["variances_nonnegative"]:
-            got = allocation_totals(price, functional_variance, config["allocation_diagnostic"])
-            problems += [f"{label}/{protocol}: allocation {path} does not derive"
-                         for path in q18._disagreements(got, price["allocation_diagnostic"])]
-        elif price["allocation_diagnostic"] is not None:
-            problems.append(f"{label}/{protocol}: invalid variances carry an allocation")
+        got = allocation_totals(price, functional_variance, config["allocation_diagnostic"])
+        problems += [f"{label}/{protocol}: allocation {path} does not derive"
+                     for path in q18._disagreements(got, price["allocation_diagnostic"])]
     gap_floor = declaration.q18.GAP_FLOOR
     checks = {
         "full_rank": entry["effective_rank"] == size,
@@ -168,7 +287,7 @@ def prefix_problems(config, method, size, entry, spectrum, history
     if entry["deterministic_checks"] != checks or tuple(checks) != CHECK_KEYS:
         problems.append(f"{label}: deterministic checks do not derive")
     threshold = config["statistic"]["max_ratio"]
-    if not all(checks.values()):
+    if not all(checks.values()) or any(value is None for value in ratios.values()):
         status = "INVALID"
     else:
         passes = [ratios[declared] <= threshold]
@@ -185,6 +304,9 @@ def prefix_problems(config, method, size, entry, spectrum, history
 
 def rederivation_problems(config, record, config_bytes, predecessor) -> list[str]:
     problems = []
+    if set(record) != TOP_KEYS:
+        problems.append("record fields differ from the record schema: "
+                        f"{sorted(set(record) ^ TOP_KEYS)}")
     for key, value in {
         "schema": producer.SCHEMA, "config_path": str(declaration.CONFIG.relative_to(ROOT)),
         "config_digest": hashlib.sha256(config_bytes).hexdigest(),
@@ -211,6 +333,9 @@ def rederivation_problems(config, record, config_bytes, predecessor) -> list[str
     statuses, domain = {}, []
     for method, block in record["trajectories"].items():
         spec = config["trajectories"]["rows"][method]
+        if set(block) != BLOCK_KEYS:
+            problems.append(f"{method}: trajectory fields differ from the record schema")
+            continue
         if block["labels"] != spec["labels"] or block["candidate_family"] != spec[
                 "candidate_family"] or block["pool_size"] != frozen["trajectories"][method][
                 "pool_size"]:
@@ -226,9 +351,9 @@ def rederivation_problems(config, record, config_bytes, predecessor) -> list[str
             statuses[f"{method}/{size}"] = status
             if certifying:
                 domain.append(f"{method}/{size}")
-    lineage = {method: producer.lineage_entry(
+    lineage = {method: restate_lineage(
         record["trajectories"][method]["prefixes"][str(declaration.FROZEN_BANK_SIZE)],
-        predecessor) for method in record["trajectories"]}
+        predecessor, config["lineage_check"]) for method in record["trajectories"]}
     lineage["passes"] = all(all(checks.values()) for checks in lineage.values())
     if record["lineage"] != lineage:
         problems.append("the frozen-prefix lineage does not derive")
@@ -270,6 +395,26 @@ def recompute_problems(config, record, *, model=None, inputs=None, predecessor=N
             scale = rebuilt["cancellation_scale"]
             rebuilt_fd = rebuilt.pop("finite_differences", {})
             stored_fd = stored.pop("finite_differences", {})
+            if sorted(rebuilt_fd) != sorted(stored_fd):
+                problems.append(f"{method}/{size}: derivative directions do not rebuild")
+            if not rebuilt["variance_resolved"] and not stored.get("variance_resolved", True):
+                # sigma^2 here is rounding, c'Kc - E^2 at the exact ground state:
+                # its sign is the BLAS kernel's. Compare it, and what it feeds, to
+                # the resolution floor rather than to the last bit.
+                floor = RESOLUTION * scale
+                width = math.sqrt(floor)
+                for key, tolerance in (("variance", floor), ("residual_norm", width),
+                                       ("weinstein_upper", width)):
+                    a, b = rebuilt.pop(key), stored.pop(key, math.nan)
+                    if not abs(a - b) <= tolerance:
+                        problems.append(f"{method}/{size}.{key} does not rebuild within "
+                                        "the resolution floor")
+                a, b = rebuilt.pop("temple_lower_bound"), stored.pop("temple_lower_bound", "x")
+                if (a is None) != (b is None) or (a is not None and not abs(a - b) <= floor / (
+                        record["spectral_reference"]["first_excited_energy"]
+                        - rebuilt["ground_energy"])):
+                    problems.append(f"{method}/{size}.temple_lower_bound does not rebuild "
+                                    "within the resolution floor")
             for direction, row in rebuilt_fd.items():
                 theirs = stored_fd.get(direction, {"evaluations": [], "analytic": math.nan})
                 for a, b in zip(row["evaluations"], theirs["evaluations"]):
