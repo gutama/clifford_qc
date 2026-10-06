@@ -41,6 +41,10 @@ from .cost import (
 )
 from .compiled import CompiledMeasurementSampler, CompiledSetting
 from .planning import CompiledMeasurementPlan, compile_block_measurement_plan
+from .cliques import (
+    CliqueMeasurementPlan, CompiledClique, anticommuting_clique_cover,
+    compile_anticommuting_clique, compile_clique_measurement_plan,
+)
 
 __all__ = ["WordCache", "GroupedWordCache", "CommutatorBank", "simultaneous_z_radius",
            "jeffreys_mean_var", "empirical_bernstein_radius", "candidate_radius",
@@ -52,6 +56,8 @@ __all__ = ["WordCache", "GroupedWordCache", "CommutatorBank", "simultaneous_z_ra
            "setting_duration_us", "setting_fidelity"]
 __all__ += ["CompiledSetting", "CompiledMeasurementSampler"]
 __all__ += ["CompiledMeasurementPlan", "compile_block_measurement_plan"]
+__all__ += ["CliqueMeasurementPlan", "CompiledClique", "anticommuting_clique_cover",
+            "compile_anticommuting_clique", "compile_clique_measurement_plan"]
 __all__ += ["block_wise_commute", "block_commuting_partition",
             "block_commuting_groups", "block_ranges"]
 __all__ += ["Regrouping", "block_orders", "counting_bound", "dsatur_partition",

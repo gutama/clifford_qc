@@ -116,7 +116,7 @@ No figure or table value in the manuscript is transcribed by hand, and
 ```bash
 python -m venv .venv && source .venv/bin/activate
 pip install -e .[test,research,stim]       # automatic CI extras
-pytest                                      # 2884 passed, 11 skipped
+pytest                                      # 2956 passed, 11 skipped
 ```
 
 This is the automatic CI dependency set; record gates additionally pin NumPy
@@ -132,7 +132,7 @@ the remaining `11 - 6 = 5` skips are per-test and *are* collected:
 
 ```text
 collected == passed + (skipped - files dropped at collection)
-2889      == 2884   + (11      -   6)
+2961      == 2956   + (11      -   6)
 ```
 
 Both sides are computed from the tree, so a drift in either quoted number
@@ -4178,3 +4178,63 @@ first commit. A squash or rebase merge loses this history, so merge with a merge
 commit. The structural CI job checks out full history (`fetch-depth: 0`), so these
 ancestry checks run in CI instead of skipping at a shallow boundary, and a merge
 that erased the order fails there.
+
+## Phase 19: fixed-functional anticommuting clique compilation
+
+The first implementation gate is deterministic library code and invariant tests,
+not a sampled benchmark. Run it without optional chemistry or Clifford-synthesis
+dependencies:
+
+```bash
+python -m pytest tests/test_anticommuting_cliques.py
+```
+
+```python
+from clifford_qc.ir import PauliSum
+from clifford_qc.measurement import compile_clique_measurement_plan
+
+H = PauliSum.from_labels({"II": -0.4, "XI": -0.6, "YI": 0.8, "IZ": 0.2})
+plan = compile_clique_measurement_plan(H)
+for setting in plan.settings:
+    # Apply setting.ops in circuit order; measure Z on setting.readout_qubits.
+    # The product of those +/-1 outcomes has coefficient setting.weight.
+    print(setting.words, setting.rotations, setting.resources)
+# Energy mean = plan.identity_offset + sum(setting.weight * parity_mean).
+```
+
+The cover rule `commuting-degree-desc/code-asc/first-compatible-v1` orders words
+by descending commuting degree and ascending packed code, then inserts each into
+the first compatible clique. Members within a clique are sorted by code, fixing
+its pivot and Givens order. This rule is independent of input permutation and
+claims no minimum cover. Only exact-zero coefficients are omitted, with no
+coefficient cutoff; nonfinite or nonreal coefficients are rejected. Identity-only
+and zero functionals require no measured settings. Plans are immutable snapshots
+of the fixed coefficients, and cannot supply per-word means to the reusable
+matrix-element bank.
+
+For a multiword clique, signed generators `i A_1 A_k` lower through the existing
+Pauli-rotor decomposition, with their sign folded into the IR angle. The Givens
+sequence sends the unit coefficient combination to `+A_1`, including a negative
+pivot with a zero tail; a singleton instead keeps its sign in `weight` and has
+no rotor. The emitted `ops` includes the pivot's local readout basis changes.
+Its Z-support outcomes are multiplied directly, without a readout CX ladder.
+`SettingResources` is counted from those operations. Depths use one shared
+per-qubit clock with homogeneous 1q/2q layers, preserving interleaved dependencies
+and allowing disjoint gates to share layers. Device cards add their existing
+preparation, readout, reset and routing assumptions; this accounting is logical
+and does not establish a hardware cost advantage.
+
+The tests reconstruct the functional using explicit tensor matrices and a
+separate gate interpreter, pin all three-word sign/zero patterns, construct
+`2n+1` anticommuting involutions at `n = 1, 2, 3`, and exhaust two-qubit
+maximality. Rational pure-state and mixed-state fixtures check the exact ball
+bound and intrinsic variance floor. Odd-grade tests apply to parity-conserving
+Hubbard models and explicitly exclude the spin builders with odd field terms.
+No finite-shot data is gated against the exact ball bound.
+
+Phase 19 is now partial (two of four ledger deliverables). A result-free
+preregistration must freeze the bank, clique and QWC ordering, allocator,
+confidence family, all three device cards and depth accounting before any
+sampled comparison. No producer, record or comparison ships in this change.
+The exploratory sizing table in `PLAN.md` has not been regenerated under this
+cover rule and remains an uncommitted probe. Lever 2 remains unbuilt.
