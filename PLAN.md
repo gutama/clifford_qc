@@ -111,10 +111,10 @@ Status at a glance:
 | Phase 16: Time-evolved inputs | partial | 50% |
 | Phase 17: Mapping validation and breadth | partial | 75% |
 | Phase 18: Embedding boundary | complete | 100% |
-| Phase 19: Anticommuting-clique partitioning | proposed | 0% |
+| Phase 19: Anticommuting-clique partitioning | partial | 50% |
 
 Strict complete-phase score: **16 / 20 = 80.00%**.
-Progress-weighted score: **17.75 / 20 = 88.75%**.
+Progress-weighted score: **18.25 / 20 = 91.25%**.
 Retired and conditional adjunct phases are tracked separately and do not change this denominator. Source: `PHASE_STATUS.json`; validate with `python benchmarks/check_phase_status.py`.
 <!-- PHASE-STATUS-SUMMARY:END -->
 
@@ -137,7 +137,7 @@ conditional phases.
 | 16 | time-evolved inputs | **partially implemented (50%)**; the 16A QSCI time-evolved input ships in `subspace/time_evolution.py` (exact matrix-free propagation as an `oracle` input, a validated Trotter circuit as an `implementable` one, and pooled multi-time sampling). Its decision comparison, Q15, ran once and reads `NO_GO`: iterated selected CI of the same size matches or beats it on both required instances. No circuit-native/truncated A-CASE real-time family ships. 16B's three preregistered decision experiments have run — v1 `CONDITIONAL`, v2 `GO` under per-word pricing, v3 `CONDITIONAL` once the incumbent is priced with its own grouping — and the programme ends there: the real-time backend is **not authorized** (§5, Phase 16) |
 | 17 | mapping validation and breadth | **partially implemented (75%)**; the JW/BK/parity transformation, invariance gates, and mapping-axis records ship through R2, while the CEO-pool and dedicated MORE-ADAPT breadth benchmarks remain open |
 | 18 | embedding boundary | **done**; the versioned effective-Hamiltonian schema ships in `models/effective.py`, and the common fragment-solver callback returning energy and one- and two-particle density matrices ships in `subspace/fragment.py`, implemented by QSCI, selected CI, the hybrid, and a sector-FCI reference. The embedding loop itself stays outside the package |
-| 19 | anticommuting-clique (spin-factor) partitioning | **proposed, unexecuted**; the algebra is §3.6 and the scope is §5, Phase 19. Lever 1 is scoped to a fixed-coefficient Hamiltonian-energy estimand, *not* to Phase 14b's matrix-element word bank; lever 2 needs a non-Clifford transport primitive that does not exist yet. An in-session structural probe supplies the sizing numbers and is explicitly **not** a committed record — no producer, config, record or checker exists, so nothing there licenses a rung, a price, or an arm |
+| 19 | anticommuting-clique (spin-factor) partitioning | **partial**; §3.6's invariant tests and fixed-functional clique compilation ship in `measurement/cliques.py`. Signed Givens rotations, pivot readout and emitted-circuit resources are tested independently against dense matrices. No sampled comparison, preregistration, producer or record ships yet; the exploratory sizing table remains unlicensed. Lever 2's non-Clifford transport primitive remains unbuilt |
 | G1 | GA structural preconditioner: Majorana pool and filters A–E | **done**; both gates pass and QG1's falsifier does not fire, but E's content is pool-dependent — `522` of `549` removed on the §3.5 Majorana pool, `0` on the excitation pool the mapping records use |
 | G2–G3 | mapping-invariance test on the restricted pool, PRD/WISE integration with a cost decomposition | **retired by G1's own result**; the G1-admissible pool reconstructs the pool R2b already builds, so QG2's falsifier holds by construction rather than by measurement (§5, Phase G2) |
 | R1 | hardware-aware cost model and pooled-estimator ledger | **done**; asymptotic and exact-oracle nonlinear shot-search tiers are recorded |
@@ -2582,12 +2582,41 @@ state has no unique RDMs; the exact solver reports its gap. No embedding
 driver, DMET self-consistency or fragment-energy partition ships, and none is
 claimed.
 
-### Phase 19 — anticommuting-clique (spin-factor) partitioning — proposed, unexecuted
+### Phase 19 — anticommuting-clique (spin-factor) partitioning — partial
 
 The contract is §3.6. Two levers share one algebraic fact and sit in two different
 compression classes (§6.8), so they are scoped, measured and reported separately —
 and they are at different readiness, lever 1 needing a cover and its synthesis
 priced, lever 2 needing a primitive the package does not have.
+
+**First implementation gate shipped.** `measurement/cliques.py` supplies
+`anticommuting_clique_cover`, `compile_anticommuting_clique` and
+`compile_clique_measurement_plan`. The cover orders words by descending commuting
+degree, breaks ties by ascending packed code, and inserts each into the first
+compatible clique; ascending code within each clique fixes its pivot and rotation
+order. This constructive rule is frozen as
+`commuting-degree-desc/code-asc/first-compatible-v1`, with no minimum-cover claim.
+Only exact-zero Hamiltonian coefficients are omitted; the identity is an exact
+offset with no setting. Compiled plans snapshot the coefficients, so changing the
+functional requires recompilation.
+
+Each setting carries signed Givens rotors and the complete lowered circuit,
+including local pivot readout basis changes. It measures the product of Z
+outcomes on the pivot's support. The singleton sign stays in its measured
+coefficient, and the multiword negative-pivot case keeps its required pi rotation.
+`SettingResources` counts the actual emitted 1q/2q operations and prices depths
+from one feasible type-homogeneous schedule preserving dependencies through both
+gate kinds. Device-card preparation, reset, measurement and routing costs remain
+in the existing cost model. This is logical circuit accounting, not a device
+benchmark or a claim that cliques lower certified cost.
+
+`tests/test_anticommuting_cliques.py` pins §3.6's closure and sign cases against
+independent dense matrices, reconstructs the original functional through a
+separate gate interpreter, exhausts two-qubit maximality, checks the ball bound
+with rational expectations, and scopes the odd-grade gate to parity-conserving
+fermionic models. Two of the ledger's four deliverables now ship. The result-free
+preregistration and producer/record/checker remain; no allocator, sampler,
+confidence protocol, sampled comparison or lever-2 primitive is supplied here.
 
 **Lever 1 — a clique cover for a Hamiltonian-energy estimand (Track B).** Phase 14
 compares QWC (`k = 1`) against fully commuting (`k ≥ n`), both of which partition
@@ -2648,8 +2677,10 @@ No producer, config, record or checker exists for the numbers below. They were
 computed once against `benchmarks/data/*.FCIDUMP` through the package's own
 `gamma`, `rotor`, `qwc_groups`, `_pauli_anticommute` and
 `select_contextual_stabilizers`, and they are here to size the phase, not to price
-it. They authorize no rung, no arm, and no claim; reproducing them is Phase 19's
-first task, not a precondition already met. Note also what the BeH₂ row is and is
+it. They authorize no rung, no arm, and no claim. The implemented cover rule has
+not been used to regenerate this table; a declared structural checker must
+recompute it before a preregistration cites it. QWC input ordering must also be
+frozen, since its greedy cover can change with that ordering. Note also what the BeH₂ row is and is
 not: it is that Hamiltonian's own term set, **not** the frozen `1,814`-word
 element bank Phases 14b and R4a are declared on, so it may not be compared
 against those records.
@@ -2689,7 +2720,7 @@ bank is not a candidate to move a floor of that size. Lever 2 is therefore scope
 as a compression mechanism to be measured on its own terms and explicitly **not**
 as a route to reopening R4a.
 
-**Gate, before any producer is written.** The §3.6 invariants ship as tests first:
+**Gate, passed before any producer is written.** The §3.6 invariants ship as tests:
 `(Σ_i c_i A_i)² = 1`; `V(Σ_i c_i A_i)V† = A_1` for `m ≥ 2` against the dense
 reference, with the singleton and `c_1 < 0` sign cases pinned explicitly; the
 `2n+1` construction and its `n = 2` maximality; and `Σ_i ⟨A_i⟩² ≤ 1` in exact
@@ -2708,7 +2739,7 @@ unpriced is the same failure mode as Phase 14's multiply-capable-word variance
 bug, and it blocks the phase on the same terms — with the §3.6(i) refinement that
 those resources are synthesised and measured per setting, not derived from `m`.
 
-**First deliverable** is a result-free preregistration in the Phase 14b shape —
+**Next deliverable** is a result-free preregistration in the Phase 14b shape —
 frozen bank, frozen cover, allocator, confidence target, all three device cards,
 and the depth accounting — landed before any sampled comparison runs.
 
@@ -4626,13 +4657,12 @@ not another open accuracy phase.
    and the frozen QWC-versus-fully-commuting comparison (Phase 14b) are all done.
    Step 9 is closed, and every Track B step declared before Phase 19 is closed
    with it; Q9 is answered on the preregistered BeH2/JW bank and nowhere wider.
-9b. Phase 19's clique cover is a **later proposal, unscheduled and not built** —
-   added after step 9 closed, so it does not reopen it. It depends on nothing
-   above, its algebra is already in the package (§3.6), and it opens with a
-   result-free preregistration and the §3.6 invariant tests rather than with a
-   run. Note what it is scoped to before it is counted as measurement work: a
-   fixed-coefficient Hamiltonian-energy estimand, not Phase 14b's matrix-element
-   word bank (§5, Phase 19, lever 1).
+9b. Phase 19's clique cover was added after step 9 closed and does not reopen it.
+   Its deterministic fixed-functional compilation, lowered resources and §3.6
+   invariant tests now ship. Next is a result-free preregistration, before any
+   sampled comparison. It remains scoped to a fixed-coefficient
+   Hamiltonian-energy estimand, not Phase 14b's matrix-element word bank
+   (§5, Phase 19, lever 1).
 
 **Resource accounting** (interleaves with Track B; R1 first).
 

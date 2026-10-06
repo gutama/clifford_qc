@@ -318,9 +318,9 @@ programme; it is not a package-readiness or scientific-advantage score.
 | Phase 16: Time-evolved inputs | partial | 50% |
 | Phase 17: Mapping validation and breadth | partial | 75% |
 | Phase 18: Embedding boundary | complete | 100% |
-| Phase 19: Anticommuting-clique partitioning | proposed | 0% |
+| Phase 19: Anticommuting-clique partitioning | partial | 50% |
 
 Strict complete-phase score: **16 / 20 = 80.00%**.
-Progress-weighted score: **17.75 / 20 = 88.75%**.
+Progress-weighted score: **18.25 / 20 = 91.25%**.
 Retired and conditional adjunct phases are tracked separately and do not change this denominator. Source: `PHASE_STATUS.json`; validate with `python benchmarks/check_phase_status.py`.
 <!-- PHASE-STATUS-SUMMARY:END -->
