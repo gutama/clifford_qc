@@ -1,0 +1,5218 @@
+{
+  "schema": "clifford_qc.phase19_structural_bank.v1",
+  "id": "h4",
+  "fcidump": "benchmarks/data/h4_sto3g_r0.9.FCIDUMP",
+  "n_qubits": 8,
+  "n_electrons": 4,
+  "ms2": 0,
+  "mapping": "jw",
+  "integral_tolerance": 1e-12,
+  "reference_occupied_spin_orbitals": [
+    0,
+    1,
+    2,
+    3
+  ],
+  "coefficients_hex": [
+    [
+      0,
+      "-0x1.e1f4edb7d7b6ep-5"
+    ],
+    [
+      3,
+      "0x1.97b44e22a5762p-3"
+    ],
+    [
+      12,
+      "0x1.97b44e22a5762p-3"
+    ],
+    [
+      15,
+      "0x1.0b771952f17a3p-3"
+    ],
+    [
+      48,
+      "0x1.6e7d7443ae720p-4"
+    ],
+    [
+      51,
+      "0x1.33deb38201b8ap-4"
+    ],
+    [
+      60,
+      "0x1.d4872551dc27ep-4"
+    ],
+    [
+      90,
+      "-0x1.4150e39fb4de9p-5"
+    ],
+    [
+      105,
+      "0x1.4150e39fb4de9p-5"
+    ],
+    [
+      150,
+      "0x1.4150e39fb4de9p-5"
+    ],
+    [
+      165,
+      "-0x1.4150e39fb4de9p-5"
+    ],
+    [
+      192,
+      "0x1.6e7d7443ae720p-4"
+    ],
+    [
+      195,
+      "0x1.d4872551dc27ep-4"
+    ],
+    [
+      204,
+      "0x1.33deb38201b8ap-4"
+    ],
+    [
+      240,
+      "0x1.e6c75e4a28f0bp-4"
+    ],
+    [
+      317,
+      "-0x1.e4cd1b7aba1e2p-10"
+    ],
+    [
+      360,
+      "-0x1.9e0179b4fcee2p-6"
+    ],
+    [
+      420,
+      "0x1.9e0179b4fcee2p-6"
+    ],
+    [
+      461,
+      "0x1.7fb4a7fd514c5p-6"
+    ],
+    [
+      497,
+      "0x1.5f1798d151fc2p-6"
+    ],
+    [
+      509,
+      "0x1.37f2425ad8e54p-8"
+    ],
+    [
+      574,
+      "-0x1.e4cd1b7aba1e2p-10"
+    ],
+    [
+      600,
+      "0x1.9e0179b4fcee2p-6"
+    ],
+    [
+      660,
+      "-0x1.9e0179b4fcee2p-6"
+    ],
+    [
+      718,
+      "0x1.7fb4a7fd514c5p-6"
+    ],
+    [
+      754,
+      "0x1.5f1798d151fc2p-6"
+    ],
+    [
+      766,
+      "0x1.37f2425ad8e54p-8"
+    ],
+    [
+      768,
+      "-0x1.b6315bf22e7ecp-4"
+    ],
+    [
+      771,
+      "0x1.739d08e8d6060p-4"
+    ],
+    [
+      780,
+      "0x1.e1831bf375fd6p-4"
+    ],
+    [
+      816,
+      "0x1.533d8fb20900cp-4"
+    ],
+    [
+      960,
+      "0x1.e0017386730a7p-4"
+    ],
+    [
+      1268,
+      "0x1.b0b5174765807p-9"
+    ],
+    [
+      1290,
+      "-0x1.b7984c2a7fdd9p-6"
+    ],
+    [
+      1440,
+      "-0x1.1987c7a8d4137p-5"
+    ],
+    [
+      1545,
+      "0x1.b7984c2a7fdd9p-6"
+    ],
+    [
+      1680,
+      "0x1.1987c7a8d4137p-5"
+    ],
+    [
+      1844,
+      "0x1.7fb4a7fd514c5p-6"
+    ],
+    [
+      1885,
+      "0x1.9e0179b4fcee2p-6"
+    ],
+    [
+      1902,
+      "0x1.9e0179b4fcee2p-6"
+    ],
+    [
+      1988,
+      "-0x1.e4cd1b7aba1e2p-10"
+    ],
+    [
+      2036,
+      "0x1.37f2425ad8e54p-8"
+    ],
+    [
+      2039,
+      "0x1.5f1798d151fc2p-6"
+    ],
+    [
+      2296,
+      "0x1.b0b5174765807p-9"
+    ],
+    [
+      2310,
+      "0x1.b7984c2a7fdd9p-6"
+    ],
+    [
+      2400,
+      "0x1.1987c7a8d4137p-5"
+    ],
+    [
+      2565,
+      "-0x1.b7984c2a7fdd9p-6"
+    ],
+    [
+      2640,
+      "-0x1.1987c7a8d4137p-5"
+    ],
+    [
+      2872,
+      "0x1.7fb4a7fd514c5p-6"
+    ],
+    [
+      2973,
+      "0x1.9e0179b4fcee2p-6"
+    ],
+    [
+      2990,
+      "0x1.9e0179b4fcee2p-6"
+    ],
+    [
+      3016,
+      "-0x1.e4cd1b7aba1e2p-10"
+    ],
+    [
+      3064,
+      "0x1.37f2425ad8e54p-8"
+    ],
+    [
+      3067,
+      "0x1.5f1798d151fc2p-6"
+    ],
+    [
+      3072,
+      "-0x1.b6315bf22e7ecp-4"
+    ],
+    [
+      3075,
+      "0x1.e1831bf375fd6p-4"
+    ],
+    [
+      3084,
+      "0x1.739d08e8d6060p-4"
+    ],
+    [
+      3120,
+      "0x1.e0017386730a7p-4"
+    ],
+    [
+      3264,
+      "0x1.533d8fb20900cp-4"
+    ],
+    [
+      3581,
+      "0x1.b0b5174765807p-9"
+    ],
+    [
+      3838,
+      "0x1.b0b5174765807p-9"
+    ],
+    [
+      3840,
+      "0x1.f6de88f2c637fp-4"
+    ],
+    [
+      5072,
+      "0x1.1c73f435e24c0p-9"
+    ],
+    [
+      5160,
+      "-0x1.8963ab2696d14p-6"
+    ],
+    [
+      5245,
+      "-0x1.82cc64257dd61p-7"
+    ],
+    [
+      5760,
+      "-0x1.9ee5af12c72efp-6"
+    ],
+    [
+      6180,
+      "0x1.8963ab2696d14p-6"
+    ],
+    [
+      6333,
+      "-0x1.82cc64257dd61p-7"
+    ],
+    [
+      6720,
+      "0x1.9ee5af12c72efp-6"
+    ],
+    [
+      7376,
+      "0x1.c2742d9983787p-6"
+    ],
+    [
+      7453,
+      "0x1.9dce8314a9c5cp-6"
+    ],
+    [
+      7470,
+      "0x1.aba21401a3bf0p-7"
+    ],
+    [
+      7540,
+      "0x1.2f9a5a93b4587p-5"
+    ],
+    [
+      7608,
+      "0x1.2f9a5a93b4587p-5"
+    ],
+    [
+      7725,
+      "0x1.8ffaf227afcc7p-7"
+    ],
+    [
+      7952,
+      "0x1.1e354371f6fcbp-9"
+    ],
+    [
+      8005,
+      "0x1.70984a8b1d029p-7"
+    ],
+    [
+      8073,
+      "0x1.70984a8b1d029p-7"
+    ],
+    [
+      8144,
+      "-0x1.3d34ffc1fea55p-6"
+    ],
+    [
+      8147,
+      "0x1.661050fe0fd24p-7"
+    ],
+    [
+      8156,
+      "0x1.6b544dc4966a6p-6"
+    ],
+    [
+      9184,
+      "0x1.1c73f435e24c0p-9"
+    ],
+    [
+      9240,
+      "0x1.8963ab2696d14p-6"
+    ],
+    [
+      9342,
+      "-0x1.82cc64257dd61p-7"
+    ],
+    [
+      9600,
+      "0x1.9ee5af12c72efp-6"
+    ],
+    [
+      10260,
+      "-0x1.8963ab2696d14p-6"
+    ],
+    [
+      10430,
+      "-0x1.82cc64257dd61p-7"
+    ],
+    [
+      10560,
+      "-0x1.9ee5af12c72efp-6"
+    ],
+    [
+      11488,
+      "0x1.c2742d9983787p-6"
+    ],
+    [
+      11550,
+      "0x1.8ffaf227afcc7p-7"
+    ],
+    [
+      11805,
+      "0x1.aba21401a3bf0p-7"
+    ],
+    [
+      11822,
+      "0x1.9dce8314a9c5cp-6"
+    ],
+    [
+      11892,
+      "0x1.2f9a5a93b4587p-5"
+    ],
+    [
+      11960,
+      "0x1.2f9a5a93b4587p-5"
+    ],
+    [
+      12064,
+      "0x1.1e354371f6fcbp-9"
+    ],
+    [
+      12102,
+      "0x1.70984a8b1d029p-7"
+    ],
+    [
+      12170,
+      "0x1.70984a8b1d029p-7"
+    ],
+    [
+      12256,
+      "-0x1.3d34ffc1fea55p-6"
+    ],
+    [
+      12259,
+      "0x1.661050fe0fd24p-7"
+    ],
+    [
+      12268,
+      "0x1.6b544dc4966a6p-6"
+    ],
+    [
+      12288,
+      "-0x1.b37c9927fe650p-2"
+    ],
+    [
+      12291,
+      "0x1.d3a694bd35844p-4"
+    ],
+    [
+      12300,
+      "0x1.1a93c16bf9194p-3"
+    ],
+    [
+      12336,
+      "0x1.8bf4d50b65611p-4"
+    ],
+    [
+      12480,
+      "0x1.f53ff29e55801p-4"
+    ],
+    [
+      12797,
+      "0x1.8dd3a9ce18bfcp-7"
+    ],
+    [
+      13054,
+      "0x1.8dd3a9ce18bfcp-7"
+    ],
+    [
+      13056,
+      "0x1.6516d4c98ea8ep-4"
+    ],
+    [
+      14324,
+      "0x1.75828b0d249c2p-6"
+    ],
+    [
+      15352,
+      "0x1.75828b0d249c2p-6"
+    ],
+    [
+      15360,
+      "0x1.04b3b7173b7fdp-3"
+    ],
+    [
+      20288,
+      "0x1.99554c4be9c5fp-6"
+    ],
+    [
+      20490,
+      "-0x1.8603b86af2b8fp-6"
+    ],
+    [
+      20640,
+      "-0x1.a52c764bc07c0p-6"
+    ],
+    [
+      20980,
+      "0x1.5d316c4c30787p-7"
+    ],
+    [
+      23040,
+      "-0x1.48a132c9d0ad8p-5"
+    ],
+    [
+      23550,
+      "0x1.5d316c4c30787p-7"
+    ],
+    [
+      24585,
+      "0x1.8603b86af2b8fp-6"
+    ],
+    [
+      24720,
+      "0x1.a52c764bc07c0p-6"
+    ],
+    [
+      25332,
+      "0x1.5d316c4c30787p-7"
+    ],
+    [
+      26880,
+      "0x1.48a132c9d0ad8p-5"
+    ],
+    [
+      27645,
+      "-0x1.5d316c4c30787p-7"
+    ],
+    [
+      29504,
+      "0x1.c2742d9983787p-6"
+    ],
+    [
+      29725,
+      "0x1.2f9a5a93b4587p-5"
+    ],
+    [
+      29742,
+      "0x1.2f9a5a93b4587p-5"
+    ],
+    [
+      29812,
+      "0x1.9dce8314a9c5cp-6"
+    ],
+    [
+      29880,
+      "0x1.aba21401a3bf0p-7"
+    ],
+    [
+      30160,
+      "0x1.9ee5af12c72efp-6"
+    ],
+    [
+      30432,
+      "0x1.9ee5af12c72efp-6"
+    ],
+    [
+      30900,
+      "0x1.8ffaf227afcc7p-7"
+    ],
+    [
+      31808,
+      "0x1.1c73f435e24c0p-9"
+    ],
+    [
+      32020,
+      "-0x1.82cc64257dd61p-7"
+    ],
+    [
+      32190,
+      "-0x1.8963ab2696d14p-6"
+    ],
+    [
+      32292,
+      "-0x1.82cc64257dd61p-7"
+    ],
+    [
+      32445,
+      "0x1.8963ab2696d14p-6"
+    ],
+    [
+      32576,
+      "-0x1.3d34ffc1fea55p-6"
+    ],
+    [
+      32579,
+      "0x1.6b544dc4966a6p-6"
+    ],
+    [
+      32588,
+      "0x1.661050fe0fd24p-7"
+    ],
+    [
+      32624,
+      "0x1.1e354371f6fcbp-9"
+    ],
+    [
+      32730,
+      "0x1.70984a8b1d029p-7"
+    ],
+    [
+      32745,
+      "-0x1.70984a8b1d029p-7"
+    ],
+    [
+      36736,
+      "0x1.99554c4be9c5fp-6"
+    ],
+    [
+      36870,
+      "0x1.8603b86af2b8fp-6"
+    ],
+    [
+      36960,
+      "0x1.a52c764bc07c0p-6"
+    ],
+    [
+      37368,
+      "0x1.5d316c4c30787p-7"
+    ],
+    [
+      38400,
+      "0x1.48a132c9d0ad8p-5"
+    ],
+    [
+      38910,
+      "-0x1.5d316c4c30787p-7"
+    ],
+    [
+      40965,
+      "-0x1.8603b86af2b8fp-6"
+    ],
+    [
+      41040,
+      "-0x1.a52c764bc07c0p-6"
+    ],
+    [
+      41720,
+      "0x1.5d316c4c30787p-7"
+    ],
+    [
+      42240,
+      "-0x1.48a132c9d0ad8p-5"
+    ],
+    [
+      43005,
+      "0x1.5d316c4c30787p-7"
+    ],
+    [
+      45952,
+      "0x1.c2742d9983787p-6"
+    ],
+    [
+      46200,
+      "0x1.8ffaf227afcc7p-7"
+    ],
+    [
+      47133,
+      "0x1.2f9a5a93b4587p-5"
+    ],
+    [
+      47150,
+      "0x1.2f9a5a93b4587p-5"
+    ],
+    [
+      47220,
+      "0x1.aba21401a3bf0p-7"
+    ],
+    [
+      47288,
+      "0x1.9dce8314a9c5cp-6"
+    ],
+    [
+      47568,
+      "0x1.9ee5af12c72efp-6"
+    ],
+    [
+      47840,
+      "0x1.9ee5af12c72efp-6"
+    ],
+    [
+      48256,
+      "0x1.1c73f435e24c0p-9"
+    ],
+    [
+      48408,
+      "-0x1.82cc64257dd61p-7"
+    ],
+    [
+      48510,
+      "0x1.8963ab2696d14p-6"
+    ],
+    [
+      48680,
+      "-0x1.82cc64257dd61p-7"
+    ],
+    [
+      48765,
+      "-0x1.8963ab2696d14p-6"
+    ],
+    [
+      49024,
+      "-0x1.3d34ffc1fea55p-6"
+    ],
+    [
+      49027,
+      "0x1.6b544dc4966a6p-6"
+    ],
+    [
+      49036,
+      "0x1.661050fe0fd24p-7"
+    ],
+    [
+      49072,
+      "0x1.1e354371f6fcbp-9"
+    ],
+    [
+      49110,
+      "-0x1.70984a8b1d029p-7"
+    ],
+    [
+      49125,
+      "0x1.70984a8b1d029p-7"
+    ],
+    [
+      49152,
+      "-0x1.b37c9927fe650p-2"
+    ],
+    [
+      49155,
+      "0x1.1a93c16bf9194p-3"
+    ],
+    [
+      49164,
+      "0x1.d3a694bd35844p-4"
+    ],
+    [
+      49200,
+      "0x1.f53ff29e55801p-4"
+    ],
+    [
+      49344,
+      "0x1.8bf4d50b65611p-4"
+    ],
+    [
+      49661,
+      "0x1.75828b0d249c2p-6"
+    ],
+    [
+      49918,
+      "0x1.75828b0d249c2p-6"
+    ],
+    [
+      49920,
+      "0x1.04b3b7173b7fdp-3"
+    ],
+    [
+      51188,
+      "0x1.8dd3a9ce18bfcp-7"
+    ],
+    [
+      52216,
+      "0x1.8dd3a9ce18bfcp-7"
+    ],
+    [
+      52224,
+      "0x1.6516d4c98ea8ep-4"
+    ],
+    [
+      57296,
+      "0x1.99554c4be9c5fp-6"
+    ],
+    [
+      61408,
+      "0x1.99554c4be9c5fp-6"
+    ],
+    [
+      61440,
+      "0x1.3d3f0746ad4b5p-3"
+    ]
+  ],
+  "functional_sha256": "28ac5b07135c8f20fe76ed5a35b87c068c0ff4af201279b83324c36fc51ec779",
+  "nonidentity_terms": 184,
+  "arms": [
+    {
+      "name": "qwc",
+      "settings": [
+        {
+          "word_codes": [
+            12,
+            48,
+            60,
+            192,
+            204,
+            240,
+            768,
+            780,
+            816,
+            960,
+            23550
+          ],
+          "max_abs_value": 1.1216224602297427,
+          "rotations": [],
+          "readout": {
+            "kind": "weighted_sum_of_parities",
+            "word_qubits": [
+              [
+                1
+              ],
+              [
+                2
+              ],
+              [
+                1,
+                2
+              ],
+              [
+                3
+              ],
+              [
+                1,
+                3
+              ],
+              [
+                2,
+                3
+              ],
+              [
+                4
+              ],
+              [
+                1,
+                4
+              ],
+              [
+                2,
+                4
+              ],
+              [
+                3,
+                4
+              ],
+              [
+                0,
+                1,
+                2,
+                3,
+                4,
+                5,
+                6,
+                7
+              ]
+            ]
+          },
+          "gate_sequence_sha256": "2696a2d3b2fb42214df98d12e884d7c001654c7cf1b24dcc50a0112dcb14b05e",
+          "resources": {
+            "n_1q": 6,
+            "n_2q": 0,
+            "d_1q": 2,
+            "d_2q": 0
+          }
+        },
+        {
+          "word_codes": [
+            27645
+          ],
+          "max_abs_value": 0.010656526450819616,
+          "rotations": [],
+          "readout": {
+            "kind": "weighted_sum_of_parities",
+            "word_qubits": [
+              [
+                0,
+                1,
+                2,
+                3,
+                4,
+                5,
+                6,
+                7
+              ]
+            ]
+          },
+          "gate_sequence_sha256": "7c20c05b0be6d09025ffe2b3a8f5c9cea2bab85b6a5676930f5bde3f5b164943",
+          "resources": {
+            "n_1q": 6,
+            "n_2q": 0,
+            "d_1q": 2,
+            "d_2q": 0
+          }
+        },
+        {
+          "word_codes": [
+            3072,
+            3084,
+            3120,
+            12288,
+            12300,
+            12336,
+            15360,
+            32190
+          ],
+          "max_abs_value": 1.1261281291502552,
+          "rotations": [],
+          "readout": {
+            "kind": "weighted_sum_of_parities",
+            "word_qubits": [
+              [
+                5
+              ],
+              [
+                1,
+                5
+              ],
+              [
+                2,
+                5
+              ],
+              [
+                6
+              ],
+              [
+                1,
+                6
+              ],
+              [
+                2,
+                6
+              ],
+              [
+                5,
+                6
+              ],
+              [
+                0,
+                1,
+                2,
+                3,
+                4,
+                5,
+                6,
+                7
+              ]
+            ]
+          },
+          "gate_sequence_sha256": "d686b8e73efb5c4ee3b9b345a346143ca02ec2f62db765d758e27d9f7e16edce",
+          "resources": {
+            "n_1q": 6,
+            "n_2q": 0,
+            "d_1q": 2,
+            "d_2q": 0
+          }
+        },
+        {
+          "word_codes": [
+            32445
+          ],
+          "max_abs_value": 0.024010579242127753,
+          "rotations": [],
+          "readout": {
+            "kind": "weighted_sum_of_parities",
+            "word_qubits": [
+              [
+                0,
+                1,
+                2,
+                3,
+                4,
+                5,
+                6,
+                7
+              ]
+            ]
+          },
+          "gate_sequence_sha256": "e3869529a9cee9a1d9d4654681dfeb7f78a5f2d886972c8e0a74183dd66f5128",
+          "resources": {
+            "n_1q": 6,
+            "n_2q": 0,
+            "d_1q": 2,
+            "d_2q": 0
+          }
+        },
+        {
+          "word_codes": [
+            3264,
+            3840,
+            12480,
+            13056,
+            32730
+          ],
+          "max_abs_value": 0.42639723929590945,
+          "rotations": [],
+          "readout": {
+            "kind": "weighted_sum_of_parities",
+            "word_qubits": [
+              [
+                3,
+                5
+              ],
+              [
+                4,
+                5
+              ],
+              [
+                3,
+                6
+              ],
+              [
+                4,
+                6
+              ],
+              [
+                0,
+                1,
+                2,
+                3,
+                4,
+                5,
+                6,
+                7
+              ]
+            ]
+          },
+          "gate_sequence_sha256": "badc2c34f9463775502d0ba1dfd8fabecdf64857bf491a19799df4f986248314",
+          "resources": {
+            "n_1q": 6,
+            "n_2q": 0,
+            "d_1q": 2,
+            "d_2q": 0
+          }
+        },
+        {
+          "word_codes": [
+            32745
+          ],
+          "max_abs_value": 0.011248623273992635,
+          "rotations": [],
+          "readout": {
+            "kind": "weighted_sum_of_parities",
+            "word_qubits": [
+              [
+                0,
+                1,
+                2,
+                3,
+                4,
+                5,
+                6,
+                7
+              ]
+            ]
+          },
+          "gate_sequence_sha256": "8c2d45a3080638cfc0bcce05c592f3c24b634761f15f946661442b322795ccd2",
+          "resources": {
+            "n_1q": 6,
+            "n_2q": 0,
+            "d_1q": 2,
+            "d_2q": 0
+          }
+        },
+        {
+          "word_codes": [
+            38910
+          ],
+          "max_abs_value": 0.010656526450819616,
+          "rotations": [],
+          "readout": {
+            "kind": "weighted_sum_of_parities",
+            "word_qubits": [
+              [
+                0,
+                1,
+                2,
+                3,
+                4,
+                5,
+                6,
+                7
+              ]
+            ]
+          },
+          "gate_sequence_sha256": "0e225625ef05acf70e4d521033822ee83f97c72aef7d149ee8c785781fe1e04e",
+          "resources": {
+            "n_1q": 6,
+            "n_2q": 0,
+            "d_1q": 2,
+            "d_2q": 0
+          }
+        },
+        {
+          "word_codes": [
+            43005
+          ],
+          "max_abs_value": 0.010656526450819616,
+          "rotations": [],
+          "readout": {
+            "kind": "weighted_sum_of_parities",
+            "word_qubits": [
+              [
+                0,
+                1,
+                2,
+                3,
+                4,
+                5,
+                6,
+                7
+              ]
+            ]
+          },
+          "gate_sequence_sha256": "000fe3d94e952e5a3f7cad3baf005e981d5e648d4ace4a6e875f54299c8db5b5",
+          "resources": {
+            "n_1q": 6,
+            "n_2q": 0,
+            "d_1q": 2,
+            "d_2q": 0
+          }
+        },
+        {
+          "word_codes": [
+            48510
+          ],
+          "max_abs_value": 0.024010579242127753,
+          "rotations": [],
+          "readout": {
+            "kind": "weighted_sum_of_parities",
+            "word_qubits": [
+              [
+                0,
+                1,
+                2,
+                3,
+                4,
+                5,
+                6,
+                7
+              ]
+            ]
+          },
+          "gate_sequence_sha256": "972e70dfc4220c19a74125d0ae37cd695e9276c617dd420a935df249d4eb1439",
+          "resources": {
+            "n_1q": 6,
+            "n_2q": 0,
+            "d_1q": 2,
+            "d_2q": 0
+          }
+        },
+        {
+          "word_codes": [
+            48765
+          ],
+          "max_abs_value": 0.024010579242127753,
+          "rotations": [],
+          "readout": {
+            "kind": "weighted_sum_of_parities",
+            "word_qubits": [
+              [
+                0,
+                1,
+                2,
+                3,
+                4,
+                5,
+                6,
+                7
+              ]
+            ]
+          },
+          "gate_sequence_sha256": "104efed9902e76f0ff47ac37d3a75c12a0eb7f1d0406990496d91969c12e8bd2",
+          "resources": {
+            "n_1q": 6,
+            "n_2q": 0,
+            "d_1q": 2,
+            "d_2q": 0
+          }
+        },
+        {
+          "word_codes": [
+            49110
+          ],
+          "max_abs_value": 0.011248623273992635,
+          "rotations": [],
+          "readout": {
+            "kind": "weighted_sum_of_parities",
+            "word_qubits": [
+              [
+                0,
+                1,
+                2,
+                3,
+                4,
+                5,
+                6,
+                7
+              ]
+            ]
+          },
+          "gate_sequence_sha256": "47288d3c935b46c2328b23465cd812f9a2e8a8dd893e9ee0852e57f779dd0089",
+          "resources": {
+            "n_1q": 6,
+            "n_2q": 0,
+            "d_1q": 2,
+            "d_2q": 0
+          }
+        },
+        {
+          "word_codes": [
+            49125
+          ],
+          "max_abs_value": 0.011248623273992635,
+          "rotations": [],
+          "readout": {
+            "kind": "weighted_sum_of_parities",
+            "word_qubits": [
+              [
+                0,
+                1,
+                2,
+                3,
+                4,
+                5,
+                6,
+                7
+              ]
+            ]
+          },
+          "gate_sequence_sha256": "9dd1c447ca060ffcc95c163f67b4690b5885cfb4b753ed9007367724010dd40f",
+          "resources": {
+            "n_1q": 6,
+            "n_2q": 0,
+            "d_1q": 2,
+            "d_2q": 0
+          }
+        },
+        {
+          "word_codes": [
+            7540,
+            36870
+          ],
+          "max_abs_value": 0.060865504268284285,
+          "rotations": [],
+          "readout": {
+            "kind": "weighted_sum_of_parities",
+            "word_qubits": [
+              [
+                1,
+                2,
+                3,
+                4,
+                5,
+                6
+              ],
+              [
+                0,
+                1,
+                6,
+                7
+              ]
+            ]
+          },
+          "gate_sequence_sha256": "d53c5b83f826182f6253d302143b86a680c2cff7be249f313d07d5686b4f086a",
+          "resources": {
+            "n_1q": 8,
+            "n_2q": 0,
+            "d_1q": 2,
+            "d_2q": 0
+          }
+        },
+        {
+          "word_codes": [
+            7608,
+            20490
+          ],
+          "max_abs_value": 0.060865504268284285,
+          "rotations": [],
+          "readout": {
+            "kind": "weighted_sum_of_parities",
+            "word_qubits": [
+              [
+                1,
+                2,
+                3,
+                4,
+                5,
+                6
+              ],
+              [
+                0,
+                1,
+                6,
+                7
+              ]
+            ]
+          },
+          "gate_sequence_sha256": "9ae8b91375853223dc0843f32334496c1db812c17a1427b4ea7cd8c0a3264e5d",
+          "resources": {
+            "n_1q": 9,
+            "n_2q": 0,
+            "d_1q": 2,
+            "d_2q": 0
+          }
+        },
+        {
+          "word_codes": [
+            11892,
+            40965
+          ],
+          "max_abs_value": 0.060865504268284285,
+          "rotations": [],
+          "readout": {
+            "kind": "weighted_sum_of_parities",
+            "word_qubits": [
+              [
+                1,
+                2,
+                3,
+                4,
+                5,
+                6
+              ],
+              [
+                0,
+                1,
+                6,
+                7
+              ]
+            ]
+          },
+          "gate_sequence_sha256": "cd58b4f3a5c368d090c130ce16c512b3a44116ecfddc02635ea5921ce944f572",
+          "resources": {
+            "n_1q": 9,
+            "n_2q": 0,
+            "d_1q": 2,
+            "d_2q": 0
+          }
+        },
+        {
+          "word_codes": [
+            11960,
+            24585
+          ],
+          "max_abs_value": 0.060865504268284285,
+          "rotations": [],
+          "readout": {
+            "kind": "weighted_sum_of_parities",
+            "word_qubits": [
+              [
+                1,
+                2,
+                3,
+                4,
+                5,
+                6
+              ],
+              [
+                0,
+                1,
+                6,
+                7
+              ]
+            ]
+          },
+          "gate_sequence_sha256": "85d80dad7f600108b64d7b45ab5f3beafc97b2f7bdbccdc4b8277a4121736f7e",
+          "resources": {
+            "n_1q": 10,
+            "n_2q": 0,
+            "d_1q": 2,
+            "d_2q": 0
+          }
+        },
+        {
+          "word_codes": [
+            5245,
+            38400
+          ],
+          "max_abs_value": 0.05192007836877044,
+          "rotations": [],
+          "readout": {
+            "kind": "weighted_sum_of_parities",
+            "word_qubits": [
+              [
+                0,
+                1,
+                2,
+                3,
+                5,
+                6
+              ],
+              [
+                4,
+                5,
+                6,
+                7
+              ]
+            ]
+          },
+          "gate_sequence_sha256": "3b85d4c55a4b0c62687e09731486c16dfb0c3158923ff4a8124d821817bbf38a",
+          "resources": {
+            "n_1q": 8,
+            "n_2q": 0,
+            "d_1q": 2,
+            "d_2q": 0
+          }
+        },
+        {
+          "word_codes": [
+            6333,
+            23040
+          ],
+          "max_abs_value": 0.05192007836877044,
+          "rotations": [],
+          "readout": {
+            "kind": "weighted_sum_of_parities",
+            "word_qubits": [
+              [
+                0,
+                1,
+                2,
+                3,
+                5,
+                6
+              ],
+              [
+                4,
+                5,
+                6,
+                7
+              ]
+            ]
+          },
+          "gate_sequence_sha256": "084e215016e7592818ed31f6c7aa9d110858454e5405af8cdd05278c1a716bc5",
+          "resources": {
+            "n_1q": 9,
+            "n_2q": 0,
+            "d_1q": 2,
+            "d_2q": 0
+          }
+        },
+        {
+          "word_codes": [
+            461,
+            7376,
+            7453,
+            49152,
+            49164,
+            49344,
+            52224
+          ],
+          "max_abs_value": 0.7994713536028695,
+          "rotations": [],
+          "readout": {
+            "kind": "weighted_sum_of_parities",
+            "word_qubits": [
+              [
+                0,
+                1,
+                3,
+                4
+              ],
+              [
+                2,
+                3,
+                5,
+                6
+              ],
+              [
+                0,
+                1,
+                2,
+                4,
+                5,
+                6
+              ],
+              [
+                7
+              ],
+              [
+                1,
+                7
+              ],
+              [
+                3,
+                7
+              ],
+              [
+                5,
+                7
+              ]
+            ]
+          },
+          "gate_sequence_sha256": "50337422db02455f1bf73e9c59be93efdac2f29d2b62cea05b42094217ad68e6",
+          "resources": {
+            "n_1q": 4,
+            "n_2q": 0,
+            "d_1q": 1,
+            "d_2q": 0
+          }
+        },
+        {
+          "word_codes": [
+            7470,
+            20640
+          ],
+          "max_abs_value": 0.0387567284508685,
+          "rotations": [],
+          "readout": {
+            "kind": "weighted_sum_of_parities",
+            "word_qubits": [
+              [
+                0,
+                1,
+                2,
+                4,
+                5,
+                6
+              ],
+              [
+                2,
+                3,
+                6,
+                7
+              ]
+            ]
+          },
+          "gate_sequence_sha256": "a6a5d9814c01e3e3d42758da7b22b1296abbf1f75d9c7987fdf54c54250e0af3",
+          "resources": {
+            "n_1q": 9,
+            "n_2q": 0,
+            "d_1q": 2,
+            "d_2q": 0
+          }
+        },
+        {
+          "word_codes": [
+            7725,
+            36960
+          ],
+          "max_abs_value": 0.03791283012686199,
+          "rotations": [],
+          "readout": {
+            "kind": "weighted_sum_of_parities",
+            "word_qubits": [
+              [
+                0,
+                1,
+                2,
+                4,
+                5,
+                6
+              ],
+              [
+                2,
+                3,
+                6,
+                7
+              ]
+            ]
+          },
+          "gate_sequence_sha256": "be64cb9503d64341223d73b55b15f29c375648280ac4732a3eb48b015c5b8cec",
+          "resources": {
+            "n_1q": 9,
+            "n_2q": 0,
+            "d_1q": 2,
+            "d_2q": 0
+          }
+        },
+        {
+          "word_codes": [
+            9342,
+            42240
+          ],
+          "max_abs_value": 0.05192007836877044,
+          "rotations": [],
+          "readout": {
+            "kind": "weighted_sum_of_parities",
+            "word_qubits": [
+              [
+                0,
+                1,
+                2,
+                3,
+                5,
+                6
+              ],
+              [
+                4,
+                5,
+                6,
+                7
+              ]
+            ]
+          },
+          "gate_sequence_sha256": "2690249777c4d1a325309908aa47b4aff25f0284b44bc1a7ee9741e96befd941",
+          "resources": {
+            "n_1q": 9,
+            "n_2q": 0,
+            "d_1q": 2,
+            "d_2q": 0
+          }
+        },
+        {
+          "word_codes": [
+            10430,
+            26880
+          ],
+          "max_abs_value": 0.05192007836877044,
+          "rotations": [],
+          "readout": {
+            "kind": "weighted_sum_of_parities",
+            "word_qubits": [
+              [
+                0,
+                1,
+                2,
+                3,
+                5,
+                6
+              ],
+              [
+                4,
+                5,
+                6,
+                7
+              ]
+            ]
+          },
+          "gate_sequence_sha256": "214f289342b165ec8b0a0718ecf2b3779a1e01045500750d1a21b421c297742b",
+          "resources": {
+            "n_1q": 10,
+            "n_2q": 0,
+            "d_1q": 2,
+            "d_2q": 0
+          }
+        },
+        {
+          "word_codes": [
+            11550,
+            24720
+          ],
+          "max_abs_value": 0.03791283012686199,
+          "rotations": [],
+          "readout": {
+            "kind": "weighted_sum_of_parities",
+            "word_qubits": [
+              [
+                0,
+                1,
+                2,
+                4,
+                5,
+                6
+              ],
+              [
+                2,
+                3,
+                6,
+                7
+              ]
+            ]
+          },
+          "gate_sequence_sha256": "280582725e9cac0511bae02013defd5ccbd5fca7b17adae49222a1a5628b4f22",
+          "resources": {
+            "n_1q": 9,
+            "n_2q": 0,
+            "d_1q": 2,
+            "d_2q": 0
+          }
+        },
+        {
+          "word_codes": [
+            11805,
+            41040
+          ],
+          "max_abs_value": 0.0387567284508685,
+          "rotations": [],
+          "readout": {
+            "kind": "weighted_sum_of_parities",
+            "word_qubits": [
+              [
+                0,
+                1,
+                2,
+                4,
+                5,
+                6
+              ],
+              [
+                2,
+                3,
+                6,
+                7
+              ]
+            ]
+          },
+          "gate_sequence_sha256": "f5b0e7889bc93d41ad22098fd9d13894d9a9af3e746cf131cd103974802d65b7",
+          "resources": {
+            "n_1q": 9,
+            "n_2q": 0,
+            "d_1q": 2,
+            "d_2q": 0
+          }
+        },
+        {
+          "word_codes": [
+            718,
+            11488,
+            11822
+          ],
+          "max_abs_value": 0.07616981181306728,
+          "rotations": [],
+          "readout": {
+            "kind": "weighted_sum_of_parities",
+            "word_qubits": [
+              [
+                0,
+                1,
+                3,
+                4
+              ],
+              [
+                2,
+                3,
+                5,
+                6
+              ],
+              [
+                0,
+                1,
+                2,
+                4,
+                5,
+                6
+              ]
+            ]
+          },
+          "gate_sequence_sha256": "1fbecc4f0662cd0cad9b71e3ddc28c32134c17a80fecff4b925935327ee3830e",
+          "resources": {
+            "n_1q": 8,
+            "n_2q": 0,
+            "d_1q": 2,
+            "d_2q": 0
+          }
+        },
+        {
+          "word_codes": [
+            3,
+            51,
+            771,
+            1844,
+            12291,
+            29504,
+            29812
+          ],
+          "max_abs_value": 0.5553062096037036,
+          "rotations": [],
+          "readout": {
+            "kind": "weighted_sum_of_parities",
+            "word_qubits": [
+              [
+                0
+              ],
+              [
+                0,
+                2
+              ],
+              [
+                0,
+                4
+              ],
+              [
+                1,
+                2,
+                4,
+                5
+              ],
+              [
+                0,
+                6
+              ],
+              [
+                3,
+                4,
+                6,
+                7
+              ],
+              [
+                1,
+                2,
+                3,
+                5,
+                6,
+                7
+              ]
+            ]
+          },
+          "gate_sequence_sha256": "bfc353c49c826ca3354a9d79cc011693b48054c01faa50eefa6e9b96f3961c61",
+          "resources": {
+            "n_1q": 4,
+            "n_2q": 0,
+            "d_1q": 1,
+            "d_2q": 0
+          }
+        },
+        {
+          "word_codes": [
+            1290,
+            29880
+          ],
+          "max_abs_value": 0.03988107123339174,
+          "rotations": [],
+          "readout": {
+            "kind": "weighted_sum_of_parities",
+            "word_qubits": [
+              [
+                0,
+                1,
+                4,
+                5
+              ],
+              [
+                1,
+                2,
+                3,
+                5,
+                6,
+                7
+              ]
+            ]
+          },
+          "gate_sequence_sha256": "c9e02da1a4be25f6197dc3c8e7bc7953c84c8a0325bd6d19cceeec0f16739062",
+          "resources": {
+            "n_1q": 9,
+            "n_2q": 0,
+            "d_1q": 2,
+            "d_2q": 0
+          }
+        },
+        {
+          "word_codes": [
+            2310,
+            30900
+          ],
+          "max_abs_value": 0.03903717290938523,
+          "rotations": [],
+          "readout": {
+            "kind": "weighted_sum_of_parities",
+            "word_qubits": [
+              [
+                0,
+                1,
+                4,
+                5
+              ],
+              [
+                1,
+                2,
+                3,
+                5,
+                6,
+                7
+              ]
+            ]
+          },
+          "gate_sequence_sha256": "6f185549f5852d6a45d45d7a03de2a4fe45b285424c0b2caa786bed4d3a8ed78",
+          "resources": {
+            "n_1q": 9,
+            "n_2q": 0,
+            "d_1q": 2,
+            "d_2q": 0
+          }
+        },
+        {
+          "word_codes": [
+            150,
+            32020
+          ],
+          "max_abs_value": 0.05102729175326682,
+          "rotations": [],
+          "readout": {
+            "kind": "weighted_sum_of_parities",
+            "word_qubits": [
+              [
+                0,
+                1,
+                2,
+                3
+              ],
+              [
+                1,
+                2,
+                4,
+                5,
+                6,
+                7
+              ]
+            ]
+          },
+          "gate_sequence_sha256": "bf333bc9683fdbdb940ce6d5c2337db31bab680b312ba25a9d0a27ee76fa7c4a",
+          "resources": {
+            "n_1q": 8,
+            "n_2q": 0,
+            "d_1q": 2,
+            "d_2q": 0
+          }
+        },
+        {
+          "word_codes": [
+            165,
+            32292
+          ],
+          "max_abs_value": 0.05102729175326682,
+          "rotations": [],
+          "readout": {
+            "kind": "weighted_sum_of_parities",
+            "word_qubits": [
+              [
+                0,
+                1,
+                2,
+                3
+              ],
+              [
+                1,
+                2,
+                4,
+                5,
+                6,
+                7
+              ]
+            ]
+          },
+          "gate_sequence_sha256": "feddf3d4e44adc7440add7d86c0c05174e9e15a998bd304f69101d5df3471f8e",
+          "resources": {
+            "n_1q": 9,
+            "n_2q": 0,
+            "d_1q": 2,
+            "d_2q": 0
+          }
+        },
+        {
+          "word_codes": [
+            1545,
+            46200
+          ],
+          "max_abs_value": 0.03903717290938523,
+          "rotations": [],
+          "readout": {
+            "kind": "weighted_sum_of_parities",
+            "word_qubits": [
+              [
+                0,
+                1,
+                4,
+                5
+              ],
+              [
+                1,
+                2,
+                3,
+                5,
+                6,
+                7
+              ]
+            ]
+          },
+          "gate_sequence_sha256": "12b3ba243c866687448259757c5ffa84fd62d4f24946cb80ad93516ab030b3f5",
+          "resources": {
+            "n_1q": 9,
+            "n_2q": 0,
+            "d_1q": 2,
+            "d_2q": 0
+          }
+        },
+        {
+          "word_codes": [
+            2565,
+            47220
+          ],
+          "max_abs_value": 0.03988107123339174,
+          "rotations": [],
+          "readout": {
+            "kind": "weighted_sum_of_parities",
+            "word_qubits": [
+              [
+                0,
+                1,
+                4,
+                5
+              ],
+              [
+                1,
+                2,
+                3,
+                5,
+                6,
+                7
+              ]
+            ]
+          },
+          "gate_sequence_sha256": "9ac031422e2af779bfafa4ef4ff6143215766bb67aee882c5b32c07f518c53b2",
+          "resources": {
+            "n_1q": 9,
+            "n_2q": 0,
+            "d_1q": 2,
+            "d_2q": 0
+          }
+        },
+        {
+          "word_codes": [
+            2872,
+            45952,
+            47288
+          ],
+          "max_abs_value": 0.07616981181306728,
+          "rotations": [],
+          "readout": {
+            "kind": "weighted_sum_of_parities",
+            "word_qubits": [
+              [
+                1,
+                2,
+                4,
+                5
+              ],
+              [
+                3,
+                4,
+                6,
+                7
+              ],
+              [
+                1,
+                2,
+                3,
+                5,
+                6,
+                7
+              ]
+            ]
+          },
+          "gate_sequence_sha256": "87234bfa27456309bfe97a22d744babf1bb64aae77ffdf954bc9de115a3e95eb",
+          "resources": {
+            "n_1q": 8,
+            "n_2q": 0,
+            "d_1q": 2,
+            "d_2q": 0
+          }
+        },
+        {
+          "word_codes": [
+            90,
+            48408
+          ],
+          "max_abs_value": 0.05102729175326682,
+          "rotations": [],
+          "readout": {
+            "kind": "weighted_sum_of_parities",
+            "word_qubits": [
+              [
+                0,
+                1,
+                2,
+                3
+              ],
+              [
+                1,
+                2,
+                4,
+                5,
+                6,
+                7
+              ]
+            ]
+          },
+          "gate_sequence_sha256": "ce739d0513a716fcb607829b509023bdc0f09b305e01748addc16c0ef7be003f",
+          "resources": {
+            "n_1q": 9,
+            "n_2q": 0,
+            "d_1q": 2,
+            "d_2q": 0
+          }
+        },
+        {
+          "word_codes": [
+            105,
+            48680
+          ],
+          "max_abs_value": 0.05102729175326682,
+          "rotations": [],
+          "readout": {
+            "kind": "weighted_sum_of_parities",
+            "word_qubits": [
+              [
+                0,
+                1,
+                2,
+                3
+              ],
+              [
+                1,
+                2,
+                4,
+                5,
+                6,
+                7
+              ]
+            ]
+          },
+          "gate_sequence_sha256": "159f476a43709c37950f4cb87368a256ab61fc2f00b691245481af44f34ab51e",
+          "resources": {
+            "n_1q": 10,
+            "n_2q": 0,
+            "d_1q": 2,
+            "d_2q": 0
+          }
+        },
+        {
+          "word_codes": [
+            1885,
+            29725
+          ],
+          "max_abs_value": 0.06232981277715938,
+          "rotations": [],
+          "readout": {
+            "kind": "weighted_sum_of_parities",
+            "word_qubits": [
+              [
+                0,
+                1,
+                2,
+                3,
+                4,
+                5
+              ],
+              [
+                0,
+                1,
+                2,
+                5,
+                6,
+                7
+              ]
+            ]
+          },
+          "gate_sequence_sha256": "1f9004399250bf7ecb4ab738035bd6c648ed36b8a84073e9cf69f6518d83e0c2",
+          "resources": {
+            "n_1q": 5,
+            "n_2q": 0,
+            "d_1q": 1,
+            "d_2q": 0
+          }
+        },
+        {
+          "word_codes": [
+            1902,
+            29742
+          ],
+          "max_abs_value": 0.06232981277715938,
+          "rotations": [],
+          "readout": {
+            "kind": "weighted_sum_of_parities",
+            "word_qubits": [
+              [
+                0,
+                1,
+                2,
+                3,
+                4,
+                5
+              ],
+              [
+                0,
+                1,
+                2,
+                5,
+                6,
+                7
+              ]
+            ]
+          },
+          "gate_sequence_sha256": "4239f566b1377db7d16c55b153ee09b67d4000a811a26b0da71537aef4503517",
+          "resources": {
+            "n_1q": 7,
+            "n_2q": 0,
+            "d_1q": 2,
+            "d_2q": 0
+          }
+        },
+        {
+          "word_codes": [
+            2973,
+            47133
+          ],
+          "max_abs_value": 0.06232981277715938,
+          "rotations": [],
+          "readout": {
+            "kind": "weighted_sum_of_parities",
+            "word_qubits": [
+              [
+                0,
+                1,
+                2,
+                3,
+                4,
+                5
+              ],
+              [
+                0,
+                1,
+                2,
+                5,
+                6,
+                7
+              ]
+            ]
+          },
+          "gate_sequence_sha256": "9556a9354673003c72ca59a5b1f4eaa6c4bc3a0c92b5537e7b2473a93a1e0d9e",
+          "resources": {
+            "n_1q": 8,
+            "n_2q": 0,
+            "d_1q": 2,
+            "d_2q": 0
+          }
+        },
+        {
+          "word_codes": [
+            2990,
+            47150
+          ],
+          "max_abs_value": 0.06232981277715938,
+          "rotations": [],
+          "readout": {
+            "kind": "weighted_sum_of_parities",
+            "word_qubits": [
+              [
+                0,
+                1,
+                2,
+                3,
+                4,
+                5
+              ],
+              [
+                0,
+                1,
+                2,
+                5,
+                6,
+                7
+              ]
+            ]
+          },
+          "gate_sequence_sha256": "6e23eb5fdb787ef74ddb714c26552b498d63287f4efba7b902aed0f3e9a091c6",
+          "resources": {
+            "n_1q": 10,
+            "n_2q": 0,
+            "d_1q": 2,
+            "d_2q": 0
+          }
+        },
+        {
+          "word_codes": [
+            7952,
+            8005,
+            20288
+          ],
+          "max_abs_value": 0.03841593302682826,
+          "rotations": [],
+          "readout": {
+            "kind": "weighted_sum_of_parities",
+            "word_qubits": [
+              [
+                2,
+                4,
+                5,
+                6
+              ],
+              [
+                0,
+                1,
+                3,
+                4,
+                5,
+                6
+              ],
+              [
+                3,
+                4,
+                5,
+                7
+              ]
+            ]
+          },
+          "gate_sequence_sha256": "1109290798c0d92bfc197043f1734d627898757c95a1b6d83e3dc3ce00f71a44",
+          "resources": {
+            "n_1q": 6,
+            "n_2q": 0,
+            "d_1q": 1,
+            "d_2q": 0
+          }
+        },
+        {
+          "word_codes": [
+            8073,
+            36736
+          ],
+          "max_abs_value": 0.03623233881615247,
+          "rotations": [],
+          "readout": {
+            "kind": "weighted_sum_of_parities",
+            "word_qubits": [
+              [
+                0,
+                1,
+                3,
+                4,
+                5,
+                6
+              ],
+              [
+                3,
+                4,
+                5,
+                7
+              ]
+            ]
+          },
+          "gate_sequence_sha256": "74f7f09d9d6e28d83e5c11590431d727f7fbfc349a463c4af3c6c51c3c3ac6f4",
+          "resources": {
+            "n_1q": 8,
+            "n_2q": 0,
+            "d_1q": 2,
+            "d_2q": 0
+          }
+        },
+        {
+          "word_codes": [
+            12064,
+            12102,
+            49920
+          ],
+          "max_abs_value": 0.1407281220223435,
+          "rotations": [],
+          "readout": {
+            "kind": "weighted_sum_of_parities",
+            "word_qubits": [
+              [
+                2,
+                4,
+                5,
+                6
+              ],
+              [
+                0,
+                1,
+                3,
+                4,
+                5,
+                6
+              ],
+              [
+                4,
+                7
+              ]
+            ]
+          },
+          "gate_sequence_sha256": "aaa43e7dfa09f089a455dcab0b9b3561a0971f258a417cc0f07fa4c54fd02059",
+          "resources": {
+            "n_1q": 8,
+            "n_2q": 0,
+            "d_1q": 2,
+            "d_2q": 0
+          }
+        },
+        {
+          "word_codes": [
+            12170,
+            49200
+          ],
+          "max_abs_value": 0.1336240617052412,
+          "rotations": [],
+          "readout": {
+            "kind": "weighted_sum_of_parities",
+            "word_qubits": [
+              [
+                0,
+                1,
+                3,
+                4,
+                5,
+                6
+              ],
+              [
+                2,
+                7
+              ]
+            ]
+          },
+          "gate_sequence_sha256": "bef442526796cbccaa941ed7722d6524f58dd7944a6d42fddc5c6b9353766932",
+          "resources": {
+            "n_1q": 8,
+            "n_2q": 0,
+            "d_1q": 2,
+            "d_2q": 0
+          }
+        },
+        {
+          "word_codes": [
+            497,
+            1268,
+            20980
+          ],
+          "max_abs_value": 0.03538678761229488,
+          "rotations": [],
+          "readout": {
+            "kind": "weighted_sum_of_parities",
+            "word_qubits": [
+              [
+                0,
+                2,
+                3,
+                4
+              ],
+              [
+                1,
+                2,
+                3,
+                5
+              ],
+              [
+                1,
+                2,
+                3,
+                4,
+                6,
+                7
+              ]
+            ]
+          },
+          "gate_sequence_sha256": "1741d6639ed2c56c5e8fed8e4ed5d1839e4c86c06138f9c992af75a24a1297bb",
+          "resources": {
+            "n_1q": 6,
+            "n_2q": 0,
+            "d_1q": 1,
+            "d_2q": 0
+          }
+        },
+        {
+          "word_codes": [
+            754,
+            25332
+          ],
+          "max_abs_value": 0.03208549224442294,
+          "rotations": [],
+          "readout": {
+            "kind": "weighted_sum_of_parities",
+            "word_qubits": [
+              [
+                0,
+                2,
+                3,
+                4
+              ],
+              [
+                1,
+                2,
+                3,
+                4,
+                6,
+                7
+              ]
+            ]
+          },
+          "gate_sequence_sha256": "2975b69af0807052a13e8814158a2973f4ee011137f322d62915682e8bc563b0",
+          "resources": {
+            "n_1q": 8,
+            "n_2q": 0,
+            "d_1q": 2,
+            "d_2q": 0
+          }
+        },
+        {
+          "word_codes": [
+            15,
+            195,
+            30160
+          ],
+          "max_abs_value": 0.27030827006734093,
+          "rotations": [],
+          "readout": {
+            "kind": "weighted_sum_of_parities",
+            "word_qubits": [
+              [
+                0,
+                1
+              ],
+              [
+                0,
+                3
+              ],
+              [
+                2,
+                3,
+                4,
+                5,
+                6,
+                7
+              ]
+            ]
+          },
+          "gate_sequence_sha256": "501e27db94da2a9a3232ff8d909f9b50e5f53966a66e18d80aef7eb248239d8a",
+          "resources": {
+            "n_1q": 4,
+            "n_2q": 0,
+            "d_1q": 1,
+            "d_2q": 0
+          }
+        },
+        {
+          "word_codes": [
+            30432
+          ],
+          "max_abs_value": 0.025323315591879,
+          "rotations": [],
+          "readout": {
+            "kind": "weighted_sum_of_parities",
+            "word_qubits": [
+              [
+                2,
+                3,
+                4,
+                5,
+                6,
+                7
+              ]
+            ]
+          },
+          "gate_sequence_sha256": "8d0ebda3aa67e78edb9bc02e69d569b6866147906113f51e3954e5e41c2ab4cf",
+          "resources": {
+            "n_1q": 6,
+            "n_2q": 0,
+            "d_1q": 2,
+            "d_2q": 0
+          }
+        },
+        {
+          "word_codes": [
+            2296,
+            37368
+          ],
+          "max_abs_value": 0.013957821818691556,
+          "rotations": [],
+          "readout": {
+            "kind": "weighted_sum_of_parities",
+            "word_qubits": [
+              [
+                1,
+                2,
+                3,
+                5
+              ],
+              [
+                1,
+                2,
+                3,
+                4,
+                6,
+                7
+              ]
+            ]
+          },
+          "gate_sequence_sha256": "b75ad9f25328dda6da49be5ad06402aea4fb4ea62023129426c084258b132c98",
+          "resources": {
+            "n_1q": 8,
+            "n_2q": 0,
+            "d_1q": 2,
+            "d_2q": 0
+          }
+        },
+        {
+          "word_codes": [
+            3075,
+            41720
+          ],
+          "max_abs_value": 0.12821320253692922,
+          "rotations": [],
+          "readout": {
+            "kind": "weighted_sum_of_parities",
+            "word_qubits": [
+              [
+                0,
+                5
+              ],
+              [
+                1,
+                2,
+                3,
+                4,
+                6,
+                7
+              ]
+            ]
+          },
+          "gate_sequence_sha256": "ebd630f6ddcaae23f2cc2cb44af742c384ce17e1c671de4aafd4409a39e0534f",
+          "resources": {
+            "n_1q": 8,
+            "n_2q": 0,
+            "d_1q": 2,
+            "d_2q": 0
+          }
+        },
+        {
+          "word_codes": [
+            47568
+          ],
+          "max_abs_value": 0.025323315591879,
+          "rotations": [],
+          "readout": {
+            "kind": "weighted_sum_of_parities",
+            "word_qubits": [
+              [
+                2,
+                3,
+                4,
+                5,
+                6,
+                7
+              ]
+            ]
+          },
+          "gate_sequence_sha256": "11390e4206881e80f9c62ddb26d53e3e733e16264ebd3b426d0dd95e9fa37a84",
+          "resources": {
+            "n_1q": 6,
+            "n_2q": 0,
+            "d_1q": 2,
+            "d_2q": 0
+          }
+        },
+        {
+          "word_codes": [
+            47840
+          ],
+          "max_abs_value": 0.025323315591879,
+          "rotations": [],
+          "readout": {
+            "kind": "weighted_sum_of_parities",
+            "word_qubits": [
+              [
+                2,
+                3,
+                4,
+                5,
+                6,
+                7
+              ]
+            ]
+          },
+          "gate_sequence_sha256": "fdd1ea26e57130fbe760142a3196464f72266f2248d62ba4cb1a81ec42e18ff4",
+          "resources": {
+            "n_1q": 8,
+            "n_2q": 0,
+            "d_1q": 2,
+            "d_2q": 0
+          }
+        },
+        {
+          "word_codes": [
+            360,
+            5160,
+            49155
+          ],
+          "max_abs_value": 0.18725661955017667,
+          "rotations": [],
+          "readout": {
+            "kind": "weighted_sum_of_parities",
+            "word_qubits": [
+              [
+                1,
+                2,
+                3,
+                4
+              ],
+              [
+                1,
+                2,
+                5,
+                6
+              ],
+              [
+                0,
+                7
+              ]
+            ]
+          },
+          "gate_sequence_sha256": "fd8df8bda6827b4b94eef9db84376dc19ade4002f0ae67cf21d4ebecad830820",
+          "resources": {
+            "n_1q": 8,
+            "n_2q": 0,
+            "d_1q": 2,
+            "d_2q": 0
+          }
+        },
+        {
+          "word_codes": [
+            420,
+            6180
+          ],
+          "max_abs_value": 0.04927948569666892,
+          "rotations": [],
+          "readout": {
+            "kind": "weighted_sum_of_parities",
+            "word_qubits": [
+              [
+                1,
+                2,
+                3,
+                4
+              ],
+              [
+                1,
+                2,
+                5,
+                6
+              ]
+            ]
+          },
+          "gate_sequence_sha256": "3fc7875651802e8d894f95ae9af39fd5bf030eddb3886a9e12f09c1330ac97e9",
+          "resources": {
+            "n_1q": 9,
+            "n_2q": 0,
+            "d_1q": 2,
+            "d_2q": 0
+          }
+        },
+        {
+          "word_codes": [
+            600,
+            9240
+          ],
+          "max_abs_value": 0.04927948569666892,
+          "rotations": [],
+          "readout": {
+            "kind": "weighted_sum_of_parities",
+            "word_qubits": [
+              [
+                1,
+                2,
+                3,
+                4
+              ],
+              [
+                1,
+                2,
+                5,
+                6
+              ]
+            ]
+          },
+          "gate_sequence_sha256": "2b93ffe7c1f8b9fc3669e75f74a52dd512c670240cdd0ac87f64736beda492e6",
+          "resources": {
+            "n_1q": 9,
+            "n_2q": 0,
+            "d_1q": 2,
+            "d_2q": 0
+          }
+        },
+        {
+          "word_codes": [
+            660,
+            10260
+          ],
+          "max_abs_value": 0.04927948569666892,
+          "rotations": [],
+          "readout": {
+            "kind": "weighted_sum_of_parities",
+            "word_qubits": [
+              [
+                1,
+                2,
+                3,
+                4
+              ],
+              [
+                1,
+                2,
+                5,
+                6
+              ]
+            ]
+          },
+          "gate_sequence_sha256": "9eb56cd752027eb3cd0566cf45134591c69d736e41a3f33da989f498b2d1d856",
+          "resources": {
+            "n_1q": 10,
+            "n_2q": 0,
+            "d_1q": 2,
+            "d_2q": 0
+          }
+        },
+        {
+          "word_codes": [
+            1680,
+            5760
+          ],
+          "max_abs_value": 0.059689818315509555,
+          "rotations": [],
+          "readout": {
+            "kind": "weighted_sum_of_parities",
+            "word_qubits": [
+              [
+                2,
+                3,
+                4,
+                5
+              ],
+              [
+                3,
+                4,
+                5,
+                6
+              ]
+            ]
+          },
+          "gate_sequence_sha256": "7dd748b315c303c4145dbe259f8b70de75f45f80ff310267045aa6095ae8f691",
+          "resources": {
+            "n_1q": 7,
+            "n_2q": 0,
+            "d_1q": 2,
+            "d_2q": 0
+          }
+        },
+        {
+          "word_codes": [
+            2640,
+            6720
+          ],
+          "max_abs_value": 0.059689818315509555,
+          "rotations": [],
+          "readout": {
+            "kind": "weighted_sum_of_parities",
+            "word_qubits": [
+              [
+                2,
+                3,
+                4,
+                5
+              ],
+              [
+                3,
+                4,
+                5,
+                6
+              ]
+            ]
+          },
+          "gate_sequence_sha256": "63f4d2bd101c8a9a5218a4c35be96fae9e5327c5871d38a01047e7a1b48cb333",
+          "resources": {
+            "n_1q": 7,
+            "n_2q": 0,
+            "d_1q": 2,
+            "d_2q": 0
+          }
+        },
+        {
+          "word_codes": [
+            1440,
+            9600
+          ],
+          "max_abs_value": 0.059689818315509555,
+          "rotations": [],
+          "readout": {
+            "kind": "weighted_sum_of_parities",
+            "word_qubits": [
+              [
+                2,
+                3,
+                4,
+                5
+              ],
+              [
+                3,
+                4,
+                5,
+                6
+              ]
+            ]
+          },
+          "gate_sequence_sha256": "23297db0484d5474c1afee86408680db1acc771f019f83c0ab9b37ce3e0edbcd",
+          "resources": {
+            "n_1q": 8,
+            "n_2q": 0,
+            "d_1q": 2,
+            "d_2q": 0
+          }
+        },
+        {
+          "word_codes": [
+            2400,
+            10560
+          ],
+          "max_abs_value": 0.059689818315509555,
+          "rotations": [],
+          "readout": {
+            "kind": "weighted_sum_of_parities",
+            "word_qubits": [
+              [
+                2,
+                3,
+                4,
+                5
+              ],
+              [
+                3,
+                4,
+                5,
+                6
+              ]
+            ]
+          },
+          "gate_sequence_sha256": "b665263c2859423a8328d84539b4f2540ee78c2f4c454786dad08a28f82defed",
+          "resources": {
+            "n_1q": 8,
+            "n_2q": 0,
+            "d_1q": 2,
+            "d_2q": 0
+          }
+        },
+        {
+          "word_codes": [
+            1988,
+            2036,
+            2039,
+            14324,
+            51188,
+            61440
+          ],
+          "max_abs_value": 0.2178815801500943,
+          "rotations": [],
+          "readout": {
+            "kind": "weighted_sum_of_parities",
+            "word_qubits": [
+              [
+                1,
+                3,
+                4,
+                5
+              ],
+              [
+                1,
+                2,
+                3,
+                4,
+                5
+              ],
+              [
+                0,
+                1,
+                2,
+                3,
+                4,
+                5
+              ],
+              [
+                1,
+                2,
+                3,
+                4,
+                5,
+                6
+              ],
+              [
+                1,
+                2,
+                3,
+                4,
+                5,
+                7
+              ],
+              [
+                6,
+                7
+              ]
+            ]
+          },
+          "gate_sequence_sha256": "5a3c0fea65a14bfdaa6e3722e55bd3145d13d7ca7a5260eb9c2601570d99404d",
+          "resources": {
+            "n_1q": 2,
+            "n_2q": 0,
+            "d_1q": 1,
+            "d_2q": 0
+          }
+        },
+        {
+          "word_codes": [
+            3016,
+            3064,
+            3067,
+            15352,
+            52216
+          ],
+          "max_abs_value": 0.06297620672519351,
+          "rotations": [],
+          "readout": {
+            "kind": "weighted_sum_of_parities",
+            "word_qubits": [
+              [
+                1,
+                3,
+                4,
+                5
+              ],
+              [
+                1,
+                2,
+                3,
+                4,
+                5
+              ],
+              [
+                0,
+                1,
+                2,
+                3,
+                4,
+                5
+              ],
+              [
+                1,
+                2,
+                3,
+                4,
+                5,
+                6
+              ],
+              [
+                1,
+                2,
+                3,
+                4,
+                5,
+                7
+              ]
+            ]
+          },
+          "gate_sequence_sha256": "d5902ddc133829a8cffa25b494922dde0a745ec84a88e59703ec73eb097da5fb",
+          "resources": {
+            "n_1q": 4,
+            "n_2q": 0,
+            "d_1q": 2,
+            "d_2q": 0
+          }
+        },
+        {
+          "word_codes": [
+            317,
+            509,
+            3581,
+            12797,
+            49661
+          ],
+          "max_abs_value": 0.04484853629946213,
+          "rotations": [],
+          "readout": {
+            "kind": "weighted_sum_of_parities",
+            "word_qubits": [
+              [
+                0,
+                1,
+                2,
+                4
+              ],
+              [
+                0,
+                1,
+                2,
+                3,
+                4
+              ],
+              [
+                0,
+                1,
+                2,
+                3,
+                4,
+                5
+              ],
+              [
+                0,
+                1,
+                2,
+                3,
+                4,
+                6
+              ],
+              [
+                0,
+                1,
+                2,
+                3,
+                4,
+                7
+              ]
+            ]
+          },
+          "gate_sequence_sha256": "4d2abf55f4bcdc5294e765cc2e64d355a20c7241ba5912a7793338388d2213ce",
+          "resources": {
+            "n_1q": 2,
+            "n_2q": 0,
+            "d_1q": 1,
+            "d_2q": 0
+          }
+        },
+        {
+          "word_codes": [
+            574,
+            766,
+            3838,
+            13054,
+            49918
+          ],
+          "max_abs_value": 0.04484853629946213,
+          "rotations": [],
+          "readout": {
+            "kind": "weighted_sum_of_parities",
+            "word_qubits": [
+              [
+                0,
+                1,
+                2,
+                4
+              ],
+              [
+                0,
+                1,
+                2,
+                3,
+                4
+              ],
+              [
+                0,
+                1,
+                2,
+                3,
+                4,
+                5
+              ],
+              [
+                0,
+                1,
+                2,
+                3,
+                4,
+                6
+              ],
+              [
+                0,
+                1,
+                2,
+                3,
+                4,
+                7
+              ]
+            ]
+          },
+          "gate_sequence_sha256": "1cdabdef212ea17117b80207bf6cf3aa3fc5faa7db4a5dedbf85b300f66bfc3d",
+          "resources": {
+            "n_1q": 4,
+            "n_2q": 0,
+            "d_1q": 2,
+            "d_2q": 0
+          }
+        },
+        {
+          "word_codes": [
+            5072,
+            8144,
+            8147,
+            8156,
+            57296
+          ],
+          "max_abs_value": 0.07961779911515567,
+          "rotations": [],
+          "readout": {
+            "kind": "weighted_sum_of_parities",
+            "word_qubits": [
+              [
+                2,
+                3,
+                4,
+                6
+              ],
+              [
+                2,
+                3,
+                4,
+                5,
+                6
+              ],
+              [
+                0,
+                2,
+                3,
+                4,
+                5,
+                6
+              ],
+              [
+                1,
+                2,
+                3,
+                4,
+                5,
+                6
+              ],
+              [
+                2,
+                3,
+                4,
+                5,
+                6,
+                7
+              ]
+            ]
+          },
+          "gate_sequence_sha256": "d59d8ec08b49543f2405fe96ee3be1ca4e18b23c8c8c4f35285f3ee2f9125f3b",
+          "resources": {
+            "n_1q": 2,
+            "n_2q": 0,
+            "d_1q": 1,
+            "d_2q": 0
+          }
+        },
+        {
+          "word_codes": [
+            9184,
+            12256,
+            12259,
+            12268,
+            61408
+          ],
+          "max_abs_value": 0.07961779911515567,
+          "rotations": [],
+          "readout": {
+            "kind": "weighted_sum_of_parities",
+            "word_qubits": [
+              [
+                2,
+                3,
+                4,
+                6
+              ],
+              [
+                2,
+                3,
+                4,
+                5,
+                6
+              ],
+              [
+                0,
+                2,
+                3,
+                4,
+                5,
+                6
+              ],
+              [
+                1,
+                2,
+                3,
+                4,
+                5,
+                6
+              ],
+              [
+                2,
+                3,
+                4,
+                5,
+                6,
+                7
+              ]
+            ]
+          },
+          "gate_sequence_sha256": "7c2c7101f5536c51464c7d7becc1bfd3975021a49bae6d64f4f99517e0cb7c24",
+          "resources": {
+            "n_1q": 4,
+            "n_2q": 0,
+            "d_1q": 2,
+            "d_2q": 0
+          }
+        },
+        {
+          "word_codes": [
+            31808,
+            32576,
+            32579,
+            32588,
+            32624
+          ],
+          "max_abs_value": 0.05681767778367163,
+          "rotations": [],
+          "readout": {
+            "kind": "weighted_sum_of_parities",
+            "word_qubits": [
+              [
+                3,
+                5,
+                6,
+                7
+              ],
+              [
+                3,
+                4,
+                5,
+                6,
+                7
+              ],
+              [
+                0,
+                3,
+                4,
+                5,
+                6,
+                7
+              ],
+              [
+                1,
+                3,
+                4,
+                5,
+                6,
+                7
+              ],
+              [
+                2,
+                3,
+                4,
+                5,
+                6,
+                7
+              ]
+            ]
+          },
+          "gate_sequence_sha256": "e41cc2401419fd2fbe4d26acbd87cef5aa2da8dde96a3504c7ea54dfe1dd4838",
+          "resources": {
+            "n_1q": 2,
+            "n_2q": 0,
+            "d_1q": 1,
+            "d_2q": 0
+          }
+        },
+        {
+          "word_codes": [
+            48256,
+            49024,
+            49027,
+            49036,
+            49072
+          ],
+          "max_abs_value": 0.05681767778367163,
+          "rotations": [],
+          "readout": {
+            "kind": "weighted_sum_of_parities",
+            "word_qubits": [
+              [
+                3,
+                5,
+                6,
+                7
+              ],
+              [
+                3,
+                4,
+                5,
+                6,
+                7
+              ],
+              [
+                0,
+                3,
+                4,
+                5,
+                6,
+                7
+              ],
+              [
+                1,
+                3,
+                4,
+                5,
+                6,
+                7
+              ],
+              [
+                2,
+                3,
+                4,
+                5,
+                6,
+                7
+              ]
+            ]
+          },
+          "gate_sequence_sha256": "f779519617bf058bbdb855bd75205bffb66d7d87152084496cd22c7ff3a919a5",
+          "resources": {
+            "n_1q": 4,
+            "n_2q": 0,
+            "d_1q": 2,
+            "d_2q": 0
+          }
+        }
+      ]
+    },
+    {
+      "name": "clique",
+      "settings": [
+        {
+          "word_codes": [
+            3,
+            509,
+            7453
+          ],
+          "max_abs_value": 0.20072659721907937,
+          "rotations": [
+            {
+              "word_code": 510,
+              "angle": -0.023905720815652495
+            },
+            {
+              "word_code": 7454,
+              "angle": -0.1261610626105196
+            }
+          ],
+          "readout": {
+            "kind": "weighted_parity",
+            "weight": 0.20072659721907937,
+            "qubits": [
+              0
+            ]
+          },
+          "gate_sequence_sha256": "9746896ef1ae6f7a4a32e2e14eea666be5a69c445771d1a2463d3785631b9040",
+          "resources": {
+            "n_1q": 18,
+            "n_2q": 18,
+            "d_1q": 10,
+            "d_2q": 18
+          }
+        },
+        {
+          "word_codes": [
+            12,
+            2036,
+            29812
+          ],
+          "max_abs_value": 0.20072659721907937,
+          "rotations": [
+            {
+              "word_code": 2040,
+              "angle": -0.023905720815652495
+            },
+            {
+              "word_code": 29816,
+              "angle": -0.1261610626105196
+            }
+          ],
+          "readout": {
+            "kind": "weighted_parity",
+            "weight": 0.20072659721907937,
+            "qubits": [
+              1
+            ]
+          },
+          "gate_sequence_sha256": "e7356688ab6a2eb093cce18f1c161e7bcea53ee6b54929bb0c028b4bbd48fc8f",
+          "resources": {
+            "n_1q": 18,
+            "n_2q": 18,
+            "d_1q": 10,
+            "d_2q": 18
+          }
+        },
+        {
+          "word_codes": [
+            48,
+            8144,
+            11822
+          ],
+          "max_abs_value": 0.094965988929525,
+          "rotations": [
+            {
+              "word_code": 8160,
+              "angle": 0.2130964780896233
+            },
+            {
+              "word_code": 11806,
+              "angle": 0.2691952989207228
+            }
+          ],
+          "readout": {
+            "kind": "weighted_parity",
+            "weight": 0.094965988929525,
+            "qubits": [
+              2
+            ]
+          },
+          "gate_sequence_sha256": "c58e2fe3803a59c71cae75c78858f84fdfd750ebc1356d9f3603228389df698e",
+          "resources": {
+            "n_1q": 22,
+            "n_2q": 18,
+            "d_1q": 9,
+            "d_2q": 17
+          }
+        },
+        {
+          "word_codes": [
+            192,
+            32576,
+            47288
+          ],
+          "max_abs_value": 0.094965988929525,
+          "rotations": [
+            {
+              "word_code": 32640,
+              "angle": 0.2130964780896233
+            },
+            {
+              "word_code": 47224,
+              "angle": 0.2691952989207228
+            }
+          ],
+          "readout": {
+            "kind": "weighted_parity",
+            "weight": 0.094965988929525,
+            "qubits": [
+              3
+            ]
+          },
+          "gate_sequence_sha256": "2c44726e3746551a5805197d7a59b7a53d8c1ae171a60a7c8baf773b4ab229a3",
+          "resources": {
+            "n_1q": 22,
+            "n_2q": 18,
+            "d_1q": 9,
+            "d_2q": 17
+          }
+        },
+        {
+          "word_codes": [
+            600,
+            766,
+            768,
+            1440,
+            5760,
+            7540
+          ],
+          "max_abs_value": 0.12370074804600256,
+          "rotations": [
+            {
+              "word_code": 166,
+              "angle": 0.18618900640678415
+            },
+            {
+              "word_code": 344,
+              "angle": 1.334915922572081
+            },
+            {
+              "word_code": 2040,
+              "angle": 0.30274350393651034
+            },
+            {
+              "word_code": 5336,
+              "angle": 0.21625231707658682
+            },
+            {
+              "word_code": 7980,
+              "angle": -0.30427474214054595
+            }
+          ],
+          "readout": {
+            "kind": "weighted_parity",
+            "weight": 0.12370074804600256,
+            "qubits": [
+              1,
+              2,
+              3,
+              4
+            ]
+          },
+          "gate_sequence_sha256": "ee05bbf6527c1cd55f461acbd4d3c64904e9660bd1061ca5a5db99d384dd6394",
+          "resources": {
+            "n_1q": 57,
+            "n_2q": 36,
+            "d_1q": 24,
+            "d_2q": 36
+          }
+        },
+        {
+          "word_codes": [
+            2400,
+            2973,
+            3064,
+            3072,
+            23040,
+            23550
+          ],
+          "max_abs_value": 0.12251507337075736,
+          "rotations": [
+            {
+              "word_code": 765,
+              "angle": 0.6340117493186893
+            },
+            {
+              "word_code": 664,
+              "angle": 0.11112765320167915
+            },
+            {
+              "word_code": 1376,
+              "angle": 1.1892512628672685
+            },
+            {
+              "word_code": 21344,
+              "angle": 0.334908121918029
+            },
+            {
+              "word_code": 21150,
+              "angle": 0.08709140482412008
+            }
+          ],
+          "readout": {
+            "kind": "weighted_parity",
+            "weight": 0.12251507337075736,
+            "qubits": [
+              2,
+              3,
+              4,
+              5
+            ]
+          },
+          "gate_sequence_sha256": "13d985cd6b34a89f8789b895a26e0caba0bb8fa3b317f2e2c990ec79c35a1009",
+          "resources": {
+            "n_1q": 69,
+            "n_2q": 40,
+            "d_1q": 24,
+            "d_2q": 39
+          }
+        },
+        {
+          "word_codes": [
+            9342,
+            9600,
+            12256,
+            12288
+          ],
+          "max_abs_value": 0.4266362851887114,
+          "rotations": [
+            {
+              "word_code": 510,
+              "angle": -2.0069889762019564
+            },
+            {
+              "word_code": 2974,
+              "angle": 0.6059834597269583
+            },
+            {
+              "word_code": 5246,
+              "angle": 1.4910376413852455
+            }
+          ],
+          "readout": {
+            "kind": "weighted_parity",
+            "weight": 0.4266362851887114,
+            "qubits": [
+              0,
+              1,
+              2,
+              3,
+              5,
+              6
+            ]
+          },
+          "gate_sequence_sha256": "1bb90ac05dfd43ea08d2d78690206bb0180981ae2949d6c3ceaa1ce1a0ad14d4",
+          "resources": {
+            "n_1q": 39,
+            "n_2q": 28,
+            "d_1q": 17,
+            "d_2q": 28
+          }
+        },
+        {
+          "word_codes": [
+            36870,
+            37368,
+            42240,
+            43005,
+            49024,
+            49152
+          ],
+          "max_abs_value": 0.42853352403708506,
+          "rotations": [
+            {
+              "word_code": 510,
+              "angle": -0.4209118811250518
+            },
+            {
+              "word_code": 13574,
+              "angle": 0.9943215262988042
+            },
+            {
+              "word_code": 14331,
+              "angle": 0.21913609403304235
+            },
+            {
+              "word_code": 12166,
+              "angle": -0.37614344449049
+            },
+            {
+              "word_code": 20486,
+              "angle": 1.4474928606362614
+            }
+          ],
+          "readout": {
+            "kind": "weighted_parity",
+            "weight": 0.42853352403708506,
+            "qubits": [
+              0,
+              1,
+              6,
+              7
+            ]
+          },
+          "gate_sequence_sha256": "55a85aa724959f6210c4d11703ae18edd2eb577cce9d743ab999b2b6c32452aa",
+          "resources": {
+            "n_1q": 57,
+            "n_2q": 44,
+            "d_1q": 25,
+            "d_2q": 44
+          }
+        },
+        {
+          "word_codes": [
+            90,
+            360,
+            771,
+            1680,
+            2990
+          ],
+          "max_abs_value": 0.1105791178854266,
+          "rotations": [
+            {
+              "word_code": 306,
+              "angle": 2.5692810904029857
+            },
+            {
+              "word_code": 857,
+              "angle": -1.0957944042064147
+            },
+            {
+              "word_code": 1738,
+              "angle": -0.32492032892398265
+            },
+            {
+              "word_code": 3060,
+              "angle": 0.23055129932097165
+            }
+          ],
+          "readout": {
+            "kind": "weighted_parity",
+            "weight": 0.1105791178854266,
+            "qubits": [
+              0,
+              1,
+              2,
+              3
+            ]
+          },
+          "gate_sequence_sha256": "5dcb00639e778d0a11707cbf1e7777d0be8ca41c6795517ac0cbd835ff3105e7",
+          "resources": {
+            "n_1q": 46,
+            "n_2q": 28,
+            "d_1q": 19,
+            "d_2q": 28
+          }
+        },
+        {
+          "word_codes": [
+            105,
+            660,
+            2640,
+            3084,
+            20980
+          ],
+          "max_abs_value": 0.10817941225070388,
+          "rotations": [
+            {
+              "word_code": 765,
+              "angle": -0.5723115631868075
+            },
+            {
+              "word_code": 2617,
+              "angle": -0.6348446907516374
+            },
+            {
+              "word_code": 3173,
+              "angle": -1.0023914457077692
+            },
+            {
+              "word_code": 20893,
+              "angle": 0.09866791412944395
+            }
+          ],
+          "readout": {
+            "kind": "weighted_parity",
+            "weight": 0.10817941225070388,
+            "qubits": [
+              0,
+              1,
+              2,
+              3
+            ]
+          },
+          "gate_sequence_sha256": "4ced8d2fb4b8e5f2ae88a2acb64006c18df57d447a4560fb46126fe4172210f1",
+          "resources": {
+            "n_1q": 54,
+            "n_2q": 36,
+            "d_1q": 19,
+            "d_2q": 36
+          }
+        },
+        {
+          "word_codes": [
+            150,
+            420,
+            1902,
+            12336,
+            20490
+          ],
+          "max_abs_value": 0.11281423530453673,
+          "rotations": [
+            {
+              "word_code": 306,
+              "angle": -0.5723115631868075
+            },
+            {
+              "word_code": 2040,
+              "angle": 0.49635320239659125
+            },
+            {
+              "word_code": 12454,
+              "angle": 1.0688015564709723
+            },
+            {
+              "word_code": 20636,
+              "angle": 0.2126050824110411
+            }
+          ],
+          "readout": {
+            "kind": "weighted_parity",
+            "weight": 0.11281423530453673,
+            "qubits": [
+              0,
+              1,
+              2,
+              3
+            ]
+          },
+          "gate_sequence_sha256": "2046188725726e79cfbfa32a6e78499850a4a84b266a6828540dad0e2ceacd71",
+          "resources": {
+            "n_1q": 46,
+            "n_2q": 28,
+            "d_1q": 19,
+            "d_2q": 28
+          }
+        },
+        {
+          "word_codes": [
+            165,
+            1885,
+            5245,
+            8073,
+            49344
+          ],
+          "max_abs_value": 0.10857138050532539,
+          "rotations": [
+            {
+              "word_code": 2040,
+              "angle": -2.5692810904029857
+            },
+            {
+              "word_code": 5336,
+              "angle": -0.24779348668668785
+            },
+            {
+              "word_code": 7980,
+              "angle": -0.2296012136573287
+            },
+            {
+              "word_code": 49253,
+              "angle": -1.0981641054073903
+            }
+          ],
+          "readout": {
+            "kind": "weighted_parity",
+            "weight": 0.10857138050532539,
+            "qubits": [
+              0,
+              1,
+              2,
+              3
+            ]
+          },
+          "gate_sequence_sha256": "e243934a36a7b247d9e2085ea7e0e482539d145a7ddc47706732b55a84323dcd",
+          "resources": {
+            "n_1q": 42,
+            "n_2q": 32,
+            "d_1q": 21,
+            "d_2q": 32
+          }
+        },
+        {
+          "word_codes": [
+            51,
+            461,
+            5072,
+            5160,
+            24585,
+            30432
+          ],
+          "max_abs_value": 0.08937103438292178,
+          "rotations": [
+            {
+              "word_code": 510,
+              "angle": -0.30204741839249427
+            },
+            {
+              "word_code": 5091,
+              "angle": -0.027559004885540132
+            },
+            {
+              "word_code": 5147,
+              "angle": -0.2959161013308675
+            },
+            {
+              "word_code": 24634,
+              "angle": -0.28144046471211875
+            },
+            {
+              "word_code": 30419,
+              "angle": 0.28728586231120257
+            }
+          ],
+          "readout": {
+            "kind": "weighted_parity",
+            "weight": 0.08937103438292178,
+            "qubits": [
+              0,
+              2
+            ]
+          },
+          "gate_sequence_sha256": "87b9bf749c728096b3611b849d159d8043933f17f63941f15fcaeba4e4eea43b",
+          "resources": {
+            "n_1q": 51,
+            "n_2q": 44,
+            "d_1q": 20,
+            "d_2q": 44
+          }
+        },
+        {
+          "word_codes": [
+            204,
+            1844,
+            20288,
+            20640,
+            32292,
+            32730
+          ],
+          "max_abs_value": 0.08802789046021198,
+          "rotations": [
+            {
+              "word_code": 2040,
+              "angle": -0.3020474183924942
+            },
+            {
+              "word_code": 20364,
+              "angle": -0.3072916199531549
+            },
+            {
+              "word_code": 20588,
+              "angle": -0.3017254415473971
+            },
+            {
+              "word_code": 32488,
+              "angle": 0.13561933655967676
+            },
+            {
+              "word_code": 32534,
+              "angle": 0.12813511034404562
+            }
+          ],
+          "readout": {
+            "kind": "weighted_parity",
+            "weight": 0.08802789046021198,
+            "qubits": [
+              1,
+              3
+            ]
+          },
+          "gate_sequence_sha256": "ec66cf37cf21a733d39df10ab86dae28aacc23054f4fabd696cef29e9621a32e",
+          "resources": {
+            "n_1q": 51,
+            "n_2q": 48,
+            "d_1q": 21,
+            "d_2q": 48
+          }
+        },
+        {
+          "word_codes": [
+            718,
+            816,
+            6180,
+            8156,
+            26880,
+            32745
+          ],
+          "max_abs_value": 0.10105502203721176,
+          "rotations": [
+            {
+              "word_code": 510,
+              "angle": -1.2952225112675901
+            },
+            {
+              "word_code": 6890,
+              "angle": -0.2720497632397386
+            },
+            {
+              "word_code": 7442,
+              "angle": -0.24325909693234793
+            },
+            {
+              "word_code": 27598,
+              "angle": 0.4109206869928559
+            },
+            {
+              "word_code": 32039,
+              "angle": -0.11154302434878854
+            }
+          ],
+          "readout": {
+            "kind": "weighted_parity",
+            "weight": 0.10105502203721176,
+            "qubits": [
+              0,
+              1,
+              3,
+              4
+            ]
+          },
+          "gate_sequence_sha256": "3efa37eb493e3d78c8f71fe12160fdea066b395ca8895f6f5f1e0cfb055ec1dd",
+          "resources": {
+            "n_1q": 71,
+            "n_2q": 52,
+            "d_1q": 24,
+            "d_2q": 52
+          }
+        },
+        {
+          "word_codes": [
+            2872,
+            3264,
+            24720,
+            32624
+          ],
+          "max_abs_value": 0.08985326203497003,
+          "rotations": [
+            {
+              "word_code": 2040,
+              "angle": -1.2952225112675901
+            },
+            {
+              "word_code": 27560,
+              "angle": -0.29023525804059014
+            },
+            {
+              "word_code": 29768,
+              "angle": -0.024304172695198828
+            }
+          ],
+          "readout": {
+            "kind": "weighted_parity",
+            "weight": 0.08985326203497003,
+            "qubits": [
+              1,
+              2,
+              4,
+              5
+            ]
+          },
+          "gate_sequence_sha256": "06fdcb5f10e2d1245e4357fa6e996edfb958a7ac5c72a170e83571169928690e",
+          "resources": {
+            "n_1q": 45,
+            "n_2q": 28,
+            "d_1q": 17,
+            "d_2q": 28
+          }
+        },
+        {
+          "word_codes": [
+            60,
+            1988,
+            7376,
+            7470
+          ],
+          "max_abs_value": 0.11838049412672136,
+          "rotations": [
+            {
+              "word_code": 2040,
+              "angle": 0.016166291539634087
+            },
+            {
+              "word_code": 7404,
+              "angle": -0.2358517916287845
+            },
+            {
+              "word_code": 7442,
+              "angle": 0.1104650404426136
+            }
+          ],
+          "readout": {
+            "kind": "weighted_parity",
+            "weight": 0.11838049412672136,
+            "qubits": [
+              1,
+              2
+            ]
+          },
+          "gate_sequence_sha256": "49ea511eea0785ec045da73b880a536a56d0211cb98d86a9d0b63c18793e795b",
+          "resources": {
+            "n_1q": 25,
+            "n_2q": 24,
+            "d_1q": 12,
+            "d_2q": 24
+          }
+        },
+        {
+          "word_codes": [
+            240,
+            6720,
+            7608,
+            7725,
+            8147,
+            36736
+          ],
+          "max_abs_value": 0.130502500798165,
+          "rotations": [
+            {
+              "word_code": 6832,
+              "angle": -0.20994317221702208
+            },
+            {
+              "word_code": 7496,
+              "angle": 0.29603912218427136
+            },
+            {
+              "word_code": 7901,
+              "angle": 0.09579179250682306
+            },
+            {
+              "word_code": 7971,
+              "angle": -0.08541374406770257
+            },
+            {
+              "word_code": 36720,
+              "angle": 0.19263154607552926
+            }
+          ],
+          "readout": {
+            "kind": "weighted_parity",
+            "weight": 0.130502500798165,
+            "qubits": [
+              2,
+              3
+            ]
+          },
+          "gate_sequence_sha256": "8e539e1971829040b77d67c1af604773693ab21ecf037906fbc9324eabbb659e",
+          "resources": {
+            "n_1q": 51,
+            "n_2q": 44,
+            "d_1q": 20,
+            "d_2q": 44
+          }
+        },
+        {
+          "word_codes": [
+            3016,
+            3120,
+            11488,
+            11550
+          ],
+          "max_abs_value": 0.12100225295220614,
+          "rotations": [
+            {
+              "word_code": 2040,
+              "angle": -1.5865761196301107
+            },
+            {
+              "word_code": 10024,
+              "angle": -0.23041332162635728
+            },
+            {
+              "word_code": 9942,
+              "angle": 0.10104958027733178
+            }
+          ],
+          "readout": {
+            "kind": "weighted_parity",
+            "weight": 0.12100225295220614,
+            "qubits": [
+              1,
+              3,
+              4,
+              5
+            ]
+          },
+          "gate_sequence_sha256": "7309108ab88ebef5a2fc3f2442dc6e1cdf85fc58f81317ec1f33b79354bd145b",
+          "resources": {
+            "n_1q": 45,
+            "n_2q": 28,
+            "d_1q": 16,
+            "d_2q": 28
+          }
+        },
+        {
+          "word_codes": [
+            11805,
+            12259,
+            12300,
+            14324,
+            27645,
+            32020
+          ],
+          "max_abs_value": 0.14177453432442946,
+          "rotations": [
+            {
+              "word_code": 510,
+              "angle": -0.6970836692547728
+            },
+            {
+              "word_code": 7697,
+              "angle": -1.4480551848155427
+            },
+            {
+              "word_code": 6633,
+              "angle": 0.16253516730931195
+            },
+            {
+              "word_code": 17888,
+              "angle": -0.07549890601916272
+            },
+            {
+              "word_code": 21257,
+              "angle": 0.08335651705982516
+            }
+          ],
+          "readout": {
+            "kind": "weighted_parity",
+            "weight": 0.14177453432442946,
+            "qubits": [
+              0,
+              1,
+              2,
+              4,
+              5,
+              6
+            ]
+          },
+          "gate_sequence_sha256": "7166330fb0a353cda73abbc58f0e03e47654bc2828406dc8bafa3e95a35c35c3",
+          "resources": {
+            "n_1q": 65,
+            "n_2q": 44,
+            "d_1q": 22,
+            "d_2q": 43
+          }
+        },
+        {
+          "word_codes": [
+            7952,
+            12291,
+            12797,
+            36960,
+            41720
+          ],
+          "max_abs_value": 0.11816054131632725,
+          "rotations": [
+            {
+              "word_code": 12051,
+              "angle": 1.551673268758317
+            },
+            {
+              "word_code": 12013,
+              "angle": 0.1059191989052607
+            },
+            {
+              "word_code": 36720,
+              "angle": -0.22022076825885245
+            },
+            {
+              "word_code": 48616,
+              "angle": 0.0903095531775997
+            }
+          ],
+          "readout": {
+            "kind": "weighted_parity",
+            "weight": 0.11816054131632725,
+            "qubits": [
+              2,
+              4,
+              5,
+              6
+            ]
+          },
+          "gate_sequence_sha256": "5fc234940023fa922750cc5e0255bccc97ddb07f553ce4b685f97d0299cc3634",
+          "resources": {
+            "n_1q": 46,
+            "n_2q": 40,
+            "d_1q": 19,
+            "d_2q": 40
+          }
+        },
+        {
+          "word_codes": [
+            9184,
+            9240,
+            13054,
+            13056
+          ],
+          "max_abs_value": 0.09126315185643584,
+          "rotations": [
+            {
+              "word_code": 2040,
+              "angle": 1.480655947750964
+            },
+            {
+              "word_code": 4382,
+              "angle": -0.4665132618986552
+            },
+            {
+              "word_code": 4320,
+              "angle": -1.270535317183921
+            }
+          ],
+          "readout": {
+            "kind": "weighted_parity",
+            "weight": 0.09126315185643584,
+            "qubits": [
+              2,
+              3,
+              4,
+              6
+            ]
+          },
+          "gate_sequence_sha256": "4b1f4a17d18359bf4674061992bf188d340c323908d056315e5ce338d895a242",
+          "resources": {
+            "n_1q": 29,
+            "n_2q": 20,
+            "d_1q": 14,
+            "d_2q": 20
+          }
+        },
+        {
+          "word_codes": [
+            195,
+            317,
+            29504,
+            29880
+          ],
+          "max_abs_value": 0.11838049412672136,
+          "rotations": [
+            {
+              "word_code": 510,
+              "angle": 0.016166291539634087
+            },
+            {
+              "word_code": 29571,
+              "angle": -0.2358517916287845
+            },
+            {
+              "word_code": 29819,
+              "angle": 0.1104650404426136
+            }
+          ],
+          "readout": {
+            "kind": "weighted_parity",
+            "weight": 0.11838049412672136,
+            "qubits": [
+              0,
+              3
+            ]
+          },
+          "gate_sequence_sha256": "d9b0a3a9dddb3614504a301c819d99a7eb62fe375cd2958ab0459ca7919b0b64",
+          "resources": {
+            "n_1q": 25,
+            "n_2q": 28,
+            "d_1q": 12,
+            "d_2q": 28
+          }
+        },
+        {
+          "word_codes": [
+            574,
+            960,
+            30900,
+            32588
+          ],
+          "max_abs_value": 0.1183429598458057,
+          "rotations": [
+            {
+              "word_code": 510,
+              "angle": -1.5865761196301107
+            },
+            {
+              "word_code": 31370,
+              "angle": -0.10377320876618293
+            },
+            {
+              "word_code": 32114,
+              "angle": -0.09246705670538531
+            }
+          ],
+          "readout": {
+            "kind": "weighted_parity",
+            "weight": 0.1183429598458057,
+            "qubits": [
+              0,
+              1,
+              2,
+              4
+            ]
+          },
+          "gate_sequence_sha256": "af1d8230e4a758735eba774b5090f830c920e539eec35f43f537614c2e0c9717",
+          "resources": {
+            "n_1q": 45,
+            "n_2q": 32,
+            "d_1q": 17,
+            "d_2q": 32
+          }
+        },
+        {
+          "word_codes": [
+            12064,
+            12480,
+            45952,
+            46200
+          ],
+          "max_abs_value": 0.12603732194618075,
+          "rotations": [
+            {
+              "word_code": 8160,
+              "angle": -1.5529548175815753
+            },
+            {
+              "word_code": 40096,
+              "angle": -0.22096184527560292
+            },
+            {
+              "word_code": 39768,
+              "angle": 0.09699977137736379
+            }
+          ],
+          "readout": {
+            "kind": "weighted_parity",
+            "weight": 0.12603732194618075,
+            "qubits": [
+              2,
+              4,
+              5,
+              6
+            ]
+          },
+          "gate_sequence_sha256": "431558c97ac02b0b22173e496ea9742507e56b3ed3709d30c5723ecfea7e8c31",
+          "resources": {
+            "n_1q": 45,
+            "n_2q": 28,
+            "d_1q": 16,
+            "d_2q": 28
+          }
+        },
+        {
+          "word_codes": [
+            25332,
+            47220,
+            49036,
+            49155,
+            49661
+          ],
+          "max_abs_value": 0.1412822728236671,
+          "rotations": [
+            {
+              "word_code": 55936,
+              "angle": 0.8860321146387959
+            },
+            {
+              "word_code": 56696,
+              "angle": -0.575360687160716
+            },
+            {
+              "word_code": 41719,
+              "angle": 1.4262670276682472
+            },
+            {
+              "word_code": 41737,
+              "angle": -0.1620680522744442
+            }
+          ],
+          "readout": {
+            "kind": "weighted_parity",
+            "weight": 0.1412822728236671,
+            "qubits": [
+              1,
+              2,
+              3,
+              4,
+              6,
+              7
+            ]
+          },
+          "gate_sequence_sha256": "74c676300d2803b6fc05b16128ce225a4c3b6ed3b181d3993633f813db90155b",
+          "resources": {
+            "n_1q": 62,
+            "n_2q": 40,
+            "d_1q": 20,
+            "d_2q": 39
+          }
+        },
+        {
+          "word_codes": [
+            29725,
+            31808,
+            32190,
+            49164,
+            51188
+          ],
+          "max_abs_value": 0.12303452072635766,
+          "rotations": [
+            {
+              "word_code": 2141,
+              "angle": 0.05849096794178507
+            },
+            {
+              "word_code": 2467,
+              "angle": -0.5740942959359598
+            },
+            {
+              "word_code": 46097,
+              "angle": 1.2013370586038319
+            },
+            {
+              "word_code": 46057,
+              "angle": 0.09883811693022644
+            }
+          ],
+          "readout": {
+            "kind": "weighted_parity",
+            "weight": 0.12303452072635766,
+            "qubits": [
+              0,
+              1,
+              2,
+              5,
+              6,
+              7
+            ]
+          },
+          "gate_sequence_sha256": "3d6e5d2501238b05b935ba69f92be8ce1a7bccdfbda1cc2beb911cf41cef1c8a",
+          "resources": {
+            "n_1q": 56,
+            "n_2q": 36,
+            "d_1q": 20,
+            "d_2q": 36
+          }
+        },
+        {
+          "word_codes": [
+            32445,
+            32579,
+            52216,
+            52224
+          ],
+          "max_abs_value": 0.09389367352043809,
+          "rotations": [
+            {
+              "word_code": 510,
+              "angle": 0.7456948704143476
+            },
+            {
+              "word_code": 46405,
+              "angle": 0.35565611525397356
+            },
+            {
+              "word_code": 45757,
+              "angle": 1.190344134663784
+            }
+          ],
+          "readout": {
+            "kind": "weighted_parity",
+            "weight": 0.09389367352043809,
+            "qubits": [
+              0,
+              1,
+              2,
+              3,
+              4,
+              5,
+              6,
+              7
+            ]
+          },
+          "gate_sequence_sha256": "e6951f7c1106f5547efdff294b0fcccb166de0557cbb0cc389386d231d6b7246",
+          "resources": {
+            "n_1q": 43,
+            "n_2q": 32,
+            "d_1q": 16,
+            "d_2q": 32
+          }
+        },
+        {
+          "word_codes": [
+            15,
+            497,
+            6333,
+            10260,
+            15352
+          ],
+          "max_abs_value": 0.13693306829442528,
+          "rotations": [
+            {
+              "word_code": 510,
+              "angle": -0.16263388071351592
+            },
+            {
+              "word_code": 6322,
+              "angle": 0.08895710976144858
+            },
+            {
+              "word_code": 10267,
+              "angle": 0.17877792695741426
+            },
+            {
+              "word_code": 15351,
+              "angle": 0.1672633594506464
+            }
+          ],
+          "readout": {
+            "kind": "weighted_parity",
+            "weight": 0.13693306829442528,
+            "qubits": [
+              0,
+              1
+            ]
+          },
+          "gate_sequence_sha256": "bb6ba92c4775f242c7dc915b22bf3fe148b93a39c54b2357769e5116e5fd6d75",
+          "resources": {
+            "n_1q": 44,
+            "n_2q": 36,
+            "d_1q": 20,
+            "d_2q": 36
+          }
+        },
+        {
+          "word_codes": [
+            754,
+            780,
+            8005,
+            40965
+          ],
+          "max_abs_value": 0.12235997334223694,
+          "rotations": [
+            {
+              "word_code": 510,
+              "angle": -1.3904897731423416
+            },
+            {
+              "word_code": 7607,
+              "angle": -0.0938590159552626
+            },
+            {
+              "word_code": 41719,
+              "angle": -0.19579420703765374
+            }
+          ],
+          "readout": {
+            "kind": "weighted_parity",
+            "weight": 0.12235997334223694,
+            "qubits": [
+              0,
+              2,
+              3,
+              4
+            ]
+          },
+          "gate_sequence_sha256": "0810200c1ee4b3cec7dfccab87799892ee1dee4ab3b261bd730cfcebf5131bd7",
+          "resources": {
+            "n_1q": 37,
+            "n_2q": 32,
+            "d_1q": 14,
+            "d_2q": 32
+          }
+        },
+        {
+          "word_codes": [
+            1268,
+            1290,
+            12268,
+            15360,
+            47133
+          ],
+          "max_abs_value": 0.13711423812684248,
+          "rotations": [
+            {
+              "word_code": 510,
+              "angle": 1.4483701507641877
+            },
+            {
+              "word_code": 11032,
+              "angle": -0.6870108542407507
+            },
+            {
+              "word_code": 14580,
+              "angle": 1.3027317892782246
+            },
+            {
+              "word_code": 48361,
+              "angle": -0.2736964943467122
+            }
+          ],
+          "readout": {
+            "kind": "weighted_parity",
+            "weight": 0.13711423812684248,
+            "qubits": [
+              1,
+              2,
+              3,
+              5
+            ]
+          },
+          "gate_sequence_sha256": "ad3309297bb48e61f4d3ddd1a8827cfc3f66306f3cda40fc4dda2d40006e8b38",
+          "resources": {
+            "n_1q": 46,
+            "n_2q": 36,
+            "d_1q": 18,
+            "d_2q": 36
+          }
+        },
+        {
+          "word_codes": [
+            1545,
+            2039,
+            47840
+          ],
+          "max_abs_value": 0.042665673782887464,
+          "rotations": [
+            {
+              "word_code": 510,
+              "angle": 0.6739307000726699
+            },
+            {
+              "word_code": 48361,
+              "angle": -0.6354366856308674
+            }
+          ],
+          "readout": {
+            "kind": "weighted_parity",
+            "weight": 0.042665673782887464,
+            "qubits": [
+              0,
+              1,
+              4,
+              5
+            ]
+          },
+          "gate_sequence_sha256": "28a3a5768dec1b67b470298a49979f247c1eda06fd127de271b625d8e064c6d4",
+          "resources": {
+            "n_1q": 28,
+            "n_2q": 20,
+            "d_1q": 11,
+            "d_2q": 20
+          }
+        },
+        {
+          "word_codes": [
+            2296,
+            2310,
+            49125
+          ],
+          "max_abs_value": 0.02928000868279565,
+          "rotations": [
+            {
+              "word_code": 510,
+              "angle": 1.4483701507641877
+            },
+            {
+              "word_code": 46877,
+              "angle": 0.3943131936728586
+            }
+          ],
+          "readout": {
+            "kind": "weighted_parity",
+            "weight": 0.02928000868279565,
+            "qubits": [
+              1,
+              2,
+              3,
+              5
+            ]
+          },
+          "gate_sequence_sha256": "43f59f69969c9670283aa710f8b4a4b28890b34abc1c04db305e65fb91880121",
+          "resources": {
+            "n_1q": 22,
+            "n_2q": 20,
+            "d_1q": 10,
+            "d_2q": 20
+          }
+        },
+        {
+          "word_codes": [
+            2565,
+            3067,
+            48408
+          ],
+          "max_abs_value": 0.03631015526639336,
+          "rotations": [
+            {
+              "word_code": 510,
+              "angle": -2.467661953517123
+            },
+            {
+              "word_code": 46877,
+              "angle": 0.33110928707498616
+            }
+          ],
+          "readout": {
+            "kind": "weighted_parity",
+            "weight": 0.03631015526639336,
+            "qubits": [
+              0,
+              1,
+              4,
+              5
+            ]
+          },
+          "gate_sequence_sha256": "29f80a20bd59a16ad589946aa755f183659bbb20a1723c6da826a0dbff84fa69",
+          "resources": {
+            "n_1q": 24,
+            "n_2q": 20,
+            "d_1q": 10,
+            "d_2q": 20
+          }
+        },
+        {
+          "word_codes": [
+            3075,
+            3581
+          ],
+          "max_abs_value": 0.11760302140472596,
+          "rotations": [
+            {
+              "word_code": 510,
+              "angle": -0.028075206384650084
+            }
+          ],
+          "readout": {
+            "kind": "weighted_parity",
+            "weight": 0.11760302140472596,
+            "qubits": [
+              0,
+              5
+            ]
+          },
+          "gate_sequence_sha256": "cdefc0acc3d229add9c878ecc0e74339dbe306ce46869561fd7ba7bac866476c",
+          "resources": {
+            "n_1q": 7,
+            "n_2q": 8,
+            "d_1q": 5,
+            "d_2q": 8
+          }
+        },
+        {
+          "word_codes": [
+            3838,
+            3840
+          ],
+          "max_abs_value": 0.12281519735524778,
+          "rotations": [
+            {
+              "word_code": 510,
+              "angle": -1.5439129025631362
+            }
+          ],
+          "readout": {
+            "kind": "weighted_parity",
+            "weight": 0.12281519735524778,
+            "qubits": [
+              0,
+              1,
+              2,
+              3,
+              4,
+              5
+            ]
+          },
+          "gate_sequence_sha256": "ded4eddd9136d01de422c76757c0bee273e314633867c03eecd35d623535c4db",
+          "resources": {
+            "n_1q": 11,
+            "n_2q": 8,
+            "d_1q": 7,
+            "d_2q": 8
+          }
+        },
+        {
+          "word_codes": [
+            41040,
+            49072,
+            49918,
+            49920
+          ],
+          "max_abs_value": 0.13186943728941541,
+          "rotations": [
+            {
+              "word_code": 8160,
+              "angle": -3.0568524772675656
+            },
+            {
+              "word_code": 25262,
+              "angle": 0.7237075590410174
+            },
+            {
+              "word_code": 25424,
+              "angle": -1.3066576062371553
+            }
+          ],
+          "readout": {
+            "kind": "weighted_parity",
+            "weight": 0.13186943728941541,
+            "qubits": [
+              2,
+              3,
+              6,
+              7
+            ]
+          },
+          "gate_sequence_sha256": "97514c6ceaaa7ec9b0ead53adb7f3739096861ff46a1254957faed395c82e4ea",
+          "resources": {
+            "n_1q": 47,
+            "n_2q": 28,
+            "d_1q": 17,
+            "d_2q": 27
+          }
+        },
+        {
+          "word_codes": [
+            48256,
+            48510,
+            49200,
+            57296
+          ],
+          "max_abs_value": 0.12720515584426573,
+          "rotations": [
+            {
+              "word_code": 510,
+              "angle": 1.480655947750964
+            },
+            {
+              "word_code": 31920,
+              "angle": -1.376283140568496
+            },
+            {
+              "word_code": 25424,
+              "angle": 0.19769004908592933
+            }
+          ],
+          "readout": {
+            "kind": "weighted_parity",
+            "weight": 0.12720515584426573,
+            "qubits": [
+              3,
+              5,
+              6,
+              7
+            ]
+          },
+          "gate_sequence_sha256": "5131ddc12f60a512b7e34bcc963938967525500f140ea678e600a396c21af0fc",
+          "resources": {
+            "n_1q": 29,
+            "n_2q": 24,
+            "d_1q": 13,
+            "d_2q": 24
+          }
+        },
+        {
+          "word_codes": [
+            48765,
+            49027,
+            61408,
+            61440
+          ],
+          "max_abs_value": 0.1602751930225739,
+          "rotations": [
+            {
+              "word_code": 510,
+              "angle": -2.3958977831754456
+            },
+            {
+              "word_code": 20893,
+              "angle": 0.6526474368718166
+            },
+            {
+              "word_code": 20093,
+              "angle": -1.311210037863472
+            }
+          ],
+          "readout": {
+            "kind": "weighted_parity",
+            "weight": 0.1602751930225739,
+            "qubits": [
+              0,
+              1,
+              2,
+              3,
+              4,
+              5,
+              6,
+              7
+            ]
+          },
+          "gate_sequence_sha256": "08ebabb9d71ecfb8db30704d2cfaf0e3998aef4e15b4fe26c861a39d7ef112a7",
+          "resources": {
+            "n_1q": 39,
+            "n_2q": 32,
+            "d_1q": 15,
+            "d_2q": 32
+          }
+        },
+        {
+          "word_codes": [
+            10430,
+            10560
+          ],
+          "max_abs_value": 0.02793936794656649,
+          "rotations": [
+            {
+              "word_code": 510,
+              "angle": -2.0069889762019564
+            }
+          ],
+          "readout": {
+            "kind": "weighted_parity",
+            "weight": 0.02793936794656649,
+            "qubits": [
+              0,
+              1,
+              2,
+              3,
+              5,
+              6
+            ]
+          },
+          "gate_sequence_sha256": "f3d8e4bf3294a4721554533fec6d3fe2fa26ca18c9ded4a82978e75618ea7aab",
+          "resources": {
+            "n_1q": 15,
+            "n_2q": 8,
+            "d_1q": 7,
+            "d_2q": 8
+          }
+        },
+        {
+          "word_codes": [
+            11892,
+            12102,
+            48680
+          ],
+          "max_abs_value": 0.04048926118987375,
+          "rotations": [
+            {
+              "word_code": 306,
+              "angle": -0.29468047038762557
+            },
+            {
+              "word_code": 36956,
+              "angle": 0.29583409080042417
+            }
+          ],
+          "readout": {
+            "kind": "weighted_parity",
+            "weight": 0.04048926118987375,
+            "qubits": [
+              1,
+              2,
+              3,
+              4,
+              5,
+              6
+            ]
+          },
+          "gate_sequence_sha256": "0251c620b3f6bcc8b914790327afa931a06f14fdf9f5c77d1c66d673ed1cfff5",
+          "resources": {
+            "n_1q": 24,
+            "n_2q": 12,
+            "d_1q": 9,
+            "d_2q": 12
+          }
+        },
+        {
+          "word_codes": [
+            11960,
+            12170,
+            49110
+          ],
+          "max_abs_value": 0.04033080495817434,
+          "rotations": [
+            {
+              "word_code": 306,
+              "angle": -0.29468047038762557
+            },
+            {
+              "word_code": 37230,
+              "angle": -0.2826578077767777
+            }
+          ],
+          "readout": {
+            "kind": "weighted_parity",
+            "weight": 0.04033080495817434,
+            "qubits": [
+              1,
+              2,
+              3,
+              4,
+              5,
+              6
+            ]
+          },
+          "gate_sequence_sha256": "9ce3d89bc1c5035c206a370dbce9fefa869f478e950868c47741bb5c5de54472",
+          "resources": {
+            "n_1q": 34,
+            "n_2q": 16,
+            "d_1q": 11,
+            "d_2q": 16
+          }
+        },
+        {
+          "word_codes": [
+            29742,
+            30160
+          ],
+          "max_abs_value": 0.0448863129474875,
+          "rotations": [
+            {
+              "word_code": 510,
+              "angle": 0.5994223725133832
+            }
+          ],
+          "readout": {
+            "kind": "weighted_parity",
+            "weight": 0.0448863129474875,
+            "qubits": [
+              0,
+              1,
+              2,
+              5,
+              6,
+              7
+            ]
+          },
+          "gate_sequence_sha256": "da237755c323d3458dc4c5a58940fef4181883ced79592c93f6f41bdc0df5ebd",
+          "resources": {
+            "n_1q": 13,
+            "n_2q": 8,
+            "d_1q": 7,
+            "d_2q": 8
+          }
+        },
+        {
+          "word_codes": [
+            38400,
+            38910
+          ],
+          "max_abs_value": 0.0415072189615401,
+          "rotations": [
+            {
+              "word_code": 510,
+              "angle": 0.2596466996167265
+            }
+          ],
+          "readout": {
+            "kind": "weighted_parity",
+            "weight": 0.0415072189615401,
+            "qubits": [
+              4,
+              5,
+              6,
+              7
+            ]
+          },
+          "gate_sequence_sha256": "b53a3c47dcb83cc77fdb8f6b96bf9b5a9c4f86aa6a0464b8eee531707d3f0a6a",
+          "resources": {
+            "n_1q": 13,
+            "n_2q": 8,
+            "d_1q": 6,
+            "d_2q": 8
+          }
+        },
+        {
+          "word_codes": [
+            47150,
+            47568
+          ],
+          "max_abs_value": 0.0448863129474875,
+          "rotations": [
+            {
+              "word_code": 510,
+              "angle": 0.5994223725133832
+            }
+          ],
+          "readout": {
+            "kind": "weighted_parity",
+            "weight": 0.0448863129474875,
+            "qubits": [
+              0,
+              1,
+              2,
+              5,
+              6,
+              7
+            ]
+          },
+          "gate_sequence_sha256": "f244799cef0e86bf93f29f6242a29f6b7e4429dd8202da0807e39b01d273e10b",
+          "resources": {
+            "n_1q": 15,
+            "n_2q": 8,
+            "d_1q": 7,
+            "d_2q": 8
+          }
+        }
+      ]
+    }
+  ]
+}

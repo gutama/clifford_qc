@@ -116,7 +116,7 @@ No figure or table value in the manuscript is transcribed by hand, and
 ```bash
 python -m venv .venv && source .venv/bin/activate
 pip install -e .[test,research,stim]       # automatic CI extras
-pytest                                      # 2956 passed, 11 skipped
+pytest                                      # 3006 passed, 11 skipped
 ```
 
 This is the automatic CI dependency set; record gates additionally pin NumPy
@@ -132,7 +132,7 @@ the remaining `11 - 6 = 5` skips are per-test and *are* collected:
 
 ```text
 collected == passed + (skipped - files dropped at collection)
-2961      == 2956   + (11      -   6)
+3011      == 3006   + (11      -   6)
 ```
 
 Both sides are computed from the tree, so a drift in either quoted number
@@ -4232,9 +4232,60 @@ bound and intrinsic variance floor. Odd-grade tests apply to parity-conserving
 Hubbard models and explicitly exclude the spin builders with odd field terms.
 No finite-shot data is gated against the exact ball bound.
 
-Phase 19 is now partial (two of four ledger deliverables). A result-free
-preregistration must freeze the bank, clique and QWC ordering, allocator,
+Phase 19 is now partial (three of four ledger deliverables). The result-free
+preregistration below freezes the bank, clique and QWC ordering, allocator,
 confidence family, all three device cards and depth accounting before any
-sampled comparison. No producer, record or comparison ships in this change.
-The exploratory sizing table in `PLAN.md` has not been regenerated under this
-cover rule and remains an uncommitted probe. Lever 2 remains unbuilt.
+sampled comparison. Lever 2 remains unbuilt.
+
+## Phase 19: result-free energy preregistration
+
+`benchmarks/PHASE19_ENERGY_PREREGISTRATION.md` explains the binding
+`benchmarks/configs/phase19_energy_comparison.json` and its three structural
+manifests in `benchmarks/configs/phase19_banks/`. Run the gate and its tests:
+
+```bash
+python benchmarks/check_phase19_preregistration.py
+python -m pytest tests/test_phase19_preregistration.py
+```
+
+These commands evaluate no state means or variances, draw no Phase 19 outcomes
+and price no device schedule. The gate pins the complete configuration digest,
+rejects duplicate keys/nonfinite numbers/nested outcomes, and checks source,
+FCIDUMP, provenance, device-card and manifest hashes. It independently rebuilds
+the manifest quantities from the inputs through the reviewed compiler, and
+checks the outcome-independent allocation on all declared budgets. A future
+record also needs full-history commit checks. Its declaration merge must precede
+the clean execution source, which must precede the record's first commit; a
+squash/rebase that loses that order fails.
+
+The three Hamiltonians use their fixed eight-qubit Hartree–Fock determinants,
+with occupations `[0,1,2,3]`. This is a measurement comparison on those reference
+energies, not molecular ground-state accuracy or general VQE evidence. Both arms
+retain every nonzero term after the explicitly frozen `1e-12` FCIDUMP assembly
+tolerance, assign each word once, and keep identity exact. QWC receives ascending
+codes; the clique arm uses the reviewed v1 rule. The regenerated counts are
+H4 `68/45`, LiH `42/54` and BeH2 `9/36` (QWC/clique). They supersede the old
+uncommitted probe and do not establish shot or runtime savings.
+
+Allocation has a two-shot floor followed by exact binary-rational
+largest-remainder apportionment using each setting's coefficient range.
+Effective budgets are `2^16` through `2^32`, on independent fixed schedules.
+The empirical-Bernstein family spans three systems, two protocols and all
+seventeen looks at total `delta=0.05`. The `1.6e-3` Hartree target includes a
+`1e-10` numerical allowance. The declaration freezes probability correction,
+six 1000-replica covariance audits at `2^18` shots each, disjoint seed namespaces,
+censoring/materiality rules and failure reporting.
+
+All emitted rotors and readout basis changes are counted and scheduled through
+both gate kinds. The three existing device cards report prices separately,
+with their routing/fidelity policies and inadmissibility retained. Generic 1q
+pricing of arbitrary `rz` is a logical model, not fault-tolerant synthesis;
+fidelity inflation does not certify hardware-noisy intervals. Reference
+availability is assumed with the card's preparation charge, and audit shots
+and classical simulation work are reported separately from endpoint price.
+
+The producer, record and independent sampled-result checker belong to a later
+change, after this preregistration is merged. Validate their gates on undeclared
+toy fixtures, then execute the frozen campaign once from a clean pinned tree
+and commit the record alone. No Phase 19 samples, confidence crossings, prices
+or efficiency decisions have been produced here.

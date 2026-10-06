@@ -39,8 +39,8 @@
     "numbered_phase_count": 20,
     "complete_phase_count": 16,
     "strict_complete_fraction": 0.8,
-    "progress_weighted_points": 18.25,
-    "progress_weighted_fraction": 0.9125
+    "progress_weighted_points": 18.5,
+    "progress_weighted_fraction": 0.925
   },
   "numbered_phases": [
     {
@@ -265,13 +265,16 @@
       "id": "19",
       "title": "Anticommuting-clique partitioning",
       "status": "partial",
-      "implementation_fraction": 0.5,
+      "implementation_fraction": 0.75,
       "evidence": [
         "clifford_qc/measurement/cliques.py",
-        "tests/test_anticommuting_cliques.py"
+        "tests/test_anticommuting_cliques.py",
+        "benchmarks/PHASE19_ENERGY_PREREGISTRATION.md",
+        "benchmarks/configs/phase19_energy_comparison.json",
+        "benchmarks/check_phase19_preregistration.py",
+        "tests/test_phase19_preregistration.py"
       ],
       "remaining": [
-        "Result-free preregistration",
         "Producer, record, and checker"
       ]
     }

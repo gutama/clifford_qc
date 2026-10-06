@@ -1,0 +1,322 @@
+{
+  "schema": "clifford_qc.phase19_energy_comparison_config.v1",
+  "phase": "19_lever1_fixed_reference_hamiltonian_energy",
+  "status": "preregistration_only_no_run_yet",
+  "authorization": {
+    "sampled_execution_count": 1,
+    "producer": "benchmarks/run_phase19_energy_comparison.py",
+    "record": "benchmarks/reference_results/phase19_energy_comparison.json",
+    "record_checker": "benchmarks/check_phase19_energy_comparison.py",
+    "require_clean_execution_tree": true,
+    "execution_commit_field": "provenance.git_commit",
+    "preregistration_merge_commit_field": "provenance.preregistration_merge_commit",
+    "record_commit_separate_from_execution": true,
+    "temporal_order": "Merge this declaration first; land and validate the producer and record checker on undeclared toy fixtures in a later commit; then execute once from a clean pinned tree; commit the record alone after its execution commit. Use merge commits to preserve ancestry."
+  },
+  "lineage": {
+    "phase19_compilation_merge_commit": "45966af20ca99f99e70daa0e075f456e48e1f71e",
+    "environment_reference": "benchmarks/reference_results/protocol_cost.json",
+    "files": [
+      {
+        "path": "benchmarks/data/h4_sto3g_r0.9.FCIDUMP",
+        "sha256": "bf32568461477cf1ec8e7c4aaae737b0c6c80bcbd83d51f783ec3a3daed5a922",
+        "git_blob_sha1": "da1814b579cb691609709ac2c340465a639603a4"
+      },
+      {
+        "path": "benchmarks/data/h4_sto3g_r0.9.provenance.json",
+        "sha256": "4b5cc30240ee42709e407f1794b73d9e585bc4032ecc14ff5eef450722868229",
+        "git_blob_sha1": "150036a9398671ab203ce126996764b18546edee"
+      },
+      {
+        "path": "benchmarks/data/lih_sto3g_r1.5949_cas4e4o.FCIDUMP",
+        "sha256": "1163b1c1a79b20b452f429b694e55a1e34db5b636398f541074a2494d73a4130",
+        "git_blob_sha1": "b193ec4259d2cc46b70c77ad1bc84bc7a55af7ff"
+      },
+      {
+        "path": "benchmarks/data/lih_sto3g_r1.5949_cas4e4o.provenance.json",
+        "sha256": "0da925824d5c4b59c9f7297823b4578cd6504795ffca822d320ed65b07a1899f",
+        "git_blob_sha1": "bce9779c4493c52079a214fe11e74f120b13d2f0"
+      },
+      {
+        "path": "benchmarks/data/beh2_sto3g_r1.3264.FCIDUMP",
+        "sha256": "01ef4422b2e9e7f711895ae897a94ea11c1b0fae5a5fd91c3396fbd4d69fba76",
+        "git_blob_sha1": "7f2b73022cd7b40108e4765aeab5d6ee9230d0a4"
+      },
+      {
+        "path": "benchmarks/data/beh2_sto3g_r1.3264.provenance.json",
+        "sha256": "fd4eb5de5bf94e2555f8d3d512e7918146224f49b84f8b890527ad5b8a25c73c",
+        "git_blob_sha1": "4a514949dbff443bcfd00ba0fd0d6f98e5415989"
+      },
+      {
+        "path": "benchmarks/configs/device_cards/ion-like.json",
+        "sha256": "1ac47a1a80b621bfeb3d5cc36dd9ab859bf94dc782da4c6fee8aebfb3d9c53c2",
+        "git_blob_sha1": "45ab9fd9b59638d2b5d0a94dafe3a5bcb311cb26"
+      },
+      {
+        "path": "benchmarks/configs/device_cards/logical-alltoall.json",
+        "sha256": "5eb4668daa124b4f8f375d37839ab4eeb31f10f8cf27612869e2aebcb9f30fe3",
+        "git_blob_sha1": "21fab44375442ce632d12c2d6f3ba9bdad3815f7"
+      },
+      {
+        "path": "benchmarks/configs/device_cards/superconducting-like.json",
+        "sha256": "99fac3de98a34324f31dd734918bc6448ce48dd315752c12dbcc503b1d82e248",
+        "git_blob_sha1": "befb3fb9f09087174f7d07f59d2e1f4e8e4f7316"
+      },
+      {
+        "path": "benchmarks/reference_results/protocol_cost.json",
+        "sha256": "a1b5bea91d5924ae6c6878baf83e9d8b6b10ad107f4c3a2ab1644ddee1adff59",
+        "git_blob_sha1": "5466fda9e083c2d55b388446e03670b7026f5eec"
+      },
+      {
+        "path": "clifford_qc/models/fcidump.py",
+        "sha256": "52ea952551ad852d53ac0c07d40dc0af6252f990db99e478ea58b2b2bc61a496",
+        "git_blob_sha1": "630768d7e092004d589279151d16adc0779108f2"
+      },
+      {
+        "path": "clifford_qc/fermion.py",
+        "sha256": "ae9dbb818727d5620d0619733da7698df999761827fede563612d6e8c65995e2",
+        "git_blob_sha1": "0fe4c9e6e13f22a74d28c8b605ce5682db96cec8"
+      },
+      {
+        "path": "clifford_qc/multivector.py",
+        "sha256": "9b8f15685dde7f3c1a65e456e3647fade7a1f393c3f2b392de945232a72024b1",
+        "git_blob_sha1": "14feee9d9a298e5847ea98ad762869b47fb9f477"
+      },
+      {
+        "path": "clifford_qc/pauli_kernel.py",
+        "sha256": "c7512dc6ad68e7ccdf676b2fa1fe309c16a21ec5c820e55e7ac45bc8689c937d",
+        "git_blob_sha1": "eae6c74dea42108d9cb1414211b2a06438227e38"
+      },
+      {
+        "path": "clifford_qc/ir.py",
+        "sha256": "0b17bd6e2bbe54efb946549884c9e67ff67eb641f6828e7a59e92bb57d01c9ef",
+        "git_blob_sha1": "f5face867dd25364e64c91f66fc7781430f22f72"
+      },
+      {
+        "path": "clifford_qc/qasm3.py",
+        "sha256": "7a57835f17bd0c9f14b71da46b5e606a7f90120998ddda84bf578c5431f81005",
+        "git_blob_sha1": "3d43911b1b3077a183df248695aef763119f6749"
+      },
+      {
+        "path": "clifford_qc/measurement/cliques.py",
+        "sha256": "fdb2d6989601e56a5fbcf7c5c11691e9bebf47fa614927501d5362eb5794c9ef",
+        "git_blob_sha1": "12b6da9d993385908acf036ab4fb99320485a8c4"
+      },
+      {
+        "path": "clifford_qc/measurement/bank.py",
+        "sha256": "f3d65999552b469ee3e81d8c26f28d19c6d4e011f315fa2ddc3c5be10f8317cc",
+        "git_blob_sha1": "8edb565fdce3cb7212c3bc3b906be5d59ccb6f53"
+      },
+      {
+        "path": "clifford_qc/measurement/grouping.py",
+        "sha256": "0053af3a451ae201520ee5c6ec4a45bf211d910087d66bd624c9d911d162c356",
+        "git_blob_sha1": "ff5129ec4e7b9edebe62af8a8e53f75bb8a9cbb5"
+      },
+      {
+        "path": "clifford_qc/measurement/confidence.py",
+        "sha256": "6c20694a2b1a5c084e388c8f28b051412e941dd2e669860eeafcd71e3b771d1c",
+        "git_blob_sha1": "7533647d42742b3b7835ec7a68cacc90344c9cdc"
+      },
+      {
+        "path": "clifford_qc/measurement/cost.py",
+        "sha256": "2bafae7fee1bd761cf6ee920eee7b79c124dfbe6b1acc91847b0bd13459df052",
+        "git_blob_sha1": "6c8451b648d07bee4fa65b3123e4b6e8aba2854b"
+      },
+      {
+        "path": "benchmarks/phase19_structure.py",
+        "sha256": "c561cba30ecd7b3d1bb1316486fb78345618d53a8ead897acac03a537a87f6be",
+        "git_blob_sha1": "b049958c28c8b29fa2ae9f174f8d7c4f0a963297"
+      }
+    ]
+  },
+  "bank_manifests": [
+    {
+      "id": "h4",
+      "path": "benchmarks/configs/phase19_banks/h4.json",
+      "sha256": "18792fd47edf24eac7e2f0849261d71521dd323673c375ca125e078baf6b628c",
+      "git_blob_sha1": "5d8f7020117f8f7e2ffada8418d4116f8f0a2724"
+    },
+    {
+      "id": "lih",
+      "path": "benchmarks/configs/phase19_banks/lih.json",
+      "sha256": "ecf9e7b21e7598bd84ca0540cf784ee44f3657d17c735285f95c507c6a8de141",
+      "git_blob_sha1": "4c188dbfcd110810327f055ff30ef6c48a447950"
+    },
+    {
+      "id": "beh2",
+      "path": "benchmarks/configs/phase19_banks/beh2.json",
+      "sha256": "e5e1fd5a539e50f342ccbd70dd9fbffdb1c67c29157e869cc2c5103c3011b795",
+      "git_blob_sha1": "37237a0445272dd59bc98a1218abb2227101a38e"
+    }
+  ],
+  "structural_summary": [
+    {
+      "id": "h4",
+      "nonidentity_terms": 184,
+      "n_qubits": 8,
+      "setting_counts": {
+        "qwc": 68,
+        "clique": 45
+      }
+    },
+    {
+      "id": "lih",
+      "nonidentity_terms": 192,
+      "n_qubits": 8,
+      "setting_counts": {
+        "qwc": 42,
+        "clique": 54
+      }
+    },
+    {
+      "id": "beh2",
+      "nonidentity_terms": 60,
+      "n_qubits": 8,
+      "setting_counts": {
+        "qwc": 9,
+        "clique": 36
+      }
+    }
+  ],
+  "scope": {
+    "estimand": "Mean of the fixed assembled Hamiltonian on the fixed Hartree-Fock reference determinant, including its exact identity coefficient; not a Ritz derivative or a ground-energy estimate.",
+    "state": "Each FCIDUMP reference has occupied interleaved spin orbitals [0,1,2,3], four active electrons, MS2=0 and eight qubits; prepare X on these qubits from |00000000>.",
+    "basis_order": "|q0 q1 ... q7>, q0 the leftmost tensor factor; packed Pauli code spends its least significant lane on q0.",
+    "selection_disclosure": "The three committed molecular fixtures were chosen by PLAN section 3.6 and its exploratory setting-count probe before this declaration. Those counts and prior RHF/FCI energies were known; no Phase 19 energy sample, variance, confidence crossing or device runtime was computed before this declaration.",
+    "integral_tolerance": 1e-12,
+    "post_assembly_coefficient_rule": "Keep every exactly nonzero assembled Pauli coefficient. The existing FCIDUMP builder applies the declared 1e-12 integral and assembled-term tolerance upstream; no further coefficient cutoff or analytic nonidentity shortcut is permitted.",
+    "identity_rule": "Read the code-zero coefficient from the frozen functional; exact offset, zero shots and zero confidence radius.",
+    "word_reuse": "Every word is assigned exactly once. A clique gives only its one weighted observable; it does not return individual Pauli means and cannot populate Phase 14b matrix-element banks."
+  },
+  "compilation": {
+    "arms": [
+      "qwc",
+      "clique"
+    ],
+    "qwc_rule": "qwc_groups receives ascending packed codes; descending QWC-conflict degree with stable code-ascending ties, first compatible group, code-sorted members.",
+    "clique_rule": "commuting-degree-desc/code-asc/first-compatible-v1",
+    "qwc_circuit": "shared_basis, qubits ascending; X: h, Y: sdg then h, Z: no gate; read each assigned word as the product of its support Z outcomes.",
+    "clique_circuit": "Use the frozen signed IR rotors and lower_rotor parity ladder, then the pivot local readout basis. For multiword cliques V B V-dagger=+A1; for a singleton the sign remains in its weight. Measure the pivot support Z parity.",
+    "readout": "Measure all eight output Z bits each shot; use only the frozen assigned parity supports in the scalar contribution.",
+    "resources": "Counts include all emitted measurement rotations and local readout basis changes. One shared per-qubit clock schedules earliest type-homogeneous layers, preserving 1q/2q dependencies; preparation/readout/reset and routing belong to the frozen cards.",
+    "floating_rebuild_tolerance": {
+      "relative": 1e-13,
+      "absolute": 1e-14
+    },
+    "gate_sequence_hash": "SHA256 of canonical JSON gate names and qubit arguments, in execution order; rz angles are frozen explicitly by the rotor ledgers, checked numerically, and omitted only from the topology hash."
+  },
+  "protocol": {
+    "contribution": {
+      "qwc": "Y_g=sum h_w times assigned word Z parities; |Y_g|<=L_g=sum |h_w|.",
+      "clique": "Y_g=weight_g times pivot Z parity; |Y_g|<=L_g=abs(weight_g), the L2 norm except for the signed singleton."
+    },
+    "estimator": "Exact identity offset plus sum of the independent setting sample means; no smoothing, pooling, coefficient refitting or omitted nonidentity contribution.",
+    "allocator": {
+      "name": "coefficient_range_neyman",
+      "outcome_independent": true,
+      "minimum_shots_per_setting": 2,
+      "score": "Frozen max_abs_value L_g for each setting of each arm.",
+      "rule": "Two-shot floor, then largest-remainder allocation of N-2G proportional to L_g. Convert each binary float score to Fraction exactly; ties use the frozen setting index.",
+      "same_rule_for_both_arms": true
+    },
+    "accuracy_hartree": 0.0016,
+    "effective_shot_endpoints": [
+      65536,
+      131072,
+      262144,
+      524288,
+      1048576,
+      2097152,
+      4194304,
+      8388608,
+      16777216,
+      33554432,
+      67108864,
+      134217728,
+      268435456,
+      536870912,
+      1073741824,
+      2147483648,
+      4294967296
+    ],
+    "endpoint_sampling": "Independent fixed schedules, not cumulative; no adaptivity between endpoints. The endpoint grid and every allocation are determined before observing any outcomes.",
+    "confidence": {
+      "bound": "AMS2009_two_sided_empirical_Bernstein",
+      "implementation": "clifford_qc.measurement.confidence.empirical_bernstein_radius",
+      "delta": 0.05,
+      "family": 6,
+      "rounds": 17,
+      "group_delta": "delta/(3 systems * 2 arms * 17 endpoints * G_settings_in_this_arm)",
+      "variance": "Unbiased setting sample variance: sum count*(Y_g-mean_g)^2/(n_g-1), preserving all QWC within-shot covariance.",
+      "group_radius": "sqrt(2*s_g^2*log(3/delta_g)/n_g) + 3*(2*L_g)*log(3/delta_g)/n_g; sum over groups without clipping or normal approximation.",
+      "scope": "Simultaneous fixed-grid bound on ideal reference-state measurement means. The larger unbiased variance is conservative relative to the AMS variance with denominator n_g. No anytime, hardware-noise or finite-shot ball-bound claim.",
+      "total_radius": "Sum of group stochastic radii plus the fixed 1e-10 Hartree numerical bias allowance."
+    },
+    "sampling_law": "Later producer executes the frozen measurement circuit on the fixed exact reference statevector and draws multinomial histograms from its all-eight-qubit Z law; arbitrary clique rotations cannot be simulated by stim. Exact laws are oracle validation only and do not drive allocation.",
+    "seeds": {
+      "headline": 190814000,
+      "covariance_audit": 190914000,
+      "generator": "NumPy PCG64 with SeedSequence(root, spawn_key=(system_index,arm_index,endpoint_or_replica_index,setting_index)); system/arm order is the frozen manifest order; roots are disjoint."
+    },
+    "covariance_audit": {
+      "replicas": 1000,
+      "effective_shots_per_replica": 262144,
+      "cells": "All three systems crossed with both arms, fixed before the campaign.",
+      "prediction": "Sum of exact per-setting contribution variances from the executed circuit Z laws divided by the fixed n_g; diagnostic only, never used for allocation.",
+      "empirical": "Unbiased ddof=1 variance of the 1000 independent energy estimates.",
+      "acceptable_empirical_to_predicted_interval": [
+        0.8,
+        1.2
+      ],
+      "zero_prediction_rule": "If predicted variance is exactly zero, require exactly zero empirical variance and report a null ratio; do not divide by zero."
+    },
+    "device_cards": [
+      {
+        "path": "benchmarks/configs/device_cards/ion-like.json",
+        "sha256": "1ac47a1a80b621bfeb3d5cc36dd9ab859bf94dc782da4c6fee8aebfb3d9c53c2",
+        "git_blob_sha1": "45ab9fd9b59638d2b5d0a94dafe3a5bcb311cb26"
+      },
+      {
+        "path": "benchmarks/configs/device_cards/logical-alltoall.json",
+        "sha256": "5eb4668daa124b4f8f375d37839ab4eeb31f10f8cf27612869e2aebcb9f30fe3",
+        "git_blob_sha1": "21fab44375442ce632d12c2d6f3ba9bdad3815f7"
+      },
+      {
+        "path": "benchmarks/configs/device_cards/superconducting-like.json",
+        "sha256": "99fac3de98a34324f31dd734918bc6448ce48dd315752c12dbcc503b1d82e248",
+        "git_blob_sha1": "befb3fb9f09087174f7d07f59d2e1f4e8e4f7316"
+      }
+    ],
+    "device_costing": "For each finite certified effective endpoint, inflate its setting shot vector with inflate_shots_for_fidelity (ceil(n_g/F_g^2)), then cost_schedule under each frozen card. If any setting is below that card fidelity_floor, mark that arm/card inadmissible and report no C_time(epsilon). No extra card-specific outcomes are sampled.",
+    "cost_boundary": "Illustrative logical measurement-circuit accounting. Each rz is priced as one generic 1q gate; no fault-tolerant T synthesis, layout-aware routing, hardware noise, calibration or mitigation certificate. Ideal reference availability is assumed; t_prep charges preparation per shot, but the four reference X gates and their errors are not separately added to measurement resources.",
+    "numerical_bias_allowance_hartree": 1e-10,
+    "stochastic_radius_target_hartree": 0.0015999999,
+    "probability_policy": "Reject any raw probability outside [-1e-12,1+1e-12] or normalization error above 1e-12. Clip negative roundoff to zero and normalize once. Log clipped mass and normalization change; after correction, exact law mean must differ from the exact rational HF energy by no more than 1e-10 Hartree. No nonzero-probability cutoff."
+  },
+  "acceptance": {
+    "blocking_gates": [
+      "Frozen file hashes, full structural manifests, partitions, signed rotations/readouts and emitted resource vectors agree.",
+      "Later independent dense gate oracle reconstructs the full functional to maximum absolute entry error <=1e-10 Hartree, and each unitary to max-entry error <=2e-12.",
+      "Later exact circuit law means reproduce the exact rational HF reference functional within 1e-10 Hartree after the declared probability correction; raw probabilities and corrections meet the frozen 1e-12 policy.",
+      "Every sampled schedule equals the fixed range allocation and total effective budget; scalar setting variances retain joint QWC outcomes and are nonnegative.",
+      "All six covariance audits meet [0.8,1.2], or their declared zero-prediction rule."
+    ],
+    "endpoint_rule": "First frozen effective-shot endpoint whose summed empirical-Bernstein radius plus the 1e-10 Hartree numerical allowance is <=0.0016 Hartree (stochastic radius <=0.0015999999); otherwise right-censored above 4294967296. Fixed-grid reference-energy certificate, not a continuous optimal-cost search.",
+    "material_shot_reduction_factor": 2,
+    "per_instance_rule": "If both endpoints are finite: MATERIAL_REDUCTION when clique <= qwc/2, otherwise NO_MATERIAL_REDUCTION. If QWC is right-censored: MATERIAL_REDUCTION_CENSORED_BASELINE only when clique is finite and <=2147483648, otherwise INDETERMINATE. If clique alone is censored: NO_MATERIAL_REDUCTION. Both censored: INDETERMINATE.",
+    "device_reporting_rule": "Report each instance and card separately, with raw modelled shots, fidelity admission and C_time at its certified endpoint; no pooled or cross-card winner.",
+    "failure_rule": "Any blocking failure makes the whole campaign INVALID and suppresses all efficiency decisions; keep failed cells and diagnostics visible. No rerun or replacement seed is authorized."
+  },
+  "reporting": {
+    "required": [
+      "Declaration digest, declaration merge and clean execution commits, pinned environment and source hashes.",
+      "All structural partitions, rotor/readout/gate/depth ledgers and exact operator/law reconstruction checks.",
+      "Every endpoint effective-shot vector, energy estimate, empirical-Bernstein radius, exact-reference error and censoring status.",
+      "All six variance-audit predictions, empirical values and ratios, with zero cases explicit.",
+      "Per-instance fixed-grid shot decisions and three separate card reports, including inadmissibility and modelled raw shots.",
+      "Audit shots and classical simulation/compilation time reported separately; neither hidden inside certified-endpoint cost nor used to improve it."
+    ],
+    "evidence_boundary": "Oracle-sampled measurement capability on three fixed Hartree-Fock states and their JW Hamiltonians; no molecular ground-state accuracy, general VQE, matrix-bank reuse, contextual restriction, hardware or end-to-end advantage claim."
+  },
+  "claim_boundary": "No Phase 19 sample, state mean, variance, radius, confidence crossing, modelled runtime or efficiency decision is present in this declaration or its structural manifests. Future claims are restricted to the fixed systems, states, covers, allocator, confidence family, grid, audit and illustrative cards; changing any of them requires a separately disclosed declaration before new outcomes."
+}
