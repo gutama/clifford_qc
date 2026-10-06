@@ -201,15 +201,20 @@
         "benchmarks/check_phase15_residual_successor_declaration.py",
         "benchmarks/run_phase15_residual_successor.py",
         "benchmarks/check_phase15_residual_successor.py",
-        "tests/test_phase15_residual_successor.py"
+        "tests/test_phase15_residual_successor.py",
+        "benchmarks/check_phase15_certifying_screen_declaration.py",
+        "benchmarks/run_phase15_certifying_screen.py",
+        "benchmarks/check_phase15_certifying_screen.py",
+        "tests/test_phase15_certifying_screen.py"
       ],
       "remaining": [
-        "Finite-shot estimation beyond uniform QWC. The separate post-hoc Q18-S1 successor reads NONE and closes the uniform protocol negative on the five banks after every derivative check passes; the original Q18 record remains INVALID. Practical nonuniform allocation needs a separate pilot-estimation declaration and sampled validation; oracle allocation diagnostics license no estimator",
+        "Finite-shot estimation beyond uniform QWC. The separate post-hoc Q18-S1 successor reads NONE and closes the uniform protocol negative on the five banks; the original Q18 record remains INVALID. Q18-S2 reads UNREACHED: no prefix of the two committed Hubbard 2x2 trajectories has a Weinstein interval that certifies the ground state, and every priced ground-dominated prefix has Neyman ratios above 13, so a pilot-driven allocation experiment on Hubbard 2x2 is not authorized as support for convergence reporting. A new allocation study needs a new basis family or system and its own declaration; oracle allocation diagnostics license no estimator",
         "Folded-spectrum roots and finite-shot convergence reporting built on the measured second-moment block",
         "Phase 2M storage gate or a preflight of its own before SecondMomentBank construction on any bank outside the five"
       ],
       "decision_records": [
-        "benchmarks/reference_results/phase15_residual_successor.json"
+        "benchmarks/reference_results/phase15_residual_successor.json",
+        "benchmarks/reference_results/phase15_certifying_screen.json"
       ]
     },
     {

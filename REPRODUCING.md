@@ -116,7 +116,7 @@ No figure or table value in the manuscript is transcribed by hand, and
 ```bash
 python -m venv .venv && source .venv/bin/activate
 pip install -e .[test,research,stim]       # automatic CI extras
-pytest                                      # 2838 passed, 11 skipped
+pytest                                      # 2839 passed, 11 skipped
 ```
 
 This is the automatic CI dependency set; record gates additionally pin NumPy
@@ -132,7 +132,7 @@ the remaining `11 - 6 = 5` skips are per-test and *are* collected:
 
 ```text
 collected == passed + (skipped - files dropped at collection)
-2843      == 2838   + (11      -   6)
+2844      == 2839   + (11      -   6)
 ```
 
 Both sides are computed from the tree, so a drift in either quoted number
@@ -4130,3 +4130,18 @@ status and the verdict, then rebuilds every prefix.
 Hubbard dimer, holds the vectorized pencil to Q18's evaluation and the lineage to
 Q18-S1's own producer, and catches forged fields and a self-consistent variance
 forgery on rebuild.
+
+The one declared execution took 456.7 s under Python 3.12.3, NumPy 2.5.2,
+SciPy 1.18.0 and Stim 1.16.0, from clean pushed commit `63efd69`. Its record
+was committed alone in `45e8ec3`, and the full rebuild takes about eight minutes
+locally. Both `M = 9` prefixes reproduce Q18-S1's Hubbard entry, and every
+priced prefix passes every deterministic check. **No prefix certifies the ground
+state, so the verdict is `UNREACHED`.** The closest is `acase_level4` at
+`M = 25`: energy error `0.0247 t`, but `σ = 0.484 t`, so `E + σ` stands `0.212 t`
+above `E₁`. `M = 26` reaches the exact energy and its variance is unresolved.
+The diagnostics no clause reads: every prefix with both Neyman ratios at or under
+ten has `σ ≥ 1.11 t` and an energy-only ground-weight bound of at most 0.18. The
+three priced ground-dominated prefixes (`acase_level4`, `M = 23, 24, 25`) have
+Neyman ratios 13.3/15.2, 23.7/26.0 and 47.5/51.7. A pilot-driven Hubbard 2×2
+allocation experiment is therefore not authorized as support for convergence
+reporting, and a new basis family needs its own declaration.

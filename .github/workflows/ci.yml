@@ -168,6 +168,11 @@ jobs:
           - gate: check_phase15_residual_successor
             timeout: 25
             environment_record: phase15_residual_successor.json
+          # Rebuilds all 33 prefixes of both Hubbard 2x2 trajectories, with every
+          # Richardson endpoint and grouping: about eight minutes locally.
+          - gate: check_phase15_certifying_screen
+            timeout: 25
+            environment_record: phase15_certifying_screen.json
           - gate: check_r4a_contextual_screen
             timeout: 20
             environment_record: r4a_contextual_screen.json

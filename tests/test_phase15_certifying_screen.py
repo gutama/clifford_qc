@@ -316,3 +316,22 @@ def test_producer_refuses_another_path_and_a_second_run(tmp_path, monkeypatch):
     Args.out = declaration.RECORD
     monkeypatch.setattr(type(declaration.RECORD), "exists", lambda self: True)
     assert producer.refusals(Args()) == ["Q18-S2 runs once; use its checker to rebuild"]
+
+
+def test_committed_screen_is_unreached_and_rederives():
+    config = declaration.load_config()
+    record = json.loads(declaration.RECORD.read_text())
+    predecessor = json.loads(producer.PREDECESSOR.read_text())["banks"][declaration.SYSTEM]
+    assert checker.rederivation_problems(config, record, declaration.CONFIG.read_bytes(),
+                                         predecessor) == []
+    assert record["decision"]["verdict"] == "UNREACHED"
+    assert record["decision"]["domain"] == []
+    assert record["lineage"]["passes"]
+    entries = [entry for block in record["trajectories"].values()
+               for entry in block["prefixes"].values()]
+    assert not any(entry["certifying"] for entry in entries)
+    assert [e["status"] for e in entries].count("UNRESOLVED") == 1
+    for entry in entries:
+        assert all(entry["deterministic_checks"].values())
+        for price in entry["protocols"].values():
+            assert price["allocation_diagnostic"]["estimator_licensed"] is False

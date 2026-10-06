@@ -133,7 +133,7 @@ conditional phases.
 | PRD | orthogonal-residual regression, Davidson/preconditioned expansion, packet pricing, matched A-CASE, exact and finite-shot suites | **done and read**; exact compactness is positive, complete-bank QWC finite-shot energy accuracy is negative |
 | 13 | parity/X-rank invariant | **done**; one shared GF(2) implementation is tested across every declared spin-conserving JW construction path before grouping |
 | 14 | fully commuting grouping | **done on the frozen BeH₂/JW comparison** — the public compiled-plan API, exact joint sampler, preregistered finite-sample record, covariance audit, and device-card costing ship; Q9 is positive within the declared one-bank oracle boundary |
-| 15 | second-moment bank | **partially implemented (50%)**; the H-squared preflight reads `FULL` (Q16), and `SecondMomentBank` ships with exact second moments and true Ritz residual norms validated on all five licensed banks. Opt-in exact convergence reporting ships at adaptive termination, with numerical resolution and separate ground-state evidence. Q17's `CONDITIONAL` permits the shipped three-prefix extrapolation diagnostic, with improvement evidence confined to the frozen H₄ and H₂O bases. Q18's predecessor remains `INVALID`. Its separately declared Q18-S1 successor reports post-hoc `NONE` for uniform QWC on the five banks after all derivative checks pass. Practical nonuniform allocation, finite-shot reporting, folded-spectrum roots and banks outside the five remain |
+| 15 | second-moment bank | **partially implemented (50%)**; the H-squared preflight reads `FULL` (Q16), and `SecondMomentBank` ships with exact second moments and true Ritz residual norms validated on all five licensed banks. Opt-in exact convergence reporting ships at adaptive termination, with numerical resolution and separate ground-state evidence. Q17's `CONDITIONAL` permits the shipped three-prefix extrapolation diagnostic, with improvement evidence confined to the frozen H₄ and H₂O bases. Q18's predecessor remains `INVALID`. Its separately declared Q18-S1 successor reports post-hoc `NONE` for uniform QWC on the five banks after all derivative checks pass. Q18-S2 reads `UNREACHED`: no committed Hubbard 2×2 basis has a Weinstein interval that certifies the ground state, so a pilot allocation experiment there is not authorized for convergence reporting. Practical nonuniform allocation on a certifying basis, finite-shot reporting, folded-spectrum roots and banks outside the five remain |
 | 16 | time-evolved inputs | **partially implemented (50%)**; the 16A QSCI time-evolved input ships in `subspace/time_evolution.py` (exact matrix-free propagation as an `oracle` input, a validated Trotter circuit as an `implementable` one, and pooled multi-time sampling). Its decision comparison, Q15, ran once and reads `NO_GO`: iterated selected CI of the same size matches or beats it on both required instances. No circuit-native/truncated A-CASE real-time family ships. 16B's three preregistered decision experiments have run — v1 `CONDITIONAL`, v2 `GO` under per-word pricing, v3 `CONDITIONAL` once the incumbent is priced with its own grouping — and the programme ends there: the real-time backend is **not authorized** (§5, Phase 16) |
 | 17 | mapping validation and breadth | **partially implemented (75%)**; the JW/BK/parity transformation, invariance gates, and mapping-axis records ship through R2, while the CEO-pool and dedicated MORE-ADAPT breadth benchmarks remain open |
 | 18 | embedding boundary | **done**; the versioned effective-Hamiltonian schema ships in `models/effective.py`, and the common fragment-solver callback returning energy and one- and two-particle density matrices ships in `subspace/fragment.py`, implemented by QSCI, selected CI, the hybrid, and a sector-FCI reference. The embedding loop itself stays outside the package |
@@ -2298,17 +2298,45 @@ no nonlinear-estimator coverage or device-time result. Phase 15 stays partial at
 50% while that allocation question, folded-spectrum roots and other bank scopes
 remain open.
 
-**Q18-S2 is declared and not yet executed.** Before a pilot experiment on Hubbard
-2×2, `benchmarks/PHASE15_CERTIFYING_SCREEN_DECLARATION.md` asks whether any
-committed Hubbard 2×2 basis whose exact Weinstein interval certifies the sector
-ground state (`E + σ < E₁`) could measure `σ` for at most ten times the energy's
-shots under *any* allocation. The frozen bank cannot: it lies above `E₁` and its
-interval holds the six lowest levels. The screen reads every prefix from `M = 9`
-of the two committed ladder trajectories that extend that bank. It keeps Q18-S1's
-estimator, groupings, Richardson validator and tenfold bar, and decides on the
-Neyman ratio, a first-order lower bound for every practical allocator. The system
-is selected post hoc from Q18-S1's oracle diagnostic. The committed energies
-already place the possible certifying prefixes at `M = 23–26` of `acase_level4`.
+**Q18-S2 ran once and reads `UNREACHED`: no committed Hubbard 2×2 basis
+certifies the ground state.** Before a pilot experiment on Hubbard 2×2,
+`benchmarks/PHASE15_CERTIFYING_SCREEN_DECLARATION.md` asked whether any committed
+Hubbard 2×2 basis whose exact Weinstein interval certifies the sector ground
+state (`E + σ < E₁`) could measure `σ` for at most ten times the energy's shots
+under *any* allocation. The frozen bank cannot: it lies above `E₁` and its
+interval holds the six lowest levels. The screen read every prefix from `M = 9`
+of the two committed ladder trajectories that extend that bank, 33 in all. It kept
+Q18-S1's estimator, groupings, Richardson validator and tenfold bar, and decided on
+the Neyman ratio, a first-order lower bound for every practical allocator against
+the energy's optimal cost. The system was selected post hoc from Q18-S1's oracle
+diagnostic; the declaration (`63efd69`) strictly precedes the record (`45e8ec3`).
+
+No prefix certifies, so the decision domain is empty. Every priced prefix passes
+every deterministic check, and both `M = 9` prefixes reproduce Q18-S1's committed
+entry. The variance falls far more slowly than the energy error:
+
+| trajectory, `M` | `E − E₀` (t) | `σ` (t) | `E + σ − E₁` (t) | ground-weight bound | Neyman `N`, `qwc_groups` / `qwc_basis_cover` |
+|---|---|---|---|---|---|
+| frozen bank, 9 | 0.863 | 1.520 | +2.087 | 0 | 9.03 / 8.74 |
+| `acase_exact_m25`, 23 (final) | 0.255 | 0.913 | +0.872 | 0.14 | 12.0 / 15.4 |
+| `acase_level4`, 23 | 0.122 | 0.896 | +0.722 | 0.59 | 13.3 / 15.2 |
+| `acase_level4`, 24 | 0.049 | 0.686 | +0.439 | 0.83 | 23.7 / 26.0 |
+| `acase_level4`, 25 | 0.025 | 0.484 | +0.212 | 0.92 | 47.5 / 51.7 |
+| `acase_level4`, 26 (final) | 4e-15 | unresolved | — | 1 | unpriced |
+
+The diagnostics, which no clause reads, show the tension directly. Every prefix
+with `N ≤ 10` under both protocols has `σ ≥ 1.11 t` and an energy-only
+ground-weight bound of at most 0.18. Every priced ground-dominated prefix has
+`N > 13`, rising as the energy converges. The informal `1/σ²` extrapolation
+disclosed in the declaration overstated that rise about twofold at `M = 25`.
+
+*Consequence, as declared.* The question is unanswered for certifying bases,
+because none exists on these trajectories. A pilot-driven allocation experiment
+on Hubbard 2×2 is not authorized as support for convergence reporting: on any
+committed basis it could only price a residual whose interval certifies nothing.
+A new basis family needs its own declaration. *Not claimed:* anything about other
+groupings, pooled estimators, shared campaigns, finite-sample behaviour or other
+systems. Phase 15 stays partial at 50%.
 
 
 ### Phase 16 — time-evolved inputs, split by method
@@ -4265,6 +4293,12 @@ A-CASE's.
   the fixed Richardson checks and remain PROHIBITIVE. This closes only the
   uniform-QWC implementation on these banks; the original record stays INVALID.
   The oracle integer-allocation diagnostic licenses no practical estimator.
+  **Separate screen Q18-S2:** `UNREACHED`
+  (`benchmarks/reference_results/phase15_certifying_screen.json`). No prefix of
+  the two committed Hubbard 2×2 trajectories has a Weinstein interval that
+  certifies the ground state. Every priced ground-dominated prefix has Neyman
+  ratios above 13, and every prefix with both ratios at or under ten has
+  `σ ≥ 1.11 t`.
 
 **Resource accounting (QR1–QR6).**
 
@@ -4953,6 +4987,18 @@ bought a duplicate record.
     Integer oracle allocation charges an unperformed pilot and shot floors as a
     diagnostic, with no estimator licence. A practical pilot experiment needs its
     own declaration and sampled validation; it is not executed here.
+19j. Phase 15's Q18-S2 certifying-basis screen — **executed once, `UNREACHED`.**
+    Q18-S1's oracle diagnostic left Hubbard 2×2 as the one bank under the
+    tenfold bar, but its frozen basis certifies nothing about the ground
+    state. Before any pilot experiment, a declaration
+    (`PHASE15_CERTIFYING_SCREEN_DECLARATION.md`, `63efd69`) asked whether
+    any prefix of the two committed Hubbard 2×2 trajectories certifies the
+    ground state (`E + σ < E₁`) and could then pass under any allocation. The
+    record (`45e8ec3`) finds no certifying prefix. Even at `M = 25`, with an
+    energy error of `0.025 t`, `σ = 0.48 t` exceeds `E₁ − E = 0.27 t`. A
+    pilot-driven Hubbard allocation experiment is therefore not authorized as
+    support for convergence reporting; a new basis family needs its own
+    declaration.
 20. CEO and MORE-ADAPT benchmarks after the critical comparison is stable.
 21. The excited-state track, after the certificate question of §7.4 has an answer. Note
     that §3.5B's transformation-character parameter is what keeps this track reachable
