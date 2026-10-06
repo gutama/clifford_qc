@@ -512,15 +512,60 @@ def rederivation_problems(config, record, config_bytes, predecessor) -> list[str
     return problems
 
 
+# Below this fraction of the functional's norm an energy weight is rounding.
+ROUNDING_WEIGHT = 1e-12
+
+
+def robust_energy_words(model, generators, sizes) -> dict:
+    """Per prefix, how many energy-functional words carry more than rounding.
+
+    ``energy_functional_words`` counts the words ``ritz_functional`` reaches with
+    a nonzero contribution. Hundreds of them on the larger prefixes carry
+    weights of 1e-20 to 1e-12 of the norm, products of Ritz coefficients that
+    vanish by symmetry, and whether such a product is exactly zero is the BLAS
+    kernel's. The count above rounding is the same on every platform.
+    """
+    from clifford_qc.backends import ExactMVBackend
+    from clifford_qc.measurement.functionals import ritz_functional
+    from clifford_qc.subspace.elements import MatrixElementBank
+
+    bank = MatrixElementBank(ExactMVBackend().state(model.reference, ()), model.hamiltonian,
+                             generators)
+    out = {}
+    for size in sizes:
+        result = bank.solve(list(range(size)))
+        weights = list(ritz_functional(bank, result.indices, result.ritz_vector(),
+                                       result.ground_energy).coefficients.values())
+        norm = math.sqrt(math.fsum(w * w for w in weights))
+        out[str(size)] = sum(1 for w in weights if abs(w) > ROUNDING_WEIGHT * norm)
+    return out
+
+
 def recompute_problems(config, record, *, model=None, inputs=None, predecessor=None) -> list[str]:
     """Rebuild every prefix from committed inputs and compare."""
     from clifford_qc.subspace.second_moment import RESOLUTION
 
+    record = copy.deepcopy(record)  # the comparison below pops fields it has settled
+    model = declaration.system_model() if model is None else model
+    inputs = declaration.trajectory_inputs(config, model) if inputs is None else inputs
     # Round-trip through JSON so the rebuild carries the record's own types.
     mine = json.loads(json.dumps(producer.run_screen(
         config, config_bytes=b"", model=model, inputs=inputs, predecessor=predecessor),
         allow_nan=False))
     problems = []
+    for method, block in mine["trajectories"].items():
+        priced = [size for size, entry in block["prefixes"].items() if "estimator" in entry]
+        robust = robust_energy_words(model, inputs[method][0], [int(m) for m in priced])
+        for size in priced:
+            stored = record["trajectories"][method]["prefixes"][size]
+            count = stored.get("estimator", {}).pop("energy_functional_words", None)
+            block["prefixes"][size]["estimator"].pop("energy_functional_words")
+            # A platform-dependent count: pinned between the words above
+            # rounding, here, and the measured (S, H) universe it lives in.
+            if (not isinstance(count, int) or isinstance(count, bool)
+                    or not robust[size] <= count <= stored["universes"]["measured_sh_words"]):
+                problems.append(f"{method}/{size}.estimator.energy_functional_words lies "
+                                "outside its platform-robust band")
     for key in ("spectral_reference", "premises", "lineage"):
         problems += [f"{key}{path} does not rebuild"
                      for path in _typed_disagreements(mine[key], record[key])]

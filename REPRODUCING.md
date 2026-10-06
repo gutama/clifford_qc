@@ -116,7 +116,7 @@ No figure or table value in the manuscript is transcribed by hand, and
 ```bash
 python -m venv .venv && source .venv/bin/activate
 pip install -e .[test,research,stim]       # automatic CI extras
-pytest                                      # 2883 passed, 11 skipped
+pytest                                      # 2884 passed, 11 skipped
 ```
 
 This is the automatic CI dependency set; record gates additionally pin NumPy
@@ -132,7 +132,7 @@ the remaining `11 - 6 = 5` skips are per-test and *are* collected:
 
 ```text
 collected == passed + (skipped - files dropped at collection)
-2888      == 2883   + (11      -   6)
+2889      == 2884   + (11      -   6)
 ```
 
 Both sides are computed from the tree, so a drift in either quoted number
@@ -4164,7 +4164,12 @@ resolution floor, fail the record. The frozen rule would have left these unprice
 or UNRESOLVED. A priced prefix below `E₀` still goes INVALID through its declared
 check. The rebuild compares the unresolved prefix's variance-derived fields to the
 resolution floor, not to the last bit, so it does not depend on the BLAS kernel's
-rounding sign. It does not compare the integer-allocation totals: the
+rounding sign. `energy_functional_words` gets the same treatment. It counts the
+words `ritz_functional` reaches with a nonzero contribution. Hundreds of them on
+the larger prefixes carry rounding-level weights, and whether those are exactly
+zero is platform-dependent. The rebuild therefore requires the recorded count to
+lie between the rebuilt count of words above `1e-12` of the functional's norm and
+the measured `(S, H)` universe. The functional itself is pinned by its norm. It does not compare the integer-allocation totals: the
 rederivation restates them from the recorded setting variances, which the rebuild
 pins to `1e-9` relative, so each total is defined only to within its setting
 count. The gate and checker require the record's provenance to name a full commit

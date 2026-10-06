@@ -580,3 +580,26 @@ def test_nested_provenance_carries_no_payload(toy, toy_record, path, value):
 def test_the_committed_provenance_meets_the_nested_schema():
     record = json.loads(declaration.RECORD.read_text())
     assert checker.provenance_problems(record["provenance"]) == []
+
+
+def test_energy_word_count_is_checked_in_its_platform_robust_band(toy, toy_record):
+    """The count ritz_functional reaches moves with the BLAS kernel's rounding.
+
+    The rebuild accepts any count between the words whose weight is above
+    rounding and the measured (S, H) universe, and nothing outside it.
+    """
+    def rebuild(record):
+        return checker.recompute_problems(toy["config"], record, model=toy["model"],
+                                          inputs=toy["inputs"], predecessor=toy["predecessor"])
+
+    entry = toy_record["trajectories"]["toy"]["prefixes"]["3"]
+    robust = checker.robust_energy_words(toy["model"], toy["generators"], [3])["3"]
+    for count, ok in ((robust, True), (entry["universes"]["measured_sh_words"], True),
+                      (robust - 1, False), (entry["universes"]["measured_sh_words"] + 1, False),
+                      (float(robust), False)):
+        forged = copy.deepcopy(toy_record)
+        forged["trajectories"]["toy"]["prefixes"]["3"]["estimator"][
+            "energy_functional_words"] = count
+        problems = rebuild(forged)
+        assert (problems == []) is ok, (count, problems)
+    assert rebuild(toy_record) == []
