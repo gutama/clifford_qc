@@ -116,7 +116,7 @@ No figure or table value in the manuscript is transcribed by hand, and
 ```bash
 python -m venv .venv && source .venv/bin/activate
 pip install -e .[test,research,stim]       # automatic CI extras
-pytest                                      # 2797 passed, 11 skipped
+pytest                                      # 2884 passed, 11 skipped
 ```
 
 This is the automatic CI dependency set; record gates additionally pin NumPy
@@ -132,7 +132,7 @@ the remaining `11 - 6 = 5` skips are per-test and *are* collected:
 
 ```text
 collected == passed + (skipped - files dropped at collection)
-2802      == 2797   + (11      -   6)
+2889      == 2884   + (11      -   6)
 ```
 
 Both sides are computed from the tree, so a drift in either quoted number
@@ -4095,3 +4095,86 @@ exact-variance diagnostics, not a sampled pilot protocol or estimator licence.
 A practical allocation study needs a separate declaration specifying how pilots
 estimate both functional weights and setting variances, seeds, budgets and
 coverage validation. Phase 15 remains partial at 50%.
+
+
+## Q18-S2: oracle allocation screen on certifying Hubbard 2×2 bases
+
+Q18-S1's oracle allocation left Hubbard 2×2 as the one bank under the tenfold
+bar. Its frozen Ritz root, though, is `0.86 t` above the sector ground state with
+`σ = 1.52 t`, so its Weinstein interval certifies nothing. Before any pilot
+experiment, Q18-S2 asks whether a committed Hubbard 2×2 basis that *does*
+certify the ground state could pass under any allocation. It reads every prefix
+`M ≥ 9` of the two committed ladder trajectories that extend the frozen bank
+(`acase_exact_m25`, `acase_level4`). The decision reads the Neyman ratio, both
+sides at their exact-variance optimum, on prefixes with `E + σ < E₁`. The
+estimator, groupings, Richardson validator, integer diagnostic and threshold are
+Q18-S1's. The system is selected post hoc; the declaration precedes its run.
+
+```bash
+python benchmarks/check_phase15_certifying_screen_declaration.py
+# After committing the declaration and code, from a clean pinned environment:
+OMP_NUM_THREADS=1 OPENBLAS_NUM_THREADS=1 MKL_NUM_THREADS=1 \
+  python benchmarks/run_phase15_certifying_screen.py
+# After the record exists:
+python benchmarks/check_phase15_certifying_screen.py
+python benchmarks/check_phase15_certifying_screen.py --no-recompute
+```
+
+The gate recomputes the exact sector spectrum and premises and both trajectories'
+`(S, H)` energies, and forms no second-moment row. The producer writes only its
+declared path, refuses an existing record, and requires its `M = 9` prefixes to
+reproduce Q18-S1's committed Hubbard entry. The checker restates the certifying
+predicate, the Richardson rule, every ratio and allocation total, each prefix
+status and the verdict, then rebuilds every prefix.
+`tests/test_phase15_certifying_screen.py` runs the whole path on the undeclared
+Hubbard dimer, holds the vectorized pencil to Q18's evaluation and the lineage to
+Q18-S1's own producer, and catches forged fields and a self-consistent variance
+forgery on rebuild.
+
+The one declared execution took 456.7 s under Python 3.12.3, NumPy 2.5.2,
+SciPy 1.18.0 and Stim 1.16.0, from clean pushed commit `63efd69`. Its record
+was committed alone in `45e8ec3`, and the full rebuild takes about eight minutes
+locally. Both `M = 9` prefixes reproduce Q18-S1's Hubbard entry, and every
+priced prefix passes every deterministic check. **No prefix with a resolved
+variance certifies the ground state, so the verdict is `UNREACHED`.** The closest
+is `acase_level4` at `M = 25`: energy error `0.0247 t`, but `σ = 0.484 t`, so
+`E + σ` stands `0.212 t` above `E₁`. `M = 26` reaches the exact energy, and its
+interval does certify, but its variance is rounding. The declaration therefore
+leaves it unpriced and outside the domain. The diagnostics no clause reads:
+every prefix with both Neyman ratios at or under ten has `σ ≥ 1.11 t` and an
+energy-only ground-weight bound of at most 0.18. The three priced
+ground-dominated prefixes (`acase_level4`, `M = 23, 24, 25`) have Neyman ratios
+13.3/15.2, 23.6/26.0 and 47.5/51.7. As declared, no pilot allocation experiment
+is authorized on these prefixes. The screen covers only these two trajectories.
+After the record, a check found that the ladder's fixed Krylov basis
+(`{H^k|ψ⟩, k ≤ 8}`) certifies: `σ = 0.086 t` and `E + σ − E₁ = −0.21 t`.
+`test_post_record_krylov_basis_certifies_outside_the_screen` reproduces it.
+Pricing `σ` on such a basis needs a new declaration.
+
+The checker closes every key set in the record, provenance included down to its
+dependency and platform blocks, and the numerical-library dump may hold only
+scalar leaves with no outcome-shaped key. It requires timings to be non-negative
+numbers and refuses duplicated JSON keys and non-finite constants. Every
+comparison, rederived or rebuilt, keeps types exact: a shot count stays an
+integer and a flag a boolean, and only floats get tolerances. It restates the
+frozen-prefix lineage from the config's tolerances without calling the producer.
+Two sanity rules are the checker's and are stricter than the declaration: an
+unresolved prefix with an energy below `E₀`, and any variance below minus its
+resolution floor, fail the record. The frozen rule would have left these unpriced
+or UNRESOLVED. A priced prefix below `E₀` still goes INVALID through its declared
+check. The rebuild compares the unresolved prefix's variance-derived fields to the
+resolution floor, not to the last bit, so it does not depend on the BLAS kernel's
+rounding sign. `energy_functional_words` gets the same treatment. It counts the
+words `ritz_functional` reaches with a nonzero contribution. Hundreds of them on
+the larger prefixes carry rounding-level weights, and whether those are exactly
+zero is platform-dependent. The rebuild therefore requires the recorded count to
+lie between the rebuilt count of words above `1e-12` of the functional's norm and
+the measured `(S, H)` universe. The functional itself is pinned by its norm. It does not compare the integer-allocation totals: the
+rederivation restates them from the recorded setting variances, which the rebuild
+pins to `1e-9` relative, so each total is defined only to within its setting
+count. The gate and checker require the record's provenance to name a full commit
+SHA. That commit must contain the declaration and strictly precede the record's
+first commit. A squash or rebase merge loses this history, so merge with a merge
+commit. The structural CI job checks out full history (`fetch-depth: 0`), so these
+ancestry checks run in CI instead of skipping at a shallow boundary, and a merge
+that erased the order fails there.
