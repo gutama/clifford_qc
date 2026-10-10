@@ -294,11 +294,14 @@ def test_fatal_cli_failure_retains_consumed_claim(tmp_path, monkeypatch):
         producer.claim_execution(claim, p)
 
 
-def test_default_commands_never_evaluate_molecular_outcomes(monkeypatch):
+def test_default_commands_never_evaluate_molecular_outcomes(tmp_path, monkeypatch):
     def forbidden(*args, **kwargs):
         raise AssertionError("molecular state laws must not run during default preflight")
     monkeypatch.setattr(checker, "dense_oracle", forbidden)
     monkeypatch.setattr(producer, "run_bank", forbidden)
+    # Pin the record-absent state: once the campaign record lands, the default
+    # checker command replays it by design.
+    monkeypatch.setattr(checker, "RECORD", tmp_path / "absent.json")
     assert producer.main([]) == 0
     assert checker.main() == 0
 
@@ -311,9 +314,12 @@ def test_checker_has_no_producer_import_or_calculation_call():
 
 def test_dirty_execution_refused_before_sampling():
     # This is a feature worktree under development; pin the guard via a fake git
-    # runner rather than depending on the user's actual working-tree state.
+    # runner rather than depending on the user's actual working-tree state or on
+    # clone depth (CI checks out shallow, which preflight refuses first).
     original = subprocess.run
     def git_run(command, **kwargs):
+        if command[:3] == ["git", "rev-parse", "--is-shallow-repository"]:
+            return subprocess.CompletedProcess(command, 0, "false\n", "")
         if command[:3] == ["git", "status", "--porcelain"]:
             return subprocess.CompletedProcess(command, 0, " M implementation.py\n", "")
         return original(command, **kwargs)
