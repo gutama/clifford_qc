@@ -6,6 +6,8 @@ from fractions import Fraction
 import inspect
 import json
 import math
+import os
+import re
 import subprocess
 
 import numpy as np
@@ -158,6 +160,8 @@ def test_qwc_joint_histogram_retains_covariance():
     mean, variance = producer.sample_statistics(histogram, values, 100)
     assert mean == 0 and variance == pytest.approx(400 / 99)
     assert checker.histogram_statistics(histogram, values, 100) == (mean, variance)
+    assert producer.sample_mean(histogram, values, 100) == mean
+    assert checker.histogram_mean(histogram, values, 100) == mean
 
 
 def test_centering_and_exact_zero_variance():
@@ -165,6 +169,8 @@ def test_centering_and_exact_zero_variance():
     actual = producer.sample_statistics(histogram, values, 201)
     expected = checker.histogram_statistics(histogram, values, 201)
     np.testing.assert_allclose(actual, expected, rtol=1e-14)
+    assert producer.sample_mean(histogram, values, 201) == actual[0]
+    assert checker.histogram_mean(histogram, values, 201) == expected[0]
     assert producer.sample_statistics([[0, 500]], values, 500) == (1e10, 0.0)
 
 
@@ -178,14 +184,15 @@ def test_rational_reference_and_qubit_order():
     np.testing.assert_allclose(state, checker.dense_unitary(2, ops)[:, 1], atol=1e-15)
 
 
-def test_probability_policy_preserves_tiny_nonzero_mass():
-    law, correction = checker.corrected_probabilities([1 - 1e-14, 1e-14, -1e-16], "frozen")
+@pytest.mark.parametrize("correct", [checker.corrected_probabilities, producer.correct_law])
+def test_probability_policy_preserves_tiny_nonzero_mass(correct):
+    law, correction = correct([1 - 1e-14, 1e-14, -1e-16])
     assert law[1] > 0 and law[2] == 0
     assert correction["clipped_mass"] == 1e-16
     with pytest.raises(ValueError):
-        checker.corrected_probabilities([0.5, 0.6], "frozen")
+        correct([0.5, 0.6])
     with pytest.raises(ValueError):
-        checker.corrected_probabilities([1.0 + 2e-12, -2e-12], "frozen")
+        correct([1.0 + 2e-12, -2e-12])
 
 
 def test_multinomial_large_budget_without_per_shot_arrays():
@@ -249,6 +256,41 @@ def test_operator_failure_retains_invalid_cell_without_sampling(monkeypatch):
     assert checker.check_record(record, config, [bank], cards, check_provenance=False) == []
 
 
+@pytest.mark.parametrize("field", ["angle", "weight"])
+def test_nonfinite_operator_blocks_as_strict_json(monkeypatch, field):
+    bank, config, cards = toy_bank(), toy_config(), toy_cards()
+    setting = next(item for item in bank["arms"][1]["settings"] if item["rotations"])
+    if field == "angle":
+        setting["rotations"][0]["angle"] = float("nan")
+    else:
+        setting["readout"]["weight"] = float("nan")
+    monkeypatch.setattr(producer, "sample_histogram", lambda *args: pytest.fail("NaN operator sampled"))
+    cell, built, sampled = producer.run_bank(bank, config, cards, 0)
+    clique = cell["oracle"]["arms"][1]
+    assert clique["max_operator_entry_error"] is None
+    assert (clique["max_unitarity_entry_error"] is None) == (field == "angle")
+    assert any("clique: operator reconstruction" in item for item in cell["blocking_failures"])
+    assert cell["arms"] == [] and sampled == 0
+    # The toy bank itself carries the NaN; the diagnostics derived from it do not.
+    json.dumps(cell["oracle"], allow_nan=False)
+    record = producer.assemble_record(config, [cell], built, sampled, {})
+    # NaN never equals itself, so the strict structural comparison names the
+    # injected leaf; the oracle, blocking failures and verdict replay exactly.
+    problems = checker.check_record(record, config, [bank], cards, check_provenance=False)
+    assert len(problems) == 1 and problems[0].endswith(f".{field}: value differs")
+
+
+def test_schedule_guards_match_the_frozen_allocator():
+    for scores, budget in (([0.5, 0.0], 64), ([0.5, float("inf")], 64),
+                           ([0.5, 0.25], 3), ([], 64), ([0.5, 0.25], 64.0)):
+        with pytest.raises((TypeError, ValueError)):
+            structure.coefficient_range_schedule(scores, budget)
+        with pytest.raises(ValueError):
+            checker.independent_schedule(scores, budget)
+    assert (checker.independent_schedule([0.5, 0.25, 1], 64) ==
+            list(structure.coefficient_range_schedule([0.5, 0.25, 1], 64)))
+
+
 @pytest.mark.parametrize("qwc,clique,expected", [
     (8192, 128, "MATERIAL_REDUCTION"), (128, 128, "NO_MATERIAL_REDUCTION"),
     (None, 128, "MATERIAL_REDUCTION_CENSORED_BASELINE"),
@@ -266,6 +308,55 @@ def test_execution_claim_cannot_be_replaced(tmp_path):
     with pytest.raises(FileExistsError):
         producer.claim_execution(path, {"git_commit": "replacement"})
     assert path.read_bytes() == original
+
+
+def test_record_write_is_all_or_nothing(tmp_path):
+    path = tmp_path / "record.json"
+    with pytest.raises(ValueError):
+        producer.write_record(path, {"diagnostic": float("nan")})
+    assert list(tmp_path.iterdir()) == []
+    producer.write_record(path, {"verdict": "VALID"})
+    assert json.loads(path.read_text()) == {"verdict": "VALID"}
+    with pytest.raises(FileExistsError):
+        producer.write_record(path, {"verdict": "replacement"})
+    assert json.loads(path.read_text()) == {"verdict": "VALID"}
+    assert list(tmp_path.iterdir()) == [path]
+
+
+def test_failure_handler_survives_unserializable_banks(tmp_path):
+    claim = tmp_path / "claim.json"
+    producer.claim_execution(claim, {"git_commit": "pinned-source"})
+    producer.record_failure(claim, ValueError("injected"), [{"diagnostic": float("nan")}])
+    content = json.loads(claim.read_text())
+    assert content["status"] == "failed" and content["error"] == "injected"
+    assert content["provenance"] == {"git_commit": "pinned-source"}
+    assert content["completed_banks"] is None and content["completed_banks_error"]
+
+
+def test_operator_gate_refuses_before_consuming_the_claim(tmp_path, monkeypatch):
+    def git(root, *args):
+        if args[:2] == ("rev-parse", "--is-shallow-repository"):
+            return "false"
+        if args[:2] == ("rev-parse", "HEAD"):
+            return "f" * 40
+        if args[:2] == ("rev-parse", "--git-common-dir"):
+            return str(tmp_path)
+        if args[0] == "rev-parse":
+            return structure.file_binding(args[1].split(":", 1)[1], root)["git_blob_sha1"]
+        return ""  # clean status, ancestry holds, no record in history
+    def oracle(bank, *, laws=True):
+        assert not laws, "reference-state laws must not run before the claim"
+        return {"arms": [{"name": "toy", "max_operator_entry_error": None,
+                          "max_unitarity_entry_error": 0.0}]}, None
+    monkeypatch.setattr(checker, "git", git)
+    monkeypatch.setattr(checker, "environment_problems", lambda *args: [])
+    monkeypatch.setattr(checker, "dense_oracle", oracle)
+    monkeypatch.setattr(producer, "execution_provenance", dict)
+    monkeypatch.setattr(producer, "claim_execution", lambda *args: pytest.fail("claim consumed"))
+    with pytest.raises(ValueError, match="toy: operator reconstruction exceeds"):
+        producer.execution_preflight()
+    assert producer.main(["--execute"]) == 1
+    assert list(tmp_path.iterdir()) == []
 
 
 def test_cli_race_preserves_another_execution_claim(tmp_path, monkeypatch):
@@ -312,6 +403,22 @@ def test_checker_has_no_producer_import_or_calculation_call():
     assert "import run_phase19" not in source
 
 
+def test_producer_rederives_policy_and_gates():
+    borrowed = set(re.findall(r"\bindependent\.(\w+)", inspect.getsource(producer)))
+    assert borrowed <= {
+        "SCHEMA", "EXPECTED_CONFIG_SHA256", "MERGE", "SOURCES", "RECORD", "git",
+        "environment_problems", "dense_oracle", "measurement_ops", "reference_index",
+        "diagonal_contribution", "json_probabilities", "blocked_arm"}
+
+
+def test_replay_refuses_another_sampling_stream_before_drawing(tmp_path, monkeypatch):
+    record = tmp_path / "record.json"
+    record.write_text(json.dumps({"provenance": {"dependencies": {"numpy": "0.0.0"}}}))
+    monkeypatch.setattr(checker, "RECORD", record)
+    monkeypatch.setattr(checker, "check_record", lambda *args: pytest.fail("replay drew samples"))
+    assert checker.main() == 1
+
+
 def test_dirty_execution_refused_before_sampling():
     # This is a feature worktree under development; pin the guard via a fake git
     # runner rather than depending on the user's actual working-tree state or on
@@ -338,6 +445,9 @@ def test_environment_requires_frozen_sampling_version():
 
 
 def test_execution_source_and_record_commit_order(tmp_path, monkeypatch):
+    # Host signing, hooks or templates must not leak into the toy history.
+    monkeypatch.setenv("GIT_CONFIG_GLOBAL", os.devnull)
+    monkeypatch.setenv("GIT_CONFIG_NOSYSTEM", "1")
     def git(*args):
         return subprocess.run(["git", *args], cwd=tmp_path, check=True,
                               text=True, capture_output=True).stdout.strip()

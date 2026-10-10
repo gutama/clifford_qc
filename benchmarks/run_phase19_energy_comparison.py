@@ -4,6 +4,13 @@ Default invocation is outcome-free preflight. After landing and validating this
 implementation, --execute consumes the one local execution claim, samples every
 frozen endpoint/audit once, and writes a new record without overwriting one.
 Tests call run_bank only with undeclared toy fixtures.
+
+The producer borrows from the checker only identities, record encoding, git
+access, the environment comparison (which CI's record-environment step also
+verifies), the dense oracle it cross-checks its statevector laws against, and
+the frozen decode/readout ledgers that full operator reconstruction pins.
+Probability correction and every blocking gate are re-derived here, so the
+checker's own copies verify them rather than repeat them.
 """
 
 from __future__ import annotations
@@ -12,8 +19,8 @@ import argparse
 import hashlib
 import json
 import math
+import os
 from pathlib import Path
-import subprocess
 import sys
 import time
 
@@ -73,8 +80,7 @@ def moments(weights, values):
     return mean, variance
 
 
-def sample_statistics(histogram, values, shots):
-    """Centered sample moments retain within-shot QWC covariance."""
+def _centered(histogram, values, shots):
     indices = [outcome for outcome, _ in histogram]
     counts = [count for _, count in histogram]
     if sum(counts) != shots or shots < 2:
@@ -82,16 +88,64 @@ def sample_statistics(histogram, values, shots):
     anchor = float(values[indices[0]])
     differences = [float(values[index]) - anchor for index in indices]
     shift = math.fsum(count * delta for count, delta in zip(counts, differences)) / shots
-    mean = anchor + shift
+    return anchor, counts, differences, shift
+
+
+def sample_mean(histogram, values, shots):
+    """The audit replicas' estimator; identical to sample_statistics(...)[0]."""
+    anchor, _, _, shift = _centered(histogram, values, shots)
+    return anchor + shift
+
+
+def sample_statistics(histogram, values, shots):
+    """Centered sample moments retain within-shot QWC covariance."""
+    anchor, counts, differences, shift = _centered(histogram, values, shots)
     variance = math.fsum(count * (delta - shift) ** 2
                          for count, delta in zip(counts, differences)) / (shots - 1)
-    return mean, variance
+    return anchor + shift, variance
 
 
 def sample_histogram(probabilities, root, indices, shots):
     sequence = np.random.SeedSequence(root, spawn_key=indices)
     counts = np.random.Generator(np.random.PCG64(sequence)).multinomial(shots, probabilities)
     return [[index, int(count)] for index, count in enumerate(counts) if count]
+
+
+PROBABILITY_TOLERANCE = 1e-12  # frozen protocol.probability_policy
+LAW_TOLERANCE = 1e-12
+ORACLE_GATES = (("max_operator_entry_error", 1e-10, "operator reconstruction exceeds 1e-10"),
+                ("max_unitarity_entry_error", 2e-12, "unitarity exceeds 2e-12"))
+
+
+def oracle_gate(oracle):
+    """Frozen acceptance thresholds; a null (nonfinite) diagnostic fails."""
+    return [f"{row['name']}: {message}" for row in oracle["arms"]
+            for key, tolerance, message in ORACLE_GATES
+            if row[key] is None or not row[key] <= tolerance]
+
+
+def law_disagrees(raw, oracle_raw):
+    if raw.shape != oracle_raw.shape:
+        raise ValueError("raw law shape drift")
+    return not (np.all(np.isfinite(raw)) and
+                float(np.max(np.abs(raw - oracle_raw))) <= LAW_TOLERANCE)
+
+
+def correct_law(raw):
+    """Reject out-of-policy laws, clip negative roundoff, normalize once."""
+    raw = np.asarray(raw, dtype=float)
+    if raw.ndim != 1 or raw.size == 0 or not np.all(np.isfinite(raw)):
+        raise ValueError("probabilities must be a finite nonempty vector")
+    total = math.fsum(raw.tolist())
+    if not (raw.min() >= -PROBABILITY_TOLERANCE and raw.max() <= 1 + PROBABILITY_TOLERANCE
+            and abs(total - 1) <= PROBABILITY_TOLERANCE):
+        raise ValueError("raw circuit law fails the frozen probability policy")
+    negative = raw < 0
+    clipped = np.where(negative, 0.0, raw)
+    clipped_total = math.fsum(clipped.tolist())
+    return clipped / clipped_total, {"raw_normalization_error": abs(total - 1),
+                                     "clipped_mass": math.fsum((-raw[negative]).tolist()),
+                                     "normalization_change": abs(clipped_total - 1)}
 
 
 def device_reports(arm, endpoint, cards, n, epsilon):
@@ -131,8 +185,8 @@ def run_bank(bank, config, cards, system_index):
     """Sample one bank. The CLI supplies frozen banks; unit tests supply toys."""
     started = time.perf_counter()
     protocol = config["protocol"]
-    oracle, dense_laws = independent.dense_oracle(bank, protocol["probability_policy"])
-    blocking = independent.oracle_failures(oracle)
+    oracle, dense_laws = independent.dense_oracle(bank)
+    blocking = oracle_gate(oracle)
     record = {"structural_bank": bank, "oracle": oracle, "arms": [],
               "blocking_failures": blocking}
     if blocking:
@@ -147,10 +201,10 @@ def run_bank(bank, config, cards, system_index):
             state = statevector_circuit(bank["n_qubits"], ops, independent.reference_index(bank))
             raw = np.abs(state) ** 2
             diagonal = independent.diagonal_contribution(bank, arm, setting)
-            blocking += independent.law_failures(raw, dense_laws[ai][si], arm["name"], si)
+            if law_disagrees(raw, dense_laws[ai][si]):
+                blocking.append(f"{arm['name']}/{si}: circuit law disagrees with dense oracle")
             try:
-                probabilities, correction = independent.corrected_probabilities(raw,
-                    protocol["probability_policy"])
+                probabilities, correction = correct_law(raw)
                 mean, variance = moments(probabilities, diagonal)
                 law = {"raw_probabilities": independent.json_probabilities(raw),
                        "probabilities": probabilities.tolist(), "correction": correction,
@@ -164,7 +218,7 @@ def run_bank(bank, config, cards, system_index):
             diagonals.append(diagonal)
         error = (None if any(law["mean"] is None for law in laws) else
                  abs(math.fsum([offset, *(law["mean"] for law in laws)]) - reference))
-        if error is not None and error > protocol["numerical_bias_allowance_hartree"]:
+        if error is not None and not error <= protocol["numerical_bias_allowance_hartree"]:
             blocking.append(f"{arm['name']}: reference law mean exceeds numerical allowance")
         prepared.append((laws, diagonals, error))
     compilation_seconds = time.perf_counter() - started
@@ -206,7 +260,7 @@ def run_bank(bank, config, cards, system_index):
             histograms = [sample_histogram(law["probabilities"], protocol["seeds"]["covariance_audit"],
                 (system_index, ai, ri, si), count) for si, (law, count) in enumerate(zip(laws, audit_shots))]
             audit_digest.update(json.dumps(histograms, separators=(",", ":")).encode())
-            estimates.append(math.fsum([offset, *(sample_statistics(hist, diagonal, count)[0]
+            estimates.append(math.fsum([offset, *(sample_mean(hist, diagonal, count)
                 for hist, diagonal, count in zip(histograms, diagonals, audit_shots))]))
         centered = np.asarray(estimates) - estimates[0]
         average = math.fsum(float(value) for value in centered) / len(estimates)
@@ -252,8 +306,7 @@ def execution_preflight(root=ROOT):
     if problems:
         raise ValueError("; ".join(problems))
     def git(*args):
-        return subprocess.run(["git", *args], cwd=root, text=True, capture_output=True,
-                              check=True).stdout.strip()
+        return independent.git(root, *args)
     if git("rev-parse", "--is-shallow-repository") != "false":
         raise ValueError("execution requires full git history")
     if git("status", "--porcelain", "--untracked-files=all"):
@@ -266,9 +319,12 @@ def execution_preflight(root=ROOT):
                                                    structure.RECORD_PATH):
         raise ValueError("the Phase 19 campaign record already exists in this history")
     sources = [structure.file_binding(path, root) for path in independent.SOURCES]
+    # A clean status does not imply committed bytes under clean/smudge filters
+    # such as core.autocrlf, and the checker binds the working bytes to the blob.
     for item in sources:
         if git("rev-parse", f"{commit}:{item['path']}") != item["git_blob_sha1"]:
-            raise ValueError(f"uncommitted execution source: {item['path']}")
+            raise ValueError("execution source bytes differ from the committed blob "
+                             f"(uncommitted edit or line-ending filter): {item['path']}")
     provenance = execution_provenance()
     # The actual source revision wins over CI/environment SHA aliases.
     provenance.update(git_sha=commit, git_commit=commit, git_dirty=False,
@@ -284,6 +340,13 @@ def execution_preflight(root=ROOT):
     claim = common / f"phase19-{independent.EXPECTED_CONFIG_SHA256}.execution.json"
     if claim.exists():
         raise ValueError(f"the one execution was already claimed: {claim}")
+    # Decode, unitarity and full operator reconstruction touch no reference
+    # state, so they refuse here instead of failing after the claim is spent.
+    problems = [f"{descriptor['id']}: {problem}" for descriptor in config["bank_manifests"]
+                for problem in oracle_gate(independent.dense_oracle(
+                    read_json(root / descriptor["path"]), laws=False)[0])]
+    if problems:
+        raise ValueError("; ".join(problems))
     return config, provenance, claim
 
 
@@ -291,6 +354,40 @@ def claim_execution(path, provenance):
     """Exclusive, persistent claim shared by all worktrees, including failures."""
     with path.open("x", encoding="utf-8") as handle:
         json.dump({"status": "claimed", "provenance": provenance}, handle, allow_nan=False)
+
+
+def write_record(path, record):
+    """Serialize fully, then rename into place: a failed run leaves no partial record."""
+    text = json.dumps(record, indent=2, allow_nan=False) + "\n"
+    if path.exists():
+        raise FileExistsError(f"the Phase 19 record already exists: {path}")
+    partial = path.with_name(path.name + ".partial")
+    try:
+        with partial.open("w", encoding="utf-8") as handle:
+            handle.write(text)
+            handle.flush()
+            os.fsync(handle.fileno())
+        os.replace(partial, path)
+    finally:
+        partial.unlink(missing_ok=True)
+
+
+def record_failure(claim, exc, records):
+    """Mark a consumed claim failed; diagnostics that cannot serialize are summarized."""
+    try:
+        failure = json.loads(claim.read_text(encoding="utf-8"))
+    except (OSError, ValueError) as read_error:
+        failure = {"claim_read_error": str(read_error)}
+    failure.update(status="failed", error=str(exc))
+    try:
+        text = json.dumps({**failure, "completed_banks": records}, allow_nan=False)
+    except (TypeError, ValueError) as dump_error:
+        text = json.dumps({**failure, "completed_banks": None,
+                           "completed_banks_error": str(dump_error)}, allow_nan=False)
+    try:
+        claim.write_text(text, encoding="utf-8")
+    except OSError as write_error:
+        print(f"could not mark the consumed claim failed: {write_error}", file=sys.stderr)
 
 
 def main(argv=None):
@@ -323,9 +420,7 @@ def main(argv=None):
             compilation += built
             sampling += sampled
         record = assemble_record(config, records, compilation, sampling, provenance)
-        with independent.RECORD.open("x", encoding="utf-8") as handle:
-            json.dump(record, handle, indent=2, allow_nan=False)
-            handle.write("\n")
+        write_record(independent.RECORD, record)
         claim.write_text(json.dumps({"status": "completed", "record": structure.RECORD_PATH,
                                      "provenance": provenance}, allow_nan=False), encoding="utf-8")
         print(f"Wrote {structure.RECORD_PATH}: {record['verdict']}")
@@ -336,9 +431,7 @@ def main(argv=None):
         # from one still running. KeyboardInterrupt retains the original claim.
         if claimed:
             # Never release a consumed claim or substitute a seed after failure.
-            failure = json.loads(claim.read_text(encoding="utf-8"))
-            failure.update(status="failed", error=str(exc), completed_banks=records)
-            claim.write_text(json.dumps(failure, allow_nan=False), encoding="utf-8")
+            record_failure(claim, exc, records)
         print(f"Phase 19 execution refused/failed: {exc}", file=sys.stderr)
         return 1
 
