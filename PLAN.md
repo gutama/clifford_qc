@@ -2633,9 +2633,11 @@ routing remain illustrative prices, not noisy-data certificates.
 nested outcome fields and schema/type/value drift, and rebuilds only coefficients,
 partitions, rotations, readouts, resources and allocations. Once a record exists
 it requires strict declaration-source, merge, execution-source and first-record
-ancestry, with full history. Three of four ledger deliverables ship. The producer,
-record and sampled-result checker remain; no Phase 19 state mean, variance,
-confidence crossing, runtime or sampled comparison has been evaluated.
+ancestry, with full history. Three of four ledger deliverables ship. The producer
+and independent sampled-result checker now ship and are validated on undeclared
+toy fixtures. The one molecular campaign and its separately committed record
+remain; no declared Phase 19 state mean, variance, confidence crossing, runtime
+or sampled comparison has been evaluated.
 
 **Lever 1 — a clique cover for a Hamiltonian-energy estimand (Track B).** Phase 14
 compares QWC (`k = 1`) against fully commuting (`k ≥ n`), both of which partition
@@ -2752,11 +2754,23 @@ unpriced is the same failure mode as Phase 14's multiply-capable-word variance
 bug, and it blocks the phase on the same terms — with the §3.6(i) refinement that
 those resources are synthesised and measured per setting, not derived from `m`.
 
-**Next deliverable** is the producer and independent sampled-result checker,
-validated on undeclared toy fixtures after the preregistration is merged. The
-frozen campaign then runs once from a clean pinned tree, and its record is
-committed alone after its execution-source commit. No sampled work is included
-in the preregistration.
+**Producer and checker shipped; campaign pending.**
+`run_phase19_energy_comparison.py` uses bit-index statevector execution and joint
+multinomial histograms, including every fixed endpoint after a crossing.
+`check_phase19_energy_comparison.py` imports no producer functions: a dense tensor
+gate interpreter reconstructs the complete observable and laws, exact rational
+histogram statistics check covariance-aware sample moments, and separate
+calculations/replays check schedules, confidence crossings, audits, censoring,
+decisions and card prices. Failed pre-sampling gates retain diagnostics and draw
+no outcomes for that bank; any blocking failure suppresses campaign decisions.
+Default CLI invocations are outcome-free. Explicit execution requires the frozen
+environment, clean committed sources and a persistent exclusive claim shared by
+local worktrees; an existing record or consumed claim refuses another execution.
+
+**Next deliverable** is the single frozen campaign and its record, after the
+implementation is landed and toy-tested. Run from a clean pinned tree, commit
+the record alone after its execution-source commit, then run the full-history
+independent record checker. No sampled molecular work ships with this implementation.
 
 ### Phases G1–G3 — GA structural preconditioner (G1 done; G2–G3 retired)
 
@@ -4674,10 +4688,10 @@ not another open accuracy phase.
    with it; Q9 is answered on the preregistered BeH2/JW bank and nowhere wider.
 9b. Phase 19's clique cover was added after step 9 closed and does not reopen it.
    Its deterministic fixed-functional compilation, lowered resources and §3.6
-   invariant tests and result-free preregistration now ship. Next is a producer
-   and independent checker, then one frozen sampled comparison after the
-   declaration is merged. It remains scoped to a fixed-coefficient
-   Hamiltonian-energy estimand, not Phase 14b's matrix-element word bank
+   invariant tests, result-free preregistration, producer and independent checker
+   now ship. The implementation is validated on undeclared toys; next is the one
+   frozen sampled comparison and its separately committed record. It remains
+   scoped to a fixed-coefficient Hamiltonian-energy estimand, not Phase 14b's matrix-element word bank
    (§5, Phase 19, lever 1).
 
 **Resource accounting** (interleaves with Track B; R1 first).

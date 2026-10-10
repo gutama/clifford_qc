@@ -116,7 +116,7 @@ No figure or table value in the manuscript is transcribed by hand, and
 ```bash
 python -m venv .venv && source .venv/bin/activate
 pip install -e .[test,research,stim]       # automatic CI extras
-pytest                                      # 3006 passed, 11 skipped
+pytest                                      # 3049 passed, 11 skipped
 ```
 
 This is the automatic CI dependency set; record gates additionally pin NumPy
@@ -132,7 +132,7 @@ the remaining `11 - 6 = 5` skips are per-test and *are* collected:
 
 ```text
 collected == passed + (skipped - files dropped at collection)
-3011      == 3006   + (11      -   6)
+3054      == 3049   + (11      -   6)
 ```
 
 Both sides are computed from the tree, so a drift in either quoted number
@@ -4284,8 +4284,67 @@ fidelity inflation does not certify hardware-noisy intervals. Reference
 availability is assumed with the card's preparation charge, and audit shots
 and classical simulation work are reported separately from endpoint price.
 
-The producer, record and independent sampled-result checker belong to a later
-change, after this preregistration is merged. Validate their gates on undeclared
-toy fixtures, then execute the frozen campaign once from a clean pinned tree
-and commit the record alone. No Phase 19 samples, confidence crossings, prices
-or efficiency decisions have been produced here.
+The producer and independent sampled-result checker now ship, validated on
+undeclared toy fixtures. The molecular campaign and record remain pending.
+No declared Phase 19 samples, confidence crossings, prices or efficiency
+decisions have been produced by this implementation change.
+
+## Phase 19: producer and independent result checker
+
+Validate the implementation without touching the declared molecular state laws:
+
+```bash
+python -m pytest tests/test_phase19_energy_comparison.py tests/test_anticommuting_cliques.py tests/test_phase19_preregistration.py
+python benchmarks/run_phase19_energy_comparison.py
+python benchmarks/check_phase19_energy_comparison.py
+```
+
+Both default commands validate the declaration only while the record is absent.
+The toy tests cover signed rotations, qubit ordering, complete operator and law
+reconstruction, joint QWC covariance, exact zero variance, numerical allowance,
+fixed schedules, all censoring clauses, invalid campaigns, device inadmissibility,
+record corruption, source/commit identity and failed/duplicate execution claims.
+The large-budget test draws a two-outcome toy multinomial with `2^32` shots; it
+allocates a histogram rather than billions of per-shot samples.
+
+After this implementation is merged, use Python 3.12 and the NumPy/SciPy sampling
+environment pinned by `reference_results/protocol_cost.json`. From the clean,
+committed execution source, launch the one campaign explicitly:
+
+```bash
+python benchmarks/run_phase19_energy_comparison.py --execute
+```
+
+There is no dirty-tree, alternate-seed, shortened-grid or overwrite switch. The
+producer checks full history, the declaration merge's ancestry, source blob
+identities, input/manifests and the pinned environment before sampling. It then
+creates an exclusive claim in the repository's common Git directory, shared by
+all local worktrees. This claim survives failure; a failed run cannot release it
+or replace its seeds. Separate clones remain governed by the published record
+and history checks. A fatal exception retains provenance and completed cells in
+the claim, while numerical/operator failures and audit failures produce visible
+`INVALID` cells/records and suppress all shot decisions.
+
+The emitted record retains all structural ledgers, raw/corrected circuit laws,
+correction diagnostics, exact rational HF reference, every endpoint's sparse joint
+histograms and statistics, all audit estimates and their histogram digests, and
+each card's effective/raw-shot distinction, admission and price. Audit shots and
+classical compilation/sampling times are separate accounting fields. No endpoint
+is skipped after certification, and exact variances never choose allocations.
+
+Commit `benchmarks/reference_results/phase19_energy_comparison.json` alone, after
+the execution-source commit, preserving merge ancestry. Then run:
+
+```bash
+python benchmarks/check_phase19_preregistration.py
+python benchmarks/check_phase19_energy_comparison.py
+```
+
+The checker imports no producer calculation functions. It independently applies
+tensor gates to a dense basis, reconstructs the Hamiltonian, checks the stored
+laws, replays each declared NumPy stream, and derives the statistics and decisions.
+It checks discrete fields and schemas exactly, recomputed floats with tight
+tolerances, source hashes at the execution commit, environment identity, strict
+declaration/merge/execution/record ancestry and the record-only first commit.
+Sampled replay is in the manual CI matrix with full Git history. Ordinary PR
+tests run undeclared toys and the structural preregistration gate only.

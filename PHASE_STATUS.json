@@ -272,10 +272,13 @@
         "benchmarks/PHASE19_ENERGY_PREREGISTRATION.md",
         "benchmarks/configs/phase19_energy_comparison.json",
         "benchmarks/check_phase19_preregistration.py",
-        "tests/test_phase19_preregistration.py"
+        "tests/test_phase19_preregistration.py",
+        "benchmarks/run_phase19_energy_comparison.py",
+        "benchmarks/check_phase19_energy_comparison.py",
+        "tests/test_phase19_energy_comparison.py"
       ],
       "remaining": [
-        "Producer, record, and checker"
+        "One frozen campaign execution and separately committed record; producer and independent checker ship with undeclared toy validation only"
       ]
     }
   ],

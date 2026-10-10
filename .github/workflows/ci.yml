@@ -258,6 +258,12 @@ jobs:
           - gate: check_phase14b_qwc_vs_fc
             timeout: 30
             environment_record: phase14b_qwc_vs_fc.json
+          # Before the record exists this validates only the declaration.
+          # Afterwards it independently reconstructs and replays the frozen
+          # evidence; it never launches a new campaign.
+          - gate: check_phase19_energy_comparison
+            timeout: 60
+            environment_record: protocol_cost.json
           # The one declared Phase 16A run. The checker replays replica 0 of
           # every cell and recomputes both controls: about a minute and a half
           # locally, plus the environment install.
@@ -266,6 +272,8 @@ jobs:
             environment_record: phase16a_te_qsci.json
     steps:
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
       - uses: ./.github/actions/record-environment
         with:
           reference-record: ${{ matrix.environment_record }}
