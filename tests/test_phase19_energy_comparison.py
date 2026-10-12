@@ -348,6 +348,9 @@ def test_operator_gate_refuses_before_consuming_the_claim(tmp_path, monkeypatch)
         assert not laws, "reference-state laws must not run before the claim"
         return {"arms": [{"name": "toy", "max_operator_entry_error": None,
                           "max_unitarity_entry_error": 0.0}]}, None
+    # Pin the record-absent state: once the campaign has run, preflight
+    # refuses on the committed record before reaching the operator gate.
+    monkeypatch.setattr(structure, "RECORD_PATH", "benchmarks/reference_results/absent.json")
     monkeypatch.setattr(checker, "git", git)
     monkeypatch.setattr(checker, "environment_problems", lambda *args: [])
     monkeypatch.setattr(checker, "dense_oracle", oracle)
