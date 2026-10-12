@@ -116,7 +116,7 @@ No figure or table value in the manuscript is transcribed by hand, and
 ```bash
 python -m venv .venv && source .venv/bin/activate
 pip install -e .[test,research,stim]       # automatic CI extras
-pytest                                      # 3049 passed, 11 skipped
+pytest                                      # 3058 passed, 11 skipped
 ```
 
 This is the automatic CI dependency set; record gates additionally pin NumPy
@@ -132,7 +132,7 @@ the remaining `11 - 6 = 5` skips are per-test and *are* collected:
 
 ```text
 collected == passed + (skipped - files dropped at collection)
-3054      == 3049   + (11      -   6)
+3063      == 3058   + (11      -   6)
 ```
 
 Both sides are computed from the tree, so a drift in either quoted number
@@ -4317,13 +4317,17 @@ python benchmarks/run_phase19_energy_comparison.py --execute
 
 There is no dirty-tree, alternate-seed, shortened-grid or overwrite switch. The
 producer checks full history, the declaration merge's ancestry, source blob
-identities, input/manifests and the pinned environment before sampling. It then
-creates an exclusive claim in the repository's common Git directory, shared by
-all local worktrees. This claim survives failure; a failed run cannot release it
+identities, input/manifests and the pinned environment before sampling. It also
+runs the outcome-free operator gate (gate decode, unitarity and full functional
+reconstruction, touching no reference state) on every declared bank, so those
+failures refuse execution rather than spending it. It then creates an exclusive
+claim in the repository's common Git directory, shared by all local worktrees. This claim survives failure; a failed run cannot release it
 or replace its seeds. Separate clones remain governed by the published record
 and history checks. A fatal exception retains provenance and completed cells in
-the claim, while numerical/operator failures and audit failures produce visible
-`INVALID` cells/records and suppress all shot decisions.
+the claim (or the serialization error, when they cannot be written), while
+numerical/operator failures and audit failures produce visible `INVALID`
+cells/records and suppress all shot decisions. The record is renamed into place
+only after it serializes completely, so a failed run leaves no partial record.
 
 The emitted record retains all structural ledgers, raw/corrected circuit laws,
 correction diagnostics, exact rational HF reference, every endpoint's sparse joint
