@@ -7,6 +7,14 @@ no reference energy, variance, confidence crossing or device runtime has been
 evaluated for this campaign. Only Hamiltonian coefficients, covers, rotations,
 readouts, circuit resources and allocation schedules have been rebuilt.
 
+> **Status after the record** (not a revision). The declaration text in this
+> document stands as frozen, including the paragraph above, which describes it
+> as merged. The one authorized execution ran from clean execution commit
+> `acf6bc0`, and `reference_results/phase19_energy_comparison.json` was
+> committed alone in `c204367`. The independent checker reproduces it as
+> `VALID`. Its per-instance results and their evidence boundary are reported in
+> `REPRODUCING.md` and in `PLAN.md` §5, Phase 19, not here.
+
 The binding protocol is `configs/phase19_energy_comparison.json`. Its three
 structural bank manifests are `configs/phase19_banks/{h4,lih,beh2}.json`.
 The JSON, rather than this explanatory note, fixes every rule and tolerance.
