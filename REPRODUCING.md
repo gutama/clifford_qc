@@ -4232,10 +4232,11 @@ bound and intrinsic variance floor. Odd-grade tests apply to parity-conserving
 Hubbard models and explicitly exclude the spin builders with odd field terms.
 No finite-shot data is gated against the exact ball bound.
 
-Phase 19 is now partial (three of four ledger deliverables). The result-free
-preregistration below freezes the bank, clique and QWC ordering, allocator,
-confidence family, all three device cards and depth accounting before any
-sampled comparison. Lever 2 remains unbuilt.
+Phase 19 is now complete (all four ledger deliverables). The result-free
+preregistration below froze the bank, clique and QWC ordering, allocator,
+confidence family, all three device cards and depth accounting before the one
+sampled comparison, whose record closes this section. Lever 2 remains unbuilt
+and is not a ledger deliverable.
 
 ## Phase 19: result-free energy preregistration
 
@@ -4284,14 +4285,13 @@ fidelity inflation does not certify hardware-noisy intervals. Reference
 availability is assumed with the card's preparation charge, and audit shots
 and classical simulation work are reported separately from endpoint price.
 
-The producer and independent sampled-result checker now ship, validated on
-undeclared toy fixtures. The molecular campaign and record remain pending.
-No declared Phase 19 samples, confidence crossings, prices or efficiency
-decisions have been produced by this implementation change.
+The producer and independent sampled-result checker were validated on
+undeclared toy fixtures before the one molecular campaign ran; its record is
+reported at the end of this section.
 
 ## Phase 19: producer and independent result checker
 
-Validate the implementation without touching the declared molecular state laws:
+Validate the implementation:
 
 ```bash
 python -m pytest tests/test_phase19_energy_comparison.py tests/test_anticommuting_cliques.py tests/test_phase19_preregistration.py
@@ -4299,21 +4299,25 @@ python benchmarks/run_phase19_energy_comparison.py
 python benchmarks/check_phase19_energy_comparison.py
 ```
 
-Both default commands validate the declaration only while the record is absent.
-The toy tests cover signed rotations, qubit ordering, complete operator and law
-reconstruction, joint QWC covariance, exact zero variance, numerical allowance,
+The tests touch no declared molecular state law. The producer's default command
+still runs only the outcome-free preflight; now that the record is committed, the
+checker's default command replays it (see the result below). The toy tests cover
+signed rotations, qubit ordering, complete operator and law reconstruction,
+joint QWC covariance, exact zero variance, numerical allowance,
 fixed schedules, all censoring clauses, invalid campaigns, device inadmissibility,
 record corruption, source/commit identity and failed/duplicate execution claims.
 The large-budget test draws a two-outcome toy multinomial with `2^32` shots; it
 allocates a histogram rather than billions of per-shot samples.
 
-After this implementation is merged, use Python 3.12 and the NumPy/SciPy sampling
-environment pinned by `reference_results/protocol_cost.json`. From the clean,
-committed execution source, launch the one campaign explicitly:
+The one campaign was launched from the clean, committed execution source, under
+Python 3.12 and the NumPy/SciPy sampling environment pinned by
+`reference_results/protocol_cost.json`:
 
 ```bash
 python benchmarks/run_phase19_energy_comparison.py --execute
 ```
+
+With the record committed, this command now refuses.
 
 There is no dirty-tree, alternate-seed, shortened-grid or overwrite switch. The
 producer checks full history, the declaration merge's ancestry, source blob
@@ -4336,8 +4340,8 @@ each card's effective/raw-shot distinction, admission and price. Audit shots and
 classical compilation/sampling times are separate accounting fields. No endpoint
 is skipped after certification, and exact variances never choose allocations.
 
-Commit `benchmarks/reference_results/phase19_energy_comparison.json` alone, after
-the execution-source commit, preserving merge ancestry. Then run:
+The record was committed alone, after the execution-source commit, with merge
+ancestry preserved. Verify it with:
 
 ```bash
 python benchmarks/check_phase19_preregistration.py
@@ -4352,3 +4356,85 @@ tolerances, source hashes at the execution commit, environment identity, strict
 declaration/merge/execution/record ancestry and the record-only first commit.
 Sampled replay is in the manual CI matrix with full Git history. Ordinary PR
 tests run undeclared toys and the structural preregistration gate only.
+
+## Phase 19 fixed-reference energy comparison (executed once, `VALID`)
+
+The producer and record checker were merged before the run, so the code that
+executed the declaration was fixed before any shot was drawn. The record
+`benchmarks/reference_results/phase19_energy_comparison.json` comes from the one
+authorized execution:
+
+* declaration SHA-256 `01e8b91fff879ed228c7264cabec3d7e49adf6e9e6da200a4132872b5ef0a9c7`;
+* declaration merge `5f0df477dbcccc5102256a6f1e85ebce923f522a`, clean execution
+  commit `acf6bc0e86e3c2c03faf56e8b9ff0e9253fb01f6`, record-only commit `c204367`;
+* Python 3.12.3, NumPy 2.5.2, SciPy 1.18.0 and stim 1.16.0, matching
+  `reference_results/protocol_cost.json`.
+
+```bash
+python benchmarks/check_phase19_energy_comparison.py   # full replay, about a minute
+```
+
+**Verdict `VALID`.** No blocking gate failed. Operator reconstruction is within
+`2e-14` Ha and unitarity within `2e-14`, and every corrected law mean reproduces
+the exact rational Hartree–Fock reference within the `1e-10` Ha allowance.
+
+| system | QWC certified endpoint | clique certified endpoint | fixed-grid shot decision |
+|---|---|---|---|
+| H₄ | censored above `2^32` | `2^31` | `MATERIAL_REDUCTION_CENSORED_BASELINE` |
+| LiH | `2^29` | `2^30` | `NO_MATERIAL_REDUCTION` |
+| BeH₂ | `2^26` | `2^25` | `MATERIAL_REDUCTION` |
+
+An endpoint is the first frozen grid point whose total radius is at most the
+`1.6e-3` Ha target. Each decision applies to its own instance, and there is no
+pooled result. The certified endpoints are:
+
+| system | arm | settings | certified endpoint | estimate (Ha) | error vs exact HF (mHa) | total radius (mHa) |
+|---|---|---:|---|---:|---:|---:|
+| H₄ | QWC | 68 | censored above `2^32` | — | — | `2.011` at `2^32` |
+| H₄ | clique | 45 | `2^31` | `-2.124305` | `0.046` | `1.424` |
+| LiH | QWC | 42 | `2^29` | `-7.862013` | `0.014` | `1.280` |
+| LiH | clique | 54 | `2^30` | `-7.861934` | `0.093` | `1.229` |
+| BeH₂ | QWC | 9 | `2^26` | `-15.560398` | `0.085` | `1.247` |
+| BeH₂ | clique | 36 | `2^25` | `-15.560193` | `0.119` | `1.551` |
+
+All six covariance audits pass the frozen `[0.8, 1.2]` window; no prediction is
+zero:
+
+| system | arm | predicted variance (Ha²) | empirical variance (Ha²) | ratio |
+|---|---|---:|---:|---:|
+| H₄ | QWC | `4.294e-05` | `4.069e-05` | `0.948` |
+| H₄ | clique | `1.729e-05` | `1.701e-05` | `0.984` |
+| LiH | QWC | `3.871e-06` | `4.011e-06` | `1.036` |
+| LiH | clique | `7.890e-06` | `8.540e-06` | `1.082` |
+| BeH₂ | QWC | `2.369e-06` | `2.285e-06` | `0.965` |
+| BeH₂ | clique | `8.279e-07` | `8.155e-07` | `0.985` |
+
+Each card prices the certified endpoint's shot vector after fidelity inflation.
+Prices are reported per instance and card, and there is no cross-card winner. A
+censored arm has no price, and an inadmissible arm keeps its modelled raw shots
+but has no `C_time(ε)`:
+
+| system | card | QWC raw shots | QWC `C_time(ε)` | clique raw shots | clique `C_time(ε)` |
+|---|---|---:|---:|---:|---:|
+| H₄ | ion-like | — | censored | 3,578,917,664 | `2.37e7` s |
+| H₄ | logical-alltoall | — | censored | 2,147,483,648 | `2.54e4` s |
+| H₄ | superconducting-like | — | censored | 24,517,719,816 | inadmissible |
+| LiH | ion-like | 632,981,165 | `1.36e5` s | 1,604,547,531 | `7.52e6` s |
+| LiH | logical-alltoall | 536,870,912 | `1.11e3` s | 1,073,741,824 | `9.50e3` s |
+| LiH | superconducting-like | 747,521,945 | `2.30e3` s | 6,806,479,926 | inadmissible |
+| BeH₂ | ion-like | 78,891,356 | `1.59e4` s | 41,850,463 | `5.35e4` s |
+| BeH₂ | logical-alltoall | 67,108,864 | `135` s | 33,554,432 | `121` s |
+| BeH₂ | superconducting-like | 92,895,008 | `279` s | 68,340,545 | `521` s |
+
+The campaign drew 51,539,214,336 headline and 1,572,864,000 audit effective shots.
+Compilation took 4.1 s and sampling 22.2 s on one thread; neither is part of any
+endpoint price. These are oracle-sampled measurements of three fixed Hartree–Fock
+energies under illustrative logical cards. They are not evidence of ground-state
+accuracy, matrix-bank reuse, contextual restriction, hardware performance or
+end-to-end advantage.
+
+The record binds the content hashes of `run_phase19_energy_comparison.py`,
+`check_phase19_energy_comparison.py` and `check_phase19_preregistration.py`. The
+checker compares the working files against those hashes, so the three files are
+now frozen: editing any of them fails the record check. Any new outcome needs a
+separately disclosed declaration.

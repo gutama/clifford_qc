@@ -111,10 +111,10 @@ Status at a glance:
 | Phase 16: Time-evolved inputs | partial | 50% |
 | Phase 17: Mapping validation and breadth | partial | 75% |
 | Phase 18: Embedding boundary | complete | 100% |
-| Phase 19: Anticommuting-clique partitioning | partial | 75% |
+| Phase 19: Anticommuting-clique partitioning | complete | 100% |
 
-Strict complete-phase score: **16 / 20 = 80.00%**.
-Progress-weighted score: **18.50 / 20 = 92.50%**.
+Strict complete-phase score: **17 / 20 = 85.00%**.
+Progress-weighted score: **18.75 / 20 = 93.75%**.
 Retired and conditional adjunct phases are tracked separately and do not change this denominator. Source: `PHASE_STATUS.json`; validate with `python benchmarks/check_phase_status.py`.
 <!-- PHASE-STATUS-SUMMARY:END -->
 
@@ -2582,13 +2582,14 @@ state has no unique RDMs; the exact solver reports its gap. No embedding
 driver, DMET self-consistency or fragment-energy partition ships, and none is
 claimed.
 
-### Phase 19 — anticommuting-clique (spin-factor) partitioning — partial
+### Phase 19 — anticommuting-clique (spin-factor) partitioning — complete
 
 The contract is §3.6. Two levers share one algebraic fact and sit in two different
 compression classes (§6.8), so they are scoped, measured and reported separately —
-and they are at different readiness: lever 1 has compiled covers and a
-preregistration but awaits its sampled comparison; lever 2 needs a primitive
-the package does not have.
+and they are at different readiness: lever 1's preregistered comparison has run
+once and its record is committed; lever 2 needs a primitive the package does not
+have. The ledger's four Phase 19 deliverables are lever 1's; lever 2 is scoped
+below but is not one of them.
 
 **First implementation gate shipped.** `measurement/cliques.py` supplies
 `anticommuting_clique_cover`, `compile_anticommuting_clique` and
@@ -2633,11 +2634,9 @@ routing remain illustrative prices, not noisy-data certificates.
 nested outcome fields and schema/type/value drift, and rebuilds only coefficients,
 partitions, rotations, readouts, resources and allocations. Once a record exists
 it requires strict declaration-source, merge, execution-source and first-record
-ancestry, with full history. Three of four ledger deliverables ship. The producer
-and independent sampled-result checker now ship and are validated on undeclared
-toy fixtures. The one molecular campaign and its separately committed record
-remain; no declared Phase 19 state mean, variance, confidence crossing, runtime
-or sampled comparison has been evaluated.
+ancestry, with full history. The producer and independent sampled-result checker
+were validated on undeclared toy fixtures before the one molecular campaign ran;
+its record is reported below.
 
 **Lever 1 — a clique cover for a Hamiltonian-energy estimand (Track B).** Phase 14
 compares QWC (`k = 1`) against fully commuting (`k ≥ n`), both of which partition
@@ -2710,8 +2709,8 @@ or runtime. Neither greedy arm claims a minimum cover.
 These are each Hamiltonian's own terms, not Phase 14b/R4a's frozen
 `1,814`-word element bank. The setting-count ordering still reverses across the
 banks, while clique circuits pay substantial Pauli-rotation resources. The
-pending comparison therefore retains all three banks and prices every emitted
-rotation. Setting counts do not authorize a cost claim.
+comparison therefore retained all three banks and priced every emitted rotation;
+setting counts alone authorize no cost claim.
 
 **The lever-2 sizing is discouraging on the bank that matters, and that is
 reported here rather than discovered later.** The quantity to read is *not* the
@@ -2754,7 +2753,7 @@ unpriced is the same failure mode as Phase 14's multiply-capable-word variance
 bug, and it blocks the phase on the same terms — with the §3.6(i) refinement that
 those resources are synthesised and measured per setting, not derived from `m`.
 
-**Producer and checker shipped; campaign pending.**
+**Producer and checker shipped.**
 `run_phase19_energy_comparison.py` uses bit-index statevector execution and joint
 multinomial histograms, including every fixed endpoint after a crossing.
 `check_phase19_energy_comparison.py` imports no producer functions: a dense tensor
@@ -2767,10 +2766,38 @@ Default CLI invocations are outcome-free. Explicit execution requires the frozen
 environment, clean committed sources and a persistent exclusive claim shared by
 local worktrees; an existing record or consumed claim refuses another execution.
 
-**Next deliverable** is the single frozen campaign and its record, after the
-implementation is landed and toy-tested. Run from a clean pinned tree, commit
-the record alone after its execution-source commit, then run the full-history
-independent record checker. No sampled molecular work ships with this implementation.
+**Campaign executed once: `VALID`.**
+`benchmarks/reference_results/phase19_energy_comparison.json` is the one
+authorized execution. It ran from clean execution commit `acf6bc0`, after the
+declaration merge `5f0df47`, and was committed alone in `c204367`. The
+independent checker reproduces it in full. No blocking gate failed: operator
+reconstruction is within `2e-14` and all six covariance audits fall in
+`[0.8, 1.2]` (`0.948`–`1.082`).
+
+| bank | QWC certified endpoint | clique certified endpoint | fixed-grid shot decision |
+|---|---|---|---|
+| H₄ sto-3g | right-censored above `2^32` | `2^31` | `MATERIAL_REDUCTION_CENSORED_BASELINE` |
+| LiH cas(4e,4o) | `2^29` | `2^30` | `NO_MATERIAL_REDUCTION` |
+| BeH₂ sto-3g | `2^26` | `2^25` | `MATERIAL_REDUCTION` |
+
+An endpoint is the first frozen grid point whose total radius reaches the
+`1.6e-3` Ha target, not a continuous optimum, and each decision belongs to its
+own instance; there is no pooled winner. Setting counts do not predict the
+order: cliques have fewer settings only on H₄ and more on LiH and BeH₂, yet
+they materially reduce effective shots on BeH₂ and not on LiH.
+
+The cards are priced per instance and card, never pooled across cards. The
+clique arm is inadmissible on the superconducting-like card for H₄ and LiH,
+whose rotation-heavy settings fall below its fidelity floor. On BeH₂ the clique
+arm's halved effective shots still price above QWC on the ion-like and
+superconducting-like cards, and slightly below it on logical-alltoall.
+`REPRODUCING.md` lists every price. The evidence is oracle-sampled measurement
+of three fixed Hartree–Fock energies under illustrative logical cards. It is not
+ground-state accuracy, matrix-bank reuse, hardware or end-to-end advantage.
+
+The record binds the hashes of the producer, the record checker and the
+preregistration checker, so those three files are frozen; editing any of them
+fails the record check. Lever 2 remains unbuilt.
 
 ### Phases G1–G3 — GA structural preconditioner (G1 done; G2–G3 retired)
 
@@ -4308,10 +4335,16 @@ A-CASE's.
   not a re-run of Q9 on a third rung. *Falsifier:* the rotation resources cancel or
   reverse the setting-count advantage on every card, in which case the
   anticommuting axis is a curiosity and §3.6 keeps only its variance floor and its
-  ceiling — itself a reportable result. *Status:* unmeasured. Phase 19 carries a
-  structural sizing probe with no committed record, and the ceiling caps any
-  affirmative answer in advance: no clique cover can save more than a factor
-  `2n+1` against term-by-term measurement.
+  ceiling — itself a reportable result. *Status:* measured against QWC only, on
+  three fixed Hartree–Fock states (Phase 19 record, `VALID`); the fully commuting
+  arm was not part of the declared campaign and stays open. On the fixed
+  `2^16`–`2^32` grid the clique arm certified H₄ where QWC was right-censored,
+  needed twice QWC's effective shots on LiH, and half on BeH₂. The falsifier
+  needs every card and is not met on H₄, where the clique arm is priced on two
+  cards while QWC has no certified endpoint on any; on BeH₂ its halved shots price
+  above QWC on two of the three cards. The ceiling still caps any affirmative answer: no
+  clique cover can save more than a factor `2n+1` against term-by-term
+  measurement.
 - **Q15 — time-evolved QSCI input:** on an active space where the reference
   determinant misses chemical accuracy, does QSCI on configurations pooled from
   Trotter-circuit time-evolved reference states reach `1.6e-3` Ha within a
@@ -4689,8 +4722,8 @@ not another open accuracy phase.
 9b. Phase 19's clique cover was added after step 9 closed and does not reopen it.
    Its deterministic fixed-functional compilation, lowered resources and §3.6
    invariant tests, result-free preregistration, producer and independent checker
-   now ship. The implementation is validated on undeclared toys; next is the one
-   frozen sampled comparison and its separately committed record. It remains
+   now ship. The one frozen sampled comparison ran (`VALID`) and its record is
+   committed separately; its shot decisions are per instance. It remains
    scoped to a fixed-coefficient Hamiltonian-energy estimand, not Phase 14b's matrix-element word bank
    (§5, Phase 19, lever 1).
 
