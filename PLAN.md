@@ -2566,7 +2566,7 @@ not imply lower `W` or fewer groups — and, more strongly, `W` is *exactly*
 invariant across the linear encoding family (§6.2), so the invariance is a check
 rather than a measurement. The executable form of this phase is R2 (§5, Phases
 R1–R4). The CEO pool/comparison implementation and a disclosed outcome-free declaration now ship.
-The full frozen exact comparison executed once and passed independent trace replay.
+The frozen exact comparison and its publication replay both pass independent trace verification.
 A dedicated MORE-ADAPT benchmark is a follow-up after Track A;
 they constrain positioning but do not gate the QSCI hybrid experiment.
 
@@ -2585,8 +2585,12 @@ nor solver, and reads target prefixes and resource currencies separately.
 Generic Pauli-ladder counts are upper bounds: enhanced CEO-ADAPT-VQE*, optimized
 CEO circuits, finite-shot measurement cost and hardware advantage are excluded.
 The frozen record (`benchmarks/reference_results/phase17_ceo.json`) contains all
-nine arms, executed from clean source `7b872b5` after declaration `4afad7f`, then
-committed alone in `5cf5160`. Every selection and optimizer call replays against
+nine arms. The original local declaration/execution/result history is archived
+in the publication-replay bundle. The active record was reproduced from clean
+published source `a15611b` after declaration `6f573cb`, then committed alone in
+`0a9b706`, with every scientific/resource case field matching the local execution
+exactly. This is a disclosed deterministic publication replay, not an independent
+statistical replica or a blind preregistration. Every selection and optimizer call replays against
 independent occupation/spectral matrices. On H4, QE and OVP reach the target at
 round 9 with 9 parameters and 100 optimizer calls; mixed CEO reaches it at round
 8 with 11 parameters and 125 calls. BeH2 reaches it at round 2 with all three
@@ -5170,7 +5174,8 @@ bought a duplicate record.
     is authorized on these prefixes. Certifying bases outside the screen exist:
     the ladder's Krylov basis has `σ = 0.086 t`. Pricing one needs a new
     declaration.
-20. CEO and MORE-ADAPT benchmarks after the critical comparison is stable.
+20. The dedicated MORE-ADAPT breadth comparison remains. The exact CEO pool
+    comparison is complete and read (§5, Phase 17).
 21. The excited-state track, after the certificate question of §7.4 has an answer. Note
     that §3.5B's transformation-character parameter is what keeps this track reachable
     from Track G; a G1 that hard-codes `[A,Q]=0` would close it.

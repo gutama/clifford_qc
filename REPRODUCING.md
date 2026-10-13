@@ -4569,8 +4569,11 @@ derivatives and generic Pauli-ladder CNOT upper bounds are separate currencies.
 The persistent claim retains the full diagnostic trajectory if validation fails.
 The MORE-ADAPT multi-root benchmark remains outstanding.
 
-The campaign ran once from `7b872b5` after the declaration commit `4afad7f`;
-the result-only commit is `5cf5160`. Both checker gates pass.
+The original local run and its declaration/source/result history are archived.
+The published provenance replay ran from `a15611b` after declaration `6f573cb`;
+its result-only commit is `0a9b706`. Every scientific/resource case field matches
+the original digest exactly. Both checker gates pass. This replay is not an
+independent statistical replica or a blind preregistration.
 
 | system | arm | first target round | parameters | screened gradient forms | optimizer calls | generic CNOT upper bound |
 |---|---|---:|---:|---:|---:|---:|

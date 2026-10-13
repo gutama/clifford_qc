@@ -4,8 +4,10 @@ The binding design is `configs/phase17_ceo.json`. The declaration and its
 outcome-free gate precede the full execution record in commit history.
 Three-iteration BeH2 development tests preceded this freeze; their purpose was
 variational and accounting validation. No full trajectory, target crossing or
-comparative resource outcome was inspected. The design is explicitly labelled
-`declared_after_bounded_development_tests`, not a blind preregistration.
+comparative resource outcome was inspected. The original local design was labelled
+`declared_after_bounded_development_tests`. The active publication design is
+labelled `publication_replay_of_frozen_local_design`, as explained below;
+neither is advertised as a blind preregistration.
 
 ## Operators and comparison
 
