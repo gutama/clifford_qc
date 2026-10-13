@@ -116,7 +116,7 @@ No figure or table value in the manuscript is transcribed by hand, and
 ```bash
 python -m venv .venv && source .venv/bin/activate
 pip install -e .[test,research,stim]       # automatic CI extras
-pytest                                      # 3058 passed, 11 skipped
+pytest                                      # 3099 passed, 11 skipped
 ```
 
 This is the automatic CI dependency set; record gates additionally pin NumPy
@@ -132,7 +132,7 @@ the remaining `11 - 6 = 5` skips are per-test and *are* collected:
 
 ```text
 collected == passed + (skipped - files dropped at collection)
-3063      == 3058   + (11      -   6)
+3104      == 3099   + (11      -   6)
 ```
 
 Both sides are computed from the tree, so a drift in either quoted number
@@ -4178,6 +4178,113 @@ first commit. A squash or rebase merge loses this history, so merge with a merge
 commit. The structural CI job checks out full history (`fetch-depth: 0`), so these
 ancestry checks run in CI instead of skipping at a shallow boundary, and a merge
 that erased the order fails there.
+
+## Phase 2M-C/D: process-isolated storage-policy matrix
+
+The outcome-free declaration is `benchmarks/PHASE2M_POLICY_DECLARATION.md`, with
+fixed input and full-pool fingerprints in `benchmarks/configs/bank_policy_matrix.json`.
+Validate it and exercise isolated undeclared toys:
+
+```bash
+python benchmarks/run_bank_policy_matrix.py
+python benchmarks/check_bank_policy_matrix.py
+python -m pytest tests/test_bank_policy_matrix.py tests/test_pipeline_refactoring.py
+```
+
+The producer's default command evaluates no new molecular energies or costs;
+the checker validates the committed observations once the record exists. The
+five-system/four-arm campaign is complete: all twenty cells ran from clean
+execution source `e00d64a` on a 32 GiB container, and its VALID record was
+committed alone in `337ae73`. Both checker modes pass. The earlier 8 GiB host
+refused before consuming a claim; the frozen design was not reduced.
+
+For the original execution, the launcher required the pinned record environment,
+a clean full-history tree, 15 GiB plus 512 MiB currently available host/cgroup
+headroom, and an absent record and campaign claim. Its explicit command was:
+
+```bash
+python benchmarks/run_bank_policy_matrix.py --execute
+```
+
+Each arm receives a fresh interpreter and fixed numerical-thread environment;
+no preceding arm's allocator survives. All twenty cells retain their full
+candidate pools, common 30-addition budget, oracle stop and 32-pair frontier.
+Parent supervision and worker self-RSS telemetry expose timeout, memory-limit
+and worker failures. Completed cells remain checkpointed in the exclusive
+common-Git-directory claim. Failed runs consume their claim; there is no retry,
+scope-shrinking or overwrite switch. Records are serialized before atomic,
+exclusive publication, so a serialization failure cannot leave a partial record.
+
+Commit `benchmarks/reference_results/bank_policy_matrix.json` alone after its
+execution-source commit, then validate its observations and independent pencils:
+
+```bash
+python benchmarks/check_bank_policy_matrix.py
+python benchmarks/check_bank_policy_matrix.py --rebuild
+```
+
+The first mode validates schema, exact scientific and logical equivalence,
+every observed row bound, process/environment identities, costs and commit order.
+The second additionally constructs final pencils by direct products in isolated
+reference processes, without importing the worker or using a row-store backend.
+Wall/RSS costs include instrumentation. Packed live/reserved bytes, intrinsic
+payload estimates and process RSS density remain distinct. This matrix does not
+sample, price hardware time or change historical records or the object default.
+Missing or failed cells cannot establish completion. The independent rebuild
+follows the frozen generator registration order, rather than adaptive basis
+position, and compares the original IEEE matrix encodings including signed zeros.
+Recorded producer Python must match the reference's minor release; all completed
+workers must match the producer's full interpreter version. Python patch changes
+relative to the reference are permitted by the record-environment contract.
+
+### Recorded policy costs and interpretation
+
+All four arms have identical projected pencils, selected labels, energy and
+candidate/rejection histories, logical coefficient occurrences, pair ownership,
+and cumulative/selected word ledgers. Every observed streaming row bound passes.
+Independent direct products reproduce all five final pencils, energies, labels
+and selected word counts/digests. The full pools have 26, 204, 204, 140 and 140
+candidates; no pool was capped. Common 30-addition budgets and oracle stopping
+rules remain unchanged. H4 and BeH2 stop at `M = 11`, H2O at `M = 21`, and both
+stretched systems reach the full `M = 31` budget. Completion of this storage
+comparison does not certify the full-space ground energy.
+
+Peak process RSS, including preparation and instrumentation, in GiB:
+
+| System | Basis size | Object retain | Packed retain | Object stream | Packed stream |
+|---|---:|---:|---:|---:|---:|
+| H4 | 11 | 0.213 | 0.211 | 0.205 | 0.202 |
+| BeH2 | 11 | 4.538 | 2.325 | 1.664 | 1.715 |
+| Stretched BeH2 | 31 | 11.122 | 4.260 | 3.549 | 3.211 |
+| H2O | 21 | 7.900 | 3.638 | 2.556 | 2.312 |
+| Stretched H2O | 31 | 9.873 | 3.666 | 3.201 | 2.626 |
+
+Parent wall time per fresh worker, including preparation and postprocessing, in minutes:
+
+| System | Object retain | Packed retain | Object stream | Packed stream |
+|---|---:|---:|---:|---:|
+| H4 | 0.04 | 0.05 | 0.05 | 0.05 |
+| BeH2 | 3.31 | 5.04 | 4.81 | 5.99 |
+| Stretched BeH2 | 12.74 | 21.92 | 18.61 | 22.74 |
+| H2O | 9.19 | 15.89 | 13.53 | 17.72 |
+| Stretched H2O | 14.39 | 25.31 | 20.89 | 26.15 |
+
+On the four larger systems, packing alone reduces observed peak process RSS by
+about 49--63%, streaming object rows by about 63--68%, and their combination by
+about 62--73%. These are separate measured outcomes, not multiplicative savings
+or an attribution to row payload alone. All arms fit below 15 GiB; packing is
+not required for feasibility on these cases. Tiny H4 runs are dominated by the
+interpreter and preparation rather than row storage. Packed streaming is not
+uniformly the lowest-RSS arm: BeH2's object stream peaks slightly lower.
+
+Object retain is the fastest arm on every declared system. Packing remains
+slower despite eliminating the earlier scoring materializations; streaming pays
+recomputation costs. The row bounds cover persistent S/H coefficient rows, not
+global word/support history, actions or the reference. Wall time and RSS are
+single instrumented observations on this host. Historical shared-allocator
+timings are retained, and no before/after speedup against those runs is inferred.
+Disk-backed storage remains an unimplemented conditional extension; this exact
+matrix supplies no finite-shot workload that licenses it.
 
 ## Phase 19: fixed-functional anticommuting clique compilation
 

@@ -9,6 +9,12 @@ reproducing their recorded experiments.
 For the complete PySCF comparison suite, start with the [molecular guide](README.md).
 The reusable package APIs below remain at `clifford_qc.prepared` and `clifford_qc.pipeline`.
 
+The [Phase 2M policy matrix](../benchmarks/PHASE2M_POLICY_DECLARATION.md) compares
+object/packed storage and retain/stream lifetime policies in fresh worker processes.
+Its outcome-free preflight is `python benchmarks/run_bank_policy_matrix.py`.
+The full molecular record remains pending on a host with sufficient memory for
+the declared 15 GiB ceiling; the development container has an 8 GiB cap.
+
 The CLI currently accepts restricted real FCIDUMP inputs and uses exact A-CASE
 with determinant-excitation candidates and Jordan-Wigner encoding. It does not
 perform the upstream orbital, active-space, or integral calculation. Other
@@ -154,9 +160,13 @@ Object rows release dictionary references on eviction. Packed rows use independe
 segments that release their NumPy buffer capacity when removed. Selection keeps
 canonical arithmetic order and historical supports, including the word-cost
 objective. A selected row evicted during scoring is rebuilt when retained.
-Recomputation can cost time, so streaming stays opt-in. Disk-backed storage is
-not implemented, and a full production molecular comparison of the new policies
-has not been established.
+Recomputation can cost time, so streaming stays opt-in. The frozen five-system,
+four-arm process-isolated matrix in
+`benchmarks/reference_results/bank_policy_matrix.json` validates exact scientific
+and logical equivalence, observed streaming row bounds, and independent final
+pencils on those inputs and budgets. Its measured RSS/runtime trade-offs are in
+`REPRODUCING.md`. They establish no universal process-memory bound. Disk-backed
+storage is not implemented and remains conditional on a measured finite-shot need.
 
 Scoring reads row supports directly, and storage measurement never reconstructs
 packed multivectors. Newly built exact pairs are contracted before packing.

@@ -131,6 +131,11 @@ def _layer_of(relative: Path) -> str:
 # ---------------------------------------------------------------------------
 GATE_CLASSES: tuple[tuple[str, str, tuple[str, ...]], ...] = (
     (
+        "Observed resource equivalence",
+        "derives accounting and equivalence from isolated cells; optionally rebuilds final pencils",
+        ("check_bank_policy_matrix",),
+    ),
+    (
         "Value-rebuilt",
         "recomputes its same-stem producer's record and fails on numeric drift",
         (
