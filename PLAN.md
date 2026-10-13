@@ -941,7 +941,7 @@ not the products — while H₄'s is 6×. The cost side is memory, and it is not
 small: H₄'s 378 cached element operators hold 15 847 distinct words and ~10.6 MB.
 That figure is the §6 metric to watch as Phase 3 grows bases, not a footnote.
 
-### Phase 2M — memory-bounded matrix-element bank (adjunct; 2M-A/2M-B done, C--D open)
+### Phase 2M — memory-bounded matrix-element bank (adjunct; A/B done, C/D matrix implemented, execution pending)
 
 Phase 2 made repeated adaptive solves computationally credible by retaining every
 built pair. The larger molecular records expose the other side of that decision:
@@ -1172,6 +1172,21 @@ numerical invariants. Require bitwise `S`, `H` and energies where canonical accu
 preserved; otherwise use a declared tight tolerance and record the first source of
 rounding-order divergence. Report bank-build time, recomputation time, spill I/O,
 peak and delta RSS, packed bytes and actual bytes per coefficient.
+
+**The process-isolated C/D matrix is implemented; its molecular record is pending.**
+`benchmarks/PHASE2M_POLICY_DECLARATION.md` and
+`benchmarks/configs/bank_policy_matrix.json` freeze five systems and four storage/lifetime
+arms. `run_bank_policy_matrix.py` launches every arm in a fresh interpreter, with
+full candidate pools, identical 30-addition budgets and stopping rules, a 32-pair
+streaming frontier, a 15 GiB RSS ceiling and explicit failure records. The worker
+records all projected pencils, candidate decisions and logical resource history;
+`check_bank_policy_matrix.py` independently checks them and optionally rebuilds
+final pencils by direct products in separate reference processes. All new tests use
+undeclared small fixtures. The 8 GiB development container refuses the molecular
+campaign before claiming it. Phase 2M remains partial until the complete record
+and both checker modes pass on a sufficiently large host. Disk-backed storage
+remains deferred. Process RSS and its coefficient density are not attributed
+row-allocation bytes, and the prior same-process timing is not remeasured here.
 
 *The end-to-end feasibility clause has run, and it passes without discriminating.*
 `run_packed_h2o_feasibility.py` and `reference_results/packed_h2o_feasibility.json`

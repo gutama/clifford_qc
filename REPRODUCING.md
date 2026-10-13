@@ -116,7 +116,7 @@ No figure or table value in the manuscript is transcribed by hand, and
 ```bash
 python -m venv .venv && source .venv/bin/activate
 pip install -e .[test,research,stim]       # automatic CI extras
-pytest                                      # 3058 passed, 11 skipped
+pytest                                      # 3088 passed, 11 skipped
 ```
 
 This is the automatic CI dependency set; record gates additionally pin NumPy
@@ -132,7 +132,7 @@ the remaining `11 - 6 = 5` skips are per-test and *are* collected:
 
 ```text
 collected == passed + (skipped - files dropped at collection)
-3063      == 3058   + (11      -   6)
+3093      == 3088   + (11      -   6)
 ```
 
 Both sides are computed from the tree, so a drift in either quoted number
@@ -4178,6 +4178,55 @@ first commit. A squash or rebase merge loses this history, so merge with a merge
 commit. The structural CI job checks out full history (`fetch-depth: 0`), so these
 ancestry checks run in CI instead of skipping at a shallow boundary, and a merge
 that erased the order fails there.
+
+## Phase 2M-C/D: process-isolated storage-policy matrix
+
+The outcome-free declaration is `benchmarks/PHASE2M_POLICY_DECLARATION.md`, with
+fixed input and full-pool fingerprints in `benchmarks/configs/bank_policy_matrix.json`.
+Validate it and exercise isolated undeclared toys:
+
+```bash
+python benchmarks/run_bank_policy_matrix.py
+python benchmarks/check_bank_policy_matrix.py
+python -m pytest tests/test_bank_policy_matrix.py tests/test_pipeline_refactoring.py
+```
+
+Both default commands evaluate no new molecular laws or costs while the record
+is absent. The five-system/four-arm molecular campaign has not run: the development
+container has an 8 GiB cgroup cap, below its unchanged 15 GiB ceiling. The launcher
+also requires 512 MiB reserve and currently available host/cgroup headroom.
+On an adequate Linux host, with the pinned record environment and a clean,
+full-history committed tree containing the declaration, explicitly execute:
+
+```bash
+python benchmarks/run_bank_policy_matrix.py --execute
+```
+
+Each arm receives a fresh interpreter and fixed numerical-thread environment;
+no preceding arm's allocator survives. All twenty cells retain their full
+candidate pools, common 30-addition budget, oracle stop and 32-pair frontier.
+Parent supervision and worker self-RSS telemetry expose timeout, memory-limit
+and worker failures. Completed cells remain checkpointed in the exclusive
+common-Git-directory claim. Failed runs consume their claim; there is no retry,
+scope-shrinking or overwrite switch. Records are serialized before atomic,
+exclusive publication, so a serialization failure cannot leave a partial record.
+
+Commit `benchmarks/reference_results/bank_policy_matrix.json` alone after its
+execution-source commit, then validate its observations and independent pencils:
+
+```bash
+python benchmarks/check_bank_policy_matrix.py
+python benchmarks/check_bank_policy_matrix.py --rebuild
+```
+
+The first mode validates schema, exact scientific and logical equivalence,
+every observed row bound, process/environment identities, costs and commit order.
+The second additionally constructs final pencils by direct products in isolated
+reference processes, without importing the worker or using a row-store backend.
+Wall/RSS costs include instrumentation. Packed live/reserved bytes, intrinsic
+payload estimates and process RSS density remain distinct. This matrix does not
+sample, price hardware time or change historical records or the object default.
+Missing or failed cells leave Phase 2M partial.
 
 ## Phase 19: fixed-functional anticommuting clique compilation
 

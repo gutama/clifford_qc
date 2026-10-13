@@ -9,6 +9,12 @@ reproducing their recorded experiments.
 For the complete PySCF comparison suite, start with the [molecular guide](README.md).
 The reusable package APIs below remain at `clifford_qc.prepared` and `clifford_qc.pipeline`.
 
+The [Phase 2M policy matrix](../benchmarks/PHASE2M_POLICY_DECLARATION.md) compares
+object/packed storage and retain/stream lifetime policies in fresh worker processes.
+Its outcome-free preflight is `python benchmarks/run_bank_policy_matrix.py`.
+The full molecular record remains pending on a host with sufficient memory for
+the declared 15 GiB ceiling; the development container has an 8 GiB cap.
+
 The CLI currently accepts restricted real FCIDUMP inputs and uses exact A-CASE
 with determinant-excitation candidates and Jordan-Wigner encoding. It does not
 perform the upstream orbital, active-space, or integral calculation. Other

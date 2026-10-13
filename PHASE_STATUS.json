@@ -294,12 +294,11 @@
       "id": "2M",
       "title": "Memory-bounded matrix-element bank",
       "status": "partial",
-      "outcome": "packed_and_stream_recompute_shipped_small_system_equivalence_tested_full_molecular_matrix_open",
+      "outcome": "storage_and_isolated_policy_matrix_implemented_molecular_execution_pending",
       "remaining": [
-        "Disk-backed frontier policy if justified by measured finite-shot workload",
-        "Equivalence matrix on H4, BeH2, and H2O",
-        "Per-arm process isolation for the feasibility peaks",
-        "Remeasure packed end-to-end runtime after removing scoring materialization"
+        "Complete the frozen five-system/four-arm policy matrix on a sufficiently large host, commit its record alone and validate observations plus direct pencil rebuilds",
+        "Interpret isolated RSS/runtime and current packed-scoring performance after that record",
+        "Disk-backed frontier policy only if justified by a measured finite-shot workload"
       ],
       "evidence": [
         "clifford_qc/subspace/projection.py",
@@ -308,7 +307,14 @@
         "benchmarks/reference_results/packed_bank_storage.json",
         "benchmarks/reference_results/packed_h2o_feasibility.json",
         "clifford_qc/subspace/streaming.py",
-        "tests/test_pipeline_refactoring.py"
+        "tests/test_pipeline_refactoring.py",
+        "benchmarks/PHASE2M_POLICY_DECLARATION.md",
+        "benchmarks/configs/bank_policy_matrix.json",
+        "benchmarks/bank_policy_contract.py",
+        "benchmarks/bank_policy_worker.py",
+        "benchmarks/run_bank_policy_matrix.py",
+        "benchmarks/check_bank_policy_matrix.py",
+        "tests/test_bank_policy_matrix.py"
       ]
     },
     {

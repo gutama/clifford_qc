@@ -1,0 +1,163 @@
+{
+  "schema": "clifford_qc.bank_policy_matrix_config.v1",
+  "phase": "2M-C/D",
+  "systems": [
+    {
+      "id": "h4",
+      "source": {
+        "path": "benchmarks/data/h4_sto3g_r0.9.FCIDUMP",
+        "sha256": "bf32568461477cf1ec8e7c4aaae737b0c6c80bcbd83d51f783ec3a3daed5a922"
+      },
+      "reference": {
+        "path": "benchmarks/reference_results/fcidump_h4.json",
+        "sha256": "f397d181d5d70801f13ba0e03e2a8edafc9bcd82ccf1658f10f1f3370f796b11",
+        "energy_key": [
+          "mapped_oracle",
+          "ground_energy"
+        ]
+      },
+      "exact_ground_energy": -2.180316614323859,
+      "manifest": {
+        "n_qubits": 8,
+        "candidate_count": 26,
+        "candidate_labels_sha256": "9453798a71b4bb61e6f4a7ecf530981fa42a5db03bd6f597feaa5906c1c957ad",
+        "candidate_operators_sha256": "48d78cf2bfd50d0e848e1ce250527be3a37685e4d688dfd50feb47efdf08653a"
+      }
+    },
+    {
+      "id": "beh2",
+      "source": {
+        "path": "molecular/results/beh2.fcidump",
+        "sha256": "575a2cb0d2c91235e64cd0d90bd1bc26bebdaea2492e39217bef990b38a18aa7"
+      },
+      "reference": {
+        "path": "molecular/results/beh2_results.json",
+        "sha256": "1f6c9fea9be0ff85bc86e431ea25ce52850c8916f7b46a086211e7a860d7924d",
+        "energy_key": [
+          "e_exact_fci"
+        ]
+      },
+      "exact_ground_energy": -15.595182356661757,
+      "manifest": {
+        "n_qubits": 14,
+        "candidate_count": 204,
+        "candidate_labels_sha256": "87e19bb6c842beb45e049c78bfc550bfccd52e846b2e25fe3f856d817d6908c6",
+        "candidate_operators_sha256": "0cff5af1e5641cc0d00ecaeba660130b1607247f0a717484180386a84a12fea6"
+      }
+    },
+    {
+      "id": "beh2_stretched",
+      "source": {
+        "path": "molecular/results/beh2_stretched.fcidump",
+        "sha256": "8330b2e5e9cf78027466c152dc64be7e26d49a2537950c417e7030ef49a9d8cb"
+      },
+      "reference": {
+        "path": "molecular/results/beh2_stretched_results.json",
+        "sha256": "f274089bb966b02aef8ecee0bac8957df1ab3bca6d2053583e9cfed05fdffe43",
+        "energy_key": [
+          "e_exact_fci"
+        ]
+      },
+      "exact_ground_energy": -15.342243746728684,
+      "manifest": {
+        "n_qubits": 14,
+        "candidate_count": 204,
+        "candidate_labels_sha256": "87e19bb6c842beb45e049c78bfc550bfccd52e846b2e25fe3f856d817d6908c6",
+        "candidate_operators_sha256": "0cff5af1e5641cc0d00ecaeba660130b1607247f0a717484180386a84a12fea6"
+      }
+    },
+    {
+      "id": "h2o",
+      "source": {
+        "path": "molecular/results/h2o.fcidump",
+        "sha256": "e56fd49e9cdc97da6d2b3f0f486a0be007e4a98872bba12cd9dec815b57f8792"
+      },
+      "reference": {
+        "path": "molecular/results/h2o_results.json",
+        "sha256": "b4beb02d062f34c3e08d75877e6c4ae386854344f577f21dc28bc8c2cece2733",
+        "energy_key": [
+          "e_exact_fci"
+        ]
+      },
+      "exact_ground_energy": -75.01257824109219,
+      "manifest": {
+        "n_qubits": 14,
+        "candidate_count": 140,
+        "candidate_labels_sha256": "bd458522f262a79e3916d51e437c0c4d51007b744e6bf43b0a7816e6ab4d34b3",
+        "candidate_operators_sha256": "b841f41b6b6c346d576ece84cff3588acc38483d5215106b6a17fa2ab503f4c5"
+      }
+    },
+    {
+      "id": "h2o_stretched",
+      "source": {
+        "path": "molecular/results/h2o_stretched.fcidump",
+        "sha256": "7defd58c24020a1ffbd9ebe3d08c15e32b5636376a676df01451f94b1d2afa36"
+      },
+      "reference": {
+        "path": "molecular/results/h2o_stretched_results.json",
+        "sha256": "b33802aa9f27a9af47af9a9ba42540628c11d41b853354d36d2b3e52465a273c",
+        "energy_key": [
+          "e_exact_fci"
+        ]
+      },
+      "exact_ground_energy": -74.77176966699481,
+      "manifest": {
+        "n_qubits": 14,
+        "candidate_count": 140,
+        "candidate_labels_sha256": "bd458522f262a79e3916d51e437c0c4d51007b744e6bf43b0a7816e6ab4d34b3",
+        "candidate_operators_sha256": "b841f41b6b6c346d576ece84cff3588acc38483d5215106b6a17fa2ab503f4c5"
+      }
+    }
+  ],
+  "arms": [
+    [
+      "object_retain",
+      "object",
+      "retain_all"
+    ],
+    [
+      "packed_retain",
+      "packed",
+      "retain_all"
+    ],
+    [
+      "object_stream",
+      "object",
+      "stream_recompute"
+    ],
+    [
+      "packed_stream",
+      "packed",
+      "stream_recompute"
+    ]
+  ],
+  "execution": {
+    "rss_ceiling_bytes": 16106127360,
+    "host_reserve_bytes": 536870912,
+    "timeout_seconds": 21600,
+    "sample_seconds": 0.05,
+    "frontier_pairs": 32
+  },
+  "options": {
+    "max_size": 30,
+    "roots": 1,
+    "aggregation": "mean",
+    "min_lowering": 1e-10,
+    "min_orthogonality": 1e-08,
+    "gamma": 0.0,
+    "criterion": "lowering",
+    "min_target_overlap": 1e-12,
+    "leakage_tol": 1e-10,
+    "leakage_mode": "operator",
+    "sector_target": null,
+    "spin_ordering": "interleaved",
+    "exact_ground_energy": null,
+    "target_error": 0.0015936,
+    "tau_s": 1e-10,
+    "rel_tau": 0.0,
+    "max_condition": 1000000000000.0,
+    "convergence": null
+  },
+  "environment_reference": "benchmarks/reference_results/protocol_cost.json",
+  "claim_boundary": "Exact-arithmetic storage-policy equivalence and measured classical process costs on five fixed FCIDUMPs, full candidate pools and frozen stopping rules. Fresh workers isolate allocator history. RSS includes preparation, reference, support history, scalar caches, instrumentation and coefficient rows; it is not an attributed coefficient-storage byte count. Packed live/reserved bytes and 24-byte coefficient payload estimates are separate. No sampling, hardware-time price, universal memory bound or quantum advantage is established. Historical records and the object default remain unchanged."
+}
