@@ -1,0 +1,14 @@
+{
+  "schema": "clifford_qc.phase17_ceo_publication_replay.v1",
+  "reason": "Git CLI push lacked credentials; connected GitHub publication changes commit identities. Preserve the original local history and verify the unchanged deterministic cases from the actual published execution source.",
+  "local_declaration_commit": "4afad7f6524ee4b9bde039e1611f65002ce65e31",
+  "local_execution_commit": "7b872b5e3433aac4253bf105f1d3f63a81d0b2a0",
+  "local_record_commit": "5cf5160",
+  "local_archive_head": "3444ed1ba34541462b4666fad8b0e13edc7bdb7a",
+  "local_record_sha256": "8b9b32fe3a2b10dbf6d257e1f595ff6d3ce3345ee02d6bdba4c2474768616fb8",
+  "local_config_sha256": "57b219fd527c5cbaeeb5778671801289a022a6db891e38f7e87b37c6df2f1f6d",
+  "cases_sha256": "fbdf171b89ac93b5248d7ca9f3e345e6fc9e479db56a22319ee6764fc8b663d6",
+  "archive_path": "benchmarks/migrations/phase17_ceo_local_history.bundle",
+  "archive_sha256": "de906fafda982f04358eed1acacf6c46362a13a799c206b1eaf2e2e74e35cdae",
+  "interpretation": "Reproducibility replay of a disclosed existing deterministic result; not a new independent statistical replica or a blind preregistration."
+}

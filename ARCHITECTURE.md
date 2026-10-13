@@ -47,6 +47,15 @@ Historical evidence lives in `molecular/results/`; new runs default to
 `molecular/runs/`. The suite computes classical references for comparisons;
 the installed solve API continues to make those references optional.
 
+The separate `algorithms/exchange.py` path compares generalized QE, OVP-only
+CEO and mixed-CEO pools. It validates the occupation-sector contract, stores
+bounded dense sector matrices, and uses exact exchange exponentials and adjoint
+gradients. It does not route through the existing single-Pauli `Program` ADAPT
+workflow or change that workflow's defaults. Its observed optimizer-call trace,
+logical screening ledger and generic Pauli-ladder upper bounds are checked by
+an independent occupation/spectral replay. See the
+[Phase 17 declaration](benchmarks/PHASE17_CEO_DECLARATION.md) for the scope.
+
 ## Layers and responsibilities
 
 Package paths below are relative to `clifford_qc/`; `benchmarks/` is at the

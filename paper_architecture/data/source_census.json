@@ -33,6 +33,8 @@
       "check_phase15_residual_successor_declaration",
       "check_phase15_variance_extrapolation",
       "check_phase16a_preregistration",
+      "check_phase17_ceo",
+      "check_phase17_ceo_declaration",
       "check_phase19_preregistration",
       "check_phase_status",
       "check_priceability_screen",
@@ -49,10 +51,11 @@
     "classes": {
       "Cross-artifact": 5,
       "Documentation": 1,
+      "Exact trajectory replay": 1,
       "Lineage and environment": 3,
       "Observed resource equivalence": 1,
       "Plan ledger": 1,
-      "Post-hoc declaration": 2,
+      "Post-hoc declaration": 3,
       "Preregistration": 13,
       "Value-rebuilt": 28
     },
@@ -70,13 +73,13 @@
       "check_r3d_qr3_refinement",
       "check_record_environment"
     ],
-    "gates": 54,
+    "gates": 56,
     "manual_dispatch_only": 12,
-    "named_in_workflow": 46,
-    "producers": 57,
+    "named_in_workflow": 48,
+    "producers": 58,
     "producers_without_gate": 25,
-    "run_on_every_pull_request": 34,
-    "same_stem_pairs": 32
+    "run_on_every_pull_request": 36,
+    "same_stem_pairs": 33
   },
   "records": {
     "declarations": {
@@ -109,6 +112,7 @@
       "phase16b_feasibility.json": "6829464abc77bc54",
       "phase16b_v2_feasibility.json": "6829464abc77bc54",
       "phase16b_v3_feasibility.json": "6829464abc77bc54",
+      "phase17_ceo.json": "44136fa355b3678a",
       "phase19_energy_comparison.json": "44136fa355b3678a",
       "priceability_screen.json": "f6a33f1aa225c4dd",
       "protocol_axis.json": "75a2ec249c533fed",
@@ -134,13 +138,13 @@
     "forms": {
       "basis_only": 0,
       "nested_in_subobject": 5,
-      "none": 6,
+      "none": 7,
       "per_quantity_mapping": 10,
       "role_only": 0,
       "role_with_nested_tier": 2,
       "top_level_tier": 17
     },
-    "json_records": 40,
+    "json_records": 41,
     "series_files": 21,
     "top_level_tiers": {
       "exact": 4,
@@ -154,8 +158,8 @@
   "source": {
     "layers": {
       "algorithms": {
-        "lines": 1432,
-        "modules": 8
+        "lines": 1695,
+        "modules": 9
       },
       "backends": {
         "lines": 1103,
@@ -198,9 +202,9 @@
         "modules": 1
       }
     },
-    "package_lines": 27570,
-    "package_modules": 104,
-    "test_lines": 32552,
-    "test_modules": 135
+    "package_lines": 27833,
+    "package_modules": 105,
+    "test_lines": 32745,
+    "test_modules": 137
   }
 }

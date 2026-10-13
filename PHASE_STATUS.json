@@ -243,11 +243,21 @@
       "implementation_fraction": 0.75,
       "evidence": [
         "clifford_qc/fermion_mapping.py",
-        "benchmarks/reference_results/mapping_axis.json"
+        "benchmarks/reference_results/mapping_axis.json",
+        "clifford_qc/algorithms/exchange.py",
+        "tests/test_exchange.py",
+        "benchmarks/PHASE17_CEO_DECLARATION.md",
+        "benchmarks/check_phase17_ceo_declaration.py",
+        "benchmarks/run_phase17_ceo.py",
+        "benchmarks/check_phase17_ceo.py",
+        "benchmarks/reference_results/phase17_ceo.json",
+        "tests/test_phase17_ceo.py"
       ],
       "remaining": [
-        "CEO pool benchmark",
         "Dedicated MORE-ADAPT breadth benchmark"
+      ],
+      "decision_records": [
+        "benchmarks/reference_results/phase17_ceo.json"
       ]
     },
     {

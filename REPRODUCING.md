@@ -116,7 +116,7 @@ No figure or table value in the manuscript is transcribed by hand, and
 ```bash
 python -m venv .venv && source .venv/bin/activate
 pip install -e .[test,research,stim]       # automatic CI extras
-pytest                                      # 3099 passed, 11 skipped
+pytest                                      # 3132 passed, 11 skipped
 ```
 
 This is the automatic CI dependency set; record gates additionally pin NumPy
@@ -132,7 +132,7 @@ the remaining `11 - 6 = 5` skips are per-test and *are* collected:
 
 ```text
 collected == passed + (skipped - files dropped at collection)
-3104      == 3099   + (11      -   6)
+3137      == 3132   + (11      -   6)
 ```
 
 Both sides are computed from the tree, so a drift in either quoted number
@@ -4195,7 +4195,7 @@ The producer's default command evaluates no new molecular energies or costs;
 the checker validates the committed observations once the record exists. The
 five-system/four-arm campaign is complete: all twenty cells ran from clean
 execution source `e00d64a` on a 32 GiB container, and its VALID record was
-committed alone in `337ae73`. Both checker modes pass. The earlier 8 GiB host
+committed alone in `337ae73`. Both checker gates pass. The earlier 8 GiB host
 refused before consuming a claim; the frozen design was not reduced.
 
 For the original execution, the launcher required the pinned record environment,
@@ -4545,3 +4545,50 @@ The record binds the content hashes of `run_phase19_energy_comparison.py`,
 checker compares the working files against those hashes, so the three files are
 now frozen: editing any of them fails the record check. Any new outcome needs a
 separately disclosed declaration.
+
+## Phase 17: exact QE and CEO pool comparison
+
+The disclosed, frozen design is [PHASE17_CEO_DECLARATION.md](benchmarks/PHASE17_CEO_DECLARATION.md).
+The default producer invocation is outcome-free. Explicit execution requires the
+record environment, clean committed sources, an execution commit after the
+declaration, one BLAS thread, no existing record and no consumed execution claim.
+
+```bash
+python benchmarks/check_phase17_ceo_declaration.py
+python benchmarks/run_phase17_ceo.py
+# The frozen campaign is executed once, after those gates:
+OMP_NUM_THREADS=1 OPENBLAS_NUM_THREADS=1 MKL_NUM_THREADS=1 python benchmarks/run_phase17_ceo.py --execute
+python benchmarks/check_phase17_ceo.py
+```
+
+The independent checker reconstructs occupation swaps, CEO sums/differences,
+sector spectra, all optimizer calls, target-prefix crossings and logical ledgers.
+It does not reoptimize, certify finite shots or establish a global optimum.
+Screened gradient forms, unique commutator words, optimizer calls, parameter
+derivatives and generic Pauli-ladder CNOT upper bounds are separate currencies.
+The persistent claim retains the full diagnostic trajectory if validation fails.
+The MORE-ADAPT multi-root benchmark remains outstanding.
+
+The campaign ran once from `7b872b5` after the declaration commit `4afad7f`;
+the result-only commit is `5cf5160`. Both checker gates pass.
+
+| system | arm | first target round | parameters | screened gradient forms | optimizer calls | generic CNOT upper bound |
+|---|---|---:|---:|---:|---:|---:|
+| h4 | qe | 9 | 9 | 810 | 100 | 432 |
+| h4 | ovp_ceo | 9 | 9 | 864 | 100 | 216 |
+| h4 | mixed_ceo | 8 | 11 | 768 | 125 | 408 |
+| beh2 | qe | 2 | 2 | 180 | 13 | 96 |
+| beh2 | ovp_ceo | 2 | 2 | 192 | 13 | 48 |
+| beh2 | mixed_ceo | 2 | 2 | 192 | 13 | 48 |
+| lih | qe | 0 | 0 | 0 | 0 | 0 |
+| lih | ovp_ceo | 0 | 0 | 0 | 0 | 0 |
+| lih | mixed_ceo | 0 | 0 | 0 | 0 | 0 |
+
+LiH is the reference-floor diagnostic: round zero is not a solver gain.
+Target-prefix costs are retrospective oracle-indexed diagnostics, not an
+implemented stopping rule. The full executed trajectories have separate total
+ledgers. The mixed arm trades fewer growth rounds on H4 for more parameters
+and optimizer calls. OVP reduces the generic ladder upper bound, but the
+published optimized CEO circuits are not compiled here. Most local solves
+finish on the optimizer energy condition before its stricter gradient tolerance;
+all resolution flags are preserved. No aggregate cost or advantage follows.

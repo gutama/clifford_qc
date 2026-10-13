@@ -199,6 +199,14 @@ New runs write to `molecular/runs/`; committed evidence remains in `molecular/re
 
 ## Choosing a solver
 
+For a small exact comparison of generalized qubit-excitation and CEO pools,
+`clifford_qc.algorithms.exchange` provides `exchange_pools` and
+`run_exchange_adapt` with QE, OVP-only and mixed-CEO arms. It stores dense
+matrices in a declared particle-number/spin sector and records every optimizer
+call. This is an exact comparison path with unmeasured quantum-shot costs;
+the [Phase 17 declaration](benchmarks/PHASE17_CEO_DECLARATION.md) states its
+scope and the separate generic Pauli-ladder resource upper bounds.
+
 | Workflow | What changes during the calculation | Main tradeoff |
 |---|---|---|
 | VQE | Parameters of a fixed circuit | Repeated objective and gradient evaluations |
