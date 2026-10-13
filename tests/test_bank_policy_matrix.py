@@ -182,3 +182,60 @@ def test_failed_campaign_retains_claim_when_error_persistence_fails(monkeypatch,
     monkeypatch.setattr(contract, "atomic_json", write)
     assert producer.main(["--execute"]) == 1
     assert contract.read_json(claim)["status"] == "claimed"
+
+
+def environment_fixture():
+    dependencies = {"numpy": "2.5.2", "scipy": "1.18.0"}
+    reference = {"python": "3.12.13", "dependencies": dict(dependencies)}
+    record = {"provenance": {"python": "3.12.14", "dependencies": dict(dependencies)},
+              "cells": [{"status": "completed", "worker": {
+                  "python": "3.12.14", **dependencies}}]}
+    return record, reference
+
+
+def test_record_environment_allows_reference_python_patch_difference():
+    record, reference = environment_fixture()
+    assert checker.environment_problems(record, reference) == []
+
+
+@pytest.mark.parametrize("field", [
+    "producer_python_minor", "producer_python_type", "worker_python_minor",
+    "worker_python_patch", "producer_numpy", "producer_scipy",
+    "worker_numpy", "worker_scipy",
+])
+def test_record_environment_rejects_interpreter_and_library_drift(field):
+    record, reference = environment_fixture()
+    if field == "producer_python_minor":
+        record["provenance"]["python"] = "3.11.14"
+    elif field == "producer_python_type":
+        record["provenance"]["python"] = False
+    elif field == "worker_python_minor":
+        record["cells"][0]["worker"]["python"] = "3.11.14"
+    elif field == "worker_python_patch":
+        record["cells"][0]["worker"]["python"] = "3.12.15"
+    else:
+        owner, library = field.split("_")
+        if owner == "producer":
+            record["provenance"]["dependencies"][library] = {"numpy": "2.5.3", "scipy": "1.18.1"}[library]
+        else:
+            record["cells"][0]["worker"][library] = {"numpy": "2.5.3", "scipy": "1.18.1"}[library]
+    expected = "python" if "python" in field else field.split("_")[1]
+    problems = checker.environment_problems(record, reference)
+    assert any(problem.endswith(f": {expected}") for problem in problems)
+
+
+@pytest.mark.parametrize("kind", ["S", "H"])
+def test_direct_rebuild_rejects_changed_ieee_signed_zero(toy, kind):
+    config, record = toy
+    science = deepcopy(record["cells"][0]["scientific"])
+    size = len(science["indices"])
+    original = checker.decode_matrix(science["solves"][-1][kind], size)
+    matrix = original.copy()
+    assert matrix[0, 0].imag.hex() == "0x0.0p+0"
+    matrix[0, 0] = complex(matrix[0, 0].real, -0.0)
+    assert np.array_equal(matrix, original)
+    assert matrix.tobytes() != original.tobytes()
+    science["solves"][-1][kind] = contract.matrix_record(matrix)
+    checked = checker.reference_check({"system": config["systems"][0],
+                                       "scientific": science})
+    assert checked["matrices_bitwise_equal"] is False

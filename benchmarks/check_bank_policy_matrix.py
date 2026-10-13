@@ -244,6 +244,28 @@ def comparison_problems(record, config):
     return problems
 
 
+def environment_problems(record, reference):
+    """Check the recorded interpreter and libraries, not the reader's environment."""
+    problems = []
+    stamp = record["provenance"]
+    python = stamp["python"]
+    # The record contract pins Python's minor release; patch releases may differ.
+    if type(python) is not str or python.split(".")[:2] != reference["python"].split(".")[:2]:
+        problems.append("execution environment differs: python")
+    for key in ("numpy", "scipy"):
+        if stamp["dependencies"][key] != reference["dependencies"][key]:
+            problems.append(f"execution environment differs: {key}")
+    for cell in record["cells"]:
+        if cell["status"] == "completed":
+            # Every fresh worker is launched through the parent's sys.executable.
+            if cell["worker"]["python"] != python:
+                problems.append("worker environment differs: python")
+            for key in ("numpy", "scipy"):
+                if cell["worker"][key] != stamp["dependencies"][key]:
+                    problems.append(f"worker environment differs: {key}")
+    return problems
+
+
 def check_record(record, config, *, provenance=True):
     problems = []
     if set(record) != {"schema", "phase", "configuration_sha256", "claim_boundary", "cells", "verdict", "execution", "provenance"}:
@@ -286,14 +308,7 @@ def check_record(record, config, *, provenance=True):
                 problems.append("first record must be committed alone after execution")
             contract.git("merge-base", "--is-ancestor", execution, first)
         reference = contract.read_json(ROOT / config["environment_reference"])["provenance"]
-        for key in ("numpy", "scipy"):
-            if stamp["dependencies"][key] != reference["dependencies"][key]:
-                problems.append(f"execution environment differs: {key}")
-        for cell in record["cells"]:
-            if cell["status"] == "completed":
-                for key in ("numpy", "scipy"):
-                    if cell["worker"][key] != stamp["dependencies"][key]:
-                        problems.append(f"worker environment differs: {key}")
+        problems += environment_problems(record, reference)
     return problems
 
 
@@ -321,20 +336,25 @@ def reference_check(request):
     s, h = np.zeros((size, size), complex), np.zeros((size, size), complex)
     acted = [model.hamiltonian.to_mv() * generator.mv for generator in selected]
     words = set()
-    for j, generator in enumerate(selected):
+    scale = float(2**model.n)
+    for j in range(size):
         for i in range(j + 1):
-            adjoint = selected[i].mv.dagger()
-            overlap, element = adjoint * generator.mv, adjoint * acted[j]
+            # Canonical arithmetic follows the frozen generator registration
+            # order, not adaptive basis position. Preserve signed zeros when
+            # conjugating an entry whose selected coordinates reverse it.
+            left, right = (i, j) if science["indices"][i] <= science["indices"][j] else (j, i)
+            adjoint = selected[left].mv.dagger()
+            overlap, element = adjoint * selected[right].mv, adjoint * acted[right]
             words.update(overlap.terms)
             words.update(element.terms)
-            s[i, j] = 2**model.n * overlap.trace_pairing(rho)
-            h[i, j] = 2**model.n * element.trace_pairing(rho)
+            sv, hv = scale * overlap.trace_pairing(rho), scale * element.trace_pairing(rho)
+            s[i, j], h[i, j] = (sv, hv) if left == i else (sv.conjugate(), hv.conjugate())
     for j in range(size):
         s[j, j], h[j, j] = s[j, j].real, h[j, j].real
         for i in range(j):
             s[j, i], h[j, i] = s[i, j].conjugate(), h[i, j].conjugate()
     pencil = science["solves"][-1]
-    valid = np.array_equal(s, decode_matrix(pencil["S"], size)) and np.array_equal(h, decode_matrix(pencil["H"], size))
+    valid = contract.matrix_record(s) == pencil["S"] and contract.matrix_record(h) == pencil["H"]
     cfg = science["config"]
     result = solve_projected(s, h, [g.label for g in selected], tau_s=cfg["tau_s"],
                              rel_tau=cfg["rel_tau"], max_condition=cfg["max_condition"])

@@ -293,13 +293,9 @@
     {
       "id": "2M",
       "title": "Memory-bounded matrix-element bank",
-      "status": "partial",
-      "outcome": "storage_and_isolated_policy_matrix_implemented_molecular_execution_pending",
-      "remaining": [
-        "Complete the frozen five-system/four-arm policy matrix on a sufficiently large host, commit its record alone and validate observations plus direct pencil rebuilds",
-        "Interpret isolated RSS/runtime and current packed-scoring performance after that record",
-        "Disk-backed frontier policy only if justified by a measured finite-shot workload"
-      ],
+      "status": "complete",
+      "outcome": "exact_five_system_storage_lifetime_matrix_validated_with_isolated_process_costs",
+      "remaining": [],
       "evidence": [
         "clifford_qc/subspace/projection.py",
         "clifford_qc/subspace/packed.py",
@@ -314,7 +310,11 @@
         "benchmarks/bank_policy_worker.py",
         "benchmarks/run_bank_policy_matrix.py",
         "benchmarks/check_bank_policy_matrix.py",
-        "tests/test_bank_policy_matrix.py"
+        "tests/test_bank_policy_matrix.py",
+        "benchmarks/reference_results/bank_policy_matrix.json"
+      ],
+      "deferred": [
+        "Disk-backed frontier storage is unimplemented and conditional on a measured finite-shot workload; the exact policy matrix does not license it"
       ]
     },
     {

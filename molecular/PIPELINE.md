@@ -160,9 +160,13 @@ Object rows release dictionary references on eviction. Packed rows use independe
 segments that release their NumPy buffer capacity when removed. Selection keeps
 canonical arithmetic order and historical supports, including the word-cost
 objective. A selected row evicted during scoring is rebuilt when retained.
-Recomputation can cost time, so streaming stays opt-in. Disk-backed storage is
-not implemented, and a full production molecular comparison of the new policies
-has not been established.
+Recomputation can cost time, so streaming stays opt-in. The frozen five-system,
+four-arm process-isolated matrix in
+`benchmarks/reference_results/bank_policy_matrix.json` validates exact scientific
+and logical equivalence, observed streaming row bounds, and independent final
+pencils on those inputs and budgets. Its measured RSS/runtime trade-offs are in
+`REPRODUCING.md`. They establish no universal process-memory bound. Disk-backed
+storage is not implemented and remains conditional on a measured finite-shot need.
 
 Scoring reads row supports directly, and storage measurement never reconstructs
 packed multivectors. Newly built exact pairs are contracted before packing.

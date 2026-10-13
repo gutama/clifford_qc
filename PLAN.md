@@ -1173,7 +1173,7 @@ preserved; otherwise use a declared tight tolerance and record the first source 
 rounding-order divergence. Report bank-build time, recomputation time, spill I/O,
 peak and delta RSS, packed bytes and actual bytes per coefficient.
 
-**The process-isolated C/D matrix is implemented; its molecular record is pending.**
+**The process-isolated C/D matrix is complete on its declared exact workloads.**
 `benchmarks/PHASE2M_POLICY_DECLARATION.md` and
 `benchmarks/configs/bank_policy_matrix.json` freeze five systems and four storage/lifetime
 arms. `run_bank_policy_matrix.py` launches every arm in a fresh interpreter, with
@@ -1181,12 +1181,25 @@ full candidate pools, identical 30-addition budgets and stopping rules, a 32-pai
 streaming frontier, a 15 GiB RSS ceiling and explicit failure records. The worker
 records all projected pencils, candidate decisions and logical resource history;
 `check_bank_policy_matrix.py` independently checks them and optionally rebuilds
-final pencils by direct products in separate reference processes. All new tests use
-undeclared small fixtures. The 8 GiB development container refuses the molecular
-campaign before claiming it. Phase 2M remains partial until the complete record
-and both checker modes pass on a sufficiently large host. Disk-backed storage
-remains deferred. Process RSS and its coefficient density are not attributed
-row-allocation bytes, and the prior same-process timing is not remeasured here.
+final pencils by direct products in separate reference processes. The frozen
+campaign ran from clean execution source `e00d64a` on a 32 GiB container; its
+record was committed alone in `337ae73`. All twenty cells completed below the
+unchanged 15 GiB ceiling and six-hour deadlines, with exact scientific/logical
+equality. Both observation checking and strict IEEE-byte direct pencil rebuilds
+pass. The checker preserves the frozen generator registration order, including
+conjugation's signed zeros, and checks the recorded Python minor release and
+each worker's full interpreter identity. The unit tests use undeclared fixtures.
+
+On the stretched-H2O full-pool `M = 31` case, peak process RSS was
+`9.873 / 3.666 / 3.201 / 2.626 GiB` for object retain, packed retain, object stream
+and packed stream respectively. Parent wall times were
+`14.39 / 25.31 / 20.89 / 26.15 minutes`. Packing and streaming reduce observed
+process memory here while taking longer; their savings do not multiply.
+These instrumented, single-host costs are distinct from intrinsic coefficient
+storage bytes. The prior same-process measurements remain historical evidence,
+not directly comparable timings. Disk-backed storage remains conditional on a
+measured finite-shot need and is not implemented. See the complete matrix and
+interpretation in `REPRODUCING.md`.
 
 *The end-to-end feasibility clause has run, and it passes without discriminating.*
 `run_packed_h2o_feasibility.py` and `reference_results/packed_h2o_feasibility.json`

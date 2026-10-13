@@ -80,6 +80,7 @@
   },
   "records": {
     "declarations": {
+      "bank_policy_matrix.json": "0cf13e3ba82330b7",
       "bank_storage_ledger.json": "f6a33f1aa225c4dd",
       "clifford_hierarchy_beh2.json": "b6ce42a8d9054785",
       "clifford_hierarchy_beh2_v2.json": "44136fa355b3678a",
@@ -123,7 +124,7 @@
     "distinct_top_level_tiers": 5,
     "examples": {
       "basis_only": null,
-      "nested_in_subobject": "clifford_hierarchy_beh2.json",
+      "nested_in_subobject": "bank_policy_matrix.json",
       "none": "clifford_hierarchy_beh2_v2.json",
       "per_quantity_mapping": "fcidump_h4.json",
       "role_only": null,
@@ -132,14 +133,14 @@
     },
     "forms": {
       "basis_only": 0,
-      "nested_in_subobject": 4,
+      "nested_in_subobject": 5,
       "none": 6,
       "per_quantity_mapping": 10,
       "role_only": 0,
       "role_with_nested_tier": 2,
       "top_level_tier": 17
     },
-    "json_records": 39,
+    "json_records": 40,
     "series_files": 21,
     "top_level_tiers": {
       "exact": 4,
@@ -199,7 +200,7 @@
     },
     "package_lines": 27570,
     "package_modules": 104,
-    "test_lines": 32495,
+    "test_lines": 32552,
     "test_modules": 135
   }
 }
