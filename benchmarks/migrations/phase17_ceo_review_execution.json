@@ -1,0 +1,6 @@
+{
+  "schema": "clifford_qc.phase17_ceo_review_execution.v1",
+  "declaration_commit": "58a791102ae1b661717648b21c542370e9ab5adf",
+  "config_sha256": "d26536081ba219ea083abb17a8335dcf04d56c8981cc245cce05fc79c1aa4970",
+  "purpose": "Outcome-free execution marker after the post-review declaration. No numerical option or scientific input changes. The next single campaign must bind this actual published source."
+}
