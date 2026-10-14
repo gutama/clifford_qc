@@ -86,7 +86,7 @@ KERNEL_MODULES = (
     "sparse.py", "pauli_action.py", "pauli_structure.py", "diagnostics.py",
     "matrix.py", "selection.py",
 )
-IR_MODULES = ("ir.py", "qasm3.py", "fermion_mapping.py")
+IR_MODULES = ("ir.py", "qasm3.py", "fermion_mapping.py", "pool_operator.py")
 EVIDENCE_MODULES = ("verify.py", "reproducibility.py", "record_environment.py",
                     "capabilities.py", "evidence.py")
 ORCHESTRATION_MODULES = ("workflows.py", "prepared.py", "pipeline.py")
@@ -134,6 +134,11 @@ def _layer_of(relative: Path) -> str:
 # check_*.py on disk exactly once.
 # ---------------------------------------------------------------------------
 GATE_CLASSES: tuple[tuple[str, str, tuple[str, ...]], ...] = (
+    (
+        "Kernel fixture audit",
+        "rebuilds named blade decisions and support bounds; audits measured timings without speed thresholds",
+        ("check_sparse_ga_kernel",),
+    ),
     (
         "Exact trajectory replay",
         "independently replays occupation states, optimizer calls and observed counters; not global optimality",

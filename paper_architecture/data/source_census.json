@@ -46,6 +46,7 @@
       "check_r4a_contextual_screen",
       "check_r4a_preregistration",
       "check_second_moment_validation",
+      "check_sparse_ga_kernel",
       "check_summaries",
       "check_warm_start"
     ],
@@ -54,6 +55,7 @@
       "Documentation": 1,
       "Evidence metadata": 1,
       "Exact trajectory replay": 1,
+      "Kernel fixture audit": 1,
       "Lineage and environment": 3,
       "Observed resource equivalence": 1,
       "Plan ledger": 1,
@@ -75,13 +77,13 @@
       "check_r3d_qr3_refinement",
       "check_record_environment"
     ],
-    "gates": 57,
+    "gates": 58,
     "manual_dispatch_only": 12,
-    "named_in_workflow": 50,
-    "producers": 58,
+    "named_in_workflow": 51,
+    "producers": 59,
     "producers_without_gate": 25,
-    "run_on_every_pull_request": 38,
-    "same_stem_pairs": 33
+    "run_on_every_pull_request": 39,
+    "same_stem_pairs": 34
   },
   "records": {
     "declarations": {
@@ -126,6 +128,7 @@
       "r3d_qr3_refinement.json": "63a5cd4d094d0517",
       "r4a_contextual_screen.json": "f6a33f1aa225c4dd",
       "second_moment_validation.json": "24572fd441b3622a",
+      "sparse_ga_kernel.json": "531e681367d4206f",
       "warm_start_h4.json": "a3981028c447b11d"
     },
     "distinct_top_level_tiers": 5,
@@ -142,12 +145,12 @@
       "basis_only": 0,
       "nested_in_subobject": 5,
       "none": 5,
-      "per_quantity_mapping": 13,
+      "per_quantity_mapping": 14,
       "role_only": 0,
       "role_with_nested_tier": 2,
       "top_level_tier": 17
     },
-    "json_records": 42,
+    "json_records": 43,
     "series_files": 21,
     "top_level_tiers": {
       "exact": 4,
@@ -161,7 +164,7 @@
   "source": {
     "layers": {
       "algorithms": {
-        "lines": 1732,
+        "lines": 1721,
         "modules": 9
       },
       "backends": {
@@ -177,11 +180,11 @@
         "modules": 5
       },
       "ir": {
-        "lines": 1224,
-        "modules": 3
+        "lines": 1246,
+        "modules": 4
       },
       "kernel": {
-        "lines": 2035,
+        "lines": 2110,
         "modules": 15
       },
       "measurement": {
@@ -205,9 +208,9 @@
         "modules": 1
       }
     },
-    "package_lines": 27906,
-    "package_modules": 106,
-    "test_lines": 33506,
-    "test_modules": 140
+    "package_lines": 27992,
+    "package_modules": 107,
+    "test_lines": 33882,
+    "test_modules": 144
   }
 }

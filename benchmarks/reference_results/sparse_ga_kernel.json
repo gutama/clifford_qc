@@ -1,0 +1,310 @@
+{
+  "schema": "clifford_qc.sparse_ga_kernel.v1",
+  "fixtures": [
+    {
+      "fixture": "n3_grade3_shared",
+      "n": 3,
+      "grade": 3,
+      "stored_terms": 3,
+      "masks": [
+        7,
+        19,
+        35
+      ],
+      "coefficients": [
+        [
+          1.0,
+          0.0
+        ],
+        [
+          0.0,
+          2.0
+        ],
+        [
+          -3.0,
+          0.0
+        ]
+      ],
+      "candidate_count": 7,
+      "candidate_bound": 9,
+      "measurements": {
+        "active": {
+          "is_blade": true,
+          "cold_ns": 252621,
+          "warm_ns": {
+            "min": 80680,
+            "median": 90663,
+            "max": 327365
+          },
+          "repeats": 31,
+          "cold_tracemalloc_peak_bytes": 5376,
+          "whole_grade_cache_entries": 0
+        },
+        "exhaustive": {
+          "is_blade": true,
+          "cold_ns": 246678,
+          "warm_ns": {
+            "min": 90940,
+            "median": 96531,
+            "max": 346777
+          },
+          "repeats": 31,
+          "cold_tracemalloc_peak_bytes": 12536,
+          "whole_grade_cache_entries": 1
+        }
+      },
+      "baseline_scope": "measured n=3 only; exhaustive n=12 intentionally not executed"
+    },
+    {
+      "fixture": "n12_grade3_shared",
+      "n": 12,
+      "grade": 3,
+      "stored_terms": 3,
+      "masks": [
+        7,
+        4194307,
+        8388611
+      ],
+      "coefficients": [
+        [
+          1.0,
+          0.0
+        ],
+        [
+          0.0,
+          2.0
+        ],
+        [
+          -3.0,
+          0.0
+        ]
+      ],
+      "candidate_count": 7,
+      "candidate_bound": 9,
+      "measurements": {
+        "active": {
+          "is_blade": true,
+          "cold_ns": 204841,
+          "warm_ns": {
+            "min": 51863,
+            "median": 55768,
+            "max": 568999
+          },
+          "repeats": 31,
+          "cold_tracemalloc_peak_bytes": 6144,
+          "whole_grade_cache_entries": 0
+        }
+      },
+      "baseline_scope": "measured n=3 only; exhaustive n=12 intentionally not executed"
+    },
+    {
+      "fixture": "n12_grade12_shared",
+      "n": 12,
+      "grade": 12,
+      "stored_terms": 3,
+      "masks": [
+        4095,
+        4196351,
+        8390655
+      ],
+      "coefficients": [
+        [
+          1.0,
+          0.0
+        ],
+        [
+          0.0,
+          2.0
+        ],
+        [
+          -3.0,
+          0.0
+        ]
+      ],
+      "candidate_count": 34,
+      "candidate_bound": 36,
+      "measurements": {
+        "active": {
+          "is_blade": true,
+          "cold_ns": 563514,
+          "warm_ns": {
+            "min": 236400,
+            "median": 265501,
+            "max": 457694
+          },
+          "repeats": 31,
+          "cold_tracemalloc_peak_bytes": 16912,
+          "whole_grade_cache_entries": 0
+        }
+      },
+      "baseline_scope": "measured n=3 only; exhaustive n=12 intentionally not executed"
+    },
+    {
+      "fixture": "n12_grade3_disjoint",
+      "n": 12,
+      "grade": 3,
+      "stored_terms": 2,
+      "masks": [
+        7,
+        56
+      ],
+      "coefficients": [
+        [
+          1.0,
+          0.0
+        ],
+        [
+          0.0,
+          1.0
+        ]
+      ],
+      "candidate_count": 6,
+      "candidate_bound": 6,
+      "measurements": {
+        "active": {
+          "is_blade": false,
+          "cold_ns": 56714,
+          "warm_ns": {
+            "min": 9131,
+            "median": 9956,
+            "max": 54253
+          },
+          "repeats": 31,
+          "cold_tracemalloc_peak_bytes": 2960,
+          "whole_grade_cache_entries": 0
+        }
+      },
+      "baseline_scope": "measured n=3 only; exhaustive n=12 intentionally not executed"
+    }
+  ],
+  "scope": "Classical maintenance profile; fixed JW frame; no quantum resource claim. Each fixture/method runs in a fresh process. Untraced cold/warm runtimes exclude fixture construction; cold tracemalloc peak counts Python allocations, not RSS.",
+  "source_files": [
+    {
+      "path": "clifford_qc/multivector.py",
+      "sha256": "6d57a97eb8d897f02505bdd278fec2ab49032be8716a5ea0b946a8960ff654d4",
+      "git_blob_sha1": "2cf0c6f3799835fe4fed9ad367d0dbde53b838f2"
+    },
+    {
+      "path": "clifford_qc/pauli_kernel.py",
+      "sha256": "c7512dc6ad68e7ccdf676b2fa1fe309c16a21ec5c820e55e7ac45bc8689c937d",
+      "git_blob_sha1": "eae6c74dea42108d9cb1414211b2a06438227e38"
+    },
+    {
+      "path": "benchmarks/run_sparse_ga_kernel.py",
+      "sha256": "33121ce8cebbd41361fdcdf36cf0a10611cd07e0dbd6da4d5f7c63179e7cc3e0",
+      "git_blob_sha1": "e1d029c13f35dbec76071ad84805604c52e78d1e"
+    }
+  ],
+  "evidence_schema": "clifford_qc.evidence.v1",
+  "evidence": {
+    "fixture_decisions_and_candidates": {
+      "tier": "exact_algebra",
+      "scope": "named deterministic fixture decisions and active-mask counts"
+    },
+    "runtime_ns": {
+      "tier": "classical_process_measurement",
+      "scope": "isolated cold call and warm repeat timings on this recorded environment"
+    },
+    "tracemalloc_peak_bytes": {
+      "tier": "classical_process_measurement",
+      "scope": "cold-call Python allocation peak, excluding fixture construction; not total process memory"
+    }
+  },
+  "provenance": {
+    "schema": "clifford_qc.execution_provenance.v1",
+    "git_sha": "5793459cfc3ab59f900af56b4ce30699345b6f1e",
+    "git_dirty": true,
+    "clifford_qc": "0.3.0",
+    "python": "3.12.14",
+    "dependencies": {
+      "numpy": "2.5.2",
+      "scipy": "1.18.0",
+      "pyscf": null,
+      "openfermion": null,
+      "openfermionpyscf": null,
+      "stim": "1.16.0"
+    },
+    "platform": {
+      "system": "Linux",
+      "release": "6.18.44",
+      "machine": "x86_64",
+      "processor": "x86_64",
+      "hostname": "78579a9ce625"
+    },
+    "blas_lapack": {
+      "Compilers": {
+        "c": {
+          "name": "gcc",
+          "linker": "ld.bfd",
+          "version": "14.2.1",
+          "commands": "cc"
+        },
+        "cython": {
+          "name": "cython",
+          "linker": "cython",
+          "version": "3.2.9",
+          "commands": "cython"
+        },
+        "c++": {
+          "name": "gcc",
+          "linker": "ld.bfd",
+          "version": "14.2.1",
+          "commands": "c++"
+        }
+      },
+      "Machine Information": {
+        "host": {
+          "cpu": "x86_64",
+          "family": "x86_64",
+          "endian": "little",
+          "system": "linux"
+        },
+        "build": {
+          "cpu": "x86_64",
+          "family": "x86_64",
+          "endian": "little",
+          "system": "linux"
+        }
+      },
+      "Build Dependencies": {
+        "blas": {
+          "name": "scipy-openblas",
+          "found": true,
+          "version": "0.3.34.0.0",
+          "detection method": "pkgconfig",
+          "include directory": "/opt/_internal/cpython-3.12.13/lib/python3.12/site-packages/scipy_openblas64/include",
+          "lib directory": "/opt/_internal/cpython-3.12.13/lib/python3.12/site-packages/scipy_openblas64/lib",
+          "openblas configuration": "OpenBLAS 0.3.34.0.0  USE64BITINT DYNAMIC_ARCH NO_AFFINITY Haswell MAX_THREADS=64",
+          "pc file directory": "/project/.openblas"
+        },
+        "lapack": {
+          "name": "scipy-openblas",
+          "found": true,
+          "version": "0.3.34.0.0",
+          "detection method": "pkgconfig",
+          "include directory": "/opt/_internal/cpython-3.12.13/lib/python3.12/site-packages/scipy_openblas64/include",
+          "lib directory": "/opt/_internal/cpython-3.12.13/lib/python3.12/site-packages/scipy_openblas64/lib",
+          "openblas configuration": "OpenBLAS 0.3.34.0.0  USE64BITINT DYNAMIC_ARCH NO_AFFINITY Haswell MAX_THREADS=64",
+          "pc file directory": "/project/.openblas"
+        }
+      },
+      "Python Information": {
+        "path": "/tmp/build-env-jmn5a0j4/bin/python",
+        "version": "3.12"
+      },
+      "SIMD Extensions": {
+        "baseline": [
+          "X86_V2"
+        ],
+        "found": [
+          "X86_V3",
+          "X86_V4",
+          "AVX512_ICL",
+          "AVX512_SPR"
+        ]
+      }
+    },
+    "environment_sha256": "2fe4998a30dab5252662662ae884fdeceafb416715d1a1ae37631a4699ab505e",
+    "utc": "2026-10-14T06:52:36.738425+00:00"
+  }
+}

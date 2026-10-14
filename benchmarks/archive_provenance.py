@@ -63,7 +63,8 @@ def safe_path(root: Path, relative: str) -> Path:
 
 
 def verify_archive(root: Path, record_path: str, config_path: str,
-                   execution: str, sources: dict[str, dict]) -> None:
+                   execution: str, sources: dict[str, dict], *,
+                   lineage_sources: dict[str, dict] | None = None) -> None:
     """Verify manifest, current inputs, and packaged historical execution bytes.
 
     A checksum manifest verifies content consistency, not who created the archive.
@@ -74,7 +75,10 @@ def verify_archive(root: Path, record_path: str, config_path: str,
             or manifest["schema"] != "clifford_qc.archive_bindings.v1"):
         raise ValueError("archive manifest identity differs")
     entry = manifest["records"][record_path]
-    if set(entry) != {"record_sha256", "config", "execution_commit", "sources"}:
+    expected_keys = {"record_sha256", "config", "execution_commit", "sources"}
+    if lineage_sources is not None:
+        expected_keys.add("lineage_sources")
+    if set(entry) != expected_keys:
         raise ValueError("archive record binding keys differ")
     if entry["record_sha256"] != binding(safe_path(root, record_path))["sha256"]:
         raise ValueError("archive record digest differs")
@@ -95,6 +99,26 @@ def verify_archive(root: Path, record_path: str, config_path: str,
             raise ValueError(f"archive execution source digest differs: {path}")
         if any(item[key] != value for key, value in expected.items()):
             raise ValueError(f"archive source differs from recorded execution: {path}")
+    if lineage_sources is not None:
+        if set(entry["lineage_sources"]) != set(lineage_sources):
+            raise ValueError("archive lineage source set differs")
+        for path, expected in lineage_sources.items():
+            lineage_source_path(root, record_path, {"path": path, **expected})
+
+
+def lineage_source_path(root: Path, record_path: str, expected: dict) -> Path:
+    """Read a packaged execution source pinned by the frozen declaration."""
+    manifest = read_json(safe_path(root, MANIFEST))
+    if manifest.get("schema") != "clifford_qc.archive_bindings.v1":
+        raise ValueError("archive manifest identity differs")
+    item = manifest["records"][record_path]["lineage_sources"][expected["path"]]
+    if set(item) != {"snapshot", "sha256", "git_blob_sha1"}:
+        raise ValueError("archive lineage source binding keys differ")
+    source = safe_path(root, item["snapshot"])
+    actual = binding(source)
+    if actual != {key: expected[key] for key in actual} or actual != {key: item[key] for key in actual}:
+        raise ValueError(f"frozen execution source digest differs: {expected['path']}")
+    return source
 
 
 def archive_notice() -> None:

@@ -520,9 +520,8 @@ separate.
   view whose box titles come from the declared layer map; algorithms and
   subspace solvers are grouped, while the package surface and cross-layer
   orchestration are omitted from this selected-edge view.  Solid arrows are
-  selected import-time dependencies.  Most point downward; the
-  horizontal problem-to-solver arrow records the module-scope chemistry-to-pool
-  exception.  Red dashed arrows are genuine upward runtime edges deferred to
+  selected import-time dependencies, including the downward chemistry-to-IR
+  dependency for shared named Pauli candidates. Red dashed arrows are genuine upward runtime edges deferred to
   call time; the blue dashed arrow is a downward call into an optional bridge.
   The deferral buys initialization order, not independence, and
   Sec.~\ref{sec:architecture} states the exceptions rather than claiming an
@@ -568,7 +567,10 @@ to feed shared estimators. Sector execution uses a specialized statevector API;
 it is not a drop-in replacement for every density-operator path.
 
 Dependencies are mostly layered, with explicit exceptions. Chemistry model
-construction imports an algorithm-pool helper at module scope. Some measurement
+construction and algorithm pools share the candidate type and odd-$Y$ predicate
+in \texttt{pool\_operator}, assigned to Program IR because it depends on
+\texttt{PauliWord}. The historical algorithm imports re-export the same type;
+model construction no longer imports the solver package for those values. Some measurement
 methods call subspace code, and kernel sector helpers call execution code,
 through function-scope imports. These deferred imports manage initialization;
 they do not make the runtime dependency graph acyclic. Optional adapters are

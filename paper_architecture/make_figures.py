@@ -268,7 +268,7 @@ def layer_stack() -> None:
         (1.25, 3.65, 3.5, 0.82, layer_title["measurement"], "measurement/", "#fff3cd"),
         (5.05, 3.65, 3.5, 0.82, layer_title["backends"], "backends/", "#fff3cd"),
         (1.25, 2.45, 7.3, 0.82, layer_title["ir"],
-         "ir.py, qasm3.py, fermion_mapping.py", "#d9edf7"),
+         "IR, QASM3, encodings, shared candidates", "#d9edf7"),
         (1.25, 1.25, 7.3, 0.82, layer_title["kernel"],
          "multivector.py, pauli_kernel.py, ...", "#d9edf7"),
         (1.25, 0.15, 7.3, 0.68, layer_title["bridges"],
@@ -285,11 +285,12 @@ def layer_stack() -> None:
         ((2.6, 3.65), (2.6, 3.27)),
         ((6.8, 3.65), (6.8, 3.27)),
         ((4.9, 2.45), (4.9, 2.07)),
-        # models/chemistry.py -> algorithms/pools.py at module scope
-        ((5.05, 5.26), (4.75, 5.26)),
     ]
     for start, end in selected_imports:
         _arrow(right, start, end)
+    # Chemistry -> shared pool value in Program IR, routed around execution.
+    right.plot([8.55, 8.75, 8.75], [5.26, 5.26, 2.86], linewidth=0.8, color="#37474f")
+    _arrow(right, (8.75, 2.86), (8.55, 2.86))
     # The upward edges are real; only their timing is constrained.  They are
     # unlabelled in the gutter and named once below, which is legible at column
     # width where three rotated captions are not.

@@ -79,13 +79,42 @@ P("IXI").grades()
 ```
 
 Grade-dependent operations (`grade`, `grades`, `reverse`, `wedge`,
-`scalar_product`, and `is_blade`) always use this fixed JW generator frame:
+`lcontract`, `rcontract`, `scalar_product`, and `is_blade`) always use this fixed JW generator frame:
 on parity- or BK-encoded operators they describe the JW pre-image of the stored
 Pauli words, not the transported fermionic structure. For a fermionic
 grade/blade interpretation, use the operator's JW image before encoding or
 register reduction; `MV` does not track or transport the encoding's generator
 frame. Operator products, adjoints, and trace pairings remain valid in each
 encoding.
+
+`blade_mask(n, code)` and `mask_to_code(n, mask)` are inverse subset/word maps.
+They encode which generators occur, not the phase of their ordered product.
+`blade_from_mask` retains that phase by multiplying Majoranas in ascending order.
+
+## Exterior products and contractions
+
+For homogeneous grades `r` and `s`, the named contractions are
+
+\[
+A_r\mathbin{\lrcorner} B_s=\langle\widetilde{A_r} B_s\rangle_{s-r}
+\quad(r\leq s),\qquad
+A_r\mathbin{\llcorner} B_s=\langle A_r\widetilde{B_s}\rangle_{r-s}
+\quad(r\geq s).
+\]
+
+Other grade pairs give zero. `A.lcontract(B)` / `A << B` and
+`A.rcontract(B)` / `A >> B` extend these definitions bilinearly to mixed
+grades, including scalars and complex coefficients. Reversion changes grade
+signs without conjugating coefficients. For example, an orthonormal bivector
+contracts with itself to `+1`, whereas its unreversed square is `-1`.
+These conventions are distinct from the full geometric product and adjoint.
+
+`is_blade(tol)` uses the full Plücker condition on homogeneous elements,
+including odd grades. Only contractions obtained by deleting one generator
+from an active support mask can be nonzero. At grade `k` with `t` stored terms
+there are at most `k*t` candidate masks; contraction/wedge support can still
+grow. Zero is accepted and mixed-grade nonzero elements are rejected. The
+existing constructor pruning (`TOL`) and absolute decision tolerance remain.
 
 ## Fermions
 

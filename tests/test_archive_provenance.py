@@ -147,6 +147,7 @@ def exported_checkout(tmp_path):
     for record_path, entry in manifest["records"].items():
         paths.update((Path(record_path), Path(entry["config"]["path"])))
         paths.update(Path(item["snapshot"]) for item in entry["sources"].values())
+        paths.update(Path(item["snapshot"]) for item in entry.get("lineage_sources", {}).values())
     for relative in paths:
         target = exported / relative
         target.parent.mkdir(parents=True, exist_ok=True)

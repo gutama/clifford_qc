@@ -22,8 +22,9 @@ if str(ROOT) not in sys.path:  # pragma: no cover - script execution
     sys.path.insert(0, str(ROOT))
 
 from benchmarks import phase19_structure as structure
-from benchmarks.archive_provenance import history_kind, verify_archive, archive_notice, ShallowHistoryError
-from benchmarks.metadata_io import read_json as read_metadata, unique_object
+from benchmarks.archive_provenance import (history_kind, verify_archive, archive_notice,
+                                           ShallowHistoryError, lineage_source_path)
+from benchmarks.metadata_io import read_json as read_metadata, unique_object, byte_digest
 
 CONFIG = ROOT / structure.CONFIG_PATH
 EXPECTED_CONFIG_SHA256 = "01e8b91fff879ed228c7264cabec3d7e49adf6e9e6da200a4132872b5ef0a9c7"
@@ -132,7 +133,7 @@ def historical_config_seeds(root: Path = ROOT) -> set[int]:
     return seeds
 
 
-def static_problems(config: dict, root: Path = ROOT) -> list[str]:
+def static_problems(config: dict, root: Path = ROOT, *, historical_sources: bool = False) -> list[str]:
     """Check the frozen design and rebuild only structural bank quantities."""
     try:
         _walk(config)
@@ -147,7 +148,13 @@ def static_problems(config: dict, root: Path = ROOT) -> list[str]:
     for row in config["lineage"]["files"] + config["bank_manifests"]:
         # Bank descriptors include an id beside their binding.
         binding = {key: row[key] for key in ("path", "sha256", "git_blob_sha1")}
-        problems.extend(_binding_problems(binding, root))
+        if historical_sources and row["path"] in structure.IMPLEMENTATIONS:
+            try:
+                lineage_source_path(root, structure.RECORD_PATH, binding)
+            except (OSError, ValueError, KeyError, TypeError) as exc:
+                problems.append(f"frozen source binding failed: {row['path']}: {exc}")
+        else:
+            problems.extend(_binding_problems(binding, root))
     if problems:
         return problems
     for row in config["bank_manifests"]:
@@ -196,7 +203,10 @@ def temporal_problems(config: dict, root: Path = ROOT, *, archive: bool = False)
             if len(sources) != len(bindings):
                 return ["duplicate execution source binding"]
             verify_archive(root, structure.RECORD_PATH, structure.CONFIG_PATH,
-                           execution, sources)
+                           execution, sources, lineage_sources={row["path"]:
+                               {key: row[key] for key in ("sha256", "git_blob_sha1")}
+                               for row in config["lineage"]["files"]
+                               if row["path"] in structure.IMPLEMENTATIONS})
             return []
         if len(git("rev-list", "--parents", "-n", "1", declaration_merge).split()) < 3:
             return ["preregistration merge must be a merge commit"]
@@ -215,6 +225,14 @@ def temporal_problems(config: dict, root: Path = ROOT, *, archive: bool = False)
                                 object_pairs_hook=unique_object, parse_constant=_reject_constant)
             if structure.canonical_digest(frozen) != EXPECTED_CONFIG_SHA256:
                 return [f"{name} commit did not contain the frozen declaration"]
+        for row in config["lineage"]["files"]:
+            if row["path"] not in structure.IMPLEMENTATIONS:
+                continue
+            raw = subprocess.run(["git", "show", f"{execution}:{row['path']}"], cwd=root,
+                                 capture_output=True, check=True, timeout=10).stdout
+            if (byte_digest(raw) != row["sha256"]
+                    or git("rev-parse", f"{execution}:{row['path']}") != row["git_blob_sha1"]):
+                return [f"execution did not contain the frozen source: {row['path']}"]
     except ShallowHistoryError as exc:
         return [str(exc)]
     except (OSError, ValueError, subprocess.SubprocessError, AttributeError, KeyError, TypeError) as exc:
@@ -232,7 +250,9 @@ def main(argv=None) -> int:
         config = read_json(CONFIG)
         if not isinstance(config, dict):
             raise ValueError("preregistration must be an object")
-        problems = static_problems(config, ROOT) + temporal_problems(config, ROOT, archive=args.archive)
+        problems = static_problems(config, ROOT,
+                                   historical_sources=(ROOT / structure.RECORD_PATH).is_file())
+        problems += temporal_problems(config, ROOT, archive=args.archive)
     except (OSError, ValueError, KeyError, TypeError) as exc:
         problems = [str(exc)]
     if problems:

@@ -22,17 +22,17 @@
       }
     },
     "layer_stack.pdf": {
-      "architecture_sources_sha256": "ab2a39010fb0eec90c3f69bcc15cdede4d830f16d6e53ebe7988270fa736851c",
-      "asset_git_blob_sha": "68e01319e82681ee1b2977440b0b20847ab3e373",
+      "architecture_sources_sha256": "0b9e0505f0dea0eff6dcbc38a4bbe99722c07e0d12cb90d09459b797e9f82f7b",
+      "asset_git_blob_sha": "53df37dd69c370b26663bcca03b2f5218e171ec0",
       "sources": {
-        "paper_architecture/data/source_census.json": "90a1d1b7519e4f82fa526c65bbd670c5ae6fff1f84f4e070bea21706bfacf7e5",
-        "paper_architecture/make_tables.py": "ef03a8fdec640066239d27b5e874ade20b10c1483e8031bb2f73db7e85ba4535"
+        "paper_architecture/data/source_census.json": "23a3e459fb8fd6deb55b063a22482555486ef6d62a841093256c5a9aca837545",
+        "paper_architecture/make_tables.py": "ce66d52a5c8e31ddda1988a9202be9f97618e856badd41321b8d0e1a6f6225db"
       }
     }
   },
   "generator": {
     "path": "paper_architecture/make_figures.py",
-    "sha256": "da2c3f4063864b156ec2cc5339d9c161f0a846173d00563a689dbba77c9d0644"
+    "sha256": "b22cff2c1b69c6251e0339ef3d8ef949e84cb3ccaca65a9d0353ec40f4fbba8b"
   },
   "schema": "clifford_qc.architecture_figure_manifest.v1"
 }

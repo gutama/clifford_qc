@@ -25,7 +25,7 @@ from openfermion.transforms import jordan_wigner
 
 from ..ir import PauliSum, Program
 from ..bridges.openfermion_bridge import qubit_operator_to_pauli_sum
-from ..algorithms.pools import PoolOperator, is_odd_y
+from ..pool_operator import PoolOperator, is_odd_y
 from .metadata import MOLECULAR, model_metadata
 from .spin import Model
 

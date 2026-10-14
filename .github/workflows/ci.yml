@@ -59,6 +59,9 @@ jobs:
       - name: evidence declarations
         if: ${{ !cancelled() }}
         run: python benchmarks/check_evidence.py
+      - name: sparse GA kernel profile
+        if: ${{ !cancelled() }}
+        run: python benchmarks/check_sparse_ga_kernel.py
       - name: molecular records
         if: ${{ !cancelled() }}
         run: python benchmarks/check_molecular.py

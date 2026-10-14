@@ -38,7 +38,7 @@ def test_committed_declaration_passes_without_sampling_or_state_outcomes(config,
                           (cost, ("cost_schedule", "setting_fidelity"))):
         for name in names:
             monkeypatch.setattr(module, name, forbidden)
-    assert gate.static_problems(config) == []
+    assert gate.static_problems(config, historical_sources=True) == []
 
 
 @pytest.mark.parametrize("bank_id,terms,qwc,cliques", [
@@ -214,6 +214,12 @@ def history(tmp_path, config):
     git("merge", "--no-ff", "declaration", "-m", "merge declaration")
     merge = git("rev-parse", "HEAD")
     (root / "implementation").write_text("reviewed toy implementation")
+    from benchmarks.archive_provenance import lineage_source_path
+    for row in config["lineage"]["files"]:
+        if row["path"] in structure.IMPLEMENTATIONS:
+            target = root / row["path"]
+            target.parent.mkdir(parents=True, exist_ok=True)
+            target.write_bytes(lineage_source_path(structure.ROOT, structure.RECORD_PATH, row).read_bytes())
     execution = commit("execution source")
     record = {"declaration_sha256": gate.EXPECTED_CONFIG_SHA256,
               "provenance": {"git_commit": execution, "preregistration_merge_commit": merge}}
@@ -283,6 +289,28 @@ def test_main_declaration_only_does_not_inspect_history(config, monkeypatch, tmp
     path = write(tmp_path, config)
     monkeypatch.setattr(gate, "ROOT", tmp_path)
     monkeypatch.setattr(gate, "CONFIG", path)
-    monkeypatch.setattr(gate, "static_problems", lambda *args: [])
+    monkeypatch.setattr(gate, "static_problems", lambda *args, **kwargs: [])
     monkeypatch.setattr(gate, "history_kind", lambda *args, **kwargs: pytest.fail("no record needs no history"))
     assert gate.main([]) == 0
+
+
+def test_historical_sources_preserve_declaration_without_licensing_live_drift(config):
+    assert any("multivector.py" in error for error in gate.static_problems(config))
+    assert gate.static_problems(config, historical_sources=True) == []
+
+
+def test_packaged_lineage_tampering_is_rejected(config, tmp_path):
+    from benchmarks.archive_provenance import lineage_source_path
+    from benchmarks.archive_provenance import MANIFEST
+    import shutil
+    manifest = tmp_path / MANIFEST
+    manifest.parent.mkdir(parents=True)
+    shutil.copyfile(structure.ROOT / MANIFEST, manifest)
+    row = next(row for row in config["lineage"]["files"] if row["path"] == "clifford_qc/multivector.py")
+    original = lineage_source_path(structure.ROOT, structure.RECORD_PATH, row)
+    relative = original.relative_to(structure.ROOT)
+    target = tmp_path / relative
+    target.parent.mkdir(parents=True)
+    target.write_bytes(original.read_bytes() + b"# tampered\n")
+    with pytest.raises(ValueError, match="frozen execution source digest differs"):
+        lineage_source_path(tmp_path, structure.RECORD_PATH, row)

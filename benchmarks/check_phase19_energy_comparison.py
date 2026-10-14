@@ -599,7 +599,7 @@ def check_record(record, config, banks, cards, *, check_provenance=True):
 def main():
     try:
         config = load_config()
-        problems = static_problems(config)
+        problems = static_problems(config, historical_sources=RECORD.is_file())
         if problems:
             raise ValueError("; ".join(problems))
         if not RECORD.exists():
