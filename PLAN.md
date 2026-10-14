@@ -89,6 +89,7 @@ generic case. Compound generators need not be versors.
 | **what is already public, and what that forecloses** | §1.2 |
 | what the project is and is not | §1 |
 | why the architecture is what it is | §2 |
+| **reviewed maintenance and research follow-ups (2026-10-14)** | §2.6; execution priority in §13 |
 | the algebra contract and standing invariants | §3 |
 | **the GA structural preconditioner (new)** | §3.5 |
 | **anticommuting cliques as spin factors (new)** | §3.6 |
@@ -135,9 +136,9 @@ conditional phases.
 | 14 | fully commuting grouping | **done on the frozen BeH₂/JW comparison** — the public compiled-plan API, exact joint sampler, preregistered finite-sample record, covariance audit, and device-card costing ship; Q9 is positive within the declared one-bank oracle boundary |
 | 15 | second-moment bank | **partially implemented (50%)**; the H-squared preflight reads `FULL` (Q16), and `SecondMomentBank` ships with exact second moments and true Ritz residual norms validated on all five licensed banks. Opt-in exact convergence reporting ships at adaptive termination, with numerical resolution and separate ground-state evidence. Q17's `CONDITIONAL` permits the shipped three-prefix extrapolation diagnostic, with improvement evidence confined to the frozen H₄ and H₂O bases. Q18's predecessor remains `INVALID`. Its separately declared Q18-S1 successor reports post-hoc `NONE` for uniform QWC on the five banks after all derivative checks pass. Q18-S2 reads `UNREACHED`: no prefix with a resolved variance on the two committed Hubbard 2×2 A-CASE trajectories that extend the frozen bank certifies the ground state, so no pilot allocation experiment is authorized on those prefixes. The exact final `acase_level4` prefix (`M = 26`) has `E + σ < E₁` for any `σ` below the resolution floor, but is unresolved, unpriced and not `certifying` in the record. The ladder's fixed Krylov basis, outside the screen, certifies too. Practical nonuniform allocation on a certifying basis, finite-shot reporting, folded-spectrum roots and banks outside the five remain |
 | 16 | time-evolved inputs | **partially implemented (50%)**; the 16A QSCI time-evolved input ships in `subspace/time_evolution.py` (exact matrix-free propagation as an `oracle` input, a validated Trotter circuit as an `implementable` one, and pooled multi-time sampling). Its decision comparison, Q15, ran once and reads `NO_GO`: iterated selected CI of the same size matches or beats it on both required instances. No circuit-native/truncated A-CASE real-time family ships. 16B's three preregistered decision experiments have run — v1 `CONDITIONAL`, v2 `GO` under per-word pricing, v3 `CONDITIONAL` once the incumbent is priced with its own grouping — and the programme ends there: the real-time backend is **not authorized** (§5, Phase 16) |
-| 17 | mapping validation and breadth | **partially implemented (75%)**; the JW/BK/parity transformation, invariance gates, and mapping-axis records ship through R2, and the exact QE/OVP/mixed-CEO pool comparison now ships with independently replayed trajectories; the dedicated MORE-ADAPT breadth benchmark remains open |
+| 17 | mapping validation and breadth | **partially implemented (87.5%; rounded to 88% above)**; the JW/BK/parity transformation, invariance gates, and mapping-axis records ship through R2, and the exact QE/OVP/mixed-CEO pool comparison now ships with independently replayed trajectories; the dedicated MORE-ADAPT breadth benchmark remains open |
 | 18 | embedding boundary | **done**; the versioned effective-Hamiltonian schema ships in `models/effective.py`, and the common fragment-solver callback returning energy and one- and two-particle density matrices ships in `subspace/fragment.py`, implemented by QSCI, selected CI, the hybrid, and a sector-FCI reference. The embedding loop itself stays outside the package |
-| 19 | anticommuting-clique (spin-factor) partitioning | **complete (100%)**; the fixed Hartree–Fock energy comparison ran once and is recorded VALID, with independent sampled-result checking. Its instance/card outcomes are in §5. Lever 2 remains outside the numbered deliverables and unbuilt |
+| 19 | anticommuting-clique (spin-factor) partitioning | **complete (100%)**; the fixed Hartree–Fock energy comparison ran once and is recorded VALID, with independent sampled-result checking. Its instance/card outcomes are in §5. Lever 2 remains outside the numbered deliverables and unbuilt; exact reference-preserving projection is ruled out for genuine multi-word cliques on computational determinants (§3.6(iv)) |
 | G1 | GA structural preconditioner: Majorana pool and filters A–E | **done**; both gates pass and QG1's falsifier does not fire, but E's content is pool-dependent — `522` of `549` removed on the §3.5 Majorana pool, `0` on the excitation pool the mapping records use |
 | G2–G3 | mapping-invariance test on the restricted pool, PRD/WISE integration with a cost decomposition | **retired by G1's own result**; the G1-admissible pool reconstructs the pool R2b already builds, so QG2's falsifier holds by construction rather than by measurement (§5, Phase G2) |
 | R1 | hardware-aware cost model and pooled-estimator ledger | **done**; asymptotic and exact-oracle nonlinear shot-search tiers are recorded |
@@ -388,6 +389,146 @@ optimization is not reopened without a new, system-specific, falsifiable reason.
 
 ---
 
+### 2.6 Reviewed improvement backlog — 2026-10-14
+
+This integrates `clifford_qc_review_and_improvement_plan.md`, reviewed against
+`main` at `e950cd78c16c9f7f6f3efacc8c26597b8304b4e0`. The attachment audited
+`72bdbed`; PR #131 has since merged. The review's source counts, line numbers,
+census totals and timing estimates are snapshot observations, not acceptance
+criteria. The following items amend existing scopes; they create no new numbered
+phase and change no implementation fraction or measured verdict.
+
+| Review item | Current assessment | Disposition |
+|---|---|---|
+| B1: narrative status drift | Phase 19's row was already repaired on main; Phase 17's row retained 75% despite a ledger fraction of 0.875 | Phase 17's row is corrected here; validation of detailed rows remains open |
+| B2: summary requirements | `check_summaries.py` treats every JSON config as a JSONL sweep and fails on the current checkout | Fix declared schema/output classification, then enable the gate in CI |
+| B3: evidence declarations | Phase 19 has no explicit evidence declaration; Phase 17's records carry nested labels, not a common top-level contract | Add validated per-quantity labels without changing historical measurements or provenance |
+| B4: direct checker invocation | With `PYTHONPATH` unset, `check_docs.py` raises `ModuleNotFoundError` at its package-submodule probe | Make the documented direct invocation resolve the repository package |
+| B5: archive provenance | The Phase 19 and storage-policy gates require Git history; absence currently fails rather than proving chronology | Define a separately labelled archive verification mode while retaining strict CI ancestry checks |
+| B6: architecture/API | Chemistry imports pool definitions from algorithms; mutable `PauliSum.terms` is an API design question, not by itself a correctness defect | Remove the import-time edge with compatibility; assess immutability separately |
+| GA-1 / GA-2: sparse exterior operations | `codes_of_grade` scans `4**n`; active-support Plücker candidates and contractions avoid that enumeration | Implement with explicit product conventions and independent equivalence checks |
+| GA-3: determinant-reference obstruction | Exact no-go holds; a positive expectation gap does not always exceed the numerical tolerance | Record the scoped proof in §3.6(iv); do not build transport before eligibility is established |
+| Research follow-ups | The exact CEO comparison is complete; MORE-ADAPT and a new certifying-basis allocation design remain open | Preserve Phase 17 and Phase 15 boundaries below |
+
+**First: restore maintenance gates.** Each checkbox below is pending code work,
+even where this plan already corrects the prose.
+
+- [ ] **B1 — detailed ledger consistency.** Extend
+  `benchmarks/check_phase_status.py` to compare the current detailed rows for
+  Phases 15–19 with `PHASE_STATUS.json`, including Phase 17's documented rounding
+  and Phase 19's completed lever-1 scope. Validate by phase/row rather than
+  globally banning a percentage that could be valid elsewhere. Include drift
+  fixtures where the generated summary is correct but the detailed row is stale.
+  This checker validates; it does not currently regenerate either table.
+- [ ] **B4 — standalone documentation gate.** Establish `ROOT` on `sys.path`
+  before package-submodule discovery in `benchmarks/check_docs.py`. Verify the
+  documented direct command with `PYTHONPATH` unset from a clean checkout;
+  missing optional extras must remain explicitly reported rather than concealed.
+- [ ] **B2 — summary schema and CI.** Require JSONL/CSV/Markdown companions from
+  the declared per-seed sweep schema and the explicitly owned ladder schema,
+  not from the existence of a record on disk. Classify result-free declarations
+  and bespoke JSON result schemas separately; malformed sweep declarations must
+  fail. Preserve detection of a deleted JSONL or either companion and byte-level
+  regeneration checks for existing summaries. After this passes, add
+  `check_summaries.py` to `.github/workflows/ci.yml`, update the reproduction
+  instructions, and regenerate the architecture census/tables with
+  `paper_architecture/make_tables.py`; validate with `check_manuscript.py`.
+- [ ] **B3 — evidence contract.** Standardize evidence labels in producers and
+  independent checkers. For Phase 19 distinguish exact circuit/probability laws,
+  finite-sample confidence endpoints, and illustrative device-card accounting;
+  for Phase 17 retain exact small-sector simulation and its resource boundary.
+  An additive metadata migration or digest-bound sidecar must preserve the
+  original record, declaration and execution identities and every reported
+  quantity. A sidecar needs explicit census/checker support; adding an unread
+  file does not satisfy this task. Never rerun a frozen campaign merely to label
+  it or silently revise its config. Refresh affected derived tables and correct
+  the manuscript's blanket statement about newer top-level labels.
+- [ ] **B5 — explicit archive verification.** Detect a Git worktree with
+  `git rev-parse`, including linked worktrees whose `.git` is a file; do not
+  mistake an incomplete/shallow repository for a source archive. CI must require
+  full history and strict declaration/execution/result ancestry. An explicitly
+  selected archive mode may check packaged SHA-256 and Git-blob bindings while
+  reporting chronology as **unverified**, never as preregistration verified.
+  Historical execution sources must be packaged or bound by an archive manifest
+  when current files have evolved. Check archive, full clone, shallow clone,
+  linked worktree and tampered-input cases; update both gate CLIs and docs.
+
+**Second: sparse GA kernel and architecture.** These are maintenance extensions
+to Phase 0's API, not a new solver or an established quantum resource advantage.
+
+- [ ] **GA-1 — active-support blade simplicity.** Implement the inverse
+  `mask_to_code(n, mask)` for the JW generator-subset map with domain validation
+  and round trips. For a homogeneous grade-`k` multivector with `t` stored terms,
+  enumerate only `(k-1)`-masks obtained by deleting one generator from a support
+  mask: at most `k*t` candidates. All omitted contractions are identically zero.
+  Preserve the full Plücker condition, zero/mixed-grade handling, complex
+  coefficients and existing tolerance semantics. If `blade_from_mask` adopts
+  this inverse, retain the canonical ordered Majorana product's phase; the word
+  code alone does not recover it. Compare against exhaustive small-algebra
+  decisions and independently constructed decomposable/nondecomposable blades,
+  including odd grades. An `n=12` sparse regression must demonstrate that neither
+  `range(4**n)` nor a whole-grade cache is built. Measure runtime/memory on named
+  fixtures; no sub-millisecond CI assertion or unmeasured speedup is promised.
+- [ ] **GA-2 — named left/right contractions.** Fix the convention in
+  `CONVENTIONS.md` before adding `lcontract` / `rcontract` (with `<<` / `>>`
+  aliases only if consistent with the public API). The proposed convention is
+  `A_r lcontract B_s = <reverse(A_r) B_s>_(s-r)` for `r <= s`, and
+  `A_r rcontract B_s = <A_r reverse(B_s)>_(r-s)` for `r >= s`, extended
+  bilinearly. Apply subset tests before multiplication, but retain reversion
+  signs and Pauli-product phases. Compare with independent grade-projected
+  products, including scalar, mixed-grade, complex and non-subset cases. Reuse
+  the left contraction in `is_blade` only after showing its Plücker decisions
+  agree with the old basis-contraction test; the reversion factor is harmless
+  for each fixed-grade basis candidate, not interchangeable in every API use.
+- [ ] **B6 — downward import-time dependencies.** Choose a low-level home for
+  `PoolOperator` / `is_odd_y` after checking the import graph and re-export old
+  names from `algorithms/pools.py`. `pauli_structure.py` currently imports
+  `ir.PauliSum`; placement there requires a layer decision, not an assumed kernel
+  boundary. A deferred chemistry import can remove the import-time edge without
+  asserting that the runtime dependency vanished. Verify imports with/without
+  chemistry extras and preserve pool content, order and type compatibility.
+  Update architecture layer declarations, figures, tables and prose together.
+  Any change to `PauliSum.terms` mutability needs a separate compatibility audit;
+  it is not bundled into this refactor by default.
+
+**Third: bounded research follow-ups.**
+
+- [ ] **GA-3 — eligibility before transport.** Add executable determinant and
+  general stabilizer-state fixtures for §3.6(iv), including no diagonal word,
+  multiple nonzero coefficients, a singleton and the near-singleton tolerance
+  case. Exact reference-preserving projection is closed on the theorem's scope;
+  a correlated/non-stabilizer reference or an explicitly priced approximate
+  projection needs a separate declaration. A Givens product is a spin-group
+  rotor, not necessarily a simple rotor; exact sparse word transport can expand
+  support across rotations and carries no automatic efficiency guarantee.
+- [ ] **Phase 17 — MORE-ADAPT breadth only.** PR #131 already supplies the QE,
+  OVP and mixed-CEO comparisons, records, independent replay and ledger evidence.
+  Retain its 87.5% implementation fraction until the dedicated MORE-ADAPT
+  deliverable ships. Define a result-free comparison with matched instances,
+  references, targets and operator/parameter budgets, charging full screening,
+  optimizer work and circuit resources separately. Declare evidence and stopping
+  rules, run once under the licensed environment, and add the independent
+  checker, reproduction entry, record and refreshed census. Do not turn the CEO
+  simulation into a finite-shot or optimized-circuit claim.
+- [ ] **Phase 15 — certifying basis then practical allocation.** Q18-S1's
+  uniform-QWC `NONE` and Q18-S2's screened-prefix `UNREACHED` stand. Start with a
+  separate, disclosed post-hoc declaration for a basis outside that screen
+  (e.g. the ladder's fixed Krylov basis). Independently establish resolved
+  `sigma**2` above the recorded variance-resolution floor and `E + sigma < E1`
+  before any pilot allocation. Freeze the `(S,H,K)` estimand, grouping,
+  derivative/rank stability checks, pilot and shot-floor charges, affordability
+  threshold and confidence family. Pilot-based allocation needs independent
+  validation or a valid adaptive concentration argument; an exact-variance
+  oracle remains diagnostic. Any negative closure applies to the declared scope,
+  not all bases or allocation methods. `closed_negative` is an adjunct lifecycle
+  value, not valid for a numbered phase: keep Phase 15's implementation fraction
+  separate from a scoped scientific outcome and its decision record.
+
+The direct summary and documentation commands above were reproduced as failing
+on the reviewed checkout; the existing phase-status gate passed despite the
+stale detailed Phase 17 row. These are baseline findings. This integration
+changes the plan, not the pending checker or kernel implementations.
+
 ## 3. Conceptual layer (geometric-algebra contract)
 
 Every phase states its algebra, objects, and validation invariants before its
@@ -629,15 +770,18 @@ different structure in the same algebra: what a set of **pairwise anticommuting*
 Pauli words is, and what may and may not be concluded from it.
 
 **Conceptual object.** By `A_iA_j + A_jA_i = 2δ_ij`, `m` pairwise anticommuting
-Hermitian involutions `{A_1, …, A_m}` are an orthonormal frame in the vector
-grade of a real `Cl(m,0)` sitting inside `Cl(2n,ℂ)`. Two sharp yes/no questions
+Hermitian involutions `{A_1, …, A_m}` represent an orthonormal `Cl(m,0)` vector
+frame in `Cl(2n,ℂ)`. This identifies the spin-factor vector sector, not necessarily
+a faithful copy of the full Clifford algebra: at odd maximal size `m = 2n+1`,
+the complex representation selects a central sector. Two sharp yes/no questions
 are mutually unbiased exactly when their involutions anticommute, so a clique is a
 set of mutually unbiased questions and its state space is the `m`-ball of the spin
 factor `V_m` (§11, row 18). **Substrate:** ordinary Pauli words — nothing new is
 stored. **Domain interpretation:** the operator layer only, for the reason in the
 no-go below.
 
-Three facts follow, and Phase 19 uses each for a different thing.
+Three measurement facts follow, and Phase 19 uses each for a different thing.
+The fourth fact below limits the separate contextual-projection proposal.
 
 **(i) Closure — one setting per clique.** For real `|c| = 1`,
 `(Σ_i c_i A_i)² = 1`: the combination is *itself* a Hermitian involution, and for
@@ -729,6 +873,48 @@ the package as a whole and true only of its parity-conserving fermionic sector.
 Within that sector the reading is settled: the hyperbit and the `m`-ball are not
 a state space of anything this package computes, and §14 blocks wording that
 treats them as one. What survives is the operator content: (i), (ii), (iii).
+
+**(iv) Exact determinant-reference obstruction to contextual projection.** Let
+`|b>` be a computational-basis determinant, let the Hermitian Pauli words `A_i`
+anticommute pairwise, and let `S = sum_i chat_i A_i` with real coefficients and
+`sum_i chat_i**2 = 1`. Then `S**2 = I`. A Pauli word has expectation `0` on
+`|b>` unless it contains only `I`/`Z`, in which case its expectation is `+1` or
+`-1`. Two diagonal words commute, so at most one clique member, `A_d`, can have
+a nonzero expectation. Consequently
+
+```text
+<S>_b = 0                              if no diagonal member exists,
+<S>_b = sign_d * chat_d                 otherwise,
+Var_b(S) = 1 - <S>_b**2
+         = sum_(i != d) chat_i**2       when A_d exists.
+```
+
+If at least two coefficients are nonzero, `|<S>_b| < 1` and `Var_b(S) > 0`:
+the reference is not an eigenstate of `S`. A simultaneous rotation of reference
+and observable preserves this expectation and variance. Thus rotating `S` to
+`A_1` cannot make exact projection onto one eigenvalue preserve the reference.
+This is an algebraic proof, not a sampled result or a new Brukner–Zeilinger
+theorem. It also holds for pure stabilizer references with the correspondingly
+transformed Pauli clique: a nonzero Pauli expectation requires membership in
+the reference's commuting stabilizer group, so again at most one member qualifies.
+
+The **numerical** selector uses `abs_tol=tol` with zero relative tolerance. Its
+reference-eigenstate check rejects only when `delta = 1 - |<S>_b| > tol`.
+Nonzero off-diagonal coefficients can make `delta` positive but arbitrarily
+small; for example `S = sqrt(1-epsilon**2) Z + epsilon X` on `|0>` is not an
+exact eigenstate for `epsilon != 0`, yet `epsilon = 1e-6` passes a `1e-9`
+expectation tolerance. A future approximate projection must declare its gap,
+residual/trace error and bias budget rather than interpreting that pass as
+exact preservation. The favorable Hamiltonian sign and compatibility with other
+fixed stabilizers are independent conditions too.
+
+**Scope decision.** Close the exact reference-preserving lever-2 proposal on
+computational determinants and Clifford-equivalent stabilizer references with
+genuine multi-word support. Singletons or one nonzero coefficient retain the
+ordinary Pauli-stabilizer case. Correlated non-stabilizer references can be
+eigenstates of a multi-word `S`; their eligibility and transport cost remain a
+separate, unbuilt proposal. This adds no qubit saving or completed deliverable
+to Phase 19's already completed lever-1 scope.
 
 ## 4. The method
 
@@ -847,6 +1033,10 @@ temporary implementation.
 Exterior layer on `MV` (reversion, wedge, k-vector dot, blade tests), O(1) exact
 gradients, deterministic selection, `fermionic_sector_diagnostics`, gate
 preconditions, generated paper tables.
+
+The active-support simplicity optimization and named contraction API in §2.6
+are follow-up maintenance; their pending implementation does not reopen this
+completed original scope.
 
 ### Phase 1 — done (`clifford_qc/subspace/`)
 
@@ -2745,8 +2935,10 @@ matrix-element estimator and a word-coverage contract, and validating both again
 the §6.6 pooled/assigned reconstruction; that is a separate deliverable, not an
 extension of this one.
 
-**Lever 2 — a candidate further removed qubit in a contextual restriction, and two
-things that have to be built first.** `subspace/contextual.py` admits only
+**Lever 2 — exact determinant-reference projection closed; other references
+conditional.** The obstruction in §3.6(iv) rules out an exact extra stabilizer
+from a genuinely multi-word clique on the frozen determinant references. This
+requires no non-Clifford restriction engine to establish. `subspace/contextual.py` admits only
 mutually commuting stabilizers and projects away everything anticommuting with
 them. The method family that R4a's contextual arms belong to (§11, rows 15–16)
 also carries one anticommuting clique, reduced by §3.6(i) and then fixed as a
@@ -2755,21 +2947,24 @@ clique**, not less removed Hamiltonian weight — but "if" is carrying real weig
 in that sentence, and the phase may not be written as though the qubit were
 already available.
 
-*The transport primitive does not exist.* `Restriction` takes a
+*A generalization first needs an eligible reference; its transport primitive
+does not exist.* `Restriction` takes a
 `bridges.stim_bridge.CliffordMap`, which sends each Pauli word to a single Pauli
 word; §3.6's `V` is a product of Pauli rotations and is generally **not**
 Clifford, so it sends a word to a *sum* of words. Neither `Restriction` nor
-`compile_contextual_restriction` can carry it. Lever 2 therefore needs a new
-non-Clifford transport and projection primitive, with its own correctness
-contract and its own cost, and that primitive — not the qubit count — is the
-first thing to build and price.
+`compile_contextual_restriction` can carry it. Only after a separately declared
+reference/projection rule passes the eligibility screen would lever 2 need a
+new non-Clifford transport and projection primitive, with its own correctness
+contract and cost. The single-rotation two-word conjugation identity is exact,
+but repeated rotations can expand support; sparse transport alone promises no
+bounded-support or runtime advantage.
 
 *The contextual admission conditions are not automatic after the rotation.*
 `select_contextual_stabilizers` requires more than commutation: the reference
 expectation must be within `tol` of `±1`, and that sign must minimise the
 candidate word's Hamiltonian coefficient (§5, R4a; `subspace/contextual.py`).
 Closure of a clique into an involution establishes none of that about the rotated
-`A_1` in the rotated frame. Phase 19 must verify both conditions *after* the
+`A_1` in the rotated frame. Any future generalization must verify both conditions *after* the
 rotation, on the transported Hamiltonian and the transported reference, before
 any removed qubit is counted.
 
@@ -2811,9 +3006,10 @@ So the trade is worth at most `0.043%` of HS weight on BeH₂, `1.99%` on H₄ a
 `0.175%` on LiH — and on BeH₂ two of the four rungs save exactly nothing. R4a
 stopped on the **accuracy** gate — contextual bias floors of `5.345` and `5.899`
 mHa against a `1.6` mHa target — and a lever worth `0.00043` of HS weight on that
-bank is not a candidate to move a floor of that size. Lever 2 is therefore scoped
-as a compression mechanism to be measured on its own terms and explicitly **not**
-as a route to reopening R4a.
+bank establishes no route to lowering that bias. Independently, §3.6(iv) closes
+exact reference-preserving multi-word projection on these determinant references.
+Any wider lever-2 proposal is a separately declared compression mechanism and
+explicitly **not** a route to reopening R4a's frozen comparison.
 
 **Gate, passed before any producer is written.** The §3.6 invariants ship as tests:
 `(Σ_i c_i A_i)² = 1`; `V(Σ_i c_i A_i)V† = A_1` for `m ≥ 2` against the dense
@@ -4715,6 +4911,17 @@ covariance-aware allocation — all already reported in P2 (§1.2(1)–(2)).
 ---
 
 ## 13. Execution order
+
+**Reviewed follow-up priority (2026-10-14).** Complete §2.6's maintenance gate
+repairs first: detailed status validation, standalone doc invocation, summary
+classification/CI, evidence contracts, and explicit archive verification. Then
+implement the active-support blade check and convention-tested contractions,
+followed by the import-graph cleanup. Validate §3.6(iv)'s boundary without
+building a determinant-reference transport engine. The remaining research
+deliverables are a separately declared Phase 15 certifying-basis allocation
+experiment and Phase 17's MORE-ADAPT breadth comparison. Preserve the existing
+result/declaration history and all go/no-go decisions below. These pending tasks
+do not authorize another run of any frozen campaign or change phase fractions.
 
 Track A must not wait for Tracks B or C. Within each track the order is dependency-forced;
 between tracks, R1 is cheap and its result can reorder Track B's protocol conclusions, so it
