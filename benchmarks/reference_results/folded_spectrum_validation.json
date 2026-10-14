@@ -1,0 +1,3614 @@
+{
+ "schema": "clifford_qc.folded_spectrum_validation.v1",
+ "claim_boundary": "This record validates clifford_qc.subspace.FoldedSpectrum on the banks the Phase 15 preflight record lists as eligible. For every Ritz root of each frozen basis, the refined Ritz root's folded value, energy and variance equal those of the state reconstructed from dense statevectors, its folded value does not exceed the Ritz root's variance, and its target and Weinstein intervals contain an exact sector eigenvalue. The variance-minimizing iteration from the ground Ritz value is non-increasing and reaches its fixed point. Values are exact pairings: they say nothing about finite-shot estimation of the second-moment block, grouping, or any bank outside the preflight's.",
+ "preflight": {
+  "record": "benchmarks/reference_results/phase15_h2_preflight.json",
+  "sha256": "8e2949dde593f560caeff5bc51e2bb75688fb09d8a06f0eebc5c0a9d688508c9",
+  "verdict": "FULL",
+  "eligible_banks": [
+   "h4",
+   "h4_converged",
+   "beh2",
+   "h2o_cas8e6o",
+   "hubbard_2x2"
+  ]
+ },
+ "quantum_advantage_claim": false,
+ "tolerances": {
+  "variance_resolution": 1e-12,
+  "energy": 1e-09,
+  "level": 1e-09,
+  "sector_leakage": 1e-12
+ },
+ "banks": {
+  "h4": {
+   "n_qubits": 8,
+   "basis_size": 9,
+   "effective_rank": 9,
+   "sector": {
+    "dimension": 36,
+    "levels": [
+     -2.180316614323858,
+     -1.8916101236095841,
+     -1.6345324248149165,
+     -1.5909345581762768,
+     -1.555052746607236,
+     -1.2825550026149612,
+     -1.2384730203670926,
+     -1.1405936111111303,
+     -0.9932159974833258,
+     -0.9852389770797064,
+     -0.9660441682069476,
+     -0.9371991248542705,
+     -0.7943732023220866,
+     -0.7728859131024264,
+     -0.7315710664772638,
+     -0.5367895812505761,
+     -0.48021506976350137,
+     -0.4696808226042184,
+     -0.39482048420255933,
+     -0.3437632471280925,
+     -0.3053126232065806,
+     -0.2108586869058054,
+     -0.10983694879081106,
+     -0.0951431300177127,
+     0.05588363593390147,
+     0.07727233966339729,
+     0.1468499289629015,
+     0.164315776844696,
+     0.2426639657306569,
+     0.565294509862287,
+     0.5666032408523709,
+     0.6259616287055279,
+     0.7042357336825742,
+     0.9223959511658224,
+     1.0794396578543326,
+     1.250524706733581
+    ],
+    "reference_image_sector_leakage": 0.0,
+    "hamiltonian_sector_leakage": 0.0
+   },
+   "roots": [
+    {
+     "root": 0,
+     "target": -2.177297832980223,
+     "folded_value": 0.005469502580166997,
+     "energy": -2.177108174041567,
+     "second_moment": 4.74526946808826,
+     "variance": 0.0054694666096546385,
+     "residual_norm": 0.07395584229562015,
+     "folded_scale": 19.06575591113099,
+     "variance_scale": 4.763547117540209,
+     "resolved": true,
+     "variance_resolved": true,
+     "target_interval": [
+      -2.251253918593462,
+      -2.1033417473669838
+     ],
+     "weinstein_interval": [
+      -2.2510640163693925,
+      -2.1031523317137415
+     ],
+     "dense_energy": -2.177108174041565,
+     "dense_folded_value": 0.0054695025801667725,
+     "dense_variance": 0.005469466609653762,
+     "target_levels": [
+      0
+     ],
+     "weinstein_levels": [
+      0
+     ],
+     "isolated_level": 0,
+     "matches_dense": true,
+     "ritz_root": 0,
+     "ritz_variance": 0.0057080970367273665,
+     "ritz_residual_norm": 0.07555194925829092,
+     "ritz_variance_resolved": true,
+     "refined_not_above_ritz": true
+    },
+    {
+     "root": 0,
+     "target": -1.3249318581652756,
+     "folded_value": 0.05124786015447496,
+     "energy": -1.321464566188881,
+     "second_moment": 1.797504437733594,
+     "variance": 0.05123583804082643,
+     "residual_norm": 0.22635334775705535,
+     "folded_scale": 7.811258803461634,
+     "variance_scale": 2.1715234700882817,
+     "resolved": true,
+     "variance_resolved": true,
+     "target_interval": [
+      -1.551311760458492,
+      -1.0985519558720591
+     ],
+     "weinstein_interval": [
+      -1.547817913950733,
+      -1.095111218427029
+     ],
+     "dense_energy": -1.321464566188883,
+     "dense_folded_value": 0.05124786015447468,
+     "dense_variance": 0.05123583804082513,
+     "target_levels": [
+      5,
+      6,
+      7
+     ],
+     "weinstein_levels": [
+      5,
+      6,
+      7
+     ],
+     "isolated_level": null,
+     "matches_dense": true,
+     "ritz_root": 1,
+     "ritz_variance": 0.05499438219748387,
+     "ritz_residual_norm": 0.23450881049010477,
+     "ritz_variance_resolved": true,
+     "refined_not_above_ritz": true
+    },
+    {
+     "root": 0,
+     "target": -0.8328739335345474,
+     "folded_value": 0.03378448296311743,
+     "energy": -0.8209877779389773,
+     "second_moment": 0.7076641337934545,
+     "variance": 0.03364320226827511,
+     "residual_norm": 0.18342083379015348,
+     "folded_scale": 3.93069076760021,
+     "variance_scale": 1.2551746367836283,
+     "resolved": true,
+     "variance_resolved": true,
+     "target_interval": [
+      -1.0166794910322687,
+      -0.6490683760368261
+     ],
+     "weinstein_interval": [
+      -1.0044086117325524,
+      -0.6375669441454022
+     ],
+     "dense_energy": -0.820987777938978,
+     "dense_folded_value": 0.033784482963117465,
+     "dense_variance": 0.033643202268275385,
+     "target_levels": [
+      8,
+      9,
+      10,
+      11,
+      12,
+      13,
+      14
+     ],
+     "weinstein_levels": [
+      8,
+      9,
+      10,
+      11,
+      12,
+      13,
+      14
+     ],
+     "isolated_level": null,
+     "matches_dense": true,
+     "ritz_root": 2,
+     "ritz_variance": 0.042558869856793025,
+     "ritz_residual_norm": 0.20629801224634478,
+     "ritz_variance_resolved": true,
+     "refined_not_above_ritz": true
+    },
+    {
+     "root": 0,
+     "target": -0.6566116482146078,
+     "folded_value": 0.055684107497294764,
+     "energy": -0.7802681077749607,
+     "second_moment": 0.6492115075170111,
+     "variance": 0.04039318750629339,
+     "residual_norm": 0.2009805649964528,
+     "folded_scale": 3.088842455054959,
+     "variance_scale": 1.1887534670566478,
+     "resolved": true,
+     "variance_resolved": true,
+     "target_interval": [
+      -0.8925864508957069,
+      -0.42063684553350883
+     ],
+     "weinstein_interval": [
+      -0.9812486727743709,
+      -0.5792875427755505
+     ],
+     "dense_energy": -0.7802681077749613,
+     "dense_folded_value": 0.055684107497294896,
+     "dense_variance": 0.04039318750629366,
+     "target_levels": [
+      12,
+      13,
+      14,
+      15,
+      16,
+      17
+     ],
+     "weinstein_levels": [
+      10,
+      11,
+      12,
+      13,
+      14
+     ],
+     "isolated_level": null,
+     "matches_dense": true,
+     "ritz_root": 3,
+     "ritz_variance": 0.11975476290380321,
+     "ritz_residual_norm": 0.34605601122333246,
+     "ritz_variance_resolved": true,
+     "refined_not_above_ritz": true
+    },
+    {
+     "root": 0,
+     "target": -0.4390916737250212,
+     "folded_value": 0.015476667830378387,
+     "energy": -0.41620115114227585,
+     "second_moment": 0.18817609001842278,
+     "variance": 0.014952691806267238,
+     "residual_norm": 0.12228119972533487,
+     "folded_scale": 1.1295039230498423,
+     "variance_scale": 0.5570900816341766,
+     "resolved": true,
+     "variance_resolved": true,
+     "target_interval": [
+      -0.5634969301714748,
+      -0.3146864172785676
+     ],
+     "weinstein_interval": [
+      -0.5384823508698886,
+      -0.2939199514146631
+     ],
+     "dense_energy": -0.4162011511422762,
+     "dense_folded_value": 0.015476667830379223,
+     "dense_variance": 0.014952691806268065,
+     "target_levels": [
+      15,
+      16,
+      17,
+      18,
+      19
+     ],
+     "weinstein_levels": [
+      15,
+      16,
+      17,
+      18,
+      19,
+      20
+     ],
+     "isolated_level": null,
+     "matches_dense": true,
+     "ritz_root": 4,
+     "ritz_variance": 0.05356529601619192,
+     "ritz_residual_norm": 0.23144177673054603,
+     "ritz_variance_resolved": true,
+     "refined_not_above_ritz": true
+    },
+    {
+     "root": 0,
+     "target": -0.41545112471257184,
+     "folded_value": 0.014952303973899123,
+     "energy": -0.41616147218326693,
+     "second_moment": 0.18814217031011402,
+     "variance": 0.014951799380369946,
+     "residual_norm": 0.12227755059850498,
+     "folded_scale": 1.084900974266572,
+     "variance_scale": 0.5556870169779966,
+     "resolved": true,
+     "variance_resolved": true,
+     "target_interval": [
+      -0.5377307386103268,
+      -0.2931715108148169
+     ],
+     "weinstein_interval": [
+      -0.5384390227840441,
+      -0.2938839215824897
+     ],
+     "dense_energy": -0.41616147218326727,
+     "dense_folded_value": 0.014952303973899994,
+     "dense_variance": 0.014951799380370868,
+     "target_levels": [
+      15,
+      16,
+      17,
+      18,
+      19,
+      20
+     ],
+     "weinstein_levels": [
+      15,
+      16,
+      17,
+      18,
+      19,
+      20
+     ],
+     "isolated_level": null,
+     "matches_dense": true,
+     "ritz_root": 5,
+     "ritz_variance": 0.016165796887222195,
+     "ritz_residual_norm": 0.12714478710203653,
+     "ritz_variance_resolved": true,
+     "refined_not_above_ritz": true
+    },
+    {
+     "root": 0,
+     "target": -0.17830446654175797,
+     "folded_value": 0.07145590280218507,
+     "energy": -0.4158901772340322,
+     "second_moment": 0.18797357239678678,
+     "variance": 0.01500893287703206,
+     "residual_norm": 0.12251095002909765,
+     "folded_scale": 0.7384622248443006,
+     "variance_scale": 0.5545255633692001,
+     "resolved": true,
+     "variance_resolved": true,
+     "target_interval": [
+      -0.4456168358831776,
+      0.08900790279966164
+     ],
+     "weinstein_interval": [
+      -0.538401127265393,
+      -0.2933792272026714
+     ],
+     "dense_energy": -0.41589017723403254,
+     "dense_folded_value": 0.07145590280218607,
+     "dense_variance": 0.015008932877032921,
+     "target_levels": [
+      18,
+      19,
+      20,
+      21,
+      22,
+      23,
+      24,
+      25
+     ],
+     "weinstein_levels": [
+      15,
+      16,
+      17,
+      18,
+      19,
+      20
+     ],
+     "isolated_level": null,
+     "matches_dense": true,
+     "ritz_root": 6,
+     "ritz_variance": 0.12211649232003824,
+     "ritz_residual_norm": 0.3494517024139935,
+     "ritz_variance_resolved": true,
+     "refined_not_above_ritz": true
+    },
+    {
+     "root": 0,
+     "target": 0.12652055910145601,
+     "folded_value": 0.03359535260988938,
+     "energy": 0.11695738797177099,
+     "second_moment": 0.047182928969013126,
+     "variance": 0.03350389836783377,
+     "residual_norm": 0.18304070139680345,
+     "folded_scale": 0.8659160437873734,
+     "variance_scale": 0.6597998725577394,
+     "resolved": true,
+     "variance_resolved": true,
+     "target_interval": [
+      -0.05676979146494804,
+      0.30981090966786007
+     ],
+     "weinstein_interval": [
+      -0.0660833134268348,
+      0.29999808937037675
+     ],
+     "dense_energy": 0.11695738797177083,
+     "dense_folded_value": 0.0335953526098904,
+     "dense_variance": 0.03350389836783475,
+     "target_levels": [
+      24,
+      25,
+      26,
+      27,
+      28
+     ],
+     "weinstein_levels": [
+      24,
+      25,
+      26,
+      27,
+      28
+     ],
+     "isolated_level": null,
+     "matches_dense": true,
+     "ritz_root": 7,
+     "ritz_variance": 0.042069195732089726,
+     "ritz_residual_norm": 0.20510776614280046,
+     "ritz_variance_resolved": true,
+     "refined_not_above_ritz": true
+    },
+    {
+     "root": 0,
+     "target": 0.7056248217450615,
+     "folded_value": 0.09749244058258924,
+     "energy": 0.6987393236760101,
+     "second_moment": 0.5856816729501383,
+     "variance": 0.09744503049893027,
+     "residual_norm": 0.31216186586277683,
+     "folded_scale": 2.4878448620177065,
+     "variance_scale": 0.7616011716888333,
+     "resolved": true,
+     "variance_resolved": true,
+     "target_interval": [
+      0.393387026811333,
+      1.0178626166787899
+     ],
+     "weinstein_interval": [
+      0.3865774578120134,
+      1.0109011895400069
+     ],
+     "dense_energy": 0.6987393236760094,
+     "dense_folded_value": 0.09749244058259075,
+     "dense_variance": 0.09744503049893184,
+     "target_levels": [
+      29,
+      30,
+      31,
+      32,
+      33
+     ],
+     "weinstein_levels": [
+      29,
+      30,
+      31,
+      32,
+      33
+     ],
+     "isolated_level": null,
+     "matches_dense": true,
+     "ritz_root": 8,
+     "ritz_variance": 0.10402126405626277,
+     "ritz_residual_norm": 0.32252327676659676,
+     "ritz_variance_resolved": true,
+     "refined_not_above_ritz": true
+    }
+   ],
+   "minimization": {
+    "start": -2.177297832980223,
+    "iterations": 4,
+    "converged": true,
+    "monotone": true,
+    "trace": [
+     [
+      -2.177297832980223,
+      0.005469502580166997,
+      -2.177108174041567,
+      0.0054694666096546385,
+      19.06575591113099
+     ],
+     [
+      -2.177108174041567,
+      0.005469466585970272,
+      -2.1771080491482055,
+      0.005469466585952709,
+      19.064093954834494
+     ],
+     [
+      -2.1771080491482055,
+      0.005469466585956429,
+      -2.1771080490659167,
+      0.00546946658595715,
+      19.0640928604334
+     ],
+     [
+      -2.1771080490659167,
+      0.005469466585955286,
+      -2.1771080490658625,
+      0.00546946658595715,
+      19.064092859712336
+     ]
+    ],
+    "root": {
+     "root": 0,
+     "target": -2.1771080490659167,
+     "folded_value": 0.005469466585955286,
+     "energy": -2.1771080490658625,
+     "second_moment": 4.745268923893323,
+     "variance": 0.00546946658595715,
+     "residual_norm": 0.07395584213540639,
+     "folded_scale": 19.064092859712336,
+     "variance_scale": 4.763546178660524,
+     "resolved": true,
+     "variance_resolved": true,
+     "target_interval": [
+      -2.251063891330199,
+      -2.1031522068016346
+     ],
+     "weinstein_interval": [
+      -2.2510638912334744,
+      -2.1031522068982507
+     ],
+     "dense_energy": -2.177108049065867,
+     "dense_folded_value": 0.005469466585955182,
+     "dense_variance": 0.005469466585955185,
+     "target_levels": [
+      0
+     ],
+     "weinstein_levels": [
+      0
+     ],
+     "isolated_level": 0,
+     "matches_dense": true
+    }
+   },
+   "checks": {
+    "sector_premise": true,
+    "roots_match_dense": true,
+    "refined_not_above_ritz": true,
+    "target_intervals_contain_a_level": true,
+    "weinstein_intervals_contain_a_level": true,
+    "minimization_monotone_and_converged": true
+   },
+   "status": "VALIDATED",
+   "reading": {
+    "ground_ritz_residual_norm": 0.07555194925829092,
+    "ground_refined_target_bound": 0.07395608548433995,
+    "minimized_residual_norm": 0.07395584213540639,
+    "minimized_energy": -2.1771080490658625,
+    "isolated_levels": [
+     0
+    ]
+   },
+   "diagnostics": {
+    "seconds": 4.43
+   }
+  },
+  "h4_converged": {
+   "n_qubits": 8,
+   "basis_size": 15,
+   "effective_rank": 15,
+   "sector": {
+    "dimension": 36,
+    "levels": [
+     -2.180316614323858,
+     -1.8916101236095841,
+     -1.6345324248149165,
+     -1.5909345581762768,
+     -1.555052746607236,
+     -1.2825550026149612,
+     -1.2384730203670926,
+     -1.1405936111111303,
+     -0.9932159974833258,
+     -0.9852389770797064,
+     -0.9660441682069476,
+     -0.9371991248542705,
+     -0.7943732023220866,
+     -0.7728859131024264,
+     -0.7315710664772638,
+     -0.5367895812505761,
+     -0.48021506976350137,
+     -0.4696808226042184,
+     -0.39482048420255933,
+     -0.3437632471280925,
+     -0.3053126232065806,
+     -0.2108586869058054,
+     -0.10983694879081106,
+     -0.0951431300177127,
+     0.05588363593390147,
+     0.07727233966339729,
+     0.1468499289629015,
+     0.164315776844696,
+     0.2426639657306569,
+     0.565294509862287,
+     0.5666032408523709,
+     0.6259616287055279,
+     0.7042357336825742,
+     0.9223959511658224,
+     1.0794396578543326,
+     1.250524706733581
+    ],
+    "reference_image_sector_leakage": 0.0,
+    "hamiltonian_sector_leakage": 0.0
+   },
+   "roots": [
+    {
+     "root": 0,
+     "target": -2.179550752062546,
+     "folded_value": 0.002402190227809956,
+     "energy": -2.1794978795610276,
+     "second_moment": 4.752613194443327,
+     "variance": 0.0024021874323123527,
+     "residual_norm": 0.049012115158523335,
+     "folded_scale": 19.134373465680774,
+     "variance_scale": 4.777773042887012,
+     "resolved": true,
+     "variance_resolved": true,
+     "target_interval": [
+      -2.228562895934696,
+      -2.130538608190396
+     ],
+     "weinstein_interval": [
+      -2.2285099947682916,
+      -2.1304857643537636
+     ],
+     "dense_energy": -2.1794978795610263,
+     "dense_folded_value": 0.002402190227810177,
+     "dense_variance": 0.0024021874323087613,
+     "target_levels": [
+      0
+     ],
+     "weinstein_levels": [
+      0
+     ],
+     "isolated_level": 0,
+     "matches_dense": true,
+     "ritz_root": 0,
+     "ritz_variance": 0.0024773229215186987,
+     "ritz_residual_norm": 0.049772712619654345,
+     "ritz_variance_resolved": true,
+     "refined_not_above_ritz": true
+    },
+    {
+     "root": 0,
+     "target": -1.6213214485883989,
+     "folded_value": 0.014466956614244913,
+     "energy": -1.549498577561959,
+     "second_moment": 2.410254273678299,
+     "variance": 0.00930843181176444,
+     "residual_norm": 0.09648021461296839,
+     "folded_scale": 11.436728702697277,
+     "variance_scale": 2.9712798820473605,
+     "resolved": true,
+     "variance_resolved": true,
+     "target_interval": [
+      -1.7416001109757135,
+      -1.5010427862010842
+     ],
+     "weinstein_interval": [
+      -1.6459787921903257,
+      -1.4530183629335922
+     ],
+     "dense_energy": -1.5494985775619585,
+     "dense_folded_value": 0.014466956614246134,
+     "dense_variance": 0.009308431811765494,
+     "target_levels": [
+      2,
+      3,
+      4
+     ],
+     "weinstein_levels": [
+      2,
+      3,
+      4
+     ],
+     "isolated_level": null,
+     "matches_dense": true,
+     "ritz_root": 1,
+     "ritz_variance": 0.023571064421707977,
+     "ritz_residual_norm": 0.15352870878668906,
+     "ritz_variance_resolved": true,
+     "refined_not_above_ritz": true
+    },
+    {
+     "root": 0,
+     "target": -1.5504689070285078,
+     "folded_value": 0.00927445391360963,
+     "energy": -1.5489374371888491,
+     "second_moment": 2.4084792928389,
+     "variance": 0.00927210851373994,
+     "residual_norm": 0.09629178840243824,
+     "folded_scale": 10.951885766722347,
+     "variance_scale": 2.9681264207210187,
+     "resolved": true,
+     "variance_resolved": true,
+     "target_interval": [
+      -1.6467728733256521,
+      -1.4541649407313635
+     ],
+     "weinstein_interval": [
+      -1.6452292256066996,
+      -1.4526456487709987
+     ],
+     "dense_energy": -1.5489374371888505,
+     "dense_folded_value": 0.00927445391361072,
+     "dense_variance": 0.009272108513740936,
+     "target_levels": [
+      2,
+      3,
+      4
+     ],
+     "weinstein_levels": [
+      2,
+      3,
+      4
+     ],
+     "isolated_level": null,
+     "matches_dense": true,
+     "ritz_root": 2,
+     "ritz_variance": 0.01022913266824066,
+     "ritz_residual_norm": 0.10113917474569713,
+     "ritz_variance_resolved": true,
+     "refined_not_above_ritz": true
+    },
+    {
+     "root": 0,
+     "target": -1.2206478565214434,
+     "folded_value": 0.01857138718708361,
+     "energy": -1.1326915611752517,
+     "second_moment": 1.293825250053686,
+     "variance": 0.010835077296057039,
+     "residual_norm": 0.10409167736210728,
+     "folded_scale": 6.78241167910331,
+     "variance_scale": 1.9271700596440084,
+     "resolved": true,
+     "variance_resolved": true,
+     "target_interval": [
+      -1.3569247334810584,
+      -1.0843709795618284
+     ],
+     "weinstein_interval": [
+      -1.236783238546616,
+      -1.0285998838038874
+     ],
+     "dense_energy": -1.1326915611752517,
+     "dense_folded_value": 0.018571387187083985,
+     "dense_variance": 0.01083507729605747,
+     "target_levels": [
+      5,
+      6,
+      7
+     ],
+     "weinstein_levels": [
+      7
+     ],
+     "isolated_level": 7,
+     "matches_dense": true,
+     "ritz_root": 3,
+     "ritz_variance": 0.03110036358624635,
+     "ritz_residual_norm": 0.1763529517366986,
+     "ritz_variance_resolved": true,
+     "refined_not_above_ritz": true
+    },
+    {
+     "root": 0,
+     "target": -1.1306211510178565,
+     "folded_value": 0.010673404091127953,
+     "energy": -1.1311182040097543,
+     "second_moment": 1.2901015484717036,
+     "variance": 0.010673157029451374,
+     "residual_norm": 0.1033109724542915,
+     "folded_scale": 6.253672237582446,
+     "variance_scale": 1.890450385641454,
+     "resolved": true,
+     "variance_resolved": true,
+     "target_interval": [
+      -1.233933319213968,
+      -1.027308982821745
+     ],
+     "weinstein_interval": [
+      -1.2344291764731952,
+      -1.0278072315463134
+     ],
+     "dense_energy": -1.1311182040097547,
+     "dense_folded_value": 0.010673404091128517,
+     "dense_variance": 0.010673157029451763,
+     "target_levels": [
+      7
+     ],
+     "weinstein_levels": [
+      7
+     ],
+     "isolated_level": 7,
+     "matches_dense": true,
+     "ritz_root": 4,
+     "ritz_variance": 0.011591693952921256,
+     "ritz_residual_norm": 0.10766472938210199,
+     "ritz_variance_resolved": true,
+     "refined_not_above_ritz": true
+    },
+    {
+     "root": 0,
+     "target": -0.9695345346226817,
+     "folded_value": 1.218265771531564e-05,
+     "energy": -0.9660441682069469,
+     "second_moment": 0.9332413349266512,
+     "variance": -7.771561172376096e-16,
+     "residual_norm": 0.0,
+     "folded_scale": 3.7464649148476483,
+     "variance_scale": 0.9332413349266595,
+     "resolved": true,
+     "variance_resolved": false,
+     "target_interval": [
+      -0.9730249015749921,
+      -0.9660441676703713
+     ],
+     "weinstein_interval": [
+      -0.9660451342511152,
+      -0.9660432021627787
+     ],
+     "dense_energy": -0.9660441682069474,
+     "dense_folded_value": 1.2182657716085543e-05,
+     "dense_variance": 5.5396525145717836e-30,
+     "target_levels": [
+      10
+     ],
+     "weinstein_levels": [
+      10
+     ],
+     "isolated_level": 10,
+     "matches_dense": true,
+     "ritz_root": 5,
+     "ritz_variance": 0.03473049185905708,
+     "ritz_residual_norm": 0.18636118656806486,
+     "ritz_variance_resolved": true,
+     "refined_not_above_ritz": true
+    },
+    {
+     "root": 0,
+     "target": -0.9660441682069474,
+     "folded_value": -8.087619943713617e-16,
+     "energy": -0.9660441682069472,
+     "second_moment": 0.9332413349266516,
+     "variance": -7.771561172376096e-16,
+     "residual_norm": 0.0,
+     "folded_scale": 3.7329653397066282,
+     "variance_scale": 0.9332413349266586,
+     "resolved": false,
+     "variance_resolved": false,
+     "target_interval": [
+      -0.9660461002952838,
+      -0.966042236118611
+     ],
+     "weinstein_interval": [
+      -0.9660451342511154,
+      -0.966043202162779
+     ],
+     "dense_energy": -0.9660441682069472,
+     "dense_folded_value": 4.844945407914293e-30,
+     "dense_variance": 4.746337794761668e-30,
+     "target_levels": [
+      10
+     ],
+     "weinstein_levels": [
+      10
+     ],
+     "isolated_level": 10,
+     "matches_dense": true,
+     "ritz_root": 6,
+     "ritz_variance": -4.440892098500626e-16,
+     "ritz_residual_norm": 0.0,
+     "ritz_variance_resolved": false,
+     "refined_not_above_ritz": true
+    },
+    {
+     "root": 0,
+     "target": -0.7580091898404124,
+     "folded_value": 0.013458785455412512,
+     "energy": -0.7635948942249732,
+     "second_moment": 0.5965047478483892,
+     "variance": 0.01342758536194133,
+     "residual_norm": 0.11587745838575046,
+     "folded_scale": 3.7033287464115014,
+     "variance_scale": 1.37783207110814,
+     "resolved": true,
+     "variance_resolved": true,
+     "target_interval": [
+      -0.8740211955084287,
+      -0.6419971841723962
+     ],
+     "weinstein_interval": [
+      -0.8794723526166689,
+      -0.6477174358332775
+     ],
+     "dense_energy": -0.7635948942249725,
+     "dense_folded_value": 0.013458785455412459,
+     "dense_variance": 0.013427585361940757,
+     "target_levels": [
+      12,
+      13,
+      14
+     ],
+     "weinstein_levels": [
+      12,
+      13,
+      14
+     ],
+     "isolated_level": null,
+     "matches_dense": true,
+     "ritz_root": 7,
+     "ritz_variance": 0.01925189506912428,
+     "ritz_residual_norm": 0.13875119844211897,
+     "ritz_variance_resolved": true,
+     "refined_not_above_ritz": true
+    },
+    {
+     "root": 0,
+     "target": -0.5348693128392001,
+     "folded_value": 0.0005766671041309489,
+     "energy": -0.5326862529884331,
+     "second_moment": 0.2843265454766759,
+     "variance": 0.0005719013538189599,
+     "residual_norm": 0.02391445909526201,
+     "folded_scale": 1.7680469542003092,
+     "variance_scale": 0.6933348829011917,
+     "resolved": true,
+     "variance_resolved": true,
+     "target_interval": [
+      -0.5588832068570182,
+      -0.5108554188213821
+     ],
+     "weinstein_interval": [
+      -0.5566007120981913,
+      -0.5087717938786749
+     ],
+     "dense_energy": -0.5326862529884332,
+     "dense_folded_value": 0.0005766671041311257,
+     "dense_variance": 0.0005719013538190948,
+     "target_levels": [
+      15
+     ],
+     "weinstein_levels": [
+      15
+     ],
+     "isolated_level": 15,
+     "matches_dense": true,
+     "ritz_root": 8,
+     "ritz_variance": 0.0013577202661698151,
+     "ritz_residual_norm": 0.0368472558838486,
+     "ritz_variance_resolved": true,
+     "refined_not_above_ritz": true
+    },
+    {
+     "root": 0,
+     "target": -0.42203182495088354,
+     "folded_value": 0.0059336219324731265,
+     "energy": -0.39317161022879815,
+     "second_moment": 0.1596846250285742,
+     "variance": 0.0051007099386682075,
+     "residual_norm": 0.07141925467735019,
+     "folded_scale": 1.6545998126077122,
+     "variance_scale": 0.8523920194830944,
+     "resolved": true,
+     "variance_resolved": true,
+     "target_interval": [
+      -0.4990618316633831,
+      -0.345001818238384
+     ],
+     "weinstein_interval": [
+      -0.4645908649121159,
+      -0.32175235554548043
+     ],
+     "dense_energy": -0.3931716102287983,
+     "dense_folded_value": 0.005933621932473711,
+     "dense_variance": 0.005100709938668842,
+     "target_levels": [
+      16,
+      17,
+      18
+     ],
+     "weinstein_levels": [
+      18,
+      19
+     ],
+     "isolated_level": null,
+     "matches_dense": true,
+     "ritz_root": 9,
+     "ritz_variance": 0.03088963471759995,
+     "ritz_residual_norm": 0.17575447282387993,
+     "ritz_variance_resolved": true,
+     "refined_not_above_ritz": true
+    },
+    {
+     "root": 0,
+     "target": -0.38792421187324194,
+     "folded_value": 0.004927795604999549,
+     "energy": -0.3889823225958404,
+     "second_moment": 0.15623392329875269,
+     "variance": 0.004926676006698216,
+     "residual_norm": 0.0701902842756618,
+     "folded_scale": 1.545749713620701,
+     "variance_scale": 0.8403344515069228,
+     "resolved": true,
+     "variance_resolved": true,
+     "target_interval": [
+      -0.4581224711575383,
+      -0.3177259525889456
+     ],
+     "weinstein_interval": [
+      -0.45917260687748834,
+      -0.3187920383141925
+     ],
+     "dense_energy": -0.3889823225958405,
+     "dense_folded_value": 0.0049277956050002404,
+     "dense_variance": 0.004926676006698965,
+     "target_levels": [
+      18,
+      19
+     ],
+     "weinstein_levels": [
+      18,
+      19
+     ],
+     "isolated_level": null,
+     "matches_dense": true,
+     "ritz_root": 10,
+     "ritz_variance": 0.00516214210223595,
+     "ritz_residual_norm": 0.07184804870165891,
+     "ritz_variance_resolved": true,
+     "refined_not_above_ritz": true
+    },
+    {
+     "root": 0,
+     "target": -0.2939620388513361,
+     "folded_value": 0.007768769422695236,
+     "energy": -0.28656604257706786,
+     "second_moment": 0.08983416542008815,
+     "variance": 0.007714068661806281,
+     "residual_norm": 0.08782977093108169,
+     "folded_scale": 1.9145777457623816,
+     "variance_scale": 1.1326064826496562,
+     "resolved": true,
+     "variance_resolved": true,
+     "target_interval": [
+      -0.38210266186144315,
+      -0.20582141584122904
+     ],
+     "weinstein_interval": [
+      -0.3743958135145973,
+      -0.19873627163953844
+     ],
+     "dense_energy": -0.2865660425770681,
+     "dense_folded_value": 0.0077687694226956155,
+     "dense_variance": 0.007714068661806628,
+     "target_levels": [
+      19,
+      20,
+      21
+     ],
+     "weinstein_levels": [
+      19,
+      20,
+      21
+     ],
+     "isolated_level": null,
+     "matches_dense": true,
+     "ritz_root": 11,
+     "ritz_variance": 0.012699013383587657,
+     "ritz_residual_norm": 0.11268989920834811,
+     "ritz_variance_resolved": true,
+     "refined_not_above_ritz": true
+    },
+    {
+     "root": 0,
+     "target": -0.12215170553473848,
+     "folded_value": 0.02994874597114025,
+     "energy": -0.2386201666128059,
+     "second_moment": 0.0733234274595702,
+     "variance": 0.016383843545246947,
+     "residual_norm": 0.12799938884716186,
+     "folded_scale": 1.4007919448584831,
+     "variance_scale": 1.10051397053264,
+     "resolved": true,
+     "variance_resolved": true,
+     "target_interval": [
+      -0.2952087654096278,
+      0.05090535434015089
+     ],
+     "weinstein_interval": [
+      -0.3666195554642667,
+      -0.11062077776134513
+     ],
+     "dense_energy": -0.23862016661280594,
+     "dense_folded_value": 0.029948745971140826,
+     "dense_variance": 0.016383843545247512,
+     "target_levels": [
+      21,
+      22,
+      23
+     ],
+     "weinstein_levels": [
+      19,
+      20,
+      21
+     ],
+     "isolated_level": null,
+     "matches_dense": true,
+     "ritz_root": 12,
+     "ritz_variance": 0.07008184222126047,
+     "ritz_residual_norm": 0.26472975318475345,
+     "ritz_variance_resolved": true,
+     "refined_not_above_ritz": true
+    },
+    {
+     "root": 0,
+     "target": 0.18349610349340395,
+     "folded_value": 0.006376795227931153,
+     "energy": 0.17780188199511968,
+     "second_moment": 0.03795788031046606,
+     "variance": 0.006344371069459599,
+     "residual_norm": 0.07965156037052633,
+     "folded_scale": 1.1154784349906453,
+     "variance_scale": 0.7652754405438031,
+     "resolved": true,
+     "variance_resolved": true,
+     "target_interval": [
+      0.10364126501102625,
+      0.2633509419757817
+     ],
+     "weinstein_interval": [
+      0.09815032161978945,
+      0.25745344237044987
+     ],
+     "dense_energy": 0.1778018819951196,
+     "dense_folded_value": 0.006376795227932068,
+     "dense_variance": 0.006344371069460545,
+     "target_levels": [
+      26,
+      27,
+      28
+     ],
+     "weinstein_levels": [
+      26,
+      27,
+      28
+     ],
+     "isolated_level": null,
+     "matches_dense": true,
+     "ritz_root": 13,
+     "ritz_variance": 0.010489229823407505,
+     "ritz_residual_norm": 0.10241694109573624,
+     "ritz_variance_resolved": true,
+     "refined_not_above_ritz": true
+    },
+    {
+     "root": 0,
+     "target": 0.7170707039395618,
+     "folded_value": 0.08365308200012708,
+     "energy": 0.7119567170875206,
+     "second_moment": 0.5905092961446441,
+     "variance": 0.08362692913860426,
+     "residual_norm": 0.28918321033318006,
+     "folded_scale": 2.7657448669349094,
+     "variance_scale": 0.8696508929055679,
+     "resolved": true,
+     "variance_resolved": true,
+     "target_interval": [
+      0.4278422786371846,
+      1.0062991292419392
+     ],
+     "weinstein_interval": [
+      0.4227735067528369,
+      1.0011399274222044
+     ],
+     "dense_energy": 0.7119567170875205,
+     "dense_folded_value": 0.08365308200012846,
+     "dense_variance": 0.08362692913860557,
+     "target_levels": [
+      29,
+      30,
+      31,
+      32,
+      33
+     ],
+     "weinstein_levels": [
+      29,
+      30,
+      31,
+      32,
+      33
+     ],
+     "isolated_level": null,
+     "matches_dense": true,
+     "ritz_root": 14,
+     "ritz_variance": 0.08695481619515366,
+     "ritz_residual_norm": 0.2948810204051011,
+     "ritz_variance_resolved": true,
+     "refined_not_above_ritz": true
+    }
+   ],
+   "minimization": {
+    "start": -2.179550752062546,
+    "iterations": 3,
+    "converged": true,
+    "monotone": true,
+    "trace": [
+     [
+      -2.179550752062546,
+      0.002402190227809956,
+      -2.1794978795610276,
+      0.0024021874323123527,
+      19.134373465680774
+     ],
+     [
+      -2.1794978795610276,
+      0.0024021874318425696,
+      -2.1794978707234858,
+      0.002402187431836289,
+      19.133909386309142
+     ],
+     [
+      -2.1794978707234858,
+      0.0024021874318413505,
+      -2.1794978707220074,
+      0.002402187431841618,
+      19.1339093087396
+     ]
+    ],
+    "root": {
+     "root": 0,
+     "target": -2.1794978707234858,
+     "folded_value": 0.0024021874318413505,
+     "energy": -2.1794978707220074,
+     "second_moment": 4.752613155913606,
+     "variance": 0.002402187431841618,
+     "residual_norm": 0.04901211515372111,
+     "folded_scale": 19.1339093087396,
+     "variance_scale": 4.777772909192474,
+     "resolved": true,
+     "variance_resolved": true,
+     "target_interval": [
+      -2.2285099860724,
+      -2.1304857553745715
+     ],
+     "weinstein_interval": [
+      -2.228509985924469,
+      -2.1304857555195458
+     ],
+     "dense_energy": -2.179497870722007,
+     "dense_folded_value": 0.0024021874318414385,
+     "dense_variance": 0.002402187431841438,
+     "target_levels": [
+      0
+     ],
+     "weinstein_levels": [
+      0
+     ],
+     "isolated_level": 0,
+     "matches_dense": true
+    }
+   },
+   "checks": {
+    "sector_premise": true,
+    "roots_match_dense": true,
+    "refined_not_above_ritz": true,
+    "target_intervals_contain_a_level": true,
+    "weinstein_intervals_contain_a_level": true,
+    "minimization_monotone_and_converged": true
+   },
+   "status": "VALIDATED",
+   "reading": {
+    "ground_ritz_residual_norm": 0.049772712619654345,
+    "ground_refined_target_bound": 0.04901214367694966,
+    "minimized_residual_norm": 0.04901211515372111,
+    "minimized_energy": -2.1794978707220074,
+    "isolated_levels": [
+     0,
+     7,
+     10,
+     15
+    ]
+   },
+   "diagnostics": {
+    "seconds": 11.18
+   }
+  },
+  "beh2": {
+   "n_qubits": 8,
+   "basis_size": 5,
+   "effective_rank": 5,
+   "sector": {
+    "dimension": 36,
+    "levels": [
+     -15.56621179509517,
+     -15.28601147548802,
+     -15.260032675903995,
+     -15.25661019319191,
+     -15.16106970129725,
+     -15.084160006095644,
+     -15.017336841610042,
+     -14.971479119201891,
+     -14.968838083167705,
+     -14.964636029963605,
+     -14.922980360759533,
+     -14.920634947216541,
+     -14.891613620741389,
+     -14.683791947116827,
+     -14.682115016500052,
+     -14.642456538828496,
+     -14.635293188674495,
+     -14.593957780386148,
+     -14.587507033417017,
+     -14.454496581623275,
+     -14.420596315206174,
+     -14.391195032910055,
+     -14.355533607016527,
+     -13.888667133607772
+    ],
+    "reference_image_sector_leakage": 0.0,
+    "hamiltonian_sector_leakage": 0.0
+   },
+   "roots": [
+    {
+     "root": 0,
+     "target": -15.566208493595418,
+     "folded_value": 5.452816409991712e-06,
+     "energy": -15.566208439983704,
+     "second_moment": 242.30685064983638,
+     "variance": 5.452816481010814e-06,
+     "residual_norm": 0.002335126652027854,
+     "folded_scale": 969.2765470671828,
+     "variance_scale": 242.33076145199473,
+     "resolved": true,
+     "variance_resolved": true,
+     "target_interval": [
+      -15.568543827765627,
+      -15.56387315942521
+     ],
+     "weinstein_interval": [
+      -15.568543618523297,
+      -15.563873261444112
+     ],
+     "dense_energy": -15.566208439983704,
+     "dense_folded_value": 5.4528170551374746e-06,
+     "dense_variance": 5.452817052263271e-06,
+     "target_levels": [
+      0
+     ],
+     "weinstein_levels": [
+      0
+     ],
+     "isolated_level": 0,
+     "matches_dense": true,
+     "ritz_root": 0,
+     "ritz_variance": 5.494887460599784e-06,
+     "ritz_residual_norm": 0.002344117629428989,
+     "ritz_variance_resolved": true,
+     "refined_not_above_ritz": true
+    },
+    {
+     "root": 0,
+     "target": -14.968838083167713,
+     "folded_value": -3.687402223853992e-13,
+     "energy": -14.968838083167707,
+     "second_moment": 224.06611356009154,
+     "variance": -3.410605131648481e-13,
+     "residual_norm": 0.0,
+     "folded_scale": 896.2644542403727,
+     "variance_scale": 224.06611356009415,
+     "resolved": false,
+     "variance_resolved": false,
+     "target_interval": [
+      -14.968868020843878,
+      -14.968808145491547
+     ],
+     "weinstein_interval": [
+      -14.968853052005791,
+      -14.968823114329624
+     ],
+     "dense_energy": -14.9688380831677,
+     "dense_folded_value": 1.6235567583548348e-24,
+     "dense_variance": 1.6244055726888519e-24,
+     "target_levels": [
+      8
+     ],
+     "weinstein_levels": [
+      8
+     ],
+     "isolated_level": 8,
+     "matches_dense": true,
+     "ritz_root": 1,
+     "ritz_variance": -3.410605131648481e-13,
+     "ritz_residual_norm": 0.0,
+     "ritz_variance_resolved": false,
+     "refined_not_above_ritz": true
+    },
+    {
+     "root": 0,
+     "target": -14.919021105157366,
+     "folded_value": 0.0015844697759498673,
+     "energy": -14.91886896399388,
+     "second_moment": 222.57423561144884,
+     "variance": 0.001584446629010472,
+     "residual_norm": 0.03980510807685958,
+     "folded_scale": 893.6966002772488,
+     "variance_scale": 224.273602065087,
+     "resolved": true,
+     "variance_resolved": true,
+     "target_interval": [
+      -14.958826515212364,
+      -14.879215695102369
+     ],
+     "weinstein_interval": [
+      -14.958674074887886,
+      -14.879063853099874
+     ],
+     "dense_energy": -14.918868963993873,
+     "dense_folded_value": 0.001584469776337339,
+     "dense_variance": 0.0015844466294037147,
+     "target_levels": [
+      10,
+      11,
+      12
+     ],
+     "weinstein_levels": [
+      10,
+      11,
+      12
+     ],
+     "isolated_level": null,
+     "matches_dense": true,
+     "ritz_root": 2,
+     "ritz_variance": 0.0016367171749607223,
+     "ritz_residual_norm": 0.04045636136580652,
+     "ritz_variance_resolved": true,
+     "refined_not_above_ritz": true
+    },
+    {
+     "root": 0,
+     "target": -14.635293188674497,
+     "folded_value": -4.4940337549410987e-13,
+     "energy": -14.6352931886745,
+     "second_moment": 214.19180671846183,
+     "variance": -3.979039320256561e-13,
+     "residual_norm": 0.0,
+     "folded_scale": 875.8756983334098,
+     "variance_scale": 223.80017037744034,
+     "resolved": false,
+     "variance_resolved": false,
+     "target_interval": [
+      -14.635322783871715,
+      -14.63526359347728
+     ],
+     "weinstein_interval": [
+      -14.63530814862672,
+      -14.635278228722282
+     ],
+     "dense_energy": -14.635293188674492,
+     "dense_folded_value": 1.0001097296976186e-24,
+     "dense_variance": 9.993666227248998e-25,
+     "target_levels": [
+      16
+     ],
+     "weinstein_levels": [
+      16
+     ],
+     "isolated_level": 16,
+     "matches_dense": true,
+     "ritz_root": 3,
+     "ritz_variance": -4.831690603168681e-13,
+     "ritz_residual_norm": 0.0,
+     "ritz_variance_resolved": false,
+     "refined_not_above_ritz": true
+    },
+    {
+     "root": 0,
+     "target": -14.582216499016662,
+     "folded_value": 0.0028171349845365072,
+     "energy": -14.635293188674504,
+     "second_moment": 214.19180671846183,
+     "variance": -5.115907697472721e-13,
+     "residual_norm": 0.0,
+     "folded_scale": 872.7368905012665,
+     "variance_scale": 223.80017037745594,
+     "resolved": true,
+     "variance_resolved": false,
+     "target_interval": [
+      -14.63529319689128,
+      -14.529139801142044
+     ],
+     "weinstein_interval": [
+      -14.635308148626724,
+      -14.635278228722285
+     ],
+     "dense_energy": -14.635293188674488,
+     "dense_folded_value": 0.002817134985033471,
+     "dense_variance": 2.0747287308892557e-23,
+     "target_levels": [
+      16,
+      17,
+      18
+     ],
+     "weinstein_levels": [
+      16
+     ],
+     "isolated_level": 16,
+     "matches_dense": true,
+     "ritz_root": 4,
+     "ritz_variance": 0.003686840807660019,
+     "ritz_residual_norm": 0.06071936106103241,
+     "ritz_variance_resolved": true,
+     "refined_not_above_ritz": true
+    }
+   ],
+   "minimization": {
+    "start": -15.566208493595418,
+    "iterations": 2,
+    "converged": true,
+    "monotone": true,
+    "trace": [
+     [
+      -15.566208493595418,
+      5.452816409991712e-06,
+      -15.566208439983704,
+      5.452816481010814e-06,
+      969.2765470671828
+     ],
+     [
+      -15.566208439983704,
+      5.4528163691151305e-06,
+      -15.566208439983692,
+      5.452816310480557e-06,
+      969.2765437288534
+     ]
+    ],
+    "root": {
+     "root": 0,
+     "target": -15.566208439983704,
+     "folded_value": 5.4528163691151305e-06,
+     "energy": -15.566208439983692,
+     "second_moment": 242.30685064983584,
+     "variance": 5.452816310480557e-06,
+     "residual_norm": 0.0023351266155137193,
+     "folded_scale": 969.2765437288534,
+     "variance_scale": 242.33076145193718,
+     "resolved": true,
+     "variance_resolved": true,
+     "target_interval": [
+      -15.568543774145159,
+      -15.56387310582225
+     ],
+     "weinstein_interval": [
+      -15.568543618486771,
+      -15.563873261480612
+     ],
+     "dense_energy": -15.566208439983694,
+     "dense_folded_value": 5.452817052263277e-06,
+     "dense_variance": 5.452817052263275e-06,
+     "target_levels": [
+      0
+     ],
+     "weinstein_levels": [
+      0
+     ],
+     "isolated_level": 0,
+     "matches_dense": true
+    }
+   },
+   "checks": {
+    "sector_premise": true,
+    "roots_match_dense": true,
+    "refined_not_above_ritz": true,
+    "target_intervals_contain_a_level": true,
+    "weinstein_intervals_contain_a_level": true,
+    "minimization_monotone_and_converged": true
+   },
+   "status": "VALIDATED",
+   "reading": {
+    "ground_ritz_residual_norm": 0.002344117629428989,
+    "ground_refined_target_bound": 0.002335126636821162,
+    "minimized_residual_norm": 0.0023351266155137193,
+    "minimized_energy": -15.566208439983692,
+    "isolated_levels": [
+     0,
+     8,
+     16
+    ]
+   },
+   "diagnostics": {
+    "seconds": 0.28
+   }
+  },
+  "h2o_cas8e6o": {
+   "n_qubits": 12,
+   "basis_size": 9,
+   "effective_rank": 9,
+   "sector": {
+    "dimension": 225,
+    "levels": [
+     -75.01268130509835,
+     -74.615293337138,
+     -74.55563624020431,
+     -74.5116362728418,
+     -74.50965221266316,
+     -74.47245156072064,
+     -74.43368250113116,
+     -74.41499773236923,
+     -74.32821273089536,
+     -74.31617332661058,
+     -74.25291758712272,
+     -74.18721601614071,
+     -74.06736779136432,
+     -74.01601273502858,
+     -74.01390119366044,
+     -73.9832891713348,
+     -73.97168929288354,
+     -73.96443207211185,
+     -73.94046591721377,
+     -73.92924525173305,
+     -73.92546465153669,
+     -73.89832056699407,
+     -73.89256549115898,
+     -73.8612617056643,
+     -73.83359654859692,
+     -73.81735966942803,
+     -73.81433286355222,
+     -73.80097747772543,
+     -73.75121631845303,
+     -73.72479345695362,
+     -73.70936609420895,
+     -73.70715348478936,
+     -73.69797683965034,
+     -73.66497507373829,
+     -73.65815853608694,
+     -73.65295041224628,
+     -73.63085472865903,
+     -73.62267972247406,
+     -73.61161095758351,
+     -73.60680954908435,
+     -73.58178747892987,
+     -73.56845279780947,
+     -73.56328651555988,
+     -73.55515586815604,
+     -73.55342917488953,
+     -73.53299651109589,
+     -73.5162342967356,
+     -73.46468630885423,
+     -73.45949313172686,
+     -73.4558986379999,
+     -73.45471432149458,
+     -73.44768546083846,
+     -73.44636739377923,
+     -73.4273373596304,
+     -73.41315127531209,
+     -73.38618875064601,
+     -73.3075946732475,
+     -73.29481799721408,
+     -73.28994958080517,
+     -73.26158500185794,
+     -73.22444209493945,
+     -73.21720601344632,
+     -73.20281174609285,
+     -73.1997510344361,
+     -73.19327936439623,
+     -73.16667993312439,
+     -73.12987227418668,
+     -73.126181127709,
+     -73.12241185076104,
+     -73.11416603213448,
+     -73.09326246332004,
+     -73.08802296163731,
+     -73.08142754768629,
+     -73.07265711552999,
+     -73.06548097864479,
+     -73.05514837977621,
+     -73.04903423647895,
+     -73.03458015380387,
+     -73.0173777848268,
+     -73.00852651451484,
+     -73.00440337919453,
+     -72.99845303818738,
+     -72.97930880288251,
+     -72.97829152594906,
+     -72.96675717891456,
+     -72.9521175305517,
+     -72.941845918231,
+     -72.92854926573769,
+     -72.91722329520739,
+     -72.91335610329396,
+     -72.90841679173992,
+     -72.90090775283,
+     -72.89497411086771,
+     -72.88633516633183,
+     -72.8632596048983,
+     -72.860910913286,
+     -72.8592658613611,
+     -72.83557455097058,
+     -72.83319483327993,
+     -72.83278160753252,
+     -72.83016570619066,
+     -72.81209209952037,
+     -72.80509168346414,
+     -72.78586883497982,
+     -72.78571988908561,
+     -72.77392952788998,
+     -72.76816573653325,
+     -72.7504363586442,
+     -72.74169672382888,
+     -72.73233166686208,
+     -72.71591920721998,
+     -72.7141415464574,
+     -72.66864840810605,
+     -72.66283188530304,
+     -72.65321126326522,
+     -72.65244061450119,
+     -72.64334237294608,
+     -72.64005297026993,
+     -72.61641893847735,
+     -72.61574373411649,
+     -72.61409416129634,
+     -72.60928704241141,
+     -72.59427337181825,
+     -72.56730240836033,
+     -72.54195451808995,
+     -72.51836040792489,
+     -72.49147511729366,
+     -72.47779734965923,
+     -72.46877577787997,
+     -72.42777512486626,
+     -72.41963977515341,
+     -72.41803166315299,
+     -72.41322104983088,
+     -72.40975885768101,
+     -72.38286017275614,
+     -72.36435562365904,
+     -72.35222999360523,
+     -72.33356565868567,
+     -72.3177920492938,
+     -72.28114803084942,
+     -72.26781405769896,
+     -72.25476296412381,
+     -72.2475242715063,
+     -72.24099968192206,
+     -72.23712950823334,
+     -72.23228343939896,
+     -72.2034445001305,
+     -72.19714637422622,
+     -72.18384142579484,
+     -72.1813993512551,
+     -72.14744147615112,
+     -72.13657834426871,
+     -72.11908377927296,
+     -72.11839773707516,
+     -72.11384495190813,
+     -72.10737532336621,
+     -72.08687678968904,
+     -72.07144809695039,
+     -72.05812900038072,
+     -72.05146474640627,
+     -72.04930839862871,
+     -72.03340021381763,
+     -72.02375314253834,
+     -72.01287798451715,
+     -72.00966591294826,
+     -72.00140780568024,
+     -72.00124203454229,
+     -71.99719866873905,
+     -71.9665343141655,
+     -71.9634928909552,
+     -71.95282780047346,
+     -71.94900564361797,
+     -71.94684696578423,
+     -71.93515531268982,
+     -71.9151824906269,
+     -71.8954812692777,
+     -71.88747241513276,
+     -71.87481680809027,
+     -71.85901922984543,
+     -71.85129334057535,
+     -71.82299693237533,
+     -71.77635005319102,
+     -71.76959503221975,
+     -71.74456501957637,
+     -71.7223939883077,
+     -71.69331465929221,
+     -71.62595571138141,
+     -71.58526641781685,
+     -71.54885259988015,
+     -71.50107353273161,
+     -71.49095826367572,
+     -71.48342682763959,
+     -71.47094404338964,
+     -71.4664763466706,
+     -71.45052093470687,
+     -71.44118580841817,
+     -71.38737906899023,
+     -71.38420879757602,
+     -71.38174630873982,
+     -71.36909952282477,
+     -71.33050490072198,
+     -71.31480517883955,
+     -71.28850583606095,
+     -71.2648901375925,
+     -71.2358077441071,
+     -71.17314176789758,
+     -71.16739796833178,
+     -71.13955348268227,
+     -71.1269639519561,
+     -71.08579767216548,
+     -71.08236060662676,
+     -71.06937252556152,
+     -71.06750825924807,
+     -70.99761978583217,
+     -70.96978232437627,
+     -70.90439083954483,
+     -70.69786329630932,
+     -70.64862408830565,
+     -70.6383105472962,
+     -70.60923469786371,
+     -70.57444510736437,
+     -70.56299741321257,
+     -70.49343518963333,
+     -70.46948048678051,
+     -70.31202328740467
+    ],
+    "reference_image_sector_leakage": 0.0,
+    "hamiltonian_sector_leakage": 0.0
+   },
+   "roots": [
+    {
+     "root": 0,
+     "target": -74.99845661593258,
+     "folded_value": 0.022870202998794328,
+     "energy": -74.99833238560161,
+     "second_moment": 5624.772730808748,
+     "variance": 0.02287018756760517,
+     "residual_norm": 0.15122892437495272,
+     "folded_scale": 22500.405976935235,
+     "variance_scale": 5625.436926989639,
+     "resolved": true,
+     "variance_resolved": true,
+     "target_interval": [
+      -75.14968566571866,
+      -74.8472275661465
+     ],
+     "weinstein_interval": [
+      -75.14956132857564,
+      -74.84710344262758
+     ],
+     "dense_energy": -74.99833238560146,
+     "dense_folded_value": 0.022870203005479546,
+     "dense_variance": 0.022870187572304353,
+     "target_levels": [
+      0
+     ],
+     "weinstein_levels": [
+      0
+     ],
+     "isolated_level": 0,
+     "matches_dense": true,
+     "ritz_root": 0,
+     "ritz_variance": 0.023086767486347526,
+     "ritz_residual_norm": 0.15194330352584653,
+     "ritz_variance_resolved": true,
+     "refined_not_above_ritz": true
+    },
+    {
+     "root": 0,
+     "target": -73.59606193533574,
+     "folded_value": 0.06325272073725977,
+     "energy": -73.54091537345576,
+     "second_moment": 5408.326445543231,
+     "variance": 0.06021157744908123,
+     "residual_norm": 0.24538047487337136,
+     "folded_scale": 21659.68181930495,
+     "variance_scale": 5413.4949741186765,
+     "resolved": true,
+     "variance_resolved": true,
+     "target_interval": [
+      -73.8475629142542,
+      -73.34456095641728
+     ],
+     "weinstein_interval": [
+      -73.78629585935995,
+      -73.29553488755157
+     ],
+     "dense_energy": -73.54091537345558,
+     "dense_folded_value": 0.06325272073701287,
+     "dense_variance": 0.06021157744980934,
+     "target_levels": [
+      24,
+      25,
+      26,
+      27,
+      28,
+      29,
+      30,
+      31,
+      32,
+      33,
+      34,
+      35,
+      36,
+      37,
+      38,
+      39,
+      40,
+      41,
+      42,
+      43,
+      44,
+      45,
+      46,
+      47,
+      48,
+      49,
+      50,
+      51,
+      52,
+      53,
+      54,
+      55
+     ],
+     "weinstein_levels": [
+      28,
+      29,
+      30,
+      31,
+      32,
+      33,
+      34,
+      35,
+      36,
+      37,
+      38,
+      39,
+      40,
+      41,
+      42,
+      43,
+      44,
+      45,
+      46,
+      47,
+      48,
+      49,
+      50,
+      51,
+      52,
+      53,
+      54,
+      55,
+      56
+     ],
+     "isolated_level": null,
+     "matches_dense": true,
+     "ritz_root": 1,
+     "ritz_variance": 0.1000897572885151,
+     "ritz_residual_norm": 0.31636965291967417,
+     "ritz_variance_resolved": true,
+     "refined_not_above_ritz": true
+    },
+    {
+     "root": 0,
+     "target": -73.50133171495447,
+     "folded_value": 0.05994636149410762,
+     "energy": -73.5215035442331,
+     "second_moment": 5405.471022863476,
+     "variance": 0.05953945879537059,
+     "residual_norm": 0.2440070875924931,
+     "folded_scale": 21628.438745933203,
+     "variance_scale": 5411.812567415044,
+     "resolved": true,
+     "variance_resolved": true,
+     "target_interval": [
+      -73.74617121977865,
+      -73.2564922101303
+     ],
+     "weinstein_interval": [
+      -73.76551064291505,
+      -73.27749644555115
+     ],
+     "dense_energy": -73.52150354423284,
+     "dense_folded_value": 0.05994636149369125,
+     "dense_variance": 0.05953945879725562,
+     "target_levels": [
+      29,
+      30,
+      31,
+      32,
+      33,
+      34,
+      35,
+      36,
+      37,
+      38,
+      39,
+      40,
+      41,
+      42,
+      43,
+      44,
+      45,
+      46,
+      47,
+      48,
+      49,
+      50,
+      51,
+      52,
+      53,
+      54,
+      55,
+      56,
+      57,
+      58,
+      59
+     ],
+     "weinstein_levels": [
+      28,
+      29,
+      30,
+      31,
+      32,
+      33,
+      34,
+      35,
+      36,
+      37,
+      38,
+      39,
+      40,
+      41,
+      42,
+      43,
+      44,
+      45,
+      46,
+      47,
+      48,
+      49,
+      50,
+      51,
+      52,
+      53,
+      54,
+      55,
+      56,
+      57,
+      58
+     ],
+     "isolated_level": null,
+     "matches_dense": true,
+     "ritz_root": 2,
+     "ritz_variance": 0.06702810396745917,
+     "ritz_residual_norm": 0.258897863968514,
+     "ritz_variance_resolved": true,
+     "refined_not_above_ritz": true
+    },
+    {
+     "root": 0,
+     "target": -73.47543247275155,
+     "folded_value": 0.06152682341089376,
+     "energy": -73.51630877249963,
+     "second_moment": 5404.707511485037,
+     "variance": 0.0598559515310626,
+     "residual_norm": 0.24465475987820592,
+     "folded_scale": 21619.509813395696,
+     "variance_scale": 5411.157612169499,
+     "resolved": true,
+     "variance_resolved": true,
+     "target_interval": [
+      -73.72347852700439,
+      -73.22738641849871
+     ],
+     "weinstein_interval": [
+      -73.76096354343659,
+      -73.27165400156267
+     ],
+     "dense_energy": -73.51630877249937,
+     "dense_folded_value": 0.06152682341072954,
+     "dense_variance": 0.05985595152965572,
+     "target_levels": [
+      30,
+      31,
+      32,
+      33,
+      34,
+      35,
+      36,
+      37,
+      38,
+      39,
+      40,
+      41,
+      42,
+      43,
+      44,
+      45,
+      46,
+      47,
+      48,
+      49,
+      50,
+      51,
+      52,
+      53,
+      54,
+      55,
+      56,
+      57,
+      58,
+      59
+     ],
+     "weinstein_levels": [
+      28,
+      29,
+      30,
+      31,
+      32,
+      33,
+      34,
+      35,
+      36,
+      37,
+      38,
+      39,
+      40,
+      41,
+      42,
+      43,
+      44,
+      45,
+      46,
+      47,
+      48,
+      49,
+      50,
+      51,
+      52,
+      53,
+      54,
+      55,
+      56,
+      57,
+      58
+     ],
+     "isolated_level": null,
+     "matches_dense": true,
+     "ritz_root": 3,
+     "ritz_variance": 0.08784816830666387,
+     "ritz_residual_norm": 0.2963919167363777,
+     "ritz_variance_resolved": true,
+     "refined_not_above_ritz": true
+    },
+    {
+     "root": 0,
+     "target": -73.40009929425534,
+     "folded_value": 0.07227058602232604,
+     "energy": -73.50197620260384,
+     "second_moment": 5402.6023973697065,
+     "variance": 0.061891681564702594,
+     "residual_norm": 0.2487803882236351,
+     "folded_scale": 21592.879550499874,
+     "variance_scale": 5408.919686387541,
+     "resolved": true,
+     "variance_resolved": true,
+     "target_interval": [
+      -73.66893122616672,
+      -73.13126736234396
+     ],
+     "weinstein_interval": [
+      -73.75075660169836,
+      -73.25319580350933
+     ],
+     "dense_energy": -73.50197620260376,
+     "dense_folded_value": 0.07227058602329586,
+     "dense_variance": 0.06189168156866892,
+     "target_levels": [
+      33,
+      34,
+      35,
+      36,
+      37,
+      38,
+      39,
+      40,
+      41,
+      42,
+      43,
+      44,
+      45,
+      46,
+      47,
+      48,
+      49,
+      50,
+      51,
+      52,
+      53,
+      54,
+      55,
+      56,
+      57,
+      58,
+      59,
+      60,
+      61,
+      62,
+      63,
+      64,
+      65
+     ],
+     "weinstein_levels": [
+      29,
+      30,
+      31,
+      32,
+      33,
+      34,
+      35,
+      36,
+      37,
+      38,
+      39,
+      40,
+      41,
+      42,
+      43,
+      44,
+      45,
+      46,
+      47,
+      48,
+      49,
+      50,
+      51,
+      52,
+      53,
+      54,
+      55,
+      56,
+      57,
+      58,
+      59
+     ],
+     "isolated_level": null,
+     "matches_dense": true,
+     "ritz_root": 4,
+     "ritz_variance": 0.10442613744817208,
+     "ritz_residual_norm": 0.3231503325824872,
+     "ritz_variance_resolved": true,
+     "refined_not_above_ritz": true
+    },
+    {
+     "root": 0,
+     "target": -73.08095323765518,
+     "folded_value": 0.0941840267403953,
+     "energy": -73.0883182634535,
+     "second_moment": 5341.996396363006,
+     "variance": 0.09412978313503118,
+     "residual_norm": 0.30680577428567274,
+     "folded_scale": 21434.655386421102,
+     "variance_scale": 5376.646489781535,
+     "resolved": true,
+     "variance_resolved": true,
+     "target_interval": [
+      -73.38784743469229,
+      -72.77405904061807
+     ],
+     "weinstein_interval": [
+      -73.39512404650146,
+      -72.78151248040554
+     ],
+     "dense_energy": -73.08831826345317,
+     "dense_folded_value": 0.09418402677473359,
+     "dense_variance": 0.09412978316972855,
+     "target_levels": [
+      55,
+      56,
+      57,
+      58,
+      59,
+      60,
+      61,
+      62,
+      63,
+      64,
+      65,
+      66,
+      67,
+      68,
+      69,
+      70,
+      71,
+      72,
+      73,
+      74,
+      75,
+      76,
+      77,
+      78,
+      79,
+      80,
+      81,
+      82,
+      83,
+      84,
+      85,
+      86,
+      87,
+      88,
+      89,
+      90,
+      91,
+      92,
+      93,
+      94,
+      95,
+      96,
+      97,
+      98,
+      99,
+      100,
+      101,
+      102,
+      103,
+      104
+     ],
+     "weinstein_levels": [
+      55,
+      56,
+      57,
+      58,
+      59,
+      60,
+      61,
+      62,
+      63,
+      64,
+      65,
+      66,
+      67,
+      68,
+      69,
+      70,
+      71,
+      72,
+      73,
+      74,
+      75,
+      76,
+      77,
+      78,
+      79,
+      80,
+      81,
+      82,
+      83,
+      84,
+      85,
+      86,
+      87,
+      88,
+      89,
+      90,
+      91,
+      92,
+      93,
+      94,
+      95,
+      96,
+      97,
+      98,
+      99,
+      100,
+      101,
+      102,
+      103,
+      104
+     ],
+     "isolated_level": null,
+     "matches_dense": true,
+     "ritz_root": 5,
+     "ritz_variance": 0.1039873319778053,
+     "ritz_residual_norm": 0.32247066839916666,
+     "ritz_variance_resolved": true,
+     "refined_not_above_ritz": true
+    },
+    {
+     "root": 0,
+     "target": -72.68658527745423,
+     "folded_value": 0.051730999602942314,
+     "energy": -72.68847359487921,
+     "second_moment": 5283.665920987312,
+     "variance": 0.05172743385992362,
+     "residual_norm": 0.22743665900624643,
+     "folded_scale": 21136.225632918784,
+     "variance_scale": 5284.903165708855,
+     "resolved": true,
+     "variance_resolved": true,
+     "target_interval": [
+      -72.91402982177034,
+      -72.45914073313811
+     ],
+     "weinstein_interval": [
+      -72.91591026550387,
+      -72.46103692425456
+     ],
+     "dense_energy": -72.68847359487906,
+     "dense_folded_value": 0.051730999635082035,
+     "dense_variance": 0.051727433892385134,
+     "target_levels": [
+      89,
+      90,
+      91,
+      92,
+      93,
+      94,
+      95,
+      96,
+      97,
+      98,
+      99,
+      100,
+      101,
+      102,
+      103,
+      104,
+      105,
+      106,
+      107,
+      108,
+      109,
+      110,
+      111,
+      112,
+      113,
+      114,
+      115,
+      116,
+      117,
+      118,
+      119,
+      120,
+      121,
+      122,
+      123,
+      124,
+      125,
+      126,
+      127,
+      128
+     ],
+     "weinstein_levels": [
+      89,
+      90,
+      91,
+      92,
+      93,
+      94,
+      95,
+      96,
+      97,
+      98,
+      99,
+      100,
+      101,
+      102,
+      103,
+      104,
+      105,
+      106,
+      107,
+      108,
+      109,
+      110,
+      111,
+      112,
+      113,
+      114,
+      115,
+      116,
+      117,
+      118,
+      119,
+      120,
+      121,
+      122,
+      123,
+      124,
+      125,
+      126,
+      127,
+      128
+     ],
+     "isolated_level": null,
+     "matches_dense": true,
+     "ritz_root": 6,
+     "ritz_variance": 0.053308609601117496,
+     "ritz_residual_norm": 0.23088657302042814,
+     "ritz_variance_resolved": true,
+     "refined_not_above_ritz": true
+    },
+    {
+     "root": 0,
+     "target": -72.65774148608766,
+     "folded_value": 0.052664874779220154,
+     "energy": -72.68823798952677,
+     "second_moment": 5283.631676860138,
+     "variance": 0.05173483805538126,
+     "residual_norm": 0.22745293591286364,
+     "folded_scale": 21127.687844633416,
+     "variance_scale": 5284.826917944654,
+     "resolved": true,
+     "variance_resolved": true,
+     "target_interval": [
+      -72.88722982110038,
+      -72.42825315107494
+     ],
+     "weinstein_interval": [
+      -72.91569093705704,
+      -72.4607850419965
+     ],
+     "dense_energy": -72.68823798952658,
+     "dense_folded_value": 0.052664874812077656,
+     "dense_variance": 0.051734838090077465,
+     "target_levels": [
+      93,
+      94,
+      95,
+      96,
+      97,
+      98,
+      99,
+      100,
+      101,
+      102,
+      103,
+      104,
+      105,
+      106,
+      107,
+      108,
+      109,
+      110,
+      111,
+      112,
+      113,
+      114,
+      115,
+      116,
+      117,
+      118,
+      119,
+      120,
+      121,
+      122,
+      123,
+      124,
+      125,
+      126,
+      127,
+      128
+     ],
+     "weinstein_levels": [
+      89,
+      90,
+      91,
+      92,
+      93,
+      94,
+      95,
+      96,
+      97,
+      98,
+      99,
+      100,
+      101,
+      102,
+      103,
+      104,
+      105,
+      106,
+      107,
+      108,
+      109,
+      110,
+      111,
+      112,
+      113,
+      114,
+      115,
+      116,
+      117,
+      118,
+      119,
+      120,
+      121,
+      122,
+      123,
+      124,
+      125,
+      126,
+      127,
+      128
+     ],
+     "isolated_level": null,
+     "matches_dense": true,
+     "ritz_root": 7,
+     "ritz_variance": 0.22687803773533233,
+     "ritz_residual_norm": 0.4763171608658797,
+     "ritz_variance_resolved": true,
+     "refined_not_above_ritz": true
+    },
+    {
+     "root": 0,
+     "target": -72.12168951829449,
+     "folded_value": 0.1692446422478129,
+     "energy": -72.13027739214881,
+     "second_moment": 5202.946087559004,
+     "variance": 0.16917089067010238,
+     "residual_norm": 0.4113038909007577,
+     "folded_scale": 20830.427104716513,
+     "variance_scale": 5213.8265276097745,
+     "resolved": true,
+     "variance_resolved": true,
+     "target_interval": [
+      -72.53308308056575,
+      -71.71029595602323
+     ],
+     "weinstein_interval": [
+      -72.54158128938774,
+      -71.71897349490989
+     ],
+     "dense_energy": -72.13027739214878,
+     "dense_folded_value": 0.16924464225141805,
+     "dense_variance": 0.16917089067408086,
+     "target_levels": [
+      125,
+      126,
+      127,
+      128,
+      129,
+      130,
+      131,
+      132,
+      133,
+      134,
+      135,
+      136,
+      137,
+      138,
+      139,
+      140,
+      141,
+      142,
+      143,
+      144,
+      145,
+      146,
+      147,
+      148,
+      149,
+      150,
+      151,
+      152,
+      153,
+      154,
+      155,
+      156,
+      157,
+      158,
+      159,
+      160,
+      161,
+      162,
+      163,
+      164,
+      165,
+      166,
+      167,
+      168,
+      169,
+      170,
+      171,
+      172,
+      173,
+      174,
+      175,
+      176,
+      177,
+      178,
+      179,
+      180,
+      181,
+      182,
+      183,
+      184
+     ],
+     "weinstein_levels": [
+      125,
+      126,
+      127,
+      128,
+      129,
+      130,
+      131,
+      132,
+      133,
+      134,
+      135,
+      136,
+      137,
+      138,
+      139,
+      140,
+      141,
+      142,
+      143,
+      144,
+      145,
+      146,
+      147,
+      148,
+      149,
+      150,
+      151,
+      152,
+      153,
+      154,
+      155,
+      156,
+      157,
+      158,
+      159,
+      160,
+      161,
+      162,
+      163,
+      164,
+      165,
+      166,
+      167,
+      168,
+      169,
+      170,
+      171,
+      172,
+      173,
+      174,
+      175,
+      176,
+      177,
+      178,
+      179,
+      180,
+      181,
+      182,
+      183,
+      184
+     ],
+     "isolated_level": null,
+     "matches_dense": true,
+     "ritz_root": 8,
+     "ritz_variance": 0.17659460567938368,
+     "ritz_residual_norm": 0.42023160956713346,
+     "ritz_variance_resolved": true,
+     "refined_not_above_ritz": true
+    }
+   ],
+   "minimization": {
+    "start": -74.99845661593258,
+    "iterations": 3,
+    "converged": true,
+    "monotone": true,
+    "trace": [
+     [
+      -74.99845661593258,
+      0.022870202998794328,
+      -74.99833238560161,
+      0.02287018756760517,
+      22500.405976935235
+     ],
+     [
+      -74.99833238560161,
+      0.02287018756099082,
+      -74.9983323486979,
+      0.022870187558510224,
+      22500.368704561726
+     ],
+     [
+      -74.9983323486979,
+      0.02287018756061813,
+      -74.99833234868692,
+      0.02287018756123871,
+      22500.36869348964
+     ]
+    ],
+    "root": {
+     "root": 0,
+     "target": -74.9983323486979,
+     "folded_value": 0.02287018756061813,
+     "energy": -74.99833234868692,
+     "second_moment": 5624.7727252716595,
+     "variance": 0.02287018756123871,
+     "residual_norm": 0.15122892435390364,
+     "folded_scale": 22500.36869348964,
+     "variance_scale": 5625.4369254563735,
+     "resolved": true,
+     "variance_resolved": true,
+     "target_interval": [
+      -75.14956134744149,
+      -74.84710334995431
+     ],
+     "weinstein_interval": [
+      -75.1495612916399,
+      -74.84710340573393
+     ],
+     "dense_energy": -74.99833234868684,
+     "dense_folded_value": 0.022870187567718928,
+     "dense_variance": 0.022870187567718928,
+     "target_levels": [
+      0
+     ],
+     "weinstein_levels": [
+      0
+     ],
+     "isolated_level": 0,
+     "matches_dense": true
+    }
+   },
+   "checks": {
+    "sector_premise": true,
+    "roots_match_dense": true,
+    "refined_not_above_ritz": true,
+    "target_intervals_contain_a_level": true,
+    "weinstein_intervals_contain_a_level": true,
+    "minimization_monotone_and_converged": true
+   },
+   "status": "VALIDATED",
+   "reading": {
+    "ground_ritz_residual_norm": 0.15194330352584653,
+    "ground_refined_target_bound": 0.15122897539424887,
+    "minimized_residual_norm": 0.15122892435390364,
+    "minimized_energy": -74.99833234868692,
+    "isolated_levels": [
+     0
+    ]
+   },
+   "diagnostics": {
+    "seconds": 164.96
+   }
+  },
+  "hubbard_2x2": {
+   "n_qubits": 8,
+   "basis_size": 9,
+   "effective_rank": 9,
+   "sector": {
+    "dimension": 36,
+    "levels": [
+     -10.10274848346208,
+     -9.806423851823109,
+     -9.06814039344547,
+     -8.82842712474619,
+     -8.000000000000007,
+     -7.418550718873853,
+     -6.0000000000000036,
+     -5.6121268670507405,
+     -5.034608090016608,
+     -4.828427124746191,
+     -4.000000000000004,
+     -3.1715728752538106,
+     -2.965391909983387,
+     -2.387873132949264,
+     -2.000000000000003,
+     -0.5814492811261558,
+     -4.771716168991981e-16,
+     0.8284271247461893,
+     1.0681403934454623,
+     1.8064238518231135,
+     2.102748483462074
+    ],
+    "reference_image_sector_leakage": 0.0,
+    "hamiltonian_sector_leakage": 0.0
+   },
+   "roots": [
+    {
+     "root": 0,
+     "target": -9.239438100571599,
+     "folded_value": 0.9057427982447663,
+     "energy": -8.898425712672722,
+     "second_moment": 79.97143351349932,
+     "variance": 0.7894533495442744,
+     "residual_norm": 0.8885118736090556,
+     "folded_scale": 329.8068570710015,
+     "variance_scale": 80.00673352715869,
+     "resolved": true,
+     "variance_resolved": true,
+     "target_interval": [
+      -10.191143306281106,
+      -8.287732894862092
+     ],
+     "weinstein_interval": [
+      -9.7869375863268,
+      -8.009913839018644
+     ],
+     "dense_energy": -8.898425712672726,
+     "dense_folded_value": 0.9057427982447623,
+     "dense_variance": 0.789453349544269,
+     "target_levels": [
+      0,
+      1,
+      2,
+      3
+     ],
+     "weinstein_levels": [
+      2,
+      3
+     ],
+     "isolated_level": null,
+     "matches_dense": true,
+     "ritz_root": 0,
+     "ritz_variance": 2.309897112752509,
+     "ritz_residual_norm": 1.5198345675607292,
+     "ritz_variance_resolved": true,
+     "refined_not_above_ritz": true
+    },
+    {
+     "root": 0,
+     "target": -8.66644262345447,
+     "folded_value": 0.764187528855647,
+     "energy": -8.755697963591498,
+     "second_moment": 77.41846784275293,
+     "variance": 0.7562210131126363,
+     "residual_norm": 0.8696096900981706,
+     "folded_scale": 307.2745909220561,
+     "variance_scale": 78.95041840411483,
+     "resolved": true,
+     "variance_resolved": true,
+     "target_interval": [
+      -9.540620825632335,
+      -7.792264421276607
+     ],
+     "weinstein_interval": [
+      -9.625307653735062,
+      -7.886088273447933
+     ],
+     "dense_energy": -8.755697963591496,
+     "dense_folded_value": 0.7641875288556403,
+     "dense_variance": 0.7562210131126641,
+     "target_levels": [
+      2,
+      3,
+      4
+     ],
+     "weinstein_levels": [
+      2,
+      3,
+      4
+     ],
+     "isolated_level": null,
+     "matches_dense": true,
+     "ritz_root": 1,
+     "ritz_variance": 4.539784548824471,
+     "ritz_residual_norm": 2.1306770165429745,
+     "ritz_variance_resolved": true,
+     "refined_not_above_ritz": true
+    },
+    {
+     "root": 0,
+     "target": -8.09669371353813,
+     "folded_value": 1.10146804217714,
+     "energy": -8.599549261900368,
+     "second_moment": 74.80085184750963,
+     "variance": 0.848604339658479,
+     "residual_norm": 0.921197231681945,
+     "folded_scale": 289.22551979228734,
+     "variance_scale": 80.02466766504878,
+     "resolved": true,
+     "variance_resolved": true,
+     "target_interval": [
+      -9.146202190143423,
+      -7.047185236932836
+     ],
+     "weinstein_interval": [
+      -9.520746493625747,
+      -7.678352030174987
+     ],
+     "dense_energy": -8.59954926190037,
+     "dense_folded_value": 1.1014680421771372,
+     "dense_variance": 0.848604339658449,
+     "target_levels": [
+      2,
+      3,
+      4,
+      5
+     ],
+     "weinstein_levels": [
+      2,
+      3,
+      4
+     ],
+     "isolated_level": null,
+     "matches_dense": true,
+     "ritz_root": 2,
+     "ritz_variance": 3.699023204975859,
+     "ritz_residual_norm": 1.9232844836310252,
+     "ritz_variance_resolved": true,
+     "refined_not_above_ritz": true
+    },
+    {
+     "root": 0,
+     "target": -4.000000000000001,
+     "folded_value": 2.0000000000000004,
+     "energy": -4.0,
+     "second_moment": 18.000000000000004,
+     "variance": 2.0000000000000036,
+     "residual_norm": 1.4142135623730963,
+     "folded_scale": 75.33333333333339,
+     "variance_scale": 27.333333333333357,
+     "resolved": true,
+     "variance_resolved": true,
+     "target_interval": [
+      -5.4142135623997305,
+      -2.5857864376002713
+     ],
+     "weinstein_interval": [
+      -5.41421356238276,
+      -2.58578643761724
+     ],
+     "dense_energy": -4.000000000000001,
+     "dense_folded_value": 2.0000000000000004,
+     "dense_variance": 2.0000000000000004,
+     "target_levels": [
+      8,
+      9,
+      10,
+      11,
+      12
+     ],
+     "weinstein_levels": [
+      8,
+      9,
+      10,
+      11,
+      12
+     ],
+     "isolated_level": null,
+     "matches_dense": true,
+     "ritz_root": 3,
+     "ritz_variance": 4.0,
+     "ritz_residual_norm": 2.0,
+     "ritz_variance_resolved": true,
+     "refined_not_above_ritz": true
+    },
+    {
+     "root": 0,
+     "target": -3.999999999999999,
+     "folded_value": 2.0,
+     "energy": -4.0,
+     "second_moment": 18.0,
+     "variance": 2.0,
+     "residual_norm": 1.4142135623730951,
+     "folded_scale": 75.33333333333333,
+     "variance_scale": 27.333333333333343,
+     "resolved": true,
+     "variance_resolved": true,
+     "target_interval": [
+      -5.414213562399729,
+      -2.5857864376002695
+     ],
+     "weinstein_interval": [
+      -5.414213562382759,
+      -2.5857864376172413
+     ],
+     "dense_energy": -4.000000000000001,
+     "dense_folded_value": 2.0000000000000004,
+     "dense_variance": 2.0000000000000004,
+     "target_levels": [
+      8,
+      9,
+      10,
+      11,
+      12
+     ],
+     "weinstein_levels": [
+      8,
+      9,
+      10,
+      11,
+      12
+     ],
+     "isolated_level": null,
+     "matches_dense": true,
+     "ritz_root": 4,
+     "ritz_variance": 3.9999999999999964,
+     "ritz_residual_norm": 1.9999999999999991,
+     "ritz_variance_resolved": true,
+     "refined_not_above_ritz": true
+    },
+    {
+     "root": 0,
+     "target": -3.999999999999994,
+     "folded_value": 2.0,
+     "energy": -4.0,
+     "second_moment": 18.0,
+     "variance": 2.0,
+     "residual_norm": 1.4142135623730951,
+     "folded_scale": 75.33333333333324,
+     "variance_scale": 27.333333333333346,
+     "resolved": true,
+     "variance_resolved": true,
+     "target_interval": [
+      -5.414213562399723,
+      -2.585786437600264
+     ],
+     "weinstein_interval": [
+      -5.414213562382759,
+      -2.5857864376172413
+     ],
+     "dense_energy": -4.000000000000001,
+     "dense_folded_value": 2.0000000000000004,
+     "dense_variance": 2.0000000000000004,
+     "target_levels": [
+      8,
+      9,
+      10,
+      11,
+      12
+     ],
+     "weinstein_levels": [
+      8,
+      9,
+      10,
+      11,
+      12
+     ],
+     "isolated_level": null,
+     "matches_dense": true,
+     "ritz_root": 5,
+     "ritz_variance": 4.0000000000000036,
+     "ritz_residual_norm": 2.000000000000001,
+     "ritz_variance_resolved": true,
+     "refined_not_above_ritz": true
+    },
+    {
+     "root": 0,
+     "target": -3.9033062864618677,
+     "folded_value": 2.0093496742377948,
+     "energy": -4.0,
+     "second_moment": 17.999999999999996,
+     "variance": 1.9999999999999964,
+     "residual_norm": 1.4142135623730938,
+     "folded_scale": 73.79558359096107,
+     "variance_scale": 27.333333333333353,
+     "resolved": true,
+     "variance_resolved": true,
+     "target_interval": [
+      -5.320821603596603,
+      -2.485790969327132
+     ],
+     "weinstein_interval": [
+      -5.414213562382757,
+      -2.5857864376172426
+     ],
+     "dense_energy": -4.000000000000001,
+     "dense_folded_value": 2.0093496742377948,
+     "dense_variance": 2.0000000000000004,
+     "target_levels": [
+      8,
+      9,
+      10,
+      11,
+      12
+     ],
+     "weinstein_levels": [
+      8,
+      9,
+      10,
+      11,
+      12
+     ],
+     "isolated_level": null,
+     "matches_dense": true,
+     "ritz_root": 6,
+     "ritz_variance": 4.109476450031069,
+     "ritz_residual_norm": 2.0271843650815455,
+     "ritz_variance_resolved": true,
+     "refined_not_above_ritz": true
+    },
+    {
+     "root": 0,
+     "target": -3.3335573765455333,
+     "folded_value": 2.4441457703568727,
+     "energy": -4.0,
+     "second_moment": 18.0,
+     "variance": 2.0,
+     "residual_norm": 1.4142135623730951,
+     "folded_scale": 65.1143971284188,
+     "variance_scale": 27.333333333333368,
+     "resolved": true,
+     "variance_resolved": true,
+     "target_interval": [
+      -4.896933777295521,
+      -1.7701809757955451
+     ],
+     "weinstein_interval": [
+      -5.414213562382759,
+      -2.5857864376172413
+     ],
+     "dense_energy": -4.000000000000001,
+     "dense_folded_value": 2.4441457703568727,
+     "dense_variance": 2.0000000000000004,
+     "target_levels": [
+      9,
+      10,
+      11,
+      12,
+      13,
+      14
+     ],
+     "weinstein_levels": [
+      8,
+      9,
+      10,
+      11,
+      12
+     ],
+     "isolated_level": null,
+     "matches_dense": true,
+     "ritz_root": 7,
+     "ritz_variance": 6.169323343262658,
+     "ritz_residual_norm": 2.4838122600677086,
+     "ritz_variance_resolved": true,
+     "refined_not_above_ritz": true
+    },
+    {
+     "root": 0,
+     "target": -2.7605618994284016,
+     "folded_value": 2.982929174551378,
+     "energy": -2.852182899076973,
+     "second_moment": 11.109482056761902,
+     "variance": 2.9745347669747755,
+     "residual_norm": 1.7246839614766456,
+     "folded_scale": 103.04170273895775,
+     "variance_scale": 58.717133222515905,
+     "resolved": true,
+     "variance_resolved": true,
+     "target_interval": [
+      -4.487677753867362,
+      -1.0334460449894414
+     ],
+     "weinstein_interval": [
+      -4.576866860570641,
+      -1.1274989375833047
+     ],
+     "dense_energy": -2.852182899076973,
+     "dense_folded_value": 2.9829291745513795,
+     "dense_variance": 2.9745347669747755,
+     "target_levels": [
+      10,
+      11,
+      12,
+      13,
+      14
+     ],
+     "weinstein_levels": [
+      10,
+      11,
+      12,
+      13,
+      14
+     ],
+     "isolated_level": null,
+     "matches_dense": true,
+     "ritz_root": 8,
+     "ritz_variance": 3.1724953401535574,
+     "ritz_residual_norm": 1.7811500049556628,
+     "ritz_variance_resolved": true,
+     "refined_not_above_ritz": true
+    }
+   ],
+   "minimization": {
+    "start": -9.239438100571599,
+    "iterations": 20,
+    "converged": true,
+    "monotone": true,
+    "trace": [
+     [
+      -9.239438100571599,
+      0.9057427982447663,
+      -8.898425712672722,
+      0.7894533495442744,
+      329.8068570710015
+     ],
+     [
+      -8.898425712672722,
+      0.7622805201317928,
+      -8.816813842065732,
+      0.7556200227077454,
+      314.5878851605735
+     ],
+     [
+      -8.816813842065732,
+      0.7539052582107401,
+      -8.795718792833629,
+      0.7534602571086282,
+      311.7651326722517
+     ],
+     [
+      -8.795718792833629,
+      0.7533436809731288,
+      -8.79018750729287,
+      0.7533130858534349,
+      311.14061525205483
+     ],
+     [
+      -8.79018750729287,
+      0.753305038013959,
+      -8.788732202750197,
+      0.7533029201025983,
+      310.97658691710075
+     ],
+     [
+      -8.788732202750197,
+      0.7533023624171838,
+      -8.788348970820866,
+      0.7533022155504057,
+      310.9334110745232
+     ],
+     [
+      -8.788348970820866,
+      0.7533021768671567,
+      -8.788248029527987,
+      0.75330216667804,
+      310.92204004180746
+     ],
+     [
+      -8.788248029527987,
+      0.7533021639940943,
+      -8.78822144051795,
+      0.7533021632871026,
+      310.9190448778123
+     ],
+     [
+      -8.78822144051795,
+      0.7533021631008986,
+      -8.788214436578995,
+      0.7533021630518846,
+      310.9182559132919
+     ],
+     [
+      -8.788214436578995,
+      0.7533021630389207,
+      -8.78821259163007,
+      0.7533021630354995,
+      310.91804808790573
+     ],
+     [
+      -8.78821259163007,
+      0.7533021630346086,
+      -8.788212105640644,
+      0.7533021630343342,
+      310.9179933433621
+     ],
+     [
+      -8.788212105640644,
+      0.7533021630343217,
+      -8.788211977623124,
+      0.7533021630342489,
+      310.91797892276065
+     ],
+     [
+      -8.788211977623124,
+      0.7533021630342913,
+      -8.788211943901219,
+      0.7533021630343057,
+      310.91797512413956
+     ],
+     [
+      -8.788211943901219,
+      0.7533021630343001,
+      -8.788211935018321,
+      0.7533021630343057,
+      310.9179741235207
+     ],
+     [
+      -8.788211935018321,
+      0.7533021630342925,
+      -8.788211932678422,
+      0.7533021630342915,
+      310.91797385994124
+     ],
+     [
+      -8.788211932678422,
+      0.7533021630342964,
+      -8.788211932062051,
+      0.7533021630343626,
+      310.9179737905103
+     ],
+     [
+      -8.788211932062051,
+      0.7533021630342911,
+      -8.78821193189969,
+      0.75330216303432,
+      310.9179737722211
+     ],
+     [
+      -8.78821193189969,
+      0.7533021630342891,
+      -8.788211931856923,
+      0.7533021630343057,
+      310.9179737674032
+     ],
+     [
+      -8.788211931856923,
+      0.7533021630342925,
+      -8.78821193184566,
+      0.7533021630342205,
+      310.9179737661343
+     ],
+     [
+      -8.78821193184566,
+      0.7533021630342972,
+      -8.788211931842689,
+      0.7533021630343342,
+      310.91797376580007
+     ]
+    ],
+    "root": {
+     "root": 0,
+     "target": -8.78821193184566,
+     "folded_value": 0.7533021630342972,
+     "energy": -8.788211931842689,
+     "second_moment": 77.98597112201654,
+     "variance": 0.7533021630343342,
+     "residual_norm": 0.8679298145785374,
+     "folded_scale": 310.91797376580007,
+     "variance_scale": 78.61150714593835,
+     "resolved": true,
+     "variance_resolved": true,
+     "target_interval": [
+      -9.656141746603291,
+      -7.92028211708803
+     ],
+     "weinstein_interval": [
+      -9.656141746466513,
+      -7.920282117218864
+     ],
+     "dense_energy": -8.788211931842687,
+     "dense_folded_value": 0.753302163034294,
+     "dense_variance": 0.753302163034294,
+     "target_levels": [
+      2,
+      3,
+      4
+     ],
+     "weinstein_levels": [
+      2,
+      3,
+      4
+     ],
+     "isolated_level": null,
+     "matches_dense": true
+    }
+   },
+   "checks": {
+    "sector_premise": true,
+    "roots_match_dense": true,
+    "refined_not_above_ritz": true,
+    "target_intervals_contain_a_level": true,
+    "weinstein_intervals_contain_a_level": true,
+    "minimization_monotone_and_converged": true
+   },
+   "status": "VALIDATED",
+   "reading": {
+    "ground_ritz_residual_norm": 1.5198345675607292,
+    "ground_refined_target_bound": 0.9517052055362345,
+    "minimized_residual_norm": 0.8679298145785374,
+    "minimized_energy": -8.788211931842689,
+    "isolated_levels": []
+   },
+   "diagnostics": {
+    "seconds": 0.51
+   }
+  }
+ },
+ "summary": {
+  "bank_statuses": {
+   "h4": "VALIDATED",
+   "h4_converged": "VALIDATED",
+   "beh2": "VALIDATED",
+   "h2o_cas8e6o": "VALIDATED",
+   "hubbard_2x2": "VALIDATED"
+  },
+  "all_validated": true
+ },
+ "elapsed_seconds": 183.0,
+ "evidence_schema": "clifford_qc.evidence.v1",
+ "evidence": {
+  "folded_roots_and_intervals": {
+   "tier": "exact_small_sector_simulation",
+   "scope": "Exact second-moment pairings on the five licensed frozen bases, checked against dense statevectors and the exact (N, S_z) sector spectrum; no finite-shot estimate, grouping or device cost."
+  }
+ },
+ "provenance": {
+  "schema": "clifford_qc.execution_provenance.v1",
+  "git_sha": "117c91f7cc2325aa205dfde99b2e644cb62bdff7",
+  "git_dirty": false,
+  "clifford_qc": "0.3.0",
+  "python": "3.12.3",
+  "dependencies": {
+   "numpy": "2.5.2",
+   "scipy": "1.18.0",
+   "pyscf": null,
+   "openfermion": null,
+   "openfermionpyscf": null,
+   "stim": "1.16.0"
+  },
+  "platform": {
+   "system": "Linux",
+   "release": "6.18.44-fc-v114",
+   "machine": "x86_64",
+   "processor": "x86_64",
+   "hostname": "vm"
+  },
+  "blas_lapack": {
+   "Compilers": {
+    "c": {
+     "name": "gcc",
+     "linker": "ld.bfd",
+     "version": "14.2.1",
+     "commands": "cc"
+    },
+    "cython": {
+     "name": "cython",
+     "linker": "cython",
+     "version": "3.2.9",
+     "commands": "cython"
+    },
+    "c++": {
+     "name": "gcc",
+     "linker": "ld.bfd",
+     "version": "14.2.1",
+     "commands": "c++"
+    }
+   },
+   "Machine Information": {
+    "host": {
+     "cpu": "x86_64",
+     "family": "x86_64",
+     "endian": "little",
+     "system": "linux"
+    },
+    "build": {
+     "cpu": "x86_64",
+     "family": "x86_64",
+     "endian": "little",
+     "system": "linux"
+    }
+   },
+   "Build Dependencies": {
+    "blas": {
+     "name": "scipy-openblas",
+     "found": true,
+     "version": "0.3.34.0.0",
+     "detection method": "pkgconfig",
+     "include directory": "/opt/_internal/cpython-3.12.13/lib/python3.12/site-packages/scipy_openblas64/include",
+     "lib directory": "/opt/_internal/cpython-3.12.13/lib/python3.12/site-packages/scipy_openblas64/lib",
+     "openblas configuration": "OpenBLAS 0.3.34.0.0  USE64BITINT DYNAMIC_ARCH NO_AFFINITY Haswell MAX_THREADS=64",
+     "pc file directory": "/project/.openblas"
+    },
+    "lapack": {
+     "name": "scipy-openblas",
+     "found": true,
+     "version": "0.3.34.0.0",
+     "detection method": "pkgconfig",
+     "include directory": "/opt/_internal/cpython-3.12.13/lib/python3.12/site-packages/scipy_openblas64/include",
+     "lib directory": "/opt/_internal/cpython-3.12.13/lib/python3.12/site-packages/scipy_openblas64/lib",
+     "openblas configuration": "OpenBLAS 0.3.34.0.0  USE64BITINT DYNAMIC_ARCH NO_AFFINITY Haswell MAX_THREADS=64",
+     "pc file directory": "/project/.openblas"
+    }
+   },
+   "Python Information": {
+    "path": "/tmp/build-env-jmn5a0j4/bin/python",
+    "version": "3.12"
+   },
+   "SIMD Extensions": {
+    "baseline": [
+     "X86_V2"
+    ],
+    "found": [
+     "X86_V3",
+     "X86_V4",
+     "AVX512_ICL",
+     "AVX512_SPR"
+    ]
+   }
+  },
+  "environment_sha256": "312c02b306f0a146f11668778a9536a4f3acaa10d279f7bd3062fdc679faa713",
+  "utc": "2026-10-14T16:21:23.146453+00:00"
+ }
+}
