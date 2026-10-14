@@ -1,5 +1,5 @@
 {
-  "schema": "clifford_qc.sparse_ga_kernel.v1",
+  "schema": "clifford_qc.sparse_ga_kernel.v2",
   "fixtures": [
     {
       "fixture": "n3_grade3_shared",
@@ -30,27 +30,47 @@
       "measurements": {
         "active": {
           "is_blade": true,
-          "cold_ns": 252621,
+          "cold_ns": 86193,
           "warm_ns": {
-            "min": 80680,
-            "median": 90663,
-            "max": 327365
+            "min": 25502,
+            "median": 26619,
+            "max": 163713
           },
           "repeats": 31,
-          "cold_tracemalloc_peak_bytes": 5376,
-          "whole_grade_cache_entries": 0
+          "cold_tracemalloc_peak_bytes": 3816,
+          "whole_grade_cache_entries": 0,
+          "candidate_masks": [
+            3,
+            5,
+            6,
+            17,
+            18,
+            33,
+            34
+          ],
+          "visited_candidate_masks": [
+            3,
+            5,
+            6,
+            17,
+            18,
+            33,
+            34
+          ]
         },
         "exhaustive": {
           "is_blade": true,
-          "cold_ns": 246678,
+          "cold_ns": 378668,
           "warm_ns": {
-            "min": 90940,
-            "median": 96531,
-            "max": 346777
+            "min": 97006,
+            "median": 100005,
+            "max": 474091
           },
           "repeats": 31,
           "cold_tracemalloc_peak_bytes": 12536,
-          "whole_grade_cache_entries": 1
+          "whole_grade_cache_entries": 1,
+          "candidate_masks": null,
+          "visited_candidate_masks": null
         }
       },
       "baseline_scope": "measured n=3 only; exhaustive n=12 intentionally not executed"
@@ -84,15 +104,33 @@
       "measurements": {
         "active": {
           "is_blade": true,
-          "cold_ns": 204841,
+          "cold_ns": 118631,
           "warm_ns": {
-            "min": 51863,
-            "median": 55768,
-            "max": 568999
+            "min": 34481,
+            "median": 35970,
+            "max": 105903
           },
           "repeats": 31,
-          "cold_tracemalloc_peak_bytes": 6144,
-          "whole_grade_cache_entries": 0
+          "cold_tracemalloc_peak_bytes": 4488,
+          "whole_grade_cache_entries": 0,
+          "candidate_masks": [
+            3,
+            5,
+            6,
+            4194305,
+            4194306,
+            8388609,
+            8388610
+          ],
+          "visited_candidate_masks": [
+            3,
+            5,
+            6,
+            4194305,
+            4194306,
+            8388609,
+            8388610
+          ]
         }
       },
       "baseline_scope": "measured n=3 only; exhaustive n=12 intentionally not executed"
@@ -126,15 +164,87 @@
       "measurements": {
         "active": {
           "is_blade": true,
-          "cold_ns": 563514,
+          "cold_ns": 267423,
           "warm_ns": {
-            "min": 236400,
-            "median": 265501,
-            "max": 457694
+            "min": 147490,
+            "median": 159196,
+            "max": 269743
           },
           "repeats": 31,
-          "cold_tracemalloc_peak_bytes": 16912,
-          "whole_grade_cache_entries": 0
+          "cold_tracemalloc_peak_bytes": 10920,
+          "whole_grade_cache_entries": 0,
+          "candidate_masks": [
+            2047,
+            3071,
+            3583,
+            3839,
+            3967,
+            4031,
+            4063,
+            4079,
+            4087,
+            4091,
+            4093,
+            4094,
+            4195327,
+            4195839,
+            4196095,
+            4196223,
+            4196287,
+            4196319,
+            4196335,
+            4196343,
+            4196347,
+            4196349,
+            4196350,
+            8389631,
+            8390143,
+            8390399,
+            8390527,
+            8390591,
+            8390623,
+            8390639,
+            8390647,
+            8390651,
+            8390653,
+            8390654
+          ],
+          "visited_candidate_masks": [
+            2047,
+            3071,
+            3583,
+            3839,
+            3967,
+            4031,
+            4063,
+            4079,
+            4087,
+            4091,
+            4093,
+            4094,
+            4195327,
+            4195839,
+            4196095,
+            4196223,
+            4196287,
+            4196319,
+            4196335,
+            4196343,
+            4196347,
+            4196349,
+            4196350,
+            8389631,
+            8390143,
+            8390399,
+            8390527,
+            8390591,
+            8390623,
+            8390639,
+            8390647,
+            8390651,
+            8390653,
+            8390654
+          ]
         }
       },
       "baseline_scope": "measured n=3 only; exhaustive n=12 intentionally not executed"
@@ -163,15 +273,26 @@
       "measurements": {
         "active": {
           "is_blade": false,
-          "cold_ns": 56714,
+          "cold_ns": 50168,
           "warm_ns": {
-            "min": 9131,
-            "median": 9956,
-            "max": 54253
+            "min": 7285,
+            "median": 7934,
+            "max": 50408
           },
           "repeats": 31,
-          "cold_tracemalloc_peak_bytes": 2960,
-          "whole_grade_cache_entries": 0
+          "cold_tracemalloc_peak_bytes": 2800,
+          "whole_grade_cache_entries": 0,
+          "candidate_masks": [
+            3,
+            5,
+            6,
+            24,
+            40,
+            48
+          ],
+          "visited_candidate_masks": [
+            3
+          ]
         }
       },
       "baseline_scope": "measured n=3 only; exhaustive n=12 intentionally not executed"
@@ -181,8 +302,8 @@
   "source_files": [
     {
       "path": "clifford_qc/multivector.py",
-      "sha256": "6d57a97eb8d897f02505bdd278fec2ab49032be8716a5ea0b946a8960ff654d4",
-      "git_blob_sha1": "2cf0c6f3799835fe4fed9ad367d0dbde53b838f2"
+      "sha256": "49530fb71721480a6889f6a3f6235f54b50226044e93e0feeabb437e8971f65d",
+      "git_blob_sha1": "05f3767aad6ca3bdc2ea2613988a2a16a075ed8f"
     },
     {
       "path": "clifford_qc/pauli_kernel.py",
@@ -190,9 +311,19 @@
       "git_blob_sha1": "eae6c74dea42108d9cb1414211b2a06438227e38"
     },
     {
+      "path": "clifford_qc/clifford.py",
+      "sha256": "11f137ada8c7eeb541aa39ad696e7edfb4b8b005100a6bdf96eb3d7a44552fdf",
+      "git_blob_sha1": "1bb40c2250075c2dc5a9d392e8e5323301475eab"
+    },
+    {
       "path": "benchmarks/run_sparse_ga_kernel.py",
-      "sha256": "33121ce8cebbd41361fdcdf36cf0a10611cd07e0dbd6da4d5f7c63179e7cc3e0",
-      "git_blob_sha1": "e1d029c13f35dbec76071ad84805604c52e78d1e"
+      "sha256": "e118f33e93625cbc9b82d2354af0c27bd1d9b6546b66f1a837c2d810788e9980",
+      "git_blob_sha1": "8701c38c8256605c6f26ae6b3c5fceecbace5f28"
+    },
+    {
+      "path": "benchmarks/sparse_ga_audit.py",
+      "sha256": "d924818d169c89f6a3a3be3aec0a4febdea8767bf34de5f79bca86687a416762",
+      "git_blob_sha1": "9b43c75fbcbe2db7153e21f3900dbc6e1e0dc5d8"
     }
   ],
   "evidence_schema": "clifford_qc.evidence.v1",
@@ -212,8 +343,8 @@
   },
   "provenance": {
     "schema": "clifford_qc.execution_provenance.v1",
-    "git_sha": "5793459cfc3ab59f900af56b4ce30699345b6f1e",
-    "git_dirty": true,
+    "git_sha": "f998bde0ffa546f250f567663aa77446c4f97a9c",
+    "git_dirty": false,
     "clifford_qc": "0.3.0",
     "python": "3.12.14",
     "dependencies": {
@@ -229,7 +360,7 @@
       "release": "6.18.44",
       "machine": "x86_64",
       "processor": "x86_64",
-      "hostname": "78579a9ce625"
+      "hostname": "d9bd6d23732b"
     },
     "blas_lapack": {
       "Compilers": {
@@ -305,6 +436,6 @@
       }
     },
     "environment_sha256": "2fe4998a30dab5252662662ae884fdeceafb416715d1a1ae37631a4699ab505e",
-    "utc": "2026-10-14T06:52:36.738425+00:00"
+    "utc": "2026-10-14T08:46:13.259105+00:00"
   }
 }
