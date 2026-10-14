@@ -35,6 +35,8 @@
       "check_phase16a_preregistration",
       "check_phase17_ceo",
       "check_phase17_ceo_declaration",
+      "check_phase17_more",
+      "check_phase17_more_declaration",
       "check_phase19_preregistration",
       "check_phase_status",
       "check_priceability_screen",
@@ -54,12 +56,12 @@
       "Cross-artifact": 5,
       "Documentation": 1,
       "Evidence metadata": 1,
-      "Exact trajectory replay": 1,
+      "Exact trajectory replay": 2,
       "Kernel fixture audit": 1,
       "Lineage and environment": 3,
       "Observed resource equivalence": 1,
       "Plan ledger": 1,
-      "Post-hoc declaration": 3,
+      "Post-hoc declaration": 4,
       "Preregistration": 13,
       "Value-rebuilt": 28
     },
@@ -77,13 +79,13 @@
       "check_r3d_qr3_refinement",
       "check_record_environment"
     ],
-    "gates": 58,
+    "gates": 60,
     "manual_dispatch_only": 12,
-    "named_in_workflow": 51,
-    "producers": 59,
+    "named_in_workflow": 53,
+    "producers": 60,
     "producers_without_gate": 25,
-    "run_on_every_pull_request": 39,
-    "same_stem_pairs": 34
+    "run_on_every_pull_request": 41,
+    "same_stem_pairs": 35
   },
   "records": {
     "declarations": {
@@ -164,8 +166,8 @@
   "source": {
     "layers": {
       "algorithms": {
-        "lines": 1721,
-        "modules": 9
+        "lines": 1967,
+        "modules": 10
       },
       "backends": {
         "lines": 1103,
@@ -208,9 +210,9 @@
         "modules": 1
       }
     },
-    "package_lines": 28012,
-    "package_modules": 107,
-    "test_lines": 34557,
-    "test_modules": 145
+    "package_lines": 28258,
+    "package_modules": 108,
+    "test_lines": 34918,
+    "test_modules": 146
   }
 }

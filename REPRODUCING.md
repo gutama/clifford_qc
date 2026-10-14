@@ -264,7 +264,7 @@ No figure or table value in the manuscript is transcribed by hand, and
 ```bash
 python -m venv .venv && source .venv/bin/activate
 pip install -e .[test,research,stim]       # automatic CI extras
-pytest                                      # 3336 passed, 12 skipped
+pytest                                      # 3400 passed, 12 skipped
 ```
 
 This is the automatic CI dependency set; record gates additionally pin NumPy
@@ -280,7 +280,7 @@ the remaining `12 - 6 = 6` skips are per-test and *are* collected:
 
 ```text
 collected == passed + (skipped - files dropped at collection)
-3342      == 3336   + (12      -   6)
+3406      == 3400   + (12      -   6)
 ```
 
 Both sides are computed from the tree, so a drift in either quoted number
@@ -4807,3 +4807,64 @@ corrected policy. Both records pass the stronger convergence, coefficient,
 trajectory and historical-source checks under their explicitly separate policies.
 
 The dedicated MORE-ADAPT multi-root benchmark remains outstanding.
+
+### Phase 17 MORE-ADAPT breadth: frozen exact comparison
+
+`benchmarks/PHASE17_MORE_DECLARATION.md` and
+`benchmarks/configs/phase17_more.json` define a separate twelve-cell comparison:
+H4, BeH2 and LiH's eight-qubit fixtures, two/three roots, and uniform-weight
+shared-QE-unitary MORE-ADAPT versus native `run_acase(roots=r, aggregation='mean')`.
+Both arms use the same HF/frontier-single reference span and QE family, with
+32 additions and a 32-angle cap. A-CASE has zero nonlinear angles and records
+its linear coefficient entries and both overlap/H eigendecompositions instead.
+The static determinant-response family dimension is distinct from the full
+sector; neither matching caps nor this benchmark establish equal manifolds,
+generic compactness or global optimizer convergence.
+
+The producer defaults to outcome-free validation. These commands validate the
+design and exercise undeclared small-system tests:
+
+```bash
+python benchmarks/check_phase17_more_declaration.py
+python benchmarks/run_phase17_more.py
+python benchmarks/check_phase17_more.py
+python -m pytest tests/test_more_adapt.py
+```
+
+The one licensed execution requires a clean full-history source commit strictly
+after declaration, the pinned record environment, one BLAS thread, hash seed
+zero, no existing record and an unused persistent claim. Fresh workers enforce
+15 GiB and six hours per cell; refusals due to environment/tree/capacity precede
+consuming the claim. Never reset a consumed claim or retry/shrink a frozen arm.
+
+```bash
+OMP_NUM_THREADS=1 OPENBLAS_NUM_THREADS=1 MKL_NUM_THREADS=1 PYTHONHASHSEED=0 python benchmarks/run_phase17_more.py --execute
+```
+
+`benchmarks/reference_results/phase17_more.json` is the reserved record path.
+Commit its first publication alone, then require the independent checker before
+updating the Phase 17 ledger. Preserve declaration/execution/record ancestry with
+a merge commit. INVALID/INCOMPLETE observations remain visible and cannot close
+the deliverable. The claim in the common Git directory retains checkpoints and
+a diagnostic record even if validation refuses the outcome.
+
+The checker rebuilds occupation H/QEs, spectrally replays each optimizer call,
+verifies A-CASE pencils/eigenvalues and recorded eigenframes, re-evaluates every
+candidate and derives the full bank/support/callback/circuit accounting. FCIDUMP
+text parsing and previously tested independent occupation/letter helpers are
+shared. Degenerate eigenframes are validated, without claiming to reproduce the
+native canonical gauge across platforms. Root/pencil tolerance is `1e-9` Ha,
+overlap `1e-10`, gradients/scores/frames `1e-8`; counters are exact.
+
+Target readout uses the first retained prefix whose maximum absolute ordered
+root error is at most `1.6e-3` Ha. Reference-floor and right-censored outcomes are
+separate, and the oracle never drives stopping. Screening, per-reference forms,
+optimizer computations, callbacks/cache hits and parameter derivatives are
+separate currencies. MORE also charges its complex projected-H transition
+readout: two quadrature reference fanouts per off-diagonal pair, followed by the
+common ansatz and local Pauli readout. A-CASE counts its cumulative bank words
+on one HF reference with independent local readouts and zero readout CX gates.
+These generic circuit bounds are logical sweeps, not executed shots; no optimized
+circuits, finite-shot precision, total device price or aggregate winner is claimed.
+Parent wall time/RSS include preparation and instrumentation and remain single-
+host observations, distinct from dense operator or coefficient payload bytes.

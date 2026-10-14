@@ -207,6 +207,24 @@ call. This is an exact comparison path with unmeasured quantum-shot costs;
 the [Phase 17 declaration](benchmarks/PHASE17_CEO_DECLARATION.md) states its
 scope and the separate generic Pauli-ladder resource upper bounds.
 
+For an exact multi-root calculation, `clifford_qc.algorithms.run_more_adapt`
+applies one QE unitary to several orthogonal occupation references. It minimizes
+their mean energy and returns sorted Rayleigh--Ritz roots, with optimizer traces
+and separate resource ledgers. Install `.[research]`. For example:
+
+```python
+from clifford_qc.algorithms import run_more_adapt
+from clifford_qc.models import hubbard
+
+result = run_more_adapt(hubbard(2), [3, 6], max_iterations=4, max_parameters=4)
+print(result["root_energies"])
+```
+
+Occupation integers encode computational-basis states in the declared N/Sz
+sector. The [MORE breadth declaration](benchmarks/PHASE17_MORE_DECLARATION.md)
+defines the separate comparison with native mean-root A-CASE; reproduction and
+execution provenance are documented in [REPRODUCING.md](REPRODUCING.md).
+
 | Workflow | What changes during the calculation | Main tradeoff |
 |---|---|---|
 | VQE | Parameters of a fixed circuit | Repeated objective and gradient evaluations |

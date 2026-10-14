@@ -141,8 +141,8 @@ GATE_CLASSES: tuple[tuple[str, str, tuple[str, ...]], ...] = (
     ),
     (
         "Exact trajectory replay",
-        "independently replays occupation states, optimizer calls and observed counters; not global optimality",
-        ("check_phase17_ceo",),
+        "independently replays occupation states, optimizer calls, root pencils and observed counters; not global optimality",
+        ("check_phase17_ceo", "check_phase17_more"),
     ),
     (
         "Observed resource equivalence",
@@ -196,7 +196,8 @@ GATE_CLASSES: tuple[tuple[str, str, tuple[str, ...]], ...] = (
         "Post-hoc declaration",
         "freezes a disclosed post-hoc design; commit order protects identity, not preregistration",
         ("check_phase15_certifying_screen_declaration",
-         "check_phase15_residual_successor_declaration", "check_phase17_ceo_declaration"),
+         "check_phase15_residual_successor_declaration", "check_phase17_ceo_declaration",
+         "check_phase17_more_declaration"),
     ),
     (
         "Lineage and environment",
