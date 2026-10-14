@@ -85,7 +85,7 @@ REQUIRED_PHRASES = (
     "no advantage claim",
     "bias floor",
     "preregistered",
-    "is not enforced by a schema",
+    "versioned evidence contract",
     # Resource scope: the lifetime bound covers coefficient rows and is not a
     # process-level memory bound.  Losing this sentence would leave the paper
     # quoting a bound the implementation does not make.

@@ -1,0 +1,112 @@
+{
+  "records": {
+    "benchmarks/reference_results/bank_policy_matrix.json": {
+      "config": {
+        "git_blob_sha1": "0b18a710b1f2b55ffe8adfbd858fb58864b88fb5",
+        "path": "benchmarks/configs/bank_policy_matrix.json",
+        "sha256": "132a9efcb17480c760fa8556a03acd57e4d1012dbd399ef21e2af2b45ac72e80"
+      },
+      "execution_commit": "e00d64a3409984f2a2aec7c7d3ceba65511c91c7",
+      "record_sha256": "7953e48fd346633e7c420195ab6ffec2a8a8bd189049217ad273180eaa302e77",
+      "sources": {
+        "benchmarks/bank_policy_contract.py": {
+          "git_blob_sha1": "a8196c2f90a4ac13be21901f17b495b7c888c1d1",
+          "sha256": "46992aa9b21ba211d2776814ed5a247f4b0d95e0fe0bc50f27ab04d6a8bedf1b",
+          "snapshot": "benchmarks/provenance/execution_sources/e00d64a3409984f2a2aec7c7d3ceba65511c91c7/benchmarks/bank_policy_contract.py"
+        },
+        "benchmarks/bank_policy_worker.py": {
+          "git_blob_sha1": "1876c3ca84bb69d368d2356e5194bbd944973c5e",
+          "sha256": "57d875d57c6d68a4f67d80dc8882550aa95d60925b55778b72c5f0e2e78d63fa",
+          "snapshot": "benchmarks/provenance/execution_sources/e00d64a3409984f2a2aec7c7d3ceba65511c91c7/benchmarks/bank_policy_worker.py"
+        },
+        "benchmarks/check_bank_policy_matrix.py": {
+          "git_blob_sha1": "c3f93766b1931969be171963e55bba32f217774e",
+          "sha256": "77012801a8c1a5fd59b1f623868f7ca50a3010e9f0b6ecbb1df5e9f0a4a42e3d",
+          "snapshot": "benchmarks/provenance/execution_sources/e00d64a3409984f2a2aec7c7d3ceba65511c91c7/benchmarks/check_bank_policy_matrix.py"
+        },
+        "benchmarks/run_bank_policy_matrix.py": {
+          "git_blob_sha1": "65b398c47e08fe9f3114862b6a26955d5cec35ac",
+          "sha256": "e3a57f579351219bc2c93fb491066ad95ecb5491a271cbbb3e30560619baa56f",
+          "snapshot": "benchmarks/provenance/execution_sources/e00d64a3409984f2a2aec7c7d3ceba65511c91c7/benchmarks/run_bank_policy_matrix.py"
+        },
+        "clifford_qc/backends/exact_mv.py": {
+          "git_blob_sha1": "4f5987b539b39599ed043d9e18db0c25668d0f11",
+          "sha256": "92872c69f96c9d68ee8ad1d05fe1a47192091a394e9f983d8e41adf3f11fe2a9",
+          "snapshot": "benchmarks/provenance/execution_sources/e00d64a3409984f2a2aec7c7d3ceba65511c91c7/clifford_qc/backends/exact_mv.py"
+        },
+        "clifford_qc/models/fcidump.py": {
+          "git_blob_sha1": "630768d7e092004d589279151d16adc0779108f2",
+          "sha256": "52ea952551ad852d53ac0c07d40dc0af6252f990db99e478ea58b2b2bc61a496",
+          "snapshot": "benchmarks/provenance/execution_sources/e00d64a3409984f2a2aec7c7d3ceba65511c91c7/clifford_qc/models/fcidump.py"
+        },
+        "clifford_qc/multivector.py": {
+          "git_blob_sha1": "14feee9d9a298e5847ea98ad762869b47fb9f477",
+          "sha256": "9b8f15685dde7f3c1a65e456e3647fade7a1f393c3f2b392de945232a72024b1",
+          "snapshot": "benchmarks/provenance/execution_sources/e00d64a3409984f2a2aec7c7d3ceba65511c91c7/clifford_qc/multivector.py"
+        },
+        "clifford_qc/pauli_kernel.py": {
+          "git_blob_sha1": "eae6c74dea42108d9cb1414211b2a06438227e38",
+          "sha256": "c7512dc6ad68e7ccdf676b2fa1fe309c16a21ec5c820e55e7ac45bc8689c937d",
+          "snapshot": "benchmarks/provenance/execution_sources/e00d64a3409984f2a2aec7c7d3ceba65511c91c7/clifford_qc/pauli_kernel.py"
+        },
+        "clifford_qc/subspace/adaptive.py": {
+          "git_blob_sha1": "b02a2ac5e2f19a186d0ef47bbc007ecc4326ac04",
+          "sha256": "10c073a0e89655d928fd8116bee31d6730c343793447e2cebfbf36909bac7f6f",
+          "snapshot": "benchmarks/provenance/execution_sources/e00d64a3409984f2a2aec7c7d3ceba65511c91c7/clifford_qc/subspace/adaptive.py"
+        },
+        "clifford_qc/subspace/fermionic_generators.py": {
+          "git_blob_sha1": "549a79ff024f0dcca3bb518d38a2228db10af9a5",
+          "sha256": "430e340c17bfb54d3a5343f1c02a725f513c0ca4e9d30aafbf887a09fdcad900",
+          "snapshot": "benchmarks/provenance/execution_sources/e00d64a3409984f2a2aec7c7d3ceba65511c91c7/clifford_qc/subspace/fermionic_generators.py"
+        },
+        "clifford_qc/subspace/linalg.py": {
+          "git_blob_sha1": "b0ad465b41c6c5f98ce6a552dbafdcffdf199e6e",
+          "sha256": "c64bb5dca07d3f3fba23b2f257132075914df0e374ec3f91ec5a6f8b5ccbc4b3",
+          "snapshot": "benchmarks/provenance/execution_sources/e00d64a3409984f2a2aec7c7d3ceba65511c91c7/clifford_qc/subspace/linalg.py"
+        },
+        "clifford_qc/subspace/packed.py": {
+          "git_blob_sha1": "797286b6cc5ba56d162414cf5c1a4e5ff214b8b2",
+          "sha256": "307d9bf99b93910e7f03bf2b3cb254fbffd891fe936f3f571a8282af44ef2d78",
+          "snapshot": "benchmarks/provenance/execution_sources/e00d64a3409984f2a2aec7c7d3ceba65511c91c7/clifford_qc/subspace/packed.py"
+        },
+        "clifford_qc/subspace/projection.py": {
+          "git_blob_sha1": "de7f24b1b5715469470cc8c09473fb1b3deed473",
+          "sha256": "1137aaa945d3b2919d1820501d24fa5406d950241f7d8e3307ede93e2b8b1254",
+          "snapshot": "benchmarks/provenance/execution_sources/e00d64a3409984f2a2aec7c7d3ceba65511c91c7/clifford_qc/subspace/projection.py"
+        },
+        "clifford_qc/subspace/streaming.py": {
+          "git_blob_sha1": "f982d8d17122b65572147ee024b2baa43c5f815e",
+          "sha256": "193cee59791443e51289ca075ce06a53ef5092911295f3859edc1dc581ec77fc",
+          "snapshot": "benchmarks/provenance/execution_sources/e00d64a3409984f2a2aec7c7d3ceba65511c91c7/clifford_qc/subspace/streaming.py"
+        }
+      }
+    },
+    "benchmarks/reference_results/phase19_energy_comparison.json": {
+      "config": {
+        "git_blob_sha1": "9a5a8ee5f5877def96cd01ed0d5862e5d4e4f029",
+        "path": "benchmarks/configs/phase19_energy_comparison.json",
+        "sha256": "783b3fe43129aedda6fd91b067d8f312948e19008da9e2afbc899079109d847a"
+      },
+      "execution_commit": "acf6bc0e86e3c2c03faf56e8b9ff0e9253fb01f6",
+      "record_sha256": "e1d3852dabfabd1083f4d38285feb2c16c87bf5135972ed2f41a981bf8c7fe27",
+      "sources": {
+        "benchmarks/check_phase19_energy_comparison.py": {
+          "git_blob_sha1": "3397f9d53afd01de6b645fcb77541dead19617fc",
+          "sha256": "69fbea7e97c951c1323b2eba91434d9dc26f716cdf01855978accc91e7899f4c",
+          "snapshot": "benchmarks/provenance/execution_sources/acf6bc0e86e3c2c03faf56e8b9ff0e9253fb01f6/benchmarks/check_phase19_energy_comparison.py"
+        },
+        "benchmarks/check_phase19_preregistration.py": {
+          "git_blob_sha1": "a19714ddb602a3280a8bc3b55db05ee1a59fdde9",
+          "sha256": "67a8c02a89828b2fb84b1ec545f2c2b5dbabe1f9b039e3ce8de487caf568c0af",
+          "snapshot": "benchmarks/provenance/execution_sources/acf6bc0e86e3c2c03faf56e8b9ff0e9253fb01f6/benchmarks/check_phase19_preregistration.py"
+        },
+        "benchmarks/run_phase19_energy_comparison.py": {
+          "git_blob_sha1": "67bf14e8b533185b4d86e2ddff829d1554ba3aa6",
+          "sha256": "de9c1938c3dbcde0cc1d522e135950914314fa863d20add5440c27f8452f90a8",
+          "snapshot": "benchmarks/provenance/execution_sources/acf6bc0e86e3c2c03faf56e8b9ff0e9253fb01f6/benchmarks/run_phase19_energy_comparison.py"
+        }
+      }
+    }
+  },
+  "schema": "clifford_qc.archive_bindings.v1"
+}

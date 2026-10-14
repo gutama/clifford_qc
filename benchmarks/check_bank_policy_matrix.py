@@ -17,6 +17,7 @@ if str(ROOT) not in sys.path:
 import numpy as np
 
 from benchmarks import bank_policy_contract as contract
+from benchmarks.archive_provenance import history_kind, verify_archive, archive_notice
 
 SCIENCE_KEYS = {"manifest", "config", "labels", "indices", "energy", "energy_history",
                 "growth", "scores", "solves", "stopped_reason", "logical", "evidence_tier", "resource_scope"}
@@ -266,7 +267,7 @@ def environment_problems(record, reference):
     return problems
 
 
-def check_record(record, config, *, provenance=True):
+def check_record(record, config, *, provenance=True, archive=False):
     problems = []
     if set(record) != {"schema", "phase", "configuration_sha256", "claim_boundary", "cells", "verdict", "execution", "provenance"}:
         problems.append("record key set differs")
@@ -290,23 +291,31 @@ def check_record(record, config, *, provenance=True):
         execution = stamp["git_sha"]
         if stamp["git_dirty"] is not False or set(stamp["source_blobs"]) != set(contract.SOURCES):
             problems.append("source provenance differs")
-        for path in contract.SOURCES:
+        if archive:
+            history_kind(ROOT, archive=True)
+            verify_archive(ROOT, str(contract.RECORD.relative_to(ROOT)),
+                           str(contract.CONFIG.relative_to(ROOT)), execution,
+                           {path: {"git_blob_sha1": sha} for path, sha in stamp["source_blobs"].items()})
+        else:
+            history_kind(ROOT)
+        for path in (() if archive else contract.SOURCES):
             if stamp["source_blobs"][path] != contract.git("rev-parse", f"{execution}:{path}"):
                 problems.append(f"execution source binding differs: {path}")
-        config_path = str(contract.CONFIG.relative_to(ROOT))
-        declaration = contract.git("log", "--diff-filter=A", "--format=%H", "--", config_path).splitlines()[-1]
-        if stamp["declaration_commit"] != declaration:
-            problems.append("declaration commit identity differs")
-        contract.git("merge-base", "--is-ancestor", declaration, execution)
-        path = str(contract.RECORD.relative_to(ROOT))
-        commits = contract.git("log", "--diff-filter=A", "--format=%H", "--", path).splitlines()
-        if not commits:
-            problems.append("record is not committed")
-        else:
-            first = commits[-1]
-            if first == execution or contract.git("diff-tree", "--no-commit-id", "--name-only", "-r", first) != path:
-                problems.append("first record must be committed alone after execution")
-            contract.git("merge-base", "--is-ancestor", execution, first)
+        if not archive:
+            config_path = str(contract.CONFIG.relative_to(ROOT))
+            declaration = contract.git("log", "--diff-filter=A", "--format=%H", "--", config_path).splitlines()[-1]
+            if stamp["declaration_commit"] != declaration:
+                problems.append("declaration commit identity differs")
+            contract.git("merge-base", "--is-ancestor", declaration, execution)
+            path = str(contract.RECORD.relative_to(ROOT))
+            commits = contract.git("log", "--diff-filter=A", "--format=%H", "--", path).splitlines()
+            if not commits:
+                problems.append("record is not committed")
+            else:
+                first = commits[-1]
+                if first == execution or contract.git("diff-tree", "--no-commit-id", "--name-only", "-r", first) != path:
+                    problems.append("first record must be committed alone after execution")
+                contract.git("merge-base", "--is-ancestor", execution, first)
         reference = contract.read_json(ROOT / config["environment_reference"])["provenance"]
         problems += environment_problems(record, reference)
     return problems
@@ -379,6 +388,9 @@ def rebuild_reference(spec, science):
 
 def main(argv=None):
     parser = argparse.ArgumentParser(description=__doc__)
+    mode = parser.add_mutually_exclusive_group()
+    mode.add_argument("--archive", action="store_true", help="verify packaged bindings; chronology remains unverified")
+    mode.add_argument("--require-git", action="store_true", help="require full Git ancestry (the default)")
     parser.add_argument("--rebuild", action="store_true", help="also rebuild final pencils in isolated processes")
     parser.add_argument("--reference-request", help=argparse.SUPPRESS)
     parser.add_argument("--reference-output", help=argparse.SUPPRESS)
@@ -392,7 +404,7 @@ def main(argv=None):
             print("OK: declaration intact; molecular policy record absent; no outcomes evaluated")
             return 0
         record = contract.read_json(contract.RECORD)
-        problems = check_record(record, config)
+        problems = check_record(record, config, archive=args.archive)
         if args.rebuild and not problems:
             for offset, spec in enumerate(config["systems"]):
                 checked = rebuild_reference(spec, record["cells"][offset * 4]["scientific"])
@@ -400,7 +412,10 @@ def main(argv=None):
                     problems.append(f"{spec['id']}: direct pencil rebuild differs")
         if problems:
             raise ValueError("; ".join(problems[:30]))
-        print("OK: isolated policy equivalence, row bounds, cost accounting and commit provenance; VALID")
+        if args.archive:
+            archive_notice()
+        print("OK: isolated policy equivalence, row bounds and cost accounting; VALID" +
+              ("; commit provenance verified" if not args.archive else ""))
         return 0
     except (OSError, ValueError, KeyError, TypeError, IndexError, subprocess.SubprocessError) as exc:
         print(f"Phase 2M policy record failed: {exc}", file=sys.stderr)

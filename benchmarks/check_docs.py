@@ -37,6 +37,8 @@ import sys
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
+if str(ROOT) not in sys.path:
+    sys.path.insert(0, str(ROOT))
 DOC = ROOT / "REPRODUCING.md"
 BENCH = ROOT / "benchmarks"
 DATA = BENCH / "reference_results"
@@ -71,12 +73,12 @@ def script_flags(script: Path) -> tuple[set[str] | None, str | None]:
     rather than a failure -- CI lints the docs without installing every extra.
     Any other nonzero exit is a genuine defect and fails.
     """
-    done = subprocess.run([sys.executable, str(script), "--help"],
+    done = subprocess.run([sys.executable, str(script), "--help"], cwd=ROOT,
                           capture_output=True, text=True)
     if done.returncode == 0:
         return set(re.findall(r"(--[a-z0-9][a-z0-9-]*)", done.stdout)), None
     missing = re.search(r"ModuleNotFoundError: No module named '([\w.]+)'", done.stderr)
-    if missing:
+    if missing and missing.group(1).split(".")[0] not in {"benchmarks", "clifford_qc", "paper_architecture"}:
         return None, f"optional dependency {missing.group(1)!r} not installed"
     detail = (done.stderr or done.stdout).strip().splitlines()
     return None, detail[-1] if detail else f"exit {done.returncode}"

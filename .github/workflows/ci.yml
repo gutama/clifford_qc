@@ -53,6 +53,12 @@ jobs:
       - name: documentation drift
         if: ${{ !cancelled() }}
         run: python benchmarks/check_docs.py
+      - name: benchmark summaries
+        if: ${{ !cancelled() }}
+        run: python benchmarks/check_summaries.py
+      - name: evidence declarations
+        if: ${{ !cancelled() }}
+        run: python benchmarks/check_evidence.py
       - name: molecular records
         if: ${{ !cancelled() }}
         run: python benchmarks/check_molecular.py

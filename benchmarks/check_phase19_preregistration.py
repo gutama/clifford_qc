@@ -9,6 +9,7 @@ order. It performs no measurement, state expectation or device-cost search.
 
 from __future__ import annotations
 
+import argparse
 import json
 import math
 import re
@@ -21,6 +22,8 @@ if str(ROOT) not in sys.path:  # pragma: no cover - script execution
     sys.path.insert(0, str(ROOT))
 
 from benchmarks import phase19_structure as structure
+from benchmarks.archive_provenance import history_kind, verify_archive, archive_notice, ShallowHistoryError
+from benchmarks.metadata_io import read_json as read_metadata, unique_object
 
 CONFIG = ROOT / structure.CONFIG_PATH
 EXPECTED_CONFIG_SHA256 = "01e8b91fff879ed228c7264cabec3d7e49adf6e9e6da200a4132872b5ef0a9c7"
@@ -31,15 +34,6 @@ RESULT_KEYS = frozenset({
     "reference_energy", "energy_error", "covariance_ratio", "certified_endpoint",
     "certified_total_shots", "cost_us", "runtime_us", "C_time_epsilon_us",
 })
-
-
-def _pairs(pairs):
-    out = {}
-    for key, value in pairs:
-        if key in out:
-            raise ValueError(f"duplicate JSON key {key!r}")
-        out[key] = value
-    return out
 
 
 def _reject_constant(value):
@@ -60,8 +54,7 @@ def _walk(value, path="root", *, result_free=True):
 
 
 def read_json(path: Path, *, result_free=True):
-    data = json.loads(path.read_text(encoding="utf-8"), object_pairs_hook=_pairs,
-                      parse_constant=_reject_constant)
+    data = read_metadata(path)
     _walk(data, result_free=result_free)
     return data
 
@@ -171,7 +164,7 @@ def static_problems(config: dict, root: Path = ROOT) -> list[str]:
     return problems
 
 
-def temporal_problems(config: dict, root: Path = ROOT) -> list[str]:
+def temporal_problems(config: dict, root: Path = ROOT, *, archive: bool = False) -> list[str]:
     """A future record must name an execution strictly between declaration and record.
 
     Missing/shallow history is a failure when a record exists, not a silent skip.
@@ -183,21 +176,30 @@ def temporal_problems(config: dict, root: Path = ROOT) -> list[str]:
 
     def git(*args):
         return subprocess.run(["git", *args], cwd=root, text=True,
-                              capture_output=True, check=True).stdout.strip()
+                              capture_output=True, check=True, timeout=10).stdout.strip()
 
     try:
-        if git("rev-parse", "--is-shallow-repository") != "false":
-            return ["record chronology requires full git history"]
         record = read_json(record_path, result_free=False)
         execution = record.get("provenance", {}).get("git_commit")
         declaration_merge = record.get("provenance", {}).get("preregistration_merge_commit")
         for name, sha in (("execution", execution), ("preregistration merge", declaration_merge)):
             if not isinstance(sha, str) or not re.fullmatch(r"[0-9a-f]{40}", sha):
                 return [f"record {name} must be a full commit SHA"]
-        if len(git("rev-list", "--parents", "-n", "1", declaration_merge).split()) < 3:
-            return ["preregistration merge must be a merge commit"]
         if record.get("declaration_sha256") != EXPECTED_CONFIG_SHA256:
             return ["record does not bind this declaration"]
+        if history_kind(root, archive=archive) == "archive":
+            bindings = record["provenance"]["source_files"]
+            if not isinstance(bindings, list) or any(not isinstance(item, dict) for item in bindings):
+                return ["execution source bindings must be a list of objects"]
+            sources = {item["path"]: {key: item[key] for key in ("sha256", "git_blob_sha1")}
+                       for item in bindings}
+            if len(sources) != len(bindings):
+                return ["duplicate execution source binding"]
+            verify_archive(root, structure.RECORD_PATH, structure.CONFIG_PATH,
+                           execution, sources)
+            return []
+        if len(git("rev-list", "--parents", "-n", "1", declaration_merge).split()) < 3:
+            return ["preregistration merge must be a merge commit"]
         declaration = git("log", "-1", "--format=%H", "HEAD", "--", structure.CONFIG_PATH)
         records = git("log", "--reverse", "--format=%H", "HEAD", "--", structure.RECORD_PATH).splitlines()
         if not declaration or not records:
@@ -210,18 +212,27 @@ def temporal_problems(config: dict, root: Path = ROOT) -> list[str]:
             git("merge-base", "--is-ancestor", a, b)
         for name, sha in (("merge", declaration_merge), ("execution", execution)):
             frozen = json.loads(git("show", f"{sha}:{structure.CONFIG_PATH}"),
-                                object_pairs_hook=_pairs, parse_constant=_reject_constant)
+                                object_pairs_hook=unique_object, parse_constant=_reject_constant)
             if structure.canonical_digest(frozen) != EXPECTED_CONFIG_SHA256:
                 return [f"{name} commit did not contain the frozen declaration"]
-    except (OSError, ValueError, subprocess.CalledProcessError, AttributeError) as exc:
+    except ShallowHistoryError as exc:
+        return [str(exc)]
+    except (OSError, ValueError, subprocess.SubprocessError, AttributeError, KeyError, TypeError) as exc:
         return [f"record chronology failed: {exc}"]
     return []
 
 
-def main() -> int:
+def main(argv=None) -> int:
+    parser = argparse.ArgumentParser(description=__doc__)
+    mode = parser.add_mutually_exclusive_group()
+    mode.add_argument("--archive", action="store_true", help="verify packaged bindings; chronology remains unverified")
+    mode.add_argument("--require-git", action="store_true", help="require full Git ancestry (the default)")
+    args = parser.parse_args(argv)
     try:
-        config = load_config()
-        problems = static_problems(config) + temporal_problems(config)
+        config = read_json(CONFIG)
+        if not isinstance(config, dict):
+            raise ValueError("preregistration must be an object")
+        problems = static_problems(config, ROOT) + temporal_problems(config, ROOT, archive=args.archive)
     except (OSError, ValueError, KeyError, TypeError) as exc:
         problems = [str(exc)]
     if problems:
@@ -229,6 +240,8 @@ def main() -> int:
         for problem in problems:
             print(f"  - {problem}", file=sys.stderr)
         return 1
+    if args.archive and (ROOT / structure.RECORD_PATH).is_file():
+        archive_notice()
     print("OK: frozen Phase 19 inputs, covers, readouts, resources and schedules; no outcomes evaluated")
     return 0
 

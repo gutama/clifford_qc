@@ -7,14 +7,14 @@
       "check_phase16b_v2_preregistration",
       "check_phase16b_v3_feasibility",
       "check_phase16b_v3_preregistration",
-      "check_regenerated_record",
-      "check_summaries"
+      "check_regenerated_record"
     ],
     "automatic_gates": [
       "check_bank_policy_matrix",
       "check_bank_storage_ledger",
       "check_clifford_hierarchy",
       "check_docs",
+      "check_evidence",
       "check_finite_shot_optimization",
       "check_g1_structural_preconditioner",
       "check_krylov_width",
@@ -46,11 +46,13 @@
       "check_r4a_contextual_screen",
       "check_r4a_preregistration",
       "check_second_moment_validation",
+      "check_summaries",
       "check_warm_start"
     ],
     "classes": {
       "Cross-artifact": 5,
       "Documentation": 1,
+      "Evidence metadata": 1,
       "Exact trajectory replay": 1,
       "Lineage and environment": 3,
       "Observed resource equivalence": 1,
@@ -73,12 +75,12 @@
       "check_r3d_qr3_refinement",
       "check_record_environment"
     ],
-    "gates": 56,
+    "gates": 57,
     "manual_dispatch_only": 12,
-    "named_in_workflow": 48,
+    "named_in_workflow": 50,
     "producers": 58,
     "producers_without_gate": 25,
-    "run_on_every_pull_request": 36,
+    "run_on_every_pull_request": 38,
     "same_stem_pairs": 33
   },
   "records": {
@@ -112,9 +114,9 @@
       "phase16b_feasibility.json": "6829464abc77bc54",
       "phase16b_v2_feasibility.json": "6829464abc77bc54",
       "phase16b_v3_feasibility.json": "6829464abc77bc54",
-      "phase17_ceo.json": "9b1272e87a381f30",
-      "phase17_ceo_review.json": "9b1272e87a381f30",
-      "phase19_energy_comparison.json": "44136fa355b3678a",
+      "phase17_ceo.json": "7cfab700c93f7b57",
+      "phase17_ceo_review.json": "46c3efbc7a0d30ff",
+      "phase19_energy_comparison.json": "d2a4d602ca2f0a4b",
       "priceability_screen.json": "f6a33f1aa225c4dd",
       "protocol_axis.json": "75a2ec249c533fed",
       "protocol_cost.json": "e1e5d86171f1d317",
@@ -138,9 +140,9 @@
     },
     "forms": {
       "basis_only": 0,
-      "nested_in_subobject": 7,
-      "none": 6,
-      "per_quantity_mapping": 10,
+      "nested_in_subobject": 5,
+      "none": 5,
+      "per_quantity_mapping": 13,
       "role_only": 0,
       "role_with_nested_tier": 2,
       "top_level_tier": 17
@@ -171,8 +173,8 @@
         "modules": 6
       },
       "evidence": {
-        "lines": 1298,
-        "modules": 4
+        "lines": 1334,
+        "modules": 5
       },
       "ir": {
         "lines": 1224,
@@ -203,9 +205,9 @@
         "modules": 1
       }
     },
-    "package_lines": 27870,
-    "package_modules": 105,
-    "test_lines": 32852,
-    "test_modules": 137
+    "package_lines": 27906,
+    "package_modules": 106,
+    "test_lines": 33506,
+    "test_modules": 140
   }
 }

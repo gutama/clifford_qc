@@ -1,0 +1,12 @@
+{
+  "evidence": {
+    "trajectories": {
+      "scope": "Original-policy finite dense-sector QE/CEO trajectories and observed optimizer/screening counts; no finite-shot or optimized-CEO-circuit advantage.",
+      "tier": "exact_small_sector_simulation"
+    }
+  },
+  "evidence_schema": "clifford_qc.evidence.v1",
+  "record": "phase17_ceo.json",
+  "record_sha256": "aa0bec971a68ebb65702dc804230d1cbce3f3f91a498f5fab33160f8c780144b",
+  "schema": "clifford_qc.evidence_annotation.v1"
+}
