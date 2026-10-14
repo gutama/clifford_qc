@@ -534,7 +534,7 @@ configs and execution identities remain unchanged.
 
 **Third: bounded research follow-ups.**
 
-- [ ] **GA-3 — eligibility before transport.** Add executable determinant and
+- [x] **GA-3 — eligibility before transport.** Add executable determinant and
   general stabilizer-state fixtures for §3.6(iv), including no diagonal word,
   multiple nonzero coefficients, a singleton and the near-singleton tolerance
   case. Exact reference-preserving projection is closed on the theorem's scope;
@@ -542,6 +542,27 @@ configs and execution identities remain unchanged.
   projection needs a separate declaration. A Givens product is a spin-group
   rotor, not necessarily a simple rotor; exact sparse word transport can expand
   support across rotations and carries no automatic efficiency guarantee.
+  `tests/test_clique_reference_obstruction.py` ships these fixtures as tests
+  only; no library module, transport or projection primitive changed. Exact
+  rational determinant checks and dense enumeration of all 6/60/1080 stabilizer
+  states at `n = 1, 2, 3` verify the lemma: every Pauli expectation is `0` or
+  `±1`, and the nonzero words form one commuting signed group. On all 176
+  two-qubit anticommuting cliques, with declared rational unit coefficient
+  vectors and their cyclic shifts, the closed forms hold on every determinant
+  and stabilizer state, in both the no-member and one-member branches. A
+  Clifford-transformed `n = 3` frame of seven members repeats them on entangled
+  stabilizer references. The near-singleton fixture runs the real
+  `select_contextual_stabilizers` after rotating reference and observable
+  together. At gap `5e-13` and `8e-10` the default `1e-9` tolerance admits the
+  pivot; at `1.8e-9` it rejects it. Each case has exact positive variance and
+  loses `gap/2` of the trace on projection. Singletons and one-nonzero
+  multiword cliques retain the ordinary stabilizer case; a negative pivot then
+  fails the independent sign condition. `(2|00> + |11>)/sqrt(5)` is an exact
+  eigenstate of `3/5 ZI + 4/5 XX` but not a stabilizer state, so it lies outside
+  the theorem's scope; using such a reference needs its own declaration and
+  transport. In the clique's frame, the `m = 4` Givens products are double
+  rotations (`rank(R - I) = 4`). One word grows to 21 Pauli words under the six
+  rotations of the `n = 3` frame, matched by a dense oracle.
 - [ ] **Phase 17 — MORE-ADAPT breadth only.** PR #131 already supplies the QE,
   OVP and mixed-CEO comparisons, records, independent replay and ledger evidence.
   Retain its 87.5% implementation fraction until the dedicated MORE-ADAPT
@@ -568,8 +589,9 @@ configs and execution identities remain unchanged.
 The direct summary and documentation commands above were reproduced as failing
 on the reviewed checkout; the original phase-status gate passed despite the
 stale detailed Phase 17 row. These are baseline findings from the review.
-B1–B5's maintenance checks have shipped; GA-1/GA-2/B6 are implemented.
-The unchecked research follow-ups remain pending.
+B1–B5's maintenance checks have shipped; GA-1/GA-2/B6 are implemented. GA-3's
+eligibility fixtures have shipped without a transport engine. The unchecked
+Phase 17 and Phase 15 follow-ups remain pending.
 
 ## 3. Conceptual layer (geometric-algebra contract)
 
@@ -957,6 +979,12 @@ ordinary Pauli-stabilizer case. Correlated non-stabilizer references can be
 eigenstates of a multi-word `S`; their eligibility and transport cost remain a
 separate, unbuilt proposal. This adds no qubit saving or completed deliverable
 to Phase 19's already completed lever-1 scope.
+
+**Executable fixtures (GA-3).** `tests/test_clique_reference_obstruction.py`
+exercises the lemma, the closed forms and the selector boundary above, using
+exact rational determinants and every stabilizer state at `n <= 3`. It also
+pins the scope limit and the transport caveats of §2.6. It adds no transport
+or projection primitive.
 
 ## 4. The method
 
@@ -2999,7 +3027,9 @@ reference/projection rule passes the eligibility screen would lever 2 need a
 new non-Clifford transport and projection primitive, with its own correctness
 contract and cost. The single-rotation two-word conjugation identity is exact,
 but repeated rotations can expand support; sparse transport alone promises no
-bounded-support or runtime advantage.
+bounded-support or runtime advantage. GA-3's fixtures pin one witness: a single
+word grows to 21 Pauli words across the six Givens rotations of the `n = 3`
+seven-member frame.
 
 *The contextual admission conditions are not automatic after the rotation.*
 `select_contextual_stabilizers` requires more than commutation: the reference
@@ -4956,8 +4986,8 @@ covariance-aware allocation — all already reported in P2 (§1.2(1)–(2)).
 
 **Reviewed follow-up priority (2026-10-14).** §2.6's maintenance gates B1–B5 are
 complete. The active-support blade check, convention-tested contractions and shared-pool
-import cleanup (GA-1, GA-2, B6) are implemented. Next validate §3.6(iv)'s boundary without
-building a determinant-reference transport engine. The remaining research
+import cleanup (GA-1, GA-2, B6) are implemented. GA-3's executable fixtures now validate
+§3.6(iv)'s boundary without a determinant-reference transport engine. The remaining research
 deliverables are a separately declared Phase 15 certifying-basis allocation
 experiment and Phase 17's MORE-ADAPT breadth comparison. Preserve the existing
 result/declaration history and all go/no-go decisions below. These pending tasks

@@ -264,7 +264,7 @@ No figure or table value in the manuscript is transcribed by hand, and
 ```bash
 python -m venv .venv && source .venv/bin/activate
 pip install -e .[test,research,stim]       # automatic CI extras
-pytest                                      # 3304 passed, 12 skipped
+pytest                                      # 3336 passed, 12 skipped
 ```
 
 This is the automatic CI dependency set; record gates additionally pin NumPy
@@ -280,7 +280,7 @@ the remaining `12 - 6 = 6` skips are per-test and *are* collected:
 
 ```text
 collected == passed + (skipped - files dropped at collection)
-3310      == 3304   + (12      -   6)
+3342      == 3336   + (12      -   6)
 ```
 
 Both sides are computed from the tree, so a drift in either quoted number
@@ -4492,6 +4492,38 @@ preregistration below froze the bank, clique and QWC ordering, allocator,
 confidence family, all three device cards and depth accounting before the one
 sampled comparison, whose record closes this section. Lever 2 remains unbuilt
 and is not a ledger deliverable.
+
+### Determinant-reference eligibility fixtures (GA-3)
+
+PLAN §3.6(iv)'s obstruction to exact reference-preserving clique projection
+ships as executable tests, not as a transport or projection primitive:
+
+```bash
+python -m pytest tests/test_clique_reference_obstruction.py
+```
+
+Dense oracles enumerate every stabilizer state at `n = 1, 2, 3` (6, 60 and
+1080 states) and every two-qubit anticommuting clique (176), with declared
+rational unit coefficient vectors. Determinant moments are exact rationals.
+The tests check that each stabilizer state's nonzero Pauli expectations are
+`±1` and pairwise commute, so at most one clique member contributes. They check `<S> = sign_d c_d` and
+`Var(S) = sum_(i != d) c_i**2` in the no-member and one-member branches,
+including a Clifford-transformed seven-member `n = 3` frame. The unchanged
+`select_contextual_stabilizers` then runs on the rotated reference. A
+near-singleton clique with gap `5e-13` or `8e-10` passes its `1e-9` reference
+tolerance, while gap `1.8e-9` fails. Every such reference has exact positive
+variance and loses `gap/2` of its trace to projection, so a pass is an
+unpriced approximation rather than exact preservation. Singletons and
+one-nonzero cliques retain the ordinary stabilizer case; a negative pivot then
+fails the separate sign condition.
+
+`(2|00> + |11>)/sqrt(5)` is an exact eigenstate of `3/5 ZI + 4/5 XX` but not a
+stabilizer state. It marks the theorem's scope boundary; such references still
+need a separate declaration and transport. Two transport caveats are pinned as
+well. In the clique's own `Cl(m,0)` frame, the Givens product is a
+`Spin(m)` rotor that is not simple at `m = 4` (`rank(R - I) = 4`). Sparse exact
+conjugation of one word through the six rotations of the `n = 3` frame reaches
+21 Pauli words, matching a dense oracle.
 
 ## Phase 19: result-free energy preregistration
 
