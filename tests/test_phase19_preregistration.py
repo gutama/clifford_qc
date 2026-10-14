@@ -294,9 +294,50 @@ def test_main_declaration_only_does_not_inspect_history(config, monkeypatch, tmp
     assert gate.main([]) == 0
 
 
-def test_historical_sources_preserve_declaration_without_licensing_live_drift(config):
-    assert any("multivector.py" in error for error in gate.static_problems(config))
-    assert gate.static_problems(config, historical_sources=True) == []
+def test_historical_sources_preserve_declaration_without_licensing_live_drift(config, frozen_phase19_checkout):
+    root = frozen_phase19_checkout
+    assert gate.static_problems(config, root) == []
+    assert gate.static_problems(config, root, historical_sources=True) == []
+    path = root / "clifford_qc/multivector.py"
+    path.write_bytes(path.read_bytes() + b"# injected live drift\n")
+    assert any("multivector.py" in error for error in gate.static_problems(config, root))
+    assert gate.static_problems(config, root, historical_sources=True) == []
+
+
+def test_live_rebuild_engine_stays_pinned_with_historical_sources(config, frozen_phase19_checkout):
+    root = frozen_phase19_checkout
+    path = root / "benchmarks/phase19_structure.py"
+    path.write_bytes(path.read_bytes() + b"# injected engine drift\n")
+    assert any("phase19_structure.py" in error
+               for error in gate.static_problems(config, root, historical_sources=True))
+
+
+@pytest.mark.parametrize("manifest", [[], None, {"schema": "clifford_qc.archive_bindings.v1", "records": []}])
+def test_malformed_manifest_is_reported_without_traceback(config, frozen_phase19_checkout, manifest, monkeypatch, capsys):
+    from benchmarks.archive_provenance import MANIFEST
+    root = frozen_phase19_checkout
+    (root / MANIFEST).write_text(json.dumps(manifest))
+    monkeypatch.setattr(gate, "ROOT", root)
+    monkeypatch.setattr(gate, "CONFIG", root / structure.CONFIG_PATH)
+    assert gate.main(["--archive"]) == 1
+    errors = capsys.readouterr().err
+    assert "frozen source binding failed" in errors
+    assert "Traceback" not in errors
+
+
+def test_archive_gate_reads_the_manifest_once(frozen_phase19_checkout, monkeypatch):
+    from benchmarks import archive_provenance
+    root = frozen_phase19_checkout
+    original = archive_provenance.read_json
+    calls = []
+    def read(path):
+        calls.append(path)
+        return original(path)
+    monkeypatch.setattr(archive_provenance, "read_json", read)
+    monkeypatch.setattr(gate, "ROOT", root)
+    monkeypatch.setattr(gate, "CONFIG", root / structure.CONFIG_PATH)
+    assert gate.main(["--archive"]) == 0
+    assert len(calls) == 1
 
 
 def test_packaged_lineage_tampering_is_rejected(config, tmp_path):

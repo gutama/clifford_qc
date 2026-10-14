@@ -22,17 +22,17 @@
       }
     },
     "layer_stack.pdf": {
-      "architecture_sources_sha256": "0b9e0505f0dea0eff6dcbc38a4bbe99722c07e0d12cb90d09459b797e9f82f7b",
-      "asset_git_blob_sha": "53df37dd69c370b26663bcca03b2f5218e171ec0",
+      "architecture_sources_sha256": "c01eb4c5faec50bcb34d4516957a7db111b200e0c4e0430453285716a635976b",
+      "asset_git_blob_sha": "5de7c277ff9a7e41bc8f5652681c8e2cf50d3d1c",
       "sources": {
-        "paper_architecture/data/source_census.json": "23a3e459fb8fd6deb55b063a22482555486ef6d62a841093256c5a9aca837545",
+        "paper_architecture/data/source_census.json": "9fdd651aa020aa9317a15d9a1f813ace2143575e4d50a6af3f25413a7f89debd",
         "paper_architecture/make_tables.py": "ce66d52a5c8e31ddda1988a9202be9f97618e856badd41321b8d0e1a6f6225db"
       }
     }
   },
   "generator": {
     "path": "paper_architecture/make_figures.py",
-    "sha256": "b22cff2c1b69c6251e0339ef3d8ef949e84cb3ccaca65a9d0353ec40f4fbba8b"
+    "sha256": "786eeedb1d3b996c9a3ec0a10ea686f147dfbdf2821771f46445ab3dbf3eb924"
   },
   "schema": "clifford_qc.architecture_figure_manifest.v1"
 }

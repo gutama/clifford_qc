@@ -33,26 +33,39 @@ def test_every_small_basis_pair_matches_projected_products(n):
             assert left.rcontract(right).is_close(reference(left, right, left=False))
 
 
-def test_mixed_grades_complex_bilinearity_and_operator_aliases():
+def test_mixed_grades_complex_bilinearity():
     rng = np.random.default_rng(3001)
     for _ in range(30):
         a, b, c = [MV(3, {int(code): complex(rng.normal(), rng.normal())
                           for code in rng.choice(64, size=8, replace=False)}) for _ in range(3)]
-        assert (a << b).is_close(reference(a, b, left=True))
-        assert (a >> b).is_close(reference(a, b, left=False))
-        assert ((a + 2j * b) << c).is_close((a << c) + 2j * (b << c))
-        assert (a >> (b + 2j * c)).is_close((a >> b) + 2j * (a >> c))
+        assert a.lcontract(b).is_close(reference(a, b, left=True))
+        assert a.rcontract(b).is_close(reference(a, b, left=False))
+        assert (a + 2j * b).lcontract(c).is_close(a.lcontract(c) + 2j * b.lcontract(c))
+        assert a.rcontract(b + 2j * c).is_close(a.rcontract(b) + 2j * a.rcontract(c))
 
 
 def test_reversion_sign_and_scalar_conventions():
     bivector = blade_from_mask(2, 3)
-    assert (bivector << bivector).is_close(MV.scalar(2, 1))
-    assert (bivector >> bivector).is_close(MV.scalar(2, 1))
-    assert ((1j * bivector) << bivector).is_close(MV.scalar(2, 1j))
-    assert (2 << bivector).is_close(2 * bivector)
-    assert (bivector >> 2).is_close(2 * bivector)
-    assert (bivector << 2).is_zero()
-    assert (2 >> bivector).is_zero()
+    scalar = MV.scalar(2, 2)
+    assert bivector.lcontract(bivector).is_close(MV.scalar(2, 1))
+    assert bivector.rcontract(bivector).is_close(MV.scalar(2, 1))
+    assert (1j * bivector).lcontract(bivector).is_close(MV.scalar(2, 1j))
+    assert scalar.lcontract(bivector).is_close(2 * bivector)
+    assert bivector.rcontract(2).is_close(2 * bivector)
+    assert bivector.lcontract(2).is_zero()
+    assert scalar.rcontract(bivector).is_zero()
+
+
+def test_reversed_convention_has_explicit_composition_order_without_shift_aliases():
+    from clifford_qc import gamma
+    a, b = gamma(2, 0), gamma(2, 1)
+    c = a.wedge(b)
+    assert a.wedge(b).lcontract(c).is_close(b.lcontract(a.lcontract(c)))
+    assert not a.wedge(b).lcontract(c).is_close(a.lcontract(b.lcontract(c)))
+    with pytest.raises(TypeError):
+        a << b
+    with pytest.raises(TypeError):
+        a >> b
 
 
 def test_mismatched_algebra_and_operand_type_are_rejected():

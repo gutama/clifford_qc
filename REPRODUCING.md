@@ -92,7 +92,7 @@ Both summaries and evidence metadata are automatic CI gates.
 The kernel uses `Cl(2n, C)` in the fixed JW generator frame. `mask_to_code`
 inverts `blade_mask` on valid subsets, without the phase of the canonical
 ordered Majorana product; `blade_from_mask` retains that phase. Named left and
-right contractions (`lcontract` / `rcontract`, `<<` / `>>`) use the bilinear
+right contractions (`lcontract` / `rcontract`) use the bilinear
 reversion conventions in `CONVENTIONS.md`, including scalars and complex values.
 The full Plücker simplicity check uses only active contraction masks: at most
 `k*t` for grade `k` and `t` stored terms. It preserves the zero, mixed-grade,
@@ -111,15 +111,16 @@ python benchmarks/check_sparse_ga_kernel.py --record reproductions/sparse_ga_ker
 with each fixture/method in a fresh process. Runtime measurements exclude
 fixture construction; warm results follow one cold call. Allocation peaks are
 from a separate cold `tracemalloc` call and measure Python allocations, not RSS
-or total memory. The committed development-environment observations are:
-
-| Fixture / method | Active candidates / bound | Warm median (µs) | Cold Python peak (bytes) |
-|---|---:|---:|---:|
-| `n3_grade3_shared`, active | 7 / 9 | 90.663 | 5,376 |
-| `n3_grade3_shared`, exhaustive | whole-grade baseline | 96.531 | 12,536 |
-| `n12_grade3_shared`, active | 7 / 9 | 55.768 | 6,144 |
-| `n12_grade12_shared`, active | 34 / 36 | 265.501 | 16,912 |
-| `n12_grade3_disjoint`, active | 6 / 6 | 9.956 | 2,960 |
+or total memory. Read the measured values directly from
+`benchmarks/reference_results/sparse_ga_kernel.json`; they vary with the machine
+and execution environment. The v2 record also stores candidate masks and visits
+observed in a separate untimed call to the actual kernel. Its clean execution
+commit contains every measured source binding. The gate verifies those historical
+Git bytes and the live fixture decisions/enumeration, allowing later kernel
+maintenance without refreshing a machine-specific timing record. Full Git
+history is required for this audit; automatic CI checks out full history.
+Run the producer from a clean committed tree, writing the output to a separate
+reproduction file before adding any updated record to Git.
 
 The exhaustive baseline is measured only at `n=3`; no exhaustive `n=12` run or
 unmeasured speedup is claimed. CI has no runtime or memory threshold. Regression
@@ -205,7 +206,9 @@ data; SHA-256 and Git-blob SHA-1 checks bind their bytes to the original record.
 For Phase 19, the declaration's twelve implementation bindings are also
 packaged as `lineage_sources` at the original execution commit. Once the
 campaign record exists, the declaration/result checkers verify these frozen
-source bytes and rebuild structural quantities with today's code. Strict Git
+source bytes and rebuild structural quantities with today's kernel. The live
+`benchmarks/phase19_structure.py` rebuild engine remains pinned to its original
+bytes in both modes. Strict Git
 mode additionally checks that the recorded execution contained those bindings.
 Before execution, and in the unchanged producer's preflight, the live source
 bindings remain mandatory; this archival path does not license another draw.
@@ -261,7 +264,7 @@ No figure or table value in the manuscript is transcribed by hand, and
 ```bash
 python -m venv .venv && source .venv/bin/activate
 pip install -e .[test,research,stim]       # automatic CI extras
-pytest                                      # 3286 passed, 12 skipped
+pytest                                      # 3304 passed, 12 skipped
 ```
 
 This is the automatic CI dependency set; record gates additionally pin NumPy
@@ -277,7 +280,7 @@ the remaining `12 - 6 = 6` skips are per-test and *are* collected:
 
 ```text
 collected == passed + (skipped - files dropped at collection)
-3292      == 3286   + (12      -   6)
+3310      == 3304   + (12      -   6)
 ```
 
 Both sides are computed from the tree, so a drift in either quoted number
@@ -4547,13 +4550,17 @@ Validate the implementation:
 
 ```bash
 python -m pytest tests/test_phase19_energy_comparison.py tests/test_anticommuting_cliques.py tests/test_phase19_preregistration.py
-python benchmarks/run_phase19_energy_comparison.py
 python benchmarks/check_phase19_energy_comparison.py
 ```
 
-The tests touch no declared molecular state law. The producer's default command
-still runs only the outcome-free preflight; now that the record is committed, the
-checker's default command replays it (see the result below). The toy tests cover
+The tests touch no declared molecular state law. The checker's default command
+replays the committed record (see the result below). The producer's default
+`python benchmarks/run_phase19_energy_comparison.py` performs a strict outcome-free
+preflight against live frozen sources. Kernel maintenance changes those bytes,
+so this command now refuses with `frozen file digest drifted` on the maintained
+tree. It remains usable on the pristine execution tree; refusal consumes no
+claim and evaluates no molecular outcome. The producer has no historical-source
+bypass and its one-execution guard is preserved. The toy tests cover
 signed rotations, qubit ordering, complete operator and law reconstruction,
 joint QWC covariance, exact zero variance, numerical allowance,
 fixed schedules, all censoring clauses, invalid campaigns, device inadmissibility,

@@ -76,6 +76,16 @@ def test_history_subprocess_failures_are_reportable(repository, monkeypatch, cal
         history_kind(repository)
 
 
+def test_commit_binding_uses_git_bytes_and_reports_missing_paths(repository):
+    from benchmarks.metadata_io import byte_binding
+    sha = git(repository, "rev-parse", "HEAD")
+    assert archive_provenance.commit_binding(repository, sha, "source") == byte_binding(b"one")
+    (repository / "source").write_bytes(b"uncommitted\r\n")
+    assert archive_provenance.commit_binding(repository, sha, "source") == byte_binding(b"one")
+    with pytest.raises(archive_provenance.HistoryError, match="execution source unavailable"):
+        archive_provenance.commit_binding(repository, sha, "missing")
+
+
 @pytest.fixture
 def archive_bundle(tmp_path):
     (tmp_path / "record.json").write_text('{"execution":"historical"}')

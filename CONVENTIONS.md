@@ -102,12 +102,17 @@ A_r\mathbin{\llcorner} B_s=\langle A_r\widetilde{B_s}\rangle_{r-s}
 \quad(r\geq s).
 \]
 
-Other grade pairs give zero. `A.lcontract(B)` / `A << B` and
-`A.rcontract(B)` / `A >> B` extend these definitions bilinearly to mixed
+Other grade pairs give zero. `A.lcontract(B)` and
+`A.rcontract(B)` extend these definitions bilinearly to mixed
 grades, including scalars and complex coefficients. Reversion changes grade
 signs without conjugating coefficients. For example, an orthonormal bivector
 contracts with itself to `+1`, whereas its unreversed square is `-1`.
 These conventions are distinct from the full geometric product and adjoint.
+The named methods make reversion explicit; shift aliases are omitted because
+they can be confused with unreversed grade-projected contractions. For example,
+with orthonormal vectors `a`, `b` and `C = a ^ b`,
+`(a ^ b).lcontract(C) == b.lcontract(a.lcontract(C))`; exchanging the nested
+order changes the sign. Translate formulas using the definitions above.
 
 `is_blade(tol)` uses the full Plücker condition on homogeneous elements,
 including odd grades. Only contractions obtained by deleting one generator

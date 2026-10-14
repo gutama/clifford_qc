@@ -11,6 +11,18 @@ import pytest
 from clifford_qc.ir import PauliWord
 from clifford_qc.pool_operator import PoolOperator, is_odd_y
 
+ROOT = Path(__file__).resolve().parents[1]
+
+
+def checkout_subprocess(code):
+    identity = '''
+from pathlib import Path
+import clifford_qc
+assert Path(clifford_qc.__file__).resolve() == Path('clifford_qc/__init__.py').resolve()
+'''
+    return subprocess.run([sys.executable, "-c", code + identity], cwd=ROOT,
+                          capture_output=True, text=True)
+
 
 def test_old_pool_names_reexport_the_same_type_and_predicate():
     from clifford_qc.algorithms import pools
@@ -47,7 +59,7 @@ from clifford_qc.pool_operator import PoolOperator, is_odd_y
 from clifford_qc.ir import PauliWord
 assert is_odd_y(PauliWord.from_label('Y'))
 '''
-    done = subprocess.run([sys.executable, "-I", "-c", code], capture_output=True, text=True)
+    done = checkout_subprocess(code)
     assert done.returncode == 0, done.stdout + done.stderr
 
 
@@ -80,5 +92,5 @@ for (n, e), (count, digest) in expected.items():
     pairs = [(op.label, op.word.code) for op in pool]
     assert hashlib.sha256(json.dumps(pairs, separators=(',', ':')).encode()).hexdigest() == digest
 '''
-    done = subprocess.run([sys.executable, "-I", "-c", code], capture_output=True, text=True)
+    done = checkout_subprocess(code)
     assert done.returncode == 0, done.stdout + done.stderr

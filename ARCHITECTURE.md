@@ -89,7 +89,7 @@ Hamiltonian/observable container; `to_mv()` and `from_mv()` change containers
 without changing the Pauli basis or operator semantics.
 
 The fixed JW frame supplies sparse exterior products and the named bilinear
-`lcontract` / `rcontract` contractions (`<<` / `>>`), including scalar operands.
+named reversion-based `lcontract` / `rcontract` contractions, including scalar operands.
 `mask_to_code` inverts the generator-subset map without reconstructing an
 ordered blade's phase. `is_blade` tests the full Plücker condition using at most
 `k*t` active contraction masks at grade `k` with `t` stored terms. Subsequent

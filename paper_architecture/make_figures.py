@@ -289,8 +289,8 @@ def layer_stack() -> None:
     for start, end in selected_imports:
         _arrow(right, start, end)
     # Chemistry -> shared pool value in Program IR, routed around execution.
-    right.plot([8.55, 8.75, 8.75], [5.26, 5.26, 2.86], linewidth=0.8, color="#37474f")
-    _arrow(right, (8.75, 2.86), (8.55, 2.86))
+    right.plot([5.05, 4.9, 4.9], [5.26, 5.26, 3.55], linewidth=0.8, color="#37474f")
+    _arrow(right, (4.9, 3.55), (4.9, 3.27))
     # The upward edges are real; only their timing is constrained.  They are
     # unlabelled in the gutter and named once below, which is legible at column
     # width where three rotated captions are not.

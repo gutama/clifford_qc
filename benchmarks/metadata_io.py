@@ -48,7 +48,10 @@ def byte_digest(raw: bytes) -> str:
 
 
 def binding(path: Path) -> dict:
-    raw = path.read_bytes()
+    return byte_binding(path.read_bytes())
+
+
+def byte_binding(raw: bytes) -> dict:
     return {"sha256": byte_digest(raw),
             "git_blob_sha1": hashlib.sha1(f"blob {len(raw)}\0".encode() + raw,
                                          usedforsecurity=False).hexdigest()}

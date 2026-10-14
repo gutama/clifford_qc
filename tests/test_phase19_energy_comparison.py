@@ -389,24 +389,26 @@ def test_fatal_cli_failure_retains_consumed_claim(tmp_path, monkeypatch):
         producer.claim_execution(claim, p)
 
 
-def test_default_commands_never_evaluate_molecular_outcomes(tmp_path, monkeypatch):
+def test_default_commands_never_evaluate_molecular_outcomes(tmp_path, monkeypatch, frozen_phase19_checkout, capsys):
     def forbidden(*args, **kwargs):
         raise AssertionError("molecular state laws must not run during default preflight")
     monkeypatch.setattr(checker, "dense_oracle", forbidden)
     monkeypatch.setattr(producer, "run_bank", forbidden)
-    # Exercise the frozen execution sources, rather than maintenance edits to
-    # today's kernel. The producer's live-source refusal is tested separately.
+    from functools import partial
     from benchmarks.check_phase19_preregistration import static_problems as frozen_static
-    def historical(*args, **kwargs):
-        kwargs["historical_sources"] = True
-        return frozen_static(*args, **kwargs)
-    monkeypatch.setattr(producer, "static_problems", historical)
-    monkeypatch.setattr(checker, "static_problems", historical)
+    root = frozen_phase19_checkout
+    # Run the real live-source check on a pristine fixture, then inject drift.
+    monkeypatch.setattr(producer, "static_problems", partial(frozen_static, root=root))
+    monkeypatch.setattr(checker, "static_problems", partial(frozen_static, root=root))
     # Pin the record-absent state: once the campaign record lands, the default
     # checker command replays it by design.
     monkeypatch.setattr(checker, "RECORD", tmp_path / "absent.json")
     assert producer.main([]) == 0
     assert checker.main() == 0
+    path = root / "clifford_qc/multivector.py"
+    path.write_bytes(path.read_bytes() + b"# injected live kernel drift\n")
+    assert producer.main([]) == 1
+    assert "frozen file digest drifted: clifford_qc/multivector.py" in capsys.readouterr().err
 
 
 def test_checker_has_no_producer_import_or_calculation_call():

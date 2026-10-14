@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import math
 import sys
+from itertools import combinations
 from functools import lru_cache
 from numbers import Number
 from typing import Dict, Iterable
@@ -32,14 +33,18 @@ _word_mul_ref = word_mul_reference
 _REV_SIGN = (1, 1, -1, -1)
 
 
-@lru_cache(maxsize=4096)
 def codes_of_grade(n: int, r: int) -> tuple[int, ...]:
     """Pauli codes whose Clifford blade has grade ``r`` -- the basis r-blades.
 
     ``C(2n, r)`` of them, by the code/mask bijection. This explicit exhaustive
-    helper is retained for compatibility; sparse operations do not call it.
+    helper is retained without a cache for compatibility; sparse operations
+    do not call it. Its returned tuple can still be large.
     """
-    return tuple(c for c in range(4 ** n) if blade_mask(n, c).bit_count() == r)
+    validate_n(n)
+    if not isinstance(r, int) or not 0 <= r <= 2 * n:
+        return ()
+    return tuple(sorted(mask_to_code(n, sum(1 << bit for bit in bits))
+                        for bits in combinations(range(2 * n), r)))
 
 
 @lru_cache(maxsize=1_000_000)
@@ -103,6 +108,19 @@ def _blade_contraction_masks(masks: Iterable[int]) -> set[int]:
             candidates.add(mask ^ bit)
             remaining ^= bit
     return candidates
+
+
+def _blade_contraction_buckets(terms, masks):
+    """Register each active term in exactly its k one-bit-deletion buckets."""
+    buckets = {}
+    for code, coefficient in terms.items():
+        mask = masks[code]
+        remaining = mask
+        while remaining:
+            bit = remaining & -remaining
+            buckets.setdefault(mask ^ bit, []).append((code, coefficient, bit))
+            remaining ^= bit
+    return buckets
 
 
 class MV:
@@ -360,6 +378,10 @@ class MV:
         n = self.n
         masks_a = {a: blade_mask(n, a) for a in self.terms}
         masks_b = {b: blade_mask(n, b) for b in other.terms}
+        return self._wedge_with_masks(other, masks_a, masks_b)
+
+    def _wedge_with_masks(self, other, masks_a, masks_b):
+        n = self.n
         out: dict[int, complex] = {}
         for a, ca in self.terms.items():
             ma = masks_a[a]
@@ -401,15 +423,6 @@ class MV:
     def rcontract(self, other) -> "MV":
         """Bilinear right contraction: <A_r reverse(B_s)>_(r-s), r >= s."""
         return self._contract(other, left=False)
-
-    __lshift__ = lcontract
-    __rshift__ = rcontract
-
-    def __rlshift__(self, other):
-        return self._coerce(other).lcontract(self)
-
-    def __rrshift__(self, other):
-        return self._coerce(other).rcontract(self)
 
     def scalar_product(self, other) -> complex:
         """GA scalar product ``<A ~B>_0`` -- the k-vector dot product.
@@ -535,7 +548,8 @@ class MV:
         """
         if self.is_zero(tol):
             return True
-        gs = self.grades()
+        masks = {code: blade_mask(self.n, code) for code in self.terms}
+        gs = {mask.bit_count() for mask in masks.values()}
         if len(gs) > 1:
             return False
         k = next(iter(gs))
@@ -547,11 +561,17 @@ class MV:
         # A Pauli representative differs from the ordered basis blade by a
         # unit phase; its fixed-grade reversion sign also leaves this zero test
         # and its absolute tolerance unchanged.
-        candidates = _blade_contraction_masks(blade_mask(self.n, code) for code in self.terms)
-        for mask in sorted(candidates):
-            code = mask_to_code(self.n, mask)
-            v = MV(self.n, {code: 1.0}).lcontract(self)
-            if not v.wedge(self).is_zero(tol):
+        buckets = _blade_contraction_buckets(self.terms, masks)
+        sign = _REV_SIGN[(k - 1) & 3]
+        for mask, entries in sorted(buckets.items()):
+            beta = mask_to_code(self.n, mask)
+            terms, vector_masks = {}, {}
+            for code, coefficient, missing_bit in entries:
+                phase, product = _word_mul_unchecked(self.n, beta, code)
+                terms[product] = terms.get(product, 0j) + sign * coefficient * phase
+                vector_masks[product] = missing_bit
+            v = MV(self.n, terms)
+            if not v._wedge_with_masks(self, vector_masks, masks).is_zero(tol):
                 return False
         return True
 

@@ -521,8 +521,15 @@ minor-coordinate and `n=12` support regressions. `pool_operator.py` is the share
 Program IR home for B6, with compatibility re-exports and isolated import/pool
 checks. The named classical kernel profile and its audit record active-mask
 bounds, runtime and Python allocation peaks; no timing threshold is asserted.
+Review hardening buckets each support term into its one-bit deletion candidates,
+reuses decoded masks during wedges, and retains an uncached explicit grade helper.
+The named reversion-based contractions omit shift aliases. Profile v2 observes
+actual generated/visited masks, requires a clean execution commit and verifies
+historical source bindings; reproduction docs refer directly to the record.
 Phase 19 verifies packaged frozen implementation sources after its record exists,
-while the original producer still requires live frozen bindings. Original records,
+while the live structural rebuild engine and the original producer still require
+live frozen bindings. The producer preflight refusal on a maintained tree is
+documented and tested with an injected temporary drift. Original records,
 configs and execution identities remain unchanged.
 
 **Third: bounded research follow-ups.**

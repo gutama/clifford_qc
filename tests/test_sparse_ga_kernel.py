@@ -103,11 +103,11 @@ def test_n12_uses_only_active_contractions_without_algebra_enumeration(monkeypat
     candidates = kernel._blade_contraction_masks(masks)
     assert len(candidates) <= k * value.nnz()
     seen = []
-    original = MV.lcontract
+    original = kernel.mask_to_code
 
-    def contraction(self, other):
-        seen.append(blade_mask(n, next(iter(self.terms))))
-        return original(self, other)
+    def encode(size, mask):
+        seen.append(mask)
+        return original(size, mask)
 
     def limited_range(*args):
         assert args != (4 ** n,), "a whole algebra must never be enumerated"
@@ -118,6 +118,28 @@ def test_n12_uses_only_active_contractions_without_algebra_enumeration(monkeypat
 
     monkeypatch.setattr(kernel, "range", limited_range, raising=False)
     monkeypatch.setattr(kernel, "codes_of_grade", forbidden)
-    monkeypatch.setattr(MV, "lcontract", contraction)
+    monkeypatch.setattr(kernel, "mask_to_code", encode)
     assert value.is_blade()
     assert set(seen) == candidates
+
+
+def test_large_support_is_decoded_once_and_bucketed_in_linear_memberships(monkeypatch):
+    masks = [sum(1 << bit for bit in bits)
+             for bits in itertools.islice(itertools.combinations(range(24), 3), 1000)]
+    value = MV(12, {mask_to_code(12, mask): 1 + 1j for mask in masks})
+    original = kernel.blade_mask
+    calls = []
+    def decode(n, code):
+        calls.append(code)
+        return original(n, code)
+    buckets = kernel._blade_contraction_buckets(value.terms, {code: original(12, code) for code in value.terms})
+    assert sum(map(len, buckets.values())) == 3 * value.nnz()
+    monkeypatch.setattr(kernel, "blade_mask", decode)
+    value.is_blade()
+    assert len(calls) == value.nnz()
+
+
+def test_explicit_grade_helper_has_no_persistent_whole_grade_cache():
+    assert not hasattr(kernel.codes_of_grade, "cache_info")
+    assert kernel.codes_of_grade(2, 2) == tuple(code for code in range(16)
+                                             if blade_mask(2, code).bit_count() == 2)
