@@ -112,7 +112,7 @@
       "phase16b_feasibility.json": "6829464abc77bc54",
       "phase16b_v2_feasibility.json": "6829464abc77bc54",
       "phase16b_v3_feasibility.json": "6829464abc77bc54",
-      "phase17_ceo.json": "44136fa355b3678a",
+      "phase17_ceo.json": "9b1272e87a381f30",
       "phase19_energy_comparison.json": "44136fa355b3678a",
       "priceability_screen.json": "f6a33f1aa225c4dd",
       "protocol_axis.json": "75a2ec249c533fed",
@@ -137,8 +137,8 @@
     },
     "forms": {
       "basis_only": 0,
-      "nested_in_subobject": 5,
-      "none": 7,
+      "nested_in_subobject": 6,
+      "none": 6,
       "per_quantity_mapping": 10,
       "role_only": 0,
       "role_with_nested_tier": 2,
@@ -158,7 +158,7 @@
   "source": {
     "layers": {
       "algorithms": {
-        "lines": 1695,
+        "lines": 1732,
         "modules": 9
       },
       "backends": {
@@ -202,9 +202,9 @@
         "modules": 1
       }
     },
-    "package_lines": 27833,
+    "package_lines": 27870,
     "package_modules": 105,
-    "test_lines": 32745,
+    "test_lines": 32852,
     "test_modules": 137
   }
 }

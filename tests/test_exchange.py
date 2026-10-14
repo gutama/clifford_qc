@@ -30,7 +30,7 @@ def occupation_exchange(n, creation, annihilation):
     return out
 
 
-@pytest.mark.parametrize('n', [2, 4, 6])
+@pytest.mark.parametrize('n', [2, 4, 6, 8])
 def test_qe_pool_against_occupation_action(n):
     qe, _ = exchange_pools(n)
     for op in qe:
@@ -116,3 +116,38 @@ def test_invalid_register(n):
 def test_bad_gradient_input():
     with pytest.raises(ValueError):
         exchange_energy_gradient(np.eye(2), np.ones(2), [np.eye(2)], [0.])
+
+
+def test_selection_uses_first_member_within_declared_tolerance():
+    from clifford_qc.algorithms.exchange import _select_exchange
+    labels = ['first', 'later', 'largest']
+    assert _select_exchange(labels, dict(first=1., later=1.+2e-16, largest=.5), 1e-10) == 'first'
+    assert _select_exchange(labels, dict(first=1., later=1.+2e-9, largest=.5), 1e-10) == 'later'
+
+
+def test_optimizer_cache_and_arm_storage():
+    from clifford_qc.models import hubbard
+    model = hubbard(2, U=2.1, t=.7)
+    run = run_exchange_adapt(model, max_iterations=3, maxiter=100)
+    for row in run['trajectory']:
+        trace = row['optimizer_trace']
+        assert len({tuple(call['parameters']) for call in trace}) == len(trace)
+        assert row['optimizer_callback_requests'] == len(row['optimizer_callback_indices'])
+        assert row['optimizer_cache_hits'] == row['optimizer_callback_requests']-len(trace)
+        assert row['optimizer_cache_hits'] >= 1  # common adapter's final request is cached
+        assert row['optimizer_resolved'] == (max(map(abs, trace[row['final_evaluation_index']]['gradient'])) <= 1e-8)
+    dimension = len(run['sector_basis'])
+    assert run['resources']['dense_operator_bytes'] == (1+len(run['pool_labels']))*dimension**2*16
+
+
+def test_case_preparation_is_shared_and_matrices_are_lazy():
+    from clifford_qc.algorithms.exchange import _prepare_exchange
+    from clifford_qc.models import hubbard
+    model = hubbard(4, U=2.1, t=.7)
+    prepared = _prepare_exchange(model, 256)
+    assert not prepared['matrices'] and not prepared['commutators']
+    qe = run_exchange_adapt(model, max_iterations=1, _prepared=prepared)
+    assert set(prepared['matrices']) == set(qe['pool_labels'])
+    ovp = run_exchange_adapt(model, arm='ovp_ceo', max_iterations=1, _prepared=prepared)
+    expected = (1+len(ovp['pool_labels']))*len(ovp['sector_basis'])**2*16
+    assert ovp['resources']['dense_operator_bytes'] == expected

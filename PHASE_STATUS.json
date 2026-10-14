@@ -39,8 +39,8 @@
     "numbered_phase_count": 20,
     "complete_phase_count": 17,
     "strict_complete_fraction": 0.85,
-    "progress_weighted_points": 18.75,
-    "progress_weighted_fraction": 0.9375
+    "progress_weighted_points": 18.875,
+    "progress_weighted_fraction": 0.94375
   },
   "numbered_phases": [
     {
@@ -240,7 +240,7 @@
       "id": "17",
       "title": "Mapping validation and breadth",
       "status": "partial",
-      "implementation_fraction": 0.75,
+      "implementation_fraction": 0.875,
       "evidence": [
         "clifford_qc/fermion_mapping.py",
         "benchmarks/reference_results/mapping_axis.json",
@@ -258,7 +258,8 @@
       ],
       "decision_records": [
         "benchmarks/reference_results/phase17_ceo.json"
-      ]
+      ],
+      "progress_basis": "The CEO benchmark completes one of the two breadth deliverables that shared the previous remaining quarter. MORE-ADAPT retains the final eighth; 87.5% is rounded to 88% in summary tables."
     },
     {
       "id": "18",

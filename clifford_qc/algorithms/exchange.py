@@ -126,9 +126,33 @@ def _energy_gradient(h, reference, ts, theta):
     return energy, gradient, states[-1]
 
 
+def _prepare_exchange(model, max_sector_dimension):
+    """One per-case Hamiltonian, sector and spectrum; pool matrices are lazy."""
+    metadata = model.metadata
+    if (metadata.get('encoding', 'jw') != 'jw'
+            or metadata.get('spin_convention') != 'interleaved'):
+        raise ValueError('exchange ADAPT requires interleaved Jordan--Wigner occupations')
+    backend = SectorStatevectorBackend(model.n, metadata['n_electrons'], metadata['sz'])
+    if backend.dimension > max_sector_dimension:
+        raise ValueError('dense exchange benchmark sector exceeds its declared dimension cap')
+    h = backend.operator(model.hamiltonian).restrict(np.arange(backend.dimension))
+    qe, ceo = exchange_pools(model.n)
+    return dict(model=model, backend=backend, h=h,
+                reference=backend.state_from_program(model.reference), qe=qe, ceo=ceo,
+                h_mv=model.hamiltonian.to_mv(), ground=float(np.linalg.eigvalsh(h)[0]),
+                matrices={}, commutators={})
+
+
+def _select_exchange(pool_labels, scores, tolerance):
+    """First member within an absolute derivative tolerance of the maximum."""
+    maximum = max(abs(scores[label]) for label in pool_labels)
+    return next(label for label in pool_labels if maximum-abs(scores[label]) <= tolerance)
+
+
 def run_exchange_adapt(model, *, arm='qe', max_iterations=32, maxiter=350,
-                       gradient_threshold=1e-6, parent_threshold=1e-12,
-                       optimizer_gtol=1e-8, max_sector_dimension=256):
+                       gradient_threshold=1e-6, parent_threshold=None,
+                       optimizer_gtol=1e-8, max_sector_dimension=256,
+                       selection_tolerance=1e-10, _prepared=None):
     """QE, OVP-only CEO or mixed-CEO ADAPT with common exact optimization.
 
     Repeated candidates are allowed. Every screening round evaluates the full
@@ -143,35 +167,39 @@ def run_exchange_adapt(model, *, arm='qe', max_iterations=32, maxiter=350,
                         ('max_sector_dimension',max_sector_dimension)]:
         if isinstance(value,bool) or not isinstance(value,int) or value < 1:
             raise ValueError(f'{name} must be a positive integer')
-    for value in (gradient_threshold,parent_threshold,optimizer_gtol):
+    if parent_threshold is None:
+        parent_threshold = max(10*optimizer_gtol, gradient_threshold/10)
+    for value in (gradient_threshold,parent_threshold,optimizer_gtol,selection_tolerance):
         if isinstance(value,bool) or not math.isfinite(value) or value <= 0:
             raise ValueError('thresholds must be finite and positive')
-    metadata = model.metadata
-    if (metadata.get('encoding', 'jw') != 'jw'
-            or metadata.get('spin_convention') != 'interleaved'):
-        raise ValueError('exchange ADAPT requires interleaved Jordan--Wigner occupations')
-    backend = SectorStatevectorBackend(model.n, metadata['n_electrons'], metadata['sz'])
+    prepared = _prepare_exchange(model, max_sector_dimension) if _prepared is None else _prepared
+    if prepared['model'] is not model:
+        raise ValueError('prepared exchange data belongs to another model')
+    backend = prepared['backend']
     if backend.dimension > max_sector_dimension:
         raise ValueError('dense exchange benchmark sector exceeds its declared dimension cap')
-    indices = np.arange(backend.dimension)
-    h = backend.operator(model.hamiltonian).restrict(indices)
-    reference = backend.state_from_program(model.reference)
-    qe, ceo = exchange_pools(model.n)
+    h, reference = prepared['h'], prepared['reference']
+    qe, ceo = prepared['qe'], prepared['ceo']
     by_label = {op.label:op for op in qe+ceo}
-    matrices = {label:backend.operator(op.generator).restrict(indices)
-                for label,op in by_label.items()}
-    for t in matrices.values():
+    matrices, commutators = prepared['matrices'], prepared['commutators']
+    def matrix(label):
+        if label in matrices:
+            return matrices[label]
+        t = backend.operator(by_label[label].generator).restrict(np.arange(backend.dimension))
         if not np.allclose(t@t@t, -t, atol=1e-12, rtol=0):
             raise ValueError('sector generator violates the exact evolution identity')
-    commutators = {}
-    for label,op in by_label.items():
-        c = model.hamiltonian.to_mv()*op.generator-op.generator*model.hamiltonian.to_mv()
-        commutators[label] = {word for word, coefficient in c.terms.items()
-                              if word != 0 and coefficient != 0}
+        matrices[label] = t
+        return t
     pool = qe if arm == 'qe' else ceo
     pool_labels = [op.label for op in pool]
+    for op in pool:
+        matrix(op.label)
+        if op.label not in commutators:
+            c = prepared['h_mv']*op.generator-op.generator*prepared['h_mv']
+            commutators[op.label] = {word for word, coefficient in c.terms.items()
+                                    if word != 0 and coefficient != 0}
     gradient_words = set().union(*(commutators[label] for label in pool_labels))
-    exact = float(np.linalg.eigvalsh(h)[0])
+    exact = prepared['ground']
     psi = reference.copy()
     reference_energy = energy = float(np.vdot(psi, h@psi).real)
     chosen, theta, trajectory, screening = [], (), [], []
@@ -183,7 +211,7 @@ def run_exchange_adapt(model, *, arm='qe', max_iterations=32, maxiter=350,
         if not pool:
             reason = 'empty_pool'
             break
-        selected = max(pool_labels, key=lambda label:abs(scores[label]))
+        selected = _select_exchange(pool_labels, scores, selection_tolerance)
         screening.append({'iteration':iteration+1, 'gradient_norm':norm,
                           'max_abs_gradient':abs(scores[selected]),
                           'screened_gradients':len(pool), 'selected_label':selected,
@@ -208,27 +236,29 @@ def run_exchange_adapt(model, *, arm='qe', max_iterations=32, maxiter=350,
                 orientation = 1 if item.label == plus.parents[0] else -1
                 parent_scores[item.label] = .5*(scores[plus.label]+orientation*scores[minus.label])
             nonzero = [label for label,value in parent_scores.items() if abs(value)>parent_threshold]
-            if len(nonzero) != 1:
+            if len(nonzero) > 1:
                 appended = nonzero
-            if not appended:
-                raise RuntimeError('selected CEO has no resolved parent gradient')
         chosen.extend(appended)
         theta = theta + (0.,)*len(appended)
-        ts = [matrices[label] for label in chosen]
+        ts = [matrix(label) for label in chosen]
         previous_energy = energy
-        evaluations, last_state = [], {}
+        evaluations, cache, callback_indices = [], {}, []
         def objective(x):
-            e, gradient, state = _energy_gradient(h, reference, ts, x)
-            evaluations.append({'parameters':list(x), 'energy':e,
-                                'gradient':gradient.tolist()})
-            last_state['psi'] = state
+            key = tuple(float(v) for v in x)
+            if key not in cache:
+                e, gradient, state = _energy_gradient(h, reference, ts, key)
+                cache[key] = (len(evaluations), e, gradient, state)
+                evaluations.append({'parameters':list(key), 'energy':e,
+                                    'gradient':gradient.tolist()})
+            index, e, gradient, _ = cache[key]
+            callback_indices.append(index)
             return e, gradient
         result = minimize_energy(objective,theta,
                                  method='lbfgsb',maxiter=maxiter,gtol=optimizer_gtol,bound=exact)
         theta = result.x
-        if tuple(evaluations[-1]['parameters']) != theta or len(evaluations) != result.evaluations:
+        final_index, energy, final_gradient, psi = cache[theta]
+        if callback_indices[-1] != final_index or len(callback_indices) != result.evaluations:
             raise RuntimeError('optimizer evaluation trace does not identify its final state')
-        energy, psi = result.fun, last_state['psi']
         if energy > previous_energy + 1e-10:
             raise RuntimeError('optimization increased the nested ansatz energy')
         if abs(np.vdot(psi,psi)-1)>1e-10:
@@ -236,11 +266,16 @@ def run_exchange_adapt(model, *, arm='qe', max_iterations=32, maxiter=350,
         trajectory.append({'iteration':iteration+1,'selected_label':selected,
                            'appended_labels':appended,'parent_gradients':parent_scores,
                            'labels':list(chosen),'parameters':list(theta),'energy':energy,
-                           'optimizer_evaluations':result.evaluations,
+                           'optimizer_evaluations':len(evaluations),
                            'optimizer_trace':evaluations,
+                           'optimizer_callback_indices':callback_indices,
+                           'optimizer_callback_requests':result.evaluations,
+                           'optimizer_cache_hits':result.evaluations-len(evaluations),
+                           'final_evaluation_index':final_index,
                            'optimizer_iterations':result.iterations,
                            'optimizer_gradient_norm':result.grad_norm,
-                           'optimizer_resolved':result.grad_norm <= optimizer_gtol,
+                           'optimizer_max_abs_gradient':float(np.max(np.abs(final_gradient))),
+                           'optimizer_resolved':float(np.max(np.abs(final_gradient))) <= optimizer_gtol,
                            'pauli_rotation_occurrences':sum(len(by_label[label].generator.terms) for label in chosen),
                            'generic_ladder_cnot_upper_bound':sum(2*(sum((code>>(2*j))&3 != 0 for j in range(model.n))-1)
                                for label in chosen for code in by_label[label].generator.terms)})
@@ -251,11 +286,13 @@ def run_exchange_adapt(model, *, arm='qe', max_iterations=32, maxiter=350,
         'screening_word_occurrences':sum(r['commutator_word_occurrences'] for r in screening),
         'optimizer_energy_gradient_evaluations':sum(r['optimizer_evaluations'] for r in trajectory),
         'parameter_derivatives':sum(len(r['parameters'])*r['optimizer_evaluations'] for r in trajectory),
-        'dense_operator_bytes':h.nbytes + sum(t.nbytes for t in matrices.values()),
+        'dense_operator_bytes':h.nbytes + sum(matrices[label].nbytes for label in set(pool_labels+chosen)),
     }
     return {'arm':arm,'sector_basis':backend.basis.tolist(), 'pool_labels':pool_labels,
             'reference_energy':reference_energy,'sector_ground_energy':exact,'energy':energy,
             'trajectory':trajectory,'screening':screening,'stopped_reason':reason,
             'resources':resources,'quantum_shots':None,
+            'policy_version':2, 'selection_tolerance':selection_tolerance,
+            'parent_promotion_threshold':parent_threshold,
             'evidence_category':'exact_small_sector_simulation',
             'resource_scope':'exact screening and optimizer counts; generic Pauli ladders, no optimized CEO circuits'}

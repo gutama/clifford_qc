@@ -12,7 +12,7 @@ ROOT=Path(__file__).resolve().parents[1]
 sys.path.insert(0,str(ROOT))
 from benchmarks.check_phase17_ceo_declaration import load_config, validate
 from benchmarks.phase17_ceo_design import CONFIG, RECORD, digest, file_digest, target_summary
-from clifford_qc.algorithms.exchange import run_exchange_adapt
+from clifford_qc.algorithms.exchange import run_exchange_adapt, _prepare_exchange
 from clifford_qc.models.fcidump import fcidump_model
 from clifford_qc.reproducibility import stamp_record
 
@@ -21,12 +21,13 @@ def run_campaign(config):
     cases=[]
     for case in config['cases']:
         model=fcidump_model(ROOT/case['path'],name=case['id'],integral_tolerance=1e-12)
+        prepared=_prepare_exchange(model,config['solver']['max_sector_dimension'])
         arms=[]
         for arm in config['arms']:
-            run=run_exchange_adapt(model,arm=arm,**config['solver'])
+            run=run_exchange_adapt(model,arm=arm,_prepared=prepared,**config['solver'])
             arms.append({'run':run,'target_summary':target_summary(run,config['target_hartree'])})
         cases.append({'id':case['id'],'role':case['role'],'arms':arms})
-    return {'schema':'clifford_qc.phase17_ceo.v1','config_sha256':digest(config),
+    return {'schema':'clifford_qc.phase17_ceo.v2','config_sha256':digest(config),
             'claim_boundary':config['claim_boundary'],'cases':cases,
             'execution_source_bindings':{path:file_digest(ROOT/path) for path in
                 ['benchmarks/run_phase17_ceo.py','benchmarks/check_phase17_ceo.py',
@@ -57,7 +58,7 @@ def main(argv=None):
         raise ValueError('execution provenance must identify the clean actual HEAD')
     common=Path(subprocess.check_output(['git','rev-parse','--git-common-dir'],cwd=ROOT,text=True).strip())
     if not common.is_absolute(): common=ROOT/common
-    claim=common/'phase17-ceo-execution.claim'
+    claim=common/'phase17-ceo-review-execution.claim'
     with claim.open('x') as handle:
         json.dump({'source':head,'config_sha256':digest(config)},handle)
     record=stamp_record(run_campaign(config),provenance)
@@ -65,10 +66,6 @@ def main(argv=None):
     # Failure consumes the claim but does not discard its scientific evidence.
     with claim.with_suffix('.diagnostic.json').open('x') as handle:
         json.dump(record,handle,allow_nan=False)
-    manifest=json.loads((ROOT/config['publication_replay_manifest']).read_text())
-    if digest(record['cases']) != manifest['cases_sha256']:
-        raise ValueError('published replay changed a scientific or resource value')
-    record['publication_replay']=manifest
     from benchmarks.check_phase17_ceo import check_record
     problems=check_record(record,config)
     if problems: raise ValueError('independent validation failed: '+'; '.join(problems[:10]))

@@ -116,7 +116,7 @@ No figure or table value in the manuscript is transcribed by hand, and
 ```bash
 python -m venv .venv && source .venv/bin/activate
 pip install -e .[test,research,stim]       # automatic CI extras
-pytest                                      # 3132 passed, 11 skipped
+pytest                                      # 3146 passed, 11 skipped
 ```
 
 This is the automatic CI dependency set; record gates additionally pin NumPy
@@ -132,7 +132,7 @@ the remaining `11 - 6 = 5` skips are per-test and *are* collected:
 
 ```text
 collected == passed + (skipped - files dropped at collection)
-3137      == 3132   + (11      -   6)
+3151      == 3146   + (11      -   6)
 ```
 
 Both sides are computed from the tree, so a drift in either quoted number
@@ -4548,7 +4548,7 @@ separately disclosed declaration.
 
 ## Phase 17: exact QE and CEO pool comparison
 
-The disclosed, frozen design is [PHASE17_CEO_DECLARATION.md](benchmarks/PHASE17_CEO_DECLARATION.md).
+The active post-review design (`benchmarks/configs/phase17_ceo_review.json`) is described in [PHASE17_CEO_DECLARATION.md](benchmarks/PHASE17_CEO_DECLARATION.md).
 The default producer invocation is outcome-free. Explicit execution requires the
 record environment, clean committed sources, an execution commit after the
 declaration, one BLAS thread, no existing record and no consumed execution claim.
@@ -4556,12 +4556,12 @@ declaration, one BLAS thread, no existing record and no consumed execution claim
 ```bash
 python benchmarks/check_phase17_ceo_declaration.py
 python benchmarks/run_phase17_ceo.py
-# The frozen campaign is executed once, after those gates:
+# The post-review campaign is executed once, after those gates:
 OMP_NUM_THREADS=1 OPENBLAS_NUM_THREADS=1 MKL_NUM_THREADS=1 python benchmarks/run_phase17_ceo.py --execute
 python benchmarks/check_phase17_ceo.py
 ```
 
-The independent checker reconstructs occupation swaps, CEO sums/differences,
+The checker shares FCIDUMP text parsing, and independently reconstructs fermionic Hamiltonian action and pool coefficients, occupation swaps, CEO sums/differences,
 sector spectra, all optimizer calls, target-prefix crossings and logical ledgers.
 It does not reoptimize, certify finite shots or establish a global optimum.
 Screened gradient forms, unique commutator words, optimizer calls, parameter
@@ -4569,7 +4569,7 @@ derivatives and generic Pauli-ladder CNOT upper bounds are separate currencies.
 The persistent claim retains the full diagnostic trajectory if validation fails.
 The MORE-ADAPT multi-root benchmark remains outstanding.
 
-The original local run and its declaration/source/result history are archived.
+The original `benchmarks/reference_results/phase17_ceo.json` and its declaration/source/result history are archived unchanged. The corrected campaign writes `benchmarks/reference_results/phase17_ceo_review.json`. Its results will be reported after the declared execution. The following table is the original observed record and does not describe the corrected policy.
 The published provenance replay ran from `a15611b` after declaration `6f573cb`;
 its result-only commit is `0a9b706`. Every scientific/resource case field matches
 the original digest exactly. Both checker gates pass. This replay is not an
@@ -4592,6 +4592,4 @@ Target-prefix costs are retrospective oracle-indexed diagnostics, not an
 implemented stopping rule. The full executed trajectories have separate total
 ledgers. The mixed arm trades fewer growth rounds on H4 for more parameters
 and optimizer calls. OVP reduces the generic ladder upper bound, but the
-published optimized CEO circuits are not compiled here. Most local solves
-finish on the optimizer energy condition before its stricter gradient tolerance;
-all resolution flags are preserved. No aggregate cost or advantage follows.
+published optimized CEO circuits are not compiled here. Original counts include a repeated final evaluation per round (H4 QE/OVP: 91 distinct evaluations plus 9 repeats; mixed: 117 plus 8). Original resolution flags use L2 and do not identify SciPy termination. The active solver caches identical parameter requests and tests max absolute gradient; all original flags remain preserved. No aggregate cost or advantage follows.

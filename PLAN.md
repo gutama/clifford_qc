@@ -109,12 +109,12 @@ Status at a glance:
 | Phases 0--14 | complete | 15 / 15 |
 | Phase 15: Second-moment bank | partial | 50% |
 | Phase 16: Time-evolved inputs | partial | 50% |
-| Phase 17: Mapping validation and breadth | partial | 75% |
+| Phase 17: Mapping validation and breadth | partial | 88% |
 | Phase 18: Embedding boundary | complete | 100% |
 | Phase 19: Anticommuting-clique partitioning | complete | 100% |
 
 Strict complete-phase score: **17 / 20 = 85.00%**.
-Progress-weighted score: **18.75 / 20 = 93.75%**.
+Progress-weighted score: **18.88 / 20 = 94.38%**.
 Retired and conditional adjunct phases are tracked separately and do not change this denominator. Source: `PHASE_STATUS.json`; validate with `python benchmarks/check_phase_status.py`.
 <!-- PHASE-STATUS-SUMMARY:END -->
 
@@ -2580,8 +2580,7 @@ optimizer energy/gradient call. The separate declaration
 it is not called a blind preregistration. Its source/input/pool bindings freeze
 three eight-qubit FCIDUMPs, the three arms and a common 32-round budget before
 the full comparison. LiH is a reference-floor diagnostic. The result checker
-uses occupation matrices and spectral propagation, imports neither producer
-nor solver, and reads target prefixes and resource currencies separately.
+uses independent fermionic occupation action, pool coefficients and spectral propagation, sharing FCIDUMP text parsing, and reads target prefixes and resource currencies separately.
 Generic Pauli-ladder counts are upper bounds: enhanced CEO-ADAPT-VQE*, optimized
 CEO circuits, finite-shot measurement cost and hardware advantage are excluded.
 The frozen record (`benchmarks/reference_results/phase17_ceo.json`) contains all
@@ -2591,7 +2590,7 @@ published source `a15611b` after declaration `6f573cb`, then committed alone in
 `0a9b706`, with every scientific/resource case field matching the local execution
 exactly. This is a disclosed deterministic publication replay, not an independent
 statistical replica or a blind preregistration. Every selection and optimizer call replays against
-independent occupation/spectral matrices. On H4, QE and OVP reach the target at
+independent occupation/spectral matrices. The original policy used floating-point maxima and a parent cutoff of 1e-12; it does not establish results for the corrected post-review policy in `phase17_ceo_review.json`. That separately declared campaign is pending execution. In the original observed record, H4 QE and OVP reach the target at
 round 9 with 9 parameters and 100 optimizer calls; mixed CEO reaches it at round
 8 with 11 parameters and 125 calls. BeH2 reaches it at round 2 with all three
 arms; LiH's reference already meets the target, so it is not a positive solver
@@ -2599,8 +2598,7 @@ comparison. The generic Pauli-ladder bound for OVP is lower, but that is neither
 an optimized CEO circuit nor a measured device saving. Read the separate
 currencies in REPRODUCING.md rather than aggregating a winner. Target-prefix
 costs are retrospective, oracle-indexed diagnostics, not a shipped stopping
-policy. Many local solves stop on the optimizer's energy criterion before its
-stricter `gtol`; every `optimizer_resolved` flag is retained and no global or
+policy. The original optimizer counts include one repeated final computation per round; its L2 resolution flags are stricter than SciPy max-abs `gtol` and do not identify termination messages. Every flag is retained and no global or
 local optimizer-convergence certificate is claimed.
 
 The dedicated MORE-ADAPT multi-root benchmark remains separate work.

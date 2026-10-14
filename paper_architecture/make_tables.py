@@ -404,7 +404,7 @@ def gate_census() -> dict:
 EVIDENCE_LABEL_KEYS = (
     "evidence_tier", "evidence", "search_uncertainty_evidence",
     "default_evidence_tier", "reported_evidence_tier",
-    "accuracy_evidence_tier",
+    "accuracy_evidence_tier", "evidence_category",
 )
 EVIDENCE_KEYS = EVIDENCE_LABEL_KEYS + (
     "evidence_role", "evidence_tier_basis",

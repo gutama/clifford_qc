@@ -5,12 +5,11 @@ import hashlib
 import json
 from pathlib import Path
 
-from clifford_qc.algorithms.exchange import exchange_pools
-from clifford_qc.models.fcidump import fcidump_model
-
 ROOT = Path(__file__).resolve().parents[1]
-CONFIG = ROOT/'benchmarks/configs/phase17_ceo.json'
-RECORD = ROOT/'benchmarks/reference_results/phase17_ceo.json'
+LEGACY_CONFIG = ROOT/'benchmarks/configs/phase17_ceo.json'
+LEGACY_RECORD = ROOT/'benchmarks/reference_results/phase17_ceo.json'
+CONFIG = ROOT/'benchmarks/configs/phase17_ceo_review.json'
+RECORD = ROOT/'benchmarks/reference_results/phase17_ceo_review.json'
 ARMS = ('qe', 'ovp_ceo', 'mixed_ceo')
 
 
@@ -24,6 +23,8 @@ def file_digest(path):
 
 
 def structure(path):
+    from clifford_qc.algorithms.exchange import exchange_pools
+    from clifford_qc.models.fcidump import fcidump_model
     model = fcidump_model(path, integral_tolerance=1e-12)
     qe, ceo = exchange_pools(model.n)
     def rows(pool):

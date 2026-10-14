@@ -324,11 +324,11 @@ programme; it is not a package-readiness or scientific-advantage score.
 | Phases 0--14 | complete | 15 / 15 |
 | Phase 15: Second-moment bank | partial | 50% |
 | Phase 16: Time-evolved inputs | partial | 50% |
-| Phase 17: Mapping validation and breadth | partial | 75% |
+| Phase 17: Mapping validation and breadth | partial | 88% |
 | Phase 18: Embedding boundary | complete | 100% |
 | Phase 19: Anticommuting-clique partitioning | complete | 100% |
 
 Strict complete-phase score: **17 / 20 = 85.00%**.
-Progress-weighted score: **18.75 / 20 = 93.75%**.
+Progress-weighted score: **18.88 / 20 = 94.38%**.
 Retired and conditional adjunct phases are tracked separately and do not change this denominator. Source: `PHASE_STATUS.json`; validate with `python benchmarks/check_phase_status.py`.
 <!-- PHASE-STATUS-SUMMARY:END -->
