@@ -131,6 +131,11 @@ def _layer_of(relative: Path) -> str:
 # ---------------------------------------------------------------------------
 GATE_CLASSES: tuple[tuple[str, str, tuple[str, ...]], ...] = (
     (
+        "Exact trajectory replay",
+        "independently replays occupation states, optimizer calls and observed counters; not global optimality",
+        ("check_phase17_ceo",),
+    ),
+    (
         "Observed resource equivalence",
         "derives accounting and equivalence from isolated cells; optionally rebuilds final pencils",
         ("check_bank_policy_matrix",),
@@ -182,7 +187,7 @@ GATE_CLASSES: tuple[tuple[str, str, tuple[str, ...]], ...] = (
         "Post-hoc declaration",
         "freezes a disclosed post-hoc design; commit order protects identity, not preregistration",
         ("check_phase15_certifying_screen_declaration",
-         "check_phase15_residual_successor_declaration"),
+         "check_phase15_residual_successor_declaration", "check_phase17_ceo_declaration"),
     ),
     (
         "Lineage and environment",
@@ -399,7 +404,7 @@ def gate_census() -> dict:
 EVIDENCE_LABEL_KEYS = (
     "evidence_tier", "evidence", "search_uncertainty_evidence",
     "default_evidence_tier", "reported_evidence_tier",
-    "accuracy_evidence_tier",
+    "accuracy_evidence_tier", "evidence_category",
 )
 EVIDENCE_KEYS = EVIDENCE_LABEL_KEYS + (
     "evidence_role", "evidence_tier_basis",

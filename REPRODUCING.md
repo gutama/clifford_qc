@@ -116,7 +116,7 @@ No figure or table value in the manuscript is transcribed by hand, and
 ```bash
 python -m venv .venv && source .venv/bin/activate
 pip install -e .[test,research,stim]       # automatic CI extras
-pytest                                      # 3099 passed, 11 skipped
+pytest                                      # 3146 passed, 11 skipped
 ```
 
 This is the automatic CI dependency set; record gates additionally pin NumPy
@@ -132,7 +132,7 @@ the remaining `11 - 6 = 5` skips are per-test and *are* collected:
 
 ```text
 collected == passed + (skipped - files dropped at collection)
-3104      == 3099   + (11      -   6)
+3151      == 3146   + (11      -   6)
 ```
 
 Both sides are computed from the tree, so a drift in either quoted number
@@ -4195,7 +4195,7 @@ The producer's default command evaluates no new molecular energies or costs;
 the checker validates the committed observations once the record exists. The
 five-system/four-arm campaign is complete: all twenty cells ran from clean
 execution source `e00d64a` on a 32 GiB container, and its VALID record was
-committed alone in `337ae73`. Both checker modes pass. The earlier 8 GiB host
+committed alone in `337ae73`. Both checker gates pass. The earlier 8 GiB host
 refused before consuming a claim; the frozen design was not reduced.
 
 For the original execution, the launcher required the pinned record environment,
@@ -4545,3 +4545,81 @@ The record binds the content hashes of `run_phase19_energy_comparison.py`,
 checker compares the working files against those hashes, so the three files are
 now frozen: editing any of them fails the record check. Any new outcome needs a
 separately disclosed declaration.
+
+## Phase 17: exact QE and CEO pool comparison
+
+The active post-review design is `benchmarks/configs/phase17_ceo_review.json`,
+described in [PHASE17_CEO_DECLARATION.md](benchmarks/PHASE17_CEO_DECLARATION.md).
+Original outcomes were already known and informed the corrections; this is a
+post-review diagnostic, not blind preregistration or an independent statistical
+replica. The default producer validates inputs without solving. Explicit
+execution requires the record environment, clean committed sources, one BLAS
+thread, a source commit after declaration, no existing record and an unused claim.
+
+```bash
+python benchmarks/check_phase17_ceo_declaration.py
+python benchmarks/run_phase17_ceo.py
+# Execute only the separately declared campaign's single unused slot:
+OMP_NUM_THREADS=1 OPENBLAS_NUM_THREADS=1 MKL_NUM_THREADS=1 python benchmarks/run_phase17_ceo.py --execute
+python benchmarks/check_phase17_ceo.py
+```
+
+The post-review record is `benchmarks/reference_results/phase17_ceo_review.json`.
+Declaration `58a7911` precedes clean actual execution `5752cd1`; result-only
+commit `b41d008` follows it. Both gates audit the original and revised designs
+and records. The checker shares FCIDUMP text parsing, independently builds
+fermionic occupation H and pool coefficients, and spectrally replays each
+computation, selection, parent promotion and final screen. It does not reoptimize
+or establish global optimality. The persistent claim retains diagnostic results
+if validation fails. Git lineage uses the config's last change and record's first
+add. Empty history in a complete repository fails; shallow clones and exported
+trees explicitly report provenance as unverified. Preserve source ancestry on
+merge. Static unit tests require neither history nor frozen current core bytes;
+source bindings after execution are checked at the recorded historical commit.
+
+Selection takes the first member within absolute `1e-10` of the maximum.
+Mixed promotion requires at least two QE parents above `1e-7`, ten times the
+optimizer `gtol`; otherwise retain OVP. This cutoff is a numerical policy, not a
+finite-shot or optimizer-residual uncertainty certificate. Exact duplicate
+parameter tuples within each round are cached. The following counts charge
+actual computed energy/gradient calls; callback requests, cache hits and final
+computation indices are retained separately. Resolution uses max absolute
+gradient; L2 remains diagnostic and no SciPy termination message is inferred.
+
+| system | arm | first target round | parameters | screened gradient forms | computed calls | parameter derivatives | generic CNOT upper bound |
+|---|---|---:|---:|---:|---:|---:|---:|
+| h4 | qe | 9 | 9 | 810 | 91 | 500 | 432 |
+| h4 | ovp_ceo | 9 | 9 | 864 | 91 | 496 | 216 |
+| h4 | mixed_ceo | 8 | 10 | 768 | 123 | 852 | 336 |
+| beh2 | qe | 2 | 2 | 180 | 11 | 17 | 96 |
+| beh2 | ovp_ceo | 2 | 2 | 192 | 11 | 17 | 48 |
+| beh2 | mixed_ceo | 2 | 2 | 192 | 11 | 17 | 48 |
+| lih | qe | 0 | 0 | 0 | 0 | 0 | 0 |
+| lih | ovp_ceo | 0 | 0 | 0 | 0 | 0 | 0 |
+| lih | mixed_ceo | 0 | 0 | 0 | 0 | 0 | 0 |
+
+LiH is the reference-floor diagnostic: round zero is not a solver gain.
+Target-prefix costs are retrospective oracle-indexed diagnostics, not a shipped
+stopping rule. Full trajectories have their own ledgers. H4 mixed CEO trades
+fewer growth rounds for more parameters and computed calls. Generic ladder
+bounds exclude optimized CEO compilation and measured device cost. Screening,
+words, computed calls, derivatives and dense bytes are separate currencies;
+no aggregate advantage follows. Dense bytes count the H and generator matrices
+required by each arm, not process RSS; case preparation and its cache are shared.
+At termination, H4's logical dense-byte counts are 1,886,976 (QE), 2,011,392
+(OVP) and 2,239,488 (mixed). Cross-platform bitwise equality is not claimed.
+
+The original `benchmarks/reference_results/phase17_ceo.json` and
+`benchmarks/configs/phase17_ceo.json` remain byte-for-byte unchanged. Local
+history is archived in the Git bundle. The publication replay ran from `a15611b`
+after declaration `6f573cb`, and was committed alone in `0a9b706`, with its
+scientific/resource case digest matching the original local execution.
+That original policy used a raw floating-point maximum and a `1e-12` parent
+cutoff. Its H4 QE/OVP target count of 100 calls includes 91 distinct parameter
+evaluations plus 9 repeated final evaluations; mixed's 125 includes 117 plus 8,
+with 11 parameters. Its L2 resolution flags remain preserved and do not identify
+SciPy's termination criterion. These original numbers do not describe the
+corrected policy. Both records pass the stronger convergence, coefficient,
+trajectory and historical-source checks under their explicitly separate policies.
+
+The dedicated MORE-ADAPT multi-root benchmark remains outstanding.

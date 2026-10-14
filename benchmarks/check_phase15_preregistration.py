@@ -535,11 +535,12 @@ def structural_problems(config: dict, notes: list[str] | None = None,
 
 # ------------------------------------------------------------------ order
 
-def _first_commit(path: Path):
+def _first_commit(path: Path, *, root=None):
+    root = ROOT if root is None else root
     try:
         out = subprocess.run(
             ["git", "log", "--follow", "--diff-filter=A", "--format=%H", "--", str(path)],
-            cwd=ROOT, capture_output=True, text=True, timeout=30)
+            cwd=root, capture_output=True, text=True, timeout=30)
     except (OSError, subprocess.SubprocessError):
         return None
     if out.returncode != 0:
@@ -548,24 +549,26 @@ def _first_commit(path: Path):
     return commits[-1] if commits else None
 
 
-def _last_commit(path: Path):
+def _last_commit(path: Path, *, root=None):
+    root = ROOT if root is None else root
     try:
         out = subprocess.run(["git", "log", "-1", "--format=%H", "--", str(path)],
-                             cwd=ROOT, capture_output=True, text=True, timeout=30)
+                             cwd=root, capture_output=True, text=True, timeout=30)
     except (OSError, subprocess.SubprocessError):
         return None
     commit = out.stdout.strip() if out.returncode == 0 else ""
     return commit or None
 
 
-def _shallow_boundary() -> set[str]:
+def _shallow_boundary(*, root=None) -> set[str]:
     """Commits whose parents a shallow clone cut off; git cannot date a path there."""
+    root = ROOT if root is None else root
     try:
         out = subprocess.run(["git", "rev-parse", "--git-path", "shallow"],
-                             cwd=ROOT, capture_output=True, text=True, timeout=30)
+                             cwd=root, capture_output=True, text=True, timeout=30)
     except (OSError, subprocess.SubprocessError):
         return set()
-    shallow = ROOT / out.stdout.strip() if out.returncode == 0 else None
+    shallow = root / out.stdout.strip() if out.returncode == 0 else None
     if shallow is None or not shallow.is_file():
         return set()
     return {line.strip() for line in shallow.read_text().splitlines() if line.strip()}

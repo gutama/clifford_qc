@@ -109,12 +109,12 @@ Status at a glance:
 | Phases 0--14 | complete | 15 / 15 |
 | Phase 15: Second-moment bank | partial | 50% |
 | Phase 16: Time-evolved inputs | partial | 50% |
-| Phase 17: Mapping validation and breadth | partial | 75% |
+| Phase 17: Mapping validation and breadth | partial | 88% |
 | Phase 18: Embedding boundary | complete | 100% |
 | Phase 19: Anticommuting-clique partitioning | complete | 100% |
 
 Strict complete-phase score: **17 / 20 = 85.00%**.
-Progress-weighted score: **18.75 / 20 = 93.75%**.
+Progress-weighted score: **18.88 / 20 = 94.38%**.
 Retired and conditional adjunct phases are tracked separately and do not change this denominator. Source: `PHASE_STATUS.json`; validate with `python benchmarks/check_phase_status.py`.
 <!-- PHASE-STATUS-SUMMARY:END -->
 
@@ -135,9 +135,9 @@ conditional phases.
 | 14 | fully commuting grouping | **done on the frozen BeH₂/JW comparison** — the public compiled-plan API, exact joint sampler, preregistered finite-sample record, covariance audit, and device-card costing ship; Q9 is positive within the declared one-bank oracle boundary |
 | 15 | second-moment bank | **partially implemented (50%)**; the H-squared preflight reads `FULL` (Q16), and `SecondMomentBank` ships with exact second moments and true Ritz residual norms validated on all five licensed banks. Opt-in exact convergence reporting ships at adaptive termination, with numerical resolution and separate ground-state evidence. Q17's `CONDITIONAL` permits the shipped three-prefix extrapolation diagnostic, with improvement evidence confined to the frozen H₄ and H₂O bases. Q18's predecessor remains `INVALID`. Its separately declared Q18-S1 successor reports post-hoc `NONE` for uniform QWC on the five banks after all derivative checks pass. Q18-S2 reads `UNREACHED`: no prefix with a resolved variance on the two committed Hubbard 2×2 A-CASE trajectories that extend the frozen bank certifies the ground state, so no pilot allocation experiment is authorized on those prefixes. The exact final `acase_level4` prefix (`M = 26`) has `E + σ < E₁` for any `σ` below the resolution floor, but is unresolved, unpriced and not `certifying` in the record. The ladder's fixed Krylov basis, outside the screen, certifies too. Practical nonuniform allocation on a certifying basis, finite-shot reporting, folded-spectrum roots and banks outside the five remain |
 | 16 | time-evolved inputs | **partially implemented (50%)**; the 16A QSCI time-evolved input ships in `subspace/time_evolution.py` (exact matrix-free propagation as an `oracle` input, a validated Trotter circuit as an `implementable` one, and pooled multi-time sampling). Its decision comparison, Q15, ran once and reads `NO_GO`: iterated selected CI of the same size matches or beats it on both required instances. No circuit-native/truncated A-CASE real-time family ships. 16B's three preregistered decision experiments have run — v1 `CONDITIONAL`, v2 `GO` under per-word pricing, v3 `CONDITIONAL` once the incumbent is priced with its own grouping — and the programme ends there: the real-time backend is **not authorized** (§5, Phase 16) |
-| 17 | mapping validation and breadth | **partially implemented (75%)**; the JW/BK/parity transformation, invariance gates, and mapping-axis records ship through R2, while the CEO-pool and dedicated MORE-ADAPT breadth benchmarks remain open |
+| 17 | mapping validation and breadth | **partially implemented (75%)**; the JW/BK/parity transformation, invariance gates, and mapping-axis records ship through R2, and the exact QE/OVP/mixed-CEO pool comparison now ships with independently replayed trajectories; the dedicated MORE-ADAPT breadth benchmark remains open |
 | 18 | embedding boundary | **done**; the versioned effective-Hamiltonian schema ships in `models/effective.py`, and the common fragment-solver callback returning energy and one- and two-particle density matrices ships in `subspace/fragment.py`, implemented by QSCI, selected CI, the hybrid, and a sector-FCI reference. The embedding loop itself stays outside the package |
-| 19 | anticommuting-clique (spin-factor) partitioning | **partial (75%)**; §3.6's invariant tests, fixed-functional clique compilation and result-free energy preregistration ship. The declaration freezes H4/LiH/BeH2 Hamiltonians and Hartree–Fock references, both covers, resources, range allocation, simultaneous confidence, numerical allowance, endpoint grid, audit and all three cards. Its checker rebuilds structures without outcomes. No sampled comparison, producer or record ships yet. Lever 2 remains unbuilt |
+| 19 | anticommuting-clique (spin-factor) partitioning | **complete (100%)**; the fixed Hartree–Fock energy comparison ran once and is recorded VALID, with independent sampled-result checking. Its instance/card outcomes are in §5. Lever 2 remains outside the numbered deliverables and unbuilt |
 | G1 | GA structural preconditioner: Majorana pool and filters A–E | **done**; both gates pass and QG1's falsifier does not fire, but E's content is pool-dependent — `522` of `549` removed on the §3.5 Majorana pool, `0` on the excitation pool the mapping records use |
 | G2–G3 | mapping-invariance test on the restricted pool, PRD/WISE integration with a cost decomposition | **retired by G1's own result**; the G1-admissible pool reconstructs the pool R2b already builds, so QG2's falsifier holds by construction rather than by measurement (§5, Phase G2) |
 | R1 | hardware-aware cost model and pooled-estimator ledger | **done**; asymptotic and exact-oracle nonlinear shot-search tiers are recorded |
@@ -2565,8 +2565,61 @@ weight, distinct words, grouping, and circuits separately. Lower Pauli weight do
 not imply lower `W` or fewer groups — and, more strongly, `W` is *exactly*
 invariant across the linear encoding family (§6.2), so the invariance is a check
 rather than a measurement. The executable form of this phase is R2 (§5, Phases
-R1–R4). A CEO pool and dedicated MORE-ADAPT benchmark are follow-ups after Track A;
+R1–R4). The CEO pool/comparison implementation and a disclosed outcome-free declaration now ship.
+The frozen exact comparison and its publication replay both pass independent trace verification.
+A dedicated MORE-ADAPT benchmark is a follow-up after Track A;
 they constrain positioning but do not gate the QSCI hybrid experiment.
+
+**CEO comparison foundation.** `algorithms/exchange.py` implements complete
+spin-conserving generalized QE and OVP-CEO pools, with mixed-CEO promotion to
+independently parameterized same-support QEs. Independent occupation matrices
+validate signs through eight qubits, sector invariance, `T^3 = -T`, exact
+exponentials and gradients. The bounded dense-sector driver shares per-case H,
+sector and spectrum, builds arm matrices lazily, charges full-pool screens and
+retains each computed optimizer call plus callback/cache indices.
+
+The original declaration and `benchmarks/reference_results/phase17_ceo.json`
+remain unchanged. Their local history is archived in the publication-replay
+bundle; actual published execution `a15611b` follows declaration `6f573cb`, and
+its result-only commit is `0a9b706`. Review identified floating-point tie choices,
+a parent cutoff of `1e-12`, repeated final callbacks and weaker provenance and
+convergence checks. That observed record is archived evidence for its original
+policy; its counts include repeated final computations and its resolution flags
+use L2, without identifying SciPy termination.
+
+**Post-review comparison.** The separately frozen `phase17_ceo_review.json`
+config discloses known original outcomes and corrects the policy before one new
+nine-arm campaign. Declaration `58a7911` strictly precedes actual execution
+`5752cd1`; result-only commit `b41d008` follows it. Selection takes the first
+pool member within `1e-10` of the maximum absolute derivative. Mixed promotion
+requires at least two parents above `1e-7` (ten times optimizer `gtol`); otherwise
+retain OVP. Identical parameter requests within each round are cached; computed
+energy/gradient calls and callback requests are separate. Resolution tests max
+absolute gradient against `gtol` and retains L2 separately.
+
+The stronger checker independently reconstructs fermionic occupation H, every
+pool coefficient, screening word counts and spectral propagation. FCIDUMP text
+parsing remains shared. A claimed gradient stop requires the additional final
+screen and a norm below threshold. Historical source bindings are checked at the
+recorded execution commit, allowing current core modules to evolve. Unit tests
+need no recorded Git history; dedicated gates explicitly mark exported or
+shallow provenance as unverified. Preserve execution ancestry when merging.
+
+In the corrected H4 record, QE and OVP reach the target at round 9 with 9
+parameters and 91 computed calls; mixed CEO reaches it at round 8 with 10
+parameters and 123 calls. BeH2 reaches it at round 2 with all arms, 2 parameters
+and 11 calls. LiH's reference already meets the target and is not a positive
+solver comparison. This is a post-review diagnostic, not blind preregistration,
+an independent statistical replica or a cross-platform robustness survey.
+Screening forms, computed calls, parameter derivatives, logical dense bytes and
+generic Pauli-ladder bounds remain separate currencies. The target prefixes are
+retrospective oracle-indexed diagnostics, not a stopping policy. Optimized CEO
+circuits, enhanced CEO-ADAPT-VQE*, finite-shot cost, hardware advantage and global
+optimizer guarantees are excluded. Read the separate ledgers in REPRODUCING.md.
+
+The dedicated MORE-ADAPT multi-root benchmark remains separate work. Shipping
+CEO closes half of the previously remaining quarter: Phase 17 is 87.5% complete
+(88% in rounded summary tables), with the final eighth reserved for MORE-ADAPT.
 
 ### Phase 18 — embedding boundary
 
@@ -5137,7 +5190,8 @@ bought a duplicate record.
     is authorized on these prefixes. Certifying bases outside the screen exist:
     the ladder's Krylov basis has `σ = 0.086 t`. Pricing one needs a new
     declaration.
-20. CEO and MORE-ADAPT benchmarks after the critical comparison is stable.
+20. The dedicated MORE-ADAPT breadth comparison remains. The exact CEO pool
+    comparison is complete and read (§5, Phase 17).
 21. The excited-state track, after the certificate question of §7.4 has an answer. Note
     that §3.5B's transformation-character parameter is what keeps this track reachable
     from Track G; a G1 that hard-codes `[A,Q]=0` would close it.
