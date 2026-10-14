@@ -205,16 +205,22 @@
         "benchmarks/check_phase15_certifying_screen_declaration.py",
         "benchmarks/run_phase15_certifying_screen.py",
         "benchmarks/check_phase15_certifying_screen.py",
-        "tests/test_phase15_certifying_screen.py"
+        "tests/test_phase15_certifying_screen.py",
+        "benchmarks/check_phase15_certifying_krylov_declaration.py",
+        "benchmarks/phase15_certifying_krylov.py",
+        "benchmarks/run_phase15_certifying_krylov.py",
+        "benchmarks/check_phase15_certifying_krylov.py",
+        "tests/test_phase15_certifying_krylov.py"
       ],
       "remaining": [
-        "Finite-shot estimation beyond uniform QWC. The separate post-hoc Q18-S1 successor reads NONE and closes the uniform protocol negative on the five banks; the original Q18 record remains INVALID. Q18-S2 reads UNREACHED: no prefix with a resolved variance on the two committed Hubbard 2x2 A-CASE trajectories that extend the frozen bank certifies the ground state, so as declared no pilot allocation experiment is authorized on those prefixes. acase_level4's exact final prefix (M = 26) has E + sigma < E1 but is unresolved and unpriced, and certifying bases outside the screen exist (the ladder's Krylov basis); pricing sigma on one needs a new declaration. Oracle allocation diagnostics license no estimator",
+        "Finite-shot estimation beyond the declared scopes. Q18-S1 reads NONE for uniform QWC on the five banks; the original Q18 record remains INVALID. Q18-S2 reads UNREACHED on the two committed Hubbard 2x2 A-CASE trajectories. Q18-S3, declared post hoc on the ladder's fixed Krylov prefixes, reads CLOSED: its one certifying, rank-stable prefix (M = 7) has Neyman ratios near 1,700, so no allocation reaches the tenfold bar there and its pilot stage did not run. These close the practical-allocation follow-up negative on those declared scopes only; other systems, spans, groupings, pooled estimators or precision rules need their own declaration. Oracle allocation diagnostics license no estimator",
         "Folded-spectrum roots and finite-shot convergence reporting built on the measured second-moment block",
         "Phase 2M storage gate or a preflight of its own before SecondMomentBank construction on any bank outside the five"
       ],
       "decision_records": [
         "benchmarks/reference_results/phase15_residual_successor.json",
-        "benchmarks/reference_results/phase15_certifying_screen.json"
+        "benchmarks/reference_results/phase15_certifying_screen.json",
+        "benchmarks/reference_results/phase15_certifying_krylov.json"
       ]
     },
     {

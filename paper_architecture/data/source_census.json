@@ -1,7 +1,6 @@
 {
   "gates": {
     "absent_from_workflow": [
-      "check_phase15_certifying_krylov",
       "check_phase16b_feasibility",
       "check_phase16b_preregistration",
       "check_phase16b_v2_feasibility",
@@ -23,6 +22,7 @@
       "check_molecular",
       "check_packed_bank_storage",
       "check_phase14b_preregistration",
+      "check_phase15_certifying_krylov",
       "check_phase15_certifying_krylov_declaration",
       "check_phase15_certifying_screen",
       "check_phase15_certifying_screen_declaration",
@@ -83,10 +83,10 @@
     ],
     "gates": 62,
     "manual_dispatch_only": 12,
-    "named_in_workflow": 54,
+    "named_in_workflow": 55,
     "producers": 61,
     "producers_without_gate": 25,
-    "run_on_every_pull_request": 42,
+    "run_on_every_pull_request": 43,
     "same_stem_pairs": 36
   },
   "records": {
@@ -111,6 +111,7 @@
       "packed_bank_storage.json": "f6a33f1aa225c4dd",
       "packed_h2o_feasibility.json": "f6a33f1aa225c4dd",
       "phase14b_qwc_vs_fc.json": "7eea7d72de38ea0e",
+      "phase15_certifying_krylov.json": "a01d4faf08adefaa",
       "phase15_certifying_screen.json": "6bb9f7b32353bd5e",
       "phase15_h2_preflight.json": "8073d71314d9fa75",
       "phase15_measured_residual_preflight.json": "3827fc7445745dbf",
@@ -150,12 +151,12 @@
       "basis_only": 0,
       "nested_in_subobject": 5,
       "none": 5,
-      "per_quantity_mapping": 15,
+      "per_quantity_mapping": 16,
       "role_only": 0,
       "role_with_nested_tier": 2,
       "top_level_tier": 17
     },
-    "json_records": 44,
+    "json_records": 45,
     "series_files": 21,
     "top_level_tiers": {
       "exact": 4,

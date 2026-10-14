@@ -4368,6 +4368,22 @@ runs the whole path, practical stage included, on the undeclared Hubbard dimer. 
 also holds `KrylovBank`'s rows to the base bank's products to the bit, and
 catches forged fields.
 
+The one declared execution took 30.1 s under Python 3.12.3, NumPy 2.5.2, SciPy
+1.18.0 and Stim 1.16.0, from clean pushed commit `886afa7`. Its record was
+committed alone in `7e26f70`, and the full rebuild takes about half a minute
+locally. All three lineage ties hold, and every priced prefix passes every
+deterministic check. **Exactly one prefix certifies with a rank-stable block,
+`M = 7` (`σ = 0.114 t`, `E + σ − E₁ = −0.175 t`), and its Neyman ratios are
+1,699.7 (`qwc_groups`) and 1,699.5 (`qwc_basis_cover`), so the verdict is
+`CLOSED`.** As declared, the pilot-allocation stage did not run. `M = 8` and `9`
+certify too (`σ = 0.085`, `0.086 t`) but fail the rank margin and are unpriced.
+The only prefixes under the bar, `M = 4` (6.46/5.94) and `M = 5` (4.41/4.40), have
+`σ ≥ 0.91 t` and certify nothing. On `M = 7` the eighty-digit and statevector
+routes reproduce `σ²` to `9.6e-8` and `4.9e-9` relative, and Q18-S1's fixed
+ladder also passes. The closure covers this system, these prefixes,
+single-assignment QWC and matched standard error only. Phase 15 stays partial
+at 50%.
+
 ## Phase 2M-C/D: process-isolated storage-policy matrix
 
 The outcome-free declaration is `benchmarks/PHASE2M_POLICY_DECLARATION.md`, with

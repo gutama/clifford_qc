@@ -204,6 +204,11 @@ jobs:
           - gate: check_phase15_certifying_screen
             timeout: 25
             environment_record: phase15_certifying_screen.json
+          # Rebuilds all nine Krylov prefixes, both eighty-digit derivatives per
+          # priced prefix and the frozen-bank lineage: about half a minute locally.
+          - gate: check_phase15_certifying_krylov
+            timeout: 15
+            environment_record: phase15_certifying_krylov.json
           # Rebuilds only frozen coefficients, covers, rotors and resources.
           # Draws no Phase 19 outcomes; after a record, also checks commit order.
           - gate: check_phase19_preregistration
