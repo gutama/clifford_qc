@@ -37,10 +37,10 @@
   },
   "summary": {
     "numbered_phase_count": 20,
-    "complete_phase_count": 17,
-    "strict_complete_fraction": 0.85,
-    "progress_weighted_points": 18.875,
-    "progress_weighted_fraction": 0.94375
+    "complete_phase_count": 18,
+    "strict_complete_fraction": 0.9,
+    "progress_weighted_points": 19.0,
+    "progress_weighted_fraction": 0.95
   },
   "numbered_phases": [
     {
@@ -239,8 +239,8 @@
     {
       "id": "17",
       "title": "Mapping validation and breadth",
-      "status": "partial",
-      "implementation_fraction": 0.875,
+      "status": "complete",
+      "implementation_fraction": 1.0,
       "evidence": [
         "clifford_qc/fermion_mapping.py",
         "benchmarks/reference_results/mapping_axis.json",
@@ -254,16 +254,26 @@
         "tests/test_phase17_ceo.py",
         "benchmarks/phase17_ceo_oracle.py",
         "benchmarks/phase17_ceo_provenance.py",
-        "benchmarks/reference_results/phase17_ceo_review.json"
+        "benchmarks/reference_results/phase17_ceo_review.json",
+        "clifford_qc/algorithms/more_adapt.py",
+        "benchmarks/PHASE17_MORE_DECLARATION.md",
+        "benchmarks/configs/phase17_more.json",
+        "benchmarks/phase17_more_design.py",
+        "benchmarks/phase17_more_acase.py",
+        "benchmarks/phase17_more_oracle.py",
+        "benchmarks/check_phase17_more_declaration.py",
+        "benchmarks/run_phase17_more.py",
+        "benchmarks/check_phase17_more.py",
+        "benchmarks/reference_results/phase17_more.json",
+        "tests/test_more_adapt.py"
       ],
-      "remaining": [
-        "Dedicated MORE-ADAPT breadth benchmark"
-      ],
+      "remaining": [],
       "decision_records": [
         "benchmarks/reference_results/phase17_ceo.json",
-        "benchmarks/reference_results/phase17_ceo_review.json"
+        "benchmarks/reference_results/phase17_ceo_review.json",
+        "benchmarks/reference_results/phase17_more.json"
       ],
-      "progress_basis": "The CEO benchmark completes one of the two breadth deliverables that shared the previous remaining quarter. MORE-ADAPT retains the final eighth; 87.5% is rounded to 88% in summary tables."
+      "progress_basis": "Mapping validation, the exact CEO comparison and the dedicated twelve-cell MORE-ADAPT breadth comparison ship with independent replay and preserved declaration/execution/record ancestry. Completion covers these deliverables, including right-censored targets; it does not establish universal accuracy, compactness or resource advantage."
     },
     {
       "id": "18",
