@@ -159,6 +159,7 @@ GATE_CLASSES: tuple[tuple[str, str, tuple[str, ...]], ...] = (
             "check_g1_structural_preconditioner", "check_krylov_width",
             "check_mapping_axis", "check_matched_h4",
             "check_phase14b_qwc_vs_fc", "check_phase15_h2_preflight",
+            "check_phase15_certifying_krylov",
             "check_phase15_certifying_screen",
             "check_phase15_measured_residual_preflight",
             "check_phase15_residual_successor",
@@ -195,7 +196,8 @@ GATE_CLASSES: tuple[tuple[str, str, tuple[str, ...]], ...] = (
     (
         "Post-hoc declaration",
         "freezes a disclosed post-hoc design; commit order protects identity, not preregistration",
-        ("check_phase15_certifying_screen_declaration",
+        ("check_phase15_certifying_krylov_declaration",
+         "check_phase15_certifying_screen_declaration",
          "check_phase15_residual_successor_declaration", "check_phase17_ceo_declaration",
          "check_phase17_more_declaration"),
     ),

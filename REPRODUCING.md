@@ -264,7 +264,7 @@ No figure or table value in the manuscript is transcribed by hand, and
 ```bash
 python -m venv .venv && source .venv/bin/activate
 pip install -e .[test,research,stim]       # automatic CI extras
-pytest                                      # 3400 passed, 12 skipped
+pytest                                      # 3472 passed, 12 skipped
 ```
 
 This is the automatic CI dependency set; record gates additionally pin NumPy
@@ -280,7 +280,7 @@ the remaining `12 - 6 = 6` skips are per-test and *are* collected:
 
 ```text
 collected == passed + (skipped - files dropped at collection)
-3406      == 3400   + (12      -   6)
+3478      == 3472   + (12      -   6)
 ```
 
 Both sides are computed from the tree, so a drift in either quoted number
@@ -4326,6 +4326,65 @@ first commit. A squash or rebase merge loses this history, so merge with a merge
 commit. The structural CI job checks out full history (`fetch-depth: 0`), so these
 ancestry checks run in CI instead of skipping at a shallow boundary, and a merge
 that erased the order fails there.
+
+## Q18-S3: certify on the ladder's Krylov basis, then allocate
+
+Q18-S2 left its screened A-CASE prefixes `UNREACHED`. After that record, a check
+found that the ladder's fixed Krylov basis certifies the Hubbard 2×2 ground state.
+Q18-S3 takes every prefix `M = 1 … 9` of that committed sequence. It establishes
+`σ²` three ways: `SecondMomentBank`, an eighty-digit pencil and a statevector
+Ritz state. It admits only prefixes whose overlap keeps the whole block with a
+decade to spare, and validates both functionals at eighty digits and with
+Q18-S1's fixed ladder. It then decides on Q18-S2's Neyman ratio. Only if that
+oracle verdict is `OPEN` does a seeded pilot-allocation experiment run on the
+`AFFORDABLE` certifying prefixes. The basis is selected post hoc; the
+declaration (`PHASE15_CERTIFYING_KRYLOV_DECLARATION.md`) precedes its run.
+
+```bash
+python benchmarks/check_phase15_certifying_krylov_declaration.py
+# After committing the declaration and code, from a clean pinned environment:
+OMP_NUM_THREADS=1 OPENBLAS_NUM_THREADS=1 MKL_NUM_THREADS=1 \
+  python benchmarks/run_phase15_certifying_krylov.py
+# After the record exists:
+python benchmarks/check_phase15_certifying_krylov.py
+python benchmarks/check_phase15_certifying_krylov.py --no-recompute
+```
+
+The gate recomputes the sector spectrum and premises, the exactness of the power
+table, and every prefix's first-moment `(S, H)` solve. It never constructs a
+`SecondMomentBank`. The producer writes only its declared path and refuses an
+existing record. It ties itself to three committed records:
+
+- Q18-S2's spectral reference;
+- Q18-S1's frozen bank, priced again through Q18-S2's path;
+- the ladder's Krylov row.
+
+The checker restates every prefix status, both linearizations, the Richardson
+rule, every ratio and allocation total, the practical summary and both verdicts
+from recorded inputs. Its rebuild compares pencil-determined floats to a relative
+tolerance of `max(1e-9, 1000 ε κ)`, with `κ` the prefix's retained condition
+number, and the eighty-digit values to `1e-12`. The residual's reference mean is
+zero, and its recorded value is rounding whose size and sign depend on the BLAS
+kernel, so the rebuild compares it to the declared bound `1e-9 (1 + scale)`. `tests/test_phase15_certifying_krylov.py`
+runs the whole path, practical stage included, on the undeclared Hubbard dimer. It
+also holds `KrylovBank`'s rows to the base bank's products to the bit, and
+catches forged fields.
+
+The one declared execution took 30.1 s under Python 3.12.3, NumPy 2.5.2, SciPy
+1.18.0 and Stim 1.16.0, from clean pushed commit `886afa7`. Its record was
+committed alone in `7e26f70`, and the full rebuild takes about half a minute
+locally. All three lineage ties hold, and every priced prefix passes every
+deterministic check. **Exactly one prefix certifies with a rank-stable block,
+`M = 7` (`σ = 0.114 t`, `E + σ − E₁ = −0.175 t`), and its Neyman ratios are
+1,699.7 (`qwc_groups`) and 1,699.5 (`qwc_basis_cover`), so the verdict is
+`CLOSED`.** As declared, the pilot-allocation stage did not run. `M = 8` and `9`
+certify too (`σ = 0.085`, `0.086 t`) but fail the rank margin and are unpriced.
+The only prefixes under the bar, `M = 4` (6.46/5.94) and `M = 5` (4.41/4.40), have
+`σ ≥ 0.91 t` and certify nothing. On `M = 7` the eighty-digit and statevector
+routes reproduce `σ²` to `9.6e-8` and `4.9e-9` relative, and Q18-S1's fixed
+ladder also passes. The closure covers this system, these prefixes,
+single-assignment QWC and matched standard error only. Phase 15 stays partial
+at 50%.
 
 ## Phase 2M-C/D: process-isolated storage-policy matrix
 

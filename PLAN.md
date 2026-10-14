@@ -134,7 +134,7 @@ conditional phases.
 | PRD | orthogonal-residual regression, Davidson/preconditioned expansion, packet pricing, matched A-CASE, exact and finite-shot suites | **done and read**; exact compactness is positive, complete-bank QWC finite-shot energy accuracy is negative |
 | 13 | parity/X-rank invariant | **done**; one shared GF(2) implementation is tested across every declared spin-conserving JW construction path before grouping |
 | 14 | fully commuting grouping | **done on the frozen BeH₂/JW comparison** — the public compiled-plan API, exact joint sampler, preregistered finite-sample record, covariance audit, and device-card costing ship; Q9 is positive within the declared one-bank oracle boundary |
-| 15 | second-moment bank | **partially implemented (50%)**; the H-squared preflight reads `FULL` (Q16), and `SecondMomentBank` ships with exact second moments and true Ritz residual norms validated on all five licensed banks. Opt-in exact convergence reporting ships at adaptive termination, with numerical resolution and separate ground-state evidence. Q17's `CONDITIONAL` permits the shipped three-prefix extrapolation diagnostic, with improvement evidence confined to the frozen H₄ and H₂O bases. Q18's predecessor remains `INVALID`. Its separately declared Q18-S1 successor reports post-hoc `NONE` for uniform QWC on the five banks after all derivative checks pass. Q18-S2 reads `UNREACHED`: no prefix with a resolved variance on the two committed Hubbard 2×2 A-CASE trajectories that extend the frozen bank certifies the ground state, so no pilot allocation experiment is authorized on those prefixes. The exact final `acase_level4` prefix (`M = 26`) has `E + σ < E₁` for any `σ` below the resolution floor, but is unresolved, unpriced and not `certifying` in the record. The ladder's fixed Krylov basis, outside the screen, certifies too. Practical nonuniform allocation on a certifying basis, finite-shot reporting, folded-spectrum roots and banks outside the five remain |
+| 15 | second-moment bank | **partially implemented (50%)**; the H-squared preflight reads `FULL` (Q16), and `SecondMomentBank` ships with exact second moments and true Ritz residual norms validated on all five licensed banks. Opt-in exact convergence reporting ships at adaptive termination, with numerical resolution and separate ground-state evidence. Q17's `CONDITIONAL` permits the shipped three-prefix extrapolation diagnostic, with improvement evidence confined to the frozen H₄ and H₂O bases. Q18's predecessor remains `INVALID`. Its separately declared Q18-S1 successor reports post-hoc `NONE` for uniform QWC on the five banks after all derivative checks pass. Q18-S2 reads `UNREACHED`: no prefix with a resolved variance on the two committed Hubbard 2×2 A-CASE trajectories that extend the frozen bank certifies the ground state, so no pilot allocation experiment is authorized on those prefixes. The exact final `acase_level4` prefix (`M = 26`) has `E + σ < E₁` for any `σ` below the resolution floor, but is unresolved, unpriced and not `certifying` in the record. Q18-S3, declared post hoc on the ladder's fixed Krylov prefixes, reads `CLOSED`. Its one certifying, rank-stable prefix (`M = 7`, `σ = 0.114 t`) has Neyman ratios near 1,700 under both protocols. So no allocation reaches the tenfold bar there, and the pilot-allocation stage did not run. That closes the practical-allocation follow-up negative on that declared scope only. Finite-shot reporting, folded-spectrum roots and banks outside the five remain |
 | 16 | time-evolved inputs | **partially implemented (50%)**; the 16A QSCI time-evolved input ships in `subspace/time_evolution.py` (exact matrix-free propagation as an `oracle` input, a validated Trotter circuit as an `implementable` one, and pooled multi-time sampling). Its decision comparison, Q15, ran once and reads `NO_GO`: iterated selected CI of the same size matches or beats it on both required instances. No circuit-native/truncated A-CASE real-time family ships. 16B's three preregistered decision experiments have run — v1 `CONDITIONAL`, v2 `GO` under per-word pricing, v3 `CONDITIONAL` once the incumbent is priced with its own grouping — and the programme ends there: the real-time backend is **not authorized** (§5, Phase 16) |
 | 17 | mapping validation and breadth | **complete (100%)**; mapping invariance and exact CEO comparisons ship, and the dedicated twelve-cell MORE-ADAPT/native multi-root A-CASE comparison has a VALID independently replayed record; mixed target outcomes limit the scientific claim (§5, Phase 17) |
 | 18 | embedding boundary | **done**; the versioned effective-Hamiltonian schema ships in `models/effective.py`, and the common fragment-solver callback returning energy and one- and two-particle density matrices ships in `subspace/fragment.py`, implemented by QSCI, selected CI, the hybrid, and a sector-FCI reference. The embedding loop itself stays outside the package |
@@ -408,7 +408,7 @@ phase and change no implementation fraction or measured verdict.
 | B6: architecture/API | Chemistry imports pool definitions from algorithms; mutable `PauliSum.terms` is an API design question, not by itself a correctness defect | Remove the import-time edge with compatibility; assess immutability separately |
 | GA-1 / GA-2: sparse exterior operations | `codes_of_grade` scans `4**n`; active-support Plücker candidates and contractions avoid that enumeration | Implement with explicit product conventions and independent equivalence checks |
 | GA-3: determinant-reference obstruction | Exact no-go holds; a positive expectation gap does not always exceed the numerical tolerance | Record the scoped proof in §3.6(iv); do not build transport before eligibility is established |
-| Research follow-ups | The exact CEO and MORE-ADAPT breadth comparisons are complete; a new certifying-basis allocation design remains open | Preserve the completed Phase 17 scope and Phase 15 boundary below |
+| Research follow-ups | The exact CEO and MORE-ADAPT breadth comparisons are complete; the certifying-basis allocation design (Q18-S3) ran once and reads `CLOSED` on its declared Krylov scope | Preserve the completed Phase 17 scope and the scoped Phase 15 boundary below |
 
 **First: restore maintenance gates.** Unchecked items below remain pending code
 work, even where this plan already corrects the prose.
@@ -572,7 +572,7 @@ configs and execution identities remain unchanged.
   generic circuit bounds remain separate ledgers. The record includes target
   misses; completion is not an accuracy or resource-advantage claim. The
   reproduction entry, Phase 17 ledger and source census include this evidence.
-- [ ] **Phase 15 — certifying basis then practical allocation.** Q18-S1's
+- [x] **Phase 15 — certifying basis then practical allocation.** Q18-S1's
   uniform-QWC `NONE` and Q18-S2's screened-prefix `UNREACHED` stand. Start with a
   separate, disclosed post-hoc declaration for a basis outside that screen
   (e.g. the ladder's fixed Krylov basis). Independently establish resolved
@@ -585,13 +585,29 @@ configs and execution identities remain unchanged.
   not all bases or allocation methods. `closed_negative` is an adjunct lifecycle
   value, not valid for a numbered phase: keep Phase 15's implementation fraction
   separate from a scoped scientific outcome and its decision record.
+  Q18-S3 (`PHASE15_CERTIFYING_KRYLOV_DECLARATION.md`) declares every prefix
+  `M = 1 … 9` of the committed Hubbard 2×2 Krylov sequence. It discloses the
+  post-hoc selection, the frozen first moments and both development systems.
+  `σ²` is established three ways: `SecondMomentBank`, an eighty-digit pencil and a
+  statevector Ritz state. A one-decade rank margin keeps the retained block from
+  moving, and both functionals are validated at eighty digits and by Q18-S1's
+  fixed ladder. The decision is Q18-S2's Neyman ratio. Only an `OPEN` verdict runs
+  the seeded pilot stage, whose pilot, floor, target, effective cost, Wald family
+  and validation thresholds are frozen with it and tested on the undeclared dimer.
+  Declaration `886afa7` is the record's execution commit; record-only commit
+  `7e26f70` passes the independent checker and commit-order gate. The verdict is
+  **`CLOSED`**: `M = 7` alone certifies with a rank-stable block, at Neyman ratios
+  1,699.7/1,699.5, so no allocator reaches the bar to first order and the pilot
+  stage did not run. Phase 15's fraction stays 50%: folded-spectrum roots,
+  measured convergence reporting and other bank scopes remain.
 
 The direct summary and documentation commands above were reproduced as failing
 on the reviewed checkout; the original phase-status gate passed despite the
 stale detailed Phase 17 row. These are baseline findings from the review.
 B1–B5's maintenance checks have shipped; GA-1/GA-2/B6 are implemented. GA-3's
 eligibility fixtures have shipped without a transport engine. Phase 17's
-breadth follow-up is complete; the Phase 15 allocation follow-up remains pending.
+breadth follow-up is complete. The Phase 15 allocation follow-up has run once
+and reads `CLOSED` on its declared Krylov scope.
 
 ## 3. Conceptual layer (geometric-algebra contract)
 
@@ -2638,6 +2654,85 @@ Whether `σ` is affordable on such a basis is unanswered. Answering it needs a n
 declaration. *Not claimed:* anything about other bases, groupings, pooled
 estimators, shared campaigns, finite-sample behaviour or other systems. Phase 15
 stays partial at 50%.
+
+**Q18-S3 ran once and reads `CLOSED`: the one certifying, rank-stable prefix of
+the ladder's Krylov sequence costs about 170 times the tenfold bar under any
+allocation, so the practical pilot stage did not run.** The declaration is
+`benchmarks/PHASE15_CERTIFYING_KRYLOV_DECLARATION.md`. It took the basis that
+Q18-S2's post-record check found, the committed Hubbard 2×2 sequence
+`{H^k|ψ⟩, k ≤ 8}`, and declared every prefix `M = 1 … 9` before any second moment
+on it existed. The selection is post hoc and disclosed, together with the frozen
+first moments and the two undeclared development systems. The run proceeds in
+order:
+
+1. **Certify.** `σ²` comes from `SecondMomentBank` through Hankel rows that equal
+   the bank's products to the bit, and twice more: by an eighty-digit pencil and
+   by a statevector Ritz state. A prefix certifies when that variance clears the
+   recorded resolution floor and `E + σ < E₁`.
+2. **Rank margin.** A prefix is priced only when the retained block cannot move:
+   a decade on both of `solve_projected`'s retention rules.
+3. **Validate.** Both functionals are checked at eighty digits and by Q18-S1's
+   fixed ladder.
+4. **Price.** Q18-S2's Neyman ratio decides on the certifying, rank-stable
+   prefixes.
+5. **Practical stage.** Only an `OPEN` verdict would run the frozen pilot
+   allocation: seeded replicates, pilot plug-in weights and variances, Q18-S1's
+   floor, effective cost, Wald intervals and validation thresholds.
+
+Declaration `886afa7` is the record's execution commit. The record
+(`benchmarks/reference_results/phase15_certifying_krylov.json`) was committed
+alone in `7e26f70`, under Python 3.12.3 and NumPy 2.5.2, in 30 s.
+
+| `M` | `E − E₀` (t) | `σ` (t) | `E + σ − E₁` (t) | smallest overlap eigenvalue | status | Neyman `N`, `qwc_groups` / `qwc_basis_cover` |
+|---|---|---|---|---|---|---|
+| 1–3 | 2.10–1.11 | 2.00–0.76 | +3.81 to +1.58 | 1 to `1.5e-3` | PROHIBITIVE (diagnostic) | 14.6/11.9, 18.8/24.8, 27.2/24.2 |
+| 4 | 0.669 | 1.130 | +1.502 | `2.5e-4` | AFFORDABLE (diagnostic) | 6.46/5.94 |
+| 5 | 0.281 | 0.910 | +0.894 | `1.1e-5` | AFFORDABLE (diagnostic) | 4.41/4.40 |
+| 6 | 0.137 | 0.604 | +0.445 | `5.6e-7` | PROHIBITIVE (diagnostic) | 54.5/47.1 |
+| 7 | 0.0068 | 0.114 | −0.175 | `7.1e-8` | **PROHIBITIVE (decision)** | **1,699.7/1,699.5** |
+| 8 | 0.0035 | 0.085 | −0.208 | `1.5e-10` | RANK_UNSTABLE | unpriced |
+| 9 | 0.0026 | 0.086 | −0.208 | `6.0e-12`, rank 8 of 9 | RANK_UNSTABLE | unpriced |
+
+Every priced prefix passes every deterministic check, and all three lineage ties
+hold. Those ties are Q18-S2's spectrum, Q18-S1's frozen bank priced again
+through Q18-S2's path, and the ladder row. On `M = 7` the eighty-digit and
+statevector routes reproduce `σ²` to `9.6e-8` and `4.9e-9` relative. The analytic
+functionals match the eighty-digit derivatives to `1.8e-8` of their norms, and
+Q18-S1's fixed ladder passes as well. As the first moments had already decided,
+the rank margin excludes `M = 8` and `9`. Both certify, but `M = 8`'s smallest
+overlap eigenvalue is 1.47 times the package's floor and `M = 9` drops a direction
+below it.
+
+The record supports three readings.
+
+- *The rise is the explicit `1/σ²`.* The per-shot ratio
+  `(Σ√v^U / Σ√v^SH)² = 4σ²N` is 79.6 at `M = 6` and 88.5 at `M = 7`. Meanwhile
+  `σ²` falls 28 times, so `N` rises 31 times. At `M = 7`'s per-shot ratio, `N ≤ 10`
+  would need `σ ≥ 1.49 t`, while certifying needs `σ < E₁ − E = 0.29 t`.
+- *Affordability and certification separate again.* As on Q18-S2's trajectories,
+  the only prefixes under the bar (`M = 4, 5`) have `σ ≥ 0.91 t` and intervals
+  that reach at least `0.89 t` past `E₁`.
+- *The verdict belongs to the span, not to the monomial basis.* Without
+  truncation, a fixed change of basis transforms the measured `(S, H, K)` by
+  congruence. That leaves the measured ground pair, and hence both functionals
+  and `N`, unchanged. A Lanczos-orthogonalized basis of the same span therefore
+  carries the same ratio while it keeps the whole block.
+
+*Consequence, as declared:* Phase 15's practical-allocation follow-up closes
+negative **on this declared scope only**: this system, these prefixes,
+single-assignment QWC and a matched standard error. No allocation, pilot-estimated
+or oracle, measures `σ` for ten times the energy's optimal cost there, to first
+order. The pilot stage it froze was exercised only on the undeclared dimer, so
+nothing is claimed about how that allocator behaves on this system.
+`check_phase15_certifying_krylov.py` restates every status, check, ratio and
+verdict, rebuilds every prefix, and runs in the structural CI matrix.
+
+*Not claimed:* other systems or spans, fully or block-commuting grouping, pooled
+or shared-shot estimators, any precision rule other than matched standard error,
+device time, or the rank-unstable prefixes. The outcome is a scoped scientific
+result recorded beside Phase 15's lifecycle. It is not a numbered-phase status.
+Phase 15 stays partial at 50%, because folded-spectrum roots, measured
+convergence reporting and banks outside the five remain.
 
 
 ### Phase 16 — time-evolved inputs, split by method
@@ -4792,6 +4887,13 @@ A-CASE's.
   it `certifying`. Other committed bases, such as the ladder's Krylov basis, lie
   outside the screen. Every priced ground-dominated prefix has Neyman ratios above 13, and
   every prefix with both ratios at or under ten has `σ ≥ 1.11 t`.
+  **Separate post-hoc Q18-S3:** `CLOSED`
+  (`benchmarks/reference_results/phase15_certifying_krylov.json`). On the
+  ladder's Krylov prefixes, `M = 7` alone certifies with a rank-stable block
+  (`σ = 0.114 t`, `E + σ − E₁ = −0.175 t`), and its Neyman ratios are
+  1,699.7/1,699.5. The falsifier holds there for every allocator to first order,
+  so the declared pilot stage did not run. The closure is scoped to this system,
+  this span and single-assignment QWC at matched precision.
 
 **Resource accounting (QR1–QR6).**
 
@@ -5027,10 +5129,10 @@ complete. The active-support blade check, convention-tested contractions and sha
 import cleanup (GA-1, GA-2, B6) are implemented. GA-3's executable fixtures now validate
 §3.6(iv)'s boundary without a determinant-reference transport engine. Phase 17's
 MORE-ADAPT breadth comparison is complete with a VALID twelve-cell record.
-The remaining research follow-up here is a separately declared Phase 15
-certifying-basis allocation experiment. Preserve the existing result/declaration
-history and all go/no-go decisions below. This pending task does not authorize
-another run of any frozen campaign or change phase fractions.
+The Phase 15 certifying-basis allocation follow-up has run once as Q18-S3 and reads
+`CLOSED` on its declared Krylov scope (item 19k). Preserve the existing
+result/declaration history and all go/no-go decisions below. That outcome
+authorizes no further run of any frozen campaign and changes no phase fraction.
 
 Track A must not wait for Tracks B or C. Within each track the order is dependency-forced;
 between tracks, R1 is cheap and its result can reorder Track B's protocol conclusions, so it
@@ -5506,6 +5608,15 @@ bought a duplicate record.
     is authorized on these prefixes. Certifying bases outside the screen exist:
     the ladder's Krylov basis has `σ = 0.086 t`. Pricing one needs a new
     declaration.
+19k. Phase 15's Q18-S3 certifying Krylov basis, then allocation — **executed
+    once, `CLOSED`.** The post-hoc declaration (`PHASE15_CERTIFYING_KRYLOV_DECLARATION.md`,
+    `886afa7`) took every prefix of the ladder's fixed Krylov sequence on Hubbard
+    2×2. It established `σ²` by three routes, admitted only rank-stable prefixes,
+    validated both functionals at eighty digits, and froze a seeded pilot-allocation
+    stage behind an `OPEN` oracle verdict. The record (`7e26f70`) finds one
+    certifying, rank-stable prefix, `M = 7`, with Neyman ratios near 1,700, so the
+    pilot stage did not run. The practical-allocation follow-up closes negative on
+    that scope only; Phase 15 stays partial at 50%.
 20. The dedicated MORE-ADAPT breadth comparison and exact CEO pool comparison
     are complete and read (§5, Phase 17). Mixed multi-root target outcomes remain
     explicit; no finite-shot or universal resource advantage follows.
