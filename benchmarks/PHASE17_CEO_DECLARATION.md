@@ -137,3 +137,16 @@ a blind preregistration. The frozen config discloses this explicitly.
 To inspect the original local execution in a clone with the base history:
 `git fetch benchmarks/migrations/phase17_ceo_local_history.bundle feat/phase17-breadth`.
 The original record binds the actual published source and its own record commit.
+
+
+## Post-review execution
+
+The active outcome-free declaration was committed in `58a7911`; actual clean
+execution source `5752cd1` follows it. Its single nine-arm campaign is retained
+in `reference_results/phase17_ceo_review.json`, committed alone in `b41d008`.
+It passes the stricter replay and lineage checks. No original config, trajectory,
+resource value or flag was replaced or re-stamped. REPRODUCING.md reports the
+corrected target prefixes and separate computed-call/derivative currencies.
+The observed H4 mixed prefix has 10 parameters and 123 computed calls versus
+QE's 9 parameters and 91 calls; its 8 versus 9 growth rounds is not a total-cost
+or cross-platform robustness claim.

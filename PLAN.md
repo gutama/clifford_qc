@@ -2573,35 +2573,53 @@ they constrain positioning but do not gate the QSCI hybrid experiment.
 **CEO comparison foundation.** `algorithms/exchange.py` implements complete
 spin-conserving generalized QE and OVP-CEO pools, with mixed-CEO promotion to
 independently parameterized same-support QEs. Independent occupation matrices
-validate signs, sector invariance, `T^3 = -T`, exact exponentials and gradients.
-The small-sector exact driver charges every full-pool screen and retains every
-optimizer energy/gradient call. The separate declaration
-`benchmarks/PHASE17_CEO_DECLARATION.md` discloses the bounded development tests;
-it is not called a blind preregistration. Its source/input/pool bindings freeze
-three eight-qubit FCIDUMPs, the three arms and a common 32-round budget before
-the full comparison. LiH is a reference-floor diagnostic. The result checker
-uses independent fermionic occupation action, pool coefficients and spectral propagation, sharing FCIDUMP text parsing, and reads target prefixes and resource currencies separately.
-Generic Pauli-ladder counts are upper bounds: enhanced CEO-ADAPT-VQE*, optimized
-CEO circuits, finite-shot measurement cost and hardware advantage are excluded.
-The frozen record (`benchmarks/reference_results/phase17_ceo.json`) contains all
-nine arms. The original local declaration/execution/result history is archived
-in the publication-replay bundle. The active record was reproduced from clean
-published source `a15611b` after declaration `6f573cb`, then committed alone in
-`0a9b706`, with every scientific/resource case field matching the local execution
-exactly. This is a disclosed deterministic publication replay, not an independent
-statistical replica or a blind preregistration. Every selection and optimizer call replays against
-independent occupation/spectral matrices. The original policy used floating-point maxima and a parent cutoff of 1e-12; it does not establish results for the corrected post-review policy in `phase17_ceo_review.json`. That separately declared campaign is pending execution. In the original observed record, H4 QE and OVP reach the target at
-round 9 with 9 parameters and 100 optimizer calls; mixed CEO reaches it at round
-8 with 11 parameters and 125 calls. BeH2 reaches it at round 2 with all three
-arms; LiH's reference already meets the target, so it is not a positive solver
-comparison. The generic Pauli-ladder bound for OVP is lower, but that is neither
-an optimized CEO circuit nor a measured device saving. Read the separate
-currencies in REPRODUCING.md rather than aggregating a winner. Target-prefix
-costs are retrospective, oracle-indexed diagnostics, not a shipped stopping
-policy. The original optimizer counts include one repeated final computation per round; its L2 resolution flags are stricter than SciPy max-abs `gtol` and do not identify termination messages. Every flag is retained and no global or
-local optimizer-convergence certificate is claimed.
+validate signs through eight qubits, sector invariance, `T^3 = -T`, exact
+exponentials and gradients. The bounded dense-sector driver shares per-case H,
+sector and spectrum, builds arm matrices lazily, charges full-pool screens and
+retains each computed optimizer call plus callback/cache indices.
 
-The dedicated MORE-ADAPT multi-root benchmark remains separate work.
+The original declaration and `benchmarks/reference_results/phase17_ceo.json`
+remain unchanged. Their local history is archived in the publication-replay
+bundle; actual published execution `a15611b` follows declaration `6f573cb`, and
+its result-only commit is `0a9b706`. Review identified floating-point tie choices,
+a parent cutoff of `1e-12`, repeated final callbacks and weaker provenance and
+convergence checks. That observed record is archived evidence for its original
+policy; its counts include repeated final computations and its resolution flags
+use L2, without identifying SciPy termination.
+
+**Post-review comparison.** The separately frozen `phase17_ceo_review.json`
+config discloses known original outcomes and corrects the policy before one new
+nine-arm campaign. Declaration `58a7911` strictly precedes actual execution
+`5752cd1`; result-only commit `b41d008` follows it. Selection takes the first
+pool member within `1e-10` of the maximum absolute derivative. Mixed promotion
+requires at least two parents above `1e-7` (ten times optimizer `gtol`); otherwise
+retain OVP. Identical parameter requests within each round are cached; computed
+energy/gradient calls and callback requests are separate. Resolution tests max
+absolute gradient against `gtol` and retains L2 separately.
+
+The stronger checker independently reconstructs fermionic occupation H, every
+pool coefficient, screening word counts and spectral propagation. FCIDUMP text
+parsing remains shared. A claimed gradient stop requires the additional final
+screen and a norm below threshold. Historical source bindings are checked at the
+recorded execution commit, allowing current core modules to evolve. Unit tests
+need no recorded Git history; dedicated gates explicitly mark exported or
+shallow provenance as unverified. Preserve execution ancestry when merging.
+
+In the corrected H4 record, QE and OVP reach the target at round 9 with 9
+parameters and 91 computed calls; mixed CEO reaches it at round 8 with 10
+parameters and 123 calls. BeH2 reaches it at round 2 with all arms, 2 parameters
+and 11 calls. LiH's reference already meets the target and is not a positive
+solver comparison. This is a post-review diagnostic, not blind preregistration,
+an independent statistical replica or a cross-platform robustness survey.
+Screening forms, computed calls, parameter derivatives, logical dense bytes and
+generic Pauli-ladder bounds remain separate currencies. The target prefixes are
+retrospective oracle-indexed diagnostics, not a stopping policy. Optimized CEO
+circuits, enhanced CEO-ADAPT-VQE*, finite-shot cost, hardware advantage and global
+optimizer guarantees are excluded. Read the separate ledgers in REPRODUCING.md.
+
+The dedicated MORE-ADAPT multi-root benchmark remains separate work. Shipping
+CEO closes half of the previously remaining quarter: Phase 17 is 87.5% complete
+(88% in rounded summary tables), with the final eighth reserved for MORE-ADAPT.
 
 ### Phase 18 — embedding boundary
 

@@ -251,13 +251,17 @@
         "benchmarks/run_phase17_ceo.py",
         "benchmarks/check_phase17_ceo.py",
         "benchmarks/reference_results/phase17_ceo.json",
-        "tests/test_phase17_ceo.py"
+        "tests/test_phase17_ceo.py",
+        "benchmarks/phase17_ceo_oracle.py",
+        "benchmarks/phase17_ceo_provenance.py",
+        "benchmarks/reference_results/phase17_ceo_review.json"
       ],
       "remaining": [
         "Dedicated MORE-ADAPT breadth benchmark"
       ],
       "decision_records": [
-        "benchmarks/reference_results/phase17_ceo.json"
+        "benchmarks/reference_results/phase17_ceo.json",
+        "benchmarks/reference_results/phase17_ceo_review.json"
       ],
       "progress_basis": "The CEO benchmark completes one of the two breadth deliverables that shared the previous remaining quarter. MORE-ADAPT retains the final eighth; 87.5% is rounded to 88% in summary tables."
     },
