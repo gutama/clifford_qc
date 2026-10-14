@@ -355,6 +355,7 @@ def test_operator_gate_refuses_before_consuming_the_claim(tmp_path, monkeypatch)
     monkeypatch.setattr(checker, "environment_problems", lambda *args: [])
     monkeypatch.setattr(checker, "dense_oracle", oracle)
     monkeypatch.setattr(producer, "execution_provenance", dict)
+    monkeypatch.setattr(producer, "static_problems", lambda *args: [])
     monkeypatch.setattr(producer, "claim_execution", lambda *args: pytest.fail("claim consumed"))
     with pytest.raises(ValueError, match="toy: operator reconstruction exceeds"):
         producer.execution_preflight()
@@ -388,16 +389,26 @@ def test_fatal_cli_failure_retains_consumed_claim(tmp_path, monkeypatch):
         producer.claim_execution(claim, p)
 
 
-def test_default_commands_never_evaluate_molecular_outcomes(tmp_path, monkeypatch):
+def test_default_commands_never_evaluate_molecular_outcomes(tmp_path, monkeypatch, frozen_phase19_checkout, capsys):
     def forbidden(*args, **kwargs):
         raise AssertionError("molecular state laws must not run during default preflight")
     monkeypatch.setattr(checker, "dense_oracle", forbidden)
     monkeypatch.setattr(producer, "run_bank", forbidden)
+    from functools import partial
+    from benchmarks.check_phase19_preregistration import static_problems as frozen_static
+    root = frozen_phase19_checkout
+    # Run the real live-source check on a pristine fixture, then inject drift.
+    monkeypatch.setattr(producer, "static_problems", partial(frozen_static, root=root))
+    monkeypatch.setattr(checker, "static_problems", partial(frozen_static, root=root))
     # Pin the record-absent state: once the campaign record lands, the default
     # checker command replays it by design.
     monkeypatch.setattr(checker, "RECORD", tmp_path / "absent.json")
     assert producer.main([]) == 0
     assert checker.main() == 0
+    path = root / "clifford_qc/multivector.py"
+    path.write_bytes(path.read_bytes() + b"# injected live kernel drift\n")
+    assert producer.main([]) == 1
+    assert "frozen file digest drifted: clifford_qc/multivector.py" in capsys.readouterr().err
 
 
 def test_checker_has_no_producer_import_or_calculation_call():
@@ -435,6 +446,7 @@ def test_dirty_execution_refused_before_sampling():
         return original(command, **kwargs)
     with pytest.MonkeyPatch.context() as patch:
         patch.setattr(subprocess, "run", git_run)
+        patch.setattr(producer, "static_problems", lambda *args: [])
         with pytest.raises(ValueError, match="clean committed tree"):
             producer.execution_preflight()
 
@@ -477,6 +489,12 @@ def test_execution_source_and_record_commit_order(tmp_path, monkeypatch):
     git("merge", "--no-ff", "declaration-branch", "-m", "merge declaration")
     merge = git("rev-parse", "HEAD")
     monkeypatch.setattr(checker, "MERGE", merge)
+    from benchmarks.archive_provenance import lineage_source_path
+    for row in config["lineage"]["files"]:
+        if row["path"] in structure.IMPLEMENTATIONS:
+            target = tmp_path / row["path"]
+            target.parent.mkdir(parents=True, exist_ok=True)
+            target.write_bytes(lineage_source_path(structure.ROOT, structure.RECORD_PATH, row).read_bytes())
     for relative in checker.SOURCES:
         source = tmp_path / relative
         source.write_text("# toy execution source\n")

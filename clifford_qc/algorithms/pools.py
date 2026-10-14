@@ -12,22 +12,11 @@ removes candidates whose scores are exactly zero (hypothesis H1).
 
 from __future__ import annotations
 
-from dataclasses import dataclass
 from itertools import combinations, product
 from typing import Iterable, Sequence
 
 from ..ir import PauliWord
-
-
-@dataclass(frozen=True)
-class PoolOperator:
-    label: str
-    word: PauliWord
-
-
-def is_odd_y(word: PauliWord) -> bool:
-    """True when the word contains an odd number of Y letters."""
-    return sum(1 for j in word.support() if word.letter(j) == "Y") % 2 == 1
+from ..pool_operator import PoolOperator, is_odd_y  # compatibility re-exports
 
 
 def odd_y_filter(pool: Iterable[PoolOperator]) -> list[PoolOperator]:

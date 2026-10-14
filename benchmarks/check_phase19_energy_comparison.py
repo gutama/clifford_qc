@@ -23,6 +23,7 @@ if str(ROOT) not in sys.path:  # pragma: no cover
     sys.path.insert(0, str(ROOT))
 
 from benchmarks import phase19_structure as structure
+from benchmarks.archive_provenance import commit_binding
 from benchmarks.check_phase19_preregistration import (
     EXPECTED_CONFIG_SHA256, _compare, load_config, read_json, static_problems,
     temporal_problems,
@@ -533,12 +534,10 @@ def provenance_problems(record, config, root=ROOT):
         if set(binding) != {"path", "sha256", "git_blob_sha1"}:
             problems.append("execution source binding keys differ")
             continue
-        raw = subprocess.run(["git", "show", f"{p['git_commit']}:{binding['path']}"],
-                             cwd=root, capture_output=True, check=True).stdout
-        if hashlib.sha256(raw).hexdigest() != binding["sha256"]:
+        actual = commit_binding(root, p["git_commit"], binding["path"])
+        if actual["sha256"] != binding["sha256"]:
             problems.append(f"execution source SHA-256 differs: {binding['path']}")
-        blob = git(root, "rev-parse", f"{p['git_commit']}:{binding['path']}")
-        if blob != binding["git_blob_sha1"]:
+        if actual["git_blob_sha1"] != binding["git_blob_sha1"]:
             problems.append(f"execution source drift: {binding['path']}")
         if binding["path"] == SOURCES[0] and structure.file_binding(binding["path"], root) != binding:
             problems.append(f"current producer differs from recorded execution: {binding['path']}")
@@ -599,7 +598,7 @@ def check_record(record, config, banks, cards, *, check_provenance=True):
 def main():
     try:
         config = load_config()
-        problems = static_problems(config)
+        problems = static_problems(config, historical_sources=RECORD.is_file())
         if problems:
             raise ValueError("; ".join(problems))
         if not RECORD.exists():

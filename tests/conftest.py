@@ -1,4 +1,8 @@
 import os
+from pathlib import Path
+import shutil
+
+import pytest
 
 from hypothesis import HealthCheck, settings
 
@@ -23,3 +27,29 @@ settings.register_profile("dev", max_examples=50)
 # explicit choice from the environment alone, and the guard's own tests take
 # the variable back off.
 os.environ.setdefault(ALLOW_MIGRATION_ENV, "1")
+
+
+@pytest.fixture
+def frozen_phase19_checkout(tmp_path):
+    """A pristine frozen declaration tree, independent of today's live kernel."""
+    from benchmarks import check_phase19_preregistration as gate, phase19_structure as structure
+    from benchmarks.archive_provenance import MANIFEST, load_archive_manifest, lineage_source_path
+    root = tmp_path / "frozen"
+    root.mkdir()
+    config = gate.load_config()
+    manifest = load_archive_manifest(structure.ROOT)
+    for row in config["lineage"]["files"] + config["bank_manifests"]:
+        relative = row["path"]
+        source = (lineage_source_path(structure.ROOT, structure.RECORD_PATH, row, manifest=manifest)
+                  if relative in structure.IMPLEMENTATIONS else structure.ROOT / relative)
+        target = root / relative
+        target.parent.mkdir(parents=True, exist_ok=True)
+        shutil.copyfile(source, target)
+    paths = {MANIFEST, structure.CONFIG_PATH, structure.RECORD_PATH}
+    paths.update(item["snapshot"] for item in manifest["records"][structure.RECORD_PATH]["lineage_sources"].values())
+    paths.update(item["snapshot"] for item in manifest["records"][structure.RECORD_PATH]["sources"].values())
+    for relative in paths:
+        target = root / relative
+        target.parent.mkdir(parents=True, exist_ok=True)
+        shutil.copyfile(structure.ROOT / relative, target)
+    return root

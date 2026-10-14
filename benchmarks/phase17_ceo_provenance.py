@@ -1,10 +1,10 @@
 """Historical source bindings and explicit Git lineage evidence for CEO records."""
-import hashlib
 import json
 import subprocess
 
 from benchmarks.check_phase15_preregistration import _first_commit, _last_commit, _shallow_boundary
 from benchmarks.phase17_ceo_design import digest
+from benchmarks.archive_provenance import commit_binding, HistoryError
 
 
 def _git(root, *args):
@@ -45,8 +45,7 @@ def history_problems(config, record, root, config_path, record_path, notes):
             problems.append('execution commit lacks frozen declaration')
         bindings = config['source_bindings'] | record['execution_source_bindings']
         for path, expected in bindings.items():
-            content = _git(root, 'show', f'{source}:{path}')
-            if content.returncode or hashlib.sha256(content.stdout).hexdigest() != expected:
+            if commit_binding(root, source, path)['sha256'] != expected:
                 problems.append('historical source binding mismatch: '+path)
         if record['provenance']['git_dirty']:
             problems.append('dirty execution')
@@ -58,3 +57,5 @@ def history_problems(config, record, root, config_path, record_path, notes):
         return []
     except subprocess.SubprocessError as error:
         return [f'Git provenance audit failed: {type(error).__name__}']
+    except HistoryError as error:
+        return [f'Git provenance audit failed: {error}']

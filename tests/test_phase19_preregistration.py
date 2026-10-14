@@ -38,7 +38,7 @@ def test_committed_declaration_passes_without_sampling_or_state_outcomes(config,
                           (cost, ("cost_schedule", "setting_fidelity"))):
         for name in names:
             monkeypatch.setattr(module, name, forbidden)
-    assert gate.static_problems(config) == []
+    assert gate.static_problems(config, historical_sources=True) == []
 
 
 @pytest.mark.parametrize("bank_id,terms,qwc,cliques", [
@@ -214,6 +214,12 @@ def history(tmp_path, config):
     git("merge", "--no-ff", "declaration", "-m", "merge declaration")
     merge = git("rev-parse", "HEAD")
     (root / "implementation").write_text("reviewed toy implementation")
+    from benchmarks.archive_provenance import lineage_source_path
+    for row in config["lineage"]["files"]:
+        if row["path"] in structure.IMPLEMENTATIONS:
+            target = root / row["path"]
+            target.parent.mkdir(parents=True, exist_ok=True)
+            target.write_bytes(lineage_source_path(structure.ROOT, structure.RECORD_PATH, row).read_bytes())
     execution = commit("execution source")
     record = {"declaration_sha256": gate.EXPECTED_CONFIG_SHA256,
               "provenance": {"git_commit": execution, "preregistration_merge_commit": merge}}
@@ -283,6 +289,69 @@ def test_main_declaration_only_does_not_inspect_history(config, monkeypatch, tmp
     path = write(tmp_path, config)
     monkeypatch.setattr(gate, "ROOT", tmp_path)
     monkeypatch.setattr(gate, "CONFIG", path)
-    monkeypatch.setattr(gate, "static_problems", lambda *args: [])
+    monkeypatch.setattr(gate, "static_problems", lambda *args, **kwargs: [])
     monkeypatch.setattr(gate, "history_kind", lambda *args, **kwargs: pytest.fail("no record needs no history"))
     assert gate.main([]) == 0
+
+
+def test_historical_sources_preserve_declaration_without_licensing_live_drift(config, frozen_phase19_checkout):
+    root = frozen_phase19_checkout
+    assert gate.static_problems(config, root) == []
+    assert gate.static_problems(config, root, historical_sources=True) == []
+    path = root / "clifford_qc/multivector.py"
+    path.write_bytes(path.read_bytes() + b"# injected live drift\n")
+    assert any("multivector.py" in error for error in gate.static_problems(config, root))
+    assert gate.static_problems(config, root, historical_sources=True) == []
+
+
+def test_live_rebuild_engine_stays_pinned_with_historical_sources(config, frozen_phase19_checkout):
+    root = frozen_phase19_checkout
+    path = root / "benchmarks/phase19_structure.py"
+    path.write_bytes(path.read_bytes() + b"# injected engine drift\n")
+    assert any("phase19_structure.py" in error
+               for error in gate.static_problems(config, root, historical_sources=True))
+
+
+@pytest.mark.parametrize("manifest", [[], None, {"schema": "clifford_qc.archive_bindings.v1", "records": []}])
+def test_malformed_manifest_is_reported_without_traceback(config, frozen_phase19_checkout, manifest, monkeypatch, capsys):
+    from benchmarks.archive_provenance import MANIFEST
+    root = frozen_phase19_checkout
+    (root / MANIFEST).write_text(json.dumps(manifest))
+    monkeypatch.setattr(gate, "ROOT", root)
+    monkeypatch.setattr(gate, "CONFIG", root / structure.CONFIG_PATH)
+    assert gate.main(["--archive"]) == 1
+    errors = capsys.readouterr().err
+    assert "frozen source binding failed" in errors
+    assert "Traceback" not in errors
+
+
+def test_archive_gate_reads_the_manifest_once(frozen_phase19_checkout, monkeypatch):
+    from benchmarks import archive_provenance
+    root = frozen_phase19_checkout
+    original = archive_provenance.read_json
+    calls = []
+    def read(path):
+        calls.append(path)
+        return original(path)
+    monkeypatch.setattr(archive_provenance, "read_json", read)
+    monkeypatch.setattr(gate, "ROOT", root)
+    monkeypatch.setattr(gate, "CONFIG", root / structure.CONFIG_PATH)
+    assert gate.main(["--archive"]) == 0
+    assert len(calls) == 1
+
+
+def test_packaged_lineage_tampering_is_rejected(config, tmp_path):
+    from benchmarks.archive_provenance import lineage_source_path
+    from benchmarks.archive_provenance import MANIFEST
+    import shutil
+    manifest = tmp_path / MANIFEST
+    manifest.parent.mkdir(parents=True)
+    shutil.copyfile(structure.ROOT / MANIFEST, manifest)
+    row = next(row for row in config["lineage"]["files"] if row["path"] == "clifford_qc/multivector.py")
+    original = lineage_source_path(structure.ROOT, structure.RECORD_PATH, row)
+    relative = original.relative_to(structure.ROOT)
+    target = tmp_path / relative
+    target.parent.mkdir(parents=True)
+    target.write_bytes(original.read_bytes() + b"# tampered\n")
+    with pytest.raises(ValueError, match="frozen execution source digest differs"):
+        lineage_source_path(tmp_path, structure.RECORD_PATH, row)

@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import math
 import sys
+from itertools import combinations
 from functools import lru_cache
 from numbers import Number
 from typing import Dict, Iterable
@@ -32,14 +33,18 @@ _word_mul_ref = word_mul_reference
 _REV_SIGN = (1, 1, -1, -1)
 
 
-@lru_cache(maxsize=4096)
 def codes_of_grade(n: int, r: int) -> tuple[int, ...]:
     """Pauli codes whose Clifford blade has grade ``r`` -- the basis r-blades.
 
-    ``C(2n, r)`` of them, by the code/mask bijection. Cached because the
-    simplicity test sweeps a whole grade per call.
+    ``C(2n, r)`` of them, by the code/mask bijection. This explicit exhaustive
+    helper is retained without a cache for compatibility; sparse operations
+    do not call it. Its returned tuple can still be large.
     """
-    return tuple(c for c in range(4 ** n) if blade_mask(n, c).bit_count() == r)
+    validate_n(n)
+    if not isinstance(r, int) or not 0 <= r <= 2 * n:
+        return ()
+    return tuple(sorted(mask_to_code(n, sum(1 << bit for bit in bits))
+                        for bits in combinations(range(2 * n), r)))
 
 
 @lru_cache(maxsize=1_000_000)
@@ -72,6 +77,50 @@ def blade_mask(n: int, code: int) -> int:
             mask |= 1 << (2 * j + 1)
         above_generator_count += 1 if letter in (1, 2) else (2 if letter == 3 else 0)
     return mask
+
+
+def mask_to_code(n: int, mask: int) -> int:
+    """Pauli word of a JW generator subset, without its ordered-product phase.
+
+    Inverse of :func:`blade_mask`. The canonical Majorana product can carry
+    a factor of +/-1 or +/-i; use ``blade_from_mask`` when that phase matters.
+    Uses one pass over n qubits and a constant number of packed integers,
+    with no whole-grade cache. Integer storage still grows with bit width.
+    """
+    validate_n(n)
+    if not isinstance(mask, int) or not 0 <= mask < (1 << (2 * n)):
+        raise ValueError(f"mask must be in [0, 2**(2n)), got {mask!r}")
+    code, parity = 0, 0
+    for j in range(n - 1, -1, -1):
+        generators = (mask >> (2 * j)) & 3
+        code |= (generators ^ (3 if parity else 0)) << (2 * j)
+        parity ^= generators.bit_count() & 1
+    return code
+
+
+def _blade_contraction_masks(masks: Iterable[int]) -> set[int]:
+    """Only basis contractions that can leave a vector on active support."""
+    candidates = set()
+    for mask in masks:
+        remaining = mask
+        while remaining:
+            bit = remaining & -remaining
+            candidates.add(mask ^ bit)
+            remaining ^= bit
+    return candidates
+
+
+def _blade_contraction_buckets(terms, masks):
+    """Register each active term in exactly its k one-bit-deletion buckets."""
+    buckets = {}
+    for code, coefficient in terms.items():
+        mask = masks[code]
+        remaining = mask
+        while remaining:
+            bit = remaining & -remaining
+            buckets.setdefault(mask ^ bit, []).append((code, coefficient, bit))
+            remaining ^= bit
+    return buckets
 
 
 class MV:
@@ -329,6 +378,10 @@ class MV:
         n = self.n
         masks_a = {a: blade_mask(n, a) for a in self.terms}
         masks_b = {b: blade_mask(n, b) for b in other.terms}
+        return self._wedge_with_masks(other, masks_a, masks_b)
+
+    def _wedge_with_masks(self, other, masks_a, masks_b):
+        n = self.n
         out: dict[int, complex] = {}
         for a, ca in self.terms.items():
             ma = masks_a[a]
@@ -340,6 +393,36 @@ class MV:
         return MV(n, out)
 
     __xor__ = wedge
+
+    def _contract(self, other, *, left: bool) -> "MV":
+        other = self._coerce(other)
+        masks_a = {a: blade_mask(self.n, a) for a in self.terms}
+        masks_b = {b: blade_mask(self.n, b) for b in other.terms}
+        out: dict[int, complex] = {}
+        for a, ca in self.terms.items():
+            ma = masks_a[a]
+            for b, cb in other.terms.items():
+                mb = masks_b[b]
+                smaller, larger = (ma, mb) if left else (mb, ma)
+                if smaller & larger != smaller:
+                    continue
+                sign = _REV_SIGN[smaller.bit_count() & 3]
+                ph, code = _word_mul_unchecked(self.n, a, b)
+                out[code] = out.get(code, 0j) + sign * ca * cb * ph
+        return MV(self.n, out)
+
+    def lcontract(self, other) -> "MV":
+        """Bilinear left contraction: <reverse(A_r) B_s>_(s-r), r <= s.
+
+        Reversion does not conjugate complex coefficients. Scalars act by
+        multiplication on the left; a positive grade cannot contract a scalar.
+        The fixed JW frame and constructor pruning tolerance apply as in wedge.
+        """
+        return self._contract(other, left=True)
+
+    def rcontract(self, other) -> "MV":
+        """Bilinear right contraction: <A_r reverse(B_s)>_(r-s), r >= s."""
+        return self._contract(other, left=False)
 
     def scalar_product(self, other) -> complex:
         """GA scalar product ``<A ~B>_0`` -- the k-vector dot product.
@@ -465,18 +548,30 @@ class MV:
         """
         if self.is_zero(tol):
             return True
-        gs = self.grades()
+        masks = {code: blade_mask(self.n, code) for code in self.terms}
+        gs = {mask.bit_count() for mask in masks.values()}
         if len(gs) > 1:
             return False
         k = next(iter(gs))
         if k <= 1 or k >= 2 * self.n - 1:
             return True
-        # Any nonzero multiple of the basis blade works: the test is
-        # scale-invariant in beta, so the stored Pauli word (which equals the
-        # blade up to a phase) can stand in for it directly.
-        for code in codes_of_grade(self.n, k - 1):
-            v = (MV(self.n, {code: 1.0}) * self).grade(1)
-            if not v.wedge(self).is_zero(tol):
+        # A basis (k-1)-mask contracts to a vector only if it is a subset
+        # of an active k-mask: all others vanish identically. Deleting one
+        # bit yields at most k*t candidates, without enumerating a whole grade.
+        # A Pauli representative differs from the ordered basis blade by a
+        # unit phase; its fixed-grade reversion sign also leaves this zero test
+        # and its absolute tolerance unchanged.
+        buckets = _blade_contraction_buckets(self.terms, masks)
+        sign = _REV_SIGN[(k - 1) & 3]
+        for mask, entries in sorted(buckets.items()):
+            beta = mask_to_code(self.n, mask)
+            terms, vector_masks = {}, {}
+            for code, coefficient, missing_bit in entries:
+                phase, product = _word_mul_unchecked(self.n, beta, code)
+                terms[product] = terms.get(product, 0j) + sign * coefficient * phase
+                vector_masks[product] = missing_bit
+            v = MV(self.n, terms)
+            if not v._wedge_with_masks(self, vector_masks, masks).is_zero(tol):
                 return False
         return True
 

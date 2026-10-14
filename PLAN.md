@@ -481,7 +481,7 @@ work, even where this plan already corrects the prose.
 **Second: sparse GA kernel and architecture.** These are maintenance extensions
 to Phase 0's API, not a new solver or an established quantum resource advantage.
 
-- [ ] **GA-1 — active-support blade simplicity.** Implement the inverse
+- [x] **GA-1 — active-support blade simplicity.** Implement the inverse
   `mask_to_code(n, mask)` for the JW generator-subset map with domain validation
   and round trips. For a homogeneous grade-`k` multivector with `t` stored terms,
   enumerate only `(k-1)`-masks obtained by deleting one generator from a support
@@ -494,7 +494,7 @@ to Phase 0's API, not a new solver or an established quantum resource advantage.
   including odd grades. An `n=12` sparse regression must demonstrate that neither
   `range(4**n)` nor a whole-grade cache is built. Measure runtime/memory on named
   fixtures; no sub-millisecond CI assertion or unmeasured speedup is promised.
-- [ ] **GA-2 — named left/right contractions.** Fix the convention in
+- [x] **GA-2 — named left/right contractions.** Fix the convention in
   `CONVENTIONS.md` before adding `lcontract` / `rcontract` (with `<<` / `>>`
   aliases only if consistent with the public API). The proposed convention is
   `A_r lcontract B_s = <reverse(A_r) B_s>_(s-r)` for `r <= s`, and
@@ -505,7 +505,7 @@ to Phase 0's API, not a new solver or an established quantum resource advantage.
   the left contraction in `is_blade` only after showing its Plücker decisions
   agree with the old basis-contraction test; the reversion factor is harmless
   for each fixed-grade basis candidate, not interchangeable in every API use.
-- [ ] **B6 — downward import-time dependencies.** Choose a low-level home for
+- [x] **B6 — downward import-time dependencies.** Choose a low-level home for
   `PoolOperator` / `is_odd_y` after checking the import graph and re-export old
   names from `algorithms/pools.py`. `pauli_structure.py` currently imports
   `ir.PauliSum`; placement there requires a layer decision, not an assumed kernel
@@ -515,6 +515,22 @@ to Phase 0's API, not a new solver or an established quantum resource advantage.
   Update architecture layer declarations, figures, tables and prose together.
   Any change to `PauliSum.terms` mutability needs a separate compatibility audit;
   it is not bundled into this refactor by default.
+
+Implemented GA-1/GA-2 in `multivector.py` with exhaustive small-algebra, complex
+minor-coordinate and `n=12` support regressions. `pool_operator.py` is the shared
+Program IR home for B6, with compatibility re-exports and isolated import/pool
+checks. The named classical kernel profile and its audit record active-mask
+bounds, runtime and Python allocation peaks; no timing threshold is asserted.
+Review hardening buckets each support term into its one-bit deletion candidates,
+reuses decoded masks during wedges, and retains an uncached explicit grade helper.
+The named reversion-based contractions omit shift aliases. Profile v2 observes
+actual generated/visited masks, requires a clean execution commit and verifies
+historical source bindings; reproduction docs refer directly to the record.
+Phase 19 verifies packaged frozen implementation sources after its record exists,
+while the live structural rebuild engine and the original producer still require
+live frozen bindings. The producer preflight refusal on a maintained tree is
+documented and tested with an injected temporary drift. Original records,
+configs and execution identities remain unchanged.
 
 **Third: bounded research follow-ups.**
 
@@ -552,8 +568,8 @@ to Phase 0's API, not a new solver or an established quantum resource advantage.
 The direct summary and documentation commands above were reproduced as failing
 on the reviewed checkout; the original phase-status gate passed despite the
 stale detailed Phase 17 row. These are baseline findings from the review.
-B1–B5's maintenance checks have since shipped. The unchecked kernel and research
-follow-ups remain pending.
+B1–B5's maintenance checks have shipped; GA-1/GA-2/B6 are implemented.
+The unchecked research follow-ups remain pending.
 
 ## 3. Conceptual layer (geometric-algebra contract)
 
@@ -4939,8 +4955,8 @@ covariance-aware allocation — all already reported in P2 (§1.2(1)–(2)).
 ## 13. Execution order
 
 **Reviewed follow-up priority (2026-10-14).** §2.6's maintenance gates B1–B5 are
-complete. Next implement the active-support blade check and convention-tested contractions,
-followed by the import-graph cleanup. Validate §3.6(iv)'s boundary without
+complete. The active-support blade check, convention-tested contractions and shared-pool
+import cleanup (GA-1, GA-2, B6) are implemented. Next validate §3.6(iv)'s boundary without
 building a determinant-reference transport engine. The remaining research
 deliverables are a separately declared Phase 15 certifying-basis allocation
 experiment and Phase 17's MORE-ADAPT breadth comparison. Preserve the existing

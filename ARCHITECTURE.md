@@ -65,7 +65,7 @@ providing another runtime implementation.
 | Layer | Main locations | Responsibility |
 |---|---|---|
 | Algebra | `multivector.py`, `pauli_kernel.py`, `pauli.py`, `clifford.py`, `fermion.py`, `gates.py`, `states.py`, `channels.py` | Sparse operators, products, states, evolution, and fermionic conventions |
-| Program representation | `ir.py`, `qasm3.py`, `fermion_mapping.py` | Pauli sums, rotor programs, parameters, serialization, export, and encodings |
+| Program representation | `ir.py`, `qasm3.py`, `fermion_mapping.py`, `pool_operator.py` | Pauli sums, shared named candidates, rotor programs, parameters, serialization, export, and encodings |
 | Models | `models/` | Hamiltonians, reference programs, sector metadata, orbital bases, and observables |
 | Execution | `backends/`, `dense_reference.py`, `sparse.py`, `pauli_action.py` | Exact, sampled, stabilizer, dense, sparse, and sector calculations |
 | Measurement | `measurement/` | Grouping, readout compilation, caches, functionals, covariance, allocation, confidence, and device cost |
@@ -87,6 +87,21 @@ copied into this guide, so adding a module does not leave stale size claims.
 Each qubit uses two bits: `0=I`, `1=X`, `2=Y`, `3=Z`. `PauliSum` is the public
 Hamiltonian/observable container; `to_mv()` and `from_mv()` change containers
 without changing the Pauli basis or operator semantics.
+
+The fixed JW frame supplies sparse exterior products and the named bilinear
+named reversion-based `lcontract` / `rcontract` contractions, including scalar operands.
+`mask_to_code` inverts the generator-subset map without reconstructing an
+ordered blade's phase. `is_blade` tests the full Plücker condition using at most
+`k*t` active contraction masks at grade `k` with `t` stored terms. Subsequent
+contractions and wedges can grow support; this bound is neither a total-runtime
+bound nor a quantum resource saving. See [CONVENTIONS.md](CONVENTIONS.md).
+
+`pool_operator.py` holds `PoolOperator` and `is_odd_y` for model builders and
+algorithms. It belongs to Program IR because it imports `PauliWord`; it is not
+a representation-only kernel module. `algorithms.pools` re-exports the same
+objects, preserving existing types, pool ordering and old pickle lookup paths.
+Chemistry model imports now point downward to that shared IR module. Deferred
+chemistry calls from subspace generators remain runtime dependencies.
 
 `Program` holds named Clifford gates, Pauli rotors, parameters, and measurement
 tasks. Its operations have exact `MV` semantics. OpenQASM is an export pass;

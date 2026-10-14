@@ -37,6 +37,8 @@ jobs:
     timeout-minutes: 30
     steps:
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0  # profile/source audits bind historical execution commits
       - uses: ./.github/actions/record-environment
         with:
           reference-record: protocol_cost.json
@@ -59,6 +61,9 @@ jobs:
       - name: evidence declarations
         if: ${{ !cancelled() }}
         run: python benchmarks/check_evidence.py
+      - name: sparse GA kernel profile
+        if: ${{ !cancelled() }}
+        run: python benchmarks/check_sparse_ga_kernel.py
       - name: molecular records
         if: ${{ !cancelled() }}
         run: python benchmarks/check_molecular.py
