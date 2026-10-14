@@ -110,12 +110,12 @@ Status at a glance:
 | Phases 0--14 | complete | 15 / 15 |
 | Phase 15: Second-moment bank | partial | 50% |
 | Phase 16: Time-evolved inputs | partial | 50% |
-| Phase 17: Mapping validation and breadth | partial | 88% |
+| Phase 17: Mapping validation and breadth | complete | 100% |
 | Phase 18: Embedding boundary | complete | 100% |
 | Phase 19: Anticommuting-clique partitioning | complete | 100% |
 
-Strict complete-phase score: **17 / 20 = 85.00%**.
-Progress-weighted score: **18.88 / 20 = 94.38%**.
+Strict complete-phase score: **18 / 20 = 90.00%**.
+Progress-weighted score: **19.00 / 20 = 95.00%**.
 Retired and conditional adjunct phases are tracked separately and do not change this denominator. Source: `PHASE_STATUS.json`; validate with `python benchmarks/check_phase_status.py`.
 <!-- PHASE-STATUS-SUMMARY:END -->
 
@@ -136,7 +136,7 @@ conditional phases.
 | 14 | fully commuting grouping | **done on the frozen BeH₂/JW comparison** — the public compiled-plan API, exact joint sampler, preregistered finite-sample record, covariance audit, and device-card costing ship; Q9 is positive within the declared one-bank oracle boundary |
 | 15 | second-moment bank | **partially implemented (50%)**; the H-squared preflight reads `FULL` (Q16), and `SecondMomentBank` ships with exact second moments and true Ritz residual norms validated on all five licensed banks. Opt-in exact convergence reporting ships at adaptive termination, with numerical resolution and separate ground-state evidence. Q17's `CONDITIONAL` permits the shipped three-prefix extrapolation diagnostic, with improvement evidence confined to the frozen H₄ and H₂O bases. Q18's predecessor remains `INVALID`. Its separately declared Q18-S1 successor reports post-hoc `NONE` for uniform QWC on the five banks after all derivative checks pass. Q18-S2 reads `UNREACHED`: no prefix with a resolved variance on the two committed Hubbard 2×2 A-CASE trajectories that extend the frozen bank certifies the ground state, so no pilot allocation experiment is authorized on those prefixes. The exact final `acase_level4` prefix (`M = 26`) has `E + σ < E₁` for any `σ` below the resolution floor, but is unresolved, unpriced and not `certifying` in the record. The ladder's fixed Krylov basis, outside the screen, certifies too. Practical nonuniform allocation on a certifying basis, finite-shot reporting, folded-spectrum roots and banks outside the five remain |
 | 16 | time-evolved inputs | **partially implemented (50%)**; the 16A QSCI time-evolved input ships in `subspace/time_evolution.py` (exact matrix-free propagation as an `oracle` input, a validated Trotter circuit as an `implementable` one, and pooled multi-time sampling). Its decision comparison, Q15, ran once and reads `NO_GO`: iterated selected CI of the same size matches or beats it on both required instances. No circuit-native/truncated A-CASE real-time family ships. 16B's three preregistered decision experiments have run — v1 `CONDITIONAL`, v2 `GO` under per-word pricing, v3 `CONDITIONAL` once the incumbent is priced with its own grouping — and the programme ends there: the real-time backend is **not authorized** (§5, Phase 16) |
-| 17 | mapping validation and breadth | **partially implemented (87.5%; rounded to 88% above)**; the JW/BK/parity transformation, invariance gates, and mapping-axis records ship through R2, and the exact QE/OVP/mixed-CEO pool comparison now ships with independently replayed trajectories; the dedicated MORE-ADAPT breadth benchmark remains open |
+| 17 | mapping validation and breadth | **complete (100%)**; mapping invariance and exact CEO comparisons ship, and the dedicated twelve-cell MORE-ADAPT/native multi-root A-CASE comparison has a VALID independently replayed record; mixed target outcomes limit the scientific claim (§5, Phase 17) |
 | 18 | embedding boundary | **done**; the versioned effective-Hamiltonian schema ships in `models/effective.py`, and the common fragment-solver callback returning energy and one- and two-particle density matrices ships in `subspace/fragment.py`, implemented by QSCI, selected CI, the hybrid, and a sector-FCI reference. The embedding loop itself stays outside the package |
 | 19 | anticommuting-clique (spin-factor) partitioning | **complete (100%)**; the fixed Hartree–Fock energy comparison ran once and is recorded VALID, with independent sampled-result checking. Its instance/card outcomes are in §5. Lever 2 remains outside the numbered deliverables and unbuilt; exact reference-preserving projection is ruled out for genuine multi-word cliques on computational determinants (§3.6(iv)) |
 | G1 | GA structural preconditioner: Majorana pool and filters A–E | **done**; both gates pass and QG1's falsifier does not fire, but E's content is pool-dependent — `522` of `549` removed on the §3.5 Majorana pool, `0` on the excitation pool the mapping records use |
@@ -408,7 +408,7 @@ phase and change no implementation fraction or measured verdict.
 | B6: architecture/API | Chemistry imports pool definitions from algorithms; mutable `PauliSum.terms` is an API design question, not by itself a correctness defect | Remove the import-time edge with compatibility; assess immutability separately |
 | GA-1 / GA-2: sparse exterior operations | `codes_of_grade` scans `4**n`; active-support Plücker candidates and contractions avoid that enumeration | Implement with explicit product conventions and independent equivalence checks |
 | GA-3: determinant-reference obstruction | Exact no-go holds; a positive expectation gap does not always exceed the numerical tolerance | Record the scoped proof in §3.6(iv); do not build transport before eligibility is established |
-| Research follow-ups | The exact CEO comparison is complete; MORE-ADAPT and a new certifying-basis allocation design remain open | Preserve Phase 17 and Phase 15 boundaries below |
+| Research follow-ups | The exact CEO and MORE-ADAPT breadth comparisons are complete; a new certifying-basis allocation design remains open | Preserve the completed Phase 17 scope and Phase 15 boundary below |
 
 **First: restore maintenance gates.** Unchecked items below remain pending code
 work, even where this plan already corrects the prose.
@@ -563,15 +563,15 @@ configs and execution identities remain unchanged.
   transport. In the clique's frame, the `m = 4` Givens products are double
   rotations (`rank(R - I) = 4`). One word grows to 21 Pauli words under the six
   rotations of the `n = 3` frame, matched by a dense oracle.
-- [ ] **Phase 17 — MORE-ADAPT breadth only.** PR #131 already supplies the QE,
-  OVP and mixed-CEO comparisons, records, independent replay and ledger evidence.
-  Retain its 87.5% implementation fraction until the dedicated MORE-ADAPT
-  deliverable ships. Define a result-free comparison with matched instances,
-  references, targets and operator/parameter budgets, charging full screening,
-  optimizer work and circuit resources separately. Declare evidence and stopping
-  rules, run once under the licensed environment, and add the independent
-  checker, reproduction entry, record and refreshed census. Do not turn the CEO
-  simulation into a finite-shot or optimized-circuit claim.
+- [x] **Phase 17 — MORE-ADAPT breadth only.** The dedicated twelve-cell
+  comparison now ships in addition to PR #131's QE, OVP and mixed-CEO work.
+  Declaration `5977767` precedes clean execution source `4b3ca49`; record-only
+  commit `eb183c1` passes independent scientific and history gates. Matched
+  fixtures, reference spans, targets and addition/angle caps do not equate the
+  variational manifolds. Full screening, optimizer work, matrix solves and
+  generic circuit bounds remain separate ledgers. The record includes target
+  misses; completion is not an accuracy or resource-advantage claim. The
+  reproduction entry, Phase 17 ledger and source census include this evidence.
 - [ ] **Phase 15 — certifying basis then practical allocation.** Q18-S1's
   uniform-QWC `NONE` and Q18-S2's screened-prefix `UNREACHED` stand. Start with a
   separate, disclosed post-hoc declaration for a basis outside that screen
@@ -590,8 +590,8 @@ The direct summary and documentation commands above were reproduced as failing
 on the reviewed checkout; the original phase-status gate passed despite the
 stale detailed Phase 17 row. These are baseline findings from the review.
 B1–B5's maintenance checks have shipped; GA-1/GA-2/B6 are implemented. GA-3's
-eligibility fixtures have shipped without a transport engine. The unchecked
-Phase 17 and Phase 15 follow-ups remain pending.
+eligibility fixtures have shipped without a transport engine. Phase 17's
+breadth follow-up is complete; the Phase 15 allocation follow-up remains pending.
 
 ## 3. Conceptual layer (geometric-algebra contract)
 
@@ -2827,8 +2827,8 @@ invariant across the linear encoding family (§6.2), so the invariance is a chec
 rather than a measurement. The executable form of this phase is R2 (§5, Phases
 R1–R4). The CEO pool/comparison implementation and a disclosed outcome-free declaration now ship.
 The frozen exact comparison and its publication replay both pass independent trace verification.
-A dedicated MORE-ADAPT benchmark is a follow-up after Track A;
-they constrain positioning but do not gate the QSCI hybrid experiment.
+The dedicated MORE-ADAPT breadth comparison also ships with independent replay.
+These comparisons constrain positioning but do not gate the QSCI hybrid experiment.
 
 **CEO comparison foundation.** `algorithms/exchange.py` implements complete
 spin-conserving generalized QE and OVP-CEO pools, with mixed-CEO promotion to
@@ -2877,9 +2877,45 @@ retrospective oracle-indexed diagnostics, not a stopping policy. Optimized CEO
 circuits, enhanced CEO-ADAPT-VQE*, finite-shot cost, hardware advantage and global
 optimizer guarantees are excluded. Read the separate ledgers in REPRODUCING.md.
 
-The dedicated MORE-ADAPT multi-root benchmark remains separate work. Shipping
-CEO closes half of the previously remaining quarter: Phase 17 is 87.5% complete
-(88% in rounded summary tables), with the final eighth reserved for MORE-ADAPT.
+**Completed MORE-ADAPT breadth.** The separately frozen comparison uses a
+uniform-weight shared-QE-unitary MORE-ADAPT variant and unchanged native
+`run_acase(roots=r, aggregation='mean')`. The eight-qubit H4, BeH2 and LiH
+fixtures each have a 36-dimensional N/Sz sector. Two/three HF/frontier-single
+reference columns, the same QE family, 32 additions and a 32-angle cap define
+twelve cells. A-CASE uses zero nonlinear angles, with its basis coefficients and
+both eigendecompositions charged separately. The determinant-response A-CASE
+family has dimension 32/35 for two/three roots: this is a selected-determinant
+special case, not evidence of generic compactness or matched manifolds.
+
+Declaration `5977767`, clean execution source `4b3ca49` and record-only commit
+`eb183c1` preserve the outcome-free declaration and single licensed execution.
+All twelve cells are VALID under independent optimizer-call, root-pencil,
+candidate-score, bank-ledger and historical-source checks. No frozen CEO record,
+selector or go/no-go decision changes. The new record is
+`benchmarks/reference_results/phase17_more.json`; full accounting and commands
+are in REPRODUCING.md.
+
+The first retained prefix with every ordered root within 1.6 mHa is diagnostic;
+it never drives selection or stopping:
+
+| fixture | roots | MORE additions / computed calls at target | A-CASE additions / basis size at target |
+|---|---:|---:|---:|
+| H4 | 2 | 23 / 409 | right-censored |
+| H4 | 3 | right-censored | 32 / 35 |
+| BeH2 | 2 | 3 / 23 | 4 / 6 |
+| BeH2 | 3 | right-censored | 6 / 9 |
+| LiH | 2 | 11 / 130 | 1 / 3 |
+| LiH | 3 | 2 / 11 | 1 / 4 |
+
+There is no uniform winner. H4's two-root A-CASE family exhausts its 32 directions
+at 3.325 mHa maximum root error. H4's three-root MORE trajectory reaches its
+budget at 44.046 mHa. BeH2's three-root MORE stops at the averaged-gradient
+threshold after six additions with 29.401 mHa maximum root error: averaged
+stationarity is not an every-root accuracy certificate. These are limits of the
+declared families and policy. Dense-sector propagation, Pauli-bank accounting,
+full-trajectory host timings and logical circuit bounds do not establish a
+hardware or total-cost advantage. Phase 17's scoped deliverables are complete;
+its implementation fraction is 100%.
 
 ### Phase 18 — embedding boundary
 
@@ -4890,7 +4926,7 @@ A-CASE's.
 | 9 | 2501.14968 | Measurement review | Fully commuting grouping context; Track B. |
 | 10 | 2305.04783 | Folded-spectrum VQE | Second moments, variance, folded spectrum; Phase 15. |
 | 11 | 2606.05968 | BK symmetry trap | Not evidence for the headline claim; mapping regression motivation only. |
-| 12 | 2409.11210 | MORE-ADAPT-VQE | Existing multi-root capability deserves a later benchmark; deferred. |
+| 12 | 2409.11210 | MORE-ADAPT-VQE | Positioning reference; the declared uniform-weight shared-QE variant now has a twelve-cell exact breadth comparison, with mixed target outcomes (§5, Phase 17). |
 | 13 | 2311.01393 | FLDC barren plateaus | Positioning only; build nothing. |
 | 14 | 2607.20585 | ML-compact QSCI subspaces | Compactness comparison structure; unrefereed benchmark claims require reproduction. |
 | 15 | 2011.10027 | Contextual subspace VQE | Kirby, Tranter & Love. The method family R4a's contextual arms sit in; `subspace/contextual.py` implements its commuting half only. Cite for the noncontextual/contextual split. |
@@ -4934,8 +4970,10 @@ mappings; correctly encoded reference states; equality of finite-difference, ana
 commutator gradients; and separate measurement of Pauli weight, distinct-word count, grouping
 cost, and compiled circuits (R2, §5).
 
-**Deferred or positioning-only.** MORE-ADAPT-VQE: multi-root A-CASE already exists, but a
-dedicated comparison waits for the QSCI/ext-SQD ladder. FLDC barren plateaus: positioning for
+**Completed breadth and positioning limits.** The dedicated MORE-ADAPT comparison
+now ships (§5, Phase 17). It tests the explicitly declared uniform-weight shared-QE
+variant, without claiming a reproduction of the paper's full pools, references
+or enhanced circuits. FLDC barren plateaus remain positioning for
 finite-depth ADAPT circuits only — A-CASE solves a generalized eigenproblem and has no
 variational trainability landscape. Circuit-native real-time A-CASE: Q8 and Phase 16B, not an
 incremental generator; 16B's decision programme ended `CONDITIONAL` and did not authorize it.
@@ -4987,11 +5025,12 @@ covariance-aware allocation — all already reported in P2 (§1.2(1)–(2)).
 **Reviewed follow-up priority (2026-10-14).** §2.6's maintenance gates B1–B5 are
 complete. The active-support blade check, convention-tested contractions and shared-pool
 import cleanup (GA-1, GA-2, B6) are implemented. GA-3's executable fixtures now validate
-§3.6(iv)'s boundary without a determinant-reference transport engine. The remaining research
-deliverables are a separately declared Phase 15 certifying-basis allocation
-experiment and Phase 17's MORE-ADAPT breadth comparison. Preserve the existing
-result/declaration history and all go/no-go decisions below. These pending tasks
-do not authorize another run of any frozen campaign or change phase fractions.
+§3.6(iv)'s boundary without a determinant-reference transport engine. Phase 17's
+MORE-ADAPT breadth comparison is complete with a VALID twelve-cell record.
+The remaining research follow-up here is a separately declared Phase 15
+certifying-basis allocation experiment. Preserve the existing result/declaration
+history and all go/no-go decisions below. This pending task does not authorize
+another run of any frozen campaign or change phase fractions.
 
 Track A must not wait for Tracks B or C. Within each track the order is dependency-forced;
 between tracks, R1 is cheap and its result can reorder Track B's protocol conclusions, so it
@@ -5467,8 +5506,9 @@ bought a duplicate record.
     is authorized on these prefixes. Certifying bases outside the screen exist:
     the ladder's Krylov basis has `σ = 0.086 t`. Pricing one needs a new
     declaration.
-20. The dedicated MORE-ADAPT breadth comparison remains. The exact CEO pool
-    comparison is complete and read (§5, Phase 17).
+20. The dedicated MORE-ADAPT breadth comparison and exact CEO pool comparison
+    are complete and read (§5, Phase 17). Mixed multi-root target outcomes remain
+    explicit; no finite-shot or universal resource advantage follows.
 21. The excited-state track, after the certificate question of §7.4 has an answer. Note
     that §3.5B's transformation-character parameter is what keeps this track reachable
     from Track G; a G1 that hard-codes `[A,Q]=0` would close it.

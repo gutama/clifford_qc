@@ -171,9 +171,14 @@ def test_detailed_status_drift_is_rejected_with_valid_summaries(
 def test_detailed_fraction_accepts_exact_or_correctly_rounded_display(
     tmp_path, monkeypatch, heading,
 ):
-    detailed_docs(tmp_path, monkeypatch, ledger(),
+    data = ledger()
+    row = next(row for row in data["numbered_phases"] if row["id"] == "17")
+    row["status"] = "partial"
+    row["implementation_fraction"] = 0.875
+    set_summary(data)
+    detailed_docs(tmp_path, monkeypatch, data,
                   lambda text: replace_detailed_row(text, "17", heading))
-    assert status.check_docs(ledger()) == []
+    assert status.check_docs(data) == []
 
 
 @pytest.mark.parametrize("fraction,display,accepted", [
@@ -186,6 +191,7 @@ def test_detailed_percentage_respects_displayed_decimal_precision(
 ):
     data = ledger()
     row = next(row for row in data["numbered_phases"] if row["id"] == "17")
+    row["status"] = "partial"
     row["implementation_fraction"] = fraction
     set_summary(data)
     detailed_docs(tmp_path, monkeypatch, data,
@@ -202,9 +208,14 @@ def test_detailed_percentage_respects_displayed_decimal_precision(
 def test_detailed_rounding_or_malformed_status_is_rejected(
     tmp_path, monkeypatch, heading,
 ):
-    detailed_docs(tmp_path, monkeypatch, ledger(),
+    data = ledger()
+    row = next(row for row in data["numbered_phases"] if row["id"] == "17")
+    row["status"] = "partial"
+    row["implementation_fraction"] = 0.875
+    set_summary(data)
+    detailed_docs(tmp_path, monkeypatch, data,
                   lambda text: replace_detailed_row(text, "17", heading))
-    assert any("detailed phase 17" in problem for problem in status.check_docs(ledger()))
+    assert any("detailed phase 17" in problem for problem in status.check_docs(data))
 
 
 @pytest.mark.parametrize("phase_id", ["15", "19"])

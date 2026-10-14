@@ -105,6 +105,12 @@ jobs:
       fail-fast: false
       matrix:
         include:
+          - gate: check_phase17_more_declaration
+            timeout: 10
+            environment_record: protocol_cost.json
+          - gate: check_phase17_more
+            timeout: 30
+            environment_record: protocol_cost.json
           - gate: check_phase17_ceo_declaration
             timeout: 10
             environment_record: protocol_cost.json

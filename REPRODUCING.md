@@ -264,7 +264,7 @@ No figure or table value in the manuscript is transcribed by hand, and
 ```bash
 python -m venv .venv && source .venv/bin/activate
 pip install -e .[test,research,stim]       # automatic CI extras
-pytest                                      # 3336 passed, 12 skipped
+pytest                                      # 3400 passed, 12 skipped
 ```
 
 This is the automatic CI dependency set; record gates additionally pin NumPy
@@ -280,7 +280,7 @@ the remaining `12 - 6 = 6` skips are per-test and *are* collected:
 
 ```text
 collected == passed + (skipped - files dropped at collection)
-3342      == 3336   + (12      -   6)
+3406      == 3400   + (12      -   6)
 ```
 
 Both sides are computed from the tree, so a drift in either quoted number
@@ -4806,4 +4806,143 @@ SciPy's termination criterion. These original numbers do not describe the
 corrected policy. Both records pass the stronger convergence, coefficient,
 trajectory and historical-source checks under their explicitly separate policies.
 
-The dedicated MORE-ADAPT multi-root benchmark remains outstanding.
+The dedicated MORE-ADAPT multi-root breadth comparison is complete; its separate
+declaration, record and validation are described next.
+
+### Phase 17 MORE-ADAPT breadth: frozen exact comparison
+
+`benchmarks/PHASE17_MORE_DECLARATION.md` and
+`benchmarks/configs/phase17_more.json` define a separate twelve-cell comparison:
+H4, BeH2 and LiH's eight-qubit fixtures, two/three roots, and uniform-weight
+shared-QE-unitary MORE-ADAPT versus native `run_acase(roots=r, aggregation='mean')`.
+Declaration `5977767` strictly precedes clean execution source `4b3ca49`;
+record-only commit `eb183c1` publishes all twelve VALID cells. Both the independent
+scientific replay and declaration/history gates pass. This is the explicitly
+defined variant in the declaration, not a claim to reproduce the published
+MORE-ADAPT pools, references or enhanced circuits.
+
+Both arms use the same HF/frontier-single reference span (`[240, 216]` for two
+roots, `[240, 216, 228]` for three) and 90-member QE family, with 32 additions
+and a 32-angle cap. All fixtures have four active electrons and a 36-dimensional
+N/Sz sector; total spin is not restricted. A-CASE has zero nonlinear angles and
+records tracked-root coefficient entries `M*r`, its full native eigenframe
+`M*rank`, and both overlap/H eigendecompositions instead.
+The static determinant-response family dimension is distinct from the full
+sector; neither matching caps nor this benchmark establish equal manifolds,
+generic compactness or global optimizer convergence.
+
+The producer defaults to outcome-free design validation; it does not rerun the
+molecular campaign. These commands check the design, replay the committed record
+and exercise undeclared small-system tests:
+
+```bash
+python benchmarks/check_phase17_more_declaration.py
+python benchmarks/run_phase17_more.py
+python benchmarks/check_phase17_more.py
+python -m pytest tests/test_more_adapt.py
+```
+
+The following is the historical execution command, already consumed once. It
+required a clean full-history source commit strictly after declaration, the
+pinned record environment, one BLAS thread, hash seed zero, no existing record
+and an unused persistent claim. Fresh workers enforced 15 GiB and six hours per
+cell; environment/tree/capacity refusals preceded consuming the claim. Never
+reset this consumed claim or retry/shrink a frozen arm.
+
+```bash
+OMP_NUM_THREADS=1 OPENBLAS_NUM_THREADS=1 MKL_NUM_THREADS=1 PYTHONHASHSEED=0 python benchmarks/run_phase17_more.py --execute
+```
+
+`benchmarks/reference_results/phase17_more.json` was first published alone in
+`eb183c1`, then passed independent replay and history checks before the Phase 17
+ledger was updated. Preserve declaration/execution/record ancestry with a merge
+commit. INVALID/INCOMPLETE observations would remain visible and could not close
+the deliverable. The consumed claim in the common Git directory retains
+checkpoints and the diagnostic record; no second execution is licensed.
+
+The checker rebuilds occupation H/QEs, spectrally replays each optimizer call,
+verifies A-CASE pencils/eigenvalues and recorded eigenframes, re-evaluates every
+candidate and derives the full bank/support/callback/circuit accounting. FCIDUMP
+text parsing and previously tested independent occupation/letter helpers are
+shared. Degenerate eigenframes are validated, without claiming to reproduce the
+native canonical gauge across platforms. Root/pencil tolerance is `1e-9` Ha,
+overlap `1e-10`, gradients/scores/frames `1e-8`; counters are exact.
+
+Target readout uses the first retained prefix whose maximum absolute ordered
+root error is at most `1.6e-3` Ha. Reference-floor and right-censored outcomes are
+separate, and the oracle never drives stopping. Screening, per-reference forms,
+optimizer computations, callbacks/cache hits and parameter derivatives are
+separate currencies. MORE also charges its complex projected-H transition
+readout: two quadrature reference fanouts per off-diagonal pair, followed by the
+common ansatz and local Pauli readout. A-CASE counts its cumulative bank words
+on one HF reference with independent local readouts and zero readout CX gates.
+These generic circuit bounds are logical sweeps, not executed shots; no optimized
+circuits, finite-shot precision, total device price or aggregate winner is claimed.
+Parent wall time/RSS include preparation and instrumentation and remain single-
+host observations, distinct from dense operator or coefficient payload bytes.
+
+The accuracy target is a retrospective prefix diagnostic, separate from whole-run
+cost. A-CASE has no nonlinear optimizer calls but pays full screens, pair/support
+work, overlap/H decompositions and coefficient storage.
+
+| fixture | roots | MORE additions at target | MORE computed calls at target | A-CASE additions at target | A-CASE basis size at target |
+|---|---:|---:|---:|---:|---:|
+| H4 | 2 | 23 | 409 | right-censored | — |
+| H4 | 3 | right-censored | — | 32 | 35 |
+| BeH2 | 2 | 3 | 23 | 4 | 6 |
+| BeH2 | 3 | right-censored | — | 6 | 9 |
+| LiH | 2 | 11 | 130 | 1 | 3 |
+| LiH | 3 | 2 | 11 | 1 | 4 |
+
+The following costs and errors are for the **entire retained trajectory**;
+they are not costs to the first target. `size` means nonlinear angle count for
+MORE and basis dimension for A-CASE. `calls` counts computed energy/gradient
+requests, with callbacks and cache hits separately retained in the record.
+
+| fixture | roots | arm | additions / size | calls | final max root error (mHa) | stop |
+|---|---:|---|---:|---:|---:|---|
+| H4 | 2 | MORE | 32 / 32 | 724 | 0.004941 | addition budget |
+| H4 | 2 | A-CASE | 30 / 32 | 0 | 3.325423 | every candidate rejected |
+| H4 | 3 | MORE | 32 / 32 | 692 | 44.045517 | addition budget |
+| H4 | 3 | A-CASE | 32 / 35 | 0 | 0.733127 | basis budget |
+| BeH2 | 2 | MORE | 7 / 7 | 87 | < 1e-9 | averaged-gradient threshold |
+| BeH2 | 2 | A-CASE | 6 / 8 | 0 | 1.374548 | predicted lowering threshold |
+| BeH2 | 3 | MORE | 6 / 6 | 72 | 29.401282 | averaged-gradient threshold |
+| BeH2 | 3 | A-CASE | 10 / 13 | 0 | 0.003301 | predicted lowering threshold |
+| LiH | 2 | MORE | 32 / 32 | 834 | 0.000000522 | addition budget |
+| LiH | 2 | A-CASE | 13 / 15 | 0 | 0.021923 | predicted lowering threshold |
+| LiH | 3 | MORE | 32 / 32 | 1053 | 0.004353 | addition budget |
+| LiH | 3 | A-CASE | 14 / 17 | 0 | 0.000501 | predicted lowering threshold |
+
+There is no uniform winner. H4's two-root A-CASE exhausts the frozen static
+32-dimensional determinant-response family and misses the target. Three-root
+MORE misses the target on H4 at the addition budget and on BeH2 at an
+averaged-gradient stop. BeH2 demonstrates that cancellation/stationarity of the
+mean gradient does not certify every root. The family dimensions (32/35) differ
+from the complete sector dimension (36); this is a selected-determinant A-CASE
+special case, without a generic compactness or globally converged MORE claim.
+
+Parent-supervised whole-worker times below include imports, preparation and
+instrumentation. The campaign's twelve worker times sum to 74.95 s; maximum
+observed RSS is 0.6275 GiB, below the frozen 15 GiB ceiling. These single-host
+measurements compare a dense-sector MORE implementation with an instrumented
+Pauli-bank A-CASE implementation. MORE's common RSS floor includes startup;
+these figures do not measure intrinsic algorithm memory or device cost.
+
+| fixture | roots | MORE wall (s) / peak RSS (GiB) | A-CASE wall (s) / peak RSS (GiB) |
+|---|---:|---:|---:|
+| H4 | 2 | 1.773 / 0.1573 | 16.322 / 0.4621 |
+| H4 | 3 | 1.713 / 0.1573 | 23.725 / 0.6275 |
+| BeH2 | 2 | 1.108 / 0.1573 | 1.965 / 0.1881 |
+| BeH2 | 3 | 1.108 / 0.1573 | 3.576 / 0.3032 |
+| LiH | 2 | 1.813 / 0.1573 | 7.553 / 0.4552 |
+| LiH | 3 | 2.164 / 0.1573 | 12.135 / 0.4934 |
+
+MORE's complex root readout requires `r**2` reference families per independent
+Hamiltonian-word sweep, including both quadratures of every off-diagonal pair.
+Its generic commuting-QE parity-ladder bounds and the reference fanouts are
+charged separately. A-CASE uses independent local Pauli readouts (no readout
+CX), with Clifford basis changes counted. Neither ledger prices finite-shot
+precision, optimizer-gradient measurement circuits or a full hardware workflow;
+no total-cost or quantum advantage follows. Phase 17 completion is scoped to
+shipping and validating this comparison, including its right-censored cells.
