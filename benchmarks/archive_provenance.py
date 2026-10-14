@@ -1,12 +1,20 @@
 """Explicit content verification for archives; never certifies commit chronology."""
 from __future__ import annotations
 
-import hashlib
-import json
 from pathlib import Path
 import subprocess
 
+from benchmarks.metadata_io import binding, read_json
+
 MANIFEST = "benchmarks/provenance/archive_manifest.json"
+
+
+class HistoryError(ValueError):
+    """Git history cannot be verified."""
+
+
+class ShallowHistoryError(HistoryError):
+    """Chronology requires history omitted by a shallow checkout."""
 
 
 def history_kind(root: Path, *, archive: bool = False) -> str:
@@ -17,13 +25,18 @@ def history_kind(root: Path, *, archive: bool = False) -> str:
                               capture_output=True, text=True, timeout=10)
     except FileNotFoundError:
         done = None
+    except subprocess.SubprocessError as exc:
+        raise HistoryError(f"Git history inspection failed: {exc}") from exc
     if done is not None and done.returncode == 0:
         if Path(done.stdout.strip()).resolve() != root:
             raise ValueError("verification root is inside a different Git worktree")
-        shallow = subprocess.run(["git", "rev-parse", "--is-shallow-repository"], cwd=root,
-                                 capture_output=True, text=True, check=True, timeout=10)
+        try:
+            shallow = subprocess.run(["git", "rev-parse", "--is-shallow-repository"], cwd=root,
+                                     capture_output=True, text=True, check=True, timeout=10)
+        except subprocess.SubprocessError as exc:
+            raise HistoryError(f"Git history inspection failed: {exc}") from exc
         if shallow.stdout.strip() != "false":
-            raise ValueError("record chronology requires full git history")
+            raise ShallowHistoryError("record chronology requires full git history")
         if archive:
             raise ValueError("--archive cannot bypass a Git worktree's ancestry checks")
         return "git"
@@ -49,13 +62,6 @@ def safe_path(root: Path, relative: str) -> Path:
     return resolved
 
 
-def binding(path: Path) -> dict:
-    raw = path.read_bytes()
-    return {"sha256": hashlib.sha256(raw).hexdigest(),
-            "git_blob_sha1": hashlib.sha1(f"blob {len(raw)}\0".encode() + raw,
-                                          usedforsecurity=False).hexdigest()}
-
-
 def verify_archive(root: Path, record_path: str, config_path: str,
                    execution: str, sources: dict[str, dict]) -> None:
     """Verify manifest, current inputs, and packaged historical execution bytes.
@@ -63,14 +69,7 @@ def verify_archive(root: Path, record_path: str, config_path: str,
     A checksum manifest verifies content consistency, not who created the archive.
     The source identities must agree with the original record's own bindings.
     """
-    def pairs(items):
-        result = {}
-        for key, value in items:
-            if key in result:
-                raise ValueError(f"duplicate archive manifest key: {key}")
-            result[key] = value
-        return result
-    manifest = json.loads(safe_path(root, MANIFEST).read_text(), object_pairs_hook=pairs)
+    manifest = read_json(safe_path(root, MANIFEST))
     if (not isinstance(manifest, dict) or set(manifest) != {"schema", "records"}
             or manifest["schema"] != "clifford_qc.archive_bindings.v1"):
         raise ValueError("archive manifest identity differs")

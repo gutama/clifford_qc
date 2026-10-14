@@ -1,37 +1,16 @@
 """Read digest-bound evidence sidecars without rewriting historical records."""
 from __future__ import annotations
 
-import hashlib
-import json
 from pathlib import Path
 import re
 
+from benchmarks.metadata_io import read_json, sha256
 from clifford_qc.evidence import validate_evidence
 
 ROOT = Path(__file__).resolve().parents[1]
 MANIFEST = "benchmarks/evidence/legacy_records.json"
 LEGACY_MANIFEST_SHA256 = "dadd116852a2aecc5457011988aaef43f4727abddba0c30d303ec4b9edd2268e"
 ANNOTATIONS = "benchmarks/evidence/annotations"
-
-
-def read_json(path: Path, *, allow_nonfinite: bool = False):
-    def pairs(items):
-        result = {}
-        for key, value in items:
-            if key in result:
-                raise ValueError(f"duplicate JSON key: {key}")
-            result[key] = value
-        return result
-
-    def invalid(value):
-        if allow_nonfinite:
-            return {"NaN": float("nan"), "Infinity": float("inf"), "-Infinity": -float("inf")}[value]
-        raise ValueError(f"non-finite JSON value: {value}")
-    return json.loads(path.read_text(), object_pairs_hook=pairs, parse_constant=invalid)
-
-
-def sha256(path: Path) -> str:
-    return hashlib.sha256(path.read_bytes()).hexdigest()
 
 
 def evidence_view(path: Path, *, root: Path = ROOT) -> dict:
@@ -76,6 +55,8 @@ def check_records(root: Path = ROOT) -> list[str]:
     for path in sorted(records.glob("*.json")):
         try:
             payload = evidence_view(path, root=root)
+            if path.name in legacy and legacy[path.name] != sha256(path):
+                raise ValueError("frozen legacy record digest differs")
             if "evidence_schema" in payload:
                 validate_evidence(payload)
             elif legacy.get(path.name) != sha256(path):
@@ -83,6 +64,9 @@ def check_records(root: Path = ROOT) -> list[str]:
         except (OSError, ValueError, TypeError, KeyError) as exc:
             problems.append(f"{path.name}: {exc}")
     for annotation in (root / ANNOTATIONS).glob("*.evidence.json"):
-        if not (records / annotation.name.removesuffix(".evidence.json")).is_file():
+        target = annotation.name.removesuffix(".evidence.json")
+        if not target.endswith(".json"):
+            problems.append(f"evidence annotation target must be a JSON record: {annotation.name}")
+        elif not (records / target).is_file():
             problems.append(f"orphan evidence annotation: {annotation.name}")
     return problems

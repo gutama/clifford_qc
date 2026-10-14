@@ -92,8 +92,9 @@ Both summaries and evidence metadata are automatic CI gates.
 `clifford_qc.evidence.declare_evidence(record, quantities)` adds the
 `clifford_qc.evidence.v1` contract. Each quantity carries an enumerated `tier`
 and a nonempty `scope`; `stamp_record` validates this contract when opted in.
-The independent evidence gate requires it on new or changed JSON records.
-The unchanged historical set is grandfathered by the frozen
+The independent evidence gate requires it on new JSON records. Historical
+filenames must also retain their frozen bytes, even when a valid annotation
+or top-level declaration is present. The historical set is grandfathered by the frozen
 `benchmarks/evidence/legacy_records.json` digest manifest. This checks evidence
 metadata, not the scientific values, which retain their own independent gates.
 
@@ -103,6 +104,38 @@ in `benchmarks/evidence/annotations/` distinguish exact simulation, finite-sampl
 endpoints and illustrative prices; no top-level field is silently inserted into
 a historical record. The architecture census validates and reads these maps.
 An invalid annotation, unknown tier or changed record binding fails the gate.
+
+#### Replaying producers and reviewing a re-freeze
+
+Existing producers opt into v1 when they pass an explicit quantity map through
+`declare_evidence` before `stamp_record`; legacy producers do not automatically
+infer labels. Always use the documented `--out reproductions/...` destinations
+for a replay. Some producers default to a committed historical filename, so
+omitting `--out` can overwrite it with a new provenance stamp and correctly
+fail the frozen-record gate. For example, the Krylov and warm-start commands
+below both select separate replay files. Compare their scientific fields with
+the original using the record's own checker/comparator, which treats execution
+provenance as metadata. A fresh timestamp is not a reason to re-freeze.
+
+To publish a new result, use a distinct JSON filename under
+`benchmarks/reference_results/`, add an explicit v1 quantity map to its producer
+with `declare_evidence`, and validate it through `stamp_record` and its independent
+scientific gate. Keep the historical record and its digest entry. An annotation
+for a new file must likewise bind its raw SHA-256 and pass the evidence gate.
+
+A deliberate archival metadata migration requires a reviewed re-freeze in the
+same PR. Preserve the original raw bytes as an identified historical snapshot;
+preserve every scientific quantity, frozen declaration and original execution
+identity in the migrated record. Then update that filename's SHA-256 in
+`benchmarks/evidence/legacy_records.json` and recompute the manifest's raw SHA-256
+for `LEGACY_MANIFEST_SHA256` in `benchmarks/evidence_metadata.py`. Update any
+associated annotation's `record_sha256` and archive manifest's `record_sha256`,
+without changing their declaration or execution-source bindings. Run
+`check_evidence.py`, the record's independent gate, and the strict and exported
+archive checks where applicable; regenerate the architecture census/tables.
+The PR must explain the migration and show the preserved quantities and identities.
+Do not re-freeze to accept an unexplained result change or rerun a frozen sampled
+campaign merely to add metadata; use a digest-bound annotation for that case.
 
 ### Full history versus explicit source-archive verification
 
@@ -125,8 +158,9 @@ Current source files may have evolved. The output explicitly states
 `commit chronology UNVERIFIED`; content consistency does not prove archive
 authorship or preregistration ancestry. CI uses the full-history path.
 The independent Phase 19 sampled-result replay still requires Git history and
-the record's numerical environment; its source checks read the recorded commit,
-not the current checker bytes. No frozen campaign is rerun to add metadata.
+the record's numerical environment; its source checks read the recorded commit
+and also pin the current producer. Current checker code may evolve. No frozen
+campaign is rerun to add metadata.
 
 Building the manuscript itself needs revtex4-2 and the packages the preamble
 loads; on Debian/Ubuntu:
@@ -172,7 +206,7 @@ No figure or table value in the manuscript is transcribed by hand, and
 ```bash
 python -m venv .venv && source .venv/bin/activate
 pip install -e .[test,research,stim]       # automatic CI extras
-pytest                                      # 3211 passed, 11 skipped
+pytest                                      # 3235 passed, 11 skipped
 ```
 
 This is the automatic CI dependency set; record gates additionally pin NumPy
@@ -188,7 +222,7 @@ the remaining `11 - 6 = 5` skips are per-test and *are* collected:
 
 ```text
 collected == passed + (skipped - files dropped at collection)
-3216      == 3211   + (11      -   6)
+3240      == 3235   + (11      -   6)
 ```
 
 Both sides are computed from the tree, so a drift in either quoted number

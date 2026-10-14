@@ -403,7 +403,7 @@ phase and change no implementation fraction or measured verdict.
 | B1: narrative status drift | Phase 19's row was already repaired on main; Phase 17's row retained 75% despite a ledger fraction of 0.875 | Phase 17's row is corrected; the gate now validates detailed rows, rounding and Phase 19's completed lever-1 scope |
 | B2: summary requirements | The old checker treated every JSON config as a JSONL sweep | Schema-based summary ownership now passes and runs in CI, including orphan-companion/deletion checks |
 | B3: evidence declarations | Historical energy/CEO records lacked a common top-level contract | Validated, digest-bound annotations now feed the gate and census; new/changed JSON records require the v1 contract |
-| B4: direct checker invocation | The old package probe failed with `PYTHONPATH` unset | Root resolution now covers the gate and its script-help subprocesses; missing optional extras remain explicit |
+| B4: direct checker invocation | The old package probe failed with `PYTHONPATH` unset | The gate resolves its root; script-help subprocesses use the user's environment from the repository root and report internal import failures |
 | B5: archive provenance | Git chronology cannot be established from an exported tree | Both CLIs now offer explicit content-only archive verification with packaged historical sources; strict Git checks remain the default |
 | B6: architecture/API | Chemistry imports pool definitions from algorithms; mutable `PauliSum.terms` is an API design question, not by itself a correctness defect | Remove the import-time edge with compatibility; assess immutability separately |
 | GA-1 / GA-2: sparse exterior operations | `codes_of_grade` scans `4**n`; active-support Plücker candidates and contractions avoid that enumeration | Implement with explicit product conventions and independent equivalence checks |
@@ -426,8 +426,9 @@ work, even where this plan already corrects the prose.
 - [x] **B4 — standalone documentation gate.** Established `ROOT` on `sys.path`
   before package-submodule discovery in `benchmarks/check_docs.py`. Verify the
   documented direct command with `PYTHONPATH` unset from a clean checkout;
-  missing optional extras remain explicitly reported. Help subprocesses receive
-  the same repository path, preserving an existing user `PYTHONPATH` suffix.
+  missing optional extras remain explicitly reported. Help subprocesses run from
+  the repository root with the user's environment, without an injected import
+  path; missing repository packages fail instead of being classified as extras.
 - [x] **B2 — summary schema and CI.** Require JSONL/CSV/Markdown companions from
   the declared per-seed sweep schema and the explicitly owned ladder schema,
   not from the existence of a record on disk. Classify result-free declarations
@@ -452,6 +453,10 @@ work, even where this plan already corrects the prose.
   CI. A frozen digest manifest grandfathers only the unchanged historical set.
   The three energy/CEO sidecars are read and validated by both the gate and
   architecture census; no historical result or declaration was rewritten.
+  Review hardening requires the frozen digest even with valid metadata and
+  rejects annotations for unsupported non-JSON targets. `REPRODUCING.md` defines
+  separate replay outputs, explicit declarations for new published results,
+  and the reviewed archival re-freeze procedure for a deliberate migration.
 - [x] **B5 — explicit archive verification.** Detect a Git worktree with
   `git rev-parse`, including linked worktrees whose `.git` is a file; do not
   mistake an incomplete/shallow repository for a source archive. CI must require
@@ -464,10 +469,14 @@ work, even where this plan already corrects the prose.
   The default/`--require-git` path verifies full ancestry; `--archive` refuses
   Git worktrees (including shallow or broken ones), verifies config/record and
   packaged execution-source bindings, and labels chronology `UNVERIFIED`.
+  Both modes retain nonchronological declaration checks. Declaration-only
+  checks need no history; static failures remain visible beside history errors.
+  Git subprocess failures have reportable exceptions, and shared strict UTF-8
+  metadata loading rejects duplicate keys and nonfinite metadata values.
   Archive checks establish content consistency, not archive authorship.
   Historical execution snapshots remain inert data. The energy result checker
-  now checks both source digests at the recorded commit, allowing current
-  verification code to evolve without altering the original execution identity.
+  now checks both source digests at the recorded commit and pins the live
+  producer, allowing current verification code to evolve without altering the original execution identity.
 
 **Second: sparse GA kernel and architecture.** These are maintenance extensions
 to Phase 0's API, not a new solver or an established quantum resource advantage.

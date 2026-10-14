@@ -526,7 +526,8 @@ def provenance_problems(record, config, root=ROOT):
     # Execution bindings identify historical code, not a ban on improving the
     # checker later. Verify both recorded digests at the recorded Git commit.
     bindings = p.get("source_files", [])
-    if not isinstance(bindings, list) or [item.get("path") for item in bindings] != list(SOURCES):
+    if (not isinstance(bindings, list) or any(not isinstance(item, dict) for item in bindings)
+            or [item.get("path") for item in bindings] != list(SOURCES)):
         return problems + ["execution source file set/order differs"]
     for binding in bindings:
         if set(binding) != {"path", "sha256", "git_blob_sha1"}:
@@ -539,6 +540,8 @@ def provenance_problems(record, config, root=ROOT):
         blob = git(root, "rev-parse", f"{p['git_commit']}:{binding['path']}")
         if blob != binding["git_blob_sha1"]:
             problems.append(f"execution source drift: {binding['path']}")
+        if binding["path"] == SOURCES[0] and structure.file_binding(binding["path"], root) != binding:
+            problems.append(f"current producer differs from recorded execution: {binding['path']}")
     records = git(root, "log", "--reverse", "--format=%H", "HEAD", "--",
                   structure.RECORD_PATH).splitlines()
     if records:

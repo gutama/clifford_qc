@@ -176,6 +176,23 @@ def test_detailed_fraction_accepts_exact_or_correctly_rounded_display(
     assert status.check_docs(ledger()) == []
 
 
+@pytest.mark.parametrize("fraction,display,accepted", [
+    (1 / 3, "33.3", True), (2 / 3, "66.7", True),
+    (1 / 3, "33.33", True), (2 / 3, "66.67", True),
+    (1 / 3, "33.4", False), (2 / 3, "66.6", False),
+])
+def test_detailed_percentage_respects_displayed_decimal_precision(
+    tmp_path, monkeypatch, fraction, display, accepted,
+):
+    data = ledger()
+    row = next(row for row in data["numbered_phases"] if row["id"] == "17")
+    row["implementation_fraction"] = fraction
+    set_summary(data)
+    detailed_docs(tmp_path, monkeypatch, data,
+                  lambda text: replace_detailed_row(text, "17", f"partial ({display}%)"))
+    assert (status.check_docs(data) == []) == accepted
+
+
 @pytest.mark.parametrize("heading", [
     "partial (87%)",
     "partially implemented (87.5%; rounded to 87% above)",

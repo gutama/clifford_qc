@@ -262,3 +262,27 @@ def test_editing_declaration_after_record_is_refused(config, history):
 
 def test_before_a_record_exists_no_history_is_required(config, tmp_path):
     assert gate.temporal_problems(config, tmp_path) == []
+
+
+def test_main_reports_static_drift_alongside_missing_history(config, history, monkeypatch, capsys):
+    root, _, _, _, _, _, _, first_record = history
+    (root / ".git/shallow").write_text(first_record + "\n")
+    broken = copy.deepcopy(config)
+    broken["protocol"]["accuracy_hartree"] = 0.01
+    path = root / structure.CONFIG_PATH
+    path.write_text(json.dumps(broken))
+    monkeypatch.setattr(gate, "ROOT", root)
+    monkeypatch.setattr(gate, "CONFIG", path)
+    assert gate.main([]) == 1
+    errors = capsys.readouterr().err
+    assert "configuration drifted" in errors
+    assert "requires full git history" in errors
+
+
+def test_main_declaration_only_does_not_inspect_history(config, monkeypatch, tmp_path):
+    path = write(tmp_path, config)
+    monkeypatch.setattr(gate, "ROOT", tmp_path)
+    monkeypatch.setattr(gate, "CONFIG", path)
+    monkeypatch.setattr(gate, "static_problems", lambda *args: [])
+    monkeypatch.setattr(gate, "history_kind", lambda *args, **kwargs: pytest.fail("no record needs no history"))
+    assert gate.main([]) == 0

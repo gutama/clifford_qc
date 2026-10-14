@@ -258,8 +258,10 @@ def check_detailed_rows(text: str, data: dict) -> list[str]:
             displayed = "100" if lifecycle == "complete" else "0"
         percent = 100.0 * expected["implementation_fraction"]
         rounded_percent = float(f"{percent:.0f}")
+        decimals = len(displayed.partition(".")[2])
+        displayed_rounding = float(f"{percent:.{decimals}f}")
         if not any(math.isclose(float(displayed), value, rel_tol=0.0, abs_tol=1e-12)
-                   for value in (percent, rounded_percent)):
+                   for value in (percent, displayed_rounding)):
             problems.append(
                 f"{owner}: implementation {displayed}% differs from ledger {percent:g}%"
             )

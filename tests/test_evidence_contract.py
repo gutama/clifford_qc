@@ -81,6 +81,49 @@ def test_changed_legacy_bytes_are_not_grandfathered(bundle):
     assert metadata.check_records(root)
 
 
+@pytest.mark.parametrize("top_level", [False, True])
+def test_valid_evidence_cannot_rebind_a_modified_historical_record(bundle, top_level):
+    root, path = bundle
+    path.write_text(json.dumps({"schema": "old.v1", "energy": -999}))
+    if top_level:
+        path.write_text(json.dumps(declare_evidence(json.loads(path.read_text()), labels())))
+    else:
+        annotation(root, path)  # Correct digest for the tampered bytes.
+    assert any("frozen legacy record digest differs" in error
+               for error in metadata.check_records(root))
+
+
+def test_annotation_for_existing_non_json_record_is_rejected(bundle):
+    root, path = bundle
+    jsonl = path.with_suffix(".jsonl")
+    jsonl.write_text('{"schema":"rows.v1"}\n')
+    annotation(root, jsonl)
+    assert any("target must be a JSON record" in error for error in metadata.check_records(root))
+
+
+def test_metadata_reads_utf8_independently_of_locale(tmp_path, monkeypatch):
+    from pathlib import Path
+    path = tmp_path / "unicode.json"
+    path.write_text('{"scope":"H₂O"}', encoding="utf-8")
+    original = Path.read_text
+
+    def locale_read(self, *args, **kwargs):
+        # Simulate a non-UTF-8 default without mutating the process locale.
+        kwargs.setdefault("encoding", "ascii")
+        return original(self, *args, **kwargs)
+
+    monkeypatch.setattr(Path, "read_text", locale_read)
+    assert metadata.read_json(path) == {"scope": "H₂O"}
+
+
+@pytest.mark.parametrize("raw", ['{"x":Infinity}', '{"x":1e999}', '{"x":1,"x":2}'])
+def test_shared_metadata_reader_rejects_ambiguous_or_nonfinite_values(tmp_path, raw):
+    path = tmp_path / "invalid.json"
+    path.write_text(raw)
+    with pytest.raises(ValueError, match="nonfinite|duplicate"):
+        metadata.read_json(path)
+
+
 def test_sidecar_cannot_hide_record_drift_or_override_evidence(bundle):
     root, path = bundle
     target, payload = annotation(root, path)

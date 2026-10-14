@@ -31,7 +31,6 @@ from __future__ import annotations
 import argparse
 import ast
 import importlib.util
-import os
 import re
 import subprocess
 import sys
@@ -74,14 +73,12 @@ def script_flags(script: Path) -> tuple[set[str] | None, str | None]:
     rather than a failure -- CI lints the docs without installing every extra.
     Any other nonzero exit is a genuine defect and fails.
     """
-    child_env = dict(os.environ)
-    child_env["PYTHONPATH"] = os.pathsep.join(filter(None, (str(ROOT), child_env.get("PYTHONPATH"))))
-    done = subprocess.run([sys.executable, str(script), "--help"], env=child_env,
+    done = subprocess.run([sys.executable, str(script), "--help"], cwd=ROOT,
                           capture_output=True, text=True)
     if done.returncode == 0:
         return set(re.findall(r"(--[a-z0-9][a-z0-9-]*)", done.stdout)), None
     missing = re.search(r"ModuleNotFoundError: No module named '([\w.]+)'", done.stderr)
-    if missing:
+    if missing and missing.group(1).split(".")[0] not in {"benchmarks", "clifford_qc", "paper_architecture"}:
         return None, f"optional dependency {missing.group(1)!r} not installed"
     detail = (done.stderr or done.stdout).strip().splitlines()
     return None, detail[-1] if detail else f"exit {done.returncode}"

@@ -9,6 +9,7 @@ import sys
 import pytest
 
 from benchmarks import check_summaries as summaries
+from benchmarks import check_docs as docs
 
 ROOT = Path(__file__).resolve().parents[1]
 
@@ -23,6 +24,32 @@ def test_documentation_gate_works_without_pythonpath():
     assert "Traceback" not in done.stderr
     assert "optional dependency 'clifford_qc' not installed" not in done.stdout
     assert "OK (" in done.stdout or "FAIL " in done.stdout
+
+
+def test_documented_help_does_not_get_an_injected_import_path(tmp_path, monkeypatch):
+    root = tmp_path / "repo"
+    scripts = root / "benchmarks"
+    scripts.mkdir(parents=True)
+    package = root / "paper_architecture"
+    package.mkdir()
+    (package / "__init__.py").write_text("VALUE = 1\n")
+    script = scripts / "run_probe.py"
+    script.write_text("import paper_architecture\nimport argparse\nargparse.ArgumentParser().parse_args()\n")
+    monkeypatch.setattr(docs, "ROOT", root)
+    monkeypatch.delenv("PYTHONPATH", raising=False)
+    flags, reason = docs.script_flags(script)
+    assert flags is None
+    assert "paper_architecture" in reason
+    assert not reason.startswith("optional dependency")
+
+
+@pytest.mark.parametrize("module", ["benchmarks", "clifford_qc", "paper_architecture"])
+def test_repository_import_failure_is_a_docs_defect(monkeypatch, module):
+    monkeypatch.setattr(docs.subprocess, "run", lambda *args, **kwargs: subprocess.CompletedProcess(
+        args[0], 1, "", f"ModuleNotFoundError: No module named '{module}'"))
+    flags, reason = docs.script_flags(Path("run_broken.py"))
+    assert flags is None
+    assert not reason.startswith("optional dependency")
 
 
 def config_fixture(tmp_path, monkeypatch):

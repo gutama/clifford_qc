@@ -399,7 +399,6 @@ def main(argv=None):
         if args.reference_request:
             contract.atomic_json(args.reference_output, reference_check(contract.read_json(args.reference_request)))
             return 0
-        history_kind(ROOT, archive=args.archive)
         config = contract.load_config()
         if not contract.RECORD.exists():
             print("OK: declaration intact; molecular policy record absent; no outcomes evaluated")

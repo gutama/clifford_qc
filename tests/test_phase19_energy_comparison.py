@@ -497,10 +497,17 @@ def test_execution_source_and_record_commit_order(tmp_path, monkeypatch):
     corrupted = deepcopy(record)
     corrupted["provenance"]["source_files"][0]["git_blob_sha1"] = "0" * 40
     assert checker.provenance_problems(corrupted, config, tmp_path)
+    corrupted = deepcopy(record)
+    corrupted["provenance"]["source_files"][0] = "not an object"
+    assert "execution source file set/order differs" in checker.provenance_problems(corrupted, config, tmp_path)
     (tmp_path / checker.SOURCES[0]).write_text("# changed execution source\n")
-    # Current checker code may evolve; the pinned execution bytes may not.
-    assert checker.provenance_problems(record, config, tmp_path) == []
+    assert any("current producer differs" in problem
+               for problem in checker.provenance_problems(record, config, tmp_path))
     (tmp_path / checker.SOURCES[0]).write_text("# toy execution source\n")
+    # Verification code can evolve while the execution's producer stays pinned.
+    (tmp_path / checker.SOURCES[1]).write_text("# improved checker\n")
+    assert checker.provenance_problems(record, config, tmp_path) == []
+    (tmp_path / checker.SOURCES[1]).write_text("# toy execution source\n")
     (tmp_path / "extra-record-change").write_text("must not share the first record commit")
     git("add", ".")
     git("commit", "--amend", "--no-edit")

@@ -8,6 +8,7 @@ import sys
 import pytest
 
 from benchmarks.archive_provenance import MANIFEST, binding, history_kind, verify_archive
+from benchmarks import archive_provenance
 
 
 def git(root, *args):
@@ -54,6 +55,25 @@ def test_archive_requires_explicit_mode_and_broken_git_never_skips(tmp_path):
     (tmp_path / ".git").write_text("gitdir: missing")
     with pytest.raises(ValueError, match="unavailable/incomplete"):
         history_kind(tmp_path, archive=True)
+
+
+@pytest.mark.parametrize("call", [1, 2])
+@pytest.mark.parametrize("error", [subprocess.TimeoutExpired("git", 10),
+                                   subprocess.CalledProcessError(128, "git")])
+def test_history_subprocess_failures_are_reportable(repository, monkeypatch, call, error):
+    original = subprocess.run
+    calls = 0
+
+    def failing(*args, **kwargs):
+        nonlocal calls
+        calls += 1
+        if calls == call:
+            raise error
+        return original(*args, **kwargs)
+
+    monkeypatch.setattr(archive_provenance.subprocess, "run", failing)
+    with pytest.raises(archive_provenance.HistoryError, match="Git history inspection failed"):
+        history_kind(repository)
 
 
 @pytest.fixture
@@ -107,11 +127,35 @@ def test_manifest_cannot_replace_recorded_source_bindings(archive_bundle, change
         verify(archive_bundle)
 
 
-def test_both_gates_explicitly_verify_exported_checkout(tmp_path):
+@pytest.fixture
+def exported_checkout(tmp_path):
+    from benchmarks import bank_policy_contract, phase19_structure
     root = Path(__file__).resolve().parents[1]
     exported = tmp_path / "exported"
-    shutil.copytree(root, exported, ignore=shutil.ignore_patterns(
-        ".git", ".venv", "__pycache__", ".pytest_cache", ".hypothesis"))
+    paths = set()
+    for directory in ("clifford_qc", "molecular", "benchmarks"):
+        paths.update(path.relative_to(root) for path in (root / directory).rglob("*.py")
+                     if "provenance" not in path.parts)
+    paths.update(path.relative_to(root) for path in (root / "benchmarks/configs").rglob("*.json"))
+    paths.update(Path(path) for path in phase19_structure.INPUTS)
+    config = bank_policy_contract.load_config()
+    paths.add(Path(config["environment_reference"]))
+    for system in config["systems"]:
+        paths.update(Path(system[key]["path"]) for key in ("source", "reference"))
+    manifest = json.loads((root / MANIFEST).read_text(encoding="utf-8"))
+    paths.add(Path(MANIFEST))
+    for record_path, entry in manifest["records"].items():
+        paths.update((Path(record_path), Path(entry["config"]["path"])))
+        paths.update(Path(item["snapshot"]) for item in entry["sources"].values())
+    for relative in paths:
+        target = exported / relative
+        target.parent.mkdir(parents=True, exist_ok=True)
+        shutil.copyfile(root / relative, target)
+    return exported
+
+
+def test_both_gates_explicitly_verify_exported_checkout(exported_checkout):
+    exported = exported_checkout
     for name in ("check_phase19_preregistration", "check_bank_policy_matrix"):
         script = exported / "benchmarks" / f"{name}.py"
         done = subprocess.run([sys.executable, str(script), "--archive"], cwd=exported,
@@ -122,3 +166,20 @@ def test_both_gates_explicitly_verify_exported_checkout(tmp_path):
         strict = subprocess.run([sys.executable, str(script), "--require-git"], cwd=exported,
                                 capture_output=True, text=True)
         assert strict.returncode != 0
+
+
+def test_archive_manifest_cannot_hide_wrong_declaration_binding(exported_checkout):
+    from benchmarks import phase19_structure
+    record_path = exported_checkout / phase19_structure.RECORD_PATH
+    record = json.loads(record_path.read_text(encoding="utf-8"))
+    record["declaration_sha256"] = "0" * 64
+    record_path.write_text(json.dumps(record), encoding="utf-8")
+    manifest_path = exported_checkout / MANIFEST
+    manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+    manifest["records"][phase19_structure.RECORD_PATH]["record_sha256"] = binding(record_path)["sha256"]
+    manifest_path.write_text(json.dumps(manifest), encoding="utf-8")
+    done = subprocess.run([sys.executable, str(exported_checkout / "benchmarks/check_phase19_preregistration.py"),
+                           "--archive"], cwd=exported_checkout, capture_output=True, text=True)
+    assert done.returncode == 1
+    assert "record does not bind this declaration" in done.stderr
+    assert "content bindings verified" not in done.stdout
