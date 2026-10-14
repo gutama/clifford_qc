@@ -212,6 +212,13 @@ Time evolution uses the same sign, `|psi(t)> = exp(-iHt)|psi(0)>`, with
 from `subspace.time_evolution.trotter_program` is a list of these rotors whose
 unitary equals `gates.trotter_unitary` / `gates.trotter2_unitary`.
 
+A product of rotors is generally not a single `R_P(theta)`. The Givens
+sequence of a compiled anticommuting clique (`measurement/cliques.py`) has
+generators `i A_1 A_k`, so each factor is `exp(theta A_1 A_k / 2)`. That is a
+simple rotor of the clique's own `Cl(m,0)` frame. Their product is a `Spin(m)`
+rotor that need not be simple (the exponential of one 2-blade) once `m >= 4`.
+`tests/test_clique_reference_obstruction.py` pins an `m = 4` double rotation.
+
 ## Dense matrix bridge
 
 The matrix backend is for validation and small-system exact targets, not the
