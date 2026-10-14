@@ -31,12 +31,15 @@ from __future__ import annotations
 import argparse
 import ast
 import importlib.util
+import os
 import re
 import subprocess
 import sys
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
+if str(ROOT) not in sys.path:
+    sys.path.insert(0, str(ROOT))
 DOC = ROOT / "REPRODUCING.md"
 BENCH = ROOT / "benchmarks"
 DATA = BENCH / "reference_results"
@@ -71,7 +74,9 @@ def script_flags(script: Path) -> tuple[set[str] | None, str | None]:
     rather than a failure -- CI lints the docs without installing every extra.
     Any other nonzero exit is a genuine defect and fails.
     """
-    done = subprocess.run([sys.executable, str(script), "--help"],
+    child_env = dict(os.environ)
+    child_env["PYTHONPATH"] = os.pathsep.join(filter(None, (str(ROOT), child_env.get("PYTHONPATH"))))
+    done = subprocess.run([sys.executable, str(script), "--help"], env=child_env,
                           capture_output=True, text=True)
     if done.returncode == 0:
         return set(re.findall(r"(--[a-z0-9][a-z0-9-]*)", done.stdout)), None

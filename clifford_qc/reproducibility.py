@@ -128,6 +128,9 @@ def stamp_record(record: dict[str, Any],
     """
     if not isinstance(record, dict):
         raise TypeError("record must be a mapping object")
+    if "evidence_schema" in record:
+        from .evidence import validate_evidence
+        validate_evidence(record)
     _guard_environment(allow_environment_migration)
     stamped = dict(record)
     stamped["provenance"] = (execution_provenance() if provenance is None

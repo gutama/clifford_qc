@@ -16,7 +16,8 @@ subject:
    without a layer assignment or a checker added without a declared class
    fails the paper gate rather than silently ageing a table.  Records without
    an evidence declaration are counted and exposed in the coverage table; the
-   current architecture does not reject them.
+   unchanged historical records remain grandfathered by digest; the independent
+   evidence gate requires a validated contract for new or changed JSON records.
 
 Run ``python paper_architecture/make_tables.py`` after any change to either.
 """
@@ -27,10 +28,13 @@ import hashlib
 import json
 import math
 import re
+import sys
 from pathlib import Path
 
 HERE = Path(__file__).resolve().parent
 ROOT = HERE.parent
+if str(ROOT) not in sys.path:
+    sys.path.insert(0, str(ROOT))
 TABLES = HERE / "tables"
 DATA = HERE / "data"
 
@@ -84,7 +88,7 @@ KERNEL_MODULES = (
 )
 IR_MODULES = ("ir.py", "qasm3.py", "fermion_mapping.py")
 EVIDENCE_MODULES = ("verify.py", "reproducibility.py", "record_environment.py",
-                    "capabilities.py")
+                    "capabilities.py", "evidence.py")
 ORCHESTRATION_MODULES = ("workflows.py", "prepared.py", "pipeline.py")
 SURFACE_MODULES = ("__init__.py",)
 
@@ -206,6 +210,11 @@ GATE_CLASSES: tuple[tuple[str, str, tuple[str, ...]], ...] = (
         "Documentation",
         "every documented command, flag, constant, and record still exists",
         ("check_docs",),
+    ),
+    (
+        "Evidence metadata",
+        "validates versioned per-quantity labels and digest-bound historical annotations; not scientific values",
+        ("check_evidence",),
     ),
     (
         "Cross-artifact",
@@ -501,7 +510,10 @@ def record_census() -> dict:
         if path.suffix != ".json":
             series.append(path.name)
             continue
-        payload = json.loads(path.read_text(encoding="utf-8"))
+        # Digest-bound sidecars disclose metadata additions while preserving
+        # the original measured files and their execution identities.
+        from benchmarks.evidence_metadata import evidence_view
+        payload = evidence_view(path, root=ROOT)
         form = _declaration_form(payload)
         forms[form].append(path.name)
         declarations[path.name] = _declaration_digest(payload)

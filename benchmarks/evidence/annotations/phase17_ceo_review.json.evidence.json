@@ -1,0 +1,12 @@
+{
+  "evidence": {
+    "trajectories": {
+      "scope": "Separately declared post-review dense-sector QE/CEO trajectories and observed optimizer/screening counts; no global optimization, finite-shot, or optimized-circuit claim.",
+      "tier": "exact_small_sector_simulation"
+    }
+  },
+  "evidence_schema": "clifford_qc.evidence.v1",
+  "record": "phase17_ceo_review.json",
+  "record_sha256": "9d445b4059f5b0840ea40d898a654aa1ebe0ccace8f8f0e2933b349e34e683f0",
+  "schema": "clifford_qc.evidence_annotation.v1"
+}

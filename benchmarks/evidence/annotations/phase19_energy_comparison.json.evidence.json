@@ -1,0 +1,24 @@
+{
+  "evidence": {
+    "circuit_probability_laws": {
+      "scope": "Exact circuit/reference laws and frozen fixed-Hartree-Fock energy estimand; no molecular ground-state accuracy claim.",
+      "tier": "exact_small_sector_simulation"
+    },
+    "classical_timings": {
+      "scope": "Observed local compilation and sampling wall times in this execution; not hardware runtime or portable speedup evidence.",
+      "tier": "classical_process_measurement"
+    },
+    "confidence_endpoints": {
+      "scope": "Stored seeded headline/audit samples and empirical-Bernstein confidence crossings on the three frozen banks; not asymptotic or hardware data.",
+      "tier": "finite_sample_empirical"
+    },
+    "device_prices": {
+      "scope": "Frozen device-card fidelity/routing/time assumptions; no calibrated hardware runtime.",
+      "tier": "illustrative_model"
+    }
+  },
+  "evidence_schema": "clifford_qc.evidence.v1",
+  "record": "phase19_energy_comparison.json",
+  "record_sha256": "e1d3852dabfabd1083f4d38285feb2c16c87bf5135972ed2f41a981bf8c7fe27",
+  "schema": "clifford_qc.evidence_annotation.v1"
+}

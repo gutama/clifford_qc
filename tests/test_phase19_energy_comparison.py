@@ -494,8 +494,12 @@ def test_execution_source_and_record_commit_order(tmp_path, monkeypatch):
     corrupted = deepcopy(record)
     corrupted["provenance"]["source_files"][0]["sha256"] = "0" * 64
     assert checker.provenance_problems(corrupted, config, tmp_path)
+    corrupted = deepcopy(record)
+    corrupted["provenance"]["source_files"][0]["git_blob_sha1"] = "0" * 40
+    assert checker.provenance_problems(corrupted, config, tmp_path)
     (tmp_path / checker.SOURCES[0]).write_text("# changed execution source\n")
-    assert checker.provenance_problems(record, config, tmp_path)
+    # Current checker code may evolve; the pinned execution bytes may not.
+    assert checker.provenance_problems(record, config, tmp_path) == []
     (tmp_path / checker.SOURCES[0]).write_text("# toy execution source\n")
     (tmp_path / "extra-record-change").write_text("must not share the first record commit")
     git("add", ".")

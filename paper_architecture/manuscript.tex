@@ -639,8 +639,9 @@ constructor-validated values, as the record census below documents.
 Table~\ref{tab:evidence} measures the current coverage. Of \cqcJsonRecords{} committed JSON records,
 \cqcRecordsLabelled{} declare a single top-level evidence tier, drawn from
 \cqcDistinctTiers{} distinct tier strings; \cqcRecordsPerQuantity{} declare a
-per-quantity mapping instead, because their producers report several quantities
-at different tiers in one file; \cqcRecordsNested{} nest the tier inside a
+per-quantity mapping, in the record or a validated digest-bound annotation,
+because the comparison reports quantities at different tiers;
+\cqcRecordsNested{} nest the tier inside a
 sub-object; \cqcRecordsRoleWithNested{} declare an evidence \emph{role} at the
 top level with tiers inside sub-objects; \cqcRecordsRoleOnly{} carry a role with
 no tier at all; and \cqcRecordsUnlabelled{} carry no record-level evidence field
@@ -648,16 +649,18 @@ whatsoever.  A further \cqcSeriesFiles{} non-JSON series files --- line-delimite
 JSON, CSV and Markdown summaries --- are counted but not inspected for per-row
 declarations by this census.
 
-The selection vocabulary is a
-closed enumeration in code, but measurement and subspace result types carry
-their evidence labels as strings and their constructors do not validate
-membership.  Those paths therefore follow a convention; they do not enforce the
-vocabulary.  Newer records preserve evidence at the top level, but the broader
-record-label vocabulary is not normalized, and it is not enforced by a schema
-over the record set, so nothing today rejects a new record that omits the field.
-The census is recomputed whenever this manuscript is rebuilt, so the number
-cannot silently improve or decay --- but a census is a measurement, not a gate.
-A common validated record schema would make this convention enforceable.
+The selection vocabulary is a closed enumeration in code. Historical result
+types retain their original string labels and constructors; they are not
+retroactively converted to a new vocabulary. A versioned evidence contract now
+validates per-quantity tiers and scope statements at the opt-in producer stamp
+and in an automatic metadata gate for new or changed JSON records. Only the
+byte-identical historical set is grandfathered by a frozen digest manifest.
+The completed energy and CEO comparisons have separately disclosed,
+digest-bound sidecars: the census reads these validated mappings without
+changing the original record bytes or execution identities. Per-quantity
+coverage therefore includes both in-record declarations and these annotations.
+Scientific values and the truth of each claim still require their independent
+record gates; enumerating a tier does not establish it.
 
 \subsection{Device cost and admissibility}
 
@@ -1112,12 +1115,13 @@ that no rung of this screen admitted all four arms.  The
 mapping-versus-instance refinement establishes nothing in the converse
 direction, by its own recorded asymmetry.
 
-\paragraph{Evidence validation is incomplete.} Device ledgers explicitly
+\paragraph{Evidence validation has historical limits.} Device ledgers explicitly
 represent inadmissibility, and storage reports state the allocations they cover.
-Evidence labels are not uniformly validated at the record boundary:
-\cqcRecordsUnlabelled{} records carry no record-level evidence field. The census
-reports this gap but does not prevent it. Downstream code must still honor each
-result's status and assumptions.
+\cqcRecordsUnlabelled{} unchanged historical records still lack an evidence
+declaration. New or changed JSON records require the versioned contract; the
+historical exceptions remain visible in the census. A metadata validator does
+not verify physical results or device calibration. Downstream code must still
+honor each result's status and assumptions.
 
 \paragraph{Simulation and interoperability limits.} Sparse operator support can
 grow rapidly, and dense statevector methods retain exponential storage cost.

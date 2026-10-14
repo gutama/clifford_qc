@@ -7,8 +7,9 @@ record is regenerated, and a summary that silently disagrees with its own
 JSONL is the same defect class as a manuscript table transcribed by hand.
 
 Which records are *required* to have summaries is declared, not inferred from
-what happens to be on disk: every config in ``benchmarks/configs/`` produces a
-record of the same stem, and that record must carry both companions. Inferring
+what happens to be on disk: legacy per-seed sweep configs and the explicitly
+owned ladder schema produce JSONL records with both companions. Bespoke JSON
+records and result-free declarations do not. Inferring
 the requirement from existing files cannot distinguish "this record has no
 summary by design" from "someone deleted the summary", so a deletion would
 pass silently.
@@ -27,6 +28,8 @@ Exits nonzero on any mismatch, naming the command that fixes it.
 
 from __future__ import annotations
 
+import json
+import re
 import subprocess
 import sys
 from pathlib import Path
@@ -46,10 +49,35 @@ SUMMARIZERS = {"acase_ladder": ROOT / "benchmarks" / "summarize_ladder.py"}
 def required_stems() -> set[str]:
     """Record stems that must have both summary companions.
 
-    Derived from the benchmark configs so the manifest maintains itself: add a
-    config, and its record's summaries become required automatically.
+    Classify declarations, never existing result files. Malformed sweep
+    declarations must not silently remove their summaries from the required set.
     """
-    return {p.stem for p in CONFIGS.glob("*.json")}
+    required = set()
+    for path in sorted(CONFIGS.glob("*.json")):
+        config = json.loads(path.read_text())
+        if not isinstance(config, dict):
+            raise ValueError(f"{path.name}: config must be an object")
+        schema = config.get("schema")
+        if "schema" in config and (not isinstance(schema, str) or not schema):
+            raise ValueError(f"{path.name}: schema must be a nonempty string")
+        if path.stem in SUMMARIZERS:
+            if (not isinstance(config.get("methods"), dict) or not config["methods"]
+                    or not isinstance(config.get("ladder"), list) or not config["ladder"]):
+                raise ValueError(f"{path.name}: malformed ladder declaration")
+        elif schema is None or schema == "clifford_qc.benchmark_sweep_config.v1":
+            if (not isinstance(config.get("seeds"), int) or isinstance(config["seeds"], bool)
+                    or config["seeds"] < 1
+                    or not isinstance(config.get("models"), list) or not config["models"]
+                    or not isinstance(config.get("methods"), dict) or not config["methods"]):
+                raise ValueError(f"{path.name}: malformed per-seed sweep declaration")
+        else:
+            if (not re.fullmatch(r"clifford_qc\.[a-z0-9_]+\.v\d+", schema)
+                    or schema.startswith("clifford_qc.benchmark_sweep_config.")
+                    or {"seeds", "models"}.issubset(config)):
+                raise ValueError(f"{path.name}: unrecognized per-seed/bespoke declaration schema")
+            continue  # versioned bespoke JSON records and result-free configs
+        required.add(path.stem)
+    return required
 
 
 def summarizer_for(record: Path) -> Path:
@@ -80,10 +108,16 @@ def regenerate(record: Path) -> tuple[str, str, str | None]:
 
 def main() -> int:
     problems: list[str] = []
-    required = required_stems()
+    try:
+        required = required_stems()
+    except (OSError, ValueError) as exc:
+        print(f"FAIL config classification: {exc}")
+        return 1
     rel = lambda p: p.relative_to(ROOT)
 
-    stems = sorted(required | {p.stem for p in DATA.glob("*.jsonl")})
+    companions = {p.stem.removesuffix("_summary") for p in DATA.glob("*_summary.*")
+                  if p.suffix in {".csv", ".md"}}
+    stems = sorted(required | companions | {p.stem for p in DATA.glob("*.jsonl")})
     checked = 0
     for stem in stems:
         record = DATA / f"{stem}.jsonl"
@@ -92,8 +126,9 @@ def main() -> int:
         is_required = stem in required
 
         if not record.exists():
-            if is_required:
-                problems.append(f"{rel(record)} is missing (a config declares it)")
+            if is_required or stem in companions:
+                why = "a config declares it" if is_required else "a summary companion declares it"
+                problems.append(f"{rel(record)} is missing ({why})")
             continue
 
         present = [p for p in (md_path, csv_path) if p.exists()]

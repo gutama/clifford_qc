@@ -9,6 +9,7 @@ order. It performs no measurement, state expectation or device-cost search.
 
 from __future__ import annotations
 
+import argparse
 import json
 import math
 import re
@@ -21,6 +22,7 @@ if str(ROOT) not in sys.path:  # pragma: no cover - script execution
     sys.path.insert(0, str(ROOT))
 
 from benchmarks import phase19_structure as structure
+from benchmarks.archive_provenance import history_kind, verify_archive, archive_notice
 
 CONFIG = ROOT / structure.CONFIG_PATH
 EXPECTED_CONFIG_SHA256 = "01e8b91fff879ed228c7264cabec3d7e49adf6e9e6da200a4132872b5ef0a9c7"
@@ -171,7 +173,7 @@ def static_problems(config: dict, root: Path = ROOT) -> list[str]:
     return problems
 
 
-def temporal_problems(config: dict, root: Path = ROOT) -> list[str]:
+def temporal_problems(config: dict, root: Path = ROOT, *, archive: bool = False) -> list[str]:
     """A future record must name an execution strictly between declaration and record.
 
     Missing/shallow history is a failure when a record exists, not a silent skip.
@@ -186,6 +188,14 @@ def temporal_problems(config: dict, root: Path = ROOT) -> list[str]:
                               capture_output=True, check=True).stdout.strip()
 
     try:
+        if history_kind(root, archive=archive) == "archive":
+            record = read_json(record_path, result_free=False)
+            provenance = record["provenance"]
+            sources = {item["path"]: {key: item[key] for key in ("sha256", "git_blob_sha1")}
+                       for item in provenance["source_files"]}
+            verify_archive(root, structure.RECORD_PATH, structure.CONFIG_PATH,
+                           provenance["git_commit"], sources)
+            return []
         if git("rev-parse", "--is-shallow-repository") != "false":
             return ["record chronology requires full git history"]
         record = read_json(record_path, result_free=False)
@@ -213,15 +223,23 @@ def temporal_problems(config: dict, root: Path = ROOT) -> list[str]:
                                 object_pairs_hook=_pairs, parse_constant=_reject_constant)
             if structure.canonical_digest(frozen) != EXPECTED_CONFIG_SHA256:
                 return [f"{name} commit did not contain the frozen declaration"]
-    except (OSError, ValueError, subprocess.CalledProcessError, AttributeError) as exc:
+    except (OSError, ValueError, subprocess.CalledProcessError, AttributeError, KeyError, TypeError) as exc:
+        if str(exc) == "record chronology requires full git history":
+            return [str(exc)]
         return [f"record chronology failed: {exc}"]
     return []
 
 
-def main() -> int:
+def main(argv=None) -> int:
+    parser = argparse.ArgumentParser(description=__doc__)
+    mode = parser.add_mutually_exclusive_group()
+    mode.add_argument("--archive", action="store_true", help="verify packaged bindings; chronology remains unverified")
+    mode.add_argument("--require-git", action="store_true", help="require full Git ancestry (the default)")
+    args = parser.parse_args(argv)
     try:
+        history_kind(ROOT, archive=args.archive)
         config = load_config()
-        problems = static_problems(config) + temporal_problems(config)
+        problems = static_problems(config) + temporal_problems(config, archive=args.archive)
     except (OSError, ValueError, KeyError, TypeError) as exc:
         problems = [str(exc)]
     if problems:
@@ -229,6 +247,8 @@ def main() -> int:
         for problem in problems:
             print(f"  - {problem}", file=sys.stderr)
         return 1
+    if args.archive:
+        archive_notice()
     print("OK: frozen Phase 19 inputs, covers, readouts, resources and schedules; no outcomes evaluated")
     return 0
 

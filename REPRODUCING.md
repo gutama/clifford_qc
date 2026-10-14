@@ -62,6 +62,7 @@ python paper_architecture/check_manuscript.py  # the above, plus: no result nume
 python benchmarks/check_summaries.py  # *_summary.{csv,md} vs their JSONL
 python benchmarks/check_docs.py       # this file vs the code it describes
 python benchmarks/check_phase_status.py  # PHASE_STATUS.json vs PLAN/README
+python benchmarks/check_evidence.py  # per-quantity labels and bound historical annotations
 ```
 
 These documentation gates exist because prose drifted while the numbers stayed
@@ -77,6 +78,55 @@ annotation must agree with the generated summary. Phase 19's completed lever-1
 text cannot retain its obsolete pre-execution status; pending lever-2 work and
 historical percentages elsewhere are outside that check. The gate validates
 both tables and does not regenerate them.
+
+The direct documentation command resolves the repository package without a
+user-supplied `PYTHONPATH`, including script-help subprocesses. Optional extras
+remain explicit skips. The summary gate classifies declared per-seed sweep and
+ladder schemas rather than assuming every JSON config produces JSONL; the four
+owned sweeps retain required JSONL/CSV/Markdown companions. Malformed sweep
+configs, deleted records/companions, orphan companions and stale summaries fail.
+Both summaries and evidence metadata are automatic CI gates.
+
+### Evidence metadata without rewriting historical results
+
+`clifford_qc.evidence.declare_evidence(record, quantities)` adds the
+`clifford_qc.evidence.v1` contract. Each quantity carries an enumerated `tier`
+and a nonempty `scope`; `stamp_record` validates this contract when opted in.
+The independent evidence gate requires it on new or changed JSON records.
+The unchanged historical set is grandfathered by the frozen
+`benchmarks/evidence/legacy_records.json` digest manifest. This checks evidence
+metadata, not the scientific values, which retain their own independent gates.
+
+The original `phase19_energy_comparison.json`, `phase17_ceo.json` and
+`phase17_ceo_review.json` remain byte-identical. Their digest-bound annotations
+in `benchmarks/evidence/annotations/` distinguish exact simulation, finite-sample
+endpoints and illustrative prices; no top-level field is silently inserted into
+a historical record. The architecture census validates and reads these maps.
+An invalid annotation, unknown tier or changed record binding fails the gate.
+
+### Full history versus explicit source-archive verification
+
+The default and `--require-git` modes retain full Git ancestry checks. Linked
+worktrees are supported; shallow, incomplete and broken worktrees cannot use
+archive mode as a fallback. An exported tree has no commit history, so select
+archive mode explicitly:
+
+```bash
+python benchmarks/check_phase19_preregistration.py --archive
+python benchmarks/check_bank_policy_matrix.py --archive
+```
+
+Run these commands inside an exported tree, not a Git worktree. They validate
+the same frozen inputs and structural/value contracts plus the record/config
+bindings in `benchmarks/provenance/archive_manifest.json`. Packaged historical
+execution sources under `benchmarks/provenance/execution_sources/` are inert
+data; SHA-256 and Git-blob SHA-1 checks bind their bytes to the original record.
+Current source files may have evolved. The output explicitly states
+`commit chronology UNVERIFIED`; content consistency does not prove archive
+authorship or preregistration ancestry. CI uses the full-history path.
+The independent Phase 19 sampled-result replay still requires Git history and
+the record's numerical environment; its source checks read the recorded commit,
+not the current checker bytes. No frozen campaign is rerun to add metadata.
 
 Building the manuscript itself needs revtex4-2 and the packages the preamble
 loads; on Debian/Ubuntu:
@@ -122,7 +172,7 @@ No figure or table value in the manuscript is transcribed by hand, and
 ```bash
 python -m venv .venv && source .venv/bin/activate
 pip install -e .[test,research,stim]       # automatic CI extras
-pytest                                      # 3167 passed, 11 skipped
+pytest                                      # 3211 passed, 11 skipped
 ```
 
 This is the automatic CI dependency set; record gates additionally pin NumPy
@@ -138,7 +188,7 @@ the remaining `11 - 6 = 5` skips are per-test and *are* collected:
 
 ```text
 collected == passed + (skipped - files dropped at collection)
-3151      == 3146   + (11      -   6)
+3216      == 3211   + (11      -   6)
 ```
 
 Both sides are computed from the tree, so a drift in either quoted number

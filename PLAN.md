@@ -401,10 +401,10 @@ phase and change no implementation fraction or measured verdict.
 | Review item | Current assessment | Disposition |
 |---|---|---|
 | B1: narrative status drift | Phase 19's row was already repaired on main; Phase 17's row retained 75% despite a ledger fraction of 0.875 | Phase 17's row is corrected; the gate now validates detailed rows, rounding and Phase 19's completed lever-1 scope |
-| B2: summary requirements | `check_summaries.py` treats every JSON config as a JSONL sweep and fails on the current checkout | Fix declared schema/output classification, then enable the gate in CI |
-| B3: evidence declarations | Phase 19 has no explicit evidence declaration; Phase 17's records carry nested labels, not a common top-level contract | Add validated per-quantity labels without changing historical measurements or provenance |
-| B4: direct checker invocation | With `PYTHONPATH` unset, `check_docs.py` raises `ModuleNotFoundError` at its package-submodule probe | Make the documented direct invocation resolve the repository package |
-| B5: archive provenance | The Phase 19 and storage-policy gates require Git history; absence currently fails rather than proving chronology | Define a separately labelled archive verification mode while retaining strict CI ancestry checks |
+| B2: summary requirements | The old checker treated every JSON config as a JSONL sweep | Schema-based summary ownership now passes and runs in CI, including orphan-companion/deletion checks |
+| B3: evidence declarations | Historical energy/CEO records lacked a common top-level contract | Validated, digest-bound annotations now feed the gate and census; new/changed JSON records require the v1 contract |
+| B4: direct checker invocation | The old package probe failed with `PYTHONPATH` unset | Root resolution now covers the gate and its script-help subprocesses; missing optional extras remain explicit |
+| B5: archive provenance | Git chronology cannot be established from an exported tree | Both CLIs now offer explicit content-only archive verification with packaged historical sources; strict Git checks remain the default |
 | B6: architecture/API | Chemistry imports pool definitions from algorithms; mutable `PauliSum.terms` is an API design question, not by itself a correctness defect | Remove the import-time edge with compatibility; assess immutability separately |
 | GA-1 / GA-2: sparse exterior operations | `codes_of_grade` scans `4**n`; active-support Plücker candidates and contractions avoid that enumeration | Implement with explicit product conventions and independent equivalence checks |
 | GA-3: determinant-reference obstruction | Exact no-go holds; a positive expectation gap does not always exceed the numerical tolerance | Record the scoped proof in §3.6(iv); do not build transport before eligibility is established |
@@ -423,11 +423,12 @@ work, even where this plan already corrects the prose.
   duplicate rows/tables, valid exact/rounded displays, malformed headings, and
   the completed lever-1 versus pending lever-2 boundary. This checker validates;
   it does not regenerate either table.
-- [ ] **B4 — standalone documentation gate.** Establish `ROOT` on `sys.path`
+- [x] **B4 — standalone documentation gate.** Established `ROOT` on `sys.path`
   before package-submodule discovery in `benchmarks/check_docs.py`. Verify the
   documented direct command with `PYTHONPATH` unset from a clean checkout;
-  missing optional extras must remain explicitly reported rather than concealed.
-- [ ] **B2 — summary schema and CI.** Require JSONL/CSV/Markdown companions from
+  missing optional extras remain explicitly reported. Help subprocesses receive
+  the same repository path, preserving an existing user `PYTHONPATH` suffix.
+- [x] **B2 — summary schema and CI.** Require JSONL/CSV/Markdown companions from
   the declared per-seed sweep schema and the explicitly owned ladder schema,
   not from the existence of a record on disk. Classify result-free declarations
   and bespoke JSON result schemas separately; malformed sweep declarations must
@@ -436,7 +437,7 @@ work, even where this plan already corrects the prose.
   `check_summaries.py` to `.github/workflows/ci.yml`, update the reproduction
   instructions, and regenerate the architecture census/tables with
   `paper_architecture/make_tables.py`; validate with `check_manuscript.py`.
-- [ ] **B3 — evidence contract.** Standardize evidence labels in producers and
+- [x] **B3 — evidence contract.** Standardize evidence labels in producers and
   independent checkers. For Phase 19 distinguish exact circuit/probability laws,
   finite-sample confidence endpoints, and illustrative device-card accounting;
   for Phase 17 retain exact small-sector simulation and its resource boundary.
@@ -446,7 +447,12 @@ work, even where this plan already corrects the prose.
   file does not satisfy this task. Never rerun a frozen campaign merely to label
   it or silently revise its config. Refresh affected derived tables and correct
   the manuscript's blanket statement about newer top-level labels.
-- [ ] **B5 — explicit archive verification.** Detect a Git worktree with
+  `clifford_qc/evidence.py` supplies the opt-in producer contract, validated by
+  `stamp_record`; `check_evidence.py` enforces it on new/changed JSON records in
+  CI. A frozen digest manifest grandfathers only the unchanged historical set.
+  The three energy/CEO sidecars are read and validated by both the gate and
+  architecture census; no historical result or declaration was rewritten.
+- [x] **B5 — explicit archive verification.** Detect a Git worktree with
   `git rev-parse`, including linked worktrees whose `.git` is a file; do not
   mistake an incomplete/shallow repository for a source archive. CI must require
   full history and strict declaration/execution/result ancestry. An explicitly
@@ -455,6 +461,13 @@ work, even where this plan already corrects the prose.
   Historical execution sources must be packaged or bound by an archive manifest
   when current files have evolved. Check archive, full clone, shallow clone,
   linked worktree and tampered-input cases; update both gate CLIs and docs.
+  The default/`--require-git` path verifies full ancestry; `--archive` refuses
+  Git worktrees (including shallow or broken ones), verifies config/record and
+  packaged execution-source bindings, and labels chronology `UNVERIFIED`.
+  Archive checks establish content consistency, not archive authorship.
+  Historical execution snapshots remain inert data. The energy result checker
+  now checks both source digests at the recorded commit, allowing current
+  verification code to evolve without altering the original execution identity.
 
 **Second: sparse GA kernel and architecture.** These are maintenance extensions
 to Phase 0's API, not a new solver or an established quantum resource advantage.
@@ -530,8 +543,8 @@ to Phase 0's API, not a new solver or an established quantum resource advantage.
 The direct summary and documentation commands above were reproduced as failing
 on the reviewed checkout; the original phase-status gate passed despite the
 stale detailed Phase 17 row. These are baseline findings from the review.
-B1's detailed-row checks have since shipped; the other unchecked checker and
-kernel implementations remain pending.
+B1–B5's maintenance checks have since shipped. The unchecked kernel and research
+follow-ups remain pending.
 
 ## 3. Conceptual layer (geometric-algebra contract)
 
@@ -4916,10 +4929,8 @@ covariance-aware allocation — all already reported in P2 (§1.2(1)–(2)).
 
 ## 13. Execution order
 
-**Reviewed follow-up priority (2026-10-14).** §2.6's detailed status validation
-(B1) is complete. Next complete the maintenance gate repairs: standalone doc
-invocation, summary classification/CI, evidence contracts, and explicit archive verification. Then
-implement the active-support blade check and convention-tested contractions,
+**Reviewed follow-up priority (2026-10-14).** §2.6's maintenance gates B1–B5 are
+complete. Next implement the active-support blade check and convention-tested contractions,
 followed by the import-graph cleanup. Validate §3.6(iv)'s boundary without
 building a determinant-reference transport engine. The remaining research
 deliverables are a separately declared Phase 15 certifying-basis allocation
