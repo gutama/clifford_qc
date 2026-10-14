@@ -3,7 +3,9 @@
 ``PHASE_STATUS.json`` is the single source for implementation progress.  This
 gate validates its vocabulary, 0--19 denominator, score arithmetic and evidence
 paths, then requires ``PLAN.md`` and ``README.md`` to carry the same generated
-summary block.
+summary block.  The detailed PLAN rows for Phases 15--19 must also agree with
+the ledger, including exact or whole-percent progress and Phase 19's completed
+lever-1 scope; unrelated historical prose is not treated as a status row.
 
     python benchmarks/check_phase_status.py
 
@@ -14,6 +16,7 @@ from __future__ import annotations
 
 import json
 import math
+import re
 import sys
 from pathlib import Path
 
@@ -23,6 +26,12 @@ DOCS = (ROOT / "PLAN.md", ROOT / "README.md")
 START = "<!-- PHASE-STATUS-SUMMARY:START -->"
 END = "<!-- PHASE-STATUS-SUMMARY:END -->"
 EXPECTED_IDS = tuple(str(i) for i in range(20))
+DETAILED_PHASE_IDS = ("15", "16", "17", "18", "19")
+DETAILED_HEADER = "| phase | subject | status |"
+DETAILED_STATUS = re.compile(
+    r"(partially implemented|partial|complete|done|open|proposed)"
+    r"(?: \((\d+(?:\.\d+)?)%(?:; rounded to (\d+)% above)?\))?"
+)
 NUMBERED_STATUSES = {"complete", "partial", "open", "proposed"}
 ADJUNCT_STATUSES = NUMBERED_STATUSES | {
     "retired",
@@ -164,7 +173,7 @@ def render_summary(data: dict) -> str:
             f"{format_points(core_points)} / {len(core)} |"
         ),
     ]
-    for phase_id in ("15", "16", "17", "18", "19"):
+    for phase_id in DETAILED_PHASE_IDS:
         row = phases[phase_id]
         percent = 100.0 * row["implementation_fraction"]
         rows.append(
@@ -204,6 +213,76 @@ def summary_block(text: str) -> str | None:
     return text[start:end]
 
 
+def check_detailed_rows(text: str, data: dict) -> list[str]:
+    """Validate the current narrative table, not percentages elsewhere in PLAN.
+
+    The first bold span is the implementation heading. Scientific outcomes and
+    conditional adjuncts follow it and are not additional progress declarations.
+    Whole-percent displays use the same rounding as the generated summary.
+    """
+    lines = text.splitlines()
+    headers = [index for index, line in enumerate(lines) if line.strip() == DETAILED_HEADER]
+    if len(headers) != 1:
+        return ["PLAN.md: missing or duplicate detailed phase table"]
+    rows: dict[str, list[str]] = {phase_id: [] for phase_id in DETAILED_PHASE_IDS}
+    for line in lines[headers[0] + 1:]:
+        if not line.strip().startswith("|"):
+            break
+        cells = line.strip().strip("|").split("|", 2)
+        if len(cells) == 3 and cells[0].strip() in rows:
+            rows[cells[0].strip()].append(cells[2].strip())
+
+    phases = {row["id"]: row for row in data["numbered_phases"]}
+    problems: list[str] = []
+    for phase_id, entries in rows.items():
+        owner = f"PLAN.md: detailed phase {phase_id}"
+        if len(entries) != 1:
+            problems.append(f"{owner}: expected one row, found {len(entries)}")
+            continue
+        heading = re.match(r"\*\*(.*?)\*\*", entries[0])
+        progress = DETAILED_STATUS.fullmatch(heading[1]) if heading else None
+        if progress is None:
+            problems.append(f"{owner}: missing or malformed implementation heading")
+            continue
+        label, displayed, rounded = progress.groups()
+        lifecycle = {"partially implemented": "partial", "done": "complete"}.get(label, label)
+        expected = phases[phase_id]
+        if lifecycle != expected["status"]:
+            problems.append(
+                f"{owner}: lifecycle {lifecycle!r} differs from ledger {expected['status']!r}"
+            )
+        if displayed is None:
+            if lifecycle == "partial":
+                problems.append(f"{owner}: partial implementation requires a percentage")
+                continue
+            displayed = "100" if lifecycle == "complete" else "0"
+        percent = 100.0 * expected["implementation_fraction"]
+        rounded_percent = float(f"{percent:.0f}")
+        if not any(math.isclose(float(displayed), value, rel_tol=0.0, abs_tol=1e-12)
+                   for value in (percent, rounded_percent)):
+            problems.append(
+                f"{owner}: implementation {displayed}% differs from ledger {percent:g}%"
+            )
+        if rounded is not None and float(rounded) != rounded_percent:
+            problems.append(f"{owner}: rounding annotation differs from {rounded_percent:g}%")
+
+        if phase_id == "19" and expected["status"] == "complete":
+            # Completion belongs to lever 1. A later lever-2 statement may
+            # legitimately say it has no producer/result, so stop at that scope.
+            lever1 = re.split(r"\blever[ -]*2\b", entries[0], maxsplit=1,
+                              flags=re.IGNORECASE)[0].casefold()
+            for phrase in (
+                "no sampled comparison, producer or record ships yet",
+                "no sampled comparison ships yet",
+                "no sampled result ships yet",
+                "no sampled record ships yet",
+                "preregistered, not run",
+            ):
+                if phrase in lever1:
+                    problems.append(f"{owner}: stale completed-scope phrase: {phrase!r}")
+    return problems
+
+
 def check_docs(data: dict) -> list[str]:
     problems: list[str] = []
     expected = render_summary(data)
@@ -230,6 +309,8 @@ def check_docs(data: dict) -> list[str]:
             problems.append(f"{path.name}: missing or duplicate phase-status summary markers")
         elif actual != expected:
             problems.append(f"{path.name}: generated phase-status summary drifted")
+        if path.name == "PLAN.md":
+            problems.extend(check_detailed_rows(text, data))
         for phrase in forbidden[path.name]:
             if phrase in text:
                 problems.append(f"{path.name}: stale status phrase remains: {phrase!r}")

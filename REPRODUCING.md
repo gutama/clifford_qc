@@ -70,7 +70,13 @@ script, every flag is accepted, the delta/eps table matches the code, and no
 benchmark or committed record is left undocumented. `check_phase_status.py`
 separately validates the lifecycle vocabulary, numbered 0–19 denominator,
 implementation-score arithmetic, evidence paths, and the generated summary
-blocks in `PLAN.md` and `README.md`.
+blocks in `PLAN.md` and `README.md`. It also validates PLAN's detailed rows for
+Phases 15–19: each must occur once, its initial bold lifecycle and exact or
+whole-percent implementation must match the ledger, and an explicit rounding
+annotation must agree with the generated summary. Phase 19's completed lever-1
+text cannot retain its obsolete pre-execution status; pending lever-2 work and
+historical percentages elsewhere are outside that check. The gate validates
+both tables and does not regenerate them.
 
 Building the manuscript itself needs revtex4-2 and the packages the preamble
 loads; on Debian/Ubuntu:
@@ -116,7 +122,7 @@ No figure or table value in the manuscript is transcribed by hand, and
 ```bash
 python -m venv .venv && source .venv/bin/activate
 pip install -e .[test,research,stim]       # automatic CI extras
-pytest                                      # 3146 passed, 11 skipped
+pytest                                      # 3167 passed, 11 skipped
 ```
 
 This is the automatic CI dependency set; record gates additionally pin NumPy

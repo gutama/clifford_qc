@@ -400,7 +400,7 @@ phase and change no implementation fraction or measured verdict.
 
 | Review item | Current assessment | Disposition |
 |---|---|---|
-| B1: narrative status drift | Phase 19's row was already repaired on main; Phase 17's row retained 75% despite a ledger fraction of 0.875 | Phase 17's row is corrected here; validation of detailed rows remains open |
+| B1: narrative status drift | Phase 19's row was already repaired on main; Phase 17's row retained 75% despite a ledger fraction of 0.875 | Phase 17's row is corrected; the gate now validates detailed rows, rounding and Phase 19's completed lever-1 scope |
 | B2: summary requirements | `check_summaries.py` treats every JSON config as a JSONL sweep and fails on the current checkout | Fix declared schema/output classification, then enable the gate in CI |
 | B3: evidence declarations | Phase 19 has no explicit evidence declaration; Phase 17's records carry nested labels, not a common top-level contract | Add validated per-quantity labels without changing historical measurements or provenance |
 | B4: direct checker invocation | With `PYTHONPATH` unset, `check_docs.py` raises `ModuleNotFoundError` at its package-submodule probe | Make the documented direct invocation resolve the repository package |
@@ -410,16 +410,19 @@ phase and change no implementation fraction or measured verdict.
 | GA-3: determinant-reference obstruction | Exact no-go holds; a positive expectation gap does not always exceed the numerical tolerance | Record the scoped proof in §3.6(iv); do not build transport before eligibility is established |
 | Research follow-ups | The exact CEO comparison is complete; MORE-ADAPT and a new certifying-basis allocation design remain open | Preserve Phase 17 and Phase 15 boundaries below |
 
-**First: restore maintenance gates.** Each checkbox below is pending code work,
-even where this plan already corrects the prose.
+**First: restore maintenance gates.** Unchecked items below remain pending code
+work, even where this plan already corrects the prose.
 
-- [ ] **B1 — detailed ledger consistency.** Extend
+- [x] **B1 — detailed ledger consistency.** Extended
   `benchmarks/check_phase_status.py` to compare the current detailed rows for
   Phases 15–19 with `PHASE_STATUS.json`, including Phase 17's documented rounding
   and Phase 19's completed lever-1 scope. Validate by phase/row rather than
   globally banning a percentage that could be valid elsewhere. Include drift
   fixtures where the generated summary is correct but the detailed row is stale.
-  This checker validates; it does not currently regenerate either table.
+  `tests/test_phase_status.py` covers stale lifecycles/fractions, missing and
+  duplicate rows/tables, valid exact/rounded displays, malformed headings, and
+  the completed lever-1 versus pending lever-2 boundary. This checker validates;
+  it does not regenerate either table.
 - [ ] **B4 — standalone documentation gate.** Establish `ROOT` on `sys.path`
   before package-submodule discovery in `benchmarks/check_docs.py`. Verify the
   documented direct command with `PYTHONPATH` unset from a clean checkout;
@@ -525,9 +528,10 @@ to Phase 0's API, not a new solver or an established quantum resource advantage.
   separate from a scoped scientific outcome and its decision record.
 
 The direct summary and documentation commands above were reproduced as failing
-on the reviewed checkout; the existing phase-status gate passed despite the
-stale detailed Phase 17 row. These are baseline findings. This integration
-changes the plan, not the pending checker or kernel implementations.
+on the reviewed checkout; the original phase-status gate passed despite the
+stale detailed Phase 17 row. These are baseline findings from the review.
+B1's detailed-row checks have since shipped; the other unchecked checker and
+kernel implementations remain pending.
 
 ## 3. Conceptual layer (geometric-algebra contract)
 
@@ -4912,9 +4916,9 @@ covariance-aware allocation — all already reported in P2 (§1.2(1)–(2)).
 
 ## 13. Execution order
 
-**Reviewed follow-up priority (2026-10-14).** Complete §2.6's maintenance gate
-repairs first: detailed status validation, standalone doc invocation, summary
-classification/CI, evidence contracts, and explicit archive verification. Then
+**Reviewed follow-up priority (2026-10-14).** §2.6's detailed status validation
+(B1) is complete. Next complete the maintenance gate repairs: standalone doc
+invocation, summary classification/CI, evidence contracts, and explicit archive verification. Then
 implement the active-support blade check and convention-tested contractions,
 followed by the import-graph cleanup. Validate §3.6(iv)'s boundary without
 building a determinant-reference transport engine. The remaining research
