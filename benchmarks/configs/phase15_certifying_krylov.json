@@ -1,0 +1,589 @@
+{
+ "schema": "clifford_qc.phase15_certifying_krylov_config.v1",
+ "design_document": "benchmarks/PHASE15_CERTIFYING_KRYLOV_DECLARATION.md",
+ "question_id": "Q18-S3",
+ "purpose": "Decide, on the one committed Hubbard 2x2 basis family known to certify the ground state, first whether any shot allocation could measure the residual norm for at most ten times the energy's shots, and then, only where that oracle bound leaves room, whether a declared pilot-based allocation does so under sampled validation.",
+ "contains_results": false,
+ "claim_boundary": "This config declares Q18-S3 and carries no result. The basis family, the committed fixed Krylov sequence of the Hubbard 2x2 ladder rung, is selected post hoc after Q18-S2. The estimator, groupings, threshold, fixed-step validator and oracle integer allocation are Q18-S2's. The domain is the prefixes whose exact Weinstein interval certifies the sector ground state with a resolved, independently reproduced variance and whose overlap keeps its whole block with a decade to spare. A later record may report a first-order oracle decision on that domain and, only where it is OPEN, a seeded simulation of a pilot-allocated campaign; neither is a device time, a finite-sample claim beyond that simulation, or a statement about another system or basis.",
+ "question": "On every prefix of the committed Hubbard 2x2 Krylov sequence {H^k|psi>, k <= 8} whose exact Weinstein interval certifies the sector ground state with a resolved and independently reproduced variance, and whose overlap keeps its whole block with a decade to spare, can sigma be estimated from shared QWC word means, at the energy's standard error, for at most ten times the energy's shots: first under any allocation, by the Neyman ratio, and then, only where that bound leaves room, under a declared pilot-based allocation validated by seeded sampling?",
+ "disclosure": {
+  "basis_selection": "The Krylov sequence is examined because Q18-S2's record left its screened A-CASE prefixes UNREACHED and its post-record check found that the ladder's order-8 Krylov basis certifies: sigma = 0.0856 t and E + sigma - E1 = -0.208 t, by statevector.",
+  "known_before_declaration": [
+   "Q18-S1's and Q18-S2's complete records, including every Hubbard 2x2 Neyman ratio they report and Q18-S2's UNREACHED verdict",
+   "the post-record statevector check of the order-8 Krylov basis in tests/test_phase15_certifying_screen.py: E = -10.100105 t, sigma = 0.0856 t, at retained rank 8 of 9",
+   "the committed ladder row: energy -10.100105016587381 t, retained rank 8, condition number 9.66e9",
+   "the first-moment structure frozen in measured_before_freezing: every prefix's (S, H) ground energy, rank and normalized-overlap extremes. They decide in advance that only M = 6 to 9 lie below the sector midpoint and that M = 8 and 9 fail the rank margin, under any margin above 1.47 for M = 8, so the domain is a subset of M = 6 and 7. M = 6 certifies only if sigma < 0.159 t, while sigma >= 0.148 t follows from its energy alone",
+   "On a Krylov basis the second-moment block of prefix M is a submatrix of the first-moment block of prefix M + 1: the moments <psi|H^p|psi>, p <= 17, computed for the M = 9 first-moment solve, fix every second moment below M = 9. They were printed during that structural work; no sigma was formed from them",
+   "development on the undeclared Hubbard 1x4 chain (8 qubits), run to calibrate the eighty-digit validator, the independent routes, the rank margin and the practical stage's run time. Its prefix statuses were displayed under the margin of 100 then in use: the one priced prefix that certified (M = 6) read PROHIBITIVE; of the priced prefixes that did not, M = 3 and 7 read AFFORDABLE and M = 2, 4 and 5 PROHIBITIVE. No ratio value was read. The margin was then lowered to one decade because Q18-S1's fixed ladder also passed at a condition number of 2.7e8 there; on the declared basis the two margins admit the same prefixes. A last end-to-end dry run of the producer and checker on the chain, printing only timings and checker problems, did not reach the practical stage, so its oracle verdict there was not OPEN",
+   "development of the practical stage on the undeclared Hubbard dimer, where a pilot that misjudges small setting variances by up to 25 times left the achieved sigma spread at 2.6 times the target while its reported standard errors stayed honest (coverage 0.955). That fixed the effective-cost statistic and the z-spread validation below; the target-spread rule tried first was dropped"
+  ],
+  "not_computed_before_declaration": "No SecondMomentBank, residual functional, grouping of a combined universe, setting variance, cost ratio or pilot on any Hubbard 2x2 Krylov prefix, and no sigma on any prefix other than the order-8 basis's post-record statevector value",
+  "structural_work_before_declaration": "The power table H^0 ... H^18, each prefix's first-moment solve, the sector spectrum and premises, and the reproduction of the committed ladder row, all recomputed by this declaration's gate"
+ },
+ "evidence": {
+  "label": "asymptotic_oracle_then_sampled",
+  "statement": "Certification and first moments are exact pairings with the reference. The oracle decision is first-order (delta-method) from exact per-setting variances. The practical stage, run only where the oracle verdict is OPEN, is a seeded multinomial simulation from the exact grouped outcome distributions of the reference.",
+  "design_status": "declared_before_execution",
+  "basis_selection": "post_hoc"
+ },
+ "system": {
+  "key": "hubbard_2x2",
+  "source_config": "benchmarks/configs/mapping_axis.json",
+  "description": "open 2x2 Hubbard, t = 1, U = 4, mu = U/2, interleaved Jordan-Wigner, reference occupying (0, 3, 4, 7), built by run_mapping_axis._build_model",
+  "spectral_reference": "the exact ground and first distinct excited energies of the reference's (N, S_z) sector, by dense diagonalization of the sector operator (check_phase15_extrapolation_preregistration.sector_spectrum); two levels are one when closer than degeneracy_tolerance * max(1, |E0|)"
+ },
+ "basis": {
+  "source": "benchmarks/reference_results/acase_ladder.jsonl",
+  "method": "krylov",
+  "labels": [
+   "I",
+   "H^1",
+   "H^2",
+   "H^3",
+   "H^4",
+   "H^5",
+   "H^6",
+   "H^7",
+   "H^8"
+  ],
+  "krylov_order": 8,
+  "prefixes": [
+   1,
+   2,
+   3,
+   4,
+   5,
+   6,
+   7,
+   8,
+   9
+  ],
+  "committed_energy": -10.100105016587381,
+  "committed_retained_rank": 8,
+  "committed_condition_number": 9658963974.354486,
+  "construction": "A_k = H^k from krylov_response(H, 8) after the identity, on the mapping-axis hubbard_2x2 model, whose spectrum and order-8 solve reproduce the ladder rung's",
+  "rows": "A_i' A_j = H^(i+j), A_i' (H A_j) = H^(i+j+1) and A_i' (H^2 A_j) = H^(i+j+2), read from one power table by KrylovBank. The identity is exact operator algebra; with H's coefficients 1/2, 1 and 4, every power through H^17 is exact in double precision, so the rows are the base bank's products to the bit on every prefix the rank margin admits"
+ },
+ "certification": {
+  "definition": "a prefix is certifying when its variance is resolved and its ground Ritz pair satisfies E + sigma < E1 and E >= E0 - rounding, with sigma^2 = c'Kc - E^2 from SecondMomentBank and E0, E1 the exact sector ground and first distinct excited energies, as Q18-S2 defines it",
+  "resolution": "resolved means sigma^2 > RESOLUTION * cancellation_scale, SecondMomentBank's floor; an unresolved, rank-stable prefix is UNRESOLVED, unpriced and outside the domain",
+  "independent_routes": "on every priced prefix sigma^2 and E are established twice more: by the same rows and means at eighty digits with no truncation (DecimalPencil), and by the normalized Ritz state of the statevector Krylov pencil, ||(H - E)Psi||^2. Both must reproduce the double-precision sigma^2 to variance_agreement relative and the energy to energy_agreement per unit |E|; a failure makes the prefix INVALID",
+  "variance_agreement": 1e-06,
+  "energy_agreement": 1e-09,
+  "rounding_ulps": 100.0,
+  "degeneracy_tolerance": 1e-09,
+  "sector_premise": "the Hamiltonian commutes with N and S_z and every generator maps the reference into its (N, S_z) sector, so each Ritz state lies in that sector and the sector spectrum is its reference. Level-4 configuration generators are not sector-conserving as operators; operator leakage is reported and is not the premise"
+ },
+ "rank_margin": {
+  "factor": 10.0,
+  "rule": "the whole prefix is retained by solve_projected at its default thresholds, the smallest normalized-overlap eigenvalue is at least factor * tau_s = 1e-9, and the normalized overlap's condition number is at most max_condition / factor = 1e11",
+  "rationale": "Q18's linearization assumes the retained block does not move. A decade on each retention rule keeps a perturbation that moves the normalized overlap by less than nine floors from changing which subspace is kept. A prefix that fails it is RANK_UNSTABLE: its interval is reported, it is unpriced and outside the domain"
+ },
+ "statistic": {
+  "name": "neyman_ratio",
+  "definition": "N = (sum_g sqrt v_g^U)^2 / (4 sigma^2 (sum_g sqrt v_g^SH)^2), from the exact per-setting variances of the energy's and the residual's first-order functionals under single assignment",
+  "derivation": "With exact-variance optimal allocation a standard error s costs (sum_g sqrt v_g)^2 / s^2 shots; sigma is read from sigma^2 through d sigma = d sigma^2 / (2 sigma). Matching the two standard errors, s^2 cancels: N is the residual's production shots over the energy's at any one matched precision, both at their optimum, to first order",
+  "lower_bound": "Under the same partition no allocation of residual shots costs less than its Neyman optimum, so against the energy's own optimal cost N is a first-order lower bound for every practical allocator. A pilot is a fixed charge that does not scale with the precision and is excluded from the decision",
+  "max_ratio": 10,
+  "threshold": "N <= 10 is affordable, as Q18's R <= 10 is",
+  "uniform_definition": "R = (G_U * V_sigma2) / (4 * sigma^2 * G_SH * V_E)",
+  "reported_not_read": "Q18's uniform R and Q18-S1's integer allocation with charged, unperformed pilots are reported beside N; no clause reads them",
+  "domain_note": "read only on certifying, rank-stable prefixes; the matched precision is the oracle diagnostic's s = sigma / 100 where a precision is needed"
+ },
+ "grouping": {
+  "estimator": "single_assignment",
+  "declared_protocol": "qwc_groups",
+  "alternative_protocol": "qwc_basis_cover",
+  "energy_universe": "the measured (S, H) universe: the raw U_SH, the (S, H) bank's words over the retained block, minus the identity, listed in ascending code order exactly as the mapping-axis producer lists its JW arm",
+  "residual_universe": "the measured combined universe: the raw U = U_SH | U_K minus the identity. The raw U is every word a measured second-moment bank's rows carry, and the H-squared preflight record committed its size and SHA-256",
+  "universe_convention": "Raw universes include the identity, as the Phase 2M-A ledger, the H-squared preflight record and the mapping-axis record count and hash them; every frozen basis starts with I, so S_00 carries it. Measured universes are the raw ones minus the identity, whose mean is 1 and is never measured. Every count and digest in measured_before_freezing whose name starts with raw_ is a raw quantity; measured_sh_words and measured_combined_words are one fewer, and every grouping partitions a measured universe",
+  "variance": "per setting, Var_psi(sum_{w in g} f_w P_w) on the exact reference, by run_mapping_axis._functional_variance, the function behind the committed mapping-axis energy variances. V is their sum: the estimator's variance at one shot per setting"
+ },
+ "estimator": {
+  "estimand": {
+   "root": "the ground root of the retained block's (S, H) pencil, solved by the package's default thresholds, normalized c'Sc = 1",
+   "variance": "sigma^2 = c'Kc - E^2, with K the SecondMomentBank block A_i^dagger (H^2 A_j) paired with the reference. It equals ||(H - E)|Psi>||^2 / <Psi|Psi>, the squared residual norm PLAN.md section 4.4 names",
+   "residual_norm": "sigma = sqrt(sigma^2), in the energy's own units: Weinstein's theorem puts an eigenvalue within sigma of E, so (E, sigma) is the measured pair a residual reports",
+   "estimator": "every S, H and K entry is reconstructed from one set of shared word means; the measured pencil is solved and sigma^2 read from the measured K at the measured Ritz vector. Nothing is re-measured per entry",
+   "shift": "Measuring (H - c)^2 instead of H^2 changes nothing here. Its rows are combinations of the same S, H and K rows, so with shared word means the reconstruction is algebraically the same function of the same means, and so is its linearization. The gate's tests check this to rounding on the Hubbard dimer"
+  },
+  "linearization": {
+   "energy": "the existing ritz_functional: the word expansion of B'(H - E)B with B = sum c_i A_i. The energy is stationary in c, so no Ritz-vector term enters",
+   "residual": "the word expansion of G = B'(H - E)^2 B - sigma^2 B'B - [V'(H - E)B + B'(H - E)V], with V = sum v_i A_i and v = sum_{k>0} c_k (c_k'(K - QS)c) / (E_k - E), Q = c'Kc. sigma^2 is not stationary in c, so the last term, the Ritz vector's own movement, is required: on the Hubbard dimer it is 3.7% of the weights",
+   "implementation": "residual_functional in benchmarks/check_phase15_measured_residual_preregistration.py, which the producer imports rather than restates",
+   "properties": "G has zero reference expectation, and its weights are invariant under a constant shift of H; both are deterministic checks"
+  }
+ },
+ "derivative_validation": {
+  "method": "eighty_digit_central_difference",
+  "decimal_digits": 80,
+  "step": "1e-30",
+  "directions": [
+   "functional",
+   "sh_gaussian"
+  ],
+  "direction_definitions": {
+   "functional": "the residual functional's own non-identity weights, normalized to unit length: the derivative along it is ||g||_2",
+   "sh_gaussian": "a seeded standard normal draw over the non-identity (S, H) words, normalized: those words carry the Ritz-vector term"
+  },
+  "seed": 20261003,
+  "relative_tolerance": 1e-06,
+  "rule": "Along each direction d, the exact-mean (S, H, K) pencil is formed at eighty digits from the same rows and means, its ground root found by Cholesky and shifted inverse iteration from just below the double-precision root, and the central difference of E and of sigma^2 taken at t = 1e-30. Both the energy functional (ritz_functional) and the residual functional must match it within relative_tolerance times their own norm",
+  "rationale": "Krylov overlaps reach a smallest normalized eigenvalue of 1e-7 on the admitted prefixes. A double-precision difference must then trade truncation against rounding; at eighty digits both are tens of orders below the tolerance, so the check tests the analytic functionals and nothing else"
+ },
+ "fixed_step_validation": {
+  "steps": [
+   0.002,
+   0.001,
+   0.0005,
+   0.00025
+  ],
+  "relative_tolerance": 1e-06,
+  "required_pairs": "last_two",
+  "require_endpoint_domain": true,
+  "rule": "Evaluate all four central differences. Richardson R(h)=(4 D(h/2)-D(h))/3. Both final pairs must match the analytic derivative within relative_tolerance*||g|| + propagated RESOLUTION*cancellation_scale/h; they must also agree within the relative term plus both propagated floors. Every endpoint retains full rank and the declared nondegenerate ground root. No step is selected based on its discrepancy.",
+  "directions": [
+   "functional",
+   "sh_gaussian"
+  ],
+  "seed": 20261003,
+  "direction_definitions": {
+   "functional": "the residual functional's own non-identity weights, normalized to unit length: the derivative along it is ||g||_2",
+   "sh_gaussian": "a seeded standard normal draw over the non-identity (S, H) words, normalized: those words carry the Ritz-vector term"
+  }
+ },
+ "allocation_diagnostic": {
+  "variance_source": "exact_oracle",
+  "decision_role": "diagnostic_only",
+  "standard_error_fraction_of_sigma": 0.01,
+  "pilot_shots_per_setting": 64,
+  "minimum_shots_per_setting": 1,
+  "rule": "Allocate ceil(sqrt(v_g)*sum sqrt(v)/s^2), with a positive floor on every setting. Energy and sigma use one matched s=sigma/100. Charge 64 pilot shots per setting on each side; exclude pilot outcomes from production. Variances are exact and no pilot is performed. This is neither a realizable pilot protocol nor an estimator licence."
+ },
+ "practical_allocation": {
+  "executed_when": "the oracle verdict is OPEN; then on every AFFORDABLE certifying, rank-stable prefix, under the declared protocol, and on no other",
+  "protocol": "qwc_groups",
+  "seed": 20261014,
+  "replicate_count": 100,
+  "standard_error_fraction_of_sigma": 0.01,
+  "pilot_fraction": 0.1,
+  "minimum_pilot_shots_per_setting": 64,
+  "minimum_shots_per_setting": 1,
+  "max_ratio": 10,
+  "sampling": "each setting's shots are one multinomial draw from the exact grouped outcome distribution of the reference (FiniteShotBackend's grouped-sampling plans); every replicate spawns independent energy and residual streams from SeedSequence(seed).spawn(replicate_count)",
+  "pilot": "per side, max(64, ceil(pilot_fraction * oracle Neyman production shots at the target / settings)) shots on every setting; pilot outcomes never enter the estimate",
+  "weights": "plug-in: the energy's and the residual's first-order functionals at the pilot's word means; a pilot pencil that is not full rank fails the replicate",
+  "setting_variances": "unbiased sample variances of each setting's functional shot values in the pilot",
+  "allocation": "Q18-S1's integer Neyman rule with the pilot's variances, ceil(sqrt(v_g) sum sqrt(v) / s^2) with floor minimum_shots_per_setting, at target s = sigma / 100; the residual's variances are divided by 4 sigma_pilot^2, with sigma_pilot^2 clipped below at s^2",
+  "production": "fresh shots at the allocation; the declared estimator on production means alone, which must keep full rank and a nondegenerate ground root",
+  "standard_error": "delta method: production-mean plug-in weights and production per-setting sample variances, se^2 = sum_g v_g / N_g; sigma's from sigma^2's divided by 2 sigma_hat",
+  "effective_cost": "per side and replicate, pilot shots plus production shots times (se / s)^2: the shots this allocation needs to reach the target, charging a misallocated pilot",
+  "statistic": "expected effective cost ratio: the mean residual effective cost over the mean energy effective cost across replicates",
+  "confidence_family": {
+   "two_sided_z": 1.959963984540054,
+   "one_sided_z": 1.6448536269514722,
+   "intervals": "two-sided 95% Wald intervals for E and for sigma, separately",
+   "certification": "one-sided 95% upper bound E + sigma + 1.645 sqrt(se_E^2 + se_sigma^2) below E1, reported as a rate and read by no clause",
+   "simultaneous": "no simultaneous coverage is claimed"
+  },
+  "validation": {
+   "max_failures": 0,
+   "min_coverage": 0.9,
+   "max_z_spread": 1.25,
+   "rationale": "every replicate must return; both intervals must cover the exact value in at least 90 of 100 replicates (a nominal 95% interval falls below that with probability near 1%); and the standard deviation of (estimate - exact) / se must stay within 1.25, about 3.5 standard errors above 1 at 100 replicates"
+  },
+  "status_rule": "VALIDATION_FAILED if any validation check fails; otherwise PRACTICAL_AFFORDABLE when the expected effective cost ratio is at most 10, else PRACTICAL_PROHIBITIVE"
+ },
+ "deterministic_checks": {
+  "per_priced_prefix": [
+   "full_rank: the solve retains the whole prefix",
+   "ground_root_nondegenerate: the next Ritz root stands GAP_FLOOR * max(1, |E|) clear",
+   "energy_consistent_with_spectrum: E >= E0 - rounding",
+   "precise_energy_agrees and precise_variance_agrees: the eighty-digit pencil reproduces E and sigma^2",
+   "dense_energy_agrees and dense_variance_agrees: the statevector Ritz state reproduces them",
+   "residual_functional_reproduces_variance: the residual pipeline returns SecondMomentBank's sigma^2 within 1e-9 (1 + cancellation_scale)",
+   "residual_functional_mean_zero: |<psi|G|psi>| <= 1e-9 (1 + cancellation_scale)",
+   "linearization_validated: both directions, both functionals, at eighty digits",
+   "fixed_step_validated: both directions pass Q18-S1's Richardson rule, every endpoint keeping the whole block and a nondegenerate ground root",
+   "partitions_valid: every grouping assigns every measured word once, in QWC settings",
+   "group_variances_nonnegative: every per-setting variance is at least -1e-10 times its scale"
+  ],
+  "consequence": "a failed check makes that prefix INVALID"
+ },
+ "lineage_check": {
+  "statement": "Three ties, any failure making the verdict INVALID: the sector spectrum equals Q18-S2's recorded spectral reference to 1e-12; Q18-S1's frozen nine-generator Hubbard 2x2 bank, priced again through Q18-S2's own path, passes Q18-S2's lineage rule against Q18-S1's committed entry; and the order-8 prefix reproduces the committed ladder row's energy to 1e-9 and its retained rank",
+  "relative_tolerance": 1e-09,
+  "neyman_relative_tolerance": 0.001,
+  "endpoint_tolerance": "RESOLUTION * cancellation_scale, absolute",
+  "consequence": "a failed lineage check makes the verdict INVALID"
+ },
+ "decision_rule": {
+  "prefix_statuses": [
+   "AFFORDABLE",
+   "PROHIBITIVE",
+   "GROUPING_SENSITIVE"
+  ],
+  "unpriced_statuses": [
+   "RANK_UNSTABLE",
+   "UNRESOLVED"
+  ],
+  "prefix_ladder": "RANK_UNSTABLE when the rank margin fails; else UNRESOLVED when sigma^2 is not resolved; else priced: INVALID when a deterministic check fails, AFFORDABLE when N <= 10 under both protocols, PROHIBITIVE when N > 10 under both, GROUPING_SENSITIVE otherwise",
+  "domain": "priced prefixes that certify",
+  "oracle_verdicts": [
+   "OPEN",
+   "CLOSED",
+   "GROUPING_SENSITIVE",
+   "UNREACHED",
+   "INVALID"
+  ],
+  "oracle_rule": "INVALID if the lineage fails or any domain prefix is INVALID; else UNREACHED if the domain is empty; else OPEN if a domain prefix is AFFORDABLE; else CLOSED if every domain prefix is PROHIBITIVE; else GROUPING_SENSITIVE",
+  "practical_statuses": [
+   "PRACTICAL_AFFORDABLE",
+   "PRACTICAL_PROHIBITIVE",
+   "VALIDATION_FAILED"
+  ],
+  "practical_rule": "see practical_allocation.status_rule; run only when the oracle is OPEN",
+  "final_verdicts": [
+   "LICENSED",
+   "PRACTICAL_PROHIBITIVE",
+   "VALIDATION_FAILED",
+   "CLOSED",
+   "GROUPING_SENSITIVE",
+   "UNREACHED",
+   "INVALID"
+  ],
+  "final_rule": "the oracle verdict when it is not OPEN; when it is OPEN, LICENSED if any practical prefix is PRACTICAL_AFFORDABLE, else VALIDATION_FAILED if any failed validation, else PRACTICAL_PROHIBITIVE",
+  "diagnostic_prefixes": "priced prefixes outside the domain are reported and cannot move either verdict"
+ },
+ "consequences": {
+  "LICENSED": "A pilot-allocated finite-shot residual estimator is licensed on the PRACTICAL_AFFORDABLE prefixes by name, with the declared Wald intervals, for convergence reporting on this system. Any other basis, system or allocation needs a new declaration.",
+  "PRACTICAL_PROHIBITIVE": "The oracle bound leaves room, but the declared pilot allocator's expected effective cost exceeds ten times the energy's on every practical prefix. The practical follow-up closes negative for this allocator on this scope; the oracle bound says a better allocator could still pass.",
+  "VALIDATION_FAILED": "The pilot allocator's intervals or calibration fail validation on every practical prefix that does not pass, so no estimator is licensed. A different allocator needs a new declaration.",
+  "CLOSED": "Under Q18's partitions and matched-precision statistic, no allocation, pilot-estimated or oracle, measures sigma for ten times the energy's optimal cost on any certifying, rank-stable prefix of the ladder's Krylov sequence. The sampled pilot experiment is not run, because the oracle ratio bounds its cost from below to first order. Phase 15's practical-allocation follow-up closes negative on this declared scope only: this system, these prefixes, single-assignment QWC and a matched standard error. Exact residuals and convergence reports remain available.",
+  "GROUPING_SENSITIVE": "No practical experiment is run until a later declaration fixes one grouping before any sampling.",
+  "UNREACHED": "No rank-stable prefix certifies with a resolved variance, so the question is unanswered on this basis family and no practical experiment is run.",
+  "INVALID": "No verdict. The record names the failed check."
+ },
+ "excluded": [
+  "fully or block-commuting grouping, which would change both sides",
+  "pooled or multiply-assigned estimators and shared shots between the two campaigns",
+  "any allocator other than the declared pilot rule, including sequential top-ups",
+  "the plug-in bias of sigma^2 beyond what the simulation shows",
+  "device noise, readout error and device time",
+  "other systems, other bases, the rank-unstable prefixes and excited roots"
+ ],
+ "prespecified_followup": {
+  "permitted": "none",
+  "statement": "Another threshold, protocol, margin, allocator, basis or system is a new declaration. The consequence each verdict names is what follows."
+ },
+ "measured_before_freezing": {
+  "spectrum": {
+   "sector_dimension": 36,
+   "ground_energy": -10.10274848346208,
+   "first_excited_energy": -9.806423851823109,
+   "gap": 0.2963246316389707,
+   "ground_degeneracy": 1,
+   "midpoint": -9.954586167642594
+  },
+  "premises": {
+   "distinct_generators": 9,
+   "reference_image_sector_leakage": 0.0,
+   "generator_operator_sector_leakage": 0.0,
+   "hamiltonian_sector_leakage": 0.0,
+   "spin_parity_sector_violations": 0,
+   "sector_word_ceiling": 16384,
+   "largest_basis": 9,
+   "coefficient_occurrence_bound": 2211840,
+   "exact_power_limit": 17
+  },
+  "basis": {
+   "1": {
+    "ground_energy": -8.0,
+    "effective_rank": 1,
+    "smallest_overlap_eigenvalue": 1.0,
+    "overlap_condition_number": 1.0,
+    "retains_whole_block": true,
+    "passes_rank_margin": true,
+    "below_midpoint": false,
+    "highest_power": 2
+   },
+   "2": {
+    "ground_energy": -8.828427124746185,
+    "effective_rank": 2,
+    "smallest_overlap_eigenvalue": 0.029857499854668124,
+    "overlap_condition_number": 65.98484500494125,
+    "retains_whole_block": true,
+    "passes_rank_margin": true,
+    "below_midpoint": false,
+    "highest_power": 4
+   },
+   "3": {
+    "ground_energy": -8.989860598495879,
+    "effective_rank": 3,
+    "smallest_overlap_eigenvalue": 0.0014794697555374832,
+    "overlap_condition_number": 1984.7055706133724,
+    "retains_whole_block": true,
+    "passes_rank_margin": true,
+    "below_midpoint": false,
+    "highest_power": 6
+   },
+   "4": {
+    "ground_energy": -9.433778059392877,
+    "effective_rank": 4,
+    "smallest_overlap_eigenvalue": 0.00025200161229940694,
+    "overlap_condition_number": 15482.598234774434,
+    "retains_whole_block": true,
+    "passes_rank_margin": true,
+    "below_midpoint": false,
+    "highest_power": 8
+   },
+   "5": {
+    "ground_energy": -9.822004296610043,
+    "effective_rank": 5,
+    "smallest_overlap_eigenvalue": 1.0817483244473729e-05,
+    "overlap_condition_number": 449744.10286843264,
+    "retains_whole_block": true,
+    "passes_rank_margin": true,
+    "below_midpoint": false,
+    "highest_power": 10
+   },
+   "6": {
+    "ground_energy": -9.965481160025698,
+    "effective_rank": 6,
+    "smallest_overlap_eigenvalue": 5.580682926084848e-07,
+    "overlap_condition_number": 10435322.231061958,
+    "retains_whole_block": true,
+    "passes_rank_margin": true,
+    "below_midpoint": true,
+    "highest_power": 12
+   },
+   "7": {
+    "ground_energy": -10.09593016341864,
+    "effective_rank": 7,
+    "smallest_overlap_eigenvalue": 7.065549107144542e-08,
+    "overlap_condition_number": 95872506.83222945,
+    "retains_whole_block": true,
+    "passes_rank_margin": true,
+    "below_midpoint": true,
+    "highest_power": 14
+   },
+   "8": {
+    "ground_energy": -10.09922293943125,
+    "effective_rank": 8,
+    "smallest_overlap_eigenvalue": 1.4703823152064015e-10,
+    "overlap_condition_number": 52454907179.51403,
+    "retains_whole_block": true,
+    "passes_rank_margin": false,
+    "below_midpoint": true,
+    "highest_power": 16
+   },
+   "9": {
+    "ground_energy": -10.100105016540793,
+    "effective_rank": 8,
+    "smallest_overlap_eigenvalue": 5.951196641229377e-12,
+    "overlap_condition_number": 1451430293982.6602,
+    "retains_whole_block": false,
+    "passes_rank_margin": false,
+    "below_midpoint": true,
+    "highest_power": 18
+   }
+  },
+  "ladder": {
+   "energy_reproduces": true,
+   "retained_rank_reproduces": true,
+   "ladder_condition_number": 9658963974.354486
+  }
+ },
+ "implementation_lineage": {
+  "inputs": [
+   {
+    "path": "benchmarks/configs/mapping_axis.json",
+    "sha256": "25adcb3aedd4d70f3b7e84f91fe3c11672c5d646a416e4851025424f2cb01ea3"
+   },
+   {
+    "path": "benchmarks/configs/acase_ladder.json",
+    "sha256": "dcc495ac33324fe73d15859155d77da53e8df5b61668717483a6953f4aa35aa6"
+   },
+   {
+    "path": "benchmarks/reference_results/acase_ladder.jsonl",
+    "sha256": "927dad58e7fe395ca1d0cf2b0ad41b5202f865e84d4f429d65263b8f260a35c5"
+   },
+   {
+    "path": "benchmarks/configs/phase15_h2_preflight.json",
+    "sha256": "f2bbccc80efa19f1c4b95aeabe0251e295a56263bd1a72b1976f94ac85f078e3"
+   },
+   {
+    "path": "benchmarks/configs/phase15_residual_successor.json",
+    "sha256": "be2bb992427983d10517056f3ec52944489223d8eaedb9d9928e9fdb87998b26"
+   },
+   {
+    "path": "benchmarks/reference_results/phase15_residual_successor.json",
+    "sha256": "b59a3a21d309a69bfd88bceadaca199ef59af6957ced53c6c4e0d06289565f9c"
+   },
+   {
+    "path": "benchmarks/configs/phase15_certifying_screen.json",
+    "sha256": "977b8ecc3dd417ac5b5dcf6c05f4ee9e178e0528e6a56491b315b5805d2ebb59"
+   },
+   {
+    "path": "benchmarks/reference_results/phase15_certifying_screen.json",
+    "sha256": "92c6b4042f757c1c52ef831c1719865ea401a1688b013ca0f4f1e8ed3a492884"
+   }
+  ],
+  "implementation": [
+   {
+    "path": "clifford_qc/multivector.py",
+    "sha256": "49530fb71721480a6889f6a3f6235f54b50226044e93e0feeabb437e8971f65d"
+   },
+   {
+    "path": "clifford_qc/pauli_kernel.py",
+    "sha256": "c7512dc6ad68e7ccdf676b2fa1fe309c16a21ec5c820e55e7ac45bc8689c937d"
+   },
+   {
+    "path": "clifford_qc/subspace/projection.py",
+    "sha256": "1137aaa945d3b2919d1820501d24fa5406d950241f7d8e3307ede93e2b8b1254"
+   },
+   {
+    "path": "clifford_qc/subspace/second_moment.py",
+    "sha256": "2c6dd24badc829b09d6b28b94967f37300a7a254456b8f649cfb0186b81e4492"
+   },
+   {
+    "path": "clifford_qc/subspace/linalg.py",
+    "sha256": "c64bb5dca07d3f3fba23b2f257132075914df0e374ec3f91ec5a6f8b5ccbc4b3"
+   },
+   {
+    "path": "clifford_qc/measurement/grouping.py",
+    "sha256": "0053af3a451ae201520ee5c6ec4a45bf211d910087d66bd624c9d911d162c356"
+   },
+   {
+    "path": "clifford_qc/measurement/functionals.py",
+    "sha256": "a1a06d2afe6cb96ee6081fc48214cd9252e2eaed58cde053a7cb5dd1c6faac59"
+   },
+   {
+    "path": "benchmarks/run_mapping_axis.py",
+    "sha256": "e47b3a318ad6c63f185cf0c3e874558e8ba3f1b885a0ffe76ca0096cd0dd32a0"
+   },
+   {
+    "path": "benchmarks/check_phase15_preregistration.py",
+    "sha256": "75a0566975a8dd73c10509925f03613b12c4219a49dcec5cff72c8b147d4e304"
+   },
+   {
+    "path": "benchmarks/check_phase15_measured_residual_preregistration.py",
+    "sha256": "6c10d3d5f50dfd033009ab1a03fcb009ec9c9311a8657f1c91acb279a37ec1c1"
+   },
+   {
+    "path": "clifford_qc/subspace/symmetry.py",
+    "sha256": "64589f8a8c220923b9e088bdcd8d3018ce89e2875ea4f593ac872811cd7f9594"
+   },
+   {
+    "path": "clifford_qc/subspace/generators.py",
+    "sha256": "8772fbb35ca93bb99d2d8fb7d5a0eb7be7bdb2ac0987ad85506b0af9514a3a58"
+   },
+   {
+    "path": "clifford_qc/backends/sector_statevector.py",
+    "sha256": "526abd31c73bc1a1db2f894e985983ff978220f5c34fae131a7829bea01ebbbc"
+   },
+   {
+    "path": "benchmarks/run_acase_ladder.py",
+    "sha256": "ce024e3ae11609a9bce8cffce6b651100e3bf38012489b629933d0070af535ff"
+   },
+   {
+    "path": "benchmarks/run_phase15_measured_residual_preflight.py",
+    "sha256": "1217178db3c6571caa126d2509d6049cfec536ab24ddaf3348e0382f0554c86e"
+   },
+   {
+    "path": "benchmarks/run_phase15_h2_preflight.py",
+    "sha256": "d1b391352f3b6a1644ceadab175a80c98acf0148f64e8e7c39d6f190f54c025c"
+   },
+   {
+    "path": "benchmarks/phase15_residual_successor.py",
+    "sha256": "3b8e0b6f02979153a8d1022d0722de6bd89988f7cb47d53da32a41eda505b474"
+   },
+   {
+    "path": "benchmarks/check_phase15_extrapolation_preregistration.py",
+    "sha256": "bee0acc40867f03e4b824e85529849a500f097ff9a9274255fc25447c5f8a1c7"
+   },
+   {
+    "path": "benchmarks/phase15_certifying_screen.py",
+    "sha256": "9f7682755b051c60ba7e94fa9babf00d0d49e0134a41769fc541bcaec7d5b0f4"
+   },
+   {
+    "path": "benchmarks/check_phase15_certifying_screen_declaration.py",
+    "sha256": "721568a5a2cfad9445dce4ba8129fe13676b1b3480ac688bd30224e6e9c00bb0"
+   },
+   {
+    "path": "benchmarks/run_phase15_certifying_screen.py",
+    "sha256": "f56aff76eb3915711a65eb7d65b8eba14494f45842de5a322704935e6ce16c28"
+   },
+   {
+    "path": "benchmarks/check_phase15_certifying_screen.py",
+    "sha256": "927cbf225047f4bfaee09f540667ad0d249f4a4289091c577eac4241f9e97c6a"
+   },
+   {
+    "path": "clifford_qc/subspace/projection.py",
+    "sha256": "1137aaa945d3b2919d1820501d24fa5406d950241f7d8e3307ede93e2b8b1254"
+   },
+   {
+    "path": "clifford_qc/subspace/contracts.py",
+    "sha256": "6d38c716a7874f1e0703d21c3fbeb130332bbead57560fde162da07119d2bfc5"
+   },
+   {
+    "path": "clifford_qc/backends/finite_shot.py",
+    "sha256": "60319e6dc13edcf0eed4c2be90c320eeed64303ec33b76c24d50fd779ec41bfc"
+   },
+   {
+    "path": "clifford_qc/pauli_action.py",
+    "sha256": "93125bf7e5db2fdfd4e72e481f8333222f7635aa52dc6018ee606f0200486263"
+   },
+   {
+    "path": "benchmarks/run_phase15_certifying_screen.py",
+    "sha256": "f56aff76eb3915711a65eb7d65b8eba14494f45842de5a322704935e6ce16c28"
+   },
+   {
+    "path": "benchmarks/check_phase15_certifying_screen.py",
+    "sha256": "927cbf225047f4bfaee09f540667ad0d249f4a4289091c577eac4241f9e97c6a"
+   },
+   {
+    "path": "benchmarks/phase15_certifying_krylov.py",
+    "sha256": "13902e22b27f0421db004d7761e459a47a48a7623bd988ff0213c4c61253b39b"
+   },
+   {
+    "path": "benchmarks/check_phase15_certifying_krylov_declaration.py",
+    "sha256": "6b6411c293ecf7fa0f0accf38809c9757386acd59306db8c640e129a7e9f5106"
+   },
+   {
+    "path": "benchmarks/run_phase15_certifying_krylov.py",
+    "sha256": "4c668b4d33be675e9ae1f2805fe7d02bb1290e37439839b4a30b364719dd46b6"
+   },
+   {
+    "path": "benchmarks/check_phase15_certifying_krylov.py",
+    "sha256": "681e2ec31478c3daa8c9627bb4b41f70c29056f23de65c56ef774eca887e558e"
+   }
+  ],
+  "binding": "input hashes stay binding; implementation hashes lapse once the record exists, since the record names its own execution commit"
+ },
+ "record_requirements": {
+  "schema": "clifford_qc.phase15_certifying_krylov.v1",
+  "producer": "benchmarks/run_phase15_certifying_krylov.py",
+  "checker": "benchmarks/check_phase15_certifying_krylov.py",
+  "record": "benchmarks/reference_results/phase15_certifying_krylov.json",
+  "must_include": [
+   "config_digest, provenance and the v1 evidence labels",
+   "the spectral reference and the sector premises",
+   "per prefix: E, sigma^2, sigma, resolution, the rank margin, the statevector route, the Weinstein upper end, Temple's bound, the certifying flag, role and status",
+   "per priced prefix: the eighty-digit route, both universes, both linearization rows, both fixed-step rows, every deterministic check, and per protocol G, V, Neyman sums, per-setting variances, R, N and the oracle integer allocation totals",
+   "the three lineage blocks and the frozen-bank entry they read",
+   "the practical stage's budget, every replicate, summary and status where it runs",
+   "the domain, every status, the oracle and final verdicts, with the consequence quoted"
+  ],
+  "must_carry": {
+   "quantum_advantage_claim": false,
+   "claim_boundary": "its own, not this config's"
+  }
+ },
+ "revisions": [
+  {
+   "revision": 0,
+   "changes": "Initial declaration. No Q18-S3 result exists."
+  }
+ ]
+}
