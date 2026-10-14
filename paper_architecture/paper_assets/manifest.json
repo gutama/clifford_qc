@@ -22,11 +22,11 @@
       }
     },
     "layer_stack.pdf": {
-      "architecture_sources_sha256": "2327bdd475009dc2d0ff7b8d6e9e30768408e12464df5d21a49b1acccb4f32e0",
-      "asset_git_blob_sha": "8a7431c9cc0639ae82e01205acb99d637c878eb1",
+      "architecture_sources_sha256": "f16e4002489acad41efab9c90fa6300dca59f90b4d261683f1ba1daee528fd60",
+      "asset_git_blob_sha": "0001cff17668bb6f5dcb648c67030124dd2c5177",
       "sources": {
-        "paper_architecture/data/source_census.json": "90d5ce8b3708bfdb37e95aa31f072cd7749ddf8e952dacb1ee8920ae86ebdbbd",
-        "paper_architecture/make_tables.py": "b7ada1906bfea3afe0a963e25b7a5d26963f391f3986b50844bdff9e7205a290"
+        "paper_architecture/data/source_census.json": "c6181db1ae0f417ea302b0118c525d458fd6b4cf061c602f0bbd75ea4a87ef7e",
+        "paper_architecture/make_tables.py": "08d274a700408d031a01adc9963d02fd20fa295599d6ece0da06012ac045536e"
       }
     }
   },

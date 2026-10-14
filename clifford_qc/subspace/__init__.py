@@ -108,6 +108,10 @@ from .convergence import (
     GroundStateReference, VarianceExtrapolationDiagnostic, convergence_report,
     variance_extrapolation_diagnostic,
 )
+from .folded import (
+    FOLDED_ROOT_SCHEMA, VARIANCE_MINIMIZATION_SCHEMA, FoldedRoot, FoldedSpectrum,
+    FoldedSpectrumResult, VarianceMinimization, folded_spectrum_roots, refined_ritz_root,
+)
 
 __all__ = [
     "FRAGMENT_SOLUTION_SCHEMA", "ExactFragmentSolver", "FragmentSolution",
@@ -118,6 +122,9 @@ __all__ = [
     "CONVERGENCE_SCHEMA", "EXTRAPOLATION_SCHEMA", "ConvergenceConfig", "ConvergenceReport",
     "GroundStateReference", "VarianceExtrapolationDiagnostic", "convergence_report",
     "variance_extrapolation_diagnostic",
+    "FOLDED_ROOT_SCHEMA", "VARIANCE_MINIMIZATION_SCHEMA", "FoldedRoot", "FoldedSpectrum",
+    "FoldedSpectrumResult", "VarianceMinimization", "folded_spectrum_roots",
+    "refined_ritz_root",
     "FamilyReport", "HybridArm", "configuration_generators_from_words",
     "dressed_family", "family_projection_report", "run_hybrid",
     "ControlResult", "SpanComparison", "containment_residual",

@@ -264,7 +264,7 @@ No figure or table value in the manuscript is transcribed by hand, and
 ```bash
 python -m venv .venv && source .venv/bin/activate
 pip install -e .[test,research,stim]       # automatic CI extras
-pytest                                      # 3472 passed, 12 skipped
+pytest                                      # 3523 passed, 12 skipped
 ```
 
 This is the automatic CI dependency set; record gates additionally pin NumPy
@@ -280,7 +280,7 @@ the remaining `12 - 6 = 6` skips are per-test and *are* collected:
 
 ```text
 collected == passed + (skipped - files dropped at collection)
-3478      == 3472   + (12      -   6)
+3529      == 3523   + (12      -   6)
 ```
 
 Both sides are computed from the tree, so a drift in either quoted number
@@ -3398,6 +3398,40 @@ five committed fits without recomputing a prefix variance, and independently
 check dense residuals, stalled growth, excited eigenstates, numerical
 cancellation, multiple roots, and retained-block storage under object,
 packed and streaming backends.
+
+## Phase 15 folded-spectrum roots and their validation
+
+`clifford_qc/subspace/folded.py` projects the folded operator `(H − ω)²` onto a
+span as `F(ω) = K − 2ωH + ω²S`, from the three blocks `SecondMomentBank`
+already pairs. The roots of `F(ω)c = μSc` are the span's stationary values of
+`‖(H − ω)Ψ‖²/⟨Ψ|Ψ⟩`. Each root's state carries two inclusion intervals with no
+spectral reference: `ω ± √μ` and the Weinstein interval `E ± σ`, both widened by
+their resolution floors. They hold for interior roots as well as the ground
+root. `refined_ritz_root(result, k)` takes the lowest root at a Ritz value, the
+refined Ritz vector, whose residual never exceeds the Ritz vector's own.
+`FoldedSpectrum.minimize_variance(start)` iterates `ω ← E` without ever raising
+`μ`, and stops at a variance stationary point of the span. The values are exact
+pairings under `SecondMomentBank`'s storage licence; nothing here estimates the
+block from samples.
+
+```bash
+python -m pytest tests/test_folded_spectrum.py tests/test_folded_spectrum_validation.py -q
+OMP_NUM_THREADS=1 OPENBLAS_NUM_THREADS=1 MKL_NUM_THREADS=1 \
+  python benchmarks/run_folded_spectrum_validation.py      # writes benchmarks/reference_results/folded_spectrum_validation.json
+python benchmarks/check_folded_spectrum_validation.py      # restates every check and rebuilds every bank
+python benchmarks/check_folded_spectrum_validation.py --no-recompute   # restatement only
+```
+
+The producer refuses any bank the H² preflight record does not license. On each
+licensed bank it refines every Ritz root and runs the minimization from the
+ground Ritz value. Each folded value, energy and variance is checked against
+the state rebuilt from dense statevectors. Every interval must hold an exact
+eigenvalue of the reference's `(N, S_z)` sector, once the basis vectors are
+checked to stay in that sector. `tests/test_folded_spectrum.py` holds the block
+to `B†(H − ω)²B` and the roots to the dense generalized eigenproblem on the
+Hubbard 1×3 chain. It also checks both intervals against the full spectrum,
+shift invariance, the refinement inequality, and the monotone iteration and
+its variance-stationary fixed point.
 
 ## Phase 15 preregistration: the measured-residual cost (ratio-free)
 

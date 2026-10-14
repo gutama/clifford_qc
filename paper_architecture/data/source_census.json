@@ -1,6 +1,7 @@
 {
   "gates": {
     "absent_from_workflow": [
+      "check_folded_spectrum_validation",
       "check_phase16b_feasibility",
       "check_phase16b_preregistration",
       "check_phase16b_v2_feasibility",
@@ -65,7 +66,7 @@
       "Plan ledger": 1,
       "Post-hoc declaration": 5,
       "Preregistration": 13,
-      "Value-rebuilt": 29
+      "Value-rebuilt": 30
     },
     "dispatch_gates": [
       "check_exact_shot_search",
@@ -81,13 +82,13 @@
       "check_r3d_qr3_refinement",
       "check_record_environment"
     ],
-    "gates": 62,
+    "gates": 63,
     "manual_dispatch_only": 12,
     "named_in_workflow": 55,
-    "producers": 61,
+    "producers": 62,
     "producers_without_gate": 25,
     "run_on_every_pull_request": 43,
-    "same_stem_pairs": 36
+    "same_stem_pairs": 37
   },
   "records": {
     "declarations": {
@@ -206,17 +207,17 @@
         "modules": 3
       },
       "subspace": {
-        "lines": 11833,
-        "modules": 33
+        "lines": 12147,
+        "modules": 34
       },
       "surface": {
         "lines": 38,
         "modules": 1
       }
     },
-    "package_lines": 28258,
-    "package_modules": 108,
-    "test_lines": 35430,
-    "test_modules": 147
+    "package_lines": 28572,
+    "package_modules": 109,
+    "test_lines": 35812,
+    "test_modules": 149
   }
 }
