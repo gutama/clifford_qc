@@ -575,6 +575,15 @@ def recompute_problems(config, record, *, model=None, predecessor=None, screen_r
                 if not (isinstance(count, int) and not isinstance(count, bool)
                         and 0 < count <= ceiling):
                     problems.append(f"M={size}.estimator.{key} lies outside its band")
+            # <psi|G|psi> is zero; what is recorded is rounding, whose size and
+            # sign are the BLAS kernel's. Compare it to the bound its declared
+            # check reads, 1e-9 (1 + cancellation_scale), not to its own last bits.
+            bound = 1e-9 * (1.0 + rebuilt["cancellation_scale"])
+            mean = stored["estimator"].pop("residual_reference_mean")
+            if not (isinstance(mean, float) and abs(
+                    rebuilt["estimator"].pop("residual_reference_mean") - mean) <= bound):
+                problems.append(f"M={size}.estimator.residual_reference_mean does not rebuild "
+                                "within its declared bound")
             for prices in (rebuilt["protocols"], stored["protocols"]):
                 for price in prices.values():
                     price.pop("allocation_diagnostic", None)

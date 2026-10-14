@@ -264,7 +264,7 @@ No figure or table value in the manuscript is transcribed by hand, and
 ```bash
 python -m venv .venv && source .venv/bin/activate
 pip install -e .[test,research,stim]       # automatic CI extras
-pytest                                      # 3471 passed, 12 skipped
+pytest                                      # 3472 passed, 12 skipped
 ```
 
 This is the automatic CI dependency set; record gates additionally pin NumPy
@@ -280,7 +280,7 @@ the remaining `12 - 6 = 6` skips are per-test and *are* collected:
 
 ```text
 collected == passed + (skipped - files dropped at collection)
-3477      == 3471   + (12      -   6)
+3478      == 3472   + (12      -   6)
 ```
 
 Both sides are computed from the tree, so a drift in either quoted number
@@ -4363,7 +4363,9 @@ The checker restates every prefix status, both linearizations, the Richardson
 rule, every ratio and allocation total, the practical summary and both verdicts
 from recorded inputs. Its rebuild compares pencil-determined floats to a relative
 tolerance of `max(1e-9, 1000 ε κ)`, with `κ` the prefix's retained condition
-number, and the eighty-digit values to `1e-12`. `tests/test_phase15_certifying_krylov.py`
+number, and the eighty-digit values to `1e-12`. The residual's reference mean is
+zero, and its recorded value is rounding whose size and sign depend on the BLAS
+kernel, so the rebuild compares it to the declared bound `1e-9 (1 + scale)`. `tests/test_phase15_certifying_krylov.py`
 runs the whole path, practical stage included, on the undeclared Hubbard dimer. It
 also holds `KrylovBank`'s rows to the base bank's products to the bit, and
 catches forged fields.

@@ -482,3 +482,20 @@ def test_the_energy_campaign_survives_k_words_outside_its_universe(toy, toy_reco
     out = krylov.practical_stage(config, toy["model"], entry, toy_record["spectral_reference"])
     assert len(out["replicates"]) == 3
     assert all(row["energy"]["failure"] is None for row in out["replicates"])
+
+
+def test_a_rounding_level_reference_mean_rebuilds_to_its_declared_bound(toy, toy_record):
+    """The residual's reference mean is zero; another BLAS kernel moves its rounding."""
+    def rebuild(record):
+        return checker.recompute_problems(
+            toy["config"], record, model=toy["model"], predecessor=toy["predecessor"],
+            screen_record=toy["screen_record"], ladder=toy["ladder"], frozen=toy["frozen"])
+
+    entry = toy_record["basis"]["prefixes"]["2"]
+    bound = 1e-9 * (1.0 + entry["cancellation_scale"])
+    moved = copy.deepcopy(toy_record)
+    moved["basis"]["prefixes"]["2"]["estimator"]["residual_reference_mean"] += 0.5 * bound
+    assert rebuild(moved) == []
+    forged = copy.deepcopy(toy_record)
+    forged["basis"]["prefixes"]["2"]["estimator"]["residual_reference_mean"] += 2.0 * bound
+    assert any("residual_reference_mean" in p for p in rebuild(forged))
