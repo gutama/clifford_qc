@@ -3433,6 +3433,31 @@ Hubbard 1×3 chain. It also checks both intervals against the full spectrum,
 shift invariance, the refinement inequality, and the monotone iteration and
 its variance-stationary fixed point.
 
+The committed record validates all five banks. Every refined root matches its
+dense state within the floors. Every target and Weinstein interval holds an
+exact sector level. The minimization is monotone and converges on every bank.
+Ground-root residuals `‖(H − ω)Ψ‖`, in each bank's energy units, at the ground
+Ritz value `θ₀` for the first two columns and at the fixed point `ω = E` for the
+third:
+
+| Bank | Ritz vector | Refined vector at `θ₀` | Minimized (iterations) | Levels isolated by one Weinstein interval |
+|---|---|---|---|---|
+| `h4` | 0.07555 | 0.07396 | 0.07396 (4) | 0 |
+| `h4_converged` | 0.04977 | 0.04901 | 0.04901 (3) | 0, 7, 10, 15 |
+| `beh2` | 0.002344 | 0.002335 | 0.002335 (2) | 0, 8, 16 |
+| `h2o_cas8e6o` | 0.1519 | 0.1512 | 0.1512 (3) | 0 |
+| `hubbard_2x2` | 1.520 | 0.9517 | 0.8679 (20) | none |
+
+Refinement tightens the ground residual by 0.4–2.1% on the four molecular
+banks. Minimizing from there changes it by less than four parts in a million.
+Interior levels are bracketed alone only on the `h4_converged` and `beh2`
+bases. On Hubbard 2×2, refinement cuts the ground residual by 37%, but the
+refined vector's energy is already `−8.898 t` against `θ₀ = −9.239 t`. The
+minimization ends at `E = −8.788 t`, next to the fourth distinct sector level
+`−8.828 t`. So a smaller residual there tracks a nearer excited level, not the
+ground state. This is the exact layer only; the measured block, and the folded
+roots built on it, remain.
+
 ## Phase 15 preregistration: the measured-residual cost (ratio-free)
 
 `benchmarks/PHASE15_MEASURED_RESIDUAL_PREREGISTRATION.md` (Q18) declares

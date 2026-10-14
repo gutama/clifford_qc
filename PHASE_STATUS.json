@@ -210,11 +210,17 @@
         "benchmarks/phase15_certifying_krylov.py",
         "benchmarks/run_phase15_certifying_krylov.py",
         "benchmarks/check_phase15_certifying_krylov.py",
-        "tests/test_phase15_certifying_krylov.py"
+        "tests/test_phase15_certifying_krylov.py",
+        "clifford_qc/subspace/folded.py",
+        "tests/test_folded_spectrum.py",
+        "benchmarks/run_folded_spectrum_validation.py",
+        "benchmarks/check_folded_spectrum_validation.py",
+        "tests/test_folded_spectrum_validation.py",
+        "benchmarks/reference_results/folded_spectrum_validation.json"
       ],
       "remaining": [
         "Finite-shot estimation beyond the declared scopes. Q18-S1 reads NONE for uniform QWC on the five banks; the original Q18 record remains INVALID. Q18-S2 reads UNREACHED on the two committed Hubbard 2x2 A-CASE trajectories. Q18-S3, declared post hoc on the ladder's fixed Krylov prefixes, reads CLOSED: its one certifying, rank-stable prefix (M = 7) has Neyman ratios near 1,700, so no allocation reaches the tenfold bar there and its pilot stage did not run. These close the practical-allocation follow-up negative on those declared scopes only; other systems, spans, groupings, pooled estimators or precision rules need their own declaration. Oracle allocation diagnostics license no estimator",
-        "Folded-spectrum roots and finite-shot convergence reporting built on the measured second-moment block",
+        "Finite-shot convergence reporting and folded-spectrum roots built on the measured second-moment block; exact folded roots, refined Ritz vectors and inclusion intervals ship over the exact block",
         "Phase 2M storage gate or a preflight of its own before SecondMomentBank construction on any bank outside the five"
       ],
       "decision_records": [

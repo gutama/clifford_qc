@@ -1,7 +1,6 @@
 {
   "gates": {
     "absent_from_workflow": [
-      "check_folded_spectrum_validation",
       "check_phase16b_feasibility",
       "check_phase16b_preregistration",
       "check_phase16b_v2_feasibility",
@@ -17,6 +16,7 @@
       "check_docs",
       "check_evidence",
       "check_finite_shot_optimization",
+      "check_folded_spectrum_validation",
       "check_g1_structural_preconditioner",
       "check_krylov_width",
       "check_mapping_axis",
@@ -84,10 +84,10 @@
     ],
     "gates": 63,
     "manual_dispatch_only": 12,
-    "named_in_workflow": 55,
+    "named_in_workflow": 56,
     "producers": 62,
     "producers_without_gate": 25,
-    "run_on_every_pull_request": 43,
+    "run_on_every_pull_request": 44,
     "same_stem_pairs": 37
   },
   "records": {
@@ -103,6 +103,7 @@
       "fcidump_h4.json": "94662552eea471aa",
       "finite_shot_optimization.json": "6829464abc77bc54",
       "finite_shot_rethink.json": "6829464abc77bc54",
+      "folded_spectrum_validation.json": "3a92ee929cbdc7d1",
       "g1_structural_preconditioner.json": "f6a33f1aa225c4dd",
       "h4_exact_trajectory.json": "44136fa355b3678a",
       "krylov_width.json": "44136fa355b3678a",
@@ -152,12 +153,12 @@
       "basis_only": 0,
       "nested_in_subobject": 5,
       "none": 5,
-      "per_quantity_mapping": 16,
+      "per_quantity_mapping": 17,
       "role_only": 0,
       "role_with_nested_tier": 2,
       "top_level_tier": 17
     },
-    "json_records": 45,
+    "json_records": 46,
     "series_files": 21,
     "top_level_tiers": {
       "exact": 4,
