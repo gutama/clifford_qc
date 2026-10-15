@@ -258,6 +258,18 @@ def test_permuted_setting_variances_fail_the_rebuild(toy, protocol, side):
                for p in _rebuild(toy, bad))
 
 
+@pytest.mark.parametrize("side", ("energy", "residual"))
+def test_rounding_level_setting_variances_still_rebuild(toy, side):
+    """A variance that cancels to zero carries rounding whose size depends on the
+    platform; the rebuild holds each setting to its own scale, not its value."""
+    bad = copy.deepcopy(toy["record"])
+    values = bad["banks"][TOY]["protocols"]["fc_greedy"][f"{side}_setting_variances"]
+    low = min(range(len(values)), key=lambda i: abs(values[i]))
+    assert abs(values[low]) < 1e-12
+    values[low] += 3e-14
+    assert not any("setting_variances does not rebuild" in p for p in _rebuild(toy, bad))
+
+
 def test_a_self_consistent_forgery_fails_the_rebuild(toy):
     bad = copy.deepcopy(toy["record"])
     price = bad["banks"][TOY]["protocols"]["fc_isotropic_cover"]

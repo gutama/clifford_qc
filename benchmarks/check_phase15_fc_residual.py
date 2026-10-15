@@ -329,7 +329,8 @@ def pauli_image(n: int, code: int, psi):
     return out
 
 
-def own_variances(psi, n: int, groups, weights) -> list[float]:
+def own_moments(psi, n: int, groups, weights) -> list[tuple[float, float]]:
+    """``(<O^2>, <O>)`` per setting, from this checker's own Pauli action."""
     import numpy as np
 
     out = []
@@ -338,7 +339,7 @@ def own_variances(psi, n: int, groups, weights) -> list[float]:
         for code in group:
             if weights.get(code, 0.0) != 0.0:
                 image = image + weights[code] * pauli_image(n, code, psi)
-        out.append(float(np.vdot(image, image).real) - float(np.vdot(psi, image).real) ** 2)
+        out.append((float(np.vdot(image, image).real), float(np.vdot(psi, image).real)))
     return out
 
 
@@ -403,17 +404,25 @@ def recompute_problems(config: dict, record: dict, *, inputs=None, validation=No
                 if fc.partition_digest(groups) != price[f"{side}_partition_sha256"]:
                     problems.append(f"{label}: the {side} partition does not rebuild")
                     continue
-                own = own_variances(internals["psi"], model.n, groups, weights)
+                moments = own_moments(internals["psi"], model.n, groups, weights)
+                own = [second - mean * mean for second, mean in moments]
+                # A variance that cancels to zero keeps rounding whose size and sign
+                # differ between platforms. Its size is bounded by the largest term
+                # the operator square forms, (sum |f_w|)^2, so each setting carries
+                # that rounding floor on top of its value-relative tolerance.
+                floors = [RESOLUTION * math.fsum(abs(weights.get(code, 0.0))
+                                                 for code in group) ** 2
+                          for group in groups]
                 rebuilt = got[f"{side}_setting_variances"]
                 recorded = price[f"{side}_setting_variances"]
                 relative = 1e-9 if side == "energy" else drift
-                if len(recorded) != len(rebuilt) or any(
-                        not _close(a, b, rel=relative, abs_=1e-15)
-                        for a, b in zip(recorded, rebuilt)):
+                if len(recorded) != len(rebuilt) or len(rebuilt) != len(floors) or any(
+                        abs(a - b) > relative * abs(b) + floor
+                        for a, b, floor in zip(recorded, rebuilt, floors)):
                     problems.append(f"{label}.{side}_setting_variances does not rebuild")
                 if len(own) != len(rebuilt) or any(
-                        abs(a - b) > fc.STATEVECTOR_TOLERANCE * max(1.0, abs(b))
-                        for a, b in zip(own, rebuilt)):
+                        abs(a - b) > fc.STATEVECTOR_TOLERANCE * abs(b) + floor
+                        for a, b, floor in zip(own, rebuilt, floors)):
                     problems.append(f"{label}: a {side} setting variance disagrees with "
                                     "this checker's own Pauli action")
         if progress is not None:

@@ -264,7 +264,7 @@ No figure or table value in the manuscript is transcribed by hand, and
 ```bash
 python -m venv .venv && source .venv/bin/activate
 pip install -e .[test,research,stim]       # automatic CI extras
-pytest                                      # 3596 passed, 12 skipped
+pytest                                      # 3598 passed, 12 skipped
 ```
 
 This is the automatic CI dependency set; record gates additionally pin NumPy
@@ -280,7 +280,7 @@ the remaining `12 - 6 = 6` skips are per-test and *are* collected:
 
 ```text
 collected == passed + (skipped - files dropped at collection)
-3602      == 3596   + (12      -   6)
+3604      == 3598   + (12      -   6)
 ```
 
 Both sides are computed from the tree, so a drift in either quoted number
@@ -4480,8 +4480,11 @@ producer writes only its declared path and refuses an existing record. Each bank
 functionals must reproduce Q18-S1's record, and every setting variance must equal
 `⟨O²⟩ − ⟨O⟩²` from matrix-free action on the reference statevector. The checker
 restates every count, variance sum, Neyman sum, ratio, check, status and the
-verdict from recorded values. Its rebuild compares each partition by SHA-256 and
-recomputes every setting variance a third way, from its own Pauli action.
+verdict from recorded values. Its rebuild compares each partition by SHA-256,
+holds every recorded setting variance to its rebuilt value, and recomputes each one
+a third way, from its own Pauli action. A variance that cancels to zero keeps
+platform-dependent rounding, so each setting also carries a floor of
+`1e-12 (Σ_g |f_w|)²`, the scale of the largest term its operator square forms.
 `tests/test_phase15_fc_residual.py` runs the whole path on the undeclared Hubbard
 dimer, where the two protocols put `R` on opposite sides of ten. It also holds
 every setting variance to dense matrices, and catches forged fields.
