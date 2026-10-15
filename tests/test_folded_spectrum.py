@@ -260,6 +260,30 @@ def test_inputs_are_validated(chain):
         refined_ritz_root(chain["result"], 0, moments=SecondMomentBank(other))
 
 
+def test_a_metric_changing_ridge_is_refused():
+    """A ridge solves the pencil in ``S + Delta``, so its vectors are not folded roots."""
+    rho = MV.scalar(1, 0.5) + MV.word(1, "Z", 0.5)
+    hamiltonian = MV.word(1, "Z") + MV.word(1, "X", 0.4)
+    generators = [Generator("I", MV.scalar(1)),
+                  Generator("I+0.2X", MV.scalar(1) + MV.word(1, "X", 0.2))]
+    bank = MatrixElementBank(rho, hamiltonian, generators)
+    moments = SecondMomentBank(bank)
+    for ridge in (0.1, [0.0, 0.1]):
+        with pytest.raises(ValueError, match="overlap_ridge"):
+            FoldedSpectrum(moments, overlap_ridge=ridge)
+        with pytest.raises(ValueError, match="overlap_ridge"):
+            folded_spectrum_roots(moments, 0.3, overlap_ridge=ridge)
+        with pytest.raises(ValueError, match="overlap_ridge"):
+            refined_ritz_root(bank.solve(), 0, moments=moments, overlap_ridge=ridge)
+    spectrum = FoldedSpectrum(moments, overlap_ridge=0.0)
+    S, _ = bank.matrices(range(len(bank)))
+    pencil = np.linalg.solve(S, spectrum.folded_matrix(0.3))
+    dense = np.sort(np.linalg.eigvals(pencil).real)
+    values = [root.folded_value for root in spectrum.roots(0.3).roots]
+    assert values == pytest.approx(dense, abs=1e-12)
+    assert values[0] == pytest.approx(0.6037802231, abs=1e-10)
+
+
 def test_a_subset_of_generators_is_its_own_span(chain):
     full = folded_spectrum_roots(chain["moments"], -6.0)
     part = folded_spectrum_roots(chain["moments"], -6.0, indices=[0, 1, 2])

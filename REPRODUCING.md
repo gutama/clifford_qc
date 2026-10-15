@@ -264,7 +264,7 @@ No figure or table value in the manuscript is transcribed by hand, and
 ```bash
 python -m venv .venv && source .venv/bin/activate
 pip install -e .[test,research,stim]       # automatic CI extras
-pytest                                      # 3526 passed, 12 skipped
+pytest                                      # 3529 passed, 12 skipped
 ```
 
 This is the automatic CI dependency set; record gates additionally pin NumPy
@@ -280,7 +280,7 @@ the remaining `12 - 6 = 6` skips are per-test and *are* collected:
 
 ```text
 collected == passed + (skipped - files dropped at collection)
-3532      == 3526   + (12      -   6)
+3535      == 3529   + (12      -   6)
 ```
 
 Both sides are computed from the tree, so a drift in either quoted number
@@ -3427,11 +3427,16 @@ licensed bank it refines every Ritz root and runs the minimization from the
 ground Ritz value. Each folded value, energy and variance is checked against
 the state rebuilt from dense statevectors. Every interval must hold an exact
 eigenvalue of the reference's `(N, S_z)` sector, once the basis vectors are
-checked to stay in that sector. `tests/test_folded_spectrum.py` holds the block
+checked to stay in that sector. The checker holds every root and every
+minimization step to `μ = σ² + (E − ω)²` within the resolution floor. Its
+rebuild re-solves each recorded step at that step's own target, so only the
+step count may drift across platforms. `tests/test_folded_spectrum.py` holds the block
 to `B†(H − ω)²B` and the roots to the dense generalized eigenproblem on the
 Hubbard 1×3 chain. It also checks both intervals against the full spectrum,
 shift invariance, the refinement inequality, and the monotone iteration and
-its variance-stationary fixed point.
+its variance-stationary fixed point. `FoldedSpectrum` accepts the truncation
+options of `solve_projected` but refuses a nonzero `overlap_ridge`, which would
+solve the pencil in a different metric.
 
 The committed record validates all five banks. Every refined root matches its
 dense state within the floors. Every target and Weinstein interval holds an

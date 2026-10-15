@@ -139,8 +139,14 @@ def root_row(root, dense: dict, levels) -> dict:
     return row
 
 
-def validate_bank(model, selected) -> dict:
-    """Every refined root, the minimization and every check for one bank."""
+def validate_bank(model, selected, *, replay=None) -> dict:
+    """Every refined root, the minimization and every check for one bank.
+
+    ``replay`` lists targets at which to re-solve the lowest folded root on
+    the same span, as trace steps under the key ``replay``. The checker passes
+    a recorded trace's targets so each step is restated without building the
+    second moments twice; the record itself carries no replay.
+    """
     from benchmarks.phase15_certifying_screen import sector_premises
     from clifford_qc.pauli_action import PauliLinearOperator
     from clifford_qc.subspace import FoldedSpectrum, SecondMomentBank
@@ -195,7 +201,7 @@ def validate_bank(model, selected) -> dict:
         "minimization_monotone_and_converged": run.monotone and run.converged,
     }
     ground = roots[0]
-    return {
+    out = {
         "n_qubits": model.n,
         "basis_size": len(selected),
         "effective_rank": int(result.effective_rank),
@@ -216,6 +222,13 @@ def validate_bank(model, selected) -> dict:
         },
         "diagnostics": {"seconds": round(time.perf_counter() - started, 2)},
     }
+    if replay is not None:
+        out["replay"] = []
+        for target in replay:
+            step = spectrum.roots(float(target), count=1).lowest
+            out["replay"].append([step.target, step.folded_value, step.energy, step.variance,
+                                  step.folded_scale])
+    return out
 
 
 def run_validation(preflight: dict, *, banks=None, inputs=None, progress=None,

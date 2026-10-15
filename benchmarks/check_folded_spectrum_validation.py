@@ -88,6 +88,11 @@ def declaration_problems(record: dict, preflight: dict, preflight_bytes: bytes) 
     return problems
 
 
+def _folded_identity(target, folded, energy, variance, scale) -> bool:
+    """``mu = sigma^2 + (E - w)^2``, which every folded value obeys, to its floor."""
+    return abs(folded - (variance + (energy - target) ** 2)) <= RESOLUTION * scale
+
+
 def row_problems(row: dict, levels, label: str, *, refined: bool) -> list[str]:
     """One folded root's derived fields, restated from its values."""
     problems = []
@@ -115,6 +120,9 @@ def row_problems(row: dict, levels, label: str, *, refined: bool) -> list[str]:
     if not _close(row["variance"], row["second_moment"] - row["energy"] ** 2,
                   rel=1e-12, abs_=4 * math.ulp(max(1.0, row["second_moment"]))):
         problems.append(f"{label}: variance is not <H^2> - <H>^2")
+    if not _folded_identity(row["target"], row["folded_value"], row["energy"], row["variance"],
+                            row["folded_scale"]):
+        problems.append(f"{label}: folded value is not variance + (energy - target)^2")
     for key, value in expected.items():
         if isinstance(value, float):
             ok = isinstance(row[key], float) and _close(row[key], value)
@@ -147,6 +155,9 @@ def minimization_problems(block: dict, levels, label: str) -> tuple[list[str], b
         problems.append(f"{label}: the trace does not end at the reported root")
     if trace[0][0] != block["start"]:
         problems.append(f"{label}: the trace does not start at the start")
+    for i, step in enumerate(trace):
+        if len(step) != 5 or not _folded_identity(*step):
+            problems.append(f"{label}: trace step {i} is not variance + (energy - target)^2")
     monotone = all(b[1] <= a[1] + RESOLUTION * b[4] for a, b in zip(trace, trace[1:]))
     converged = abs(last[2] - last[0]) <= TARGET_TOLERANCE * max(1.0, abs(last[0]))
     for a, b in zip(trace, trace[1:]):
@@ -240,6 +251,25 @@ def _row_rebuild(mine: dict, theirs: dict, label: str) -> list[str]:
     return problems
 
 
+def _trace_rebuild(mine: list, theirs: list, label: str) -> list[str]:
+    """Each recorded step re-solved at its own target, each value to its floor.
+
+    The trace carries no variance scale, so the variance takes the folded
+    scale, which bounds it, as its floor.
+    """
+    problems = []
+    for i, (got, step) in enumerate(zip(mine, theirs)):
+        target, folded, energy, variance, scale = step
+        floor = RESOLUTION * scale
+        if not (got[0] == target
+                and _close(got[2], energy, rel=1e-9, abs_=1e-12)
+                and abs(got[1] - folded) <= floor + 1e-9 * abs(folded)
+                and abs(got[3] - variance) <= floor + 1e-9 * abs(variance)
+                and _close(got[4], scale, rel=1e-6)):
+            problems.append(f"{label}: trace step {i} does not rebuild at its target")
+    return problems
+
+
 def recompute_problems(record: dict, *, banks=None, inputs=None) -> list[str]:
     """Every bank rebuilt and compared."""
     inputs = gate.bank_inputs if inputs is None else inputs
@@ -247,7 +277,10 @@ def recompute_problems(record: dict, *, banks=None, inputs=None) -> list[str]:
     for name in (record["banks"] if banks is None else banks):
         entry = record["banks"][name]
         model, selected = inputs(name)
-        got = json.loads(json.dumps(producer.validate_bank(model, selected), allow_nan=False))
+        trace = entry["minimization"]["trace"]
+        got = json.loads(json.dumps(producer.validate_bank(
+            model, selected, replay=[step[0] for step in trace]), allow_nan=False))
+        problems += _trace_rebuild(got.pop("replay"), trace, f"{name} minimization")
         for key in ("n_qubits", "basis_size", "effective_rank", "checks", "status"):
             if got[key] != entry[key]:
                 problems.append(f"{name}.{key} does not rebuild")

@@ -180,13 +180,18 @@ class FoldedSpectrum:
     one solve of the folded pencil. ``solve_kwargs`` reach ``solve_projected``
     unchanged, so pass the thresholds of the Ritz solve being refined if they
     were not the defaults: the retained subspace is decided on ``S`` alone,
-    exactly as for the Ritz roots.
+    exactly as for the Ritz roots. Truncation keeps the original metric on the
+    retained span; a nonzero ``overlap_ridge`` would not, so its vectors would
+    not solve ``F c = mu S c`` and it is refused.
     """
 
     def __init__(self, moments: SecondMomentBank, indices: Sequence[int] | None = None,
                  **solve_kwargs):
         if not isinstance(moments, SecondMomentBank):
             raise TypeError("FoldedSpectrum needs a SecondMomentBank")
+        if np.any(np.asarray(solve_kwargs.get("overlap_ridge", 0.0), dtype=float) != 0.0):
+            raise ValueError("overlap_ridge changes the overlap metric, so its roots would not "
+                             "solve F c = mu S c; folded roots take truncation options only")
         bank = moments.bank
         self._moments = moments
         self._indices = tuple(bank.resolve(indices))

@@ -90,6 +90,29 @@ def test_a_self_consistent_forgery_fails_the_rebuild(toy):
                checker.recompute_problems(forged, inputs=_toy_inputs))
 
 
+def test_a_corrupted_trace_step_breaks_the_folded_identity():
+    """The committed Hubbard 2x2 trace, with one intermediate folded value changed."""
+    record = json.loads(producer.RECORD.read_bytes())
+    trace = record["banks"]["hubbard_2x2"]["minimization"]["trace"]
+    assert trace[1][1] == pytest.approx(0.7622805201, abs=1e-10)
+    trace[1][1] = 0.8298240282
+    assert "hubbard_2x2: trace step 1 is not variance + (energy - target)^2" in (
+        checker.derived_problems(record))
+
+
+def test_a_self_consistent_trace_forgery_fails_the_replay(toy):
+    forged = copy.deepcopy(toy)
+    trace = forged["banks"][TOY]["minimization"]["trace"]
+    gaps = (trace[1][1] - trace[2][1], trace[2][1] - trace[3][1])
+    assert min(gaps) > 0.0
+    shift = 0.25 * min(gaps)
+    trace[2][1] += shift  # the folded value and the variance together keep the identity
+    trace[2][3] += shift
+    assert checker.derived_problems(forged) == []
+    assert f"{TOY} minimization: trace step 2 does not rebuild at its target" in (
+        checker.recompute_problems(forged, inputs=_toy_inputs))
+
+
 def test_unlicensed_banks_and_subsets_are_refused(tmp_path):
     preflight = json.loads(producer.PREFLIGHT.read_bytes())
     with pytest.raises(ValueError, match="does not license"):
