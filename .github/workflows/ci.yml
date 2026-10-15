@@ -220,6 +220,12 @@ jobs:
           - gate: check_phase15_certifying_krylov
             timeout: 15
             environment_record: phase15_certifying_krylov.json
+          # Rebuilds the four banks' rows, functionals, Richardson checks and both
+          # fully commuting partitions, and recomputes every setting variance from
+          # the checker's own Pauli action: about a minute locally.
+          - gate: check_phase15_fc_residual
+            timeout: 15
+            environment_record: phase15_fc_residual.json
           # Rebuilds only frozen coefficients, covers, rotors and resources.
           # Draws no Phase 19 outcomes; after a record, also checks commit order.
           - gate: check_phase19_preregistration

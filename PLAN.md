@@ -134,7 +134,7 @@ conditional phases.
 | PRD | orthogonal-residual regression, Davidson/preconditioned expansion, packet pricing, matched A-CASE, exact and finite-shot suites | **done and read**; exact compactness is positive, complete-bank QWC finite-shot energy accuracy is negative |
 | 13 | parity/X-rank invariant | **done**; one shared GF(2) implementation is tested across every declared spin-conserving JW construction path before grouping |
 | 14 | fully commuting grouping | **done on the frozen BeH₂/JW comparison** — the public compiled-plan API, exact joint sampler, preregistered finite-sample record, covariance audit, and device-card costing ship; Q9 is positive within the declared one-bank oracle boundary |
-| 15 | second-moment bank | **partially implemented (50%)**; the H-squared preflight reads `FULL` (Q16), and `SecondMomentBank` ships with exact second moments and true Ritz residual norms validated on all five licensed banks. Opt-in exact convergence reporting ships at adaptive termination, with numerical resolution and separate ground-state evidence. Q17's `CONDITIONAL` permits the shipped three-prefix extrapolation diagnostic, with improvement evidence confined to the frozen H₄ and H₂O bases. Q18's predecessor remains `INVALID`. Its separately declared Q18-S1 successor reports post-hoc `NONE` for uniform QWC on the five banks after all derivative checks pass. Q18-S2 reads `UNREACHED`: no prefix with a resolved variance on the two committed Hubbard 2×2 A-CASE trajectories that extend the frozen bank certifies the ground state, so no pilot allocation experiment is authorized on those prefixes. The exact final `acase_level4` prefix (`M = 26`) has `E + σ < E₁` for any `σ` below the resolution floor, but is unresolved, unpriced and not `certifying` in the record. Q18-S3, declared post hoc on the ladder's fixed Krylov prefixes, reads `CLOSED`. Its one certifying, rank-stable prefix (`M = 7`, `σ = 0.114 t`) has Neyman ratios near 1,700 under both protocols. So no allocation reaches the tenfold bar there, and the pilot-allocation stage did not run. That closes the practical-allocation follow-up negative on that declared scope only. Exact folded-spectrum roots, refined Ritz vectors and interior inclusion intervals now ship over the exact block, validated on all five licensed banks. Finite-shot reporting, folded roots over a measured block and banks outside the five remain |
+| 15 | second-moment bank | **partially implemented (50%)**; the H-squared preflight reads `FULL` (Q16), and `SecondMomentBank` ships with exact second moments and true Ritz residual norms validated on all five licensed banks. Opt-in exact convergence reporting ships at adaptive termination, with numerical resolution and separate ground-state evidence. Q17's `CONDITIONAL` permits the shipped three-prefix extrapolation diagnostic, with improvement evidence confined to the frozen H₄ and H₂O bases. Q18's predecessor remains `INVALID`. Its separately declared Q18-S1 successor reports post-hoc `NONE` for uniform QWC on the five banks after all derivative checks pass. Q18-S2 reads `UNREACHED`: no prefix with a resolved variance on the two committed Hubbard 2×2 A-CASE trajectories that extend the frozen bank certifies the ground state, so no pilot allocation experiment is authorized on those prefixes. The exact final `acase_level4` prefix (`M = 26`) has `E + σ < E₁` for any `σ` below the resolution floor, but is unresolved, unpriced and not `certifying` in the record. Q18-S3, declared post hoc on the ladder's fixed Krylov prefixes, reads `CLOSED`. Its one certifying, rank-stable prefix (`M = 7`, `σ = 0.114 t`) has Neyman ratios near 1,700 under both protocols. So no allocation reaches the tenfold bar there, and the pilot-allocation stage did not run. That closes the practical-allocation follow-up negative on that declared scope only. Exact folded-spectrum roots, refined Ritz vectors and interior inclusion intervals now ship over the exact block, validated on all five licensed banks. Q18-S4, declared post hoc at the fully commuting grouping endpoint on the four 8-qubit banks, reads `NONE`: the shipped greedy cuts every QWC ratio, to 12.3–26.7, but none reaches the tenfold bar, and the isotropic cover reads 14.6 to 117,681. So the uniform single-assignment measured block closes negative at both grouping endpoints on those banks, and no finite-shot second-moment estimator is built. Finite-shot reporting and folded roots over a measured block need a scope a new declaration licenses, and banks outside the five remain |
 | 16 | time-evolved inputs | **partially implemented (50%)**; the 16A QSCI time-evolved input ships in `subspace/time_evolution.py` (exact matrix-free propagation as an `oracle` input, a validated Trotter circuit as an `implementable` one, and pooled multi-time sampling). Its decision comparison, Q15, ran once and reads `NO_GO`: iterated selected CI of the same size matches or beats it on both required instances. No circuit-native/truncated A-CASE real-time family ships. 16B's three preregistered decision experiments have run — v1 `CONDITIONAL`, v2 `GO` under per-word pricing, v3 `CONDITIONAL` once the incumbent is priced with its own grouping — and the programme ends there: the real-time backend is **not authorized** (§5, Phase 16) |
 | 17 | mapping validation and breadth | **complete (100%)**; mapping invariance and exact CEO comparisons ship, and the dedicated twelve-cell MORE-ADAPT/native multi-root A-CASE comparison has a VALID independently replayed record; mixed target outcomes limit the scientific claim (§5, Phase 17) |
 | 18 | embedding boundary | **done**; the versioned effective-Hamiltonian schema ships in `models/effective.py`, and the common fragment-solver callback returning energy and one- and two-particle density matrices ships in `subspace/fragment.py`, implemented by QSCI, selected CI, the hybrid, and a sector-FCI reference. The embedding loop itself stays outside the package |
@@ -408,7 +408,7 @@ phase and change no implementation fraction or measured verdict.
 | B6: architecture/API | Chemistry imports pool definitions from algorithms; mutable `PauliSum.terms` is an API design question, not by itself a correctness defect | Remove the import-time edge with compatibility; assess immutability separately |
 | GA-1 / GA-2: sparse exterior operations | `codes_of_grade` scans `4**n`; active-support Plücker candidates and contractions avoid that enumeration | Implement with explicit product conventions and independent equivalence checks |
 | GA-3: determinant-reference obstruction | Exact no-go holds; a positive expectation gap does not always exceed the numerical tolerance | Record the scoped proof in §3.6(iv); do not build transport before eligibility is established |
-| Research follow-ups | The exact CEO and MORE-ADAPT breadth comparisons are complete; the certifying-basis allocation design (Q18-S3) ran once and reads `CLOSED` on its declared Krylov scope | Preserve the completed Phase 17 scope and the scoped Phase 15 boundary below |
+| Research follow-ups | The exact CEO and MORE-ADAPT breadth comparisons are complete; the certifying-basis allocation design (Q18-S3) ran once and reads `CLOSED` on its declared Krylov scope; the fully commuting successor (Q18-S4) ran once and reads `NONE` on the four 8-qubit banks | Preserve the completed Phase 17 scope and the scoped Phase 15 boundary below |
 
 **First: restore maintenance gates.** Unchecked items below remain pending code
 work, even where this plan already corrects the prose.
@@ -609,6 +609,17 @@ configs and execution identities remain unchanged.
   banks against dense statevectors and the exact sector spectrum
   (`reference_results/folded_spectrum_validation.json`). This is the exact
   layer: it adds no finite-shot estimate, and Phase 15's fraction stays 50%.
+- [x] **Phase 15 — the measured block at the fully commuting endpoint (Q18-S4).**
+  Q18-S1's `NONE` ruled out building the estimator under uniform QWC, so the
+  request to build the measured block went through a new post-hoc declaration
+  first (`PHASE15_FC_RESIDUAL_DECLARATION.md`, `c1b0289`). It keeps Q18-S1's
+  estimator, validator, statistic and bar, and prices both sides under
+  single-assignment fully commuting settings on the four 8-qubit banks. H₂O's
+  868,149 words are beyond both partitioners. Record-only commit `ab66c72` reads
+  **`NONE`**: every bank is `PROHIBITIVE` under both the greedy and the isotropic
+  cover. No estimator is built. Commit `e1653ac` adds the v1 evidence declaration
+  the executed producer omitted, as a disclosed metadata-only correction that
+  pins the executed record's SHA-256. Phase 15's fraction stays 50%.
 
 The direct summary and documentation commands above were reproduced as failing
 on the reviewed checkout; the original phase-status gate passed despite the
@@ -2745,6 +2756,63 @@ device time, or the rank-unstable prefixes. The outcome is a scoped scientific
 result recorded beside Phase 15's lifecycle. It is not a numbered-phase status.
 Phase 15 stays partial at 50%, because measured convergence reporting, folded
 roots over a measured block and banks outside the five remain.
+
+**Q18-S4 ran once and reads `NONE`: fully commuting settings lower every ratio,
+but none reaches the bar.** Q18 and Q18-S1 excluded fully commuting grouping from
+cost. `benchmarks/PHASE15_FC_RESIDUAL_DECLARATION.md` prices it on both sides of
+Q18-S1's ratio, with Q18-S1's estimator, Richardson validator, statistic, bar and
+combination rule unchanged. The declared partition is the shipped greedy at block
+size `n`, and the alternative is the isotropic cover. The banks are the four
+8-qubit ones: both partitioners build a `W × W` conflict table, which H₂O's
+868,149 measured words put out of reach, so H₂O's QWC reading stands. Every Q18
+and Q18-S1 ratio was seen first, so the design is post hoc. Only first moments
+were formed on the declared banks before freezing. Declaration `c1b0289` is the
+record's execution commit, and the record
+(`benchmarks/reference_results/phase15_fc_residual.json`) was committed alone in
+`ab66c72`, in 39 s.
+
+| bank | `R`, QWC (Q18-S1) | `R`, fully commuting greedy | `R`, isotropic cover | `G_SH` / `G_U`, greedy | status |
+|---|---|---|---|---|---|
+| H₄ | 567 | 15.31 | 722.3 | 64 / 66 | PROHIBITIVE |
+| converged H₄ | 1,311 | 24.30 | 1,561 | 65 / 66 | PROHIBITIVE |
+| BeH₂ | 184,358 | 26.68 | 117,681 | 14 / 15 | PROHIBITIVE |
+| Hubbard 2×2 | 21.0 | 12.30 | 14.56 | 146 / 185 | PROHIBITIVE |
+
+Every deterministic check passes on every bank. Both functionals reproduce
+Q18-S1's record, the Richardson rule passes on both directions, and every partition
+covers its universe once with commuting settings. Every setting variance matches
+the reference statevector to `7.5e-15`.
+
+- *On the molecular banks the gain is the residual's variance.* Under the greedy
+  it falls 43, 59 and 3,993 times on H₄, converged H₄ and BeH₂. The energy's
+  variance moves by at most a factor of 1.9, and the setting ratio `G_U/G_SH` stays
+  within 1.02–1.07. So `R` falls 37, 54 and 6,909 times, and still stops at 15–27.
+- *Which words share a setting decides it.* The isotropic cover partitions the same
+  universes, but its residual variance is 48, 67 and 4,573 times the greedy's,
+  so its ratios stay near Q18-S1's. A reading consistent with this, not tested
+  by the record: the reference is a determinant, a stabilizer state, on which
+  a setting whose weighted words act nearly as a scalar has almost no variance,
+  and the greedy's settings happen to gather more such combinations. A
+  correlated reference would change both sides.
+- *Hubbard 2×2 comes closest for the opposite reason.* Its residual variance rises
+  1.25 times under the greedy, but the energy's rises 2.2 times, so `R` falls from
+  21.0 to 12.3. Its basis does not certify the ground state (`σ = 1.52 t`), as
+  Q18-S2 found.
+
+*Consequence, as declared:* no finite-shot second-moment estimator under uniform
+single-assignment fully commuting settings on these four banks. With Q18-S1, the
+uniform single-assignment measured block closes negative at both grouping
+endpoints the package ships, on these banks. `check_phase15_fc_residual.py`
+restates every number, rebuilds every bank, recomputes each setting variance from
+its own Pauli action, and runs in the structural CI matrix. The executed producer
+omitted the v1 evidence declaration the evidence gate requires. Commit `e1653ac`
+adds it as a disclosed metadata-only correction, and the checker undoes it to the
+executed record's pinned SHA-256 before restating anything.
+
+*Not claimed:* the diagonalizing circuits or device time, correlated references,
+span reading or multiple assignment, pooled or shared-shot estimators, any other
+allocation or precision rule, H₂O, or any bank outside the five. Phase 15 stays
+partial at 50%.
 
 
 ### Phase 16 — time-evolved inputs, split by method
@@ -4914,6 +4982,11 @@ A-CASE's.
   1,699.7/1,699.5. The falsifier holds there for every allocator to first order,
   so the declared pilot stage did not run. The closure is scoped to this system,
   this span and single-assignment QWC at matched precision.
+  **Separate post-hoc Q18-S4:** `NONE`
+  (`benchmarks/reference_results/phase15_fc_residual.json`). Under
+  single-assignment fully commuting settings on the four 8-qubit banks, the
+  greedy reads `R` = 15.31, 24.30, 26.68 and 12.30, and the isotropic cover
+  722.3, 1,561, 117,681 and 14.56; every bank is PROHIBITIVE.
 
 **Resource accounting (QR1–QR6).**
 
@@ -5150,7 +5223,8 @@ import cleanup (GA-1, GA-2, B6) are implemented. GA-3's executable fixtures now 
 §3.6(iv)'s boundary without a determinant-reference transport engine. Phase 17's
 MORE-ADAPT breadth comparison is complete with a VALID twelve-cell record.
 The Phase 15 certifying-basis allocation follow-up has run once as Q18-S3 and reads
-`CLOSED` on its declared Krylov scope (item 19k). Preserve the existing
+`CLOSED` on its declared Krylov scope (item 19k). Its fully commuting successor,
+Q18-S4, has run once and reads `NONE` on the four 8-qubit banks (item 19m). Preserve the existing
 result/declaration history and all go/no-go decisions below. That outcome
 authorizes no further run of any frozen campaign and changes no phase fraction.
 
@@ -5649,6 +5723,16 @@ bought a duplicate record.
     the Ritz energy `−9.239 t` for `−8.788 t`, beside an excited level, so a
     smaller residual is not ground-state evidence there. No finite-shot or
     device claim; the measured block remains, and Phase 15 stays partial at 50%.
+19m. Phase 15's Q18-S4, the measured block under fully commuting grouping —
+    **executed once, `NONE`.** The post-hoc declaration
+    (`PHASE15_FC_RESIDUAL_DECLARATION.md`, `c1b0289`) keeps Q18-S1's estimator,
+    validator, statistic and bar, and prices both sides under single-assignment
+    fully commuting settings on the four 8-qubit banks. The record (`ab66c72`)
+    finds every bank PROHIBITIVE: the greedy reads 12.3–26.7, the isotropic cover
+    14.6–117,681. So no finite-shot second-moment estimator is built, and the
+    uniform single-assignment block closes negative at both grouping endpoints on
+    these banks. A disclosed metadata-only correction (`e1653ac`) adds the
+    record's v1 evidence declaration. Phase 15 stays partial at 50%.
 20. The dedicated MORE-ADAPT breadth comparison and exact CEO pool comparison
     are complete and read (§5, Phase 17). Mixed multi-root target outcomes remain
     explicit; no finite-shot or universal resource advantage follows.

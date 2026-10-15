@@ -1,7 +1,6 @@
 {
   "gates": {
     "absent_from_workflow": [
-      "check_phase15_fc_residual",
       "check_phase16b_feasibility",
       "check_phase16b_preregistration",
       "check_phase16b_v2_feasibility",
@@ -29,6 +28,7 @@
       "check_phase15_certifying_screen",
       "check_phase15_certifying_screen_declaration",
       "check_phase15_extrapolation_preregistration",
+      "check_phase15_fc_residual",
       "check_phase15_fc_residual_declaration",
       "check_phase15_h2_preflight",
       "check_phase15_measured_residual_preflight",
@@ -86,10 +86,10 @@
     ],
     "gates": 65,
     "manual_dispatch_only": 12,
-    "named_in_workflow": 57,
+    "named_in_workflow": 58,
     "producers": 63,
     "producers_without_gate": 25,
-    "run_on_every_pull_request": 45,
+    "run_on_every_pull_request": 46,
     "same_stem_pairs": 38
   },
   "records": {

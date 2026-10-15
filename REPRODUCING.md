@@ -4486,6 +4486,35 @@ recomputes every setting variance a third way, from its own Pauli action.
 dimer, where the two protocols put `R` on opposite sides of ten. It also holds
 every setting variance to dense matrices, and catches forged fields.
 
+The one declared execution took 39 s under Python 3.12.3, NumPy 2.5.2, SciPy
+1.18.0 and Stim 1.16.0, from clean pushed commit `c1b0289`. Its record was
+committed alone in `ab66c72`, and the full rebuild takes about a minute locally.
+Every deterministic check passes on every bank. **All four banks are
+`PROHIBITIVE` under both protocols, so the verdict is `NONE`, and no finite-shot
+second-moment estimator is built:**
+
+| bank | `R`, QWC (Q18-S1) | `R`, greedy | `R`, isotropic cover |
+|---|---|---|---|
+| H₄ | 567 | 15.31 | 722.3 |
+| converged H₄ | 1,311 | 24.30 | 1,561 |
+| BeH₂ | 184,358 | 26.68 | 117,681 |
+| Hubbard 2×2 | 21.0 | 12.30 | 14.56 |
+
+On the molecular banks the greedy lowers the residual's one-shot variance 43 to
+3,993 times. The energy's variance moves by at most a factor of 1.9, and the
+setting counts stay within 7% of each other. The cover's residual variance on the
+same universes is 48 to 4,573 times the greedy's. On Hubbard 2×2 the residual
+variance rises 1.25 times under the greedy, and `R` falls because the energy's
+rises 2.2 times. With Q18-S1, the uniform single-assignment measured block closes
+negative at both grouping endpoints on these banks.
+
+The executed producer did not write the v1 evidence declaration
+`check_evidence.py` requires of a new record. Commit `e1653ac` adds it as a
+disclosed metadata-only correction. The record's `metadata_correction` block
+keeps the executed evidence and pins the executed record's SHA-256. The checker
+undoes the correction, requires those exact bytes, and restates everything from
+them.
+
 ## Phase 2M-C/D: process-isolated storage-policy matrix
 
 The outcome-free declaration is `benchmarks/PHASE2M_POLICY_DECLARATION.md`, with
