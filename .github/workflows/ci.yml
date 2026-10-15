@@ -174,6 +174,11 @@ jobs:
           - gate: check_phase15_certifying_krylov_declaration
             timeout: 10
             environment_record: phase15_certifying_screen.json
+          # Recomputes four banks' first-moment (S, H) solves and both fully
+          # commuting partitions of each (S, H) universe; no second moment. Seconds.
+          - gate: check_phase15_fc_residual_declaration
+            timeout: 10
+            environment_record: phase15_residual_successor.json
           # Recounts every second-moment row of the five banks: about two
           # minutes locally, most of it H2O, at under 1 GiB.
           - gate: check_phase15_h2_preflight

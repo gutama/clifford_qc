@@ -1,6 +1,7 @@
 {
   "gates": {
     "absent_from_workflow": [
+      "check_phase15_fc_residual",
       "check_phase16b_feasibility",
       "check_phase16b_preregistration",
       "check_phase16b_v2_feasibility",
@@ -28,6 +29,7 @@
       "check_phase15_certifying_screen",
       "check_phase15_certifying_screen_declaration",
       "check_phase15_extrapolation_preregistration",
+      "check_phase15_fc_residual_declaration",
       "check_phase15_h2_preflight",
       "check_phase15_measured_residual_preflight",
       "check_phase15_measured_residual_preregistration",
@@ -64,9 +66,9 @@
       "Lineage and environment": 3,
       "Observed resource equivalence": 1,
       "Plan ledger": 1,
-      "Post-hoc declaration": 5,
+      "Post-hoc declaration": 6,
       "Preregistration": 13,
-      "Value-rebuilt": 30
+      "Value-rebuilt": 31
     },
     "dispatch_gates": [
       "check_exact_shot_search",
@@ -82,13 +84,13 @@
       "check_r3d_qr3_refinement",
       "check_record_environment"
     ],
-    "gates": 63,
+    "gates": 65,
     "manual_dispatch_only": 12,
-    "named_in_workflow": 56,
-    "producers": 62,
+    "named_in_workflow": 57,
+    "producers": 63,
     "producers_without_gate": 25,
-    "run_on_every_pull_request": 44,
-    "same_stem_pairs": 37
+    "run_on_every_pull_request": 45,
+    "same_stem_pairs": 38
   },
   "records": {
     "declarations": {
@@ -218,7 +220,7 @@
     },
     "package_lines": 28577,
     "package_modules": 109,
-    "test_lines": 35872,
-    "test_modules": 149
+    "test_lines": 36201,
+    "test_modules": 150
   }
 }
