@@ -264,7 +264,7 @@ No figure or table value in the manuscript is transcribed by hand, and
 ```bash
 python -m venv .venv && source .venv/bin/activate
 pip install -e .[test,research,stim]       # automatic CI extras
-pytest                                      # 3529 passed, 12 skipped
+pytest                                      # 3598 passed, 12 skipped
 ```
 
 This is the automatic CI dependency set; record gates additionally pin NumPy
@@ -280,7 +280,7 @@ the remaining `12 - 6 = 6` skips are per-test and *are* collected:
 
 ```text
 collected == passed + (skipped - files dropped at collection)
-3535      == 3529   + (12      -   6)
+3604      == 3598   + (12      -   6)
 ```
 
 Both sides are computed from the tree, so a drift in either quoted number
@@ -4449,6 +4449,74 @@ routes reproduce `σ²` to `9.6e-8` and `4.9e-9` relative, and Q18-S1's fixed
 ladder also passes. The closure covers this system, these prefixes,
 single-assignment QWC and matched standard error only. Phase 15 stays partial
 at 50%.
+
+## Q18-S4: the measured residual under fully commuting grouping
+
+Q18-S1 read `NONE` on the five licensed banks under single-assignment QWC. Q18-S4
+asks the same uniform question at the grouping endpoint Q18 and Q18-S1 excluded
+from cost: fully commuting settings, read through a Clifford diagonalizer, on
+both sides of the ratio. The estimator, its linearization, Q18-S1's Richardson
+validator, the statistic `R`, the tenfold bar and the combination rule are
+Q18-S1's, unchanged. The declared partition is the shipped greedy colouring at
+block size `n`, and the alternative is the isotropic cover. The banks are the
+four 8-qubit ones: both partitioners build a `W × W` conflict-mask table, which
+H₂O's 868,149 measured words put out of reach. The design is post hoc; the
+declaration (`PHASE15_FC_RESIDUAL_DECLARATION.md`) precedes its run.
+
+```bash
+python benchmarks/check_phase15_fc_residual_declaration.py
+# After committing the declaration and code, from a clean pinned environment:
+OMP_NUM_THREADS=1 OPENBLAS_NUM_THREADS=1 MKL_NUM_THREADS=1 \
+  python benchmarks/run_phase15_fc_residual.py
+# After the record exists:
+python benchmarks/check_phase15_fc_residual.py
+python benchmarks/check_phase15_fc_residual.py --no-recompute
+```
+
+The gate holds every part Q18-S4 keeps to Q18-S1's config, word for word. It
+recomputes each bank's first-moment `(S, H)` solve and both fully commuting
+partitions of its `(S, H)` universe, and never builds a `SecondMomentBank`. The
+producer writes only its declared path and refuses an existing record. Each bank's
+functionals must reproduce Q18-S1's record, and every setting variance must equal
+`⟨O²⟩ − ⟨O⟩²` from matrix-free action on the reference statevector. The checker
+restates every count, variance sum, Neyman sum, ratio, check, status and the
+verdict from recorded values. Its rebuild compares each partition by SHA-256,
+holds every recorded setting variance to its rebuilt value, and recomputes each one
+a third way, from its own Pauli action. A variance that cancels to zero keeps
+platform-dependent rounding, so each setting also carries a floor of
+`1e-12 (Σ_g |f_w|)²`, the scale of the largest term its operator square forms.
+`tests/test_phase15_fc_residual.py` runs the whole path on the undeclared Hubbard
+dimer, where the two protocols put `R` on opposite sides of ten. It also holds
+every setting variance to dense matrices, and catches forged fields.
+
+The one declared execution took 39 s under Python 3.12.3, NumPy 2.5.2, SciPy
+1.18.0 and Stim 1.16.0, from clean pushed commit `c1b0289`. Its record was
+committed alone in `ab66c72`, and the full rebuild takes about a minute locally.
+Every deterministic check passes on every bank. **All four banks are
+`PROHIBITIVE` under both protocols, so the verdict is `NONE`, and no finite-shot
+second-moment estimator is built:**
+
+| bank | `R`, QWC (Q18-S1) | `R`, greedy | `R`, isotropic cover |
+|---|---|---|---|
+| H₄ | 567 | 15.31 | 722.3 |
+| converged H₄ | 1,311 | 24.30 | 1,561 |
+| BeH₂ | 184,358 | 26.68 | 117,681 |
+| Hubbard 2×2 | 21.0 | 12.30 | 14.56 |
+
+On the molecular banks the greedy lowers the residual's one-shot variance 43 to
+3,993 times. The energy's variance moves by at most a factor of 1.9, and the
+setting counts stay within 7% of each other. The cover's residual variance on the
+same universes is 48 to 4,573 times the greedy's. On Hubbard 2×2 the residual
+variance rises 1.25 times under the greedy, and `R` falls because the energy's
+rises 2.2 times. With Q18-S1, the uniform single-assignment measured block closes
+negative at both grouping endpoints on these banks.
+
+The executed producer did not write the v1 evidence declaration
+`check_evidence.py` requires of a new record. Commit `e1653ac` adds it as a
+disclosed metadata-only correction. The record's `metadata_correction` block
+keeps the executed evidence and pins the executed record's SHA-256. The checker
+undoes the correction, requires those exact bytes, and restates everything from
+them.
 
 ## Phase 2M-C/D: process-isolated storage-policy matrix
 
