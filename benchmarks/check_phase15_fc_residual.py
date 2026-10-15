@@ -9,6 +9,11 @@ verdict off the combination rule. The rebuild re-runs every bank, compares
 each partition by digest, and recomputes every setting variance a third way,
 from its own Pauli action on the reference statevector.
 
+The committed record carries one post-execution change: the v1 evidence
+declaration the evidence gate requires, which the executed producer did not
+write. Undoing it must restore the executed record's bytes, whose SHA-256 is
+pinned here, and everything above is restated from that executed record.
+
     python benchmarks/check_phase15_fc_residual.py                 # restate and rebuild
     python benchmarks/check_phase15_fc_residual.py --no-recompute  # restatement only
 """
@@ -39,6 +44,9 @@ from benchmarks import run_phase15_fc_residual as producer
 
 RESOLUTION = 1e-12
 THRESHOLD = 10.0
+# The record as the declared execution wrote it. Its one post-execution change,
+# the v1 evidence declaration, must undo to exactly these bytes.
+EXECUTED_RECORD_SHA256 = "67d46ee4826ea3e25ca85814da7b4d9ba3367a979e12bdea9bbf7708979a0159"
 PRICE_KEYS = frozenset({
     "role", "energy_settings", "energy_partitioned_words", "energy_largest_setting",
     "energy_partition_sha256", "energy_variance_one_shot", "energy_neyman_sum",
@@ -81,6 +89,25 @@ def combine(statuses) -> str:
     if affordable == len(statuses):
         return "FULL"
     return "NONE" if affordable == 0 else "RESTRICTED"
+
+
+# ------------------------------------------------------------------ correction
+
+def correction_problems(record: dict, *, executed_sha256: str = EXECUTED_RECORD_SHA256
+                        ) -> list[str]:
+    """A corrected record must be the executed one plus the v1 evidence, exactly."""
+    if "metadata_correction" not in record:
+        return []
+    executed = fc.executed_record(record)
+    if hashlib.sha256(fc.record_bytes(executed)).hexdigest() != executed_sha256:
+        return ["undoing the correction does not restore the executed record"]
+    try:
+        expected = fc.correct_evidence(executed, executed_sha256)
+    except (ValueError, TypeError) as exc:
+        return [f"the correction cannot be re-applied: {exc}"]
+    if expected != record or list(expected) != list(record):
+        return ["the record's correction is not the evidence-only one"]
+    return []
 
 
 # ------------------------------------------------------------------ declaration
@@ -247,7 +274,9 @@ def rederivation_problems(config: dict, record: dict, config_bytes: bytes, *,
         predecessor = json.loads(q18s1.RECORD.read_text(encoding="utf-8"))
     if validation is None:
         validation = json.loads(q18.VALIDATION.read_text(encoding="utf-8"))
-    problems = declaration_problems(config, record, config_bytes)
+    problems = correction_problems(record)
+    record = fc.executed_record(record)
+    problems += declaration_problems(config, record, config_bytes)
     statuses = {}
     for name in config["banks"]["systems"]:
         entry = record["banks"].get(name)
@@ -328,6 +357,7 @@ def recompute_problems(config: dict, record: dict, *, inputs=None, validation=No
     if predecessor is None:
         predecessor = json.loads(q18s1.RECORD.read_text(encoding="utf-8"))
     problems = []
+    record = fc.executed_record(record)
     for name, theirs in record["banks"].items():
         model, selected = inputs(name)
         internals: dict = {}

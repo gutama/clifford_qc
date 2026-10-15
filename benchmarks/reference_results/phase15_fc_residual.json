@@ -5,9 +5,14 @@
  "claim_boundary": "This post-hoc Q18-S4 record prices, on the four 8-qubit licensed banks, the shots that estimate the ground Ritz root's residual norm against the shots that estimate its energy, at one matched standard error, under single-assignment fully commuting settings with uniform shots: the shipped greedy colouring and the isotropic cover, each at block size n. The estimator, its linearization, the derivative validator, the statistic and the tenfold bar are Q18-S1's. Every Q18 and Q18-S1 ratio was seen before the declaration, so commit order protects execution identity, not inference. The ratios are first-order and asymptotic, read from exact variances on each bank's determinant reference, a stabilizer state. They price shots only: not the diagonalizing circuits fully commuting settings need, not device time, not finite-sample intervals, not another allocation, and not H2O or any bank outside the four.",
  "quantum_advantage_claim": false,
  "evidence": {
-  "label": "asymptotic",
-  "statement": "First-order (delta-method) variances at large shot counts, computed exactly from each bank's determinant reference and frozen basis. No sampling, no seed beyond Q18-S1's finite-difference direction, no finite-sample claim.",
-  "design_status": "post_hoc"
+  "functionals_and_setting_variances": {
+   "tier": "exact_small_sector_simulation",
+   "scope": "Exact reference pairings of the four 8-qubit banks' S, H and K blocks, both functionals, and every fully commuting setting's one-shot variance on the determinant reference, each checked against matrix-free statevector action; these banks and bases only."
+  },
+  "fully_commuting_cost_ratios": {
+   "tier": "asymptotic_bound",
+   "scope": "First-order (delta-method) uniform and Neyman ratios from exact per-setting reference variances under single-assignment fully commuting settings; not a finite-sample cost, not device time, and not the diagonalizing circuits."
+  }
  },
  "statistic": {
   "name": "R",
@@ -2449,5 +2454,17 @@
   },
   "environment_sha256": "4e4a69e4b19a192d158c28e6fd391b18212e8a548b0792307bf48b9de3e33fc2",
   "utc": "2026-10-15T03:12:19.782906+00:00"
+ },
+ "evidence_schema": "clifford_qc.evidence.v1",
+ "metadata_correction": {
+  "revision": 1,
+  "scope": "evidence_declaration_only",
+  "changes": "Add the v1 evidence declaration the evidence gate requires of a new record. The executed record's evidence block, the config's design-level labels, is kept under executed_evidence; every measured value, check, status, timing and provenance field is unchanged.",
+  "execution_record_sha256": "67d46ee4826ea3e25ca85814da7b4d9ba3367a979e12bdea9bbf7708979a0159",
+  "executed_evidence": {
+   "label": "asymptotic",
+   "statement": "First-order (delta-method) variances at large shot counts, computed exactly from each bank's determinant reference and frozen basis. No sampling, no seed beyond Q18-S1's finite-difference direction, no finite-sample claim.",
+   "design_status": "post_hoc"
+  }
  }
 }

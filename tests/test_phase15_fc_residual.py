@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import argparse
 import copy
+import hashlib
 import itertools
 import json
 import math
@@ -327,3 +328,45 @@ def test_the_producer_writes_once_and_only_its_path(tmp_path, monkeypatch):
     monkeypatch.setattr(producer, "RECORD", path)
     monkeypatch.setattr(declaration, "RECORD", path)
     assert "runs once" in producer.refusals(argparse.Namespace(out=path))[0]
+
+
+# ------------------------------------------------------------------ the committed record
+
+def test_the_committed_record_is_the_executed_one_plus_v1_evidence():
+    from clifford_qc.evidence import validate_evidence
+
+    record = json.loads(producer.RECORD.read_text(encoding="utf-8"))
+    validate_evidence(record)
+    executed = fc.executed_record(record)
+    assert hashlib.sha256(fc.record_bytes(executed)).hexdigest() == (
+        checker.EXECUTED_RECORD_SHA256)
+    assert checker.correction_problems(record) == []
+    config = declaration.load_config()
+    assert checker.rederivation_problems(config, record, declaration.CONFIG.read_bytes()) == []
+    assert record["decision"]["verdict"] == "NONE"
+    assert set(record["decision"]["statuses"].values()) == {"PROHIBITIVE"}
+
+
+@pytest.mark.parametrize("path,value", [
+    (("banks", "hubbard_2x2", "protocols", "fc_greedy", "cost_ratio"), 9.0),
+    (("evidence", "fully_commuting_cost_ratios", "tier"), "exact_algebra"),
+    (("metadata_correction", "scope"), "anything"),
+    (("metadata_correction", "executed_evidence", "label"), "sampled"),
+    (("elapsed_seconds",), 1.0),
+])
+def test_a_tampered_correction_is_caught(path, value):
+    record = json.loads(producer.RECORD.read_text(encoding="utf-8"))
+    assert checker.correction_problems(_mutate(record, path, value))
+
+
+def test_only_the_executed_bytes_take_the_correction(toy):
+    with pytest.raises(ValueError, match="executed record"):
+        fc.correct_evidence(toy["record"], "0" * 64)
+    executed = hashlib.sha256(fc.record_bytes(toy["record"])).hexdigest()
+    corrected = fc.correct_evidence(toy["record"], executed)
+    assert fc.executed_record(corrected) == toy["record"]
+    assert checker.correction_problems(corrected, executed_sha256=executed) == []
+    with pytest.raises(ValueError):
+        fc.correct_evidence(corrected, executed)
+    with pytest.raises(ValueError, match="already"):
+        fc.correct_evidence(corrected, hashlib.sha256(fc.record_bytes(corrected)).hexdigest())

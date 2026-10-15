@@ -117,6 +117,7 @@
       "phase14b_qwc_vs_fc.json": "7eea7d72de38ea0e",
       "phase15_certifying_krylov.json": "a01d4faf08adefaa",
       "phase15_certifying_screen.json": "6bb9f7b32353bd5e",
+      "phase15_fc_residual.json": "5517be7424d42180",
       "phase15_h2_preflight.json": "8073d71314d9fa75",
       "phase15_measured_residual_preflight.json": "3827fc7445745dbf",
       "phase15_residual_successor.json": "c347385b908cd04b",
@@ -155,12 +156,12 @@
       "basis_only": 0,
       "nested_in_subobject": 5,
       "none": 5,
-      "per_quantity_mapping": 17,
+      "per_quantity_mapping": 18,
       "role_only": 0,
       "role_with_nested_tier": 2,
       "top_level_tier": 17
     },
-    "json_records": 46,
+    "json_records": 47,
     "series_files": 21,
     "top_level_tiers": {
       "exact": 4,
@@ -220,7 +221,7 @@
     },
     "package_lines": 28577,
     "package_modules": 109,
-    "test_lines": 36201,
+    "test_lines": 36244,
     "test_modules": 150
   }
 }

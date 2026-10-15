@@ -39,6 +39,31 @@ from benchmarks import check_phase15_preregistration as preflight_gate
 from benchmarks.phase15_residual_successor import derivative_check
 
 PROTOCOLS = ("fc_greedy", "fc_isotropic_cover")
+# The v1 per-quantity evidence the evidence gate requires of a new record. The
+# executed producer wrote only the config's design-level evidence block, so the
+# committed record carries these through a metadata-only correction.
+EVIDENCE = {
+    "functionals_and_setting_variances": {
+        "tier": "exact_small_sector_simulation",
+        "scope": "Exact reference pairings of the four 8-qubit banks' S, H and K blocks, "
+                 "both functionals, and every fully commuting setting's one-shot variance "
+                 "on the determinant reference, each checked against matrix-free "
+                 "statevector action; these banks and bases only."},
+    "fully_commuting_cost_ratios": {
+        "tier": "asymptotic_bound",
+        "scope": "First-order (delta-method) uniform and Neyman ratios from exact "
+                 "per-setting reference variances under single-assignment fully commuting "
+                 "settings; not a finite-sample cost, not device time, and not the "
+                 "diagonalizing circuits."},
+}
+CORRECTION = {
+    "revision": 1,
+    "scope": "evidence_declaration_only",
+    "changes": "Add the v1 evidence declaration the evidence gate requires of a new record. "
+               "The executed record's evidence block, the config's design-level labels, is "
+               "kept under executed_evidence; every measured value, check, status, timing "
+               "and provenance field is unchanged.",
+}
 # Per-setting agreement between the operator-square and statevector variances,
 # relative to max(1, <O^2>, <O>^2), the guard _functional_variance applies.
 STATEVECTOR_TOLERANCE = 1e-9
@@ -335,3 +360,44 @@ def evaluate_bank(config: dict, name: str, model, selected, frozen: dict,
         "status": status,
         "seconds": round(time.perf_counter() - started, 2),
     }
+
+
+# ------------------------------------------------------------------ evidence
+
+def record_bytes(record: dict) -> bytes:
+    """The record as the producer writes it."""
+    return (json.dumps(record, indent=1, allow_nan=False) + "\n").encode()
+
+
+def correct_evidence(record: dict, executed_sha256: str) -> dict:
+    """The executed record with the v1 evidence declaration added, nothing else.
+
+    ``evidence`` keeps its place and takes the v1 map; the executed block moves
+    under ``metadata_correction``, which also pins the executed record's
+    SHA-256, so :func:`executed_record` restores the executed bytes exactly.
+    """
+    from clifford_qc.evidence import SCHEMA, validate_evidence
+
+    if hashlib.sha256(record_bytes(record)).hexdigest() != executed_sha256:
+        raise ValueError("only the executed record, byte for byte, takes this correction")
+    if "metadata_correction" in record or "evidence_schema" in record:
+        raise ValueError("the record already carries a correction or a v1 declaration")
+    corrected = dict(record)
+    corrected["evidence"] = EVIDENCE
+    corrected["evidence_schema"] = SCHEMA
+    corrected["metadata_correction"] = {**CORRECTION,
+                                        "execution_record_sha256": executed_sha256,
+                                        "executed_evidence": record["evidence"]}
+    validate_evidence(corrected)
+    return corrected
+
+
+def executed_record(record: dict) -> dict:
+    """The record as executed: a corrected record with its correction undone."""
+    correction = record.get("metadata_correction")
+    if correction is None:
+        return record
+    executed = {key: value for key, value in record.items()
+                if key not in ("evidence_schema", "metadata_correction")}
+    executed["evidence"] = correction["executed_evidence"]
+    return executed
