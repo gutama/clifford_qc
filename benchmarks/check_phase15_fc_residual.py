@@ -405,6 +405,12 @@ def recompute_problems(config: dict, record: dict, *, inputs=None, validation=No
                     continue
                 own = own_variances(internals["psi"], model.n, groups, weights)
                 rebuilt = got[f"{side}_setting_variances"]
+                recorded = price[f"{side}_setting_variances"]
+                relative = 1e-9 if side == "energy" else drift
+                if len(recorded) != len(rebuilt) or any(
+                        not _close(a, b, rel=relative, abs_=1e-15)
+                        for a, b in zip(recorded, rebuilt)):
+                    problems.append(f"{label}.{side}_setting_variances does not rebuild")
                 if len(own) != len(rebuilt) or any(
                         abs(a - b) > fc.STATEVECTOR_TOLERANCE * max(1.0, abs(b))
                         for a, b in zip(own, rebuilt)):
