@@ -264,7 +264,7 @@ No figure or table value in the manuscript is transcribed by hand, and
 ```bash
 python -m venv .venv && source .venv/bin/activate
 pip install -e .[test,research,stim]       # automatic CI extras
-pytest                                      # 3472 passed, 12 skipped
+pytest                                      # 3529 passed, 12 skipped
 ```
 
 This is the automatic CI dependency set; record gates additionally pin NumPy
@@ -280,7 +280,7 @@ the remaining `12 - 6 = 6` skips are per-test and *are* collected:
 
 ```text
 collected == passed + (skipped - files dropped at collection)
-3478      == 3472   + (12      -   6)
+3535      == 3529   + (12      -   6)
 ```
 
 Both sides are computed from the tree, so a drift in either quoted number
@@ -3398,6 +3398,70 @@ five committed fits without recomputing a prefix variance, and independently
 check dense residuals, stalled growth, excited eigenstates, numerical
 cancellation, multiple roots, and retained-block storage under object,
 packed and streaming backends.
+
+## Phase 15 folded-spectrum roots and their validation
+
+`clifford_qc/subspace/folded.py` projects the folded operator `(H − ω)²` onto a
+span as `F(ω) = K − 2ωH + ω²S`, from the three blocks `SecondMomentBank`
+already pairs. The roots of `F(ω)c = μSc` are the span's stationary values of
+`‖(H − ω)Ψ‖²/⟨Ψ|Ψ⟩`. Each root's state carries two inclusion intervals with no
+spectral reference: `ω ± √μ` and the Weinstein interval `E ± σ`, both widened by
+their resolution floors. They hold for interior roots as well as the ground
+root. `refined_ritz_root(result, k)` takes the lowest root at a Ritz value, the
+refined Ritz vector, whose residual never exceeds the Ritz vector's own.
+`FoldedSpectrum.minimize_variance(start)` iterates `ω ← E` without ever raising
+`μ`, and stops at a variance stationary point of the span. The values are exact
+pairings under `SecondMomentBank`'s storage licence; nothing here estimates the
+block from samples.
+
+```bash
+python -m pytest tests/test_folded_spectrum.py tests/test_folded_spectrum_validation.py -q
+OMP_NUM_THREADS=1 OPENBLAS_NUM_THREADS=1 MKL_NUM_THREADS=1 \
+  python benchmarks/run_folded_spectrum_validation.py      # writes benchmarks/reference_results/folded_spectrum_validation.json
+python benchmarks/check_folded_spectrum_validation.py      # restates every check and rebuilds every bank
+python benchmarks/check_folded_spectrum_validation.py --no-recompute   # restatement only
+```
+
+The producer refuses any bank the H² preflight record does not license. On each
+licensed bank it refines every Ritz root and runs the minimization from the
+ground Ritz value. Each folded value, energy and variance is checked against
+the state rebuilt from dense statevectors. Every interval must hold an exact
+eigenvalue of the reference's `(N, S_z)` sector, once the basis vectors are
+checked to stay in that sector. The checker holds every root and every
+minimization step to `μ = σ² + (E − ω)²` within the resolution floor. Its
+rebuild re-solves each recorded step at that step's own target, so only the
+step count may drift across platforms. `tests/test_folded_spectrum.py` holds the block
+to `B†(H − ω)²B` and the roots to the dense generalized eigenproblem on the
+Hubbard 1×3 chain. It also checks both intervals against the full spectrum,
+shift invariance, the refinement inequality, and the monotone iteration and
+its variance-stationary fixed point. `FoldedSpectrum` accepts the truncation
+options of `solve_projected` but refuses a nonzero `overlap_ridge`, which would
+solve the pencil in a different metric.
+
+The committed record validates all five banks. Every refined root matches its
+dense state within the floors. Every target and Weinstein interval holds an
+exact sector level. The minimization is monotone and converges on every bank.
+Ground-root residuals `‖(H − ω)Ψ‖`, in each bank's energy units, at the ground
+Ritz value `θ₀` for the first two columns and at the fixed point `ω = E` for the
+third:
+
+| Bank | Ritz vector | Refined vector at `θ₀` | Minimized (iterations) | Levels isolated by one Weinstein interval |
+|---|---|---|---|---|
+| `h4` | 0.07555 | 0.07396 | 0.07396 (4) | 0 |
+| `h4_converged` | 0.04977 | 0.04901 | 0.04901 (3) | 0, 7, 10, 15 |
+| `beh2` | 0.002344 | 0.002335 | 0.002335 (2) | 0, 8, 16 |
+| `h2o_cas8e6o` | 0.1519 | 0.1512 | 0.1512 (3) | 0 |
+| `hubbard_2x2` | 1.520 | 0.9517 | 0.8679 (20) | none |
+
+Refinement tightens the ground residual by 0.4–2.1% on the four molecular
+banks. Minimizing from there changes it by less than four parts in a million.
+Interior levels are bracketed alone only on the `h4_converged` and `beh2`
+bases. On Hubbard 2×2, refinement cuts the ground residual by 37%, but the
+refined vector's energy is already `−8.898 t` against `θ₀ = −9.239 t`. The
+minimization ends at `E = −8.788 t`, next to the fourth distinct sector level
+`−8.828 t`. So a smaller residual there tracks a nearer excited level, not the
+ground state. This is the exact layer only; the measured block, and the folded
+roots built on it, remain.
 
 ## Phase 15 preregistration: the measured-residual cost (ratio-free)
 

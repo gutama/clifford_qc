@@ -156,6 +156,7 @@ GATE_CLASSES: tuple[tuple[str, str, tuple[str, ...]], ...] = (
             "check_bank_storage_ledger", "check_clifford_hierarchy",
             "check_exact_shot_search",
             "check_finite_shot_optimization", "check_finite_shot_rethink",
+            "check_folded_spectrum_validation",
             "check_g1_structural_preconditioner", "check_krylov_width",
             "check_mapping_axis", "check_matched_h4",
             "check_phase14b_qwc_vs_fc", "check_phase15_h2_preflight",

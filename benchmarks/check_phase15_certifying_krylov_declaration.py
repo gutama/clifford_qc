@@ -401,7 +401,7 @@ def _compare(declared, got, path="") -> list[str]:
         return out
     if isinstance(declared, bool) or isinstance(got, bool):
         return [] if declared is got else [f"{path}: declared {declared!r}, recomputed {got!r}"]
-    if isinstance(declared, float) or isinstance(got, float):
+    if (isinstance(declared, float) or isinstance(got, float)) and None not in (declared, got):
         rel = SPECTRAL_TOLERANCE if path.rsplit(".", 1)[-1] in SPECTRAL_FIELDS else FLOAT_TOLERANCE
         if not math.isclose(float(declared), float(got), rel_tol=rel, abs_tol=1e-12):
             return [f"{path}: declared {declared!r}, recomputed {got!r}"]

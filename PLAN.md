@@ -134,7 +134,7 @@ conditional phases.
 | PRD | orthogonal-residual regression, Davidson/preconditioned expansion, packet pricing, matched A-CASE, exact and finite-shot suites | **done and read**; exact compactness is positive, complete-bank QWC finite-shot energy accuracy is negative |
 | 13 | parity/X-rank invariant | **done**; one shared GF(2) implementation is tested across every declared spin-conserving JW construction path before grouping |
 | 14 | fully commuting grouping | **done on the frozen BeH₂/JW comparison** — the public compiled-plan API, exact joint sampler, preregistered finite-sample record, covariance audit, and device-card costing ship; Q9 is positive within the declared one-bank oracle boundary |
-| 15 | second-moment bank | **partially implemented (50%)**; the H-squared preflight reads `FULL` (Q16), and `SecondMomentBank` ships with exact second moments and true Ritz residual norms validated on all five licensed banks. Opt-in exact convergence reporting ships at adaptive termination, with numerical resolution and separate ground-state evidence. Q17's `CONDITIONAL` permits the shipped three-prefix extrapolation diagnostic, with improvement evidence confined to the frozen H₄ and H₂O bases. Q18's predecessor remains `INVALID`. Its separately declared Q18-S1 successor reports post-hoc `NONE` for uniform QWC on the five banks after all derivative checks pass. Q18-S2 reads `UNREACHED`: no prefix with a resolved variance on the two committed Hubbard 2×2 A-CASE trajectories that extend the frozen bank certifies the ground state, so no pilot allocation experiment is authorized on those prefixes. The exact final `acase_level4` prefix (`M = 26`) has `E + σ < E₁` for any `σ` below the resolution floor, but is unresolved, unpriced and not `certifying` in the record. Q18-S3, declared post hoc on the ladder's fixed Krylov prefixes, reads `CLOSED`. Its one certifying, rank-stable prefix (`M = 7`, `σ = 0.114 t`) has Neyman ratios near 1,700 under both protocols. So no allocation reaches the tenfold bar there, and the pilot-allocation stage did not run. That closes the practical-allocation follow-up negative on that declared scope only. Finite-shot reporting, folded-spectrum roots and banks outside the five remain |
+| 15 | second-moment bank | **partially implemented (50%)**; the H-squared preflight reads `FULL` (Q16), and `SecondMomentBank` ships with exact second moments and true Ritz residual norms validated on all five licensed banks. Opt-in exact convergence reporting ships at adaptive termination, with numerical resolution and separate ground-state evidence. Q17's `CONDITIONAL` permits the shipped three-prefix extrapolation diagnostic, with improvement evidence confined to the frozen H₄ and H₂O bases. Q18's predecessor remains `INVALID`. Its separately declared Q18-S1 successor reports post-hoc `NONE` for uniform QWC on the five banks after all derivative checks pass. Q18-S2 reads `UNREACHED`: no prefix with a resolved variance on the two committed Hubbard 2×2 A-CASE trajectories that extend the frozen bank certifies the ground state, so no pilot allocation experiment is authorized on those prefixes. The exact final `acase_level4` prefix (`M = 26`) has `E + σ < E₁` for any `σ` below the resolution floor, but is unresolved, unpriced and not `certifying` in the record. Q18-S3, declared post hoc on the ladder's fixed Krylov prefixes, reads `CLOSED`. Its one certifying, rank-stable prefix (`M = 7`, `σ = 0.114 t`) has Neyman ratios near 1,700 under both protocols. So no allocation reaches the tenfold bar there, and the pilot-allocation stage did not run. That closes the practical-allocation follow-up negative on that declared scope only. Exact folded-spectrum roots, refined Ritz vectors and interior inclusion intervals now ship over the exact block, validated on all five licensed banks. Finite-shot reporting, folded roots over a measured block and banks outside the five remain |
 | 16 | time-evolved inputs | **partially implemented (50%)**; the 16A QSCI time-evolved input ships in `subspace/time_evolution.py` (exact matrix-free propagation as an `oracle` input, a validated Trotter circuit as an `implementable` one, and pooled multi-time sampling). Its decision comparison, Q15, ran once and reads `NO_GO`: iterated selected CI of the same size matches or beats it on both required instances. No circuit-native/truncated A-CASE real-time family ships. 16B's three preregistered decision experiments have run — v1 `CONDITIONAL`, v2 `GO` under per-word pricing, v3 `CONDITIONAL` once the incumbent is priced with its own grouping — and the programme ends there: the real-time backend is **not authorized** (§5, Phase 16) |
 | 17 | mapping validation and breadth | **complete (100%)**; mapping invariance and exact CEO comparisons ship, and the dedicated twelve-cell MORE-ADAPT/native multi-root A-CASE comparison has a VALID independently replayed record; mixed target outcomes limit the scientific claim (§5, Phase 17) |
 | 18 | embedding boundary | **done**; the versioned effective-Hamiltonian schema ships in `models/effective.py`, and the common fragment-solver callback returning energy and one- and two-particle density matrices ships in `subspace/fragment.py`, implemented by QSCI, selected CI, the hybrid, and a sector-FCI reference. The embedding loop itself stays outside the package |
@@ -598,8 +598,17 @@ configs and execution identities remain unchanged.
   `7e26f70` passes the independent checker and commit-order gate. The verdict is
   **`CLOSED`**: `M = 7` alone certifies with a rank-stable block, at Neyman ratios
   1,699.7/1,699.5, so no allocator reaches the bar to first order and the pilot
-  stage did not run. Phase 15's fraction stays 50%: folded-spectrum roots,
-  measured convergence reporting and other bank scopes remain.
+  stage did not run. Phase 15's fraction stays 50%: measured convergence
+  reporting, folded roots over a measured block and other bank scopes remain.
+- [x] **Phase 15 — exact folded-spectrum roots.** `subspace/folded.py` forms
+  `F(ω) = K − 2ωH + ω²S` from the exact `(S, H, K)` blocks and returns its roots,
+  refined Ritz vectors, the target interval `ω ± √μ` and the Weinstein interval
+  `E ± σ`, each widened by its resolution floor, and a monotone `ω ← E`
+  variance minimization. `tests/test_folded_spectrum.py` checks them against
+  dense oracles. `run_folded_spectrum_validation.py` validates all five licensed
+  banks against dense statevectors and the exact sector spectrum
+  (`reference_results/folded_spectrum_validation.json`). This is the exact
+  layer: it adds no finite-shot estimate, and Phase 15's fraction stays 50%.
 
 The direct summary and documentation commands above were reproduced as failing
 on the reviewed checkout; the original phase-status gate passed despite the
@@ -1103,6 +1112,9 @@ computed either from the Phase 15 `SecondMomentBank`, which now ships with exact
 pairings, or, in small exact runs, from a dense reconstructed state. Never expose the *projected* residual
 under that name: it is zero by construction for a solved Ritz pair and says
 nothing about error outside the subspace.
+The same three blocks give the folded operator `K − 2ωH + ω²S`. Its roots,
+refined Ritz vectors and inclusion intervals ship in `subspace/folded.py`
+(Phase 15, item 19l), under the same exact-pairing licence.
 
 ---
 
@@ -2408,9 +2420,9 @@ These are the first true residual norms of the frozen bases. The ground roots
 are 7.6e-2 Ha on H₄, 5.0e-2 on converged H₄, 2.3e-3 on BeH₂ and 0.15 Ha on
 H₂O CAS(8e,6o), and 1.52 t on Hubbard 2×2. *Not claimed:* a finite-shot
 estimate of the block. Grouping a universe of 868,150 words is the cost the
-preflight excluded, so the measured implementation remains. Folded-spectrum
-roots and banks outside the five remain. Exact convergence reporting and
-Q17's limited extrapolation diagnostic now ship as described below.
+preflight excluded, so the measured implementation remains, and banks outside
+the five remain. Exact convergence reporting, Q17's limited extrapolation
+diagnostic and exact folded-spectrum roots now ship as described below.
 
 **Exact convergence reporting ships, opt-in and independent of growth.**
 `subspace/convergence.py` exposes `convergence_report` for a bank solve and
@@ -2599,7 +2611,7 @@ no allocation estimator is licensed. A practical allocation study must separatel
 declare how it estimates functional weights and setting variances from pilots,
 with seeds, budgets and sampled validation. These first-order oracle costs supply
 no nonlinear-estimator coverage or device-time result. Phase 15 stays partial at
-50% while that allocation question, folded-spectrum roots and other bank scopes
+50% while that allocation question, measured folded roots and other bank scopes
 remain open.
 
 **Q18-S2 ran once and reads `UNREACHED`: no resolved prefix of the screened
@@ -2731,8 +2743,8 @@ verdict, rebuilds every prefix, and runs in the structural CI matrix.
 or shared-shot estimators, any precision rule other than matched standard error,
 device time, or the rank-unstable prefixes. The outcome is a scoped scientific
 result recorded beside Phase 15's lifecycle. It is not a numbered-phase status.
-Phase 15 stays partial at 50%, because folded-spectrum roots, measured
-convergence reporting and banks outside the five remain.
+Phase 15 stays partial at 50%, because measured convergence reporting, folded
+roots over a measured block and banks outside the five remain.
 
 
 ### Phase 16 — time-evolved inputs, split by method
@@ -4433,6 +4445,14 @@ not benchmark work. Until then, excited-state rows carry heuristic evidence labe
 certified cost. This track is scheduled after R1–R4 and is explicitly not on the critical
 path.
 
+*Partial answer, exact arithmetic only.* The exact folded-spectrum layer (Phase 15,
+item 19l) gives every root an inclusion interval with no spectral reference: the target
+interval `ω ± √μ` and the Weinstein interval `E ± σ`. Each interval holds an eigenvalue.
+When it holds only one, that level is isolated, as for interior levels of the converged-H₄
+and BeH₂ bases. These are exact-block statements: they bound which level a root tracks, not
+its finite-shot uncertainty. The measured certificate and the amortized cost above remain
+open.
+
 ---
 
 ## 8. Projected observables
@@ -5551,8 +5571,8 @@ bought a duplicate record.
     energy variances. `run_second_moment_validation.py` validates it on the
     five licensed banks against matrix-free dense residuals
     (`reference_results/second_moment_validation.json`). Finite-shot estimation
-    of the block remains, together with folded-spectrum roots and measured
-    convergence reporting. The exact reporting interface ships in 19g below.
+    of the block remains, together with measured convergence reporting. The
+    exact reporting interface ships in 19g and exact folded roots in 19l below.
 19f. Phase 15's variance extrapolation — **executed once, `CONDITIONAL`.**
     The declaration (`PHASE15_EXTRAPOLATION_PREREGISTRATION.md`, revision 1)
     fixed the window, the halving bar and the Temple-regime domain before any
@@ -5567,8 +5587,8 @@ bought a duplicate record.
     final retained adaptive block. Ground-state evidence needs a separate
     spectral reference, and the original stopping policy remains. The
     correctness evidence is `tests/test_convergence.py`, not a new benchmark
-    verdict. The measured implementation and folded-spectrum roots remain,
-    so Phase 15 stays partial at 50%.
+    verdict. The measured implementation remains, so Phase 15 stays partial
+    at 50%.
 19h. Phase 15's measured-residual cost preflight — **executed once,
     `INVALID`.** The ratio-free declaration
     (`PHASE15_MEASURED_RESIDUAL_PREREGISTRATION.md`,
@@ -5617,6 +5637,18 @@ bought a duplicate record.
     certifying, rank-stable prefix, `M = 7`, with Neyman ratios near 1,700, so the
     pilot stage did not run. The practical-allocation follow-up closes negative on
     that scope only; Phase 15 stays partial at 50%.
+19l. Phase 15's exact folded-spectrum roots — **shipped, exact.**
+    `FoldedSpectrum` projects `(H − ω)²` as `K − 2ωH + ω²S` and gives folded
+    roots, refined Ritz vectors, two inclusion intervals per root and a
+    monotone variance minimization. The record
+    (`reference_results/folded_spectrum_validation.json`) validates every
+    refined Ritz root of the five licensed banks against dense statevectors,
+    and every interval holds an exact sector level. Refinement lowers the
+    molecular ground residuals by 0.4–2.1%. Interior levels are isolated only
+    on the converged-H₄ and BeH₂ bases. On Hubbard 2×2, the minimization trades
+    the Ritz energy `−9.239 t` for `−8.788 t`, beside an excited level, so a
+    smaller residual is not ground-state evidence there. No finite-shot or
+    device claim; the measured block remains, and Phase 15 stays partial at 50%.
 20. The dedicated MORE-ADAPT breadth comparison and exact CEO pool comparison
     are complete and read (§5, Phase 17). Mixed multi-root target outcomes remain
     explicit; no finite-shot or universal resource advantage follows.

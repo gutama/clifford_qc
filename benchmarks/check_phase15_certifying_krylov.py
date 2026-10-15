@@ -106,10 +106,12 @@ def rank_problems(rank, size, label) -> tuple[list[str], bool]:
     if not isinstance(rank, dict) or set(rank) != RANK_KEYS:
         return [f"{label}: rank fields differ from the schema"], False
     smallest, largest = rank["smallest_overlap_eigenvalue"], rank["largest_overlap_eigenvalue"]
-    condition = largest / smallest if smallest > 0.0 else math.inf
+    condition = largest / smallest if smallest > 0.0 else None
     full = rank["effective_rank"] == size
     stable = (full and smallest >= 10.0 * TAU_S and condition <= MAX_CONDITION / 10.0)
-    if not _close(rank["overlap_condition_number"], condition, 1e-12):
+    recorded = rank["overlap_condition_number"]
+    derives = recorded is None if condition is None else _close(recorded, condition, 1e-12)
+    if not derives:
         problems.append(f"{label}: overlap condition number does not derive")
     if rank["full_rank"] is not full or rank["rank_stable"] is not stable:
         problems.append(f"{label}: rank margin does not derive")

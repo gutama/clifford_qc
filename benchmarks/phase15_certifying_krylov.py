@@ -170,14 +170,16 @@ def rank_margin(result, size: int) -> dict:
     The margin asks for ``RANK_MARGIN`` times the absolute floor and a
     condition number ``RANK_MARGIN`` below the cap: a perturbation that moves
     the normalized overlap by less than ninety-nine floors cannot change the
-    retained block.
+    retained block. A smallest eigenvalue at or below zero is rounding on a
+    singular overlap, whose sign varies by platform; its condition number is
+    ``None`` rather than infinite, so the record stays strict JSON.
     """
     from clifford_qc.subspace.linalg import DEFAULT_MAX_CONDITION, DEFAULT_TAU_S
 
     smallest = float(min(result.overlap_eigenvalues))
     largest = float(max(result.overlap_eigenvalues))
     full = int(result.effective_rank) == size
-    condition = largest / smallest if smallest > 0.0 else math.inf
+    condition = largest / smallest if smallest > 0.0 else None
     return {
         "effective_rank": int(result.effective_rank),
         "smallest_overlap_eigenvalue": smallest,

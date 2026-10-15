@@ -216,12 +216,25 @@ class _Result:
     ((2.0, 1e-3), 1, False),
     ((2e3, 2.5e-8), 2, True),  # condition 8e10
     ((2e3, 1e-8), 2, False),  # condition 2e11 > 1e11
+    ((2.0, 0.0), 1, False),
+    ((2.0, -3e-17), 1, False),  # rounding on a singular overlap, sign by platform
 ])
 def test_rank_margin_boundaries(eigenvalues, rank, stable):
     margin = krylov.rank_margin(_Result(eigenvalues, rank), 2)
     assert margin["rank_stable"] is stable
     problems, restated = checker.rank_problems(margin, 2, "toy")
     assert problems == [] and restated is stable
+
+
+def test_a_singular_overlap_has_no_condition_number():
+    margin = krylov.rank_margin(_Result((2.0, -3e-17), 1), 2)
+    assert margin["overlap_condition_number"] is None
+    json.dumps(margin, allow_nan=False)
+    forged = dict(margin, overlap_condition_number=1e17)
+    problems, _ = checker.rank_problems(forged, 2, "toy")
+    assert problems == ["toy: overlap condition number does not derive"]
+    assert declaration._compare({"a": {"overlap_condition_number": 1e17}},
+                                {"a": {"overlap_condition_number": None}}) != []
 
 
 @pytest.mark.parametrize("oracle, practical, final", [
