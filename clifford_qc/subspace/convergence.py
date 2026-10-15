@@ -22,6 +22,7 @@ from typing import Sequence
 
 from .linalg import SubspaceResult
 from .second_moment import RESOLUTION, RitzResidual, SecondMomentBank
+from .second_moment_storage import SecondMomentStoragePolicy
 
 CONVERGENCE_SCHEMA = "clifford_qc.convergence_report.v1"
 EXTRAPOLATION_SCHEMA = "clifford_qc.variance_extrapolation_diagnostic.v1"
@@ -66,6 +67,7 @@ class ConvergenceConfig:
 
     residual_tolerance: float
     ground_reference: GroundStateReference | None = None
+    storage_policy: SecondMomentStoragePolicy | None = None
 
     def __post_init__(self):
         tolerance = _finite(self.residual_tolerance, "residual_tolerance")
@@ -75,6 +77,9 @@ class ConvergenceConfig:
         if self.ground_reference is not None and not isinstance(
                 self.ground_reference, GroundStateReference):
             raise TypeError("ground_reference must be a GroundStateReference")
+        if self.storage_policy is not None and not isinstance(
+                self.storage_policy, SecondMomentStoragePolicy):
+            raise TypeError("storage_policy must be a SecondMomentStoragePolicy")
 
 
 @dataclass(frozen=True)
@@ -113,9 +118,9 @@ def convergence_report(result: SubspaceResult, config: ConvergenceConfig, *,
                        stopped_reason: str | None = None) -> ConvergenceReport:
     """Assess one solved Ritz state, constructing only its retained H-squared block.
 
-    ``moments`` can be shared across roots. Banks outside the five frozen
-    Phase 15 bases require their own storage preflight, as SecondMomentBank
-    documents; opting in is not an automatic licence for a larger bank.
+    ``moments`` can be shared across roots. Automatic construction runs the
+    storage preflight on ``result.indices`` with ``config.storage_policy``.
+    Supplied moments retain the policy and block they were constructed with.
     """
     if not isinstance(config, ConvergenceConfig):
         raise TypeError("config must be a ConvergenceConfig")
@@ -123,7 +128,9 @@ def convergence_report(result: SubspaceResult, config: ConvergenceConfig, *,
         raise ValueError("convergence reporting needs a result solved on a MatrixElementBank")
     if energy_change is not None:
         energy_change = _finite(energy_change, "energy_change")
-    moments = SecondMomentBank(result.bank) if moments is None else moments
+    moments = (SecondMomentBank(result.bank, result.indices,
+                                storage_policy=config.storage_policy)
+               if moments is None else moments)
     residual = moments.residual(result, root)
     for name in ("energy", "rayleigh_energy", "second_moment", "variance",
                  "residual_norm", "cancellation_scale"):

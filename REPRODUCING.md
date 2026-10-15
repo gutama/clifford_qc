@@ -264,7 +264,7 @@ No figure or table value in the manuscript is transcribed by hand, and
 ```bash
 python -m venv .venv && source .venv/bin/activate
 pip install -e .[test,research,stim]       # automatic CI extras
-pytest                                      # 3598 passed, 12 skipped
+pytest                                      # 3663 passed, 12 skipped (expected if green)
 ```
 
 This is the automatic CI dependency set; record gates additionally pin NumPy
@@ -274,13 +274,16 @@ also skip -- three on OpenFermion (including the shared-pool import check) and t
 optional: install `.[chemistry]` when running those workflows, which changes
 collection totals.
 
-`check_docs.py` enforces the pair through the identity relating them. Each of
+The counts above are expected accounting for a successful suite in this
+dependency set, derived from collection; they are not a claim that the full
+suite ran for each change. `check_docs.py` enforces the pair through the
+identity relating them. Each of
 the six dropped files contributes exactly one skip and no collected tests, so
 the remaining `12 - 6 = 6` skips are per-test and *are* collected:
 
 ```text
 collected == passed + (skipped - files dropped at collection)
-3604      == 3598   + (12      -   6)
+3669      == 3663   + (12      -   6)
 ```
 
 Both sides are computed from the tree, so a drift in either quoted number
@@ -3224,6 +3227,52 @@ Hubbard 2×2 banks, the counts and word-set digest must equal the committed
 preflight record. `tests/test_second_moment_validation.py` runs the producer
 and checker on the dimer, and catches each tampered field.
 
+## Phase 15 runtime storage gate
+
+`clifford_qc/subspace/second_moment_storage.py` implements the Phase 2M
+coefficient-storage gate for blocks beyond the five historical banks.
+`SecondMomentBank(bank, indices=None, *, storage_policy=None)` runs
+`second_moment_storage_preflight(bank, indices, policy=...)` before forming
+`H²` or registering its observable. Omitted indices fix the block to the
+generators present at construction. The default
+`SecondMomentStoragePolicy(max_coefficient_occurrences=96_107_619)` uses
+Q16's coefficient anchor as a finite budget.
+
+The preflight forms no operator products or new rows. It combines support
+products with affine GF(2) XOR ceilings to bound retained `(S, H, K)` rows,
+`H²`, its action caches, existing inputs and other cached objects, and one
+output-row temporary. Every bank uses the same analytic bound; a bank name,
+historical result or qubit count grants no exception. The five historical
+banks retain their exact-validation evidence within its original scope.
+Packed coefficients and streaming `(S, H)` rows do not reduce the bound for
+`K`: projected-observable rows remain retained object multivectors.
+
+An accepted instance exposes `.storage_preflight` and its fixed `.indices`.
+Later calls may use subsets, but cannot widen the block or use a mutated
+Hamiltonian, reference, approved generator or derived `H²`. Construct a new instance to
+preflight a different block; rebuild the matrix-element bank after changing
+its inputs. Unrelated caches added later are reassessed before further work;
+the approved block's own rows and actions stay within its reserved bound.
+Rejection raises `SecondMomentStorageError`, whose `.report` exposes the
+bound and budget; dense or matrix-free residual oracles remain available.
+
+Automatic convergence reporting and `refined_ritz_root` preflight
+`result.indices`, excluding unretained candidate directions from the new
+second-moment block. Pass a `SecondMomentStoragePolicy` through
+`ConvergenceConfig(storage_policy=...)`, directly to `SecondMomentBank`, or
+via `refined_ritz_root(..., storage_policy=...)` to declare another finite
+budget.
+
+```bash
+python -m pytest tests/test_second_moment_storage.py tests/test_second_moment_storage_gate.py -q
+```
+
+This is a sparse coefficient-occurrence bound. It does not bound Python
+container overhead, multiplication accumulators, transient bytes or peak
+RSS, and supplies no finite-shot measurement licence. It adds no molecular
+experiment, changes no frozen outcome and establishes no overall Phase 2M
+pass. Phase 15 remains partial at 50%.
+
 ## Phase 15 preregistration: variance extrapolation (fit-free)
 
 `benchmarks/PHASE15_EXTRAPOLATION_PREREGISTRATION.md` (Q17) declares whether
@@ -3360,8 +3409,9 @@ across the tracked roots and reports only their retained block. Selection,
 growth and the stopping reason are unchanged. Reporting is off by default,
 its runtime is separate from `growth_seconds`, and its observable rows and
 coefficients are included in the final resource ledger. It does not construct
-the candidate frontier's second moments. Outside the five frozen Phase 15
-bases, a larger block still needs its own storage preflight.
+the candidate frontier's second moments. The runtime storage gate above
+automatically preflights `result.indices` before constructing its block;
+`ConvergenceConfig(storage_policy=...)` can declare an explicit finite budget.
 
 `convergence_report(result, ConvergenceConfig(...))` also works on a fixed
 bank solve. The versioned `ConvergenceReport.as_dict()` carries the root's
@@ -3409,6 +3459,8 @@ spectral reference: `ω ± √μ` and the Weinstein interval `E ± σ`, both wid
 their resolution floors. They hold for interior roots as well as the ground
 root. `refined_ritz_root(result, k)` takes the lowest root at a Ritz value, the
 refined Ritz vector, whose residual never exceeds the Ritz vector's own.
+Its automatic second-moment construction preflights `result.indices` and
+accepts an explicit finite policy via `storage_policy=...`.
 `FoldedSpectrum.minimize_variance(start)` iterates `ω ← E` without ever raising
 `μ`, and stops at a variance stationary point of the span. The values are exact
 pairings under `SecondMomentBank`'s storage licence; nothing here estimates the

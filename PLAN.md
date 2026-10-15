@@ -134,7 +134,7 @@ conditional phases.
 | PRD | orthogonal-residual regression, Davidson/preconditioned expansion, packet pricing, matched A-CASE, exact and finite-shot suites | **done and read**; exact compactness is positive, complete-bank QWC finite-shot energy accuracy is negative |
 | 13 | parity/X-rank invariant | **done**; one shared GF(2) implementation is tested across every declared spin-conserving JW construction path before grouping |
 | 14 | fully commuting grouping | **done on the frozen BeH₂/JW comparison** — the public compiled-plan API, exact joint sampler, preregistered finite-sample record, covariance audit, and device-card costing ship; Q9 is positive within the declared one-bank oracle boundary |
-| 15 | second-moment bank | **partially implemented (50%)**; the H-squared preflight reads `FULL` (Q16), and `SecondMomentBank` ships with exact second moments and true Ritz residual norms validated on all five licensed banks. Opt-in exact convergence reporting ships at adaptive termination, with numerical resolution and separate ground-state evidence. Q17's `CONDITIONAL` permits the shipped three-prefix extrapolation diagnostic, with improvement evidence confined to the frozen H₄ and H₂O bases. Q18's predecessor remains `INVALID`. Its separately declared Q18-S1 successor reports post-hoc `NONE` for uniform QWC on the five banks after all derivative checks pass. Q18-S2 reads `UNREACHED`: no prefix with a resolved variance on the two committed Hubbard 2×2 A-CASE trajectories that extend the frozen bank certifies the ground state, so no pilot allocation experiment is authorized on those prefixes. The exact final `acase_level4` prefix (`M = 26`) has `E + σ < E₁` for any `σ` below the resolution floor, but is unresolved, unpriced and not `certifying` in the record. Q18-S3, declared post hoc on the ladder's fixed Krylov prefixes, reads `CLOSED`. Its one certifying, rank-stable prefix (`M = 7`, `σ = 0.114 t`) has Neyman ratios near 1,700 under both protocols. So no allocation reaches the tenfold bar there, and the pilot-allocation stage did not run. That closes the practical-allocation follow-up negative on that declared scope only. Exact folded-spectrum roots, refined Ritz vectors and interior inclusion intervals now ship over the exact block, validated on all five licensed banks. Q18-S4, declared post hoc at the fully commuting grouping endpoint on the four 8-qubit banks, reads `NONE`: the shipped greedy cuts every QWC ratio, to 12.3–26.7, but none reaches the tenfold bar, and the isotropic cover reads 14.6 to 117,681. So the uniform single-assignment measured block closes negative at both grouping endpoints on those banks, and no finite-shot second-moment estimator is built. Finite-shot reporting and folded roots over a measured block need a scope a new declaration licenses, and banks outside the five remain |
+| 15 | second-moment bank | **partially implemented (50%)**; the H-squared preflight reads `FULL` (Q16), and `SecondMomentBank` ships with exact second moments and true Ritz residual norms validated on all five licensed banks. Opt-in exact convergence reporting ships at adaptive termination, with numerical resolution and separate ground-state evidence. Q17's `CONDITIONAL` permits the shipped three-prefix extrapolation diagnostic, with improvement evidence confined to the frozen H₄ and H₂O bases. Q18's predecessor remains `INVALID`. Its separately declared Q18-S1 successor reports post-hoc `NONE` for uniform QWC on the five banks after all derivative checks pass. Q18-S2 reads `UNREACHED`: no prefix with a resolved variance on the two committed Hubbard 2×2 A-CASE trajectories that extend the frozen bank certifies the ground state, so no pilot allocation experiment is authorized on those prefixes. The exact final `acase_level4` prefix (`M = 26`) has `E + σ < E₁` for any `σ` below the resolution floor, but is unresolved, unpriced and not `certifying` in the record. Q18-S3, declared post hoc on the ladder's fixed Krylov prefixes, reads `CLOSED`. Its one certifying, rank-stable prefix (`M = 7`, `σ = 0.114 t`) has Neyman ratios near 1,700 under both protocols. So no allocation reaches the tenfold bar there, and the pilot-allocation stage did not run. That closes the practical-allocation follow-up negative on that declared scope only. Exact folded-spectrum roots, refined Ritz vectors and interior inclusion intervals now ship over the exact block, validated on all five licensed banks. Q18-S4, declared post hoc at the fully commuting grouping endpoint on the four 8-qubit banks, reads `NONE`: the shipped greedy cuts every QWC ratio, to 12.3–26.7, but none reaches the tenfold bar, and the isotropic cover reads 14.6 to 117,681. So the uniform single-assignment measured block closes negative at both grouping endpoints on those banks, and no finite-shot second-moment estimator is built. Finite-shot reporting and folded roots over a measured block need a scope a new declaration licenses. A runtime coefficient-storage preflight now admits bounded exact blocks outside the five, without a peak-memory or Phase 2M pass claim |
 | 16 | time-evolved inputs | **partially implemented (50%)**; the 16A QSCI time-evolved input ships in `subspace/time_evolution.py` (exact matrix-free propagation as an `oracle` input, a validated Trotter circuit as an `implementable` one, and pooled multi-time sampling). Its decision comparison, Q15, ran once and reads `NO_GO`: iterated selected CI of the same size matches or beats it on both required instances. No circuit-native/truncated A-CASE real-time family ships. 16B's three preregistered decision experiments have run — v1 `CONDITIONAL`, v2 `GO` under per-word pricing, v3 `CONDITIONAL` once the incumbent is priced with its own grouping — and the programme ends there: the real-time backend is **not authorized** (§5, Phase 16) |
 | 17 | mapping validation and breadth | **complete (100%)**; mapping invariance and exact CEO comparisons ship, and the dedicated twelve-cell MORE-ADAPT/native multi-root A-CASE comparison has a VALID independently replayed record; mixed target outcomes limit the scientific claim (§5, Phase 17) |
 | 18 | embedding boundary | **done**; the versioned effective-Hamiltonian schema ships in `models/effective.py`, and the common fragment-solver callback returning energy and one- and two-particle density matrices ships in `subspace/fragment.py`, implemented by QSCI, selected CI, the hybrid, and a sector-FCI reference. The embedding loop itself stays outside the package |
@@ -1532,10 +1532,11 @@ eviction effects are reported separately and together; no multiplicative
 `4.8x * 12x` or approximately 58x claim is allowed until the combined implementation
 is measured.
 
-Phase 15 may run its `H^2` support/cost preflight in parallel, but full
-`SecondMomentBank` construction is gated on Phase 2M passing or on an explicit
-small-system exception: otherwise it would knowingly multiply the allocation that
-already caused the two OOM failures.
+Phase 15's runtime storage gate now checks a finite coefficient-occurrence
+budget before each scoped `SecondMomentBank` construction (§5, Phase 15).
+It supplies admission beyond the five frozen banks without claiming a Phase
+2M pass or a peak-memory bound. Packed and streaming `(S, H)` backends still
+retain second-moment observable rows as object multivectors.
 
 ### Phase 3 — done (`subspace/adaptive.py`)
 
@@ -2352,8 +2353,8 @@ Add a `SecondMomentBank` for `K_ij = <psi|A_i^dagger H^2 A_j|psi>`. Before build
 the full bank, add a support/cost preflight for `H^2`; if the estimated word
 universe is prohibitive, keep dense or matrix-free residual oracles for validation
 and restrict the measured implementation to declared small systems. Full bank
-construction additionally requires the Phase 2M memory-bounded storage gate or an
-explicit small-system exception; the preflight itself may proceed independently.
+construction now runs the scoped Phase 2M coefficient-storage gate described
+below; the historical support/cost preflight remains independent.
 Uses: true Ritz residual norms; energy variance and variance extrapolation;
 folded-spectrum roots; an independent convergence criterion.
 
@@ -2406,8 +2407,8 @@ is loose there. That settled nothing the preflight had to decide.
 
 The consequence is the one the verdict declares. Phase 15 builds
 `SecondMomentBank` for the retained block and validates it on all five banks
-against a dense residual oracle. A bank outside the five still needs the
-Phase 2M storage gate or its own preflight. The verdict prices words and
+against a dense residual oracle. The runtime storage gate below now supplies
+the required coefficient preflight for banks outside the five. The verdict prices words and
 stored coefficients only; it says nothing about grouping the new universe or
 the shots a measured residual needs, and FULL is not a claim that those are
 affordable.
@@ -2431,9 +2432,34 @@ These are the first true residual norms of the frozen bases. The ground roots
 are 7.6e-2 Ha on H₄, 5.0e-2 on converged H₄, 2.3e-3 on BeH₂ and 0.15 Ha on
 H₂O CAS(8e,6o), and 1.52 t on Hubbard 2×2. *Not claimed:* a finite-shot
 estimate of the block. Grouping a universe of 868,150 words is the cost the
-preflight excluded, so the measured implementation remains, and banks outside
-the five remain. Exact convergence reporting, Q17's limited extrapolation
+preflight excluded, so the measured implementation remains. Exact convergence reporting, Q17's limited extrapolation
 diagnostic and exact folded-spectrum roots now ship as described below.
+
+**Runtime Phase 2M coefficient-storage admission ships for other banks.**
+`second_moment_storage_preflight` inspects the requested indices before any
+`H²` product or observable registration. Support products and affine GF(2)
+XOR ceilings bound retained `(S, H, K)` rows, `H²` and its actions, existing
+cached objects and an output-row temporary. The default finite policy is
+96,107,619 coefficient occurrences. Every bank uses the same analytic bound;
+names, historical results and qubit counts confer no exemption. The five
+frozen banks retain their exact-validation evidence within its original
+scope. Packing or streaming `(S, H)` does not bound the retained
+object rows of a projected observable.
+
+`SecondMomentBank(bank, indices=None, storage_policy=...)` records the
+approved `.indices` and `.storage_preflight`, and refuses later scope widening
+or changed inputs. Later unrelated caches are reassessed without counting the
+approved `K` rows and actions twice. A new instance must
+preflight a new block. Rejection raises `SecondMomentStorageError` with its
+report; dense or matrix-free residual oracles remain the fallback.
+Convergence and refinement automatically use `result.indices`;
+`ConvergenceConfig` and `refined_ritz_root` accept an explicit finite
+`storage_policy`. This bounds sparse coefficients rather than RSS or
+transient bytes, adds no molecular experiment or finite-shot licence and
+establishes no overall Phase 2M pass. Phase 15 stays partial at 50%.
+`tests/test_second_moment_storage.py` and
+`tests/test_second_moment_storage_gate.py` validate the runtime contract;
+`REPRODUCING.md` gives their command.
 
 **Exact convergence reporting ships, opt-in and independent of growth.**
 `subspace/convergence.py` exposes `convergence_report` for a bank solve and
@@ -5733,6 +5759,13 @@ bought a duplicate record.
     uniform single-assignment block closes negative at both grouping endpoints on
     these banks. A disclosed metadata-only correction (`e1653ac`) adds the
     record's v1 evidence declaration. Phase 15 stays partial at 50%.
+19n. Phase 15's runtime Phase 2M coefficient-storage gate — **shipped.**
+    Every `SecondMomentBank` preflights its fixed block before forming `H²`,
+    using analytic support bounds and a finite
+    coefficient budget. Convergence and refinement use only `result.indices`.
+    Rejected blocks retain dense or matrix-free residual oracles. This adds
+    no experiment, peak-memory guarantee, finite-shot licence or overall
+    Phase 2M pass; Phase 15 stays partial at 50%.
 20. The dedicated MORE-ADAPT breadth comparison and exact CEO pool comparison
     are complete and read (§5, Phase 17). Mixed multi-root target outcomes remain
     explicit; no finite-shot or universal resource advantage follows.

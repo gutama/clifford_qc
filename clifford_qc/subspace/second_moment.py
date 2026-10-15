@@ -18,8 +18,10 @@ The rows are the bank's own projected-observable rows for ``Q = H * H``:
 (``benchmarks/configs/phase15_h2_preflight.json``), whose verdict, FULL,
 licenses building them on the five frozen mapping-axis banks. The word
 universe and coefficient count reported here are the preflight's ``U_K`` and
-``T_K``. A bank outside those five needs the Phase 2M storage gate or its own
-preflight first; this class does not enforce that, it reports what it holds.
+``T_K``. Construction first runs a storage preflight over the requested block.
+Every block needs a conservative coefficient bound within the declared storage
+budget; all five frozen bases fit that bound. This is not an RSS limit or a
+finite-shot affordability assessment.
 
 The values are exact pairings. A finite-shot estimate of ``K`` would share the
 measurement machinery of :mod:`.measured_response`, but grouping a universe of
@@ -44,6 +46,10 @@ import numpy as np
 from ..multivector import MV
 from .linalg import SubspaceResult
 from .projection import MatrixElementBank
+from .second_moment_storage import (
+    SecondMomentStoragePolicy, operator_fingerprint, refresh_second_moment_storage,
+    require_second_moment_storage,
+)
 
 SECOND_MOMENT_LABEL = "H^2"
 # Relative size, against the cancelled magnitude, below which a variance is
@@ -91,65 +97,112 @@ class SecondMomentBank:
     The bank supplies the reference, the generators and the storage; this
     class adds ``H^2`` as one registered observable, so its rows are cached,
     counted and reported with the bank's other rows. Rows are built lazily,
-    upper triangle only, on first use.
+    upper triangle only, on first use. ``indices`` fixes the approved block;
+    omitted indices mean the generators registered at construction. Later bank
+    growth does not extend that block. ``storage_policy`` declares a finite
+    coefficient budget for the preflight, including the ordinary object rows
+    used for projected observables on every S/H storage backend.
     """
 
-    def __init__(self, bank: MatrixElementBank):
+    def __init__(self, bank: MatrixElementBank, indices: Sequence[int] | None = None,
+                 *, storage_policy: SecondMomentStoragePolicy | None = None):
         if not isinstance(bank, MatrixElementBank):
             raise TypeError("SecondMomentBank needs a MatrixElementBank")
+        self._storage_preflight = require_second_moment_storage(
+            bank, indices, policy=storage_policy)
+        self._indices = self._storage_preflight.indices
         self._bank = bank
         self._square = bank.hamiltonian * bank.hamiltonian
+        if not self._square.is_hermitian():
+            raise ValueError("H squared must be Hermitian for a triangular second-moment block")
+        self._square_fingerprint = operator_fingerprint(self._square)
 
     @property
     def bank(self) -> MatrixElementBank:
         return self._bank
 
     @property
+    def storage_preflight(self):
+        """The latest product-free assessment that approved this block."""
+        return self._storage_preflight
+
+    @property
+    def indices(self) -> tuple[int, ...]:
+        """Generator ids covered by this second-moment bank."""
+        return self._indices
+
+    def resolve(self, indices: Sequence[int] | None = None) -> tuple[int, ...]:
+        """Validate a subset of the approved block before materializing rows."""
+        order = self._bank.resolve(self._indices if indices is None else indices)
+        if not set(order).issubset(self._indices):
+            raise ValueError("second-moment indices exceed the storage-preflight block; "
+                             "construct a new SecondMomentBank for that block")
+        if not self._storage_preflight.matches_inputs(self._bank):
+            raise ValueError("second-moment storage-preflight inputs changed; "
+                             "construct a new MatrixElementBank and preflight it")
+        if operator_fingerprint(self._square) != self._square_fingerprint:
+            raise ValueError("the preflighted Hamiltonian square changed; "
+                             "construct a new SecondMomentBank")
+        self._storage_preflight = refresh_second_moment_storage(
+            self._bank, self._storage_preflight, self._square)
+        return order
+
+    @property
     def hamiltonian_square(self) -> MV:
         """``H * H`` by the multivector product, formed once."""
+        self.resolve(())
         return self._square
 
     def row(self, i: int, j: int) -> MV:
         """The operator ``A_i' (H^2 A_j)`` whose reference pairing is ``K_ij``."""
+        self.resolve((i,) if i == j else (i, j))
+        return self._row(i, j)
+
+    def _row(self, i: int, j: int) -> MV:
         return self._bank.observable_operator(self._square, i, j,
                                               label=SECOND_MOMENT_LABEL)
 
     def matrix(self, indices: Sequence[int] | None = None) -> np.ndarray:
         """The Hermitian block ``K[a, b] = <psi|A_a' H^2 A_b|psi>``."""
-        return self._bank.project_observable(self._square, indices,
+        order = self.resolve(indices)
+        return self._bank.project_observable(self._square, order,
                                              label=SECOND_MOMENT_LABEL)
 
     def _pairs(self, indices: Sequence[int] | None):
-        order = self._bank.resolve(indices)
+        order = self._indices if indices is None else indices
         for b, j in enumerate(order):
             for i in order[:b + 1]:
                 yield i, j
 
     def word_set(self, indices: Sequence[int] | None = None) -> frozenset[int]:
         """Words of the second-moment rows over a block: the preflight's ``U_K``."""
+        order = self.resolve(indices)
         words: set[int] = set()
-        for i, j in self._pairs(indices):
-            words.update(self.row(i, j).terms)
+        for i, j in self._pairs(order):
+            words.update(self._row(i, j).terms)
         return frozenset(words)
 
     def resources(self, indices: Sequence[int] | None = None) -> dict[str, Any]:
         """What the block adds to measure and to hold, beside ``(S, H)``."""
-        order = self._bank.resolve(indices)
-        rows = [self.row(i, j) for i, j in self._pairs(order)]
+        order = self.resolve(indices)
         k_words: set[int] = set()
-        for operator in rows:
+        second = largest = 0
+        for i, j in self._pairs(order):
+            operator = self._row(i, j)
             k_words.update(operator.terms)
+            second += operator.nnz()
+            largest = max(largest, operator.nnz())
+            del operator
         sh_words = self._bank.word_set(order)
         # Counted from the block's own rows: the bank's resident total would
         # include these second-moment rows once they exist.
         first = sum(self._bank.overlap_operator(i, j).nnz()
                     + self._bank.element_operator(i, j).nnz()
                     for i, j in self._pairs(order))
-        second = sum(operator.nnz() for operator in rows)
         combined = len(k_words | sh_words)
         return {
             "basis_size": len(order),
-            "block_pairs": len(rows),
+            "block_pairs": len(order) * (len(order) + 1) // 2,
             "hamiltonian_square_terms": self._square.nnz(),
             "sh_word_universe": len(sh_words),
             "second_moment_word_universe": len(k_words),
@@ -157,7 +210,7 @@ class SecondMomentBank:
             "additional_words": combined - len(sh_words),
             "word_ratio": combined / len(sh_words) if sh_words else math.inf,
             "second_moment_coefficient_occurrences": second,
-            "largest_row_terms": max((operator.nnz() for operator in rows), default=0),
+            "largest_row_terms": largest,
             "sh_coefficient_occurrences": first,
             "total_coefficient_occurrences": first + second,
         }
@@ -165,7 +218,7 @@ class SecondMomentBank:
     def moments(self, coefficients, indices: Sequence[int] | None = None,
                 ) -> tuple[float, float, float, float]:
         """``(c'Sc, c'Hc, c'Kc, |c|'|K||c|)`` for one coefficient vector."""
-        order = self._bank.resolve(indices)
+        order = self.resolve(indices)
         c = np.asarray(coefficients, dtype=complex).reshape(-1)
         if c.size != len(order):
             raise ValueError(f"{c.size} coefficients for a basis of {len(order)}")

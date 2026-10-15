@@ -190,6 +190,9 @@
         "benchmarks/reference_results/phase15_h2_preflight.json",
         "clifford_qc/subspace/second_moment.py",
         "tests/test_second_moment.py",
+        "clifford_qc/subspace/second_moment_storage.py",
+        "tests/test_second_moment_storage.py",
+        "tests/test_second_moment_storage_gate.py",
         "benchmarks/reference_results/second_moment_validation.json",
         "benchmarks/reference_results/phase15_variance_extrapolation.json",
         "clifford_qc/subspace/convergence.py",
@@ -225,8 +228,7 @@
       ],
       "remaining": [
         "Finite-shot estimation beyond the declared scopes. Q18-S1 reads NONE for uniform QWC on the five banks; the original Q18 record remains INVALID. Q18-S2 reads UNREACHED on the two committed Hubbard 2x2 A-CASE trajectories. Q18-S3, declared post hoc on the ladder's fixed Krylov prefixes, reads CLOSED: its one certifying, rank-stable prefix (M = 7) has Neyman ratios near 1,700, so no allocation reaches the tenfold bar there and its pilot stage did not run. Q18-S4, declared post hoc at the fully commuting grouping endpoint on the four 8-qubit banks, reads NONE: every bank is PROHIBITIVE under both the greedy (R = 12.3 to 26.7) and the isotropic cover, so the uniform single-assignment estimator closes negative at both grouping endpoints there and none is built. These close the measured block negative on those declared scopes only; other systems, spans, references, pooled estimators, allocations or precision rules need their own declaration. Oracle allocation diagnostics license no estimator",
-        "Finite-shot convergence reporting and folded-spectrum roots built on a measured second-moment block, on a scope a new declaration licenses; exact folded roots, refined Ritz vectors and inclusion intervals ship over the exact block",
-        "Phase 2M storage gate or a preflight of its own before SecondMomentBank construction on any bank outside the five"
+        "Finite-shot convergence reporting and folded-spectrum roots built on a measured second-moment block, on a scope a new declaration licenses; exact folded roots, refined Ritz vectors and inclusion intervals ship over the exact block"
       ],
       "decision_records": [
         "benchmarks/reference_results/phase15_residual_successor.json",

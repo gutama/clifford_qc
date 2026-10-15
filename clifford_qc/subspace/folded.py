@@ -194,7 +194,7 @@ class FoldedSpectrum:
                              "solve F c = mu S c; folded roots take truncation options only")
         bank = moments.bank
         self._moments = moments
-        self._indices = tuple(bank.resolve(indices))
+        self._indices = moments.resolve(indices)
         self._labels = tuple(bank.labels[i] for i in self._indices)
         S, H = bank.matrices(self._indices)
         self._S, self._H = S, H
@@ -295,17 +295,24 @@ def folded_spectrum_roots(moments: SecondMomentBank, target: float, *,
 
 
 def refined_ritz_root(result: SubspaceResult, k: int = 0, *,
-                      moments: SecondMomentBank | None = None, **solve_kwargs) -> FoldedRoot:
+                      moments: SecondMomentBank | None = None,
+                      storage_policy=None, **solve_kwargs) -> FoldedRoot:
     """The refined Ritz vector of root ``k`` of a bank solve.
 
     Its folded value at ``theta_k`` never exceeds the Ritz vector's own
     variance there, since the Ritz vector lies in the same retained span.
+    Automatic construction preflights only ``result.indices``. Supply
+    ``storage_policy`` to declare its finite coefficient budget, or pass
+    already preflighted ``moments``.
     """
     if result.bank is None:
         raise ValueError("refinement needs a result solved on a MatrixElementBank")
     if not 0 <= k < len(result.energies):
         raise IndexError(f"root {k} out of range")
-    moments = SecondMomentBank(result.bank) if moments is None else moments
+    if moments is not None and storage_policy is not None:
+        raise ValueError("set storage_policy when constructing the supplied moments")
+    moments = (SecondMomentBank(result.bank, result.indices, storage_policy=storage_policy)
+               if moments is None else moments)
     if moments.bank is not result.bank:
         raise ValueError("the second moments belong to a different bank")
     spectrum = FoldedSpectrum(moments, result.indices, **solve_kwargs)
