@@ -138,9 +138,11 @@ would no longer solve `F c = mu S c`.
 finite-shot estimator of `K` exists. Under uniform allocation, measuring the
 residual to the energy's standard error costs more than ten times the energy's
 shots on every bank priced: Q18-S1 (uniform QWC, five banks) and Q18-S4 (fully
-commuting settings, the four 8-qubit banks) both read `NONE`. Banks outside the
-five Phase 15 preflight bases need their own storage preflight.
-`SecondMomentBank` does not enforce that; it reports what it holds.
+commuting settings, the four 8-qubit banks) both read `NONE`. Before constructing
+`H^2`, `SecondMomentBank` applies a product-free coefficient-storage preflight to
+its approved indices, including banks outside the five Phase 15 preflight bases.
+The finite `SecondMomentStoragePolicy` budget bounds coefficient occurrences;
+it does not bound peak RSS or certify finite-shot affordability.
 
 ## Jordan-Wigner Clifford generators
 
