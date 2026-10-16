@@ -1,5 +1,9 @@
 # `clifford_qc` roadmap
 
+This is the interoperability roadmap, and its Phases 1–5 are its own. The
+research phases that `PHASE_STATUS.json` tracks, numbered 0–19 (for example
+Phase 15, the second-moment bank), are planned in [PLAN.md](PLAN.md).
+
 Goal: make the operator-centric Cl(2n,C) engine credible and interoperable.
 The core stays dependency-light (numpy only). Everything ecosystem-facing
 goes through one native interchange layer — the **Pauli-rotor IR** — and

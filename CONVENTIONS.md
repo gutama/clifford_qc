@@ -64,6 +64,84 @@ operand of Clifford grade `0, 1 mod 4` masks the reversion sign. Projected
 subspace matrix elements need `trace_pairing`, because `A' H A` is not
 Hermitian.
 
+## Second moments, residuals and folded roots
+
+A subspace state is `|Psi> = sum_j c_j A_j|psi>`. A matrix-element bank pairs
+three blocks with the reference `psi`, all in the same way:
+
+```text
+S_ij = <psi|A_i' A_j|psi>        overlap
+H_ij = <psi|A_i' H A_j|psi>      projected Hamiltonian
+K_ij = <psi|A_i' H^2 A_j|psi>    second moment (SecondMomentBank)
+```
+
+`K`'s rows are the bank's projected-observable rows for `H * H`, built as
+`A_i.dagger() * (H2 * A_j)`. With `n = c'Sc` and `c'` the conjugate transpose:
+
+```text
+<H>      = c'Hc / n
+<H^2>    = c'Kc / n
+sigma^2  = <H^2> - 2E<H> + E^2  = ||(H - E)Psi||^2 / <Psi|Psi>
+mu(w)    = c'F(w)c / n          = ||(H - w)Psi||^2 / <Psi|Psi>,   F(w) = K - 2wH + w^2 S
+```
+
+`RitzResidual.variance` is `sigma^2` at the root's reported energy `E`. At the
+Rayleigh quotient `E = <H>`, which `energy_variance` and `FoldedRoot.variance`
+use, it is the energy variance `<H^2> - <H>^2`. The package reserves "residual
+norm" for `sigma` alone. `mu(w)` is the folded value. When `E = <H>`,
+`mu(w) = sigma^2 + (E - w)^2`, so `sigma^2 <= mu(w)` for every target.
+
+**Resolution floors.** Each quantity is a difference of terms of order
+`<H^2>`, so it is reported signed and never clipped. It counts as resolved only
+above `RESOLUTION = 1e-12` times its cancellation scale, the magnitude the
+difference cancels per unit norm, with `|.|` taken elementwise:
+
+```text
+scale_sigma2 = |c|'|K||c| / n                         sigma^2 > RESOLUTION * scale_sigma2
+scale_mu     = |c|'(|K| + 2|w||H| + w^2|S|)|c| / n    mu(w)   > RESOLUTION * scale_mu
+```
+
+`RitzResidual.resolved` and `FoldedRoot.variance_resolved` test the first,
+`FoldedRoot.resolved` the second.
+
+The floor is a numerical convention for rounding, not a confidence bound. An
+unresolved value stays unresolved: a rounded zero is not a converged residual.
+`residual_norm` is `sqrt(max(sigma^2, 0))`.
+
+**Inclusion intervals.** `||(H - w)Psi||^2 / <Psi|Psi>` is a weighted mean of
+`(E_k - w)^2` over the eigenvalues `E_k` the state touches. So for every folded
+root, ground or interior, some eigenvalue of `H` lies in each of
+
+```text
+target interval     [w - b_t, w + b_t],  b_t = sqrt(max(mu, 0)      + RESOLUTION * scale_mu)
+Weinstein interval  [E - b_W, E + b_W],  b_W = sqrt(max(sigma^2, 0) + RESOLUTION * scale_sigma2)
+```
+
+with `E = <H>`. The floors keep a rounding-level value from producing a falsely
+tight interval. Neither interval says which eigenvalue it holds. Ground-state
+claims need an independently established spectrum, supplied to convergence
+reporting as a `GroundStateReference`.
+
+**Constant shifts.** Under `H -> H + a`, the blocks become `H + aS` and
+`K + 2aH + a^2 S`. Shifting the target with them, `w -> w + a`, leaves `F`, and
+so `sigma^2` and `mu`, unchanged; energies, targets and intervals move by `a`.
+The cancellation scales do not stay fixed. A large constant offset, such as a
+molecule's nuclear-repulsion and core energy, adds about `a^2|S|` to `|K|` and
+raises the floor with it.
+
+**Solves.** A folded solve uses `solve_projected` on `(S, F(w))`, so it retains
+the same span a Ritz solve with the same thresholds would. A nonzero
+`overlap_ridge` is refused, because it changes the metric and its vectors
+would no longer solve `F c = mu S c`.
+
+**Exact only.** All three blocks are exact pairings with the reference. No
+finite-shot estimator of `K` exists. Under uniform allocation, measuring the
+residual to the energy's standard error costs more than ten times the energy's
+shots on every bank priced: Q18-S1 (uniform QWC, five banks) and Q18-S4 (fully
+commuting settings, the four 8-qubit banks) both read `NONE`. Banks outside the
+five Phase 15 preflight bases need their own storage preflight.
+`SecondMomentBank` does not enforce that; it reports what it holds.
+
 ## Jordan-Wigner Clifford generators
 
 \[
