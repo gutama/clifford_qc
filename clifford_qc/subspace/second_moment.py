@@ -21,9 +21,9 @@ universe and coefficient count reported here are the preflight's ``U_K`` and
 ``T_K``. A bank outside those five needs the Phase 2M storage gate or its own
 preflight first; this class does not enforce that, it reports what it holds.
 
-The values are exact pairings. A finite-shot estimate of ``K`` would share the
-measurement machinery of :mod:`.measured_response`, but grouping a universe of
-this size is the cost the preflight excluded, and no estimator is offered here.
+The values are exact pairings, and no finite-shot estimator is offered: Q18-S1
+(uniform QWC) and Q18-S4 (fully commuting settings) both read NONE, pricing the
+measured residual above ten times the energy's shots on every declared bank.
 
 **Precision.** The variance is a difference of two numbers of order
 ``<H^2>``, which for a molecule carries the square of its constant energy

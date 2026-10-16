@@ -26,8 +26,8 @@ small-system comparisons, and a public archival release is intended.
 | Build models | Spin chains, Hubbard and other lattice models, restricted real FCIDUMP import, effective-Hamiltonian JSON, orbital rotations — every model declares its encoding and sector under a validated metadata contract | [Model examples](#examples), [conventions](CONVENTIONS.md#model-metadata), `clifford_qc.models` |
 | Run circuits | Parameterized Pauli rotors and Clifford gates, JSON serialization, gradients, OpenQASM 3 export | [Circuit example](#circuit-programs), `clifford_qc.ir` |
 | Compare eigensolvers | VQE, ADAPT-VQE, fixed and adaptive operator-response subspaces, QSCI/SQD (with reference, ADAPT-VQE, and exact or Trotter time-evolved sampling inputs), selected-CI controls, hybrid bases | [Solver guide](#choosing-a-solver), [subspace example](#adaptive-subspaces) |
-| Check a Ritz state against an eigenstate | True Ritz residual norms and energy variances from the second-moment block `⟨A_i†H²A_j⟩`, exact pairings over a matrix-element bank; validated on the five banks the Phase 15 preflight licensed | `clifford_qc.subspace.SecondMomentBank`, [reproducing](REPRODUCING.md#phase-15-secondmomentbank-and-its-validation) |
-| Find and bound interior roots | Exact folded-spectrum roots of `K − 2ωH + ω²S`, refined Ritz vectors, target and Weinstein intervals that each contain an eigenvalue, and monotone variance minimization; validated on the same five banks | `clifford_qc.subspace.FoldedSpectrum`, [reproducing](REPRODUCING.md#phase-15-folded-spectrum-roots-and-their-validation) |
+| Check a Ritz state against an eigenstate | True Ritz residual norms and energy variances from the second-moment block `⟨A_i†H²A_j⟩`, exact pairings over a matrix-element bank; validated on the five banks the Phase 15 preflight licensed. No finite-shot estimator is built: measuring the block reads `NONE` under both QWC and fully commuting grouping | `clifford_qc.subspace.SecondMomentBank`, [example](#residuals-and-folded-roots), [conventions](CONVENTIONS.md#second-moments-residuals-and-folded-roots), [reproducing](REPRODUCING.md#phase-15-secondmomentbank-and-its-validation) |
+| Find and bound interior roots | Exact folded-spectrum roots of `K − 2ωH + ω²S`, refined Ritz vectors, target and Weinstein intervals that each contain an eigenvalue, and monotone variance minimization; validated on the same five banks | `clifford_qc.subspace.FoldedSpectrum`, [example](#residuals-and-folded-roots), [reproducing](REPRODUCING.md#phase-15-folded-spectrum-roots-and-their-validation) |
 | Assess why adaptive growth stopped | Opt-in exact convergence reports over the final retained block, with numerical-resolution and ground-state evidence reported separately; Q17 extrapolation is a diagnostic only | `ConvergenceConfig`, `convergence_report`, [example](examples/acase_convergence.py), [contract](REPRODUCING.md#phase-15-exact-convergence-reporting) |
 | Solve embedding fragments | One callback returning energy plus one- and two-particle density matrices, implemented by sector FCI, QSCI, selected CI, and the QSCI × A-CASE hybrid; the embedding loop itself stays outside the package | `clifford_qc.subspace.fragment`, [conventions](CONVENTIONS.md#density-matrices) |
 | Reuse measurements | QWC and block-commuting grouping, compiled Clifford readouts, shared caches, covariance, allocation, uncertainty estimates | [Finite-shot examples](#examples), [architecture](ARCHITECTURE.md#measurement-and-evidence) |
@@ -174,18 +174,6 @@ This example uses exact classical expectations; finite-shot workflows have
 separate examples below. An exact projected solve does not certify convergence
 to the full ground state.
 
-For a bounded example of full residual reporting, run
-`python examples/acase_convergence.py`. Pass
-`convergence=ConvergenceConfig(residual_tolerance=...)` to `run_acase`, or
-call `convergence_report` on an existing bank solve. The returned
-`convergence_reports` keep the growth stopping reason beside each tracked
-root's true residual, numerical-resolution status and optional ground-state
-assessment. Reporting is off by default and adds the retained `H²` block;
-larger banks need a storage preflight. A supplied `GroundStateReference`
-must describe an independently established spectrum in the state's space.
-Neither a small residual nor a Q17 extrapolated energy alone establishes
-ground-state convergence. See the [reporting contract](REPRODUCING.md#phase-15-exact-convergence-reporting).
-
 For repeated molecular experiments, [molecular/PIPELINE.md](molecular/PIPELINE.md) separates
 FCIDUMP preparation, independent A-CASE solves, and optional sector validation.
 Object storage with `retain_all` is the default. Packed storage and
@@ -197,6 +185,51 @@ workers, resumable runs, historical results, and reports. Install
 `python -m pip install -e '.[molecular]'` and start with
 `python -m molecular.run --molecules lih --max-additions 2 --complete-sd off`.
 New runs write to `molecular/runs/`; committed evidence remains in `molecular/results/`.
+
+### Residuals and folded roots
+
+A projected solve has zero projected residual by construction. The true
+residual of a Ritz state needs the second-moment block `K = ⟨A_i†H²A_j⟩`,
+which `SecondMomentBank` pairs exactly beside `S` and `H`. Continuing the
+transverse-field Ising example:
+
+```python
+from clifford_qc.subspace import (
+    FoldedSpectrum, MatrixElementBank, SecondMomentBank, identity_generator)
+
+bank = MatrixElementBank(rho, model.hamiltonian,
+                         [identity_generator(model.n), *pauli_orbit(words)])
+moments = SecondMomentBank(bank)
+ritz = bank.solve()
+print(moments.residual(ritz).residual_norm)          # true residual of the Ritz root
+root = FoldedSpectrum(moments).refined_ritz(ritz.energies[0])
+print(root.residual_norm, root.weinstein_interval())  # an eigenvalue lies inside
+```
+
+`FoldedSpectrum.roots(w)` returns the states of the span closest, by residual,
+to an eigenvalue near a target `w`.
+`refined_ritz` sets `w` to a Ritz value, and its residual never exceeds the
+Ritz vector's. `minimize_variance` iterates `w ← E` to a variance-stationary
+state. Each root carries a target interval and a Weinstein interval, and an
+eigenvalue of `H` lies in each. Neither says which eigenvalue. Variances are
+reported signed and count as resolved only above a rounding floor, as
+[CONVENTIONS.md](CONVENTIONS.md#second-moments-residuals-and-folded-roots)
+defines. These are exact pairings. Q18-S1 and Q18-S4 found that, under uniform
+allocation, measuring the residual to the energy's standard error costs more
+than ten times the energy's shots on every bank tested, so no finite-shot
+estimator is built.
+
+For a bounded example of convergence reporting, run
+`python examples/acase_convergence.py`. Pass
+`convergence=ConvergenceConfig(residual_tolerance=...)` to `run_acase`, or
+call `convergence_report` on an existing bank solve. The returned
+`convergence_reports` keep the growth stopping reason beside each tracked
+root's true residual, numerical-resolution status and optional ground-state
+assessment. Reporting is off by default and adds the retained `H²` block;
+larger banks need a storage preflight. A supplied `GroundStateReference`
+must describe an independently established spectrum in the state's space.
+Neither a small residual nor a Q17 extrapolated energy alone establishes
+ground-state convergence. See the [reporting contract](REPRODUCING.md#phase-15-exact-convergence-reporting).
 
 ## Choosing a solver
 
@@ -278,8 +311,16 @@ optional extras; benchmark-specific environments are in [REPRODUCING.md](REPRODU
 
 - **Evidence:** exact, asymptotic, finite-sample, and heuristic results have
   different meanings. A fixed-functional certificate does not automatically
-  certify a nonlinear Ritz eigenvalue or total ground-state error. Evidence
-  labels are not yet schema-validated uniformly across all records.
+  certify a nonlinear Ritz eigenvalue or total ground-state error. A new
+  benchmark record must declare a tier and a scope for each quantity under the
+  versioned `clifford_qc.evidence.v1` contract. Older records predate it and
+  are frozen by digest rather than relabelled, so labels are not yet uniform
+  across all records.
+- **Residuals:** a small true residual places some eigenvalue nearby; it does
+  not say which one. Ground-state claims need a separately established
+  spectrum. A variance at the rounding floor is reported as unresolved, not as
+  converged. Every true Ritz residual the package reports is an exact pairing,
+  not a finite-shot estimate.
 - **Memory:** streaming bounds persistent overlap/Hamiltonian coefficient rows,
   not total process memory. Histories, references, generators, and observables
   have separate lifetimes; recomputation can increase runtime.

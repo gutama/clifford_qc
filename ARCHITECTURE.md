@@ -70,7 +70,7 @@ providing another runtime implementation.
 | Execution | `backends/`, `dense_reference.py`, `sparse.py`, `pauli_action.py` | Exact, sampled, stabilizer, dense, sparse, and sector calculations |
 | Measurement | `measurement/` | Grouping, readout compilation, caches, functionals, covariance, allocation, confidence, and device cost |
 | Algorithms | `algorithms/` | VQE, ADAPT-VQE, optimizers, candidate pools, and initialization |
-| Subspaces | `subspace/` | Projection, adaptive growth, sampled determinants, classical controls, hybrids, response, restrictions, second moments for true Ritz residuals, and the fragment-solver callback an external embedding loop calls |
+| Subspaces | `subspace/` | Projection, adaptive growth, sampled determinants, classical controls, hybrids, response, restrictions, second moments for true Ritz residuals and folded-spectrum roots, and the fragment-solver callback an external embedding loop calls |
 | Orchestration | `workflows.py`, `prepared.py`, `pipeline.py` | Cross-layer workflows and reusable preparation/solve/validation |
 | Interoperability | `bridges/` | Explicit optional adapters for external quantum software |
 | Evidence | `benchmarks/`, `verify.py`, `reproducibility.py`, `record_environment.py`, `capabilities.py` | Smoke checks, records, validation gates, and environment provenance |
@@ -212,10 +212,17 @@ measured words among observables; a `WordFunctional` reads their linear
 combinations. Allocation can use within-setting covariance. Cross-setting shot
 pooling is optional and changes how compatible measurements are combined.
 
-The evidence vocabulary includes `exact`, `asymptotic`, `finite_sample`,
-`heuristic`, and `none`. `EvidenceLevel` is an enumeration in the selection
-layer, but other result types and legacy records use strings without uniform
-schema validation. The paper's census measures that coverage gap.
+Two evidence vocabularies coexist. Inside the package, `EvidenceLevel` in the
+selection layer enumerates `exact`, `asymptotic`, `finite_sample`,
+`heuristic`, and `none`; other result types carry strings without a shared
+schema. For committed records, `evidence.py` defines the versioned
+`clifford_qc.evidence.v1` contract: every quantity declares one tier, such as
+`exact_small_sector_simulation`, `finite_sample_empirical`, or
+`asymptotic_bound`, and a nonempty scope. The evidence gate requires that
+contract on every new record. Historical records are grandfathered by a frozen
+digest manifest, so they must keep their bytes; digest-bound sidecar
+annotations can label them without rewriting them. The paper's census
+measures the remaining coverage gap.
 
 Exact projected arithmetic does not establish full-space convergence. A
 finite-sample interval applies to its specified functional and assumptions;
@@ -233,6 +240,22 @@ using the Rayleigh energy; the caller establishes spectral scope and sector
 membership. Q17's fixed three-prefix fit is a standalone diagnostic with its
 limited improvement evidence named in the output. These interfaces neither
 change adaptive stopping nor supply finite-shot certificates.
+
+`subspace/folded.py` reuses the same three blocks. The folded operator
+`K − 2ωH + ω²S` gives, for a target `ω`, the states of the span closest by
+residual to an eigenvalue near `ω`, refined Ritz vectors, and a monotone
+variance-minimizing iteration. Each root carries target and Weinstein
+inclusion intervals widened by their resolution floors. A folded solve decides
+its retained span on `S` alone, as a Ritz solve with the same thresholds does,
+and refuses an overlap ridge, which would change the metric. No new rows or
+measurements are needed.
+
+Every second-moment quantity is an exact pairing. The measured block has been
+priced twice, at the two grouping endpoints the package ships: uniform QWC
+(Q18-S1, five banks) and fully commuting settings (Q18-S4, the four 8-qubit
+banks). Both read `NONE`, so no finite-shot `K` estimator exists, and the
+measurement layer has no second-moment path. A measured block on any other
+scope needs its own declaration first.
 
 Device cards evaluate compiled settings under connectivity, duration, and
 fidelity assumptions. Inadmissible protocols have no reported runtime. The
