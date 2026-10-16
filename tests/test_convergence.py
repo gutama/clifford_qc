@@ -167,9 +167,9 @@ def test_reporting_preserves_growth_and_materializes_only_the_retained_block(sto
 def test_configured_multiroot_reporting_shares_one_second_moment_bank(monkeypatch):
     calls = []
     constructor = SecondMomentBank.__init__
-    def counted(self, bank):
+    def counted(self, bank, *args, **kwargs):
         calls.append(bank)
-        constructor(self, bank)
+        constructor(self, bank, *args, **kwargs)
     monkeypatch.setattr(SecondMomentBank, "__init__", counted)
     run = run_acase(ket_density(1, "0"), Z(1, 0), [Z(1, 0)],
                     initial=[identity_generator(1), X(1, 0)], config=ACASEConfig(

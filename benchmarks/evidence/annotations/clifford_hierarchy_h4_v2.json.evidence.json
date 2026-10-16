@@ -1,0 +1,20 @@
+{
+  "evidence": {
+    "bank_energy_error_and_conditioning": {
+      "scope": "Numerical exact-reference solve on the stored nine-direction, eight-qubit determinant-resolution H4 bank from matched_h4.json; the reported ground_energy is the retained subspace energy, not the full active-space ground energy.",
+      "tier": "exact_small_sector_simulation"
+    },
+    "grouping_and_logical_clifford_counts": {
+      "scope": "Word-universe, greedy setting counts, synthesized logical Clifford gate/depth counts and checked Z-only restrictions for the stored bank at block sizes 1, 2, 4 and 8; these describe the chosen synthesis, not an optimal grouping or routed hardware circuit.",
+      "tier": "exact_algebra"
+    },
+    "uniform_shot_totals_and_break_even_ratios": {
+      "scope": "Preparation and CX-application projections at the assumed 8000 shots per setting, and preparation-versus-logical-CX cost ratios in the declared all-to-all logical model; no shot outcomes, finite-sample accuracy certificate, noise model or measured hardware runtime is present in this v2 record.",
+      "tier": "illustrative_model"
+    }
+  },
+  "evidence_schema": "clifford_qc.evidence.v1",
+  "record": "clifford_hierarchy_h4_v2.json",
+  "record_sha256": "adc81de5120986377f18735d3166f73348b67e2271c9d715d054568d391ce4bb",
+  "schema": "clifford_qc.evidence_annotation.v1"
+}

@@ -1,0 +1,20 @@
+{
+  "evidence": {
+    "conditional_sector_solutions_and_determinant_truncations": {
+      "scope": "Numerical fixed-(N_up,N_down) sector energies, leading-determinant weights and amplitude-ranked truncated-space energies for the stored half-filled eight-site Hubbard ring and each stored disorder realization. Basis invariance is checked to 1e-8; determinant counts attain the stated 0.0016 target in hopping units for the chosen ranking, not a globally minimal determinant space.",
+      "tier": "exact_small_sector_simulation"
+    },
+    "disorder_sweep_basis_comparisons": {
+      "scope": "Observed basis-compactness comparisons on the declared four disorder strengths and three seeded site-disorder realizations per strength, with four bases per realization; the zero-strength rows repeat the clean model. These finite draws do not establish a universal disorder ranking or a population confidence guarantee.",
+      "tier": "finite_sample_empirical"
+    },
+    "pauli_word_and_logical_rotation_counts": {
+      "scope": "Counts of the explicitly represented rotated Hamiltonian Pauli words, determinant-space dimensions and rotations in the chosen Givens decomposition for the stored finite models; the logical rotation count excludes Jordan-Wigner mode-reordering and routed hardware costs and supplies no asymptotic or hardware advantage evidence.",
+      "tier": "exact_algebra"
+    }
+  },
+  "evidence_schema": "clifford_qc.evidence.v1",
+  "record": "orbital_basis.json",
+  "record_sha256": "74c5c937b4e6858394dfd4c65203878f2c727c605b32b455c31e19ef833f7615",
+  "schema": "clifford_qc.evidence_annotation.v1"
+}

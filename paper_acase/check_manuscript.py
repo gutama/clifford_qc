@@ -37,8 +37,9 @@ TABLE_GENERATOR = HERE / "make_tables.py"
 
 # Re-derived from make_tables.py rather than restated, so the two cannot drift
 # into disagreeing about which record backs which table.
-sys.path.insert(0, str(HERE))
-from make_tables import TABLE_SOURCES  # noqa: E402
+sys.path.insert(0, str(ROOT))
+from paper_acase.make_tables import TABLE_SOURCES, configure_sources  # noqa: E402
+from paper_acase.source_snapshot import snapshot_problems  # noqa: E402
 
 # which committed record each figure is plotted from; kept in step with
 # make_figures.py so a regenerated record forces a regenerated figure
@@ -151,7 +152,12 @@ def _git_blob_sha(path: Path) -> str:
 
 def main() -> int:
     text = TEX.read_text()
-    problems: list[str] = []
+    problems: list[str] = snapshot_problems()
+    if problems:
+        for problem in problems:
+            print(f"FAIL {problem}")
+        return 1
+    configure_sources()
 
     opens = collections.Counter(re.findall(r"\\begin\{(\w+\*?)\}", text))
     closes = collections.Counter(re.findall(r"\\end\{(\w+\*?)\}", text))

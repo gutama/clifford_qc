@@ -81,6 +81,632 @@
         }
       }
     },
+    "benchmarks/reference_results/phase17_more.json": {
+      "config": {
+        "git_blob_sha1": "1aaac5e82a9ecbbb33e951af67d3d0ad3c6df996",
+        "path": "benchmarks/configs/phase17_more.json",
+        "sha256": "724cf874d918528782b7aa198c9786fa7d37f5f4490ac826f9679e43794c7c48"
+      },
+      "execution_commit": "4b3ca4922df808f2b27cf151ff55ed44335ea0ce",
+      "record_sha256": "491df0b11512143a1c8db5a0df8dc23131a67c3fa313582eae9672546ae3c742",
+      "sources": {
+        "benchmarks/PHASE17_MORE_DECLARATION.md": {
+          "git_blob_sha1": "b1dfcc0c2f7b07932676dfb0f868399d7c186020",
+          "sha256": "55e82716ef89a28969f7164c281731d79c303605cc29777f5b7429ac4682d3fc",
+          "snapshot": "benchmarks/provenance/execution_sources/4b3ca4922df808f2b27cf151ff55ed44335ea0ce/benchmarks/PHASE17_MORE_DECLARATION.md"
+        },
+        "benchmarks/archive_provenance.py": {
+          "git_blob_sha1": "f167eb5e33681c9f129de23027f77e1527e603d3",
+          "sha256": "09cba0888ded0647ce7ea2b3781086ded2418e41dd12c9bb421a3a2e11af9393",
+          "snapshot": "benchmarks/provenance/execution_sources/4b3ca4922df808f2b27cf151ff55ed44335ea0ce/benchmarks/archive_provenance.py"
+        },
+        "benchmarks/bank_policy_contract.py": {
+          "git_blob_sha1": "a8196c2f90a4ac13be21901f17b495b7c888c1d1",
+          "sha256": "46992aa9b21ba211d2776814ed5a247f4b0d95e0fe0bc50f27ab04d6a8bedf1b",
+          "snapshot": "benchmarks/provenance/execution_sources/4b3ca4922df808f2b27cf151ff55ed44335ea0ce/benchmarks/bank_policy_contract.py"
+        },
+        "benchmarks/check_phase15_preregistration.py": {
+          "git_blob_sha1": "f544144e4a2c6d39d5cffa53f8ceedaf33355c3b",
+          "sha256": "75a0566975a8dd73c10509925f03613b12c4219a49dcec5cff72c8b147d4e304",
+          "snapshot": "benchmarks/provenance/execution_sources/4b3ca4922df808f2b27cf151ff55ed44335ea0ce/benchmarks/check_phase15_preregistration.py"
+        },
+        "benchmarks/check_phase17_more.py": {
+          "git_blob_sha1": "ded676012e6986ffcd6c6b7457a894d5ffc90ec6",
+          "sha256": "4734b41d8e4fb4a3bec06ebaf2d55614c1b79346aabfa756fdf1d2a7a7797eef",
+          "snapshot": "benchmarks/provenance/execution_sources/4b3ca4922df808f2b27cf151ff55ed44335ea0ce/benchmarks/check_phase17_more.py"
+        },
+        "benchmarks/check_phase17_more_declaration.py": {
+          "git_blob_sha1": "0833cd6f2639a2f609943f6db9680d6caea3f214",
+          "sha256": "ebd6e85b6e57ad851df1090854e68a0adfdccc749ef9eb4cdf02ac4062e1ff4f",
+          "snapshot": "benchmarks/provenance/execution_sources/4b3ca4922df808f2b27cf151ff55ed44335ea0ce/benchmarks/check_phase17_more_declaration.py"
+        },
+        "benchmarks/metadata_io.py": {
+          "git_blob_sha1": "019d87621f08e3ddb12aec8324c5faa00f8e66f7",
+          "sha256": "a36d188b099a2fa7d4d4bde28df8ad24615c11aefa2ac80bd42b0b1b36246dd3",
+          "snapshot": "benchmarks/provenance/execution_sources/4b3ca4922df808f2b27cf151ff55ed44335ea0ce/benchmarks/metadata_io.py"
+        },
+        "benchmarks/phase17_ceo_design.py": {
+          "git_blob_sha1": "25cce2611da995cff16af0806d20d3a93210a296",
+          "sha256": "f2711f41d85e00c6177551054e9f0539a1b19e957bab1b90b8644d719dfb63e0",
+          "snapshot": "benchmarks/provenance/execution_sources/4b3ca4922df808f2b27cf151ff55ed44335ea0ce/benchmarks/phase17_ceo_design.py"
+        },
+        "benchmarks/phase17_ceo_oracle.py": {
+          "git_blob_sha1": "99dad49f8b773ff197cc0a94694a38ebd827636f",
+          "sha256": "f972c80d81c2ad65fc8fbf735f3917a176cdffa9f780d43c4e0352eadbd2b2cf",
+          "snapshot": "benchmarks/provenance/execution_sources/4b3ca4922df808f2b27cf151ff55ed44335ea0ce/benchmarks/phase17_ceo_oracle.py"
+        },
+        "benchmarks/phase17_ceo_provenance.py": {
+          "git_blob_sha1": "ed7716c9ea4c60828eb88e381c927ff9ebbc9581",
+          "sha256": "29322c4ffa2f555a2753ea1d96753eb3f176e14d6e9dae7b340bcccfeb658065",
+          "snapshot": "benchmarks/provenance/execution_sources/4b3ca4922df808f2b27cf151ff55ed44335ea0ce/benchmarks/phase17_ceo_provenance.py"
+        },
+        "benchmarks/phase17_more_acase.py": {
+          "git_blob_sha1": "318709108381b4ebea1900b801e1c93cf22d1800",
+          "sha256": "cc908270f988b8b3e566e9300aae2f28dc5b6aecd69028d50a5a7a453321a72c",
+          "snapshot": "benchmarks/provenance/execution_sources/4b3ca4922df808f2b27cf151ff55ed44335ea0ce/benchmarks/phase17_more_acase.py"
+        },
+        "benchmarks/phase17_more_design.py": {
+          "git_blob_sha1": "c15cbd2b23747804a62428ec837ae50d1a09ef9b",
+          "sha256": "7898b90f82ab74f6c9548cef0205157a71db380f9f0c34c2062115697368beab",
+          "snapshot": "benchmarks/provenance/execution_sources/4b3ca4922df808f2b27cf151ff55ed44335ea0ce/benchmarks/phase17_more_design.py"
+        },
+        "benchmarks/phase17_more_oracle.py": {
+          "git_blob_sha1": "34d17798214ab657f3b2d3a54581c4b14a6a2fee",
+          "sha256": "4f84ae72a533d82d1ef0eb9208fb47f29e50cb861e1e8c932cb783d96abab52d",
+          "snapshot": "benchmarks/provenance/execution_sources/4b3ca4922df808f2b27cf151ff55ed44335ea0ce/benchmarks/phase17_more_oracle.py"
+        },
+        "benchmarks/run_bank_policy_matrix.py": {
+          "git_blob_sha1": "65b398c47e08fe9f3114862b6a26955d5cec35ac",
+          "sha256": "e3a57f579351219bc2c93fb491066ad95ecb5491a271cbbb3e30560619baa56f",
+          "snapshot": "benchmarks/provenance/execution_sources/4b3ca4922df808f2b27cf151ff55ed44335ea0ce/benchmarks/run_bank_policy_matrix.py"
+        },
+        "benchmarks/run_phase17_more.py": {
+          "git_blob_sha1": "7c2d27d3d1af6be6572b569adb31a1eb05e49de4",
+          "sha256": "9a59eb0cedb94ef20d3f76083cc9900e9d5e7f21fdda48f6f677ea4f38721e34",
+          "snapshot": "benchmarks/provenance/execution_sources/4b3ca4922df808f2b27cf151ff55ed44335ea0ce/benchmarks/run_phase17_more.py"
+        },
+        "clifford_qc/__init__.py": {
+          "git_blob_sha1": "07abdbb0141e37e8b39a00022ef8d1c98169d149",
+          "sha256": "46f15805ef03399edb3d2a39364a6a4a738f3eeaf0c08b03bf9c3e38c23d8b98",
+          "snapshot": "benchmarks/provenance/execution_sources/4b3ca4922df808f2b27cf151ff55ed44335ea0ce/clifford_qc/__init__.py"
+        },
+        "clifford_qc/algorithms/__init__.py": {
+          "git_blob_sha1": "e4b8ed7a27916dd869eb1ec66005b6a04ad05e8b",
+          "sha256": "f4993ef6b52f5d4f29a1aae8bf016b50b296aba0528d908473905abd1a794406",
+          "snapshot": "benchmarks/provenance/execution_sources/4b3ca4922df808f2b27cf151ff55ed44335ea0ce/clifford_qc/algorithms/__init__.py"
+        },
+        "clifford_qc/algorithms/adapt.py": {
+          "git_blob_sha1": "3302b64547633190c6a682b6111505e62ab65715",
+          "sha256": "5486b5b470ea547a5f4e8f234f09c9842a13263d001a4b931d9855ea86eeb1e4",
+          "snapshot": "benchmarks/provenance/execution_sources/4b3ca4922df808f2b27cf151ff55ed44335ea0ce/clifford_qc/algorithms/adapt.py"
+        },
+        "clifford_qc/algorithms/adapt_selectors.py": {
+          "git_blob_sha1": "754e6c4e6c8ef785f63d6bfde414c02bb8925bcf",
+          "sha256": "a7b8ad64d1b0b31a7424d2b1172a9a9d40d9ce9d66a754e69a9fc1650823f124",
+          "snapshot": "benchmarks/provenance/execution_sources/4b3ca4922df808f2b27cf151ff55ed44335ea0ce/clifford_qc/algorithms/adapt_selectors.py"
+        },
+        "clifford_qc/algorithms/exchange.py": {
+          "git_blob_sha1": "7872311d19bf84f646c7a36e3010f87c26b18442",
+          "sha256": "cb40426f9116577668cfe1aedd78bddb840b5fb5f6babbe86cb0061ac9654825",
+          "snapshot": "benchmarks/provenance/execution_sources/4b3ca4922df808f2b27cf151ff55ed44335ea0ce/clifford_qc/algorithms/exchange.py"
+        },
+        "clifford_qc/algorithms/initialization.py": {
+          "git_blob_sha1": "c0e2ad60877884927b810261b50f7a4ecb56cb10",
+          "sha256": "f3d11845b5a01234b12cc58a4f3cd6f66d5f4bf5df3f1d4fde134a6416dd0e98",
+          "snapshot": "benchmarks/provenance/execution_sources/4b3ca4922df808f2b27cf151ff55ed44335ea0ce/clifford_qc/algorithms/initialization.py"
+        },
+        "clifford_qc/algorithms/layering.py": {
+          "git_blob_sha1": "104f1aac5f4843449b24b11668d918d603aa7d4c",
+          "sha256": "a9c9335eaef4a87ad4e2ee296826cb629dab8f8df29727e9ed8f97bb1b466c53",
+          "snapshot": "benchmarks/provenance/execution_sources/4b3ca4922df808f2b27cf151ff55ed44335ea0ce/clifford_qc/algorithms/layering.py"
+        },
+        "clifford_qc/algorithms/more_adapt.py": {
+          "git_blob_sha1": "a90444dc4ae243c7b8d2921189fe67a6d0a9d49f",
+          "sha256": "0cfa10c06175087a9592a44b7d7d026021fc364b2081909c695631cc429a47c4",
+          "snapshot": "benchmarks/provenance/execution_sources/4b3ca4922df808f2b27cf151ff55ed44335ea0ce/clifford_qc/algorithms/more_adapt.py"
+        },
+        "clifford_qc/algorithms/optimize.py": {
+          "git_blob_sha1": "c68cb8478abf6345146f7a7320a8eef4fbb1c660",
+          "sha256": "3476210c098f99492da600cdd9991e43833c281c9ecda344ae621ef394f87297",
+          "snapshot": "benchmarks/provenance/execution_sources/4b3ca4922df808f2b27cf151ff55ed44335ea0ce/clifford_qc/algorithms/optimize.py"
+        },
+        "clifford_qc/algorithms/pools.py": {
+          "git_blob_sha1": "8d4ba4c7abcfc84b22de11b6c68e74271cd94316",
+          "sha256": "c17f61300abc97d4418a5ad5e1620b0d0208752f261d4217f67fae12c76d76d8",
+          "snapshot": "benchmarks/provenance/execution_sources/4b3ca4922df808f2b27cf151ff55ed44335ea0ce/clifford_qc/algorithms/pools.py"
+        },
+        "clifford_qc/algorithms/vqe.py": {
+          "git_blob_sha1": "49056ace5df53200b2513fc06608831aa38fa7a6",
+          "sha256": "bf028e7ba681683a6b24b8e77827c11316f9a5cd033080a2959fd036bafe99fb",
+          "snapshot": "benchmarks/provenance/execution_sources/4b3ca4922df808f2b27cf151ff55ed44335ea0ce/clifford_qc/algorithms/vqe.py"
+        },
+        "clifford_qc/backends/__init__.py": {
+          "git_blob_sha1": "1529d66b0852700201d48090aa3617fad70cefdc",
+          "sha256": "c02d668cef379d5dcd686ccabb3b9185147dcba6f0fc69dc6b405556d69ca3f3",
+          "snapshot": "benchmarks/provenance/execution_sources/4b3ca4922df808f2b27cf151ff55ed44335ea0ce/clifford_qc/backends/__init__.py"
+        },
+        "clifford_qc/backends/dense_statevector.py": {
+          "git_blob_sha1": "bb8e4fd542065f903005b6a9daa25511f4690eaa",
+          "sha256": "604bdb7acdfef80da7ad58b1a4dbb92c07cbf573c4ff9b9f5a53a51fb23381bd",
+          "snapshot": "benchmarks/provenance/execution_sources/4b3ca4922df808f2b27cf151ff55ed44335ea0ce/clifford_qc/backends/dense_statevector.py"
+        },
+        "clifford_qc/backends/exact_mv.py": {
+          "git_blob_sha1": "4f5987b539b39599ed043d9e18db0c25668d0f11",
+          "sha256": "92872c69f96c9d68ee8ad1d05fe1a47192091a394e9f983d8e41adf3f11fe2a9",
+          "snapshot": "benchmarks/provenance/execution_sources/4b3ca4922df808f2b27cf151ff55ed44335ea0ce/clifford_qc/backends/exact_mv.py"
+        },
+        "clifford_qc/backends/finite_shot.py": {
+          "git_blob_sha1": "7e203172339518115db069a59c0184d5cb6edc97",
+          "sha256": "60319e6dc13edcf0eed4c2be90c320eeed64303ec33b76c24d50fd779ec41bfc",
+          "snapshot": "benchmarks/provenance/execution_sources/4b3ca4922df808f2b27cf151ff55ed44335ea0ce/clifford_qc/backends/finite_shot.py"
+        },
+        "clifford_qc/backends/protocol.py": {
+          "git_blob_sha1": "954c53312a23a3229848ec9a5e9890d7af30615f",
+          "sha256": "91831dc391971ee7f3c282cf7922407fc992a492848959e78375428177234e46",
+          "snapshot": "benchmarks/provenance/execution_sources/4b3ca4922df808f2b27cf151ff55ed44335ea0ce/clifford_qc/backends/protocol.py"
+        },
+        "clifford_qc/backends/sector_statevector.py": {
+          "git_blob_sha1": "204c17548936c1dbf1be84c424f0d4793226e632",
+          "sha256": "526abd31c73bc1a1db2f894e985983ff978220f5c34fae131a7829bea01ebbbc",
+          "snapshot": "benchmarks/provenance/execution_sources/4b3ca4922df808f2b27cf151ff55ed44335ea0ce/clifford_qc/backends/sector_statevector.py"
+        },
+        "clifford_qc/backends/stabilizer.py": {
+          "git_blob_sha1": "f02d5e026bf399a3840e6611206781bd10f31178",
+          "sha256": "76d1f862aad44683b2b1b9d144829fa3a56ea83b155f03f2886eee14d609108b",
+          "snapshot": "benchmarks/provenance/execution_sources/4b3ca4922df808f2b27cf151ff55ed44335ea0ce/clifford_qc/backends/stabilizer.py"
+        },
+        "clifford_qc/bridges/__init__.py": {
+          "git_blob_sha1": "0b5621f22f03125ed68b3b9a0b688c5c24ede80a",
+          "sha256": "0a521adb05d94aa6a7ec9eb993a2ea04602f5f617d90d5551a64b95db3c222df",
+          "snapshot": "benchmarks/provenance/execution_sources/4b3ca4922df808f2b27cf151ff55ed44335ea0ce/clifford_qc/bridges/__init__.py"
+        },
+        "clifford_qc/bridges/openfermion_bridge.py": {
+          "git_blob_sha1": "b2d6be36fb9b186409da824b67a6b7d337d27c1f",
+          "sha256": "d966c59e4ac294ef4e1a207e86a0048c83acffd418d5ea6e5cdb85911bd549c2",
+          "snapshot": "benchmarks/provenance/execution_sources/4b3ca4922df808f2b27cf151ff55ed44335ea0ce/clifford_qc/bridges/openfermion_bridge.py"
+        },
+        "clifford_qc/bridges/pennylane_bridge.py": {
+          "git_blob_sha1": "da1d2262b529f357887d9c934727147074ee0085",
+          "sha256": "d3e0e48c8d23aee63bb12d7b2ac077570faf0cd110aab4a83c5087c8f5e1cae4",
+          "snapshot": "benchmarks/provenance/execution_sources/4b3ca4922df808f2b27cf151ff55ed44335ea0ce/clifford_qc/bridges/pennylane_bridge.py"
+        },
+        "clifford_qc/bridges/pytket_bridge.py": {
+          "git_blob_sha1": "f22fb44bb8f248872b2ffd1ee530e68994eee12b",
+          "sha256": "2baa94219d675f23ed1961bb0d6c5d5710e23f96c70b293cf728f0af69a67155",
+          "snapshot": "benchmarks/provenance/execution_sources/4b3ca4922df808f2b27cf151ff55ed44335ea0ce/clifford_qc/bridges/pytket_bridge.py"
+        },
+        "clifford_qc/bridges/pyzx_bridge.py": {
+          "git_blob_sha1": "0ac50cdf7c6cd518b48ae9714fa0d64797792fdd",
+          "sha256": "443b199bc873f88e6be1b8faccbad15c6f2c6490c1a3455b648ffcd1bb407dbb",
+          "snapshot": "benchmarks/provenance/execution_sources/4b3ca4922df808f2b27cf151ff55ed44335ea0ce/clifford_qc/bridges/pyzx_bridge.py"
+        },
+        "clifford_qc/bridges/stim_bridge.py": {
+          "git_blob_sha1": "3264911eeacb3a89f1bf71851c51647828c2749d",
+          "sha256": "7888d003aaf36b3f52e0568e6a35f0007d6c99d3e31654c1bd226dbbbcecf9dc",
+          "snapshot": "benchmarks/provenance/execution_sources/4b3ca4922df808f2b27cf151ff55ed44335ea0ce/clifford_qc/bridges/stim_bridge.py"
+        },
+        "clifford_qc/capabilities.py": {
+          "git_blob_sha1": "a4a3243417587220d88beb5a7b1c202072f9b986",
+          "sha256": "fadb67c8f7a083bd9bb88f9543899f90ac4720ae051a713b8ae615544d01f1ed",
+          "snapshot": "benchmarks/provenance/execution_sources/4b3ca4922df808f2b27cf151ff55ed44335ea0ce/clifford_qc/capabilities.py"
+        },
+        "clifford_qc/channels.py": {
+          "git_blob_sha1": "f49f7a814eab4a596167657c155579c180902fe7",
+          "sha256": "853c0b463ae7aa8b116851841dde95d60abef46335d19e58589fb4793cfb395a",
+          "snapshot": "benchmarks/provenance/execution_sources/4b3ca4922df808f2b27cf151ff55ed44335ea0ce/clifford_qc/channels.py"
+        },
+        "clifford_qc/clifford.py": {
+          "git_blob_sha1": "1bb40c2250075c2dc5a9d392e8e5323301475eab",
+          "sha256": "11f137ada8c7eeb541aa39ad696e7edfb4b8b005100a6bdf96eb3d7a44552fdf",
+          "snapshot": "benchmarks/provenance/execution_sources/4b3ca4922df808f2b27cf151ff55ed44335ea0ce/clifford_qc/clifford.py"
+        },
+        "clifford_qc/dense_reference.py": {
+          "git_blob_sha1": "ab7c3c5af6d74e442b3753d62bf71aa0bdd1fafd",
+          "sha256": "d306fda5d21eab299d231479e7cf8678f4c1e2bc0144d2485ee2ba2dadce6d9b",
+          "snapshot": "benchmarks/provenance/execution_sources/4b3ca4922df808f2b27cf151ff55ed44335ea0ce/clifford_qc/dense_reference.py"
+        },
+        "clifford_qc/diagnostics.py": {
+          "git_blob_sha1": "66f316110c2a2791bd19d98b9af6d0c191f006f4",
+          "sha256": "b574a4bf6e82eec0c484f2580daf9d293bd429f6553c836e55e649301ac4c3b6",
+          "snapshot": "benchmarks/provenance/execution_sources/4b3ca4922df808f2b27cf151ff55ed44335ea0ce/clifford_qc/diagnostics.py"
+        },
+        "clifford_qc/evidence.py": {
+          "git_blob_sha1": "34eb6a2670d3394b2a824279c2457d24a48a6456",
+          "sha256": "36221c34e1d78897c4a09dfb83e8f5f97f326014a28fda19f3ada242a13babe6",
+          "snapshot": "benchmarks/provenance/execution_sources/4b3ca4922df808f2b27cf151ff55ed44335ea0ce/clifford_qc/evidence.py"
+        },
+        "clifford_qc/fermion.py": {
+          "git_blob_sha1": "0fe4c9e6e13f22a74d28c8b605ce5682db96cec8",
+          "sha256": "ae9dbb818727d5620d0619733da7698df999761827fede563612d6e8c65995e2",
+          "snapshot": "benchmarks/provenance/execution_sources/4b3ca4922df808f2b27cf151ff55ed44335ea0ce/clifford_qc/fermion.py"
+        },
+        "clifford_qc/fermion_mapping.py": {
+          "git_blob_sha1": "510ce0b6d48dcf291f6e1453f065215bdceb4e2e",
+          "sha256": "b7fe5b9291c5a22789a62189759ff34007dd9c1d61b2e2a61f446b21570a9491",
+          "snapshot": "benchmarks/provenance/execution_sources/4b3ca4922df808f2b27cf151ff55ed44335ea0ce/clifford_qc/fermion_mapping.py"
+        },
+        "clifford_qc/gates.py": {
+          "git_blob_sha1": "7108c587a528530d9ae6f66e848a269f83cf1bf6",
+          "sha256": "f63e1dce8dbe33afeacf416a8c26d4070bf265b9949beddfffa5c81c96e4ff6b",
+          "snapshot": "benchmarks/provenance/execution_sources/4b3ca4922df808f2b27cf151ff55ed44335ea0ce/clifford_qc/gates.py"
+        },
+        "clifford_qc/ir.py": {
+          "git_blob_sha1": "f5face867dd25364e64c91f66fc7781430f22f72",
+          "sha256": "0b17bd6e2bbe54efb946549884c9e67ff67eb641f6828e7a59e92bb57d01c9ef",
+          "snapshot": "benchmarks/provenance/execution_sources/4b3ca4922df808f2b27cf151ff55ed44335ea0ce/clifford_qc/ir.py"
+        },
+        "clifford_qc/matrix.py": {
+          "git_blob_sha1": "694c498648f6aa0c80f35bd591a3b3da3c5bce16",
+          "sha256": "c38e7d95b9e241e7944b3e99160a0d3a00addb94a50a7cc6fc185ba0b5de4240",
+          "snapshot": "benchmarks/provenance/execution_sources/4b3ca4922df808f2b27cf151ff55ed44335ea0ce/clifford_qc/matrix.py"
+        },
+        "clifford_qc/measurement/__init__.py": {
+          "git_blob_sha1": "8e694d38b5c9feb9c966c35229aab43a0f71c40b",
+          "sha256": "eb737c8acc2465dc752fa8226e169aacab242c65dfbf9fdc7e16d64eb2541979",
+          "snapshot": "benchmarks/provenance/execution_sources/4b3ca4922df808f2b27cf151ff55ed44335ea0ce/clifford_qc/measurement/__init__.py"
+        },
+        "clifford_qc/measurement/allocation.py": {
+          "git_blob_sha1": "94c8b3cdbe432fb55a11f7c15819734d014a25c3",
+          "sha256": "312189d4ba34310c156b627f4911cb994123783ae19173c4f0b4ab8017fdbd8a",
+          "snapshot": "benchmarks/provenance/execution_sources/4b3ca4922df808f2b27cf151ff55ed44335ea0ce/clifford_qc/measurement/allocation.py"
+        },
+        "clifford_qc/measurement/bank.py": {
+          "git_blob_sha1": "8edb565fdce3cb7212c3bc3b906be5d59ccb6f53",
+          "sha256": "f3d65999552b469ee3e81d8c26f28d19c6d4e011f315fa2ddc3c5be10f8317cc",
+          "snapshot": "benchmarks/provenance/execution_sources/4b3ca4922df808f2b27cf151ff55ed44335ea0ce/clifford_qc/measurement/bank.py"
+        },
+        "clifford_qc/measurement/block_commuting.py": {
+          "git_blob_sha1": "2361470e239bb4c37c2f2236969c500f99d89c64",
+          "sha256": "1c72cdc00c70b48df049c2ffc6bfaeca4192485d99a65d6db43bc5643ca0a5ac",
+          "snapshot": "benchmarks/provenance/execution_sources/4b3ca4922df808f2b27cf151ff55ed44335ea0ce/clifford_qc/measurement/block_commuting.py"
+        },
+        "clifford_qc/measurement/block_synthesis.py": {
+          "git_blob_sha1": "30107872a9fe16166473d807114bea586e6adbfb",
+          "sha256": "b53a6b38188c1f55434915c1c9b39d003a2dc0fa831932ae859691e882486667",
+          "snapshot": "benchmarks/provenance/execution_sources/4b3ca4922df808f2b27cf151ff55ed44335ea0ce/clifford_qc/measurement/block_synthesis.py"
+        },
+        "clifford_qc/measurement/cache.py": {
+          "git_blob_sha1": "859308ca0b664e689b0075060c3ef40a5c28d1d4",
+          "sha256": "e7040e4407d5134ee05f1286eebe128f58b6dfae9bb5c257cc7c4d1acd193acc",
+          "snapshot": "benchmarks/provenance/execution_sources/4b3ca4922df808f2b27cf151ff55ed44335ea0ce/clifford_qc/measurement/cache.py"
+        },
+        "clifford_qc/measurement/cliques.py": {
+          "git_blob_sha1": "12b6da9d993385908acf036ab4fb99320485a8c4",
+          "sha256": "fdb2d6989601e56a5fbcf7c5c11691e9bebf47fa614927501d5362eb5794c9ef",
+          "snapshot": "benchmarks/provenance/execution_sources/4b3ca4922df808f2b27cf151ff55ed44335ea0ce/clifford_qc/measurement/cliques.py"
+        },
+        "clifford_qc/measurement/compiled.py": {
+          "git_blob_sha1": "2c74b1de52c4b0031cae964842333c02e654488c",
+          "sha256": "b2341670babdfb4784e4a5faca91e89907f14d64ba8b62ce720ac6050840cfa3",
+          "snapshot": "benchmarks/provenance/execution_sources/4b3ca4922df808f2b27cf151ff55ed44335ea0ce/clifford_qc/measurement/compiled.py"
+        },
+        "clifford_qc/measurement/confidence.py": {
+          "git_blob_sha1": "7533647d42742b3b7835ec7a68cacc90344c9cdc",
+          "sha256": "6c20694a2b1a5c084e388c8f28b051412e941dd2e669860eeafcd71e3b771d1c",
+          "snapshot": "benchmarks/provenance/execution_sources/4b3ca4922df808f2b27cf151ff55ed44335ea0ce/clifford_qc/measurement/confidence.py"
+        },
+        "clifford_qc/measurement/cost.py": {
+          "git_blob_sha1": "6c8451b648d07bee4fa65b3123e4b6e8aba2854b",
+          "sha256": "2bafae7fee1bd761cf6ee920eee7b79c124dfbe6b1acc91847b0bd13459df052",
+          "snapshot": "benchmarks/provenance/execution_sources/4b3ca4922df808f2b27cf151ff55ed44335ea0ce/clifford_qc/measurement/cost.py"
+        },
+        "clifford_qc/measurement/functionals.py": {
+          "git_blob_sha1": "b2811055379f24d4b39d1e7a21e9615782f42dde",
+          "sha256": "a1a06d2afe6cb96ee6081fc48214cd9252e2eaed58cde053a7cb5dd1c6faac59",
+          "snapshot": "benchmarks/provenance/execution_sources/4b3ca4922df808f2b27cf151ff55ed44335ea0ce/clifford_qc/measurement/functionals.py"
+        },
+        "clifford_qc/measurement/grouping.py": {
+          "git_blob_sha1": "ff5129ec4e7b9edebe62af8a8e53f75bb8a9cbb5",
+          "sha256": "0053af3a451ae201520ee5c6ec4a45bf211d910087d66bd624c9d911d162c356",
+          "snapshot": "benchmarks/provenance/execution_sources/4b3ca4922df808f2b27cf151ff55ed44335ea0ce/clifford_qc/measurement/grouping.py"
+        },
+        "clifford_qc/measurement/planning.py": {
+          "git_blob_sha1": "3b5d329fdc94a41e4e23b34143921a573b953538",
+          "sha256": "09605500d5767b15c58cbbfce21e7e6babd17802d08cafb5877ac6be9c504488",
+          "snapshot": "benchmarks/provenance/execution_sources/4b3ca4922df808f2b27cf151ff55ed44335ea0ce/clifford_qc/measurement/planning.py"
+        },
+        "clifford_qc/measurement/regrouping.py": {
+          "git_blob_sha1": "c34d547f5c8bd5944ea57d6828abd711f2de6b40",
+          "sha256": "0192622cce8e00e20f94f8e72c151cb158a3cbfdbfaef8ca4ad3fa4e160f7fcf",
+          "snapshot": "benchmarks/provenance/execution_sources/4b3ca4922df808f2b27cf151ff55ed44335ea0ce/clifford_qc/measurement/regrouping.py"
+        },
+        "clifford_qc/measurement/session.py": {
+          "git_blob_sha1": "999ec0bfc0e726631615139d9895117d07cbd806",
+          "sha256": "b46fae2cea2608a3fbf8f6557d969779146ccead61bbeaaec62e8892e9b2d516",
+          "snapshot": "benchmarks/provenance/execution_sources/4b3ca4922df808f2b27cf151ff55ed44335ea0ce/clifford_qc/measurement/session.py"
+        },
+        "clifford_qc/models/__init__.py": {
+          "git_blob_sha1": "d552fc8cf566c214d7c93e4facbd56fd905e5da9",
+          "sha256": "f015469267834ef2560969868c55e68034c784d8f6dc620ffef872d3708aa8e4",
+          "snapshot": "benchmarks/provenance/execution_sources/4b3ca4922df808f2b27cf151ff55ed44335ea0ce/clifford_qc/models/__init__.py"
+        },
+        "clifford_qc/models/chemistry.py": {
+          "git_blob_sha1": "e8fb09082311c5ae82fb0835119b069e1ef7cfe7",
+          "sha256": "942254abf25235c2b2e0ff2fa1f3c8d9809c8adbba0b78dea560545e4b079952",
+          "snapshot": "benchmarks/provenance/execution_sources/4b3ca4922df808f2b27cf151ff55ed44335ea0ce/clifford_qc/models/chemistry.py"
+        },
+        "clifford_qc/models/effective.py": {
+          "git_blob_sha1": "4fb000adddc77202d9f1f56e70e53c3f119d9a50",
+          "sha256": "2bf546db033afb394bb1dc14cc3180f0d7876bc5995322a4d28c75e3f6f22ba3",
+          "snapshot": "benchmarks/provenance/execution_sources/4b3ca4922df808f2b27cf151ff55ed44335ea0ce/clifford_qc/models/effective.py"
+        },
+        "clifford_qc/models/fcidump.py": {
+          "git_blob_sha1": "630768d7e092004d589279151d16adc0779108f2",
+          "sha256": "52ea952551ad852d53ac0c07d40dc0af6252f990db99e478ea58b2b2bc61a496",
+          "snapshot": "benchmarks/provenance/execution_sources/4b3ca4922df808f2b27cf151ff55ed44335ea0ce/clifford_qc/models/fcidump.py"
+        },
+        "clifford_qc/models/lattice.py": {
+          "git_blob_sha1": "8d8de799d230ba2e01a3a01e2286df922e29f28c",
+          "sha256": "a0288675a55fbea59e1f369fd10ac4ec77e586ae1879dafcf4d43abb79960c90",
+          "snapshot": "benchmarks/provenance/execution_sources/4b3ca4922df808f2b27cf151ff55ed44335ea0ce/clifford_qc/models/lattice.py"
+        },
+        "clifford_qc/models/metadata.py": {
+          "git_blob_sha1": "dc04589f1de1af5b262fb96f80b7bd20526347ec",
+          "sha256": "95c0124fb9b19dd7b771d6b096f19638dc999c0df6063d7124eaa0a88379391b",
+          "snapshot": "benchmarks/provenance/execution_sources/4b3ca4922df808f2b27cf151ff55ed44335ea0ce/clifford_qc/models/metadata.py"
+        },
+        "clifford_qc/models/observables.py": {
+          "git_blob_sha1": "2ccb5285d7d3252fe9e29915f3930f97675c2dbe",
+          "sha256": "ea5e70b67891e392e18a9b8bf66dd70ac472cfa016c01bc4cccc28670b18a039",
+          "snapshot": "benchmarks/provenance/execution_sources/4b3ca4922df808f2b27cf151ff55ed44335ea0ce/clifford_qc/models/observables.py"
+        },
+        "clifford_qc/models/orbital.py": {
+          "git_blob_sha1": "226df201c1c7f802387e2643d30c9b03f17d6faa",
+          "sha256": "15258c69d11841951d2e4873f35d68f7dac77a506eb1fd4d3a3cdd1a6277a815",
+          "snapshot": "benchmarks/provenance/execution_sources/4b3ca4922df808f2b27cf151ff55ed44335ea0ce/clifford_qc/models/orbital.py"
+        },
+        "clifford_qc/models/spin.py": {
+          "git_blob_sha1": "cf27627c836838af6df62252b5f3eb326d3c27c3",
+          "sha256": "5bc9070b32ec28a599a00e182d5cae7fe38b47b567c6ab4512fe569ed819302c",
+          "snapshot": "benchmarks/provenance/execution_sources/4b3ca4922df808f2b27cf151ff55ed44335ea0ce/clifford_qc/models/spin.py"
+        },
+        "clifford_qc/multivector.py": {
+          "git_blob_sha1": "05f3767aad6ca3bdc2ea2613988a2a16a075ed8f",
+          "sha256": "49530fb71721480a6889f6a3f6235f54b50226044e93e0feeabb437e8971f65d",
+          "snapshot": "benchmarks/provenance/execution_sources/4b3ca4922df808f2b27cf151ff55ed44335ea0ce/clifford_qc/multivector.py"
+        },
+        "clifford_qc/pauli.py": {
+          "git_blob_sha1": "3124b1d08841c36d98088e41bf8de6b72e549313",
+          "sha256": "aa461f14bb38344f0a324cbe3caf7c643faf9c190d9627bbb783a61edf5f6d20",
+          "snapshot": "benchmarks/provenance/execution_sources/4b3ca4922df808f2b27cf151ff55ed44335ea0ce/clifford_qc/pauli.py"
+        },
+        "clifford_qc/pauli_action.py": {
+          "git_blob_sha1": "77df4974de4e7b1f443e5ad5510f1121ab424520",
+          "sha256": "93125bf7e5db2fdfd4e72e481f8333222f7635aa52dc6018ee606f0200486263",
+          "snapshot": "benchmarks/provenance/execution_sources/4b3ca4922df808f2b27cf151ff55ed44335ea0ce/clifford_qc/pauli_action.py"
+        },
+        "clifford_qc/pauli_kernel.py": {
+          "git_blob_sha1": "eae6c74dea42108d9cb1414211b2a06438227e38",
+          "sha256": "c7512dc6ad68e7ccdf676b2fa1fe309c16a21ec5c820e55e7ac45bc8689c937d",
+          "snapshot": "benchmarks/provenance/execution_sources/4b3ca4922df808f2b27cf151ff55ed44335ea0ce/clifford_qc/pauli_kernel.py"
+        },
+        "clifford_qc/pauli_structure.py": {
+          "git_blob_sha1": "7808ca3c6b0d85b4aaad22cf7df89e0e0ad246f9",
+          "sha256": "c624f1c224e83f031e26ae4d7416efe176ac2da8f9288eddb3f73047a8b5b80e",
+          "snapshot": "benchmarks/provenance/execution_sources/4b3ca4922df808f2b27cf151ff55ed44335ea0ce/clifford_qc/pauli_structure.py"
+        },
+        "clifford_qc/pipeline.py": {
+          "git_blob_sha1": "b00e476ed108fd1ebfa1a0712a21a590ed324250",
+          "sha256": "6f419040f1e4563ba594535560a72cec85ed0ee069d08bf30befe7b3e08b247d",
+          "snapshot": "benchmarks/provenance/execution_sources/4b3ca4922df808f2b27cf151ff55ed44335ea0ce/clifford_qc/pipeline.py"
+        },
+        "clifford_qc/pool_operator.py": {
+          "git_blob_sha1": "ca42c909f6da5b67c1d18cad1345c7020422d9bd",
+          "sha256": "7769c9180be6374f9ae924354bc5ae6a0ae463393c059399cfe72704bb075fd7",
+          "snapshot": "benchmarks/provenance/execution_sources/4b3ca4922df808f2b27cf151ff55ed44335ea0ce/clifford_qc/pool_operator.py"
+        },
+        "clifford_qc/prepared.py": {
+          "git_blob_sha1": "be2c73ed610843d5e6edee873a768be6488c26e1",
+          "sha256": "eac5d7709a77f056d89cfee7a96e52cb1904ee4458f594ebaf1eec1155a6b728",
+          "snapshot": "benchmarks/provenance/execution_sources/4b3ca4922df808f2b27cf151ff55ed44335ea0ce/clifford_qc/prepared.py"
+        },
+        "clifford_qc/qasm3.py": {
+          "git_blob_sha1": "3d43911b1b3077a183df248695aef763119f6749",
+          "sha256": "7a57835f17bd0c9f14b71da46b5e606a7f90120998ddda84bf578c5431f81005",
+          "snapshot": "benchmarks/provenance/execution_sources/4b3ca4922df808f2b27cf151ff55ed44335ea0ce/clifford_qc/qasm3.py"
+        },
+        "clifford_qc/record_environment.py": {
+          "git_blob_sha1": "b7b2911ae1207b8fff29676cd5ac093aed88d264",
+          "sha256": "2c9bccf25073e943e9216827c9716385fe66a1f4c71c1fc1ffcc44855203dfe9",
+          "snapshot": "benchmarks/provenance/execution_sources/4b3ca4922df808f2b27cf151ff55ed44335ea0ce/clifford_qc/record_environment.py"
+        },
+        "clifford_qc/reproducibility.py": {
+          "git_blob_sha1": "a4ba4264f25fdb00d4cef3b0ca669beeaf6b1de2",
+          "sha256": "94de14108a54b9beb5f9fcb24176e4f33a63e638307cbeaaf939fa5a1900855b",
+          "snapshot": "benchmarks/provenance/execution_sources/4b3ca4922df808f2b27cf151ff55ed44335ea0ce/clifford_qc/reproducibility.py"
+        },
+        "clifford_qc/selection.py": {
+          "git_blob_sha1": "b4a47d9a83dda61e4de77b367aaf510c5b6ac6df",
+          "sha256": "5748e512ed003751df7e0575d0f81bf0a175f54b7686e74d5028b6de7311941c",
+          "snapshot": "benchmarks/provenance/execution_sources/4b3ca4922df808f2b27cf151ff55ed44335ea0ce/clifford_qc/selection.py"
+        },
+        "clifford_qc/sparse.py": {
+          "git_blob_sha1": "31834e266b536fa7212eae53f7af667631fc2c65",
+          "sha256": "62fec53035a69f909263d21c66dad9b4cdfc210c411500cb4635447a1c40f34f",
+          "snapshot": "benchmarks/provenance/execution_sources/4b3ca4922df808f2b27cf151ff55ed44335ea0ce/clifford_qc/sparse.py"
+        },
+        "clifford_qc/states.py": {
+          "git_blob_sha1": "5316cd07ba040f9c6c19bf9dbe8e5bac3dee841b",
+          "sha256": "3a5bf55ee36b8464399e92d92c502d5093c1b2e90d4eab2caf92ef9caa62e424",
+          "snapshot": "benchmarks/provenance/execution_sources/4b3ca4922df808f2b27cf151ff55ed44335ea0ce/clifford_qc/states.py"
+        },
+        "clifford_qc/subspace/__init__.py": {
+          "git_blob_sha1": "0e2e2aa1fd03a7327a96db46f9436f92d8c6cea4",
+          "sha256": "01822dfc4bc0320973ad10dcb3c41b081bbc08148b82758337e17d7e5bf367a2",
+          "snapshot": "benchmarks/provenance/execution_sources/4b3ca4922df808f2b27cf151ff55ed44335ea0ce/clifford_qc/subspace/__init__.py"
+        },
+        "clifford_qc/subspace/adapt_gcim.py": {
+          "git_blob_sha1": "21b48de46d0399389b3eed9f4b755315d8e1b9c0",
+          "sha256": "bd314c9c69330660bbaa0da33f456dfcb676979f7fbd64082b6f7ef9413dccb9",
+          "snapshot": "benchmarks/provenance/execution_sources/4b3ca4922df808f2b27cf151ff55ed44335ea0ce/clifford_qc/subspace/adapt_gcim.py"
+        },
+        "clifford_qc/subspace/adaptive.py": {
+          "git_blob_sha1": "b02a2ac5e2f19a186d0ef47bbc007ecc4326ac04",
+          "sha256": "10c073a0e89655d928fd8116bee31d6730c343793447e2cebfbf36909bac7f6f",
+          "snapshot": "benchmarks/provenance/execution_sources/4b3ca4922df808f2b27cf151ff55ed44335ea0ce/clifford_qc/subspace/adaptive.py"
+        },
+        "clifford_qc/subspace/certification.py": {
+          "git_blob_sha1": "85fda30b17da5150a00282cb12e610f776726c92",
+          "sha256": "629e63dd07aec7b7efe02ba7954c95d2c472b7e0e9c16fce817461cda0d56712",
+          "snapshot": "benchmarks/provenance/execution_sources/4b3ca4922df808f2b27cf151ff55ed44335ea0ce/clifford_qc/subspace/certification.py"
+        },
+        "clifford_qc/subspace/configuration.py": {
+          "git_blob_sha1": "7ec6040337c6b2b73d10d554abf5edc538d3638d",
+          "sha256": "192553e06bf1e5c35929b10e8b13fcb410f6597a8da30a35de355923f3261cff",
+          "snapshot": "benchmarks/provenance/execution_sources/4b3ca4922df808f2b27cf151ff55ed44335ea0ce/clifford_qc/subspace/configuration.py"
+        },
+        "clifford_qc/subspace/contextual.py": {
+          "git_blob_sha1": "3eb438b0bbbaeb7f63d77fcea52aaf6f1da3a319",
+          "sha256": "1066c193a65a7f5310321cbeb7b2541852ac91a6a03fd2c3e67ce2d5c03f4945",
+          "snapshot": "benchmarks/provenance/execution_sources/4b3ca4922df808f2b27cf151ff55ed44335ea0ce/clifford_qc/subspace/contextual.py"
+        },
+        "clifford_qc/subspace/contracts.py": {
+          "git_blob_sha1": "21ae49b4eb67cbf24f05b64b91085f29315451ad",
+          "sha256": "6d38c716a7874f1e0703d21c3fbeb130332bbead57560fde162da07119d2bfc5",
+          "snapshot": "benchmarks/provenance/execution_sources/4b3ca4922df808f2b27cf151ff55ed44335ea0ce/clifford_qc/subspace/contracts.py"
+        },
+        "clifford_qc/subspace/convergence.py": {
+          "git_blob_sha1": "750d0ab31f3824e8c8c505e8fd2a0a4d1752a18d",
+          "sha256": "900e2c40d7415dca04d1fab223903653ade3fd66457101523a347d2b74ed3c51",
+          "snapshot": "benchmarks/provenance/execution_sources/4b3ca4922df808f2b27cf151ff55ed44335ea0ce/clifford_qc/subspace/convergence.py"
+        },
+        "clifford_qc/subspace/elements.py": {
+          "git_blob_sha1": "7010423a8cec823c29d0cb1494b21d3b3ecb277b",
+          "sha256": "63dd7c0e55b8f259721f2596831b7a7047e7187a54e16f8a8e2bd94cc7076aaa",
+          "snapshot": "benchmarks/provenance/execution_sources/4b3ca4922df808f2b27cf151ff55ed44335ea0ce/clifford_qc/subspace/elements.py"
+        },
+        "clifford_qc/subspace/fermionic_generators.py": {
+          "git_blob_sha1": "549a79ff024f0dcca3bb518d38a2228db10af9a5",
+          "sha256": "430e340c17bfb54d3a5343f1c02a725f513c0ca4e9d30aafbf887a09fdcad900",
+          "snapshot": "benchmarks/provenance/execution_sources/4b3ca4922df808f2b27cf151ff55ed44335ea0ce/clifford_qc/subspace/fermionic_generators.py"
+        },
+        "clifford_qc/subspace/fragment.py": {
+          "git_blob_sha1": "bd71638feee5eb02c8cd360cdb0ae6df6d095c72",
+          "sha256": "96e3f095400c151f466265bc0aaf7ffa4eaad0279dcb5ddcd4904db868d0298d",
+          "snapshot": "benchmarks/provenance/execution_sources/4b3ca4922df808f2b27cf151ff55ed44335ea0ce/clifford_qc/subspace/fragment.py"
+        },
+        "clifford_qc/subspace/ga_restriction.py": {
+          "git_blob_sha1": "35685b0ad7a9781c9482937a22ac7c0611625b8c",
+          "sha256": "ced9c02c07ef39e6e2e5bf9b7c6090d875bceed60546cba2230a9ddbd4d6d772",
+          "snapshot": "benchmarks/provenance/execution_sources/4b3ca4922df808f2b27cf151ff55ed44335ea0ce/clifford_qc/subspace/ga_restriction.py"
+        },
+        "clifford_qc/subspace/generator_core.py": {
+          "git_blob_sha1": "ed4059510c0b9e82b93fa215997e611614fb6a2c",
+          "sha256": "6b145c4b8516bb523d51279d4d26c63fd8fa0483f0600e2c14122e4fcf8c6483",
+          "snapshot": "benchmarks/provenance/execution_sources/4b3ca4922df808f2b27cf151ff55ed44335ea0ce/clifford_qc/subspace/generator_core.py"
+        },
+        "clifford_qc/subspace/generators.py": {
+          "git_blob_sha1": "f9487fb18e77768ff2f3b77ecb4a3ca0761d02cf",
+          "sha256": "8772fbb35ca93bb99d2d8fb7d5a0eb7be7bdb2ac0987ad85506b0af9514a3a58",
+          "snapshot": "benchmarks/provenance/execution_sources/4b3ca4922df808f2b27cf151ff55ed44335ea0ce/clifford_qc/subspace/generators.py"
+        },
+        "clifford_qc/subspace/hybrid.py": {
+          "git_blob_sha1": "920c1b14f348f0d3e35312a4d792e76998750f94",
+          "sha256": "866a87a17e38f00346312cf93b937fffc888b64c9b81f9e6703cdf6c76ee7b70",
+          "snapshot": "benchmarks/provenance/execution_sources/4b3ca4922df808f2b27cf151ff55ed44335ea0ce/clifford_qc/subspace/hybrid.py"
+        },
+        "clifford_qc/subspace/linalg.py": {
+          "git_blob_sha1": "b0ad465b41c6c5f98ce6a552dbafdcffdf199e6e",
+          "sha256": "c64bb5dca07d3f3fba23b2f257132075914df0e374ec3f91ec5a6f8b5ccbc4b3",
+          "snapshot": "benchmarks/provenance/execution_sources/4b3ca4922df808f2b27cf151ff55ed44335ea0ce/clifford_qc/subspace/linalg.py"
+        },
+        "clifford_qc/subspace/mapping_invariants.py": {
+          "git_blob_sha1": "4a74dac774c7fe82fcfb017fefbe899e0a60430b",
+          "sha256": "0bc982f71f76bd164a2d88fb787bcbb7111417084a49d5f8700fd411371bfb6f",
+          "snapshot": "benchmarks/provenance/execution_sources/4b3ca4922df808f2b27cf151ff55ed44335ea0ce/clifford_qc/subspace/mapping_invariants.py"
+        },
+        "clifford_qc/subspace/measured.py": {
+          "git_blob_sha1": "ef9072a792807bbf9a2a172d1659d08d2c187000",
+          "sha256": "9cf73437ecdaa5bcdf7fee1ec1a186f17946ebe5cc2e69a961e9934255923b77",
+          "snapshot": "benchmarks/provenance/execution_sources/4b3ca4922df808f2b27cf151ff55ed44335ea0ce/clifford_qc/subspace/measured.py"
+        },
+        "clifford_qc/subspace/measured_response.py": {
+          "git_blob_sha1": "4e363741aa50ad893cb498c57b2a7422c41ae13e",
+          "sha256": "fa0a9676fae98419a159e14081ce866c19dd4bc0b6fa776ebe8c7bd5281e1600",
+          "snapshot": "benchmarks/provenance/execution_sources/4b3ca4922df808f2b27cf151ff55ed44335ea0ce/clifford_qc/subspace/measured_response.py"
+        },
+        "clifford_qc/subspace/multiresolution.py": {
+          "git_blob_sha1": "31a12b4ddffed14746aa32922ce7db2166d8d59b",
+          "sha256": "8e9ebad64e3e10a0d866d036497834d0b95d9f927f2b491cf5efaf472099730d",
+          "snapshot": "benchmarks/provenance/execution_sources/4b3ca4922df808f2b27cf151ff55ed44335ea0ce/clifford_qc/subspace/multiresolution.py"
+        },
+        "clifford_qc/subspace/packed.py": {
+          "git_blob_sha1": "797286b6cc5ba56d162414cf5c1a4e5ff214b8b2",
+          "sha256": "307d9bf99b93910e7f03bf2b3cb254fbffd891fe936f3f571a8282af44ef2d78",
+          "snapshot": "benchmarks/provenance/execution_sources/4b3ca4922df808f2b27cf151ff55ed44335ea0ce/clifford_qc/subspace/packed.py"
+        },
+        "clifford_qc/subspace/projection.py": {
+          "git_blob_sha1": "de7f24b1b5715469470cc8c09473fb1b3deed473",
+          "sha256": "1137aaa945d3b2919d1820501d24fa5406d950241f7d8e3307ede93e2b8b1254",
+          "snapshot": "benchmarks/provenance/execution_sources/4b3ca4922df808f2b27cf151ff55ed44335ea0ce/clifford_qc/subspace/projection.py"
+        },
+        "clifford_qc/subspace/qsci.py": {
+          "git_blob_sha1": "cdd3346f79485e22f7fe5a2e49e5c7d27dcdadbe",
+          "sha256": "e375a657e8c701e909cb2bc1b76df2ae919252ab87c1fae8b27f0b84cbcb8539",
+          "snapshot": "benchmarks/provenance/execution_sources/4b3ca4922df808f2b27cf151ff55ed44335ea0ce/clifford_qc/subspace/qsci.py"
+        },
+        "clifford_qc/subspace/reference.py": {
+          "git_blob_sha1": "3cf72df8ae5c75166e539acd7411a1aac2e7fcf8",
+          "sha256": "d4d8e618d849d4825e7a2d946111fe3b00247353f396cf0a1f2aab7d38330ad4",
+          "snapshot": "benchmarks/provenance/execution_sources/4b3ca4922df808f2b27cf151ff55ed44335ea0ce/clifford_qc/subspace/reference.py"
+        },
+        "clifford_qc/subspace/response.py": {
+          "git_blob_sha1": "5b0398a6168fdd4e4efa6c6725c4919ccf166844",
+          "sha256": "7b62641519e2f81cbbbeb61a685ef1b0635d658e1361f11bdf688e333cf4e823",
+          "snapshot": "benchmarks/provenance/execution_sources/4b3ca4922df808f2b27cf151ff55ed44335ea0ce/clifford_qc/subspace/response.py"
+        },
+        "clifford_qc/subspace/restriction.py": {
+          "git_blob_sha1": "37d669b73dd0e47c9b9215810d9d2f938c68136d",
+          "sha256": "11e97e38ad01ca0bbaaa38ef6086067e38a746453044cc876371ea14405c9d9b",
+          "snapshot": "benchmarks/provenance/execution_sources/4b3ca4922df808f2b27cf151ff55ed44335ea0ce/clifford_qc/subspace/restriction.py"
+        },
+        "clifford_qc/subspace/second_moment.py": {
+          "git_blob_sha1": "a75b4f4e3117e73ed1fc30db943173cc7c2881b1",
+          "sha256": "2c6dd24badc829b09d6b28b94967f37300a7a254456b8f649cfb0186b81e4492",
+          "snapshot": "benchmarks/provenance/execution_sources/4b3ca4922df808f2b27cf151ff55ed44335ea0ce/clifford_qc/subspace/second_moment.py"
+        },
+        "clifford_qc/subspace/selected_ci.py": {
+          "git_blob_sha1": "2c7d5f6865e69974251c7ae0ba8f2d54c4625efa",
+          "sha256": "fdc2d353ad0cd5f94db9b4e211099147a5edf6cab1ac561b7ac231261f071e86",
+          "snapshot": "benchmarks/provenance/execution_sources/4b3ca4922df808f2b27cf151ff55ed44335ea0ce/clifford_qc/subspace/selected_ci.py"
+        },
+        "clifford_qc/subspace/solver.py": {
+          "git_blob_sha1": "048f5057a7a199b4138ef111a6acc2169f382e45",
+          "sha256": "f2183dfa010f360582c6a3c26368c43362a8baff771ecde4371574c2f5efb073",
+          "snapshot": "benchmarks/provenance/execution_sources/4b3ca4922df808f2b27cf151ff55ed44335ea0ce/clifford_qc/subspace/solver.py"
+        },
+        "clifford_qc/subspace/streaming.py": {
+          "git_blob_sha1": "f982d8d17122b65572147ee024b2baa43c5f815e",
+          "sha256": "193cee59791443e51289ca075ce06a53ef5092911295f3859edc1dc581ec77fc",
+          "snapshot": "benchmarks/provenance/execution_sources/4b3ca4922df808f2b27cf151ff55ed44335ea0ce/clifford_qc/subspace/streaming.py"
+        },
+        "clifford_qc/subspace/symmetry.py": {
+          "git_blob_sha1": "630e6c2b38be4308c40eb3911881ac21c49c2acb",
+          "sha256": "64589f8a8c220923b9e088bdcd8d3018ce89e2875ea4f593ac872811cd7f9594",
+          "snapshot": "benchmarks/provenance/execution_sources/4b3ca4922df808f2b27cf151ff55ed44335ea0ce/clifford_qc/subspace/symmetry.py"
+        },
+        "clifford_qc/subspace/time_evolution.py": {
+          "git_blob_sha1": "0f25a142293b9962d0c492df11bb31d103941455",
+          "sha256": "84947eb9a167060bace07c7f46ae3b0601c007fa0c6aa2d94e99677b3972777b",
+          "snapshot": "benchmarks/provenance/execution_sources/4b3ca4922df808f2b27cf151ff55ed44335ea0ce/clifford_qc/subspace/time_evolution.py"
+        },
+        "clifford_qc/subspace/uncertainty.py": {
+          "git_blob_sha1": "79eeec90e9a84a1bf7eac701c64c1b4b848cb1e6",
+          "sha256": "92c4e53db3ed5bed42ca88147687c48795804a22f952881756fc214b08dead78",
+          "snapshot": "benchmarks/provenance/execution_sources/4b3ca4922df808f2b27cf151ff55ed44335ea0ce/clifford_qc/subspace/uncertainty.py"
+        },
+        "clifford_qc/verify.py": {
+          "git_blob_sha1": "e07e769ef0b531f1bb321caef57783989c119d06",
+          "sha256": "466c5b5b649dcc6e7c5b897193f9f935744ec9f467cd3ac8b9c197acee31ecbd",
+          "snapshot": "benchmarks/provenance/execution_sources/4b3ca4922df808f2b27cf151ff55ed44335ea0ce/clifford_qc/verify.py"
+        },
+        "clifford_qc/workflows.py": {
+          "git_blob_sha1": "9b86ee3840d22f61425b063407ceaff731a5f467",
+          "sha256": "a91b53ffd9cdd213f8c1434acca207b8a17551b314b16cd4c2cd0ae8933a37dd",
+          "snapshot": "benchmarks/provenance/execution_sources/4b3ca4922df808f2b27cf151ff55ed44335ea0ce/clifford_qc/workflows.py"
+        }
+      }
+    },
     "benchmarks/reference_results/phase19_energy_comparison.json": {
       "config": {
         "git_blob_sha1": "9a5a8ee5f5877def96cd01ed0d5862e5d4e4f029",
@@ -166,6 +792,42 @@
           "git_blob_sha1": "67bf14e8b533185b4d86e2ddff829d1554ba3aa6",
           "sha256": "de9c1938c3dbcde0cc1d522e135950914314fa863d20add5440c27f8452f90a8",
           "snapshot": "benchmarks/provenance/execution_sources/acf6bc0e86e3c2c03faf56e8b9ff0e9253fb01f6/benchmarks/run_phase19_energy_comparison.py"
+        }
+      }
+    },
+    "benchmarks/reference_results/sparse_ga_kernel.json": {
+      "config": {
+        "git_blob_sha1": "8701c38c8256605c6f26ae6b3c5fceecbace5f28",
+        "path": "benchmarks/run_sparse_ga_kernel.py",
+        "sha256": "e118f33e93625cbc9b82d2354af0c27bd1d9b6546b66f1a837c2d810788e9980"
+      },
+      "execution_commit": "f998bde0ffa546f250f567663aa77446c4f97a9c",
+      "record_sha256": "815c17694f9d4de849d4a18d5403faad5e90aa5cb73b5665bb4882db3ff21ccb",
+      "sources": {
+        "benchmarks/run_sparse_ga_kernel.py": {
+          "git_blob_sha1": "8701c38c8256605c6f26ae6b3c5fceecbace5f28",
+          "sha256": "e118f33e93625cbc9b82d2354af0c27bd1d9b6546b66f1a837c2d810788e9980",
+          "snapshot": "benchmarks/provenance/execution_sources/f998bde0ffa546f250f567663aa77446c4f97a9c/benchmarks/run_sparse_ga_kernel.py"
+        },
+        "benchmarks/sparse_ga_audit.py": {
+          "git_blob_sha1": "9b43c75fbcbe2db7153e21f3900dbc6e1e0dc5d8",
+          "sha256": "d924818d169c89f6a3a3be3aec0a4febdea8767bf34de5f79bca86687a416762",
+          "snapshot": "benchmarks/provenance/execution_sources/f998bde0ffa546f250f567663aa77446c4f97a9c/benchmarks/sparse_ga_audit.py"
+        },
+        "clifford_qc/clifford.py": {
+          "git_blob_sha1": "1bb40c2250075c2dc5a9d392e8e5323301475eab",
+          "sha256": "11f137ada8c7eeb541aa39ad696e7edfb4b8b005100a6bdf96eb3d7a44552fdf",
+          "snapshot": "benchmarks/provenance/execution_sources/f998bde0ffa546f250f567663aa77446c4f97a9c/clifford_qc/clifford.py"
+        },
+        "clifford_qc/multivector.py": {
+          "git_blob_sha1": "05f3767aad6ca3bdc2ea2613988a2a16a075ed8f",
+          "sha256": "49530fb71721480a6889f6a3f6235f54b50226044e93e0feeabb437e8971f65d",
+          "snapshot": "benchmarks/provenance/execution_sources/f998bde0ffa546f250f567663aa77446c4f97a9c/clifford_qc/multivector.py"
+        },
+        "clifford_qc/pauli_kernel.py": {
+          "git_blob_sha1": "eae6c74dea42108d9cb1414211b2a06438227e38",
+          "sha256": "c7512dc6ad68e7ccdf676b2fa1fe309c16a21ec5c820e55e7ac45bc8689c937d",
+          "snapshot": "benchmarks/provenance/execution_sources/f998bde0ffa546f250f567663aa77446c4f97a9c/clifford_qc/pauli_kernel.py"
         }
       }
     }

@@ -26,7 +26,7 @@ small-system comparisons, and a public archival release is intended.
 | Build models | Spin chains, Hubbard and other lattice models, restricted real FCIDUMP import, effective-Hamiltonian JSON, orbital rotations — every model declares its encoding and sector under a validated metadata contract | [Model examples](#examples), [conventions](CONVENTIONS.md#model-metadata), `clifford_qc.models` |
 | Run circuits | Parameterized Pauli rotors and Clifford gates, JSON serialization, gradients, OpenQASM 3 export | [Circuit example](#circuit-programs), `clifford_qc.ir` |
 | Compare eigensolvers | VQE, ADAPT-VQE, fixed and adaptive operator-response subspaces, QSCI/SQD (with reference, ADAPT-VQE, and exact or Trotter time-evolved sampling inputs), selected-CI controls, hybrid bases | [Solver guide](#choosing-a-solver), [subspace example](#adaptive-subspaces) |
-| Check a Ritz state against an eigenstate | True Ritz residual norms and energy variances from the second-moment block `⟨A_i†H²A_j⟩`, exact pairings over a matrix-element bank; validated on the five banks the Phase 15 preflight licensed. No finite-shot estimator is built: measuring the block reads `NONE` under both QWC and fully commuting grouping | `clifford_qc.subspace.SecondMomentBank`, [example](#residuals-and-folded-roots), [conventions](CONVENTIONS.md#second-moments-residuals-and-folded-roots), [reproducing](REPRODUCING.md#phase-15-secondmomentbank-and-its-validation) |
+| Check a Ritz state against an eigenstate | True Ritz residual norms and energy variances from the second-moment block `⟨A_i†H²A_j⟩`, with automatic coefficient-storage admission for each requested block; exact pairings over a matrix-element bank, validated on the five banks the Phase 15 preflight licensed. No finite-shot estimator is built: measuring the block reads `NONE` under both QWC and fully commuting grouping | `clifford_qc.subspace.SecondMomentBank`, [example](#residuals-and-folded-roots), [conventions](CONVENTIONS.md#second-moments-residuals-and-folded-roots), [reproducing](REPRODUCING.md#phase-15-secondmomentbank-and-its-validation) |
 | Find and bound interior roots | Exact folded-spectrum roots of `K − 2ωH + ω²S`, refined Ritz vectors, target and Weinstein intervals that each contain an eigenvalue, and monotone variance minimization; validated on the same five banks | `clifford_qc.subspace.FoldedSpectrum`, [example](#residuals-and-folded-roots), [reproducing](REPRODUCING.md#phase-15-folded-spectrum-roots-and-their-validation) |
 | Assess why adaptive growth stopped | Opt-in exact convergence reports over the final retained block, with numerical-resolution and ground-state evidence reported separately; Q17 extrapolation is a diagnostic only | `ConvergenceConfig`, `convergence_report`, [example](examples/acase_convergence.py), [contract](REPRODUCING.md#phase-15-exact-convergence-reporting) |
 | Solve embedding fragments | One callback returning energy plus one- and two-particle density matrices, implemented by sector FCI, QSCI, selected CI, and the QSCI × A-CASE hybrid; the embedding loop itself stays outside the package | `clifford_qc.subspace.fragment`, [conventions](CONVENTIONS.md#density-matrices) |
@@ -173,6 +173,23 @@ The example uses a deliberately small candidate pool and no ground-state oracle.
 This example uses exact classical expectations; finite-shot workflows have
 separate examples below. An exact projected solve does not certify convergence
 to the full ground state.
+
+For a bounded example of full residual reporting, run
+`python examples/acase_convergence.py`. Pass
+`convergence=ConvergenceConfig(residual_tolerance=...)` to `run_acase`, or
+call `convergence_report` on an existing bank solve. The returned
+`convergence_reports` keep the growth stopping reason beside each tracked
+root's true residual, numerical-resolution status and optional ground-state
+assessment. Reporting is off by default and automatically preflights only the
+retained `H²` block before construction, with a default budget of 96,107,619
+sparse coefficient occurrences. `ConvergenceConfig(storage_policy=...)` accepts
+an explicit finite budget. This bounds coefficients rather than peak memory;
+packed or streaming `(S, H)` storage does not pack or evict the `H²` rows.
+See the [storage-gate contract](REPRODUCING.md#phase-15-runtime-storage-gate).
+A supplied `GroundStateReference`
+must describe an independently established spectrum in the state's space.
+Neither a small residual nor a Q17 extrapolated energy alone establishes
+ground-state convergence. See the [reporting contract](REPRODUCING.md#phase-15-exact-convergence-reporting).
 
 For repeated molecular experiments, [molecular/PIPELINE.md](molecular/PIPELINE.md) separates
 FCIDUMP preparation, independent A-CASE solves, and optional sector validation.

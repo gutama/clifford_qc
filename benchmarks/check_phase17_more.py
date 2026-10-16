@@ -7,6 +7,7 @@ claimed as a reproduction of the native canonical eigensolver's gauge.
 """
 from __future__ import annotations
 
+import argparse
 from pathlib import Path
 import sys
 
@@ -317,7 +318,9 @@ def acase_problems(run, case, roots, config, h, basis, ts, h_terms):
     return problems
 
 
-def check_record(record, config, *, history=True, check_verdict=True, root=ROOT):
+def check_record(record, config, *, history=True, check_verdict=True, root=ROOT, archive=False):
+    if archive and not history:
+        raise ValueError('archive mode requires historical source verification')
     problems = []
     validate_evidence(record)
     if record['evidence'] != EVIDENCE:
@@ -396,7 +399,7 @@ def check_record(record, config, *, history=True, check_verdict=True, root=ROOT)
             problems.append('fresh process execution observations are required')
         if set(record['execution_source_bindings']) != set(EXECUTION_SOURCES):
             problems.append('execution source binding set differs')
-        problems += history_problems(config, record, root)
+        problems += history_problems(config, record, root, archive=archive)
         reference = read_json(root / config['environment_reference'])['provenance']
         stamp = record['provenance']
         if stamp['python'].split('.')[:2] != reference['python'].split('.')[:2] or any(stamp['dependencies'][key] != reference['dependencies'][key] for key in ('numpy', 'scipy')):
@@ -404,21 +407,35 @@ def check_record(record, config, *, history=True, check_verdict=True, root=ROOT)
     return problems
 
 
-def main():
+def main(argv=None):
+    from benchmarks.archive_provenance import history_kind, archive_notice
     from benchmarks.check_phase17_more_declaration import validate
+    parser = argparse.ArgumentParser(description=__doc__)
+    mode = parser.add_mutually_exclusive_group()
+    mode.add_argument('--archive', action='store_true',
+                      help='verify packaged historical bindings; chronology remains unverified')
+    mode.add_argument('--require-git', action='store_true',
+                      help='require full Git ancestry (the default)')
+    args = parser.parse_args(argv)
+    history_kind(ROOT, archive=args.archive)
+    if args.archive and not RECORD.is_file():
+        raise ValueError('archive verification requires the published MORE record')
     config = load_config()
     problems = validate(config)
     if RECORD.exists():
-        problems += check_record(read_json(RECORD), config)
+        problems += check_record(read_json(RECORD), config, archive=args.archive)
     if problems:
         raise ValueError('; '.join(problems[:20]))
+    if args.archive and RECORD.exists():
+        archive_notice()
     print('Phase 17 MORE: PASS (independent calls, pencils, scores and ledgers)' if RECORD.exists()
           else 'Phase 17 MORE: outcome-free design only; campaign pending')
+    return 0
 
 
 if __name__ == '__main__':
     try:
-        main()
+        sys.exit(main())
     except (OSError, ValueError, KeyError) as error:
         print(f'FAIL: {error}', file=sys.stderr)
         sys.exit(1)

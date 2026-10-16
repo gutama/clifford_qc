@@ -1,0 +1,16 @@
+{
+  "evidence": {
+    "krylov_power_union_identity": {
+      "scope": "For Hermitian H and the specified A_k = H^k basis, the overlap and Hamiltonian element operators are powers H^(i+j) and H^(i+j+1), giving the stated union through H^(2*order+1); this algebraic identity alone certifies no thresholded numerical support count.",
+      "tier": "exact_algebra"
+    },
+    "word_counts_and_pencil_numerical_certificates": {
+      "scope": "Recorded support counts, energies, effective ranks, conditioning and pencil-error checks for the seven listed finite systems and their references. Each sweep cutoff is applied independently to the same stored double-precision MV power chain, which retains the implementation's baseline coefficient pruning; the reported 1e-8 cutoff is accepted against the stored unpruned-pencil numerical tolerances. This is not exact symbolic support, a physical-accuracy certificate, a finite-sample confidence bound or an asymptotic scaling claim.",
+      "tier": "exact_small_sector_simulation"
+    }
+  },
+  "evidence_schema": "clifford_qc.evidence.v1",
+  "record": "krylov_width.json",
+  "record_sha256": "fa7208d6449f820bab3d5d0bf6a3ca15ae735acb3451bc06529dbf9c808cfc4e",
+  "schema": "clifford_qc.evidence_annotation.v1"
+}

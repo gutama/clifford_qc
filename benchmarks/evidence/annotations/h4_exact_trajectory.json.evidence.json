@@ -1,0 +1,20 @@
+{
+  "evidence": {
+    "classical_execution_counts_and_timings": {
+      "scope": "Observed optimizer-evaluation counts, wall_seconds, reproduction timestamps and reference-run wall time for this local classical execution; no hardware execution time or portable classical speedup claim.",
+      "tier": "classical_process_measurement"
+    },
+    "energies_gradients_trajectory_and_sector_diagnostics": {
+      "scope": "Numerical exact-gradient ADAPT-VQE trajectory, parameters, chemical-accuracy crossing, replay comparisons and particle/spin diagnostics for the stored eight-qubit H4 calculation with the individual-Pauli pool; exact refers to state/expectation simulation, not zero numerical error, a globally optimized ansatz or exact symmetry preservation by each pool word.",
+      "tier": "exact_small_sector_simulation"
+    },
+    "exact_arm_shot_and_circuit_accounting": {
+      "scope": "The exact-gradient simulation arm records zero quantum shots and zero executed measurement circuits, including at the accuracy crossing; these counters supply no finite-shot sampling or confidence evidence.",
+      "tier": "exact_algebra"
+    }
+  },
+  "evidence_schema": "clifford_qc.evidence.v1",
+  "record": "h4_exact_trajectory.json",
+  "record_sha256": "5d90947b46075cba326522c31821c1b6ab756846eaceb6464de714c0cf039e09",
+  "schema": "clifford_qc.evidence_annotation.v1"
+}

@@ -958,7 +958,8 @@ def run_acase(rho: MV, hamiltonian, candidates: Sequence, *,
         from .second_moment import SecondMomentBank
 
         report_started = time.perf_counter()
-        moments = SecondMomentBank(bank)
+        moments = SecondMomentBank(bank, state.result.indices,
+                                   storage_policy=config.convergence.storage_policy)
         previous = (state.records[-2].root_energies if len(state.records) > 1
                     else root_energies)
         reports = tuple(convergence_report(
@@ -989,6 +990,7 @@ def run_acase(rho: MV, hamiltonian, candidates: Sequence, *,
         resources["convergence_reporting"] = {
             "evidence": "exact", "roots": len(reports),
             "basis_size": len(state.basis), "seconds": reporting_seconds,
+            "storage_preflight": moments.storage_preflight.as_dict(),
         }
     if config.leakage_tol is not None and config.leakage_mode != "operator":
         certificate = subspace_sector_certificate(

@@ -279,6 +279,7 @@ def test_missing_active_claim_refuses_internal_worker_before_science(monkeypatch
 
 
 def test_consumed_execution_claim_is_never_reset(monkeypatch, tmp_path):
+    from benchmarks import archive_provenance
     from benchmarks import run_phase17_more as producer
     claim = tmp_path / 'consumed.claim'
     original = '{"status":"INVALID","observations":"retained"}'
@@ -286,9 +287,47 @@ def test_consumed_execution_claim_is_never_reset(monkeypatch, tmp_path):
     monkeypatch.setattr(producer, 'claim_path', lambda: claim)
     monkeypatch.setattr(producer, 'RECORD', tmp_path / 'absent-record.json')
     monkeypatch.setattr(producer, 'worker_cell', lambda *a: pytest.fail('consumed campaign ran'))
+    monkeypatch.setattr(archive_provenance, 'history_kind',
+                        lambda *a, **kw: pytest.fail('consumed claim reached history inspection'))
     with pytest.raises(ValueError, match='already consumed'):
         producer.execute({})
     assert claim.read_text() == original
+
+
+def test_published_more_record_refuses_before_claim_or_git_inspection(monkeypatch, tmp_path):
+    from benchmarks import archive_provenance
+    from benchmarks import run_phase17_more as producer
+    record = tmp_path / 'published.json'
+    record.write_text('{"retained":"observations"}')
+    monkeypatch.setattr(producer, 'RECORD', record)
+    monkeypatch.setattr(producer, 'claim_path',
+                        lambda: pytest.fail('published record reached the Git claim lookup'))
+    monkeypatch.setattr(archive_provenance, 'history_kind',
+                        lambda *a, **kw: pytest.fail('published record reached history inspection'))
+    with pytest.raises(ValueError, match='record exists'):
+        producer.execute({})
+    assert record.read_text() == '{"retained":"observations"}'
+
+
+def test_unused_more_campaign_still_requires_full_clean_git_before_science(monkeypatch, tmp_path):
+    from benchmarks import archive_provenance
+    from benchmarks import run_phase17_more as producer
+    monkeypatch.setattr(producer, 'RECORD', tmp_path / 'absent-record.json')
+    monkeypatch.setattr(producer, 'claim_path', lambda: tmp_path / 'absent.claim')
+    monkeypatch.setattr(producer, 'worker_cell', lambda *a: pytest.fail('unlicensed campaign ran'))
+
+    def no_history(root, *, archive=False):
+        assert archive is False
+        raise ValueError('full Git history required')
+
+    monkeypatch.setattr(archive_provenance, 'history_kind', no_history)
+    with pytest.raises(ValueError, match='full Git history required'):
+        producer.execute({})
+    monkeypatch.setattr(archive_provenance, 'history_kind', lambda root: 'git')
+    monkeypatch.setattr(producer, 'git', lambda *a: ' M dirty-source.py')
+    with pytest.raises(ValueError, match='clean committed sources'):
+        producer.execute({})
+    assert not list(tmp_path.iterdir())
 
 
 def test_fresh_process_receipt_matches_supervising_parent(monkeypatch):

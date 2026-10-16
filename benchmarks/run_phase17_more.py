@@ -141,12 +141,14 @@ def run_cell(index, case, roots, arm, config):
 
 def execute(config):
     from benchmarks.archive_provenance import history_kind
-    history_kind(ROOT)
     if RECORD.exists():
         raise ValueError('record exists; another campaign is not authorized')
+    # Finding the shared claim may itself need Git for linked worktrees. A
+    # consumed record or known claim must still refuse before history checks.
     claim = claim_path()
     if claim.exists():
         raise ValueError('execution claim already consumed; it must not be reset or reused')
+    history_kind(ROOT)
     if git('status', '--porcelain'):
         raise ValueError('execution requires clean committed sources')
     head = git('rev-parse', 'HEAD')

@@ -1,0 +1,141 @@
+{
+  "schema": "clifford_qc.paper_table_snapshot.v1",
+  "paper": "DA-CASE: reusable measurements for adaptive quantum subspaces",
+  "arxiv": "2608.08739",
+  "scope": "Preserve the scientific table bodies already committed with the P2 manuscript. This identifies retained repository sources, not an independently verified arXiv upload.",
+  "historical_generator": {
+    "path": "paper_acase/data/source_snapshot/make_tables.py.txt",
+    "source_path": "paper_acase/make_tables.py",
+    "execution": "inert_provenance_only",
+    "git_blob_sha1": "da2df8ab71ae64b2ec208d99efe4e668acaf6bc2",
+    "sha256": "f583e453c808c6a53cadc2638bb77df654ef4203f6e5324d1bb7b96c87c9e10c"
+  },
+  "sources": [
+    {
+      "source_path": "benchmarks/reference_results/acase_ladder_summary.csv",
+      "path": "benchmarks/reference_results/acase_ladder_summary.csv",
+      "origin": "unchanged_committed_table_input",
+      "git_blob_sha1": "0149b7ee04cbd9727e4baf56b5125fbf66ebf5fa",
+      "sha256": "049ab9367227fd410299c9cef58a84b0500bb8f215dec42de3653880faa936a3"
+    },
+    {
+      "source_path": "benchmarks/reference_results/fcidump_h4.json",
+      "path": "benchmarks/reference_results/fcidump_h4.json",
+      "origin": "unchanged_committed_table_input",
+      "git_blob_sha1": "9e292ef59dafc80f7cea3c937e7d8e9a99e17b51",
+      "sha256": "f397d181d5d70801f13ba0e03e2a8edafc9bcd82ccf1658f10f1f3370f796b11"
+    },
+    {
+      "source_path": "benchmarks/reference_results/warm_start_h4.json",
+      "path": "benchmarks/reference_results/warm_start_h4.json",
+      "origin": "unchanged_committed_table_input",
+      "git_blob_sha1": "76609d260d0f2f6af1fcd912d878e777b414a1a1",
+      "sha256": "3726c6bf226cfd532ca4ce566aabb6065aafed5043389c081089defa35ee44d5"
+    },
+    {
+      "source_path": "benchmarks/reference_results/krylov_width.json",
+      "path": "benchmarks/reference_results/krylov_width.json",
+      "origin": "unchanged_committed_table_input",
+      "git_blob_sha1": "8647e1447107a62f4b2a20f835f0c40cf5b17393",
+      "sha256": "fa7208d6449f820bab3d5d0bf6a3ca15ae735acb3451bc06529dbf9c808cfc4e"
+    },
+    {
+      "source_path": "benchmarks/reference_results/matched_h4.json",
+      "path": "paper_acase/data/source_snapshot/matched_h4.json",
+      "origin": "existing_table_source_header",
+      "git_blob_sha1": "75d82d7f011de5bc71bad0cb9cb7ae914e9ffd01",
+      "sha256": "8481d8ca1fb56a9b6d0ba274b7e40c80e3b7fa1d7fee6b82bedd5b36025a9f8a"
+    },
+    {
+      "source_path": "benchmarks/reference_results/finite_shot_optimization.json",
+      "path": "paper_acase/data/source_snapshot/finite_shot_optimization.json",
+      "origin": "existing_table_source_header",
+      "git_blob_sha1": "01eb0c924cc4ba44ca1786916345d44016111636",
+      "sha256": "67de35c34872c5649afd1446ad9b0e09089497ced3cd0ad265a32a542ee0df4a"
+    },
+    {
+      "source_path": "benchmarks/results/phase12_paper_b_five_system.json",
+      "path": "benchmarks/results/phase12_paper_b_five_system.json",
+      "origin": "unchanged_committed_table_input",
+      "git_blob_sha1": "06a20c8eb747b0747fce14e650bd623ec14fc58e",
+      "sha256": "32836873687df68a7f05f1a4ddabd742db3dcfb73376f5568f9f5f545680395a"
+    },
+    {
+      "source_path": "benchmarks/reference_results/clifford_hierarchy_h4.json",
+      "path": "paper_acase/data/source_snapshot/clifford_hierarchy_h4.json",
+      "origin": "existing_table_source_header",
+      "git_blob_sha1": "29ef387cb3ad4eb1b0e91c85ced2c498bb050cb2",
+      "sha256": "4213264e8a071ccc3e6ddbbb5b4ecf4c839fd241d4a6fb2f5ffc9097c9871c95"
+    },
+    {
+      "source_path": "benchmarks/reference_results/clifford_hierarchy_beh2.json",
+      "path": "paper_acase/data/source_snapshot/clifford_hierarchy_beh2.json",
+      "origin": "existing_table_source_header",
+      "git_blob_sha1": "88d5ed618b217182016b5c5896b55f9147f641ac",
+      "sha256": "3eec12597dcd3ce0023d0de7a144225b4c1586520bd433c70c0649c2ad462c8d"
+    },
+    {
+      "source_path": "examples/data/wannier_hubbard_dimer.json",
+      "path": "examples/data/wannier_hubbard_dimer.json",
+      "origin": "unchanged_committed_table_input",
+      "git_blob_sha1": "f698423b229f1f58bf3748c1429d55293ae5d366",
+      "sha256": "1654e0fcdc1e866ca52f5d6ff80152219936ac00ae3c2bf8a27f3503b1e369ef"
+    },
+    {
+      "source_path": "paper_acase/data/response_bootstrap.json",
+      "path": "paper_acase/data/response_bootstrap.json",
+      "origin": "unchanged_committed_table_input",
+      "git_blob_sha1": "cabae01d48fc70c8b77aacd16e373ffd26904f83",
+      "sha256": "4c125f98169ec837cd4327fd45586c4cca6921301142f0c23d73a4134e0555fa"
+    },
+    {
+      "source_path": "paper_acase/data/response_bootstrap_illconditioned.json",
+      "path": "paper_acase/data/response_bootstrap_illconditioned.json",
+      "origin": "unchanged_committed_table_input",
+      "git_blob_sha1": "8feb5fbcc869b3ea29e235ddd3bfb72f32a20a64",
+      "sha256": "a147700ce4ae8ec4521d124878ba0f21175d03c02fe1dd3a3949d21635cbe534"
+    }
+  ],
+  "tables": [
+    {
+      "path": "tables/clifford_hierarchy.tex",
+      "body_sha256": "83a8f8201b1bec0ec9f9aade0a5a3999f964226776035cdd85628311007305a7"
+    },
+    {
+      "path": "tables/conditioning_results.tex",
+      "body_sha256": "135621625d83410a3e162926c06247351d135c7e350408d9c46a6f12d1f42a50"
+    },
+    {
+      "path": "tables/dimer_results.tex",
+      "body_sha256": "013f128203782a845d3e95776ebcc000c6a988c3470278cfd5f7c9f0af8ce2a4"
+    },
+    {
+      "path": "tables/finite_shot.tex",
+      "body_sha256": "c4cabb23bb9a4f6bc2e89eb8c98d7acfdf062a2c578f9de217d2d00ebeea1371"
+    },
+    {
+      "path": "tables/h4_results.tex",
+      "body_sha256": "91f75b85c0562326e59c607b9f2e21e053ac7a198f8b5baa121774b63a5b2334"
+    },
+    {
+      "path": "tables/ladder_results.tex",
+      "body_sha256": "7d21f213e6ff67bc81ee797da6abbfbc36a628c384fdbf8c797944cd18d16d67"
+    },
+    {
+      "path": "tables/matched_results.tex",
+      "body_sha256": "06f2b21f73e7c115aed966da3f18d060a6777a00f6702e9c699137ab16bf4579"
+    },
+    {
+      "path": "tables/phase12_primary.tex",
+      "body_sha256": "af364b539c6b12591f1d572e06dc1e96353fdda42599d26dba03ee4b4f68eeff"
+    },
+    {
+      "path": "tables/response_results.tex",
+      "body_sha256": "eabd682f657d6d7d0acc11dd11cad3341c897d21c96d9608b9eb45dbf1704aa6"
+    },
+    {
+      "path": "tables/warm_start_results.tex",
+      "body_sha256": "537fdd8192ceaf5199963915b20d1bc3363d19b0e5cb2b1f505a966929be7f2a"
+    }
+  ]
+}

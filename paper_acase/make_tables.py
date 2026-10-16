@@ -1,4 +1,4 @@
-"""Generate all numerical table fragments for the standalone DA-CASE paper."""
+"""Regenerate the retained DA-CASE table values from their bound source snapshot."""
 
 from __future__ import annotations
 
@@ -6,25 +6,46 @@ import csv
 import hashlib
 import json
 import math
+import sys
+import tempfile
 from pathlib import Path
 
 HERE = Path(__file__).resolve().parent
 ROOT = HERE.parent
+if str(ROOT) not in sys.path:
+    sys.path.insert(0, str(ROOT))
+from paper_acase.source_snapshot import (  # noqa: E402
+    TABLE_PATHS, require_snapshot, source_path, table_path, validate_table_body,
+)
+
 TABLES = HERE / "tables"
-LADDER = ROOT / "benchmarks" / "reference_results" / "acase_ladder_summary.csv"
-H4 = ROOT / "benchmarks" / "reference_results" / "fcidump_h4.json"
-WARM = ROOT / "benchmarks" / "reference_results" / "warm_start_h4.json"
-KRYLOV_WIDTH = ROOT / "benchmarks" / "reference_results" / "krylov_width.json"
-MATCHED = ROOT / "benchmarks" / "reference_results" / "matched_h4.json"
-FINITE_SHOT = (ROOT / "benchmarks" / "reference_results"
-               / "finite_shot_optimization.json")
-PHASE12_PRIMARY = ROOT / "benchmarks" / "results" / "phase12_paper_b_five_system.json"
-CLIFFORD_HIERARCHY = tuple(
-    ROOT / "benchmarks" / "reference_results" / f"clifford_hierarchy_{system}.json"
-    for system in ("h4", "beh2"))
-DIMER = ROOT / "examples" / "data" / "wannier_hubbard_dimer.json"
-RESPONSE = HERE / "data" / "response_bootstrap.json"
-RESPONSE_ILL = HERE / "data" / "response_bootstrap_illconditioned.json"
+TABLE_SOURCES: dict[str, tuple[Path, ...]] = {}
+
+
+def configure_sources() -> None:
+    """Resolve sources only after the CLI has validated the manifest."""
+    global LADDER, H4, WARM, KRYLOV_WIDTH, MATCHED, FINITE_SHOT
+    global PHASE12_PRIMARY, CLIFFORD_HIERARCHY, DIMER, RESPONSE, RESPONSE_ILL
+    LADDER = source_path("benchmarks/reference_results/acase_ladder_summary.csv")
+    H4 = source_path("benchmarks/reference_results/fcidump_h4.json")
+    WARM = source_path("benchmarks/reference_results/warm_start_h4.json")
+    KRYLOV_WIDTH = source_path("benchmarks/reference_results/krylov_width.json")
+    MATCHED = source_path("benchmarks/reference_results/matched_h4.json")
+    FINITE_SHOT = source_path("benchmarks/reference_results/finite_shot_optimization.json")
+    PHASE12_PRIMARY = source_path("benchmarks/results/phase12_paper_b_five_system.json")
+    CLIFFORD_HIERARCHY = tuple(
+        source_path(f"benchmarks/reference_results/clifford_hierarchy_{system}.json")
+        for system in ("h4", "beh2"))
+    DIMER = source_path("examples/data/wannier_hubbard_dimer.json")
+    RESPONSE = source_path("paper_acase/data/response_bootstrap.json")
+    RESPONSE_ILL = source_path("paper_acase/data/response_bootstrap_illconditioned.json")
+    TABLE_SOURCES.clear()
+    TABLE_SOURCES.update({
+        "phase12_primary.tex": (PHASE12_PRIMARY,),
+        "matched_results.tex": (MATCHED, KRYLOV_WIDTH),
+        "clifford_hierarchy.tex": CLIFFORD_HIERARCHY,
+        "finite_shot.tex": (FINITE_SHOT,),
+    })
 
 
 def _git_blob_sha(path: Path) -> str:
@@ -32,18 +53,6 @@ def _git_blob_sha(path: Path) -> str:
     data = path.read_bytes()
     header = f"blob {len(data)}\0".encode()
     return hashlib.sha1(header + data, usedforsecurity=False).hexdigest()
-
-
-# Which committed record each source-bound table is generated from.  The
-# checker re-derives these SHAs, so a record regenerated without rerunning this
-# module is caught rather than left to typeset as a stale table.  Every table
-# the current manuscript inputs is bound here.
-TABLE_SOURCES: dict[str, tuple[Path, ...]] = {
-    "phase12_primary.tex": (PHASE12_PRIMARY,),
-    "matched_results.tex": (MATCHED, KRYLOV_WIDTH),
-    "clifford_hierarchy.tex": CLIFFORD_HIERARCHY,
-    "finite_shot.tex": (FINITE_SHOT,),
-}
 
 
 def _write(name: str, rows: list[str]) -> None:
@@ -55,14 +64,16 @@ def _write(name: str, rows: list[str]) -> None:
     prepends one blob-SHA header per source plus one for this generator, which
     ``check_manuscript.py`` re-derives and compares.
     """
-    TABLES.mkdir(parents=True, exist_ok=True)
     sources = TABLE_SOURCES.get(name, ())
     header = [f"% source-git-blob-sha: {_git_blob_sha(path)}"
               for path in sources]
     if sources:
         header.append(
             f"% generator-git-blob-sha: {_git_blob_sha(Path(__file__).resolve())}")
-    (TABLES / name).write_text("\n".join(header + rows) + "\n")
+    payload = ("\n".join(header + rows) + "\n").encode("utf-8")
+    validate_table_body(name, payload)
+    TABLES.mkdir(parents=True, exist_ok=True)
+    (TABLES / name).write_bytes(payload)
 
 
 def _sci(value: float, digits: int = 2) -> str:
@@ -424,18 +435,44 @@ def conditioning_table() -> None:
 
 
 def main() -> None:
-    dimer_table()
-    h4_table()
-    warm_start_table()
-    matched_table()
-    clifford_hierarchy_table()
-    ladder_table()
-    phase12_primary_table()
-    response_table()
-    conditioning_table()
-    finite_shot_table()
+    global TABLES
+    require_snapshot(check_tables=False)
+    configure_sources()
+    destination = TABLES
+    with tempfile.TemporaryDirectory(prefix=".tables-stage-", dir=HERE) as directory:
+        TABLES = Path(directory)
+        try:
+            dimer_table()
+            h4_table()
+            warm_start_table()
+            matched_table()
+            clifford_hierarchy_table()
+            ladder_table()
+            phase12_primary_table()
+            response_table()
+            conditioning_table()
+            finite_shot_table()
+        finally:
+            TABLES = destination
+        staged = Path(directory)
+        expected = {Path(relative).name for relative in TABLE_PATHS}
+        if {path.name for path in staged.iterdir()} != expected:
+            raise ValueError("generation did not produce all 10 snapshot tables")
+        # Resolve every target before publishing any candidate. Sources and
+        # candidates must still match after the complete generation succeeds.
+        targets = {name: table_path(name) for name in expected}
+        require_snapshot(check_tables=False)
+        for name in expected:
+            validate_table_body(name, (staged / name).read_bytes())
+        destination.mkdir(parents=True, exist_ok=True)
+        for name in sorted(expected):
+            (staged / name).replace(targets[name])
     print(TABLES)
 
 
 if __name__ == "__main__":
-    main()
+    try:
+        main()
+    except (OSError, ValueError) as error:
+        print(f"FAIL {error}")
+        raise SystemExit(1)

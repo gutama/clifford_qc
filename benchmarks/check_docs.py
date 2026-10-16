@@ -31,6 +31,7 @@ from __future__ import annotations
 import argparse
 import ast
 import importlib.util
+import os
 import re
 import subprocess
 import sys
@@ -73,8 +74,14 @@ def script_flags(script: Path) -> tuple[set[str] | None, str | None]:
     rather than a failure -- CI lints the docs without installing every extra.
     Any other nonzero exit is a genuine defect and fails.
     """
+    # sys.path changes in this process do not reach a script child, whose
+    # first import directory is benchmarks/. Give it the same checkout root
+    # while retaining any caller-provided search paths and environment.
+    env = dict(os.environ)
+    inherited_path = env.get("PYTHONPATH")
+    env["PYTHONPATH"] = str(ROOT) + (os.pathsep + inherited_path if inherited_path else "")
     done = subprocess.run([sys.executable, str(script), "--help"], cwd=ROOT,
-                          capture_output=True, text=True)
+                          env=env, capture_output=True, text=True)
     if done.returncode == 0:
         return set(re.findall(r"(--[a-z0-9][a-z0-9-]*)", done.stdout)), None
     missing = re.search(r"ModuleNotFoundError: No module named '([\w.]+)'", done.stderr)

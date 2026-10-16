@@ -103,6 +103,10 @@ from .fragment import (
     spin_orbital_rdms,
 )
 from .second_moment import SECOND_MOMENT_LABEL, RitzResidual, SecondMomentBank
+from .second_moment_storage import (
+    SecondMomentStorageError, SecondMomentStoragePolicy, SecondMomentStoragePreflight,
+    second_moment_storage_preflight,
+)
 from .convergence import (
     CONVERGENCE_SCHEMA, EXTRAPOLATION_SCHEMA, ConvergenceConfig, ConvergenceReport,
     GroundStateReference, VarianceExtrapolationDiagnostic, convergence_report,
@@ -114,6 +118,8 @@ from .folded import (
 )
 
 __all__ = [
+    "SecondMomentStorageError", "SecondMomentStoragePolicy", "SecondMomentStoragePreflight",
+    "second_moment_storage_preflight",
     "FRAGMENT_SOLUTION_SCHEMA", "ExactFragmentSolver", "FragmentSolution",
     "FragmentSolver", "HybridFragmentSolver", "QSCIFragmentSolver",
     "SelectedCIFragmentSolver", "energy_from_spatial_rdms", "spatial_rdms",
