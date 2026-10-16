@@ -116,6 +116,49 @@ def test_prose_scan_ignores_citation_and_label_digits():
     assert check_manuscript.prose_numerals(_manuscript(body)) == []
 
 
+def test_prose_scan_allows_second_moment_notation():
+    body = ("$K_{ij}=\\avg{\\psi|A_i^\\dagger H^2 A_j|\\psi}$ and "
+            "$F(\\omega)=K-2\\omega H+\\omega^2 S$ with $\\sigma^2=\\mu(E)$.")
+    assert check_manuscript.prose_numerals(_manuscript(body)) == []
+
+
+def test_prose_scan_still_rejects_a_squared_result():
+    """Allowing a square must not let the base of one through."""
+    found = check_manuscript.prose_numerals(
+        _manuscript("It needs $10^2$ more shots."))
+    assert [numeral for numeral, _ in found] == ["10"]
+
+
+def test_a_column_span_in_a_header_is_typesetting():
+    body = ("\\begin{tabular}{lrr}\n"
+            " & \\multicolumn{2}{c}{Peak memory (GiB)} \\\\\n"
+            "\\end{tabular}")
+    assert check_manuscript.prose_numerals(_manuscript(body)) == []
+
+
+# --- a count spelled out in words is still a count -------------------------
+def test_spelled_counts_from_the_first_version_are_rejected():
+    """These three went stale after v1 while every digit stayed generated."""
+    body = ("Five are preregistration gates: they rebuild nothing.  Three "
+            "further gates check lineage; and two compare records against "
+            "artifacts.")
+    assert check_manuscript.spelled_counts(_manuscript(body)) == [
+        "Five are preregistration gates", "Three further gates",
+        "two compare records"]
+
+
+def test_spelled_count_across_a_line_break_is_rejected():
+    body = "Of the rest, three\nlineage gates check the environment."
+    assert check_manuscript.spelled_counts(_manuscript(body)) == [
+        "three lineage gates"]
+
+
+def test_description_is_not_a_census_count():
+    body = ("The screen is one bank under one set of declared gates, on "
+            "eight-qubit banks, and the two labels sit in one file.")
+    assert check_manuscript.spelled_counts(_manuscript(body)) == []
+
+
 # --- the CI split is read from the workflow, not declared ------------------
 def test_ci_gate_sets_detects_a_same_size_policy_swap(tmp_path, monkeypatch):
     workflow = tmp_path / "ci.yml"

@@ -266,7 +266,9 @@ A setting count alone cannot establish a time saving.
 
 Most imports follow the layers, with recorded exceptions:
 
-- Chemistry model construction imports `algorithms/pools.py` at module scope.
+- Chemistry model construction imports the shared candidate type from
+  `pool_operator.py` in Program IR, not from the solver package; deferred
+  chemistry calls from subspace generators remain runtime dependencies.
 - Measurement methods import subspace linear algebra or restriction helpers
   at call time. Type-checking-only imports do not execute.
 - Some kernel sector helpers call execution code through deferred imports.
