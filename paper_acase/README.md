@@ -78,7 +78,12 @@ PDFs remain CI/release artifacts and are not committed as source.
   this isolates the effect of using a differently conditioned representation
   of the same complete sector.
 - `make_tables.py` — regenerates all numerical LaTeX table fragments from
-  committed benchmark records.
+  the retained manuscript's source snapshot.
+- `SOURCE_SNAPSHOT.json` and `source_snapshot.py` — bind all twelve table
+  inputs, the original table-generator bytes and all ten scientific table
+  bodies. Four historical inputs whose live records changed are packaged
+  under `data/source_snapshot/`; the original generator is inert `.txt`
+  provenance data. Checking this contract needs no Git history.
 - `make_figures.py` — regenerates the pipeline, validation-ladder, response,
   and conditioning figures. `paper_assets/manifest.json` binds each figure to
   the exact generator and line-ending-normalized input digests without
@@ -129,6 +134,20 @@ benchmarks rather than paper artifacts:
 
 ## Reproduce
 
+The retained P2 tables preserve their existing scientific values. Later
+benchmark migrations and Clifford-synthesis improvements changed live
+records, including logical CX counts, depths and finite-shot replica census.
+Running the current benchmark producers below does not migrate this
+manuscript to those results. `make_tables.py` uses the bound historical inputs
+where needed and refuses inputs or generated scientific cells that differ
+from `SOURCE_SNAPSHOT.json`. It stages and validates the complete set before
+replacing any table, so a failed regeneration preserves the existing files.
+Snapshot paths must resolve within the source tree, including through
+symlinks. This manifest identifies the retained repository
+sources; it does not independently identify the uploaded arXiv artifact.
+Updating the scientific manuscript requires an explicit reviewed revision of
+that boundary, rather than refreshing provenance headers against new values.
+
 From the repository root:
 
 ```bash
@@ -145,6 +164,7 @@ python benchmarks/run_clifford_hierarchy.py --system beh2
 python benchmarks/check_clifford_hierarchy.py
 python paper_acase/make_tables.py
 python paper_acase/make_figures.py
+python paper_acase/source_snapshot.py
 python paper_acase/check_manuscript.py
 
 cd paper_acase
@@ -164,6 +184,10 @@ and conditional on the replicas that preserve the thresholded rank and root
 identity.  They are not finite-sample confidence certificates.
 
 ## Data-to-paper map
+
+The paths below identify each evidence family. `SOURCE_SNAPSHOT.json` names
+the exact input bytes used for the retained tables, including the packaged
+historical alternatives to four moving benchmark paths.
 
 | Manuscript element | Source |
 |---|---|

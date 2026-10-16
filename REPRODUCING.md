@@ -80,8 +80,9 @@ historical percentages elsewhere are outside that check. The gate validates
 both tables and does not regenerate them.
 
 The direct documentation command resolves the repository package without a
-user-supplied `PYTHONPATH`, including script-help subprocesses. Optional extras
-remain explicit skips. The summary gate classifies declared per-seed sweep and
+user-supplied `PYTHONPATH`, including script-help subprocesses. Each help child
+receives the checkout root before any inherited import paths; the parent
+environment is unchanged. Optional extras remain explicit skips. The summary gate classifies declared per-seed sweep and
 ladder schemas rather than assuming every JSON config produces JSONL; the four
 owned sweeps retain required JSONL/CSV/Markdown companions. Malformed sweep
 configs, deleted records/companions, orphan companions and stale summaries fail.
@@ -153,6 +154,11 @@ in `benchmarks/evidence/annotations/` distinguish exact simulation, finite-sampl
 endpoints and illustrative prices; no top-level field is silently inserted into
 a historical record. The architecture census validates and reads these maps.
 An invalid annotation, unknown tier or changed record binding fails the gate.
+Digest-bound annotations also cover `clifford_hierarchy_beh2_v2.json`,
+`clifford_hierarchy_h4_v2.json`, `h4_exact_trajectory.json`, `krylov_width.json`
+and `orbital_basis.json`. Their scopes separate exact simulation and algebraic
+counts, observed classical costs, numerical pruning, seeded disorder samples
+and illustrative shot prices. The current census has no unlabeled JSON records.
 
 #### Replaying producers and reviewing a re-freeze
 
@@ -196,6 +202,9 @@ archive mode explicitly:
 ```bash
 python benchmarks/check_phase19_preregistration.py --archive
 python benchmarks/check_bank_policy_matrix.py --archive
+python benchmarks/check_sparse_ga_kernel.py --archive
+python benchmarks/check_phase17_more_declaration.py --archive
+python benchmarks/check_phase17_more.py --archive
 ```
 
 Run these commands inside an exported tree, not a Git worktree. They validate
@@ -203,6 +212,11 @@ the same frozen inputs and structural/value contracts plus the record/config
 bindings in `benchmarks/provenance/archive_manifest.json`. Packaged historical
 execution sources under `benchmarks/provenance/execution_sources/` are inert
 data; SHA-256 and Git-blob SHA-1 checks bind their bytes to the original record.
+The sparse-kernel profile binds its fixture definitions in the frozen producer
+as its configuration. MORE binds the frozen declaration and every recorded
+execution source. Both gates verify the inspected record's actual bytes, and
+neither mode authorizes another campaign. Existing-record and consumed-claim
+guards refuse a MORE execution before checking its Git execution environment.
 For Phase 19, the declaration's twelve implementation bindings are also
 packaged as `lineage_sources` at the original execution commit. Once the
 campaign record exists, the declaration/result checkers verify these frozen
@@ -264,7 +278,7 @@ No figure or table value in the manuscript is transcribed by hand, and
 ```bash
 python -m venv .venv && source .venv/bin/activate
 pip install -e .[test,research,stim]       # automatic CI extras
-pytest                                      # 3663 passed, 12 skipped (expected if green)
+pytest                                      # 3736 passed, 12 skipped (expected if green)
 ```
 
 This is the automatic CI dependency set; record gates additionally pin NumPy
@@ -283,7 +297,7 @@ the remaining `12 - 6 = 6` skips are per-test and *are* collected:
 
 ```text
 collected == passed + (skipped - files dropped at collection)
-3669      == 3663   + (12      -   6)
+3742      == 3736   + (12      -   6)
 ```
 
 Both sides are computed from the tree, so a drift in either quoted number
@@ -1834,6 +1848,21 @@ historical file. The sixteen text/data/table sources must remain byte-identical.
 The four PDF figures are generated outputs: `make_figures.py` may regenerate
 different PDF metadata under a newer Matplotlib, while `check_manuscript.py`
 still checks their existence, scientific inputs, and staleness.
+
+The retained P2/DA-CASE table values now have their own content snapshot in
+`paper_acase/SOURCE_SNAPSHOT.json`. Four inputs whose live benchmark records
+changed are packaged under `paper_acase/data/source_snapshot/`; the remaining
+inputs retain their original paths and are digest-bound. The original table
+generator is inert provenance data. The current generator reads the bound
+inputs, and the checker verifies all ten table bodies. This identifies the
+retained repository sources without asserting an independently verified arXiv
+upload identity. Moving benchmark records do not silently replace these values.
+
+```bash
+python paper_acase/source_snapshot.py
+python paper_acase/make_tables.py
+python paper_acase/check_manuscript.py
+```
 
 ## R3 protocol axis (`mapping x k`)
 

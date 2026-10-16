@@ -426,9 +426,10 @@ work, even where this plan already corrects the prose.
 - [x] **B4 — standalone documentation gate.** Established `ROOT` on `sys.path`
   before package-submodule discovery in `benchmarks/check_docs.py`. Verify the
   documented direct command with `PYTHONPATH` unset from a clean checkout;
-  missing optional extras remain explicitly reported. Help subprocesses run from
-  the repository root with the user's environment, without an injected import
-  path; missing repository packages fail instead of being classified as extras.
+  missing optional extras remain explicitly reported. Help subprocesses prepend
+  the checkout root to their own `PYTHONPATH`, preserving the caller's remaining
+  paths and environment. Missing repository imports still fail instead of being
+  classified as optional extras.
 - [x] **B2 — summary schema and CI.** Require JSONL/CSV/Markdown companions from
   the declared per-seed sweep schema and the explicitly owned ladder schema,
   not from the existence of a record on disk. Classify result-free declarations
@@ -628,6 +629,34 @@ B1–B5's maintenance checks have shipped; GA-1/GA-2/B6 are implemented. GA-3's
 eligibility fixtures have shipped without a transport engine. Phase 17's
 breadth follow-up is complete. The Phase 15 allocation follow-up has run once
 and reads `CLOSED` on its declared Krylov scope.
+
+**Post-PR audit follow-ups — 2026-10-16.** The review of `644f010` identified
+four further maintenance issues. These are addressed without changing any
+historical scientific record or numbered-phase fraction:
+
+- **N1 — exported-tree verification.** The sparse GA profile and both MORE
+  gates now accept explicit `--archive` verification against packaged
+  historical sources. Strict Git ancestry remains the default, including
+  rejection of shallow or incomplete worktrees. Archive output identifies
+  chronology as unverified. MORE refuses an existing record or a consumed
+  execution claim before checking its execution environment.
+- **N2 — help subprocess imports.** The documentation gate gives each help
+  child the checkout's import root while preserving inherited paths, so a
+  package installation is not required for repository-module discovery.
+- **N3 — retained P2 table provenance.** `paper_acase/SOURCE_SNAPSHOT.json`
+  binds the original table inputs, inert historical generator and ten table
+  bodies. Changed live benchmark records no longer silently replace retained
+  manuscript values. This identifies repository sources, with no independent
+  claim about the exact uploaded arXiv artifact.
+- **N4 — historical evidence coverage.** Five additional digest-bound
+  annotations cover the hierarchy-v2, H₄ trajectory, Krylov-width and orbital
+  records. Every current JSON record has evidence metadata; historical bytes
+  and their legacy digest manifest are unchanged.
+
+The review's Phase 15 storage prerequisite was completed in `a5db7cf`.
+Finite-shot second moments and the Phase 16B real-time family retain their
+existing declaration and feasibility requirements; these maintenance fixes
+do not authorize those scientific extensions.
 
 ## 3. Conceptual layer (geometric-algebra contract)
 

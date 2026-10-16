@@ -26,21 +26,44 @@ def test_documentation_gate_works_without_pythonpath():
     assert "OK (" in done.stdout or "FAIL " in done.stdout
 
 
-def test_documented_help_does_not_get_an_injected_import_path(tmp_path, monkeypatch):
+@pytest.mark.parametrize("module", ["clifford_qc", "paper_architecture", "benchmarks"])
+def test_documented_help_imports_the_checkout_without_installation(tmp_path, monkeypatch, module):
     root = tmp_path / "repo"
     scripts = root / "benchmarks"
     scripts.mkdir(parents=True)
-    package = root / "paper_architecture"
-    package.mkdir()
-    (package / "__init__.py").write_text("VALUE = 1\n")
+    package = root / module
+    package.mkdir(exist_ok=True)
+    (package / "__init__.py").write_text("CHECKOUT_MARKER = 'uninstalled fixture'\n")
     script = scripts / "run_probe.py"
-    script.write_text("import paper_architecture\nimport argparse\nargparse.ArgumentParser().parse_args()\n")
+    script.write_text(
+        f"import {module}\n"
+        f"assert {module}.CHECKOUT_MARKER == 'uninstalled fixture'\n"
+        "import argparse\nparser = argparse.ArgumentParser()\n"
+        "parser.add_argument('--probe')\nparser.parse_args()\n")
     monkeypatch.setattr(docs, "ROOT", root)
     monkeypatch.delenv("PYTHONPATH", raising=False)
     flags, reason = docs.script_flags(script)
-    assert flags is None
-    assert "paper_architecture" in reason
-    assert not reason.startswith("optional dependency")
+    assert flags == {"--help", "--probe"}
+    assert reason is None
+    assert "PYTHONPATH" not in os.environ
+
+
+def test_documented_help_preserves_inherited_import_paths_and_parent_environment(tmp_path, monkeypatch):
+    root = tmp_path / "repo"
+    scripts = root / "benchmarks"
+    scripts.mkdir(parents=True)
+    extra = tmp_path / "external"
+    extra.mkdir()
+    (extra / "inherited_probe.py").write_text("VALUE = 7\n")
+    script = scripts / "run_probe.py"
+    script.write_text("import inherited_probe\nassert inherited_probe.VALUE == 7\n"
+                      "import argparse\nargparse.ArgumentParser().parse_args()\n")
+    monkeypatch.setattr(docs, "ROOT", root)
+    monkeypatch.setenv("PYTHONPATH", str(extra))
+    flags, reason = docs.script_flags(script)
+    assert flags == {"--help"}
+    assert reason is None
+    assert os.environ["PYTHONPATH"] == str(extra)
 
 
 @pytest.mark.parametrize("module", ["benchmarks", "clifford_qc", "paper_architecture"])

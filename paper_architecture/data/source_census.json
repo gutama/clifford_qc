@@ -97,9 +97,9 @@
       "bank_policy_matrix.json": "0cf13e3ba82330b7",
       "bank_storage_ledger.json": "f6a33f1aa225c4dd",
       "clifford_hierarchy_beh2.json": "b6ce42a8d9054785",
-      "clifford_hierarchy_beh2_v2.json": "44136fa355b3678a",
+      "clifford_hierarchy_beh2_v2.json": "e035d86eb034b477",
       "clifford_hierarchy_h4.json": "ed4ccce86097b99f",
-      "clifford_hierarchy_h4_v2.json": "44136fa355b3678a",
+      "clifford_hierarchy_h4_v2.json": "570ba2d52dc5179f",
       "configuration_packets.json": "9ed644e4c7a1018e",
       "exact_shot_search.json": "d318294d7ba2811e",
       "fcidump_h4.json": "94662552eea471aa",
@@ -107,11 +107,11 @@
       "finite_shot_rethink.json": "6829464abc77bc54",
       "folded_spectrum_validation.json": "3a92ee929cbdc7d1",
       "g1_structural_preconditioner.json": "f6a33f1aa225c4dd",
-      "h4_exact_trajectory.json": "44136fa355b3678a",
-      "krylov_width.json": "44136fa355b3678a",
+      "h4_exact_trajectory.json": "8e31b047847f5f33",
+      "krylov_width.json": "48170109e450c38d",
       "mapping_axis.json": "743c8d31eee9f441",
       "matched_h4.json": "d82558e8baf9548f",
-      "orbital_basis.json": "44136fa355b3678a",
+      "orbital_basis.json": "ec6acbd9c2a3f41a",
       "packed_bank_storage.json": "f6a33f1aa225c4dd",
       "packed_h2o_feasibility.json": "f6a33f1aa225c4dd",
       "phase14b_qwc_vs_fc.json": "7eea7d72de38ea0e",
@@ -146,8 +146,8 @@
     "examples": {
       "basis_only": null,
       "nested_in_subobject": "bank_policy_matrix.json",
-      "none": "clifford_hierarchy_beh2_v2.json",
-      "per_quantity_mapping": "fcidump_h4.json",
+      "none": null,
+      "per_quantity_mapping": "clifford_hierarchy_beh2_v2.json",
       "role_only": null,
       "role_with_nested_tier": "qr3b_instance_preflight.json",
       "top_level_tier": "bank_storage_ledger.json"
@@ -155,8 +155,8 @@
     "forms": {
       "basis_only": 0,
       "nested_in_subobject": 5,
-      "none": 5,
-      "per_quantity_mapping": 18,
+      "none": 0,
+      "per_quantity_mapping": 23,
       "role_only": 0,
       "role_with_nested_tier": 2,
       "top_level_tier": 17
@@ -221,7 +221,7 @@
     },
     "package_lines": 29000,
     "package_modules": 110,
-    "test_lines": 36795,
-    "test_modules": 152
+    "test_lines": 37528,
+    "test_modules": 155
   }
 }
