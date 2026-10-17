@@ -27,6 +27,19 @@ preferred-citation:
       value: "arXiv:2608.00560"
 references:
   - type: article
+    title: "clifford_qc: A Python Toolkit for Quantum Simulation"
+    authors:
+      - family-names: Utama
+        given-names: Ginanjar
+      - family-names: Dipojono
+        given-names: Hermawan Kresno
+    year: 2026
+    identifiers:
+      - type: doi
+        value: "10.48550/arXiv.2609.23059"
+      - type: other
+        value: "arXiv:2609.23059"
+  - type: article
     title: "DA-CASE: reusable measurements for adaptive quantum subspaces"
     authors:
       - family-names: Utama

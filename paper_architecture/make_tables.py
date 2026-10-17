@@ -54,6 +54,14 @@ R3C = RECORDS / "r3c_lih_full_cost.json"
 R3D = RECORDS / "r3d_qr3_refinement.json"
 R4A = RECORDS / "r4a_contextual_screen.json"
 G1 = RECORDS / "g1_structural_preconditioner.json"
+BANK_POLICY = RECORDS / "bank_policy_matrix.json"
+PHASE19 = RECORDS / "phase19_energy_comparison.json"
+PHASE19_CONFIG = BENCHMARKS / "configs" / "phase19_energy_comparison.json"
+SECOND_MOMENT = RECORDS / "second_moment_validation.json"
+FOLDED = RECORDS / "folded_spectrum_validation.json"
+RESIDUAL_QWC = RECORDS / "phase15_residual_successor.json"
+RESIDUAL_FC = RECORDS / "phase15_fc_residual.json"
+ANNOTATIONS = BENCHMARKS / "evidence" / "annotations"
 
 TABLE_SOURCES: dict[str, tuple[Path, ...]] = {
     "layers.tex": (CENSUS,),
@@ -64,11 +72,35 @@ TABLE_SOURCES: dict[str, tuple[Path, ...]] = {
     "cost.tex": (PROTOCOL_COST,),
     "qr3.tex": (MAPPING_AXIS, R3C, R3D),
     "r4a.tex": (R4A,),
+    "storage_policy.tex": (BANK_POLICY,),
+    "phase19.tex": (PHASE19,),
     "numbers.tex": (
         CENSUS, HIER_H4, HIER_BEH2, PHASE14B, PROTOCOL_COST,
-        MAPPING_AXIS, R3C, R3D, R4A, G1,
+        MAPPING_AXIS, R3C, R3D, R4A, G1, BANK_POLICY, PHASE19, PHASE19_CONFIG,
+        SECOND_MOMENT, FOLDED, RESIDUAL_QWC, RESIDUAL_FC,
     ),
 }
+
+# Typeset names for the molecular systems the newer records key by identifier.
+# A record that introduces an identifier missing here stops the generator, so a
+# new system is named deliberately rather than printed as a raw key.
+SYSTEM_LABELS = {
+    "h4": "H$_4$",
+    "lih": "LiH",
+    "beh2": "BeH$_2$",
+    "beh2_stretched": "BeH$_2$, stretched",
+    "h2o": "H$_2$O",
+    "h2o_stretched": "H$_2$O, stretched",
+}
+
+
+def _system(identifier: str) -> str:
+    try:
+        return SYSTEM_LABELS[identifier]
+    except KeyError:
+        raise SystemExit(
+            f"no typeset name for system {identifier!r} in "
+            "make_tables.SYSTEM_LABELS") from None
 
 # ---------------------------------------------------------------------------
 # The declared architecture: which module belongs to which layer.
@@ -128,7 +160,7 @@ def _layer_of(relative: Path) -> str:
 # ---------------------------------------------------------------------------
 # The declared evidence contract: what each gate in benchmarks/ asserts.
 #
-# ARCHITECTURE.md states that the 42 producers and the check_*.py gates are not
+# ARCHITECTURE.md states that the producers and the check_*.py gates are not
 # two views of one list.  These classes are that statement in machine-readable
 # form; ``gate_census`` refuses to emit a table unless the classes cover every
 # check_*.py on disk exactly once.
@@ -515,6 +547,7 @@ def record_census() -> dict:
         "none": [],
     }
     series: list[str] = []
+    annotated: list[str] = []
     tiers: dict[str, int] = {}
     declarations: dict[str, str] = {}
     for path in sorted(RECORDS.iterdir()):
@@ -525,6 +558,8 @@ def record_census() -> dict:
         # the original measured files and their execution identities.
         from benchmarks.evidence_metadata import evidence_view
         payload = evidence_view(path, root=ROOT)
+        if (ANNOTATIONS / f"{path.name}.evidence.json").exists():
+            annotated.append(path.name)
         form = _declaration_form(payload)
         forms[form].append(path.name)
         declarations[path.name] = _declaration_digest(payload)
@@ -543,6 +578,7 @@ def record_census() -> dict:
         },
         "distinct_top_level_tiers": len(tiers),
         "top_level_tiers": dict(sorted(tiers.items())),
+        "annotated_records": annotated,
         "declarations": declarations,
     }
 
@@ -842,6 +878,241 @@ def r4a_table() -> None:
     _write("r4a.tex", rows)
 
 
+# The four storage arms in the order the coefficient-storage section reads
+# them: the default first, then each departure from it alone, then both.
+POLICY_ARMS = ("object_retain", "packed_retain", "object_stream", "packed_stream")
+GIB = float(1 << 30)
+
+
+def _policy_matrix() -> tuple[list[str], dict[tuple[str, str], dict]]:
+    """The process-isolated policy matrix, keyed by (system, arm).
+
+    The coefficient-storage section says that every arm reproduces the same
+    calculation and that the default arm is the fastest everywhere.  Those are
+    statements about this record, so they are asserted here: a record that no
+    longer supports them stops the generator instead of typesetting a sentence
+    the numbers beside it contradict.
+    """
+    record = json.loads(BANK_POLICY.read_text(encoding="utf-8"))
+    if record.get("verdict") != "VALID":
+        raise SystemExit("bank_policy_matrix.json is not a VALID record")
+    systems: list[str] = []
+    cells: dict[tuple[str, str], dict] = {}
+    for cell in record["cells"]:
+        if cell["status"] != "completed":
+            raise SystemExit(
+                f"policy cell {cell['system']}/{cell['arm'][0]} did not complete")
+        if cell["system"] not in systems:
+            systems.append(cell["system"])
+        cells[(cell["system"], cell["arm"][0])] = cell
+    for system in systems:
+        arms = [cells.get((system, arm)) for arm in POLICY_ARMS]
+        if any(cell is None for cell in arms):
+            raise SystemExit(f"policy matrix lacks an arm for {system}")
+        reference = arms[0]["scientific"]
+        for cell in arms[1:]:
+            scientific = cell["scientific"]
+            if scientific != reference:
+                raise SystemExit(
+                    f"policy arms disagree on {system}; the storage section "
+                    "states that they reproduce one calculation")
+        walls = [cell["parent"]["wall_seconds"] for cell in arms]
+        if min(walls) != walls[0]:
+            raise SystemExit(
+                f"object retain is not the fastest arm on {system}; the "
+                "storage section states that it is")
+    return systems, cells
+
+
+def _peak_gib(cell: dict) -> float:
+    """The worker's own kernel high-water RSS, the peak a sampler can miss."""
+    return cell["costs"]["worker_high_water_rss_bytes"] / GIB
+
+
+def storage_policy_table() -> None:
+    systems, cells = _policy_matrix()
+    rows = []
+    for system in systems:
+        first = cells[(system, POLICY_ARMS[0])]
+        peaks = " & ".join(
+            _num(_peak_gib(cells[(system, arm)]), 2) for arm in POLICY_ARMS)
+        walls = " & ".join(
+            _num(cells[(system, arm)]["parent"]["wall_seconds"] / 60.0, 2)
+            for arm in POLICY_ARMS)
+        rows.append(
+            f"{_system(system)} & {_int(len(first['scientific']['labels']))} & "
+            f"{peaks} & {walls} \\\\")
+    _write("storage_policy.tex", rows)
+
+
+def _policy_savings(systems: list[str], cells: dict, arm: str) -> list[float]:
+    """Peak-RSS reduction of one arm against object retain, per system.
+
+    H4 is left out by name: its four observed peaks sit within a few per cent
+    of one another. Process peaks do not attribute memory to components.
+    """
+    savings = []
+    for system in systems:
+        if system == "h4":
+            continue
+        base = _peak_gib(cells[(system, "object_retain")])
+        savings.append(1.0 - _peak_gib(cells[(system, arm)]) / base)
+    return savings
+
+
+def _phase19() -> dict:
+    """The clique comparison, with the prose's reading of it asserted.
+
+    The subsection describes each instance's direction in words -- which arm
+    has more settings, which certifies sooner, where the slow-gate card turns a
+    shot saving into a time loss and where the sparse card refuses the clique
+    arm.  Those words carry no macro, so the pattern is checked here instead.
+    """
+    record = json.loads(PHASE19.read_text(encoding="utf-8"))
+    if record.get("verdict") != "VALID":
+        raise SystemExit("phase19_energy_comparison.json is not a VALID record")
+    if len(record["shot_decisions"]) != len(record["banks"]):
+        raise SystemExit("phase19 record pairs no decision with each bank")
+    arms: dict[str, dict[str, dict]] = {}
+    two_qubit: dict[str, dict[str, int]] = {}
+    for bank in record["banks"]:
+        system = bank["structural_bank"]["id"]
+        arms[system] = {arm["name"]: arm for arm in bank["arms"]}
+        two_qubit[system] = {
+            arm["name"]: sum(s["resources"]["n_2q"] for s in arm["settings"])
+            for arm in bank["structural_bank"]["arms"]}
+
+    def settings(system: str, name: str) -> int:
+        return len(arms[system][name]["laws"])
+
+    def endpoint(system: str, name: str) -> float:
+        arm = arms[system][name]
+        return math.inf if arm["right_censored"] else arm["certified_endpoint"]
+
+    def price(system: str, name: str, card: str):
+        report = next(r for r in arms[system][name]["device_reports"]
+                      if r["card"] == card)
+        return report
+
+    claims = {
+        "the clique arm certifies on H4 with fewer settings where QWC is censored":
+            (arms["h4"]["qwc"]["right_censored"]
+             and not arms["h4"]["clique"]["right_censored"]
+             and settings("h4", "clique") < settings("h4", "qwc")),
+        "on LiH the clique arm has more settings and needs more shots":
+            (settings("lih", "clique") > settings("lih", "qwc")
+             and endpoint("lih", "clique") > endpoint("lih", "qwc")),
+        "on BeH2 the clique arm has more settings and needs fewer shots":
+            (settings("beh2", "clique") > settings("beh2", "qwc")
+             and endpoint("beh2", "clique") < endpoint("beh2", "qwc")),
+        "clique settings carry entangling gates and QWC settings carry none":
+            all(counts["clique"] > 0 and counts["qwc"] == 0
+                for counts in two_qubit.values()),
+        "the slow-gate card prices the clique arm above QWC wherever both are priced":
+            all(price(s, "clique", "ion-like")["C_time_epsilon_us"]
+                > price(s, "qwc", "ion-like")["C_time_epsilon_us"]
+                for s in arms
+                if price(s, "clique", "ion-like")["status"] == "priced"
+                and price(s, "qwc", "ion-like")["status"] == "priced"),
+        "the sparse card refuses the clique arm on exactly H4 and LiH":
+            {s for s in arms
+             if not price(s, "clique", "superconducting-like")["admissible"]}
+            == {"h4", "lih"},
+    }
+    broken = [claim for claim, holds in claims.items() if not holds]
+    if broken:
+        raise SystemExit(
+            "the phase19 record no longer supports the clique subsection: "
+            + "; ".join(broken))
+    return record
+
+
+PHASE19_CARDS = ("logical-alltoall", "ion-like", "superconducting-like")
+
+
+def _phase19_declaration(record: dict) -> dict:
+    """Bind reported confidence and decision settings to the executed design."""
+    config = json.loads(PHASE19_CONFIG.read_text(encoding="utf-8"))
+    payload = json.dumps(config, sort_keys=True, separators=(",", ":"),
+                         ensure_ascii=True, allow_nan=False).encode("utf-8")
+    if hashlib.sha256(payload).hexdigest() != record["declaration_sha256"]:
+        raise SystemExit("phase19 record and declaration disagree")
+    return config
+
+
+def phase19_table() -> None:
+    """Anticommuting cliques against QWC on three fixed reference energies.
+
+    The two-qubit column is summed over the compiled settings, so the table
+    shows what a clique buys its settings with.  Device prices are per card and
+    per instance; a censored arm has no price, and an inadmissible one keeps
+    its status instead of a number.
+    """
+    record = _phase19()
+    rows = []
+    for index, (bank, decision) in enumerate(
+            zip(record["banks"], record["shot_decisions"])):
+        structural = bank["structural_bank"]
+        compiled = {arm["name"]: arm for arm in structural["arms"]}
+        for position, arm in enumerate(bank["arms"]):
+            settings = compiled[arm["name"]]["settings"]
+            two_qubit = sum(item["resources"]["n_2q"] for item in settings)
+            grid_top = arm["endpoints"][-1]["effective_shots"]
+            if arm["right_censored"]:
+                endpoint = rf"$>${_pow2(grid_top)}"
+            else:
+                endpoint = _pow2(arm["certified_endpoint"])
+            reports = {report["card"]: report for report in arm["device_reports"]}
+            prices = []
+            for card in PHASE19_CARDS:
+                report = reports[card]
+                if report["status"] == "right_censored":
+                    prices.append("censored")
+                elif not report["admissible"]:
+                    prices.append("inadmissible")
+                else:
+                    prices.append(_sec(report["C_time_epsilon_us"]))
+            label = _system(structural["id"]) if position == 0 else ""
+            verdict = (decision.lower()
+                       .replace("_censored_baseline", ", censored baseline")
+                       .replace("_", " ") if position == 0 else "")
+            name = "QWC" if arm["name"] == "qwc" else "clique"
+            rows.append(
+                f"{label} & {name} & {_int(len(settings))} & {_int(two_qubit)} & "
+                f"{endpoint} & {' & '.join(prices)} & {verdict} \\\\")
+        if index + 1 < len(record["banks"]):
+            rows.append(r"\colrule")
+    _write("phase19.tex", rows)
+
+
+def _residual_ratios(path: Path) -> tuple[int, list[float], list[float]]:
+    """Declared and alternative residual-to-energy shot ratios, per bank."""
+    record = json.loads(path.read_text(encoding="utf-8"))
+    if record["decision"]["verdict"] != "NONE":
+        raise SystemExit(
+            f"{path.name} no longer reads NONE; the negative-results section "
+            "states that it does")
+    declared, alternative = [], []
+    for bank in record["banks"].values():
+        for protocol in bank["protocols"].values():
+            target = declared if protocol["role"] == "declared" else alternative
+            target.append(protocol["cost_ratio"])
+    return len(record["banks"]), declared, alternative
+
+
+def _declared_by_bank(path: Path) -> dict[str, float]:
+    record = json.loads(path.read_text(encoding="utf-8"))
+    return {
+        name: next(p["cost_ratio"] for p in bank["protocols"].values()
+                   if p["role"] == "declared")
+        for name, bank in record["banks"].items()}
+
+
+def _ratio(value: float) -> str:
+    """A shot ratio: one decimal near the bar, a thousands-grouped integer far past it."""
+    return _int(value) if value >= 1000 else _num(value, 1)
+
+
 # ---------------------------------------------------------------------------
 # Inline numbers
 # ---------------------------------------------------------------------------
@@ -878,6 +1149,53 @@ def numbers_macros(census: dict) -> None:
         "by_arm"]["jw"]
     structural = mapping["qr3"]["structural"]["qwc_settings_matched_greedy"]
 
+    policy_systems, policy_cells = _policy_matrix()
+    pack_saving = _policy_savings(policy_systems, policy_cells, "packed_retain")
+    stream_saving = _policy_savings(policy_systems, policy_cells, "object_stream")
+    both_saving = _policy_savings(policy_systems, policy_cells, "packed_stream")
+    h4_peaks = [_peak_gib(policy_cells[("h4", arm)]) for arm in POLICY_ARMS]
+
+    p19 = _phase19()
+    p19_config = _phase19_declaration(p19)
+    p19_targets = {
+        report["epsilon_hartree"]
+        for bank in p19["banks"] for arm in bank["arms"]
+        for report in arm["device_reports"]}
+    if len(p19_targets) != 1:
+        raise SystemExit("phase19 device reports disagree on the target")
+    p19_looks = {len(arm["endpoints"])
+                 for bank in p19["banks"] for arm in bank["arms"]}
+    if len(p19_looks) != 1:
+        raise SystemExit("phase19 arms disagree on the number of looks")
+
+    second_moment = json.loads(SECOND_MOMENT.read_text(encoding="utf-8"))
+    folded = json.loads(FOLDED.read_text(encoding="utf-8"))
+    validated = {
+        name for name, status in second_moment["summary"]["bank_statuses"].items()
+        if status == "VALIDATED"}
+    folded_validated = {
+        name for name, status in folded["summary"]["bank_statuses"].items()
+        if status == "VALIDATED"}
+    if validated != folded_validated or not second_moment["summary"]["all_validated"]:
+        raise SystemExit(
+            "the second-moment and folded-spectrum validations no longer cover "
+            "the same banks, which the residual subsection states they do")
+    qwc_banks, qwc_ratios, _ = _residual_ratios(RESIDUAL_QWC)
+    fc_banks, fc_ratios, fc_alternative = _residual_ratios(RESIDUAL_FC)
+    residual_bar = {
+        json.loads(path.read_text(encoding="utf-8"))["statistic"]["max_ratio"]
+        for path in (RESIDUAL_QWC, RESIDUAL_FC)}
+    if len(residual_bar) != 1:
+        raise SystemExit("the two residual records disagree on their bar")
+    bar = next(iter(residual_bar))
+    if min(qwc_ratios + fc_ratios + fc_alternative) <= bar:
+        raise SystemExit("a residual ratio reaches the bar the prose says none reaches")
+    qwc_by_bank = _declared_by_bank(RESIDUAL_QWC)
+    fc_by_bank = _declared_by_bank(RESIDUAL_FC)
+    if any(ratio >= qwc_by_bank[bank] for bank, ratio in fc_by_bank.items()):
+        raise SystemExit(
+            "fully commuting grouping no longer lowers every residual ratio")
+
     macros: dict[str, str] = {
         # Sec. II -- the package as measured
         "cqcModules": _int(source["package_modules"]),
@@ -897,7 +1215,13 @@ def numbers_macros(census: dict) -> None:
         "cqcGatesAutomatic": _int(gates["run_on_every_pull_request"]),
         "cqcGatesDispatch": _int(gates["manual_dispatch_only"]),
         "cqcGatesAbsent": _int(len(gates["absent_from_workflow"])),
+        "cqcGatesPrereg": _int(gates["classes"]["Preregistration"]),
+        "cqcGatesPostHoc": _int(gates["classes"]["Post-hoc declaration"]),
+        "cqcGatesReplay": _int(gates["classes"]["Exact trajectory replay"]),
+        "cqcGatesLineage": _int(gates["classes"]["Lineage and environment"]),
+        "cqcGatesCrossArtifact": _int(gates["classes"]["Cross-artifact"]),
         "cqcJsonRecords": _int(records["json_records"]),
+        "cqcRecordsAnnotated": _int(len(records["annotated_records"])),
         "cqcSeriesFiles": _int(records["series_files"]),
         "cqcRecordsLabelled": _int(records["forms"]["top_level_tier"]),
         "cqcRecordsRoleWithNested": _int(
@@ -995,6 +1319,34 @@ def numbers_macros(census: dict) -> None:
             g1["gate_outcomes"]["e_marginal_by_pool"]["majorana_monomials"][0]),
         "cqcGOneExcitation": _int(
             g1["gate_outcomes"]["e_marginal_by_pool"]["determinant_excitations"][0]),
+        # Coefficient storage -- the process-isolated policy matrix
+        "cqcPolicySystems": _int(len(policy_systems)),
+        "cqcPolicyArms": _int(len(POLICY_ARMS)),
+        "cqcPackSaveMin": _pct(min(pack_saving), 0),
+        "cqcPackSaveMax": _pct(max(pack_saving), 0),
+        "cqcStreamSaveMin": _pct(min(stream_saving), 0),
+        "cqcStreamSaveMax": _pct(max(stream_saving), 0),
+        "cqcBothSaveMin": _pct(min(both_saving), 0),
+        "cqcBothSaveMax": _pct(max(both_saving), 0),
+        "cqcHFourPolicySpread": _pct(1.0 - min(h4_peaks) / max(h4_peaks), 0),
+        # Residuals and folded roots, and the measured block that closed
+        "cqcResidualBanks": _int(len(validated)),
+        "cqcResidualBar": _int(bar),
+        "cqcResidualQWCBanks": _int(qwc_banks),
+        "cqcResidualQWCMin": _ratio(min(qwc_ratios)),
+        "cqcResidualQWCMax": _ratio(max(qwc_ratios)),
+        "cqcResidualFCBanks": _int(fc_banks),
+        "cqcResidualFCMin": _ratio(min(fc_ratios)),
+        "cqcResidualFCMax": _ratio(max(fc_ratios)),
+        "cqcResidualFCAltMin": _ratio(min(fc_alternative)),
+        "cqcResidualFCAltMax": _ratio(max(fc_alternative)),
+        # Anticommuting cliques on fixed reference energies
+        "cqcPNineteenSystems": _int(len(p19["banks"])),
+        "cqcPNineteenLooks": _int(next(iter(p19_looks))),
+        "cqcPNineteenTarget": _num(1000.0 * next(iter(p19_targets)), 1),
+        "cqcPNineteenDelta": _num(p19_config["protocol"]["confidence"]["delta"], 2),
+        "cqcPNineteenReductionFactor": _int(
+            p19_config["acceptance"]["material_shot_reduction_factor"]),
     }
     rows = [rf"\newcommand{{\{name}}}{{{value}}}"
             for name, value in sorted(macros.items())]
@@ -1026,6 +1378,8 @@ def main(tables: Path | None = None, data: Path | None = None) -> Path:
         cost_table()
         qr3_table()
         r4a_table()
+        storage_policy_table()
+        phase19_table()
         numbers_macros(census)
         return target_tables
     finally:
