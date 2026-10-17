@@ -56,6 +56,7 @@ R4A = RECORDS / "r4a_contextual_screen.json"
 G1 = RECORDS / "g1_structural_preconditioner.json"
 BANK_POLICY = RECORDS / "bank_policy_matrix.json"
 PHASE19 = RECORDS / "phase19_energy_comparison.json"
+PHASE19_CONFIG = BENCHMARKS / "configs" / "phase19_energy_comparison.json"
 SECOND_MOMENT = RECORDS / "second_moment_validation.json"
 FOLDED = RECORDS / "folded_spectrum_validation.json"
 RESIDUAL_QWC = RECORDS / "phase15_residual_successor.json"
@@ -75,7 +76,7 @@ TABLE_SOURCES: dict[str, tuple[Path, ...]] = {
     "phase19.tex": (PHASE19,),
     "numbers.tex": (
         CENSUS, HIER_H4, HIER_BEH2, PHASE14B, PROTOCOL_COST,
-        MAPPING_AXIS, R3C, R3D, R4A, G1, BANK_POLICY, PHASE19,
+        MAPPING_AXIS, R3C, R3D, R4A, G1, BANK_POLICY, PHASE19, PHASE19_CONFIG,
         SECOND_MOMENT, FOLDED, RESIDUAL_QWC, RESIDUAL_FC,
     ),
 }
@@ -911,9 +912,7 @@ def _policy_matrix() -> tuple[list[str], dict[tuple[str, str], dict]]:
         reference = arms[0]["scientific"]
         for cell in arms[1:]:
             scientific = cell["scientific"]
-            if (scientific["labels"] != reference["labels"]
-                    or scientific["energy"] != reference["energy"]
-                    or scientific["stopped_reason"] != reference["stopped_reason"]):
+            if scientific != reference:
                 raise SystemExit(
                     f"policy arms disagree on {system}; the storage section "
                     "states that they reproduce one calculation")
@@ -949,9 +948,8 @@ def storage_policy_table() -> None:
 def _policy_savings(systems: list[str], cells: dict, arm: str) -> list[float]:
     """Peak-RSS reduction of one arm against object retain, per system.
 
-    H4 is left out by name: its four arms sit within a few per cent of one
-    another because the interpreter and preparation, not coefficient rows,
-    dominate a bank that small, and the section says so beside the range.
+    H4 is left out by name: its four observed peaks sit within a few per cent
+    of one another. Process peaks do not attribute memory to components.
     """
     savings = []
     for system in systems:
@@ -1030,6 +1028,16 @@ def _phase19() -> dict:
 
 
 PHASE19_CARDS = ("logical-alltoall", "ion-like", "superconducting-like")
+
+
+def _phase19_declaration(record: dict) -> dict:
+    """Bind reported confidence and decision settings to the executed design."""
+    config = json.loads(PHASE19_CONFIG.read_text(encoding="utf-8"))
+    payload = json.dumps(config, sort_keys=True, separators=(",", ":"),
+                         ensure_ascii=True, allow_nan=False).encode("utf-8")
+    if hashlib.sha256(payload).hexdigest() != record["declaration_sha256"]:
+        raise SystemExit("phase19 record and declaration disagree")
+    return config
 
 
 def phase19_table() -> None:
@@ -1148,6 +1156,7 @@ def numbers_macros(census: dict) -> None:
     h4_peaks = [_peak_gib(policy_cells[("h4", arm)]) for arm in POLICY_ARMS]
 
     p19 = _phase19()
+    p19_config = _phase19_declaration(p19)
     p19_targets = {
         report["epsilon_hartree"]
         for bank in p19["banks"] for arm in bank["arms"]
@@ -1335,6 +1344,9 @@ def numbers_macros(census: dict) -> None:
         "cqcPNineteenSystems": _int(len(p19["banks"])),
         "cqcPNineteenLooks": _int(next(iter(p19_looks))),
         "cqcPNineteenTarget": _num(1000.0 * next(iter(p19_targets)), 1),
+        "cqcPNineteenDelta": _num(p19_config["protocol"]["confidence"]["delta"], 2),
+        "cqcPNineteenReductionFactor": _int(
+            p19_config["acceptance"]["material_shot_reduction_factor"]),
     }
     rows = [rf"\newcommand{{\{name}}}{{{value}}}"
             for name, value in sorted(macros.items())]

@@ -11,6 +11,8 @@ import sys
 import tempfile
 from pathlib import Path
 
+import pytest
+
 ROOT = Path(__file__).resolve().parent.parent
 PAPER = ROOT / "paper_architecture"
 sys.path.insert(0, str(PAPER))
@@ -157,6 +159,40 @@ def test_description_is_not_a_census_count():
     body = ("The screen is one bank under one set of declared gates, on "
             "eight-qubit banks, and the two labels sit in one file.")
     assert check_manuscript.spelled_counts(_manuscript(body)) == []
+
+
+# --- new manuscript claims must retain their scientific scope --------------
+def test_policy_equivalence_rejects_a_changed_history_with_the_same_final_energy(
+        tmp_path, monkeypatch):
+    record = json.loads(make_tables.BANK_POLICY.read_text(encoding="utf-8"))
+    # Matching the endpoint alone cannot support a claim of identical histories.
+    record["cells"][1]["scientific"]["energy_history"][0] = "-0x1.0p+0"
+    path = tmp_path / "policy.json"
+    path.write_text(json.dumps(record), encoding="utf-8")
+    monkeypatch.setattr(make_tables, "BANK_POLICY", path)
+    with pytest.raises(SystemExit, match="policy arms disagree"):
+        make_tables._policy_matrix()
+
+
+def test_phase19_declaration_matches_the_executed_record():
+    record = json.loads(make_tables.PHASE19.read_text(encoding="utf-8"))
+    config = make_tables._phase19_declaration(record)
+    assert config["schema"] == "clifford_qc.phase19_energy_comparison_config.v1"
+
+
+@pytest.mark.parametrize("section,key", [
+    ("confidence", "delta"), ("acceptance", "material_shot_reduction_factor"),
+])
+def test_phase19_rejects_reporting_a_different_design(tmp_path, monkeypatch, section, key):
+    record = json.loads(make_tables.PHASE19.read_text(encoding="utf-8"))
+    config = json.loads(make_tables.PHASE19_CONFIG.read_text(encoding="utf-8"))
+    target = config["protocol"][section] if section == "confidence" else config[section]
+    target[key] *= 2
+    path = tmp_path / "design.json"
+    path.write_text(json.dumps(config), encoding="utf-8")
+    monkeypatch.setattr(make_tables, "PHASE19_CONFIG", path)
+    with pytest.raises(SystemExit, match="record and declaration disagree"):
+        make_tables._phase19_declaration(record)
 
 
 # --- the CI split is read from the workflow, not declared ------------------

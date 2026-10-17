@@ -20,12 +20,16 @@ diffing the two versions:
 - **New subsection, Residuals and folded-spectrum roots.** The second-moment
   block `K`, the true Ritz residual with its resolution floor, folded-spectrum
   roots with refined Ritz vectors, and the target and Weinstein inclusion
-  intervals (which hold *some* eigenvalue, not a named one). Validated against
-  dense oracles on the licensed banks; exact pairings only.
+  intervals (which hold *some* eigenvalue, not a named one, in exact arithmetic).
+  The numerical resolution allowance is distinguished from a verified
+  floating-point enclosure. Validated against dense oracles on the licensed
+  banks; exact pairings only. Refined Ritz vectors cite Jia's original work.
 - **New measurement result, anticommuting cliques** (Table IX). The
   preregistered fixed-reference energy comparison against QWC on three
   eight-qubit banks: one censored-baseline reduction, one no-reduction, one
-  reduction, and device prices that split again by card.
+  reduction, and device prices that split again by card. The text defines the
+  material-reduction threshold, simultaneous confidence scope, independent
+  grid looks, effective shots, and endpoint-only pricing.
 - **New negative result, the measured residual block.** Two post-hoc
   declarations price the residual against the energy under uniform QWC and
   fully commuting grouping; both read `NONE`, which is why no finite-shot
@@ -33,7 +37,9 @@ diffing the two versions:
 - **Coefficient storage now measured.** The process-isolated policy matrix
   (Table V) replaces v1's statement that the profiles established no
   process-memory reduction: on the four larger inputs, packing and streaming
-  lower observed peak process memory while object retain stays fastest.
+  lower observed peak process memory while object retain stays fastest. The
+  molecular walkthrough now agrees with that result; process peaks are not
+  used to infer which component dominates the smallest input's memory.
 - **Capabilities brought up to date.** Sparse exterior operations in the
   kernel; exchange/CEO pools and shared-unitary multi-root ADAPT in exact
   sectors; time-evolved QSCI input; the fragment-solver callback; the
@@ -121,9 +127,9 @@ Both at the Department of Engineering Physics, Institut Teknologi Bandung.
 
 **Abstract** — paste `arxiv/abstract.txt` verbatim; a replacement may change
 the abstract, and v2's does. It is derived from the manuscript, so it cannot
-drift from the typeset one. It is now about 1880 characters against arXiv's
-1920-character limit — close, so any further addition to the abstract needs a
-matching cut — and `make_arxiv.py` fails if a revision pushes it over.
+drift from the typeset one. `make_arxiv.py --check` reports its character count
+and fails if a revision exceeds the form limit; use that generated count
+instead of maintaining another approximate count here.
 
 **Categories**
 

@@ -84,34 +84,30 @@ Bandung, Indonesia}
 \affiliation{Department of Engineering Physics, Institut Teknologi Bandung,
 Bandung, Indonesia}
 
-\date{September 19, 2026; revised October 16, 2026}
+\date{September 19, 2026; revised October 17, 2026}
 
 \begin{abstract}
 \pkg{} is a Python research toolkit for constructing quantum models, comparing
 variational and subspace eigensolvers, and estimating measurement resources.
 A common sparse Pauli algebra connects Hamiltonians, density operators, gates,
-and candidate-selection observables, while dedicated interfaces handle circuit
-programs, execution, and statistical estimates. We introduce the representation
-with a worked gradient example and trace a molecular calculation through
-reusable model preparation, an independent solve, and optional reference
-validation. Shared measurement caches reuse outcomes across observables on the
-same reference state, and a second-moment block adds exact Ritz residuals and
-folded-spectrum roots. Packed coefficient storage and streaming expose a
-memory--recomputation tradeoff, measured in isolated processes. Committed
-small-system benchmarks show how these interfaces support comparisons with
-explicit accuracy and cost assumptions. Fully commuting measurement reduces the
-shots needed to certify a fixed first-order energy functional, but
-entangling-gate time and connectivity can offset the saving or make the
-protocol inadmissible under illustrative device models; anticommuting cliques
-reduce the shots for a fixed reference energy on some instances and not others.
-Other studies identify a subspace bias floor that more shots cannot remove, an
-indeterminate comparison of fermionic encodings across instances, an
-approximate-restriction screen whose required comparison fails before sampling,
-and a residual estimator too costly to measure at either grouping endpoint. Generated
-tables, provenance records, a versioned evidence contract, and manuscript checks
-connect the reported claims to their inputs. The package supports reproducible
-method development; these results establish neither hardware performance nor a
-general simulation speedup.
+and candidate-selection observables; dedicated interfaces handle circuits,
+execution, and statistical estimates. A worked gradient example illustrates
+shared measurements, and a molecular workflow separates reusable preparation,
+solving, and reference validation. Matrix-element banks support virtual
+subspaces, exact Ritz residuals, and folded-spectrum roots. Process-isolated
+benchmarks show that packed coefficients and streaming reduce observed peak
+memory on the larger tested inputs at increased runtime. Measurement studies
+separate setting counts, shot requirements, and device cost: fully commuting
+readout certifies a fixed first-order Ritz functional with fewer shots, while
+anticommuting cliques help some fixed reference energies and not others.
+Entangling-gate time and connectivity can offset shot savings or make a
+protocol inadmissible under illustrative device models. Further studies expose
+subspace bias, indeterminate encoding comparisons, failed approximate-restriction
+screens, and high residual-measurement costs under the tested uniform
+allocations. Generated tables, provenance records, a versioned evidence
+contract, and manuscript checks connect claims to their inputs. These
+small-system results support reproducible method development and establish
+neither hardware performance nor a general simulation speedup.
 \end{abstract}
 
 \keywords{quantum simulation software; variational quantum eigensolver;
@@ -394,16 +390,19 @@ subspace error from measurement error before introducing a device cost model.
 \subsection{Residuals and folded-spectrum roots}
 \label{sec:residuals}
 
-A solved Ritz pair has zero \emph{projected} residual by construction, so the
-pair $(S,H)$ cannot say how far a Ritz state is from an eigenstate, and an
-adaptive stopping reason describes the candidate pool rather than convergence.
-The true residual needs one more block on the same reference,
+For an unregularized Ritz solve, the residual is orthogonal to the retained
+span in exact arithmetic. A small \emph{projected} residual therefore does not
+establish a small full-space residual, and an adaptive stopping reason alone
+does not establish eigenstate convergence. The pair $(S,H)$ must be supplemented
+by a second-moment block on the same reference,
 \begin{equation}
  K_{ij}=\avg{\psi|A_i^\dagger H^2 A_j|\psi},
  \label{eq:second-moment}
 \end{equation}
 which \texttt{SecondMomentBank} builds from the bank's projected-observable rows
-for $H^2$. For $\ket{\Psi}=\sum_j c_j A_j\ket{\psi}$ and a real target
+for $H^2$. Squaring the projected Hamiltonian would discard excursions outside
+the span and cannot supply this diagnostic. For a nonzero
+$\ket{\Psi}=\sum_j c_j A_j\ket{\psi}$ and a real target
 $\omega$,
 \begin{align}
  \mu(\omega)&=\frac{\lVert(H-\omega)\Psi\rVert^2}{\avg{\Psi|\Psi}}
@@ -412,24 +411,32 @@ $\omega$,
  \label{eq:folded}
 \end{align}
 At the Rayleigh quotient $E$ this is the residual variance, $\sigma^2=\mu(E)$.
-Each of these quantities is a difference of terms of the order of
-$\avg{H^2}$, so it is reported signed and counts as resolved only above a
-fixed small multiple of its own cancellation scale; a rounded zero stays
-unresolved rather than becoming a converged residual. Before the block is built,
+More generally, $\mu(\omega)=\sigma^2+(E-\omega)^2$: the folded objective
+penalizes both variance and displacement from the target.
+The computed $\mu$ and $\sigma^2$ can suffer cancellation between large terms,
+so they are reported signed and count as resolved only above a fixed relative
+threshold times their cancellation scales. A rounded zero stays unresolved
+rather than becoming a converged residual. This threshold is a numerical
+convention, not a proved floating-point error bound. Before the block is built,
 a storage gate bounds its coefficient occurrences from support sizes alone;
 that is an admission rule, not a byte or peak-memory bound.
 
 The same three blocks give the projected folded-spectrum operator
-\cite{wang1994folded,cadi2024folded}. The lowest root of $F(\omega)c=\mu Sc$ is
-the state of the span closest, by residual, to an eigenstate with eigenvalue
-near $\omega$; refined Ritz vectors and a variance-minimizing iteration build on
-it, at the cost of one small generalized eigensolve per target and no new rows.
+\cite{wang1994folded,cadi2024folded}. The lowest root of $F(\omega)c=\mu Sc$
+minimizes $\mu(\omega)$ over the retained span; it need not identify the exact
+eigenstate nearest the target. Setting $\omega$ to a Ritz value gives a refined
+Ritz vector, a standard residual-minimizing construction \cite{jia1997refined}.
+Updating the target to the resulting Rayleigh energy gives a variance-minimizing
+iteration. Each target requires one small generalized eigensolve and no new rows.
 A folded solve keeps the span a Ritz solve with the same thresholds would keep,
 and it refuses an overlap ridge, which would change the metric. Because $\mu$ is
-a weighted mean of $(E_k-\omega)^2$ over the eigenvalues the state touches, some
+a weighted mean of $(E_k-\omega)^2$ over the eigenvalues the state touches, in
+exact arithmetic some
 eigenvalue lies within $\sqrt{\mu}$ of $\omega$ and, at the Rayleigh quotient,
 within $\sigma$ of $E$, the Weinstein interval \cite{weinstein1934modified}; the
-package widens both by their resolution floors. Neither interval says
+package adds the respective resolution allowance under each square root when
+reporting these intervals. This guards against cancellation under the stated
+numerical convention; it is not a verified numerical enclosure. Neither interval says
 \emph{which} eigenvalue it holds. A ground-state claim needs separately
 established spectral input, which convergence reports accept and never infer.
 
@@ -518,8 +525,9 @@ separately recorded time.
 The complete shell commands, input path, and output fields are documented
 in \texttt{molecular/PIPELINE.md}. Finite-shot methods, other eigensolvers,
 and multi-root adaptation use Python interfaces rather than this CLI.
-The storage profiles are small-system measurements; they establish neither
-a production molecular speedup nor a process-memory reduction.
+The process-isolated storage measurements in Sec.~\ref{sec:storage} quantify a
+peak-memory reduction on the larger tested inputs at increased runtime. They
+establish no production molecular speedup or asymptotic scaling advantage.
 
 \section{Architecture}
 \label{sec:architecture}
@@ -804,16 +812,17 @@ improvement, and the retain-all object path remains the default.
 Table~\ref{tab:storage} measures these choices directly. Each of the
 \cqcPolicyArms{} arms runs on \cqcPolicySystems{} fixed molecular inputs in its
 own process, so no arm inherits another's allocator state. Every arm reproduces
-the same selected labels, energies and stopping reasons, and an independent
+the same selected labels, energy histories and stopping reasons, and an independent
 checker rebuilds the final projected pencils by direct products. Leaving out
-H$_4$, whose arms differ by at most \cqcHFourPolicySpread{} because the
-interpreter and preparation dominate a bank that small, packing alone lowers
+H$_4$, whose observed peaks differ by at most \cqcHFourPolicySpread{}, packing alone lowers
 the observed peak process memory by \cqcPackSaveMin{}--\cqcPackSaveMax{},
 streaming object rows by \cqcStreamSaveMin{}--\cqcStreamSaveMax{}, and both
 together by \cqcBothSaveMin{}--\cqcBothSaveMax{}. These are separate measured
 outcomes, not factors that multiply. The default object-retain arm is the
 fastest on every system: packing and streaming buy memory with time. The peaks
-are process observations, not an attribution to coefficient rows, and every arm
+are process observations, not an attribution to coefficient rows; the small
+separation on H$_4$ likewise does not identify which component dominates its
+memory. Every arm
 completed under the memory ceiling the campaign declared, so on these inputs
 neither option is needed for feasibility. The matrix establishes a measured
 memory--time trade on these \cqcPolicySystems{} inputs; it establishes no
@@ -980,7 +989,9 @@ than it saves in preparations.  Setting reduction alone therefore does not estab
   radius meets the target, and $>$ marks an arm censored at the top of the
   grid.  $C_{\mathrm{time}}(\epsilon)$ prices that endpoint under each
   illustrative card; a censored arm has no price, and an inadmissible one has no
-  runtime.  The decision is the record's own, per instance; nothing is
+  runtime. Prices cover the endpoint schedule, excluding other grid looks,
+  covariance audits, and classical compilation. The decision concerns effective
+  shots, per instance; nothing is
   pooled.}
   \label{tab:phase19}
   \footnotesize
@@ -1073,11 +1084,24 @@ else.
 
 The preregistered comparison in Table~\ref{tab:phase19} measures the energy
 of a fixed Hartree--Fock determinant for each of \cqcPNineteenSystems{}
-molecular Hamiltonians on eight qubits.  Both arms share one
+molecular Hamiltonians on eight qubits. Both arms share one
 outcome-independent allocation rule, \cqcPNineteenLooks{} looks on a fixed
 effective-shot grid, one empirical Bernstein family spanning every system, arm
-and look, and a \cqcPNineteenTarget{}~mHa target.  Outcomes are drawn from the exact reference
-states' measurement distributions, not from hardware.
+and look at a total failure probability of \cqcPNineteenDelta{}, and a
+\cqcPNineteenTarget{}~mHa target. Each look uses an independent schedule; the
+simultaneous bound permits reporting the first passing grid point without
+assuming an anytime guarantee. Effective shots count ideal measurement
+outcomes; device prices separately account for the cards' fidelity inflation.
+Outcomes are sampled classically from the exact reference states' measurement
+distributions, not from hardware. Because the reference energies are themselves
+classically available, this tests measurement protocols rather than a need for
+quantum computation to obtain those energies.
+
+The declared material-reduction rule requires at least a
+\cqcPNineteenReductionFactor{}-fold reduction in the certified grid endpoint.
+For a censored QWC baseline, the clique endpoint must be no greater than the
+grid ceiling divided by that factor. This is a fixed-grid comparison, not a
+continuous optimum or a statement about the total cost of running the campaign.
 
 The direction depends on the instance.  On H$_4$ the clique arm, with fewer
 settings, certifies inside the grid where the qubit-wise arm does not; on LiH it
@@ -1247,14 +1271,17 @@ comparison stopped after deterministic admission checks, avoiding a sampled
 campaign whose required arms already failed the stated conditions. This is a
 useful way to control experimental cost without weakening the comparison.
 
-\subsection{A residual estimator neither grouping endpoint affords}
+\subsection{Residual measurement exceeds the tested cost threshold}
 \label{sec:residual-closure}
 
 Section~\ref{sec:residuals} ships the residual as an exact pairing only.
 Whether a \emph{measured} second-moment block would be affordable was asked as a
 cost ratio: under uniform single-assignment allocation, the shots that estimate
 the ground Ritz root's residual norm over the shots that estimate its energy, at
-one matched standard error, to first order in the delta method.  A ratio within
+one matched standard error, to first order in the delta method. This
+linearization requires the uncertainty in $\sigma^2$ to be small relative to
+$\sigma^2$; it does not resolve a near-zero residual at arbitrary precision.
+A ratio within
 a factor of \cqcResidualBar{} would make the residual a by-product of measuring
 the energy well; beyond it, the residual is a measurement of its own.  Both
 designs that asked were declared post hoc --- the first after an earlier attempt
@@ -1270,7 +1297,8 @@ an alternative cover reads \cqcResidualFCAltMin{} to \cqcResidualFCAltMax{};
 none reaches the bar.  Both verdicts read \emph{none}: the uniform
 single-assignment measured block closes negative at both grouping endpoints the
 package ships, on these banks, and so the measurement layer carries no
-second-moment path.  The ratios are first-order costs computed from exact
+second-moment path. The threshold is the campaign's decision rule, not a
+physical impossibility bound. The ratios are first-order costs computed from exact
 reference variances rather than sampled data.  They say nothing about other
 allocations, estimators or banks, each of which would need its own declaration.
 
@@ -1349,38 +1377,29 @@ framework.
 \section{Reproducibility}
 \label{sec:reproducibility}
 
-Every empirical quantity in this manuscript, in the body text as well as in
-the tables, is generated from a committed record or from a live census of the source tree.  The
-prose quantities are macros written by the table generator, and the manuscript
-checker rejects any numeral typed into the body outside a short allowlist of
-conceptual notation --- a block size under discussion, a chemical subscript, the
-dimension of the algebra.  The generated fragments are checked by regenerating
-them during the check and comparing byte for byte, which is stronger than the
-content hashes they also carry: a hash over the inputs catches a record
-regenerated without rerunning the generator, but only regeneration catches a
-value edited into a fragment by hand.  A figure manifest binds each committed
-vector asset to its generator and input digests and records the asset's own
-checksum, so a replaced PDF fails the gate.  The gate does not compare a scratch
-render byte for byte, because plotting and font builds need not serialize the
-same paths identically.
+Every empirical quantity in the body and tables is generated from a committed
+record or a live census of the source tree. The manuscript checker rejects
+numerals outside a short allowlist of conceptual notation. It regenerates
+table fragments and compares them byte for byte, catching hand edits that an
+input hash alone would miss. A figure manifest binds each vector asset to its
+generator, input digests, and checksum. Scratch figure renders are not compared
+byte for byte because plotting and font builds can serialize the same paths
+differently.
 
-The numeral scan cannot see a count written as a word, and one such count went
-stale after the first version of this paper, so the checker also rejects a
-number word beside the nouns the census counts --- gates, producers, records,
-modules.  Where the prose states a pattern that a record must keep --- that every
-storage arm reproduces one calculation, that a residual verdict reads none, that
-a clique decision runs in the stated direction --- the generator asserts it and
-refuses to emit fragments the sentence would contradict.
+The checker also rejects number words beside the nouns the census counts ---
+gates, producers, records, modules. Where the prose states a pattern that a
+record must keep --- identical scientific trajectories across storage arms,
+negative residual verdicts, or the direction of a clique comparison --- the
+generator asserts it and refuses to emit contradictory fragments. The reported
+clique confidence level and decision threshold are generated from the frozen
+declaration, whose digest must match the executed record.
 
-Two checks exist specifically to keep this paper honest about the architecture
-it describes.  The layer census fails if any module of the package is not
-assigned to exactly one layer, and the gate census fails if any benchmark gate
-has no declared class.  Both would otherwise be the first tables to drift, being
-the ones no experiment rebuilds.  A third check requires the evidence-language
-commitments of this paper --- among them admissibility, the bias floor, the
-indeterminate verdicts, and the statement that the lifetime bound is not a
-total-process one --- to still be present in the body, so that a later edit
-cannot leave the abstract asserting a discipline the text has dropped.
+The layer census requires every package module to belong to exactly one layer;
+the gate census requires every benchmark gate to have a declared class.
+Evidence-language checks preserve statements about admissibility, the bias
+floor, indeterminate verdicts, and the limited scope of the lifetime bound.
+These checks detect structural and reporting drift; scientific correctness
+still depends on the independent validations and assumptions described above.
 
 \section{Use and distribution}
 \label{sec:discussion}

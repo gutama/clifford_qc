@@ -39,7 +39,11 @@ storage matrix is one host's observation rather than a bound.
   multi-root ADAPT in exact sectors, time-evolved QSCI input, the
   fragment-solver callback, the versioned evidence contract); regenerates the
   census; and corrects prose that had gone stale, including three
-  gate counts spelled out as words. [ARXIV.md](ARXIV.md) lists the changes for
+  gate counts spelled out as words. A subsequent manuscript review clarifies
+  the folded objective and numerical inclusion limits, the fixed-grid clique
+  decision and confidence family, and the scope of the residual-cost result;
+  it also removes a stale denial of the measured process-memory reduction.
+  [ARXIV.md](ARXIV.md) lists the changes for
   the replacement form.
 
 For package installation and runnable examples, start with the root
@@ -127,7 +131,7 @@ outside a short allowlist of conceptual notation.
 | Pool-filtering subsection | `g1_structural_preconditioner.json` |
 | Residuals subsection (bank count) | `second_moment_validation.json`, `folded_spectrum_validation.json` |
 | Storage-policy table and prose | `bank_policy_matrix.json` |
-| Anticommuting-clique table and prose | `phase19_energy_comparison.json` |
+| Anticommuting-clique table and prose | `phase19_energy_comparison.json`; confidence and material-reduction settings from `benchmarks/configs/phase19_energy_comparison.json`, digest-matched to that record |
 | Residual-closure subsection | `phase15_residual_successor.json`, `phase15_fc_residual.json` |
 | `tables/numbers.tex` (all prose quantities) | all of the above |
 
@@ -142,7 +146,7 @@ describes what each stage reads, writes and reuses rather than how fast it does
 so.
 
 Some prose states a pattern rather than a number: every storage arm reproduces
-one calculation and object retain is the fastest; both residual verdicts read
+the complete scientific trajectory (not only its final energy) and object retain is the fastest; both residual verdicts read
 `NONE` and fully commuting grouping lowers every ratio; each clique decision
 runs in the direction the subsection describes. `make_tables.py` asserts each of
 these against its record and refuses to generate if one no longer holds.
@@ -199,7 +203,10 @@ them.
 already been wrong once: an evidence *role* counted as a tier, a nested tier
 change that moved nothing the census compared, a hand-edited fragment that
 passed a check over its inputs, a rewrapped paragraph reported as a dropped
-evidence commitment, and the three spelled-out counts v1 shipped. Fault injection is still the quickest confirmation by
+evidence commitment, and the three spelled-out counts v1 shipped. It also
+rejects a changed storage history with an unchanged endpoint, or clique
+reporting settings taken from a declaration other than the executed one.
+Fault injection is still the quickest confirmation by
 hand: rename a module without assigning it a layer, drop a gate from the
 workflow, or type a number into a paragraph, and the checker names it.
 
