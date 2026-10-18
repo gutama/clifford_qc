@@ -109,7 +109,8 @@ from .second_moment_storage import (
 )
 from .convergence import (
     CONVERGENCE_SCHEMA, EXTRAPOLATION_SCHEMA, ConvergenceConfig, ConvergenceReport,
-    GroundStateReference, VarianceExtrapolationDiagnostic, convergence_report,
+    GroundStateReference, RITZ_CLUSTERS_SCHEMA, RitzCluster, RitzClusters,
+    VarianceExtrapolationDiagnostic, convergence_report, ritz_clusters,
     variance_extrapolation_diagnostic,
 )
 from .folded import (
@@ -128,6 +129,7 @@ __all__ = [
     "CONVERGENCE_SCHEMA", "EXTRAPOLATION_SCHEMA", "ConvergenceConfig", "ConvergenceReport",
     "GroundStateReference", "VarianceExtrapolationDiagnostic", "convergence_report",
     "variance_extrapolation_diagnostic",
+    "RITZ_CLUSTERS_SCHEMA", "RitzCluster", "RitzClusters", "ritz_clusters",
     "FOLDED_ROOT_SCHEMA", "VARIANCE_MINIMIZATION_SCHEMA", "FoldedRoot", "FoldedSpectrum",
     "FoldedSpectrumResult", "VarianceMinimization", "folded_spectrum_roots",
     "refined_ritz_root",
