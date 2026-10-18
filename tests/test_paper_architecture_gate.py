@@ -11,6 +11,8 @@ import sys
 import tempfile
 from pathlib import Path
 
+import pytest
+
 ROOT = Path(__file__).resolve().parent.parent
 PAPER = ROOT / "paper_architecture"
 sys.path.insert(0, str(PAPER))
@@ -114,6 +116,83 @@ def test_prose_scan_allows_conceptual_notation():
 def test_prose_scan_ignores_citation_and_label_digits():
     body = "As shown \\cite{peruzzo2014vqe} in Table~\\ref{tab:layers}."
     assert check_manuscript.prose_numerals(_manuscript(body)) == []
+
+
+def test_prose_scan_allows_second_moment_notation():
+    body = ("$K_{ij}=\\avg{\\psi|A_i^\\dagger H^2 A_j|\\psi}$ and "
+            "$F(\\omega)=K-2\\omega H+\\omega^2 S$ with $\\sigma^2=\\mu(E)$.")
+    assert check_manuscript.prose_numerals(_manuscript(body)) == []
+
+
+def test_prose_scan_still_rejects_a_squared_result():
+    """Allowing a square must not let the base of one through."""
+    found = check_manuscript.prose_numerals(
+        _manuscript("It needs $10^2$ more shots."))
+    assert [numeral for numeral, _ in found] == ["10"]
+
+
+def test_a_column_span_in_a_header_is_typesetting():
+    body = ("\\begin{tabular}{lrr}\n"
+            " & \\multicolumn{2}{c}{Peak memory (GiB)} \\\\\n"
+            "\\end{tabular}")
+    assert check_manuscript.prose_numerals(_manuscript(body)) == []
+
+
+# --- a count spelled out in words is still a count -------------------------
+def test_spelled_counts_from_the_first_version_are_rejected():
+    """These three went stale after v1 while every digit stayed generated."""
+    body = ("Five are preregistration gates: they rebuild nothing.  Three "
+            "further gates check lineage; and two compare records against "
+            "artifacts.")
+    assert check_manuscript.spelled_counts(_manuscript(body)) == [
+        "Five are preregistration gates", "Three further gates",
+        "two compare records"]
+
+
+def test_spelled_count_across_a_line_break_is_rejected():
+    body = "Of the rest, three\nlineage gates check the environment."
+    assert check_manuscript.spelled_counts(_manuscript(body)) == [
+        "three lineage gates"]
+
+
+def test_description_is_not_a_census_count():
+    body = ("The screen is one bank under one set of declared gates, on "
+            "eight-qubit banks, and the two labels sit in one file.")
+    assert check_manuscript.spelled_counts(_manuscript(body)) == []
+
+
+# --- new manuscript claims must retain their scientific scope --------------
+def test_policy_equivalence_rejects_a_changed_history_with_the_same_final_energy(
+        tmp_path, monkeypatch):
+    record = json.loads(make_tables.BANK_POLICY.read_text(encoding="utf-8"))
+    # Matching the endpoint alone cannot support a claim of identical histories.
+    record["cells"][1]["scientific"]["energy_history"][0] = "-0x1.0p+0"
+    path = tmp_path / "policy.json"
+    path.write_text(json.dumps(record), encoding="utf-8")
+    monkeypatch.setattr(make_tables, "BANK_POLICY", path)
+    with pytest.raises(SystemExit, match="policy arms disagree"):
+        make_tables._policy_matrix()
+
+
+def test_phase19_declaration_matches_the_executed_record():
+    record = json.loads(make_tables.PHASE19.read_text(encoding="utf-8"))
+    config = make_tables._phase19_declaration(record)
+    assert config["schema"] == "clifford_qc.phase19_energy_comparison_config.v1"
+
+
+@pytest.mark.parametrize("section,key", [
+    ("confidence", "delta"), ("acceptance", "material_shot_reduction_factor"),
+])
+def test_phase19_rejects_reporting_a_different_design(tmp_path, monkeypatch, section, key):
+    record = json.loads(make_tables.PHASE19.read_text(encoding="utf-8"))
+    config = json.loads(make_tables.PHASE19_CONFIG.read_text(encoding="utf-8"))
+    target = config["protocol"][section] if section == "confidence" else config[section]
+    target[key] *= 2
+    path = tmp_path / "design.json"
+    path.write_text(json.dumps(config), encoding="utf-8")
+    monkeypatch.setattr(make_tables, "PHASE19_CONFIG", path)
+    with pytest.raises(SystemExit, match="record and declaration disagree"):
+        make_tables._phase19_declaration(record)
 
 
 # --- the CI split is read from the workflow, not declared ------------------

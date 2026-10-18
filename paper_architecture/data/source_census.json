@@ -95,6 +95,16 @@
     "same_stem_pairs": 40
   },
   "records": {
+    "annotated_records": [
+      "clifford_hierarchy_beh2_v2.json",
+      "clifford_hierarchy_h4_v2.json",
+      "h4_exact_trajectory.json",
+      "krylov_width.json",
+      "orbital_basis.json",
+      "phase17_ceo.json",
+      "phase17_ceo_review.json",
+      "phase19_energy_comparison.json"
+    ],
     "declarations": {
       "bank_policy_matrix.json": "0cf13e3ba82330b7",
       "bank_storage_ledger.json": "f6a33f1aa225c4dd",
@@ -226,7 +236,7 @@
     },
     "package_lines": 29315,
     "package_modules": 113,
-    "test_lines": 38232,
+    "test_lines": 38311,
     "test_modules": 158
   }
 }

@@ -11,8 +11,9 @@ only worth making if something enforces them, so this gate checks:
   5.  every table row has the column count its preamble declares;
   6.  no numeric cell is typed into the manuscript instead of generated;
   7.  no numeral appears in the body prose outside the short allowlist of
-      conceptual notation, and every ``\\cqc`` macro used is defined and
-      every one defined is used;
+      conceptual notation, no count is spelled out as a word beside a noun the
+      census counts, and every ``\\cqc`` macro used is defined and every one
+      defined is used;
   8.  every generated fragment is byte-identical to what the generator
       produces right now, so a value edited by hand into a fragment fails here
       rather than typesetting;
@@ -71,8 +72,28 @@ CONCEPTUAL_NUMERALS = (
     r"P/2\)",                       # the rotor half-angle
     r"\\frac\{\\mathrm\{i\}\}\{2\}",   # its exact commutator normalization
     r"E_P'\(0\)",                    # derivative at the initial angle
+    r"\^2(?!\d)",                    # a square: H^2, \sigma^2, \omega^2
+    r"(?<!\d)2\\omega",              # the folded operator's cross term
     r"revtex4-2",
 )
+
+# Counts the census produces, spelled out as words.  The numeral scan cannot
+# see "Five are preregistration gates", and that sentence went stale after the
+# first version of this paper while every digit beside it stayed generated.  A
+# number word within two words of a counted noun is rejected; a qubit count or
+# "one bank" is description, not a census figure, and is left alone.
+NUMBER_WORDS = (
+    "one", "two", "three", "four", "five", "six", "seven", "eight", "nine",
+    "ten", "eleven", "twelve", "thirteen", "fourteen", "fifteen", "sixteen",
+    "seventeen", "eighteen", "nineteen", "twenty", "thirty", "forty", "fifty",
+    "sixty", "seventy", "eighty", "ninety", "hundred", "dozen",
+)
+COUNTED_NOUNS = ("gates", "gate", "producers", "producer", "records", "record",
+                 "modules", "module")
+SPELLED_COUNT = re.compile(
+    rf"\b({'|'.join(NUMBER_WORDS)})\b((?:[\s~]+[A-Za-z-]+){{0,2}}?)"
+    rf"[\s~]+({'|'.join(COUNTED_NOUNS)})\b",
+    re.IGNORECASE)
 
 # Statements the paper's argument depends on.  Losing one in an edit would
 # leave a claim in the abstract that the body no longer supports.
@@ -90,6 +111,13 @@ REQUIRED_PHRASES = (
     # process-level memory bound.  Losing this sentence would leave the paper
     # quoting a bound the implementation does not make.
     "not a total-process",
+    # The measured storage trade is one host's observation, not a bound.
+    "no universal memory bound",
+    # An inclusion interval holds an eigenvalue without naming it, so a small
+    # residual is not ground-state evidence on its own.
+    "eigenvalue it holds",
+    # Designs declared after outcomes were seen are named as such.
+    "post hoc",
 )
 
 
@@ -201,8 +229,10 @@ def _prose(text: str) -> str:
                     "bibliographystyle", "documentclass", "usepackage", "date"):
         body = re.sub(rf"\\{command}(?:\[[^\]]*\])?\{{[^}}]*\}}", " ", body)
     # A tabular preamble is typesetting, not a result: p{0.52\columnwidth} is
-    # a column width and must not be read as a hand-typed number.
+    # a column width and must not be read as a hand-typed number.  A column
+    # span in a header row is the same kind of typesetting.
     body = re.sub(r"\\begin\{tabular\}\s*\{(?:[^{}]|\{[^{}]*\})*\}", " ", body)
+    body = re.sub(r"\\multicolumn\{\d+\}", " ", body)
     return _strip_conceptual_numerals(body)
 
 
@@ -220,6 +250,12 @@ def prose_numerals(text: str) -> list[tuple[str, str]]:
         context = prose[max(0, match.start() - 40):match.end() + 20]
         found.append((match.group(0), " ".join(context.split())))
     return found
+
+
+def spelled_counts(text: str) -> list[str]:
+    """Every census-countable quantity written as a word in the body prose."""
+    prose = " ".join(_prose(text).split())
+    return [match.group(0) for match in SPELLED_COUNT.finditer(prose)]
 
 
 def main() -> int:
@@ -291,7 +327,8 @@ def main() -> int:
             if not line.endswith(r"\\") or line.startswith("%"):
                 continue
             for cell in line.rstrip("\\").split("&")[1:]:
-                bare = _strip_conceptual_numerals(cell)
+                bare = re.sub(r"\\multicolumn\{\d+\}", " ", cell)
+                bare = _strip_conceptual_numerals(bare)
                 bare = re.sub(r"\\[A-Za-z]+|[{}$\\^_~,]", " ", bare)
                 if re.search(r"\d", bare):
                     problems.append(
@@ -304,6 +341,11 @@ def main() -> int:
         problems.append(
             "numeral typed into the body prose rather than generated into "
             f"tables/numbers.tex: {numeral!r} in {context!r}")
+
+    for phrase in spelled_counts(text):
+        problems.append(
+            "count spelled out in the body prose rather than generated into "
+            f"tables/numbers.tex: {phrase!r}")
 
     numbers = HERE / "tables" / "numbers.tex"
     if not numbers.exists():
