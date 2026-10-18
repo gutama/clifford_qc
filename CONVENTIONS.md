@@ -136,7 +136,9 @@ r_I = sqrt(max(lambda_max(Q'KQ - Theta^2), 0) + RESOLUTION * || |Q|'|K||Q| ||_2)
 [min_I theta - r_I, max_I theta + r_I]  holds at least |I| eigenvalues, with multiplicity
 ```
 
-A one-root cluster is that root's Weinstein interval, to rounding. Disjoint
+A one-root cluster is that root's Weinstein interval, to rounding. As there,
+the count holds in exact arithmetic and the floor is a rounding convention,
+not a verified floating-point enclosure. Disjoint
 hulls add, so a degenerate level the span reaches is counted with its
 multiplicity, which no per-root interval can do. A hull may hold more
 eigenvalues than roots, and a cluster of roots `0..m-1` need not hold the `m`
