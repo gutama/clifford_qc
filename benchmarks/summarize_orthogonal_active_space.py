@@ -136,7 +136,7 @@ def render(record):
              f"- Declaration: `{record['declaration_commit']}`.", f"- Execution: `{record['source_commit']}`.",
              f"- Configuration SHA-256: `{record['config_sha256']}`.",
              '- The checker binds original observation bytes to their observation commit and independently replays the science.',
-             '- V1 history is preserved in the digest-bound execution bundle. The separately declared v2 revision preserves all v1 observations.', '']
+             '- Both versions have digest-bound execution bundles retaining declaration, execution and observation commits across merging. V2 preserves all v1 observations.', '']
     return '\n'.join(rows)
 
 

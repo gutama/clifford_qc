@@ -244,18 +244,31 @@ def test_original_execution_history_restores_without_changing_branch_refs(tmp_pa
     baseline = "69048adaffcd0b9525aeda46f7cab32a9b794df3"
     subprocess.run(["git", "fetch", "--quiet", "--no-tags", str(checker.ROOT), baseline],
                    cwd=root, check=True)
-    assert subprocess.run(["git", "cat-file", "-e", record["source_commit"]],
-                          cwd=root, capture_output=True).returncode != 0
-    target = root / checker.EXECUTION_BUNDLE
-    target.parent.mkdir(parents=True)
-    shutil.copyfile(checker.ROOT / checker.EXECUTION_BUNDLE, target)
-    checker.ensure_execution_history(record, root)
-    subprocess.run(["git", "merge-base", "--is-ancestor", record["declaration_commit"],
-                    record["source_commit"]], cwd=root, check=True)
-    assert subprocess.check_output(["git", "for-each-ref"], cwd=root) == b""
-    target.write_bytes(target.read_bytes() + b"tampered")
-    with pytest.raises(ValueError, match="bundle digest"):
+    pairs = [(checker.RECORD, checker.EXECUTION_BUNDLE),
+             (checker.V2_RECORD, checker.V2_EXECUTION_BUNDLE)]
+    for record_path, bundle_path in pairs:
+        if not record_path.exists():
+            continue
+        record = json.loads(record_path.read_text())
+        assert subprocess.run(["git", "cat-file", "-e", record["source_commit"]],
+                              cwd=root, capture_output=True).returncode != 0
+        target = root / bundle_path
+        target.parent.mkdir(parents=True, exist_ok=True)
+        shutil.copyfile(checker.ROOT / bundle_path, target)
         checker.ensure_execution_history(record, root)
+        subprocess.run(["git", "merge-base", "--is-ancestor", record["declaration_commit"],
+                        record["source_commit"]], cwd=root, check=True)
+        assert subprocess.check_output(["git", "for-each-ref"], cwd=root) == b""
+        revised = record["schema"].endswith(".v2")
+        config, declaration = (checker.V2_CONFIG, checker.V2_DECLARATION) if revised else (checker.CONFIG, checker.DECLARATION)
+        for path in [record_path, config, declaration, *[checker.ROOT / p for p in record["source_sha256"]]]:
+            packaged = root / path.relative_to(checker.ROOT)
+            packaged.parent.mkdir(parents=True, exist_ok=True)
+            shutil.copyfile(path, packaged)
+        assert checker.source_problems(record, config, declaration, record_path, root=root) == []
+        target.write_bytes(target.read_bytes() + b"tampered")
+        with pytest.raises(ValueError, match="bundle digest"):
+            checker.ensure_execution_history(record, root)
 
 
 def require_full_history():
@@ -324,6 +337,7 @@ def test_spin_packets_merge_partners_and_remove_triplets():
     s2 = backend.operator(spin_squared_operator(4)).restrict(np.arange(backend.dimension))
     independent = checker.independent_spin_squared(backend.basis.tolist(), 4)
     np.testing.assert_allclose(s2, independent, atol=1e-14)
+    np.testing.assert_allclose(np.linalg.eigvalsh(s2), [0, 0, 0, 2], atol=1e-14)
     # One open-shell determinant carries singlet and triplet components.
     amplitudes = np.zeros(backend.dimension)
     index = backend.basis.tolist().index(9)
@@ -332,6 +346,7 @@ def test_spin_packets_merge_partners_and_remove_triplets():
     assert len(packets) == 1
     vector = packets[0].vector
     assert np.count_nonzero(abs(vector) > 1e-12) == 2
+    assert vector[index] == pytest.approx(-vector[backend.basis.tolist().index(6)])
     assert np.linalg.norm(s2 @ vector) < 1e-14
     values, vectors = np.linalg.eigh(s2)
     triplet = vectors[:, np.argmax(values)]

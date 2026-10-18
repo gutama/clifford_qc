@@ -5275,8 +5275,10 @@ the explicitly revised producer/solver and maintained verifier may evolve
 without relabeling the v1 execution. V2 retains live scientific-source bindings.
 
 `benchmarks/provenance/orthogonal_active_space.bundle` preserves the original
-three Git commits across publication. Its pinned digest and full history are
-checked before installing missing inert objects; no refs/worktree are changed.
+three Git commits; `orthogonal_active_space_v2.bundle` preserves the actual
+revised declaration, execution and sole-file observation commits. Both retain
+their identities even across a squash merge. Keep both bundles when merging.
+Their pinned digests and full history are checked before installing missing inert objects; no refs/worktree are changed.
 Shallow/archive checkouts fail with an explicit full-history message before
 restoration. History-dependent tests skip there. `--science-only` explicitly
 replays numeric evidence without certifying observation bytes or chronology;

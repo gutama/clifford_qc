@@ -94,4 +94,4 @@ No superiority over SHCI/DMRG implementations or quantum advantage is establishe
 - Execution: `6b3bee6fa23325e9178f081ae6460dd7184bea92`.
 - Configuration SHA-256: `a4fbdff72084ab75c11a94accde8db03c9a4d956a52d4a27f97cc46047614550`.
 - The checker binds original observation bytes to their observation commit and independently replays the science.
-- V1 history is preserved in the digest-bound execution bundle. The separately declared v2 revision preserves all v1 observations.
+- Both versions have digest-bound execution bundles retaining declaration, execution and observation commits across merging. V2 preserves all v1 observations.

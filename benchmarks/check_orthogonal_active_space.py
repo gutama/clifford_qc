@@ -32,6 +32,9 @@ DECLARATION = ROOT / "benchmarks/ORTHOGONAL_ACTIVE_SPACE_DECLARATION.md"
 V2_CONFIG = ROOT / "benchmarks/configs/orthogonal_active_space_v2.json"
 V2_DECLARATION = ROOT / "benchmarks/ORTHOGONAL_ACTIVE_SPACE_V2_DECLARATION.md"
 V2_RECORD = ROOT / "benchmarks/reference_results/orthogonal_active_space_v2.json"
+V2_OBSERVATION_COMMIT = "d45ef931c91d25f76047bc6ef01e003c70eaf434"
+V2_EXECUTION_BUNDLE = "benchmarks/provenance/orthogonal_active_space_v2.bundle"
+V2_EXECUTION_BUNDLE_SHA256 = "c0ddff528a235a26c02a4fb7b3a510ed6c8799fb5c08d9b647e1ddc578e6594b"
 OBSERVATION_COMMIT = "2e354b690e7b7f1bcb642dc9fac453a2b09e8be9"
 EXECUTION_BUNDLE = "benchmarks/provenance/orthogonal_active_space.bundle"
 EXECUTION_BUNDLE_SHA256 = "4c701798891ad541d98c8e882517a43b59b5f29ca8cbac00e51783f6c2e7f434"
@@ -422,10 +425,13 @@ def git_run(root, *args, check=True):
 def ensure_execution_history(record, root=ROOT):
     """Restore digest-bound inert v1 objects only after full-history inspection."""
     history_kind(root)
-    bundle = safe_path(root, EXECUTION_BUNDLE)
-    if sha256(bundle) != EXECUTION_BUNDLE_SHA256:
+    revised = record["schema"].endswith(".v2")
+    relative_bundle, digest, observation = ((V2_EXECUTION_BUNDLE, V2_EXECUTION_BUNDLE_SHA256, V2_OBSERVATION_COMMIT)
+        if revised else (EXECUTION_BUNDLE, EXECUTION_BUNDLE_SHA256, OBSERVATION_COMMIT))
+    bundle = safe_path(root, relative_bundle)
+    if sha256(bundle) != digest:
         raise ValueError("execution bundle digest differs")
-    commits = [record["declaration_commit"], record["source_commit"], OBSERVATION_COMMIT]
+    commits = [record["declaration_commit"], record["source_commit"], observation]
     if any(not isinstance(sha, str) or not re.fullmatch(r"[0-9a-f]{40}", sha) for sha in commits):
         raise ValueError("execution identities must be complete commit SHAs")
     missing = any(git_run(root, "cat-file", "-e", f"{sha}^{{commit}}", check=False).returncode
@@ -441,17 +447,11 @@ def source_problems(record, config_path, declaration_path, record_path, *, root=
     """Historical bytes and live observations are separate binding contracts."""
     history_kind(root)  # Stop before restoring objects in shallow/archive trees.
     revised = record["schema"].endswith(".v2")
-    if not revised:
-        ensure_execution_history(record, root)
-        observation = OBSERVATION_COMMIT
-    else:
-        first = git_run(root, "log", "--diff-filter=A", "--format=%H", "--",
-                        str(record_path.relative_to(ROOT))).stdout.decode().splitlines()
-        if not first:
-            raise HistoryError("revised observations must be committed separately")
-        observation = first[-1]
+    ensure_execution_history(record, root)
+    observation = V2_OBSERVATION_COMMIT if revised else OBSERVATION_COMMIT
+    if revised:
         changed = git_run(root, "diff-tree", "--no-commit-id", "--name-only", "-r", observation).stdout.decode().splitlines()
-        if changed != [str(record_path.relative_to(ROOT))] or observation == record["source_commit"]:
+        if changed != [str(V2_RECORD.relative_to(ROOT))] or observation == record["source_commit"]:
             return ["revised observations must first be committed alone after implementation"]
         git_run(root, "merge-base", "--is-ancestor", record["source_commit"], observation)
     relative_record = str(record_path.relative_to(ROOT))

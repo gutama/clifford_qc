@@ -506,7 +506,11 @@ packet cutoff; retrospective spin/Gram diagnostics and noisy variational
 violations are now explicit. A separately frozen post-review v2 declaration
 adds spatial occupation grouping, singlet projection, a residual-relative
 cutoff and measured overlap/spin diagnostics. Its observations and report use
-separate files; v1 evidence is never overwritten. Both are bounded classical
+separate files; v1 evidence is never overwritten. The revised singlet run
+reaches 0.625173, 0.001153, 0.000477 and 15.055190 mHa on H4, BeH2, LiH and
+H2O, respectively: three of four meet the target. The controls remain
+different in support and spin constraints; no cost superiority follows.
+Both are bounded classical
 exploratory work, not evidence of a practical quantum gain.
 
 **Second: sparse GA kernel and architecture.** These are maintenance extensions
