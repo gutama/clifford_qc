@@ -3,13 +3,17 @@ from __future__ import annotations
 
 import argparse
 from pathlib import Path
+import sys
 
 import numpy as np
+
+ROOT = Path(__file__).resolve().parents[1]
+if str(ROOT) not in sys.path:
+    sys.path.insert(0, str(ROOT))
 
 from benchmarks.check_orthogonal_active_space import decode, independent_spin_squared
 from benchmarks.metadata_io import read_json
 
-ROOT = Path(__file__).resolve().parents[1]
 RECORD = ROOT / 'benchmarks/reference_results/orthogonal_active_space.json'
 REPORT = ROOT / 'benchmarks/results/orthogonal_active_space.md'
 V2_RECORD = ROOT / 'benchmarks/reference_results/orthogonal_active_space_v2.json'
