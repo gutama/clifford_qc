@@ -67,6 +67,12 @@ jobs:
       - name: orthogonal active-space report
         if: ${{ !cancelled() }}
         run: python benchmarks/summarize_orthogonal_active_space.py --check
+      - name: H2O spin-matched residual comparison
+        if: ${{ !cancelled() }}
+        run: python benchmarks/check_h2o_residual_comparison.py
+      - name: H2O residual comparison report
+        if: ${{ !cancelled() }}
+        run: python benchmarks/summarize_h2o_residual_comparison.py --check
       - name: sparse GA kernel profile
         if: ${{ !cancelled() }}
         run: python benchmarks/check_sparse_ga_kernel.py

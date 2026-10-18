@@ -1,5 +1,34 @@
 # Reproducing the benchmark artifacts
 
+## H2O spin-matched residual-growth follow-up
+
+`benchmarks/H2O_RESIDUAL_COMPARISON_DECLARATION.md` freezes three exact arms
+before implementation: refreshed residual packets, spin-adapted selected CI,
+and residual-selected active-space enlargement. The fixed H2O CAS(8e,6o)
+Hamiltonian has 225 Sz=0 determinants and 105 singlet directions. All arms
+start in the same singlet CAS(2e,2o); three fresh processes per arm record
+prefix energies, true residuals, H actions, support, wall times and OS peak RSS.
+The full-sector reference is used only after all measured solves finish.
+
+In the repository's declared numerical environment, with one BLAS thread:
+
+```bash
+python benchmarks/run_h2o_residual_comparison.py
+python benchmarks/check_h2o_residual_comparison.py
+python benchmarks/summarize_h2o_residual_comparison.py --check
+```
+
+The producer defaults to result-free design validation. `--execute --output`
+runs a clean committed implementation following the declaration and refuses
+to overwrite an existing file. Historical reproduction uses the execution
+revision recorded in `benchmarks/reference_results/h2o_residual_comparison.json`.
+Default replay verifies an observation-byte receipt and digest-bound Git
+bundle, restoring historical objects without creating refs. Shallow checkouts
+fail explicitly; `--science-only` labels chronology and observation bindings
+unverified. Generated findings are in
+`benchmarks/results/h2o_residual_comparison.md`. Timings are descriptive for
+this tiny sector; no physical shots or quantum/cost-superiority claim is made.
+
 This guide maps the committed scientific records to their inputs, numerical
 environments, producers, and validation checks. Start with the [README](README.md)
 for package use and [molecular/PIPELINE.md](molecular/PIPELINE.md) for new repeated molecular solves.
@@ -278,7 +307,7 @@ No figure or table value in the manuscript is transcribed by hand, and
 ```bash
 python -m venv .venv && source .venv/bin/activate
 pip install -e .[test,research,stim]       # automatic CI extras
-pytest                                      # 3793 passed, 12 skipped (expected if green)
+pytest                                      # 3818 passed, 12 skipped (expected if green)
 ```
 
 This is the automatic CI dependency set; record gates additionally pin NumPy
@@ -297,7 +326,7 @@ the remaining `12 - 6 = 6` skips are per-test and *are* collected:
 
 ```text
 collected == passed + (skipped - files dropped at collection)
-3799      == 3793   + (12      -   6)
+3824      == 3818   + (12      -   6)
 ```
 
 Both sides are computed from the tree, so a drift in either quoted number
