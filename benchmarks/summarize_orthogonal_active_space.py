@@ -20,6 +20,9 @@ V2_RECORD = ROOT / 'benchmarks/reference_results/orthogonal_active_space_v2.json
 V2_REPORT = ROOT / 'benchmarks/results/orthogonal_active_space_v2.md'
 ARMS = ('orthogonal', 'same_span_mixed', 'dimension_matched_determinants', 'support_matched_determinants')
 NOISE_ARMS = ('orthogonal_known_overlap', 'mixed_known_overlap', 'mixed_noisy_overlap')
+# Report-time S² and Gram diagnostics below this are rounding noise whose
+# digits depend on the BLAS kernels the rendering CPU selects.
+ROUNDOFF_FLOOR = 1e-12
 
 
 def serialized_bases(case, prefix):
@@ -50,6 +53,10 @@ def spin_readout(case, prefix, mixing):
         state /= np.linalg.norm(state)
         result[name] = float(np.vdot(state, s2 @ state).real)
     return result
+
+
+def diagnostic(value, digits):
+    return f'< {ROUNDOFF_FLOOR:g}' if abs(value) < ROUNDOFF_FLOOR else f'{value:.{digits}g}'
 
 
 def render(record):
@@ -101,7 +108,9 @@ def render(record):
         spins = spin_readout(case, prefix, config['same_span_mixing'])
         basis = serialized_bases(dict(case, _mixing=config['same_span_mixing']), prefix)['orthogonal']
         defect = np.max(abs(basis.conj().T @ basis - np.eye(basis.shape[1])))
-        rows.append(f"| {case['id']} | " + ' | '.join(f'{spins[a]:.6g}' for a in ARMS) + f' | {defect:.3g} |')
+        rows.append(f"| {case['id']} | " + ' | '.join(diagnostic(spins[a], 6) for a in ARMS)
+                    + f' | {diagnostic(defect, 3)} |')
+    rows += ['', f'Magnitudes below {ROUNDOFF_FLOOR:g} are floating-point rounding whose digits vary with the BLAS kernels of the rendering CPU.']
     if revised:
         rows += ['', 'The revised packet arms enforce singlet S² action norms at every prefix; individual-determinant controls are not constrained to be singlets.',
                  f"Packet norm cutoff: max({config['packet_zero_tolerance']:g}, {config['packet_relative_tolerance']:g} × full external preconditioned residual norm), applied before normalization and after singlet projection.",

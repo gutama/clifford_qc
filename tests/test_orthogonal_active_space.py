@@ -463,3 +463,9 @@ def test_report_conclusions_follow_records_and_include_every_violation():
     assert "0/1 inputs" in render(changed)
     changed["cases"][0]["trajectory"][-1]["arms"]["orthogonal"]["energy"] += 1
     assert "monotonicity holds on 0/1" in render(changed)
+
+
+def test_report_folds_machine_dependent_rounding():
+    from benchmarks.summarize_orthogonal_active_space import diagnostic
+    assert diagnostic(-5.15079e-19, 6) == diagnostic(2.22e-16, 3) == "< 1e-12"
+    assert diagnostic(0.00732457, 6) == "0.00732457"

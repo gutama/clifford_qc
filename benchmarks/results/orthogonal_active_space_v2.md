@@ -24,10 +24,12 @@ Column counts alone do not equate amplitude support, symmetry, selection work or
 
 | Input | Packet ⟨S²⟩ | Mixed ⟨S²⟩ | Equal-dimension determinant ⟨S²⟩ | Support-containing determinant ⟨S²⟩ | Packet measured Gram defect |
 |---|---:|---:|---:|---:|---:|
-| h4 | 8.94046e-19 | 7.62932e-30 | 0.0213455 | 8.96457e-19 | 2.22e-16 |
-| beh2 | 7.51233e-32 | 4.60135e-27 | 3.13207e-28 | 4.81329e-62 | 2.22e-16 |
-| lih | 7.17378e-30 | 1.58321e-27 | 1.27355e-28 | 1.49055e-30 | 2.22e-16 |
-| h2o | 1.1351e-18 | -5.15079e-19 | 0.0103363 | 5.18011e-19 | 4.44e-16 |
+| h4 | < 1e-12 | < 1e-12 | 0.0213455 | < 1e-12 | < 1e-12 |
+| beh2 | < 1e-12 | < 1e-12 | < 1e-12 | < 1e-12 | < 1e-12 |
+| lih | < 1e-12 | < 1e-12 | < 1e-12 | < 1e-12 | < 1e-12 |
+| h2o | < 1e-12 | < 1e-12 | 0.0103363 | < 1e-12 | < 1e-12 |
+
+Magnitudes below 1e-12 are floating-point rounding whose digits vary with the BLAS kernels of the rendering CPU.
 
 The revised packet arms enforce singlet S² action norms at every prefix; individual-determinant controls are not constrained to be singlets.
 Packet norm cutoff: max(1e-09, 1e-08 × full external preconditioned residual norm), applied before normalization and after singlet projection.

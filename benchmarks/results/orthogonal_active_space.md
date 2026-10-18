@@ -24,10 +24,12 @@ Column counts alone do not equate amplitude support, symmetry, selection work or
 
 | Input | Packet ⟨S²⟩ | Mixed ⟨S²⟩ | Equal-dimension determinant ⟨S²⟩ | Support-containing determinant ⟨S²⟩ | Packet measured Gram defect |
 |---|---:|---:|---:|---:|---:|
-| h4 | 0.00732457 | 0.00732457 | 0.0213455 | 0.00736034 | 2.22e-16 |
-| beh2 | 6.57903e-28 | 4.518e-27 | 3.13207e-28 | 4.81329e-62 | 2.22e-16 |
-| lih | 1.99067e-28 | 5.70329e-28 | 1.27355e-28 | 5.45943e-30 | 2.22e-16 |
-| h2o | 0.0103353 | 0.0103353 | 0.0103363 | 0.0103353 | 3.33e-16 |
+| h4 | 0.00732457 | 0.00732457 | 0.0213455 | 0.00736034 | < 1e-12 |
+| beh2 | < 1e-12 | < 1e-12 | < 1e-12 | < 1e-12 | < 1e-12 |
+| lih | < 1e-12 | < 1e-12 | < 1e-12 | < 1e-12 | < 1e-12 |
+| h2o | 0.0103353 | 0.0103353 | 0.0103363 | 0.0103353 | < 1e-12 |
+
+Magnitudes below 1e-12 are floating-point rounding whose digits vary with the BLAS kernels of the rendering CPU.
 
 These spin and Gram diagnostics are retrospective calculations from the serialized states, not new original observation fields.
 The original external spin-orbital partition can split spin partners; its Ritz states are not constrained to be singlets.
