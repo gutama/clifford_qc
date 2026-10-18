@@ -278,7 +278,7 @@ No figure or table value in the manuscript is transcribed by hand, and
 ```bash
 python -m venv .venv && source .venv/bin/activate
 pip install -e .[test,research,stim]       # automatic CI extras
-pytest                                      # 3736 passed, 12 skipped (expected if green)
+pytest                                      # 3773 passed, 12 skipped (expected if green)
 ```
 
 This is the automatic CI dependency set; record gates additionally pin NumPy
@@ -297,7 +297,7 @@ the remaining `12 - 6 = 6` skips are per-test and *are* collected:
 
 ```text
 collected == passed + (skipped - files dropped at collection)
-3742      == 3736   + (12      -   6)
+3779      == 3773   + (12      -   6)
 ```
 
 Both sides are computed from the tree, so a drift in either quoted number
@@ -5218,3 +5218,73 @@ CX), with Clifford basis changes counted. Neither ledger prices finite-shot
 precision, optimizer-gradient measurement circuits or a full hardware workflow;
 no total-cost or quantum advantage follows. Phase 17 completion is scoped to
 shipping and validating this comparison, including its right-censored cells.
+
+## Orthogonal corrections around a classical active space
+
+`benchmarks/ORTHOGONAL_ACTIVE_SPACE_DECLARATION.md` freezes an exploratory
+four-molecule pilot, before implementation and campaign outcomes. The earlier
+A-CASE/PRD results and H4 equivalence check were already known. This is a
+post-hoc research direction, not blind confirmation or a CASH-QSE replication.
+
+```bash
+python benchmarks/run_orthogonal_active_space.py
+python -m pytest tests/test_orthogonal_active_space.py -q
+python benchmarks/run_orthogonal_active_space.py --execute \
+    --output benchmarks/reference_results/orthogonal_active_space.json
+python benchmarks/check_orthogonal_active_space.py
+python benchmarks/summarize_orthogonal_active_space.py --check
+```
+
+The first command validates input hashes, active orbitals and the sector ceiling
+without computing campaign outcomes. Execution requires a clean committed source
+and an earlier declaration commit; existing outputs are never overwritten. Use
+the repository's Python 3.12 / NumPy 2.5.2 / SciPy 1.18.0 / Stim 1.16.0 record
+environment and one BLAS thread. The declaration/configuration, implementation
+and observations are separate commits. Reproduce only to a *new* output path;
+retain the original evidence and compare scientific quantities with its gate.
+The checker requires full Git history and binds execution-source bytes at their
+recorded commit as well as live scientific implementation files. Verification
+code may evolve; the historical checker's bytes remain bound at execution.
+`benchmarks/provenance/orthogonal_active_space.bundle` preserves the original
+declaration, execution and observation commits across publication. If they are
+absent, the checker verifies its pinned bundle digest and baseline prerequisite,
+then installs those inert Git objects without changing any branch or worktree.
+The source-byte and ancestry checks still run. Keep that bundle when merging.
+A source-only archive cannot claim chronology validation.
+
+`subspace/orthogonal.py` verifies an orthonormal classical span and its correction
+columns before forming the projected Hamiltonian with direct state actions.
+The campaign freezes occupations outside two frontier spatial orbitals at HF,
+solves the entire four-determinant CAS(2e,2o), and groups preconditioned classical
+residual amplitudes by external occupation. Packets are ranked by two-dimensional
+lowering; absolute numerical score ties within 1e-12 use the pattern/index order.
+The full-sector spectrum is computed only after selection and all prefixes.
+Every prefix includes same-span mixed coordinates, dimension-matched individual
+determinants, and a determinant control containing the packets' complete
+support. Full-sector residuals, selected support and full selection work are
+reported alongside energy. Explicit vector/operator bytes are payloads, not RSS.
+The small exact implementation constructs the whole sector diagonal with one
+Hamiltonian action per determinant and is not a scalable sparse solver.
+
+The final-prefix noise diagnostic centers H at the classical reference energy,
+perturbs only the unknown Hamiltonian blocks, and checks coordinate invariance
+under congruently transported noise. A third estimator adds independent overlap
+perturbations (with the known classical/classical overlap block held exact).
+Conditional RMSE, failures and unconditional target fractions are all retained.
+Gaussian matrix-entry scales have no conversion to Pauli shots or hardware cost.
+The record uses `exact_small_sector_simulation`, `illustrative_model`, and
+`classical_process_measurement` for these separate quantities. It supports no
+quantum preparation, hardware selection or advantage claim. Mature SHCI/DMRG
+baselines and implemented quantum correction circuits remain later work.
+
+The original observation bytes are preserved. Independent occupation summation
+puts five unselected H2O packet amplitudes just across the 1e-12 serialization
+cutoff (the largest vector discrepancy is 2.2e-11). The post-observation checker
+compares reconstructed packet vectors up to global phase at its existing 1e-9 tolerance,
+while enforcing exact occupation-pattern and classical-span exclusions. It does
+not demand identical thresholded display-index lists across summation orders.
+No campaign setting, selected prefix, result or numerical tolerance was changed.
+
+The generated review report is `benchmarks/results/orthogonal_active_space.md`;
+regenerate it with `python benchmarks/summarize_orthogonal_active_space.py`.
+CI checks both the independent scientific replay and that report's freshness.

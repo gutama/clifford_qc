@@ -352,8 +352,14 @@ def test_supervisor_records_limits_without_restarting_a_toy_worker(monkeypatch, 
     original, launches = producer.subprocess.Popen, []
     def sleeper(command, **kwargs):
         launches.append(command)
-        return original([sys.executable, '-c', 'import time; time.sleep(1)'], **kwargs)
+        # Outlive both supervisor deadlines even if the parent is descheduled
+        # under full-suite load; a naturally exited worker emits no receipt.
+        return original([sys.executable, '-c', 'import time; time.sleep(60)'], **kwargs)
     monkeypatch.setattr(producer.subprocess, 'Popen', sleeper)
+    # This tests supervisor decisions, not /proc visibility across PID
+    # namespaces. Keep the real worker lifecycle and control the RSS input.
+    monkeypatch.setattr(producer, 'rss_bytes',
+                        lambda pid: 2 if limit == 'rss_ceiling_bytes' else 0)
     config = {'execution': {'rss_ceiling_bytes': 1024**3, 'timeout_seconds': 3, 'sample_seconds': .01}}
     config['execution'][limit] = .03 if limit == 'timeout_seconds' else 1
     result = producer.run_cell(0, {'id': 'undeclared_process_toy'}, 2, 'more_adapt', config)

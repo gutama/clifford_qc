@@ -21,6 +21,7 @@
       "check_krylov_width",
       "check_mapping_axis",
       "check_molecular",
+      "check_orthogonal_active_space",
       "check_packed_bank_storage",
       "check_phase14b_preregistration",
       "check_phase15_certifying_krylov",
@@ -61,7 +62,7 @@
       "Cross-artifact": 5,
       "Documentation": 1,
       "Evidence metadata": 1,
-      "Exact trajectory replay": 2,
+      "Exact trajectory replay": 3,
       "Kernel fixture audit": 1,
       "Lineage and environment": 3,
       "Observed resource equivalence": 1,
@@ -84,13 +85,13 @@
       "check_r3d_qr3_refinement",
       "check_record_environment"
     ],
-    "gates": 65,
+    "gates": 66,
     "manual_dispatch_only": 12,
-    "named_in_workflow": 58,
-    "producers": 63,
+    "named_in_workflow": 59,
+    "producers": 64,
     "producers_without_gate": 25,
-    "run_on_every_pull_request": 46,
-    "same_stem_pairs": 38
+    "run_on_every_pull_request": 47,
+    "same_stem_pairs": 39
   },
   "records": {
     "declarations": {
@@ -112,6 +113,7 @@
       "mapping_axis.json": "743c8d31eee9f441",
       "matched_h4.json": "d82558e8baf9548f",
       "orbital_basis.json": "ec6acbd9c2a3f41a",
+      "orthogonal_active_space.json": "dda482f35b061d5a",
       "packed_bank_storage.json": "f6a33f1aa225c4dd",
       "packed_h2o_feasibility.json": "f6a33f1aa225c4dd",
       "phase14b_qwc_vs_fc.json": "7eea7d72de38ea0e",
@@ -156,12 +158,12 @@
       "basis_only": 0,
       "nested_in_subobject": 5,
       "none": 0,
-      "per_quantity_mapping": 23,
+      "per_quantity_mapping": 24,
       "role_only": 0,
       "role_with_nested_tier": 2,
       "top_level_tier": 17
     },
-    "json_records": 47,
+    "json_records": 48,
     "series_files": 21,
     "top_level_tiers": {
       "exact": 4,
@@ -211,17 +213,17 @@
         "modules": 3
       },
       "subspace": {
-        "lines": 12575,
-        "modules": 35
+        "lines": 12706,
+        "modules": 36
       },
       "surface": {
         "lines": 38,
         "modules": 1
       }
     },
-    "package_lines": 29000,
-    "package_modules": 110,
-    "test_lines": 37528,
-    "test_modules": 155
+    "package_lines": 29131,
+    "package_modules": 111,
+    "test_lines": 37790,
+    "test_modules": 156
   }
 }
