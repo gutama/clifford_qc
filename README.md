@@ -290,6 +290,13 @@ start can supply that reference through `workflows.adapt_warm_start`.
 Compare total selection, measurement, optimization, and classical costs at a
 matched accuracy target; no method is uniformly preferable.
 
+The [H2O singlet comparison](benchmarks/results/h2o_residual_comparison.md)
+tests refreshed residual packets, spin-adapted selected CI and active-space
+enlargement with cached H actions and isolated-process cost records. Packets
+reach the fixed 1.6 mHa target with 12 retained columns versus selected CI's
+14, but use 213 H actions versus 105. This is small-sector classical evidence,
+not a quantum or total-cost advantage.
+
 The [prepared-input CLI](molecular/PIPELINE.md) currently exposes exact A-CASE with
 determinant-excitation candidates. Other methods use Python APIs and examples.
 Its `prepare`, `solve`, and optional `validate` commands have separate outputs,
