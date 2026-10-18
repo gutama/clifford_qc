@@ -479,6 +479,40 @@ work, even where this plan already corrects the prose.
   now checks both source digests at the recorded commit and pins the live
   producer, allowing current verification code to evolve without altering the original execution identity.
 
+**Orthogonal active-space pilot (adjunct, frozen 2026-10-18).**
+`benchmarks/ORTHOGONAL_ACTIVE_SPACE_DECLARATION.md` and
+`configs/orthogonal_active_space.json` define an exploratory exact comparison
+around a fixed CAS(2e,2o) reference on four existing molecular inputs. Disjoint
+external-occupation residual packets give a known identity overlap. Same-span
+mixed coordinates, dimension-matched determinants, and the full determinant
+support of each packet prefix separate coordinate conditioning from space
+enlargement. An independent occupation replay checks every pencil, residual,
+selection score and illustrative centered matrix-noise replica. No full-sector
+eigenvector selects corrections. The implementation uses explicit classical
+sector vectors and does not provide a quantum selector, preparation circuit,
+shot model, SHCI/DMRG comparison or total-cost advantage. It is an adjunct,
+outside the numbered-phase denominator, and does not reopen closed campaigns.
+Promoting sparse Davidson and testing physically prepared corrections remain
+later experiments rather than claims of this pilot.
+The frozen campaign ran from `6b3bee6` and its observations are preserved in
+`reference_results/orthogonal_active_space.json`; the independent occupation
+replay passes. All four reference energies improve, but the final packet span
+clears 1.6 mHa only on BeH2 and LiH (LiH was already below it). H4 and H2O remain
+above target. Equal-dimension determinant controls are competitive, and the
+centered matrix-noise proxy shows no substantial overlap-related benefit on
+this grid. `benchmarks/results/orthogonal_active_space.md` is generated from the
+record. The preserved v1 pilot is not spin-adapted and has an unstable absolute
+packet cutoff; retrospective spin/Gram diagnostics and noisy variational
+violations are now explicit. A separately frozen post-review v2 declaration
+adds spatial occupation grouping, singlet projection, a residual-relative
+cutoff and measured overlap/spin diagnostics. Its observations and report use
+separate files; v1 evidence is never overwritten. The revised singlet run
+reaches 0.625173, 0.001153, 0.000477 and 15.055190 mHa on H4, BeH2, LiH and
+H2O, respectively: three of four meet the target. The controls remain
+different in support and spin constraints; no cost superiority follows.
+Both are bounded classical
+exploratory work, not evidence of a practical quantum gain.
+
 **Second: sparse GA kernel and architecture.** These are maintenance extensions
 to Phase 0's API, not a new solver or an established quantum resource advantage.
 

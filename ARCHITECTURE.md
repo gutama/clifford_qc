@@ -163,6 +163,19 @@ classical selection alone achieves. Hybrid bases add operator-response
 directions to sampled configurations. ADAPT-VQE can supply a warm reference
 through `workflows.adapt_warm_start`.
 
+`subspace/orthogonal.py` supplies an experimental exact action path for an
+explicitly stored classical span plus known orthogonal corrections. It checks
+orthogonality to the whole classical span, forms `V†HV` from one Hamiltonian
+action per column, and reads the true residual from those actions. The bounded
+orthogonal-active-space pilot compares disjoint occupation packets with
+same-span mixed coordinates and classical determinant controls. Its Gaussian
+matrix-noise diagnostic is illustrative. `subspace/spin_packets.py` adds a
+separately declared revision with a residual-relative cutoff, external spatial
+occupation classes and exact small-sector singlet projection. Its producer
+records measured overlaps and spin; the original pilot remains historical.
+No state preparation, quantum
+measurement protocol, large-sector storage or hardware advantage is supplied.
+
 The default bank retains constructed object rows. Packed coefficients and
 streaming are separate choices: representation controls how a row is stored;
 lifetime policy controls whether it remains resident. Streaming retains the

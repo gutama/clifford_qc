@@ -173,8 +173,8 @@ GATE_CLASSES: tuple[tuple[str, str, tuple[str, ...]], ...] = (
     ),
     (
         "Exact trajectory replay",
-        "independently replays occupation states, optimizer calls, root pencils and observed counters; not global optimality",
-        ("check_phase17_ceo", "check_phase17_more"),
+        "independently replays occupation states, root pencils, noise or optimizer calls and counters; not global optimality",
+        ("check_phase17_ceo", "check_phase17_more", "check_orthogonal_active_space"),
     ),
     (
         "Observed resource equivalence",

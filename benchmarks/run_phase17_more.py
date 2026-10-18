@@ -93,13 +93,17 @@ def worker_cell(case, roots, arm, config):
 
 
 def rss_bytes(pid):
+    """Return observed resident bytes, or None when the ceiling cannot be checked."""
     try:
         for line in Path(f'/proc/{pid}/status').read_text().splitlines():
             if line.startswith('VmRSS:'):
-                return int(line.split()[1]) * 1024
-    except FileNotFoundError:
-        pass
-    return 0
+                fields = line.split()
+                if len(fields) == 3 and fields[2] == 'kB' and int(fields[1]) >= 0:
+                    return int(fields[1]) * 1024
+                return None
+    except (OSError, ValueError, IndexError):
+        return None
+    return None
 
 
 def run_cell(index, case, roots, arm, config):
@@ -110,7 +114,16 @@ def run_cell(index, case, roots, arm, config):
                                     '--worker-cell', str(index)], cwd=ROOT,
                                    stdout=output, stderr=errors)
         while process.poll() is None:
-            peak = max(peak, rss_bytes(process.pid))
+            observed_rss = rss_bytes(process.pid)
+            if observed_rss is None:
+                # An exited child can disappear between poll and /proc read.
+                # A live unobservable child must never run without a ceiling.
+                if process.poll() is not None:
+                    break
+                failure = 'rss_unavailable'
+                stop_worker(process)
+                break
+            peak = max(peak, observed_rss)
             if peak > execution['rss_ceiling_bytes']:
                 failure = 'memory_limit'
             elif time.perf_counter() - started > execution['timeout_seconds']:
