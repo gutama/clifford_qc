@@ -1,0 +1,74 @@
+{
+  "schema": "clifford_qc.orthogonal_active_space_design.v1",
+  "role": "post_hoc_exploratory_design_frozen_before_campaign",
+  "cases": [
+    {
+      "id": "h4",
+      "path": "benchmarks/data/h4_sto3g_r0.9.FCIDUMP",
+      "sha256": "bf32568461477cf1ec8e7c4aaae737b0c6c80bcbd83d51f783ec3a3daed5a922",
+      "active_spatial_orbitals": [
+        1,
+        2
+      ]
+    },
+    {
+      "id": "beh2",
+      "path": "benchmarks/data/beh2_sto3g_r1.3264.FCIDUMP",
+      "sha256": "01ef4422b2e9e7f711895ae897a94ea11c1b0fae5a5fd91c3396fbd4d69fba76",
+      "active_spatial_orbitals": [
+        1,
+        2
+      ]
+    },
+    {
+      "id": "lih",
+      "path": "benchmarks/data/lih_sto3g_r1.5949_cas4e4o.FCIDUMP",
+      "sha256": "1163b1c1a79b20b452f429b694e55a1e34db5b636398f541074a2494d73a4130",
+      "active_spatial_orbitals": [
+        1,
+        2
+      ]
+    },
+    {
+      "id": "h2o",
+      "path": "benchmarks/data/h2o_sto3g_cas8e6o.FCIDUMP",
+      "sha256": "2f68b1d3f9f77e9c1483cb1b879bac2a67a9d8204ce2e9e985697c10029c6103",
+      "active_spatial_orbitals": [
+        3,
+        4
+      ]
+    }
+  ],
+  "maximum_sector_dimension": 256,
+  "correction_budgets": [
+    0,
+    1,
+    2,
+    4
+  ],
+  "preconditioner_shift_hartree": 0.1,
+  "packet_zero_tolerance": 1e-12,
+  "orthogonality_tolerance": 1e-10,
+  "same_span_mixing": 4.0,
+  "accuracy_target_hartree": 0.0016,
+  "noise": {
+    "role": "illustrative_matrix_noise_not_quantum_shots",
+    "seed": 20261018,
+    "replicas": 64,
+    "scales": [
+      {
+        "hamiltonian_hartree": 0.0,
+        "overlap_dimensionless": 0.0
+      },
+      {
+        "hamiltonian_hartree": 0.0001,
+        "overlap_dimensionless": 0.0001
+      },
+      {
+        "hamiltonian_hartree": 0.001,
+        "overlap_dimensionless": 0.001
+      }
+    ],
+    "minimum_overlap_eigenvalue": 1e-08
+  }
+}

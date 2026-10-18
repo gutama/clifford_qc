@@ -278,7 +278,7 @@ No figure or table value in the manuscript is transcribed by hand, and
 ```bash
 python -m venv .venv && source .venv/bin/activate
 pip install -e .[test,research,stim]       # automatic CI extras
-pytest                                      # 3736 passed, 12 skipped (expected if green)
+pytest                                      # 3793 passed, 12 skipped (expected if green)
 ```
 
 This is the automatic CI dependency set; record gates additionally pin NumPy
@@ -297,7 +297,7 @@ the remaining `12 - 6 = 6` skips are per-test and *are* collected:
 
 ```text
 collected == passed + (skipped - files dropped at collection)
-3742      == 3736   + (12      -   6)
+3799      == 3793   + (12      -   6)
 ```
 
 Both sides are computed from the tree, so a drift in either quoted number
@@ -5218,3 +5218,86 @@ CX), with Clifford basis changes counted. Neither ledger prices finite-shot
 precision, optimizer-gradient measurement circuits or a full hardware workflow;
 no total-cost or quantum advantage follows. Phase 17 completion is scoped to
 shipping and validating this comparison, including its right-censored cells.
+
+## Orthogonal corrections around a classical active space
+
+The original v1 declaration, configuration, observations and execution bundle
+remain unchanged. `benchmarks/results/orthogonal_active_space.md` now reports
+retrospective spin and Gram diagnostics and all noisy variational violations.
+The original spin-orbital partition splits spin partners on H4/H2O, and its
+absolute 1e-12 cutoff can normalize numerical-noise-only groups. The original
+permuted-spectrum scalar is redundant, not independent partition evidence.
+Do not treat v1 as a spin-adapted or numerically robust selector.
+
+`benchmarks/ORTHOGONAL_ACTIVE_SPACE_V2_DECLARATION.md` and
+`configs/orthogonal_active_space_v2.json` separately freeze a post-review
+revision before `subspace/spin_packets.py` and revised outcomes. The original
+outcomes and review findings were already known; this remains exploratory.
+
+```bash
+python benchmarks/run_orthogonal_active_space.py
+python -m pytest tests/test_orthogonal_active_space.py tests/test_more_adapt.py -q
+python benchmarks/run_orthogonal_active_space.py --execute --output /tmp/orthogonal-v2-replay.json
+python benchmarks/check_orthogonal_active_space.py --science-only --record /tmp/orthogonal-v2-replay.json
+python benchmarks/check_orthogonal_active_space.py
+python benchmarks/summarize_orthogonal_active_space.py --check
+```
+
+The producer defaults to result-free validation of the v2 design. Execution
+requires full Git history and a clean committed worktree, **including untracked
+files**. The same environment/stamp checks run before science and again before
+returning a result. Use Python 3.12 / NumPy 2.5.2 / SciPy 1.18.0 / Stim 1.16.0
+and one BLAS thread. Outputs are never overwritten. The declaration must be an
+earlier ancestor with the new revision implementation absent; a later empty
+commit cannot manufacture this chronology. Paths reject parent traversal and
+resolved symlink escapes through the shared provenance helpers.
+
+V2 retains the four inputs, complete four-determinant CAS(2e,2o), preconditioner,
+budgets, controls and noise grid. It groups corrections by external **spatial**
+occupations and projects each group onto S²=0. Raw and projected group norms
+must exceed max(1e-9, 1e-8 times the full external preconditioned residual norm).
+Measured overlap matrices, Gram defects, S² expectations and S² action norms
+are recorded for every arm. Every packet prefix must be a singlet. Individual
+determinant controls remain unconstrained in spin, and their spin is reported;
+column-matched energy comparisons do not establish spin-matched superiority.
+S² construction payload/work is counted separately. A direct disjointness and
+coverage check replaces the second full-spectrum permutation eigensolve.
+
+The independent checker imports neither producer nor native sector action,
+packet builder or solver. It rebuilds occupation Hamiltonians, S², packet
+selection, pencils, full residuals, controls and all noise replicas. After
+accepting a packet vector at the fixed numerical tolerance, it uses that
+packet's **recorded** support for support-count and containment controls, and
+separately enforces canonical phase. Both original and revised observation
+bytes are bound to their first observation commits, including timings,
+operator payloads and provenance. Historical sources are bound at execution;
+the explicitly revised producer/solver and maintained verifier may evolve
+without relabeling the v1 execution. V2 retains live scientific-source bindings.
+
+`benchmarks/provenance/orthogonal_active_space.bundle` preserves the original
+three Git commits; `orthogonal_active_space_v2.bundle` preserves the actual
+revised declaration, execution and sole-file observation commits. Both retain
+their identities even across a squash merge. Keep both bundles when merging.
+Their pinned digests and full history are checked before installing missing inert objects; no refs/worktree are changed.
+Shallow/archive checkouts fail with an explicit full-history message before
+restoration. History-dependent tests skip there. `--science-only` explicitly
+replays numeric evidence without certifying observation bytes or chronology;
+it is appropriate for a new output path or a source archive. It never claims
+historical validation. To rerun the original algorithm, restore the bundle via
+the default checker, check out its original execution commit `6b3bee6` in a
+separate clean worktree, execute to a new path, and use the maintained checker's
+`--science-only --record` option.
+
+Reports for both versions are generated directly from their records, including
+per-input determinant gains, capped requests, monotonicity, spin, every noise
+scale, failures, unconditional target fractions and full-sector variational
+violations. The centered Gaussian matrix perturbations have no conversion to
+Pauli shots or hardware costs. Explicit sector vectors/diagonals and known
+symmetry projections are bounded classical reference work; no quantum selector,
+state-preparation circuit, scalable sparse solver, SHCI/DMRG superiority or
+total-cost advantage follows.
+
+The Phase 17 process supervisor now returns `rss_unavailable` and stops a live
+worker when `/proc` RSS cannot be observed; unknown RSS never counts as zero.
+Reader and unavailable-/proc worker tests complement the controlled decision
+fixtures. Existing frozen Phase 17 observations and campaign claims are unchanged.
