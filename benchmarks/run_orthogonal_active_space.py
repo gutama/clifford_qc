@@ -2,7 +2,6 @@
 from __future__ import annotations
 
 import argparse
-import hashlib
 import json
 import math
 from pathlib import Path
@@ -16,24 +15,31 @@ ROOT = Path(__file__).resolve().parents[1]
 if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
+from benchmarks.archive_provenance import HistoryError, commit_binding, history_kind, safe_path
+from benchmarks.metadata_io import sha256
 from clifford_qc.backends import SectorStatevectorBackend
 from clifford_qc.evidence import declare_evidence
 from clifford_qc.models.fcidump import fcidump_model, read_fcidump
 from clifford_qc.reproducibility import stamp_record
 from clifford_qc.subspace.fermionic_generators import occupied_spin_orbitals
 from clifford_qc.subspace.orthogonal import (
-    canonical_phase, occupation_packets, solve_orthogonal_corrections,
+    canonical_phase, solve_orthogonal_corrections,
 )
 
-CONFIG = ROOT / "benchmarks/configs/orthogonal_active_space.json"
-DECLARATION = ROOT / "benchmarks/ORTHOGONAL_ACTIVE_SPACE_DECLARATION.md"
-RECORD = ROOT / "benchmarks/reference_results/orthogonal_active_space.json"
-SCHEMA = "clifford_qc.orthogonal_active_space.v1"
+from clifford_qc.subspace.spin_packets import singlet_packets, spin_squared_operator
+
+CONFIG = ROOT / "benchmarks/configs/orthogonal_active_space_v2.json"
+DECLARATION = ROOT / "benchmarks/ORTHOGONAL_ACTIVE_SPACE_V2_DECLARATION.md"
+RECORD = ROOT / "benchmarks/reference_results/orthogonal_active_space_v2.json"
+SCHEMA = "clifford_qc.orthogonal_active_space.v2"
 SOURCES = (
     "benchmarks/run_orthogonal_active_space.py",
     "benchmarks/check_orthogonal_active_space.py",
     "benchmarks/phase17_ceo_oracle.py",
     "clifford_qc/subspace/orthogonal.py",
+    "clifford_qc/subspace/spin_packets.py",
+    "benchmarks/archive_provenance.py",
+    "benchmarks/metadata_io.py",
     "clifford_qc/backends/sector_statevector.py",
     "clifford_qc/models/fcidump.py",
     "clifford_qc/fermion.py",
@@ -44,7 +50,7 @@ NOISE_ARMS = ("orthogonal_known_overlap", "mixed_known_overlap", "mixed_noisy_ov
 
 
 def sha(path):
-    return hashlib.sha256(Path(path).read_bytes()).hexdigest()
+    return sha256(Path(path))
 
 
 def encode(array):
@@ -53,12 +59,12 @@ def encode(array):
 
 
 def git(*args):
-    return subprocess.check_output(["git", *args], cwd=ROOT, text=True).strip()
+    return subprocess.check_output(["git", *args], cwd=ROOT, text=True, timeout=10).strip()
 
 
 def load_design(path=CONFIG):
     config = json.loads(Path(path).read_text())
-    if config["schema"] != "clifford_qc.orthogonal_active_space_design.v1":
+    if config["schema"] != "clifford_qc.orthogonal_active_space_design.v2":
         raise ValueError("unknown design schema")
     if config["correction_budgets"] != [0, 1, 2, 4]:
         raise ValueError("the frozen prefix grid changed")
@@ -66,8 +72,8 @@ def load_design(path=CONFIG):
     if ids != ["h4", "beh2", "lih", "h2o"]:
         raise ValueError("the complete ordered four-system scope is required")
     for case in config["cases"]:
-        path = ROOT / case["path"]
-        if not path.is_relative_to(ROOT) or sha(path) != case["sha256"]:
+        path = safe_path(ROOT, case["path"])
+        if sha(path) != case["sha256"]:
             raise ValueError(f"input digest differs: {case['id']}")
         data = read_fcidump(path)
         active = case["active_spatial_orbitals"]
@@ -100,11 +106,11 @@ def generalized(h, s, floor=1e-12):
     return energies, whitening @ coefficients
 
 
-def readout(basis, apply, tolerance, *, orthogonal=False):
+def readout(basis, apply, tolerance, *, orthogonal=False, s2=None, support_tolerance=1e-9):
     before = apply.calls
     if orthogonal:
         result = solve_orthogonal_corrections(apply, basis, tolerance=tolerance)
-        h, s = result.projected_hamiltonian, np.eye(basis.shape[1])
+        h, s = result.projected_hamiltonian, basis.conj().T @ basis
         energies, coefficients, actions = result.energies, result.coefficients, result.actions
     else:
         actions = np.column_stack([apply(column) for column in basis.T])
@@ -117,13 +123,17 @@ def readout(basis, apply, tolerance, *, orthogonal=False):
         "energy": float(energies[0]), "energies": energies.tolist(),
         "residual_norm": float(np.linalg.norm(residual)),
         "basis_dimension": int(basis.shape[1]),
-        "determinant_support": int(np.count_nonzero(np.any(np.abs(basis) > 1e-12, axis=1))),
+        "determinant_support": int(np.count_nonzero(np.any(np.abs(basis) > support_tolerance, axis=1))),
         "overlap_condition": float(np.linalg.cond(s)),
         "overlap_identity_defect": float(np.max(np.abs(s - np.eye(s.shape[0])))),
         "projected_hamiltonian": encode(h), "projected_overlap": encode(s),
         "ground_coefficients": encode(c), "h_action_calls": apply.calls - before,
         "vector_payload_bytes": int(basis.nbytes + actions.nbytes),
     }
+    if s2 is not None:
+        state = basis @ c / norm
+        record["spin_squared"] = float(np.vdot(state, s2 @ state).real)
+        record["spin_action_norm"] = float(np.linalg.norm(s2 @ state))
     return record, h, s
 
 
@@ -239,8 +249,14 @@ def run_case(case, config, case_index):
     shift = config["preconditioner_shift_hartree"]
     denominator = diagonal - e_classical + shift
     denominator = np.where(np.abs(denominator) < shift, shift, denominator)
-    packets = occupation_packets(backend.basis, residual / denominator, classical_indices,
-                                 external_mask, tolerance=config["packet_zero_tolerance"])
+    s2_operator = backend.operator(spin_squared_operator(model.n))
+    s2 = s2_operator.restrict(np.arange(backend.dimension))
+    spin_work = {}
+    packets = singlet_packets(backend.basis, residual / denominator, classical_indices,
+                              external_mask, model.n, s2,
+                              tolerance=config["packet_zero_tolerance"],
+                              relative_tolerance=config["packet_relative_tolerance"],
+                              spin_tolerance=config["spin_tolerance"], diagnostics=spin_work)
     scored = []
     for packet in packets:
         acted = apply(packet.vector)
@@ -260,16 +276,18 @@ def run_case(case, config, case_index):
         corrections = (np.column_stack([packet.vector for packet in selected]) if selected
                        else np.empty((backend.dimension, 0), complex))
         basis = np.column_stack((classical, corrections))
-        orthogonal, h, s = readout(basis, apply, config["orthogonality_tolerance"], orthogonal=True)
+        orthogonal, h, s = readout(basis, apply, config["orthogonality_tolerance"], orthogonal=True, s2=s2)
         transform = np.eye(basis.shape[1], dtype=complex)
         transform[:4, 4:] = config["same_span_mixing"] * coefficients[:, None]
-        mixed, _, _ = readout(basis @ transform, apply, config["orthogonality_tolerance"])
+        mixed, _, _ = readout(basis @ transform, apply, config["orthogonality_tolerance"], s2=s2)
         simple = classical_indices.tolist() + determinant_order[:len(selected)]
         dimension_control, _, _ = readout(np.eye(backend.dimension, dtype=complex)[:, simple],
-                                        apply, config["orthogonality_tolerance"], orthogonal=True)
+                                        apply, config["orthogonality_tolerance"], orthogonal=True, s2=s2)
         support = np.flatnonzero(np.any(np.abs(basis) > config["packet_zero_tolerance"], axis=1))
         support_control, _, _ = readout(np.eye(backend.dimension, dtype=complex)[:, support],
-                                      apply, config["orthogonality_tolerance"], orthogonal=True)
+                                      apply, config["orthogonality_tolerance"], orthogonal=True, s2=s2)
+        if max(orthogonal["spin_action_norm"], mixed["spin_action_norm"]) > config["spin_tolerance"]:
+            raise ValueError("packet Ritz state is not a singlet")
         trajectory.append({"requested_corrections": budget, "retained_corrections": len(selected),
                            "patterns": [packet.pattern for packet in selected],
                            "arms": dict(zip(ARMS, (orthogonal, mixed, dimension_control, support_control)))})
@@ -277,8 +295,9 @@ def run_case(case, config, case_index):
     reference_started = time.perf_counter()
     full_h = operator.restrict(np.arange(backend.dimension))
     exact = np.linalg.eigvalsh(full_h)
-    ordering = classical_indices.tolist() + external
-    closure = np.linalg.eigvalsh(full_h[np.ix_(ordering, ordering)])
+    partition_valid = partition_is_complete(classical_indices, external, backend.dimension)
+    if not partition_valid:
+        raise ValueError("classical/complement partition is invalid")
     reference_seconds = time.perf_counter() - reference_started
     for prefix in trajectory:
         for arm in prefix["arms"].values():
@@ -298,7 +317,7 @@ def run_case(case, config, case_index):
         "trajectory": trajectory,
         "exact_reference": {"energy": float(exact[0]), "energies": exact.tolist(),
                             "wall_seconds": reference_seconds, "matrix_bytes": full_h.nbytes},
-        "complete_complement_spectrum_defect": float(np.max(np.abs(closure - exact))),
+        "classical_complement_partition_valid": partition_valid,
         "noise": noise,
         "resources": {"selection_h_action_calls": selection_calls,
                       "total_h_action_calls": apply.calls,
@@ -306,33 +325,66 @@ def run_case(case, config, case_index):
                       "packet_candidates_scored": len(scored),
                       "determinant_candidates_scored": len(external),
                       "operator_storage": operator.memory_estimate(),
+                      "spin_matrix_bytes": s2.nbytes,
+                      "spin_packet_construction": spin_work,
+                      "spin_operator_storage": s2_operator.memory_estimate(),
+                      "spin_matrix_columns_constructed": backend.dimension,
                       "wall_seconds_including_reference_and_noise": time.perf_counter() - started,
                       "quantum_state_preparation": "unimplemented_unpriced",
                       "quantum_measurement_shots": "unimplemented_unpriced"},
     }
 
 
+def partition_is_complete(classical, external, dimension):
+    left, right = list(classical), list(external)
+    return (len(set(left)) == len(left) and len(set(right)) == len(right)
+            and set(left).isdisjoint(right) and set(left) | set(right) == set(range(dimension)))
+
+
+def validate_declaration(declaration_commit, source_commit, config, *, root=ROOT):
+    """Bind design bytes and require new revision code to be absent at declaration."""
+    history_kind(root)
+    if declaration_commit == source_commit:
+        raise ValueError("the declaration must precede the implementation commit")
+    try:
+        subprocess.run(["git", "merge-base", "--is-ancestor", declaration_commit, source_commit],
+                       cwd=root, capture_output=True, check=True, timeout=10)
+    except (OSError, subprocess.SubprocessError) as exc:
+        raise HistoryError("declaration is not an ancestor of execution") from exc
+    for path in (CONFIG, DECLARATION):
+        relative = str(path.relative_to(ROOT))
+        if commit_binding(root, declaration_commit, relative)["sha256"] != sha(root / relative):
+            raise ValueError("design bytes differ from the earlier declaration commit")
+    paths = config["implementation_paths_absent_at_declaration"]
+    if paths != ["clifford_qc/subspace/spin_packets.py"]:
+        raise ValueError("revision implementation absence manifest differs")
+    for path in paths:
+        if subprocess.run(["git", "cat-file", "-e", f"{declaration_commit}:{path}"],
+                          cwd=root, capture_output=True, timeout=10).returncode == 0:
+            raise ValueError(f"implementation already exists at declaration: {path}")
+        commit_binding(root, source_commit, path)
+
+
+def execution_preflight():
+    """Use the same stamping/environment and dirty-tree rules before science."""
+    history_kind(ROOT)
+    stamp = stamp_record({})["provenance"]
+    source_commit = git("rev-parse", "HEAD")
+    if (git("status", "--porcelain") or stamp["git_dirty"] is not False
+            or stamp["git_sha"] != source_commit):
+        raise ValueError("execution requires a clean committed source tree including untracked files")
+    return source_commit, stamp
+
+
 def execute(config):
     if config != load_design():
         raise ValueError("execution requires the frozen design without overrides")
-    if git("rev-parse", "--is-shallow-repository") != "false":
-        raise ValueError("execution requires full Git history")
+    source_commit, provenance = execution_preflight()
     declaration_commit = git("log", "-1", "--format=%H", "--", str(DECLARATION.relative_to(ROOT)))
-    source_commit = git("rev-parse", "HEAD")
-    if not declaration_commit or declaration_commit == source_commit:
-        raise ValueError("the declaration must precede the implementation commit")
-    git("merge-base", "--is-ancestor", declaration_commit, source_commit)
-    if git("status", "--porcelain", "--untracked-files=no"):
-        raise ValueError("execution requires a clean committed source tree")
-    for path in (CONFIG, DECLARATION):
-        declared = subprocess.check_output(
-            ["git", "show", f"{declaration_commit}:{path.relative_to(ROOT)}"], cwd=ROOT)
-        if declared != path.read_bytes():
-            raise ValueError("design bytes differ from the earlier declaration commit")
-    identity = {path: sha(ROOT / path) for path in SOURCES}
+    validate_declaration(declaration_commit, source_commit, config)
+    identity = {path: sha(safe_path(ROOT, path)) for path in SOURCES}
     for path, digest in identity.items():
-        committed = subprocess.check_output(["git", "show", f"{source_commit}:{path}"], cwd=ROOT)
-        if hashlib.sha256(committed).hexdigest() != digest:
+        if commit_binding(ROOT, source_commit, path)["sha256"] != digest:
             raise ValueError(f"execution source is not committed: {path}")
     cases = [run_case(case, config, i) for i, case in enumerate(config["cases"])]
     record = {"schema": SCHEMA, "config": config, "config_sha256": sha(CONFIG),
@@ -347,7 +399,11 @@ def execute(config):
         "resources": {"tier": "classical_process_measurement",
             "scope": "Observed wall times and explicit array/operator payload bytes; no peak RSS, optimized implementation or quantum total-cost comparison."},
     })
-    return stamp_record(record)
+    # Recheck before returning: a changed tree must not produce an apparently clean receipt.
+    final_source, _ = execution_preflight()
+    if final_source != source_commit:
+        raise ValueError("execution source changed during campaign")
+    return stamp_record(record, provenance=provenance)
 
 
 def main(argv=None):

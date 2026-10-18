@@ -127,9 +127,9 @@ def test_independent_replay_accepts_synthetic_pilot(synthetic_case):
 
 def test_packet_serialization_accepts_only_numerically_small_support_changes():
     row = {"pattern": 2, "indices": [1, 2],
-           "coefficients": {"real": [.6, -.8], "imag": [0, 0]}}
+           "coefficients": {"real": [-.6, .8], "imag": [0, 0]}}
     words = [2, 3, 6, 0]
-    expected = np.array([2e-11, .6, -.8, 0], complex)
+    expected = np.array([2e-11, -.6, .8, 0], complex)
     assert checker.packet_agrees(row, expected, words, [3], 2, 1e-12)
     assert checker.packet_agrees(row, -expected, words, [3], 2, 1e-12)
     expected[0] = 1e-3
@@ -220,6 +220,7 @@ def test_default_is_result_free_and_outputs_are_never_overwritten(monkeypatch, t
 def test_committed_record_replays_independently():
     if not checker.RECORD.exists():
         pytest.skip("campaign is not executed until implementation is committed")
+    require_full_history()
     record = json.loads(checker.RECORD.read_text())
     assert checker.verify(record) == []
     for mutation in ("case_scope", "evidence_tier", "source_identity"):
@@ -236,6 +237,7 @@ def test_committed_record_replays_independently():
 def test_original_execution_history_restores_without_changing_branch_refs(tmp_path):
     if not checker.RECORD.exists():
         pytest.skip("observations are required to test the execution archive")
+    require_full_history()
     record = json.loads(checker.RECORD.read_text())
     root = tmp_path / "baseline"
     subprocess.run(["git", "init", "-q", str(root)], check=True)
@@ -254,3 +256,195 @@ def test_original_execution_history_restores_without_changing_branch_refs(tmp_pa
     target.write_bytes(target.read_bytes() + b"tampered")
     with pytest.raises(ValueError, match="bundle digest"):
         checker.ensure_execution_history(record, root)
+
+
+def require_full_history():
+    from benchmarks.archive_provenance import history_kind
+    try:
+        history_kind(checker.ROOT)
+    except ValueError as exc:
+        pytest.skip(str(exc))
+
+
+def test_revised_committed_record_replays():
+    require_full_history()
+    if not checker.V2_RECORD.exists():
+        pytest.skip("revised observations follow the implementation commit")
+    assert checker.verify(json.loads(checker.V2_RECORD.read_text())) == []
+
+
+def test_packet_records_enforce_canonical_phase():
+    row = {"pattern": 2, "indices": [1, 2],
+           "coefficients": {"real": [-.6, .8], "imag": [0., 0.]}}
+    expected = np.array([0., -.6, .8, 0.], complex)
+    for factor in (-1, 1j):
+        bad = deepcopy(row)
+        bad["coefficients"] = producer.encode(factor * expected[1:3])
+        assert not checker.packet_agrees(bad, expected, [2, 3, 6, 0], [3], 2, 1e-12)
+
+
+def test_noise_only_packets_are_rejected_before_normalization():
+    words = [0, 2, 4, 6]
+    amplitudes = [0, 2e-12, 1, 0]
+    assert [p.pattern for p in occupation_packets(words, amplitudes, [0], 6)] == [4]
+    # The relative threshold also rejects a 1e-6 group beside a 1e4 residual.
+    assert [p.pattern for p in occupation_packets(words, [0, 1e-6, 1e4, 0], [0], 6)] == [4]
+
+
+def test_packet_and_result_arrays_are_owned_and_immutable():
+    from clifford_qc.subspace.orthogonal import OccupationPacket
+    source = np.array([0., 1.])
+    packet = OccupationPacket(1, source)
+    other = OccupationPacket(1, source)
+    source[1] = 99
+    assert packet.vector[1] == 1 and packet != other
+    assert isinstance(hash(packet), int)
+    result = solve_orthogonal_corrections(lambda x: x, np.eye(2))
+    for array in (packet.vector, result.basis, result.actions, result.coefficients,
+                  result.energies, result.projected_hamiltonian):
+        with pytest.raises(ValueError):
+            array.flat[0] = 99
+        with pytest.raises(ValueError):
+            array.flags.writeable = True
+
+
+def test_measured_overlap_defect_is_not_replaced_by_identity():
+    basis = np.eye(2, dtype=complex)
+    basis[0, 0] += 2e-11
+    action = producer.CountedAction(type("Identity", (), {"matvec": staticmethod(lambda x: x)})())
+    observed, _, overlap = producer.readout(basis, action, 1e-10, orthogonal=True)
+    assert observed["overlap_identity_defect"] > 3e-11
+    np.testing.assert_array_equal(overlap, basis.conj().T @ basis)
+    np.testing.assert_array_equal(checker.decode(observed["projected_overlap"]), overlap)
+
+
+def test_spin_packets_merge_partners_and_remove_triplets():
+    from clifford_qc.subspace.spin_packets import singlet_packets, spin_squared_operator
+    backend = SectorStatevectorBackend(4, 2, 0)
+    s2 = backend.operator(spin_squared_operator(4)).restrict(np.arange(backend.dimension))
+    independent = checker.independent_spin_squared(backend.basis.tolist(), 4)
+    np.testing.assert_allclose(s2, independent, atol=1e-14)
+    # One open-shell determinant carries singlet and triplet components.
+    amplitudes = np.zeros(backend.dimension)
+    index = backend.basis.tolist().index(9)
+    amplitudes[index] = 1
+    packets = singlet_packets(backend.basis, amplitudes, [], 15, 4, s2)
+    assert len(packets) == 1
+    vector = packets[0].vector
+    assert np.count_nonzero(abs(vector) > 1e-12) == 2
+    assert np.linalg.norm(s2 @ vector) < 1e-14
+    values, vectors = np.linalg.eigh(s2)
+    triplet = vectors[:, np.argmax(values)]
+    assert not singlet_packets(backend.basis, triplet, [], 15, 4, s2)
+    assert not singlet_packets(backend.basis, amplitudes * 2e-12, [], 15, 4, s2)
+
+
+def test_partition_check_rejects_missing_duplicate_and_overlapping_indices():
+    assert producer.partition_is_complete([0, 2], [1, 3], 4)
+    for classical, external in [([0, 0], [1, 2, 3]), ([0, 2], [1]), ([0, 2], [1, 2, 3])]:
+        assert not producer.partition_is_complete(classical, external, 4)
+
+
+def test_execution_preflight_rejects_untracked_and_wrong_environment_before_science(monkeypatch):
+    monkeypatch.setattr(producer, "run_case", lambda *a: pytest.fail("science ran"))
+    clean = {"provenance": {"git_sha": "a" * 40, "git_dirty": False}}
+    monkeypatch.setattr(producer, "stamp_record", lambda record: clean)
+    monkeypatch.setattr(producer, "git", lambda *a: "?? notes.txt" if a[0] == "status" else "a" * 40)
+    with pytest.raises(ValueError, match="including untracked"):
+        producer.execute(producer.load_design())
+    def wrong_environment(record):
+        raise ValueError("undeclared numerical environment")
+    monkeypatch.setattr(producer, "stamp_record", wrong_environment)
+    with pytest.raises(ValueError, match="undeclared numerical environment"):
+        producer.execute(producer.load_design())
+
+
+@pytest.mark.parametrize("path_kind", ["parent", "symlink"])
+def test_input_paths_cannot_escape_repository(monkeypatch, tmp_path, path_kind):
+    config = json.loads(producer.CONFIG.read_text())
+    if path_kind == "parent":
+        config["cases"][0]["path"] = "../outside.FCIDUMP"
+    else:
+        link = tmp_path / "escape.FCIDUMP"
+        outside = tmp_path.parent / f"{tmp_path.name}-outside.FCIDUMP"
+        outside.write_text("outside")
+        link.symlink_to(outside)
+        monkeypatch.setattr(producer, "ROOT", tmp_path)
+        config["cases"][0]["path"] = "escape.FCIDUMP"
+    config_path = tmp_path / "design.json"
+    config_path.write_text(json.dumps(config))
+    with pytest.raises(ValueError, match="escape"):
+        producer.load_design(config_path)
+
+
+def test_preserved_observation_binding_rejects_metadata_changes():
+    require_full_history()
+    record = json.loads(checker.RECORD.read_text())
+    for field in ("timing", "storage", "provenance"):
+        changed = deepcopy(record)
+        if field == "timing":
+            changed["cases"][0]["resources"]["wall_seconds_including_reference_and_noise"] += 1
+        elif field == "storage":
+            changed["cases"][0]["resources"]["operator_storage"]["test_fake_payload"] = 10
+        else:
+            changed["provenance"]["utc"] = "changed after observation"
+        assert "inspected record differs from preserved observation bytes" in checker.source_problems(
+            changed, checker.CONFIG, checker.DECLARATION, checker.RECORD)
+
+
+def test_declaration_absence_check_rejects_code_present_at_declaration(tmp_path):
+    def git(*args):
+        return subprocess.check_output(["git", *args], cwd=tmp_path, text=True).strip()
+    git("init", "-q")
+    git("config", "user.name", "test")
+    git("config", "user.email", "test@example.invalid")
+    for path in (producer.CONFIG, producer.DECLARATION):
+        target = tmp_path / path.relative_to(producer.ROOT)
+        target.parent.mkdir(parents=True, exist_ok=True)
+        target.write_bytes(path.read_bytes())
+    git("add", ".")
+    git("commit", "-qm", "declaration only")
+    declaration = git("rev-parse", "HEAD")
+    implementation = tmp_path / "clifford_qc/subspace/spin_packets.py"
+    implementation.parent.mkdir(parents=True)
+    implementation.write_text("# revised implementation")
+    git("add", ".")
+    git("commit", "-qm", "implementation")
+    source = git("rev-parse", "HEAD")
+    producer.validate_declaration(declaration, source, producer.load_design(), root=tmp_path)
+    git("commit", "--allow-empty", "-qm", "later commit")
+    with pytest.raises(ValueError, match="already exists"):
+        producer.validate_declaration(source, git("rev-parse", "HEAD"), producer.load_design(), root=tmp_path)
+
+
+def test_shallow_history_refuses_before_bundle_operations(tmp_path):
+    from benchmarks.archive_provenance import ShallowHistoryError
+    source = tmp_path / "source"
+    source.mkdir()
+    def git(*args):
+        return subprocess.check_output(["git", *args], cwd=source, text=True).strip()
+    git("init", "-q")
+    git("config", "user.name", "test")
+    git("config", "user.email", "test@example.invalid")
+    git("commit", "--allow-empty", "-qm", "first")
+    git("commit", "--allow-empty", "-qm", "second")
+    clone = tmp_path / "shallow"
+    git("clone", "--quiet", "--depth", "1", source.as_uri(), str(clone))
+    with pytest.raises(ShallowHistoryError, match="full git history"):
+        checker.ensure_execution_history({}, clone)
+    with pytest.raises(ValueError, match="full Git history"):
+        checker.ensure_execution_history({}, tmp_path / "archive")
+
+
+def test_report_conclusions_follow_records_and_include_every_violation():
+    from benchmarks.summarize_orthogonal_active_space import render
+    record = json.loads(checker.RECORD.read_text())
+    text = render(record)
+    assert "-1.862533" in text
+    assert "34 / 64" in text and "30 / 64" in text and "25 / 64" in text
+    changed = deepcopy(record)
+    changed["cases"] = changed["cases"][:1]
+    changed["cases"][0]["trajectory"][-1]["arms"]["orthogonal"]["error"] = 1
+    assert "0/1 inputs" in render(changed)
+    changed["cases"][0]["trajectory"][-1]["arms"]["orthogonal"]["energy"] += 1
+    assert "monotonicity holds on 0/1" in render(changed)

@@ -14,13 +14,21 @@ from typing import Callable
 import numpy as np
 
 
-@dataclass(frozen=True)
+def _immutable_array(value):
+    array = np.asarray(value)
+    return np.frombuffer(array.tobytes(), dtype=array.dtype).reshape(array.shape)
+
+
+@dataclass(frozen=True, eq=False)
 class OccupationPacket:
     pattern: int
     vector: np.ndarray
 
+    def __post_init__(self):
+        object.__setattr__(self, "vector", _immutable_array(self.vector))
 
-@dataclass(frozen=True)
+
+@dataclass(frozen=True, eq=False)
 class OrthogonalCorrectionResult:
     energies: np.ndarray
     coefficients: np.ndarray
@@ -29,6 +37,10 @@ class OrthogonalCorrectionResult:
     projected_hamiltonian: np.ndarray
     orthogonality_defect: float
     residual_norm: float
+
+    def __post_init__(self):
+        for name in ("energies", "coefficients", "basis", "actions", "projected_hamiltonian"):
+            object.__setattr__(self, name, _immutable_array(getattr(self, name)))
 
     @property
     def energy(self) -> float:
@@ -49,7 +61,8 @@ def canonical_phase(vector: np.ndarray) -> np.ndarray:
 
 
 def occupation_packets(words, amplitudes, excluded, external_mask: int, *,
-                       tolerance: float = 1e-12) -> tuple[OccupationPacket, ...]:
+                       tolerance: float = 1e-9,
+                       relative_tolerance: float = 1e-8) -> tuple[OccupationPacket, ...]:
     """Partition classical amplitudes into disjoint external occupation classes.
 
     ``excluded`` indexes the entire classical determinant span. No amplitude
@@ -71,6 +84,7 @@ def occupation_packets(words, amplitudes, excluded, external_mask: int, *,
             or np.unique(words).size != words.size):
         raise ValueError("distinct nonnegative words and finite matching amplitudes required")
     if (not np.isfinite(tolerance) or tolerance <= 0
+            or not np.isfinite(relative_tolerance) or relative_tolerance < 0
             or isinstance(external_mask, bool) or not isinstance(external_mask, int)
             or external_mask < 0):
         raise ValueError("positive tolerance and a nonnegative integer external_mask required")
@@ -81,12 +95,13 @@ def occupation_packets(words, amplitudes, excluded, external_mask: int, *,
         raise ValueError("corrections have support on the classical span")
     live = np.ones(words.size, bool)
     live[excluded] = False
+    cutoff = max(tolerance, relative_tolerance * float(np.linalg.norm(amplitudes[live])))
     patterns = words & external_mask
     out = []
     for pattern in sorted(set(patterns[live].tolist())):
         vector = np.where(live & (patterns == pattern), amplitudes, 0.0)
         norm = float(np.linalg.norm(vector))
-        if norm > tolerance:
+        if norm > cutoff:
             out.append(OccupationPacket(int(pattern), canonical_phase(vector / norm)))
     return tuple(out)
 

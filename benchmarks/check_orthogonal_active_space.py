@@ -8,7 +8,6 @@ performance guarantees.
 from __future__ import annotations
 
 import argparse
-import hashlib
 import json
 from pathlib import Path
 import re
@@ -21,14 +20,19 @@ ROOT = Path(__file__).resolve().parents[1]
 if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
-from benchmarks.metadata_io import read_json
-from benchmarks.phase17_ceo_oracle import hamiltonian
+from benchmarks.archive_provenance import HistoryError, commit_binding, history_kind, safe_path
+from benchmarks.metadata_io import read_json, sha256
+from benchmarks.phase17_ceo_oracle import _fermionic_action, hamiltonian
 from clifford_qc.evidence import validate_evidence
 from clifford_qc.models.fcidump import read_fcidump
 
 RECORD = ROOT / "benchmarks/reference_results/orthogonal_active_space.json"
 CONFIG = ROOT / "benchmarks/configs/orthogonal_active_space.json"
 DECLARATION = ROOT / "benchmarks/ORTHOGONAL_ACTIVE_SPACE_DECLARATION.md"
+V2_CONFIG = ROOT / "benchmarks/configs/orthogonal_active_space_v2.json"
+V2_DECLARATION = ROOT / "benchmarks/ORTHOGONAL_ACTIVE_SPACE_V2_DECLARATION.md"
+V2_RECORD = ROOT / "benchmarks/reference_results/orthogonal_active_space_v2.json"
+OBSERVATION_COMMIT = "2e354b690e7b7f1bcb642dc9fac453a2b09e8be9"
 EXECUTION_BUNDLE = "benchmarks/provenance/orthogonal_active_space.bundle"
 EXECUTION_BUNDLE_SHA256 = "4c701798891ad541d98c8e882517a43b59b5f29ca8cbac00e51783f6c2e7f434"
 ARMS = ("orthogonal", "same_span_mixed", "dimension_matched_determinants",
@@ -40,6 +44,43 @@ SOURCES = (
     "clifford_qc/backends/sector_statevector.py", "clifford_qc/models/fcidump.py",
     "clifford_qc/fermion.py",
 )
+
+V2_SOURCES = SOURCES + ("clifford_qc/subspace/spin_packets.py",
+                        "benchmarks/archive_provenance.py", "benchmarks/metadata_io.py")
+# These maintained modules have a separately declared v2 implementation. V1
+# execution bytes remain bound in Git, never relabeled as the current source.
+EVOLVED_V1_SOURCES = {"benchmarks/check_orthogonal_active_space.py",
+                      "benchmarks/run_orthogonal_active_space.py",
+                      "clifford_qc/subspace/orthogonal.py"}
+
+
+def independent_spin_squared(words, n):
+    """Occupation-sign S², independent of the producer's JW Pauli operator."""
+    lookup = {word: i for i, word in enumerate(words)}
+    result = np.zeros((len(words), len(words)), complex)
+    for column, word in enumerate(words):
+        sz = sum((1 if j % 2 == 0 else -1) * ((word >> (n - 1 - j)) & 1)
+                 for j in range(n)) / 2
+        result[column, column] += sz**2
+        for p in range(n // 2):
+            for q in range(n // 2):
+                for spin in (0, 1):
+                    sequence = [(2*p+spin, True), (2*p+1-spin, False),
+                                (2*q+1-spin, True), (2*q+spin, False)]
+                    acted = _fermionic_action(word, sequence, n)
+                    if acted is not None:
+                        target, sign = acted
+                        if target in lookup:
+                            result[lookup[target], column] += .5 * sign
+    return result
+
+
+def external_spatial_pattern(word, mask, n):
+    counts = []
+    for p in range(n // 2):
+        counts.append(sum(bool(word & mask & (1 << (n - 1 - 2*p - spin)))
+                          for spin in (0, 1)))
+    return sum(count * 3**p for p, count in enumerate(counts))
 
 
 def decode(value):
@@ -79,7 +120,8 @@ def independent_generalized(h, s):
     return energies, np.linalg.solve(lower.conj().T, vectors)
 
 
-def packet_agrees(row, expected, words, classical_indices, external_mask, zero_tolerance):
+def packet_agrees(row, expected, words, classical_indices, external_mask, zero_tolerance, *,
+                   n=None):
     """Compare reconstructed vectors, not unstable thresholded index lists.
 
     Independent integral summation can move a numerical zero across the 1e-12
@@ -90,7 +132,8 @@ def packet_agrees(row, expected, words, classical_indices, external_mask, zero_t
     indices = row["indices"]
     if (not indices or any(type(i) is not int or i < 0 or i >= len(words) for i in indices)
             or sorted(set(indices)) != indices
-            or any(i in classical_indices or words[i] & external_mask != row["pattern"]
+            or any(i in classical_indices or (words[i] & external_mask if n is None
+                       else external_spatial_pattern(words[i], external_mask, n)) != row["pattern"]
                    for i in indices)):
         return False
     coefficients = decode(row["coefficients"])
@@ -98,6 +141,9 @@ def packet_agrees(row, expected, words, classical_indices, external_mask, zero_t
         return False
     reconstructed = np.zeros(len(words), complex)
     reconstructed[indices] = coefficients
+    pivot = reconstructed[int(np.argmax(abs(reconstructed)))]
+    if abs(pivot.imag) > 1e-12 or pivot.real <= 0:
+        return False
     overlap = np.vdot(expected, reconstructed)
     return abs(overlap) > 0 and close(reconstructed, expected * overlap / abs(overlap))
 
@@ -134,7 +180,9 @@ def verify_case(entry, case, config, h, words):
             denominator[i] = config["preconditioner_shift_hartree"]
     raw = residual / denominator
     external = [i for i in range(dimension) if i not in classical_indices]
-    packets, scores = {}, {}
+    packets, scores, recorded_packets = {}, {}, {}
+    revised = config["schema"].endswith(".v2")
+    s2 = independent_spin_squared(words, n)
 
     def score(vector):
         coupling = np.vdot(state, h @ vector)
@@ -142,13 +190,24 @@ def verify_case(entry, case, config, h, words):
         return max(0.0, -float(np.linalg.eigvalsh(
             np.array([[0, coupling], [coupling.conjugate(), diagonal]]))[0]))
 
-    for pattern in sorted({words[i] & external_mask for i in external}):
+    patterns = [(external_spatial_pattern(word, external_mask, n) if revised
+                 else word & external_mask) for word in words]
+    cutoff = max(config["packet_zero_tolerance"], config.get("packet_relative_tolerance", 0)
+                 * float(np.linalg.norm(raw[external])))
+    spin_eigensolves = 0
+    for pattern in sorted({patterns[i] for i in external}):
+        indices = [i for i in external if patterns[i] == pattern]
         vector = np.zeros(dimension, complex)
-        for i in external:
-            if words[i] & external_mask == pattern:
-                vector[i] = raw[i]
+        vector[indices] = raw[indices]
+        if np.linalg.norm(vector) <= cutoff:
+            continue
+        if revised:
+            spin_eigensolves += 1
+            values, columns = np.linalg.eigh(s2[np.ix_(indices, indices)])
+            singlets = columns[:, abs(values) <= config["spin_tolerance"]]
+            vector[indices] = singlets @ (singlets.conj().T @ raw[indices])
         norm = np.linalg.norm(vector)
-        if norm > config["packet_zero_tolerance"]:
+        if norm > cutoff:
             packets[pattern] = phase(vector / norm)
             scores[pattern] = score(packets[pattern])
     packet_order = ordered(scores)
@@ -157,9 +216,12 @@ def verify_case(entry, case, config, h, words):
     for row in entry["packet_ranking"]:
         expected = packets[row["pattern"]]
         agrees = packet_agrees(row, expected, words, classical_indices, external_mask,
-                                config["packet_zero_tolerance"])
+                                config["packet_zero_tolerance"], n=n if revised else None)
         require(close(row["score"], scores[row["pattern"]]) and agrees,
                 "packet support/coefficients/score")
+        recorded_vector = np.zeros(dimension, complex)
+        recorded_vector[row["indices"]] = decode(row["coefficients"])
+        recorded_packets[row["pattern"]] = recorded_vector
         if agrees:
             # Re-express the independently rebuilt vector in the recorded
             # global-phase convention before checking coordinate-dependent H.
@@ -173,10 +235,16 @@ def verify_case(entry, case, config, h, words):
             and close(entry["exact_reference"]["energy"], exact[0]), "independent reference spectrum")
     require(entry["exact_reference"]["matrix_bytes"] == dimension * dimension * 16,
             "reference matrix payload")
-    permuted = h[np.ix_(classical_indices + external, classical_indices + external)]
-    defect = float(np.max(np.abs(np.linalg.eigvalsh(permuted) - exact)))
-    require(close(entry["complete_complement_spectrum_defect"], defect, 1e-10)
-            and defect < 1e-9, "complete complement closure")
+    require(set(classical_indices).isdisjoint(external)
+            and sorted(classical_indices + external) == list(range(dimension)),
+            "classical/complement partition")
+    if revised:
+        require(entry["classical_complement_partition_valid"] is True, "partition receipt")
+    else:
+        # Preserve the old scalar as historical data, not an independent
+        # diagnostic: a permutation necessarily has the same spectrum.
+        require(0 <= entry["complete_complement_spectrum_defect"] < 1e-9,
+                "historical permutation round-off")
     require([row["requested_corrections"] for row in entry["trajectory"]]
             == config["correction_budgets"], "complete prefix grid")
     previous = e_classical
@@ -191,7 +259,9 @@ def verify_case(entry, case, config, h, words):
         transform = np.eye(basis.shape[1], dtype=complex)
         transform[:4, 4:] = config["same_span_mixing"] * c[:, None]
         simple = classical_indices + determinant_order[:len(patterns)]
-        support = np.flatnonzero(np.any(np.abs(basis) > config["packet_zero_tolerance"], axis=1))
+        serialized_basis = np.column_stack([*classical.T,
+                            *[recorded_packets[pattern] for pattern in patterns]])
+        support = np.flatnonzero(np.any(serialized_basis != 0, axis=1))
         bases = (basis, basis @ transform, np.eye(dimension, dtype=complex)[:, simple],
                  np.eye(dimension, dtype=complex)[:, support])
         require(set(prefix["arms"]) == set(ARMS), "complete control arms")
@@ -201,8 +271,17 @@ def verify_case(entry, case, config, h, words):
             es, cs = independent_generalized(projected, overlap)
             psi = columns @ cs[:, 0]
             residual_norm = float(np.linalg.norm(h @ psi - es[0] * psi))
+            if revised:
+                spin = float(np.vdot(psi, s2 @ psi).real)
+                spin_norm = float(np.linalg.norm(s2 @ psi))
+                require(close(observed["spin_squared"], spin)
+                        and close(observed["spin_action_norm"], spin_norm), f"{name} spin diagnostics")
+                if name in ("orthogonal", "same_span_mixed"):
+                    require(spin_norm <= config["spin_tolerance"], f"{name} singlet state")
             size = columns.shape[1]
-            support_count = int(np.count_nonzero(np.any(np.abs(columns) > 1e-12, axis=1)))
+            support_count = (len(support) if name in ("orthogonal", "same_span_mixed")
+                             else len(simple) if name == "dimension_matched_determinants"
+                             else len(support))
             require(close(decode(observed["projected_hamiltonian"]), projected)
                     and close(decode(observed["projected_overlap"]), overlap), f"{name} pencil")
             require(close(observed["energies"], es) and close(observed["energy"], es[0])
@@ -249,6 +328,11 @@ def verify_case(entry, case, config, h, words):
     require(isinstance(resources["operator_storage"], dict)
             and all(type(v) is int and v >= 0 for v in resources["operator_storage"].values()),
             "observed native payload metadata")
+    if revised:
+        require(resources["spin_packet_construction"]["block_eigensolves"] == spin_eigensolves
+                and close(resources["spin_packet_construction"]["norm_cutoff"], cutoff, 1e-12)
+                and resources["spin_matrix_bytes"] == s2.nbytes
+                and resources["spin_matrix_columns_constructed"] == dimension, "spin construction work")
     if final_h is not None:
         problems.extend(verify_noise(entry["noise"], final_h, e_classical, c,
                                      float(exact[0]), config, config["cases"].index(case)))
@@ -327,39 +411,95 @@ def verify_noise(observed, h, e_classical, c, exact_energy, config, case_index):
     return problems
 
 
-def ensure_execution_history(record, root=ROOT):
-    """Restore inert original Git objects if publication reauthored commits.
+def git_run(root, *args, check=True):
+    try:
+        return subprocess.run(["git", *args], cwd=root, capture_output=True,
+                              check=check, timeout=10)
+    except (OSError, subprocess.SubprocessError) as exc:
+        raise HistoryError(f"Git history operation failed ({args[0]}): {type(exc).__name__}") from exc
 
-    The checked-in, digest-bound bundle depends on the unchanged main baseline.
-    Unbundling installs objects only: no branch, worktree or remote is changed.
-    Scientific replay still verifies source bytes and declaration ancestry.
-    """
-    bundle = root / EXECUTION_BUNDLE
-    if hashlib.sha256(bundle.read_bytes()).hexdigest() != EXECUTION_BUNDLE_SHA256:
+
+def ensure_execution_history(record, root=ROOT):
+    """Restore digest-bound inert v1 objects only after full-history inspection."""
+    history_kind(root)
+    bundle = safe_path(root, EXECUTION_BUNDLE)
+    if sha256(bundle) != EXECUTION_BUNDLE_SHA256:
         raise ValueError("execution bundle digest differs")
-    commits = [record["declaration_commit"], record["source_commit"]]
+    commits = [record["declaration_commit"], record["source_commit"], OBSERVATION_COMMIT]
     if any(not isinstance(sha, str) or not re.fullmatch(r"[0-9a-f]{40}", sha) for sha in commits):
         raise ValueError("execution identities must be complete commit SHAs")
-    missing = any(subprocess.run(["git", "cat-file", "-e", f"{sha}^{{commit}}"], cwd=root,
-                                capture_output=True).returncode for sha in commits)
+    missing = any(git_run(root, "cat-file", "-e", f"{sha}^{{commit}}", check=False).returncode
+                  for sha in commits)
     if missing:
-        subprocess.run(["git", "bundle", "verify", str(bundle)], cwd=root,
-                       check=True, capture_output=True)
-        subprocess.run(["git", "bundle", "unbundle", str(bundle)], cwd=root,
-                       check=True, capture_output=True)
+        git_run(root, "bundle", "verify", str(bundle))
+        git_run(root, "bundle", "unbundle", str(bundle))
         for sha in commits:
-            subprocess.run(["git", "cat-file", "-e", f"{sha}^{{commit}}"], cwd=root,
-                           check=True, capture_output=True)
+            git_run(root, "cat-file", "-e", f"{sha}^{{commit}}")
 
 
-def verify(record, *, check_sources=True):
-    config = read_json(CONFIG)
+def source_problems(record, config_path, declaration_path, record_path, *, root=ROOT):
+    """Historical bytes and live observations are separate binding contracts."""
+    history_kind(root)  # Stop before restoring objects in shallow/archive trees.
+    revised = record["schema"].endswith(".v2")
+    if not revised:
+        ensure_execution_history(record, root)
+        observation = OBSERVATION_COMMIT
+    else:
+        first = git_run(root, "log", "--diff-filter=A", "--format=%H", "--",
+                        str(record_path.relative_to(ROOT))).stdout.decode().splitlines()
+        if not first:
+            raise HistoryError("revised observations must be committed separately")
+        observation = first[-1]
+        changed = git_run(root, "diff-tree", "--no-commit-id", "--name-only", "-r", observation).stdout.decode().splitlines()
+        if changed != [str(record_path.relative_to(ROOT))] or observation == record["source_commit"]:
+            return ["revised observations must first be committed alone after implementation"]
+        git_run(root, "merge-base", "--is-ancestor", record["source_commit"], observation)
+    relative_record = str(record_path.relative_to(ROOT))
+    expected_record = commit_binding(root, observation, relative_record)["sha256"]
+    if sha256(safe_path(root, relative_record)) != expected_record:
+        return ["original observation bytes differ from their observation commit"]
+    if read_json(root / relative_record) != record:
+        return ["inspected record differs from preserved observation bytes"]
+    sources = V2_SOURCES if revised else SOURCES
+    if set(record["source_sha256"]) != set(sources):
+        return ["execution source manifest incomplete"]
+    problems = []
+    for path, digest in record["source_sha256"].items():
+        if commit_binding(root, record["source_commit"], path)["sha256"] != digest:
+            problems.append(f"execution source digest differs: {path}")
+        maintained = (path == "benchmarks/check_orthogonal_active_space.py" if revised
+                      else path in EVOLVED_V1_SOURCES)
+        if not maintained and sha256(safe_path(root, path)) != digest:
+            problems.append(f"live execution source differs: {path}")
+    if record["declaration_commit"] == record["source_commit"]:
+        problems.append("declaration did not precede implementation")
+    for path in (config_path, declaration_path):
+        relative = str(path.relative_to(ROOT))
+        if commit_binding(root, record["declaration_commit"], relative)["sha256"] != sha256(root / relative):
+            problems.append(f"declaration bytes changed: {relative}")
+    absent = (record["config"]["implementation_paths_absent_at_declaration"] if revised else
+              ["benchmarks/run_orthogonal_active_space.py", "clifford_qc/subspace/orthogonal.py"])
+    if revised and absent != ["clifford_qc/subspace/spin_packets.py"]:
+        problems.append("revision implementation absence manifest differs")
+    for path in absent:
+        if git_run(root, "cat-file", "-e", f"{record['declaration_commit']}:{path}", check=False).returncode == 0:
+            problems.append(f"implementation already exists at declaration: {path}")
+    git_run(root, "merge-base", "--is-ancestor", record["declaration_commit"], record["source_commit"])
+    if record["provenance"]["git_sha"] != record["source_commit"] or record["provenance"]["git_dirty"] is not False:
+        problems.append("execution provenance does not name a clean source")
+    return problems
+
+
+def verify(record, *, check_sources=True, record_path=None):
+    revised = record["schema"] == "clifford_qc.orthogonal_active_space.v2"
+    config_path, declaration_path = (V2_CONFIG, V2_DECLARATION) if revised else (CONFIG, DECLARATION)
+    record_path = (record_path or (V2_RECORD if revised else RECORD)).resolve()
+    config = read_json(config_path)
     validate_evidence(record)
     problems = []
-    if (record["schema"] != "clifford_qc.orthogonal_active_space.v1"
-            or record["config"] != config
-            or record["config_sha256"] != hashlib.sha256(CONFIG.read_bytes()).hexdigest()
-            or record["declaration_sha256"] != hashlib.sha256(DECLARATION.read_bytes()).hexdigest()
+    if (record["schema"] not in ("clifford_qc.orthogonal_active_space.v1", "clifford_qc.orthogonal_active_space.v2")
+            or record["config"] != config or record["config_sha256"] != sha256(config_path)
+            or record["declaration_sha256"] != sha256(declaration_path)
             or record["quantum_advantage_claim"] is not False or record["hardware_execution"] is not False):
         problems.append("record/design/scope identity differs")
     expected_tiers = {"energies_spans_residuals": "exact_small_sector_simulation",
@@ -369,33 +509,13 @@ def verify(record, *, check_sources=True):
     if [case["id"] for case in record["cases"]] != [case["id"] for case in config["cases"]]:
         return problems + ["complete ordered case grid required"]
     if check_sources:
-        if subprocess.check_output(["git", "rev-parse", "--is-shallow-repository"], cwd=ROOT, text=True).strip() != "false":
-            problems.append("full Git history is required")
-        ensure_execution_history(record)
-        if set(record["source_sha256"]) != set(SOURCES):
-            problems.append("execution source manifest incomplete")
-        else:
-            for path, digest in record["source_sha256"].items():
-                content = subprocess.check_output(["git", "show", f"{record['source_commit']}:{path}"], cwd=ROOT)
-                if hashlib.sha256(content).hexdigest() != digest:
-                    problems.append(f"execution source digest differs: {path}")
-                # Verification may improve after observations without rewriting
-                # the frozen producer, experiment or historical checker bytes.
-                if (path != "benchmarks/check_orthogonal_active_space.py"
-                        and hashlib.sha256((ROOT / path).read_bytes()).hexdigest() != digest):
-                    problems.append(f"live execution source differs: {path}")
-        if record["declaration_commit"] == record["source_commit"]:
-            problems.append("declaration did not precede implementation")
-        for relative in (CONFIG.relative_to(ROOT), DECLARATION.relative_to(ROOT)):
-            old = subprocess.check_output(["git", "show", f"{record['declaration_commit']}:{relative}"], cwd=ROOT)
-            if old != (ROOT / relative).read_bytes():
-                problems.append(f"declaration bytes changed: {relative}")
-        subprocess.check_call(["git", "merge-base", "--is-ancestor", record["declaration_commit"], record["source_commit"]], cwd=ROOT)
-        if record["provenance"]["git_sha"] != record["source_commit"] or record["provenance"]["git_dirty"] is not False:
-            problems.append("execution provenance does not name a clean source")
+        try:
+            problems.extend(source_problems(record, config_path, declaration_path, record_path))
+        except (HistoryError, ValueError) as exc:
+            return problems + [str(exc)]
     for observed, case in zip(record["cases"], config["cases"]):
-        path = ROOT / case["path"]
-        if hashlib.sha256(path.read_bytes()).hexdigest() != case["sha256"]:
+        path = safe_path(ROOT, case["path"])
+        if sha256(path) != case["sha256"]:
             problems.append(f"{case['id']} input digest differs")
             continue
         data = read_fcidump(path)
@@ -415,16 +535,23 @@ def verify(record, *, check_sources=True):
 
 def main(argv=None):
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--record", type=Path, default=RECORD)
+    parser.add_argument("--record", type=Path)
+    parser.add_argument("--science-only", action="store_true",
+                        help="explicitly replay science without certifying observation bytes or chronology")
     args = parser.parse_args(argv)
     try:
-        problems = verify(read_json(args.record))
+        paths = [args.record] if args.record else [RECORD, V2_RECORD]
+        problems = []
+        for path in paths:
+            problems.extend(verify(read_json(path), record_path=path, check_sources=not args.science_only))
     except (OSError, ValueError, KeyError, TypeError, IndexError, subprocess.SubprocessError) as exc:
         problems = [f"record could not be verified: {exc}"]
     for problem in problems:
         print(f"FAIL {problem}")
     if not problems:
-        print("VALID: independent occupation replay, controls, noise and source chronology")
+        print("VALID: independent occupation replay, controls and noise; "
+              + ("observation bindings and chronology UNVERIFIED" if args.science_only
+                 else "preserved observation bytes and source chronology"))
     return int(bool(problems))
 
 

@@ -339,6 +339,7 @@ def test_fresh_process_receipt_matches_supervising_parent(monkeypatch):
     def receipt(command, **kwargs):
         return original([sys.executable, '-c', code], **kwargs)
     monkeypatch.setattr(producer.subprocess, 'Popen', receipt)
+    monkeypatch.setattr(producer, 'rss_bytes', lambda pid: 1024)
     config = {'execution': {'rss_ceiling_bytes': 1024**3, 'timeout_seconds': 3, 'sample_seconds': .01}}
     result = producer.run_cell(0, {'id': 'undeclared_process_toy'}, 2, 'more_adapt', config)
     assert result['status'] == 'completed'
@@ -404,3 +405,33 @@ def test_worker_identity_environment_and_observed_costs_are_checked(toy, field):
 def test_invalid_growth_budgets(budget):
     with pytest.raises(ValueError):
         run_more_adapt(hubbard(2), [3, 12], max_parameters=budget)
+
+
+@pytest.mark.parametrize('status', ['VmRSS: 123 kB\n', 'Name: child\n', None, 'VmRSS: bad kB\n'])
+def test_rss_reader_distinguishes_observed_bytes_from_unknown(monkeypatch, status):
+    from pathlib import Path
+    from benchmarks import run_phase17_more as producer
+    def read_status(path, *args, **kwargs):
+        assert str(path) == '/proc/123/status'
+        if status is None:
+            raise FileNotFoundError(str(path))
+        return status
+    monkeypatch.setattr(Path, 'read_text', read_status)
+    assert producer.rss_bytes(123) == (123 * 1024 if status == 'VmRSS: 123 kB\n' else None)
+
+
+def test_live_worker_with_unreadable_rss_is_stopped_and_not_completed(monkeypatch):
+    from benchmarks import run_phase17_more as producer
+    original, launches = producer.subprocess.Popen, []
+    def worker(command, **kwargs):
+        launches.append(command)
+        return original([sys.executable, '-c', 'import time; time.sleep(60)'], **kwargs)
+    monkeypatch.setattr(producer.subprocess, 'Popen', worker)
+    # Exercise the actual reader's unavailable-/proc branch, not a fake RSS value.
+    def unavailable(path, *args, **kwargs):
+        raise FileNotFoundError(str(path))
+    monkeypatch.setattr(producer.Path, 'read_text', unavailable)
+    config = {'execution': {'rss_ceiling_bytes': 1024**3, 'timeout_seconds': 3, 'sample_seconds': .01}}
+    result = producer.run_cell(0, {'id': 'unreadable_rss_toy'}, 2, 'more_adapt', config)
+    assert result['status'] == 'rss_unavailable' and len(launches) == 1
+    assert result['parent']['returncode'] != 0

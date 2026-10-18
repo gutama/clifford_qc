@@ -501,7 +501,13 @@ clears 1.6 mHa only on BeH2 and LiH (LiH was already below it). H4 and H2O remai
 above target. Equal-dimension determinant controls are competitive, and the
 centered matrix-noise proxy shows no substantial overlap-related benefit on
 this grid. `benchmarks/results/orthogonal_active_space.md` is generated from the
-record. This is a mixed exact pilot, not evidence of a practical quantum gain.
+record. The preserved v1 pilot is not spin-adapted and has an unstable absolute
+packet cutoff; retrospective spin/Gram diagnostics and noisy variational
+violations are now explicit. A separately frozen post-review v2 declaration
+adds spatial occupation grouping, singlet projection, a residual-relative
+cutoff and measured overlap/spin diagnostics. Its observations and report use
+separate files; v1 evidence is never overwritten. Both are bounded classical
+exploratory work, not evidence of a practical quantum gain.
 
 **Second: sparse GA kernel and architecture.** These are maintenance extensions
 to Phase 0's API, not a new solver or an established quantum resource advantage.
