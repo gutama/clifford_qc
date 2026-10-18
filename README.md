@@ -376,7 +376,7 @@ rebuild gate, and expensive sampled gates require manual CI dispatch.
 | [molecular/PIPELINE.md](molecular/PIPELINE.md) | Reusable molecular preparation, solve/validate commands, and storage choices |
 | [CONVENTIONS.md](CONVENTIONS.md) | Mathematical and representation conventions |
 | [REPRODUCING.md](REPRODUCING.md) | Frozen environments, benchmark commands, and checks |
-| [Architecture paper](paper_architecture/README.md) | *clifford_qc: A Python Toolkit for Quantum Simulation*; features, architecture, and evidence |
+| [Architecture paper](paper_architecture/README.md) | *clifford_qc: A Python Toolkit for Quantum Simulation* ([arXiv:2609.23059](https://arxiv.org/abs/2609.23059)); features, architecture, and evidence |
 | [CITATION.cff](CITATION.cff) | Software metadata and research citations |
 
 The repository also contains the [measurement/ADAPT manuscript](paper/README.md),

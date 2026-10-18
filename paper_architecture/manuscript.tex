@@ -28,6 +28,9 @@
 \newcommand{\pkg}{\texttt{clifford\_qc}}
 \newcommand{\Ctime}{C_{\mathrm{time}}(\epsilon)}
 \renewcommand{\labelitemi}{\(\bullet\)}
+% Narrower column gaps for the one wide table that needs them; a length typed
+% into the body would read as a hand-typed number to the manuscript gate.
+\newcommand{\tightcolumns}{\setlength{\tabcolsep}{4pt}}
 
 % Float placement.  Most of this paper's floats span both columns, and REVTeX
 % can only set those at the top of a page, so the stock settings leave white
@@ -81,36 +84,35 @@ Bandung, Indonesia}
 \affiliation{Department of Engineering Physics, Institut Teknologi Bandung,
 Bandung, Indonesia}
 
-\date{September 19, 2026}
+\date{September 19, 2026; revised October 17, 2026}
 
 \begin{abstract}
 \pkg{} is a Python research toolkit for constructing quantum models, comparing
 variational and subspace eigensolvers, and estimating measurement resources.
 A common sparse Pauli algebra connects Hamiltonians, density operators, gates,
-and candidate-selection observables, while dedicated interfaces handle circuit
-programs, execution, and statistical estimates. We introduce the representation
-with a worked gradient example and trace a molecular calculation through
-reusable model preparation, an independent solve, and optional reference
-validation. Shared measurement caches reuse outcomes across observables on the
-same reference state; packed coefficient storage and streaming expose a
-memory--recomputation tradeoff. Committed small-system benchmarks show how these
-interfaces support comparisons with explicit accuracy and cost assumptions.
-Fully commuting measurement reduces the shots needed to certify a fixed
-first-order energy functional, but entangling-gate time and connectivity can
-offset the saving or make the protocol inadmissible under illustrative device
-models. Other studies identify a subspace bias floor that more shots cannot
-remove, an indeterminate comparison of fermionic encodings across instances,
-and an approximate-restriction screen whose required comparison fails before
-sampling. Generated tables, provenance records, and manuscript checks connect
-the reported claims to their inputs, although evidence labels are not yet
-validated uniformly. The package supports reproducible method development;
-these results establish neither hardware performance nor a general simulation
-speedup.
+and candidate-selection observables; dedicated interfaces handle circuits,
+execution, and statistical estimates. A worked gradient example illustrates
+shared measurements, and a molecular workflow separates reusable preparation,
+solving, and reference validation. Matrix-element banks support virtual
+subspaces, exact Ritz residuals, and folded-spectrum roots. Process-isolated
+benchmarks show that packed coefficients and streaming reduce observed peak
+memory on the larger tested inputs at increased runtime. Measurement studies
+separate setting counts, shot requirements, and device cost: fully commuting
+readout certifies a fixed first-order Ritz functional with fewer shots, while
+anticommuting cliques help some fixed reference energies and not others.
+Entangling-gate time and connectivity can offset shot savings or make a
+protocol inadmissible under illustrative device models. Further studies expose
+subspace bias, indeterminate encoding comparisons, failed approximate-restriction
+screens, and high residual-measurement costs under the tested uniform
+allocations. Generated tables, provenance records, a versioned evidence
+contract, and manuscript checks connect claims to their inputs. These
+small-system results support reproducible method development and establish
+neither hardware performance nor a general simulation speedup.
 \end{abstract}
 
 \keywords{quantum simulation software; variational quantum eigensolver;
 quantum subspace methods; Pauli operator algebra; measurement grouping;
-shot allocation; reproducible research}
+shot allocation; Ritz residuals; reproducible research}
 
 \maketitle
 
@@ -140,15 +142,17 @@ Their accuracy depends on both the chosen subspace and the stability of its
 overlap matrix. Finite sampling can amplify errors in a poorly conditioned
 basis \cite{epperly2022theory,lee2024sampling,zhang2024measurement}.
 Consequently, the package records basis size, conditioning, measurement support,
-and uncertainty alongside energy. The underlying operator formulation is developed
-in a companion manuscript \cite{utama2026operatorcentric};
+and uncertainty alongside energy, and on request the exact residual that tells
+how far a Ritz state is from an eigenstate. The underlying operator formulation
+is developed in a companion manuscript \cite{utama2026operatorcentric};
 Sec.~\ref{sec:operator} introduces the part of it a user of the software meets,
 and the rest of this paper explains the software that supports it and the other
 implemented methods.
 
 The contribution is the integration of reusable components: one operator
-algebra, explicit execution interfaces, shared measurement data, configurable
-coefficient storage, and benchmark records with stated assumptions.
+algebra, explicit execution interfaces, shared measurement data, exact residual
+diagnostics, configurable coefficient storage, and benchmark records with stated
+assumptions.
 
 \pkg{} is not a replacement for the established quantum software stack; it is
 built to sit beside it. General-purpose frameworks such as Qiskit
@@ -168,8 +172,8 @@ against them.
 
 Section~\ref{sec:operator} introduces the operator-centric representation and
 works a small example through it.
-Section~\ref{sec:features} introduces the capabilities, a typical workflow, and
-a molecular run through the pipeline.
+Section~\ref{sec:features} introduces the capabilities, a typical workflow with
+its residual diagnostics, and a molecular run through the pipeline.
 Section~\ref{sec:architecture} explains how that representation is implemented
 and what the interfaces are.
 Section~\ref{sec:scopes} describes uncertainty, device cost, and storage limits.
@@ -325,14 +329,15 @@ bridge packages are installed as separate extras.
   \begin{ruledtabular}
   \begin{tabular}{p{0.16\textwidth}p{0.43\textwidth}p{0.34\textwidth}}
 Task & Available features & Entry points and scope\\
-\colrule Operator calculations & Pauli and fermionic operators; gates; density operators; Kraus channels; partial traces, entropy, and entanglement diagnostics & \texttt{MV}, \texttt{pauli}, \texttt{fermion}, \texttt{states}, \texttt{channels}; sparse support can grow during execution\\
+\colrule Operator calculations & Pauli and fermionic operators; gates; density operators; Kraus channels; partial traces, entropy, and entanglement diagnostics; sparse exterior products, contractions, and blade tests in a fixed Jordan--Wigner frame & \texttt{MV}, \texttt{pauli}, \texttt{fermion}, \texttt{states}, \texttt{channels}; sparse support can grow during execution\\
 Model construction & Spin chains; Hubbard and other lattice models; FCIDUMP integral import; effective-Hamiltonian JSON; orbital rotations & \texttt{models}; chemistry generation has optional dependencies\\
 Circuit experiments & Parameterized Pauli rotors and named Clifford gates; versioned program serialization; gradients; OpenQASM export & \texttt{ir}; exporters and bridges support defined subsets\\
 Numerical execution & Exact operator and dense statevector paths; particle/spin-sector calculations; finite-shot simulation; stabilizer execution & \texttt{backends}; sector and stabilizer paths have their own state and operation restrictions\\
-Eigensolver comparisons & VQE and ADAPT-VQE; fixed and adaptive operator-response subspaces; sampled determinants; selected-CI controls; hybrid bases and projected observables & \texttt{algorithms}, \texttt{subspace}; a converged projected solve need not reach the full ground state\\
-Measurement studies & Qubit-wise and block-commuting grouping; Clifford readout circuits; shared outcome caches; allocation, covariance, and uncertainty estimates & \texttt{measurement}; interval guarantees depend on the estimator and declared assumptions\\
+Eigensolver comparisons & VQE and ADAPT-VQE; qubit-exchange and coupled-exchange pools and a shared-unitary multi-root ADAPT in exact sectors; fixed and adaptive operator-response subspaces; sampled and time-evolved determinant inputs; selected-CI controls; hybrid bases and projected observables & \texttt{algorithms}, \texttt{subspace}; a converged projected solve need not reach the full ground state\\
+Convergence diagnostics & Second-moment blocks; true Ritz residuals with resolution floors; folded-spectrum roots, refined Ritz vectors, and inclusion intervals; opt-in convergence reports & \texttt{SecondMomentBank}, \texttt{FoldedSpectrum}, \texttt{subspace.convergence}; exact pairings only, with no finite-shot estimator\\
+Measurement studies & Qubit-wise and block-commuting grouping; Clifford readout circuits; anticommuting-clique compilation of a fixed functional; shared outcome caches; allocation, covariance, and uncertainty estimates & \texttt{measurement}; interval guarantees depend on the estimator and declared assumptions; clique settings do not feed the shared cache\\
 Repeated experiments & Cached model preparation; independent solves; optional reference validation; object or packed coefficients; streaming with recomputation & \texttt{prepared}, \texttt{pipeline}, \texttt{subspace}; the streaming row bound excludes other process memory\\
-Interoperability & Stim, OpenFermion, pytket, PennyLane, and PyZX adapters & \texttt{bridges}; optional dependencies and conversion-specific checks\\
+Interoperability & Stim, OpenFermion, pytket, PennyLane, and PyZX adapters; a fragment-solver callback for an external embedding loop & \texttt{bridges}, \texttt{subspace.fragment}; optional dependencies and conversion-specific checks; the embedding loop stays outside the package\\
   \end{tabular}
   \end{ruledtabular}
 \end{table*}
@@ -361,9 +366,15 @@ The Adaptive Clifford-Algebra Subspace Eigensolver (A-CASE) is the adaptive
 operator-response solver. Its candidate families include
 Pauli, commutator, Krylov, and configuration directions. VQE and ADAPT-VQE
 provide circuit-based comparisons \cite{peruzzo2014vqe,grimsley2019adapt}.
+A separate exact-sector path compares qubit-exchange and coupled-exchange pools
+\cite{ramoa2025ceo} and a uniform-weight multi-root ADAPT with one shared
+unitary \cite{grimsley2025excited}; it stores dense sector matrices and does not
+route through the circuit program.
 Quantum-selected configuration interaction (QSCI) and sample-based quantum
 diagonalization (SQD) instead select determinants and build their projected
-Hamiltonian classically \cite{kanno2026qsci,robledomoreno2025sqd}. Selected-CI
+Hamiltonian classically \cite{kanno2026qsci,robledomoreno2025sqd}; their
+samples can also come from a short real-time evolution of the reference
+\cite{mikkelsen2025teqsci}. Selected-CI
 controls \cite{huron1973cipsi} and hybrid bases help distinguish the benefit of
 sampling from that of basis construction.
 For determinant methods, zero measured matrix-element words does not mean zero
@@ -375,6 +386,67 @@ subspaces, finite-shot reconstruction, sector execution, and effective models.
 A useful first experiment is to hold the model and reference fixed, compare
 fixed and adaptive bases, then sample their matrix elements. This separates
 subspace error from measurement error before introducing a device cost model.
+
+\subsection{Residuals and folded-spectrum roots}
+\label{sec:residuals}
+
+For an unregularized Ritz solve, the residual is orthogonal to the retained
+span in exact arithmetic. A small \emph{projected} residual therefore does not
+establish a small full-space residual, and an adaptive stopping reason alone
+does not establish eigenstate convergence. The pair $(S,H)$ must be supplemented
+by a second-moment block on the same reference,
+\begin{equation}
+ K_{ij}=\avg{\psi|A_i^\dagger H^2 A_j|\psi},
+ \label{eq:second-moment}
+\end{equation}
+which \texttt{SecondMomentBank} builds from the bank's projected-observable rows
+for $H^2$. Squaring the projected Hamiltonian would discard excursions outside
+the span and cannot supply this diagnostic. For a nonzero
+$\ket{\Psi}=\sum_j c_j A_j\ket{\psi}$ and a real target
+$\omega$,
+\begin{align}
+ \mu(\omega)&=\frac{\lVert(H-\omega)\Psi\rVert^2}{\avg{\Psi|\Psi}}
+ =\frac{c^\dagger F(\omega)\,c}{c^\dagger S c}, \nonumber\\
+ F(\omega)&=K-2\omega H+\omega^2 S.
+ \label{eq:folded}
+\end{align}
+At the Rayleigh quotient $E$ this is the residual variance, $\sigma^2=\mu(E)$.
+More generally, $\mu(\omega)=\sigma^2+(E-\omega)^2$: the folded objective
+penalizes both variance and displacement from the target.
+The computed $\mu$ and $\sigma^2$ can suffer cancellation between large terms,
+so they are reported signed and count as resolved only above a fixed relative
+threshold times their cancellation scales. A rounded zero stays unresolved
+rather than becoming a converged residual. This threshold is a numerical
+convention, not a proved floating-point error bound. Before the block is built,
+a storage gate bounds its coefficient occurrences from support sizes alone;
+that is an admission rule, not a byte or peak-memory bound.
+
+The same three blocks give the projected folded-spectrum operator
+\cite{wang1994folded,cadi2024folded}. The lowest root of $F(\omega)c=\mu Sc$
+minimizes $\mu(\omega)$ over the retained span; it need not identify the exact
+eigenstate nearest the target. Setting $\omega$ to a Ritz value gives a refined
+Ritz vector, a standard residual-minimizing construction \cite{jia1997refined}.
+Updating the target to the resulting Rayleigh energy gives a variance-minimizing
+iteration. Each target requires one small generalized eigensolve and no new rows.
+A folded solve keeps the span a Ritz solve with the same thresholds would keep,
+and it refuses an overlap ridge, which would change the metric. Because $\mu$ is
+a weighted mean of $(E_k-\omega)^2$ over the eigenvalues the state touches, in
+exact arithmetic some
+eigenvalue lies within $\sqrt{\mu}$ of $\omega$ and, at the Rayleigh quotient,
+within $\sigma$ of $E$, the Weinstein interval \cite{weinstein1934modified}; the
+package adds the respective resolution allowance under each square root when
+reporting these intervals. This guards against cancellation under the stated
+numerical convention; it is not a verified numerical enclosure. Neither interval says
+\emph{which} eigenvalue it holds. A ground-state claim needs separately
+established spectral input, which convergence reports accept and never infer.
+
+Opt-in convergence reporting attaches the exact residual to each tracked root at
+adaptive termination, without changing selection or stopping, and enters its
+time and resident rows in the bank's resource ledger. On the \cqcResidualBanks{}
+frozen banks the validation records cover, the second-moment block, every Ritz
+residual and every refined folded root agree with dense statevector oracles.
+All of this is exact pairing with the reference: no finite-shot estimator of
+$K$ is shipped, for the reason Sec.~\ref{sec:residual-closure} reports.
 
 \subsection{Reusing preparation across experiments}
 
@@ -430,7 +502,8 @@ projected arithmetic. It computes no ground-state oracle. The
 direction; \texttt{--max-rank} controls excitation rank, not the number of
 eigenstates. A solve writes its numerical record to \texttt{--output} and
 prints that path. Exact projected arithmetic does not certify convergence
-to the full ground state.
+to the full ground state. The exact residual of Sec.~\ref{sec:residuals} is a
+Python-level option of the same solver; the CLI record does not carry it.
 
 A storage comparison repeats this solve on the same artifact, choosing
 \texttt{object} or \texttt{packed} storage independently of
@@ -452,8 +525,9 @@ separately recorded time.
 The complete shell commands, input path, and output fields are documented
 in \texttt{molecular/PIPELINE.md}. Finite-shot methods, other eigensolvers,
 and multi-root adaptation use Python interfaces rather than this CLI.
-The storage profiles are small-system measurements; they establish neither
-a production molecular speedup nor a process-memory reduction.
+The process-isolated storage measurements in Sec.~\ref{sec:storage} quantify a
+peak-memory reduction on the larger tested inputs at increased runtime. They
+establish no production molecular speedup or asymptotic scaling advantage.
 
 \section{Architecture}
 \label{sec:architecture}
@@ -503,6 +577,16 @@ word codes.  It is a real container conversion, and it is deliberately not a
 change of algebraic basis or operator semantics.  Benchmarks therefore need not
 own a basis-translation convention, while the architecture still names the
 boundary the public interface actually has.
+
+In the fixed Jordan--Wigner frame, the kernel also offers the exterior
+structure of the same algebra on sparse operands: wedge products, left and right
+contractions, an inverse of the generator-subset map that does not rebuild an
+ordered blade's phase, and a blade test that checks the Pl\"ucker condition
+through the active contraction masks of the stored terms rather than by
+enumerating every code of the grade. These bound the work of one test. They do
+not bound the support that later products reach, and they are classical kernel
+operations, not a quantum resource saving; a separate fixture audit rebuilds
+their decisions and records timings without speed thresholds.
 
 The reference-state pairing in Eq.~\eqref{eq:projected} serves a different
 purpose from the Hilbert--Schmidt pairing used to measure removed Hamiltonian
@@ -641,8 +725,8 @@ constructor-validated values, as the record census below documents.
 Table~\ref{tab:evidence} measures the current coverage. Of \cqcJsonRecords{} committed JSON records,
 \cqcRecordsLabelled{} declare a single top-level evidence tier, drawn from
 \cqcDistinctTiers{} distinct tier strings; \cqcRecordsPerQuantity{} declare a
-per-quantity mapping, in the record or a validated digest-bound annotation,
-because the comparison reports quantities at different tiers;
+per-quantity mapping, either because a record reports quantities at different
+tiers or because the versioned contract below asks every new record for one;
 \cqcRecordsNested{} nest the tier inside a
 sub-object; \cqcRecordsRoleWithNested{} declare an evidence \emph{role} at the
 top level with tiers inside sub-objects; \cqcRecordsRoleOnly{} carry a role with
@@ -653,16 +737,16 @@ declarations by this census.
 
 The selection vocabulary is a closed enumeration in code. Historical result
 types retain their original string labels and constructors; they are not
-retroactively converted to a new vocabulary. A versioned evidence contract now
-validates per-quantity tiers and scope statements at the opt-in producer stamp
-and in an automatic metadata gate for new or changed JSON records. Only the
-byte-identical historical set is grandfathered by a frozen digest manifest.
-The completed energy and CEO comparisons have separately disclosed,
-digest-bound sidecars: the census reads these validated mappings without
-changing the original record bytes or execution identities. Per-quantity
-coverage therefore includes both in-record declarations and these annotations.
-Scientific values and the truth of each claim still require their independent
-record gates; enumerating a tier does not establish it.
+retroactively converted to a new vocabulary. A versioned evidence contract
+requires every quantity a record reports to declare one tier and a nonempty
+scope. It is validated at the opt-in producer stamp and by an automatic metadata
+gate on every new or changed JSON record. Only the byte-identical historical set
+is grandfathered, by a frozen digest manifest, and those records keep their
+bytes: \cqcRecordsAnnotated{} of them take their declaration from a separately
+disclosed annotation bound to the record's digest, which the census reads
+without changing the original record or its execution identity. Scientific
+values and the truth of each claim still require their independent record
+gates; enumerating a tier does not establish it.
 
 \subsection{Device cost and admissibility}
 
@@ -702,9 +786,48 @@ observables have other lifetimes. Resource output reports resident and cumulativ
 quantities separately; its component diagnostics are not an additive estimate
 of process resident memory. Streaming can reduce resident coefficient storage at
 the cost of recomputation. Neither packing nor streaming is a universal speed
-improvement, and the retain-all object path remains the default. The committed
-small-system profiling record supports testing these options, but does not
-establish production molecular speedups or a process-memory reduction.
+improvement, and the retain-all object path remains the default.
+
+\begin{table*}
+  \caption{The coefficient-storage arms measured in isolation. Each cell is
+  one run of the same adaptive solve in a fresh interpreter, with full
+  candidate pools, a common basis budget and the same stopping rule; $M$ is the
+  final basis size, identical across the arms. Peak memory is the worker's
+  own high-water resident set, including preparation, support histories and
+  instrumentation; wall time is the supervising parent's. Single observations
+  on one host, not a memory bound.}
+  \label{tab:storage}
+  \footnotesize
+  \begin{ruledtabular}
+  \begin{tabular}{lrrrrrrrrr}
+  & & \multicolumn{4}{c}{Peak process memory (GiB)} & \multicolumn{4}{c}{Wall time (min)} \\
+  & & Object & Packed & Object & Packed & Object & Packed & Object & Packed \\
+  System & $M$ & retain & retain & stream & stream & retain & retain & stream & stream \\
+  \colrule
+  \input{tables/storage_policy.tex}
+  \end{tabular}
+  \end{ruledtabular}
+\end{table*}
+
+Table~\ref{tab:storage} measures these choices directly. Each of the
+\cqcPolicyArms{} arms runs on \cqcPolicySystems{} fixed molecular inputs in its
+own process, so no arm inherits another's allocator state. Every arm reproduces
+the same selected labels, energy histories and stopping reasons, and an independent
+checker rebuilds the final projected pencils by direct products. Leaving out
+H$_4$, whose observed peaks differ by at most \cqcHFourPolicySpread{}, packing alone lowers
+the observed peak process memory by \cqcPackSaveMin{}--\cqcPackSaveMax{},
+streaming object rows by \cqcStreamSaveMin{}--\cqcStreamSaveMax{}, and both
+together by \cqcBothSaveMin{}--\cqcBothSaveMax{}. These are separate measured
+outcomes, not factors that multiply. The default object-retain arm is the
+fastest on every system: packing and streaming buy memory with time. The peaks
+are process observations, not an attribution to coefficient rows; the small
+separation on H$_4$ likewise does not identify which component dominates its
+memory. Every arm
+completed under the memory ceiling the campaign declared, so on these inputs
+neither option is needed for feasibility. The matrix establishes a measured
+memory--time trade on these \cqcPolicySystems{} inputs; it establishes no
+universal memory bound and no production speedup, and it leaves the object
+default unchanged.
 
 \section{Producers, gates, and preregistration}
 \label{sec:gates}
@@ -714,27 +837,27 @@ producers write records.  \cqcGates{} gates read them.  \cqcGatesInWorkflow{}
 are named in the continuous-integration workflow, and the distinction inside
 that number matters: \cqcGatesAutomatic{} run on every pull request, while
 \cqcGatesDispatch{} require a manual dispatch.  Of that dispatch-only set, all
-but the separate environment-consistency audit are sampled gates that draw
-replicas and cost runner-hours.  \cqcGatesAbsent{} exist in the repository but
-in no workflow at all.  The short automatic gates are individual named steps
+but the separate environment-consistency audit draw replicas or rebuild records
+from sampled evidence, and cost runner-hours.  \cqcGatesAbsent{} exist in the
+repository but in no workflow at all.  The short automatic gates are individual named steps
 with continuation guards; structural and sampled gates are separately named
 matrix jobs whose matrices disable fail-fast, so a drift suite reports every
 symptom rather than the first within each execution class.
 
-\begin{table}
+\begin{table*}
   \caption{What each class of benchmark gate asserts.  Counts are recomputed
   from \texttt{benchmarks/} at manuscript build time, and the generator refuses
   to emit the table unless every gate on disk has a declared class.}
   \label{tab:gates}
   \footnotesize
   \begin{ruledtabular}
-  \begin{tabular}{lrp{0.42\columnwidth}}
+  \begin{tabular}{lrp{0.62\textwidth}}
   Class & Gates & Asserts \\
   \colrule
   \input{tables/gate_classes.tex}
   \end{tabular}
   \end{ruledtabular}
-\end{table}
+\end{table*}
 
 Not every record is regenerated by a gate. Table~\ref{tab:gates} distinguishes
 checks of values, provenance, and structure. Only
@@ -746,20 +869,75 @@ rather than excused: the validation-ladder record is manuscript evidence for a
 companion paper, and regenerating it would move published inputs across all its
 families, so no gate rebuilds it.
 
-The remaining classes determine how the results of Sec.~\ref{sec:refused} should
-be read.  Five are preregistration gates: they compare an experimental configuration committed before
-any sampling against the constants committed with the result, and they rebuild
-nothing.  This is the mechanism that makes a null result reportable.  A screen
+The remaining classes determine how the results of
+Secs.~\ref{sec:admitted} and~\ref{sec:refused} should be read.
+\cqcGatesPrereg{} are preregistration gates: they validate an experimental
+configuration committed before any sampling, without outcomes, and may rebuild
+its structural inputs but no result.  This is the mechanism that makes a null
+result reportable.  A screen
 whose acceptance rule, accuracy target, margin factor, word-universe ceiling and
 block sizes were all committed in a configuration file, with a merge commit and
 a content hash, before any sample was drawn, can return ``no rung admitted''
 without that outcome being a choice made after seeing the data
-\cite{nosek2018preregistration}.  Three further gates check lineage and
-environment rather than values; one compares a machine-readable status file
-against the source tree, a repository gate this paper does not otherwise read;
-one checks that the reproduction documentation still describes the code it
-claims to reproduce; and two compare records against artifacts produced outside
-the benchmark directory.
+\cite{nosek2018preregistration}.  A further \cqcGatesPostHoc{} gates freeze
+designs declared \emph{after} earlier outcomes were seen, and say so: commit
+order then protects the identity of the declared run, not its independence from
+the data, and this paper calls every result read through such a declaration
+post hoc.  \cqcGatesReplay{} gates replay exact algorithm trajectories
+independently --- occupation states, optimizer calls and root pencils --- which
+shows that a recorded run happened as recorded, not that it found a global
+optimum.  The kernel fixture audit and the storage-policy equivalence gate check
+decisions and observed classical costs without speed thresholds.  Of the rest,
+\cqcGatesLineage{} check lineage and environment rather than values; a
+plan-ledger gate compares a machine-readable status file against the source
+tree, a repository check this paper does not otherwise read; a documentation
+gate checks that the reproduction documentation still describes the code it
+claims to reproduce; an evidence-metadata gate validates declarations without
+reading scientific values; and \cqcGatesCrossArtifact{} compare records against
+separately produced artifacts.
+
+\begin{table*}
+  \caption{The dyadic block-commuting hierarchy on two committed banks.  The
+  last column is the added logical entangling cost divided by the avoided
+  preparation cost, both measured against the $k=1$ rung of the same bank; it
+  is undefined at $k=1$.  All-to-all logical Clifford circuits, no routing,
+  noise or mitigation.}
+  \label{tab:hierarchy}
+  \begin{ruledtabular}
+  \begin{tabular}{llrrrrr}
+  Bank & $k$ & Settings & Mean CX per setting & Max CX depth & Preparations at uniform shots & CX cost over avoided preparation \\
+  \colrule
+  \input{tables/hierarchy.tex}
+  \end{tabular}
+  \end{ruledtabular}
+\end{table*}
+
+\begin{figure*}
+  \includegraphics[width=\textwidth]{paper_assets/hierarchy_tradeoff.pdf}
+  \caption{Compiled settings (left axis, blue) and maximum logical entangling
+  depth per setting (right axis, red) along the block-size axis, for the two
+  committed banks.  Annotations give the added entangling cost over the avoided
+  preparation cost against $k=1$; the verdict in each title is that ratio
+  against unity.  The protocol is identical on both panels, and the trade
+  changes sign between them.}
+  \label{fig:hierarchy}
+\end{figure*}
+
+\begin{table*}
+  \caption{Qubit-wise against fully commuting measurement on one frozen
+  BeH$_2$ bank, from the preregistered comparison.  The ratio column is the
+  fully commuting value over the qubit-wise value.  Runtimes are
+  accuracy-matched logical accounting under illustrative device cards, not
+  hardware measurements.}
+  \label{tab:phase14b}
+  \begin{ruledtabular}
+  \begin{tabular}{lrrr}
+  Quantity & QWC ($k=1$) & Full ($k=8$) & Ratio \\
+  \colrule
+  \input{tables/phase14b.tex}
+  \end{tabular}
+  \end{ruledtabular}
+\end{table*}
 
 Reproduction also depends on the numerical environment.  Continuous integration pins one thread for the
 numerical libraries, because threaded basic-linear-algebra reductions sum in a
@@ -790,33 +968,6 @@ On the H$_4$ bank, compiled settings fall from \cqcHFourSettingsQWC{} to
 On the BeH$_2$ bank they fall from \cqcBeHSettingsQWC{} to
 \cqcBeHSettingsFull{}, a reduction of \cqcBeHPrepReduction{}.
 
-\begin{table*}
-  \caption{The dyadic block-commuting hierarchy on two committed banks.  The
-  last column is the added logical entangling cost divided by the avoided
-  preparation cost, both measured against the $k=1$ rung of the same bank; it
-  is undefined at $k=1$.  All-to-all logical Clifford circuits, no routing,
-  noise or mitigation.}
-  \label{tab:hierarchy}
-  \begin{ruledtabular}
-  \begin{tabular}{llrrrrr}
-  Bank & $k$ & Settings & Mean CX per setting & Max CX depth & Preparations at uniform shots & CX cost over avoided preparation \\
-  \colrule
-  \input{tables/hierarchy.tex}
-  \end{tabular}
-  \end{ruledtabular}
-\end{table*}
-
-\begin{figure*}
-  \includegraphics[width=\textwidth]{paper_assets/hierarchy_tradeoff.pdf}
-  \caption{Compiled settings (left axis, blue) and maximum logical entangling
-  depth per setting (right axis, red) along the block-size axis, for the two
-  committed banks.  Annotations give the added entangling cost over the avoided
-  preparation cost against $k=1$; the verdict in each title is that ratio
-  against unity.  The protocol is identical on both panels, and the trade
-  changes sign between them.}
-  \label{fig:hierarchy}
-\end{figure*}
-
 Table~\ref{tab:hierarchy} and Fig.~\ref{fig:hierarchy} also report circuit cost.
 At each rung they report the added logical entangling cost against the avoided
 preparation cost, and it does not point the same way on the two instances.  On
@@ -831,17 +982,26 @@ than it saves in preparations.  Setting reduction alone therefore does not estab
 \subsection{Shot reduction for a fixed energy functional}
 
 \begin{table*}
-  \caption{Qubit-wise against fully commuting measurement on one frozen
-  BeH$_2$ bank, from the preregistered comparison.  The ratio column is the
-  fully commuting value over the qubit-wise value.  Runtimes are
-  accuracy-matched logical accounting under illustrative device cards, not
-  hardware measurements.}
-  \label{tab:phase14b}
+  \caption{Anticommuting cliques against qubit-wise grouping on fixed
+  Hartree--Fock reference energies, from the preregistered comparison.
+  Two-qubit gates are summed over the compiled settings.  The certified
+  endpoint is the first point of the fixed effective-shot grid whose total
+  radius meets the target, and $>$ marks an arm censored at the top of the
+  grid.  $C_{\mathrm{time}}(\epsilon)$ prices that endpoint under each
+  illustrative card; a censored arm has no price, and an inadmissible one has no
+  runtime. Prices cover the endpoint schedule, excluding other grid looks,
+  covariance audits, and classical compilation. The decision concerns effective
+  shots, per instance; nothing is
+  pooled.}
+  \label{tab:phase19}
+  \footnotesize
+  \tightcolumns
   \begin{ruledtabular}
-  \begin{tabular}{lrrr}
-  Quantity & QWC ($k=1$) & Full ($k=8$) & Ratio \\
+  \begin{tabular}{llrrlrrrp{0.17\textwidth}}
+  & & & Two-qubit & Certified & \multicolumn{3}{c}{$C_{\mathrm{time}}(\epsilon)$ (s)} & \\
+  System & Arm & Settings & gates & endpoint & logical-alltoall & ion-like & superconducting-like & Decision \\
   \colrule
-  \input{tables/phase14b.tex}
+  \input{tables/phase19.tex}
   \end{tabular}
   \end{ruledtabular}
 \end{table*}
@@ -880,14 +1040,8 @@ recorded sampling assumptions. It is not a certificate of total ground-state
 error or a demonstration on hardware. The device ledger adds a separate test of
 whether the assumed circuit fidelity is acceptable.
 
-\subsection{Cost at a matched accuracy target}
-
-The deeper cost question is not which protocol uses fewer settings but which
-reaches a stated accuracy for the least device time.  Writing $\Ctime$ for the
-accuracy-matched logical runtime at target $\epsilon$, the search prices each
-(mapping, block size) cell by bracketing the shot budget at which the replica
-root-mean-square error of the selected-rank Ritz energy clears the target, with
-a zero-failure gate and a one-sided bootstrap bound \cite{efron1979bootstrap}.
+\subsection{Anticommuting cliques for fixed reference energies}
+\label{sec:cliques}
 
 \begin{table*}
   \caption{Accuracy-matched cost of the priced BeH$_2$ instance on the
@@ -917,6 +1071,58 @@ a zero-failure gate and a one-sided bootstrap bound \cite{efron1979bootstrap}.
   \label{fig:cost}
 \end{figure*}
 
+Qubit-wise and fully commuting grouping both partition a functional into
+commuting sets.  A third partition reads a set of mutually
+\emph{anticommuting} words in one setting: a real unit combination of such
+words is itself a Pauli-like involution, which a short sequence of Pauli
+rotations maps onto a single word \cite{izmaylov2020unitary}.  The package
+compiles such a cover by a fixed deterministic rule and counts the rotations and
+readout changes from the emitted circuit.  A clique setting returns only its
+weighted sum, never the individual word means, so it cannot feed the shared
+cache of Sec.~\ref{sec:scopes}: its estimand is the fixed functional and nothing
+else.
+
+The preregistered comparison in Table~\ref{tab:phase19} measures the energy
+of a fixed Hartree--Fock determinant for each of \cqcPNineteenSystems{}
+molecular Hamiltonians on eight qubits. Both arms share one
+outcome-independent allocation rule, \cqcPNineteenLooks{} looks on a fixed
+effective-shot grid, one empirical Bernstein family spanning every system, arm
+and look at a total failure probability of \cqcPNineteenDelta{}, and a
+\cqcPNineteenTarget{}~mHa target. Each look uses an independent schedule; the
+simultaneous bound permits reporting the first passing grid point without
+assuming an anytime guarantee. Effective shots count ideal measurement
+outcomes; device prices separately account for the cards' fidelity inflation.
+Outcomes are sampled classically from the exact reference states' measurement
+distributions, not from hardware. Because the reference energies are themselves
+classically available, this tests measurement protocols rather than a need for
+quantum computation to obtain those energies.
+
+The declared material-reduction rule requires at least a
+\cqcPNineteenReductionFactor{}-fold reduction in the certified grid endpoint.
+For a censored QWC baseline, the clique endpoint must be no greater than the
+grid ceiling divided by that factor. This is a fixed-grid comparison, not a
+continuous optimum or a statement about the total cost of running the campaign.
+
+The direction depends on the instance.  On H$_4$ the clique arm, with fewer
+settings, certifies inside the grid where the qubit-wise arm does not; on LiH it
+has more settings and needs more shots; on BeH$_2$ it has many more settings and
+still needs fewer shots.  A setting count predicts neither direction.  The cards
+then split the comparison again.  The clique rotations carry entangling gates
+that qubit-wise settings do not, so on the slow-gate ion-like card the clique
+arm costs more device time than the qubit-wise arm wherever both are priced,
+including BeH$_2$, where it needs fewer shots; and the sparse-connectivity
+superconducting-like card refuses it on H$_4$ and LiH.  Each decision applies
+to its own instance, and the record names no winner across cards.
+
+\subsection{Cost at a matched accuracy target}
+
+The deeper cost question is not which protocol uses fewer settings but which
+reaches a stated accuracy for the least device time.  Writing $\Ctime$ for the
+accuracy-matched logical runtime at target $\epsilon$, the search prices each
+(mapping, block size) cell by bracketing the shot budget at which the replica
+root-mean-square error of the selected-rank Ritz energy clears the target, with
+a zero-failure gate and a one-sided bootstrap bound \cite{efron1979bootstrap}.
+
 Table~\ref{tab:cost} and Fig.~\ref{fig:cost} report the priced BeH$_2$ instance
 along the Jordan--Wigner arm, with three practical observations.  First,
 the optimal rung moves with the card and the estimator: it is $k=\cqcKStarIon{}$
@@ -938,6 +1144,38 @@ against an oracle reference.  The two labels sit in one file and are not merged.
 A cross-check against the independently produced shot-search record agrees on
 \cqcCrossAgreeing{} of \cqcCrossChecked{} compared crossings, and the record
 classifies each disagreement as environment-marginal rather than substantive.
+
+\begin{table*}
+  \caption{Mapping spread against instance spread, on every tier that measured
+  it.  The aggregation column is not decoration: the three readouts combine
+  cells differently, and their numbers are not comparable across rows.}
+  \label{tab:qr3}
+  \footnotesize
+  \begin{ruledtabular}
+  \begin{tabular}{llp{0.20\textwidth}rrp{0.22\textwidth}}
+  Readout & Tier & Aggregation & Mapping & Instance & Verdict \\
+  \colrule
+  \input{tables/qr3.tex}
+  \end{tabular}
+  \end{ruledtabular}
+\end{table*}
+
+\begin{table*}
+  \caption{The contextual-restriction admission screen on one BeH$_2$ bank.
+  Rows are restriction rungs indexed by the number of fixed qubits.  Bias and
+  word universe are given for the two contextually restricted arms; the two
+  unrestricted arms are rung-independent and are stated in the last line.  The
+  last column counts how many of the four arms are admissible, out of four.}
+  \label{tab:r4a}
+  \footnotesize
+  \begin{ruledtabular}
+  \begin{tabular}{rrrrrrrr}
+  Fixed & Active & CS-QSE bias (mHa) & CS-QSE words & CS-A-CASE bias (mHa) & CS-A-CASE words & $H$ removed & Arms admitted \\
+  \colrule
+  \input{tables/r4a.tex}
+  \end{tabular}
+  \end{ruledtabular}
+\end{table*}
 
 \section{Negative and indeterminate results}
 \label{sec:refused}
@@ -965,21 +1203,6 @@ and the admission rule, not from the evidence label alone.
 
 \subsection{Mapping spread against instance spread: negative, then
 indeterminate}
-
-\begin{table*}
-  \caption{Mapping spread against instance spread, on every tier that measured
-  it.  The aggregation column is not decoration: the three readouts combine
-  cells differently, and their numbers are not comparable across rows.}
-  \label{tab:qr3}
-  \footnotesize
-  \begin{ruledtabular}
-  \begin{tabular}{llp{0.20\textwidth}rrp{0.22\textwidth}}
-  Readout & Tier & Aggregation & Mapping & Instance & Verdict \\
-  \colrule
-  \input{tables/qr3.tex}
-  \end{tabular}
-  \end{ruledtabular}
-\end{table*}
 
 A natural design question for a framework supporting several fermionic
 encodings \cite{jordan1928,bravyi2002fermionic,seeley2012bravyikitaev} is
@@ -1018,23 +1241,6 @@ alone do not justify an encoding-selection rule.
 
 \subsection{Screening approximate restrictions before sampling}
 
-\begin{table*}
-  \caption{The contextual-restriction admission screen on one BeH$_2$ bank.
-  Rows are restriction rungs indexed by the number of fixed qubits.  Bias and
-  word universe are given for the two contextually restricted arms; the two
-  unrestricted arms are rung-independent and are stated in the last line.  The
-  last column counts how many of the four arms are admissible, out of four.}
-  \label{tab:r4a}
-  \footnotesize
-  \begin{ruledtabular}
-  \begin{tabular}{rrrrrrrr}
-  Fixed & Active & CS-QSE bias (mHa) & CS-QSE words & CS-A-CASE bias (mHa) & CS-A-CASE words & $H$ removed & Arms admitted \\
-  \colrule
-  \input{tables/r4a.tex}
-  \end{tabular}
-  \end{ruledtabular}
-\end{table*}
-
 Contextual subspace methods restrict a Hamiltonian onto a stabilizer sector
 chosen for the correlation it retains rather than for an exact symmetry
 \cite{kirby2021contextual}, and can be tested as a preconditioner for an
@@ -1064,6 +1270,37 @@ The record reports \emph{structural screen complete, no samples}. The
 comparison stopped after deterministic admission checks, avoiding a sampled
 campaign whose required arms already failed the stated conditions. This is a
 useful way to control experimental cost without weakening the comparison.
+
+\subsection{Residual measurement exceeds the tested cost threshold}
+\label{sec:residual-closure}
+
+Section~\ref{sec:residuals} ships the residual as an exact pairing only.
+Whether a \emph{measured} second-moment block would be affordable was asked as a
+cost ratio: under uniform single-assignment allocation, the shots that estimate
+the ground Ritz root's residual norm over the shots that estimate its energy, at
+one matched standard error, to first order in the delta method. This
+linearization requires the uncertainty in $\sigma^2$ to be small relative to
+$\sigma^2$; it does not resolve a near-zero residual at arbitrary precision.
+A ratio within
+a factor of \cqcResidualBar{} would make the residual a by-product of measuring
+the energy well; beyond it, the residual is a measurement of its own.  Both
+designs that asked were declared post hoc --- the first after an earlier attempt
+at the same question had been inspected and recorded as invalid, the second
+after the first had reported --- and their records say so.
+
+Under qubit-wise grouping the ratio runs from \cqcResidualQWCMin{} to
+\cqcResidualQWCMax{} on the \cqcResidualQWCBanks{} banks that carry an exact
+second-moment block.  Fully commuting grouping lowers every ratio on the
+\cqcResidualFCBanks{} banks of eight qubits it was asked of, to
+\cqcResidualFCMin{}--\cqcResidualFCMax{} under the shipped greedy cover, while
+an alternative cover reads \cqcResidualFCAltMin{} to \cqcResidualFCAltMax{};
+none reaches the bar.  Both verdicts read \emph{none}: the uniform
+single-assignment measured block closes negative at both grouping endpoints the
+package ships, on these banks, and so the measurement layer carries no
+second-moment path. The threshold is the campaign's decision rule, not a
+physical impossibility bound. The ratios are first-order costs computed from exact
+reference variances rather than sampled data.  They say nothing about other
+allocations, estimators or banks, each of which would need its own declaration.
 
 \subsection{Pool filtering can duplicate an existing construction}
 
@@ -1115,15 +1352,19 @@ screen is one bank under one set of declared gates; it does not establish that
 contextual restriction cannot help an operator-response solver in general, only
 that no rung of this screen admitted all four arms.  The
 mapping-versus-instance refinement establishes nothing in the converse
-direction, by its own recorded asymmetry.
+direction, by its own recorded asymmetry.  The residual closure is post hoc and
+covers one allocation and one estimator on its own banks; the clique comparison
+decides each of its instances separately and pools none of them.
 
 \paragraph{Evidence validation has historical limits.} Device ledgers explicitly
 represent inadmissibility, and storage reports state the allocations they cover.
-\cqcRecordsUnlabelled{} unchanged historical records still lack an evidence
-declaration. New or changed JSON records require the versioned contract; the
-historical exceptions remain visible in the census. A metadata validator does
-not verify physical results or device calibration. Downstream code must still
-honor each result's status and assumptions.
+\cqcRecordsUnlabelled{} committed JSON records lack an evidence declaration, and
+\cqcRecordsAnnotated{} take theirs from digest-bound annotations rather than from
+their own bytes. New or changed JSON records require the versioned contract, but
+in-package result types still carry string labels their constructors do not
+validate, and series files are not inspected row by row. A metadata validator
+does not verify physical results or device calibration. Downstream code must
+still honor each result's status and assumptions.
 
 \paragraph{Simulation and interoperability limits.} Sparse operator support can
 grow rapidly, and dense statevector methods retain exponential storage cost.
@@ -1136,30 +1377,29 @@ framework.
 \section{Reproducibility}
 \label{sec:reproducibility}
 
-Every empirical quantity in this manuscript, in the body text as well as in
-the tables, is generated from a committed record or from a live census of the source tree.  The
-prose quantities are macros written by the table generator, and the manuscript
-checker rejects any numeral typed into the body outside a short allowlist of
-conceptual notation --- a block size under discussion, a chemical subscript, the
-dimension of the algebra.  The generated fragments are checked by regenerating
-them during the check and comparing byte for byte, which is stronger than the
-content hashes they also carry: a hash over the inputs catches a record
-regenerated without rerunning the generator, but only regeneration catches a
-value edited into a fragment by hand.  A figure manifest binds each committed
-vector asset to its generator and input digests and records the asset's own
-checksum, so a replaced PDF fails the gate.  The gate does not compare a scratch
-render byte for byte, because plotting and font builds need not serialize the
-same paths identically.
+Every empirical quantity in the body and tables is generated from a committed
+record or a live census of the source tree. The manuscript checker rejects
+numerals outside a short allowlist of conceptual notation. It regenerates
+table fragments and compares them byte for byte, catching hand edits that an
+input hash alone would miss. A figure manifest binds each vector asset to its
+generator, input digests, and checksum. Scratch figure renders are not compared
+byte for byte because plotting and font builds can serialize the same paths
+differently.
 
-Two checks exist specifically to keep this paper honest about the architecture
-it describes.  The layer census fails if any module of the package is not
-assigned to exactly one layer, and the gate census fails if any benchmark gate
-has no declared class.  Both would otherwise be the first tables to drift, being
-the ones no experiment rebuilds.  A third check requires the evidence-language
-commitments of this paper --- among them admissibility, the bias floor, the
-indeterminate verdicts, and the statement that the lifetime bound is not a
-total-process one --- to still be present in the body, so that a later edit
-cannot leave the abstract asserting a discipline the text has dropped.
+The checker also rejects number words beside the nouns the census counts ---
+gates, producers, records, modules. Where the prose states a pattern that a
+record must keep --- identical scientific trajectories across storage arms,
+negative residual verdicts, or the direction of a clique comparison --- the
+generator asserts it and refuses to emit contradictory fragments. The reported
+clique confidence level and decision threshold are generated from the frozen
+declaration, whose digest must match the executed record.
+
+The layer census requires every package module to belong to exactly one layer;
+the gate census requires every benchmark gate to have a declared class.
+Evidence-language checks preserve statements about admissibility, the bias
+floor, indeterminate verdicts, and the limited scope of the lifetime bound.
+These checks detect structural and reporting drift; scientific correctness
+still depends on the independent validations and assumptions described above.
 
 \section{Use and distribution}
 \label{sec:discussion}
@@ -1185,23 +1425,25 @@ benchmark environments in \texttt{REPRODUCING.md}.
 Users should identify the source version and dependency environment used in an
 experiment. The library API is broader than the command-line pipeline, and
 research interfaces can still change. A stable public release would benefit
-from validated evidence records, a documented compatibility policy, and a
-persistent citation for the released source. These are distribution and
-maintenance needs, not evidence that the implemented algorithms scale to larger
-problems.
+from validated labels on the in-package result types, a documented
+compatibility policy, and a persistent citation for the released source. These
+are distribution and maintenance needs, not evidence that the implemented
+algorithms scale to larger problems.
 
 \section{Conclusion}
 \label{sec:conclusion}
 
 \pkg{} connects sparse operator algebra, quantum models, eigensolvers, and
 measurement analysis through reusable Python interfaces. Its useful features
-include virtual operator-response bases, shared measurement caches, independent
-preparation and validation, and configurable coefficient storage. The benchmark
+include virtual operator-response bases, shared measurement caches, exact
+residual diagnostics, independent preparation and validation, and configurable
+coefficient storage whose memory--time trade is now measured. The benchmark
 records demonstrate how these components support controlled comparisons and
 identify accuracy or cost assumptions that fail. Small-system evidence,
-illustrative device cards, and incomplete evidence-schema coverage limit the
-claims. Within those limits, the package provides a working foundation for
-reproducible quantum simulation research.
+illustrative device cards, post-hoc designs where they are declared, and
+in-package result labels that are not yet validated limit the claims. Within
+those limits, the package provides a working foundation for reproducible
+quantum simulation research.
 
 \section*{Code and data availability}
 
