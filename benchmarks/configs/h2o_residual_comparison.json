@@ -1,0 +1,28 @@
+{
+  "schema": "clifford_qc.h2o_residual_comparison_design.v1",
+  "input": {
+    "path": "benchmarks/data/h2o_sto3g_cas8e6o.FCIDUMP",
+    "sha256": "2f68b1d3f9f77e9c1483cb1b879bac2a67a9d8204ce2e9e985697c10029c6103",
+    "active_spatial_orbitals": [3, 4]
+  },
+  "arms": ["residual_packets", "spin_adapted_selected_ci", "adaptive_active_space"],
+  "repeats": 3,
+  "maximum_sector_dimension": 225,
+  "maximum_columns": 105,
+  "maximum_growth_steps": 102,
+  "worker_timeout_seconds": 120,
+  "preconditioner_shift_hartree": 0.1,
+  "residual_tolerance_hartree": 1e-9,
+  "direction_absolute_tolerance": 1e-9,
+  "direction_relative_tolerance": 1e-8,
+  "orthogonality_tolerance": 1e-10,
+  "spin_tolerance": 1e-9,
+  "score_tie_tolerance": 1e-12,
+  "serialization_tolerance": 1e-12,
+  "accuracy_target_hartree": 0.0016,
+  "implementation_paths_absent_at_declaration": [
+    "clifford_qc/subspace/action_space.py",
+    "benchmarks/run_h2o_residual_comparison.py",
+    "benchmarks/check_h2o_residual_comparison.py"
+  ]
+}

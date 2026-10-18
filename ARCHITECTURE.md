@@ -176,6 +176,14 @@ records measured overlaps and spin; the original pilot remains historical.
 No state preparation, quantum
 measurement protocol, large-sector storage or hardware advantage is supplied.
 
+`subspace/action_space.py` supplies incremental explicit-vector Ritz solves.
+Candidate H actions can be reused when columns enter the retained span;
+true residuals use cached `HV` without constructing `H²`. The separate H2O
+comparison tests refreshed singlet packets, spin-adapted selected CI and
+residual-selected active-space enlargement. Dense symmetry setup, candidate
+caches and process RSS are priced separately. This does not change the
+molecular CLI or establish large-sector scaling.
+
 The default bank retains constructed object rows. Packed coefficients and
 streaming are separate choices: representation controls how a row is stored;
 lifetime policy controls whether it remains resident. Streaming retains the
@@ -279,7 +287,9 @@ A setting count alone cannot establish a time saving.
 
 Most imports follow the layers, with recorded exceptions:
 
-- Chemistry model construction imports `algorithms/pools.py` at module scope.
+- Chemistry model construction imports the shared candidate type from
+  `pool_operator.py` in Program IR, not from the solver package; deferred
+  chemistry calls from subspace generators remain runtime dependencies.
 - Measurement methods import subspace linear algebra or restriction helpers
   at call time. Type-checking-only imports do not execute.
 - Some kernel sector helpers call execution code through deferred imports.

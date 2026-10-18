@@ -1,0 +1,7 @@
+{
+  "schema": "clifford_qc.h2o_residual_publication.v1",
+  "base_commit": "128ca93e55ca7d34bec20cb5e394514c27aa76b7",
+  "observation_commit": "85889cfdd3d58362bc87511542cf2eecad52b7f6",
+  "observation_sha256": "40f38bade401acc21dbc938f31dc37772c75c28eb55bbe0f4fa76d5dd56c9d07",
+  "bundle_sha256": "881c481ba94c40c37d1a83c5a0a1db664a415356b561bed5e86579e1612e82d2"
+}

@@ -298,6 +298,13 @@ start can supply that reference through `workflows.adapt_warm_start`.
 Compare total selection, measurement, optimization, and classical costs at a
 matched accuracy target; no method is uniformly preferable.
 
+The [H2O singlet comparison](benchmarks/results/h2o_residual_comparison.md)
+tests refreshed residual packets, spin-adapted selected CI and active-space
+enlargement with cached H actions and isolated-process cost records. Packets
+reach the fixed 1.6 mHa target with 12 retained columns versus selected CI's
+14, but use 213 H actions versus 105. This is small-sector classical evidence,
+not a quantum or total-cost advantage.
+
 The [prepared-input CLI](molecular/PIPELINE.md) currently exposes exact A-CASE with
 determinant-excitation candidates. Other methods use Python APIs and examples.
 Its `prepare`, `solve`, and optional `validate` commands have separate outputs,
@@ -384,7 +391,7 @@ rebuild gate, and expensive sampled gates require manual CI dispatch.
 | [molecular/PIPELINE.md](molecular/PIPELINE.md) | Reusable molecular preparation, solve/validate commands, and storage choices |
 | [CONVENTIONS.md](CONVENTIONS.md) | Mathematical and representation conventions |
 | [REPRODUCING.md](REPRODUCING.md) | Frozen environments, benchmark commands, and checks |
-| [Architecture paper](paper_architecture/README.md) | *clifford_qc: A Python Toolkit for Quantum Simulation*; features, architecture, and evidence |
+| [Architecture paper](paper_architecture/README.md) | *clifford_qc: A Python Toolkit for Quantum Simulation* ([arXiv:2609.23059](https://arxiv.org/abs/2609.23059)); features, architecture, and evidence |
 | [CITATION.cff](CITATION.cff) | Software metadata and research citations |
 
 The repository also contains the [measurement/ADAPT manuscript](paper/README.md),

@@ -513,6 +513,22 @@ different in support and spin constraints; no cost superiority follows.
 Both are bounded classical
 exploratory work, not evidence of a practical quantum gain.
 
+**H2O residual-growth follow-up (adjunct, declared 2026-10-18).**
+`benchmarks/H2O_RESIDUAL_COMPARISON_DECLARATION.md` freezes refreshed residual
+packets, spin-adapted selected CI and residual-selected active-space enlargement
+on the same H2O CAS(8e,6o) input. Every arm starts from the same singlet
+CAS(2e,2o). Incremental cached H actions separate selection/retained costs;
+three fresh processes per arm record wall times, support and OS peak RSS.
+The reference energy is used after all solves. This adjunct does not alter
+numbered-phase status, reopen closed measurement campaigns or change defaults.
+Its generated report is `benchmarks/results/h2o_residual_comparison.md`.
+The frozen nine-process campaign completed without failures. Refreshed packets
+first meet 1.6 mHa at 12 columns/213 H actions; spin-adapted selected CI at
+14/105; active-space enlargement at 105/105. All later satisfy the 1e-9
+residual stopping tolerance. Packets compress columns but do not win action count or
+establish a time/RSS advantage on this single small sector. Independent
+occupation replay and merge-safe observation-byte/history bindings pass.
+
 **Second: sparse GA kernel and architecture.** These are maintenance extensions
 to Phase 0's API, not a new solver or an established quantum resource advantage.
 

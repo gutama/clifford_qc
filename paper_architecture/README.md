@@ -20,9 +20,31 @@ without claiming an existing package-index release.
 
 The paper preserves the quantitative benchmark record. Device costs use
 illustrative assumptions; the fixed-functional shot certificate is not a
-certificate of total ground-state error. Evidence-schema coverage remains
-incomplete, and the streaming coefficient-row bound is not a process-memory
-bound.
+certificate of total ground-state error. Every committed JSON record now
+declares its evidence, some through digest-bound annotations, but in-package
+result types still carry unvalidated string labels. The streaming
+coefficient-row bound is not a process-memory bound, and the process-isolated
+storage matrix is one host's observation rather than a bound.
+
+## Revisions
+
+- **v1** — [arXiv:2609.23059](https://arxiv.org/abs/2609.23059), submitted
+  19 September 2026. Its source is byte-identical to
+  `paper_architecture/manuscript.tex` at commit `fcceae2`.
+- **v2** — the current source. It adds exact Ritz residuals and folded-spectrum
+  roots (a new subsection of the workflow section), the process-isolated
+  storage-policy matrix, the preregistered anticommuting-clique comparison, and
+  the measured-residual closure at both grouping endpoints; describes the
+  capabilities added since v1 (sparse exterior operations, exchange and
+  multi-root ADAPT in exact sectors, time-evolved QSCI input, the
+  fragment-solver callback, the versioned evidence contract); regenerates the
+  census; and corrects prose that had gone stale, including three
+  gate counts spelled out as words. A subsequent manuscript review clarifies
+  the folded objective and numerical inclusion limits, the fixed-grid clique
+  decision and confidence family, and the scope of the residual-cost result;
+  it also removes a stale denial of the measured process-memory reduction.
+  [ARXIV.md](ARXIV.md) lists the changes for
+  the replacement form.
 
 For package installation and runnable examples, start with the root
 [README](../README.md). The [architecture guide](../ARCHITECTURE.md) describes
@@ -107,23 +129,37 @@ outside a short allowlist of conceptual notation.
 | Mapping vs instance table | `mapping_axis.json`, `r3c_lih_full_cost.json`, `r3d_qr3_refinement.json` |
 | Contextual screen table | `r4a_contextual_screen.json` |
 | Pool-filtering subsection | `g1_structural_preconditioner.json` |
+| Residuals subsection (bank count) | `second_moment_validation.json`, `folded_spectrum_validation.json` |
+| Storage-policy table and prose | `bank_policy_matrix.json` |
+| Anticommuting-clique table and prose | `phase19_energy_comparison.json`; confidence and material-reduction settings from `benchmarks/configs/phase19_energy_comparison.json`, digest-matched to that record |
+| Residual-closure subsection | `phase15_residual_successor.json`, `phase15_fc_residual.json` |
 | `tables/numbers.tex` (all prose quantities) | all of the above |
 
-The coefficient-storage subsection quotes no measured quantity: the lifetime policy is
-described from the interface it exposes, and the profile numbers behind it are
-small-system smoke measurements that establish no production result. The
-operator-centric and molecular-pipeline sections quote none either, for the same
-reason in two forms: the worked example is an algebraic identity anyone can
-recompute from the kernel, and the pipeline walkthrough describes what each
-stage reads, writes and reuses rather than how fast it does so.
+The coefficient-storage subsection describes the lifetime policy from the
+interface it exposes and quotes measured quantities only from the
+process-isolated policy matrix, which runs each arm in a fresh interpreter; the
+earlier same-process profiles establish no production result and are not
+quoted. The operator-centric and molecular-pipeline sections quote no measured
+quantity, for the same reason in two forms: the worked example is an algebraic
+identity anyone can recompute from the kernel, and the pipeline walkthrough
+describes what each stage reads, writes and reuses rather than how fast it does
+so.
+
+Some prose states a pattern rather than a number: every storage arm reproduces
+the complete scientific trajectory (not only its final energy) and object retain is the fastest; both residual verdicts read
+`NONE` and fully commuting grouping lowers every ratio; each clique decision
+runs in the direction the subsection describes. `make_tables.py` asserts each of
+these against its record and refuses to generate if one no longer holds.
 
 Records without a path prefix live under `benchmarks/reference_results/`. Of
 these, only the block-commuting hierarchy overlaps a companion manuscript, and
 this paper reads its `_v2` record; `paper_acase/` reads the `_v1` record of the
 same study. Everything else — the preregistered QWC-versus-fully-commuting
 comparison, the protocol-cost programme, the mapping axis, the second-instance
-pricing and its refinement, the contextual screen and the structural
-preconditioner — appears in no other manuscript.
+pricing and its refinement, the contextual screen, the structural
+preconditioner, and in v2 the second-moment validations, the storage-policy
+matrix, the clique comparison and the two residual-cost records — appears in no
+other manuscript.
 
 ## What the gate enforces
 
@@ -140,8 +176,11 @@ preconditioner — appears in no other manuscript.
    plotting and font builds while the digest of its inputs is;
 3. any numeral appears in a table cell or in the body prose, outside a short
    allowlist of conceptual notation (a block size under discussion, a chemical
-   subscript, the dimension of the algebra). There is no digit-count threshold:
-   a three-digit setting count typed into a paragraph fails;
+   subscript, the dimension of the algebra, a square). There is no digit-count
+   threshold: a three-digit setting count typed into a paragraph fails. A
+   number word within two words of a counted noun — gates, producers, records,
+   modules — fails too: v1's "Five are preregistration gates" went stale after
+   submission while every digit beside it stayed generated;
 4. a generated macro is used without being defined, or defined without being
    used;
 5. the committed source census no longer equals a census recomputed now — a
@@ -163,8 +202,11 @@ them.
 `tests/test_paper_architecture_gate.py` pins the parts of this that have
 already been wrong once: an evidence *role* counted as a tier, a nested tier
 change that moved nothing the census compared, a hand-edited fragment that
-passed a check over its inputs, and a rewrapped paragraph reported as a dropped
-evidence commitment. Fault injection is still the quickest confirmation by
+passed a check over its inputs, a rewrapped paragraph reported as a dropped
+evidence commitment, and the three spelled-out counts v1 shipped. It also
+rejects a changed storage history with an unchanged endpoint, or clique
+reporting settings taken from a declaration other than the executed one.
+Fault injection is still the quickest confirmation by
 hand: rename a module without assigning it a layer, drop a gate from the
 workflow, or type a number into a paragraph, and the checker names it.
 
