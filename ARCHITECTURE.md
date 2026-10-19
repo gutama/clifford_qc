@@ -184,6 +184,16 @@ residual-selected active-space enlargement. Dense symmetry setup, candidate
 caches and process RSS are priced separately. This does not change the
 molecular CLI or establish large-sector scaling.
 
+`subspace/packet_selection.py` supplies `FrameActionCache`, paired
+vector/action orthogonalization and deterministic residual-mass shortlisting.
+The cache owns an immutable frame snapshot, lazily retains its Hamiltonian
+actions and accepts already priced initial actions. Refreshed corrections
+combine fixed actions and cached HV rather than reapplying H. The separate
+packet-work benchmark tests reuse and shortlisting in a factorial comparison,
+including full-screen audits and low-gain fallback. These are explicit-vector
+classical APIs; caching can approach a full sector-by-frame action table.
+Shortlisting is a heuristic and never supplies the full-residual stopping test.
+
 The default bank retains constructed object rows. Packed coefficients and
 streaming are separate choices: representation controls how a row is stored;
 lifetime policy controls whether it remains resident. Streaming retains the

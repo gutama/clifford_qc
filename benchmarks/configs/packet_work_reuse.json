@@ -1,0 +1,31 @@
+{
+  "schema": "clifford_qc.packet_work_reuse_design.v1",
+  "input": {
+    "path": "benchmarks/data/h2o_sto3g_cas8e6o.FCIDUMP",
+    "sha256": "2f68b1d3f9f77e9c1483cb1b879bac2a67a9d8204ce2e9e985697c10029c6103",
+    "active_spatial_orbitals": [3, 4]
+  },
+  "arms": ["original", "reuse", "shortlist", "combined", "selected_ci"],
+  "repeats": 3,
+  "maximum_sector_dimension": 225,
+  "maximum_columns": 105,
+  "maximum_growth_steps": 102,
+  "worker_timeout_seconds": 120,
+  "preconditioner_shift_hartree": 0.1,
+  "residual_tolerance_hartree": 1e-9,
+  "direction_absolute_tolerance": 1e-9,
+  "direction_relative_tolerance": 1e-8,
+  "orthogonality_tolerance": 1e-10,
+  "spin_tolerance": 1e-9,
+  "score_tie_tolerance": 1e-12,
+  "serialization_tolerance": 1e-12,
+  "accuracy_target_hartree": 0.0016,
+  "shortlist_fraction": 0.8,
+  "audit_interval": 5,
+  "implementation_paths_absent_at_declaration": [
+    "clifford_qc/subspace/packet_selection.py",
+    "benchmarks/run_packet_work_reuse.py",
+    "benchmarks/check_packet_work_reuse.py",
+    "benchmarks/summarize_packet_work_reuse.py"
+  ]
+}

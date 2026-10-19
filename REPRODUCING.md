@@ -307,7 +307,7 @@ No figure or table value in the manuscript is transcribed by hand, and
 ```bash
 python -m venv .venv && source .venv/bin/activate
 pip install -e .[test,research,stim]       # automatic CI extras
-pytest                                      # 3863 passed, 12 skipped (expected if green)
+pytest                                      # 3907 passed, 12 skipped (expected if green)
 ```
 
 This is the automatic CI dependency set; record gates additionally pin NumPy
@@ -326,7 +326,7 @@ the remaining `12 - 6 = 6` skips are per-test and *are* collected:
 
 ```text
 collected == passed + (skipped - files dropped at collection)
-3869      == 3863   + (12      -   6)
+3913      == 3907   + (12      -   6)
 ```
 
 Both sides are computed from the tree, so a drift in either quoted number
@@ -5330,3 +5330,68 @@ The Phase 17 process supervisor now returns `rss_unavailable` and stops a live
 worker when `/proc` RSS cannot be observed; unknown RSS never counts as zero.
 Reader and unavailable-/proc worker tests complement the controlled decision
 fixtures. Existing frozen Phase 17 observations and campaign claims are unchanged.
+
+
+## Residual packet action reuse and shortlisting
+
+`benchmarks/PACKET_WORK_REUSE_DECLARATION.md` and
+`benchmarks/configs/packet_work_reuse.json` freeze the exploratory follow-up
+before implementation or new outcomes. `benchmarks/reference_results/packet_work_reuse.json`
+contains all fifteen fresh-process outcomes (three per arm), including failures
+if present. The earlier H2O observations remain unchanged.
+
+```bash
+python benchmarks/run_packet_work_reuse.py
+python -m pytest tests/test_packet_selection.py tests/test_packet_work_reuse.py -q
+python benchmarks/check_packet_work_reuse.py
+python benchmarks/summarize_packet_work_reuse.py --check
+```
+
+The default producer validates the frozen design without computing molecular
+outcomes. To reproduce new observations from the clean execution checkout,
+set OMP_NUM_THREADS, OPENBLAS_NUM_THREADS and MKL_NUM_THREADS to 1, use Python
+3.12 / NumPy 2.5.2 / SciPy 1.18.0 / Stim 1.16.0, and run:
+
+```bash
+python benchmarks/run_packet_work_reuse.py --execute --output /tmp/packet-work-replay.json
+python benchmarks/check_packet_work_reuse.py --science-only --record /tmp/packet-work-replay.json
+```
+
+Outputs are never overwritten. Execution requires clean committed sources,
+including untracked files, unchanged declaration/configuration bytes, input
+digests and declaration ancestry with the new implementation absent. The
+committed observations bind declaration and execution identities to complete
+source digests. `benchmarks/provenance/packet_work_reuse.json` binds their full
+bytes, including timings/RSS, to a distinct observation commit. Its digest-bound
+`packet_work_reuse.bundle` preserves the original Git objects across merging;
+keep it in the PR. Strict replay requires full history; `--science-only`
+explicitly leaves chronology and observation bindings unverified.
+
+The five arms are original packets, action reuse, shortlisting, their
+combination, and the prior spin-adapted selected-CI control. All use the same
+initial singlet CAS and exact two-dimensional lowering score. Reuse seeds
+initial HF actions from HV and lazily retains each requested fixed-frame
+column once, propagating orthogonalization/normalization/phase through both
+vector and action. The complete frame has 105 columns, bounding H calls but
+not runtime. The cache owns an additional frame snapshot and all populated
+actions; these payloads and OS process high-water RSS are reported separately.
+It is not an eviction/streaming policy or a sparse-state scaling result.
+
+Shortlisting retains the smallest descending prefix covering 80% of admissible
+groups' unpreconditioned residual mass. Every fifth decision evaluates all
+candidates and selects the full-screen winner; negligible shortlisted exact
+gain triggers full fallback. Audit losses, omitted winners and every action
+are charged. The independent occupation-H replay rebuilds directions, spectra,
+spin, indicator values, score values, cache population and counts. Exact
+shortlist ordering is independently replayed from the validated recorded
+indicators because separate BLAS sums can swap symmetric last-bit ties.
+Adversarial tests cover scientific values, counters, policies, costs and
+publication bytes; a fresh-baseline test restores the bundle without refs.
+
+All arms reached 1.6 mHa with no failed process. Reuse preserves the full
+original trajectory and reduces target H calls 213 to 57 (12 columns).
+Shortlisting reduces exact candidate scores 210 to 63; combined uses 57 H
+calls. No audit missed a winner on this fixture. The report discloses full-run
+costs, extra storage, and modest time differences. This is classical evidence
+on one small fixed Hamiltonian, with no quantum shots, preparation, hardware,
+optimized SHCI/DMRG superiority or general scaling claim.
