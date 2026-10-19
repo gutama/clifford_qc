@@ -28,6 +28,7 @@ small-system comparisons, and a public archival release is intended.
 | Compare eigensolvers | VQE, ADAPT-VQE, fixed and adaptive operator-response subspaces, QSCI/SQD (with reference, ADAPT-VQE, and exact or Trotter time-evolved sampling inputs), selected-CI controls, hybrid bases | [Solver guide](#choosing-a-solver), [subspace example](#adaptive-subspaces) |
 | Check a Ritz state against an eigenstate | True Ritz residual norms and energy variances from the second-moment block `⟨A_i†H²A_j⟩`, with automatic coefficient-storage admission for each requested block; exact pairings over a matrix-element bank, validated on the five banks the Phase 15 preflight licensed. No finite-shot estimator is built: measuring the block reads `NONE` under both QWC and fully commuting grouping | `clifford_qc.subspace.SecondMomentBank`, [example](#residuals-and-folded-roots), [conventions](CONVENTIONS.md#second-moments-residuals-and-folded-roots), [reproducing](REPRODUCING.md#phase-15-secondmomentbank-and-its-validation) |
 | Find and bound interior roots | Exact folded-spectrum roots of `K − 2ωH + ω²S`, refined Ritz vectors, target and Weinstein intervals that each contain an eigenvalue, and monotone variance minimization; validated on the same five banks | `clifford_qc.subspace.FoldedSpectrum`, [example](#residuals-and-folded-roots), [reproducing](REPRODUCING.md#phase-15-folded-spectrum-roots-and-their-validation) |
+| Count eigenvalues near Ritz roots | Disjoint cluster hulls from the exact block residual `Q'KQ − Θ²`, each holding at least as many eigenvalues as roots, so a degenerate level is counted with its multiplicity; held to dense spectra in the test suite | `clifford_qc.subspace.ritz_clusters`, [example](#residuals-and-folded-roots), [conventions](CONVENTIONS.md#second-moments-residuals-and-folded-roots) |
 | Assess why adaptive growth stopped | Opt-in exact convergence reports over the final retained block, with numerical-resolution and ground-state evidence reported separately; Q17 extrapolation is a diagnostic only | `ConvergenceConfig`, `convergence_report`, [example](examples/acase_convergence.py), [contract](REPRODUCING.md#phase-15-exact-convergence-reporting) |
 | Solve embedding fragments | One callback returning energy plus one- and two-particle density matrices, implemented by sector FCI, QSCI, selected CI, and the QSCI × A-CASE hybrid; the embedding loop itself stays outside the package | `clifford_qc.subspace.fragment`, [conventions](CONVENTIONS.md#density-matrices) |
 | Reuse measurements | QWC and block-commuting grouping, compiled Clifford readouts, shared caches, covariance, allocation, uncertainty estimates | [Finite-shot examples](#examples), [architecture](ARCHITECTURE.md#measurement-and-evidence) |
@@ -212,7 +213,8 @@ transverse-field Ising example:
 
 ```python
 from clifford_qc.subspace import (
-    FoldedSpectrum, MatrixElementBank, SecondMomentBank, identity_generator)
+    FoldedSpectrum, MatrixElementBank, SecondMomentBank, identity_generator,
+    ritz_clusters)
 
 bank = MatrixElementBank(rho, model.hamiltonian,
                          [identity_generator(model.n), *pauli_orbit(words)])
@@ -221,6 +223,8 @@ ritz = bank.solve()
 print(moments.residual(ritz).residual_norm)          # true residual of the Ritz root
 root = FoldedSpectrum(moments).refined_ritz(ritz.energies[0])
 print(root.residual_norm, root.weinstein_interval())  # an eigenvalue lies inside
+for cluster in ritz_clusters(ritz, moments=moments).clusters:
+    print(cluster.roots, cluster.interval())         # >= len(roots) eigenvalues inside
 ```
 
 `FoldedSpectrum.roots(w)` returns the states of the span closest, by residual,
@@ -228,7 +232,11 @@ to an eigenvalue near a target `w`.
 `refined_ritz` sets `w` to a Ritz value, and its residual never exceeds the
 Ritz vector's. `minimize_variance` iterates `w ← E` to a variance-stationary
 state. Each root carries a target interval and a Weinstein interval, and an
-eigenvalue of `H` lies in each. Neither says which eigenvalue. Variances are
+eigenvalue of `H` lies in each. Neither says which eigenvalue, and overlapping
+intervals may share one. `ritz_clusters(ritz)` counts instead: it merges roots
+until their hulls are disjoint, and each hull holds at least as many
+eigenvalues as roots, so a degenerate level is counted with its multiplicity.
+Variances are
 reported signed and count as resolved only above a rounding floor, as
 [CONVENTIONS.md](CONVENTIONS.md#second-moments-residuals-and-folded-roots)
 defines. These are exact pairings. Q18-S1 and Q18-S4 found that, under uniform

@@ -12,20 +12,35 @@ never become a successful residual assessment by clipping them to zero.
 Q17's three-prefix extrapolation is exposed separately as a diagnostic. The
 committed improvement evidence concerns the frozen H4 and H2O bases only;
 the fit is neither variational nor a supported energy estimator.
+
+Per-root Weinstein intervals each hold *an* eigenvalue, but overlapping ones
+may hold the same one. :func:`ritz_clusters` counts instead: by Kahan's
+theorem (Parlett, *The Symmetric Eigenvalue Problem*, Thm 11.5.1) the Ritz
+values of an orthonormal block ``Q`` pair one-to-one with distinct eigenvalues
+of ``H`` within ``||HQ - Q Theta||_2``, and ``R'R = Q'H^2Q - Theta^2`` is
+exact from ``(S, H, K)``. Roots are merged until the cluster hulls are
+disjoint, so each hull holds at least as many eigenvalues as it has roots.
 """
 
 from __future__ import annotations
 
 import math
+import operator
 from dataclasses import asdict, dataclass
-from typing import Sequence
+from typing import Any, Sequence
 
+import numpy as np
+
+from .contracts import check_reference
 from .linalg import SubspaceResult
 from .second_moment import RESOLUTION, RitzResidual, SecondMomentBank
 from .second_moment_storage import SecondMomentStoragePolicy
 
 CONVERGENCE_SCHEMA = "clifford_qc.convergence_report.v1"
 EXTRAPOLATION_SCHEMA = "clifford_qc.variance_extrapolation_diagnostic.v1"
+RITZ_CLUSTERS_SCHEMA = "clifford_qc.ritz_clusters.v1"
+# The reference's unit-trace tolerance, applied to its purity.
+PURITY_TOLERANCE = 1e-9
 
 
 def _finite(value: float, name: str) -> float:
@@ -224,3 +239,173 @@ def variance_extrapolation_diagnostic(
         slope > 0.0, None if slope > 0.0 else "the slope is not positive",
         intercept if slope > 0.0 else None, slope, rms,
     )
+
+
+@dataclass(frozen=True)
+class RitzCluster:
+    """Ritz roots whose hull holds at least ``count`` eigenvalues of ``H``.
+
+    ``ritz_values`` are the eigenvalues of ``H`` on the cluster's own span,
+    which equal the solve's energies to rounding. ``residual_squared`` is the
+    largest eigenvalue of ``R'R``, reported signed, and ``resolution`` its
+    rounding floor, ``RESOLUTION * || |Q|'|K||Q| ||_2``. ``radius`` widens the
+    residual by that floor, so a one-root cluster carries its root's Weinstein
+    half-width, to rounding.
+    """
+
+    roots: tuple[int, ...]
+    ritz_values: tuple[float, ...]
+    residual_squared: float
+    resolution: float
+
+    @property
+    def count(self) -> int:
+        return len(self.roots)
+
+    @property
+    def resolved(self) -> bool:
+        """The block residual stands above the rounding of its own terms."""
+        return self.residual_squared > self.resolution
+
+    @property
+    def residual_norm(self) -> float:
+        """``||R||_2``, clipped at zero."""
+        return math.sqrt(max(self.residual_squared, 0.0))
+
+    @property
+    def radius(self) -> float:
+        return math.sqrt(max(self.residual_squared, 0.0) + self.resolution)
+
+    def interval(self) -> tuple[float, float]:
+        """At least ``count`` eigenvalues of ``H``, with multiplicity, lie here."""
+        return min(self.ritz_values) - self.radius, max(self.ritz_values) + self.radius
+
+    def as_dict(self) -> dict[str, Any]:
+        return {"roots": list(self.roots), "count": self.count,
+                "ritz_values": list(self.ritz_values),
+                "residual_squared": self.residual_squared,
+                "residual_norm": self.residual_norm, "resolution": self.resolution,
+                "resolved": self.resolved, "radius": self.radius,
+                "interval": list(self.interval())}
+
+
+@dataclass(frozen=True)
+class RitzClusters:
+    """Disjoint cluster hulls, ascending, covering the requested roots.
+
+    The hulls are disjoint, so their counts add: together they hold at least
+    ``len(roots)`` distinct eigenvalues. A hull may hold more eigenvalues
+    than its count, and a cluster with roots ``0..m-1`` need not hold the
+    ``m`` lowest eigenvalues; neither statement follows from the span.
+    """
+
+    roots: tuple[int, ...]
+    clusters: tuple[RitzCluster, ...]
+    basis_size: int
+    effective_rank: int
+
+    def as_dict(self) -> dict[str, Any]:
+        return {"schema": RITZ_CLUSTERS_SCHEMA, "evidence": "exact",
+                "roots": list(self.roots), "basis_size": self.basis_size,
+                "effective_rank": self.effective_rank,
+                "clusters": [cluster.as_dict() for cluster in self.clusters]}
+
+
+def _hermitian(matrix: np.ndarray) -> np.ndarray:
+    return 0.5 * (matrix + matrix.conj().T)
+
+
+def _cluster(roots: tuple[int, ...], C: np.ndarray, S: np.ndarray, H: np.ndarray,
+             K: np.ndarray, absolute_K: np.ndarray) -> RitzCluster:
+    """Kahan's bound for the span of ``C``'s columns, orthonormalized there."""
+    gram_values, gram_vectors = np.linalg.eigh(_hermitian(C.conj().T @ S @ C))
+    if gram_values[0] <= 0.0:
+        raise ValueError(f"Ritz roots {roots} are not independent on this span")
+    # Löwdin orthonormalization: the bound then depends on the span alone,
+    # not on how the solve happened to normalize its vectors.
+    Q = C @ (gram_vectors / np.sqrt(gram_values)) @ gram_vectors.conj().T
+    M = _hermitian(Q.conj().T @ H @ Q)
+    gram = _hermitian(Q.conj().T @ K @ Q - M @ M)
+    magnitude = np.abs(Q)
+    scale = float(np.linalg.eigvalsh(_hermitian(magnitude.T @ absolute_K @ magnitude))[-1])
+    return RitzCluster(
+        roots=roots, ritz_values=tuple(float(v) for v in np.linalg.eigvalsh(M)),
+        residual_squared=float(np.linalg.eigvalsh(gram)[-1]),
+        resolution=RESOLUTION * scale)
+
+
+def ritz_clusters(result: SubspaceResult, roots: Sequence[int] | None = None, *,
+                  moments: SecondMomentBank | None = None,
+                  storage_policy: SecondMomentStoragePolicy | None = None
+                  ) -> RitzClusters:
+    """Partition Ritz roots into clusters with disjoint, counting hulls.
+
+    Each root starts alone, with its Weinstein interval. Clusters whose hulls
+    meet, endpoints included, are merged and their block residual recomputed;
+    a block's residual is never below any of its sub-blocks', so hulls only
+    grow and the loop ends after at most ``len(roots)`` passes. ``roots``
+    defaults to every root of the solve. Automatic construction preflights
+    only ``result.indices``; supply ``storage_policy`` for its budget, or pass
+    already preflighted ``moments``. A solve with a nonzero ``overlap_ridge``
+    is refused: its vectors are Ritz vectors of the ridged metric, not of
+    ``(S, H)``. So is a mixed reference: its blocks are Gram matrices of
+    ``A_j rho^(1/2)`` under left multiplication by ``H``, which repeats every
+    eigenvalue, so two roots could pair with copies of one eigenvalue.
+    """
+    if result.bank is None:
+        raise ValueError("Ritz clusters need a result solved on a MatrixElementBank")
+    purity = check_reference(result.bank.reference)
+    if abs(purity - 1.0) > PURITY_TOLERANCE:
+        raise ValueError(f"Ritz clusters count eigenvalues only over a pure reference; "
+                         f"this one has purity {purity:.6g}")
+    if result.resources.get("overlap_ridge", 0.0) != 0.0:
+        raise ValueError("overlap_ridge changes the overlap metric, so the Ritz vectors "
+                         "do not solve (S, H); cluster a truncated solve instead")
+    total = len(result.energies)
+    order = tuple(range(total)) if roots is None else tuple(operator.index(r) for r in roots)
+    if not order:
+        raise ValueError("no roots to cluster")
+    if len(set(order)) != len(order):
+        raise ValueError("roots must be distinct")
+    if any(not 0 <= r < total for r in order):
+        raise IndexError(f"roots must lie in [0, {total})")
+    order = tuple(sorted(order))
+    if moments is not None and storage_policy is not None:
+        raise ValueError("set storage_policy when constructing the supplied moments")
+    if moments is not None and not isinstance(moments, SecondMomentBank):
+        raise TypeError("moments must be a SecondMomentBank")
+    moments = (SecondMomentBank(result.bank, result.indices, storage_policy=storage_policy)
+               if moments is None else moments)
+    if moments.bank is not result.bank:
+        raise ValueError("the second moments belong to a different bank")
+    S, H = result.bank.matrices(result.indices)
+    K = moments.matrix(result.indices)
+    absolute_K = np.abs(K)
+    coefficients = np.asarray(result.coefficients)
+
+    def build(members: tuple[int, ...]) -> RitzCluster:
+        cluster = _cluster(members, coefficients[:, list(members)], S, H, K, absolute_K)
+        if cluster.residual_squared < -cluster.resolution:
+            raise ValueError(f"roots {members} have a negative block residual "
+                             f"{cluster.residual_squared:.3g} below its rounding floor; "
+                             "(S, H, K) are not exact pairings of one Hermitian H")
+        return cluster
+
+    clusters = [build((r,)) for r in order]
+    while True:
+        clusters.sort(key=lambda cluster: cluster.interval()[0])
+        groups: list[tuple[int, ...]] = []
+        upper = -math.inf
+        for cluster in clusters:
+            lo, hi = cluster.interval()
+            if groups and lo <= upper:
+                groups[-1] += cluster.roots
+            else:
+                groups.append(cluster.roots)
+            upper = max(upper, hi)
+        if len(groups) == len(clusters):
+            break
+        clusters = [build(tuple(sorted(group))) for group in groups]
+    return RitzClusters(roots=order, clusters=tuple(clusters),
+                        basis_size=len(result.indices),
+                        effective_rank=int(result.effective_rank))

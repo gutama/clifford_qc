@@ -122,6 +122,30 @@ tight interval. Neither interval says which eigenvalue it holds. Ground-state
 claims need an independently established spectrum, supplied to convergence
 reporting as a `GroundStateReference`.
 
+**Counting clusters.** Overlapping intervals may hold the same eigenvalue, so
+per-root intervals do not count eigenvalues. `ritz_clusters` does. For Ritz
+roots `I` of one solve, let `Q` hold their states orthonormally and
+`Theta = Q'HQ`. Then `R = HQ - Q Theta` has `R'R = Q'KQ - Theta^2`, and Kahan's
+theorem (Parlett, Thm 11.5.1) pairs the `|I|` Ritz values one-to-one with
+distinct eigenvalues of `H` within `||R||_2`. Every root starts alone; clusters
+whose hulls meet, endpoints included, are merged and `r_I` recomputed until
+the hulls are disjoint:
+
+```text
+r_I = sqrt(max(lambda_max(Q'KQ - Theta^2), 0) + RESOLUTION * || |Q|'|K||Q| ||_2)
+[min_I theta - r_I, max_I theta + r_I]  holds at least |I| eigenvalues, with multiplicity
+```
+
+A one-root cluster is that root's Weinstein interval, to rounding. As there,
+the count holds in exact arithmetic and the floor is a rounding convention,
+not a verified floating-point enclosure. Disjoint
+hulls add, so a degenerate level the span reaches is counted with its
+multiplicity, which no per-root interval can do. A hull may hold more
+eigenvalues than roots, and a cluster of roots `0..m-1` need not hold the `m`
+lowest. The count needs a pure reference. A mixed `rho` pairs `A_j rho^(1/2)`,
+on which `H` repeats every eigenvalue, so it is refused, as is a nonzero
+`overlap_ridge`.
+
 **Constant shifts.** Under `H -> H + a`, the blocks become `H + aS` and
 `K + 2aH + a^2 S`. Shifting the target with them, `w -> w + a`, leaves `F`, and
 so `sigma^2` and `mu`, unchanged; energies, targets and intervals move by `a`.
