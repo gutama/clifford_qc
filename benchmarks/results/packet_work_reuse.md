@@ -18,7 +18,7 @@ Medians over successful target-reaching runs. Denominators include failures. Tim
 
 ## Partial array payloads at first target
 
-These are owned array payloads, not total resident memory. Setup additionally owns dense S², the full singlet frame and diagonal; Python containers, operator storage and temporary arrays are excluded. RSS above is the whole process high-water mark.
+These are partial array payloads, not total resident memory. The SCI candidate counter includes borrowed frame-column views plus owned H arrays; its views already belong to the common frame and are not additional owned RAM. Setup additionally owns dense S², the full singlet frame and diagonal; Python containers, operator storage and temporary arrays are excluded. RSS above is the whole process high-water mark.
 
 | Arm | V/HV (KiB) | Extra frame snapshot (KiB) | Cached frame actions (KiB) | SCI candidate cache (KiB) |
 |---|---:|---:|---:|---:|

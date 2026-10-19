@@ -314,6 +314,14 @@ columns. Caching adds owned frame/action arrays, and tiny-sector time difference
 do not establish scaling or quantum advantage. See
 `clifford_qc.subspace.packet_selection` and the [reproduction instructions](REPRODUCING.md#residual-packet-action-reuse-and-shortlisting).
 
+The [larger Hubbard stress test](benchmarks/results/packet_work_large.md)
+uses 4,900 determinants and a fixed 64-column budget. Reuse reduces H calls
+10,841 to 1,301 while increasing setup-plus-solver time 27.9 to 43.4 seconds
+and peak process memory 684 to 897 MiB. Combined shortlisting uses 1,288 H
+calls and 4,466 exact scores, with 35.8 seconds runtime. All arms miss the
+0.0016 t target at this budget. These results support exact action reuse while
+exposing its cost on a cheap compiled sparse Hamiltonian; defaults stay unchanged.
+
 The [prepared-input CLI](molecular/PIPELINE.md) currently exposes exact A-CASE with
 determinant-excitation candidates. Other methods use Python APIs and examples.
 Its `prepare`, `solve`, and optional `validate` commands have separate outputs,

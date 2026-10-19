@@ -23,7 +23,21 @@ from benchmarks.run_packet_work_reuse import ARMS, BUNDLE, CONFIG, DECLARATION, 
 from clifford_qc.evidence import validate_evidence
 
 
-def verify_worker(result, config, h, words, s2):
+def _projectors_close(actual, expected, tolerance=2e-8):
+    """Compare projectors after removing their common exactly-zero rows.
+
+    Outside this row union both projectors are identically zero. No amplitude
+    threshold is applied, so this retains the full entrywise comparison and
+    its absolute tolerance without allocating a sector-sized dense matrix.
+    """
+    rows = np.any(actual != 0, axis=1) | np.any(expected != 0, axis=1)
+    actual, expected = actual[rows], expected[rows]
+    return np.allclose(actual @ actual.conj().T, expected @ expected.conj().T,
+                       atol=tolerance, rtol=0)
+
+
+def verify_worker(result, config, h, words, s2, *, frame_data=None,
+                  n_qubits=None, n_electrons=None):
     problems = []
 
     def require(condition, label):
@@ -34,9 +48,10 @@ def verify_worker(result, config, h, words, s2):
         require(np.shape(actual) == np.shape(expected) and
                 np.allclose(actual, expected, atol=tolerance, rtol=0), label)
 
-    n, d = config.get("test_n_qubits", 12), len(words)
-    hf = sum(1 << (n - 1 - j) for j in range(config.get("test_n_electrons", 8)))
-    frame, labels = independent_frame(words, n, s2, config["spin_tolerance"])
+    n, d = n_qubits if n_qubits is not None else config.get("test_n_qubits", 12), len(words)
+    hf = sum(1 << (n - 1 - j) for j in range(n_electrons if n_electrons is not None else config.get("test_n_electrons", 8)))
+    frame, labels = (independent_frame(words, n, s2, config["spin_tolerance"])
+                     if frame_data is None else frame_data)
     active = config["input"]["active_spatial_orbitals"]
     selected = cas_indices(frame, words, n, hf, active, config["spin_tolerance"])
     initial = selected.copy()
@@ -57,7 +72,7 @@ def verify_worker(result, config, h, words, s2):
     terminal, decision_count = None, 0
     for step, row in enumerate(result["trajectory"]):
         added = decode(row["added_columns"], d)
-        close(added @ added.conj().T, expected @ expected.conj().T, "selected packet span")
+        require(_projectors_close(added, expected), "selected packet span")
         require(row["selection"] == choice, "selection identity")
         if selected_score is None:
             require(row["selection_score"] is None, "initial score")

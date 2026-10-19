@@ -10,6 +10,27 @@ from clifford_qc.models.lattice import hubbard
 from clifford_qc.subspace.spin_packets import spin_squared_operator
 
 
+def test_projector_comparison_keeps_dense_semantics_and_tiny_active_rows():
+    rng = np.random.default_rng(56)
+    left = np.zeros((64, 2), complex)
+    left[[1, 7, 31]] = rng.normal(size=(3, 2)) + 1j*rng.normal(size=(3, 2))
+    unitary, _ = np.linalg.qr(rng.normal(size=(2, 2)) + 1j*rng.normal(size=(2, 2)))
+    rotated = left @ unitary
+    changed = rotated.copy()
+    changed[47, 0] = 1e-4
+    huge = np.zeros((64, 1), complex)
+    huge[0] = 1e8
+    tiny = huge.copy()
+    tiny[63] = 1e-15  # Its cross term is resolvable; this row must not be pruned.
+    cases = [(left, rotated, True), (left, changed, False), (huge, tiny, False),
+             (np.zeros((64, 0)), np.zeros((64, 2)), True)]
+    for actual, expected, agrees in cases:
+        dense = np.allclose(actual @ actual.conj().T, expected @ expected.conj().T,
+                            atol=2e-8, rtol=0)
+        assert bool(dense) is agrees
+        assert bool(checker._projectors_close(actual, expected)) is agrees
+
+
 @pytest.fixture(scope='module')
 def synthetic():
     model = hubbard(4, t=1., U=3.)
