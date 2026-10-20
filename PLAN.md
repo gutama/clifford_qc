@@ -1,5 +1,15 @@
 # `clifford_qc` research plan — WISE–A-CASE (PRD)
 
+**2026-10-20 exact projection caching: declared, not yet implemented.**
+`benchmarks/EXACT_PROJECTION_CACHE_DECLARATION.md` and its config freeze a new
+comparison on merged PR #146. Cache the accepted basis adjoint once per growth
+step and fixed group blocks/frame adjoint once per run, with separate exhaustive
+ablations and a combined early-policy control. The 84 scheduled fresh-process
+cells include held-out BeH2 and Hubbard inputs. Survey records only in the
+supervisor, retain per-cell timing/memory and content-addressed scientific
+payloads, and require baseline trajectory equivalence before interpreting
+performance. No result or solver-default change is declared here.
+
 **2026-10-20 sparse packet follow-up (exploratory, outside numbered phases).**
 `benchmarks/SPARSE_PACKET_WORK_DECLARATION.md` and its config freeze a separate
 dense/sparse-exhaustive/early-screening comparison. Direct sector CSR assembly
