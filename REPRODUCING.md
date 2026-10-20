@@ -1,5 +1,45 @@
 # Reproducing the benchmark artifacts
 
+## Exact packet projection caching
+
+`benchmarks/EXACT_PROJECTION_CACHE_DECLARATION.md` and
+`benchmarks/configs/exact_projection_cache.json` freeze a separate exact-cache
+comparison before implementation. Exhaustive arms isolate basis-adjoint and
+fixed group/frame caches; early-policy controls compare uncached and combined.
+Every scheduled cell is a fresh single-threaded process. A supervisory helper
+surveys the record environment; workers verify the passed execution identity.
+The process launching workers stays small: Linux can preserve its parent's RSS
+high-water mark across exec, so merely surveying in that parent is insufficient.
+
+```bash
+python benchmarks/run_exact_projection_cache.py
+OMP_NUM_THREADS=1 OPENBLAS_NUM_THREADS=1 MKL_NUM_THREADS=1 \
+  python benchmarks/run_exact_projection_cache.py --execute \
+    --directory /tmp/exact_projection_cache_campaign
+python benchmarks/check_exact_projection_cache.py
+python benchmarks/summarize_exact_projection_cache.py --check
+```
+
+Execution requires clean committed sources descended from the frozen declaration
+and the repository's numerical environment. The output directory must be new
+and outside the worktree. It retains fsynced start/outcome events, small per-cell
+metrics and immutable content-addressed compressed scientific payloads. Explicit
+`--resume` requires identical sources/environment and stopped prior jobs; it
+never reruns a started cell. Across PID namespaces it asserts those jobs stopped.
+Post-timing controls execute the exact pre-change sparse module, with unchanged
+native dependencies, and independent references are computed after all timing.
+For an unpublished external result use the checker's `--record` and `--unbound`
+options; normal published checks require observation/source Git bindings.
+
+Setup, solver, cache construction, whole-worker duration and phase high-water RSS
+are separate observations. Cache construction is already included in solver
+time. Imports/setup can mask smaller solver peaks; output serialization is
+included in the final worker high-water mark. Owned cache bytes are numerical
+array payloads, not process-memory bounds. Repetitions measure timing variability;
+identical scientific trajectories and audits count once. BeH2 is a small
+held-out molecular active space, not a molecular scaling result. Cache modes
+remain opt-in, and no fixed-budget result establishes matched-accuracy speedups.
+
 ## Sparse packet setup and early screening
 
 The exploratory design is frozen in
@@ -365,7 +405,7 @@ No figure or table value in the manuscript is transcribed by hand, and
 ```bash
 python -m venv .venv && source .venv/bin/activate
 pip install -e .[test,research,stim]       # automatic CI extras
-pytest                                      # 3946 passed, 12 skipped (expected if green)
+pytest                                      # 3964 passed, 12 skipped (expected if green)
 ```
 
 This is the automatic CI dependency set; record gates additionally pin NumPy
