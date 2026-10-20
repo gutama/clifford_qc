@@ -1,0 +1,10 @@
+{
+  "schema": "clifford_qc.packet_work_large_publication.v1",
+  "base_commit": "f7591c351a63a7ae723f917f614bfb835a5600c4",
+  "observation_commit": "e96cd73091a6ee1ea3f804f3f3b2d33847443938",
+  "observation_sha256": "fa09689f3c887c76eeafaad18f32e1a5118d846cb8d7b08b8db67fdfc8fa2f06",
+  "bundle_sha256": "d222b158d74670f18ef95cecbb9da12df3f6dcaf2a2e9c67b857a0f4bed25395",
+  "serialization": "gzip_envelope_lossless",
+  "producer_json_sha256": "9216421ad36564337bf821f7861623ae3a7a9481fd57f91e40e88b8e37fcacc9",
+  "archive_sha256": "a7067ff17709b685f16822b4b0b71a876dcd9370ad0da2cf5f9a409c4575358f"
+}

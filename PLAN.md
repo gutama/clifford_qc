@@ -19,6 +19,32 @@ Phases 0–19 of §5.
 *for this project's own future claims*: the plan may extend or contradict them, but it
 may not re-claim them. Read §1.2 before writing any novelty statement.
 
+**2026-10-19 packet work follow-up (exploratory, outside numbered phases).**
+The [declared five-arm comparison](benchmarks/PACKET_WORK_REUSE_DECLARATION.md)
+and [observed report](benchmarks/results/packet_work_reuse.md) implement fixed-frame
+H-action reuse and 80% residual-mass shortlisting with every-fifth full audit.
+All 15 fresh-process H2O runs reached the target. Reuse preserves the complete
+original selection trajectory while reducing target H actions 213 to 57;
+shortlisting reduces exact scores 210 to 63, and combined also uses 57 H actions
+with 12 columns. No audited winner was omitted on this fixture. Caching adds
+owned frame/action storage; small time differences do not establish scaling,
+measurement savings or quantum advantage. Neither policy changes solver defaults
+or numbered-phase status. Test breadth and bounded-memory variants separately
+before generalizing.
+
+**Larger-sector stress test (same date, exploratory).**
+The [2x4 Hubbard follow-up](benchmarks/results/packet_work_large.md) uses 16
+qubits, 4,900 determinants and 1,764 singlet-frame columns. All fifteen runs
+complete at 64 retained columns; none meets 0.0016 t. Original/reuse errors
+are 1.935913 t, shortlist/combined 1.945775 t, selected CI 2.077673 t.
+Reuse preserves full trajectories and cuts H calls 10,841 to 1,301, but
+increases setup-plus-solver time 27.9 to 43.4 s and peak RSS 684 to 897 MiB.
+Combined uses 1,288 H calls, 4,466 scores and 35.8 s; selected CI takes 6.86 s.
+Audits miss no winner, while unaudited shortlisting changes the trajectory.
+Keep the cache and shortlist experimental. The target remains far out of reach
+at this budget and starting span. Fewer H calls alone do not establish an
+overall resource advantage; no numbered-phase or solver-default change follows.
+
 The project's scientific identity:
 
 > **Do low-energy states of correlated molecular and materials Hamiltonians have

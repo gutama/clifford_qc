@@ -1,0 +1,9 @@
+{
+  "schema": "clifford_qc.packet_work_reuse_publication.v1",
+  "base_commit": "f7591c351a63a7ae723f917f614bfb835a5600c4",
+  "declaration_commit": "ab42279253ef461fb48bb3f1f3501b78ff0a6c96",
+  "source_commit": "e5869e60659bb17bd41e93d20da98e1c5756f2a4",
+  "observation_commit": "c36c69bbcada404660be0b48f738d7ffc7acd024",
+  "observation_sha256": "3f4d208d37cde0518eec368f0e17b0262c56c885ed4c5d61b423313d98db50e1",
+  "bundle_sha256": "8b63ef70b477d41d09279b799a0491500ed475da3ce9ac634f3aee1b46bcb1a4"
+}

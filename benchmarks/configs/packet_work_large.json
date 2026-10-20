@@ -1,0 +1,32 @@
+{
+  "schema": "clifford_qc.packet_work_large_design.v1",
+  "model": {"shape": [2, 4], "t": 1.0, "U": 4.0, "mu": 0.0, "periodic": false},
+  "n_qubits": 16,
+  "n_electrons": 8,
+  "sz": 0,
+  "sector_dimension": 4900,
+  "singlet_dimension": 1764,
+  "energy_unit": "t",
+  "active_spatial_orbitals": [3, 4],
+  "arms": ["original", "reuse", "shortlist", "combined", "selected_ci"],
+  "repeats": 3,
+  "maximum_columns": 64,
+  "maximum_growth_steps": 61,
+  "worker_timeout_seconds": 300,
+  "preconditioner_shift": 0.1,
+  "residual_tolerance": 1e-9,
+  "direction_absolute_tolerance": 1e-9,
+  "direction_relative_tolerance": 1e-8,
+  "orthogonality_tolerance": 1e-10,
+  "spin_tolerance": 1e-9,
+  "score_tie_tolerance": 1e-12,
+  "serialization_tolerance": 1e-12,
+  "accuracy_target": 0.0016,
+  "shortlist_fraction": 0.8,
+  "audit_interval": 5,
+  "implementation_paths_absent_at_declaration": [
+    "benchmarks/run_packet_work_large.py",
+    "benchmarks/check_packet_work_large.py",
+    "benchmarks/summarize_packet_work_large.py"
+  ]
+}
