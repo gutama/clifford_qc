@@ -1,0 +1,23 @@
+{
+  "schema": "clifford_qc.sparse_packet_work_design.v1",
+  "arms": ["dense", "sparse", "early"],
+  "order_seed": 20261020,
+  "worker_timeout_seconds": 300,
+  "preconditioner_shift": 0.1,
+  "residual_tolerance": 1e-9,
+  "direction_absolute_tolerance": 1e-9,
+  "direction_relative_tolerance": 1e-8,
+  "orthogonality_tolerance": 1e-10,
+  "spin_tolerance": 1e-9,
+  "score_tie_tolerance": 1e-12,
+  "serialization_tolerance": 1e-12,
+  "shortlist_fraction": 0.8,
+  "audit_interval": 5,
+  "max_spin_block_dimension": 256,
+  "inputs": [
+    {"name": "h2o", "kind": "fcidump", "path": "benchmarks/data/h2o_sto3g_cas8e6o.FCIDUMP", "sha256": "2f68b1d3f9f77e9c1483cb1b879bac2a67a9d8204ce2e9e985697c10029c6103", "n_qubits": 12, "n_electrons": 8, "sector_dimension": 225, "active_spatial_orbitals": [3, 4], "maximum_columns": 32, "maximum_growth_steps": 29, "repeats": 3, "energy_unit": "Ha", "accuracy_target": 0.0016},
+    {"name": "hubbard_2x4_u4", "kind": "hubbard", "model": {"shape": [2, 4], "t": 1.0, "U": 4.0, "mu": 0.0, "periodic": false}, "n_qubits": 16, "n_electrons": 8, "sector_dimension": 4900, "active_spatial_orbitals": [3, 4], "maximum_columns": 64, "maximum_growth_steps": 61, "repeats": 7, "energy_unit": "t", "accuracy_target": 0.0016},
+    {"name": "hubbard_2x3_u8", "kind": "hubbard", "model": {"shape": [2, 3], "t": 1.0, "U": 8.0, "mu": 0.0, "periodic": false}, "n_qubits": 12, "n_electrons": 6, "sector_dimension": 400, "active_spatial_orbitals": [2, 3], "maximum_columns": 32, "maximum_growth_steps": 29, "repeats": 3, "energy_unit": "t", "accuracy_target": 0.0016}
+  ],
+  "implementation_paths_absent_at_declaration": ["clifford_qc/subspace/sparse_packets.py", "benchmarks/run_sparse_packet_work.py", "benchmarks/check_sparse_packet_work.py", "benchmarks/summarize_sparse_packet_work.py"]
+}

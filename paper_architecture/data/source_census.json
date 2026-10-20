@@ -58,6 +58,7 @@
       "check_r4a_preregistration",
       "check_second_moment_validation",
       "check_sparse_ga_kernel",
+      "check_sparse_packet_work",
       "check_summaries",
       "check_warm_start"
     ],
@@ -65,7 +66,7 @@
       "Cross-artifact": 5,
       "Documentation": 1,
       "Evidence metadata": 1,
-      "Exact trajectory replay": 6,
+      "Exact trajectory replay": 7,
       "Kernel fixture audit": 1,
       "Lineage and environment": 3,
       "Observed resource equivalence": 1,
@@ -88,13 +89,13 @@
       "check_r3d_qr3_refinement",
       "check_record_environment"
     ],
-    "gates": 69,
+    "gates": 70,
     "manual_dispatch_only": 12,
-    "named_in_workflow": 62,
-    "producers": 67,
+    "named_in_workflow": 63,
+    "producers": 68,
     "producers_without_gate": 25,
-    "run_on_every_pull_request": 50,
-    "same_stem_pairs": 42
+    "run_on_every_pull_request": 51,
+    "same_stem_pairs": 43
   },
   "records": {
     "annotated_records": [
@@ -159,6 +160,7 @@
       "r4a_contextual_screen.json": "f6a33f1aa225c4dd",
       "second_moment_validation.json": "24572fd441b3622a",
       "sparse_ga_kernel.json": "531e681367d4206f",
+      "sparse_packet_work.json": "9f530ae2806f3c49",
       "warm_start_h4.json": "a3981028c447b11d"
     },
     "distinct_top_level_tiers": 5,
@@ -175,12 +177,12 @@
       "basis_only": 0,
       "nested_in_subobject": 5,
       "none": 0,
-      "per_quantity_mapping": 28,
+      "per_quantity_mapping": 29,
       "role_only": 0,
       "role_with_nested_tier": 2,
       "top_level_tier": 17
     },
-    "json_records": 52,
+    "json_records": 53,
     "series_files": 21,
     "top_level_tiers": {
       "exact": 4,
@@ -198,7 +200,7 @@
         "modules": 10
       },
       "backends": {
-        "lines": 1103,
+        "lines": 1150,
         "modules": 7
       },
       "bridges": {
@@ -206,7 +208,7 @@
         "modules": 6
       },
       "evidence": {
-        "lines": 1334,
+        "lines": 1335,
         "modules": 5
       },
       "ir": {
@@ -230,17 +232,17 @@
         "modules": 3
       },
       "subspace": {
-        "lines": 13214,
-        "modules": 39
+        "lines": 13445,
+        "modules": 40
       },
       "surface": {
         "lines": 38,
         "modules": 1
       }
     },
-    "package_lines": 29639,
-    "package_modules": 114,
-    "test_lines": 38900,
-    "test_modules": 162
+    "package_lines": 29918,
+    "package_modules": 115,
+    "test_lines": 39106,
+    "test_modules": 163
   }
 }

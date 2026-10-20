@@ -1,5 +1,22 @@
 # `clifford_qc` research plan — WISE–A-CASE (PRD)
 
+**2026-10-20 sparse packet follow-up (exploratory, outside numbered phases).**
+`benchmarks/SPARSE_PACKET_WORK_DECLARATION.md` and its config freeze a separate
+dense/sparse-exhaustive/early-screening comparison. Direct sector CSR assembly
+and bounded local spin-block construction remove the packet worker's dense
+H/S²/global-frame setup. Early marking precedes candidate materialization and
+admissibility, so it is a changed heuristic with charged audits/fallbacks.
+The original producers and observations remain unchanged. No solver default,
+numbered phase completion or quantum-measurement claim changes.
+The recovered record preserves all H2O and seven larger-Hubbard repetitions;
+six unavailable secondary observations remain failures. Sparse exhaustive
+growth preserves physical directions up to global phase and energy/residual
+trajectories, with larger-Hubbard median RSS 686 to 181 MiB. Early marking
+uses 7.77 seconds versus 27.35 seconds at 64 columns, with slightly larger
+error; every larger-Hubbard arm misses the target. Sparse exhaustive growth
+fails the declared 20% speed clause. The separate validation notes document
+post-observation phase alignment and checkpoint-byte reconstruction.
+
 **One document.** It consolidates the former `ACASE_RESEARCH_PLAN.md` (identity,
 method, Phases 0–7), `LITERATURE_ROADMAP.md` (Phases 8–18, tracks, literature),
 `RESEARCH_PLAN.md` (Paper A: certified ADAPT-VQE, §9), and `FINITE_SHOT_RETHINK.md`

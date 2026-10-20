@@ -334,6 +334,52 @@ class SectorOperator:
                 total += coeff * _PHASE4[y_count & 3] * float(signs.sum())
         return complex(total)
 
+    def to_csr(self, indices=None):
+        """Build a SciPy CSR restriction directly from compiled sector passes.
+
+        Requires ``.[research]``. No dense sector matrix is constructed.
+        Temporary COO coordinates scale with the retained pass entries, not
+        the square of the sector dimension; CSR storage can still be large.
+        ``indices`` has the same sector-index ordering semantics as ``restrict``.
+        """
+        from ..capabilities import require
+        require("sparse_linalg")
+        from scipy.sparse import coo_matrix
+        if indices is None:
+            indices = np.arange(self.dimension, dtype=np.int64)
+        else:
+            indices = np.asarray(indices)
+            if indices.ndim != 1 or indices.dtype.kind not in "iu":
+                raise ValueError("restriction indices must be a one-dimensional integer array")
+            if not indices.size or np.any(indices < 0) or np.any(indices >= self.dimension):
+                raise ValueError(f"nonempty indices must lie in [0, {self.dimension})")
+            if np.unique(indices).size != indices.size:
+                raise ValueError("restriction indices must be distinct")
+        position = np.full(self.dimension, -1, dtype=np.int64)
+        position[indices] = np.arange(indices.size, dtype=np.int64)
+        rows, columns, data = [], [], []
+        passes = (self._passes if self._passes is not None
+                  else (self._build_pass(x_mask, entries)
+                        for x_mask, entries in self._groups))
+        for pass_ in passes:
+            if pass_ is None:
+                continue
+            source, target, coefficients = pass_
+            rr, cc = position[target], position[source]
+            keep = (rr >= 0) & (cc >= 0)
+            if keep.any():
+                rows.append(rr[keep]); columns.append(cc[keep]); data.append(coefficients[keep])
+        shape = (indices.size, indices.size)
+        if data:
+            result = coo_matrix((np.concatenate(data),
+                                 (np.concatenate(rows), np.concatenate(columns))), shape=shape).tocsr()
+        else:
+            result = coo_matrix(shape, dtype=complex).tocsr()
+        result.sum_duplicates()
+        result.eliminate_zeros()
+        result.sort_indices()
+        return result
+
     def adjoint(self) -> "SectorOperator":
         """``P H' P``; ``self`` when ``H`` is exactly Hermitian."""
         if self._adjoint is None:
@@ -412,8 +458,9 @@ class SectorStatevectorBackend:
 
     Memory is ``C(n, N)`` amplitudes (or the ``S_z``-restricted product of two
     binomials), never ``2^n``: the sector is the storage unit, not a mask over
-    the full space. Nothing here builds an operator matrix, so the cost of a
-    ground-state solve is (number of X-mask groups) gather passes per matvec.
+    the full space. Matrix-free action is the default; explicit restrictions
+    can be materialized with ``SectorOperator.restrict`` or ``to_csr``. A
+    matrix-free solve uses X-mask gather passes per matvec.
     """
 
     def __init__(self, n: int, n_electrons: int, sz: float | None = None, *,

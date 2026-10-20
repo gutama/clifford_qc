@@ -1,5 +1,55 @@
 # Reproducing the benchmark artifacts
 
+## Sparse packet setup and early screening
+
+The exploratory design is frozen in
+`benchmarks/SPARSE_PACKET_WORK_DECLARATION.md` and
+`benchmarks/configs/sparse_packet_work.json`. It compares the historical dense
+original packet path with sparse exhaustive growth and an opt-in early
+residual-group marking heuristic. Every cell is a fresh single-threaded process.
+No action cache, quantum preparation or measured matrix entry is supplied.
+
+```bash
+python benchmarks/run_sparse_packet_work.py          # result-free design
+OMP_NUM_THREADS=1 OPENBLAS_NUM_THREADS=1 MKL_NUM_THREADS=1 \
+  python benchmarks/run_sparse_packet_work.py --execute \
+    --journal /tmp/sparse_packet_journal.json --output /tmp/sparse_packet_work.json
+python benchmarks/check_sparse_packet_work.py
+python benchmarks/summarize_sparse_packet_work.py --check
+```
+
+Execution requires full history, clean committed sources, unchanged frozen
+input/design bytes and the repository numerical environment. Output paths
+must be new. The checker restores digest-bound execution/observation Git
+objects and independently replays occupation-sign Hamiltonians, canonical
+spin frames, candidate directions, residuals, scores, decisions and counters.
+Repeated deterministic trajectories may share one replay; each process's
+time/RSS observations are still checked. Report times, accuracy and units per
+input; a fixed-column cost comparison is not a matched-accuracy speedup.
+The earlier orthogonal-pilot source guard permits the added `to_csr` method
+only when all historical backend AST nodes match after docstring removal.
+Executable method-definition changes and edits to old code remain rejected;
+the historical source/observation digests are still checked against Git.
+The journal checkpoints completed process observations outside the worktree.
+Version 2 retains immutable compressed per-cell files beside a small manifest;
+final outputs are lossless gzip/base64 JSON envelopes written in one operation.
+After a stopped supervisor, `--resume` with the same journal requires identical
+committed sources and environment. It retains completed and failed cells;
+an in-flight cell becomes a disclosed failure with unavailable process time,
+and is never rerun. Within one PID namespace it checks that prior jobs stopped;
+across namespaces, explicit `--resume` asserts they stopped and records that
+assumption without probing unrelated PIDs. The first unjournaled attempt stopped before publishing a
+complete record; its 17 worker outputs are preserved in
+`benchmarks/provenance/sparse_packet_work_interrupted.json` and excluded from
+the restarted comparison. The restarted timing run completed, but large output
+files were truncated during persistence. A validated checkpoint retained all
+9 H2O and 21 larger Hubbard observations, plus one observation per secondary
+arm. The six unavailable secondary observations are failures in every
+denominator and were not selectively rerun. The publication envelope and
+receipt disclose this recovery; reference energies/readouts were rebuilt only
+after timed execution. Immutable compressed cell persistence was added after
+these observations. Numerical parameters are unchanged.
+
 ## H2O spin-matched residual-growth follow-up
 
 `benchmarks/H2O_RESIDUAL_COMPARISON_DECLARATION.md` freezes three exact arms
@@ -307,7 +357,7 @@ No figure or table value in the manuscript is transcribed by hand, and
 ```bash
 python -m venv .venv && source .venv/bin/activate
 pip install -e .[test,research,stim]       # automatic CI extras
-pytest                                      # 3922 passed, 12 skipped (expected if green)
+pytest                                      # 3943 passed, 12 skipped (expected if green)
 ```
 
 This is the automatic CI dependency set; record gates additionally pin NumPy

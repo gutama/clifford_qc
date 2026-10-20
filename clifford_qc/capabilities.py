@@ -56,7 +56,8 @@ CAPABILITIES: dict[str, Capability] = {
             "sparse_linalg", ("scipy",), "research",
             "sparse eigensolvers, sector ground states, SciPy minimisers",
             ("sparse.sparse_ground_in_sector", "algorithms.optimize",
-             "backends.sector_statevector", "pauli_action", "dense_reference"),
+             "backends.sector_statevector", "pauli_action", "dense_reference",
+             "subspace.sparse_packets"),
         ),
         Capability(
             "stabilizer_backend", ("stim",), "stim",

@@ -1,0 +1,17 @@
+{
+  "schema": "clifford_qc.sparse_packet_work_publication.v1",
+  "base_commit": "5fed2f08c16acc49b23e52124bb37c93a3e3d2f6",
+  "observation_commit": "b5e43ccef490acc42ceb2ae2842e247e51b8b553",
+  "observation_sha256": "8845c16ca29865120ccd2edf60be17b583495967ce1ea169e743db2c43a121bd",
+  "payload_json_sha256": "687a68a505aed2c2fd1cb56c5f26b41d5c171f6a07f1125afdb6ef85ca921c2f",
+  "bundle_sha256": "d960023e5b4312321a14156047c07239c6eb496e73d3bcbed0c0e35de3e06115",
+  "serialization": "completed_checkpoint_recovery_gzip_lossless",
+  "publication_recovery": {
+    "checkpoint_sha256": "c69369eec7190183cf89b97dfb002b2b4194a5f9cbdb070bc870943ddd626895",
+    "recovered_observations": 33,
+    "unavailable_observations": 6,
+    "policy": "All cells were attempted; six unavailable secondary-input observations are disclosed failures and were not selectively rerun. Independent references and accuracy readouts were reconstructed after all timed workers."
+  },
+  "interrupted_attempt_sha256": "b4e6764a14dee6e13cc68b1db259bf6dfaac4924ea7f547ba7945c08d03311ef",
+  "recovery_recipe_sha256": "3415e0131da97fdfa047e973a07eda233bf8ad29e39f7cbc0f9119f0c9a8378d"
+}

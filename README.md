@@ -328,6 +328,27 @@ Its `prepare`, `solve`, and optional `validate` commands have separate outputs,
 so repeated solves can reuse one prepared input without repeating a reference
 eigensolve.
 
+An experimental sparse packet path is available from
+`clifford_qc.subspace.sparse_packets` with the `research` extra.
+`SectorOperator.to_csr()` assembles sparse restrictions directly;
+`SparseSingletFrame` stores canonical CSFs sparsely after bounded local spin
+eigensolves. `run_sparse_packets` provides exhaustive growth and an opt-in
+early-screening heuristic that marks residual groups before materializing
+directions, with full audits and fallbacks. Accepted basis vectors remain
+explicit classical sector arrays. The
+[comparison declaration](benchmarks/SPARSE_PACKET_WORK_DECLARATION.md) fixes
+the separate dense, sparse-exhaustive and early-screening arms; no solver
+default or earlier observation changes.
+The [observed comparison](benchmarks/results/sparse_packet_work.md) retains all
+seven larger Hubbard repetitions: sparse exhaustive growth preserves physical
+directions and energy/residual trajectories while reducing median peak RSS
+from 686 to 181 MiB. Early marking lowers fixed-budget runtime from 27.35 to
+7.77 seconds with slightly larger error; every larger-Hubbard arm misses the
+declared accuracy target. Six secondary-input observations were lost during
+persistence and remain failed cells. The report and
+[validation notes](benchmarks/SPARSE_PACKET_VALIDATION_NOTES.md) disclose
+publication recovery and the global-phase comparison clarification.
+
 ## Examples
 
 After installation, run these scripts from the repository root:
