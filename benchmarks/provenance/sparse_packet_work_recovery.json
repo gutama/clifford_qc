@@ -1,0 +1,24 @@
+{
+  "schema": "clifford_qc.sparse_packet_recovery_recipe.v1",
+  "checkpoint_sha256": "c69369eec7190183cf89b97dfb002b2b4194a5f9cbdb070bc870943ddd626895",
+  "retained_count": 33,
+  "state_key_order": [
+    "schema",
+    "record",
+    "in_flight",
+    "supervisor_pid",
+    "state"
+  ],
+  "state_header": {
+    "schema": "clifford_qc.sparse_packet_journal.v1",
+    "in_flight": {
+      "input": "hubbard_2x3_u8",
+      "repeat": 1,
+      "arm": "sparse",
+      "order_index": 33,
+      "worker_pid_path": "/tmp/sparse-packet-workers-yiqsiw_f/hubbard_2x3_u8-1-sparse.pid"
+    },
+    "supervisor_pid": 2,
+    "state": "running"
+  }
+}

@@ -202,6 +202,16 @@ independent checker builds occupation-sign sparse H, uses two shifted sparse
 reference solves, and reuses one independently built singlet frame for replay.
 No matrix-free preparation or general scaling claim follows from this test.
 
+`subspace/sparse_packets.py` adds a separate experimental classical path.
+`SectorOperator.to_csr()` assembles restrictions from compiled gather/scatter
+passes without a dense sector matrix. `SparseSingletFrame` admits bounded
+spatial spin blocks, retains their canonical CSFs as sparse CSC, and provides
+frame-coordinate residual marking. `run_sparse_packets` supports exhaustive
+growth and early marking before direction construction, with full-screen
+audits and empty/low-gain fallback. Local spin eigensolves and accepted D-by-M
+basis/action arrays remain dense. The separate sparse-packet comparison
+preserves all historical producers and does not change solver defaults.
+
 The default bank retains constructed object rows. Packed coefficients and
 streaming are separate choices: representation controls how a row is stored;
 lifetime policy controls whether it remains resident. Streaming retains the

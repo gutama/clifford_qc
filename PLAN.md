@@ -1,5 +1,47 @@
 # `clifford_qc` research plan — WISE–A-CASE (PRD)
 
+**2026-10-20 sparse packet follow-up (exploratory, outside numbered phases).**
+`benchmarks/SPARSE_PACKET_WORK_DECLARATION.md` and its config freeze a separate
+dense/sparse-exhaustive/early-screening comparison. Direct sector CSR assembly
+and bounded local spin-block construction remove the packet worker's dense
+H/S²/global-frame setup. Early marking precedes candidate materialization and
+admissibility, so it is a changed heuristic with charged audits/fallbacks.
+The original producers and observations remain unchanged. No solver default,
+numbered phase completion or quantum-measurement claim changes.
+The recovered record preserves 33 of 39 scheduled observations, including all
+H2O and seven larger-Hubbard repetitions; six held-out observations are
+unavailable. The checkpoint has order index 33 in flight and does not prove
+that later cells ran. Sparse exhaustive growth preserves physical directions
+up to global phase and energy/residual trajectories. Larger-Hubbard median
+whole-process RSS falls 686 to 181 MiB, with the sparse value masked by the
+provenance-preflight floor; solver-only memory was not measured. Setup + solver
+is 27.35 seconds dense and 25.82 sparse, failing the 20% speed clause.
+Early takes 7.77 seconds and reproduces the earlier shortlist's 62 retained
+prefixes (26.21 seconds in that separate campaign), materializing 9,123 versus
+34,892 candidates. This supports avoided materialization rather than a new
+trajectory benefit from marking before admissibility; timing is not a
+controlled cross-campaign ablation. Held-out `hubbard_2x3_u8` misses 2 of 5
+unique early audits (maximum score loss 0.049864755 t) and increases final
+error 0.34144 to 0.38530 t (+12.85%). Its one surviving observation per arm
+establishes the observed deterministic accuracy loss; missing repeats limit
+timing precision. Every larger-Hubbard arm misses the target. The separate
+validation notes document phase alignment and checkpoint-byte reconstruction.
+
+**Review follow-ups; declare before implementation or timing.** Cache the
+accepted basis conjugate transpose once per growth step; then test
+frame-coordinate projection `F(I - CC†)a`. Cache fixed group CSC slices and
+the frame adjoint separately so their time/memory trade-off can be measured.
+Test a tie-tolerant first-maximum canonical-phase pivot against physical-ray
+invariants. Reviewer profiling motivates these experiments but is not campaign
+evidence. The next campaign must include a held-out molecule as well as a
+held-out lattice and separate setup, solver, preflight and memory measurements
+(supervisor-only record survey or a post-preflight RSS baseline). Plan a
+content-addressed artifact policy to avoid repeated large observation payloads
+while retaining exact bytes and retrievable historical Git objects. Revisit
+live-source guards as a separate migration: historical digests/ancestry remain
+mandatory, with explicit current-code invariant tests replacing bespoke AST
+exceptions. The existing narrow guard remains in this PR.
+
 **One document.** It consolidates the former `ACASE_RESEARCH_PLAN.md` (identity,
 method, Phases 0–7), `LITERATURE_ROADMAP.md` (Phases 8–18, tracks, literature),
 `RESEARCH_PLAN.md` (Paper A: certified ADAPT-VQE, §9), and `FINITE_SHOT_RETHINK.md`

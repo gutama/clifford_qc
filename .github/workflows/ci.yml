@@ -85,6 +85,12 @@ jobs:
       - name: larger-sector packet work report
         if: ${{ !cancelled() }}
         run: python benchmarks/summarize_packet_work_large.py --check
+      - name: sparse packet setup and early screening
+        if: ${{ !cancelled() }}
+        run: python benchmarks/check_sparse_packet_work.py
+      - name: sparse packet work report
+        if: ${{ !cancelled() }}
+        run: python benchmarks/summarize_sparse_packet_work.py --check
       - name: sparse GA kernel profile
         if: ${{ !cancelled() }}
         run: python benchmarks/check_sparse_ga_kernel.py
