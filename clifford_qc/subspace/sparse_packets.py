@@ -126,7 +126,8 @@ def run_sparse_packets(apply, diagonal, frame, hf, active_orbitals, config, *, p
     """Exact classical packet growth; optional marks precede admissibility.
 
     ``config`` supplies the declared cutoffs/budgets. There is no reference
-    energy argument. The early policy audits all groups every fifth decision
+    energy argument. The early policy audits all groups every
+    ``config["audit_interval"]`` decisions (five in the declared campaign)
     and falls back on empty/low-gain shortlists; it is a heuristic.
     """
     if policy not in ("exhaustive", "early"):

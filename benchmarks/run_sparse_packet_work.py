@@ -150,14 +150,28 @@ def expected_order(c):
 
 
 def save_journal(path, state):
-    """Keep immutable compressed cells and atomically replace a small manifest."""
+    """Checkpoint append-only completed entries once, then replace a small manifest.
+
+    Completed entry objects must not be mutated. The private in-memory cache
+    is excluded from the manifest; resume verifies every cell before reusing it.
+    """
     if path is None:
         return
     directory = path.with_name(path.name+'.cells')
     directory.mkdir(exist_ok=True)
     references = []
     record = state['record']
-    for entry in record['workers']:
+    identity = json.dumps([str(directory.resolve()), record['source_commit'], record['source_sha256']], sort_keys=True)
+    cached_identity, cached = state.get('_cell_checkpoint_cache', (None, []))
+    if cached_identity != identity:
+        cached = []
+    updated = []
+    for index, entry in enumerate(record['workers']):
+        if index < len(cached) and cached[index][0] is entry:
+            reference = cached[index][1]
+            references.append(reference)
+            updated.append((entry, reference))
+            continue
         payload = {'source_commit': record['source_commit'], 'source_sha256': record['source_sha256'],
                    'entry': entry}
         compressed = gzip.compress(json.dumps(payload, allow_nan=False, separators=(',', ':')).encode(), mtime=0)
@@ -169,14 +183,18 @@ def save_journal(path, state):
                 stream.write(compressed); stream.flush(); os.fsync(stream.fileno())
         elif sha256(target) != digest:
             raise ValueError('immutable cell checkpoint digest differs')
-        references.append({'checkpoint': name, 'sha256': digest})
-    snapshot = {**state, 'record': {**record, 'workers': references}}
+        reference = {'checkpoint': name, 'sha256': digest}
+        references.append(reference)
+        updated.append((entry, reference))
+    snapshot = {k: v for k, v in state.items() if k != '_cell_checkpoint_cache'}
+    snapshot['record'] = {**record, 'workers': references}
     encoded = json.dumps(snapshot, allow_nan=False)
     with tempfile.NamedTemporaryFile(mode='w', dir=path.parent, prefix=path.name+'.', delete=False) as stream:
         stream.write(encoded)
         stream.flush(); os.fsync(stream.fileno())
         temporary = Path(stream.name)
     os.replace(temporary, path)
+    state['_cell_checkpoint_cache'] = identity, updated
 
 
 def open_journal(path, base, *, resume=False):
@@ -199,6 +217,7 @@ def open_journal(path, base, *, resume=False):
     if old.get('schema') != state['schema']:
         raise ValueError('journal schema differs')
     entries = []
+    references = old['record']['workers']
     for reference in old['record']['workers']:
         name = reference['checkpoint']
         if Path(name).name != name: raise ValueError('checkpoint must be a cell basename')
@@ -209,6 +228,9 @@ def open_journal(path, base, *, resume=False):
             raise ValueError('journal execution identity differs')
         entries.append(cell['entry'])
     old['record']['workers'] = entries
+    identity = json.dumps([str(path.with_name(path.name+'.cells').resolve()),
+                           base['source_commit'], base['source_sha256']], sort_keys=True)
+    old['_cell_checkpoint_cache'] = identity, list(zip(entries, references))
     for key in ('source_commit', 'declaration_commit', 'config', 'source_sha256'):
         if old['record'][key] != base[key]: raise ValueError('journal execution identity differs')
     for key in ('dependencies', 'platform', 'environment_sha256'):

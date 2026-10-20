@@ -41,14 +41,22 @@ across namespaces, explicit `--resume` asserts they stopped and records that
 assumption without probing unrelated PIDs. The first unjournaled attempt stopped before publishing a
 complete record; its 17 worker outputs are preserved in
 `benchmarks/provenance/sparse_packet_work_interrupted.json` and excluded from
-the restarted comparison. The restarted timing run completed, but large output
-files were truncated during persistence. A validated checkpoint retained all
+the restarted comparison. Large output files were truncated during persistence.
+The surviving checkpoint is still marked running, with order index 33 in
+flight; it does not establish that the remaining scheduled cells started or
+completed. A validated checkpoint retained all
 9 H2O and 21 larger Hubbard observations, plus one observation per secondary
 arm. The six unavailable secondary observations are failures in every
 denominator and were not selectively rerun. The publication envelope and
 receipt disclose this recovery; reference energies/readouts were rebuilt only
 after timed execution. Immutable compressed cell persistence was added after
-these observations. Numerical parameters are unchanged.
+these observations; completed cells now reuse their checkpoint references on
+later manifest saves. Numerical parameters are unchanged. The receipt's
+`reporting_correction` supersedes unsupported attempt/completion wording in
+the byte-bound original publication metadata. RSS includes the record-survey
+preflight floor, so it does not resolve solver-only peaks or small-fixture
+regressions. The generated report separates setup/solver times, unique audits,
+scheduled-cell timing coverage and the held-out deterministic accuracy loss.
 
 ## H2O spin-matched residual-growth follow-up
 
@@ -357,7 +365,7 @@ No figure or table value in the manuscript is transcribed by hand, and
 ```bash
 python -m venv .venv && source .venv/bin/activate
 pip install -e .[test,research,stim]       # automatic CI extras
-pytest                                      # 3943 passed, 12 skipped (expected if green)
+pytest                                      # 3946 passed, 12 skipped (expected if green)
 ```
 
 This is the automatic CI dependency set; record gates additionally pin NumPy

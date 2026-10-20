@@ -341,11 +341,20 @@ the separate dense, sparse-exhaustive and early-screening arms; no solver
 default or earlier observation changes.
 The [observed comparison](benchmarks/results/sparse_packet_work.md) retains all
 seven larger Hubbard repetitions: sparse exhaustive growth preserves physical
-directions and energy/residual trajectories while reducing median peak RSS
-from 686 to 181 MiB. Early marking lowers fixed-budget runtime from 27.35 to
-7.77 seconds with slightly larger error; every larger-Hubbard arm misses the
-declared accuracy target. Six secondary-input observations were lost during
-persistence and remain failed cells. The report and
+directions and energy/residual trajectories. Median whole-process RSS falls
+from 686 to 181 MiB, but provenance preflight sets the sparse arm's memory
+floor; solver-only peaks were not measured. Sparse exhaustive setup + solver
+takes 25.82 seconds versus 27.35 seconds dense, failing the 20% speed clause.
+Early screening takes 7.77 seconds and reproduces the earlier shortlist's
+62 retained prefixes (26.21 seconds in that separate campaign), while
+materializing 9,123 rather than 34,892 candidates. This supports avoided
+materialization, without isolating a controlled timing effect.
+On held-out `hubbard_2x3_u8`, early screening misses 2 of 5 unique audits and
+raises fixed-budget error from 0.34144 to 0.38530 t (+12.85%). Every larger-Hubbard
+arm misses the declared accuracy target. Thirty-three observations survive
+from 39 scheduled cells; six held-out timing observations are unavailable.
+One surviving observation per arm establishes the held-out deterministic
+accuracy loss, while timing has only 1/3 planned samples per arm. The report and
 [validation notes](benchmarks/SPARSE_PACKET_VALIDATION_NOTES.md) disclose
 publication recovery and the global-phase comparison clarification.
 

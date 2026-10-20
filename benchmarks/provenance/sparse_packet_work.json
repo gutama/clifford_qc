@@ -1,5 +1,12 @@
 {
   "schema": "clifford_qc.sparse_packet_work_publication.v1",
+  "reporting_correction": {
+    "scheduled_cells": 39,
+    "recovered_observations": 33,
+    "unavailable_observations": 6,
+    "checkpoint_in_flight_order_index": 33,
+    "policy": "This correction supersedes the unsupported all-cells-attempted wording in publication_recovery.policy, which remains verbatim to bind the original archive. The surviving checkpoint is running with order index 33 in flight; later cell starts/completions are not evidenced. Six scheduled observations are unavailable and remain failures in denominators; no cells were selectively rerun."
+  },
   "base_commit": "5fed2f08c16acc49b23e52124bb37c93a3e3d2f6",
   "observation_commit": "b5e43ccef490acc42ceb2ae2842e247e51b8b553",
   "observation_sha256": "8845c16ca29865120ccd2edf60be17b583495967ce1ea169e743db2c43a121bd",

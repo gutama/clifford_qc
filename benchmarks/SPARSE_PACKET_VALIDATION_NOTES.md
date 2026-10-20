@@ -25,3 +25,16 @@ without selective reruns. The envelope and receipt bind the recovered data;
 independent references/readouts are computed after timed execution. The
 subsequent immutable compressed-cell checkpoint implementation was not used
 to generate these measurements and is not priced as a performance result.
+
+Review reporting correction: 39 cells were scheduled, not evidenced as all
+attempted. The surviving checkpoint is running with order index 33 in flight;
+33 complete observations survive and six scheduled observations are unavailable.
+The original archive and its bound `publication_recovery.policy` are preserved
+byte for byte; the receipt's `reporting_correction` supersedes that policy's
+unsupported completion/attempt wording. One held-out observation per arm still
+establishes the observed deterministic accuracy loss, while timing coverage is
+only 1/3 per arm. RSS includes a provenance-preflight floor, not a solver-only
+peak. The report compares the earlier shortlist's scientific trajectory and
+separates current setup and solver times without treating separate campaigns
+as a controlled timing ablation. Repeated deterministic audits count once per
+distinct decision trajectory. No new numerical observations were generated.

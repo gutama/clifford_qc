@@ -204,3 +204,67 @@ def test_execution_journal_keeps_completed_cells_and_never_retries_interruption(
     cell.write_bytes(b'corrupted checkpoint')
     with pytest.raises(ValueError, match='digest'):
         open_journal(path, deepcopy(base), resume=True)
+
+
+def test_journal_reuses_verified_cells_across_saves_and_resume(tmp_path, monkeypatch):
+    from benchmarks import run_sparse_packet_work as producer
+    import json
+    c = {'order_seed': 3, 'arms': ['dense', 'sparse'], 'inputs': [{'name': 'toy', 'repeats': 1}]}
+    base = {'source_commit': 'a', 'declaration_commit': 'b', 'config': c, 'source_sha256': {},
+            'provenance': {'dependencies': {}, 'platform': {}, 'environment_sha256': 'c'}, 'workers': []}
+    path = tmp_path/'journal.json'
+    state = producer.open_journal(path, deepcopy(base))
+    compressed = []
+    original = producer.gzip.compress
+
+    def compress(data, **kwargs):
+        compressed.append(len(data))
+        return original(data, **kwargs)
+
+    monkeypatch.setattr(producer.gzip, 'compress', compress)
+    for i, cell in enumerate(producer.expected_order(c)):
+        state['record']['workers'].append(dict(zip(('input', 'repeat', 'arm'), cell),
+            order_index=i, status='ok', process_wall_seconds=1.))
+        producer.save_journal(path, state)
+        producer.save_journal(path, state)
+        assert len(compressed) == i+1
+    state['state'] = 'complete'
+    producer.save_journal(path, state)
+    manifest = json.loads(path.read_text())
+    assert '_cell_checkpoint_cache' not in manifest
+    resumed = producer.open_journal(path, deepcopy(base), resume=True)
+    assert len(resumed['record']['workers']) == 2
+    assert len(compressed) == 2  # Resume verified existing files rather than compressing again.
+    cell = path.with_name(path.name+'.cells')/manifest['record']['workers'][0]['checkpoint']
+    cell.write_bytes(b'corrupted checkpoint')
+    with pytest.raises(ValueError, match='digest'):
+        producer.open_journal(path, deepcopy(base), resume=True)
+
+
+def test_report_derives_coverage_and_deduplicates_deterministic_audits():
+    from benchmarks.summarize_sparse_packet_work import render
+    from benchmarks.run_sparse_packet_work import unpack, RECORD
+    record = unpack(read_json(Path(RECORD)))
+    text = render(record)
+    assert 'Coverage for h2o: 9/9' in text
+    medium = text.split('## hubbard_2x4_u4')[1].split('## hubbard_2x3_u8')[0]
+    held_out = text.split('## hubbard_2x3_u8')[1]
+    assert '(7 timing observations): 12; missed winners: 0' in medium
+    assert '(1 timing observation): 5; missed winners: 2' in held_out
+    assert '(+12.85%)' in held_out
+    record['workers'].remove(next(w for w in record['workers'] if w['input'] == 'h2o' and w['arm'] == 'early'))
+    altered = render(record)
+    assert 'Coverage for h2o: 8/9' in altered
+    assert '| early | 2/3 |' in altered
+
+
+def test_report_historical_equivalence_detects_selection_drift():
+    from benchmarks.summarize_sparse_packet_work import render, PREVIOUS_RECORD
+    from benchmarks.run_packet_work_large import unpack_observation
+    from benchmarks.run_sparse_packet_work import RECORD
+    published = read_json(Path(RECORD))
+    previous = unpack_observation(read_json(Path(PREVIOUS_RECORD)))
+    assert 'within 1e-9: PASS; 62 retained prefixes' in render(published, previous)
+    worker = next(w for w in previous['workers'] if w['status'] == 'ok' and w['arm'] == 'shortlist')
+    worker['result']['trajectory'][1]['selection'] = {'candidate': -1}
+    assert 'within 1e-9: FAIL' in render(published, previous)
