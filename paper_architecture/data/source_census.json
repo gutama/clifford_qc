@@ -15,6 +15,7 @@
       "check_clifford_hierarchy",
       "check_docs",
       "check_evidence",
+      "check_exact_projection_cache",
       "check_finite_shot_optimization",
       "check_folded_spectrum_validation",
       "check_g1_structural_preconditioner",
@@ -66,7 +67,7 @@
       "Cross-artifact": 5,
       "Documentation": 1,
       "Evidence metadata": 1,
-      "Exact trajectory replay": 7,
+      "Exact trajectory replay": 8,
       "Kernel fixture audit": 1,
       "Lineage and environment": 3,
       "Observed resource equivalence": 1,
@@ -89,13 +90,13 @@
       "check_r3d_qr3_refinement",
       "check_record_environment"
     ],
-    "gates": 70,
+    "gates": 71,
     "manual_dispatch_only": 12,
-    "named_in_workflow": 63,
-    "producers": 68,
+    "named_in_workflow": 64,
+    "producers": 69,
     "producers_without_gate": 25,
-    "run_on_every_pull_request": 51,
-    "same_stem_pairs": 43
+    "run_on_every_pull_request": 52,
+    "same_stem_pairs": 44
   },
   "records": {
     "annotated_records": [
@@ -116,6 +117,7 @@
       "clifford_hierarchy_h4.json": "ed4ccce86097b99f",
       "clifford_hierarchy_h4_v2.json": "570ba2d52dc5179f",
       "configuration_packets.json": "9ed644e4c7a1018e",
+      "exact_projection_cache.json": "383765e12c38dea7",
       "exact_shot_search.json": "d318294d7ba2811e",
       "fcidump_h4.json": "94662552eea471aa",
       "finite_shot_optimization.json": "6829464abc77bc54",
@@ -177,12 +179,12 @@
       "basis_only": 0,
       "nested_in_subobject": 5,
       "none": 0,
-      "per_quantity_mapping": 29,
+      "per_quantity_mapping": 30,
       "role_only": 0,
       "role_with_nested_tier": 2,
       "top_level_tier": 17
     },
-    "json_records": 53,
+    "json_records": 54,
     "series_files": 21,
     "top_level_tiers": {
       "exact": 4,
@@ -232,7 +234,7 @@
         "modules": 3
       },
       "subspace": {
-        "lines": 13446,
+        "lines": 13515,
         "modules": 40
       },
       "surface": {
@@ -240,9 +242,9 @@
         "modules": 1
       }
     },
-    "package_lines": 29919,
+    "package_lines": 29988,
     "package_modules": 115,
-    "test_lines": 39170,
-    "test_modules": 163
+    "test_lines": 39314,
+    "test_modules": 164
   }
 }

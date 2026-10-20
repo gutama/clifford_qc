@@ -40,6 +40,16 @@ identical scientific trajectories and audits count once. BeH2 is a small
 held-out molecular active space, not a molecular scaling result. Cache modes
 remain opt-in, and no fixed-budget result establishes matched-accuracy speedups.
 
+The published `benchmarks/reference_results/exact_projection_cache.json` retains
+84/84 timed observations and 8/8 historical controls using eight scientific
+payloads. Declaration `4942a71`, execution `da5feec` and observation `0163394`
+are distinct commits restored by the provenance bundle. The archive is about
+1.09 MB and bundle 0.67 MB; immutable per-cell files remain outside the worktree.
+Independent replay and exact cache-byte/generation formulas pass. Combined
+primary runtime falls 44.41% but worker RSS rises 4.37%, so promotion fails and
+defaults remain unchanged. Source, observations and design bytes are unchanged
+after timing; later commits add publication bindings and documentation only.
+
 ## Sparse packet setup and early screening
 
 The exploratory design is frozen in
