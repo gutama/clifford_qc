@@ -358,6 +358,24 @@ accuracy loss, while timing has only 1/3 planned samples per arm. The report and
 [validation notes](benchmarks/SPARSE_PACKET_VALIDATION_NOTES.md) disclose
 publication recovery and the global-phase comparison clarification.
 
+Exact projection caching is also opt-in through `run_sparse_packets`'s
+`cache_mode="basis"`, `"frame"` or `"combined"`; the default is `"none"`.
+The basis adjoint is reused for one accepted span, and fixed group blocks/frame
+adjoints for one run. The [declared comparison](benchmarks/EXACT_PROJECTION_CACHE_DECLARATION.md)
+retains all 84 timed cells and eight historical controls, with bitwise-identical
+scientific trajectories within each input/policy and independent replay.
+On 2x4 exhaustive growth, combined caching lowers median setup + solver from
+24.766 to 13.767 s (44.41%) while raising worker RSS from 137.988 to 144.020 MiB.
+Its 5.215 MiB cache trades memory for speed, failing the no-RSS-increase clause;
+basis-only also fails that clause, while frame-only misses the 20% speed target.
+A post-campaign release-order change lowers every mode's peak and narrows that
+gap in an undeclared development rerun; promotion would need a new comparison.
+Caching preserves accuracy and the early policy's held-out loss. Small held-out
+BeH2 validates a different active space, without establishing molecular scaling.
+The [full report](benchmarks/results/exact_projection_cache.md) separates phase
+times/RSS, payloads, paired timing ratios and unique audits. A supervisory helper
+isolates record-survey memory from the worker-launching process and workers.
+
 ## Examples
 
 After installation, run these scripts from the repository root:

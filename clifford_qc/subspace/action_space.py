@@ -11,16 +11,21 @@ import numpy as np
 from .orthogonal import canonical_phase
 
 
-def orthogonal_direction(vector, basis, *, cutoff=1e-10):
-    """Twice project against the entire orthonormal span; reject dependence."""
+def orthogonal_direction(vector, basis, *, cutoff=1e-10, adjoint=None):
+    """Twice project against the entire orthonormal span; reject dependence.
+
+    ``adjoint`` may supply ``basis.conj().T`` for reuse across many vectors.
+    The caller then owns its correctness and the basis finiteness check.
+    """
     vector = np.array(vector, dtype=complex, copy=True)
     basis = np.asarray(basis, dtype=complex)
     if (vector.ndim != 1 or basis.ndim != 2 or basis.shape[0] != vector.size
-            or not np.isfinite(vector).all() or not np.isfinite(basis).all()
+            or not np.isfinite(vector).all()
+            or (not np.isfinite(basis).all() if adjoint is None else np.shape(adjoint) != basis.shape[::-1])
             or not np.isfinite(cutoff) or cutoff <= 0):
         raise ValueError("finite matching vector/basis and positive cutoff required")
     for _ in range(2):
-        vector -= basis @ (basis.conj().T @ vector)
+        vector -= basis @ ((basis.conj().T if adjoint is None else adjoint) @ vector)
     norm = float(np.linalg.norm(vector))
     return None if norm <= cutoff else canonical_phase(vector / norm)
 

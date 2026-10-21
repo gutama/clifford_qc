@@ -1,5 +1,32 @@
 # `clifford_qc` research plan — WISE–A-CASE (PRD)
 
+**2026-10-20 exact projection caching: observed, opt-in.**
+`benchmarks/EXACT_PROJECTION_CACHE_DECLARATION.md` and its config freeze a new
+comparison on merged PR #146. Cache the accepted basis adjoint once per growth
+step and fixed group blocks/frame adjoint once per run, with separate exhaustive
+ablations and a combined early-policy control. The 84 scheduled fresh-process
+cells include held-out BeH2 and Hubbard inputs. Survey records only in the
+supervisor, retain per-cell timing/memory and content-addressed scientific
+payloads, and require baseline trajectory equivalence before interpreting
+performance. All 84 cells and eight post-timing historical controls complete.
+Eight scientific payloads suffice: cached arms, repeats and historical controls
+are bitwise identical within each input/policy, and independent occupation replay
+passes. On 2x4 exhaustive growth, combined caching lowers median setup + solver
+24.766 to 13.767 s (44.41%) while raising worker peak RSS 137.988 to 144.020 MiB
+(4.37%); owned cache arrays peak at 5.215 MiB. Basis-only takes 15.554 s and
+142.656 MiB; frame-only takes 22.442 s and 137.863 MiB. All three fail the joint
+20%-speed/no-RSS-increase clause. Early combined takes 4.753 versus 8.082 s but
+preserves that policy's larger error. BeH2 confirms correctness on a different
+small active space; held-out Hubbard still has 0.34144/0.38530 t exhaustive/early
+errors. Caching changes neither convergence nor heuristic audit misses. Defaults
+remain uncached. See `benchmarks/results/exact_projection_cache.md`.
+After review, the solver frees losing candidates and the old adjoint before each
+extension, leaving scientific payloads unchanged. An undeclared development rerun
+of the primary exhaustive input lowers median solver-end peak RSS from
+135.6-142.0 to 123.3-124.0 MiB across modes; basis-only no longer exceeds the
+uncached run, and frame arms keep their 0.5 MiB snapshot. Any promotion needs a
+newly declared comparison (see `REPRODUCING.md`).
+
 **2026-10-20 sparse packet follow-up (exploratory, outside numbered phases).**
 `benchmarks/SPARSE_PACKET_WORK_DECLARATION.md` and its config freeze a separate
 dense/sparse-exhaustive/early-screening comparison. Direct sector CSR assembly
@@ -27,10 +54,10 @@ establishes the observed deterministic accuracy loss; missing repeats limit
 timing precision. Every larger-Hubbard arm misses the target. The separate
 validation notes document phase alignment and checkpoint-byte reconstruction.
 
-**Review follow-ups; declare before implementation or timing.** Cache the
-accepted basis conjugate transpose once per growth step; then test
-frame-coordinate projection `F(I - CC†)a`. Cache fixed group CSC slices and
-the frame adjoint separately so their time/memory trade-off can be measured.
+**Review follow-ups; declare before implementation or timing.** The accepted
+basis-adjoint and fixed group/frame caches are implemented and measured above;
+their memory trade-off prevents promotion. Next test frame-coordinate projection
+`F(I - CC†)a` under a new declaration.
 Test a tie-tolerant first-maximum canonical-phase pivot against physical-ray
 invariants. Reviewer profiling motivates these experiments but is not campaign
 evidence. The next campaign must include a held-out molecule as well as a

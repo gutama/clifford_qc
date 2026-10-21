@@ -23,6 +23,59 @@ def sparse_payload(matrix):
     return matrix.data.nbytes + matrix.indices.nbytes + matrix.indptr.nbytes
 
 
+class _StepProjection:
+    """One fixed solver-owned span; borrow V and own V† until the next extension.
+
+    ActionSpace replaces, rather than mutates, its accepted basis. This private
+    cache lives only inside one growth step, so it cannot outlive a span update.
+    No candidate directions or Hamiltonian actions are stored here.
+    """
+
+    def __init__(self, basis):
+        basis = np.asarray(basis, dtype=complex)
+        if basis.ndim != 2 or not np.isfinite(basis).all():
+            raise ValueError("finite basis matrix required")
+        self.basis = basis
+        self.adjoint = basis.conj().T
+        self.adjoint.flags.writeable = False
+
+    def direction(self, vector, *, cutoff):
+        return orthogonal_direction(vector, self.basis, cutoff=cutoff, adjoint=self.adjoint)
+
+
+class _FrameSnapshot:
+    """Owned copies of fixed group CSC blocks and the frame adjoint for one run.
+
+    Built only when a caller opts in. Candidate vectors and Hamiltonian
+    actions are never stored; ``payload_bytes`` charges every owned array.
+    """
+
+    def __init__(self, matrix, groups):
+        self.blocks = {key: matrix[:, ids] for key, ids in groups.items()}
+        self.adjoint_matrix = matrix.conj().T
+
+    def adjoint(self, vector):
+        return np.asarray(self.adjoint_matrix @ vector)
+
+    def combine(self, key, coefficients):
+        return np.asarray(self.blocks[key] @ coefficients)
+
+    @property
+    def payload_bytes(self):
+        return sparse_payload(self.adjoint_matrix) + sum(map(sparse_payload, self.blocks.values()))
+
+    def layout(self):
+        """Counts and index widths from which ``payload_bytes`` follows."""
+        first = next(iter(self.blocks.values()), None)
+        return {"frame_nnz": int(self.adjoint_matrix.nnz),
+                "group_nnz": sum(int(block.nnz) for block in self.blocks.values()),
+                "group_columns": sum(block.shape[1] for block in self.blocks.values()),
+                "index_itemsize": self.adjoint_matrix.indices.dtype.itemsize,
+                "indptr_itemsize": self.adjoint_matrix.indptr.dtype.itemsize,
+                "group_index_itemsize": first.indices.dtype.itemsize if first is not None else 0,
+                "group_indptr_itemsize": first.indptr.dtype.itemsize if first is not None else 0}
+
+
 class SparseSingletFrame:
     """Canonical CSFs built in local spatial blocks and retained as sparse CSC.
 
@@ -95,6 +148,10 @@ class SparseSingletFrame:
     def combine(self, indices, coefficients):
         return np.asarray(self.matrix[:, indices] @ coefficients)
 
+    def snapshot(self, groups):
+        """Opt-in owned frame adjoint and CSC blocks for fixed column groups."""
+        return _FrameSnapshot(self.matrix, groups)
+
     def active_columns(self, hf, orbitals):
         if (not orbitals or len(set(orbitals)) != len(orbitals)
                 or any(type(p) is not int or not 0 <= p < self.n // 2 for p in orbitals)):
@@ -122,16 +179,26 @@ def _encode(columns, tolerance):
     return result
 
 
-def run_sparse_packets(apply, diagonal, frame, hf, active_orbitals, config, *, policy="exhaustive"):
+def run_sparse_packets(apply, diagonal, frame, hf, active_orbitals, config, *, policy="exhaustive",
+                       cache_mode="none"):
     """Exact classical packet growth; optional marks precede admissibility.
 
     ``config`` supplies the declared cutoffs/budgets. There is no reference
     energy argument. The early policy audits all groups every
     ``config["audit_interval"]`` decisions (five in the declared campaign)
     and falls back on empty/low-gain shortlists; it is a heuristic.
+    ``cache_mode`` is opt-in: ``basis`` reuses one adjoint per fixed growth
+    span, ``frame`` reuses group blocks/the frame adjoint, and ``combined``
+    enables both. The basis cache owns one V† per accepted span, released
+    before the next extension; frame caches own copies of the group blocks
+    and frame adjoint. Neither stores candidate vectors or H actions, and
+    neither changes selection or H calls. Construction is charged to solver
+    time.
     """
     if policy not in ("exhaustive", "early"):
         raise ValueError("policy must be exhaustive or early")
+    if cache_mode not in ("none", "basis", "frame", "combined"):
+        raise ValueError("cache_mode must be none, basis, frame or combined")
     diagonal = np.asarray(diagonal)
     if diagonal.shape != (frame.shape[0],) or not np.isfinite(diagonal).all() or np.iscomplexobj(diagonal):
         raise ValueError("finite real sector diagonal required")
@@ -156,6 +223,23 @@ def run_sparse_packets(apply, diagonal, frame, hf, active_orbitals, config, *, p
         if j not in selected:
             key = spatial_pattern(int(word), outside, frame.n)
             groups.setdefault(key, []).append(j)
+    use_basis = cache_mode in ("basis", "combined")
+    snapshot, construction = None, 0.0
+    if cache_mode in ("frame", "combined"):
+        cache_started = time.perf_counter()
+        snapshot = frame.snapshot(groups)
+        construction = time.perf_counter() - cache_started
+    layout = snapshot.layout() if snapshot is not None else dict.fromkeys(
+        ("frame_nnz", "group_nnz", "group_columns", "index_itemsize", "indptr_itemsize",
+         "group_index_itemsize", "group_indptr_itemsize"), 0)
+    fixed_cache_bytes = snapshot.payload_bytes if snapshot is not None else 0
+    cache_stats = {"mode": cache_mode, "basis_adjoint_builds": 0,
+                   "group_block_builds": len(snapshot.blocks) if snapshot is not None else 0,
+                   "frame_adjoint_builds": int(snapshot is not None),
+                   "projected_candidates": 0, "peak_owned_bytes": fixed_cache_bytes,
+                   "fixed_owned_bytes": fixed_cache_bytes, "peak_basis_adjoint_bytes": 0,
+                   **layout, "construction_wall_seconds": construction}
+    adjoint = snapshot.adjoint if snapshot is not None else frame.adjoint
     rows, decisions = [], []
     materialized = scored = 0
     added, choice, score = initial, {"initial_csf_indices": selected}, None
@@ -179,7 +263,16 @@ def run_sparse_packets(apply, diagonal, frame, hf, active_orbitals, config, *, p
                                     config["preconditioner_shift"])
         cutoff = max(config["direction_absolute_tolerance"],
                      config["direction_relative_tolerance"] * np.linalg.norm(raw))
-        coefficients, residual_coefficients = frame.adjoint(raw), frame.adjoint(residual)
+        coefficients, residual_coefficients = adjoint(raw), adjoint(residual)
+        projector = None
+        if use_basis:
+            cache_started = time.perf_counter()
+            projector = _StepProjection(space.basis)
+            size = projector.adjoint.nbytes
+            cache_stats['basis_adjoint_builds'] += 1
+            cache_stats['peak_basis_adjoint_bytes'] = max(cache_stats['peak_basis_adjoint_bytes'], size)
+            cache_stats['peak_owned_bytes'] = max(cache_stats['peak_owned_bytes'], fixed_cache_bytes+size)
+            cache_stats['construction_wall_seconds'] += time.perf_counter()-cache_started
         indicators = {key: float(np.linalg.norm(residual_coefficients[ids])**2)
                       for key, ids in groups.items()}
         short = (list(residual_shortlist(indicators, fraction=config["shortlist_fraction"]))
@@ -195,8 +288,11 @@ def run_sparse_packets(apply, diagonal, frame, hf, active_orbitals, config, *, p
                 attempted.add(key)
                 materialized += 1
                 ids = groups[key]
-                vector = frame.combine(ids, coefficients[ids])
-                direction = orthogonal_direction(vector, space.basis, cutoff=cutoff)
+                vector = (snapshot.combine(key, coefficients[ids]) if snapshot is not None
+                          else frame.combine(ids, coefficients[ids]))
+                direction = (projector.direction(vector, cutoff=cutoff) if projector is not None
+                             else orthogonal_direction(vector, space.basis, cutoff=cutoff))
+                cache_stats['projected_candidates'] += int(projector is not None)
                 if direction is None:
                     continue
                 acted = space.action(direction)
@@ -222,11 +318,16 @@ def run_sparse_packets(apply, diagonal, frame, hf, active_orbitals, config, *, p
             "audit": audit, "fallback": fallback,
             "audit_missed_winner": bool(audit and key not in short),
             "audit_score_loss": max(0., maximum - max(marked_scores, default=0.)) if audit else None})
-        direction, acted = pairs[key]
+        direction, acted = pairs.pop(key)
+        # Release the losing candidates and the old span's adjoint before
+        # extend allocates the combined basis and its Hermiticity check.
+        pairs.clear()
+        projector = None
         added = direction[:, None]
         space.extend(added, actions=acted[:, None])
         choice, score = {"candidate": key}, scores[key]
     return {"policy": policy, "trajectory": rows, "decisions": decisions,
+            "cache": cache_stats,
             "stop_reason": stop, "final_h_action_calls": space.h_action_calls,
             "final_candidates_scored": scored, "materialized_candidates": materialized,
             "solver_wall_seconds": time.perf_counter() - started}

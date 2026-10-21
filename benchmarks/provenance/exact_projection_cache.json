@@ -1,0 +1,15 @@
+{
+  "schema": "clifford_qc.exact_projection_cache_publication.v1",
+  "base_commit": "1cb2d5e259c15220c077ee8661fa51858c6ad9ec",
+  "declaration_commit": "4942a71f0b4b9415e1c28f6b980fdd530a281278",
+  "source_commit": "da5feeccd50c56fa777f8b08a84fc538170d5278",
+  "observation_commit": "016339418cb26f27464d993498e2269d1f63f929",
+  "record_sha256": "1720e610d64c511dadbb55db09091029f25ddfa0744ef0799bf5e235b8cef17e",
+  "bundle_sha256": "d3a27a3b35503ab9f51eb9a58c851273b63c69b6c5c70a76045dead0ee06a4d2",
+  "journal_sha256": "8156010009c00c467f22790eab68eea23dd681376c2d98fe8be99158b51aece7",
+  "scheduled_cells": 84,
+  "complete_cells": 84,
+  "historical_controls": 8,
+  "distinct_scientific_payloads": 8,
+  "policy": "Every scheduled start and outcome is retained. Scientific payloads are stored once by digest; per-cell resource observations remain distinct. References and historical controls follow all timed cells. No cells were selectively rerun and no solver default changes."
+}
