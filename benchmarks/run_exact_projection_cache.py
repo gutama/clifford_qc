@@ -35,6 +35,7 @@ DECLARATION = 'benchmarks/EXACT_PROJECTION_CACHE_DECLARATION.md'
 RECORD = 'benchmarks/reference_results/exact_projection_cache.json'
 RECEIPT = 'benchmarks/provenance/exact_projection_cache.json'
 BUNDLE = 'benchmarks/provenance/exact_projection_cache.bundle'
+HISTORICAL = 'clifford_qc/subspace/sparse_packets.py'
 SOURCES = tuple(sorted(set(PREVIOUS_SOURCES) | {
     'benchmarks/run_exact_projection_cache.py', 'benchmarks/check_exact_projection_cache.py',
     'benchmarks/summarize_exact_projection_cache.py', 'tests/test_exact_projection_cache.py'}))
@@ -108,6 +109,7 @@ def preflight(c):
         if subprocess.run(['git', 'cat-file', '-e', f'{declaration}:{path}'], cwd=ROOT,
                           capture_output=True).returncode == 0:
             raise ValueError('implementation existed at declaration')
+    historical_dependencies(c)  # Refuse before timing, not at the post-timing controls.
     started = time.perf_counter()
     # Linux preserves a fork parent's high-water RSS across exec. Survey in a
     # separate supervisory helper so the worker-launching parent stays small.
@@ -122,12 +124,17 @@ def preflight(c):
             'supervisor_preflight_peak_rss_bytes': survey['peak_rss_bytes']}
 
 
-def historical_module(c):
-    """Execute the exact pre-change sparse module, retaining its relative imports."""
-    path = 'clifford_qc/subspace/sparse_packets.py'
-    for native in (p for p in SOURCES if p.startswith('clifford_qc/') and p != path):
+def historical_dependencies(c):
+    """The pre-change module imports today's natives, so they must equal the baseline's."""
+    for native in (p for p in SOURCES if p.startswith('clifford_qc/') and p != HISTORICAL):
         if commit_binding(ROOT, c['baseline_commit'], native)['sha256'] != sha256(ROOT/native):
             raise ValueError('historical baseline dependency evolved: '+native)
+
+
+def historical_module(c):
+    """Execute the exact pre-change sparse module, retaining its relative imports."""
+    path = HISTORICAL
+    historical_dependencies(c)
     raw = subprocess.check_output(['git', 'show', c['baseline_commit']+':'+path], cwd=ROOT)
     if digest(raw) != commit_binding(ROOT, c['baseline_commit'], path)['sha256']:
         raise ValueError('historical baseline source differs')
@@ -220,12 +227,37 @@ def run_cell(directory, context, task, order_index):
     return value
 
 
+def campaign_process(pid):
+    """Whether pid is live and still runs this script; finished PIDs get reused."""
+    if pid == os.getpid(): return False
+    try: return Path(__file__).name.encode() in Path(f'/proc/{pid}/cmdline').read_bytes()
+    except OSError: return False
+
+
+def recover(directory, task, index):
+    """Outcome of a started cell whose finish was never journaled; it is never rerun."""
+    try:
+        value = read_json(directory/'cells'/str(index)/'metrics.json')
+        if sha256(directory/'scientific'/(value['scientific_sha256']+'.json.gz')) != value['scientific_gzip_sha256']:
+            raise ValueError('scientific file differs')
+    except (OSError, ValueError, KeyError):
+        return {**task, 'order_index': index, 'status': 'interrupted', 'process_wall_seconds': None,
+                'diagnostic': 'Interrupted before durable finish; cell not rerun.'}
+    # metrics.json is the worker's last durable write; only the supervisor's wall time is lost.
+    value.update(task, order_index=index, status='ok', process_wall_seconds=None,
+                 recovered='Durable worker metrics; the supervisor stopped before journaling finish.')
+    return value
+
+
 def execute(directory, *, resume=False):
     c = design()
     fresh = preflight(c)
     if directory.resolve().is_relative_to(ROOT):
         raise ValueError('campaign output must stay outside the Git worktree')
     journal = directory/'events.jsonl'
+    events = [json.loads(line) for line in journal.read_bytes().splitlines()] if journal.exists() else []
+    finished = {e['order_index']: e['worker'] for e in events if e['event'] == 'finish'}
+    starts = {e['order_index'] for e in events if e['event'] == 'start'}
     if not resume:
         directory.mkdir(); (directory/'cells').mkdir(); (directory/'scientific').mkdir()
         context = fresh
@@ -240,46 +272,40 @@ def execute(directory, *, resume=False):
         prior = read_json(directory/'supervisor.json')
         namespace = os.readlink('/proc/self/ns/pid') if sys.platform == 'linux' else None
         if namespace is not None and namespace == prior.get('pid_namespace'):
-            for pidfile in [directory/'supervisor.json', *directory.glob('cells/*/pid.json')]:
-                pid = read_json(pidfile)['pid']
-                try: os.kill(pid, 0)
-                except ProcessLookupError: pass
-                else: raise ValueError('prior supervisor/worker may still be active')
+            # Only the supervisor and cells without a journaled finish can still be running.
+            pidfiles = [directory/'supervisor.json', *(path for path in directory.glob('cells/*/pid.json')
+                                                       if int(path.parent.name) not in finished)]
+            if any(campaign_process(read_json(path)['pid']) for path in pidfiles):
+                raise ValueError('prior supervisor/worker may still be active')
         # Across namespaces explicit --resume asserts all prior jobs stopped.
         context['resume_assertion'] = 'Explicit resume asserts all prior jobs stopped; started cells are never rerun.'
     state = {'pid': os.getpid(), 'pid_namespace': os.readlink('/proc/self/ns/pid') if sys.platform == 'linux' else None}
     (directory/'supervisor.json').write_bytes(canonical(state))
-    events = [json.loads(line) for line in journal.read_bytes().splitlines()] if journal.exists() else []
-    finished = {e['order_index']: e['worker'] for e in events if e['event'] == 'finish'}
-    starts = {e['order_index'] for e in events if e['event'] == 'start'}
     order = expected_order(c)
+    total = len(order)+2*len(c['inputs'])
+
+    def outcome(i, task):
+        if i not in finished:
+            if i in starts or (directory/'cells'/str(i)).exists():
+                # A started cell is never run a second time, even if its output was lost.
+                value = recover(directory, task, i)
+            else:
+                append_event(journal, {'event': 'start', 'order_index': i, 'task': task, 'utc_seconds': time.time()})
+                value = run_cell(directory, context, task, i)
+            append_event(journal, {'event': 'finish', 'order_index': i, 'worker': value, 'utc_seconds': time.time()})
+            finished[i] = value
+            print(f'{i+1}/{total} {task["input"]}/{task["repeat"]}/{task["policy"]}/{task["cache_mode"]}: '
+                  f'{value["status"]} ({value["process_wall_seconds"] or 0:.2f}s)', flush=True)
+        return finished[i]
+
     for i, task in enumerate(order):
-        if i in finished: continue
-        if i in starts or (directory/'cells'/str(i)).exists():
-            # A started cell is never timed a second time, even if its output was lost.
-            value = {**task, 'order_index': i, 'status': 'interrupted', 'process_wall_seconds': None,
-                     'diagnostic': 'Interrupted before durable finish; cell not rerun.'}
-        else:
-            append_event(journal, {'event': 'start', 'order_index': i, 'task': task, 'utc_seconds': time.time()})
-            value = run_cell(directory, context, task, i)
-        append_event(journal, {'event': 'finish', 'order_index': i, 'worker': value, 'utc_seconds': time.time()})
-        finished[i] = value
-        print(f'{i+1}/{len(order)} {task["input"]}/{task["repeat"]}/{task["policy"]}/{task["cache_mode"]}: '
-              f'{value["status"]} ({value["process_wall_seconds"] or 0:.2f}s)', flush=True)
+        outcome(i, task)
     controls = []
-    # Frozen pre-change module controls run only after all timed observations.
+    # Frozen pre-change module controls run, and are journaled, only after all timed observations.
     for case in c['inputs']:
         for policy in ('exhaustive', 'early'):
             task = dict(input=case['name'], repeat=0, policy=policy, cache_mode='historical')
-            index = len(order)+len(controls)
-            prior = directory/'cells'/str(index)/'metrics.json'
-            if prior.exists():
-                value = read_json(prior); value.update(task, order_index=index, status='ok', process_wall_seconds=None)
-            elif (directory/'cells'/str(index)).exists():
-                value = {**task, 'order_index': index, 'status': 'interrupted', 'process_wall_seconds': None}
-            else:
-                value = run_cell(directory, context, task, index)
-            controls.append(value)
+            controls.append(outcome(len(order)+len(controls), task))
     payloads = {}
     for entry in list(finished.values())+controls:
         if entry['status'] != 'ok': continue

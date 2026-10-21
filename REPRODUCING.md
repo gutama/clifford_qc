@@ -25,9 +25,15 @@ and the repository's numerical environment. The output directory must be new
 and outside the worktree. It retains fsynced start/outcome events, small per-cell
 metrics and immutable content-addressed compressed scientific payloads. Explicit
 `--resume` requires identical sources/environment and stopped prior jobs; it
-never reruns a started cell. Across PID namespaces it asserts those jobs stopped.
-Post-timing controls execute the exact pre-change sparse module, with unchanged
-native dependencies, and independent references are computed after all timing.
+never reruns a started cell. Within one PID namespace it checks the supervisor
+and unfinished cells by command line, because finished PIDs are reused; across
+namespaces it asserts those jobs stopped. A started cell whose worker metrics
+were durably written is kept as observed, flagged `recovered`, without the
+supervisor's wall time. Post-timing controls are journaled like timed cells and
+execute the exact pre-change sparse module, with unchanged native dependencies,
+and independent references are computed after all timing. Preflight refuses
+evolved dependencies before timing, so re-executing this campaign needs its
+execution commit.
 For an unpublished external result use the checker's `--record` and `--unbound`
 options; normal published checks require observation/source Git bindings.
 
@@ -47,8 +53,26 @@ are distinct commits restored by the provenance bundle. The archive is about
 1.09 MB and bundle 0.67 MB; immutable per-cell files remain outside the worktree.
 Independent replay and exact cache-byte/generation formulas pass. Combined
 primary runtime falls 44.41% but worker RSS rises 4.37%, so promotion fails and
-defaults remain unchanged. Source, observations and design bytes are unchanged
-after timing; later commits add publication bindings and documentation only.
+defaults remain unchanged. Observations and design bytes are unchanged after
+timing, and the record stays bound to execution `da5feec`. Later commits add
+publication bindings, documentation and the post-review changes below.
+
+Post-review changes, after timing, alter no scientific payload: within one
+environment the old and new solvers give identical scientific digests for every
+input, policy and cache mode, and the checker's replay of the record passes. The
+solver releases losing candidates and the old span's adjoint before each
+extension, frame caches move behind `SparseSingletFrame.snapshot`, and the cached
+projection reuses `orthogonal_direction` through its new `adjoint` argument.
+The checker counts cache nonzeros from the independent frame and binds each
+historical control; the report's promotion verdict requires every input/policy.
+An undeclared development rerun of the primary 2x4 exhaustive input (three
+fresh processes per mode, in a newer patch-level environment) measured median
+solver-end peak RSS of 135.6/142.0/136.4/141.1 MiB for none/basis/frame/combined
+before the release change and 123.5/123.3/124.0/123.8 MiB after; serialization
+did not raise the peak. The change lowers every mode. Basis-only no longer
+exceeds the uncached run, while frame arms stay about 0.3-0.8 MiB above it,
+near their 0.5 MiB snapshot. This is not a campaign observation: the declared
+record still decides, and promotion would need a newly declared comparison.
 
 ## Sparse packet setup and early screening
 
@@ -415,7 +439,7 @@ No figure or table value in the manuscript is transcribed by hand, and
 ```bash
 python -m venv .venv && source .venv/bin/activate
 pip install -e .[test,research,stim]       # automatic CI extras
-pytest                                      # 3964 passed, 12 skipped (expected if green)
+pytest                                      # 3983 passed, 12 skipped (expected if green)
 ```
 
 This is the automatic CI dependency set; record gates additionally pin NumPy

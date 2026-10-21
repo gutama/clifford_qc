@@ -39,7 +39,23 @@ def render(record):
         'It caches neither candidate vectors nor H actions. Construction is included in solver and total times.',
         'The supervisor alone surveys committed records. Worker RSS includes imports, setup, solver and final serialization. '
         'Phase RSS values are cumulative OS high-water marks, not isolated phase allocation peaks. Owned cache bytes exclude Python/container overhead.', '']
-    all_equivalent = True
+    equivalence = {}
+    for case in c['inputs']:
+        for comparison in c['comparisons']:
+            group = [w for w in good if w['input'] == case['name'] and w['policy'] == comparison['policy']]
+            baseline = [w for w in group if w['cache_mode'] == 'none']
+            controls = [w for w in record['historical_controls'] if w['input'] == case['name']
+                        and w['policy'] == comparison['policy'] and w['status'] == 'ok']
+            base = sciences[baseline[0]['scientific_sha256']] if baseline else None
+            equivalence[case['name'], comparison['policy']] = (
+                base is not None and bool(controls)
+                and not compare_science(base, sciences[controls[0]['scientific_sha256']], case['sector_dimension'])
+                and all(not compare_science(sciences[w['scientific_sha256']], base, case['sector_dimension']) for w in group))
+    all_equivalent = all(equivalence.values())
+    promotion = c['promotion']
+    # Promotion is one joint decision: every cell and every input/policy, then primary speed and RSS.
+    eligible = ((complete or not promotion['all_scheduled_cells_required'])
+                and (all_equivalent or not promotion['all_inputs_and_policies_must_preserve_trajectory']))
     for case in c['inputs']:
         name = case['name']; unit = case['energy_unit']
         lines += [f'## {name} ({case["role"]}, {unit})', '',
@@ -48,12 +64,7 @@ def render(record):
             policy = comparison['policy']; modes = comparison['cache_modes']
             group = [w for w in good if w['input'] == name and w['policy'] == policy]
             baseline = [w for w in group if w['cache_mode'] == 'none']
-            controls = [w for w in record['historical_controls'] if w['input'] == name and w['policy'] == policy and w['status'] == 'ok']
-            base = sciences[baseline[0]['scientific_sha256']] if baseline else None
-            equivalent = base is not None and bool(controls) and not compare_science(base,
-                sciences[controls[0]['scientific_sha256']], case['sector_dimension'])
-            equivalent = equivalent and all(not compare_science(sciences[w['scientific_sha256']], base, case['sector_dimension']) for w in group)
-            all_equivalent = all_equivalent and equivalent
+            equivalent = equivalence[name, policy]
             lines += [f'### {policy}', '', f'Physical trajectories/selections/counters versus the pre-change module: {"PASS" if equivalent else "FAIL"}.', '',
                 '| Cache | Completed | Setup (s) | Solver (s) | Total (s), IQR | Paired speed ratio, IQR | Final error | Target |',
                 '|---|---:|---:|---:|---|---|---:|---:|']
@@ -86,12 +97,13 @@ def render(record):
             if case['role'] == 'primary' and policy == 'exhaustive' and baseline:
                 base_time = median([w['setup_seconds']+w['solver_seconds'] for w in baseline])
                 base_rss = median([w['worker_peak_rss_bytes'] for w in baseline])
-                for mode in modes[1:]:
+                for mode in (m for m in modes if m != 'none'):
                     ws = [w for w in group if w['cache_mode'] == mode]
                     if not ws: continue
                     reduction = 1-median([w['setup_seconds']+w['solver_seconds'] for w in ws])/base_time
                     rss_ratio = median([w['worker_peak_rss_bytes'] for w in ws])/base_rss
-                    passes = complete and equivalent and reduction >= .20 and rss_ratio <= 1
+                    passes = (eligible and reduction >= promotion['primary_minimum_setup_plus_solver_reduction']
+                              and rss_ratio <= promotion['maximum_median_rss_ratio'])
                     lines += [f'Primary {mode} speed/RSS clause: {"PASS" if passes else "FAIL"}; '
                         f'{100*reduction:.2f}% total-time reduction, {rss_ratio:.4f}× worker RSS.']
             lines += ['']

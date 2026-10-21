@@ -51,26 +51,36 @@ def compare_science(actual, baseline, dimension):
     return problems
 
 
-def cache_problems(stats, science, case, frame, words):
+def independent_layout(case, frame, initial, words):
+    """Group count and nonzeros of the independent dense frame outside the initial span."""
+    outside = [p for p in range(case['n_qubits']//2) if p not in case['active_spatial_orbitals']]
+    groups = {spatial_key(words[np.argmax(abs(column))], case['n_qubits'], outside)
+              for j, column in enumerate(frame.T) if j not in initial}
+    return {'groups': len(groups), 'columns': frame.shape[1]-len(initial),
+            'frame_nnz': int(np.count_nonzero(frame)),
+            'group_nnz': int(np.count_nonzero(np.delete(frame, list(initial), axis=1)))}
+
+
+def cache_problems(stats, science, case, frame, words, layout=None):
     problems = []
     mode = stats['mode']; use_basis = mode in ('basis', 'combined'); use_frame = mode in ('frame', 'combined')
     initial = science['trajectory'][0]['selection']['initial_csf_indices']
-    groups = {spatial_key(words[np.argmax(abs(column))], case['n_qubits'],
-                         [p for p in range(case['n_qubits']//2) if p not in case['active_spatial_orbitals']])
-              for j, column in enumerate(frame.T) if j not in initial}
+    layout = layout or independent_layout(case, frame, initial, words)
     stages = science['trajectory'] if science['stop_reason'] == 'no_admissible_direction' else science['trajectory'][:-1]
     builds = len(stages) if use_basis else 0
     basis_bytes = 16*case['sector_dimension']*max((row['dimension'] for row in stages), default=0) if use_basis else 0
     fixed = 0
     if use_frame:
-        fixed = ((16+stats['index_itemsize'])*(stats['frame_nnz']+stats['group_nnz'])
-                 + stats['indptr_itemsize']*(frame.shape[1]+1+stats['group_columns']+len(groups)))
-        if (stats['group_columns'] != frame.shape[1]-len(initial)
-                or not 0 <= stats['group_nnz'] <= stats['frame_nnz'] <= frame.size
-                or stats['index_itemsize'] not in (4, 8) or stats['indptr_itemsize'] not in (4, 8)):
+        # Records before per-structure widths assumed the blocks share the frame's.
+        widths = [stats[key] for key in ('index_itemsize', 'indptr_itemsize')]
+        widths += [stats.get('group_'+key, stats[key]) for key in ('index_itemsize', 'indptr_itemsize')]
+        fixed = ((16+widths[0])*layout['frame_nnz'] + widths[1]*(frame.shape[1]+1)
+                 + (16+widths[2])*layout['group_nnz'] + widths[3]*(layout['columns']+layout['groups']))
+        if (any(stats[key] != layout[key] for key in ('frame_nnz', 'group_nnz'))
+                or stats['group_columns'] != layout['columns'] or any(w not in (4, 8) for w in widths)):
             problems.append('cache sparse layout')
     expected = {'basis_adjoint_builds': builds, 'frame_adjoint_builds': int(use_frame),
-                'group_block_builds': len(groups) if use_frame else 0,
+                'group_block_builds': layout['groups'] if use_frame else 0,
                 'projected_candidates': science['materialized_candidates'] if use_basis else 0,
                 'peak_basis_adjoint_bytes': basis_bytes, 'fixed_owned_bytes': fixed,
                 'peak_owned_bytes': fixed+basis_bytes}
@@ -121,12 +131,15 @@ def verify(record, *, bound=True, numerical=True):
         problems.append('journal digest')
     order = expected_order(c)
     if len(record['workers']) != len(order): return problems+['scheduled-cell count']
+    control_tasks = [dict(input=case['name'], repeat=0, policy=policy, cache_mode='historical')
+                     for case in c['inputs'] for policy in ('exhaustive', 'early')]
+    if len(record['historical_controls']) != len(control_tasks): return problems+['historical control count']
     starts, finishes = {}, {}
     for event in journal:
         if event['event'] not in ('start', 'finish'):
             problems.append('unknown journal event'); continue
         i = event['order_index']; target = starts if event['event'] == 'start' else finishes
-        if i in target or i not in range(len(order)): problems.append('duplicate/invalid journal index')
+        if i in target or i not in range(len(order)+len(control_tasks)): problems.append('duplicate/invalid journal index')
         target[i] = event
     sciences = {key: decode_science(value) for key, value in record['scientific_payloads'].items()}
     used = {w['scientific_sha256'] for w in record['workers']+record['historical_controls'] if w['status'] == 'ok'}
@@ -143,10 +156,13 @@ def verify(record, *, bound=True, numerical=True):
         if worker['status'] not in ('ok', 'failed', 'timeout', 'interrupted'):
             problems.append('worker status')
         if worker['status'] != 'ok': continue
-        for key in ('setup_seconds', 'solver_seconds', 'process_wall_seconds'):
-            if not isinstance(worker[key], (int, float)) or not math.isfinite(worker[key]) or worker[key] < 0:
-                problems.append('finite timing '+key)
-        if worker['setup_seconds']+worker['solver_seconds'] > worker['process_wall_seconds']+1e-6:
+        # A recovered cell kept its durable worker metrics; only the supervisor's wall time was lost.
+        recovered = 'recovered' in worker
+        if recovered and worker['process_wall_seconds'] is not None: problems.append('recovered process timing')
+        bad = [key for key in ('setup_seconds', 'solver_seconds') + (() if recovered else ('process_wall_seconds',))
+               if not isinstance(worker[key], (int, float)) or not math.isfinite(worker[key]) or worker[key] < 0]
+        problems.extend('finite timing '+key for key in bad)
+        if not recovered and not bad and worker['setup_seconds']+worker['solver_seconds'] > worker['process_wall_seconds']+1e-6:
             problems.append('process timing')
         peaks = [worker[key] for key in ('imports_peak_rss_bytes', 'setup_peak_rss_bytes',
                                          'solver_end_peak_rss_bytes', 'worker_peak_rss_bytes')]
@@ -165,6 +181,22 @@ def verify(record, *, bound=True, numerical=True):
         if (not 0 <= worker['cache']['construction_wall_seconds'] <= worker['solver_seconds']
                 or worker['worker_environment_sha256'] != record['provenance']['environment_sha256']):
             problems.append('cache timing/environment')
+    journaled = [len(order)+k in starts or len(order)+k in finishes for k in range(len(control_tasks))]
+    if any(journaled) and not all(journaled): problems.append('partial historical control journal')
+    for k, (control, task) in enumerate(zip(record['historical_controls'], control_tasks)):
+        i = len(order)+k
+        if any(control[key] != value for key, value in task.items()) or control['order_index'] != i:
+            problems.append('historical control order')
+        if all(journaled) and (i not in starts or starts[i]['task'] != task
+                               or i not in finishes or finishes[i]['worker'] != control):
+            problems.append('historical control start/outcome evidence')
+        if control['status'] != 'ok': continue
+        # The pre-change module returns no cache statistics, so a cache dict means the new module ran.
+        if (control['cache'] is not None
+                or control['worker_environment_sha256'] != record['provenance']['environment_sha256']
+                or record['scientific_payloads'][control['scientific_sha256']]['gzip_sha256'] != control['scientific_gzip_sha256']
+                or sciences[control['scientific_sha256']]['policy'] != control['policy']):
+            problems.append('historical control identity')
     for case in c['inputs']:
         name = case['name']; dimension = case['sector_dimension']
         workers = [w for w in record['workers'] if w['input'] == name and w['status'] == 'ok']
@@ -177,7 +209,7 @@ def verify(record, *, bound=True, numerical=True):
             frame_data = independent_frame(words, case['n_qubits'], spin, c['spin_tolerance'])
             frame = frame_data[0]
             if abs(reference_energy(h)-record['references'][name]) > 1e-9: problems.append('reference energy '+name)
-        unique = {}
+        unique, layouts = {}, {}
         for w in workers+controls:
             if w['status'] != 'ok': continue
             key = w['scientific_sha256']; science = sciences[key]
@@ -187,7 +219,9 @@ def verify(record, *, bound=True, numerical=True):
                 problems.extend(name+': '+p for p in replay(result, case, c, h, words, spin, frame_data))
                 unique[key] = True
             if numerical and w['cache_mode'] != 'historical':
-                problems.extend(name+': '+p for p in cache_problems(w['cache'], science, case, frame, words))
+                initial = tuple(science['trajectory'][0]['selection']['initial_csf_indices'])
+                if initial not in layouts: layouts[initial] = independent_layout(case, frame, initial, words)
+                problems.extend(name+': '+p for p in cache_problems(w['cache'], science, case, frame, words, layouts[initial]))
         for policy in ('exhaustive', 'early'):
             baseline = next((w for w in workers if w['policy'] == policy and w['cache_mode'] == 'none'), None)
             historical = next((w for w in controls if w['policy'] == policy and w['status'] == 'ok'), None)
@@ -210,7 +244,8 @@ def main(argv=None):
     if problems:
         for problem in problems: print('FAIL '+problem)
         return 1
-    print('VALID: independent exact trajectories, historical controls, cache formulas and campaign bindings')
+    print('VALID: independent exact trajectories, historical controls and cache formulas; publication/source bindings '
+          + ('were not checked (--unbound)' if args.unbound else 'verified'))
     return 0
 
 
