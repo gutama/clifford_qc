@@ -1,5 +1,17 @@
 # `clifford_qc` research plan — WISE–A-CASE (PRD)
 
+**2026-10-22 column-budget convergence: declared, not yet implemented.**
+`benchmarks/PACKET_BUDGET_CONVERGENCE_DECLARATION.md` and its config freeze a
+comparison on merged PR #148. At 64 columns both residual packets and greedy
+selected CI miss the 2x4 Hubbard target by about 2 t. Grow exhaustive and early
+packets, spin-adapted selected CI and a singlet-projected Davidson reference to
+512 columns on the primary and a held-out 8-site chain, and to the complete
+singlet span on held-out full-space stretched BeH2 and two small controls. The
+52 fresh-process cells report columns, H actions and time to declared thresholds,
+span support and memory. Packets add column compactness only if they need at
+most 0.8 times selected CI's columns on the primary and both held-out inputs. No
+result or solver-default change is declared here.
+
 **2026-10-20 exact projection caching: observed, opt-in.**
 `benchmarks/EXACT_PROJECTION_CACHE_DECLARATION.md` and its config freeze a new
 comparison on merged PR #146. Cache the accepted basis adjoint once per growth
