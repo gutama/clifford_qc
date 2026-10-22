@@ -368,8 +368,8 @@ On 2x4 exhaustive growth, combined caching lowers median setup + solver from
 24.766 to 13.767 s (44.41%) while raising worker RSS from 137.988 to 144.020 MiB.
 Its 5.215 MiB cache trades memory for speed, failing the no-RSS-increase clause;
 basis-only also fails that clause, while frame-only misses the 20% speed target.
-A post-campaign release-order change lowers every mode's peak and narrows that
-gap in an undeclared development rerun; promotion would need a new comparison.
+Post-campaign release-order and candidate-pruning changes lower every mode's
+peak in undeclared development reruns; promotion would need a new comparison.
 Caching preserves accuracy and the early policy's held-out loss. Small held-out
 BeH2 validates a different active space, without establishing molecular scaling.
 The [full report](benchmarks/results/exact_projection_cache.md) separates phase

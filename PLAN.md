@@ -23,9 +23,13 @@ remain uncached. See `benchmarks/results/exact_projection_cache.md`.
 After review, the solver frees losing candidates and the old adjoint before each
 extension, leaving scientific payloads unchanged. An undeclared development rerun
 of the primary exhaustive input lowers median solver-end peak RSS from
-135.6-142.0 to 123.3-124.0 MiB across modes; basis-only no longer exceeds the
-uncached run, and frame arms keep their 0.5 MiB snapshot. Any promotion needs a
-newly declared comparison (see `REPRODUCING.md`).
+135.6-142.0 to 123.3-124.0 MiB across modes; basis-only is level with the
+uncached run, and frame arms keep their 0.5 MiB snapshot. Keeping only
+candidates within the tie tolerance of each step's best score, also exact, then
+roughly halves the solver's increment over setup: in a second undeclared rerun,
+median peaks across exhaustive modes fall from a re-measured 122.6-123.3 to
+93.0-97.2 MiB. Any promotion needs a newly declared comparison (see
+`REPRODUCING.md`).
 
 **2026-10-20 sparse packet follow-up (exploratory, outside numbered phases).**
 `benchmarks/SPARSE_PACKET_WORK_DECLARATION.md` and its config freeze a separate

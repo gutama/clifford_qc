@@ -193,7 +193,8 @@ def run_sparse_packets(apply, diagonal, frame, hf, active_orbitals, config, *, p
     before the next extension; frame caches own copies of the group blocks
     and frame adjoint. Neither stores candidate vectors or H actions, and
     neither changes selection or H calls. Construction is charged to solver
-    time.
+    time. Only candidates within the tie tolerance of a step's best score so
+    far retain their direction and action; every score is still recorded.
     """
     if policy not in ("exhaustive", "early"):
         raise ValueError("policy must be exhaustive or early")
@@ -278,10 +279,14 @@ def run_sparse_packets(apply, diagonal, frame, hf, active_orbitals, config, *, p
         short = (list(residual_shortlist(indicators, fraction=config["shortlist_fraction"]))
                  if policy == "early" else sorted(groups))
         audit = policy == "early" and (step + 1) % config["audit_interval"] == 0
-        attempted, scores, pairs = set(), {}, {}
+        # pairs keeps directions/actions only for scores still within the tie
+        # tolerance of the step's best. Rounded subtraction is monotone, so a
+        # later maximum M >= best never revives a score below best - tolerance.
+        attempted, scores, pairs, best = set(), {}, {}, -np.inf
 
         def evaluate(keys):
-            nonlocal materialized
+            nonlocal materialized, best
+            tolerance = config["score_tie_tolerance"]
             for key in keys:
                 if key in attempted:
                     continue
@@ -296,9 +301,14 @@ def run_sparse_packets(apply, diagonal, frame, hf, active_orbitals, config, *, p
                 if direction is None:
                     continue
                 acted = space.action(direction)
-                pairs[key] = direction, acted
                 scores[key] = energy_lowering(energy, np.vdot(direction, acted).real,
                                               np.vdot(state, acted))
+                if scores[key] > best:
+                    best = scores[key]
+                    for k in [k for k in pairs if scores[k] < best - tolerance]:
+                        del pairs[k]
+                if scores[key] >= best - tolerance:
+                    pairs[key] = direction, acted
 
         evaluate(sorted(groups) if audit else short)
         fallback = (policy == "early" and not audit and len(attempted) < len(groups)
@@ -319,8 +329,8 @@ def run_sparse_packets(apply, diagonal, frame, hf, active_orbitals, config, *, p
             "audit_missed_winner": bool(audit and key not in short),
             "audit_score_loss": max(0., maximum - max(marked_scores, default=0.)) if audit else None})
         direction, acted = pairs.pop(key)
-        # Release the losing candidates and the old span's adjoint before
-        # extend allocates the combined basis and its Hermiticity check.
+        # Release tied losers and the old span's adjoint before extend
+        # allocates the combined basis and its Hermiticity check.
         pairs.clear()
         projector = None
         added = direction[:, None]

@@ -1,4 +1,5 @@
 """Exact-cache invariants on toy inputs, independent of held-out campaign runs."""
+from contextlib import contextmanager
 from copy import deepcopy
 import base64
 import gzip
@@ -6,6 +7,7 @@ from pathlib import Path
 from types import SimpleNamespace
 import weakref
 
+from hypothesis import example, given, settings, strategies as st
 import numpy as np
 import pytest
 
@@ -29,6 +31,14 @@ def physical():
     frame = packets.SparseSingletFrame(backend)
     hf = sum(1 << (7-j) for j in range(4))
     return h, frame, hf
+
+
+@pytest.fixture(scope='module')
+def physical_fixed():
+    """The same input, shared across Hypothesis examples."""
+    backend = SectorStatevectorBackend(8, 4, 0)
+    h = backend.operator(hubbard((2, 2), U=4.).hamiltonian).to_csr()
+    return h, packets.SparseSingletFrame(backend), sum(1 << (7-j) for j in range(4))
 
 
 @pytest.mark.parametrize('policy', ['exhaustive', 'early'])
@@ -107,6 +117,113 @@ def test_old_span_adjoint_and_losing_candidates_are_released_before_extension(ph
     result = packets.run_sparse_packets(h.dot, h.diagonal().real, frame, hf, [1, 2], config(), cache_mode=mode)
     assert len(extensions) == len(result['decisions'])+1 and len(computed) > len(result['decisions'])
     assert all(live_projections == 0 and live_actions <= 1 for live_projections, live_actions in extensions)
+
+
+TIE = 1e-12  # The declared score_tie_tolerance.
+SMALL = 3.637978807091697e-12  # Near TIE, fl(s+TIE) < SMALL for s = fl(SMALL-TIE).
+BOUNDARY_SCORES = [0., TIE/2, .25, .25-TIE, .25+TIE, .25-2*TIE, .25+2*TIE,
+                   float(np.nextafter(.25-TIE, 0.)), float(np.nextafter(.25-TIE, 1.)), .5, .5-TIE,
+                   SMALL, SMALL-TIE, float(np.nextafter(SMALL-TIE, 0.)), float(np.nextafter(SMALL-TIE, 1.))]
+
+
+@contextmanager
+def recorded_growth(score=None, tolerance=TIE):
+    """Record candidate directions, liveness at each score, and each added column.
+
+    ``score`` optionally replaces energy_lowering. Liveness counts earlier
+    candidates' directions and actions still alive when a score is computed,
+    against the near-ties of the running best under ``tolerance``.
+    """
+    steps, live, added = [[]], [], []
+    action, lowering, extend = packets.ActionSpace.action, packets.energy_lowering, packets.ActionSpace.extend
+
+    def recording_action(self, vector):
+        result = action(self, vector)
+        steps[-1].append({'direction': vector.copy(), 'refs': (weakref.ref(vector), weakref.ref(result))})
+        return result
+
+    def recording_lowering(*args):
+        step = steps[-1]; prior = [c['score'] for c in step[:-1]]; best = max(prior, default=-np.inf)
+        alive = [sum(c['refs'][j]() is not None for s in steps for c in s) - 1 for j in (0, 1)]
+        live.append((alive, sum(value >= best - tolerance for value in prior), len(prior)))
+        step[-1]['score'] = (score or lowering)(*args)
+        return step[-1]['score']
+
+    def recording_extend(self, columns, *, actions=None):
+        if actions is not None: added.append(np.array(columns[:, 0]))
+        result = extend(self, columns, actions=actions)
+        steps.append([])  # After ActionSpace's own initial actions, too.
+        return result
+
+    with pytest.MonkeyPatch.context() as patch:
+        patch.setattr(packets.ActionSpace, 'action', recording_action)
+        patch.setattr(packets, 'energy_lowering', recording_lowering)
+        patch.setattr(packets.ActionSpace, 'extend', recording_extend)
+        yield steps, live, added
+
+
+def assert_pruned_growth(result, steps, live, added):
+    """Only near-ties of the running best (plus the previous winner) stay alive, and
+    each extension adds exactly the selected key's direction."""
+    assert all(max(alive) <= contenders+1 for alive, contenders, _ in live)
+    assert len(added) == len(result['decisions'])
+    for decision, candidates, column in zip(result['decisions'], steps[1:], added):
+        # decision['scores'] preserves evaluation order, one action per admissible key.
+        assert [str(c['score']) for c in candidates] == [str(v) for v in decision['scores'].values()]
+        np.testing.assert_array_equal(column, candidates[list(decision['scores']).index(str(decision['selected']))]['direction'])
+
+
+@pytest.mark.parametrize('policy', ['exhaustive', 'early'])
+def test_only_near_ties_of_the_running_best_keep_candidate_arrays(physical, policy):
+    h, frame, hf = physical
+    with recorded_growth() as record:
+        result = packets.run_sparse_packets(h.dot, h.diagonal().real, frame, hf, [1, 2], config(), policy=policy)
+    assert_pruned_growth(result, *record)
+    assert any(earlier > contenders+1 for _, contenders, earlier in record[1])  # Pruning released something.
+    expected = packets.run_sparse_packets(h.dot, h.diagonal().real, frame, hf, [1, 2], config(), policy=policy)
+    assert scientific_result({**result, 'arm': 'sparse'}) == scientific_result({**expected, 'arm': 'sparse'})
+
+
+@pytest.mark.parametrize('policy', ['exhaustive', 'early'])
+@settings(max_examples=40, deadline=None)
+@given(scores=st.lists(st.sampled_from(BOUNDARY_SCORES), min_size=1, max_size=30))
+@example(scores=[SMALL-TIE, SMALL])  # Prunes a winner if written as score + tolerance < best.
+@example(scores=[.25, 0., 0., .25, 0., 0., 0.])  # Fallback sweep must prune too.
+@example(scores=[0., 0., 0., .25] + [0.]*10 + [.25-TIE, .25-2*TIE, .25])  # Best must track every rise.
+def test_pruning_never_drops_a_tie_tolerant_winner(physical_fixed, policy, scores):
+    # Scores at and across the tolerance boundary, including adjacent floats and
+    # zeros that force the early fallback sweep. A dropped winner makes pairs.pop raise.
+    h, frame, hf = physical_fixed
+    assert config()['score_tie_tolerance'] == TIE
+    calls = iter(range(10**6))
+    with recorded_growth(lambda *args: scores[next(calls) % len(scores)]) as record:
+        result = packets.run_sparse_packets(h.dot, h.diagonal().real, frame, hf, [1, 2], config(), policy=policy)
+    assert_pruned_growth(result, *record)
+    for decision in result['decisions']:
+        values = decision['scores']; best = max(values.values())
+        assert decision['selected'] == min(int(k) for k, v in values.items() if v >= best - TIE)
+
+
+@pytest.mark.parametrize('tolerance', [TIE, 1e-6])  # Pruning must read the configured tolerance.
+def test_pruning_keeps_a_smaller_key_scored_exactly_at_the_tie_boundary(physical, tolerance, monkeypatch):
+    # The early shortlist runs in indicator order, so a smaller key can follow
+    # the best. Reverse key order makes every later candidate score exactly
+    # best - tolerance, so the last one evaluated wins on the key tie-break.
+    h, frame, hf = physical
+    seen = set()
+
+    def boundary(energy, *rest):
+        if energy in seen: return .25-tolerance
+        seen.add(energy); return .25
+
+    monkeypatch.setattr(packets, 'residual_shortlist', lambda indicators, fraction: tuple(sorted(indicators, reverse=True)))
+    with recorded_growth(boundary, tolerance) as record:
+        result = packets.run_sparse_packets(h.dot, h.diagonal().real, frame, hf, [1, 2],
+                                           {**config(), 'score_tie_tolerance': tolerance}, policy='early')
+    assert_pruned_growth(result, *record)
+    unaudited = [d for d in result['decisions'] if not d['audit']]
+    assert unaudited and all(len(d['scores']) > 1 and d['selected'] == min(map(int, d['scores']))
+                             and d['scores'][str(d['selected'])] == .25-tolerance for d in unaudited)
 
 
 def test_default_path_needs_only_the_public_frame_api(physical):
