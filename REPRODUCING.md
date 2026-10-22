@@ -69,10 +69,23 @@ An undeclared development rerun of the primary 2x4 exhaustive input (three
 fresh processes per mode, in a newer patch-level environment) measured median
 solver-end peak RSS of 135.6/142.0/136.4/141.1 MiB for none/basis/frame/combined
 before the release change and 123.5/123.3/124.0/123.8 MiB after; serialization
-did not raise the peak. The change lowers every mode. Basis-only no longer
-exceeds the uncached run, while frame arms stay about 0.3-0.8 MiB above it,
+did not raise the peak. The change lowers every mode. Basis-only is level
+with the uncached run, while frame arms stay about 0.3-0.8 MiB above it,
 near their 0.5 MiB snapshot. This is not a campaign observation: the declared
 record still decides, and promotion would need a newly declared comparison.
+
+A later change keeps candidate directions and actions only for scores within the
+tie tolerance of the step's best so far; every score is still recorded and the
+selected key's pair is always retained, so within one environment all 24 arms
+give digests identical to the unpruned solver's. A second undeclared rerun
+(three fresh processes per arm, worker peak including serialization) measured
+the unpruned code again at 122.6-123.3 MiB median across exhaustive modes on the
+primary input (the first rerun gave 123.3-124.0) and the pruned code at
+93.0-97.2 MiB; early none/combined fell from 120.5/121.2 to 92.5/92.8 MiB.
+Setup alone peaks near 61.7 MiB, so the solver's increment roughly halves.
+Exhaustive pruned repetitions vary by 3.2-4.6 MiB, with every mode having runs
+near both 93 and 97 MiB, so these runs do not order the modes; early repetitions
+vary by under 1 MiB. They remain development observations.
 
 ## Sparse packet setup and early screening
 
@@ -439,7 +452,7 @@ No figure or table value in the manuscript is transcribed by hand, and
 ```bash
 python -m venv .venv && source .venv/bin/activate
 pip install -e .[test,research,stim]       # automatic CI extras
-pytest                                      # 3983 passed, 12 skipped (expected if green)
+pytest                                      # 3989 passed, 12 skipped (expected if green)
 ```
 
 This is the automatic CI dependency set; record gates additionally pin NumPy
@@ -458,7 +471,7 @@ the remaining `12 - 6 = 6` skips are per-test and *are* collected:
 
 ```text
 collected == passed + (skipped - files dropped at collection)
-3928      == 3922   + (12      -   6)
+3995      == 3989   + (12      -   6)
 ```
 
 Both sides are computed from the tree, so a drift in either quoted number
