@@ -1,0 +1,67 @@
+{
+  "schema": "clifford_qc.restart_evidence_snapshot.v1",
+  "reviewed_commit": "89d3cffd25aa86b2d155a74291486800f17b31ce",
+  "implementation_base_commit": "358abd205dde52e74243e5144bc6c656aa2fad01",
+  "blueprint": {
+    "path": "docs/restart/blueprint_2026-10-24.md",
+    "sha256": "eaaa8a19f9f30118d6916cc6902cb6b84b6fd3d02ae002f40860f3d378b385c1"
+  },
+  "scope": "Frozen v1 evidence identities; no new campaign or changed historical outcome. Read these files at reviewed_commit, not at the current working tree.",
+  "files": [
+    {
+      "path": "PLAN.md",
+      "sha256": "cc464d367dc216f1ad8131ceab75b2e3e2dbdd37532af5bc22d3435171312cbd",
+      "git_blob_sha1": "65d6111ad6def6209aaa025a6d7c534883373ad9"
+    },
+    {
+      "path": "ARCHITECTURE.md",
+      "sha256": "07338a89817df683f9ed7509482f375e4ea4aad34d6ffd1310d17b479a0cc3df",
+      "git_blob_sha1": "4fdb60664af30feb6523470878b41e34c4020539"
+    },
+    {
+      "path": "molecular/report.md",
+      "sha256": "475e4a53fe49e0bdd811235226ab05da2978e4877c32458492b730caa2dc0e1f",
+      "git_blob_sha1": "823a5268bf28aed2266fb0ec6248409d5a9447e0"
+    },
+    {
+      "path": "benchmarks/results/packet_budget_convergence.md",
+      "sha256": "d9f4355ed5689165ddd7e939a591c131594953e1e3009bf3ea816e3ab2a1d992",
+      "git_blob_sha1": "4e614c3b5d1145145faea35774c3829198c05d59"
+    },
+    {
+      "path": "benchmarks/results/frame_coordinate_projection.md",
+      "sha256": "a11bd962217c7de4aace66e67d9f055066a5073986b8ac4aad698c3ac30d6be7",
+      "git_blob_sha1": "351d41886a9389cfae50d1d73f0f16812f8a9429"
+    },
+    {
+      "path": "benchmarks/results/orthogonal_active_space_v2.md",
+      "sha256": "c5287c16f8499618adf18b579a05a65fa6146e5bb196bc72e36a81ba17679392",
+      "git_blob_sha1": "60560b47646b3ba5cb13c52de4c2ab51b693ce4d"
+    },
+    {
+      "path": "benchmarks/reference_results/packet_budget_convergence.json",
+      "sha256": "ad7f2523dac16e2c05d082740a4a828636d7222c94c09044f4112a24857ea0e0",
+      "git_blob_sha1": "70da4d0015b3a81b50b63ea41cb8ce9c4799f6a8"
+    },
+    {
+      "path": "benchmarks/reference_results/frame_coordinate_projection.json",
+      "sha256": "7086006045a03dcf3cfe3207e886d87ab9c66b4032c3f384be3a805f2eb015a7",
+      "git_blob_sha1": "55418ea5bd2206a7e012b32493c804c66f1633bb"
+    },
+    {
+      "path": "benchmarks/reference_results/orthogonal_active_space_v2.json",
+      "sha256": "f40b911470668ffd81d9d10dea633810c21238d27954b0c470b200c651bc1d05",
+      "git_blob_sha1": "ecf90e485156ccf8e4d99655b5bdbc9cfeba53c7"
+    },
+    {
+      "path": "benchmarks/reference_results/phase19_energy_comparison.json",
+      "sha256": "e1d3852dabfabd1083f4d38285feb2c16c87bf5135972ed2f41a981bf8c7fe27",
+      "git_blob_sha1": "7bb5556e31b6b1a505b98eb37a9ffce37754746f"
+    },
+    {
+      "path": "benchmarks/provenance/archive_manifest.json",
+      "sha256": "d11024b1046bcaf10cc6c381bc7a1b54309877104ddc5256a0d2799f558f7a62",
+      "git_blob_sha1": "3a6dbf1ee2c5a7aa0a43a6ded05cd0be5969e10b"
+    }
+  ]
+}
