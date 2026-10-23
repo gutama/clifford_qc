@@ -1,5 +1,18 @@
 # `clifford_qc` research plan — WISE–A-CASE (PRD)
 
+**2026-10-23 deterministic phase pivot — implemented, opt-in.**
+The user's new request reopens the previously retired pivot item under
+`docs/deterministic_phase_pivot.md`, declared before implementation. It scopes
+a first-in-relative-tolerance-band phase helper and opt-in ActionSpace/direction
+integration, checked by physical-ray and Ritz invariants. The strict historical
+helper remains unchanged. This is numerical correctness work, with no new
+packet campaign, altered shortlist rule or promotion of experimental defaults.
+`deterministic_phase_pivot` and `canonical_phase_tolerant` now implement the
+declared relative band. `phase_tie_tolerance` enables it in ActionSpace and
+orthogonal_direction; their default zero retains the historical arithmetic.
+Tests check exact/near ties, boundary rounding, extreme scales, physical rays,
+generalized Ritz spectra, true residuals and unchanged H-action counts.
+
 **2026-10-23 frame-coordinate projection: observed, opt-in; joint criterion fails.**
 `benchmarks/FRAME_COORDINATE_PROJECTION_DECLARATION.md` freezes the comparison
 before implementation against merged PR #149. The `coordinates` path projects

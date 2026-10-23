@@ -72,6 +72,7 @@ from .solver import (
     canonical_eigh, projected_matrices, solve_projected, solve_subspace,
 )
 from .projection import ProjectedProblem
+from .phase import canonical_phase_tolerant, deterministic_phase_pivot
 from .hybrid import (
     FamilyReport, HybridArm, configuration_generators_from_words,
     dressed_family, family_projection_report, run_hybrid,
@@ -119,6 +120,7 @@ from .folded import (
 )
 
 __all__ = [
+    "canonical_phase_tolerant", "deterministic_phase_pivot",
     "SecondMomentStorageError", "SecondMomentStoragePolicy", "SecondMomentStoragePreflight",
     "second_moment_storage_preflight",
     "FRAGMENT_SOLUTION_SCHEMA", "ExactFragmentSolver", "FragmentSolution",

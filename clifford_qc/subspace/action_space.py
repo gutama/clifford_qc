@@ -9,14 +9,19 @@ from __future__ import annotations
 import numpy as np
 
 from .orthogonal import canonical_phase
+from .phase import _validate_phase_tie_tolerance, canonical_phase_tolerant
 
 
-def orthogonal_direction(vector, basis, *, cutoff=1e-10, adjoint=None):
+def orthogonal_direction(vector, basis, *, cutoff=1e-10, adjoint=None,
+                         phase_tie_tolerance=0.0):
     """Twice project against the entire orthonormal span; reject dependence.
 
     ``adjoint`` may supply ``basis.conj().T`` for reuse across many vectors.
     The caller then owns its correctness and the basis finiteness check.
+    A positive ``phase_tie_tolerance`` opts into the relative pivot band;
+    zero retains the historical strict-maximum phase convention.
     """
+    phase_tie_tolerance = _validate_phase_tie_tolerance(phase_tie_tolerance)
     vector = np.array(vector, dtype=complex, copy=True)
     basis = np.asarray(basis, dtype=complex)
     if (vector.ndim != 1 or basis.ndim != 2 or basis.shape[0] != vector.size
@@ -27,7 +32,11 @@ def orthogonal_direction(vector, basis, *, cutoff=1e-10, adjoint=None):
     for _ in range(2):
         vector -= basis @ ((basis.conj().T if adjoint is None else adjoint) @ vector)
     norm = float(np.linalg.norm(vector))
-    return None if norm <= cutoff else canonical_phase(vector / norm)
+    if norm <= cutoff:
+        return None
+    if phase_tie_tolerance == 0:
+        return canonical_phase(vector / norm)
+    return canonical_phase_tolerant(vector / norm, tie_tolerance=phase_tie_tolerance)
 
 
 def energy_lowering(energy, diagonal, coupling):
@@ -42,9 +51,12 @@ class ActionSpace:
     ``extend(..., actions=...)`` accepts caller-owned, already counted actions
     (e.g. from candidate screening). Their correctness is the caller's contract;
     their shapes, finiteness and projected Hermiticity are checked here.
+    A positive ``phase_tie_tolerance`` opts into a first-in-band phase pivot.
+    The default zero preserves the historical strict phase convention.
     """
 
-    def __init__(self, apply, basis, *, tolerance=1e-10):
+    def __init__(self, apply, basis, *, tolerance=1e-10, phase_tie_tolerance=0.0):
+        self.phase_tie_tolerance = _validate_phase_tie_tolerance(phase_tie_tolerance)
         if not callable(apply) or not np.isfinite(tolerance) or tolerance <= 0:
             raise ValueError("an action callback and positive tolerance required")
         basis = np.asarray(basis, dtype=complex)
@@ -89,7 +101,11 @@ class ActionSpace:
     def solve(self):
         projected = self.basis.conj().T @ self.actions
         values, coefficients = np.linalg.eigh((projected + projected.conj().T) / 2)
-        state = canonical_phase(self.basis @ coefficients[:, 0])
+        state = self.basis @ coefficients[:, 0]
+        if self.phase_tie_tolerance == 0:
+            state = canonical_phase(state)
+        else:
+            state = canonical_phase_tolerant(state, tie_tolerance=self.phase_tie_tolerance)
         c = self.basis.conj().T @ state
         residual = self.actions @ c - values[0] * state
         return float(values[0]), state, residual

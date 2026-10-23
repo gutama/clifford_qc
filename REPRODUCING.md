@@ -591,12 +591,33 @@ python benchmarks/check_frame_coordinate_projection.py
 python benchmarks/summarize_frame_coordinate_projection.py --check
 ```
 
+### Deterministic phase pivot with tie tolerance
+
+The contract in `docs/deterministic_phase_pivot.md` was declared before
+implementation in `7a272aa`, on merged main `97b5286`. The new helpers select
+the first nonzero component in a relative magnitude band (default `1e-12`)
+and rotate the whole vector without normalizing it. Positive
+`phase_tie_tolerance` enables this in ActionSpace and orthogonal_direction;
+their default zero preserves the strict historical helper and arithmetic.
+
+The focused correctness tests check exact/near ties, tolerance boundaries,
+tiny/large vectors, physical-ray and generalized Ritz invariants, true
+residuals and cached H-action counts:
+
+```bash
+python -m pytest tests/test_deterministic_phase_pivot.py tests/test_action_space.py
+```
+
+This numerical-stability task introduces no timed campaign. Historical packet
+records and their ordered-shortlist criterion retain their conventions; the
+frame-coordinate comparison above still fails its joint criterion.
+
 ### Installed test environment
 
 ```bash
 python -m venv .venv && source .venv/bin/activate
 pip install -e .[test,research,stim]       # automatic CI extras
-pytest                                      # 4049 passed, 12 skipped (expected if green)
+pytest                                      # 4097 passed, 12 skipped (expected if green)
 ```
 
 This is the automatic CI dependency set; record gates additionally pin NumPy
@@ -615,7 +636,7 @@ the remaining `12 - 6 = 6` skips are per-test and *are* collected:
 
 ```text
 collected == passed + (skipped - files dropped at collection)
-4055      == 4049   + (12      -   6)
+4103      == 4097   + (12      -   6)
 ```
 
 Both sides are computed from the tree, so a drift in either quoted number
