@@ -15,6 +15,7 @@ from scipy.sparse import csc_matrix
 
 from .action_space import ActionSpace, energy_lowering, orthogonal_direction
 from .packet_selection import residual_shortlist
+from .orthogonal import canonical_phase
 from .spin_packets import spatial_pattern, spin_squared_operator
 
 
@@ -41,6 +42,53 @@ class _StepProjection:
 
     def direction(self, vector, *, cutoff):
         return orthogonal_direction(vector, self.basis, cutoff=cutoff, adjoint=self.adjoint)
+
+
+class _FrameCoordinateProjection:
+    """Twice project in a trusted isometric frame, then normalize physically.
+
+    For F†F = I and V in range(F), C = F†V gives
+    (I - VV†)Fa = F(I - CC†)a. Own C and C† for one accepted span;
+    borrow the fixed sparse F. Neither the frame nor V may mutate during use.
+    The caller supplies the frame builder's isometry contract. The coordinate
+    Gram check rejects an accepted span outside it to the solver's tolerance;
+    ActionSpace still checks every physical extension independently.
+    """
+
+    def __init__(self, matrix, adjoint, basis, *, tolerance):
+        basis = np.asarray(basis, dtype=complex)
+        if (basis.ndim != 2 or basis.shape[0] != matrix.shape[0]
+                or not np.isfinite(basis).all() or not np.isfinite(tolerance)
+                or tolerance <= 0):
+            raise ValueError("finite matching basis and positive tolerance required")
+        self.matrix = matrix
+        self.coordinates = np.asarray(adjoint(basis), dtype=complex)
+        if (self.coordinates.shape != (matrix.shape[1], basis.shape[1])
+                or not np.isfinite(self.coordinates).all()):
+            raise ValueError("frame adjoint returned invalid coordinates")
+        self.adjoint = self.coordinates.conj().T
+        if np.max(abs(self.adjoint @ self.coordinates - np.eye(basis.shape[1])), initial=0) > tolerance:
+            raise ValueError("accepted basis must be orthonormal in the singlet frame")
+        self.coordinates.flags.writeable = self.adjoint.flags.writeable = False
+
+    @property
+    def payload_bytes(self):
+        return self.coordinates.nbytes + self.adjoint.nbytes
+
+    def direction(self, indices, coefficients, *, cutoff):
+        indices, coefficients = np.asarray(indices), np.asarray(coefficients, dtype=complex)
+        if (indices.ndim != 1 or indices.dtype.kind not in "iu"
+                or coefficients.shape != indices.shape or not np.isfinite(coefficients).all()
+                or np.any(indices < 0) or np.any(indices >= self.matrix.shape[1])
+                or len(np.unique(indices)) != len(indices) or not np.isfinite(cutoff) or cutoff <= 0):
+            raise ValueError("distinct frame indices, finite coefficients and positive cutoff required")
+        vector = np.zeros(self.matrix.shape[1], complex)
+        vector[indices] = coefficients
+        for _ in range(2):
+            vector -= self.coordinates @ (self.adjoint @ vector)
+        physical = np.asarray(self.matrix @ vector)
+        norm = float(np.linalg.norm(physical))
+        return None if norm <= cutoff else canonical_phase(physical / norm)
 
 
 class _FrameSnapshot:
@@ -189,10 +237,15 @@ def run_sparse_packets(apply, diagonal, frame, hf, active_orbitals, config, *, p
     and falls back on empty/low-gain shortlists; it is a heuristic.
     ``cache_mode`` is opt-in: ``basis`` reuses one adjoint per fixed growth
     span, ``frame`` reuses group blocks/the frame adjoint, and ``combined``
-    enables both. The basis cache owns one V† per accepted span, released
+    enables both. ``coordinates`` instead projects twice in the fixed singlet
+    frame, owning C=F†V and C† per step and one sparse frame adjoint per run;
+    it borrows F and owns no group-block copies. The basis cache owns one V† per accepted span, released
     before the next extension; frame caches own copies of the group blocks
-    and frame adjoint. Neither stores candidate vectors or H actions, and
-    neither changes selection or H calls. Construction is charged to solver
+    and frame adjoint. No mode caches candidate vectors or H actions. Existing
+    cache modes preserve arithmetic; coordinates change floating-point reductions
+    and need an explicit equivalence check. The declared early-policy comparison
+    preserves selected candidates but fails exact shortlist-order equality.
+    Construction is charged to solver
     time. Only candidates within the tie tolerance of a step's best score so
     far retain their direction and action; every score is still recorded.
     ``observe(row, basis, state)``, if given, runs after each prefix row; its return
@@ -201,8 +254,8 @@ def run_sparse_packets(apply, diagonal, frame, hf, active_orbitals, config, *, p
     """
     if policy not in ("exhaustive", "early"):
         raise ValueError("policy must be exhaustive or early")
-    if cache_mode not in ("none", "basis", "frame", "combined"):
-        raise ValueError("cache_mode must be none, basis, frame or combined")
+    if cache_mode not in ("none", "basis", "frame", "combined", "coordinates"):
+        raise ValueError("cache_mode must be none, basis, frame, combined or coordinates")
     diagonal = np.asarray(diagonal)
     if diagonal.shape != (frame.shape[0],) or not np.isfinite(diagonal).all() or np.iscomplexobj(diagonal):
         raise ValueError("finite real sector diagonal required")
@@ -228,10 +281,11 @@ def run_sparse_packets(apply, diagonal, frame, hf, active_orbitals, config, *, p
             key = spatial_pattern(int(word), outside, frame.n)
             groups.setdefault(key, []).append(j)
     use_basis = cache_mode in ("basis", "combined")
+    use_coordinates = cache_mode == "coordinates"
     snapshot, construction = None, 0.0
-    if cache_mode in ("frame", "combined"):
+    if cache_mode in ("frame", "combined", "coordinates"):
         cache_started = time.perf_counter()
-        snapshot = frame.snapshot(groups)
+        snapshot = frame.snapshot({} if use_coordinates else groups)
         construction = time.perf_counter() - cache_started
     layout = snapshot.layout() if snapshot is not None else dict.fromkeys(
         ("frame_nnz", "group_nnz", "group_columns", "index_itemsize", "indptr_itemsize",
@@ -243,6 +297,8 @@ def run_sparse_packets(apply, diagonal, frame, hf, active_orbitals, config, *, p
                    "projected_candidates": 0, "peak_owned_bytes": fixed_cache_bytes,
                    "fixed_owned_bytes": fixed_cache_bytes, "peak_basis_adjoint_bytes": 0,
                    **layout, "construction_wall_seconds": construction}
+    if use_coordinates:
+        cache_stats.update(coordinate_builds=0, peak_coordinate_bytes=0)
     adjoint = snapshot.adjoint if snapshot is not None else frame.adjoint
     rows, decisions, observations = [], [], []
     materialized = scored = 0
@@ -271,12 +327,19 @@ def run_sparse_packets(apply, diagonal, frame, hf, active_orbitals, config, *, p
                      config["direction_relative_tolerance"] * np.linalg.norm(raw))
         coefficients, residual_coefficients = adjoint(raw), adjoint(residual)
         projector = None
-        if use_basis:
+        if use_basis or use_coordinates:
             cache_started = time.perf_counter()
-            projector = _StepProjection(space.basis)
-            size = projector.adjoint.nbytes
-            cache_stats['basis_adjoint_builds'] += 1
-            cache_stats['peak_basis_adjoint_bytes'] = max(cache_stats['peak_basis_adjoint_bytes'], size)
+            if use_coordinates:
+                projector = _FrameCoordinateProjection(frame.matrix, adjoint, space.basis,
+                                                       tolerance=config['orthogonality_tolerance'])
+                size = projector.payload_bytes
+                cache_stats['coordinate_builds'] += 1
+                cache_stats['peak_coordinate_bytes'] = max(cache_stats['peak_coordinate_bytes'], size)
+            else:
+                projector = _StepProjection(space.basis)
+                size = projector.adjoint.nbytes
+                cache_stats['basis_adjoint_builds'] += 1
+                cache_stats['peak_basis_adjoint_bytes'] = max(cache_stats['peak_basis_adjoint_bytes'], size)
             cache_stats['peak_owned_bytes'] = max(cache_stats['peak_owned_bytes'], fixed_cache_bytes+size)
             cache_stats['construction_wall_seconds'] += time.perf_counter()-cache_started
         indicators = {key: float(np.linalg.norm(residual_coefficients[ids])**2)
@@ -298,10 +361,13 @@ def run_sparse_packets(apply, diagonal, frame, hf, active_orbitals, config, *, p
                 attempted.add(key)
                 materialized += 1
                 ids = groups[key]
-                vector = (snapshot.combine(key, coefficients[ids]) if snapshot is not None
-                          else frame.combine(ids, coefficients[ids]))
-                direction = (projector.direction(vector, cutoff=cutoff) if projector is not None
-                             else orthogonal_direction(vector, space.basis, cutoff=cutoff))
+                if use_coordinates:
+                    direction = projector.direction(ids, coefficients[ids], cutoff=cutoff)
+                else:
+                    vector = (snapshot.combine(key, coefficients[ids]) if snapshot is not None
+                              else frame.combine(ids, coefficients[ids]))
+                    direction = (projector.direction(vector, cutoff=cutoff) if projector is not None
+                                 else orthogonal_direction(vector, space.basis, cutoff=cutoff))
                 cache_stats['projected_candidates'] += int(projector is not None)
                 if direction is None:
                     continue

@@ -1,5 +1,27 @@
 # `clifford_qc` research plan — WISE–A-CASE (PRD)
 
+**2026-10-23 frame-coordinate projection: observed, opt-in; joint criterion fails.**
+`benchmarks/FRAME_COORDINATE_PROJECTION_DECLARATION.md` freezes the comparison
+before implementation against merged PR #149. The `coordinates` path projects
+twice using C=F†V and reconstructs in the sparse singlet frame. All 56 timed
+cells and eight post-timing historical combined-cache controls complete. The
+14 distinct scientific payloads pass independent occupation/sign/frame replay,
+and every selected candidate, direction within tolerance, energy/residual,
+H-action/materialization count, audit flag and shortlist membership agrees with
+the baseline. The frozen criterion nevertheless **fails** on primary early
+growth: keys 3412 and 3892 swap shortlist order at steps 28, 31, 32 and 36 in
+every repetition. Exact ordered-shortlist equality is retained; equal members
+and winners do not excuse this failure. Other input/policy comparisons pass.
+Primary median setup+solver time is 29.101 to 14.485 s exhaustive (50.22%) and
+9.483 to 5.991 s early (36.83%) against combined caching. Median worker RSS is
+96.980 to 96.824 MiB exhaustive and 96.395 to 95.824 MiB early, essentially flat;
+resident cache arrays fall 5.215 to 3.643 MiB. Both performance clauses pass,
+but failed early-order equivalence prevents the joint pass. Defaults and
+numbered phases are unchanged. Reporting/checker changes after observation
+separate validity of the observations from a failed criterion, expose the four
+order differences and enforce the frozen schedule in reporting; no observation
+byte or acceptance rule changes. See `benchmarks/results/frame_coordinate_projection.md`.
+
 **2026-10-22 column-budget convergence: observed; packets do not add column compactness.**
 `benchmarks/PACKET_BUDGET_CONVERGENCE_DECLARATION.md` and its config freeze a
 comparison on merged PR #148. At 64 columns both residual packets and greedy
@@ -98,14 +120,15 @@ the held-out chain favours packets, and there they spend at least 5.4 times
 selected CI's H actions. Wherever Davidson reaches the ground state, it needs
 no more columns than any restricted arm at any threshold, and far fewer at
 tight ones. Speeding up the losing arm does not justify a campaign, so the
-pending packet follow-ups are dropped:
-frame-coordinate projection `F(I - CC†)a`, promotion of the opt-in caches and
-the tie-tolerant canonical-phase pivot. The shipped solver, its opt-in caches
-and the early policy stay as they are, with no default change. Reopening the
-line needs a new declaration with a cost model that prices bounded column
-support, such as measured matrix elements. Two infrastructure items outlive
-it. The content-addressed payload storage of the last two campaigns could
-become a shared artifact policy. Live-source guards should migrate separately:
+follow-up work is dropped. The completed frame-coordinate comparison is
+recorded above; its frozen joint criterion failed, and no further campaign is
+planned. Promotion of the opt-in caches and the tie-tolerant canonical-phase
+pivot are also dropped. The shipped solver, its opt-in caches and the early
+policy stay as they are, with no default change. Reopening the line needs a new
+declaration with a cost model that prices bounded column support, such as
+measured matrix elements. Two infrastructure items outlive it. The
+content-addressed payload storage of the last two campaigns could become a
+shared artifact policy. Live-source guards should migrate separately:
 historical digests and ancestry stay mandatory, and explicit current-code
 invariant tests replace bespoke AST exceptions. Future campaigns keep held-out
 molecular and lattice inputs and separate setup, solver, preflight and memory

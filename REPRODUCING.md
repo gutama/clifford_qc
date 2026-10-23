@@ -521,10 +521,82 @@ No figure or table value in the manuscript is transcribed by hand, and
 
 ## Environment
 
+### Frame-coordinate packet projection
+
+`benchmarks/FRAME_COORDINATE_PROJECTION_DECLARATION.md` and
+`benchmarks/configs/frame_coordinate_projection.json` freeze a new comparison
+against merged PR #149. `run_sparse_packets(..., cache_mode="coordinates")`
+projects twice in the fixed singlet frame using C=F†V, then applies the physical
+norm cutoff and existing phase convention. It owns C, C† and a sparse frame
+adjoint; it borrows F and stores no duplicate group blocks. The existing cache
+modes and defaults are unchanged. This is exact classical sector-vector work.
+
+The 56-cell comparison runs both exhaustive and early policies against
+`combined`, with eight post-timing controls executing the exact baseline Git
+source. Reused molecular and lattice inputs are held out of implementation
+tests, not previously unseen data. The joint bar requires trajectory equivalence,
+all cells, at least 20% lower primary median setup+solver time and no median
+worker-RSS increase under each policy. All 56 cells and eight controls are
+committed in `benchmarks/reference_results/frame_coordinate_projection.json`.
+The original execution is `bd1d80f`, and the observations enter separately in
+`94924fb`; the publication receipt and bundle preserve those exact Git objects.
+
+The joint criterion **fails**. Independent replay validates all 14 distinct
+payloads. Exhaustive equivalence passes on every input. The primary early
+trajectory has the same shortlist members, selected candidates, physical
+directions within tolerance, energies/residuals, H calls and audits, but keys
+3412 and 3892 swap shortlist order at steps 28, 31, 32 and 36 in every repeat.
+The frozen exact order requirement is not relaxed. Primary medians against
+combined caching fall 29.101 to 14.485 s exhaustive and 9.483 to 5.991 s early;
+worker RSS is essentially flat, while resident cache arrays fall 5.215 to
+3.643 MiB. Meeting the performance clauses cannot excuse failed equivalence.
+The path remains opt-in and all defaults are unchanged.
+
+The post-observation checker/reporting correction separates a valid record
+from a negative criterion, prints the ordering failures explicitly and enforces
+the declared schedule length even on a truncated report input. No recorded
+byte, numerical implementation or decision rule is changed by that correction.
+
+Use the committed record environment and a clean source commit. The declaration
+check and default producer invocation perform no timed solver campaign:
+
+```bash
+python benchmarks/run_frame_coordinate_projection.py
+python benchmarks/check_frame_coordinate_projection.py --declaration-only
+```
+
+Execution requires `OMP_NUM_THREADS=OPENBLAS_NUM_THREADS=MKL_NUM_THREADS=1`
+and a new output directory outside the worktree:
+
+```bash
+python benchmarks/run_frame_coordinate_projection.py --execute --directory /tmp/frame-coordinate-projection
+python benchmarks/check_frame_coordinate_projection.py --unbound --record /tmp/frame-coordinate-projection/result.json
+```
+
+An interrupted campaign may use `--resume` with the same directory only after
+its prior processes have stopped; started cells are recovered or marked
+interrupted, never rerun. Timings, OS high-water marks, resident cache bytes,
+content-addressed scientific payloads and the durable journal remain distinct.
+The producer now refuses execution when its published record exists, before
+preflight or creating an output directory. Reproduce an execution from its
+preserved pre-observation source; another published campaign needs a new declaration.
+The published source bundle/receipt is under
+`benchmarks/provenance/frame_coordinate_projection.*`; the generated readout is
+`benchmarks/results/frame_coordinate_projection.md`. A VALID checker exit means
+the observations replay and their bindings hold; it also prints the separate
+frozen-equivalence FAIL. Never read VALID as promotion of the optimization.
+
+```bash
+python benchmarks/check_frame_coordinate_projection.py
+python benchmarks/summarize_frame_coordinate_projection.py --check
+```
+
+### Installed test environment
+
 ```bash
 python -m venv .venv && source .venv/bin/activate
 pip install -e .[test,research,stim]       # automatic CI extras
-pytest                                      # 4019 passed, 12 skipped (expected if green)
+pytest                                      # 4049 passed, 12 skipped (expected if green)
 ```
 
 This is the automatic CI dependency set; record gates additionally pin NumPy
@@ -543,7 +615,7 @@ the remaining `12 - 6 = 6` skips are per-test and *are* collected:
 
 ```text
 collected == passed + (skipped - files dropped at collection)
-4025      == 4019   + (12      -   6)
+4055      == 4049   + (12      -   6)
 ```
 
 Both sides are computed from the tree, so a drift in either quoted number
