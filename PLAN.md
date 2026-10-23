@@ -9,8 +9,11 @@ packets, spin-adapted selected CI and a singlet-projected Davidson reference to
 singlet span on held-out full-space stretched BeH2 and two small controls. The
 52 fresh-process cells report columns, H actions and time to declared thresholds,
 span support and memory. Packets add column compactness only if they need at
-most 0.8 times selected CI's columns on the primary and both held-out inputs. No
-result or solver-default change is declared here.
+most 0.8 times selected CI's columns on the primary and both held-out inputs.
+Revised before implementation: every arm's final overlap with the reference
+ground state is reported, because a toy test showed lowest-root Davidson can
+stay in its start's symmetry sector. No result or solver-default change is
+declared here.
 
 **2026-10-20 exact projection caching: observed, opt-in.**
 `benchmarks/EXACT_PROJECTION_CACHE_DECLARATION.md` and its config freeze a new

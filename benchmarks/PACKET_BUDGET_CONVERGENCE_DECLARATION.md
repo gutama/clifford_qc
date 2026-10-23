@@ -20,7 +20,10 @@ Known outcomes inform the design and are not re-claimed: the published 64-column
 trajectories, H2O CAS(8e,6o) converging within 32 columns, the 2x3 Hubbard errors
 at 32 columns (0.341441/0.385303 t exhaustive/early), and Phase PRD's
 Davidson-first method hierarchy at small M. The timeout uses a per-step cost
-model fitted only to the published 64-column prefix timings.
+model fitted only to the published 64-column prefix timings. A toy 2x2 Hubbard
+implementation test, before any campaign input ran, showed lowest-root Davidson
+converging to an excited singlet when its start has no ground-state overlap;
+this revision adds the confinement diagnostic in readout 4.
 
 ## Arms
 
@@ -130,8 +133,13 @@ W and setup-plus-solver time, or "not reached within budget". Report frontiers a
    threshold that exhaustive reaches within 1.1 times its columns and its
    frontier errors are within 10% of exhaustive's; otherwise state the loss.
 4. Davidson reference. Report its K, W and time per threshold and its span
-   support at matched columns. If it reaches every threshold in fewer columns
-   than both restricted arms, the packets-versus-selected-CI comparison concerns
+   support at matched columns. Lowest-root expansion can stay confined to the
+   starting state's symmetry sector, so after timing report every arm's final
+   Ritz-state overlap with the reference ground state. Where Davidson stops at
+   the residual tolerance more than 1e-8 above the reference, its bound is
+   uninformative for that input and the confinement is reported as an outcome.
+   Otherwise, if it reaches every threshold in fewer columns than both
+   restricted arms, the packets-versus-selected-CI comparison concerns
    bounded-support compactness only, and is reported as such.
 
 Timing from two or three fresh processes is descriptive. No quantum, hardware,

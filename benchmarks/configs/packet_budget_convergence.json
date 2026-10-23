@@ -180,7 +180,9 @@
     "work_ratio": 1.25,
     "early_column_ratio": 1.1,
     "early_relative_frontier_error": 0.1,
-    "complete_span_tolerance": 1e-08
+    "complete_span_tolerance": 1e-08,
+    "final_ground_state_overlap_reported": true,
+    "davidson_uninformative_if_converged_above_reference_by": 1e-08
   },
   "implementation_paths_absent_at_declaration": [
     "clifford_qc/subspace/sparse_baselines.py",
