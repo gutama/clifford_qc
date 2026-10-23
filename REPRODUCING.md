@@ -20,6 +20,7 @@ OMP_NUM_THREADS=1 OPENBLAS_NUM_THREADS=1 MKL_NUM_THREADS=1 \
     --directory /tmp/packet_budget_convergence_campaign
 python benchmarks/check_packet_budget_convergence.py
 python benchmarks/check_packet_budget_convergence.py --full
+python benchmarks/check_packet_budget_convergence.py --start-weights
 python benchmarks/summarize_packet_budget_convergence.py --check
 ```
 
@@ -62,6 +63,15 @@ in the band, as on every lattice packet and selected-CI prefix. The same commit
 adds the declared span support at matched columns, which the executed
 summarizer omitted, and a support caveat to the report. No verdict rule,
 observation, design or execution source changed after timing.
+
+A later correction withdrew the readout 4 note's claim that Davidson's span
+excludes the primary's ground state. `--start-weights` prints each input's
+ground-state weight in the shared start span from the checker's independent
+reference: 1.7e-6 on the primary, 1.7e-14 on the chain and 7.1e-6 on the 2x3
+control, and Davidson reaches the ground state on the latter two. The primary
+stop is therefore convergence to an excited root from a weak start, not the
+symmetry confinement the pre-implementation revision anticipated. The verdicts
+are unchanged.
 
 
 `benchmarks/EXACT_PROJECTION_CACHE_DECLARATION.md` and
@@ -586,7 +596,7 @@ python benchmarks/summarize_frame_coordinate_projection.py --check
 ```bash
 python -m venv .venv && source .venv/bin/activate
 pip install -e .[test,research,stim]       # automatic CI extras
-pytest                                      # 4048 passed, 12 skipped (expected if green)
+pytest                                      # 4049 passed, 12 skipped (expected if green)
 ```
 
 This is the automatic CI dependency set; record gates additionally pin NumPy
@@ -605,7 +615,7 @@ the remaining `12 - 6 = 6` skips are per-test and *are* collected:
 
 ```text
 collected == passed + (skipped - files dropped at collection)
-4054      == 4048   + (12      -   6)
+4055      == 4049   + (12      -   6)
 ```
 
 Both sides are computed from the tree, so a drift in either quoted number

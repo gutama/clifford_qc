@@ -46,10 +46,13 @@ threshold. Early packets track exhaustive on the primary and end lower on the
 chain, outside the declared 10% band. Singlet Davidson reaches 0.0016 t in 23
 columns on the chain, but on the primary it stops at residual 9.2e-9 on an
 excited singlet 0.9949 t above the reference, with ground-state overlap 1.5e-12.
-Small controls reach the reference. Readout wording and the checker's
-support-count tolerance were revised after observation; no verdict rule
-changed. Defaults are unchanged. See
-`benchmarks/results/packet_budget_convergence.md`.
+Its start span carries ground-state weight 1.7e-6, against 1.7e-14 on the
+chain, so this is convergence to an excited root from a weak start, not the
+symmetry confinement the revision anticipated. Small controls reach the
+reference. Readout wording and the checker's support-count tolerance were
+revised after observation, and a later correction withdrew the report's claim
+that Davidson's span excludes the ground state; no verdict rule changed.
+Defaults are unchanged. See `benchmarks/results/packet_budget_convergence.md`.
 
 **2026-10-20 exact projection caching: observed, opt-in.**
 `benchmarks/EXACT_PROJECTION_CACHE_DECLARATION.md` and its config freeze a new
@@ -109,24 +112,27 @@ establishes the observed deterministic accuracy loss; missing repeats limit
 timing precision. Every larger-Hubbard arm misses the target. The separate
 validation notes document phase alignment and checkpoint-byte reconstruction.
 
-**Review follow-ups; declare before implementation or timing.** The accepted
-basis-adjoint and fixed group/frame caches are implemented and measured above;
-their memory trade-off prevents promotion. Frame-coordinate projection
-`F(I - CC†)a` is declared in `benchmarks/FRAME_COORDINATE_PROJECTION_DECLARATION.md`
-before implementation, against merged PR #149. The 56-cell comparison and eight
-historical controls are now observed above: exhaustive equivalence passes;
-primary early shortlist-order equivalence fails. Both remain opt-in, and no
-new timing campaign or acceptance-rule relaxation follows from this result.
-Test a tie-tolerant first-maximum canonical-phase pivot against physical-ray
-invariants. Reviewer profiling motivates these experiments but is not campaign
-evidence. The next campaign must include a held-out molecule as well as a
-held-out lattice and separate setup, solver, preflight and memory measurements
-(supervisor-only record survey or a post-preflight RSS baseline). Plan a
-content-addressed artifact policy to avoid repeated large observation payloads
-while retaining exact bytes and retrievable historical Git objects. Revisit
-live-source guards as a separate migration: historical digests/ancestry remain
-mandatory, with explicit current-code invariant tests replacing bespoke AST
-exceptions. The existing narrow guard remains in this PR.
+**2026-10-23 residual-packet line closed.** Five campaigns since 2026-10-19
+measured packet work, larger sectors, sparse setup, exact caching and column
+budgets. Under the declared rule, packets do not add column compactness over
+greedy spin-adapted selected CI: the primary and held-out BeH2 read mixed. Only
+the held-out chain favours packets, and there they spend at least 5.4 times
+selected CI's H actions. Wherever Davidson reaches the ground state, it needs
+no more columns than any restricted arm at any threshold, and far fewer at
+tight ones. Speeding up the losing arm does not justify a campaign, so the
+follow-up work is dropped. The completed frame-coordinate comparison is
+recorded above; its frozen joint criterion failed, and no further campaign is
+planned. Promotion of the opt-in caches and the tie-tolerant canonical-phase
+pivot are also dropped. The shipped solver, its opt-in caches and the early
+policy stay as they are, with no default change. Reopening the line needs a new
+declaration with a cost model that prices bounded column support, such as
+measured matrix elements. Two infrastructure items outlive it. The
+content-addressed payload storage of the last two campaigns could become a
+shared artifact policy. Live-source guards should migrate separately:
+historical digests and ancestry stay mandatory, and explicit current-code
+invariant tests replace bespoke AST exceptions. Future campaigns keep held-out
+molecular and lattice inputs and separate setup, solver, preflight and memory
+measurements.
 
 **One document.** It consolidates the former `ACASE_RESEARCH_PLAN.md` (identity,
 method, Phases 0–7), `LITERATURE_ROADMAP.md` (Phases 8–18, tracks, literature),
