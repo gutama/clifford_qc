@@ -180,7 +180,7 @@ def _encode(columns, tolerance):
 
 
 def run_sparse_packets(apply, diagonal, frame, hf, active_orbitals, config, *, policy="exhaustive",
-                       cache_mode="none"):
+                       cache_mode="none", observe=None):
     """Exact classical packet growth; optional marks precede admissibility.
 
     ``config`` supplies the declared cutoffs/budgets. There is no reference
@@ -195,6 +195,9 @@ def run_sparse_packets(apply, diagonal, frame, hf, active_orbitals, config, *, p
     neither changes selection or H calls. Construction is charged to solver
     time. Only candidates within the tie tolerance of a step's best score so
     far retain their direction and action; every score is still recorded.
+    ``observe(row, basis, state)``, if given, runs after each prefix row; its return
+    values are kept in ``result["observations"]``, never affect selection, and
+    its time is charged to the solver.
     """
     if policy not in ("exhaustive", "early"):
         raise ValueError("policy must be exhaustive or early")
@@ -241,7 +244,7 @@ def run_sparse_packets(apply, diagonal, frame, hf, active_orbitals, config, *, p
                    "fixed_owned_bytes": fixed_cache_bytes, "peak_basis_adjoint_bytes": 0,
                    **layout, "construction_wall_seconds": construction}
     adjoint = snapshot.adjoint if snapshot is not None else frame.adjoint
-    rows, decisions = [], []
+    rows, decisions, observations = [], [], []
     materialized = scored = 0
     added, choice, score = initial, {"initial_csf_indices": selected}, None
     for step in range(config["maximum_growth_steps"] + 1):
@@ -255,6 +258,8 @@ def run_sparse_packets(apply, diagonal, frame, hf, active_orbitals, config, *, p
             "materialized_candidates": materialized, "added_columns": _encode(added, config["serialization_tolerance"]),
             "selection": choice, "selection_score": score, "retained_payload_bytes": space.payload_bytes,
             "wall_seconds": time.perf_counter() - started})
+        if observe is not None:
+            observations.append(observe(rows[-1], space.basis, state))
         stop = ("residual_tolerance" if rows[-1]["residual_norm"] <= config["residual_tolerance"]
                 else "column_ceiling" if space.basis.shape[1] >= config["maximum_columns"]
                 else "growth_step_ceiling" if step == config["maximum_growth_steps"] else None)
@@ -336,8 +341,11 @@ def run_sparse_packets(apply, diagonal, frame, hf, active_orbitals, config, *, p
         added = direction[:, None]
         space.extend(added, actions=acted[:, None])
         choice, score = {"candidate": key}, scores[key]
-    return {"policy": policy, "trajectory": rows, "decisions": decisions,
-            "cache": cache_stats,
-            "stop_reason": stop, "final_h_action_calls": space.h_action_calls,
-            "final_candidates_scored": scored, "materialized_candidates": materialized,
-            "solver_wall_seconds": time.perf_counter() - started}
+    result = {"policy": policy, "trajectory": rows, "decisions": decisions,
+              "cache": cache_stats,
+              "stop_reason": stop, "final_h_action_calls": space.h_action_calls,
+              "final_candidates_scored": scored, "materialized_candidates": materialized,
+              "solver_wall_seconds": time.perf_counter() - started}
+    if observe is not None:
+        result["observations"] = observations
+    return result

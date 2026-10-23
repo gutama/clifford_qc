@@ -1,6 +1,68 @@
 # Reproducing the benchmark artifacts
 
-## Exact packet projection caching
+## Column-budget convergence
+
+`benchmarks/PACKET_BUDGET_CONVERGENCE_DECLARATION.md` and
+`benchmarks/configs/packet_budget_convergence.json` freeze a result-free
+comparison, revised once before implementation to report every arm's final
+overlap with the reference ground state. Exhaustive and early residual packets,
+greedy spin-adapted selected CI and a singlet-projected Davidson reference each
+add one column per step from a shared CAS(2e,2o) singlet span. The two baselines
+are `run_selected_ci` and `run_singlet_davidson` in
+`clifford_qc/subspace/sparse_baselines.py`. Growth runs to 512 columns on the
+2x4 Hubbard primary and a held-out 8-site chain, and to the complete singlet
+span on held-out full-space stretched BeH2 and two small controls.
+
+```bash
+python benchmarks/run_packet_budget_convergence.py
+OMP_NUM_THREADS=1 OPENBLAS_NUM_THREADS=1 MKL_NUM_THREADS=1 \
+  python benchmarks/run_packet_budget_convergence.py --execute \
+    --directory /tmp/packet_budget_convergence_campaign
+python benchmarks/check_packet_budget_convergence.py
+python benchmarks/check_packet_budget_convergence.py --full
+python benchmarks/summarize_packet_budget_convergence.py --check
+```
+
+Execution follows the exact-cache campaign's discipline: clean committed
+sources after the declaration, pinned threads, fresh workers, supervisor-only
+record survey, a durable start/outcome journal, recovery without reruns, and
+references computed only after every timed cell. The persisted scientific
+payload keeps per-prefix energies, residuals, spin, work counters and span
+support, compact decisions and the final Ritz state. Compact decisions hold the
+selected key, every score within 1e-8 of the best, admissible and attempted
+counts and early shortlists; the checker regenerates directions independently.
+By default the checker replays every prefix and rescores every candidate on
+inputs up to 1,225 determinants. On larger packet trajectories it rescores every
+candidate at sampled steps (the first three, the last two and every 64th) and
+the selected candidate elsewhere; `--full` rescores every step.
+
+The published `benchmarks/reference_results/packet_budget_convergence.json`
+retains 52/52 timed observations using 20 scientific payloads; repeated cells
+of each arm are bitwise identical. Declaration `09b1918`, execution `56c4a5e`
+and observation `225d582` are distinct commits restored by the provenance
+bundle. The record is about 1.6 MB and the bundle 1.0 MB. Bounded replay
+passes in about 12 minutes single-threaded, so CI runs it as its own job.
+Every input's sector ground state is a nondegenerate singlet.
+
+Two changes followed observation, each in its own commit after `225d582`.
+`e92a064` revised readout wording: readout 3 now names the failing clause and
+the sign of early-minus-exhaustive differences, because the chain's early
+packets end with lower error than exhaustive ones, and readout 4 notes
+Davidson's primary stop without the declared residual-tolerance trigger. The
+next commit revised the checker's support test after its first bounded run
+failed it. The executed checker allowed max(2, 0.1%) between recorded and
+independent counts above 1e-12. Normalizing a small projected direction
+amplifies rounding to about 1e-12, so on molecular inputs and 2x4 Davidson an
+independent computation of the same span counts different entries: 53 of 4,106
+prefixes differ, by up to 3.5% (BeH2 packets record 175 determinants where the
+replay counts 181). Re-running those cells reproduces their payloads bitwise.
+Every recorded count lies between the replay's counts at 1e-11 and 1e-13, which
+the checker now requires; that is exact equality wherever no amplitude falls
+in the band, as on every lattice packet and selected-CI prefix. The same commit
+adds the declared span support at matched columns, which the executed
+summarizer omitted, and a support caveat to the report. No verdict rule,
+observation, design or execution source changed after timing.
+
 
 `benchmarks/EXACT_PROJECTION_CACHE_DECLARATION.md` and
 `benchmarks/configs/exact_projection_cache.json` freeze a separate exact-cache
@@ -452,7 +514,7 @@ No figure or table value in the manuscript is transcribed by hand, and
 ```bash
 python -m venv .venv && source .venv/bin/activate
 pip install -e .[test,research,stim]       # automatic CI extras
-pytest                                      # 3989 passed, 12 skipped (expected if green)
+pytest                                      # 4018 passed, 12 skipped (expected if green)
 ```
 
 This is the automatic CI dependency set; record gates additionally pin NumPy
@@ -471,7 +533,7 @@ the remaining `12 - 6 = 6` skips are per-test and *are* collected:
 
 ```text
 collected == passed + (skipped - files dropped at collection)
-3995      == 3989   + (12      -   6)
+4024      == 4018   + (12      -   6)
 ```
 
 Both sides are computed from the tree, so a drift in either quoted number

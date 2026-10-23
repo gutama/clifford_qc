@@ -1,5 +1,34 @@
 # `clifford_qc` research plan — WISE–A-CASE (PRD)
 
+**2026-10-22 column-budget convergence: observed; packets do not add column compactness.**
+`benchmarks/PACKET_BUDGET_CONVERGENCE_DECLARATION.md` and its config freeze a
+comparison on merged PR #148. At 64 columns both residual packets and greedy
+selected CI miss the 2x4 Hubbard target by about 2 t. Grow exhaustive and early
+packets, spin-adapted selected CI and a singlet-projected Davidson reference to
+512 columns on the primary and a held-out 8-site chain, and to the complete
+singlet span on held-out full-space stretched BeH2 and two small controls. The
+52 fresh-process cells report columns, H actions and time to declared thresholds,
+span support and memory. Packets add column compactness only if they need at
+most 0.8 times selected CI's columns on the primary and both held-out inputs.
+Revised before implementation: every arm's final overlap with the reference
+ground state is reported, because a toy test showed lowest-root Davidson can
+stay in its start's symmetry sector. All 52 cells complete with 20 scientific
+payloads and pass bounded independent replay. The primary and held-out BeH2 read mixed;
+only the held-out chain reads "packets more compact", so the decision is no. On
+the primary, exhaustive packets reach 1 t in 145 columns against selected CI's
+174 (above the 0.8 ratio) and 0.1 t in 473, which selected CI misses within 512;
+they end at 0.0763 against 0.2477 t, after 215,421 against 1,764 H actions. On
+the chain, packets need 89/251/484 columns for 1/0.1/0.01 t against 166/404/not
+reached, at 5.4 times or more selected CI's H actions where both reach a
+threshold. Early packets track exhaustive on the primary and end lower on the
+chain, outside the declared 10% band. Singlet Davidson reaches 0.0016 t in 23
+columns on the chain, but on the primary it stops at residual 9.2e-9 on an
+excited singlet 0.9949 t above the reference, with ground-state overlap 1.5e-12.
+Small controls reach the reference. Readout wording and the checker's
+support-count tolerance were revised after observation; no verdict rule
+changed. Defaults are unchanged. See
+`benchmarks/results/packet_budget_convergence.md`.
+
 **2026-10-20 exact projection caching: observed, opt-in.**
 `benchmarks/EXACT_PROJECTION_CACHE_DECLARATION.md` and its config freeze a new
 comparison on merged PR #146. Cache the accepted basis adjoint once per growth

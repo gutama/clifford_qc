@@ -1,0 +1,194 @@
+{
+  "schema": "clifford_qc.packet_budget_convergence_design.v1",
+  "baseline_commit": "abcb02d8e58fc9be02a960a81a772850211535bc",
+  "order_seed": 20261022,
+  "worker_timeout_seconds": 3600,
+  "preconditioner_shift": 0.1,
+  "residual_tolerance": 1e-09,
+  "direction_absolute_tolerance": 1e-09,
+  "direction_relative_tolerance": 1e-08,
+  "orthogonality_tolerance": 1e-10,
+  "spin_tolerance": 1e-09,
+  "score_tie_tolerance": 1e-12,
+  "serialization_tolerance": 1e-12,
+  "support_tolerance": 1e-12,
+  "shortlist_fraction": 0.8,
+  "audit_interval": 5,
+  "max_spin_block_dimension": 256,
+  "arms": [
+    {
+      "name": "packets_exhaustive",
+      "kind": "packets",
+      "policy": "exhaustive",
+      "cache_mode": "combined"
+    },
+    {
+      "name": "packets_early",
+      "kind": "packets",
+      "policy": "early",
+      "cache_mode": "combined"
+    },
+    {
+      "name": "selected_ci",
+      "kind": "selected_ci"
+    },
+    {
+      "name": "davidson",
+      "kind": "davidson"
+    }
+  ],
+  "inputs": [
+    {
+      "name": "hubbard_2x4_u4",
+      "role": "primary",
+      "kind": "hubbard",
+      "model": {
+        "shape": [
+          2,
+          4
+        ],
+        "t": 1.0,
+        "U": 4.0,
+        "mu": 0.0,
+        "periodic": false
+      },
+      "n_qubits": 16,
+      "n_electrons": 8,
+      "sector_dimension": 4900,
+      "singlet_dimension": 1764,
+      "active_spatial_orbitals": [
+        3,
+        4
+      ],
+      "maximum_columns": 512,
+      "maximum_growth_steps": 509,
+      "repeats": 2,
+      "energy_unit": "t"
+    },
+    {
+      "name": "hubbard_1x8_u4",
+      "role": "held_out_lattice",
+      "kind": "hubbard",
+      "model": {
+        "shape": [
+          1,
+          8
+        ],
+        "t": 1.0,
+        "U": 4.0,
+        "mu": 0.0,
+        "periodic": false
+      },
+      "n_qubits": 16,
+      "n_electrons": 8,
+      "sector_dimension": 4900,
+      "singlet_dimension": 1764,
+      "active_spatial_orbitals": [
+        3,
+        4
+      ],
+      "maximum_columns": 512,
+      "maximum_growth_steps": 509,
+      "repeats": 2,
+      "energy_unit": "t"
+    },
+    {
+      "name": "beh2_stretched_full",
+      "role": "held_out_molecule",
+      "kind": "fcidump",
+      "path": "molecular/results/beh2_stretched.fcidump",
+      "sha256": "8330b2e5e9cf78027466c152dc64be7e26d49a2537950c417e7030ef49a9d8cb",
+      "n_qubits": 14,
+      "n_electrons": 6,
+      "sector_dimension": 1225,
+      "singlet_dimension": 490,
+      "active_spatial_orbitals": [
+        2,
+        3
+      ],
+      "maximum_columns": 490,
+      "maximum_growth_steps": 487,
+      "repeats": 3,
+      "energy_unit": "Ha"
+    },
+    {
+      "name": "hubbard_2x3_u8",
+      "role": "complete_span_lattice_control",
+      "kind": "hubbard",
+      "model": {
+        "shape": [
+          2,
+          3
+        ],
+        "t": 1.0,
+        "U": 8.0,
+        "mu": 0.0,
+        "periodic": false
+      },
+      "n_qubits": 12,
+      "n_electrons": 6,
+      "sector_dimension": 400,
+      "singlet_dimension": 175,
+      "active_spatial_orbitals": [
+        2,
+        3
+      ],
+      "maximum_columns": 175,
+      "maximum_growth_steps": 172,
+      "repeats": 3,
+      "energy_unit": "t"
+    },
+    {
+      "name": "h2o_cas8e6o",
+      "role": "development_complete_span_control",
+      "kind": "fcidump",
+      "path": "benchmarks/data/h2o_sto3g_cas8e6o.FCIDUMP",
+      "sha256": "2f68b1d3f9f77e9c1483cb1b879bac2a67a9d8204ce2e9e985697c10029c6103",
+      "n_qubits": 12,
+      "n_electrons": 8,
+      "sector_dimension": 225,
+      "singlet_dimension": 105,
+      "active_spatial_orbitals": [
+        3,
+        4
+      ],
+      "maximum_columns": 105,
+      "maximum_growth_steps": 102,
+      "repeats": 3,
+      "energy_unit": "Ha"
+    }
+  ],
+  "thresholds": [
+    1.0,
+    0.1,
+    0.01,
+    0.0016
+  ],
+  "frontiers": [
+    64,
+    128,
+    256
+  ],
+  "decisions": {
+    "column_compactness_ratio": 0.8,
+    "frontier_minimum_columns": 128,
+    "decisive_roles": [
+      "primary",
+      "held_out_lattice",
+      "held_out_molecule"
+    ],
+    "work_ratio": 1.25,
+    "early_column_ratio": 1.1,
+    "early_relative_frontier_error": 0.1,
+    "complete_span_tolerance": 1e-08,
+    "final_ground_state_overlap_reported": true,
+    "davidson_uninformative_if_converged_above_reference_by": 1e-08
+  },
+  "implementation_paths_absent_at_declaration": [
+    "clifford_qc/subspace/sparse_baselines.py",
+    "benchmarks/run_packet_budget_convergence.py",
+    "benchmarks/check_packet_budget_convergence.py",
+    "benchmarks/summarize_packet_budget_convergence.py",
+    "tests/test_packet_budget_convergence.py"
+  ]
+}
