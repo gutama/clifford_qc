@@ -162,3 +162,45 @@ def test_scientific_payload_digest_is_enforced():
     payload['sha256'] = '0'*64
     with pytest.raises(ValueError, match='digest'):
         decode_science(payload)
+
+
+def test_valid_observations_preserve_the_negative_frozen_equivalence_decision():
+    from benchmarks.check_frame_coordinate_projection import verify, equivalence_problems
+    record = read_json(Path('benchmarks/reference_results/frame_coordinate_projection.json'))
+    # Metadata/bindings only here; full independent numerical replay is a CI gate.
+    assert not verify(record, numerical=False)
+    assert equivalence_problems(record) == ['hubbard_2x4_u4/early: cross-arm decision shortlist']
+
+
+def test_report_keeps_order_failure_despite_equal_memberships_and_winners():
+    from benchmarks.summarize_frame_coordinate_projection import render
+    record = read_json(Path('benchmarks/reference_results/frame_coordinate_projection.json'))
+    text = render(record)
+    assert 'under both policies: FAIL' in text
+    assert text.count('membership agrees; selected candidate') == 4
+    assert 'speed clause PASS, RSS clause PASS, global eligibility FAIL' in text
+
+
+def test_missing_scheduled_cell_cannot_pass_the_joint_report_bar():
+    from benchmarks.summarize_frame_coordinate_projection import render
+    record = read_json(Path('benchmarks/reference_results/frame_coordinate_projection.json'))
+    # A synthetic, equivalent campaign with permissive performance thresholds
+    # isolates completeness from the real record's order failure.
+    for worker in record['workers']:
+        baseline = next(w for w in record['workers'] if w['input'] == worker['input']
+                        and w['policy'] == worker['policy'] and w['cache_mode'] == 'combined')
+        worker['scientific_sha256'] = baseline['scientific_sha256']
+    record['config']['promotion'].update(primary_minimum_setup_plus_solver_reduction=-10.,
+                                        maximum_median_rss_ratio=10.)
+    assert 'under both policies: PASS' in render(record)
+    record['workers'].pop()
+    text = render(record)
+    assert '55/56 scheduled cells' in text and 'under both policies: FAIL' in text
+
+
+def test_published_campaign_refuses_execution_before_preflight(tmp_path, monkeypatch):
+    from benchmarks import run_frame_coordinate_projection as runner
+    monkeypatch.setattr(runner, 'preflight', lambda *a: pytest.fail('execution preflight reached'))
+    with pytest.raises(ValueError, match='already published'):
+        runner.execute(tmp_path/'another-campaign')
+    assert not (tmp_path/'another-campaign').exists()

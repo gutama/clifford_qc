@@ -9,7 +9,7 @@ import sys
 ROOT = Path(__file__).resolve().parents[1]
 if str(ROOT) not in sys.path: sys.path.insert(0, str(ROOT))
 from benchmarks.metadata_io import read_json
-from benchmarks.run_frame_coordinate_projection import RECORD, decode_science
+from benchmarks.run_frame_coordinate_projection import RECORD, decode_science, expected_order
 from benchmarks.check_frame_coordinate_projection import compare_science
 
 REPORT = ROOT/'benchmarks/results/frame_coordinate_projection.md'
@@ -29,11 +29,15 @@ def render(record):
     c = record['config']; workers = record['workers']
     sciences = {k: decode_science(v) for k, v in record['scientific_payloads'].items()}
     good = [w for w in workers if w['status'] == 'ok']
-    complete = len(good) == len(workers) and all(w['status'] == 'ok' for w in record['historical_controls'])
+    order = expected_order(c)
+    controls = record['historical_controls']
+    complete = (len(good) == len(workers) == len(order)
+                and all(all(w[k] == v for k, v in task.items()) for w, task in zip(workers, order))
+                and len(controls) == 2*len(c['inputs']) and all(w['status'] == 'ok' for w in controls))
     lines = ['# Frame-coordinate packet projection', '',
         'Exploratory exact classical sector-vector comparisons; caches are opt-in and defaults remain unchanged.',
-        f'{len(good)}/{len(workers)} scheduled cells retained; '
-        f'{sum(w["status"] == "ok" for w in record["historical_controls"])}/{len(record["historical_controls"])} post-timing historical controls retained. '
+        f'{len(good)}/{len(order)} scheduled cells retained; '
+        f'{sum(w["status"] == "ok" for w in record["historical_controls"])}/{2*len(c["inputs"])} post-timing historical controls retained. '
         f'{len(sciences)} content-addressed scientific payloads are stored once; every cell retains its own timing/memory observations.', '',
         'Combined caching owns one V† per accepted span and fixed group blocks/frame adjoint. Coordinate projection owns C=F†V and C† per span and one frame adjoint. '
         'It caches neither candidate vectors nor H actions. Construction is included in solver and total times.',
@@ -66,7 +70,7 @@ def render(record):
             group = [w for w in good if w['input'] == name and w['policy'] == policy]
             baseline = [w for w in group if w['cache_mode'] == 'combined']
             equivalent = equivalence[name, policy]
-            lines += [f'### {policy}', '', f'Physical trajectories/selections/counters versus the pre-change module: {"PASS" if equivalent else "FAIL"}.', '',
+            lines += [f'### {policy}', '', f'Physical trajectories and all declared discrete decisions versus the pre-change module: {"PASS" if equivalent else "FAIL"}.', '',
                 '| Cache | Completed | Setup (s) | Solver (s) | Total (s), IQR | Paired speed ratio, IQR | Final error | Target |',
                 '|---|---:|---:|---:|---|---|---:|---:|']
             for mode in modes:
@@ -94,7 +98,8 @@ def render(record):
             unique = {w['scientific_sha256'] for w in group}
             audits = [d for key in unique for d in sciences[key]['decisions'] if d['audit']]
             lines += ['', f'{len(unique)} distinct scientific trajectory/trajectories; '
-                f'{len(audits)} unique audits, {sum(d["audit_missed_winner"] for d in audits)} missed winners.']
+                f'{len(audits)} audit entries across distinct encoded paths (not independent samples), '
+                f'{sum(d["audit_missed_winner"] for d in audits)} missed winners.']
             if case['role'] == 'primary' and baseline:
                 base_time = median([w['setup_seconds']+w['solver_seconds'] for w in baseline])
                 base_rss = median([w['worker_peak_rss_bytes'] for w in baseline])
@@ -106,15 +111,35 @@ def render(record):
                     passes = (eligible and reduction >= promotion['primary_minimum_setup_plus_solver_reduction']
                               and rss_ratio <= promotion['maximum_median_rss_ratio'])
                     primary_clauses.append(passes)
-                    lines += [f'Primary {mode} speed/RSS clause: {"PASS" if passes else "FAIL"}; '
+                    speed = reduction >= promotion['primary_minimum_setup_plus_solver_reduction']
+                    memory = rss_ratio <= promotion['maximum_median_rss_ratio']
+                    lines += [f'Primary {mode}: speed clause {"PASS" if speed else "FAIL"}, '
+                        f'RSS clause {"PASS" if memory else "FAIL"}, global eligibility {"PASS" if eligible else "FAIL"}; '
                         f'{100*reduction:.2f}% total-time reduction, {rss_ratio:.4f}× worker RSS.']
             lines += ['']
     joint = eligible and len(primary_clauses) == len(c['comparisons']) and all(primary_clauses)
-    lines += [f'All reported policies preserve the pre-change physical trajectories: {"PASS" if all_equivalent else "FAIL"}.',
+    lines += [f'All reported policies preserve physical trajectories and every declared discrete decision: {"PASS" if all_equivalent else "FAIL"}.',
         f'Joint correctness, completeness, primary speed and memory bar under both policies: {"PASS" if joint else "FAIL"}. Defaults remain unchanged.', '',
         'Medians of setup and solver are separate; the total is the median of paired sums. Ratios pair cache and baseline cells within each repetition. '
         'Repeated deterministic paths do not increase independent scientific/audit sample size. A fixed-budget speedup is not a matched-accuracy claim. '
         'BeH2 tests a different small molecular active space, not larger-molecule scaling. No optimized-SCI, hardware or quantum advantage is established.', '',
+        '## Ordered-shortlist differences', '']
+    for case in c['inputs']:
+        for policy in ('exhaustive', 'early'):
+            ws = [w for w in good if w['input'] == case['name'] and w['policy'] == policy and w['repeat'] == 0]
+            baseline = next((w for w in ws if w['cache_mode'] == 'combined'), None)
+            candidate = next((w for w in ws if w['cache_mode'] == 'coordinates'), None)
+            if not baseline or not candidate: continue
+            for a, b in zip(sciences[candidate['scientific_sha256']]['decisions'], sciences[baseline['scientific_sha256']]['decisions']):
+                if a['shortlist'] != b['shortlist']:
+                    lines += [f'- {case["name"]}/{policy}, step {a["step"]}: shortlist order differs; '
+                        f'membership {"agrees" if set(a["shortlist"]) == set(b["shortlist"]) else "DIFFERS"}; '
+                        f'selected candidate {a["selected"]} versus {b["selected"]}.']
+    lines += ['', 'These are representative repeat-zero differences; every repetition is checked. '
+        'Exact ordered-shortlist equality remains the frozen criterion, so equal memberships and selected candidates do not excuse a failure.', '',
+        'Reporting/checker changes after observation: distinguish valid independently replayed observations from a failed equivalence criterion; '
+        'report shortlist-order differences explicitly; enforce the frozen scheduled-cell count in the report. '
+        'No acceptance rule or observation byte changed.', '',
         f'Declaration: `{record["declaration_commit"]}`. Execution: `{record["source_commit"]}`.', '']
     return '\n'.join(lines)
 

@@ -1,0 +1,7 @@
+{
+  "schema": "clifford_qc.frame_coordinate_projection_publication.v1",
+  "record_sha256": "7086006045a03dcf3cfe3207e886d87ab9c66b4032c3f384be3a805f2eb015a7",
+  "bundle_sha256": "e59974a54244396d5c6953ae790338ca1fb9143953a277866661ec5849ab944f",
+  "observation_commit": "94924fb6c9d587c0b6b36496cb484e4f8e356692",
+  "note": "Observation bytes and frozen equivalence criterion preserved. The primary early arm fails exact ordered-shortlist equality at steps 28, 31, 32 and 36. Post-observation checker/reporting changes separate valid observations from a failed criterion; no new timing or changed scientific rule."
+}

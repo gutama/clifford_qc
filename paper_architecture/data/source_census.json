@@ -1,7 +1,6 @@
 {
   "gates": {
     "absent_from_workflow": [
-      "check_frame_coordinate_projection",
       "check_phase16b_feasibility",
       "check_phase16b_preregistration",
       "check_phase16b_v2_feasibility",
@@ -19,6 +18,7 @@
       "check_exact_projection_cache",
       "check_finite_shot_optimization",
       "check_folded_spectrum_validation",
+      "check_frame_coordinate_projection",
       "check_g1_structural_preconditioner",
       "check_h2o_residual_comparison",
       "check_krylov_width",
@@ -94,10 +94,10 @@
     ],
     "gates": 73,
     "manual_dispatch_only": 12,
-    "named_in_workflow": 65,
+    "named_in_workflow": 66,
     "producers": 71,
     "producers_without_gate": 25,
-    "run_on_every_pull_request": 53,
+    "run_on_every_pull_request": 54,
     "same_stem_pairs": 46
   },
   "records": {
@@ -125,6 +125,7 @@
       "finite_shot_optimization.json": "6829464abc77bc54",
       "finite_shot_rethink.json": "6829464abc77bc54",
       "folded_spectrum_validation.json": "3a92ee929cbdc7d1",
+      "frame_coordinate_projection.json": "383765e12c38dea7",
       "g1_structural_preconditioner.json": "f6a33f1aa225c4dd",
       "h2o_residual_comparison.json": "0e9f94117fd32ded",
       "h4_exact_trajectory.json": "8e31b047847f5f33",
@@ -182,12 +183,12 @@
       "basis_only": 0,
       "nested_in_subobject": 5,
       "none": 0,
-      "per_quantity_mapping": 31,
+      "per_quantity_mapping": 32,
       "role_only": 0,
       "role_with_nested_tier": 2,
       "top_level_tier": 17
     },
-    "json_records": 55,
+    "json_records": 56,
     "series_files": 21,
     "top_level_tiers": {
       "exact": 4,
@@ -237,7 +238,7 @@
         "modules": 3
       },
       "subspace": {
-        "lines": 13780,
+        "lines": 13783,
         "modules": 41
       },
       "surface": {
@@ -245,9 +246,9 @@
         "modules": 1
       }
     },
-    "package_lines": 30253,
+    "package_lines": 30256,
     "package_modules": 116,
-    "test_lines": 40015,
+    "test_lines": 40057,
     "test_modules": 166
   }
 }

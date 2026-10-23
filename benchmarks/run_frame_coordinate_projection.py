@@ -254,6 +254,8 @@ def recover(directory, task, index):
 
 
 def execute(directory, *, resume=False):
+    if (ROOT/RECORD).exists():
+        raise ValueError('observations already published; a new campaign requires a new declaration')
     c = design()
     fresh = preflight(c)
     if directory.resolve().is_relative_to(ROOT):

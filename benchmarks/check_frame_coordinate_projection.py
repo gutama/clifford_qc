@@ -182,17 +182,32 @@ def verify(record, *, bound=True, numerical=True):
                 initial = tuple(science['trajectory'][0]['selection']['initial_csf_indices'])
                 if initial not in layouts: layouts[initial] = independent_layout(case, frame, initial, words)
                 problems.extend(name+': '+p for p in cache_problems(w['cache'], science, case, frame, words, layouts[initial]))
-        for policy in ('exhaustive', 'early'):
-            baseline = next((w for w in workers if w['policy'] == policy and w['cache_mode'] == 'combined'), None)
-            historical = next((w for w in controls if w['policy'] == policy and w['status'] == 'ok'), None)
-            if baseline is None or historical is None:
-                problems.append('missing policy baseline '+name+'/'+policy); continue
-            base = sciences[baseline['scientific_sha256']]
-            problems.extend(name+': '+p for p in compare_science(base, sciences[historical['scientific_sha256']], dimension))
-            for w in workers:
-                if w['policy'] == policy:
-                    problems.extend(name+': '+p for p in compare_science(sciences[w['scientific_sha256']], base, dimension))
     return problems
+
+
+def equivalence_problems(record):
+    """The frozen scientific criterion, separate from validity of observations.
+
+    A valid record may falsify equivalence. Keep ordered shortlist equality:
+    the primary early arm fails it at four steps; no tolerance is added here.
+    """
+    sciences = {key: decode_science(value) for key, value in record['scientific_payloads'].items()}
+    problems = []
+    for case in record['config']['inputs']:
+        for policy in ('exhaustive', 'early'):
+            workers = [w for w in record['workers'] if w['input'] == case['name']
+                       and w['policy'] == policy and w['status'] == 'ok']
+            controls = [w for w in record['historical_controls'] if w['input'] == case['name']
+                        and w['policy'] == policy and w['status'] == 'ok']
+            baseline = next((w for w in workers if w['cache_mode'] == 'combined'), None)
+            prefix = case['name']+'/'+policy+': '
+            if baseline is None or not controls:
+                problems.append(prefix+'missing policy baseline'); continue
+            base = sciences[baseline['scientific_sha256']]
+            for worker in controls+workers:
+                problems.extend(prefix+p for p in compare_science(
+                    sciences[worker['scientific_sha256']], base, case['sector_dimension']))
+    return sorted(set(problems))
 
 
 def main(argv=None):
@@ -206,12 +221,17 @@ def main(argv=None):
         preflight(design())
         print('VALID: frozen frame-coordinate declaration precedes implementation')
         return 0
-    problems = verify(read_json(args.record), bound=not args.unbound)
+    record = read_json(args.record)
+    problems = verify(record, bound=not args.unbound)
     if problems:
         for problem in problems: print('FAIL '+problem)
         return 1
-    print('VALID: independent exact trajectories, historical controls and cache formulas; publication/source bindings '
+    print('VALID: independently replayed observations, historical controls and cache formulas; publication/source bindings '
           + ('were not checked (--unbound)' if args.unbound else 'verified'))
+    differences = equivalence_problems(record)
+    print('Frozen equivalence criterion: '+('FAIL' if differences else 'PASS'))
+    for problem in differences:
+        print('NON_EQUIVALENT '+problem)
     return 0
 
 

@@ -526,7 +526,26 @@ The 56-cell comparison runs both exhaustive and early policies against
 source. Reused molecular and lattice inputs are held out of implementation
 tests, not previously unseen data. The joint bar requires trajectory equivalence,
 all cells, at least 20% lower primary median setup+solver time and no median
-worker-RSS increase under each policy. No campaign result is committed yet.
+worker-RSS increase under each policy. All 56 cells and eight controls are
+committed in `benchmarks/reference_results/frame_coordinate_projection.json`.
+The original execution is `bd1d80f`, and the observations enter separately in
+`94924fb`; the publication receipt and bundle preserve those exact Git objects.
+
+The joint criterion **fails**. Independent replay validates all 14 distinct
+payloads. Exhaustive equivalence passes on every input. The primary early
+trajectory has the same shortlist members, selected candidates, physical
+directions within tolerance, energies/residuals, H calls and audits, but keys
+3412 and 3892 swap shortlist order at steps 28, 31, 32 and 36 in every repeat.
+The frozen exact order requirement is not relaxed. Primary medians against
+combined caching fall 29.101 to 14.485 s exhaustive and 9.483 to 5.991 s early;
+worker RSS is essentially flat, while resident cache arrays fall 5.215 to
+3.643 MiB. Meeting the performance clauses cannot excuse failed equivalence.
+The path remains opt-in and all defaults are unchanged.
+
+The post-observation checker/reporting correction separates a valid record
+from a negative criterion, prints the ordering failures explicitly and enforces
+the declared schedule length even on a truncated report input. No recorded
+byte, numerical implementation or decision rule is changed by that correction.
 
 Use the committed record environment and a clean source commit. The declaration
 check and default producer invocation perform no timed solver campaign:
@@ -548,15 +567,26 @@ An interrupted campaign may use `--resume` with the same directory only after
 its prior processes have stopped; started cells are recovered or marked
 interrupted, never rerun. Timings, OS high-water marks, resident cache bytes,
 content-addressed scientific payloads and the durable journal remain distinct.
-Publication adds `benchmarks/reference_results/frame_coordinate_projection.json`,
-its source bundle/receipt and the generated report only after independent replay.
+The producer now refuses execution when its published record exists, before
+preflight or creating an output directory. Reproduce an execution from its
+preserved pre-observation source; another published campaign needs a new declaration.
+The published source bundle/receipt is under
+`benchmarks/provenance/frame_coordinate_projection.*`; the generated readout is
+`benchmarks/results/frame_coordinate_projection.md`. A VALID checker exit means
+the observations replay and their bindings hold; it also prints the separate
+frozen-equivalence FAIL. Never read VALID as promotion of the optimization.
+
+```bash
+python benchmarks/check_frame_coordinate_projection.py
+python benchmarks/summarize_frame_coordinate_projection.py --check
+```
 
 ### Installed test environment
 
 ```bash
 python -m venv .venv && source .venv/bin/activate
 pip install -e .[test,research,stim]       # automatic CI extras
-pytest                                      # 4044 passed, 12 skipped (expected if green)
+pytest                                      # 4048 passed, 12 skipped (expected if green)
 ```
 
 This is the automatic CI dependency set; record gates additionally pin NumPy
@@ -575,7 +605,7 @@ the remaining `12 - 6 = 6` skips are per-test and *are* collected:
 
 ```text
 collected == passed + (skipped - files dropped at collection)
-4050      == 4044   + (12      -   6)
+4054      == 4048   + (12      -   6)
 ```
 
 Both sides are computed from the tree, so a drift in either quoted number

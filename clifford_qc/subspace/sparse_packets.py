@@ -241,8 +241,11 @@ def run_sparse_packets(apply, diagonal, frame, hf, active_orbitals, config, *, p
     frame, owning C=F†V and C† per step and one sparse frame adjoint per run;
     it borrows F and owns no group-block copies. The basis cache owns one V† per accepted span, released
     before the next extension; frame caches own copies of the group blocks
-    and frame adjoint. Neither stores candidate vectors or H actions, and
-    neither changes selection or H calls. Construction is charged to solver
+    and frame adjoint. No mode caches candidate vectors or H actions. Existing
+    cache modes preserve arithmetic; coordinates change floating-point reductions
+    and need an explicit equivalence check. The declared early-policy comparison
+    preserves selected candidates but fails exact shortlist-order equality.
+    Construction is charged to solver
     time. Only candidates within the tie tolerance of a step's best score so
     far retain their direction and action; every score is still recorded.
     ``observe(row, basis, state)``, if given, runs after each prefix row; its return
