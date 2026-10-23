@@ -1492,7 +1492,7 @@ not the products — while H₄'s is 6×. The cost side is memory, and it is not
 small: H₄'s 378 cached element operators hold 15 847 distinct words and ~10.6 MB.
 That figure is the §6 metric to watch as Phase 3 grows bases, not a footnote.
 
-### Phase 2M — memory-bounded matrix-element bank (adjunct; A/B done, C/D matrix implemented, execution pending)
+### Phase 2M — memory-bounded matrix-element bank (adjunct; A–D done, disk-backed storage deferred)
 
 Phase 2 made repeated adaptive solves computationally credible by retaining every
 built pair. The larger molecular records expose the other side of that decision:
