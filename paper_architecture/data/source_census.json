@@ -1,7 +1,6 @@
 {
   "gates": {
     "absent_from_workflow": [
-      "check_packet_budget_convergence",
       "check_phase16b_feasibility",
       "check_phase16b_preregistration",
       "check_phase16b_v2_feasibility",
@@ -26,6 +25,7 @@
       "check_molecular",
       "check_orthogonal_active_space",
       "check_packed_bank_storage",
+      "check_packet_budget_convergence",
       "check_packet_work_large",
       "check_packet_work_reuse",
       "check_phase14b_preregistration",
@@ -93,10 +93,10 @@
     ],
     "gates": 72,
     "manual_dispatch_only": 12,
-    "named_in_workflow": 64,
+    "named_in_workflow": 65,
     "producers": 70,
     "producers_without_gate": 25,
-    "run_on_every_pull_request": 52,
+    "run_on_every_pull_request": 53,
     "same_stem_pairs": 45
   },
   "records": {
@@ -135,6 +135,7 @@
       "orthogonal_active_space_v2.json": "dda482f35b061d5a",
       "packed_bank_storage.json": "f6a33f1aa225c4dd",
       "packed_h2o_feasibility.json": "f6a33f1aa225c4dd",
+      "packet_budget_convergence.json": "96ba0a3bac2f1bc4",
       "packet_work_large.json": "39af4c75f149d1b5",
       "packet_work_reuse.json": "be07fffad3d14028",
       "phase14b_qwc_vs_fc.json": "7eea7d72de38ea0e",
@@ -180,12 +181,12 @@
       "basis_only": 0,
       "nested_in_subobject": 5,
       "none": 0,
-      "per_quantity_mapping": 30,
+      "per_quantity_mapping": 31,
       "role_only": 0,
       "role_with_nested_tier": 2,
       "top_level_tier": 17
     },
-    "json_records": 54,
+    "json_records": 55,
     "series_files": 21,
     "top_level_tiers": {
       "exact": 4,
@@ -245,7 +246,7 @@
     },
     "package_lines": 30190,
     "package_modules": 116,
-    "test_lines": 39811,
+    "test_lines": 39851,
     "test_modules": 165
   }
 }

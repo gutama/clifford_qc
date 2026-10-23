@@ -1,0 +1,14 @@
+{
+  "schema": "clifford_qc.packet_budget_convergence_publication.v1",
+  "base_commit": "abcb02d8e58fc9be02a960a81a772850211535bc",
+  "declaration_commit": "09b1918be26a70d5a86f85c3fc3923bd58ea6c14",
+  "source_commit": "56c4a5ec82e63e5c6e5b67499d2a8e1a0395e8d5",
+  "observation_commit": "225d58239952fbfca7e92472068e94dd34bbc2d5",
+  "record_sha256": "ad7f2523dac16e2c05d082740a4a828636d7222c94c09044f4112a24857ea0e0",
+  "bundle_sha256": "826774b2cafe2e9c0983772d31f29ea0ac6893c154b3fe9b2e25c1d4f449d4a0",
+  "journal_sha256": "f44f0a9738f3336cad85d646867955a0ebfdbb239304ae43654b56d2e93dffe1",
+  "scheduled_cells": 52,
+  "complete_cells": 52,
+  "distinct_scientific_payloads": 20,
+  "policy": "Every scheduled start and outcome is retained. Scientific payloads are stored once by digest; per-cell resource observations remain distinct. References and final ground-state overlaps follow all timed cells. No cells were selectively rerun, budgets were not widened, and no solver default changes. Readout wording, the checker support tolerance and the declared matched-column support readout were revised after observation in separate commits; no verdict rule changed."
+}

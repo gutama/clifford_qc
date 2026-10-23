@@ -97,6 +97,9 @@ jobs:
       - name: exact projection cache report
         if: ${{ !cancelled() }}
         run: python benchmarks/summarize_exact_projection_cache.py --check
+      - name: packet budget convergence report
+        if: ${{ !cancelled() }}
+        run: python benchmarks/summarize_packet_budget_convergence.py --check
       - name: sparse GA kernel profile
         if: ${{ !cancelled() }}
         run: python benchmarks/check_sparse_ga_kernel.py
@@ -279,6 +282,13 @@ jobs:
           - gate: check_packed_bank_storage
             timeout: 25
             environment_record: packed_bank_storage.json
+          # Replays every prefix of all 20 budget-convergence trajectories from
+          # independent Hamiltonians and frames, rescoring every candidate up to
+          # 1,225 determinants and at sampled steps beyond: about ten minutes
+          # locally, most of it the two 512-column packet arms per lattice.
+          - gate: check_packet_budget_convergence
+            timeout: 30
+            environment_record: protocol_cost.json
     steps:
       # Full history: the preregistration gates check that a declaration's
       # last commit precedes its record's first. A depth-1 checkout puts both

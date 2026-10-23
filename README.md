@@ -376,6 +376,21 @@ The [full report](benchmarks/results/exact_projection_cache.md) separates phase
 times/RSS, payloads, paired timing ratios and unique audits. A supervisory helper
 isolates record-survey memory from the worker-launching process and workers.
 
+Beyond 64 columns, a [declared budget comparison](benchmarks/PACKET_BUDGET_CONVERGENCE_DECLARATION.md)
+grows exhaustive and early packets, greedy spin-adapted selected CI and a
+singlet-projected Davidson reference (`run_selected_ci` and `run_singlet_davidson`
+in `clifford_qc.subspace.sparse_baselines`) one column per step. All 52 cells
+complete and pass bounded independent replay. Packets do not add column compactness: the 2x4 primary
+and held-out BeH2 read mixed and only the held-out 8-site chain favours packets.
+On the primary, exhaustive packets reach 1 t in 145 columns against selected
+CI's 174 and 0.1 t in 473, which selected CI misses within 512 columns; at 512
+they are 0.0763 t above the singlet reference against 0.2477 t. They spend
+215,421 H actions where selected CI spends 1,764. Davidson reaches 0.0016 t in
+23 columns on the chain but stalls on an excited singlet 0.9949 t up on the
+primary, orthogonal to the ground state. The [report](benchmarks/results/packet_budget_convergence.md)
+gives every threshold, frontier and resource, and discloses post-observation
+reporting and checker revisions. Defaults are unchanged.
+
 ## Examples
 
 After installation, run these scripts from the repository root:
