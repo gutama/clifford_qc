@@ -14,17 +14,28 @@ from .prepared import PreparedProblem, prepare_fcidump, _atomic_json, implementa
 
 
 def solve_prepared(prepared, *, config=None, storage="object", policy="retain_all",
-                   frontier_pairs=32, max_rank=2, max_candidates=0):
+                   frontier_pairs=32, max_rank=2, max_candidates=0,
+                   reference_mode="determinant", reference_arithmetic="legacy_trace"):
+    from .models.metadata import spin_convention
     from .backends import ExactMVBackend
     from .subspace.adaptive import ACASEConfig, run_acase
     from .subspace.fermionic_generators import determinant_excitations, occupied_spin_orbitals
     from .subspace.projection import MatrixElementBank
     from .subspace.streaming import StreamingMatrixElementBank
+    from .reference_states import (DeterminantReference, UnsupportedReferenceOperation,
+                                   operator_identity)
+    from .subspace.providers import ExactProjectedProvider
 
     if policy not in ("retain_all", "stream_recompute"):
         raise ValueError("policy must be retain_all or stream_recompute")
     if storage not in ("object", "packed"):
         raise ValueError("storage must be object or packed")
+    if reference_mode not in ("determinant", "legacy_mv"):
+        raise ValueError("reference_mode must be determinant or legacy_mv")
+    if reference_arithmetic not in ("legacy_trace", "analytic"):
+        raise ValueError("reference_arithmetic must be legacy_trace or analytic")
+    if reference_mode == "legacy_mv" and reference_arithmetic != "legacy_trace":
+        raise ValueError("reference_arithmetic applies to the determinant path")
     if isinstance(max_rank, bool) or max_rank not in (1, 2):
         raise ValueError("max_rank must be 1 or 2")
     for name, value, minimum in (("max_candidates", max_candidates, 0),
@@ -34,20 +45,48 @@ def solve_prepared(prepared, *, config=None, storage="object", policy="retain_al
     cfg = config if config is not None else ACASEConfig()
     if isinstance(cfg.max_size, bool) or not isinstance(cfg.max_size, int) or cfg.max_size < 0:
         raise ValueError("max_size must be a nonnegative integer")
+    if reference_mode == "determinant" and (cfg.convergence is not None or (
+            cfg.leakage_tol is not None and cfg.leakage_mode != "operator")):
+        raise UnsupportedReferenceOperation(
+            "reference-conditioned certification/H-squared reporting requires reference_mode='legacy_mv'; "
+            "the action reporting consumer is a subsequent restart step")
     started = time.perf_counter()
     model = prepared.model()
-    candidates = determinant_excitations(model.n, occupied_spin_orbitals(model), max_rank=max_rank)
+    ordering = spin_convention(model)
+    if ordering != "interleaved":
+        raise UnsupportedReferenceOperation("prepared determinant excitations require interleaved spin ordering")
+    if model.metadata.get("fermion_encoding", "jw") != "jw":
+        raise UnsupportedReferenceOperation("prepared determinant excitations require Jordan-Wigner occupation bits")
+    provider = None
+    if reference_mode == "determinant":
+        reference = DeterminantReference.from_program(model.reference, arithmetic=reference_arithmetic)
+        occupied = reference.occupied
+    else:
+        occupied = occupied_spin_orbitals(model)
+    candidates = determinant_excitations(model.n, occupied, max_rank=max_rank)
     available_candidates = len(candidates)
     if max_candidates:
         candidates = candidates[:max_candidates]
-    rho = ExactMVBackend().state(model.reference, ())
-    bank = (MatrixElementBank(rho, model.hamiltonian, storage=storage)
-            if policy == "retain_all" else StreamingMatrixElementBank(
-                rho, model.hamiltonian, storage=storage, frontier_pairs=frontier_pairs))
-    result = run_acase(rho, model.hamiltonian, candidates, bank=bank, config=cfg)
+    if reference_mode == "determinant":
+        provider = ExactProjectedProvider(reference, model.hamiltonian, storage=storage,
+                                           policy=policy, frontier_pairs=frontier_pairs)
+        bank = provider.bank
+        reference_identity = provider.reference_identity
+    else:
+        reference = ExactMVBackend().state(model.reference, ())
+        bank = (MatrixElementBank(reference, model.hamiltonian, storage=storage)
+                if policy == "retain_all" else StreamingMatrixElementBank(
+                    reference, model.hamiltonian, storage=storage, frontier_pairs=frontier_pairs))
+        reference_identity = operator_identity(reference)
+    result = run_acase(reference, model.hamiltonian, candidates, bank=bank, config=cfg)
+    if provider is not None:
+        result.resources.update(provider.execution_metadata())
     record = {
-        "schema": "clifford_qc.prepared_run.v1", "problem_fingerprint": prepared.fingerprint,
+        "schema": "clifford_qc.prepared_run.v2", "problem_fingerprint": prepared.fingerprint,
         "implementation": implementation_fingerprint(), "method": "acase", "evidence_tier": "exact",
+        "reference": {"mode": reference_mode, "identity": reference_identity,
+                       "arithmetic": reference_arithmetic if provider is not None else "density_mv",
+                       "bit_order": "q0-leftmost", "spin_ordering": ordering},
         "stopping_uses_oracle": cfg.exact_ground_energy is not None and cfg.target_error is not None,
         "config": asdict(cfg), "max_rank": max_rank, "candidate_count": len(candidates),
         "max_candidates": max_candidates, "available_candidates": available_candidates,
@@ -92,6 +131,10 @@ def main(argv=None):
         command.add_argument("prepared")
         command.add_argument("--output", required=True)
         if stage == "solve":
+            command.add_argument("--reference-mode", choices=("determinant", "legacy_mv"), default="determinant")
+            command.add_argument("--reference-arithmetic", choices=("legacy_trace", "analytic"),
+                                 default="legacy_trace",
+                                 help="determinant row arithmetic; legacy_trace requires fewer than 40 qubits")
             command.add_argument("--storage", choices=("object", "packed"), default="object")
             command.add_argument("--policy", choices=("retain_all", "stream_recompute"), default="retain_all")
             command.add_argument("--frontier-pairs", type=int, default=32)
@@ -114,7 +157,8 @@ def main(argv=None):
             _, record = solve_prepared(prepared, config=ACASEConfig(max_size=args.max_additions),
                                        storage=args.storage, policy=args.policy,
                                        frontier_pairs=args.frontier_pairs, max_rank=args.max_rank,
-                                       max_candidates=args.max_candidates)
+                                       max_candidates=args.max_candidates, reference_mode=args.reference_mode,
+                                       reference_arithmetic=args.reference_arithmetic)
         else:
             record = validate_prepared(prepared, method=args.method, roots=args.roots)
         _atomic_json(args.output, record)
