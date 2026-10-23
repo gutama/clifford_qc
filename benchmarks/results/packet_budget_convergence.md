@@ -33,7 +33,7 @@ Times are medians of setup plus solver across repetitions and are descriptive. W
 Readout 1, column compactness (packets_exhaustive vs selected_ci): **mixed**.
 Readout 2, work: not applicable; columns favour neither arm.
 Readout 3, early screening: **preserves accuracy**.
-Readout 4, Davidson: does not reach every threshold in fewer columns than both restricted arms. It stopped by no_admissible_direction at residual 9.21e-09, 0.994928 above the reference with ground overlap 1.5e-12, so its span excludes the ground state. The declared confinement rule names residual-tolerance stops only, so the verdict above follows the declared fallback.
+Readout 4, Davidson: does not reach every threshold in fewer columns than both restricted arms. It stopped by no_admissible_direction at residual 9.21e-09, 0.994928 above the reference with ground overlap 1.5e-12: an excited root, not the ground state. The declared confinement rule names residual-tolerance stops only, so the verdict above follows the declared fallback.
 Span support at 48 columns, Davidson's last prefix: packets_exhaustive 676, packets_early 654, selected_ci 396, davidson 4900 determinants.
 
 ## hubbard_1x8_u4 (held_out_lattice, t)
@@ -175,6 +175,6 @@ Packets add column compactness (primary and both held-out inputs): **NO**.
 
 Repeated deterministic trajectories count once. Two or three timing repetitions are descriptive. No quantum, hardware, shot-cost, optimized-selected-CI or asymptotic-scaling claim follows, and no solver default changes.
 
-Revised after observation: readout 3 names the failing clause and the sign of each difference instead of calling every miss a loss; readout 4 adds a factual note when Davidson ends above the reference without the declared trigger, and the declared span support at matched columns, which the executed summarizer omitted; and the support caveat above. No verdict rule changed.
+Revised after observation: readout 3 names the failing clause and the sign of each difference instead of calling every miss a loss; readout 4 adds a factual note when Davidson ends above the reference without the declared trigger, and the declared span support at matched columns, which the executed summarizer omitted; and the support caveat above. A later correction removed that note's claim that Davidson's span excludes the ground state: the shared start span carries ground-state weight on every input, 1.7e-6 on the primary (`check_packet_budget_convergence.py --start-weights`). No verdict rule changed.
 
 Declaration: `09b1918be26a70d5a86f85c3fc3923bd58ea6c14`. Execution: `56c4a5ec82e63e5c6e5b67499d2a8e1a0395e8d5`.

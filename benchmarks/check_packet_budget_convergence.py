@@ -93,6 +93,12 @@ def final_overlap(science, reference):
     return float(np.linalg.norm(reference['ground_state'].conj().T @ decode_array(science['final_state'])))
 
 
+def start_ground_weight(data, reference):
+    """Largest ground-space weight in the shared CAS(2e,2o) start span."""
+    start = np.asarray(data['frame'][:, data['initial']], complex)
+    return float(np.linalg.norm(start.conj().T @ reference['ground_state'], 2)**2)
+
+
 def lowering(energy, diagonal, coupling):
     gap = diagonal - energy
     return np.maximum(0.0, (np.hypot(gap, 2*np.abs(coupling)) - gap)/2)
@@ -439,7 +445,16 @@ def main(argv=None):
     parser.add_argument('--record', type=Path, default=ROOT/RECORD)
     parser.add_argument('--unbound', action='store_true', help='validate unpublished local execution without a publication receipt')
     parser.add_argument('--full', action='store_true', help='rescore every candidate at every step of every trajectory')
+    parser.add_argument('--start-weights', action='store_true',
+                        help="print each input's ground-state weight in the shared start span instead of validating")
     args = parser.parse_args(argv)
+    if args.start_weights:
+        c = read_json(args.record)['config']
+        for case in c['inputs']:
+            data = independent_data(case, c)
+            weight = start_ground_weight(data, independent_reference(case, c, data))
+            print(f'{case["name"]}: ground-state weight {weight:.2g} in the {len(data["initial"])}-column start span')
+        return 0
     problems = verify(read_json(args.record), bound=not args.unbound, full=args.full)
     if problems:
         for problem in problems: print('FAIL '+problem)

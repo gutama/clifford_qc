@@ -171,6 +171,14 @@ def test_independent_reference_cross_checks_the_sector_ground_state():
     assert reference['sector_ground_is_singlet'] and abs(reference['singlet_reference']-reference['sector_ground']) < 1e-9
 
 
+def test_start_ground_weight_is_the_ground_space_weight_in_the_start_span(produced):
+    _, _, _, data, reference = produced['toy_2x2', 'davidson']
+    start = data['frame'][:, data['initial']]
+    expected = np.linalg.norm(start.conj().T @ reference['ground_state'])**2
+    assert check.start_ground_weight(data, reference) == pytest.approx(expected, abs=1e-15)
+    assert check.start_ground_weight({**data, 'initial': list(range(data['frame'].shape[1]))}, reference) == pytest.approx(1.)
+
+
 def test_readouts_follow_the_declared_rules():
     def science(errors, calls):
         return {'trajectory': [{'dimension': 64*(i+1), 'energy': e, 'h_action_calls': w} for i, (e, w) in enumerate(zip(errors, calls))]}
@@ -202,8 +210,8 @@ def test_davidson_note_reports_a_stop_above_the_reference_outside_the_declared_t
     def science(stop, energy):
         return {'stop_reason': stop, 'trajectory': [{'energy': energy, 'residual_norm': 9e-9}]}
     note = summary.davidson_note(science('no_admissible_direction', 1.), 0., 1e-12, d)
-    assert 'excludes the ground state' in note and 'declared fallback' in note
-    assert 'excludes' not in summary.davidson_note(science('column_ceiling', 1.), 0., .9, d)
+    assert 'an excited root' in note and 'declared fallback' in note and 'excludes' not in note
+    assert 'excited root' not in summary.davidson_note(science('column_ceiling', 1.), 0., .9, d)
     assert summary.davidson_note(science('no_admissible_direction', 1e-12), 0., 1., d) == ''
     assert summary.davidson_note(science('residual_tolerance', 1.), 0., 0., d) == ''  # The declared verdict covers it.
 

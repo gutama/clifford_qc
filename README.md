@@ -386,10 +386,11 @@ On the primary, exhaustive packets reach 1 t in 145 columns against selected
 CI's 174 and 0.1 t in 473, which selected CI misses within 512 columns; at 512
 they are 0.0763 t above the singlet reference against 0.2477 t. They spend
 215,421 H actions where selected CI spends 1,764. Davidson reaches 0.0016 t in
-23 columns on the chain but stalls on an excited singlet 0.9949 t up on the
-primary, orthogonal to the ground state. The [report](benchmarks/results/packet_budget_convergence.md)
+23 columns on the chain. On the primary it converges to an excited singlet
+0.9949 t up, although its start carries ground-state weight 1.7e-6. The [report](benchmarks/results/packet_budget_convergence.md)
 gives every threshold, frontier and resource, and discloses post-observation
-reporting and checker revisions. Defaults are unchanged.
+reporting and checker revisions. Defaults are unchanged, and this result closes
+the residual-packet line: no further packet performance work is planned.
 
 ## Examples
 
