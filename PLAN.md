@@ -89,8 +89,12 @@ validation notes document phase alignment and checkpoint-byte reconstruction.
 
 **Review follow-ups; declare before implementation or timing.** The accepted
 basis-adjoint and fixed group/frame caches are implemented and measured above;
-their memory trade-off prevents promotion. Next test frame-coordinate projection
-`F(I - CC†)a` under a new declaration.
+their memory trade-off prevents promotion. Frame-coordinate projection
+`F(I - CC†)a` is declared in `benchmarks/FRAME_COORDINATE_PROJECTION_DECLARATION.md`
+before implementation, against merged PR #149. Its opt-in `coordinates` path
+and toy invariant tests are implemented; the 56-cell comparison and eight
+historical controls are pending. No performance result or default change follows
+from implementation alone.
 Test a tie-tolerant first-maximum canonical-phase pivot against physical-ray
 invariants. Reviewer profiling motivates these experiments but is not campaign
 evidence. The next campaign must include a held-out molecule as well as a

@@ -1,6 +1,7 @@
 {
   "gates": {
     "absent_from_workflow": [
+      "check_frame_coordinate_projection",
       "check_phase16b_feasibility",
       "check_phase16b_preregistration",
       "check_phase16b_v2_feasibility",
@@ -68,7 +69,7 @@
       "Cross-artifact": 5,
       "Documentation": 1,
       "Evidence metadata": 1,
-      "Exact trajectory replay": 9,
+      "Exact trajectory replay": 10,
       "Kernel fixture audit": 1,
       "Lineage and environment": 3,
       "Observed resource equivalence": 1,
@@ -91,13 +92,13 @@
       "check_r3d_qr3_refinement",
       "check_record_environment"
     ],
-    "gates": 72,
+    "gates": 73,
     "manual_dispatch_only": 12,
     "named_in_workflow": 65,
-    "producers": 70,
+    "producers": 71,
     "producers_without_gate": 25,
     "run_on_every_pull_request": 53,
-    "same_stem_pairs": 45
+    "same_stem_pairs": 46
   },
   "records": {
     "annotated_records": [
@@ -236,7 +237,7 @@
         "modules": 3
       },
       "subspace": {
-        "lines": 13717,
+        "lines": 13780,
         "modules": 41
       },
       "surface": {
@@ -244,9 +245,9 @@
         "modules": 1
       }
     },
-    "package_lines": 30190,
+    "package_lines": 30253,
     "package_modules": 116,
-    "test_lines": 39851,
-    "test_modules": 165
+    "test_lines": 40015,
+    "test_modules": 166
   }
 }

@@ -511,10 +511,52 @@ No figure or table value in the manuscript is transcribed by hand, and
 
 ## Environment
 
+### Frame-coordinate packet projection
+
+`benchmarks/FRAME_COORDINATE_PROJECTION_DECLARATION.md` and
+`benchmarks/configs/frame_coordinate_projection.json` freeze a new comparison
+against merged PR #149. `run_sparse_packets(..., cache_mode="coordinates")`
+projects twice in the fixed singlet frame using C=F†V, then applies the physical
+norm cutoff and existing phase convention. It owns C, C† and a sparse frame
+adjoint; it borrows F and stores no duplicate group blocks. The existing cache
+modes and defaults are unchanged. This is exact classical sector-vector work.
+
+The 56-cell comparison runs both exhaustive and early policies against
+`combined`, with eight post-timing controls executing the exact baseline Git
+source. Reused molecular and lattice inputs are held out of implementation
+tests, not previously unseen data. The joint bar requires trajectory equivalence,
+all cells, at least 20% lower primary median setup+solver time and no median
+worker-RSS increase under each policy. No campaign result is committed yet.
+
+Use the committed record environment and a clean source commit. The declaration
+check and default producer invocation perform no timed solver campaign:
+
+```bash
+python benchmarks/run_frame_coordinate_projection.py
+python benchmarks/check_frame_coordinate_projection.py --declaration-only
+```
+
+Execution requires `OMP_NUM_THREADS=OPENBLAS_NUM_THREADS=MKL_NUM_THREADS=1`
+and a new output directory outside the worktree:
+
+```bash
+python benchmarks/run_frame_coordinate_projection.py --execute --directory /tmp/frame-coordinate-projection
+python benchmarks/check_frame_coordinate_projection.py --unbound --record /tmp/frame-coordinate-projection/result.json
+```
+
+An interrupted campaign may use `--resume` with the same directory only after
+its prior processes have stopped; started cells are recovered or marked
+interrupted, never rerun. Timings, OS high-water marks, resident cache bytes,
+content-addressed scientific payloads and the durable journal remain distinct.
+Publication adds `benchmarks/reference_results/frame_coordinate_projection.json`,
+its source bundle/receipt and the generated report only after independent replay.
+
+### Installed test environment
+
 ```bash
 python -m venv .venv && source .venv/bin/activate
 pip install -e .[test,research,stim]       # automatic CI extras
-pytest                                      # 4018 passed, 12 skipped (expected if green)
+pytest                                      # 4044 passed, 12 skipped (expected if green)
 ```
 
 This is the automatic CI dependency set; record gates additionally pin NumPy
@@ -533,7 +575,7 @@ the remaining `12 - 6 = 6` skips are per-test and *are* collected:
 
 ```text
 collected == passed + (skipped - files dropped at collection)
-4024      == 4018   + (12      -   6)
+4050      == 4044   + (12      -   6)
 ```
 
 Both sides are computed from the tree, so a drift in either quoted number
