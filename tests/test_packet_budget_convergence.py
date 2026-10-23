@@ -168,6 +168,31 @@ def test_readouts_follow_the_declared_rules():
     assert summary.frontier_error(better, 0., 150) == .05
 
 
+def test_early_readout_names_the_failing_clause_and_the_sign():
+    d = config()['decisions']
+    def science(rows):
+        return {'trajectory': [{'dimension': k, 'energy': e} for k, e in rows]}
+    exhaustive = science([(64, 1.), (128, .1), (256, .01)])
+    assert summary.early_readout(exhaustive, science([(64, .95), (128, .1), (256, .0105)]), 0., [1., .1], [128, 256], d) == '**preserves accuracy**.'
+    better = summary.early_readout(exhaustive, science([(64, 1.), (128, .05), (256, .01)]), 0., [1., .1], [128, 256], d)
+    assert 'outside the declared band' in better and 'at 128' in better and '-0.05 at 128' in better and 'columns above' not in better
+    slower = summary.early_readout(exhaustive, science([(64, 1.), (128, 1.), (256, .1)]), 0., [1., .1], [128, 256], d)
+    assert 'columns above 1.1× exhaustive at ≤0.1' in slower
+    rounding = summary.early_readout(science([(64, 1e-13)]), science([(64, 3e-13)]), 0., [1.], [64], d)
+    assert 'Both errors are within 1e-08 of the reference at 64.' in rounding
+
+
+def test_davidson_note_reports_a_stop_above_the_reference_outside_the_declared_trigger():
+    d = config()['decisions']
+    def science(stop, energy):
+        return {'stop_reason': stop, 'trajectory': [{'energy': energy, 'residual_norm': 9e-9}]}
+    note = summary.davidson_note(science('no_admissible_direction', 1.), 0., 1e-12, d)
+    assert 'excludes the ground state' in note and 'declared fallback' in note
+    assert 'excludes' not in summary.davidson_note(science('column_ceiling', 1.), 0., .9, d)
+    assert summary.davidson_note(science('no_admissible_direction', 1e-12), 0., 1., d) == ''
+    assert summary.davidson_note(science('residual_tolerance', 1.), 0., 0., d) == ''  # The declared verdict covers it.
+
+
 def test_report_renders_every_declared_readout_from_toy_cells(produced):
     import base64
     import gzip

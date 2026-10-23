@@ -33,7 +33,7 @@ Times are medians of setup plus solver across repetitions and are descriptive. W
 Readout 1, column compactness (packets_exhaustive vs selected_ci): **mixed**.
 Readout 2, work: not applicable; columns favour neither arm.
 Readout 3, early screening: **preserves accuracy**.
-Readout 4, Davidson: does not reach every threshold in fewer columns than both restricted arms.
+Readout 4, Davidson: does not reach every threshold in fewer columns than both restricted arms. It stopped by no_admissible_direction at residual 9.21e-09, 0.994928 above the reference with ground overlap 1.5e-12, so its span excludes the ground state. The declared confinement rule names residual-tolerance stops only, so the verdict above follows the declared fallback.
 
 ## hubbard_1x8_u4 (held_out_lattice, t)
 
@@ -62,7 +62,7 @@ Readout 4, Davidson: does not reach every threshold in fewer columns than both r
 
 Readout 1, column compactness (packets_exhaustive vs selected_ci): **packets more compact**.
 Readout 2, work: compression at higher classical work (≥1.25× H actions at ≤1.0, ≤0.1).
-Readout 3, early screening: **loses accuracy**: early minus exhaustive error -1.466 at 64, -0.01586 at 128, -0.007051 at 256, -0.001976 at 512.
+Readout 3, early screening: **outside the declared band** (frontier error outside 10% of exhaustive at 64, 512). Early minus exhaustive error (negative: early lower) -1.466 at 64, -0.01586 at 128, -0.007051 at 256, -0.001976 at 512.
 Readout 4, Davidson: reaches every threshold in fewer columns than both restricted arms, so the packets-versus-selected-CI comparison concerns bounded-support compactness only.
 
 ## beh2_stretched_full (held_out_molecule, Ha)
@@ -127,7 +127,7 @@ Complete-span control, davidson: stopped at 27 columns (no_admissible_direction,
 
 Readout 1, column compactness (packets_exhaustive vs selected_ci): **mixed**.
 Readout 2, work: not applicable; columns favour neither arm.
-Readout 3, early screening: **loses accuracy**: early minus exhaustive error -0.001653 at 64, +2.237e-05 at 128, +3.109e-15 at 175.
+Readout 3, early screening: **outside the declared band** (frontier error outside 10% of exhaustive at 128, 175). Early minus exhaustive error (negative: early lower) -0.001653 at 64, +2.237e-05 at 128, +3.109e-15 at 175. Both errors are within 1e-08 of the reference at 175.
 Readout 4, Davidson: reaches every threshold in fewer columns than both restricted arms, so the packets-versus-selected-CI comparison concerns bounded-support compactness only.
 
 ## h2o_cas8e6o (development_complete_span_control, Ha)
@@ -169,5 +169,7 @@ All scheduled cells retained: PASS.
 Packets add column compactness (primary and both held-out inputs): **NO**.
 
 Repeated deterministic trajectories count once. Two or three timing repetitions are descriptive. No quantum, hardware, shot-cost, optimized-selected-CI or asymptotic-scaling claim follows, and no solver default changes.
+
+Readout 3 and 4 wording was revised after observation: readout 3 names the failing clause and the sign of each difference instead of calling every miss a loss, and readout 4 adds a factual note when Davidson ends above the reference without the declared trigger. No verdict rule changed.
 
 Declaration: `09b1918be26a70d5a86f85c3fc3923bd58ea6c14`. Execution: `56c4a5ec82e63e5c6e5b67499d2a8e1a0395e8d5`.

@@ -39,6 +39,30 @@ def compactness(a, b, reference, thresholds, frontiers, ratio):
     return columns and errors
 
 
+def early_readout(packets, early, reference, thresholds, frontiers, d):
+    """Readout 3 under the declared band, with signed differences and the clause that fails."""
+    reached = [t for t in thresholds if math.isfinite(hit_columns(packets, reference, t))]
+    slow = [t for t in reached if hit_columns(early, reference, t) > d['early_column_ratio']*hit_columns(packets, reference, t)]
+    gaps = [(k, frontier_error(early, reference, k), frontier_error(packets, reference, k)) for k in frontiers]
+    outside = [k for k, e, x in gaps if abs(e-x) > d['early_relative_frontier_error']*abs(x)]
+    if not slow and not outside: return '**preserves accuracy**.'
+    rounding = [k for k, e, x in gaps if max(abs(e), abs(x)) <= d['complete_span_tolerance']]
+    failed = ([f'columns above {d["early_column_ratio"]}× exhaustive at ≤{", ≤".join(map(str, slow))}'] if slow else []) + (
+        [f'frontier error outside {d["early_relative_frontier_error"]:.0%} of exhaustive at {", ".join(map(str, outside))}'] if outside else [])
+    return (f'**outside the declared band** ({"; ".join(failed)}). Early minus exhaustive error (negative: early lower) '
+            + ', '.join(f'{e-x:+.4g} at {k}' for k, e, x in gaps) + '.'
+            + (f' Both errors are within {d["complete_span_tolerance"]:g} of the reference at {", ".join(map(str, rounding))}.' if rounding else ''))
+
+
+def davidson_note(davidson, reference, overlap, d):
+    """Factual note when Davidson ends above the reference without the declared confinement trigger."""
+    last = davidson['trajectory'][-1]; error = last['energy']-reference
+    if davidson['stop_reason'] == 'residual_tolerance' or error <= d['davidson_uninformative_if_converged_above_reference_by']: return ''
+    return (f' It stopped by {davidson["stop_reason"]} at residual {last["residual_norm"]:.3g}, {error:.6g} above the reference with '
+            f'ground overlap {overlap:.2g}' + (', so its span excludes the ground state' if overlap <= 1e-6 else '')
+            + '. The declared confinement rule names residual-tolerance stops only, so the verdict above follows the declared fallback.')
+
+
 def fmt(value, digits=6):
     if value is None: return '—'
     if isinstance(value, float) and math.isinf(value): return 'not reached'
@@ -124,29 +148,29 @@ def render(record):
                     f'compression at higher classical work (≥{d["work_ratio"]}× H actions at ≤{", ≤".join(map(str, costly))}).' if costly else
                     f'no H-action penalty at the {len(compared)} compared threshold(s).'))
         if packets and early:
-            reached = [t for t in thresholds if math.isfinite(hit_columns(packets, reference, t))]
-            columns_ok = all(hit_columns(early, reference, t) <= d['early_column_ratio']*hit_columns(packets, reference, t) for t in reached)
-            gaps = [(k, frontier_error(early, reference, k), frontier_error(packets, reference, k)) for k in frontiers]
-            errors_ok = all(abs(e-x) <= d['early_relative_frontier_error']*abs(x) for _, e, x in gaps)
-            lines.append('Readout 3, early screening: ' + ('**preserves accuracy**.' if columns_ok and errors_ok else
-                '**loses accuracy**: early minus exhaustive error ' + ', '.join(f'{e-x:+.4g} at {k}' for k, e, x in gaps) + '.'))
+            lines.append('Readout 3, early screening: ' + early_readout(packets, early, reference, thresholds, frontiers, d))
         if davidson:
             last = davidson['trajectory'][-1]
+            overlap = record['final_ground_state_overlaps'][group['davidson'][0]['scientific_sha256']]
             confined = davidson['stop_reason'] == 'residual_tolerance' and last['energy']-reference > d['davidson_uninformative_if_converged_above_reference_by']
             if confined:
                 lines.append(f'Readout 4, Davidson: **uninformative (confined)**; it converged {last["energy"]-reference:.6g} above the '
-                             f'reference with ground overlap {record["final_ground_state_overlaps"][group["davidson"][0]["scientific_sha256"]]:.4f}.')
+                             f'reference with ground overlap {overlap:.4f}.')
             else:
                 fewer = packets and sci and all(hit_columns(davidson, reference, t) < min(hit_columns(packets, reference, t), hit_columns(sci, reference, t))
                                                 for t in thresholds)
                 lines.append('Readout 4, Davidson: ' + ('reaches every threshold in fewer columns than both restricted arms, so the packets-versus-selected-CI '
-                    'comparison concerns bounded-support compactness only.' if fewer else 'does not reach every threshold in fewer columns than both restricted arms.'))
+                    'comparison concerns bounded-support compactness only.' if fewer else 'does not reach every threshold in fewer columns than both restricted arms.')
+                    + davidson_note(davidson, reference, overlap, d))
         lines += ['']
     decisive = all(verdicts.get(role) == 'packets more compact' for role in d['decisive_roles'])
     lines += [f'All scheduled cells retained: {"PASS" if complete else "FAIL"}.',
         f'Packets add column compactness (primary and both held-out inputs): **{"YES" if decisive and complete else "NO"}**.', '',
         'Repeated deterministic trajectories count once. Two or three timing repetitions are descriptive. No quantum, hardware, '
         'shot-cost, optimized-selected-CI or asymptotic-scaling claim follows, and no solver default changes.', '',
+        'Readout 3 and 4 wording was revised after observation: readout 3 names the failing clause and the sign of each difference '
+        'instead of calling every miss a loss, and readout 4 adds a factual note when Davidson ends above the reference without the '
+        'declared trigger. No verdict rule changed.', '',
         f'Declaration: `{record["declaration_commit"]}`. Execution: `{record["source_commit"]}`.', '']
     return '\n'.join(lines)
 
