@@ -95,6 +95,19 @@ def test_replay_rejects_altered_payloads(produced, arm, mutate, problem):
     assert problem in check.replay(altered, case, config(), data, full=True)
 
 
+def test_support_counts_must_lie_within_one_decade_of_the_threshold():
+    span = np.zeros((6, 2)); span[:3, 0] = 1.; span[3, 1], span[4, 1], span[5, 1] = 1., 5e-12, 5e-14
+    rows = [{'dimension': 1}, {'dimension': 2}]
+
+    def problems(support):
+        found = []
+        check.support_problems({'support': support}, span, rows, config(), lambda ok, name: ok or found.append(name))
+        return found
+    assert problems([[3, 3], [4, 4]]) == problems([[3, 3], [5, 5]]) == []  # 5e-12 sits inside the band.
+    assert problems([[3, 3], [6, 6]]) == ['span support', 'amplitude nonzeros']  # 5e-14 is below it.
+    assert problems([[2, 3], [4, 4]]) == ['span support']  # No band entries: exact equality.
+
+
 def test_selected_ci_adds_the_best_column_and_completes_the_singlet_span():
     h, frame, hf, _ = setup(TOY)
     c = {**config(), **TOY, 'residual_tolerance': 1e-300}  # Grow to the full singlet span.
@@ -166,6 +179,8 @@ def test_readouts_follow_the_declared_rules():
     assert summary.compactness(better, worse, 0., [.1, .01], [128, 192], .8)
     assert not summary.compactness(worse, better, 0., [.1, .01], [128, 192], .8)
     assert summary.frontier_error(better, 0., 150) == .05
+    better['support'] = [[10, 10], [30, 40], [50, 90]]
+    assert summary.support_at(better, 150) == 30 and summary.support_at(better, 192) == 50
 
 
 def test_early_readout_names_the_failing_clause_and_the_sign():
@@ -214,6 +229,6 @@ def test_report_renders_every_declared_readout_from_toy_cells(produced):
               'final_ground_state_overlaps': overlaps, 'declaration_commit': 'declared', 'source_commit': 'executed'}
     text = summary.render(record)
     for line in ('Readout 1, column compactness', 'Readout 3, early screening', 'Readout 4, Davidson',
-                 'Complete-span control, selected_ci', 'Packets add column compactness'):
+                 'Complete-span control, selected_ci', 'Packets add column compactness', "Davidson's last prefix"):
         assert line in text
     assert 'uninformative (confined)' in text  # The symmetric toy lattice traps lowest-root Davidson.

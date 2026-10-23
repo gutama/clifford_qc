@@ -26,6 +26,12 @@ def frontier_error(science, reference, columns):
     return rows[-1]['energy']-reference if rows else None
 
 
+def support_at(science, columns):
+    """Span determinant support at the last prefix with at most ``columns`` columns."""
+    return next(support for row, support in zip(reversed(science['trajectory']), reversed(science['support']))
+                if row['dimension'] <= columns)[0]
+
+
 def hit_columns(science, reference, threshold):
     i = first_hit(science, reference, threshold)
     return math.inf if i is None else science['trajectory'][i]['dimension']
@@ -81,7 +87,10 @@ def render(record):
         f'{len(good)}/{len(workers)} scheduled cells retained; {len(sciences)} content-addressed scientific payloads. '
         'Errors are above the lowest singlet-frame eigenvalue, in t for lattices and Ha for molecules.', '',
         'Times are medians of setup plus solver across repetitions and are descriptive. Worker RSS is the OS high-water mark. '
-        'Span support counts determinants with any retained amplitude above 1e-12.', '']
+        'Span support counts determinants with any retained amplitude above 1e-12. On the molecular inputs, packet and '
+        'Davidson directions carry rounding-level amplitudes near that threshold: their counts reproduce exactly but can differ '
+        'by a few percent from an independent computation of the same span, which brackets each between its own counts at '
+        '1e-11 and 1e-13. Selected-CI columns are exact CSFs and carry none.', '']
     verdicts = {}
     for case in c['inputs']:
         name = case['name']; ref = record['references'][name]; reference = ref['singlet_reference']
@@ -162,15 +171,19 @@ def render(record):
                 lines.append('Readout 4, Davidson: ' + ('reaches every threshold in fewer columns than both restricted arms, so the packets-versus-selected-CI '
                     'comparison concerns bounded-support compactness only.' if fewer else 'does not reach every threshold in fewer columns than both restricted arms.')
                     + davidson_note(davidson, reference, overlap, d))
+            matched = davidson['trajectory'][-1]['dimension']
+            lines.append(f'Span support at {matched} columns, Davidson\'s last prefix: '
+                         + ', '.join(f'{arm} {support_at(s, matched)}' for arm, s in science.items() if s is not None) + ' determinants.')
         lines += ['']
     decisive = all(verdicts.get(role) == 'packets more compact' for role in d['decisive_roles'])
     lines += [f'All scheduled cells retained: {"PASS" if complete else "FAIL"}.',
         f'Packets add column compactness (primary and both held-out inputs): **{"YES" if decisive and complete else "NO"}**.', '',
         'Repeated deterministic trajectories count once. Two or three timing repetitions are descriptive. No quantum, hardware, '
         'shot-cost, optimized-selected-CI or asymptotic-scaling claim follows, and no solver default changes.', '',
-        'Readout 3 and 4 wording was revised after observation: readout 3 names the failing clause and the sign of each difference '
-        'instead of calling every miss a loss, and readout 4 adds a factual note when Davidson ends above the reference without the '
-        'declared trigger. No verdict rule changed.', '',
+        'Revised after observation: readout 3 names the failing clause and the sign of each difference instead of calling every '
+        'miss a loss; readout 4 adds a factual note when Davidson ends above the reference without the declared trigger, and the '
+        'declared span support at matched columns, which the executed summarizer omitted; and the support caveat above. No verdict '
+        'rule changed.', '',
         f'Declaration: `{record["declaration_commit"]}`. Execution: `{record["source_commit"]}`.', '']
     return '\n'.join(lines)
 

@@ -215,13 +215,20 @@ def replay(science, case, c, data, *, full=False):
 
 
 def support_problems(science, span, rows, c, require):
-    """Span determinant support and amplitude nonzeros at each prefix, to 0.1%."""
-    mask, nonzeros = np.zeros(span.shape[0], bool), 0
-    for row, (support, count) in zip(rows, science['support']):
-        new = abs(span[:, :row['dimension']]) > c['support_tolerance']
-        mask = new.any(axis=1); nonzeros = int(new.sum())
-        for recorded, independent, name in ((support, int(mask.sum()), 'span support'), (count, nonzeros, 'amplitude nonzeros')):
-            require(abs(recorded-independent) <= max(2, 1e-3*independent), name)
+    """Span determinant support and amplitude nonzeros at each prefix, within one decade of the threshold.
+
+    Normalizing a small projected direction amplifies rounding to near the 1e-12 threshold, so two
+    correct computations of one span can count different entries. Each recorded count must lie
+    between the independent counts at ten times and a tenth of the threshold, which is exact
+    equality wherever no independent amplitude falls in that band.
+    """
+    magnitudes, tolerance = abs(span), c['support_tolerance']
+    for row, recorded in zip(rows, science['support']):
+        block = magnitudes[:, :row['dimension']]
+        coarse, fine = block > 10*tolerance, block > tolerance/10
+        bounds = ((int(coarse.any(axis=1).sum()), int(fine.any(axis=1).sum())), (int(coarse.sum()), int(fine.sum())))
+        for value, (low, high), name in zip(recorded, bounds, ('span support', 'amplitude nonzeros')):
+            require(low <= value <= high, name)
 
 
 def check_selection(decision, scores, c, require, close, step):

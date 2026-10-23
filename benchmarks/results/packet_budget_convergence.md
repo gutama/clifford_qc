@@ -3,7 +3,7 @@
 Exact classical sector-vector comparison of residual packets, greedy spin-adapted selected CI and a singlet-projected Davidson reference, each adding one column per step from the same three-column CAS(2e,2o) singlet span.
 52/52 scheduled cells retained; 20 content-addressed scientific payloads. Errors are above the lowest singlet-frame eigenvalue, in t for lattices and Ha for molecules.
 
-Times are medians of setup plus solver across repetitions and are descriptive. Worker RSS is the OS high-water mark. Span support counts determinants with any retained amplitude above 1e-12.
+Times are medians of setup plus solver across repetitions and are descriptive. Worker RSS is the OS high-water mark. Span support counts determinants with any retained amplitude above 1e-12. On the molecular inputs, packet and Davidson directions carry rounding-level amplitudes near that threshold: their counts reproduce exactly but can differ by a few percent from an independent computation of the same span, which brackets each between its own counts at 1e-11 and 1e-13. Selected-CI columns are exact CSFs and carry none.
 
 ## hubbard_2x4_u4 (primary, t)
 
@@ -34,6 +34,7 @@ Readout 1, column compactness (packets_exhaustive vs selected_ci): **mixed**.
 Readout 2, work: not applicable; columns favour neither arm.
 Readout 3, early screening: **preserves accuracy**.
 Readout 4, Davidson: does not reach every threshold in fewer columns than both restricted arms. It stopped by no_admissible_direction at residual 9.21e-09, 0.994928 above the reference with ground overlap 1.5e-12, so its span excludes the ground state. The declared confinement rule names residual-tolerance stops only, so the verdict above follows the declared fallback.
+Span support at 48 columns, Davidson's last prefix: packets_exhaustive 676, packets_early 654, selected_ci 396, davidson 4900 determinants.
 
 ## hubbard_1x8_u4 (held_out_lattice, t)
 
@@ -64,6 +65,7 @@ Readout 1, column compactness (packets_exhaustive vs selected_ci): **packets mor
 Readout 2, work: compression at higher classical work (≥1.25× H actions at ≤1.0, ≤0.1).
 Readout 3, early screening: **outside the declared band** (frontier error outside 10% of exhaustive at 64, 512). Early minus exhaustive error (negative: early lower) -1.466 at 64, -0.01586 at 128, -0.007051 at 256, -0.001976 at 512.
 Readout 4, Davidson: reaches every threshold in fewer columns than both restricted arms, so the packets-versus-selected-CI comparison concerns bounded-support compactness only.
+Span support at 46 columns, Davidson's last prefix: packets_exhaustive 308, packets_early 296, selected_ci 482, davidson 4900 determinants.
 
 ## beh2_stretched_full (held_out_molecule, Ha)
 
@@ -94,6 +96,7 @@ Readout 1, column compactness (packets_exhaustive vs selected_ci): **mixed**.
 Readout 2, work: not applicable; columns favour neither arm.
 Readout 3, early screening: **preserves accuracy**.
 Readout 4, Davidson: does not reach every threshold in fewer columns than both restricted arms.
+Span support at 18 columns, Davidson's last prefix: packets_exhaustive 34, packets_early 34, selected_ci 29, davidson 325 determinants.
 
 ## hubbard_2x3_u8 (complete_span_lattice_control, t)
 
@@ -129,6 +132,7 @@ Readout 1, column compactness (packets_exhaustive vs selected_ci): **mixed**.
 Readout 2, work: not applicable; columns favour neither arm.
 Readout 3, early screening: **outside the declared band** (frontier error outside 10% of exhaustive at 128, 175). Early minus exhaustive error (negative: early lower) -0.001653 at 64, +2.237e-05 at 128, +3.109e-15 at 175. Both errors are within 1e-08 of the reference at 175.
 Readout 4, Davidson: reaches every threshold in fewer columns than both restricted arms, so the packets-versus-selected-CI comparison concerns bounded-support compactness only.
+Span support at 27 columns, Davidson's last prefix: packets_exhaustive 186, packets_early 182, selected_ci 94, davidson 400 determinants.
 
 ## h2o_cas8e6o (development_complete_span_control, Ha)
 
@@ -164,12 +168,13 @@ Readout 1, column compactness (packets_exhaustive vs selected_ci): **mixed**.
 Readout 2, work: not applicable; columns favour neither arm.
 Readout 3, early screening: **preserves accuracy**.
 Readout 4, Davidson: does not reach every threshold in fewer columns than both restricted arms.
+Span support at 14 columns, Davidson's last prefix: packets_exhaustive 30, packets_early 30, selected_ci 24, davidson 113 determinants.
 
 All scheduled cells retained: PASS.
 Packets add column compactness (primary and both held-out inputs): **NO**.
 
 Repeated deterministic trajectories count once. Two or three timing repetitions are descriptive. No quantum, hardware, shot-cost, optimized-selected-CI or asymptotic-scaling claim follows, and no solver default changes.
 
-Readout 3 and 4 wording was revised after observation: readout 3 names the failing clause and the sign of each difference instead of calling every miss a loss, and readout 4 adds a factual note when Davidson ends above the reference without the declared trigger. No verdict rule changed.
+Revised after observation: readout 3 names the failing clause and the sign of each difference instead of calling every miss a loss; readout 4 adds a factual note when Davidson ends above the reference without the declared trigger, and the declared span support at matched columns, which the executed summarizer omitted; and the support caveat above. No verdict rule changed.
 
 Declaration: `09b1918be26a70d5a86f85c3fc3923bd58ea6c14`. Execution: `56c4a5ec82e63e5c6e5b67499d2a8e1a0395e8d5`.
