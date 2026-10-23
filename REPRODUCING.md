@@ -185,10 +185,11 @@ spin frames, candidate directions, residuals, scores, decisions and counters.
 Repeated deterministic trajectories may share one replay; each process's
 time/RSS observations are still checked. Report times, accuracy and units per
 input; a fixed-column cost comparison is not a matched-accuracy speedup.
-The earlier orthogonal-pilot source guard permits the added `to_csr` method
-only when all historical backend AST nodes match after docstring removal.
-Executable method-definition changes and edits to old code remain rejected;
-the historical source/observation digests are still checked against Git.
+The orthogonal-pilot provenance gate checks historical source and observation
+digests against their recorded Git commits. Current implementations are covered
+by behavioral tests, including sector actions and CSR restrictions against an
+independent occupation-sign Hamiltonian and a current-producer pilot replay.
+There is no per-file live-source allowlist or syntax-tree compatibility rule.
 The journal checkpoints completed process observations outside the worktree.
 Version 2 retains immutable compressed per-cell files beside a small manifest;
 final outputs are lossless gzip/base64 JSON envelopes written in one operation.
@@ -466,19 +467,33 @@ guards refuse a MORE execution before checking its Git execution environment.
 For Phase 19, the declaration's twelve implementation bindings are also
 packaged as `lineage_sources` at the original execution commit. Once the
 campaign record exists, the declaration/result checkers verify these frozen
-source bytes and rebuild structural quantities with today's kernel. The live
-`benchmarks/phase19_structure.py` rebuild engine remains pinned to its original
-bytes in both modes. Strict Git
-mode additionally checks that the recorded execution contained those bindings.
-Before execution, and in the unchanged producer's preflight, the live source
+source bytes and rebuild structural quantities with today's kernel and rebuild
+engine, comparing the results with the frozen manifests. Strict Git mode
+additionally checks that the recorded execution contained those bindings.
+Before execution, and in the producer's preflight, the live source
 bindings remain mandatory; this archival path does not license another draw.
 Current source files may have evolved. The output explicitly states
 `commit chronology UNVERIFIED`; content consistency does not prove archive
 authorship or preregistration ancestry. CI uses the full-history path.
 The independent Phase 19 sampled-result replay still requires Git history and
 the record's numerical environment; its source checks read the recorded commit
-and also pin the current producer. Current checker code may evolve. No frozen
-campaign is rerun to add metadata.
+while current producer/checker behavior is exercised by independent toy replays.
+No frozen campaign is rerun to add metadata.
+
+Historical provenance and current correctness are separate contracts. Run the
+focused migration tests with:
+
+```bash
+python -m pytest tests/test_orthogonal_active_space.py tests/test_sparse_packets.py \
+  tests/test_phase19_preregistration.py tests/test_phase19_energy_comparison.py \
+  tests/test_archive_provenance.py
+```
+
+These tests retain digest-tampering, observation-byte and declaration/execution/
+record ancestry checks. The current-code tests run small deterministic inputs;
+they do not certify current runtime or memory against historical measurements
+and do not authorize another preregistered campaign. Reproduce historical
+measurements from their recorded source revisions and numerical environments.
 
 Building the manuscript itself needs revtex4-2 and the packages the preamble
 loads; on Debian/Ubuntu:
@@ -617,7 +632,7 @@ frame-coordinate comparison above still fails its joint criterion.
 ```bash
 python -m venv .venv && source .venv/bin/activate
 pip install -e .[test,research,stim]       # automatic CI extras
-pytest                                      # 4097 passed, 12 skipped (expected if green)
+pytest                                      # 4100 passed, 12 skipped (expected if green)
 ```
 
 This is the automatic CI dependency set; record gates additionally pin NumPy
@@ -636,7 +651,7 @@ the remaining `12 - 6 = 6` skips are per-test and *are* collected:
 
 ```text
 collected == passed + (skipped - files dropped at collection)
-4103      == 4097   + (12      -   6)
+4106      == 4100   + (12      -   6)
 ```
 
 Both sides are computed from the tree, so a drift in either quoted number

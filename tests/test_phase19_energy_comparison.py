@@ -509,23 +509,22 @@ def test_execution_source_and_record_commit_order(tmp_path, monkeypatch):
     corrupted = deepcopy(record)
     corrupted["provenance"]["git_dirty"] = True
     assert checker.provenance_problems(corrupted, config, tmp_path)
-    corrupted = deepcopy(record)
-    corrupted["provenance"]["source_files"][0]["sha256"] = "0" * 64
-    assert checker.provenance_problems(corrupted, config, tmp_path)
-    corrupted = deepcopy(record)
-    corrupted["provenance"]["source_files"][0]["git_blob_sha1"] = "0" * 40
-    assert checker.provenance_problems(corrupted, config, tmp_path)
+    for index, relative in enumerate(checker.SOURCES):
+        for key, digest, message in (("sha256", "0" * 64, "execution source SHA-256 differs"),
+                                     ("git_blob_sha1", "0" * 40, "execution source drift")):
+            corrupted = deepcopy(record)
+            corrupted["provenance"]["source_files"][index][key] = digest
+            assert f"{message}: {relative}" in checker.provenance_problems(corrupted, config, tmp_path)
     corrupted = deepcopy(record)
     corrupted["provenance"]["source_files"][0] = "not an object"
     assert "execution source file set/order differs" in checker.provenance_problems(corrupted, config, tmp_path)
-    (tmp_path / checker.SOURCES[0]).write_text("# changed execution source\n")
-    assert any("current producer differs" in problem
-               for problem in checker.provenance_problems(record, config, tmp_path))
-    (tmp_path / checker.SOURCES[0]).write_text("# toy execution source\n")
-    # Verification code can evolve while the execution's producer stays pinned.
-    (tmp_path / checker.SOURCES[1]).write_text("# improved checker\n")
-    assert checker.provenance_problems(record, config, tmp_path) == []
-    (tmp_path / checker.SOURCES[1]).write_text("# toy execution source\n")
+    # All current implementations may evolve; the bindings still name the
+    # historical execution. Independent toy replays exercise today's producer.
+    for relative in checker.SOURCES:
+        path = tmp_path / relative
+        path.write_text("# maintained implementation\n")
+        assert checker.provenance_problems(record, config, tmp_path) == []
+        path.write_text("# toy execution source\n")
     (tmp_path / "extra-record-change").write_text("must not share the first record commit")
     git("add", ".")
     git("commit", "--amend", "--no-edit")

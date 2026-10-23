@@ -125,6 +125,53 @@ def test_independent_replay_accepts_synthetic_pilot(synthetic_case):
     assert entry["trajectory"][-1]["arms"]["orthogonal"]["energy"] < entry["classical_energy"]
 
 
+@pytest.fixture(scope="module")
+def current_molecular_case():
+    """Small deterministic FCIDUMP oracle for today's JW/sector/solver path.
+
+    q0 is the leftmost occupation bit; spin orbitals are interleaved alpha/beta.
+    This creates test output only, never another published campaign record.
+    """
+    config = producer.load_design()
+    case = config["cases"][0]
+    path = producer.ROOT / case["path"]
+    data = checker.read_fcidump(path)
+    n = 2 * data.n_orbitals
+    words = [word for word in range(1 << n) if word.bit_count() == data.n_electrons
+             and sum((1 if j % 2 == 0 else -1) * ((word >> (n - 1 - j)) & 1)
+                     for j in range(n)) == data.ms2]
+    matrix, _ = checker.hamiltonian(path, words)
+    backend = SectorStatevectorBackend(n, data.n_electrons, data.sz)
+    np.testing.assert_array_equal(backend.basis, words)
+    model = producer.fcidump_model(path)
+    return case, config, matrix, words, backend, model
+
+
+@pytest.mark.parametrize("precompute", [True, False])
+def test_current_sector_actions_and_csr_match_occupation_oracle(current_molecular_case, precompute):
+    _, _, matrix, words, backend, model = current_molecular_case
+    operator = backend.operator(model.hamiltonian, precompute=precompute)
+    # Complete columns detect phase, fermionic-sign and bit-order errors.
+    actions = np.column_stack([operator.matvec(column) for column in np.eye(len(words))])
+    np.testing.assert_allclose(actions, matrix, atol=1e-12, rtol=0)
+    indices = [len(words) - 1, 0, 3, 1]
+    expected = matrix[np.ix_(indices, indices)]
+    np.testing.assert_allclose(operator.restrict(indices), expected, atol=1e-12, rtol=0)
+    np.testing.assert_allclose(operator.to_csr().toarray(), matrix, atol=1e-12, rtol=0)
+    np.testing.assert_allclose(operator.to_csr(indices).toarray(), expected, atol=1e-12, rtol=0)
+    vector = np.arange(len(words)) + 1j * np.arange(len(words))[::-1]
+    np.testing.assert_allclose(operator.matvec(vector), matrix @ vector, atol=1e-11, rtol=0)
+
+
+def test_current_molecular_pilot_replays_against_occupation_oracle(current_molecular_case):
+    case, config, matrix, words, _, _ = current_molecular_case
+    config = deepcopy(config)
+    config["cases"] = [case]
+    config["noise"]["replicas"] = 5
+    entry = producer.run_case(case, config, 0)
+    assert checker.verify_case(entry, case, config, matrix, words) == []
+
+
 def test_packet_serialization_accepts_only_numerically_small_support_changes():
     row = {"pattern": 2, "indices": [1, 2],
            "coefficients": {"real": [-.6, .8], "imag": [0, 0]}}
@@ -234,7 +281,7 @@ def test_committed_record_replays_independently():
         assert checker.verify(changed)
 
 
-def test_original_execution_history_restores_without_changing_branch_refs(tmp_path):
+def test_original_execution_history_restores_without_changing_branch_refs(tmp_path, monkeypatch):
     if not checker.RECORD.exists():
         pytest.skip("observations are required to test the execution archive")
     require_full_history()
@@ -266,6 +313,32 @@ def test_original_execution_history_restores_without_changing_branch_refs(tmp_pa
             packaged.parent.mkdir(parents=True, exist_ok=True)
             shutil.copyfile(path, packaged)
         assert checker.source_problems(record, config, declaration, record_path, root=root) == []
+        # Every live implementation may evolve, including old backend methods.
+        # This gate identifies historical execution; the current-code tests above
+        # enforce actions, CSR restrictions, and the independent pilot replay.
+        for relative in record["source_sha256"]:
+            (root / relative).write_text("# maintained implementation\n")
+        assert checker.source_problems(record, config, declaration, record_path, root=root) == []
+        original_binding = checker.commit_binding
+        for relative in record["source_sha256"]:
+            def wrong_historical_digest(repo, commit, path):
+                actual = original_binding(repo, commit, path)
+                if commit == record["source_commit"] and path == relative:
+                    return {**actual, "sha256": "0" * 64}
+                return actual
+            with monkeypatch.context() as patch:
+                patch.setattr(checker, "commit_binding", wrong_historical_digest)
+                assert f"execution source digest differs: {relative}" in checker.source_problems(
+                    record, config, declaration, record_path, root=root)
+        # Sever ancestry in this disposable Git DAG without changing any trees
+        # or recorded identities: matching bytes must not excuse lost chronology.
+        checker.git_run(root, "replace", "--graft", record["source_commit"])
+        try:
+            with pytest.raises(checker.HistoryError, match="merge-base"):
+                checker.source_problems(record, config, declaration, record_path, root=root)
+        finally:
+            checker.git_run(root, "replace", "-d", record["source_commit"])
+        assert subprocess.check_output(["git", "for-each-ref"], cwd=root) == b""
         target.write_bytes(target.read_bytes() + b"tampered")
         with pytest.raises(ValueError, match="bundle digest"):
             checker.ensure_execution_history(record, root)
