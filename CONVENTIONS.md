@@ -64,6 +64,26 @@ operand of Clifford grade `0, 1 mod 4` masks the reversion sign. Projected
 subspace matrix elements need `trace_pairing`, because `A' H A` is not
 Hermitian.
 
+## State-vector phase pivots
+
+`deterministic_phase_pivot(v, tie_tolerance=1e-12)` selects the lowest nonzero
+index within a relative band of the maximum magnitude: after safe common
+scaling, `max_magnitude - magnitude <= tie_tolerance * max_magnitude`.
+The tolerance must be a finite real scalar in `[0, 1)`; booleans are rejected.
+There is no absolute amplitude floor, and an all-zero vector has no pivot.
+`canonical_phase_tolerant` returns an independent complex128 copy rotated by
+the conjugate unit phase of that pivot. It preserves norm and the physical ray
+to floating-point accuracy without normalizing or truncating components.
+Nonfinite input and an unrepresentable rotated output are rejected.
+
+`ActionSpace` and `orthogonal_direction` accept `phase_tie_tolerance`; a
+positive value enables this rule. Their default zero uses the existing strict
+maximum-magnitude convention, including its historical arithmetic. The new
+standalone helpers use the relative-band rule even at zero tolerance. A
+near-tie perturbation stays stable only while the eligible pivot remains inside
+the band; no continuity is promised across its boundary. The full contract is
+in [docs/deterministic_phase_pivot.md](docs/deterministic_phase_pivot.md).
+
 ## Second moments, residuals and folded roots
 
 A subspace state is `|Psi> = sum_j c_j A_j|psi>`. A matrix-element bank pairs

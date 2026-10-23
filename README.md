@@ -444,6 +444,23 @@ optional extras; benchmark-specific environments are in [REPRODUCING.md](REPRODU
 - **Scale:** the committed studies support small-system method comparisons.
   They establish neither general scaling nor an advantage over other packages.
 
+For explicit complex state vectors, an opt-in phase convention keeps the first
+component within a relative tolerance of the largest magnitude as the pivot:
+
+```python
+from clifford_qc.subspace import canonical_phase_tolerant, deterministic_phase_pivot
+
+v = [1, 1j * (1 + 1e-14)]
+assert deterministic_phase_pivot(v, tie_tolerance=1e-12) == 0
+representative = canonical_phase_tolerant(v, tie_tolerance=1e-12)
+```
+
+`ActionSpace` and `orthogonal_direction` accept `phase_tie_tolerance=1e-12`
+to enable it. Their default zero retains the historical strict phase rule.
+See [CONVENTIONS.md](CONVENTIONS.md#state-vector-phase-pivots) for boundary and
+input rules. This changes only the ray's representative, with no normalization
+or convergence claim.
+
 ## Validation
 
 For development tests:
