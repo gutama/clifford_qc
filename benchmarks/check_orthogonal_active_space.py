@@ -8,7 +8,6 @@ performance guarantees.
 from __future__ import annotations
 
 import argparse
-import ast
 import json
 from pathlib import Path
 import re
@@ -51,55 +50,6 @@ SOURCES = (
 
 V2_SOURCES = SOURCES + ("clifford_qc/subspace/spin_packets.py",
                         "benchmarks/archive_provenance.py", "benchmarks/metadata_io.py")
-# These maintained modules have a separately declared v2 implementation. V1
-# execution bytes remain bound in Git, never relabeled as the current source.
-EVOLVED_V1_SOURCES = {"benchmarks/check_orthogonal_active_space.py",
-                      "benchmarks/run_orthogonal_active_space.py",
-                      "clifford_qc/subspace/orthogonal.py"}
-
-
-def csr_only_backend_extension(historical, live):
-    """Admit to_csr plus docstrings only; preserve every historical AST node.
-
-    The old pilots never call the new method. Require a plain method with no
-    executable decorator/default/annotation, so defining it cannot affect old
-    execution. Historical blob digests remain checked separately.
-    """
-    old, new = ast.parse(historical), ast.parse(live)
-    classes = [n for n in new.body if isinstance(n, ast.ClassDef) and n.name == 'SectorOperator']
-    originals = [n for n in old.body if isinstance(n, ast.ClassDef) and n.name == 'SectorOperator']
-    if len(classes) != 1 or len(originals) != 1:
-        return False
-    if any(isinstance(n, (ast.FunctionDef, ast.AsyncFunctionDef)) and n.name == 'to_csr'
-           for n in originals[0].body):
-        return False
-    methods = [n for n in classes[0].body if isinstance(n, ast.FunctionDef) and n.name == 'to_csr']
-    if len(methods) != 1:
-        return False
-    method = methods[0]
-    if (method.decorator_list or method.returns is not None
-            or [arg.arg for arg in method.args.args] != ['self', 'indices']
-            or any(arg.annotation is not None for arg in method.args.args)
-            or method.args.posonlyargs or method.args.kwonlyargs
-            or method.args.vararg or method.args.kwarg
-            or len(method.args.defaults) != 1
-            or not isinstance(method.args.defaults[0], ast.Constant)
-            or method.args.defaults[0].value is not None):
-        return False
-    classes[0].body.remove(method)
-
-    class StripDocstrings(ast.NodeTransformer):
-        def generic_visit(self, node):
-            node = super().generic_visit(node)
-            if (isinstance(node, (ast.Module, ast.ClassDef, ast.FunctionDef, ast.AsyncFunctionDef))
-                    and node.body and isinstance(node.body[0], ast.Expr)
-                    and isinstance(node.body[0].value, ast.Constant)
-                    and isinstance(node.body[0].value.value, str)):
-                node.body = node.body[1:]
-            return node
-
-    return ast.dump(StripDocstrings().visit(old), include_attributes=False) == ast.dump(
-        StripDocstrings().visit(new), include_attributes=False)
 
 
 def independent_spin_squared(words, n):
@@ -489,7 +439,11 @@ def ensure_execution_history(record, root=ROOT):
 
 
 def source_problems(record, config_path, declaration_path, record_path, *, root=ROOT):
-    """Historical bytes and live observations are separate binding contracts."""
+    """Bind preserved observations to historical execution bytes and ancestry.
+
+    Current implementations are exercised by behavioral tests, independently
+    of these historical identities; reproducing a pilot uses its source commit.
+    """
     history_kind(root)  # Stop before restoring objects in shallow/archive trees.
     revised = record["schema"].endswith(".v2")
     ensure_execution_history(record, root)
@@ -512,15 +466,6 @@ def source_problems(record, config_path, declaration_path, record_path, *, root=
     for path, digest in record["source_sha256"].items():
         if commit_binding(root, record["source_commit"], path)["sha256"] != digest:
             problems.append(f"execution source digest differs: {path}")
-        maintained = (path == "benchmarks/check_orthogonal_active_space.py" if revised
-                      else path in EVOLVED_V1_SOURCES)
-        if not maintained and sha256(safe_path(root, path)) != digest:
-            compatible = False
-            if path == 'clifford_qc/backends/sector_statevector.py':
-                historical = git_run(root, 'show', f'{record["source_commit"]}:{path}').stdout.decode()
-                compatible = csr_only_backend_extension(historical, safe_path(root, path).read_text())
-            if not compatible:
-                problems.append(f"live execution source differs: {path}")
     if record["declaration_commit"] == record["source_commit"]:
         problems.append("declaration did not precede implementation")
     for path in (config_path, declaration_path):

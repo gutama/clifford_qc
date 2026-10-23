@@ -161,9 +161,8 @@ def static_problems(config: dict, root: Path = ROOT, *, historical_sources: bool
                 lineage_source_path(root, structure.RECORD_PATH, binding, manifest=manifest)
             except (OSError, ValueError, KeyError, TypeError) as exc:
                 problems.append(f"frozen source binding failed: {row['path']}: {exc}")
-            # The rebuild engine executes live; its original bytes remain pinned.
-            if row["path"] == "benchmarks/phase19_structure.py":
-                problems.extend(_binding_problems(binding, root))
+            # Current code must rebuild the declared structural quantities below;
+            # its historical identity stays bound to the packaged execution bytes.
         else:
             problems.extend(_binding_problems(binding, root))
     if problems:

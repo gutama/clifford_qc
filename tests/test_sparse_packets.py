@@ -162,16 +162,6 @@ def test_isolated_worker_replays_independently_on_small_physical_input(arm, monk
         assert result['setup']['dense_sector_h_temporary_bytes'] == 0
 
 
-def test_historical_backend_guard_rejects_old_code_and_definition_side_effects():
-    from benchmarks.check_orthogonal_active_space import csr_only_backend_extension
-    historical = 'class SectorOperator:\n    def matvec(self, x):\n        return x\n'
-    addition = '\n    def to_csr(self, indices=None):\n        return indices\n'
-    assert csr_only_backend_extension(historical, historical+addition)
-    assert not csr_only_backend_extension(historical, (historical+addition).replace('return x', 'return -x'))
-    assert not csr_only_backend_extension(historical, historical+addition.replace('indices=None', 'indices=print(1)'))
-    assert not csr_only_backend_extension(historical, historical+addition+'\nraise RuntimeError()\n')
-
-
 def test_execution_journal_keeps_completed_cells_and_never_retries_interruption(tmp_path):
     import json
     from benchmarks.run_sparse_packet_work import open_journal, save_journal, expected_order

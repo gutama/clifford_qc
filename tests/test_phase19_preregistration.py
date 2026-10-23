@@ -304,11 +304,20 @@ def test_historical_sources_preserve_declaration_without_licensing_live_drift(co
     assert gate.static_problems(config, root, historical_sources=True) == []
 
 
-def test_live_rebuild_engine_stays_pinned_with_historical_sources(config, frozen_phase19_checkout):
+def test_current_rebuild_engine_is_checked_by_outputs_not_historical_bytes(
+        config, frozen_phase19_checkout, monkeypatch):
     root = frozen_phase19_checkout
     path = root / "benchmarks/phase19_structure.py"
     path.write_bytes(path.read_bytes() + b"# injected engine drift\n")
-    assert any("phase19_structure.py" in error
+    assert any("phase19_structure.py" in error for error in gate.static_problems(config, root))
+    assert gate.static_problems(config, root, historical_sources=True) == []
+    build = structure.build_bank
+    def broken(bank_id, root):
+        bank = build(bank_id, root)
+        bank["arms"][0]["settings"][0]["max_abs_value"] += 0.01
+        return bank
+    monkeypatch.setattr(structure, "build_bank", broken)
+    assert any("max_abs_value" in error
                for error in gate.static_problems(config, root, historical_sources=True))
 
 
@@ -340,14 +349,15 @@ def test_archive_gate_reads_the_manifest_once(frozen_phase19_checkout, monkeypat
     assert len(calls) == 1
 
 
-def test_packaged_lineage_tampering_is_rejected(config, tmp_path):
+@pytest.mark.parametrize("relative_source", ["clifford_qc/multivector.py", "benchmarks/phase19_structure.py"])
+def test_packaged_lineage_tampering_is_rejected(config, tmp_path, relative_source):
     from benchmarks.archive_provenance import lineage_source_path
     from benchmarks.archive_provenance import MANIFEST
     import shutil
     manifest = tmp_path / MANIFEST
     manifest.parent.mkdir(parents=True)
     shutil.copyfile(structure.ROOT / MANIFEST, manifest)
-    row = next(row for row in config["lineage"]["files"] if row["path"] == "clifford_qc/multivector.py")
+    row = next(row for row in config["lineage"]["files"] if row["path"] == relative_source)
     original = lineage_source_path(structure.ROOT, structure.RECORD_PATH, row)
     relative = original.relative_to(structure.ROOT)
     target = tmp_path / relative
