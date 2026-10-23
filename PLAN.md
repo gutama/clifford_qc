@@ -1,5 +1,13 @@
 # `clifford_qc` research plan — WISE–A-CASE (PRD)
 
+**2026-10-23 deterministic phase pivot — reopened as numerical stability.**
+The user's new request reopens the previously retired pivot item under
+`docs/deterministic_phase_pivot.md`, declared before implementation. It scopes
+a first-in-relative-tolerance-band phase helper and opt-in ActionSpace/direction
+integration, checked by physical-ray and Ritz invariants. The strict historical
+helper remains unchanged. This is numerical correctness work, with no new
+packet campaign, altered shortlist rule or promotion of experimental defaults.
+
 **2026-10-23 frame-coordinate projection: observed, opt-in; joint criterion fails.**
 `benchmarks/FRAME_COORDINATE_PROJECTION_DECLARATION.md` freezes the comparison
 before implementation against merged PR #149. The `coordinates` path projects
