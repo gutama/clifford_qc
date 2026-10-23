@@ -65,7 +65,7 @@ def davidson_note(davidson, reference, overlap, d):
     last = davidson['trajectory'][-1]; error = last['energy']-reference
     if davidson['stop_reason'] == 'residual_tolerance' or error <= d['davidson_uninformative_if_converged_above_reference_by']: return ''
     return (f' It stopped by {davidson["stop_reason"]} at residual {last["residual_norm"]:.3g}, {error:.6g} above the reference with '
-            f'ground overlap {overlap:.2g}' + (', so its span excludes the ground state' if overlap <= 1e-6 else '')
+            f'ground overlap {overlap:.2g}' + (': an excited root, not the ground state' if overlap <= 1e-6 else '')
             + '. The declared confinement rule names residual-tolerance stops only, so the verdict above follows the declared fallback.')
 
 
@@ -182,7 +182,9 @@ def render(record):
         'shot-cost, optimized-selected-CI or asymptotic-scaling claim follows, and no solver default changes.', '',
         'Revised after observation: readout 3 names the failing clause and the sign of each difference instead of calling every '
         'miss a loss; readout 4 adds a factual note when Davidson ends above the reference without the declared trigger, and the '
-        'declared span support at matched columns, which the executed summarizer omitted; and the support caveat above. No verdict '
+        'declared span support at matched columns, which the executed summarizer omitted; and the support caveat above. A later '
+        'correction removed that note\'s claim that Davidson\'s span excludes the ground state: the shared start span carries '
+        'ground-state weight on every input, 1.7e-6 on the primary (`check_packet_budget_convergence.py --start-weights`). No verdict '
         'rule changed.', '',
         f'Declaration: `{record["declaration_commit"]}`. Execution: `{record["source_commit"]}`.', '']
     return '\n'.join(lines)
