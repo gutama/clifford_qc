@@ -1492,7 +1492,7 @@ not the products — while H₄'s is 6×. The cost side is memory, and it is not
 small: H₄'s 378 cached element operators hold 15 847 distinct words and ~10.6 MB.
 That figure is the §6 metric to watch as Phase 3 grows bases, not a footnote.
 
-### Phase 2M — memory-bounded matrix-element bank (adjunct; A/B done, C/D matrix implemented, execution pending)
+### Phase 2M — memory-bounded matrix-element bank (adjunct; A–D done, disk-backed storage deferred)
 
 Phase 2 made repeated adaptive solves computationally credible by retaining every
 built pair. The larger molecular records expose the other side of that decision:
@@ -1694,7 +1694,7 @@ with `soa` marginally slower, so `interleaved` is the default.
 support/scalar history and a selected block plus a bounded pair frontier. Packed
 segments release array capacity on eviction. Small-system tests preserve matrices,
 adaptive decisions and sampled reconstruction; the full molecular performance
-matrix remains open. Disk-backed storage is deferred until a measured workload
+matrix is now complete; see 2M-D. Disk-backed storage is deferred until a measured workload
 requires it. See [molecular/PIPELINE.md](molecular/PIPELINE.md) for the separated preparation, solve
 and optional validation commands and the exact memory boundary.
 
