@@ -1694,7 +1694,7 @@ with `soa` marginally slower, so `interleaved` is the default.
 support/scalar history and a selected block plus a bounded pair frontier. Packed
 segments release array capacity on eviction. Small-system tests preserve matrices,
 adaptive decisions and sampled reconstruction; the full molecular performance
-matrix remains open. Disk-backed storage is deferred until a measured workload
+matrix is now complete; see 2M-D. Disk-backed storage is deferred until a measured workload
 requires it. See [molecular/PIPELINE.md](molecular/PIPELINE.md) for the separated preparation, solve
 and optional validation commands and the exact memory boundary.
 
