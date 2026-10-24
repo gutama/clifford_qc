@@ -174,6 +174,8 @@ def test_small_sector_fallback_is_explicit_and_its_reference_is_still_separate()
     assert result.attempts[-1]['kind']=='complete_small_sector'
     assert result.status=='numerically_converged_root_unresolved'
     assert result.resources['memory_plan']['dimension']==1
+    assert result.resources['projection_resets']==2
+    assert result.resources['projection_restarts']==1
 
 
 @pytest.mark.parametrize('options',[{'ncv':2},{'recovery_attempts':17},{'max_iterations':0},
