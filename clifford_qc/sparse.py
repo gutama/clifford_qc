@@ -130,10 +130,11 @@ def sparse_ground_in_sector(operator, n_electrons: int | None = None,
     return np.asarray(values).real, embedded
 
 
-def spectral_bound(operator) -> float:
-    """``sum_w |h_w| >= ||H||``: every Pauli word is a unitary of norm one."""
+def spectral_bound(operator, *, include_identity=True) -> float:
+    """Pauli 1-norm bound on H, or H-h_I I when identity is excluded."""
     mv = operator.to_mv() if isinstance(operator, PauliSum) else operator
-    return float(sum(abs(coeff) for coeff in mv.terms.values()))
+    return float(sum(abs(coeff) for code, coeff in mv.terms.items()
+                     if include_identity or code != 0))
 
 
 def sparse_ground(operator, k: int = 1, *, tol: float = 0.0,

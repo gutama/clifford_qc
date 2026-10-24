@@ -98,6 +98,70 @@ def solve_prepared(prepared, *, config=None, storage="object", policy="retain_al
     return result, record
 
 
+def solve_prepared_sector(prepared, *, config=None, target_spin=0., precompute="auto"):
+    """Independent bounded classical action workflow, with separately priced setup."""
+    from .backends import SectorStatevectorBackend
+    from .backends.sector_reference import SectorSpec, SectorStateReference, SectorActionProvider, sector_input_plan
+    from .models.metadata import spin_convention
+    from .reference_states import DeterminantReference, UnsupportedReferenceOperation
+    from .subspace.bounded_actions import ActionMemoryLimit, RSSMonitor
+    from .subspace.sector_solver import SectorSolveConfig, sector_memory_plan, solve_sector
+
+    cfg = SectorSolveConfig() if config is None else config
+    if not isinstance(cfg, SectorSolveConfig):
+        raise TypeError("config must be a SectorSolveConfig")
+    started = time.perf_counter()
+    model = prepared.model()
+    if spin_convention(model) != "interleaved" or model.metadata.get("fermion_encoding", "jw") != "jw":
+        raise UnsupportedReferenceOperation("sector-action workflow requires interleaved Jordan-Wigner inputs")
+    spec = SectorSpec(model.n, model.metadata["n_electrons"], model.metadata["sz"])
+    determinant = DeterminantReference.from_program(model.reference)
+    if (len(determinant.occupied) != spec.n_electrons
+            or sum(0.5 if q % 2 == 0 else -0.5 for q in determinant.occupied) != spec.sz):
+        raise ValueError("prepared determinant disagrees with the declared particle/spin sector")
+    plan = setup_monitor = None
+    try:
+        if precompute != "auto" and not isinstance(precompute,bool):
+            raise ValueError("precompute must be auto, True or False")
+        if cfg.roots > spec.validate_spin(target_spin):
+            raise ValueError("requested roots exceed the target total-spin dimension")
+        for use_precompute in ((True,False) if precompute == "auto" else (precompute,)):
+            try:
+                payload,_ = sector_input_plan(spec,model.hamiltonian,precompute=use_precompute,
+                                             max_owned_bytes=cfg.max_owned_bytes)
+                plan = sector_memory_plan(spec,cfg,target_spin=target_spin,input_bytes=payload['admission_bytes'])
+                break
+            except ActionMemoryLimit:
+                if precompute != "auto" or not use_precompute:
+                    raise
+        setup_monitor = RSSMonitor(plan)
+        setup_monitor.check(admission=True)
+        backend = SectorStatevectorBackend(spec.n, spec.n_electrons, spec.sz)
+        amplitudes = backend.occupation_state(determinant.bits)
+        reference = SectorStateReference(spec, amplitudes, max_owned_bytes=cfg.max_owned_bytes)
+        del backend, amplitudes
+        provider = SectorActionProvider(reference, model.hamiltonian, target_spin=target_spin,
+                                        max_owned_bytes=cfg.max_owned_bytes,precompute=use_precompute)
+        setup_monitor.check()
+        preparation_seconds = time.perf_counter() - started
+        result = solve_sector(provider, config=cfg)
+        record = result.as_dict()
+        record.update(problem_fingerprint=prepared.fingerprint, implementation=implementation_fingerprint(),
+                      preparation_seconds=preparation_seconds, preparation_rss=setup_monitor.as_dict(),
+                      preparation_memory_plan=plan.as_dict(),precompute_requested=precompute,
+                      preparation_scope="model reconstruction, sector reference, H/S² compilation and validation; solver wall_seconds reported separately")
+        return result, record
+    except (ActionMemoryLimit,ValueError) as exc:
+        return None, {"schema": "clifford_qc.sector_solve.v1",
+                      "status": "resource_limited" if isinstance(exc,ActionMemoryLimit) else "invalid_configuration",
+                      "problem_fingerprint": prepared.fingerprint, "energies": [],
+                      "ground_state_status": "not_established", "stopping_uses_spectral_oracle": False,
+                      "reason": str(exc), "elapsed_seconds": time.perf_counter() - started,
+                      "config": asdict(cfg), "sector_dimension": spec.dimension,
+                      "preparation_rss": setup_monitor.as_dict() if setup_monitor is not None else None,
+                      "admission_plan": plan.as_dict() if plan is not None else None}
+
+
 def validate_prepared(prepared, *, method="auto", roots=1):
     from .backends import SectorStatevectorBackend
     import numpy as np
@@ -126,7 +190,7 @@ def main(argv=None):
     prepare.add_argument("source")
     prepare.add_argument("--cache-directory", required=True)
     prepare.add_argument("--integral-tolerance", type=float, default=1e-12)
-    for stage in ("solve", "validate"):
+    for stage in ("solve", "solve-sector", "validate"):
         command = sub.add_parser(stage)
         command.add_argument("prepared")
         command.add_argument("--output", required=True)
@@ -142,6 +206,19 @@ def main(argv=None):
             command.add_argument("--max-rank", type=int, default=2)
             command.add_argument("--max-candidates", type=int, default=0,
                                  help="0 uses the full candidate pool")
+        elif stage == "solve-sector":
+            command.add_argument("--roots", type=int, default=1)
+            command.add_argument("--target-spin", type=float, default=0.)
+            command.add_argument("--ncv", type=int, default=32)
+            command.add_argument("--max-iterations", type=int, default=300)
+            command.add_argument("--recovery-attempts", type=int, default=2)
+            command.add_argument("--residual-tolerance", type=float, default=1e-8)
+            command.add_argument("--seed", type=int, default=20261024)
+            command.add_argument("--max-owned-bytes", type=int, default=256 * 2**20)
+            command.add_argument("--max-rss-bytes", type=int)
+            command.add_argument("--rss-headroom-bytes", type=int, default=0)
+            command.add_argument("--precompute", choices=("auto","on","off"), default="auto",
+                                 help="retain gather tables when the full owned-memory plan admits them")
         else:
             command.add_argument("--method", choices=("auto", "dense", "eigsh", "lanczos"), default="auto")
             command.add_argument("--roots", type=int, default=1)
@@ -159,6 +236,20 @@ def main(argv=None):
                                        frontier_pairs=args.frontier_pairs, max_rank=args.max_rank,
                                        max_candidates=args.max_candidates, reference_mode=args.reference_mode,
                                        reference_arithmetic=args.reference_arithmetic)
+        elif args.stage == "solve-sector":
+            from .subspace.sector_solver import SectorSolveConfig
+            try:
+                cfg = SectorSolveConfig(roots=args.roots, ncv=args.ncv, max_iterations=args.max_iterations,
+                                    recovery_attempts=args.recovery_attempts,
+                                    residual_tolerance=args.residual_tolerance, seed=args.seed,
+                                    max_owned_bytes=args.max_owned_bytes, max_rss_bytes=args.max_rss_bytes,
+                                    rss_headroom_bytes=args.rss_headroom_bytes)
+                _, record = solve_prepared_sector(prepared,config=cfg,target_spin=args.target_spin,
+                                                 precompute={"auto":"auto","on":True,"off":False}[args.precompute])
+            except ValueError as exc:
+                record = {"schema":"clifford_qc.sector_solve.v1","status":"invalid_configuration",
+                          "energies":[],"reason":str(exc),"ground_state_status":"not_established",
+                          "stopping_uses_spectral_oracle":False,"problem_fingerprint":prepared.fingerprint}
         else:
             record = validate_prepared(prepared, method=args.method, roots=args.roots)
         _atomic_json(args.output, record)
