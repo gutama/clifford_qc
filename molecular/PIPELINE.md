@@ -16,8 +16,9 @@ Its committed evidence describes the historical density-MV workflow; changing
 the reference representation requires a separate measured comparison before
 reusing its runtime or RSS conclusions.
 
-The CLI currently accepts restricted real FCIDUMP inputs and uses exact A-CASE
-with determinant-excitation candidates and Jordan-Wigner encoding. It does not
+The CLI accepts restricted real FCIDUMP inputs. `solve` uses exact A-CASE
+with determinant-excitation candidates and Jordan-Wigner encoding; `solve-sector`
+provides the separate bounded classical action workflow. It does not
 perform the upstream orbital, active-space, or integral calculation. Other
 solvers and finite-shot methods use the Python interfaces described in the
 [README](../README.md).
@@ -26,6 +27,7 @@ solvers and finite-shot methods use the Python interfaces described in the
 |---|---|---|---|
 | `prepare` | FCIDUMP file and preparation options | Cached `PreparedProblem` JSON; stdout gives its path, fingerprint, and cache-hit status | Reuse for solver configurations with the same prepared model |
 | `solve` | Prepared artifact and A-CASE/storage options | Run JSON with energy history, selected labels, stopping reason, and resource diagnostics | Run independently for each configuration |
+| `solve-sector` | Prepared artifact and declared sector/root/memory limits | Bounded classical recovery JSON with numerical, spin and root evidence | Run independently; no spectral oracle during solving |
 | `validate` (optional) | Prepared artifact and reference-solver options | Reference energies, eigenpair residuals, and sector dimension | Reuse for unchanged model, sector, and reference settings |
 
 `solve` now defaults to `DeterminantReference` and `ExactProjectedProvider`.
@@ -148,6 +150,29 @@ index footprints. These scopes overlap where boxes are shared and exclude
 allocator/sort workspaces; they are not an additive RSS estimate or a demonstrated
 speedup. Coefficient rows, generators, and full-sector methods retain their
 existing scaling limits.
+
+## Bounded sector-action solve
+
+`solve-sector` is a separate classical workflow with an explicit `(N, Sz, S)`
+target. It uses immutable sector amplitudes and bounded SciPy Krylov recovery;
+it does not change the A-CASE correction span used by `solve`.
+
+```bash
+python -m clifford_qc.pipeline solve-sector /tmp/clifford-prepared/problem.json \
+  --output /tmp/clifford-sector-run.json --target-spin 0 --ncv 32 \
+  --recovery-attempts 2 --residual-tolerance 1e-8 \
+  --max-owned-bytes 268435456 --max-rss-bytes 2147483648 \
+  --rss-headroom-bytes 67108864
+```
+
+Use the actual artifact path returned by `prepare`. Other options include
+`--roots`, `--max-iterations` and `--seed`. Every configured start is priced,
+including failures. Preparation and solver time/RSS scopes are separate in
+`clifford_qc.sector_solve.v1`. Owned-payload admission precedes sector
+construction; Linux RSS is boundary-monitored with no OS-enforced limit.
+A small residual and matching quantum numbers leave the ground root unresolved
+without independent spectral evidence. Read the
+[sector contract and acceptance scope](../docs/restart/SECTOR_ACTIONS.md).
 
 ## Choosing storage and lifetime policies
 

@@ -2,7 +2,8 @@
 
 The bank bridge preserves the existing A-CASE selection workflow. Consumers of
 this provider need numerical blocks, not coefficient-row or density accessors.
-Action and observation consumers remain separate future implementations.
+Sector actions have a separate consumer in ``sector_solver``; observation
+consumers remain future implementations.
 """
 from __future__ import annotations
 

@@ -98,6 +98,61 @@ def solve_prepared(prepared, *, config=None, storage="object", policy="retain_al
     return result, record
 
 
+def solve_prepared_sector(prepared, *, config=None, target_spin=0.):
+    """Independent bounded classical action workflow, with separately priced setup."""
+    import numpy as np
+    from .backends import SectorStatevectorBackend
+    from .backends.sector_reference import SectorSpec, SectorStateReference, SectorActionProvider
+    from .models.metadata import spin_convention
+    from .reference_states import DeterminantReference, UnsupportedReferenceOperation
+    from .subspace.bounded_actions import ActionMemoryLimit, ActionMemoryPlan, RSSMonitor
+    from .subspace.sector_solver import SectorSolveConfig, solve_sector
+
+    cfg = SectorSolveConfig() if config is None else config
+    if not isinstance(cfg, SectorSolveConfig):
+        raise TypeError("config must be a SectorSolveConfig")
+    started = time.perf_counter()
+    model = prepared.model()
+    if spin_convention(model) != "interleaved" or model.metadata.get("fermion_encoding", "jw") != "jw":
+        raise UnsupportedReferenceOperation("sector-action workflow requires interleaved Jordan-Wigner inputs")
+    spec = SectorSpec(model.n, model.metadata["n_electrons"], model.metadata["sz"])
+    determinant = DeterminantReference.from_program(model.reference)
+    if (len(determinant.occupied) != spec.n_electrons
+            or sum(0.5 if q % 2 == 0 else -0.5 for q in determinant.occupied) != spec.sz):
+        raise ValueError("prepared determinant disagrees with the declared particle/spin sector")
+    try:
+        plan = ActionMemoryPlan.admit(
+            spec.dimension, spec.dimension if spec.dimension <= cfg.roots + 1 else cfg.roots,
+            roots=cfg.roots, ncv=0 if spec.dimension <= cfg.roots + 1 else min(spec.dimension, cfg.ncv),
+            input_bytes=64 * spec.dimension + 24 * len(model.hamiltonian.terms) + 256 * spec.n**2,
+            max_owned_bytes=cfg.max_owned_bytes, max_rss_bytes=cfg.max_rss_bytes,
+            rss_headroom_bytes=cfg.rss_headroom_bytes)
+        setup_monitor = RSSMonitor(plan)
+        setup_monitor.check(admission=True)
+        backend = SectorStatevectorBackend(spec.n, spec.n_electrons, spec.sz)
+        amplitudes = backend.occupation_state(determinant.bits)
+        reference = SectorStateReference(spec, amplitudes, max_owned_bytes=cfg.max_owned_bytes)
+        del backend, amplitudes
+        provider = SectorActionProvider(reference, model.hamiltonian, target_spin=target_spin,
+                                        max_owned_bytes=cfg.max_owned_bytes)
+        setup_monitor.check()
+        preparation_seconds = time.perf_counter() - started
+        result = solve_sector(provider, config=cfg)
+        record = result.as_dict()
+        record.update(problem_fingerprint=prepared.fingerprint, implementation=implementation_fingerprint(),
+                      preparation_seconds=preparation_seconds, preparation_rss=setup_monitor.as_dict(),
+                      preparation_scope="model reconstruction, sector reference, H/S² compilation and validation; solver wall_seconds reported separately")
+        return result, record
+    except ActionMemoryLimit as exc:
+        return None, {"schema": "clifford_qc.sector_solve.v1", "status": "resource_limited",
+                      "problem_fingerprint": prepared.fingerprint, "energies": [],
+                      "ground_state_status": "not_established", "stopping_uses_spectral_oracle": False,
+                      "reason": str(exc), "elapsed_seconds": time.perf_counter() - started,
+                      "config": asdict(cfg), "sector_dimension": spec.dimension,
+                      "preparation_rss": setup_monitor.as_dict() if "setup_monitor" in locals() else None,
+                      "admission_plan": plan.as_dict() if "plan" in locals() else None}
+
+
 def validate_prepared(prepared, *, method="auto", roots=1):
     from .backends import SectorStatevectorBackend
     import numpy as np
@@ -126,7 +181,7 @@ def main(argv=None):
     prepare.add_argument("source")
     prepare.add_argument("--cache-directory", required=True)
     prepare.add_argument("--integral-tolerance", type=float, default=1e-12)
-    for stage in ("solve", "validate"):
+    for stage in ("solve", "solve-sector", "validate"):
         command = sub.add_parser(stage)
         command.add_argument("prepared")
         command.add_argument("--output", required=True)
@@ -142,6 +197,17 @@ def main(argv=None):
             command.add_argument("--max-rank", type=int, default=2)
             command.add_argument("--max-candidates", type=int, default=0,
                                  help="0 uses the full candidate pool")
+        elif stage == "solve-sector":
+            command.add_argument("--roots", type=int, default=1)
+            command.add_argument("--target-spin", type=float, default=0.)
+            command.add_argument("--ncv", type=int, default=32)
+            command.add_argument("--max-iterations", type=int, default=300)
+            command.add_argument("--recovery-attempts", type=int, default=2)
+            command.add_argument("--residual-tolerance", type=float, default=1e-8)
+            command.add_argument("--seed", type=int, default=20261024)
+            command.add_argument("--max-owned-bytes", type=int, default=256 * 2**20)
+            command.add_argument("--max-rss-bytes", type=int)
+            command.add_argument("--rss-headroom-bytes", type=int, default=0)
         else:
             command.add_argument("--method", choices=("auto", "dense", "eigsh", "lanczos"), default="auto")
             command.add_argument("--roots", type=int, default=1)
@@ -159,6 +225,14 @@ def main(argv=None):
                                        frontier_pairs=args.frontier_pairs, max_rank=args.max_rank,
                                        max_candidates=args.max_candidates, reference_mode=args.reference_mode,
                                        reference_arithmetic=args.reference_arithmetic)
+        elif args.stage == "solve-sector":
+            from .subspace.sector_solver import SectorSolveConfig
+            cfg = SectorSolveConfig(roots=args.roots, ncv=args.ncv, max_iterations=args.max_iterations,
+                                    recovery_attempts=args.recovery_attempts,
+                                    residual_tolerance=args.residual_tolerance, seed=args.seed,
+                                    max_owned_bytes=args.max_owned_bytes, max_rss_bytes=args.max_rss_bytes,
+                                    rss_headroom_bytes=args.rss_headroom_bytes)
+            _, record = solve_prepared_sector(prepared, config=cfg, target_spin=args.target_spin)
         else:
             record = validate_prepared(prepared, method=args.method, roots=args.roots)
         _atomic_json(args.output, record)

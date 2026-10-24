@@ -1,5 +1,8 @@
 # Checked first-PR compatibility scope
 
+Subsequent Steps 3–4 and their acceptance scope are documented in
+[SECTOR_ACTIONS.md](SECTOR_ACTIONS.md).
+
 This implements Steps 1–2 of the [restart blueprint](blueprint_2026-10-24.md)
 under the [v2 contract](CONTRACT.md). Historical campaign records, digests,
 ancestry, and negative conclusions are unchanged. The v1 bindings are recorded

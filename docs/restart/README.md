@@ -3,14 +3,15 @@
 Start with the [unchanged 24 October blueprint](blueprint_2026-10-24.md),
 [frozen v1 evidence bindings](v1_evidence_snapshot.json),
 [first implementation contract](CONTRACT.md), and
-[checked compatibility scope](COMPATIBILITY.md).
+[checked compatibility scope](COMPATIBILITY.md), and
+[sector-action/root-recovery contract and acceptance](SECTOR_ACTIONS.md).
 
 | Step | Status | Deliverable |
 | --- | --- | --- |
 | 1 | Implemented | Frozen evidence identities and one determinant molecular problem/claim contract |
 | 2 | Implemented | Reference capabilities, determinant/MV adapters, exact provider, density-free determinant pipeline |
-| 3 | Planned | Sector consumer, bounded action buffers, explicit owned/RSS budgets, root recovery, spin and action-residual evidence |
-| 4 | Planned | Wider old-suite reproduction through the supported provider path; first-PR H4/LiH tests are the bounded starting checks |
+| 3 | Implemented on declared scope | Immutable sector actions, fixed-capacity projection, admitted SciPy recovery, cached residuals, spin defects, separate owned/RSS scopes; primary excited-singlet regression |
+| 4 | Implemented on bounded suite | H4, LiH and Hubbard 2×2 same-span S/H and Ritz compatibility, with buffer/admission checks |
 | 5 | Planned | Sampled consumer and a preregistered independent pilot/evaluation ratio experiment |
 | 6 | Conditional | Promote only benefits that meet the new frozen comparison, or close its hypothesis |
 
@@ -22,8 +23,8 @@ Start with the [unchanged 24 October blueprint](blueprint_2026-10-24.md),
 | Exact projected provider | Yes | Complex 3-qubit controls; object/packed and retain/stream policies | Exact reference-evaluation capability; no spectrum oracle | Numerical interface and immutable cache inputs; no algorithmic advantage claim |
 | Prepared determinant workflow | Yes | H4/LiH S/H, energies and selection/stopping compatibility | No ground-state oracle under default config | Reference representation changed; variational span unchanged |
 | MV compatibility adapter | Yes | Owned immutable snapshot and legacy trace comparisons | Exact density supplied explicitly | Compatibility only |
-| Sector/action and sampled boundaries | Protocols only | Exact capability rejects sampled-only references | Consumer-specific | Concrete adapters and experiments deferred |
-| Ground-root recovery and measured ratio estimation | No new consumer yet | Existing historical evidence retained | Must be assessed under subsequent contracts | None claimed |
+| Sector actions and root recovery | Yes | Primary 2×4 excited-singlet recovery, spin-contamination controls, H4/LiH/Hubbard same-span checks | No spectral oracle during solving; independent assessment afterward | Finite numerical recovery; no ground-root guarantee or timing/RSS advantage claim |
+| Sampled boundary and measured ratio estimation | Protocol only | Actual observations and independent pilot/evaluation experiment remain Step 5 | Consumer-specific | None claimed |
 
 The supported first workflow is documented in the [molecular pipeline guide](../../molecular/PIPELINE.md).
 Historical phase status remains in [PHASE_STATUS.json](../../PHASE_STATUS.json)

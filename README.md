@@ -24,7 +24,9 @@ implementation makes the prepared determinant workflow independent of density-MV
 storage. The unchanged [blueprint](docs/restart/blueprint_2026-10-24.md),
 [v2 contract](docs/restart/CONTRACT.md), and
 [compatibility matrix](docs/restart/COMPATIBILITY.md) define this scope;
-historical campaigns and their negative outcomes remain available.
+historical campaigns and their negative outcomes remain available. A separate
+[bounded sector-action workflow](docs/restart/SECTOR_ACTIONS.md) adds explicit
+root recovery, cached residuals, spin checks and memory admission.
 
 ## What you can do
 
