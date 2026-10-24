@@ -14,13 +14,26 @@ occupation bit and lowest Pauli-code lane. `SectorStateReference` owns immutable
 normalized amplitudes and sorted occupation words. Its identity binds sector,
 conventions and amplitude bytes. It supplies actions, rather than pretending to
 be an exact Pauli-row expectation adapter.
+Reference/result objects use identity equality and hashing; use
+`reference.metadata.identity` for a physical-content cache key. Array snapshots
+share one ownership helper with the orthogonal-correction path.
+`reference.apply_operator(O)` checks sector invariance. The explicit
+`project_to_sector=True` option requests P O P when O leaks outside the sector.
 
 `SectorActionProvider` owns its Hamiltonian snapshot, checks Hermiticity and
 conservation of N, Sz and S², and applies vectors or blocks. Spin projection is
 a finite polynomial in S² over the allowed spin values. No dense spin frame,
 density MV or H² operator is constructed. Optional gather-pass precomputation
 has separate conservative admission and retained-payload accounting. The
-supported workflow defaults to recomputing passes to bound retained storage.
+supported workflow defaults to `precompute="auto"`: retain passes when the
+complete solve plan fits `max_owned_bytes`, otherwise recompute. Explicit
+`True`/`False` controls are also available (`--precompute on/off` in the CLI).
+The same input-envelope and solver-plan functions serve prepared preflight and
+direct solving. S² conservation uses a streamed packed-coefficient commutator,
+with its worst-case coefficient workspace admitted before compilation; it
+does not form H S² and S² H MVs or fill the global multiplication cache.
+This remains quadratic sparse-support work. Seeded random probes are not used
+to accept a Hamiltonian as conserving spin.
 
 `BoundedActionSpace` allocates V/HV once at admitted capacity, checks
 orthonormality, and updates only new S/H borders. The existing stable projected
@@ -40,13 +53,27 @@ directions, candidate selection or stopping. A penalty places the complement
 of the target-spin sector above the wanted spectrum; a coefficient norm bound
 supplies the spectral shift. Very small sectors use an explicitly admitted
 complete projection rather than an implicit library dense fallback.
+The identity coefficient is removed before compiling H actions and selecting
+the shift. ARPACK's relative tolerance is scaled by the centered shifted norm
+bound and recorded; physical energies/actions restore the offset afterward.
+Acceptance still checks the actual cached-action residual and its numerical
+resolution, so an unattainable tolerance remains unresolved.
 
 Every H/S² action column is charged, including spin projection, recovery and
 final diagnostics. Failed starts and iteration-limited attempts retain their
 work and time; logs do not keep an unbounded iteration-vector history. Public
 ARPACK does not expose its internal restart count: that field is null, configured
 `ncv`/iteration limits are recorded, and all callback actions are counted.
-Reported resets and orthogonal projections refer to this adapter's own work.
+ARPACK, projection, extension and tracking numerical failures stay in per-attempt
+records, and later starts still run. Reported resets and orthogonal projections
+refer to actual adapter operations, including empty spin-projected resets and
+the complete-sector path. Provider action/projection/diagonal counters at the
+top level are per solve; lifetime totals are nested under `provider_lifetime`.
+Candidate selection prioritizes physical consistency, the complete requested
+root count and convergence before energy. A slightly lower-energy incomplete
+or unconverged block cannot displace a complete converged block. Convergence
+reports carry the selected projection's actual basis size, effective rank and
+condition number, separately from the number of returned roots.
 PRIMME is not a dependency or implemented adapter in this slice.
 
 The result separates four kinds of evidence:
@@ -54,7 +81,7 @@ The result separates four kinds of evidence:
 | Evidence | Meaning |
 | --- | --- |
 | Numerical convergence | `norm(HV c - E V c) / norm(V c)` from cached actions, with an explicit numerical-resolution convention |
-| Quantum numbers | N/Sz defects and `norm((S²-S(S+1)) psi)`; an S² mean alone is insufficient |
+| Quantum numbers | N/Sz values and zero defects follow from the fixed-sector basis; `norm((S²-S(S+1)) psi)` is evaluated by action. An S² mean alone is insufficient |
 | Tracking | Ray overlaps and block principal cosines against the previous best block, including unitary mixing in degenerate blocks |
 | Ground state | Unresolved in production; an independent spectrum can assess the returned state afterward |
 
@@ -79,6 +106,12 @@ envelopes. The ARPACK envelope was checked against SciPy 1.18.0; each result
 records the actual version. The prepared workflow additionally preflights before
 sector-basis/amplitude construction. Reference/provider constructors separately
 admit their inputs before construction/compilation.
+The input envelope includes retained gather bounds and a separately disclosed
+construction/commutator workspace bound, conservatively reserved during solving
+as well. The provider also reports its smaller retained-payload model. Prepared
+preflight rejects invalid root counts and total spin before basis construction;
+the CLI emits `invalid_configuration` records for invalid dimensions/options or
+RSS headroom settings.
 
 `max_owned_bytes` admits these declared payload models. Coefficients use the
 repository's 24-byte model; Python containers, allocator retention and vendor
@@ -89,6 +122,10 @@ counters and produce failed results. No OS limit is installed, and boundary
 sampling can miss transient peaks. Preparation compilation is sampled at its
 boundaries and priced separately; independent spectral validation remains a
 separate cost. Overlapping payload scopes are not an additive RSS estimate.
+When current RSS is unavailable (including non-Linux platforms), a run with no
+RSS ceiling continues with null RSS observations and an unavailable reason.
+A configured ceiling fails closed with a resource-limited result if it cannot
+be monitored; it is never silently disabled.
 
 ## Executed acceptance scope
 
@@ -112,7 +149,7 @@ independently declared pilot/evaluation ratio experiment.
 ```bash
 OMP_NUM_THREADS=1 OPENBLAS_NUM_THREADS=1 MKL_NUM_THREADS=1 \
 python -m pytest tests/test_bounded_actions.py tests/test_sector_reference_provider.py \
-  tests/test_sector_solver.py --hypothesis-profile=ci
+  tests/test_sector_solver.py tests/test_sector_review_regressions.py --hypothesis-profile=ci
 ```
 
 Solver documentation: [SciPy eigsh](https://docs.scipy.org/doc/scipy/reference/generated/scipy.sparse.linalg.eigsh.html),

@@ -1,6 +1,6 @@
 {
   "evidence": "exact discrete compilation/counts; illustrative device-card surrogates",
-  "implementation_fingerprint": "32829d5236f28dcfe532d31be685ddcd6d4fb0d996e462011ed3313e24c07568",
+  "implementation_fingerprint": "6fa925da623612c42767b65f738a80f87c56167540b5816f1737076664346216",
   "inputs": {
     "beh2": {
       "basis_labels": [

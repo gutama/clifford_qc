@@ -18,6 +18,13 @@ from .multivector import MV, TOL
 from .pauli_kernel import pauli_lane_mask, validate_word_code
 
 
+def immutable_array(value, dtype=None):
+    """Own a NumPy snapshot whose bytes cannot be made writeable again."""
+    import numpy as np
+    array = np.asarray(value, dtype=dtype)
+    return np.frombuffer(array.tobytes(), dtype=array.dtype).reshape(array.shape)
+
+
 class UnsupportedReferenceOperation(TypeError):
     """The reference does not provide the requested execution capability."""
 

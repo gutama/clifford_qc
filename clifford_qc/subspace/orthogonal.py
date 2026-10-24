@@ -12,11 +12,7 @@ from dataclasses import dataclass
 from typing import Callable
 
 import numpy as np
-
-
-def _immutable_array(value):
-    array = np.asarray(value)
-    return np.frombuffer(array.tobytes(), dtype=array.dtype).reshape(array.shape)
+from ..reference_states import immutable_array as _immutable_array
 
 
 @dataclass(frozen=True, eq=False)

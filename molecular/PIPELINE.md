@@ -166,10 +166,17 @@ python -m clifford_qc.pipeline solve-sector /tmp/clifford-prepared/problem.json 
 ```
 
 Use the actual artifact path returned by `prepare`. Other options include
-`--roots`, `--max-iterations` and `--seed`. Every configured start is priced,
+`--roots`, `--max-iterations`, `--seed` and `--precompute auto/on/off`.
+The default `auto` retains gather tables when the complete owned-memory plan
+admits them, otherwise it recomputes passes. Every configured start is priced,
 including failures. Preparation and solver time/RSS scopes are separate in
 `clifford_qc.sector_solve.v1`. Owned-payload admission precedes sector
 construction; Linux RSS is boundary-monitored with no OS-enforced limit.
+Without an RSS ceiling, platforms lacking current-RSS support record it as
+unavailable and continue. A configured ceiling that cannot be monitored returns
+`resource_limited`. Invalid root/spin dimensions and CLI options produce clear
+`invalid_configuration` records. Per-solve action counts are distinct from
+`provider_lifetime` totals.
 A small residual and matching quantum numbers leave the ground root unresolved
 without independent spectral evidence. Read the
 [sector contract and acceptance scope](../docs/restart/SECTOR_ACTIONS.md).

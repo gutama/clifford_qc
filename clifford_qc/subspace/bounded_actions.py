@@ -88,9 +88,20 @@ class RSSMonitor:
         self.plan = plan
         self.read_rss = process_rss_bytes if read_rss is None else read_rss
         self.peak_bytes = self.samples = 0
+        self.unavailable_reason = None
 
     def check(self, *, admission=False):
-        value = int(self.read_rss())
+        if self.unavailable_reason is not None:
+            if self.plan.max_rss_bytes is not None:
+                raise ActionMemoryLimit("configured RSS ceiling cannot be monitored: " + self.unavailable_reason)
+            return
+        try:
+            value = int(self.read_rss())
+        except (OSError, RuntimeError) as exc:
+            self.unavailable_reason = str(exc)
+            if self.plan.max_rss_bytes is not None:
+                raise ActionMemoryLimit("configured RSS ceiling cannot be monitored: " + str(exc)) from exc
+            return
         self.samples += 1
         self.peak_bytes = max(self.peak_bytes, value)
         limit = self.plan.max_rss_bytes
@@ -98,7 +109,8 @@ class RSSMonitor:
             raise ActionMemoryLimit("monitored process RSS ceiling exceeded")
 
     def as_dict(self):
-        return {"peak_observed_bytes": self.peak_bytes, "samples": self.samples,
+        return {"peak_observed_bytes": self.peak_bytes if self.samples else None, "samples": self.samples,
+                "available": self.unavailable_reason is None, "unavailable_reason": self.unavailable_reason,
                 "ceiling_bytes": self.plan.max_rss_bytes, "headroom_bytes": self.plan.rss_headroom_bytes,
                 "enforcement": "boundary sampling before/after actions and solves; no OS limit; transient peaks may be missed"}
 
@@ -119,7 +131,13 @@ class BoundedActionSpace:
         self._actions = np.empty_like(self._basis)
         self._overlap = np.empty((plan.capacity, plan.capacity), complex)
         self._hamiltonian = np.empty_like(self._overlap)
-        self.size = self.h_action_columns = self.restarts = 0
+        self.size = self.h_action_columns = self.restarts = self.resets = 0
+
+    def reset(self, *, restart=False):
+        """Clear the live prefix without reallocating, and count the operation."""
+        self.size = 0
+        self.resets += 1
+        self.restarts += int(restart)
 
     @property
     def basis(self):
@@ -210,10 +228,9 @@ class BoundedActionSpace:
         projected = columns.conj().T @ actions
         if not np.allclose(projected, projected.conj().T, atol=self.tolerance, rtol=self.tolerance):
             raise ValueError("restart Hamiltonian must be Hermitian")
-        self.size = 0
+        self.reset(restart=True)
         try:
             self.extend(columns, actions=actions)
         except Exception:
             self.size = 0
             raise
-        self.restarts += 1
