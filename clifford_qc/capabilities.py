@@ -66,7 +66,7 @@ CAPABILITIES: dict[str, Capability] = {
         ),
         Capability(
             "compiled_clifford_measurement", ("stim",), "stim",
-            "compiled Clifford readouts for block-commuting measurement plans",
+            "default Stim-elimination readouts (graph_state compilation is core)",
             ("measurement.planning", "measurement.block_synthesis"),
         ),
         Capability(

@@ -327,3 +327,110 @@ class MVReference:
                 "coefficient_payload_bytes": self._density.memory_estimate(),
                 "measured_snapshot_bytes": containers + sum(sys.getsizeof(box) for box in distinct.values()),
                 "scope": "owned density snapshot containers and boxes; excludes metadata and process RSS"}
+
+
+@dataclass(frozen=True, init=False)
+class StabilizerReference:
+    """Pure full-rank signed stabilizer reference, without density expansion.
+
+    ``generators`` contains (Pauli code/label/word, eigenvalue +/-1). Its
+    canonical signed GF(2) row space determines identity, independently of the
+    supplied generator basis. Expectations use unscaled analytic arithmetic.
+    No fermionic-sector or spin-conservation property is implied by this type.
+    """
+    metadata: ReferenceMetadata
+    _rows: tuple
+
+    def __init__(self, n, generators, *, spin_ordering="qubits"):
+        from .ir import PauliWord
+        from .pauli_kernel import label_to_code, validate_n, word_mul
+        if isinstance(n,bool): raise ValueError('n must be an integer, not a boolean')
+        validate_n(n)
+        rows = []
+        for word,sign in generators:
+            if isinstance(word,str): code = label_to_code(word,n)
+            elif isinstance(word,PauliWord):
+                if word.n != n: raise ValueError('generator register disagrees with n')
+                code = word.code
+            else: code = word
+            if isinstance(code,bool): raise ValueError('generator codes must be integers')
+            validate_word_code(n,code)
+            if isinstance(sign,bool) or not isinstance(sign,int) or sign not in (-1,1):
+                raise ValueError('Hermitian generator eigenvalues must be integer +/-1')
+            for _,other,_ in rows:
+                phase,_ = word_mul(n,code,other)
+                if phase.imag: raise ValueError('stabilizer generators must commute')
+            for pivot,other,eigenvalue in rows:
+                if (code >> pivot) & 1:
+                    phase,code = word_mul(n,code,other)
+                    sign *= eigenvalue*int(phase.real)
+            if not code:
+                raise ValueError('dependent generators or an inconsistent negative identity')
+            pivot = code.bit_length()-1
+            reduced = []
+            for old_pivot,other,eigenvalue in rows:
+                if (other >> pivot) & 1:
+                    phase,other = word_mul(n,other,code)
+                    eigenvalue *= sign*int(phase.real)
+                reduced.append((old_pivot,other,eigenvalue))
+            rows = sorted([*reduced,(pivot,code,sign)],reverse=True)
+        if len(rows) != n:
+            raise ValueError('a pure stabilizer reference requires n independent generators')
+        canonical = tuple(rows)
+        identity = _digest(['stabilizer.v1',n,spin_ordering,[(hex(c),s) for _,c,s in canonical]])
+        object.__setattr__(self,'_rows',canonical)
+        object.__setattr__(self,'metadata',ReferenceMetadata(
+            n,identity,frozenset({'exact_expectation','stabilizer'}),spin_ordering=spin_ordering))
+
+    @property
+    def n(self): return self.metadata.n
+
+    @property
+    def purity(self): return 1.0
+
+    @property
+    def arithmetic(self): return 'stabilizer_analytic'
+
+    @property
+    def generators(self): return tuple((code,sign) for _,code,sign in self._rows)
+
+    @classmethod
+    def from_determinant(cls, bits, *, spin_ordering="interleaved"):
+        if not isinstance(bits,str) or set(bits)-{'0','1'}:
+            raise ValueError('determinant bits must be a binary string')
+        return cls(len(bits),((3 << (2*q),-1 if b == '1' else 1) for q,b in enumerate(bits)),
+                   spin_ordering=spin_ordering)
+
+    def word_expectation(self, code):
+        from .pauli_kernel import word_mul
+        if isinstance(code,bool): raise ValueError('integer Pauli code required')
+        validate_word_code(self.n,code)
+        phase = 1+0j
+        for pivot,other,sign in self._rows:
+            if (code >> pivot) & 1:
+                factor,code = word_mul(self.n,code,other)
+                phase *= sign*factor
+        if code: return 0
+        if phase not in (-1,1): raise AssertionError('stabilizer membership has a non-real phase')
+        return int(phase.real)
+
+    def evaluate_terms(self, terms, *, row_nnz):
+        total,scanned = 0j,0
+        for code,coefficient in _row_terms(self.n,terms,row_nnz):
+            scanned += 1
+            total += coefficient*self.word_expectation(code)
+        return RowEvaluation(total,scanned,None)
+
+    def expectation(self, operator: MV):
+        if operator.n != self.n: raise ValueError('reference and operator disagree on n')
+        return self.evaluate_terms(operator.terms.items(),row_nnz=operator.nnz()).value
+
+    def storage(self):
+        boxes = {id(value):value for row in self._rows for value in row}
+        measured = sys.getsizeof(self._rows)+sum(sys.getsizeof(row) for row in self._rows)
+        measured += sum(sys.getsizeof(value) for value in boxes.values())
+        return {'representation':'signed_stabilizer_rows','stabilizer_generators':self.n,
+                'tableau_payload_bits':self.n*(2*self.n+1),
+                'bitpacked_tableau_model_bytes':(self.n*(2*self.n+1)+7)//8,
+                'measured_rows_and_referenced_boxes_bytes':measured,'density_coefficients':0,
+                'scope':'owned canonical row tuples/referenced Python ints; bitpacked figure is a separate model; metadata and shared kernel multiplication cache excluded'}
