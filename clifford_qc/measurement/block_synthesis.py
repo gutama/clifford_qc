@@ -9,9 +9,9 @@ Blocks occupy disjoint qubits, so a setting runs them in parallel -- its depth
 is the widest block's, not their sum -- and no two-qubit gate ever crosses a
 block boundary. That is what makes ``k`` a cost axis rather than a relabelling.
 
-This module imports stim at module level and is deliberately **not** re-exported
-from ``clifford_qc.measurement``: the package must stay importable without the
-``stim`` extra, exactly as ``clifford_qc.bridges.stim_bridge`` does.
+Stim is loaded only by the historical elimination path. The opt-in
+``method="graph_state"`` path uses NumPy and native signed Clifford maps.
+The default and its synthesis arithmetic remain the historical elimination.
 """
 
 from __future__ import annotations
@@ -24,9 +24,10 @@ from typing import Sequence
 import numpy as np
 from ..capabilities import require
 
-require('compiled_clifford_measurement', feature='clifford_qc.measurement.block_synthesis')
-
-import stim
+def _stim():
+    require('compiled_clifford_measurement', feature='Stim elimination synthesis')
+    import stim
+    return stim
 
 from .block_commuting import block_ranges
 from .cost import SettingResources
@@ -185,6 +186,7 @@ def _minimal_single_qubit_words() -> dict[tuple[str, str], tuple[str, ...]]:
     shortest one; ties break on the generator order above, which makes the
     choice deterministic and therefore reproducible in a committed record.
     """
+    stim = _stim()
     gates = {name: stim.Tableau.from_named_gate(name)
              for name in SINGLE_QUBIT_GATES}
     start = stim.Tableau(1)
@@ -217,6 +219,7 @@ def _z_preserving_corrections() -> tuple:
     it; choosing the cheapest member instead is what makes the emitted circuit
     a *minimal* basis rotation rather than an arbitrary one.
     """
+    stim = _stim()
     gates = {name: stim.Tableau.from_named_gate(name)
              for name in SINGLE_QUBIT_GATES}
     out = []
@@ -256,6 +259,7 @@ def _reduced_instructions(circuit, size: int):
     combined, and their product is re-emitted as a shortest word for the same
     Clifford. Nothing is commuted past a CX.
     """
+    stim = _stim()
     gates = {name: stim.Tableau.from_named_gate(name)
              for name in SINGLE_QUBIT_GATES}
     words = _minimal_single_qubit_words()
@@ -294,6 +298,7 @@ def diagonalizer_circuit(tableau, size: int):
     Its two-qubit structure is kept verbatim; only maximal one-qubit runs are
     re-expressed, so the circuit's action is unchanged by construction.
     """
+    stim = _stim()
     circuit = stim.Circuit()
     for word, qubits in _reduced_instructions(
             tableau.to_circuit("elimination"), size):
@@ -312,6 +317,7 @@ def block_diagonalizer(local_members: Sequence[int], size: int):
     an ``X`` block, two for ``Y``, none for ``Z`` -- which is the analytic
     convention the fixed-QWC mapping-axis record is priced under.
     """
+    stim = _stim()
     basis = independent_codes(local_members, size)
     if not basis:
         return stim.Tableau(size)
@@ -370,6 +376,7 @@ def synthesize_block_settings(
     codes: Sequence[int],
     groups: Sequence[Sequence[int]],
     block_size: int,
+    *, method: str = "elimination",
 ) -> BlockSynthesis:
     """Synthesize one block-local diagonalizer per block per setting.
 
@@ -381,6 +388,12 @@ def synthesize_block_settings(
     become computational-basis diagonal, and every assigned word must actually
     be read by the setting it was assigned to.
     """
+    if method == "graph_state":
+        from .graph_state import compile_graph_settings
+        return compile_graph_settings(n,codes,groups,block_size)[1]
+    if method != "elimination":
+        raise ValueError("method must be elimination or graph_state")
+    stim = _stim()
     codes = list(codes)
     total: Counter = Counter()
     cx_per_setting: list[int] = []

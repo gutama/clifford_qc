@@ -6,7 +6,8 @@ universe and block size into a partition, verified Clifford settings, signed
 readout maps, and the synthesis ledger used for resource accounting.
 
 ``stim`` remains an optional dependency.  Importing :mod:`clifford_qc.measurement`
-does not load it; only :func:`compile_block_measurement_plan` does.
+does not load it; the default elimination compiler requires it. Explicit
+``method="graph_state"`` compilation and signed readouts use NumPy alone.
 """
 
 from __future__ import annotations
@@ -217,6 +218,7 @@ def compile_block_measurement_plan(
     block_size: int,
     *,
     groups: Sequence[Sequence[int]] | None = None,
+    method: str = "elimination",
     spin_conserving_jw_hamiltonian: MV | PauliSum | None = None,
 ) -> CompiledMeasurementPlan:
     """Compile a fixed word universe into executable block-commuting settings.
@@ -234,6 +236,8 @@ def compile_block_measurement_plan(
     block_size = _positive_int(block_size, "block size")
     codes = _word_codes(n, codes)
 
+    if method not in ("elimination","graph_state"):
+        raise ValueError("method must be elimination or graph_state")
     rank = None
     if spin_conserving_jw_hamiltonian is not None:
         if not isinstance(spin_conserving_jw_hamiltonian, (MV, PauliSum)):
@@ -244,7 +248,12 @@ def compile_block_measurement_plan(
 
     groups = _measurement_groups(n, codes, block_size, groups)
 
-    # Importing the package remains Stim-free; compilation is the opt-in point.
+    if method == "graph_state":
+        from .graph_state import compile_graph_settings
+        settings,synthesis = compile_graph_settings(n,codes,groups,block_size)
+        return CompiledMeasurementPlan(n,block_size,codes,groups,settings,synthesis,rank)
+
+    # Historical elimination remains the default for frozen evidence.
     try:
         from .block_synthesis import synthesize_block_settings
     except ModuleNotFoundError as exc:  # pragma: no cover - depends on extras
