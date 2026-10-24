@@ -115,8 +115,8 @@ class StreamingMatrixElementBank(MatrixElementBank):
         else:
             self._recomputed_rows += 2
         if evaluate and key not in self._entries:
-            self._entries[key] = (self._scale * overlap.trace_pairing(self._rho),
-                                  self._scale * element.trace_pairing(self._rho))
+            self._entries[key] = (self._evaluate_operator(overlap),
+                                  self._evaluate_operator(element))
         if self._storage == "packed":
             self._packed["overlap"].add(key, overlap)
             self._packed["element"].add(key, element)

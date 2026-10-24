@@ -18,6 +18,14 @@ small-system comparisons, and a public archival release is intended.
 [Choose a solver](#choosing-a-solver) · [Molecular pipeline](molecular/PIPELINE.md) ·
 [Architecture](ARCHITECTURE.md) · [Reproduce results](REPRODUCING.md)
 
+The [restart roadmap](docs/restart/README.md) narrows new work around declared
+references, numerical projection, and costed measurement consumers. Its first
+implementation makes the prepared determinant workflow independent of density-MV
+storage. The unchanged [blueprint](docs/restart/blueprint_2026-10-24.md),
+[v2 contract](docs/restart/CONTRACT.md), and
+[compatibility matrix](docs/restart/COMPATIBILITY.md) define this scope;
+historical campaigns and their negative outcomes remain available.
+
 ## What you can do
 
 | Task | Implemented features | Start here |

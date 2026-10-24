@@ -119,6 +119,7 @@ KERNEL_MODULES = (
     "matrix.py", "selection.py",
 )
 IR_MODULES = ("ir.py", "qasm3.py", "fermion_mapping.py", "pool_operator.py")
+REFERENCE_MODULES = ("reference_states.py",)
 EVIDENCE_MODULES = ("verify.py", "reproducibility.py", "record_environment.py",
                     "capabilities.py", "evidence.py")
 ORCHESTRATION_MODULES = ("workflows.py", "prepared.py", "pipeline.py")
@@ -148,6 +149,8 @@ def _layer_of(relative: Path) -> str:
         return "kernel"
     if name in IR_MODULES:
         return "ir"
+    if name in REFERENCE_MODULES:
+        return "backends"
     if name in EVIDENCE_MODULES:
         return "evidence"
     if name in ORCHESTRATION_MODULES:

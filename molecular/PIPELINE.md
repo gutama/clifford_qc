@@ -12,8 +12,9 @@ The reusable package APIs below remain at `clifford_qc.prepared` and `clifford_q
 The [Phase 2M policy matrix](../benchmarks/PHASE2M_POLICY_DECLARATION.md) compares
 object/packed storage and retain/stream lifetime policies in fresh worker processes.
 Its outcome-free preflight is `python benchmarks/run_bank_policy_matrix.py`.
-The full molecular record remains pending on a host with sufficient memory for
-the declared 15 GiB ceiling; the development container has an 8 GiB cap.
+Its committed evidence describes the historical density-MV workflow; changing
+the reference representation requires a separate measured comparison before
+reusing its runtime or RSS conclusions.
 
 The CLI currently accepts restricted real FCIDUMP inputs and uses exact A-CASE
 with determinant-excitation candidates and Jordan-Wigner encoding. It does not
@@ -27,9 +28,15 @@ solvers and finite-shot methods use the Python interfaces described in the
 | `solve` | Prepared artifact and A-CASE/storage options | Run JSON with energy history, selected labels, stopping reason, and resource diagnostics | Run independently for each configuration |
 | `validate` (optional) | Prepared artifact and reference-solver options | Reference energies, eigenpair residuals, and sector dimension | Reuse for unchanged model, sector, and reference settings |
 
-`solve` currently uses `ExactMVBackend` and a density multivector. The sector
-statevector backend is used by `validate`; choosing packed or streaming bank
-storage does not switch the solver's reference-state representation.
+`solve` now defaults to `DeterminantReference` and `ExactProjectedProvider`.
+It reads the computational reference's X preparation and evaluates coefficient
+rows without expanding a density. The default `legacy_trace` arithmetic
+preserves the declared small-fixture legacy summation/scaling path and requires
+fewer than 40 qubits. Use `--reference-arithmetic analytic` for unscaled analytic
+row summation, including larger references; its compatibility is numerical,
+not universally bitwise. `--reference-mode legacy_mv` explicitly selects the
+previous `ExactMVBackend`/density path. The sector backend remains the optional
+`validate` consumer. See the [restart contract](../docs/restart/CONTRACT.md).
 
 ## Run a small example
 
@@ -76,6 +83,8 @@ Validation can still be expensive and is not needed for every solve.
 | `solve` | `--max-additions` | `10`; maximum additions after the initial identity direction |
 | `solve` | `--max-candidates` | `0`; use all candidates, or cap the pool at a positive count |
 | `solve` | `--max-rank` | `2`; maximum determinant-excitation rank |
+| `solve` | `--reference-mode` | `determinant`; `legacy_mv` selects the prior density path |
+| `solve` | `--reference-arithmetic` | `legacy_trace`; `analytic` changes determinant summation/scaling explicitly |
 | `solve` | `--storage` | `object`; alternative: `packed` |
 | `solve` | `--policy` | `retain_all`; alternative: `stream_recompute` |
 | `solve` | `--frontier-pairs` | `32`; nonretained pair capacity when streaming |
@@ -112,8 +121,9 @@ payload is validated once per prepared object; each consumer receives fresh
 model and metadata objects.
 `prepare_fcidump` exposes sector/name overrides in Python.
 
-Solve defaults to object storage with `retain_all`, preserving the existing
-numerical path. It records candidate and solver configuration, preparation and
+Solve defaults to object storage with `retain_all` and determinant trace-compatible
+evaluation. New run records use `clifford_qc.prepared_run.v2` and name the reference
+mode, identity, arithmetic and ordering. They record candidate and solver configuration, preparation and
 implementation fingerprints, energy history, resource scope, and wall time.
 The CLI does not calculate or use an exact ground-state oracle. Python callers
 can explicitly supply oracle-based stopping through `ACASEConfig`; the record's
@@ -124,6 +134,20 @@ optional sector reference calculation and reports eigenpair residuals; its cost
 is not included in the solver record. Residuals describe the returned reference
 eigenpairs, not the A-CASE state's full-space residual. Validation JSON records its own `wall_seconds`; account for it separately
 when reporting end-to-end cost.
+
+Reference capability is separate from storage/lifetime policy. The determinant
+route currently supports operator-level selection checks; reference-conditioned
+sector certification and opt-in H-squared reporting require explicit
+`reference_mode="legacy_mv"` in Python. Unsupported modes fail before solving
+and never silently construct a density. Sector action residuals and root
+recovery are the next restart step.
+
+The new resource fields distinguish occupation payload, owned H/generator
+coefficient snapshots, row terms scanned, compatibility sort sizes and retained
+index footprints. These scopes overlap where boxes are shared and exclude
+allocator/sort workspaces; they are not an additive RSS estimate or a demonstrated
+speedup. Coefficient rows, generators, and full-sector methods retain their
+existing scaling limits.
 
 ## Choosing storage and lifetime policies
 

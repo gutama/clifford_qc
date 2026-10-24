@@ -5,7 +5,7 @@ from __future__ import annotations
 import sys
 import time
 from dataclasses import dataclass
-from typing import Any, Iterable, Sequence
+from typing import TYPE_CHECKING, Any, Iterable, Sequence
 
 import numpy as np
 
@@ -25,6 +25,10 @@ from .linalg import (
     SubspaceResult,
     solve_projected,
 )
+
+
+if TYPE_CHECKING:
+    from ..reference_states import ExactReference
 
 
 @dataclass(frozen=True)
@@ -195,7 +199,7 @@ class MatrixElementBank:
     scored costs nothing.
     """
 
-    def __init__(self, rho: MV, hamiltonian, generators: Iterable = (), *,
+    def __init__(self, rho: MV | ExactReference, hamiltonian, generators: Iterable = (), *,
                  storage: str = DEFAULT_STORAGE_BACKEND,
                  layout: str = "interleaved"):
         if storage not in STORAGE_BACKENDS:
@@ -205,12 +209,24 @@ class MatrixElementBank:
         self._layout = layout
         self._rho = rho
         self._H = as_multivector(hamiltonian)
+        # Raw-MV callers keep the historical ownership and arithmetic contract.
+        # The new provider route owns immutable reference/operator snapshots.
+        self._exact_reference = None
+        if not isinstance(rho, MV):
+            from ..reference_states import snapshot_operator, require_exact_reference
+            self._exact_reference = require_exact_reference(rho)
+            if rho.n != rho.metadata.n:
+                raise ValueError("reference metadata and register disagree on n")
+            self._reference_identity = rho.metadata.identity
+            self._H = snapshot_operator(self._H)
+        self._evaluation_work = dict(calls=0, terms_scanned=0, diagonal_terms=0,
+                                     compatibility_sort_terms=0, peak_index_bytes=0)
         if not self._H.is_hermitian():
             raise ValueError("Hamiltonian must be Hermitian")
         if rho.n != self._H.n:
             raise ValueError("reference and Hamiltonian disagree on n")
         self._purity = check_reference(rho)
-        self._scale = float(2 ** rho.n)
+        self._scale = float(2 ** rho.n) if self._exact_reference is None else None
 
         self._generators: list[Generator] = []
         self._adjoints: list[MV] = []
@@ -264,7 +280,7 @@ class MatrixElementBank:
         return self._rho.n
 
     @property
-    def reference(self) -> MV:
+    def reference(self) -> MV | ExactReference:
         """The single reference state every matrix element is an expectation on."""
         return self._rho
 
@@ -290,7 +306,12 @@ class MatrixElementBank:
         gen = as_generators([generator])[0]
         if gen.n != self.n:
             raise ValueError("generator lives in a different algebra")
-        key = _identity_key(gen.mv)
+        if self._exact_reference is not None:
+            from ..reference_states import snapshot_operator, operator_identity
+            gen = Generator(gen.label, snapshot_operator(gen.mv))
+            key = operator_identity(gen.mv)
+        else:
+            key = _identity_key(gen.mv)
         existing = self._by_terms.get(key)
         if existing is not None:
             return existing
@@ -362,8 +383,8 @@ class MatrixElementBank:
         self._account(j, element_op)
         if evaluate:
             self._entries[(i, j)] = (
-                self._scale * overlap_op.trace_pairing(self._rho),
-                self._scale * element_op.trace_pairing(self._rho),
+                self._evaluate_operator(overlap_op),
+                self._evaluate_operator(element_op),
             )
         if self._storage == "packed":
             self._packed["overlap"].add((i, j), overlap_op)
@@ -418,6 +439,52 @@ class MatrixElementBank:
         operator = (self._overlap_ops if kind == "overlap" else self._element_ops)[key]
         return operator.trace_pairing(self._rho)
 
+    def _check_reference_identity(self):
+        if (self._exact_reference is not None
+                and self._rho.metadata.identity != self._reference_identity):
+            raise ValueError("reference identity changed; construct a new provider")
+
+    def _record_evaluation(self, evaluation):
+        self._evaluation_work["calls"] += 1
+        for name in ("terms_scanned", "diagonal_terms", "compatibility_sort_terms"):
+            value = getattr(evaluation, name)
+            if value is None or self._evaluation_work[name] is None:
+                self._evaluation_work[name] = None
+            else:
+                self._evaluation_work[name] += value
+        self._evaluation_work["peak_index_bytes"] = max(
+            self._evaluation_work["peak_index_bytes"], evaluation.peak_index_bytes)
+        return evaluation.value
+
+    def _evaluate_operator(self, operator):
+        """One normalized expectation; raw MV calls retain exact legacy operations."""
+        if self._exact_reference is None:
+            return self._scale * operator.trace_pairing(self._rho)
+        self._check_reference_identity()
+        return self._record_evaluation(self._exact_reference.evaluate_terms(
+            operator.terms.items(), row_nnz=operator.nnz()))
+
+    def _evaluate_row(self, kind, key):
+        if self._exact_reference is None:
+            return self._scale * self._row_pairing(kind, key)
+        self._check_reference_identity()
+        if self._storage == "packed":
+            store = self._packed[kind]
+            return self._record_evaluation(self._exact_reference.evaluate_terms(
+                store.iter_terms(key), row_nnz=store.row_length(key)))
+        operator = (self._overlap_ops if kind == "overlap" else self._element_ops)[key]
+        return self._evaluate_operator(operator)
+
+    def reference_resources(self):
+        """Reference input/work scope, separate from coefficient-row storage/RSS."""
+        if self._exact_reference is None:
+            return None
+        self._check_reference_identity()
+        return {"identity": self._reference_identity,
+                "arithmetic": getattr(self._rho, "arithmetic", "legacy_density_mv"),
+                "storage": self._exact_reference.storage(), **self._evaluation_work,
+                "index_scope": "peak retained index container/referenced-box footprint; shared row boxes may overlap, sort workspace and RSS excluded"}
+
     def _canonical_pair(self, i: int, j: int) -> tuple[int, int]:
         for index in (i, j):
             if not isinstance(index, (int, np.integer)) or not 0 <= index < len(self):
@@ -466,14 +533,15 @@ class MatrixElementBank:
 
     def entry(self, i: int, j: int) -> tuple[complex, complex]:
         """``(S_ij, H_ij)`` -- the conjugate of the stored pair when ``i > j``."""
+        self._check_reference_identity()
         key = self._canonical_pair(i, j)
         value = self._entries.get(key)
         if value is None:
             self._ensure_pair(key, evaluate=True)
             value = self._entries.get(key)
             if value is None:
-                value = (self._scale * self._row_pairing("overlap", key),
-                         self._scale * self._row_pairing("element", key))
+                value = (self._evaluate_row("overlap", key),
+                         self._evaluate_row("element", key))
                 self._entries[key] = value
         else:
             self._cache_hits += 1
@@ -568,7 +636,7 @@ class MatrixElementBank:
                 if hermitian and a > b:
                     continue
                 operator = self.observable_operator(Q, i, j, label=label)
-                out[a, b] = self._scale * operator.trace_pairing(self._rho)
+                out[a, b] = self._evaluate_operator(operator)
         if hermitian:
             for b in range(m):
                 out[b, b] = out[b, b].real
