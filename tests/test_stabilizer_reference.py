@@ -100,6 +100,10 @@ def test_four_mode_ghz_type_valence_bond_is_a_fixed_sector_singlet():
     # (|1001>-|0110>)/sqrt(2): two determinants, not a product of two-mode Bell pairs.
     ref=StabilizerReference(4,[('ZZII',-1),('IIZZ',-1),('ZIZI',-1),('XXXX',-1)],spin_ordering='interleaved')
     assert fermionic_moments(ref)==(2,4,0,0,0,0)
+    # Pairing alpha with alpha and beta with beta fixes N/Sz, but still does
+    # not make an arbitrary product of two mode-Bell pairs a physical singlet.
+    same_spin_pairs=StabilizerReference(4,[('XIXI',-1),('ZIZI',-1),('IXIX',-1),('IZIZ',-1)],spin_ordering='interleaved')
+    assert fermionic_moments(same_spin_pairs)==(2,4,0,0,1,2)
 
 
 def test_canonical_graph_state_has_number_variance_and_no_parity_eigenvalue():

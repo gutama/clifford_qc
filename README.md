@@ -27,6 +27,9 @@ storage. The unchanged [blueprint](docs/restart/blueprint_2026-10-24.md),
 historical campaigns and their negative outcomes remain available. A separate
 [bounded sector-action workflow](docs/restart/SECTOR_ACTIONS.md) adds explicit
 root recovery, cached residuals, spin checks and memory admission.
+Opt-in [graph-state readouts and signed stabilizer references](docs/restart/GRAPH_READOUTS.md)
+add NumPy-only Clifford compilation and exact expectations without reference-density
+expansion. The historical elimination compiler remains the default.
 
 ## What you can do
 
@@ -41,7 +44,7 @@ root recovery, cached residuals, spin checks and memory admission.
 | Count eigenvalues near Ritz roots | Disjoint cluster hulls from the exact block residual `Q'KQ − Θ²`, each holding at least as many eigenvalues as roots, so a degenerate level is counted with its multiplicity; held to dense spectra in the test suite | `clifford_qc.subspace.ritz_clusters`, [example](#residuals-and-folded-roots), [conventions](CONVENTIONS.md#second-moments-residuals-and-folded-roots) |
 | Assess why adaptive growth stopped | Opt-in exact convergence reports over the final retained block, with numerical-resolution and ground-state evidence reported separately; Q17 extrapolation is a diagnostic only | `ConvergenceConfig`, `convergence_report`, [example](examples/acase_convergence.py), [contract](REPRODUCING.md#phase-15-exact-convergence-reporting) |
 | Solve embedding fragments | One callback returning energy plus one- and two-particle density matrices, implemented by sector FCI, QSCI, selected CI, and the QSCI × A-CASE hybrid; the embedding loop itself stays outside the package | `clifford_qc.subspace.fragment`, [conventions](CONVENTIONS.md#density-matrices) |
-| Reuse measurements | QWC and block-commuting grouping, compiled Clifford readouts, shared caches, covariance, allocation, uncertainty estimates | [Finite-shot examples](#examples), [architecture](ARCHITECTURE.md#measurement-and-evidence) |
+| Reuse measurements | QWC and block-commuting grouping, compiled Clifford readouts (default Stim elimination or opt-in NumPy graph-state synthesis), shared caches, covariance, allocation, uncertainty estimates | [Finite-shot examples](#examples), [graph-state readouts](docs/restart/GRAPH_READOUTS.md), [architecture](ARCHITECTURE.md#measurement-and-evidence) |
 | Control classical costs | Cached preparation, optional reference validation, object or packed coefficients, streaming with recomputation | [Pipeline guide](molecular/PIPELINE.md) |
 | Use other quantum software | Optional Stim, OpenFermion, pytket, PennyLane, and PyZX bridges | [Optional dependencies](#optional-dependencies) |
 

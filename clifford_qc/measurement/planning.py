@@ -23,7 +23,7 @@ from ..pauli_structure import validate_spin_conserving_x_rank
 from .block_commuting import block_commuting_partition, block_wise_commute
 from .compiled import CompiledSetting
 
-if TYPE_CHECKING:  # pragma: no cover - types only; block_synthesis imports stim
+if TYPE_CHECKING:  # pragma: no cover - types only
     from .block_synthesis import BlockSynthesis
     from .cost import SettingResources
     from .graph_state import GraphSynthesis

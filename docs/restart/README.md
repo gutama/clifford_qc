@@ -5,6 +5,8 @@ Start with the [unchanged 24 October blueprint](blueprint_2026-10-24.md),
 [first implementation contract](CONTRACT.md), and
 [checked compatibility scope](COMPATIBILITY.md), and
 [sector-action/root-recovery contract and acceptance](SECTOR_ACTIONS.md).
+The [graph-readout and stabilizer-reference audit](GRAPH_READOUTS.md) supplies
+additional compiler/reference support for Step 5.
 
 | Step | Status | Deliverable |
 | --- | --- | --- |
@@ -12,7 +14,7 @@ Start with the [unchanged 24 October blueprint](blueprint_2026-10-24.md),
 | 2 | Implemented | Reference capabilities, determinant/MV adapters, exact provider, density-free determinant pipeline |
 | 3 | Implemented on declared scope | Immutable sector actions, fixed-capacity projection, admitted SciPy recovery, cached residuals, spin defects, separate owned/RSS scopes; primary excited-singlet regression |
 | 4 | Implemented on bounded suite | H4, LiH and Hubbard 2×2 same-span S/H and Ritz compatibility, with buffer/admission checks |
-| 5 | Planned | Sampled consumer and a preregistered independent pilot/evaluation ratio experiment |
+| 5 | Compiler/reference support implemented; experiment planned | Opt-in graph-state readouts and signed stabilizer expectations; sampled consumer and a preregistered independent pilot/evaluation ratio experiment remain |
 | 6 | Conditional | Promote only benefits that meet the new frozen comparison, or close its hypothesis |
 
 ## Current capabilities
@@ -24,6 +26,8 @@ Start with the [unchanged 24 October blueprint](blueprint_2026-10-24.md),
 | Prepared determinant workflow | Yes | H4/LiH S/H, energies and selection/stopping compatibility | No ground-state oracle under default config | Reference representation changed; variational span unchanged |
 | MV compatibility adapter | Yes | Owned immutable snapshot and legacy trace comparisons | Exact density supplied explicitly | Compatibility only |
 | Sector actions and root recovery | Yes | Primary 2×4 excited-singlet recovery, spin-contamination controls, H4/LiH/Hubbard same-span checks | No spectral oracle during solving; independent assessment afterward | Finite numerical recovery; no ground-root guarantee or timing/RSS advantage claim |
+| Graph-state readout compilation | Opt-in | Exact signed Pauli conjugation, assigned joint distributions, no-Stim compilation/sampling, six frozen-bank partitions | No spectral oracle; exact simulator used only in validation and test sampling | Fewer logical two-qubit gates on five of six tested rungs; no matched-accuracy shot or hardware claim |
+| Signed stabilizer expectations | Yes | Pure full-rank canonical signed rows, all small Pauli words, projection compatibility and large-register allocation guard | Analytic stabilizer membership; no density or spectrum oracle | Avoids reference-density expansion; no general fermionic-sector guarantee |
 | Sampled boundary and measured ratio estimation | Protocol only | Actual observations and independent pilot/evaluation experiment remain Step 5 | Consumer-specific | None claimed |
 
 The supported first workflow is documented in the [molecular pipeline guide](../../molecular/PIPELINE.md).
