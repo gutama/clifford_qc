@@ -206,7 +206,7 @@
         "modules": 10
       },
       "backends": {
-        "lines": 1800,
+        "lines": 1911,
         "modules": 9
       },
       "bridges": {
@@ -226,8 +226,8 @@
         "modules": 15
       },
       "measurement": {
-        "lines": 4882,
-        "modules": 15
+        "lines": 5263,
+        "modules": 16
       },
       "models": {
         "lines": 2739,
@@ -246,9 +246,9 @@
         "modules": 1
       }
     },
-    "package_lines": 31988,
-    "package_modules": 122,
-    "test_lines": 41401,
-    "test_modules": 174
+    "package_lines": 32480,
+    "package_modules": 123,
+    "test_lines": 41845,
+    "test_modules": 177
   }
 }

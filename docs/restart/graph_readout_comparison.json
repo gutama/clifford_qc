@@ -1,0 +1,555 @@
+{
+  "evidence": "exact discrete compilation/counts; illustrative device-card surrogates",
+  "implementation_fingerprint": "ec2c4abeb36b10e501550a80edd3b86b835ff981b2d032d4405126424f5b1844",
+  "inputs": {
+    "beh2": {
+      "basis_labels": [
+        "I",
+        "E(4,5<-0,1)",
+        "E(6,7<-0,1)",
+        "E(4,5<-2,3)",
+        "E(6,7<-2,3)"
+      ],
+      "codes_sha256": "7caa4cfbd65457df6893ca859a2ac083ea9ed993c2bac29e87cee8e28b06a63e",
+      "n": 8,
+      "record_path": "benchmarks/reference_results/clifford_hierarchy_beh2_v2.json",
+      "record_sha256": "18d64f3e2e1bf3a22edadf58418a3103db734459735f7ecc9e6217f9c596bd4d",
+      "words": 1815
+    },
+    "h4": {
+      "basis_labels": [
+        "I",
+        "E(4,5<-2,3)",
+        "E(4,7<-0,3)",
+        "E(5,6<-1,2)",
+        "E(4,5<-0,1)",
+        "E(6,7<-0,1)",
+        "E(6,7<-2,3)",
+        "E(5,6<-0,3)",
+        "E(4,7<-1,2)"
+      ],
+      "codes_sha256": "dd755d1500e3367f2a35736476dbb00cca45d17815f0d113ce48277b1586f8ba",
+      "n": 8,
+      "record_path": "benchmarks/reference_results/clifford_hierarchy_h4_v2.json",
+      "record_sha256": "adc81de5120986377f18735d3166f73348b67e2271c9d715d054568d391ce4bb",
+      "words": 7371
+    }
+  },
+  "quantum_advantage_claim": false,
+  "rows": [
+    {
+      "assigned_signed_readouts_verified": 7371,
+      "block_size": 2,
+      "cards": {
+        "ion-like": {
+          "calibration_status": "illustrative_scenario",
+          "card_sha256": "9cc7e53e935e4ec3c265efbd9b6218f17a68c51d727d658c5a5bcaf98d34f453",
+          "elimination_admissible_settings": 647,
+          "elimination_min_fidelity": 0.8486535610091513,
+          "elimination_sweep_duration_us": 443120.0,
+          "fidelity_floor": 0.5,
+          "graph_admissible_settings": 647,
+          "graph_min_fidelity": 0.8972193990616678,
+          "graph_sweep_duration_us": 242990.0,
+          "lost_admissible_settings": 0,
+          "newly_admissible_settings": 0
+        },
+        "logical-alltoall": {
+          "calibration_status": "logical_baseline",
+          "card_sha256": "07e9cc637e590668bc89b7d407535f34f509155e08c95d2ecd0f8f931738265b",
+          "elimination_admissible_settings": 647,
+          "elimination_min_fidelity": 1.0,
+          "elimination_sweep_duration_us": 1843.4,
+          "fidelity_floor": 0.5,
+          "graph_admissible_settings": 647,
+          "graph_min_fidelity": 1.0,
+          "graph_sweep_duration_us": 1509.1499999999999,
+          "lost_admissible_settings": 0,
+          "newly_admissible_settings": 0
+        },
+        "superconducting-like": {
+          "calibration_status": "illustrative_scenario",
+          "card_sha256": "cf78e3240ad48839a8113a1570a43e614c230a8428fe8ceda7783e7ff75e1a13",
+          "elimination_admissible_settings": 647,
+          "elimination_min_fidelity": 0.5215024628928226,
+          "elimination_sweep_duration_us": 2927.2,
+          "fidelity_floor": 0.5,
+          "graph_admissible_settings": 647,
+          "graph_min_fidelity": 0.7421278885578222,
+          "graph_sweep_duration_us": 2307.35,
+          "lost_admissible_settings": 0,
+          "newly_admissible_settings": 0
+        }
+      },
+      "compatibility_matrices_equal": false,
+      "critical_depth_sum_reduction": 0.6538461538461539,
+      "elimination": {
+        "gate_counts": {
+          "CX": 2803,
+          "H": 4685,
+          "S": 1450,
+          "S_DAG": 979
+        },
+        "max_two_qubit_critical_depth": 4,
+        "max_two_qubit_per_setting": 16,
+        "mean_scheduled_one_qubit_layers": 3.480680061823802,
+        "mean_scheduled_two_qubit_layers": 2.2503863987635238,
+        "mean_two_qubit_critical_depth": 2.2503863987635238,
+        "two_qubit_per_sweep": 2803
+      },
+      "graph_state": {
+        "gate_counts": {
+          "CZ": 904,
+          "H": 4234,
+          "S": 1754
+        },
+        "max_two_qubit_critical_depth": 1,
+        "max_two_qubit_per_setting": 4,
+        "mean_scheduled_one_qubit_layers": 1.9768160741885625,
+        "mean_scheduled_two_qubit_layers": 0.7789799072642968,
+        "mean_two_qubit_critical_depth": 0.7789799072642968,
+        "two_qubit_per_sweep": 904
+      },
+      "group_indices_sha256": "80bca71f3612571d6ae3b2d4083f0ba579f128fe95baadb020683f7683dc7f88",
+      "readable_setting_word_pairs": {
+        "elimination": 28341,
+        "gained": 825,
+        "graph_state": 28497,
+        "lost": 669
+      },
+      "settings": 647,
+      "system": "h4",
+      "two_qubit_gate_reduction": 0.6774884052800572
+    },
+    {
+      "assigned_signed_readouts_verified": 7371,
+      "block_size": 4,
+      "cards": {
+        "ion-like": {
+          "calibration_status": "illustrative_scenario",
+          "card_sha256": "9cc7e53e935e4ec3c265efbd9b6218f17a68c51d727d658c5a5bcaf98d34f453",
+          "elimination_admissible_settings": 238,
+          "elimination_min_fidelity": 0.8007298536188721,
+          "elimination_sweep_duration_us": 446040.0,
+          "fidelity_floor": 0.5,
+          "graph_admissible_settings": 238,
+          "graph_min_fidelity": 0.8719443023148297,
+          "graph_sweep_duration_us": 157340.0,
+          "lost_admissible_settings": 0,
+          "newly_admissible_settings": 0
+        },
+        "logical-alltoall": {
+          "calibration_status": "logical_baseline",
+          "card_sha256": "07e9cc637e590668bc89b7d407535f34f509155e08c95d2ecd0f8f931738265b",
+          "elimination_admissible_settings": 238,
+          "elimination_min_fidelity": 1.0,
+          "elimination_sweep_duration_us": 1130.5,
+          "fidelity_floor": 0.5,
+          "graph_admissible_settings": 238,
+          "graph_min_fidelity": 1.0,
+          "graph_sweep_duration_us": 657.2,
+          "lost_admissible_settings": 0,
+          "newly_admissible_settings": 0
+        },
+        "superconducting-like": {
+          "calibration_status": "illustrative_scenario",
+          "card_sha256": "cf78e3240ad48839a8113a1570a43e614c230a8428fe8ceda7783e7ff75e1a13",
+          "elimination_admissible_settings": 172,
+          "elimination_min_fidelity": 0.37962955280559196,
+          "elimination_sweep_duration_us": 1941.8,
+          "fidelity_floor": 0.5,
+          "graph_admissible_settings": 238,
+          "graph_min_fidelity": 0.6211776056627484,
+          "graph_sweep_duration_us": 1052.7,
+          "lost_admissible_settings": 0,
+          "newly_admissible_settings": 66
+        }
+      },
+      "compatibility_matrices_equal": false,
+      "critical_depth_sum_reduction": 0.7211895910780669,
+      "elimination": {
+        "gate_counts": {
+          "CX": 3277,
+          "H": 2693,
+          "S": 1075,
+          "S_DAG": 357
+        },
+        "max_two_qubit_critical_depth": 14,
+        "max_two_qubit_per_setting": 26,
+        "mean_scheduled_one_qubit_layers": 6.823529411764706,
+        "mean_scheduled_two_qubit_layers": 8.029411764705882,
+        "mean_two_qubit_critical_depth": 7.911764705882353,
+        "two_qubit_per_sweep": 3277
+      },
+      "graph_state": {
+        "gate_counts": {
+          "CZ": 1057,
+          "H": 2339,
+          "S": 529
+        },
+        "max_two_qubit_critical_depth": 3,
+        "max_two_qubit_per_setting": 10,
+        "mean_scheduled_one_qubit_layers": 1.9915966386554622,
+        "mean_scheduled_two_qubit_layers": 2.2058823529411766,
+        "mean_two_qubit_critical_depth": 2.2058823529411766,
+        "two_qubit_per_sweep": 1057
+      },
+      "group_indices_sha256": "078d6be2e8fa167b93e283e4a5ff3f690079138f1ef87ee97c81123bc25ade9d",
+      "readable_setting_word_pairs": {
+        "elimination": 20833,
+        "gained": 121,
+        "graph_state": 20621,
+        "lost": 333
+      },
+      "settings": 238,
+      "system": "h4",
+      "two_qubit_gate_reduction": 0.6774488861763808
+    },
+    {
+      "assigned_signed_readouts_verified": 7371,
+      "block_size": 8,
+      "cards": {
+        "ion-like": {
+          "calibration_status": "illustrative_scenario",
+          "card_sha256": "9cc7e53e935e4ec3c265efbd9b6218f17a68c51d727d658c5a5bcaf98d34f453",
+          "elimination_admissible_settings": 64,
+          "elimination_min_fidelity": 0.7323872597558966,
+          "elimination_sweep_duration_us": 341690.0,
+          "fidelity_floor": 0.5,
+          "graph_admissible_settings": 64,
+          "graph_min_fidelity": 0.8623836270530044,
+          "graph_sweep_duration_us": 67460.0,
+          "lost_admissible_settings": 0,
+          "newly_admissible_settings": 0
+        },
+        "logical-alltoall": {
+          "calibration_status": "logical_baseline",
+          "card_sha256": "07e9cc637e590668bc89b7d407535f34f509155e08c95d2ecd0f8f931738265b",
+          "elimination_admissible_settings": 64,
+          "elimination_min_fidelity": 1.0,
+          "elimination_sweep_duration_us": 646.15,
+          "fidelity_floor": 0.5,
+          "graph_admissible_settings": 64,
+          "graph_min_fidelity": 1.0,
+          "graph_sweep_duration_us": 214.4,
+          "lost_admissible_settings": 0,
+          "newly_admissible_settings": 0
+        },
+        "superconducting-like": {
+          "calibration_status": "illustrative_scenario",
+          "card_sha256": "cf78e3240ad48839a8113a1570a43e614c230a8428fe8ceda7783e7ff75e1a13",
+          "elimination_admissible_settings": 3,
+          "elimination_min_fidelity": 0.2255687036396625,
+          "elimination_sweep_duration_us": 1192.85,
+          "fidelity_floor": 0.5,
+          "graph_admissible_settings": 64,
+          "graph_min_fidelity": 0.5836573170403369,
+          "graph_sweep_duration_us": 358.5,
+          "lost_admissible_settings": 0,
+          "newly_admissible_settings": 61
+        }
+      },
+      "compatibility_matrices_equal": true,
+      "critical_depth_sum_reduction": 0.8272962483829237,
+      "elimination": {
+        "gate_counts": {
+          "CX": 1886,
+          "H": 957,
+          "S": 277,
+          "S_DAG": 64
+        },
+        "max_two_qubit_critical_depth": 35,
+        "max_two_qubit_per_setting": 43,
+        "mean_scheduled_one_qubit_layers": 11.078125,
+        "mean_scheduled_two_qubit_layers": 25.140625,
+        "mean_two_qubit_critical_depth": 24.15625,
+        "two_qubit_per_sweep": 1886
+      },
+      "graph_state": {
+        "gate_counts": {
+          "CZ": 460,
+          "H": 815,
+          "S": 69
+        },
+        "max_two_qubit_critical_depth": 7,
+        "max_two_qubit_per_setting": 12,
+        "mean_scheduled_one_qubit_layers": 1.96875,
+        "mean_scheduled_two_qubit_layers": 4.171875,
+        "mean_two_qubit_critical_depth": 4.171875,
+        "two_qubit_per_sweep": 460
+      },
+      "group_indices_sha256": "68f48c76079a62d87ea9a3e3bef5a52039f7fc71da941d681de81ee3291544c0",
+      "readable_setting_word_pairs": {
+        "elimination": 15208,
+        "gained": 0,
+        "graph_state": 15208,
+        "lost": 0
+      },
+      "settings": 64,
+      "system": "h4",
+      "two_qubit_gate_reduction": 0.7560975609756098
+    },
+    {
+      "assigned_signed_readouts_verified": 1815,
+      "block_size": 2,
+      "cards": {
+        "ion-like": {
+          "calibration_status": "illustrative_scenario",
+          "card_sha256": "9cc7e53e935e4ec3c265efbd9b6218f17a68c51d727d658c5a5bcaf98d34f453",
+          "elimination_admissible_settings": 41,
+          "elimination_min_fidelity": 0.893636795724603,
+          "elimination_sweep_duration_us": 18130.0,
+          "fidelity_floor": 0.5,
+          "graph_admissible_settings": 41,
+          "graph_min_fidelity": 0.8972193990616678,
+          "graph_sweep_duration_us": 17000.0,
+          "lost_admissible_settings": 0,
+          "newly_admissible_settings": 0
+        },
+        "logical-alltoall": {
+          "calibration_status": "logical_baseline",
+          "card_sha256": "07e9cc637e590668bc89b7d407535f34f509155e08c95d2ecd0f8f931738265b",
+          "elimination_admissible_settings": 41,
+          "elimination_min_fidelity": 1.0,
+          "elimination_sweep_duration_us": 103.64999999999999,
+          "fidelity_floor": 0.5,
+          "graph_admissible_settings": 41,
+          "graph_min_fidelity": 1.0,
+          "graph_sweep_duration_us": 98.0,
+          "lost_admissible_settings": 0,
+          "newly_admissible_settings": 0
+        },
+        "superconducting-like": {
+          "calibration_status": "illustrative_scenario",
+          "card_sha256": "cf78e3240ad48839a8113a1570a43e614c230a8428fe8ceda7783e7ff75e1a13",
+          "elimination_admissible_settings": 41,
+          "elimination_min_fidelity": 0.7362116035229848,
+          "elimination_sweep_duration_us": 156.65,
+          "fidelity_floor": 0.5,
+          "graph_admissible_settings": 41,
+          "graph_min_fidelity": 0.7421278885578222,
+          "graph_sweep_duration_us": 151.0,
+          "lost_admissible_settings": 0,
+          "newly_admissible_settings": 0
+        }
+      },
+      "compatibility_matrices_equal": true,
+      "critical_depth_sum_reduction": 0.0,
+      "elimination": {
+        "gate_counts": {
+          "CX": 112,
+          "H": 392,
+          "S": 168,
+          "S_DAG": 56
+        },
+        "max_two_qubit_critical_depth": 1,
+        "max_two_qubit_per_setting": 4,
+        "mean_scheduled_one_qubit_layers": 4.7073170731707314,
+        "mean_scheduled_two_qubit_layers": 0.975609756097561,
+        "mean_two_qubit_critical_depth": 0.975609756097561,
+        "two_qubit_per_sweep": 112
+      },
+      "graph_state": {
+        "gate_counts": {
+          "CZ": 112,
+          "H": 336,
+          "S": 56
+        },
+        "max_two_qubit_critical_depth": 1,
+        "max_two_qubit_per_setting": 4,
+        "mean_scheduled_one_qubit_layers": 1.951219512195122,
+        "mean_scheduled_two_qubit_layers": 0.975609756097561,
+        "mean_two_qubit_critical_depth": 0.975609756097561,
+        "two_qubit_per_sweep": 112
+      },
+      "group_indices_sha256": "d9b953160685602a5145e499993d582b137195beb2b0356cd00e9abe835467f4",
+      "readable_setting_word_pairs": {
+        "elimination": 4687,
+        "gained": 0,
+        "graph_state": 4687,
+        "lost": 0
+      },
+      "settings": 41,
+      "system": "beh2",
+      "two_qubit_gate_reduction": 0.0
+    },
+    {
+      "assigned_signed_readouts_verified": 1815,
+      "block_size": 4,
+      "cards": {
+        "ion-like": {
+          "calibration_status": "illustrative_scenario",
+          "card_sha256": "9cc7e53e935e4ec3c265efbd9b6218f17a68c51d727d658c5a5bcaf98d34f453",
+          "elimination_admissible_settings": 26,
+          "elimination_min_fidelity": 0.847814692578005,
+          "elimination_sweep_duration_us": 30110.0,
+          "fidelity_floor": 0.5,
+          "graph_admissible_settings": 26,
+          "graph_min_fidelity": 0.8882696355560278,
+          "graph_sweep_duration_us": 16500.0,
+          "lost_admissible_settings": 0,
+          "newly_admissible_settings": 0
+        },
+        "logical-alltoall": {
+          "calibration_status": "logical_baseline",
+          "card_sha256": "07e9cc637e590668bc89b7d407535f34f509155e08c95d2ecd0f8f931738265b",
+          "elimination_admissible_settings": 26,
+          "elimination_min_fidelity": 1.0,
+          "elimination_sweep_duration_us": 94.65,
+          "fidelity_floor": 0.5,
+          "graph_admissible_settings": 26,
+          "graph_min_fidelity": 1.0,
+          "graph_sweep_duration_us": 70.7,
+          "lost_admissible_settings": 0,
+          "newly_admissible_settings": 0
+        },
+        "superconducting-like": {
+          "calibration_status": "illustrative_scenario",
+          "card_sha256": "cf78e3240ad48839a8113a1570a43e614c230a8428fe8ceda7783e7ff75e1a13",
+          "elimination_admissible_settings": 26,
+          "elimination_min_fidelity": 0.5310514985873931,
+          "elimination_sweep_duration_us": 155.75,
+          "fidelity_floor": 0.5,
+          "graph_admissible_settings": 26,
+          "graph_min_fidelity": 0.6986986753940669,
+          "graph_sweep_duration_us": 112.9,
+          "lost_admissible_settings": 0,
+          "newly_admissible_settings": 0
+        }
+      },
+      "compatibility_matrices_equal": true,
+      "critical_depth_sum_reduction": 0.5344827586206897,
+      "elimination": {
+        "gate_counts": {
+          "CX": 193,
+          "H": 337,
+          "S": 99,
+          "S_DAG": 39
+        },
+        "max_two_qubit_critical_depth": 10,
+        "max_two_qubit_per_setting": 15,
+        "mean_scheduled_one_qubit_layers": 5.8076923076923075,
+        "mean_scheduled_two_qubit_layers": 4.5,
+        "mean_two_qubit_critical_depth": 4.461538461538462,
+        "two_qubit_per_sweep": 193
+      },
+      "graph_state": {
+        "gate_counts": {
+          "CZ": 118,
+          "H": 282,
+          "S": 37
+        },
+        "max_two_qubit_critical_depth": 3,
+        "max_two_qubit_per_setting": 6,
+        "mean_scheduled_one_qubit_layers": 1.9230769230769231,
+        "mean_scheduled_two_qubit_layers": 2.076923076923077,
+        "mean_two_qubit_critical_depth": 2.076923076923077,
+        "two_qubit_per_sweep": 118
+      },
+      "group_indices_sha256": "80f7d057512a3a6cf484c58f85618b3b8d2683558c421845e3a6fa83ae033b94",
+      "readable_setting_word_pairs": {
+        "elimination": 4002,
+        "gained": 0,
+        "graph_state": 4002,
+        "lost": 0
+      },
+      "settings": 26,
+      "system": "beh2",
+      "two_qubit_gate_reduction": 0.3886010362694301
+    },
+    {
+      "assigned_signed_readouts_verified": 1815,
+      "block_size": 8,
+      "cards": {
+        "ion-like": {
+          "calibration_status": "illustrative_scenario",
+          "card_sha256": "9cc7e53e935e4ec3c265efbd9b6218f17a68c51d727d658c5a5bcaf98d34f453",
+          "elimination_admissible_settings": 14,
+          "elimination_min_fidelity": 0.7923462020423593,
+          "elimination_sweep_duration_us": 60850.0,
+          "fidelity_floor": 0.5,
+          "graph_admissible_settings": 14,
+          "graph_min_fidelity": 0.8623836270530044,
+          "graph_sweep_duration_us": 18460.0,
+          "lost_admissible_settings": 0,
+          "newly_admissible_settings": 0
+        },
+        "logical-alltoall": {
+          "calibration_status": "logical_baseline",
+          "card_sha256": "07e9cc637e590668bc89b7d407535f34f509155e08c95d2ecd0f8f931738265b",
+          "elimination_admissible_settings": 14,
+          "elimination_min_fidelity": 1.0,
+          "elimination_sweep_duration_us": 120.15,
+          "fidelity_floor": 0.5,
+          "graph_admissible_settings": 14,
+          "graph_min_fidelity": 1.0,
+          "graph_sweep_duration_us": 52.4,
+          "lost_admissible_settings": 0,
+          "newly_admissible_settings": 0
+        },
+        "superconducting-like": {
+          "calibration_status": "illustrative_scenario",
+          "card_sha256": "cf78e3240ad48839a8113a1570a43e614c230a8428fe8ceda7783e7ff75e1a13",
+          "elimination_admissible_settings": 2,
+          "elimination_min_fidelity": 0.35705627440435106,
+          "elimination_sweep_duration_us": 219.05,
+          "fidelity_floor": 0.5,
+          "graph_admissible_settings": 14,
+          "graph_min_fidelity": 0.5836573170403369,
+          "graph_sweep_duration_us": 89.5,
+          "lost_admissible_settings": 0,
+          "newly_admissible_settings": 12
+        }
+      },
+      "compatibility_matrices_equal": true,
+      "critical_depth_sum_reduction": 0.692,
+      "elimination": {
+        "gate_counts": {
+          "CX": 296,
+          "H": 213,
+          "S": 72,
+          "S_DAG": 12
+        },
+        "max_two_qubit_critical_depth": 23,
+        "max_two_qubit_per_setting": 28,
+        "mean_scheduled_one_qubit_layers": 10.357142857142858,
+        "mean_scheduled_two_qubit_layers": 20.214285714285715,
+        "mean_two_qubit_critical_depth": 17.857142857142858,
+        "two_qubit_per_sweep": 296
+      },
+      "graph_state": {
+        "gate_counts": {
+          "CZ": 118,
+          "H": 176,
+          "S": 13
+        },
+        "max_two_qubit_critical_depth": 7,
+        "max_two_qubit_per_setting": 12,
+        "mean_scheduled_one_qubit_layers": 1.8571428571428572,
+        "mean_scheduled_two_qubit_layers": 5.5,
+        "mean_two_qubit_critical_depth": 5.5,
+        "two_qubit_per_sweep": 118
+      },
+      "group_indices_sha256": "f287c8956ee86ccfc3bbf24bb315b005b47ede81c858e54b938753eb5774fd10",
+      "readable_setting_word_pairs": {
+        "elimination": 3298,
+        "gained": 0,
+        "graph_state": 3298,
+        "lost": 0
+      },
+      "settings": 14,
+      "system": "beh2",
+      "two_qubit_gate_reduction": 0.6013513513513513
+    }
+  ],
+  "schema": "clifford_qc.graph_readout_comparison.v1",
+  "scope": "software compilation audit, not a preregistered sampling/hardware experiment",
+  "source_sha256": {
+    "benchmarks/compare_graph_readout.py": "420b37bcc1c86a88a99d9b7381fe026884584e951acc3872b047de3bac84df3e",
+    "benchmarks/run_clifford_hierarchy.py": "c9e3624e1328990dc4d440dedad73324b2b57371ac1766ca471643b775abaa28",
+    "clifford_qc/measurement/block_synthesis.py": "cd7c4b3e3644fc84c6d64f3fe1ce8b7c07eeade15448160d8625e8355caa742c",
+    "clifford_qc/measurement/cost.py": "2bafae7fee1bd761cf6ee920eee7b79c124dfbe6b1acc91847b0bd13459df052",
+    "clifford_qc/measurement/graph_state.py": "d56e1fdfa2def291a85f76fda7da01a64f1b41009800d6a6f52b86045397c91a",
+    "clifford_qc/measurement/planning.py": "d597797ebf7e06fa77a8a1e7c57e71f5bf8d3894e81c9f5d20b204874524e7d0"
+  }
+}

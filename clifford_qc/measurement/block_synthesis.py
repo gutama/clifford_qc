@@ -9,9 +9,9 @@ Blocks occupy disjoint qubits, so a setting runs them in parallel -- its depth
 is the widest block's, not their sum -- and no two-qubit gate ever crosses a
 block boundary. That is what makes ``k`` a cost axis rather than a relabelling.
 
-This module imports stim at module level and is deliberately **not** re-exported
-from ``clifford_qc.measurement``: the package must stay importable without the
-``stim`` extra, exactly as ``clifford_qc.bridges.stim_bridge`` does.
+Stim is loaded only by the historical elimination path. The opt-in
+``method="graph_state"`` path uses NumPy and native signed Clifford maps.
+The default and its synthesis arithmetic remain the historical elimination.
 """
 
 from __future__ import annotations
@@ -19,17 +19,22 @@ from __future__ import annotations
 from collections import Counter, deque
 from dataclasses import dataclass, field
 from functools import lru_cache
-from typing import Sequence
+from typing import TYPE_CHECKING, Sequence
 
 import numpy as np
 from ..capabilities import require
 
-require('compiled_clifford_measurement', feature='clifford_qc.measurement.block_synthesis')
-
-import stim
+@lru_cache(maxsize=1)
+def _stim():
+    require('compiled_clifford_measurement', feature='Stim elimination synthesis')
+    import stim
+    return stim
 
 from .block_commuting import block_ranges
 from .cost import SettingResources
+
+if TYPE_CHECKING:
+    from .graph_state import GraphSynthesis
 
 
 def _local_code_dtype(size: int):
@@ -98,58 +103,48 @@ def stim_label(code: int, size: int) -> str:
 SINGLE_QUBIT_GATES = ("H", "S", "S_DAG")
 
 
-def circuit_stats(circuit) -> tuple[Counter, int, int, int]:
-    """Gate counts, the CX-only depth, and a schedulable one-/two-qubit pair.
+def gate_stats(gates) -> tuple[Counter, int, int, int]:
+    """Counts, 2q-only critical depth and shared-clock layers for one block.
 
-    ``cx_depth`` is the two-qubit critical path on its own, which is the
-    ``logical_cx_depth_*`` column the frozen v2 ledger reports.
-
-    The cost model instead charges ``t_1q * D_1q + t_2q * D_2q`` as wall-clock
-    time, so that pair has to come from one schedule: tracking the two gate
-    kinds on independent clocks drops every dependency that runs through a CX
-    and undercounts exactly the deep, 1q/2q-interleaved rungs.  Here one shared
-    per-qubit clock schedules gates as-soon-as-possible into type-homogeneous
-    layers, so ``D_1q + D_2q`` is a real critical path and the priced time is a
-    duration some schedule attains.
+    Both synthesis backends pass native (name, qubits) tuples here. The priced
+    pair counts type-homogeneous layers on one clock, retaining dependencies
+    through both gate kinds. Independent blocks take componentwise maxima.
     """
-    counts: Counter = Counter()
-    last_cx_layer: dict[int, int] = {}
-    cx_depth = 0
-    ready: dict[int, int] = {}
-    layer_kind: dict[int, str] = {}
-
-    def schedule(kind: str, qubits: tuple[int, ...]) -> None:
-        layer = 1 + max((ready.get(qubit, 0) for qubit in qubits), default=0)
-        while layer_kind.get(layer, kind) != kind:
-            layer += 1
+    counts = Counter(); last_two = {}; critical = 0
+    ready = {}; layer_kind = {}
+    for name,qubits in gates:
+        counts[name] += 1
+        kind = '2q' if len(qubits) == 2 else '1q'
+        if kind == '2q':
+            layer = 1+max(last_two.get(q,0) for q in qubits)
+            for q in qubits: last_two[q] = layer
+            critical = max(critical,layer)
+        layer = 1+max((ready.get(q,0) for q in qubits),default=0)
+        while layer_kind.get(layer,kind) != kind: layer += 1
         layer_kind[layer] = kind
-        for qubit in qubits:
-            ready[qubit] = layer
+        for q in qubits: ready[q] = layer
+    return counts,critical,sum(k=='1q' for k in layer_kind.values()),sum(k=='2q' for k in layer_kind.values())
 
-    for instruction in circuit:
-        name = instruction.name
-        targets = instruction.targets_copy()
-        if name == "CX":
-            if len(targets) % 2:
-                raise AssertionError("CX instruction has an odd target count")
-            for a, b in zip(targets[0::2], targets[1::2]):
-                qa, qb = a.value, b.value
-                counts["CX"] += 1
-                layer = 1 + max(
-                    last_cx_layer.get(qa, 0), last_cx_layer.get(qb, 0)
-                )
-                last_cx_layer[qa] = last_cx_layer[qb] = layer
-                cx_depth = max(cx_depth, layer)
-                schedule("2q", (qa, qb))
-        elif name in SINGLE_QUBIT_GATES:
-            counts[name] += len(targets)
-            for target in targets:
-                schedule("1q", (target.value,))
-        else:
-            raise AssertionError(f"unexpected tableau-elimination gate {name}")
-    depth_1q = sum(1 for kind in layer_kind.values() if kind == "1q")
-    depth_2q = sum(1 for kind in layer_kind.values() if kind == "2q")
-    return counts, cx_depth, depth_1q, depth_2q
+
+def circuit_stats(circuit) -> tuple[Counter, int, int, int]:
+    """Adapt historical elimination instructions to the shared block scheduler.
+
+    The legacy gate set and arithmetic are unchanged: CX and H/S/S_DAG only.
+    """
+    def gates():
+        for instruction in circuit:
+            name = instruction.name
+            targets = instruction.targets_copy()
+            if name == 'CX':
+                if len(targets) % 2:
+                    raise AssertionError('CX instruction has an odd target count')
+                for a,b in zip(targets[0::2],targets[1::2]):
+                    yield name,(a.value,b.value)
+            elif name in SINGLE_QUBIT_GATES:
+                for target in targets: yield name,(target.value,)
+            else:
+                raise AssertionError(f'unexpected tableau-elimination gate {name}')
+    return gate_stats(gates())
 
 
 def x_masks(diagonalizer, size: int, codes: np.ndarray) -> np.ndarray:
@@ -185,6 +180,7 @@ def _minimal_single_qubit_words() -> dict[tuple[str, str], tuple[str, ...]]:
     shortest one; ties break on the generator order above, which makes the
     choice deterministic and therefore reproducible in a committed record.
     """
+    stim = _stim()
     gates = {name: stim.Tableau.from_named_gate(name)
              for name in SINGLE_QUBIT_GATES}
     start = stim.Tableau(1)
@@ -217,6 +213,7 @@ def _z_preserving_corrections() -> tuple:
     it; choosing the cheapest member instead is what makes the emitted circuit
     a *minimal* basis rotation rather than an arbitrary one.
     """
+    stim = _stim()
     gates = {name: stim.Tableau.from_named_gate(name)
              for name in SINGLE_QUBIT_GATES}
     out = []
@@ -256,6 +253,7 @@ def _reduced_instructions(circuit, size: int):
     combined, and their product is re-emitted as a shortest word for the same
     Clifford. Nothing is commuted past a CX.
     """
+    stim = _stim()
     gates = {name: stim.Tableau.from_named_gate(name)
              for name in SINGLE_QUBIT_GATES}
     words = _minimal_single_qubit_words()
@@ -294,6 +292,7 @@ def diagonalizer_circuit(tableau, size: int):
     Its two-qubit structure is kept verbatim; only maximal one-qubit runs are
     re-expressed, so the circuit's action is unchanged by construction.
     """
+    stim = _stim()
     circuit = stim.Circuit()
     for word, qubits in _reduced_instructions(
             tableau.to_circuit("elimination"), size):
@@ -312,6 +311,7 @@ def block_diagonalizer(local_members: Sequence[int], size: int):
     an ``X`` block, two for ``Y``, none for ``Z`` -- which is the analytic
     convention the fixed-QWC mapping-axis record is priced under.
     """
+    stim = _stim()
     basis = independent_codes(local_members, size)
     if not basis:
         return stim.Tableau(size)
@@ -357,6 +357,18 @@ class BlockSynthesis:
     coverage: list[float] = field(default_factory=list)
 
     @property
+    def method(self): return "elimination"
+
+    @property
+    def logical_two_qubit_per_sweep(self): return self.logical_cx_per_sweep
+
+    @property
+    def two_qubit_per_setting(self): return tuple(self.cx_per_setting)
+
+    @property
+    def two_qubit_depth_per_setting(self): return tuple(self.cx_depth_per_setting)
+
+    @property
     def n_settings(self) -> int:
         return len(self.settings)
 
@@ -365,7 +377,7 @@ class BlockSynthesis:
         return sum(self.cx_per_setting)
 
 
-def synthesize_block_settings(
+def _synthesize_elimination(
     n: int,
     codes: Sequence[int],
     groups: Sequence[Sequence[int]],
@@ -381,6 +393,7 @@ def synthesize_block_settings(
     become computational-basis diagonal, and every assigned word must actually
     be read by the setting it was assigned to.
     """
+    stim = _stim()
     codes = list(codes)
     total: Counter = Counter()
     cx_per_setting: list[int] = []
@@ -467,3 +480,28 @@ def synthesize_block_settings(
         coverage=[float(row.sum()) / len(codes) for row in compatibility]
         if len(codes) else [],
     )
+
+
+def _elimination_compiler(n,codes,groups,block_size):
+    return None,_synthesize_elimination(n,codes,groups,block_size)
+
+
+def synthesis_compiler(method):
+    """One method registry for planning and the public resource-only API.
+
+    Backends return (compiled settings or None, ledger). None defers the
+    historical executable-readout adapter to planning.
+    """
+    if method == 'elimination': return _elimination_compiler
+    if method == 'graph_state':
+        from .graph_state import compile_graph_settings
+        return compile_graph_settings
+    raise ValueError('method must be elimination or graph_state')
+
+
+def synthesize_block_settings(
+    n: int, codes: Sequence[int], groups: Sequence[Sequence[int]], block_size: int,
+    *, method: str = 'elimination',
+) -> "BlockSynthesis | GraphSynthesis":
+    """Resource ledger from the same method dispatch used by executable plans."""
+    return synthesis_compiler(method)(n,codes,groups,block_size)[1]

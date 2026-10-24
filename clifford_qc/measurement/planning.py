@@ -6,7 +6,8 @@ universe and block size into a partition, verified Clifford settings, signed
 readout maps, and the synthesis ledger used for resource accounting.
 
 ``stim`` remains an optional dependency.  Importing :mod:`clifford_qc.measurement`
-does not load it; only :func:`compile_block_measurement_plan` does.
+does not load it; the default elimination compiler requires it. Explicit
+``method="graph_state"`` compilation and signed readouts use NumPy alone.
 """
 
 from __future__ import annotations
@@ -22,9 +23,10 @@ from ..pauli_structure import validate_spin_conserving_x_rank
 from .block_commuting import block_commuting_partition, block_wise_commute
 from .compiled import CompiledSetting
 
-if TYPE_CHECKING:  # pragma: no cover - types only; block_synthesis imports stim
+if TYPE_CHECKING:  # pragma: no cover - types only
     from .block_synthesis import BlockSynthesis
     from .cost import SettingResources
+    from .graph_state import GraphSynthesis
 
 
 @dataclass(frozen=True)
@@ -45,8 +47,12 @@ class CompiledMeasurementPlan:
     codes: tuple[int, ...]
     groups: tuple[tuple[int, ...], ...]
     settings: tuple[CompiledSetting, ...]
-    synthesis: "BlockSynthesis"
+    synthesis: "BlockSynthesis | GraphSynthesis"
     spin_conserving_x_rank: int | None = None
+
+    @property
+    def method(self) -> str:
+        return self.synthesis.method
 
     @property
     def assignment(self) -> tuple[int, ...]:
@@ -128,23 +134,12 @@ def _compile_settings(
     groups: tuple[tuple[int, ...], ...],
     block_size: int,
 ) -> tuple[CompiledSetting, ...]:
-    try:
-        import stim
-        from ..bridges.stim_bridge import CliffordMap
-        from .block_commuting import block_ranges
-        from .block_synthesis import (
-            block_diagonalizer,
-            diagonalizer_circuit,
-            local_code,
-            stim_label,
-        )
-    except ModuleNotFoundError as exc:  # pragma: no cover - depends on extras
-        if exc.name == "stim":
-            raise ImportError(
-                "compiled block measurement requires the stim extra: "
-                "pip install -e '.[stim]'"
-            ) from exc
-        raise
+    from .block_synthesis import (
+        _stim, block_diagonalizer, diagonalizer_circuit, local_code, stim_label,
+    )
+    stim = _stim()
+    from ..bridges.stim_bridge import CliffordMap
+    from .block_commuting import block_ranges
 
     compiled = []
     for setting_index, members in enumerate(groups):
@@ -217,6 +212,7 @@ def compile_block_measurement_plan(
     block_size: int,
     *,
     groups: Sequence[Sequence[int]] | None = None,
+    method: str = "elimination",
     spin_conserving_jw_hamiltonian: MV | PauliSum | None = None,
 ) -> CompiledMeasurementPlan:
     """Compile a fixed word universe into executable block-commuting settings.
@@ -234,6 +230,8 @@ def compile_block_measurement_plan(
     block_size = _positive_int(block_size, "block size")
     codes = _word_codes(n, codes)
 
+    from .block_synthesis import synthesis_compiler
+    compiler = synthesis_compiler(method)
     rank = None
     if spin_conserving_jw_hamiltonian is not None:
         if not isinstance(spin_conserving_jw_hamiltonian, (MV, PauliSum)):
@@ -244,19 +242,9 @@ def compile_block_measurement_plan(
 
     groups = _measurement_groups(n, codes, block_size, groups)
 
-    # Importing the package remains Stim-free; compilation is the opt-in point.
-    try:
-        from .block_synthesis import synthesize_block_settings
-    except ModuleNotFoundError as exc:  # pragma: no cover - depends on extras
-        if exc.name == "stim":
-            raise ImportError(
-                "compiled block measurement requires the stim extra: "
-                "pip install -e '.[stim]'"
-            ) from exc
-        raise
-
-    synthesis = synthesize_block_settings(n, codes, groups, block_size)
-    settings = _compile_settings(n, codes, groups, block_size)
+    settings,synthesis = compiler(n,codes,groups,block_size)
+    if settings is None:
+        settings = _compile_settings(n,codes,groups,block_size)
     if len(settings) != synthesis.n_settings:
         raise AssertionError("compiled settings and synthesis ledger disagree")
     for index, setting in enumerate(settings):
