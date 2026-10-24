@@ -99,12 +99,21 @@ compares assigned joint probability distributions between both compilers.
 | BEH2, 8 | 14 | 296 | 118 | 60.1% | 17.86 / 23 | 5.50 / 7 |
 
 Depth here is the logical two-qubit critical depth, ignoring intervening
-one-qubit gates. The JSON separately reports two-qubit layers in a shared-clock
-schedule used by the duration surrogate. These six rows are finite exact
+one-qubit gates. Both backends use one shared scheduling helper, applied per
+block. Independent blocks run in parallel: each setting takes the maximum
+one-qubit and two-qubit layer counts across blocks, preserving the historical
+elimination convention. Local cancellation preserves the surviving gates'
+stage order, so it cannot split a disjoint CZ matching by delaying local gates.
+The JSON separately reports mean scheduled one-/two-qubit layers for the
+duration surrogate. These six rows are finite exact
 compilation results, not a general optimality theorem or a sampled experiment.
 The producer records source/package identities and frozen input digests;
-`--check` is an explicit audit replay, not a CI guard tying live code to a
-historical digest.
+`--check` compares bank/card digests, compiled counts, readout/compatibility summaries and costs
+strictly. Package/source fingerprints are advisory execution provenance: a
+mismatch prints a warning, including when only the NumPy version or unrelated
+package code changes. They do not make a successful numerical replay fail.
+This is an explicit audit replay, not a CI guard tying live code to a
+historical live-source digest.
 
 ```bash
 OMP_NUM_THREADS=1 OPENBLAS_NUM_THREADS=1 MKL_NUM_THREADS=1 \
@@ -142,14 +151,17 @@ The constructor requires `n` independent commuting Hermitian generators with
 integer eigenvalues ±1. It accepts labels, packed codes or PauliWord objects,
 canonicalizes the signed row space and owns immutable rows. Its physical
 identity is independent of generator basis and includes the declared spin
-ordering. Dependent, inconsistent, noncommuting and underconstrained inputs
+ordering. Both constructors default to `spin_ordering="interleaved"`, matching
+`DeterminantReference`; explicitly choose `"qubits"` for that convention.
+Dependent, inconsistent, noncommuting and underconstrained inputs
 are rejected. Determinants are a special case. Signed subgroup membership
 returns exact Pauli expectations in `{0, ±1}` without `2**n` density expansion.
 `ExactProjectedProvider` consumes this exact-expectation capability directly.
 
 `storage()` reports a separate ideal `n*(2*n+1)`-bit tableau model and the
 measured canonical Python tuple/int footprint. The latter excludes metadata
-and the shared multiplication cache; neither quantity is process RSS.
+and neither quantity is process RSS. Construction and expectation evaluation
+use uncached packed products, so they do not grow or evict the MV product LRU.
 This implementation supplies neither amplitudes, a preparation circuit,
 sector-action capability nor a hardware sampler. Analytic expectation support
 does not by itself integrate stabilizer warm starts into the molecular solver.
@@ -189,7 +201,8 @@ Circuit Synthesis*. Its GHZ-bus injection model does not establish ordinary
 CZ-layer depths for this implementation.
 
 ```bash
-python -m pytest tests/test_graph_state_readout.py tests/test_stabilizer_reference.py
+python -m pytest tests/test_graph_state_readout.py tests/test_stabilizer_reference.py \
+  tests/test_graph_state_review.py
 ```
 
 The focused suite covers ranks zero through full rank, dependent subgroup

@@ -341,16 +341,19 @@ class StabilizerReference:
     """Pure full-rank signed stabilizer reference, without density expansion.
 
     ``generators`` contains (Pauli code/label/word, eigenvalue +/-1). Its
-    canonical signed GF(2) row space determines identity, independently of the
-    supplied generator basis. Expectations use unscaled analytic arithmetic.
+    canonical signed GF(2) row space and declared spin ordering determine
+    identity, independently of the supplied generator basis. The default
+    interleaved ordering matches from_determinant and DeterminantReference.
+    Expectations use unscaled analytic arithmetic.
     No fermionic-sector or spin-conservation property is implied by this type.
     """
     metadata: ReferenceMetadata
     _rows: tuple
 
-    def __init__(self, n, generators, *, spin_ordering="qubits"):
+    def __init__(self, n, generators, *, spin_ordering="interleaved"):
         from .ir import PauliWord
-        from .pauli_kernel import label_to_code, validate_n, word_mul
+        from .pauli_kernel import label_to_code, validate_n, _word_mul_unchecked
+        word_mul = _word_mul_unchecked.__wrapped__
         if isinstance(n,bool): raise ValueError('n must be an integer, not a boolean')
         validate_n(n)
         rows = []
@@ -409,7 +412,8 @@ class StabilizerReference:
                    spin_ordering=spin_ordering)
 
     def word_expectation(self, code):
-        from .pauli_kernel import word_mul
+        from .pauli_kernel import _word_mul_unchecked
+        word_mul = _word_mul_unchecked.__wrapped__
         if isinstance(code,bool): raise ValueError('integer Pauli code required')
         validate_word_code(self.n,code)
         phase = 1+0j
@@ -440,4 +444,4 @@ class StabilizerReference:
                 'tableau_payload_bits':self.n*(2*self.n+1),
                 'bitpacked_tableau_model_bytes':(self.n*(2*self.n+1)+7)//8,
                 'measured_rows_and_referenced_boxes_bytes':measured,'density_coefficients':0,
-                'scope':'owned canonical row tuples/referenced Python ints; bitpacked figure is a separate model; metadata and shared kernel multiplication cache excluded'}
+                'scope':'owned canonical row tuples/referenced Python ints; bitpacked figure is a separate model; metadata excluded; construction/evaluation do not populate the shared product cache'}

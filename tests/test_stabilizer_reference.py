@@ -41,7 +41,7 @@ def test_physical_identity_is_canonical_across_basis_changes_and_signs_are_exact
     assert first.metadata.identity==second.metadata.identity
     assert first.word_expectation(PauliWord.from_label('YY').code)==-1
     assert first.metadata.identity!=StabilizerReference(2,[('XX',-1),('ZZ',1)]).metadata.identity
-    assert first.metadata.identity!=StabilizerReference(2,[('XX',1),('ZZ',1)],spin_ordering='interleaved').metadata.identity
+    assert first.metadata.identity!=StabilizerReference(2,[('XX',1),('ZZ',1)],spin_ordering='qubits').metadata.identity
     with pytest.raises(FrozenInstanceError):first._rows=()
     with pytest.raises(FrozenInstanceError):first.metadata=None
 

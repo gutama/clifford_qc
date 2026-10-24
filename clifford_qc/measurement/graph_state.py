@@ -17,8 +17,9 @@ import numpy as np
 
 from ..ir import PauliWord, Program
 from ..pauli_kernel import pauli_lane_mask, validate_word_code, word_mul
+from ..reference_states import immutable_array
 from .block_commuting import block_ranges
-from .block_synthesis import independent_codes, local_code
+from .block_synthesis import gate_stats, independent_codes, local_code
 from .compiled import CompiledSetting
 from .cost import SettingResources
 
@@ -47,6 +48,11 @@ _CZ = _cz_table()
 _LOCAL = {'H': ((1,0),(1,3),(-1,2),(1,1)),
           'S': ((1,0),(1,2),(-1,1),(1,3)),
           'SDG': ((1,0),(-1,2),(1,1),(1,3))}
+_CZ_ARRAYS = (immutable_array([v[0] for v in _CZ],np.int8),
+              immutable_array([v[1] for v in _CZ],np.uint64))
+_LOCAL_ARRAYS = MappingProxyType({name:(immutable_array([v[0] for v in table],np.int8),
+                                       immutable_array([v[1] for v in table],np.uint64))
+                                 for name,table in _LOCAL.items()})
 
 
 @dataclass(frozen=True)
@@ -85,22 +91,22 @@ def _cancel_local(gates, n):
     # Commute only across disjoint qubits. Never pass a local operation through
     # an incident CZ. This removes, e.g., the two Hs for an initially Z-only row.
     pending = [[] for _ in range(n)]
-    out = []
-    def flush(q):
-        out.extend((name,(q,)) for name in pending[q]); pending[q].clear()
-    for name,qubits in gates:
+    out = list(gates)
+    for index,(name,qubits) in enumerate(gates):
         if name == 'CZ':
-            for q in qubits: flush(q)
-            out.append((name,qubits))
+            for q in qubits: pending[q].clear()
         else:
             q = qubits[0]
-            if pending[q] and ((name == 'H' and pending[q][-1] == 'H')
-                               or (name,pending[q][-1]) in (('S','SDG'),('SDG','S'))):
-                pending[q].pop()
+            previous = out[pending[q][-1]][0] if pending[q] else None
+            if previous is not None and ((name == previous == 'H')
+                               or (name,previous) in (('S','SDG'),('SDG','S'))):
+                out[pending[q].pop()] = None
+                out[index] = None
             else:
-                pending[q].append(name)
-    for q in range(n): flush(q)
-    return tuple(out)
+                pending[q].append(index)
+    # Keep surviving gates in their original stage order. Delaying them to
+    # the next incident CZ can split a disjoint matching into priced layers.
+    return tuple(gate for gate in out if gate is not None)
 
 
 @dataclass(frozen=True)
@@ -152,20 +158,28 @@ class NativeClifford:
                 raise ValueError('integer Pauli codes required')
             validate_word_code(self.n,int(code))
         out = np.asarray(raw,dtype=np.uint64)
+        return self._transform_codes_unchecked(out)
+
+    def _transform_codes_unchecked(self, codes):
+        """Trusted uint64 block codes, validated once by the compiler boundary.
+
+        Does not mutate the cached input array. Public callers use transform_codes.
+        """
+        out = codes
         signs = np.ones(len(out),dtype=np.int8)
         for name,qubits in self.gates:
             if name == 'CZ':
                 a,b = qubits
                 local = ((out >> np.uint64(2*a)) & np.uint64(3)) | (((out >> np.uint64(2*b)) & np.uint64(3)) << np.uint64(2))
-                phase = np.asarray([v[0] for v in _CZ],np.int8)[local]
-                image = np.asarray([v[1] for v in _CZ],np.uint64)[local]
+                phase = _CZ_ARRAYS[0][local]
+                image = _CZ_ARRAYS[1][local]
                 mask = np.uint64((3 << (2*a)) | (3 << (2*b)))
                 out = (out & ~mask) | ((image & np.uint64(3)) << np.uint64(2*a)) | ((image >> np.uint64(2)) << np.uint64(2*b))
             else:
                 q = qubits[0]
                 letter = (out >> np.uint64(2*q)) & np.uint64(3)
-                phase = np.asarray([v[0] for v in _LOCAL[name]],np.int8)[letter]
-                image = np.asarray([v[1] for v in _LOCAL[name]],np.uint64)[letter]
+                phase = _LOCAL_ARRAYS[name][0][letter]
+                image = _LOCAL_ARRAYS[name][1][letter]
                 out = (out & ~np.uint64(3 << (2*q))) | (image << np.uint64(2*q))
             signs *= phase
         return signs,out
@@ -259,19 +273,7 @@ def graph_diagonalizer(codes, size):
 
 def native_stats(clifford):
     """Exact gate counts, 2q-only critical depth, and one shared-clock schedule."""
-    counts = Counter(); ready = {}; kinds = {}; last_two = {}; critical = 0
-    for name,qubits in clifford.gates:
-        counts[name] += 1
-        kind = '2q' if name == 'CZ' else '1q'
-        if kind == '2q':
-            layer = 1+max(last_two.get(q,0) for q in qubits)
-            for q in qubits: last_two[q] = layer
-            critical = max(critical,layer)
-        layer = 1+max((ready.get(q,0) for q in qubits),default=0)
-        while kinds.get(layer,kind) != kind: layer += 1
-        kinds[layer] = kind
-        for q in qubits: ready[q] = layer
-    return counts,critical,sum(k=='1q' for k in kinds.values()),sum(k=='2q' for k in kinds.values())
+    return gate_stats(clifford.gates)
 
 
 @dataclass(frozen=True)
@@ -296,8 +298,14 @@ class GraphSynthesis:
 
 def compile_graph_settings(n,codes,groups,block_size):
     """Compile signed readouts and price the identical immutable circuits."""
-    codes = tuple(codes); ranges = tuple(block_ranges(n,block_size))
-    locals_by_block = {(start,size):[local_code(c,start,size) for c in codes] for start,size in ranges}
+    codes = tuple(codes)
+    for code in codes:
+        if isinstance(code,bool) or not isinstance(code,Integral):
+            raise ValueError('integer Pauli codes required')
+        validate_word_code(n,int(code))
+    codes = tuple(map(int,codes)); ranges = tuple(block_ranges(n,block_size))
+    locals_by_block = {(start,size):np.asarray([local_code(c,start,size) for c in codes],np.uint64)
+                       for start,size in ranges}
     compiled,resources,two,depths,coverage = [],[],[],[],[]
     compatibility = np.zeros((len(groups),len(codes)),bool)
     assignment = [-1]*len(codes); total = Counter(); checked = 0
@@ -305,16 +313,17 @@ def compile_graph_settings(n,codes,groups,block_size):
         for member in members:
             if assignment[member] != -1: raise AssertionError('duplicate assignment')
             assignment[member] = setting_index
-        gates,images_by_block = [],[]
+        gates,images_by_block,block_stats = [],[],[]
         readable = np.ones(len(codes),bool); signs = np.ones(len(codes),np.int8)
         for start,size in ranges:
             local = locals_by_block[start,size]
             diagonalizer = graph_diagonalizer([local[i] for i in members],size)
-            phases,images = diagonalizer.transform_codes(local)
+            phases,images = diagonalizer._transform_codes_unchecked(local)
             mask = np.uint64(pauli_lane_mask(size))
             readable &= (((images & mask) ^ ((images >> np.uint64(1)) & mask)) == 0)
             signs *= phases; images_by_block.append((start,size,images))
             gates.extend((name,tuple(start+q for q in qubits)) for name,qubits in diagonalizer.gates)
+            block_stats.append(native_stats(diagonalizer))
             checked += len(set(local[i] for i in members))
         native = NativeClifford(n,tuple(gates))
         readouts = {}
@@ -330,12 +339,17 @@ def compile_graph_settings(n,codes,groups,block_size):
         compatibility[setting_index] = readable
         key = ('block-commuting','graph_state.v1',n,block_size,tuple(codes[i] for i in members),native.identity)
         compiled.append(CompiledSetting(key,native,tuple(codes[i] for i in members),readouts))
-        counts,critical,d1,d2 = native_stats(native); total.update(counts)
+        counts = Counter()
+        for block_counts,_,_,_ in block_stats: counts.update(block_counts)
+        critical = max((row[1] for row in block_stats),default=0)
+        d1 = max((row[2] for row in block_stats),default=0)
+        d2 = max((row[3] for row in block_stats),default=0)
+        total.update(counts)
         two.append(counts['CZ']);depths.append(critical)
         resources.append(SettingResources(n_1q=sum(counts[v] for v in _LOCAL),n_2q=counts['CZ'],d_1q=d1,d_2q=d2))
         coverage.append(float(readable.mean()) if len(codes) else 0.)
     if any(v < 0 for v in assignment): raise AssertionError('missing word assignment')
-    compatibility = np.frombuffer(compatibility.tobytes(),dtype=bool).reshape(compatibility.shape)
-    ledger = GraphSynthesis(block_size,tuple(resources),MappingProxyType(dict(total)),tuple(two),tuple(depths),
+    compatibility = immutable_array(compatibility)
+    ledger = GraphSynthesis(block_size,tuple(resources),MappingProxyType(total),tuple(two),tuple(depths),
                             compatibility,tuple(assignment),checked,tuple(coverage))
     return tuple(compiled),ledger

@@ -134,23 +134,12 @@ def _compile_settings(
     groups: tuple[tuple[int, ...], ...],
     block_size: int,
 ) -> tuple[CompiledSetting, ...]:
-    try:
-        import stim
-        from ..bridges.stim_bridge import CliffordMap
-        from .block_commuting import block_ranges
-        from .block_synthesis import (
-            block_diagonalizer,
-            diagonalizer_circuit,
-            local_code,
-            stim_label,
-        )
-    except ModuleNotFoundError as exc:  # pragma: no cover - depends on extras
-        if exc.name == "stim":
-            raise ImportError(
-                "compiled block measurement requires the stim extra: "
-                "pip install -e '.[stim]'"
-            ) from exc
-        raise
+    from .block_synthesis import (
+        _stim, block_diagonalizer, diagonalizer_circuit, local_code, stim_label,
+    )
+    stim = _stim()
+    from ..bridges.stim_bridge import CliffordMap
+    from .block_commuting import block_ranges
 
     compiled = []
     for setting_index, members in enumerate(groups):
@@ -241,8 +230,8 @@ def compile_block_measurement_plan(
     block_size = _positive_int(block_size, "block size")
     codes = _word_codes(n, codes)
 
-    if method not in ("elimination","graph_state"):
-        raise ValueError("method must be elimination or graph_state")
+    from .block_synthesis import synthesis_compiler
+    compiler = synthesis_compiler(method)
     rank = None
     if spin_conserving_jw_hamiltonian is not None:
         if not isinstance(spin_conserving_jw_hamiltonian, (MV, PauliSum)):
@@ -253,24 +242,9 @@ def compile_block_measurement_plan(
 
     groups = _measurement_groups(n, codes, block_size, groups)
 
-    if method == "graph_state":
-        from .graph_state import compile_graph_settings
-        settings,synthesis = compile_graph_settings(n,codes,groups,block_size)
-        return CompiledMeasurementPlan(n,block_size,codes,groups,settings,synthesis,rank)
-
-    # Historical elimination remains the default for frozen evidence.
-    try:
-        from .block_synthesis import synthesize_block_settings
-    except ModuleNotFoundError as exc:  # pragma: no cover - depends on extras
-        if exc.name == "stim":
-            raise ImportError(
-                "compiled block measurement requires the stim extra: "
-                "pip install -e '.[stim]'"
-            ) from exc
-        raise
-
-    synthesis = synthesize_block_settings(n, codes, groups, block_size)
-    settings = _compile_settings(n, codes, groups, block_size)
+    settings,synthesis = compiler(n,codes,groups,block_size)
+    if settings is None:
+        settings = _compile_settings(n,codes,groups,block_size)
     if len(settings) != synthesis.n_settings:
         raise AssertionError("compiled settings and synthesis ledger disagree")
     for index, setting in enumerate(settings):

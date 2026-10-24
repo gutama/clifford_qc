@@ -209,7 +209,7 @@ def require(capability: str, *, feature: str | None = None) -> None:
     Tooling already reads that wording -- ``benchmarks/check_docs.py`` greps
     stderr for ``ModuleNotFoundError: No module named 'X'`` to decide that a
     script's flags are unverifiable rather than broken, and
-    ``measurement/planning.py`` branches on ``exc.name``.  Raising a bare
+    import tooling can inspect ``exc.name``. Raising a bare
     ``ImportError`` with a friendlier message turned that skip into a failure,
     so this keeps the canonical prefix and the ``name`` attribute and appends
     the guidance.  A better error message is not worth breaking a consumer

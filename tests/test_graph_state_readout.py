@@ -97,6 +97,20 @@ cache.add_batch(CompiledMeasurementSampler(91).sample_from_state(bell_density(),
 assert [cache.candidate_estimate({c:1}) for c in codes]==[1,-1,1]
 assert 'stim' not in sys.modules
 assert p.synthesis.gate_counts['CZ']==1
+# Simulate package absence as well as guarding imports, even in a Stim-enabled
+# parent environment, so capability discovery exercises the real missing-extra path.
+import importlib.util
+find_spec=importlib.util.find_spec
+importlib.util.find_spec=lambda name,*a,**kw: None if name=='stim' else find_spec(name,*a,**kw)
+from clifford_qc.measurement.block_synthesis import synthesize_block_settings
+for call in (lambda: compile_block_measurement_plan(2,codes,2),
+             lambda: synthesize_block_settings(2,codes,[[0,1,2]],2)):
+    try:
+        call()
+    except ModuleNotFoundError as error:
+        assert 'clifford-qc[stim]' in str(error),str(error)
+    else:
+        raise AssertionError('elimination unexpectedly succeeded without Stim')
 print('ok')
 '''
     result=subprocess.run([sys.executable,'-c',script],capture_output=True,text=True)
@@ -105,6 +119,7 @@ print('ok')
 
 
 def test_compiled_signed_readouts_match_sampling_and_separate_cache_keys():
+    pytest.importorskip("stim")
     codes=[PauliWord.from_label(s).code for s in ('XX','YY','ZZ')]
     p=compile_block_measurement_plan(2,codes,2,method='graph_state')
     old=compile_block_measurement_plan(2,codes,2)
@@ -144,6 +159,7 @@ def test_32_qubit_packed_boundary_preserves_high_bit_signs():
 
 
 def test_assigned_joint_distribution_is_preserved_despite_changed_extra_readouts():
+    pytest.importorskip("stim")
     from clifford_qc.ir import Program,Rotor
     from clifford_qc.backends import ExactMVBackend
     from clifford_qc.states import computational_probabilities

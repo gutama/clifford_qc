@@ -1,6 +1,6 @@
 {
   "evidence": "exact discrete compilation/counts; illustrative device-card surrogates",
-  "implementation_fingerprint": "6fa925da623612c42767b65f738a80f87c56167540b5816f1737076664346216",
+  "implementation_fingerprint": "ec2c4abeb36b10e501550a80edd3b86b835ff981b2d032d4405126424f5b1844",
   "inputs": {
     "beh2": {
       "basis_labels": [
@@ -50,7 +50,7 @@
           "fidelity_floor": 0.5,
           "graph_admissible_settings": 647,
           "graph_min_fidelity": 0.8972193990616678,
-          "graph_sweep_duration_us": 252600.0,
+          "graph_sweep_duration_us": 242990.0,
           "lost_admissible_settings": 0,
           "newly_admissible_settings": 0
         },
@@ -63,7 +63,7 @@
           "fidelity_floor": 0.5,
           "graph_admissible_settings": 647,
           "graph_min_fidelity": 1.0,
-          "graph_sweep_duration_us": 1530.6,
+          "graph_sweep_duration_us": 1509.1499999999999,
           "lost_admissible_settings": 0,
           "newly_admissible_settings": 0
         },
@@ -76,7 +76,7 @@
           "fidelity_floor": 0.5,
           "graph_admissible_settings": 647,
           "graph_min_fidelity": 0.7421278885578222,
-          "graph_sweep_duration_us": 2340.2000000000003,
+          "graph_sweep_duration_us": 2307.35,
           "lost_admissible_settings": 0,
           "newly_admissible_settings": 0
         }
@@ -92,6 +92,7 @@
         },
         "max_two_qubit_critical_depth": 4,
         "max_two_qubit_per_setting": 16,
+        "mean_scheduled_one_qubit_layers": 3.480680061823802,
         "mean_scheduled_two_qubit_layers": 2.2503863987635238,
         "mean_two_qubit_critical_depth": 2.2503863987635238,
         "two_qubit_per_sweep": 2803
@@ -104,7 +105,8 @@
         },
         "max_two_qubit_critical_depth": 1,
         "max_two_qubit_per_setting": 4,
-        "mean_scheduled_two_qubit_layers": 0.8377125193199382,
+        "mean_scheduled_one_qubit_layers": 1.9768160741885625,
+        "mean_scheduled_two_qubit_layers": 0.7789799072642968,
         "mean_two_qubit_critical_depth": 0.7789799072642968,
         "two_qubit_per_sweep": 904
       },
@@ -132,7 +134,7 @@
           "fidelity_floor": 0.5,
           "graph_admissible_settings": 238,
           "graph_min_fidelity": 0.8719443023148297,
-          "graph_sweep_duration_us": 160400.0,
+          "graph_sweep_duration_us": 157340.0,
           "lost_admissible_settings": 0,
           "newly_admissible_settings": 0
         },
@@ -145,7 +147,7 @@
           "fidelity_floor": 0.5,
           "graph_admissible_settings": 238,
           "graph_min_fidelity": 1.0,
-          "graph_sweep_duration_us": 664.1,
+          "graph_sweep_duration_us": 657.2,
           "lost_admissible_settings": 0,
           "newly_admissible_settings": 0
         },
@@ -158,7 +160,7 @@
           "fidelity_floor": 0.5,
           "graph_admissible_settings": 238,
           "graph_min_fidelity": 0.6211776056627484,
-          "graph_sweep_duration_us": 1063.2,
+          "graph_sweep_duration_us": 1052.7,
           "lost_admissible_settings": 0,
           "newly_admissible_settings": 66
         }
@@ -174,6 +176,7 @@
         },
         "max_two_qubit_critical_depth": 14,
         "max_two_qubit_per_setting": 26,
+        "mean_scheduled_one_qubit_layers": 6.823529411764706,
         "mean_scheduled_two_qubit_layers": 8.029411764705882,
         "mean_two_qubit_critical_depth": 7.911764705882353,
         "two_qubit_per_sweep": 3277
@@ -186,7 +189,8 @@
         },
         "max_two_qubit_critical_depth": 3,
         "max_two_qubit_per_setting": 10,
-        "mean_scheduled_two_qubit_layers": 2.2563025210084033,
+        "mean_scheduled_one_qubit_layers": 1.9915966386554622,
+        "mean_scheduled_two_qubit_layers": 2.2058823529411766,
         "mean_two_qubit_critical_depth": 2.2058823529411766,
         "two_qubit_per_sweep": 1057
       },
@@ -214,7 +218,7 @@
           "fidelity_floor": 0.5,
           "graph_admissible_settings": 64,
           "graph_min_fidelity": 0.8623836270530044,
-          "graph_sweep_duration_us": 67660.0,
+          "graph_sweep_duration_us": 67460.0,
           "lost_admissible_settings": 0,
           "newly_admissible_settings": 0
         },
@@ -227,7 +231,7 @@
           "fidelity_floor": 0.5,
           "graph_admissible_settings": 64,
           "graph_min_fidelity": 1.0,
-          "graph_sweep_duration_us": 214.7,
+          "graph_sweep_duration_us": 214.4,
           "lost_admissible_settings": 0,
           "newly_admissible_settings": 0
         },
@@ -240,7 +244,7 @@
           "fidelity_floor": 0.5,
           "graph_admissible_settings": 64,
           "graph_min_fidelity": 0.5836573170403369,
-          "graph_sweep_duration_us": 359.1,
+          "graph_sweep_duration_us": 358.5,
           "lost_admissible_settings": 0,
           "newly_admissible_settings": 61
         }
@@ -256,6 +260,7 @@
         },
         "max_two_qubit_critical_depth": 35,
         "max_two_qubit_per_setting": 43,
+        "mean_scheduled_one_qubit_layers": 11.078125,
         "mean_scheduled_two_qubit_layers": 25.140625,
         "mean_two_qubit_critical_depth": 24.15625,
         "two_qubit_per_sweep": 1886
@@ -268,7 +273,8 @@
         },
         "max_two_qubit_critical_depth": 7,
         "max_two_qubit_per_setting": 12,
-        "mean_scheduled_two_qubit_layers": 4.1875,
+        "mean_scheduled_one_qubit_layers": 1.96875,
+        "mean_scheduled_two_qubit_layers": 4.171875,
         "mean_two_qubit_critical_depth": 4.171875,
         "two_qubit_per_sweep": 460
       },
@@ -338,6 +344,7 @@
         },
         "max_two_qubit_critical_depth": 1,
         "max_two_qubit_per_setting": 4,
+        "mean_scheduled_one_qubit_layers": 4.7073170731707314,
         "mean_scheduled_two_qubit_layers": 0.975609756097561,
         "mean_two_qubit_critical_depth": 0.975609756097561,
         "two_qubit_per_sweep": 112
@@ -350,6 +357,7 @@
         },
         "max_two_qubit_critical_depth": 1,
         "max_two_qubit_per_setting": 4,
+        "mean_scheduled_one_qubit_layers": 1.951219512195122,
         "mean_scheduled_two_qubit_layers": 0.975609756097561,
         "mean_two_qubit_critical_depth": 0.975609756097561,
         "two_qubit_per_sweep": 112
@@ -378,7 +386,7 @@
           "fidelity_floor": 0.5,
           "graph_admissible_settings": 26,
           "graph_min_fidelity": 0.8882696355560278,
-          "graph_sweep_duration_us": 16540.0,
+          "graph_sweep_duration_us": 16500.0,
           "lost_admissible_settings": 0,
           "newly_admissible_settings": 0
         },
@@ -391,7 +399,7 @@
           "fidelity_floor": 0.5,
           "graph_admissible_settings": 26,
           "graph_min_fidelity": 1.0,
-          "graph_sweep_duration_us": 70.9,
+          "graph_sweep_duration_us": 70.7,
           "lost_admissible_settings": 0,
           "newly_admissible_settings": 0
         },
@@ -404,7 +412,7 @@
           "fidelity_floor": 0.5,
           "graph_admissible_settings": 26,
           "graph_min_fidelity": 0.6986986753940669,
-          "graph_sweep_duration_us": 113.1,
+          "graph_sweep_duration_us": 112.9,
           "lost_admissible_settings": 0,
           "newly_admissible_settings": 0
         }
@@ -420,6 +428,7 @@
         },
         "max_two_qubit_critical_depth": 10,
         "max_two_qubit_per_setting": 15,
+        "mean_scheduled_one_qubit_layers": 5.8076923076923075,
         "mean_scheduled_two_qubit_layers": 4.5,
         "mean_two_qubit_critical_depth": 4.461538461538462,
         "two_qubit_per_sweep": 193
@@ -432,6 +441,7 @@
         },
         "max_two_qubit_critical_depth": 3,
         "max_two_qubit_per_setting": 6,
+        "mean_scheduled_one_qubit_layers": 1.9230769230769231,
         "mean_scheduled_two_qubit_layers": 2.076923076923077,
         "mean_two_qubit_critical_depth": 2.076923076923077,
         "two_qubit_per_sweep": 118
@@ -502,6 +512,7 @@
         },
         "max_two_qubit_critical_depth": 23,
         "max_two_qubit_per_setting": 28,
+        "mean_scheduled_one_qubit_layers": 10.357142857142858,
         "mean_scheduled_two_qubit_layers": 20.214285714285715,
         "mean_two_qubit_critical_depth": 17.857142857142858,
         "two_qubit_per_sweep": 296
@@ -514,6 +525,7 @@
         },
         "max_two_qubit_critical_depth": 7,
         "max_two_qubit_per_setting": 12,
+        "mean_scheduled_one_qubit_layers": 1.8571428571428572,
         "mean_scheduled_two_qubit_layers": 5.5,
         "mean_two_qubit_critical_depth": 5.5,
         "two_qubit_per_sweep": 118
@@ -533,11 +545,11 @@
   "schema": "clifford_qc.graph_readout_comparison.v1",
   "scope": "software compilation audit, not a preregistered sampling/hardware experiment",
   "source_sha256": {
-    "benchmarks/compare_graph_readout.py": "2a793574742b168213a6301c12035cacdee670c49a0dcdb7881a5760083abb95",
+    "benchmarks/compare_graph_readout.py": "420b37bcc1c86a88a99d9b7381fe026884584e951acc3872b047de3bac84df3e",
     "benchmarks/run_clifford_hierarchy.py": "c9e3624e1328990dc4d440dedad73324b2b57371ac1766ca471643b775abaa28",
-    "clifford_qc/measurement/block_synthesis.py": "a8f1d9131b5dd7e257f3f505330380f1aea26a29fa11ec45f6f2c98f2e018be7",
+    "clifford_qc/measurement/block_synthesis.py": "cd7c4b3e3644fc84c6d64f3fe1ce8b7c07eeade15448160d8625e8355caa742c",
     "clifford_qc/measurement/cost.py": "2bafae7fee1bd761cf6ee920eee7b79c124dfbe6b1acc91847b0bd13459df052",
-    "clifford_qc/measurement/graph_state.py": "b9179e8f3705d2412332d717e1ab25e3b5843a5e682c8ec93a82b1c053f728da",
-    "clifford_qc/measurement/planning.py": "dd9d10d4b068b9e4e39064262c0f81da13e44bcf6d2e730c329f64f9f1ff590b"
+    "clifford_qc/measurement/graph_state.py": "d56e1fdfa2def291a85f76fda7da01a64f1b41009800d6a6f52b86045397c91a",
+    "clifford_qc/measurement/planning.py": "d597797ebf7e06fa77a8a1e7c57e71f5bf8d3894e81c9f5d20b204874524e7d0"
   }
 }
