@@ -2,7 +2,8 @@
 
 An adaptive stopping reason describes the candidate pool, not convergence to
 an eigenstate. These reports attach the true residual from SecondMomentBank
-without changing selection or stopping. A small residual identifies proximity
+without changing selection or stopping. The shared assessment builder also
+accepts cached-action residual records without constructing a bank. A small residual identifies proximity
 to *some* eigenvalue; ground-state dominance needs separate spectral input.
 
 The variance-resolution floor is a numerical cancellation convention, not a
@@ -27,7 +28,7 @@ from __future__ import annotations
 import math
 import operator
 from dataclasses import asdict, dataclass
-from typing import Any, Sequence
+from typing import Any, Protocol, Sequence
 
 import numpy as np
 
@@ -97,6 +98,21 @@ class ConvergenceConfig:
             raise TypeError("storage_policy must be a SecondMomentStoragePolicy")
 
 
+class ConvergenceResidual(Protocol):
+    """Common numerical evidence supplied by moments or cached actions."""
+    energy: float
+    rayleigh_energy: float
+    second_moment: float
+    variance: float
+    residual_norm: float
+    cancellation_scale: float
+
+    @property
+    def resolved(self) -> bool: ...
+
+    def as_dict(self) -> dict: ...
+
+
 @dataclass(frozen=True)
 class ConvergenceReport:
     """One root's residual assessment and separate ground-state assessment.
@@ -108,7 +124,7 @@ class ConvergenceReport:
     rather than assuming every regularized solve's eigenvalue equals it.
     """
 
-    residual: RitzResidual
+    residual: ConvergenceResidual
     variance_resolution: float
     residual_tolerance: float
     residual_status: str
@@ -147,14 +163,40 @@ def convergence_report(result: SubspaceResult, config: ConvergenceConfig, *,
                                 storage_policy=config.storage_policy)
                if moments is None else moments)
     residual = moments.residual(result, root)
+    return residual_convergence_report(
+        residual, config, basis_size=len(result.indices), effective_rank=result.effective_rank,
+        condition_number=result.condition_number, energy_change=energy_change, stopped_reason=stopped_reason)
+
+
+def residual_convergence_report(residual, config: ConvergenceConfig, *, basis_size: int,
+                                effective_rank: int, condition_number: float,
+                                energy_change=None, stopped_reason=None,
+                                residual_resolution=None) -> ConvergenceReport:
+    """Assess residual records without requiring a density or second-moment bank.
+
+    A direct-action norm resolution uses its explicitly declared convention.
+    Absent that, historical second-moment cancellation assessment is unchanged.
+    Spectral information assesses the returned state; it never selects directions.
+    """
+    if not isinstance(config, ConvergenceConfig):
+        raise TypeError("config must be a ConvergenceConfig")
+    if residual_resolution is not None:
+        residual_resolution = _finite(residual_resolution, "residual_resolution")
+        if residual_resolution < 0:
+            raise ValueError("residual_resolution must be nonnegative")
     for name in ("energy", "rayleigh_energy", "second_moment", "variance",
                  "residual_norm", "cancellation_scale"):
         _finite(getattr(residual, name), name)
     if residual.cancellation_scale < 0.0:
         raise ValueError("cancellation_scale must be nonnegative")
-    floor = RESOLUTION * residual.cancellation_scale
+    floor = (RESOLUTION * residual.cancellation_scale if residual_resolution is None
+             else residual_resolution**2)
     if residual.variance < -floor:
         status = "invalid"
+    elif residual_resolution is not None:
+        status = ("within_tolerance" if residual.residual_norm + residual_resolution <= config.residual_tolerance
+                  else "above_tolerance" if residual.residual_norm - residual_resolution > config.residual_tolerance
+                  else "unresolved")
     elif not residual.resolved:
         status = "unresolved"
     elif residual.residual_norm <= config.residual_tolerance:
@@ -178,8 +220,8 @@ def convergence_report(result: SubspaceResult, config: ConvergenceConfig, *,
     return ConvergenceReport(
         residual=residual, variance_resolution=floor,
         residual_tolerance=float(config.residual_tolerance), residual_status=status,
-        basis_size=len(result.indices), effective_rank=result.effective_rank,
-        condition_number=result.condition_number, energy_change=energy_change,
+        basis_size=basis_size, effective_rank=effective_rank,
+        condition_number=condition_number, energy_change=energy_change,
         stopped_reason=stopped_reason, ground_state_status=ground_status,
         ground_weight_lower_bound=weight, ground_reference=reference,
     )
