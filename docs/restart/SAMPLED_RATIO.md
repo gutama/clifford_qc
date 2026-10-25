@@ -151,3 +151,21 @@ The caller must inspect `result.status`; an unresolved denominator has no
 resolved estimate or ratio interval. The examples in `tests/test_sampled_ratio.py`
 exercise actual simulator histograms, complex rows, covariance cancellation,
 algebraically deterministic normalization and pre-allocation rejection.
+
+## Validation on 25 October 2026
+
+- All 15 Step 5 tests pass, including source/shot/summary/verdict tamper rejection.
+- All 176 focused existing reference, projection, packed-bank and measured-response
+  regressions pass. Lint and the reproduction-documentation check pass.
+- The short record checker passes on all 2,304 outcomes after publication, and a
+  complete redraw of every declared seed reproduces the scientific record.
+- The generated architecture census now classifies the sampled reference and
+  checker. Regenerated tables, layer diagram and manuscript checks pass; all
+  30 architecture-gate tests pass after this integration fix.
+- The broader suite run reported 4,304 passed and 12 optional-dependency skips.
+  Its two census failures were fixed and verified by the architecture rerun.
+  The remaining 4 failures and 29 fixture errors all involve Git-free archive
+  tests: this managed sandbox creates a synthetic `/tmp/.git`, so their
+  provenance guards correctly reject those temporary exports. Those guards and
+  historical evidence were preserved; a fully green broad-suite run is not
+  claimed for this environment.

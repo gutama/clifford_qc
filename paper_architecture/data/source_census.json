@@ -59,6 +59,7 @@
       "check_r3d_preregistration",
       "check_r4a_contextual_screen",
       "check_r4a_preregistration",
+      "check_sampled_ratio",
       "check_second_moment_validation",
       "check_sparse_ga_kernel",
       "check_sparse_packet_work",
@@ -76,6 +77,7 @@
       "Plan ledger": 1,
       "Post-hoc declaration": 6,
       "Preregistration": 13,
+      "Sampled inference accounting": 1,
       "Value-rebuilt": 31
     },
     "dispatch_gates": [
@@ -92,13 +94,13 @@
       "check_r3d_qr3_refinement",
       "check_record_environment"
     ],
-    "gates": 73,
+    "gates": 74,
     "manual_dispatch_only": 12,
-    "named_in_workflow": 66,
-    "producers": 71,
+    "named_in_workflow": 67,
+    "producers": 72,
     "producers_without_gate": 25,
-    "run_on_every_pull_request": 54,
-    "same_stem_pairs": 46
+    "run_on_every_pull_request": 55,
+    "same_stem_pairs": 47
   },
   "records": {
     "annotated_records": [
@@ -206,8 +208,8 @@
         "modules": 10
       },
       "backends": {
-        "lines": 1911,
-        "modules": 9
+        "lines": 2046,
+        "modules": 10
       },
       "bridges": {
         "lines": 687,
@@ -226,8 +228,8 @@
         "modules": 15
       },
       "measurement": {
-        "lines": 5263,
-        "modules": 16
+        "lines": 5456,
+        "modules": 17
       },
       "models": {
         "lines": 2739,
@@ -238,17 +240,17 @@
         "modules": 3
       },
       "subspace": {
-        "lines": 14729,
-        "modules": 45
+        "lines": 14885,
+        "modules": 46
       },
       "surface": {
         "lines": 38,
         "modules": 1
       }
     },
-    "package_lines": 32480,
-    "package_modules": 123,
-    "test_lines": 41845,
-    "test_modules": 177
+    "package_lines": 32964,
+    "package_modules": 126,
+    "test_lines": 42118,
+    "test_modules": 178
   }
 }
