@@ -65,3 +65,8 @@ still require explicit `reference_mode="legacy_mv"`. Step 3 must add the action
 consumer, owned-memory admission, root recovery, spin diagnostics and full-action
 residuals. Step 5 must add an actual sampled consumer and independent pilot and
 evaluation observations; an exact oracle is not a sampled implementation.
+
+Subsequent work is now tracked separately: the [sector consumer](SECTOR_ACTIONS.md)
+implements Step 3 on its declared scope, and the [sampled consumer and experiment](SAMPLED_RATIO.md)
+complete Step 5 on three spin inputs. The Step 5 cost target failed. The
+first-PR compatibility results above remain the original implementation record.

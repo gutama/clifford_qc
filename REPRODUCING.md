@@ -632,7 +632,7 @@ frame-coordinate comparison above still fails its joint criterion.
 ```bash
 python -m venv .venv && source .venv/bin/activate
 pip install -e .[test,research,stim]       # automatic CI extras
-pytest                                      # 4328 passed, 12 skipped (expected if green)
+pytest                                      # 4343 passed, 12 skipped (expected if green)
 ```
 
 This is the automatic CI dependency set; record gates additionally pin NumPy
@@ -5789,3 +5789,28 @@ Reuse cuts H calls 10,841 to 1,301 but raises setup-plus-solver time 27.9 to
 35.8 s. Selected CI takes 6.86 s at this budget. Counts and timing therefore
 answer different resource questions. No general scaling, molecular accuracy,
 physical shots or quantum advantage claim follows; defaults are unchanged.
+
+## Restart Step 5 sampled ratio experiment
+
+The [declaration](docs/restart/sampled_ratio_declaration.json) fixes three spin
+inputs, independent pilot/evaluation streams, budgets, failure rules and cost
+scope. [The contract](docs/restart/SAMPLED_RATIO.md) explains the finite-sample
+joint rectangle and the matched frozen-direction complete-bank comparator.
+The observed record is `docs/restart/sampled_ratio_results.json`. It preserves
+all attempts, including unresolved denominators, in unconditional success rates.
+
+```bash
+python benchmarks/run_sampled_ratio.py --validate
+python benchmarks/check_sampled_ratio.py
+python benchmarks/run_sampled_ratio.py --check docs/restart/sampled_ratio_results.json
+```
+
+The first command builds/admits inputs without drawing outcomes. The short
+checker validates chronology, every replica and aggregate, shot/device/classical
+costs and the frozen verdict. Full replay explicitly redraws all seeds and
+compares scientific outputs; timings, RSS and execution provenance are advisory.
+For a new authorized execution into a nonexistent output path after committing
+the declaration, use `python benchmarks/run_sampled_ratio.py --execute --output PATH`.
+Existing results are never overwritten by the runner. This is ideal joint-shot
+simulation and illustrative device pricing, with exact assessment separated
+from inference; it makes no hardware or general quantum advantage claim.

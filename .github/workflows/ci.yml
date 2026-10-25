@@ -46,6 +46,10 @@ jobs:
       - run: ruff check clifford_qc molecular tests benchmarks
       - run: python -m pytest --hypothesis-profile=ci
 
+      - name: restart sampled ratio evidence
+        if: ${{ !cancelled() }}
+        run: python benchmarks/check_sampled_ratio.py
+
       # One step per gate so the Actions view names the failure, and each runs
       # even after an earlier one fails: a drift suite that stops at the first
       # mismatch reports one symptom of what is usually a shared cause.

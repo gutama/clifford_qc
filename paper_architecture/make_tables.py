@@ -119,7 +119,7 @@ KERNEL_MODULES = (
     "matrix.py", "selection.py",
 )
 IR_MODULES = ("ir.py", "qasm3.py", "fermion_mapping.py", "pool_operator.py")
-REFERENCE_MODULES = ("reference_states.py",)
+REFERENCE_MODULES = ("reference_states.py", "sampled_reference.py")
 EVIDENCE_MODULES = ("verify.py", "reproducibility.py", "record_environment.py",
                     "capabilities.py", "evidence.py")
 ORCHESTRATION_MODULES = ("workflows.py", "prepared.py", "pipeline.py")
@@ -186,6 +186,11 @@ GATE_CLASSES: tuple[tuple[str, str, tuple[str, ...]], ...] = (
         "Observed resource equivalence",
         "derives accounting and equivalence from isolated cells; optionally rebuilds final pencils",
         ("check_bank_policy_matrix",),
+    ),
+    (
+        "Sampled inference accounting",
+        "checks committed declaration/execution bindings, every observed attempt, physical costs and unconditional target attainment; full shot replay is explicit",
+        ("check_sampled_ratio",),
     ),
     (
         "Value-rebuilt",

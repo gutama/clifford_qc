@@ -143,8 +143,9 @@ These are numerical regressions, not a matched-accuracy performance campaign,
 RSS advantage or quantum-advantage result. The archived packet/Davidson evidence
 and negative conclusions are not rewritten. Wider benchmarks, optimized external
 selected-CI comparisons and optional PRIMME integration remain outside this
-bounded validation. Step 5 still needs an actual sampled consumer and an
-independently declared pilot/evaluation ratio experiment.
+bounded validation. The subsequent [Step 5 sampled consumer and declared
+pilot/evaluation ratio experiment](SAMPLED_RATIO.md) are complete on their
+three-input spin scope; their 20% cost-improvement criterion failed.
 
 ```bash
 OMP_NUM_THREADS=1 OPENBLAS_NUM_THREADS=1 MKL_NUM_THREADS=1 \
