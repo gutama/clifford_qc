@@ -279,6 +279,39 @@ def entry_functionals(bank: MatrixElementBank, i: int, j: int, *, storage="objec
                  for kind in ("overlap", "element"))
 
 
+def quadratic_functional(bank: MatrixElementBank, indices: Sequence[int],
+                         coefficients: np.ndarray, kind: str, *,
+                         storage="object") -> WordFunctional:
+    """Compile ``c† O c`` directly from row iterators, including packed rows.
+
+    Only the final aggregate is retained. No reference expectation, density,
+    row dictionary, or numerical projected matrix is needed.
+    """
+    if kind not in ("overlap", "element"):
+        raise ValueError("kind must be overlap or element")
+    if storage not in ("object", "packed"):
+        raise ValueError("coefficient storage must be object or packed")
+    order = bank.resolve(indices)
+    coefficients = np.asarray(coefficients, dtype=complex)
+    if coefficients.shape != (len(order),) or not np.isfinite(coefficients).all():
+        raise ValueError("coefficients must be a finite vector matching indices")
+    out: dict[int, float] = {}
+    constant = 0.0
+    for a, i in enumerate(order):
+        for b, j in enumerate(order[a:], start=a):
+            weight = np.conjugate(coefficients[a]) * coefficients[b]
+            if weight == 0:
+                continue
+            for code, value in bank.iter_operator_terms(kind, i, j):
+                contribution = float((weight * value).real) * (1 if a == b else 2)
+                if code == IDENTITY_CODE:
+                    constant += contribution
+                else:
+                    out[code] = out.get(code, 0.0) + contribution
+    out = {k: v for k, v in out.items() if v != 0.0}
+    return WordFunctional(PackedCoefficients(out) if storage == "packed" else out, constant)
+
+
 def ritz_functional(bank: MatrixElementBank, indices: Sequence[int],
                     coefficients: np.ndarray, energy: float) -> WordFunctional:
     """Word coefficients of ``B'(H - E)B`` with ``B = sum_i c_i A_i`` (§4B).
@@ -307,15 +340,10 @@ def ritz_functional(bank: MatrixElementBank, indices: Sequence[int],
             weight = np.conjugate(coefficients[a]) * coefficients[b]
             if weight == 0:
                 continue
-            overlap = bank.overlap_operator(i, j).terms
-            element = bank.element_operator(i, j).terms
-            for code in set(element) | set(overlap):
-                value = (complex(element.get(code, 0.0))
-                         - energy * complex(overlap.get(code, 0.0)))
-                contribution = weight * value
-                # i == j is Hermitian on its own; i < j pairs with j > i, whose
-                # operator is the adjoint, so the two add to twice the real part.
-                add(code, contribution.real if a == b else 2.0 * contribution.real)
+            for kind, scale in (("element", 1.0), ("overlap", -energy)):
+                for code, value in bank.iter_operator_terms(kind, i, j):
+                    contribution = weight * (scale * value)
+                    add(code, contribution.real if a == b else 2.0 * contribution.real)
     return WordFunctional({k: v for k, v in out.items() if v != 0.0}, constant)
 
 
@@ -334,12 +362,9 @@ def coupling_functional(bank: MatrixElementBank, indices: Sequence[int],
         weight = np.conjugate(coefficients[a])
         if weight == 0:
             continue
-        overlap = bank.overlap_operator(i, candidate).terms
-        element = bank.element_operator(i, candidate).terms
-        for code in set(element) | set(overlap):
-            value = (complex(element.get(code, 0.0))
-                     - energy * complex(overlap.get(code, 0.0)))
-            accumulated[code] = accumulated.get(code, 0j) + weight * value
+        for kind, scale in (("element", 1.0), ("overlap", -energy)):
+            for code, value in bank.iter_operator_terms(kind, i, candidate):
+                accumulated[code] = accumulated.get(code, 0j) + weight * (scale * value)
     return split_complex_coefficients(accumulated)
 
 # Compatibility for callers that used the former module-private helper.
@@ -347,5 +372,5 @@ _split_complex = split_complex_coefficients
 
 __all__ = [
     "WordFunctional", "split_complex_coefficients", "entry_functionals",
-    "ritz_functional", "coupling_functional",
+    "ritz_functional", "coupling_functional", "quadratic_functional",
 ]

@@ -197,24 +197,38 @@ class MatrixElementBank:
     Pair products are computed lazily on first use, so a candidate that is
     scored and rejected costs only its own row -- and a candidate that is never
     scored costs nothing.
+
+    ``coefficient_only=True`` compiles operators from reference metadata alone
+    and explicitly disables numerical expectation/solve methods. The sampled
+    provider uses this mode without manufacturing an exact-reference adapter.
     """
 
     def __init__(self, rho: MV | ExactReference, hamiltonian, generators: Iterable = (), *,
                  storage: str = DEFAULT_STORAGE_BACKEND,
-                 layout: str = "interleaved"):
+                 layout: str = "interleaved", coefficient_only: bool = False):
         if storage not in STORAGE_BACKENDS:
             raise ValueError(
                 f"storage must be one of {STORAGE_BACKENDS}, got {storage!r}")
+        if type(coefficient_only) is not bool:
+            raise TypeError("coefficient_only must be a boolean")
         self._storage = storage
         self._layout = layout
         self._rho = rho
+        self._coefficient_only = coefficient_only
         self._H = as_multivector(hamiltonian)
         # Raw-MV callers keep the historical ownership and arithmetic contract.
         # The new provider route owns immutable reference/operator snapshots.
         self._exact_reference = None
         if not isinstance(rho, MV):
-            from ..reference_states import snapshot_operator, require_exact_reference
-            self._exact_reference = require_exact_reference(rho)
+            from ..reference_states import (
+                ReferenceMetadata, ReferenceState, snapshot_operator, require_exact_reference,
+            )
+            if coefficient_only:
+                if (not isinstance(rho, ReferenceState)
+                        or not isinstance(rho.metadata, ReferenceMetadata)):
+                    raise TypeError("coefficient compilation requires reference metadata")
+            else:
+                self._exact_reference = require_exact_reference(rho)
             if rho.n != rho.metadata.n:
                 raise ValueError("reference metadata and register disagree on n")
             self._reference_identity = rho.metadata.identity
@@ -225,8 +239,9 @@ class MatrixElementBank:
             raise ValueError("Hamiltonian must be Hermitian")
         if rho.n != self._H.n:
             raise ValueError("reference and Hamiltonian disagree on n")
-        self._purity = check_reference(rho)
-        self._scale = float(2 ** rho.n) if self._exact_reference is None else None
+        self._purity = None if coefficient_only else check_reference(rho)
+        self._scale = (float(2 ** rho.n)
+                       if self._exact_reference is None and not coefficient_only else None)
 
         self._generators: list[Generator] = []
         self._adjoints: list[MV] = []
@@ -306,7 +321,7 @@ class MatrixElementBank:
         gen = as_generators([generator])[0]
         if gen.n != self.n:
             raise ValueError("generator lives in a different algebra")
-        if self._exact_reference is not None:
+        if self._exact_reference is not None or self._coefficient_only:
             from ..reference_states import snapshot_operator, operator_identity
             gen = Generator(gen.label, snapshot_operator(gen.mv))
             key = operator_identity(gen.mv)
@@ -440,7 +455,8 @@ class MatrixElementBank:
         return operator.trace_pairing(self._rho)
 
     def _check_reference_identity(self):
-        if (self._exact_reference is not None
+        if ((self._exact_reference is not None or self._coefficient_only)
+                and not isinstance(self._rho, MV)
                 and self._rho.metadata.identity != self._reference_identity):
             raise ValueError("reference identity changed; construct a new provider")
 
@@ -458,6 +474,9 @@ class MatrixElementBank:
 
     def _evaluate_operator(self, operator):
         """One normalized expectation; raw MV calls retain exact legacy operations."""
+        if self._coefficient_only:
+            from ..reference_states import UnsupportedReferenceOperation
+            raise UnsupportedReferenceOperation("coefficient-only bank cannot evaluate expectations")
         if self._exact_reference is None:
             return self._scale * operator.trace_pairing(self._rho)
         self._check_reference_identity()
@@ -465,6 +484,9 @@ class MatrixElementBank:
             operator.terms.items(), row_nnz=operator.nnz()))
 
     def _evaluate_row(self, kind, key):
+        if self._coefficient_only:
+            from ..reference_states import UnsupportedReferenceOperation
+            raise UnsupportedReferenceOperation("coefficient-only bank cannot evaluate expectations")
         if self._exact_reference is None:
             return self._scale * self._row_pairing(kind, key)
         self._check_reference_identity()
@@ -506,6 +528,7 @@ class MatrixElementBank:
 
     def iter_operator_terms(self, kind: str, i: int, j: int):
         """Ordered coefficients, without creating a compatibility MV or dict."""
+        self._check_reference_identity()
         if kind not in ("overlap", "element"):
             raise ValueError("kind must be 'overlap' or 'element'")
         key = self._canonical_pair(i, j)
