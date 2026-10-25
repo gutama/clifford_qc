@@ -632,7 +632,7 @@ frame-coordinate comparison above still fails its joint criterion.
 ```bash
 python -m venv .venv && source .venv/bin/activate
 pip install -e .[test,research,stim]       # automatic CI extras
-pytest                                      # 4328 passed, 12 skipped (expected if green)
+pytest                                      # 4343 passed, 12 skipped (expected if green)
 ```
 
 This is the automatic CI dependency set; record gates additionally pin NumPy

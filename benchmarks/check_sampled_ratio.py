@@ -41,6 +41,11 @@ def check(record):
         ["git", "show", f'{record["execution_commit"]}:{DECLARATION}'], cwd=ROOT)
     if at_execution != committed:
         raise AssertionError("execution declaration differs")
+    for path, expected_digest in record["source_sha256"].items():
+        observed = subprocess.check_output(
+            ["git", "show", f'{record["execution_commit"]}:{path}'], cwd=ROOT)
+        if hashlib.sha256(observed).hexdigest() != expected_digest:
+            raise AssertionError(f"execution source binding differs: {path}")
     # After publication, declaration must precede the first committed record.
     first = git("log", "--diff-filter=A", "--format=%H", "--", RESULT).splitlines()
     if first:

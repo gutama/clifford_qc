@@ -30,6 +30,10 @@ root recovery, cached residuals, spin checks and memory admission.
 Opt-in [graph-state readouts and signed stabilizer references](docs/restart/GRAPH_READOUTS.md)
 add NumPy-only Clifford compilation and exact expectations without reference-density
 expansion. The historical elimination compiler remains the default.
+The [sampled projection and ratio workflow](docs/restart/SAMPLED_RATIO.md) now
+uses independent pilot/evaluation observations, covariance and denominator
+failure checks. Its declared three-input experiment did not meet the 20%
+matched-accuracy cost target; no benefit is promoted.
 
 ## What you can do
 

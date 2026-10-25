@@ -253,3 +253,21 @@ def test_array_admission_precedes_allocation_and_retains_all_attempts(monkeypatc
     assert all(row["status"] == "resource_failed" and row["total_shots"] == 0
                for row in result["rows"])
     assert result["verdict"]["status"] == "closed_on_declared_scope"
+
+
+@pytest.mark.parametrize("mutation", ["source", "shots", "summary", "verdict"])
+def test_published_record_checker_rejects_tampering(mutation):
+    import json
+    from benchmarks.check_sampled_ratio import check
+    from benchmarks.run_sampled_ratio import ROOT, RESULT
+    record = json.loads((ROOT/RESULT).read_text())
+    if mutation == "source":
+        record["source_sha256"]["clifford_qc/measurement/ratio.py"] = "0"*64
+    elif mutation == "shots":
+        record["rows"][0]["total_shots"] += 1
+    elif mutation == "summary":
+        record["summaries"][0]["successes"] += 1
+    else:
+        record["verdict"]["status"] = "promote_on_declared_scope"
+    with pytest.raises(AssertionError):
+        check(record)
