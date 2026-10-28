@@ -632,7 +632,7 @@ frame-coordinate comparison above still fails its joint criterion.
 ```bash
 python -m venv .venv && source .venv/bin/activate
 pip install -e .[test,research,stim]       # automatic CI extras
-pytest                                      # 4343 passed, 12 skipped (expected if green)
+pytest                                      # 4392 passed, 12 skipped (expected if green)
 ```
 
 This is the automatic CI dependency set; record gates additionally pin NumPy
@@ -5814,3 +5814,37 @@ the declaration, use `python benchmarks/run_sampled_ratio.py --execute --output 
 Existing results are never overwritten by the runner. This is ideal joint-shot
 simulation and illustrative device pricing, with exact assessment separated
 from inference; it makes no hardware or general quantum advantage claim.
+
+
+## Restart cross-domain measurement validation (28 October 2026)
+
+The separately frozen design in `docs/restart/cross_domain_ratio_declaration.json`
+adds H4 and LiH molecular cases to a TFIM control. See
+`docs/restart/CROSS_DOMAIN_RATIO.md` for physical sectors, preparation/generator
+conventions, case-specific accuracy targets, coverage, resource limits and costs.
+The prior spin-only record and negative result remain unchanged.
+
+```bash
+python benchmarks/run_cross_domain_ratio.py --validate
+python benchmarks/check_cross_domain_ratio.py
+```
+
+The short checker rebuilds molecular occupation/sign/spin assessment and checks
+all recorded attempts, metadata, confidence calculations, costs and chronology.
+It never draws experiment outcomes or applies the experiment's RSS cap to the
+current validation process. Execution uses fresh per-case workers, an exclusive
+shared-Git claim and immutable case checkpoints. The declaration/scientific
+sources must be committed before `--execute`; outcomes are committed separately.
+A published result is never overwritten. Full explicit seed replay requires the
+recorded Python/NumPy/SciPy environment and one BLAS/OpenMP thread.
+
+```bash
+OMP_NUM_THREADS=1 OPENBLAS_NUM_THREADS=1 MKL_NUM_THREADS=1 \
+python benchmarks/run_cross_domain_ratio.py --check docs/restart/cross_domain_ratio_results.json.gz
+```
+
+CI runs the short cross-domain evidence gate on every PR/main update. Its
+scientific values, limits, intervals and decisions are checked; timings, process
+RSS and execution stamps retain their disclosed environment dependence. The
+archived declaration, result, blueprint, v1 snapshot, digests and ancestry stay
+mandatory. Shared-pytest high-water RSS is not historical execution evidence.

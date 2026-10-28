@@ -271,3 +271,43 @@ def test_published_record_checker_rejects_tampering(mutation):
         record["verdict"]["status"] = "promote_on_declared_scope"
     with pytest.raises(AssertionError):
         check(record)
+
+
+def test_record_validation_ignores_current_rss_but_checks_recorded_rss(monkeypatch):
+    import json
+    from types import SimpleNamespace
+    from benchmarks import run_sampled_ratio as runner
+    from benchmarks.check_sampled_ratio import check
+
+    config = runner.load_declaration()
+    high_rss = config["process_rss_cap_bytes"] // 1024 + 1
+    monkeypatch.setattr(runner.resource, "getrusage", lambda *args: SimpleNamespace(ru_maxrss=high_rss))
+    # Validation rebuilds deterministic settings; it never executes setup or
+    # redraws the experiment merely because it is checking retained outcomes.
+    monkeypatch.setattr(runner, "setup", forbid)
+    monkeypatch.setattr(runner.JointShotSimulator, "draw", forbid)
+    record = json.loads((runner.ROOT / runner.RESULT).read_text())
+    assert check(record) == 2304
+
+    row = next(row for row in record["rows"] if row["status"] == "resolved")
+    row["process_peak_rss_bytes"] = config["process_rss_cap_bytes"] + 1
+    with pytest.raises(AssertionError, match="RSS breach"):
+        check(record)
+
+
+def test_producer_still_enforces_process_rss_before_allocation(monkeypatch):
+    from types import SimpleNamespace
+    from benchmarks import run_sampled_ratio as runner
+
+    config = runner.load_declaration()
+    high_rss = config["process_rss_cap_bytes"] // 1024 + 1
+    monkeypatch.setattr(runner.resource, "getrusage", lambda *args: SimpleNamespace(ru_maxrss=high_rss))
+    monkeypatch.setattr(runner, "build_case", forbid)
+    with pytest.raises(MemoryError, match="process RSS ceiling"):
+        runner.setup(config["cases"][0], config)
+
+    result = runner.run(config, "unit-execution", "unit-declaration")
+    expected = len(config["cases"]) * len(config["total_shot_budgets"]) * config["replicas"] * 2
+    assert len(result["rows"]) == expected
+    assert all(row["status"] == "resource_failed" and row["total_shots"] == 0
+               for row in result["rows"])

@@ -8,6 +8,8 @@ Start with the [unchanged 24 October blueprint](blueprint_2026-10-24.md),
 The [graph-readout and stabilizer-reference audit](GRAPH_READOUTS.md) supplies
 additional compiler/reference support for the
 [sampled consumer and frozen ratio experiment](SAMPLED_RATIO.md).
+The separately declared [cross-domain molecular validation](CROSS_DOMAIN_RATIO.md)
+extends the sampled workflow while preserving the original negative result.
 
 | Step | Status | Deliverable |
 | --- | --- | --- |

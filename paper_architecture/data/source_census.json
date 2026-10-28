@@ -13,6 +13,7 @@
       "check_bank_policy_matrix",
       "check_bank_storage_ledger",
       "check_clifford_hierarchy",
+      "check_cross_domain_ratio",
       "check_docs",
       "check_evidence",
       "check_exact_projection_cache",
@@ -77,7 +78,7 @@
       "Plan ledger": 1,
       "Post-hoc declaration": 6,
       "Preregistration": 13,
-      "Sampled inference accounting": 1,
+      "Sampled inference accounting": 2,
       "Value-rebuilt": 31
     },
     "dispatch_gates": [
@@ -94,13 +95,13 @@
       "check_r3d_qr3_refinement",
       "check_record_environment"
     ],
-    "gates": 74,
+    "gates": 75,
     "manual_dispatch_only": 12,
-    "named_in_workflow": 67,
-    "producers": 72,
+    "named_in_workflow": 68,
+    "producers": 73,
     "producers_without_gate": 25,
-    "run_on_every_pull_request": 55,
-    "same_stem_pairs": 47
+    "run_on_every_pull_request": 56,
+    "same_stem_pairs": 48
   },
   "records": {
     "annotated_records": [
@@ -250,7 +251,7 @@
     },
     "package_lines": 32964,
     "package_modules": 126,
-    "test_lines": 42118,
-    "test_modules": 178
+    "test_lines": 42647,
+    "test_modules": 180
   }
 }
