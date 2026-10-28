@@ -108,9 +108,56 @@ replay is explicit, requires the recorded stack and never overwrites evidence.
 The independent short checker validates chronology, accounting, units,
 physical-sector assessment, summaries and the verdict without drawing outcomes.
 
-## Status
+## Results and decision
 
-Declaration and implementation are being validated. No cross-domain outcome
-has been drawn or benefit promoted at this stage. The final result, including
-all failures and a separately derived decision, will be recorded here after
-the single authorized execution.
+All 2,304 scheduled outcomes are retained. The frozen decision is `closed_on_declared_scope`.
+Success means a resolved denominator and a point-estimation error within the input-specific target; the probability lower bounds are simultaneous across all 18 cells.
+
+| Input | Shots | Ratio successes / 128 (lower bound) | Bank successes / 128 (lower bound) | Ratio / bank unresolved denominators |
+| --- | ---: | ---: | ---: | ---: |
+| TFIM control | 16,384 | 125 (0.911) | 122 (0.876) | 0 / 0 |
+| TFIM control | 65,536 | 128 (0.955) | 128 (0.955) | 0 / 0 |
+| TFIM control | 262,144 | 128 (0.955) | 128 (0.955) | 0 / 0 |
+| H4 held out | 16,384 | 3 (0.002) | 5 (0.007) | 0 / 0 |
+| H4 held out | 65,536 | 14 (0.047) | 12 (0.037) | 0 / 0 |
+| H4 held out | 262,144 | 31 (0.146) | 29 (0.134) | 0 / 0 |
+| LiH held out | 16,384 | 9 (0.023) | 8 (0.019) | 0 / 0 |
+| LiH held out | 65,536 | 14 (0.047) | 7 (0.015) | 0 / 0 |
+| LiH held out | 262,144 | 40 (0.205) | 30 (0.140) | 0 / 0 |
+
+| Input | Cheapest qualifying ratio budget | Cheapest qualifying bank budget | Cost reduction |
+| --- | ---: | ---: | ---: |
+| TFIM control | 16384 | 65536 | 73.0% |
+| H4 held out | None | None | Unavailable |
+| LiH held out | None | None | Unavailable |
+
+The all-input 20% criterion failed. TFIM qualifies at 16,384 ratio shots versus
+65,536 bank shots, giving a 73.0% saving in the illustrative scenario. Neither
+molecular arm qualifies at any declared budget. At 262,144 shots the ratio arm
+meets 1.6 mHa in only 31/128 H4 and 40/128 LiH attempts. All attempts resolve
+the denominator; this failure concerns the estimation-accuracy target. An
+unavailable matched-success comparison supplies no evidence of a saving. No
+budget, target, cutoff or case has been changed after sampling.
+
+Errors below are conditional medians among resolved attempts at the largest declared budget. They describe three different targets and do not certify the physical ground root. Molecular values are in Ha; the TFIM control is in t.
+
+| Input | Arm | Frozen-direction estimation error | Retained-frame error | Physical-sector ground-energy error |
+| --- | --- | ---: | ---: | ---: |
+| TFIM control | ratio | 0.00377272 | 0.00374202 | 0.234856 |
+| TFIM control | bank | 0.00339973 | 0.00339534 | 0.235769 |
+| H4 held out | ratio | 0.00375554 | 0.00427553 | 0.0354816 |
+| H4 held out | bank | 0.00368131 | 0.00408308 | 0.034835 |
+| LiH held out | ratio | 0.00259597 | 0.0105038 | 0.0106782 |
+| LiH held out | bank | 0.00426231 | 0.0126359 | 0.0128103 |
+
+| Input | Observed / scheduled outcomes | Peak worker RSS (MiB) | Resource / worker failures |
+| --- | ---: | ---: | ---: |
+| TFIM control | 768 / 768 | 96.1 | 0 / 0 |
+| H4 held out | 768 / 768 | 225.9 | 0 / 0 |
+| LiH held out | 768 / 768 | 210.4 | 0 / 0 |
+
+Declaration and execution source: `84ba20719028cf9b11e29984dc526c959d04566a`. The result is published in a later commit; the checker verifies that ancestry and all source/input/history digests.
+
+Validation uses an independent occupation/sign molecular Hamiltonian and singlet projection, joint-moment covariance and ratio-interval checks, and unconditional failure denominators. Full seed replay compares scientific observations while leaving wall-time and RSS observations environment dependent.
+
+This completes the declared spin-plus-molecular integration check. It supports no hardware, eigensolver or general quantum advantage claim. The original spin-only negative result and frozen blueprint remain unchanged.
