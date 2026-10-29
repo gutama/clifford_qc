@@ -49,6 +49,9 @@ jobs:
       - name: restart sampled ratio evidence
         if: ${{ !cancelled() }}
         run: python benchmarks/check_sampled_ratio.py
+      - name: restart cross-domain measurement evidence
+        if: ${{ !cancelled() }}
+        run: python benchmarks/check_cross_domain_ratio.py
 
       # One step per gate so the Actions view names the failure, and each runs
       # even after an earlier one fails: a drift suite that stops at the first

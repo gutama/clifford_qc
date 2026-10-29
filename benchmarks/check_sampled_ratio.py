@@ -17,10 +17,29 @@ if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
 from benchmarks.run_sampled_ratio import (
-    DECLARATION, RESULT, array_admission_bound, device_seconds, digest, git,
-    load_declaration, setup, summarize, verdict,
+    DECLARATION, RESULT, array_admission_bound, build_case, device_seconds, digest, git,
+    load_declaration, summarize, verdict,
 )
 from clifford_qc.measurement.ratio import uniform_setting_plan
+from clifford_qc.sampled_reference import PreparedSampledReference
+from clifford_qc.subspace.sampled import SampledProjectedProvider
+
+
+def _validation_provider(case):
+    """Rebuild circuit structure without executing the historical experiment.
+
+    The producer's RSS admission belongs to its fresh execution process. A
+    record validator may share a process with a large test suite, so its current
+    or lifetime RSS cannot assess the recorded run. Recorded resource limits
+    remain checked below. No new outcomes are needed for circuit/cost rebuilding.
+    """
+    def refuse_samples(*args):
+        raise AssertionError("record validation must not draw new outcomes")
+
+    hamiltonian, generators, _ = build_case(case)
+    preparation = json.dumps({key: case[key] for key in ("n", "theta", "phi")}, sort_keys=True)
+    reference = PreparedSampledReference(case["n"], preparation, refuse_samples)
+    return SampledProjectedProvider(reference, hamiltonian, generators)
 
 
 def check(record):
@@ -65,7 +84,10 @@ def check(record):
             if any(r["estimate"] is not None or not r.get("failure_reason") for r in case_rows):
                 raise AssertionError("invalid failed admission accounting")
             continue
-        _, _, _, _, provider, _, admitted, _ = setup(case, config)
+        admitted = array_admission_bound(case["n"])
+        if admitted > config["owned_array_cap_bytes"]:
+            raise AssertionError("array admission model exceeds declared cap")
+        provider = _validation_provider(case)
         for row in (r for r in record["rows"] if r["case"] == case["name"]):
             budget, arm = row["budget"], row["arm"]
             bi = config["total_shot_budgets"].index(budget)

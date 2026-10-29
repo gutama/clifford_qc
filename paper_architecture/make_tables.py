@@ -190,7 +190,7 @@ GATE_CLASSES: tuple[tuple[str, str, tuple[str, ...]], ...] = (
     (
         "Sampled inference accounting",
         "checks committed declaration/execution bindings, every observed attempt, physical costs and unconditional target attainment; full shot replay is explicit",
-        ("check_sampled_ratio",),
+        ("check_sampled_ratio", "check_cross_domain_ratio"),
     ),
     (
         "Value-rebuilt",
