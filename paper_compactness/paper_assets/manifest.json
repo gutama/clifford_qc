@@ -1,0 +1,20 @@
+{
+  "figures": {
+    "support_spectrum.pdf": {
+      "asset_git_blob_sha": "7662ae6a3cfbce365d79e56c4b3a8a8a43e1a294",
+      "sources": {}
+    },
+    "yardsticks.pdf": {
+      "asset_git_blob_sha": "ea8f1e16761591924e44b7fe51bce8a23c702b0c",
+      "sources": {
+        "benchmarks/reference_results/packet_budget_convergence.json": "ad7f2523dac16e2c05d082740a4a828636d7222c94c09044f4112a24857ea0e0",
+        "paper_compactness/make_tables.py": "1fcb8f48c4181ef01fcf5a7494a3ac4e3d8721c3784cf95a208d7f29f7d4dd11"
+      }
+    }
+  },
+  "generator": {
+    "path": "paper_compactness/make_figures.py",
+    "sha256": "c6143f75a016958cd2b0a5face7a3f81852ae9903d62b23824ef136b7efbf01d"
+  },
+  "schema": "clifford_qc.compactness_figure_manifest.v1"
+}
