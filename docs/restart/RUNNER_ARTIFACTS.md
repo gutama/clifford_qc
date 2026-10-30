@@ -6,6 +6,9 @@ observations, packaged sources and independent checkers retain their formats and
 bytes. The first production consumer is CI: the shared runner invokes the
 existing checkers and records their outcomes. Full-seed checks redraw only
 frozen streams for verification; they never publish new scientific outcomes.
+The separately labelled [recorded numerical replay](REPLAY_VERIFICATION.md)
+checks every recorded scientific field with the original comparator and reports
+execution-fingerprint drift; the original strict replay remains unchanged.
 
 ## Versioned boundary
 

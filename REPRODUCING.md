@@ -632,7 +632,7 @@ frame-coordinate comparison above still fails its joint criterion.
 ```bash
 python -m venv .venv && source .venv/bin/activate
 pip install -e .[test,research,stim]       # automatic CI extras
-pytest                                      # 4469 passed, 12 skipped (expected if green)
+pytest                                      # 4483 passed, 12 skipped (expected if green)
 ```
 
 This is the automatic CI dependency set; record gates additionally pin NumPy
@@ -651,7 +651,7 @@ the remaining `12 - 6 = 6` skips are per-test and *are* collected:
 
 ```text
 collected == passed + (skipped - files dropped at collection)
-4334      == 4328   + (12      -   6)
+4489      == 4483   + (12      -   6)
 ```
 
 Both sides are computed from the tree, so a drift in either quoted number
@@ -1021,6 +1021,10 @@ The shared [runner/artifact contract](docs/restart/RUNNER_ARTIFACTS.md) and
 commands, record-local environment pins and timeout allowances are retained.
 The workflow selects commands from that registry instead of maintaining a
 second list in YAML.
+Restart verification uses the separate [recorded numerical replay contract](docs/restart/REPLAY_VERIFICATION.md):
+all recorded scientific comparisons retain their original tolerances and exact
+discrete checks; exact frozen-plan fingerprint differences are reported.
+The original strict producer replay commands remain available unchanged.
 The optional `execution-declaration` action input takes its exact Python,
 NumPy, SciPy and thread contract directly from a frozen declaration for full-seed
 replay. This preserves the cross-domain protocol's Python 3.12.14 / NumPy 2.3.5 /

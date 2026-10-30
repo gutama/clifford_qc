@@ -66,7 +66,7 @@ def load_registry(path=REGISTRY, *, root=ROOT):
         raise ValueError("empty or duplicate CI gates")
     for gate in gates:
         required = {"gate", "tier", "commands", "environment_record", "timeout", "watch"}
-        if (not required <= set(gate) or not set(gate) <= required | {"execution_declaration", "inputs", "manual_only", "max_output_bytes"}
+        if (not required <= set(gate) or not set(gate) <= required | {"execution_declaration", "inputs", "manual_only", "max_output_bytes", "artifacts"}
                 or not re.fullmatch(r"[a-z][a-z0-9_]*", gate["gate"])
                 or gate["tier"] not in TIERS or type(gate["timeout"]) is not int
                 or not 1 <= gate["timeout"] <= 350 or not gate["commands"]
@@ -82,9 +82,12 @@ def load_registry(path=REGISTRY, *, root=ROOT):
         if (type(gate.get("manual_only", False)) is not bool
                 or type(gate.get("max_output_bytes", 16 * 2**20)) is not int
                 or not 0 < gate.get("max_output_bytes", 16 * 2**20) <= 64 * 2**20
-                or not isinstance(gate.get("inputs", []), list)):
+                or not isinstance(gate.get("inputs", []), list)
+                or not isinstance(gate.get("artifacts", []), list)):
             raise ValueError("invalid gate execution limits")
         for relative in gate.get("inputs", []):
+            local_path(root, relative)
+        for relative in gate.get('artifacts', []):
             local_path(root, relative)
         record = local_path(root, "benchmarks/reference_results/" + gate["environment_record"])
         if not record.is_file():
@@ -265,6 +268,7 @@ def plan(event, payload, *, gates=None, root=ROOT):
                 continue
             job_minutes = min(g['timeout'] + 15, 350)
             rows.append({'gate': g['gate'], 'timeout': job_minutes,
+                         'verification_mode': 'recorded numerical replay' if g['gate'].startswith('replay_') else 'legacy sampled replay',
                          'job_timeout_seconds': job_minutes * 60,
                          'execution_declaration': g.get('execution_declaration', ''),
                          'environment_record': g['environment_record']})
@@ -276,7 +280,8 @@ def plan(event, payload, *, gates=None, root=ROOT):
 def execute(gates, *, output, root=ROOT):
     tasks = tuple(Task(g["gate"] + (f"_{i}" if len(g["commands"]) > 1 else ""),
                        (sys.executable, *command), g["timeout"] * 60,
-                       max_output_bytes=g.get("max_output_bytes", 16 * 2**20))
+                       max_output_bytes=g.get("max_output_bytes", 16 * 2**20),
+                       artifacts=tuple(g.get('artifacts', ())))
                   for g in gates for i, command in enumerate(g["commands"]))
     if 'CI_JOB_STARTED_EPOCH' in os.environ:
         deadline = float(os.environ['CI_JOB_STARTED_EPOCH']) + float(os.environ['CI_JOB_TIMEOUT_SECONDS']) - 180

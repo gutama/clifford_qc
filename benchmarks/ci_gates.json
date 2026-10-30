@@ -1376,11 +1376,16 @@
       ]
     },
     {
+      "artifacts": [
+        ".ci-receipts/replay_sampled_ratio/verification.json"
+      ],
       "commands": [
         [
-          "benchmarks/run_sampled_ratio.py",
-          "--check",
-          "docs/restart/sampled_ratio_results.json"
+          "benchmarks/replay_verification.py",
+          "--campaign",
+          "sampled_ratio",
+          "--output",
+          ".ci-receipts/replay_sampled_ratio/verification.json"
         ]
       ],
       "environment_record": "protocol_cost.json",
@@ -1399,11 +1404,16 @@
       ]
     },
     {
+      "artifacts": [
+        ".ci-receipts/replay_cross_domain_ratio/verification.json"
+      ],
       "commands": [
         [
-          "benchmarks/run_cross_domain_ratio.py",
-          "--check",
-          "docs/restart/cross_domain_ratio_results.json.gz"
+          "benchmarks/replay_verification.py",
+          "--campaign",
+          "cross_domain_ratio",
+          "--output",
+          ".ci-receipts/replay_cross_domain_ratio/verification.json"
         ]
       ],
       "environment_record": "protocol_cost.json",

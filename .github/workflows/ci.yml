@@ -100,7 +100,7 @@ jobs:
   sampled-records:
     needs: plan
     if: needs.plan.outputs.has_sampled == 'true'
-    name: ${{ matrix.gate }} (sampled replay)
+    name: ${{ matrix.gate }} (${{ matrix.verification_mode }})
     runs-on: ubuntu-latest
     timeout-minutes: ${{ matrix.timeout }}
     env:
