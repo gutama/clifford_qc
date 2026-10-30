@@ -1,14 +1,14 @@
 {
   "figures": {
     "support_spectrum.pdf": {
-      "asset_git_blob_sha": "7662ae6a3cfbce365d79e56c4b3a8a8a43e1a294",
+      "asset_git_blob_sha": "2c5e6bf23824b1ae7e5038faf50af255cff96bd6",
       "sources": {}
     },
     "yardsticks.pdf": {
-      "asset_git_blob_sha": "ea8f1e16761591924e44b7fe51bce8a23c702b0c",
+      "asset_git_blob_sha": "6d83d22b0dc6919424a9922dd7601f60996ffbbc",
       "sources": {
         "benchmarks/reference_results/packet_budget_convergence.json": "ad7f2523dac16e2c05d082740a4a828636d7222c94c09044f4112a24857ea0e0",
-        "paper_compactness/make_tables.py": "1fcb8f48c4181ef01fcf5a7494a3ac4e3d8721c3784cf95a208d7f29f7d4dd11"
+        "paper_compactness/make_tables.py": "9d5a06c27059c4bdf9ff9a9ae8e56d131c3e5534e36de8c9421c2ba507e778d5"
       }
     }
   },

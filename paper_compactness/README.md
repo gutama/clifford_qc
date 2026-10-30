@@ -18,19 +18,23 @@ Davidson correction.
 
 The subject is the declared column-budget comparison
 ([declaration](../benchmarks/PACKET_BUDGET_CONVERGENCE_DECLARATION.md),
-[report](../benchmarks/results/packet_budget_convergence.md)). Under its
-declared column rule, packets add no compactness over selected CI. Davidson
-leads in columns and actions wherever it reaches the ground state, and never in
-support. On the primary lattice it stops on an excited singlet. A ledger of the
-separately declared engineering campaigns on the packet arm shows that exact
-speed-ups changed time, memory or work but never the column verdict.
+[report](../benchmarks/results/packet_budget_convergence.md)). Packets fail its
+conjunctive column-margin criterion across all decisive inputs,
+even though they save columns at several shared thresholds. This is not an
+equivalence test or a claim that packets never help. At thresholds reached by
+multiple rules, Davidson leads in columns and actions when it reaches them,
+and never in support. On the primary lattice it stops on an excited singlet.
+A ledger of the
+separately declared engineering campaigns distinguishes trajectory-preserving
+changes from heuristic screening, which can change the first-hit column count.
+Cache equivalence is limited to the budgets actually tested.
 
 Everything is exact classical computation on explicit sector vectors of at most
 4,900 determinants. The paper measures no matrix element on a device, compares
 against no optimized selected CI, and makes no scaling or quantum-advantage
-claim. Its discussion names the cost model under which packets could still
-matter, one that prices bounded column support, and explains why these
-simulations cannot test it.
+claim. The discussion treats a measured setting as a future hypothesis requiring
+an end-to-end cost model; bounded support alone does not guarantee cheap
+preparation or measurement.
 
 ## Files
 
@@ -48,6 +52,11 @@ simulations cannot test it.
 - `make_start_weights.py` — writes `data/start_weights.json`, the ground-state
   weight of the shared start span on each input. It uses the independent
   checker's own functions and binds the Git blob of the record it read.
+- `tables/storage.tex` — post-observation audit of determinant row support,
+  total amplitude nonzeros and dense basis capacity at the tightest accuracy
+  threshold reached by all three rules on each decisive input.
+- `tables/provenance.tex` — immutable design, execution and observation commits,
+  plus record and publication-receipt blob identities.
 - `check_manuscript.py` — the gate (below). `--self-test` injects one fault of
   each kind and fails unless every one is reported.
 
@@ -76,6 +85,8 @@ Records without a path prefix live under `benchmarks/reference_results/`.
 | Columns/actions, support, leaders and readouts tables; Fig. 2 | `packet_budget_convergence.json` (content-addressed trajectories; readouts via `benchmarks/summarize_packet_budget_convergence.py`) |
 | Motivating water and 64-column numbers | `packet_work_reuse.json`, `packet_work_large.json` |
 | Engineering ledger | `packet_work_large.json`, `sparse_packet_work.json` (speed clause from `benchmarks/SPARSE_PACKET_WORK_DECLARATION.md`), `exact_projection_cache.json`, `frame_coordinate_projection.json` |
+| Amplitude-count audit | `packet_budget_convergence.json`, using both fields of each prefix's recorded support; not a new preregistered readout |
+| Immutable provenance | `packet_budget_convergence.json`, `benchmarks/provenance/packet_budget_convergence.json` |
 | Fig. 1 | Schematic; plots no record |
 
 ## What the gate enforces
@@ -93,6 +104,13 @@ Records without a path prefix live under `benchmarks/reference_results/`.
 4. `data/start_weights.json` binds a different budget record;
 5. a figure's manifest no longer matches its generator, input digests or asset;
 6. a citation, label, reference, input or table column count is broken;
-7. one of the scope statements the abstract depends on has been edited out.
+7. one of the scope statements the abstract depends on has been edited out;
+8. recorded amplitude counts violate `S <= N_epsilon <= K*S`, or the publication
+   receipt binds different record bytes or execution/declaration commits.
+
+The self-test injects six faults, including a storage table in which the
+coefficient count has been replaced by the determinant row count. Start weights
+are squared projection norms; final-state overlaps are projection norms. The
+support amplitude cutoff is not used as an error bound on either diagnostic.
 
 The gate runs in CI beside the architecture manuscript's gate.

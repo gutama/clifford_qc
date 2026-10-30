@@ -88,6 +88,10 @@ REQUIRED_PHRASES = (
     "not that it is the lowest one",
     "no hardware or quantum-advantage claim",
     "not blind data",
+    "determinant rows, not stored coefficients",
+    "not an additional preregistered readout",
+    "projection norm",
+    "not a significance test or an equivalence test",
 )
 
 
@@ -394,11 +398,16 @@ def self_test() -> int:
         make_tables.main(tables=generated)
         if not any("numbers.tex" in problem for problem in stale_fragments(edited, generated)):
             failures.append("the gate missed a value edited into a fragment")
+        storage = edited / "storage.tex"
+        storage.write_text(storage.read_text(encoding="utf-8").replace(
+            r"\ensuremath{43}", r"\ensuremath{35}", 1), encoding="utf-8")
+        if not any("storage.tex" in problem for problem in stale_fragments(edited, generated)):
+            failures.append("the gate missed amplitude counts replaced by row support")
     for failure in failures:
         print(f"FAIL: {failure}")
     if failures:
         return 1
-    print(f"self-test passed: {len(faults) + 1} injected faults reported")
+    print(f"self-test passed: {len(faults) + 2} injected faults reported")
     return 0
 
 

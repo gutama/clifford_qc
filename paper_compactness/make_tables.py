@@ -50,11 +50,14 @@ CACHE = RECORDS / "exact_projection_cache.json"
 COORD = RECORDS / "frame_coordinate_projection.json"
 SPARSE_DECLARATION = ROOT / "benchmarks" / "SPARSE_PACKET_WORK_DECLARATION.md"
 START = DATA / "start_weights.json"
+RECEIPT = ROOT / "benchmarks" / "provenance" / "packet_budget_convergence.json"
 
 TABLE_SOURCES: dict[str, tuple[Path, ...]] = {
     "inputs.tex": (BUDGET, START),
     "thresholds.tex": (BUDGET,),
     "support.tex": (BUDGET,),
+    "storage.tex": (BUDGET,),
+    "provenance.tex": (BUDGET, RECEIPT),
     "leaders.tex": (BUDGET,),
     "readouts.tex": (BUDGET,),
     "ledger.tex": (LARGE, SPARSE, CACHE, COORD),
@@ -225,6 +228,12 @@ class Budget:
                 science = self.science(name, arm)
                 _require(len(science["support"]) == len(science["trajectory"]),
                          f"{name}/{arm} support is not recorded at every prefix")
+                for row, counts in zip(science["trajectory"], science["support"]):
+                    support, nonzeros = counts
+                    _require(0 < support <= nonzeros <= row["dimension"] * support,
+                             f"{name}/{arm} amplitude counts violate S <= N <= KS")
+                    _require(support <= self.inputs[name]["sector_dimension"],
+                             f"{name}/{arm} support exceeds the determinant sector")
 
     def science(self, name: str, arm: str) -> dict:
         return self.sciences[self.workers[name, arm][0]["scientific_sha256"]]
@@ -326,10 +335,11 @@ def start_weights() -> dict[str, float]:
 
 
 def _weight(value: float) -> str:
-    """A weight below the frame's numerical floor is rounding, not a measured overlap."""
-    floor = budget().config["support_tolerance"]
-    if value < floor:
-        return _math(rf"<10^{{{round(math.log10(floor))}}}")
+    """Report a squared projection weight without an amplitude-cutoff floor.
+
+    The support tolerance is not an error bound on an eigenspace projection,
+    nor is it in squared-norm units. A small weight is not a certified zero.
+    """
     return _sci(value) if value < 1e-2 else _num(value)
 
 
@@ -386,6 +396,64 @@ def support_table() -> None:
                 cells.append(_int(point[2]) if point else "---")
             rows.append(" & ".join([ARM_LABELS[arm], *cells, _int(b.support_at_columns(name, arm, matched))]) + r" \\")
     _write("support.tex", rows)
+
+
+def storage_table() -> None:
+    """Post-observation audit at the tightest threshold all growth rules reach.
+
+    The second recorded support field is the total amplitude count, not the
+    union of determinant rows. No state is reconstructed or truncated here.
+    """
+    b = budget()
+    rows = [r"Arm & $K$ & $S$ & $N_\epsilon$ & $DK$ \\", r"\hline"]
+    for index, name in enumerate(DECISIVE):
+        shared = [t for t in b.thresholds if all(b.hit(name, arm, t) is not None for arm in RULES)]
+        _require(bool(shared), f"no shared accuracy threshold for the storage audit on {name}")
+        threshold = min(shared)
+        if index:
+            rows.append(r"\hline")
+        unit = UNIT_LABELS[b.inputs[name]["energy_unit"]]
+        rows.append(rf"\multicolumn{{5}}{{l}}{{\textit{{{_input_label(name)}}}; "
+                    rf"error $\le${_threshold(threshold)} {unit}}} \\")
+        audit = {}
+        for arm in RULES:
+            point = b.at(name, arm, threshold)
+            hit = b.hit(name, arm, threshold)
+            nonzeros = b.science(name, arm)["support"][hit][1]
+            audit[arm] = (point[0], nonzeros)
+            rows.append(" & ".join([ARM_LABELS[arm], _int(point[0]), _int(point[2]),
+                                    _int(nonzeros),
+                                    _int(b.inputs[name]["sector_dimension"] * point[0])]) + r" \\")
+        _require(all(audit["davidson"][0] < audit[arm][0]
+                     and audit["davidson"][1] > audit[arm][1]
+                     for arm in ("packets_exhaustive", "selected_ci")),
+                 f"dense capacity and amplitude-count rankings no longer differ on {name}")
+    _write("storage.tex", rows)
+
+
+def provenance_table() -> None:
+    """Pin the comparison without depending on a working Git checkout."""
+    b = budget()
+    receipt = json.loads(RECEIPT.read_text(encoding="utf-8"))
+    _require(hashlib.sha256(BUDGET.read_bytes()).hexdigest() == receipt["record_sha256"],
+             "publication receipt binds a different budget record")
+    for key in ("declaration_commit", "source_commit"):
+        _require(receipt[key] == b.record[key], f"publication receipt disagrees on {key}")
+    labels = (("base_commit", "Design baseline"),
+              ("declaration_commit", "Revised declaration"),
+              ("source_commit", "Execution source"),
+              ("observation_commit", "Observation publication"))
+    rows = []
+    for key, label in labels:
+        sha = receipt[key]
+        _require(re.fullmatch(r"[0-9a-f]{40}", sha) is not None, f"invalid provenance commit: {key}")
+        rows.extend([rf"\noindent {label}:\par",
+                     rf"{{\footnotesize\href{{https://github.com/gutama/clifford_qc/commit/{sha}}}"
+                     rf"{{\texttt{{{sha}}}}}}}\par\smallskip"])
+    for path, label in ((BUDGET, "Record Git blob"), (RECEIPT, "Receipt Git blob")):
+        rows.extend([rf"\noindent {label}:\par",
+                     rf"{{\footnotesize\texttt{{{git_blob_sha(path)}}}}}\par\smallskip"])
+    _write("provenance.tex", rows)
 
 
 def _leaders(name: str, threshold: float) -> dict[str, list[str]] | None:
@@ -867,6 +935,8 @@ def main(tables: Path | None = None) -> Path:
         inputs_table()
         thresholds_table()
         support_table()
+        storage_table()
+        provenance_table()
         leaders_table()
         readouts_table()
         ledger_table()

@@ -4,7 +4,7 @@
 \pdfoutput=1
 
 \documentclass[aps,pra,reprint,superscriptaddress,nofootinbib,floatfix,
-  showkeys]{revtex4-2}
+  showkeys,raggedbottom]{revtex4-2}
 
 \usepackage{amsmath,amssymb,bm}
 \usepackage{graphicx}
@@ -72,20 +72,22 @@ one group of configuration-state functions sharing an occupation pattern, and
 an unrestricted Davidson correction---under three yardsticks: retained columns,
 Hamiltonian actions, and determinant support. The comparison was declared
 before implementation, executed in \pkCells{} fresh processes on
-\pkInputCount{} exact classical sectors that include held-out lattice and
+\pkInputCount{} exact classical sectors with held-out lattice and
 molecular inputs, and replayed independently. Under the declared column rule,
-packets add no compactness over selected CI: the primary \pkPrimaryName{} and
+packets do not meet the prespecified compactness criterion over selected CI:
+the primary \pkPrimaryName{} and
 the held-out stretched BeH$_2$ read mixed, and only the held-out
 \pkChainName{} favours packets, at \pkChainMinActionRatio{} or more times
 selected CI's Hamiltonian actions. Davidson needs far fewer columns wherever it
 reaches the ground state, but its columns spread over almost the whole sector,
-and on the primary lattice it stopped on an excited singlet. Davidson leads in
-columns and actions and never in support; between the two bounded-support
+and on the primary lattice it stopped on an excited singlet. At shared
+thresholds it reaches, Davidson leads in columns and actions, but never in
+support; between the two bounded-support
 rules the support lead changes hands. Exact engineering that roughly halved
-the packet arm's run time left its column verdict unchanged. A compactness
-claim therefore needs a cost model declared in advance; packets could pay off
-only under one that prices bounded column support, which these exact classical
-simulations do not test.
+the packet arm's run time did not establish the missing column advantage.
+A compactness claim therefore needs a declared cost model. Bounded column
+support motivates further study, but its preparation and measurement costs
+are untested here.
 \end{abstract}
 
 \keywords{subspace diagonalization; selected configuration interaction;
@@ -140,7 +142,9 @@ larger budgets, and at what price, was open.
 
 We settled the question with a comparison declared before any of its code
 existed~\cite{nosek2018preregistration}. Its question was narrow on purpose:
-do packets need fewer columns than greedy selected CI? The answer is no. What
+do packets satisfy a prespecified column advantage over greedy selected CI
+across all decisive inputs? They do not. This is a failure to meet that
+criterion, not evidence that packets never save columns. What
 makes the outcome worth reporting is how it reads under the other two
 yardsticks. The same trajectories rank the arms differently by columns, by
 Hamiltonian actions, and by determinant support. The unrestricted Davidson
@@ -158,13 +162,14 @@ lattice and molecular inputs and independent replay
 rule, together with the rank changes across yardsticks that the rule alone
 would hide (Sec.~\ref{sec:results});
 (iv) a ledger of exact and heuristic engineering on the packet arm, which
-reduced its time, memory or work without moving its column verdict
+reduced its time, memory or work without establishing the missing column advantage
 (Sec.~\ref{sec:ledger}); and
 (v) the cost model under which packets could still matter, and why these
 simulations cannot test it (Sec.~\ref{sec:discussion}).
 
-Every calculation is an exact classical computation with explicit sector
-vectors on a small sector. Nothing here measures a matrix element on a
+Every calculation uses explicit sector vectors on a small sector. Here
+``exact classical'' means noiseless Hamiltonian calculations in floating-point
+arithmetic, not symbolic exactness. Nothing here measures a matrix element on a
 device, compares against an optimized selected CI such as heat-bath
 CI~\cite{holmes2016hci}, or claims asymptotic scaling.
 
@@ -202,12 +207,30 @@ has an amplitude larger than \pkSupportTolerance{} in magnitude---the size of
 the union of the column supports.
 
 Classically, $K$ sets the size of the projected problem and the number of
-stored vectors, $W$ dominates the run time whenever a Hamiltonian action is
-the expensive operation, and $S$ bounds the storage of a sparse representation
-of the span. In a measured setting the readings change: $K^2$ matrix elements
-must be estimated, and the support of a column, not its index, determines what
-must be prepared or sampled to estimate them. We do not test that reading. It
-is why support is reported at all.
+stored vectors; $W$ measures action calls, without equating calls of different
+sparsity or implementation cost. It excludes setup, orthogonalization,
+candidate projections, and Ritz solves. These omissions matter in the
+engineering ledger, where fewer actions need not mean less elapsed time.
+
+The footprint $S$ counts occupied determinant rows, not stored coefficients.
+For the same counting tolerance $\epsilon$, define the amplitude count
+\begin{equation}
+N_\epsilon=\sum_j\#\{i:\lvert(V_k)_{ij}\rvert>\epsilon\},
+\qquad S\le N_\epsilon\le KS.
+\label{eq:amplitude-count}
+\end{equation}
+Sparse basis storage depends on $N_\epsilon$ and index overhead; dense storage
+depends on $DK$. Neither count includes $HV_k$, frame or candidate caches.
+No truncation-error guarantee follows from the counting tolerance. The exact
+union of supports is a property of the span, whereas the thresholded $S$ and
+$N_\epsilon$ also depend on its chosen orthonormal basis.
+
+In an unstructured measured projection, as many as $O(K^2)$ Hamiltonian
+matrix entries may need estimation, together with overlaps when the basis is
+not known to be orthonormal. Circuit structure and measurement reuse can
+reduce that cost. Support alone determines neither preparation depth nor shot
+complexity. We do not test that reading; $S$ is a structural diagnostic, not
+a hardware resource estimate.
 
 \subsection{Three growth rules}
 
@@ -251,7 +274,8 @@ space. A step forms the diagonally preconditioned residual
 \qquad \sigma=\pkShift{},
 \label{eq:preconditioned}
 \end{equation}
-with the division taken entrywise, and for every group the candidate
+with the division taken entrywise and $\sigma$ in the input's energy unit,
+and for every group the candidate
 \begin{equation}
 \ket{d_g}\propto\bigl(I-V_kV_k^\dagger\bigr)F_gF_g^\dagger\ket{t_k},
 \label{eq:packet}
@@ -276,7 +300,7 @@ Read together, Eqs.~\eqref{eq:packet} and~\eqref{eq:davidson} place the rules
 on one axis. A packet is the Davidson direction confined to one group. A
 selected-CI candidate is the Davidson direction confined to one CSF, since
 $(I-V_kV_k^\dagger)\ket{f_j}\bra{f_j}t_k\rangle$ is proportional to
-$\ket{f_j}$; the only difference is that selected CI scores every CSF,
+$\ket{f_j}$ when its coefficient is nonzero; selected CI also scores every CSF,
 including those the residual does not touch. Confinement buys bounded column
 support and costs either columns or candidate actions; Davidson is the
 reference that measures how much.
@@ -312,7 +336,7 @@ integral files~\cite{knowles1989fcidump}.
 dimensions; groups count the packet groups outside the starting span. The
 budget is the column ceiling. The last column is the largest ground-space
 weight in the shared starting span, computed independently after
-observation; a value below the frame's numerical floor is rounding.}
+observation. These floating-point diagnostics do not certify exact zeros.}
 \label{tab:inputs}
 \begin{ruledtabular}
 \begin{tabular}{llrrrrlr}
@@ -345,7 +369,11 @@ $B$'s columns, counting an unreached threshold as infinitely many, and if $A$'s
 error is no larger at every frontier from \pkFrontierMinimum{} columns to the
 budget. When neither arm or both arms qualify, the readout is mixed. Packets
 add column compactness only if they are more compact than selected CI on the
-primary input and on both held-out inputs.
+primary input and on both held-out inputs. This is a conjunctive,
+deterministic decision, not a significance test or an equivalence test.
+``Mixed'' means neither rule passes the declared dominance criterion; it does
+not mean equal performance. A threshold not reached is right-censored at the
+fixed budget, rather than proved unreachable.
 
 \emph{Work.} When one arm is more compact, the readout flags every shared
 threshold at which it needs at least \pkWorkRatio{} times the other arm's
@@ -373,7 +401,9 @@ occupation-sign Hamiltonians, singlet frames and ground spaces without the
 solver's code and replays the trajectories: every candidate at every step on
 inputs of up to \pkFullReplayDimension{} determinants, and sampled steps on
 the larger ones. The record binds the declaration, execution and observation
-commits.
+commits. The declaration and its diagnostic amendment precede the
+execution source; immutable identifiers are listed in
+Appendix~\ref{app:provenance}.
 
 Reporting changes followed observation, and none touched a verdict rule. The
 early-screening readout now names the clause that fails and the sign of each
@@ -427,7 +457,7 @@ above the declared \pkCompactRatio{}. Only packets reach \pkThresholdTenth\,$t$,
 \pkPrimaryPacketsFinalError{}\,$t$ above the reference against selected CI's
 \pkPrimarySciFinalError{}\,$t$. Packets thus win every frontier and miss the
 ratio at the loosest threshold, while selected CI wins neither, so the
-readout is mixed. On stretched BeH$_2$, packets reach \pkTightTarget{} in
+readout is mixed despite the observed packet improvement. On stretched BeH$_2$, packets reach \pkTightTarget{} in
 \pkBerylliumPacketsColumnsTight{} columns against selected CI's
 \pkBerylliumSciColumnsTight{}, a ratio of \pkBerylliumColumnRatioTight{}:
 mixed again. Only on the held-out chain do packets meet the rule, needing
@@ -435,7 +465,10 @@ mixed again. Only on the held-out chain do packets meet the rule, needing
 against selected CI's \pkChainSciColumns{}, with the last threshold out of
 selected CI's reach.
 The decisive inputs therefore read mixed, packets, mixed, and the declared
-answer is that packets add no column compactness.
+answer is that packets add no column compactness under that criterion.
+They nevertheless use fewer columns at several shared thresholds. The
+negative decision concerns the prespecified margin across all decisive inputs,
+not the existence of any improvement.
 
 \begin{table*}[t]
 \caption{Declared readouts. Columns: which arm is more column-compact, packets
@@ -536,9 +569,16 @@ amplitudes near the \pkSupportTolerance{} counting threshold, because
 normalizing a small projected direction amplifies rounding. Their recorded
 counts reproduce exactly, but an independent computation of the same span can
 count a few percent differently; the checker brackets each recorded count
-between the independent counts at neighbouring thresholds. Selected-CI columns
+between independent counts at neighbouring amplitude cutoffs. These are not
+the energy thresholds used to compare accuracy. Selected-CI columns
 are exact CSFs, and the packet spans on the lattices hold no amplitudes in that
 band, so their recorded and independent counts agree exactly.
+
+The record also retains $N_\epsilon$ at every prefix.
+Appendix~\ref{app:storage} reports it at the tightest threshold all growth
+rules reach on each decisive input, so equal row footprints can be compared
+with the actual amplitude counts. These are structural counts, not measured
+memory savings: the archived solvers store dense sector vectors.
 
 \subsection{Who leads depends on the yardstick}
 
@@ -576,14 +616,20 @@ columns because no admissible direction remained: the projected
 preconditioned residual fell below the direction cutoff while the residual
 norm stood at \pkPrimaryDavidsonResidual{}, on a Ritz state
 \pkPrimaryDavidsonError{}\,$t$ above the reference with ground-space overlap
-\pkPrimaryDavidsonOverlap{}. That is a numerically converged excited singlet,
+\pkPrimaryDavidsonOverlap{}. Here overlap means the projection norm
+$\omega=\lVert P_{\mathrm{gs}}\psi\rVert$, not its square; the start-span
+weight in Table~\ref{tab:inputs} is instead
+$w_{\mathrm{start}}=\lVert V_{\mathrm{start}}^\dagger Q_{\mathrm{gs}}\rVert^2$
+in spectral norm, with $Q_{\mathrm{gs}}$ an orthonormal ground-space basis.
+That is a numerically converged excited singlet,
 and not the first one: the gap from the ground singlet to
 the next singlet is only \pkPrimaryGap{}\,$t$. The shared starting span
 carries a ground-state weight of \pkPrimaryStartWeight{} on this input. On the
-chain the weight is at rounding level (\pkChainStartWeight{}), yet Davidson
-reaches the ground state there, presumably because rounding seeds the missing
-component and the iteration amplifies it. The starting weight alone therefore
-does not predict the outcome.
+chain the computed weight is much smaller (\pkChainStartWeight{}), yet Davidson
+reaches the ground state there. Amplification of a tiny component, potentially
+seeded by rounding, is a possible explanation; the campaign did not isolate
+that mechanism. These starts do not establish an exact symmetry obstruction,
+and the starting weight alone does not predict the outcome.
 
 The declaration named only residual-tolerance stops as confinement, so the
 verdict follows the declared fallback: on the primary lattice Davidson does not
@@ -596,7 +642,7 @@ regression case, recovers the ground singlet from independent starts, and
 reports a state like this one as numerically converged with its root
 unresolved. That solver was not part of the comparison.
 
-\section{Making the losing arm cheaper}
+\section{Engineering the packet arm}
 \label{sec:ledger}
 
 Before and after the column comparison, separately declared campaigns
@@ -670,16 +716,20 @@ shortlist at steps \pkCoordinateSwapSteps{}, in every repetition, although
 the shortlist members and every selected candidate agreed. The declared
 criterion was exact ordered-shortlist equality, so the comparison failed.
 
-Two lessons follow. First, none of these changes moves $K$, and $K$ was the
-declared question. The column comparison ran with the exact caches enabled,
-so its packet columns are exactly the uncached ones. Its packet action counts
-include no action reuse; reuse would have cut them by storing a frame action
-table, which is what selected CI already does. Speeding up an arm does not
-change which arm needs fewer columns. Second,
+Two lessons follow. First, trajectory-preserving changes leave the column
+readout unchanged on their validated inputs. Shortlisting is different: it
+changes the trajectory and can move the first-hit $K$, so its accuracy readout
+must be reported separately. The column comparison ran with the exact caches
+enabled; their separate campaign found bitwise-identical trajectories within
+its tested budgets. The longer comparison was independently replayed, not
+rerun in every cache mode. Its packet action counts include no action reuse;
+reuse reduces calls by storing frame actions, as selected CI already does.
+None of these engineering campaigns establishes the missing across-input
+column advantage. Second,
 ``exact'' needs a declared meaning. Bitwise payload identity, identical
 selections, identical ordered shortlists, and identical physical rays up to a
 global phase are different criteria. Frame-coordinate projection is exact in
-arithmetic and fails the strictest of them; naming the criterion before
+arithmetic but fails ordered-shortlist equality; naming the criterion before
 measuring the speed-up is what kept a halved run time from being promoted on a
 criterion relaxed after the fact. Once the column comparison was in, the
 project closed the residual-packet line. The frame-coordinate comparison,
@@ -693,24 +743,25 @@ defaults were left unchanged.
 \subsection{Compactness needs a declared cost model}
 
 A statement that one subspace is more compact than another is a statement
-about a cost model, whether or not the model is written down. Suppose the cost
-of a run is some increasing function $C(K,W,S)$. If $C$ depends on columns
-alone, Davidson wins wherever it finds the right root, and packets are not in
-contention. If $C$ is dominated by actions, Davidson wins again, followed by
-selected CI for as long as its action table fits in memory. Only if $C$
-charges for column support does the comparison between the bounded-support
-rules become the interesting one---and there the data show packets and
-selected CI trading the lead.
+about a cost model. As a descriptive abstraction, let $C(K,W,S)$ be increasing
+in the quantities it prices; an implementation also needs amplitude counts,
+cache storage and operation costs. At shared accuracy thresholds in this
+record, a columns-only or actions-only ranking favours Davidson when it
+reaches them. It leaves the wrong-root outcome unresolved on the primary
+lattice. Among the restricted rules, packets reduce columns at several
+thresholds, usually with more actions, and the support ranking changes.
+These observations identify tradeoffs without selecting a universal winner.
 
-Packets would pay off under a model with three properties at once: columns
-are expensive, column support is expensive, and Hamiltonian actions during
-selection are cheap relative to both. A measured setting in which every
-column must be prepared and every pair of columns measured, while candidate
-scoring stays classical, is the obvious candidate. These simulations cannot
-test it: they count actions on explicit vectors and measure nothing. The
-project's plan therefore sets the condition for reopening the line as a new
-declaration whose cost model prices bounded column support, for example
-through measured matrix elements.
+A possible setting for further work would price retained columns and their
+preparation while making candidate scoring relatively cheap. That is a
+hypothesis about a new workload, not a necessary or sufficient condition for
+packet advantage. An end-to-end test would have to include classical scoring,
+state preparation, Hamiltonian and overlap estimation, shot allocation,
+conditioning, root identification, and a matched selected-CI baseline.
+Bounded support alone guarantees none of those costs. These simulations count
+actions on explicit vectors and measure nothing, so they cannot establish a
+benefit in that setting. Reopening the line requires a new declaration with
+that cost model and a new experiment.
 
 \subsection{Relation to sampled-determinant methods}
 
@@ -771,7 +822,8 @@ The toolkit source, the declarations, records, checkers and summaries of every
 campaign quoted here, and the generators and checker of this manuscript are
 versioned together in one Apache-licensed repository at
 \url{https://github.com/gutama/clifford_qc}. The manuscript sources are under
-\texttt{paper\_compactness/}, and \texttt{REPRODUCING.md} records the
+\texttt{paper\_compactness/}, Appendix~\ref{app:provenance} pins the central
+design and observations, and \texttt{REPRODUCING.md} records the
 environment each record was produced in. Rebuilding the paper requires no data
 outside that repository.
 
@@ -779,6 +831,49 @@ outside that repository.
 We thank the developers of NumPy and SciPy~\cite{harris2020numpy,
 virtanen2020scipy}, on which every calculation here runs.
 \end{acknowledgments}
+
+\appendix
+
+\section{Amplitude counts at matched accuracy}
+\label{app:storage}
+
+Table~\ref{tab:storage} supplements the row footprint with the recorded
+amplitude count. The reporting rule is the tightest declared energy threshold
+reached by all growth rules on each decisive input; it is a post-observation
+storage audit, not an additional preregistered readout. Each arm is read at
+its own first qualifying prefix. $DK$ is the dense basis capacity in complex
+amplitudes, excluding Hamiltonian actions and caches.
+At these matched accuracies Davidson's larger amplitude count coexists with
+a smaller dense basis capacity. The footprint alone therefore cannot rank
+even the basis allocations of the archived implementations.
+
+\begin{table}[h]
+\caption{Recorded basis footprint and amplitude count at matched accuracy.
+$N_\epsilon$ uses the same cutoff as $S$. These counts do not describe an
+implemented compression or the memory of the full solver.}
+\label{tab:storage}
+\begin{ruledtabular}
+\tightcolumns
+\begin{tabular}{lrrrr}
+\input{tables/storage.tex}
+\end{tabular}
+\end{ruledtabular}
+\end{table}
+
+\section{Immutable comparison provenance}
+\label{app:provenance}
+
+The following identifiers pin the repository declaration, its amendment, the
+executed sources, and the published observations. Repository preregistration
+establishes this recorded order; it is not an external registry or a blind
+trial. The diagnostic amendment followed a toy implementation test and
+preceded the campaign inputs. Later reporting changes are distinguished in
+Sec.~\ref{sec:declared}. Identifiers are generated from the record and its
+digest-bound provenance receipt.
+
+\begin{quote}
+\input{tables/provenance.tex}
+\end{quote}
 
 \bibliographystyle{apsrev4-2}
 \bibliography{references}
