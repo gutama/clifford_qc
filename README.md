@@ -507,6 +507,7 @@ rebuild gate, and expensive sampled gates require manual CI dispatch.
 | [CONVENTIONS.md](CONVENTIONS.md) | Mathematical and representation conventions |
 | [REPRODUCING.md](REPRODUCING.md) | Frozen environments, benchmark commands, and checks |
 | [Architecture paper](paper_architecture/README.md) | *clifford_qc: A Python Toolkit for Quantum Simulation* ([arXiv:2609.23059](https://arxiv.org/abs/2609.23059)); features, architecture, and evidence |
+| [Compactness paper](paper_compactness/README.md) | *How Compact Is a Compact Subspace?* (draft); the residual-packet line read through columns, Hamiltonian actions, and determinant support |
 | [CITATION.cff](CITATION.cff) | Software metadata and research citations |
 
 The repository also contains the [measurement/ADAPT manuscript](paper/README.md),

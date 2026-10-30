@@ -1,0 +1,28 @@
+{
+  "producer": "benchmarks/check_packet_budget_convergence.py (independent_data, independent_reference, start_ground_weight)",
+  "record": "benchmarks/reference_results/packet_budget_convergence.json",
+  "record_git_blob_sha": "70da4d0015b3a81b50b63ea41cb8ce9c4799f6a8",
+  "schema": "clifford_qc.paper_compactness.start_weights.v1",
+  "weights": {
+    "beh2_stretched_full": {
+      "ground_space_weight": 0.7602929791048674,
+      "start_columns": 3
+    },
+    "h2o_cas8e6o": {
+      "ground_space_weight": 0.9741865523863966,
+      "start_columns": 3
+    },
+    "hubbard_1x8_u4": {
+      "ground_space_weight": 1.6608090205812937e-14,
+      "start_columns": 3
+    },
+    "hubbard_2x3_u8": {
+      "ground_space_weight": 7.066960493336873e-06,
+      "start_columns": 3
+    },
+    "hubbard_2x4_u4": {
+      "ground_space_weight": 1.7412703490708779e-06,
+      "start_columns": 3
+    }
+  }
+}

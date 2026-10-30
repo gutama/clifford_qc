@@ -145,6 +145,14 @@ jobs:
       - name: arxiv submission package
         if: ${{ !cancelled() }}
         run: python paper_architecture/make_arxiv.py --check
+      # The compactness manuscript reads the packet campaigns' committed
+      # records and asserts the patterns its prose states, so a record that
+      # stops supporting a sentence fails here rather than in review.
+      - name: compactness manuscript
+        if: ${{ !cancelled() }}
+        run: |
+          python paper_compactness/check_manuscript.py
+          python paper_compactness/check_manuscript.py --self-test
 
   structural-records:
     name: ${{ matrix.gate }} (structural)
