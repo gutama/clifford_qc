@@ -3,8 +3,11 @@ import gzip
 import hashlib
 import json
 import os
+import subprocess
+import signal
 from pathlib import Path
 import sys
+import time
 
 import pytest
 
@@ -145,8 +148,11 @@ def test_source_change_stops_before_next_command(tmp_path):
     (tmp_path/"bound").write_text("before")
     tasks = (command("mutate", "from pathlib import Path; Path('bound').write_text('after')"),
              command("forbidden", "from pathlib import Path; Path('unexpected').touch()"))
-    with pytest.raises(ValueError, match="source changed"):
-        runner.run(tasks, root=tmp_path, destination=tmp_path/"run", sources=("bound",))
+    receipt = runner.run(tasks, root=tmp_path, destination=tmp_path/"run", sources=("bound",))
+    assert [r['status'] for r in receipt['rows']] == ['failed', 'blocked']
+    assert receipt['rows'][0]['changed_sources'] == ['bound']
+    assert receipt['summary']['failed'] == 2
+    assert (tmp_path/'run/receipt.json').is_file()
     assert not (tmp_path/"unexpected").exists()
 
 
@@ -195,3 +201,75 @@ def test_timeout_terminates_descendant_work(tmp_path):
     pid = int((tmp_path/"child").read_text())
     stat = Path(f"/proc/{pid}/stat")
     assert not stat.exists() or stat.read_text().split()[2] == "Z"
+
+
+@pytest.mark.parametrize('signum', [signal.SIGTERM, signal.SIGINT])
+def test_runner_signal_stops_detached_child_and_records_interruption(tmp_path, signum):
+    root = Path(runner.__file__).resolve().parents[1]
+    child = ("import signal,time; from pathlib import Path; "
+             "signal.signal(signal.SIGTERM, signal.SIG_IGN); "
+             "print('child running',flush=True)\n"
+             "while True:\n Path('heartbeat').write_text(str(time.monotonic())); time.sleep(.02)")
+    code = (f"import sys; sys.path.insert(0,{str(root)!r}); "
+            "from benchmarks.experiment_runner import run,Task; "
+            "from pathlib import Path; "
+            f"run((Task('child',(sys.executable,'-c',{child!r})),), "
+            f"root=Path({str(tmp_path)!r}),destination=Path({str(tmp_path/'run')!r}),sources=())")
+    proc = subprocess.Popen([sys.executable, '-c', code], cwd=tmp_path,
+                            stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+    try:
+        deadline = time.monotonic()+10
+        while not (tmp_path/'heartbeat').exists() and time.monotonic()<deadline:
+            time.sleep(.02)
+        assert (tmp_path/'heartbeat').exists()
+        proc.send_signal(signum)
+        proc.communicate(timeout=10)
+        assert proc.returncode == 128+signum
+        time.sleep(.1)
+        stamp = (tmp_path/'heartbeat').read_text()
+        time.sleep(.15)
+        assert (tmp_path/'heartbeat').read_text() == stamp
+        receipt = read_json(tmp_path/'run/checkpoint.json')
+        assert receipt['rows'][0]['status'] == 'interrupted'
+        assert receipt['rows'][0]['costs_complete'] is False
+        assert receipt['summary']['failed'] == 1
+        assert ArtifactStore(tmp_path/'run').get(receipt['rows'][0]['log'])
+    finally:
+        if proc.poll() is None:
+            proc.kill()
+            proc.wait()
+
+
+def test_global_deadline_leaves_receipt_and_blocks_unstarted_tasks(tmp_path):
+    tasks = (command('slow', 'import time;time.sleep(20)'), command('later', 'pass'))
+    result = runner.run(tasks, root=tmp_path, destination=tmp_path/'run', sources=(),
+                        deadline_epoch=time.time()+.15)
+    assert [r['status'] for r in result['rows']] == ['timed_out', 'blocked']
+    assert result['rows'][0]['effective_timeout_seconds'] < .15
+    assert result['summary'] == {'scheduled': 2, 'attempted': 1, 'passed': 0, 'failed': 2}
+    assert read_json(tmp_path/'run/receipt.json') == result
+
+
+def test_unchanged_large_source_is_hashed_only_once(tmp_path, monkeypatch):
+    path = tmp_path/'large'
+    path.write_bytes(b'x'*2**20)
+    original = Path.read_bytes
+    reads = []
+    def read(self):
+        if self == path:
+            reads.append(self)
+        return original(self)
+    monkeypatch.setattr(Path, 'read_bytes', read)
+    runner.run(tuple(command(f't{i}', 'pass') for i in range(3)), root=tmp_path,
+               destination=tmp_path/'run', sources=('large',))
+    assert len(reads) == 1
+
+
+def test_shared_metadata_preserves_explicit_historical_nonfinite_opt_in(tmp_path):
+    import math
+    from benchmarks import metadata_io
+    path = tmp_path/'historical.json'
+    path.write_text('{"variance": NaN}')
+    with pytest.raises(ValueError, match='nonfinite'):
+        metadata_io.read_json(path)
+    assert math.isnan(metadata_io.read_json(path, allow_nonfinite=True)['variance'])

@@ -23,7 +23,7 @@ from benchmarks.experiment_runner import Task, run
 
 ROOT = Path(__file__).resolve().parents[1]
 REGISTRY = ROOT / "benchmarks/ci_gates.json"
-TIERS = {"core", "structural", "sampled", "environment"}
+TIERS = {"core", "structural", "sampled"}
 TRANSPORT = {"benchmarks/experiment_runner.py", "benchmarks/experiment_artifacts.py",
              "benchmarks/ci_gates.py", "benchmarks/ci_gates.json"}
 
@@ -57,7 +57,7 @@ def load_registry(path=REGISTRY, *, root=ROOT):
         raise ValueError("empty or duplicate CI gates")
     for gate in gates:
         required = {"gate", "tier", "commands", "environment_record", "timeout", "watch"}
-        if (set(gate) not in (required, required | {"execution_declaration"})
+        if (not required <= set(gate) or not set(gate) <= required | {"execution_declaration", "inputs", "manual_only", "max_output_bytes"}
                 or not re.fullmatch(r"[a-z][a-z0-9_]*", gate["gate"])
                 or gate["tier"] not in TIERS or type(gate["timeout"]) is not int
                 or not 1 <= gate["timeout"] <= 350 or not gate["commands"]
@@ -65,6 +65,18 @@ def load_registry(path=REGISTRY, *, root=ROOT):
             raise ValueError("invalid gate contract")
         if "execution_declaration" in gate:
             execution_environment(gate["execution_declaration"], root=root)
+        if gate['gate'] == 'check_r3d_qr3_refinement':
+            frozen = read_json(local_path(root, 'benchmarks/configs/r3d_qr3_refinement.json'))
+            if (frozen['reporting_contract']['sampled_ci_is_manual_dispatch_only']
+                    and gate.get('manual_only') is not True):
+                raise ValueError('R3d frozen reporting contract requires manual dispatch')
+        if (type(gate.get("manual_only", False)) is not bool
+                or type(gate.get("max_output_bytes", 16 * 2**20)) is not int
+                or not 0 < gate.get("max_output_bytes", 16 * 2**20) <= 64 * 2**20
+                or not isinstance(gate.get("inputs", []), list)):
+            raise ValueError("invalid gate execution limits")
+        for relative in gate.get("inputs", []):
+            local_path(root, relative)
         record = local_path(root, "benchmarks/reference_results/" + gate["environment_record"])
         if not record.is_file():
             raise ValueError("missing record-local environment")
@@ -132,49 +144,78 @@ def dependencies(root, commands):
     return found
 
 
-def affected(gates, changed, *, full=False, root=ROOT):
-    """Unknown non-document paths fail closed to every campaign, including shots.
+def gate_inputs(gate, *, root=ROOT):
+    """Declared environment and non-imported byte bindings are dependencies."""
+    paths = {'benchmarks/reference_results/' + gate['environment_record']}
+    paths.update(gate.get('inputs', []))
+    if gate.get('execution_declaration'):
+        paths.add(gate['execution_declaration'])
+    # Only declarations describe live inputs. Paths mentioned in an old
+    # observation/snapshot refer to historical execution, not today's files.
+    for relative in tuple(paths):
+        if not relative.endswith('_declaration.json'):
+            continue
+        try:
+            value = read_json(local_path(root, relative))
+        except (OSError, ValueError):
+            continue
+        def strings(value):
+            if isinstance(value, str):
+                yield value
+            elif isinstance(value, dict):
+                for key, child in value.items():
+                    yield key
+                    yield from strings(child)
+            elif isinstance(value, list):
+                for child in value:
+                    yield from strings(child)
+        for candidate in strings(value):
+            if '/' not in candidate:
+                continue
+            try:
+                if local_path(root, candidate).is_file():
+                    paths.add(candidate)
+            except (OSError, ValueError):
+                pass
 
-    Shared production sources affect all campaigns. Transport and workflow
-    edits select all deterministic gates; their invariants are checked by the
-    always-running suite. Frozen scientific replay remains byte-bound to its
-    historical runner and is not rewritten by a transport change.
+    return paths
+
+
+def affected(gates, changed, *, full=False, root=ROOT):
+    """Keep the deterministic safety net; select only relevant sampled work.
+
+    Literal data reads are not a complete import graph, so every deterministic
+    gate still runs on every PR. Legacy sampled gates retain manual dispatch.
+    The two new replay gates use explicit data/environment and import closures.
     """
-    selected = {g["gate"] for g in gates if g["tier"] == "core"}
     for path in changed:
-        if (Path(path).is_absolute() or ".." in Path(path).parts or "\\" in path or not path):
-            raise ValueError("invalid changed path")
+        if Path(path).is_absolute() or '..' in Path(path).parts or '\\' in path or not path:
+            raise ValueError('invalid changed path')
     if full:
-        return [g for g in gates if g["tier"] != "environment"]
-    # Resolve the dependency graph once per selection, not once per changed
-    # path. A deleted source selects full replay so removing a helper cannot
-    # prune the very dependency edge that should select its consumers.
-    if any(path.endswith(".py") and not (Path(root)/path).is_file() for path in changed):
-        return [g for g in gates if g["tier"] != "environment"]
+        return list(gates)
+    selected = {g['gate'] for g in gates if g['tier'] in {'core', 'structural'}}
     try:
-        closures = {g["gate"]: dependencies(root, g["commands"]) for g in gates}
-    except (OSError, SyntaxError, ValueError):
-        return [g for g in gates if g["tier"] != "environment"]
+        closures = {g['gate']: dependencies(root, g['commands']) | gate_inputs(g, root=root)
+                    for g in gates}
+    except (OSError, ValueError, SyntaxError):
+        return list(gates)
     for path in changed:
-        matches = [g for g in gates if path in closures[g["gate"]]
-                   or any(fnmatch.fnmatchcase(path, p) for p in g["watch"])]
-        selected.update(g["gate"] for g in matches if g["tier"] != "environment")
-        transport = (path in TRANSPORT or path.startswith(".github/") or path == ".gitignore"
-                     or path in {"tests/test_experiment_runner.py", "tests/test_ci_gates.py"})
-        shared = (path.startswith(("clifford_qc/", "molecular/", "benchmarks/provenance/"))
-                  or path in {"pyproject.toml", "setup.cfg", "setup.py", "conftest.py",
-                              "docs/restart/blueprint_2026-10-24.md",
-                              "docs/restart/v1_evidence_snapshot.json"})
-        if transport:
-            selected.update(g["gate"] for g in gates if g["tier"] == "structural")
-        elif shared:
-            selected.update(g["gate"] for g in gates if g["tier"] in {"structural", "sampled"})
-        elif path.startswith("tests/") and not matches:
-            selected.update(g["gate"] for g in gates if g["tier"] == "structural")
-        elif not matches and not (path.endswith((".md", ".rst", ".txt"))
-                                  and not path.startswith("benchmarks/")):
-            selected.update(g["gate"] for g in gates if g["tier"] in {"structural", "sampled"})
-    return [g for g in gates if g["gate"] in selected]
+        # Test/document/example edits cannot change the sampled instrument.
+        routine = (path.startswith(('tests/', 'examples/', 'paper/', 'paper_', 'docs/'))
+                   or path.endswith(('.md', '.rst', '.txt', '.tex', '.cff'))
+                   or path in {'PHASE_STATUS.json', '.gitignore'})
+        if not path.startswith('tests/'):
+            selected.update(g['gate'] for g in gates
+                            if path in closures[g['gate']]
+                            or any(fnmatch.fnmatchcase(path, p) for p in g['watch']))
+        transport = path in TRANSPORT or path.startswith('.github/')
+        shared = (path == 'benchmarks/check_record_environment.py'
+                  or path.startswith('benchmarks/provenance/')
+                  or path in {'pyproject.toml', 'setup.cfg', 'setup.py'})
+        production = path.startswith(('clifford_qc/', 'molecular/', 'benchmarks/')) and not routine
+        if transport or shared or production and not any(path in c for c in closures.values()):
+            selected.update(g['gate'] for g in gates)
+    return [g for g in gates if g['gate'] in selected]
 
 
 def changed_paths(root, base, head):
@@ -187,47 +228,57 @@ def changed_paths(root, base, head):
 
 def plan(event, payload, *, gates=None, root=ROOT):
     gates = load_registry() if gates is None else gates
-    if event == "pull_request":
+    if event == 'pull_request':
         try:
-            paths = changed_paths(root, payload["pull_request"]["base"]["sha"],
-                                  payload["pull_request"]["head"]["sha"])
-        except (KeyError, ValueError, OSError, subprocess.CalledProcessError):
-            # Missing ancestry must spend checks, never silently skip them.
-            chosen = affected(gates, [], full=True)
-        else:
-            chosen = affected(gates, paths)
-    elif event == "push":
-        # Every main update keeps the full deterministic safety net.
-        chosen = [g for g in gates if g["tier"] in {"core", "structural"}]
-        try:
-            paths = changed_paths(root, payload["before"], payload["after"])
-            chosen += [g for g in affected(gates, paths) if g["tier"] == "sampled"]
+            paths = changed_paths(root, payload['pull_request']['base']['sha'],
+                                  payload['pull_request']['head']['sha'])
+            chosen = affected(gates, paths, root=root)
         except (KeyError, ValueError, OSError, subprocess.CalledProcessError):
             chosen = affected(gates, [], full=True)
-    elif event in {"schedule", "workflow_dispatch"}:
+    elif event == 'push':
+        try:
+            paths = changed_paths(root, payload['before'], payload['after'])
+            chosen = affected(gates, paths, root=root)
+        except (KeyError, ValueError, OSError, subprocess.CalledProcessError):
+            chosen = affected(gates, [], full=True)
+    elif event in {'schedule', 'workflow_dispatch'}:
         chosen = affected(gates, [], full=True)
     else:
-        raise ValueError("unsupported CI event")
-    result = {}
-    for tier in ("structural", "sampled"):
-        rows = [{"gate": g["gate"], "timeout": g["timeout"] + 2,
-                 "execution_declaration": g.get("execution_declaration", ""),
-                 "environment_record": g["environment_record"]} for g in chosen if g["tier"] == tier]
-        result[tier] = {"include": rows}
-        result["has_" + tier] = bool(rows)
+        raise ValueError('unsupported CI event')
+    manual = [g['gate'] for g in chosen if g.get('manual_only', False)]
+    if event != 'workflow_dispatch':
+        chosen = [g for g in chosen if not g.get('manual_only', False)]
+    result = {'manual_required': manual if event in {'pull_request', 'push'} else []}
+    for tier in ('structural', 'sampled'):
+        rows = []
+        for g in chosen:
+            if g['tier'] != tier:
+                continue
+            job_minutes = min(g['timeout'] + 15, 350)
+            rows.append({'gate': g['gate'], 'timeout': job_minutes,
+                         'job_timeout_seconds': job_minutes * 60,
+                         'execution_declaration': g.get('execution_declaration', ''),
+                         'environment_record': g['environment_record']})
+        result[tier] = {'include': rows}
+        result['has_' + tier] = bool(rows)
     return result
 
 
 def execute(gates, *, output, root=ROOT):
     tasks = tuple(Task(g["gate"] + (f"_{i}" if len(g["commands"]) > 1 else ""),
-                       (sys.executable, *command), g["timeout"] * 60)
+                       (sys.executable, *command), g["timeout"] * 60,
+                       max_output_bytes=g.get("max_output_bytes", 16 * 2**20))
                   for g in gates for i, command in enumerate(g["commands"]))
+    if 'CI_JOB_STARTED_EPOCH' in os.environ:
+        deadline = float(os.environ['CI_JOB_STARTED_EPOCH']) + float(os.environ['CI_JOB_TIMEOUT_SECONDS']) - 180
+    else:
+        deadline = None
     # Bind current tracked bytes, including evidence and helper dependencies.
     # Receipts record maintenance inputs; archived evidence identities stay in
     # their independent checkers, not inferred from this source closure.
     raw = subprocess.check_output(["git", "ls-files", "-z"], cwd=root)
     sources = tuple(p for p in raw.decode().rstrip("\0").split("\0") if p)
-    return run(tasks, root=root, destination=output, sources=sources)
+    return run(tasks, root=root, destination=output, sources=sources, deadline_epoch=deadline)
 
 
 def main(argv=None):

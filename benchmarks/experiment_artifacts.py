@@ -6,50 +6,11 @@ evidence declarations or replacements for independent numerical checkers.
 from __future__ import annotations
 
 import gzip
-import hashlib
-import json
-import os
 from pathlib import Path
-import tempfile
 
-from benchmarks.metadata_io import unique_object
-
-
-def json_bytes(value) -> bytes:
-    return (json.dumps(value, sort_keys=True, indent=2, allow_nan=False) + "\n").encode("utf-8")
-
-
-def decode_json(payload: bytes):
-    def reject(value):
-        raise ValueError(f"nonfinite JSON value: {value}")
-    value = json.loads(payload, object_pairs_hook=unique_object, parse_constant=reject)
-    # Also reject overflow such as 1e999, including in nested containers.
-    json_bytes(value)
-    return value
-
-
-def read_json(path: Path):
-    payload = Path(path).read_bytes()
-    return decode_json(gzip.decompress(payload) if str(path).endswith(".gz") else payload)
-
-
-def atomic_write(path: Path, payload: bytes, *, exclusive: bool = True) -> None:
-    """Same-directory atomic publication; exclusive writes never replace bytes."""
-    path = Path(path)
-    path.parent.mkdir(parents=True, exist_ok=True)
-    fd, temporary = tempfile.mkstemp(prefix="." + path.name, dir=path.parent)
-    try:
-        with os.fdopen(fd, "wb") as stream:
-            stream.write(payload)
-            stream.flush()
-            os.fsync(stream.fileno())
-        if exclusive:
-            os.link(temporary, path)
-        else:
-            os.replace(temporary, path)
-    finally:
-        if os.path.exists(temporary):
-            os.unlink(temporary)
+from benchmarks.metadata_io import (
+    atomic_write, byte_digest, decode_json, json_bytes, read_json,
+)
 
 
 def write_json(path: Path, value, *, exclusive: bool = True) -> None:
@@ -90,7 +51,7 @@ class ArtifactStore:
     def put(self, payload: bytes) -> dict:
         if len(payload) > self.max_object_bytes:
             raise ValueError("artifact exceeds object byte budget")
-        digest = hashlib.sha256(payload).hexdigest()
+        digest = byte_digest(payload)
         ref = {"sha256": digest, "size_bytes": len(payload)}
         try:
             atomic_write(self._path(digest), payload)
@@ -112,7 +73,7 @@ class ArtifactStore:
             payload = stream.read(size + 1)
         if len(payload) != size:
             raise ValueError("artifact size differs")
-        if hashlib.sha256(payload).hexdigest() != ref["sha256"]:
+        if byte_digest(payload) != ref["sha256"]:
             raise ValueError("artifact digest differs")
         return payload
 

@@ -13,7 +13,7 @@ frozen streams for verification; they never publish new scientific outcomes.
 positive wall-time limit, bounded log size and optional artifact paths. `run`
 freezes the ordered schedule, declared source SHA-256s, transport source hashes,
 Git commit, Python/library versions and thread settings before launching a
-command. Source and environment changes stop further execution. Callers must
+command. Source drift fails the causing task, names changed paths, and blocks remaining work while publishing a complete receipt. Callers must
 declare the complete input/source closure; CI binds every tracked input byte.
 Commands execute without a shell, in the declared repository root.
 
@@ -44,8 +44,9 @@ python -m benchmarks.experiment_runner --spec plan.json --output .ci-receipts/ex
 
 `clifford_qc.execution_receipt.v1` contains `plan`, `plan_sha256`, the ordered
 `rows` and a summary over every scheduled task. Terminal states are `passed`,
-`failed`, `timed_out`, `output_limited` and `interrupted`. A failing command does
-not suppress later commands. A required missing or oversized artifact fails
+`failed`, `timed_out`, `output_limited`, `interrupted` and `blocked`. Ordinary command failures do
+not suppress later commands; changed inputs or an exhausted job budget block
+unstarted commands explicitly in the failure denominator. A required missing or oversized artifact fails
 its task. The CLI exits nonzero if any scheduled task fails.
 
 Elapsed time, return code and observed log bytes describe transport work only.
@@ -70,12 +71,16 @@ Same-directory atomic publication rejects existing final paths. Only the live
 checkpoint is replaced; the final receipt and content-addressed objects are
 immutable. Relative artifact/source paths reject traversal and symlink escapes.
 
-Each object has a 16 MiB limit, each task defaults to a 1 MiB log prefix and
-declares at most 64 collected artifacts. Log bytes and timeout are monitored;
+The registry declares a per-gate log allowance: 16 MiB for deterministic checks
+and 64 MiB for sampled replays. The standalone Task default remains 1 MiB.
+A run admits objects up to its declared maximum log size (at least 16 MiB),
+and each task declares at most 64 collected artifacts. Log bytes and timeout are monitored;
 polling can observe a transient excess before termination. This is not an
 OS-enforced disk, memory or CPU quota. These limits bound retained payloads,
 not arbitrary resource use inside a checker. Timeout termination kills the
-process group, including descendant work. The current locking/termination
+process group, including descendant work. Main-thread SIGTERM/SIGINT handling
+also performs this cleanup, persists an interrupted row and retains partial logs.
+Uncatchable OS termination can only leave the last checkpoint. The current locking/termination
 contract requires a POSIX host, as used by CI.
 
 A kernel advisory lock prevents simultaneous writers and releases on process
@@ -92,20 +97,36 @@ This local transport identity is not a global once-only experiment authorization
 `benchmarks/ci_gates.json` is the single list of checker argv, record-local
 environment, timeout and affected paths. `benchmarks.ci_gates` validates it,
 plans matrices and executes selected commands through the shared runner.
-Routing follows transitive local Python imports as well as explicit data and
-declaration paths; deleting a source selects full replay.
+All deterministic gates retain their every-PR safety net. Replay selection
+includes transitive imports, environment records and explicit live data/declaration
+bindings. Test, example and document edits do not trigger sampled work.
+Legacy sampled instruments remain manual-only, including R3d as its frozen
+reporting contract requires. A bundled, digest-bound pre-extraction workflow
+fixture verifies inventory compatibility even in shallow clones and source archives.
 
 | Event/change | Required work |
 | --- | --- |
-| Every PR | Full pytest suite, lint and core evidence/document/manuscript gates |
-| Known affected campaign | Its structural checks and, for sampled evidence, its frozen replica replay |
-| Shared production code, archive bindings or unknown non-document source | All registered campaigns; missing ancestry also fails closed to full replay |
-| Transport/workflow edits | All deterministic gates; unchanged frozen sampled sources remain under their historical checker and replay contracts |
-| Main push | All deterministic gates plus sampled replays selected by the actual change |
-| Weekly schedule or explicit dispatch | Every registered structural/sampled gate, both restart full-seed replays and global environment consistency |
+| Every PR and main push | Full pytest/lint, all deterministic gates and global environment consistency |
+| Affected restart source/data or runner/CI edits | Both applicable restart full-seed verification paths; runtime setup is exercised before merge |
+| Legacy sampled source/data changes | Report affected manual-only replay names; never silently run the frozen instrument automatically |
+| Weekly schedule | All deterministic gates and the restart full-seed verifications |
+| Explicit dispatch | All registered gates, including legacy manual-only sampled instruments |
 
-Full registered archival replay is scheduled for Sunday 09:17 Asia/Jakarta.
-It checks existing evidence, never launches a new `--execute` campaign.
+Weekly verification is scheduled for Sunday 09:17 Asia/Jakarta. It never
+launches a new `--execute` campaign. Each main push has a unique concurrency
+identity, so later pushes cannot cancel or displace its replay obligations.
+Only superseded PR runs may be cancelled.
+
+Job budgets start before checkout/setup. The runner receives the actual elapsed
+budget, limits remaining task time and reserves three minutes for finalisation
+and artifact upload. Exhausted budgets create explicit blocked rows. Jobs also
+have fifteen minutes of setup headroom, and upload steps use `always()` so
+catchable cancellation can preserve interrupted checkpoints and logs.
+Bulk input bytes are hashed once; later checks compare inode/size/mtime/ctime/mode
+and rehash changed files only. This assumes an ordinary isolated checkout, not
+an adversary able to forge filesystem metadata. Git/transport identities remain
+checked between tasks.
+
 Record-local dependency pins, full Git history and disabled matrix fail-fast
 are retained. An optional `execution_declaration` registry entry selects the
 exact runtime directly from a frozen `execution_environment` block for full-seed

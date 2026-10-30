@@ -632,7 +632,7 @@ frame-coordinate comparison above still fails its joint criterion.
 ```bash
 python -m venv .venv && source .venv/bin/activate
 pip install -e .[test,research,stim]       # automatic CI extras
-pytest                                      # 4440 passed, 12 skipped (expected if green)
+pytest                                      # 4468 passed, 12 skipped (expected if green)
 ```
 
 This is the automatic CI dependency set; record gates additionally pin NumPy
@@ -1028,30 +1028,32 @@ SciPy 1.17.0 runtime while ordinary checker jobs retain their record-local pins.
 
 | job | when | contents |
 | --- | --- | --- |
-| `test` | every PR, main push, schedule and dispatch | full pytest/lint plus core documentation, evidence and manuscript gates |
-| `structural-records` | affected PR paths; all on main, schedule and dispatch | selected deterministic record/report checks under their own record stamps |
-| `sampled-records` | affected sampled evidence/source paths; all on schedule and dispatch | existing frozen replica checkers plus full-seed restart ratio replay |
-| `environment-consistency` | schedule and dispatch | all-record environment agreement, separately from record-local validation |
+| `test` | every PR, main push, schedule and dispatch | full pytest/lint plus global environment, documentation, evidence and manuscript gates |
+| `structural-records` | every PR, main push, schedule and dispatch | the complete deterministic record/report safety net, under each record's own environment |
+| `sampled-records` | affected restart/transport/CI edits and weekly schedule | restart full-seed verification; explicit dispatch additionally runs legacy sampled instruments |
 
-Sunday 09:17 Asia/Jakarta runs full **registered** archival replay. Unknown
-non-document dependencies, shared production sources, archive bindings and
-missing Git ancestry select every campaign. Transport/workflow edits select
-all deterministic gates; their always-running invariant tests protect the
-wrapper while frozen sampled producers remain unchanged. Main retains the full
-deterministic safety net. Deleted and renamed paths are included in selection.
-Historically unregistered gates remain visible in the architecture census.
+Sunday 09:17 Asia/Jakarta runs deterministic and restart full-seed verification.
+The legacy sampled instruments remain **manual-dispatch only**, preserving
+R3d's frozen reporting contract. The planner reports affected manual work
+separately. Tests, examples, documents and PHASE_STATUS updates do not trigger
+multi-hour sampled rebuilds. All deterministic checks still run on every PR,
+so an incomplete import/literal-path graph cannot defer failures to main.
+Environment records and live literal byte bindings are explicit replay inputs.
 
-The runner preserves every task failure and continues to later tasks; both
-matrices retain `fail-fast: false`. It freezes the complete command/input plan,
-writes resumable checkpoints and immutable SHA-256 log/artifact objects, and
-uploads execution receipts for 14 days even when a gate fails. Interrupted work
-is an explicit failure, never an automatic selective retry. These maintenance
-receipts neither rewrite scientific evidence nor replace its independent
-checkers, declaration chronology or physical cost accounting.
+Push and dispatch runs have unique concurrency identities; later main pushes
+cannot cancel or displace earlier obligations. Only superseded PR runs may be
+cancelled. The runner reserves three minutes from the actual remaining job
+budget for cleanup/upload, handles SIGTERM/SIGINT by stopping detached workers,
+and writes failure summaries for interruptions, input drift and budget blocks.
+Artifact uploads use `always()` and retain receipts/logs for 14 days. Per-gate
+log limits are declared in the registry (16 MiB deterministic, 64 MiB sampled).
+Input digests are computed once and refreshed only after filesystem changes.
+Maintenance metadata parsing/publication shares `metadata_io`; frozen campaign
+serializers and source snapshots retain their historical contracts.
 
-A PR changing sampled producers, declarations or evidence must pass its matching
-replay on the exact PR commit, or name an explicit full-dispatch run against that
-commit before merge. Weekly replay supplements that requirement. Each replay
+A PR changing legacy sampled producers, declarations or evidence must name an
+explicit dispatch against its exact head before merge. Restart replay and CI
+transport changes exercise their matching restart verification automatically. Weekly replay supplements that requirement. Each replay
 uses existing evidence; the workflow never invokes a new campaign's `--execute`.
 
 ```bash
@@ -3463,7 +3465,7 @@ which is outside the experiment. It holds producer and checker to the same
 decision on random synthetic cells, and catches each tampered field with the
 check written for it. It also re-derives the committed record's statistics
 and verdict, which costs no draw, so the automatic test job guards the record
-between manual dispatches.
+between the legacy track's explicitly dispatched sampled checks.
 
 ## Phase 15 preregistration: the H² support/cost preflight (count-free)
 

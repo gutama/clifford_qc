@@ -836,11 +836,11 @@ The benchmark directory separates record generation from validation. \cqcProduce
 producers write records.  \cqcGates{} gates read them.  \cqcGatesInWorkflow{}
 are named in the continuous-integration workflow, and the distinction inside
 that number matters: \cqcGatesAutomatic{} run on every pull request,
-\cqcGatesConditional{} are selected by affected paths, and
-\cqcGatesFullReplay{} belong to scheduled or explicitly dispatched full replay.
-Affected sampled evidence also selects its replica replay; unavailable history
-selects every registered campaign.  Full replay includes the separate
-environment-consistency audit.  \cqcGatesAbsent{} exist in the repository but
+\cqcGatesConditional{} are conditional checker entries, and
+\cqcGatesFullReplay{} legacy sampled checkers require explicit dispatch.
+Restart full-seed verification runners additionally execute on affected source
+or CI changes and weekly. They preserve the legacy manual-only contracts.
+Global environment consistency runs with the every-PR checks.  \cqcGatesAbsent{} exist in the repository but
 in no workflow at all.  A shared subprocess runner preserves each command's
 failure and execution receipt.  Structural and sampled matrix jobs disable
 fail-fast, so a drift suite reports every symptom within each execution class.

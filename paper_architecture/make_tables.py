@@ -302,7 +302,7 @@ def ci_gate_policy() -> tuple[set[str], set[str], set[str]]:
                 match = re.fullmatch(r"benchmarks/(check_\w+)\.py", command[0])
                 if match:
                     groups[gate["tier"]].add(match.group(1))
-        return groups["core"], groups["structural"], groups["sampled"] | groups["environment"]
+        return groups["core"] | groups["structural"], set(), groups["sampled"] | groups["environment"]
     automatic, dispatch = _legacy_ci_gate_sets(text)
     return automatic, set(), dispatch
 

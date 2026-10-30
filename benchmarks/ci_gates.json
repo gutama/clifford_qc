@@ -8,6 +8,7 @@
       ],
       "environment_record": "protocol_cost.json",
       "gate": "check_sampled_ratio",
+      "max_output_bytes": 16777216,
       "tier": "structural",
       "timeout": 15,
       "watch": [
@@ -25,6 +26,13 @@
       ],
       "environment_record": "protocol_cost.json",
       "gate": "check_cross_domain_ratio",
+      "inputs": [
+        "docs/restart/cross_domain_ratio_declaration.json",
+        "docs/restart/sampled_ratio_declaration.json",
+        "docs/restart/sampled_ratio_results.json",
+        "benchmarks/run_sampled_ratio.py"
+      ],
+      "max_output_bytes": 16777216,
       "tier": "structural",
       "timeout": 15,
       "watch": [
@@ -43,6 +51,7 @@
       ],
       "environment_record": "protocol_cost.json",
       "gate": "check_phase_status",
+      "max_output_bytes": 16777216,
       "tier": "core",
       "timeout": 15,
       "watch": [
@@ -59,6 +68,7 @@
       ],
       "environment_record": "protocol_cost.json",
       "gate": "check_docs",
+      "max_output_bytes": 16777216,
       "tier": "core",
       "timeout": 15,
       "watch": [
@@ -75,6 +85,7 @@
       ],
       "environment_record": "protocol_cost.json",
       "gate": "check_summaries",
+      "max_output_bytes": 16777216,
       "tier": "core",
       "timeout": 15,
       "watch": [
@@ -91,6 +102,7 @@
       ],
       "environment_record": "protocol_cost.json",
       "gate": "check_evidence",
+      "max_output_bytes": 16777216,
       "tier": "core",
       "timeout": 15,
       "watch": [
@@ -107,6 +119,7 @@
       ],
       "environment_record": "protocol_cost.json",
       "gate": "check_orthogonal_active_space",
+      "max_output_bytes": 16777216,
       "tier": "structural",
       "timeout": 15,
       "watch": [
@@ -124,6 +137,7 @@
       ],
       "environment_record": "protocol_cost.json",
       "gate": "summarize_orthogonal_active_space",
+      "max_output_bytes": 16777216,
       "tier": "structural",
       "timeout": 15,
       "watch": [
@@ -140,6 +154,7 @@
       ],
       "environment_record": "protocol_cost.json",
       "gate": "check_h2o_residual_comparison",
+      "max_output_bytes": 16777216,
       "tier": "structural",
       "timeout": 15,
       "watch": [
@@ -157,6 +172,7 @@
       ],
       "environment_record": "protocol_cost.json",
       "gate": "summarize_h2o_residual_comparison",
+      "max_output_bytes": 16777216,
       "tier": "structural",
       "timeout": 15,
       "watch": [
@@ -173,6 +189,7 @@
       ],
       "environment_record": "protocol_cost.json",
       "gate": "check_packet_work_reuse",
+      "max_output_bytes": 16777216,
       "tier": "structural",
       "timeout": 15,
       "watch": [
@@ -190,6 +207,7 @@
       ],
       "environment_record": "protocol_cost.json",
       "gate": "summarize_packet_work_reuse",
+      "max_output_bytes": 16777216,
       "tier": "structural",
       "timeout": 15,
       "watch": [
@@ -206,6 +224,7 @@
       ],
       "environment_record": "protocol_cost.json",
       "gate": "check_packet_work_large",
+      "max_output_bytes": 16777216,
       "tier": "structural",
       "timeout": 15,
       "watch": [
@@ -223,6 +242,7 @@
       ],
       "environment_record": "protocol_cost.json",
       "gate": "summarize_packet_work_large",
+      "max_output_bytes": 16777216,
       "tier": "structural",
       "timeout": 15,
       "watch": [
@@ -239,6 +259,7 @@
       ],
       "environment_record": "protocol_cost.json",
       "gate": "check_sparse_packet_work",
+      "max_output_bytes": 16777216,
       "tier": "structural",
       "timeout": 15,
       "watch": [
@@ -256,6 +277,7 @@
       ],
       "environment_record": "protocol_cost.json",
       "gate": "summarize_sparse_packet_work",
+      "max_output_bytes": 16777216,
       "tier": "structural",
       "timeout": 15,
       "watch": [
@@ -272,6 +294,7 @@
       ],
       "environment_record": "protocol_cost.json",
       "gate": "check_exact_projection_cache",
+      "max_output_bytes": 16777216,
       "tier": "structural",
       "timeout": 15,
       "watch": [
@@ -289,6 +312,7 @@
       ],
       "environment_record": "protocol_cost.json",
       "gate": "summarize_exact_projection_cache",
+      "max_output_bytes": 16777216,
       "tier": "structural",
       "timeout": 15,
       "watch": [
@@ -306,6 +330,7 @@
       ],
       "environment_record": "protocol_cost.json",
       "gate": "summarize_packet_budget_convergence",
+      "max_output_bytes": 16777216,
       "tier": "structural",
       "timeout": 15,
       "watch": [
@@ -323,6 +348,7 @@
       ],
       "environment_record": "protocol_cost.json",
       "gate": "summarize_frame_coordinate_projection",
+      "max_output_bytes": 16777216,
       "tier": "structural",
       "timeout": 15,
       "watch": [
@@ -339,6 +365,7 @@
       ],
       "environment_record": "protocol_cost.json",
       "gate": "check_sparse_ga_kernel",
+      "max_output_bytes": 16777216,
       "tier": "structural",
       "timeout": 15,
       "watch": [
@@ -355,6 +382,7 @@
       ],
       "environment_record": "protocol_cost.json",
       "gate": "check_molecular",
+      "max_output_bytes": 16777216,
       "tier": "structural",
       "timeout": 15,
       "watch": [
@@ -371,6 +399,7 @@
       ],
       "environment_record": "protocol_cost.json",
       "gate": "check_krylov_width",
+      "max_output_bytes": 16777216,
       "tier": "structural",
       "timeout": 15,
       "watch": [
@@ -387,6 +416,7 @@
       ],
       "environment_record": "protocol_cost.json",
       "gate": "check_clifford_hierarchy",
+      "max_output_bytes": 16777216,
       "tier": "structural",
       "timeout": 15,
       "watch": [
@@ -403,6 +433,7 @@
       ],
       "environment_record": "protocol_cost.json",
       "gate": "check_finite_shot_optimization",
+      "max_output_bytes": 16777216,
       "tier": "structural",
       "timeout": 15,
       "watch": [
@@ -419,6 +450,7 @@
       ],
       "environment_record": "protocol_cost.json",
       "gate": "check_warm_start",
+      "max_output_bytes": 16777216,
       "tier": "structural",
       "timeout": 15,
       "watch": [
@@ -435,6 +467,7 @@
       ],
       "environment_record": "protocol_cost.json",
       "gate": "paper_architecture_check_manuscript",
+      "max_output_bytes": 16777216,
       "tier": "core",
       "timeout": 15,
       "watch": [
@@ -450,6 +483,7 @@
       ],
       "environment_record": "protocol_cost.json",
       "gate": "paper_architecture_make_arxiv",
+      "max_output_bytes": 16777216,
       "tier": "core",
       "timeout": 15,
       "watch": [
@@ -468,6 +502,7 @@
       ],
       "environment_record": "protocol_cost.json",
       "gate": "paper_compactness_check_manuscript",
+      "max_output_bytes": 16777216,
       "tier": "core",
       "timeout": 15,
       "watch": [
@@ -482,6 +517,7 @@
       ],
       "environment_record": "protocol_cost.json",
       "gate": "check_phase17_more_declaration",
+      "max_output_bytes": 16777216,
       "tier": "structural",
       "timeout": 10,
       "watch": [
@@ -498,6 +534,7 @@
       ],
       "environment_record": "protocol_cost.json",
       "gate": "check_phase17_more",
+      "max_output_bytes": 16777216,
       "tier": "structural",
       "timeout": 30,
       "watch": [
@@ -514,6 +551,7 @@
       ],
       "environment_record": "protocol_cost.json",
       "gate": "check_phase17_ceo_declaration",
+      "max_output_bytes": 16777216,
       "tier": "structural",
       "timeout": 10,
       "watch": [
@@ -530,6 +568,7 @@
       ],
       "environment_record": "protocol_cost.json",
       "gate": "check_phase17_ceo",
+      "max_output_bytes": 16777216,
       "tier": "structural",
       "timeout": 10,
       "watch": [
@@ -546,6 +585,7 @@
       ],
       "environment_record": "protocol_cost.json",
       "gate": "check_bank_policy_matrix",
+      "max_output_bytes": 16777216,
       "tier": "structural",
       "timeout": 10,
       "watch": [
@@ -562,6 +602,7 @@
       ],
       "environment_record": "frame_coordinate_projection.json",
       "gate": "check_frame_coordinate_projection",
+      "max_output_bytes": 16777216,
       "tier": "structural",
       "timeout": 15,
       "watch": [
@@ -578,6 +619,7 @@
       ],
       "environment_record": "mapping_axis.json",
       "gate": "check_mapping_axis",
+      "max_output_bytes": 16777216,
       "tier": "structural",
       "timeout": 20,
       "watch": [
@@ -594,6 +636,7 @@
       ],
       "environment_record": "protocol_axis.json",
       "gate": "check_protocol_axis",
+      "max_output_bytes": 16777216,
       "tier": "structural",
       "timeout": 20,
       "watch": [
@@ -610,6 +653,7 @@
       ],
       "environment_record": "priceability_screen.json",
       "gate": "check_priceability_screen",
+      "max_output_bytes": 16777216,
       "tier": "structural",
       "timeout": 10,
       "watch": [
@@ -626,6 +670,7 @@
       ],
       "environment_record": "priceability_screen.json",
       "gate": "check_r3_environment_migration",
+      "max_output_bytes": 16777216,
       "tier": "structural",
       "timeout": 10,
       "watch": [
@@ -642,6 +687,7 @@
       ],
       "environment_record": "priceability_screen.json",
       "gate": "check_r3b_preregistration",
+      "max_output_bytes": 16777216,
       "tier": "structural",
       "timeout": 10,
       "watch": [
@@ -658,6 +704,7 @@
       ],
       "environment_record": "r3b_margin_stop_probe.json",
       "gate": "check_r3c_preregistration",
+      "max_output_bytes": 16777216,
       "tier": "structural",
       "timeout": 10,
       "watch": [
@@ -674,6 +721,12 @@
       ],
       "environment_record": "r3c_lih_full_cost.json",
       "gate": "check_r3d_preregistration",
+      "inputs": [
+        "benchmarks/run_protocol_cost.py",
+        "benchmarks/run_exact_shot_search.py",
+        "benchmarks/configs/r3c_lih_full_cost.json"
+      ],
+      "max_output_bytes": 16777216,
       "tier": "structural",
       "timeout": 10,
       "watch": [
@@ -690,6 +743,7 @@
       ],
       "environment_record": "protocol_axis.json",
       "gate": "check_phase14b_preregistration",
+      "max_output_bytes": 16777216,
       "tier": "structural",
       "timeout": 10,
       "watch": [
@@ -706,6 +760,7 @@
       ],
       "environment_record": "priceability_screen.json",
       "gate": "check_r4a_preregistration",
+      "max_output_bytes": 16777216,
       "tier": "structural",
       "timeout": 10,
       "watch": [
@@ -722,6 +777,7 @@
       ],
       "environment_record": "protocol_axis.json",
       "gate": "check_phase16a_preregistration",
+      "max_output_bytes": 16777216,
       "tier": "structural",
       "timeout": 15,
       "watch": [
@@ -738,6 +794,7 @@
       ],
       "environment_record": "bank_storage_ledger.json",
       "gate": "check_phase15_preregistration",
+      "max_output_bytes": 16777216,
       "tier": "structural",
       "timeout": 10,
       "watch": [
@@ -754,6 +811,7 @@
       ],
       "environment_record": "second_moment_validation.json",
       "gate": "check_phase15_extrapolation_preregistration",
+      "max_output_bytes": 16777216,
       "tier": "structural",
       "timeout": 10,
       "watch": [
@@ -770,6 +828,7 @@
       ],
       "environment_record": "second_moment_validation.json",
       "gate": "check_phase15_measured_residual_preregistration",
+      "max_output_bytes": 16777216,
       "tier": "structural",
       "timeout": 10,
       "watch": [
@@ -786,6 +845,7 @@
       ],
       "environment_record": "second_moment_validation.json",
       "gate": "check_phase15_residual_successor_declaration",
+      "max_output_bytes": 16777216,
       "tier": "structural",
       "timeout": 10,
       "watch": [
@@ -802,6 +862,7 @@
       ],
       "environment_record": "phase15_residual_successor.json",
       "gate": "check_phase15_certifying_screen_declaration",
+      "max_output_bytes": 16777216,
       "tier": "structural",
       "timeout": 10,
       "watch": [
@@ -818,6 +879,7 @@
       ],
       "environment_record": "phase15_certifying_screen.json",
       "gate": "check_phase15_certifying_krylov_declaration",
+      "max_output_bytes": 16777216,
       "tier": "structural",
       "timeout": 10,
       "watch": [
@@ -834,6 +896,7 @@
       ],
       "environment_record": "phase15_residual_successor.json",
       "gate": "check_phase15_fc_residual_declaration",
+      "max_output_bytes": 16777216,
       "tier": "structural",
       "timeout": 10,
       "watch": [
@@ -850,6 +913,7 @@
       ],
       "environment_record": "phase15_h2_preflight.json",
       "gate": "check_phase15_h2_preflight",
+      "max_output_bytes": 16777216,
       "tier": "structural",
       "timeout": 20,
       "watch": [
@@ -866,6 +930,7 @@
       ],
       "environment_record": "second_moment_validation.json",
       "gate": "check_second_moment_validation",
+      "max_output_bytes": 16777216,
       "tier": "structural",
       "timeout": 25,
       "watch": [
@@ -882,6 +947,7 @@
       ],
       "environment_record": "folded_spectrum_validation.json",
       "gate": "check_folded_spectrum_validation",
+      "max_output_bytes": 16777216,
       "tier": "structural",
       "timeout": 25,
       "watch": [
@@ -898,6 +964,7 @@
       ],
       "environment_record": "phase15_variance_extrapolation.json",
       "gate": "check_phase15_variance_extrapolation",
+      "max_output_bytes": 16777216,
       "tier": "structural",
       "timeout": 25,
       "watch": [
@@ -914,6 +981,7 @@
       ],
       "environment_record": "phase15_measured_residual_preflight.json",
       "gate": "check_phase15_measured_residual_preflight",
+      "max_output_bytes": 16777216,
       "tier": "structural",
       "timeout": 25,
       "watch": [
@@ -930,6 +998,7 @@
       ],
       "environment_record": "phase15_residual_successor.json",
       "gate": "check_phase15_residual_successor",
+      "max_output_bytes": 16777216,
       "tier": "structural",
       "timeout": 25,
       "watch": [
@@ -946,6 +1015,7 @@
       ],
       "environment_record": "phase15_certifying_screen.json",
       "gate": "check_phase15_certifying_screen",
+      "max_output_bytes": 16777216,
       "tier": "structural",
       "timeout": 25,
       "watch": [
@@ -962,6 +1032,7 @@
       ],
       "environment_record": "phase15_certifying_krylov.json",
       "gate": "check_phase15_certifying_krylov",
+      "max_output_bytes": 16777216,
       "tier": "structural",
       "timeout": 15,
       "watch": [
@@ -978,6 +1049,7 @@
       ],
       "environment_record": "phase15_fc_residual.json",
       "gate": "check_phase15_fc_residual",
+      "max_output_bytes": 16777216,
       "tier": "structural",
       "timeout": 15,
       "watch": [
@@ -994,6 +1066,7 @@
       ],
       "environment_record": "protocol_cost.json",
       "gate": "check_phase19_preregistration",
+      "max_output_bytes": 16777216,
       "tier": "structural",
       "timeout": 10,
       "watch": [
@@ -1010,6 +1083,7 @@
       ],
       "environment_record": "r4a_contextual_screen.json",
       "gate": "check_r4a_contextual_screen",
+      "max_output_bytes": 16777216,
       "tier": "structural",
       "timeout": 20,
       "watch": [
@@ -1026,6 +1100,7 @@
       ],
       "environment_record": "g1_structural_preconditioner.json",
       "gate": "check_g1_structural_preconditioner",
+      "max_output_bytes": 16777216,
       "tier": "structural",
       "timeout": 15,
       "watch": [
@@ -1042,6 +1117,7 @@
       ],
       "environment_record": "bank_storage_ledger.json",
       "gate": "check_bank_storage_ledger",
+      "max_output_bytes": 16777216,
       "tier": "structural",
       "timeout": 15,
       "watch": [
@@ -1058,6 +1134,7 @@
       ],
       "environment_record": "packed_bank_storage.json",
       "gate": "check_packed_bank_storage",
+      "max_output_bytes": 16777216,
       "tier": "structural",
       "timeout": 25,
       "watch": [
@@ -1074,6 +1151,7 @@
       ],
       "environment_record": "protocol_cost.json",
       "gate": "check_packet_budget_convergence",
+      "max_output_bytes": 16777216,
       "tier": "structural",
       "timeout": 30,
       "watch": [
@@ -1090,6 +1168,8 @@
       ],
       "environment_record": "r3b_margin_stop_probe.json",
       "gate": "check_r3b_margin_stop_probe",
+      "manual_only": true,
+      "max_output_bytes": 67108864,
       "tier": "sampled",
       "timeout": 30,
       "watch": [
@@ -1106,6 +1186,8 @@
       ],
       "environment_record": "finite_shot_rethink.json",
       "gate": "check_finite_shot_rethink",
+      "manual_only": true,
+      "max_output_bytes": 67108864,
       "tier": "sampled",
       "timeout": 20,
       "watch": [
@@ -1122,6 +1204,8 @@
       ],
       "environment_record": "matched_h4.json",
       "gate": "check_matched_h4",
+      "manual_only": true,
+      "max_output_bytes": 67108864,
       "tier": "sampled",
       "timeout": 30,
       "watch": [
@@ -1138,6 +1222,8 @@
       ],
       "environment_record": "qr3b_instance_preflight.json",
       "gate": "check_qr3b_instance_preflight",
+      "manual_only": true,
+      "max_output_bytes": 67108864,
       "tier": "sampled",
       "timeout": 150,
       "watch": [
@@ -1154,6 +1240,8 @@
       ],
       "environment_record": "exact_shot_search.json",
       "gate": "check_exact_shot_search",
+      "manual_only": true,
+      "max_output_bytes": 67108864,
       "tier": "sampled",
       "timeout": 120,
       "watch": [
@@ -1170,6 +1258,8 @@
       ],
       "environment_record": "protocol_cost.json",
       "gate": "check_protocol_cost",
+      "manual_only": true,
+      "max_output_bytes": 67108864,
       "tier": "sampled",
       "timeout": 210,
       "watch": [
@@ -1186,6 +1276,8 @@
       ],
       "environment_record": "r3c_lih_full_cost.json",
       "gate": "check_r3c_lih_full_cost",
+      "manual_only": true,
+      "max_output_bytes": 67108864,
       "tier": "sampled",
       "timeout": 180,
       "watch": [
@@ -1202,6 +1294,8 @@
       ],
       "environment_record": "r3d_qr3_refinement.json",
       "gate": "check_r3d_qr3_refinement",
+      "manual_only": true,
+      "max_output_bytes": 67108864,
       "tier": "sampled",
       "timeout": 120,
       "watch": [
@@ -1218,6 +1312,8 @@
       ],
       "environment_record": "phase14b_qwc_vs_fc.json",
       "gate": "check_phase14b_qwc_vs_fc",
+      "manual_only": true,
+      "max_output_bytes": 67108864,
       "tier": "sampled",
       "timeout": 30,
       "watch": [
@@ -1234,6 +1330,8 @@
       ],
       "environment_record": "protocol_cost.json",
       "gate": "check_phase19_energy_comparison",
+      "manual_only": true,
+      "max_output_bytes": 67108864,
       "tier": "sampled",
       "timeout": 60,
       "watch": [
@@ -1250,6 +1348,8 @@
       ],
       "environment_record": "phase16a_te_qsci.json",
       "gate": "check_phase16a_te_qsci",
+      "manual_only": true,
+      "max_output_bytes": 67108864,
       "tier": "sampled",
       "timeout": 20,
       "watch": [
@@ -1266,7 +1366,8 @@
       ],
       "environment_record": "protocol_cost.json",
       "gate": "check_record_environment",
-      "tier": "environment",
+      "max_output_bytes": 16777216,
+      "tier": "core",
       "timeout": 10,
       "watch": [
         "benchmarks/*record_environment*",
@@ -1284,6 +1385,7 @@
       ],
       "environment_record": "protocol_cost.json",
       "gate": "replay_sampled_ratio",
+      "max_output_bytes": 67108864,
       "tier": "sampled",
       "timeout": 90,
       "watch": [
@@ -1302,6 +1404,13 @@
       "environment_record": "protocol_cost.json",
       "execution_declaration": "docs/restart/cross_domain_ratio_declaration.json",
       "gate": "replay_cross_domain_ratio",
+      "inputs": [
+        "docs/restart/cross_domain_ratio_declaration.json",
+        "docs/restart/sampled_ratio_declaration.json",
+        "docs/restart/sampled_ratio_results.json",
+        "benchmarks/run_sampled_ratio.py"
+      ],
+      "max_output_bytes": 67108864,
       "tier": "sampled",
       "timeout": 120,
       "watch": [

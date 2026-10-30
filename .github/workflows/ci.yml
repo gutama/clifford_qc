@@ -13,8 +13,8 @@ permissions:
   contents: read
 
 concurrency:
-  group: ${{ github.workflow }}-${{ github.event_name }}-${{ github.ref }}
-  cancel-in-progress: ${{ github.event_name != 'schedule' && github.event_name != 'workflow_dispatch' }}
+  group: ${{ github.workflow }}-${{ github.event_name }}-${{ github.event_name == 'pull_request' && github.ref || github.run_id }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 env:
   OMP_NUM_THREADS: "1"
@@ -41,8 +41,12 @@ jobs:
   test:
     name: tests, lint, and the short record gates
     runs-on: ubuntu-latest
-    timeout-minutes: 30
+    timeout-minutes: 40
+    env:
+      CI_JOB_TIMEOUT_SECONDS: "2400"
     steps:
+      - name: Start job wall-time budget
+        run: echo "CI_JOB_STARTED_EPOCH=$(date +%s)" >> "$GITHUB_ENV"
       - uses: actions/checkout@v4
         with:
           fetch-depth: 0
@@ -55,7 +59,7 @@ jobs:
         if: ${{ !cancelled() }}
         run: python -m benchmarks.ci_gates --tier core --output .ci-receipts/core
       - name: Retain execution receipts and verified logs
-        if: ${{ !cancelled() }}
+        if: ${{ always() }}
         uses: actions/upload-artifact@v4
         with:
           name: core-receipts
@@ -69,10 +73,14 @@ jobs:
     name: ${{ matrix.gate }} (structural)
     runs-on: ubuntu-latest
     timeout-minutes: ${{ matrix.timeout }}
+    env:
+      CI_JOB_TIMEOUT_SECONDS: ${{ matrix.job_timeout_seconds }}
     strategy:
       fail-fast: false
       matrix: ${{ fromJSON(needs.plan.outputs.structural) }}
     steps:
+      - name: Start job wall-time budget
+        run: echo "CI_JOB_STARTED_EPOCH=$(date +%s)" >> "$GITHUB_ENV"
       - uses: actions/checkout@v4
         with:
           fetch-depth: 0
@@ -81,7 +89,7 @@ jobs:
           reference-record: ${{ matrix.environment_record }}
           execution-declaration: ${{ matrix.execution_declaration }}
       - run: python -m benchmarks.ci_gates --gate "${{ matrix.gate }}" --output ".ci-receipts/${{ matrix.gate }}"
-      - if: ${{ !cancelled() }}
+      - if: ${{ always() }}
         uses: actions/upload-artifact@v4
         with:
           name: receipts-${{ matrix.gate }}
@@ -95,10 +103,14 @@ jobs:
     name: ${{ matrix.gate }} (sampled replay)
     runs-on: ubuntu-latest
     timeout-minutes: ${{ matrix.timeout }}
+    env:
+      CI_JOB_TIMEOUT_SECONDS: ${{ matrix.job_timeout_seconds }}
     strategy:
       fail-fast: false
       matrix: ${{ fromJSON(needs.plan.outputs.sampled) }}
     steps:
+      - name: Start job wall-time budget
+        run: echo "CI_JOB_STARTED_EPOCH=$(date +%s)" >> "$GITHUB_ENV"
       - uses: actions/checkout@v4
         with:
           fetch-depth: 0
@@ -107,28 +119,10 @@ jobs:
           reference-record: ${{ matrix.environment_record }}
           execution-declaration: ${{ matrix.execution_declaration }}
       - run: python -m benchmarks.ci_gates --gate "${{ matrix.gate }}" --output ".ci-receipts/${{ matrix.gate }}"
-      - if: ${{ !cancelled() }}
+      - if: ${{ always() }}
         uses: actions/upload-artifact@v4
         with:
           name: receipts-${{ matrix.gate }}
           path: .ci-receipts/${{ matrix.gate }}
-          retention-days: 14
-          include-hidden-files: true
-
-  environment-consistency:
-    if: github.event_name == 'workflow_dispatch' || github.event_name == 'schedule'
-    name: all records agree on one environment
-    runs-on: ubuntu-latest
-    timeout-minutes: 10
-    steps:
-      - uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
-      - run: python3 -m benchmarks.ci_gates --gate check_record_environment --output .ci-receipts/environment
-      - if: ${{ !cancelled() }}
-        uses: actions/upload-artifact@v4
-        with:
-          name: environment-receipts
-          path: .ci-receipts/environment
           retention-days: 14
           include-hidden-files: true
