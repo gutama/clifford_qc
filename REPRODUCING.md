@@ -632,7 +632,7 @@ frame-coordinate comparison above still fails its joint criterion.
 ```bash
 python -m venv .venv && source .venv/bin/activate
 pip install -e .[test,research,stim]       # automatic CI extras
-pytest                                      # 4392 passed, 12 skipped (expected if green)
+pytest                                      # 4440 passed, 12 skipped (expected if green)
 ```
 
 This is the automatic CI dependency set; record gates additionally pin NumPy
@@ -1016,28 +1016,49 @@ exists to refuse it. Deleting an entry is the last step of rebuilding its
 record, never a way to quiet the report; losing the manifest exempts nothing,
 since a manifest that cannot be read lists no records.
 
-Three cost-aware tiers run:
+The shared [runner/artifact contract](docs/restart/RUNNER_ARTIFACTS.md) and
+`benchmarks/ci_gates.json` now own the execution policy. All previous checker
+commands, record-local environment pins and timeout allowances are retained.
+The workflow selects commands from that registry instead of maintaining a
+second list in YAML.
+The optional `execution-declaration` action input takes its exact Python,
+NumPy, SciPy and thread contract directly from a frozen declaration for full-seed
+replay. This preserves the cross-domain protocol's Python 3.12.14 / NumPy 2.3.5 /
+SciPy 1.17.0 runtime while ordinary checker jobs retain their record-local pins.
 
 | job | when | contents |
 | --- | --- | --- |
-| `test` | pull request, push to `main`, manual dispatch | `ruff`, `pytest --hypothesis-profile=ci`, the architecture-manuscript gate, and the short record gates: `check_docs`, `check_phase_status`, `check_molecular`, `check_krylov_width`, `check_clifford_hierarchy`, `check_finite_shot_optimization`, `check_warm_start` |
-| `structural-records` | pull request, push to `main`, manual dispatch | deterministic rebuild and lineage gates: `check_mapping_axis`, `check_protocol_axis`, `check_priceability_screen`, `check_r3_environment_migration`, `check_r3b_preregistration`, `check_r3c_preregistration`, `check_r3d_preregistration`, `check_phase14b_preregistration`, `check_g1_structural_preconditioner`, `check_r4a_preregistration`, `check_r4a_contextual_screen`, `check_bank_storage_ledger`, `check_packed_bank_storage` |
-| `sampled-records` | manual dispatch only | replica-drawing rebuild gates, each under its own record stamp: `check_r3b_margin_stop_probe`, `check_finite_shot_rethink`, `check_matched_h4`, `check_qr3b_instance_preflight`, `check_exact_shot_search`, `check_protocol_cost`, `check_r3c_lih_full_cost`, `check_r3d_qr3_refinement`, `check_phase14b_qwc_vs_fc` |
+| `test` | every PR, main push, schedule and dispatch | full pytest/lint plus core documentation, evidence and manuscript gates |
+| `structural-records` | affected PR paths; all on main, schedule and dispatch | selected deterministic record/report checks under their own record stamps |
+| `sampled-records` | affected sampled evidence/source paths; all on schedule and dispatch | existing frozen replica checkers plus full-seed restart ratio replay |
+| `environment-consistency` | schedule and dispatch | all-record environment agreement, separately from record-local validation |
 
-The same dispatch also runs `environment-consistency`, which requires every
-stamped record to name one common environment. It is deliberately separate
-from the record-local rows: one stale record is reported without preventing the
-other gates from saying whether their own evidence reproduces.
+Sunday 09:17 Asia/Jakarta runs full **registered** archival replay. Unknown
+non-document dependencies, shared production sources, archive bindings and
+missing Git ancestry select every campaign. Transport/workflow edits select
+all deterministic gates; their always-running invariant tests protect the
+wrapper while frozen sampled producers remain unchanged. Main retains the full
+deterministic safety net. Deleted and renamed paths are included in selection.
+Historically unregistered gates remain visible in the architecture census.
 
-The split is by cost, not by importance. The exact-tier nonlinear searches
-dominate and can take from minutes to hours, so running them on every pull-request
-update would repeat the same computation for the same answer on every rebase.
-Both matrices have `fail-fast` disabled, because the set of failures is the
-diagnosis; the short gates in `test` run past each other's failures for the same
-reason. A pull request that changes a sampled producer, config, or record must
-name a manual dispatch against its exact branch head before merge. A
-structural-only preregistration is covered by the automatic jobs and does not
-spend the sampled matrix.
+The runner preserves every task failure and continues to later tasks; both
+matrices retain `fail-fast: false`. It freezes the complete command/input plan,
+writes resumable checkpoints and immutable SHA-256 log/artifact objects, and
+uploads execution receipts for 14 days even when a gate fails. Interrupted work
+is an explicit failure, never an automatic selective retry. These maintenance
+receipts neither rewrite scientific evidence nor replace its independent
+checkers, declaration chronology or physical cost accounting.
+
+A PR changing sampled producers, declarations or evidence must pass its matching
+replay on the exact PR commit, or name an explicit full-dispatch run against that
+commit before merge. Weekly replay supplements that requirement. Each replay
+uses existing evidence; the workflow never invokes a new campaign's `--execute`.
+
+```bash
+python -m benchmarks.ci_gates --plan --event workflow_dispatch
+python -m benchmarks.ci_gates --gate check_sampled_ratio --output .ci-receipts/sampled
+python -m pytest tests/test_experiment_runner.py tests/test_ci_gates.py
+```
 
 ### The python 3.12 / numpy 2.5.2 / scipy 1.18.0 migration
 

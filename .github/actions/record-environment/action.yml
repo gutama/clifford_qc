@@ -11,6 +11,13 @@ inputs:
       and verify the environment from only that record.
     required: false
     default: ""
+  execution-declaration:
+    description: >-
+      Optional frozen declaration with execution_environment. When supplied,
+      its exact Python/NumPy/SciPy/thread contract takes precedence over the
+      record-local environment, for full-seed replay only.
+    required: false
+    default: ""
 
 runs:
   using: composite
@@ -20,6 +27,7 @@ runs:
       shell: bash
       env:
         RECORD_ENV_REFERENCE: ${{ inputs.reference-record }}
+        RECORD_EXECUTION_DECLARATION: ${{ inputs.execution-declaration }}
       # The runner's own Python is enough here: the script is standard library
       # only, precisely so it can speak before anything has been installed.
       run: |
@@ -27,7 +35,11 @@ runs:
         if [[ -n "$RECORD_ENV_REFERENCE" ]]; then
           args+=(--record "$RECORD_ENV_REFERENCE")
         fi
-        version="$(python3 benchmarks/check_record_environment.py --python "${args[@]}")"
+        if [[ -n "$RECORD_EXECUTION_DECLARATION" ]]; then
+          version="$(python3 -m benchmarks.ci_gates --environment "$RECORD_EXECUTION_DECLARATION" --emit python)"
+        else
+          version="$(python3 benchmarks/check_record_environment.py --python "${args[@]}")"
+        fi
         echo "version=${version}" >> "$GITHUB_OUTPUT"
 
     - uses: actions/setup-python@v5
@@ -40,13 +52,17 @@ runs:
       shell: bash
       env:
         RECORD_ENV_REFERENCE: ${{ inputs.reference-record }}
+        RECORD_EXECUTION_DECLARATION: ${{ inputs.execution-declaration }}
       run: |
         args=()
         if [[ -n "$RECORD_ENV_REFERENCE" ]]; then
           args+=(--record "$RECORD_ENV_REFERENCE")
         fi
-        python benchmarks/check_record_environment.py --constraints "${args[@]}" \
-          > constraints.txt
+        if [[ -n "$RECORD_EXECUTION_DECLARATION" ]]; then
+          python -m benchmarks.ci_gates --environment "$RECORD_EXECUTION_DECLARATION" --emit constraints > constraints.txt
+        else
+          python benchmarks/check_record_environment.py --constraints "${args[@]}" > constraints.txt
+        fi
         cat constraints.txt
 
     - name: Install
@@ -61,9 +77,14 @@ runs:
       shell: bash
       env:
         RECORD_ENV_REFERENCE: ${{ inputs.reference-record }}
+        RECORD_EXECUTION_DECLARATION: ${{ inputs.execution-declaration }}
       run: |
         args=()
         if [[ -n "$RECORD_ENV_REFERENCE" ]]; then
           args+=(--record "$RECORD_ENV_REFERENCE")
         fi
-        python benchmarks/check_record_environment.py "${args[@]}"
+        if [[ -n "$RECORD_EXECUTION_DECLARATION" ]]; then
+          python -m benchmarks.ci_gates --environment "$RECORD_EXECUTION_DECLARATION" --emit verify
+        else
+          python benchmarks/check_record_environment.py "${args[@]}"
+        fi
