@@ -29,18 +29,27 @@ TRANSPORT = {"benchmarks/experiment_runner.py", "benchmarks/experiment_artifacts
 
 
 def execution_environment(relative, *, root=ROOT):
-    value = read_json(local_path(root, relative))["execution_environment"]
-    if (set(value) != {"python", "numpy", "scipy", "threads"}
-            or type(value["threads"]) is not int or value["threads"] != 1
-            or any(not isinstance(value[p], str) or not re.fullmatch(r"\d+\.\d+\.\d+", value[p])
-                   for p in ("python", "numpy", "scipy"))):
-        raise ValueError("invalid declared execution environment")
+    source = read_json(local_path(root, relative))
+    if 'execution_environment' in source:
+        value = source['execution_environment']
+        required = {'python', 'numpy', 'scipy', 'threads'}
+    else:
+        # Some original records declare Python/NumPy only. Pin exactly those
+        # fields; do not invent an unrecorded SciPy version.
+        value = {'threads': 1, **source['environment']}
+        required = {'python', 'numpy', 'threads'}
+    if (not required <= set(value) or not set(value) <= {'python', 'numpy', 'scipy', 'threads'}
+            or type(value['threads']) is not int or value['threads'] != 1
+            or any(not isinstance(value[p], str) or not re.fullmatch(r'\d+\.\d+\.\d+', value[p])
+                   for p in ('python', 'numpy', 'scipy') if p in value)):
+        raise ValueError('invalid declared execution environment')
+
     return value
 
 
 def verify_execution_environment(value):
     observed = {"python": platform.python_version(),
-                **{p: importlib.metadata.version(p) for p in ("numpy", "scipy")}}
+                **{p: importlib.metadata.version(p) for p in ("numpy", "scipy") if p in value}}
     if any(observed[p] != value[p] for p in observed):
         raise ValueError("declared replay runtime differs")
     if any(os.environ.get(p) != str(value["threads"]) for p in
@@ -298,7 +307,7 @@ def main(argv=None):
         if args.emit == "python":
             print(value["python"])
         elif args.emit == "constraints":
-            print("\n".join(p + "==" + value[p] for p in ("numpy", "scipy")))
+            print("\n".join(p + "==" + value[p] for p in ("numpy", "scipy") if p in value))
         else:
             verify_execution_environment(value)
             print("declared execution environment matches")

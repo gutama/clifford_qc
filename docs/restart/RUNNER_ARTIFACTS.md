@@ -129,8 +129,9 @@ checked between tasks.
 
 Record-local dependency pins, full Git history and disabled matrix fail-fast
 are retained. An optional `execution_declaration` registry entry selects the
-exact runtime directly from a frozen `execution_environment` block for full-seed
-replay. In particular, molecular replay uses its declared Python 3.12.14,
+exact recorded runtime from a frozen `execution_environment` or result
+`environment` block for full-seed replay. The spin replay pins its published
+Python 3.12.14 and NumPy 2.5.2; no unrecorded SciPy version is invented. In particular, molecular replay uses its declared Python 3.12.14,
 NumPy 2.3.5 and SciPy 1.17.0 rather than the ordinary checker's newer stamp.
 The environment action verifies the selected runtime and thread settings.
 Receipts and verified logs are uploaded for 14 days, including

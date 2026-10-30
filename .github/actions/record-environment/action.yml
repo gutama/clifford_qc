@@ -13,8 +13,8 @@ inputs:
     default: ""
   execution-declaration:
     description: >-
-      Optional frozen declaration with execution_environment. When supplied,
-      its exact Python/NumPy/SciPy/thread contract takes precedence over the
+      Optional frozen declaration or result with execution_environment/environment. When supplied,
+      its recorded Python/library/thread contract takes precedence over the
       record-local environment, for full-seed replay only.
     required: false
     default: ""

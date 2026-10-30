@@ -1384,7 +1384,12 @@
         ]
       ],
       "environment_record": "protocol_cost.json",
+      "execution_declaration": "docs/restart/sampled_ratio_results.json",
       "gate": "replay_sampled_ratio",
+      "inputs": [
+        "docs/restart/sampled_ratio_declaration.json",
+        "docs/restart/sampled_ratio_results.json"
+      ],
       "max_output_bytes": 67108864,
       "tier": "sampled",
       "timeout": 90,

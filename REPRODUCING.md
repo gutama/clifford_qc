@@ -632,7 +632,7 @@ frame-coordinate comparison above still fails its joint criterion.
 ```bash
 python -m venv .venv && source .venv/bin/activate
 pip install -e .[test,research,stim]       # automatic CI extras
-pytest                                      # 4468 passed, 12 skipped (expected if green)
+pytest                                      # 4469 passed, 12 skipped (expected if green)
 ```
 
 This is the automatic CI dependency set; record gates additionally pin NumPy
@@ -1025,6 +1025,8 @@ The optional `execution-declaration` action input takes its exact Python,
 NumPy, SciPy and thread contract directly from a frozen declaration for full-seed
 replay. This preserves the cross-domain protocol's Python 3.12.14 / NumPy 2.3.5 /
 SciPy 1.17.0 runtime while ordinary checker jobs retain their record-local pins.
+The spin replay pins Python 3.12.14 and NumPy 2.5.2 directly from its published
+record; unrecorded library versions are not presented as historical pins.
 
 | job | when | contents |
 | --- | --- | --- |

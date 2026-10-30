@@ -256,3 +256,11 @@ def test_r3d_non_imported_source_bindings_keep_the_preregistration_gate(path):
     gate = next(g for g in gates if g['gate'] == 'check_r3d_preregistration')
     assert path in ci.gate_inputs(gate)
     assert gate['gate'] in names(ci.affected(gates, [path]))
+
+
+def test_spin_replay_pins_the_published_python_and_numpy_without_inventing_scipy(capsys):
+    gate = next(g for g in ci.load_registry() if g['gate'] == 'replay_sampled_ratio')
+    assert ci.execution_environment(gate['execution_declaration']) == {
+        'python': '3.12.14', 'numpy': '2.5.2', 'threads': 1}
+    assert ci.main(['--environment', gate['execution_declaration'], '--emit', 'constraints']) == 0
+    assert capsys.readouterr().out == 'numpy==2.5.2\n'
