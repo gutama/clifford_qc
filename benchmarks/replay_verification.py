@@ -28,6 +28,11 @@ from benchmarks.experiment_artifacts import read_json, write_json
 
 def compare_recorded_values(expected, actual, original_compare):
     """Isolate execution fingerprints on a copy; retain all other old checks."""
+    for record in (expected, actual):
+        for row in record.get('rows', []):
+            if ('plan_identity' in row and 'frozen_plan_identity' in row
+                    and row['plan_identity'] != row['frozen_plan_identity']):
+                raise AssertionError('plan fingerprint aliases disagree')
     if 'worker_receipts' in expected or 'worker_receipts' in actual:
         if set(expected['source_sha256']) != set(actual['source_sha256']):
             raise AssertionError('execution source path sets differ')
@@ -42,7 +47,7 @@ def compare_recorded_values(expected, actual, original_compare):
     def visit(left, right, path='record'):
         if isinstance(left, dict) and isinstance(right, dict):
             for key in left.keys() & right.keys():
-                plan = key == 'plan_identity' and re.fullmatch(r'record\.rows\[\d+\]', path)
+                plan = key in {'plan_identity', 'frozen_plan_identity'} and re.fullmatch(r'record\.rows\[\d+\]', path)
                 provenance = key == 'source_manifest_sha256' and re.fullmatch(r'record\.worker_receipts\[\d+\]', path)
                 if plan or provenance:
                     a, b = left[key], right[key]
@@ -127,7 +132,7 @@ def verify(module, checker, *, campaign, output):
         if 'source_sha256' in actual:
             verify_source_bindings(actual, module.ROOT)
         drift = compare_recorded_values(expected, actual, original)
-        plans = [row for row in drift if row['path'].endswith('.plan_identity')]
+        plans = [row for row in drift if row['path'].endswith(('.plan_identity', '.frozen_plan_identity'))]
         provenance = [row for row in drift if row['path'].endswith('.source_manifest_sha256')]
         summary.update(status='recorded_values_verified', outcomes=len(actual['rows']),
                        exact_plan_fingerprints_match=not plans,

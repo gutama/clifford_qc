@@ -30,7 +30,9 @@ producer's `main --check`, retaining its environment, source, chronology,
 worker, seed, resource and sampling preflights.
 
 At the comparison boundary only, the verifier makes a deep copy of the replay
-record and isolates each row's `plan_identity` field. Both fingerprints must be valid
+record and isolates each row's `plan_identity` and `frozen_plan_identity` fields.
+Where both aliases are present, they must agree within each execution.
+Both fingerprints must be valid
 SHA-256 strings, and every difference is retained with its record path and
 both exact values.
 

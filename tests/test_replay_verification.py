@@ -131,3 +131,19 @@ def test_execution_source_hash_must_match_raw_blob_at_named_commit(tmp_path):
     record['source_sha256']['record.json'] = 'a'*64
     with pytest.raises(AssertionError, match='execution source digest differs'):
         verify_source_bindings(record, module.ROOT)
+
+
+def test_both_names_of_the_same_frozen_plan_fingerprint_are_reported():
+    expected, actual = records()
+    for record in (expected, actual):
+        record['rows'][0]['frozen_plan_identity'] = record['rows'][0]['plan_identity']
+    drift = compare_recorded_values(expected, actual, compare_records)
+    assert {row['path'] for row in drift} == {
+        'record.rows[0].plan_identity', 'record.rows[0].frozen_plan_identity'}
+
+
+def test_disagreeing_plan_fingerprint_aliases_are_rejected():
+    expected, actual = records()
+    actual['rows'][0]['frozen_plan_identity'] = 'c'*64
+    with pytest.raises(AssertionError, match='plan fingerprint aliases disagree'):
+        compare_recorded_values(expected, actual, compare_records)
