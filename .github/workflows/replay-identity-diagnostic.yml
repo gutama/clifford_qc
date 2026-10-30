@@ -1,0 +1,23 @@
+name: Replay identity diagnostic
+on:
+  push:
+    branches: [codex/replay-identity-diagnostics-20261030]
+permissions:
+  contents: read
+env:
+  OMP_NUM_THREADS: '1'
+  OPENBLAS_NUM_THREADS: '1'
+  MKL_NUM_THREADS: '1'
+jobs:
+  identity:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: ./.github/actions/record-environment
+        with:
+          reference-record: protocol_cost.json
+          execution-declaration: docs/restart/sampled_ratio_results.json
+      - run: python benchmarks/replay_identity_diagnostic.py
