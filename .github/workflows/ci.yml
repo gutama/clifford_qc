@@ -1,400 +1,128 @@
 name: CI
 
-# Cheap deterministic checks protect every pull request and main update.
-# Sampled record rebuilds stay available by explicit dispatch because the full
-# matrix costs roughly ten runner-hours. See REPRODUCING.md for the merge rule.
 on:
   push:
     branches: [main]
   pull_request:
   workflow_dispatch:
+  schedule:
+    # Sunday 09:17 Asia/Jakarta. Full archival replay is never a new campaign.
+    - cron: '17 2 * * 0'
 
 permissions:
   contents: read
 
 concurrency:
-  group: ${{ github.workflow }}-${{ github.ref }}
-  cancel-in-progress: true
+  group: ${{ github.workflow }}-${{ github.event_name }}-${{ github.event_name == 'pull_request' && github.ref || github.run_id }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
-# Every record here is a float compared against a committed float, and threaded
-# BLAS reductions sum in an order that depends on the thread count: the same
-# `eigvalsh` call returns four different last bits across OMP_NUM_THREADS 1..4,
-# deterministically within each. Pinning one thread removes that degree of
-# freedom from every job at once. It does not make the records portable across
-# CPU microarchitectures -- OpenBLAS also picks kernels by instruction set, and
-# `REPRODUCING.md` records the floor that leaves -- but it is the one source a
-# workflow can close, and it costs nothing here: the eigensolves are on small
-# projected pencils, and the expensive gates are shot-sampling bound.
 env:
   OMP_NUM_THREADS: "1"
   OPENBLAS_NUM_THREADS: "1"
   MKL_NUM_THREADS: "1"
 
 jobs:
+  plan:
+    name: select affected record gates
+    runs-on: ubuntu-latest
+    outputs:
+      structural: ${{ steps.gates.outputs.structural }}
+      sampled: ${{ steps.gates.outputs.sampled }}
+      has_structural: ${{ steps.gates.outputs.has_structural }}
+      has_sampled: ${{ steps.gates.outputs.has_sampled }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Build matrices from the checked registry
+        id: gates
+        run: python3 -m benchmarks.ci_gates --plan --event "$GITHUB_EVENT_NAME" --event-file "$GITHUB_EVENT_PATH" >> "$GITHUB_OUTPUT"
+
   test:
     name: tests, lint, and the short record gates
     runs-on: ubuntu-latest
-    timeout-minutes: 30
+    timeout-minutes: 40
+    env:
+      CI_JOB_TIMEOUT_SECONDS: "2400"
     steps:
+      - name: Start job wall-time budget
+        run: echo "CI_JOB_STARTED_EPOCH=$(date +%s)" >> "$GITHUB_ENV"
       - uses: actions/checkout@v4
         with:
-          fetch-depth: 0  # profile/source audits bind historical execution commits
+          fetch-depth: 0
       - uses: ./.github/actions/record-environment
         with:
           reference-record: protocol_cost.json
-
       - run: ruff check clifford_qc molecular tests benchmarks
       - run: python -m pytest --hypothesis-profile=ci
-
-      - name: restart sampled ratio evidence
+      - name: Run every core gate and retain all failures
         if: ${{ !cancelled() }}
-        run: python benchmarks/check_sampled_ratio.py
-      - name: restart cross-domain measurement evidence
-        if: ${{ !cancelled() }}
-        run: python benchmarks/check_cross_domain_ratio.py
-
-      # One step per gate so the Actions view names the failure, and each runs
-      # even after an earlier one fails: a drift suite that stops at the first
-      # mismatch reports one symptom of what is usually a shared cause.
-      - name: phase status ledger
-        if: ${{ !cancelled() }}
-        run: python benchmarks/check_phase_status.py
-      - name: documentation drift
-        if: ${{ !cancelled() }}
-        run: python benchmarks/check_docs.py
-      - name: benchmark summaries
-        if: ${{ !cancelled() }}
-        run: python benchmarks/check_summaries.py
-      - name: evidence declarations
-        if: ${{ !cancelled() }}
-        run: python benchmarks/check_evidence.py
-      - name: orthogonal active-space pilot
-        if: ${{ !cancelled() }}
-        run: python benchmarks/check_orthogonal_active_space.py
-      - name: orthogonal active-space report
-        if: ${{ !cancelled() }}
-        run: python benchmarks/summarize_orthogonal_active_space.py --check
-      - name: H2O spin-matched residual comparison
-        if: ${{ !cancelled() }}
-        run: python benchmarks/check_h2o_residual_comparison.py
-      - name: H2O residual comparison report
-        if: ${{ !cancelled() }}
-        run: python benchmarks/summarize_h2o_residual_comparison.py --check
-      - name: packet action reuse and shortlisting
-        if: ${{ !cancelled() }}
-        run: python benchmarks/check_packet_work_reuse.py
-      - name: packet work report
-        if: ${{ !cancelled() }}
-        run: python benchmarks/summarize_packet_work_reuse.py --check
-      - name: larger-sector packet work replay
-        if: ${{ !cancelled() }}
-        run: python benchmarks/check_packet_work_large.py
-      - name: larger-sector packet work report
-        if: ${{ !cancelled() }}
-        run: python benchmarks/summarize_packet_work_large.py --check
-      - name: sparse packet setup and early screening
-        if: ${{ !cancelled() }}
-        run: python benchmarks/check_sparse_packet_work.py
-      - name: sparse packet work report
-        if: ${{ !cancelled() }}
-        run: python benchmarks/summarize_sparse_packet_work.py --check
-      - name: exact projection cache replay
-        if: ${{ !cancelled() }}
-        run: python benchmarks/check_exact_projection_cache.py
-      - name: exact projection cache report
-        if: ${{ !cancelled() }}
-        run: python benchmarks/summarize_exact_projection_cache.py --check
-      - name: packet budget convergence report
-        if: ${{ !cancelled() }}
-        run: python benchmarks/summarize_packet_budget_convergence.py --check
-      - name: frame-coordinate projection report
-        if: ${{ !cancelled() }}
-        run: python benchmarks/summarize_frame_coordinate_projection.py --check
-      - name: sparse GA kernel profile
-        if: ${{ !cancelled() }}
-        run: python benchmarks/check_sparse_ga_kernel.py
-      - name: molecular records
-        if: ${{ !cancelled() }}
-        run: python benchmarks/check_molecular.py
-      - name: Krylov width
-        if: ${{ !cancelled() }}
-        run: python benchmarks/check_krylov_width.py
-      - name: Clifford measurement hierarchy
-        if: ${{ !cancelled() }}
-        run: python benchmarks/check_clifford_hierarchy.py
-      - name: finite-shot optimization
-        if: ${{ !cancelled() }}
-        run: python benchmarks/check_finite_shot_optimization.py
-      - name: warm start
-        if: ${{ !cancelled() }}
-        run: python benchmarks/check_warm_start.py
-      # The architecture manuscript reads committed records and a live census of
-      # the source tree, so its gate is deterministic and belongs here: a module
-      # added without a layer, or a gate added without a declared class, fails
-      # the paper rather than ageing a table nobody rebuilds. It imports the
-      # figure generator for its source map only, which is why that module keeps
-      # matplotlib out of import time.
-      - name: architecture manuscript
-        if: ${{ !cancelled() }}
-        run: python paper_architecture/check_manuscript.py
-      # The submission package is what arXiv builds, and it differs from a
-      # local build in ways a local build cannot show: no BibTeX run, a
-      # toolchain chosen from the opening lines, one flat directory. The
-      # structural half of that contract needs no TeX installation, so it runs
-      # here; the full staged rebuild needs pdflatex and stays a local step.
-      - name: arxiv submission package
-        if: ${{ !cancelled() }}
-        run: python paper_architecture/make_arxiv.py --check
-      # The compactness manuscript reads the packet campaigns' committed
-      # records and asserts the patterns its prose states, so a record that
-      # stops supporting a sentence fails here rather than in review.
-      - name: compactness manuscript
-        if: ${{ !cancelled() }}
-        run: |
-          python paper_compactness/check_manuscript.py
-          python paper_compactness/check_manuscript.py --self-test
+        run: python -m benchmarks.ci_gates --tier core --output .ci-receipts/core
+      - name: Retain execution receipts and verified logs
+        if: ${{ always() }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: core-receipts
+          path: .ci-receipts/core
+          retention-days: 14
+          include-hidden-files: true
 
   structural-records:
+    needs: plan
+    if: needs.plan.outputs.has_structural == 'true'
     name: ${{ matrix.gate }} (structural)
     runs-on: ubuntu-latest
     timeout-minutes: ${{ matrix.timeout }}
+    env:
+      CI_JOB_TIMEOUT_SECONDS: ${{ matrix.job_timeout_seconds }}
     strategy:
       fail-fast: false
-      matrix:
-        include:
-          - gate: check_phase17_more_declaration
-            timeout: 10
-            environment_record: protocol_cost.json
-          - gate: check_phase17_more
-            timeout: 30
-            environment_record: protocol_cost.json
-          - gate: check_phase17_ceo_declaration
-            timeout: 10
-            environment_record: protocol_cost.json
-          - gate: check_phase17_ceo
-            timeout: 10
-            environment_record: protocol_cost.json
-          - gate: check_bank_policy_matrix
-            timeout: 10
-            environment_record: protocol_cost.json
-          - gate: check_frame_coordinate_projection
-            timeout: 15
-            environment_record: frame_coordinate_projection.json
-          - gate: check_mapping_axis
-            timeout: 20
-            environment_record: mapping_axis.json
-          - gate: check_protocol_axis
-            timeout: 20
-            environment_record: protocol_axis.json
-          - gate: check_priceability_screen
-            timeout: 10
-            environment_record: priceability_screen.json
-          - gate: check_r3_environment_migration
-            timeout: 10
-            environment_record: priceability_screen.json
-          - gate: check_r3b_preregistration
-            timeout: 10
-            environment_record: priceability_screen.json
-          - gate: check_r3c_preregistration
-            timeout: 10
-            environment_record: r3b_margin_stop_probe.json
-          - gate: check_r3d_preregistration
-            timeout: 10
-            environment_record: r3c_lih_full_cost.json
-          - gate: check_phase14b_preregistration
-            timeout: 10
-            environment_record: protocol_axis.json
-          - gate: check_r4a_preregistration
-            timeout: 10
-            environment_record: priceability_screen.json
-          - gate: check_phase16a_preregistration
-            timeout: 15
-            environment_record: protocol_axis.json
-          - gate: check_phase15_preregistration
-            timeout: 10
-            environment_record: bank_storage_ledger.json
-          - gate: check_phase15_extrapolation_preregistration
-            timeout: 10
-            environment_record: second_moment_validation.json
-          # Regroups each (S, H) universe under its declared protocol to match
-          # the mapping-axis setting counts: about half a minute, most of it H2O.
-          - gate: check_phase15_measured_residual_preregistration
-            timeout: 10
-            environment_record: second_moment_validation.json
-          - gate: check_phase15_residual_successor_declaration
-            timeout: 10
-            environment_record: second_moment_validation.json
-          # Rebuilds both committed Hubbard 2x2 trajectories' (S, H) energies and
-          # the exact sector spectrum; forms no second-moment row. Seconds.
-          - gate: check_phase15_certifying_screen_declaration
-            timeout: 10
-            environment_record: phase15_residual_successor.json
-          # Recomputes the Krylov power table and every prefix's first-moment
-          # (S, H) solve; never builds a SecondMomentBank. Seconds.
-          - gate: check_phase15_certifying_krylov_declaration
-            timeout: 10
-            environment_record: phase15_certifying_screen.json
-          # Recomputes four banks' first-moment (S, H) solves and both fully
-          # commuting partitions of each (S, H) universe; no second moment. Seconds.
-          - gate: check_phase15_fc_residual_declaration
-            timeout: 10
-            environment_record: phase15_residual_successor.json
-          # Recounts every second-moment row of the five banks: about two
-          # minutes locally, most of it H2O, at under 1 GiB.
-          - gate: check_phase15_h2_preflight
-            timeout: 20
-            environment_record: phase15_h2_preflight.json
-          # Rebuilds SecondMomentBank on the five licensed banks and compares it
-          # with dense statevectors: about three minutes locally, most of it H2O.
-          - gate: check_second_moment_validation
-            timeout: 25
-            environment_record: second_moment_validation.json
-          # Rebuilds every bank's folded roots, refined Ritz roots and variance
-          # minimization against dense statevectors: about three minutes, most
-          # of it H2O.
-          - gate: check_folded_spectrum_validation
-            timeout: 25
-            environment_record: folded_spectrum_validation.json
-          # Rebuilds every prefix trajectory of the five frozen bases and refits
-          # every window: about three minutes locally, most of it H2O.
-          - gate: check_phase15_variance_extrapolation
-            timeout: 25
-            environment_record: phase15_variance_extrapolation.json
-          # Rebuilds every bank's second-moment rows, both functionals and every
-          # grouping: about seven minutes locally, most of it H2O.
-          - gate: check_phase15_measured_residual_preflight
-            timeout: 25
-            environment_record: phase15_measured_residual_preflight.json
-          # Rebuilds the post-hoc successor's endpoints and per-setting variances;
-          # the oracle allocation remains outside its uniform-only decision.
-          - gate: check_phase15_residual_successor
-            timeout: 25
-            environment_record: phase15_residual_successor.json
-          # Rebuilds all 33 prefixes of both Hubbard 2x2 trajectories, with every
-          # Richardson endpoint and grouping: about eight minutes locally.
-          - gate: check_phase15_certifying_screen
-            timeout: 25
-            environment_record: phase15_certifying_screen.json
-          # Rebuilds all nine Krylov prefixes, both eighty-digit derivatives per
-          # priced prefix and the frozen-bank lineage: about half a minute locally.
-          - gate: check_phase15_certifying_krylov
-            timeout: 15
-            environment_record: phase15_certifying_krylov.json
-          # Rebuilds the four banks' rows, functionals, Richardson checks and both
-          # fully commuting partitions, and recomputes every setting variance from
-          # the checker's own Pauli action: about a minute locally.
-          - gate: check_phase15_fc_residual
-            timeout: 15
-            environment_record: phase15_fc_residual.json
-          # Rebuilds only frozen coefficients, covers, rotors and resources.
-          # Draws no Phase 19 outcomes; after a record, also checks commit order.
-          - gate: check_phase19_preregistration
-            timeout: 10
-            environment_record: protocol_cost.json
-          - gate: check_r4a_contextual_screen
-            timeout: 20
-            environment_record: r4a_contextual_screen.json
-          - gate: check_g1_structural_preconditioner
-            timeout: 15
-            environment_record: g1_structural_preconditioner.json
-          - gate: check_bank_storage_ledger
-            timeout: 15
-            environment_record: bank_storage_ledger.json
-          - gate: check_packed_bank_storage
-            timeout: 25
-            environment_record: packed_bank_storage.json
-          # Replays every prefix of all 20 budget-convergence trajectories from
-          # independent Hamiltonians and frames, rescoring every candidate up to
-          # 1,225 determinants and at sampled steps beyond: about ten minutes
-          # locally, most of it the two 512-column packet arms per lattice.
-          - gate: check_packet_budget_convergence
-            timeout: 30
-            environment_record: protocol_cost.json
+      matrix: ${{ fromJSON(needs.plan.outputs.structural) }}
     steps:
-      # Full history: the preregistration gates check that a declaration's
-      # last commit precedes its record's first. A depth-1 checkout puts both
-      # on the shallow boundary, where every such check SKIPs, and a squash
-      # or rebase merge that erased the order would pass unnoticed.
+      - name: Start job wall-time budget
+        run: echo "CI_JOB_STARTED_EPOCH=$(date +%s)" >> "$GITHUB_ENV"
       - uses: actions/checkout@v4
         with:
           fetch-depth: 0
       - uses: ./.github/actions/record-environment
         with:
           reference-record: ${{ matrix.environment_record }}
-      - run: python benchmarks/${{ matrix.gate }}.py
-
-  environment-consistency:
-    # Keep the cross-record contract visible without preventing record-local
-    # gates from naming exactly which evidence needs an environment migration.
-    if: github.event_name == 'workflow_dispatch'
-    name: all records agree on one environment
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      - run: python3 benchmarks/check_record_environment.py
+          execution-declaration: ${{ matrix.execution_declaration }}
+      - run: python -m benchmarks.ci_gates --gate "${{ matrix.gate }}" --output ".ci-receipts/${{ matrix.gate }}"
+      - if: ${{ always() }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: receipts-${{ matrix.gate }}
+          path: .ci-receipts/${{ matrix.gate }}
+          retention-days: 14
+          include-hidden-files: true
 
   sampled-records:
-    # These gates draw replicas or rebuild records from sampled evidence. Run
-    # them against the exact branch head before merging and name that dispatch
-    # run in the PR. They never run implicitly on a pull request or main push.
-    if: github.event_name == 'workflow_dispatch'
-    name: ${{ matrix.gate }} (sampled, manual)
+    needs: plan
+    if: needs.plan.outputs.has_sampled == 'true'
+    name: ${{ matrix.gate }} (${{ matrix.verification_mode }})
     runs-on: ubuntu-latest
     timeout-minutes: ${{ matrix.timeout }}
+    env:
+      CI_JOB_TIMEOUT_SECONDS: ${{ matrix.job_timeout_seconds }}
     strategy:
       fail-fast: false
-      matrix:
-        include:
-          - gate: check_r3b_margin_stop_probe
-            timeout: 30
-            environment_record: r3b_margin_stop_probe.json
-          - gate: check_finite_shot_rethink
-            timeout: 20
-            environment_record: finite_shot_rethink.json
-          - gate: check_matched_h4
-            timeout: 30
-            environment_record: matched_h4.json
-          - gate: check_qr3b_instance_preflight
-            timeout: 150
-            environment_record: qr3b_instance_preflight.json
-          - gate: check_exact_shot_search
-            timeout: 120
-            environment_record: exact_shot_search.json
-          - gate: check_protocol_cost
-            timeout: 210
-            environment_record: protocol_cost.json
-          # The one authorized R3c execution, rebuilt and compared. About 26
-          # minutes on four local workers; the ceiling is set for a slower
-          # runner rather than from that measurement.
-          - gate: check_r3c_lih_full_cost
-            timeout: 180
-            environment_record: r3c_lih_full_cost.json
-          # R3d draws seven targeted within-grid endpoint cells rather than
-          # replaying the full R3c grid. Keep it manual because it still
-          # executes the frozen 30+100 sampled instrument end to end.
-          - gate: check_r3d_qr3_refinement
-            timeout: 120
-            environment_record: r3d_qr3_refinement.json
-          - gate: check_phase14b_qwc_vs_fc
-            timeout: 30
-            environment_record: phase14b_qwc_vs_fc.json
-          # Before the record exists this validates only the declaration.
-          # Afterwards it independently reconstructs and replays the frozen
-          # evidence; it never launches a new campaign.
-          - gate: check_phase19_energy_comparison
-            timeout: 60
-            environment_record: protocol_cost.json
-          # The one declared Phase 16A run. The checker replays replica 0 of
-          # every cell and recomputes both controls: about a minute and a half
-          # locally, plus the environment install.
-          - gate: check_phase16a_te_qsci
-            timeout: 20
-            environment_record: phase16a_te_qsci.json
+      matrix: ${{ fromJSON(needs.plan.outputs.sampled) }}
     steps:
+      - name: Start job wall-time budget
+        run: echo "CI_JOB_STARTED_EPOCH=$(date +%s)" >> "$GITHUB_ENV"
       - uses: actions/checkout@v4
         with:
           fetch-depth: 0
       - uses: ./.github/actions/record-environment
         with:
           reference-record: ${{ matrix.environment_record }}
-      - run: python benchmarks/${{ matrix.gate }}.py
+          execution-declaration: ${{ matrix.execution_declaration }}
+      - run: python -m benchmarks.ci_gates --gate "${{ matrix.gate }}" --output ".ci-receipts/${{ matrix.gate }}"
+      - if: ${{ always() }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: receipts-${{ matrix.gate }}
+          path: .ci-receipts/${{ matrix.gate }}
+          retention-days: 14
+          include-hidden-files: true

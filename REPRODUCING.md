@@ -632,7 +632,7 @@ frame-coordinate comparison above still fails its joint criterion.
 ```bash
 python -m venv .venv && source .venv/bin/activate
 pip install -e .[test,research,stim]       # automatic CI extras
-pytest                                      # 4392 passed, 12 skipped (expected if green)
+pytest                                      # 4485 passed, 12 skipped (expected if green)
 ```
 
 This is the automatic CI dependency set; record gates additionally pin NumPy
@@ -651,7 +651,7 @@ the remaining `12 - 6 = 6` skips are per-test and *are* collected:
 
 ```text
 collected == passed + (skipped - files dropped at collection)
-4334      == 4328   + (12      -   6)
+4491      == 4485   + (12      -   6)
 ```
 
 Both sides are computed from the tree, so a drift in either quoted number
@@ -1016,28 +1016,57 @@ exists to refuse it. Deleting an entry is the last step of rebuilding its
 record, never a way to quiet the report; losing the manifest exempts nothing,
 since a manifest that cannot be read lists no records.
 
-Three cost-aware tiers run:
+The shared [runner/artifact contract](docs/restart/RUNNER_ARTIFACTS.md) and
+`benchmarks/ci_gates.json` now own the execution policy. All previous checker
+commands, record-local environment pins and timeout allowances are retained.
+The workflow selects commands from that registry instead of maintaining a
+second list in YAML.
+Restart verification uses the separate [recorded numerical replay contract](docs/restart/REPLAY_VERIFICATION.md):
+all recorded scientific comparisons retain their original tolerances and exact
+discrete checks; exact frozen-plan fingerprint differences are reported.
+The original strict producer replay commands remain available unchanged.
+The optional `execution-declaration` action input takes its exact Python,
+NumPy, SciPy and thread contract directly from a frozen declaration for full-seed
+replay. This preserves the cross-domain protocol's Python 3.12.14 / NumPy 2.3.5 /
+SciPy 1.17.0 runtime while ordinary checker jobs retain their record-local pins.
+The spin replay pins Python 3.12.14 and NumPy 2.5.2 directly from its published
+record; unrecorded library versions are not presented as historical pins.
 
 | job | when | contents |
 | --- | --- | --- |
-| `test` | pull request, push to `main`, manual dispatch | `ruff`, `pytest --hypothesis-profile=ci`, the architecture-manuscript gate, and the short record gates: `check_docs`, `check_phase_status`, `check_molecular`, `check_krylov_width`, `check_clifford_hierarchy`, `check_finite_shot_optimization`, `check_warm_start` |
-| `structural-records` | pull request, push to `main`, manual dispatch | deterministic rebuild and lineage gates: `check_mapping_axis`, `check_protocol_axis`, `check_priceability_screen`, `check_r3_environment_migration`, `check_r3b_preregistration`, `check_r3c_preregistration`, `check_r3d_preregistration`, `check_phase14b_preregistration`, `check_g1_structural_preconditioner`, `check_r4a_preregistration`, `check_r4a_contextual_screen`, `check_bank_storage_ledger`, `check_packed_bank_storage` |
-| `sampled-records` | manual dispatch only | replica-drawing rebuild gates, each under its own record stamp: `check_r3b_margin_stop_probe`, `check_finite_shot_rethink`, `check_matched_h4`, `check_qr3b_instance_preflight`, `check_exact_shot_search`, `check_protocol_cost`, `check_r3c_lih_full_cost`, `check_r3d_qr3_refinement`, `check_phase14b_qwc_vs_fc` |
+| `test` | every PR, main push, schedule and dispatch | full pytest/lint plus global environment, documentation, evidence and manuscript gates |
+| `structural-records` | every PR, main push, schedule and dispatch | the complete deterministic record/report safety net, under each record's own environment |
+| `sampled-records` | affected restart/transport/CI edits and weekly schedule | restart full-seed verification; explicit dispatch additionally runs legacy sampled instruments |
 
-The same dispatch also runs `environment-consistency`, which requires every
-stamped record to name one common environment. It is deliberately separate
-from the record-local rows: one stale record is reported without preventing the
-other gates from saying whether their own evidence reproduces.
+Sunday 09:17 Asia/Jakarta runs deterministic and restart full-seed verification.
+The legacy sampled instruments remain **manual-dispatch only**, preserving
+R3d's frozen reporting contract. The planner reports affected manual work
+separately. Tests, examples, documents and PHASE_STATUS updates do not trigger
+multi-hour sampled rebuilds. All deterministic checks still run on every PR,
+so an incomplete import/literal-path graph cannot defer failures to main.
+Environment records and live literal byte bindings are explicit replay inputs.
 
-The split is by cost, not by importance. The exact-tier nonlinear searches
-dominate and can take from minutes to hours, so running them on every pull-request
-update would repeat the same computation for the same answer on every rebase.
-Both matrices have `fail-fast` disabled, because the set of failures is the
-diagnosis; the short gates in `test` run past each other's failures for the same
-reason. A pull request that changes a sampled producer, config, or record must
-name a manual dispatch against its exact branch head before merge. A
-structural-only preregistration is covered by the automatic jobs and does not
-spend the sampled matrix.
+Push and dispatch runs have unique concurrency identities; later main pushes
+cannot cancel or displace earlier obligations. Only superseded PR runs may be
+cancelled. The runner reserves three minutes from the actual remaining job
+budget for cleanup/upload, handles SIGTERM/SIGINT by stopping detached workers,
+and writes failure summaries for interruptions, input drift and budget blocks.
+Artifact uploads use `always()` and retain receipts/logs for 14 days. Per-gate
+log limits are declared in the registry (16 MiB deterministic, 64 MiB sampled).
+Input digests are computed once and refreshed only after filesystem changes.
+Maintenance metadata parsing/publication shares `metadata_io`; frozen campaign
+serializers and source snapshots retain their historical contracts.
+
+A PR changing legacy sampled producers, declarations or evidence must name an
+explicit dispatch against its exact head before merge. Restart replay and CI
+transport changes exercise their matching restart verification automatically. Weekly replay supplements that requirement. Each replay
+uses existing evidence; the workflow never invokes a new campaign's `--execute`.
+
+```bash
+python -m benchmarks.ci_gates --plan --event workflow_dispatch
+python -m benchmarks.ci_gates --gate check_sampled_ratio --output .ci-receipts/sampled
+python -m pytest tests/test_experiment_runner.py tests/test_ci_gates.py
+```
 
 ### The python 3.12 / numpy 2.5.2 / scipy 1.18.0 migration
 
@@ -3442,7 +3471,7 @@ which is outside the experiment. It holds producer and checker to the same
 decision on random synthetic cells, and catches each tampered field with the
 check written for it. It also re-derives the committed record's statistics
 and verdict, which costs no draw, so the automatic test job guards the record
-between manual dispatches.
+between the legacy track's explicitly dispatched sampled checks.
 
 ## Phase 15 preregistration: the H² support/cost preflight (count-free)
 

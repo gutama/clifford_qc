@@ -280,6 +280,7 @@ GATE_CLASSES: tuple[tuple[str, str, tuple[str, ...]], ...] = (
 )
 
 CI_WORKFLOW = ROOT / ".github" / "workflows" / "ci.yml"
+CI_REGISTRY = ROOT / "benchmarks" / "ci_gates.json"
 
 # Which jobs run without being asked for.  Everything else in the workflow sits
 # behind `workflow_dispatch`, and Sec. IV distinguishes the two rather than
@@ -287,7 +288,32 @@ CI_WORKFLOW = ROOT / ".github" / "workflows" / "ci.yml"
 DISPATCH_GUARD = "github.event_name == 'workflow_dispatch'"
 
 
+def ci_gate_policy() -> tuple[set[str], set[str], set[str]]:
+    """Every-PR, affected-campaign and full-replay gate sets from active policy."""
+    text = CI_WORKFLOW.read_text(encoding="utf-8")
+    if "-m benchmarks.ci_gates" in text:
+        from benchmarks.ci_gates import load_registry
+        if not all(marker in text for marker in
+                   ("--tier core", "outputs.structural", "outputs.sampled", "schedule:")):
+            raise SystemExit("CI registry is not wired to every execution tier")
+        groups = {tier: set() for tier in ("core", "structural", "sampled", "environment")}
+        for gate in load_registry(CI_REGISTRY):
+            for command in gate["commands"]:
+                match = re.fullmatch(r"benchmarks/(check_\w+)\.py", command[0])
+                if match:
+                    groups[gate["tier"]].add(match.group(1))
+        return groups["core"] | groups["structural"], set(), groups["sampled"] | groups["environment"]
+    automatic, dispatch = _legacy_ci_gate_sets(text)
+    return automatic, set(), dispatch
+
+
 def ci_gate_sets() -> tuple[set[str], set[str]]:
+    """Compatibility view: automatic-eligible and full-replay gate sets."""
+    every, conditional, replay = ci_gate_policy()
+    return every | conditional, replay - every - conditional
+
+
+def _legacy_ci_gate_sets(text) -> tuple[set[str], set[str]]:
     """Gates the workflow names, split into automatic and dispatch-only.
 
     Parsed from the workflow text rather than declared here: a hard-coded pair
@@ -297,7 +323,6 @@ def ci_gate_sets() -> tuple[set[str], set[str]]:
     indent, and a job carrying the dispatch guard contributes to the manual
     set.
     """
-    text = CI_WORKFLOW.read_text(encoding="utf-8")
     starts = [(m.start(), m.group(1))
               for m in re.finditer(r"(?m)^  ([a-z][\w-]*):$", text)]
     automatic: set[str] = set()
@@ -437,8 +462,8 @@ def gate_census() -> dict:
     duplicates = sorted({stem for stem in declared if declared.count(stem) > 1})
     if duplicates:
         raise SystemExit("gate classified twice: " + ", ".join(duplicates))
-    automatic, dispatch = ci_gate_sets()
-    named = automatic | dispatch
+    automatic, conditional, replay = ci_gate_policy()
+    named = automatic | conditional | replay
     unknown = sorted(named - set(gates))
     if unknown:
         raise SystemExit(
@@ -458,8 +483,10 @@ def gate_census() -> dict:
         "named_in_workflow": len(named),
         "run_on_every_pull_request": len(automatic),
         "automatic_gates": sorted(automatic),
-        "manual_dispatch_only": len(dispatch),
-        "dispatch_gates": sorted(dispatch),
+        "conditionally_selected": len(conditional),
+        "conditional_gates": sorted(conditional),
+        "full_replay": len(replay),
+        "full_replay_gates": sorted(replay),
         "absent_from_workflow": sorted(set(gates) - named),
     }
 
@@ -597,7 +624,7 @@ def record_census() -> dict:
 def write_census() -> dict:
     """Compute the census and commit it, so the checker can re-derive it."""
     census = {
-        "schema": "clifford_qc.architecture_paper_census.v1",
+        "schema": "clifford_qc.architecture_paper_census.v2",
         "source": layer_census(),
         "gates": gate_census(),
         "records": record_census(),
@@ -672,7 +699,8 @@ def gate_classes_table(census: dict) -> None:
     rows.append(
         f"Run on every pull request & "
         f"{_int(gates['run_on_every_pull_request'])} & "
-        f"{_int(gates['manual_dispatch_only'])} more by manual dispatch \\\\")
+        f"{_int(gates['conditionally_selected'])} selected by affected paths; "
+        f"{_int(gates['full_replay'])} in scheduled or explicit full replay \\\\")
     rows.append(
         f"Producers & {_int(gates['producers'])} & "
         f"{_int(gates['same_stem_pairs'])} have a same-stem gate \\\\")
@@ -1224,7 +1252,8 @@ def numbers_macros(census: dict) -> None:
         "cqcProducersWithoutGate": _int(gates["producers_without_gate"]),
         "cqcGatesInWorkflow": _int(gates["named_in_workflow"]),
         "cqcGatesAutomatic": _int(gates["run_on_every_pull_request"]),
-        "cqcGatesDispatch": _int(gates["manual_dispatch_only"]),
+        "cqcGatesConditional": _int(gates["conditionally_selected"]),
+        "cqcGatesFullReplay": _int(gates["full_replay"]),
         "cqcGatesAbsent": _int(len(gates["absent_from_workflow"])),
         "cqcGatesPrereg": _int(gates["classes"]["Preregistration"]),
         "cqcGatesPostHoc": _int(gates["classes"]["Post-hoc declaration"]),

@@ -16,7 +16,8 @@ small-system comparisons, and a public archival release is intended.
 
 [Install](#install-from-source) · [Quick start](#quick-start) ·
 [Choose a solver](#choosing-a-solver) · [Molecular pipeline](molecular/PIPELINE.md) ·
-[Architecture](ARCHITECTURE.md) · [Reproduce results](REPRODUCING.md)
+[Architecture](ARCHITECTURE.md) · [Reproduce results](REPRODUCING.md) ·
+[Validation and CI](#validation)
 
 The [restart roadmap](docs/restart/README.md) narrows new work around declared
 references, numerical projection, and costed measurement consumers. Its first
@@ -34,6 +35,18 @@ The [sampled projection and ratio workflow](docs/restart/SAMPLED_RATIO.md) now
 uses independent pilot/evaluation observations, covariance and denominator
 failure checks. Its declared three-input experiment did not meet the 20%
 matched-accuracy cost target; no benefit is promoted.
+The separately declared [cross-domain validation](docs/restart/CROSS_DOMAIN_RATIO.md)
+retains another 2,304 outcomes across TFIM, H4 and LiH. Both all-input cost
+hypotheses closed negative: the TFIM control saving does not establish a
+molecular saving or ground-state accuracy.
+
+The [shared runner and artifact contract](docs/restart/RUNNER_ARTIFACTS.md)
+provides resumable execution, explicit failure accounting, immutable artifacts
+and one checked CI gate registry. Its
+[recorded numerical replay](docs/restart/REPLAY_VERIFICATION.md) verifies the
+published scientific fields under their original tolerances and reports
+execution-fingerprint drift separately. Historical records, strict replay
+commands and negative scientific conclusions remain unchanged.
 
 ## What you can do
 
@@ -50,6 +63,7 @@ matched-accuracy cost target; no benefit is promoted.
 | Solve embedding fragments | One callback returning energy plus one- and two-particle density matrices, implemented by sector FCI, QSCI, selected CI, and the QSCI × A-CASE hybrid; the embedding loop itself stays outside the package | `clifford_qc.subspace.fragment`, [conventions](CONVENTIONS.md#density-matrices) |
 | Reuse measurements | QWC and block-commuting grouping, compiled Clifford readouts (default Stim elimination or opt-in NumPy graph-state synthesis), shared caches, covariance, allocation, uncertainty estimates | [Finite-shot examples](#examples), [graph-state readouts](docs/restart/GRAPH_READOUTS.md), [architecture](ARCHITECTURE.md#measurement-and-evidence) |
 | Control classical costs | Cached preparation, optional reference validation, object or packed coefficients, streaming with recomputation | [Pipeline guide](molecular/PIPELINE.md) |
+| Retain execution evidence | Ordered task plans, resumable checkpoints, explicit failures, source-bound receipts and content-addressed artifacts | [Runner contract](docs/restart/RUNNER_ARTIFACTS.md), [validation and CI](#validation) |
 | Use other quantum software | Optional Stim, OpenFermion, pytket, PennyLane, and PyZX bridges | [Optional dependencies](#optional-dependencies) |
 
 The core representation is a sparse operator `MV` in the Pauli-word basis of
@@ -496,7 +510,49 @@ Tests cover algebra, dense-reference equivalence, circuit serialization and
 lowering, gradients, solvers, storage policies, and installed bridges. Benchmark
 checks have different roles: some rebuild numerical records, while others check
 configuration, provenance, or documentation. Not every record has a numerical
-rebuild gate, and expensive sampled gates require manual CI dispatch.
+rebuild gate. Legacy sampled instruments require manual CI dispatch; the
+restart numerical replays follow the policy below.
+
+### CI and execution receipts
+
+The [CI gate registry](benchmarks/ci_gates.json) is the single inventory of
+commands, environment records, input dependencies, timeouts and log allowances.
+The [workflow](.github/workflows/ci.yml) executes gates through the shared runner:
+
+| Trigger | Validation |
+|---|---|
+| Every pull request and main push | Full tests and lint, all deterministic gates, and global environment consistency |
+| Affected restart inputs or shared runner/CI changes | Applicable restart full-seed recorded numerical replays |
+| Sunday 09:17 Asia/Jakarta | All deterministic gates and both restart numerical replays |
+| Manual workflow dispatch | All registered gates, including the 11 legacy sampled instruments |
+
+Inspect the complete gate plan without executing benchmarks:
+
+```bash
+python -m benchmarks.ci_gates --plan --event workflow_dispatch
+```
+
+To run a gate locally, first install its declared environment from
+[REPRODUCING.md](REPRODUCING.md), then choose a fresh output directory:
+
+```bash
+python -m benchmarks.ci_gates --gate check_sampled_ratio --output .ci-receipts/sampled-check
+```
+
+Receipts retain every scheduled task, including failures, interruptions and
+blocked work. Artifacts are addressed by their exact payload hashes; final
+receipts are immutable. CI uploads receipts and logs for 14 days, including
+failed gates. See the [runner contract](docs/restart/RUNNER_ARTIFACTS.md) for
+resume rules, input closure and the POSIX execution boundary.
+
+Both restart verification paths replay their complete 2,304-outcome records.
+**A recorded numerical replay pass is distinct from a strict replay pass.**
+Original numerical tolerances and count/status/observation checks remain in
+force. Plan-fingerprint and validated worker-source-manifest differences are
+reported explicitly; `original_strict_replay_passed` remains false when those
+fingerprints differ. This mode does not establish byte-identical unrecorded
+plans or new scientific evidence. The original strict commands remain
+available under the [replay verification contract](docs/restart/REPLAY_VERIFICATION.md).
 
 ## Documentation and papers
 
@@ -506,6 +562,9 @@ rebuild gate, and expensive sampled gates require manual CI dispatch.
 | [molecular/PIPELINE.md](molecular/PIPELINE.md) | Reusable molecular preparation, solve/validate commands, and storage choices |
 | [CONVENTIONS.md](CONVENTIONS.md) | Mathematical and representation conventions |
 | [REPRODUCING.md](REPRODUCING.md) | Frozen environments, benchmark commands, and checks |
+| [Restart roadmap](docs/restart/README.md) | Implemented restart steps, declared validation scope, and closed measurement hypotheses |
+| [Runner and artifacts](docs/restart/RUNNER_ARTIFACTS.md) | Execution plans, checkpoints, immutable receipts, and CI routing |
+| [Replay verification](docs/restart/REPLAY_VERIFICATION.md) | Recorded numerical verification, execution-fingerprint drift, and strict replay boundaries |
 | [Architecture paper](paper_architecture/README.md) | *clifford_qc: A Python Toolkit for Quantum Simulation* ([arXiv:2609.23059](https://arxiv.org/abs/2609.23059)); features, architecture, and evidence |
 | [Compactness paper](paper_compactness/README.md) | *How Compact Is a Compact Subspace?* (draft); the residual-packet line read through columns, Hamiltonian actions, and determinant support |
 | [CITATION.cff](CITATION.cff) | Software metadata and research citations |
@@ -525,6 +584,9 @@ Licensed under [Apache-2.0](LICENSE).
 Implementation progress is tracked in [PHASE_STATUS.json](PHASE_STATUS.json)
 and [PLAN.md](PLAN.md). The generated score below measures the numbered research
 programme; it is not a package-readiness or scientific-advantage score.
+The implemented restart workflow and shared runner/CI maintenance are tracked
+separately in the [restart roadmap](docs/restart/README.md); they do not change
+this historical phase denominator.
 
 <!-- PHASE-STATUS-SUMMARY:START -->
 | numbered phase scope | lifecycle | implementation |

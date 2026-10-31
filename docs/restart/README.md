@@ -10,6 +10,11 @@ additional compiler/reference support for the
 [sampled consumer and frozen ratio experiment](SAMPLED_RATIO.md).
 The separately declared [cross-domain molecular validation](CROSS_DOMAIN_RATIO.md)
 extends the sampled workflow while preserving the original negative result.
+The [shared runner and artifact contract](RUNNER_ARTIFACTS.md) now supplies
+failure-preserving execution receipts, immutable byte-addressed artifacts and
+one CI gate registry, with all deterministic checks on every PR, affected
+restart replay and weekly verification. Legacy sampled instruments remain
+manual-only under their frozen reporting contracts. Historical scientific runners and evidence remain unchanged.
 
 | Step | Status | Deliverable |
 | --- | --- | --- |

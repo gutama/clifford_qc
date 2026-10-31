@@ -337,8 +337,10 @@ lineage, dependency environments, documentation, or cross-artifact consistency.
 Not every producer has a numerical rebuild gate. The generated census records
 the current classifications and CI coverage.
 
-Automatic CI runs tests, lint, manuscript checks, and selected scientific gates.
-Expensive sampled checks require manual dispatch. Single-thread numerical
+Automatic CI retains tests, lint, manuscripts and all deterministic scientific
+gates. Legacy sampled instruments require manual dispatch under their frozen
+contracts. Restart full-seed verification runs on affected source/CI edits and
+weekly; it does not reopen a scientific campaign. Single-thread numerical
 settings control one source of floating-point variation but do not guarantee
 bitwise portability across machines. [REPRODUCING.md](REPRODUCING.md) specifies
 the frozen environments, commands, and scope of each check.

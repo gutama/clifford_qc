@@ -1,0 +1,1440 @@
+{
+  "gates": [
+    {
+      "commands": [
+        [
+          "benchmarks/check_sampled_ratio.py"
+        ]
+      ],
+      "environment_record": "protocol_cost.json",
+      "gate": "check_sampled_ratio",
+      "max_output_bytes": 16777216,
+      "tier": "structural",
+      "timeout": 15,
+      "watch": [
+        "benchmarks/*sampled_ratio*",
+        "tests/*sampled_ratio*",
+        "docs/restart/*sampled_ratio*",
+        "tests/test_sampled_ratio.py"
+      ]
+    },
+    {
+      "commands": [
+        [
+          "benchmarks/check_cross_domain_ratio.py"
+        ]
+      ],
+      "environment_record": "protocol_cost.json",
+      "gate": "check_cross_domain_ratio",
+      "inputs": [
+        "docs/restart/cross_domain_ratio_declaration.json",
+        "docs/restart/sampled_ratio_declaration.json",
+        "docs/restart/sampled_ratio_results.json",
+        "benchmarks/run_sampled_ratio.py"
+      ],
+      "max_output_bytes": 16777216,
+      "tier": "structural",
+      "timeout": 15,
+      "watch": [
+        "benchmarks/*cross_domain_ratio*",
+        "tests/*cross_domain_ratio*",
+        "docs/restart/*cross_domain_ratio*",
+        "tests/test_cross_domain_checker.py",
+        "docs/restart/CROSS_DOMAIN_RATIO.md"
+      ]
+    },
+    {
+      "commands": [
+        [
+          "benchmarks/check_phase_status.py"
+        ]
+      ],
+      "environment_record": "protocol_cost.json",
+      "gate": "check_phase_status",
+      "max_output_bytes": 16777216,
+      "tier": "core",
+      "timeout": 15,
+      "watch": [
+        "benchmarks/*phase_status*",
+        "tests/*phase_status*",
+        "docs/restart/*phase_status*"
+      ]
+    },
+    {
+      "commands": [
+        [
+          "benchmarks/check_docs.py"
+        ]
+      ],
+      "environment_record": "protocol_cost.json",
+      "gate": "check_docs",
+      "max_output_bytes": 16777216,
+      "tier": "core",
+      "timeout": 15,
+      "watch": [
+        "benchmarks/*docs*",
+        "tests/*docs*",
+        "docs/restart/*docs*"
+      ]
+    },
+    {
+      "commands": [
+        [
+          "benchmarks/check_summaries.py"
+        ]
+      ],
+      "environment_record": "protocol_cost.json",
+      "gate": "check_summaries",
+      "max_output_bytes": 16777216,
+      "tier": "core",
+      "timeout": 15,
+      "watch": [
+        "benchmarks/*summaries*",
+        "tests/*summaries*",
+        "docs/restart/*summaries*"
+      ]
+    },
+    {
+      "commands": [
+        [
+          "benchmarks/check_evidence.py"
+        ]
+      ],
+      "environment_record": "protocol_cost.json",
+      "gate": "check_evidence",
+      "max_output_bytes": 16777216,
+      "tier": "core",
+      "timeout": 15,
+      "watch": [
+        "benchmarks/*evidence*",
+        "tests/*evidence*",
+        "docs/restart/*evidence*"
+      ]
+    },
+    {
+      "commands": [
+        [
+          "benchmarks/check_orthogonal_active_space.py"
+        ]
+      ],
+      "environment_record": "protocol_cost.json",
+      "gate": "check_orthogonal_active_space",
+      "max_output_bytes": 16777216,
+      "tier": "structural",
+      "timeout": 15,
+      "watch": [
+        "benchmarks/*orthogonal_active_space*",
+        "tests/*orthogonal_active_space*",
+        "docs/restart/*orthogonal_active_space*"
+      ]
+    },
+    {
+      "commands": [
+        [
+          "benchmarks/summarize_orthogonal_active_space.py",
+          "--check"
+        ]
+      ],
+      "environment_record": "protocol_cost.json",
+      "gate": "summarize_orthogonal_active_space",
+      "max_output_bytes": 16777216,
+      "tier": "structural",
+      "timeout": 15,
+      "watch": [
+        "benchmarks/*orthogonal_active_space*",
+        "tests/*orthogonal_active_space*",
+        "docs/restart/*orthogonal_active_space*"
+      ]
+    },
+    {
+      "commands": [
+        [
+          "benchmarks/check_h2o_residual_comparison.py"
+        ]
+      ],
+      "environment_record": "protocol_cost.json",
+      "gate": "check_h2o_residual_comparison",
+      "max_output_bytes": 16777216,
+      "tier": "structural",
+      "timeout": 15,
+      "watch": [
+        "benchmarks/*h2o_residual_comparison*",
+        "tests/*h2o_residual_comparison*",
+        "docs/restart/*h2o_residual_comparison*"
+      ]
+    },
+    {
+      "commands": [
+        [
+          "benchmarks/summarize_h2o_residual_comparison.py",
+          "--check"
+        ]
+      ],
+      "environment_record": "protocol_cost.json",
+      "gate": "summarize_h2o_residual_comparison",
+      "max_output_bytes": 16777216,
+      "tier": "structural",
+      "timeout": 15,
+      "watch": [
+        "benchmarks/*h2o_residual_comparison*",
+        "tests/*h2o_residual_comparison*",
+        "docs/restart/*h2o_residual_comparison*"
+      ]
+    },
+    {
+      "commands": [
+        [
+          "benchmarks/check_packet_work_reuse.py"
+        ]
+      ],
+      "environment_record": "protocol_cost.json",
+      "gate": "check_packet_work_reuse",
+      "max_output_bytes": 16777216,
+      "tier": "structural",
+      "timeout": 15,
+      "watch": [
+        "benchmarks/*packet_work_reuse*",
+        "tests/*packet_work_reuse*",
+        "docs/restart/*packet_work_reuse*"
+      ]
+    },
+    {
+      "commands": [
+        [
+          "benchmarks/summarize_packet_work_reuse.py",
+          "--check"
+        ]
+      ],
+      "environment_record": "protocol_cost.json",
+      "gate": "summarize_packet_work_reuse",
+      "max_output_bytes": 16777216,
+      "tier": "structural",
+      "timeout": 15,
+      "watch": [
+        "benchmarks/*packet_work_reuse*",
+        "tests/*packet_work_reuse*",
+        "docs/restart/*packet_work_reuse*"
+      ]
+    },
+    {
+      "commands": [
+        [
+          "benchmarks/check_packet_work_large.py"
+        ]
+      ],
+      "environment_record": "protocol_cost.json",
+      "gate": "check_packet_work_large",
+      "max_output_bytes": 16777216,
+      "tier": "structural",
+      "timeout": 15,
+      "watch": [
+        "benchmarks/*packet_work_large*",
+        "tests/*packet_work_large*",
+        "docs/restart/*packet_work_large*"
+      ]
+    },
+    {
+      "commands": [
+        [
+          "benchmarks/summarize_packet_work_large.py",
+          "--check"
+        ]
+      ],
+      "environment_record": "protocol_cost.json",
+      "gate": "summarize_packet_work_large",
+      "max_output_bytes": 16777216,
+      "tier": "structural",
+      "timeout": 15,
+      "watch": [
+        "benchmarks/*packet_work_large*",
+        "tests/*packet_work_large*",
+        "docs/restart/*packet_work_large*"
+      ]
+    },
+    {
+      "commands": [
+        [
+          "benchmarks/check_sparse_packet_work.py"
+        ]
+      ],
+      "environment_record": "protocol_cost.json",
+      "gate": "check_sparse_packet_work",
+      "max_output_bytes": 16777216,
+      "tier": "structural",
+      "timeout": 15,
+      "watch": [
+        "benchmarks/*sparse_packet_work*",
+        "tests/*sparse_packet_work*",
+        "docs/restart/*sparse_packet_work*"
+      ]
+    },
+    {
+      "commands": [
+        [
+          "benchmarks/summarize_sparse_packet_work.py",
+          "--check"
+        ]
+      ],
+      "environment_record": "protocol_cost.json",
+      "gate": "summarize_sparse_packet_work",
+      "max_output_bytes": 16777216,
+      "tier": "structural",
+      "timeout": 15,
+      "watch": [
+        "benchmarks/*sparse_packet_work*",
+        "tests/*sparse_packet_work*",
+        "docs/restart/*sparse_packet_work*"
+      ]
+    },
+    {
+      "commands": [
+        [
+          "benchmarks/check_exact_projection_cache.py"
+        ]
+      ],
+      "environment_record": "protocol_cost.json",
+      "gate": "check_exact_projection_cache",
+      "max_output_bytes": 16777216,
+      "tier": "structural",
+      "timeout": 15,
+      "watch": [
+        "benchmarks/*exact_projection_cache*",
+        "tests/*exact_projection_cache*",
+        "docs/restart/*exact_projection_cache*"
+      ]
+    },
+    {
+      "commands": [
+        [
+          "benchmarks/summarize_exact_projection_cache.py",
+          "--check"
+        ]
+      ],
+      "environment_record": "protocol_cost.json",
+      "gate": "summarize_exact_projection_cache",
+      "max_output_bytes": 16777216,
+      "tier": "structural",
+      "timeout": 15,
+      "watch": [
+        "benchmarks/*exact_projection_cache*",
+        "tests/*exact_projection_cache*",
+        "docs/restart/*exact_projection_cache*"
+      ]
+    },
+    {
+      "commands": [
+        [
+          "benchmarks/summarize_packet_budget_convergence.py",
+          "--check"
+        ]
+      ],
+      "environment_record": "protocol_cost.json",
+      "gate": "summarize_packet_budget_convergence",
+      "max_output_bytes": 16777216,
+      "tier": "structural",
+      "timeout": 15,
+      "watch": [
+        "benchmarks/*packet_budget_convergence*",
+        "tests/*packet_budget_convergence*",
+        "docs/restart/*packet_budget_convergence*"
+      ]
+    },
+    {
+      "commands": [
+        [
+          "benchmarks/summarize_frame_coordinate_projection.py",
+          "--check"
+        ]
+      ],
+      "environment_record": "protocol_cost.json",
+      "gate": "summarize_frame_coordinate_projection",
+      "max_output_bytes": 16777216,
+      "tier": "structural",
+      "timeout": 15,
+      "watch": [
+        "benchmarks/*frame_coordinate_projection*",
+        "tests/*frame_coordinate_projection*",
+        "docs/restart/*frame_coordinate_projection*"
+      ]
+    },
+    {
+      "commands": [
+        [
+          "benchmarks/check_sparse_ga_kernel.py"
+        ]
+      ],
+      "environment_record": "protocol_cost.json",
+      "gate": "check_sparse_ga_kernel",
+      "max_output_bytes": 16777216,
+      "tier": "structural",
+      "timeout": 15,
+      "watch": [
+        "benchmarks/*sparse_ga_kernel*",
+        "tests/*sparse_ga_kernel*",
+        "docs/restart/*sparse_ga_kernel*"
+      ]
+    },
+    {
+      "commands": [
+        [
+          "benchmarks/check_molecular.py"
+        ]
+      ],
+      "environment_record": "protocol_cost.json",
+      "gate": "check_molecular",
+      "max_output_bytes": 16777216,
+      "tier": "structural",
+      "timeout": 15,
+      "watch": [
+        "benchmarks/*molecular*",
+        "tests/*molecular*",
+        "docs/restart/*molecular*"
+      ]
+    },
+    {
+      "commands": [
+        [
+          "benchmarks/check_krylov_width.py"
+        ]
+      ],
+      "environment_record": "protocol_cost.json",
+      "gate": "check_krylov_width",
+      "max_output_bytes": 16777216,
+      "tier": "structural",
+      "timeout": 15,
+      "watch": [
+        "benchmarks/*krylov_width*",
+        "tests/*krylov_width*",
+        "docs/restart/*krylov_width*"
+      ]
+    },
+    {
+      "commands": [
+        [
+          "benchmarks/check_clifford_hierarchy.py"
+        ]
+      ],
+      "environment_record": "protocol_cost.json",
+      "gate": "check_clifford_hierarchy",
+      "max_output_bytes": 16777216,
+      "tier": "structural",
+      "timeout": 15,
+      "watch": [
+        "benchmarks/*clifford_hierarchy*",
+        "tests/*clifford_hierarchy*",
+        "docs/restart/*clifford_hierarchy*"
+      ]
+    },
+    {
+      "commands": [
+        [
+          "benchmarks/check_finite_shot_optimization.py"
+        ]
+      ],
+      "environment_record": "protocol_cost.json",
+      "gate": "check_finite_shot_optimization",
+      "max_output_bytes": 16777216,
+      "tier": "structural",
+      "timeout": 15,
+      "watch": [
+        "benchmarks/*finite_shot_optimization*",
+        "tests/*finite_shot_optimization*",
+        "docs/restart/*finite_shot_optimization*"
+      ]
+    },
+    {
+      "commands": [
+        [
+          "benchmarks/check_warm_start.py"
+        ]
+      ],
+      "environment_record": "protocol_cost.json",
+      "gate": "check_warm_start",
+      "max_output_bytes": 16777216,
+      "tier": "structural",
+      "timeout": 15,
+      "watch": [
+        "benchmarks/*warm_start*",
+        "tests/*warm_start*",
+        "docs/restart/*warm_start*"
+      ]
+    },
+    {
+      "commands": [
+        [
+          "paper_architecture/check_manuscript.py"
+        ]
+      ],
+      "environment_record": "protocol_cost.json",
+      "gate": "paper_architecture_check_manuscript",
+      "max_output_bytes": 16777216,
+      "tier": "core",
+      "timeout": 15,
+      "watch": [
+        "paper_architecture/**"
+      ]
+    },
+    {
+      "commands": [
+        [
+          "paper_architecture/make_arxiv.py",
+          "--check"
+        ]
+      ],
+      "environment_record": "protocol_cost.json",
+      "gate": "paper_architecture_make_arxiv",
+      "max_output_bytes": 16777216,
+      "tier": "core",
+      "timeout": 15,
+      "watch": [
+        "paper_architecture/**"
+      ]
+    },
+    {
+      "commands": [
+        [
+          "paper_compactness/check_manuscript.py"
+        ],
+        [
+          "paper_compactness/check_manuscript.py",
+          "--self-test"
+        ]
+      ],
+      "environment_record": "protocol_cost.json",
+      "gate": "paper_compactness_check_manuscript",
+      "max_output_bytes": 16777216,
+      "tier": "core",
+      "timeout": 15,
+      "watch": [
+        "paper_compactness/**"
+      ]
+    },
+    {
+      "commands": [
+        [
+          "benchmarks/check_phase17_more_declaration.py"
+        ]
+      ],
+      "environment_record": "protocol_cost.json",
+      "gate": "check_phase17_more_declaration",
+      "max_output_bytes": 16777216,
+      "tier": "structural",
+      "timeout": 10,
+      "watch": [
+        "benchmarks/*phase17*",
+        "tests/*phase17*",
+        "docs/restart/*phase17*"
+      ]
+    },
+    {
+      "commands": [
+        [
+          "benchmarks/check_phase17_more.py"
+        ]
+      ],
+      "environment_record": "protocol_cost.json",
+      "gate": "check_phase17_more",
+      "max_output_bytes": 16777216,
+      "tier": "structural",
+      "timeout": 30,
+      "watch": [
+        "benchmarks/*phase17*",
+        "tests/*phase17*",
+        "docs/restart/*phase17*"
+      ]
+    },
+    {
+      "commands": [
+        [
+          "benchmarks/check_phase17_ceo_declaration.py"
+        ]
+      ],
+      "environment_record": "protocol_cost.json",
+      "gate": "check_phase17_ceo_declaration",
+      "max_output_bytes": 16777216,
+      "tier": "structural",
+      "timeout": 10,
+      "watch": [
+        "benchmarks/*phase17*",
+        "tests/*phase17*",
+        "docs/restart/*phase17*"
+      ]
+    },
+    {
+      "commands": [
+        [
+          "benchmarks/check_phase17_ceo.py"
+        ]
+      ],
+      "environment_record": "protocol_cost.json",
+      "gate": "check_phase17_ceo",
+      "max_output_bytes": 16777216,
+      "tier": "structural",
+      "timeout": 10,
+      "watch": [
+        "benchmarks/*phase17*",
+        "tests/*phase17*",
+        "docs/restart/*phase17*"
+      ]
+    },
+    {
+      "commands": [
+        [
+          "benchmarks/check_bank_policy_matrix.py"
+        ]
+      ],
+      "environment_record": "protocol_cost.json",
+      "gate": "check_bank_policy_matrix",
+      "max_output_bytes": 16777216,
+      "tier": "structural",
+      "timeout": 10,
+      "watch": [
+        "benchmarks/*bank_policy_matrix*",
+        "tests/*bank_policy_matrix*",
+        "docs/restart/*bank_policy_matrix*"
+      ]
+    },
+    {
+      "commands": [
+        [
+          "benchmarks/check_frame_coordinate_projection.py"
+        ]
+      ],
+      "environment_record": "frame_coordinate_projection.json",
+      "gate": "check_frame_coordinate_projection",
+      "max_output_bytes": 16777216,
+      "tier": "structural",
+      "timeout": 15,
+      "watch": [
+        "benchmarks/*frame_coordinate_projection*",
+        "tests/*frame_coordinate_projection*",
+        "docs/restart/*frame_coordinate_projection*"
+      ]
+    },
+    {
+      "commands": [
+        [
+          "benchmarks/check_mapping_axis.py"
+        ]
+      ],
+      "environment_record": "mapping_axis.json",
+      "gate": "check_mapping_axis",
+      "max_output_bytes": 16777216,
+      "tier": "structural",
+      "timeout": 20,
+      "watch": [
+        "benchmarks/*mapping_axis*",
+        "tests/*mapping_axis*",
+        "docs/restart/*mapping_axis*"
+      ]
+    },
+    {
+      "commands": [
+        [
+          "benchmarks/check_protocol_axis.py"
+        ]
+      ],
+      "environment_record": "protocol_axis.json",
+      "gate": "check_protocol_axis",
+      "max_output_bytes": 16777216,
+      "tier": "structural",
+      "timeout": 20,
+      "watch": [
+        "benchmarks/*protocol_axis*",
+        "tests/*protocol_axis*",
+        "docs/restart/*protocol_axis*"
+      ]
+    },
+    {
+      "commands": [
+        [
+          "benchmarks/check_priceability_screen.py"
+        ]
+      ],
+      "environment_record": "priceability_screen.json",
+      "gate": "check_priceability_screen",
+      "max_output_bytes": 16777216,
+      "tier": "structural",
+      "timeout": 10,
+      "watch": [
+        "benchmarks/*priceability_screen*",
+        "tests/*priceability_screen*",
+        "docs/restart/*priceability_screen*"
+      ]
+    },
+    {
+      "commands": [
+        [
+          "benchmarks/check_r3_environment_migration.py"
+        ]
+      ],
+      "environment_record": "priceability_screen.json",
+      "gate": "check_r3_environment_migration",
+      "max_output_bytes": 16777216,
+      "tier": "structural",
+      "timeout": 10,
+      "watch": [
+        "benchmarks/*r3*",
+        "tests/*r3*",
+        "docs/restart/*r3*"
+      ]
+    },
+    {
+      "commands": [
+        [
+          "benchmarks/check_r3b_preregistration.py"
+        ]
+      ],
+      "environment_record": "priceability_screen.json",
+      "gate": "check_r3b_preregistration",
+      "max_output_bytes": 16777216,
+      "tier": "structural",
+      "timeout": 10,
+      "watch": [
+        "benchmarks/*r3b*",
+        "tests/*r3b*",
+        "docs/restart/*r3b*"
+      ]
+    },
+    {
+      "commands": [
+        [
+          "benchmarks/check_r3c_preregistration.py"
+        ]
+      ],
+      "environment_record": "r3b_margin_stop_probe.json",
+      "gate": "check_r3c_preregistration",
+      "max_output_bytes": 16777216,
+      "tier": "structural",
+      "timeout": 10,
+      "watch": [
+        "benchmarks/*r3c*",
+        "tests/*r3c*",
+        "docs/restart/*r3c*"
+      ]
+    },
+    {
+      "commands": [
+        [
+          "benchmarks/check_r3d_preregistration.py"
+        ]
+      ],
+      "environment_record": "r3c_lih_full_cost.json",
+      "gate": "check_r3d_preregistration",
+      "inputs": [
+        "benchmarks/run_protocol_cost.py",
+        "benchmarks/run_exact_shot_search.py",
+        "benchmarks/configs/r3c_lih_full_cost.json"
+      ],
+      "max_output_bytes": 16777216,
+      "tier": "structural",
+      "timeout": 10,
+      "watch": [
+        "benchmarks/*r3d*",
+        "tests/*r3d*",
+        "docs/restart/*r3d*"
+      ]
+    },
+    {
+      "commands": [
+        [
+          "benchmarks/check_phase14b_preregistration.py"
+        ]
+      ],
+      "environment_record": "protocol_axis.json",
+      "gate": "check_phase14b_preregistration",
+      "max_output_bytes": 16777216,
+      "tier": "structural",
+      "timeout": 10,
+      "watch": [
+        "benchmarks/*phase14b*",
+        "tests/*phase14b*",
+        "docs/restart/*phase14b*"
+      ]
+    },
+    {
+      "commands": [
+        [
+          "benchmarks/check_r4a_preregistration.py"
+        ]
+      ],
+      "environment_record": "priceability_screen.json",
+      "gate": "check_r4a_preregistration",
+      "max_output_bytes": 16777216,
+      "tier": "structural",
+      "timeout": 10,
+      "watch": [
+        "benchmarks/*r4a*",
+        "tests/*r4a*",
+        "docs/restart/*r4a*"
+      ]
+    },
+    {
+      "commands": [
+        [
+          "benchmarks/check_phase16a_preregistration.py"
+        ]
+      ],
+      "environment_record": "protocol_axis.json",
+      "gate": "check_phase16a_preregistration",
+      "max_output_bytes": 16777216,
+      "tier": "structural",
+      "timeout": 15,
+      "watch": [
+        "benchmarks/*phase16a*",
+        "tests/*phase16a*",
+        "docs/restart/*phase16a*"
+      ]
+    },
+    {
+      "commands": [
+        [
+          "benchmarks/check_phase15_preregistration.py"
+        ]
+      ],
+      "environment_record": "bank_storage_ledger.json",
+      "gate": "check_phase15_preregistration",
+      "max_output_bytes": 16777216,
+      "tier": "structural",
+      "timeout": 10,
+      "watch": [
+        "benchmarks/*phase15*",
+        "tests/*phase15*",
+        "docs/restart/*phase15*"
+      ]
+    },
+    {
+      "commands": [
+        [
+          "benchmarks/check_phase15_extrapolation_preregistration.py"
+        ]
+      ],
+      "environment_record": "second_moment_validation.json",
+      "gate": "check_phase15_extrapolation_preregistration",
+      "max_output_bytes": 16777216,
+      "tier": "structural",
+      "timeout": 10,
+      "watch": [
+        "benchmarks/*phase15*",
+        "tests/*phase15*",
+        "docs/restart/*phase15*"
+      ]
+    },
+    {
+      "commands": [
+        [
+          "benchmarks/check_phase15_measured_residual_preregistration.py"
+        ]
+      ],
+      "environment_record": "second_moment_validation.json",
+      "gate": "check_phase15_measured_residual_preregistration",
+      "max_output_bytes": 16777216,
+      "tier": "structural",
+      "timeout": 10,
+      "watch": [
+        "benchmarks/*phase15*",
+        "tests/*phase15*",
+        "docs/restart/*phase15*"
+      ]
+    },
+    {
+      "commands": [
+        [
+          "benchmarks/check_phase15_residual_successor_declaration.py"
+        ]
+      ],
+      "environment_record": "second_moment_validation.json",
+      "gate": "check_phase15_residual_successor_declaration",
+      "max_output_bytes": 16777216,
+      "tier": "structural",
+      "timeout": 10,
+      "watch": [
+        "benchmarks/*phase15*",
+        "tests/*phase15*",
+        "docs/restart/*phase15*"
+      ]
+    },
+    {
+      "commands": [
+        [
+          "benchmarks/check_phase15_certifying_screen_declaration.py"
+        ]
+      ],
+      "environment_record": "phase15_residual_successor.json",
+      "gate": "check_phase15_certifying_screen_declaration",
+      "max_output_bytes": 16777216,
+      "tier": "structural",
+      "timeout": 10,
+      "watch": [
+        "benchmarks/*phase15*",
+        "tests/*phase15*",
+        "docs/restart/*phase15*"
+      ]
+    },
+    {
+      "commands": [
+        [
+          "benchmarks/check_phase15_certifying_krylov_declaration.py"
+        ]
+      ],
+      "environment_record": "phase15_certifying_screen.json",
+      "gate": "check_phase15_certifying_krylov_declaration",
+      "max_output_bytes": 16777216,
+      "tier": "structural",
+      "timeout": 10,
+      "watch": [
+        "benchmarks/*phase15*",
+        "tests/*phase15*",
+        "docs/restart/*phase15*"
+      ]
+    },
+    {
+      "commands": [
+        [
+          "benchmarks/check_phase15_fc_residual_declaration.py"
+        ]
+      ],
+      "environment_record": "phase15_residual_successor.json",
+      "gate": "check_phase15_fc_residual_declaration",
+      "max_output_bytes": 16777216,
+      "tier": "structural",
+      "timeout": 10,
+      "watch": [
+        "benchmarks/*phase15*",
+        "tests/*phase15*",
+        "docs/restart/*phase15*"
+      ]
+    },
+    {
+      "commands": [
+        [
+          "benchmarks/check_phase15_h2_preflight.py"
+        ]
+      ],
+      "environment_record": "phase15_h2_preflight.json",
+      "gate": "check_phase15_h2_preflight",
+      "max_output_bytes": 16777216,
+      "tier": "structural",
+      "timeout": 20,
+      "watch": [
+        "benchmarks/*phase15*",
+        "tests/*phase15*",
+        "docs/restart/*phase15*"
+      ]
+    },
+    {
+      "commands": [
+        [
+          "benchmarks/check_second_moment_validation.py"
+        ]
+      ],
+      "environment_record": "second_moment_validation.json",
+      "gate": "check_second_moment_validation",
+      "max_output_bytes": 16777216,
+      "tier": "structural",
+      "timeout": 25,
+      "watch": [
+        "benchmarks/*second_moment_validation*",
+        "tests/*second_moment_validation*",
+        "docs/restart/*second_moment_validation*"
+      ]
+    },
+    {
+      "commands": [
+        [
+          "benchmarks/check_folded_spectrum_validation.py"
+        ]
+      ],
+      "environment_record": "folded_spectrum_validation.json",
+      "gate": "check_folded_spectrum_validation",
+      "max_output_bytes": 16777216,
+      "tier": "structural",
+      "timeout": 25,
+      "watch": [
+        "benchmarks/*folded_spectrum_validation*",
+        "tests/*folded_spectrum_validation*",
+        "docs/restart/*folded_spectrum_validation*"
+      ]
+    },
+    {
+      "commands": [
+        [
+          "benchmarks/check_phase15_variance_extrapolation.py"
+        ]
+      ],
+      "environment_record": "phase15_variance_extrapolation.json",
+      "gate": "check_phase15_variance_extrapolation",
+      "max_output_bytes": 16777216,
+      "tier": "structural",
+      "timeout": 25,
+      "watch": [
+        "benchmarks/*phase15*",
+        "tests/*phase15*",
+        "docs/restart/*phase15*"
+      ]
+    },
+    {
+      "commands": [
+        [
+          "benchmarks/check_phase15_measured_residual_preflight.py"
+        ]
+      ],
+      "environment_record": "phase15_measured_residual_preflight.json",
+      "gate": "check_phase15_measured_residual_preflight",
+      "max_output_bytes": 16777216,
+      "tier": "structural",
+      "timeout": 25,
+      "watch": [
+        "benchmarks/*phase15*",
+        "tests/*phase15*",
+        "docs/restart/*phase15*"
+      ]
+    },
+    {
+      "commands": [
+        [
+          "benchmarks/check_phase15_residual_successor.py"
+        ]
+      ],
+      "environment_record": "phase15_residual_successor.json",
+      "gate": "check_phase15_residual_successor",
+      "max_output_bytes": 16777216,
+      "tier": "structural",
+      "timeout": 25,
+      "watch": [
+        "benchmarks/*phase15*",
+        "tests/*phase15*",
+        "docs/restart/*phase15*"
+      ]
+    },
+    {
+      "commands": [
+        [
+          "benchmarks/check_phase15_certifying_screen.py"
+        ]
+      ],
+      "environment_record": "phase15_certifying_screen.json",
+      "gate": "check_phase15_certifying_screen",
+      "max_output_bytes": 16777216,
+      "tier": "structural",
+      "timeout": 25,
+      "watch": [
+        "benchmarks/*phase15*",
+        "tests/*phase15*",
+        "docs/restart/*phase15*"
+      ]
+    },
+    {
+      "commands": [
+        [
+          "benchmarks/check_phase15_certifying_krylov.py"
+        ]
+      ],
+      "environment_record": "phase15_certifying_krylov.json",
+      "gate": "check_phase15_certifying_krylov",
+      "max_output_bytes": 16777216,
+      "tier": "structural",
+      "timeout": 15,
+      "watch": [
+        "benchmarks/*phase15*",
+        "tests/*phase15*",
+        "docs/restart/*phase15*"
+      ]
+    },
+    {
+      "commands": [
+        [
+          "benchmarks/check_phase15_fc_residual.py"
+        ]
+      ],
+      "environment_record": "phase15_fc_residual.json",
+      "gate": "check_phase15_fc_residual",
+      "max_output_bytes": 16777216,
+      "tier": "structural",
+      "timeout": 15,
+      "watch": [
+        "benchmarks/*phase15*",
+        "tests/*phase15*",
+        "docs/restart/*phase15*"
+      ]
+    },
+    {
+      "commands": [
+        [
+          "benchmarks/check_phase19_preregistration.py"
+        ]
+      ],
+      "environment_record": "protocol_cost.json",
+      "gate": "check_phase19_preregistration",
+      "max_output_bytes": 16777216,
+      "tier": "structural",
+      "timeout": 10,
+      "watch": [
+        "benchmarks/*phase19*",
+        "tests/*phase19*",
+        "docs/restart/*phase19*"
+      ]
+    },
+    {
+      "commands": [
+        [
+          "benchmarks/check_r4a_contextual_screen.py"
+        ]
+      ],
+      "environment_record": "r4a_contextual_screen.json",
+      "gate": "check_r4a_contextual_screen",
+      "max_output_bytes": 16777216,
+      "tier": "structural",
+      "timeout": 20,
+      "watch": [
+        "benchmarks/*r4a*",
+        "tests/*r4a*",
+        "docs/restart/*r4a*"
+      ]
+    },
+    {
+      "commands": [
+        [
+          "benchmarks/check_g1_structural_preconditioner.py"
+        ]
+      ],
+      "environment_record": "g1_structural_preconditioner.json",
+      "gate": "check_g1_structural_preconditioner",
+      "max_output_bytes": 16777216,
+      "tier": "structural",
+      "timeout": 15,
+      "watch": [
+        "benchmarks/*g1_structural_preconditioner*",
+        "tests/*g1_structural_preconditioner*",
+        "docs/restart/*g1_structural_preconditioner*"
+      ]
+    },
+    {
+      "commands": [
+        [
+          "benchmarks/check_bank_storage_ledger.py"
+        ]
+      ],
+      "environment_record": "bank_storage_ledger.json",
+      "gate": "check_bank_storage_ledger",
+      "max_output_bytes": 16777216,
+      "tier": "structural",
+      "timeout": 15,
+      "watch": [
+        "benchmarks/*bank_storage_ledger*",
+        "tests/*bank_storage_ledger*",
+        "docs/restart/*bank_storage_ledger*"
+      ]
+    },
+    {
+      "commands": [
+        [
+          "benchmarks/check_packed_bank_storage.py"
+        ]
+      ],
+      "environment_record": "packed_bank_storage.json",
+      "gate": "check_packed_bank_storage",
+      "max_output_bytes": 16777216,
+      "tier": "structural",
+      "timeout": 25,
+      "watch": [
+        "benchmarks/*packed_bank_storage*",
+        "tests/*packed_bank_storage*",
+        "docs/restart/*packed_bank_storage*"
+      ]
+    },
+    {
+      "commands": [
+        [
+          "benchmarks/check_packet_budget_convergence.py"
+        ]
+      ],
+      "environment_record": "protocol_cost.json",
+      "gate": "check_packet_budget_convergence",
+      "max_output_bytes": 16777216,
+      "tier": "structural",
+      "timeout": 30,
+      "watch": [
+        "benchmarks/*packet_budget_convergence*",
+        "tests/*packet_budget_convergence*",
+        "docs/restart/*packet_budget_convergence*"
+      ]
+    },
+    {
+      "commands": [
+        [
+          "benchmarks/check_r3b_margin_stop_probe.py"
+        ]
+      ],
+      "environment_record": "r3b_margin_stop_probe.json",
+      "gate": "check_r3b_margin_stop_probe",
+      "manual_only": true,
+      "max_output_bytes": 67108864,
+      "tier": "sampled",
+      "timeout": 30,
+      "watch": [
+        "benchmarks/*r3b*",
+        "tests/*r3b*",
+        "docs/restart/*r3b*"
+      ]
+    },
+    {
+      "commands": [
+        [
+          "benchmarks/check_finite_shot_rethink.py"
+        ]
+      ],
+      "environment_record": "finite_shot_rethink.json",
+      "gate": "check_finite_shot_rethink",
+      "manual_only": true,
+      "max_output_bytes": 67108864,
+      "tier": "sampled",
+      "timeout": 20,
+      "watch": [
+        "benchmarks/*finite_shot_rethink*",
+        "tests/*finite_shot_rethink*",
+        "docs/restart/*finite_shot_rethink*"
+      ]
+    },
+    {
+      "commands": [
+        [
+          "benchmarks/check_matched_h4.py"
+        ]
+      ],
+      "environment_record": "matched_h4.json",
+      "gate": "check_matched_h4",
+      "manual_only": true,
+      "max_output_bytes": 67108864,
+      "tier": "sampled",
+      "timeout": 30,
+      "watch": [
+        "benchmarks/*matched_h4*",
+        "tests/*matched_h4*",
+        "docs/restart/*matched_h4*"
+      ]
+    },
+    {
+      "commands": [
+        [
+          "benchmarks/check_qr3b_instance_preflight.py"
+        ]
+      ],
+      "environment_record": "qr3b_instance_preflight.json",
+      "gate": "check_qr3b_instance_preflight",
+      "manual_only": true,
+      "max_output_bytes": 67108864,
+      "tier": "sampled",
+      "timeout": 150,
+      "watch": [
+        "benchmarks/*qr3b_instance_preflight*",
+        "tests/*qr3b_instance_preflight*",
+        "docs/restart/*qr3b_instance_preflight*"
+      ]
+    },
+    {
+      "commands": [
+        [
+          "benchmarks/check_exact_shot_search.py"
+        ]
+      ],
+      "environment_record": "exact_shot_search.json",
+      "gate": "check_exact_shot_search",
+      "manual_only": true,
+      "max_output_bytes": 67108864,
+      "tier": "sampled",
+      "timeout": 120,
+      "watch": [
+        "benchmarks/*exact_shot_search*",
+        "tests/*exact_shot_search*",
+        "docs/restart/*exact_shot_search*"
+      ]
+    },
+    {
+      "commands": [
+        [
+          "benchmarks/check_protocol_cost.py"
+        ]
+      ],
+      "environment_record": "protocol_cost.json",
+      "gate": "check_protocol_cost",
+      "manual_only": true,
+      "max_output_bytes": 67108864,
+      "tier": "sampled",
+      "timeout": 210,
+      "watch": [
+        "benchmarks/*protocol_cost*",
+        "tests/*protocol_cost*",
+        "docs/restart/*protocol_cost*"
+      ]
+    },
+    {
+      "commands": [
+        [
+          "benchmarks/check_r3c_lih_full_cost.py"
+        ]
+      ],
+      "environment_record": "r3c_lih_full_cost.json",
+      "gate": "check_r3c_lih_full_cost",
+      "manual_only": true,
+      "max_output_bytes": 67108864,
+      "tier": "sampled",
+      "timeout": 180,
+      "watch": [
+        "benchmarks/*r3c*",
+        "tests/*r3c*",
+        "docs/restart/*r3c*"
+      ]
+    },
+    {
+      "commands": [
+        [
+          "benchmarks/check_r3d_qr3_refinement.py"
+        ]
+      ],
+      "environment_record": "r3d_qr3_refinement.json",
+      "gate": "check_r3d_qr3_refinement",
+      "manual_only": true,
+      "max_output_bytes": 67108864,
+      "tier": "sampled",
+      "timeout": 120,
+      "watch": [
+        "benchmarks/*r3d*",
+        "tests/*r3d*",
+        "docs/restart/*r3d*"
+      ]
+    },
+    {
+      "commands": [
+        [
+          "benchmarks/check_phase14b_qwc_vs_fc.py"
+        ]
+      ],
+      "environment_record": "phase14b_qwc_vs_fc.json",
+      "gate": "check_phase14b_qwc_vs_fc",
+      "manual_only": true,
+      "max_output_bytes": 67108864,
+      "tier": "sampled",
+      "timeout": 30,
+      "watch": [
+        "benchmarks/*phase14b_qwc_vs_fc*",
+        "tests/*phase14b_qwc_vs_fc*",
+        "docs/restart/*phase14b_qwc_vs_fc*"
+      ]
+    },
+    {
+      "commands": [
+        [
+          "benchmarks/check_phase19_energy_comparison.py"
+        ]
+      ],
+      "environment_record": "protocol_cost.json",
+      "gate": "check_phase19_energy_comparison",
+      "manual_only": true,
+      "max_output_bytes": 67108864,
+      "tier": "sampled",
+      "timeout": 60,
+      "watch": [
+        "benchmarks/*phase19*",
+        "tests/*phase19*",
+        "docs/restart/*phase19*"
+      ]
+    },
+    {
+      "commands": [
+        [
+          "benchmarks/check_phase16a_te_qsci.py"
+        ]
+      ],
+      "environment_record": "phase16a_te_qsci.json",
+      "gate": "check_phase16a_te_qsci",
+      "manual_only": true,
+      "max_output_bytes": 67108864,
+      "tier": "sampled",
+      "timeout": 20,
+      "watch": [
+        "benchmarks/*phase16a_te_qsci*",
+        "tests/*phase16a_te_qsci*",
+        "docs/restart/*phase16a_te_qsci*"
+      ]
+    },
+    {
+      "commands": [
+        [
+          "benchmarks/check_record_environment.py"
+        ]
+      ],
+      "environment_record": "protocol_cost.json",
+      "gate": "check_record_environment",
+      "max_output_bytes": 16777216,
+      "tier": "core",
+      "timeout": 10,
+      "watch": [
+        "benchmarks/*record_environment*",
+        "tests/*record_environment*",
+        "docs/restart/*record_environment*"
+      ]
+    },
+    {
+      "artifacts": [
+        ".ci-receipts/replay_sampled_ratio/verification.json"
+      ],
+      "commands": [
+        [
+          "benchmarks/replay_verification.py",
+          "--campaign",
+          "sampled_ratio",
+          "--output",
+          ".ci-receipts/replay_sampled_ratio/verification.json"
+        ]
+      ],
+      "environment_record": "protocol_cost.json",
+      "execution_declaration": "docs/restart/sampled_ratio_results.json",
+      "gate": "replay_sampled_ratio",
+      "inputs": [
+        "docs/restart/sampled_ratio_declaration.json",
+        "docs/restart/sampled_ratio_results.json"
+      ],
+      "max_output_bytes": 67108864,
+      "tier": "sampled",
+      "timeout": 90,
+      "watch": [
+        "benchmarks/*sampled_ratio*",
+        "docs/restart/*sampled_ratio*"
+      ]
+    },
+    {
+      "artifacts": [
+        ".ci-receipts/replay_cross_domain_ratio/verification.json"
+      ],
+      "commands": [
+        [
+          "benchmarks/replay_verification.py",
+          "--campaign",
+          "cross_domain_ratio",
+          "--output",
+          ".ci-receipts/replay_cross_domain_ratio/verification.json"
+        ]
+      ],
+      "environment_record": "protocol_cost.json",
+      "execution_declaration": "docs/restart/cross_domain_ratio_declaration.json",
+      "gate": "replay_cross_domain_ratio",
+      "inputs": [
+        "docs/restart/cross_domain_ratio_declaration.json",
+        "docs/restart/sampled_ratio_declaration.json",
+        "docs/restart/sampled_ratio_results.json",
+        "benchmarks/run_sampled_ratio.py"
+      ],
+      "max_output_bytes": 67108864,
+      "tier": "sampled",
+      "timeout": 120,
+      "watch": [
+        "benchmarks/*cross_domain_ratio*",
+        "docs/restart/*cross_domain_ratio*",
+        "tests/test_cross_domain_checker.py",
+        "docs/restart/CROSS_DOMAIN_RATIO.md"
+      ]
+    }
+  ],
+  "schema": "clifford_qc.ci_gates.v1"
+}

@@ -60,6 +60,7 @@
       "check_r3d_preregistration",
       "check_r4a_contextual_screen",
       "check_r4a_preregistration",
+      "check_record_environment",
       "check_sampled_ratio",
       "check_second_moment_validation",
       "check_sparse_ga_kernel",
@@ -81,7 +82,10 @@
       "Sampled inference accounting": 2,
       "Value-rebuilt": 31
     },
-    "dispatch_gates": [
+    "conditional_gates": [],
+    "conditionally_selected": 0,
+    "full_replay": 11,
+    "full_replay_gates": [
       "check_exact_shot_search",
       "check_finite_shot_rethink",
       "check_matched_h4",
@@ -92,15 +96,13 @@
       "check_qr3b_instance_preflight",
       "check_r3b_margin_stop_probe",
       "check_r3c_lih_full_cost",
-      "check_r3d_qr3_refinement",
-      "check_record_environment"
+      "check_r3d_qr3_refinement"
     ],
     "gates": 75,
-    "manual_dispatch_only": 12,
     "named_in_workflow": 68,
     "producers": 73,
     "producers_without_gate": 25,
-    "run_on_every_pull_request": 56,
+    "run_on_every_pull_request": 57,
     "same_stem_pairs": 48
   },
   "records": {
@@ -201,7 +203,7 @@
       "structural": 6
     }
   },
-  "schema": "clifford_qc.architecture_paper_census.v1",
+  "schema": "clifford_qc.architecture_paper_census.v2",
   "source": {
     "layers": {
       "algorithms": {
@@ -251,7 +253,7 @@
     },
     "package_lines": 32964,
     "package_modules": 126,
-    "test_lines": 42647,
-    "test_modules": 180
+    "test_lines": 43351,
+    "test_modules": 183
   }
 }

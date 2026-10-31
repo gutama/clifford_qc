@@ -216,6 +216,20 @@ def test_ci_gate_sets_detects_a_same_size_policy_swap(tmp_path, monkeypatch):
     assert dispatch == {"check_protocol_cost"}
 
 
+def test_ci_registry_census_detects_same_size_tier_swap(tmp_path, monkeypatch):
+    registry = json.loads(make_tables.CI_REGISTRY.read_text())
+    for gate in registry["gates"]:
+        if gate["gate"] == "check_docs": gate["tier"] = "sampled"
+        if gate["gate"] == "check_protocol_cost": gate["tier"] = "core"
+    path = tmp_path/"gates.json"
+    path.write_text(json.dumps(registry))
+    monkeypatch.setattr(make_tables, "CI_REGISTRY", path)
+    every, conditional, full = make_tables.ci_gate_policy()
+    assert "check_protocol_cost" in every and "check_docs" not in every
+    assert not conditional
+    assert "check_docs" in full and "check_protocol_cost" not in full
+
+
 # --- the committed fragments are what the generator produces ---------------
 def test_committed_fragments_match_a_fresh_generation():
     """A hand edit changes no input hash, so only regeneration catches it."""

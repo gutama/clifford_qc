@@ -835,14 +835,15 @@ default unchanged.
 The benchmark directory separates record generation from validation. \cqcProducers{}
 producers write records.  \cqcGates{} gates read them.  \cqcGatesInWorkflow{}
 are named in the continuous-integration workflow, and the distinction inside
-that number matters: \cqcGatesAutomatic{} run on every pull request, while
-\cqcGatesDispatch{} require a manual dispatch.  Of that dispatch-only set, all
-but the separate environment-consistency audit draw replicas or rebuild records
-from sampled evidence, and cost runner-hours.  \cqcGatesAbsent{} exist in the
-repository but in no workflow at all.  The short automatic gates are individual named steps
-with continuation guards; structural and sampled gates are separately named
-matrix jobs whose matrices disable fail-fast, so a drift suite reports every
-symptom rather than the first within each execution class.
+that number matters: \cqcGatesAutomatic{} run on every pull request,
+\cqcGatesConditional{} are conditional checker entries, and
+\cqcGatesFullReplay{} legacy sampled checkers require explicit dispatch.
+Restart full-seed verification runners additionally execute on affected source
+or CI changes and weekly. They preserve the legacy manual-only contracts.
+Global environment consistency runs with the every-PR checks.  \cqcGatesAbsent{} exist in the repository but
+in no workflow at all.  A shared subprocess runner preserves each command's
+failure and execution receipt.  Structural and sampled matrix jobs disable
+fail-fast, so a drift suite reports every symptom within each execution class.
 
 \begin{table*}
   \caption{What each class of benchmark gate asserts.  Counts are recomputed
