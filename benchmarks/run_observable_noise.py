@@ -38,6 +38,16 @@ SOURCES = ["clifford_qc/diagnostics.py", "benchmarks/run_observable_noise.py",
            "clifford_qc/models/lattice.py", "clifford_qc/models/fcidump.py",
            "clifford_qc/multivector.py", "clifford_qc/fermion.py",
            "benchmarks/data/h4_sto3g_r0.9.FCIDUMP"]
+TAU_S, MAX_CONDITION = 1e-8, 1e8
+MAX_DENSE_QUBITS = 8
+# Explicit case table: no name parsing, no fallthrough to another model.
+CASES = {"plus4": ("plus", 4), "plus8": ("plus", 8), "ghz4": ("ghz", 4), "ghz8": ("ghz", 8),
+         "tfim4": ("tfim", 4), "tfim6": ("tfim", 6), "hubbard2": ("hubbard", 2),
+         "h4": ("h4", None)}
+# Same-spin hop between alpha modes. In the H4 reference the orbital 0-1 hop
+# (modes 0, 2) has exactly zero S and H coupling to I and Z0, so it would
+# decouple; orbitals 0-2 (modes 0, 4) couple. Hubbard modes 0, 2 are sites 0, 1.
+MIXED_HOP_MODES = {"hubbard2": (0, 2), "h4": (0, 4)}
 
 
 def word(n, **factors):
@@ -75,19 +85,25 @@ def dense_noise(rho, kind, strength):
 
 
 def inputs(name):
-    fermionic = name in {"hubbard2", "h4"}
-    if name.startswith(("plus", "ghz")):
-        n = int(name[-1])
+    """Build one declared case; unknown names and large registers are rejected."""
+    if name not in CASES:
+        raise ValueError(f"unknown observable-noise case {name!r}")
+    family, size = CASES[name]
+    fermionic = family in {"hubbard", "h4"}
+    model = (tfim(size, h=1.2) if family == "tfim" else
+             hubbard(size, U=4.) if family == "hubbard" else
+             fcidump_model(ROOT/"benchmarks/data/h4_sto3g_r0.9.FCIDUMP") if family == "h4"
+             else None)
+    n = size if model is None else model.n
+    if not 1 <= n <= MAX_DENSE_QUBITS:
+        raise ValueError("the dense assessment oracle is bounded to eight qubits")
+    if model is None:
         psi = np.ones(2**n, complex)/np.sqrt(2**n)
-        if name.startswith("ghz"):
+        if family == "ghz":
             psi[:] = 0
             psi[[0, -1]] = 1/np.sqrt(2)
         h = -sum((word(n, **{str(j): "Z", str(j+1): "Z"}) for j in range(n-1)), MV(n))
     else:
-        model = (tfim(int(name[-1]), h=1.2) if name.startswith("tfim") else
-                 hubbard(2, U=4.) if name == "hubbard2" else
-                 fcidump_model(ROOT/"benchmarks/data/h4_sto3g_r0.9.FCIDUMP"))
-        n = model.n
         h = model.hamiltonian.to_mv()
         matrix = to_matrix(h)
         indices = np.arange(2**n)
@@ -100,13 +116,16 @@ def inputs(name):
         psi[indices] = vectors[:, 0]
     one = MV.scalar(n, 1)
     z0, z1 = word(n, **{"0": "Z"}), word(n, **{"1": "Z"})
-    observables = {"Z0": z0, "X0": word(n, **{"0": "X"}), "Z0Z1": z0*z1,
-                   "X0X1": word(n, **{"0": "X", "1": "X"}),
+    # Y0 makes recorded duality sensitive to the coherent rotation sense:
+    # E†(Y0)=cos(theta) Y0+sin(theta) X0, and <X0> is nonzero for plus/TFIM.
+    observables = {"Z0": z0, "X0": word(n, **{"0": "X"}), "Y0": word(n, **{"0": "Y"}),
+                   "Z0Z1": z0*z1, "X0X1": word(n, **{"0": "X", "1": "X"}),
                    "Z_parity": MV.from_label("Z"*n), "energy": h}
     if fermionic:
         observables["particle_number"] = sum((.5*(one-word(n, **{str(j): "Z"}))
                                                for j in range(n)), MV(n))
-        hop = cdag_op(n, 0)*c_op(n, 2) + cdag_op(n, 2)*c_op(n, 0)
+        a, b = MIXED_HOP_MODES[name]
+        hop = cdag_op(n, a)*c_op(n, b) + cdag_op(n, b)*c_op(n, a)
     else:
         hop = word(n, **{"0": "X"})
     generators = {"diagonal": [one, z0, z1], "mixed": [one, z0, hop]}
@@ -124,13 +143,13 @@ def blocks(h, generators):
 
 
 def projection(s, h):
-    result = solve_projected(s, h, tau_s=1e-8, max_condition=1e8)
-    diagonal = np.sqrt(np.clip(np.diag(s).real, 1e-30, None))
-    spectrum = np.linalg.eigvalsh(s/diagonal[:, None]/diagonal[None, :])
-    retained = spectrum[spectrum > max(1e-8, spectrum[-1]/1e8)]
-    return {"energy": float(result.ground_energy), "retained_rank": len(retained),
-            "normalized_overlap_eigenvalues": spectrum.tolist(),
-            "retained_condition": float(retained[-1]/retained[0])}
+    """Read retention from the solver itself rather than re-deriving it."""
+    result = solve_projected(s, h, tau_s=TAU_S, max_condition=MAX_CONDITION)
+    if result.resources["dropped_generators"]:
+        raise ValueError("a generator annihilates the reference state")
+    return {"energy": float(result.ground_energy), "retained_rank": int(result.effective_rank),
+            "normalized_overlap_eigenvalues": sorted(float(v) for v in result.overlap_eigenvalues),
+            "retained_condition": float(result.condition_number)}
 
 
 def run(config):
@@ -140,14 +159,17 @@ def run(config):
         rho = np.outer(psi, psi.conj())
         dense_observables = {key: to_matrix(o) for key, o in observables.items()}
         ideal = {key: float(np.vdot(psi, o @ psi).real) for key, o in dense_observables.items()}
+        spectrum = np.linalg.eigvalsh(dense_observables["energy"])
         prepared = {}
         for arm, gens in generators.items():
             s, hm = blocks(h, gens)
             dense_s = [[to_matrix(o) for o in row] for row in s]
             dense_h = [[to_matrix(o) for o in row] for row in hm]
-            prepared[arm] = (s, hm, dense_s, dense_h,
-                             projection(pair(rho, dense_s), pair(rho, dense_h)))
+            ideal_pencil = {"S": pair(rho, dense_s), "H": pair(rho, dense_h)}
+            prepared[arm] = (s, hm, dense_s, dense_h, ideal_pencil,
+                             projection(ideal_pencil["S"], ideal_pencil["H"]))
         cases.append({"case": name, "n": n, "ideal_observables": ideal,
+                      "hamiltonian_extreme_eigenvalues": [float(spectrum[0]), float(spectrum[-1])],
                       "ideal_projections": {a: data[-1] for a, data in prepared.items()}})
         for kind in config["channels"]:
             for p in config["strengths"]:
@@ -159,18 +181,34 @@ def run(config):
                        "hermiticity_defect": float(np.linalg.norm(noisy-noisy.conj().T)),
                        "observables": {}, "spans": {}, "projections": {}}
                 for key, op in observables.items():
-                    value = float(np.einsum("ij,ji->", noisy, dense_observables[key]).real)
-                    heisenberg = float(np.vdot(psi, to_matrix(image(op)) @ psi).real)
-                    row["observables"][key] = {"value": value, "absolute_error": abs(value-ideal[key]),
-                        "duality_defect": abs(value-heisenberg), **observable_defect(op, image(op))}
-                for arm, (s, hm, ds, dh, baseline) in prepared.items():
+                    mapped = image(op)
+                    value = np.einsum("ij,ji->", noisy, dense_observables[key])
+                    heisenberg = np.vdot(psi, to_matrix(mapped) @ psi)
+                    # Complex comparison: imaginary parts are checked as well.
+                    row["observables"][key] = {"value": float(value.real),
+                        "absolute_error": abs(float(value.real)-ideal[key]),
+                        "duality_defect": float(abs(value-heisenberg)),
+                        **observable_defect(op, mapped)}
+                for arm, (s, hm, ds, dh, ideal_pencil, baseline) in prepared.items():
+                    noisy_pencil = {"S": pair(noisy, ds), "H": pair(noisy, dh)}
+                    bounds, drifts = {}, {}
                     for label, ops in (("S", s), ("H", hm)):
                         row["spans"][arm+"_"+label] = operator_span_diagnostics(
                             [o for group in ops for o in group], image)
-                    projected = projection(pair(noisy, ds), pair(noisy, dh))
-                    projected["absolute_energy_drift"] = abs(projected["energy"]-baseline["energy"])
-                    projected["overlap_frobenius_drift"] = float(np.linalg.norm(pair(noisy, ds)-pair(rho, ds)))
-                    projected["hamiltonian_frobenius_drift"] = float(np.linalg.norm(pair(noisy, dh)-pair(rho, dh)))
+                        bound = np.array([[observable_defect(o, image(o))["bias_bound_pauli_l1"]
+                                           for o in group] for group in ops])
+                        drift = np.abs(noisy_pencil[label]-ideal_pencil[label])
+                        if np.any(drift > bound+1e-9):
+                            raise RuntimeError("pencil entry drift exceeds its state-independent bound")
+                        bounds[label], drifts[label] = float(bound.max()), float(drift.max())
+                    projected = projection(noisy_pencil["S"], noisy_pencil["H"])
+                    projected["signed_energy_drift"] = projected["energy"]-baseline["energy"]
+                    projected["absolute_energy_drift"] = abs(projected["signed_energy_drift"])
+                    projected["retained_rank_changed"] = projected["retained_rank"] != baseline["retained_rank"]
+                    projected["overlap_frobenius_drift"] = float(np.linalg.norm(noisy_pencil["S"]-ideal_pencil["S"]))
+                    projected["hamiltonian_frobenius_drift"] = float(np.linalg.norm(noisy_pencil["H"]-ideal_pencil["H"]))
+                    projected["max_entry_drift"] = drifts
+                    projected["max_entry_bias_bound_pauli_l1"] = bounds
                     row["projections"][arm] = projected
                 rows.append(row)
     return {"schema": "clifford_qc.observable_noise.v1", "design": config,
@@ -185,24 +223,27 @@ def verify(record, *, design=None):
     design = read_json(CONFIG) if design is None else design
     if record["design"] != design:
         raise ValueError("record differs from the required design")
+    expected = len(design["cases"])*len(design["channels"])*len(design["strengths"])
+    if len(record["rows"]) != expected:
+        raise ValueError("record does not hold the complete declared grid")
     regenerated = run(design)
     def compare(a, b, path="record"):
         if isinstance(b, dict):
-            if set(a) != set(b):
+            if not isinstance(a, dict) or set(a) != set(b):
                 raise ValueError("key mismatch at "+path)
             for k in b:
                 if k != "environment":
                     compare(a[k], b[k], path+"/"+k)
         elif isinstance(b, list):
-            if len(a) != len(b):
+            if not isinstance(a, list) or len(a) != len(b):
                 raise ValueError("length mismatch at "+path)
             for j, (x, y) in enumerate(zip(a, b)):
                 compare(x, y, path+f"/{j}")
         elif isinstance(b, float):
-            atol = 2e-7 if path.endswith("max_principal_angle_radians") else 2e-9
-            if not isinstance(a, (float, int)) or not np.isfinite(a) or not np.isclose(a, b, atol=atol, rtol=1e-8):
+            if (isinstance(a, bool) or not isinstance(a, (float, int)) or not np.isfinite(a)
+                    or not np.isclose(a, b, atol=2e-9, rtol=1e-8)):
                 raise ValueError("numeric mismatch at "+path)
-        elif a != b:
+        elif type(a) is not type(b) or a != b:
             raise ValueError("value mismatch at "+path)
     compare(record, regenerated)
     for row in record["rows"]:
@@ -213,6 +254,10 @@ def verify(record, *, design=None):
                 raise ValueError("Schrodinger/Heisenberg disagreement")
             if value["absolute_error"] > value["bias_bound_pauli_l1"]+1e-9:
                 raise ValueError("observable error exceeds state-independent bound")
+        for projected in row["projections"].values():
+            for label in ("S", "H"):
+                if projected["max_entry_drift"][label] > projected["max_entry_bias_bound_pauli_l1"][label]+1e-9:
+                    raise ValueError("pencil entry drift exceeds state-independent bound")
     return len(record["rows"])
 
 

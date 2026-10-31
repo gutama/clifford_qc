@@ -9,7 +9,8 @@
   "qubit_order": "q0 is leftmost tensor factor; interleaved alpha/beta fermionic modes",
   "references": "plus/GHZ analytic controls; exact TFIM ground; Hubbard/H4 lowest N=n/2, Sz=0 sector eigenstate; assessment oracles only",
   "spans": "all complex S_ij=A_i†A_j and H_ij=A_i†H A_j rows separately, for fixed diagonal and mixed generator arms",
-  "generators": "diagonal=[I,Z0,Z1]; mixed spin=[I,Z0,X0]; mixed fermion=[I,Z0,c0†c2+c2†c0]",
-  "solver": "solve_projected, tau_s=1e-8, max_condition=1e8; drift measured against noiseless same-arm Ritz value",
+  "generators": "diagonal=[I,Z0,Z1]; mixed spin=[I,Z0,X0]; mixed fermion=[I,Z0,ca†cb+cb†ca], (a,b)=(0,2) for hubbard2 (alpha, sites 0-1) and (0,4) for h4 (alpha, spatial orbitals 0-2; the orbital 0-1 hop has zero S/H coupling to I and Z0 in the H4 reference)",
+  "observables": "Z0, X0, Y0, Z0Z1, X0X1, Z parity, energy; particle number for fermions. Y0 makes recorded duality sensitive to the z_rotation sense",
+  "solver": "solve_projected, tau_s=1e-8, max_condition=1e8; signed and absolute drift against the noiseless same-arm Ritz value, with a flag when the retained rank differs from that baseline",
   "limitations": ["at most eight qubits", "no gate-resolved or correlated noise", "no finite-shot estimator or mitigation", "no device or resource advantage claim", "no general molecular chemical-accuracy claim"]
 }

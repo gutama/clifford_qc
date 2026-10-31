@@ -1440,9 +1440,13 @@
         [
           "benchmarks/run_observable_noise.py",
           "--check"
+        ],
+        [
+          "benchmarks/check_observable_noise.py"
         ]
       ],
       "environment_record": "protocol_cost.json",
+      "execution_declaration": "docs/restart/observable_noise_results.json.gz",
       "gate": "replay_observable_noise",
       "inputs": [
         "docs/restart/observable_noise_design.json",

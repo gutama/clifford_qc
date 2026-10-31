@@ -221,9 +221,16 @@ def operator_span_diagnostics(operators: Sequence[MV],
     image_u, image_s, _ = np.linalg.svd(mapped, full_matrices=False)
     # Absolute resolution relative to a unit input direction detects annihilation.
     image_rank = int(np.count_nonzero(image_s > rtol*max(1., image_s[0])))
-    cosines = np.linalg.svd(q.conj().T @ image_u[:, :image_rank], compute_uv=False)
-    angle = (math.pi/2 if image_rank < rank else
-             math.acos(float(np.clip(cosines[-1], 0, 1))))
+    if image_rank < rank:
+        angle = math.pi/2
+    else:
+        # For equal dimensions the largest angle has cosine sigma_min(Q†U) and
+        # sine sigma_max((I-QQ†)U); atan2 keeps both ends accurate, where
+        # acos alone loses half the digits near zero.
+        basis = image_u[:, :image_rank]
+        cosine = np.linalg.svd(q.conj().T @ basis, compute_uv=False)[-1]
+        sine = np.linalg.norm(basis-q @ (q.conj().T @ basis), 2)
+        angle = math.atan2(float(sine), float(cosine))
     defect_s = np.linalg.svd(defect, compute_uv=False)
     return {"rank": rank, "image_rank": image_rank, "support_rows": len(support),
             "leakage": float(np.linalg.norm(leakage, 2)),

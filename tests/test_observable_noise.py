@@ -1,11 +1,16 @@
 """Independent dense Kraus controls and falsification of geometric shortcuts."""
 import copy
 import unittest
+from unittest import mock
 
 import numpy as np
 
-from benchmarks.run_observable_noise import dense_noise, inputs, run, verify
+import benchmarks.check_observable_noise as independent
+import benchmarks.run_observable_noise as producer
+from benchmarks.experiment_artifacts import read_json
+from benchmarks.run_observable_noise import blocks, dense_noise, inputs, pair, run, verify
 from clifford_qc.channels import amplitude_damping, dephasing, depolarizing
+from clifford_qc.fermion import c_op, cdag_op
 from clifford_qc.dense_reference import to_matrix
 from clifford_qc.multivector import MV
 from clifford_qc.diagnostics import (
@@ -150,6 +155,95 @@ class ObservableNoiseTests(unittest.TestCase):
                 verify(changed, design=record["design"])
         with self.assertRaises(ValueError):
             verify(record)
+
+    def test_unknown_cases_and_large_registers_are_rejected(self):
+        for name in ("hubbard3", "plus10", "tfim6x", ""):
+            with self.subTest(name=name), self.assertRaises(ValueError):
+                inputs(name)
+        with mock.patch.dict(producer.CASES, {"plus9": ("plus", 9)}):
+            with self.assertRaises(ValueError):
+                inputs("plus9")
+
+    def test_recorded_duality_detects_reversed_rotation(self):
+        correct = producer.local_noise_adjoint
+
+        def reversed_rotation(op, kind, p):
+            return correct(op, kind, -p if kind == "z_rotation" else p)
+
+        config = {"cases": ["plus4", "tfim4"], "channels": ["z_rotation"], "strengths": [.4]}
+        def worst(record):
+            return max(v["duality_defect"] for r in record["rows"] for v in r["observables"].values())
+        self.assertLess(worst(run(config)), 1e-12)
+        with mock.patch.object(producer, "local_noise_adjoint", reversed_rotation):
+            self.assertGreater(worst(run(config)), .1)
+
+    def test_h4_mixed_hop_couples_to_reference(self):
+        n, h, psi, _, generators = inputs("h4")
+        rho = np.outer(psi, psi.conj())
+
+        def coupling(gens):
+            s, hm = blocks(h, gens)
+            dense = [pair(rho, [[to_matrix(o) for o in row] for row in ops]) for ops in (s, hm)]
+            return [float(np.abs(m[:2, 2]).max()) for m in dense]
+
+        self.assertGreater(min(coupling(generators["mixed"])), 1e-3)
+        forbidden = cdag_op(n, 0)*c_op(n, 2) + cdag_op(n, 2)*c_op(n, 0)
+        self.assertLess(max(coupling(generators["mixed"][:2] + [forbidden])), 1e-10)
+
+    def test_signed_drift_rank_change_and_entry_bounds_are_recorded(self):
+        record = run({"cases": ["plus4"], "channels": ["amplitude_damping"], "strengths": [0., .2]})
+        still, damped = record["rows"]
+        self.assertFalse(still["projections"]["mixed"]["retained_rank_changed"])
+        mixed = damped["projections"]["mixed"]
+        self.assertTrue(mixed["retained_rank_changed"])
+        self.assertLess(mixed["signed_energy_drift"], 0)
+        self.assertEqual(mixed["absolute_energy_drift"], -mixed["signed_energy_drift"])
+        for arm in damped["projections"].values():
+            for label in ("S", "H"):
+                self.assertLessEqual(arm["max_entry_drift"][label],
+                                     arm["max_entry_bias_bound_pauli_l1"][label]+1e-12)
+
+    def test_principal_angle_is_accurate_near_zero(self):
+        theta = 1e-6
+        result = operator_span_diagnostics([MV.from_label("X")],
+                                           lambda o: local_noise_adjoint(o, "z_rotation", theta))
+        self.assertAlmostEqual(result["max_principal_angle_radians"], theta, delta=1e-15)
+
+    def test_independent_checker_rebuilds_committed_headline_rows(self):
+        headline = {("tfim6", "dephasing", .4), ("hubbard2", "dephasing", .4),
+                    ("ghz8", "z_rotation", .4), ("h4", "dephasing", .005),
+                    ("h4", "dephasing", .4), ("h4", "depolarizing", .2),
+                    ("plus8", "depolarizing", .02)}
+        problems = independent.check(read_json(independent.RECORD), read_json(independent.DESIGN),
+                                     doc_text=independent.DOC.read_text(encoding="utf-8"),
+                                     select=lambda *key: key in headline)
+        self.assertEqual(problems, [])
+
+    def test_independent_checker_rejects_tampering(self):
+        design = {"cases": ["tfim4", "hubbard2"], "channels": ["amplitude_damping"], "strengths": [.2]}
+        record = run(design)
+        self.assertEqual(independent.check(record, design, pinned=False), [])
+        mutations = (
+            lambda r: r["rows"][0]["projections"]["mixed"].update(energy=-9.),
+            lambda r: r["rows"][1]["spans"]["mixed_S"].update(leakage=0.),
+            lambda r: r["rows"][0]["observables"]["Y0"].update(bias_bound_pauli_l1=0.),
+            lambda r: r["rows"][1]["projections"]["diagonal"].update(retained_rank_changed=True),
+            lambda r: r["rows"][0]["projections"]["diagonal"]["max_entry_drift"].update(S=0.),
+            lambda r: r["cases"][1]["ideal_observables"].update(particle_number=3.),
+            lambda r: r["rows"].pop(),
+            lambda r: r["rows"][0]["observables"].pop("Y0"),
+        )
+        for j, mutate in enumerate(mutations):
+            changed = copy.deepcopy(record)
+            mutate(changed)
+            with self.subTest(mutation=j):
+                self.assertNotEqual(independent.check(changed, design, pinned=False), [])
+        self.assertNotEqual(independent.check(record, design), [])
+        text = independent.DOC.read_text(encoding="utf-8")
+        committed = read_json(independent.RECORD)
+        self.assertEqual(independent.check_document(committed, text), [])
+        self.assertNotEqual(
+            independent.check_document(committed, text.replace("0.0784113", "0.0784114")), [])
 
 
 if __name__ == "__main__":
