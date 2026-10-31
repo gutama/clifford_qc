@@ -205,7 +205,7 @@ test, independent rebuilds of the headline rows and tamper rejection for both
 checkers.
 
 The CI gate runs both commands under the record's own declared runtime,
-Python 3.12.3 and NumPy 2.5.2, as a pinned-runtime replay. Replays in other
+Python 3.12.14 and NumPy 2.5.2, as a pinned-runtime replay. Replays in other
 runtimes are tolerance comparisons only. In this study every retained-rank
 decision sits at least five decades away from its cutoff.
 

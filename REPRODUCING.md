@@ -5904,7 +5904,7 @@ recorded field with dense Kronecker/tensor-axis Kraus channels, its own
 Pauli/Jordan-Wigner operators, Ritz solve and span geometry. Only sparse
 support counts are range-checked instead. It pins the 224-outcome grid and
 requires the numbers quoted in `OBSERVABLE_NOISE.md` to match the record. CI runs both
-under the record's declared Python 3.12.3/NumPy 2.5.2 runtime. The 21 unittest
+under the record's declared Python 3.12.14/NumPy 2.5.2 runtime. The 21 unittest
 cases also cover rank loss, coherent span rotation and rotation sense, nonunital
 identity mixing, zero-mean false positives, signed same-arm drift, and tampered
 records for both checkers. Optional Matplotlib is needed only for the plot.
