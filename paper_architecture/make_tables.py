@@ -217,7 +217,7 @@ GATE_CLASSES: tuple[tuple[str, str, tuple[str, ...]], ...] = (
             "check_r3c_lih_full_cost", "check_r3d_qr3_refinement",
             "check_second_moment_validation",
             "check_packed_bank_storage", "check_r4a_contextual_screen",
-            "check_warm_start",
+            "check_warm_start", "check_observable_noise",
         ),
     ),
     (

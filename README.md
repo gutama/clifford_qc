@@ -48,6 +48,12 @@ published scientific fields under their original tolerances and reports
 execution-fingerprint drift separately. Historical records, strict replay
 commands and negative scientific conclusions remain unchanged.
 
+An exploratory [observable-noise stability study](docs/restart/OBSERVABLE_NOISE.md)
+compares full-state fidelity, observable bias, Heisenberg-span leakage and
+projected S/H stability on eight bounded controls and physical models.
+Noise-aligned correlators can stay fixed after fidelity deteriorates;
+an invariant operator span or stable overlap alone does not preserve Ritz energies.
+
 ## What you can do
 
 | Task | Implemented features | Start here |

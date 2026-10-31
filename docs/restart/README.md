@@ -16,6 +16,11 @@ one CI gate registry, with all deterministic checks on every PR, affected
 restart replay and weekly verification. Legacy sampled instruments remain
 manual-only under their frozen reporting contracts. Historical scientific runners and evidence remain unchanged.
 
+The separate [observable-noise investigation](OBSERVABLE_NOISE.md) adds sparse
+Heisenberg diagnostics and an exploratory 224-outcome exact-channel study.
+Protected diagonal observables and overlaps do not establish protected energies;
+this study does not reopen the closed sampled cost hypotheses below.
+
 | Step | Status | Deliverable |
 | --- | --- | --- |
 | 1 | Implemented | Frozen evidence identities and one determinant molecular problem/claim contract |

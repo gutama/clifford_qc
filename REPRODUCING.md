@@ -632,7 +632,7 @@ frame-coordinate comparison above still fails its joint criterion.
 ```bash
 python -m venv .venv && source .venv/bin/activate
 pip install -e .[test,research,stim]       # automatic CI extras
-pytest                                      # 4485 passed, 12 skipped (expected if green)
+pytest                                      # 4506 passed, 12 skipped (expected if green)
 ```
 
 This is the automatic CI dependency set; record gates additionally pin NumPy
@@ -651,7 +651,7 @@ the remaining `12 - 6 = 6` skips are per-test and *are* collected:
 
 ```text
 collected == passed + (skipped - files dropped at collection)
-4491      == 4485   + (12      -   6)
+4512      == 4506   + (12      -   6)
 ```
 
 Both sides are computed from the tree, so a drift in either quoted number
@@ -5877,3 +5877,36 @@ scientific values, limits, intervals and decisions are checked; timings, process
 RSS and execution stamps retain their disclosed environment dependence. The
 archived declaration, result, blueprint, v1 snapshot, digests and ancestry stay
 mandatory. Shared-pytest high-water RSS is not historical execution evidence.
+
+
+## Exploratory observable-noise stability
+
+`docs/restart/OBSERVABLE_NOISE.md` interprets the 224 exact-channel outcomes
+in `docs/restart/observable_noise_results.json.gz`, with design in
+`docs/restart/observable_noise_design.json`. The study compares fidelity,
+fixed observables, Heisenberg-span geometry/attenuation and projected S/H
+conditioning and Ritz drift; it makes no hardware or cost-benefit claim.
+
+```bash
+OPENBLAS_NUM_THREADS=1 OMP_NUM_THREADS=1 MKL_NUM_THREADS=1 python benchmarks/run_observable_noise.py --check
+OPENBLAS_NUM_THREADS=1 OMP_NUM_THREADS=1 MKL_NUM_THREADS=1 python benchmarks/check_observable_noise.py
+python benchmarks/plot_observable_noise.py
+OPENBLAS_NUM_THREADS=1 python -m unittest discover -s tests -p test_observable_noise.py -v
+```
+
+`run_observable_noise.py` publishes immutable output; use `--output` with a
+fresh scratch path to regenerate. `--check` is the producer replay: it enforces
+the on-disk design, the complete grid, named source digests, all scientific
+fields, complex Kraus/Heisenberg duality, and observable and pencil-entry bias
+bounds. `check_observable_noise.py` is the independent checker. It never
+imports the producer or the sparse Heisenberg map, and it rebuilds every
+recorded field with dense Kronecker/tensor-axis Kraus channels, its own
+Pauli/Jordan-Wigner operators, Ritz solve and span geometry. Only sparse
+support counts are range-checked instead. It pins the 224-outcome grid and
+requires the numbers quoted in `OBSERVABLE_NOISE.md` to match the record. CI runs both
+under the record's declared Python 3.12.14/NumPy 2.5.2 runtime. The 21 unittest
+cases also cover rank loss, coherent span rotation and rotation sense, nonunital
+identity mixing, zero-mean false positives, signed same-arm drift, and tampered
+records for both checkers. Optional Matplotlib is needed only for the plot.
+Exact dense assessment is limited to eight qubits and enforced by the case
+table; the sparse diagnostics have no density allocation.
