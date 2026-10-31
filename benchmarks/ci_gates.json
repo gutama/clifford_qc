@@ -1453,7 +1453,7 @@
       "tier": "structural",
       "timeout": 15,
       "watch": [
-        "clifford_qc/noise_stability.py",
+        "clifford_qc/diagnostics.py",
         "benchmarks/*observable_noise*",
         "tests/test_observable_noise.py",
         "docs/restart/*observable_noise*",

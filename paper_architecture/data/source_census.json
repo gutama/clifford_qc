@@ -227,8 +227,8 @@
         "modules": 4
       },
       "kernel": {
-        "lines": 2265,
-        "modules": 16
+        "lines": 2257,
+        "modules": 15
       },
       "measurement": {
         "lines": 5456,
@@ -251,8 +251,8 @@
         "modules": 1
       }
     },
-    "package_lines": 33098,
-    "package_modules": 127,
+    "package_lines": 33090,
+    "package_modules": 126,
     "test_lines": 43507,
     "test_modules": 184
   }

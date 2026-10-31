@@ -8,7 +8,7 @@ from benchmarks.run_observable_noise import dense_noise, inputs, run, verify
 from clifford_qc.channels import amplitude_damping, dephasing, depolarizing
 from clifford_qc.dense_reference import to_matrix
 from clifford_qc.multivector import MV
-from clifford_qc.noise_stability import (
+from clifford_qc.diagnostics import (
     local_noise_adjoint, observable_defect, operator_span_diagnostics,
 )
 
@@ -143,7 +143,7 @@ class ObservableNoiseTests(unittest.TestCase):
         record = run({"cases": ["plus4"], "channels": ["dephasing"], "strengths": [.1]})
         for mutate in (lambda r: r["rows"].pop(),
                        lambda r: r["rows"][0].update(fidelity_squared_pure_target=.99),
-                       lambda r: r["source_sha256"].update({"clifford_qc/noise_stability.py": "bad"})):
+                       lambda r: r["source_sha256"].update({"clifford_qc/diagnostics.py": "bad"})):
             changed = copy.deepcopy(record)
             mutate(changed)
             with self.assertRaises(ValueError):

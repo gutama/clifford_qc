@@ -25,14 +25,14 @@ from clifford_qc.models import tfim
 from clifford_qc.models.fcidump import fcidump_model
 from clifford_qc.models.lattice import hubbard
 from clifford_qc.multivector import MV
-from clifford_qc.noise_stability import (
+from clifford_qc.diagnostics import (
     local_noise_adjoint, observable_defect, operator_span_diagnostics,
 )
 from clifford_qc.subspace.linalg import solve_projected
 
 CONFIG = ROOT / "docs/restart/observable_noise_design.json"
 RESULT = ROOT / "docs/restart/observable_noise_results.json.gz"
-SOURCES = ["clifford_qc/noise_stability.py", "benchmarks/run_observable_noise.py",
+SOURCES = ["clifford_qc/diagnostics.py", "benchmarks/run_observable_noise.py",
            "docs/restart/observable_noise_design.json", "clifford_qc/subspace/linalg.py",
            "clifford_qc/dense_reference.py", "clifford_qc/models/spin.py",
            "clifford_qc/models/lattice.py", "clifford_qc/models/fcidump.py",

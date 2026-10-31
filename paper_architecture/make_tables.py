@@ -116,7 +116,7 @@ KERNEL_MODULES = (
     "multivector.py", "pauli_kernel.py", "pauli.py", "clifford.py", "gates.py",
     "states.py", "fermion.py", "channels.py", "dense_reference.py",
     "sparse.py", "pauli_action.py", "pauli_structure.py", "diagnostics.py",
-    "matrix.py", "selection.py", "noise_stability.py",
+    "matrix.py", "selection.py",
 )
 IR_MODULES = ("ir.py", "qasm3.py", "fermion_mapping.py", "pool_operator.py")
 REFERENCE_MODULES = ("reference_states.py", "sampled_reference.py")
