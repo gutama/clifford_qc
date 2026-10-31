@@ -242,8 +242,9 @@ def compare(expected, actual, path='record'):
         for key in actual:
             if key not in ('source_sha256', 'execution_commit', 'observed_environment'):
                 compare(expected[key], actual[key], path+'/'+key)
-    elif isinstance(actual, list):
-        if not isinstance(expected, list) or len(expected) != len(actual):
+    elif isinstance(actual, (list, tuple)):
+        # JSON decodes interval tuples as lists; compare their contents.
+        if not isinstance(expected, (list, tuple)) or len(expected) != len(actual):
             raise ValueError('length mismatch at '+path)
         for j, (a, b) in enumerate(zip(expected, actual)):
             compare(a, b, path+'/'+str(j))
