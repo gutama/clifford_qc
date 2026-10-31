@@ -3,9 +3,11 @@
 No import of the producer, sampled second-moment provider, time-family builder,
 confidence functions or native projected solver. Dense problem definitions,
 Pauli decomposition, circuit action, histogram reconstruction, Hoeffding
-regions, interval arithmetic and polynomial propagation are recomputed here.
-Native coefficient/product-work counters are range-checked, not independently
-recounted. Hardware IID assumptions are not established by a record checker.
+regions, interval arithmetic, polynomial propagation and the analytic Taylor
+tail (from the dense Pauli l1 norm) are recomputed here. Native
+coefficient/product-work counters and the sparse-pruning allowance are
+range-checked, not independently recounted. Hardware IID assumptions are not
+established by a record checker.
 """
 from __future__ import annotations
 
@@ -310,6 +312,13 @@ def check_time(record, config, problems):
     for row in record['time_families']:
         name=row['case']; n,h,psi,_=problem(name); identity=np.eye(2**n)
         shift=np.trace(h).real/(2**n); centered=h-shift*identity
+        # Independent analytic tail: B is the Pauli l1 norm of the centered
+        # dense Hamiltonian, and exp(x)x^(p+1)/(p+1)! with x=B|t|. Relative
+        # tolerances, because these bounds sit far below the absolute 2e-9.
+        l1=float(sum(abs(np.trace(p @ centered))/(2**n) for p in paulis(n)))
+        resources=row['validation']['resources']
+        if not math.isclose(resources['centered_hamiltonian_l1'],l1,rel_tol=1e-9,abs_tol=0):
+            problems.append(name+': centered Hamiltonian l1 norm differs')
         generators=[]
         for t in times:
             term=identity.astype(complex); polynomial=term.copy()
@@ -328,12 +337,25 @@ def check_time(record, config, problems):
             energy_error=abs(np.vdot(v,h @ v).real/norm**2-np.vdot(ideal,h @ ideal).real)
             if (error>options['norm_error_budget']+1e-10 or infidelity>options['infidelity_budget']+1e-10
                     or energy_error>options['energy_error_budget']+1e-10): problems.append(name+': Taylor budgets fail')
+            x=l1*abs(t)
+            tail=0. if x==0 else math.exp(x)*x**(degree+1)/math.factorial(degree+1)
+            if action['time']!=t or not math.isclose(action['taylor_bound'],tail,rel_tol=1e-9,abs_tol=0):
+                problems.append(name+': Taylor tail bound differs from the independent formula')
+            pruning=action['pruning_allowance']
+            if not (isinstance(pruning,float) and math.isfinite(pruning) and pruning>=0):
+                problems.append(name+': invalid pruning allowance')
             if action['norm_error_bound']!=action['taylor_bound']+action['pruning_allowance']:
                 problems.append(name+': truncation/pruning accounting differs')
+            epsilon=action['norm_error_bound']
+            if (not math.isclose(action['infidelity_bound'],min(1.,4*epsilon*epsilon),rel_tol=1e-12,abs_tol=0)
+                    or not math.isclose(action['energy_error_bound'],4*l1*epsilon,rel_tol=1e-9,abs_tol=0)):
+                problems.append(name+': infidelity/energy bound differs from 4eps^2 and 4B eps')
             if error>action['norm_error_bound']+1e-10: problems.append(name+': action exceeds analytic/pruning bound')
+            if (infidelity>action['infidelity_bound']+1e-10
+                    or energy_error>action['energy_error_bound']+1e-10):
+                problems.append(name+': dense infidelity or energy error exceeds its reported bound')
             close(action['fidelity'],float(1-infidelity),name+'/fidelity',problems)
             if action['norm_error_bound']>options['norm_error_budget']: problems.append(name+': unadmitted truncation')
-        resources=row['validation']['resources']
         if (not 0<=resources['product_pairs']<=options['max_product_pairs']
                 or not 1<=resources['peak_single_operator_terms']<=options['max_terms']
                 or resources['unitary_preparation_claim'] or resources['quantum_advantage_claim']):

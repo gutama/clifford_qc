@@ -191,6 +191,9 @@ def run(config, *, execution_commit, declaration_commit):
         validation = validate_truncated_time_family(family, psi, max_state_amplitudes=16, method='lanczos')
         exact_provider = ExactProjectedProvider(exact_reference, h, family.generators, storage='packed')
         projected = exact_provider.projected_problem()
+        # Refuse the family on this reference's overlap before any solve or
+        # sampled use; the dense validation above is a separate oracle.
+        admitted = family.admitted_generators(projected.overlap)
         solved = projected.solve(tau_s=config['tau_s'], max_condition=config['max_condition'])
         time_cases.append({'case': name, 'validation': validation,
                            'overlap': complex_record(projected.overlap),
@@ -199,7 +202,7 @@ def run(config, *, execution_commit, declaration_commit):
                            'exact_reference_identity': exact_reference.metadata.identity})
         # One end-to-end sampled S/H/K reconstruction over the Taylor family.
         # Its potentially unresolved result is retained rather than promoted.
-        time_provider = make_provider(reference, h, family.generators, config)
+        time_provider = make_provider(reference, h, admitted, config)
         budget = config['shot_budgets'][-1]
         counts = uniform_setting_plan(time_provider.plan.settings, budget)
         seed = int(np.random.SeedSequence([config['master_seed'], index, 99]).generate_state(1)[0])

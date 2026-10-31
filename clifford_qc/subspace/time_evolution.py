@@ -406,8 +406,17 @@ from dataclasses import dataclass as _dataclass
 from types import MappingProxyType as _MappingProxyType
 
 
-@_dataclass(frozen=True)
+@_dataclass(frozen=True, eq=False)
 class TruncatedTimeFamily:
+    """Budgeted Taylor generators; see :func:`truncated_time_family`.
+
+    Truncation, pruning, infidelity, energy and work budgets are enforced at
+    construction. Overlap conditioning depends on the reference the
+    generators act on, so it cannot be decided here: before a solve or any
+    sampled use, obtain the generators through :meth:`admitted_generators`
+    (or call :meth:`admit_overlap`) with that reference's overlap matrix.
+    Equality is identity; the fields hold operators and mapping proxies.
+    """
     hamiltonian: MV
     generators: tuple
     times: tuple[float, ...]
@@ -439,6 +448,15 @@ class TruncatedTimeFamily:
                 "tau_s": self.tau_s, "max_condition": self.max_condition,
                 "rank_truncated": result.effective_rank < size,
                 "statistical_certificate": False}
+
+    def admitted_generators(self, overlap) -> tuple:
+        """The generators, only after their overlap passes the conditioning budgets.
+
+        Raises before returning when the retained rank is below
+        ``minimum_retained_rank`` under ``tau_s``/``max_condition``.
+        """
+        self.admit_overlap(overlap)
+        return self.generators
 
 
 def truncated_time_family(hamiltonian, times, *, degree: int, max_terms: int,
@@ -582,11 +600,14 @@ def validate_truncated_time_family(family: TruncatedTimeFamily, reference, *,
         fidelity = float(abs(np.vdot(u, v/norm))**2)
         energy_error = abs(float(np.vdot(v, operator.matvec(v)).real/norm**2
                                  -np.vdot(u, operator.matvec(u)).real))
+        # Each discrepancy must respect both its own reported analytic bound
+        # and the family-wide budget, so an overstated per-time guarantee
+        # cannot hide below a looser budget.
         if (error > bounds["norm_error_bound"]+1e-10
-                or abs(norm-1) > family.norm_error_budget+1e-10
-                or 1-fidelity > family.infidelity_budget+1e-10
-                or energy_error > family.energy_error_budget+1e-10):
-            raise ValueError("truncated family failed the independent propagation budgets")
+                or abs(norm-1) > min(bounds["norm_error_bound"], family.norm_error_budget)+1e-10
+                or 1-fidelity > min(bounds["infidelity_bound"], family.infidelity_budget)+1e-10
+                or energy_error > min(bounds["energy_error_bound"], family.energy_error_budget)+1e-10):
+            raise ValueError("truncated family failed the independent propagation bounds")
         reports.append({"time": family.times[j], "action_error": error,
                         "norm_error": abs(norm-1), "fidelity": fidelity,
                         "energy_error": energy_error, **dict(bounds)})
