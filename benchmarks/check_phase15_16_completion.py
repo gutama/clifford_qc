@@ -102,8 +102,18 @@ def reconstruct(row, settings, ops, psi, n, delta):
                 needed.update(int(k) for k in np.flatnonzero(cs) if k)
                 family += int(np.any(cs[1:].real)) + int(np.any(cs[1:].imag))
     assignments = [word for setting in settings for word in setting['assigned']]
-    if len(assignments) != len(set(assignments)) or set(assignments) != needed:
-        raise ValueError('settings do not assign exactly the needed S/H/K universe')
+    if (len(assignments) != len(set(assignments)) or 0 in assignments
+            or not needed.issubset(assignments) or len(assignments) > 4**n-1):
+        raise ValueError('settings do not cover the needed S/H/K universe exactly once')
+    # Sparse arithmetic can retain tiny extra words or functionals that vanish
+    # in a dense polynomial product. Extra assigned words still pay their full
+    # physical cost. A larger Bonferroni family is conservative; an undersized
+    # family is rejected. Tiny coefficient differences are checked numerically.
+    declared_family = row.get('confidence_family_size', max(1, family))
+    if (type(declared_family) is not int or declared_family < max(1, family)
+            or declared_family > 3*size*(size+1)):
+        raise ValueError('the confidence family is undersized or exceeds the entry count')
+    family = declared_family
     counts = row['counts']
     if len(counts) != len(settings) or len(row['histograms']) != len(settings):
         raise ValueError('missing setting or histogram')

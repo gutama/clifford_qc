@@ -177,6 +177,7 @@ def run(config, *, execution_commit, declaration_commit):
                        'matrices': matrices_record(problem), 'inference': inference,
                        'observation_identity': observations.identity,
                        'physical_shots': problem.resources['shots'], 'circuits': problem.resources['circuits'],
+                       'confidence_family_size': problem.resources['simultaneous_real_functionals'],
                        'entry_region_covers': all(np.all(np.abs(a-b) <= radius+1e-10)
                          for a, b, radius in zip((problem.overlap, problem.hamiltonian, problem.second_moment),
                             true_blocks, (problem.overlap_radii, problem.hamiltonian_radii, problem.second_moment_radii)))}
@@ -210,6 +211,7 @@ def run(config, *, execution_commit, declaration_commit):
              'settings': settings_record(time_provider.plan.settings, device), 'admission': time_provider.admission,
              'matrices': matrices_record(measured), 'inference': infer(measured, config, target),
              'physical_shots': measured.resources['shots'], 'circuits': measured.resources['circuits']})
+        integrations[-1]['confidence_family_size'] = measured.resources['simultaneous_real_functionals']
     summaries = []
     for name in config['cases']:
         selected = [r for r in rows if r['case'] == name]
