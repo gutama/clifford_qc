@@ -299,12 +299,22 @@ its retained span on `S` alone, as a Ritz solve with the same thresholds does,
 and refuses an overlap ridge, which would change the metric. No new rows or
 measurements are needed.
 
-Every second-moment quantity is an exact pairing. The measured block has been
-priced twice, at the two grouping endpoints the package ships: uniform QWC
-(Q18-S1, five banks) and fully commuting settings (Q18-S4, the four 8-qubit
-banks). Both read `NONE`, so no finite-shot `K` estimator exists, and the
-measurement layer has no second-moment path. A measured block on any other
-scope needs its own declaration first.
+The historical measured block was priced at both grouping endpoints: uniform
+QWC (Q18-S1, five banks) and fully commuting settings (Q18-S4, four 8-qubit
+banks). Both still read `NONE`. A separate engineering declaration now admits
+`SampledSecondMomentProvider` on bounded word/setting/storage scope. It compiles
+S/H/K with sampled-only reference metadata, reconstructs shared histograms and
+uses simultaneous bounded-shot intervals for physical-direction residuals and
+folded inclusion. Unresolved normalization or cancellation cannot certify
+convergence. See [Phase 15/16 completion](docs/restart/PHASE15_16_COMPLETION.md).
+
+The explicit real-time alternative in `subspace/time_evolution.py` constructs
+only budgeted Taylor response generators. It binds degree, time grid,
+coefficient/product work, truncation, pruning, norm, infidelity, energy error
+and retained conditioning. It requests no density or exact reference during
+construction, and plugs into the same projected providers. Matrix-free exact
+propagation is a separate validation oracle, not a production prerequisite.
+No unitary circuit preparation or controlled-evolution advantage is implied.
 
 Device cards evaluate compiled settings under connectivity, duration, and
 fidelity assumptions. Inadmissible protocols have no reported runtime. The

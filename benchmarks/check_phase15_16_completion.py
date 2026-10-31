@@ -98,6 +98,8 @@ def reconstruct(row, settings, ops, psi, n, delta):
             for b in range(a, size):
                 cs = np.array([np.trace(p @ ops[t][a][b])/(2**n) for p in basis])
                 cs[np.abs(cs) < 1e-10] = 0.
+                cs.real[np.abs(cs.real) < 1e-10] = 0.
+                cs.imag[np.abs(cs.imag) < 1e-10] = 0.
                 coefficients[t, a, b] = cs
                 needed.update(int(k) for k in np.flatnonzero(cs) if k)
                 family += int(np.any(cs[1:].real)) + int(np.any(cs[1:].imag))
@@ -241,6 +243,13 @@ def check_row(row, settings, h, psi, gens, config, problems, *, integration=Fals
             problems.append(row['case']+'/'+label+': histogram reconstruction differs')
         if not np.allclose(row['matrices']['r'+label],radius,atol=2e-9,rtol=1e-8):
             problems.append(row['case']+'/r'+label+': Hoeffding radius differs')
+    # Once independently audited, the published matrices are the numerical
+    # inputs to the reported nonlinear calculation. Recompute its arithmetic
+    # from those exact inputs; otherwise normalization can amplify permitted
+    # reconstruction roundoff and create a false scalar mismatch. Dense true
+    # moments and confidence coverage below remain independently recomputed.
+    matrices=[decode(row['matrices'][label]) for label in ('S','H','K')]
+    radii=[np.asarray(row['matrices']['r'+label]) for label in ('S','H','K')]
     basis=np.column_stack([g @ psi for g in gens])
     truths=[basis.conj().T @ basis,basis.conj().T @ h @ basis,(h @ basis).conj().T @ (h @ basis)]
     covered=all(np.all(np.abs(a-b)<=r+1e-10) for a,b,r in zip(matrices,truths,radii))

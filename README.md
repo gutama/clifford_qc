@@ -48,6 +48,10 @@ published scientific fields under their original tolerances and reports
 execution-fingerprint drift separately. Historical records, strict replay
 commands and negative scientific conclusions remain unchanged.
 
+[Phase 15/16 completion](docs/restart/PHASE15_16_COMPLETION.md) adds bounded
+sampled second moments and convergence/folded reports, plus opt-in real-time
+polynomial generators with explicit truncation and conditioning budgets.
+
 An exploratory [observable-noise stability study](docs/restart/OBSERVABLE_NOISE.md)
 compares full-state fidelity, observable bias, Heisenberg-span leakage and
 projected S/H stability on eight bounded controls and physical models.
@@ -62,7 +66,7 @@ an invariant operator span or stable overlap alone does not preserve Ritz energi
 | Build models | Spin chains, Hubbard and other lattice models, restricted real FCIDUMP import, effective-Hamiltonian JSON, orbital rotations — every model declares its encoding and sector under a validated metadata contract | [Model examples](#examples), [conventions](CONVENTIONS.md#model-metadata), `clifford_qc.models` |
 | Run circuits | Parameterized Pauli rotors and Clifford gates, JSON serialization, gradients, OpenQASM 3 export | [Circuit example](#circuit-programs), `clifford_qc.ir` |
 | Compare eigensolvers | VQE, ADAPT-VQE, fixed and adaptive operator-response subspaces, QSCI/SQD (with reference, ADAPT-VQE, and exact or Trotter time-evolved sampling inputs), selected-CI controls, hybrid bases | [Solver guide](#choosing-a-solver), [subspace example](#adaptive-subspaces) |
-| Check a Ritz state against an eigenstate | True Ritz residual norms and energy variances from the second-moment block `⟨A_i†H²A_j⟩`, with automatic coefficient-storage admission for each requested block; exact pairings over a matrix-element bank, validated on the five banks the Phase 15 preflight licensed. No finite-shot estimator is built: measuring the block reads `NONE` under both QWC and fully commuting grouping | `clifford_qc.subspace.SecondMomentBank`, [example](#residuals-and-folded-roots), [conventions](CONVENTIONS.md#second-moments-residuals-and-folded-roots), [reproducing](REPRODUCING.md#phase-15-secondmomentbank-and-its-validation) |
+| Check a Ritz state against an eigenstate | True Ritz residual norms and energy variances from the second-moment block `⟨A_i†H²A_j⟩`, with automatic coefficient-storage admission for each requested block; exact pairings over a matrix-element bank, validated on the five banks the Phase 15 preflight licensed. The historical banks read `NONE` under both grouping endpoints; a separately declared bounded sampled S/H/K consumer now supplies finite-shot intervals | `clifford_qc.subspace.SecondMomentBank`, [example](#residuals-and-folded-roots), [conventions](CONVENTIONS.md#second-moments-residuals-and-folded-roots), [reproducing](REPRODUCING.md#phase-15-secondmomentbank-and-its-validation) |
 | Find and bound interior roots | Exact folded-spectrum roots of `K − 2ωH + ω²S`, refined Ritz vectors, target and Weinstein intervals that each contain an eigenvalue, and monotone variance minimization; validated on the same five banks | `clifford_qc.subspace.FoldedSpectrum`, [example](#residuals-and-folded-roots), [reproducing](REPRODUCING.md#phase-15-folded-spectrum-roots-and-their-validation) |
 | Count eigenvalues near Ritz roots | Disjoint cluster hulls from the exact block residual `Q'KQ − Θ²`, each holding at least as many eigenvalues as roots, so a degenerate level is counted with its multiplicity; held to dense spectra in the test suite | `clifford_qc.subspace.ritz_clusters`, [example](#residuals-and-folded-roots), [conventions](CONVENTIONS.md#second-moments-residuals-and-folded-roots) |
 | Assess why adaptive growth stopped | Opt-in exact convergence reports over the final retained block, with numerical-resolution and ground-state evidence reported separately; Q17 extrapolation is a diagnostic only | `ConvergenceConfig`, `convergence_report`, [example](examples/acase_convergence.py), [contract](REPRODUCING.md#phase-15-exact-convergence-reporting) |
@@ -278,8 +282,11 @@ reported signed and count as resolved only above a rounding floor, as
 [CONVENTIONS.md](CONVENTIONS.md#second-moments-residuals-and-folded-roots)
 defines. These are exact pairings. Q18-S1 and Q18-S4 found that, under uniform
 allocation, measuring the residual to the energy's standard error costs more
-than ten times the energy's shots on every bank tested, so no finite-shot
-estimator is built.
+than ten times the energy's shots on every historical bank tested. The
+separately declared [bounded Phase 15/16 completion](docs/restart/PHASE15_16_COMPLETION.md)
+now supplies sampled S/H/K, convergence intervals and folded-direction inclusion
+on TFIM2/TFIM3/Hubbard dimer, plus explicitly budgeted real-time responses.
+Those capabilities make no cost-saving claim for the historical banks.
 
 For a bounded example of convergence reporting, run
 `python examples/acase_convergence.py`. Pass
@@ -598,13 +605,13 @@ this historical phase denominator.
 | numbered phase scope | lifecycle | implementation |
 |---|---|---:|
 | Phases 0--14 | complete | 15 / 15 |
-| Phase 15: Second-moment bank | partial | 50% |
-| Phase 16: Time-evolved inputs | partial | 50% |
+| Phase 15: Second-moment bank | complete | 100% |
+| Phase 16: Time-evolved inputs | complete | 100% |
 | Phase 17: Mapping validation and breadth | complete | 100% |
 | Phase 18: Embedding boundary | complete | 100% |
 | Phase 19: Anticommuting-clique partitioning | complete | 100% |
 
-Strict complete-phase score: **18 / 20 = 90.00%**.
-Progress-weighted score: **19.00 / 20 = 95.00%**.
+Strict complete-phase score: **20 / 20 = 100.00%**.
+Progress-weighted score: **20.00 / 20 = 100.00%**.
 Retired and conditional adjunct phases are tracked separately and do not change this denominator. Source: `PHASE_STATUS.json`; validate with `python benchmarks/check_phase_status.py`.
 <!-- PHASE-STATUS-SUMMARY:END -->

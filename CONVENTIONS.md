@@ -352,3 +352,21 @@ primary representation. It obeys:
 to_matrix(A * B) == to_matrix(A) @ to_matrix(B)
 from_matrix(to_matrix(A)).is_close(A)
 ```
+
+
+## Bounded sampled second moments and real-time responses
+
+The separately declared [Phase 15/16 completion](docs/restart/PHASE15_16_COMPLETION.md)
+adds S/H/K reconstruction on sampled-only reference metadata. A fixed-endpoint
+simultaneous entry region covers all coefficient vectors in the fixed bank,
+including a Ritz vector learned from those same observations. Positive lower
+normalization is mandatory. Signed variance, cancellation allowances and
+unresolved outcomes remain explicit. Folded-direction intervals contain some
+Hamiltonian eigenvalue; they do not certify ordering or a ground root.
+
+`truncated_time_family` uses exp(-iHt), with q0 the leftmost tensor factor, and
+retains the scalar shift's global phase for each generator. Degree, time grid,
+coefficient support, product work, approximation budgets and retained conditioning
+are explicit. These are bounded operator-response polynomials, not preparation
+circuits. Exact propagation is used only in a separate validation helper. The
+historical negative cost/conditional-backend findings keep their original scope.
