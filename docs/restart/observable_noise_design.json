@@ -1,0 +1,15 @@
+{
+  "schema": "clifford_qc.observable_noise_design.v1",
+  "status": "exploratory; no hypothesis acceptance or advantage claim",
+  "cases": ["plus4", "plus8", "ghz4", "ghz8", "tfim4", "tfim6", "hubbard2", "h4"],
+  "channels": ["dephasing", "depolarizing", "amplitude_damping", "z_rotation"],
+  "strengths": [0.0, 0.005, 0.02, 0.05, 0.1, 0.2, 0.4],
+  "fidelity": "F=<psi|E(|psi><psi|)|psi>; squared Uhlmann fidelity for pure target",
+  "noise_location": "one identical independent local channel per qubit, after ideal preparation, before exact observable evaluation",
+  "qubit_order": "q0 is leftmost tensor factor; interleaved alpha/beta fermionic modes",
+  "references": "plus/GHZ analytic controls; exact TFIM ground; Hubbard/H4 lowest N=n/2, Sz=0 sector eigenstate; assessment oracles only",
+  "spans": "all complex S_ij=A_i†A_j and H_ij=A_i†H A_j rows separately, for fixed diagonal and mixed generator arms",
+  "generators": "diagonal=[I,Z0,Z1]; mixed spin=[I,Z0,X0]; mixed fermion=[I,Z0,c0†c2+c2†c0]",
+  "solver": "solve_projected, tau_s=1e-8, max_condition=1e8; drift measured against noiseless same-arm Ritz value",
+  "limitations": ["at most eight qubits", "no gate-resolved or correlated noise", "no finite-shot estimator or mitigation", "no device or resource advantage claim", "no general molecular chemical-accuracy claim"]
+}

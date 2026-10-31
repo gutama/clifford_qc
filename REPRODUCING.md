@@ -632,7 +632,7 @@ frame-coordinate comparison above still fails its joint criterion.
 ```bash
 python -m venv .venv && source .venv/bin/activate
 pip install -e .[test,research,stim]       # automatic CI extras
-pytest                                      # 4485 passed, 12 skipped (expected if green)
+pytest                                      # 4499 passed, 12 skipped (expected if green)
 ```
 
 This is the automatic CI dependency set; record gates additionally pin NumPy
@@ -651,7 +651,7 @@ the remaining `12 - 6 = 6` skips are per-test and *are* collected:
 
 ```text
 collected == passed + (skipped - files dropped at collection)
-4491      == 4485   + (12      -   6)
+4505      == 4499   + (12      -   6)
 ```
 
 Both sides are computed from the tree, so a drift in either quoted number
@@ -5877,3 +5877,28 @@ scientific values, limits, intervals and decisions are checked; timings, process
 RSS and execution stamps retain their disclosed environment dependence. The
 archived declaration, result, blueprint, v1 snapshot, digests and ancestry stay
 mandatory. Shared-pytest high-water RSS is not historical execution evidence.
+
+
+## Exploratory observable-noise stability
+
+`docs/restart/OBSERVABLE_NOISE.md` interprets the 224 exact-channel outcomes
+in `docs/restart/observable_noise_results.json.gz`, with design in
+`docs/restart/observable_noise_design.json`. The study compares fidelity,
+fixed observables, Heisenberg-span geometry/attenuation and projected S/H
+conditioning and Ritz drift; it makes no hardware or cost-benefit claim.
+
+```bash
+OPENBLAS_NUM_THREADS=1 OMP_NUM_THREADS=1 MKL_NUM_THREADS=1 python benchmarks/run_observable_noise.py --check
+python benchmarks/plot_observable_noise.py
+OPENBLAS_NUM_THREADS=1 python -m unittest discover -s tests -p test_observable_noise.py -v
+```
+
+`run_observable_noise.py` publishes immutable output; use `--output` with a
+fresh scratch path to regenerate. `--check` enforces the on-disk design,
+named source digests, all scientific fields, Kraus/Heisenberg duality and
+observable-bias bounds. This is a producer replay, with independent analytic
+and dense-Kraus controls, not an independent full-result checker. The
+14 unittest cases also cover rank loss, coherent span rotation, nonunital
+identity mixing, zero-mean false positives and tampered records. Optional
+Matplotlib is needed only for the plot. Exact dense assessment is limited to
+eight qubits; the sparse diagnostics have no density allocation.

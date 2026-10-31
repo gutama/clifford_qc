@@ -1434,6 +1434,31 @@
         "tests/test_cross_domain_checker.py",
         "docs/restart/CROSS_DOMAIN_RATIO.md"
       ]
+    },
+    {
+      "commands": [
+        [
+          "benchmarks/run_observable_noise.py",
+          "--check"
+        ]
+      ],
+      "environment_record": "protocol_cost.json",
+      "gate": "replay_observable_noise",
+      "inputs": [
+        "docs/restart/observable_noise_design.json",
+        "docs/restart/observable_noise_results.json.gz",
+        "benchmarks/data/h4_sto3g_r0.9.FCIDUMP"
+      ],
+      "max_output_bytes": 16777216,
+      "tier": "structural",
+      "timeout": 15,
+      "watch": [
+        "clifford_qc/noise_stability.py",
+        "benchmarks/*observable_noise*",
+        "tests/test_observable_noise.py",
+        "docs/restart/*observable_noise*",
+        "docs/restart/OBSERVABLE_NOISE.md"
+      ]
     }
   ],
   "schema": "clifford_qc.ci_gates.v1"
