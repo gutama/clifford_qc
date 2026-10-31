@@ -398,3 +398,203 @@ def _trotter_state(backend, model, time: float, *, steps, order: int,
             "energy_drift": abs(_energy(full, evolved) - _energy(full, reference)),
             "time_units": "inverse model energy units (hbar = 1); exp(-iHt)",
         })
+
+
+# Phase 16B's explicitly truncated alternative. This is an operator-response
+# family; it is neither a default exp(MV) nor a unitary preparation circuit.
+from dataclasses import dataclass as _dataclass
+from types import MappingProxyType as _MappingProxyType
+
+
+@_dataclass(frozen=True)
+class TruncatedTimeFamily:
+    hamiltonian: MV
+    generators: tuple
+    times: tuple[float, ...]
+    degree: int
+    shift: float
+    bounds: tuple
+    resources: object
+    norm_error_budget: float
+    infidelity_budget: float
+    energy_error_budget: float
+    max_condition: float
+    tau_s: float
+    minimum_retained_rank: int
+
+    def admit_overlap(self, overlap) -> dict:
+        """Admit the retained numerical span; this is not a shot confidence test."""
+        from .linalg import solve_projected
+        size = len(self.generators)
+        s = np.asarray(overlap, complex)
+        if s.shape != (size, size) or not np.isfinite(s).all():
+            raise ValueError("overlap must match the finite declared family")
+        result = solve_projected(s, np.zeros_like(s), [g.label for g in self.generators],
+                                 tau_s=self.tau_s, max_condition=self.max_condition)
+        if result.effective_rank < self.minimum_retained_rank:
+            raise ValueError("time-family conditioning budget leaves too few directions")
+        return {"requested_directions": size, "retained_rank": result.effective_rank,
+                "retained_condition": result.condition_number,
+                "normalized_overlap_eigenvalues": list(result.overlap_eigenvalues),
+                "tau_s": self.tau_s, "max_condition": self.max_condition,
+                "rank_truncated": result.effective_rank < size,
+                "statistical_certificate": False}
+
+
+def truncated_time_family(hamiltonian, times, *, degree: int, max_terms: int,
+                          max_product_pairs: int, norm_error_budget: float,
+                          infidelity_budget: float, energy_error_budget: float,
+                          max_condition: float, tau_s: float,
+                          minimum_retained_rank: int, shift: float | None = None) -> TruncatedTimeFamily:
+    """Budgeted Taylor generators for exp(-iHt), with the global phase retained.
+
+    For B=sum|h_w| of H-shift*I and x=B|t|, the uniform operator truncation
+    bound is exp(x)*x**(p+1)/(p+1)!. Sparse threshold-pruning is bounded
+    separately through the recurrence. Their sum epsilon bounds state-norm
+    error in exact arithmetic with the stated pruning. Normalizing the output
+    gives infidelity <=4 epsilon² and energy change <=4 B epsilon for epsilon<1.
+    Floating-point arithmetic is assessed separately by the validation helper.
+
+    Products and retained operator coefficients have explicit finite limits.
+    There is no dense state/matrix allocation, spectrum, exact-reference query,
+    or implicit controlled-evolution cost model in this constructor.
+    """
+    from numbers import Integral, Real
+    from ..multivector import TOL
+    from ..reference_states import snapshot_operator
+    from .contracts import as_multivector
+    from .generator_core import Generator
+    for value, name, minimum in ((degree, "degree", 0), (max_terms, "max_terms", 1),
+                                 (max_product_pairs, "max_product_pairs", 1),
+                                 (minimum_retained_rank, "minimum_retained_rank", 1)):
+        if isinstance(value, (bool, np.bool_)) or not isinstance(value, Integral) or value < minimum:
+            raise ValueError(name+" is outside its integer domain")
+    for value, name in ((norm_error_budget, "norm_error_budget"),
+                         (infidelity_budget, "infidelity_budget"),
+                         (energy_error_budget, "energy_error_budget"),
+                         (max_condition, "max_condition"), (tau_s, "tau_s")):
+        if isinstance(value, (bool, np.bool_)) or not isinstance(value, Real) or not math.isfinite(value) or value <= 0:
+            raise ValueError(name+" must be finite and positive")
+    if max_condition < 1 or infidelity_budget > 1 or norm_error_budget >= 1:
+        raise ValueError("invalid conditioning or approximation budget")
+    raw_times = tuple(times)
+    if not raw_times or any(isinstance(t, (bool, np.bool_)) or not isinstance(t, Real)
+                            or not math.isfinite(t) for t in raw_times):
+        raise ValueError("times must be a nonempty finite real sequence")
+    values = tuple(float(t) for t in raw_times)
+    if len(set(values)) != len(values) or minimum_retained_rank > len(values):
+        raise ValueError("times must be distinct and support the requested minimum rank")
+    h = snapshot_operator(as_multivector(hamiltonian))
+    if not h.is_hermitian(1e-12):
+        raise ValueError("real-time generators need a Hermitian Hamiltonian")
+    center = h.terms.get(0, 0j).real if shift is None else shift
+    if isinstance(center, (bool, np.bool_)) or not isinstance(center, Real) or not math.isfinite(center):
+        raise ValueError("shift must be finite and real")
+    center = float(center)
+    one = MV.scalar(h.n, 1.)
+    hc = h-center*one
+    bnorm = sum(abs(v) for v in hc.terms.values())
+    universe = 1 << (2*h.n)
+    work, peak = 0, max(1, h.nnz(), hc.nnz())
+    if peak > max_terms:
+        raise ValueError("Hamiltonian support exceeds the coefficient budget")
+    generators, reports = [], []
+    for time in values:
+        x = bnorm*abs(time)
+        log_tail = -math.inf if x == 0 else x+(degree+1)*math.log(x)-math.lgamma(degree+2)
+        tail = math.exp(log_tail) if log_tail < 700 else math.inf
+        if tail > norm_error_budget:
+            raise ValueError("Taylor truncation exceeds the declared norm-error budget")
+        term, polynomial = one, one
+        term_error, pruning = 0., 0.
+        if time:
+            for k in range(1, degree+1):
+                pairs = hc.nnz()*term.nnz()
+                bound = min(universe, pairs)
+                if work+pairs > max_product_pairs:
+                    raise ValueError("time-family product-work budget exceeded before multiplication")
+                if bound > max_terms:
+                    raise ValueError("time-family product support exceeds the coefficient budget")
+                work += pairs
+                product = hc*term
+                alpha = abs(time)/k
+                term_error = alpha*(bnorm*term_error+bound*TOL)+product.nnz()*TOL
+                term = (-1j*time/k)*product
+                union = len(polynomial.terms.keys() | term.terms.keys())
+                if union > max_terms:
+                    raise ValueError("time-family sum exceeds the coefficient budget")
+                pruning += term_error+union*TOL
+                polynomial = polynomial+term
+                peak = max(peak, product.nnz(), term.nnz(), polynomial.nnz())
+        phase = complex(np.exp(-1j*time*center))
+        if time:
+            pruning += polynomial.nnz()*TOL
+        operator = polynomial if time == 0 else phase*polynomial
+        epsilon = tail+pruning
+        fidelity_error = min(1., 4*epsilon*epsilon)
+        energy_error = 4*bnorm*epsilon
+        if (epsilon > norm_error_budget or fidelity_error > infidelity_budget
+                or energy_error > energy_error_budget):
+            raise ValueError("time-family norm, infidelity or energy-error budget exceeded")
+        generators.append(Generator(f"T{degree}(t={time:.17g})", snapshot_operator(operator)))
+        reports.append(_MappingProxyType({"time": time, "taylor_bound": tail,
+                       "pruning_allowance": pruning, "norm_error_bound": epsilon,
+                       "infidelity_bound": fidelity_error, "energy_error_bound": energy_error}))
+    resources = _MappingProxyType({"method": "explicit_truncated_operator_response",
+                 "coefficient_occurrences": sum(g.mv.nnz() for g in generators),
+                 "peak_single_operator_terms": peak, "product_pairs": work,
+                 "max_terms": int(max_terms), "max_product_pairs": int(max_product_pairs),
+                 "centered_hamiltonian_l1": float(bnorm),
+                 "unitary_preparation_claim": False, "quantum_advantage_claim": False})
+    return TruncatedTimeFamily(h, tuple(generators), values, int(degree), center,
+                  tuple(reports), resources, float(norm_error_budget), float(infidelity_budget),
+                  float(energy_error_budget), float(max_condition), float(tau_s), int(minimum_retained_rank))
+
+
+def validate_truncated_time_family(family: TruncatedTimeFamily, reference, *,
+                                   max_state_amplitudes: int, method="lanczos") -> dict:
+    """Bounded, separately labelled matrix-free assessment; no density expansion.
+
+    This helper needs an explicit validation vector. It is not called by the
+    generator constructor or a sampled consumer. Floating-point discrepancies
+    are compared with a separate 1e-10 numerical allowance.
+    """
+    from numbers import Integral
+    from ..pauli_action import apply_pauli_sum
+    if not isinstance(family, TruncatedTimeFamily):
+        raise TypeError("need a TruncatedTimeFamily")
+    if (isinstance(max_state_amplitudes, bool) or not isinstance(max_state_amplitudes, Integral)
+            or max_state_amplitudes < 1 or (1 << family.hamiltonian.n) > max_state_amplitudes):
+        raise ValueError("validation state exceeds the explicit amplitude cap")
+    psi = np.asarray(reference, complex)
+    if psi.shape != (1 << family.hamiltonian.n,) or not np.isfinite(psi).all() or not np.any(psi):
+        raise ValueError("validation reference must be a finite nonzero full-register vector")
+    psi = psi/np.max(np.abs(psi)); psi = psi/np.linalg.norm(psi)
+    operator = PauliLinearOperator(family.hamiltonian)
+    exact = propagate(operator, psi, family.times, method=method, tol=1e-13,
+                      krylov_dimension=min(30, max(2, len(psi))))
+    approximate = np.column_stack([apply_pauli_sum(g.mv, psi) for g in family.generators])
+    reports = []
+    for j, bounds in enumerate(family.bounds):
+        v, u = approximate[:, j], exact[j]
+        norm = float(np.linalg.norm(v))
+        error = float(np.linalg.norm(v-u))
+        fidelity = float(abs(np.vdot(u, v/norm))**2)
+        energy_error = abs(float(np.vdot(v, operator.matvec(v)).real/norm**2
+                                 -np.vdot(u, operator.matvec(u)).real))
+        if (error > bounds["norm_error_bound"]+1e-10
+                or abs(norm-1) > family.norm_error_budget+1e-10
+                or 1-fidelity > family.infidelity_budget+1e-10
+                or energy_error > family.energy_error_budget+1e-10):
+            raise ValueError("truncated family failed the independent propagation budgets")
+        reports.append({"time": family.times[j], "action_error": error,
+                        "norm_error": abs(norm-1), "fidelity": fidelity,
+                        "energy_error": energy_error, **dict(bounds)})
+    overlap = approximate.conj().T @ approximate
+    admission = family.admit_overlap(overlap)
+    return {"evidence": "bounded_matrix_free_oracle_validation", "method": method,
+            "actions": reports, "conditioning": admission,
+            "numerical_allowance": 1e-10, "resources": dict(family.resources)}
+
+
+__all__ += ["TruncatedTimeFamily", "truncated_time_family", "validate_truncated_time_family"]
