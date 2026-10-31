@@ -268,7 +268,7 @@ class Phase1516CompletionTests(unittest.TestCase):
                'circuits': len(obs.counts),
                'histograms': [dict(by_key[s.key].hist) for s in provider.plan.settings]}
         operators = independent.entries(to_matrix(h), [to_matrix(g) for _, g in gens])
-        matrices, radii = independent.reconstruct(row, settings_record(provider.plan.settings),
+        matrices, radii = independent.reconstruct(row, settings_record(provider.plan.settings, reference.draw.__self__),
                                                    operators, psi, 2, .05)
         for a, b in zip(matrices, (native.overlap, native.hamiltonian, native.second_moment)):
             np.testing.assert_allclose(a, b, atol=1e-12)
@@ -286,13 +286,19 @@ class Phase1516CompletionTests(unittest.TestCase):
                'counts': list(obs.counts), 'physical_shots': sum(obs.counts),
                'circuits': len(obs.counts),
                'histograms': [dict(groups[s.key].hist) for s in provider.plan.settings]}
-        settings = settings_record(provider.plan.settings)
+        settings = settings_record(provider.plan.settings, reference.draw.__self__)
         operators = independent.entries(to_matrix(h), [to_matrix(g) for _, g in gens])
         broken = copy.deepcopy(row)
         bits = next(iter(broken['histograms'][0]))
         broken['histograms'][0][bits] += 1
         with self.assertRaises(ValueError):
             independent.reconstruct(broken, settings, operators, psi, 2, .05)
+        broken_probabilities = copy.deepcopy(settings)
+        broken_probabilities[0]['sampling_probabilities'] = [.25, .25, .25, .25]
+        # Force a table incompatible with its circuit, irrespective of group order.
+        broken_probabilities[0]['sampling_probabilities'][0] += .01
+        with self.assertRaises(ValueError):
+            independent.reconstruct(row, broken_probabilities, operators, psi, 2, .05)
         broken_settings = copy.deepcopy(settings)
         key = next(iter(broken_settings[0]['readouts']))
         broken_settings[0]['readouts'][key][0] *= -1

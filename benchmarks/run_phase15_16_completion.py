@@ -94,11 +94,12 @@ def make_provider(reference, h, gens, config):
         storage_policy=SecondMomentStoragePolicy(config['max_coefficient_occurrences']))
 
 
-def settings_record(settings):
+def settings_record(settings, device=None):
     return [{'assigned': list(s.assigned_word_codes),
              'readouts': {str(w): [int(sign), list(positions)]
                           for w, (sign, positions) in s.readouts.items()},
-             'gates': [[name, list(qubits)] for name, qubits in s.clifford.gates]}
+             'gates': [[name, list(qubits)] for name, qubits in s.clifford.gates],
+             **({'sampling_probabilities': device.probabilities(s).tolist()} if device is not None else {})}
             for s in settings]
 
 
@@ -161,7 +162,7 @@ def run(config, *, execution_commit, declaration_commit):
                        (dense_h @ basis).conj().T @ (dense_h @ basis))
         target = config['folded_targets'][name]
         cases.append({'case': name, 'n': n, 'admission': provider.admission,
-                      'settings': settings_record(provider.plan.settings),
+                      'settings': settings_record(provider.plan.settings, device),
                       'spectrum': np.linalg.eigvalsh(dense_h).tolist()})
         for bi, budget in enumerate(config['shot_budgets']):
             counts = uniform_setting_plan(provider.plan.settings, budget)
@@ -206,7 +207,7 @@ def run(config, *, execution_commit, declaration_commit):
         by_key = observations_record(obs)
         integrations.append({'case': name, 'budget': budget, 'seed': seed,
              'counts': list(counts), 'histograms': [dict(by_key[s.key].hist) for s in time_provider.plan.settings],
-             'settings': settings_record(time_provider.plan.settings), 'admission': time_provider.admission,
+             'settings': settings_record(time_provider.plan.settings, device), 'admission': time_provider.admission,
              'matrices': matrices_record(measured), 'inference': infer(measured, config, target),
              'physical_shots': measured.resources['shots'], 'circuits': measured.resources['circuits']})
     summaries = []

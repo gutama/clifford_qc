@@ -122,7 +122,16 @@ def reconstruct(row, settings, ops, psi, n, delta):
             raise ValueError('invalid histogram')
         u = setting_unitary(n, setting, basis)
         p = np.abs(u @ psi)**2; p /= p.sum()
-        fresh = rng.multinomial(shots, p)
+        # Tiny differences at a mathematically zero probability can change a
+        # multinomial generator's stream consumption. Validate the published
+        # floating-point draw table independently, then replay those exact
+        # inputs, instead of pretending equivalent BLAS paths have equal bits.
+        draw_table = np.asarray(setting.get('sampling_probabilities', p), float)
+        if (draw_table.shape != p.shape or not np.isfinite(draw_table).all()
+                or np.any(draw_table < 0) or abs(draw_table.sum()-1) > 1e-12
+                or not np.allclose(draw_table, p, atol=1e-14, rtol=1e-12)):
+            raise ValueError('sampling table disagrees with independent circuit probabilities')
+        fresh = rng.multinomial(shots, draw_table)
         replay = {f'{k:0{n}b}': int(value) for k, value in enumerate(fresh) if value}
         if histogram != replay:
             raise ValueError('seeded joint histograms do not reproduce')
@@ -197,6 +206,23 @@ def close(a,b,path,problems):
         problems.append(path+': numeric value differs')
 
 
+def retained_solve(s, h, config):
+    """Independent diagonal normalization, overlap cut and whitening."""
+    scales=np.sqrt(np.maximum(np.diag(s).real,0))
+    live=scales>1e-14
+    if not np.any(live): raise ValueError('no live generator')
+    index=np.flatnonzero(live); scales=scales[index]
+    a=s[np.ix_(index,index)]/scales[:,None]/scales[None,:]
+    b=h[np.ix_(index,index)]/scales[:,None]/scales[None,:]
+    values,vectors=np.linalg.eigh(a)
+    keep=values>max(config['tau_s'],values[-1]/config['max_condition'])
+    if not np.any(keep): raise ValueError('no retained overlap mode')
+    frame=vectors[:,keep]/np.sqrt(values[keep])
+    reduced=frame.conj().T @ b @ frame
+    energies=np.linalg.eigvalsh((reduced+reduced.conj().T)/2)
+    return energies,int(np.count_nonzero(keep)),float(values[keep][-1]/values[keep][0])
+
+
 def check_row(row, settings, h, psi, gens, config, problems, *, integration=False):
     n=int(round(math.log2(len(psi)))); ops=entries(h,gens)
     matrices,radii=reconstruct(row,settings,ops,psi,n,config['delta'])
@@ -210,14 +236,37 @@ def check_row(row, settings, h, psi, gens, config, problems, *, integration=Fals
     covered=all(np.all(np.abs(a-b)<=r+1e-10) for a,b,r in zip(matrices,truths,radii))
     if not integration: close(row['entry_region_covers'],bool(covered),'entry coverage',problems)
     inference=row['inference']
-    if inference['status']=='solve_failed': return
+    try:
+        energies,rank,condition=retained_solve(matrices[0],matrices[1],config)
+    except (ValueError,np.linalg.LinAlgError):
+        if inference['status']!='solve_failed': problems.append('reported a solve for a failed pencil')
+        return
+    if inference['status']=='solve_failed':
+        problems.append('solvable pencil was hidden as solve_failed')
+        return
     if inference['status']!='solved': raise ValueError('unknown inference status')
+    close(inference['energy'],float(energies[0]),'Ritz value',problems)
+    close(inference['retained_rank'],rank,'retained rank',problems)
+    close(inference['retained_condition'],condition,'retained condition',problems)
     target=config['folded_targets'][row['case']]
+    w=target
+    f=matrices[2]-2*w*matrices[1]+w*w*matrices[0]
+    folded_values,folded_rank,folded_condition=retained_solve(matrices[0],f,config)
+    close(inference['folded']['effective_rank'],folded_rank,'folded rank',problems)
+    close(inference['folded']['condition_number'],folded_condition,'folded condition',problems)
+    close(inference['folded']['confidence_delta'],config['delta'],'folded delta',problems)
+    for j,root in enumerate(inference['folded']['roots']):
+        close(root['noisy_folded_eigenvalue'],float(folded_values[j]),'folded value',problems)
     directions=[(decode(inference['coefficients']),inference['convergence'])]
     if inference['folded']['ordered_root_certificate'] is not False: problems.append('unlicensed ordered-root claim')
     directions.extend((decode(r['coefficients']),r['assessment']) for r in inference['folded']['roots'])
     for c,report in directions:
         if report['ground_state_certificate'] is not False: problems.append('unlicensed ground-root claim')
+        close(report['confidence_delta'],config['delta'],'confidence delta',problems)
+        close(report['residual_tolerance'],config['residual_tolerance'],'residual tolerance',problems)
+        close(report['target'],target,'folded target',problems)
+        if report['evidence']!='simultaneous_fixed_endpoint_iid_bounded_shots':
+            problems.append('unexpected confidence evidence label')
         expected=expected_report(matrices,radii,c.copy(),target,config)
         for key,value in expected.items(): close(report[key],value,'assessment/'+key,problems)
         if covered:
@@ -252,6 +301,8 @@ def check_time(record, config, problems):
         basis=np.column_stack([g @ psi for g in generators])
         np.testing.assert_allclose(decode(row['overlap']),basis.conj().T @ basis,atol=2e-9,rtol=1e-8)
         np.testing.assert_allclose(decode(row['hamiltonian']),basis.conj().T @ h @ basis,atol=2e-9,rtol=1e-8)
+        energies,rank,condition=retained_solve(basis.conj().T @ basis,basis.conj().T @ h @ basis,config)
+        close(row['projected_energies'],[float(e) for e in energies],name+'/projected energies',problems)
         for j,(t,action) in enumerate(zip(times,row['validation']['actions'])):
             ideal=expm(-1j*t*h) @ psi; v=basis[:,j]; norm=np.linalg.norm(v)
             error=np.linalg.norm(v-ideal); infidelity=1-abs(np.vdot(ideal,v/norm))**2
@@ -276,6 +327,8 @@ def check_time(record, config, problems):
 
 def check(record, *, root=ROOT, history=True):
     config=read_json(root/DESIGN); problems=[]
+    if record['schema']!='clifford_qc.phase15_16_completion.v1' or record['evidence']['advantage_claim'] is not False:
+        raise ValueError('unexpected schema or unlicensed advantage claim')
     if record['design']!=config: raise ValueError('design differs from the committed contract')
     if (tuple(config['cases'])!=CASES or tuple(config['shot_budgets'])!=BUDGETS
             or config['replicas']!=32 or config['master_seed']!=2026103115 or config['delta']!=.05):
@@ -300,6 +353,8 @@ def check(record, *, root=ROOT, history=True):
         seed=int(np.random.SeedSequence([config['master_seed'],index,99]).generate_state(1)[0])
         if row['seed']!=seed or row['budget']!=BUDGETS[-1]: raise ValueError('integration schedule differs')
         check_row(row,row['settings'],h,psi,time_generators[row['case']],config,problems,integration=True)
+    if [s['case'] for s in record['summaries']]!=list(CASES):
+        raise ValueError('missing case summary')
     for summary in record['summaries']:
         rows=[r for r in record['rows'] if r['case']==summary['case']]
         coverage=sum(r['entry_region_covers'] for r in rows)/len(rows)
@@ -308,10 +363,27 @@ def check(record, *, root=ROOT, history=True):
                      'convergence_statuses':dict(statuses),'coverage_acceptance_passed':coverage>=.90}:
             problems.append('summary accounting differs')
         if coverage<.90: problems.append(summary['case']+': declared empirical coverage check fails')
+    historical={f'benchmarks/reference_results/{name}.json' for name in (
+        'phase15_h2_preflight','phase15_residual_successor','phase15_certifying_screen',
+        'phase15_certifying_krylov','phase15_fc_residual','phase16a_te_qsci',
+        'phase16b_feasibility','phase16b_v2_feasibility','phase16b_v3_feasibility')}
+    if set(record['historical_bindings'])!=historical:
+        raise ValueError('historical binding inventory differs')
     for path,digest in record['historical_bindings'].items():
         if hashlib.sha256((root/path).read_bytes()).hexdigest()!=digest: problems.append('historical bytes changed: '+path)
     if history:
+        fixed={'benchmarks/run_phase15_16_completion.py','benchmarks/check_phase15_16_completion.py',
+               'benchmarks/run_sampled_ratio.py','benchmarks/check_observable_noise.py',DESIGN,
+               'docs/restart/PHASE15_16_COMPLETION_CONTRACT.md'}
+        package=subprocess.check_output(['git','ls-tree','-r','--name-only',record['execution_commit'],
+                                         '--','clifford_qc'],cwd=root,text=True).splitlines()
+        expected_sources=fixed|{p for p in package if p.endswith('.py')}
+        if set(record['source_sha256'])!=expected_sources:
+            raise ValueError('execution source inventory is incomplete')
         verify_source_bindings(record,root)
+        declared=subprocess.check_output(['git','show',record['declaration_commit']+':'+DESIGN],cwd=root)
+        if hashlib.sha256(declared).hexdigest()!=record['source_sha256'][DESIGN]:
+            raise ValueError('execution design differs from the prior declaration')
         publication=subprocess.check_output(['git','log','--diff-filter=A','--format=%H','--',RESULT],cwd=root,text=True).splitlines()
         if not publication: raise ValueError('published record ancestry is unavailable')
         for first,second in ((record['declaration_commit'],record['execution_commit']),
