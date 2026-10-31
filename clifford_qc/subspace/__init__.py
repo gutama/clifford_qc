@@ -91,6 +91,7 @@ from .qsci import (
 )
 from .time_evolution import (
     apply_program, propagate, time_evolved_state, trotter_program,
+    TruncatedTimeFamily, truncated_time_family, validate_truncated_time_family,
 )
 from .multiresolution import (
     ConfigurationOrdering, HaarPacketNode, MultiresolutionResult,
@@ -103,7 +104,10 @@ from .fragment import (
     SelectedCIFragmentSolver, energy_from_spatial_rdms, spatial_rdms,
     spin_orbital_rdms,
 )
-from .second_moment import SECOND_MOMENT_LABEL, RitzResidual, SecondMomentBank
+from .second_moment import (
+    SECOND_MOMENT_LABEL, RitzResidual, SecondMomentBank,
+    MeasuredMomentProblem, SampledSecondMomentProvider,
+)
 from .second_moment_storage import (
     SecondMomentStorageError, SecondMomentStoragePolicy, SecondMomentStoragePreflight,
     second_moment_storage_preflight,
@@ -128,6 +132,8 @@ __all__ = [
     "SelectedCIFragmentSolver", "energy_from_spatial_rdms", "spatial_rdms",
     "spin_orbital_rdms",
     "SECOND_MOMENT_LABEL", "RitzResidual", "SecondMomentBank",
+    "MeasuredMomentProblem", "SampledSecondMomentProvider",
+    "TruncatedTimeFamily", "truncated_time_family", "validate_truncated_time_family",
     "CONVERGENCE_SCHEMA", "EXTRAPOLATION_SCHEMA", "ConvergenceConfig", "ConvergenceReport",
     "GroundStateReference", "VarianceExtrapolationDiagnostic", "convergence_report",
     "variance_extrapolation_diagnostic",

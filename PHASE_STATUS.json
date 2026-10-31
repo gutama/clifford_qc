@@ -37,10 +37,10 @@
   },
   "summary": {
     "numbered_phase_count": 20,
-    "complete_phase_count": 18,
-    "strict_complete_fraction": 0.9,
-    "progress_weighted_points": 19.0,
-    "progress_weighted_fraction": 0.95
+    "complete_phase_count": 20,
+    "strict_complete_fraction": 1.0,
+    "progress_weighted_points": 20.0,
+    "progress_weighted_fraction": 1.0
   },
   "numbered_phases": [
     {
@@ -182,8 +182,8 @@
     {
       "id": "15",
       "title": "Second-moment bank",
-      "status": "partial",
-      "implementation_fraction": 0.5,
+      "status": "complete",
+      "implementation_fraction": 1.0,
       "evidence": [
         "benchmarks/run_phase15_h2_preflight.py",
         "benchmarks/check_phase15_h2_preflight.py",
@@ -224,36 +224,52 @@
         "benchmarks/check_phase15_fc_residual_declaration.py",
         "benchmarks/run_phase15_fc_residual.py",
         "benchmarks/check_phase15_fc_residual.py",
-        "tests/test_phase15_fc_residual.py"
+        "tests/test_phase15_fc_residual.py",
+        "docs/restart/PHASE15_16_COMPLETION_CONTRACT.md",
+        "docs/restart/phase15_16_completion_design.json",
+        "benchmarks/run_phase15_16_completion.py",
+        "benchmarks/check_phase15_16_completion.py",
+        "tests/test_phase15_16_completion.py",
+        "docs/restart/phase15_16_completion_results.json.gz"
       ],
-      "remaining": [
-        "Finite-shot estimation beyond the declared scopes. Q18-S1 reads NONE for uniform QWC on the five banks; the original Q18 record remains INVALID. Q18-S2 reads UNREACHED on the two committed Hubbard 2x2 A-CASE trajectories. Q18-S3, declared post hoc on the ladder's fixed Krylov prefixes, reads CLOSED: its one certifying, rank-stable prefix (M = 7) has Neyman ratios near 1,700, so no allocation reaches the tenfold bar there and its pilot stage did not run. Q18-S4, declared post hoc at the fully commuting grouping endpoint on the four 8-qubit banks, reads NONE: every bank is PROHIBITIVE under both the greedy (R = 12.3 to 26.7) and the isotropic cover, so the uniform single-assignment estimator closes negative at both grouping endpoints there and none is built. These close the measured block negative on those declared scopes only; other systems, spans, references, pooled estimators, allocations or precision rules need their own declaration. Oracle allocation diagnostics license no estimator",
-        "Finite-shot convergence reporting and folded-spectrum roots built on a measured second-moment block, on a scope a new declaration licenses; exact folded roots, refined Ritz vectors and inclusion intervals ship over the exact block"
-      ],
+      "remaining": [],
       "decision_records": [
         "benchmarks/reference_results/phase15_residual_successor.json",
         "benchmarks/reference_results/phase15_certifying_screen.json",
         "benchmarks/reference_results/phase15_certifying_krylov.json",
         "benchmarks/reference_results/phase15_fc_residual.json"
+      ],
+      "progress_basis": "Exact second moments, convergence and folded roots remain supported on their historical scope. Bounded sampled S/H/K reconstruction, simultaneous finite-shot convergence and folded-direction spectral inclusion now ship on the separately declared TFIM2/TFIM3/Hubbard-dimer engineering scope. Completion does not promote historical negative cost findings or establish affordable large-bank H-squared measurement.",
+      "deferred": [
+        "Affordable measured second moments on the historical banks, ground-root identification and cost-advantage claims require separate evidence."
       ]
     },
     {
       "id": "16",
       "title": "Time-evolved inputs",
-      "status": "partial",
-      "implementation_fraction": 0.5,
+      "status": "complete",
+      "implementation_fraction": 1.0,
       "evidence": [
         "clifford_qc/subspace/time_evolution.py",
-        "tests/test_time_evolution.py"
+        "tests/test_time_evolution.py",
+        "docs/restart/PHASE15_16_COMPLETION_CONTRACT.md",
+        "docs/restart/phase15_16_completion_design.json",
+        "benchmarks/run_phase15_16_completion.py",
+        "benchmarks/check_phase15_16_completion.py",
+        "tests/test_phase15_16_completion.py",
+        "docs/restart/phase15_16_completion_results.json.gz",
+        "clifford_qc/subspace/time_evolution.py"
       ],
-      "remaining": [
-        "Circuit-native or explicitly truncated A-CASE real-time family (16B); not authorized: the preregistered decision programme ended CONDITIONAL"
-      ],
+      "remaining": [],
       "decision_records": [
         "benchmarks/reference_results/phase16a_te_qsci.json",
         "benchmarks/reference_results/phase16b_feasibility.json",
         "benchmarks/reference_results/phase16b_v2_feasibility.json",
         "benchmarks/reference_results/phase16b_v3_feasibility.json"
+      ],
+      "progress_basis": "16A time-evolved QSCI inputs ship with their unchanged NO_GO comparison. The explicit Phase 16B truncation alternative now ships with finite support/work, norm, infidelity, energy-error and conditioning budgets, independent matrix-free/dense validation, and sampled second-moment integration on the new bounded engineering scope. No circuit-native backend or shot advantage is claimed.",
+      "deferred": [
+        "The historical CONDITIONAL decision does not authorize a circuit-native controlled-evolution backend. Its unspent estimator-variance refinement is outside the shipped explicit-truncation alternative."
       ]
     },
     {

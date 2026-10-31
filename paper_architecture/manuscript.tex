@@ -334,7 +334,7 @@ Model construction & Spin chains; Hubbard and other lattice models; FCIDUMP inte
 Circuit experiments & Parameterized Pauli rotors and named Clifford gates; versioned program serialization; gradients; OpenQASM export & \texttt{ir}; exporters and bridges support defined subsets\\
 Numerical execution & Exact operator and dense statevector paths; particle/spin-sector calculations; finite-shot simulation; stabilizer execution & \texttt{backends}; sector and stabilizer paths have their own state and operation restrictions\\
 Eigensolver comparisons & VQE and ADAPT-VQE; qubit-exchange and coupled-exchange pools and a shared-unitary multi-root ADAPT in exact sectors; fixed and adaptive operator-response subspaces; sampled and time-evolved determinant inputs; selected-CI controls; hybrid bases and projected observables & \texttt{algorithms}, \texttt{subspace}; a converged projected solve need not reach the full ground state\\
-Convergence diagnostics & Second-moment blocks; true Ritz residuals with resolution floors; folded-spectrum roots, refined Ritz vectors, and inclusion intervals; opt-in convergence reports & \texttt{SecondMomentBank}, \texttt{FoldedSpectrum}, \texttt{subspace.convergence}; exact pairings only, with no finite-shot estimator\\
+Convergence diagnostics & Second-moment blocks; true Ritz residuals with resolution floors; folded-spectrum roots, refined Ritz vectors, and inclusion intervals; opt-in convergence reports & \texttt{SecondMomentBank}, \texttt{FoldedSpectrum}, \texttt{subspace.convergence}; exact archived validation; separately bounded sampled moments and confidence reports\\
 Measurement studies & Qubit-wise and block-commuting grouping; Clifford readout circuits; anticommuting-clique compilation of a fixed functional; shared outcome caches; allocation, covariance, and uncertainty estimates & \texttt{measurement}; interval guarantees depend on the estimator and declared assumptions; clique settings do not feed the shared cache\\
 Repeated experiments & Cached model preparation; independent solves; optional reference validation; object or packed coefficients; streaming with recomputation & \texttt{prepared}, \texttt{pipeline}, \texttt{subspace}; the streaming row bound excludes other process memory\\
 Interoperability & Stim, OpenFermion, pytket, PennyLane, and PyZX adapters; a fragment-solver callback for an external embedding loop & \texttt{bridges}, \texttt{subspace.fragment}; optional dependencies and conversion-specific checks; the embedding loop stays outside the package\\
@@ -445,8 +445,12 @@ adaptive termination, without changing selection or stopping, and enters its
 time and resident rows in the bank's resource ledger. On the \cqcResidualBanks{}
 frozen banks the validation records cover, the second-moment block, every Ritz
 residual and every refined folded root agree with dense statevector oracles.
-All of this is exact pairing with the reference: no finite-shot estimator of
-$K$ is shipped, for the reason Sec.~\ref{sec:residual-closure} reports.
+Those archived validations use exact reference pairings. A separately bounded
+sampled extension now reconstructs overlap, Hamiltonian and second-moment
+blocks with simultaneous entrywise confidence, reports unresolved normalization
+and cancellation, and supplies physical-direction folded inclusion intervals.
+Its engineering validation is distinct from the historical cost programme in
+Sec.~\ref{sec:residual-closure} and makes no advantage claim.
 
 \subsection{Reusing preparation across experiments}
 
