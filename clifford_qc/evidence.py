@@ -2,7 +2,7 @@
 from __future__ import annotations
 
 SCHEMA = "clifford_qc.evidence.v1"
-TIERS = frozenset({"exact_algebra", "exact_small_sector_simulation",
+TIERS = frozenset({"exact_algebra", "exact_small_sector_simulation", "exact_numerical_simulation",
                    "finite_sample_empirical", "illustrative_model",
                    "classical_process_measurement", "asymptotic_bound",
                    "published_literature"})
