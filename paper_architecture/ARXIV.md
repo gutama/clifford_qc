@@ -51,6 +51,9 @@ diffing the two versions:
   determinant reference, opt-in provider workflow, scoped cost ledger, evidence
   export, shared runner and replay, and the negative preregistered noise-aware
   comparison. It identifies the source as publicly available on GitHub.
+- **Related operator backend.** A sourced PauliEngine comparison distinguishes
+  its C++/symbolic arithmetic benchmarks from this toolkit's workflows, with no
+  direct performance or integration claim.
 - **Corrections.** The abstract no longer says evidence labels are not
   validated uniformly; the gates section's spelled-out counts ("Five are
   preregistration gates", "Three further gates", "two compare records") had
