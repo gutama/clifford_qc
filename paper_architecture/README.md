@@ -34,7 +34,9 @@ storage matrix is one host's observation rather than a bound.
 - **v2** — the current source. The latest revision also documents determinant-reference
   execution, the unified provider workflow, scoped cost ledger, evidence export,
   runner and replay boundaries, the negative preregistered noise-aware selection
-  result, and independent checks. The public source repository is available now;
+  result, and independent checks. It also compares the scope and published
+  benchmarks of PauliEngine with this toolkit, without asserting a direct speed
+  comparison. The public source repository is available now;
   an archival identifier or package-index release is not implied. It adds exact Ritz residuals and folded-spectrum
   roots (a new subsection of the workflow section), the process-isolated
   storage-policy matrix, the preregistered anticommuting-clique comparison, and
