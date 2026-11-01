@@ -33,7 +33,8 @@ diffing the two versions:
 - **New negative result, the measured residual block.** Two post-hoc
   declarations price the residual against the energy under uniform QWC and
   fully commuting grouping; both read `NONE`, which is why no finite-shot
-  second-moment estimator ships.
+  result established a sampled residual certificate. A later bounded sampled
+  second-moment consumer is now implemented under a separate declaration.
 - **Coefficient storage now measured.** The process-isolated policy matrix
   (Table V) replaces v1's statement that the profiles established no
   process-memory reduction: on the four larger inputs, packing and streaming
@@ -46,6 +47,10 @@ diffing the two versions:
   versioned evidence contract and digest-bound annotations. The census tables
   are regenerated (more modules, gates and records; no JSON record now lacks an
   evidence declaration).
+- **Restart and evidence interfaces.** The manuscript documents the default
+  determinant reference, opt-in provider workflow, scoped cost ledger, evidence
+  export, shared runner and replay, and the negative preregistered noise-aware
+  comparison. It identifies the source as publicly available on GitHub.
 - **Corrections.** The abstract no longer says evidence labels are not
   validated uniformly; the gates section's spelled-out counts ("Five are
   preregistration gates", "Three further gates", "two compare records") had
@@ -145,10 +150,11 @@ instead of maintaining another approximate count here.
 v1 was posted with `15 pages, 5 figures`. For v2:
 
 ```
-18 pages, 5 figures, 12 tables. v2: adds exact Ritz residuals and
+v2: adds exact Ritz residuals and
 folded-spectrum roots, a process-isolated storage measurement, an
 anticommuting-clique comparison and a measured-residual closure; updates the
-software census. Companion to arXiv:2607.17443. Source, records and manuscript
+software census, provider workflows, evidence export and independent checks.
+Companion to arXiv:2607.17443. Public source, records and manuscript
 gate at https://github.com/gutama/clifford_qc
 ```
 
@@ -158,9 +164,8 @@ count of the build it verified.
 **ACM class** — `G.4; J.2`
 **MSC class** — `81P68; 81-04; 65-04`
 
-**Journal reference / DOI** — leave empty. No archival identifier or
-package-index release exists yet, as the manuscript's Use and distribution
-section explains; adding one here would contradict it.
+**Journal reference / DOI** — leave empty. Do not add a software archival identifier or package-index release without
+verifying it. The source repository is already public.
 
 **Report number** — none.
 
