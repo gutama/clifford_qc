@@ -95,8 +95,9 @@ execution, and statistical estimates. A worked gradient example illustrates
 shared measurements, and a molecular workflow separates reusable preparation,
 solving, and reference validation. Matrix-element banks support virtual
 subspaces, exact Ritz residuals, and folded-spectrum roots. Process-isolated
-benchmarks show that packed coefficients and streaming reduce observed peak
-memory on the larger tested inputs at increased runtime. Measurement studies
+benchmarks using the legacy density reference show that packed coefficients and
+streaming reduce observed peak memory on the larger tested inputs at increased
+runtime. Measurement studies
 separate setting counts, shot requirements, and device cost: fully commuting
 readout certifies a fixed first-order Ritz functional with fewer shots, while
 anticommuting cliques help some fixed reference energies and not others.
@@ -512,12 +513,15 @@ prints that path. Exact projected arithmetic does not certify convergence
 to the full ground state. The exact residual of Sec.~\ref{sec:residuals} is a
 Python-level option of the same solver; the CLI record does not carry it.
 
-A storage comparison repeats this solve on the same artifact, choosing
-\texttt{object} or \texttt{packed} storage independently of
-\texttt{retain\_all} or \texttt{stream\_recompute} lifetime policy.
+A user can compare storage policies by repeating this prepared solve on the
+same artifact, choosing \texttt{object} or \texttt{packed} storage independently
+of \texttt{retain\_all} or \texttt{stream\_recompute} lifetime policy.
 These choices change bank storage, not the reference-state representation.
 The bank is rebuilt for each invocation; only preparation is cached across
-the runs. Python callers can expose further solver controls, including
+the runs. The historical process-isolated storage study described below used
+its own benchmark worker and the legacy density reference in every arm, not
+the present determinant-reference default. Its measurements do not compare
+the reference representations. Python callers can expose further solver controls, including
 oracle-based stopping, which is identified by the record's
 \texttt{stopping\_uses\_oracle} field.
 
@@ -826,8 +830,9 @@ improvement, and the retain-all object path remains the default.
 \begin{table*}
   \caption{The coefficient-storage arms measured in isolation. Each cell is
   one run of the same adaptive solve in a fresh interpreter, with full
-  candidate pools, a common basis budget and the same stopping rule; $M$ is the
-  final basis size, identical across the arms. Peak memory is the worker's
+  candidate pools, a common basis budget and the same stopping rule; every arm
+  uses the legacy density reference. $M$ is the final basis size, identical
+  across the arms. Peak memory is the worker's
   own high-water resident set, including preparation, support histories and
   instrumentation; wall time is the supervising parent's. Single observations
   on one host, not a memory bound.}
@@ -844,7 +849,8 @@ improvement, and the retain-all object path remains the default.
   \end{ruledtabular}
 \end{table*}
 
-Table~\ref{tab:storage} measures these choices directly. Each of the
+Table~\ref{tab:storage} measures these choices on the historical density-MV
+path, not on the determinant-reference default. Each of the
 \cqcPolicyArms{} arms runs on \cqcPolicySystems{} fixed molecular inputs in its
 own process, so no arm inherits another's allocator state. Every arm reproduces
 the same selected labels, energy histories and stopping reasons, and an independent
