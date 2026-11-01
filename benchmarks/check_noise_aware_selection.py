@@ -124,7 +124,13 @@ def penalty(pair, h, n, p):
     return .1*(bound["S"]*sum(abs(c) for c in h.values())+bound["H"])
 
 
-def check(record):
+def check(record, *, replay_rng=True):
+    """Replay the outcomes; omitting RNG replay checks only the recorded draws.
+
+    The default checks the seeded stream as well and requires the recorded
+    NumPy environment. The narrower mode is for cross-version tests of the
+    numerical reconstruction; it is not an independent check of the draws.
+    """
     design_bytes = DESIGN.read_bytes()
     design = json.loads(design_bytes)
     require(record["schema"] == "clifford_qc.noise_aware_selection.results.v1", "result schema")
@@ -167,14 +173,22 @@ def check(record):
             for rep, row in enumerate(outcome["rows"]):
                 seed = 20261101+10000*ci+1000*pi+rep
                 require(row["replicate"] == rep and row["seed"] == seed, "seed grid")
-                rng = np.random.default_rng(seed)
-                train_counts = rng.binomial(5000, probabilities)
-                eval_counts = rng.binomial(5000, probabilities)
-                require(row["training_counts"] == train_counts.tolist() and row["evaluation_counts"] == eval_counts.tolist(),
-                        "sampled counts or stream order")
+                train_counts, eval_counts = row["training_counts"], row["evaluation_counts"]
+                for counts in (train_counts, eval_counts):
+                    require(isinstance(counts, list) and len(counts) == len(words)
+                            and all(type(x) is int and 0 <= x <= 5000 for x in counts),
+                            "sampled counts shape or range")
+                if replay_rng:
+                    rng = np.random.default_rng(seed)
+                    require(train_counts == rng.binomial(5000, probabilities).tolist()
+                            and eval_counts == rng.binomial(5000, probabilities).tolist(),
+                            "sampled counts or stream order")
                 train = {0: 1., **{k: float(2*x/5000-1) for k, x in zip(words, train_counts)}}
                 evaluation = {0: 1., **{k: float(2*x/5000-1) for k, x in zip(words, eval_counts)}}
                 energies = [evaluate(pair, train) for pair in pairs]
+                require(isinstance(row["training_energies"], list)
+                        and len(row["training_energies"]) == len(energies),
+                        "training energy count")
                 for got, expected in zip(row["training_energies"], energies):
                     near(got, expected, "training energy")
                 for arm in ("baseline", "noise_aware"):
@@ -231,8 +245,11 @@ def check_report(record):
         require(expect in text, "report table differs from record")
         require(all(row["arms"]["baseline"]["candidate"] == row["arms"]["noise_aware"]["candidate"]
                     for row in outcome["rows"]), "report claim: candidate agreement")
-        require(all(all(value is not None for value in row["training_energies"])
-                    for row in outcome["rows"]), "report claim: no invalid candidate pencils")
+        require(bool(summary["candidate_penalties"])
+                and all(isinstance(row["training_energies"], list)
+                        and len(row["training_energies"]) == len(summary["candidate_penalties"])
+                        and all(value is not None for value in row["training_energies"])
+                        for row in outcome["rows"]), "report claim: no invalid candidate pencils")
 
 
 def verify_history(record):
@@ -248,16 +265,24 @@ def verify_history(record):
 
     declared = git("show", f"{DECLARATION_COMMIT}:docs/restart/noise_aware_selection_declaration.json")
     require(hashlib.sha256(declared).hexdigest() == DECLARATION_SHA256, "committed declaration")
-    producer = git("show", f"{IMPLEMENTATION_COMMIT}:benchmarks/run_noise_aware_selection.py")
-    require(hashlib.sha256(producer).hexdigest() == record["source_sha256"]["benchmarks/run_noise_aware_selection.py"],
-            "committed producer differs from execution record")
-    published = git("log", "--format=%H", "--diff-filter=A", "--", str(RESULT.relative_to(ROOT))).decode().splitlines()
+    require(set(record["source_sha256"]) == BOUND_SOURCES, "declared source list")
+    for path, expected in record["source_sha256"].items():
+        source = git("show", f"{IMPLEMENTATION_COMMIT}:{path}")
+        require(hashlib.sha256(source).hexdigest() == expected,
+                f"implementation source differs from execution record: {path}")
+    result_path = str(RESULT.relative_to(ROOT))
+    published = git("log", "--full-history", "--reverse", "--topo-order", "--format=%H",
+                    "--diff-filter=A", "--", result_path).decode().splitlines()
     require(bool(published), "result has no publication commit")
     publication = published[0]
     require(len({DECLARATION_COMMIT, IMPLEMENTATION_COMMIT, publication}) == 3, "distinct publication commits")
     ancestor(DECLARATION_COMMIT, IMPLEMENTATION_COMMIT)
     ancestor(IMPLEMENTATION_COMMIT, publication)
     ancestor(publication, "HEAD")
+    original = json.loads(gzip.decompress(git("show", f"{publication}:{result_path}")))
+    def canonical(value):
+        return json.dumps(value, sort_keys=True, separators=(",", ":"), allow_nan=False)
+    require(canonical(original) == canonical(record), "published result payload differs")
 
 
 def main():

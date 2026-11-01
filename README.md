@@ -58,6 +58,12 @@ projected S/H stability on eight bounded controls and physical models.
 Noise-aligned correlators can stay fixed after fidelity deteriorates;
 an invariant operator span or stable overlap alone does not preserve Ritz energies.
 
+The opt-in [unified workflow and evidence export](docs/restart/UNIFIED_WORKFLOW.md)
+wraps existing exact, sampled and sector-action providers with a common
+result, explicitly scoped cost ledger and portable integrity-checked archive.
+Provider preparation, independent validation and durable storage remain
+caller responsibilities.
+
 ## What you can do
 
 | Task | Implemented features | Start here |
