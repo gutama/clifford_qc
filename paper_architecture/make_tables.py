@@ -180,7 +180,7 @@ GATE_CLASSES: tuple[tuple[str, str, tuple[str, ...]], ...] = (
         ("check_phase17_ceo", "check_phase17_more", "check_orthogonal_active_space",
          "check_h2o_residual_comparison", "check_packet_work_reuse", "check_packet_work_large",
          "check_sparse_packet_work", "check_exact_projection_cache", "check_packet_budget_convergence",
-         "check_frame_coordinate_projection"),
+         "check_frame_coordinate_projection", "check_fcidump_h4"),
     ),
     (
         "Observed resource equivalence",
@@ -218,6 +218,7 @@ GATE_CLASSES: tuple[tuple[str, str, tuple[str, ...]], ...] = (
             "check_second_moment_validation",
             "check_packed_bank_storage", "check_r4a_contextual_screen",
             "check_warm_start", "check_observable_noise", "check_phase15_16_completion",
+            "check_noise_aware_selection",
         ),
     ),
     (

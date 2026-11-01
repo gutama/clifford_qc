@@ -632,7 +632,7 @@ frame-coordinate comparison above still fails its joint criterion.
 ```bash
 python -m venv .venv && source .venv/bin/activate
 pip install -e .[test,research,stim]       # automatic CI extras
-pytest                                      # 4552 passed, 12 skipped (expected if green)
+pytest                                      # 4556 passed, 12 skipped (expected if green)
 ```
 
 This is the automatic CI dependency set; record gates additionally pin NumPy
@@ -651,7 +651,7 @@ the remaining `12 - 6 = 6` skips are per-test and *are* collected:
 
 ```text
 collected == passed + (skipped - files dropped at collection)
-4558      == 4552   + (12      -   6)
+4562      == 4556   + (12      -   6)
 ```
 
 Both sides are computed from the tree, so a drift in either quoted number
@@ -5944,3 +5944,13 @@ use, per-time validation bounds, MV-reference storage accounting, immutable
 resource snapshots and tampered observations or Taylor bounds.
 Implementation completion is bounded; it does not promote a historical failed
 cost hypothesis or supply a circuit-native controlled-evolution backend.
+
+## Noise-aware selection and independent H4 audit
+
+The preregistered, result-free selection and accounting contract and the
+retained equal-shot observations are described in
+[docs/restart/NOISE_AWARE_SELECTION.md](docs/restart/NOISE_AWARE_SELECTION.md).
+`benchmarks/run_noise_aware_selection.py` generated the frozen outcome and
+refuses to overwrite it. Its independent replay and the paper's H4 occupation
+and Pauli-support audit run through the registered CI gates. Numerical replay
+is not a new campaign or a hardware measurement.

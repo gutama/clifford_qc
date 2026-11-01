@@ -1,0 +1,34 @@
+{
+  "schema": "clifford_qc.noise_aware_selection.declaration.v1",
+  "declared_date": "2026-11-01",
+  "question": "With equal per-word selection and evaluation shots, does a fixed state-independent channel-defect penalty improve independently evaluated absolute ground-energy error of a selected two-direction S/H pencil?",
+  "status": "result-free declaration; model simulation, not a device experiment",
+  "scope": "TFIM4 development; H4 and LiH previously studied in this repository but held out from tuning this selection policy. No external blind validation. This declaration does not reopen earlier negative ratio or packet experiments.",
+  "input_definition": "Use the exact case definitions, fixed reference preparation and generator terms from docs/restart/cross_domain_ratio_declaration.json and the independent_case reconstruction of benchmarks/check_cross_domain_ratio.py. Each case has I plus two declared candidate generators. Each candidate pencil is [I, candidate]. Ground energy is the independently reconstructed TFIM full-space or molecular singlet-sector eigenvalue.",
+  "case_names": ["tfim4_development", "h4_heldout_molecule", "lih_heldout_molecule"],
+  "noise": {"channel": "independent identical phase-flip channel after preparation, before measurement", "probabilities": [0.02, 0.1], "reference": "same preparation and channel per arm; nonidentity X/Y Pauli words attenuate by (1-2p)^weight"},
+  "selection": {
+    "shared_inputs": "Both arms use the same noisy selection-batch means for all nonidentity Pauli words in the union of both candidates' S and H entries, measured separately per word.",
+    "baseline": "Select candidate with lowest finite-shot noisy projected Ritz energy; ties resolved in candidate declaration order.",
+    "noise_aware": "Select minimum estimated Ritz energy plus 0.1 times (maximum S-entry Pauli-l1 channel-defect bound multiplied by Hamiltonian Pauli l1 norm plus maximum H-entry Pauli-l1 channel-defect bound). The defect is calculated for each complex entry from E-dagger(O)-O; no state or ground-energy oracle is used for scoring.",
+    "pencil": "Hermitize reconstructed S and H; normalize diagonal S; solve generalized eigenproblem only if every diagonal S exceeds 1e-8 and normalized S eigenvalues are all strictly greater than 1e-6. Invalid candidate cannot be selected. If both candidates invalid the arm fails.",
+    "tie_rule": "lowest candidate declaration index; no post-hoc tuning"
+  },
+  "measurement": {
+    "design": "For each word, independent binomial plus/minus one outcomes with probability from exact noisy state; independent words, batches, replicates and seed streams. Same two common random batches are paired across arms.",
+    "shots_per_word_per_batch": 5000,
+    "batches": ["selection", "fresh independent evaluation of both selected pencils"],
+    "replicates_per_case_and_noise": 64,
+    "seed_formula": "20261101 + 10000 * case_index + 1000 * noise_index + replicate_index; NumPy PCG64 generator, selection batch then evaluation batch",
+    "word_accounting": "identity exact and costs zero; all other unique words measured once per batch at fixed shot count. Both arms pay the full selection and evaluation union, including unselected candidates. Record preparations/circuit executions = 2 * unique nonidentity word count * shots per word, distinct circuit settings per batch, and all failures. No grouping, reuse across batches, postselection, or mitigation."
+  },
+  "assessment": {
+    "primary": "Per held-out case and noise probability, compare median absolute difference between the fresh-evaluation selected Ritz energy and independent ground energy, over all 64 replicates. Failed selection or evaluation is charged a finite loss of 10 * max(1, Hamiltonian Pauli l1 norm) in native energy units, for both arms.",
+    "failure": "Selection failure or invalid fresh evaluation pencil; denominator is all 64 scheduled replicates. Record selection, evaluation and retained-rank failures separately.",
+    "acceptance": "All four held-out case/noise cells must have noise-aware median loss at most 0.8 times baseline median loss, noise-aware failures no greater than baseline failures, and paired bootstrap 95% upper percentile of the median-loss ratio strictly below 1.0. If baseline median is zero or a bootstrap denominator is zero, that cell is unresolved and acceptance fails.",
+    "bootstrap": "2000 paired resamples per cell, same replicate indices for both arms, PCG64 seed 20261201 + 100 * case_index + noise_index, percentile interval 2.5% and 97.5%.",
+    "secondary": "Report all outcomes, selected candidates, noiseless selected-span Ritz energies, noisy exact selected-span Ritz energies, fresh-evaluation energies, selection/evaluation failures, loss ratios, paired bootstrap intervals and calibration assumptions. The result is not a root or ground-state certificate."
+  },
+  "cost_boundary": "Both arms have identical declared shots and circuit executions, including shared selection and fresh evaluation. State preparation is charged once per shot but its gates, readout time and device runtime are not priced. Defect construction and scoring are counted as additional classical work; wall time may be reported descriptively, not used as an acceptance benchmark. The channel and probability are supplied perfectly for free in the model; calibration/model learning, drift, mitigation, connectivity and hardware execution costs are unknown. Therefore any positive outcome is a simulation-only equal-shot accuracy result, not an end-to-end cost saving or quantum advantage.",
+  "provenance": "This declaration is committed before the producer, checker and observations; commit ancestry is preserved. Record exact declaration/input/source digests and execution environment. Keep every replicate and both arm outcomes. The independent checker must reconstruct the Hamiltonians, noise expectations, selection/evaluation draws and losses without importing the producer."
+}
