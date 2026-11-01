@@ -196,7 +196,7 @@
       "top_level_tier": 17
     },
     "json_records": 56,
-    "series_files": 22,
+    "series_files": 21,
     "top_level_tiers": {
       "exact": 4,
       "exact numerical benchmark": 1,
@@ -241,7 +241,7 @@
         "modules": 9
       },
       "orchestration": {
-        "lines": 801,
+        "lines": 832,
         "modules": 3
       },
       "subspace": {
@@ -253,9 +253,9 @@
         "modules": 1
       }
     },
-    "package_lines": 34046,
+    "package_lines": 34077,
     "package_modules": 126,
-    "test_lines": 44194,
+    "test_lines": 44280,
     "test_modules": 186
   }
 }

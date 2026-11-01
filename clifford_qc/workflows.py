@@ -115,6 +115,28 @@ def _workflow_source_digest():
     return digest.hexdigest()
 
 
+def _validate_projected_solve_options(options):
+    """Reject invalid, data-independent options before any sampling occurs.
+
+    Per-mode lengths depend on which generators are live in the reconstructed
+    overlap, so the numerical solver checks those after sampling.
+    """
+    import numpy as np
+
+    for name, value in options.items():
+        vector_allowed = name in {"overlap_noise_floor", "overlap_ridge"}
+        array = np.asarray(value)
+        if (array.dtype.kind not in "iuf" or array.ndim > int(vector_allowed)):
+            shape = "a real scalar or 1-D sequence" if vector_allowed else "a real scalar"
+            raise ValueError(f"{name} must be {shape}")
+        if name == "max_condition":
+            # +inf disables the condition-number cutoff, as in solve_projected.
+            if np.isnan(array).any() or np.any(array <= 0):
+                raise ValueError("max_condition must be positive and not NaN")
+        elif not np.all(np.isfinite(array)) or np.any(array < 0):
+            raise ValueError(f"{name} must be nonnegative and finite")
+
+
 def run_workflow(provider, *, path, problem, unit, solve_options=None,
                  shots=None, seed=None, delta=0.05, sector_config=None,
                  preparation_cost=None, validation_cost=None, provenance=None):
@@ -152,6 +174,7 @@ def run_workflow(provider, *, path, problem, unit, solve_options=None,
                        "overlap_ridge", "norm_floor"}
     if set(options) - allowed_options:
         raise ValueError("unsupported projected solve options: " + ", ".join(sorted(set(options) - allowed_options)))
+    _validate_projected_solve_options(options)
     if path != "sampled_projection" and (shots is not None or seed is not None):
         raise ValueError("shots and seed apply only to sampled projection")
     if path != "sector_action" and sector_config is not None:
@@ -309,17 +332,25 @@ def export_workflow_evidence(result, destination, *, attachments=None, max_bytes
         raise ValueError("max_bytes must be a positive integer")
     destination = Path(destination)
     payloads = {"result.json": result._payload}
+    remaining = max_bytes - len(result._payload)
+    if remaining < 0:
+        raise ValueError("export exceeds byte budget")
     for name, source in (attachments or {}).items():
         if not isinstance(name, str) or not re.fullmatch(r"[A-Za-z0-9][A-Za-z0-9._-]*", name):
             raise ValueError("attachment names must be simple safe filenames")
         path = Path(source)
         if not path.is_file() or path.is_symlink():
             raise ValueError("attachments must be regular non-symlink files")
-        if path.stat().st_size > max_bytes:
-            raise ValueError("attachment exceeds export byte budget")
-        payloads["attachments/" + name] = path.read_bytes()
-    if sum(map(len, payloads.values())) > max_bytes:
-        raise ValueError("export exceeds byte budget")
+        if path.stat().st_size > remaining:
+            raise ValueError("attachment exceeds remaining export byte budget")
+        # A file may grow after stat; never read more than one byte beyond
+        # the remaining budget, and reject that byte before retaining it.
+        with path.open("rb") as stream:
+            data = stream.read(remaining + 1)
+        if len(data) > remaining:
+            raise ValueError("attachment exceeds remaining export byte budget")
+        payloads["attachments/" + name] = data
+        remaining -= len(data)
     manifest = {"schema": "clifford_qc.workflow_archive.v1",
                 "files": {name: {"sha256": hashlib.sha256(data).hexdigest(), "size_bytes": len(data)}
                           for name, data in sorted(payloads.items())},

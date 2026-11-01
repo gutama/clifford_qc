@@ -1,8 +1,10 @@
 """Cross-path workflow results and portable evidence integrity."""
 from dataclasses import replace
+import io
 from pathlib import Path
 import tempfile
 import unittest
+from unittest.mock import patch
 import zipfile
 
 import numpy as np
@@ -82,6 +84,42 @@ class WorkflowTests(unittest.TestCase):
         self.assertEqual(result["cost_ledger"]["stages"]["solve"]["status"], "failed")
         self.assertTrue(result["outcome"]["method_details"]["groups"])
 
+    def test_invalid_projected_options_do_not_draw_samples(self):
+        def must_not_draw(*args):
+            self.fail("invalid options must be rejected before sampling")
+
+        p = SampledProjectedProvider(PreparedSampledReference(2, "no-draw", must_not_draw),
+                                     self.h, self.gens)
+        invalid = [
+            {"tau_s": -1}, {"tau_s": "1"}, {"tau_s": [0.1]},
+            {"tau_s": float("nan")}, {"rel_tau": -1}, {"norm_floor": float("inf")},
+            {"max_condition": 0}, {"max_condition": -1},
+            {"max_condition": float("nan")}, {"max_condition": True},
+            {"overlap_ridge": -1}, {"overlap_noise_floor": [0, -1]},
+            {"overlap_noise_floor": [[1]]}, {"overlap_ridge": [float("inf")]},
+            {"overlap_ridge": ["0"]},
+        ]
+        for options in invalid:
+            with self.subTest(options=options), self.assertRaises(ValueError):
+                run_workflow(p, path="sampled_projection", problem="x", unit="Ha",
+                             shots=10, seed=1, solve_options=options)
+
+    def test_live_mode_dependent_option_failure_retains_sampling_receipt(self):
+        p = SampledProjectedProvider(sampled_reference(ket_density(2, "00")), self.h, self.gens)
+        valid = run_workflow(p, path="sampled_projection", problem="x", unit="Ha",
+                             shots=100, seed=2,
+                             solve_options={"max_condition": float("inf"),
+                                            "overlap_ridge": np.array([0., 0.])}).as_dict()
+        self.assertEqual(valid["outcome"]["status"], "sampled_projected_solve_completed")
+        doc = run_workflow(p, path="sampled_projection", problem="x", unit="Ha",
+                           shots=100, seed=2,
+                           solve_options={"max_condition": float("inf"),
+                                          "overlap_ridge": [0., 0., 0.]}).as_dict()
+        self.assertEqual(doc["outcome"]["status"], "sampled_projection_failed")
+        self.assertIn("per live generator", doc["outcome"]["method_details"]["error"]["message"])
+        self.assertEqual(doc["cost_ledger"]["measurement"]["shots"], 100 * len(p.plan.settings))
+        self.assertTrue(doc["outcome"]["method_details"]["groups"])
+
     def test_h4_exact_and_sector_paths_preserve_different_scopes(self):
         try:
             import scipy  # noqa: F401
@@ -146,6 +184,54 @@ class WorkflowTests(unittest.TestCase):
                     z.writestr(name, payload)
             with self.assertRaisesRegex(ValueError, "digest or size"):
                 verify_workflow_evidence(corrupt)
+
+    def test_archive_checks_remaining_budget_before_opening_next_attachment(self):
+        result = run_workflow(self.exact, path="exact_projection", problem="x", unit="Ha")
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            first, second = root / "first", root / "second"
+            first.write_bytes(b"123")
+            second.write_bytes(b"456")
+            opened = []
+            original_open = Path.open
+
+            def tracked_open(path, *args, **kwargs):
+                opened.append(path)
+                return original_open(path, *args, **kwargs)
+
+            with patch.object(Path, "open", tracked_open):
+                with self.assertRaisesRegex(ValueError, "remaining export byte budget"):
+                    export_workflow_evidence(result, root / "over.zip",
+                        attachments={"first": first, "second": second},
+                        max_bytes=len(result._payload) + 4)
+            self.assertEqual(opened, [first])
+            self.assertFalse((root / "over.zip").exists())
+
+    def test_archive_bounds_read_if_attachment_grows_after_stat(self):
+        result = run_workflow(self.exact, path="exact_projection", problem="x", unit="Ha")
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            source = root / "growing"
+            source.write_bytes(b"1")
+            reads = []
+            original_open = Path.open
+
+            class GrowingFile(io.BytesIO):
+                def read(self, size=-1):
+                    reads.append(size)
+                    return super().read(size)
+
+            def open_grown(path, *args, **kwargs):
+                if path == source:
+                    return GrowingFile(b"1234567890")
+                return original_open(path, *args, **kwargs)
+
+            with patch.object(Path, "open", open_grown):
+                with self.assertRaisesRegex(ValueError, "remaining export byte budget"):
+                    export_workflow_evidence(result, root / "over.zip",
+                        attachments={"growing": source}, max_bytes=len(result._payload) + 4)
+            self.assertEqual(reads, [5])
+            self.assertFalse((root / "over.zip").exists())
 
 
 if __name__ == "__main__":
