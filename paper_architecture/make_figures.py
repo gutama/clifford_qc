@@ -164,10 +164,10 @@ def architecture_flow() -> None:
         (1.88, 3.35, 2.15, 1.0, "Reduction policy",
          "pass through\nsector storage / tapering: exact\ncontextual: approximate",
          "#d9edf7"),
-        (4.31, 3.35, 2.15, 1.0, "Solver policy",
+        (4.31, 3.35, 2.15, 1.0, "Solver / consumer",
          "A-CASE | QSCI / selected CI\nADAPT-VQE | hybrid", "#f3e5f5"),
-        (6.74, 3.35, 3.16, 1.0, "Estimator and cost",
-         "exact oracle or compiled measurement\nplan + backend + cumulative cache",
+        (6.74, 3.35, 3.16, 1.0, "Evaluation and cost",
+         "exact pairing | measurement\nclassical processing | resources",
          "#fff3cd"),
     ]
     for x, y, w, h, title, subtitle, color in scientific:
@@ -184,11 +184,11 @@ def architecture_flow() -> None:
          "acceptance rule\npreregistered when declared",
          "#eceff1"),
         (1.88, 1.55, 2.15, 0.92, "Labelled result",
-         "value + uncertainty + evidence", "#ffe0b2"),
+         "value + scope; uncertainty if known", "#ffe0b2"),
         (4.31, 1.55, 2.15, 0.92, "Versioned record",
          "inputs + provenance + outcome", "#eceff1"),
         (6.74, 1.55, 1.35, 0.92, "Gate",
-         "rebuild | audit", "#ffebee"),
+         "declared checks", "#ffebee"),
         (8.37, 1.55, 1.53, 0.92, "Disposition",
          "admit | refuse |\nindeterminate", "#ffebee"),
     ]
@@ -201,7 +201,7 @@ def architecture_flow() -> None:
     ax.plot([8.32, 8.32, 3.0], [3.35, 2.78, 2.78],
             linewidth=0.7, color="#b71c1c")
     _arrow(ax, (3.0, 2.78), (3.0, 2.47), color="#b71c1c")
-    ax.text(5.65, 2.94, "measurement decides the evidence label",
+    ax.text(5.65, 2.94, "result, method and scope inform evidence",
             fontsize=5.8, color="#b71c1c", ha="center", va="center")
 
     from matplotlib.patches import FancyBboxPatch
@@ -211,7 +211,7 @@ def architecture_flow() -> None:
         linewidth=0.7, edgecolor="#37474f", facecolor="#f5f7f8"))
     ax.text(4.975, 0.56,
             "shared contracts: MV | Program / PauliSum | Backend | Restriction | "
-            "CompiledMeasurementPlan | EvidenceLevel",
+            "CompiledMeasurementPlan | evidence declarations",
             ha="center", va="center", fontsize=6.1, color="#263238")
     ax.text(2.96, 3.17,
             "generator filtering changes the candidate pool, not Hilbert-space width",
@@ -253,10 +253,7 @@ def layer_stack() -> None:
     right.axis("off")
     right.set_title("(b) Selected dependency edges (partial)", loc="left")
     layer_title = {key: title for title, key in LAYERS}
-    solver_title = (
-        f"{layer_title['algorithms']} / "
-        f"{layer_title['subspace'].removeprefix('Subspace ')}"
-    )
+    solver_title = "Solvers"
     # Boxes occupy the middle; the two gutters carry the deferred upward edges,
     # so no arrow crosses a box it does not touch.
     tiers = [
@@ -264,7 +261,7 @@ def layer_stack() -> None:
          "benchmarks/, verify.py, reproducibility.py", "#eceff1"),
         (1.25, 4.85, 3.5, 0.82, solver_title,
          "subspace/, algorithms/", "#f3e5f5"),
-        (5.05, 4.85, 3.5, 0.82, layer_title["models"], "models/", "#e8f5e9"),
+        (5.05, 4.85, 3.5, 0.82, "Models", "models/", "#e8f5e9"),
         (1.25, 3.65, 3.5, 0.82, layer_title["measurement"], "measurement/", "#fff3cd"),
         (5.05, 3.65, 3.5, 0.82, layer_title["backends"], "backends/", "#fff3cd"),
         (1.25, 2.45, 7.3, 0.82, layer_title["ir"],
@@ -341,13 +338,13 @@ def evidence_path() -> None:
     ]
     lower = [
         (7.5, 0.5, 2.4, 0.95, "Cumulative cache",
-         "a shared word is\npaid for once", "#fff3cd"),
+         "reuse outcomes for\na fixed reference", "#fff3cd"),
         (5.5, 0.5, 1.75, 0.95, "Word functional",
          "linear read of\ncached words", "#f3e5f5"),
-        (3.4, 0.5, 1.85, 0.95, "Confidence bound",
-         "empirical Bernstein,\nSidak, Jeffreys", "#f3e5f5"),
-        (0.1, 0.5, 3.05, 0.95, "Labelled interval",
-         "exact | asymptotic | finite sample | heuristic", "#ffe0b2"),
+        (3.4, 0.5, 1.85, 0.95, "Uncertainty method",
+         "confidence or\ncredible interval", "#f3e5f5"),
+        (0.1, 0.5, 3.05, 0.95, "Result and scope",
+         "estimator | assumptions | evidence", "#ffe0b2"),
     ]
     for x, y, w, h, title, subtitle, color in row + lower:
         _box(ax, x, y, w, h, title, subtitle, color)
@@ -367,8 +364,8 @@ def evidence_path() -> None:
     ax.text(3.75, 1.87, "covariance-aware variance feeds the allocator",
             fontsize=6.0, color="#1565c0", ha="center")
     ax.text(0.1, 0.03,
-            "Every box is a seam: the label a number carries is decided here, "
-            "not at the solver.", fontsize=6.2, color="#37474f")
+            "Sampled example; exact evaluation and other estimators follow "
+            "different paths.", fontsize=6.2, color="#37474f")
     fig.tight_layout()
     _save(fig, "evidence_path.pdf")
 
@@ -410,9 +407,7 @@ def hierarchy_tradeoff() -> None:
                           fontsize=5.8, color="#4e342e", ha="center")
         twin.set_ylim(top=max(depth) * 1.25)
         ax.set_xlim(0.8, 10.5)
-        worst = max(value for value in ratio if value is not None)
-        verdict = "trade pays" if worst < 1.0 else "trade does not pay"
-        ax.set_title(f"{label}: {verdict}", loc="left")
+        ax.set_title(f"{label}: break-even thresholds", loc="left")
     fig.tight_layout()
     _save(fig, "hierarchy_tradeoff.pdf")
 

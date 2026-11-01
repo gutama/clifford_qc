@@ -36,6 +36,7 @@ from __future__ import annotations
 import collections
 import hashlib
 import json
+import math
 import re
 import sys
 import tempfile
@@ -107,6 +108,7 @@ REQUIRED_PHRASES = (
     "bias floor",
     "preregistered",
     "versioned evidence contract",
+    "not an observed cost ratio",
     # Resource scope: the lifetime bound covers coefficient rows and is not a
     # process-level memory bound.  Losing this sentence would leave the paper
     # quoting a bound the implementation does not make.
@@ -119,6 +121,30 @@ REQUIRED_PHRASES = (
     # Designs declared after outcomes were seen are named as such.
     "post hoc",
 )
+
+
+def check_hierarchy_break_even() -> list[str]:
+    """Recompute the threshold and check cost on both sides of every rung."""
+    problems = []
+    for system in ("h4", "beh2"):
+        path = ROOT / "benchmarks" / "reference_results" / f"clifford_hierarchy_{system}_v2.json"
+        record = json.loads(path.read_text(encoding="utf-8"))
+        rows = record["rows"]
+        baseline = rows[0]["settings"]
+        for row in rows[1:]:
+            gates = row["logical_cx_per_sweep"]
+            saved = baseline - row["settings"]
+            if gates <= 0 or saved <= 0:
+                problems.append(f"{system}: invalid break-even inputs")
+                continue
+            threshold = saved / gates
+            if not math.isclose(threshold, row["cx_to_preparation_cost_ratio_vs_qwc"], rel_tol=1e-12):
+                problems.append(f"{system}: recorded break-even threshold disagrees with counts")
+            for factor, cheaper in ((0.5, True), (1.5, False)):
+                observed = row["settings"] + factor * threshold * gates < baseline
+                if observed != cheaper:
+                    problems.append(f"{system}: break-even inequality is reversed")
+    return problems
 
 
 def _cells(line: str) -> int:
@@ -496,6 +522,8 @@ def main() -> int:
         if " ".join(phrase.split()) not in comment_stripped_body:
             problems.append(f"required evidence-language phrase is missing: "
                             f"{phrase!r}")
+
+    problems.extend(check_hierarchy_break_even())
 
     for problem in problems:
         print(f"FAIL: {problem}")

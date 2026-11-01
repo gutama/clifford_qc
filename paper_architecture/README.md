@@ -15,8 +15,8 @@ excitation operators used by molecular A-CASE. The feature table
 distinguishes implemented capabilities from performance evidence. The workflow
 section explains virtual subspaces and the prepare/solve/validate pipeline, and
 walks one molecular run through the three commands end to end. The distribution
-section describes the current alpha status and planned public availability
-without claiming an existing package-index release.
+section describes the publicly available source and its alpha status without
+claiming an existing package-index release.
 
 The paper preserves the quantitative benchmark record. Device costs use
 illustrative assumptions; the fixed-functional shot certificate is not a
@@ -31,7 +31,15 @@ storage matrix is one host's observation rather than a bound.
 - **v1** — [arXiv:2609.23059](https://arxiv.org/abs/2609.23059), submitted
   19 September 2026. Its source is byte-identical to
   `paper_architecture/manuscript.tex` at commit `fcceae2`.
-- **v2** — the current source. It adds exact Ritz residuals and folded-spectrum
+- **v2** — the current source. The latest revision also documents determinant-reference
+  execution, the unified provider workflow, scoped cost ledger, evidence export,
+  runner and replay boundaries, the negative preregistered noise-aware selection
+  result, and independent checks. It also compares the scope and published
+  benchmarks of PauliEngine with this toolkit, without asserting a direct speed
+  comparison. A subsequent workflow review corrects the hierarchy break-even
+  interpretation, clarifies evidence and sampling paths, and improves figure
+  labels. The public source repository is available now;
+  an archival identifier or package-index release is not implied. It adds exact Ritz residuals and folded-spectrum
   roots (a new subsection of the workflow section), the process-isolated
   storage-policy matrix, the preregistered anticommuting-clique comparison, and
   the measured-residual closure at both grouping endpoints; describes the

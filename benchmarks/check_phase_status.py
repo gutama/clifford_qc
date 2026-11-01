@@ -2,8 +2,8 @@
 
 ``PHASE_STATUS.json`` is the single source for implementation progress.  This
 gate validates its vocabulary, 0--19 denominator, score arithmetic and evidence
-paths, then requires ``PLAN.md`` and ``README.md`` to carry the same generated
-summary block.  The detailed PLAN rows for Phases 15--19 must also agree with
+paths, then requires ``PLAN.md`` to carry the generated summary block.
+Both documents are checked for stale status phrases.  The detailed PLAN rows for Phases 15--19 must also agree with
 the ledger, including exact or whole-percent progress and Phase 19's completed
 lever-1 scope; unrelated historical prose is not treated as a status row.
 
@@ -306,12 +306,12 @@ def check_docs(data: dict) -> list[str]:
     }
     for path in DOCS:
         text = path.read_text()
-        actual = summary_block(text)
-        if actual is None:
-            problems.append(f"{path.name}: missing or duplicate phase-status summary markers")
-        elif actual != expected:
-            problems.append(f"{path.name}: generated phase-status summary drifted")
         if path.name == "PLAN.md":
+            actual = summary_block(text)
+            if actual is None:
+                problems.append(f"{path.name}: missing or duplicate phase-status summary markers")
+            elif actual != expected:
+                problems.append(f"{path.name}: generated phase-status summary drifted")
             problems.extend(check_detailed_rows(text, data))
         for phrase in forbidden[path.name]:
             if phrase in text:

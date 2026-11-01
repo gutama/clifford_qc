@@ -84,7 +84,7 @@ Bandung, Indonesia}
 \affiliation{Department of Engineering Physics, Institut Teknologi Bandung,
 Bandung, Indonesia}
 
-\date{September 19, 2026; revised October 17, 2026}
+\date{September 19, 2026; revised November 1, 2026}
 
 \begin{abstract}
 \pkg{} is a Python research toolkit for constructing quantum models, comparing
@@ -95,8 +95,9 @@ execution, and statistical estimates. A worked gradient example illustrates
 shared measurements, and a molecular workflow separates reusable preparation,
 solving, and reference validation. Matrix-element banks support virtual
 subspaces, exact Ritz residuals, and folded-spectrum roots. Process-isolated
-benchmarks show that packed coefficients and streaming reduce observed peak
-memory on the larger tested inputs at increased runtime. Measurement studies
+benchmarks using the legacy density reference show that packed coefficients and
+streaming reduce observed peak memory on the larger tested inputs at increased
+runtime. Measurement studies
 separate setting counts, shot requirements, and device cost: fully commuting
 readout certifies a fixed first-order Ritz functional with fewer shots, while
 anticommuting cliques help some fixed reference energies and not others.
@@ -104,8 +105,9 @@ Entangling-gate time and connectivity can offset shot savings or make a
 protocol inadmissible under illustrative device models. Further studies expose
 subspace bias, indeterminate encoding comparisons, failed approximate-restriction
 screens, and high residual-measurement costs under the tested uniform
-allocations. Generated tables, provenance records, a versioned evidence
-contract, and manuscript checks connect claims to their inputs. These
+allocations. A provider workflow, scoped cost ledger, portable evidence export, and
+independent checks connect calculations to their recorded assumptions. Generated
+tables, provenance records, and manuscript checks connect claims to inputs. These
 small-system results support reproducible method development and establish
 neither hardware performance nor a general simulation speedup.
 \end{abstract}
@@ -169,6 +171,31 @@ that carry the evidence category and the device assumptions behind each number.
 Optional bridges keep the other tools reachable from the same model. We make no
 advantage claim over those packages and provide no comparative benchmark
 against them.
+
+PauliEngine \cite{muller2026pauliengine} is a particularly relevant
+operator-level comparator. Its C++ backend with Python bindings uses bitwise
+Pauli arithmetic and supports both numerical and SymEngine symbolic coefficients,
+including symbolic differentiation and substitution. Its authors benchmark
+Hamiltonian multiplication against OpenFermion and PauliArray, and dynamical
+Lie-algebra closure and structure-constant construction against PennyLane.
+Their reported timings favor PauliEngine in the larger tested multiplication
+regimes, while PauliArray is faster on some smaller inputs; the Lie-algebra
+results concern the specific tested families and hardware. Those results do not
+benchmark \pkg{} and cannot establish a speed ratio between the packages.
+The PauliEngine source is at \url{https://github.com/tequilahub/pauliengine}.
+
+Both tools manipulate sparse Pauli operators, but their principal boundaries
+differ. PauliEngine emphasizes optimized operator arithmetic and symbolic
+coefficients; \pkg{} uses numerical complex coefficients in its Pauli kernel
+and connects them to reference providers, adaptive projected eigensolvers,
+measurement analysis, and evidence workflows. The comparison is one of
+capability and experimental scope, not overall performance. Using PauliEngine
+as a backend would require an explicit adapter and checks for qubit ordering,
+phase conventions, coefficient and tolerance semantics, and conversion cost;
+no such integration or matched benchmark is claimed here. A future comparison
+should use identical operators and outputs, check products and commutators
+independently, and report conversion, peak memory, and end-to-end workflow cost
+as well as kernel time.
 
 Section~\ref{sec:operator} introduces the operator-centric representation and
 works a small example through it.
@@ -498,8 +525,10 @@ Different active-space integrals produce a different artifact. Consumers
 receive fresh model objects; the implementation fingerprint is memoized
 within a process, so source changes require a restart.
 
-Next, \texttt{solve} uses \texttt{ExactMVBackend} to form the reference
-density multivector and runs A-CASE with whole determinant-excitation
+Next, \texttt{solve} defaults to a determinant reference and exact projected
+expectations without building a reference density multivector. An explicit legacy
+mode uses \texttt{ExactMVBackend}; reference-conditioned certification and
+second-moment reporting require that legacy path. The solver runs A-CASE with whole determinant-excitation
 operators. The CLI currently uses Jordan--Wigner encoding and exact
 projected arithmetic. It computes no ground-state oracle. The
 \texttt{--max-additions} option limits growth beyond the identity
@@ -509,12 +538,15 @@ prints that path. Exact projected arithmetic does not certify convergence
 to the full ground state. The exact residual of Sec.~\ref{sec:residuals} is a
 Python-level option of the same solver; the CLI record does not carry it.
 
-A storage comparison repeats this solve on the same artifact, choosing
-\texttt{object} or \texttt{packed} storage independently of
-\texttt{retain\_all} or \texttt{stream\_recompute} lifetime policy.
+A user can compare storage policies by repeating this prepared solve on the
+same artifact, choosing \texttt{object} or \texttt{packed} storage independently
+of \texttt{retain\_all} or \texttt{stream\_recompute} lifetime policy.
 These choices change bank storage, not the reference-state representation.
 The bank is rebuilt for each invocation; only preparation is cached across
-the runs. Python callers can expose further solver controls, including
+the runs. The historical process-isolated storage study described below used
+its own benchmark worker and the legacy density reference in every arm, not
+the present determinant-reference default. Its measurements do not compare
+the reference representations. Python callers can expose further solver controls, including
 oracle-based stopping, which is identified by the record's
 \texttt{stopping\_uses\_oracle} field.
 
@@ -551,7 +583,9 @@ while explicit interfaces let these layers evolve at different rates.
   and lets a declared gate admit, refuse, or leave the result indeterminate.
   The band at the foot names the typed contracts shared across both paths.
   Generator filtering changes the candidate pool; it is not shown as a
-  Hilbert-space reduction.}
+  Hilbert-space reduction. This is a schematic of possible stages, not a
+  mandatory execution order: sampled determinants can also be inputs to a
+  solver, and not every result passes through an independent claim gate.}
   \label{fig:architecture-flow}
 \end{figure*}
 
@@ -566,6 +600,34 @@ eigenproblem.  Generator filtering changes which directions may enter that
 projected solve, not the Hilbert space itself.  Collapsing any two of these into
 one ``reduction'' step would make the resulting error budget unattributable,
 which is the first place scope would be lost.
+
+\subsection{Provider workflows and evidence transport}
+
+The restart architecture treats the Clifford algebra as an operator language,
+not a requirement to materialize a density multivector. An opt-in workflow
+wraps existing exact-projection, sampled-projection and sector-action providers
+in a versioned result. It does not replace adaptive solvers or make the spans
+of the provider paths equivalent. Exact projection is not a ground-state or
+true-residual certificate. Sampled projection supplies simultaneous entrywise
+bounds under its declared assumptions, not a confidence interval for the
+selected Ritz energy. Sector-action residuals establish numerical convergence
+within their sector, not that the root is the ground state.
+
+A scoped ledger times the wrapper's sampling and solve calls, while provider
+preparation and independent validation can be supplied as caller-reported
+costs. Export is separate; no end-to-end total, process peak memory or hardware
+time is inferred. A portable archive carries the result, a digest manifest and
+explicitly supplied attachments. Its verification checks integrity, but does
+not authenticate a publisher, establish preregistration, supply missing source
+or environment inputs, or independently validate scientific claims. The caller
+retains an external digest and arranges persistent storage.
+
+The shared experiment runner instead records execution plans, task outcomes,
+checkpoints and immutable content-addressed artifacts for CI and replays. Its
+transport receipts are not scientific cost or advantage claims. Numerical
+replay compares recorded fields under the original tolerances and reports
+execution-fingerprint drift separately from strict replay. These interfaces and
+their limitations are specified in the repository's restart documentation.
 
 \subsection{The kernel}
 
@@ -605,8 +667,8 @@ separate.
   \caption{The package as measured.  (a) Physical lines per declared layer,
   annotated with lines and module count; the census is recomputed from the
   source tree whenever this manuscript is rebuilt.  (b) A partial dependency
-  view whose box titles come from the declared layer map; algorithms and
-  subspace solvers are grouped, while the package surface and cross-layer
+  view with shortened layer labels; the solver box groups algorithms and
+  subspace solvers, while the package surface and cross-layer
   orchestration are omitted from this selected-edge view.  Solid arrows are
   selected import-time dependencies, including the downward chemistry-to-IR
   dependency for shared named Pauli candidates. Red dashed arrows are genuine upward runtime edges deferred to
@@ -670,11 +732,11 @@ imported by name rather than loaded by the package initializer. There are
 
 \begin{figure*}
   \includegraphics[width=\textwidth]{paper_assets/evidence_path.pdf}
-  \caption{One pass from a word universe to a labelled interval.  The label is
-  decided in the measurement layer, not at the solver: an oracle-evaluated
-  expectation and a sampled one traverse different boxes and arrive carrying
-  different evidence, which is what allows the benchmark gates of
-  Sec.~\ref{sec:gates} to compare like with like.}
+  \caption{A sampled measurement workflow, from a word universe to an
+  uncertainty statement. Shared outcomes are reusable only for compatible
+  readout and the same reference; additional shots still incur cost. Exact
+  pairings and other estimators can follow different paths. Evidence depends on
+  the method and assumptions and is not established by a label alone.}
   \label{fig:evidence}
 \end{figure*}
 
@@ -795,8 +857,9 @@ improvement, and the retain-all object path remains the default.
 \begin{table*}
   \caption{The coefficient-storage arms measured in isolation. Each cell is
   one run of the same adaptive solve in a fresh interpreter, with full
-  candidate pools, a common basis budget and the same stopping rule; $M$ is the
-  final basis size, identical across the arms. Peak memory is the worker's
+  candidate pools, a common basis budget and the same stopping rule; every arm
+  uses the legacy density reference. $M$ is the final basis size, identical
+  across the arms. Peak memory is the worker's
   own high-water resident set, including preparation, support histories and
   instrumentation; wall time is the supervising parent's. Single observations
   on one host, not a memory bound.}
@@ -813,7 +876,8 @@ improvement, and the retain-all object path remains the default.
   \end{ruledtabular}
 \end{table*}
 
-Table~\ref{tab:storage} measures these choices directly. Each of the
+Table~\ref{tab:storage} measures these choices on the historical density-MV
+path, not on the determinant-reference default. Each of the
 \cqcPolicyArms{} arms runs on \cqcPolicySystems{} fixed molecular inputs in its
 own process, so no arm inherits another's allocator state. Every arm reproduces
 the same selected labels, energy histories and stopping reasons, and an independent
@@ -902,15 +966,15 @@ reading scientific values; and \cqcGatesCrossArtifact{} compare records against
 separately produced artifacts.
 
 \begin{table*}
-  \caption{The dyadic block-commuting hierarchy on two committed banks.  The
-  last column is the added logical entangling cost divided by the avoided
-  preparation cost, both measured against the $k=1$ rung of the same bank; it
-  is undefined at $k=1$.  All-to-all logical Clifford circuits, no routing,
-  noise or mitigation.}
+  \caption{The dyadic block-commuting hierarchy on two committed banks. The
+  last column is the break-even threshold for the cost per logical CX divided
+  by the cost per preparation: settings saved divided by added logical CX
+  applications per sweep, relative to $k=1$. It is undefined at $k=1$.
+  All-to-all logical Clifford circuits, no routing, noise or mitigation.}
   \label{tab:hierarchy}
   \begin{ruledtabular}
   \begin{tabular}{llrrrrr}
-  Bank & $k$ & Settings & Mean CX per setting & Max CX depth & Preparations at uniform shots & CX cost over avoided preparation \\
+  Bank & $k$ & Settings & Mean CX per setting & Max CX depth & Preparations at uniform shots & Break-even $c_{\rm CX}/c_{\rm prep}$ \\
   \colrule
   \input{tables/hierarchy.tex}
   \end{tabular}
@@ -921,10 +985,10 @@ separately produced artifacts.
   \includegraphics[width=\textwidth]{paper_assets/hierarchy_tradeoff.pdf}
   \caption{Compiled settings (left axis, blue) and maximum logical entangling
   depth per setting (right axis, red) along the block-size axis, for the two
-  committed banks.  Annotations give the added entangling cost over the avoided
-  preparation cost against $k=1$; the verdict in each title is that ratio
-  against unity.  The protocol is identical on both panels, and the trade
-  changes sign between them.}
+  committed banks. Annotations give the break-even threshold for cost per CX
+  divided by cost per preparation, relative to $k=1$. A rung saves cost under
+  the stated model only when the actual unit-cost ratio is below its threshold.
+  Maximum depth is distinct from total CX count.}
   \label{fig:hierarchy}
 \end{figure*}
 
@@ -973,16 +1037,20 @@ On the H$_4$ bank, compiled settings fall from \cqcHFourSettingsQWC{} to
 On the BeH$_2$ bank they fall from \cqcBeHSettingsQWC{} to
 \cqcBeHSettingsFull{}, a reduction of \cqcBeHPrepReduction{}.
 
-Table~\ref{tab:hierarchy} and Fig.~\ref{fig:hierarchy} also report circuit cost.
-At each rung they report the added logical entangling cost against the avoided
-preparation cost, and it does not point the same way on the two instances.  On
-H$_4$ the ratio stays below one at every rung, reaching \cqcHFourCXRatio{} at
-full commutation: the trade pays under an all-to-all logical model, at
-\cqcHFourCXAvoided{} logical entangling applications per avoided preparation.
-On BeH$_2$ the ratio exceeds one at every rung above qubit-wise, reaching
-\cqcBeHCXRatioWorst{} at $k=2$ and falling only to \cqcBeHCXRatio{} at full
-commutation: the same protocol on a different bank costs more entangling depth
-than it saves in preparations.  Setting reduction alone therefore does not establish a net cost saving.
+Table~\ref{tab:hierarchy} and Fig.~\ref{fig:hierarchy} also report circuit
+cost. Under the simple model $C_k=R(c_{\rm prep}G_k+c_{\rm CX}N_k)$,
+where $G_k$ is settings per sweep, $N_k$ is logical CX applications per sweep,
+and $R$ is uniform shots per setting, rung $k$ is cheaper than qubit-wise
+readout only when $c_{\rm CX}/c_{\rm prep} < (G_{\rm QWC}-G_k)/N_k$. The right-hand
+side is a break-even threshold, not an observed cost ratio. The model omits
+routing, noise, and other costs.
+
+For H$_4$ the full-commuting threshold is \cqcHFourCXRatio{}, corresponding to
+\cqcHFourCXAvoided{} logical CX applications per avoided preparation. For
+BeH$_2$ it is \cqcBeHCXRatio{} at full commutation and
+\cqcBeHCXRatioWorst{} at $k=2$. Thus the second bank tolerates a higher CX-to-
+preparation unit-cost ratio in these comparisons. No saving follows without
+specifying that ratio; setting reduction alone is insufficient.
 
 \subsection{Shot reduction for a fixed energy functional}
 
@@ -1329,6 +1397,22 @@ This result shows why a filter must be evaluated on the pool used by the
 solver. Removing redundant candidates from a wider pool does not establish a
 saving against an already compact excitation pool.
 
+\subsection{Noise-aware selection and independent checks}
+
+A preregistered equal-shot simulation compared a channel-defect penalty with
+unpenalized selection on spin and molecular cases. Both arms selected the same
+candidate throughout the declared grid, so the stated benefit criterion failed.
+The comparison uses fresh evaluation samples and a paired simulation, and
+charges both selection and evaluation shots. Channel knowledge is assumed and
+calibration, gate-level noise, device time and classical penalty cost in seconds
+are outside the boundary. This negative finding does not rule out other
+selectors or workloads. An independent reconstruction checks the recorded
+experiment while sharing input definitions and numerical dependencies. A
+separate occupation-sector audit checks the published H$_4$ selected-prefix
+energies and word support, but does not replay adaptive selection or certify
+Python heap bytes. The declarations, observations and checkers are available
+in the source repository.
+
 \section{Scope and limitations}
 \label{sec:limits}
 
@@ -1419,8 +1503,8 @@ benefits even when a particular algorithmic comparison is inconclusive.
 
 The source includes an Apache license, package metadata, runnable examples,
 optional dependency groups, and versioned tests and benchmark records. At this
-manuscript revision it remains an alpha research package; a public archival
-release is intended. The repository address is
+manuscript revision it remains an alpha research package. The source package
+is already publicly available at
 \url{https://github.com/gutama/clifford_qc}. This statement does not assert that
 a public package-index release or an archival identifier already exists.
 For a source checkout, installation instructions and examples are in
@@ -1429,8 +1513,8 @@ benchmark environments in \texttt{REPRODUCING.md}.
 
 Users should identify the source version and dependency environment used in an
 experiment. The library API is broader than the command-line pipeline, and
-research interfaces can still change. A stable public release would benefit
-from validated labels on the in-package result types, a documented
+research interfaces can still change. A stable archival release would benefit
+from consistently validated labels across in-package result types, a documented
 compatibility policy, and a persistent citation for the released source. These
 are distribution and maintenance needs, not evidence that the implemented
 algorithms scale to larger problems.
@@ -1459,9 +1543,10 @@ Apache-licensed repository at
 \url{https://github.com/gutama/clifford_qc}. The manuscript sources are under
 \texttt{paper\_architecture/}; \texttt{REPRODUCING.md} records the environment
 each record was produced in, and \texttt{CITATION.cff} carries the citation
-metadata for the source itself. Rebuilding the paper requires no data outside
-that repository. As Sec.~\ref{sec:discussion} states, no archival identifier or
-package-index release exists yet.
+metadata for the source itself. The source revision corresponding to this
+manuscript contains the required data; rebuilding also requires the documented
+software environment and TeX dependencies. Public source access does not imply a package-index release or a persistent
+archival identifier; users should record the source revision they used.
 
 \begin{acknowledgments}
 We thank the maintainers of the open-source quantum software ecosystem that

@@ -13,7 +13,7 @@ flowchart TD
     INPUT["Spin, lattice, or molecular model builder"] --> MODEL["Model and reference program"]
     FCIDUMP["Restricted real FCIDUMP"] --> PREP["Cached model preparation"]
     PREP --> ARTIFACT["PreparedProblem JSON"]
-    ARTIFACT --> SOLVE["A-CASE with exact MV expectations"]
+    ARTIFACT --> SOLVE["A-CASE with determinant reference"]
     ARTIFACT --> VALIDATE["Optional sector reference solve"]
     MODEL --> PYTHON["Python solver workflows"]
     PYTHON --> VAR["VQE and ADAPT-VQE"]
@@ -30,10 +30,12 @@ flowchart TD
 
 This is a data-flow diagram, not an import graph. The command-line pipeline
 currently exposes prepared FCIDUMP inputs and exact A-CASE solves with a
-determinant-excitation pool. `solve_prepared` reconstructs the model and builds
-its reference density through `ExactMVBackend`; `validate_prepared` instead
-uses `SectorStatevectorBackend`. A sector-restricted validation does not make
-the A-CASE solve use a sector statevector. Other algorithms and sampled
+determinant-excitation pool. `solve_prepared` reconstructs the model and by default evaluates a determinant
+reference through `ExactProjectedProvider`, without constructing its density
+multivector. The `legacy_mv` mode explicitly retains the `ExactMVBackend`
+density path; reference-conditioned certification and H² reporting require
+that mode. `validate_prepared` uses `SectorStatevectorBackend` separately. A
+sector-restricted validation does not make the A-CASE solve use a sector statevector. Other algorithms and sampled
 workflows use Python interfaces. Validation remains a separate optional
 calculation; its cost is not charged to the solver record. See
 [molecular/PIPELINE.md](molecular/PIPELINE.md) for commands, defaults, and artifact contents.
@@ -71,7 +73,7 @@ providing another runtime implementation.
 | Measurement | `measurement/` | Grouping, readout compilation, caches, functionals, covariance, allocation, confidence, and device cost |
 | Algorithms | `algorithms/` | VQE, ADAPT-VQE, optimizers, candidate pools, and initialization |
 | Subspaces | `subspace/` | Projection, adaptive growth, sampled determinants, classical controls, hybrids, response, restrictions, second moments for true Ritz residuals and folded-spectrum roots, and the fragment-solver callback an external embedding loop calls |
-| Orchestration | `workflows.py`, `prepared.py`, `pipeline.py` | Cross-layer workflows and reusable preparation/solve/validation |
+| Orchestration | `workflows.py`, `prepared.py`, `pipeline.py` | Opt-in provider workflow, scoped costs and evidence export; reusable preparation/solve/validation |
 | Interoperability | `bridges/` | Explicit optional adapters for external quantum software |
 | Evidence | `benchmarks/`, `verify.py`, `reproducibility.py`, `record_environment.py`, `capabilities.py` | Smoke checks, records, validation gates, and environment provenance |
 
@@ -320,6 +322,44 @@ Device cards evaluate compiled settings under connectivity, duration, and
 fidelity assumptions. Inadmissible protocols have no reported runtime. The
 cards are illustrative logical accounting, not calibrated hardware predictions.
 A setting count alone cannot establish a time saving.
+
+## Provider workflow, cost and evidence export
+
+The opt-in `workflows.run_workflow` wraps the existing exact projection, sampled
+projection and sector-action providers in a versioned result; their native
+algorithms and richer results remain available. Provider construction precedes
+the call. Exact projection provides no ground-state or true-residual certificate;
+sampled projection returns simultaneous entrywise bounds under its stated
+assumptions, not an energy interval. Sector-action residuals establish numerical
+convergence within their scope, not ground-root identity. A failure after valid
+sampling retains the spent shots and observations; invalid requests and failures
+before a valid sample raise without an automatic receipt.
+
+The cost ledger times the wrapper's sampling and solve calls. Preparation and
+validation are caller-reported, export is separate, and no end-to-end total,
+process peak memory, hardware time, or unmeasured gate cost is inferred.
+`export_workflow_evidence` writes a no-overwrite archive containing the result,
+manifest and explicitly supplied attachments. Verification checks member hashes
+and sizes; the caller must preserve an external digest and supply needed inputs,
+source, environment and independent-check outputs. Hashes are integrity checks,
+not authorship, preregistration or independent scientific validation. See the
+[workflow contract](docs/restart/UNIFIED_WORKFLOW.md).
+
+The separate [shared runner](docs/restart/RUNNER_ARTIFACTS.md) executes declared
+tasks with bounded logs, resumable checkpoints, immutable content-addressed
+artifacts and explicit failures. Its receipts cover execution transport rather
+than complete scientific costs or claims. CI dispatch uses a gate registry;
+recorded numerical replay checks scientific fields against their original
+tolerances and reports execution-fingerprint drift separately from strict replay.
+
+A [preregistered equal-shot noise-aware selection study](docs/restart/NOISE_AWARE_SELECTION.md)
+found identical selections for the penalty and baseline on the declared grid;
+its benefit criterion failed. The independent checker reconstructs the experiment
+but shares some input definitions and numerical dependencies. Calibration,
+gate-level noise and hardware time lie outside its cost boundary. The separate
+[H4 audit](docs/restart/INDEPENDENT_CHECK_PRIORITIES.md) verifies selected-prefix
+energies and support counts without replaying adaptive selection or certifying
+Python heap measurements.
 
 ## Dependency boundaries
 
