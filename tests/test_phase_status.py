@@ -100,12 +100,12 @@ def test_document_summary_drift_is_rejected(tmp_path, monkeypatch):
     block = status.render_summary(data)
     plan = tmp_path / "PLAN.md"
     readme = tmp_path / "README.md"
-    plan.write_text((status.ROOT / "PLAN.md").read_text())
     weighted = f"{100 * data['summary']['progress_weighted_fraction']:.2f}%"
-    assert weighted in block
-    readme.write_text(block.replace(weighted, "12.34%"))
+    original = (status.ROOT / "PLAN.md").read_text()
+    plan.write_text(original.replace(block, block.replace(weighted, "12.34%")))
+    readme.write_text("No generated summary is needed here.\n")
     monkeypatch.setattr(status, "DOCS", (plan, readme))
-    assert status.check_docs(data) == ["README.md: generated phase-status summary drifted"]
+    assert status.check_docs(data) == ["PLAN.md: generated phase-status summary drifted"]
 
 
 def test_stale_status_phrase_is_rejected(tmp_path, monkeypatch):
