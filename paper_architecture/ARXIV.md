@@ -54,6 +54,9 @@ diffing the two versions:
 - **Related operator backend.** A sourced PauliEngine comparison distinguishes
   its C++/symbolic arithmetic benchmarks from this toolkit's workflows, with no
   direct performance or integration claim.
+- **Workflow and figure review.** Corrects the hierarchy break-even threshold
+  and removes unconditional cost verdicts; clarifies sampled evidence, cache
+  reuse, optional workflow ordering, and source availability.
 - **Corrections.** The abstract no longer says evidence labels are not
   validated uniformly; the gates section's spelled-out counts ("Five are
   preregistration gates", "Three further gates", "two compare records") had

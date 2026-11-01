@@ -583,7 +583,9 @@ while explicit interfaces let these layers evolve at different rates.
   and lets a declared gate admit, refuse, or leave the result indeterminate.
   The band at the foot names the typed contracts shared across both paths.
   Generator filtering changes the candidate pool; it is not shown as a
-  Hilbert-space reduction.}
+  Hilbert-space reduction. This is a schematic of possible stages, not a
+  mandatory execution order: sampled determinants can also be inputs to a
+  solver, and not every result passes through an independent claim gate.}
   \label{fig:architecture-flow}
 \end{figure*}
 
@@ -665,8 +667,8 @@ separate.
   \caption{The package as measured.  (a) Physical lines per declared layer,
   annotated with lines and module count; the census is recomputed from the
   source tree whenever this manuscript is rebuilt.  (b) A partial dependency
-  view whose box titles come from the declared layer map; algorithms and
-  subspace solvers are grouped, while the package surface and cross-layer
+  view with shortened layer labels; the solver box groups algorithms and
+  subspace solvers, while the package surface and cross-layer
   orchestration are omitted from this selected-edge view.  Solid arrows are
   selected import-time dependencies, including the downward chemistry-to-IR
   dependency for shared named Pauli candidates. Red dashed arrows are genuine upward runtime edges deferred to
@@ -730,11 +732,11 @@ imported by name rather than loaded by the package initializer. There are
 
 \begin{figure*}
   \includegraphics[width=\textwidth]{paper_assets/evidence_path.pdf}
-  \caption{One pass from a word universe to a labelled interval.  The label is
-  decided in the measurement layer, not at the solver: an oracle-evaluated
-  expectation and a sampled one traverse different boxes and arrive carrying
-  different evidence, which is what allows the benchmark gates of
-  Sec.~\ref{sec:gates} to compare like with like.}
+  \caption{A sampled measurement workflow, from a word universe to an
+  uncertainty statement. Shared outcomes are reusable only for compatible
+  readout and the same reference; additional shots still incur cost. Exact
+  pairings and other estimators can follow different paths. Evidence depends on
+  the method and assumptions and is not established by a label alone.}
   \label{fig:evidence}
 \end{figure*}
 
@@ -964,15 +966,15 @@ reading scientific values; and \cqcGatesCrossArtifact{} compare records against
 separately produced artifacts.
 
 \begin{table*}
-  \caption{The dyadic block-commuting hierarchy on two committed banks.  The
-  last column is the added logical entangling cost divided by the avoided
-  preparation cost, both measured against the $k=1$ rung of the same bank; it
-  is undefined at $k=1$.  All-to-all logical Clifford circuits, no routing,
-  noise or mitigation.}
+  \caption{The dyadic block-commuting hierarchy on two committed banks. The
+  last column is the break-even threshold for the cost per logical CX divided
+  by the cost per preparation: settings saved divided by added logical CX
+  applications per sweep, relative to $k=1$. It is undefined at $k=1$.
+  All-to-all logical Clifford circuits, no routing, noise or mitigation.}
   \label{tab:hierarchy}
   \begin{ruledtabular}
   \begin{tabular}{llrrrrr}
-  Bank & $k$ & Settings & Mean CX per setting & Max CX depth & Preparations at uniform shots & CX cost over avoided preparation \\
+  Bank & $k$ & Settings & Mean CX per setting & Max CX depth & Preparations at uniform shots & Break-even $c_{\rm CX}/c_{\rm prep}$ \\
   \colrule
   \input{tables/hierarchy.tex}
   \end{tabular}
@@ -983,10 +985,10 @@ separately produced artifacts.
   \includegraphics[width=\textwidth]{paper_assets/hierarchy_tradeoff.pdf}
   \caption{Compiled settings (left axis, blue) and maximum logical entangling
   depth per setting (right axis, red) along the block-size axis, for the two
-  committed banks.  Annotations give the added entangling cost over the avoided
-  preparation cost against $k=1$; the verdict in each title is that ratio
-  against unity.  The protocol is identical on both panels, and the trade
-  changes sign between them.}
+  committed banks. Annotations give the break-even threshold for cost per CX
+  divided by cost per preparation, relative to $k=1$. A rung saves cost under
+  the stated model only when the actual unit-cost ratio is below its threshold.
+  Maximum depth is distinct from total CX count.}
   \label{fig:hierarchy}
 \end{figure*}
 
@@ -1035,16 +1037,20 @@ On the H$_4$ bank, compiled settings fall from \cqcHFourSettingsQWC{} to
 On the BeH$_2$ bank they fall from \cqcBeHSettingsQWC{} to
 \cqcBeHSettingsFull{}, a reduction of \cqcBeHPrepReduction{}.
 
-Table~\ref{tab:hierarchy} and Fig.~\ref{fig:hierarchy} also report circuit cost.
-At each rung they report the added logical entangling cost against the avoided
-preparation cost, and it does not point the same way on the two instances.  On
-H$_4$ the ratio stays below one at every rung, reaching \cqcHFourCXRatio{} at
-full commutation: the trade pays under an all-to-all logical model, at
-\cqcHFourCXAvoided{} logical entangling applications per avoided preparation.
-On BeH$_2$ the ratio exceeds one at every rung above qubit-wise, reaching
-\cqcBeHCXRatioWorst{} at $k=2$ and falling only to \cqcBeHCXRatio{} at full
-commutation: the same protocol on a different bank costs more entangling depth
-than it saves in preparations.  Setting reduction alone therefore does not establish a net cost saving.
+Table~\ref{tab:hierarchy} and Fig.~\ref{fig:hierarchy} also report circuit
+cost. Under the simple model $C_k=R(c_{\rm prep}G_k+c_{\rm CX}N_k)$,
+where $G_k$ is settings per sweep, $N_k$ is logical CX applications per sweep,
+and $R$ is uniform shots per setting, rung $k$ is cheaper than qubit-wise
+readout only when $c_{\rm CX}/c_{\rm prep} < (G_{\rm QWC}-G_k)/N_k$. The right-hand
+side is a break-even threshold, not an observed cost ratio. The model omits
+routing, noise, and other costs.
+
+For H$_4$ the full-commuting threshold is \cqcHFourCXRatio{}, corresponding to
+\cqcHFourCXAvoided{} logical CX applications per avoided preparation. For
+BeH$_2$ it is \cqcBeHCXRatio{} at full commutation and
+\cqcBeHCXRatioWorst{} at $k=2$. Thus the second bank tolerates a higher CX-to-
+preparation unit-cost ratio in these comparisons. No saving follows without
+specifying that ratio; setting reduction alone is insufficient.
 
 \subsection{Shot reduction for a fixed energy functional}
 
@@ -1508,7 +1514,7 @@ benchmark environments in \texttt{REPRODUCING.md}.
 Users should identify the source version and dependency environment used in an
 experiment. The library API is broader than the command-line pipeline, and
 research interfaces can still change. A stable archival release would benefit
-from validated labels on the in-package result types, a documented
+from consistently validated labels across in-package result types, a documented
 compatibility policy, and a persistent citation for the released source. These
 are distribution and maintenance needs, not evidence that the implemented
 algorithms scale to larger problems.
@@ -1537,8 +1543,9 @@ Apache-licensed repository at
 \url{https://github.com/gutama/clifford_qc}. The manuscript sources are under
 \texttt{paper\_architecture/}; \texttt{REPRODUCING.md} records the environment
 each record was produced in, and \texttt{CITATION.cff} carries the citation
-metadata for the source itself. Rebuilding the paper requires no data outside
-that repository. Public source access does not imply a package-index release or a persistent
+metadata for the source itself. The source revision corresponding to this
+manuscript contains the required data; rebuilding also requires the documented
+software environment and TeX dependencies. Public source access does not imply a package-index release or a persistent
 archival identifier; users should record the source revision they used.
 
 \begin{acknowledgments}

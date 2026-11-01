@@ -36,7 +36,9 @@ storage matrix is one host's observation rather than a bound.
   runner and replay boundaries, the negative preregistered noise-aware selection
   result, and independent checks. It also compares the scope and published
   benchmarks of PauliEngine with this toolkit, without asserting a direct speed
-  comparison. The public source repository is available now;
+  comparison. A subsequent workflow review corrects the hierarchy break-even
+  interpretation, clarifies evidence and sampling paths, and improves figure
+  labels. The public source repository is available now;
   an archival identifier or package-index release is not implied. It adds exact Ritz residuals and folded-spectrum
   roots (a new subsection of the workflow section), the process-isolated
   storage-policy matrix, the preregistered anticommuting-clique comparison, and
