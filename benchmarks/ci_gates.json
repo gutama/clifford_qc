@@ -3,6 +3,51 @@
     {
       "commands": [
         [
+          "benchmarks/check_noise_aware_selection.py",
+          "--verify-history"
+        ]
+      ],
+      "environment_record": "protocol_cost.json",
+      "execution_declaration": "docs/restart/noise_aware_selection_results.json.gz",
+      "gate": "check_noise_aware_selection",
+      "inputs": [
+        "docs/restart/noise_aware_selection_declaration.json",
+        "docs/restart/noise_aware_selection_results.json.gz",
+        "docs/restart/cross_domain_ratio_declaration.json"
+      ],
+      "max_output_bytes": 16777216,
+      "tier": "structural",
+      "timeout": 15,
+      "watch": [
+        "benchmarks/*noise_aware_selection*",
+        "tests/test_noise_selection_checks.py",
+        "docs/restart/*noise_aware_selection*"
+      ]
+    },
+    {
+      "commands": [
+        [
+          "benchmarks/check_fcidump_h4.py"
+        ]
+      ],
+      "environment_record": "protocol_cost.json",
+      "gate": "check_fcidump_h4",
+      "inputs": [
+        "benchmarks/data/h4_sto3g_r0.9.FCIDUMP",
+        "benchmarks/reference_results/fcidump_h4.json"
+      ],
+      "max_output_bytes": 16777216,
+      "tier": "structural",
+      "timeout": 15,
+      "watch": [
+        "benchmarks/*fcidump_h4*",
+        "tests/test_noise_selection_checks.py",
+        "docs/restart/*noise_aware_selection*"
+      ]
+    },
+    {
+      "commands": [
+        [
           "benchmarks/check_sampled_ratio.py"
         ]
       ],

@@ -5944,3 +5944,13 @@ use, per-time validation bounds, MV-reference storage accounting, immutable
 resource snapshots and tampered observations or Taylor bounds.
 Implementation completion is bounded; it does not promote a historical failed
 cost hypothesis or supply a circuit-native controlled-evolution backend.
+
+## Noise-aware selection and independent H4 audit
+
+The preregistered, result-free selection and accounting contract and the
+retained equal-shot observations are described in
+[docs/restart/NOISE_AWARE_SELECTION.md](docs/restart/NOISE_AWARE_SELECTION.md).
+`benchmarks/run_noise_aware_selection.py` generated the frozen outcome and
+refuses to overwrite it. Its independent replay and the paper's H4 occupation
+and Pauli-support audit run through the registered CI gates. Numerical replay
+is not a new campaign or a hardware measurement.

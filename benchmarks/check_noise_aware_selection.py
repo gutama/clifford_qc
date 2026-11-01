@@ -25,6 +25,19 @@ from benchmarks.phase17_ceo_oracle import multiply
 DESIGN = ROOT / "docs/restart/noise_aware_selection_declaration.json"
 SOURCE = ROOT / "docs/restart/cross_domain_ratio_declaration.json"
 RESULT = ROOT / "docs/restart/noise_aware_selection_results.json.gz"
+DECLARATION_SHA256 = "7cd9aa5789ad57e89987c313d9e48a6df7e0c63517c7d401c66af6ad535e0c48"
+DECLARATION_COMMIT = "c5bdbcc56620399e6e38f37cac6e23b11147fe8c"
+IMPLEMENTATION_COMMIT = "f4d3487a6cdd253d9c3b06dde2ae8ccc7b7a78f2"
+BOUND_SOURCES = frozenset({
+    "docs/restart/noise_aware_selection_declaration.json",
+    "docs/restart/cross_domain_ratio_declaration.json",
+    "benchmarks/run_noise_aware_selection.py", "benchmarks/check_cross_domain_ratio.py",
+    "benchmarks/phase17_ceo_oracle.py", "benchmarks/check_orthogonal_active_space.py",
+    "clifford_qc/multivector.py", "clifford_qc/subspace/linalg.py",
+    "clifford_qc/models/fcidump.py", "clifford_qc/models/spin.py",
+    "clifford_qc/fermion.py", "benchmarks/data/h4_sto3g_r0.9.FCIDUMP",
+    "benchmarks/data/lih_sto3g_r1.5949_cas4e4o.FCIDUMP",
+})
 
 
 def require(value, message):
@@ -115,7 +128,9 @@ def check(record):
     design_bytes = DESIGN.read_bytes()
     design = json.loads(design_bytes)
     require(record["schema"] == "clifford_qc.noise_aware_selection.results.v1", "result schema")
-    require(record["declaration_sha256"] == hashlib.sha256(design_bytes).hexdigest(), "declaration digest")
+    require(record["declaration_sha256"] == hashlib.sha256(design_bytes).hexdigest() == DECLARATION_SHA256,
+            "declaration digest")
+    require(set(record["source_sha256"]) == BOUND_SOURCES, "declared source list")
     for path, expected in record["source_sha256"].items():
         require(hashlib.sha256((ROOT/path).read_bytes()).hexdigest() == expected, f"source digest: {path}")
     cases = json.loads(SOURCE.read_text())["cases"]
@@ -124,6 +139,9 @@ def check(record):
     accepted_cells = []
     for ci, case in enumerate(cases):
         n = case["n"]
+        if case["kind"] == "molecule":
+            require(hashlib.sha256((ROOT/case["fcidump"]).read_bytes()).hexdigest() == case["fcidump_sha256"],
+                    "frozen molecular input digest")
         data = case_data(case)
         pairs, words = make_operators(data, n)
         ideal = ideal_expectations(data, n, words)
@@ -197,9 +215,60 @@ def check(record):
     return len(accepted_cells)
 
 
+def check_report(record):
+    text = (ROOT / "docs/restart/NOISE_AWARE_SELECTION.md").read_text()
+    labels = {"tfim4_development": "TFIM4 development", "h4_heldout_molecule": "H4 held out",
+              "lih_heldout_molecule": "LiH held out"}
+    for summary, outcome in zip(record["summaries"], record["outcomes"]):
+        unit = "J" if summary["case"] == "tfim4_development" else "Ha"
+        expect = (f"| {labels[summary['case']]} | {summary['p']:.2f} | "
+                  f"{summary['unique_words']:,} | {summary['shots_per_arm_per_replicate']:,} | "
+                  f"{summary['median_loss']['baseline']:.6f} {unit} | "
+                  f"{summary['median_loss']['noise_aware']:.6f} {unit} | "
+                  f"{summary['median_ratio']:.3f} [{summary['bootstrap_ratio_95'][0]:.3f}, "
+                  f"{summary['bootstrap_ratio_95'][1]:.3f}] | "
+                  f"{summary['failures']['baseline']} / {summary['failures']['noise_aware']} |")
+        require(expect in text, "report table differs from record")
+        require(all(row["arms"]["baseline"]["candidate"] == row["arms"]["noise_aware"]["candidate"]
+                    for row in outcome["rows"]), "report claim: candidate agreement")
+        require(all(all(value is not None for value in row["training_energies"])
+                    for row in outcome["rows"]), "report claim: no invalid candidate pencils")
+
+
+def verify_history(record):
+    """Require declared -> execution sources -> published result ancestry."""
+    import subprocess
+
+    def git(*args):
+        return subprocess.check_output(["git", *args], cwd=ROOT, stderr=subprocess.PIPE)
+
+    def ancestor(parent, child):
+        subprocess.run(["git", "merge-base", "--is-ancestor", parent, child],
+                       cwd=ROOT, check=True, stderr=subprocess.PIPE)
+
+    declared = git("show", f"{DECLARATION_COMMIT}:docs/restart/noise_aware_selection_declaration.json")
+    require(hashlib.sha256(declared).hexdigest() == DECLARATION_SHA256, "committed declaration")
+    producer = git("show", f"{IMPLEMENTATION_COMMIT}:benchmarks/run_noise_aware_selection.py")
+    require(hashlib.sha256(producer).hexdigest() == record["source_sha256"]["benchmarks/run_noise_aware_selection.py"],
+            "committed producer differs from execution record")
+    published = git("log", "--format=%H", "--diff-filter=A", "--", str(RESULT.relative_to(ROOT))).decode().splitlines()
+    require(bool(published), "result has no publication commit")
+    publication = published[0]
+    require(len({DECLARATION_COMMIT, IMPLEMENTATION_COMMIT, publication}) == 3, "distinct publication commits")
+    ancestor(DECLARATION_COMMIT, IMPLEMENTATION_COMMIT)
+    ancestor(IMPLEMENTATION_COMMIT, publication)
+    ancestor(publication, "HEAD")
+
+
 def main():
     record = json.loads(gzip.decompress(RESULT.read_bytes()))
-    print("independent selector replay passed; held-out cells:", check(record))
+    cells = check(record)
+    check_report(record)
+    if sys.argv[1:] == ["--verify-history"]:
+        verify_history(record)
+    elif sys.argv[1:]:
+        raise SystemExit("usage: check_noise_aware_selection.py [--verify-history]")
+    print("independent selector replay passed; held-out cells:", cells)
 
 
 if __name__ == "__main__":

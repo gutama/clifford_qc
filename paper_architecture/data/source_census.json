@@ -17,6 +17,7 @@
       "check_docs",
       "check_evidence",
       "check_exact_projection_cache",
+      "check_fcidump_h4",
       "check_finite_shot_optimization",
       "check_folded_spectrum_validation",
       "check_frame_coordinate_projection",
@@ -25,6 +26,7 @@
       "check_krylov_width",
       "check_mapping_axis",
       "check_molecular",
+      "check_noise_aware_selection",
       "check_observable_noise",
       "check_orthogonal_active_space",
       "check_packed_bank_storage",
@@ -74,7 +76,7 @@
       "Cross-artifact": 5,
       "Documentation": 1,
       "Evidence metadata": 1,
-      "Exact trajectory replay": 10,
+      "Exact trajectory replay": 11,
       "Kernel fixture audit": 1,
       "Lineage and environment": 3,
       "Observed resource equivalence": 1,
@@ -82,7 +84,7 @@
       "Post-hoc declaration": 6,
       "Preregistration": 13,
       "Sampled inference accounting": 2,
-      "Value-rebuilt": 33
+      "Value-rebuilt": 34
     },
     "conditional_gates": [],
     "conditionally_selected": 0,
@@ -100,12 +102,12 @@
       "check_r3c_lih_full_cost",
       "check_r3d_qr3_refinement"
     ],
-    "gates": 77,
-    "named_in_workflow": 70,
-    "producers": 75,
-    "producers_without_gate": 25,
-    "run_on_every_pull_request": 59,
-    "same_stem_pairs": 50
+    "gates": 79,
+    "named_in_workflow": 72,
+    "producers": 76,
+    "producers_without_gate": 24,
+    "run_on_every_pull_request": 61,
+    "same_stem_pairs": 52
   },
   "records": {
     "annotated_records": [
@@ -255,7 +257,7 @@
     },
     "package_lines": 33679,
     "package_modules": 126,
-    "test_lines": 44042,
-    "test_modules": 185
+    "test_lines": 44088,
+    "test_modules": 186
   }
 }
