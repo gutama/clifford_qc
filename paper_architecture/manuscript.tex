@@ -172,6 +172,31 @@ Optional bridges keep the other tools reachable from the same model. We make no
 advantage claim over those packages and provide no comparative benchmark
 against them.
 
+PauliEngine \cite{muller2026pauliengine} is a particularly relevant
+operator-level comparator. Its C++ backend with Python bindings uses bitwise
+Pauli arithmetic and supports both numerical and SymEngine symbolic coefficients,
+including symbolic differentiation and substitution. Its authors benchmark
+Hamiltonian multiplication against OpenFermion and PauliArray, and dynamical
+Lie-algebra closure and structure-constant construction against PennyLane.
+Their reported timings favor PauliEngine in the larger tested multiplication
+regimes, while PauliArray is faster on some smaller inputs; the Lie-algebra
+results concern the specific tested families and hardware. Those results do not
+benchmark \pkg{} and cannot establish a speed ratio between the packages.
+The PauliEngine source is at \url{https://github.com/tequilahub/pauliengine}.
+
+Both tools manipulate sparse Pauli operators, but their principal boundaries
+differ. PauliEngine emphasizes optimized operator arithmetic and symbolic
+coefficients; \pkg{} uses numerical complex coefficients in its Pauli kernel
+and connects them to reference providers, adaptive projected eigensolvers,
+measurement analysis, and evidence workflows. The comparison is one of
+capability and experimental scope, not overall performance. Using PauliEngine
+as a backend would require an explicit adapter and checks for qubit ordering,
+phase conventions, coefficient and tolerance semantics, and conversion cost;
+no such integration or matched benchmark is claimed here. A future comparison
+should use identical operators and outputs, check products and commutators
+independently, and report conversion, peak memory, and end-to-end workflow cost
+as well as kernel time.
+
 Section~\ref{sec:operator} introduces the operator-centric representation and
 works a small example through it.
 Section~\ref{sec:features} introduces the capabilities, a typical workflow with
