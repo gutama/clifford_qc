@@ -62,7 +62,8 @@ No default exponential MV or density is constructed. Degree, time grid,
 coefficient support, total product work, norm error, infidelity, energy error,
 retained rank and conditioning have explicit finite budgets. Multiplication
 and sum support are checked before their allocations. The returned operators
-are immutable and feed the existing exact or sampled projected providers.
+are immutable and feed the existing exact or sampled projected providers once
+their overlap is admitted (below).
 
 For B=sum|h_w| of H−sI and x=B|t|, the uniform Taylor remainder is bounded by
 `exp(x)x^(p+1)/(p+1)!`. Sparse-threshold pruning has its own recurrence allowance.
@@ -70,12 +71,16 @@ For their sum ε<1, the output norm error is at most ε, normalized infidelity
 at most 4ε², and the energy-expectation error at most 4Bε. These describe
 truncation and pruning in exact arithmetic, not a formal floating-point proof.
 `validate_truncated_time_family` separately checks actual actions, norm,
-fidelity and energy against matrix-free propagation with a stated numerical
+fidelity and energy against matrix-free propagation, each against its own
+reported per-time bound and the family budget, with a stated numerical
 allowance and an explicit validation-amplitude cap. Production construction
 and sampled inference request no exact vector or spectrum.
 
 `admit_overlap` reports the retained rank and condition of the supplied Gram
-matrix and refuses too few resolved directions. A numerical admission from a
+matrix and refuses too few resolved directions. Conditioning depends on the
+reference, so it cannot be decided at construction; `admitted_generators`
+returns the generators only after that admission. The producer admits the
+exact projected overlap before its solve and before the sampled integration. A numerical admission from a
 measured Gram matrix is not itself a confidence certificate; the measured
 moment normalization gate still applies. Polynomial generators are not unitary
 preparation circuits, and their sparse support can grow quickly. There is no
@@ -108,12 +113,13 @@ removed or relabelled as convergence.
 The independent checker does not import the producer, either new consumer,
 the native confidence routines or the native projected solver. It rebuilds
 Pauli/Jordan-Wigner operators, measurement-circuit action, histogram decoding,
-S/H/K blocks, Hoeffding radii, retained solves, interval arithmetic and dense
-Taylor actions. Published simulator probability tables are checked against an
+S/H/K blocks, Hoeffding radii, retained solves, interval arithmetic, dense
+Taylor actions and the analytic Taylor tail from the dense Pauli l1 norm. Published simulator probability tables are checked against an
 independent dense circuit, then used as the exact floating-point inputs for
 seed replay. Tiny roundoff probabilities can otherwise change multinomial RNG
-stream consumption despite equivalent circuits. Support/product counters are
-native bookkeeping and are range-checked, not independently recounted.
+stream consumption despite equivalent circuits. Support/product counters and
+the sparse-pruning allowance are native bookkeeping and are range-checked, not
+independently recounted.
 
 The initial numerical run did not retain those draw tables. Adding them
 strengthened independent reproducibility; the design, seeds, budgets and

@@ -18,6 +18,39 @@ from ..sampled_reference import SampledObservations, settings_identity, validate
 from .projection import MatrixElementBank, ProjectedProblem
 
 
+def require_joint_sampling(reference) -> str:
+    """Admit a sampled reference with joint-shot capability; return its identity.
+
+    Shared by every coefficient-only sampled provider, so the capability rule
+    has one definition.
+    """
+    if (not isinstance(reference, SampledReference)
+            or "sample_joint" not in reference.metadata.capabilities):
+        raise UnsupportedReferenceOperation("reference lacks joint sampling capability")
+    return reference.metadata.identity
+
+
+def cache_fixed_endpoint_observations(cache, observations, *, reference_identity: str,
+                                      circuit_identity: str, n: int, settings):
+    """Validate one complete fixed-endpoint batch for a plan, then cache it.
+
+    Ownership (reference and circuit identities), batch integrity and a
+    nonzero count on every compiled setting are required before any
+    histogram enters ``cache``. Shared by the sampled providers so a
+    validation fix reaches all of them.
+    """
+    if (not isinstance(observations, SampledObservations)
+            or observations.reference_identity != reference_identity
+            or observations.settings_identity != circuit_identity):
+        raise ValueError("observations do not belong to this provider")
+    validate_batch(observations.batch, reference_identity, n, settings, observations.counts)
+    if any(s < 1 for s in observations.counts):
+        raise ValueError("complete-bank reconstruction needs every setting")
+    if observations.batch.groups:
+        cache.add_batch(observations.batch)
+    return cache
+
+
 @dataclass(frozen=True)
 class MeasuredProjection:
     problem: ProjectedProblem
@@ -39,11 +72,8 @@ class SampledProjectedProvider:
 
     def __init__(self, reference, hamiltonian, generators, *, storage="packed",
                  block_size=None, method="graph_state"):
-        if (not isinstance(reference, SampledReference)
-                or "sample_joint" not in reference.metadata.capabilities):
-            raise UnsupportedReferenceOperation("reference lacks joint sampling capability")
+        self.reference_identity = require_joint_sampling(reference)
         self.reference = reference
-        self.reference_identity = reference.metadata.identity
         self.bank = MatrixElementBank(reference, hamiltonian, generators,
                                       storage=storage, coefficient_only=True)
         self.hamiltonian_identity = operator_identity(self.bank.hamiltonian)
@@ -72,17 +102,9 @@ class SampledProjectedProvider:
         if not 0 < delta < 1:
             raise ValueError("delta must lie in (0,1)")
         self._check_identity()
-        if (not isinstance(observations, SampledObservations)
-                or observations.reference_identity != self.reference_identity
-                or observations.settings_identity != self.circuit_identity):
-            raise ValueError("observations do not belong to this provider")
-        validate_batch(observations.batch, self.reference_identity, self.bank.n,
-                       self.plan.settings, observations.counts)
-        if any(s < 1 for s in observations.counts):
-            raise ValueError("complete-bank reconstruction needs every setting")
-        cache = self.session.new_cache()
-        if observations.batch.groups:
-            cache.add_batch(observations.batch)
+        cache = cache_fixed_endpoint_observations(
+            self.session.new_cache(), observations, reference_identity=self.reference_identity,
+            circuit_identity=self.circuit_identity, n=self.bank.n, settings=self.plan.settings)
         s, h = self.session.matrices(cache)
         functionals = self.session.matrix_functionals()
         radii = tuple(hoeffding_radius(f, cache, delta/max(1, len(functionals)))

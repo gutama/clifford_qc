@@ -50,21 +50,26 @@ def operator_fingerprint(operator: MV) -> str:
 def reference_coefficient_binding(reference) -> tuple[str, int]:
     """Bind a reference without inventing a density for capability-only inputs.
 
-    The coefficient budget counts explicit MV coefficients. A determinant,
-    sector or sampled preparation has no reference-density coefficients here;
-    its metadata identity binds the external reference capability. Its owned
-    amplitudes, callback closure and device memory are outside this metric.
-    Historical MV fingerprints and counts are unchanged.
+    The coefficient budget counts explicit MV coefficients. An
+    :class:`MVReference` owns an explicit density snapshot, so its density
+    coefficients are charged exactly as a bare MV density's are. A
+    determinant, sector or sampled preparation has no reference-density
+    coefficients here; its metadata identity binds the external reference
+    capability. Its owned amplitudes, callback closure and device memory are
+    outside this metric. Historical MV fingerprints and counts are unchanged.
     """
     if isinstance(reference, MV):
         return operator_fingerprint(reference), reference.nnz()
-    from ..reference_states import ReferenceMetadata
+    from ..reference_states import MVReference, ReferenceMetadata
     metadata = getattr(reference, "metadata", None)
     if not isinstance(metadata, ReferenceMetadata) or reference.n != metadata.n:
         raise TypeError("second moments need a bound reference identity")
     payload = json.dumps([metadata.n, metadata.identity, metadata.bit_order,
                           metadata.spin_ordering], separators=(",", ":"))
-    return hashlib.sha256(payload.encode()).hexdigest(), 0
+    # The metadata identity already digests the density's exact values; only
+    # its explicit coefficient count is added to the budget.
+    density_coefficients = reference._density.nnz() if isinstance(reference, MVReference) else 0
+    return hashlib.sha256(payload.encode()).hexdigest(), density_coefficients
 
 
 @dataclass(frozen=True)
