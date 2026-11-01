@@ -47,6 +47,26 @@ def operator_fingerprint(operator: MV) -> str:
     return digest.hexdigest()
 
 
+def reference_coefficient_binding(reference) -> tuple[str, int]:
+    """Bind a reference without inventing a density for capability-only inputs.
+
+    The coefficient budget counts explicit MV coefficients. A determinant,
+    sector or sampled preparation has no reference-density coefficients here;
+    its metadata identity binds the external reference capability. Its owned
+    amplitudes, callback closure and device memory are outside this metric.
+    Historical MV fingerprints and counts are unchanged.
+    """
+    if isinstance(reference, MV):
+        return operator_fingerprint(reference), reference.nnz()
+    from ..reference_states import ReferenceMetadata
+    metadata = getattr(reference, "metadata", None)
+    if not isinstance(metadata, ReferenceMetadata) or reference.n != metadata.n:
+        raise TypeError("second moments need a bound reference identity")
+    payload = json.dumps([metadata.n, metadata.identity, metadata.bit_order,
+                          metadata.spin_ordering], separators=(",", ":"))
+    return hashlib.sha256(payload.encode()).hexdigest(), 0
+
+
 @dataclass(frozen=True)
 class SecondMomentStoragePolicy:
     """Finite coefficient budget for one bank plus its requested K block."""
@@ -132,7 +152,7 @@ class SecondMomentStoragePreflight:
         if any(index >= len(bank) for index in self.indices):
             return False
         return (
-            operator_fingerprint(bank.reference) == self.reference_fingerprint
+            reference_coefficient_binding(bank.reference)[0] == self.reference_fingerprint
             and operator_fingerprint(bank.hamiltonian) == self.hamiltonian_fingerprint
             and all(operator_fingerprint(bank.generator(index).mv) == fingerprint
                     for index, fingerprint in self.generator_fingerprints)
@@ -273,7 +293,8 @@ def _second_moment_storage_preflight(
             second_bound += second
             largest_row = max(largest_row, overlap, hamiltonian, second)
 
-    existing_inputs = (bank.reference.nnz() + h_terms
+    reference_fingerprint, reference_coefficients = reference_coefficient_binding(bank.reference)
+    existing_inputs = (reference_coefficients + h_terms
                        + sum(generator.mv.nnz() for generator in bank._generators)
                        + sum(operator.nnz() for operator in bank._adjoints)
                        + sum(operator.nnz() for operator in bank._h_acted))
@@ -287,7 +308,6 @@ def _second_moment_storage_preflight(
                          for support, basis in zip(supports, bases)), default=0))
     total = (overlap_bound + hamiltonian_bound + second_bound + square_bound
              + action_bound + existing_inputs + existing_other + temporary)
-    reference_fingerprint = operator_fingerprint(bank.reference)
     hamiltonian_fingerprint = operator_fingerprint(bank.hamiltonian)
     generator_fingerprints = tuple((index, operator_fingerprint(operator))
                                    for index, operator in zip(order, generators))

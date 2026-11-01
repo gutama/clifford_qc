@@ -46,9 +46,9 @@ def test_summary_arithmetic_drift_is_rejected():
 def test_decimal_partial_fractions_use_tolerant_arithmetic():
     data = ledger()
     before = data["summary"]["progress_weighted_points"]
-    # Any two unfinished phases will do; the ledger's own progress moves which
-    # ones are unstarted, so the fractions they give up are subtracted back.
-    unfinished = [row for row in data["numbered_phases"] if row["status"] != "complete"]
+    # Create synthetic partial phases even when every real phase is complete;
+    # subtract their original fractions before checking decimal arithmetic.
+    unfinished = data["numbered_phases"][-2:]  # Synthetic partial rows, even when all phases ship.
     replaced = 0.0
     for row, fraction in zip(unfinished[:2], (0.1, 0.2), strict=True):
         replaced += row["implementation_fraction"]

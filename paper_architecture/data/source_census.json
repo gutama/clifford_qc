@@ -32,6 +32,7 @@
       "check_packet_work_large",
       "check_packet_work_reuse",
       "check_phase14b_preregistration",
+      "check_phase15_16_completion",
       "check_phase15_certifying_krylov",
       "check_phase15_certifying_krylov_declaration",
       "check_phase15_certifying_screen",
@@ -81,7 +82,7 @@
       "Post-hoc declaration": 6,
       "Preregistration": 13,
       "Sampled inference accounting": 2,
-      "Value-rebuilt": 32
+      "Value-rebuilt": 33
     },
     "conditional_gates": [],
     "conditionally_selected": 0,
@@ -99,12 +100,12 @@
       "check_r3c_lih_full_cost",
       "check_r3d_qr3_refinement"
     ],
-    "gates": 76,
-    "named_in_workflow": 69,
-    "producers": 74,
+    "gates": 77,
+    "named_in_workflow": 70,
+    "producers": 75,
     "producers_without_gate": 25,
-    "run_on_every_pull_request": 58,
-    "same_stem_pairs": 49
+    "run_on_every_pull_request": 59,
+    "same_stem_pairs": 50
   },
   "records": {
     "annotated_records": [
@@ -244,7 +245,7 @@
         "modules": 3
       },
       "subspace": {
-        "lines": 14885,
+        "lines": 15387,
         "modules": 46
       },
       "surface": {
@@ -252,9 +253,9 @@
         "modules": 1
       }
     },
-    "package_lines": 33097,
+    "package_lines": 33599,
     "package_modules": 126,
-    "test_lines": 43601,
-    "test_modules": 184
+    "test_lines": 43940,
+    "test_modules": 185
   }
 }

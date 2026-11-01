@@ -632,7 +632,7 @@ frame-coordinate comparison above still fails its joint criterion.
 ```bash
 python -m venv .venv && source .venv/bin/activate
 pip install -e .[test,research,stim]       # automatic CI extras
-pytest                                      # 4506 passed, 12 skipped (expected if green)
+pytest                                      # 4533 passed, 12 skipped (expected if green)
 ```
 
 This is the automatic CI dependency set; record gates additionally pin NumPy
@@ -651,7 +651,7 @@ the remaining `12 - 6 = 6` skips are per-test and *are* collected:
 
 ```text
 collected == passed + (skipped - files dropped at collection)
-4512      == 4506   + (12      -   6)
+4539      == 4533   + (12      -   6)
 ```
 
 Both sides are computed from the tree, so a drift in either quoted number
@@ -5910,3 +5910,34 @@ identity mixing, zero-mean false positives, signed same-arm drift, and tampered
 records for both checkers. Optional Matplotlib is needed only for the plot.
 Exact dense assessment is limited to eight qubits and enforced by the case
 table; the sparse diagnostics have no density allocation.
+
+
+## Bounded Phase 15/16 completion
+
+The result-free contract `docs/restart/PHASE15_16_COMPLETION_CONTRACT.md` and
+`docs/restart/phase15_16_completion_design.json` precede implementation. The
+record `docs/restart/phase15_16_completion_results.json.gz` retains 288 sampled
+S/H/K outcomes, three budgeted Taylor-family validations and three sampled
+integrations. All historical Phase 15 and 16 decision records remain unchanged.
+
+```bash
+OPENBLAS_NUM_THREADS=1 OMP_NUM_THREADS=1 MKL_NUM_THREADS=1 python benchmarks/run_phase15_16_completion.py --check
+OPENBLAS_NUM_THREADS=1 OMP_NUM_THREADS=1 MKL_NUM_THREADS=1 python benchmarks/check_phase15_16_completion.py
+OPENBLAS_NUM_THREADS=1 python -m unittest discover -s tests -p test_phase15_16_completion.py -v
+```
+
+`run_phase15_16_completion.py --preflight-only` checks structural admission.
+Use `--output` with a fresh path to regenerate. The independent checker rebuilds
+circuit action, histogram decoding, moments, confidence radii, retained solves,
+intervals and time propagation. Published draw-probability tables are checked
+against independent dense circuits before exact seed replay; conservative extra
+word/function counts caused by sparse rounding remain charged. The default
+checker validates source and declaration/execution/publication ancestry;
+`--no-history` is local development only. The registered CI gate invokes both
+numerical checks, pinned to Python 3.12.14, NumPy 2.3.5 and SciPy 1.17.0.
+
+The 27 focused controls include complex entries, no exact-capability fallback,
+negative variance, cancellation, unresolved normalization, excited roots,
+resource admission, time reversal, conditioning and tampered observations.
+Implementation completion is bounded; it does not promote a historical failed
+cost hypothesis or supply a circuit-native controlled-evolution backend.

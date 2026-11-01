@@ -1463,6 +1463,36 @@
         "docs/restart/*observable_noise*",
         "docs/restart/OBSERVABLE_NOISE.md"
       ]
+    },
+    {
+      "commands": [
+        [
+          "benchmarks/run_phase15_16_completion.py",
+          "--check"
+        ],
+        [
+          "benchmarks/check_phase15_16_completion.py"
+        ]
+      ],
+      "environment_record": "protocol_cost.json",
+      "execution_declaration": "docs/restart/phase15_16_completion_results.json.gz",
+      "gate": "replay_phase15_16_completion",
+      "inputs": [
+        "docs/restart/phase15_16_completion_design.json",
+        "docs/restart/PHASE15_16_COMPLETION_CONTRACT.md",
+        "docs/restart/phase15_16_completion_results.json.gz"
+      ],
+      "max_output_bytes": 16777216,
+      "tier": "structural",
+      "timeout": 15,
+      "watch": [
+        "clifford_qc/subspace/second_moment*",
+        "clifford_qc/subspace/time_evolution.py",
+        "benchmarks/*phase15_16_completion*",
+        "tests/test_phase15_16_completion.py",
+        "docs/restart/*phase15_16*",
+        "docs/restart/PHASE15_16_COMPLETION*"
+      ]
     }
   ],
   "schema": "clifford_qc.ci_gates.v1"
