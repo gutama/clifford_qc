@@ -49,6 +49,9 @@ workflows can have different spans and need not produce the same energies.
 `problem` and `unit` are caller declarations; identities bind the provider's
 reference and Hamiltonian but do not validate the labels or physical units.
 `solve_options` accepts the existing projected solver's numerical options.
+Scalar thresholds and ridge/noise-floor values are checked before sampling;
+per-mode vector lengths depend on the live generators and are checked in the
+post-sampling solve, which retains the sampling receipt on failure.
 
 ## Cost ledger
 
@@ -78,8 +81,9 @@ atomically publishes a no-overwrite ZIP containing strict JSON result bytes, a
 manifest and exact copies of explicitly supplied attachments. Its return value
 contains the archive's SHA-256 and size; keep that digest separately when
 independent integrity checking is needed. `verify_workflow_evidence` checks
-membership, byte sizes and digests without extracting the archive. Archive
-size is bounded by `max_bytes` (64 MiB by default). Attach input data,
+membership, byte sizes and digests without extracting the archive. The combined uncompressed result and attachment payload is bounded by
+`max_bytes` (64 MiB by default); the manifest and ZIP overhead are outside that
+limit. Attach input data,
 declaration, source snapshot, independent checker outputs and environment files
 as relevant; the API does not discover the full source or dependency closure.
 The result includes a SHA-256 fingerprint of the installed package's Python
