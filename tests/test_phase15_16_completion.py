@@ -1,4 +1,5 @@
 """Finite-shot second moments and explicitly budgeted real-time generators."""
+import importlib.util
 import unittest
 from unittest import mock
 
@@ -8,13 +9,16 @@ from benchmarks.run_sampled_ratio import JointShotSimulator
 from clifford_qc.dense_reference import to_matrix
 from clifford_qc.models import tfim
 from clifford_qc.multivector import MV
-from clifford_qc.reference_states import DeterminantReference
+from clifford_qc.reference_states import DeterminantReference, MVReference
 from clifford_qc.sampled_reference import PreparedSampledReference
 from clifford_qc.subspace import (
     MatrixElementBank, MeasuredMomentProblem, SampledSecondMomentProvider,
     SecondMomentBank, SecondMomentStoragePolicy, truncated_time_family,
     validate_truncated_time_family,
 )
+
+
+HAS_SCIPY = importlib.util.find_spec('scipy') is not None
 
 
 def approximation_options(**changes):
@@ -195,6 +199,7 @@ class Phase1516CompletionTests(unittest.TestCase):
         narrow, wide = provider.reconstruct(observations, delta=.1), provider.reconstruct(observations, delta=.001)
         self.assertTrue(np.all(wide.second_moment_radii >= narrow.second_moment_radii))
 
+    @unittest.skipUnless(HAS_SCIPY, 'needs the research extra (scipy)')
     def test_truncated_family_matches_independent_dense_exponential(self):
         from scipy.linalg import expm
         h = MV.from_terms(2, {'II': .7, 'XI': .4, 'YZ': .3, 'ZZ': -.2})
@@ -334,6 +339,103 @@ class Phase1516CompletionTests(unittest.TestCase):
             self.assertTrue(np.isfinite(report['variance']))
             np.testing.assert_allclose(report['variance_interval'], normal['variance_interval'], atol=1e-8)
 
+
+    def test_mv_reference_density_is_charged_like_a_bare_density(self):
+        rho = MV.from_terms(2, {'II': .25, 'ZI': .25, 'IZ': .25, 'ZZ': .25})
+        h = tfim(2).hamiltonian.to_mv()
+        generators = [('I', MV.scalar(2, 1)), ('X', MV.from_label('XI'))]
+        bare = SecondMomentBank(MatrixElementBank(rho, h, generators))
+        wrapped = SecondMomentBank(MatrixElementBank(MVReference(rho), h, generators))
+        self.assertEqual(wrapped.storage_preflight.existing_input_coefficient_occurrences,
+                         bare.storage_preflight.existing_input_coefficient_occurrences)
+        np.testing.assert_allclose(wrapped.matrix(), bare.matrix())
+        determinant = SecondMomentBank(MatrixElementBank(DeterminantReference('00'), h, generators))
+        self.assertEqual(determinant.storage_preflight.existing_input_coefficient_occurrences,
+                         bare.storage_preflight.existing_input_coefficient_occurrences-rho.nnz())
+
+    def test_problem_resources_are_deep_snapshots_of_provider_admission(self):
+        _, _, _, reference, provider = sampled_fixture()
+        observations = reference.sample(provider.plan.settings, 1000, seed=5)
+        first, second = provider.reconstruct(observations), provider.reconstruct(observations)
+        with self.assertRaises(TypeError):
+            first.resources['admission']['max_words'] = -5
+        self.assertEqual(provider.admission['max_words'], 256)
+        provider.admission['max_words'] = -5
+        self.assertEqual(first.resources['admission']['max_words'], 256)
+        self.assertEqual(second.resources['admission']['max_words'], 256)
+        self.assertIsInstance(first.solve().resources['admission'], dict)
+
+    def test_problem_and_family_use_identity_equality(self):
+        problem = moment_problem(np.eye(2), np.eye(2), np.eye(2))
+        same = moment_problem(np.eye(2), np.eye(2), np.eye(2))
+        self.assertNotEqual(problem, same)
+        self.assertEqual(problem, problem)
+        family = truncated_time_family(tfim(2).hamiltonian, [0., .1], **approximation_options())
+        self.assertEqual(len({problem, same, family}), 3)
+
+    def test_provider_admits_storage_once_and_keeps_packed_functionals(self):
+        from clifford_qc.measurement.functionals import PackedCoefficients
+        from clifford_qc.subspace import second_moment
+        h, _, generators, reference, _ = sampled_fixture()
+        refresh = second_moment.refresh_second_moment_storage
+        with mock.patch.object(second_moment, 'refresh_second_moment_storage', wraps=refresh) as spy:
+            provider = SampledSecondMomentProvider(reference, h, generators, max_words=256,
+                       max_settings=128, storage_policy=SecondMomentStoragePolicy(1000000))
+        self.assertEqual(spy.call_count, 1)
+        self.assertFalse(hasattr(provider, 'session'))
+        for blocks in provider._parts.values():
+            for parts in blocks:
+                for functional in parts:
+                    self.assertIsInstance(functional.coefficients, PackedCoefficients)
+        objects = SampledSecondMomentProvider(reference, h, generators, max_words=256, max_settings=128,
+                  storage_policy=SecondMomentStoragePolicy(1000000), storage='object')
+        functional = objects._parts[(0, 1)][2][0]
+        with self.assertRaises(TypeError):
+            functional.coefficients[1] = 1.
+
+    def test_compile_measurement_follows_the_provider_protocol(self):
+        _, _, _, _, provider = sampled_fixture()
+        self.assertIs(provider.compile_measurement(), provider.plan)
+        self.assertIs(provider.compile_measurement((0, 1)), provider.plan)
+        with self.assertRaises(ValueError):
+            provider.compile_measurement((0,))
+
+    def test_family_conditioning_is_admitted_before_downstream_use(self):
+        family = truncated_time_family(tfim(2).hamiltonian, [0., .1], **approximation_options(max_condition=100.))
+        self.assertIs(family.admitted_generators(np.eye(2)), family.generators)
+        with self.assertRaises(ValueError):
+            family.admitted_generators(np.ones((2, 2)))
+
+    def test_validation_enforces_each_reported_per_time_bound(self):
+        from dataclasses import replace
+        from types import MappingProxyType
+        h = tfim(2, h=1.2).hamiltonian
+        family = truncated_time_family(h, [0., .1], **approximation_options())
+        psi = np.ones(4, complex)
+        validate_truncated_time_family(family, psi, max_state_amplitudes=4)
+        for key in ('infidelity_bound', 'energy_error_bound'):
+            understated = tuple(MappingProxyType({**b, key: -1.}) for b in family.bounds)
+            with self.subTest(key=key), self.assertRaises(ValueError):
+                validate_truncated_time_family(replace(family, bounds=understated), psi,
+                                               max_state_amplitudes=4)
+
+    @unittest.skipUnless(HAS_SCIPY, 'needs the research extra (scipy)')
+    def test_independent_checker_recomputes_the_taylor_tail(self):
+        import copy
+        import benchmarks.check_phase15_16_completion as independent
+        from benchmarks.experiment_artifacts import read_json
+        record = read_json(independent.ROOT/independent.RESULT)
+        config = read_json(independent.ROOT/independent.DESIGN)
+        problems = []
+        independent.check_time(record, config, problems)
+        self.assertEqual(problems, [])
+        broken = copy.deepcopy(record)
+        action = broken['time_families'][0]['validation']['actions'][-1]
+        self.assertGreater(action['taylor_bound'], 0)
+        action['taylor_bound'] /= 2
+        action['norm_error_bound'] = action['taylor_bound']+action['pruning_allowance']
+        independent.check_time(broken, config, problems)
+        self.assertTrue(any('Taylor tail' in problem for problem in problems))
 
 if __name__ == '__main__':
     unittest.main()

@@ -257,8 +257,7 @@
         "benchmarks/run_phase15_16_completion.py",
         "benchmarks/check_phase15_16_completion.py",
         "tests/test_phase15_16_completion.py",
-        "docs/restart/phase15_16_completion_results.json.gz",
-        "clifford_qc/subspace/time_evolution.py"
+        "docs/restart/phase15_16_completion_results.json.gz"
       ],
       "remaining": [],
       "decision_records": [

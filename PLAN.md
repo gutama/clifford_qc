@@ -2958,8 +2958,8 @@ certifies: in a post-record check, `σ = 0.086 t` and `E + σ − E₁ = −0.21
 (`tests/test_phase15_certifying_screen.py` reproduces it).
 Whether `σ` is affordable on such a basis is unanswered. Answering it needs a new
 declaration. *Not claimed:* anything about other bases, groupings, pooled
-estimators, shared campaigns, finite-sample behaviour or other systems. Phase 15
-stays partial at 50%.
+estimators, shared campaigns, finite-sample behaviour or other systems. At that
+stage, Phase 15 remained partial at 50%.
 
 **Q18-S3 ran once and reads `CLOSED`: the one certifying, rank-stable prefix of
 the ladder's Krylov sequence costs about 170 times the tenfold bar under any
@@ -3094,8 +3094,8 @@ executed record's pinned SHA-256 before restating anything.
 
 *Not claimed:* the diagonalizing circuits or device time, correlated references,
 span reading or multiple assignment, pooled or shared-shot estimators, any other
-allocation or precision rule, H₂O, or any bank outside the five. Phase 15 stays
-partial at 50%.
+allocation or precision rule, H₂O, or any bank outside the five. At that stage,
+Phase 15 remained partial at 50%.
 
 
 ### Phase 16 — time-evolved inputs, complete on declared scope

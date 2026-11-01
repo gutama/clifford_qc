@@ -261,14 +261,36 @@ class SecondMomentBank:
         return square_term / norm - rayleigh * rayleigh
 
 
-@dataclass(frozen=True)
+def _frozen_snapshot(value):
+    """Deep immutable copy of a JSON-like resource tree (mappings and lists)."""
+    from collections.abc import Mapping
+    from types import MappingProxyType
+    if isinstance(value, Mapping):
+        return MappingProxyType({key: _frozen_snapshot(item) for key, item in value.items()})
+    if isinstance(value, (list, tuple)):
+        return tuple(_frozen_snapshot(item) for item in value)
+    return value
+
+
+def _plain_copy(value):
+    """Mutable plain-container copy of a frozen resource tree, for consumers."""
+    from collections.abc import Mapping
+    if isinstance(value, Mapping):
+        return {key: _plain_copy(item) for key, item in value.items()}
+    if isinstance(value, tuple):
+        return [_plain_copy(item) for item in value]
+    return value
+
+
+@dataclass(frozen=True, eq=False)
 class MeasuredMomentProblem:
     """A simultaneous entrywise confidence region for fixed S/H/K rows.
 
-    Matrices and absolute complex-entry radii own immutable snapshots. On the
-    region's event every coefficient vector is covered, including one selected
-    from these same matrices. This does not cover adapting the measured row
-    universe or stopping endpoint using those observations.
+    Matrices, absolute complex-entry radii and the (nested) resources own
+    immutable snapshots. On the region's event every coefficient vector is
+    covered, including one selected from these same matrices. This does not
+    cover adapting the measured row universe or stopping endpoint using those
+    observations. Equality is identity: arrays have no scalar truth value.
     """
     overlap: np.ndarray
     hamiltonian: np.ndarray
@@ -301,14 +323,15 @@ class MeasuredMomentProblem:
                 raise ValueError("entry radii must be finite nonnegative symmetric blocks")
             object.__setattr__(self, field, immutable_array(radius))
         object.__setattr__(self, "labels", tuple(self.labels))
-        from types import MappingProxyType
-        object.__setattr__(self, "resources", MappingProxyType(dict(self.resources)))
+        # Deep snapshot: a nested provider dict (e.g. ``admission``) must not
+        # stay shared with, or writable through, this problem.
+        object.__setattr__(self, "resources", _frozen_snapshot(self.resources))
 
     def solve(self, **kwargs):
         """Noisy Ritz solve; its value alone is not a confidence certificate."""
         from .linalg import solve_projected
         return solve_projected(self.overlap, self.hamiltonian, self.labels,
-                               resources=dict(self.resources), **kwargs)
+                               resources=_plain_copy(self.resources), **kwargs)
 
     def assess(self, coefficients, *, residual_tolerance: float,
                normalization_floor: float = 1e-6, target: float | None = None) -> dict:
@@ -409,7 +432,7 @@ class MeasuredMomentProblem:
         w = float(target)
         folded = self.second_moment-2*w*self.hamiltonian+w*w*self.overlap
         solved = solve_projected(self.overlap, folded, self.labels,
-                                 resources=dict(self.resources), **solve_kwargs)
+                                 resources=_plain_copy(self.resources), **solve_kwargs)
         keep = len(solved.energies) if count is None else count
         if isinstance(keep, bool) or not isinstance(keep, (int, np.integer)) or not 1 <= keep <= len(solved.energies):
             raise ValueError("count must select a nonempty subset of the retained roots")
@@ -428,6 +451,10 @@ class SampledSecondMomentProvider:
 
     No exact-state capability is requested. Caps are engineering admission,
     not a promotion of the closed historical H-squared affordability studies.
+    The joint-sampling admission and fixed-endpoint observation validation are
+    the same helpers :class:`~clifford_qc.subspace.sampled.SampledProjectedProvider`
+    uses; this class adds the K rows, the S/H/K word cap and the confidence
+    family over all three blocks.
     """
     capabilities = frozenset({"sampled_projected_blocks", "sampled_second_moments"})
 
@@ -436,40 +463,50 @@ class SampledSecondMomentProvider:
                  storage="packed", block_size=None, method="graph_state"):
         from numbers import Integral
         from types import MappingProxyType
-        from ..reference_states import (SampledReference, UnsupportedReferenceOperation,
-                                        operator_identity, _digest)
-        from ..measurement.functionals import (WordFunctional, entry_functionals,
-                                               split_complex_coefficients)
-        from ..measurement.session import SharedMeasurement
+        from ..reference_states import operator_identity, _digest
+        from ..measurement.functionals import (PackedCoefficients, WordFunctional,
+                                               entry_functionals, split_complex_coefficients)
         from ..measurement.planning import compile_block_measurement_plan
         from ..sampled_reference import settings_identity
         from .generator_core import as_generators
+        from .sampled import require_joint_sampling
         for value in (max_words, max_settings):
             if isinstance(value, bool) or not isinstance(value, Integral) or value < 1:
                 raise ValueError("measurement caps must be positive integers")
         if not isinstance(storage_policy, SecondMomentStoragePolicy):
             raise TypeError("an explicit finite second-moment storage policy is required")
-        if (not isinstance(reference, SampledReference)
-                or "sample_joint" not in reference.metadata.capabilities):
-            raise UnsupportedReferenceOperation("reference lacks joint sampling capability")
-        self.reference, self.reference_identity = reference, reference.metadata.identity
+        self.reference_identity = require_joint_sampling(reference)
+        self.reference = reference
         self.bank = MatrixElementBank(reference, hamiltonian, as_generators(generators),
                                       storage=storage, coefficient_only=True)
         # Admission runs before H² or any matrix-entry operator is built.
         self.moments = SecondMomentBank(self.bank, storage_policy=storage_policy)
-        self.session = SharedMeasurement(self.bank, coefficient_storage=storage)
         self._labels = self.bank.labels
+        self._indices = self.moments.indices
+
+        def freeze(parts):
+            # Packed coefficients are already immutable; copying them into
+            # dictionaries would only duplicate the functional maps.
+            return tuple(f if isinstance(f.coefficients, PackedCoefficients) else
+                         WordFunctional(MappingProxyType(dict(f.coefficients)), f.constant)
+                         for f in parts)
+
+        pairs = [(a, b) for a in range(len(self._indices))
+                 for b in range(a, len(self._indices))]
+        sh = {(a, b): entry_functionals(self.bank, self._indices[a], self._indices[b],
+                                        storage=storage) for a, b in pairs}
+        # One re-admission against the now-resident S/H rows and action caches,
+        # before any K row. In-block K rows and their H² actions are covered by
+        # the preflight's analytic K bounds, so no per-row refresh is needed.
+        self.moments.resolve()
         self._parts = {}
-        for a, i in enumerate(self.session.indices):
-            for b, j in enumerate(self.session.indices[a:], a):
-                s, h = entry_functionals(self.bank, i, j, storage=storage)
-                k = split_complex_coefficients(self.moments.row(i, j).terms, storage=storage)
-                def freeze(parts):
-                    return tuple(WordFunctional(MappingProxyType(dict(f.coefficients)), f.constant)
-                                 for f in parts)
-                self._parts[(a, b)] = tuple(freeze(parts) for parts in (s, h, k))
+        for a, b in pairs:
+            row = self.moments._row(self._indices[a], self._indices[b])
+            k = split_complex_coefficients(row.terms, storage=storage)
+            self._parts[(a, b)] = tuple(freeze(parts) for parts in (*sh.pop((a, b)), k))
         codes = sorted({code for blocks in self._parts.values() for parts in blocks
                         for functional in parts for code in functional.coefficients})
+        # The word cap is enforced before any grouping or circuit compilation.
         if len(codes) > max_words:
             raise ValueError("S/H/K word universe exceeds the declared cap")
         self.plan = compile_block_measurement_plan(self.bank.n, codes,
@@ -480,12 +517,15 @@ class SampledSecondMomentProvider:
         self.circuit_identity = settings_identity(self.plan.settings)
         self.cache_identity = _digest(["sampled_second_moments.v1", self.reference_identity,
              self.hamiltonian_identity, [operator_identity(self.bank.generator(i).mv)
-                 for i in self.session.indices], self.circuit_identity, storage])
+                 for i in self._indices], self.circuit_identity, storage])
         self.admission = {"max_words": int(max_words), "max_settings": int(max_settings),
                           "measured_words": len(codes), "settings": len(self.plan.settings),
                           "coefficient_preflight": self.moments.storage_preflight.as_dict()}
 
-    def compile_measurement(self):
+    def compile_measurement(self, directions=None):
+        """The fixed S/H/K plan; ``directions`` must name this provider's block."""
+        if directions is not None and self.bank.resolve(directions) != self._indices:
+            raise ValueError("construct a provider for the requested directions")
         self._check_identity()
         return self.plan
 
@@ -500,21 +540,13 @@ class SampledSecondMomentProvider:
     def reconstruct(self, observations, *, delta: float = 0.05) -> MeasuredMomentProblem:
         from ..measurement.cache import GroupedWordCache
         from ..measurement.ratio import hoeffding_radius
-        from ..sampled_reference import SampledObservations, validate_batch
+        from .sampled import cache_fixed_endpoint_observations
         if not math.isfinite(delta) or not 0 < delta < 1:
             raise ValueError("delta must lie in (0,1)")
         self._check_identity()
-        if (not isinstance(observations, SampledObservations)
-                or observations.reference_identity != self.reference_identity
-                or observations.settings_identity != self.circuit_identity):
-            raise ValueError("observations do not belong to this second-moment plan")
-        validate_batch(observations.batch, self.reference_identity, self.bank.n,
-                       self.plan.settings, observations.counts)
-        if any(count < 1 for count in observations.counts):
-            raise ValueError("every compiled setting needs observations")
-        cache = GroupedWordCache(self.bank.n)
-        if observations.batch.groups:
-            cache.add_batch(observations.batch)
+        cache = cache_fixed_endpoint_observations(
+            GroupedWordCache(self.bank.n), observations, reference_identity=self.reference_identity,
+            circuit_identity=self.circuit_identity, n=self.bank.n, settings=self.plan.settings)
         family = max(1, sum(not f.is_deterministic for blocks in self._parts.values()
                             for parts in blocks for f in parts))
         size = len(self._labels)
