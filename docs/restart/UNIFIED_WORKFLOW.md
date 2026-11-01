@@ -49,9 +49,10 @@ workflows can have different spans and need not produce the same energies.
 `problem` and `unit` are caller declarations; identities bind the provider's
 reference and Hamiltonian but do not validate the labels or physical units.
 `solve_options` accepts the existing projected solver's numerical options.
-Scalar thresholds and ridge/noise-floor values are checked before sampling;
-per-mode vector lengths depend on the live generators and are checked in the
-post-sampling solve, which retains the sampling receipt on failure.
+Scalar thresholds, ridge/noise-floor values and impossible vector lengths are
+checked before sampling. The exact per-mode vector length depends on the live
+generators and is checked in the post-sampling solve, which retains the sampling
+receipt on failure.
 
 ## Cost ledger
 

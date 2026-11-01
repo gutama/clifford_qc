@@ -115,11 +115,11 @@ def _workflow_source_digest():
     return digest.hexdigest()
 
 
-def _validate_projected_solve_options(options):
+def _validate_projected_solve_options(options, *, max_modes):
     """Reject invalid, data-independent options before any sampling occurs.
 
-    Per-mode lengths depend on which generators are live in the reconstructed
-    overlap, so the numerical solver checks those after sampling.
+    Per-mode lengths are bounded by the generator count; their exact required
+    length depends on the reconstructed overlap and is checked after sampling.
     """
     import numpy as np
 
@@ -129,6 +129,8 @@ def _validate_projected_solve_options(options):
         if (array.dtype.kind not in "iuf" or array.ndim > int(vector_allowed)):
             shape = "a real scalar or 1-D sequence" if vector_allowed else "a real scalar"
             raise ValueError(f"{name} must be {shape}")
+        if array.ndim == 1 and not 0 < array.size <= max_modes:
+            raise ValueError(f"{name} must have between 1 and {max_modes} entries")
         if name == "max_condition":
             # +inf disables the condition-number cutoff, as in solve_projected.
             if np.isnan(array).any() or np.any(array <= 0):
@@ -174,13 +176,14 @@ def run_workflow(provider, *, path, problem, unit, solve_options=None,
                        "overlap_ridge", "norm_floor"}
     if set(options) - allowed_options:
         raise ValueError("unsupported projected solve options: " + ", ".join(sorted(set(options) - allowed_options)))
-    _validate_projected_solve_options(options)
     if path != "sampled_projection" and (shots is not None or seed is not None):
         raise ValueError("shots and seed apply only to sampled projection")
     if path != "sector_action" and sector_config is not None:
         raise ValueError("sector_config applies only to sector actions")
     if path == "sector_action" and options:
         raise ValueError("sector actions use sector_config, not solve_options")
+    if path != "sector_action":
+        _validate_projected_solve_options(options, max_modes=len(provider.bank))
     if sector_config is not None and not isinstance(sector_config, SectorSolveConfig):
         raise TypeError("sector_config must be a SectorSolveConfig")
     if path == "sampled_projection":

@@ -97,7 +97,8 @@ class WorkflowTests(unittest.TestCase):
             {"max_condition": float("nan")}, {"max_condition": True},
             {"overlap_ridge": -1}, {"overlap_noise_floor": [0, -1]},
             {"overlap_noise_floor": [[1]]}, {"overlap_ridge": [float("inf")]},
-            {"overlap_ridge": ["0"]},
+            {"overlap_ridge": ["0"]}, {"overlap_ridge": []},
+            {"overlap_noise_floor": [0, 0, 0]},
         ]
         for options in invalid:
             with self.subTest(options=options), self.assertRaises(ValueError):
@@ -114,7 +115,7 @@ class WorkflowTests(unittest.TestCase):
         doc = run_workflow(p, path="sampled_projection", problem="x", unit="Ha",
                            shots=100, seed=2,
                            solve_options={"max_condition": float("inf"),
-                                          "overlap_ridge": [0., 0., 0.]}).as_dict()
+                                          "overlap_ridge": [0.]}).as_dict()
         self.assertEqual(doc["outcome"]["status"], "sampled_projection_failed")
         self.assertIn("per live generator", doc["outcome"]["method_details"]["error"]["message"])
         self.assertEqual(doc["cost_ledger"]["measurement"]["shots"], 100 * len(p.plan.settings))
