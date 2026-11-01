@@ -75,6 +75,8 @@ CONCEPTUAL_NUMERALS = (
     r"E_P'\(0\)",                    # derivative at the initial angle
     r"\^2(?!\d)",                    # a square: H^2, \sigma^2, \omega^2
     r"(?<!\d)2\\omega",              # the folded operator's cross term
+    r"(?<=A_k)=0",                  # Plucker zero condition
+    r"(?<=\()1(?=-\\epsilon)",      # probability complement
     r"revtex4-2",
 )
 

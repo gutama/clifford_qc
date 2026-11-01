@@ -38,7 +38,9 @@ storage matrix is one host's observation rather than a bound.
   benchmarks of PauliEngine with this toolkit, without asserting a direct speed
   comparison. A subsequent workflow review corrects the hierarchy break-even
   interpretation, clarifies evidence and sampling paths, and improves figure
-  labels. The public source repository is available now;
+  labels. A further review moves the evidence census to appendices, lists the
+  device-card assumptions, and expands the exterior-algebra and mapping-spread
+  explanations. The public source repository is available now;
   an archival identifier or package-index release is not implied. It adds exact Ritz residuals and folded-spectrum
   roots (a new subsection of the workflow section), the process-isolated
   storage-policy matrix, the preregistered anticommuting-clique comparison, and
@@ -133,7 +135,7 @@ outside a short allowlist of conceptual notation.
 | Gate classes table | `data/source_census.json`, recomputed from `benchmarks/` |
 | Block-commuting hierarchy table and figure | `clifford_hierarchy_h4_v2.json`, `clifford_hierarchy_beh2_v2.json` |
 | QWC vs fully commuting table | `phase14b_qwc_vs_fc.json` |
-| Accuracy-matched cost table and figure | `protocol_cost.json` |
+| Device-card parameter table, accuracy-matched cost table and figure | `protocol_cost.json` |
 | Mapping vs instance table | `mapping_axis.json`, `r3c_lih_full_cost.json`, `r3d_qr3_refinement.json` |
 | Contextual screen table | `r4a_contextual_screen.json` |
 | Pool-filtering subsection | `g1_structural_preconditioner.json` |
