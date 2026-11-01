@@ -57,6 +57,11 @@ diffing the two versions:
 - **Workflow and figure review.** Corrects the hierarchy break-even threshold
   and removes unconditional cost verdicts; clarifies sampled evidence, cache
   reuse, optional workflow ordering, and source availability.
+- **Readability and device assumptions.** Moves detailed evidence and CI
+  census material to appendices; adds a source-generated device-card table and
+  routing and fidelity equations, a blade-test explanation, and spread
+  definitions. Clarifies the present residual-consumer boundary without claiming
+  an unmeasured default-path memory comparison.
 - **Corrections.** The abstract no longer says evidence labels are not
   validated uniformly; the gates section's spelled-out counts ("Five are
   preregistration gates", "Three further gates", "two compare records") had
@@ -108,11 +113,10 @@ moved. Regenerating them fixed it; the scan keeps it fixed.
 
 ## What is in the archive, and what is deliberately not
 
-The archive holds `manuscript.tex`, `manuscript.bbl`, the eleven generated
+The archive holds `manuscript.tex`, `manuscript.bbl`, the twelve generated
 `tables/*.tex` fragments the manuscript inputs, and the five
-`paper_assets/*.pdf` figures it includes. Eighteen files, about 280 kB
-uncompressed and 161 kB in the archive — far under arXiv's upload limit, which
-`make_arxiv.py` checks anyway in case a raster figure ever arrives.
+`paper_assets/*.pdf` figures it includes. The current archive contains nineteen
+files; the build script checks their size against the upload limit.
 
 `references.bib` is **not** shipped. arXiv does not run BibTeX, so the `.bib`
 would be dead weight, and leaving it out is what lets the verification build

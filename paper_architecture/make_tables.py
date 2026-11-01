@@ -70,6 +70,7 @@ TABLE_SOURCES: dict[str, tuple[Path, ...]] = {
     "hierarchy.tex": (HIER_H4, HIER_BEH2),
     "phase14b.tex": (PHASE14B,),
     "cost.tex": (PROTOCOL_COST,),
+    "device_cards.tex": (PROTOCOL_COST,),
     "qr3.tex": (MAPPING_AXIS, R3C, R3D),
     "r4a.tex": (R4A,),
     "storage_policy.tex": (BANK_POLICY,),
@@ -835,6 +836,24 @@ def cost_table() -> None:
     _write("cost.tex", rows)
 
 
+def device_cards_table() -> None:
+    """The exact scenario inputs carried by the published cost record."""
+    record = json.loads(PROTOCOL_COST.read_text(encoding="utf-8"))
+    cards = {card["name"]: card for card in record["device_cards"]}
+    rows = []
+    for name in ("logical-alltoall", "ion-like", "superconducting-like"):
+        c = cards[name]
+        def number(key: str) -> str:
+            return r"\ensuremath{" + format(c[key], ".12g") + "}"
+
+        columns = [name] + [number(key) for key in (
+            "t_prep_us", "t_1q_us", "t_2q_us", "t_readout_us", "t_reset_us",
+            "eps_1q", "eps_2q", "eps_readout", "routing_2q_multiplier",
+            "routing_depth_multiplier", "fidelity_floor")]
+        rows.append(" & ".join(columns) + r" \\")
+    _write("device_cards.tex", rows)
+
+
 def qr3_table() -> None:
     """Mapping spread against instance spread, on every tier that measured it.
 
@@ -1417,6 +1436,7 @@ def main(tables: Path | None = None, data: Path | None = None) -> Path:
         hierarchy_table()
         phase14b_table()
         cost_table()
+        device_cards_table()
         qr3_table()
         r4a_table()
         storage_policy_table()

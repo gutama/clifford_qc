@@ -31,6 +31,7 @@
 % Narrower column gaps for the one wide table that needs them; a length typed
 % into the body would read as a hand-typed number to the manuscript gate.
 \newcommand{\tightcolumns}{\setlength{\tabcolsep}{4pt}}
+\newcommand{\compactcolumns}{\setlength{\tabcolsep}{2.5pt}}
 
 % Float placement.  Most of this paper's floats span both columns, and REVTeX
 % can only set those at the top of a page, so the stock settings leave white
@@ -525,18 +526,12 @@ Different active-space integrals produce a different artifact. Consumers
 receive fresh model objects; the implementation fingerprint is memoized
 within a process, so source changes require a restart.
 
-Next, \texttt{solve} defaults to a determinant reference and exact projected
-expectations without building a reference density multivector. An explicit legacy
-mode uses \texttt{ExactMVBackend}; reference-conditioned certification and
-second-moment reporting require that legacy path. The solver runs A-CASE with whole determinant-excitation
-operators. The CLI currently uses Jordan--Wigner encoding and exact
-projected arithmetic. It computes no ground-state oracle. The
-\texttt{--max-additions} option limits growth beyond the identity
-direction; \texttt{--max-rank} controls excitation rank, not the number of
-eigenstates. A solve writes its numerical record to \texttt{--output} and
-prints that path. Exact projected arithmetic does not certify convergence
-to the full ground state. The exact residual of Sec.~\ref{sec:residuals} is a
-Python-level option of the same solver; the CLI record does not carry it.
+Next, the solver evaluates a determinant reference directly, without
+materializing its density multivector, and grows an A-CASE basis from whole
+determinant excitations. The prepared molecular path uses Jordan--Wigner
+occupation bits and returns energy, selection and resource records. The exact
+residual of Sec.~\ref{sec:residuals} is an opt-in Python diagnostic; the CLI
+record does not carry it.
 
 A user can compare storage policies by repeating this prepared solve on the
 same artifact, choosing \texttt{object} or \texttt{packed} storage independently
@@ -546,14 +541,11 @@ The bank is rebuilt for each invocation; only preparation is cached across
 the runs. The historical process-isolated storage study described below used
 its own benchmark worker and the legacy density reference in every arm, not
 the present determinant-reference default. Its measurements do not compare
-the reference representations. Python callers can expose further solver controls, including
-oracle-based stopping, which is identified by the record's
-\texttt{stopping\_uses\_oracle} field.
+the reference representations. Python callers can opt into oracle-based stopping, which is identified in the run record.
 
 Finally, optional \texttt{validate} uses the sector statevector backend to
 compute reference eigenpairs. Dense validation suits the small fixture;
 matrix-free Lanczos or the optional SciPy eigensolver serves larger sectors.
-The \texttt{--roots} option belongs to this reference calculation.
 Reported residuals belong to its eigenpairs, not to the A-CASE state's
 full-space residual. A comparison that uses validation must account for its
 separately recorded time.
@@ -613,6 +605,16 @@ bounds under its declared assumptions, not a confidence interval for the
 selected Ritz energy. Sector-action residuals establish numerical convergence
 within their sector, not that the root is the ground state.
 
+In the prepared adaptive path, the existing convergence and
+reference-conditioned certification consumers are still coupled to the legacy
+matrix-element bank and its density-reference interface; they have not yet been
+ported to the determinant provider. This is an implementation boundary, not a
+mathematical need for a density expansion. The determinant stores occupation
+bits instead of the determinant projector's $2^n$ Pauli coefficients; the bank,
+operator products and temporary work remain additional costs. Table~\ref{tab:storage}
+measures full-process memory only for the legacy path, so it cannot quantify
+RSS or runtime for the default path without a matched process-isolated study.
+
 A scoped ledger times the wrapper's sampling and solve calls, while provider
 preparation and independent validation can be supplied as caller-reported
 costs. Export is separate; no end-to-end total, process peak memory or hardware
@@ -653,6 +655,21 @@ enumerating every code of the grade. These bound the work of one test. They do
 not bound the support that later products reach, and they are classical kernel
 operations, not a quantum resource saving; a separate fixture audit rebuilds
 their decisions and records timings without speed thresholds.
+
+For homogeneous elements of grades $r$ and $s$, the exterior product is
+$A_r\wedge B_s=\langle A_rB_s\rangle_{r+s}$ in the fixed Majorana frame.
+For a nonzero homogeneous positive-grade $k$-vector $A_k$, the full Pl\"ucker simplicity
+condition tests
+\begin{equation}
+  (\beta\mathbin{\lrcorner} A_k)\wedge A_k=0.
+  \label{eq:plucker}
+\end{equation}
+The condition must hold for every basis blade $\beta$ of grade immediately below
+$k$. The left contraction is the grade-selected product with reversion, as
+defined in the conventions. The implementation tests only masks formed by
+deleting a generator from an occupied support mask; all other basis
+contractions vanish. Its tolerance makes this a numerical test. Subset masks
+identify generators, while the ordered product retains its Pauli phase.
 
 The reference-state pairing in Eq.~\eqref{eq:projected} serves a different
 purpose from the Hilbert--Schmidt pairing used to measure removed Hamiltonian
@@ -769,52 +786,48 @@ Subspace bias and sampling uncertainty can contribute to the same accuracy
 budget, but their origins and guarantees must remain explicit. Cost comparisons
 therefore retain evidence categories and distinguish an oracle comparison from
 a statistical certificate. Some result labels are conventions rather than
-constructor-validated values, as the record census below documents.
+constructor-validated values, as the record census in Appendix~\ref{app:evidence} documents.
 
-\subsection{Evidence coverage}
-
-\begin{table}
-  \caption{How the committed record set declares the evidence its numbers
-  carry.  Counts are recomputed from
-  \texttt{benchmarks/reference\_results/} at manuscript build time.}
-  \label{tab:evidence}
-  \scriptsize
-  \begin{ruledtabular}
-  \begin{tabular}{@{}lrl@{}}
-  Declaration form & Records & Example \\
-  \colrule
-  \input{tables/evidence_coverage.tex}
-  \end{tabular}
-  \end{ruledtabular}
-\end{table}
-
-Table~\ref{tab:evidence} measures the current coverage. Of \cqcJsonRecords{} committed JSON records,
-\cqcRecordsLabelled{} declare a single top-level evidence tier, drawn from
-\cqcDistinctTiers{} distinct tier strings; \cqcRecordsPerQuantity{} declare a
-per-quantity mapping, either because a record reports quantities at different
-tiers or because the versioned contract below asks every new record for one;
-\cqcRecordsNested{} nest the tier inside a
-sub-object; \cqcRecordsRoleWithNested{} declare an evidence \emph{role} at the
-top level with tiers inside sub-objects; \cqcRecordsRoleOnly{} carry a role with
-no tier at all; and \cqcRecordsUnlabelled{} carry no record-level evidence field
-whatsoever.  A further \cqcSeriesFiles{} non-JSON series files --- line-delimited
-JSON, CSV and Markdown summaries --- are counted but not inspected for per-row
-declarations by this census.
-
-The selection vocabulary is a closed enumeration in code. Historical result
-types retain their original string labels and constructors; they are not
-retroactively converted to a new vocabulary. A versioned evidence contract
-requires every quantity a record reports to declare one tier and a nonempty
-scope. It is validated at the opt-in producer stamp and by an automatic metadata
-gate on every new or changed JSON record. Only the byte-identical historical set
-is grandfathered, by a frozen digest manifest, and those records keep their
-bytes: \cqcRecordsAnnotated{} of them take their declaration from a separately
-disclosed annotation bound to the record's digest, which the census reads
-without changing the original record or its execution identity. Scientific
-values and the truth of each claim still require their independent record
-gates; enumerating a tier does not establish it.
+The versioned evidence contract records a tier and scope per quantity;
+it does not itself verify the scientific value. The record census and treatment
+of historical annotations are given in Appendix~\ref{app:evidence}.
 
 \subsection{Device cost and admissibility}
+
+Table~\ref{tab:device-cards} lists the scenario inputs used by the committed
+cost study. For a setting with one- and two-qubit gate counts $N_a,N_b$ and depths
+$D_a,D_b$, the model uses routed values $N'_b=\lceil m_N N_b\rceil$ and
+$D'_b=\lceil m_D D_b\rceil$. With $n$ measured qubits, it assigns
+\begin{align}
+ t_g &= t_{\rm prep}+t_aD_a+t_bD'_b+t_{\rm read}+t_{\rm reset},\\
+ F_g &= (1-\epsilon_a)^{N_a}(1-\epsilon_b)^{N'_b}
+       (1-\epsilon_{\rm read})^n.
+ \label{eq:device-model}
+\end{align}
+The setting is admissible when $F_g$ meets the floor. The multipliers are
+surrogates applied to counts and depths, not a routed circuit or a connectivity
+graph; logical preparation-circuit gates beyond the stated preparation time
+are outside the setting ledger. Raw-shot schedules are priced as
+$\sum_g S_g t_g$; where used, the effective-shot surrogate is $S_gF_g^2$.
+
+\begin{table*}
+  \caption{Illustrative device-card inputs from the committed cost record.
+  Times are in microseconds; errors are independent per-operation surrogates.
+  The first card is a logical baseline, the others design scenarios. All-to-all
+  applies to the first and second rows; the third uses a sparse-connectivity
+  surrogate, not an explicit graph. $m_N,m_D$ scale logical two-qubit count and
+  depth respectively before ceiling.}
+  \label{tab:device-cards}
+  \scriptsize
+  \compactcolumns
+  \begin{ruledtabular}
+  \begin{tabular}{lrrrrrrrrrrr}
+  Card & $t_{\rm prep}$ & $t_a$ & $t_b$ & $t_{\rm read}$ & $t_{\rm reset}$ & $\epsilon_a$ & $\epsilon_b$ & $\epsilon_{\rm read}$ & $m_N$ & $m_D$ & Floor \\
+  \colrule
+  \input{tables/device_cards.tex}
+  \end{tabular}
+  \end{ruledtabular}
+\end{table*}
 
 Device cards specify connectivity, gate times, a fidelity floor, and calibration
 status. The cost path evaluates already-synthesized measurement settings under
@@ -900,70 +913,12 @@ default unchanged.
 \section{Producers, gates, and preregistration}
 \label{sec:gates}
 
-The benchmark directory separates record generation from validation. \cqcProducers{}
-producers write records.  \cqcGates{} gates read them.  \cqcGatesInWorkflow{}
-are named in the continuous-integration workflow, and the distinction inside
-that number matters: \cqcGatesAutomatic{} run on every pull request,
-\cqcGatesConditional{} are conditional checker entries, and
-\cqcGatesFullReplay{} legacy sampled checkers require explicit dispatch.
-Restart full-seed verification runners additionally execute on affected source
-or CI changes and weekly. They preserve the legacy manual-only contracts.
-Global environment consistency runs with the every-PR checks.  \cqcGatesAbsent{} exist in the repository but
-in no workflow at all.  A shared subprocess runner preserves each command's
-failure and execution receipt.  Structural and sampled matrix jobs disable
-fail-fast, so a drift suite reports every symptom within each execution class.
-
-\begin{table*}
-  \caption{What each class of benchmark gate asserts.  Counts are recomputed
-  from \texttt{benchmarks/} at manuscript build time, and the generator refuses
-  to emit the table unless every gate on disk has a declared class.}
-  \label{tab:gates}
-  \footnotesize
-  \begin{ruledtabular}
-  \begin{tabular}{lrp{0.62\textwidth}}
-  Class & Gates & Asserts \\
-  \colrule
-  \input{tables/gate_classes.tex}
-  \end{tabular}
-  \end{ruledtabular}
-\end{table*}
-
-Not every record is regenerated by a gate. Table~\ref{tab:gates} distinguishes
-checks of values, provenance, and structure. Only
-\cqcSameStemPairs{} producers have a same-stem gate that recomputes their record
-and fails on numeric drift.  The other \cqcProducersWithoutGate{} write
-manuscript evidence, paper-suite drivers, or exploratory output with no value
-gate.  The most important of those is stated in the reproduction documentation
-rather than excused: the validation-ladder record is manuscript evidence for a
-companion paper, and regenerating it would move published inputs across all its
-families, so no gate rebuilds it.
-
-The remaining classes determine how the results of
-Secs.~\ref{sec:admitted} and~\ref{sec:refused} should be read.
-\cqcGatesPrereg{} are preregistration gates: they validate an experimental
-configuration committed before any sampling, without outcomes, and may rebuild
-its structural inputs but no result.  This is the mechanism that makes a null
-result reportable.  A screen
-whose acceptance rule, accuracy target, margin factor, word-universe ceiling and
-block sizes were all committed in a configuration file, with a merge commit and
-a content hash, before any sample was drawn, can return ``no rung admitted''
-without that outcome being a choice made after seeing the data
-\cite{nosek2018preregistration}.  A further \cqcGatesPostHoc{} gates freeze
-designs declared \emph{after} earlier outcomes were seen, and say so: commit
-order then protects the identity of the declared run, not its independence from
-the data, and this paper calls every result read through such a declaration
-post hoc.  \cqcGatesReplay{} gates replay exact algorithm trajectories
-independently --- occupation states, optimizer calls and root pencils --- which
-shows that a recorded run happened as recorded, not that it found a global
-optimum.  The kernel fixture audit and the storage-policy equivalence gate check
-decisions and observed classical costs without speed thresholds.  Of the rest,
-\cqcGatesLineage{} check lineage and environment rather than values; a
-plan-ledger gate compares a machine-readable status file against the source
-tree, a repository check this paper does not otherwise read; a documentation
-gate checks that the reproduction documentation still describes the code it
-claims to reproduce; an evidence-metadata gate validates declarations without
-reading scientific values; and \cqcGatesCrossArtifact{} compare records against
-separately produced artifacts.
+Benchmark producers write observations; independent checks may recompute values,
+verify preregistered configurations, or audit provenance and structural
+consistency. Preregistration fixes a decision rule before new observations;
+post-hoc declarations retain their different evidential status. Not every record
+has an independent numerical replay. Appendix~\ref{app:gates} describes the
+validation coverage and preserves the full gate census.
 
 \begin{table*}
   \caption{The dyadic block-commuting hierarchy on two committed banks. The
@@ -1220,8 +1175,12 @@ classifies each disagreement as environment-marginal rather than substantive.
 
 \begin{table*}
   \caption{Mapping spread against instance spread, on every tier that measured
-  it.  The aggregation column is not decoration: the three readouts combine
-  cells differently, and their numbers are not comparable across rows.}
+  it. For a positive metric, a mapping spread is the maximum over encodings
+  divided by the minimum at fixed instance; an instance spread is the maximum
+  over instances divided by the minimum at fixed encoding. Structural rows
+  compare the largest mapping spread with the smallest instance spread. The
+  accuracy rows instead use the stated point estimates or conservative supports
+  on their selected cells; rows are not interchangeable.}
   \label{tab:qr3}
   \footnotesize
   \begin{ruledtabular}
@@ -1286,8 +1245,8 @@ three tiers and Table~\ref{tab:qr3} reports all of them.
 Structurally, on matched greedy qubit-wise settings across the instances sharing
 one grouping protocol, the widest mapping spread within a system is
 \cqcStructuralMapping{} while the narrowest instance spread across systems is
-\cqcStructuralInstance{}; the declared margin is \cqcStructuralMargin{}, and the
-recorded verdict is that mapping spread is not smaller than instance spread.
+\cqcStructuralInstance{}; their ratio (smallest instance spread divided by
+largest mapping spread) is \cqcStructuralMargin{}. The recorded verdict is that mapping spread is not smaller than instance spread.
 The same comparison on algorithm-independent word weight returns the same
 verdict.  This rejects the tested hypothesis that mapping spread is smaller. It does
 not establish that an automatic encoding selector improves accuracy-matched cost.
@@ -1547,6 +1506,92 @@ metadata for the source itself. The source revision corresponding to this
 manuscript contains the required data; rebuilding also requires the documented
 software environment and TeX dependencies. Public source access does not imply a package-index release or a persistent
 archival identifier; users should record the source revision they used.
+
+\appendix
+\section{Evidence and validation details}
+\label{app:evidence}
+
+\subsection{Evidence coverage}
+
+\begin{table}
+  \caption{How the committed record set declares the evidence its numbers
+  carry.  Counts are recomputed from
+  \texttt{benchmarks/reference\_results/} at manuscript build time.}
+  \label{tab:evidence}
+  \scriptsize
+  \begin{ruledtabular}
+  \begin{tabular}{@{}lrl@{}}
+  Declaration form & Records & Example \\
+  \colrule
+  \input{tables/evidence_coverage.tex}
+  \end{tabular}
+  \end{ruledtabular}
+\end{table}
+
+Table~\ref{tab:evidence} measures the current coverage. Of \cqcJsonRecords{} committed JSON records,
+\cqcRecordsLabelled{} declare a single top-level evidence tier, drawn from
+\cqcDistinctTiers{} distinct tier strings; \cqcRecordsPerQuantity{} declare a
+per-quantity mapping, either because a record reports quantities at different
+tiers or because the versioned contract below asks every new record for one;
+\cqcRecordsNested{} nest the tier inside a
+sub-object; \cqcRecordsRoleWithNested{} declare an evidence \emph{role} at the
+top level with tiers inside sub-objects; \cqcRecordsRoleOnly{} carry a role with
+no tier at all; and \cqcRecordsUnlabelled{} carry no record-level evidence field
+whatsoever.  A further \cqcSeriesFiles{} non-JSON series files --- line-delimited
+JSON, CSV and Markdown summaries --- are counted but not inspected for per-row
+declarations by this census.
+
+The selection vocabulary is a closed enumeration in code. Historical result
+types retain their original string labels and constructors; they are not
+retroactively converted to a new vocabulary. A versioned evidence contract
+requires every quantity a record reports to declare one tier and a nonempty
+scope. It is validated at the opt-in producer stamp and by an automatic metadata
+gate on every new or changed JSON record. Only the byte-identical historical set
+is grandfathered, by a frozen digest manifest, and those records keep their
+bytes: \cqcRecordsAnnotated{} of them take their declaration from a separately
+disclosed annotation bound to the record's digest, which the census reads
+without changing the original record or its execution identity. Scientific
+values and the truth of each claim still require their independent record
+gates; enumerating a tier does not establish it.
+
+\section{Producer and gate census}
+\label{app:gates}
+
+The census identifies \cqcProducers{} producers and \cqcGates{} gates, of
+which \cqcGatesInWorkflow{} appear in CI: \cqcGatesAutomatic{} run on every
+pull request, \cqcGatesConditional{} are conditional, and \cqcGatesFullReplay{}
+require explicit dispatch. The remaining \cqcGatesAbsent{} are not in CI.
+The shared runner records command failures and receipts; affected restart
+replays also run on a schedule. The census describes coverage, not correctness.
+
+\begin{table*}
+  \caption{What each class of benchmark gate asserts.  Counts are recomputed
+  from \texttt{benchmarks/} at manuscript build time, and the generator refuses
+  to emit the table unless every gate on disk has a declared class.}
+  \label{tab:gates}
+  \footnotesize
+  \begin{ruledtabular}
+  \begin{tabular}{lrp{0.62\textwidth}}
+  Class & Gates & Asserts \\
+  \colrule
+  \input{tables/gate_classes.tex}
+  \end{tabular}
+  \end{ruledtabular}
+\end{table*}
+
+Among the producers, \cqcSameStemPairs{} have a same-stem numerical rebuild;
+\cqcProducersWithoutGate{} do not. The validation-ladder record belongs to the
+latter group; its historical cross-paper inputs are preserved rather than
+regenerated. Table~\ref{tab:gates} distinguishes numerical, structural and
+provenance checks.
+
+The \cqcGatesPrereg{} preregistration checks verify configurations frozen before
+sampling \cite{nosek2018preregistration}; \cqcGatesPostHoc{} check declarations
+made post hoc, after earlier observations. The \cqcGatesReplay{} independent
+replays check recorded trajectories rather than global optimality. The
+\cqcGatesLineage{} lineage checks do not rebuild values, and
+\cqcGatesCrossArtifact{} compare independently produced artifacts. These
+categories carry different evidential weight.
 
 \begin{acknowledgments}
 We thank the maintainers of the open-source quantum software ecosystem that

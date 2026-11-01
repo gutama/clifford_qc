@@ -273,8 +273,7 @@ def layer_stack() -> None:
     ]
     for x, y, w, h, title, subtitle, color in tiers:
         _box(right, x, y, w, h, title, subtitle, color,
-             title_size=5.6 if title == solver_title else 6.4,
-             subtitle_size=5.2)
+             title_size=6.4, subtitle_size=5.8)
     selected_imports = [
         ((3.0, 6.05), (3.0, 5.67)),
         ((6.8, 6.05), (6.8, 5.67)),
@@ -309,11 +308,11 @@ def layer_stack() -> None:
     right.text(
         1.25, -0.32,
         "red upward: measurement $\\to$ subspace; kernel $\\to$ backends",
-        fontsize=5.6, color="#b71c1c", va="top")
+        fontsize=6.1, color="#b71c1c", va="top")
     right.text(
         1.25, -0.62,
         "blue downward: Program IR $\\to$ optional bridges (deferred)",
-        fontsize=5.6, color="#1565c0", va="top")
+        fontsize=6.1, color="#1565c0", va="top")
     right.text(1.25, 7.25,
                "solid: import-time    red dashed: upward runtime    "
                "blue dashed: optional bridge",
