@@ -12,7 +12,7 @@ caches let researchers compare methods using the same Hamiltonian and data.
 
 **Python 3.10+ · NumPy core · Apache-2.0 · Alpha research software.**
 Install from source; interfaces may change. The committed studies support
-small-system comparisons, and a public archival release is intended.
+small-system comparisons. The source is publicly available on [GitHub](https://github.com/gutama/clifford_qc).
 
 [Install](#install-from-source) · [Quick start](#quick-start) ·
 [Choose a solver](#choosing-a-solver) · [Molecular pipeline](molecular/PIPELINE.md) ·
@@ -597,27 +597,3 @@ a paper citation does not identify a particular code snapshot. Use
 used for your experiment.
 
 Licensed under [Apache-2.0](LICENSE).
-
-## Research status
-
-Implementation progress is tracked in [PHASE_STATUS.json](PHASE_STATUS.json)
-and [PLAN.md](PLAN.md). The generated score below measures the numbered research
-programme; it is not a package-readiness or scientific-advantage score.
-The implemented restart workflow and shared runner/CI maintenance are tracked
-separately in the [restart roadmap](docs/restart/README.md); they do not change
-this historical phase denominator.
-
-<!-- PHASE-STATUS-SUMMARY:START -->
-| numbered phase scope | lifecycle | implementation |
-|---|---|---:|
-| Phases 0--14 | complete | 15 / 15 |
-| Phase 15: Second-moment bank | complete | 100% |
-| Phase 16: Time-evolved inputs | complete | 100% |
-| Phase 17: Mapping validation and breadth | complete | 100% |
-| Phase 18: Embedding boundary | complete | 100% |
-| Phase 19: Anticommuting-clique partitioning | complete | 100% |
-
-Strict complete-phase score: **20 / 20 = 100.00%**.
-Progress-weighted score: **20.00 / 20 = 100.00%**.
-Retired and conditional adjunct phases are tracked separately and do not change this denominator. Source: `PHASE_STATUS.json`; validate with `python benchmarks/check_phase_status.py`.
-<!-- PHASE-STATUS-SUMMARY:END -->
