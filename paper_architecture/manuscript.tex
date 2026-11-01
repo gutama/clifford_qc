@@ -84,7 +84,7 @@ Bandung, Indonesia}
 \affiliation{Department of Engineering Physics, Institut Teknologi Bandung,
 Bandung, Indonesia}
 
-\date{September 19, 2026; revised October 17, 2026}
+\date{September 19, 2026; revised November 1, 2026}
 
 \begin{abstract}
 \pkg{} is a Python research toolkit for constructing quantum models, comparing
@@ -104,8 +104,9 @@ Entangling-gate time and connectivity can offset shot savings or make a
 protocol inadmissible under illustrative device models. Further studies expose
 subspace bias, indeterminate encoding comparisons, failed approximate-restriction
 screens, and high residual-measurement costs under the tested uniform
-allocations. Generated tables, provenance records, a versioned evidence
-contract, and manuscript checks connect claims to their inputs. These
+allocations. A provider workflow, scoped cost ledger, portable evidence export, and
+independent checks connect calculations to their recorded assumptions. Generated
+tables, provenance records, and manuscript checks connect claims to inputs. These
 small-system results support reproducible method development and establish
 neither hardware performance nor a general simulation speedup.
 \end{abstract}
@@ -498,8 +499,10 @@ Different active-space integrals produce a different artifact. Consumers
 receive fresh model objects; the implementation fingerprint is memoized
 within a process, so source changes require a restart.
 
-Next, \texttt{solve} uses \texttt{ExactMVBackend} to form the reference
-density multivector and runs A-CASE with whole determinant-excitation
+Next, \texttt{solve} defaults to a determinant reference and exact projected
+expectations without building a reference density multivector. An explicit legacy
+mode uses \texttt{ExactMVBackend}; reference-conditioned certification and
+second-moment reporting require that legacy path. The solver runs A-CASE with whole determinant-excitation
 operators. The CLI currently uses Jordan--Wigner encoding and exact
 projected arithmetic. It computes no ground-state oracle. The
 \texttt{--max-additions} option limits growth beyond the identity
@@ -566,6 +569,34 @@ eigenproblem.  Generator filtering changes which directions may enter that
 projected solve, not the Hilbert space itself.  Collapsing any two of these into
 one ``reduction'' step would make the resulting error budget unattributable,
 which is the first place scope would be lost.
+
+\subsection{Provider workflows and evidence transport}
+
+The restart architecture treats the Clifford algebra as an operator language,
+not a requirement to materialize a density multivector. An opt-in workflow
+wraps existing exact-projection, sampled-projection and sector-action providers
+in a versioned result. It does not replace adaptive solvers or make the spans
+of the provider paths equivalent. Exact projection is not a ground-state or
+true-residual certificate. Sampled projection supplies simultaneous entrywise
+bounds under its declared assumptions, not a confidence interval for the
+selected Ritz energy. Sector-action residuals establish numerical convergence
+within their sector, not that the root is the ground state.
+
+A scoped ledger times the wrapper's sampling and solve calls, while provider
+preparation and independent validation can be supplied as caller-reported
+costs. Export is separate; no end-to-end total, process peak memory or hardware
+time is inferred. A portable archive carries the result, a digest manifest and
+explicitly supplied attachments. Its verification checks integrity, but does
+not authenticate a publisher, establish preregistration, supply missing source
+or environment inputs, or independently validate scientific claims. The caller
+retains an external digest and arranges persistent storage.
+
+The shared experiment runner instead records execution plans, task outcomes,
+checkpoints and immutable content-addressed artifacts for CI and replays. Its
+transport receipts are not scientific cost or advantage claims. Numerical
+replay compares recorded fields under the original tolerances and reports
+execution-fingerprint drift separately from strict replay. These interfaces and
+their limitations are specified in the repository's restart documentation.
 
 \subsection{The kernel}
 
@@ -1329,6 +1360,22 @@ This result shows why a filter must be evaluated on the pool used by the
 solver. Removing redundant candidates from a wider pool does not establish a
 saving against an already compact excitation pool.
 
+\subsection{Noise-aware selection and independent checks}
+
+A preregistered equal-shot simulation compared a channel-defect penalty with
+unpenalized selection on spin and molecular cases. Both arms selected the same
+candidate throughout the declared grid, so the stated benefit criterion failed.
+The comparison uses fresh evaluation samples and a paired simulation, and
+charges both selection and evaluation shots. Channel knowledge is assumed and
+calibration, gate-level noise, device time and classical penalty cost in seconds
+are outside the boundary. This negative finding does not rule out other
+selectors or workloads. An independent reconstruction checks the recorded
+experiment while sharing input definitions and numerical dependencies. A
+separate occupation-sector audit checks the published H$_4$ selected-prefix
+energies and word support, but does not replay adaptive selection or certify
+Python heap bytes. The declarations, observations and checkers are available
+in the source repository.
+
 \section{Scope and limitations}
 \label{sec:limits}
 
@@ -1419,8 +1466,8 @@ benefits even when a particular algorithmic comparison is inconclusive.
 
 The source includes an Apache license, package metadata, runnable examples,
 optional dependency groups, and versioned tests and benchmark records. At this
-manuscript revision it remains an alpha research package; a public archival
-release is intended. The repository address is
+manuscript revision it remains an alpha research package. The source package
+is already publicly available at
 \url{https://github.com/gutama/clifford_qc}. This statement does not assert that
 a public package-index release or an archival identifier already exists.
 For a source checkout, installation instructions and examples are in
@@ -1429,7 +1476,7 @@ benchmark environments in \texttt{REPRODUCING.md}.
 
 Users should identify the source version and dependency environment used in an
 experiment. The library API is broader than the command-line pipeline, and
-research interfaces can still change. A stable public release would benefit
+research interfaces can still change. A stable archival release would benefit
 from validated labels on the in-package result types, a documented
 compatibility policy, and a persistent citation for the released source. These
 are distribution and maintenance needs, not evidence that the implemented
@@ -1460,8 +1507,8 @@ Apache-licensed repository at
 \texttt{paper\_architecture/}; \texttt{REPRODUCING.md} records the environment
 each record was produced in, and \texttt{CITATION.cff} carries the citation
 metadata for the source itself. Rebuilding the paper requires no data outside
-that repository. As Sec.~\ref{sec:discussion} states, no archival identifier or
-package-index release exists yet.
+that repository. Public source access does not imply a package-index release or a persistent
+archival identifier; users should record the source revision they used.
 
 \begin{acknowledgments}
 We thank the maintainers of the open-source quantum software ecosystem that
