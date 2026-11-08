@@ -1,5 +1,8 @@
 # Current restart roadmap
 
+For the complete documentation map, including current workflows, scientific
+results and historical plans, see the [documentation guide](../README.md).
+
 Start with the [unchanged 24 October blueprint](blueprint_2026-10-24.md),
 [frozen v1 evidence bindings](v1_evidence_snapshot.json),
 [first implementation contract](CONTRACT.md), and

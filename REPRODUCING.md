@@ -1,5 +1,12 @@
 # Reproducing the benchmark artifacts
 
+This is the detailed, historical reproduction ledger. Start with the
+[documentation guide](docs/README.md#research-evidence-and-reproduction) to
+find a campaign and its declaration, result and checks. The
+[restart replay contract](docs/restart/REPLAY_VERIFICATION.md) distinguishes
+recorded numerical verification from strict replay. Commands and environments
+below are scoped to their individual records; they are not interchangeable.
+
 ## Column-budget convergence
 
 `benchmarks/PACKET_BUDGET_CONVERGENCE_DECLARATION.md` and

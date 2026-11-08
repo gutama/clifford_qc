@@ -17,52 +17,13 @@ small-system comparisons. The source is publicly available on [GitHub](https://g
 [Install](#install-from-source) · [Quick start](#quick-start) ·
 [Choose a solver](#choosing-a-solver) · [Molecular pipeline](molecular/PIPELINE.md) ·
 [Architecture](ARCHITECTURE.md) · [Reproduce results](REPRODUCING.md) ·
-[Validation and CI](#validation)
+[Validation and CI](#validation) · [Documentation guide](docs/README.md)
 
-The [restart roadmap](docs/restart/README.md) narrows new work around declared
-references, numerical projection, and costed measurement consumers. Its first
-implementation makes the prepared determinant workflow independent of density-MV
-storage. The unchanged [blueprint](docs/restart/blueprint_2026-10-24.md),
-[v2 contract](docs/restart/CONTRACT.md), and
-[compatibility matrix](docs/restart/COMPATIBILITY.md) define this scope;
-historical campaigns and their negative outcomes remain available. A separate
-[bounded sector-action workflow](docs/restart/SECTOR_ACTIONS.md) adds explicit
-root recovery, cached residuals, spin checks and memory admission.
-Opt-in [graph-state readouts and signed stabilizer references](docs/restart/GRAPH_READOUTS.md)
-add NumPy-only Clifford compilation and exact expectations without reference-density
-expansion. The historical elimination compiler remains the default.
-The [sampled projection and ratio workflow](docs/restart/SAMPLED_RATIO.md) now
-uses independent pilot/evaluation observations, covariance and denominator
-failure checks. Its declared three-input experiment did not meet the 20%
-matched-accuracy cost target; no benefit is promoted.
-The separately declared [cross-domain validation](docs/restart/CROSS_DOMAIN_RATIO.md)
-retains another 2,304 outcomes across TFIM, H4 and LiH. Both all-input cost
-hypotheses closed negative: the TFIM control saving does not establish a
-molecular saving or ground-state accuracy.
-
-The [shared runner and artifact contract](docs/restart/RUNNER_ARTIFACTS.md)
-provides resumable execution, explicit failure accounting, immutable artifacts
-and one checked CI gate registry. Its
-[recorded numerical replay](docs/restart/REPLAY_VERIFICATION.md) verifies the
-published scientific fields under their original tolerances and reports
-execution-fingerprint drift separately. Historical records, strict replay
-commands and negative scientific conclusions remain unchanged.
-
-[Phase 15/16 completion](docs/restart/PHASE15_16_COMPLETION.md) adds bounded
-sampled second moments and convergence/folded reports, plus opt-in real-time
-polynomial generators with explicit truncation and conditioning budgets.
-
-An exploratory [observable-noise stability study](docs/restart/OBSERVABLE_NOISE.md)
-compares full-state fidelity, observable bias, Heisenberg-span leakage and
-projected S/H stability on eight bounded controls and physical models.
-Noise-aligned correlators can stay fixed after fidelity deteriorates;
-an invariant operator span or stable overlap alone does not preserve Ritz energies.
-
-The opt-in [unified workflow and evidence export](docs/restart/UNIFIED_WORKFLOW.md)
-wraps existing exact, sampled and sector-action providers with a common
-result, explicitly scoped cost ledger and portable integrity-checked archive.
-Provider preparation, independent validation and durable storage remain
-caller responsibilities.
+The [documentation guide](docs/README.md) is the central map for the
+architecture, workflows, benchmark evidence, and historical research. The
+[restart roadmap](docs/restart/README.md) describes the current implementation
+and the scope of its validation. Published negative results and limitations
+remain part of the evidence.
 
 ## What you can do
 
@@ -294,18 +255,6 @@ now supplies sampled S/H/K, convergence intervals and folded-direction inclusion
 on TFIM2/TFIM3/Hubbard dimer, plus explicitly budgeted real-time responses.
 Those capabilities make no cost-saving claim for the historical banks.
 
-For a bounded example of convergence reporting, run
-`python examples/acase_convergence.py`. Pass
-`convergence=ConvergenceConfig(residual_tolerance=...)` to `run_acase`, or
-call `convergence_report` on an existing bank solve. The returned
-`convergence_reports` keep the growth stopping reason beside each tracked
-root's true residual, numerical-resolution status and optional ground-state
-assessment. Reporting is off by default and adds the retained `H²` block;
-larger banks need a storage preflight. A supplied `GroundStateReference`
-must describe an independently established spectrum in the state's space.
-Neither a small residual nor a Q17 extrapolated energy alone establishes
-ground-state convergence. See the [reporting contract](REPRODUCING.md#phase-15-exact-convergence-reporting).
-
 ## Choosing a solver
 
 For a small exact comparison of generalized qubit-excitation and CEO pools,
@@ -348,99 +297,12 @@ start can supply that reference through `workflows.adapt_warm_start`.
 Compare total selection, measurement, optimization, and classical costs at a
 matched accuracy target; no method is uniformly preferable.
 
-The [H2O singlet comparison](benchmarks/results/h2o_residual_comparison.md)
-tests refreshed residual packets, spin-adapted selected CI and active-space
-enlargement with cached H actions and isolated-process cost records. Packets
-reach the fixed 1.6 mHa target with 12 retained columns versus selected CI's
-14, but use 213 H actions versus 105. This is small-sector classical evidence,
-not a quantum or total-cost advantage.
-
-The [packet work comparison](benchmarks/results/packet_work_reuse.md) adds exact
-fixed-frame action reuse and heuristic residual shortlisting as experimental
-classical paths. On the same H2O fixture, reuse preserves the complete original
-trajectory and reduces target H actions from 213 to 57. Shortlisting reduces
-exact scores from 210 to 63; the combined arm also uses 57 H actions and 12
-columns. Caching adds owned frame/action arrays, and tiny-sector time differences
-do not establish scaling or quantum advantage. See
-`clifford_qc.subspace.packet_selection` and the [reproduction instructions](REPRODUCING.md#residual-packet-action-reuse-and-shortlisting).
-
-The [larger Hubbard stress test](benchmarks/results/packet_work_large.md)
-uses 4,900 determinants and a fixed 64-column budget. Reuse reduces H calls
-10,841 to 1,301 while increasing setup-plus-solver time 27.9 to 43.4 seconds
-and peak process memory 684 to 897 MiB. Combined shortlisting uses 1,288 H
-calls and 4,466 exact scores, with 35.8 seconds runtime. All arms miss the
-0.0016 t target at this budget. These results support exact action reuse while
-exposing its cost on a cheap compiled sparse Hamiltonian; defaults stay unchanged.
-
-The [prepared-input CLI](molecular/PIPELINE.md) currently exposes exact A-CASE with
-determinant-excitation candidates. Other methods use Python APIs and examples.
-Its `prepare`, `solve`, and optional `validate` commands have separate outputs,
-so repeated solves can reuse one prepared input without repeating a reference
-eigensolve.
-
-An experimental sparse packet path is available from
-`clifford_qc.subspace.sparse_packets` with the `research` extra.
-`SectorOperator.to_csr()` assembles sparse restrictions directly;
-`SparseSingletFrame` stores canonical CSFs sparsely after bounded local spin
-eigensolves. `run_sparse_packets` provides exhaustive growth and an opt-in
-early-screening heuristic that marks residual groups before materializing
-directions, with full audits and fallbacks. Accepted basis vectors remain
-explicit classical sector arrays. The
-[comparison declaration](benchmarks/SPARSE_PACKET_WORK_DECLARATION.md) fixes
-the separate dense, sparse-exhaustive and early-screening arms; no solver
-default or earlier observation changes.
-The [observed comparison](benchmarks/results/sparse_packet_work.md) retains all
-seven larger Hubbard repetitions: sparse exhaustive growth preserves physical
-directions and energy/residual trajectories. Median whole-process RSS falls
-from 686 to 181 MiB, but provenance preflight sets the sparse arm's memory
-floor; solver-only peaks were not measured. Sparse exhaustive setup + solver
-takes 25.82 seconds versus 27.35 seconds dense, failing the 20% speed clause.
-Early screening takes 7.77 seconds and reproduces the earlier shortlist's
-62 retained prefixes (26.21 seconds in that separate campaign), while
-materializing 9,123 rather than 34,892 candidates. This supports avoided
-materialization, without isolating a controlled timing effect.
-On held-out `hubbard_2x3_u8`, early screening misses 2 of 5 unique audits and
-raises fixed-budget error from 0.34144 to 0.38530 t (+12.85%). Every larger-Hubbard
-arm misses the declared accuracy target. Thirty-three observations survive
-from 39 scheduled cells; six held-out timing observations are unavailable.
-One surviving observation per arm establishes the held-out deterministic
-accuracy loss, while timing has only 1/3 planned samples per arm. The report and
-[validation notes](benchmarks/SPARSE_PACKET_VALIDATION_NOTES.md) disclose
-publication recovery and the global-phase comparison clarification.
-
-Exact projection caching is also opt-in through `run_sparse_packets`'s
-`cache_mode="basis"`, `"frame"` or `"combined"`; the default is `"none"`.
-The basis adjoint is reused for one accepted span, and fixed group blocks/frame
-adjoints for one run. The [declared comparison](benchmarks/EXACT_PROJECTION_CACHE_DECLARATION.md)
-retains all 84 timed cells and eight historical controls, with bitwise-identical
-scientific trajectories within each input/policy and independent replay.
-On 2x4 exhaustive growth, combined caching lowers median setup + solver from
-24.766 to 13.767 s (44.41%) while raising worker RSS from 137.988 to 144.020 MiB.
-Its 5.215 MiB cache trades memory for speed, failing the no-RSS-increase clause;
-basis-only also fails that clause, while frame-only misses the 20% speed target.
-Post-campaign release-order and candidate-pruning changes lower every mode's
-peak in undeclared development reruns; promotion would need a new comparison.
-Caching preserves accuracy and the early policy's held-out loss. Small held-out
-BeH2 validates a different active space, without establishing molecular scaling.
-The [full report](benchmarks/results/exact_projection_cache.md) separates phase
-times/RSS, payloads, paired timing ratios and unique audits. A supervisory helper
-isolates record-survey memory from the worker-launching process and workers.
-
-Beyond 64 columns, a [declared budget comparison](benchmarks/PACKET_BUDGET_CONVERGENCE_DECLARATION.md)
-grows exhaustive and early packets, greedy spin-adapted selected CI and a
-singlet-projected Davidson reference (`run_selected_ci` and `run_singlet_davidson`
-in `clifford_qc.subspace.sparse_baselines`) one column per step. All 52 cells
-complete and pass bounded independent replay. Packets do not add column compactness: the 2x4 primary
-and held-out BeH2 read mixed and only the held-out 8-site chain favours packets.
-On the primary, exhaustive packets reach 1 t in 145 columns against selected
-CI's 174 and 0.1 t in 473, which selected CI misses within 512 columns; at 512
-they are 0.0763 t above the singlet reference against 0.2477 t. They spend
-215,421 H actions where selected CI spends 1,764. Davidson reaches 0.0016 t in
-23 columns on the chain. On the primary it converges to an excited singlet
-0.9949 t up, although its start carries ground-state weight 1.7e-6. The [report](benchmarks/results/packet_budget_convergence.md)
-gives every threshold, frontier and resource, and discloses post-observation
-reporting and checker revisions. Defaults are unchanged, and this result closes
-the residual-packet line: no further packet performance work is planned.
+The prepared-input CLI exposes exact A-CASE with determinant-excitation
+candidates; other methods use Python APIs and examples. For benchmark outcomes,
+tradeoffs and reproduction commands, follow the [research evidence index](docs/README.md#research-evidence-and-reproduction).
+In particular, residual-packet results show tradeoffs between columns, Hamiltonian
+actions, time and memory; the declared packet line is closed. No general speedup
+or ground-root guarantee follows from those studies.
 
 ## Examples
 
@@ -482,8 +344,8 @@ optional extras; benchmark-specific environments are in [REPRODUCING.md](REPRODU
 - **Residuals:** a small true residual places some eigenvalue nearby; it does
   not say which one. Ground-state claims need a separately established
   spectrum. A variance at the rounding floor is reported as unresolved, not as
-  converged. Every true Ritz residual the package reports is an exact pairing,
-  not a finite-shot estimate.
+  converged. Exact and sampled residual reports use different assumptions and uncertainty
+  boundaries; see the [Phase 15/16 completion](docs/restart/PHASE15_16_COMPLETION.md).
 - **Memory:** streaming bounds persistent overlap/Hamiltonian coefficient rows,
   not total process memory. Histories, references, generators, and observables
   have separate lifetimes; recomputation can increase runtime.
@@ -575,25 +437,10 @@ available under the [replay verification contract](docs/restart/REPLAY_VERIFICAT
 
 ## Documentation and papers
 
-| Document | Purpose |
-|---|---|
-| [ARCHITECTURE.md](ARCHITECTURE.md) | Layers, interfaces, execution paths, and reduction semantics |
-| [molecular/PIPELINE.md](molecular/PIPELINE.md) | Reusable molecular preparation, solve/validate commands, and storage choices |
-| [CONVENTIONS.md](CONVENTIONS.md) | Mathematical and representation conventions |
-| [REPRODUCING.md](REPRODUCING.md) | Frozen environments, benchmark commands, and checks |
-| [Restart roadmap](docs/restart/README.md) | Implemented restart steps, declared validation scope, and closed measurement hypotheses |
-| [Runner and artifacts](docs/restart/RUNNER_ARTIFACTS.md) | Execution plans, checkpoints, immutable receipts, and CI routing |
-| [Replay verification](docs/restart/REPLAY_VERIFICATION.md) | Recorded numerical verification, execution-fingerprint drift, and strict replay boundaries |
-| [Architecture paper](paper_architecture/README.md) | *clifford_qc: A Python Toolkit for Quantum Simulation* ([arXiv:2609.23059](https://arxiv.org/abs/2609.23059)); features, architecture, and evidence |
-| [Compactness paper](paper_compactness/README.md) | *How Compact Is a Compact Subspace?* (draft); the residual-packet line read through columns, Hamiltonian actions, and determinant support |
-| [CITATION.cff](CITATION.cff) | Software metadata and research citations |
-
-The repository also contains the [measurement/ADAPT manuscript](paper/README.md),
-the [historical A-CASE source snapshot](paper_a_case_subspaces/README.md), and
-the [DA-CASE manuscript](paper_acase/README.md). Each has its own provenance and
-validation boundary. Cite the method used and identify the software revision;
-a paper citation does not identify a particular code snapshot. Use
-[CITATION.cff](CITATION.cff) for the software citation and include the commit
-used for your experiment.
+The [documentation guide](docs/README.md) maps the user guides, API boundaries,
+research records, reproducibility instructions and papers. Cite the method
+used and identify the software revision; a paper citation does not identify a
+particular code snapshot. Use [CITATION.cff](CITATION.cff) for the software
+citation and include the commit used for your experiment.
 
 Licensed under [Apache-2.0](LICENSE).
