@@ -52,9 +52,12 @@ def _cli(exported, script, *arguments):
     environment = dict(os.environ, PYTHONPATH=str(exported))
     environment.update({key: '1' for key in
                         ('OMP_NUM_THREADS', 'OPENBLAS_NUM_THREADS', 'MKL_NUM_THREADS')})
+    # A guard against a hung checker, not a speed requirement. The replay takes
+    # about a minute on Python 3.12 and longer on 3.10 or a busy runner; at 90 s
+    # it timed out there with nothing wrong.
     return subprocess.run(
         [sys.executable, str(exported / 'benchmarks' / f'{script}.py'), *arguments],
-        cwd=exported, env=environment, capture_output=True, text=True, timeout=90,
+        cwd=exported, env=environment, capture_output=True, text=True, timeout=600,
     )
 
 
