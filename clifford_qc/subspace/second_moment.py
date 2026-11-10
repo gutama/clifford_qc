@@ -40,7 +40,7 @@ from __future__ import annotations
 
 import math
 from dataclasses import dataclass
-from typing import Any, Sequence
+from typing import Any, Sequence, cast
 
 import numpy as np
 
@@ -564,5 +564,7 @@ class SampledSecondMomentProvider:
                      "circuits": cache.total_circuits, "confidence_delta": float(delta),
                      "simultaneous_real_functionals": family, "spectral_certificate": False,
                      "provider_identity": self.cache_identity, "admission": self.admission}
-        return MeasuredMomentProblem(*matrices, *radii, self._labels, float(delta),
-                                     resources, observations.identity)
+        # Three matrices and three radii, unpacked positionally: correct, and
+        # more than a checker can count through two starred lists.
+        return cast(Any, MeasuredMomentProblem)(
+            *matrices, *radii, self._labels, float(delta), resources, observations.identity)

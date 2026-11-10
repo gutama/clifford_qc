@@ -33,7 +33,7 @@ Homepage = "https://github.com/gutama/clifford_qc"
 Issues = "https://github.com/gutama/clifford_qc/issues"
 
 [project.optional-dependencies]
-test = ["pytest>=7", "hypothesis>=6", "pytest-cov>=4", "ruff>=0.9"]
+test = ["pytest>=7", "hypothesis>=6", "pytest-cov>=4", "ruff>=0.9", "mypy>=2.4"]
 research = ["scipy>=1.11"]
 molecular = ["scipy>=1.11", "pyscf>=2.4"]
 chemistry = ["openfermion>=1.6", "pyscf>=2.4", "openfermionpyscf>=0.5"]
@@ -50,21 +50,64 @@ version = {attr = "clifford_qc.__version__"}
 
 [tool.setuptools.packages.find]
 where = ["."]
-include = ["clifford_qc*", "molecular*"]
+# Only the library is installed. ``molecular/`` is the repository's comparison
+# suite: it is run from a checkout (``python -m molecular.run``), writes beside
+# its own sources, and would otherwise land in site-packages as a top-level
+# package with a generic name.
+include = ["clifford_qc*"]
 
 [tool.setuptools.package-data]
 clifford_qc = ["py.typed"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
+# ``benchmarks`` and ``molecular`` are repository directories, not installed
+# packages; this makes a bare ``pytest`` find them as ``python -m pytest`` does.
+pythonpath = ["."]
 addopts = "-ra --strict-config --strict-markers"
+
+[tool.mypy]
+# The package ships ``py.typed``, which tells downstream type checkers to trust
+# its annotations. That is a claim, and this is what holds the package to it.
+files = ["clifford_qc"]
+python_version = "3.10"
+# Optional extras (Stim, PySCF, PyZX, pytket, ...) are absent from most
+# environments and several ship no stubs; their presence must not decide the
+# result of checking this package.
+ignore_missing_imports = true
+
+[[tool.mypy.overrides]]
+# These two modules are hashed byte-for-byte by the observable-noise replay and
+# the noise-aware selection check. Their findings are a reused loop variable and
+# an unannotated accumulator, not defects; changing either file would mean
+# migrating frozen evidence for a cosmetic gain. Every other module is checked.
+module = ["clifford_qc.models.fcidump", "clifford_qc.models.lattice"]
+ignore_errors = true
 
 [tool.ruff]
 target-version = "py310"
 line-length = 100
-exclude = ["paper", "paper_acase"]
+# ``execution_sources`` holds byte-for-byte copies of the package at recorded
+# execution commits. They are evidence, not code under development: linting
+# them reports nothing that may be acted on.
+exclude = ["paper", "paper_acase", "benchmarks/provenance/execution_sources"]
 
 [tool.ruff.lint]
-# Start with correctness-bearing parser/name rules.  The existing style and
-# import backlog is intentionally not converted into an all-at-once PR gate.
-select = ["E9", "F63", "F7", "F82"]
+# Syntax errors plus all of Pyflakes: undefined and shadowed names, redefined
+# functions, unused imports and variables. The narrower set this replaces let a
+# duplicated ``Model.__post_init__`` through, which F811 reports. Style rules
+# are still not an all-at-once gate.
+select = ["E9", "F"]
+
+[tool.ruff.lint.per-file-ignores]
+# Package initializers import names in order to re-export them.
+"__init__.py" = ["F401"]
+# Exercises the ``from clifford_qc import *`` surface on purpose.
+"tests/test_core.py" = ["F403", "F405"]
+# Producers and checkers are bound by digest to the records they produced, so
+# a cosmetic edit to one is not free. Their unused imports and variables stay;
+# every other Pyflakes rule applies to them.
+"benchmarks/**" = ["F401", "F841"]
+# Hashed byte-for-byte by the observable-noise replay. One unused local is not
+# worth an evidence migration.
+"clifford_qc/models/lattice.py" = ["F841"]

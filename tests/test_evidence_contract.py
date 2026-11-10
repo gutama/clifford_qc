@@ -5,7 +5,7 @@ import json
 import pytest
 
 from benchmarks import evidence_metadata as metadata
-from clifford_qc.evidence import SCHEMA, declare_evidence, validate_evidence
+from clifford_qc.evidence import SCHEMA, declare_evidence
 from clifford_qc.reproducibility import stamp_record
 
 

@@ -3,6 +3,11 @@ from itertools import product
 
 import numpy as np
 import pytest
+
+# Skip, rather than break collection, where the optional extra is absent:
+# SciPy is imported at module scope here or by the modules below.
+pytest.importorskip("scipy")
+
 from scipy.linalg import expm
 
 from clifford_qc.algorithms.exchange import (
@@ -10,7 +15,6 @@ from clifford_qc.algorithms.exchange import (
 )
 from clifford_qc.dense_reference import to_matrix
 from clifford_qc.fermion import total_number_op, total_sz_op
-from clifford_qc.models.fcidump import fcidump_model
 
 
 def occupation_exchange(n, creation, annihilation):

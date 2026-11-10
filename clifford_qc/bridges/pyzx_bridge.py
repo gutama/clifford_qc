@@ -35,7 +35,7 @@ from __future__ import annotations
 
 from fractions import Fraction
 from math import pi
-from typing import Union
+from typing import Any, Callable, Union
 
 from ..capabilities import require
 
@@ -44,7 +44,7 @@ require('pyzx_bridge', feature='clifford_qc.bridges.pyzx_bridge')
 import pyzx as zx
 from pyzx.circuit import Circuit
 from pyzx.circuit.gates import (
-    CNOT, CZ, HAD, NOT, SWAP, S, T, XPhase, YPhase, Z as ZGate, Y as YGate,
+    CNOT, CZ, HAD, NOT, SWAP, S, Z as ZGate, Y as YGate,
     ZPhase,
 )
 
@@ -63,7 +63,7 @@ DEFAULT_MAX_DENOMINATOR = 2 ** 24
 DENSE_MAX_QUBITS = 12
 
 # IR named Clifford -> factory(*qubits) producing the pyzx gate.
-_CLIFFORD_TO_PYZX = {
+_CLIFFORD_TO_PYZX: dict[str, Callable[..., Any]] = {
     "H": lambda q: HAD(q),
     "X": lambda q: NOT(q),
     "Y": lambda q: YGate(q),

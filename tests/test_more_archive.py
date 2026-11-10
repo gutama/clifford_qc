@@ -58,6 +58,7 @@ def _cli(exported, script, *arguments):
     )
 
 
+@pytest.mark.usefixtures("full_git_history")
 @pytest.mark.parametrize('script', ['check_phase17_more_declaration', 'check_phase17_more'])
 def test_more_gates_verify_export_only_with_explicit_archive_mode(more_export, script):
     done = _cli(more_export, script, '--archive')

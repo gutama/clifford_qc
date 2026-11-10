@@ -69,6 +69,7 @@ def test_default_is_result_free_and_execution_never_overwrites(monkeypatch, tmp_
     assert output.read_text() == "previous evidence"
 
 
+@pytest.mark.usefixtures("full_git_history")
 def test_committed_campaign_replays():
     path = producer.ROOT / producer.RECORD
     if not path.exists() or not (producer.ROOT / producer.RECEIPT).exists():
@@ -101,6 +102,7 @@ def test_timeout_campaign_retains_all_failures_and_report_denominators(monkeypat
     assert text.count("| 0/3 |") == 6
 
 
+@pytest.mark.usefixtures("full_git_history")
 @pytest.mark.parametrize("field", ["timing", "rss", "provenance", "source"])
 def test_preserved_observation_binding_rejects_metadata_changes(field):
     path = producer.ROOT / producer.RECORD
@@ -115,6 +117,7 @@ def test_preserved_observation_binding_rejects_metadata_changes(field):
         checker.verify(record)
 
 
+@pytest.mark.usefixtures("full_git_history")
 def test_bundle_restores_history_from_the_baseline_without_creating_refs(monkeypatch, tmp_path):
     if not (producer.ROOT / producer.RECEIPT).exists():
         pytest.skip("observation publication not yet committed")

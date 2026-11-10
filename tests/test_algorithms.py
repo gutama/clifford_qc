@@ -1,7 +1,6 @@
 """Algorithm layer: pools (H1), fixed-depth VQE, exact and finite-shot
 ADAPT-VQE (backlog items 5-7, 11)."""
 
-import math
 
 import numpy as np
 import pytest

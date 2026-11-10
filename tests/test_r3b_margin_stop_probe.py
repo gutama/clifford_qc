@@ -15,6 +15,10 @@ import json
 
 import pytest
 
+# Skip, rather than break collection, where the optional extra is absent:
+# its benchmark producers import Stim at module scope.
+pytest.importorskip("stim")
+
 from benchmarks.check_r3b_margin_stop_probe import (
     contract_problems,
     qr3b_untouched_problems,

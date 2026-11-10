@@ -218,7 +218,6 @@ def test_partition_keeps_duplicate_codes_as_separate_indices():
 
 
 def test_word_level_grouping_deduplicates_like_qwc_groups():
-    n = 3
     word = PauliWord.from_label("XIZ")
     groups = block_commuting_groups([word, word], 1)
     assert [[w.code for w in group] for group in groups] == [[word.code]]

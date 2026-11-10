@@ -19,7 +19,7 @@ Clifford grade.
 
 from __future__ import annotations
 
-from typing import Sequence
+from typing import Any, Sequence
 
 from ..ir import PauliSum
 from ..measurement.bank import CommutatorBank
@@ -44,7 +44,7 @@ def pauli_orbit(words: Sequence) -> list[Generator]:
     out = []
     for index, item in enumerate(words):
         word = item.word if hasattr(item, "word") else item
-        label = getattr(item, "label", None) or getattr(word, "label", f"P{index}")
+        label: Any = getattr(item, "label", None) or getattr(word, "label", f"P{index}")
         out.append(Generator(label, to_mv(word)))
     return out
 

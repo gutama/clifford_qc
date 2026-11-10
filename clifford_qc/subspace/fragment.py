@@ -62,7 +62,7 @@ from __future__ import annotations
 
 import math
 from dataclasses import dataclass, field
-from typing import Any, Callable, Mapping, Protocol, runtime_checkable
+from typing import Any, Callable, Mapping, Protocol, cast, runtime_checkable
 
 import numpy as np
 
@@ -491,8 +491,8 @@ class ExactFragmentSolver:
     def __call__(self, model) -> FragmentSolution:
         fragment = _Fragment.of(model)
         roots = min(2, fragment.backend.dimension)
-        values, vectors, operator = fragment.backend.ground_state(
-            model.hamiltonian, k=roots, method=self.method, return_operator=True)
+        values, vectors, operator = cast(Any, fragment.backend.ground_state(
+            model.hamiltonian, k=roots, method=self.method, return_operator=True))
         gap = float(values[1] - values[0]) if roots > 1 else None
         return fragment.solution(
             solver=self.name, energy=float(values[0]),
@@ -527,7 +527,7 @@ class QSCIFragmentSolver:
         return fragment.solution(
             solver=self.name, energy=result.energy,
             words=fragment.backend.basis[result.indices],
-            amplitudes=result.eigenvectors[:, 0], operator=operator,
+            amplitudes=cast(np.ndarray, result.eigenvectors)[:, 0], operator=operator,
             input_category=record.input_category,
             rdm_route="sampled_subspace_ritz_vector",
             metadata={"sampling_state": _state_label(self.state),
@@ -575,7 +575,7 @@ class SelectedCIFragmentSolver:
             sampled = np.flatnonzero(reference)
             category, seed_label = CLASSICAL, "reference_determinant"
         else:
-            sampled, record = _sample(fragment, self.state, self.shots, self.seed)
+            sampled, record = _sample(fragment, self.state, cast(int, self.shots), self.seed)
             category, seed_label = record.input_category, _state_label(self.state)
         result = run_control(operator, sampled, name=self.name, kind=self.kind,
                              max_determinants=self.max_determinants,
@@ -627,7 +627,7 @@ class HybridFragmentSolver:
                              f"sample (arms: {sorted(arms)}); an empty packet "
                              "family produces no packet arm")
         arm = arms[self.arm]
-        subspace = arm.subspace
+        subspace: Any = arm.subspace
         try:
             reference = reference_determinant_state(None, model).amplitudes
         except ValueError:

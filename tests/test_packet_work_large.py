@@ -3,6 +3,11 @@ from copy import deepcopy
 import json
 import numpy as np
 import pytest
+
+# Skip, rather than break collection, where the optional extra is absent:
+# SciPy is imported at module scope here or by the modules below.
+pytest.importorskip("scipy")
+
 from scipy.sparse import csr_matrix
 from benchmarks import run_packet_work_large as producer
 from benchmarks import check_packet_work_large as checker
@@ -85,6 +90,7 @@ def test_default_is_result_free_and_never_overwrites(monkeypatch,tmp_path):
     assert path.read_text()=='old'
 
 
+@pytest.mark.usefixtures("full_git_history")
 def test_committed_large_campaign_and_report():
     if not (producer.ROOT/producer.RECEIPT).exists():pytest.skip('large observations not published yet')
     from benchmarks import summarize_packet_work_large as report

@@ -21,6 +21,10 @@ import math
 import numpy as np
 import pytest
 
+# Skip, rather than break collection, where the optional extra is absent:
+# SciPy is imported at module scope here or by the modules below.
+pytest.importorskip("scipy")
+
 from benchmarks.run_phase16b_v2_feasibility import (
     Estimands,
     shared_variates,

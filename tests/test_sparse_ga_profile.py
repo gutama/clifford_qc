@@ -56,6 +56,7 @@ def sparse_archive():
         yield root
 
 
+@pytest.mark.usefixtures("full_git_history")
 def test_committed_profile_and_large_sparse_bounds_are_valid(record):
     _check(record)
     large = next(row for row in record["fixtures"] if row["fixture"] == "n12_grade12_shared")
@@ -115,6 +116,7 @@ def test_execution_identity_must_be_clean_and_contain_the_sources(record, failur
         _check(record)
 
 
+@pytest.mark.usefixtures("full_git_history")
 def test_later_worktree_changes_do_not_rebind_historical_measurements(record, tmp_path):
     def git(*args):
         return subprocess.check_output(["git", *args], cwd=tmp_path, text=True).strip()
@@ -142,6 +144,7 @@ def test_later_worktree_changes_do_not_rebind_historical_measurements(record, tm
     gate.check_record(record, tmp_path)
 
 
+@pytest.mark.usefixtures("full_git_history")
 def test_live_candidate_enumeration_regression_is_observed(record, monkeypatch):
     from clifford_qc import multivector as kernel
     original = kernel._blade_contraction_buckets
@@ -154,6 +157,7 @@ def test_live_candidate_enumeration_regression_is_observed(record, monkeypatch):
         _check(record)
 
 
+@pytest.mark.usefixtures("full_git_history")
 @pytest.mark.parametrize("warm", [[1, 2, 3], None, "timing"])
 def test_malformed_warm_timing_is_a_clean_cli_failure(record, tmp_path, capsys, warm):
     record["fixtures"][0]["measurements"]["active"]["warm_ns"] = warm

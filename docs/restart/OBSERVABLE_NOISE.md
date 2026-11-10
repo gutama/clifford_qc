@@ -181,6 +181,17 @@ new scratch copy. `--check` binds the record to the on-disk design and named
 source hashes, replays all 224 points and compares all scientific numeric fields
 at atol 2e-9 and rtol 1e-8. That is a producer replay.
 
+A named source may change after the record was produced only if the bytes it
+had then are packaged under
+`benchmarks/provenance/execution_sources/<execution commit>/`. `--check` then
+holds the recorded hash against that snapshot, prints the file as `EVOLVED`,
+and still has to reproduce every recorded number with the live sources. A
+named file that differs with no matching snapshot fails the replay. Three files
+have evolved this way: `clifford_qc/multivector.py` (stored coefficients carry
+no negative zero on Python 3.14; bit-for-bit unchanged on the recorded
+interpreter), `clifford_qc/models/spin.py` (a duplicated, identical
+`__post_init__` removed), and the producer itself, which gained this rule.
+
 `check_observable_noise.py` is the **independent** checker. It never imports the
 producer, the sparse Heisenberg map or `clifford_qc.diagnostics`. It rebuilds
 every recorded field with dense NumPy: Pauli and Jordan-Wigner operators,

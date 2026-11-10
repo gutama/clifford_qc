@@ -7,6 +7,10 @@ import json
 
 import pytest
 
+# Skip, rather than break collection, where the optional extra is absent:
+# its benchmark producers import Stim at module scope.
+pytest.importorskip("stim")
+
 from benchmarks.check_qr3b_instance_preflight import contract_problems
 from benchmarks.run_exact_shot_search import ESTIMATORS, SEARCH_ENDPOINTS
 from benchmarks.run_qr3b_instance_preflight import (

@@ -99,6 +99,7 @@ def test_result_free_default_and_refuse_overwrite(monkeypatch,tmp_path):
     assert path.read_text() == 'old'
 
 
+@pytest.mark.usefixtures("full_git_history")
 def test_committed_campaign():
     if not (producer.ROOT / producer.RECEIPT).exists():
         pytest.skip('observation publication not yet committed')
@@ -138,6 +139,7 @@ def test_timeout_campaign_keeps_denominators(monkeypatch):
     assert text.count('| 0/3 |') == 10
 
 
+@pytest.mark.usefixtures("full_git_history")
 @pytest.mark.parametrize('field',['timing','rss','provenance','source'])
 def test_observation_byte_binding_rejects_metadata_tampering(field):
     if not (producer.ROOT/producer.RECEIPT).exists():
@@ -151,6 +153,7 @@ def test_observation_byte_binding_rejects_metadata_tampering(field):
         checker.verify(record)
 
 
+@pytest.mark.usefixtures("full_git_history")
 def test_bundle_restores_declared_history_from_baseline(monkeypatch,tmp_path):
     import shutil
     import subprocess

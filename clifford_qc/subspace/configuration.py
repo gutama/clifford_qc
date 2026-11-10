@@ -123,7 +123,7 @@ def configuration_haar_packets(configurations: Sequence, *,
         terms: dict[int, complex] = {}
         for index, coefficient in row.items():
             for code, value in leaves[index].mv.terms.items():
-                terms[code] = terms.get(code, 0.0) + coefficient * value
+                terms[code] = terms.get(code, 0j) + coefficient * value
         mv = MV(leaves[0].n, terms)
         support = mv.nnz()
         if support < min_support:

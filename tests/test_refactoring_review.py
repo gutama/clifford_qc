@@ -162,6 +162,7 @@ def test_implementation_fingerprint_scans_once_per_process():
 
 @pytest.mark.parametrize('method', ['dense', 'lanczos', 'eigsh'])
 def test_validation_reuses_one_sector_operator(method):
+    pytest.importorskip("scipy")
     backend = SectorStatevectorBackend(4, 2, 0.)
     h = MV(4, {3: 1., 12: 2., 48: 3., 192: 4.})
     with patch.object(backend, 'operator', wraps=backend.operator) as build:

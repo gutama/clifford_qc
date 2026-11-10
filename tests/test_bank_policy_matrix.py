@@ -24,6 +24,7 @@ def toy_config():
 
 @pytest.fixture(scope="module")
 def toy():
+    pytest.importorskip("scipy")
     config = toy_config()
     cells = producer.run_campaign(config, lambda cells: None)
     record = {"schema": contract.SCHEMA, "phase": "2M-C/D",
@@ -34,6 +35,7 @@ def toy():
 
 
 def test_fresh_workers_preserve_full_scientific_and_logical_trace(toy):
+    pytest.importorskip("scipy")
     config, record = toy
     assert checker.check_record(record, config, provenance=False) == []
     assert len({(c["worker"]["pid"], c["worker"]["start_ticks"]) for c in record["cells"]}) == 4
@@ -46,6 +48,7 @@ def test_fresh_workers_preserve_full_scientific_and_logical_trace(toy):
 
 
 def test_direct_product_reference_matches_without_a_storage_bank(toy):
+    pytest.importorskip("scipy")
     config, record = toy
     checked = checker.reference_check({"system": config["systems"][0],
                                        "scientific": record["cells"][0]["scientific"]})
@@ -60,6 +63,7 @@ def test_direct_product_reference_matches_without_a_storage_bank(toy):
     "ceiling", "verdict", "missing_cell", "bool_count", "claim_boundary", "nan_timing",
 ])
 def test_checker_rejects_corrupted_observation(toy, field):
+    pytest.importorskip("scipy")
     config, original = toy
     record = deepcopy(original)
     cell = record["cells"][3]
@@ -89,6 +93,7 @@ def test_checker_rejects_corrupted_observation(toy, field):
 
 
 def test_coherent_forgery_is_caught_by_direct_rebuild(toy):
+    pytest.importorskip("scipy")
     config, record = toy
     science = deepcopy(record["cells"][0]["scientific"])
     size = len(science["indices"])
@@ -226,6 +231,7 @@ def test_record_environment_rejects_interpreter_and_library_drift(field):
 
 @pytest.mark.parametrize("kind", ["S", "H"])
 def test_direct_rebuild_rejects_changed_ieee_signed_zero(toy, kind):
+    pytest.importorskip("scipy")
     config, record = toy
     science = deepcopy(record["cells"][0]["scientific"])
     size = len(science["indices"])

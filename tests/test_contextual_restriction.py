@@ -8,7 +8,6 @@ from clifford_qc.pauli import I, X, Z
 from clifford_qc.states import ket_density
 from clifford_qc.subspace import (
     Generator,
-    Restriction,
     compile_contextual_restriction,
     project_contextual_problem,
     select_contextual_stabilizers,

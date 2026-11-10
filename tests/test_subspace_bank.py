@@ -16,8 +16,7 @@ import pytest
 from clifford_qc.algorithms.pools import local_pool, odd_y_filter
 from clifford_qc.matrix import exact_ground, to_matrix
 from clifford_qc.models.spin import tfim, xxz
-from clifford_qc.multivector import MV
-from clifford_qc.pauli import I, P, X, Y, Z
+from clifford_qc.pauli import P, X, Y, Z
 from clifford_qc.states import ket_density
 from clifford_qc.subspace import (
     Generator, MatrixElementBank, dense_basis, identity_generator,

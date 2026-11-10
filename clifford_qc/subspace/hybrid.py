@@ -42,6 +42,7 @@ from __future__ import annotations
 
 import time
 from dataclasses import dataclass, field
+from typing import Any, cast
 
 import numpy as np
 
@@ -316,7 +317,7 @@ class HybridArm:
         }
         if self.exact_energy is not None:
             record["exact_energy"] = float(self.exact_energy)
-            record["error"] = float(self.error)
+            record["error"] = float(cast(float, self.error))
         record.update(self.metadata)
         return record
 
@@ -461,7 +462,7 @@ def run_hybrid(rho, model, words, *, max_size: int = 12,
         configuration_haar_packets(
             configurations, max_support=max_packet_support, label_prefix="cfgH")
         if configurations else [])
-    common = dict(exact_ground_energy=exact_energy, gamma=gamma,
+    common: dict[str, Any] = dict(exact_ground_energy=exact_energy, gamma=gamma,
                   leakage_tol=leakage_tol)
     dressed_pool = list(configurations) + list(family.generators)
     arms = []

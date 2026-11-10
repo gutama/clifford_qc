@@ -82,7 +82,7 @@ def _conflict_degrees(n: int, codes: tuple[int, ...]) -> list[int]:
     lo = np.int64(pauli_lane_mask(n))
     packed = np.fromiter(codes, dtype=np.int64, count=w)
     nz = (packed & lo) | ((packed >> np.int64(1)) & lo)
-    degrees = np.zeros(w, dtype=np.int64)
+    counts = np.zeros(w, dtype=np.int64)
     # Row blocks, not one w x w matrix: the full boolean matrix at w = 13646 is
     # 186 MB, and blocking is the same arithmetic in a few MB.
     block = max(1, (1 << 22) // w)
@@ -91,8 +91,8 @@ def _conflict_degrees(n: int, codes: tuple[int, ...]) -> list[int]:
         diff = packed[start:stop, None] ^ packed[None, :]
         nz_d = (diff & lo) | ((diff >> np.int64(1)) & lo)
         conflict = (nz[start:stop, None] & nz[None, :] & nz_d) != 0
-        degrees[start:stop] = conflict.sum(axis=1)
-    return degrees.tolist()
+        counts[start:stop] = conflict.sum(axis=1)
+    return counts.tolist()
 
 
 def _place(n: int, codes: Sequence[int], order: Sequence[int],

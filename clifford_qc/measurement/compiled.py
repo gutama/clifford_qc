@@ -13,7 +13,7 @@ from __future__ import annotations
 from collections import OrderedDict
 from dataclasses import dataclass
 from types import MappingProxyType
-from typing import Mapping, Sequence, Union
+from typing import Any, Mapping, Sequence, Union, cast
 
 import numpy as np
 
@@ -65,7 +65,7 @@ class CompiledSetting:
 
     @property
     def n(self) -> int:
-        return self.clifford.n
+        return cast(Any, self.clifford).n
 
 
 @dataclass(frozen=True)
@@ -163,7 +163,8 @@ class CompiledMeasurementSampler:
         for setting in settings:
             if setting.n != rho.n:
                 raise ValueError("compiled setting and state act on different qubit counts")
-            count = uniform if uniform is not None else shot_map.get(setting.key, 0)
+            count = (uniform if uniform is not None
+                     else cast(dict, shot_map).get(setting.key, 0))
             if count <= 0:
                 continue
             plan = self._plan(rho, setting, fingerprint=fingerprint)

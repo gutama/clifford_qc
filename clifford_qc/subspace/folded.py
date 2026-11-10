@@ -43,7 +43,7 @@ from __future__ import annotations
 
 import math
 from dataclasses import dataclass
-from typing import Any, Sequence
+from typing import Any, Sequence, cast
 
 import numpy as np
 
@@ -269,7 +269,7 @@ class FoldedSpectrum:
         if tolerance < 0.0:
             raise ValueError("tolerance must be nonnegative")
         w = _finite(start, "start")
-        trace = []
+        trace: list[tuple[float, float, float, float, float]] = []
         monotone, converged = True, False
         root = None
         for _ in range(max_iterations):
@@ -283,7 +283,8 @@ class FoldedSpectrum:
                 converged = True
                 break
             w = root.energy
-        return VarianceMinimization(start=float(start), root=root, trace=tuple(trace),
+        return VarianceMinimization(start=float(start), root=cast(FoldedRoot, root),
+                                    trace=tuple(trace),
                                     converged=converged, monotone=bool(monotone))
 
 

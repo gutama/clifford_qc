@@ -38,7 +38,7 @@ from __future__ import annotations
 import math
 import time
 from dataclasses import dataclass, field
-from typing import Any, Sequence
+from typing import Any, Sequence, cast
 
 import numpy as np
 
@@ -442,7 +442,7 @@ def _candidate_sector_leakage(bank: MatrixElementBank, candidate: int, *,
         bank, candidate, generator, sector_target, spin_ordering)
     if conditioned is None:
         conditioned = reference_sector_leakage(
-            generator, bank.reference, sector_target=sector_target,
+            generator, cast(MV, bank.reference), sector_target=sector_target,
             spin_ordering=spin_ordering)
     diagnostic = dict(conditioned)
     if leakage_mode == "operator_then_reference":
@@ -473,7 +473,7 @@ def _fast_determinant_reference_leakage(
         from ..backends import SectorStatevectorBackend
         from ..states import computational_probabilities
 
-        probabilities = computational_probabilities(bank.reference)
+        probabilities = computational_probabilities(cast(MV, bank.reference))
         bits, weight = max(probabilities.items(), key=lambda item: item[1])
         if weight < 1.0 - 1e-10:
             bank._reference_sector_context[context_key] = None
@@ -843,6 +843,44 @@ def _evaluate_acase_step(bank: MatrixElementBank, state: ACASEState,
     )
 
 
+def _same_operator(a: MV, b: MV) -> bool:
+    """Equal register and equal coefficient maps, without copying either."""
+    if a is b:
+        return True
+    if a.n != b.n or len(a.terms) != len(b.terms):
+        return False
+    other = b.terms
+    return all(other.get(code) == value for code, value in a.terms.items())
+
+
+def _require_matching_bank(bank: MatrixElementBank, rho, hamiltonian) -> None:
+    """A supplied bank must be the bank of the problem it is supplied for.
+
+    The bank already owns its reference and Hamiltonian, and every matrix
+    element comes from those -- so ``rho`` and ``hamiltonian`` are redundant
+    once a bank is passed. They used to be ignored, which turned a mismatch
+    into a wrong answer rather than an error: a bank built for one Hamiltonian,
+    passed beside another, returned the first one's energy under the second
+    one's name. The arguments are kept as a statement of intent and held to it.
+    """
+    reference = bank.reference
+    if rho is not reference:
+        if isinstance(rho, MV) and isinstance(reference, MV):
+            same = _same_operator(rho, reference)
+        else:
+            mine = getattr(getattr(rho, "metadata", None), "identity", None)
+            theirs = getattr(getattr(reference, "metadata", None), "identity", None)
+            same = mine is not None and mine == theirs
+        if not same:
+            raise ValueError(
+                "the supplied bank was built on a different reference state than "
+                "the rho passed beside it; pass the bank's own reference")
+    if not _same_operator(as_multivector(hamiltonian), bank.hamiltonian):
+        raise ValueError(
+            "the supplied bank was built for a different Hamiltonian than the one "
+            "passed beside it; build a bank for this Hamiltonian or omit bank=")
+
+
 def run_acase(rho: MV, hamiltonian, candidates: Sequence, *,
               initial: Sequence | None = None,
               bank: MatrixElementBank | None = None,
@@ -869,6 +907,10 @@ def run_acase(rho: MV, hamiltonian, candidates: Sequence, *,
     The legacy keyword surface remains stable. The config object is its
     structured alternative; runtime objects (reference state, generators and
     optional matrix-element bank) remain explicit dependencies.
+
+    A supplied ``bank`` fixes the reference and Hamiltonian; ``rho`` and
+    ``hamiltonian`` must then be the ones it was built on, and a mismatch is
+    an error rather than a silently different problem.
 
     Candidate scoring and selection stay separate mathematical functions.
     Numerical work for a growth decision is isolated in the private evaluator,
@@ -903,6 +945,8 @@ def run_acase(rho: MV, hamiltonian, candidates: Sequence, *,
     started = time.perf_counter()
     if bank is None:
         bank = MatrixElementBank(rho, hamiltonian)
+    else:
+        _require_matching_bank(bank, rho, hamiltonian)
     initial_gens = (as_generators(initial) if initial is not None
                     else [identity_generator(bank.n)])
     basis = tuple(bank.extend(initial_gens))
@@ -994,7 +1038,7 @@ def run_acase(rho: MV, hamiltonian, candidates: Sequence, *,
         }
     if config.leakage_tol is not None and config.leakage_mode != "operator":
         certificate = subspace_sector_certificate(
-            bank.reference, [bank.generator(index) for index in state.basis],
+            cast(MV, bank.reference), [bank.generator(index) for index in state.basis],
             sector_target=config.sector_target,
             spin_ordering=config.spin_ordering)
         resources["sector_certificate"] = certificate

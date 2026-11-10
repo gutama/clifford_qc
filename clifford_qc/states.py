@@ -145,7 +145,7 @@ def partial_trace(rho: MV, traced: set[int]) -> MV:
         new = 0
         for pos, j in enumerate(keep):
             new |= ((code >> (2 * j)) & 3) << (2 * pos)
-        out[new] = out.get(new, 0.0) + coeff * (2 ** len(traced))
+        out[new] = out.get(new, 0j) + coeff * (2 ** len(traced))
     return MV(len(keep), out)
 
 

@@ -42,6 +42,7 @@ sample, and against which inputs to compare, belongs to a declared experiment.
 from __future__ import annotations
 
 import math
+from typing import Any, cast
 
 import numpy as np
 
@@ -378,7 +379,7 @@ def _trotter_state(backend, model, time: float, *, steps, order: int,
             f"the Trotter circuit reaches fidelity {fidelity:.6f} with exact "
             f"propagation, below the required {min_fidelity}; use more steps")
     amplitudes, basis, post_selection, leaked = _to_sampling_basis(backend, evolved)
-    words = [op.word for op in program.ops]
+    words = [cast(Rotor, op).word for op in program.ops]
     return StateInput(
         label=f"trotter{order}(t={time:g},steps={steps})", category=IMPLEMENTABLE,
         amplitudes=amplitudes, basis=basis, preparations=1,
@@ -482,6 +483,7 @@ def truncated_time_family(hamiltonian, times, *, degree: int, max_terms: int,
     from ..reference_states import snapshot_operator
     from .contracts import as_multivector
     from .generator_core import Generator
+    value: Any  # the two validation loops below take integers, then reals
     for value, name, minimum in ((degree, "degree", 0), (max_terms, "max_terms", 1),
                                  (max_product_pairs, "max_product_pairs", 1),
                                  (minimum_retained_rank, "minimum_retained_rank", 1)):

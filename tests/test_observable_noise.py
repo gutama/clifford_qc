@@ -156,6 +156,31 @@ class ObservableNoiseTests(unittest.TestCase):
         with self.assertRaises(ValueError):
             verify(record)
 
+    def test_a_named_source_may_evolve_only_beside_its_packaged_execution_bytes(self):
+        """The committed record against the live tree, with and without snapshots."""
+        import gzip
+        import hashlib
+        import json
+        import tempfile
+        from pathlib import Path
+
+        record = json.loads(gzip.decompress(producer.RESULT.read_bytes()))
+        evolved = producer.evolved_sources(record)
+        self.assertLessEqual(set(evolved), set(producer.SOURCES))
+        for snapshot in sorted(p for p in producer.EXECUTION_SOURCES.rglob("*") if p.is_file()):
+            relative = snapshot.relative_to(producer.EXECUTION_SOURCES).as_posix()
+            self.assertEqual(hashlib.sha256(snapshot.read_bytes()).hexdigest(),
+                             record["source_sha256"][relative], relative)
+        with tempfile.TemporaryDirectory() as directory:
+            with mock.patch.object(producer, "EXECUTION_SOURCES", Path(directory)):
+                # No snapshot: an evolved file is not excused, so it is not listed
+                # and the replay's digest comparison is what rejects it.
+                self.assertEqual(producer.evolved_sources(record), [])
+        # A recorded digest that matches neither the live file nor a snapshot.
+        broken = copy.deepcopy(record)
+        broken["source_sha256"]["clifford_qc/diagnostics.py"] = "0" * 64
+        self.assertNotIn("clifford_qc/diagnostics.py", producer.evolved_sources(broken))
+
     def test_unknown_cases_and_large_registers_are_rejected(self):
         for name in ("hubbard3", "plus10", "tfim6x", ""):
             with self.subTest(name=name), self.assertRaises(ValueError):

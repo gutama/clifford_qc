@@ -5,6 +5,11 @@ import weakref
 
 import numpy as np
 import pytest
+
+# Skip, rather than break collection, where the optional extra is absent:
+# SciPy is imported at module scope here or by the modules below.
+pytest.importorskip("scipy")
+
 from scipy.sparse import csc_matrix
 
 from benchmarks.check_exact_projection_cache import compare_science
@@ -164,6 +169,7 @@ def test_scientific_payload_digest_is_enforced():
         decode_science(payload)
 
 
+@pytest.mark.usefixtures("full_git_history")
 def test_valid_observations_preserve_the_negative_frozen_equivalence_decision():
     from benchmarks.check_frame_coordinate_projection import verify, equivalence_problems
     record = read_json(Path('benchmarks/reference_results/frame_coordinate_projection.json'))

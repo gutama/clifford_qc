@@ -5,7 +5,7 @@ from __future__ import annotations
 import sys
 import time
 from dataclasses import dataclass
-from typing import TYPE_CHECKING, Any, Iterable, Sequence
+from typing import TYPE_CHECKING, Any, Iterable, Sequence, cast
 
 import numpy as np
 
@@ -321,6 +321,7 @@ class MatrixElementBank:
         gen = as_generators([generator])[0]
         if gen.n != self.n:
             raise ValueError("generator lives in a different algebra")
+        key: Any  # a digest on the provider route, a term tuple otherwise
         if self._exact_reference is not None or self._coefficient_only:
             from ..reference_states import snapshot_operator, operator_identity
             gen = Generator(gen.label, snapshot_operator(gen.mv))
@@ -450,7 +451,7 @@ class MatrixElementBank:
     def _row_pairing(self, kind: str, key: tuple[int, int]) -> complex:
         """``Tr(row * rho) / 2^n``, in ``MV.trace_pairing``'s summation order."""
         if self._storage == "packed":
-            return self._packed[kind].trace_pairing(key, self._rho)
+            return self._packed[kind].trace_pairing(key, cast(MV, self._rho))
         operator = (self._overlap_ops if kind == "overlap" else self._element_ops)[key]
         return operator.trace_pairing(self._rho)
 
@@ -533,6 +534,7 @@ class MatrixElementBank:
             raise ValueError("kind must be 'overlap' or 'element'")
         key = self._canonical_pair(i, j)
         self._ensure_pair(key)
+        terms: Iterable[tuple[int, complex]]
         if self._storage == "packed":
             terms = self._packed[kind].iter_terms(key)
         else:
@@ -776,10 +778,11 @@ class MatrixElementBank:
                     boxed_bytes += sys.getsizeof(box)
         reserved = container_bytes
         if self._storage == "packed":
+            table = cast(GlobalWordTable, self._word_table)
             container_bytes += (sum(store.nbytes() for store in self._packed.values())
-                                + self._word_table.live_bytes())
+                                + table.live_bytes())
             reserved += (sum(store.reserved_bytes() for store in self._packed.values())
-                         + self._word_table.nbytes())
+                         + table.nbytes())
         # Word history can outlive evicted rows under either backend. Count
         # its actual boxes once, including sharing with live rows/observables.
         for code in self._universe:

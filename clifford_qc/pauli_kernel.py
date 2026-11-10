@@ -9,6 +9,70 @@ operations.
 from __future__ import annotations
 
 from functools import lru_cache
+import os
+from typing import Any
+
+
+# Entries each kernel memo may hold.  Both word products and blade masks are
+# pure functions of small integers that the same bank asks for again and again,
+# so they are memoized process-wide.  That memory is real and belongs to no
+# bank: measured at 12 qubits, a full table is roughly 250 MiB for products and
+# 230 MiB for masks, and a miss costs about twice an unmemoized call, so the
+# table pays for itself only above a ~70% hit rate.  The default is unchanged --
+# committed storage ledgers were measured with it, and they count boxed
+# integers that this table is what shares -- but a memory-bound or low-reuse
+# workload can lower it, or set ``0`` to disable memoization, before import.
+KERNEL_CACHE_SIZE_ENV = "CLIFFORD_QC_KERNEL_CACHE_SIZE"
+DEFAULT_KERNEL_CACHE_SIZE = 1_000_000
+
+
+def _kernel_cache_size() -> int:
+    raw = os.environ.get(KERNEL_CACHE_SIZE_ENV)
+    if raw is None or not raw.strip():
+        return DEFAULT_KERNEL_CACHE_SIZE
+    try:
+        size = int(raw)
+    except ValueError:
+        size = -1
+    if size < 0:
+        raise ValueError(
+            f"{KERNEL_CACHE_SIZE_ENV} must be a non-negative integer, got {raw!r}")
+    return size
+
+
+KERNEL_CACHE_SIZE = _kernel_cache_size()
+
+# name -> memoized function, filled in by the modules that own them.
+_KERNEL_CACHES: dict[str, Any] = {}
+
+
+def _register_kernel_cache(name: str, function):
+    _KERNEL_CACHES[name] = function
+    return function
+
+
+def kernel_cache_info() -> dict[str, dict[str, int]]:
+    """Occupancy of the process-wide kernel memos, by name.
+
+    ``{"word_products": {"hits", "misses", "maxsize", "currsize"}, ...}``. No
+    resource ledger in this package includes these tables: they are shared by
+    every operator in the process, so a caller pricing memory per bank reads
+    them here and decides how to attribute them.
+    """
+    return {name: dict(function.cache_info()._asdict())
+            for name, function in sorted(_KERNEL_CACHES.items())}
+
+
+def clear_kernel_caches() -> None:
+    """Drop every memoized word product and blade mask.
+
+    Results are unaffected: the memos hold pure functions. Object *identity*
+    is: integers produced after a clear are new objects, so a storage
+    measurement that deduplicates boxed integers by identity should not be
+    taken across one.
+    """
+    for function in _KERNEL_CACHES.values():
+        function.cache_clear()
 
 
 PAULI_LETTERS = {0: "I", 1: "X", 2: "Y", 3: "Z"}
@@ -86,7 +150,7 @@ def pauli_lane_mask(n: int) -> int:
     return ((1 << (2 * n)) - 1) // 3 if n else 0
 
 
-@lru_cache(maxsize=1_000_000)
+@lru_cache(maxsize=KERNEL_CACHE_SIZE)
 def _word_mul_unchecked(n: int, a: int, b: int) -> tuple[complex, int]:
     """Hot-path packed product for codes already validated by their owner."""
     lo = pauli_lane_mask(n)
@@ -100,6 +164,9 @@ def _word_mul_unchecked(n: int, a: int, b: int) -> tuple[complex, int]:
     e = ((xa & za).bit_count() + (xb & zb).bit_count()
          - (xc & zc).bit_count() + 2 * (za & xb).bit_count()) % 4
     return _PHASE4[e], c
+
+
+_register_kernel_cache("word_products", _word_mul_unchecked)
 
 
 def word_mul(n: int, a: int, b: int) -> tuple[complex, int]:

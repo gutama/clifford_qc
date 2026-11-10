@@ -1,7 +1,6 @@
 """Transport invariants: failures, crashes and corruption cannot become success."""
 import gzip
 import hashlib
-import json
 import os
 import subprocess
 import signal

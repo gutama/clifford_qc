@@ -35,6 +35,7 @@ from __future__ import annotations
 
 import functools
 import importlib.util
+from pathlib import Path
 from typing import Iterable, NamedTuple
 
 
@@ -157,14 +158,30 @@ def available(capability: str) -> bool:
     return not missing_modules(capability)
 
 
+#: Where an installation that is not a source checkout gets the package from.
+#: The distribution is installed from source and is not published on an index,
+#: so a bare ``pip install 'clifford-qc[extra]'`` names nothing that exists.
+REPOSITORY_URL = "https://github.com/gutama/clifford_qc"
+
+
+def _source_checkout() -> bool:
+    """Whether this package is running from a tree that has a ``pyproject.toml``.
+
+    True for a clone installed with ``pip install -e .`` (or used in place),
+    false for a copy installed into ``site-packages``.
+    """
+    return (Path(__file__).resolve().parent.parent / "pyproject.toml").is_file()
+
+
 def install_hint(capability: str) -> str:
     """The pip command that supplies a capability's extra.
 
-    Phrased against the published distribution rather than an editable
-    checkout: this string is the only guidance emitted at every ``require()``
-    site and in the CLI, and someone who ran ``pip install clifford-qc`` has no
-    ``.`` to install from. ``clifford_qc/bridges/__init__.py`` already documents
-    this form.
+    This string is the only guidance emitted at every ``require()`` site and in
+    the CLI, so it has to be a command that works where it is read. In a source
+    checkout that is the editable form the README documents, run from the
+    repository root. Anywhere else there is no ``.`` to install from, and no
+    index to fall back on, so the hint installs the same extra straight from
+    the repository.
     """
     try:
         record = CAPABILITIES[capability]
@@ -172,7 +189,9 @@ def install_hint(capability: str) -> str:
         raise ValueError(
             f"unknown capability {capability!r}; expected one of "
             f"{sorted(CAPABILITIES)}") from None
-    return f"pip install 'clifford-qc[{record.extra}]'"
+    if _source_checkout():
+        return f"pip install -e '.[{record.extra}]'"
+    return f"pip install 'clifford-qc[{record.extra}] @ git+{REPOSITORY_URL}.git'"
 
 
 def capabilities() -> dict[str, dict]:

@@ -33,6 +33,7 @@ import os
 import threading
 import time
 from dataclasses import dataclass, field, replace
+from typing import Any, cast
 
 import numpy as np
 
@@ -306,7 +307,7 @@ class QSCIResult:
         record.update(self.sampling.to_record())
         if self.exact_energy is not None:
             record["exact_energy"] = float(self.exact_energy)
-            record["variational_gap"] = float(self.variational_gap)
+            record["variational_gap"] = float(cast(float, self.variational_gap))
         record.update(self.metadata)
         return record
 
@@ -545,9 +546,10 @@ def sample_state_input(state: StateInput, *, shots: int, seed: int | None = 0,
         # A word above every basis element lands at `basis.size`, so the slots
         # are clipped before indexing: without that the mismatch surfaces as an
         # out-of-bounds IndexError instead of the message written for it.
-        slots = np.searchsorted(state.basis, words)
-        indices = np.where(slots < state.basis.size, slots, 0)
-        if indices.size and not np.array_equal(state.basis[indices], words):
+        basis: Any = state.basis
+        slots = np.searchsorted(basis, words)
+        indices = np.where(slots < basis.size, slots, 0)
+        if indices.size and not np.array_equal(basis[indices], words):
             raise ValueError("post-selected configurations are not in the "
                              "sector basis they were selected against")
     # One destructive computational-basis measurement consumes one preparation

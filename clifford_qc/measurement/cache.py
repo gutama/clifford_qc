@@ -131,7 +131,7 @@ class GroupedWordCache:
         # Readers depend only on the set of group bases; per-group word sums
         # depend on the histograms.  Both are rebuilt when those change.
         self._readers: dict[int, tuple] = {}
-        self._reader_arrays = None
+        self._reader_arrays: tuple | None = None
         self._word_sums: dict[tuple, tuple[int, int]] = {}
 
     @property
@@ -417,7 +417,6 @@ class GroupedWordCache:
                 row[code] = row.get(code, 0.0) + c * weight
         terms = {}
         for key, (g, rowc) in buckets.items():
-            support = g["support"]
             N = g["N"]
             # per-outcome combined value v and its histogram moments
             code_readouts = {code: self._readout(g, code) for code in rowc}

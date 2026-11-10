@@ -4,6 +4,11 @@ import sys
 
 import numpy as np
 import pytest
+
+# Skip, rather than break collection, where the optional extra is absent:
+# SciPy is imported at module scope here or by the modules below.
+pytest.importorskip("scipy")
+
 from scipy.linalg import expm
 
 from clifford_qc.algorithms import more_energy_gradient, run_more_adapt

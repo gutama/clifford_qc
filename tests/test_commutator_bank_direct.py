@@ -21,7 +21,7 @@ from clifford_qc.measurement import CommutatorBank
 from clifford_qc.measurement.bank import _pauli_anticommute
 from clifford_qc.models import random_ising, tfim
 from clifford_qc.pauli import comm
-from clifford_qc.multivector import code_to_label, label_to_code
+from clifford_qc.multivector import code_to_label
 
 
 def _reference_row(H_mv, word: PauliWord, tol=1e-12):

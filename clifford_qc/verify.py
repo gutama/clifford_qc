@@ -15,14 +15,13 @@ def run_verification() -> None:
     from . import (
         MV, I, X, Y, Z, P, comm, anticomm, tensor, gamma, blade_from_mask,
         c_op, cdag_op, number_op, number_op_pauli,
-        H, S, T, RX, RY, RZ, CNOT, CZ, SWAP, TOFFOLI, rotor,
+        H, S, T, RX, RY, RZ, CNOT, CZ, SWAP, TOFFOLI,
         ket_density, evolve, expectation, probability, purity,
         partial_trace, partial_transpose, z_projectors, measure,
         computational_probabilities, bell_density, ghz_density,
         depolarizing, dephasing, amplitude_damping, check_kraus, apply_channel,
         to_matrix, from_matrix, negativity, vn_entropy,
         trotter_unitary, trotter2_unitary, expm_taylor, expm_matrix,
-        code_to_label,
     )
 
     from . import __version__
@@ -228,8 +227,7 @@ def run_verification() -> None:
 
     print("-- sector-restricted exact tier --")
     from .backends.sector_statevector import (SectorStatevectorBackend,
-                                              lanczos_ground, sector_basis,
-                                              sector_projector)
+                                              sector_basis, sector_projector)
 
     sector = SectorStatevectorBackend(cluster.n, cluster.metadata["n_electrons"],
                                       cluster.metadata["sz"])

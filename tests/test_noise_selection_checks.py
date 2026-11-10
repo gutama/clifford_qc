@@ -52,6 +52,39 @@ class IndependentCheckTests(unittest.TestCase):
         with self.assertRaisesRegex(AssertionError, "training energy"):
             check_noise_aware_selection.check(broken, replay_rng=False)
 
+    def test_a_bound_source_may_evolve_only_beside_its_packaged_execution_bytes(self):
+        """Drift fails; a deliberate, packaged change is reported, not hidden."""
+        checker = check_noise_aware_selection
+        record = json.loads(gzip.decompress(checker.RESULT.read_bytes()))
+        evolved = checker.evolved_sources(record)
+        self.assertEqual(evolved, sorted(evolved))
+        self.assertLessEqual(set(evolved), set(record["source_sha256"]))
+        # Every packaged snapshot is the recorded bytes, whether or not the live
+        # file has moved yet.
+        for snapshot in sorted(p for p in checker.EXECUTION_SOURCES.rglob("*") if p.is_file()):
+            relative = snapshot.relative_to(checker.EXECUTION_SOURCES).as_posix()
+            self.assertEqual(hashlib.sha256(snapshot.read_bytes()).hexdigest(),
+                             record["source_sha256"][relative], relative)
+        with tempfile.TemporaryDirectory() as directory:
+            empty = Path(directory)
+            if evolved:
+                # Without the snapshot, the same live tree is plain drift.
+                with patch.object(checker, "EXECUTION_SOURCES", empty):
+                    with self.assertRaisesRegex(AssertionError, "source digest: " + evolved[0]):
+                        checker.check(record, replay_rng=False)
+                # A snapshot that is not the recorded bytes excuses nothing.
+                forged = empty / evolved[0]
+                forged.parent.mkdir(parents=True)
+                forged.write_bytes((checker.EXECUTION_SOURCES / evolved[0]).read_bytes() + b"\n")
+                with patch.object(checker, "EXECUTION_SOURCES", empty):
+                    with self.assertRaisesRegex(AssertionError, "source digest: " + evolved[0]):
+                        checker.evolved_sources(record)
+            # A recorded digest nothing matches fails whatever is packaged.
+            broken = deepcopy(record)
+            broken["source_sha256"]["clifford_qc/fermion.py"] = "0" * 64
+            with self.assertRaisesRegex(AssertionError, "source digest: clifford_qc/fermion.py"):
+                checker.check(broken, replay_rng=False)
+
     def test_noise_training_energy_vectors_must_match_candidate_count(self):
         record = json.loads(gzip.decompress(check_noise_aware_selection.RESULT.read_bytes()))
         original = record["outcomes"][0]["rows"][0]["training_energies"]

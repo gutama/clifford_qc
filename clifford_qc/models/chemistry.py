@@ -14,7 +14,6 @@ sector leakage rather than calling the qubit pool symmetry preserving.
 
 from __future__ import annotations
 
-import numpy as np
 from ..capabilities import require
 
 require('fermionic_operators', feature='clifford_qc.models.chemistry')

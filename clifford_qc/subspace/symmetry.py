@@ -12,6 +12,7 @@ the abstract Pauli operator does not commute with particle number.
 from __future__ import annotations
 
 from functools import lru_cache
+from typing import Any
 
 import numpy as np
 
@@ -152,7 +153,7 @@ def reference_sector_leakage(generator, reference_state: MV, *,
 def subspace_sector_certificate(reference_state: MV, generators, *,
                                 sector_target: tuple[int, float] | None = None,
                                 spin_ordering="interleaved",
-                                tau_s: float = 1e-12) -> dict[str, float | int]:
+                                tau_s: float = 1e-12) -> dict[str, Any]:
     """Worst target-sector leakage over every vector in a generator span.
 
     Let ``S_ij=<psi|A_i^dagger A_j|psi>`` and
@@ -270,7 +271,7 @@ def project_reference_to_sector(reference_state: MV, *,
                                 sector_target: tuple[int, float],
                                 spin_ordering="interleaved",
                                 min_weight: float = 0.0
-                                ) -> tuple[MV, dict[str, float]]:
+                                ) -> tuple[MV, dict[str, Any]]:
     """Post-select a reference onto the declared ``(N, S_z)`` sector.
 
     Returns ``(P rho P / tr(P rho), diagnostics)``.  This is exactly the state

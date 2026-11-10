@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import math
 from dataclasses import replace
-from typing import TYPE_CHECKING, Sequence
+from typing import TYPE_CHECKING, Any, Sequence, cast
 
 import numpy as np
 
@@ -108,7 +108,7 @@ class SharedMeasurement:
         """
         if not overlap and not hamiltonian:
             return ()
-        out = []
+        out: list = []
         for pair in self._pairs.values():
             selected = pair if overlap and hamiltonian else (
                 pair[0:1] if overlap else pair[1:2])
@@ -486,7 +486,8 @@ class SharedMeasurement:
             try:
                 candidate = solve_projected(
                     S, Hm, labels, tau_s=tau_s, rel_tau=rel_tau,
-                    max_condition=max_condition, overlap_noise_floor=floor,
+                    max_condition=max_condition,
+                    overlap_noise_floor=cast(Any, floor),
                     norm_floor=norm_floor).with_bank(self.bank, self.indices)
             except (ValueError, np.linalg.LinAlgError):
                 continue

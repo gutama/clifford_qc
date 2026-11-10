@@ -2,9 +2,9 @@
 from copy import deepcopy
 import json
 import hashlib
-from pathlib import Path
 import re
 import subprocess
+import sys
 
 import pytest
 
@@ -138,11 +138,56 @@ def test_workflow_uses_the_registry_and_retains_history_pins_failure_logs_and_sc
     assert "fromJSON(needs.plan.outputs.sampled)" in text
     assert "python -m pytest --hypothesis-profile=ci" in text
     assert "--tier core" in text
-    assert text.count("fetch-depth: 0") == 4
-    assert text.count("fail-fast: false") == 2
+    # plan, the record-environment tests, both record matrices, and the two
+    # compatibility matrices: every job that runs the suite or a gate needs
+    # history, since chronology checks walk it.
+    assert text.count("fetch-depth: 0") == 6
+    assert text.count("fail-fast: false") == 4
     assert "reference-record: ${{ matrix.environment_record }}" in text
     assert text.count("actions/upload-artifact@v4") == 3
     assert "pull_request_target" not in text
+
+
+def _advertised_python_versions():
+    text = (ci.ROOT/"pyproject.toml").read_text()
+    return set(re.findall(r'"Programming Language :: Python :: (3\.\d+)"', text))
+
+
+def test_every_advertised_python_version_is_tested_by_some_job():
+    """The classifiers are a claim; this is what holds the workflow to it.
+
+    For three months the workflow ran one interpreter while the classifiers
+    named five, and a Python 3.14 arithmetic change that altered stored
+    coefficient bytes went unseen. The record environment covers its own
+    interpreter; the compatibility matrix must cover every other one.
+    """
+    from clifford_qc.record_environment import PYTHON_PARTS
+
+    text = (ci.ROOT/".github/workflows/ci.yml").read_text()
+    matrix = re.search(r'python: \[([^\]]+)\]', text)
+    assert matrix, "compatibility matrix not found"
+    tested = set(re.findall(r'"(3\.\d+)"', matrix.group(1)))
+    done = subprocess.run([sys.executable, "benchmarks/check_record_environment.py", "--python"],
+                          cwd=ci.ROOT, capture_output=True, text=True, check=True)
+    record = ".".join(done.stdout.strip().split(".")[:PYTHON_PARTS])
+    advertised = _advertised_python_versions()
+    assert advertised, "no Python classifiers found"
+    assert record in advertised
+    assert tested | {record} == advertised
+    assert record not in tested  # the pinned job already runs it
+
+
+def test_compatibility_jobs_state_their_extras_and_cover_both_ends_of_the_install():
+    text = (ci.ROOT/".github/workflows/ci.yml").read_text()
+    # NumPy alone, and every optional extra: the two installs no other job has.
+    assert re.search(r"extras: test\n", text)
+    assert "extras: test,research,bridges,chemistry" in text
+    for capability in ("sparse_linalg", "stabilizer_backend", "openfermion_bridge",
+                       "pytket_bridge", "pennylane_bridge", "pyzx_bridge", "molecular_input"):
+        assert f"--require {capability}" in text
+    # Only the record environment forbids environment skips.
+    assert text.count('CLIFFORD_QC_STRICT_TEST_ENVIRONMENT: "1"') == 1
+    assert "python -m mypy" in text
 
 
 def test_full_molecular_replay_uses_its_exact_declared_runtime():

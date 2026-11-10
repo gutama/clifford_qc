@@ -401,6 +401,35 @@ def test_run_acase_rejects_an_empty_candidate_pool(case):
         run_acase(rho, model.hamiltonian, [identity_generator(N)], max_size=2)
 
 
+def test_a_supplied_bank_must_belong_to_the_problem_passed_beside_it(case):
+    """A bank fixes the reference and Hamiltonian; a mismatch is an error.
+
+    ``rho`` and ``hamiltonian`` used to be ignored once ``bank`` was given, so a
+    bank built for one Hamiltonian returned that Hamiltonian's energy whichever
+    one was passed with it -- a wrong number, with nothing to say so.
+    """
+    model, rho, _, candidates, _ = case
+    pool = candidates[:6]
+    expected = run_acase(rho, model.hamiltonian, pool, max_size=3).energy
+
+    def fresh_bank():
+        return MatrixElementBank(rho, model.hamiltonian)
+
+    # The bank's own reference and Hamiltonian: unchanged behaviour, whether
+    # they are the same objects or merely equal ones.
+    assert run_acase(rho, model.hamiltonian, pool, max_size=3,
+                     bank=fresh_bank()).energy == expected
+    assert run_acase(rho.copy(), model.hamiltonian.to_mv(), pool, max_size=3,
+                     bank=fresh_bank()).energy == expected
+
+    other_model = tfim(N, J=1.0, h=3.0)
+    with pytest.raises(ValueError, match="different Hamiltonian"):
+        run_acase(rho, other_model.hamiltonian, pool, max_size=3, bank=fresh_bank())
+    with pytest.raises(ValueError, match="different reference"):
+        run_acase(ket_density(N, "0" * N), model.hamiltonian, pool, max_size=3,
+                  bank=fresh_bank())
+
+
 # --------------------------------------------- excited states (Phase 5 §5)
 
 

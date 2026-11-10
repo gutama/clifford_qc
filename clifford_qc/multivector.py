@@ -5,21 +5,28 @@ import sys
 from itertools import combinations
 from functools import lru_cache
 from numbers import Number
-from typing import Dict, Iterable
+from typing import Any, Iterable, cast
 
 from .pauli_kernel import (
-    LETTER_CODE,
-    PAULI_LETTERS,
-    _PTAB,
+    KERNEL_CACHE_SIZE,
+    _register_kernel_cache,
     code_to_label,
     label_to_code,
     pauli_lane_mask,
     validate_n,
-    validate_qubit,
     validate_word_code,
-    word_mul,
     _word_mul_unchecked,
     word_mul_reference,
+)
+# Re-exported, not used here: this module was the kernel's first home, and the
+# package, its tests and downstream oracles still import these names from it.
+# The redundant aliases are how that intent is stated to a linter.
+from .pauli_kernel import (
+    LETTER_CODE as LETTER_CODE,
+    PAULI_LETTERS as PAULI_LETTERS,
+    _PTAB as _PTAB,
+    validate_qubit as validate_qubit,
+    word_mul as word_mul,
 )
 
 TOL = 1e-12
@@ -47,7 +54,7 @@ def codes_of_grade(n: int, r: int) -> tuple[int, ...]:
                         for bits in combinations(range(2 * n), r)))
 
 
-@lru_cache(maxsize=1_000_000)
+@lru_cache(maxsize=KERNEL_CACHE_SIZE)
 def blade_mask(n: int, code: int) -> int:
     """Generator subset of a Pauli word, as a bitmask over the 2n JW generators.
 
@@ -77,6 +84,9 @@ def blade_mask(n: int, code: int) -> int:
             mask |= 1 << (2 * j + 1)
         above_generator_count += 1 if letter in (1, 2) else (2 if letter == 3 else 0)
     return mask
+
+
+_register_kernel_cache("blade_masks", blade_mask)
 
 
 def mask_to_code(n: int, mask: int) -> int:
@@ -131,6 +141,21 @@ class MV:
     is the geometric/operator product, implemented as Pauli-word multiplication.
     Grade-dependent methods use that fixed JW frame; ``MV`` does not record or
     transport a fermion encoding's generator frame.
+
+    Three properties of the coefficient store are part of the contract:
+
+    * **Pruning is absolute.** A coefficient with ``|c| <= TOL`` (``1e-12``) is
+      dropped by the constructor, and so by every operation, whatever the size
+      of the other coefficients. ``(1e-7 * X) * (1e-7 * Z)`` is therefore the
+      zero operator. Work in units where the coefficients you care about are
+      well above ``TOL``; ``PauliSum`` keeps every nonzero coefficient, so the
+      conversion ``PauliSum.to_mv()`` is where such a term is lost.
+    * **No negative zeros.** A stored component is never ``-0.0``, on any
+      supported interpreter, so equal operators have equal coefficient bytes.
+    * **``==`` is identity.** ``MV`` defines no ``__eq__``: ``X(1, 0) ==
+      X(1, 0)`` is ``False``, and an ``MV`` hashes by identity. Compare values
+      with :meth:`is_close`. Value equality is deliberately not defined on a
+      mutable term store that is also used as a cache and dictionary key.
     """
 
     __slots__ = ("n", "terms")
@@ -145,7 +170,17 @@ class MV:
                 validate_word_code(n, kk)
                 cv = complex(v)
                 if abs(cv) > TOL:
-                    self.terms[kk] = self.terms.get(kk, 0.0) + cv
+                    # A *complex* zero, here and in every accumulator below.
+                    # ``0j + cv`` is complex + complex, which maps a ``-0.0``
+                    # component to ``+0.0`` on every interpreter.  ``0.0 + cv``
+                    # did the same only while Python promoted the real operand
+                    # first; from 3.14 real + complex leaves the other component
+                    # untouched, so ``(1j*Y)*X`` stored ``1-0j`` there and
+                    # ``1+0j`` before.  Equal as numbers, different as bytes --
+                    # and record digests and ``float.hex`` comparisons read
+                    # bytes.  Every stored coefficient passes through here, so
+                    # this is where "no negative zeros" is made an invariant.
+                    self.terms[kk] = self.terms.get(kk, 0j) + cv
             self.terms = {k: v for k, v in self.terms.items() if abs(v) > TOL}
 
     @staticmethod
@@ -172,7 +207,7 @@ class MV:
 
     def _coerce(self, other) -> "MV":
         if isinstance(other, Number):
-            return MV.scalar(self.n, complex(other))
+            return MV.scalar(self.n, complex(cast(Any, other)))
         if isinstance(other, MV):
             if other.n != self.n:
                 raise ValueError("mixed algebra sizes")
@@ -183,7 +218,7 @@ class MV:
         other = self._coerce(other)
         terms = dict(self.terms)
         for k, v in other.terms.items():
-            terms[k] = terms.get(k, 0.0) + v
+            terms[k] = terms.get(k, 0j) + v
         return MV(self.n, terms)
 
     __radd__ = __add__
@@ -210,7 +245,7 @@ class MV:
         for a, ca in self.terms.items():
             for b, cb in other.terms.items():
                 ph, m = _word_mul_unchecked(self.n, a, b)
-                out[m] = out.get(m, 0.0) + ca * cb * ph
+                out[m] = out.get(m, 0j) + ca * cb * ph
         return MV(self.n, out)
 
     def __matmul__(self, other):
@@ -373,7 +408,8 @@ class MV:
         ``<A_j B_k>_{j+k}`` over homogeneous parts.
         """
         if isinstance(other, Number):
-            return MV(self.n, {k: v * complex(other) for k, v in self.terms.items()})
+            scale = complex(cast(Any, other))
+            return MV(self.n, {k: v * scale for k, v in self.terms.items()})
         other = self._coerce(other)
         n = self.n
         masks_a = {a: blade_mask(n, a) for a in self.terms}
@@ -389,7 +425,7 @@ class MV:
                 if ma & masks_b[b]:
                     continue  # shared generator: the top grade cancels
                 ph, m = _word_mul_unchecked(n, a, b)
-                out[m] = out.get(m, 0.0) + ca * cb * ph
+                out[m] = out.get(m, 0j) + ca * cb * ph
         return MV(n, out)
 
     __xor__ = wedge
@@ -565,7 +601,8 @@ class MV:
         sign = _REV_SIGN[(k - 1) & 3]
         for mask, entries in sorted(buckets.items()):
             beta = mask_to_code(self.n, mask)
-            terms, vector_masks = {}, {}
+            terms: dict[int, complex] = {}
+            vector_masks: dict[int, int] = {}
             for code, coefficient, missing_bit in entries:
                 phase, product = _word_mul_unchecked(self.n, beta, code)
                 terms[product] = terms.get(product, 0j) + sign * coefficient * phase

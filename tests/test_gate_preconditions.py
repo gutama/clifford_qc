@@ -11,7 +11,7 @@ import math
 
 import pytest
 
-from clifford_qc import I, MV
+from clifford_qc import I
 from clifford_qc.gates import (
     CNOT, CZ, TOFFOLI, H, RX, RY, RZ, controlled, rotor, trotter_unitary,
 )

@@ -24,6 +24,7 @@ SOURCE = ROOT / "benchmarks/data/h4_sto3g_r0.9.FCIDUMP"
 
 
 def test_determinant_restriction_matches_full_register_reference():
+    pytest.importorskip("scipy")
     model = fcidump_model(SOURCE)
     model.metadata.update(kind="fermionic_lattice", sites=model.n // 2, n_orbitals=1)
     occupied = occupied_spin_orbitals(model)

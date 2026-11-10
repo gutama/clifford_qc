@@ -1,6 +1,7 @@
 """clifford_qc: operator-centric quantum computing in Cl(2n,C)."""
 
 from .multivector import MV, TOL, label_to_code, code_to_label, word_mul, blade_mask, mask_to_code
+from .pauli_kernel import clear_kernel_caches, kernel_cache_info
 from .pauli import I, X, Y, Z, P, pauli_string, comm, anticomm, pauli_basis, tensor
 from .clifford import gamma, pseudoscalar, blade_from_mask, grade, grades
 from .fermion import (c_op, cdag_op, number_op, number_op_pauli,

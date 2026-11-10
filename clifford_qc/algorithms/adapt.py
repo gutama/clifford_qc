@@ -33,18 +33,19 @@ from ..backends.finite_shot import FiniteShotBackend
 from ..measurement.bank import CommutatorBank
 from ..measurement.cache import WordCache, GroupedWordCache
 from ..measurement.grouping import qwc_groups
+from .adapt_selectors import AdaptSelectorProtocol
+# Re-exported for ``algorithms/__init__`` and for callers that import the
+# selectors and tie tolerances from this module, where they used to live.
 from .adapt_selectors import (
-    AdaptSelectorProtocol,
-    ConfidenceSelector,
-    FastInspiredSelector,
-    RandomSelector,
+    ConfidenceSelector as ConfidenceSelector,
+    FastInspiredSelector as FastInspiredSelector,
+    RandomSelector as RandomSelector,
 )
 from .layering import build_layer
 from .optimize import minimize_energy
 from .pools import PoolOperator
+from ..selection import TIE_ATOL as TIE_ATOL, TIE_RTOL as TIE_RTOL
 from ..selection import (
-    TIE_ATOL,
-    TIE_RTOL,
     SelectionStatus,
     canonical_argmax,
     certification_level,
@@ -239,7 +240,7 @@ def adapt_step(state: AdaptState, outcome: AdaptStepOutcome) -> AdaptState:
     )
 
 
-def _cache_estimates(bank: CommutatorBank, cache: WordCache,
+def _cache_estimates(bank: CommutatorBank, cache: WordCache | GroupedWordCache,
                      candidates: Sequence[int]) -> dict[int, float]:
     """Point estimates for candidates whose every word has been measured
     (candidates eliminated before round 0 completed have no valid estimate)."""
@@ -337,6 +338,11 @@ def run_adapt(model, pool: Sequence[PoolOperator], *,
     if noisy and (backend is None or allocator is None):
         raise ValueError("finite-shot selection needs a sampling backend and an allocator")
     subpool_rng = np.random.default_rng(subpool_seed)
+    # The mode flags decide which optional collaborator a step touches, and a
+    # type checker cannot follow that through the branches of the loop below.
+    # These untyped aliases say so without adding a runtime check to it.
+    chooser: Any = selector
+    sampling: Any = backend
     exact_backend = backend.inner if isinstance(backend, FiniteShotBackend) else \
         (backend if backend is not None else ExactMVBackend())
 
@@ -373,7 +379,7 @@ def run_adapt(model, pool: Sequence[PoolOperator], *,
                                         support_peak=support_peak))
             break
 
-        cache = None
+        cache: Any = None
         step_shots = 0
         step_circuits = 0
         step_word_codes: set[int] = set()
@@ -392,7 +398,7 @@ def run_adapt(model, pool: Sequence[PoolOperator], *,
             cache = (GroupedWordCache(model.n) if (noisy and grouping)
                      else WordCache(model.n) if noisy else None)
 
-            exact_scores = None
+            exact_scores: Any = None
             exact_max = None
             if track_exact_scores or (not noisy and not random_mode):
                 exact_scores = {i: bank.exact_score(i, rho) for i in candidates}
@@ -401,9 +407,9 @@ def run_adapt(model, pool: Sequence[PoolOperator], *,
             shots_added = 0
             words_measured = 0
             if fast_mode:
-                idx, proxy_score = selector.pick(rho, pool, candidates, H, bank)
-                shots_added = selector.shots
-                total_shots += selector.shots
+                idx, proxy_score = chooser.pick(rho, pool, candidates, H, bank)
+                shots_added = chooser.shots
+                total_shots += chooser.shots
                 total_circuits += 1
                 # Stop on the shared ``threshold`` like every other mode, so
                 # the proxy score gates termination consistently (the selector
@@ -418,7 +424,7 @@ def run_adapt(model, pool: Sequence[PoolOperator], *,
                     diag = {"estimate": proxy_score,
                             "active_candidates": len(candidates)}
             elif random_mode:
-                idx = selector.pick(candidates)
+                idx = chooser.pick(candidates)
                 status = SelectionStatus.RANDOM
                 diag = {"active_candidates": len(candidates)}
             elif not noisy:
@@ -442,12 +448,12 @@ def run_adapt(model, pool: Sequence[PoolOperator], *,
                     bind_groups = getattr(allocator, "bind_groups", None)
                     if callable(bind_groups):
                         bind_groups(fixed_groups)
-                    sampler = lambda words, plan: backend.sample_grouped_from_state(
+                    sampler = lambda words, plan: sampling.sample_grouped_from_state(
                         rho, fixed_groups, plan)
                 else:
-                    sampler = lambda words, plan: backend.sample_words_from_state(
+                    sampler = lambda words, plan: sampling.sample_words_from_state(
                         rho, words, plan)
-                idx, status, diag = selector.select(bank, cache, sampler, allocator,
+                idx, status, diag = chooser.select(bank, cache, sampler, allocator,
                                                     candidates)
                 step_shots += cache.total_shots
                 step_circuits += cache.total_circuits

@@ -40,6 +40,34 @@ BOUND_SOURCES = frozenset({
 })
 
 
+# A bound source that has changed since the experiment is not rebound to its
+# new bytes and is not excused either. Its execution-time bytes are packaged
+# here, as for the records in ``archive_manifest.json``, and the record's digest
+# is held against that snapshot. Editing a bound file therefore takes a
+# deliberate, reviewable act -- adding the snapshot -- and cannot happen by
+# drift.
+EXECUTION_SOURCES = ROOT / "benchmarks/provenance/execution_sources" / IMPLEMENTATION_COMMIT
+
+
+def evolved_sources(record):
+    """Bound sources whose live bytes differ from the recorded execution bytes.
+
+    Every recorded digest must match either the live file or the packaged
+    snapshot of it at ``IMPLEMENTATION_COMMIT``; anything else is a source that
+    changed with no record of what it was.
+    """
+    evolved = []
+    for path, expected in sorted(record["source_sha256"].items()):
+        if hashlib.sha256((ROOT/path).read_bytes()).hexdigest() == expected:
+            continue
+        snapshot = EXECUTION_SOURCES / path
+        require(snapshot.is_file()
+                and hashlib.sha256(snapshot.read_bytes()).hexdigest() == expected,
+                f"source digest: {path}")
+        evolved.append(path)
+    return evolved
+
+
 def require(value, message):
     if not value:
         raise AssertionError(message)
@@ -137,8 +165,7 @@ def check(record, *, replay_rng=True):
     require(record["declaration_sha256"] == hashlib.sha256(design_bytes).hexdigest() == DECLARATION_SHA256,
             "declaration digest")
     require(set(record["source_sha256"]) == BOUND_SOURCES, "declared source list")
-    for path, expected in record["source_sha256"].items():
-        require(hashlib.sha256((ROOT/path).read_bytes()).hexdigest() == expected, f"source digest: {path}")
+    evolved_sources(record)
     cases = json.loads(SOURCE.read_text())["cases"]
     require([c["name"] for c in cases] == design["case_names"], "case grid")
     require(len(record["summaries"]) == len(record["outcomes"]) == 6, "cell denominator")
@@ -293,6 +320,10 @@ def main():
         verify_history(record)
     elif sys.argv[1:]:
         raise SystemExit("usage: check_noise_aware_selection.py [--verify-history]")
+    evolved = evolved_sources(record)
+    if evolved:
+        print("EVOLVED since execution; recorded bytes verified from the packaged "
+              "snapshot at", IMPLEMENTATION_COMMIT[:12] + ":", ", ".join(evolved))
     print("independent selector replay passed; held-out cells:", cells)
 
 

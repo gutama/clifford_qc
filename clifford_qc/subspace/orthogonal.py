@@ -124,13 +124,13 @@ def solve_orthogonal_corrections(apply: Callable, classical_basis, corrections=N
     defect = float(np.max(np.abs(basis.conj().T @ basis - np.eye(basis.shape[1]))))
     if defect > tolerance:
         raise ValueError("corrections and classical basis must be mutually orthonormal")
-    actions = []
+    columns = []
     for column in basis.T:
         result = np.asarray(apply(column), dtype=complex)
         if result.shape != column.shape or not np.isfinite(result).all():
             raise ValueError("Hamiltonian action returned an invalid vector")
-        actions.append(result.copy())
-    actions = np.column_stack(actions)
+        columns.append(result.copy())
+    actions = np.column_stack(columns)
     projected = basis.conj().T @ actions
     if np.max(np.abs(projected - projected.conj().T)) > tolerance * max(
             1.0, float(np.max(np.abs(projected)))):

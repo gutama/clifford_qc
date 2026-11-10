@@ -30,7 +30,7 @@ from clifford_qc.models.spin import tfim
 from clifford_qc.subspace import (
     ASYMPTOTIC, FINITE_SAMPLE, HEURISTIC, Generator, MatrixElementBank,
     SharedMeasurement, WordFunctional, bootstrap_ritz, certify_couplings,
-    commutator_response, coupling_functional, identity_generator,
+    commutator_response, identity_generator,
     krylov_response, pauli_orbit, ritz_functional, ritz_uncertainty,
     run_certified_acase, score_candidate,
 )
@@ -463,7 +463,7 @@ def test_certified_coupling_is_invariant_under_candidate_rescaling(setting):
 
 
 def test_a_candidate_that_annihilates_the_reference_is_rejected(setting):
-    from clifford_qc.pauli import I, Z
+    from clifford_qc.pauli import I
 
     model, rho, words, E0 = setting
     bank = MatrixElementBank(rho, model.hamiltonian, [identity_generator(N)])

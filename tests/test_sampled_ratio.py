@@ -18,7 +18,7 @@ from clifford_qc.reference_states import (
     DeterminantReference, SampledReference, UnsupportedReferenceOperation, require_exact_reference,
 )
 from clifford_qc.sampled_reference import PreparedSampledReference
-from clifford_qc.states import bell_density, ket_density
+from clifford_qc.states import bell_density
 from clifford_qc.multivector import MV
 from clifford_qc.subspace.projection import MatrixElementBank
 from clifford_qc.subspace.providers import MeasurementProvider
@@ -255,6 +255,7 @@ def test_array_admission_precedes_allocation_and_retains_all_attempts(monkeypatc
     assert result["verdict"]["status"] == "closed_on_declared_scope"
 
 
+@pytest.mark.usefixtures("full_git_history")
 @pytest.mark.parametrize("mutation", ["source", "shots", "summary", "verdict"])
 def test_published_record_checker_rejects_tampering(mutation):
     import json
@@ -273,6 +274,7 @@ def test_published_record_checker_rejects_tampering(mutation):
         check(record)
 
 
+@pytest.mark.usefixtures("full_git_history")
 def test_record_validation_ignores_current_rss_but_checks_recorded_rss(monkeypatch):
     import json
     from types import SimpleNamespace
