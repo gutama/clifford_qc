@@ -427,7 +427,10 @@ def test_a_namespace_package_does_not_count_as_available(tmp_path, monkeypatch):
     `pyzx/` in the working directory reports the bridge as available and the
     caller meets `No module named 'pyzx.circuit'` further in.
     """
-    victim = next(iter(caps.CAPABILITIES["pyzx_bridge"].modules))
+    # A name nothing installs. With the real dependency present, as in the
+    # all-extras CI job, its regular package wins over a stray directory and the
+    # trap could not be laid: the test asserted on ``pyzx`` and failed there.
+    victim = "clifford_qc_stray_dependency"
     (tmp_path / victim).mkdir()
     monkeypatch.syspath_prepend(str(tmp_path))
     caps._importable.cache_clear()
