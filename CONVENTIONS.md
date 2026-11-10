@@ -64,6 +64,37 @@ operand of Clifford grade `0, 1 mod 4` masks the reversion sign. Projected
 subspace matrix elements need `trace_pairing`, because `A' H A` is not
 Hermitian.
 
+## Coefficient storage and equality
+
+An `MV` stores a map from word code to complex coefficient. Three properties of
+that store are contractual:
+
+- **Pruning is absolute.** The constructor drops every coefficient with
+  `abs(c) <= TOL`, where `TOL = 1e-12`, regardless of the size of the other
+  coefficients. Every operation builds its result through the constructor, so
+  `(1e-7 * X) * (1e-7 * Z)` is the zero operator. Keep the coefficients that
+  matter well above `TOL`. `PauliSum` keeps every nonzero coefficient, so the
+  conversion `PauliSum.to_mv()` is where such a term is lost.
+- **No negative zeros.** A stored real or imaginary part is never `-0.0`. Equal
+  operators therefore have equal coefficient bytes on every supported
+  interpreter, which record digests, packed rows and `float.hex` comparisons
+  rely on. Python 3.14 changed mixed real/complex arithmetic so that a `-0.0`
+  component survives `0.0 + z`; the kernel accumulates from a complex zero and
+  is unaffected.
+- **`==` is identity.** `MV` defines no `__eq__`, so `X(1, 0) == X(1, 0)` is
+  `False` and an `MV` hashes by identity. Compare values with `A.is_close(B)`.
+
+`run_acase(rho, hamiltonian, ..., bank=bank)` requires `rho` and `hamiltonian`
+to be the ones `bank` was built on, by value. A bank for a different reference
+or Hamiltonian is rejected instead of silently deciding the problem.
+
+Word products and blade masks are memoized process-wide, up to 1,000,000
+entries each. Those tables belong to no bank and appear in no resource ledger:
+read them with `clifford_qc.kernel_cache_info()` and empty them with
+`clear_kernel_caches()`. Set `CLIFFORD_QC_KERNEL_CACHE_SIZE` before import to
+shrink them, or to `0` to disable memoization; results are identical. Committed
+storage ledgers were measured at the default size.
+
 ## State-vector phase pivots
 
 `deterministic_phase_pivot(v, tie_tolerance=1e-12)` selects the lowest nonzero

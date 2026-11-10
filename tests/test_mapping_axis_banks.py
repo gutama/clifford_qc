@@ -18,6 +18,11 @@ import copy
 import json
 
 import pytest
+
+# Skip, rather than break collection, where the optional extra is absent:
+# its benchmark producers import Stim at module scope.
+pytest.importorskip("stim")
+
 from pathlib import Path
 
 from benchmarks.run_clifford_hierarchy import ACCURACY_TARGET_MILLIHARTREE

@@ -38,6 +38,10 @@ SOURCES = ["clifford_qc/diagnostics.py", "benchmarks/run_observable_noise.py",
            "clifford_qc/models/lattice.py", "clifford_qc/models/fcidump.py",
            "clifford_qc/multivector.py", "clifford_qc/fermion.py",
            "benchmarks/data/h4_sto3g_r0.9.FCIDUMP"]
+# The commit whose tree produced the committed record: every bound source at
+# this commit hashes to the digest the record carries.
+EXECUTION_COMMIT = "fcdcc7ff4db9061aa9382cd436ff23f8a34c15ce"
+EXECUTION_SOURCES = ROOT / "benchmarks/provenance/execution_sources" / EXECUTION_COMMIT
 TAU_S, MAX_CONDITION = 1e-8, 1e8
 MAX_DENSE_QUBITS = 8
 # Explicit case table: no name parsing, no fallthrough to another model.
@@ -218,6 +222,27 @@ def run(config):
             "cases": cases, "rows": rows}
 
 
+def evolved_sources(record):
+    """Bound sources whose live bytes are no longer the recorded execution bytes.
+
+    A bound source may change after the record was produced only if the bytes it
+    had then are packaged under ``EXECUTION_SOURCES``. The recorded digest is
+    then held against that snapshot, and the replay below still has to reproduce
+    every recorded number with the live sources. A bound file that differs with
+    no matching snapshot is not in this list -- it fails the replay as before.
+    """
+    evolved = []
+    for path, recorded in sorted(record["source_sha256"].items()):
+        if path not in SOURCES:
+            continue
+        if hashlib.sha256((ROOT/path).read_bytes()).hexdigest() == recorded:
+            continue
+        snapshot = EXECUTION_SOURCES / path
+        if snapshot.is_file() and hashlib.sha256(snapshot.read_bytes()).hexdigest() == recorded:
+            evolved.append(path)
+    return evolved
+
+
 def verify(record, *, design=None):
     """Replay all declared points and compare every scientific numeric field."""
     design = read_json(CONFIG) if design is None else design
@@ -227,6 +252,11 @@ def verify(record, *, design=None):
     if len(record["rows"]) != expected:
         raise ValueError("record does not hold the complete declared grid")
     regenerated = run(design)
+    # ``run`` hashes the live sources. For one that has evolved, the digest the
+    # record is entitled to is the packaged execution snapshot's, already
+    # checked against the record by ``evolved_sources``.
+    for path in evolved_sources(record):
+        regenerated["source_sha256"][path] = record["source_sha256"][path]
     def compare(a, b, path="record"):
         if isinstance(b, dict):
             if not isinstance(a, dict) or set(a) != set(b):
@@ -267,7 +297,12 @@ def main():
     parser.add_argument("--check", action="store_true")
     args = parser.parse_args()
     if args.check:
-        count = verify(read_json(args.output))
+        record = read_json(args.output)
+        count = verify(record)
+        evolved = evolved_sources(record)
+        if evolved:
+            print("EVOLVED since execution; recorded bytes verified from the packaged "
+                  "snapshot at", EXECUTION_COMMIT[:12] + ":", ", ".join(evolved))
         print(f"Verified {count} exact-channel outcomes")
     else:
         result = run(read_json(CONFIG))

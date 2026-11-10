@@ -49,6 +49,7 @@ def test_direct_action_residual_is_normalized_offset_safe_and_uses_shared_report
 
 @pytest.fixture(scope='module')
 def recovered_primary():
+    pytest.importorskip("scipy")
     archive=json.loads((ROOT/'benchmarks/reference_results/packet_budget_convergence.json').read_text())
     worker=next(w for w in archive['workers'] if w['input']=='hubbard_2x4_u4' and w['arm']=='davidson')
     payload=archive['scientific_payloads'][worker['scientific_sha256']]
@@ -89,6 +90,7 @@ def test_observed_2x4_excited_singlet_is_retained_then_recovered_without_an_orac
 
 
 def test_sector_solve_forbids_density_h_squared_and_dense_sector_construction(monkeypatch):
+    pytest.importorskip("scipy")
     provider=model_provider(hubbard((2,2),U=4,mu=0))
     from clifford_qc.backends import ExactMVBackend
     from clifford_qc.subspace.second_moment import SecondMomentBank
@@ -108,6 +110,7 @@ def test_sector_solve_forbids_density_h_squared_and_dense_sector_construction(mo
 
 
 def test_recovery_starts_and_subspace_tracking_are_deterministic():
+    pytest.importorskip("scipy")
     p=model_provider(hubbard((2,2),U=4,mu=0));cfg=SectorSolveConfig(roots=2,ncv=20,recovery_attempts=2)
     one=solve_sector(p,config=cfg);two=solve_sector(p,config=cfg)
     np.testing.assert_allclose(one.energies,two.energies,atol=1e-11)
@@ -118,6 +121,7 @@ def test_recovery_starts_and_subspace_tracking_are_deterministic():
 
 
 def test_iteration_failures_and_zero_spin_starts_remain_in_unconditional_results(monkeypatch):
+    pytest.importorskip("scipy")
     import scipy.sparse.linalg as sparse
     def fail(*args,**kwargs):
         raise sparse.ArpackNoConvergence('controlled iteration limit',np.array([]),np.empty((36,0),complex))
@@ -130,6 +134,7 @@ def test_iteration_failures_and_zero_spin_starts_remain_in_unconditional_results
 
 
 def test_monitored_rss_breach_is_a_failed_result_with_work_preserved():
+    pytest.importorskip("scipy")
     p=model_provider(hubbard((2,2),U=4,mu=0))
     result=solve_sector(p,config=SectorSolveConfig(max_rss_bytes=1000),
                         read_rss=lambda:100 if p.h_action_columns==0 else 2000)
@@ -155,6 +160,7 @@ def test_old_small_spans_match_sector_action_projection_and_admission(kind):
 
 
 def test_prepared_workflow_cli_and_preallocation_failure(tmp_path,monkeypatch):
+    pytest.importorskip("scipy")
     model=fcidump_model(ROOT/'benchmarks/data/h4_sto3g_r0.9.FCIDUMP')
     prepared=PreparedProblem.from_model(model,preparation={'source':'sector acceptance'})
     path=tmp_path/'prepared.json';prepared.save(path);output=tmp_path/'solve.json'
@@ -169,6 +175,7 @@ def test_prepared_workflow_cli_and_preallocation_failure(tmp_path,monkeypatch):
 
 
 def test_small_sector_fallback_is_explicit_and_its_reference_is_still_separate():
+    pytest.importorskip("scipy")
     p=SectorActionProvider(SectorStateReference(SectorSpec(2,2,0.),np.ones(1,complex)),MV.scalar(2,1))
     result=solve_sector(p)
     assert result.attempts[-1]['kind']=='complete_small_sector'
@@ -185,6 +192,7 @@ def test_invalid_solver_configuration(options):
 
 
 def test_zero_spin_initial_block_is_priced_and_recovered_in_the_requested_triplet_sector():
+    pytest.importorskip("scipy")
     m=hubbard((2,2),U=4,mu=0);a=np.zeros(36,complex);a[0]=1
     p=SectorActionProvider(SectorStateReference(SectorSpec(8,4,0.),a),m.hamiltonian,target_spin=1.)
     result=solve_sector(p,config=SectorSolveConfig(ncv=20,recovery_attempts=1))

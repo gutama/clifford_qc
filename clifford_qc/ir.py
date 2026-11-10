@@ -17,7 +17,7 @@ import json
 import math
 from dataclasses import dataclass
 from numbers import Real
-from typing import Iterable, Mapping, Sequence, Union
+from typing import Any, Callable, Iterable, Mapping, Sequence, Union, cast
 
 from .multivector import MV, code_to_label, label_to_code, validate_n, validate_qubit
 from .pauli import I
@@ -257,7 +257,7 @@ def _sdg(n: int, j: int) -> MV:
 
 
 # name -> (arity, builder(n, *qubits) -> MV). Clifford gates only; T is not Clifford.
-CLIFFORD_GATES = {
+CLIFFORD_GATES: dict[str, tuple[int, Callable[..., MV]]] = {
     "X": (1, lambda n, j: MV.word(n, "I" * j + "X" + "I" * (n - j - 1))),
     "Y": (1, lambda n, j: MV.word(n, "I" * j + "Y" + "I" * (n - j - 1))),
     "Z": (1, lambda n, j: MV.word(n, "I" * j + "Z" + "I" * (n - j - 1))),
@@ -378,7 +378,8 @@ class Program:
         return self.append(NamedClifford(name, tuple(qubits)))
 
     def add_measurement(self, task: MeasurementTask) -> "Program":
-        if task.kind == "expectation" and task.observable.n != self.n:
+        if (task.kind == "expectation"
+                and cast(PauliSum, task.observable).n != self.n):
             raise ValueError("observable qubit count differs from program")
         for q in task.qubits:
             validate_qubit(self.n, q)
@@ -433,10 +434,10 @@ class Program:
     def run(self, values=None, rho0: MV | None = None) -> list:
         """Evaluate all measurement tasks; returns one result per task."""
         rho = self.state(values, rho0)
-        out = []
+        out: list[Any] = []
         for task in self.measurements:
             if task.kind == "expectation":
-                out.append(expectation(rho, task.observable.to_mv()).real)
+                out.append(expectation(rho, cast(PauliSum, task.observable).to_mv()).real)
             else:
                 traced = rho if len(task.qubits) == self.n else _trace_to(rho, task.qubits)
                 out.append(computational_probabilities(traced))
@@ -448,17 +449,18 @@ class Program:
     SCHEMA_VERSION = 1
 
     def to_dict(self) -> dict:
-        ops = []
+        ops: list[dict[str, Any]] = []
         for op in self.ops:
             if isinstance(op, Rotor):
                 angle = {"param": op.angle.name} if isinstance(op.angle, Parameter) else float(op.angle)
                 ops.append({"type": "rotor", "word": op.word.label, "angle": angle})
             else:
                 ops.append({"type": "clifford", "name": op.name, "qubits": list(op.qubits)})
-        meas = []
+        meas: list[dict[str, Any]] = []
         for task in self.measurements:
             if task.kind == "expectation":
-                obs = {lbl: [c.real, c.imag] for lbl, c in task.observable.to_labels().items()}
+                observable = cast(PauliSum, task.observable)
+                obs = {lbl: [c.real, c.imag] for lbl, c in observable.to_labels().items()}
                 meas.append({"type": "expectation", "observable": obs})
             else:
                 meas.append({"type": "sample_z", "qubits": list(task.qubits)})

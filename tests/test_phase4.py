@@ -9,7 +9,6 @@ import pytest
 
 from clifford_qc.ir import PauliSum, Program
 from clifford_qc.states import expectation
-from clifford_qc.matrix import exact_ground
 from clifford_qc.models import tfim, random_ising
 from clifford_qc.backends import ExactMVBackend
 from clifford_qc.algorithms import (

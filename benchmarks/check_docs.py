@@ -224,6 +224,20 @@ def guarded_modules() -> set[str]:
     return names
 
 
+def _absent(module: str) -> bool:
+    """Whether ``module`` cannot be found, without importing it.
+
+    ``find_spec("scipy.sparse")`` has to import ``scipy`` to look inside it, so
+    for a dotted name whose parent is not installed it *raises* instead of
+    returning ``None`` -- and this gate crashed in exactly the environments it
+    is meant to describe. A missing parent is a missing module.
+    """
+    try:
+        return importlib.util.find_spec(module) is None
+    except (ImportError, ValueError):
+        return True
+
+
 def dropped_test_files() -> list[tuple[str, str]]:
     """(file, module) for each test file pytest drops at collection.
 
@@ -234,7 +248,7 @@ def dropped_test_files() -> list[tuple[str, str]]:
     for path in sorted((ROOT / "tests").glob("test_*.py")):
         tree = ast.parse(path.read_text())
         for mod, at_module_level in _importorskip_modules(tree):
-            if at_module_level and importlib.util.find_spec(mod) is None:
+            if at_module_level and _absent(mod):
                 out.append((path.name, mod))
                 break
     return out
@@ -318,7 +332,7 @@ def check_test_count(text: str, problems: list[str], skipped: list[str],
         and name.split(".")[0].lower() not in provided
     }
     actual_absent = {
-        name for name in guarded if importlib.util.find_spec(name) is None
+        name for name in guarded if _absent(name)
     }
     if not provided or actual_absent != expected_absent:
         unexpected = sorted(actual_absent - expected_absent)

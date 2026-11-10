@@ -371,6 +371,41 @@ def test_an_unknown_required_capability_is_a_usage_error():
     assert raised.value.code == 2  # argparse usage error, not a silent pass
 
 
+# ------------------------------------------------------------- install hint
+def test_the_install_hint_names_something_that_can_be_installed(monkeypatch):
+    """The hint is the only guidance a missing extra gets, so it has to work.
+
+    The distribution is not on a package index. The hint used to be
+    ``pip install 'clifford-qc[extra]'`` everywhere, a command that resolves to
+    nothing -- or, once somebody registers the name, to somebody else's package.
+    """
+    capability = "stabilizer_backend"
+    extra = caps.CAPABILITIES[capability].extra
+
+    monkeypatch.setattr(caps, "_source_checkout", lambda: True)
+    assert caps.install_hint(capability) == f"pip install -e '.[{extra}]'"
+
+    monkeypatch.setattr(caps, "_source_checkout", lambda: False)
+    hint = caps.install_hint(capability)
+    assert f"clifford-qc[{extra}] @ git+{caps.REPOSITORY_URL}.git" in hint
+
+    for checkout in (True, False):
+        monkeypatch.setattr(caps, "_source_checkout", lambda: checkout)
+        for name in caps.CAPABILITIES:
+            hint = caps.install_hint(name)
+            # never the bare index form
+            assert not hint.endswith(f"'clifford-qc[{caps.CAPABILITIES[name].extra}]'")
+
+
+def test_this_suite_runs_from_a_source_checkout_and_the_readme_shows_that_form():
+    assert caps._source_checkout()
+    readme = (ROOT / "README.md").read_text(encoding="utf-8")
+    assert "(pip install -e '.[pyzx]')" in readme
+    # Read as text so the check also runs on Python 3.10, which has no tomllib.
+    assert f'Homepage = "{caps.REPOSITORY_URL}"' in (
+        ROOT / "pyproject.toml").read_text(encoding="utf-8")
+
+
 # --------------------------------------------------------- exported surface
 def test_the_public_surface_rejects_unknown_names_consistently():
     """One catchable error type across the exported functions."""
@@ -392,7 +427,10 @@ def test_a_namespace_package_does_not_count_as_available(tmp_path, monkeypatch):
     `pyzx/` in the working directory reports the bridge as available and the
     caller meets `No module named 'pyzx.circuit'` further in.
     """
-    victim = next(iter(caps.CAPABILITIES["pyzx_bridge"].modules))
+    # A name nothing installs. With the real dependency present, as in the
+    # all-extras CI job, its regular package wins over a stray directory and the
+    # trap could not be laid: the test asserted on ``pyzx`` and failed there.
+    victim = "clifford_qc_stray_dependency"
     (tmp_path / victim).mkdir()
     monkeypatch.syspath_prepend(str(tmp_path))
     caps._importable.cache_clear()

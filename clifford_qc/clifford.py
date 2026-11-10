@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from .multivector import MV, validate_n, validate_qubit
+from .multivector import MV, validate_n
 from .pauli import I
 
 

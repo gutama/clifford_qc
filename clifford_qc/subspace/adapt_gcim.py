@@ -32,7 +32,7 @@ from ..selection import TIE_ATOL, TIE_RTOL, canonical_argmax
 from ..ir import PauliSum
 from ..dense_reference import to_matrix
 from ..multivector import MV
-from .generator_core import Generator, as_generators
+from .generator_core import as_generators
 from .reference import pure_statevector
 from .solver import SubspaceResult, solve_projected
 

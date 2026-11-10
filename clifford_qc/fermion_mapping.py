@@ -27,9 +27,9 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 import math
-from typing import Sequence
+from typing import Any, Sequence, cast
 
-from .ir import Program
+from .ir import NamedClifford, Program
 from .pauli_structure import gf2_rank
 
 
@@ -218,7 +218,7 @@ def _append_swap(program: Program, first: int, second: int) -> None:
 
 
 def _append_program(program: Program, suffix: Program, *, offset: int = 0) -> None:
-    for operation in suffix.ops:
+    for operation in cast("list[NamedClifford]", suffix.ops):
         if operation.name != "CX":
             raise AssertionError("fermion encoding synthesis must remain CNOT-only")
         control, target = operation.qubits
@@ -227,7 +227,7 @@ def _append_program(program: Program, suffix: Program, *, offset: int = 0) -> No
 
 def _rows_from_program(program: Program) -> tuple[int, ...]:
     rows = [1 << index for index in range(program.n)]
-    for operation in program.ops:
+    for operation in cast("list[NamedClifford]", program.ops):
         if operation.name != "CX":
             raise AssertionError("fermion encoding synthesis must remain CNOT-only")
         control, target = operation.qubits
@@ -381,7 +381,7 @@ class FermionEncoding:
 
     def encode_bits(self, occupation: Sequence[int] | str) -> tuple[int, ...]:
         """Classically evaluate ``y=A x`` for an occupation bit string."""
-        raw = tuple(occupation)
+        raw: tuple[Any, ...] = tuple(occupation)
         if len(raw) != self.n or any(bit not in (0, 1, "0", "1") for bit in raw):
             raise ValueError("occupation must contain exactly n binary entries")
         values = tuple(int(bit) for bit in raw)

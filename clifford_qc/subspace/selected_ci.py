@@ -52,6 +52,7 @@ import hashlib
 import time
 from dataclasses import dataclass, field
 from itertools import combinations
+from typing import Any, cast
 
 import numpy as np
 
@@ -121,7 +122,7 @@ class ControlResult:
         }
         if self.exact_energy is not None:
             record["exact_energy"] = float(self.exact_energy)
-            record["error"] = float(self.error)
+            record["error"] = float(cast(float, self.error))
         record.update(self.metadata)
         return record
 
@@ -429,7 +430,7 @@ def _variance(operator, indices: np.ndarray, coefficients: np.ndarray,
 
 
 def _amplitude_values(operator, indices: np.ndarray, coefficients: np.ndarray,
-                      energy: float, diagonal) -> np.ndarray:
+                      energy: float, diagonal) -> tuple[np.ndarray, np.ndarray]:
     """First-order amplitude estimate for every determinant outside ``indices``.
 
     Returned in the same order :func:`score_candidates` returns its candidates
@@ -456,7 +457,7 @@ def _amplitude_values(operator, indices: np.ndarray, coefficients: np.ndarray,
     return candidates, values
 
 
-def _reference_anchor(operator, base: np.ndarray, seed_vector: np.ndarray, *,
+def _reference_anchor(operator, base: np.ndarray, seed_vector: np.ndarray | None, *,
                       n: int | None = None) -> np.ndarray:
     """The single determinant a matched-budget selection starts from.
 
@@ -644,7 +645,7 @@ def run_control(operator, sampled, *, name: str, kind: str, n: int | None = None
             raise ValueError(
                 "matched_selected_ci needs max_determinants: an unbudgeted "
                 "matched comparator is the unbudgeted selected_ci control")
-        anchor = _reference_anchor(operator, np.unique(sampled), None, n=n)
+        anchor: Any = _reference_anchor(operator, np.unique(sampled), None, n=n)
         anchor_energy, anchor_vector, _ = _solve(operator, anchor)
         ranked, _, work = score_candidates(
             operator, anchor, anchor_vector, energy=anchor_energy, score=score,

@@ -13,6 +13,10 @@ import json
 
 import pytest
 
+# Skip, rather than break collection, where the optional extra is absent:
+# its benchmark producers import Stim at module scope.
+pytest.importorskip("stim")
+
 from benchmarks.check_r3b_preregistration import (
     CONFIG,
     _sha256,
@@ -25,7 +29,7 @@ from benchmarks.check_r3b_preregistration import (
     rederivation_problems,
 )
 from benchmarks.r3_environment_migration import record_successor_problems
-from benchmarks.run_exact_shot_search import ESTIMATORS, SEARCH_ENDPOINTS
+from benchmarks.run_exact_shot_search import SEARCH_ENDPOINTS
 from benchmarks.run_priceability_screen import REFERENCE as SCREEN_RECORD
 
 

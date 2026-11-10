@@ -48,7 +48,7 @@ def anticommuting_clique_cover(
     duplicate words are rejected; an empty input returns an empty cover.
     """
     members = sorted(_words(words), key=lambda word: word.code)
-    conflicts = {word.code: set() for word in members}
+    conflicts: dict[int, set[int]] = {word.code: set() for word in members}
     for i, a in enumerate(members):
         for b in members[i + 1:]:
             if not _pauli_anticommute(a.n, a.code, b.code):
@@ -66,7 +66,7 @@ def anticommuting_clique_cover(
     return tuple(tuple(sorted(group, key=lambda word: word.code)) for group in groups)
 
 
-def _real_coefficient(value: Real) -> float:
+def _real_coefficient(value: float) -> float:
     if isinstance(value, bool) or not isinstance(value, Real):
         raise TypeError("clique coefficients must be real numbers")
     value = float(value)
@@ -139,7 +139,7 @@ class CompiledClique:
 
 
 def compile_anticommuting_clique(
-    words: Sequence[PauliWord], coefficients: Sequence[Real],
+    words: Sequence[PauliWord], coefficients: Sequence[float],
 ) -> CompiledClique:
     """Compile an ordered, nonempty clique; preserve the supplied pivot/order.
 

@@ -14,7 +14,7 @@ import subprocess
 from contextlib import redirect_stdout
 from datetime import datetime, timezone
 from io import StringIO
-from typing import Any, Mapping
+from typing import Any, Mapping, cast
 
 
 def _git_output(*args: str) -> str | None:
@@ -51,13 +51,13 @@ def execution_provenance() -> dict[str, Any]:
            or _git_output("rev-parse", "HEAD") or "unknown")
     dirty_text = _git_output("status", "--porcelain")
     distributions = sorted(
-        f"{dist.metadata.get('Name', 'unknown')}=={dist.version}"
+        f"{cast(Any, dist.metadata).get('Name', 'unknown')}=={dist.version}"
         for dist in importlib.metadata.distributions())
     freeze_digest = hashlib.sha256(
         "\n".join(distributions).encode("utf-8")).hexdigest()
 
     try:
-        blas = np.__config__.show(mode="dicts")
+        blas: Any = np.__config__.show(mode="dicts")
     except TypeError:  # NumPy 1.x has only the printing form of show().
         stream = StringIO()
         with redirect_stdout(stream):

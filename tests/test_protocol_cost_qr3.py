@@ -10,6 +10,10 @@ checkable by hand.
 
 import pytest
 
+# Skip, rather than break collection, where the optional extra is absent:
+# its benchmark producers import Stim at module scope.
+pytest.importorskip("stim")
+
 from benchmarks.run_protocol_cost import (
     _cost_interval,
     _instance_cost_spread,

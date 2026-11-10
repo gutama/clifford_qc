@@ -9,6 +9,8 @@ Gottesman-Knill / blade-preservation claims.
 
 from __future__ import annotations
 
+from typing import cast
+
 from ..capabilities import require
 
 require('stabilizer_backend', feature='clifford_qc.bridges.stim_bridge')
@@ -25,7 +27,7 @@ _TARGETS = {"X": stim.target_x, "Y": stim.target_y, "Z": stim.target_z}
 
 
 def _pauli_product_targets(word: PauliWord) -> list:
-    targets = []
+    targets: list = []
     for j in word.support():
         if targets:
             targets.append(stim.target_combiner())
@@ -63,7 +65,8 @@ def program_to_stim(program: Program, values=None) -> stim.Circuit:
                 raise ValueError(
                     f"rotor exp(-i theta {op.word.label}/2) with theta={op.angle!r} "
                     "is not a Clifford operation; extract or lower it first")
-            k = clifford_angle_index(op.resolved_angle(bindings))
+            # ``is_clifford`` held above, so the index is one of 0..3.
+            k = cast(int, clifford_angle_index(op.resolved_angle(bindings)))
             _append_clifford_rotor(circuit, op.word, k)
         else:
             circuit.append(STIM_NAMES[op.name], list(op.qubits))

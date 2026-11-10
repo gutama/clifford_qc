@@ -14,7 +14,7 @@ import hashlib
 import json
 import math
 from pathlib import Path
-from typing import Mapping, Sequence
+from typing import Any, Mapping, Sequence, cast
 
 import numpy as np
 
@@ -139,7 +139,7 @@ class DeviceCard:
         missing = sorted(required - set(data))
         if missing:
             raise ValueError(f"missing device-card fields: {missing}")
-        return cls(**dict(data))
+        return cls(**cast("dict[str, Any]", dict(data)))
 
     @classmethod
     def load(cls, path: str | Path) -> "DeviceCard":
@@ -202,7 +202,8 @@ class SettingResources:
 
     @classmethod
     def from_mapping(cls, data: Mapping[str, object]) -> "SettingResources":
-        return cls(**{field: data[field] for field in ("n_1q", "n_2q", "d_1q", "d_2q")})
+        return cls(**cast("dict[str, Any]",
+                          {field: data[field] for field in ("n_1q", "n_2q", "d_1q", "d_2q")}))
 
 
 def _resources(values: Sequence[SettingResources | Mapping[str, object]]) -> list[SettingResources]:
@@ -394,6 +395,9 @@ def estimator_information(
             ((fidelity_vector < 0.0) | (fidelity_vector > 1.0)).any()
         ):
             raise ValueError("fidelities must be finite values in [0, 1]")
+    coverage: Any
+    raw_word_shots: Any
+    effective_word_shots: Any
     if estimator == "single_assignment":
         coverage = np.ones(n_words, dtype=np.int64)
         raw_word_shots = shot_vector[assigned]
@@ -404,7 +408,7 @@ def estimator_information(
         effective_word_shots = matrix.T @ (shot_vector * np.square(fidelity_vector))
     else:
         raise ValueError("estimator must be 'single_assignment' or 'pooled'")
-    fractions = coverage / n_settings
+    fractions: Any = coverage / n_settings
     return {
         "estimator": estimator,
         "word_samples_per_preparation": (
@@ -478,11 +482,11 @@ def break_even_surface(
             candidate_raw = inflate_shots_for_fidelity(
                 scenario, candidate, effective_shots, n_qubits
             )
-            ref_cost = cost_schedule(
+            ref_cost: dict[str, Any] = cost_schedule(
                 scenario, reference, ref_raw, n_qubits=n_qubits,
                 evidence_tier=evidence_tier, epsilon=epsilon,
             )
-            candidate_cost = cost_schedule(
+            candidate_cost: dict[str, Any] = cost_schedule(
                 scenario, candidate, candidate_raw, n_qubits=n_qubits,
                 evidence_tier=evidence_tier, epsilon=epsilon,
             )

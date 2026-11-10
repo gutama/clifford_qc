@@ -8,6 +8,10 @@ from types import SimpleNamespace
 
 import pytest
 
+# Skip, rather than break collection, where the optional extra is absent:
+# its benchmark producers import Stim at module scope.
+pytest.importorskip("stim")
+
 import benchmarks.check_phase14b_qwc_vs_fc as checker
 from benchmarks.run_phase14b_qwc_vs_fc import (
     PREREGISTRATION_MERGE_COMMIT,

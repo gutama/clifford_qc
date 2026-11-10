@@ -7,6 +7,10 @@ import json
 
 import pytest
 
+# Skip, rather than break collection, where the optional extra is absent:
+# its benchmark producers import Stim at module scope.
+pytest.importorskip("stim")
+
 import benchmarks.check_r3c_preregistration as r3c
 from benchmarks.run_exact_shot_search import (
     CONFIRMATORY_REPLICAS,

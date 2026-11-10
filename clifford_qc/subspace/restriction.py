@@ -39,6 +39,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 import math
+from typing import Any
 
 from ..ir import PauliWord
 from ..multivector import MV
@@ -79,7 +80,7 @@ class Restriction:
     """
 
     n: int
-    clifford: object | None
+    clifford: Any
     fixed_qubits: tuple[int, ...]
     signs: tuple[int, ...]
     label: str | None = None
@@ -155,7 +156,7 @@ class Restriction:
         terms: dict[int, complex] = {}
         for code, value in operator.terms.items():
             phase, image = self.clifford.conjugate(PauliWord(self.n, code))
-            terms[image.code] = terms.get(image.code, 0.0) + phase * value
+            terms[image.code] = terms.get(image.code, 0j) + phase * value
         return MV(self.n, {c: v for c, v in terms.items() if v != 0})
 
     def operator(self, operator: MV, *, require_commuting: bool = False) -> MV:
@@ -257,7 +258,7 @@ class Restriction:
                 dropped_weight += abs(value) ** 2
                 continue
             image = _delete_qubits(code, self.n, dropped)
-            kept[image] = kept.get(image, 0.0) + sign * value
+            kept[image] = kept.get(image, 0j) + sign * value
         restricted = MV(
             self.n_restricted, {c: v for c, v in kept.items() if v != 0}
         )

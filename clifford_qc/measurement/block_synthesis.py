@@ -19,7 +19,7 @@ from __future__ import annotations
 from collections import Counter, deque
 from dataclasses import dataclass, field
 from functools import lru_cache
-from typing import TYPE_CHECKING, Sequence
+from typing import TYPE_CHECKING, Sequence, cast
 
 import numpy as np
 from ..capabilities import require
@@ -110,8 +110,8 @@ def gate_stats(gates) -> tuple[Counter, int, int, int]:
     pair counts type-homogeneous layers on one clock, retaining dependencies
     through both gate kinds. Independent blocks take componentwise maxima.
     """
-    counts = Counter(); last_two = {}; critical = 0
-    ready = {}; layer_kind = {}
+    counts: Counter = Counter(); last_two: dict = {}; critical = 0
+    ready: dict = {}; layer_kind: dict = {}
     for name,qubits in gates:
         counts[name] += 1
         kind = '2q' if len(qubits) == 2 else '1q'
@@ -184,7 +184,7 @@ def _minimal_single_qubit_words() -> dict[tuple[str, str], tuple[str, ...]]:
     gates = {name: stim.Tableau.from_named_gate(name)
              for name in SINGLE_QUBIT_GATES}
     start = stim.Tableau(1)
-    words = {_tableau_key(start): ()}
+    words: dict[tuple[str, str], tuple[str, ...]] = {_tableau_key(start): ()}
     frontier = deque([start])
     while frontier:
         current = frontier.popleft()
@@ -333,7 +333,7 @@ def block_diagonalizer(local_members: Sequence[int], size: int):
             marker = (cost, length, word)
             if best is None or marker < best[0]:
                 best = (marker, candidate)
-        tableau = best[1]
+        tableau = cast(tuple, best)[1]
     return tableau
 
 

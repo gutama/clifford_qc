@@ -211,35 +211,35 @@
   "source": {
     "layers": {
       "algorithms": {
-        "lines": 1967,
+        "lines": 1974,
         "modules": 10
       },
       "backends": {
-        "lines": 2046,
+        "lines": 2047,
         "modules": 10
       },
       "bridges": {
-        "lines": 687,
+        "lines": 693,
         "modules": 6
       },
       "evidence": {
-        "lines": 1335,
+        "lines": 1352,
         "modules": 5
       },
       "ir": {
-        "lines": 1246,
+        "lines": 1248,
         "modules": 4
       },
       "kernel": {
-        "lines": 2264,
+        "lines": 2368,
         "modules": 15
       },
       "measurement": {
-        "lines": 5456,
+        "lines": 5461,
         "modules": 17
       },
       "models": {
-        "lines": 2739,
+        "lines": 2734,
         "modules": 9
       },
       "orchestration": {
@@ -247,17 +247,17 @@
         "modules": 3
       },
       "subspace": {
-        "lines": 15467,
+        "lines": 15531,
         "modules": 46
       },
       "surface": {
-        "lines": 38,
+        "lines": 39,
         "modules": 1
       }
     },
-    "package_lines": 34080,
+    "package_lines": 34282,
     "package_modules": 126,
-    "test_lines": 44405,
-    "test_modules": 187
+    "test_lines": 44954,
+    "test_modules": 189
   }
 }

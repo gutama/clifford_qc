@@ -15,7 +15,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 from itertools import combinations
 from numbers import Integral
-from typing import TYPE_CHECKING, Sequence
+from typing import TYPE_CHECKING, Any, Sequence
 
 from ..ir import PauliSum, PauliWord
 from ..multivector import MV
@@ -80,7 +80,7 @@ def _positive_int(value: int, name: str) -> int:
 
 
 def _word_codes(n: int, codes: Sequence[int]) -> tuple[int, ...]:
-    out = []
+    out: list[int] = []
     limit = 1 << (2 * n)
     for code in codes:
         if not isinstance(code, Integral) or isinstance(code, bool):
@@ -106,7 +106,7 @@ def _measurement_groups(
     assigned = []
     words = tuple(PauliWord(n, code) for code in codes)
     for group in raw:
-        members = []
+        members: list[int] = []
         for index in group:
             if not isinstance(index, Integral) or isinstance(index, bool):
                 raise TypeError("measurement group indices must be integers")
@@ -144,7 +144,7 @@ def _compile_settings(
     compiled = []
     for setting_index, members in enumerate(groups):
         circuit = stim.Circuit()
-        readouts = {code: [1, []] for code in codes}
+        readouts: dict[int, list[Any]] = {code: [1, []] for code in codes}
         readable = {code: True for code in codes}
         for start, size in block_ranges(n, block_size):
             local_members = [local_code(codes[index], start, size)
@@ -176,7 +176,7 @@ def _compile_settings(
         # Preserve idle trailing qubits when converting the circuit to a tableau.
         circuit.append("I", range(n))
         clifford = CliffordMap(n, circuit.to_tableau())
-        explicit = {
+        explicit: dict[int, tuple[int, tuple[int, ...]]] = {
             code: (int(readouts[code][0]), tuple(readouts[code][1]))
             for code in codes if readable[code]
         }

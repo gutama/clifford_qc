@@ -149,6 +149,7 @@ def current_molecular_case():
 
 @pytest.mark.parametrize("precompute", [True, False])
 def test_current_sector_actions_and_csr_match_occupation_oracle(current_molecular_case, precompute):
+    pytest.importorskip("scipy")
     _, _, matrix, words, backend, model = current_molecular_case
     operator = backend.operator(model.hamiltonian, precompute=precompute)
     # Complete columns detect phase, fermionic-sign and bit-order errors.
@@ -433,6 +434,7 @@ def test_partition_check_rejects_missing_duplicate_and_overlapping_indices():
         assert not producer.partition_is_complete(classical, external, 4)
 
 
+@pytest.mark.usefixtures("full_git_history")
 def test_execution_preflight_rejects_untracked_and_wrong_environment_before_science(monkeypatch):
     monkeypatch.setattr(producer, "run_case", lambda *a: pytest.fail("science ran"))
     clean = {"provenance": {"git_sha": "a" * 40, "git_dirty": False}}

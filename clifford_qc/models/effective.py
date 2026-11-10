@@ -113,7 +113,7 @@ def _reference(payload: Mapping[str, Any], n_qubits: int) -> tuple[Program, tupl
 def _serializable_complex_matrix(matrix: np.ndarray) -> list[list[float | list[float]]]:
     out: list[list[float | list[float]]] = []
     for row in matrix:
-        encoded = []
+        encoded: list[float | list[float]] = []
         for value in row:
             if abs(value.imag) <= 1e-14:
                 encoded.append(float(value.real))

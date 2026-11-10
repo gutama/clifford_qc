@@ -3,6 +3,11 @@ from copy import deepcopy
 from pathlib import Path
 import numpy as np
 import pytest
+
+# Skip, rather than break collection, where the optional extra is absent:
+# SciPy is imported at module scope here or by the modules below.
+pytest.importorskip("scipy")
+
 from benchmarks.check_h2o_residual_comparison import independent_frame
 from benchmarks.check_orthogonal_active_space import independent_spin_squared
 from benchmarks.run_packet_work_reuse import trajectory

@@ -56,7 +56,7 @@ one key with two meanings is how a contract stops being checkable.
 from __future__ import annotations
 
 import math
-from typing import Any, Mapping
+from typing import Any, Mapping, cast
 
 MODEL_METADATA_SCHEMA = "clifford_qc.model_metadata.v1"
 
@@ -136,10 +136,11 @@ def model_metadata(kind: str, *, spin_convention: str | None = None,
                              f"{list(SPIN_ORDERINGS)}, got {spin_convention!r}")
         metadata.update({
             "spin_convention": spin_convention,
-            "spin_orbitals": int(spin_orbitals),
-            "n_spatial_orbitals": int(n_spatial_orbitals),
-            "n_electrons": int(n_electrons),
-            "sz": float(sz),
+            # None was refused for every fermionic argument a few lines up.
+            "spin_orbitals": int(cast(int, spin_orbitals)),
+            "n_spatial_orbitals": int(cast(int, n_spatial_orbitals)),
+            "n_electrons": int(cast(int, n_electrons)),
+            "sz": float(cast(float, sz)),
         })
     metadata.update(extra)
     return metadata

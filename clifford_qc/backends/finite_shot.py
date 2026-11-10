@@ -19,7 +19,7 @@ import numpy as np
 from ..multivector import MV
 from .. import gates as _gates
 from ..states import computational_probabilities, evolve, expectation, partial_trace
-from ..ir import PauliSum, PauliWord, Program
+from ..ir import PauliWord, Program
 from .exact_mv import ExactMVBackend
 from .protocol import MeasurementBatch, state_fingerprint
 

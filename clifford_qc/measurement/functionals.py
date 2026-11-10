@@ -5,7 +5,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 from collections.abc import ItemsView, Mapping, ValuesView
 import sys
-from typing import TYPE_CHECKING, Sequence
+from typing import TYPE_CHECKING, Any, Sequence, cast
 
 import numpy as np
 
@@ -112,13 +112,13 @@ class WordFunctional:
     def estimate(self, cache: GroupedWordCache) -> float:
         if self.is_deterministic:
             return self.constant
-        return self.constant + cache.candidate_estimate(self.coefficients)
+        return self.constant + cache.candidate_estimate(cast(dict, self.coefficients))
 
     def group_terms(self, cache: GroupedWordCache):
         """``(N_g, var_g, range_g)`` per group, or ``None`` if a word is unmeasured."""
         if self.is_deterministic:
             return []
-        return cache.candidate_group_terms(self.coefficients)
+        return cache.candidate_group_terms(cast(dict, self.coefficients))
 
     def radius(self, cache: GroupedWordCache, delta: float, family: int = 1, *,
                bound: str = "normal", rounds: int = 1,
@@ -191,7 +191,7 @@ class WordFunctional:
         return self + (-other)
 
 
-def _bucket_by_group(cache: GroupedWordCache, coefficients: dict) -> dict[tuple, dict]:
+def _bucket_by_group(cache: GroupedWordCache, coefficients: Any) -> dict[tuple, dict]:
     """Coefficients split over the groups the cache reads each word from,
     scaled by the cache's pooling weights.
 
@@ -251,8 +251,8 @@ def split_complex_coefficients(coefficients, *, storage="object") -> tuple[WordF
     """
     if storage not in ("object", "packed"):
         raise ValueError("coefficient storage must be object or packed")
-    real_c: dict[int, float] = {}
-    imag_c: dict[int, float] = {}
+    real_c: Any = {}  # packed below when ``storage == "packed"``
+    imag_c: Any = {}
     real_const = imag_const = 0.0
     terms = coefficients.items() if isinstance(coefficients, Mapping) else coefficients
     for code, value in terms:
@@ -274,9 +274,9 @@ def entry_functionals(bank: MatrixElementBank, i: int, j: int, *, storage="objec
                       ) -> tuple[tuple[WordFunctional, WordFunctional],
                                  tuple[WordFunctional, WordFunctional]]:
     """``(S_ij, H_ij)`` as (real, imaginary) functional pairs of word means."""
-    return tuple(split_complex_coefficients(bank.iter_operator_terms(kind, i, j),
-                                             storage=storage)
-                 for kind in ("overlap", "element"))
+    return cast(Any, tuple(split_complex_coefficients(bank.iter_operator_terms(kind, i, j),
+                                                       storage=storage)
+                           for kind in ("overlap", "element")))
 
 
 def quadratic_functional(bank: MatrixElementBank, indices: Sequence[int],

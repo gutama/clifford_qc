@@ -12,6 +12,7 @@ from benchmarks.run_phase17_ceo import run_campaign
 
 @pytest.fixture(scope='module')
 def toy(tmp_path_factory):
+    pytest.importorskip("scipy")
     path=tmp_path_factory.mktemp('exchange')/'toy.FCIDUMP'
     path.write_text('&FCI NORB=2, NELEC=2, MS2=0 /\n'
                     '0.7 1 2 0 0\n-0.4 1 1 0 0\n0.2 2 2 0 0\n'

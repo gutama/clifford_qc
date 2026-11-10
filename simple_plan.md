@@ -32,8 +32,12 @@ Make the invariants regression-checkable and the package publishable.
       cyclicity, matrix-bridge homomorphism and roundtrip, label/word-code
       and blade-mask roundtrips, rotor group law, channel trace/positivity
       preservation, partial trace/transpose identities.
-- [x] CI (`.github/workflows/ci.yml`): core matrix on Python 3.10–3.13
-      plus a bridges job installing all extras.
+- [x] CI (`.github/workflows/ci.yml`): the record environment runs tests,
+      lint, type check and the record gates under the pinned stack; a
+      compatibility matrix runs the suite on every other advertised Python
+      version (3.10–3.14), on a NumPy-only install, and with every bridge
+      and chemistry extra. `tests/test_ci_gates.py` holds the matrix to the
+      classifiers in `pyproject.toml`.
 - [x] pyproject metadata: real author, Apache-2.0 license, classifiers,
       URLs, version single-sourced from `clifford_qc.__version__`, extras
       per bridge (`test`, `stim`, `openfermion`, `pytket`, `pennylane`,
@@ -41,8 +45,9 @@ Make the invariants regression-checkable and the package publishable.
 - [x] Keep docs focused on conventions, algebra, and invariants
       (README/CONVENTIONS unchanged in scope; new layers documented tersely).
 
-Acceptance: `pip install -e .[test] && pytest` green with no extras;
-verify entry point still passes.
+Acceptance: `pip install -e .[test] && pytest` green with no extras
+(tests that need SciPy, Stim or a bridge skip and say so); verify entry
+point still passes. The NumPy-only CI job enforces this.
 
 ## Phase 2 — Native interchange layer ✅
 

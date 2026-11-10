@@ -126,7 +126,7 @@ def test_a_truncated_run_is_internally_consistent():
 def test_every_realized_packet_is_retained_for_pricing():
     """Pricing needs the whole trajectory, not the first step's packet."""
     _, apply, unit = _toy()
-    diagonal = np.real(np.diag(matrix_of := np.eye(12)) * 0 + 1.0)
+    diagonal = np.real(np.diag(np.eye(12)) * 0 + 1.0)
     run = pe.expand(apply, unit, 5, diagonal=diagonal, mu=0.4, packet_K=3)
     assert len(run["packet_supports"]) == run["M"] - 1
     assert len(run["packet_coefficients"]) == len(run["packet_supports"])

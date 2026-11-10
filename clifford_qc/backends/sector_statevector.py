@@ -36,10 +36,11 @@ from __future__ import annotations
 
 import math
 from itertools import combinations
+from typing import cast
 
 import numpy as np
 
-from ..ir import PauliSum, Program
+from ..ir import NamedClifford, PauliSum, Program
 from ..multivector import MV
 from ..pauli_action import parity, word_masks
 
@@ -511,7 +512,7 @@ class SectorStatevectorBackend:
             if getattr(operation, "name", None) != "X":
                 raise ValueError("only X-gate determinant references map to one "
                                  "sector basis state")
-            for qubit in operation.qubits:
+            for qubit in cast(NamedClifford, operation).qubits:
                 mask ^= 1 << (self.n - 1 - qubit)
         return self.occupation_state(mask)
 

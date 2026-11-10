@@ -15,7 +15,7 @@ from __future__ import annotations
 
 import re
 from dataclasses import dataclass, field, replace
-from typing import Sequence
+from typing import Any, Sequence, cast
 
 import numpy as np
 
@@ -110,7 +110,7 @@ def configuration_ordering(words, *, method: str,
         order = np.array(sorted(range(words.size),
                                 key=lambda i: (-probability[i], int(words[i]))),
                          dtype=np.int64)
-        metadata = {"probability_sum": float(probability.sum())}
+        metadata: dict[str, Any] = {"probability_sum": float(probability.sum())}
     elif method == "physics":
         if reference_word is None or n is None:
             raise ValueError("physics ordering needs reference_word and n")
@@ -346,6 +346,8 @@ def run_coarse_to_fine_acase(rho, hamiltonian, configurations: Sequence,
             retained, tau_s=config.tau_s, rel_tau=config.rel_tau,
             max_condition=config.max_condition)
         candidate_indices = [bank.add(node.generator) for node in live_nodes]
+        scores: list[Any]      # CandidateScore or TargetOverlapScore, by criterion
+        selected_score: Any
         if config.criterion == "lowering":
             basis_words = bank.word_set(retained)
             scores = [score_candidate(
@@ -365,7 +367,7 @@ def run_coarse_to_fine_acase(rho, hamiltonian, configurations: Sequence,
             threshold = config.min_lowering
         else:
             target_context = _prepare_target_overlap_context(
-                bank, retained, solved, target)
+                bank, retained, solved, cast(OverlapTarget, target))
             scores = [_score_target_overlap_precomputed(
                 bank, retained, solved, index, target_context,
                 min_orthogonality=config.min_orthogonality,

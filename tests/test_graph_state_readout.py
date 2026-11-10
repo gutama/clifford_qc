@@ -1,5 +1,4 @@
 """Exact graph-normal-form, phase, scheduling and no-Stim execution checks."""
-import json
 import subprocess
 import sys
 
@@ -108,7 +107,7 @@ for call in (lambda: compile_block_measurement_plan(2,codes,2),
     try:
         call()
     except ModuleNotFoundError as error:
-        assert 'clifford-qc[stim]' in str(error),str(error)
+        assert "pip install -e '.[stim]'" in str(error),str(error)
     else:
         raise AssertionError('elimination unexpectedly succeeded without Stim')
 print('ok')

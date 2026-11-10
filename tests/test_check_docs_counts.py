@@ -15,6 +15,7 @@ The distinction it now draws is therefore the thing to pin.
 import ast
 
 from benchmarks.check_docs import (
+    _absent,
     _importorskip_modules,
     dropped_test_files,
     guarded_modules,
@@ -90,6 +91,19 @@ def test_non_literal_and_unrelated_calls_are_ignored():
         "pytest.mark.skipif('stim')\n"
     )
     assert _modules(source) == []
+
+
+def test_a_submodule_of_an_absent_package_is_absent_rather_than_an_error():
+    """``find_spec("pkg.sub")`` raises when ``pkg`` is missing; the gate must not.
+
+    Several tests guard ``scipy.sparse`` or ``scipy.linalg``. Without SciPy the
+    probe for those names raised ``ModuleNotFoundError``, so the documentation
+    gate crashed in the NumPy-only environment instead of reporting it.
+    """
+    assert _absent("a_package_that_does_not_exist")
+    assert _absent("a_package_that_does_not_exist.submodule")
+    assert not _absent("json")
+    assert not _absent("json.decoder")
 
 
 # ---------------------------------------------------------------------------

@@ -6,6 +6,10 @@ from pathlib import Path
 import numpy as np
 import pytest
 
+# Skip, rather than break collection, where the optional extra is absent:
+# SciPy is imported at module scope here or by the modules below.
+pytest.importorskip("scipy")
+
 from benchmarks import check_packet_budget_convergence as check
 from benchmarks import run_packet_budget_convergence as run
 from benchmarks import summarize_packet_budget_convergence as summary

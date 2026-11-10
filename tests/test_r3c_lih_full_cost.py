@@ -22,6 +22,10 @@ import json
 
 import pytest
 
+# Skip, rather than break collection, where the optional extra is absent:
+# its benchmark producers import Stim at module scope.
+pytest.importorskip("stim")
+
 import benchmarks.check_r3c_lih_full_cost as checker
 from benchmarks.check_r3c_lih_full_cost import (
     contract_problems,
@@ -128,14 +132,37 @@ def test_a_drifted_protocol_is_refused_by_the_result_free_checker(config):
     )
 
 
-def test_the_running_stack_is_the_one_the_seed_roots_name(config):
-    """Stricter than the stamp guard, and about the sampling stream."""
+def test_a_drifted_or_absent_library_is_refused_before_sampling(config, monkeypatch):
+    """Stricter than the stamp guard, and about the sampling stream.
+
+    The comparison is held against the declared stack itself, so it is checked
+    on every interpreter the package supports, not only on the one R3c froze.
+    """
+    declared = producer.declared_environment(config)
+    monkeypatch.setattr(producer, "_installed_versions", lambda: dict(declared))
     assert environment_problems(config) == []
     drifted = copy.deepcopy(config)
     drifted["protocol"]["execution_environment"]["numpy"] = "2.4.6"
     problems = environment_problems(drifted)
     assert len(problems) == 1
     assert "different stream" in problems[0]
+    monkeypatch.setattr(producer, "_installed_versions",
+                        lambda: {**declared, "stim": None})
+    problems = environment_problems(config)
+    assert len(problems) == 1
+    assert "stim is not installed" in problems[0]
+
+
+def test_the_running_stack_is_the_one_the_seed_roots_name(config, environment_skip):
+    """The stack this suite is running under, against the one R3c froze.
+
+    Only the frozen stack can satisfy this, which is the point of the guard and
+    also why it is an environment precondition: elsewhere it skips and names the
+    difference, and in the record-environment CI job it must pass.
+    """
+    problems = environment_problems(config)
+    if problems:
+        environment_skip("not the stack R3c froze: " + "; ".join(problems))
 
 
 def test_a_pilot_that_authorized_its_own_successor_is_refused(tmp_path, monkeypatch):

@@ -16,7 +16,6 @@ from benchmarks import check_phase15_measured_residual_preregistration as q18
 from benchmarks import check_phase15_preregistration as preflight
 from benchmarks import check_phase15_residual_successor_declaration as q18s1_declaration
 from benchmarks import phase15_certifying_krylov as krylov
-from benchmarks import phase15_certifying_screen as screen
 from benchmarks import run_phase15_certifying_krylov as producer
 from benchmarks import run_phase15_residual_successor as q18s1
 from benchmarks.run_mapping_axis import _raw_pool

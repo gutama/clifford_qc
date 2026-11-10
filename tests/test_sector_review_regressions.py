@@ -29,6 +29,7 @@ def provider(shape=(2,2), offset=0):
 
 @pytest.mark.parametrize('columns',[1,2])
 def test_complete_converged_recovery_beats_lower_energy_partial_or_unconverged_initial(monkeypatch,columns):
+    pytest.importorskip("scipy")
     p=provider()
     matrix=p.reference.compile_operator(p.hamiltonian).restrict(range(p.dimension))
     _,vectors=np.linalg.eigh(matrix)
@@ -55,6 +56,7 @@ def test_complete_converged_recovery_beats_lower_energy_partial_or_unconverged_i
 
 
 def test_large_identity_offset_leaves_centered_arpack_problem_and_acceptance_unchanged():
+    pytest.importorskip("scipy")
     cfg=SectorSolveConfig(ncv=32,recovery_attempts=1)
     base=solve_sector(provider((2,3)),config=cfg)
     shifted=solve_sector(provider((2,3),1e4),config=cfg)
@@ -68,7 +70,7 @@ def test_large_identity_offset_leaves_centered_arpack_problem_and_acceptance_unc
 
 @pytest.mark.parametrize('platform',['darwin','win32'])
 def test_unavailable_rss_is_optional_but_a_configured_ceiling_fails_closed(monkeypatch,platform):
-    import scipy.sparse.linalg  # Load platform-specific imports before simulation.
+    pytest.importorskip("scipy")
     p=provider();monkeypatch.setattr(sys,'platform',platform)
     result=solve_sector(p,config=SectorSolveConfig(recovery_attempts=0))
     assert result.status=='accuracy_unresolved'
@@ -81,6 +83,7 @@ def test_unavailable_rss_is_optional_but_a_configured_ceiling_fails_closed(monke
 
 @pytest.mark.parametrize('stage',['arpack','projection','tracking','extension','initial'])
 def test_failed_attempts_keep_charged_work_and_continue_to_a_successful_recovery(monkeypatch,stage):
+    pytest.importorskip("scipy")
     import scipy.sparse.linalg as sparse
     import clifford_qc.subspace.sector_solver as solver
     p=provider();calls=0
@@ -130,6 +133,7 @@ def test_failed_attempts_keep_charged_work_and_continue_to_a_successful_recovery
 
 
 def test_resets_count_even_when_recovery_has_zero_spin_weight(monkeypatch):
+    pytest.importorskip("scipy")
     import scipy.sparse.linalg as sparse
     p=provider()
     monkeypatch.setattr(sparse,'eigsh',lambda *a,**kw:(np.zeros(1),np.zeros((p.dimension,1))))
@@ -140,6 +144,7 @@ def test_resets_count_even_when_recovery_has_zero_spin_weight(monkeypatch):
 
 
 def test_projection_report_uses_assessed_span_and_provider_costs_are_per_solve():
+    pytest.importorskip("scipy")
     p=provider();cfg=SectorSolveConfig(ncv=20,recovery_attempts=0)
     block=np.eye(p.dimension,dtype=complex)[:,:6]
     first=solve_sector(p,initial=block,config=cfg)
@@ -175,6 +180,7 @@ def test_prepared_dimension_and_spin_validation_precedes_basis_construction(monk
 
 
 def test_invalid_cli_rss_headroom_produces_a_clear_record(tmp_path):
+    pytest.importorskip("scipy")
     path=tmp_path/'prepared.json';out=tmp_path/'run.json'
     PreparedProblem.from_model(hubbard((2,2),U=4,mu=0),preparation={"source":"review regression"}).save(path)
     main(['solve-sector',str(path),'--output',str(out),'--max-rss-bytes','100','--rss-headroom-bytes','100'])
@@ -186,6 +192,7 @@ def test_invalid_cli_rss_headroom_produces_a_clear_record(tmp_path):
 
 
 def test_auto_precompute_and_fallback_share_the_direct_solver_admission_plan():
+    pytest.importorskip("scipy")
     model=hubbard((2,2),U=4,mu=0);prepared=PreparedProblem.from_model(model,preparation={"source":"review regression"})
     spec=SectorSpec(8,4,0);cfg=SectorSolveConfig(recovery_attempts=0)
     plans=[]

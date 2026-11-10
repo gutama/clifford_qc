@@ -83,7 +83,10 @@ def product(a, b, n):
     for left, ca in a.items():
         for right, cb in b.items():
             code = left ^ right
-            result[code] = result.get(code, 0) + ca * cb * phase(left, right, n)
+            # Complex zero: from Python 3.14 ``0 + z`` keeps a ``-0.0`` component
+            # that earlier interpreters normalized, and the record is compared
+            # through ``float.hex``.  Same bytes as before on <= 3.13.
+            result[code] = result.get(code, 0j) + ca * cb * phase(left, right, n)
     return {code: value for code, value in result.items() if abs(value) > 1e-12}
 
 

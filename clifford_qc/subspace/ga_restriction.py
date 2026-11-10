@@ -54,7 +54,7 @@ as the filter.
 from __future__ import annotations
 
 from dataclasses import dataclass, field
-from typing import Iterable, Sequence
+from typing import Any, Callable, Iterable, Sequence
 
 from ..clifford import gamma
 from ..multivector import MV
@@ -276,7 +276,7 @@ def reference_action(operator: MV, index: int) -> dict[int, complex]:
     out: dict[int, complex] = {}
     for code, value in operator.terms.items():
         phase, image = word_on_basis_state(operator.n, code, index)
-        out[image] = out.get(image, 0.0) + phase * value
+        out[image] = out.get(image, 0j) + phase * value
     return {i: v for i, v in out.items() if abs(v) > ACTION_TOLERANCE}
 
 
@@ -461,7 +461,7 @@ def _filter_e(labels, actions, operators, *, n, target, spin_ordering, **_):
     return removed
 
 
-_FILTERS = {"A": _filter_a, "B": _filter_b, "D": _filter_d,
+_FILTERS: dict[str, Callable[..., Any]] = {"A": _filter_a, "B": _filter_b, "D": _filter_d,
             "C": _filter_c, "E": _filter_e}
 
 

@@ -174,9 +174,9 @@ def variance_optimal_group_plan(groups, cache, functionals: Sequence[WordFunctio
     for functional in targets:
         rows = {}
         statistics = cache.candidate_group_statistics(functional.coefficients)
-        for key, _, codes in group_rows:
+        for key, _, members in group_rows:
             coeffs = [functional.coefficients[code]
-                      for code in codes if code in functional.coefficients]
+                      for code in members if code in functional.coefficients]
             if not coeffs:
                 continue
             touched.add(key)
@@ -265,7 +265,7 @@ class GroupVarianceOptimal:
         self.aggregation = aggregation
         self.min_shots = int(min_shots)
         self.costs = dict(costs or {})
-        self.groups = None
+        self.groups: tuple | None = None
         if groups is not None:
             self.bind_groups(groups)
 

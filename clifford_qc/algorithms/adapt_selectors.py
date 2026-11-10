@@ -9,7 +9,7 @@ its separate Ritz-lowering mathematics in ``subspace.adaptive``.
 from __future__ import annotations
 
 import math
-from typing import Literal, Protocol, Sequence, runtime_checkable
+from typing import Any, Literal, Protocol, Sequence, cast, runtime_checkable
 
 import numpy as np
 
@@ -141,7 +141,7 @@ class ConfidenceSelector:
 
     @staticmethod
     def _diag(best, bounds, active) -> dict:
-        out = {"active_candidates": len(active)}
+        out: dict[str, Any] = {"active_candidates": len(active)}
         if best is not None and best in bounds:
             estimate, lower, upper = bounds[best]
             rival_upper = max((bounds[j][2] for j in active if j != best), default=0.0)
@@ -201,7 +201,7 @@ class FastInspiredSelector:
         """Return ``(best index or None, proxy score)`` from one sampling round."""
         from ..states import computational_probabilities
 
-        h_conn = self._hamiltonian_connectivity(bank, hamiltonian)
+        h_conn = self._hamiltonian_connectivity(cast(CommutatorBank, bank), hamiltonian)
         outcomes = sorted(computational_probabilities(rho).items())
         probabilities = np.clip([probability for _, probability in outcomes], 0.0, None)
         probabilities = probabilities / probabilities.sum()
@@ -209,7 +209,7 @@ class FastInspiredSelector:
             p_hat = {bits: probability for (bits, _), probability
                      in zip(outcomes, probabilities) if probability > 0.0}
         else:
-            counts = self.rng.multinomial(self.shots, probabilities)
+            counts = self.rng.multinomial(cast(int, self.shots), probabilities)
             p_hat = {bits: count / self.shots for (bits, _), count
                      in zip(outcomes, counts) if count}
 

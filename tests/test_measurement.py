@@ -1,7 +1,6 @@
 """Measurement layer: word cache, commutator bank, confidence bounds, and
 allocation policies (backlog items 8-10)."""
 
-import math
 
 import numpy as np
 import pytest
@@ -9,7 +8,7 @@ import pytest
 from clifford_qc import Program
 from clifford_qc.backends import ExactMVBackend, FiniteShotBackend
 from clifford_qc.backends.protocol import MeasurementBatch
-from clifford_qc.ir import PauliSum, PauliWord
+from clifford_qc.ir import PauliWord
 from clifford_qc.measurement import (
     WordCache, CommutatorBank, UniformFixed, UniformDoubling, VarianceProportional,
     jeffreys_mean_var, simultaneous_z_radius, empirical_bernstein_radius,

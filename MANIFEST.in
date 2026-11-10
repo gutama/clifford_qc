@@ -1,0 +1,11 @@
+# The source distribution is the installable library plus its top-level documents.
+#
+# The test suite is deliberately left out. Roughly half of it replays committed
+# benchmark records, which live under benchmarks/ (about 140 MB) and are checked
+# against Git history, so it runs from a clone of the repository, not from an
+# unpacked sdist. Shipping tests that cannot run there would only mislead.
+prune tests
+include ARCHITECTURE.md
+include CHANGELOG.md
+include CITATION.cff
+include CONVENTIONS.md

@@ -348,7 +348,10 @@ optional extras; benchmark-specific environments are in [REPRODUCING.md](REPRODU
   boundaries; see the [Phase 15/16 completion](docs/restart/PHASE15_16_COMPLETION.md).
 - **Memory:** streaming bounds persistent overlap/Hamiltonian coefficient rows,
   not total process memory. Histories, references, generators, and observables
-  have separate lifetimes; recomputation can increase runtime.
+  have separate lifetimes; recomputation can increase runtime. The process-wide
+  Pauli-product and blade-mask memos are outside every bank's ledger; see
+  [CONVENTIONS.md](CONVENTIONS.md#coefficient-storage-and-equality) for how to
+  read, clear, and resize them.
 - **Cost:** fewer Pauli words or settings need not mean fewer shots or less
   device time. Device cards are illustrative accounting models, not hardware
   measurements. QSCI's classically built projected matrix still incurs sampling
@@ -380,10 +383,24 @@ For development tests:
 ```bash
 python -m pip install -e '.[test,research,stim]'
 OMP_NUM_THREADS=1 OPENBLAS_NUM_THREADS=1 MKL_NUM_THREADS=1 python -m pytest
+ruff check clifford_qc molecular tests benchmarks
+python -m mypy
 ```
 
-Optional bridge tests require their corresponding extras. Replaying frozen
-scientific records additionally requires the dependency versions documented in
+The suite runs on every supported Python version and with any subset of the
+extras: a test whose optional dependency is absent skips and names it, and
+`python -m pip install -e '.[test]'` alone is enough to run the rest. Two kinds
+of test have a precondition in the environment rather than in the code, and
+skip with the reason when it does not hold:
+
+- record-chronology tests need a full Git clone, not a `--depth` clone or a
+  source archive;
+- one test asserts the exact stack a frozen record named.
+
+The record-environment CI job sets `CLIFFORD_QC_STRICT_TEST_ENVIRONMENT=1`,
+which turns those skips into failures, so they cannot go unnoticed where the
+precondition is supposed to hold. Replaying frozen scientific records
+additionally requires the dependency versions documented in
 [REPRODUCING.md](REPRODUCING.md); an arbitrary current installation is not that
 environment.
 
@@ -402,7 +419,8 @@ The [workflow](.github/workflows/ci.yml) executes gates through the shared runne
 
 | Trigger | Validation |
 |---|---|
-| Every pull request and main push | Full tests and lint, all deterministic gates, and global environment consistency |
+| Every pull request and main push | Full tests, lint and type check in the record environment; all deterministic gates; global environment consistency |
+| Every pull request and main push | The full suite on each other advertised Python version, on a NumPy-only install, and with every bridge and chemistry extra, all against current dependencies |
 | Affected restart inputs or shared runner/CI changes | Applicable restart full-seed recorded numerical replays |
 | Sunday 09:17 Asia/Jakarta | All deterministic gates and both restart numerical replays |
 | Manual workflow dispatch | All registered gates, including the 11 legacy sampled instruments |
@@ -441,6 +459,7 @@ The [documentation guide](docs/README.md) maps the user guides, API boundaries,
 research records, reproducibility instructions and papers. Cite the method
 used and identify the software revision; a paper citation does not identify a
 particular code snapshot. Use [CITATION.cff](CITATION.cff) for the software
-citation and include the commit used for your experiment.
+citation and include the commit used for your experiment. Package changes are
+listed in [CHANGELOG.md](CHANGELOG.md).
 
 Licensed under [Apache-2.0](LICENSE).

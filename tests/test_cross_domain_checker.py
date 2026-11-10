@@ -12,6 +12,7 @@ from benchmarks import check_cross_domain_ratio as checker
 
 @pytest.fixture(scope="module")
 def toy_observations(tmp_path_factory):
+    pytest.importorskip("scipy")
     from benchmarks import run_cross_domain_ratio as runner
 
     config = deepcopy(runner.load_declaration())
@@ -196,6 +197,7 @@ def test_historical_source_coverage_cannot_be_silently_reduced(monkeypatch):
         checker.check_history(record, config)
 
 
+@pytest.mark.usefixtures("full_git_history")
 @pytest.mark.skipif(not (checker.ROOT/checker.RESULT).exists(), reason="declared campaign not executed")
 def test_published_cross_domain_sources_and_all_outcomes():
     record = checker.load_record(checker.ROOT/checker.RESULT)

@@ -5,8 +5,6 @@ from dataclasses import dataclass
 import math
 from types import MappingProxyType
 
-import numpy as np
-
 from ..measurement.cache import GroupedWordCache
 from ..measurement.functionals import quadratic_functional, ritz_functional, WordFunctional
 from ..measurement.planning import compile_block_measurement_plan

@@ -22,7 +22,7 @@ from __future__ import annotations
 import dataclasses
 import math
 from dataclasses import dataclass
-from typing import Sequence
+from typing import Sequence, cast
 
 import numpy as np
 
@@ -95,7 +95,8 @@ def clifford_point_search(program: Program, hamiltonian: PauliSum, backend, *,
         if current < best_energy - 1e-12:
             best_energy = current
             best_values = tuple(values)
-    return CliffordPointResult(best_values, best_energy, evaluations, restarts)
+    return CliffordPointResult(cast("tuple[float, ...]", best_values), best_energy,
+                               evaluations, restarts)
 
 
 def bound_hva_program(model, depth: int, values: Sequence[float]) -> Program:

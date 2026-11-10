@@ -14,6 +14,10 @@ import json
 
 import pytest
 
+# Skip, rather than break collection, where the optional extra is absent:
+# its benchmark producers import Stim at module scope.
+pytest.importorskip("stim")
+
 from clifford_qc.fermion_mapping import fermion_encoding
 
 from benchmarks.check_priceability_screen import (

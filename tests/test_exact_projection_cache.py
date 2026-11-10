@@ -11,6 +11,10 @@ from hypothesis import example, given, settings, strategies as st
 import numpy as np
 import pytest
 
+# Skip, rather than break collection, where the optional extra is absent:
+# SciPy is imported at module scope here or by the modules below.
+pytest.importorskip("scipy")
+
 from benchmarks.metadata_io import read_json
 from benchmarks.run_exact_projection_cache import canonical, decode_science, digest, expected_order, scientific_result
 from clifford_qc.backends import SectorStatevectorBackend
@@ -336,11 +340,13 @@ def rejournal(record):
     return record
 
 
+@pytest.mark.usefixtures("full_git_history")
 def test_published_record_passes_structural_checks():
     from benchmarks.check_exact_projection_cache import verify
     assert verify(published_record(), bound=False, numerical=False) == []
 
 
+@pytest.mark.usefixtures("full_git_history")
 @pytest.mark.parametrize('field,value,problem', [
     ('cache', {'mode': 'none'}, 'historical control identity'),
     ('worker_environment_sha256', '0'*64, 'historical control identity'),
@@ -354,6 +360,7 @@ def test_checker_binds_each_historical_control(field, value, problem):
     assert problem in verify(record, bound=False, numerical=False)
 
 
+@pytest.mark.usefixtures("full_git_history")
 def test_checker_verifies_journaled_controls_when_present():
     from benchmarks.check_exact_projection_cache import verify
     record = published_record()
@@ -367,6 +374,7 @@ def test_checker_verifies_journaled_controls_when_present():
     assert 'partial historical control journal' in verify(rejournal(record), bound=False, numerical=False)
 
 
+@pytest.mark.usefixtures("full_git_history")
 def test_checker_accepts_only_flagged_recoveries_without_supervisor_wall_time():
     from benchmarks.check_exact_projection_cache import verify
     record = published_record()
@@ -405,11 +413,19 @@ def test_resume_recovers_durable_worker_metrics_and_never_reruns(tmp_path):
 def test_resume_liveness_ignores_reused_pids():
     import subprocess
     import sys
+    import time
     from benchmarks.run_exact_projection_cache import campaign_process
     sleep = 'import time; time.sleep(30)'
     other = subprocess.Popen([sys.executable, '-c', sleep])
     ours = subprocess.Popen([sys.executable, '-c', sleep, 'benchmarks/run_exact_projection_cache.py'])
     try:
+        # ``Popen`` returns once the child's close-on-exec pipe closes, which the
+        # kernel does before it installs the new argv: for a moment
+        # ``/proc/<pid>/cmdline`` reads empty.  Wait for exec to finish rather
+        # than race it; a loaded machine loses that race.
+        deadline = time.monotonic() + 30
+        while not campaign_process(ours.pid) and time.monotonic() < deadline:
+            time.sleep(0.01)
         assert not campaign_process(other.pid) and campaign_process(ours.pid)
     finally:
         for process in (other, ours): process.kill(); process.wait()

@@ -77,6 +77,17 @@ all input definitions or numerical libraries. Recorded source digests cover the
 named inputs and implementations, not a complete transitive dependency closure.
 The original calibration/design and experimental outcomes are unchanged.
 
+A bound source may change after the experiment only if its execution-time bytes
+are packaged under
+`benchmarks/provenance/execution_sources/<implementation commit>/`. The checker
+then holds the recorded digest against that snapshot and prints the file as
+`EVOLVED`; a bound file that differs with no snapshot still fails. Two files
+have evolved this way. `clifford_qc/multivector.py` now accumulates from a
+complex zero, so stored coefficients carry no negative zero on Python 3.14;
+on the recorded interpreter the arithmetic is bit-for-bit what it was.
+`clifford_qc/models/spin.py` lost a duplicated, identical `__post_init__`.
+Neither changes a recorded outcome, and the replay does not import either.
+
 The companion [priority audit](INDEPENDENT_CHECK_PRIORITIES.md) strengthens the
 published H4 record: `check_fcidump_h4.py` reconstructs all selected-prefix and
 complete-SD energies from an occupation-sector matrix and independently checks

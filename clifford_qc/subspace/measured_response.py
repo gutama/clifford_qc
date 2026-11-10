@@ -34,7 +34,7 @@ from __future__ import annotations
 
 import math
 from dataclasses import dataclass
-from typing import Sequence
+from typing import Any, Sequence, cast
 
 import numpy as np
 
@@ -478,10 +478,10 @@ def bootstrap_response(measurement: ResponseMeasurement,
         raise ValueError("frequencies must be finite")
     point_broadened = None
     if omega is not None:
-        point_broadened = broaden_response(point.lines, omega, float(broadening))
+        point_broadened = broaden_response(point.lines, omega, float(cast(float, broadening)))
 
-    gap_samples = {state: [] for state in target_states}
-    weight_samples = {state: [] for state in target_states}
+    gap_samples: dict[Any, list[float]] = {state: [] for state in target_states}
+    weight_samples: dict[Any, list[float]] = {state: [] for state in target_states}
     susceptibility_samples: list[float] = []
     broadened_samples: list[np.ndarray] = []
     rank_failures = root_failures = solver_failures = 0
@@ -532,7 +532,7 @@ def bootstrap_response(measurement: ResponseMeasurement,
         susceptibility_samples.append(spectrum.susceptibility)
         if omega is not None:
             broadened_samples.append(
-                broaden_response(spectrum.lines, omega, float(broadening)))
+                broaden_response(spectrum.lines, omega, float(cast(float, broadening))))
 
     succeeded = len(susceptibility_samples)
     required = math.ceil(minimum_success_fraction * replicates)

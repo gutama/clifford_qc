@@ -52,12 +52,16 @@ def _cli(exported, script, *arguments):
     environment = dict(os.environ, PYTHONPATH=str(exported))
     environment.update({key: '1' for key in
                         ('OMP_NUM_THREADS', 'OPENBLAS_NUM_THREADS', 'MKL_NUM_THREADS')})
+    # A guard against a hung checker, not a speed requirement. The replay takes
+    # about a minute on Python 3.12 and longer on 3.10 or a busy runner; at 90 s
+    # it timed out there with nothing wrong.
     return subprocess.run(
         [sys.executable, str(exported / 'benchmarks' / f'{script}.py'), *arguments],
-        cwd=exported, env=environment, capture_output=True, text=True, timeout=90,
+        cwd=exported, env=environment, capture_output=True, text=True, timeout=600,
     )
 
 
+@pytest.mark.usefixtures("full_git_history")
 @pytest.mark.parametrize('script', ['check_phase17_more_declaration', 'check_phase17_more'])
 def test_more_gates_verify_export_only_with_explicit_archive_mode(more_export, script):
     done = _cli(more_export, script, '--archive')

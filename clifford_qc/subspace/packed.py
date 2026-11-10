@@ -33,7 +33,7 @@ bytes per coefficient and differ only in access pattern.
 
 from __future__ import annotations
 
-from typing import Iterable, Iterator, Sequence
+from typing import Any, Iterable, Iterator, Sequence
 
 import numpy as np
 
@@ -277,6 +277,11 @@ class PackedRowStore:
         self._rows: dict[tuple[int, int], tuple[int, int]] = {}
         self._indices = _Buffer(INDEX_DTYPE, capacity)
         self._generation = _Buffer(INDEX_DTYPE, capacity)
+        # Exactly one of ``_data`` and the ``_real``/``_imag`` pair is a buffer,
+        # chosen by ``layout``; every use below branches on ``layout`` first.
+        self._data: Any
+        self._real: Any
+        self._imag: Any
         if layout == "interleaved":
             self._data = _Buffer(np.complex128, capacity)
             self._real = self._imag = None

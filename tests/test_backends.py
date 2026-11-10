@@ -5,8 +5,7 @@ import pytest
 
 from clifford_qc import Program
 from clifford_qc.backends import (
-    ExactMVBackend, DenseStatevectorBackend, FiniteShotBackend, MeasurementBatch,
-    Backend, SamplingBackend,
+    ExactMVBackend, DenseStatevectorBackend, FiniteShotBackend, Backend, SamplingBackend,
 )
 from clifford_qc.ir import PauliSum, PauliWord
 

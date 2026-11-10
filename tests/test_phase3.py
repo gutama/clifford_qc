@@ -3,7 +3,6 @@ random-selection baseline."""
 
 import random
 
-import numpy as np
 import pytest
 
 from clifford_qc.ir import PauliWord

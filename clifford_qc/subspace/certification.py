@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import math
 from dataclasses import dataclass, field
-from typing import Any, Sequence
+from typing import Any, Sequence, cast
 
 import numpy as np
 
@@ -201,7 +201,8 @@ def run_certified_acase(rho: MV, hamiltonian, candidates: Sequence, backend, *,
     if not pool:
         raise ValueError("no candidate generators outside the initial basis")
 
-    solver_kwargs = dict(tau_s=tau_s, rel_tau=rel_tau, max_condition=max_condition)
+    solver_kwargs: dict[str, Any] = dict(tau_s=tau_s, rel_tau=rel_tau,
+                                         max_condition=max_condition)
     records: list[CertifiedGrowthRecord] = []
     history: list[float] = []
     total_shots = total_circuits = abstentions = 0
@@ -224,7 +225,7 @@ def run_certified_acase(rho: MV, hamiltonian, candidates: Sequence, backend, *,
                 else:
                     try:
                         conditioned = reference_sector_leakage(
-                            bank.generator(index), bank.reference,
+                            bank.generator(index), cast(MV, bank.reference),
                             sector_target=sector_target,
                             spin_ordering=spin_ordering)
                     except ValueError as exc:
@@ -330,7 +331,7 @@ def run_certified_acase(rho: MV, hamiltonian, candidates: Sequence, backend, *,
     })
     if leakage_tol is not None and leakage_mode != "operator":
         certificate = subspace_sector_certificate(
-            bank.reference, [bank.generator(index) for index in basis],
+            cast(MV, bank.reference), [bank.generator(index) for index in basis],
             sector_target=sector_target, spin_ordering=spin_ordering)
         resources["sector_certificate"] = certificate
         if certificate["max_sector_leakage"] > leakage_tol:

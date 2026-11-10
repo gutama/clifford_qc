@@ -96,7 +96,7 @@ def test_the_shift_is_what_makes_the_degenerate_case_right():
     ``U`` genuinely is an eigenvalue. Posing the problem as the extremal
     eigenvalue of a shifted matrix fixes it.
     """
-    scipy_sparse = pytest.importorskip("scipy.sparse")
+    pytest.importorskip("scipy.sparse")
     from scipy.sparse.linalg import eigsh
 
     model = hubbard(4, t=0.0, U=4.0, mu=0.0)

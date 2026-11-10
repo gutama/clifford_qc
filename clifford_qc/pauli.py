@@ -51,5 +51,5 @@ def tensor(A: MV, B: MV) -> MV:
     for ca, va in A.terms.items():
         for cb, vb in B.terms.items():
             code = ca | (cb << (2 * A.n))
-            out[code] = out.get(code, 0.0) + va * vb
+            out[code] = out.get(code, 0j) + va * vb
     return MV(A.n + B.n, out)

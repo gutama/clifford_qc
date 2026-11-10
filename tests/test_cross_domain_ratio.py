@@ -3,7 +3,6 @@ from copy import deepcopy
 import json
 import math
 import os
-from pathlib import Path
 
 import numpy as np
 import pytest
@@ -60,6 +59,7 @@ def test_case_targets_and_input_hashes_cannot_silently_drift(tmp_path):
 
 
 def test_toy_sampled_case_replays_coefficients_covariance_and_all_outcomes(monkeypatch, tmp_path):
+    pytest.importorskip("scipy")
     c = toy_config()
     monkeypatch.setattr(runner, "peak_rss_bytes", lambda: 1000)
     checkpoint = tmp_path/"case.json"
@@ -93,6 +93,7 @@ def test_toy_sampled_case_replays_coefficients_covariance_and_all_outcomes(monke
 
 
 def test_assessment_occurs_after_inference_and_cannot_supply_allocation(monkeypatch):
+    pytest.importorskip("scipy")
     c = toy_config(); c["replicas"] = 1
     monkeypatch.setattr(runner, "peak_rss_bytes", lambda: 0)
     events = []
@@ -163,6 +164,7 @@ def test_clean_scientific_sources_and_committed_declaration_required(monkeypatch
 
 
 def test_frozen_stack_and_single_thread_rules_are_enforced(monkeypatch):
+    pytest.importorskip("scipy")
     c = runner.load_declaration()
     monkeypatch.setattr(runner.platform, "python_version", lambda: "0.0.0")
     with pytest.raises(ValueError, match="environment mismatch"):
@@ -203,6 +205,7 @@ def test_interrupted_raw_draw_is_not_recorded_as_zero_cost(monkeypatch):
 
 
 def test_group_moments_reconstruct_covariance_and_delta_variance(monkeypatch):
+    pytest.importorskip("scipy")
     c = toy_config(); c["replicas"] = 1
     monkeypatch.setattr(runner, "peak_rss_bytes", lambda: 0)
     out = runner.run_case(c, 0)

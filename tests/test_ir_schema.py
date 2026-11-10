@@ -5,7 +5,7 @@ import math
 import pytest
 
 from clifford_qc import (
-    MV, Program, Parameter, clifford_angle_index, evolve, ket_density,
+    Program, Parameter, clifford_angle_index, evolve, ket_density,
 )
 
 
