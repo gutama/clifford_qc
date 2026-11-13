@@ -90,14 +90,15 @@ def script_flags(script: Path) -> tuple[set[str] | None, str | None]:
     # A script that exits with its own install hint names an extra, not a
     # module, and says so for any ImportError -- an installed but unimportable
     # dependency included. So the hint counts only as the final line, and only
-    # for a declared extra whose modules really are absent here.
+    # for an extra whose modules, per the capability table (which, unlike
+    # pyproject.toml, needs no tomllib on Python 3.10), really are absent here.
     last = done.stderr.strip().splitlines()[-1:]
     hint = re.search(r"requires the '?([\w-]+)'? extra: pip install", last[0]) if last else None
     if hint:
+        from clifford_qc.capabilities import CAPABILITIES
         extra = hint.group(1)
-        absent = sorted(module for module in
-                        _modules_provided_by({extra}) - _modules_provided_by(set())
-                        if _absent(module))
+        absent = sorted({module for record in CAPABILITIES.values() if record.extra == extra
+                         for module in record.modules if _absent(module)})
         if absent:
             return None, f"optional dependency {absent[0]!r} not installed ({extra!r} extra)"
     detail = (done.stderr or done.stdout).strip().splitlines()
