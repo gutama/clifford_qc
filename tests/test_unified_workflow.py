@@ -51,6 +51,16 @@ class WorkflowTests(unittest.TestCase):
         self.assertEqual(doc["cost_ledger"]["stages"]["preparation"]["status"], "not_measured")
         doc["problem"]["label"] = "modified"
         self.assertEqual(result.as_dict()["problem"]["label"], "two-qubit")
+        from clifford_qc import workflows
+        self.assertEqual(
+            set(workflows.__all__),
+            {
+                "WorkflowResult", "adapt_warm_start", "export_workflow_evidence",
+                "run_workflow", "verify_workflow_evidence",
+            },
+        )
+        for symbol in workflows.__all__:
+            self.assertTrue(hasattr(workflows, symbol), symbol)
 
     def test_sampling_preserves_physical_counts_and_refuses_spectral_claims(self):
         p = SampledProjectedProvider(sampled_reference(ket_density(2, "00")), self.h, self.gens)

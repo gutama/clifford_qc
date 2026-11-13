@@ -27,8 +27,8 @@ def adapt_warm_start(model, pool, *, max_operators: int = 4, **kwargs):
     program = ansatz_program(model, chosen)
     return ExactMVBackend().state(program, result.parameters), result
 
-
-__all__ = ["adapt_warm_start"]
+__all__ = ["WorkflowResult", "adapt_warm_start", "export_workflow_evidence",
+           "run_workflow", "verify_workflow_evidence"]
 
 # The unified interface below orchestrates the existing providers; it does not
 # alter their numerical methods or provide an additional certification theorem.

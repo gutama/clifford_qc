@@ -64,6 +64,16 @@ def test_documented_help_preserves_inherited_import_paths_and_parent_environment
     assert flags == {"--help"}
     assert reason is None
     assert os.environ["PYTHONPATH"] == str(extra)
+    monkeypatch.setattr(
+        docs.subprocess, "run",
+        lambda *args, **kwargs: subprocess.CompletedProcess(
+            args[0], 1, "",
+            "run_clifford_hierarchy.py requires the stim extra: pip install -e '.[stim]'\n",
+        ),
+    )
+    assert docs.script_flags(Path("run_clifford_hierarchy.py")) == (
+        None, "optional dependency 'stim' not installed",
+    )
 
 
 @pytest.mark.parametrize("module", ["benchmarks", "clifford_qc", "paper_architecture"])

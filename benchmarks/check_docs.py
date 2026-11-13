@@ -84,7 +84,10 @@ def script_flags(script: Path) -> tuple[set[str] | None, str | None]:
                           env=env, capture_output=True, text=True)
     if done.returncode == 0:
         return set(re.findall(r"(--[a-z0-9][a-z0-9-]*)", done.stdout)), None
-    missing = re.search(r"ModuleNotFoundError: No module named '([\w.]+)'", done.stderr)
+    missing = (
+        re.search(r"ModuleNotFoundError: No module named '([\w.]+)'", done.stderr)
+        or re.search(r"requires the '?([\w.]+)'? extra: pip install", done.stderr)
+    )
     if missing and missing.group(1).split(".")[0] not in {"benchmarks", "clifford_qc", "paper_architecture"}:
         return None, f"optional dependency {missing.group(1)!r} not installed"
     detail = (done.stderr or done.stdout).strip().splitlines()
