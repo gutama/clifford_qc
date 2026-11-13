@@ -64,16 +64,6 @@ def test_documented_help_preserves_inherited_import_paths_and_parent_environment
     assert flags == {"--help"}
     assert reason is None
     assert os.environ["PYTHONPATH"] == str(extra)
-    monkeypatch.setattr(
-        docs.subprocess, "run",
-        lambda *args, **kwargs: subprocess.CompletedProcess(
-            args[0], 1, "",
-            "run_clifford_hierarchy.py requires the stim extra: pip install -e '.[stim]'\n",
-        ),
-    )
-    assert docs.script_flags(Path("run_clifford_hierarchy.py")) == (
-        None, "optional dependency 'stim' not installed",
-    )
 
 
 @pytest.mark.parametrize("module", ["benchmarks", "clifford_qc", "paper_architecture"])
@@ -83,6 +73,49 @@ def test_repository_import_failure_is_a_docs_defect(monkeypatch, module):
     flags, reason = docs.script_flags(Path("run_broken.py"))
     assert flags is None
     assert not reason.startswith("optional dependency")
+
+
+def _stim_raising(tmp_path, monkeypatch, error):
+    """Make ``import stim`` raise ``error`` in a documented script's child."""
+    shim = tmp_path / "shim"
+    (shim / "stim").mkdir(parents=True)
+    (shim / "stim" / "__init__.py").write_text(f"raise {error}\n")
+    monkeypatch.setenv("PYTHONPATH", str(shim))
+    return shim
+
+
+def test_extra_requirement_exit_is_an_optional_skip(tmp_path, monkeypatch):
+    """The real producer's install-hint exit, with Stim absent, is a skip."""
+    _stim_raising(tmp_path, monkeypatch,
+                  "ModuleNotFoundError(\"No module named 'stim'\", name='stim')")
+    monkeypatch.setitem(sys.modules, "stim", None)  # absent to this process too
+    flags, reason = docs.script_flags(docs.BENCH / "run_clifford_hierarchy.py")
+    assert flags is None
+    assert reason == "optional dependency 'stim' not installed ('stim' extra)"
+
+
+def test_installed_but_unimportable_extra_is_a_docs_defect(tmp_path, monkeypatch):
+    """The script blames the extra for any ImportError; an install is not absent."""
+    shim = _stim_raising(tmp_path, monkeypatch, "ImportError('undefined symbol')")
+    monkeypatch.syspath_prepend(str(shim))  # present to this process
+    flags, reason = docs.script_flags(docs.BENCH / "run_clifford_hierarchy.py")
+    assert flags is None
+    assert not reason.startswith("optional dependency"), reason
+
+
+@pytest.mark.parametrize("stderr, optional", [
+    ("x.py requires the 'stim' extra: pip install -e '.[stim]'\n", True),
+    ("x.py requires the stim extra: pip install -e '.[stim]'\n"
+     "NameError: name 'grid' is not defined\n", False),
+    ("x.py requires the 'clifford_qc' extra: pip install -e .\n", False),
+])
+def test_extra_hint_counts_only_as_the_final_line_of_a_declared_extra(
+        monkeypatch, stderr, optional):
+    monkeypatch.setitem(sys.modules, "stim", None)
+    monkeypatch.setattr(docs.subprocess, "run", lambda *args, **kwargs: subprocess.CompletedProcess(
+        args[0], 1, "", stderr))
+    _, reason = docs.script_flags(Path("run_probe.py"))
+    assert reason.startswith("optional dependency") is optional, reason
 
 
 def config_fixture(tmp_path, monkeypatch):

@@ -243,7 +243,7 @@
         "modules": 9
       },
       "orchestration": {
-        "lines": 835,
+        "lines": 836,
         "modules": 3
       },
       "subspace": {
@@ -255,9 +255,9 @@
         "modules": 1
       }
     },
-    "package_lines": 34282,
+    "package_lines": 34283,
     "package_modules": 126,
-    "test_lines": 44974,
+    "test_lines": 45009,
     "test_modules": 189
   }
 }

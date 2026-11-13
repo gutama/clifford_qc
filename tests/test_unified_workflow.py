@@ -51,6 +51,8 @@ class WorkflowTests(unittest.TestCase):
         self.assertEqual(doc["cost_ledger"]["stages"]["preparation"]["status"], "not_measured")
         doc["problem"]["label"] = "modified"
         self.assertEqual(result.as_dict()["problem"]["label"], "two-qubit")
+
+    def test_workflows_all_lists_public_surface(self):
         from clifford_qc import workflows
         self.assertEqual(
             set(workflows.__all__),
