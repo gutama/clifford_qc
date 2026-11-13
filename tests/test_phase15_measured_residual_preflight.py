@@ -397,7 +397,7 @@ def test_the_hubbard_miss_is_truncation_at_the_frozen_step():
     direction = gate.check_directions(weights, set(bank.word_set()),
                                       seed=int(rule["seed"]))["functional"]
     scale = record["banks"]["hubbard_2x2"]["estimator"]["cancellation_scale"]
-    # step: (documented discrepancy, passes)
+    # step: (documented discrepancy, passes); abs=2e-9 absorbs per-CPU BLAS rounding
     documented = {2e-3: (1.41e-4, False), 1e-3: (3.53e-5, False), 5e-4: (8.82e-6, True),
                   2.5e-4: (2.20e-6, True), 1.25e-4: (5.51e-7, True), 6.25e-5: (1.37e-7, True)}
     assert float(rule["step"]) in documented
@@ -408,7 +408,7 @@ def test_the_hubbard_miss_is_truncation_at_the_frozen_step():
             relative_tolerance=float(rule["relative_tolerance"]),
             cancellation_scale=scale, resolution=RESOLUTION)
         misses[step] = abs(row["numeric"] - row["analytic"])
-        assert misses[step] == pytest.approx(discrepancy, rel=5e-3), step
+        assert misses[step] == pytest.approx(discrepancy, rel=5e-3, abs=2e-9), step
         assert row["passes"] is passes, step
     assert misses[float(rule["step"])] == pytest.approx(
         abs(recorded["numeric"] - recorded["analytic"]), rel=1e-3)
