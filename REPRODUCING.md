@@ -1580,14 +1580,14 @@ of 104,000 physical setting-shots:
 
 - covariance-aware allocation reduces the median summed projected-matrix
   variance from `272.46` to `84.75` (68.9%) and the exact-Ritz first-order
-  variance by 20.0%. Against the fixed overlap cutoff this moves the median
-  absolute error only from `4.48` to `4.44 mHa`, but cuts `>0.1 Ha` failures
+  variance by 19.9%. Against the fixed overlap cutoff this moves the median
+  absolute error only from `4.49` to `4.44 mHa`, but cuts `>0.1 Ha` failures
   from `4/200` to `1/200`;
 - the calibrated cutoff must be read **per mode**. Thresholding every mode at
   the worst mode's noise radius retains six or seven modes and never the exact
-  rank eight, leaving median errors of `21.4`/`81.4 mHa`. Comparing each mode
-  against its own radius recovers rank eight in `71/200` and `67/200` replicas
-  and gives median errors of `10.6`/`8.7 mHa`;
+  rank eight, leaving median errors of `21.0`/`81.8 mHa`. Comparing each mode
+  against its own radius recovers rank eight in `72/200` and `67/200` replicas
+  and gives median errors of `10.5`/`8.7 mHa`;
 - against the fixed cutoff at matched allocation, per-mode calibration trades a
   factor of two in median error for a `22x` RMSE reduction (`12.85` versus
   `285.41 mHa`), a maximum error of `39.4 mHa` rather than `4.03 Ha`, and no
@@ -1619,21 +1619,21 @@ Expected results (`benchmarks/reference_results/finite_shot_rethink.json`), at
 - **pooling** reads each word from every QWC setting whose basis records it
   rather than from the one the partition assigned it to — the same circuits,
   shots, and histograms. On this bank a word is recorded by `3.72` settings on
-  average. It moves the fixed-cutoff arm from `4.48`/`1786.21 mHa`
-  median/RMSE to `2.56`/`11.70`, and the per-mode calibrated arm from
-  `10.64`/`13.31` to `2.56`/`4.86`, with exact-rank recovery rising from
-  `71/200` to `195/200`. The published trade of median accuracy against tail
+  average. It moves the fixed-cutoff arm from `4.49`/`1786.21 mHa`
+  median/RMSE to `2.56`/`11.79`, and the per-mode calibrated arm from
+  `10.45`/`13.19` to `2.56`/`5.06`, with exact-rank recovery rising from
+  `72/200` to `195/200`. The published trade of median accuracy against tail
   control does not survive it;
 - **`solve_selected_rank`** picks the rank minimizing `E_hat + 2*sigma_hat`
   instead of thresholding overlap modes against their own noise. Without
-  pooling it gives `4.56 mHa` median and `7.82 mHa` RMSE with no catastrophic
+  pooling it gives `4.62 mHa` median and `7.78 mHa` RMSE with no catastrophic
   replica — the fixed rule's median with better than the calibrated rule's
   tail. At the eight-times smaller budget it is the best arm on both
   reconstructions (`10.11 mHa` median, `14.33 mHa` RMSE, `0/200` catastrophes
   pooled);
 - **`overlap_ridge`** — smooth per-mode damping in place of truncation — is a
-  recorded **negative** result: `50.02 mHa` median and `6166 mHa` RMSE against
-  truncation's `2.56` and `4.86`, and no ridge scale between `1x` and `300x`
+  recorded **negative** result: `50.08 mHa` median and `5743 mHa` RMSE against
+  truncation's `2.56` and `5.06`, and no ridge scale between `1x` and `300x`
   the noise radius recovers. The damage is in the numerator, not the metric;
   damping a direction is not truncating it.
 
