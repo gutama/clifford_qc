@@ -998,7 +998,7 @@ under Python 3.11 / NumPy 2.4.6 / SciPy 1.17.1 — before the migration in #69 �
 while its other seventy-two rows predate execution stamping and claim nothing.
 It is not rebuilt here because it is manuscript evidence rather than a
 value-gated record: no `check_*.py` rebuilds it, `paper_dacase` and
-`paper_a_case_subspaces` read it for figures and tables, and regenerating it
+`paper_acase` read it for figures and tables, and regenerating it
 moves published inputs across all five families rather than only the stamped
 rows. That is an authorship decision.
 
@@ -1207,7 +1207,7 @@ summary at `1e-12`. Both run in the process that holds the record.
 `check_summaries.py` is deliberately not a gate yet: five `*_summary` pairs
 declared by configs have no committed JSONL, so it fails on `main` today for
 reasons that predate the workflow. `paper/check_manuscript.py` and
-`paper_a_case_subspaces/check_manuscript.py` stay out for the reason given
+`paper_acase/check_manuscript.py` stay out for the reason given
 above — they need a REVTeX installation.
 
 `paper_architecture/check_manuscript.py` does run in CI, because it needs
@@ -2216,17 +2216,22 @@ certified.
 ## Published A-CASE source snapshot (arXiv:2608.00560)
 
 The first A-CASE preprint and the later DA-CASE preprint originally occupied
-`paper_acase/` in sequence. The P1 source state at commit `67ea0dd` is restored
-under `paper_a_case_subspaces/`; the P2/DA-CASE tree is now `paper_dacase/`.
-The historical README and checker remain byte-identical and therefore retain
-their original `paper_acase/` prose and error-message paths. Use the restored
-paths below; changing those historical files would break the source boundary.
+`paper_acase/` in sequence. Each now has a directory named after it: the P1
+source state at commit `67ea0dd` is restored under `paper_acase/`, and the
+P2/DA-CASE tree is `paper_dacase/`. The historical README and checker remain
+byte-identical, and because P1 is back under its original directory name the
+`paper_acase/` paths they print are correct as written. Changing those
+historical files would break the source boundary.
+
+Before 14 November 2026 `paper_acase/` held P2 and the P1 snapshot lived in
+`paper_a_case_subspaces/`. A commit, record or review from before that date
+that says `paper_acase/` means the DA-CASE tree.
 
 ```bash
-python paper_a_case_subspaces/check_snapshot.py
-python paper_a_case_subspaces/check_manuscript.py
+python paper_acase/check_snapshot.py
+python paper_acase/check_manuscript.py
 
-cd paper_a_case_subspaces
+cd paper_acase
 pdflatex -interaction=nonstopmode -halt-on-error manuscript.tex
 bibtex manuscript
 pdflatex -interaction=nonstopmode -halt-on-error manuscript.tex

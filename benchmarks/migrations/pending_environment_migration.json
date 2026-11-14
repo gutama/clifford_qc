@@ -12,7 +12,7 @@
       "sha256": "927dad58e7fe395ca1d0cf2b0ad41b5202f865e84d4f429d65263b8f260a35c5",
       "rows": "20 of 92 rows carry provenance, all of them the qsci family added in #39; the other 72 predate execution stamping and claim nothing.",
       "produced": "2026-08-06, before the Python 3.12 migration in #69 rebuilt the JSON records.",
-      "why_it_is_not_rebuilt_here": "The ladder is manuscript evidence, not a value-gated record: no check_*.py rebuilds it, and paper_dacase and paper_a_case_subspaces read it for figures and tables. Regenerating it moves published inputs across all five families, not only the 20 stamped rows, so it is an authorship decision rather than a reproducibility repair.",
+      "why_it_is_not_rebuilt_here": "The ladder is manuscript evidence, not a value-gated record: no check_*.py rebuilds it, and paper_dacase and paper_acase read it for figures and tables. Regenerating it moves published inputs across all five families, not only the 20 stamped rows, so it is an authorship decision rather than a reproducibility repair.",
       "rebuild": "python benchmarks/run_acase_ladder.py --config benchmarks/configs/acase_ladder.json --out benchmarks/reference_results/acase_ladder.jsonl, then summarize_ladder.py to refresh the committed CSV and Markdown, then regenerate both manuscripts' figures and tables.",
       "when_rebuilt": "Delete this entry. The gate then counts the record like any other, and the guard will refuse a 3.11 producer run again on its account."
     }

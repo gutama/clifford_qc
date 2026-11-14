@@ -4,7 +4,7 @@
   "arxiv": "2608.00560",
   "source_commit": "67ea0dd97c68737b2c5709a0ce12714869d7cbd0",
   "source_directory": "paper_acase",
-  "restored_directory": "paper_a_case_subspaces",
+  "restored_directory": "paper_acase",
   "files": [
     {
       "path": ".gitignore",

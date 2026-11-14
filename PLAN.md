@@ -412,14 +412,17 @@ on top of these two.
 
 | # | arXiv | Title | Submitted | Source in tree |
 |---|---|---|---|---|
-| P1 | [2608.00560](https://arxiv.org/abs/2608.00560) | Adaptive operator-generated subspaces for effective many-body Hamiltonians | 1 Aug 2026 | `paper_a_case_subspaces/`, restored from `67ea0dd` |
+| P1 | [2608.00560](https://arxiv.org/abs/2608.00560) | Adaptive operator-generated subspaces for effective many-body Hamiltonians | 1 Aug 2026 | `paper_acase/`, restored from `67ea0dd` |
 | P2 | [2608.08739](https://arxiv.org/abs/2608.08739) | DA-CASE: reusable measurements for adaptive quantum subspaces | 9 Aug 2026 | `paper_dacase/` (current) |
 
 Both are Utama & Dipojono. The two originally shared one manuscript directory in
 sequence: `paper_acase/manuscript.tex` carried P1's title through commit `67ea0dd`
 and was retitled to P2 afterwards. The published P1 text sources are now restored
-byte-for-byte under `paper_a_case_subspaces/`, with their source-commit/blob
-manifest and independent snapshot/manuscript checks. P2 now lives in `paper_dacase/`.
+byte-for-byte under `paper_acase/`, with their source-commit/blob
+manifest and independent snapshot/manuscript checks, and P2 lives in
+`paper_dacase/`. Before 14 November 2026 those two trees were named
+`paper_a_case_subspaces/` and `paper_acase/` respectively, so an older
+reference to `paper_acase/` means the P2 tree.
 
 **What P1 established.** A-CASE as a single-reference, operator-generated
 Rayleigh–Ritz method: matrices reconstructed from one shared Pauli-expectation
@@ -5568,7 +5571,7 @@ time; it may now cite P1/P2 as companion work.
 
 **Housekeeping — done.** `paper_dacase/` is the P2 source tree. P1's sixteen
 published text/data/table sources from `67ea0dd` are restored byte-for-byte under
-`paper_a_case_subspaces/`; `SOURCE_SNAPSHOT.json` records every historical blob,
+`paper_acase/`; `SOURCE_SNAPSHOT.json` records every historical blob,
 and `check_snapshot.py` plus the restored `check_manuscript.py` gate provenance and
 manuscript structure. The four PDF figures are generated outputs and may carry
 different PDF metadata under a newer Matplotlib, while their historical blob ids,

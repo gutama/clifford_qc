@@ -71,7 +71,7 @@ repeated molecular calculations.
   [10.1016/S0375-9601(98)00010-3](https://doi.org/10.1016/S0375-9601(98)00010-3);
   and Hrdina, Návrat, and Vašík include
   [10.1007/s11128-022-03648-w](https://doi.org/10.1007/s11128-022-03648-w).
-  The published snapshot in `paper_a_case_subspaces/` remains unchanged.
+  The published snapshot in `paper_acase/` remains unchanged.
 - `make_tables.py` — regenerates `tables/*.tex` and `data/source_census.json`.
 - `make_figures.py` — regenerates `paper_assets/*.pdf` and their manifest.
   Matplotlib is imported at call time, so the manuscript gate runs in an
