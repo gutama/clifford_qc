@@ -1,0 +1,4467 @@
+{
+  "accuracy_matched_ordering": {
+    "ion-like": {
+      "compared_block_sizes": [],
+      "pooled": [],
+      "pooling_reorders_protocols": null,
+      "single_assignment": []
+    },
+    "logical-alltoall": {
+      "compared_block_sizes": [],
+      "pooled": [],
+      "pooling_reorders_protocols": null,
+      "single_assignment": []
+    },
+    "superconducting-like": {
+      "compared_block_sizes": [],
+      "pooled": [],
+      "pooling_reorders_protocols": null,
+      "single_assignment": []
+    }
+  },
+  "accuracy_matching": {
+    "default_evidence_tier": "exact",
+    "default_tier_status": "unavailable",
+    "epsilon_millihartree": 1.6,
+    "exact_subspace_bias_millihartree": 3.018781343635979,
+    "reason": "no finite-sample Ritz-energy certificate exists; reported C(epsilon) uses the exact bias floor plus first-order Ritz-functional variance",
+    "reported_evidence_tier": "asymptotic",
+    "reported_tier_status": "bias_floor_exceeds_target"
+  },
+  "bank_provenance": "retained determinant-resolution bank of the matched H4 contract, arm 'A-CASE (determinant)'",
+  "basis_labels": [
+    "I",
+    "E(4,5<-2,3)",
+    "E(4,7<-0,3)",
+    "E(5,6<-1,2)",
+    "E(4,5<-0,1)",
+    "E(6,7<-0,1)",
+    "E(6,7<-2,3)",
+    "E(5,6<-0,3)",
+    "E(4,7<-1,2)"
+  ],
+  "basis_size": 9,
+  "condition_number": 1.0,
+  "cost_model": "declared device-card timing plus independent-error fidelity surrogate; routing is a declared scalar sensitivity multiplier, not compilation",
+  "device_cards": [
+    {
+      "calibration_status": "illustrative_scenario",
+      "connectivity": "all-to-all",
+      "description": "Slow-gate, all-to-all design scenario for sensitivity analysis.",
+      "eps_1q": 0.0005,
+      "eps_2q": 0.005,
+      "eps_readout": 0.01,
+      "fidelity_floor": 0.5,
+      "name": "ion-like",
+      "routing": false,
+      "routing_2q_multiplier": 1.0,
+      "routing_depth_multiplier": 1.0,
+      "schema": "clifford_qc.device_card.v1",
+      "sha256": "9cc7e53e935e4ec3c265efbd9b6218f17a68c51d727d658c5a5bcaf98d34f453",
+      "source": "Illustrative project scenario; not vendor data or a current-device claim.",
+      "t_1q_us": 10.0,
+      "t_2q_us": 200.0,
+      "t_prep_us": 50.0,
+      "t_readout_us": 100.0,
+      "t_reset_us": 50.0
+    },
+    {
+      "calibration_status": "logical_baseline",
+      "connectivity": "all-to-all",
+      "description": "All-to-all logical accounting baseline with zero surrogate error.",
+      "eps_1q": 0.0,
+      "eps_2q": 0.0,
+      "eps_readout": 0.0,
+      "fidelity_floor": 0.5,
+      "name": "logical-alltoall",
+      "routing": false,
+      "routing_2q_multiplier": 1.0,
+      "routing_depth_multiplier": 1.0,
+      "schema": "clifford_qc.device_card.v1",
+      "sha256": "07e9cc637e590668bc89b7d407535f34f509155e08c95d2ecd0f8f931738265b",
+      "source": "Project-defined logical scenario; not a hardware calibration.",
+      "t_1q_us": 0.05,
+      "t_2q_us": 0.3,
+      "t_prep_us": 0.0,
+      "t_readout_us": 1.0,
+      "t_reset_us": 1.0
+    },
+    {
+      "calibration_status": "illustrative_scenario",
+      "connectivity": "sparse-nearest-neighbor",
+      "description": "Fast-gate, sparse-connectivity design scenario for sensitivity analysis.",
+      "eps_1q": 0.001,
+      "eps_2q": 0.01,
+      "eps_readout": 0.02,
+      "fidelity_floor": 0.5,
+      "name": "superconducting-like",
+      "routing": true,
+      "routing_2q_multiplier": 3.0,
+      "routing_depth_multiplier": 2.0,
+      "schema": "clifford_qc.device_card.v1",
+      "sha256": "cf78e3240ad48839a8113a1570a43e614c230a8428fe8ceda7783e7ff75e1a13",
+      "source": "Illustrative project scenario; not vendor data or a current-device claim.",
+      "t_1q_us": 0.05,
+      "t_2q_us": 0.3,
+      "t_prep_us": 1.0,
+      "t_readout_us": 1.0,
+      "t_reset_us": 1.0
+    }
+  ],
+  "error_millihartree": 3.018781343635979,
+  "ground_energy": -2.177297832980223,
+  "grouping": "largest-conflict-degree greedy coloring; two words are compatible iff their restrictions commute inside every contiguous k-qubit block",
+  "invariant": "PASS: every grouped Pauli restriction maps to Z-only",
+  "label": "H$_4$",
+  "logical_model": "all-to-all logical Clifford circuits; no routing, noise, or mitigation",
+  "most_permissive_level": {
+    "block_size": 8,
+    "cx_to_preparation_cost_ratio_vs_qwc": 0.4501590668080594
+  },
+  "n_qubits": 8,
+  "provenance": {
+    "blas_lapack": {
+      "Build Dependencies": {
+        "blas": {
+          "detection method": "pkgconfig",
+          "found": true,
+          "include directory": "/opt/_internal/cpython-3.12.13/lib/python3.12/site-packages/scipy_openblas64/include",
+          "lib directory": "/opt/_internal/cpython-3.12.13/lib/python3.12/site-packages/scipy_openblas64/lib",
+          "name": "scipy-openblas",
+          "openblas configuration": "OpenBLAS 0.3.34.0.0  USE64BITINT DYNAMIC_ARCH NO_AFFINITY Haswell MAX_THREADS=64",
+          "pc file directory": "/project/.openblas",
+          "version": "0.3.34.0.0"
+        },
+        "lapack": {
+          "detection method": "pkgconfig",
+          "found": true,
+          "include directory": "/opt/_internal/cpython-3.12.13/lib/python3.12/site-packages/scipy_openblas64/include",
+          "lib directory": "/opt/_internal/cpython-3.12.13/lib/python3.12/site-packages/scipy_openblas64/lib",
+          "name": "scipy-openblas",
+          "openblas configuration": "OpenBLAS 0.3.34.0.0  USE64BITINT DYNAMIC_ARCH NO_AFFINITY Haswell MAX_THREADS=64",
+          "pc file directory": "/project/.openblas",
+          "version": "0.3.34.0.0"
+        }
+      },
+      "Compilers": {
+        "c": {
+          "commands": "cc",
+          "linker": "ld.bfd",
+          "name": "gcc",
+          "version": "14.2.1"
+        },
+        "c++": {
+          "commands": "c++",
+          "linker": "ld.bfd",
+          "name": "gcc",
+          "version": "14.2.1"
+        },
+        "cython": {
+          "commands": "cython",
+          "linker": "cython",
+          "name": "cython",
+          "version": "3.2.9"
+        }
+      },
+      "Machine Information": {
+        "build": {
+          "cpu": "x86_64",
+          "endian": "little",
+          "family": "x86_64",
+          "system": "linux"
+        },
+        "host": {
+          "cpu": "x86_64",
+          "endian": "little",
+          "family": "x86_64",
+          "system": "linux"
+        }
+      },
+      "Python Information": {
+        "path": "/tmp/build-env-jmn5a0j4/bin/python",
+        "version": "3.12"
+      },
+      "SIMD Extensions": {
+        "baseline": [
+          "X86_V2"
+        ],
+        "found": [
+          "X86_V3",
+          "X86_V4",
+          "AVX512_ICL",
+          "AVX512_SPR"
+        ]
+      }
+    },
+    "clifford_qc": "0.3.0",
+    "dependencies": {
+      "numpy": "2.5.2",
+      "openfermion": null,
+      "openfermionpyscf": null,
+      "pyscf": null,
+      "scipy": "1.18.0",
+      "stim": "1.16.0"
+    },
+    "environment_sha256": "6cd504632dc3eeccee6cf7eddf06972acd077730e5cb4288bf114fe00d4397b0",
+    "git_dirty": true,
+    "git_sha": "71548f201cc193a1e2a96b546b2138bc6646ad72",
+    "platform": {
+      "hostname": "vm",
+      "machine": "x86_64",
+      "processor": "x86_64",
+      "release": "6.18.44-fc-v21",
+      "system": "Linux"
+    },
+    "python": "3.12.3",
+    "schema": "clifford_qc.execution_provenance.v1",
+    "utc": "2026-08-25T08:30:38.900244+00:00"
+  },
+  "qwc_to_full": {
+    "logical_cx_per_preparation_avoided": 2.221436984687868,
+    "max_cx_to_preparation_cost_ratio": 0.4501590668080594,
+    "preparation_reduction_fraction": 0.9299014238773274,
+    "settings_saved": 849
+  },
+  "rows": [
+    {
+      "accuracy_matched_costs": {
+        "pooled": {
+          "C_time_epsilon_device_card": null,
+          "C_time_epsilon_us": null,
+          "claim_boundary": "first-order Ritz-functional propagation about the exact frozen bank; not a finite-sample energy certificate or nonlinear solver study",
+          "device_costs": {},
+          "effective_shots_per_setting": null,
+          "epsilon_millihartree": 1.6,
+          "evidence_tier": "asymptotic",
+          "exact_subspace_bias_millihartree": 3.018781343635979,
+          "inadmissible_device_cards": [
+            "ion-like",
+            "logical-alltoall",
+            "superconducting-like"
+          ],
+          "linearized_variance_ha2_at_one_shot_per_setting": null,
+          "pooled_weighting": "uniform over the settings that read each word, which is the inverse-variance combination at the equal-effective-shot schedule priced here",
+          "status": "bias_floor_exceeds_target"
+        },
+        "single_assignment": {
+          "C_time_epsilon_device_card": null,
+          "C_time_epsilon_us": null,
+          "claim_boundary": "first-order Ritz-functional propagation about the exact frozen bank; not a finite-sample energy certificate or nonlinear solver study",
+          "device_costs": {},
+          "effective_shots_per_setting": null,
+          "epsilon_millihartree": 1.6,
+          "evidence_tier": "asymptotic",
+          "exact_subspace_bias_millihartree": 3.018781343635979,
+          "inadmissible_device_cards": [
+            "ion-like",
+            "logical-alltoall",
+            "superconducting-like"
+          ],
+          "linearized_variance_ha2_at_one_shot_per_setting": null,
+          "pooled_weighting": "uniform over the settings that read each word, which is the inverse-variance combination at the equal-effective-shot schedule priced here",
+          "status": "bias_floor_exceeds_target"
+        }
+      },
+      "block_size": 1,
+      "break_even_vs_qwc": null,
+      "cx_to_preparation_cost_ratio_vs_qwc": null,
+      "device_costs": {
+        "ion-like": {
+          "device_card_sha256": "9cc7e53e935e4ec3c265efbd9b6218f17a68c51d727d658c5a5bcaf98d34f453",
+          "equal_effective_shots": {
+            "accuracy": {
+              "C_time_epsilon_us": null,
+              "epsilon": null,
+              "evidence_tier": "exact",
+              "status": "fixed_shot_only"
+            },
+            "admissible": true,
+            "device_card": {
+              "calibration_status": "illustrative_scenario",
+              "name": "ion-like",
+              "sha256": "9cc7e53e935e4ec3c265efbd9b6218f17a68c51d727d658c5a5bcaf98d34f453"
+            },
+            "effective_shots": 7304453.30590821,
+            "fidelity": {
+              "floor": 0.5,
+              "max": 0.9227446944279201,
+              "mean": 0.9188234919053305,
+              "min": 0.9153903547260381
+            },
+            "fixed_shot_time_us": 1900369400.0,
+            "inadmissible_settings": 0,
+            "logical_1q_applications": 73759860,
+            "logical_2q_applications": 0,
+            "modeled_2q_applications": 0,
+            "n_qubits": 8,
+            "raw_shots": 8652192,
+            "routing": {
+              "model": "declared scalar sensitivity surrogate",
+              "required": false,
+              "two_qubit_count_multiplier": 1.0,
+              "two_qubit_depth_multiplier": 1.0
+            },
+            "schema": "clifford_qc.measurement_cost.v1",
+            "settings": 913
+          },
+          "estimator_information_at_uniform_raw_shots": {
+            "pooled": {
+              "compatible_settings_per_word": {
+                "max": 913,
+                "mean": 4.160493827160494,
+                "min": 1
+              },
+              "coverage_fraction": {
+                "max": 1.0,
+                "mean": 0.004556948332048734,
+                "min": 0.001095290251916758
+              },
+              "effective_word_shots": {
+                "max": 6166316.522070075,
+                "mean": 28114.055606365124,
+                "min": 6703.516012203695,
+                "total": 207228703.87451732
+              },
+              "estimator": "pooled",
+              "raw_word_shots": {
+                "max": 7304000.0,
+                "mean": 33283.950617283954,
+                "min": 8000.0,
+                "total": 245336000.0
+              },
+              "word_samples_per_preparation": 33.58926615553121
+            },
+            "single_assignment": {
+              "compatible_settings_per_word": {
+                "max": 1,
+                "mean": 1.0,
+                "min": 1
+              },
+              "coverage_fraction": {
+                "max": 0.001095290251916758,
+                "mean": 0.0010952902519167575,
+                "min": 0.001095290251916758
+              },
+              "effective_word_shots": {
+                "max": 6811.662168759004,
+                "mean": 6764.860111107299,
+                "min": 6703.516012203695,
+                "total": 49863783.878971905
+              },
+              "estimator": "single_assignment",
+              "raw_word_shots": {
+                "max": 8000.0,
+                "mean": 8000.0,
+                "min": 8000.0,
+                "total": 58968000.0
+              },
+              "word_samples_per_preparation": 8.073384446878423
+            }
+          },
+          "fixed_uniform_raw_shots": {
+            "accuracy": {
+              "C_time_epsilon_us": null,
+              "epsilon": null,
+              "evidence_tier": "exact",
+              "status": "fixed_shot_only"
+            },
+            "admissible": true,
+            "device_card": {
+              "calibration_status": "illustrative_scenario",
+              "name": "ion-like",
+              "sha256": "9cc7e53e935e4ec3c265efbd9b6218f17a68c51d727d658c5a5bcaf98d34f453"
+            },
+            "effective_shots": 6166316.522070074,
+            "fidelity": {
+              "floor": 0.5,
+              "max": 0.9227446944279201,
+              "mean": 0.9188234919053305,
+              "min": 0.9153903547260381
+            },
+            "fixed_shot_time_us": 1604240000.0,
+            "inadmissible_settings": 0,
+            "logical_1q_applications": 62208000,
+            "logical_2q_applications": 0,
+            "modeled_2q_applications": 0,
+            "n_qubits": 8,
+            "raw_shots": 7304000,
+            "routing": {
+              "model": "declared scalar sensitivity surrogate",
+              "required": false,
+              "two_qubit_count_multiplier": 1.0,
+              "two_qubit_depth_multiplier": 1.0
+            },
+            "schema": "clifford_qc.measurement_cost.v1",
+            "settings": 913
+          }
+        },
+        "logical-alltoall": {
+          "device_card_sha256": "07e9cc637e590668bc89b7d407535f34f509155e08c95d2ecd0f8f931738265b",
+          "equal_effective_shots": {
+            "accuracy": {
+              "C_time_epsilon_us": null,
+              "epsilon": null,
+              "evidence_tier": "exact",
+              "status": "fixed_shot_only"
+            },
+            "admissible": true,
+            "device_card": {
+              "calibration_status": "logical_baseline",
+              "name": "logical-alltoall",
+              "sha256": "07e9cc637e590668bc89b7d407535f34f509155e08c95d2ecd0f8f931738265b"
+            },
+            "effective_shots": 7304000.0,
+            "fidelity": {
+              "floor": 0.5,
+              "max": 1.0,
+              "mean": 1.0,
+              "min": 1.0
+            },
+            "fixed_shot_time_us": 15325200.0,
+            "inadmissible_settings": 0,
+            "logical_1q_applications": 62208000,
+            "logical_2q_applications": 0,
+            "modeled_2q_applications": 0,
+            "n_qubits": 8,
+            "raw_shots": 7304000,
+            "routing": {
+              "model": "declared scalar sensitivity surrogate",
+              "required": false,
+              "two_qubit_count_multiplier": 1.0,
+              "two_qubit_depth_multiplier": 1.0
+            },
+            "schema": "clifford_qc.measurement_cost.v1",
+            "settings": 913
+          },
+          "estimator_information_at_uniform_raw_shots": {
+            "pooled": {
+              "compatible_settings_per_word": {
+                "max": 913,
+                "mean": 4.160493827160494,
+                "min": 1
+              },
+              "coverage_fraction": {
+                "max": 1.0,
+                "mean": 0.004556948332048734,
+                "min": 0.001095290251916758
+              },
+              "effective_word_shots": {
+                "max": 7304000.0,
+                "mean": 33283.950617283954,
+                "min": 8000.0,
+                "total": 245336000.0
+              },
+              "estimator": "pooled",
+              "raw_word_shots": {
+                "max": 7304000.0,
+                "mean": 33283.950617283954,
+                "min": 8000.0,
+                "total": 245336000.0
+              },
+              "word_samples_per_preparation": 33.58926615553121
+            },
+            "single_assignment": {
+              "compatible_settings_per_word": {
+                "max": 1,
+                "mean": 1.0,
+                "min": 1
+              },
+              "coverage_fraction": {
+                "max": 0.001095290251916758,
+                "mean": 0.0010952902519167575,
+                "min": 0.001095290251916758
+              },
+              "effective_word_shots": {
+                "max": 8000.0,
+                "mean": 8000.0,
+                "min": 8000.0,
+                "total": 58968000.0
+              },
+              "estimator": "single_assignment",
+              "raw_word_shots": {
+                "max": 8000.0,
+                "mean": 8000.0,
+                "min": 8000.0,
+                "total": 58968000.0
+              },
+              "word_samples_per_preparation": 8.073384446878423
+            }
+          },
+          "fixed_uniform_raw_shots": {
+            "accuracy": {
+              "C_time_epsilon_us": null,
+              "epsilon": null,
+              "evidence_tier": "exact",
+              "status": "fixed_shot_only"
+            },
+            "admissible": true,
+            "device_card": {
+              "calibration_status": "logical_baseline",
+              "name": "logical-alltoall",
+              "sha256": "07e9cc637e590668bc89b7d407535f34f509155e08c95d2ecd0f8f931738265b"
+            },
+            "effective_shots": 7304000.0,
+            "fidelity": {
+              "floor": 0.5,
+              "max": 1.0,
+              "mean": 1.0,
+              "min": 1.0
+            },
+            "fixed_shot_time_us": 15325200.0,
+            "inadmissible_settings": 0,
+            "logical_1q_applications": 62208000,
+            "logical_2q_applications": 0,
+            "modeled_2q_applications": 0,
+            "n_qubits": 8,
+            "raw_shots": 7304000,
+            "routing": {
+              "model": "declared scalar sensitivity surrogate",
+              "required": false,
+              "two_qubit_count_multiplier": 1.0,
+              "two_qubit_depth_multiplier": 1.0
+            },
+            "schema": "clifford_qc.measurement_cost.v1",
+            "settings": 913
+          }
+        },
+        "superconducting-like": {
+          "device_card_sha256": "cf78e3240ad48839a8113a1570a43e614c230a8428fe8ceda7783e7ff75e1a13",
+          "equal_effective_shots": {
+            "accuracy": {
+              "C_time_epsilon_us": null,
+              "epsilon": null,
+              "evidence_tier": "exact",
+              "status": "fixed_shot_only"
+            },
+            "admissible": true,
+            "device_card": {
+              "calibration_status": "illustrative_scenario",
+              "name": "superconducting-like",
+              "sha256": "cf78e3240ad48839a8113a1570a43e614c230a8428fe8ceda7783e7ff75e1a13"
+            },
+            "effective_shots": 7304320.91382465,
+            "fidelity": {
+              "floor": 0.5,
+              "max": 0.8507630225817855,
+              "mean": 0.843547643106237,
+              "min": 0.8372524309005734
+            },
+            "fixed_shot_time_us": 31804006.5,
+            "inadmissible_settings": 0,
+            "logical_1q_applications": 87593676,
+            "logical_2q_applications": 0,
+            "modeled_2q_applications": 0,
+            "n_qubits": 8,
+            "raw_shots": 10265286,
+            "routing": {
+              "model": "declared scalar sensitivity surrogate",
+              "required": true,
+              "two_qubit_count_multiplier": 3.0,
+              "two_qubit_depth_multiplier": 2.0
+            },
+            "schema": "clifford_qc.measurement_cost.v1",
+            "settings": 913
+          },
+          "estimator_information_at_uniform_raw_shots": {
+            "pooled": {
+              "compatible_settings_per_word": {
+                "max": 913,
+                "mean": 4.160493827160494,
+                "min": 1
+              },
+              "coverage_fraction": {
+                "max": 1.0,
+                "mean": 0.004556948332048734,
+                "min": 0.001095290251916758
+              },
+              "effective_word_shots": {
+                "max": 5197368.031476414,
+                "mean": 23708.569629175086,
+                "min": 5607.933064391356,
+                "total": 174755866.73664957
+              },
+              "estimator": "pooled",
+              "raw_word_shots": {
+                "max": 7304000.0,
+                "mean": 33283.950617283954,
+                "min": 8000.0,
+                "total": 245336000.0
+              },
+              "word_samples_per_preparation": 33.58926615553121
+            },
+            "single_assignment": {
+              "compatible_settings_per_word": {
+                "max": 1,
+                "mean": 1.0,
+                "min": 1
+              },
+              "coverage_fraction": {
+                "max": 0.001095290251916758,
+                "mean": 0.0010952902519167575,
+                "min": 0.001095290251916758
+              },
+              "effective_word_shots": {
+                "max": 5790.381764739966,
+                "mean": 5711.097593349784,
+                "min": 5607.933064391356,
+                "total": 42096500.36058126
+              },
+              "estimator": "single_assignment",
+              "raw_word_shots": {
+                "max": 8000.0,
+                "mean": 8000.0,
+                "min": 8000.0,
+                "total": 58968000.0
+              },
+              "word_samples_per_preparation": 8.073384446878423
+            }
+          },
+          "fixed_uniform_raw_shots": {
+            "accuracy": {
+              "C_time_epsilon_us": null,
+              "epsilon": null,
+              "evidence_tier": "exact",
+              "status": "fixed_shot_only"
+            },
+            "admissible": true,
+            "device_card": {
+              "calibration_status": "illustrative_scenario",
+              "name": "superconducting-like",
+              "sha256": "cf78e3240ad48839a8113a1570a43e614c230a8428fe8ceda7783e7ff75e1a13"
+            },
+            "effective_shots": 5197368.031476415,
+            "fidelity": {
+              "floor": 0.5,
+              "max": 0.8507630225817855,
+              "mean": 0.843547643106237,
+              "min": 0.8372524309005734
+            },
+            "fixed_shot_time_us": 22629200.0,
+            "inadmissible_settings": 0,
+            "logical_1q_applications": 62208000,
+            "logical_2q_applications": 0,
+            "modeled_2q_applications": 0,
+            "n_qubits": 8,
+            "raw_shots": 7304000,
+            "routing": {
+              "model": "declared scalar sensitivity surrogate",
+              "required": true,
+              "two_qubit_count_multiplier": 3.0,
+              "two_qubit_depth_multiplier": 2.0
+            },
+            "schema": "clifford_qc.measurement_cost.v1",
+            "settings": 913
+          }
+        }
+      },
+      "estimators": {
+        "pooled": {
+          "compatible_settings_per_word": {
+            "max": 913,
+            "mean": 4.160493827160494,
+            "min": 1
+          },
+          "coverage_fraction": {
+            "max": 1.0,
+            "mean": 0.004556948332048734,
+            "min": 0.001095290251916758
+          },
+          "effective_word_shots": {
+            "max": 7304000.0,
+            "mean": 33283.950617283954,
+            "min": 8000.0,
+            "total": 245336000.0
+          },
+          "estimator": "pooled",
+          "raw_word_shots": {
+            "max": 7304000.0,
+            "mean": 33283.950617283954,
+            "min": 8000.0,
+            "total": 245336000.0
+          },
+          "word_samples_per_preparation": 33.58926615553121
+        },
+        "single_assignment": {
+          "compatible_settings_per_word": {
+            "max": 1,
+            "mean": 1.0,
+            "min": 1
+          },
+          "coverage_fraction": {
+            "max": 0.001095290251916758,
+            "mean": 0.0010952902519167575,
+            "min": 0.001095290251916758
+          },
+          "effective_word_shots": {
+            "max": 8000.0,
+            "mean": 8000.0,
+            "min": 8000.0,
+            "total": 58968000.0
+          },
+          "estimator": "single_assignment",
+          "raw_word_shots": {
+            "max": 8000.0,
+            "mean": 8000.0,
+            "min": 8000.0,
+            "total": 58968000.0
+          },
+          "word_samples_per_preparation": 8.073384446878423
+        }
+      },
+      "gate_counts_per_sweep": {
+        "H": 5184,
+        "S_DAG": 2592
+      },
+      "logical_cx_applications_at_uniform_shots": 0,
+      "logical_cx_depth_sum": 0,
+      "logical_cx_per_sweep": 0,
+      "max_logical_cx_depth": 0,
+      "max_logical_cx_per_setting": 0,
+      "mean_logical_cx_depth": 0.0,
+      "mean_logical_cx_per_setting": 0.0,
+      "resource_metrics": {
+        "D_1q": {
+          "max": 2,
+          "mean": 1.963855421686747,
+          "sum": 1793
+        },
+        "D_2q": {
+          "max": 0,
+          "mean": 0.0,
+          "sum": 0
+        },
+        "N_1q": {
+          "max": 16,
+          "mean": 8.51697699890471,
+          "sum": 7776
+        },
+        "N_2q": {
+          "max": 0,
+          "mean": 0.0,
+          "sum": 0
+        }
+      },
+      "settings": 913,
+      "state_preparations_at_uniform_shots": 7304000,
+      "word_samples_per_preparation": 8.073384446878423,
+      "z_only_restrictions_checked": 10452
+    },
+    {
+      "accuracy_matched_costs": {
+        "pooled": {
+          "C_time_epsilon_device_card": null,
+          "C_time_epsilon_us": null,
+          "claim_boundary": "first-order Ritz-functional propagation about the exact frozen bank; not a finite-sample energy certificate or nonlinear solver study",
+          "device_costs": {},
+          "effective_shots_per_setting": null,
+          "epsilon_millihartree": 1.6,
+          "evidence_tier": "asymptotic",
+          "exact_subspace_bias_millihartree": 3.018781343635979,
+          "inadmissible_device_cards": [
+            "ion-like",
+            "logical-alltoall",
+            "superconducting-like"
+          ],
+          "linearized_variance_ha2_at_one_shot_per_setting": null,
+          "pooled_weighting": "uniform over the settings that read each word, which is the inverse-variance combination at the equal-effective-shot schedule priced here",
+          "status": "bias_floor_exceeds_target"
+        },
+        "single_assignment": {
+          "C_time_epsilon_device_card": null,
+          "C_time_epsilon_us": null,
+          "claim_boundary": "first-order Ritz-functional propagation about the exact frozen bank; not a finite-sample energy certificate or nonlinear solver study",
+          "device_costs": {},
+          "effective_shots_per_setting": null,
+          "epsilon_millihartree": 1.6,
+          "evidence_tier": "asymptotic",
+          "exact_subspace_bias_millihartree": 3.018781343635979,
+          "inadmissible_device_cards": [
+            "ion-like",
+            "logical-alltoall",
+            "superconducting-like"
+          ],
+          "linearized_variance_ha2_at_one_shot_per_setting": null,
+          "pooled_weighting": "uniform over the settings that read each word, which is the inverse-variance combination at the equal-effective-shot schedule priced here",
+          "status": "bias_floor_exceeds_target"
+        }
+      },
+      "block_size": 2,
+      "break_even_vs_qwc": {
+        "ion-like": {
+          "base_device_card": {
+            "name": "ion-like",
+            "sha256": "9cc7e53e935e4ec3c265efbd9b6218f17a68c51d727d658c5a5bcaf98d34f453"
+          },
+          "effective_shots_per_setting": 8000,
+          "epsilon": null,
+          "evidence_tier": "exact",
+          "points": [
+            {
+              "candidate_admissible": true,
+              "candidate_time_us": 1443410980.0,
+              "eps_2q": 0.0,
+              "reference_admissible": true,
+              "reference_time_us": 1900369400.0,
+              "t_2q_over_readout_reset": 0.0,
+              "winner": "not_accuracy_matched"
+            },
+            {
+              "candidate_admissible": true,
+              "candidate_time_us": 1508345060.0,
+              "eps_2q": 0.005,
+              "reference_admissible": true,
+              "reference_time_us": 1900369400.0,
+              "t_2q_over_readout_reset": 0.0,
+              "winner": "not_accuracy_matched"
+            },
+            {
+              "candidate_admissible": true,
+              "candidate_time_us": 1578008810.0,
+              "eps_2q": 0.01,
+              "reference_admissible": true,
+              "reference_time_us": 1900369400.0,
+              "t_2q_over_readout_reset": 0.0,
+              "winner": "not_accuracy_matched"
+            },
+            {
+              "candidate_admissible": true,
+              "candidate_time_us": 1733175800.0,
+              "eps_2q": 0.02,
+              "reference_admissible": true,
+              "reference_time_us": 1900369400.0,
+              "t_2q_over_readout_reset": 0.0,
+              "winner": "not_accuracy_matched"
+            },
+            {
+              "candidate_admissible": false,
+              "candidate_time_us": 2367850150.0,
+              "eps_2q": 0.05,
+              "reference_admissible": true,
+              "reference_time_us": 1900369400.0,
+              "t_2q_over_readout_reset": 0.0,
+              "winner": "reference"
+            },
+            {
+              "candidate_admissible": true,
+              "candidate_time_us": 1650805840.0,
+              "eps_2q": 0.0,
+              "reference_admissible": true,
+              "reference_time_us": 1900369400.0,
+              "t_2q_over_readout_reset": 0.1,
+              "winner": "not_accuracy_matched"
+            },
+            {
+              "candidate_admissible": true,
+              "candidate_time_us": 1728731930.0,
+              "eps_2q": 0.005,
+              "reference_admissible": true,
+              "reference_time_us": 1900369400.0,
+              "t_2q_over_readout_reset": 0.1,
+              "winner": "not_accuracy_matched"
+            },
+            {
+              "candidate_admissible": true,
+              "candidate_time_us": 1812463475.0,
+              "eps_2q": 0.01,
+              "reference_admissible": true,
+              "reference_time_us": 1900369400.0,
+              "t_2q_over_readout_reset": 0.1,
+              "winner": "not_accuracy_matched"
+            },
+            {
+              "candidate_admissible": true,
+              "candidate_time_us": 1999407215.0,
+              "eps_2q": 0.02,
+              "reference_admissible": true,
+              "reference_time_us": 1900369400.0,
+              "t_2q_over_readout_reset": 0.1,
+              "winner": "not_accuracy_matched"
+            },
+            {
+              "candidate_admissible": false,
+              "candidate_time_us": 2768886310.0,
+              "eps_2q": 0.05,
+              "reference_admissible": true,
+              "reference_time_us": 1900369400.0,
+              "t_2q_over_readout_reset": 0.1,
+              "winner": "reference"
+            },
+            {
+              "candidate_admissible": true,
+              "candidate_time_us": 2480385280.0,
+              "eps_2q": 0.0,
+              "reference_admissible": true,
+              "reference_time_us": 1900369400.0,
+              "t_2q_over_readout_reset": 0.5,
+              "winner": "not_accuracy_matched"
+            },
+            {
+              "candidate_admissible": true,
+              "candidate_time_us": 2610279410.0,
+              "eps_2q": 0.005,
+              "reference_admissible": true,
+              "reference_time_us": 1900369400.0,
+              "t_2q_over_readout_reset": 0.5,
+              "winner": "not_accuracy_matched"
+            },
+            {
+              "candidate_admissible": true,
+              "candidate_time_us": 2750282135.0,
+              "eps_2q": 0.01,
+              "reference_admissible": true,
+              "reference_time_us": 1900369400.0,
+              "t_2q_over_readout_reset": 0.5,
+              "winner": "not_accuracy_matched"
+            },
+            {
+              "candidate_admissible": true,
+              "candidate_time_us": 3064332875.0,
+              "eps_2q": 0.02,
+              "reference_admissible": true,
+              "reference_time_us": 1900369400.0,
+              "t_2q_over_readout_reset": 0.5,
+              "winner": "not_accuracy_matched"
+            },
+            {
+              "candidate_admissible": false,
+              "candidate_time_us": 4373030950.0,
+              "eps_2q": 0.05,
+              "reference_admissible": true,
+              "reference_time_us": 1900369400.0,
+              "t_2q_over_readout_reset": 0.5,
+              "winner": "reference"
+            },
+            {
+              "candidate_admissible": true,
+              "candidate_time_us": 3517359580.0,
+              "eps_2q": 0.0,
+              "reference_admissible": true,
+              "reference_time_us": 1900369400.0,
+              "t_2q_over_readout_reset": 1.0,
+              "winner": "not_accuracy_matched"
+            },
+            {
+              "candidate_admissible": true,
+              "candidate_time_us": 3712213760.0,
+              "eps_2q": 0.005,
+              "reference_admissible": true,
+              "reference_time_us": 1900369400.0,
+              "t_2q_over_readout_reset": 1.0,
+              "winner": "not_accuracy_matched"
+            },
+            {
+              "candidate_admissible": true,
+              "candidate_time_us": 3922555460.0,
+              "eps_2q": 0.01,
+              "reference_admissible": true,
+              "reference_time_us": 1900369400.0,
+              "t_2q_over_readout_reset": 1.0,
+              "winner": "not_accuracy_matched"
+            },
+            {
+              "candidate_admissible": true,
+              "candidate_time_us": 4395489950.0,
+              "eps_2q": 0.02,
+              "reference_admissible": true,
+              "reference_time_us": 1900369400.0,
+              "t_2q_over_readout_reset": 1.0,
+              "winner": "not_accuracy_matched"
+            },
+            {
+              "candidate_admissible": false,
+              "candidate_time_us": 6378211750.0,
+              "eps_2q": 0.05,
+              "reference_admissible": true,
+              "reference_time_us": 1900369400.0,
+              "t_2q_over_readout_reset": 1.0,
+              "winner": "reference"
+            },
+            {
+              "candidate_admissible": true,
+              "candidate_time_us": 5591308180.0,
+              "eps_2q": 0.0,
+              "reference_admissible": true,
+              "reference_time_us": 1900369400.0,
+              "t_2q_over_readout_reset": 2.0,
+              "winner": "not_accuracy_matched"
+            },
+            {
+              "candidate_admissible": true,
+              "candidate_time_us": 5916082460.0,
+              "eps_2q": 0.005,
+              "reference_admissible": true,
+              "reference_time_us": 1900369400.0,
+              "t_2q_over_readout_reset": 2.0,
+              "winner": "not_accuracy_matched"
+            },
+            {
+              "candidate_admissible": true,
+              "candidate_time_us": 6267102110.0,
+              "eps_2q": 0.01,
+              "reference_admissible": true,
+              "reference_time_us": 1900369400.0,
+              "t_2q_over_readout_reset": 2.0,
+              "winner": "not_accuracy_matched"
+            },
+            {
+              "candidate_admissible": true,
+              "candidate_time_us": 7057804100.0,
+              "eps_2q": 0.02,
+              "reference_admissible": true,
+              "reference_time_us": 1900369400.0,
+              "t_2q_over_readout_reset": 2.0,
+              "winner": "not_accuracy_matched"
+            },
+            {
+              "candidate_admissible": false,
+              "candidate_time_us": 10388573350.0,
+              "eps_2q": 0.05,
+              "reference_admissible": true,
+              "reference_time_us": 1900369400.0,
+              "t_2q_over_readout_reset": 2.0,
+              "winner": "reference"
+            }
+          ],
+          "schema": "clifford_qc.measurement_break_even.v1"
+        },
+        "logical-alltoall": {
+          "base_device_card": {
+            "name": "logical-alltoall",
+            "sha256": "07e9cc637e590668bc89b7d407535f34f509155e08c95d2ecd0f8f931738265b"
+          },
+          "effective_shots_per_setting": 8000,
+          "epsilon": null,
+          "evidence_tier": "exact",
+          "points": [
+            {
+              "candidate_admissible": true,
+              "candidate_time_us": 11252800.0,
+              "eps_2q": 0.0,
+              "reference_admissible": true,
+              "reference_time_us": 15325200.0,
+              "t_2q_over_readout_reset": 0.0,
+              "winner": "not_accuracy_matched"
+            },
+            {
+              "candidate_admissible": true,
+              "candidate_time_us": 11759303.000000002,
+              "eps_2q": 0.005,
+              "reference_admissible": true,
+              "reference_time_us": 15325200.0,
+              "t_2q_over_readout_reset": 0.0,
+              "winner": "not_accuracy_matched"
+            },
+            {
+              "candidate_admissible": true,
+              "candidate_time_us": 12301595.550000003,
+              "eps_2q": 0.01,
+              "reference_admissible": true,
+              "reference_time_us": 15325200.0,
+              "t_2q_over_readout_reset": 0.0,
+              "winner": "not_accuracy_matched"
+            },
+            {
+              "candidate_admissible": true,
+              "candidate_time_us": 13509728.25,
+              "eps_2q": 0.02,
+              "reference_admissible": true,
+              "reference_time_us": 15325200.0,
+              "t_2q_over_readout_reset": 0.0,
+              "winner": "not_accuracy_matched"
+            },
+            {
+              "candidate_admissible": false,
+              "candidate_time_us": 18454346.349999998,
+              "eps_2q": 0.05,
+              "reference_admissible": true,
+              "reference_time_us": 15325200.0,
+              "t_2q_over_readout_reset": 0.0,
+              "winner": "reference"
+            },
+            {
+              "candidate_admissible": true,
+              "candidate_time_us": 13582400.0,
+              "eps_2q": 0.0,
+              "reference_admissible": true,
+              "reference_time_us": 15325200.0,
+              "t_2q_over_readout_reset": 0.1,
+              "winner": "not_accuracy_matched"
+            },
+            {
+              "candidate_admissible": true,
+              "candidate_time_us": 14235063.600000003,
+              "eps_2q": 0.005,
+              "reference_admissible": true,
+              "reference_time_us": 15325200.0,
+              "t_2q_over_readout_reset": 0.1,
+              "winner": "not_accuracy_matched"
+            },
+            {
+              "candidate_admissible": true,
+              "candidate_time_us": 14935417.350000001,
+              "eps_2q": 0.01,
+              "reference_admissible": true,
+              "reference_time_us": 15325200.0,
+              "t_2q_over_readout_reset": 0.1,
+              "winner": "not_accuracy_matched"
+            },
+            {
+              "candidate_admissible": true,
+              "candidate_time_us": 16500573.45,
+              "eps_2q": 0.02,
+              "reference_admissible": true,
+              "reference_time_us": 15325200.0,
+              "t_2q_over_readout_reset": 0.1,
+              "winner": "not_accuracy_matched"
+            },
+            {
+              "candidate_admissible": false,
+              "candidate_time_us": 22959883.75,
+              "eps_2q": 0.05,
+              "reference_admissible": true,
+              "reference_time_us": 15325200.0,
+              "t_2q_over_readout_reset": 0.1,
+              "winner": "reference"
+            },
+            {
+              "candidate_admissible": true,
+              "candidate_time_us": 22900800.0,
+              "eps_2q": 0.0,
+              "reference_admissible": true,
+              "reference_time_us": 15325200.0,
+              "t_2q_over_readout_reset": 0.5,
+              "winner": "not_accuracy_matched"
+            },
+            {
+              "candidate_admissible": true,
+              "candidate_time_us": 24138106.000000004,
+              "eps_2q": 0.005,
+              "reference_admissible": true,
+              "reference_time_us": 15325200.0,
+              "t_2q_over_readout_reset": 0.5,
+              "winner": "not_accuracy_matched"
+            },
+            {
+              "candidate_admissible": true,
+              "candidate_time_us": 25470704.55,
+              "eps_2q": 0.01,
+              "reference_admissible": true,
+              "reference_time_us": 15325200.0,
+              "t_2q_over_readout_reset": 0.5,
+              "winner": "not_accuracy_matched"
+            },
+            {
+              "candidate_admissible": true,
+              "candidate_time_us": 28463954.250000007,
+              "eps_2q": 0.02,
+              "reference_admissible": true,
+              "reference_time_us": 15325200.0,
+              "t_2q_over_readout_reset": 0.5,
+              "winner": "not_accuracy_matched"
+            },
+            {
+              "candidate_admissible": false,
+              "candidate_time_us": 40982033.34999999,
+              "eps_2q": 0.05,
+              "reference_admissible": true,
+              "reference_time_us": 15325200.0,
+              "t_2q_over_readout_reset": 0.5,
+              "winner": "reference"
+            },
+            {
+              "candidate_admissible": true,
+              "candidate_time_us": 34548800.0,
+              "eps_2q": 0.0,
+              "reference_admissible": true,
+              "reference_time_us": 15325200.0,
+              "t_2q_over_readout_reset": 1.0,
+              "winner": "not_accuracy_matched"
+            },
+            {
+              "candidate_admissible": true,
+              "candidate_time_us": 36516909.0,
+              "eps_2q": 0.005,
+              "reference_admissible": true,
+              "reference_time_us": 15325200.0,
+              "t_2q_over_readout_reset": 1.0,
+              "winner": "not_accuracy_matched"
+            },
+            {
+              "candidate_admissible": true,
+              "candidate_time_us": 38639813.55,
+              "eps_2q": 0.01,
+              "reference_admissible": true,
+              "reference_time_us": 15325200.0,
+              "t_2q_over_readout_reset": 1.0,
+              "winner": "not_accuracy_matched"
+            },
+            {
+              "candidate_admissible": true,
+              "candidate_time_us": 43418180.25,
+              "eps_2q": 0.02,
+              "reference_admissible": true,
+              "reference_time_us": 15325200.0,
+              "t_2q_over_readout_reset": 1.0,
+              "winner": "not_accuracy_matched"
+            },
+            {
+              "candidate_admissible": false,
+              "candidate_time_us": 63509720.34999999,
+              "eps_2q": 0.05,
+              "reference_admissible": true,
+              "reference_time_us": 15325200.0,
+              "t_2q_over_readout_reset": 1.0,
+              "winner": "reference"
+            },
+            {
+              "candidate_admissible": true,
+              "candidate_time_us": 57844800.0,
+              "eps_2q": 0.0,
+              "reference_admissible": true,
+              "reference_time_us": 15325200.0,
+              "t_2q_over_readout_reset": 2.0,
+              "winner": "not_accuracy_matched"
+            },
+            {
+              "candidate_admissible": true,
+              "candidate_time_us": 61274515.0,
+              "eps_2q": 0.005,
+              "reference_admissible": true,
+              "reference_time_us": 15325200.0,
+              "t_2q_over_readout_reset": 2.0,
+              "winner": "not_accuracy_matched"
+            },
+            {
+              "candidate_admissible": true,
+              "candidate_time_us": 64978031.55,
+              "eps_2q": 0.01,
+              "reference_admissible": true,
+              "reference_time_us": 15325200.0,
+              "t_2q_over_readout_reset": 2.0,
+              "winner": "not_accuracy_matched"
+            },
+            {
+              "candidate_admissible": true,
+              "candidate_time_us": 73326632.24999999,
+              "eps_2q": 0.02,
+              "reference_admissible": true,
+              "reference_time_us": 15325200.0,
+              "t_2q_over_readout_reset": 2.0,
+              "winner": "not_accuracy_matched"
+            },
+            {
+              "candidate_admissible": false,
+              "candidate_time_us": 108565094.35000001,
+              "eps_2q": 0.05,
+              "reference_admissible": true,
+              "reference_time_us": 15325200.0,
+              "t_2q_over_readout_reset": 2.0,
+              "winner": "reference"
+            }
+          ],
+          "schema": "clifford_qc.measurement_break_even.v1"
+        },
+        "superconducting-like": {
+          "base_device_card": {
+            "name": "superconducting-like",
+            "sha256": "cf78e3240ad48839a8113a1570a43e614c230a8428fe8ceda7783e7ff75e1a13"
+          },
+          "effective_shots_per_setting": 8000,
+          "epsilon": null,
+          "evidence_tier": "exact",
+          "points": [
+            {
+              "candidate_admissible": true,
+              "candidate_time_us": 23206246.650000002,
+              "eps_2q": 0.0,
+              "reference_admissible": true,
+              "reference_time_us": 31804006.5,
+              "t_2q_over_readout_reset": 0.0,
+              "winner": "not_accuracy_matched"
+            },
+            {
+              "candidate_admissible": true,
+              "candidate_time_us": 26546346.25,
+              "eps_2q": 0.005,
+              "reference_admissible": true,
+              "reference_time_us": 31804006.5,
+              "t_2q_over_readout_reset": 0.0,
+              "winner": "not_accuracy_matched"
+            },
+            {
+              "candidate_admissible": true,
+              "candidate_time_us": 30646666.050000004,
+              "eps_2q": 0.01,
+              "reference_admissible": true,
+              "reference_time_us": 31804006.5,
+              "t_2q_over_readout_reset": 0.0,
+              "winner": "not_accuracy_matched"
+            },
+            {
+              "candidate_admissible": false,
+              "candidate_time_us": 42090676.25,
+              "eps_2q": 0.02,
+              "reference_admissible": true,
+              "reference_time_us": 31804006.5,
+              "t_2q_over_readout_reset": 0.0,
+              "winner": "reference"
+            },
+            {
+              "candidate_admissible": false,
+              "candidate_time_us": 145049170.0,
+              "eps_2q": 0.05,
+              "reference_admissible": true,
+              "reference_time_us": 31804006.5,
+              "t_2q_over_readout_reset": 0.0,
+              "winner": "reference"
+            },
+            {
+              "candidate_admissible": true,
+              "candidate_time_us": 29781333.449999996,
+              "eps_2q": 0.0,
+              "reference_admissible": true,
+              "reference_time_us": 31804006.5,
+              "t_2q_over_readout_reset": 0.1,
+              "winner": "not_accuracy_matched"
+            },
+            {
+              "candidate_admissible": true,
+              "candidate_time_us": 34454866.25000001,
+              "eps_2q": 0.005,
+              "reference_admissible": true,
+              "reference_time_us": 31804006.5,
+              "t_2q_over_readout_reset": 0.1,
+              "winner": "not_accuracy_matched"
+            },
+            {
+              "candidate_admissible": true,
+              "candidate_time_us": 40236271.65,
+              "eps_2q": 0.01,
+              "reference_admissible": true,
+              "reference_time_us": 31804006.5,
+              "t_2q_over_readout_reset": 0.1,
+              "winner": "not_accuracy_matched"
+            },
+            {
+              "candidate_admissible": false,
+              "candidate_time_us": 56552012.65,
+              "eps_2q": 0.02,
+              "reference_admissible": true,
+              "reference_time_us": 31804006.5,
+              "t_2q_over_readout_reset": 0.1,
+              "winner": "reference"
+            },
+            {
+              "candidate_admissible": false,
+              "candidate_time_us": 207250006.00000003,
+              "eps_2q": 0.05,
+              "reference_admissible": true,
+              "reference_time_us": 31804006.5,
+              "t_2q_over_readout_reset": 0.1,
+              "winner": "reference"
+            },
+            {
+              "candidate_admissible": true,
+              "candidate_time_us": 56081680.65,
+              "eps_2q": 0.0,
+              "reference_admissible": true,
+              "reference_time_us": 31804006.5,
+              "t_2q_over_readout_reset": 0.5,
+              "winner": "not_accuracy_matched"
+            },
+            {
+              "candidate_admissible": true,
+              "candidate_time_us": 66088946.25,
+              "eps_2q": 0.005,
+              "reference_admissible": true,
+              "reference_time_us": 31804006.5,
+              "t_2q_over_readout_reset": 0.5,
+              "winner": "not_accuracy_matched"
+            },
+            {
+              "candidate_admissible": true,
+              "candidate_time_us": 78594694.04999998,
+              "eps_2q": 0.01,
+              "reference_admissible": true,
+              "reference_time_us": 31804006.5,
+              "t_2q_over_readout_reset": 0.5,
+              "winner": "not_accuracy_matched"
+            },
+            {
+              "candidate_admissible": false,
+              "candidate_time_us": 114397358.25,
+              "eps_2q": 0.02,
+              "reference_admissible": true,
+              "reference_time_us": 31804006.5,
+              "t_2q_over_readout_reset": 0.5,
+              "winner": "reference"
+            },
+            {
+              "candidate_admissible": false,
+              "candidate_time_us": 456053350.0,
+              "eps_2q": 0.05,
+              "reference_admissible": true,
+              "reference_time_us": 31804006.5,
+              "t_2q_over_readout_reset": 0.5,
+              "winner": "reference"
+            },
+            {
+              "candidate_admissible": true,
+              "candidate_time_us": 88957114.64999999,
+              "eps_2q": 0.0,
+              "reference_admissible": true,
+              "reference_time_us": 31804006.5,
+              "t_2q_over_readout_reset": 1.0,
+              "winner": "not_accuracy_matched"
+            },
+            {
+              "candidate_admissible": true,
+              "candidate_time_us": 105631546.25,
+              "eps_2q": 0.005,
+              "reference_admissible": true,
+              "reference_time_us": 31804006.5,
+              "t_2q_over_readout_reset": 1.0,
+              "winner": "not_accuracy_matched"
+            },
+            {
+              "candidate_admissible": true,
+              "candidate_time_us": 126542722.04999998,
+              "eps_2q": 0.01,
+              "reference_admissible": true,
+              "reference_time_us": 31804006.5,
+              "t_2q_over_readout_reset": 1.0,
+              "winner": "not_accuracy_matched"
+            },
+            {
+              "candidate_admissible": false,
+              "candidate_time_us": 186704040.25,
+              "eps_2q": 0.02,
+              "reference_admissible": true,
+              "reference_time_us": 31804006.5,
+              "t_2q_over_readout_reset": 1.0,
+              "winner": "reference"
+            },
+            {
+              "candidate_admissible": false,
+              "candidate_time_us": 767057529.9999999,
+              "eps_2q": 0.05,
+              "reference_admissible": true,
+              "reference_time_us": 31804006.5,
+              "t_2q_over_readout_reset": 1.0,
+              "winner": "reference"
+            },
+            {
+              "candidate_admissible": true,
+              "candidate_time_us": 154707982.65,
+              "eps_2q": 0.0,
+              "reference_admissible": true,
+              "reference_time_us": 31804006.5,
+              "t_2q_over_readout_reset": 2.0,
+              "winner": "not_accuracy_matched"
+            },
+            {
+              "candidate_admissible": true,
+              "candidate_time_us": 184716746.25,
+              "eps_2q": 0.005,
+              "reference_admissible": true,
+              "reference_time_us": 31804006.5,
+              "t_2q_over_readout_reset": 2.0,
+              "winner": "not_accuracy_matched"
+            },
+            {
+              "candidate_admissible": true,
+              "candidate_time_us": 222438778.05000007,
+              "eps_2q": 0.01,
+              "reference_admissible": true,
+              "reference_time_us": 31804006.5,
+              "t_2q_over_readout_reset": 2.0,
+              "winner": "not_accuracy_matched"
+            },
+            {
+              "candidate_admissible": false,
+              "candidate_time_us": 331317404.25,
+              "eps_2q": 0.02,
+              "reference_admissible": true,
+              "reference_time_us": 31804006.5,
+              "t_2q_over_readout_reset": 2.0,
+              "winner": "reference"
+            },
+            {
+              "candidate_admissible": false,
+              "candidate_time_us": 1389065890.0,
+              "eps_2q": 0.05,
+              "reference_admissible": true,
+              "reference_time_us": 31804006.5,
+              "t_2q_over_readout_reset": 2.0,
+              "winner": "reference"
+            }
+          ],
+          "schema": "clifford_qc.measurement_break_even.v1"
+        }
+      },
+      "cx_to_preparation_cost_ratio_vs_qwc": 0.09489832322511595,
+      "device_costs": {
+        "ion-like": {
+          "device_card_sha256": "9cc7e53e935e4ec3c265efbd9b6218f17a68c51d727d658c5a5bcaf98d34f453",
+          "equal_effective_shots": {
+            "accuracy": {
+              "C_time_epsilon_us": null,
+              "epsilon": null,
+              "evidence_tier": "exact",
+              "status": "fixed_shot_only"
+            },
+            "admissible": true,
+            "device_card": {
+              "calibration_status": "illustrative_scenario",
+              "name": "ion-like",
+              "sha256": "9cc7e53e935e4ec3c265efbd9b6218f17a68c51d727d658c5a5bcaf98d34f453"
+            },
+            "effective_shots": 5176232.250737891,
+            "fidelity": {
+              "floor": 0.5,
+              "max": 0.9227446944279201,
+              "mean": 0.8980697837843491,
+              "min": 0.8486535610091513
+            },
+            "fixed_shot_time_us": 4446836660.0,
+            "inadmissible_settings": 0,
+            "logical_1q_applications": 70641591,
+            "logical_2q_applications": 28391257,
+            "modeled_2q_applications": 28391257,
+            "n_qubits": 8,
+            "raw_shots": 6422176,
+            "routing": {
+              "model": "declared scalar sensitivity surrogate",
+              "required": false,
+              "two_qubit_count_multiplier": 1.0,
+              "two_qubit_depth_multiplier": 1.0
+            },
+            "schema": "clifford_qc.measurement_cost.v1",
+            "settings": 647
+          },
+          "estimator_information_at_uniform_raw_shots": {
+            "pooled": {
+              "compatible_settings_per_word": {
+                "max": 647,
+                "mean": 3.844932844932845,
+                "min": 1
+              },
+              "coverage_fraction": {
+                "max": 1.0,
+                "mean": 0.0059427091884588015,
+                "min": 0.0015455950540958269
+              },
+              "effective_word_shots": {
+                "max": 4175509.3482864513,
+                "mean": 24803.765457450314,
+                "min": 5761.702932908107,
+                "total": 182828555.18686625
+              },
+              "estimator": "pooled",
+              "raw_word_shots": {
+                "max": 5176000.0,
+                "mean": 30759.46275946276,
+                "min": 8000.0,
+                "total": 226728000.0
+              },
+              "word_samples_per_preparation": 43.80370942812983
+            },
+            "single_assignment": {
+              "compatible_settings_per_word": {
+                "max": 1,
+                "mean": 1.0,
+                "min": 1
+              },
+              "coverage_fraction": {
+                "max": 0.0015455950540958269,
+                "mean": 0.0015455950540958266,
+                "min": 0.0015455950540958269
+              },
+              "effective_word_shots": {
+                "max": 6811.662168759004,
+                "mean": 6495.792530419975,
+                "min": 5761.702932908107,
+                "total": 47880486.74172564
+              },
+              "estimator": "single_assignment",
+              "raw_word_shots": {
+                "max": 8000.0,
+                "mean": 8000.0,
+                "min": 8000.0,
+                "total": 58968000.0
+              },
+              "word_samples_per_preparation": 11.39258114374034
+            }
+          },
+          "fixed_uniform_raw_shots": {
+            "accuracy": {
+              "C_time_epsilon_us": null,
+              "epsilon": null,
+              "evidence_tier": "exact",
+              "status": "fixed_shot_only"
+            },
+            "admissible": true,
+            "device_card": {
+              "calibration_status": "illustrative_scenario",
+              "name": "ion-like",
+              "sha256": "9cc7e53e935e4ec3c265efbd9b6218f17a68c51d727d658c5a5bcaf98d34f453"
+            },
+            "effective_shots": 4175509.3482864504,
+            "fidelity": {
+              "floor": 0.5,
+              "max": 0.9227446944279201,
+              "mean": 0.8980697837843491,
+              "min": 0.8486535610091513
+            },
+            "fixed_shot_time_us": 3544960000.0,
+            "inadmissible_settings": 0,
+            "logical_1q_applications": 56912000,
+            "logical_2q_applications": 22424000,
+            "modeled_2q_applications": 22424000,
+            "n_qubits": 8,
+            "raw_shots": 5176000,
+            "routing": {
+              "model": "declared scalar sensitivity surrogate",
+              "required": false,
+              "two_qubit_count_multiplier": 1.0,
+              "two_qubit_depth_multiplier": 1.0
+            },
+            "schema": "clifford_qc.measurement_cost.v1",
+            "settings": 647
+          }
+        },
+        "logical-alltoall": {
+          "device_card_sha256": "07e9cc637e590668bc89b7d407535f34f509155e08c95d2ecd0f8f931738265b",
+          "equal_effective_shots": {
+            "accuracy": {
+              "C_time_epsilon_us": null,
+              "epsilon": null,
+              "evidence_tier": "exact",
+              "status": "fixed_shot_only"
+            },
+            "admissible": true,
+            "device_card": {
+              "calibration_status": "logical_baseline",
+              "name": "logical-alltoall",
+              "sha256": "07e9cc637e590668bc89b7d407535f34f509155e08c95d2ecd0f8f931738265b"
+            },
+            "effective_shots": 5176000.0,
+            "fidelity": {
+              "floor": 0.5,
+              "max": 1.0,
+              "mean": 1.0,
+              "min": 1.0
+            },
+            "fixed_shot_time_us": 14747200.0,
+            "inadmissible_settings": 0,
+            "logical_1q_applications": 56912000,
+            "logical_2q_applications": 22424000,
+            "modeled_2q_applications": 22424000,
+            "n_qubits": 8,
+            "raw_shots": 5176000,
+            "routing": {
+              "model": "declared scalar sensitivity surrogate",
+              "required": false,
+              "two_qubit_count_multiplier": 1.0,
+              "two_qubit_depth_multiplier": 1.0
+            },
+            "schema": "clifford_qc.measurement_cost.v1",
+            "settings": 647
+          },
+          "estimator_information_at_uniform_raw_shots": {
+            "pooled": {
+              "compatible_settings_per_word": {
+                "max": 647,
+                "mean": 3.844932844932845,
+                "min": 1
+              },
+              "coverage_fraction": {
+                "max": 1.0,
+                "mean": 0.0059427091884588015,
+                "min": 0.0015455950540958269
+              },
+              "effective_word_shots": {
+                "max": 5176000.0,
+                "mean": 30759.46275946276,
+                "min": 8000.0,
+                "total": 226728000.0
+              },
+              "estimator": "pooled",
+              "raw_word_shots": {
+                "max": 5176000.0,
+                "mean": 30759.46275946276,
+                "min": 8000.0,
+                "total": 226728000.0
+              },
+              "word_samples_per_preparation": 43.80370942812983
+            },
+            "single_assignment": {
+              "compatible_settings_per_word": {
+                "max": 1,
+                "mean": 1.0,
+                "min": 1
+              },
+              "coverage_fraction": {
+                "max": 0.0015455950540958269,
+                "mean": 0.0015455950540958266,
+                "min": 0.0015455950540958269
+              },
+              "effective_word_shots": {
+                "max": 8000.0,
+                "mean": 8000.0,
+                "min": 8000.0,
+                "total": 58968000.0
+              },
+              "estimator": "single_assignment",
+              "raw_word_shots": {
+                "max": 8000.0,
+                "mean": 8000.0,
+                "min": 8000.0,
+                "total": 58968000.0
+              },
+              "word_samples_per_preparation": 11.39258114374034
+            }
+          },
+          "fixed_uniform_raw_shots": {
+            "accuracy": {
+              "C_time_epsilon_us": null,
+              "epsilon": null,
+              "evidence_tier": "exact",
+              "status": "fixed_shot_only"
+            },
+            "admissible": true,
+            "device_card": {
+              "calibration_status": "logical_baseline",
+              "name": "logical-alltoall",
+              "sha256": "07e9cc637e590668bc89b7d407535f34f509155e08c95d2ecd0f8f931738265b"
+            },
+            "effective_shots": 5176000.0,
+            "fidelity": {
+              "floor": 0.5,
+              "max": 1.0,
+              "mean": 1.0,
+              "min": 1.0
+            },
+            "fixed_shot_time_us": 14747200.0,
+            "inadmissible_settings": 0,
+            "logical_1q_applications": 56912000,
+            "logical_2q_applications": 22424000,
+            "modeled_2q_applications": 22424000,
+            "n_qubits": 8,
+            "raw_shots": 5176000,
+            "routing": {
+              "model": "declared scalar sensitivity surrogate",
+              "required": false,
+              "two_qubit_count_multiplier": 1.0,
+              "two_qubit_depth_multiplier": 1.0
+            },
+            "schema": "clifford_qc.measurement_cost.v1",
+            "settings": 647
+          }
+        },
+        "superconducting-like": {
+          "device_card_sha256": "cf78e3240ad48839a8113a1570a43e614c230a8428fe8ceda7783e7ff75e1a13",
+          "equal_effective_shots": {
+            "accuracy": {
+              "C_time_epsilon_us": null,
+              "epsilon": null,
+              "evidence_tier": "exact",
+              "status": "fixed_shot_only"
+            },
+            "admissible": true,
+            "device_card": {
+              "calibration_status": "illustrative_scenario",
+              "name": "superconducting-like",
+              "sha256": "cf78e3240ad48839a8113a1570a43e614c230a8428fe8ceda7783e7ff75e1a13"
+            },
+            "effective_shots": 5176191.134903379,
+            "fidelity": {
+              "floor": 0.5,
+              "max": 0.8507630225817855,
+              "mean": 0.7413104997283396,
+              "min": 0.5215024628928226
+            },
+            "fixed_shot_time_us": 45031074.45,
+            "inadmissible_settings": 0,
+            "logical_1q_applications": 105810673,
+            "logical_2q_applications": 47246363,
+            "modeled_2q_applications": 141739089,
+            "n_qubits": 8,
+            "raw_shots": 9652059,
+            "routing": {
+              "model": "declared scalar sensitivity surrogate",
+              "required": true,
+              "two_qubit_count_multiplier": 3.0,
+              "two_qubit_depth_multiplier": 2.0
+            },
+            "schema": "clifford_qc.measurement_cost.v1",
+            "settings": 647
+          },
+          "estimator_information_at_uniform_raw_shots": {
+            "pooled": {
+              "compatible_settings_per_word": {
+                "max": 647,
+                "mean": 3.844932844932845,
+                "min": 1
+              },
+              "coverage_fraction": {
+                "max": 1.0,
+                "mean": 0.0059427091884588015,
+                "min": 0.0015455950540958269
+              },
+              "effective_word_shots": {
+                "max": 2865825.517978748,
+                "mean": 16993.4493919988,
+                "min": 2175.7185504262393,
+                "total": 125258715.46842316
+              },
+              "estimator": "pooled",
+              "raw_word_shots": {
+                "max": 5176000.0,
+                "mean": 30759.46275946276,
+                "min": 8000.0,
+                "total": 226728000.0
+              },
+              "word_samples_per_preparation": 43.80370942812983
+            },
+            "single_assignment": {
+              "compatible_settings_per_word": {
+                "max": 1,
+                "mean": 1.0,
+                "min": 1
+              },
+              "coverage_fraction": {
+                "max": 0.0015455950540958269,
+                "mean": 0.0015455950540958266,
+                "min": 0.0015455950540958269
+              },
+              "effective_word_shots": {
+                "max": 5790.381764739966,
+                "mean": 4587.494790084556,
+                "min": 2175.7185504262393,
+                "total": 33814424.09771326
+              },
+              "estimator": "single_assignment",
+              "raw_word_shots": {
+                "max": 8000.0,
+                "mean": 8000.0,
+                "min": 8000.0,
+                "total": 58968000.0
+              },
+              "word_samples_per_preparation": 11.39258114374034
+            }
+          },
+          "fixed_uniform_raw_shots": {
+            "accuracy": {
+              "C_time_epsilon_us": null,
+              "epsilon": null,
+              "evidence_tier": "exact",
+              "status": "fixed_shot_only"
+            },
+            "admissible": true,
+            "device_card": {
+              "calibration_status": "illustrative_scenario",
+              "name": "superconducting-like",
+              "sha256": "cf78e3240ad48839a8113a1570a43e614c230a8428fe8ceda7783e7ff75e1a13"
+            },
+            "effective_shots": 2865825.5179787483,
+            "fidelity": {
+              "floor": 0.5,
+              "max": 0.8507630225817855,
+              "mean": 0.7413104997283396,
+              "min": 0.5215024628928226
+            },
+            "fixed_shot_time_us": 23417600.0,
+            "inadmissible_settings": 0,
+            "logical_1q_applications": 56912000,
+            "logical_2q_applications": 22424000,
+            "modeled_2q_applications": 67272000,
+            "n_qubits": 8,
+            "raw_shots": 5176000,
+            "routing": {
+              "model": "declared scalar sensitivity surrogate",
+              "required": true,
+              "two_qubit_count_multiplier": 3.0,
+              "two_qubit_depth_multiplier": 2.0
+            },
+            "schema": "clifford_qc.measurement_cost.v1",
+            "settings": 647
+          }
+        }
+      },
+      "estimators": {
+        "pooled": {
+          "compatible_settings_per_word": {
+            "max": 647,
+            "mean": 3.844932844932845,
+            "min": 1
+          },
+          "coverage_fraction": {
+            "max": 1.0,
+            "mean": 0.0059427091884588015,
+            "min": 0.0015455950540958269
+          },
+          "effective_word_shots": {
+            "max": 5176000.0,
+            "mean": 30759.46275946276,
+            "min": 8000.0,
+            "total": 226728000.0
+          },
+          "estimator": "pooled",
+          "raw_word_shots": {
+            "max": 5176000.0,
+            "mean": 30759.46275946276,
+            "min": 8000.0,
+            "total": 226728000.0
+          },
+          "word_samples_per_preparation": 43.80370942812983
+        },
+        "single_assignment": {
+          "compatible_settings_per_word": {
+            "max": 1,
+            "mean": 1.0,
+            "min": 1
+          },
+          "coverage_fraction": {
+            "max": 0.0015455950540958269,
+            "mean": 0.0015455950540958266,
+            "min": 0.0015455950540958269
+          },
+          "effective_word_shots": {
+            "max": 8000.0,
+            "mean": 8000.0,
+            "min": 8000.0,
+            "total": 58968000.0
+          },
+          "estimator": "single_assignment",
+          "raw_word_shots": {
+            "max": 8000.0,
+            "mean": 8000.0,
+            "min": 8000.0,
+            "total": 58968000.0
+          },
+          "word_samples_per_preparation": 11.39258114374034
+        }
+      },
+      "gate_counts_per_sweep": {
+        "CX": 2803,
+        "H": 4685,
+        "S": 1450,
+        "S_DAG": 979
+      },
+      "logical_cx_applications_at_uniform_shots": 22424000,
+      "logical_cx_depth_sum": 1456,
+      "logical_cx_per_sweep": 2803,
+      "max_logical_cx_depth": 4,
+      "max_logical_cx_per_setting": 16,
+      "mean_logical_cx_depth": 2.2503863987635238,
+      "mean_logical_cx_per_setting": 4.332302936630603,
+      "resource_metrics": {
+        "D_1q": {
+          "max": 5,
+          "mean": 3.480680061823802,
+          "sum": 2252
+        },
+        "D_2q": {
+          "max": 4,
+          "mean": 2.2503863987635238,
+          "sum": 1456
+        },
+        "N_1q": {
+          "max": 24,
+          "mean": 10.995363214837713,
+          "sum": 7114
+        },
+        "N_2q": {
+          "max": 16,
+          "mean": 4.332302936630603,
+          "sum": 2803
+        }
+      },
+      "settings": 647,
+      "state_preparations_at_uniform_shots": 5176000,
+      "word_samples_per_preparation": 11.39258114374034,
+      "z_only_restrictions_checked": 6402
+    },
+    {
+      "accuracy_matched_costs": {
+        "pooled": {
+          "C_time_epsilon_device_card": null,
+          "C_time_epsilon_us": null,
+          "claim_boundary": "first-order Ritz-functional propagation about the exact frozen bank; not a finite-sample energy certificate or nonlinear solver study",
+          "device_costs": {},
+          "effective_shots_per_setting": null,
+          "epsilon_millihartree": 1.6,
+          "evidence_tier": "asymptotic",
+          "exact_subspace_bias_millihartree": 3.018781343635979,
+          "inadmissible_device_cards": [
+            "ion-like",
+            "logical-alltoall",
+            "superconducting-like"
+          ],
+          "linearized_variance_ha2_at_one_shot_per_setting": null,
+          "pooled_weighting": "uniform over the settings that read each word, which is the inverse-variance combination at the equal-effective-shot schedule priced here",
+          "status": "bias_floor_exceeds_target"
+        },
+        "single_assignment": {
+          "C_time_epsilon_device_card": null,
+          "C_time_epsilon_us": null,
+          "claim_boundary": "first-order Ritz-functional propagation about the exact frozen bank; not a finite-sample energy certificate or nonlinear solver study",
+          "device_costs": {},
+          "effective_shots_per_setting": null,
+          "epsilon_millihartree": 1.6,
+          "evidence_tier": "asymptotic",
+          "exact_subspace_bias_millihartree": 3.018781343635979,
+          "inadmissible_device_cards": [
+            "ion-like",
+            "logical-alltoall",
+            "superconducting-like"
+          ],
+          "linearized_variance_ha2_at_one_shot_per_setting": null,
+          "pooled_weighting": "uniform over the settings that read each word, which is the inverse-variance combination at the equal-effective-shot schedule priced here",
+          "status": "bias_floor_exceeds_target"
+        }
+      },
+      "block_size": 4,
+      "break_even_vs_qwc": {
+        "ion-like": {
+          "base_device_card": {
+            "name": "ion-like",
+            "sha256": "9cc7e53e935e4ec3c265efbd9b6218f17a68c51d727d658c5a5bcaf98d34f453"
+          },
+          "effective_shots_per_setting": 8000,
+          "epsilon": null,
+          "evidence_tier": "exact",
+          "points": [
+            {
+              "candidate_admissible": true,
+              "candidate_time_us": 610526210.0,
+              "eps_2q": 0.0,
+              "reference_admissible": true,
+              "reference_time_us": 1900369400.0,
+              "t_2q_over_readout_reset": 0.0,
+              "winner": "not_accuracy_matched"
+            },
+            {
+              "candidate_admissible": true,
+              "candidate_time_us": 702628260.0,
+              "eps_2q": 0.005,
+              "reference_admissible": true,
+              "reference_time_us": 1900369400.0,
+              "t_2q_over_readout_reset": 0.0,
+              "winner": "not_accuracy_matched"
+            },
+            {
+              "candidate_admissible": true,
+              "candidate_time_us": 811125180.0,
+              "eps_2q": 0.01,
+              "reference_admissible": true,
+              "reference_time_us": 1900369400.0,
+              "t_2q_over_readout_reset": 0.0,
+              "winner": "not_accuracy_matched"
+            },
+            {
+              "candidate_admissible": true,
+              "candidate_time_us": 1091120900.0,
+              "eps_2q": 0.02,
+              "reference_admissible": true,
+              "reference_time_us": 1900369400.0,
+              "t_2q_over_readout_reset": 0.0,
+              "winner": "not_accuracy_matched"
+            },
+            {
+              "candidate_admissible": false,
+              "candidate_time_us": 2866554990.0,
+              "eps_2q": 0.05,
+              "reference_admissible": true,
+              "reference_time_us": 1900369400.0,
+              "t_2q_over_readout_reset": 0.0,
+              "winner": "reference"
+            },
+            {
+              "candidate_admissible": true,
+              "candidate_time_us": 884650040.0,
+              "eps_2q": 0.0,
+              "reference_admissible": true,
+              "reference_time_us": 1900369400.0,
+              "t_2q_over_readout_reset": 0.1,
+              "winner": "not_accuracy_matched"
+            },
+            {
+              "candidate_admissible": true,
+              "candidate_time_us": 1022402715.0,
+              "eps_2q": 0.005,
+              "reference_admissible": true,
+              "reference_time_us": 1900369400.0,
+              "t_2q_over_readout_reset": 0.1,
+              "winner": "not_accuracy_matched"
+            },
+            {
+              "candidate_admissible": true,
+              "candidate_time_us": 1185189495.0,
+              "eps_2q": 0.01,
+              "reference_admissible": true,
+              "reference_time_us": 1900369400.0,
+              "t_2q_over_readout_reset": 0.1,
+              "winner": "not_accuracy_matched"
+            },
+            {
+              "candidate_admissible": true,
+              "candidate_time_us": 1607300585.0,
+              "eps_2q": 0.02,
+              "reference_admissible": true,
+              "reference_time_us": 1900369400.0,
+              "t_2q_over_readout_reset": 0.1,
+              "winner": "not_accuracy_matched"
+            },
+            {
+              "candidate_admissible": false,
+              "candidate_time_us": 4319342850.0,
+              "eps_2q": 0.05,
+              "reference_admissible": true,
+              "reference_time_us": 1900369400.0,
+              "t_2q_over_readout_reset": 0.1,
+              "winner": "reference"
+            },
+            {
+              "candidate_admissible": true,
+              "candidate_time_us": 1981145360.0,
+              "eps_2q": 0.0,
+              "reference_admissible": true,
+              "reference_time_us": 1900369400.0,
+              "t_2q_over_readout_reset": 0.5,
+              "winner": "not_accuracy_matched"
+            },
+            {
+              "candidate_admissible": true,
+              "candidate_time_us": 2301500535.0,
+              "eps_2q": 0.005,
+              "reference_admissible": true,
+              "reference_time_us": 1900369400.0,
+              "t_2q_over_readout_reset": 0.5,
+              "winner": "not_accuracy_matched"
+            },
+            {
+              "candidate_admissible": true,
+              "candidate_time_us": 2681446755.0,
+              "eps_2q": 0.01,
+              "reference_admissible": true,
+              "reference_time_us": 1900369400.0,
+              "t_2q_over_readout_reset": 0.5,
+              "winner": "not_accuracy_matched"
+            },
+            {
+              "candidate_admissible": true,
+              "candidate_time_us": 3672019325.0,
+              "eps_2q": 0.02,
+              "reference_admissible": true,
+              "reference_time_us": 1900369400.0,
+              "t_2q_over_readout_reset": 0.5,
+              "winner": "not_accuracy_matched"
+            },
+            {
+              "candidate_admissible": false,
+              "candidate_time_us": 10130494290.0,
+              "eps_2q": 0.05,
+              "reference_admissible": true,
+              "reference_time_us": 1900369400.0,
+              "t_2q_over_readout_reset": 0.5,
+              "winner": "reference"
+            },
+            {
+              "candidate_admissible": true,
+              "candidate_time_us": 3351764510.0,
+              "eps_2q": 0.0,
+              "reference_admissible": true,
+              "reference_time_us": 1900369400.0,
+              "t_2q_over_readout_reset": 1.0,
+              "winner": "not_accuracy_matched"
+            },
+            {
+              "candidate_admissible": true,
+              "candidate_time_us": 3900372810.0,
+              "eps_2q": 0.005,
+              "reference_admissible": true,
+              "reference_time_us": 1900369400.0,
+              "t_2q_over_readout_reset": 1.0,
+              "winner": "not_accuracy_matched"
+            },
+            {
+              "candidate_admissible": true,
+              "candidate_time_us": 4551768330.0,
+              "eps_2q": 0.01,
+              "reference_admissible": true,
+              "reference_time_us": 1900369400.0,
+              "t_2q_over_readout_reset": 1.0,
+              "winner": "not_accuracy_matched"
+            },
+            {
+              "candidate_admissible": true,
+              "candidate_time_us": 6252917750.0,
+              "eps_2q": 0.02,
+              "reference_admissible": true,
+              "reference_time_us": 1900369400.0,
+              "t_2q_over_readout_reset": 1.0,
+              "winner": "not_accuracy_matched"
+            },
+            {
+              "candidate_admissible": false,
+              "candidate_time_us": 17394433590.0,
+              "eps_2q": 0.05,
+              "reference_admissible": true,
+              "reference_time_us": 1900369400.0,
+              "t_2q_over_readout_reset": 1.0,
+              "winner": "reference"
+            },
+            {
+              "candidate_admissible": true,
+              "candidate_time_us": 6093002810.0,
+              "eps_2q": 0.0,
+              "reference_admissible": true,
+              "reference_time_us": 1900369400.0,
+              "t_2q_over_readout_reset": 2.0,
+              "winner": "not_accuracy_matched"
+            },
+            {
+              "candidate_admissible": true,
+              "candidate_time_us": 7098117360.0,
+              "eps_2q": 0.005,
+              "reference_admissible": true,
+              "reference_time_us": 1900369400.0,
+              "t_2q_over_readout_reset": 2.0,
+              "winner": "not_accuracy_matched"
+            },
+            {
+              "candidate_admissible": true,
+              "candidate_time_us": 8292411480.0,
+              "eps_2q": 0.01,
+              "reference_admissible": true,
+              "reference_time_us": 1900369400.0,
+              "t_2q_over_readout_reset": 2.0,
+              "winner": "not_accuracy_matched"
+            },
+            {
+              "candidate_admissible": true,
+              "candidate_time_us": 11414714600.0,
+              "eps_2q": 0.02,
+              "reference_admissible": true,
+              "reference_time_us": 1900369400.0,
+              "t_2q_over_readout_reset": 2.0,
+              "winner": "not_accuracy_matched"
+            },
+            {
+              "candidate_admissible": false,
+              "candidate_time_us": 31922312190.0,
+              "eps_2q": 0.05,
+              "reference_admissible": true,
+              "reference_time_us": 1900369400.0,
+              "t_2q_over_readout_reset": 2.0,
+              "winner": "reference"
+            }
+          ],
+          "schema": "clifford_qc.measurement_break_even.v1"
+        },
+        "logical-alltoall": {
+          "base_device_card": {
+            "name": "logical-alltoall",
+            "sha256": "07e9cc637e590668bc89b7d407535f34f509155e08c95d2ecd0f8f931738265b"
+          },
+          "effective_shots_per_setting": 8000,
+          "epsilon": null,
+          "evidence_tier": "exact",
+          "points": [
+            {
+              "candidate_admissible": true,
+              "candidate_time_us": 4457600.0,
+              "eps_2q": 0.0,
+              "reference_admissible": true,
+              "reference_time_us": 15325200.0,
+              "t_2q_over_readout_reset": 0.0,
+              "winner": "not_accuracy_matched"
+            },
+            {
+              "candidate_admissible": true,
+              "candidate_time_us": 5127369.249999999,
+              "eps_2q": 0.005,
+              "reference_admissible": true,
+              "reference_time_us": 15325200.0,
+              "t_2q_over_readout_reset": 0.0,
+              "winner": "not_accuracy_matched"
+            },
+            {
+              "candidate_admissible": true,
+              "candidate_time_us": 5915587.3,
+              "eps_2q": 0.01,
+              "reference_admissible": true,
+              "reference_time_us": 15325200.0,
+              "t_2q_over_readout_reset": 0.0,
+              "winner": "not_accuracy_matched"
+            },
+            {
+              "candidate_admissible": true,
+              "candidate_time_us": 7948118.8500000015,
+              "eps_2q": 0.02,
+              "reference_admissible": true,
+              "reference_time_us": 15325200.0,
+              "t_2q_over_readout_reset": 0.0,
+              "winner": "not_accuracy_matched"
+            },
+            {
+              "candidate_admissible": false,
+              "candidate_time_us": 20804862.9,
+              "eps_2q": 0.05,
+              "reference_admissible": true,
+              "reference_time_us": 15325200.0,
+              "t_2q_over_readout_reset": 0.0,
+              "winner": "reference"
+            },
+            {
+              "candidate_admissible": true,
+              "candidate_time_us": 7515200.0,
+              "eps_2q": 0.0,
+              "reference_admissible": true,
+              "reference_time_us": 15325200.0,
+              "t_2q_over_readout_reset": 0.1,
+              "winner": "not_accuracy_matched"
+            },
+            {
+              "candidate_admissible": true,
+              "candidate_time_us": 8694137.850000001,
+              "eps_2q": 0.005,
+              "reference_admissible": true,
+              "reference_time_us": 15325200.0,
+              "t_2q_over_readout_reset": 0.1,
+              "winner": "not_accuracy_matched"
+            },
+            {
+              "candidate_admissible": true,
+              "candidate_time_us": 10087568.7,
+              "eps_2q": 0.01,
+              "reference_admissible": true,
+              "reference_time_us": 15325200.0,
+              "t_2q_over_readout_reset": 0.1,
+              "winner": "not_accuracy_matched"
+            },
+            {
+              "candidate_admissible": true,
+              "candidate_time_us": 13704240.05,
+              "eps_2q": 0.02,
+              "reference_admissible": true,
+              "reference_time_us": 15325200.0,
+              "t_2q_over_readout_reset": 0.1,
+              "winner": "not_accuracy_matched"
+            },
+            {
+              "candidate_admissible": false,
+              "candidate_time_us": 36997641.9,
+              "eps_2q": 0.05,
+              "reference_admissible": true,
+              "reference_time_us": 15325200.0,
+              "t_2q_over_readout_reset": 0.1,
+              "winner": "reference"
+            },
+            {
+              "candidate_admissible": true,
+              "candidate_time_us": 19745600.0,
+              "eps_2q": 0.0,
+              "reference_admissible": true,
+              "reference_time_us": 15325200.0,
+              "t_2q_over_readout_reset": 0.5,
+              "winner": "not_accuracy_matched"
+            },
+            {
+              "candidate_admissible": true,
+              "candidate_time_us": 22961212.250000004,
+              "eps_2q": 0.005,
+              "reference_admissible": true,
+              "reference_time_us": 15325200.0,
+              "t_2q_over_readout_reset": 0.5,
+              "winner": "not_accuracy_matched"
+            },
+            {
+              "candidate_admissible": true,
+              "candidate_time_us": 26775494.3,
+              "eps_2q": 0.01,
+              "reference_admissible": true,
+              "reference_time_us": 15325200.0,
+              "t_2q_over_readout_reset": 0.5,
+              "winner": "not_accuracy_matched"
+            },
+            {
+              "candidate_admissible": true,
+              "candidate_time_us": 36728724.85000001,
+              "eps_2q": 0.02,
+              "reference_admissible": true,
+              "reference_time_us": 15325200.0,
+              "t_2q_over_readout_reset": 0.5,
+              "winner": "not_accuracy_matched"
+            },
+            {
+              "candidate_admissible": false,
+              "candidate_time_us": 101768757.9,
+              "eps_2q": 0.05,
+              "reference_admissible": true,
+              "reference_time_us": 15325200.0,
+              "t_2q_over_readout_reset": 0.5,
+              "winner": "reference"
+            },
+            {
+              "candidate_admissible": true,
+              "candidate_time_us": 35033600.0,
+              "eps_2q": 0.0,
+              "reference_admissible": true,
+              "reference_time_us": 15325200.0,
+              "t_2q_over_readout_reset": 1.0,
+              "winner": "not_accuracy_matched"
+            },
+            {
+              "candidate_admissible": true,
+              "candidate_time_us": 40795055.25000001,
+              "eps_2q": 0.005,
+              "reference_admissible": true,
+              "reference_time_us": 15325200.0,
+              "t_2q_over_readout_reset": 1.0,
+              "winner": "not_accuracy_matched"
+            },
+            {
+              "candidate_admissible": true,
+              "candidate_time_us": 47635401.300000004,
+              "eps_2q": 0.01,
+              "reference_admissible": true,
+              "reference_time_us": 15325200.0,
+              "t_2q_over_readout_reset": 1.0,
+              "winner": "not_accuracy_matched"
+            },
+            {
+              "candidate_admissible": true,
+              "candidate_time_us": 65509330.85000001,
+              "eps_2q": 0.02,
+              "reference_admissible": true,
+              "reference_time_us": 15325200.0,
+              "t_2q_over_readout_reset": 1.0,
+              "winner": "not_accuracy_matched"
+            },
+            {
+              "candidate_admissible": false,
+              "candidate_time_us": 182732652.90000007,
+              "eps_2q": 0.05,
+              "reference_admissible": true,
+              "reference_time_us": 15325200.0,
+              "t_2q_over_readout_reset": 1.0,
+              "winner": "reference"
+            },
+            {
+              "candidate_admissible": true,
+              "candidate_time_us": 65609600.0,
+              "eps_2q": 0.0,
+              "reference_admissible": true,
+              "reference_time_us": 15325200.0,
+              "t_2q_over_readout_reset": 2.0,
+              "winner": "not_accuracy_matched"
+            },
+            {
+              "candidate_admissible": true,
+              "candidate_time_us": 76462741.24999999,
+              "eps_2q": 0.005,
+              "reference_admissible": true,
+              "reference_time_us": 15325200.0,
+              "t_2q_over_readout_reset": 2.0,
+              "winner": "not_accuracy_matched"
+            },
+            {
+              "candidate_admissible": true,
+              "candidate_time_us": 89355215.30000003,
+              "eps_2q": 0.01,
+              "reference_admissible": true,
+              "reference_time_us": 15325200.0,
+              "t_2q_over_readout_reset": 2.0,
+              "winner": "not_accuracy_matched"
+            },
+            {
+              "candidate_admissible": true,
+              "candidate_time_us": 123070542.85000002,
+              "eps_2q": 0.02,
+              "reference_admissible": true,
+              "reference_time_us": 15325200.0,
+              "t_2q_over_readout_reset": 2.0,
+              "winner": "not_accuracy_matched"
+            },
+            {
+              "candidate_admissible": false,
+              "candidate_time_us": 344660442.9,
+              "eps_2q": 0.05,
+              "reference_admissible": true,
+              "reference_time_us": 15325200.0,
+              "t_2q_over_readout_reset": 2.0,
+              "winner": "reference"
+            }
+          ],
+          "schema": "clifford_qc.measurement_break_even.v1"
+        },
+        "superconducting-like": {
+          "base_device_card": {
+            "name": "superconducting-like",
+            "sha256": "cf78e3240ad48839a8113a1570a43e614c230a8428fe8ceda7783e7ff75e1a13"
+          },
+          "effective_shots_per_setting": 8000,
+          "epsilon": null,
+          "evidence_tier": "exact",
+          "points": [
+            {
+              "candidate_admissible": true,
+              "candidate_time_us": 9102560.6,
+              "eps_2q": 0.0,
+              "reference_admissible": true,
+              "reference_time_us": 31804006.5,
+              "t_2q_over_readout_reset": 0.0,
+              "winner": "not_accuracy_matched"
+            },
+            {
+              "candidate_admissible": true,
+              "candidate_time_us": 13945144.3,
+              "eps_2q": 0.005,
+              "reference_admissible": true,
+              "reference_time_us": 31804006.5,
+              "t_2q_over_readout_reset": 0.0,
+              "winner": "not_accuracy_matched"
+            },
+            {
+              "candidate_admissible": false,
+              "candidate_time_us": 21865818.750000004,
+              "eps_2q": 0.01,
+              "reference_admissible": true,
+              "reference_time_us": 31804006.5,
+              "t_2q_over_readout_reset": 0.0,
+              "winner": "reference"
+            },
+            {
+              "candidate_admissible": false,
+              "candidate_time_us": 57561037.95,
+              "eps_2q": 0.02,
+              "reference_admissible": true,
+              "reference_time_us": 31804006.5,
+              "t_2q_over_readout_reset": 0.0,
+              "winner": "reference"
+            },
+            {
+              "candidate_admissible": false,
+              "candidate_time_us": 1754732852.7,
+              "eps_2q": 0.05,
+              "reference_admissible": true,
+              "reference_time_us": 31804006.5,
+              "t_2q_over_readout_reset": 0.0,
+              "winner": "reference"
+            },
+            {
+              "candidate_admissible": true,
+              "candidate_time_us": 17854931.4,
+              "eps_2q": 0.0,
+              "reference_admissible": true,
+              "reference_time_us": 31804006.5,
+              "t_2q_over_readout_reset": 0.1,
+              "winner": "not_accuracy_matched"
+            },
+            {
+              "candidate_admissible": true,
+              "candidate_time_us": 27924442.3,
+              "eps_2q": 0.005,
+              "reference_admissible": true,
+              "reference_time_us": 31804006.5,
+              "t_2q_over_readout_reset": 0.1,
+              "winner": "not_accuracy_matched"
+            },
+            {
+              "candidate_admissible": false,
+              "candidate_time_us": 44645606.35000001,
+              "eps_2q": 0.01,
+              "reference_admissible": true,
+              "reference_time_us": 31804006.5,
+              "t_2q_over_readout_reset": 0.1,
+              "winner": "reference"
+            },
+            {
+              "candidate_admissible": false,
+              "candidate_time_us": 121743901.55,
+              "eps_2q": 0.02,
+              "reference_admissible": true,
+              "reference_time_us": 31804006.5,
+              "t_2q_over_readout_reset": 0.1,
+              "winner": "reference"
+            },
+            {
+              "candidate_admissible": false,
+              "candidate_time_us": 4022375941.9,
+              "eps_2q": 0.05,
+              "reference_admissible": true,
+              "reference_time_us": 31804006.5,
+              "t_2q_over_readout_reset": 0.1,
+              "winner": "reference"
+            },
+            {
+              "candidate_admissible": true,
+              "candidate_time_us": 52864414.6,
+              "eps_2q": 0.0,
+              "reference_admissible": true,
+              "reference_time_us": 31804006.5,
+              "t_2q_over_readout_reset": 0.5,
+              "winner": "not_accuracy_matched"
+            },
+            {
+              "candidate_admissible": true,
+              "candidate_time_us": 83841634.30000001,
+              "eps_2q": 0.005,
+              "reference_admissible": true,
+              "reference_time_us": 31804006.5,
+              "t_2q_over_readout_reset": 0.5,
+              "winner": "not_accuracy_matched"
+            },
+            {
+              "candidate_admissible": false,
+              "candidate_time_us": 135764756.75,
+              "eps_2q": 0.01,
+              "reference_admissible": true,
+              "reference_time_us": 31804006.5,
+              "t_2q_over_readout_reset": 0.5,
+              "winner": "reference"
+            },
+            {
+              "candidate_admissible": false,
+              "candidate_time_us": 378475355.9499999,
+              "eps_2q": 0.02,
+              "reference_admissible": true,
+              "reference_time_us": 31804006.5,
+              "t_2q_over_readout_reset": 0.5,
+              "winner": "reference"
+            },
+            {
+              "candidate_admissible": false,
+              "candidate_time_us": 13092948298.7,
+              "eps_2q": 0.05,
+              "reference_admissible": true,
+              "reference_time_us": 31804006.5,
+              "t_2q_over_readout_reset": 0.5,
+              "winner": "reference"
+            },
+            {
+              "candidate_admissible": true,
+              "candidate_time_us": 96626268.6,
+              "eps_2q": 0.0,
+              "reference_admissible": true,
+              "reference_time_us": 31804006.5,
+              "t_2q_over_readout_reset": 1.0,
+              "winner": "not_accuracy_matched"
+            },
+            {
+              "candidate_admissible": true,
+              "candidate_time_us": 153738124.29999998,
+              "eps_2q": 0.005,
+              "reference_admissible": true,
+              "reference_time_us": 31804006.5,
+              "t_2q_over_readout_reset": 1.0,
+              "winner": "not_accuracy_matched"
+            },
+            {
+              "candidate_admissible": false,
+              "candidate_time_us": 249663694.75000006,
+              "eps_2q": 0.01,
+              "reference_admissible": true,
+              "reference_time_us": 31804006.5,
+              "t_2q_over_readout_reset": 1.0,
+              "winner": "reference"
+            },
+            {
+              "candidate_admissible": false,
+              "candidate_time_us": 699389673.95,
+              "eps_2q": 0.02,
+              "reference_admissible": true,
+              "reference_time_us": 31804006.5,
+              "t_2q_over_readout_reset": 1.0,
+              "winner": "reference"
+            },
+            {
+              "candidate_admissible": false,
+              "candidate_time_us": 24431163744.7,
+              "eps_2q": 0.05,
+              "reference_admissible": true,
+              "reference_time_us": 31804006.5,
+              "t_2q_over_readout_reset": 1.0,
+              "winner": "reference"
+            },
+            {
+              "candidate_admissible": true,
+              "candidate_time_us": 184149976.60000002,
+              "eps_2q": 0.0,
+              "reference_admissible": true,
+              "reference_time_us": 31804006.5,
+              "t_2q_over_readout_reset": 2.0,
+              "winner": "not_accuracy_matched"
+            },
+            {
+              "candidate_admissible": true,
+              "candidate_time_us": 293531104.29999995,
+              "eps_2q": 0.005,
+              "reference_admissible": true,
+              "reference_time_us": 31804006.5,
+              "t_2q_over_readout_reset": 2.0,
+              "winner": "not_accuracy_matched"
+            },
+            {
+              "candidate_admissible": false,
+              "candidate_time_us": 477461570.75000006,
+              "eps_2q": 0.01,
+              "reference_admissible": true,
+              "reference_time_us": 31804006.5,
+              "t_2q_over_readout_reset": 2.0,
+              "winner": "reference"
+            },
+            {
+              "candidate_admissible": false,
+              "candidate_time_us": 1341218309.9500003,
+              "eps_2q": 0.02,
+              "reference_admissible": true,
+              "reference_time_us": 31804006.5,
+              "t_2q_over_readout_reset": 2.0,
+              "winner": "reference"
+            },
+            {
+              "candidate_admissible": false,
+              "candidate_time_us": 47107594636.69999,
+              "eps_2q": 0.05,
+              "reference_admissible": true,
+              "reference_time_us": 31804006.5,
+              "t_2q_over_readout_reset": 2.0,
+              "winner": "reference"
+            }
+          ],
+          "schema": "clifford_qc.measurement_break_even.v1"
+        }
+      },
+      "cx_to_preparation_cost_ratio_vs_qwc": 0.20598108025633202,
+      "device_costs": {
+        "ion-like": {
+          "device_card_sha256": "9cc7e53e935e4ec3c265efbd9b6218f17a68c51d727d658c5a5bcaf98d34f453",
+          "equal_effective_shots": {
+            "accuracy": {
+              "C_time_epsilon_us": null,
+              "epsilon": null,
+              "evidence_tier": "exact",
+              "status": "fixed_shot_only"
+            },
+            "admissible": true,
+            "device_card": {
+              "calibration_status": "illustrative_scenario",
+              "name": "ion-like",
+              "sha256": "9cc7e53e935e4ec3c265efbd9b6218f17a68c51d727d658c5a5bcaf98d34f453"
+            },
+            "effective_shots": 1904083.4280275325,
+            "fidelity": {
+              "floor": 0.5,
+              "max": 0.9227446944279201,
+              "mean": 0.8540460757811755,
+              "min": 0.8007298536188721
+            },
+            "fixed_shot_time_us": 4966287660.0,
+            "inadmissible_settings": 0,
+            "logical_1q_applications": 45589611,
+            "logical_2q_applications": 36647504,
+            "modeled_2q_applications": 36647504,
+            "n_qubits": 8,
+            "raw_shots": 2615473,
+            "routing": {
+              "model": "declared scalar sensitivity surrogate",
+              "required": false,
+              "two_qubit_count_multiplier": 1.0,
+              "two_qubit_depth_multiplier": 1.0
+            },
+            "schema": "clifford_qc.measurement_cost.v1",
+            "settings": 238
+          },
+          "estimator_information_at_uniform_raw_shots": {
+            "pooled": {
+              "compatible_settings_per_word": {
+                "max": 238,
+                "mean": 2.8263464930131597,
+                "min": 1
+              },
+              "coverage_fraction": {
+                "max": 1.0,
+                "mean": 0.011875405432828404,
+                "min": 0.004201680672268907
+              },
+              "effective_word_shots": {
+                "max": 1389652.2687902001,
+                "mean": 16628.051320231927,
+                "min": 5129.346387812002,
+                "total": 122565366.28142953
+              },
+              "estimator": "pooled",
+              "raw_word_shots": {
+                "max": 1904000.0,
+                "mean": 22610.771944105276,
+                "min": 8000.0,
+                "total": 166664000.0
+              },
+              "word_samples_per_preparation": 87.53361344537815
+            },
+            "single_assignment": {
+              "compatible_settings_per_word": {
+                "max": 1,
+                "mean": 1.0,
+                "min": 1
+              },
+              "coverage_fraction": {
+                "max": 0.004201680672268907,
+                "mean": 0.004201680672268907,
+                "min": 0.004201680672268907
+              },
+              "effective_word_shots": {
+                "max": 6811.662168759004,
+                "mean": 5947.577888216004,
+                "min": 5129.346387812002,
+                "total": 43839596.614040166
+              },
+              "estimator": "single_assignment",
+              "raw_word_shots": {
+                "max": 8000.0,
+                "mean": 8000.0,
+                "min": 8000.0,
+                "total": 58968000.0
+              },
+              "word_samples_per_preparation": 30.970588235294116
+            }
+          },
+          "fixed_uniform_raw_shots": {
+            "accuracy": {
+              "C_time_epsilon_us": null,
+              "epsilon": null,
+              "evidence_tier": "exact",
+              "status": "fixed_shot_only"
+            },
+            "admissible": true,
+            "device_card": {
+              "calibration_status": "illustrative_scenario",
+              "name": "ion-like",
+              "sha256": "9cc7e53e935e4ec3c265efbd9b6218f17a68c51d727d658c5a5bcaf98d34f453"
+            },
+            "effective_shots": 1389652.2687902,
+            "fidelity": {
+              "floor": 0.5,
+              "max": 0.9227446944279201,
+              "mean": 0.8540460757811755,
+              "min": 0.8007298536188721
+            },
+            "fixed_shot_time_us": 3568320000.0,
+            "inadmissible_settings": 0,
+            "logical_1q_applications": 33000000,
+            "logical_2q_applications": 26216000,
+            "modeled_2q_applications": 26216000,
+            "n_qubits": 8,
+            "raw_shots": 1904000,
+            "routing": {
+              "model": "declared scalar sensitivity surrogate",
+              "required": false,
+              "two_qubit_count_multiplier": 1.0,
+              "two_qubit_depth_multiplier": 1.0
+            },
+            "schema": "clifford_qc.measurement_cost.v1",
+            "settings": 238
+          }
+        },
+        "logical-alltoall": {
+          "device_card_sha256": "07e9cc637e590668bc89b7d407535f34f509155e08c95d2ecd0f8f931738265b",
+          "equal_effective_shots": {
+            "accuracy": {
+              "C_time_epsilon_us": null,
+              "epsilon": null,
+              "evidence_tier": "exact",
+              "status": "fixed_shot_only"
+            },
+            "admissible": true,
+            "device_card": {
+              "calibration_status": "logical_baseline",
+              "name": "logical-alltoall",
+              "sha256": "07e9cc637e590668bc89b7d407535f34f509155e08c95d2ecd0f8f931738265b"
+            },
+            "effective_shots": 1904000.0,
+            "fidelity": {
+              "floor": 0.5,
+              "max": 1.0,
+              "mean": 1.0,
+              "min": 1.0
+            },
+            "fixed_shot_time_us": 9044000.0,
+            "inadmissible_settings": 0,
+            "logical_1q_applications": 33000000,
+            "logical_2q_applications": 26216000,
+            "modeled_2q_applications": 26216000,
+            "n_qubits": 8,
+            "raw_shots": 1904000,
+            "routing": {
+              "model": "declared scalar sensitivity surrogate",
+              "required": false,
+              "two_qubit_count_multiplier": 1.0,
+              "two_qubit_depth_multiplier": 1.0
+            },
+            "schema": "clifford_qc.measurement_cost.v1",
+            "settings": 238
+          },
+          "estimator_information_at_uniform_raw_shots": {
+            "pooled": {
+              "compatible_settings_per_word": {
+                "max": 238,
+                "mean": 2.8263464930131597,
+                "min": 1
+              },
+              "coverage_fraction": {
+                "max": 1.0,
+                "mean": 0.011875405432828404,
+                "min": 0.004201680672268907
+              },
+              "effective_word_shots": {
+                "max": 1904000.0,
+                "mean": 22610.771944105276,
+                "min": 8000.0,
+                "total": 166664000.0
+              },
+              "estimator": "pooled",
+              "raw_word_shots": {
+                "max": 1904000.0,
+                "mean": 22610.771944105276,
+                "min": 8000.0,
+                "total": 166664000.0
+              },
+              "word_samples_per_preparation": 87.53361344537815
+            },
+            "single_assignment": {
+              "compatible_settings_per_word": {
+                "max": 1,
+                "mean": 1.0,
+                "min": 1
+              },
+              "coverage_fraction": {
+                "max": 0.004201680672268907,
+                "mean": 0.004201680672268907,
+                "min": 0.004201680672268907
+              },
+              "effective_word_shots": {
+                "max": 8000.0,
+                "mean": 8000.0,
+                "min": 8000.0,
+                "total": 58968000.0
+              },
+              "estimator": "single_assignment",
+              "raw_word_shots": {
+                "max": 8000.0,
+                "mean": 8000.0,
+                "min": 8000.0,
+                "total": 58968000.0
+              },
+              "word_samples_per_preparation": 30.970588235294116
+            }
+          },
+          "fixed_uniform_raw_shots": {
+            "accuracy": {
+              "C_time_epsilon_us": null,
+              "epsilon": null,
+              "evidence_tier": "exact",
+              "status": "fixed_shot_only"
+            },
+            "admissible": true,
+            "device_card": {
+              "calibration_status": "logical_baseline",
+              "name": "logical-alltoall",
+              "sha256": "07e9cc637e590668bc89b7d407535f34f509155e08c95d2ecd0f8f931738265b"
+            },
+            "effective_shots": 1904000.0,
+            "fidelity": {
+              "floor": 0.5,
+              "max": 1.0,
+              "mean": 1.0,
+              "min": 1.0
+            },
+            "fixed_shot_time_us": 9044000.0,
+            "inadmissible_settings": 0,
+            "logical_1q_applications": 33000000,
+            "logical_2q_applications": 26216000,
+            "modeled_2q_applications": 26216000,
+            "n_qubits": 8,
+            "raw_shots": 1904000,
+            "routing": {
+              "model": "declared scalar sensitivity surrogate",
+              "required": false,
+              "two_qubit_count_multiplier": 1.0,
+              "two_qubit_depth_multiplier": 1.0
+            },
+            "schema": "clifford_qc.measurement_cost.v1",
+            "settings": 238
+          }
+        },
+        "superconducting-like": {
+          "device_card_sha256": "cf78e3240ad48839a8113a1570a43e614c230a8428fe8ceda7783e7ff75e1a13",
+          "equal_effective_shots": {
+            "accuracy": {
+              "C_time_epsilon_us": null,
+              "epsilon": null,
+              "evidence_tier": "exact",
+              "status": "fixed_shot_only"
+            },
+            "admissible": false,
+            "device_card": {
+              "calibration_status": "illustrative_scenario",
+              "name": "superconducting-like",
+              "sha256": "cf78e3240ad48839a8113a1570a43e614c230a8428fe8ceda7783e7ff75e1a13"
+            },
+            "effective_shots": 1904036.7348430092,
+            "fidelity": {
+              "floor": 0.5,
+              "max": 0.8507630225817855,
+              "mean": 0.55817084402105,
+              "min": 0.37962955280559196
+            },
+            "fixed_shot_time_us": 56035500.15,
+            "inadmissible_settings": 66,
+            "logical_1q_applications": 116150136,
+            "logical_2q_applications": 98992638,
+            "modeled_2q_applications": 296977914,
+            "n_qubits": 8,
+            "raw_shots": 6523541,
+            "routing": {
+              "model": "declared scalar sensitivity surrogate",
+              "required": true,
+              "two_qubit_count_multiplier": 3.0,
+              "two_qubit_depth_multiplier": 2.0
+            },
+            "schema": "clifford_qc.measurement_cost.v1",
+            "settings": 238
+          },
+          "estimator_information_at_uniform_raw_shots": {
+            "pooled": {
+              "compatible_settings_per_word": {
+                "max": 238,
+                "mean": 2.8263464930131597,
+                "min": 1
+              },
+              "coverage_fraction": {
+                "max": 1.0,
+                "mean": 0.011875405432828404,
+                "min": 0.004201680672268907
+              },
+              "effective_word_shots": {
+                "max": 606508.7377469748,
+                "mean": 7533.431840988583,
+                "min": 1152.94877890699,
+                "total": 55528926.099926844
+              },
+              "estimator": "pooled",
+              "raw_word_shots": {
+                "max": 1904000.0,
+                "mean": 22610.771944105276,
+                "min": 8000.0,
+                "total": 166664000.0
+              },
+              "word_samples_per_preparation": 87.53361344537815
+            },
+            "single_assignment": {
+              "compatible_settings_per_word": {
+                "max": 1,
+                "mean": 1.0,
+                "min": 1
+              },
+              "coverage_fraction": {
+                "max": 0.004201680672268907,
+                "mean": 0.004201680672268907,
+                "min": 0.004201680672268907
+              },
+              "effective_word_shots": {
+                "max": 5790.381764739966,
+                "mean": 2850.885378882585,
+                "min": 1152.94877890699,
+                "total": 21013876.127743535
+              },
+              "estimator": "single_assignment",
+              "raw_word_shots": {
+                "max": 8000.0,
+                "mean": 8000.0,
+                "min": 8000.0,
+                "total": 58968000.0
+              },
+              "word_samples_per_preparation": 30.970588235294116
+            }
+          },
+          "fixed_uniform_raw_shots": {
+            "accuracy": {
+              "C_time_epsilon_us": null,
+              "epsilon": null,
+              "evidence_tier": "exact",
+              "status": "fixed_shot_only"
+            },
+            "admissible": false,
+            "device_card": {
+              "calibration_status": "illustrative_scenario",
+              "name": "superconducting-like",
+              "sha256": "cf78e3240ad48839a8113a1570a43e614c230a8428fe8ceda7783e7ff75e1a13"
+            },
+            "effective_shots": 606508.7377469746,
+            "fidelity": {
+              "floor": 0.5,
+              "max": 0.8507630225817855,
+              "mean": 0.55817084402105,
+              "min": 0.37962955280559196
+            },
+            "fixed_shot_time_us": 15534400.0,
+            "inadmissible_settings": 66,
+            "logical_1q_applications": 33000000,
+            "logical_2q_applications": 26216000,
+            "modeled_2q_applications": 78648000,
+            "n_qubits": 8,
+            "raw_shots": 1904000,
+            "routing": {
+              "model": "declared scalar sensitivity surrogate",
+              "required": true,
+              "two_qubit_count_multiplier": 3.0,
+              "two_qubit_depth_multiplier": 2.0
+            },
+            "schema": "clifford_qc.measurement_cost.v1",
+            "settings": 238
+          }
+        }
+      },
+      "estimators": {
+        "pooled": {
+          "compatible_settings_per_word": {
+            "max": 238,
+            "mean": 2.8263464930131597,
+            "min": 1
+          },
+          "coverage_fraction": {
+            "max": 1.0,
+            "mean": 0.011875405432828404,
+            "min": 0.004201680672268907
+          },
+          "effective_word_shots": {
+            "max": 1904000.0,
+            "mean": 22610.771944105276,
+            "min": 8000.0,
+            "total": 166664000.0
+          },
+          "estimator": "pooled",
+          "raw_word_shots": {
+            "max": 1904000.0,
+            "mean": 22610.771944105276,
+            "min": 8000.0,
+            "total": 166664000.0
+          },
+          "word_samples_per_preparation": 87.53361344537815
+        },
+        "single_assignment": {
+          "compatible_settings_per_word": {
+            "max": 1,
+            "mean": 1.0,
+            "min": 1
+          },
+          "coverage_fraction": {
+            "max": 0.004201680672268907,
+            "mean": 0.004201680672268907,
+            "min": 0.004201680672268907
+          },
+          "effective_word_shots": {
+            "max": 8000.0,
+            "mean": 8000.0,
+            "min": 8000.0,
+            "total": 58968000.0
+          },
+          "estimator": "single_assignment",
+          "raw_word_shots": {
+            "max": 8000.0,
+            "mean": 8000.0,
+            "min": 8000.0,
+            "total": 58968000.0
+          },
+          "word_samples_per_preparation": 30.970588235294116
+        }
+      },
+      "gate_counts_per_sweep": {
+        "CX": 3277,
+        "H": 2693,
+        "S": 1075,
+        "S_DAG": 357
+      },
+      "logical_cx_applications_at_uniform_shots": 26216000,
+      "logical_cx_depth_sum": 1883,
+      "logical_cx_per_sweep": 3277,
+      "max_logical_cx_depth": 14,
+      "max_logical_cx_per_setting": 26,
+      "mean_logical_cx_depth": 7.911764705882353,
+      "mean_logical_cx_per_setting": 13.768907563025211,
+      "resource_metrics": {
+        "D_1q": {
+          "max": 12,
+          "mean": 6.823529411764706,
+          "sum": 1624
+        },
+        "D_2q": {
+          "max": 14,
+          "mean": 8.029411764705882,
+          "sum": 1911
+        },
+        "N_1q": {
+          "max": 30,
+          "mean": 17.331932773109244,
+          "sum": 4125
+        },
+        "N_2q": {
+          "max": 26,
+          "mean": 13.768907563025211,
+          "sum": 3277
+        }
+      },
+      "settings": 238,
+      "state_preparations_at_uniform_shots": 1904000,
+      "word_samples_per_preparation": 30.970588235294116,
+      "z_only_restrictions_checked": 3875
+    },
+    {
+      "accuracy_matched_costs": {
+        "pooled": {
+          "C_time_epsilon_device_card": null,
+          "C_time_epsilon_us": null,
+          "claim_boundary": "first-order Ritz-functional propagation about the exact frozen bank; not a finite-sample energy certificate or nonlinear solver study",
+          "device_costs": {},
+          "effective_shots_per_setting": null,
+          "epsilon_millihartree": 1.6,
+          "evidence_tier": "asymptotic",
+          "exact_subspace_bias_millihartree": 3.018781343635979,
+          "inadmissible_device_cards": [
+            "ion-like",
+            "logical-alltoall",
+            "superconducting-like"
+          ],
+          "linearized_variance_ha2_at_one_shot_per_setting": null,
+          "pooled_weighting": "uniform over the settings that read each word, which is the inverse-variance combination at the equal-effective-shot schedule priced here",
+          "status": "bias_floor_exceeds_target"
+        },
+        "single_assignment": {
+          "C_time_epsilon_device_card": null,
+          "C_time_epsilon_us": null,
+          "claim_boundary": "first-order Ritz-functional propagation about the exact frozen bank; not a finite-sample energy certificate or nonlinear solver study",
+          "device_costs": {},
+          "effective_shots_per_setting": null,
+          "epsilon_millihartree": 1.6,
+          "evidence_tier": "asymptotic",
+          "exact_subspace_bias_millihartree": 3.018781343635979,
+          "inadmissible_device_cards": [
+            "ion-like",
+            "logical-alltoall",
+            "superconducting-like"
+          ],
+          "linearized_variance_ha2_at_one_shot_per_setting": null,
+          "pooled_weighting": "uniform over the settings that read each word, which is the inverse-variance combination at the equal-effective-shot schedule priced here",
+          "status": "bias_floor_exceeds_target"
+        }
+      },
+      "block_size": 8,
+      "break_even_vs_qwc": {
+        "ion-like": {
+          "base_device_card": {
+            "name": "ion-like",
+            "sha256": "9cc7e53e935e4ec3c265efbd9b6218f17a68c51d727d658c5a5bcaf98d34f453"
+          },
+          "effective_shots_per_setting": 8000,
+          "epsilon": null,
+          "evidence_tier": "exact",
+          "points": [
+            {
+              "candidate_admissible": true,
+              "candidate_time_us": 190843570.0,
+              "eps_2q": 0.0,
+              "reference_admissible": true,
+              "reference_time_us": 1900369400.0,
+              "t_2q_over_readout_reset": 0.0,
+              "winner": "not_accuracy_matched"
+            },
+            {
+              "candidate_admissible": true,
+              "candidate_time_us": 258123100.0,
+              "eps_2q": 0.005,
+              "reference_admissible": true,
+              "reference_time_us": 1900369400.0,
+              "t_2q_over_readout_reset": 0.0,
+              "winner": "not_accuracy_matched"
+            },
+            {
+              "candidate_admissible": true,
+              "candidate_time_us": 350979540.0,
+              "eps_2q": 0.01,
+              "reference_admissible": true,
+              "reference_time_us": 1900369400.0,
+              "t_2q_over_readout_reset": 0.0,
+              "winner": "not_accuracy_matched"
+            },
+            {
+              "candidate_admissible": false,
+              "candidate_time_us": 659052410.0,
+              "eps_2q": 0.02,
+              "reference_admissible": true,
+              "reference_time_us": 1900369400.0,
+              "t_2q_over_readout_reset": 0.0,
+              "winner": "reference"
+            },
+            {
+              "candidate_admissible": false,
+              "candidate_time_us": 4925623990.0,
+              "eps_2q": 0.05,
+              "reference_admissible": true,
+              "reference_time_us": 1900369400.0,
+              "t_2q_over_readout_reset": 0.0,
+              "winner": "reference"
+            },
+            {
+              "candidate_admissible": true,
+              "candidate_time_us": 422482345.0,
+              "eps_2q": 0.0,
+              "reference_admissible": true,
+              "reference_time_us": 1900369400.0,
+              "t_2q_over_readout_reset": 0.1,
+              "winner": "not_accuracy_matched"
+            },
+            {
+              "candidate_admissible": true,
+              "candidate_time_us": 574160785.0,
+              "eps_2q": 0.005,
+              "reference_admissible": true,
+              "reference_time_us": 1900369400.0,
+              "t_2q_over_readout_reset": 0.1,
+              "winner": "not_accuracy_matched"
+            },
+            {
+              "candidate_admissible": true,
+              "candidate_time_us": 784127280.0,
+              "eps_2q": 0.01,
+              "reference_admissible": true,
+              "reference_time_us": 1900369400.0,
+              "t_2q_over_readout_reset": 0.1,
+              "winner": "not_accuracy_matched"
+            },
+            {
+              "candidate_admissible": false,
+              "candidate_time_us": 1483999385.0,
+              "eps_2q": 0.02,
+              "reference_admissible": true,
+              "reference_time_us": 1900369400.0,
+              "t_2q_over_readout_reset": 0.1,
+              "winner": "reference"
+            },
+            {
+              "candidate_admissible": false,
+              "candidate_time_us": 11313428110.0,
+              "eps_2q": 0.05,
+              "reference_admissible": true,
+              "reference_time_us": 1900369400.0,
+              "t_2q_over_readout_reset": 0.1,
+              "winner": "reference"
+            },
+            {
+              "candidate_admissible": true,
+              "candidate_time_us": 1349037445.0,
+              "eps_2q": 0.0,
+              "reference_admissible": true,
+              "reference_time_us": 1900369400.0,
+              "t_2q_over_readout_reset": 0.5,
+              "winner": "not_accuracy_matched"
+            },
+            {
+              "candidate_admissible": true,
+              "candidate_time_us": 1838311525.0,
+              "eps_2q": 0.005,
+              "reference_admissible": true,
+              "reference_time_us": 1900369400.0,
+              "t_2q_over_readout_reset": 0.5,
+              "winner": "not_accuracy_matched"
+            },
+            {
+              "candidate_admissible": true,
+              "candidate_time_us": 2516718240.0,
+              "eps_2q": 0.01,
+              "reference_admissible": true,
+              "reference_time_us": 1900369400.0,
+              "t_2q_over_readout_reset": 0.5,
+              "winner": "not_accuracy_matched"
+            },
+            {
+              "candidate_admissible": false,
+              "candidate_time_us": 4783787285.0,
+              "eps_2q": 0.02,
+              "reference_admissible": true,
+              "reference_time_us": 1900369400.0,
+              "t_2q_over_readout_reset": 0.5,
+              "winner": "reference"
+            },
+            {
+              "candidate_admissible": false,
+              "candidate_time_us": 36864644590.0,
+              "eps_2q": 0.05,
+              "reference_admissible": true,
+              "reference_time_us": 1900369400.0,
+              "t_2q_over_readout_reset": 0.5,
+              "winner": "reference"
+            },
+            {
+              "candidate_admissible": true,
+              "candidate_time_us": 2507231320.0,
+              "eps_2q": 0.0,
+              "reference_admissible": true,
+              "reference_time_us": 1900369400.0,
+              "t_2q_over_readout_reset": 1.0,
+              "winner": "not_accuracy_matched"
+            },
+            {
+              "candidate_admissible": true,
+              "candidate_time_us": 3418499950.0,
+              "eps_2q": 0.005,
+              "reference_admissible": true,
+              "reference_time_us": 1900369400.0,
+              "t_2q_over_readout_reset": 1.0,
+              "winner": "not_accuracy_matched"
+            },
+            {
+              "candidate_admissible": true,
+              "candidate_time_us": 4682456940.0,
+              "eps_2q": 0.01,
+              "reference_admissible": true,
+              "reference_time_us": 1900369400.0,
+              "t_2q_over_readout_reset": 1.0,
+              "winner": "not_accuracy_matched"
+            },
+            {
+              "candidate_admissible": false,
+              "candidate_time_us": 8908522160.0,
+              "eps_2q": 0.02,
+              "reference_admissible": true,
+              "reference_time_us": 1900369400.0,
+              "t_2q_over_readout_reset": 1.0,
+              "winner": "reference"
+            },
+            {
+              "candidate_admissible": false,
+              "candidate_time_us": 68803665190.0,
+              "eps_2q": 0.05,
+              "reference_admissible": true,
+              "reference_time_us": 1900369400.0,
+              "t_2q_over_readout_reset": 1.0,
+              "winner": "reference"
+            },
+            {
+              "candidate_admissible": true,
+              "candidate_time_us": 4823619070.0,
+              "eps_2q": 0.0,
+              "reference_admissible": true,
+              "reference_time_us": 1900369400.0,
+              "t_2q_over_readout_reset": 2.0,
+              "winner": "not_accuracy_matched"
+            },
+            {
+              "candidate_admissible": true,
+              "candidate_time_us": 6578876800.0,
+              "eps_2q": 0.005,
+              "reference_admissible": true,
+              "reference_time_us": 1900369400.0,
+              "t_2q_over_readout_reset": 2.0,
+              "winner": "not_accuracy_matched"
+            },
+            {
+              "candidate_admissible": true,
+              "candidate_time_us": 9013934340.0,
+              "eps_2q": 0.01,
+              "reference_admissible": true,
+              "reference_time_us": 1900369400.0,
+              "t_2q_over_readout_reset": 2.0,
+              "winner": "not_accuracy_matched"
+            },
+            {
+              "candidate_admissible": false,
+              "candidate_time_us": 17157991910.0,
+              "eps_2q": 0.02,
+              "reference_admissible": true,
+              "reference_time_us": 1900369400.0,
+              "t_2q_over_readout_reset": 2.0,
+              "winner": "reference"
+            },
+            {
+              "candidate_admissible": false,
+              "candidate_time_us": 132681706390.0,
+              "eps_2q": 0.05,
+              "reference_admissible": true,
+              "reference_time_us": 1900369400.0,
+              "t_2q_over_readout_reset": 2.0,
+              "winner": "reference"
+            }
+          ],
+          "schema": "clifford_qc.measurement_break_even.v1"
+        },
+        "logical-alltoall": {
+          "base_device_card": {
+            "name": "logical-alltoall",
+            "sha256": "07e9cc637e590668bc89b7d407535f34f509155e08c95d2ecd0f8f931738265b"
+          },
+          "effective_shots_per_setting": 8000,
+          "epsilon": null,
+          "evidence_tier": "exact",
+          "points": [
+            {
+              "candidate_admissible": true,
+              "candidate_time_us": 1307600.0,
+              "eps_2q": 0.0,
+              "reference_admissible": true,
+              "reference_time_us": 15325200.0,
+              "t_2q_over_readout_reset": 0.0,
+              "winner": "not_accuracy_matched"
+            },
+            {
+              "candidate_admissible": true,
+              "candidate_time_us": 1765403.0,
+              "eps_2q": 0.005,
+              "reference_admissible": true,
+              "reference_time_us": 15325200.0,
+              "t_2q_over_readout_reset": 0.0,
+              "winner": "not_accuracy_matched"
+            },
+            {
+              "candidate_admissible": true,
+              "candidate_time_us": 2396420.65,
+              "eps_2q": 0.01,
+              "reference_admissible": true,
+              "reference_time_us": 15325200.0,
+              "t_2q_over_readout_reset": 0.0,
+              "winner": "not_accuracy_matched"
+            },
+            {
+              "candidate_admissible": false,
+              "candidate_time_us": 4485886.25,
+              "eps_2q": 0.02,
+              "reference_admissible": true,
+              "reference_time_us": 15325200.0,
+              "t_2q_over_readout_reset": 0.0,
+              "winner": "reference"
+            },
+            {
+              "candidate_admissible": false,
+              "candidate_time_us": 33243668.75,
+              "eps_2q": 0.05,
+              "reference_admissible": true,
+              "reference_time_us": 15325200.0,
+              "t_2q_over_readout_reset": 0.0,
+              "winner": "reference"
+            },
+            {
+              "candidate_admissible": true,
+              "candidate_time_us": 3882000.0,
+              "eps_2q": 0.0,
+              "reference_admissible": true,
+              "reference_time_us": 15325200.0,
+              "t_2q_over_readout_reset": 0.1,
+              "winner": "not_accuracy_matched"
+            },
+            {
+              "candidate_admissible": true,
+              "candidate_time_us": 5277394.4,
+              "eps_2q": 0.005,
+              "reference_admissible": true,
+              "reference_time_us": 15325200.0,
+              "t_2q_over_readout_reset": 0.1,
+              "winner": "not_accuracy_matched"
+            },
+            {
+              "candidate_admissible": true,
+              "candidate_time_us": 7209036.25,
+              "eps_2q": 0.01,
+              "reference_admissible": true,
+              "reference_time_us": 15325200.0,
+              "t_2q_over_readout_reset": 0.1,
+              "winner": "not_accuracy_matched"
+            },
+            {
+              "candidate_admissible": false,
+              "candidate_time_us": 13648468.65,
+              "eps_2q": 0.02,
+              "reference_admissible": true,
+              "reference_time_us": 15325200.0,
+              "t_2q_over_readout_reset": 0.1,
+              "winner": "reference"
+            },
+            {
+              "candidate_admissible": false,
+              "candidate_time_us": 104112481.35,
+              "eps_2q": 0.05,
+              "reference_admissible": true,
+              "reference_time_us": 15325200.0,
+              "t_2q_over_readout_reset": 0.1,
+              "winner": "reference"
+            },
+            {
+              "candidate_admissible": true,
+              "candidate_time_us": 14179600.0,
+              "eps_2q": 0.0,
+              "reference_admissible": true,
+              "reference_time_us": 15325200.0,
+              "t_2q_over_readout_reset": 0.5,
+              "winner": "not_accuracy_matched"
+            },
+            {
+              "candidate_admissible": true,
+              "candidate_time_us": 19325360.0,
+              "eps_2q": 0.005,
+              "reference_admissible": true,
+              "reference_time_us": 15325200.0,
+              "t_2q_over_readout_reset": 0.5,
+              "winner": "not_accuracy_matched"
+            },
+            {
+              "candidate_admissible": true,
+              "candidate_time_us": 26459498.65,
+              "eps_2q": 0.01,
+              "reference_admissible": true,
+              "reference_time_us": 15325200.0,
+              "t_2q_over_readout_reset": 0.5,
+              "winner": "not_accuracy_matched"
+            },
+            {
+              "candidate_admissible": false,
+              "candidate_time_us": 50298798.25,
+              "eps_2q": 0.02,
+              "reference_admissible": true,
+              "reference_time_us": 15325200.0,
+              "t_2q_over_readout_reset": 0.5,
+              "winner": "reference"
+            },
+            {
+              "candidate_admissible": false,
+              "candidate_time_us": 387587731.75,
+              "eps_2q": 0.05,
+              "reference_admissible": true,
+              "reference_time_us": 15325200.0,
+              "t_2q_over_readout_reset": 0.5,
+              "winner": "reference"
+            },
+            {
+              "candidate_admissible": true,
+              "candidate_time_us": 27051600.0,
+              "eps_2q": 0.0,
+              "reference_admissible": true,
+              "reference_time_us": 15325200.0,
+              "t_2q_over_readout_reset": 1.0,
+              "winner": "not_accuracy_matched"
+            },
+            {
+              "candidate_admissible": true,
+              "candidate_time_us": 36885317.0,
+              "eps_2q": 0.005,
+              "reference_admissible": true,
+              "reference_time_us": 15325200.0,
+              "t_2q_over_readout_reset": 1.0,
+              "winner": "not_accuracy_matched"
+            },
+            {
+              "candidate_admissible": true,
+              "candidate_time_us": 50522576.65,
+              "eps_2q": 0.01,
+              "reference_admissible": true,
+              "reference_time_us": 15325200.0,
+              "t_2q_over_readout_reset": 1.0,
+              "winner": "not_accuracy_matched"
+            },
+            {
+              "candidate_admissible": false,
+              "candidate_time_us": 96111710.25,
+              "eps_2q": 0.02,
+              "reference_admissible": true,
+              "reference_time_us": 15325200.0,
+              "t_2q_over_readout_reset": 1.0,
+              "winner": "reference"
+            },
+            {
+              "candidate_admissible": false,
+              "candidate_time_us": 741931794.75,
+              "eps_2q": 0.05,
+              "reference_admissible": true,
+              "reference_time_us": 15325200.0,
+              "t_2q_over_readout_reset": 1.0,
+              "winner": "reference"
+            },
+            {
+              "candidate_admissible": true,
+              "candidate_time_us": 52795600.0,
+              "eps_2q": 0.0,
+              "reference_admissible": true,
+              "reference_time_us": 15325200.0,
+              "t_2q_over_readout_reset": 2.0,
+              "winner": "not_accuracy_matched"
+            },
+            {
+              "candidate_admissible": true,
+              "candidate_time_us": 72005231.0,
+              "eps_2q": 0.005,
+              "reference_admissible": true,
+              "reference_time_us": 15325200.0,
+              "t_2q_over_readout_reset": 2.0,
+              "winner": "not_accuracy_matched"
+            },
+            {
+              "candidate_admissible": true,
+              "candidate_time_us": 98648732.65,
+              "eps_2q": 0.01,
+              "reference_admissible": true,
+              "reference_time_us": 15325200.0,
+              "t_2q_over_readout_reset": 2.0,
+              "winner": "not_accuracy_matched"
+            },
+            {
+              "candidate_admissible": false,
+              "candidate_time_us": 187737534.25,
+              "eps_2q": 0.02,
+              "reference_admissible": true,
+              "reference_time_us": 15325200.0,
+              "t_2q_over_readout_reset": 2.0,
+              "winner": "reference"
+            },
+            {
+              "candidate_admissible": false,
+              "candidate_time_us": 1450619920.75,
+              "eps_2q": 0.05,
+              "reference_admissible": true,
+              "reference_time_us": 15325200.0,
+              "t_2q_over_readout_reset": 2.0,
+              "winner": "reference"
+            }
+          ],
+          "schema": "clifford_qc.measurement_break_even.v1"
+        },
+        "superconducting-like": {
+          "base_device_card": {
+            "name": "superconducting-like",
+            "sha256": "cf78e3240ad48839a8113a1570a43e614c230a8428fe8ceda7783e7ff75e1a13"
+          },
+          "effective_shots_per_setting": 8000,
+          "epsilon": null,
+          "evidence_tier": "exact",
+          "points": [
+            {
+              "candidate_admissible": true,
+              "candidate_time_us": 2619905.0,
+              "eps_2q": 0.0,
+              "reference_admissible": true,
+              "reference_time_us": 31804006.5,
+              "t_2q_over_readout_reset": 0.0,
+              "winner": "not_accuracy_matched"
+            },
+            {
+              "candidate_admissible": false,
+              "candidate_time_us": 6516566.25,
+              "eps_2q": 0.005,
+              "reference_admissible": true,
+              "reference_time_us": 31804006.5,
+              "t_2q_over_readout_reset": 0.0,
+              "winner": "reference"
+            },
+            {
+              "candidate_admissible": false,
+              "candidate_time_us": 16816726.799999997,
+              "eps_2q": 0.01,
+              "reference_admissible": true,
+              "reference_time_us": 31804006.5,
+              "t_2q_over_readout_reset": 0.0,
+              "winner": "reference"
+            },
+            {
+              "candidate_admissible": false,
+              "candidate_time_us": 123905736.75,
+              "eps_2q": 0.02,
+              "reference_admissible": true,
+              "reference_time_us": 31804006.5,
+              "t_2q_over_readout_reset": 0.0,
+              "winner": "reference"
+            },
+            {
+              "candidate_admissible": false,
+              "candidate_time_us": 106200166392.3,
+              "eps_2q": 0.05,
+              "reference_admissible": true,
+              "reference_time_us": 31804006.5,
+              "t_2q_over_readout_reset": 0.0,
+              "winner": "reference"
+            },
+            {
+              "candidate_admissible": true,
+              "candidate_time_us": 10042637.8,
+              "eps_2q": 0.0,
+              "reference_admissible": true,
+              "reference_time_us": 31804006.5,
+              "t_2q_over_readout_reset": 0.1,
+              "winner": "not_accuracy_matched"
+            },
+            {
+              "candidate_admissible": false,
+              "candidate_time_us": 25544841.050000004,
+              "eps_2q": 0.005,
+              "reference_admissible": true,
+              "reference_time_us": 31804006.5,
+              "t_2q_over_readout_reset": 0.1,
+              "winner": "reference"
+            },
+            {
+              "candidate_admissible": false,
+              "candidate_time_us": 67146006.4,
+              "eps_2q": 0.01,
+              "reference_admissible": true,
+              "reference_time_us": 31804006.5,
+              "t_2q_over_readout_reset": 0.1,
+              "winner": "reference"
+            },
+            {
+              "candidate_admissible": false,
+              "candidate_time_us": 510871357.95000005,
+              "eps_2q": 0.02,
+              "reference_admissible": true,
+              "reference_time_us": 31804006.5,
+              "t_2q_over_readout_reset": 0.1,
+              "winner": "reference"
+            },
+            {
+              "candidate_admissible": false,
+              "candidate_time_us": 472173455850.30005,
+              "eps_2q": 0.05,
+              "reference_admissible": true,
+              "reference_time_us": 31804006.5,
+              "t_2q_over_readout_reset": 0.1,
+              "winner": "reference"
+            },
+            {
+              "candidate_admissible": true,
+              "candidate_time_us": 39733569.0,
+              "eps_2q": 0.0,
+              "reference_admissible": true,
+              "reference_time_us": 31804006.5,
+              "t_2q_over_readout_reset": 0.5,
+              "winner": "not_accuracy_matched"
+            },
+            {
+              "candidate_admissible": false,
+              "candidate_time_us": 101657940.25,
+              "eps_2q": 0.005,
+              "reference_admissible": true,
+              "reference_time_us": 31804006.5,
+              "t_2q_over_readout_reset": 0.5,
+              "winner": "reference"
+            },
+            {
+              "candidate_admissible": false,
+              "candidate_time_us": 268463124.79999995,
+              "eps_2q": 0.01,
+              "reference_admissible": true,
+              "reference_time_us": 31804006.5,
+              "t_2q_over_readout_reset": 0.5,
+              "winner": "reference"
+            },
+            {
+              "candidate_admissible": false,
+              "candidate_time_us": 2058733842.75,
+              "eps_2q": 0.02,
+              "reference_admissible": true,
+              "reference_time_us": 31804006.5,
+              "t_2q_over_readout_reset": 0.5,
+              "winner": "reference"
+            },
+            {
+              "candidate_admissible": false,
+              "candidate_time_us": 1936066613682.3,
+              "eps_2q": 0.05,
+              "reference_admissible": true,
+              "reference_time_us": 31804006.5,
+              "t_2q_over_readout_reset": 0.5,
+              "winner": "reference"
+            },
+            {
+              "candidate_admissible": true,
+              "candidate_time_us": 76847233.0,
+              "eps_2q": 0.0,
+              "reference_admissible": true,
+              "reference_time_us": 31804006.5,
+              "t_2q_over_readout_reset": 1.0,
+              "winner": "not_accuracy_matched"
+            },
+            {
+              "candidate_admissible": false,
+              "candidate_time_us": 196799314.25,
+              "eps_2q": 0.005,
+              "reference_admissible": true,
+              "reference_time_us": 31804006.5,
+              "t_2q_over_readout_reset": 1.0,
+              "winner": "reference"
+            },
+            {
+              "candidate_admissible": false,
+              "candidate_time_us": 520109522.79999995,
+              "eps_2q": 0.01,
+              "reference_admissible": true,
+              "reference_time_us": 31804006.5,
+              "t_2q_over_readout_reset": 1.0,
+              "winner": "reference"
+            },
+            {
+              "candidate_admissible": false,
+              "candidate_time_us": 3993561948.75,
+              "eps_2q": 0.02,
+              "reference_admissible": true,
+              "reference_time_us": 31804006.5,
+              "t_2q_over_readout_reset": 1.0,
+              "winner": "reference"
+            },
+            {
+              "candidate_admissible": false,
+              "candidate_time_us": 3765933060972.3003,
+              "eps_2q": 0.05,
+              "reference_admissible": true,
+              "reference_time_us": 31804006.5,
+              "t_2q_over_readout_reset": 1.0,
+              "winner": "reference"
+            },
+            {
+              "candidate_admissible": true,
+              "candidate_time_us": 151074561.0,
+              "eps_2q": 0.0,
+              "reference_admissible": true,
+              "reference_time_us": 31804006.5,
+              "t_2q_over_readout_reset": 2.0,
+              "winner": "not_accuracy_matched"
+            },
+            {
+              "candidate_admissible": false,
+              "candidate_time_us": 387082062.25,
+              "eps_2q": 0.005,
+              "reference_admissible": true,
+              "reference_time_us": 31804006.5,
+              "t_2q_over_readout_reset": 2.0,
+              "winner": "reference"
+            },
+            {
+              "candidate_admissible": false,
+              "candidate_time_us": 1023402318.8000001,
+              "eps_2q": 0.01,
+              "reference_admissible": true,
+              "reference_time_us": 31804006.5,
+              "t_2q_over_readout_reset": 2.0,
+              "winner": "reference"
+            },
+            {
+              "candidate_admissible": false,
+              "candidate_time_us": 7863218160.75,
+              "eps_2q": 0.02,
+              "reference_admissible": true,
+              "reference_time_us": 31804006.5,
+              "t_2q_over_readout_reset": 2.0,
+              "winner": "reference"
+            },
+            {
+              "candidate_admissible": false,
+              "candidate_time_us": 7425665955552.3,
+              "eps_2q": 0.05,
+              "reference_admissible": true,
+              "reference_time_us": 31804006.5,
+              "t_2q_over_readout_reset": 2.0,
+              "winner": "reference"
+            }
+          ],
+          "schema": "clifford_qc.measurement_break_even.v1"
+        }
+      },
+      "cx_to_preparation_cost_ratio_vs_qwc": 0.4501590668080594,
+      "device_costs": {
+        "ion-like": {
+          "device_card_sha256": "9cc7e53e935e4ec3c265efbd9b6218f17a68c51d727d658c5a5bcaf98d34f453",
+          "equal_effective_shots": {
+            "accuracy": {
+              "C_time_epsilon_us": null,
+              "epsilon": null,
+              "evidence_tier": "exact",
+              "status": "fixed_shot_only"
+            },
+            "admissible": true,
+            "device_card": {
+              "calibration_status": "illustrative_scenario",
+              "name": "ion-like",
+              "sha256": "9cc7e53e935e4ec3c265efbd9b6218f17a68c51d727d658c5a5bcaf98d34f453"
+            },
+            "effective_shots": 512020.9871885929,
+            "fidelity": {
+              "floor": 0.5,
+              "max": 0.9227446944279201,
+              "mean": 0.7885002238255638,
+              "min": 0.7323872597558966
+            },
+            "fixed_shot_time_us": 4471958900.0,
+            "inadmissible_settings": 0,
+            "logical_1q_applications": 16993923,
+            "logical_2q_applications": 24731217,
+            "modeled_2q_applications": 24731217,
+            "n_qubits": 8,
+            "raw_shots": 826596,
+            "routing": {
+              "model": "declared scalar sensitivity surrogate",
+              "required": false,
+              "two_qubit_count_multiplier": 1.0,
+              "two_qubit_depth_multiplier": 1.0
+            },
+            "schema": "clifford_qc.measurement_cost.v1",
+            "settings": 64
+          },
+          "estimator_information_at_uniform_raw_shots": {
+            "pooled": {
+              "compatible_settings_per_word": {
+                "max": 64,
+                "mean": 2.0632207298873966,
+                "min": 1
+              },
+              "coverage_fraction": {
+                "max": 1.0,
+                "mean": 0.03223782390449057,
+                "min": 0.015625
+              },
+              "effective_word_shots": {
+                "max": 318746.4354788495,
+                "mean": 10261.492216998764,
+                "min": 4291.128786022009,
+                "total": 75637459.13149789
+              },
+              "estimator": "pooled",
+              "raw_word_shots": {
+                "max": 512000.0,
+                "mean": 16505.76583909917,
+                "min": 8000.0,
+                "total": 121664000.0
+              },
+              "word_samples_per_preparation": 237.625
+            },
+            "single_assignment": {
+              "compatible_settings_per_word": {
+                "max": 1,
+                "mean": 1.0,
+                "min": 1
+              },
+              "coverage_fraction": {
+                "max": 0.015625,
+                "mean": 0.015625,
+                "min": 0.015625
+              },
+              "effective_word_shots": {
+                "max": 6811.662168759004,
+                "mean": 4996.5941297045665,
+                "min": 4291.128786022009,
+                "total": 36829895.33005236
+              },
+              "estimator": "single_assignment",
+              "raw_word_shots": {
+                "max": 8000.0,
+                "mean": 8000.0,
+                "min": 8000.0,
+                "total": 58968000.0
+              },
+              "word_samples_per_preparation": 115.171875
+            }
+          },
+          "fixed_uniform_raw_shots": {
+            "accuracy": {
+              "C_time_epsilon_us": null,
+              "epsilon": null,
+              "evidence_tier": "exact",
+              "status": "fixed_shot_only"
+            },
+            "admissible": true,
+            "device_card": {
+              "calibration_status": "illustrative_scenario",
+              "name": "ion-like",
+              "sha256": "9cc7e53e935e4ec3c265efbd9b6218f17a68c51d727d658c5a5bcaf98d34f453"
+            },
+            "effective_shots": 318746.43547884945,
+            "fidelity": {
+              "floor": 0.5,
+              "max": 0.9227446944279201,
+              "mean": 0.7885002238255638,
+              "min": 0.7323872597558966
+            },
+            "fixed_shot_time_us": 2733520000.0,
+            "inadmissible_settings": 0,
+            "logical_1q_applications": 10384000,
+            "logical_2q_applications": 15088000,
+            "modeled_2q_applications": 15088000,
+            "n_qubits": 8,
+            "raw_shots": 512000,
+            "routing": {
+              "model": "declared scalar sensitivity surrogate",
+              "required": false,
+              "two_qubit_count_multiplier": 1.0,
+              "two_qubit_depth_multiplier": 1.0
+            },
+            "schema": "clifford_qc.measurement_cost.v1",
+            "settings": 64
+          }
+        },
+        "logical-alltoall": {
+          "device_card_sha256": "07e9cc637e590668bc89b7d407535f34f509155e08c95d2ecd0f8f931738265b",
+          "equal_effective_shots": {
+            "accuracy": {
+              "C_time_epsilon_us": null,
+              "epsilon": null,
+              "evidence_tier": "exact",
+              "status": "fixed_shot_only"
+            },
+            "admissible": true,
+            "device_card": {
+              "calibration_status": "logical_baseline",
+              "name": "logical-alltoall",
+              "sha256": "07e9cc637e590668bc89b7d407535f34f509155e08c95d2ecd0f8f931738265b"
+            },
+            "effective_shots": 512000.0,
+            "fidelity": {
+              "floor": 0.5,
+              "max": 1.0,
+              "mean": 1.0,
+              "min": 1.0
+            },
+            "fixed_shot_time_us": 5169200.0,
+            "inadmissible_settings": 0,
+            "logical_1q_applications": 10384000,
+            "logical_2q_applications": 15088000,
+            "modeled_2q_applications": 15088000,
+            "n_qubits": 8,
+            "raw_shots": 512000,
+            "routing": {
+              "model": "declared scalar sensitivity surrogate",
+              "required": false,
+              "two_qubit_count_multiplier": 1.0,
+              "two_qubit_depth_multiplier": 1.0
+            },
+            "schema": "clifford_qc.measurement_cost.v1",
+            "settings": 64
+          },
+          "estimator_information_at_uniform_raw_shots": {
+            "pooled": {
+              "compatible_settings_per_word": {
+                "max": 64,
+                "mean": 2.0632207298873966,
+                "min": 1
+              },
+              "coverage_fraction": {
+                "max": 1.0,
+                "mean": 0.03223782390449057,
+                "min": 0.015625
+              },
+              "effective_word_shots": {
+                "max": 512000.0,
+                "mean": 16505.76583909917,
+                "min": 8000.0,
+                "total": 121664000.0
+              },
+              "estimator": "pooled",
+              "raw_word_shots": {
+                "max": 512000.0,
+                "mean": 16505.76583909917,
+                "min": 8000.0,
+                "total": 121664000.0
+              },
+              "word_samples_per_preparation": 237.625
+            },
+            "single_assignment": {
+              "compatible_settings_per_word": {
+                "max": 1,
+                "mean": 1.0,
+                "min": 1
+              },
+              "coverage_fraction": {
+                "max": 0.015625,
+                "mean": 0.015625,
+                "min": 0.015625
+              },
+              "effective_word_shots": {
+                "max": 8000.0,
+                "mean": 8000.0,
+                "min": 8000.0,
+                "total": 58968000.0
+              },
+              "estimator": "single_assignment",
+              "raw_word_shots": {
+                "max": 8000.0,
+                "mean": 8000.0,
+                "min": 8000.0,
+                "total": 58968000.0
+              },
+              "word_samples_per_preparation": 115.171875
+            }
+          },
+          "fixed_uniform_raw_shots": {
+            "accuracy": {
+              "C_time_epsilon_us": null,
+              "epsilon": null,
+              "evidence_tier": "exact",
+              "status": "fixed_shot_only"
+            },
+            "admissible": true,
+            "device_card": {
+              "calibration_status": "logical_baseline",
+              "name": "logical-alltoall",
+              "sha256": "07e9cc637e590668bc89b7d407535f34f509155e08c95d2ecd0f8f931738265b"
+            },
+            "effective_shots": 512000.0,
+            "fidelity": {
+              "floor": 0.5,
+              "max": 1.0,
+              "mean": 1.0,
+              "min": 1.0
+            },
+            "fixed_shot_time_us": 5169200.0,
+            "inadmissible_settings": 0,
+            "logical_1q_applications": 10384000,
+            "logical_2q_applications": 15088000,
+            "modeled_2q_applications": 15088000,
+            "n_qubits": 8,
+            "raw_shots": 512000,
+            "routing": {
+              "model": "declared scalar sensitivity surrogate",
+              "required": false,
+              "two_qubit_count_multiplier": 1.0,
+              "two_qubit_depth_multiplier": 1.0
+            },
+            "schema": "clifford_qc.measurement_cost.v1",
+            "settings": 64
+          }
+        },
+        "superconducting-like": {
+          "device_card_sha256": "cf78e3240ad48839a8113a1570a43e614c230a8428fe8ceda7783e7ff75e1a13",
+          "equal_effective_shots": {
+            "accuracy": {
+              "C_time_epsilon_us": null,
+              "epsilon": null,
+              "evidence_tier": "exact",
+              "status": "fixed_shot_only"
+            },
+            "admissible": false,
+            "device_card": {
+              "calibration_status": "illustrative_scenario",
+              "name": "superconducting-like",
+              "sha256": "cf78e3240ad48839a8113a1570a43e614c230a8428fe8ceda7783e7ff75e1a13"
+            },
+            "effective_shots": 512003.61493111844,
+            "fidelity": {
+              "floor": 0.5,
+              "max": 0.8507630225817855,
+              "mean": 0.3509609084205578,
+              "min": 0.2255687036396625
+            },
+            "fixed_shot_time_us": 92310646.2,
+            "inadmissible_settings": 61,
+            "logical_1q_applications": 101234105,
+            "logical_2q_applications": 148621373,
+            "modeled_2q_applications": 445864119,
+            "n_qubits": 8,
+            "raw_shots": 4685408,
+            "routing": {
+              "model": "declared scalar sensitivity surrogate",
+              "required": true,
+              "two_qubit_count_multiplier": 3.0,
+              "two_qubit_depth_multiplier": 2.0
+            },
+            "schema": "clifford_qc.measurement_cost.v1",
+            "settings": 64
+          },
+          "estimator_information_at_uniform_raw_shots": {
+            "pooled": {
+              "compatible_settings_per_word": {
+                "max": 64,
+                "mean": 2.0632207298873966,
+                "min": 1
+              },
+              "coverage_fraction": {
+                "max": 1.0,
+                "mean": 0.03223782390449057,
+                "min": 0.015625
+              },
+              "effective_word_shots": {
+                "max": 66951.61534556268,
+                "mean": 2137.020770569414,
+                "min": 407.04992049342314,
+                "total": 15751980.09986715
+              },
+              "estimator": "pooled",
+              "raw_word_shots": {
+                "max": 512000.0,
+                "mean": 16505.76583909917,
+                "min": 8000.0,
+                "total": 121664000.0
+              },
+              "word_samples_per_preparation": 237.625
+            },
+            "single_assignment": {
+              "compatible_settings_per_word": {
+                "max": 1,
+                "mean": 1.0,
+                "min": 1
+              },
+              "coverage_fraction": {
+                "max": 0.015625,
+                "mean": 0.015625,
+                "min": 0.015625
+              },
+              "effective_word_shots": {
+                "max": 5790.381764739966,
+                "mean": 1086.9541408434463,
+                "min": 407.04992049342314,
+                "total": 8011938.972157043
+              },
+              "estimator": "single_assignment",
+              "raw_word_shots": {
+                "max": 8000.0,
+                "mean": 8000.0,
+                "min": 8000.0,
+                "total": 58968000.0
+              },
+              "word_samples_per_preparation": 115.171875
+            }
+          },
+          "fixed_uniform_raw_shots": {
+            "accuracy": {
+              "C_time_epsilon_us": null,
+              "epsilon": null,
+              "evidence_tier": "exact",
+              "status": "fixed_shot_only"
+            },
+            "admissible": false,
+            "device_card": {
+              "calibration_status": "illustrative_scenario",
+              "name": "superconducting-like",
+              "sha256": "cf78e3240ad48839a8113a1570a43e614c230a8428fe8ceda7783e7ff75e1a13"
+            },
+            "effective_shots": 66951.61534556268,
+            "fidelity": {
+              "floor": 0.5,
+              "max": 0.8507630225817855,
+              "mean": 0.3509609084205578,
+              "min": 0.2255687036396625
+            },
+            "fixed_shot_time_us": 9542800.0,
+            "inadmissible_settings": 61,
+            "logical_1q_applications": 10384000,
+            "logical_2q_applications": 15088000,
+            "modeled_2q_applications": 45264000,
+            "n_qubits": 8,
+            "raw_shots": 512000,
+            "routing": {
+              "model": "declared scalar sensitivity surrogate",
+              "required": true,
+              "two_qubit_count_multiplier": 3.0,
+              "two_qubit_depth_multiplier": 2.0
+            },
+            "schema": "clifford_qc.measurement_cost.v1",
+            "settings": 64
+          }
+        }
+      },
+      "estimators": {
+        "pooled": {
+          "compatible_settings_per_word": {
+            "max": 64,
+            "mean": 2.0632207298873966,
+            "min": 1
+          },
+          "coverage_fraction": {
+            "max": 1.0,
+            "mean": 0.03223782390449057,
+            "min": 0.015625
+          },
+          "effective_word_shots": {
+            "max": 512000.0,
+            "mean": 16505.76583909917,
+            "min": 8000.0,
+            "total": 121664000.0
+          },
+          "estimator": "pooled",
+          "raw_word_shots": {
+            "max": 512000.0,
+            "mean": 16505.76583909917,
+            "min": 8000.0,
+            "total": 121664000.0
+          },
+          "word_samples_per_preparation": 237.625
+        },
+        "single_assignment": {
+          "compatible_settings_per_word": {
+            "max": 1,
+            "mean": 1.0,
+            "min": 1
+          },
+          "coverage_fraction": {
+            "max": 0.015625,
+            "mean": 0.015625,
+            "min": 0.015625
+          },
+          "effective_word_shots": {
+            "max": 8000.0,
+            "mean": 8000.0,
+            "min": 8000.0,
+            "total": 58968000.0
+          },
+          "estimator": "single_assignment",
+          "raw_word_shots": {
+            "max": 8000.0,
+            "mean": 8000.0,
+            "min": 8000.0,
+            "total": 58968000.0
+          },
+          "word_samples_per_preparation": 115.171875
+        }
+      },
+      "gate_counts_per_sweep": {
+        "CX": 1886,
+        "H": 957,
+        "S": 277,
+        "S_DAG": 64
+      },
+      "logical_cx_applications_at_uniform_shots": 15088000,
+      "logical_cx_depth_sum": 1546,
+      "logical_cx_per_sweep": 1886,
+      "max_logical_cx_depth": 35,
+      "max_logical_cx_per_setting": 43,
+      "mean_logical_cx_depth": 24.15625,
+      "mean_logical_cx_per_setting": 29.46875,
+      "resource_metrics": {
+        "D_1q": {
+          "max": 18,
+          "mean": 11.078125,
+          "sum": 709
+        },
+        "D_2q": {
+          "max": 36,
+          "mean": 25.140625,
+          "sum": 1609
+        },
+        "N_1q": {
+          "max": 34,
+          "mean": 20.28125,
+          "sum": 1298
+        },
+        "N_2q": {
+          "max": 43,
+          "mean": 29.46875,
+          "sum": 1886
+        }
+      },
+      "settings": 64,
+      "state_preparations_at_uniform_shots": 512000,
+      "word_samples_per_preparation": 115.171875,
+      "z_only_restrictions_checked": 7371
+    }
+  ],
+  "schema": "clifford_qc.clifford_measurement_hierarchy.v3",
+  "shots_per_setting": 8000,
+  "source": "benchmarks/reference_results/matched_h4.json",
+  "synthesis": "independent binary-symplectic stabilizer basis per block; inverse stim tableau elimination; exact Z-only conjugation check on all members",
+  "system": "h4",
+  "word_universe": 7371
+}

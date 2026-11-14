@@ -1,84 +1,32 @@
-"""Regenerate the retained DA-CASE table values from their bound source snapshot."""
+"""Generate all numerical table fragments for the standalone A-CASE paper."""
 
 from __future__ import annotations
 
 import csv
-import hashlib
 import json
 import math
-import sys
-import tempfile
 from pathlib import Path
 
 HERE = Path(__file__).resolve().parent
 ROOT = HERE.parent
-if str(ROOT) not in sys.path:
-    sys.path.insert(0, str(ROOT))
-from paper_acase.source_snapshot import (  # noqa: E402
-    TABLE_PATHS, require_snapshot, source_path, table_path, validate_table_body,
-)
-
 TABLES = HERE / "tables"
-TABLE_SOURCES: dict[str, tuple[Path, ...]] = {}
-
-
-def configure_sources() -> None:
-    """Resolve sources only after the CLI has validated the manifest."""
-    global LADDER, H4, WARM, KRYLOV_WIDTH, MATCHED, FINITE_SHOT
-    global PHASE12_PRIMARY, CLIFFORD_HIERARCHY, DIMER, RESPONSE, RESPONSE_ILL
-    LADDER = source_path("benchmarks/reference_results/acase_ladder_summary.csv")
-    H4 = source_path("benchmarks/reference_results/fcidump_h4.json")
-    WARM = source_path("benchmarks/reference_results/warm_start_h4.json")
-    KRYLOV_WIDTH = source_path("benchmarks/reference_results/krylov_width.json")
-    MATCHED = source_path("benchmarks/reference_results/matched_h4.json")
-    FINITE_SHOT = source_path("benchmarks/reference_results/finite_shot_optimization.json")
-    PHASE12_PRIMARY = source_path("benchmarks/results/phase12_paper_b_five_system.json")
-    CLIFFORD_HIERARCHY = tuple(
-        source_path(f"benchmarks/reference_results/clifford_hierarchy_{system}.json")
-        for system in ("h4", "beh2"))
-    DIMER = source_path("examples/data/wannier_hubbard_dimer.json")
-    RESPONSE = source_path("paper_acase/data/response_bootstrap.json")
-    RESPONSE_ILL = source_path("paper_acase/data/response_bootstrap_illconditioned.json")
-    TABLE_SOURCES.clear()
-    TABLE_SOURCES.update({
-        "phase12_primary.tex": (PHASE12_PRIMARY,),
-        "matched_results.tex": (MATCHED, KRYLOV_WIDTH),
-        "clifford_hierarchy.tex": CLIFFORD_HIERARCHY,
-        "finite_shot.tex": (FINITE_SHOT,),
-    })
-
-
-def _git_blob_sha(path: Path) -> str:
-    """Git blob identity for byte-exact generated-artifact bindings."""
-    data = path.read_bytes()
-    header = f"blob {len(data)}\0".encode()
-    return hashlib.sha1(header + data, usedforsecurity=False).hexdigest()
+LADDER = ROOT / "benchmarks" / "reference_results" / "acase_ladder_summary.csv"
+H4 = ROOT / "benchmarks" / "reference_results" / "fcidump_h4.json"
+WARM = ROOT / "benchmarks" / "reference_results" / "warm_start_h4.json"
+KRYLOV_WIDTH = ROOT / "benchmarks" / "reference_results" / "krylov_width.json"
+DIMER = ROOT / "examples" / "data" / "wannier_hubbard_dimer.json"
+RESPONSE = HERE / "data" / "response_bootstrap.json"
+RESPONSE_ILL = HERE / "data" / "response_bootstrap_illconditioned.json"
 
 
 def _write(name: str, rows: list[str]) -> None:
-    """Write one table fragment, source-bound when its inputs are declared.
-
-    A generated fragment carrying no binding cannot be told apart from a
-    hand-edited one, and a record regenerated without rerunning this module
-    leaves a stale table that still typesets.  For a declared table this
-    prepends one blob-SHA header per source plus one for this generator, which
-    ``check_manuscript.py`` re-derives and compares.
-    """
-    sources = TABLE_SOURCES.get(name, ())
-    header = [f"% source-git-blob-sha: {_git_blob_sha(path)}"
-              for path in sources]
-    if sources:
-        header.append(
-            f"% generator-git-blob-sha: {_git_blob_sha(Path(__file__).resolve())}")
-    payload = ("\n".join(header + rows) + "\n").encode("utf-8")
-    validate_table_body(name, payload)
     TABLES.mkdir(parents=True, exist_ok=True)
-    (TABLES / name).write_bytes(payload)
+    (TABLES / name).write_text("\n".join(rows) + "\n")
 
 
 def _sci(value: float, digits: int = 2) -> str:
     if value == 0.0:
-        return "$0$"
+        return "0"
     exponent = int(math.floor(math.log10(abs(value))))
     mantissa = value / 10 ** exponent
     if exponent == 0:
@@ -129,7 +77,7 @@ def h4_table() -> None:
         rf"External determinant FCI & {ref:.15f} & --- & --- \\",
         rf"Mapped sector oracle & {mapped['ground_energy']:.15f} & "
         rf"{_sci(mapped['external_fci_error'])} Ha & 36 \\",
-        rf"DA-CASE & {adaptive['ground_energy']:.15f} & "
+        rf"Adaptive A-CASE & {adaptive['ground_energy']:.15f} & "
         rf"{adaptive['error_millihartree']:.6f} mHa & "
         rf"{adaptive['basis_size']} \\",
         rf"Complete singles/doubles & {sd['ground_energy']:.15f} & "
@@ -217,52 +165,6 @@ def ladder_table() -> None:
     _write("ladder_results.tex", out)
 
 
-def phase12_primary_table() -> None:
-    """Matched-budget Phase 12 rows from the committed five-system record."""
-    record = json.loads(PHASE12_PRIMARY.read_text())
-    by_key = {row["system_key"]: row for row in record["systems"]}
-    methods = (
-        "budget_selected_ci",
-        "matched_selected_ci",
-        "acase",
-        "qsci_haar_dressed_acase",
-        "fixed_krylov",
-    )
-    labels = (
-        ("Hubbard $2\\times2$", "hubbard_2x2"),
-        ("Hubbard $2\\times3$", "hubbard_2x3"),
-        ("H$_4$, 0.9 \\AA", "h4_equilibrium"),
-        ("H$_4$, 1.8 \\AA", "h4_stretched"),
-        ("H$_4$ FCIDUMP", "fcidump_h4_equilibrium"),
-    )
-
-    def fmt(value: float) -> str:
-        """Four significant figures, with small values in scientific form."""
-        if value == 0.0:
-            return "$0$"
-        exponent = int(math.floor(math.log10(abs(value))))
-        if abs(value) >= 0.1:
-            decimals = max(0, 3 - exponent)
-            return "$" + f"{value:.{decimals}f}" + "$"
-        return _sci(value, 3)
-
-    out: list[str] = []
-    for display, key in labels:
-        arms = {row["method"]: row for row in by_key[key]["arms"]}
-        missing = [method for method in methods if method not in arms]
-        if missing:
-            raise ValueError(f"Phase 12 {key} is missing arms: {missing}")
-        if any(arms[method]["M"] != 7 for method in methods):
-            raise ValueError(f"Phase 12 {key} does not satisfy the M=7 table contract")
-        out.append(
-            display + " & "
-            + " & ".join(fmt(abs(float(arms[method]["absolute_error"])))
-                         for method in methods)
-            + r" \\"
-        )
-    _write("phase12_primary.tex", out)
-
-
 def response_table() -> None:
     record = json.loads(RESPONSE.read_text())
     exact = record["exact"]
@@ -284,138 +186,6 @@ def response_table() -> None:
     _write("response_results.tex", out)
 
 
-# Display-only abbreviations for the matched table's arm column, applied after
-# the stored A-CASE -> DA-CASE mapping and never written back to the records.
-# The two warm-start labels are long enough to overrun the full-width table:
-# spelling "determinant" out in them pushes the row 11.6pt past the margin,
-# which LaTeX reports as an overfull hbox and prints into the gutter.  "det."
-# is unambiguous beside the unabbreviated "DA-CASE (determinant)" row above.
-_MATCHED_ARM_ABBREVIATIONS = {
-    "DA-CASE (determinant, ADAPT warm start)":
-        "DA-CASE (det., ADAPT warm start)",
-    "DA-CASE (determinant, sector-projected ADAPT warm start)":
-        "DA-CASE (det., sector-projected ADAPT warm start)",
-}
-
-
-def _matched_display_arm(stored: str) -> str:
-    renamed = stored.replace("A-CASE", "DA-CASE")
-    return _MATCHED_ARM_ABBREVIATIONS.get(renamed, renamed)
-
-
-def matched_table() -> None:
-    """Every arm on one H4 contract with words and physical QWC settings.
-
-    ``state_evaluation_contexts`` is deliberately not called a preparation
-    count: every shot of every physical measurement setting requires a fresh
-    preparation. ``selection_qwc_group_evaluations`` sums settings across
-    changing-state selection rounds; for fixed-reference DA-CASE it is the one
-    cached union. ``---`` marks a column an arm does not have. ADAPT-GCIM's
-    final object is instead counted as Hamiltonian/overlap transition pairs.
-    """
-    record = json.loads(MATCHED.read_text())
-    # The matched table is where the width comparison is actually made, so the
-    # Krylov arm's width is carried over from the record that can compute it
-    # rather than left blank; the tracked route cannot reach it here.
-    krylov = _krylov_widths().get("h4_chain(r=0.9)")
-    rows = []
-    for row in record["rows"]:
-        size = row["basis_size"]
-        basis = "---" if size is None else str(size)
-        kappa = ("---" if row["condition_number"] is None
-                 else _kappa(row["condition_number"]))
-        selection = row["selection_evaluations"]
-        selection_cell = "---" if not selection else f"{selection:,}"
-        words = row["selection_words"]
-        selection_groups = row.get("selection_qwc_group_evaluations")
-        words_cell = ("---" if not words else
-                      f"{words:,}/{selection_groups:,}")
-        final = row["final_words"]
-        if final is None and row["arm"] == "Krylov" and krylov is not None:
-            final_cell = rf"{krylov:,}/---\footnotemark[1]"
-        else:
-            final_groups = row.get("final_qwc_groups")
-            final_cell = ("n/t" if final is None else
-                          f"{final:,}/{final_groups:,}")
-        h_pairs = row.get("hamiltonian_matrix_pairs")
-        s_pairs = row.get("overlap_offdiagonal_pairs")
-        pair_cell = ("---" if h_pairs is None
-                     else f"{h_pairs:,}/{s_pairs:,}")
-        # Three decimals renders the Krylov arm's 1.05e-5 mHa as a flat zero,
-        # which reads as exactness rather than as a small number.
-        error = row["error_millihartree"]
-        error_cell = (f"{error:.3f}" if abs(error) >= 5e-4
-                      else _sci(error, 2).replace("$", "$"))
-        display_arm = _matched_display_arm(row["arm"])
-        rows.append(
-            rf"{display_arm} & {basis} & {error_cell} & "
-            rf"{kappa} & {row['state_evaluation_contexts']:,} & "
-            rf"{row['ansatz_rotors']} & {selection_cell} & {words_cell} & "
-            rf"{final_cell} & {pair_cell} \\")
-    _write("matched_results.tex", rows)
-
-
-def clifford_hierarchy_table() -> None:
-    """Both eight-qubit hierarchy records, one block per system."""
-    out: list[str] = []
-    for path in CLIFFORD_HIERARCHY:
-        record = json.loads(path.read_text())
-        if out:
-            out.append(r"\colrule")
-        # A leading system column rather than a spanning header row: a
-        # \multicolumn may not be the first token of an \input fragment inside
-        # a TeX alignment.
-        system = (rf"{record['label']} ($M={record['basis_size']}$, "
-                  rf"$W={record['word_universe']:,}$)")
-        for row in record["rows"]:
-            block = row["block_size"]
-            label = "$1$ (QWC)" if block == 1 else (
-                f"${block}$ (full)" if block == record["n_qubits"]
-                else f"${block}$")
-            ratio = row["cx_to_preparation_cost_ratio_vs_qwc"]
-            out.append(
-                f"{system} & {label} & {row['settings']} & "
-                f"{row['word_samples_per_preparation']:.2f} & "
-                f"{row['logical_cx_per_sweep']} & "
-                f"{row['mean_logical_cx_depth']:.2f} & "
-                f"{row['max_logical_cx_depth']} & "
-                f"{row['state_preparations_at_uniform_shots'] / 1e6:.3f} & "
-                + ("---" if ratio is None else f"{ratio:.3f}")
-                + r" \\")
-            system = ""
-    _write("clifford_hierarchy.tex", out)
-
-
-def finite_shot_table() -> None:
-    """Allocation x truncation cross on the fixed four-qubit projected bank."""
-    record = json.loads(FINITE_SHOT.read_text())
-    arms = record["arms"]
-    exact_rank = record["setting"]["exact_effective_rank"]
-    replicas = arms["uniform_fixed"]["replicas"]
-    allocations = (("uniform", "uniform"), ("group_optimal", "covariance-aware"))
-    rules = (("fixed", "fixed"), ("calibrated_uniform", "calibrated (uniform)"),
-             ("calibrated_per_mode", "calibrated (per mode)"))
-    out: list[str] = []
-    for key, allocation in allocations:
-        if out:
-            out.append(r"\colrule")
-        for suffix, rule in rules:
-            arm = arms[f"{key}_{suffix}"]
-            out.append(
-                f"{allocation} & {rule} & "
-                f"{arm['median_absolute_error_millihartree']:.2f} & "
-                f"{arm['p95_absolute_error_millihartree']:.2f} & "
-                f"{arm['max_absolute_error_millihartree']:.1f} & "
-                f"{arm['rmse_millihartree']:.2f} & "
-                f"{arm['bias_millihartree']:+.2f} & "
-                f"{arm['catastrophic_error_count']}/{replicas} & "
-                f"{arm['exact_rank_count']}/{replicas}"
-                + r" \\")
-            allocation = ""
-    out.append(rf"% exact effective rank {exact_rank}; {replicas} replicas")
-    _write("finite_shot.tex", out)
-
-
 def conditioning_table() -> None:
     rows = []
     for path in (RESPONSE, RESPONSE_ILL):
@@ -435,44 +205,14 @@ def conditioning_table() -> None:
 
 
 def main() -> None:
-    global TABLES
-    require_snapshot(check_tables=False)
-    configure_sources()
-    destination = TABLES
-    with tempfile.TemporaryDirectory(prefix=".tables-stage-", dir=HERE) as directory:
-        TABLES = Path(directory)
-        try:
-            dimer_table()
-            h4_table()
-            warm_start_table()
-            matched_table()
-            clifford_hierarchy_table()
-            ladder_table()
-            phase12_primary_table()
-            response_table()
-            conditioning_table()
-            finite_shot_table()
-        finally:
-            TABLES = destination
-        staged = Path(directory)
-        expected = {Path(relative).name for relative in TABLE_PATHS}
-        if {path.name for path in staged.iterdir()} != expected:
-            raise ValueError("generation did not produce all 10 snapshot tables")
-        # Resolve every target before publishing any candidate. Sources and
-        # candidates must still match after the complete generation succeeds.
-        targets = {name: table_path(name) for name in expected}
-        require_snapshot(check_tables=False)
-        for name in expected:
-            validate_table_body(name, (staged / name).read_bytes())
-        destination.mkdir(parents=True, exist_ok=True)
-        for name in sorted(expected):
-            (staged / name).replace(targets[name])
+    dimer_table()
+    h4_table()
+    warm_start_table()
+    ladder_table()
+    response_table()
+    conditioning_table()
     print(TABLES)
 
 
 if __name__ == "__main__":
-    try:
-        main()
-    except (OSError, ValueError) as error:
-        print(f"FAIL {error}")
-        raise SystemExit(1)
+    main()
