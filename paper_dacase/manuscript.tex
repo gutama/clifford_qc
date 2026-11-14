@@ -36,7 +36,7 @@ Bandung, Indonesia}
 \affiliation{Department of Engineering Physics, Institut Teknologi Bandung,
 Bandung, Indonesia}
 
-\date{August 9, 2026}
+\date{August 9, 2026; revised November 14, 2026}
 
 \begin{abstract}
 Quantum subspace methods are often compared by basis dimension or energy
@@ -437,8 +437,8 @@ the subspace and \(W=7371\) fixed.  Table~\ref{tab:dyadic} shows a monotone
 reduction from \(913\) QWC settings to \(64\) fully commuting settings.
 At \(8000\) uniform shots per setting, preparation executions fall from
 \(7.304\) million to \(0.512\) million.  The fully commuting endpoint requires
-\(2006\) logical CX gates over one complete setting sweep, with mean and
-maximum two-qubit depths \(25.72\) and \(42\).  Connectivity, routing, device
+\(1886\) logical CX gates over one complete setting sweep, with mean and
+maximum two-qubit depths \(24.16\) and \(35\).  Connectivity, routing, device
 noise, and error mitigation are excluded.
 
 \begin{table*}[t]
@@ -475,15 +475,15 @@ Eq.~\eqref{eq:neyman}.
 
 The adaptive allocation reduces the median summed projected-matrix variance
 from \(272.46\) to \(84.75\), or \(68.9\%\), and the exact-Ritz first-order
-variance by \(20.0\%\).  Under the fixed overlap cutoff, the median absolute
-error barely changes, from \(4.48\) to \(4.44\) mHa, but catastrophic
+variance by \(19.9\%\).  Under the fixed overlap cutoff, the median absolute
+error barely changes, from \(4.49\) to \(4.44\) mHa, but catastrophic
 \(>0.1\) Ha estimates fall from four to one.  Rare near-null modes dominate
 RMSE.
 
 Uniform calibration applies the largest radius to every overlap mode and
 over-truncates this bank.  Mode-wise calibration recovers rank eight in
-\(71/200\) uniform and \(67/200\) covariance-aware replicas.  With
-covariance-aware allocation it gives \(8.73\) mHa median error, \(12.85\) mHa
+\(72/200\) uniform and \(67/200\) covariance-aware replicas.  With
+covariance-aware allocation it gives \(8.69\) mHa median error, \(12.85\) mHa
 RMSE, and no catastrophic replica, compared with \(4.44\) mHa median error,
 \(285.41\) mHa RMSE, and one catastrophe for the fixed cutoff.
 

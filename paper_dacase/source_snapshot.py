@@ -1,9 +1,11 @@
 """Content-only provenance for the retained P2 manuscript table values.
 
-The four inputs that later changed live in ``data/source_snapshot``. Their
-original Git blob ids come from the existing table headers. Other inputs
-remain at their original paths, with their bytes bound by the same manifest.
-No Git history or historical Python execution is needed to check this data.
+The four inputs whose benchmark records have been regenerated since the
+preprint live in ``data/source_snapshot``, as the committed records stood at
+the manuscript revision the manifest names. Other inputs remain at their
+original paths, with their bytes bound by the same manifest. No Git history or
+historical Python execution is needed to check this data, and a record
+regenerated later does not move the manuscript.
 """
 
 from __future__ import annotations

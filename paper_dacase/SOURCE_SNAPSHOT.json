@@ -2,7 +2,23 @@
   "schema": "clifford_qc.paper_table_snapshot.v1",
   "paper": "DA-CASE: reusable measurements for adaptive quantum subspaces",
   "arxiv": "2608.08739",
-  "scope": "Preserve the scientific table bodies already committed with the P2 manuscript. This identifies retained repository sources, not an independently verified arXiv upload.",
+  "revision": 2,
+  "scope": "Bind the inputs and scientific table bodies of revision 2 of the P2 manuscript, which reads the committed benchmark records as they stood on 2026-11-14. This identifies retained repository sources, not an independently verified arXiv upload.",
+  "previous_revision": {
+    "revision": 1,
+    "tag": "dacase-arxiv-v1.0.0",
+    "manuscript_git_blob_sha1": "5bbbed22671b94a51e5ae377e7a88c21538f6ddc",
+    "replaced_source_git_blob_sha1": {
+      "benchmarks/reference_results/matched_h4.json": "75d82d7f011de5bc71bad0cb9cb7ae914e9ffd01",
+      "benchmarks/reference_results/finite_shot_optimization.json": "01eb0c924cc4ba44ca1786916345d44016111636",
+      "benchmarks/reference_results/clifford_hierarchy_h4.json": "29ef387cb3ad4eb1b0e91c85ced2c498bb050cb2",
+      "benchmarks/reference_results/clifford_hierarchy_beh2.json": "88d5ed618b217182016b5c5896b55f9147f641ac"
+    },
+    "replaced_table_body_sha256": {
+      "tables/clifford_hierarchy.tex": "83a8f8201b1bec0ec9f9aade0a5a3999f964226776035cdd85628311007305a7",
+      "tables/finite_shot.tex": "c4cabb23bb9a4f6bc2e89eb8c98d7acfdf062a2c578f9de217d2d00ebeea1371"
+    }
+  },
   "historical_generator": {
     "path": "paper_dacase/data/source_snapshot/make_tables.py.txt",
     "source_path": "paper_dacase/make_tables.py",
@@ -42,16 +58,16 @@
     {
       "source_path": "benchmarks/reference_results/matched_h4.json",
       "path": "paper_dacase/data/source_snapshot/matched_h4.json",
-      "origin": "existing_table_source_header",
-      "git_blob_sha1": "75d82d7f011de5bc71bad0cb9cb7ae914e9ffd01",
-      "sha256": "8481d8ca1fb56a9b6d0ba274b7e40c80e3b7fa1d7fee6b82bedd5b36025a9f8a"
+      "origin": "committed_record_packaged_at_revision_2",
+      "git_blob_sha1": "935d34b71c6e3d8a827d24eab7702440dd48c4d6",
+      "sha256": "63d125678cb9db77f723e5eef1bd4be1590fc6b8f8e64c2187d2e688a53899fc"
     },
     {
       "source_path": "benchmarks/reference_results/finite_shot_optimization.json",
       "path": "paper_dacase/data/source_snapshot/finite_shot_optimization.json",
-      "origin": "existing_table_source_header",
-      "git_blob_sha1": "01eb0c924cc4ba44ca1786916345d44016111636",
-      "sha256": "67de35c34872c5649afd1446ad9b0e09089497ced3cd0ad265a32a542ee0df4a"
+      "origin": "committed_record_packaged_at_revision_2",
+      "git_blob_sha1": "e06b06419a46b23edd4bee8dea46049762b5d9de",
+      "sha256": "85ee4e3d9d1adfd5daf51bb6b7487eb2a9fc5d2246dc308203297937f88e9123"
     },
     {
       "source_path": "benchmarks/results/phase12_paper_b_five_system.json",
@@ -63,16 +79,16 @@
     {
       "source_path": "benchmarks/reference_results/clifford_hierarchy_h4.json",
       "path": "paper_dacase/data/source_snapshot/clifford_hierarchy_h4.json",
-      "origin": "existing_table_source_header",
-      "git_blob_sha1": "29ef387cb3ad4eb1b0e91c85ced2c498bb050cb2",
-      "sha256": "4213264e8a071ccc3e6ddbbb5b4ecf4c839fd241d4a6fb2f5ffc9097c9871c95"
+      "origin": "committed_record_packaged_at_revision_2",
+      "git_blob_sha1": "f46be05ecf2d1ec7cb8beff8518e6d27c85a8ebf",
+      "sha256": "88dc42412f64d7c66a60f160fe86df69e6460f9dca64acaae2c95a9bc8cbadff"
     },
     {
       "source_path": "benchmarks/reference_results/clifford_hierarchy_beh2.json",
       "path": "paper_dacase/data/source_snapshot/clifford_hierarchy_beh2.json",
-      "origin": "existing_table_source_header",
-      "git_blob_sha1": "88d5ed618b217182016b5c5896b55f9147f641ac",
-      "sha256": "3eec12597dcd3ce0023d0de7a144225b4c1586520bd433c70c0649c2ad462c8d"
+      "origin": "committed_record_packaged_at_revision_2",
+      "git_blob_sha1": "417c559ec3ccbf41dccc18ecee6256a284452660",
+      "sha256": "ad5babccb230a9f66e3ac44633062254368c5b08a2103a080f24ba3e686525b5"
     },
     {
       "source_path": "examples/data/wannier_hubbard_dimer.json",
@@ -99,7 +115,7 @@
   "tables": [
     {
       "path": "tables/clifford_hierarchy.tex",
-      "body_sha256": "83a8f8201b1bec0ec9f9aade0a5a3999f964226776035cdd85628311007305a7"
+      "body_sha256": "412b9abdd936c953c995648f83cdb6b0ab74e7cba7648ab1f85637ce443ae336"
     },
     {
       "path": "tables/conditioning_results.tex",
@@ -111,7 +127,7 @@
     },
     {
       "path": "tables/finite_shot.tex",
-      "body_sha256": "c4cabb23bb9a4f6bc2e89eb8c98d7acfdf062a2c578f9de217d2d00ebeea1371"
+      "body_sha256": "e08ce61d808ee2f8dad0469bf5ac9a0f0e6a01a4e39996d122066a044c55b9c3"
     },
     {
       "path": "tables/h4_results.tex",

@@ -2244,14 +2244,21 @@ The four PDF figures are generated outputs: `make_figures.py` may regenerate
 different PDF metadata under a newer Matplotlib, while `check_manuscript.py`
 still checks their existence, scientific inputs, and staleness.
 
-The retained P2/DA-CASE table values now have their own content snapshot in
-`paper_dacase/SOURCE_SNAPSHOT.json`. Four inputs whose live benchmark records
-changed are packaged under `paper_dacase/data/source_snapshot/`; the remaining
-inputs retain their original paths and are digest-bound. The original table
-generator is inert provenance data. The current generator reads the bound
-inputs, and the checker verifies all ten table bodies. This identifies the
-retained repository sources without asserting an independently verified arXiv
-upload identity. Moving benchmark records do not silently replace these values.
+The retained P2/DA-CASE table values have their own content snapshot in
+`paper_dacase/SOURCE_SNAPSHOT.json`, now at revision 2. The four inputs whose
+benchmark records were regenerated after the preprint are packaged under
+`paper_dacase/data/source_snapshot/` as the committed records stood on
+14 November 2026; the remaining inputs retain their original paths and are
+digest-bound. Revision 2 moved the dyadic-hierarchy and finite-shot tables, and
+the prose that quotes them, to those records. Revision 1 is the tag
+`dacase-arxiv-v1.0.0`; the manifest's `previous_revision` block names the
+revision-1 inputs and table bodies that revision 2 replaced, and
+`paper_dacase/README.md` lists every changed value. The revision-1 table
+generator is inert provenance data. The
+current generator reads the bound inputs, and the checker verifies all ten
+table bodies. This identifies the retained repository sources without
+asserting an independently verified arXiv upload identity. Moving benchmark
+records do not silently replace these values.
 
 ```bash
 python paper_dacase/source_snapshot.py

@@ -31,6 +31,41 @@ stored benchmark arm labels retain `acase` / `A-CASE` for provenance and
 backward compatibility; paper table generation maps those stored labels to
 `DA-CASE` without mutating the records.
 
+## Versions
+
+| Version | arXiv | Source | Status |
+|---|---|---|---|
+| v1 | [2608.08739v1](https://arxiv.org/abs/2608.08739v1), 9 Aug 2026 | tag `dacase-arxiv-v1.0.0` | posted |
+| v2 | 2608.08739v2 | this tree, revised 14 Nov 2026 | prepared as a replacement |
+
+v2 is a replacement of 2608.08739, not a new submission. It moves the
+manuscript from the August records to the committed benchmark records as they
+stood on 14 November 2026. No claim, abstract sentence, method or table layout
+changes. What changed, for the replacement's comments field and for anyone
+diffing the two versions:
+
+- **Table II, dyadic hierarchy.** Logical CX counts, depths and break-even
+  ratios are regenerated from the current records, which need fewer logical
+  CX gates for the same settings. At the fully commuting H4 endpoint the sweep
+  takes `1886` CX gates rather than `2006`, with mean and maximum two-qubit
+  depths `24.16` and `35` rather than `25.72` and `42`; the BeH2 `k = 2`
+  break-even ratio is `2.786` rather than `1.857`. Setting counts, `W/G` and
+  preparation counts are unchanged, including the `913` to `64` reduction.
+- **Table III, finite-shot diagnostic.** Regenerated from the record rebuilt
+  under Python 3.12 and NumPy 2.5.2. One uniform per-mode replica changes its
+  rank decision (`72/200` rather than `71/200`), and no cell moves by more than
+  `0.7` mHa. The `68.9%` variance reduction is unchanged.
+- **Prose.** Sec. IV C and Sec. IV D quote the values above: the three H4
+  endpoint numbers, the fixed-cutoff uniform median (`4.49` rather than `4.48`
+  mHa), the rank-recovery count, and the covariance-aware per-mode median
+  (`8.69` rather than `8.73` mHa).
+- **One correction that is not a data change.** The exact-Ritz first-order
+  variance reduction is `19.9%`. v1 printed `20.0%`; both revisions' records
+  give `19.94%`.
+- **Table I, matched contract.** Rebound to the current record, which differs
+  from the August one in its environment stamp and in the last digits of
+  floating-point values; no cell changes.
+
 ## Development and review access
 
 The framework and this paper package are currently maintained in a private
@@ -80,10 +115,13 @@ PDFs remain CI/release artifacts and are not committed as source.
 - `make_tables.py` — regenerates all numerical LaTeX table fragments from
   the retained manuscript's source snapshot.
 - `SOURCE_SNAPSHOT.json` and `source_snapshot.py` — bind all twelve table
-  inputs, the original table-generator bytes and all ten scientific table
-  bodies. Four historical inputs whose live records changed are packaged
-  under `data/source_snapshot/`; the original generator is inert `.txt`
-  provenance data. Checking this contract needs no Git history.
+  inputs, the v1 table-generator bytes and all ten scientific table bodies,
+  and name the manuscript revision they belong to. The four inputs whose
+  benchmark records have been regenerated since the preprint are packaged
+  under `data/source_snapshot/`, as the committed records stood at v2; the
+  v1 generator is inert `.txt` provenance data. `previous_revision` names
+  the v1 inputs and table bodies that v2 replaced. Checking this contract
+  needs no Git history.
 - `make_figures.py` — regenerates the pipeline, validation-ladder, response,
   and conditioning figures. `paper_assets/manifest.json` binds each figure to
   the exact generator and line-ending-normalized input digests without
@@ -134,19 +172,21 @@ benchmarks rather than paper artifacts:
 
 ## Reproduce
 
-The retained P2 tables preserve their existing scientific values. Later
-benchmark migrations and Clifford-synthesis improvements changed live
-records, including logical CX counts, depths and finite-shot replica census.
-Running the current benchmark producers below does not migrate this
-manuscript to those results. `make_tables.py` uses the bound historical inputs
-where needed and refuses inputs or generated scientific cells that differ
-from `SOURCE_SNAPSHOT.json`. It stages and validates the complete set before
-replacing any table, so a failed regeneration preserves the existing files.
-Snapshot paths must resolve within the source tree, including through
-symlinks. This manifest identifies the retained repository
-sources; it does not independently identify the uploaded arXiv artifact.
-Updating the scientific manuscript requires an explicit reviewed revision of
-that boundary, rather than refreshing provenance headers against new values.
+The tables are bound to the inputs of v2. At that revision the packaged
+inputs are byte-identical to the committed benchmark records, so the
+manuscript agrees with what the record gates reproduce. The binding is
+deliberate rather than live: running the benchmark producers below, or a
+later migration of those records, does not migrate this manuscript.
+`make_tables.py` reads the bound inputs and refuses inputs or generated
+scientific cells that differ from `SOURCE_SNAPSHOT.json`. It stages and
+validates the complete set before replacing any table, so a failed
+regeneration preserves the existing files. Snapshot paths must resolve within
+the source tree, including through symlinks. This manifest identifies the
+retained repository sources; it does not independently identify the uploaded
+arXiv artifact. Moving the manuscript to newer records is an explicit
+reviewed revision of that boundary: new packaged inputs, new table-body
+digests, the prose that quotes them and a new revision number together,
+rather than provenance headers refreshed against new values.
 
 From the repository root:
 
@@ -187,7 +227,7 @@ identity.  They are not finite-sample confidence certificates.
 
 The paths below identify each evidence family. `SOURCE_SNAPSHOT.json` names
 the exact input bytes used for the retained tables, including the packaged
-historical alternatives to four moving benchmark paths.
+copies of four moving benchmark records.
 
 | Manuscript element | Source |
 |---|---|

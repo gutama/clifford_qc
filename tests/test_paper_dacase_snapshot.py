@@ -1,4 +1,4 @@
-"""The retained P2 tables bind historical inputs without requiring Git."""
+"""The retained P2 tables bind their packaged inputs without requiring Git."""
 
 from __future__ import annotations
 
@@ -96,7 +96,7 @@ def test_live_record_changes_cannot_migrate_the_manuscript(exported_paper):
 
 def test_changed_scientific_cell_is_detected(exported_paper):
     table = exported_paper / "paper_dacase" / "tables" / "clifford_hierarchy.tex"
-    table.write_bytes(table.read_bytes().replace(b"2006", b"1886"))
+    table.write_bytes(table.read_bytes().replace(b"1886", b"2006"))
     assert any("retained manuscript table body drifted" in p
                for p in source_snapshot.snapshot_problems(exported_paper))
 

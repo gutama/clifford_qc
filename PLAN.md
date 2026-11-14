@@ -424,6 +424,13 @@ manifest and independent snapshot/manuscript checks, and P2 lives in
 `paper_a_case_subspaces/` and `paper_acase/` respectively, so an older
 reference to `paper_acase/` means the P2 tree.
 
+The P2 tree is at revision 2 (14 November 2026); revision 1 is preserved at
+the tag `dacase-arxiv-v1.0.0`. Revision 2 moves the
+dyadic-hierarchy and finite-shot tables, and the prose quoting them, to the
+committed records, so the manuscript now carries the §6.6 values rather than the
+August ones. `paper_dacase/README.md` lists every changed value; none of the
+numbers quoted below changes.
+
 **What P1 established.** A-CASE as a single-reference, operator-generated
 Rayleigh–Ritz method: matrices reconstructed from one shared Pauli-expectation
 bank; adaptive growth scoring overlap-aware local pencils and rejecting symmetry
@@ -5061,7 +5068,7 @@ the committed records and a checker that verifies they have not drifted:
 | manuscript | source | scope | checker |
 |---|---|---|---|
 | Paper A | `paper/manuscript.tex`, `paper/README.md` | the measurement layer: commutator bank, shared-word caching and QWC grouping, confidence-certified selection, allocation policies, the 100-seed spin study, the proxy-versus-gradient boundary, and the stabilizer-seeding negative | `paper/check_manuscript.py` |
-| DA-CASE | `paper_dacase/manuscript.tex` (dated 9 August 2026) | "DA-CASE: reusable measurements for adaptive quantum subspaces" — the **Dyadic** Adaptive Clifford-Algebra Subspace Eigensolver: one reference, reused measurements, and the dyadic block-commuting hierarchy of §6.6 | `paper_dacase/check_manuscript.py` |
+| DA-CASE | `paper_dacase/manuscript.tex` (dated 9 August 2026; revised 14 November 2026) | "DA-CASE: reusable measurements for adaptive quantum subspaces" — the **Dyadic** Adaptive Clifford-Algebra Subspace Eigensolver: one reference, reused measurements, and the dyadic block-commuting hierarchy of §6.6 | `paper_dacase/check_manuscript.py` |
 
 **A naming distinction this plan owes the reader.** The method described in §1–§8
 is **A-CASE**; **DA-CASE** is the manuscript's name for the dyadic-measurement
