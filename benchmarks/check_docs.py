@@ -87,6 +87,20 @@ def script_flags(script: Path) -> tuple[set[str] | None, str | None]:
     missing = re.search(r"ModuleNotFoundError: No module named '([\w.]+)'", done.stderr)
     if missing and missing.group(1).split(".")[0] not in {"benchmarks", "clifford_qc", "paper_architecture"}:
         return None, f"optional dependency {missing.group(1)!r} not installed"
+    # A script that exits with its own install hint names an extra, not a
+    # module, and says so for any ImportError -- an installed but unimportable
+    # dependency included. So the hint counts only as the final line, and only
+    # for an extra whose modules, per the capability table (which, unlike
+    # pyproject.toml, needs no tomllib on Python 3.10), really are absent here.
+    last = done.stderr.strip().splitlines()[-1:]
+    hint = re.search(r"requires the '?([\w-]+)'? extra: pip install", last[0]) if last else None
+    if hint:
+        from clifford_qc.capabilities import CAPABILITIES
+        extra = hint.group(1)
+        absent = sorted({module for record in CAPABILITIES.values() if record.extra == extra
+                         for module in record.modules if _absent(module)})
+        if absent:
+            return None, f"optional dependency {absent[0]!r} not installed ({extra!r} extra)"
     detail = (done.stderr or done.stdout).strip().splitlines()
     return None, detail[-1] if detail else f"exit {done.returncode}"
 
@@ -108,6 +122,8 @@ def module_constants(script: Path) -> dict[str, object]:
 
 
 def check_commands(text: str, problems: list[str], skipped: list[str]) -> None:
+    # One --help probe per script: several commands often name the same one.
+    probed: dict[Path, tuple[set[str] | None, str | None]] = {}
     for cmd in commands(text):
         m = re.match(r"python3? (benchmarks/[\w.]+\.py)", cmd)
         if not m:
@@ -119,7 +135,9 @@ def check_commands(text: str, problems: list[str], skipped: list[str]) -> None:
         used = set(re.findall(r"(--[a-z0-9][a-z0-9-]*)", cmd))
         if not used:
             continue
-        accepted, why = script_flags(script)
+        if script not in probed:
+            probed[script] = script_flags(script)
+        accepted, why = probed[script]
         if accepted is None:
             if why and why.startswith("optional dependency"):
                 skipped.append(f"{m.group(1)}: flags unverified ({why})")

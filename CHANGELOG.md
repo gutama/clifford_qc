@@ -37,6 +37,10 @@ Benchmark campaigns, their declarations and their outcomes are recorded in
 
 ### Changed
 
+- `clifford_qc.workflows.__all__` now lists the unified workflow interface
+  (`WorkflowResult`, `run_workflow`, `export_workflow_evidence`,
+  `verify_workflow_evidence`) beside `adapt_warm_start`, so
+  `from clifford_qc.workflows import *` binds those names too.
 - Only `clifford_qc` is installed. The repository's `molecular/` comparison
   suite was also packaged, as a top-level package named `molecular`; it is run
   from a checkout (`python -m molecular.run`) and is no longer installed.
