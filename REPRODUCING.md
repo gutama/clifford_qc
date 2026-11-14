@@ -997,7 +997,7 @@ Closing that gap exposed one record, and it is named rather than excused.
 under Python 3.11 / NumPy 2.4.6 / SciPy 1.17.1 — before the migration in #69 —
 while its other seventy-two rows predate execution stamping and claim nothing.
 It is not rebuilt here because it is manuscript evidence rather than a
-value-gated record: no `check_*.py` rebuilds it, `paper_acase` and
+value-gated record: no `check_*.py` rebuilds it, `paper_dacase` and
 `paper_a_case_subspaces` read it for figures and tables, and regenerating it
 moves published inputs across all five families rather than only the stamped
 rows. That is an authorship decision.
@@ -1683,7 +1683,7 @@ certificate gate.
 
 ```bash
 python examples/acase_finite_shot_response.py
-python paper_acase/check_response_records.py
+python paper_dacase/check_response_records.py
 ```
 
 The example uses 25 shared QWC groups and 8,000 shots per group. A grouped
@@ -2217,7 +2217,7 @@ certified.
 
 The first A-CASE preprint and the later DA-CASE preprint originally occupied
 `paper_acase/` in sequence. The P1 source state at commit `67ea0dd` is restored
-under `paper_a_case_subspaces/`; `paper_acase/` remains the P2/DA-CASE tree.
+under `paper_a_case_subspaces/`; the P2/DA-CASE tree is now `paper_dacase/`.
 The historical README and checker remain byte-identical and therefore retain
 their original `paper_acase/` prose and error-message paths. Use the restored
 paths below; changing those historical files would break the source boundary.
@@ -2240,8 +2240,8 @@ different PDF metadata under a newer Matplotlib, while `check_manuscript.py`
 still checks their existence, scientific inputs, and staleness.
 
 The retained P2/DA-CASE table values now have their own content snapshot in
-`paper_acase/SOURCE_SNAPSHOT.json`. Four inputs whose live benchmark records
-changed are packaged under `paper_acase/data/source_snapshot/`; the remaining
+`paper_dacase/SOURCE_SNAPSHOT.json`. Four inputs whose live benchmark records
+changed are packaged under `paper_dacase/data/source_snapshot/`; the remaining
 inputs retain their original paths and are digest-bound. The original table
 generator is inert provenance data. The current generator reads the bound
 inputs, and the checker verifies all ten table bodies. This identifies the
@@ -2249,9 +2249,9 @@ retained repository sources without asserting an independently verified arXiv
 upload identity. Moving benchmark records do not silently replace these values.
 
 ```bash
-python paper_acase/source_snapshot.py
-python paper_acase/make_tables.py
-python paper_acase/check_manuscript.py
+python paper_dacase/source_snapshot.py
+python paper_dacase/make_tables.py
+python paper_dacase/check_manuscript.py
 ```
 
 ## R3 protocol axis (`mapping x k`)

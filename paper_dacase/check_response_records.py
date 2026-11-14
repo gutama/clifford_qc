@@ -37,7 +37,7 @@ that failed:
 
 Run from the repository root:
 
-    python paper_acase/check_response_records.py
+    python paper_dacase/check_response_records.py
 """
 
 from __future__ import annotations

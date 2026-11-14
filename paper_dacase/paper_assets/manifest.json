@@ -2,8 +2,8 @@
   "figures": {
     "conditioning_bands.pdf": {
       "sources": {
-        "paper_acase/data/response_bootstrap.json": "4c125f98169ec837cd4327fd45586c4cca6921301142f0c23d73a4134e0555fa",
-        "paper_acase/data/response_bootstrap_illconditioned.json": "a147700ce4ae8ec4521d124878ba0f21175d03c02fe1dd3a3949d21635cbe534"
+        "paper_dacase/data/response_bootstrap.json": "4c125f98169ec837cd4327fd45586c4cca6921301142f0c23d73a4134e0555fa",
+        "paper_dacase/data/response_bootstrap_illconditioned.json": "a147700ce4ae8ec4521d124878ba0f21175d03c02fe1dd3a3949d21635cbe534"
       }
     },
     "pipeline.pdf": {
@@ -11,7 +11,7 @@
     },
     "response_bootstrap.pdf": {
       "sources": {
-        "paper_acase/data/response_bootstrap.json": "4c125f98169ec837cd4327fd45586c4cca6921301142f0c23d73a4134e0555fa"
+        "paper_dacase/data/response_bootstrap.json": "4c125f98169ec837cd4327fd45586c4cca6921301142f0c23d73a4134e0555fa"
       }
     },
     "validation_ladder.pdf": {
@@ -21,7 +21,7 @@
     }
   },
   "generator": {
-    "path": "paper_acase/make_figures.py",
+    "path": "paper_dacase/make_figures.py",
     "sha256": "729b5616c5964d198628fb91b189b7e095ead925ca0de3a23eef1bb4da96bcc3"
   },
   "schema": "clifford_qc.acase_figure_manifest.v1"

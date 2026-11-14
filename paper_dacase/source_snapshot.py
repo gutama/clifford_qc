@@ -14,7 +14,7 @@ from pathlib import Path
 
 
 ROOT = Path(__file__).resolve().parent.parent
-MANIFEST_RELATIVE = "paper_acase/SOURCE_SNAPSHOT.json"
+MANIFEST_RELATIVE = "paper_dacase/SOURCE_SNAPSHOT.json"
 SOURCE_PATHS = frozenset({
     "benchmarks/reference_results/acase_ladder_summary.csv",
     "benchmarks/reference_results/fcidump_h4.json",
@@ -26,8 +26,8 @@ SOURCE_PATHS = frozenset({
     "benchmarks/reference_results/clifford_hierarchy_h4.json",
     "benchmarks/reference_results/clifford_hierarchy_beh2.json",
     "examples/data/wannier_hubbard_dimer.json",
-    "paper_acase/data/response_bootstrap.json",
-    "paper_acase/data/response_bootstrap_illconditioned.json",
+    "paper_dacase/data/response_bootstrap.json",
+    "paper_dacase/data/response_bootstrap_illconditioned.json",
 })
 TABLE_PATHS = frozenset({
     "tables/clifford_hierarchy.tex", "tables/conditioning_results.tex",
@@ -36,7 +36,7 @@ TABLE_PATHS = frozenset({
     "tables/matched_results.tex", "tables/phase12_primary.tex",
     "tables/response_results.tex", "tables/warm_start_results.tex",
 })
-HISTORICAL_GENERATOR = "paper_acase/data/source_snapshot/make_tables.py.txt"
+HISTORICAL_GENERATOR = "paper_dacase/data/source_snapshot/make_tables.py.txt"
 
 
 def _load(root: Path) -> dict:
@@ -87,8 +87,8 @@ def table_path(name: str, root: Path = ROOT) -> Path:
     relative = f"tables/{name}"
     if relative not in TABLE_PATHS:
         raise ValueError(f"undeclared snapshot table: {name}")
-    return _contained_path(root, f"paper_acase/{relative}",
-                           boundary=root / "paper_acase")
+    return _contained_path(root, f"paper_dacase/{relative}",
+                           boundary=root / "paper_dacase")
 
 
 def table_body_digest(payload: bytes) -> str:
@@ -166,7 +166,7 @@ def snapshot_problems(root: Path = ROOT, *, check_tables: bool = True) -> list[s
         problems.append("table snapshot is missing its historical generator")
     else:
         if (generator.get("path") != HISTORICAL_GENERATOR
-                or generator.get("source_path") != "paper_acase/make_tables.py"
+                or generator.get("source_path") != "paper_dacase/make_tables.py"
                 or generator.get("execution") != "inert_provenance_only"):
             problems.append("table snapshot historical-generator boundary drifted")
         problems.extend(_content_problems(root, generator, "historical generator"))
@@ -188,8 +188,8 @@ def snapshot_problems(root: Path = ROOT, *, check_tables: bool = True) -> list[s
                 continue
             try:
                 relative = _relative_path(item.get("path"))
-                path = _contained_path(root, f"paper_acase/{relative}",
-                                       boundary=root / "paper_acase")
+                path = _contained_path(root, f"paper_dacase/{relative}",
+                                       boundary=root / "paper_dacase")
             except ValueError as error:
                 problems.append(str(error))
                 continue

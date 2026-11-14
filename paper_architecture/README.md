@@ -163,7 +163,7 @@ these against its record and refuses to generate if one no longer holds.
 
 Records without a path prefix live under `benchmarks/reference_results/`. Of
 these, only the block-commuting hierarchy overlaps a companion manuscript, and
-this paper reads its `_v2` record; `paper_acase/` reads the `_v1` record of the
+this paper reads its `_v2` record; `paper_dacase/` reads the `_v1` record of the
 same study. Everything else — the preregistered QWC-versus-fully-commuting
 comparison, the protocol-cost programme, the mapping axis, the second-instance
 pricing and its refinement, the contextual screen, the structural

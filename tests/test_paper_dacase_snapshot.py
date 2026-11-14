@@ -11,7 +11,7 @@ import sys
 
 import pytest
 
-from paper_acase import source_snapshot
+from paper_dacase import source_snapshot
 
 
 ROOT = Path(__file__).resolve().parent.parent
@@ -20,7 +20,7 @@ ROOT = Path(__file__).resolve().parent.parent
 @pytest.fixture
 def exported_paper(tmp_path):
     """Only the paper and its declared inputs; no repository history."""
-    shutil.copytree(ROOT / "paper_acase", tmp_path / "paper_acase",
+    shutil.copytree(ROOT / "paper_dacase", tmp_path / "paper_dacase",
                     ignore=shutil.ignore_patterns("__pycache__", "*.pyc"))
     manifest = json.loads((tmp_path / source_snapshot.MANIFEST_RELATIVE).read_text())
     for entry in manifest["sources"]:
@@ -42,7 +42,7 @@ def _write_manifest(root, manifest):
 
 def _run(root, script):
     env = dict(os.environ, PATH="")
-    return subprocess.run([sys.executable, f"paper_acase/{script}"], cwd=root,
+    return subprocess.run([sys.executable, f"paper_dacase/{script}"], cwd=root,
                           env=env, capture_output=True, text=True)
 
 
@@ -53,7 +53,7 @@ def test_checkout_and_export_verify_the_same_content(exported_paper):
 
 
 def test_export_regenerates_and_checks_all_tables_without_git(exported_paper):
-    tables = exported_paper / "paper_acase" / "tables"
+    tables = exported_paper / "paper_dacase" / "tables"
     before = {path.name: path.read_bytes() for path in tables.glob("*.tex")}
     regenerated = _run(exported_paper, "make_tables.py")
     assert regenerated.returncode == 0, regenerated.stdout + regenerated.stderr
@@ -67,7 +67,7 @@ def test_export_regenerates_and_checks_all_tables_without_git(exported_paper):
     "benchmarks/reference_results/acase_ladder_summary.csv",
 ])
 def test_changed_archived_or_unchanged_input_is_detected(exported_paper, original):
-    tables = exported_paper / "paper_acase" / "tables"
+    tables = exported_paper / "paper_dacase" / "tables"
     before = {path.name: path.read_bytes() for path in tables.glob("*.tex")}
     path = source_snapshot.source_path(original, exported_paper)
     path.write_bytes(path.read_bytes() + b"\n")
@@ -95,7 +95,7 @@ def test_live_record_changes_cannot_migrate_the_manuscript(exported_paper):
 
 
 def test_changed_scientific_cell_is_detected(exported_paper):
-    table = exported_paper / "paper_acase" / "tables" / "clifford_hierarchy.tex"
+    table = exported_paper / "paper_dacase" / "tables" / "clifford_hierarchy.tex"
     table.write_bytes(table.read_bytes().replace(b"2006", b"1886"))
     assert any("retained manuscript table body drifted" in p
                for p in source_snapshot.snapshot_problems(exported_paper))
@@ -147,9 +147,9 @@ def test_unknown_source_cannot_fall_back_to_a_live_record(exported_paper):
     'raise ValueError("late generation failure")',
 ])
 def test_failed_late_regeneration_preserves_every_original_table(exported_paper, failure):
-    tables = exported_paper / "paper_acase" / "tables"
+    tables = exported_paper / "paper_dacase" / "tables"
     before = {path.name: path.read_bytes() for path in tables.glob("*.tex")}
-    generator = exported_paper / "paper_acase" / "make_tables.py"
+    generator = exported_paper / "paper_dacase" / "make_tables.py"
     source = generator.read_text()
     marker = '    _write("finite_shot.tex", out)'
     assert source.count(marker) == 1
@@ -159,7 +159,7 @@ def test_failed_late_regeneration_preserves_every_original_table(exported_paper,
     assert "FAIL" in refused.stdout
     assert "Traceback" not in refused.stderr
     assert {path.name: path.read_bytes() for path in tables.glob("*.tex")} == before
-    assert not list((exported_paper / "paper_acase").glob(".tables-stage-*"))
+    assert not list((exported_paper / "paper_dacase").glob(".tables-stage-*"))
 
 
 @pytest.mark.parametrize("kind", ["manifest", "source", "recipe", "table"])
@@ -169,7 +169,7 @@ def test_symlink_escapes_are_refused_before_read_or_publish(exported_paper, kind
         "source": source_snapshot.source_path(
             "benchmarks/reference_results/clifford_hierarchy_h4.json", exported_paper),
         "recipe": exported_paper / source_snapshot.HISTORICAL_GENERATOR,
-        "table": exported_paper / "paper_acase/tables/clifford_hierarchy.tex",
+        "table": exported_paper / "paper_dacase/tables/clifford_hierarchy.tex",
     }
     path = paths[kind]
     original = path.read_bytes()

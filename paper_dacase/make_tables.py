@@ -14,7 +14,7 @@ HERE = Path(__file__).resolve().parent
 ROOT = HERE.parent
 if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
-from paper_acase.source_snapshot import (  # noqa: E402
+from paper_dacase.source_snapshot import (  # noqa: E402
     TABLE_PATHS, require_snapshot, source_path, table_path, validate_table_body,
 )
 
@@ -37,8 +37,8 @@ def configure_sources() -> None:
         source_path(f"benchmarks/reference_results/clifford_hierarchy_{system}.json")
         for system in ("h4", "beh2"))
     DIMER = source_path("examples/data/wannier_hubbard_dimer.json")
-    RESPONSE = source_path("paper_acase/data/response_bootstrap.json")
-    RESPONSE_ILL = source_path("paper_acase/data/response_bootstrap_illconditioned.json")
+    RESPONSE = source_path("paper_dacase/data/response_bootstrap.json")
+    RESPONSE_ILL = source_path("paper_dacase/data/response_bootstrap_illconditioned.json")
     TABLE_SOURCES.clear()
     TABLE_SOURCES.update({
         "phase12_primary.tex": (PHASE12_PRIMARY,),

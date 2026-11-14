@@ -151,8 +151,8 @@ that boundary, rather than refreshing provenance headers against new values.
 From the repository root:
 
 ```bash
-python paper_acase/run_response_record.py
-python paper_acase/check_response_records.py
+python paper_dacase/run_response_record.py
+python paper_dacase/check_response_records.py
 python benchmarks/run_warm_start.py
 python benchmarks/check_warm_start.py
 python benchmarks/run_krylov_width.py
@@ -162,12 +162,12 @@ pip install -e '.[stim]'
 python benchmarks/run_clifford_hierarchy.py --system h4
 python benchmarks/run_clifford_hierarchy.py --system beh2
 python benchmarks/check_clifford_hierarchy.py
-python paper_acase/make_tables.py
-python paper_acase/make_figures.py
-python paper_acase/source_snapshot.py
-python paper_acase/check_manuscript.py
+python paper_dacase/make_tables.py
+python paper_dacase/make_figures.py
+python paper_dacase/source_snapshot.py
+python paper_dacase/check_manuscript.py
 
-cd paper_acase
+cd paper_dacase
 pdflatex -interaction=nonstopmode -halt-on-error manuscript.tex
 bibtex manuscript
 pdflatex -interaction=nonstopmode -halt-on-error manuscript.tex

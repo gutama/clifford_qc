@@ -38,8 +38,8 @@ TABLE_GENERATOR = HERE / "make_tables.py"
 # Re-derived from make_tables.py rather than restated, so the two cannot drift
 # into disagreeing about which record backs which table.
 sys.path.insert(0, str(ROOT))
-from paper_acase.make_tables import TABLE_SOURCES, configure_sources  # noqa: E402
-from paper_acase.source_snapshot import snapshot_problems  # noqa: E402
+from paper_dacase.make_tables import TABLE_SOURCES, configure_sources  # noqa: E402
+from paper_dacase.source_snapshot import snapshot_problems  # noqa: E402
 
 # which committed record each figure is plotted from; kept in step with
 # make_figures.py so a regenerated record forces a regenerated figure
@@ -194,7 +194,7 @@ def main() -> int:
         target = HERE / match.group(1)
         if not target.exists() and not target.with_suffix(".tex").exists():
             problems.append(f"missing input: {match.group(1)} "
-                            "(run paper_acase/make_tables.py)")
+                            "(run paper_dacase/make_tables.py)")
 
     # Every source-bound table, not just the Phase 12 one: a record regenerated
     # without rerunning the generator leaves a table that still typesets, and
@@ -214,7 +214,7 @@ def main() -> int:
         if headers != expected:
             problems.append(
                 f"{name} is stale against its result record or table "
-                "generator (run paper_acase/make_tables.py)")
+                "generator (run paper_dacase/make_tables.py)")
 
     if re.search(r"\\usepackage(?:\[[^]]*\])?\{array\}", text):
         problems.append(
@@ -252,7 +252,7 @@ def main() -> int:
                     problems.append(
                         "numeric table cell is typed into the manuscript "
                         "rather than generated into tables/ "
-                        f"(run paper_acase/make_tables.py): {line[:60]}")
+                        f"(run paper_dacase/make_tables.py): {line[:60]}")
                     break
 
     # Figure freshness is decided by source digests rather than mtimes.  Only
@@ -271,13 +271,13 @@ def main() -> int:
     if referenced_figures:
         if not FIGURE_MANIFEST.exists():
             problems.append("missing figure manifest "
-                            "(run paper_acase/make_figures.py)")
+                            "(run paper_dacase/make_figures.py)")
         else:
             manifest = json.loads(FIGURE_MANIFEST.read_text(encoding="utf-8"))
             expected_generator = _source_digest(HERE / "make_figures.py")
             if manifest.get("generator", {}).get("sha256") != expected_generator:
                 problems.append("figure manifest has a stale generator digest "
-                                "(run paper_acase/make_figures.py)")
+                                "(run paper_dacase/make_figures.py)")
             figures = manifest.get("figures", {})
             for name, _ in referenced_figures:
                 if name not in figures:
@@ -292,7 +292,7 @@ def main() -> int:
                 if recorded != expected:
                     problems.append(
                         f"{name} manifest has stale source digests "
-                        "(run paper_acase/make_figures.py)")
+                        "(run paper_dacase/make_figures.py)")
 
     required = [
         "heuristic",
