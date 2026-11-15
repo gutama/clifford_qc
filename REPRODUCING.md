@@ -997,8 +997,8 @@ Closing that gap exposed one record, and it is named rather than excused.
 under Python 3.11 / NumPy 2.4.6 / SciPy 1.17.1 — before the migration in #69 —
 while its other seventy-two rows predate execution stamping and claim nothing.
 It is not rebuilt here because it is manuscript evidence rather than a
-value-gated record: no `check_*.py` rebuilds it, `paper_acase` and
-`paper_a_case_subspaces` read it for figures and tables, and regenerating it
+value-gated record: no `check_*.py` rebuilds it, `paper_dacase` and
+`paper_acase` read it for figures and tables, and regenerating it
 moves published inputs across all five families rather than only the stamped
 rows. That is an authorship decision.
 
@@ -1207,7 +1207,7 @@ summary at `1e-12`. Both run in the process that holds the record.
 `check_summaries.py` is deliberately not a gate yet: five `*_summary` pairs
 declared by configs have no committed JSONL, so it fails on `main` today for
 reasons that predate the workflow. `paper/check_manuscript.py` and
-`paper_a_case_subspaces/check_manuscript.py` stay out for the reason given
+`paper_acase/check_manuscript.py` stay out for the reason given
 above — they need a REVTeX installation.
 
 `paper_architecture/check_manuscript.py` does run in CI, because it needs
@@ -1580,14 +1580,14 @@ of 104,000 physical setting-shots:
 
 - covariance-aware allocation reduces the median summed projected-matrix
   variance from `272.46` to `84.75` (68.9%) and the exact-Ritz first-order
-  variance by 20.0%. Against the fixed overlap cutoff this moves the median
-  absolute error only from `4.48` to `4.44 mHa`, but cuts `>0.1 Ha` failures
+  variance by 19.9%. Against the fixed overlap cutoff this moves the median
+  absolute error only from `4.49` to `4.44 mHa`, but cuts `>0.1 Ha` failures
   from `4/200` to `1/200`;
 - the calibrated cutoff must be read **per mode**. Thresholding every mode at
   the worst mode's noise radius retains six or seven modes and never the exact
-  rank eight, leaving median errors of `21.4`/`81.4 mHa`. Comparing each mode
-  against its own radius recovers rank eight in `71/200` and `67/200` replicas
-  and gives median errors of `10.6`/`8.7 mHa`;
+  rank eight, leaving median errors of `21.0`/`81.8 mHa`. Comparing each mode
+  against its own radius recovers rank eight in `72/200` and `67/200` replicas
+  and gives median errors of `10.5`/`8.7 mHa`;
 - against the fixed cutoff at matched allocation, per-mode calibration trades a
   factor of two in median error for a `22x` RMSE reduction (`12.85` versus
   `285.41 mHa`), a maximum error of `39.4 mHa` rather than `4.03 Ha`, and no
@@ -1619,21 +1619,21 @@ Expected results (`benchmarks/reference_results/finite_shot_rethink.json`), at
 - **pooling** reads each word from every QWC setting whose basis records it
   rather than from the one the partition assigned it to — the same circuits,
   shots, and histograms. On this bank a word is recorded by `3.72` settings on
-  average. It moves the fixed-cutoff arm from `4.48`/`1786.21 mHa`
-  median/RMSE to `2.56`/`11.70`, and the per-mode calibrated arm from
-  `10.64`/`13.31` to `2.56`/`4.86`, with exact-rank recovery rising from
-  `71/200` to `195/200`. The published trade of median accuracy against tail
+  average. It moves the fixed-cutoff arm from `4.49`/`1786.21 mHa`
+  median/RMSE to `2.56`/`11.79`, and the per-mode calibrated arm from
+  `10.45`/`13.19` to `2.56`/`5.06`, with exact-rank recovery rising from
+  `72/200` to `195/200`. The published trade of median accuracy against tail
   control does not survive it;
 - **`solve_selected_rank`** picks the rank minimizing `E_hat + 2*sigma_hat`
   instead of thresholding overlap modes against their own noise. Without
-  pooling it gives `4.56 mHa` median and `7.82 mHa` RMSE with no catastrophic
+  pooling it gives `4.62 mHa` median and `7.78 mHa` RMSE with no catastrophic
   replica — the fixed rule's median with better than the calibrated rule's
   tail. At the eight-times smaller budget it is the best arm on both
   reconstructions (`10.11 mHa` median, `14.33 mHa` RMSE, `0/200` catastrophes
   pooled);
 - **`overlap_ridge`** — smooth per-mode damping in place of truncation — is a
-  recorded **negative** result: `50.02 mHa` median and `6166 mHa` RMSE against
-  truncation's `2.56` and `4.86`, and no ridge scale between `1x` and `300x`
+  recorded **negative** result: `50.08 mHa` median and `5743 mHa` RMSE against
+  truncation's `2.56` and `5.06`, and no ridge scale between `1x` and `300x`
   the noise radius recovers. The damage is in the numerator, not the metric;
   damping a direction is not truncating it.
 
@@ -1683,7 +1683,7 @@ certificate gate.
 
 ```bash
 python examples/acase_finite_shot_response.py
-python paper_acase/check_response_records.py
+python paper_dacase/check_response_records.py
 ```
 
 The example uses 25 shared QWC groups and 8,000 shots per group. A grouped
@@ -2216,17 +2216,22 @@ certified.
 ## Published A-CASE source snapshot (arXiv:2608.00560)
 
 The first A-CASE preprint and the later DA-CASE preprint originally occupied
-`paper_acase/` in sequence. The P1 source state at commit `67ea0dd` is restored
-under `paper_a_case_subspaces/`; `paper_acase/` remains the P2/DA-CASE tree.
-The historical README and checker remain byte-identical and therefore retain
-their original `paper_acase/` prose and error-message paths. Use the restored
-paths below; changing those historical files would break the source boundary.
+`paper_acase/` in sequence. Each now has a directory named after it: the P1
+source state at commit `67ea0dd` is restored under `paper_acase/`, and the
+P2/DA-CASE tree is `paper_dacase/`. The historical README and checker remain
+byte-identical, and because P1 is back under its original directory name the
+`paper_acase/` paths they print are correct as written. Changing those
+historical files would break the source boundary.
+
+Before 14 November 2026 `paper_acase/` held P2 and the P1 snapshot lived in
+`paper_a_case_subspaces/`. A commit, record or review from before that date
+that says `paper_acase/` means the DA-CASE tree.
 
 ```bash
-python paper_a_case_subspaces/check_snapshot.py
-python paper_a_case_subspaces/check_manuscript.py
+python paper_acase/check_snapshot.py
+python paper_acase/check_manuscript.py
 
-cd paper_a_case_subspaces
+cd paper_acase
 pdflatex -interaction=nonstopmode -halt-on-error manuscript.tex
 bibtex manuscript
 pdflatex -interaction=nonstopmode -halt-on-error manuscript.tex
@@ -2239,19 +2244,26 @@ The four PDF figures are generated outputs: `make_figures.py` may regenerate
 different PDF metadata under a newer Matplotlib, while `check_manuscript.py`
 still checks their existence, scientific inputs, and staleness.
 
-The retained P2/DA-CASE table values now have their own content snapshot in
-`paper_acase/SOURCE_SNAPSHOT.json`. Four inputs whose live benchmark records
-changed are packaged under `paper_acase/data/source_snapshot/`; the remaining
-inputs retain their original paths and are digest-bound. The original table
-generator is inert provenance data. The current generator reads the bound
-inputs, and the checker verifies all ten table bodies. This identifies the
-retained repository sources without asserting an independently verified arXiv
-upload identity. Moving benchmark records do not silently replace these values.
+The retained P2/DA-CASE table values have their own content snapshot in
+`paper_dacase/SOURCE_SNAPSHOT.json`, now at revision 2. The four inputs whose
+benchmark records were regenerated after the preprint are packaged under
+`paper_dacase/data/source_snapshot/` as the committed records stood on
+14 November 2026; the remaining inputs retain their original paths and are
+digest-bound. Revision 2 moved the dyadic-hierarchy and finite-shot tables, and
+the prose that quotes them, to those records. Revision 1 is the tag
+`dacase-arxiv-v1.0.0`; the manifest's `previous_revision` block names the
+revision-1 inputs and table bodies that revision 2 replaced, and
+`paper_dacase/README.md` lists every changed value. The revision-1 table
+generator is inert provenance data. The
+current generator reads the bound inputs, and the checker verifies all ten
+table bodies. This identifies the retained repository sources without
+asserting an independently verified arXiv upload identity. Moving benchmark
+records do not silently replace these values.
 
 ```bash
-python paper_acase/source_snapshot.py
-python paper_acase/make_tables.py
-python paper_acase/check_manuscript.py
+python paper_dacase/source_snapshot.py
+python paper_dacase/make_tables.py
+python paper_dacase/check_manuscript.py
 ```
 
 ## R3 protocol axis (`mapping x k`)

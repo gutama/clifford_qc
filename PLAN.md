@@ -412,14 +412,24 @@ on top of these two.
 
 | # | arXiv | Title | Submitted | Source in tree |
 |---|---|---|---|---|
-| P1 | [2608.00560](https://arxiv.org/abs/2608.00560) | Adaptive operator-generated subspaces for effective many-body Hamiltonians | 1 Aug 2026 | `paper_a_case_subspaces/`, restored from `67ea0dd` |
-| P2 | [2608.08739](https://arxiv.org/abs/2608.08739) | DA-CASE: reusable measurements for adaptive quantum subspaces | 9 Aug 2026 | `paper_acase/` (current) |
+| P1 | [2608.00560](https://arxiv.org/abs/2608.00560) | Adaptive operator-generated subspaces for effective many-body Hamiltonians | 1 Aug 2026 | `paper_acase/`, restored from `67ea0dd` |
+| P2 | [2608.08739](https://arxiv.org/abs/2608.08739) | DA-CASE: reusable measurements for adaptive quantum subspaces | 9 Aug 2026 | `paper_dacase/` (current) |
 
 Both are Utama & Dipojono. The two originally shared one manuscript directory in
 sequence: `paper_acase/manuscript.tex` carried P1's title through commit `67ea0dd`
 and was retitled to P2 afterwards. The published P1 text sources are now restored
-byte-for-byte under `paper_a_case_subspaces/`, with their source-commit/blob
-manifest and independent snapshot/manuscript checks. `paper_acase/` remains P2.
+byte-for-byte under `paper_acase/`, with their source-commit/blob
+manifest and independent snapshot/manuscript checks, and P2 lives in
+`paper_dacase/`. Before 14 November 2026 those two trees were named
+`paper_a_case_subspaces/` and `paper_acase/` respectively, so an older
+reference to `paper_acase/` means the P2 tree.
+
+The P2 tree is at revision 2 (14 November 2026); revision 1 is preserved at
+the tag `dacase-arxiv-v1.0.0`. Revision 2 moves the
+dyadic-hierarchy and finite-shot tables, and the prose quoting them, to the
+committed records, so the manuscript now carries the §6.6 values rather than the
+August ones. `paper_dacase/README.md` lists every changed value; none of the
+numbers quoted below changes.
 
 **What P1 established.** A-CASE as a single-reference, operator-generated
 Rayleigh–Ritz method: matrices reconstructed from one shared Pauli-expectation
@@ -866,7 +876,7 @@ historical scientific record or numbered-phase fraction:
 - **N2 — help subprocess imports.** The documentation gate gives each help
   child the checkout's import root while preserving inherited paths, so a
   package installation is not required for repository-module discovery.
-- **N3 — retained P2 table provenance.** `paper_acase/SOURCE_SNAPSHOT.json`
+- **N3 — retained P2 table provenance.** `paper_dacase/SOURCE_SNAPSHOT.json`
   binds the original table inputs, inert historical generator and ten table
   bodies. Changed live benchmark records no longer silently replace retained
   manuscript values. This identifies repository sources, with no independent
@@ -5058,7 +5068,7 @@ the committed records and a checker that verifies they have not drifted:
 | manuscript | source | scope | checker |
 |---|---|---|---|
 | Paper A | `paper/manuscript.tex`, `paper/README.md` | the measurement layer: commutator bank, shared-word caching and QWC grouping, confidence-certified selection, allocation policies, the 100-seed spin study, the proxy-versus-gradient boundary, and the stabilizer-seeding negative | `paper/check_manuscript.py` |
-| DA-CASE | `paper_acase/manuscript.tex` (dated 9 August 2026) | "DA-CASE: reusable measurements for adaptive quantum subspaces" — the **Dyadic** Adaptive Clifford-Algebra Subspace Eigensolver: one reference, reused measurements, and the dyadic block-commuting hierarchy of §6.6 | `paper_acase/check_manuscript.py` |
+| DA-CASE | `paper_dacase/manuscript.tex` (dated 9 August 2026; revised 14 November 2026) | "DA-CASE: reusable measurements for adaptive quantum subspaces" — the **Dyadic** Adaptive Clifford-Algebra Subspace Eigensolver: one reference, reused measurements, and the dyadic block-commuting hierarchy of §6.6 | `paper_dacase/check_manuscript.py` |
 
 **A naming distinction this plan owes the reader.** The method described in §1–§8
 is **A-CASE**; **DA-CASE** is the manuscript's name for the dyadic-measurement
@@ -5566,9 +5576,9 @@ and manuscript are complete (§9.6, §9.6.1) but it is not submitted. Nothing be
 depends on it, and it depends on nothing below, so submission is schedulable at any
 time; it may now cite P1/P2 as companion work.
 
-**Housekeeping — done.** `paper_acase/` remains the P2 source tree. P1's sixteen
+**Housekeeping — done.** `paper_dacase/` is the P2 source tree. P1's sixteen
 published text/data/table sources from `67ea0dd` are restored byte-for-byte under
-`paper_a_case_subspaces/`; `SOURCE_SNAPSHOT.json` records every historical blob,
+`paper_acase/`; `SOURCE_SNAPSHOT.json` records every historical blob,
 and `check_snapshot.py` plus the restored `check_manuscript.py` gate provenance and
 manuscript structure. The four PDF figures are generated outputs and may carry
 different PDF metadata under a newer Matplotlib, while their historical blob ids,

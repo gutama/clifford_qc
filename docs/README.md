@@ -68,8 +68,8 @@ not be silently rewritten to match a later result.
 | [Architecture paper](../paper_architecture/README.md) | Software architecture and evidence; [arXiv:2609.23059](https://arxiv.org/abs/2609.23059). |
 | [Compactness paper](../paper_compactness/README.md) | Draft analysis of residual-packet compactness and classical costs. |
 | [Measurement/ADAPT manuscript](../paper/README.md) | Measurement and adaptive-selection research. |
-| [A-CASE source snapshot](../paper_a_case_subspaces/README.md) | Historical paper source and its own provenance boundary. |
-| [DA-CASE manuscript](../paper_acase/README.md) | Separate manuscript and validation scope. |
+| [A-CASE source snapshot](../paper_acase/README.md) | Historical paper source and its own provenance boundary. |
+| [DA-CASE manuscript](../paper_dacase/README.md) | Separate manuscript and validation scope. |
 | [Citation metadata](../CITATION.cff) | Software and research citations. |
 
 Identify the method and software commit when reporting a result. Paper versions,

@@ -90,7 +90,7 @@ line-length = 100
 # ``execution_sources`` holds byte-for-byte copies of the package at recorded
 # execution commits. They are evidence, not code under development: linting
 # them reports nothing that may be acted on.
-exclude = ["paper", "paper_acase", "benchmarks/provenance/execution_sources"]
+exclude = ["paper", "paper_dacase", "benchmarks/provenance/execution_sources"]
 
 [tool.ruff.lint]
 # Syntax errors plus all of Pyflakes: undefined and shadowed names, redefined

@@ -5,10 +5,10 @@ from __future__ import annotations
 import json
 from pathlib import Path
 
-from paper_a_case_subspaces.check_snapshot import MANIFEST, snapshot_problems
+from paper_acase.check_snapshot import MANIFEST, snapshot_problems
 
 
-SNAPSHOT = Path(__file__).resolve().parents[1] / "paper_a_case_subspaces"
+SNAPSHOT = Path(__file__).resolve().parents[1] / "paper_acase"
 
 
 def test_published_snapshot_manifest_covers_every_restored_source():

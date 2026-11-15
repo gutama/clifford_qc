@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 import csv
-import hashlib
 import json
 import os
 from pathlib import Path
@@ -23,7 +22,6 @@ ASSETS = HERE / "paper_assets"
 LADDER = ROOT / "benchmarks" / "reference_results" / "acase_ladder_summary.csv"
 RESPONSE = HERE / "data" / "response_bootstrap.json"
 RESPONSE_ILL = HERE / "data" / "response_bootstrap_illconditioned.json"
-PDF_METADATA = {"CreationDate": None, "ModDate": None}
 
 
 def _style() -> None:
@@ -37,56 +35,6 @@ def _style() -> None:
         "pdf.fonttype": 42,
         "ps.fonttype": 42,
     })
-
-
-def _save(fig, name: str) -> None:
-    """Write a byte-reproducible vector figure for the artifact drift gate."""
-    fig.savefig(
-        ASSETS / name,
-        bbox_inches="tight",
-        metadata=PDF_METADATA,
-    )
-
-
-def _source_digest(path: Path) -> str:
-    """SHA-256 of UTF-8 source with repository-neutral line endings."""
-    text = path.read_text(encoding="utf-8").replace("\r\n", "\n")
-    return hashlib.sha256(text.encode("utf-8")).hexdigest()
-
-
-def _write_manifest() -> None:
-    """Bind each figure to its exact generator and numerical source files.
-
-    PDF streams can differ across Matplotlib, font, and compression builds even
-    when they render the same paths.  The manifest is the portable drift gate:
-    it changes whenever the generator or an input record changes.
-    """
-    sources = {
-        "pipeline.pdf": (),
-        "validation_ladder.pdf": (LADDER,),
-        "response_bootstrap.pdf": (RESPONSE,),
-        "conditioning_bands.pdf": (RESPONSE, RESPONSE_ILL),
-    }
-    manifest = {
-        "schema": "clifford_qc.acase_figure_manifest.v1",
-        "generator": {
-            "path": str(Path(__file__).resolve().relative_to(ROOT)),
-            "sha256": _source_digest(Path(__file__).resolve()),
-        },
-        "figures": {
-            name: {
-                "sources": {
-                    str(path.resolve().relative_to(ROOT)): _source_digest(path)
-                    for path in paths
-                },
-            }
-            for name, paths in sources.items()
-        },
-    }
-    (ASSETS / "manifest.json").write_text(
-        json.dumps(manifest, indent=2, sort_keys=True) + "\n",
-        encoding="utf-8",
-    )
 
 
 def pipeline() -> None:
@@ -155,7 +103,7 @@ def pipeline() -> None:
             "effective many-body Hamiltonian",
             ha="center", va="center", fontweight="bold")
     fig.tight_layout(pad=0.2)
-    _save(fig, "pipeline.pdf")
+    fig.savefig(ASSETS / "pipeline.pdf", bbox_inches="tight")
     plt.close(fig)
 
 
@@ -215,7 +163,7 @@ def benchmark_heatmap() -> None:
     ax.set_title("Matched-budget validation ladder (default A-CASE uses $M=9$)")
     ax.tick_params(length=0)
     fig.tight_layout(pad=0.4)
-    _save(fig, "validation_ladder.pdf")
+    fig.savefig(ASSETS / "validation_ladder.pdf", bbox_inches="tight")
     plt.close(fig)
 
 
@@ -246,7 +194,7 @@ def response_plot() -> None:
         "heuristic; conditional on surviving replicas",
         transform=ax.transAxes, fontsize=6.8, color="#54278f")
     fig.tight_layout(pad=0.4)
-    _save(fig, "response_bootstrap.pdf")
+    fig.savefig(ASSETS / "response_bootstrap.pdf", bbox_inches="tight")
     plt.close(fig)
 
 
@@ -285,7 +233,7 @@ def conditioning_plot() -> None:
     ax.legend(frameon=False, loc="lower center", fontsize=6.2)
     ax.set_title("Pointwise band width versus overlap conditioning")
     fig.tight_layout(pad=0.4)
-    _save(fig, "conditioning_bands.pdf")
+    fig.savefig(ASSETS / "conditioning_bands.pdf", bbox_inches="tight")
     plt.close(fig)
 
 
@@ -296,7 +244,6 @@ def main() -> None:
     benchmark_heatmap()
     response_plot()
     conditioning_plot()
-    _write_manifest()
     print(ASSETS)
 
 
