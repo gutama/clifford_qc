@@ -204,6 +204,128 @@ describe the measurement. The physical energies and coefficients have already
 been mapped back; `pencil_rotation` records the dimensionless rotated values,
 inverse denominators and fixed policy for audit.
 
+## Covariance-aware constrained ratio
+
+The third opt-in step is
+[`solve_constrained_ratio`](../../clifford_qc/subspace/pencil.py), reached
+through the measured solver:
+
+```python
+point = shared.solve(cache, ratio_error_budget=0.005)
+interval = bootstrap_ritz(shared, cache, result=point, replicates=200, seed=17)
+```
+
+The budget above illustrates the API; it is not a recommended setting.
+
+It implements the constrained program of
+[Fischer et al., arXiv:2510.25640v1](https://arxiv.org/abs/2510.25640v1),
+Eq. 3: minimize `E(c) = c* H c / c* S c` subject to the ratio estimator's
+propagated standard error `sigma(c) <= ratio_error_budget`, in the energy units
+of `H`. `S` is never inverted and nothing is thresholded. `sigma(c)` is their
+Eq. 5, the first-order ratio variance
+`(Var N - 2 E Cov(N, D) + E^2 Var D) / D^2` with `N = c* H c` and `D = c* S c`.
+
+**Covariance.** The variance is evaluated from
+[`SharedMeasurement.entry_covariance`](../../clifford_qc/measurement/session.py):
+the joint covariance of every measured `S` and `H` coordinate. Coordinates are
+upper-triangle real and imaginary parts, in
+[`hermitian_parameter_layout`](../../clifford_qc/subspace/pencil.py) order.
+[`covariance_matrix`](../../clifford_qc/measurement/functionals.py) builds it
+from the cache's joint histograms in one pass. It has the same pooling weights,
+readouts and per-group population moments as `WordFunctional.covariance`, so
+entries share settings and are correlated exactly as the measurement makes
+them. The paper's sample moments use `S - 1`; these use `N`, matching the
+existing delta method.
+
+**Where it departs from the paper.**
+
+- **Budget.** The budget is absolute and must be fixed before seeing the
+  evaluation data. The paper sets it as a multiple of the measured reference
+  energy, a data-dependent rule that is not implemented.
+- **Denominator gates.** `c* S c` must be positive, and its coefficient of
+  variation must be at most `ratio_max_denominator_cv` (default `0.1`). The
+  first-order ratio variance is meaningful only while the denominator is well
+  resolved. The paper states no such condition.
+- **Starts.** Two starts are declared. One is the first live generator, which
+  for an identity first generator is the paper's `c = (1, 0, ...)` and the
+  direct reference-energy estimate. The other is the lowest root of the
+  canonical thresholded solve. The reference can be an exact stationary point,
+  as a Brillouin-decoupled Hartree-Fock reference is for single excitations;
+  SLSQP never leaves such a point.
+- **Selection.** The lowest feasible certified endpoint is returned. If the
+  reference itself is feasible, the result is never above it.
+- **Solver.** SLSQP, with analytic gradients checked against finite
+  differences, under a unit-norm, fixed-phase gauge. The paper used COBYLA.
+  This needs SciPy (the `research` extra).
+- **Coefficients.** Coefficients are complex, because the pencils are complex
+  Hermitian; the paper's are real.
+
+**Failures and stopping.** `ratio_tolerance` is SLSQP's absolute objective
+precision in units of the budget. A line-search stop (SLSQP status 8) is
+accepted only at a feasible endpoint. The objective gradient there must be a
+nonnegative combination of the active constraint gradients, to a relative NNLS
+residual of `1e-4`. A run that fails otherwise is recorded under `runs`. The
+call raises if no declared start reaches a feasible certified endpoint, if
+iterations are exhausted, or if the budget is unattainable. Dead rows stay
+exactly zero.
+
+**Uncertainty.** The resource `constrained_ratio.standard_error` is
+`sigma(c)` at the selected coefficients. It conditions on a choice made from
+the same data, so it is a diagnostic, not an interval. The fixed-coefficient
+delta method (`ritz_uncertainty`) rejects these results. The bound bootstrap
+reconstructs each joint histogram, re-estimates the covariance, reruns both
+searches and fails if any replica fails. Thresholds, repair, rotation and
+calibrated radii do not apply and are rejected in combination.
+
+**Not in the matrix-only replay.** The PRD archives store `S_hat` and `H_hat`
+but no setting histograms (review finding 6), so they cannot supply the
+covariance this estimator needs. A replay requires a campaign that retains
+joint histograms.
+
+**Exploratory development check.** This is not a record and not
+preregistered. It uses the four-qubit TFIM bank of the measured-subspace tests:
+nine generators, with the identity, six Pauli words and two Krylov powers. The
+exact subspace has `kappa_S = 195` and sits `0.0113` above the true ground
+energy. The check ran 40 seeds (`500`–`539`) at 2000 shots per group:
+
+| Estimator | Median abs. error | Max abs. error | Below exact subspace | Below true ground |
+| --- | ---: | ---: | ---: | ---: |
+| Thresholded solve (`tau_s = 1e-10`) | 0.0050 | 3.1057 | 60% | 20% |
+| Constrained ratio, budget 0.005 | 0.0056 | 0.0182 | 88% | 7% |
+| Constrained ratio, budget 0.01 | 0.0157 | 0.0403 | 100% | 72% |
+| Constrained ratio, budget 0.02 | 0.0347 | 0.0827 | 100% | 93% |
+| Constrained ratio, budget 0.05 | 0.0802 | 0.2030 | 100% | 95% |
+
+Errors are relative to the exact subspace energy. Minimizing a noisy ratio is
+biased downward: the search exploits shot noise up to about the budget. The
+budget is therefore a bias–tail control, not a precision target. Here it
+removed the thresholded solve's catastrophic replica. Above the subspace's own
+error, it also pushed most estimates below the true ground energy. The paper
+reports the same trade. One bank is not evidence of a general improvement.
+Reproduce with:
+
+```python
+import numpy as np
+from clifford_qc.algorithms.pools import local_pool, odd_y_filter
+from clifford_qc.backends import ExactMVBackend
+from clifford_qc.backends.finite_shot import FiniteShotBackend
+from clifford_qc.models.spin import tfim
+from clifford_qc.subspace import (MatrixElementBank, SharedMeasurement, identity_generator,
+                                  krylov_response, pauli_orbit)
+
+model = tfim(4, J=1.0, h=1.0)
+rho = ExactMVBackend().state(model.reference, ())
+words = [op.word for op in odd_y_filter(local_pool(4))]
+bank = MatrixElementBank(rho, model.hamiltonian, [identity_generator(4)]
+                         + pauli_orbit(words[:6]) + krylov_response(model.hamiltonian, 2))
+shared, exact = SharedMeasurement(bank), bank.solve().ground_energy
+caches = [shared.measure(FiniteShotBackend(seed=500 + s), 2000) for s in range(40)]
+for budget in (None, 0.005, 0.01, 0.02, 0.05):
+    kwargs = {} if budget is None else {"ratio_error_budget": budget}
+    errors = np.array([shared.solve(c, **kwargs).ground_energy - exact for c in caches])
+    print(budget, np.median(abs(errors)), abs(errors).max(), (errors < 0).mean())
+```
+
 ## Matrix-only replay
 
 With the external v3 seed files available, run from the repository root:
@@ -265,8 +387,18 @@ Rotation tests compare complex full-rank results with an independent QR-span
 Ritz oracle, check physical Rayleigh quotients after truncation, energy-unit
 and generator-coordinate covariance, zero-angle identity, dead rows, invalid
 metrics, poles, policy-bound joint bootstrap, truth-independent replay arms,
-and failure denominators. They establish implementation identities on their
-fixtures, not empirical interval coverage or matched-error improvement.
+and failure denominators. Constrained-ratio tests show several identities.
+The grouped covariance matrix equals every pairwise functional covariance,
+under single assignment and pooling. At a Ritz vector, the propagated ratio
+variance equals the existing Ritz-functional variance, and the reference
+direction reduces to the direct standard error. Over 48 seeds per bank the
+propagated standard error is within 25% of the Monte Carlo spread at fixed
+coefficients, on a well-conditioned and an ill-conditioned bank. Further tests
+cover negligible covariance recovering the generalized ground root, budget and
+gate feasibility, a stationary reference, certified line-search stops, explicit
+failures, dead rows, policy-bound bootstrap and rejected combinations. They
+establish implementation identities on their fixtures, not empirical interval
+coverage or matched-error improvement.
 Existing measured-subspace, response, PRD, and compatibility tests are also
 run. There is no new empirical coverage or matched-error improvement claim.
 
@@ -274,7 +406,7 @@ run. There is no new empirical coverage or matched-error improvement claim.
 | --- | --- | --- |
 | Diagonal-preserving PSD repair and point replay | Implemented, opt-in | Source-verified external 180-cell replay; assess tails and failures |
 | Fixed-angle rotation and estimator policy | Implemented, opt-in | Independent-angle evaluation and external equal-data replay; data-selected angle inference remains pending |
-| Covariance-aware constrained ratio | Pending | Retain joint histograms; denominator and feasibility gates; validate full propagated covariance |
+| Covariance-aware constrained ratio | Implemented, opt-in, measured path only | Budget fixed before evaluation; a histogram-retaining campaign with tails, failures and below-ground rates; coverage of the rerun-search bootstrap |
 | Coverage and target-aware acquisition | Pending | Frozen 68%/95% study, all failure counts, minimum-retained-overlap strata, valid stopping semantics |
 | Symmetry pool and SoA kernel work | Pending | Invariant tests, real structured-bank timings, full selection-cache costs at matched error |
 | Hardware bridge, community instances, distribution | Pending | End-to-end local adapter checks, strong classical baselines, reproducible packaging/docs builds |

@@ -68,6 +68,9 @@ def ritz_uncertainty(shared: SharedMeasurement, cache: GroupedWordCache,
     if parameters.get("pencil_angle") is not None:
         raise ValueError("the delta method does not include rotated thresholding; "
                          "use bootstrap_ritz(shared, cache, result=result)")
+    if parameters.get("ratio_error_budget") is not None:
+        raise ValueError("the delta method at fixed coefficients omits the constrained-ratio "
+                         "search; use bootstrap_ritz(shared, cache, result=result)")
     functional = ritz_functional(shared.bank, result.indices,
                                  result.coefficients[:, root], result.energies[root])
     variance = functional.variance(cache)

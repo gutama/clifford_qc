@@ -21,8 +21,10 @@ manual-only under their frozen reporting contracts. Historical scientific runner
 
 The [pencil-estimator review and fixed-policy ladder](PENCIL_ESTIMATORS.md)
 adds opt-in diagonal-preserving overlap repair, fixed-angle rotation with
-physical-energy restoration and joint-bootstrap policy binding, and a separate
-matrix-only PRD replay tool. It carries no interval-coverage or accuracy-improvement claim.
+physical-energy restoration and joint-bootstrap policy binding, a separate
+matrix-only PRD replay tool, and a covariance-aware constrained-ratio estimator
+that never inverts `S`. That estimator is biased downward by up to about its
+error budget. The ladder carries no interval-coverage or accuracy-improvement claim.
 
 The [preregistered noise-aware selection experiment](NOISE_AWARE_SELECTION.md)
 closed negative on its equal-shot held-out criterion. An independent H4 audit

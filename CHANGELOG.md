@@ -12,6 +12,26 @@ Benchmark campaigns, their declarations and their outcomes are recorded in
 
 ## Unreleased
 
+### Added
+
+- **Opt-in estimators for measured projected pencils**
+  ([docs/restart/PENCIL_ESTIMATORS.md](docs/restart/PENCIL_ESTIMATORS.md)).
+  `SharedMeasurement.solve` gains three opt-in alternatives to plain
+  thresholding:
+  - nearest-correlation overlap repair (`overlap_repair`);
+  - fixed-angle pencil rotation (`pencil_angle`);
+  - a covariance-aware constrained ratio (`ratio_error_budget`).
+
+  The constrained ratio minimizes `c* H c / c* S c` under a propagated
+  standard-error budget and needs SciPy. It is built on two new pieces:
+  `SharedMeasurement.entry_covariance`, the joint covariance of every measured
+  `S` and `H` coordinate, and `measurement.functionals.covariance_matrix`,
+  which computes a covariance matrix in one histogram pass.
+
+  Each estimator records its policy, so `bootstrap_ritz(..., result=point)`
+  reruns it on resampled histograms. Defaults are unchanged, and no estimator
+  claims interval coverage or improved accuracy.
+
 ### Fixed
 
 - **Python 3.14 stored different coefficient bytes.** Python 3.14 changed mixed
