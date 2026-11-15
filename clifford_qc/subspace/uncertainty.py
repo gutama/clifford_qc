@@ -46,6 +46,9 @@ def ritz_uncertainty(shared: SharedMeasurement, cache: GroupedWordCache,
     that the retained eigenspace itself moved with the data). It is a useful
     error bar and not a guarantee.
     """
+    if result.resources.get("overlap_repair", "none") != "none":
+        raise ValueError("the delta method does not include nonlinear overlap repair; "
+                         "use bootstrap_ritz with matching solver_kwargs")
     functional = ritz_functional(shared.bank, result.indices,
                                  result.coefficients[:, root], result.energies[root])
     variance = functional.variance(cache)
@@ -68,6 +71,10 @@ def bootstrap_ritz(shared: SharedMeasurement, cache: GroupedWordCache, *,
     rerun. It therefore captures what the linearization drops: the movement of
     the retained eigenspace itself. It captures nothing about coverage under a
     different true state, which is why it is heuristic.
+
+    ``solver_kwargs`` must match the point estimator, including any overlap
+    repair. A repair is rerun on every resampled matrix pencil. A failed
+    replica raises; it is never silently removed to narrow the interval.
     """
     if replicates < 2:
         raise ValueError("replicates must be at least two")

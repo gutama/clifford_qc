@@ -343,7 +343,8 @@ class SharedMeasurement:
               overlap_strategy: str = "modewise",
               overlap_policy: str = "per_mode",
               overlap_safety: float = 1.0,
-              overlap_regularizer: str = "truncate") -> SubspaceResult:
+              overlap_regularizer: str = "truncate",
+              overlap_repair: str = "none") -> SubspaceResult:
         """Thresholded GEP on the measured matrices.
 
         The result reports the same conditioning metrics as the exact path plus
@@ -364,12 +365,27 @@ class SharedMeasurement:
         a rank decision taken on noisy data; the ridge replaces it with a
         continuous one, at the cost of solving a perturbed metric.  It has no
         effect without ``calibrate_overlap``.
+
+        ``overlap_repair='nearest_correlation'`` repairs the normalized live
+        overlap block before thresholding and restores its measured diagonal.
+        It is experimental, with no variational or coverage guarantee. It
+        cannot yet be combined with shot-calibrated radii, whose derivation
+        does not include the nonlinear repair. For uncertainty, use the full
+        grouped bootstrap with the same ``solver_kwargs``.
         """
         from ..subspace.linalg import solve_projected
 
         if overlap_regularizer not in ("truncate", "ridge"):
             raise ValueError("overlap_regularizer must be 'truncate' or 'ridge'")
+        if overlap_repair not in ("none", "nearest_correlation"):
+            raise ValueError("overlap_repair must be 'none' or 'nearest_correlation'")
+        if overlap_repair != "none" and calibrate_overlap:
+            raise ValueError("nearest-correlation repair cannot use shot-calibrated radii")
         S, Hm = self.matrices(cache)
+        repair = None
+        if overlap_repair == "nearest_correlation":
+            from ..subspace.pencil import repair_overlap
+            S, repair = repair_overlap(S, norm_floor=norm_floor)
         calibration = None
         noise_floor: float | tuple[float, ...] = 0.0
         ridge: float | tuple[float, ...] = 0.0
@@ -400,6 +416,9 @@ class SharedMeasurement:
                                     else "truncate"),
             "overlap_calibration": calibration,
         })
+        if repair is not None:
+            resources.update({"overlap_repair": overlap_repair,
+                              "overlap_repair_diagnostics": repair})
         return solve_projected(S, Hm,
                                [self.bank.generator(i).label for i in self.indices],
                                tau_s=tau_s, rel_tau=rel_tau,
