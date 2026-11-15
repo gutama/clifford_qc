@@ -1,8 +1,9 @@
 """Exploratory, matrix-only replay of frozen PRD finite-shot seed records.
 
 Compare a fixed-threshold control with nearest-correlation repair using the
-same measured S/H matrices and the same numerical cutoffs. No measurements,
-exact-reference evaluations, angle fitting, or confidence intervals are made.
+same measured S/H matrices and the same numerical cutoffs. An optional fixed
+rotation adds two paired arms. No measurements, exact-reference evaluations,
+angle fitting, or confidence intervals are made.
 The archived shot-calibrated estimators are not replaced by this comparison.
 """
 
@@ -25,10 +26,10 @@ from benchmarks import run_prd_case_paper_suite as suite
 from clifford_qc import selection
 from clifford_qc.subspace import linalg, pencil
 from clifford_qc.subspace.linalg import solve_projected
-from clifford_qc.subspace.pencil import repair_overlap
+from clifford_qc.subspace.pencil import repair_overlap, rotation_parameters, solve_rotated
 
 
-SCHEMA = "clifford_qc.pencil_estimator_replay.v1"
+SCHEMA = "clifford_qc.pencil_estimator_replay.v2"
 
 
 def implementation_sources() -> dict[str, Path]:
@@ -42,8 +43,12 @@ def implementation_sources() -> dict[str, Path]:
 
 
 def evaluate_record(record: dict, solver_kwargs: dict, *, violation_tolerance: float,
-                    chemical_accuracy_mha: float) -> dict:
-    """Evaluate two predeclared arms; truth is used only after each solve."""
+                    chemical_accuracy_mha: float, rotation: dict | None = None) -> dict:
+    """Evaluate paired arms; reference energies never enter a solver or policy."""
+    if rotation is not None:
+        rotation = rotation_parameters(**rotation)
+        if set(solver_kwargs) - {"tau_s", "rel_tau", "max_condition", "norm_floor"}:
+            raise ValueError("rotated replay supports fixed numerical thresholds only")
     if record.get("schema") != finite.SCHEMA:
         raise ValueError("expected a PRD finite-shot seed record")
     S = finite.decode_complex_matrix(record["S_hat"], name="S_hat")
@@ -57,11 +62,16 @@ def evaluate_record(record: dict, solver_kwargs: dict, *, violation_tolerance: f
     if record["physical_shots"] != record["task"]["shot_budget"]:
         raise ValueError("recorded physical shots disagree with the task")
     arms = []
-    for estimator in ("fixed_threshold", "nearest_correlation"):
+    policies = [("fixed_threshold", False, False), ("nearest_correlation", True, False)]
+    if rotation is not None:
+        policies += [("rotated_fixed_threshold", False, True),
+                     ("rotated_nearest_correlation", True, True)]
+    for estimator, repaired, rotated in policies:
         try:
             overlap, diagnostics = (repair_overlap(S, norm_floor=solver_kwargs["norm_floor"])
-                                    if estimator == "nearest_correlation" else (S, None))
-            result = solve_projected(overlap, H, **solver_kwargs)
+                                    if repaired else (S, None))
+            result = (solve_rotated(overlap, H, **rotation, **solver_kwargs) if rotated
+                      else solve_projected(overlap, H, **solver_kwargs))
             energy = result.ground_energy
             if not np.isfinite(energy):
                 raise np.linalg.LinAlgError("nonfinite Ritz value")
@@ -81,6 +91,7 @@ def evaluate_record(record: dict, solver_kwargs: dict, *, violation_tolerance: f
             "smallest_retained_overlap_eigenvalue":
                 result.resources["smallest_retained_overlap_eigenvalue"],
             "repair": diagnostics,
+            "rotation": result.resources.get("pencil_rotation"),
         })
     return {"task": record["task"], "physical_shots": record["physical_shots"],
             "arms": arms}
@@ -114,11 +125,14 @@ def summarize(cells: list[dict]) -> list[dict]:
     return rows
 
 
-def replay_records(paths, manifest: dict, frozen_bases: dict) -> dict:
+def replay_records(paths, manifest: dict, frozen_bases: dict, *,
+                   rotation: dict | None = None) -> dict:
     """Read without modifying sources; reject duplicate or foreign campaign cells."""
     paths = sorted(Path(path) for path in paths)
     if not paths:
         raise ValueError("no PRD seed records found")
+    if rotation is not None:
+        rotation = rotation_parameters(**rotation)
     config_hash = suite.config_sha256(manifest)
     declared = {task["task_id"]: task for task in finite.build_tasks(manifest)}
     solver = manifest["finite_shot_tier"]["solver"]
@@ -151,7 +165,7 @@ def replay_records(paths, manifest: dict, frozen_bases: dict) -> dict:
         cells.append(evaluate_record(
             record, kwargs,
             violation_tolerance=float(summary["variational_violation_tolerance_hartree"]),
-            chemical_accuracy_mha=float(summary["chemical_accuracy_mHa"])))
+            chemical_accuracy_mha=float(summary["chemical_accuracy_mHa"]), rotation=rotation))
         sources.append({"task_id": key, "path": str(path),
                         "sha256": hashlib.sha256(payload).hexdigest()})
     implementations = implementation_sources()
@@ -159,6 +173,9 @@ def replay_records(paths, manifest: dict, frozen_bases: dict) -> dict:
         "schema": SCHEMA, "evidence": "exploratory_matrix_replay",
         "config_sha256": config_hash, "basis_sha256_by_system": basis_hashes,
         "solver_kwargs": kwargs,
+        "rotation_policy": ({**rotation, "angle_policy": "fixed",
+                             "selection": "caller_supplied_no_data_selection"}
+                            if rotation is not None else None),
         "expected_cells": len(declared), "replayed_cells": len(cells),
         "complete_campaign": len(cells) == len(declared),
         "missing_task_ids": sorted(set(declared) - seen),
@@ -181,13 +198,27 @@ def main(argv=None):
     parser.add_argument("--input-dir", type=Path, required=True)
     parser.add_argument("--output", type=Path, required=True)
     parser.add_argument("--config", type=Path, default=finite.DEFAULT_CONFIG)
+    parser.add_argument("--pencil-angle", type=float, help="fixed angle in radians; adds paired arms")
+    parser.add_argument("--energy-shift", type=float, default=0.0)
+    parser.add_argument("--energy-scale", type=float, default=1.0)
+    parser.add_argument("--pole-tolerance", type=float, default=1e-10)
     args = parser.parse_args(argv)
     if args.output.exists():
         parser.error("output already exists; choose a new exploratory artifact")
+    rotation = None
+    if args.pencil_angle is not None:
+        try:
+            rotation = rotation_parameters(angle=args.pencil_angle, energy_shift=args.energy_shift,
+                                           energy_scale=args.energy_scale,
+                                           pole_tolerance=args.pole_tolerance)
+        except ValueError as error:
+            parser.error(str(error))
+    elif (args.energy_shift, args.energy_scale, args.pole_tolerance) != (0.0, 1.0, 1e-10):
+        parser.error("rotation controls require --pencil-angle")
     manifest = suite.load_manifest(args.config)
     frozen_bases = finite.load_frozen_bases(args.config, manifest)
     paths = list(args.input_dir.glob("*__shots*__seed*.json"))
-    report = replay_records(paths, manifest, frozen_bases)
+    report = replay_records(paths, manifest, frozen_bases, rotation=rotation)
     args.output.parent.mkdir(parents=True, exist_ok=True)
     # Exclusive creation also prevents overwriting a source or a racing writer.
     with args.output.open("x", encoding="utf-8") as stream:

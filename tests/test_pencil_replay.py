@@ -202,3 +202,99 @@ def test_cli_writes_a_separate_report_and_refuses_overwrites(tmp_path, manifest)
     with pytest.raises(SystemExit):
         replay.main(argv)
     assert output.read_bytes() == before
+
+
+def test_rotation_adds_paired_equal_data_arms_without_using_reference_energies(manifest):
+    record = seed_record(manifest)
+    # Positive definite for a valid nonzero rotation and no repair correction.
+    record["S_hat"] = finite._complex_matrix(np.eye(7))
+    rotation = {"angle": .1, "energy_shift": -1., "energy_scale": 4.}
+    kwargs = {"norm_floor": 1e-14}
+    original = copy.deepcopy(record)
+    cell = replay.evaluate_record(record, kwargs, violation_tolerance=1e-9,
+                                  chemical_accuracy_mha=1.6, rotation=rotation)
+    assert record == original
+    assert [arm["estimator"] for arm in cell["arms"]] == [
+        "fixed_threshold", "nearest_correlation", "rotated_fixed_threshold",
+        "rotated_nearest_correlation"]
+    for arm in cell["arms"]:
+        assert arm["status"] == "ok"
+        assert arm["energy"] == pytest.approx(-1)
+    record["exact_energy"], record["exact_packet_energy"] = -100., 100.
+    changed = replay.evaluate_record(record, kwargs, violation_tolerance=1e-9,
+                                     chemical_accuracy_mha=1.6, rotation=rotation)
+    assert [arm["energy"] for arm in changed["arms"]] == [arm["energy"] for arm in cell["arms"]]
+    assert changed["arms"][2]["rotation"] == cell["arms"][2]["rotation"]
+
+
+def test_invalid_rotated_metric_remains_in_the_all_cell_failure_denominator(manifest):
+    record = seed_record(manifest)
+    record["S_hat"] = finite._complex_matrix(np.eye(7))
+    record["H_hat"] = finite._complex_matrix(-10 * np.eye(7))
+    cell = replay.evaluate_record(record, {"norm_floor": 1e-14}, violation_tolerance=1e-9,
+                                  chemical_accuracy_mha=1.6, rotation={"angle": .3})
+    for arm in cell["arms"]:
+        assert arm["status"] == ("failed_solve" if arm["estimator"].startswith("rotated_")
+                                 else "ok")
+    for summary in replay.summarize([cell]):
+        if summary["estimator"].startswith("rotated_"):
+            assert summary["failure_rate"] == 1
+            assert summary["chemical_accuracy_rate_all_cells"] == 0
+    json.dumps(cell, allow_nan=False)
+
+
+def test_zero_angle_replay_is_an_exact_two_arm_control(manifest):
+    cell = replay.evaluate_record(seed_record(manifest), {"norm_floor": 1e-14},
+                                  violation_tolerance=1e-9, chemical_accuracy_mha=1.6,
+                                  rotation={"angle": 0, "energy_shift": -20., "energy_scale": .1})
+    for control, rotated in zip(cell["arms"][:2], cell["arms"][2:]):
+        assert rotated["energy"] == control["energy"]
+        assert rotated["retained_rank"] == control["retained_rank"]
+
+
+def test_rotation_policy_is_serialized_and_source_bytes_are_preserved(tmp_path, manifest):
+    source = tmp_path / "seed.json"
+    source.write_text(json.dumps(seed_record(manifest)))
+    before = source.read_bytes()
+    frozen = finite.load_frozen_bases(finite.DEFAULT_CONFIG, manifest)
+    report = replay.replay_records([source], manifest, frozen,
+                                   rotation={"angle": .1, "energy_shift": -1, "energy_scale": 4})
+    assert source.read_bytes() == before
+    assert report["schema"] == "clifford_qc.pencil_estimator_replay.v2"
+    assert report["rotation_policy"] == {
+        "angle": .1, "energy_shift": -1., "energy_scale": 4., "pole_tolerance": 1e-10,
+        "angle_policy": "fixed", "selection": "caller_supplied_no_data_selection"}
+    assert report["additional_physical_shots"] == 0
+    assert report["interval_coverage"] is None
+    assert len(report["summary"]) == 4
+    json.dumps(report, allow_nan=False)
+
+
+def test_rotation_cannot_silently_reuse_per_mode_calibration(manifest):
+    with pytest.raises(ValueError, match="fixed numerical thresholds only"):
+        replay.evaluate_record(seed_record(manifest),
+                               {"norm_floor": 1e-14, "overlap_ridge": .1},
+                               violation_tolerance=1e-9, chemical_accuracy_mha=1.6,
+                               rotation={"angle": .1})
+
+
+@pytest.mark.parametrize("controls", [
+    ["--pencil-angle", "nan"], ["--pencil-angle", ".1", "--energy-scale", "0"],
+    ["--energy-scale", "2"], ["--energy-shift", "-1"],
+])
+def test_cli_rejects_invalid_or_unused_rotation_controls_before_output(tmp_path, controls):
+    output = tmp_path / "report.json"
+    with pytest.raises(SystemExit):
+        replay.main(["--input-dir", str(tmp_path), "--output", str(output), *controls])
+    assert not output.exists()
+
+
+def test_cli_runs_fixed_rotation_and_keeps_all_four_arms(tmp_path, manifest):
+    record = seed_record(manifest)
+    source = tmp_path / f"{record['task']['task_id']}.json"
+    source.write_text(json.dumps(record))
+    output = tmp_path / "rotated.json"
+    replay.main(["--input-dir", str(tmp_path), "--output", str(output), "--pencil-angle", "0"])
+    report = json.loads(output.read_text())
+    assert len(report["cells"][0]["arms"]) == 4
+    assert report["rotation_policy"]["angle"] == 0

@@ -10,11 +10,14 @@ It supplies neither a variational bound nor an energy confidence interval.
 from __future__ import annotations
 
 import math
-from numbers import Integral
+from dataclasses import replace
+from numbers import Integral, Real
+from typing import Sequence
 
 import numpy as np
 
-from .linalg import DEFAULT_NORM_FLOOR, normalize_overlap
+from .linalg import (DEFAULT_MAX_CONDITION, DEFAULT_NORM_FLOOR, DEFAULT_TAU_S,
+                     SubspaceResult, fix_phase, normalize_overlap, solve_projected)
 
 
 def _rank_one_projection(C: np.ndarray, vector: np.ndarray, tolerance: float
@@ -130,3 +133,123 @@ def repair_overlap(overlap: np.ndarray, *, norm_floor: float = DEFAULT_NORM_FLOO
         "normalized_correction_fro": float(np.linalg.norm(Y - C, "fro")),
         "correction_fro": float(np.linalg.norm(repaired - S, "fro")),
     }
+
+
+def rotation_parameters(*, angle: float, energy_shift: float = 0.0,
+                        energy_scale: float = 1.0, pole_tolerance: float = 1e-10
+                        ) -> dict[str, float]:
+    """Validate a fixed rotation policy; angles are radians, scale is positive.
+
+    This policy contains no data-dependent angle selector. Choose the angle
+    independently of evaluation data, or label any angle sweep exploratory.
+    """
+    values = {"angle": angle, "energy_shift": energy_shift,
+              "energy_scale": energy_scale, "pole_tolerance": pole_tolerance}
+    for key, value in values.items():
+        if isinstance(value, (bool, np.bool_)) or not isinstance(value, Real):
+            raise ValueError(f"{key} must be a finite real scalar")
+        try:
+            values[key] = float(value)
+        except (TypeError, ValueError, OverflowError) as error:
+            raise ValueError(f"{key} must be a finite real scalar") from error
+        if not math.isfinite(values[key]):
+            raise ValueError(f"{key} must be a finite real scalar")
+    if not -math.pi / 2 < values["angle"] < math.pi / 2:
+        raise ValueError("angle must be in (-pi/2, pi/2)")
+    if values["energy_scale"] <= 0:
+        raise ValueError("energy_scale must be positive")
+    if not 0 < values["pole_tolerance"] < 1:
+        raise ValueError("pole_tolerance must be in (0, 1)")
+    return values
+
+
+def solve_rotated(S: np.ndarray, H: np.ndarray, labels: Sequence[str] | None = None, *, angle: float,
+                  energy_shift: float = 0.0, energy_scale: float = 1.0,
+                  pole_tolerance: float = 1e-10, tau_s: float = DEFAULT_TAU_S,
+                  rel_tau: float = 0.0, max_condition: float = DEFAULT_MAX_CONDITION,
+                  norm_floor: float = DEFAULT_NORM_FLOOR,
+                  resources: dict | None = None) -> SubspaceResult:
+    """Fixed-angle thresholding followed by the inverse eigenvalue map.
+
+    On the original live generators, set h=(H-shift*S)/scale, then solve
+    (h*cos(angle)-S*sin(angle), S*cos(angle)+h*sin(angle)). The canonical
+    solver normalizes the rotated metric's diagonal before thresholding.
+    Return physical energies sorted ascending and coefficients normalized
+    in the supplied, unrotated S (the repaired S when repair was requested).
+
+    This conservative first policy requires the rotated live metric to be
+    PSD to roundoff, with positive diagonal. It rejects poles and nonpositive
+    physical norms instead of dropping roots or crossing eigenvalue branches.
+    Shot-derived floors and ridges are deliberately unsupported. Truncation
+    changes the retained span; it need not preserve the unrotated Ritz values.
+    Zero angle delegates exactly to the original numerical solver.
+
+    See De Vriendt et al., arXiv:2602.11985, for rotated thresholding. This
+    implementation does not implement their data-selected angle heuristic.
+    """
+    policy = rotation_parameters(angle=angle, energy_shift=energy_shift,
+                                 energy_scale=energy_scale, pole_tolerance=pole_tolerance)
+    S, H = np.asarray(S, dtype=complex), np.asarray(H, dtype=complex)
+    frame = normalize_overlap(S, norm_floor=norm_floor)
+    if H.shape != S.shape or not np.all(np.isfinite(H)):
+        raise ValueError("Hamiltonian must be finite and match the overlap shape")
+    if not np.allclose(H, H.conj().T, atol=1e-10, rtol=0.0):
+        raise ValueError("Hamiltonian must be Hermitian")
+    labels = tuple(labels) if labels is not None else tuple(f"A{i}" for i in range(len(S)))
+    if len(labels) != len(S):
+        raise ValueError("labels and matrix size disagree")
+    if policy["angle"] == 0.0:
+        result = solve_projected(S, H, labels, tau_s=tau_s, rel_tau=rel_tau,
+                                 max_condition=max_condition, norm_floor=norm_floor,
+                                 resources=resources)
+        return replace(result, resources={**result.resources, "pencil_rotation": {
+            **policy, "angle_policy": "fixed", "evidence": "heuristic",
+            "zero_angle_control": True}})
+
+    live = frame.indices
+    S_live = frame.matrix
+    H_live = ((H / frame.scaling[:, None]) / frame.scaling[None, :])[np.ix_(live, live)]
+    h = (H_live - policy["energy_shift"] * S_live) / policy["energy_scale"]
+    cosine, sine = math.cos(policy["angle"]), math.sin(policy["angle"])
+    rotated_S, rotated_H = cosine * S_live + sine * h, cosine * h - sine * S_live
+    if not np.all(np.isfinite(rotated_S)) or not np.all(np.isfinite(rotated_H)):
+        raise ValueError("rotated pencil must be finite")
+    metric_values = np.linalg.eigvalsh(rotated_S)
+    roundoff = 100 * np.finfo(float).eps * max(float(np.max(np.abs(metric_values))), 1.0)
+    if metric_values[0] < -roundoff:
+        raise ValueError("rotated overlap is indefinite on the original live generators")
+    if np.any(rotated_S.diagonal().real <= norm_floor ** 2):
+        raise ValueError("rotated overlap has a nonpositive or dead live diagonal")
+    result = solve_projected(rotated_S, rotated_H, [labels[i] for i in live],
+                             tau_s=tau_s, rel_tau=rel_tau, max_condition=max_condition,
+                             norm_floor=norm_floor, resources=resources)
+    mu = np.asarray(result.energies)
+    denominator = cosine - sine * mu
+    pole_scale = np.maximum(1.0, np.abs(cosine) + np.abs(sine * mu))
+    if np.any(denominator <= policy["pole_tolerance"] * pole_scale):
+        raise ValueError("inverse rotation reaches a pole or nonpositive physical-norm branch")
+    energies = policy["energy_shift"] + policy["energy_scale"] * (
+        cosine * mu + sine) / denominator
+    if not np.all(np.isfinite(energies)):
+        raise ValueError("inverse rotation produced nonfinite physical energies")
+    vectors = result.coefficients.copy()
+    norms = np.einsum("ik,ik->k", vectors.conj(), S_live @ vectors).real
+    if not np.all(np.isfinite(norms)) or np.any(norms <= 0):
+        raise ValueError("rotated Ritz vector has a nonpositive physical norm")
+    vectors /= np.sqrt(norms)[None, :]
+    coefficients = np.zeros((len(S), len(mu)), dtype=complex)
+    coefficients[live, :] = vectors / frame.scaling[live, None]
+    order = np.argsort(energies, kind="stable")
+    coefficients = np.column_stack([fix_phase(coefficients[:, i]) for i in order])
+    out = dict(result.resources)
+    out.update({"basis_size": len(S), "live_generators": int(live.size),
+                "pencil_rotation": {**policy, "angle_policy": "fixed", "evidence": "heuristic",
+                    "zero_angle_control": False,
+                    "rotated_metric_min_eigenvalue": float(metric_values[0]),
+                    "rotated_energies": tuple(float(v) for v in mu[order]),
+                    "inverse_denominators": tuple(float(v) for v in denominator[order]),
+                    "original_live_indices": tuple(int(i) for i in live)},
+                "dropped_generators": tuple(label for label, keep in zip(labels, frame.live)
+                                            if not keep)})
+    return replace(result, energies=tuple(float(e) for e in energies[order]),
+                   coefficients=coefficients, basis_labels=labels, resources=out)

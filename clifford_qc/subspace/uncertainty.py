@@ -65,6 +65,9 @@ def ritz_uncertainty(shared: SharedMeasurement, cache: GroupedWordCache,
     if parameters.get("overlap_repair", "none") != "none":
         raise ValueError("the delta method does not include nonlinear overlap repair; "
                          "use bootstrap_ritz(shared, cache, result=result)")
+    if parameters.get("pencil_angle") is not None:
+        raise ValueError("the delta method does not include rotated thresholding; "
+                         "use bootstrap_ritz(shared, cache, result=result)")
     functional = ritz_functional(shared.bank, result.indices,
                                  result.coefficients[:, root], result.energies[root])
     variance = functional.variance(cache)
@@ -93,7 +96,8 @@ def bootstrap_ritz(shared: SharedMeasurement, cache: GroupedWordCache, *,
     result and reject conflicting ``solver_kwargs``. Its point energy is the
     returned estimate. Without ``result``, the legacy API bootstraps only the
     explicitly supplied/default policy; it is not bound to a separate point
-    estimate. A repair is rerun on every resampled pencil. A failed replica
+    estimate. Repair and fixed-angle rotation are rerun on every resampled pencil.
+    Data-selected angles are unsupported. A failed replica
     raises; it is never silently removed to narrow the interval.
     """
     if replicates < 2:

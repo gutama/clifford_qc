@@ -1,4 +1,4 @@
-# Pencil estimator improvements: review and first implementation
+# Pencil estimator improvements: review and fixed-policy ladder
 
 Reviewed on 15 November 2026 against checkout `bd772c4` and the supplied
 *Clifford QC framework improvements.md*. The attachment is a proposal and
@@ -146,6 +146,61 @@ still requires the complete source closure to be declared in advance. These
 changes preserve published observation bytes and distinguish current replay
 provenance from the original experiment's provenance.
 
+## Fixed-angle rotation
+
+The next opt-in step is implemented by
+[`solve_rotated`](../../clifford_qc/subspace/pencil.py) and the measured solver:
+
+```python
+point = shared.solve(
+    cache, overlap_repair="nearest_correlation",
+    pencil_angle=0.1, energy_shift=-1.0, energy_scale=2.0, tau_s=1e-8,
+)
+interval = bootstrap_ritz(shared, cache, result=point, replicates=200, seed=17)
+```
+
+The controls above illustrate the API, not recommended settings. Choose the
+angle, shift, scale and thresholds independently of evaluation outcomes.
+Angles are radians in `(-pi/2, pi/2)`; `energy_scale` is positive and uses the
+same energy units as `H` and `energy_shift`. An angle selected on these data
+is a different estimator and is not implemented here. An exploratory angle
+sweep does not become independent validation by freezing its winner afterward.
+
+Repair runs first. Original dead rows are removed using `normalize_overlap`;
+both live matrices use that same generator scaling. The dimensionless pencil
+is then rotated as in review finding 5. The canonical solver normalizes the
+**rotated** metric's diagonal and thresholds its spectrum. Thresholding need
+not retain the same span as the unrotated solver. The inverse fractional map
+restores physical energies; all roots are sorted by those energies and their
+coefficients are normalized in the supplied unrotated metric (the repaired
+metric when repair is requested). Original dead rows remain exactly zero.
+Zero angle delegates directly to the original solver, including its exact
+floating-point output, even with nontrivial shift/scale controls.
+
+This first rotation policy is deliberately bounded: the rotated live metric
+must be PSD to scale-aware roundoff and have positive, non-dead diagonals.
+An indefinite metric, inverse-map pole, nonpositive physical-norm branch or
+nonfinite pencil causes an explicit failure. Roots are not silently removed.
+`pole_tolerance` is a relative cancellation/branch guard on
+`cos(theta) - mu*sin(theta)`, not a statistical radius. Calibrated overlap
+floors/ridges are unsupported after rotation until a transformed covariance
+model is validated. These restrictions can produce failures on noisy data;
+they do not promise that any fixed angle is suitable for a campaign.
+
+The measured result binds all four rotation controls to the joint-outcome
+fingerprint and solver policy. Bootstrap reconstructs each joint histogram,
+reruns repair and the same fixed rotation, and fails if any replica fails.
+The delta-method API rejects rotation because its current functional does not
+differentiate the rotated retention rule. All intervals remain heuristic.
+
+Measured, repaired and rotated overlap spectra have separate resources.
+`SubspaceResult.overlap_eigenvalues`, retained-mode thresholds, condition
+number and smallest retained eigenvalue describe the **rotated normalized
+solver metric**. Legacy scalar measurement-spectrum diagnostics continue to
+describe the measurement. The physical energies and coefficients have already
+been mapped back; `pencil_rotation` records the dimensionless rotated values,
+inverse denominators and fixed policy for audit.
+
 ## Matrix-only replay
 
 With the external v3 seed files available, run from the repository root:
@@ -164,6 +219,23 @@ non-Hermitian input before estimator accounting; hashes source bytes and the
 actually imported implementation files, including both PRD producer modules;
 and marks incomplete campaigns. The direct script entry point also works.
 Existing output files cannot be overwritten.
+
+To add fixed-angle controls on the same matrices, use:
+
+```bash
+python -m benchmarks.replay_pencil_estimators \
+    --input-dir /path/to/prd-seed-records \
+    --output work/pencil-rotation-replay.json \
+    --pencil-angle 0.1 --energy-shift -1.0 --energy-scale 2.0
+```
+
+The v2 report retains the two unrotated arms and adds
+`rotated_fixed_threshold` and `rotated_nearest_correlation`. It records the
+caller-supplied fixed rotation policy; reference energies enter only the
+assessment after solving. No angle is optimized or selected by this tool.
+Rotation-only failures count in their own arm's all-cell denominator.
+Omitting `--pencil-angle` retains the original two-arm computation. Supplying
+nondefault energy or pole controls without an angle is rejected.
 
 Reports include median and 90th-percentile absolute errors, violation rates,
 retained rank, conditioning, and repair diagnostics. The minimum retained
@@ -186,13 +258,19 @@ live-row projections, point-policy and joint-outcome binding, rejection of
 unknown-provenance uncertainty inputs, measured/repaired diagnostics,
 non-Hermitian record rejection, actual per-mode/ridged retention, imported
 producer hashes, direct script invocation, and NumPy integer controls.
+Rotation tests compare complex full-rank results with an independent QR-span
+Ritz oracle, check physical Rayleigh quotients after truncation, energy-unit
+and generator-coordinate covariance, zero-angle identity, dead rows, invalid
+metrics, poles, policy-bound joint bootstrap, truth-independent replay arms,
+and failure denominators. They establish implementation identities on their
+fixtures, not empirical interval coverage or matched-error improvement.
 Existing measured-subspace, response, PRD, and compatibility tests are also
 run. There is no new empirical coverage or matched-error improvement claim.
 
 | Step | Status | Acceptance before a scientific claim |
 | --- | --- | --- |
 | Diagonal-preserving PSD repair and point replay | Implemented, opt-in | Source-verified external 180-cell replay; assess tails and failures |
-| Rotation and estimator protocol | Next | Explicit shift/scale, inverse and pole checks; independent-angle evaluation; equal-data controls |
+| Fixed-angle rotation and estimator policy | Implemented, opt-in | Independent-angle evaluation and external equal-data replay; data-selected angle inference remains pending |
 | Covariance-aware constrained ratio | Pending | Retain joint histograms; denominator and feasibility gates; validate full propagated covariance |
 | Coverage and target-aware acquisition | Pending | Frozen 68%/95% study, all failure counts, minimum-retained-overlap strata, valid stopping semantics |
 | Symmetry pool and SoA kernel work | Pending | Invariant tests, real structured-bank timings, full selection-cache costs at matched error |
