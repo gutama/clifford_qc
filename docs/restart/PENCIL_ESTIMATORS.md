@@ -138,6 +138,14 @@ The default numerical policy and the PRD sampling policy are unchanged. The
 PRD producer gains a shared paired-real matrix decoder next to its encoder;
 no historical record is rewritten.
 
+The historical noise experiments retain their exact execution-time
+`subspace/linalg.py` bytes in their existing provenance snapshot directories.
+Cross-domain recorded replay keeps every originally declared source and adds
+new package modules to its current replay manifest. New-campaign execution
+still requires the complete source closure to be declared in advance. These
+changes preserve published observation bytes and distinguish current replay
+provenance from the original experiment's provenance.
+
 ## Matrix-only replay
 
 With the external v3 seed files available, run from the repository root:
