@@ -22,6 +22,47 @@ DEFAULT_NORM_FLOOR = 1e-14
 
 
 @dataclass(frozen=True)
+class NormalizedOverlap:
+    """One definition of the solver's live rows and two-sided scaling."""
+
+    diagonal: np.ndarray
+    norms: np.ndarray
+    live: np.ndarray
+    scaling: np.ndarray
+    indices: np.ndarray
+    matrix: np.ndarray
+
+
+def normalize_overlap(overlap: np.ndarray, *, norm_floor: float = DEFAULT_NORM_FLOOR
+                      ) -> NormalizedOverlap:
+    """Drop non-positive/dead measured norms, then normalize the live block.
+
+    The raw diagonal is retained for diagnostics. Clipping is used only to
+    decide which rows the projected solver can normalize.
+    """
+    S = np.asarray(overlap, dtype=complex)
+    if S.ndim != 2 or not S.shape[0] or S.shape[0] != S.shape[1]:
+        raise ValueError("overlap must be a nonempty square matrix")
+    if not np.all(np.isfinite(S)):
+        raise ValueError("overlap must be finite")
+    if not np.allclose(S, S.conj().T, atol=1e-10, rtol=0.0):
+        raise ValueError("overlap must be Hermitian")
+    if not math.isfinite(norm_floor) or norm_floor < 0.0:
+        raise ValueError("norm_floor must be nonnegative and finite")
+    diagonal = S.diagonal().real.copy()
+    norms = np.sqrt(np.clip(diagonal, 0.0, None))
+    live = norms > norm_floor
+    if not live.any():
+        raise ValueError("every generator annihilates the reference state")
+    scaling = np.where(live, norms, 1.0)
+    index = np.flatnonzero(live)
+    normalized = ((S / scaling[:, None]) / scaling[None, :])[np.ix_(index, index)]
+    if not np.all(np.isfinite(normalized)):
+        raise ValueError("normalized overlap is not finite")
+    return NormalizedOverlap(diagonal, norms, live, scaling, index, normalized)
+
+
+@dataclass(frozen=True)
 class SubspaceResult:
     """Outcome of one exact fixed-basis A-CASE solve.
 
@@ -49,6 +90,10 @@ class SubspaceResult:
     resources: dict[str, Any] = field(default_factory=dict)
     bank: Any = None
     indices: tuple[int, ...] = ()
+    # None means that the numerical result has no measured-estimator provenance.
+    # SharedMeasurement fills this with the complete arguments of its solve.
+    estimator_parameters: dict[str, Any] | None = None
+    measurement_fingerprint: str | None = None
 
     @property
     def ground_energy(self) -> float:
@@ -248,18 +293,12 @@ def solve_projected(S: np.ndarray, Hm: np.ndarray, labels: Sequence[str] | None 
     if np.any(ridge < 0.0) or not np.all(np.isfinite(ridge)):
         raise ValueError("overlap_ridge must be nonnegative and finite")
 
-    diagonal = np.clip(S.diagonal().real, 0.0, None)
-    norms = np.sqrt(diagonal)
-    live = norms > norm_floor
-    if not live.any():
-        raise ValueError("every generator annihilates the reference state")
+    frame = normalize_overlap(S, norm_floor=norm_floor)
+    live, scaling, index = frame.live, frame.scaling, frame.indices
     dropped = tuple(label for label, keep in zip(labels, live) if not keep)
 
-    scaling = np.where(live, norms, 1.0)
-    S_bar = (S / scaling[:, None]) / scaling[None, :]
+    S_bar = frame.matrix
     H_bar = (Hm / scaling[:, None]) / scaling[None, :]
-    index = np.flatnonzero(live)
-    S_bar = S_bar[np.ix_(index, index)]
     H_bar = H_bar[np.ix_(index, index)]
 
     overlap_values, overlap_vectors = canonical_eigh(S_bar)
@@ -333,6 +372,8 @@ def solve_projected(S: np.ndarray, Hm: np.ndarray, labels: Sequence[str] | None 
         "dropped_generators": dropped,
         "rank_before_truncation": numerical_rank,
         "retained_rank": int(keep.sum()),
+        "retained_overlap_eigenvalues": tuple(float(v) for v in kept_values),
+        "smallest_retained_overlap_eigenvalue": float(np.min(kept_values)),
         "retained_condition_number": condition,
         "whitening_residual_inf": whitening_residual,
         "overlap_threshold": float(cutoff),

@@ -61,11 +61,22 @@ def digest(path):
     return hashlib.sha256((ROOT/path).read_bytes()).hexdigest()
 
 
-def scientific_sources(config=None):
+def scientific_sources(config=None, *, replay=False):
     config = load_declaration() if config is None else config
     sources = tuple(config["source_paths"])
     package = {p for p in git("ls-files", "clifford_qc").splitlines() if p.endswith(".py")}
-    if len(set(sources)) != len(sources) or not (package | set(BENCHMARK_SOURCES)).issubset(sources):
+    required = package | set(BENCHMARK_SOURCES)
+    if len(set(sources)) != len(sources):
+        raise ValueError("scientific source closure is incomplete")
+    if replay:
+        # Historical replay keeps the frozen declaration and observations.
+        # Every originally bound source must still be declared; new package
+        # modules are additionally bound to the *current* replay execution.
+        recorded = load_record(ROOT/RESULT)
+        if not set(recorded["source_sha256"]).issubset(sources):
+            raise ValueError("scientific source closure omits a recorded source")
+        return sources + tuple(sorted(required - set(sources)))
+    if not required.issubset(sources):
         raise ValueError("scientific source closure is incomplete")
     return sources
 
@@ -671,8 +682,8 @@ def run_case(config, case_index, *, checkpoint=None):
     return output
 
 
-def _committed_preflight(config):
-    sources = scientific_sources(config)
+def _committed_preflight(config, *, replay=False):
+    sources = scientific_sources(config, replay=True) if replay else scientific_sources(config)
     inputs = [c["fcidump"] for c in config["cases"] if c["kind"] == "molecule"]
     paths = (DECLARATION, *sources, *inputs)
     subprocess.run(["git", "diff", "--exit-code", "HEAD", "--", *paths], cwd=ROOT,
@@ -692,6 +703,7 @@ def claim_path():
 
 
 def _run_workers(config, execution_commit, declared_commit, output, *, replay=False, authorization=None, replay_receipt=None):
+    sources = scientific_sources(config, replay=True) if replay else scientific_sources(config)
     receipt_dir = _common_git_directory()/f'cross_domain_ratio_{digest(DECLARATION)[:16]}_execution'
     if replay:
         receipt_dir = Path(tempfile.mkdtemp(prefix="cross-domain-replay-", dir=_common_git_directory()))
@@ -739,7 +751,7 @@ def _run_workers(config, execution_commit, declared_commit, output, *, replay=Fa
                          "declaration_sha256": digest(DECLARATION), "timed_out": timed_out,
                          "case_timeout_seconds": config["case_timeout_seconds"],
                          "source_manifest_sha256": hashlib.sha256(json.dumps(
-                             {p: digest(p) for p in scientific_sources(config)}, sort_keys=True).encode()).hexdigest()})
+                             {p: digest(p) for p in sources}, sort_keys=True).encode()).hexdigest()})
         if not replay:
             atomic_json(claim_path(), {"status": "running", "declaration_sha256": digest(DECLARATION),
                                       "execution_commit": execution_commit, "declaration_commit": declared_commit,
@@ -747,7 +759,7 @@ def _run_workers(config, execution_commit, declared_commit, output, *, replay=Fa
                                       "claim_nonce": authorization})
     return {"schema": "clifford_qc.cross_domain_ratio_results.v1",
             "declaration_sha256": digest(DECLARATION), "declaration_commit": declared_commit,
-            "execution_commit": execution_commit, "source_sha256": {p: digest(p) for p in scientific_sources(config)},
+            "execution_commit": execution_commit, "source_sha256": {p: digest(p) for p in sources},
             "input_sha256": {c["fcidump"]: digest(c["fcidump"]) for c in config["cases"] if c["kind"] == "molecule"},
             "environment": {"python": platform.python_version(), "numpy": np.__version__,
                             "scipy": __import__("scipy").__version__,
@@ -856,7 +868,8 @@ def main(argv=None):
         return
     if args.execute or args.check or args.worker is not None:
         validate_execution_environment(config)
-    declared_commit, sources = _committed_preflight(config)
+    declared_commit, sources = _committed_preflight(
+        config, replay=args.check is not None or args.worker_replay)
     execution_commit = git("rev-parse", "HEAD")
     if args.worker is not None:
         if args.worker_output is None or not 0 <= args.worker < len(config["cases"]):

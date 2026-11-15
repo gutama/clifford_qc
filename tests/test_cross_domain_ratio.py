@@ -163,6 +163,34 @@ def test_clean_scientific_sources_and_committed_declaration_required(monkeypatch
     assert called and called[0][:3] == ["git", "diff", "--exit-code"]
 
 
+def test_replay_binds_added_modules_without_relaxing_frozen_source_inventory(monkeypatch):
+    config = runner.load_declaration()
+    declared = tuple(config["source_paths"])
+    extra = "clifford_qc/new_optional_module.py"
+    package = [path for path in declared if path.startswith("clifford_qc/")]
+    monkeypatch.setattr(runner, "git", lambda *args: "\n".join([*package, extra]))
+    monkeypatch.setattr(runner, "load_record", lambda path: {"source_sha256": dict.fromkeys(declared)})
+    with pytest.raises(ValueError, match="source closure is incomplete"):
+        runner.scientific_sources(config)
+    assert runner.scientific_sources(config, replay=True) == declared + (extra,)
+    broken = deepcopy(config)
+    broken["source_paths"].remove("clifford_qc/subspace/linalg.py")
+    with pytest.raises(ValueError, match="omits a recorded source"):
+        runner.scientific_sources(broken, replay=True)
+
+
+def test_replay_preflight_selects_the_replay_source_manifest(monkeypatch):
+    policies = []
+    def sources(config, *, replay=False):
+        policies.append(replay)
+        return ("tracked.py",)
+    monkeypatch.setattr(runner, "scientific_sources", sources)
+    monkeypatch.setattr(runner.subprocess, "run", lambda *args, **kwargs: None)
+    monkeypatch.setattr(runner, "git", lambda *args: "declaration_commit")
+    assert runner._committed_preflight({"cases": []}, replay=True) == ("declaration_commit", ("tracked.py",))
+    assert policies == [True]
+
+
 def test_frozen_stack_and_single_thread_rules_are_enforced(monkeypatch):
     pytest.importorskip("scipy")
     c = runner.load_declaration()

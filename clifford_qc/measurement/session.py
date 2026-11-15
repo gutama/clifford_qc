@@ -3,6 +3,8 @@
 from __future__ import annotations
 
 import math
+import hashlib
+import json
 from dataclasses import replace
 from typing import TYPE_CHECKING, Any, Sequence, cast
 
@@ -25,6 +27,18 @@ DEFAULT_MAX_CONDITION = 1e12
 DEFAULT_NORM_FLOOR = 1e-14
 
 HEURISTIC = EvidenceLevel.HEURISTIC.value
+
+
+def grouped_cache_fingerprint(cache: GroupedWordCache) -> str:
+    """Bind an uncertainty point to the joint outcomes, including readout maps."""
+    groups = [{"support": group["support"], "basis": group["basis"],
+               "shots": group["shots"], "word_codes": group["word_codes"],
+               "hist": sorted(group["hist"].items()),
+               "readouts": sorted(group["readouts"].items())}
+              for group in cache.group_states()]
+    payload = json.dumps([int(cache.n), cache.pooling, groups], sort_keys=True, separators=(",", ":"))
+    return hashlib.sha256(payload.encode()).hexdigest()
+
 
 def select_scored_rank(solved):
     """The scored rank a confidence sweep returns: least score, least rank.
@@ -229,7 +243,7 @@ class SharedMeasurement:
         Bernstein semantics inapplicable unless an independent frozen batch is
         used.
         """
-        from ..subspace.linalg import canonical_eigh
+        from ..subspace.linalg import canonical_eigh, normalize_overlap
 
         if safety <= 0.0 or not math.isfinite(safety):
             raise ValueError("overlap safety factor must be positive and finite")
@@ -239,17 +253,9 @@ class SharedMeasurement:
             raise ValueError("overlap policy must be 'per_mode' or 'uniform'")
         overlap = self.matrices(cache)[0] if overlap is None else np.asarray(overlap)
 
-        # Mirror solve_projected: drop annihilated directions, normalize the
-        # survivors by their measured norms.
-        norms = np.sqrt(np.clip(overlap.diagonal().real, 0.0, None))
-        live = norms > norm_floor
-        if not live.any():
-            raise ValueError("every generator annihilates the reference state")
-        scaling = np.where(live, norms, 1.0)
-        index = np.flatnonzero(live)
-        normalized = ((overlap / scaling[:, None]) / scaling[None, :])[
-            np.ix_(index, index)]
-        live_size = int(live.sum())
+        frame = normalize_overlap(overlap, norm_floor=norm_floor)
+        scaling, index, normalized = frame.scaling, frame.indices, frame.matrix
+        live_size = int(frame.live.sum())
 
         if strategy == "entrywise":
             stochastic = sum(
@@ -343,7 +349,10 @@ class SharedMeasurement:
               overlap_strategy: str = "modewise",
               overlap_policy: str = "per_mode",
               overlap_safety: float = 1.0,
-              overlap_regularizer: str = "truncate") -> SubspaceResult:
+              overlap_regularizer: str = "truncate",
+              overlap_repair: str = "none", pencil_angle: float | None = None,
+              energy_shift: float = 0.0, energy_scale: float = 1.0,
+              pole_tolerance: float = 1e-10) -> SubspaceResult:
         """Thresholded GEP on the measured matrices.
 
         The result reports the same conditioning metrics as the exact path plus
@@ -364,12 +373,42 @@ class SharedMeasurement:
         a rank decision taken on noisy data; the ridge replaces it with a
         continuous one, at the cost of solving a perturbed metric.  It has no
         effect without ``calibrate_overlap``.
+
+        ``overlap_repair='nearest_correlation'`` repairs the normalized live
+        overlap block before thresholding and restores its measured diagonal.
+        It is experimental, with no variational or coverage guarantee. It
+        cannot yet be combined with shot-calibrated radii, whose derivation
+        does not include the nonlinear repair. For uncertainty, use the full
+        grouped bootstrap with ``result=point``.
+
+        ``pencil_angle`` opts into fixed-angle rotated thresholding, in radians,
+        after any repair. ``energy_shift`` and positive ``energy_scale`` define
+        the dimensionless Hamiltonian. Choose these controls independently of
+        evaluation data. The inverse map restores physical energies and the
+        unrotated coefficient metric. Invalid rotated metrics, poles, and
+        shot-calibrated combinations fail explicitly. Bootstrap reuses the
+        recorded fixed policy; data-selected angles are not implemented.
         """
-        from ..subspace.linalg import solve_projected
+        from ..subspace.linalg import canonical_eigh, normalize_overlap, solve_projected
 
         if overlap_regularizer not in ("truncate", "ridge"):
             raise ValueError("overlap_regularizer must be 'truncate' or 'ridge'")
+        if overlap_repair not in ("none", "nearest_correlation"):
+            raise ValueError("overlap_repair must be 'none' or 'nearest_correlation'")
+        if overlap_repair != "none" and calibrate_overlap:
+            raise ValueError("nearest-correlation repair cannot use shot-calibrated radii")
+        if pencil_angle is not None and calibrate_overlap:
+            raise ValueError("pencil rotation cannot use shot-calibrated radii")
         S, Hm = self.matrices(cache)
+        repair = None
+        measured_values = None
+        physical_values = None
+        if overlap_repair != "none" or pencil_angle is not None:
+            measured_values = canonical_eigh(normalize_overlap(S, norm_floor=norm_floor).matrix)[0]
+        if overlap_repair == "nearest_correlation":
+            from ..subspace.pencil import repair_overlap
+            S, repair = repair_overlap(S, norm_floor=norm_floor)
+            physical_values = canonical_eigh(normalize_overlap(S, norm_floor=norm_floor).matrix)[0]
         calibration = None
         noise_floor: float | tuple[float, ...] = 0.0
         ridge: float | tuple[float, ...] = 0.0
@@ -400,14 +439,60 @@ class SharedMeasurement:
                                     else "truncate"),
             "overlap_calibration": calibration,
         })
-        return solve_projected(S, Hm,
-                               [self.bank.generator(i).label for i in self.indices],
-                               tau_s=tau_s, rel_tau=rel_tau,
-                               max_condition=max_condition,
-                               overlap_noise_floor=noise_floor,
-                               overlap_ridge=ridge,
-                               norm_floor=norm_floor,
-                               resources=resources).with_bank(self.bank, self.indices)
+        if repair is not None:
+            resources.update({"overlap_repair": overlap_repair,
+                              "overlap_repair_diagnostics": repair})
+        labels = [self.bank.generator(i).label for i in self.indices]
+        if pencil_angle is None:
+            result = solve_projected(S, Hm, labels, tau_s=tau_s, rel_tau=rel_tau,
+                                     max_condition=max_condition,
+                                     overlap_noise_floor=noise_floor, overlap_ridge=ridge,
+                                     norm_floor=norm_floor, resources=resources)
+        else:
+            from ..subspace.pencil import solve_rotated
+            result = solve_rotated(S, Hm, labels, angle=pencil_angle,
+                                   energy_shift=energy_shift, energy_scale=energy_scale,
+                                   pole_tolerance=pole_tolerance, tau_s=tau_s, rel_tau=rel_tau,
+                                   max_condition=max_condition,
+                                   norm_floor=norm_floor, resources=resources)
+            result.resources["rotated_overlap_eigenvalues"] = result.overlap_eigenvalues
+            assert measured_values is not None
+            result.resources["physical_overlap_eigenvalues"] = tuple(float(v) for v in (
+                physical_values if physical_values is not None else measured_values)[::-1])
+        result = result.with_bank(self.bank, self.indices)
+        if measured_values is not None:
+            # Keep the legacy measurement diagnostics about the measurement.
+            # result.overlap_eigenvalues still describes the solved metric.
+            if physical_values is not None:
+                result.resources.update({
+                    "repaired_overlap_eigenvalue_min": float(physical_values[0]),
+                    "repaired_overlap_eigenvalue_max": float(physical_values[-1]),
+                    "repaired_overlap_negative_modes": int((physical_values <
+                        -1e-12 * max(float(physical_values[-1]), 1.0)).sum()),
+                    "repaired_overlap_eigenvalues": tuple(float(v) for v in physical_values[::-1]),
+                })
+            largest = float(measured_values[-1])
+            result.resources.update({
+                "measured_overlap_eigenvalues": tuple(float(v) for v in measured_values[::-1]),
+                "overlap_eigenvalue_min": float(measured_values[0]),
+                "overlap_eigenvalue_max": largest,
+                "overlap_negative_modes": int(
+                    (measured_values < -1e-12 * max(largest, 1.0)).sum()),
+            })
+        rotation = result.resources.get("pencil_rotation") if pencil_angle is not None else None
+        return replace(result, measurement_fingerprint=grouped_cache_fingerprint(cache),
+                       estimator_parameters={
+            "tau_s": tau_s, "rel_tau": rel_tau, "max_condition": max_condition,
+            "norm_floor": norm_floor, "calibrate_overlap": calibrate_overlap,
+            "overlap_delta": overlap_delta, "overlap_bound": overlap_bound,
+            "overlap_method": overlap_method, "overlap_strategy": overlap_strategy,
+            "overlap_policy": overlap_policy, "overlap_safety": overlap_safety,
+            "overlap_regularizer": overlap_regularizer, "overlap_repair": overlap_repair,
+            "pencil_angle": rotation["angle"] if rotation is not None else None,
+            "energy_shift": rotation["energy_shift"] if rotation is not None else energy_shift,
+            "energy_scale": rotation["energy_scale"] if rotation is not None else energy_scale,
+            "pole_tolerance": rotation["pole_tolerance"] if rotation is not None else pole_tolerance,
+        })
 
     def solve_selected_rank(self, cache: GroupedWordCache, *, gamma: float = 2.0,
                             tau_s: float = DEFAULT_TAU_S, rel_tau: float = 0.0,

@@ -19,6 +19,11 @@ one CI gate registry, with all deterministic checks on every PR, affected
 restart replay and weekly verification. Legacy sampled instruments remain
 manual-only under their frozen reporting contracts. Historical scientific runners and evidence remain unchanged.
 
+The [pencil-estimator review and fixed-policy ladder](PENCIL_ESTIMATORS.md)
+adds opt-in diagonal-preserving overlap repair, fixed-angle rotation with
+physical-energy restoration and joint-bootstrap policy binding, and a separate
+matrix-only PRD replay tool. It carries no interval-coverage or accuracy-improvement claim.
+
 The [preregistered noise-aware selection experiment](NOISE_AWARE_SELECTION.md)
 closed negative on its equal-shot held-out criterion. An independent H4 audit
 checks the published energy trajectory and Pauli support counts.
