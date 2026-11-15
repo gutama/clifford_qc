@@ -19,9 +19,10 @@ these corrections:
 1. **Normalize before correlation projection.** The generator images are not
    generally normalized. `S_ii = <A_i† A_i>` can differ from one. Setting the
    raw diagonal to one changes the pencil even without noise. Preserve the
-   measured nonnegative diagonal, project the normalized live block, then
-   undo normalization. A measured negative norm needs an explicit failure or
-   a separately justified model; it cannot be preserved by a PSD repair.
+   measured diagonal, project the normalized live block, then undo
+   normalization. Non-positive and annihilated rows follow the canonical
+   solver's dead-row rule. A negative measured diagonal is kept for
+   diagnostics, so only the live block is asserted to be PSD.
 2. **Reuse the existing target-aware machinery.**
    [Ritz functionals](../../clifford_qc/measurement/functionals.py),
    `variance_optimal_group_plan`, and
@@ -75,19 +76,31 @@ constitute a full audit of the attachment's literature or service pricing.
 
 [repair_overlap](../../clifford_qc/subspace/pencil.py) implements Higham's
 alternating projections with Dykstra's correction, extended to complex
-Hermitian matrices. For `D = diag(sqrt(S_ii))` on live rows, it minimizes the
+Hermitian matrices, plus a certified rank-one shortcut. For
+`D = diag(sqrt(S_ii))` on live rows, it minimizes the
 Frobenius distance to `C = D^-1 S D^-1` subject to PSD and unit diagonal,
 then restores `D`. Thus its objective is the **normalized** Frobenius distance,
 not the raw Frobenius distance or a covariance-weighted likelihood. The
 measured diagonal is preserved; its statistical uncertainty is not repaired.
 
-The same norm floor as the canonical solver identifies inactive rows. Those
-rows are decoupled while retaining their nonnegative diagonals. Nonfinite or
-non-Hermitian input, negative diagonals, and nonconvergence raise explicit
-errors. A final PSD projection and diagonal congruence remove the numerical
+`normalize_overlap` supplies the live set and scaling for the numerical solver,
+repair, and shot calibration. Inactive rows are decoupled while retaining their
+measured diagonals, including negative values. Nonfinite or non-Hermitian input
+and nonconvergence raise explicit errors. A final PSD projection and diagonal
+congruence remove the numerical
 feasibility defect without adding a ridge. Diagnostics report iterations,
 normalized minimum eigenvalues, and correction sizes. No new dependency or
 top-level public export is introduced.
+
+Some severely misnormalized matrices have a rank-one optimum for which
+alternating projections converge slowly. A candidate `X = zz†`, `|z_i| = 1`,
+is accepted only if its dual slack satisfies the KKT stationarity, positivity,
+and complementarity conditions within tolerance and scale-aware roundoff.
+These are sufficient for the convex nearest-correlation objective: for any
+other feasible `Y`, the objective difference is
+`0.5*||Y-X||_F² + Tr(ZY) >= 0` when `ZX = 0`.
+The shortcut introduces no new positive-norm cutoff. Other inputs still use
+the bounded alternating-projection iteration and retain explicit failures.
 
 Use the opt-in measured path:
 
@@ -96,19 +109,34 @@ from clifford_qc.subspace.uncertainty import bootstrap_ritz
 
 solver_kwargs = {"overlap_repair": "nearest_correlation", "tau_s": 1e-8}
 result = shared.solve(cache, **solver_kwargs)
-interval = bootstrap_ritz(shared, cache, replicates=200, seed=17,
-                          solver_kwargs=solver_kwargs)
+interval = bootstrap_ritz(shared, cache, result=result, replicates=200, seed=17)
 ```
 
 This reuses the cache without acquiring shots. Each bootstrap draw resamples
-whole group histograms and reruns the repair and solve. A failed replica
+whole group histograms and reruns the repair and solve. The point result stores
+the full measured solver policy and a joint-outcome fingerprint. Bootstrap
+infers that policy, rejects conflicting kwargs or different outcomes, and
+returns the point energy as its estimate. Legacy calls without `result` still
+bootstrap their explicitly supplied/default policy; they are not bound to a
+separate point result. A failed replica
 raises instead of being silently discarded. The interval remains heuristic;
 neither the example cutoff nor the nominal confidence level is a calibration
 claim. The unrepaired delta method rejects repaired results because it omits
-the repair's derivative. Combining repair with shot-calibrated radii also
+the repair's derivative. Low-level numerical results without measured-estimator
+provenance are rejected by both point-bound uncertainty paths, including results
+assembled manually from `repair_overlap` and `solve_projected`. Combining repair
+with shot-calibrated radii also
 fails explicitly until that combination has a validated noise model.
 
-The default measured solver and the frozen PRD producer are unchanged.
+With repair enabled, legacy measurement diagnostics retain the measured
+normalized spectrum's minimum, maximum, and negative-mode count. Explicit
+`measured_overlap_eigenvalues` and `repaired_overlap_eigenvalues` resources and
+`repaired_overlap_*` metrics keep the two spectra distinct.
+`SubspaceResult.overlap_eigenvalues` continues to describe the solved metric.
+
+The default numerical policy and the PRD sampling policy are unchanged. The
+PRD producer gains a shared paired-real matrix decoder next to its encoder;
+no historical record is rewritten.
 
 ## Matrix-only replay
 
@@ -123,12 +151,16 @@ python -m benchmarks.replay_pencil_estimators \
 The tool compares the original measured matrices with and without repair at
 the **same fixed numerical thresholds**. It does not reproduce the archived
 shot-calibrated policies. It verifies campaign and frozen-basis digests, task
-identity, and physical-shot accounting; rejects duplicate cells; hashes
-source bytes and implementation files; and marks incomplete campaigns.
+identity, and physical-shot accounting; rejects duplicate cells and
+non-Hermitian input before estimator accounting; hashes source bytes and the
+actually imported implementation files, including both PRD producer modules;
+and marks incomplete campaigns. The direct script entry point also works.
 Existing output files cannot be overwritten.
 
 Reports include median and 90th-percentile absolute errors, violation rates,
-retained rank, conditioning, and repair diagnostics. Failed solves remain in
+retained rank, conditioning, and repair diagnostics. The minimum retained
+overlap eigenvalue comes directly from the solver's actual per-mode/ridged
+retention decision. Failed solves remain in
 the census and count against the all-cell chemical-accuracy rate; conditional
 statistics state their successful-solve denominator. Ground and exact packet
 energies are read only for assessment, never supplied to the estimator.
@@ -141,6 +173,11 @@ The new tests check analytic two-direction complex optima, an independently
 derived three-direction optimum, exact Gram fixed points, covariance under
 generator rescaling and rephasing, inactive rows, nonconvergence, shot
 accounting, joint bootstrap execution, and replay provenance/failure handling.
+Review regressions add shot-noisy annihilating generators, certified nearly-dead
+live-row projections, point-policy and joint-outcome binding, rejection of
+unknown-provenance uncertainty inputs, measured/repaired diagnostics,
+non-Hermitian record rejection, actual per-mode/ridged retention, imported
+producer hashes, direct script invocation, and NumPy integer controls.
 Existing measured-subspace, response, PRD, and compatibility tests are also
 run. There is no new empirical coverage or matched-error improvement claim.
 

@@ -14,11 +14,16 @@ import hashlib
 import json
 from pathlib import Path
 import platform
+import sys
 
 import numpy as np
 
+sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
+
 from benchmarks import run_prd_case_finite_shot as finite
 from benchmarks import run_prd_case_paper_suite as suite
+from clifford_qc import selection
+from clifford_qc.subspace import linalg, pencil
 from clifford_qc.subspace.linalg import solve_projected
 from clifford_qc.subspace.pencil import repair_overlap
 
@@ -26,13 +31,14 @@ from clifford_qc.subspace.pencil import repair_overlap
 SCHEMA = "clifford_qc.pencil_estimator_replay.v1"
 
 
-def _decode_matrix(value, name: str) -> np.ndarray:
-    pairs = np.asarray(value, dtype=float)
-    if (pairs.ndim != 3 or pairs.shape[0] == 0 or
-            pairs.shape[0] != pairs.shape[1] or pairs.shape[2] != 2 or
-            not np.all(np.isfinite(pairs))):
-        raise ValueError(f"{name} must be a finite square array of [real, imaginary] pairs")
-    return pairs[:, :, 0] + 1j * pairs[:, :, 1]
+def implementation_sources() -> dict[str, Path]:
+    """Hash the modules actually imported, including campaign acceptance policy."""
+    sources = {"benchmarks/replay_pencil_estimators.py": Path(__file__).resolve()}
+    for module in (finite, suite, linalg, pencil, selection):
+        if module.__file__ is None:
+            raise ValueError(f"implementation source is unavailable: {module.__name__}")
+        sources[module.__name__.replace(".", "/") + ".py"] = Path(module.__file__).resolve()
+    return sources
 
 
 def evaluate_record(record: dict, solver_kwargs: dict, *, violation_tolerance: float,
@@ -40,8 +46,8 @@ def evaluate_record(record: dict, solver_kwargs: dict, *, violation_tolerance: f
     """Evaluate two predeclared arms; truth is used only after each solve."""
     if record.get("schema") != finite.SCHEMA:
         raise ValueError("expected a PRD finite-shot seed record")
-    S = _decode_matrix(record["S_hat"], "S_hat")
-    H = _decode_matrix(record["H_hat"], "H_hat")
+    S = finite.decode_complex_matrix(record["S_hat"], name="S_hat")
+    H = finite.decode_complex_matrix(record["H_hat"], name="H_hat")
     if S.shape != H.shape or S.shape[0] != record["M"]:
         raise ValueError("matrix dimensions disagree with the recorded basis size")
     truth = float(record["exact_energy"])
@@ -63,7 +69,6 @@ def evaluate_record(record: dict, solver_kwargs: dict, *, violation_tolerance: f
             arms.append({"estimator": estimator, "status": "failed_solve",
                          "error_type": type(error).__name__, "error": str(error)})
             continue
-        threshold = result.resources["overlap_threshold"]
         arms.append({
             "estimator": estimator, "status": "ok", "energy": energy,
             "energy_error_mHa": (energy - truth) * 1000.0,
@@ -73,8 +78,8 @@ def evaluate_record(record: dict, solver_kwargs: dict, *, violation_tolerance: f
             "chemical_accuracy": abs(energy - truth) * 1000.0 <= chemical_accuracy_mha,
             "retained_rank": result.effective_rank,
             "condition_number": result.condition_number,
-            "smallest_retained_overlap_eigenvalue": min(
-                value for value in result.overlap_eigenvalues if value > threshold),
+            "smallest_retained_overlap_eigenvalue":
+                result.resources["smallest_retained_overlap_eigenvalue"],
             "repair": diagnostics,
         })
     return {"task": record["task"], "physical_shots": record["physical_shots"],
@@ -149,10 +154,7 @@ def replay_records(paths, manifest: dict, frozen_bases: dict) -> dict:
             chemical_accuracy_mha=float(summary["chemical_accuracy_mHa"])))
         sources.append({"task_id": key, "path": str(path),
                         "sha256": hashlib.sha256(payload).hexdigest()})
-    root = Path(__file__).resolve().parents[1]
-    implementations = ("benchmarks/replay_pencil_estimators.py",
-                       "clifford_qc/subspace/pencil.py", "clifford_qc/subspace/linalg.py",
-                       "clifford_qc/selection.py")
+    implementations = implementation_sources()
     return {
         "schema": SCHEMA, "evidence": "exploratory_matrix_replay",
         "config_sha256": config_hash, "basis_sha256_by_system": basis_hashes,
@@ -167,8 +169,9 @@ def replay_records(paths, manifest: dict, frozen_bases: dict) -> dict:
             "Archived shot-calibrated policies remain separate baselines.",
         "environment": {"python": platform.python_version(), "numpy": np.__version__},
         "implementation_sha256": {
-            name: hashlib.sha256((root / name).read_bytes()).hexdigest()
-            for name in implementations},
+            name: hashlib.sha256(path.read_bytes()).hexdigest()
+            for name, path in implementations.items()},
+        "implementation_paths": {name: str(path) for name, path in implementations.items()},
         "sources": sources, "cells": cells, "summary": summarize(cells),
     }
 

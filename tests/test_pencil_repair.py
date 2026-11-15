@@ -3,11 +3,11 @@
 import numpy as np
 import pytest
 
-from clifford_qc import X, Y, Z, ket_density
+from clifford_qc import I, X, Y, Z, ket_density
 from clifford_qc.backends.finite_shot import FiniteShotBackend
 from clifford_qc.measurement.session import SharedMeasurement
 from clifford_qc.subspace import Generator, MatrixElementBank, identity_generator
-from clifford_qc.subspace.linalg import solve_projected
+from clifford_qc.subspace.linalg import normalize_overlap, solve_projected
 from clifford_qc.subspace.pencil import repair_overlap
 from clifford_qc.subspace.uncertainty import bootstrap_ritz, ritz_uncertainty
 
@@ -81,7 +81,6 @@ def test_zero_and_annihilated_rows_are_decoupled_without_inventing_norms():
     ([], "nonempty square"), ([[1, 0]], "nonempty square"),
     ([[1, np.nan], [np.nan, 1]], "finite"),
     ([[1, 1j], [1j, 1]], "Hermitian"),
-    ([[1, 0], [0, -0.1]], "negative diagonal"),
     (np.zeros((2, 2)), "annihilates"),
 ])
 def test_invalid_overlap_is_rejected(S, message):
@@ -93,6 +92,7 @@ def test_invalid_overlap_is_rejected(S, message):
     {"tolerance": 0}, {"tolerance": np.nan}, {"tolerance": 1},
     {"norm_floor": -1}, {"norm_floor": np.inf},
     {"max_iterations": 0}, {"max_iterations": 1.5}, {"max_iterations": True},
+    {"max_iterations": np.bool_(True)},
 ])
 def test_invalid_iteration_controls_are_rejected(kwargs):
     with pytest.raises(ValueError):
@@ -101,7 +101,58 @@ def test_invalid_iteration_controls_are_rejected(kwargs):
 
 def test_nonconvergence_is_a_reportable_failure():
     with pytest.raises(np.linalg.LinAlgError, match="did not converge"):
-        repair_overlap([[1, 2], [2, 1]], max_iterations=1)
+        repair_overlap([[1, 1, 0], [1, 1, 1], [0, 1, 1]], max_iterations=1)
+
+
+def test_negative_measured_norms_follow_the_solver_live_mask():
+    S = np.array([[1, 0.3, 0.4], [0.3, -0.1, 0.2], [0.4, 0.2, 1]])
+    H = np.diag([-1.0, 100.0, 1.0])
+    repaired, info = repair_overlap(S)
+    frame = normalize_overlap(S)
+    assert info["live_indices"] == tuple(frame.indices) == (0, 2)
+    assert info["nonpositive_diagonal_indices"] == (1,)
+    assert repaired[1, 1] == S[1, 1]
+    assert np.count_nonzero(repaired[1]) == 1
+    np.testing.assert_allclose(solve_projected(repaired, H).energies,
+                               solve_projected(S, H).energies)
+
+
+@pytest.mark.parametrize("s", [1e-8, 1e-10, 1e-14, 1e-18, 1e-24])
+def test_nearly_dead_live_row_has_a_certified_projection_without_a_new_cut(s):
+    S = np.array([[1, .3, 1e-3], [.3, 1, 2e-3], [1e-3, 2e-3, s]])
+    repaired, info = repair_overlap(S, max_iterations=np.int64(1000))
+    assert info["live_indices"] == (0, 1, 2)
+    assert info["rank_one_kkt_certified"]
+    scale = np.sqrt(S.diagonal())
+    np.testing.assert_allclose((repaired / scale[:, None]) / scale[None, :], np.ones((3, 3)),
+                               atol=1e-10)
+    np.testing.assert_array_equal(repaired.diagonal(), S.diagonal())
+    result = solve_projected(repaired, np.diag([-1.0, 1.0, 0.0]))
+    assert np.isfinite(result.ground_energy)
+
+
+def test_shot_noise_on_an_annihilating_generator_does_not_abort_repair_or_bootstrap():
+    theta = .31
+    axis = np.sin(2 * theta) * X(1, 0) + np.cos(2 * theta) * Z(1, 0)
+    rho = .5 * (I(1) + axis)
+    annihilator = .5 * (I(1) - axis)
+    bank = MatrixElementBank(rho, -Z(1, 0) - .3 * X(1, 0),
+                             [identity_generator(1), Generator("annihilator", annihilator)])
+    shared = SharedMeasurement(bank)
+    negative_cache = None
+    for seed in range(40):
+        cache = shared.measure(FiniteShotBackend(seed=seed), 200)
+        baseline = shared.solve(cache)
+        point = shared.solve(cache, overlap_repair="nearest_correlation")
+        if shared.matrices(cache)[0][1, 1].real < 0:
+            negative_cache = cache
+            assert point.resources["overlap_repair_diagnostics"]["nonpositive_diagonal_indices"] == (1,)
+            assert point.ground_energy == pytest.approx(baseline.ground_energy)
+    assert negative_cache is not None
+    point = shared.solve(negative_cache, overlap_repair="nearest_correlation")
+    interval = bootstrap_ritz(shared, negative_cache, result=point, replicates=20, seed=19)
+    assert np.isfinite([interval.lower, interval.upper]).all()
+    assert interval.estimate == point.ground_energy
 
 
 @pytest.fixture
@@ -142,10 +193,14 @@ def test_nonlinear_repair_cannot_silently_reuse_the_unrepaired_delta_method(meas
 
 def test_bootstrap_reruns_the_repair_on_joint_histograms(measured, monkeypatch):
     shared, cache = measured
+    shared = SharedMeasurement(shared.bank, pooling="shots")
+    cache = shared.measure(FiniteShotBackend(seed=23), 250)
     original_solve = shared.solve
+    point = shared.solve(cache, overlap_repair="nearest_correlation", tau_s=1e-4)
     results = []
 
     def track(replica, **kwargs):
+        assert replica.pooling == cache.pooling == "shots"
         result = original_solve(replica, **kwargs)
         results.append(result)
         return result
@@ -153,14 +208,59 @@ def test_bootstrap_reruns_the_repair_on_joint_histograms(measured, monkeypatch):
     monkeypatch.setattr(shared, "solve", track)
     shots = cache.total_shots
     interval = bootstrap_ritz(
-        shared, cache, replicates=12, seed=17,
-        solver_kwargs={"overlap_repair": "nearest_correlation", "tau_s": 1e-4})
+        shared, cache, replicates=12, seed=17, result=point)
     assert len(results) == 12
     assert all(r.resources["shots"] == shots for r in results)
     assert all(r.resources["overlap_repair"] == "nearest_correlation" for r in results)
     assert cache.total_shots == shots
     assert interval.evidence == "heuristic" and not interval.certified
+    assert interval.estimate == point.ground_energy
     assert np.isfinite([interval.lower, interval.upper, interval.std_error]).all()
+
+
+@pytest.mark.parametrize("kwargs", [
+    {"overlap_repair": "none"}, {"tau_s": .01}, {"unknown": True},
+])
+def test_bootstrap_rejects_a_policy_that_conflicts_with_its_point_result(measured, kwargs):
+    shared, cache = measured
+    point = shared.solve(cache, overlap_repair="nearest_correlation", tau_s=1e-4)
+    with pytest.raises(ValueError, match="conflict with the point estimator"):
+        bootstrap_ritz(shared, cache, result=point, solver_kwargs=kwargs, replicates=2)
+
+
+def test_uncertainty_rejects_low_level_repaired_results_without_estimator_provenance(measured):
+    shared, cache = measured
+    S, H = shared.matrices(cache)
+    repaired, _ = repair_overlap(S)
+    point = solve_projected(repaired, H).with_bank(shared.bank, shared.indices)
+    with pytest.raises(ValueError, match="no measured estimator provenance"):
+        ritz_uncertainty(shared, cache, point)
+    with pytest.raises(ValueError, match="no measured estimator provenance"):
+        bootstrap_ritz(shared, cache, result=point, replicates=2)
+
+
+def test_bound_uncertainty_rejects_different_outcomes_at_the_same_shot_budget(measured):
+    shared, cache = measured
+    point = shared.solve(cache)
+    other = shared.measure(FiniteShotBackend(seed=24), 250)
+    assert other.total_shots == cache.total_shots
+    with pytest.raises(ValueError, match="different joint outcomes"):
+        bootstrap_ritz(shared, other, result=point, replicates=2)
+    with pytest.raises(ValueError, match="different joint outcomes"):
+        ritz_uncertainty(shared, other, point)
+
+
+def test_repaired_results_keep_measured_and_solved_overlap_diagnostics_separate(measured):
+    shared, cache = measured
+    baseline = shared.solve(cache)
+    point = shared.solve(cache, overlap_repair="nearest_correlation")
+    assert point.resources["overlap_negative_modes"] == baseline.resources["overlap_negative_modes"] > 0
+    assert point.resources["overlap_eigenvalue_min"] == pytest.approx(
+        baseline.resources["overlap_eigenvalue_min"])
+    assert point.resources["measured_overlap_eigenvalues"] == pytest.approx(baseline.overlap_eigenvalues)
+    assert point.resources["repaired_overlap_negative_modes"] == 0
+    assert point.resources["repaired_overlap_eigenvalues"] == point.overlap_eigenvalues
+    assert point.resources["repaired_overlap_eigenvalue_min"] >= -1e-12
 
 
 @pytest.mark.parametrize("kwargs, message", [

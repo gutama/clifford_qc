@@ -3,6 +3,8 @@
 from __future__ import annotations
 
 import math
+import hashlib
+import json
 from dataclasses import replace
 from typing import TYPE_CHECKING, Any, Sequence, cast
 
@@ -25,6 +27,18 @@ DEFAULT_MAX_CONDITION = 1e12
 DEFAULT_NORM_FLOOR = 1e-14
 
 HEURISTIC = EvidenceLevel.HEURISTIC.value
+
+
+def grouped_cache_fingerprint(cache: GroupedWordCache) -> str:
+    """Bind an uncertainty point to the joint outcomes, including readout maps."""
+    groups = [{"support": group["support"], "basis": group["basis"],
+               "shots": group["shots"], "word_codes": group["word_codes"],
+               "hist": sorted(group["hist"].items()),
+               "readouts": sorted(group["readouts"].items())}
+              for group in cache.group_states()]
+    payload = json.dumps([int(cache.n), cache.pooling, groups], sort_keys=True, separators=(",", ":"))
+    return hashlib.sha256(payload.encode()).hexdigest()
+
 
 def select_scored_rank(solved):
     """The scored rank a confidence sweep returns: least score, least rank.
@@ -229,7 +243,7 @@ class SharedMeasurement:
         Bernstein semantics inapplicable unless an independent frozen batch is
         used.
         """
-        from ..subspace.linalg import canonical_eigh
+        from ..subspace.linalg import canonical_eigh, normalize_overlap
 
         if safety <= 0.0 or not math.isfinite(safety):
             raise ValueError("overlap safety factor must be positive and finite")
@@ -239,17 +253,9 @@ class SharedMeasurement:
             raise ValueError("overlap policy must be 'per_mode' or 'uniform'")
         overlap = self.matrices(cache)[0] if overlap is None else np.asarray(overlap)
 
-        # Mirror solve_projected: drop annihilated directions, normalize the
-        # survivors by their measured norms.
-        norms = np.sqrt(np.clip(overlap.diagonal().real, 0.0, None))
-        live = norms > norm_floor
-        if not live.any():
-            raise ValueError("every generator annihilates the reference state")
-        scaling = np.where(live, norms, 1.0)
-        index = np.flatnonzero(live)
-        normalized = ((overlap / scaling[:, None]) / scaling[None, :])[
-            np.ix_(index, index)]
-        live_size = int(live.sum())
+        frame = normalize_overlap(overlap, norm_floor=norm_floor)
+        scaling, index, normalized = frame.scaling, frame.indices, frame.matrix
+        live_size = int(frame.live.sum())
 
         if strategy == "entrywise":
             stochastic = sum(
@@ -373,7 +379,7 @@ class SharedMeasurement:
         does not include the nonlinear repair. For uncertainty, use the full
         grouped bootstrap with the same ``solver_kwargs``.
         """
-        from ..subspace.linalg import solve_projected
+        from ..subspace.linalg import canonical_eigh, normalize_overlap, solve_projected
 
         if overlap_regularizer not in ("truncate", "ridge"):
             raise ValueError("overlap_regularizer must be 'truncate' or 'ridge'")
@@ -383,8 +389,10 @@ class SharedMeasurement:
             raise ValueError("nearest-correlation repair cannot use shot-calibrated radii")
         S, Hm = self.matrices(cache)
         repair = None
+        measured_values = None
         if overlap_repair == "nearest_correlation":
             from ..subspace.pencil import repair_overlap
+            measured_values = canonical_eigh(normalize_overlap(S, norm_floor=norm_floor).matrix)[0]
             S, repair = repair_overlap(S, norm_floor=norm_floor)
         calibration = None
         noise_floor: float | tuple[float, ...] = 0.0
@@ -419,14 +427,37 @@ class SharedMeasurement:
         if repair is not None:
             resources.update({"overlap_repair": overlap_repair,
                               "overlap_repair_diagnostics": repair})
-        return solve_projected(S, Hm,
-                               [self.bank.generator(i).label for i in self.indices],
-                               tau_s=tau_s, rel_tau=rel_tau,
-                               max_condition=max_condition,
-                               overlap_noise_floor=noise_floor,
-                               overlap_ridge=ridge,
-                               norm_floor=norm_floor,
-                               resources=resources).with_bank(self.bank, self.indices)
+        result = solve_projected(S, Hm,
+                                 [self.bank.generator(i).label for i in self.indices],
+                                 tau_s=tau_s, rel_tau=rel_tau,
+                                 max_condition=max_condition,
+                                 overlap_noise_floor=noise_floor,
+                                 overlap_ridge=ridge,
+                                 norm_floor=norm_floor,
+                                 resources=resources).with_bank(self.bank, self.indices)
+        if measured_values is not None:
+            # Keep the legacy measurement diagnostics about the measurement.
+            # result.overlap_eigenvalues still describes the solved metric.
+            for key in ("overlap_eigenvalue_min", "overlap_eigenvalue_max", "overlap_negative_modes"):
+                result.resources[f"repaired_{key}"] = result.resources[key]
+            largest = float(measured_values[-1])
+            result.resources.update({
+                "measured_overlap_eigenvalues": tuple(float(v) for v in measured_values[::-1]),
+                "repaired_overlap_eigenvalues": result.overlap_eigenvalues,
+                "overlap_eigenvalue_min": float(measured_values[0]),
+                "overlap_eigenvalue_max": largest,
+                "overlap_negative_modes": int(
+                    (measured_values < -1e-12 * max(largest, 1.0)).sum()),
+            })
+        return replace(result, measurement_fingerprint=grouped_cache_fingerprint(cache),
+                       estimator_parameters={
+            "tau_s": tau_s, "rel_tau": rel_tau, "max_condition": max_condition,
+            "norm_floor": norm_floor, "calibrate_overlap": calibrate_overlap,
+            "overlap_delta": overlap_delta, "overlap_bound": overlap_bound,
+            "overlap_method": overlap_method, "overlap_strategy": overlap_strategy,
+            "overlap_policy": overlap_policy, "overlap_safety": overlap_safety,
+            "overlap_regularizer": overlap_regularizer, "overlap_repair": overlap_repair,
+        })
 
     def solve_selected_rank(self, cache: GroupedWordCache, *, gamma: float = 2.0,
                             tau_s: float = DEFAULT_TAU_S, rel_tau: float = 0.0,

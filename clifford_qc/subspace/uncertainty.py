@@ -10,7 +10,7 @@ import numpy as np
 from ..backends.protocol import GroupSample, MeasurementBatch
 from ..measurement.cache import GroupedWordCache
 from ..measurement.functionals import ritz_functional
-from ..measurement.session import SharedMeasurement
+from ..measurement.session import SharedMeasurement, grouped_cache_fingerprint
 from ..selection import EvidenceLevel
 from .linalg import SubspaceResult
 
@@ -35,6 +35,21 @@ class Interval:
         return self.evidence == FINITE_SAMPLE
 
 
+def _point_estimator(shared: SharedMeasurement, cache: GroupedWordCache,
+                     result: SubspaceResult) -> dict:
+    if result.estimator_parameters is None:
+        raise ValueError("uncertainty requires a point result from SharedMeasurement.solve; "
+                         "low-level results have no measured estimator provenance")
+    if result.bank is not shared.bank or result.indices != shared.indices:
+        raise ValueError("point result belongs to a different measurement session")
+    if (result.resources.get("shots") != cache.total_shots or
+            result.resources.get("circuits") != cache.total_circuits):
+        raise ValueError("point result and cache have different measurement budgets")
+    if result.measurement_fingerprint != grouped_cache_fingerprint(cache):
+        raise ValueError("point result and cache contain different joint outcomes")
+    return dict(result.estimator_parameters)
+
+
 def ritz_uncertainty(shared: SharedMeasurement, cache: GroupedWordCache,
                      result: SubspaceResult, *, root: int = 0, delta: float = 0.05,
                      family: int = 1) -> Interval:
@@ -46,9 +61,10 @@ def ritz_uncertainty(shared: SharedMeasurement, cache: GroupedWordCache,
     that the retained eigenspace itself moved with the data). It is a useful
     error bar and not a guarantee.
     """
-    if result.resources.get("overlap_repair", "none") != "none":
+    parameters = _point_estimator(shared, cache, result)
+    if parameters.get("overlap_repair", "none") != "none":
         raise ValueError("the delta method does not include nonlinear overlap repair; "
-                         "use bootstrap_ritz with matching solver_kwargs")
+                         "use bootstrap_ritz(shared, cache, result=result)")
     functional = ritz_functional(shared.bank, result.indices,
                                  result.coefficients[:, root], result.energies[root])
     variance = functional.variance(cache)
@@ -61,7 +77,8 @@ def ritz_uncertainty(shared: SharedMeasurement, cache: GroupedWordCache,
 
 def bootstrap_ritz(shared: SharedMeasurement, cache: GroupedWordCache, *,
                    root: int = 0, replicates: int = 200, seed: int = 0,
-                   delta: float = 0.05, solver_kwargs: dict | None = None) -> Interval:
+                   delta: float = 0.05, solver_kwargs: dict | None = None,
+                   result: SubspaceResult | None = None) -> Interval:
     """Grouped bootstrap on the Ritz value -- ``heuristic``, and the cross-check
     the delta method needs.
 
@@ -72,19 +89,28 @@ def bootstrap_ritz(shared: SharedMeasurement, cache: GroupedWordCache, *,
     the retained eigenspace itself. It captures nothing about coverage under a
     different true state, which is why it is heuristic.
 
-    ``solver_kwargs`` must match the point estimator, including any overlap
-    repair. A repair is rerun on every resampled matrix pencil. A failed
-    replica raises; it is never silently removed to narrow the interval.
+    With ``result``, infer the full solver policy from that measured point
+    result and reject conflicting ``solver_kwargs``. Its point energy is the
+    returned estimate. Without ``result``, the legacy API bootstraps only the
+    explicitly supplied/default policy; it is not bound to a separate point
+    estimate. A repair is rerun on every resampled pencil. A failed replica
+    raises; it is never silently removed to narrow the interval.
     """
     if replicates < 2:
         raise ValueError("replicates must be at least two")
     if not 0.0 < delta < 1.0:
         raise ValueError("delta must be in (0, 1)")
 
+    kwargs = dict(solver_kwargs or {})
+    if result is not None:
+        recorded = _point_estimator(shared, cache, result)
+        for key, value in kwargs.items():
+            if key not in recorded or value != recorded[key]:
+                raise ValueError(f"solver_kwargs conflict with the point estimator: {key}")
+        kwargs = recorded
     rng = np.random.default_rng(seed)
     states = cache.group_states()
     samples: list[float] = []
-    kwargs = solver_kwargs or {}
     for _ in range(replicates):
         groups = []
         for group in states:
@@ -98,14 +124,16 @@ def bootstrap_ritz(shared: SharedMeasurement, cache: GroupedWordCache, *,
                 shots=group["shots"], word_codes=group["word_codes"],
                 setting_key=group.get("setting_key"),
                 readouts=group.get("readouts", {})))
-        replica = shared.new_cache()
+        # The reconstruction policy is part of the estimator being resampled.
+        replica = GroupedWordCache(shared.n, pooling=cache.pooling)
         replica.add_batch(MeasurementBatch(n=shared.n, shots={}, plus_counts={},
                                            circuits=len(groups), groups=tuple(groups),
                                            state_key=cache.state_key))
         samples.append(shared.solve(replica, **kwargs).energies[root])
     values = np.array(samples)
     lower, upper = np.quantile(values, [delta / 2.0, 1.0 - delta / 2.0])
-    return Interval(estimate=float(np.mean(values)), lower=float(lower),
+    estimate = float(result.energies[root]) if result is not None else float(np.mean(values))
+    return Interval(estimate=estimate, lower=float(lower),
                     upper=float(upper), delta=delta, evidence=HEURISTIC,
                     std_error=float(np.std(values, ddof=1)) if replicates > 1 else None)
 

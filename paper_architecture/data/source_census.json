@@ -235,7 +235,7 @@
         "modules": 15
       },
       "measurement": {
-        "lines": 5480,
+        "lines": 5511,
         "modules": 17
       },
       "models": {
@@ -247,7 +247,7 @@
         "modules": 3
       },
       "subspace": {
-        "lines": 15649,
+        "lines": 15739,
         "modules": 47
       },
       "surface": {
@@ -255,9 +255,9 @@
         "modules": 1
       }
     },
-    "package_lines": 34420,
+    "package_lines": 34541,
     "package_modules": 127,
-    "test_lines": 45330,
+    "test_lines": 45493,
     "test_modules": 191
   }
 }

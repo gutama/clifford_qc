@@ -123,6 +123,19 @@ def _complex_matrix(matrix: np.ndarray):
             for row in np.asarray(matrix, dtype=complex)]
 
 
+def decode_complex_matrix(value, *, name: str = "matrix") -> np.ndarray:
+    """Decode the seed record's paired-real format and validate its pencil entry."""
+    pairs = np.asarray(value, dtype=float)
+    if (pairs.ndim != 3 or pairs.shape[0] == 0 or
+            pairs.shape[0] != pairs.shape[1] or pairs.shape[2] != 2 or
+            not np.all(np.isfinite(pairs))):
+        raise ValueError(f"{name} must be a finite square array of [real, imaginary] pairs")
+    matrix = pairs[:, :, 0] + 1j * pairs[:, :, 1]
+    if not np.allclose(matrix, matrix.conj().T, atol=1e-10, rtol=0.0):
+        raise ValueError(f"{name} must be Hermitian")
+    return matrix
+
+
 def _plan_shots(groups, plan) -> int:
     total = 0
     for group in groups:
