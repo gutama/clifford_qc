@@ -94,8 +94,8 @@ Reported gaps between well-engineered kernels and Python-object libraries are 1�
 
 **QuantumClifford.jl**: in-place multiplication of 1M-qubit Pauli operators takes 14 μs, versus 16 μs for Stim. The authors call the difference inconsequential and note QuantumClifford.jl is pure Julia. — [QuantumClifford.jl docs v0.8.9](https://docs.juliahub.com/QuantumClifford/BsGZO/0.8.9)
 
-**Local microbenchmark (this session, scratchpad only; not a library claim)**
-- Setup: Intel Xeon @ 2.10 GHz, 4 vCPUs, Python 3.13.18, NumPy 2.5.3, single-threaded NumPy. Random distinct words with complex Gaussian coefficients (not chemistry-structured). Every vectorised result matched `MV.__mul__` term-for-term. The vectorised kernel uses the repo's own phase formula: `codes_a[:,None] ^ codes_b[None,:]`, `np.bitwise_count` popcounts, then either a dense `np.bincount` over all 4^n codes or `np.unique` + `np.bincount`. Script: /tmp/claude-0/-home-user-clifford-qc/d48c2e9d-7273-52fc-8535-9900e920c354/scratchpad/bench_kernel.py
+**Local microbenchmark (this session; not a library claim)**
+- Setup: Intel Xeon @ 2.10 GHz, 4 vCPUs, Python 3.13.18, NumPy 2.5.3, single-threaded NumPy. Random distinct words with complex Gaussian coefficients (not chemistry-structured). Every vectorised result matched `MV.__mul__` term-for-term. The vectorised kernel uses the repo's own phase formula: `codes_a[:,None] ^ codes_b[None,:]`, `np.bitwise_count` popcounts, then either a dense `np.bincount` over all 4^n codes or `np.unique` + `np.bincount`. Script: [bench_kernel.py](bench_kernel.py) in this folder (copied from the session scratchpad)
 
 | n | t×t | output words | `MV*` cold cache | `MV*` warm cache | NumPy products | + dense bincount | + `np.unique` |
 |---|---|---|---|---|---|---|---|
