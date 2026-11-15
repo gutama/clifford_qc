@@ -26,15 +26,15 @@ if str(ROOT) not in sys.path:
 from benchmarks.experiment_artifacts import read_json, write_json
 
 
-def compare_recorded_values(expected, actual, original_compare):
-    """Isolate execution fingerprints on a copy; retain all other old checks."""
+def compare_recorded_values(expected, actual, original_compare, *, verified_additional_sources=()):
+    """Retain old value checks; callers must verify any added source bindings."""
     for record in (expected, actual):
         for row in record.get('rows', []):
             if ('plan_identity' in row and 'frozen_plan_identity' in row
                     and row['plan_identity'] != row['frozen_plan_identity']):
                 raise AssertionError('plan fingerprint aliases disagree')
     if 'worker_receipts' in expected or 'worker_receipts' in actual:
-        if set(expected['source_sha256']) != set(actual['source_sha256']):
+        if set(expected['source_sha256']) | set(verified_additional_sources) != set(actual['source_sha256']):
             raise AssertionError('execution source path sets differ')
         for record in (expected, actual):
             manifest = hashlib.sha256(json.dumps(record['source_sha256'], sort_keys=True).encode()).hexdigest()
@@ -129,14 +129,19 @@ def verify(module, checker, *, campaign, output):
                'exact_plan_bytes_claim': False, 'scientific_evidence_claim': False}
 
     def compare(expected, actual):
+        additional_sources = {}
         if 'source_sha256' in actual:
             verify_source_bindings(actual, module.ROOT)
-        drift = compare_recorded_values(expected, actual, original)
+            additional_sources = {path: digest for path, digest in actual['source_sha256'].items()
+                                  if path not in expected.get('source_sha256', {})}
+        drift = compare_recorded_values(expected, actual, original,
+                                        verified_additional_sources=additional_sources)
         plans = [row for row in drift if row['path'].endswith(('.plan_identity', '.frozen_plan_identity'))]
         provenance = [row for row in drift if row['path'].endswith('.source_manifest_sha256')]
         summary.update(status='recorded_values_verified', outcomes=len(actual['rows']),
                        exact_plan_fingerprints_match=not plans,
-                       original_strict_replay_passed=not drift,
+                       original_strict_replay_passed=not drift and not additional_sources,
+                       additional_execution_sources=additional_sources,
                        plan_fingerprint_drift_count=len(plans), plan_fingerprint_drift=plans,
                        execution_provenance_drift_count=len(provenance), execution_provenance_drift=provenance)
 

@@ -144,7 +144,10 @@ Cross-domain recorded replay keeps every originally declared source and adds
 new package modules to its current replay manifest. New-campaign execution
 still requires the complete source closure to be declared in advance. These
 changes preserve published observation bytes and distinguish current replay
-provenance from the original experiment's provenance.
+provenance from the original experiment's provenance. The recorded-value
+verifier accepts additional sources only after checking their raw Git bytes at
+the replay's execution commit, lists them in its maintenance receipt and still
+requires every originally recorded path and the original scientific comparisons.
 
 ## Fixed-angle rotation
 

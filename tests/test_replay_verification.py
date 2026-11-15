@@ -121,6 +121,72 @@ def test_changed_execution_source_path_set_cannot_be_excused():
         compare_recorded_values(expected, actual, compare_records)
 
 
+def test_explicit_source_additions_preserve_worker_manifest_and_scientific_checks():
+    from benchmarks.run_cross_domain_ratio import compare_records as compare
+    expected, actual = worker_record('a'*64), worker_record('b'*64)
+    expected['rows'] = [{'estimate': 1., 'observation_identity': 'original'}]
+    actual['rows'] = deepcopy(expected['rows'])
+    actual['source_sha256']['added.py'] = 'c'*64
+    actual['worker_receipts'][0]['source_manifest_sha256'] = hashlib.sha256(
+        json.dumps(actual['source_sha256'], sort_keys=True).encode()).hexdigest()
+    saved = deepcopy(actual)
+    assert len(compare_recorded_values(expected, actual, compare,
+                                      verified_additional_sources={'added.py'})) == 1
+    assert actual == saved
+    for field, value in [('estimate', 1.001), ('observation_identity', 'changed')]:
+        altered = deepcopy(actual)
+        altered['rows'][0][field] = value
+        with pytest.raises(AssertionError):
+            compare_recorded_values(expected, altered, compare, verified_additional_sources={'added.py'})
+    actual['worker_receipts'][0]['source_manifest_sha256'] = 'd'*64
+    with pytest.raises(AssertionError, match='worker source manifest'):
+        compare_recorded_values(expected, actual, compare, verified_additional_sources={'added.py'})
+
+
+def test_approved_source_additions_cannot_replace_recorded_sources():
+    expected, actual = worker_record('a'*64), worker_record('b'*64)
+    actual['source_sha256'] = {'added.py': 'c'*64}
+    with pytest.raises(AssertionError, match='source path sets differ'):
+        compare_recorded_values(expected, actual, compare_records, verified_additional_sources={'added.py'})
+
+
+@pytest.mark.parametrize('tamper', [False, True])
+def test_wrapper_verifies_added_source_bytes_before_allowing_manifest_extension(tmp_path, tamper):
+    from benchmarks.run_cross_domain_ratio import compare_records as compare
+    def git(*args):
+        return subprocess.check_output(['git', *args], cwd=tmp_path, text=True).strip()
+    git('init', '-q');git('config', 'user.name', 'Fixture');git('config', 'user.email', 'fixture@example.invalid')
+    (tmp_path/'source.py').write_text('original source\n')
+    git('add', '.');git('commit', '-qm', 'sources')
+    expected = worker_record(hashlib.sha256((tmp_path/'source.py').read_bytes()).hexdigest())
+    expected.update(rows=[], execution_commit=git('rev-parse', 'HEAD'))
+    (tmp_path/'record.json').write_text(json.dumps(expected))
+    git('add', '.');git('commit', '-qm', 'observations')
+    (tmp_path/'added.py').write_text('added dependency\n')
+    git('add', '.');git('commit', '-qm', 'new dependency')
+    actual = deepcopy(expected)
+    actual['execution_commit'] = git('rev-parse', 'HEAD')
+    actual['source_sha256']['added.py'] = hashlib.sha256((tmp_path/'added.py').read_bytes()).hexdigest()
+    if tamper:
+        actual['source_sha256']['added.py'] = 'c'*64
+    actual['worker_receipts'][0]['source_manifest_sha256'] = hashlib.sha256(
+        json.dumps(actual['source_sha256'], sort_keys=True).encode()).hexdigest()
+    module = SimpleNamespace(ROOT=tmp_path, RESULT='record.json', compare_records=compare)
+    module.main = lambda argv: module.compare_records(expected, actual)
+    checker = SimpleNamespace(check=lambda record: None)
+    output = tmp_path/'verification.json'
+    if tamper:
+        with pytest.raises(AssertionError, match='execution source digest differs: added.py'):
+            verify(module, checker, campaign='toy', output=output)
+        assert json.loads(output.read_text())['status'] == 'verification_failed'
+    else:
+        summary = verify(module, checker, campaign='toy', output=output)
+        assert summary['status'] == 'recorded_values_verified'
+        assert summary['additional_execution_sources'] == {'added.py': actual['source_sha256']['added.py']}
+        assert summary['original_strict_replay_passed'] is False
+    assert module.compare_records is compare
+
+
 def test_execution_source_hash_must_match_raw_blob_at_named_commit(tmp_path):
     module = make_publication(tmp_path, {})
     raw = (tmp_path/'record.json').read_bytes()
