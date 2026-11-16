@@ -7,7 +7,8 @@
       "check_phase16b_v2_preregistration",
       "check_phase16b_v3_feasibility",
       "check_phase16b_v3_preregistration",
-      "check_regenerated_record"
+      "check_regenerated_record",
+      "check_target_acquisition"
     ],
     "automatic_gates": [
       "check_bank_policy_matrix",
@@ -84,7 +85,7 @@
       "Plan ledger": 1,
       "Post-hoc declaration": 6,
       "Preregistration": 13,
-      "Sampled inference accounting": 3,
+      "Sampled inference accounting": 4,
       "Value-rebuilt": 34
     },
     "conditional_gates": [],
@@ -103,12 +104,12 @@
       "check_r3c_lih_full_cost",
       "check_r3d_qr3_refinement"
     ],
-    "gates": 80,
+    "gates": 81,
     "named_in_workflow": 73,
-    "producers": 77,
+    "producers": 78,
     "producers_without_gate": 24,
     "run_on_every_pull_request": 62,
-    "same_stem_pairs": 53
+    "same_stem_pairs": 54
   },
   "records": {
     "annotated_records": [
@@ -248,17 +249,17 @@
         "modules": 3
       },
       "subspace": {
-        "lines": 16624,
-        "modules": 48
+        "lines": 16913,
+        "modules": 49
       },
       "surface": {
         "lines": 39,
         "modules": 1
       }
     },
-    "package_lines": 35618,
-    "package_modules": 128,
-    "test_lines": 46766,
-    "test_modules": 194
+    "package_lines": 35907,
+    "package_modules": 129,
+    "test_lines": 47701,
+    "test_modules": 196
   }
 }

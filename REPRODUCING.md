@@ -639,7 +639,7 @@ frame-coordinate comparison above still fails its joint criterion.
 ```bash
 python -m venv .venv && source .venv/bin/activate
 pip install -e .[test,research,stim]       # automatic CI extras
-pytest                                      # 4825 passed, 12 skipped (expected if green)
+pytest                                      # 4943 passed, 12 skipped (expected if green)
 ```
 
 This is the automatic CI dependency set; record gates additionally pin NumPy
@@ -658,7 +658,7 @@ the remaining `12 - 6 = 6` skips are per-test and *are* collected:
 
 ```text
 collected == passed + (skipped - files dropped at collection)
-4831      == 4825   + (12      -   6)
+4949      == 4943   + (12      -   6)
 ```
 
 Both sides are computed from the tree, so a drift in either quoted number
@@ -1698,6 +1698,24 @@ The checker verifies the record against the declaration and regenerates the
 first declared replicas of every cell; `--full-replay` regenerates every row
 and `--report` prints the tables the study document embeds.
 `--verify-history` needs the published commit ancestry.
+
+### Declared target-aware acquisition study
+
+`docs/restart/TARGET_ACQUISITION.md` declares, before any evaluation seed is
+drawn, how Ritz-targeted shot allocation is compared with uniform allocation at
+matched error and how the interval reported by a predeclared stopping rule is
+tested against the exact subspace energy. The producer executes that
+declaration once, under the record environment, and never overwrites a record:
+
+```bash
+python benchmarks/run_target_acquisition.py --jobs 4
+python benchmarks/check_target_acquisition.py --verify-history
+```
+
+The checker verifies the record against the declaration and the schedule, and
+regenerates the first declared replicas of every system; `--full-replay`
+regenerates every row and `--report` prints the tables the study document
+embeds. `--verify-history` needs the published commit ancestry.
 
 ## Finite-shot nonlinear response uncertainty
 

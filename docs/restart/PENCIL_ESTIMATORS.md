@@ -364,6 +364,57 @@ three ways:
   the thresholded solves: it was never labelled `under` for the default or the
   repaired solve.
 
+## Target-aware acquisition
+
+[`acquire_ritz`](../../clifford_qc/subspace/acquisition.py) measures a uniform
+pilot of every setting, solves, and spends each further round by Neyman
+allocation on the current Ritz functional `c*(H - E S)c`: shots in proportion
+to the square root of each setting's per-shot variance. `allocation="uniform"`
+is the comparator on the same schedule. Only estimators the delta method
+accepts are supported, since the allocation target and the interval are both
+its Ritz functional.
+
+```python
+from clifford_qc.subspace.acquisition import acquire_ritz
+
+groups = len(shared.groups)
+found = acquire_ritz(shared, backend, pilot_shots_per_group=100,
+                     round_budgets=[100 * groups, 200 * groups, 400 * groups],
+                     target_std_error=0.02)
+print(found.stopped, found.shots, found.interval.lower, found.interval.upper)
+for look in found.looks:
+    print(look["shots"], look["energy"], look["std_error"])
+```
+
+**Stopping semantics.** The pilot size, the round budgets and the target are
+fixed before any shot. The rule "stop when the estimated standard error is at
+most the target" is evaluated only at those predeclared looks.
+`found.interval` splits its error budget over every look at which the run
+could have stopped, so it is valid over the schedule to the extent the
+Gaussian delta method is valid at each look. It is asymptotic, not
+anytime-valid and not a certificate. `found.naive_interval` ignores the other
+looks. Without a target every round is spent and the two coincide.
+
+**Accounting.** `found.shots` counts every physical shot, pilot included, and
+`found.looks` is the ledger. A look that cannot be solved raises
+`AcquisitionError`, which carries the cache and the ledger so the shots
+already spent are not lost. All data are pooled and each round's allocation
+depends on earlier outcomes, so the estimate carries the bias any adaptive
+design has.
+
+**Reproducible rounding.** The shot counts decide what is sampled next, so one
+shot of rounding changes every later outcome. Settings related by a symmetry
+have weights that are equal in exact arithmetic, and a largest-remainder rule
+ordered by raw floats then depends on the eigensolver's last bits.
+`neyman_group_plan` treats remainders within `1e-6` of a shot as tied and
+breaks ties by group order. It is otherwise the rule of
+`variance_optimal_group_plan`, which is unchanged.
+
+The [declared study](TARGET_ACQUISITION.md) freezes the systems, schedule,
+stopping targets, seeds, estimands and labels before any evaluation seed is
+drawn. Its producer and checker are `benchmarks/run_target_acquisition.py` and
+`benchmarks/check_target_acquisition.py`.
+
 ## Matrix-only replay
 
 With the external v3 seed files available, run from the repository root:
@@ -441,6 +492,11 @@ analytic constrained minimum between stationary two-direction starts at three
 error budgets. They
 establish implementation identities on their fixtures, not empirical interval
 coverage or matched-error improvement.
+Acquisition tests check that every declared shot is spent and counted, that a
+stopping rule only truncates the seeded full schedule, that the stopped
+interval is widened for every look, and that a failed look keeps its cost. A
+targeted schedule is unchanged by last-bit jitter of the Ritz vector, while the
+raw-float rounding rule is not.
 Existing measured-subspace, response, PRD, and compatibility tests are also
 run. There is no new empirical coverage or matched-error improvement claim.
 
@@ -450,7 +506,7 @@ run. There is no new empirical coverage or matched-error improvement claim.
 | Fixed-angle rotation and estimator policy | Implemented, opt-in | Independent-angle evaluation and external equal-data replay; data-selected angle inference remains pending |
 | Covariance-aware constrained ratio | Implemented, opt-in, measured path only | Budget fixed before evaluation; a histogram-retaining campaign with tails, failures and below-ground rates; coverage of the rerun-search bootstrap |
 | Interval coverage instrument and declared study | Implemented and [run as declared](INTERVAL_COVERAGE.md) on three four-qubit banks | Molecular banks and realistic noise need their own declared study; a budget rule for the constrained ratio that transfers between systems |
-| Target-aware acquisition | Pending | Ritz-targeted allocation with valid stopping semantics, evaluated at matched error |
+| Target-aware acquisition | Implemented, opt-in; [study declared](TARGET_ACQUISITION.md), not yet run | Matched-error comparison with uniform allocation and coverage of the stopped interval, run once under the record environment |
 | Symmetry pool and SoA kernel work | Pending | Invariant tests, real structured-bank timings, full selection-cache costs at matched error |
 | Hardware bridge, community instances, distribution | Pending | End-to-end local adapter checks, strong classical baselines, reproducible packaging/docs builds |
 
