@@ -639,7 +639,7 @@ frame-coordinate comparison above still fails its joint criterion.
 ```bash
 python -m venv .venv && source .venv/bin/activate
 pip install -e .[test,research,stim]       # automatic CI extras
-pytest                                      # 4769 passed, 12 skipped (expected if green)
+pytest                                      # 4822 passed, 12 skipped (expected if green)
 ```
 
 This is the automatic CI dependency set; record gates additionally pin NumPy
@@ -658,7 +658,7 @@ the remaining `12 - 6 = 6` skips are per-test and *are* collected:
 
 ```text
 collected == passed + (skipped - files dropped at collection)
-4775      == 4769   + (12      -   6)
+4828      == 4822   + (12      -   6)
 ```
 
 Both sides are computed from the tree, so a drift in either quoted number
@@ -1678,6 +1678,22 @@ unpruned construction within the tolerances stored in the v2 record. At
 `1e-8` all quoted rungs pass and the stored numerical differences are zero.
 `tests/test_krylov_width.py` checks the collapse identity, nested sweep, and
 certificate gate.
+
+### Declared interval-coverage study
+
+`docs/restart/INTERVAL_COVERAGE.md` declares, before any evaluation seed is
+drawn, how delta-method and grouped-bootstrap intervals on measured Ritz values
+are tested against the exact subspace energy. The producer executes that
+declaration once, under the record environment, and never overwrites a record:
+
+```bash
+python benchmarks/run_interval_coverage.py --jobs 4
+python benchmarks/check_interval_coverage.py --verify-history
+```
+
+The checker verifies the record against the declaration and regenerates the
+first declared replicas of every cell; `--full-replay` regenerates every row.
+`--verify-history` needs the published commit ancestry.
 
 ## Finite-shot nonlinear response uncertainty
 

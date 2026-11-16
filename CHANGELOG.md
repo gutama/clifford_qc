@@ -28,6 +28,11 @@ Benchmark campaigns, their declarations and their outcomes are recorded in
   `S` and `H` coordinate, and `measurement.functionals.covariance_matrix`,
   which computes a covariance matrix in one histogram pass.
 
+  `subspace.coverage` measures empirical interval coverage over repeated
+  measurements (`interval_replica`, `summarize_coverage`, `wilson_interval`),
+  and `subspace.uncertainty.bootstrap_ritz_samples` exposes the bootstrap
+  draws behind `bootstrap_ritz`, whose results are unchanged.
+
   Each estimator records its policy, so `bootstrap_ritz(..., result=point)`
   reruns it on resampled histograms. Defaults are unchanged, and no estimator
   claims interval coverage or improved accuracy.

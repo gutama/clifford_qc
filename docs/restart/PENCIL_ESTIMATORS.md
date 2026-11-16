@@ -337,6 +337,21 @@ for budget in (None, 0.005, 0.01, 0.02, 0.05):
     print(budget, np.median(abs(errors)), abs(errors).max(), (errors < 0).mean())
 ```
 
+## Interval coverage
+
+[`interval_replica` and `summarize_coverage`](../../clifford_qc/subspace/coverage.py)
+measure how often an interval contains a known target over repeated seeded
+measurements. They evaluate the delta-method interval and two grouped-bootstrap
+constructions, percentile and basic, from one set of draws
+(`bootstrap_ritz_samples`). A failed solve or failed interval stays in the
+all-replica denominator. Rates carry Wilson intervals and are split by the
+smallest retained overlap eigenvalue.
+
+The [declared study](INTERVAL_COVERAGE.md) freezes the systems, shots, estimator
+arms, seeds, counting rules and labels before any evaluation seed is drawn. Its
+producer and checker are `benchmarks/run_interval_coverage.py` and
+`benchmarks/check_interval_coverage.py`.
+
 ## Matrix-only replay
 
 With the external v3 seed files available, run from the repository root:
@@ -422,7 +437,8 @@ run. There is no new empirical coverage or matched-error improvement claim.
 | Diagonal-preserving PSD repair and point replay | Implemented, opt-in | Source-verified external 180-cell replay; assess tails and failures |
 | Fixed-angle rotation and estimator policy | Implemented, opt-in | Independent-angle evaluation and external equal-data replay; data-selected angle inference remains pending |
 | Covariance-aware constrained ratio | Implemented, opt-in, measured path only | Budget fixed before evaluation; a histogram-retaining campaign with tails, failures and below-ground rates; coverage of the rerun-search bootstrap |
-| Coverage and target-aware acquisition | Pending | Frozen 68%/95% study, all failure counts, minimum-retained-overlap strata, valid stopping semantics |
+| Interval coverage instrument and declared study | Instrument implemented; [study declared](INTERVAL_COVERAGE.md), not yet run | Frozen 68%/95% study with all failure counts and minimum-retained-overlap strata, run once under the record environment |
+| Target-aware acquisition | Pending | Ritz-targeted allocation with valid stopping semantics, evaluated at matched error |
 | Symmetry pool and SoA kernel work | Pending | Invariant tests, real structured-bank timings, full selection-cache costs at matched error |
 | Hardware bridge, community instances, distribution | Pending | End-to-end local adapter checks, strong classical baselines, reproducible packaging/docs builds |
 

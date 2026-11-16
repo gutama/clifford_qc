@@ -1,6 +1,7 @@
 {
   "gates": {
     "absent_from_workflow": [
+      "check_interval_coverage",
       "check_phase16b_feasibility",
       "check_phase16b_preregistration",
       "check_phase16b_v2_feasibility",
@@ -83,7 +84,7 @@
       "Plan ledger": 1,
       "Post-hoc declaration": 6,
       "Preregistration": 13,
-      "Sampled inference accounting": 2,
+      "Sampled inference accounting": 3,
       "Value-rebuilt": 34
     },
     "conditional_gates": [],
@@ -102,12 +103,12 @@
       "check_r3c_lih_full_cost",
       "check_r3d_qr3_refinement"
     ],
-    "gates": 79,
+    "gates": 80,
     "named_in_workflow": 72,
-    "producers": 76,
+    "producers": 77,
     "producers_without_gate": 24,
     "run_on_every_pull_request": 61,
-    "same_stem_pairs": 52
+    "same_stem_pairs": 53
   },
   "records": {
     "annotated_records": [
@@ -247,17 +248,17 @@
         "modules": 3
       },
       "subspace": {
-        "lines": 16299,
-        "modules": 47
+        "lines": 16624,
+        "modules": 48
       },
       "surface": {
         "lines": 39,
         "modules": 1
       }
     },
-    "package_lines": 35293,
-    "package_modules": 127,
-    "test_lines": 46336,
-    "test_modules": 193
+    "package_lines": 35618,
+    "package_modules": 128,
+    "test_lines": 46732,
+    "test_modules": 194
   }
 }

@@ -81,33 +81,19 @@ def ritz_uncertainty(shared: SharedMeasurement, cache: GroupedWordCache,
                     std_error=math.sqrt(max(0.0, variance)))
 
 
-def bootstrap_ritz(shared: SharedMeasurement, cache: GroupedWordCache, *,
-                   root: int = 0, replicates: int = 200, seed: int = 0,
-                   delta: float = 0.05, solver_kwargs: dict | None = None,
-                   result: SubspaceResult | None = None) -> Interval:
-    """Grouped bootstrap on the Ritz value -- ``heuristic``, and the cross-check
-    the delta method needs.
+def bootstrap_ritz_samples(shared: SharedMeasurement, cache: GroupedWordCache, *,
+                           root: int = 0, replicates: int = 200, seed: int = 0,
+                           solver_kwargs: dict | None = None,
+                           result: SubspaceResult | None = None) -> np.ndarray:
+    """The resampled Ritz values behind :func:`bootstrap_ritz`, in draw order.
 
     Each group's outcome histogram is resampled multinomially at its own shot
-    count (groups are independent circuits, so this is the right resampling
-    unit), then the whole pipeline -- reconstruct, threshold, diagonalize -- is
-    rerun. It therefore captures what the linearization drops: the movement of
-    the retained eigenspace itself. It captures nothing about coverage under a
-    different true state, which is why it is heuristic.
-
-    With ``result``, infer the full solver policy from that measured point
-    result and reject conflicting ``solver_kwargs``. Its point energy is the
-    returned estimate. Without ``result``, the legacy API bootstraps only the
-    explicitly supplied/default policy; it is not bound to a separate point
-    estimate. Repair and fixed-angle rotation are rerun on every resampled pencil.
-    Data-selected angles are unsupported. A failed replica
-    raises; it is never silently removed to narrow the interval.
+    count, then the whole pipeline is rerun under the policy :func:`bootstrap_ritz`
+    describes. A caller that needs several intervals, or more than one interval
+    construction, from one set of draws starts here. A failed replica raises.
     """
     if replicates < 2:
         raise ValueError("replicates must be at least two")
-    if not 0.0 < delta < 1.0:
-        raise ValueError("delta must be in (0, 1)")
-
     kwargs = dict(solver_kwargs or {})
     if result is not None:
         recorded = _point_estimator(shared, cache, result)
@@ -137,11 +123,41 @@ def bootstrap_ritz(shared: SharedMeasurement, cache: GroupedWordCache, *,
                                            circuits=len(groups), groups=tuple(groups),
                                            state_key=cache.state_key))
         samples.append(shared.solve(replica, **kwargs).energies[root])
-    values = np.array(samples)
+    return np.array(samples)
+
+
+def bootstrap_ritz(shared: SharedMeasurement, cache: GroupedWordCache, *,
+                   root: int = 0, replicates: int = 200, seed: int = 0,
+                   delta: float = 0.05, solver_kwargs: dict | None = None,
+                   result: SubspaceResult | None = None) -> Interval:
+    """Grouped bootstrap on the Ritz value -- ``heuristic``, and the cross-check
+    the delta method needs.
+
+    Each group's outcome histogram is resampled multinomially at its own shot
+    count (groups are independent circuits, so this is the right resampling
+    unit), then the whole pipeline -- reconstruct, threshold, diagonalize -- is
+    rerun. It therefore captures what the linearization drops: the movement of
+    the retained eigenspace itself. It captures nothing about coverage under a
+    different true state, which is why it is heuristic.
+
+    With ``result``, infer the full solver policy from that measured point
+    result and reject conflicting ``solver_kwargs``. Its point energy is the
+    returned estimate. Without ``result``, the legacy API bootstraps only the
+    explicitly supplied/default policy; it is not bound to a separate point
+    estimate. Repair and fixed-angle rotation are rerun on every resampled pencil.
+    Data-selected angles are unsupported. A failed replica
+    raises; it is never silently removed to narrow the interval.
+    """
+    if replicates < 2:
+        raise ValueError("replicates must be at least two")
+    if not 0.0 < delta < 1.0:
+        raise ValueError("delta must be in (0, 1)")
+    values = bootstrap_ritz_samples(shared, cache, root=root, replicates=replicates,
+                                    seed=seed, solver_kwargs=solver_kwargs, result=result)
     lower, upper = np.quantile(values, [delta / 2.0, 1.0 - delta / 2.0])
     estimate = float(result.energies[root]) if result is not None else float(np.mean(values))
     return Interval(estimate=estimate, lower=float(lower),
                     upper=float(upper), delta=delta, evidence=HEURISTIC,
                     std_error=float(np.std(values, ddof=1)) if replicates > 1 else None)
 
-__all__ = ["Interval", "ritz_uncertainty", "bootstrap_ritz"]
+__all__ = ["Interval", "ritz_uncertainty", "bootstrap_ritz", "bootstrap_ritz_samples"]
