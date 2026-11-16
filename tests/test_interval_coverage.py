@@ -394,3 +394,37 @@ def test_history_check_reports_an_unknown_declaration_commit(declaration, record
     results = producer.ROOT / "docs" / "restart" / "interval_coverage_results.json.gz"
     problems = checker.history_problems(record, producer.DECLARATION, results)
     assert problems == [f"declaration commit {'0' * 40!r} is not in this repository's history"]
+
+
+# ------------------------------------------------------- the committed record
+
+@pytest.fixture(scope="module")
+def committed():
+    return producer.read_record(producer.RESULTS)
+
+
+def test_the_committed_record_matches_its_declaration(committed):
+    assert checker.structural_problems(committed, producer.DECLARATION) == []
+    declaration = producer.load_declaration()
+    expected = sum(arm["replicas"] * len(arm["systems"]) * len(declaration["shots_per_group"])
+                   for arm in declaration["arms"])
+    assert len(committed["rows"]) == expected == 4000
+    assert committed["implementation"].keys() == set(producer.IMPLEMENTATION)
+    # The held-out system was sampled only under the declared seed root.
+    assert committed["declaration"]["seed_root"] == 20261116
+
+
+def test_the_study_document_embeds_the_generated_report(committed):
+    document = (producer.ROOT / "docs" / "restart" / "INTERVAL_COVERAGE.md").read_text()
+    assert checker.report(committed) in document
+
+
+def test_the_declaration_predates_the_committed_record(committed, environment_skip):
+    import subprocess
+
+    commit = committed["declaration_commit"]
+    present = subprocess.run(["git", "cat-file", "-e", f"{commit}^{{commit}}"],
+                             cwd=producer.ROOT, capture_output=True).returncode == 0
+    if not present:
+        environment_skip("the declaration commit is not in this checkout's history")
+    assert checker.history_problems(committed, producer.DECLARATION, producer.RESULTS) == []

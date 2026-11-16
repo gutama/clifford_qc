@@ -1,7 +1,6 @@
 {
   "gates": {
     "absent_from_workflow": [
-      "check_interval_coverage",
       "check_phase16b_feasibility",
       "check_phase16b_preregistration",
       "check_phase16b_v2_feasibility",
@@ -24,6 +23,7 @@
       "check_frame_coordinate_projection",
       "check_g1_structural_preconditioner",
       "check_h2o_residual_comparison",
+      "check_interval_coverage",
       "check_krylov_width",
       "check_mapping_axis",
       "check_molecular",
@@ -104,10 +104,10 @@
       "check_r3d_qr3_refinement"
     ],
     "gates": 80,
-    "named_in_workflow": 72,
+    "named_in_workflow": 73,
     "producers": 77,
     "producers_without_gate": 24,
-    "run_on_every_pull_request": 61,
+    "run_on_every_pull_request": 62,
     "same_stem_pairs": 53
   },
   "records": {
@@ -258,7 +258,7 @@
     },
     "package_lines": 35618,
     "package_modules": 128,
-    "test_lines": 46732,
+    "test_lines": 46766,
     "test_modules": 194
   }
 }

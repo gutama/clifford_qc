@@ -26,9 +26,11 @@ matrix-only PRD replay tool, and a covariance-aware constrained-ratio estimator
 that never inverts `S`. That estimator is biased downward by up to about its
 error budget. The ladder carries no interval-coverage or accuracy-improvement claim.
 
-The [declared interval-coverage study](INTERVAL_COVERAGE.md) fixes how those
-estimators' delta-method and bootstrap intervals will be tested against the
-exact subspace energy at 68% and 95%. It is declared and not yet run.
+The [declared interval-coverage study](INTERVAL_COVERAGE.md) tested those
+estimators' delta-method and bootstrap intervals against the exact subspace
+energy at 68% and 95%. No construction was calibrated for every estimator. The
+basic bootstrap came closest on the thresholded solves, and the constrained
+ratio's budgets did not transfer to the held-out system.
 
 The [preregistered noise-aware selection experiment](NOISE_AWARE_SELECTION.md)
 closed negative on its equal-shot held-out criterion. An independent H4 audit

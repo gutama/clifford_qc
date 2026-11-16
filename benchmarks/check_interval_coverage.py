@@ -165,6 +165,88 @@ def history_problems(record: dict, declaration_path: Path, results_path: Path) -
     return problems
 
 
+def _percent(proportion: dict) -> str:
+    return "n/a" if proportion["rate"] is None else f"{100.0 * proportion['rate']:.1f}%"
+
+
+def report(record: dict) -> str:
+    """The record's results as Markdown, in the form the study document embeds.
+
+    Generated rather than typed, so the document cannot drift from the record:
+    a test holds ``INTERVAL_COVERAGE.md`` to this exact text.
+    """
+    declaration = record["declaration"]
+    methods = declaration["methods"]
+    levels = [producer.level_key(level) for level in declaration["levels"]]
+    lines = ["| Arm | Method | Under | Consistent | Over | Solve failures | Interval failures |",
+             "| --- | --- | ---: | ---: | ---: | ---: | ---: |"]
+    for arm in declaration["arms"]:
+        for method in methods:
+            tally = record["headline"].get(arm["key"], {}).get(method)
+            if tally is not None:
+                lines.append(
+                    f"| `{arm['key']}` | `{method}` | {tally['under']} | {tally['consistent']} "
+                    f"| {tally['over']} | {tally['solve_failures']} "
+                    f"| {tally['interval_failures']} |")
+    for level in levels:
+        nominal = f"{100.0 * float(level):.0f}%"
+        lines += ["", f"Coverage of the exact subspace energy at the nominal {nominal} level, "
+                      "over all replicas:", "",
+                  "| System | Shots per group | Arm | " + " | ".join(f"`{m}`" for m in methods)
+                  + " |", "| --- | ---: | --- | " + " | ".join("---" for _ in methods) + " |"]
+        for cell in record["cells"]:
+            entries = []
+            for method in methods:
+                found = cell["summary"]["methods"][method]
+                if not found["applicable"]:
+                    entries.append("n/a")
+                else:
+                    entries.append(f"{_percent(found['levels'][level]['all_replicas'])} "
+                                   f"{cell['labels'][method][level]}")
+            lines.append(f"| `{cell['system']}` | {cell['shots_per_group']:,} | `{cell['arm']}` | "
+                         + " | ".join(entries) + " |")
+    lines += ["", "Point-estimate error against the exact subspace energy:", "",
+              "| System | Shots per group | Arm | Replicas | Solve failures | Median abs. error "
+              "| 90th pct. abs. error | Max abs. error | Mean error | Below target |",
+              "| --- | ---: | --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: |"]
+    for cell in record["cells"]:
+        summary = cell["summary"]
+        estimate = summary["estimate"]
+        if estimate is None:
+            numbers = "n/a | n/a | n/a | n/a | n/a"
+        else:
+            numbers = (f"{estimate['median_abs_error']:.4f} | {estimate['p90_abs_error']:.4f} "
+                       f"| {estimate['max_abs_error']:.4f} | {estimate['mean_error']:+.4f} "
+                       f"| {100.0 * estimate['below_target'] / estimate['n']:.1f}%")
+        lines.append(f"| `{cell['system']}` | {cell['shots_per_group']:,} | `{cell['arm']}` "
+                     f"| {summary['replicas']} | {summary['solve_failures']} | {numbers} |")
+    top = levels[-1]
+    lines += ["", f"Coverage at the nominal {100.0 * float(top):.0f}% level by stratification "
+                  "value, pooled over cells (replicas whose interval exists):", "",
+              "| Arm | Stratum | " + " | ".join(f"`{m}`" for m in methods) + " |",
+              "| --- | --- | " + " | ".join("---" for _ in methods) + " |"]
+    for arm in declaration["arms"]:
+        cells = [cell for cell in record["cells"] if cell["arm"] == arm["key"]]
+        for index in range(len(declaration["strata_edges"]) + 1):
+            strata = [cell["summary"]["strata"][index] for cell in cells]
+            if not any(stratum["n"] for stratum in strata):
+                continue
+            lower, upper = strata[0]["lower"], strata[0]["upper"]
+            name = (f"below {upper:g}" if lower is None else
+                    f"at least {lower:g}" if upper is None else f"{lower:g} to {upper:g}")
+            entries = []
+            for method in methods:
+                found = [stratum["methods"][method]["levels"][top]["successful_intervals"]
+                         for stratum in strata
+                         if stratum["n"] and stratum["methods"][method]["applicable"]]
+                trials = sum(item["n"] for item in found)
+                covered = sum(item["covered"] for item in found)
+                entries.append("n/a" if not trials
+                               else f"{100.0 * covered / trials:.1f}% of {trials}")
+            lines.append(f"| `{arm['key']}` | {name} | " + " | ".join(entries) + " |")
+    return "\n".join(lines) + "\n"
+
+
 def main(argv=None) -> int:
     parser = argparse.ArgumentParser(description=__doc__.splitlines()[0])
     parser.add_argument("--declaration", type=Path, default=producer.DECLARATION)
@@ -173,11 +255,16 @@ def main(argv=None) -> int:
     parser.add_argument("--full-replay", action="store_true")
     parser.add_argument("--no-replay", action="store_true")
     parser.add_argument("--require-replay", action="store_true")
+    parser.add_argument("--report", action="store_true",
+                        help="print the results tables as Markdown and exit")
     args = parser.parse_args(argv)
     if args.no_replay and (args.full_replay or args.require_replay):
         parser.error("--no-replay excludes --full-replay and --require-replay")
 
     record = producer.read_record(args.results)
+    if args.report:
+        print(report(record), end="")
+        return 0
     problems = structural_problems(record, args.declaration)
     if args.verify_history and not problems:
         problems.extend(history_problems(record, args.declaration, args.results))

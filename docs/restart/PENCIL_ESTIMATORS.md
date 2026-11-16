@@ -347,10 +347,22 @@ constructions, percentile and basic, from one set of draws
 all-replica denominator. Rates carry Wilson intervals and are split by the
 smallest retained overlap eigenvalue.
 
-The [declared study](INTERVAL_COVERAGE.md) freezes the systems, shots, estimator
-arms, seeds, counting rules and labels before any evaluation seed is drawn. Its
+The [declared study](INTERVAL_COVERAGE.md) froze the systems, shots, estimator
+arms, seeds, counting rules and labels before any evaluation seed was drawn. Its
 producer and checker are `benchmarks/run_interval_coverage.py` and
-`benchmarks/check_interval_coverage.py`.
+`benchmarks/check_interval_coverage.py`. Its findings bear on this ladder in
+three ways:
+
+- **Repair.** With the default `tau_s`, nearest-correlation repair did not
+  control the catastrophic tail. On the ill-conditioned development bank at
+  2,000 shots its worst error was 144.2, against 50.3 for the unrepaired solve.
+- **Constrained ratio.** Where its budget was attainable it removed that tail
+  (worst error 0.0156), and its basic-bootstrap interval was close to nominal.
+  Its percentile interval was not. The absolute budgets chosen on the
+  development bank were unattainable on the held-out bank.
+- **Intervals.** The basic bootstrap is the better default construction for
+  the thresholded solves: it was never labelled `under` for the default or the
+  repaired solve.
 
 ## Matrix-only replay
 
@@ -437,7 +449,7 @@ run. There is no new empirical coverage or matched-error improvement claim.
 | Diagonal-preserving PSD repair and point replay | Implemented, opt-in | Source-verified external 180-cell replay; assess tails and failures |
 | Fixed-angle rotation and estimator policy | Implemented, opt-in | Independent-angle evaluation and external equal-data replay; data-selected angle inference remains pending |
 | Covariance-aware constrained ratio | Implemented, opt-in, measured path only | Budget fixed before evaluation; a histogram-retaining campaign with tails, failures and below-ground rates; coverage of the rerun-search bootstrap |
-| Interval coverage instrument and declared study | Instrument implemented; [study declared](INTERVAL_COVERAGE.md), not yet run | Frozen 68%/95% study with all failure counts and minimum-retained-overlap strata, run once under the record environment |
+| Interval coverage instrument and declared study | Implemented and [run as declared](INTERVAL_COVERAGE.md) on three four-qubit banks | Molecular banks and realistic noise need their own declared study; a budget rule for the constrained ratio that transfers between systems |
 | Target-aware acquisition | Pending | Ritz-targeted allocation with valid stopping semantics, evaluated at matched error |
 | Symmetry pool and SoA kernel work | Pending | Invariant tests, real structured-bank timings, full selection-cache costs at matched error |
 | Hardware bridge, community instances, distribution | Pending | End-to-end local adapter checks, strong classical baselines, reproducible packaging/docs builds |
