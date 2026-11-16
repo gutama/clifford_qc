@@ -34,6 +34,11 @@ Benchmark campaigns, their declarations and their outcomes are recorded in
 
 ### Fixed
 
+- The constrained-ratio single-live-generator shortcut now rejects an
+  unattainable error budget or denominator-CV gate. Deterministic phase-mixed
+  starts also prevent the reviewed stationary two-direction maximum from
+  being returned as convergence; the bounded multistart policy is recorded
+  in the result and rerun by the grouped bootstrap.
 - **Python 3.14 stored different coefficient bytes.** Python 3.14 changed mixed
   real/complex arithmetic so that a `-0.0` component survives `0.0 + z`. The
   kernel accumulated from a real zero, so `(1j*Y)*X` stored `1-0j` on 3.14 and

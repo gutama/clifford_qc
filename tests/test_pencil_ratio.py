@@ -283,6 +283,52 @@ def test_a_feasible_start_is_never_beaten_by_a_worse_endpoint():
     assert result.resources["dropped_generators"] == ("dead",)
 
 
+@pytest.mark.parametrize("padded", [False, True])
+@pytest.mark.parametrize("variance_s, variance_h, budget", [
+    (0.0, 1.0, 0.1),  # unresolved energy
+    (1.0, 0.0, 10.0),  # resolved energy budget, unresolved denominator
+])
+def test_a_single_live_generator_must_satisfy_both_feasibility_gates(
+        padded, variance_s, variance_h, budget):
+    size, live = (3, 1) if padded else (1, 0)
+    S, H = np.zeros((size, size)), np.zeros((size, size))
+    S[live, live], H[live, live] = 1.0, -1.0
+    index = hermitian_parameter_layout(size).index((live, live, "real"))
+    cov = np.zeros((2 * size ** 2, 2 * size ** 2))
+    cov[index, index] = variance_s
+    cov[size ** 2 + index, size ** 2 + index] = variance_h
+    with pytest.raises(ValueError, match="error budget and denominator gate"):
+        solve_constrained_ratio(S, H, cov, error_budget=budget)
+
+
+def test_measured_identity_only_bank_rejects_an_unattainable_budget():
+    bank = MatrixElementBank(ket_density(1, "0"), X(1, 0), [identity_generator(1)])
+    shared = SharedMeasurement(bank)
+    cache = shared.measure(FiniteShotBackend(seed=0), 100)
+    before = cache.total_shots, cache.total_circuits
+    with pytest.raises(ValueError, match="error budget and denominator gate"):
+        shared.solve(cache, ratio_error_budget=.001)
+    assert (cache.total_shots, cache.total_circuits) == before
+    with pytest.raises(ValueError, match="error budget and denominator gate"):
+        bootstrap_ritz(shared, cache, replicates=2,
+                       solver_kwargs={"ratio_error_budget": .001})
+
+
+@pytest.mark.parametrize("budget", [.05, .25, .75])
+def test_stationary_reference_and_infeasible_ground_start_do_not_return_a_maximum(budget):
+    # For unit c, p=|c_1|^2 gives E=1-2p, sigma=p, and denominator CV=0.
+    # Thus the constrained minimum is analytically p=budget, E=1-2*budget.
+    # Both pure directions have zero objective gradient. The reference is a
+    # feasible strict maximum; the unconstrained ground root is infeasible.
+    S, H, cov = np.eye(2), np.diag([1.0, -1.0]), np.zeros((8, 8))
+    cov[-1, -1] = 1.0
+    result = solve_constrained_ratio(S, H, cov, error_budget=budget)
+    assert result.ground_energy == pytest.approx(1 - 2 * budget, abs=5e-6)
+    stats = ratio_statistics(S, H, cov, result.ritz_vector())
+    assert stats["standard_error"] <= budget * (1 + 1e-6)
+    assert stats["denominator_cv"] == 0
+
+
 def test_dead_rows_stay_exactly_zero(ill_conditioned):
     _, shared = ill_conditioned
     cache = shared.measure(FiniteShotBackend(seed=42), 2000)

@@ -269,15 +269,18 @@ def solve_constrained_ratio(S: np.ndarray, H: np.ndarray, covariance: np.ndarray
     of ``H``. ``covariance`` is the covariance of the measured ``S`` and ``H``
     coordinates, in :func:`hermitian_parameter_layout` order, ``S`` first.
 
-    Two declared starts are searched: the first live generator, which for an
+    The declared starts include the first live generator, which for an
     identity first generator is the direct reference-energy estimate (the
     paper's ``c = (1, 0, ...)``), and the lowest root of the canonical
-    thresholded solve, because the reference can be an exact stationary point.
-    The lowest feasible certified endpoint is returned; a failed run is
+    thresholded solve. Four balanced phase mixtures with the component of
+    that root orthogonal to the reference escape pure stationary starts.
+    Mixtures are omitted when that component is numerically zero.
+    The lowest feasible accepted endpoint is returned; a failed run is
     recorded under ``runs``, and only a total failure raises. If the
     reference itself is feasible, the result is never above it.
     Coefficients are complex, the live set and scaling follow the canonical
-    solver, and dead rows are exactly zero.
+    solver, and dead rows are exactly zero. This bounded deterministic
+    multistart search does not certify a global minimum.
 
     Two gates are additions of this implementation, not of the paper:
     ``c^* S c`` must be positive, and its coefficient of variation must be at
@@ -395,12 +398,25 @@ def solve_constrained_ratio(S: np.ndarray, H: np.ndarray, covariance: np.ndarray
     starts: list[tuple[str, np.ndarray | None]] = [("reference", x0)]
     canonical_error: str | None = None
     if width > 1:
-        # The reference can be an exact stationary point (for example a
-        # Brillouin-decoupled reference), where SLSQP never moves. The lowest
-        # root of the canonical thresholded solve is a second declared start.
+        # Both pure directions can be stationary: a feasible reference can
+        # be a maximum while the canonical ground root violates the budget.
+        # Balanced mixtures give SLSQP a nonstationary path between them.
         try:
             canonical = solve_projected(S, H, norm_floor=norm_floor)
-            starts.append(("canonical_ground_root", gauge(canonical.ritz_vector(0))))
+            canonical_start = gauge(canonical.ritz_vector(0))
+            starts.append(("canonical_ground_root", canonical_start))
+            direction = unpack(canonical_start)
+            direction[0] = 0.0
+            length = float(np.linalg.norm(direction))
+            if length > 100.0 * np.finfo(float).eps:
+                direction /= length
+                for suffix, phase in (("real_plus", 1.0), ("real_minus", -1.0),
+                                      ("imag_plus", 1j), ("imag_minus", -1j)):
+                    y = phase * direction
+                    y[0] = 1.0
+                    y /= math.sqrt(2.0)
+                    starts.append((f"reference_canonical_mix_{suffix}",
+                                   np.concatenate((y.real, y.imag[1:]))))
         except (ValueError, np.linalg.LinAlgError) as error:
             starts.append(("canonical_ground_root", None))
             canonical_error = str(error)
@@ -408,8 +424,10 @@ def solve_constrained_ratio(S: np.ndarray, H: np.ndarray, covariance: np.ndarray
     candidates: list[tuple[dict, dict]] = []
     if width == 1:
         runs.append({"start": "reference", "stopping": "single_live_generator",
-                     "iterations": 0, "evaluations": 0, "kkt_residual": None})
-        candidates.append((start, runs[-1]))
+                     "iterations": 0, "evaluations": 0, "kkt_residual": None,
+                     "energy": float(start["E"]), "feasible": bool(start["feasible"])})
+        if start["feasible"]:
+            candidates.append((start, runs[-1]))
     else:
         cache: dict = {}
 
@@ -513,6 +531,7 @@ def solve_constrained_ratio(S: np.ndarray, H: np.ndarray, covariance: np.ndarray
         "overlap_negative_modes": int((values < -1e-12 * max(largest, 1.0)).sum()),
         "constrained_ratio": {
             "method": "slsqp_first_order_ratio_variance",
+            "start_policy": "reference_canonical_phase_mixtures_v1",
             "variance_model": "full_grouped_covariance_delta_method",
             "evidence": "heuristic",
             "error_budget": budget,

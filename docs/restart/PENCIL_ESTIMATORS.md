@@ -246,14 +246,23 @@ existing delta method.
   variation must be at most `ratio_max_denominator_cv` (default `0.1`). The
   first-order ratio variance is meaningful only while the denominator is well
   resolved. The paper states no such condition.
-- **Starts.** Two starts are declared. One is the first live generator, which
+- **Starts.** The first start is the first live generator, which
   for an identity first generator is the paper's `c = (1, 0, ...)` and the
   direct reference-energy estimate. The other is the lowest root of the
   canonical thresholded solve. The reference can be an exact stationary point,
   as a Brillouin-decoupled Hartree-Fock reference is for single excitations;
-  SLSQP never leaves such a point.
-- **Selection.** The lowest feasible certified endpoint is returned. If the
-  reference itself is feasible, the result is never above it.
+  SLSQP never leaves such a point. The two pure starts can both be stationary
+  while the ground-root start violates the error budget. Four additional
+  starts mix the reference equally with the normalized component of the
+  canonical root orthogonal to it, in the solver's scaled coordinates, using
+  relative phases `+1`, `-1`, `+i`, and `-i`. They are omitted when that
+  component is zero to roundoff. This gives the search nonstationary starts in
+  the diagonal two-direction regression, whose constrained minimum lies
+  between two stationary pure directions. The policy is recorded as
+  `reference_canonical_phase_mixtures_v1` and each run is reported.
+- **Selection.** The lowest feasible accepted endpoint is returned. If the
+  reference itself is feasible, the result is never above it. This bounded
+  deterministic multistart search does not certify a global minimum.
 - **Solver.** SLSQP, with analytic gradients checked against finite
   differences, under a unit-norm, fixed-phase gauge. The paper used COBYLA.
   This needs SciPy (the `research` extra).
@@ -265,15 +274,16 @@ precision in units of the budget. A line-search stop (SLSQP status 8) is
 accepted only at a feasible endpoint. The objective gradient there must be a
 nonnegative combination of the active constraint gradients, to a relative NNLS
 residual of `1e-4`. A run that fails otherwise is recorded under `runs`. The
-call raises if no declared start reaches a feasible certified endpoint, if
-iterations are exhausted, or if the budget is unattainable. Dead rows stay
-exactly zero.
+call raises if no declared start reaches an accepted feasible endpoint. The
+single-live-generator shortcut enforces the same error-budget and denominator
+gates and raises when its sole possible ratio is infeasible, including when
+all other generators were dropped as dead. Dead rows stay exactly zero.
 
 **Uncertainty.** The resource `constrained_ratio.standard_error` is
 `sigma(c)` at the selected coefficients. It conditions on a choice made from
 the same data, so it is a diagnostic, not an interval. The fixed-coefficient
 delta method (`ritz_uncertainty`) rejects these results. The bound bootstrap
-reconstructs each joint histogram, re-estimates the covariance, reruns both
+reconstructs each joint histogram, re-estimates the covariance, reruns all
 searches and fails if any replica fails. Thresholds, repair, rotation and
 calibrated radii do not apply and are rejected in combination.
 
@@ -291,12 +301,13 @@ energy. The check ran 40 seeds (`500`–`539`) at 2000 shots per group:
 | Estimator | Median abs. error | Max abs. error | Below exact subspace | Below true ground |
 | --- | ---: | ---: | ---: | ---: |
 | Thresholded solve (`tau_s = 1e-10`) | 0.0050 | 3.1057 | 60% | 20% |
-| Constrained ratio, budget 0.005 | 0.0056 | 0.0182 | 88% | 7% |
-| Constrained ratio, budget 0.01 | 0.0157 | 0.0403 | 100% | 72% |
-| Constrained ratio, budget 0.02 | 0.0347 | 0.0827 | 100% | 93% |
+| Constrained ratio, budget 0.005 | 0.0055 | 0.0182 | 87.5% | 7.5% |
+| Constrained ratio, budget 0.01 | 0.0157 | 0.0403 | 100% | 72.5% |
+| Constrained ratio, budget 0.02 | 0.0347 | 0.0827 | 100% | 92.5% |
 | Constrained ratio, budget 0.05 | 0.0802 | 0.2030 | 100% | 95% |
 
-Errors are relative to the exact subspace energy. Minimizing a noisy ratio is
+The table uses the fixed multistart policy described above. Errors are relative
+to the exact subspace energy. Minimizing a noisy ratio is
 biased downward: the search exploits shot noise up to about the budget. The
 budget is therefore a bias–tail control, not a precision target. Here it
 removed the thresholded solve's catastrophic replica. Above the subspace's own
@@ -396,7 +407,11 @@ propagated standard error is within 25% of the Monte Carlo spread at fixed
 coefficients, on a well-conditioned and an ill-conditioned bank. Further tests
 cover negligible covariance recovering the generalized ground root, budget and
 gate feasibility, a stationary reference, certified line-search stops, explicit
-failures, dead rows, policy-bound bootstrap and rejected combinations. They
+failures, dead rows, policy-bound bootstrap and rejected combinations. Review
+regressions cover infeasible single-live-generator budgets and denominator CVs,
+including dead-row padding and an identity-only measured bank, plus the
+analytic constrained minimum between stationary two-direction starts at three
+error budgets. They
 establish implementation identities on their fixtures, not empirical interval
 coverage or matched-error improvement.
 Existing measured-subspace, response, PRD, and compatibility tests are also
