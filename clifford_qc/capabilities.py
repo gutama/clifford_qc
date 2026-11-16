@@ -58,7 +58,7 @@ CAPABILITIES: dict[str, Capability] = {
             "sparse eigensolvers, sector ground states, SciPy minimisers",
             ("sparse.sparse_ground_in_sector", "algorithms.optimize",
              "backends.sector_statevector", "pauli_action", "dense_reference",
-             "subspace.sparse_packets"),
+             "subspace.sparse_packets", "subspace.pencil.solve_constrained_ratio"),
         ),
         Capability(
             "stabilizer_backend", ("stim",), "stim",

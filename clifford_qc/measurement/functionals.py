@@ -241,6 +241,57 @@ def _combined_value(bits: str, entries) -> float:
     return total
 
 
+def covariance_matrix(functionals: Sequence[WordFunctional],
+                      cache: GroupedWordCache) -> np.ndarray:
+    """``Cov(f_hat_p, f_hat_q)`` for every pair at once, from the grouped histograms.
+
+    Entry ``[p, q]`` equals ``functionals[p].covariance(functionals[q], cache)``:
+    the same pooling weights, readouts and per-group population moments. Each
+    group's outcome bitstrings are decoded once into word outcomes, so the
+    matrix costs one pass over the histograms instead of one per pair.
+    Deterministic functionals have zero rows. A word that no group with shots
+    reads raises, since its variance is unresolved rather than zero.
+    """
+    functionals = tuple(functionals)
+    size = len(functionals)
+    out = np.zeros((size, size), dtype=float)
+    buckets: list[dict[tuple, dict]] = []
+    for functional in functionals:
+        if functional.is_deterministic:
+            buckets.append({})
+            continue
+        for code in functional.coefficients:
+            if not cache.group_weights(code):
+                raise ValueError(f"word code {code} is not measured by any group with shots")
+        buckets.append(_bucket_by_group(cache, functional.coefficients))
+    for group in cache.group_states():
+        shots = group["shots"]
+        key = group["key"]
+        members = [p for p, bucket in enumerate(buckets) if key in bucket]
+        if shots <= 0 or not members:
+            continue
+        codes = sorted({code for p in members for code in buckets[p][key]})
+        position = {code: column for column, code in enumerate(codes)}
+        outcomes = list(group["hist"].items())
+        counts = np.array([count for _, count in outcomes], dtype=float)
+        bits = np.array([[char == "1" for char in outcome] for outcome, _ in outcomes],
+                        dtype=np.int64).reshape(len(outcomes), -1)
+        words = np.empty((len(outcomes), len(codes)), dtype=float)
+        for code in codes:
+            ((_, sign, places),) = _positions(cache, {code: 1.0}, group)
+            parity = bits[:, list(places)].sum(axis=1) % 2 if places else 0
+            words[:, position[code]] = sign * (1.0 - 2.0 * parity)
+        weights = np.zeros((len(codes), len(members)), dtype=float)
+        for column, p in enumerate(members):
+            for code, value in buckets[p][key].items():
+                weights[position[code], column] += value
+        values = words @ weights
+        mean = counts @ values / shots
+        second = (values * counts[:, None]).T @ values / shots
+        out[np.ix_(members, members)] += (second - np.outer(mean, mean)) / shots
+    return 0.5 * (out + out.T)
+
+
 def split_complex_coefficients(coefficients, *, storage="object") -> tuple[WordFunctional, WordFunctional]:
     """A complex functional as its real and imaginary real-valued parts.
 
@@ -373,4 +424,5 @@ _split_complex = split_complex_coefficients
 __all__ = [
     "WordFunctional", "split_complex_coefficients", "entry_functionals",
     "ritz_functional", "coupling_functional", "quadratic_functional",
+    "covariance_matrix",
 ]

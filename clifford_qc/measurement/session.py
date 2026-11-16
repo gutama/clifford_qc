@@ -202,6 +202,34 @@ class SharedMeasurement:
         """``(S_hat, H_hat)`` from measured word means."""
         return self._assemble(lambda f: f.estimate(cache))
 
+    def entry_functionals(self) -> tuple[WordFunctional, ...]:
+        """The measured ``S`` then ``H`` coordinates, in Hermitian-layout order.
+
+        The order is :func:`~clifford_qc.subspace.pencil.hermitian_parameter_layout`
+        over this session's generators. A diagonal contributes only its real
+        part, as in :meth:`matrices`; deterministic coordinates are included.
+        """
+        from ..subspace.pencil import hermitian_parameter_layout
+
+        layout = hermitian_parameter_layout(len(self.indices))
+        out: list[WordFunctional] = []
+        for kind in (0, 1):
+            for a, b, part in layout:
+                pair = self._pairs[(self.indices[a], self.indices[b])][kind]
+                out.append(pair[0] if part == "real" else pair[1])
+        return tuple(out)
+
+    def entry_covariance(self, cache: GroupedWordCache) -> np.ndarray:
+        """Joint covariance of every measured ``S`` and ``H`` coordinate.
+
+        Entries share words and settings, so they are correlated; this is the
+        full grouped covariance (within-setting correlations exact, settings
+        independent) in the order of :meth:`entry_functionals`.
+        """
+        from .functionals import covariance_matrix
+
+        return covariance_matrix(self.entry_functionals(), cache)
+
     def exact_matrices(self) -> tuple[np.ndarray, np.ndarray]:
         """The infinite-shot limit of the same reconstruction (4A acceptance)."""
         rho = self.bank.reference
@@ -352,7 +380,11 @@ class SharedMeasurement:
               overlap_regularizer: str = "truncate",
               overlap_repair: str = "none", pencil_angle: float | None = None,
               energy_shift: float = 0.0, energy_scale: float = 1.0,
-              pole_tolerance: float = 1e-10) -> SubspaceResult:
+              pole_tolerance: float = 1e-10,
+              ratio_error_budget: float | None = None,
+              ratio_max_denominator_cv: float = 0.1,
+              ratio_tolerance: float = 1e-8,
+              ratio_max_iterations: int = 500) -> SubspaceResult:
         """Thresholded GEP on the measured matrices.
 
         The result reports the same conditioning metrics as the exact path plus
@@ -388,6 +420,16 @@ class SharedMeasurement:
         unrotated coefficient metric. Invalid rotated metrics, poles, and
         shot-calibrated combinations fail explicitly. Bootstrap reuses the
         recorded fixed policy; data-selected angles are not implemented.
+
+        ``ratio_error_budget`` replaces thresholding with the constrained ratio
+        of :func:`~clifford_qc.subspace.pencil.solve_constrained_ratio`: minimize
+        ``c^* H c / c^* S c`` subject to a propagated standard error of at most
+        the budget (energy units), computed from :meth:`entry_covariance` of the
+        same cache. ``S`` is never inverted, so the overlap thresholds, repair,
+        rotation and calibration do not apply and are rejected. The result has
+        one root, is biased downward by up to roughly the budget, and needs
+        SciPy. Choose the budget independently of evaluation data; use the
+        bootstrap with ``result=point`` for intervals.
         """
         from ..subspace.linalg import canonical_eigh, normalize_overlap, solve_projected
 
@@ -399,7 +441,30 @@ class SharedMeasurement:
             raise ValueError("nearest-correlation repair cannot use shot-calibrated radii")
         if pencil_angle is not None and calibrate_overlap:
             raise ValueError("pencil rotation cannot use shot-calibrated radii")
+        if ratio_error_budget is not None:
+            if calibrate_overlap or overlap_repair != "none" or pencil_angle is not None:
+                raise ValueError("the constrained ratio cannot be combined with overlap "
+                                 "calibration, repair or rotation")
+            if (tau_s != DEFAULT_TAU_S or rel_tau != 0.0
+                    or max_condition != DEFAULT_MAX_CONDITION
+                    or overlap_regularizer != "truncate"):
+                raise ValueError("overlap thresholds do not apply to the constrained ratio, "
+                                 "which never inverts S")
         S, Hm = self.matrices(cache)
+        if ratio_error_budget is not None:
+            return self._solve_constrained_ratio(
+                cache, S, Hm, norm_floor=norm_floor, error_budget=ratio_error_budget,
+                max_denominator_cv=ratio_max_denominator_cv, tolerance=ratio_tolerance,
+                max_iterations=ratio_max_iterations, parameters={
+                    "tau_s": tau_s, "rel_tau": rel_tau, "max_condition": max_condition,
+                    "norm_floor": norm_floor, "calibrate_overlap": calibrate_overlap,
+                    "overlap_delta": overlap_delta, "overlap_bound": overlap_bound,
+                    "overlap_method": overlap_method, "overlap_strategy": overlap_strategy,
+                    "overlap_policy": overlap_policy, "overlap_safety": overlap_safety,
+                    "overlap_regularizer": overlap_regularizer,
+                    "overlap_repair": overlap_repair, "pencil_angle": pencil_angle,
+                    "energy_shift": energy_shift, "energy_scale": energy_scale,
+                    "pole_tolerance": pole_tolerance})
         repair = None
         measured_values = None
         physical_values = None
@@ -492,7 +557,47 @@ class SharedMeasurement:
             "energy_shift": rotation["energy_shift"] if rotation is not None else energy_shift,
             "energy_scale": rotation["energy_scale"] if rotation is not None else energy_scale,
             "pole_tolerance": rotation["pole_tolerance"] if rotation is not None else pole_tolerance,
+            "ratio_error_budget": None,
+            "ratio_max_denominator_cv": ratio_max_denominator_cv,
+            "ratio_tolerance": ratio_tolerance,
+            "ratio_max_iterations": ratio_max_iterations,
         })
+
+    def _solve_constrained_ratio(self, cache: GroupedWordCache, S: np.ndarray,
+                                 Hm: np.ndarray, *, norm_floor: float, error_budget: float,
+                                 max_denominator_cv: float, tolerance: float,
+                                 max_iterations: int, parameters: dict) -> SubspaceResult:
+        from ..subspace.pencil import solve_constrained_ratio
+
+        resources = dict(self.bank.resources(self.indices))
+        resources.update({
+            "evidence": HEURISTIC,
+            "shots": cache.total_shots,
+            "circuits": cache.total_circuits,
+            "qwc_groups": len(self.groups),
+            "word_pooling": cache.pooling,
+            "measured_words": len(self.words),
+            "shots_per_measured_word": (cache.total_shots / len(self.words)
+                                        if self.words else 0.0),
+            "overlap_threshold_policy": "constrained_ratio",
+            "overlap_regularizer": "none",
+            "overlap_calibration": None,
+        })
+        labels = [self.bank.generator(i).label for i in self.indices]
+        result = solve_constrained_ratio(
+            S, Hm, self.entry_covariance(cache), labels, error_budget=error_budget,
+            max_denominator_cv=max_denominator_cv, tolerance=tolerance,
+            max_iterations=max_iterations, norm_floor=norm_floor, resources=resources)
+        ratio = result.resources["constrained_ratio"]
+        return replace(result.with_bank(self.bank, self.indices),
+                       measurement_fingerprint=grouped_cache_fingerprint(cache),
+                       estimator_parameters={
+                           **parameters,
+                           "ratio_error_budget": ratio["error_budget"],
+                           "ratio_max_denominator_cv": ratio["max_denominator_cv"],
+                           "ratio_tolerance": ratio["tolerance"],
+                           "ratio_max_iterations": ratio["max_iterations"],
+                       })
 
     def solve_selected_rank(self, cache: GroupedWordCache, *, gamma: float = 2.0,
                             tau_s: float = DEFAULT_TAU_S, rel_tau: float = 0.0,
