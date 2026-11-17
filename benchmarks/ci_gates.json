@@ -27,6 +27,50 @@
     {
       "commands": [
         [
+          "benchmarks/check_interval_coverage.py",
+          "--verify-history"
+        ]
+      ],
+      "environment_record": "protocol_cost.json",
+      "gate": "check_interval_coverage",
+      "inputs": [
+        "docs/restart/interval_coverage_declaration.json",
+        "docs/restart/interval_coverage_results.json.gz"
+      ],
+      "max_output_bytes": 16777216,
+      "tier": "structural",
+      "timeout": 15,
+      "watch": [
+        "benchmarks/*interval_coverage*",
+        "tests/test_interval_coverage.py",
+        "docs/restart/*interval_coverage*"
+      ]
+    },
+    {
+      "commands": [
+        [
+          "benchmarks/check_target_acquisition.py",
+          "--verify-history"
+        ]
+      ],
+      "environment_record": "protocol_cost.json",
+      "gate": "check_target_acquisition",
+      "inputs": [
+        "docs/restart/target_acquisition_declaration.json",
+        "docs/restart/target_acquisition_results.json.gz"
+      ],
+      "max_output_bytes": 16777216,
+      "tier": "structural",
+      "timeout": 15,
+      "watch": [
+        "benchmarks/*target_acquisition*",
+        "tests/test_target_acquisition.py",
+        "docs/restart/*target_acquisition*"
+      ]
+    },
+    {
+      "commands": [
+        [
           "benchmarks/check_fcidump_h4.py"
         ]
       ],

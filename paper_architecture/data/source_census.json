@@ -23,6 +23,7 @@
       "check_frame_coordinate_projection",
       "check_g1_structural_preconditioner",
       "check_h2o_residual_comparison",
+      "check_interval_coverage",
       "check_krylov_width",
       "check_mapping_axis",
       "check_molecular",
@@ -70,6 +71,7 @@
       "check_sparse_ga_kernel",
       "check_sparse_packet_work",
       "check_summaries",
+      "check_target_acquisition",
       "check_warm_start"
     ],
     "classes": {
@@ -83,7 +85,7 @@
       "Plan ledger": 1,
       "Post-hoc declaration": 6,
       "Preregistration": 13,
-      "Sampled inference accounting": 2,
+      "Sampled inference accounting": 4,
       "Value-rebuilt": 34
     },
     "conditional_gates": [],
@@ -102,12 +104,12 @@
       "check_r3c_lih_full_cost",
       "check_r3d_qr3_refinement"
     ],
-    "gates": 79,
-    "named_in_workflow": 72,
-    "producers": 77,
+    "gates": 81,
+    "named_in_workflow": 74,
+    "producers": 79,
     "producers_without_gate": 25,
-    "run_on_every_pull_request": 61,
-    "same_stem_pairs": 52
+    "run_on_every_pull_request": 63,
+    "same_stem_pairs": 54
   },
   "records": {
     "annotated_records": [
@@ -247,17 +249,17 @@
         "modules": 3
       },
       "subspace": {
-        "lines": 19873,
-        "modules": 49
+        "lines": 20495,
+        "modules": 51
       },
       "surface": {
         "lines": 39,
         "modules": 1
       }
     },
-    "package_lines": 38867,
-    "package_modules": 129,
-    "test_lines": 47430,
-    "test_modules": 196
+    "package_lines": 39489,
+    "package_modules": 131,
+    "test_lines": 49037,
+    "test_modules": 199
   }
 }

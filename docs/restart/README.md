@@ -26,6 +26,20 @@ matrix-only PRD replay tool, and a covariance-aware constrained-ratio estimator
 that never inverts `S`. That estimator is biased downward by up to about its
 error budget. The ladder carries no interval-coverage or accuracy-improvement claim.
 
+The [declared interval-coverage study](INTERVAL_COVERAGE.md) tested those
+estimators' delta-method and bootstrap intervals against the exact subspace
+energy at 68% and 95%. No construction was calibrated for every estimator. The
+basic bootstrap came closest on the thresholded solves, and the constrained
+ratio's budgets did not transfer to the held-out system.
+
+The [declared target-aware acquisition study](TARGET_ACQUISITION.md) compared
+Ritz-targeted shot allocation with uniform allocation at matched error and
+tested the interval reported by a predeclared stopping rule. Targeting was
+never dearer and was 1.4 to 2.7 times cheaper in five of eight cells. The
+stopped interval over-covered on the three four-qubit banks and under-covered
+on the held-out six-qubit bank, where the rule stopped on solves that had
+truncated a direction.
+
 The [preregistered noise-aware selection experiment](NOISE_AWARE_SELECTION.md)
 closed negative on its equal-shot held-out criterion. An independent H4 audit
 checks the published energy trajectory and Pauli support counts.

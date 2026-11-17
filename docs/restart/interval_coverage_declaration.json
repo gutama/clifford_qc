@@ -1,0 +1,73 @@
+{
+  "schema": "clifford_qc.interval_coverage_declaration.v1",
+  "declared": "2026-11-16",
+  "question": "Do delta-method and grouped-bootstrap intervals on measured Ritz values contain the exact subspace ground energy at their nominal 68% and 95% rates?",
+  "target": "exact_subspace_ground_energy",
+  "seed_root": 20261116,
+  "levels": [0.68, 0.95],
+  "methods": ["delta_normal", "bootstrap_percentile", "bootstrap_basic"],
+  "strata_edges": [0.001, 0.01, 0.1],
+  "summary_confidence": 0.95,
+  "systems": [
+    {
+      "key": "tfim4_orthogonal",
+      "role": "development",
+      "model": {"family": "tfim", "n": 4, "J": 1.0, "h": 1.0},
+      "pool_words": 3,
+      "krylov_powers": 0
+    },
+    {
+      "key": "tfim4_mixed",
+      "role": "development",
+      "model": {"family": "tfim", "n": 4, "J": 1.0, "h": 1.0},
+      "pool_words": 6,
+      "krylov_powers": 2
+    },
+    {
+      "key": "xxz4_mixed",
+      "role": "held_out",
+      "model": {"family": "xxz", "n": 4, "J": 1.0, "delta": 0.5},
+      "pool_words": 6,
+      "krylov_powers": 2
+    }
+  ],
+  "shots_per_group": [2000, 20000],
+  "arms": [
+    {
+      "key": "threshold_default",
+      "systems": ["tfim4_orthogonal", "tfim4_mixed", "xxz4_mixed"],
+      "replicas": 200,
+      "bootstrap_replicates": 200,
+      "solver_kwargs": {}
+    },
+    {
+      "key": "calibrated_per_mode",
+      "systems": ["tfim4_orthogonal", "tfim4_mixed", "xxz4_mixed"],
+      "replicas": 200,
+      "bootstrap_replicates": 200,
+      "solver_kwargs": {"calibrate_overlap": true}
+    },
+    {
+      "key": "nearest_correlation_repair",
+      "systems": ["tfim4_orthogonal", "tfim4_mixed", "xxz4_mixed"],
+      "replicas": 200,
+      "bootstrap_replicates": 200,
+      "solver_kwargs": {"overlap_repair": "nearest_correlation"}
+    },
+    {
+      "key": "constrained_ratio",
+      "systems": ["tfim4_mixed", "xxz4_mixed"],
+      "replicas": 100,
+      "bootstrap_replicates": 100,
+      "solver_kwargs": {},
+      "ratio_error_budget_by_shots": {"2000": 0.005, "20000": 0.0016}
+    }
+  ],
+  "classification": {
+    "rate": "all_replicas",
+    "under": "the Wilson upper limit of the all-replica coverage rate is below the nominal level",
+    "over": "the Wilson lower limit of the all-replica coverage rate is above the nominal level",
+    "consistent": "the nominal level lies inside the Wilson interval"
+  },
+  "spot_replay_replicas": 2
+}

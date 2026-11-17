@@ -639,7 +639,7 @@ frame-coordinate comparison above still fails its joint criterion.
 ```bash
 python -m venv .venv && source .venv/bin/activate
 pip install -e .[test,research,stim]       # automatic CI extras
-pytest                                      # 4810 passed, 12 skipped (expected if green)
+pytest                                      # 5001 passed, 12 skipped (expected if green)
 ```
 
 This is the automatic CI dependency set; record gates additionally pin NumPy
@@ -658,7 +658,7 @@ the remaining `12 - 6 = 6` skips are per-test and *are* collected:
 
 ```text
 collected == passed + (skipped - files dropped at collection)
-4816      == 4810   + (12      -   6)
+5007      == 5001   + (12      -   6)
 ```
 
 Both sides are computed from the tree, so a drift in either quoted number
@@ -1678,6 +1678,54 @@ unpruned construction within the tolerances stored in the v2 record. At
 `1e-8` all quoted rungs pass and the stored numerical differences are zero.
 `tests/test_krylov_width.py` checks the collapse identity, nested sweep, and
 certificate gate.
+
+### Declared interval-coverage study
+
+`docs/restart/INTERVAL_COVERAGE.md` declared, before any evaluation seed was
+drawn, how delta-method and grouped-bootstrap intervals on measured Ritz values
+are tested against the exact subspace energy, and now reports the result. The
+record is `docs/restart/interval_coverage_results.json.gz`. The producer
+executed the declaration once, under the record environment; it refuses to
+overwrite that record, so run it only with a different `--output`:
+
+```bash
+python benchmarks/run_interval_coverage.py --jobs 4 --output reproductions/interval_coverage.json.gz
+python benchmarks/check_interval_coverage.py --verify-history
+python benchmarks/check_interval_coverage.py --report
+```
+
+The checker verifies the record against the declaration and regenerates the
+first declared replicas of every cell; `--full-replay` regenerates every row
+and `--report` prints the tables the study document embeds.
+`--verify-history` needs the published commit ancestry. The constrained-ratio
+rows of the held-out bank are compared by seeds and shots only: its budget is
+unattainable there, and how the search then ends differs between machines.
+
+Both study checkers replay only while every bound source matches the record or
+has its execution-time bytes packaged under
+`benchmarks/provenance/execution_sources/<declaration commit>/`. To edit a bound
+source, package its old bytes there in the same change; the tests fail otherwise.
+
+### Declared target-aware acquisition study
+
+`docs/restart/TARGET_ACQUISITION.md` declared, before any evaluation seed was
+drawn, how Ritz-targeted shot allocation is compared with uniform allocation at
+matched error and how the interval reported by a predeclared stopping rule is
+tested against the exact subspace energy, and now reports the result. The
+record is `docs/restart/target_acquisition_results.json.gz`. The producer
+executed the declaration once, under the record environment; it refuses to
+overwrite that record, so run it only with a different `--output`:
+
+```bash
+python benchmarks/run_target_acquisition.py --jobs 4 --output reproductions/target_acquisition.json.gz
+python benchmarks/check_target_acquisition.py --verify-history
+python benchmarks/check_target_acquisition.py --report
+```
+
+The checker verifies the record against the declaration and the schedule, and
+regenerates the first declared replicas of every system; `--full-replay`
+regenerates every row and `--report` prints the tables the study document
+embeds. `--verify-history` needs the published commit ancestry.
 
 ## Finite-shot nonlinear response uncertainty
 
@@ -5999,4 +6047,3 @@ declared hardware device cards, backed by `benchmarks/geometric_information_stud
 python benchmarks/run_geometric_information_study.py --out benchmarks/geometric_information_study.json
 python -m unittest tests/test_commutator_hierarchy.py tests/test_information_selection.py
 ```
-
