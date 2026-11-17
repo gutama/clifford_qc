@@ -321,3 +321,38 @@ The limits declared above stand. Two were visible in the outcome:
   `git_dirty` flag is true for that reason.
 
 No estimator, interval or default is changed by this study.
+
+### Replay on a second machine
+
+This section was added after the result was first published. It changes how
+one group of rows is replayed and how their counts should be read.
+
+The record was produced on one machine, and its checker passed there. On a
+second machine, under the same pinned Python, NumPy and SciPy, the first twelve
+replicas of every cell were regenerated. All 240 rows of the three thresholded
+arms, and of the constrained ratio on the development bank, matched the record
+to `1e-7`. The constrained ratio on the held-out bank did not. Over its first
+40 replicas per cell, the outcome matched in 30 and 32 rows and the whole row
+in 17 and 26.
+
+Where the transferred budget is unattainable, whether the search returns a
+point, gives up in its line search or reaches its iteration limit depends on
+rounding, and a different CPU rounds differently. What the two machines agree
+on is the result itself:
+
+| `xxz4_mixed`, first 40 replicas | Failed solves, record | Failed solves, second machine | Error of the returned energies |
+| --- | ---: | ---: | --- |
+| 2,000 shots per group | 28 | 26 | 4.57 to 4.72 on both |
+| 20,000 shots per group | 29 | 31 | 4.57 to 4.70 on both |
+
+So the conclusion stands: the budgets were unattainable on the held-out bank,
+about seven solves in ten failed, and the rest were far from the target. The
+exact counts quoted above for that arm on `xxz4_mixed` (71 and 74 failed
+solves, 29 and 26 failed bootstraps) describe the producing machine and should
+not be read to the last unit.
+
+The checker now compares those rows by their seeds and shots only, and prints
+a note when it does. The rule is read from the record: a searching arm with
+any failed solve in a cell. Every other row is regenerated as declared. This
+narrows the replay the declaration describes, which regenerates the first two
+replicas of every cell.

@@ -639,7 +639,7 @@ frame-coordinate comparison above still fails its joint criterion.
 ```bash
 python -m venv .venv && source .venv/bin/activate
 pip install -e .[test,research,stim]       # automatic CI extras
-pytest                                      # 4948 passed, 12 skipped (expected if green)
+pytest                                      # 4951 passed, 12 skipped (expected if green)
 ```
 
 This is the automatic CI dependency set; record gates additionally pin NumPy
@@ -658,7 +658,7 @@ the remaining `12 - 6 = 6` skips are per-test and *are* collected:
 
 ```text
 collected == passed + (skipped - files dropped at collection)
-4954      == 4948   + (12      -   6)
+4957      == 4951   + (12      -   6)
 ```
 
 Both sides are computed from the tree, so a drift in either quoted number
@@ -1697,7 +1697,9 @@ python benchmarks/check_interval_coverage.py --report
 The checker verifies the record against the declaration and regenerates the
 first declared replicas of every cell; `--full-replay` regenerates every row
 and `--report` prints the tables the study document embeds.
-`--verify-history` needs the published commit ancestry.
+`--verify-history` needs the published commit ancestry. The constrained-ratio
+rows of the held-out bank are compared by seeds and shots only: its budget is
+unattainable there, and how the search then ends differs between machines.
 
 ### Declared target-aware acquisition study
 

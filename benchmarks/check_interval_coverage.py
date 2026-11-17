@@ -17,6 +17,11 @@ a changed source) and the structural checks stand alone; ``--require-replay``
 turns that into a failure. ``--verify-history`` additionally proves from Git
 that the declaration was committed before the record existed.
 
+One kind of row is replayed only by its seeds and shots. Where the record shows
+a searching arm failing, how its search ends depends on rounding and so on the
+machine; see :func:`search_unstable`. The checker names those cells when it
+skips them.
+
     python benchmarks/check_interval_coverage.py --verify-history
 """
 
@@ -112,10 +117,38 @@ def _discrete(value):
     return value
 
 
+def search_unstable(record: dict) -> set[tuple[int, str]]:
+    """``(cell, arm)`` pairs whose rows another machine cannot regenerate.
+
+    An arm that runs an iterative search, here the constrained ratio, ends
+    reproducibly where its budget is attainable. Where it is not, whether SLSQP
+    returns a point, gives up in its line search or hits its iteration limit
+    depends on rounding, and a different CPU rounds differently. On a second
+    machine, under the same pinned libraries, the outcome of such a row matched
+    the record in about three of four cases, while every other row of the study
+    matched to ``1e-7``.
+
+    The record itself says where this happens: a searching arm with any failed
+    solve in a cell. Those rows are compared by seeds and shots only. Their
+    failure rate is a result; their individual outcomes are not replayable.
+    """
+    searching = {arm["key"] for arm in record["declaration"]["arms"]
+                 if arm.get("ratio_error_budget_by_shots") is not None}
+    return {(row["cell"], row["arm"]) for row in record["rows"]
+            if row["arm"] in searching and row["outcome"] != "ok"}
+
+
+def _identity(row: dict) -> dict:
+    """What a row is before any estimator runs: its place, seeds and shots."""
+    return {key: row[key] for key in ("cell", "arm", "replica", "measurement_seed",
+                                      "bootstrap_seed", "shots")}
+
+
 def replay_problems(record: dict, *, replicas: int | None) -> tuple[list[str], int]:
     """Regenerate rows and compare; ``replicas=None`` replays every row."""
     declaration = record["declaration"]
     committed = {(row["cell"], row["arm"], row["replica"]): row for row in record["rows"]}
+    unstable = search_unstable(record)
     problems: list[str] = []
     compared = 0
     for task in producer.expected_tasks(declaration, replicas=replicas):
@@ -123,7 +156,9 @@ def replay_problems(record: dict, *, replicas: int | None) -> tuple[list[str], i
             key = (fresh["cell"], fresh["arm"], fresh["replica"])
             stored = committed[key]
             value = stored.get("stratification_value")
-            if value is not None and value < ILL_CONDITIONED:
+            if (fresh["cell"], fresh["arm"]) in unstable:
+                found = compare_json_records(_identity(stored), _identity(fresh), f"row{key}")
+            elif value is not None and value < ILL_CONDITIONED:
                 found = compare_json_records(_discrete(stored), _discrete(fresh), f"row{key}")
             else:
                 found = compare_json_records(stored, fresh, f"row{key}",
@@ -279,6 +314,10 @@ def main(argv=None) -> int:
                 problems.append("replay was required but cannot reproduce this record here")
         else:
             count = None if args.full_replay else record["declaration"]["spot_replay_replicas"]
+            for cell, arm in sorted(search_unstable(record)):
+                print(f"NOTE {arm} in cell {cell} failed solves in the record; its search "
+                      "ends differently on different machines, so only its seeds and "
+                      "shots are compared")
             found, compared = replay_problems(record, replicas=count)
             problems.extend(found)
             replayed = f"{compared} row(s) regenerated"

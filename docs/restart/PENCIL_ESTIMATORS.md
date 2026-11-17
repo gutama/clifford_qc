@@ -359,7 +359,9 @@ three ways:
 - **Constrained ratio.** Where its budget was attainable it removed that tail
   (worst error 0.0156), and its basic-bootstrap interval was close to nominal.
   Its percentile interval was not. The absolute budgets chosen on the
-  development bank were unattainable on the held-out bank.
+  development bank were unattainable on the held-out bank. There the search's
+  outcome on a given row also differs between machines, so only its failure
+  rate is a reproducible result.
 - **Intervals.** The basic bootstrap is the better default construction for
   the thresholded solves: it was never labelled `under` for the default or the
   repaired solve.

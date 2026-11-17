@@ -384,6 +384,41 @@ def test_an_ill_conditioned_row_replays_its_discrete_fields_only(record):
                for problem in checker.replay_problems(record, replicas=1)[0])
 
 
+def test_only_a_searching_arm_that_failed_is_marked_machine_dependent():
+    record = {
+        "declaration": {"arms": [
+            {"key": "threshold"},
+            {"key": "ratio", "ratio_error_budget_by_shots": {"200": 0.1}}]},
+        "rows": [
+            {"cell": 0, "arm": "threshold", "outcome": "solve_failed"},
+            {"cell": 0, "arm": "ratio", "outcome": "ok"},
+            {"cell": 1, "arm": "ratio", "outcome": "ok"},
+            {"cell": 1, "arm": "ratio", "outcome": "solve_failed"},
+            {"cell": 2, "arm": "ratio", "outcome": "ok"}]}
+    # A thresholded solve that fails is still replayable; a search that never
+    # failed in a cell is too.
+    assert checker.search_unstable(record) == {(1, "ratio")}
+
+
+def test_machine_dependent_rows_replay_their_seeds_and_shots_only(record, monkeypatch):
+    monkeypatch.setattr(checker, "search_unstable", lambda record: {(0, "threshold")})
+    row = record["rows"][0]
+    assert (row["cell"], row["arm"]) == (0, "threshold")
+    row["estimate"] += 1.0
+    row["outcome"] = "solve_failed"
+    assert checker.replay_problems(record, replicas=1)[0] == []
+    row["bootstrap_seed"] += 1
+    assert any("bootstrap_seed" in problem
+               for problem in checker.replay_problems(record, replicas=1)[0])
+    row["bootstrap_seed"] -= 1
+    row["shots"] += 1
+    assert any("shots" in problem for problem in checker.replay_problems(record, replicas=1)[0])
+    # Every other cell and arm is still compared in full.
+    other = next(r for r in record["rows"] if (r["cell"], r["arm"]) == (0, "repair"))
+    other["estimate"] += 1.0
+    assert any("estimate" in problem for problem in checker.replay_problems(record, replicas=1)[0])
+
+
 def test_replay_is_blocked_by_an_evolved_source_or_another_sampling_stream(record):
     record["implementation"]["clifford_qc/subspace/coverage.py"] = "0" * 64
     blockers = checker.replay_blockers(record)
@@ -412,6 +447,15 @@ def test_the_committed_record_matches_its_declaration(committed):
     assert committed["implementation"].keys() == set(producer.IMPLEMENTATION)
     # The held-out system was sampled only under the declared seed root.
     assert committed["declaration"]["seed_root"] == 20261116
+
+
+def test_the_committed_record_marks_the_unattainable_search_as_machine_dependent(committed):
+    # The constrained ratio failed solves only on the held-out bank, whose two
+    # cells are the only rows not replayed in full.
+    assert checker.search_unstable(committed) == {(4, "constrained_ratio"),
+                                                  (5, "constrained_ratio")}
+    cells = {cell["cell"]: cell["system"] for cell in producer.cells(committed["declaration"])}
+    assert {cells[4], cells[5]} == {"xxz4_mixed"}
 
 
 def test_the_study_document_embeds_the_generated_report(committed):
