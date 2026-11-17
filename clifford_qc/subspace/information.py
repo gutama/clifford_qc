@@ -44,7 +44,8 @@ from dataclasses import dataclass, field
 import math
 from numbers import Integral
 import time
-from typing import Any, Iterable, Mapping, Sequence
+from typing import Any, Iterable, Mapping, Sequence, cast
+import weakref
 
 import numpy as np
 
@@ -62,10 +63,9 @@ from ..measurement.functionals import (
     entry_functionals,
     ritz_functional,
 )
-from ..measurement.grouping import _qwc_codes, qwc_groups, shared_basis
-from ..measurement.session import SharedMeasurement
+from ..measurement.grouping import _nonident_lanes, _qwc_codes, qwc_groups, shared_basis
+from ..measurement.session import SharedMeasurement, grouped_cache_fingerprint
 from ..multivector import MV
-from ..pauli_kernel import LETTER_CODE
 from ..selection import EvidenceLevel, TIE_ATOL, TIE_RTOL, canonical_argmax
 from .adaptive import (
     DEFAULT_MAX_CONDITION,
@@ -89,6 +89,7 @@ from .elements import MatrixElementBank
 from .generator_core import as_generators
 from .generators import identity_generator
 from .linalg import DEFAULT_NORM_FLOOR, SubspaceResult, solve_projected
+from .symmetry import subspace_sector_certificate
 from .uncertainty import Interval, _point_estimator, ritz_uncertainty
 
 _EI_MODES = ("point", "risk_adjusted", "shrinkage", "snr_gated")
@@ -100,10 +101,8 @@ def _non_identity_words(n: int, codes: Iterable[int]) -> list[PauliWord]:
 
 
 def basis_dict_to_code(basis: Mapping[int, str]) -> int:
-    code = 0
-    for qubit, letter in basis.items():
-        code |= LETTER_CODE[letter] << (2 * int(qubit))
-    return code
+    """Packed Pauli code of a ``{qubit: letter}`` setting, as the cache computes it."""
+    return GroupedWordCache._basis_code({int(qubit): letter for qubit, letter in basis.items()})
 
 
 def qwc_bases_for_words(n: int, word_codes: Iterable[int]) -> tuple[int, ...]:
@@ -256,6 +255,10 @@ def estimate_incremental_cost(
         working = list(qwc_bases)
         n_existing = len(working)
         for code in new_codes:
+            # A setting that already reads the word measures it for free. Only
+            # otherwise widen the first compatible setting, or open a new one.
+            if any(_qwc_reads_word(n, code, g_basis) for g_basis in working):
+                continue
             for g, g_basis in enumerate(working):
                 if _qwc_codes(n, code, g_basis):
                     working[g] = g_basis | code
@@ -314,8 +317,13 @@ def _linear_combination_functionals(
     candidate: int,
     *,
     kind_idx: int,
+    column: Sequence | None = None,
 ) -> tuple[WordFunctional, WordFunctional]:
-    """Assemble real and imag linear functionals for ``sum_i c_i^* O_{i, candidate}``."""
+    """Assemble real and imag linear functionals for ``sum_i c_i^* O_{i, candidate}``.
+
+    ``column[a]`` may supply ``entry_functionals(bank, basis[a], candidate)``
+    when the caller already built it; it is the same value.
+    """
     re_terms: dict[int, float] = {}
     im_terms: dict[int, float] = {}
     re_const = 0.0
@@ -326,7 +334,8 @@ def _linear_combination_functionals(
         if c == 0j:
             continue
         cr, ci = c.real, c.imag
-        f_re, f_im = entry_functionals(bank, i, candidate)[kind_idx]
+        entry = column[a] if column is not None else entry_functionals(bank, i, candidate)
+        f_re, f_im = entry[kind_idx]
         # (cr - i*ci) * (x + i*y) = (cr*x + ci*y) + i*(cr*y - ci*x)
         if cr != 0.0:
             re_const += cr * f_re.constant
@@ -491,6 +500,34 @@ def _basis_response(bank: MatrixElementBank, basis: Sequence[int],
         tuple(bool(value) for value in valid), stable_rank)
 
 
+# The last few basis responses, so the public scoring functions do not
+# redifferentiate one solve for every candidate and root. Entries hold weak
+# references: a cached response never keeps a bank or a solve alive.
+_RESPONSE_MEMO: list[tuple[Any, Any, tuple[int, ...], str, str, _BasisResponse]] = []
+_RESPONSE_MEMO_SIZE = 8
+
+
+def _cached_basis_response(bank: MatrixElementBank, basis: Sequence[int],
+                           result: SubspaceResult, cache: GroupedWordCache) -> _BasisResponse:
+    """:func:`_basis_response`, remembered per (bank, basis, solve, joint outcomes).
+
+    A hit needs the same bank and solve objects, the same basis and pooling,
+    and a cache whose outcomes have not changed since; anything else is
+    recomputed, so a stale response is never returned.
+    """
+    key_basis = tuple(int(index) for index in basis)
+    fingerprint = grouped_cache_fingerprint(cache)
+    for result_ref, bank_ref, entry_basis, pooling, entry_print, response in _RESPONSE_MEMO:
+        if (result_ref() is result and bank_ref() is bank and entry_basis == key_basis
+                and pooling == cache.pooling and entry_print == fingerprint):
+            return response
+    response = _basis_response(bank, basis, result, cache)
+    _RESPONSE_MEMO.insert(0, (weakref.ref(result), weakref.ref(bank), key_basis,
+                              cache.pooling, fingerprint, response))
+    del _RESPONSE_MEMO[_RESPONSE_MEMO_SIZE:]
+    return response
+
+
 def _expected_lowering_details(
     bank: MatrixElementBank,
     basis: Sequence[int],
@@ -499,7 +536,6 @@ def _expected_lowering_details(
     *,
     root: int = 0,
     cache: GroupedWordCache | None = None,
-    ritz_f: WordFunctional | None = None,
     basis_response: _BasisResponse | None = None,
 ) -> tuple[
     float,
@@ -533,7 +569,7 @@ def _expected_lowering_details(
 
     # The Ritz vectors were estimated from this cache too. Their response is
     # first order for candidate couplings, unlike the stationary Ritz energy.
-    response = basis_response if basis_response is not None else _basis_response(
+    response = basis_response if basis_response is not None else _cached_basis_response(
         bank, basis, result, cache)
     # Finite-shot covariance-aware estimation
     (s_aa_f, _), (h_aa_f, _) = entry_functionals(bank, candidate, candidate)
@@ -542,13 +578,17 @@ def _expected_lowering_details(
     if s_aa <= DEFAULT_NORM_FLOOR ** 2:
         return 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, None, None
 
+    # The candidate's column of (S, H) functionals, built once and shared by
+    # every projection below.
+    column = [entry_functionals(bank, i, candidate) for i in basis]
+
     # Projections against every retained eigenvector
     k_ret = coeffs_all.shape[1]
     proj_funcs: list[WordFunctional] = []
     proj_vals: list[tuple[float, float]] = []
     for k in range(k_ret):
         pr_f, pi_f = _linear_combination_functionals(
-            bank, basis, coeffs_all[:, k], candidate, kind_idx=0
+            bank, basis, coeffs_all[:, k], candidate, kind_idx=0, column=column
         )
         proj_funcs.extend((pr_f, pi_f))
         proj_vals.append((float(pr_f.estimate(cache)), float(pi_f.estimate(cache))))
@@ -556,16 +596,16 @@ def _expected_lowering_details(
     s_a_re_f, s_a_im_f = proj_funcs[2 * root], proj_funcs[2 * root + 1]
     s_a = complex(*proj_vals[root])
     h_a_re_f, h_a_im_f = _linear_combination_functionals(
-        bank, basis, c_r, candidate, kind_idx=1
+        bank, basis, c_r, candidate, kind_idx=1, column=column
     )
     h_a_re = float(h_a_re_f.estimate(cache))
     h_a_im = float(h_a_im_f.estimate(cache))
     h_a = complex(h_a_re, h_a_im)
 
-    s_col = np.array([complex(*[part.estimate(cache) for part in
-                               entry_functionals(bank, i, candidate)[0]]) for i in basis])
-    h_col = np.array([complex(*[part.estimate(cache) for part in
-                               entry_functionals(bank, i, candidate)[1]]) for i in basis])
+    s_col = np.array([complex(*[part.estimate(cache) for part in entry[0]])
+                      for entry in column])
+    h_col = np.array([complex(*[part.estimate(cache) for part in entry[1]])
+                      for entry in column])
     ds = np.einsum("ni,i->n", response.coefficients[:, :, root].conj(), s_col)
     dh = np.einsum("ni,i->n", response.coefficients[:, :, root].conj(), h_col)
     s_a_re_f += _combine_linear(ds.real, response.functionals)
@@ -753,7 +793,6 @@ def _score_information_candidate_with_details(
     leakage_mode: str = "operator",
     sector_target: tuple[int, float] | None = None,
     spin_ordering: str | tuple = "interleaved",
-    ritz_f: WordFunctional | None = None,
     basis_response: _BasisResponse | None = None,
 ) -> tuple[InformationScore, WordFunctional | None, WordFunctional | None]:
     label = bank.generator(candidate).label
@@ -826,7 +865,7 @@ def _score_information_candidate_with_details(
     if not tracked:
         tracked = (0,)
     if cache is not None and basis_response is None:
-        basis_response = _basis_response(bank, basis, result, cache)
+        basis_response = _cached_basis_response(bank, basis, result, cache)
 
     per_root_low: list[float] = []
     per_root_std: list[float] = []
@@ -839,9 +878,8 @@ def _score_information_candidate_with_details(
     low_f_0: WordFunctional | None = None
 
     for idx_r, r in enumerate(tracked):
-        rf_arg = ritz_f if r == 0 else None
         low_r, std_r, ofrac, ostd, coup, cstd, of_r, lf_r = _expected_lowering_details(
-            bank, basis, result, candidate, root=r, cache=cache, ritz_f=rf_arg,
+            bank, basis, result, candidate, root=r, cache=cache,
             basis_response=basis_response
         )
         if idx_r == 0:
@@ -1003,11 +1041,51 @@ def score_information_candidate(
     return score
 
 
+def retained_sector_certificate(
+    bank: MatrixElementBank,
+    basis: Sequence[int],
+    *,
+    leakage_tol: float | None,
+    leakage_mode: str,
+    sector_target: tuple[int, float] | None,
+    spin_ordering: str | tuple,
+) -> dict[str, Any] | None:
+    """The whole-subspace sector check ``run_acase`` ends with, for its variants.
+
+    Candidates that each pass a reference-conditioned leakage test can still
+    combine into a span that leaks more. With ``leakage_tol`` set and a mode
+    other than ``'operator'``, this certifies the retained span and raises if it
+    fails, exactly as ``run_acase`` does; otherwise it returns ``None``.
+    """
+    if leakage_tol is None or leakage_mode == "operator":
+        return None
+    certificate = subspace_sector_certificate(
+        cast(MV, bank.reference), [bank.generator(index) for index in basis],
+        sector_target=sector_target, spin_ordering=spin_ordering)
+    if certificate["max_sector_leakage"] > leakage_tol:
+        raise ValueError(
+            "retained subspace fails the reference-conditioned sector "
+            f"certificate: {certificate['max_sector_leakage']:.3g} > {leakage_tol:.3g}")
+    return certificate
+
+
 def select_information_candidate(
     scores: Sequence[InformationScore],
+    *,
+    min_lowering: float | None = None,
+    lowering: str = "predicted_lowering",
 ) -> InformationScore | None:
-    """Deterministic tie-breaking argmax matching canonical_argmax."""
-    live = [s for s in scores if s.accepted]
+    """Deterministic tie-breaking argmax of the information ratio.
+
+    With ``min_lowering``, only accepted candidates whose ``lowering`` field
+    reaches it compete. Applying the threshold after the argmax instead would
+    let a cheap candidate with negligible lowering win on ratio and end the run
+    while a costlier candidate with real lowering was available.
+    """
+    if lowering not in ("predicted_lowering", "risk_adjusted_lowering"):
+        raise ValueError("lowering must be 'predicted_lowering' or 'risk_adjusted_lowering'")
+    live = [s for s in scores if s.accepted and (
+        min_lowering is None or getattr(s, lowering) >= min_lowering)]
     if not live:
         return None
     best = canonical_argmax(
@@ -1142,20 +1220,12 @@ def run_resource_aware_acase(
                 )
                 for idx in remaining
             ]
-            best = select_information_candidate(scores)
+            best = select_information_candidate(scores, min_lowering=min_lowering)
             if best is None:
-                state = acase_step(
-                    state,
-                    ACASEStepOutcome(
-                        stopped_reason="every candidate rejected (conditioning or sector)"
-                    ),
-                )
-                break
-            if best.predicted_lowering < min_lowering:
-                state = acase_step(
-                    state,
-                    ACASEStepOutcome(stopped_reason="predicted lowering below threshold"),
-                )
+                reason = ("predicted lowering below threshold"
+                          if any(s.accepted for s in scores)
+                          else "every candidate rejected (conditioning or sector)")
+                state = acase_step(state, ACASEStepOutcome(stopped_reason=reason))
                 break
 
             new_basis = state.basis + (best.index,)
@@ -1231,6 +1301,11 @@ def run_resource_aware_acase(
 
     resources = dict(state.result.resources)
     resources.update(bank.resources(state.basis))
+    certificate = retained_sector_certificate(
+        bank, state.basis, leakage_tol=leakage_tol, leakage_mode=leakage_mode,
+        sector_target=sector_target, spin_ordering=spin_ordering)
+    if certificate is not None:
+        resources["sector_certificate"] = certificate
     final_words = bank.word_set(state.basis)
     resources.update(
         {
@@ -1347,8 +1422,11 @@ class _IncrementalGroupRegistry:
         self.group_basis_codes: list[int] = []
         self.group_durations_us: list[float] = []
         self.group_fidelities: list[float] = []
-        # Extended view ONLY for SharedMeasurement word-coverage assertions.
+        # Every word each group reads for this run: its own words plus words
+        # registered later that its basis already measures. Each word belongs
+        # to exactly one group, so the allocator can attribute it.
         self._cover_words: list[set[int]] = []
+        self._owner: dict[int, int] = {}
         self.key_to_pos: dict[tuple[tuple[int, str], ...], int] = {}
 
     def register_words(self, codes: Iterable[int]) -> list[list[PauliWord]]:
@@ -1356,16 +1434,16 @@ class _IncrementalGroupRegistry:
         unique_nonzero = sorted({int(c) for c in codes if int(c) != 0})
         uncovered: list[PauliWord] = []
         for code in unique_nonzero:
-            matched_pos = None
-            for g_pos, basis_code in enumerate(self.group_basis_codes):
-                # Readable iff every non-identity qubit of code is non-identity
-                # in basis_code AND agrees on letter, i.e., support(code) subset
-                # support(basis_code) and QWC. Wait: check per-letter directly.
-                if _qwc_reads_word(self.n, code, basis_code):
-                    matched_pos = g_pos
-                    break
+            if code in self._owner:
+                continue
+            # A setting reads a word iff the word's every non-identity letter
+            # equals the setting's letter on that qubit.
+            matched_pos = next(
+                (g_pos for g_pos, basis_code in enumerate(self.group_basis_codes)
+                 if _qwc_reads_word(self.n, code, basis_code)), None)
             if matched_pos is not None:
                 self._cover_words[matched_pos].add(code)
+                self._owner[code] = matched_pos
             else:
                 uncovered.append(PauliWord(self.n, code))
 
@@ -1398,20 +1476,34 @@ class _IncrementalGroupRegistry:
             self.group_durations_us.append(dur)
             self.group_fidelities.append(fid)
             self._cover_words.append({w.code for w in group})
+            self._owner.update({w.code: pos for w in group})
             self.key_to_pos[bkey] = pos
         return fresh_groups
 
+    def reader_groups(self) -> list[list[PauliWord]]:
+        """Each group listing every word it reads, in registration order.
+
+        ``groups`` keeps the words a group was opened with, which fixes its
+        readout. This view adds the words registered later that it also reads,
+        so a shot allocator sees them; it changes nothing.
+        """
+        return [[PauliWord(self.n, code) for code in sorted(cover)]
+                for cover in self._cover_words]
+
     def session_groups(self, required_codes: Iterable[int]) -> list[list[PauliWord]]:
-        """Return QWC groups guaranteed to list every word in ``required_codes``."""
+        """Groups listing every word in ``required_codes``, which must be registered.
+
+        Registering here would let an unsampled setting look readable, so an
+        unregistered word is an error; register and fund it first.
+        """
         needed = {int(c) for c in required_codes if int(c) != 0}
         if not needed:
             return []
-        self.register_words(needed)
-        # Ensure session_groups covers all needed words without altering self.groups.
-        return [
-            [PauliWord(self.n, code) for code in sorted(cover)]
-            for cover in self._cover_words
-        ]
+        missing = needed.difference(self._owner)
+        if missing:
+            raise ValueError(f"{len(missing)} word(s) are not registered with a measured "
+                             "setting; register and sample them before building a session")
+        return self.reader_groups()
 
     def effective_costs(self, *, fidelity_inflate: bool = True) -> dict[tuple, float]:
         costs: dict[tuple, float] = {}
@@ -1441,14 +1533,14 @@ class _IncrementalGroupRegistry:
 
 
 def _qwc_reads_word(n: int, word_code: int, basis_code: int) -> bool:
-    """True iff every non-identity letter of ``word_code`` equals ``basis_code`` there."""
-    if word_code == 0:
-        return True
-    for q in range(n):
-        w_l = (word_code >> (2 * q)) & 3
-        if w_l != 0 and ((basis_code >> (2 * q)) & 3) != w_l:
-            return False
-    return True
+    """Whether a setting with merged code ``basis_code`` records ``word_code``.
+
+    The packed test ``GroupedWordCache.reader_keys`` applies: the word's support
+    lies inside the setting's, and their letters agree there.
+    """
+    word = _nonident_lanes(n, word_code)
+    return (word & ~_nonident_lanes(n, basis_code)) == 0 and (
+        word & _nonident_lanes(n, word_code ^ basis_code)) == 0
 
 
 def _words_needed_for_pairs(
@@ -1725,14 +1817,21 @@ def acquire_to_accuracy(
         ritz_f: WordFunctional,
         target_funcs: Sequence[WordFunctional],
         budget: int,
-    ) -> tuple[dict[int, int], float, float]:
-        """Return ``(plan, new_stat_error, batch_time_us)`` via Neyman formula."""
+    ) -> tuple[dict[int, int], float, float, str | None]:
+        """``(plan, new_stat_error, batch_time_us, blocked)`` via the Neyman formula.
+
+        ``blocked`` names the exhausted budget when one prevents any refinement.
+        """
         costs = registry.effective_costs(fidelity_inflate=cost_model.fidelity_inflate)
+        unchanged = float(interval.std_error or 0.0)
         if not target_funcs:
-            return {}, float(interval.std_error or 0.0), 0.0
+            return {}, unchanged, 0.0, None
+        # The allocator matches coefficients against listed words, so it needs
+        # every word a setting reads, including those registered after it.
+        readers = registry.reader_groups()
         try:
             plan = variance_optimal_group_plan(
-                registry.groups,
+                readers,
                 cache,
                 target_funcs,
                 budget,
@@ -1740,11 +1839,13 @@ def acquire_to_accuracy(
                 min_shots=0,
             )
             if plan:
-                plan = _bounded_plan(registry.groups, plan)
-        except (ValueError, _AcquisitionBudgetExhausted):
-            return {}, float(interval.std_error or 0.0), 0.0
+                plan = _bounded_plan(readers, plan)
+        except _AcquisitionBudgetExhausted as error:
+            return {}, unchanged, 0.0, str(error)
+        except ValueError:
+            return {}, unchanged, 0.0, None
         if not plan:
-            return {}, float(interval.std_error or 0.0), 0.0
+            return {}, unchanged, 0.0, None
 
         # Predict new variance of ritz_func using exact group empirical variances
         stats = (
@@ -1756,7 +1857,7 @@ def acquire_to_accuracy(
             new_std = float(interval.std_error or 0.0)
         else:
             key_to_add: dict[tuple, int] = {}
-            for key, group in zip(registry.group_keys, registry.groups):
+            for key, group in zip(registry.group_keys, readers):
                 add = max((int(plan.get(w.code, 0)) for w in group), default=0)
                 if add > 0:
                     key_to_add[key] = add
@@ -1776,8 +1877,8 @@ def acquire_to_accuracy(
             new_stat = new_std * (0.5 * (interval.upper - interval.lower) / cur_se)
         else:
             new_stat = new_std
-        batch_t = registry.batch_time_us(registry.groups, plan)
-        return plan, new_stat, batch_t
+        batch_t = registry.batch_time_us(readers, plan)
+        return plan, new_stat, batch_t, None
 
     def _budget_remaining() -> bool:
         if cache.total_shots >= max_total_shots:
@@ -1800,23 +1901,16 @@ def acquire_to_accuracy(
             and len(basis) < max_basis_size
             and _budget_remaining()
         ):
+            # ``_budget_remaining`` guarantees shots remain to fund new settings.
             cand_codes = _candidate_scoring_words(bank, basis, remaining)
-            # Only open new groups here if shots remain to sample them
-            new_only = [
-                code
-                for code in cand_codes
-                if code != 0
-                and not any(_qwc_reads_word(bank.n, code, bc) for bc in registry.group_basis_codes)
-            ]
-            if not new_only or (max_total_shots - cache.total_shots) > 0:
-                try:
-                    add_s, add_c, add_t = _ensure_covered(cand_codes)
-                except _AcquisitionBudgetExhausted as error:
-                    assessment_stop_reason = str(error)
-                if add_s:
-                    # With pooled readouts these new circuits also change the
-                    # current basis means, energy and interval.
-                    session, result, interval = _solve_current()
+            try:
+                add_s, add_c, add_t = _ensure_covered(cand_codes)
+            except _AcquisitionBudgetExhausted as error:
+                assessment_stop_reason = str(error)
+            if add_s:
+                # With pooled readouts these new circuits also change the
+                # current basis means, energy and interval.
+                session, result, interval = _solve_current()
 
         basis_words = bank.word_set(basis)
         qwc_bases = tuple(registry.group_basis_codes)
@@ -1846,12 +1940,12 @@ def acquire_to_accuracy(
                     basis_words=basis_words,
                     qwc_bases=qwc_bases,
                     min_orthogonality=min_orthogonality,
-                    ritz_f=ritz_f,
                     basis_response=response,
                 )
                 scores.append(sc)
                 cand_funcs[idx] = (of_0, lf_0)
-        best = select_information_candidate(scores)
+        best = select_information_candidate(
+            scores, min_lowering=min_lowering, lowering="risk_adjusted_lowering")
         live_scores = [s for s in scores if s.accepted]
         unresolved = [s for s in scores if s.rejected is not None and
                       s.rejected.startswith("orthogonal fraction unresolved")]
@@ -1979,7 +2073,7 @@ def acquire_to_accuracy(
                 refine_targets.extend(session.matrix_functionals())
 
         batch_budget = min(refine_batch_shots, shots_left_now)
-        plan, stat_after_refine, refine_time_us = _predict_refined_stat(
+        plan, stat_after_refine, refine_time_us, refine_blocked = _predict_refined_stat(
             ritz_f, refine_targets, batch_budget
         )
         rmse_after_refine = math.hypot(stat_after_refine, active_bias)
@@ -2123,7 +2217,8 @@ def acquire_to_accuracy(
                 )
             )
         else:
-            stopped_reason = "no remaining beneficial action (deterministic basis exhausted)"
+            stopped_reason = (refine_blocked if refine_blocked is not None else
+                              "no remaining beneficial action (deterministic basis exhausted)")
             break
 
     final_stat = _stat_err(interval)
@@ -2191,6 +2286,7 @@ __all__ = [
     "expected_lowering_estimate",
     "qwc_bases_for_words",
     "qwc_setting_resources",
+    "retained_sector_certificate",
     "run_resource_aware_acase",
     "score_information_candidate",
     "select_information_candidate",

@@ -46,6 +46,7 @@ from clifford_qc.models.fcidump import fcidump_model
 from clifford_qc.models.lattice import hubbard
 from clifford_qc.models.spin import tfim, xxz
 from clifford_qc.reproducibility import execution_provenance
+from clifford_qc.subspace.information import _qwc_reads_word
 from clifford_qc.subspace import (
     Generator,
     IncrementalCostModel,
@@ -90,16 +91,6 @@ def _total_qwc_time_us(card: DeviceCard, n: int, word_codes) -> float:
     return float(sum(setting_duration_us(card, qwc_setting_resources(n, b)) for b in bases))
 
 
-def _word_readable_by_basis(n: int, word_code: int, basis_code: int) -> bool:
-    if word_code == 0:
-        return True
-    for q in range(n):
-        wl = (word_code >> (2 * q)) & 3
-        if wl != 0 and ((basis_code >> (2 * q)) & 3) != wl:
-            return False
-    return True
-
-
 def _registry_groups_for_acq(acq) -> list[list[PauliWord]]:
     """Reconstruct exact group list matching acq.cache's discovered QWC settings."""
     n = acq.bank.n
@@ -112,7 +103,7 @@ def _registry_groups_for_acq(acq) -> list[list[PauliWord]]:
         if code in assigned:
             continue
         for pos, bcode in enumerate(bcodes):
-            if _word_readable_by_basis(n, code, bcode):
+            if _qwc_reads_word(n, code, bcode):
                 wsets[pos].add(code)
                 assigned.add(code)
                 break

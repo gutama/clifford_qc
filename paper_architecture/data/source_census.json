@@ -249,7 +249,7 @@
         "modules": 3
       },
       "subspace": {
-        "lines": 20495,
+        "lines": 20645,
         "modules": 51
       },
       "surface": {
@@ -257,9 +257,9 @@
         "modules": 1
       }
     },
-    "package_lines": 39489,
+    "package_lines": 39639,
     "package_modules": 131,
-    "test_lines": 49037,
+    "test_lines": 49346,
     "test_modules": 199
   }
 }

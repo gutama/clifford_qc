@@ -232,7 +232,79 @@ class CommutatorAlgebraTests(unittest.TestCase):
         self.assertIsNone(hier.closure_depth)
 
 
+    def test_underflow_without_normalization_is_not_lie_closure(self):
+        # The depth-2 commutator is nonzero (about 1e-14 per coefficient) and
+        # passes the relative zero test; only MV's absolute cutoff removes it.
+        H = 1e-7 * (X(2, 0) * X(2, 1) + Z(2, 0))
+        seed = Z(2, 1) + X(2, 0)
+        hier = nested_commutator_hierarchy(H, [seed], max_depth=2, normalize=False)
+        self.assertFalse(hier.closure_reached)
+        self.assertIsNone(hier.closure_depth)
+        self.assertEqual(hier.summaries[2].vanished, 0)
+        self.assertEqual(hier.summaries[2].dropped_by_filter, 1)
+        mv, diag = commutator_mv(H, hier.levels[1][0].mv, normalize=False)
+        self.assertIsNone(mv)
+        self.assertEqual(diag["status"], "underflow")
+        self.assertGreater(diag["raw_coeff_norm"], 0.0)
+        # Normalizing between levels keeps the direction, as documented.
+        normalized = nested_commutator_hierarchy(H, [seed], max_depth=2)
+        self.assertEqual(normalized.summaries[2].kept, 1)
+
+    def test_partial_underflow_counts_as_truncation(self):
+        # [X, 0.05 Z] keeps a coefficient of 0.1; [5e-12 Y, 0.05 Z] gives 5e-13,
+        # which passes a zero relative test and is then cut by MV.
+        H = X(1, 0) + 5e-12 * Y(1, 0)
+        self.assertEqual(len(H.terms), 2)
+        mv, diag = commutator_mv(H, 0.05 * Z(1, 0), normalize=False, relative_zero_tol=0.0)
+        self.assertEqual(diag["status"], "ok")
+        self.assertEqual(diag["raw_support"], 2)
+        self.assertEqual(len(mv.terms), 1)
+        self.assertEqual(diag["underflow_terms"], 1)
+        hier = nested_commutator_hierarchy(
+            H, [0.05 * Z(1, 0)], max_depth=3, normalize=False, relative_zero_tol=0.0)
+        self.assertFalse(hier.closure_reached)
+
+    def test_truncate_policy_caps_seed_support_too(self):
+        H = tfim(6, J=1.0, h=0.7).hamiltonian
+        wide = sum((X(6, q) for q in range(6)), Z(6, 0) * Z(6, 1))
+        self.assertEqual(len(wide.terms), 7)
+        hier = nested_commutator_hierarchy(
+            H, [wide], max_depth=1, max_support=3, support_policy="truncate")
+        [seed] = hier.levels[0]
+        self.assertLessEqual(seed.support(), 3)
+        self.assertLess(seed.retained_l2_fraction, 1.0)
+        for node in hier.all_nodes:
+            self.assertLessEqual(node.support(), 3)
+        # A truncated seed leaves directions unevaluated, so it is no closure witness.
+        self.assertFalse(hier.closure_reached)
+
+
 class DynamicFrontierTests(unittest.TestCase):
+    def test_a_seed_already_in_the_basis_is_still_expanded(self):
+        from clifford_qc.subspace import MatrixElementBank, identity_generator
+        from clifford_qc.subspace.commutators import CommutatorFrontier
+        from clifford_qc.subspace.generator_core import Generator
+
+        H = tfim(3, J=1.0, h=0.7).hamiltonian
+        ref = ket_density(3, "000")
+        A, B = X(3, 0), X(3, 1)
+        bank = MatrixElementBank(ref, H)
+        initial = bank.extend([identity_generator(3), Generator("A0", 2.0 * A)])
+        frontier = CommutatorFrontier(
+            bank, [Generator("A", A), Generator("B", B)], initial_indices=initial,
+            max_depth=2)
+        a_index = initial[1]
+        # A is not added a second time, but it is a depth-0 parent.
+        self.assertNotIn(a_index, frontier.active_pool)
+        self.assertEqual(frontier.depth_of[a_index], 0)
+        self.assertIn(a_index, frontier.expandable_indices())
+        child = frontier.expand_parent(a_index, initial_indices=initial)
+        self.assertIsNotNone(child)
+        self.assertEqual(frontier.parent_of[child], a_index)
+        self.assertEqual(frontier.depth_of[child], 1)
+        # Its label still comes from the seed, not from the basis copy.
+        self.assertIn("[A]", bank.generator(child).label)
+
     def test_dynamic_frontier_matches_static_with_fewer_commutators_on_spin(self):
         spin = tfim(4, J=1.0, h=1.0)
         H = spin.hamiltonian

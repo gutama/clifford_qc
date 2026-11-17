@@ -267,8 +267,13 @@ def commutator_mv(
     spurious loss from ``MV``'s absolute ``TOL = 1e-12`` under small scales.
 
     Returns ``(mv_or_none, diagnostics)``. ``mv_or_none`` is ``None`` if the
-    commutator vanishes identically (relative to ``relative_zero_tol * ||H||_2 * ||A||_2``)
-    or is rejected by ``max_support`` when ``support_policy='drop'``.
+    commutator vanishes identically (relative to ``relative_zero_tol * ||H||_2 * ||A||_2``,
+    status ``"vanished"``), is rejected by ``max_support`` when
+    ``support_policy='drop'`` (``"dropped_support"``), or is nonzero but every
+    coefficient lies below ``MV``'s absolute cutoff, which happens only with
+    ``normalize=False`` (``"underflow"``). Coefficients lost to that cutoff
+    reduce ``retained_l2_fraction`` and are counted in ``underflow_terms``, so
+    the loss counts as truncation however small its weight.
     """
     if phase_mode not in _PHASE_MODES:
         raise ValueError(f"phase_mode must be one of {_PHASE_MODES}, got {phase_mode!r}")
@@ -368,14 +373,23 @@ def commutator_mv(
         scaled = phased
 
     mv = MV(n, scaled)
+    # The commutator already passed the *relative* zero test, so anything MV's
+    # absolute pruning removes now is a nonzero direction lost to underflow, not
+    # a vanishing commutator. Report it as such: counting it as "vanished" would
+    # let a hierarchy claim Lie closure that is not there.
+    scaled_sq = sum(abs(coeff) ** 2 for coeff in scaled.values())
+    kept_fraction = (sum(abs(coeff) ** 2 for coeff in mv.terms.values()) / scaled_sq
+                     if scaled_sq > 0.0 else 0.0)
+    underflow_terms = len(scaled) - len(mv.terms)
     if mv.is_zero():
         return None, {
-            "status": "vanished",
+            "status": "underflow",
             "raw_coeff_norm": raw_coeff_norm,
             "raw_hs_norm": raw_hs_norm,
             "growth_ratio": growth_ratio,
             "raw_support": raw_support,
             "retained_l2_fraction": 0.0,
+            "underflow_terms": underflow_terms,
         }
 
     return mv, {
@@ -384,7 +398,8 @@ def commutator_mv(
         "raw_hs_norm": raw_hs_norm,
         "growth_ratio": growth_ratio,
         "raw_support": raw_support,
-        "retained_l2_fraction": retained_l2,
+        "retained_l2_fraction": retained_l2 * min(1.0, kept_fraction),
+        "underflow_terms": underflow_terms,
     }
 
 
@@ -532,6 +547,15 @@ def nested_commutator_hierarchy(
         if max_support is not None and support_policy == "drop" and supp > max_support:
             d0_dropped += 1
             continue
+        seed_retained = 1.0
+        if max_support is not None and support_policy == "truncate" and supp > max_support:
+            # The same deterministic truncation the deeper levels apply, so the
+            # cap holds at every depth. The lost weight makes the hierarchy
+            # incomplete, as it does for a truncated commutator.
+            kept_terms, seed_retained = _truncate_terms(gen.mv.terms, max_support=max_support)
+            gen = Generator(gen.label, MV(gen.n, kept_terms))
+            coeff_norm = _coeff_l2(gen.mv.terms)
+            incomplete = True
         mw, _ = _max_pauli_weight(gen.n, gen.mv.terms.keys())
         if max_pauli_weight is not None and mw > max_pauli_weight:
             d0_dropped += 1
@@ -565,7 +589,7 @@ def nested_commutator_hierarchy(
                 raw_hs_norm=hs_norm,
                 growth_ratio=1.0,
                 raw_support=supp,
-                retained_l2_fraction=1.0,
+                retained_l2_fraction=seed_retained,
             )
         )
         total_kept += 1
@@ -645,7 +669,8 @@ def nested_commutator_hierarchy(
                 else:
                     dropped += 1
                 continue
-            incomplete |= diag["retained_l2_fraction"] < 1.0 - 1e-12
+            incomplete |= (diag["retained_l2_fraction"] < 1.0 - 1e-12
+                           or diag.get("underflow_terms", 0) > 0)
             mw, _ = _max_pauli_weight(H.n, mv.terms.keys())
             if max_pauli_weight is not None and mw > max_pauli_weight:
                 dropped += 1
@@ -738,8 +763,9 @@ def hierarchy_span_diagnostics(
     )
     active = list(base_indices)
     rows: list[dict[str, Any]] = []
-    prev_rank = bank.solve(active, tau_s=tau_s, max_condition=max_condition).effective_rank
-    prev_energy = bank.solve(active, tau_s=tau_s, max_condition=max_condition).ground_energy
+    initial_solve = bank.solve(active, tau_s=tau_s, max_condition=max_condition)
+    prev_rank = initial_solve.effective_rank
+    prev_energy = initial_solve.ground_energy
 
     for depth, level_nodes in enumerate(hierarchy.levels):
         added = bank.extend([node.generator for node in level_nodes])
@@ -818,12 +844,17 @@ class CommutatorFrontier:
         self.commutators_deduplicated = 0
         self.commutators_dropped_filter = 0
 
+        # A seed equal, up to a scalar, to a generator already in the basis is
+        # not added again, but it is still a parent: its commutators are the
+        # children of a direction the basis already uses.
+        initial_by_key: dict[tuple, int] = {}
         for idx in initial_indices:
             gen = bank.generator(idx)
             self._used_labels.add(gen.label)
             key = scalar_free_key(gen.mv)
             if key is not None:
                 self._seen_keys.add(key)
+                initial_by_key.setdefault(key, idx)
 
         seed_list = as_generators(seeds)
         frontier_by_depth: list[list[int]] = [[] for _ in range(initial_depth + 1)]
@@ -837,6 +868,14 @@ class CommutatorFrontier:
                 else gen.mv
             )
             key = scalar_free_key(mv_store)
+            in_basis = initial_by_key.get(key) if key is not None else None
+            if in_basis is not None:
+                if in_basis not in self.depth_of:
+                    self.depth_of[in_basis] = 0
+                    self.seed_label_of[in_basis] = gen.label
+                    self.parent_of[in_basis] = None
+                    frontier_by_depth[0].append(in_basis)
+                continue
             if deduplicate and (key is None or key in self._seen_keys):
                 continue
             if key is not None:
@@ -856,15 +895,21 @@ class CommutatorFrontier:
                 if child is not None:
                     frontier_by_depth[d + 1].append(child)
 
+    def _label_taken(self, label: str) -> bool:
+        if label in self._used_labels:
+            return True
+        try:
+            self.bank.index_of(label)
+        except KeyError:
+            return False
+        return True
+
     def _unique_label(self, candidate: str) -> str:
-        if candidate not in self._used_labels and candidate not in self.bank.labels:
+        if not self._label_taken(candidate):
             self._used_labels.add(candidate)
             return candidate
         suffix = 1
-        while (
-            f"{candidate}#{suffix}" in self._used_labels
-            or f"{candidate}#{suffix}" in self.bank.labels
-        ):
+        while self._label_taken(f"{candidate}#{suffix}"):
             suffix += 1
         out = f"{candidate}#{suffix}"
         self._used_labels.add(out)
@@ -1008,6 +1053,8 @@ def run_dynamic_commutator_acase(
     else:
         _require_matching_bank(bank, rho, hamiltonian)
 
+    from .information import retained_sector_certificate
+
     if cost_model is not None:
         from .information import (
             qwc_bases_for_words,
@@ -1123,7 +1170,11 @@ def run_dynamic_commutator_acase(
                         )
                         for idx in remaining
                     ]
-                    best_info = select_information_candidate(info_scores)
+                    # The lowering threshold filters before the ratio argmax,
+                    # so a cheap negligible candidate cannot stall the run.
+                    best_info = select_information_candidate(
+                        info_scores, min_lowering=min_lowering,
+                        lowering="risk_adjusted_lowering")
                     return remaining, info_scores, best_info
                 std_scores = [
                     score_candidate(
@@ -1198,12 +1249,10 @@ def run_dynamic_commutator_acase(
                 )
                 break
             if best is None:
-                state = acase_step(
-                    state,
-                    ACASEStepOutcome(
-                        stopped_reason="every candidate rejected (conditioning or sector)"
-                    ),
-                )
+                reason = ("predicted lowering below threshold"
+                          if cost_model is not None and any(s.accepted for s in scores)
+                          else "every candidate rejected (conditioning or sector)")
+                state = acase_step(state, ACASEStepOutcome(stopped_reason=reason))
                 break
             if _effective_lowering(best) < min_lowering:
                 state = acase_step(
@@ -1305,6 +1354,11 @@ def run_dynamic_commutator_acase(
 
     resources = dict(state.result.resources)
     resources.update(bank.resources(state.basis))
+    certificate = retained_sector_certificate(
+        bank, state.basis, leakage_tol=leakage_tol, leakage_mode=leakage_mode,
+        sector_target=sector_target, spin_ordering=spin_ordering)
+    if certificate is not None:
+        resources["sector_certificate"] = certificate
     resources.update(
         {
             "candidate_pool_size": len(frontier.active_pool),
