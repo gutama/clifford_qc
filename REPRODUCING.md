@@ -639,7 +639,7 @@ frame-coordinate comparison above still fails its joint criterion.
 ```bash
 python -m venv .venv && source .venv/bin/activate
 pip install -e .[test,research,stim]       # automatic CI extras
-pytest                                      # 4943 passed, 12 skipped (expected if green)
+pytest                                      # 4948 passed, 12 skipped (expected if green)
 ```
 
 This is the automatic CI dependency set; record gates additionally pin NumPy
@@ -658,7 +658,7 @@ the remaining `12 - 6 = 6` skips are per-test and *are* collected:
 
 ```text
 collected == passed + (skipped - files dropped at collection)
-4949      == 4943   + (12      -   6)
+4954      == 4948   + (12      -   6)
 ```
 
 Both sides are computed from the tree, so a drift in either quoted number
@@ -1701,15 +1701,18 @@ and `--report` prints the tables the study document embeds.
 
 ### Declared target-aware acquisition study
 
-`docs/restart/TARGET_ACQUISITION.md` declares, before any evaluation seed is
+`docs/restart/TARGET_ACQUISITION.md` declared, before any evaluation seed was
 drawn, how Ritz-targeted shot allocation is compared with uniform allocation at
 matched error and how the interval reported by a predeclared stopping rule is
-tested against the exact subspace energy. The producer executes that
-declaration once, under the record environment, and never overwrites a record:
+tested against the exact subspace energy, and now reports the result. The
+record is `docs/restart/target_acquisition_results.json.gz`. The producer
+executed the declaration once, under the record environment; it refuses to
+overwrite that record, so run it only with a different `--output`:
 
 ```bash
-python benchmarks/run_target_acquisition.py --jobs 4
+python benchmarks/run_target_acquisition.py --jobs 4 --output reproductions/target_acquisition.json.gz
 python benchmarks/check_target_acquisition.py --verify-history
+python benchmarks/check_target_acquisition.py --report
 ```
 
 The checker verifies the record against the declaration and the schedule, and

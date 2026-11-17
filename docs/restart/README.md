@@ -32,10 +32,13 @@ energy at 68% and 95%. No construction was calibrated for every estimator. The
 basic bootstrap came closest on the thresholded solves, and the constrained
 ratio's budgets did not transfer to the held-out system.
 
-The [declared target-aware acquisition study](TARGET_ACQUISITION.md) fixes how
-Ritz-targeted shot allocation will be compared with uniform allocation at
-matched error, and how the interval reported by a predeclared stopping rule
-will be tested for coverage. It is declared and not yet run.
+The [declared target-aware acquisition study](TARGET_ACQUISITION.md) compared
+Ritz-targeted shot allocation with uniform allocation at matched error and
+tested the interval reported by a predeclared stopping rule. Targeting was
+never dearer and was 1.4 to 2.7 times cheaper in five of eight cells. The
+stopped interval over-covered on the three four-qubit banks and under-covered
+on the held-out six-qubit bank, where the rule stopped on solves that had
+truncated a direction.
 
 The [preregistered noise-aware selection experiment](NOISE_AWARE_SELECTION.md)
 closed negative on its equal-shot held-out criterion. An independent H4 audit

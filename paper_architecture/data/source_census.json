@@ -7,8 +7,7 @@
       "check_phase16b_v2_preregistration",
       "check_phase16b_v3_feasibility",
       "check_phase16b_v3_preregistration",
-      "check_regenerated_record",
-      "check_target_acquisition"
+      "check_regenerated_record"
     ],
     "automatic_gates": [
       "check_bank_policy_matrix",
@@ -72,6 +71,7 @@
       "check_sparse_ga_kernel",
       "check_sparse_packet_work",
       "check_summaries",
+      "check_target_acquisition",
       "check_warm_start"
     ],
     "classes": {
@@ -105,10 +105,10 @@
       "check_r3d_qr3_refinement"
     ],
     "gates": 81,
-    "named_in_workflow": 73,
+    "named_in_workflow": 74,
     "producers": 78,
     "producers_without_gate": 24,
-    "run_on_every_pull_request": 62,
+    "run_on_every_pull_request": 63,
     "same_stem_pairs": 54
   },
   "records": {
@@ -259,7 +259,7 @@
     },
     "package_lines": 35907,
     "package_modules": 129,
-    "test_lines": 47701,
+    "test_lines": 47771,
     "test_modules": 196
   }
 }

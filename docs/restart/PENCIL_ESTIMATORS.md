@@ -395,6 +395,12 @@ Gaussian delta method is valid at each look. It is asymptotic, not
 anytime-valid and not a certificate. `found.naive_interval` ignores the other
 looks. Without a target every round is spent and the two coincide.
 
+That condition failed in the declared study wherever the solve's truncation
+changed between looks. A solve that drops a direction reports a small standard
+error and a biased energy, and the rule can stop on it. Treat a stopped
+interval from a truncating solve as unvalidated, and check
+`look["retained_rank"]` across the ledger before relying on one.
+
 **Accounting.** `found.shots` counts every physical shot, pilot included, and
 `found.looks` is the ledger. A look that cannot be solved raises
 `AcquisitionError`, which carries the cache and the ledger so the shots
@@ -410,10 +416,26 @@ ordered by raw floats then depends on the eigensolver's last bits.
 breaks ties by group order. It is otherwise the rule of
 `variance_optimal_group_plan`, which is unchanged.
 
-The [declared study](TARGET_ACQUISITION.md) freezes the systems, schedule,
-stopping targets, seeds, estimands and labels before any evaluation seed is
+The [declared study](TARGET_ACQUISITION.md) froze the systems, schedule,
+stopping targets, seeds, estimands and labels before any evaluation seed was
 drawn. Its producer and checker are `benchmarks/run_target_acquisition.py` and
-`benchmarks/check_target_acquisition.py`.
+`benchmarks/check_target_acquisition.py`. Its findings bear on this ladder in
+three ways:
+
+- **Allocation.** At matched error targeting was never dearer than uniform
+  allocation and was 1.4 to 2.7 times cheaper in five of eight
+  system-and-target cells. The two cells of the held-out `xxz4_mixed` were
+  unresolved.
+- **Stopping.** The rule never stopped on a catastrophic solve: the worst error
+  of any stopped run was 0.121, where fixed-look errors reached 130,887. But
+  the stopped interval under-covered on the held-out six-qubit bank (83.2% to
+  93.0% at a nominal 95%), where runs stopped on solves that had truncated a
+  direction. Splitting the error budget over the looks does not cover that
+  bias.
+- **Truncation is the common cause.** On `xxz4_mixed` the default solve
+  retained six directions at every look where the exact rank is five, and
+  neither allocation removed the resulting outliers. Allocation cannot repair
+  a direction the solve should not have retained.
 
 ## Matrix-only replay
 
@@ -498,7 +520,8 @@ interval is widened for every look, and that a failed look keeps its cost. A
 targeted schedule is unchanged by last-bit jitter of the Ritz vector, while the
 raw-float rounding rule is not.
 Existing measured-subspace, response, PRD, and compatibility tests are also
-run. There is no new empirical coverage or matched-error improvement claim.
+run. The tests make no empirical coverage or matched-error claim; those come
+only from the two declared studies.
 
 | Step | Status | Acceptance before a scientific claim |
 | --- | --- | --- |
@@ -506,7 +529,7 @@ run. There is no new empirical coverage or matched-error improvement claim.
 | Fixed-angle rotation and estimator policy | Implemented, opt-in | Independent-angle evaluation and external equal-data replay; data-selected angle inference remains pending |
 | Covariance-aware constrained ratio | Implemented, opt-in, measured path only | Budget fixed before evaluation; a histogram-retaining campaign with tails, failures and below-ground rates; coverage of the rerun-search bootstrap |
 | Interval coverage instrument and declared study | Implemented and [run as declared](INTERVAL_COVERAGE.md) on three four-qubit banks | Molecular banks and realistic noise need their own declared study; a budget rule for the constrained ratio that transfers between systems |
-| Target-aware acquisition | Implemented, opt-in; [study declared](TARGET_ACQUISITION.md), not yet run | Matched-error comparison with uniform allocation and coverage of the stopped interval, run once under the record environment |
+| Target-aware acquisition | Implemented, opt-in, and [run as declared](TARGET_ACQUISITION.md) on four spin banks | A stopping rule that stays valid when the solve's truncation changes between looks; molecular banks and realistic noise need their own declared study |
 | Symmetry pool and SoA kernel work | Pending | Invariant tests, real structured-bank timings, full selection-cache costs at matched error |
 | Hardware bridge, community instances, distribution | Pending | End-to-end local adapter checks, strong classical baselines, reproducible packaging/docs builds |
 

@@ -496,3 +496,73 @@ def test_the_checker_command_line_reports_and_fails_closed(declaration, record, 
     assert checker.main(["--declaration", str(declaration), "--results", str(broken),
                          "--no-replay"]) == 1
     assert "target-acquisition problem(s)" in capsys.readouterr().out
+
+
+# ------------------------------------------------------- the committed record
+
+@pytest.fixture(scope="module")
+def committed():
+    return checker.read_record(producer.RESULTS)
+
+
+def test_the_committed_record_matches_its_declaration(committed):
+    assert checker.structural_problems(committed, producer.DECLARATION) == []
+    declaration = producer.load_declaration()
+    expected = len(declaration["systems"]) * declaration["replicas"] * 2
+    assert len(committed["rows"]) == expected == 3200
+    assert committed["implementation"].keys() == set(producer.IMPLEMENTATION)
+    # The held-out systems were sampled adaptively only under the declared root.
+    assert committed["declaration"]["seed_root"] == 20261117
+    # The record was produced from a clean checkout of the declaration commit.
+    provenance = committed["provenance"]
+    assert provenance["git_dirty"] is False
+    assert provenance["git_sha"] == committed["declaration_commit"]
+
+
+def test_the_committed_record_reports_what_the_document_says(committed):
+    headline = committed["headline"]
+    assert headline["solve_failures"] == 0
+    # Targeting was never dearer at matched error, and cheaper in five of eight cells.
+    verdicts = [found["verdict"] for system in committed["summaries"]
+                for found in system["comparison"]["stopping"].values()]
+    assert verdicts.count("fewer_shots_at_matched_error") == 5
+    assert verdicts.count("no_resolved_difference") == 3
+    assert "more_shots_at_matched_error" not in verdicts
+    # The stopped interval over-covers on the four-qubit banks and fails on the
+    # held-out six-qubit bank.
+    labels = {system["system"]: [stopping["coverage"]["schedule_valid"]["label"]
+                                 for found in system["allocations"].values()
+                                 for stopping in found["stopping"].values()]
+              for system in committed["summaries"]}
+    assert all(labels[key] == ["over"] * 4
+               for key in ("tfim4_orthogonal", "tfim4_mixed", "xxz4_mixed"))
+    assert sorted(labels["tfim6_mixed"]) == ["consistent", "under", "under", "under"]
+    naive = [stopping["coverage"]["naive"]["label"]
+             for system in committed["summaries"] if system["system"] == "tfim6_mixed"
+             for found in system["allocations"].values()
+             for stopping in found["stopping"].values()]
+    assert naive == ["under"] * 4
+
+
+def test_only_rows_with_an_ill_conditioned_look_are_replayed_in_part(committed):
+    partial = [(row["system"], row["allocation"], row["replica"])
+               for row in committed["rows"]
+               if checker.comparable_looks(row) < len(row["fixed"]["ledger"]["energies"])]
+    assert partial == [("tfim6_mixed", "ritz_targeted", 239)]
+
+
+def test_the_study_document_embeds_the_generated_report(committed):
+    document = (producer.ROOT / "docs" / "restart" / "TARGET_ACQUISITION.md").read_text()
+    assert checker.report(committed) in document
+    assert committed["declaration_commit"] in document
+
+
+def test_the_declaration_predates_the_committed_record(committed, environment_skip):
+    import subprocess
+
+    commit = committed["declaration_commit"]
+    present = subprocess.run(["git", "cat-file", "-e", f"{commit}^{{commit}}"],
+                             cwd=producer.ROOT, capture_output=True).returncode == 0
+    if not present:
+        environment_skip("the declaration commit is not in this checkout's history")
+    assert checker.history_problems(committed, producer.DECLARATION, producer.RESULTS) == []
