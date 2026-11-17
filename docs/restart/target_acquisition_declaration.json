@@ -1,0 +1,94 @@
+{
+  "schema": "clifford_qc.target_acquisition_declaration.v1",
+  "declared": "2026-11-16",
+  "question": "How many physical shots does Ritz-targeted allocation need, relative to uniform allocation, to deliver the same error on a measured Ritz value, and does the interval reported when a predeclared stopping rule fires cover at its nominal level?",
+  "target": "exact_subspace_ground_energy",
+  "seed_root": 20261117,
+  "replicas": 400,
+  "delta": 0.05,
+  "summary_confidence": 0.95,
+  "solver_kwargs": {},
+  "allocations": [
+    "uniform",
+    "ritz_targeted"
+  ],
+  "cumulative_shots_per_group": [
+    100,
+    141,
+    200,
+    283,
+    400,
+    566,
+    800,
+    1131,
+    1600,
+    2263,
+    3200,
+    4525,
+    6400,
+    9051,
+    12800,
+    18102,
+    25600,
+    36204,
+    51200
+  ],
+  "target_std_errors": [
+    0.02,
+    0.01
+  ],
+  "systems": [
+    {
+      "key": "tfim4_orthogonal",
+      "role": "development",
+      "model": {
+        "family": "tfim",
+        "n": 4,
+        "J": 1.0,
+        "h": 1.0
+      },
+      "pool_words": 3,
+      "krylov_powers": 0
+    },
+    {
+      "key": "tfim4_mixed",
+      "role": "development",
+      "model": {
+        "family": "tfim",
+        "n": 4,
+        "J": 1.0,
+        "h": 1.0
+      },
+      "pool_words": 6,
+      "krylov_powers": 2
+    },
+    {
+      "key": "xxz4_mixed",
+      "role": "held_out",
+      "model": {
+        "family": "xxz",
+        "n": 4,
+        "J": 1.0,
+        "delta": 0.5
+      },
+      "pool_words": 6,
+      "krylov_powers": 2
+    },
+    {
+      "key": "tfim6_mixed",
+      "role": "held_out",
+      "model": {
+        "family": "tfim",
+        "n": 6,
+        "J": 1.0,
+        "h": 1.0
+      },
+      "pool_words": 6,
+      "krylov_powers": 2
+    }
+  ],
+  "comparison": {
+    "bootstrap_replicates": 2000
+  },
+  "spot_replay_replicas": 2
+}

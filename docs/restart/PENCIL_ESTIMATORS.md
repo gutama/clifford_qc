@@ -337,6 +337,108 @@ for budget in (None, 0.005, 0.01, 0.02, 0.05):
     print(budget, np.median(abs(errors)), abs(errors).max(), (errors < 0).mean())
 ```
 
+## Interval coverage
+
+[`interval_replica` and `summarize_coverage`](../../clifford_qc/subspace/coverage.py)
+measure how often an interval contains a known target over repeated seeded
+measurements. They evaluate the delta-method interval and two grouped-bootstrap
+constructions, percentile and basic, from one set of draws
+(`bootstrap_ritz_samples`). A failed solve or failed interval stays in the
+all-replica denominator. Rates carry Wilson intervals and are split by the
+smallest retained overlap eigenvalue.
+
+The [declared study](INTERVAL_COVERAGE.md) froze the systems, shots, estimator
+arms, seeds, counting rules and labels before any evaluation seed was drawn. Its
+producer and checker are `benchmarks/run_interval_coverage.py` and
+`benchmarks/check_interval_coverage.py`. Its findings bear on this ladder in
+three ways:
+
+- **Repair.** With the default `tau_s`, nearest-correlation repair did not
+  control the catastrophic tail. On the ill-conditioned development bank at
+  2,000 shots its worst error was 144.2, against 50.3 for the unrepaired solve.
+- **Constrained ratio.** Where its budget was attainable it removed that tail
+  (worst error 0.0156), and its basic-bootstrap interval was close to nominal.
+  Its percentile interval was not. The absolute budgets chosen on the
+  development bank were unattainable on the held-out bank. There the search's
+  outcome on a given row also differs between machines, so only its failure
+  rate is a reproducible result.
+- **Intervals.** The basic bootstrap is the better default construction for
+  the thresholded solves: it was never labelled `under` for the default or the
+  repaired solve.
+
+## Target-aware acquisition
+
+[`acquire_ritz`](../../clifford_qc/subspace/acquisition.py) measures a uniform
+pilot of every setting, solves, and spends each further round by Neyman
+allocation on the current Ritz functional `c*(H - E S)c`: shots in proportion
+to the square root of each setting's per-shot variance. `allocation="uniform"`
+is the comparator on the same schedule. Only estimators the delta method
+accepts are supported, since the allocation target and the interval are both
+its Ritz functional.
+
+```python
+from clifford_qc.subspace.acquisition import acquire_ritz
+
+groups = len(shared.groups)
+found = acquire_ritz(shared, backend, pilot_shots_per_group=100,
+                     round_budgets=[100 * groups, 200 * groups, 400 * groups],
+                     target_std_error=0.02)
+print(found.stopped, found.shots, found.interval.lower, found.interval.upper)
+for look in found.looks:
+    print(look["shots"], look["energy"], look["std_error"])
+```
+
+**Stopping semantics.** The pilot size, the round budgets and the target are
+fixed before any shot. The rule "stop when the estimated standard error is at
+most the target" is evaluated only at those predeclared looks.
+`found.interval` splits its error budget over every look at which the run
+could have stopped, so it is valid over the schedule to the extent the
+Gaussian delta method is valid at each look. It is asymptotic, not
+anytime-valid and not a certificate. `found.naive_interval` ignores the other
+looks. Without a target every round is spent and the two coincide.
+
+That condition failed in the declared study wherever the solve's truncation
+changed between looks. A solve that drops a direction reports a small standard
+error and a biased energy, and the rule can stop on it. Treat a stopped
+interval from a truncating solve as unvalidated, and check
+`look["retained_rank"]` across the ledger before relying on one.
+
+**Accounting.** `found.shots` counts every physical shot, pilot included, and
+`found.looks` is the ledger. A look that cannot be solved raises
+`AcquisitionError`, which carries the cache and the ledger so the shots
+already spent are not lost. All data are pooled and each round's allocation
+depends on earlier outcomes, so the estimate carries the bias any adaptive
+design has.
+
+**Reproducible rounding.** The shot counts decide what is sampled next, so one
+shot of rounding changes every later outcome. Settings related by a symmetry
+have weights that are equal in exact arithmetic, and a largest-remainder rule
+ordered by raw floats then depends on the eigensolver's last bits.
+`neyman_group_plan` treats remainders within `1e-6` of a shot as tied and
+breaks ties by group order. It is otherwise the rule of
+`variance_optimal_group_plan`, which is unchanged.
+
+The [declared study](TARGET_ACQUISITION.md) froze the systems, schedule,
+stopping targets, seeds, estimands and labels before any evaluation seed was
+drawn. Its producer and checker are `benchmarks/run_target_acquisition.py` and
+`benchmarks/check_target_acquisition.py`. Its findings bear on this ladder in
+three ways:
+
+- **Allocation.** At matched error targeting was never dearer than uniform
+  allocation and was 1.4 to 2.7 times cheaper in five of eight
+  system-and-target cells. The two cells of the held-out `xxz4_mixed` were
+  unresolved.
+- **Stopping.** The rule never stopped on a catastrophic solve: the worst error
+  of any stopped run was 0.121, where fixed-look errors reached 130,887. But
+  the stopped interval under-covered on the held-out six-qubit bank (83.2% to
+  93.0% at a nominal 95%), where runs stopped on solves that had truncated a
+  direction. Splitting the error budget over the looks does not cover that
+  bias.
+- **Truncation is the common cause.** On `xxz4_mixed` the default solve
+  retained six directions at every look where the exact rank is five, and
+  neither allocation removed the resulting outliers. Allocation cannot repair
+  a direction the solve should not have retained.
+
 ## Matrix-only replay
 
 With the external v3 seed files available, run from the repository root:
@@ -414,15 +516,22 @@ analytic constrained minimum between stationary two-direction starts at three
 error budgets. They
 establish implementation identities on their fixtures, not empirical interval
 coverage or matched-error improvement.
+Acquisition tests check that every declared shot is spent and counted, that a
+stopping rule only truncates the seeded full schedule, that the stopped
+interval is widened for every look, and that a failed look keeps its cost. A
+targeted schedule is unchanged by last-bit jitter of the Ritz vector, while the
+raw-float rounding rule is not.
 Existing measured-subspace, response, PRD, and compatibility tests are also
-run. There is no new empirical coverage or matched-error improvement claim.
+run. The tests make no empirical coverage or matched-error claim; those come
+only from the two declared studies.
 
 | Step | Status | Acceptance before a scientific claim |
 | --- | --- | --- |
 | Diagonal-preserving PSD repair and point replay | Implemented, opt-in | Source-verified external 180-cell replay; assess tails and failures |
 | Fixed-angle rotation and estimator policy | Implemented, opt-in | Independent-angle evaluation and external equal-data replay; data-selected angle inference remains pending |
 | Covariance-aware constrained ratio | Implemented, opt-in, measured path only | Budget fixed before evaluation; a histogram-retaining campaign with tails, failures and below-ground rates; coverage of the rerun-search bootstrap |
-| Coverage and target-aware acquisition | Pending | Frozen 68%/95% study, all failure counts, minimum-retained-overlap strata, valid stopping semantics |
+| Interval coverage instrument and declared study | Implemented and [run as declared](INTERVAL_COVERAGE.md) on three four-qubit banks | Molecular banks and realistic noise need their own declared study; a budget rule for the constrained ratio that transfers between systems |
+| Target-aware acquisition | Implemented, opt-in, and [run as declared](TARGET_ACQUISITION.md) on four spin banks | A stopping rule that stays valid when the solve's truncation changes between looks; molecular banks and realistic noise need their own declared study |
 | Symmetry pool and SoA kernel work | Pending | Invariant tests, real structured-bank timings, full selection-cache costs at matched error |
 | Hardware bridge, community instances, distribution | Pending | End-to-end local adapter checks, strong classical baselines, reproducible packaging/docs builds |
 

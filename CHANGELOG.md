@@ -28,6 +28,18 @@ Benchmark campaigns, their declarations and their outcomes are recorded in
   `S` and `H` coordinate, and `measurement.functionals.covariance_matrix`,
   which computes a covariance matrix in one histogram pass.
 
+  `subspace.coverage` measures empirical interval coverage over repeated
+  measurements (`interval_replica`, `summarize_coverage`, `wilson_interval`),
+  and `subspace.uncertainty.bootstrap_ritz_samples` exposes the bootstrap
+  draws behind `bootstrap_ritz`, whose results are unchanged.
+
+  `subspace.acquisition.acquire_ritz` measures a uniform pilot and then spends
+  predeclared rounds uniformly or by Neyman allocation on the current Ritz
+  functional (`neyman_group_plan`). A stopping target is evaluated only at the
+  predeclared looks, and the interval reported there splits its error budget
+  over every look; the single-look interval is returned beside it. A look that
+  cannot be solved raises `AcquisitionError`, which keeps the shots spent.
+
   Each estimator records its policy, so `bootstrap_ritz(..., result=point)`
   reruns it on resampled histograms. Defaults are unchanged, and no estimator
   claims interval coverage or improved accuracy.

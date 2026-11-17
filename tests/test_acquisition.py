@@ -1,0 +1,439 @@
+"""Target-aware acquisition: the schedule, the stopping rule and its accounting.
+
+The claims worth testing here are bookkeeping claims. Every shot is counted, a
+stopping rule only ever truncates the run it would otherwise have continued,
+and the interval reported at a stopped look pays for every look at which the
+run could have stopped.
+"""
+
+import math
+from statistics import NormalDist
+
+import numpy as np
+import pytest
+
+from benchmarks import run_interval_coverage as coverage_producer
+from clifford_qc.backends.finite_shot import FiniteShotBackend
+from clifford_qc.subspace import acquisition
+from clifford_qc.measurement.allocation import variance_optimal_group_plan
+from clifford_qc.measurement.functionals import WordFunctional, ritz_functional
+from clifford_qc.measurement.grouping import shared_basis
+from clifford_qc.subspace.acquisition import (
+    AcquisitionError, acquire_ritz, neyman_group_plan, uniform_group_plan,
+)
+
+ORTHOGONAL = {"key": "tfim4_orthogonal", "role": "development",
+              "model": {"family": "tfim", "n": 4, "J": 1.0, "h": 1.0},
+              "pool_words": 3, "krylov_powers": 0}
+
+
+@pytest.fixture(scope="module")
+def system():
+    return coverage_producer.build_system(ORTHOGONAL)
+
+
+def run(shared, seed, **kwargs):
+    kwargs.setdefault("pilot_shots_per_group", 100)
+    kwargs.setdefault("round_budgets", [1600, 1600, 3200])
+    return acquire_ritz(shared, FiniteShotBackend(seed=seed), **kwargs)
+
+
+# --------------------------------------------------------------- uniform plan
+
+def test_uniform_plan_spends_the_budget_and_is_constant_within_groups(system):
+    shared, _ = system
+    groups = len(shared.groups)
+    plan = uniform_group_plan(shared.groups, 5 * groups + 3)
+    per_group = [{plan[word.code] for word in group} for group in shared.groups]
+    assert all(len(counts) == 1 for counts in per_group)
+    spent = [next(iter(counts)) for counts in per_group]
+    assert sum(spent) == 5 * groups + 3
+    assert spent == [6] * 3 + [5] * (groups - 3)
+
+
+def test_uniform_plan_smaller_than_the_group_count_leaves_groups_unmeasured(system):
+    shared, _ = system
+    plan = uniform_group_plan(shared.groups, 2)
+    measured = [group for group in shared.groups if group[0].code in plan]
+    assert len(measured) == 2
+    assert set(plan.values()) == {1}
+
+
+@pytest.mark.parametrize("budget", [0, -1, 2.0, True])
+def test_uniform_plan_rejects_invalid_budgets(system, budget):
+    with pytest.raises(ValueError):
+        uniform_group_plan(system[0].groups, budget)
+
+
+def test_uniform_plan_rejects_an_empty_grouping():
+    with pytest.raises(ValueError):
+        uniform_group_plan([], 10)
+
+
+# ---------------------------------------------------------------- Neyman plan
+
+def pilot_functional(shared, seed, shots=100):
+    cache = shared.measure(FiniteShotBackend(seed=seed), shots)
+    point = shared.solve(cache)
+    return cache, ritz_functional(shared.bank, point.indices, point.ritz_vector(0),
+                                  point.energies[0])
+
+
+def group_shots(shared, plan):
+    return [plan.get(group[0].code, 0) for group in shared.groups]
+
+
+def test_neyman_plan_spends_the_budget_in_proportion_to_root_variance(system):
+    shared, _ = system
+    cache, functional = pilot_functional(shared, 41)
+    plan = neyman_group_plan(shared.groups, cache, functional, 100_000)
+    for group in shared.groups:
+        assert len({plan.get(word.code, 0) for word in group}) == 1
+    shots = group_shots(shared, plan)
+    assert sum(shots) == 100_000
+    statistics = cache.candidate_group_statistics(dict(functional.coefficients))
+    roots = [math.sqrt(statistics[key][1]) for key in statistics]
+    assert sorted(shots) == pytest.approx(
+        sorted(100_000 * root / sum(roots) for root in roots), abs=1.0)
+
+
+def test_neyman_plan_is_the_existing_rule_when_nothing_ties(system):
+    shared, _ = system
+    agreed = 0
+    for seed in range(60, 72):
+        cache, functional = pilot_functional(shared, seed)
+        ours = neyman_group_plan(shared.groups, cache, functional, 100_003)
+        theirs = variance_optimal_group_plan(shared.groups, cache, [functional], 100_003)
+        difference = [a - b for a, b in zip(group_shots(shared, ours),
+                                            group_shots(shared, theirs))]
+        # At most the spare shots of a tie move, and they move between settings.
+        assert sum(difference) == 0 and max(map(abs, difference)) <= 1
+        agreed += not any(difference)
+    assert agreed >= 6
+
+
+class TiedStatistics:
+    """A cache stand-in whose last two settings tie up to a relative ``jitter``."""
+
+    def __init__(self, keys, jitter):
+        variances = [4.0, 1.0, 0.25] + [0.01] * (len(keys) - 3)
+        variances[-1] *= 1.0 + jitter
+        self.rows = {key: (100, variance, 2.0) for key, variance in zip(keys, variances)}
+
+    def candidate_group_statistics(self, coefficients):
+        return self.rows
+
+
+def test_neyman_plan_breaks_a_tie_by_group_order_not_by_the_last_bit(system):
+    shared, _ = system
+    _, functional = pilot_functional(shared, 41)
+    keys = [tuple(sorted(shared_basis(tuple(group)).items())) for group in shared.groups]
+    # Root weights 2, 1, 0.5 and five tied at 0.1: of 976 shots the tied
+    # settings are each owed 24.4, and exactly two spare shots are left.
+    plans = [group_shots(shared, neyman_group_plan(
+        shared.groups, TiedStatistics(keys, jitter), functional, 976))
+        for jitter in (0.0, 1e-13, -1e-13)]
+    assert plans[0] == plans[1] == plans[2] == [488, 244, 122, 25, 25, 24, 24, 24]
+
+
+def test_a_targeted_schedule_does_not_depend_on_the_last_bits_of_the_ritz_vector(
+        system, monkeypatch):
+    """Symmetric settings tie; the eigensolver's rounding must not pick the winner.
+
+    Two settings of this bank have weights that are equal in exact arithmetic.
+    Ordering their remainders by raw floats gave a different sample stream
+    under a different BLAS kernel in about one run in ten. The jitter here
+    stands in for that kernel difference.
+    """
+    shared, _ = system
+    groups = len(shared.groups)
+    budgets = [groups * step for step in (41, 59, 83, 117, 166, 234, 331, 469)]
+    exact = acquisition.ritz_functional
+
+    def jittered(seed):
+        noise = np.random.default_rng(seed)
+
+        def functional(*args):
+            found = exact(*args)
+            return WordFunctional({
+                code: value * (1.0 + 1e-13 * noise.standard_normal())
+                for code, value in found.coefficients.items()}, found.constant)
+        return functional
+
+    def spent(seed, jitter):
+        monkeypatch.setattr(acquisition, "ritz_functional",
+                            jittered(jitter) if jitter else exact)
+        result = acquire_ritz(shared, FiniteShotBackend(seed=seed),
+                              pilot_shots_per_group=100, round_budgets=budgets)
+        return [result.cache.shots(group[0].code) for group in shared.groups]
+
+    def legacy(groups, cache, functional, budget):
+        return variance_optimal_group_plan(groups, cache, [functional], budget)
+
+    seeds = range(9000, 9060)
+    assert all(spent(seed, 0) == spent(seed, 1) == spent(seed, 2) for seed in seeds)
+    monkeypatch.setattr(acquisition, "neyman_group_plan", legacy)
+    assert any(spent(seed, 0) != spent(seed, 1) for seed in seeds)
+
+
+def test_neyman_plan_of_a_deterministic_functional_is_empty(system):
+    shared, _ = system
+    cache, _ = pilot_functional(shared, 43)
+    assert neyman_group_plan(shared.groups, cache, WordFunctional({}, 1.0), 100) == {}
+
+
+def test_neyman_plan_needs_a_pilot_and_a_positive_integer_budget(system):
+    shared, _ = system
+    cache, functional = pilot_functional(shared, 47)
+    with pytest.raises(ValueError, match="pilot"):
+        neyman_group_plan(shared.groups, shared.new_cache(), functional, 100)
+    for budget in (0, -3, 1.5, True):
+        with pytest.raises(ValueError):
+            neyman_group_plan(shared.groups, cache, functional, budget)
+
+
+def test_neyman_plan_with_no_variance_anywhere_falls_back_to_equal_shares(system):
+    shared, _ = system
+    cache, functional = pilot_functional(shared, 53)
+    flat = {key: (count, 0.0, width)
+            for key, (count, _, width) in cache.candidate_group_statistics(
+                dict(functional.coefficients)).items()}
+
+    class Flat:
+        def candidate_group_statistics(self, coefficients):
+            return flat
+
+    shots = group_shots(shared, neyman_group_plan(shared.groups, Flat(), functional, 803))
+    touched = [count for count in shots if count]
+    assert sum(shots) == 803 and max(touched) - min(touched) <= 1
+    assert touched == sorted(touched, reverse=True)
+
+
+# ------------------------------------------------------------------- schedule
+
+@pytest.mark.parametrize("allocation", acquisition.ALLOCATIONS)
+def test_a_full_schedule_spends_exactly_the_declared_shots(system, allocation):
+    shared, _ = system
+    groups = len(shared.groups)
+    result = run(shared, 3, allocation=allocation)
+    assert result.stopped == "schedule_exhausted"
+    assert result.allocation == allocation
+    assert [look["shots"] for look in result.looks] == [
+        100 * groups, 100 * groups + 1600, 100 * groups + 3200, 100 * groups + 6400]
+    assert result.shots == result.looks[-1]["shots"] == result.cache.total_shots
+    assert [look["stopped"] for look in result.looks] == [False, False, False, True]
+    assert [look["look"] for look in result.looks] == [0, 1, 2, 3]
+    assert result.std_error == result.looks[-1]["std_error"] == result.interval.std_error
+    assert result.result.ground_energy == result.looks[-1]["energy"]
+    assert all(look["retained_rank"] >= 1 for look in result.looks)
+    assert all(0.0 < look["smallest_retained_overlap"] <= 1.5 for look in result.looks)
+
+
+def test_without_a_stopping_rule_the_interval_is_the_single_look_interval(system):
+    shared, _ = system
+    result = run(shared, 5)
+    assert result.schedule["interval_family"] == 1
+    assert result.schedule["target_std_error"] is None
+    assert (result.interval.lower, result.interval.upper) == (
+        result.naive_interval.lower, result.naive_interval.upper)
+    # The radius uses each group's sample variance and the reported standard
+    # error its population variance, so they agree to a factor near N/(N-1).
+    radius = (result.interval.upper - result.interval.lower) / 2
+    assert radius == pytest.approx(NormalDist().inv_cdf(1 - 0.05 / 2) * result.std_error,
+                                   rel=0.02)
+    assert radius > NormalDist().inv_cdf(1 - 0.05 / 2) * result.std_error
+
+
+def test_both_allocations_read_the_same_pilot(system):
+    shared, _ = system
+    uniform = run(shared, 7, allocation="uniform")
+    targeted = run(shared, 7, allocation="ritz_targeted")
+    assert uniform.looks[0] == {**targeted.looks[0]}
+    assert uniform.looks[1]["energy"] != targeted.looks[1]["energy"]
+    assert uniform.shots == targeted.shots
+
+
+def test_targeted_rounds_put_more_shots_where_the_ritz_value_is_sensitive(system):
+    shared, _ = system
+    uniform = run(shared, 7, allocation="uniform")
+    targeted = run(shared, 7, allocation="ritz_targeted")
+
+    def per_group(result):
+        return [result.cache.shots(group[0].code) for group in shared.groups]
+
+    assert len(set(per_group(uniform))) == 1
+    assert len(set(per_group(targeted))) > 1
+    assert sum(per_group(targeted)) == sum(per_group(uniform)) == targeted.shots
+    # No setting is ever measured below its pilot.
+    assert min(per_group(targeted)) >= 100
+
+
+# ------------------------------------------------------------------- stopping
+
+def test_a_stopping_rule_only_truncates_the_full_schedule(system):
+    shared, _ = system
+    full = run(shared, 11)
+    sigmas = [look["std_error"] for look in full.looks]
+    assert sigmas[0] > sigmas[2] > sigmas[3]
+    target = (sigmas[1] + sigmas[2]) / 2 if sigmas[1] > sigmas[2] else sigmas[2] * 1.0001
+    stop_at = next(i for i, sigma in enumerate(sigmas) if sigma <= target)
+    assert 0 < stop_at < 3
+
+    stopped = run(shared, 11, target_std_error=target)
+    assert stopped.stopped == "target_met"
+    assert len(stopped.looks) == stop_at + 1
+    for early, late in zip(stopped.looks, full.looks):
+        assert {**early, "stopped": None} == {**late, "stopped": None}
+    assert stopped.looks[-1]["stopped"] is True
+    assert stopped.shots == full.looks[stop_at]["shots"] < full.shots
+    assert stopped.std_error <= target
+
+
+def test_the_stopped_interval_pays_for_every_look_it_could_have_stopped_at(system):
+    shared, _ = system
+    stopped = run(shared, 11, target_std_error=1.0)
+    looks = len(stopped.schedule["round_budgets"]) + 1
+    assert stopped.schedule["interval_family"] == looks == 4
+    naive = (stopped.naive_interval.upper - stopped.naive_interval.lower) / 2
+    valid = (stopped.interval.upper - stopped.interval.lower) / 2
+    assert valid / naive == pytest.approx(
+        NormalDist().inv_cdf(1 - 0.05 / (2 * looks)) / NormalDist().inv_cdf(1 - 0.05 / 2),
+        rel=1e-9)
+    assert valid > naive
+    assert stopped.interval.estimate == stopped.naive_interval.estimate
+    assert not stopped.interval.certified
+
+
+def test_a_target_met_by_the_pilot_spends_only_the_pilot(system):
+    shared, _ = system
+    stopped = run(shared, 13, target_std_error=10.0)
+    assert stopped.stopped == "target_met"
+    assert len(stopped.looks) == 1
+    assert stopped.shots == 100 * len(shared.groups)
+
+
+def test_an_unreachable_target_exhausts_the_schedule_and_still_pays_for_its_looks(system):
+    shared, _ = system
+    full = run(shared, 17)
+    stopped = run(shared, 17, target_std_error=1e-9)
+    assert stopped.stopped == "schedule_exhausted"
+    assert stopped.shots == full.shots
+    assert stopped.result.ground_energy == full.result.ground_energy
+    assert stopped.schedule["interval_family"] == 4
+    assert (stopped.interval.upper - stopped.interval.lower) > (
+        full.interval.upper - full.interval.lower)
+    assert (stopped.naive_interval.lower, stopped.naive_interval.upper) == (
+        full.interval.lower, full.interval.upper)
+
+
+def test_a_target_met_only_at_the_last_look_is_reported_as_met(system):
+    shared, _ = system
+    full = run(shared, 17)
+    sigmas = [look["std_error"] for look in full.looks]
+    assert sigmas[-1] < min(sigmas[:-1])
+    stopped = run(shared, 17, target_std_error=sigmas[-1])
+    assert stopped.stopped == "target_met"
+    assert stopped.shots == full.shots and len(stopped.looks) == len(full.looks)
+
+
+def test_the_stopping_look_is_the_first_at_or_below_the_target(system):
+    shared, _ = system
+    full = run(shared, 19)
+    exact = full.looks[2]["std_error"]
+    stopped = run(shared, 19, target_std_error=exact)
+    assert stopped.looks[-1]["std_error"] <= exact
+    assert all(look["std_error"] > exact for look in stopped.looks[:-1])
+
+
+def test_a_deterministic_functional_ends_the_schedule_without_spending(system, monkeypatch):
+    shared, _ = system
+    monkeypatch.setattr(acquisition, "neyman_group_plan", lambda *args, **kwargs: {})
+    result = run(shared, 23)
+    assert result.stopped == "deterministic"
+    assert result.shots == 100 * len(shared.groups)
+    assert len(result.looks) == 1 and result.looks[0]["stopped"] is True
+
+
+# ------------------------------------------------------------------- failures
+
+def test_a_look_that_cannot_be_solved_reports_the_shots_already_spent(system, monkeypatch):
+    shared, _ = system
+    solve = type(shared).solve
+    calls = {"count": 0}
+
+    def failing(self, cache, **kwargs):
+        calls["count"] += 1
+        if calls["count"] == 3:
+            raise np.linalg.LinAlgError("no retained mode")
+        return solve(self, cache, **kwargs)
+
+    monkeypatch.setattr(type(shared), "solve", failing)
+    with pytest.raises(AcquisitionError, match="look 2 could not be solved") as caught:
+        run(shared, 29)
+    error = caught.value
+    assert error.shots == 100 * len(shared.groups) + 3200
+    assert len(error.looks) == 2
+    assert error.cache.total_shots == error.shots
+    assert isinstance(error.__cause__, np.linalg.LinAlgError)
+
+
+def test_a_root_the_solve_did_not_retain_is_a_failure_with_its_cost(system):
+    shared, _ = system
+    excited = run(shared, 37, root=1)
+    ground = run(shared, 37, root=0)
+    assert excited.looks[0]["energy"] > ground.looks[0]["energy"]
+    with pytest.raises(AcquisitionError, match="fewer than root 9 needs") as caught:
+        run(shared, 37, root=9)
+    assert caught.value.shots == 100 * len(shared.groups) and caught.value.looks == ()
+
+
+@pytest.mark.parametrize("kwargs", [
+    {"pilot_shots_per_group": 0}, {"pilot_shots_per_group": 2.5},
+    {"pilot_shots_per_group": True}, {"round_budgets": []},
+    {"round_budgets": [100, 0]}, {"round_budgets": [100.0]},
+    {"allocation": "neyman"}, {"target_std_error": 0.0},
+    {"target_std_error": -1.0}, {"target_std_error": math.inf},
+    {"target_std_error": math.nan}, {"target_std_error": True},
+    {"target_std_error": "small"}, {"delta": 0.0}, {"delta": 1.0},
+    {"root": -1}, {"root": 0.0}, {"root": True},
+    {"solver_kwargs": {"overlap_repair": "nearest_correlation"}},
+    {"solver_kwargs": {"pencil_angle": 0.1}},
+    {"solver_kwargs": {"ratio_error_budget": 0.01}},
+])
+def test_invalid_schedules_are_rejected_before_any_shot(system, kwargs):
+    shared, _ = system
+
+    class NoShots:
+        def sample_grouped_from_state(self, *args, **kwargs):
+            raise AssertionError("a rejected schedule must not sample")
+
+    arguments = {"pilot_shots_per_group": 100, "round_budgets": [800], **kwargs}
+    with pytest.raises(ValueError):
+        acquire_ritz(shared, NoShots(), **arguments)
+
+
+def test_solver_policy_is_passed_to_every_look(system):
+    shared, _ = system
+    result = run(shared, 31, solver_kwargs={"calibrate_overlap": True})
+    assert result.schedule["solver_kwargs"] == {"calibrate_overlap": True}
+    assert result.result.estimator_parameters["calibrate_overlap"] is True
+
+
+# ------------------------------------------------------------------ behaviour
+
+def test_targeting_lowers_the_error_at_matched_shots_on_a_well_conditioned_bank(system):
+    shared, design = system
+    errors = {allocation: np.array([
+        run(shared, 4000 + seed, allocation=allocation,
+            round_budgets=[4800, 9600]).result.ground_energy - design["target"]
+        for seed in range(48)]) for allocation in acquisition.ALLOCATIONS}
+    mse = {allocation: float(np.mean(values ** 2)) for allocation, values in errors.items()}
+    assert mse["ritz_targeted"] < 0.75 * mse["uniform"]
+
+
+def test_the_estimated_standard_error_tracks_the_spread_under_targeting(system):
+    shared, _ = system
+    runs = [run(shared, 5000 + seed, round_budgets=[4800, 9600]) for seed in range(48)]
+    spread = float(np.std([r.result.ground_energy for r in runs], ddof=1))
+    claimed = float(np.sqrt(np.mean([r.std_error ** 2 for r in runs])))
+    assert claimed == pytest.approx(spread, rel=0.3)
