@@ -639,7 +639,7 @@ frame-coordinate comparison above still fails its joint criterion.
 ```bash
 python -m venv .venv && source .venv/bin/activate
 pip install -e .[test,research,stim]       # automatic CI extras
-pytest                                      # 4956 passed, 12 skipped (expected if green)
+pytest                                      # 4960 passed, 12 skipped (expected if green)
 ```
 
 This is the automatic CI dependency set; record gates additionally pin NumPy
@@ -658,7 +658,7 @@ the remaining `12 - 6 = 6` skips are per-test and *are* collected:
 
 ```text
 collected == passed + (skipped - files dropped at collection)
-4962      == 4956   + (12      -   6)
+4966      == 4960   + (12      -   6)
 ```
 
 Both sides are computed from the tree, so a drift in either quoted number
@@ -1700,6 +1700,11 @@ and `--report` prints the tables the study document embeds.
 `--verify-history` needs the published commit ancestry. The constrained-ratio
 rows of the held-out bank are compared by seeds and shots only: its budget is
 unattainable there, and how the search then ends differs between machines.
+
+Both study checkers replay only while every bound source matches the record or
+has its execution-time bytes packaged under
+`benchmarks/provenance/execution_sources/<declaration commit>/`. To edit a bound
+source, package its old bytes there in the same change; the tests fail otherwise.
 
 ### Declared target-aware acquisition study
 

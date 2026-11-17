@@ -16,9 +16,10 @@ Five things are checked, in this order:
 
 The replay runs only where it can mean something: under the library versions
 that drew the record's shots, and while the recorded implementation digests
-still match the live sources. Otherwise the reason is printed (``EVOLVED`` for
-a changed source) and the structural checks stand alone; ``--require-replay``
-turns that into a failure. ``--verify-history`` additionally proves from Git
+still match the live sources, or a source that changed has its execution-time
+bytes packaged under ``benchmarks/provenance/execution_sources``. Otherwise the
+reason is printed (``EVOLVED`` for a changed source) and the structural checks
+stand alone; ``--require-replay`` turns that into a failure. ``--verify-history`` additionally proves from Git
 that the declaration was committed before the record existed.
 
     python benchmarks/check_target_acquisition.py --verify-history
@@ -249,13 +250,41 @@ def replay_problems(record: dict, *, replicas: int | None) -> tuple[list[str], i
     return problems, compared
 
 
+# A bound source may change after its record was produced only if the bytes it
+# had then are packaged here, under the record's declaration commit, as for the
+# other records in this repository. Editing a bound file is then a deliberate,
+# reviewable act and cannot happen by drift.
+EXECUTION_SOURCES = ROOT / "benchmarks" / "provenance" / "execution_sources"
+
+
+def source_drift(record: dict) -> tuple[list[str], list[str]]:
+    """Bound sources whose live bytes differ from the record's: packaged, unexplained.
+
+    A packaged source's recorded digest is held against its snapshot, and the
+    replay still has to reproduce every compared row with the live code. An
+    unexplained one blocks the replay.
+    """
+    live = producer.implementation_digests()
+    commit = str(record.get("declaration_commit", ""))
+    base = (EXECUTION_SOURCES / commit
+            if len(commit) == 40 and all(c in "0123456789abcdef" for c in commit) else None)
+    packaged: list[str] = []
+    unexplained: list[str] = []
+    for relative, digest in sorted(record.get("implementation", {}).items()):
+        if live.get(relative) == digest:
+            continue
+        snapshot = None if base is None else base / relative
+        if snapshot is not None and snapshot.is_file() and sha256(snapshot) == digest:
+            packaged.append(relative)
+        else:
+            unexplained.append(relative)
+    return packaged, unexplained
+
+
 def replay_blockers(record: dict) -> list[str]:
     """Reasons a replay could not reproduce the record even if nothing is wrong."""
     blockers = list(sampling_stream_mismatch(record, packages=("numpy", "scipy")))
-    live = producer.implementation_digests()
-    for relative, digest in sorted(record.get("implementation", {}).items()):
-        if live.get(relative) != digest:
-            blockers.append(f"EVOLVED {relative}")
+    blockers.extend(f"EVOLVED {relative}" for relative in source_drift(record)[1])
     return blockers
 
 
@@ -422,6 +451,10 @@ def main(argv=None) -> int:
         problems.extend(history_problems(record, args.declaration, args.results))
     replayed = "not requested"
     if not problems and not args.no_replay:
+        packaged = source_drift(record)[0]
+        if packaged:
+            print("NOTE EVOLVED since execution; recorded bytes verified from the packaged "
+                  f"snapshot at {record['declaration_commit'][:12]}: {', '.join(packaged)}")
         blockers = replay_blockers(record)
         if blockers:
             for blocker in blockers:

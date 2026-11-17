@@ -7,6 +7,7 @@ record which no longer follows from its declaration or its schedule.
 """
 
 import copy
+import hashlib
 import json
 import types
 
@@ -453,6 +454,27 @@ def test_replay_is_blocked_by_an_evolved_source(record):
     assert "EVOLVED clifford_qc/subspace/acquisition.py" in checker.replay_blockers(record)
 
 
+def test_an_edited_bound_source_replays_only_with_its_packaged_snapshot(record, tmp_path,
+                                                                           monkeypatch):
+    relative = "clifford_qc/subspace/acquisition.py"
+    monkeypatch.setattr(checker, "EXECUTION_SOURCES", tmp_path)
+    record["implementation"][relative] = "f" * 64
+    assert checker.source_drift(record) == ([], [relative])
+    assert f"EVOLVED {relative}" in checker.replay_blockers(record)
+    snapshot = tmp_path / record["declaration_commit"] / relative
+    snapshot.parent.mkdir(parents=True)
+    snapshot.write_bytes(b"the bytes the record was produced with")
+    record["implementation"][relative] = hashlib.sha256(snapshot.read_bytes()).hexdigest()
+    assert checker.source_drift(record) == ([relative], [])
+    assert not any(blocker.startswith("EVOLVED") for blocker in checker.replay_blockers(record))
+    # A snapshot that is not the recorded bytes explains nothing.
+    snapshot.write_bytes(b"some other bytes")
+    assert checker.source_drift(record) == ([], [relative])
+    # Nor does a declaration commit that is not a commit name.
+    record["declaration_commit"] = "../" + record["declaration_commit"][3:]
+    assert checker.source_drift(record) == ([], [relative])
+
+
 def test_history_check_reports_an_unknown_declaration_commit(record):
     problems = checker.history_problems(record, producer.DECLARATION, producer.RESULTS)
     assert problems == [f"declaration commit {'0' * 40!r} is not in this repository's history"]
@@ -559,6 +581,14 @@ def test_only_rows_with_an_ill_conditioned_look_are_replayed_in_part(committed):
                for row in committed["rows"]
                if checker.comparable_looks(row) < len(row["fixed"]["ledger"]["energies"])]
     assert partial == [("tfim6_mixed", "ritz_targeted", 239)]
+
+
+def test_every_bound_source_edited_since_the_run_is_packaged(committed):
+    # An edit to a bound source without its execution-time bytes would turn the
+    # gate's replay off without failing it. Packaging the snapshot keeps it on.
+    packaged, unexplained = checker.source_drift(committed)
+    assert unexplained == []
+    assert set(packaged) <= set(producer.IMPLEMENTATION)
 
 
 def test_the_study_document_embeds_the_generated_report(committed):

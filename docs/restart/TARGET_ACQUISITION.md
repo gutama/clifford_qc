@@ -347,6 +347,15 @@ producing machine. No row was bitwise equal and none failed the checker's
 comparison. The largest relative difference in any ledger energy was `7.4e-9`.
 This is one machine and one alternative kernel, not a guarantee for every CPU.
 
+Two bound sources, `clifford_qc/subspace/coverage.py` and
+`clifford_qc/subspace/uncertainty.py`, were edited after this record was
+produced: an unavailable root now becomes a reported failure instead of an
+`IndexError`. Their bytes at the declaration commit are packaged under
+`benchmarks/provenance/execution_sources/f8358f87aa28539ca397b6e7a8074bbc90ea9b20/`, and the checker holds the
+recorded digests against that snapshot. The replay then runs with the edited
+code and still has to reproduce every row it compares, which it does. A bound
+source edited without such a snapshot turns the replay off, and a test fails.
+
 ### Tables
 
 Cost of reaching a declared standard error. Ratios are uniform over targeted, so above one means targeting is cheaper:

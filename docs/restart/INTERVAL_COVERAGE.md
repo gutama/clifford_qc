@@ -356,3 +356,12 @@ a note when it does. The rule is read from the record: a searching arm with
 any failed solve in a cell. Every other row is regenerated as declared. This
 narrows the replay the declaration describes, which regenerates the first two
 replicas of every cell.
+
+Two bound sources, `clifford_qc/subspace/coverage.py` and
+`clifford_qc/subspace/uncertainty.py`, were edited after this record was
+produced: an unavailable root now becomes a reported failure instead of an
+`IndexError`. Their bytes at the declaration commit are packaged under
+`benchmarks/provenance/execution_sources/c3129bbeb19d110cc1a16d4a059f7d66baa5dec2/`, and the checker holds the
+recorded digests against that snapshot. The replay then runs with the edited
+code and still has to reproduce every row it compares, which it does. A bound
+source edited without such a snapshot turns the replay off, and a test fails.
